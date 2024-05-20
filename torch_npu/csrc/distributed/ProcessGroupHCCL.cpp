@@ -18,6 +18,7 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -1153,17 +1154,30 @@ int64_t ProcessGroupHCCL::getHcclComm(int rankid)
 }
 
 std::string ProcessGroupHCCL::getHcclCommName(int rankid) {
-  at::Device device = getDeviceForRank(rankid);
-  std::vector<at::Device> devices = {device};
-  const auto key = getKeyFromDevices(devices);
-  auto& hcclComms = getHCCLComm(key, devices);
-  TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
-      hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
-  HcclComm ret_hcom = hcclComms[0]->getHcclComm();
-  char commName[MAX_GROUP_NAME_LEN];
-  HCCL_CHECK_ERROR(at_npu::hccl::HcclGetCommNameFace(ret_hcom, commName));
-  std::string name_str(commName);
-  return name_str;
+    TORCH_CHECK(rankid >= 0, "Invalid rank ", rankid, DIST_ERROR(ErrCode::VALUE));
+    auto numNPUs = c10_npu::device_count();
+    TORCH_CHECK(numNPUs > 0, "Invalid device number", numNPUs, DIST_ERROR(ErrCode::VALUE));
+    c10::DeviceIndex indexFromRank = static_cast<c10::DeviceIndex>(rankid % numNPUs);
+    c10::DeviceIndex indexFromCurDevice = c10_npu::current_device();
+    if (indexFromRank != indexFromCurDevice) {
+        std::string warning_message = "The indexFromRank " + std::to_string(indexFromRank) +
+        "is not equal indexFromCurDevice " + std::to_string(indexFromCurDevice) +
+        " , which might be normal if the number of devices on your collective communication server is inconsistent." +
+        "Otherwise, you need to check if the current device is correct when calling the interface." +
+        "If it's incorrect, it might have introduced an error.";
+        TORCH_WARN_ONCE(warning_message);
+    }
+
+    at::Device device = at::Device(c10::DeviceType::PrivateUse1, indexFromCurDevice);
+    std::vector<at::Device> devices = {device};
+    const auto key = getKeyFromDevices(devices);
+    auto& hcclComms = getHCCLComm(key, devices);
+    TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
+        hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
+    HcclComm hcom = hcclComms[0]->getHcclComm();
+    char commName[MAX_GROUP_NAME_LEN] = {};
+    HCCL_CHECK_ERROR(at_npu::hccl::HcclGetCommNameFace(hcom, commName));
+    return std::string(commName);
 }
 
 std::string ProcessGroupHCCL::getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
