@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import warnings
 import importlib
 
@@ -57,6 +58,7 @@ class _LazyTorchair:
     def __init__(self):
         self._torchair = None
         self._exception = None
+        self._allowed_list = ["__spec__", "__path__"]
 
     def __getattr__(self, name):
         if self._exception is not None:
@@ -64,6 +66,10 @@ class _LazyTorchair:
 
         if self._torchair is not None:
             return getattr(self._torchair, name)
+
+        if name not in self._allowed_list:
+            raise AttributeError(f"Try to get torchair's attr `{name}` before torchair is initialized."
+                                    + self._pta_error_code())
 
         try:
             from . import torchair
@@ -76,6 +82,16 @@ class _LazyTorchair:
 
         self._torchair = torchair
         return getattr(torchair, name)
+
+    def _pta_error_code(self):
+        # Use static error code here because pta_error will lazy init the torch_npu's submodule,
+        # which will cause error in `for loop` of sys.modules, code like:
+        # - for m in sys.modules.values():
+        # -     getattr(m, name, None)
+        error_msg = "\n[ERROR] {time} (PID:{pid}, Device:-1, RankID:-1) ERR00005 PTA internal error"
+        return error_msg.format(
+            time=time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()),
+            pid=os.getpid())
 
 
 def _get_default_backend():
