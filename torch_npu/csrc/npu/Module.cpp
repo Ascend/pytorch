@@ -214,6 +214,13 @@ PyObject* THNPModule_getDeviceCount_wrap(PyObject* self, PyObject* noargs)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_getLocalDevice_wrap(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    return PyLong_FromLong(c10_npu::GetLocalDevice());
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args)
 {
     HANDLE_TH_ERRORS
@@ -777,6 +784,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_synchronize", (PyCFunction)THNPModule_npuSynchronize, METH_NOARGS, nullptr},
     {"_npu_setDevice", (PyCFunction)THNPModule_setDevice_wrap, METH_O, nullptr},
     {"_npu_getDevice", (PyCFunction)THNPModule_getDevice_wrap, METH_NOARGS, nullptr},
+    {"_npu_getLocalDevice", (PyCFunction)THNPModule_getLocalDevice_wrap, METH_NOARGS, nullptr},
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
     {"_npu_canDeviceAccessPeer", (PyCFunction)THNPModule_npuCanDeviceAccessPeer_wrap, METH_VARARGS, nullptr},
     {"_npu_getDeviceUtilizationRate", (PyCFunction)THNPModule_getDeviceUtilizationRate_wrap, METH_O, nullptr},
