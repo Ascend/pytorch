@@ -76,41 +76,49 @@ def gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
         _warn_not_in_group("gather")
         return None
     my_rank = get_rank()
-    if my_rank == dst:
-        warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
+
     _validate_output_list_for_rank(my_rank, dst, gather_list)
     group_size = _get_group_size(group)
     recv_size_list = [None for _ in range(group_size)] if my_rank != dst else \
         [tensor.size() for tensor in gather_list]
-    # To handle tensors of different shape on each rank, update recv shape first.
-    dist.broadcast_object_list(recv_size_list, dst, group)
-    if not gather_list:
-        gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
 
-    output_tensors = [gather_list]
     input_tensors = [tensor]
     opts = GatherOptions()
     opts.rootRank = dst
     if group is None or group is GroupMember.WORLD:
         default_pg = _get_default_group()
         backend_str = get_backend(default_pg)
-        if backend_str == "hccl":
+        if 'hccl' in backend_str:
+            if my_rank == dst:
+                warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
+            # To handle tensors of different shape on each rank, update recv shape first.
+            dist.broadcast_object_list(recv_size_list, dst, group)
+            if not gather_list:
+                gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
+
+            output_tensors = [gather_list]
             _group = default_pg._get_backend(torch.device("npu"))
             work = _group.allgather(output_tensors, input_tensors)
         else:
-            if dst != get_rank():
-                output_tensors = []
+            output_tensors = [gather_list] if dst == my_rank else []
             default_pg = _get_default_group()
             work = default_pg.gather(output_tensors, input_tensors, opts)
     else:
         backend_str = get_backend(group)
-        if backend_str == 'hccl':
+        if 'hccl' in backend_str:
+            if my_rank == dst:
+                warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
+            # To handle tensors of different shape on each rank, update recv shape first.
+            dist.broadcast_object_list(recv_size_list, dst, group)
+            if not gather_list:
+                gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
+
+            output_tensors = [gather_list]
             _group = group._get_backend(torch.device("npu"))
             work = _group.allgather(output_tensors, input_tensors)
         else:
             group_dst_rank = get_group_rank(group, dst)
-            if dst != get_rank():
-                output_tensors = []
+            output_tensors = [gather_list] if dst == my_rank else []
             opts.rootRank = group_dst_rank
             work = group.gather(output_tensors, input_tensors, opts)
     if async_op:
