@@ -194,6 +194,7 @@ static void initNPUStreamsOnce() {
     // Inits current streams (thread local) to default streams
     current_streams = std::make_unique<LeakyStreamInternals* []>(num_npus);
     for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
+        default_streams[i].device_index = i;
         current_streams[i] = &default_streams[i];
     }
 }
