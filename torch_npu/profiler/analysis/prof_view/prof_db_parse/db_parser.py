@@ -6,6 +6,7 @@ from ...prof_common_func.path_manager import ProfilerPathManager
 from ...prof_common_func.file_manager import FileManager
 from ...prof_common_func.constant import Constant, DbConstant, TableColumnsManager, print_error_msg, print_warn_msg
 from ...prof_common_func.db_manager import DbManager
+from ...prof_common_func.host_info import _get_host_info
 from ..base_parser import BaseParser
 from ...profiler_config import ProfilerConfig
 
@@ -30,6 +31,8 @@ class DbParser(BaseParser):
                 shutil.move(cann_db_path, self._ascend_db_path)
             self.create_ascend_db()
             self.save_rank_info_to_db()
+            self.save_host_info_to_db()
+            DbManager.destroy_db_connect(self._conn, self._cur)
         except RuntimeError:
             print_error_msg("Failed to generate ascend_pytorch_profiler db file.")
             DbManager.destroy_db_connect(self._conn, self._cur)
@@ -61,4 +64,10 @@ class DbParser(BaseParser):
             return
         DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_RANK_DEVICE_MAP, TableColumnsManager.TableColumns.get(DbConstant.TABLE_RANK_DEVICE_MAP))
         DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_RANK_DEVICE_MAP, [[ProfilerConfig().rank_id, ProfilerPathManager.get_device_id(self._cann_path)]])
-        DbManager.destroy_db_connect(self._conn, self._cur)
+    
+    def save_host_info_to_db(self):
+        if DbManager.judge_table_exist(self._cur, DbConstant.TABLE_HOST_INFO):
+            return
+        host_info = _get_host_info()
+        DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_HOST_INFO, TableColumnsManager.TableColumns.get(DbConstant.TABLE_HOST_INFO))
+        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_HOST_INFO, [[host_info.get('host_uid'), host_info.get('host_name')]])
