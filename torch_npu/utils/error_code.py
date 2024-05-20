@@ -47,9 +47,8 @@ class ErrCode(Enum):
 def _format_error_msg(submodule, error_code):
     def get_device_id():
         try:
-            from torch_npu.npu import current_device
-            device = current_device()
-            return device
+            import torch_npu._C
+            return torch_npu._C._npu_getLocalDevice()
         except Exception:
             return -1
 
