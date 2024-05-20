@@ -23,67 +23,68 @@ namespace torch_npu {
 namespace profiler {
 
 PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
-  auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
-  if (!torch_npu_C_module) {
-      return nullptr;
-  }
-  auto torch_npu_C_m = py::handle(torch_npu_C_module).cast<py::module>();
-  auto m = torch_npu_C_m.def_submodule("_profiler", "_profiler bindings");
+    auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
+    if (!torch_npu_C_module) {
+        return nullptr;
+    }
+    auto torch_npu_C_m = py::handle(torch_npu_C_module).cast<py::module>();
+    auto m = torch_npu_C_m.def_submodule("_profiler", "_profiler bindings");
 
-  py::enum_<NpuActivityType>(m, "ProfilerActivity")
-      .value("CPU", NpuActivityType::CPU)
-      .value("NPU", NpuActivityType::NPU);
+    py::enum_<NpuActivityType>(m, "ProfilerActivity")
+        .value("CPU", NpuActivityType::CPU)
+        .value("NPU", NpuActivityType::NPU);
 
-  py::class_<ExperimentalConfig>(m, "_ExperimentalConfig")
-      .def(
-          py::init<std::string, std::string, bool, bool>(),
-          py::arg("trace_level") = "Level0",
-          py::arg("metrics") = "ACL_AICORE_NONE",
-          py::arg("l2_cache") = false,
-          py::arg("record_op_args") = false
-      )
-      .def(py::pickle(
-          [](const ExperimentalConfig& p) {
-              return py::make_tuple(p.trace_level, p.metrics, p.l2_cache, p.record_op_args);
-          },
-          [](py::tuple t) {
-              if (t.size() < 4) {
-                  throw std::runtime_error("Expected atleast 3 values in state" + PROF_ERROR(ErrCode::PARAM));
-              }
-              return ExperimentalConfig(
-                  t[0].cast<std::string>(),
-                  t[1].cast<std::string>(),
-                  t[2].cast<bool>(),
-                  t[3].cast<bool>()
-              );
-          }
-      ));
+    py::class_<ExperimentalConfig>(m, "_ExperimentalConfig")
+        .def(
+            py::init<std::string, std::string, bool, bool>(),
+            py::arg("trace_level") = "Level0",
+            py::arg("metrics") = "ACL_AICORE_NONE",
+            py::arg("l2_cache") = false,
+            py::arg("record_op_args") = false
+        )
+        .def(py::pickle(
+            [](const ExperimentalConfig& p) {
+                return py::make_tuple(p.trace_level, p.metrics, p.l2_cache, p.record_op_args);
+            },
+            [](py::tuple t) {
+                if (t.size() < 4) {
+                    throw std::runtime_error("Expected atleast 3 values in state" + PROF_ERROR(ErrCode::PARAM));
+                }
+                return ExperimentalConfig(
+                    t[0].cast<std::string>(),
+                    t[1].cast<std::string>(),
+                    t[2].cast<bool>(),
+                    t[3].cast<bool>()
+                );
+            }
+        ));
 
-  py::class_<NpuProfilerConfig>(m, "NpuProfilerConfig")
-      .def(py::init<std::string, bool, bool, bool, bool, bool, ExperimentalConfig>());
+    py::class_<NpuProfilerConfig>(m, "NpuProfilerConfig")
+        .def(py::init<std::string, bool, bool, bool, bool, bool, ExperimentalConfig>());
 
-  m.def("_supported_npu_activities", []() {
-    std::set<NpuActivityType> activities {
-      NpuActivityType::CPU,
-      NpuActivityType::NPU
-    };
-    return activities;
-  });
-  m.def("_init_profiler", initNpuProfiler);
-  m.def("_start_profiler",
+    m.def("_supported_npu_activities", []() {
+        std::set<NpuActivityType> activities {
+            NpuActivityType::CPU,
+            NpuActivityType::NPU
+        };
+        return activities;
+    });
+    m.def("_init_profiler", initNpuProfiler);
+    m.def("_start_profiler",
         &startNpuProfiler,
         py::arg("config"),
         py::arg("activities"),
         py::arg("scopes") = std::unordered_set<at::RecordScope>());
-  m.def("_stop_profiler", stopNpuProfiler);
-  m.def("_finalize_profiler", finalizeNpuProfiler);
-  m.def("_get_freq", at_npu::native::getFreq);
-  m.def("_get_syscnt_enable", at_npu::native::isSyscntEnable);
-  m.def("_get_syscnt", torch_npu::toolkit::profiler::Utils::getClockSyscnt);
-  m.def("_get_monotonic", torch_npu::toolkit::profiler::Utils::GetClockMonotonicRawNs);
+    m.def("_stop_profiler", stopNpuProfiler);
+    m.def("_finalize_profiler", finalizeNpuProfiler);
+    m.def("_get_freq", at_npu::native::getFreq);
+    m.def("_get_syscnt_enable", at_npu::native::isSyscntEnable);
+    m.def("_get_syscnt", torch_npu::toolkit::profiler::Utils::getClockSyscnt);
+    m.def("_get_monotonic", torch_npu::toolkit::profiler::Utils::GetClockMonotonicRawNs);
+    m.def("_get_host_uid", torch_npu::toolkit::profiler::Utils::GetHostUid);
 
-  torch_npu::profiler::python_tracer::init();
-  Py_RETURN_TRUE;
+    torch_npu::profiler::python_tracer::init();
+    Py_RETURN_TRUE;
 }
 
 // autograd methods on torch._C
@@ -94,7 +95,7 @@ static PyMethodDef TorchProfilerMethods[] = { // NOLINT
 
 
 PyMethodDef* profiler_functions() {
-  return TorchProfilerMethods;
+    return TorchProfilerMethods;
 }
 
 }
