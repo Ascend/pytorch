@@ -267,10 +267,7 @@ FormatShape InferShapeNDToNZ(c10::IntArrayRef dims, size_t itemsize)
 
     // float32 will cast to float16
     auto itemsize_ = (itemsize > 2) ? 2 : itemsize;
-    auto lastSize = BLOCKSIZE;
-    if (c10_npu::option::OptionsManager::IsInt8FormatNZEnable()) {
-        lastSize = BLOCKBYTES / itemsize_;
-    }
+    auto lastSize = BLOCKBYTES / itemsize_;
     res.emplace_back((dim[i + 1] + lastSize - 1) / lastSize);
     res.emplace_back((dim[i] + BLOCKSIZE - 1) / BLOCKSIZE);
     res.emplace_back(BLOCKSIZE);
