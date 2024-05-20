@@ -168,6 +168,8 @@ public:
         static thread_local uint64_t pid = static_cast<uint64_t>(getpid());
         return pid;
     }
+
+    static uint64_t GetHostUid();
 };
 } // profiler
 } // toolkit

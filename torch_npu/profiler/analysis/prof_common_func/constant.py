@@ -286,6 +286,8 @@ class DbConstant():
 
     # rank device map table name
     TABLE_RANK_DEVICE_MAP = "RANK_DEVICE_MAP"
+    # host info
+    TABLE_HOST_INFO = "HOST_INFO"
 
     # analyzer table name
     TABLE_ANALYZER_BANDWIDTH = "CommAnalyzerBandwidth"
@@ -413,5 +415,9 @@ class TableColumnsManager():
             ("bubble", Constant.SQL_NUMERIC_TYPE),
             ("communication_not_overlapped_and_exclude_receive", Constant.SQL_NUMERIC_TYPE),
             ("preparing", Constant.SQL_NUMERIC_TYPE)
+        ],
+        DbConstant.TABLE_HOST_INFO : [
+            ('hostUid', Constant.SQL_INTEGER_TYPE),
+            ('hostName', Constant.SQL_TEXT_TYPE)
         ]
     }
