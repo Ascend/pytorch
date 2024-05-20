@@ -32,7 +32,6 @@ class TestCppExtensionAOT(TestCase):
         self.assertEqual(npu_z.cpu(), (x + y))
 
     def test_storage_sizes(self):
-        os.environ['INT8_FORMAT_NZ_ENABLE'] = '1'
         t = torch_npu.npu_format_cast(torch.ones(128, 512, dtype=torch.int8).npu(), 29)
         self.assertTrue(npu_extension.check_storage_sizes(t, (16, 8, 16, 32)))
         t = torch_npu.npu_format_cast(torch.ones(31, 127, 511, dtype=torch.int8).npu(), 29)
