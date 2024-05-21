@@ -92,6 +92,9 @@ public:
     // Checks if the HCCL kernel has started to execute.
     bool isStarted();
 
+    std::shared_ptr<bool> is_dispatched = std::make_shared<bool>(false);
+    bool is_reported = false;
+
     // Checks if request has completed. In this specific case of HCCL, it checks
     // if the HCCL operation has completed on the NPU in its own HCCL stream.
     // Non-blocking operation.
@@ -118,6 +121,8 @@ public:
     // Helper function that returns True if the WorkHCCL object has timed out
     // and False otherwise.
     bool timedOut();
+
+    void checkDispatch();
 
     // Extend tensors lifecycle to work.synchronize, the tensors is local
     // variable and recordStream.  
