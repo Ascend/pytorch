@@ -24,7 +24,8 @@ SLOW_TEST_BLOCKLIST = [
     'test_ops_gradients',
     'test_reductions',
     'test_unary_ufuncs',
-    'test_ops_jit'
+    'test_ops_jit',
+    'test_fx_op_consistency.py'
 ]
 
 # exclude some not run directly test files
