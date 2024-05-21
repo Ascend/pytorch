@@ -6,6 +6,7 @@
 #include <vector>
 #include <sys/time.h>
 #include <unistd.h>
+#include <sstream>
 #include <iostream>
 
 #include "torch_npu/csrc/core/npu/NPUStream.h"
@@ -349,6 +350,21 @@ NPUStatus emptyAllNPUStream() {
     }
   }
   return SUCCESS;
+}
+
+std::string getRepoInfo()
+{
+    std::stringstream repo_info;
+    for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
+        auto& default_streamsi = default_streams[i];
+        if (default_streamsi.stream == nullptr) {
+            continue;
+        }
+        if (default_streamsi.stream != nullptr &&default_streamsi.repo->CheckInit()) {
+            repo_info << "device " << (int)i << ": " << default_streamsi.repo->GetPara() << ". ";
+        }
+    }
+    return repo_info.str();
 }
 
 bool npuSynchronizeDevice(bool check_error) {

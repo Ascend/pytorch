@@ -66,6 +66,7 @@ public:
   virtual NPUStatus MakeSureQueueEmpty() = 0;
   virtual void InitRepo(c10::DeviceIndex device_id) = 0;
   virtual bool CheckInit() const = 0;
+  virtual std::string GetPara() = 0;
 };
 
 class NPUQueueFactoryBase {
@@ -86,6 +87,7 @@ public:
   NPUStatus MakeSureQueueEmpty() override;
   void InitRepo(c10::DeviceIndex device_id) override;
   bool CheckInit() const override;
+  std::string GetPara() override;
 
 private:
   void ReleaseResource();
