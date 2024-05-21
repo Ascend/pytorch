@@ -247,7 +247,9 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
     workStartTime_(w.workStartTime_),
     seq_(w.seq_),
     startTraceUpdated_(w.startTraceUpdated_),
-    store_(w.store_)
+    store_(w.store_),
+    is_dispatched(w.is_dispatched),
+    is_reported(w.is_reported)
 {
     exception_ = w.exception_;
 }
@@ -371,6 +373,40 @@ bool ProcessGroupHCCL::WorkHCCL::checkTimeout(c10::optional<std::chrono::millise
         std::make_exception_ptr(std::runtime_error(exceptionMsg));
     setException(exception_ptr);
     return true;
+}
+
+std::chrono::milliseconds GetDispatchTimeout()
+{
+    uint32_t dispatchTimeout_ = 600U;
+    uint32_t dispatchoffset = 30U;
+    uint32_t mindispatchTimeout_ = 120U;
+
+    uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
+    if (hccl_exec_timeout > 0) {
+        if (hccl_exec_timeout < dispatchTimeout_ + dispatchoffset && hccl_exec_timeout > mindispatchTimeout_ + dispatchoffset) {
+            dispatchTimeout_ = hccl_exec_timeout - dispatchoffset;
+        };
+    };
+    ASCEND_LOGI("set dispatchTimeout_ %u s.", dispatchTimeout_);
+    return std::chrono::milliseconds(dispatchTimeout_ * 1000U);
+}
+
+std::chrono::milliseconds dispatchTimeout_ = GetDispatchTimeout();
+
+void ProcessGroupHCCL::WorkHCCL::checkDispatch()
+{
+    if (!*is_dispatched && !is_reported) {
+        auto currentTimepoint = std::chrono::steady_clock::now();
+        auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTimepoint - workStartTime_);
+        if (timeElapsed > dispatchTimeout_) {
+            std::string repo_info = c10_npu::getRepoInfo();
+            ASCEND_LOGE("Process group work %s, seq_num %u dispatch timeout. %s", opTypeToString(opType_).c_str(), seq_, repo_info.c_str());
+            is_reported = true;
+        }
+    } else if (*is_dispatched && is_reported) {
+        ASCEND_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(opType_).c_str(), seq_);
+        is_reported = false;
+    }
 }
 
 void ProcessGroupHCCL::WorkHCCL::synchronize() {
@@ -757,6 +793,7 @@ void ProcessGroupHCCL::workCleanupLoop()
                 needSetDevice = false;
             }
             work.checkAndSetException();
+            work.checkDispatch();
             bool timedOut = work.checkTimeout();
 
             // If work hits an exception (either an error or timeout)
@@ -797,6 +834,10 @@ void ProcessGroupHCCL::workCleanupLoop()
 
             // Clean up completed work
             if (work.isCompleted()) {
+                if (*(work.is_dispatched) && work.is_reported) {
+                    ASCEND_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(work.opType_).c_str(), work.seq_);
+                    work.is_reported = false;
+                }
                 it = workMetaList_.erase(it);
             } else {
                 // Increment the iterator if the current WorkHCCL object is not
@@ -1287,7 +1328,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
             // insert sync point fluxLimit(key, i)
             c10_npu::NPUStream& hcclStream = hcclStreams[i];
             hcclUs startut = TIME_NOW();
-            HCCL_CHECK_ERROR(fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream), opTypeToString(opType).c_str());
+            HCCL_CHECK_ERROR(fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream, work->is_dispatched), opTypeToString(opType).c_str());
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
                 work->recorded_outputs_.push_back(
                     std::make_pair(outputs[i].storage().getWeakStorageImpl(), hcclStream));
@@ -1347,7 +1388,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
     return collective(
         tensors_cp,
         tensors_cp,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             aclrtSetExceptionInfoCallback(exceptionCallback);
 
             auto hcclType = getHcclDataType(input.scalar_type());
@@ -1358,9 +1399,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream]() -> int {
-                return HcclAllReduce(
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = HcclAllReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclAllreduce");
@@ -1395,7 +1438,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
     return collective(
         tensors_tmp,
         tensors_tmp,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             RECORD_FUNCTION("HcclBatchSendRecv", std::vector<c10::IValue>({input}));
 			auto itemNum = static_cast<uint32_t>(op_type.size());
 			std::vector<void *> tensor_ptr_list;
@@ -1406,7 +1449,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
 			    numel_list.push_back(getNumelForHCCL(tensors[i]));
 			    type_list.push_back(getHcclDataType(tensors[i].scalar_type()));
 			}
-			auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list, op_type, itemNum, comm, stream]() -> int {
+			auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list, op_type, itemNum, comm, stream, is_dispatched]() -> int {
 				HcclSendRecvItem sendRecvInfo[itemNum];
 			    HcclSendRecvType currType;
 			    for (size_t i = 0; i < op_type.size(); ++i) {
@@ -1424,7 +1467,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
 			                                           remote_rank_list[i]
 			                                           };
 			    }
-			    return hcclBatchIsendIrecv(sendRecvInfo, itemNum, comm, stream.stream(false));
+			    auto hccl_result = hcclBatchIsendIrecv(sendRecvInfo, itemNum, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
 			};
 			at_npu::native::OpCommand cmd;
             cmd.Name("HcclBatchSendRecv");
@@ -1444,15 +1489,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
     return collective(
         tensors,
         tensors,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             RECORD_FUNCTION("HcclBroadcast", std::vector<c10::IValue>({input}));
             const auto root = opts.rootRank * tensors.size() + opts.rootTensor;
 
             auto inputDataPtr = input.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, numel, hcclType, root, comm, stream]() -> int {
-                return HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream(false));
+            auto hccl_call = [inputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclBroadcast");
@@ -1481,7 +1528,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
     return collective(
         tensors_cp,
         tensors_cp,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             auto hcclType = getHcclDataType(input.scalar_type());
             checkSupportedDataTypeOfAllReduce(hcclType);
             RECORD_FUNCTION("HcclReduce", std::vector<c10::IValue>({input}));
@@ -1490,9 +1537,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto reduceOp = getHcclReduceOp(opts.reduceOp, input);
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream]() -> int {
-                return hcclReduce(
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = hcclReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclReduce");
@@ -1577,7 +1626,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
         return collective(
             byte_alignment_inputTensors_,
             outputFlattened,
-            [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+            [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
                 RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
 
                 if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
@@ -1587,8 +1636,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                 auto outputDataPtr = output.data_ptr();
                 auto numel = getNumelForHCCL(input);
                 auto hcclType = getHcclDataType(input.scalar_type());
-                auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream]() -> int {
-                    return HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+                auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched]() -> int {
+                    auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+                    *is_dispatched = true;
+                    return hccl_result;
                 };
                 at_npu::native::OpCommand cmd;
                 cmd.Name("HcclAllgather");
@@ -1650,14 +1701,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
             auto work = collective(
                 outputs_multi_dev,
                 outputs_multi_dev,
-                [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+                [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
                 RECORD_FUNCTION("HcclBroadcast", std::vector<c10::IValue>({input}));
                 const auto root = broadcastOpts.rootRank * inputs_multi_dev.size() + broadcastOpts.rootTensor;
 
                 auto inputDataPtr = input.data_ptr();
                 auto numel = getNumelForHCCL(input);
                 auto hcclType = getHcclDataType(input.scalar_type());
-                return HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream());
+                auto hccl_result = HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream());
+                *is_dispatched = true;
+                return hccl_result;
                 },
                 c10d::OpType::BROADCAST);
             works.push_back(work);
@@ -1684,7 +1737,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
     return collective(
         inputTensors_,
         outputTensors,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             RECORD_FUNCTION("HcclAllgatherTogather", std::vector<c10::IValue>({input}));
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
                 c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
@@ -1693,8 +1746,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream]() -> int {
-                return HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclAllGather");
@@ -1728,7 +1783,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
     return collective(
         inputTensors_,
         outputTensors,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             RECORD_FUNCTION("HcclAllgatherBase", std::vector<c10::IValue>({input}));
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
                 c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
@@ -1737,8 +1792,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream]() -> int {
-                return HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclAllGather");
@@ -1765,7 +1822,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
     return collective(
         inputFlattened,
         outputTensors,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             auto hcclType = getHcclDataType(input.scalar_type());
             checkSupportedDataTypeOfAllReduce(hcclType);
             RECORD_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
@@ -1776,9 +1833,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream]() -> int {
-                return HcclReduceScatter(
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = HcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclReduceScatter");
@@ -1830,7 +1889,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
     return collective(
         inputs,
         outputs,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
                 c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
             }
@@ -1841,9 +1900,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclReduceOp = hcclOp[opts.reduceOp];
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream]() -> int {
-                return HcclReduceScatter(
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = HcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclReduceScatter");
@@ -1945,7 +2006,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
     return collective(
         inputFlattened,
         outputTensors,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             RECORD_FUNCTION("HcclScatter", std::vector<c10::IValue>({input}));
             const auto root = opts.rootRank;
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
@@ -1955,8 +2016,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream]() -> int {
-                return hcclScatter(inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream.stream(false));
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = hcclScatter(inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclScatter");
@@ -1996,13 +2059,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
     return collective(
         tensors_,
         tensors_,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             RECORD_FUNCTION("HcclSend", std::vector<c10::IValue>({input}));
             auto inputDataPtr = input.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, numel, hcclType, dstRank, comm, stream]() -> int {
-                return HcclSend(inputDataPtr, numel, hcclType, dstRank, comm, stream.stream(false));
+            auto hccl_call = [inputDataPtr, numel, hcclType, dstRank, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = HcclSend(inputDataPtr, numel, hcclType, dstRank, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclSend");
@@ -2021,7 +2086,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
     return collective(
         tensors,
         tensors_,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             RECORD_FUNCTION("HcclRecv", std::vector<c10::IValue>({input}));
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
                 c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
@@ -2029,8 +2094,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclType = getHcclDataType(output.scalar_type());
-            auto hccl_call = [outputDataPtr, numel, hcclType, srcRank, comm, stream]() -> int {
-                return HcclRecv(outputDataPtr, numel, hcclType, srcRank, comm, stream.stream(false));
+            auto hccl_call = [outputDataPtr, numel, hcclType, srcRank, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType, srcRank, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclRecv");
@@ -2114,9 +2181,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
             [&](at::Tensor& input,
                 at::Tensor& output,
                 HcclComm comm,
-                c10_npu::NPUStream& stream) {
-                RECORD_FUNCTION("HcclAlltoAll", std::vector<c10::IValue>({input}));
-                    return hcclAlltoAll(
+                c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+                    RECORD_FUNCTION("HcclAlltoAll", std::vector<c10::IValue>({input}));
+                    auto hccl_result = hcclAlltoAll(
                         input.data_ptr(),
                         input_counts,
                         getHcclDataType(input.scalar_type()),
@@ -2125,6 +2192,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                         getHcclDataType(output.scalar_type()),
                         comm,
                         stream.stream());
+                    *is_dispatched = true;
+                    return hccl_result;
                 },
             [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
             [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
@@ -2189,7 +2258,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
         return collective(
             inputTensors_,
             outputTensors_,
-            [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+            [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
                 RECORD_FUNCTION("HcclAlltoAllV", std::vector<c10::IValue>({input}));
                 auto inputDataPtr = input.data_ptr();
                 auto outputDataPtr = output.data_ptr();
@@ -2204,8 +2273,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                                   outputSpl,
                                   outputhcclDataType,
                                   comm,
-                                  stream]() -> int {
-                    return hcclAlltoAllV(
+                                  stream,
+                                  is_dispatched]() -> int {
+                    auto hccl_result = hcclAlltoAllV(
                         inputDataPtr,
                         inputCounts.data(),
                         inputSpl.data(),
@@ -2216,6 +2286,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                         outputhcclDataType,
                         comm,
                         stream.stream(false));
+                    *is_dispatched = true;
+                    return hccl_result;
                 };
                 at_npu::native::OpCommand cmd;
                 cmd.Name("HcclAlltoAllV");
@@ -2307,7 +2379,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
     return collective(
         input_tensors_,
         output_tensors_,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             RECORD_FUNCTION("HcclAlltoAllV", std::vector<c10::IValue>({input}));
             auto inputDataPtr = input.data_ptr();
             auto outputDataPtr = output.data_ptr();
@@ -2322,8 +2394,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                               output_spl,
                               outputhcclDataType,
                               comm,
-                              stream]() -> int {
-                return hcclAlltoAllV(
+                              stream,
+                              is_dispatched]() -> int {
+                auto hccl_result = hcclAlltoAllV(
                     inputDataPtr,
                     input_counts.data(),
                     input_spl.data(),
@@ -2334,6 +2407,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                     outputhcclDataType,
                     comm,
                     stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
             };
             at_npu::native::OpCommand cmd;
             cmd.Name("HcclAlltoAllV");

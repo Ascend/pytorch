@@ -102,6 +102,9 @@ public:
         // Checks if the HCCL kernel has started to execute.
         bool isStarted();
 
+        std::shared_ptr<bool> is_dispatched = std::make_shared<bool>(false);
+        bool is_reported = false;
+
         // Checks if request has completed. In this specific case of HCCL, it checks
         // if the HCCL operation has completed on the NPU in its own HCCL stream.
         // Non-blocking operation.
@@ -138,6 +141,8 @@ public:
         // and False otherwise.
         // In case of timeout, set exception on the WorkHCCL object.
         bool checkTimeout(c10::optional<std::chrono::milliseconds> timeout = c10::nullopt);
+
+        void checkDispatch();
 
     protected:
         // The cached list of NPU devices to operate on.
