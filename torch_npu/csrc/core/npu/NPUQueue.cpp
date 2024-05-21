@@ -536,6 +536,17 @@ void Repository::InitRepo(c10::DeviceIndex device_id) {
   releaseQueue.InitReleaseQueue();
 }
 
+std::string Repository::GetPara()
+{
+    if (IsEmptyQueue()) {
+        return "EmptyQueue";
+    }
+    __sync_synchronize();
+    std::string repo_para = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
+    __sync_synchronize();
+    return repo_para;
+}
+
 static constexpr size_t kReleaseQueueCapacity = 8192;
 bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
 {
