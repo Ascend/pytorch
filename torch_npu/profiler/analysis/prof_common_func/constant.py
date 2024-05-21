@@ -311,8 +311,8 @@ class TableColumnsManager():
             ("stackDepth", Constant.SQL_INTEGER_TYPE)
         ],
         DbConstant.TABLE_RANK_DEVICE_MAP : [
-            ("rank_id", Constant.SQL_INTEGER_TYPE),
-            ("device_id", Constant.SQL_INTEGER_TYPE)
+            ("rankId", Constant.SQL_INTEGER_TYPE),
+            ("deviceId", Constant.SQL_INTEGER_TYPE)
         ],
         DbConstant.TABLE_PYTORCH_API : [
             ("startNs", Constant.SQL_TEXT_TYPE),
@@ -328,29 +328,29 @@ class TableColumnsManager():
         ],
         DbConstant.TABLE_MEMORY_RECORD : [
             ("component", Constant.SQL_INTEGER_TYPE),
-            ("time_stamp", Constant.SQL_INTEGER_TYPE),
-            ("total_allocated", Constant.SQL_INTEGER_TYPE),
-            ("total_reserved", Constant.SQL_INTEGER_TYPE),
-            ("total_active", Constant.SQL_INTEGER_TYPE),
-            ("stream_ptr", Constant.SQL_INTEGER_TYPE),
-            ("device_id", Constant.SQL_INTEGER_TYPE)
+            ("timestamp", Constant.SQL_INTEGER_TYPE),
+            ("totalAllocated", Constant.SQL_INTEGER_TYPE),
+            ("totalReserved", Constant.SQL_INTEGER_TYPE),
+            ("totalActive", Constant.SQL_INTEGER_TYPE),
+            ("streamPtr", Constant.SQL_INTEGER_TYPE),
+            ("deviceId", Constant.SQL_INTEGER_TYPE)
         ],
         DbConstant.TABLE_OPERATOR_MEMORY : [
             ("name", Constant.SQL_INTEGER_TYPE),
             ("size", Constant.SQL_INTEGER_TYPE),
-            ("allocation_time", Constant.SQL_INTEGER_TYPE),
-            ("release_time", Constant.SQL_INTEGER_TYPE),
-            ("active_release_time", Constant.SQL_INTEGER_TYPE),
+            ("allocationTime", Constant.SQL_INTEGER_TYPE),
+            ("releaseTime", Constant.SQL_INTEGER_TYPE),
+            ("activeReleaseTime", Constant.SQL_INTEGER_TYPE),
             ("duration", Constant.SQL_INTEGER_TYPE),
-            ("active_duration", Constant.SQL_INTEGER_TYPE),
-            ("allocation_total_allocated", Constant.SQL_INTEGER_TYPE),
-            ("allocation_total_reserved", Constant.SQL_INTEGER_TYPE),
-            ("allocation_total_active", Constant.SQL_INTEGER_TYPE),
-            ("release_total_allocated", Constant.SQL_INTEGER_TYPE),
-            ("release_total_reserved", Constant.SQL_INTEGER_TYPE),
-            ("release_total_active", Constant.SQL_INTEGER_TYPE),
-            ("stream_ptr", Constant.SQL_INTEGER_TYPE),
-            ("device_id", Constant.SQL_INTEGER_TYPE),
+            ("activeDuration", Constant.SQL_INTEGER_TYPE),
+            ("allocationTotalAllocated", Constant.SQL_INTEGER_TYPE),
+            ("allocationTotalReserved", Constant.SQL_INTEGER_TYPE),
+            ("allocationTotalActive", Constant.SQL_INTEGER_TYPE),
+            ("releaseTotalAllocated", Constant.SQL_INTEGER_TYPE),
+            ("releaseTotalReserved", Constant.SQL_INTEGER_TYPE),
+            ("releaseTotalActive", Constant.SQL_INTEGER_TYPE),
+            ("streamPtr", Constant.SQL_INTEGER_TYPE),
+            ("deviceId", Constant.SQL_INTEGER_TYPE),
         ],
         DbConstant.TABLE_ANALYZER_BANDWIDTH : [
             ("hccl_op_name", Constant.SQL_TEXT_TYPE),
