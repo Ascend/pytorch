@@ -79,3 +79,6 @@ test/jit/test_warn.py
 test/jit/test_with.py
 test/functorch/common_utils.py
 test/functorch/functorch_additional_op_db.py
+test/test_jit_string.py
+test/test_jit_simple.py
+test/test_jit_profiling.py
