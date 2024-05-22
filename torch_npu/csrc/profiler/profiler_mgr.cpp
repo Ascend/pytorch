@@ -24,6 +24,7 @@ std::map<std::string, uint64_t> ProfilerMgr::trace_level_map_ = {
     {"Level0", Level0},
     {"Level1", Level1},
     {"Level2", Level2},
+    {"Level_none", Level_none},
 };
 
 ProfilerMgr::ProfilerMgr()
@@ -31,6 +32,7 @@ ProfilerMgr::ProfilerMgr()
       npu_trace_(false),
       record_op_args_(false),
       profile_memory_(false),
+      msprof_tx_(false),
       profConfig_(nullptr) {}
 
 void ProfilerMgr::Init(const std::string &path, bool npu_trace) {
@@ -70,6 +72,9 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
     if (npu_config.l2_cache) {
       datatype_config |= ACL_PROF_L2CACHE;
     }
+        if (npu_config.msprof_tx) {
+            datatype_config |= ACL_PROF_MSPROFTX;
+        }
     if (npu_config.npu_memory) {
       datatype_config |= ACL_PROF_TASK_MEMORY;
       const std::string freq = "50";
@@ -98,6 +103,7 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
     report_enable_.store(true);
     profile_memory_.store(npu_config.npu_memory);
   }
+    msprof_tx_.store(npu_config.msprof_tx);
   if (npu_config.record_op_args) {
     record_op_args_.store(true);
     const std::string op_dump_path = std::string(path_.begin(), path_.begin() + path_.find_last_not_of("/") + 1) +
@@ -122,6 +128,7 @@ void ProfilerMgr::Stop() {
     }
     profConfig_ = nullptr;
   }
+    msprof_tx_.store(false);
   if (record_op_args_.load() == true) {
     at_npu::native::AclopStopDumpArgs(ACL_OP_DUMP_OP_AICORE_ARGS);
     record_op_args_.store(false);

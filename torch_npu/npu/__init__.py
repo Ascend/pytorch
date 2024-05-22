@@ -102,7 +102,8 @@ __all__ = [
     "math_sdp_enabled",
     "mem_efficient_sdp_enabled",
     "preferred_linalg_library",
-    "sdp_kernel"
+    "sdp_kernel",
+    "mstx"
 ]
 
 from typing import Tuple, Union
@@ -122,7 +123,7 @@ from .utils import (synchronize, device_count, can_device_access_peer, set_devic
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
                     utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag, mem_get_info)
 from .streams import Stream, Event
-
+from .mstx import mstx
 from .npu_config import *  # noqa: F403
 from .autocast_utils import *  # noqa: F403
 from .backends import *  # noqa: F403
