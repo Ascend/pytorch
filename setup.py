@@ -33,6 +33,7 @@ PathManager.check_directory_path_readable(os.path.join(BASE_DIR, "version.txt"))
 with open(os.path.join(BASE_DIR, "version.txt")) as version_f:
     VERSION = version_f.read().strip()
 UNKNOWN = "Unknown"
+VERSION = '2.2.0.post1'
 BUILD_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
 
 DISABLE_TORCHAIR = "FALSE"
