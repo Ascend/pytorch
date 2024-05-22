@@ -297,14 +297,19 @@ public:
         std::vector<at::Tensor>& tensors,
         const c10d::AllreduceOptions& opts = c10d::AllreduceOptions()) override;
 
-    c10::intrusive_ptr<c10d::Work>allreduce_coalesced(
+    c10::intrusive_ptr<c10d::Work> allreduce_coalesced(
         std::vector<at::Tensor>& tensors,
         const c10d::AllreduceCoalescedOptions& opts =
             c10d::AllreduceCoalescedOptions()) override;
 
-    c10::intrusive_ptr<c10d::Work>reduce(
+    c10::intrusive_ptr<c10d::Work> reduce(
         std::vector<at::Tensor>& tensors,
         const c10d::ReduceOptions& opts = c10d::ReduceOptions()) override;
+
+    c10::intrusive_ptr<c10d::Work> _reduce_oop(
+        at::Tensor& outputTensors,
+        at::Tensor& inputTensors,
+        const c10d::ReduceOptions& opts = c10d::ReduceOptions());
 
     c10::intrusive_ptr<c10d::Work>batch_isend_irecv(
 	    std::vector<std::string>& op_type,
