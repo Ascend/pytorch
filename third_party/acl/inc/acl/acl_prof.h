@@ -175,6 +175,17 @@ MSVP_PROF_API aclError aclprofModelUnSubscribe(uint32_t modelId);
 
 /**
  * @ingroup AscendCL
+ * @brief Record markEx timestamp
+ *
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ */
+MSVP_PROF_API aclError aclprofMarkEx(const char *msg, size_t msgLen, aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
  * @brief create subscribe config
  *
  * @param  timeInfoSwitch [IN] switch whether get time info from model
