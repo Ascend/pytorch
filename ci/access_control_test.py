@@ -58,7 +58,8 @@ class AccurateTest(metaclass=ABCMeta):
         else:
             files = output.split('\n')
             for ut_file in files:
-                if ut_file.endswith(".py"):
+                ut_file_basename = os.path.basename(ut_file)
+                if ut_file_basename.startswith("test") and ut_file.endswith(".py"):
                     ut_files.append(ut_file)
         return ut_files
 
