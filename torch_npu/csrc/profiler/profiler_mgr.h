@@ -21,6 +21,7 @@ struct NpuTraceConfig {
   bool l2_cache;
   bool record_op_args;
   bool msprof_tx;
+  bool op_attr;
 };
 
 class ProfilerMgr : public torch_npu::toolkit::profiler::Singleton<ProfilerMgr> {

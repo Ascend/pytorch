@@ -62,6 +62,7 @@ class _ExperimentalConfig:
                  data_simplification: bool = True,
                  record_op_args: bool = False,
                  msprof_tx: bool = False,
+                 op_attr: bool = False,
                  export_type: str = Constant.Text):
         self._profiler_level = profiler_level
         self._aic_metrics = aic_metrics
@@ -73,6 +74,7 @@ class _ExperimentalConfig:
         self.record_op_args = record_op_args
         self._msprof_tx = msprof_tx
         self._export_type = export_type
+        self._op_attr = op_attr
         self._check_params()
 
     def __call__(self) -> torch_npu._C._profiler._ExperimentalConfig:
@@ -80,7 +82,8 @@ class _ExperimentalConfig:
                                                           metrics=self._aic_metrics,
                                                           l2_cache=self._l2_cache,
                                                           record_op_args=self.record_op_args,
-                                                          msprof_tx=self._msprof_tx)
+                                                          msprof_tx=self._msprof_tx,
+                                                          op_attr=self._op_attr)
 
     @property
     def export_type(self):
@@ -119,4 +122,6 @@ class _ExperimentalConfig:
         if self._export_type not in (ExportType.Text, ExportType.Db):
             print_warn_msg("Invalid parameter type, reset it to text.")
             self._export_type = ExportType.Text
-
+        if self._op_attr and self._export_type != ExportType.Db:
+            print_warn_msg("op_attr switch is invalid with export type set as text.")
+            self._op_attr = False

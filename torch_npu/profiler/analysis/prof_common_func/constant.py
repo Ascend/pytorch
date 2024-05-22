@@ -102,6 +102,7 @@ class Constant(object):
     AI_CORE_METRICS = '_aic_metrics'
     L2_CACHE = '_l2_cache'
     MSPROF_TX = '_msprof_tx'
+    OP_ATTR = "_op_attr"
     DATA_SIMPLIFICATION = '_data_simplification'
     EXPORT_TYPE = '_export_type'
     LEVEL0 = "Level0"

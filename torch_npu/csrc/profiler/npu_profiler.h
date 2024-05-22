@@ -45,12 +45,14 @@ struct MemoryUsage {
 
 struct ExperimentalConfig {
     ExperimentalConfig(std::string level = "Level0", std::string metrics = "ACL_AICORE_NONE",
-                       bool l2_cache = false, bool record_op_args = false, bool msprof_tx = false)
+                       bool l2_cache = false, bool record_op_args = false, bool msprof_tx = false,
+                       bool op_attr = false)
         : trace_level(level),
           metrics(metrics),
           l2_cache(l2_cache),
           record_op_args(record_op_args),
-          msprof_tx(msprof_tx) {}
+          msprof_tx(msprof_tx),
+          op_attr(op_attr) {}
     ~ExperimentalConfig() = default;
 
     std::string trace_level;
@@ -58,6 +60,7 @@ struct ExperimentalConfig {
     bool l2_cache;
     bool record_op_args;
     bool msprof_tx;
+    bool op_attr;
 };
 
 struct NpuProfilerConfig {
