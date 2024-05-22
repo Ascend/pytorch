@@ -43,6 +43,7 @@ class ProfilerConfig:
         self._ai_core_metrics = Constant.AicMetricsNone
         self._l2_cache = False
         self._msprof_tx = False
+        self._op_attr = False
         self._data_simplification = True
         self._is_cluster = False
         self._localtime_diff = 0
@@ -161,6 +162,7 @@ class ProfilerConfig:
         self._ai_core_metrics = experimental_config.get(Constant.AI_CORE_METRICS, self._ai_core_metrics)
         self._l2_cache = experimental_config.get(Constant.L2_CACHE, self._l2_cache)
         self._msprof_tx = experimental_config.get(Constant.MSPROF_TX, self._msprof_tx)
+        self._op_attr = experimental_config.get(Constant.OP_ATTR, self._op_attr)
         self._data_simplification = experimental_config.get(Constant.DATA_SIMPLIFICATION, self._data_simplification)
         self._export_type = experimental_config.get(Constant.EXPORT_TYPE, self._export_type)
     
