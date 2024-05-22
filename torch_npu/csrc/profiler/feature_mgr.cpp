@@ -16,7 +16,7 @@ static std::unordered_map<std::string, FeatureType> NAME_TABLE = {
 
 // featureName, featureVersion
 static std::unordered_map<FeatureType, std::string> FMK_FEATURES = {
-    {FeatureType::FEATURE_ATTR, "0"},
+    {FeatureType::FEATURE_ATTR, "1"},
 };
 }
 

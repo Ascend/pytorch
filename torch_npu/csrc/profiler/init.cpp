@@ -35,27 +35,29 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
         .value("NPU", NpuActivityType::NPU);
 
     py::class_<ExperimentalConfig>(m, "_ExperimentalConfig")
-        .def(py::init<std::string, std::string, bool, bool, bool>(),
+        .def(py::init<std::string, std::string, bool, bool, bool, bool>(),
              py::arg("trace_level") = "Level0",
              py::arg("metrics") = "ACL_AICORE_NONE",
              py::arg("l2_cache") = false,
              py::arg("record_op_args") = false,
-             py::arg("msprof_tx") = false
+             py::arg("msprof_tx") = false,
+             py::arg("op_attr") = false
         )
         .def(py::pickle(
             [](const ExperimentalConfig& p) {
-                return py::make_tuple(p.trace_level, p.metrics, p.l2_cache, p.record_op_args, p.msprof_tx);
+                return py::make_tuple(p.trace_level, p.metrics, p.l2_cache, p.record_op_args, p.msprof_tx, p.op_attr);
             },
             [](py::tuple t) {
-                if (t.size() < 5) {  // 5表示ExperimentalConfig的配置有五项
-                    throw std::runtime_error("Expected atleast 4 values in state" + PROF_ERROR(ErrCode::PARAM));
+                if (t.size() < 6) {  // 6表示ExperimentalConfig的配置有六项
+                    throw std::runtime_error("Expected atleast 5 values in state" + PROF_ERROR(ErrCode::PARAM));
                 }
                 return ExperimentalConfig(
                     t[0].cast<std::string>(),
                     t[1].cast<std::string>(),
                     t[2].cast<bool>(),
                     t[3].cast<bool>(),
-                    t[4].cast<bool>()
+                    t[4].cast<bool>(),
+                    t[5].cast<bool>()
                 );
             }
         ));

@@ -83,6 +83,9 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
         ASCEND_LOGW("not support to set config for sys-hardware-mem.");
       }
     }
+    if (npu_config.op_attr) {
+        datatype_config |= ACL_PROF_OP_ATTR;
+    }
     datatype_config = CheckFeatureConfig(datatype_config);
     int32_t deviceId = 0;
     auto ret = c10_npu::GetDevice(&deviceId);
@@ -150,7 +153,7 @@ uint64_t ProfilerMgr::CheckFeatureConfig(uint64_t datatype_config)
 {
     if (!FeatureMgr::GetInstance()->IsSupportFeature(FeatureType::FEATURE_ATTR)) {
         ASCEND_LOGW("Not support to set config for ATTR.");
-        return datatype_config;
+        return datatype_config & ~(ACL_PROF_OP_ATTR);
     }
     return datatype_config;
 }
