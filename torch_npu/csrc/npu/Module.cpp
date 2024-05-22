@@ -43,6 +43,7 @@
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
+#include "torch_npu/csrc/profiler/msprof_tx.h"
 
 struct NPUDeviceProp {
     std::string name;
@@ -191,6 +192,19 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg)
     } else if (pre_device != device) {
         c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(pre_device, device);
     }
+
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_msTxMark(PyObject* self, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    const char *input_string;
+    if (!PyArg_ParseTuple(args, "s", &input_string)) {
+        return NULL;
+    }
+    torch_npu::profiler::Mark(input_string);
 
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
@@ -767,6 +781,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getOption", (PyCFunction)THNPModule_getOption_wrap, METH_O, nullptr},
     {"_npu_set_sync_debug_mode", (PyCFunction)THNPModule_npu_set_sync_debug_mode, METH_O, nullptr},
     {"_npu_get_sync_debug_mode", (PyCFunction)THNPModule_npu_get_sync_debug_mode, METH_NOARGS, nullptr},
+    {"_mark", (PyCFunction)THNPModule_msTxMark, METH_VARARGS, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()

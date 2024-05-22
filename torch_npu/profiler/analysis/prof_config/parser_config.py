@@ -36,6 +36,25 @@ from ..prof_view.prof_db_parse.trace_step_time_db_parser import TraceStepTimeDbP
 
 
 class ParserConfig:
+    LEVEL_NONE_CONFIG = {
+        Constant.TENSORBOARD_TRACE_HANDLER: [
+            TracePreParser,
+            TreeBuildParser,
+            CANNExportParser,
+            CANNTimelineParser,
+            RelationParser,
+            MemoryPrepareParser,
+            CANNAnalyzeParser,
+            OperatorViewParser,
+            TraceViewParser,
+            MemoryViewParser,
+            IntegrateParser,
+        ],
+        Constant.EXPORT_CHROME_TRACE: [TracePreParser, TreeBuildParser, CANNExportParser, CANNTimelineParser,
+                                        TraceViewParser],
+        Constant.EXPORT_STACK: [TreeBuildParser, CANNExportParser, CANNTimelineParser, StackViewParser]
+    }
+
     COMMON_CONFIG = {
         Constant.Text: {
             Constant.TENSORBOARD_TRACE_HANDLER: [

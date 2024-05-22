@@ -26,7 +26,7 @@ __all__ = [
     "reset_peak_memory_stats", "reset_max_memory_allocated", "reset_max_memory_cached",
     "memory_allocated", "max_memory_allocated", "memory_reserved", "max_memory_reserved",
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
-    "Stream", "Event", "profiler", "set_option", "set_aoe", "_in_bad_fork", "set_compile_mode",
+    "Stream", "mstx", "Event", "profiler", "set_option", "set_aoe", "_in_bad_fork", "set_compile_mode",
     "FloatTensor", "IntTensor", "DoubleTensor", "LongTensor", "ShortTensor",
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
@@ -39,6 +39,7 @@ from typing import Tuple
 import torch
 import torch_npu
 
+from .mstx import mstx
 from .device import __device__ as native_device
 from .device import __npu_device__ as npu_device
 from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
