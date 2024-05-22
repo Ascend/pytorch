@@ -21,6 +21,7 @@ __all__ = []
 @Singleton
 class ProfilerConfig:
     LEVEL_PARSER_CONFIG = {
+        Constant.LEVEL_NONE: [],
         Constant.LEVEL0: [(CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)],
         Constant.LEVEL1: [(CANNDataEnum.API_STATISTIC, ApiStatisticBean),
                           (CANNDataEnum.OP_STATISTIC, OpStatisticBean),
@@ -31,6 +32,7 @@ class ProfilerConfig:
                           (CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)]
     }
     LEVEL_TRACE_PRUNE_CONFIG = {
+        Constant.LEVEL_NONE: [],
         Constant.LEVEL0: ['CANN', 'AscendCL', 'Runtime', 'GE', 'Node', 'Model', 'Hccl', 'acl_to_npu'],
         Constant.LEVEL1: [],
         Constant.LEVEL2: []
@@ -40,6 +42,7 @@ class ProfilerConfig:
         self._profiler_level = Constant.LEVEL0
         self._ai_core_metrics = Constant.AicMetricsNone
         self._l2_cache = False
+        self._msprof_tx = False
         self._data_simplification = True
         self._is_cluster = False
         self._localtime_diff = 0
@@ -61,6 +64,10 @@ class ProfilerConfig:
     @export_type.setter
     def export_type(self, export_type: str):
         self._export_type = export_type
+
+    @property
+    def msprof_tx(self):
+        return self._msprof_tx
 
     @property
     def rank_id(self):
@@ -150,6 +157,7 @@ class ProfilerConfig:
         self._profiler_level = experimental_config.get(Constant.PROFILER_LEVEL, self._profiler_level)
         self._ai_core_metrics = experimental_config.get(Constant.AI_CORE_METRICS, self._ai_core_metrics)
         self._l2_cache = experimental_config.get(Constant.L2_CACHE, self._l2_cache)
+        self._msprof_tx = experimental_config.get(Constant.MSPROF_TX, self._msprof_tx)
         self._data_simplification = experimental_config.get(Constant.DATA_SIMPLIFICATION, self._data_simplification)
         self._export_type = experimental_config.get(Constant.EXPORT_TYPE, self._export_type)
 
@@ -170,6 +178,9 @@ class ProfilerConfig:
 
     def get_local_time(self, monotonic_time: int):
         return int(monotonic_time + self._localtime_diff)
+
+    def get_level(self):
+        return self._profiler_level
 
     def _get_l2_cache_bean(self):
         return [(CANNDataEnum.L2_CACHE, L2CacheBean)] if self._l2_cache else []

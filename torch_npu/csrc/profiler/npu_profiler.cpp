@@ -249,7 +249,8 @@ void startNpuProfiler(const NpuProfilerConfig &config,
     bool cpu_trace = activities.count(NpuActivityType::CPU);
     ExperimentalConfig experimental_config = config.experimental_config;
     NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
-        config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args};
+        config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args,
+        experimental_config.msprof_tx};
     ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
     if (state->tracePython()) {
         python_tracer::call(python_tracer::Command::kStartOne);
