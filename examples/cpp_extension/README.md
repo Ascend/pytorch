@@ -2,13 +2,9 @@
 
 ## 简介
 
-本样例介绍自定义API样例打包工程，包括如何编写自定义API，绑定正反向自动求导，编译生成wheel包。
+本样例介绍自定义API样例打包工程，包括如何编写自定义API，绑定前反向自动求导，编译生成wheel包。具体代码样例详见[样例工程代码](https://gitee.com/ascend/samples/tree/master/operator/AddCustomSample/FrameworkLaunch/CppExtensions/setup)，具体使用方法详见[使用说明](https://gitee.com/ascend/samples/tree/master/operator/AddCustomSample/FrameworkLaunch#%E4%BD%BF%E7%94%A8%E7%BC%96%E8%AF%91wheel%E5%8C%85%E7%9A%84%E6%96%B9%E5%BC%8F%E8%B0%83%E7%94%A8)。
 
-[样例工程代码](https://gitee.com/ascend/samples/tree/master/operator/AddCustomSample/FrameworkLaunch/CppExtensions/setup)
-
-[使用说明](https://gitee.com/ascend/samples/tree/master/operator/AddCustomSample/FrameworkLaunch#%E4%BD%BF%E7%94%A8%E7%BC%96%E8%AF%91wheel%E5%8C%85%E7%9A%84%E6%96%B9%E5%BC%8F%E8%B0%83%E7%94%A8)
-
-> 注：使用该样例工程之前需要先编译并部署底层的自定义算子包 [编译部署自定义算子包](https://gitee.com/ascend/samples/tree/master/operator/AddCustomSample/FrameworkLaunch#%E7%BC%96%E8%AF%91%E7%AE%97%E5%AD%90%E5%B7%A5%E7%A8%8B%E9%83%A8%E7%BD%B2%E7%AE%97%E5%AD%90%E5%8C%85)
+> 注：使用该样例工程之前需要先编译并部署底层的自定义算子包，详见[编译部署自定义算子包](https://gitee.com/ascend/samples/tree/master/operator/AddCustomSample/FrameworkLaunch#%E7%BC%96%E8%AF%91%E7%AE%97%E5%AD%90%E5%B7%A5%E7%A8%8B%E9%83%A8%E7%BD%B2%E7%AE%97%E5%AD%90%E5%8C%85)。
 
 ## 代码介绍
 
@@ -16,24 +12,24 @@
 
 ```
 setup
-├── csrc # c++代码
+├── csrc # 算子适配层及绑定代码
 │   ├── extension_add1.cpp # 自定义算子适配层
 │   ├── extension_add.cpp # 自定义算子适配层
 │   ├── function.h # 自定义算子函数声明
-│   ├── pytorch_npu_helper.hpp # 算子下发框架
+│   ├── pytorch_npu_helper.hpp # 算子下发框架（无需关注）
 │   └── register.cpp # 自定义算子注册绑定等
 ├── custom_ops # python打包目录
-│   ├── add_custom.py
-│   └── __init__.py
+│   ├── add_custom.py # 定义python侧接口
+│   └── __init__.py # 初始化代码
 ├── graph # 图模式相关代码
-│   ├── CMakeLists.txt
-│   ├── codegen.cpp
-│   ├── custom_reg_op.h
-│   └── operator_reg.h
+│   ├── CMakeLists.txt # 编译文件（无需关注）
+│   ├── codegen.cpp # 编译文件（无需关注）
+│   ├── custom_reg_op.h # 存放算子原型REG_OP
+│   └── operator_reg.h # 编译所需头文件（无需关注）
 ├── setup.py # 编译打包文件
 └── test # 测试用例
     ├── test_add_custom_graph.py # 图模式测试用例
-    └── test_add_custom.py
+    └── test_add_custom.py # 自定义算子测试用例
 
 ```
 
@@ -41,7 +37,7 @@ setup
 
 #### 注册自定义算子schema
 
-首先通过TORCH_LIBRARY宏注册一个名为`myops`的命名空间，注意命名空间名字必须是唯一的。在`myops`命名空间里注册两个自定义schema，分别为正向和反向。如果需要注册多个schema，只需在同一个命名空间里继续添加即可。
+首先通过TORCH_LIBRARY宏注册一个名为`myops`的命名空间，注意命名空间名字必须是唯一的。在`myops`命名空间里注册两个自定义schema，分别为前向和反向。如果需要注册多个schema，只需在同一个命名空间里继续添加即可。
 
 ```c++
 // register.cpp
@@ -95,6 +91,7 @@ TORCH_LIBRARY_IMPL(myops, PrivateUse1, m) {
 调用my_op的时候通过注册的schema和对应的disptach key来找到对应的实现。
 
 ```c++
+// extension_add.cpp
 // 寻找注册在my_op上的不同设备的实现
 at::Tensor my_op_impl(const at::Tensor& self, const at::Tensor& other) {
     static auto op = torch::Dispatcher::singleton()
@@ -111,11 +108,10 @@ std::tuple<at::Tensor, at::Tensor> my_op_backward_impl(const at::Tensor& self) {
 }
 ```
 
-
-
 Pytorch提供了`torch::autograd::Function`方法实现前反向绑定，在里面定义`forward`和`backward`函数，通过`apply`方法调用，同时把自动求导的方法实现注册到`AutogradPrivateUse1`，实现自动求导，如果pytorch版本是2.1以下，需要将`AutogradPrivateUse1`换成`AutogradXLA`。
 
 ```c++
+// extension_add.cpp
 class MyAddFunction : public torch::autograd::Function<MyAddFunction> {
     public:
         static at::Tensor forward(AutogradContext *ctx, at::Tensor self, at::Tensor other) {
@@ -186,7 +182,7 @@ from .add_custom import add_custom
 
 此步骤可以让用户注册的自定义算子增加入图能力，实现图模式的功能，如不需要入图则可以跳过。
 
-> 注：入图前需要完成前面步骤的自定义算子注册
+> 注：入图前需要完成前面步骤的自定义算子注册。
 
 #### 添加meta设备的实现
 
@@ -301,3 +297,6 @@ setup(
 
 setup里面指定了wheel包的名称、版本号、需要编译的扩展、打包的文件、编译命令等，同时ext_modules里面指定了c++编译源文件、头文件路径、编译选项等参数。通过执行`python3 setup.py build bdist_wheel`命令会编译打包，在dist目录下会生成wheel包，通过pip install的方式可以安装该wheel包，具体使用方法参考测试用例。
 
+### 测试用例
+
+在test目录下提供了两个测试用例，test_add_custom.py是自定义API调用的测试用例，里面包含了whl包具体调用方法和API调用方法；test_add_custom_graph.py则是图模式的相关测试用例
