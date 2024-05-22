@@ -88,11 +88,13 @@ class Constant(object):
     PROFILER_LEVEL = '_profiler_level'
     AI_CORE_METRICS = '_aic_metrics'
     L2_CACHE = '_l2_cache'
+    MSPROF_TX = '_msprof_tx'
     DATA_SIMPLIFICATION = '_data_simplification'
     EXPORT_TYPE = '_export_type'
     LEVEL0 = "Level0"
     LEVEL1 = "Level1"
     LEVEL2 = "Level2"
+    LEVEL_NONE = "Level_none"
     AicPipeUtilization = "ACL_AICORE_PIPE_UTILIZATION"
     AicArithmeticUtilization = "ACL_AICORE_ARITHMETIC_UTILIZATION"
     AicMemory = "ACL_AICORE_MEMORY_BANDWIDTH"

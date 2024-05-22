@@ -35,6 +35,7 @@
 #include "torch_npu/csrc/aten/python_functions.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "third_party/acl/inc/acl/acl.h"
+#include "torch_npu/csrc/profiler/msprof_tx.h"
 
 struct NPUDeviceProp {
     std::string name;
@@ -201,6 +202,19 @@ void RegisterNpuPluggableAllocator(PyObject* module)
         return torch::npu::NPUPluggableAllocator::createCustomAllocator(
             malloc_fn, free_fn);
     });
+}
+
+PyObject* THNPModule_msTxMark(PyObject* self, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    const char *input_string;
+    if (!PyArg_ParseTuple(args, "s", &input_string)) {
+        return NULL;
+    }
+    torch_npu::profiler::Mark(input_string);
+
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
 }
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs)
@@ -916,6 +930,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_set_sync_debug_mode", (PyCFunction)THNPModule_npu_set_sync_debug_mode, METH_O, nullptr},
     {"_npu_get_sync_debug_mode", (PyCFunction)THNPModule_npu_get_sync_debug_mode, METH_NOARGS, nullptr},
     {"_tensor_construct_from_storage", (PyCFunction)THNPModule_tensor_construct_from_storage, METH_VARARGS, nullptr},
+    {"_mark", (PyCFunction)THNPModule_msTxMark, METH_VARARGS, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()
