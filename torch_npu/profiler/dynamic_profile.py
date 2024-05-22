@@ -83,6 +83,7 @@ class _ConfigContext():
             aic_metrics = exp_config.get('aic_metrics', 'AiCoreNone')
             aic_metrics = getattr(AiCMetrics, aic_metrics)
             l2_cache = exp_config.get('l2_cache', False)
+            op_attr = exp_config.get('op_attr', False)
             data_simplification = exp_config.get('data_simplification', True)
             record_op_args = exp_config.get('record_op_args', False)
             export_type = exp_config.get('export_type', 'text')
@@ -90,6 +91,7 @@ class _ConfigContext():
                 profiler_level=profiler_level,
                 aic_metrics=aic_metrics,
                 l2_cache=l2_cache,
+                op_attr=op_attr,
                 data_simplification=data_simplification,
                 record_op_args=record_op_args,
                 export_type=export_type
@@ -154,6 +156,7 @@ class _DynamicProfile():
                 "profiler_level": "Level0",
                 "aic_metrics": "AiCoreNone",
                 "l2_cache": False,
+                "op_attr": False,
                 "data_simplification": True,
                 "record_op_args": False,
                 "export_type": "text"
