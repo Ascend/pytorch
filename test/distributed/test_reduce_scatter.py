@@ -1,5 +1,6 @@
 import unittest
 import os
+from random import randint
 
 import numpy as np
 import torch
@@ -78,6 +79,30 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
                                         HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size)
 
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_with_different_shape(self):
+        ranks = [2]
+        format_list = [0, 2, 3, 29]
+        dtype_list = [np.float32, np.float16, np.int32, np.int8]
+
+        def get_random_input(dim=1, max_value=10, dtype=np.float32):
+            shape_list = list()
+            for _ in range(dim):
+                shape_list.append(randint(1, max_value))
+            if dtype == dtype_list[-1]:
+                return create_common_tensor([dtype, format_list[0], shape_list], -10, 10)
+            else:
+                return create_common_tensor([dtype, format_list[randint(0, 3)], shape_list], -10, 10)
+
+        for world_size in ranks:
+            for input_dtype in dtype_list:
+                input_list = list()
+                for _ in range(world_size):
+                    _, npu_input = get_random_input(randint(1, 5), randint(1, 10), input_dtype)
+                    input_list.append(npu_input.cpu())
+                cpu_excepted_result = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter)
+                self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
+                                        HcclReduceScatterTest._init_dist_hccl, cpu_excepted_result, input_list, world_size)
 
 if __name__ == '__main__':
     run_tests()

@@ -1550,6 +1550,62 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
         c10d::OpType::REDUCE);
 }
 
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
+    at::Tensor& outputTensor,
+    at::Tensor& inputTensor,
+    const c10d::ReduceOptions& opts)
+{
+    if (outputTensor.numel() != inputTensor.numel()) {
+        TORCH_CHECK(false, "output tensor must have the same numel as input tensor", DIST_ERROR(ErrCode::PARAM));
+    }
+    uint64_t rank = opts.rootRank;
+    std::vector<at::Tensor> inputTensors = {inputTensor};
+    std::vector<at::Tensor> outputTensors = {outputTensor};
+    return collective(
+        inputTensors,
+        outputTensors,
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+            auto hcclType = getHcclDataType(input.scalar_type());
+            checkSupportedDataTypeOfAllReduce(hcclType);
+            RECORD_FUNCTION("HcclReduce", std::vector<c10::IValue>({input}));
+
+            auto inputDataPtr = input.data_ptr();
+            auto outputDataPtr = output.data_ptr();
+            auto numel = getNumelForHCCL(input);
+            auto reduceOp = getHcclReduceOp(opts.reduceOp, input);
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream, is_dispatched]() -> int {
+                auto hccl_result = hcclReduce(
+                    inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream.stream(false));
+                *is_dispatched = true;
+                return hccl_result;
+            };
+            at_npu::native::OpCommand cmd;
+            cmd.Name("HcclReduce");
+            cmd.SetCustomHandler(hccl_call);
+            cmd.Run();
+
+            return HCCL_SUCCESS;
+        },
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (inputTensors[0].scalar_type() == at::kBool || inputTensors[0].scalar_type() == at::kByte) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                inputTensors[0] = at_npu::native::custom_ops::npu_dtype_cast(inputTensors[0], at::kInt);
+            }
+            if (outputTensors[0].scalar_type() == at::kBool || outputTensors[0].scalar_type() == at::kByte) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                outputTensors[0] = at_npu::native::custom_ops::npu_dtype_cast(outputTensors[0], at::kInt);
+            }
+        },
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (outputTensors[0].scalar_type() != outputTensor.scalar_type()) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                c10_npu::NPUCachingAllocator::recordStream(outputTensors[0].storage().data_ptr(), hcclStreams[0]);
+                outputTensor.copy_(outputTensors[0]);
+            }
+        },
+        c10d::OpType::REDUCE);
+}
+
 #define ADDRESS_ALIGNMENT_BYTE 512
 at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors)
 {
@@ -1797,9 +1853,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
     const c10d::ReduceScatterOptions& opts)
 {
     check_npu_tensors_different_devices(outputTensors);
-
-    auto inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
-    check_npu_tensors_different_devices(inputFlattened);
+    bool same_size = check_same_size(inputTensors.back());
+    if (same_size) {
+        auto inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
+        check_npu_tensors_different_devices(inputFlattened);
 
     return collective(
         inputFlattened,
@@ -1826,7 +1883,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
             cmd.SetCustomHandler(hccl_call);
             cmd.Run();
 
-            return HCCL_SUCCESS;
+                return HCCL_SUCCESS;
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
             work->lazyDestory(inputFlattened);
@@ -1850,6 +1907,32 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         c10d::OpType::REDUCE_SCATTER);
+    } else {
+        TORCH_NPU_WARN_ONCE("The current reduce_scatter operator has a defect in handling different tensor shape,",
+            "the work event forces a wait operation in c++ side, and the reduce_scatter wait on the python side would be fake");
+        auto outputTensor = outputTensors.back();
+        auto inputTensors_ = inputTensors.back();
+        const auto num_reduces = inputTensors_.size();
+        std::vector<c10::intrusive_ptr<c10d::Work>> works;
+        for (const int i : c10::irange(num_reduces)) {
+            auto& input = inputTensors_[i];
+            auto& output = (i == rank_) ? outputTensor : input;
+            auto reduceOpts = c10d::ReduceOptions{
+                opts.reduceOp,
+                static_cast<int64_t>(i),
+                static_cast<int64_t>(0),
+                opts.timeout};
+            auto work = _reduce_oop(output, input, reduceOpts);
+            works.push_back(work);
+        }
+        // Need to add a method like endCoalescing();
+        for (auto& work : works) {
+            work->wait();
+        }
+        // Create a fake_work for python side;
+        auto fake_work = initWork(getDeviceList(outputTensors), rank_, c10d::OpType::REDUCE_SCATTER);
+        return fake_work;
+    }
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
