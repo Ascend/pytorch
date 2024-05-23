@@ -11,6 +11,7 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 import psutil
 from torch_npu.utils.path_manager import PathManager
+import torch_npu
 
 BASE_DIR = Path(__file__).absolute().parent.parent
 TEST_DIR = BASE_DIR / 'test'
@@ -213,12 +214,32 @@ class TestMgr:
 
     def load_distributed_ut(self):
         self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/distributed').rglob('test_*.py')]
+        
+    def load_op_plugin_ut(self):
+        version_path = get_test_torch_version_path()
+        file_hash = {}
+        for file_path in (BASE_DIR / 'third_party/op-plugin/test').rglob('test_*.py'):
+            if str(file_path.parts[-2]) in [version_path, "test_custom_ops", "test_base_ops"]:
+                file_name = str(file_path.name)
+                if file_name in file_hash:
+                    if str(file_path.parts[-2]) == version_path:
+                        self.test_files['ut_files'].remove(file_hash[file_name])
+                        file_hash[file_name] = str(file_path)
+                        self.test_files['ut_files'].append(str(file_path))
+                else:
+                    file_hash[file_name] = str(file_path)
+                    self.test_files['ut_files'].append(str(file_path))
 
-    def load_all_ut(self, include_distributed_case=False):
+    def load_all_ut(self, include_distributed_case=False, include_op_plugin_case=False):
         all_files = [str(i) for i in (BASE_DIR / 'test').rglob('test_*.py') if 'distributed' not in str(i)]
         self.test_files['ut_files'] = all_files
         if include_distributed_case:
             self.load_distributed_ut()
+        if include_op_plugin_case:
+            if os.path.exists(BASE_DIR / 'third_party/op-plugin/test'):
+                self.load_op_plugin_ut()
+            else:
+                raise Exception("The path of op-plugin did not exist, check whether it had been pulled.")
 
     def split_test_files(self, rank, world_size):
         if rank > world_size:
@@ -287,6 +308,15 @@ class TestMgr:
         print("op ut files:")
         for op_ut_file in self.test_files['op_ut_files']:
             print(op_ut_file)
+
+
+def get_test_torch_version_path():
+    torch_npu_version = torch_npu.__version__
+    version_list = torch_npu_version.split('.')
+    if len(version_list) > 2:
+        return f'test_v{version_list[0]}r{version_list[1]}_ops'
+    else:
+        raise RuntimeError("Invalid torch_npu version.")
 
 
 def exec_ut(files):
@@ -386,12 +416,13 @@ if __name__ == "__main__":
     parser.add_argument('--distributed', action="store_true", help='Run distributed testcases')
     parser.add_argument('--rank', default=0, type=int, help='Index of current ut nodes')
     parser.add_argument('--world_size', default=0, type=int, help='Number of ut nodes')
+    parser.add_argument('--network_ops', action="store_true", help='Run network_ops testcases in the op-plugin repo')
     options = parser.parse_args()
     cur_modify_files = str(BASE_DIR / 'modify_files.txt')
     test_mgr = TestMgr()
 
     if options.all:
-        test_mgr.load_all_ut(options.distributed)
+        test_mgr.load_all_ut(options.distributed, options.network_ops)
     elif options.distributed:
         test_mgr.load_distributed_ut()
     elif os.path.exists(cur_modify_files):
