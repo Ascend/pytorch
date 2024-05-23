@@ -8,45 +8,52 @@
 namespace torch_npu {
 namespace autocast {
 
-static PyObject* set_autocast_enabled(PyObject* _unused, PyObject* arg) {
-  HANDLE_TH_ERRORS
-  if (!PyBool_Check(arg)) {
-    throw torch::TypeError("enabled must be a bool (got %s)", Py_TYPE(arg)->tp_name);
-  }
-  at::autocast::set_privateuseone_enabled(arg == Py_True);
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
+static PyObject* set_autocast_enabled(PyObject* _unused, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK_TYPE(
+        PyBool_Check(arg),
+        "enabled must be a bool (got ",
+        Py_TYPE(arg)->tp_name,
+        ")", PTA_ERROR(ErrCode::TYPE));
+    at::autocast::set_privateuseone_enabled(arg == Py_True);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
 }
 
-static PyObject* is_autocast_enabled(PyObject* _unused, PyObject* arg) {
-  HANDLE_TH_ERRORS
-  if (at::autocast::is_privateuseone_enabled()) {
-    Py_RETURN_TRUE;
-  } else {
-    Py_RETURN_FALSE;
-  }
-  END_HANDLE_TH_ERRORS
+static PyObject* is_autocast_enabled(PyObject* _unused, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    if (at::autocast::is_privateuseone_enabled()) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+    END_HANDLE_TH_ERRORS
 }
 
-static PyObject* set_autocast_dtype(PyObject* _unused, PyObject* arg) {
-  HANDLE_TH_ERRORS
-  if (!THPDtype_Check(arg)) {
-    throw torch::TypeError(
-        "dtype must be a torch.dtype (got %s)", Py_TYPE(arg)->tp_name);
-  }
-  at::ScalarType targetType = reinterpret_cast<THPDtype*>(arg)->scalar_type;
-  at::autocast::set_autocast_privateuseone_dtype(targetType);
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
+static PyObject* set_autocast_dtype(PyObject* _unused, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK_TYPE(
+        THPDtype_Check(arg),
+        "dtype must be a torch.dtype (got ",
+        Py_TYPE(arg)->tp_name,
+        ")", PTA_ERROR(ErrCode::TYPE));
+    at::ScalarType targetType = reinterpret_cast<THPDtype*>(arg)->scalar_type;
+    at::autocast::set_autocast_privateuseone_dtype(targetType);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
 }
 
-static PyObject* get_autocast_dtype(PyObject* _unused, PyObject* arg) {
-  HANDLE_TH_ERRORS
-  at::ScalarType current_dtype = at::autocast::get_autocast_privateuseone_dtype();
-  auto dtype = (PyObject*)torch::getTHPDtype(current_dtype);
-  Py_INCREF(dtype);
-  return dtype;
-  END_HANDLE_TH_ERRORS
+static PyObject* get_autocast_dtype(PyObject* _unused, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    at::ScalarType current_dtype = at::autocast::get_autocast_privateuseone_dtype();
+    auto dtype = (PyObject*)torch::getTHPDtype(current_dtype);
+    Py_INCREF(dtype);
+    return dtype;
+    END_HANDLE_TH_ERRORS
 }
 
 // autocast methods on torch._C
@@ -57,7 +64,8 @@ static PyMethodDef methods[] = { // NOLINT
     {"get_autocast_dtype", get_autocast_dtype, METH_NOARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}};
 
-PyMethodDef* autocast_mode_functions() {
+PyMethodDef* autocast_mode_functions()
+{
   return methods;
 }
 

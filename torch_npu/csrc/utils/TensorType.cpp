@@ -55,32 +55,29 @@ static_assert(std::is_standard_layout<PyTensorType>::value, "PyTensorType must b
 
 static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types);
 
-static TypeError unavailable_type(const PyTensorType& type) {
-    return TypeError(
-        "type %s not available. Torch not compiled with npu enabled. %s",
-        type.name, PTA_ERROR(ErrCode::TYPE).c_str());
-}
-
-static PyObject* Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
-  HANDLE_TH_ERRORS
-  auto& tensor_type = *((PyTensorType*)type);
-  if (tensor_type.is_npu) {
-    static auto warn_once = []() {
-        std::cout << "Warning: The torch.npu.*DtypeTensor constructors are no longer recommended. " \
-                     "It's best to use methods such as torch.tensor(data, dtype=*, device='npu') " \
-                     "to create tensors." << std::endl;
-        return true;
-    }();
-  }
-  if (tensor_type.is_npu && c10_npu::device_count() == 0) {
-    throw unavailable_type(tensor_type);
-  }
-  torch_npu::utils::npu_lazy_init();
-  return THPVariable_Wrap(torch::utils::legacy_tensor_ctor(tensor_type.get_dispatch_key(),
-                                                           tensor_type.get_scalar_type(),
-                                                           args,
-                                                           kwargs));
-  END_HANDLE_TH_ERRORS
+static PyObject* Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    HANDLE_TH_ERRORS
+    auto& tensor_type = *((PyTensorType*)type);
+    if (tensor_type.is_npu) {
+        static auto warn_once = []() {
+            std::cout << "Warning: The torch.npu.*DtypeTensor constructors are no longer recommended. " \
+                         "It's best to use methods such as torch.tensor(data, dtype=*, device='npu') " \
+                         "to create tensors." << std::endl;
+            return true;
+        }();
+    }
+    TORCH_CHECK_TYPE(
+        !tensor_type.is_npu || c10_npu::device_count() != 0,
+        "type ",
+        tensor_type.name,
+        " not available. Torch not compiled with npu enabled.", PTA_ERROR(ErrCode::TYPE))
+    torch_npu::utils::npu_lazy_init();
+    return THPVariable_Wrap(torch::utils::legacy_tensor_ctor(tensor_type.get_dispatch_key(),
+                                                             tensor_type.get_scalar_type(),
+                                                             args,
+                                                             kwargs));
+    END_HANDLE_TH_ERRORS
 }
 
 static PyObject* Tensor_instancecheck(PyObject* _self, PyObject* arg) {
