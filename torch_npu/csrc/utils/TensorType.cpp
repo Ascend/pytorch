@@ -55,10 +55,12 @@ static_assert(std::is_standard_layout<PyTensorType>::value, "PyTensorType must b
 
 static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types);
 
-static TypeError unavailable_type(const PyTensorType& type) {
-    return TypeError(
+static torch::TypeError unavailable_type(const PyTensorType& type)
+{
+    return torch::TypeError(
         "type %s not available. Torch not compiled with npu enabled. %s",
-        type.name, PTA_ERROR(ErrCode::TYPE).c_str());
+        type.name,
+        PTA_ERROR(ErrCode::TYPE).c_str());
 }
 
 static PyObject* Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
