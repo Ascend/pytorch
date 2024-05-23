@@ -730,12 +730,14 @@ class NPUMmAllReduceBaseOP(torch.autograd.Function):
 class NPUDynamicQuantOp(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx, *args, **kwargs):
-        return torch.ops.npu.npu_dynamic_quant(*args, **kwargs)
+    def forward(ctx, input_dummy, smooth_scales):
+        return torch.ops.npu.npu_dynamic_quant(input_dummy, smooth_scales=smooth_scales)
 
     @staticmethod
-    def symbolic(g, input_dummy: Tensor, smooth_scales_dummy: Optional[Tensor] = None):
-        return g.op("npu::NPUDynamicQuant", input_dummy, smooth_scales_dummy, outputs=2)
+    def symbolic(g, input_dummy: Tensor, smooth_scales: Optional[Tensor] = None):
+        if smooth_scales is None:
+            smooth_scales = g.op("Constant", value_t=torch.tensor([]).to(input_dummy.type().dtype()))
+        return g.op("npu::NPUDynamicQuant", input_dummy, smooth_scales, outputs=2)
 
 
 class NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
@@ -1068,8 +1070,8 @@ def wrapper_npu_stride_add(self, other, offset1, offset2, c1_len):
     return NPUStrideAddOP.apply(self, other, offset1, offset2, c1_len)
 
 
-def wrapper_npu_dynamic_quant(input_dummy, smooth_scales_dummy):
-    return NPUDynamicQuantOp.apply(input_dummy, smooth_scales_dummy)
+def wrapper_npu_dynamic_quant(input_dummy, smooth_scales=None):
+    return NPUDynamicQuantOp.apply(input_dummy, smooth_scales)
 
 
 def wrapper_npu_gru(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
