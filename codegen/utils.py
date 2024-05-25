@@ -306,7 +306,7 @@ return {self_arg_name};
 torch_npu::profiler::NPURecordFunction guard;
 #endif
 """
-            if f.device_guard and self.backend_index.device_guard:
+            if self.backend_index.device_guard:
                 has_tensor_options = any(
                     isinstance(a, TensorOptionsArguments)
                     for a in f.func.arguments.non_out
