@@ -1,4 +1,5 @@
 import re
+import itertools
 from collections import namedtuple, defaultdict
 from typing import List, Dict, Sequence
 import yaml
@@ -6,7 +7,7 @@ import yaml
 from torchgen.code_template import CodeTemplate
 from torchgen.gen import (parse_tags_yaml, FileManager, cpp_string, error_check_native_functions)
 from torchgen.model import (BackendIndex, DispatchKey, Variant,
-                            NativeFunction, OperatorName, BackendMetadata)
+                            NativeFunction, OperatorName, BackendMetadata, TensorOptionsArguments)
 from torchgen.utils import concatMap
 from torchgen.context import with_native_function, native_function_manager
 from torchgen.api.types import DispatcherSignature
@@ -74,6 +75,7 @@ def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
 METHOD_DEFINITION = CodeTemplate("""\
 ${return_type} ${name}(${args_str}) {
   ${unpack_out}
+  ${device_guard}
   ${type_definition_body}
 }
 
@@ -104,11 +106,36 @@ def compute_op_definition(f: NativeFunction):
         if out_num > 1 else ''
     out_return_type = '::std::tuple<{}>'.format(', '.join(['at::Tensor'] * out_num))
 
+    has_tensor_options = any(isinstance(a, TensorOptionsArguments)
+                    for a in f.func.arguments.non_out)
+    if has_tensor_options:
+        device_guard = 'const c10::DeviceGuard device_guard(device_or_default(device));'
+    else:
+        # kernel is operating on existing tensors
+
+        # There is precedence for which argument we use to do
+        # device guard.  This describes the precedence order.
+        self_arg = ([f.func.arguments.self_arg.argument]
+                    if f.func.arguments.self_arg is not None
+                    else [])
+        candidate_args = itertools.chain(self_arg,
+                                         f.func.arguments.out,
+                                         f.func.arguments.flat_positional,)
+
+        # Only tensor like arguments are eligible
+        device_of = next((f"{a.name}"
+                          for a in candidate_args
+                          if a.type.is_tensor_like()),
+                          None,)
+        if device_of is not None:
+            device_guard = f'const c10::OptionalDeviceGuard device_guard(device_of({device_of}));'
+
     return [METHOD_DEFINITION.substitute(
         return_type=out_return_type if out_num > 1 else cpp.returns_type(f.func.returns).cpp_type(),
         name=name,
         args_str=','.join(a.defn() for a in args[:-out_num]) + ', at::TensorList out' if out_num > 1 else args_str,
         unpack_out=unpack_out,
+        device_guard=device_guard,
         type_definition_body=[TRACE_DISPATCH.substitute(impl_name=impl_name, args_exprs_str=args_exprs_str)]
     )]
 
