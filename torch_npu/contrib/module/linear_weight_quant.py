@@ -32,7 +32,7 @@ class LinearWeightQuant(nn.Module):
 
     Examples::
         >>> x = torch.randn((16, 32), dtype=torch.float16).npu()
-        >>> weight = torch.randint(-3, 3, (32, 128), dtype=torch.int8).npu()
+        >>> weight = torch.randint(-3, 3, (128, 32), dtype=torch.int8).npu()
         >>> antiquant_scale = torch.randn((128), dtype=torch.float16).npu()
         >>> model = LinearWeightQuant(32, 128, False)
         >>> model = model.npu()
@@ -63,7 +63,7 @@ class LinearWeightQuant(nn.Module):
         antiquant_group_size: int = 0,
     ) -> None:
         super(LinearWeightQuant, self).__init__()
-        self.weight = Parameter(torch.empty((in_features, out_features), device=device), False)
+        self.weight = Parameter(torch.empty((out_features, in_features), device=device), False)
         self.antiquant_scale = Parameter(torch.empty(out_features, device=device), False)
 
         if antiquant_offset:
@@ -89,5 +89,13 @@ class LinearWeightQuant(nn.Module):
         self.antiquant_group_size = antiquant_group_size
 
     def forward(self, x: Tensor) -> Tensor:
-        return torch_npu.npu_weight_quant_batchmatmul(x, self.weight, self.antiquant_scale,
-               self.antiquant_offset, self.quant_scale, self.quant_offset, self.bias, self.antiquant_group_size)
+        antiquant_scale = self.antiquant_scale
+        antiquant_offset = self.antiquant_offset
+        if self.antiquant_scale.dim() == 2:
+            antiquant_scale = self.antiquant_scale.transpose(-1, -2)
+        if self.antiquant_offset is not None:
+            if self.antiquant_offset.dim() == 2:
+                antiquant_offset = self.antiquant_offset.transpose(-1, -2)
+        return torch_npu.npu_weight_quant_batchmatmul(x, self.weight.transpose(-1, -2), antiquant_scale,
+                                                      antiquant_offset, self.quant_scale, self.quant_offset,
+                                                      self.bias, self.antiquant_group_size)

@@ -58,7 +58,7 @@ class TestLinearWeightQuant(TestCase):
         antiquant_offset_cpu = torch.randn((n), dtype=torch.float16)
 
         x_npu = x_cpu.npu()
-        weight_npu = weight_cpu_trans.to(torch.int8).npu()
+        weight_npu = weight_cpu.to(torch.int8).npu()
         antiquant_scale_npu = antiquant_scale_cpu.npu()
         antiquant_offset_npu = antiquant_offset_cpu.npu()
 
