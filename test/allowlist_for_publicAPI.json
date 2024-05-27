@@ -2486,7 +2486,8 @@
     "npu_nms_rotated",
     "npu_random_choice_with_mask",
     "npu_rms_norm",
-    "npu_dynamic_quant"
+    "npu_dynamic_quant",
+    "npu_convert_weight_to_int4pack"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
