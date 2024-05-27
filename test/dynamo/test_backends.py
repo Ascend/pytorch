@@ -129,7 +129,7 @@ class TestOptimizations(torch._dynamo.test_case.TestCase):
     @requires_npu()
     def test_npu_backend(self):
         npu_backend = torchair.get_npu_backend()
-        model = Seq().eval()
+        model = Seq().eval().npu()
         input0 = torch.randn(2, 10).npu()
         r1 = model(input0)
         r2 = torch.compile(model, backend=npu_backend)(input0)

@@ -140,6 +140,7 @@ class DirectoryMappingStrategy(AccurateTest):
         'testing': 'test/test_testing.py',
         'jit': 'test/test_jit.py',
         'rpc': 'test/distributed/rpc',
+        'dynamo': 'test/dynamo',
     }
 
     def get_module_name(self, modify_file):
@@ -151,6 +152,8 @@ class DirectoryMappingStrategy(AccurateTest):
                 module_name = 'rpc'
         if module_name == 'utils' and Path(modify_file).parts[2] == 'cpp_extension.py':
             module_name = 'cpp_extension'
+        if module_name == 'utils' and 'dynamo' in Path(modify_file).parts[2]:
+            module_name = 'dynamo'
         return module_name
 
     def identify(self, modify_file):

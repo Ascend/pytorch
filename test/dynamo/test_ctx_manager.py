@@ -455,12 +455,12 @@ class CtxManagerTests(torch._dynamo.test_case.TestCase):
     def test_npu_amp_autocast(self):
         class MyModule(torch.nn.Module):
             def forward(self, x):
-                a_float32 = torch.rand((8, 8), device="npu:0")
-                b_float32 = torch.rand((8, 8), device="npu:0")
+                a_float32 = torch.rand((8, 8), device="npu")
+                b_float32 = torch.rand((8, 8), device="npu")
 
-                with torch.npu.amp.autocast(dtype=torch.torch.float64):
-                    c_float64 = torch.mm(a_float32, b_float32)
-                return c_float64
+                with torch.npu.amp.autocast(dtype=torch.float16):
+                    c_float16 = torch.mm(a_float32, b_float32)
+                return c_float16
 
         module = MyModule()
         real = module(torch.tensor([0.5]))
@@ -474,7 +474,7 @@ class CtxManagerTests(torch._dynamo.test_case.TestCase):
 
         self.assertEqual(exported.device.type, "npu")
         self.assertEqual(exported.device.index, 0)
-        self.assertEqual(exported.dtype, torch.float64)
+        self.assertEqual(exported.dtype, torch.float16)
 
     def test_is_autocast_cpu_enabled(self):
         def fn(a_float32, b_float32):
@@ -757,7 +757,7 @@ class CtxManagerTests(torch._dynamo.test_case.TestCase):
         self.assertEqual(exported.dtype, real_dtype)
 
         self.assertEqual(exported.device.index, 0)
-        self.assertEqual(exported.dtype, torch.torch.float16)
+        self.assertEqual(exported.dtype, torch.float16)
 
     @unittest.skipIf(not torch.npu.is_available(), "requires npu")
     def test_autocast_arguments_binding(self):
