@@ -247,9 +247,20 @@ def _wrapper_profiler(fn):
 
 
 def _jit_script(obj, optimize=None, _frames_up=0, _rcb=None, example_inputs=None):
-    msg = 'torch.jit.script will be disabled by transfer_to_npu, which currently does not support it.'
-    warnings.warn(msg, RuntimeWarning)
     return obj
+
+
+def _jit_script_method(fn):
+    return fn
+
+
+def _patch_jit_script():
+    msg = ('torch.jit.script, torch.jit.script_method and torch.jit.ScriptModule will be disabled by transfer_to_npu, '
+           'which currently does not support them, if you need to enable them, please do not use transfer_to_npu.')
+    warnings.warn(msg, RuntimeWarning)
+    torch.jit.script = _jit_script
+    torch.jit.script_method = _jit_script_method
+    torch.jit.ScriptModule = torch.nn.Module
 
 
 def _patch_cuda():
@@ -341,7 +352,7 @@ def _init():
     # torch.utils.data.DataLoader
     torch.utils.data.DataLoader.__init__ = _wrapper_data_loader(torch.utils.data.DataLoader.__init__)
 
-    torch.jit.script = _jit_script
+    _patch_jit_script()
 
     torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
 
