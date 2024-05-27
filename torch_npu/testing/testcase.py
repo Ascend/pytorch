@@ -229,7 +229,7 @@ class TestCase(expecttest.TestCase):
                           "np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]")
             if x.dtype == np.bool:
                 result = np.equal(x, y)
-                if result.all() is False:
+                if not result.all():
                     self.fail("result error")
             elif (x.dtype == np.float16):
                 compare_res(prec16, minimum16)
