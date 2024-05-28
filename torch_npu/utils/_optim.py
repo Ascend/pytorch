@@ -1,27 +1,16 @@
 from functools import partial, partialmethod, wraps
 
 import torch
-from torch.optim.sgd import SGD as SrcSGD
 from torch.optim.sgd import sgd as src_sgd
-from torch.optim.rprop import Rprop as SrcRprop
 from torch.optim.rprop import rprop as src_rprop
-from torch.optim.rmsprop import RMSprop as SrcRMSprop
 from torch.optim.rmsprop import rmsprop as src_rmsprop
-from torch.optim.radam import RAdam as SrcRAdam
 from torch.optim.radam import radam as src_radam
-from torch.optim.nadam import NAdam as SrcNAdam
 from torch.optim.nadam import nadam as src_nadam
-from torch.optim.asgd import ASGD as SrcASGD
 from torch.optim.asgd import asgd as src_asgd
-from torch.optim.adamw import AdamW as SrcAdamW
 from torch.optim.adamw import adamw as src_adamw
-from torch.optim.adamax import Adamax as SrcAdamax
 from torch.optim.adamax import adamax as src_adamax
-from torch.optim.adam import Adam as SrcAdam
 from torch.optim.adam import adam as src_adam
-from torch.optim.adagrad import Adagrad as SrcAdagrad
 from torch.optim.adagrad import adagrad as src_adagrad
-from torch.optim.adadelta import Adadelta as SrcAdadelta
 from torch.optim.adadelta import adadelta as src_adadelta
 
 
@@ -37,71 +26,43 @@ def wrap_optim_warning_func(func, name):
     return wrapper
 
 
-def partialclass(cls, *args, **kwargs):
-
-    class NewCls(cls):
-        __init__ = partialmethod(cls.__init__, *args, **kwargs)
-        __name__ = cls.__name__
-
-    NewCls.__name__ = cls.__name__
-
-    return NewCls
+def partial_class(cls, *args, **kwargs):
+    cls.__init__ = partialmethod(cls.__init__, *args, **kwargs)
 
 
-SGD = partialclass(SrcSGD, foreach=False)
 sgd = wrap_optim_warning_func(partial(src_sgd, foreach=False), 'sgd')
-
-Rprop = partialclass(SrcRprop, foreach=False)
 rprop = wrap_optim_warning_func(partial(src_rprop, foreach=False), 'rprop')
-
-RMSprop = partialclass(SrcRMSprop, foreach=False)
 rmsprop = wrap_optim_warning_func(partial(src_rmsprop, foreach=False), 'rmsprop')
-
-RAdam = partialclass(SrcRAdam, foreach=False)
 radam = wrap_optim_warning_func(partial(src_radam, foreach=False), 'radam')
-
-NAdam = partialclass(SrcNAdam, foreach=False)
 nadam = wrap_optim_warning_func(partial(src_nadam, foreach=False), 'nadam')
-
-ASGD = partialclass(SrcASGD, foreach=False)
 asgd = wrap_optim_warning_func(partial(src_asgd, foreach=False), 'asgd')
-
-AdamW = partialclass(SrcAdamW, foreach=False)
 adamw = wrap_optim_warning_func(partial(src_adamw, foreach=False), 'adamw')
-
-Adamax = partialclass(SrcAdamax, foreach=False)
 adamax = wrap_optim_warning_func(partial(src_adamax, foreach=False), 'adamax')
-
-Adam = partialclass(SrcAdam, foreach=False)
 adam = wrap_optim_warning_func(partial(src_adam, foreach=False), 'adam')
-
-Adagrad = partialclass(SrcAdagrad, foreach=False)
 adagrad = wrap_optim_warning_func(partial(src_adagrad, foreach=False), 'adagrad')
-
-Adadelta = partialclass(SrcAdadelta, foreach=False)
 adadelta = wrap_optim_warning_func(partial(src_adadelta, foreach=False), 'adadelta')
 
 
 def add_optim_method():
-    torch.optim.SGD = SGD
+    partial_class(torch.optim.SGD, foreach=False)
     torch.optim.sgd = sgd
-    torch.optim.Rprop = Rprop
+    partial_class(torch.optim.Rprop, foreach=False)
     torch.optim.rprop = rprop
-    torch.optim.RMSprop = RMSprop
+    partial_class(torch.optim.RMSprop, foreach=False)
     torch.optim.rmsprop = rmsprop
-    torch.optim.RAdam = RAdam
+    partial_class(torch.optim.RAdam, foreach=False)
     torch.optim.radam = radam
-    torch.optim.NAdam = NAdam
+    partial_class(torch.optim.NAdam, foreach=False)
     torch.optim.nadam = nadam
-    torch.optim.ASGD = ASGD
+    partial_class(torch.optim.ASGD, foreach=False)
     torch.optim.asgd = asgd
-    torch.optim.AdamW = AdamW
+    partial_class(torch.optim.AdamW, foreach=False)
     torch.optim.adamw = adamw
-    torch.optim.Adamax = Adamax
+    partial_class(torch.optim.Adamax, foreach=False)
     torch.optim.adamax = adamax
-    torch.optim.Adam = Adam
+    partial_class(torch.optim.Adam, foreach=False)
     torch.optim.adam = adam
-    torch.optim.Adagrad = Adagrad
+    partial_class(torch.optim.Adagrad, foreach=False)
     torch.optim.adagrad = adagrad
-    torch.optim.Adadelta = Adadelta
+    partial_class(torch.optim.Adadelta, foreach=False)
     torch.optim.adadelta = adadelta
