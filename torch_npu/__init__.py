@@ -7,6 +7,7 @@ import traceback
 from functools import wraps
 
 import torch
+from torch.distributed.fsdp import sharded_grad_scaler
 from torch.utils.checkpoint import DefaultDeviceType
 import torch_npu
 
@@ -119,6 +120,10 @@ def _apply_distributed_patches():
     _apply_patches([["distributed", torch_npu.distributed]])
 
 
+def _apply_sharded_grad_scaler_patch():
+    torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler = torch_npu.npu.amp.ShardedGradScaler
+
+
 def _apply_class_patches():
     _add_storage_methods()
     _apply_module_patch()
@@ -129,6 +134,7 @@ def _apply_class_patches():
     add_dynamo_methods()
     add_optim_method()
     apply_sanitizer_patch()
+    _apply_sharded_grad_scaler_patch()
 
 
 torch.utils.rename_privateuse1_backend("npu")
