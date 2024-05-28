@@ -45,7 +45,6 @@ from torch_npu.distributed.rpc.backend_registry import _rpc_backend_registry
 from torch_npu.utils import _cann_package_check, _add_intercept_methods
 from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
-from torch_npu.distributed.optim.zero_redundancy_optimizer import _get_optimizer_constructor
 from torch_npu.distributed.checkpoint.checkpoint import _apply_dcp_patch
 from torch_npu.npu._stream_check import apply_sanitizer_patch
 from torch_npu.utils.error_code import ErrCode, pta_error, _except_handler
@@ -122,10 +121,6 @@ def _apply_distributed_patches():
     _apply_patches([["distributed", torch_npu.distributed]])
 
 
-def _apply_zero_patch():
-    torch.distributed.optim.ZeroRedundancyOptimizer._get_optimizer_constructor = _get_optimizer_constructor
-
-
 def _apply_class_patches():
     _add_storage_methods()
     _apply_module_patch()
@@ -136,7 +131,6 @@ def _apply_class_patches():
     _add_collect_env_methods()
     add_dynamo_methods()
     add_optim_method()
-    _apply_zero_patch()
     _apply_dcp_patch()
 
 
