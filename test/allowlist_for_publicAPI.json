@@ -1725,6 +1725,7 @@
     "Any",
     "Dict",
     "GradScaler",
+    "ShardedGradScaler",
     "Iterable",
     "List",
     "OptState",
