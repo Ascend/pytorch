@@ -1,9 +1,11 @@
 import os
 import torch
+import numpy as np
 
 import torch_npu
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import SupportedDevices
 
 os.environ['PYTORCH_NPU_ALLOC_CONF'] = 'expandable_segments:False'
 
@@ -87,6 +89,107 @@ class TestNpu(TestCase):
         torch.npu.set_compile_mode(jit_compile=False)
         self._test_device_copy()
         self._test_module()
+
+
+class TestOp(TestCase):
+
+    def _cpu_op_exec(self, input1):
+        output = torch.abs(input1)
+        output = output.cpu().numpy()
+        return output
+
+    def _npu_op_exec(self, input1):
+        output = torch.abs(input1)
+        output = output.cpu().numpy()
+        return output
+    
+    def _test_abs(self, device="npu:1"):
+        torch.npu.set_device(0)
+        cpu_input = torch.Tensor([1, -2, -10])
+        npu_input = cpu_input.to(device)
+        cpu_output = self._cpu_op_exec(cpu_input)
+        npu_output = self._npu_op_exec(npu_input)
+        self.assertRtolEqual(cpu_output, npu_output)
+
+    def _test_isfinite(self, device="npu:1"):
+        torch.npu.set_device(0)
+        x = torch.Tensor([1, 2, -10]).to(device)
+        output = torch.isfinite(x)
+        self.assertTrue(output.all())
+
+    def _test_unique_dim(self, device="npu:1", dtype=torch.float):
+        torch.npu.set_device(0)
+        self.assertFalse(hasattr(torch, "unique_dim"))
+
+        x = torch.tensor([[[1., 1.],
+                               [0., 1.],
+                               [2., 1.],
+                               [0., 1.]],
+                              [[1., 1.],
+                               [0., 1.],
+                               [2., 1.],
+                               [0., 1.]]],
+                             dtype=dtype,
+                             device=device)
+        expected_unique_dim0 = torch.tensor([[[1., 1.],
+                                                  [0., 1.],
+                                                  [2., 1.],
+                                                  [0., 1.]]],
+                                                dtype=dtype,
+                                                device=device)
+        expected_inverse_dim0 = torch.tensor([0, 0])
+        expected_counts_dim0 = torch.tensor([2])
+
+        x_unique, x_inverse, x_counts = torch.unique(
+                x,
+                return_inverse=True,
+                return_counts=True,
+                dim=0)
+        self.assertEqual(expected_unique_dim0, x_unique)
+        self.assertEqual(expected_inverse_dim0, x_inverse)
+        self.assertEqual(expected_counts_dim0, x_counts)
+
+    def _supported_op_exec(self, query_states1, past_key, past_value, head_dim):
+        attn_weights1 = torch.matmul(query_states1, past_key.transpose(2, 3)) / 0.0078125
+        attn_weights1 = torch.max(attn_weights1, torch.full(
+            (1, 1), torch.finfo(attn_weights1.dtype).min, device=attn_weights1.device))
+        attn_weights1 = torch.nn.functional.softmax(attn_weights1, dim=-1, dtype=torch.float32).to(query_states1.dtype)
+        attn_output1 = torch.matmul(attn_weights1, past_value)
+        return attn_output1
+
+    def _custom_op_exec(self, query, key, value, head_dim):
+        scale = 1 / 0.0078125
+        return torch_npu.npu_prompt_flash_attention(
+            query, key, value, num_heads=32, input_layout="BNSD", scale_value=scale, pre_tokens=65535, next_tokens=65535, sparse_mode=0)
+    
+    @SupportedDevices(['Ascend910B'])
+    def _test_npu_prompt_flash_attention(self, device="npu:1"):
+        torch.npu.set_device(0)
+        query = torch.randn(1, 32, 2048, 128, dtype=torch.float16).to(device)
+        key = torch.randn(1, 32, 2048, 128, dtype=torch.float16).to(device)
+        value = torch.randn(1, 32, 2048, 128, dtype=torch.float16).to(device)
+
+        head_dim = 128
+
+        supported_output = self._supported_op_exec(query, key, value, head_dim)
+        custom_output = self._custom_op_exec(query, key, value, head_dim)
+        self.assertRtolEqual(supported_output, custom_output)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_aclop_op_with_multi_device(self):
+        torch.npu.set_compile_mode(jit_compile=True)
+        self._test_abs()
+        self._test_isfinite()
+        self._test_unique_dim()
+        self._test_npu_prompt_flash_attention()
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_opapi_op_with_multi_device(self):
+        torch.npu.set_compile_mode(jit_compile=False)
+        self._test_abs()
+        self._test_isfinite()
+        self._test_unique_dim()
+        self._test_npu_prompt_flash_attention()
 
 
 if __name__ == '__main__':
