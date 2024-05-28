@@ -119,6 +119,15 @@ _GLOBAL_PARSE_NATIVE_YAML_CACHE = {}
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
 
 
+def modify_func_in_native_yaml(func: str) -> str:
+    # func_to_modify: {old_value: new_value}
+    func_to_modify = {"matmul_backward(Tensor grad, Tensor self, Tensor other, bool[2] mask) -> (Tensor, Tensor)":
+                      "matmul_backward(Tensor grad_out, Tensor self, Tensor other, bool[2] mask) -> (Tensor, Tensor)"}
+    if func in func_to_modify:
+        return func_to_modify[func]
+    return func
+
+
 def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> ParsedYaml:
     global _GLOBAL_PARSE_NATIVE_YAML_CACHE
     if path not in _GLOBAL_PARSE_NATIVE_YAML_CACHE:
@@ -131,6 +140,7 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
         rs: List[NativeFunction] = []
         bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
         for e in es:
+            e["func"] = modify_func_in_native_yaml(e["func"])
             func, m = NativeFunction.from_yaml(e, "Location", valid_tags)
             rs.append(func)
             BackendIndex.grow_index(bs, m)
