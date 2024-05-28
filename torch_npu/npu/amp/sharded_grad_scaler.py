@@ -10,6 +10,9 @@ from torch_npu.npu.utils import npu_check_overflow
 from torch_npu.npu.amp.grad_scaler import _MultiDeviceReplicator, GradScaler, OptState
 from torch_npu.utils.error_code import ErrCode, pta_error
 
+__all__ = ["ShardedGradScaler"]
+
+
 log = logging.getLogger(__name__)
 
 
@@ -324,7 +327,7 @@ class ShardedGradScaler(GradScaler):
         """
         self._amp_update_scale_cpu_(found_inf)
 
-    def update(self, new_scale: Optional[Union[float, torch.npu.FloatTensor]] = None) -> None:
+    def update(self, new_scale=None) -> None:
         """
         Updates the scale factor.
         If any optimizer steps were skipped the scale is multiplied by ``backoff_factor``

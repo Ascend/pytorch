@@ -173,6 +173,23 @@
     "List",
     "timedelta"
   ],
+  "torch.distributed.fsdp.sharded_grad_scaler": [
+    "Any",
+    "Dict",
+    "FloatTensor",
+    "GradScaler",
+    "ShardedGradScaler",
+    "Iterable",
+    "List",
+    "OptState",
+    "Optional",
+    "ProcessGroup",
+    "Sequence",
+    "Tuple",
+    "Union",
+    "defaultdict",
+    "overload"
+  ],
   "torch.distributed.nn": [
     "Function",
     "ReduceOp",
