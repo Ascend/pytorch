@@ -255,12 +255,11 @@ def _jit_script_method(fn):
 
 
 def _patch_jit_script():
-    msg = ('torch.jit.script, torch.jit.script_method and torch.jit.ScriptModule will be disabled by transfer_to_npu, '
+    msg = ('torch.jit.script and torch.jit.script_method will be disabled by transfer_to_npu, '
            'which currently does not support them, if you need to enable them, please do not use transfer_to_npu.')
     warnings.warn(msg, RuntimeWarning)
     torch.jit.script = _jit_script
     torch.jit.script_method = _jit_script_method
-    torch.jit.ScriptModule = torch.nn.Module
 
 
 def _patch_has_triton():
