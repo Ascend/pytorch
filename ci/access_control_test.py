@@ -40,6 +40,13 @@ INCLUDE_FILES = [
     'jit/test_complexity.py',
 ]
 
+# default ut cmd execution timeout is 2000s
+EXEC_TIMEOUT = os.getenv("PTA_UT_EXEC_TIMEOUT", 2000)
+try:
+    EXEC_TIMEOUT = int(EXEC_TIMEOUT)
+except ValueError:
+    EXEC_TIMEOUT = 2000
+
 
 class AccurateTest(metaclass=ABCMeta):
     @abstractmethod
@@ -366,7 +373,7 @@ def exec_ut(files):
         start_thread(enqueue_output, p.stdout, stdout_queue)
 
         try:
-            event_timer.wait(2000)
+            event_timer.wait(EXEC_TIMEOUT)
             ret = p.poll()
             if ret:
                 print_subprocess_log(stdout_queue)
@@ -377,7 +384,7 @@ def exec_ut(files):
                     children_process.kill()
                 p.kill()
                 p.terminate()
-                print("Timeout: Command '{}' timed out after 2000 seconds".format(" ".join(cmd)))
+                print("Timeout: Command '{}' timed out after {} seconds".format(" ".join(cmd), EXEC_TIMEOUT))
                 print_subprocess_log(stdout_queue)
         except Exception as err:
             ret = 1
