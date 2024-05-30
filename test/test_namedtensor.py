@@ -14,7 +14,6 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch.testing._internal.common_utils import TestCase, run_tests, TEST_NUMPY
-from torch.testing._internal.common_utils import skipIfTorchDynamo
 from torch.testing._internal.common_cuda import TEST_CUDA
 
 import torch_npu
@@ -101,8 +100,8 @@ class TestNamedTensor(TestCase):
 
     def assertTensorDataAndNamesEqual(self, x, y):
         self.assertEqual(x.names, y.names)
-        unnamed_x = x.rename(None)
-        unnamed_y = y.rename(None)
+        unnamed_x = x.rename(None).cpu()
+        unnamed_y = y.rename(None).cpu()
         self.assertEqual(unnamed_x, unnamed_y)
 
     def _test_factory(self, factory, device):
@@ -151,8 +150,6 @@ class TestNamedTensor(TestCase):
             names65 = ['A' * i for i in range(1, 66)]
             x = factory([1] * 65, names=names64, device=device)
 
-    # NOK
-    @skipIfTorchDynamo("not a bug: Dynamo causes the refcounts to be different")
     def test_none_names_refcount(self, N=10):
         def scope():
             unnamed = torch.empty(2, 3)
@@ -237,13 +234,13 @@ class TestNamedTensor(TestCase):
             output = x.index_fill_('C', torch.tensor([0, 1], device=device), 5)
             self.assertEqual(output.names, expected_names)
 
-            output = x.index_fill_('C', torch.tensor([0, 1], device=device), torch.tensor(4.))
+            output = x.index_fill_('C', torch.tensor([0, 1], device=device), torch.tensor(4.).npu())
             self.assertEqual(output.names, expected_names)
 
             output = x.index_fill('C', torch.tensor([0, 1], device=device), 5)
             self.assertEqual(output.names, expected_names)
 
-            output = x.index_fill('C', torch.tensor([0, 1], device=device), torch.tensor(4.))
+            output = x.index_fill('C', torch.tensor([0, 1], device=device), torch.tensor(4.).npu())
             self.assertEqual(output.names, expected_names)
 
     def test_equal(self):
@@ -265,11 +262,11 @@ class TestNamedTensor(TestCase):
 
     def test_repr(self):
         named_tensor = torch.zeros(2, 3).npu().rename_('N', 'C')
-        expected = "tensor([[0., 0., 0.],\n        [0., 0., 0.]], names=('N', 'C'))"
+        expected = "tensor([[0., 0., 0.],\n        [0., 0., 0.]], device='npu:0', names=('N', 'C'))"
         self.assertEqual(repr(named_tensor), expected)
 
         unnamed_tensor = torch.zeros(2, 3).npu()
-        expected = "tensor([[0., 0., 0.],\n        [0., 0., 0.]])"
+        expected = "tensor([[0., 0., 0.],\n        [0., 0., 0.]], device='npu:0')"
         self.assertEqual(repr(unnamed_tensor), expected)
 
         none_named_tensor = torch.zeros(2, 3).npu().rename_(None, None)
@@ -589,6 +586,7 @@ class TestNamedTensor(TestCase):
 
     def test_info_smoke(self):
         # Smoke test for info functions / methods / attributes on named tensors.
+        # NPU device do not support is_shared for now.
         tensor = torch.empty(1, 1, names=('N', 'D'), device="npu")
 
         tensor.device
@@ -607,7 +605,6 @@ class TestNamedTensor(TestCase):
         tensor.is_cuda
         tensor.is_leaf
         tensor.is_pinned()
-        tensor.is_shared()
         tensor.is_sparse
         tensor.ndimension()
         tensor.nelement()
@@ -624,7 +621,6 @@ class TestNamedTensor(TestCase):
         tensor.ndim
         tensor.item()
         tensor.type()
-        tensor.is_shared()
         tensor.is_signed()
 
     def test_autograd_smoke(self):
@@ -979,7 +975,7 @@ class TestNamedTensor(TestCase):
 
             # bernoulli variants
             method('bernoulli_', 0.5),
-            method('bernoulli_', torch.tensor(0.5)),
+            method('bernoulli_', torch.tensor(0.5).npu()),
 
             method('softmax', dim=1),
             method('softmax', dim='D'),
@@ -998,7 +994,7 @@ class TestNamedTensor(TestCase):
         def test_ops(op):
             for device in get_all_device_types():
                 names = ('N', 'D')
-                tensor = torch.rand(2, 3, device=device)
+                tensor = torch.rand(2, 3, names=names, device=device)
                 result = op(tensor, 0)
                 self.assertEqual(result[0].names, names)
                 self.assertEqual(result[1].names, names)
@@ -1080,6 +1076,7 @@ class TestNamedTensor(TestCase):
         with self.assertRaisesRegex(RuntimeError, "cannot be empty"):
             tensor.flatten((), 'abcd')
 
+    #NOK
     @unittest.skip("Segmentation fault on cpu")
     def test_flatten_index_error(self):
         tensor = torch.randn(1, 2, device="npu")
@@ -2085,4 +2082,5 @@ class TestNamedTensor(TestCase):
 
 
 if __name__ == '__main__':
+    torch.npu.init()
     pass

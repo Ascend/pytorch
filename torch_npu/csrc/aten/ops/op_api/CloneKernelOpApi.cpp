@@ -27,6 +27,7 @@ at::Tensor NPUNativeOpApiFunctions::clone(const at::Tensor &src, c10::optional<c
     DO_COMPATIBILITY(aclnnInplaceCopy, NPUNativeFunctions::clone(src, format));
     auto baseSelf = OpPreparation::apply_tensor_without_format(src);
     EXEC_NPU_COPY_CMD(aclnnInplaceCopy, baseSelf, src);
+    at::namedinference::propagate_names(baseSelf, src);
     return baseSelf;
 }
 
