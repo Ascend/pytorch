@@ -37,6 +37,10 @@ void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSi
         return;
     }
 
+    if (dst.data_ptr() == src.data_ptr() && dst.element_size() == src.element_size()) {
+        return;
+    }
+
     // The current logic is only used in single op mode.
     aclError error = c10_npu::queue::LaunchAsyncCopyTask(
         dst.data_ptr(),
