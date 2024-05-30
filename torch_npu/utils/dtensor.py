@@ -22,11 +22,6 @@ def _register_ops_under_dtensor_rules():
         # native ops
         aten.isclose.default,
         aten.isfinite.default,
-        aten.true_divide.Scalar,
-        aten.true_divide.Tensor,
-        aten.true_divide.out,
-        aten.true_divide_.Scalar,
-        aten.true_divide_.Tensor,
         # custom ops
         npu.fast_gelu.default,
         npu.npu_dtype_cast.default,

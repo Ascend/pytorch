@@ -43,7 +43,7 @@ def gen_autograd(
     npu_native_functions_path = gen_custom_yaml_path(npu_native_functions_path)
     differentiability_infos, native_funcs, funcs_with_diff_infos =\
         parse_derivatives(native_functions_path, tags_path, autograd_dir, npu_native_functions_path)
-    npu_funcs_with_diff_infos, _ = filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)
+    npu_funcs_with_diff_infos, _, _ = filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)
     template_path = os.path.join(autograd_dir, 'templates')
     torch_template_path = os.path.join(get_torchgen_dir(), 'packaged/autograd/templates')
 

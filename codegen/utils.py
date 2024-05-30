@@ -24,6 +24,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import yaml
 
+import torch
 from torchgen.api.types.signatures import NativeSignature
 from torchgen.context import native_function_manager
 from torchgen.code_template import CodeTemplate
@@ -174,6 +175,38 @@ def filt_exposed_api(custom_path: str):
         if es.get('exposed', False):
             exposed_set.add(es.get('func').split('(')[0].split('.')[0])
     return list(exposed_set)
+
+
+# Different implements of ops from origin torch. 
+# Native ops with dispatchkey CompositeImplicitAutograd but implemented as a kernel op in pta
+COMPOSITEIMPLICITAUTOGRAD_EXCEPT_LIST = [
+    'isclose',
+    'isfinite',
+]
+
+
+def filt_dispath_key(api_name: str) -> List:
+    dispatch_dump = torch._C._dispatch_dump(f"aten::{api_name}")
+    return [dump.split(":")[0] for dump in dispatch_dump.split('\n')]
+
+
+def filt_compositeimplicitautograd_api(native_yaml_path, npu_supported):
+    PathManager.check_directory_path_readable(native_yaml_path)
+    with open(native_yaml_path, 'r') as f:
+        es = yaml.safe_load(f)
+
+    from codegen.autograd.utils import TORCH_AUTOGRAD_FUNCTION
+    supported_autograd = []
+    for e in es:
+        api_name = e['func'].split('(')[0]
+        dispatch_keys = filt_dispath_key(api_name)
+        is_compositekey = "CompositeImplicitAutograd[alias]" in dispatch_keys and \
+                          "Autograd[alias]" not in dispatch_keys and \
+                          api_name not in TORCH_AUTOGRAD_FUNCTION
+        is_npu_api = api_name in npu_supported and api_name not in COMPOSITEIMPLICITAUTOGRAD_EXCEPT_LIST 
+        if is_npu_api and is_compositekey:
+            supported_autograd.append(api_name)
+    return supported_autograd
 
 
 def rename_privateuse1_dispatch_key():

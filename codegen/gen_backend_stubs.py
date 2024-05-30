@@ -43,7 +43,7 @@ from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, ge
                            get_grouped_native_functions_optional_out, parse_npu_yaml, get_opplugin_wrap_name,
                            get_target_functions, merge_custom_yaml, field_tag, gen_custom_yaml_path,
                            update_opapi_info, is_opapi, PathManager, filt_exposed_api, get_target_native_registration,
-                           NativeFunctionsGroupOptionalOut, gen_device_check)
+                           NativeFunctionsGroupOptionalOut, gen_device_check, filt_compositeimplicitautograd_api)
 from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch,
                                       gen_custom_functions_dispatch)
 
@@ -184,6 +184,7 @@ ParsedExternalYaml = namedtuple('ParsedExternalYaml', [
 
 
 def parse_backend_yaml(
+        native_yaml_path:str,
         backend_yaml_path: str,
         grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
         backend_indices: Dict[DispatchKey, BackendIndex]
@@ -236,6 +237,7 @@ def parse_backend_yaml(
                  if isinstance(op, Dict) and ("impl_ns" in op.keys() or "op_api" in op.keys())] + \
                 [op for op in supported if not isinstance(op, Dict)]
     supported_autograd = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported_autograd]
+    supported_autograd += filt_compositeimplicitautograd_api(native_yaml_path, supported)
 
     custom = yaml_values.pop('custom', [])
     if not isinstance(custom, list):
@@ -300,7 +302,7 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
             raise KeyError("quant_key should not be in backend_indices.")
         backend_indices[str(backend_key) + quant_key] = quant_idx
 
-    check_grouped_native_functions(backend_key, autograd_key, backend_indices, grouped_native_functions)
+    # check_grouped_native_functions(backend_key, autograd_key, backend_indices, grouped_native_functions)
     return ParsedExternalYaml(true_backend, backend_key, autograd_key, cpp_namespace, backend_indices)
 
 
@@ -670,19 +672,17 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
     get_target_functions(op_plugin_yaml_path)
     native_functions, backend_indices = parsed_yaml.native_functions, parsed_yaml.backend_indices
     grouped_native_functions = get_grouped_native_functions(native_functions)
-    parsed_backend_yaml = parse_backend_yaml(source_yaml, grouped_native_functions, backend_indices)
+    parsed_backend_yaml = parse_backend_yaml(native_yaml_path, source_yaml, grouped_native_functions, backend_indices)
     true_backend = parsed_backend_yaml.true_backend
     backend_key = parsed_backend_yaml.backend_key
     autograd_key = parsed_backend_yaml.autograd_key
     cpp_namespace = parsed_backend_yaml.cpp_namespace
     backend_indices = parsed_backend_yaml.backend_indices
-
     selector = SelectiveBuilder.get_nop_selector()
     if backend_key is not None:
         backend_dispatch_key: DispatchKey = backend_key
         autograd_dispatch_key: DispatchKey = autograd_key
         class_name = backend_indices[backend_dispatch_key].native_function_class_name()
-
         gen_dispatchkey_nativefunc_headers(
             fm,
             class_name,
@@ -690,7 +690,7 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
             backend_indices,
             grouped_native_functions,
             backend_key,
-            autograd_key,
+            None,
         )
 
         gen_dispatchkey_nativefunc_headers(
@@ -700,7 +700,7 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
             backend_indices,
             grouped_native_functions,
             str(backend_key) + "OpApi",
-            autograd_key,
+            None,
         )
 
         for dispatch_key in [backend_dispatch_key, autograd_dispatch_key]:

@@ -57,14 +57,16 @@ def filt_npu_autograd_functions(
         torch_functions.add(e.get('func').split('(')[0])
 
     npu_autograd_functions = set()
+    torch_derivatives_functions = set()
     for f in funcs_with_diff_infos:
         name = str(f.func.func.name)
         # f.info is differentiabilityinfo. Existence of variants ops with a differentiabilityinfo of none.
         if f.info and name not in torch_functions:
             npu_funcs_with_diff_infos.append(f)
             npu_autograd_functions.add(name)
-
-    return npu_funcs_with_diff_infos, npu_autograd_functions
+        if f.info and name in torch_functions:
+            torch_derivatives_functions.add(name)
+    return npu_funcs_with_diff_infos, npu_autograd_functions, torch_derivatives_functions
 
 
 def filte_out_native_autograd_function(
@@ -85,11 +87,11 @@ def filte_out_native_autograd_function(
     return result
 
 
-NPU_AUTOGRAD_FUNCTION = filt_npu_autograd_functions(
+_, NPU_AUTOGRAD_FUNCTION, TORCH_AUTOGRAD_FUNCTION = filt_npu_autograd_functions(
     str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/native_functions.yaml')),
     parse_derivatives(
         str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/native_functions.yaml')),
         str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/tags.yaml')),
         str(Path(__file__).parent),
         str(Path(__file__).parents[2].joinpath(f'torch_npu/csrc/aten/{CUSTOM_YAML_NAME}')))[-1]
-)[-1]
+)
