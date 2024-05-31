@@ -1853,6 +1853,18 @@ class TestMoeFinalizeRouting(TestCase):
             self.assertTrue(result.shape == skip1.shape)
             self.assertTrue(result.dtype == skip1.dtype)
 
+
+class TestSeluBackward(TestCase):
+    def test_selu_backward(self):
+        with FakeTensorMode():
+            npu_input1 = torch.randn(16, 128).npu()
+            npu_input2 = torch.randn(16, 128).npu()
+            result = torch.ops.npu.selu_backward(npu_input1, npu_input2)
+
+            self.assertEqual(result.dtype, npu_input1.dtype)
+            self.assertEqual(result.shape, npu_input1.shape)
+
+
 instantiate_parametrized_tests(FakeTensorTest)
 instantiate_device_type_tests(FakeTensorOpInfoTest, globals(), only_for="cpu")
 
