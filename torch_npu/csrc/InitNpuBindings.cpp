@@ -14,6 +14,7 @@
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
+#include "torch_npu/csrc/profiler/python/combined_traceback.h"
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 
 PyObject* module;
@@ -140,6 +141,7 @@ PyObject* initModule() {
     BindGetDeviceMemories(module);
     RegisterNpuPluggableAllocator(module);
     initCommMethods();
+    torch_npu::installCapturedTracebackPython();
     return module;
 }
 
