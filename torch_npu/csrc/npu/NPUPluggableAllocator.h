@@ -65,9 +65,15 @@ struct NPUPluggableAllocator
         int device) override;
     void resetAccumulatedStats(int device) override;
     void resetPeakStats(int device) override;
-    std::vector<c10_npu::NPUCachingAllocator::SegmentInfo> snapshot() override;
+    c10_npu::NPUCachingAllocator::SnapshotInfo snapshot() override;
     void FreeDeviceCachedMemory(int device) override;
     std::string name() override;
+    void recordHistory(
+        bool enabled,
+        c10_npu::NPUCachingAllocator::CreateContextFn context_recorder,
+        size_t alloc_trace_max_entries,
+        c10_npu::NPUCachingAllocator::RecordContext when) override;
+    void attachOutOfMemoryObserver(c10_npu::NPUCachingAllocator::OutOfMemoryObserver observer) override;
 
 protected:
     std::function<void*(size_t, int, aclrtStream)> alloc_fn_;
