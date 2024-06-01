@@ -1254,6 +1254,55 @@ class TestPromptFlashAttention(TestCase):
             self.assertTrue(q.shape == res.shape)
 
 
+
+class TestFlashAttentionScore(TestCase):
+    def testFlashAttentionScore(self):
+        with FakeTensorMode():
+            q = torch.randn(1, 40, 16, 128, dtype=torch.float16).npu()
+            k = torch.randn(1, 40, 16, 128, dtype=torch.float16).npu()
+            v = torch.randn(1, 40, 16, 128, dtype=torch.float16).npu()
+            softmax_max_sum = torch.randn(1, 40, 16, 8, dtype=torch.float32).npu()
+            q.requires_grad = True
+            k.requires_grad = True
+            v.requires_grad = True
+            res = torch.ops.npu.npu_fusion_attention(q, k, v, head_num=40, input_layout="BNSD")
+
+            self.assertEqual(q.shape, res[0].shape)
+            self.assertEqual(q.dtype, res[0].dtype)
+            self.assertEqual(softmax_max_sum.shape, res[1].shape)
+            self.assertEqual(softmax_max_sum.dtype, res[1].dtype)
+            self.assertEqual(softmax_max_sum.shape, res[2].shape)
+            self.assertEqual(softmax_max_sum.dtype, res[2].dtype)
+
+
+class TestFlashAttentionScoreGrad(TestCase):
+    def testFlashAttentionScoreGrad(self):
+        with FakeTensorMode():
+            q = torch.randn(1, 40, 16, 128, dtype=torch.float16).npu()
+            k = torch.randn(1, 40, 16, 128, dtype=torch.float16).npu()
+            v = torch.randn(1, 40, 16, 128, dtype=torch.float16).npu()
+            dy = torch.randn(1, 40, 16, 128, dtype=torch.float16).npu()
+            attention_in = torch.randn(1, 40, 16, 128, dtype=torch.float16).npu()
+            softmax_max = torch.randn(1, 40, 16, 8, dtype=torch.float32).npu()
+            softmax_sum = torch.randn(1, 40, 16, 8, dtype=torch.float32).npu()
+            q.requires_grad = True
+            k.requires_grad = True
+            v.requires_grad = True
+            dy.requires_grad = True
+            attention_in.requires_grad = True
+            softmax_max.requires_grad = True
+            softmax_sum.requires_grad = True
+            res = torch.ops.npu.npu_fusion_attention_grad(q, k, v, dy, head_num=40, input_layout="BNSD",
+                            softmax_max=softmax_max, softmax_sum=softmax_sum, attention_in=attention_in)
+
+            self.assertEqual(q.shape, res[0].shape)
+            self.assertEqual(q.dtype, res[0].dtype)
+            self.assertEqual(k.shape, res[1].shape)
+            self.assertEqual(k.dtype, res[1].dtype)
+            self.assertEqual(k.shape, res[2].shape)
+            self.assertEqual(k.dtype, res[2].dtype)
+
+
 class TestNpuMoeComputeExpertTokens(TestCase):
     def test_npu_moe_compute_expert_tokens(self):
         with FakeTensorMode():
