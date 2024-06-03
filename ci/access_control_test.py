@@ -27,7 +27,8 @@ SLOW_TEST_BLOCKLIST = [
     'test_unary_ufuncs',
     'test_ops_jit',
     'test_foreach',
-    "onnx/test_fx_op_consistency"
+    "onnx/test_fx_op_consistency",
+    "onnx/test_op_consistency"
 ]
 
 # exclude some not run directly test files
