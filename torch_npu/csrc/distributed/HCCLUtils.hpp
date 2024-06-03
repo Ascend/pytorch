@@ -47,6 +47,7 @@
 
 namespace c10d_npu {
 extern HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError);
+extern HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclCommConfig* config, HcclComm *comm);
 
 // Provides additional detail into HCCL error codes based on when these are
 // thrown in the HCCL codebase.
@@ -77,6 +78,19 @@ public:
         HcclRootInfo& rootInfo) {
         auto comm = std::make_shared<HCCLComm>();
         HCCL_CHECK_ERROR(HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
+        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destropyHcclComm();},
+                                                             c10_npu::ReleasePriority::PriorityMiddle);
+        return comm;
+    }
+
+    static std::shared_ptr<HCCLComm> create_config(
+        int numRanks,
+        int rank,
+        HcclRootInfo& rootInfo,
+        HcclCommConfig* config)
+    {
+        auto comm = std::make_shared<HCCLComm>();
+        HCCL_CHECK_ERROR(hcclCommInitRootInfoConfig(numRanks, &rootInfo, rank, config, &(comm->hcclComm_)));
         c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destropyHcclComm();},
                                                              c10_npu::ReleasePriority::PriorityMiddle);
         return comm;

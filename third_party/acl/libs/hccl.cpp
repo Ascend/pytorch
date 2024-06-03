@@ -12,6 +12,8 @@ hcclResult_t HcclReduceScatter(void *sendBuf, void *recvBuf, u64 recvCount, Hccl
                                HcclReduceOp op, HcclComm comm, aclrtStream stream) {return HCCL_SUCCESS;}
 hcclResult_t HcclCommInitRootInfo(u32 nRanks, const HcclRootInfo *rootInfo,
                                   u32 rank, HcclComm *comm) {return HCCL_SUCCESS;}
+hcclResult_t HcclCommInitRootInfoConfig(u32 nRanks, const HcclRootInfo *rootInfo,
+                                        u32 rank, HcclCommConfig config, HcclComm *comm) {return HCCL_SUCCESS;}
 hcclResult_t HcclGetCommName(HcclComm commHandle, char* commName) {return HCCL_SUCCESS;}
 
 hcclResult_t HcclAllGather(void *sendBuf, void *recvBuf, u64 sendCount, HcclDataType dataType,
