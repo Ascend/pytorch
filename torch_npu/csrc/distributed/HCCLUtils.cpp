@@ -22,6 +22,12 @@ std::string getHcclErrorDetailStr(HcclResult error, c10::optional<std::string> p
     return interpret;
 }
 
+bool isFileExists(std::string& name)
+{
+    std::ifstream f(name.c_str());
+    return f.good();
+}
+
 // HCCL DataType mapping
 std::map<at::ScalarType, HcclDataType> kScalarTypeToHcclDataType = {
     {at::kByte, HCCL_DATA_TYPE_UINT8},

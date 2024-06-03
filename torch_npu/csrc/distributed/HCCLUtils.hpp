@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <fstream>
 
 #include <ATen/ATen.h>
 #include <c10/util/Optional.h>
@@ -56,6 +57,8 @@ std::string getHcclErrorDetailStr(
 HcclDataType getHcclDataType(at::ScalarType type);
 
 std::string getHcclDataTypeSerialString(HcclDataType type);
+
+bool isFileExists(std::string& name);
 
 // RAII wrapper for HCCL communicator
 class HCCLComm {

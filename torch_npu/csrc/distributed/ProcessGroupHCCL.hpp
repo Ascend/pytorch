@@ -418,7 +418,11 @@ protected:
 
     // Get the data vol for HCCL operators.
     void recordDataVol(std::string opName, const std::string dataVol, const int currRank,
-    std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+        std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+
+    // Get the comm for HCCL operators.
+    void recordComm(std::string filename, std::string opName, const int currRank,
+        std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
     // Wrapper method which can be overridden for tests.
     virtual std::exception_ptr checkForHCCLErrors(
@@ -543,6 +547,21 @@ protected:
 
     // Whether or not to enable timeout root cause analysis.
     bool desyncDebug_;
+
+    // the perfdump path
+    std::string filepath;
+
+    struct CommStruct {
+        std::string comm_name;
+        std::string op_name;
+
+        bool operator<(const CommStruct& other) const
+        {
+            return std::tie(comm_name, op_name) < std::tie(other.comm_name, other.op_name);
+        }
+    };
+
+    std::set<CommStruct> commset;
 
     // Temporarily not implemented: std::unordered_set<std::string> abortedComms_;
 
