@@ -1,3 +1,4 @@
+#include <c10/util/CallOnce.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 
@@ -16,6 +17,7 @@ LOAD_FUNCTION(HcclGetCommAsyncError)
 LOAD_FUNCTION(HcclScatter)
 LOAD_FUNCTION(HcclBatchSendRecv)
 LOAD_FUNCTION(HcclAlltoAll)
+LOAD_FUNCTION(HcclCommInitRootInfoConfig)
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
@@ -102,6 +104,32 @@ HcclResult hcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclDataType se
     TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAll", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, sendCount, sendType,
                     recvBuf, recvCount, recvType, comm, stream);
+    return ret;
+}
+
+bool hcclCommInitRootInfoConfigExist()
+{
+    static c10::once_flag flag;
+    static bool exist = false;
+    c10::call_once(flag, [&]() {
+        auto func = GET_FUNC(HcclCommInitRootInfoConfig)
+        if (func != nullptr) {
+            exist = true;
+        }
+    });
+    return exist;
+}
+
+HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclCommConfig* config, HcclComm *comm)
+{
+    typedef HcclResult(*HcclCommInitRootInfoConfigFunc)(
+        uint32_t, const HcclRootInfo *, uint32_t, HcclCommConfig*, HcclComm *);
+    static HcclCommInitRootInfoConfigFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommInitRootInfoConfigFunc)GET_FUNC(HcclCommInitRootInfoConfig)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommInitRootInfoConfig", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(nRanks, rootInfo, rank, config, comm);
     return ret;
 }
 } // namespace c10d_npu

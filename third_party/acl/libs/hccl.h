@@ -69,6 +69,12 @@ typedef struct HcclSendRecvItemDef {
     u32 remoteRank;
 } HcclSendRecvItem;
 
+typedef struct HcclCommConfigDef {
+    char reserved[24];
+    u32 hcclBufferSize;
+    u32 hcclDeterministic;
+} HcclCommConfig;
+
 /* handle to communicator */
 typedef void *hcclComm_t;
 typedef void *rtStream_t;
@@ -86,6 +92,7 @@ hcclResult_t HcclCommDestroy(hcclComm_t comm);
 hcclResult_t HcclReduceScatter(void *sendBuf, void *recvBuf, u64 recvCount, HcclDataType dataType,
                                HcclReduceOp op, HcclComm comm, aclrtStream stream);
 hcclResult_t HcclCommInitRootInfo(u32 nRanks, const HcclRootInfo *rootInfo, u32 rank, HcclComm *comm);
+hcclResult_t HcclCommInitRootInfoConfig(u32 nRanks, const HcclRootInfo *rootInfo, u32 rank, HcclCommConfig* config, HcclComm *comm);
 hcclResult_t HcclGetCommName(HcclComm commHandle, char* commName);
 hcclResult_t HcclAllGather(void *sendBuf, void *recvBuf, u64 sendCount, HcclDataType dataType, HcclComm comm,
                            aclrtStream stream);
