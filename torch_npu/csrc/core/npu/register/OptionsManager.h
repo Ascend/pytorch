@@ -39,6 +39,7 @@ public:
     static bool CheckGeInitDisable();
     static bool CheckPerfDumpEnable();
     static std::string GetPerfDumpPath();
+    static uint32_t GetP2PBufferSize();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

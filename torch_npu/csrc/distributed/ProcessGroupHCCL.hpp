@@ -42,6 +42,11 @@ enum ErrorHandlingMode {
     SkipCleanUp = 3
 };
 
+enum class HcclCommType {
+    DEFAULT = 0,
+    P2P = 1
+};
+
 #define SHOULD_CLEAN_UP(a) ((a) != NoHandling && (a) != SkipCleanUp)
 
 #define SHOULD_TEAR_DOWN(a) ((a) != NoHandling && (a) != CleanUpOnly)
@@ -414,7 +419,8 @@ protected:
     // a new set of HCCL communicators as a cache entry
     std::vector<std::shared_ptr<HCCLComm>>& getHCCLComm(
         const std::string& devicesKey,
-        const std::vector<at::Device>& devices);
+        const std::vector<at::Device>& devices,
+        HcclCommType commType = HcclCommType::DEFAULT);
 
     // Get the data vol for HCCL operators.
     void recordDataVol(std::string opName, const std::string dataVol, const int currRank,

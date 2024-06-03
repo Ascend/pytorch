@@ -190,6 +190,12 @@ void exceptionCallback(aclrtExceptionInfo* exceptionInfo)
     // notice: Do not raise error, otherwise we will get call stacks of the rts callback function.
     fprintf(stdout, "Inner error, see details in Ascend logs.");
 }
+
+void getP2PHcclCommCofig(HcclCommConfig* config)
+{
+    HcclCommConfigInit(config);
+    config->hcclBufferSize = c10_npu::option::OptionsManager::GetP2PBufferSize();
+}
 } // namespace
 
 constexpr int64_t kSynchronizeBusyWaitMillis = 10;
@@ -950,13 +956,14 @@ void ProcessGroupHCCL::recordComm(std::string filename, std::string opName, cons
 
 std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     const std::string& devicesKey,
-    const std::vector<at::Device>& devices)
+    const std::vector<at::Device>& devices,
+    HcclCommType commType)
 {
     // Sanity check
     if (devicesKey.empty()) {
         throw std::runtime_error(
             "Not able to create/get the HCCL Communicator since "
-            "the NPU devices are not known" + DIST_ERROR(ErrCode::HCCL));
+            "the NPU devices are not known" + DIST_ERROR(ErrCode::PARAM));
     }
 
     for (auto& device : devices) {
@@ -990,7 +997,20 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
         int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
 
         npuGuard.set_index(devices[i].index());
-        hcclComms[i] = HCCLComm::create(numRanks, rank, hcclID);
+        switch (commType) {
+            case HcclCommType::DEFAULT:
+                hcclComms[i] = HCCLComm::create(numRanks, rank, hcclID);
+                break;
+            case HcclCommType::P2P:
+                HcclCommConfig config;
+                getP2PHcclCommCofig(&config);
+                hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
+                break;
+            default:
+                throw std::runtime_error(
+                    "create/get the HCCL Communicator failed for comm type:" +
+                    std::to_string((int)commType) + DIST_ERROR(ErrCode::PARAM));
+        }
 
         // Creates the HCCL streams
         streamVal.push_back(c10_npu::getNPUStreamFromPool(devices[i].index()));
@@ -1273,8 +1293,18 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     seq_++;
 
     const auto devices = getDeviceList(inputs);
-    const auto key = getKeyFromDevices(devices);
-    auto& hcclComms = getHCCLComm(key, devices);
+    auto key = getKeyFromDevices(devices);
+    auto hcclComms = getHCCLComm(key, devices);
+    if (hcclCommInitRootInfoConfigExist() && c10_npu::option::OptionsManager::GetP2PBufferSize() != 0) {
+        auto key_p2p = key + "_p2p";
+        auto hcclComms_p2p = getHCCLComm(key_p2p, devices, HcclCommType::P2P);
+        // OpType::UNKNOWN represents batch_isend_irecv now
+        if (opType == c10d::OpType::SEND || opType == c10d::OpType::RECV || opType == c10d::OpType::UNKNOWN) {
+            hcclComms = hcclComms_p2p;
+            key = key_p2p;
+        }
+    }
+
     // Used many times below, so we stash the unordered_map lookup
     auto& hcclStreams = hcclStreams_[key];
     // First let HCCL streams wait for input tensors allocation streams
