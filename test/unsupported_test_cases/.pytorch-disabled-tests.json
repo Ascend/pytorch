@@ -28126,5 +28126,22 @@
   "test_python_submodule_script (jit.test_data_parallel.TestDataParallel)": ["", [""]],
   "test_ge_cuda (jit.test_tracer.TestTracer)": ["only test_jit_legacy.py", [""]],
   "test_tensor_subscript_assign_device (jit.test_builtins.TestTensorBuiltins)": ["only test_jit_legacy.py", [""]],
-  "test_pow_multiple_dtype (jit.test_misc.TestMisc)": ["only test_jit_legacy.py", [""]]
+  "test_pow_multiple_dtype (jit.test_misc.TestMisc)": ["only test_jit_legacy.py", [""]],
+  "test_comparison_ops_with_type_promotion_npu (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_lt_with_type_promotion_npu (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_result_type_tensor_vs_scalar_npu (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex128_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex128_float32 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex128_float64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex128_int64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex64_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex64_float32 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex64_float64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex64_int64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_float32_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_float32_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_float64_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_float64_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_int64_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_int64_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]]
 }
