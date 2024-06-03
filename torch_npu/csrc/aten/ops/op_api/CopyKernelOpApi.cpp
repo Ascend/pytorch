@@ -169,7 +169,7 @@ void copy_d2d_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
         c10::SmallVector<at::Tensor, N> outputs = {dst};
         CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
     }
-    EXEC_NPU_COPY_CMD(aclnnInplaceCopy, dst, src);
+    EXEC_NPU_CMD(aclnnInplaceCopy, dst, src);
     if (dst.device().index() != src.device().index()) {
         c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
         NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(copy_stream));
