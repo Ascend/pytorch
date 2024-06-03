@@ -3,3 +3,6 @@ test/jit/_imported_class_test
 test/jit/fixtures
 test/jit/fixtures_srcs
 test/jit/xnnpack
+test/onnx/dynamo
+test/onnx/assets
+test/onnx/expect

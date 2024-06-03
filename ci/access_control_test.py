@@ -26,7 +26,8 @@ SLOW_TEST_BLOCKLIST = [
     'test_ops_gradients',
     'test_reductions',
     'test_unary_ufuncs',
-    'test_ops_jit'
+    'test_ops_jit',
+    'onnx/test_op_consistency'
 ]
 
 # exclude some not run directly test files
