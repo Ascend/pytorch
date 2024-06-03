@@ -3,9 +3,8 @@ from torch.distributed._tensor.ops.common_rules import pointwise_rule
 from torch.distributed._tensor.ops.utils import register_prop_rule, normalize_dims
 from torch.distributed._tensor.ops.matrix_ops import bmm_strategy
 from torch.distributed._tensor.ops.view_ops import (
-    register_prop_rule_map,
-    Op,
-    ops,
+    register_op_strategy_map,
+    dim_maps,
     InputDim
 )
 import torch_npu
@@ -44,9 +43,9 @@ def _register_ops_under_dtensor_rules():
         register_prop_rule(op)(bmm_strategy)
 
     # reshape_prop under view_ops
-    ops[torch_npu.npu_transpose] = Op(
-        dim_map=lambda input, dims: tuple(
+    dim_maps.update({
+        torch_npu.npu_transpose: lambda input, dims: tuple(
             InputDim(i) for i in normalize_dims(dims, input.ndim)
         )
-    )
-    register_prop_rule_map(npu.npu_transpose.default, torch_npu.npu_transpose)
+    })
+    register_op_strategy_map(npu.npu_transpose.default, torch_npu.npu_transpose)

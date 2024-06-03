@@ -5,11 +5,12 @@ import torch
 import torch.distributed as dist
 from torch import rand, randn, Tensor
 from torch.distributed._tensor import DeviceMesh, distribute_tensor, Replicate, Shard
+from torch.distributed._tensor.debug import CommDebugMode
 from torch.distributed._tensor.ops.view_ops import (
     Broadcast,
+    dim_maps,
     Flatten,
     InputDim,
-    ops,
     Repeat,
     Singleton,
     Split,
@@ -17,10 +18,7 @@ from torch.distributed._tensor.ops.view_ops import (
 )
 from torch.distributed._tensor.placement_types import Placement
 from torch.testing._internal.common_utils import run_tests
-from torch.testing._internal.distributed._tensor.common_dtensor import (
-    DTensorTestBase,
-    redistribute_profiler
-)
+from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 from torch.utils._pytree import tree_flatten
 
 import torch_npu
@@ -130,8 +128,8 @@ class TestViewOps(DTensorTestBase):
         return 4
 
     def call_dt_test(self, op, args, kwargs, device_mesh: DeviceMesh):
-        spec = ops[op]
-        rules = spec.dim_map(*args, **kwargs)
+        dim_map = dim_maps[op]
+        rules = dim_map(*args, **kwargs)
         outputs = op(*args, **kwargs)
         flat_args, _ = tree_flatten(args)
         in_shape = flat_args[0].shape
@@ -163,13 +161,15 @@ class TestViewOps(DTensorTestBase):
         )
 
         for in_shard in all_sharding_choices:
-            # print(f'   |--- {in_shard}')
             in_dt = distribute_tensor(args[0], device_mesh, in_shard)
 
-            with redistribute_profiler() as profiler:
+            comm_mode = CommDebugMode()
+            with comm_mode:
                 out_dt = op(in_dt, *args[1:], **kwargs)
 
-            self.assertEqual(profiler.num_calls, 0, "Expected no redistribution.")
+            self.assertEqual(
+                comm_mode.get_total_counts(), 0, "Expected no redistribution."
+            )
 
             full_out = out_dt.redistribute(
                 device_mesh, device_mesh.ndim * [Replicate()]
@@ -179,7 +179,7 @@ class TestViewOps(DTensorTestBase):
                 self.assertEqual(outputs.npu(), full_out)
 
     def dimmap_test(self, op, args, expected_rule_output):
-        rules = ops[op].dim_map(*args)
+        rules = dim_maps[op](*args)
         self.assertEqual(rules, expected_rule_output)
         self.call_dt_test(op, args, {}, self.device_mesh)
 
@@ -235,7 +235,7 @@ class TestViewOps(DTensorTestBase):
             self.device_type, torch.arange(dist.get_world_size()).view(-1, 2)
         )
         with self.assertRaises(AssertionError):
-            ops[torch.broadcast_to].dim_map(randn(24, 36), (1, 2, 4))
+            dim_maps[torch.broadcast_to](randn(24, 36), (1, 2, 4))
 
         self.dimmap_test(
             torch.broadcast_to,
