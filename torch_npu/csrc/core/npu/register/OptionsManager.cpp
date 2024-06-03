@@ -184,5 +184,58 @@ bool OptionsManager::CheckGeInitDisable()
     return Check_Ge_Init_Disable;
 }
 
+std::unordered_map<std::string, std::string> OptionsManager::ParsePerfConfig(const std::string& config)
+{
+    std::unordered_map<std::string, std::string> config_map;
+    size_t start = 0;
+    size_t end = config.find(',');
+
+    while (end != std::string::npos) {
+        std::string item = config.substr(start, end - start);
+        size_t delimiter_pos = item.find(':');
+        if (delimiter_pos != std::string::npos) {
+            std::string key = item.substr(0, delimiter_pos);
+            std::string value = item.substr(delimiter_pos + 1);
+            config_map[key] = value;
+        }
+        start = end + 1;
+        end = config.find(',', start);
+    }
+
+    // Handle the last item
+    std::string last_item = config.substr(start);
+    size_t delimiter_pos = last_item.find(':');
+    if (delimiter_pos != std::string::npos) {
+        std::string key = last_item.substr(0, delimiter_pos);
+        std::string value = last_item.substr(delimiter_pos + 1);
+        config_map[key] = value;
+    }
+
+    return config_map;
+}
+
+bool OptionsManager::CheckPerfDumpEnable()
+{
+    char* perf_dump_config = std::getenv("PERF_DUMP_CONFIG");
+    if (perf_dump_config != nullptr) {
+        std::unordered_map<std::string, std::string> config_dict = ParsePerfConfig(perf_dump_config);
+        auto it = config_dict.find("enable");
+        if (it != config_dict.end()) {
+            return it->second == "true";
+        }
+    }
+    return false;
+}
+
+std::string OptionsManager::GetPerfDumpPath()
+{
+    char* perf_dump_path = std::getenv("PERF_DUMP_PATH");
+    if (perf_dump_path != nullptr) {
+        return std::string(perf_dump_path);
+    } else {
+        return "";
+    }
+}
+
 } // namespace option
 } // namespace c10_npu

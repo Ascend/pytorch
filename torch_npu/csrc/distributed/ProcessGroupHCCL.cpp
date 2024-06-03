@@ -920,6 +920,34 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
     outfile.close();
 }
 
+void ProcessGroupHCCL::recordComm(std::string filename, std::string opName, const int currRank, std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
+{
+    std::ofstream outfile;
+    std::string commName = getHcclCommNameWithoutInit(currRank, hcclComms);
+    try {
+        outfile.open(filename, std::ios::app);
+    } catch (std::exception& e) {
+        throw std::runtime_error("Open shared directory failed. Please check whether filename is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
+    }
+    std::transform(opName.begin(), opName.end(), opName.begin(), ::tolower);
+    const std::vector<uint64_t>& ranks = groupRanks();
+    std::stringstream ss;
+    for (size_t i = 0; i < ranks.size(); ++i) {
+        ss << ranks[i];
+        if (i != ranks.size() - 1) {
+            ss << ", ";
+        }
+    }
+
+    std::string group_ranks = ss.str();
+    CommStruct comm_struct {commName, opName};
+    if (commset.find(comm_struct) == commset.end()) {
+        outfile << "[COMM]:" << commName << ", " << opName << ", " << group_ranks << "\n";
+        outfile.close();
+        commset.insert(comm_struct);
+    }
+}
+
 std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices)
@@ -1280,7 +1308,37 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         if (seq_ >= nslb_num) {
             nslb_is_end = true;
             nslb_record_end();
+        }
+    }
 
+    static bool perf_dump_enable = c10_npu::option::OptionsManager::CheckPerfDumpEnable();
+    if (perf_dump_enable) {
+        if (filepath.empty()) {
+            auto pid = getpid();
+            int device_id = c10_npu::current_device();
+            std::ostringstream oss;
+            oss << "perf_pt_" << pid << "_" << device_id << ".log";
+            std::string log_file_name = oss.str();
+            auto perfDumpPath = c10_npu::option::OptionsManager::GetPerfDumpPath();
+            char abs_path[PATH_MAX] = {'\0'};
+            if (realpath(perfDumpPath.c_str(), abs_path) == nullptr) {
+                TORCH_CHECK(0, "perfDumpPath is not realpath.", DIST_ERROR(ErrCode::NOT_FOUND));
+            }
+            auto path_temp = c10::str(perfDumpPath, "/", log_file_name);
+            if (isFileExists(path_temp)) {
+                filepath = path_temp;
+                std::ofstream outfile;
+                try {
+                    outfile.open(filepath, std::ios::app);
+                } catch (std::exception& e) {
+                    throw std::runtime_error("Open shared directory failed. Please check whether filepath is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
+                }
+                
+                outfile << "[GLOBAL RANKID]:" << rank_ << "\n";
+                outfile.close();
+            }
+        } else {
+            recordComm(filepath, opTypeToString(opType), rank_, hcclComms);
         }
     }
 
