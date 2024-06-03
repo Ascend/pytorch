@@ -2,6 +2,7 @@
 #include <ATen/Parallel.h>
 #include <torch/csrc/Exceptions.h>
 #include <torch/csrc/Generator.h>
+#include <torch/csrc/profiler/python/combined_traceback.h>
 
 #include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/npu/DataParallelComm.h"
@@ -150,6 +151,7 @@ PyObject* initModule() {
     BindGetDeviceMemories(module);
     RegisterNpuPluggableAllocator(module);
     initCommMethods();
+    torch::installCapturedTracebackPython();
     return module;
 }
 
