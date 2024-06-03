@@ -22,6 +22,7 @@
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/profiler/combined_traceback.h"
 
 
 #include <mutex>
@@ -107,6 +108,8 @@ struct DeviceStats {
   int64_t max_split_size = 0;
 };
 
+typedef std::shared_ptr<torch_npu::GatheredContext> (*CreateContextFn)(void);
+
 // Struct containing info of an allocation block (i.e. a fractional part of a cudaMalloc)..
 struct BlockInfo {
   int64_t size = 0;
@@ -114,12 +117,14 @@ struct BlockInfo {
   int32_t gc_counter = 0;
   bool allocated = false;
   bool active = false;
+  std::shared_ptr<torch_npu::GatheredContext> context_when_allocated;
 };
 
 // Struct containing info of a memory segment (i.e. one contiguous cudaMalloc).
 struct SegmentInfo {
   int64_t device = 0;
   uintptr_t  address = 0;
+  aclrtStream stream = 0;
   int64_t total_size = 0;
   int64_t requested_size = 0;
   int64_t allocated_size = 0;
@@ -127,8 +132,58 @@ struct SegmentInfo {
   bool is_large = false;
   bool is_expandable = false;
   std::vector<BlockInfo> blocks;
+  std::shared_ptr<torch_npu::GatheredContext> context_when_allocated;
 };
 
+struct TraceEntry {
+    enum Action {
+        ALLOC,          // API made to the caching allocator for new memory
+        FREE_REQUESTED, // API call made to the caching allocator to free memory
+        FREE_COMPLETED, // The allocator might have to delay a free because
+                        // it is still in use on another stream via
+                        // record_stream This event is generated when a free
+                        // actually completes.
+        SEGMENT_ALLOC, // a call to AclrtMalloc to get more memory from the OS
+        SEGMENT_FREE, // a call to aclrtFree to return memory to the OS (e.g. to
+                      // defragment or empty_caches)
+        SEGMENT_MAP,  // a call to AclrtMapMem (used with expandable_segments)
+        SEGMENT_UNMAP, // unmap part of a segment (used with expandable
+                       // segments)
+        SNAPSHOT, // a call to snapshot, used to correlate memory snapshots to
+                  // trace events
+        OOM // the allocator threw an OutOfMemoryError (addr_ is the amount of
+            // free bytes reported by cuda)
+    };
+    TraceEntry(Action action, int device, int64_t addr, size_t size,
+               aclrtStream stream,
+               std::shared_ptr<torch_npu::GatheredContext> context = nullptr)
+        : action_(action), device_(device), addr_(addr),
+          context_(std::move(context)), stream_(stream), size_(size)
+    {
+    }
+    Action action_;
+    int device_;
+    int64_t addr_; // for OOM, this is the amount of free bytes reported by cuda
+    std::shared_ptr<torch_npu::GatheredContext> context_;
+    aclrtStream stream_;
+    int64_t size_;
+};
+
+struct SnapshotInfo {
+    std::vector<SegmentInfo> segments;
+    std::vector<std::vector<TraceEntry> > device_traces;
+};
+
+enum struct RecordContext {
+    NEVER = 0,
+    STATE = 1, // only keep stacks for active allocations
+    ALLOC = 2, // additionally keep stacks for allocations in the trace history
+    ALL = 3,   // additionally record stacks for when something is freed
+};
+
+using OutOfMemoryObserver =
+    std::function<void(int64_t device, int64_t allocated, int64_t device_total,
+                       int64_t device_free)>;
 
 void* raw_alloc(size_t nbytes);
 void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream);
@@ -146,11 +201,16 @@ void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream);
 DeviceStats getDeviceStats(int device);
 void resetAccumulatedStats(int device);
 void resetPeakStats(int device);
-std::vector<SegmentInfo> snapshot();
+SnapshotInfo snapshot();
 
 std::mutex* getFreeMutex();
 
 void FreeDeviceCachedMemory(int device);
+
+bool isHistoryEnabled();
+void recordHistory(bool enabled, CreateContextFn context_recorder,
+                   size_t alloc_trace_max_entries, RecordContext when);
+void attachOutOfMemoryObserver(OutOfMemoryObserver observer);
 
 } // namespace NPUCachingAllocator
 } // namespace c10_npu

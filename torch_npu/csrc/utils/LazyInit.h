@@ -1,5 +1,7 @@
 #pragma once
+#include <pybind11/pybind11.h>
 #include <c10/core/TensorOptions.h>
+#include <torch/csrc/Exceptions.h>
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 

@@ -31,6 +31,7 @@
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/Device.h"
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#include "torch_npu/csrc/profiler/python/combined_traceback.h"
 
 PyObject* module;
 
@@ -161,6 +162,7 @@ PyObject* initModule() {
   TNPDevice_init(module);
 
   torch_npu::autograd::initTorchFunctions(module);
+  torch_npu::installCapturedTracebackPython();
 
   RegisterNPUDeviceProperties(module);
   BindGetDeviceProperties(module);
