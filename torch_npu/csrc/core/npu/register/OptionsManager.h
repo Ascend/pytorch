@@ -37,9 +37,12 @@ public:
     static char *GetNslbPath();
     static uint32_t GetNslbCntVal();
     static bool CheckGeInitDisable();
+    static bool CheckPerfDumpEnable();
+    static std::string GetPerfDumpPath();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
+    static std::unordered_map<std::string, std::string> ParsePerfConfig(const std::string& config);
 };
 
 } // namespace option
