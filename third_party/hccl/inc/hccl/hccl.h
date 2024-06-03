@@ -173,6 +173,30 @@ extern HcclResult HcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclData
 
 extern HcclResult HcclCommInitAll(uint32_t ndev, int32_t *devices, HcclComm *comms);
 
+/**
+ * @brief Initialize the comm configuration.
+ * @param config Pointer to the comm configuration that needs to be initialized.
+*/
+inline void HcclCommConfigInit(HcclCommConfig *config)
+{
+    typedef struct {
+        size_t size;
+        uint32_t magicWord;
+        uint32_t version;
+        uint64_t reserved;
+    } configInfo_t;
+
+    configInfo_t *info = (configInfo_t *)config;
+
+    info->size = sizeof(HcclCommConfig);
+    info->magicWord = HCCL_COMM_CONFIG_MAGIC_WORD;
+    info->version = HCCL_COMM_CONFIG_VERSION;
+    info->reserved = 0;
+
+    config->hcclBufferSize = HCCL_COMM_DEFAULT_BUFFSIZE;
+    config->hcclDeterministic = HCCL_COMM_DEFAULT_DETERMINISTIC;
+}
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

@@ -13,6 +13,12 @@
 extern "C" {
 #endif // __cplusplus
 
+const uint32_t HCCL_COMM_CONFIG_INFO_BYTES = 24;
+const uint32_t HCCL_COMM_CONFIG_MAGIC_WORD = 0xf0f0f0f0;
+const uint32_t HCCL_COMM_CONFIG_VERSION = 1;
+const uint32_t HCCL_COMM_DEFAULT_BUFFSIZE = 200;                // 200MB buffer size
+const uint32_t HCCL_COMM_DEFAULT_DETERMINISTIC = 0;             // Disable deterministic calculations
+
 /**
  * @brief HCCL functions return value definition
  */
@@ -111,6 +117,12 @@ typedef struct HcclSendRecvItemDef {
 union  HcclConfigValue {
     int32_t value;
 };
+
+typedef struct HcclCommConfigDef {
+    char reserved[HCCL_COMM_CONFIG_INFO_BYTES];
+    uint32_t hcclBufferSize;
+    uint32_t hcclDeterministic;
+} HcclCommConfig;
 #ifdef __cplusplus
 }
 #endif // __cplusplus

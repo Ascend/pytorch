@@ -237,5 +237,16 @@ std::string OptionsManager::GetPerfDumpPath()
     }
 }
 
+uint32_t OptionsManager::GetP2PBufferSize()
+{
+    const static uint32_t buf_size = []() -> uint32_t {
+        char* buf_val = std::getenv("P2P_HCCL_BUFFSIZE");
+        // Default 0M
+        int64_t buf_size = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 0;
+        return static_cast<uint32_t>(buf_size);
+    }();
+    return buf_size;
+}
+
 } // namespace option
 } // namespace c10_npu
