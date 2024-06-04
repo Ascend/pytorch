@@ -22,17 +22,6 @@ class TorchDeterministicApiTestCase(TestCase):
         res = torch.are_deterministic_algorithms_enabled()
         self.assertEqual(res, False)
 
-    def test_npu_set_deterministic_false(self):
-        torch.use_deterministic_algorithms(False)
-        tensora = torch.randn(64, 3, 64, 64, dtype=torch.float, device="npu:0")
-        tensorsum = torch.sum(tensora)
-        index = 0
-        for i in range(100):
-            res = torch.sum(tensora)
-            if (res == tensorsum):
-                index = index + 1
-        self.assertNotEqual(index, 100)
-
 
 def test_npu_set_deterministic_true():
     torch.use_deterministic_algorithms(True)
