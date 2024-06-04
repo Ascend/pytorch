@@ -252,6 +252,8 @@ class DbConstant():
 
     TABLE_STRING_IDS = "STRING_IDS"
 
+    TABLE_MSTX_EVENTS = "MSTX_EVENTS"
+
     # pytorch api table name
     TABLE_PYTORCH_API = "PYTORCH_API"
     # api connection ids table name
