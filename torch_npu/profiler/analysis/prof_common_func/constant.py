@@ -281,6 +281,9 @@ class DbConstant():
     # host info
     TABLE_HOST_INFO = "HOST_INFO"
 
+    # step time
+    TABLE_STEP_TIME = "STEP_TIME"
+
     # analyzer table name
     TABLE_ANALYZER_BANDWIDTH = "CommAnalyzerBandwidth"
     TABLE_ANALYZER_MATRIX = "CommAnalyzerMatrix"
@@ -411,5 +414,10 @@ class TableColumnsManager():
         DbConstant.TABLE_HOST_INFO : [
             ('hostUid', Constant.SQL_INTEGER_TYPE),
             ('hostName', Constant.SQL_TEXT_TYPE)
+        ],
+        DbConstant.TABLE_STEP_TIME : [
+            ("id", Constant.SQL_INTEGER_TYPE),
+            ("startNs", Constant.SQL_INTEGER_TYPE),
+            ("endNs", Constant.SQL_INTEGER_TYPE)
         ]
     }
