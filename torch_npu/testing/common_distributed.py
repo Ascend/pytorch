@@ -7,6 +7,8 @@ from typing import (
 )
 from collections import namedtuple
 import sys
+import os
+from contextlib import contextmanager
 import torch
 import torch.distributed as dist
 import torch_npu
@@ -85,3 +87,23 @@ def init_pg(backend: str = "hccl", world_size=1, rank=0, file_name="file://") ->
     # set device for hccl pg for collectives
     if backend == "hccl":
         torch.npu.set_device(rank)
+
+
+@contextmanager
+def _dynamo_dist_per_rank_init(rank, world_size, init_pg_=True):
+    # To avoid multiple inheritance from _dynamo.test_case.TestCase and MultiProcessTestCase,
+    # Just manually implement the most important part of the dynamo behavior to reset/clear.
+    torch_npu.npu.set_device(rank)
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '6789'
+    if init_pg_:
+        dist.init_process_group(backend="hccl", rank=rank, world_size=world_size)
+    torch._dynamo.reset()
+    torch._dynamo.utils.counters.clear()
+    try:
+        yield
+    finally:
+        torch._dynamo.reset()
+        torch._dynamo.utils.counters.clear()
+        if init_pg_:
+            dist.destroy_process_group()
