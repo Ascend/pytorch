@@ -2315,6 +2315,8 @@ void check_split_sizes(const std::vector<int64_t>& split_sizes, const at::Tensor
         TORCH_CHECK(
             split_sizes.size() == static_cast<size_t>(group_size), "Number of tensor splits not equal to group size",
             DIST_ERROR(ErrCode::TYPE));
+        const auto sum = c10::sum_integers(split_sizes);
+        TORCH_CHECK(sum == tensor.size(0), "Split sizes dosen't match total dim 0 size", DIST_ERROR(ErrCode::TYPE));
     }
 }
 

@@ -33,7 +33,7 @@ class HcclAlltoAllSingleTest(TestCase):
         output = torch.empty(2).float().npu()
         cout = 0
         pg.all_to_all_single(output, input1)
-        c2p.put((rank, output.cpu(), cout))
+        c2p.put((rank, output.cpu(), cout, ""))
 
     @classmethod
     def _test_alltoall_single_2p_size(
@@ -53,7 +53,29 @@ class HcclAlltoAllSingleTest(TestCase):
         pg.all_to_all_single(output, input1, outsize[rank], inputsize[rank])
         if torch_npu.get_npu_format(output.npu()) != 29:
             raise RuntimeError("format error!")
-        c2p.put((rank, output.cpu(), cout))
+        c2p.put((rank, output.cpu(), cout, ""))
+
+    @classmethod
+    def _test_alltoall_single_2p_expect(
+            cls, rank, data, world_size, init_pg, c2p, p2c):
+        pg = init_pg(rank, world_size)
+        input1 = torch.arange(10) if rank == 0 else torch.arange(20) + rank * 10
+        input1 = input1.float().npu()
+        output = torch.empty(12).float().npu() if rank == 0 else torch.empty(18).float().npu()
+        output = torch_npu.npu_format_cast(output, 29)
+        inputsize1 = [4, 8]
+        inputsize2 = [8, 12]
+        outsize1 = [4, 6]
+        outsize2 = [6, 12]
+        inputsize = [inputsize1, inputsize2]
+        outsize = [outsize1, outsize2]
+        cout = 2
+        errorInfo = ""
+        try:
+            pg.all_to_all_single(output, input1, outsize[rank], inputsize[rank])
+        except Exception as e:
+            errorInfo = str(e)
+        c2p.put((rank, output.cpu(), cout, errorInfo))
 
     def _test_multiprocess_2p(self, f, init_pg):
         ws = self.world_size_2p
@@ -63,6 +85,7 @@ class HcclAlltoAllSingleTest(TestCase):
         c2p = ctx.Queue(2)
         p2c = ctx.Queue(2)
         expected = []
+        expectError = "Split sizes dosen't match total dim 0 size"
         ps = []
         for i in range(ws):
             p = ctx.Process(
@@ -72,27 +95,31 @@ class HcclAlltoAllSingleTest(TestCase):
             ps.append(p)
 
         for _ in range(ws):
-            rank, output, cout = c2p.get()
-            res = data.cpu().float()
-            exp = []
-            if rank == 0:
-                exp = res[0]
-                for i in range(1, 5):
-                    exp = torch.cat((exp, res[i]), dim=0)
+            rank, output, cout, errorInfo = c2p.get()
+            if cout == 2:
+                if rank == 0:
+                    self.assertEqual(errorInfo[0 : len(expectError)], expectError, errorInfo)
             else:
-                exp = res[5]
-                for i in range(6, 10):
-                    exp = torch.cat((exp, res[i]), dim=0)
-            exp_2p = torch.arange(2) * 2 + rank
-            exp_format = torch.cat((exp, exp), dim=0).reshape(10, 20)
-            expected = exp_2p if cout == 0 else exp_format
-            self.assertEqual(
-                output,
-                expected,
-                (
-                    "rank {} Expect receive tensor {} but got {}."
-                ).format(rank, expected, output)
-            )
+                res = data.cpu().float()
+                exp = []
+                if rank == 0:
+                    exp = res[0]
+                    for i in range(1, 5):
+                        exp = torch.cat((exp, res[i]), dim=0)
+                else:
+                    exp = res[5]
+                    for i in range(6, 10):
+                        exp = torch.cat((exp, res[i]), dim=0)
+                exp_2p = torch.arange(2) * 2 + rank
+                exp_format = torch.cat((exp, exp), dim=0).reshape(10, 20)
+                expected = exp_2p if cout == 0 else exp_format
+                self.assertEqual(
+                    output,
+                    expected,
+                    (
+                        "rank {} Expect receive tensor {} but got {}."
+                    ).format(rank, expected, output)
+                )
 
         for _ in range(ws):
             p2c.put(0)
@@ -110,6 +137,12 @@ class HcclAlltoAllSingleTest(TestCase):
     def test_alltoall_single_2p_size_dist(self):
         self._test_multiprocess_2p(
             HcclAlltoAllSingleTest._test_alltoall_single_2p_size,
+            HcclAlltoAllSingleTest._init_dist_hccl)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_alltoall_single_2p_expect(self):
+        self._test_multiprocess_2p(
+            HcclAlltoAllSingleTest._test_alltoall_single_2p_expect,
             HcclAlltoAllSingleTest._init_dist_hccl)
 
     @classmethod
