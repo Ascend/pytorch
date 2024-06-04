@@ -2,7 +2,7 @@
 
 from functools import partial
 import torch
-
+from torch.testing._internal.common_utils import unMarkDynamoStrictTest
 import torch_npu
 import torch_npu.testing
 from torch.testing._internal.common_utils import (
@@ -22,6 +22,7 @@ _gradcheck_ops = partial(ops, dtypes=OpDTypes.supported,
                          allowed_dtypes=[torch.double, torch.cdouble])
 
 
+@unMarkDynamoStrictTest
 class TestFwdGradients(TestGradients):
     # Test that forward-over-reverse gradgrad is computed correctly
     @_gradcheck_ops(op_db)
