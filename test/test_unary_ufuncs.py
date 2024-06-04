@@ -6,6 +6,7 @@ import unittest
 import numpy as np
 
 import torch
+from torch.utils import _pytree as pytree
 import torch_npu
 import torch_npu.testing
 from torch import inf, nan
@@ -20,6 +21,7 @@ from torch.testing._internal.common_utils import (
     skipIfNoSciPy,
     IS_WINDOWS,
     gradcheck,
+    is_iterable_of_tensors,
 )
 from torch.testing._internal.common_methods_invocations import (
     unary_ufuncs,
@@ -310,9 +312,10 @@ class TestUnaryUfuncs(TestCase):
         self.assertFalse(non_contig.is_contiguous())
 
         torch_kwargs, _ = op.sample_kwargs(device, dtype, non_contig)
-        self.assertEqual(
-            op(contig, **torch_kwargs)[::2], op(non_contig, **torch_kwargs)
-        )
+        expected = op(non_contig, **torch_kwargs)
+        result = op(contig, **torch_kwargs)
+        result = pytree.tree_map(lambda x: x[::2], result)
+        self.assertEqual(result, expected)
 
     @ops(unary_ufuncs)
     def test_contig_vs_transposed(self, device, dtype, op):
@@ -325,7 +328,10 @@ class TestUnaryUfuncs(TestCase):
         self.assertFalse(non_contig.is_contiguous())
 
         torch_kwargs, _ = op.sample_kwargs(device, dtype, contig)
-        self.assertEqual(op(contig, **torch_kwargs).T, op(non_contig, **torch_kwargs))
+        expected = op(non_contig, **torch_kwargs)
+        result = op(contig, **torch_kwargs)
+        result = pytree.tree_map(lambda x: x.T, result)
+        self.assertEqual(result, expected)
 
     @ops(unary_ufuncs)
     def test_non_contig(self, device, dtype, op):
@@ -377,8 +383,9 @@ class TestUnaryUfuncs(TestCase):
             contig = op(contig, **torch_kwargs)
             non_contig = op(non_contig, **torch_kwargs)
             for i in range(3):
+                non_contig_i = pytree.tree_map(lambda x: x[i], non_contig)
                 self.assertEqual(
-                    contig, non_contig[i], msg="non-contiguous expand[" + str(i) + "]"
+                    contig, non_contig_i, msg="non-contiguous expand[" + str(i) + "]"
                 )
 
     @ops(unary_ufuncs)
@@ -425,7 +432,11 @@ class TestUnaryUfuncs(TestCase):
 
         torch_kwargs, _ = op.sample_kwargs(device, dtype, input)
         actual = op(input, **torch_kwargs)
-        expected = torch.stack([op(slice, **torch_kwargs) for slice in input])
+        all_outs = [op(slice, **torch_kwargs) for slice in input]
+        if is_iterable_of_tensors(actual):
+            expected = [torch.stack([out[i] for out in all_outs]) for i in range(len(actual))]
+        else:
+            expected = torch.stack(all_outs)
 
         self.assertEqual(actual, expected)
 
