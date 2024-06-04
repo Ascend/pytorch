@@ -177,9 +177,9 @@ HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input)
 }
 
 // AllGather & Broadcast support all data type, no need do more check.
-void checkSupportedDataTypeOfAllReduce(HcclDataType type)
+void checkSupportedDataType(HcclDataType type, std::string functionName)
 {
-    static std::set<HcclDataType> allReduceSupportedDataTypes = {
+    static std::set<HcclDataType> supportedDataTypes = {
         HCCL_DATA_TYPE_INT8,
         HCCL_DATA_TYPE_INT16,
         HCCL_DATA_TYPE_INT32,
@@ -188,8 +188,8 @@ void checkSupportedDataTypeOfAllReduce(HcclDataType type)
         HCCL_DATA_TYPE_BFP16,
         HCCL_DATA_TYPE_INT64};
     TORCH_CHECK(
-        allReduceSupportedDataTypes.count(type) != 0,
-        "HCCL AllReduce & Reduce: Unsupported data type ",
+        supportedDataTypes.count(type) != 0,
+        "HCCL "+functionName+": Unsupported data type ",
         getHcclDataTypeSerialString(type), DIST_ERROR(ErrCode::NOT_SUPPORT));
 }
 
@@ -1462,6 +1462,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
     const c10d::AllreduceOptions& opts)
 {
     check_npu_tensors_different_devices(tensors);
+    std::string functionName = __FUNCTION__;
     return collective(
         tensors,
         tensors,
@@ -1469,7 +1470,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
             aclrtSetExceptionInfoCallback(exceptionCallback);
 
             auto hcclType = getHcclDataType(input.scalar_type());
-            checkSupportedDataTypeOfAllReduce(hcclType);
+            checkSupportedDataType(hcclType, functionName);
             RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
 
             auto inputDataPtr = input.data_ptr();
@@ -1500,6 +1501,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
 {
     check_npu_tensors_different_devices(inputs);
     check_npu_tensors_different_devices(outputs);
+    std::string functionName = __FUNCTION__;
     return collective(
         inputs,
         outputs,
@@ -1507,7 +1509,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
             aclrtSetExceptionInfoCallback(exceptionCallback);
 
             auto hcclType = getHcclDataType(input.scalar_type());
-            checkSupportedDataTypeOfAllReduce(hcclType);
+            checkSupportedDataType(hcclType, functionName);
             RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
             int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(comm));
             at_npu::native::NPUNativeFunctions::npu_hcom_allreduce_out(
@@ -1612,13 +1614,14 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
     const c10d::ReduceOptions& opts)
 {
     check_npu_tensors_different_devices(tensors);
+    std::string functionName = __FUNCTION__;
     uint64_t rank = opts.rootRank;
     return collective(
         tensors,
         tensors,
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             auto hcclType = getHcclDataType(input.scalar_type());
-            checkSupportedDataTypeOfAllReduce(hcclType);
+            checkSupportedDataType(hcclType, functionName);
             RECORD_FUNCTION("HcclReduce", std::vector<c10::IValue>({input}));
 
             auto inputDataPtr = input.data_ptr();
@@ -1845,13 +1848,13 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
 
     auto inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
     check_npu_tensors_different_devices(inputFlattened);
-
+    std::string functionName = __FUNCTION__;
     return collective(
         inputFlattened,
         outputTensors,
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             auto hcclType = getHcclDataType(input.scalar_type());
-            checkSupportedDataTypeOfAllReduce(hcclType);
+            checkSupportedDataType(hcclType, functionName);
             RECORD_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
                 c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
@@ -1912,7 +1915,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_b
 
     auto inputs = std::vector<at::Tensor>{inputTensor};
     auto outputs = std::vector<at::Tensor>{outputTensor};
-
+    std::string functionName = __FUNCTION__;
     return collective(
         inputs,
         outputs,
@@ -1921,7 +1924,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_b
                 c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
             }
             auto hcclType = getHcclDataType(input.scalar_type());
-            checkSupportedDataTypeOfAllReduce(hcclType);
+            checkSupportedDataType(hcclType, functionName);
             RECORD_FUNCTION("HcclReduceScatterBase", std::vector<c10::IValue>({input}));
 
             auto inputDataPtr = input.data_ptr();
