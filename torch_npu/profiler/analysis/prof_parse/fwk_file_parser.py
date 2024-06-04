@@ -222,11 +222,17 @@ class FwkFileParser:
         torch_op_apis = []
         fwd_bwd_dict = {}
         torch_op_idx = 0
+        mstx_mark_apis = []
+
         for torch_op in torch_op_data:
-            torch_api_api = [torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), [], torch_op.name,
+            api = [torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), [], torch_op.name,
                              torch_op.args.get(Constant.SEQUENCE_UNMBER, -1), torch_op.args.get(Constant.FORWORD_THREAD_ID),
                              torch_op.args.get(Constant.INPUT_SHAPES), torch_op.args.get(Constant.INPUT_DTYPES), torch_op.call_stack]
-            torch_op_apis.append(torch_api_api)
+            if torch_op.name == "mstx_mark_op":
+                mstx_mark_apis.append(api)
+            else:
+                torch_op_apis.append(api)
+
             self.filter_fwd_bwd_api(fwd_bwd_dict, torch_op, torch_op_idx)
             torch_op_idx += 1
 
@@ -248,8 +254,7 @@ class FwkFileParser:
         python_call_data = self.get_file_data_by_tag(FileTag.PYTHON_FUNC_CALL)
         python_trace_parser = PythonTraceParser(module_call_data, python_call_data)
         python_trace_apis = python_trace_parser.get_python_trace_api_data()
-
-        return {"torch_op": torch_op_apis, "task_queue": task_queues, "python_trace": python_trace_apis}
+        return {"torch_op": torch_op_apis, "task_queue": task_queues, "python_trace": python_trace_apis, "mstx_op": mstx_mark_apis}
 
     def get_first_fwk_op(self):
         torch_op_data = self.get_file_data_by_tag(FileTag.TORCH_OP)

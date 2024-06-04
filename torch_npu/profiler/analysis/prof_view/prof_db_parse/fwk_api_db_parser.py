@@ -123,6 +123,25 @@ class FwkApiDbParser(BaseParser):
                                    None if not torch_op_api[TorchOpDataOri.INPUT_DIMS.value] else Str2IdManager().get_id_from_str(torch_op_api[TorchOpDataOri.INPUT_DIMS.value]),
                                    None if not torch_op_api[TorchOpDataOri.INPUT_SHAPES.value] else Str2IdManager().get_id_from_str(torch_op_api[TorchOpDataOri.INPUT_SHAPES.value]),
                                    None if not torch_op_api[TorchOpDataOri.CALL_STACK.value] else CallChainIdManager().get_callchain_id_from_callstack(torch_op_api[TorchOpDataOri.CALL_STACK.value])])
+        mstx_mark_apis = fwk_api_data.get("mstx_op", [])
+        if not mstx_mark_apis:
+            return
+        self.get_mstx_mark_op_connection_ids_with_cann_api(task_queues, mstx_mark_apis)
+        for mstx_mark_api in mstx_mark_apis:
+            self._fwk_apis.append([mstx_mark_api[TorchOpDataOri.START_NS.value], mstx_mark_api[TorchOpDataOri.END_NS.value], mstx_mark_api[TorchOpDataOri.GLOBAL_TID.value],
+                                   None if not mstx_mark_api[TorchOpDataOri.CONNECTION_ID.value] else ConnectionIdManager().get_id_from_connection_ids(mstx_mark_api[TorchOpDataOri.CONNECTION_ID.value]),
+                                   Str2IdManager().get_id_from_str(mstx_mark_api[TorchOpDataOri.NAME.value]),
+                                   None, mstx_mark_api[TorchOpDataOri.FWD_THREAD_ID.value], None, None, None])
+
+    def get_mstx_mark_op_connection_ids_with_cann_api(self, task_queues: list, mstx_mark_apis: list):
+        sql = "select startNs, endNs, globalTid, connectionId from {} order by startNs".format(DbConstant.TABLE_MSTX_EVENTS)
+        cann_tx_apis = DbManager.fetch_all_data(self._cur, sql)
+        if not cann_tx_apis:
+            raise RuntimeWarning("Failed to get msprof_tx apis")
+        mstx_mark_apis.sort(key=lambda x: x[TorchOpDataOri.START_NS.value])
+        mstx_op_len = len(mstx_mark_apis)
+        if task_queues:
+            self.get_torch_op_connection_ids_with_task_queue(task_queues, mstx_mark_apis, mstx_op_len, cann_tx_apis)
 
     def get_torch_op_connection_ids_with_cann_api(self, task_queues: list, torch_op_apis: list):
         sql = "select id from {} where value = 'launch'".format(DbConstant.TABLE_STRING_IDS)
@@ -172,8 +191,9 @@ class FwkApiDbParser(BaseParser):
                 last_op_api = torch_op_apis[idx]
                 last_torch_op_index = idx
             elif last_op_api:
-                torch_op_apis[last_torch_op_index][TorchOpDataOri.CONNECTION_ID.value].append(connection_id)
                 break
+        if last_op_api:
+            torch_op_apis[last_torch_op_index][TorchOpDataOri.CONNECTION_ID.value].append(connection_id)
         return last_torch_op_index
 
     def get_torch_op_connection_ids_without_task_queue(self, torch_op_apis: list, torch_op_len: int, node_lauch_apis: list):

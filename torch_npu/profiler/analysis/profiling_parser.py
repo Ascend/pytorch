@@ -69,7 +69,7 @@ class ProfilingParser:
             CANNFileParser(self._profiler_path).del_summary_and_timeline_data()
             CANNFileParser(self._profiler_path).del_output_path_data() 
             if ProfilerConfig().get_level() == "Level_none":
-                parser_list = ParserConfig.LEVEL_NONE_CONFIG.get(self._analysis_type)
+                parser_list = ParserConfig.LEVEL_NONE_CONFIG.get(ProfilerConfig().export_type).get(self._analysis_type)
             else:
                 parser_list = ParserConfig.COMMON_CONFIG.get(ProfilerConfig().export_type).get(self._analysis_type)
         else:
