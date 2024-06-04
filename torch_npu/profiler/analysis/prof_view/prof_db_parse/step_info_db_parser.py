@@ -13,10 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from ..base_parser import BaseParser
 from ...prof_bean.torch_op_node import TorchOpNode
-from ...prof_common_func.constant import DbConstant, Constant, print_error_msg, print_warn_msg
+from ...prof_common_func.constant import DbConstant, Constant, TableColumnsManager, print_error_msg, print_warn_msg
 from ...prof_common_func.db_manager import DbManager
 
 
@@ -118,5 +117,15 @@ class StepInfoDbParser(BaseParser):
                         Constant.FWK_START_TS: step_node.start_time
                     }
                 )
+        self.save_step_time(step_node_list)
         DbManager.destroy_db_connect(conn, curs)
         return step_range
+
+    def save_step_time(self, step_node_list: list) -> None:
+        if not step_node_list:
+            return
+        step_time_list = []
+        for step_node in step_node_list:
+            step_time_list.append([step_node.event.name.split("#")[-1], step_node.start_time, step_node.end_time])
+        DbManager.create_table_with_headers(self.db_conn, self.db_curs, DbConstant.TABLE_STEP_TIME, TableColumnsManager.TableColumns.get(DbConstant.TABLE_STEP_TIME))
+        DbManager.insert_data_into_table(self.db_conn, DbConstant.TABLE_STEP_TIME, step_time_list)
