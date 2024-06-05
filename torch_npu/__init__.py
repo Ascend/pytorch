@@ -262,8 +262,8 @@ del _op_plugin_docs
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
-    _except_handler.handle_exception()
     torch_npu._C._npu_shutdown()
+    _except_handler.handle_exception()
 
 
 # register npu shutdown hook on exit
