@@ -91,6 +91,7 @@ torch_npu支持源码编译安装，在编译时会下载依赖第三方库并�
 |   开源引入   |   https://github.com/pytorch/pytorch/blob/v2.1.0/torch/csrc/profiler/unwind/fde.h  |   third_party\profiler\unwind\fde.h   |   https://web.archive.org/web/20221129184704/https://dwarfstd.org/doc/DWARF4.doc   |   c++调用栈实现相关注解网址  |
 |   开源引入   |   https://github.com/pytorch/pytorch/blob/v2.1.0/torch/csrc/profiler/unwind/fde.h  |   third_party\profiler\unwind\fde.h   |   https://dl.acm.org/doi/pdf/10.1145/3360572   |   c++调用栈实现相关注解网址  |
 |   开源引入   |   https://github.com/pytorch/pytorch/blob/v2.1.0/torch/csrc/profiler/unwind/fde.h  |   third_party\profiler\unwind\fde.h   |   https://github.com/mstange/framehop/   |   c++调用栈实现相关注解网址  |
+|   自研   |   不涉及  |   torch_npu\npu\config.yaml   |   https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl   |   火焰图脚本下载路径  |
 
 ## 公开接口声明
 
