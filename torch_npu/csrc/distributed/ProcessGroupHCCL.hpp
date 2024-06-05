@@ -411,6 +411,8 @@ public:
 
     // Return the global ranks of a PG
     const std::vector<uint64_t>& groupRanks() const;
+
+    int64_t getStreamId(bool p2p = false);
 protected:
     // Helper that broadcasts HCCL Master ID to all ranks through the store
     void broadcastMasterID(HcclRootInfo* hcclID);

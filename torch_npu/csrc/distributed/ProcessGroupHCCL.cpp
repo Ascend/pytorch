@@ -36,6 +36,7 @@ namespace c10d_npu {
 namespace {
 static constexpr uint32_t kOpWaitTimeoutOffset = 30U; // second
 static uint32_t kOpWaitTimeout = 1868U; // second
+constexpr const char* P2P_DEVICE_KEY = "_p2p";
 
 using hcclUs = std::chrono::steady_clock::time_point;
 #define DURATION_US(x) (std::chrono::duration_cast<std::chrono::microseconds>(x))
@@ -1053,6 +1054,21 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     return devHCCLCommMap_[devicesKey];
 }
 
+int64_t ProcessGroupHCCL::getStreamId(bool p2p)
+{
+    int device;
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+    std::vector<at::Device> devices = {at::Device(c10::DeviceType::PrivateUse1, device)};
+    auto key = getKeyFromDevices(devices);
+    if (p2p && hcclCommInitRootInfoConfigExist() && (c10_npu::option::OptionsManager::GetP2PBufferSize() != 0)) {
+        key = key + P2P_DEVICE_KEY;
+    }
+    if ((!hcclStreams_.count(key)) || hcclStreams_[key].empty()) {
+        return -1;
+    }
+    return hcclStreams_[key][0].id();
+}
+
 namespace {
 
 // Check that all `tensors' have the same type and shape and are distributed
@@ -1311,7 +1327,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     auto key = getKeyFromDevices(devices);
     auto hcclComms = getHCCLComm(key, devices);
     if (hcclCommInitRootInfoConfigExist() && c10_npu::option::OptionsManager::GetP2PBufferSize() != 0) {
-        auto key_p2p = key + "_p2p";
+        auto key_p2p = key + P2P_DEVICE_KEY;
         auto hcclComms_p2p = getHCCLComm(key_p2p, devices, HcclCommType::P2P);
         // OpType::UNKNOWN represents batch_isend_irecv now
         if (opType == c10d::OpType::SEND || opType == c10d::OpType::RECV || opType == c10d::OpType::UNKNOWN) {
