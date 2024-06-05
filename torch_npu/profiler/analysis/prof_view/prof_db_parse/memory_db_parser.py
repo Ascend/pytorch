@@ -42,7 +42,7 @@ class OpMemoryTableRow(Enum):
     DEVICE_ID = 14
 
 
-class GeOpMemRecordsOri(Enum):
+class _GeOpMemRecordsOri(Enum):
     NAME = 0
     ADDR = 1
     TYPE = 2
@@ -107,20 +107,20 @@ class MemoryDbParser(BaseParser):
         ge_mem_records = DbManager.fetch_all_data(self._cur, sql)
         record_type_dict = {}
         for index, mem_record in enumerate(ge_mem_records):
-            if ge_mem_records[index][GeOpMemRecordsOri.TYPE.value] in record_type_dict:
-                if record_type_dict[ge_mem_records[index][GeOpMemRecordsOri.TYPE.value]] == "release":
+            if ge_mem_records[index][_GeOpMemRecordsOri.TYPE.value] in record_type_dict:
+                if record_type_dict[ge_mem_records[index][_GeOpMemRecordsOri.TYPE.value]] == "release":
                     record = list(ge_mem_records[index])
-                    record[GeOpMemRecordsOri.SIZE.value] *= -1
+                    record[_GeOpMemRecordsOri.SIZE.value] *= -1
                     ge_mem_records[index] = tuple(record)
                 continue
-            sql = "select value from {} where id = {}".format(DbConstant.TABLE_STRING_IDS, ge_mem_records[index][GeOpMemRecordsOri.TYPE.value])
+            sql = "select value from {} where id = {}".format(DbConstant.TABLE_STRING_IDS, ge_mem_records[index][_GeOpMemRecordsOri.TYPE.value])
             record_type = DbManager.fetch_one_data(self._cur, sql)
             if record_type and record_type[0]:
                 if record_type[0] == "release":
                     record = list(ge_mem_records[index])
-                    record[GeOpMemRecordsOri.SIZE.value] *= -1
+                    record[_GeOpMemRecordsOri.SIZE.value] *= -1
                     ge_mem_records[index] = tuple(record)
-                record_type_dict[ge_mem_records[index][GeOpMemRecordsOri.TYPE.value]] = record_type[0]
+                record_type_dict[ge_mem_records[index][_GeOpMemRecordsOri.TYPE.value]] = record_type[0]
             else:
                 raise RuntimeError("Failed to find ge memory record type")
         self.get_ge_record_list(ge_mem_records)
@@ -131,9 +131,9 @@ class MemoryDbParser(BaseParser):
             return
         component_id = Str2IdManager().get_id_from_str(Constant.GE)
         for record in ge_mem_records:
-            ge_record = [component_id, record[GeOpMemRecordsOri.TIME_STAMP.value],
-                         record[GeOpMemRecordsOri.TOTAL_ALLOCATED.value], record[GeOpMemRecordsOri.TOTAL_RESERVED.value],
-                         0, None, record[GeOpMemRecordsOri.DEVICE_ID.value]]
+            ge_record = [component_id, record[_GeOpMemRecordsOri.TIME_STAMP.value],
+                         record[_GeOpMemRecordsOri.TOTAL_ALLOCATED.value], record[_GeOpMemRecordsOri.TOTAL_RESERVED.value],
+                         0, None, record[_GeOpMemRecordsOri.DEVICE_ID.value]]
             self._ge_record_list.append(ge_record)
 
     def get_ge_op_mem_data(self, ge_mem_records: list):
@@ -143,19 +143,19 @@ class MemoryDbParser(BaseParser):
         operator_key = namedtuple('operator_key', ['operator', 'addr', 'device_id'])
         operator_value = namedtuple('operator_value', ['size', 'timestamp', 'total_allocate', 'total_reserve'])
         for mem_record in ge_mem_records:
-            if mem_record[GeOpMemRecordsOri.SIZE.value] > 0:
-                record_key = operator_key(operator=mem_record[GeOpMemRecordsOri.NAME.value], addr=mem_record[GeOpMemRecordsOri.ADDR.value], device_id=mem_record[GeOpMemRecordsOri.DEVICE_ID.value])
-                record_value = operator_value(size=mem_record[GeOpMemRecordsOri.SIZE.value],
-                                              timestamp=mem_record[GeOpMemRecordsOri.TIME_STAMP.value],
-                                              total_allocate=mem_record[GeOpMemRecordsOri.TOTAL_ALLOCATED.value],
-                                              total_reserve=mem_record[GeOpMemRecordsOri.TOTAL_RESERVED.value])
+            if mem_record[_GeOpMemRecordsOri.SIZE.value] > 0:
+                record_key = operator_key(operator=mem_record[_GeOpMemRecordsOri.NAME.value], addr=mem_record[_GeOpMemRecordsOri.ADDR.value], device_id=mem_record[_GeOpMemRecordsOri.DEVICE_ID.value])
+                record_value = operator_value(size=mem_record[_GeOpMemRecordsOri.SIZE.value],
+                                              timestamp=mem_record[_GeOpMemRecordsOri.TIME_STAMP.value],
+                                              total_allocate=mem_record[_GeOpMemRecordsOri.TOTAL_ALLOCATED.value],
+                                              total_reserve=mem_record[_GeOpMemRecordsOri.TOTAL_RESERVED.value])
                 allocated_datas[record_key] = record_value
-            elif mem_record[GeOpMemRecordsOri.SIZE.value] < 0:
-                record_key = operator_key(operator=mem_record[GeOpMemRecordsOri.NAME.value], addr=mem_record[GeOpMemRecordsOri.ADDR.value], device_id=mem_record[GeOpMemRecordsOri.DEVICE_ID.value])
-                record_value = operator_value(size=mem_record[GeOpMemRecordsOri.SIZE.value],
-                                              timestamp=mem_record[GeOpMemRecordsOri.TIME_STAMP.value],
-                                              total_allocate=mem_record[GeOpMemRecordsOri.TOTAL_ALLOCATED.value],
-                                              total_reserve=mem_record[GeOpMemRecordsOri.TOTAL_RESERVED.value])
+            elif mem_record[_GeOpMemRecordsOri.SIZE.value] < 0:
+                record_key = operator_key(operator=mem_record[_GeOpMemRecordsOri.NAME.value], addr=mem_record[_GeOpMemRecordsOri.ADDR.value], device_id=mem_record[_GeOpMemRecordsOri.DEVICE_ID.value])
+                record_value = operator_value(size=mem_record[_GeOpMemRecordsOri.SIZE.value],
+                                              timestamp=mem_record[_GeOpMemRecordsOri.TIME_STAMP.value],
+                                              total_allocate=mem_record[_GeOpMemRecordsOri.TOTAL_ALLOCATED.value],
+                                              total_reserve=mem_record[_GeOpMemRecordsOri.TOTAL_RESERVED.value])
                 if record_key in allocated_datas:
                     allocated_data = allocated_datas[record_key]
                     ge_op_mem = [record_key.operator, allocated_data.size, allocated_data.timestamp,

@@ -18,7 +18,7 @@ from .analysis.npu_profiler import NpuProfiler
 from .analysis.prof_common_func.path_manager import ProfilerPathManager
 from ..utils.path_manager import PathManager
 
-__all__ = ["_KinetoProfile", "tensorboard_trace_handler", "profile", "analyse"]
+__all__ = ["supported_activities", "_KinetoProfile", "tensorboard_trace_handler", "profile", "analyse"]
 
 
 class _KinetoProfile:
