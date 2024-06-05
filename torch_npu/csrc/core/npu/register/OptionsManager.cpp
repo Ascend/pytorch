@@ -182,5 +182,15 @@ bool OptionsManager::CheckGeInitDisable()
     return Check_Ge_Init_Disable;
 }
 
+uint32_t OptionsManager::GetBindCpuConf()
+{
+    const static uint32_t bind_cpu_conf = []() -> uint32_t {
+        char* bind_core_str = std::getenv("BIND_CPU_CONF");
+        int64_t bind_cpu_conf = (bind_core_str != nullptr) ? strtol(bind_core_str, nullptr, 10) : 0;
+        return static_cast<uint32_t>(bind_cpu_conf);
+    }();
+    return bind_cpu_conf;
+}
+
 } // namespace option
 } // namespace c10_npu
