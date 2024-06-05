@@ -344,43 +344,45 @@ torch_npu::profiler::NPURecordFunction guard;
                     isinstance(a, TensorOptionsArguments)
                     for a in f.func.arguments.non_out
                 )
-                if has_tensor_options:
+
+                # There is precedence for which argument we use to do
+                # device guard.  This describes the precedence order.
+                self_arg = (
+                    [f.func.arguments.self_arg.argument]
+                    if f.func.arguments.self_arg is not None
+                    else []
+                )
+                candidate_args = itertools.chain(
+                    self_arg,
+                    f.func.arguments.out,
+                    f.func.arguments.flat_positional,
+                )
+
+                # Only tensor like arguments are eligible
+                device_of = next(
+                    (
+                        f"{a.name}"
+                        for a in candidate_args
+                        if a.type.is_tensor_like()
+                    ),
+                    None,
+                )
+                
+                if has_tensor_options and device_of is not None:
+                    device_guard = f"""
+OptionalDeviceGuard device_guard(device_of({device_of}));
+if (device.has_value()) {{
+    device_guard.reset_device(device_or_default(device));
+}}
+"""
+                elif has_tensor_options:
                     # kernel is creating a tensor
                     device_guard = """
 const DeviceGuard device_guard(device_or_default(device));"""
-
-                    # CUDA requires special handling
-                    if is_cuda_dispatch_key(self.backend_index.dispatch_key):
-                        device_guard = (
-                            f"globalContext().lazyInitCUDA();\n{device_guard}"
-                        )
-                else:
+                elif device_of is not None:
                     # kernel is operating on existing tensors
+                    device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
 
-                    # There is precedence for which argument we use to do
-                    # device guard.  This describes the precedence order.
-                    self_arg = (
-                        [f.func.arguments.self_arg.argument]
-                        if f.func.arguments.self_arg is not None
-                        else []
-                    )
-                    candidate_args = itertools.chain(
-                        self_arg,
-                        f.func.arguments.out,
-                        f.func.arguments.flat_positional,
-                    )
-
-                    # Only tensor like arguments are eligible
-                    device_of = next(
-                        (
-                            f"{a.name}"
-                            for a in candidate_args
-                            if a.type.is_tensor_like()
-                        ),
-                        None,
-                    )
-                    if device_of is not None:
-                        device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
             op_key = str(f.func.name)
             if enable_opplugin():
                 if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE:
