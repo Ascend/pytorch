@@ -106,29 +106,48 @@ def compute_op_definition(f: NativeFunction):
         if out_num > 1 else ''
     out_return_type = '::std::tuple<{}>'.format(', '.join(['at::Tensor'] * out_num))
 
-    has_tensor_options = any(isinstance(a, TensorOptionsArguments)
-                    for a in f.func.arguments.non_out)
-    if has_tensor_options:
-        device_guard = 'const c10::DeviceGuard device_guard(device_or_default(device));'
-    else:
+    has_tensor_options = any(
+        isinstance(a, TensorOptionsArguments)
+        for a in f.func.arguments.non_out
+    )
+
+    # There is precedence for which argument we use to do
+    # device guard.  This describes the precedence order.
+    self_arg = (
+        [f.func.arguments.self_arg.argument]
+        if f.func.arguments.self_arg is not None
+        else []
+    )
+    candidate_args = itertools.chain(
+        self_arg,
+        f.func.arguments.out,
+        f.func.arguments.flat_positional,
+    )
+
+    # Only tensor like arguments are eligible
+    device_of = next(
+        (
+            f"{a.name}"
+            for a in candidate_args
+            if a.type.is_tensor_like()
+        ),
+        None,
+    )
+    
+    if has_tensor_options and device_of is not None:
+        device_guard = f"""
+c10::OptionalDeviceGuard device_guard(device_of({device_of}));
+if (device.has_value()) {{
+device_guard.reset_device(device_or_default(device));
+}}
+"""
+    elif has_tensor_options:
+        # kernel is creating a tensor
+        device_guard = """
+const c10::DeviceGuard device_guard(device_or_default(device));"""
+    elif device_of is not None:
         # kernel is operating on existing tensors
-
-        # There is precedence for which argument we use to do
-        # device guard.  This describes the precedence order.
-        self_arg = ([f.func.arguments.self_arg.argument]
-                    if f.func.arguments.self_arg is not None
-                    else [])
-        candidate_args = itertools.chain(self_arg,
-                                         f.func.arguments.out,
-                                         f.func.arguments.flat_positional,)
-
-        # Only tensor like arguments are eligible
-        device_of = next((f"{a.name}"
-                          for a in candidate_args
-                          if a.type.is_tensor_like()),
-                          None,)
-        if device_of is not None:
-            device_guard = f'const c10::OptionalDeviceGuard device_guard(device_of({device_of}));'
+        device_guard = f"const c10::OptionalDeviceGuard device_guard(device_of({device_of}));"
 
     return [METHOD_DEFINITION.substitute(
         return_type=out_return_type if out_num > 1 else cpp.returns_type(f.func.returns).cpp_type(),
