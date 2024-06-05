@@ -68,12 +68,12 @@ inline bool has_set_pthread_affinity()
     int count = 0;
 
     cpu_set_t mask;
-    pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask);
+    pthread_getaffinity_np(pthread_self(), sizeof(mask), &mask);
     for (int i = 0; i < core_nums; i++) {
         count += CPU_ISSET(i, &mask);
     }
 
-    return count == core_nums;
+    return count != core_nums;
 }
 
 aclError SetDevice(c10::DeviceIndex device)
