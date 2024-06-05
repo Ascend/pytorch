@@ -1245,55 +1245,61 @@ class DeviceCachingAllocator {
   }
 
   /** Dump a complete snapshot of the memory held by the allocator. Potentially VERY expensive. **/
-  std::vector<SegmentInfo> snapshot() {
-    std::lock_guard<std::recursive_mutex> lock(mutex);
+  std::vector<SegmentInfo> snapshot()
+  {
+      std::lock_guard<std::recursive_mutex> lock(mutex);
 
-    size_t total_active = 0;
-    std::vector<SegmentInfo> result;
-    const auto all_blocks = get_all_blocks();
+      size_t total_active = 0;
+      std::vector<SegmentInfo> result;
+      const auto all_blocks = get_all_blocks();
 
-    for (const Block* const head_block : all_blocks) {
-      // For expandable segments, we report one segment for each continguous
-      // mapped range of memory
-      if (head_block->prev && head_block->prev->mapped) {
-        continue;
+      for (const Block* const head_block : all_blocks) {
+          // For expandable segments, we report one segment for each continguous
+          // mapped range of memory
+          if (head_block->prev && head_block->prev->mapped) {
+              continue;
+          }
+          result.emplace_back();
+          SegmentInfo& segment_info = result.back();
+          segment_info.device = head_block->device;
+          segment_info.address = reinterpret_cast<int64_t>(head_block->ptr);
+          segment_info.stream = head_block->stream;
+          segment_info.is_large = (!head_block->pool->is_small);
+          segment_info.is_expandable = head_block->expandable_segment_;
+          segment_info.context_when_allocated =
+              head_block->context_when_segment_allocated;
+
+          const Block* block = head_block;
+          while (block != nullptr && block->mapped) {
+              segment_info.blocks.emplace_back();
+              BlockInfo& block_info = segment_info.blocks.back();
+
+              block_info.size = block->size;
+              block_info.requested_size = block->requested_size;
+              block_info.allocated = block->allocated;
+              block_info.active = block->allocated || (block->event_count > 0);
+
+              segment_info.total_size += block_info.size;
+              if (block_info.allocated) {
+                  segment_info.allocated_size += block_info.size;
+              }
+              if (block_info.active) {
+                  segment_info.active_size += block_info.size;
+                  segment_info.requested_size += block_info.requested_size;
+              }
+              block_info.context_when_allocated = block->context_when_allocated;
+              block = block->next;
+          }
+          total_active += segment_info.active_size;
       }
-      result.emplace_back();
-      SegmentInfo& segment_info = result.back();
-      segment_info.device = head_block->device;
-      segment_info.address = reinterpret_cast<uintptr_t>(head_block->ptr);
-      segment_info.stream = head_block->stream;
-      segment_info.is_large = (!head_block->pool->is_small);
-      segment_info.is_expandable = head_block->expandable_segment_;
 
-      const Block* block = head_block;
-      while (block != nullptr && block->mapped) {
-        segment_info.blocks.emplace_back();
-        BlockInfo& block_info = segment_info.blocks.back();
+      std::sort(result.begin(), result.end(),
+                [](const SegmentInfo& a, const SegmentInfo& b) {
+                    return a.address < b.address;
+                });
 
-        block_info.size = block->size;
-        block_info.allocated = block->allocated;
-        block_info.active = block->allocated || (block->event_count > 0);
-
-        segment_info.total_size += block_info.size;
-        if (block_info.allocated) {
-          segment_info.allocated_size += block_info.size;
-        }
-        if (block_info.active) {
-          segment_info.active_size += block_info.size;
-        }
-
-        block = block->next;
-      }
-      total_active += segment_info.active_size;
-    }
-
-    std::sort(result.begin(), result.end(), [](const SegmentInfo& a, const SegmentInfo& b) {
-      return a.address < b.address;
-    });
-
-    record_trace(TraceEntry::SNAPSHOT, 0, total_active, nullptr, 0, nullptr);
-    return result;
+      record_trace(TraceEntry::SNAPSHOT, 0, total_active, nullptr, 0, nullptr);
+      return result;
   }
 
   std::vector<TraceEntry> trace()

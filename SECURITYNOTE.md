@@ -86,6 +86,7 @@ torch_npu支持源码编译安装，在编译时会下载依赖第三方库并�
 |   开源引入   |   https://github.com/pytorch/pytorch/blob/v2.1.0/test/test_serialization.py   |   test\url.ini   |   https://download.pytorch.org/test_data/legacy_serialized.pt   |   用于test脚本下载相关pt文件   |
 |   开源引入   |   https://github.com/pytorch/pytorch/blob/v2.1.0/test/test_serialization.py   |   test\url.ini   |   https://download.pytorch.org/test_data/gpu_tensors.pt   |   用于test脚本下载相关pt文件   |
 |   开源引入   |   https://github.com/pytorch/pytorch/blob/v2.1.0/test/test_nn.py <br> https://github.com/pytorch/pytorch/blob/v2.1.0/test/test_serialization.py  |   test\url.ini   |   https://download.pytorch.org/test_data/linear.pt   |   用于test脚本下载相关pt文件   |
+|   自研   |   不涉及  |   torch_npu\npu\config.yaml   |   https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl   |   火焰图脚本下载路径  |
 
 ## 公开接口声明
 
