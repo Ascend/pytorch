@@ -1657,5 +1657,9 @@
     "get_compiler",
     "get_npu_backend",
     "use_internal_format_weight"
+  ],
+  "torch_npu.utils.profiler": [
+    "Singleton",
+    "Profile"
   ]
 }
