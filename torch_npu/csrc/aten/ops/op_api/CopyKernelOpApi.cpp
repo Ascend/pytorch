@@ -183,11 +183,7 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
     if (self.numel() == 0) {
         return self;
     }
-    // save tensor dim name
-    c10::optional<at::DimnameList> names = src.opt_names();
-    if (names.has_value()) {
-        internal_set_names_inplace(self, names);
-    }
+    auto maybe_outnames = at::namedinference::compute_broadcast_outnames(self, src);
 
     if (torch_npu::utils::is_npu(self)) {
         if (torch_npu::utils::is_npu(src)) {
@@ -200,6 +196,7 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
             copy_d2h_baseformat_opapi(self, src, non_blocking);
         }
     }
+    at::namedinference::propagate_names_if_nonempty(self, maybe_outnames);
     return self;
 }
 
