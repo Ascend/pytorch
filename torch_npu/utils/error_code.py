@@ -95,11 +95,13 @@ def prof_error(error: ErrCode) -> str:
 class _NPUExceptionHandler(object):
     def __init__(self):
         self.exception = None
-        self.npu_except_pattern = "\[ERROR\] [0-9\-\:]* \(PID:\d*, Device:\-?\d*, RankID:\-?\d*\) ERR\d{5}"
+        self.npu_exception = "\[ERROR\] [0-9\-\:]* \(PID:\d*, Device:\-?\d*, RankID:\-?\d*\) ERR\d{5}"
+        self.npu_timeout_exception = "error code is 107020"
+        self.npu_timeout_exit_offset = 3
 
-    def _is_npu_exception(self):
-        if self.exception:
-            return True if re.search(self.npu_except_pattern, self.exception) else False
+    def _is_exception(self, exception_pattern):
+        if self.exception and re.search(exception_pattern, self.exception):
+            return True
         return False
 
     def _excepthook(self, exc_type, exc, *args):
@@ -112,8 +114,13 @@ class _NPUExceptionHandler(object):
 
     def handle_exception(self):
         # exception raised by other component, such as original PyTorch, third-party library, or application code.
-        if self.exception and not self._is_npu_exception():
-            print(_format_error_msg(_SubModuleID.UNKNOWN, ErrCode.EXCEPT).lstrip())
+        if self.exception:
+            if self._is_exception(self.npu_exception):
+                if self._is_exception(self.npu_timeout_exception):
+                    # if npu timeout, let other processes exit properly before elastic agent kills them.
+                    time.sleep(self.npu_timeout_exit_offset)
+            else:
+                print(_format_error_msg(_SubModuleID.UNKNOWN, ErrCode.EXCEPT).lstrip())
 
 
 _except_handler = _NPUExceptionHandler()
