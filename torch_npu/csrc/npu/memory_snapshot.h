@@ -12,4 +12,6 @@ TORCH_NPU_API void _record_memory_history(
     std::string stacks = "all",
     size_t max_entries = UINT64_MAX);
 
+TORCH_NPU_API std::string _memory_snapshot_pickled();
+
 } // namespace torch::npu
