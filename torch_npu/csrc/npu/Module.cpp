@@ -472,7 +472,6 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
     py::str requested_size_s = "requested_size";
     py::str stream_s = "stream";
     py::str segment_type_s = "segment_type";
-    py::str segment_pool_id = "segment_pool_id";
     py::str large_s = "large";
     py::str small_s = "small";
     py::str size_s = "size";

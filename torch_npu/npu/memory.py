@@ -26,6 +26,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 import torch_npu
 from torch_npu.utils.error_code import ErrCode, pta_error
 from .utils import is_initialized, _get_device_index, _lazy_init
+from ._memory_viz import memory as _memory, segments as _segments
 
 
 @contextlib.contextmanager
@@ -674,3 +675,17 @@ def _dump_snapshot(filename="dump_snapshot.pickle"):
     s = _snapshot()
     with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "wb") as f:
         pickle.dump(s, f)
+
+
+def _save_segment_usage(filename="output.svg", snapshot=None):
+    if snapshot is None:
+        snapshot = _snapshot()
+    with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "w") as f:
+        f.write(_segments(snapshot))
+
+
+def _save_memory_usage(filename="output.svg", snapshot=None):
+    if snapshot is None:
+        snapshot = _snapshot()
+    with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "w") as f:
+        f.write(_memory(snapshot))
