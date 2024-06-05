@@ -4,6 +4,7 @@ import unittest
 import warnings
 import random
 from functools import reduce
+import operator
 import numpy as np
 
 import torch
@@ -136,7 +137,7 @@ class TestIndexing(TestCase):
         def consec(size, start=1):
             # Creates the sequence in float since CPU half doesn't support the
             # needed operations. Converts to dtype before returning.
-            numel = reduce(lambda x, y: x * y, size, 1)
+            numel = reduce(operator.mul, size, 1)
             sequence = torch.ones(numel, dtype=torch.float, device=device).cumsum(0)
             sequence.add_(start - 1)
             return sequence.view(*size).to(dtype=dtype)
@@ -531,7 +532,7 @@ class TestIndexing(TestCase):
             [[[2]], [[0, 3], [4, 1]], slice(None)],
             # non-contiguous indexing subspace
             [[0, 2, 3], slice(None), [1, 3, 4]],
-
+            # [...]
             # less dim, ellipsis
             [[0, 2], ],
             [[0, 2], slice(None)],
@@ -1380,7 +1381,14 @@ class TestIndexing(TestCase):
             tensor_a[6] = 1.0
             tensor_b[6] = 1.0
             self.assertEqual(tensor_a, tensor_b.cpu(), atol=0, rtol=0)
-
+    
+    def test_index_limits(self, device):
+        #  See pytorch issues 115415
+        t = torch.tensor([], device=device)
+        idx_min = torch.iinfo(torch.int64).min
+        idx_max = torch.iinfo(torch.int64).max
+        self.assertRaises(IndexError, lambda: t[idx_min])
+        self.assertRaises(IndexError, lambda: t[idx_max])
 
 # The tests below are from NumPy test_indexing.py with some modifications to
 # make them compatible with PyTorch. It's licensed under the BDS license below:
@@ -1415,6 +1423,7 @@ class TestIndexing(TestCase):
 # THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 class NumpyTests(TestCase):
     def test_index_no_floats(self, device):
