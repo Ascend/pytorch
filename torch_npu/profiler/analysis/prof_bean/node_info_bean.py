@@ -2,7 +2,7 @@ from typing import List
 from ..prof_common_func.constant import convert_us2ns
 
 
-class NodeInfoBean:
+class _NodeInfoBean:
     def __init__(self, kernel_list: list):
         self._device_dur = 0
         self._device_dur_with_ai_core = 0
