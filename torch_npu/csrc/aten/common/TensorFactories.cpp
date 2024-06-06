@@ -44,6 +44,7 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
+#include "torch_npu/csrc/profiler/utils.h"
 
 namespace at_npu
 {
@@ -109,36 +110,35 @@ namespace at_npu
                                          c10::optional<bool> pin_memory_opt,
                                          c10::optional<c10::MemoryFormat> memory_format_opt)
     {
-      AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
-      TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned",
-                  OPS_ERROR(ErrCode::NOT_SUPPORT));
-      check_size_nonnegative(size);
-      c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
-      int64_t nelements = c10::multiply_integers(size);
-      auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
-      int64_t size_bytes = nelements * dtype.itemsize();
-      c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
-          c10::StorageImpl::use_byte_size_t(),
-          size_bytes,
-          allocator->allocate(size_bytes),
-          allocator,
-          true);
+        torch_npu::profiler::NPURecordFunction profiler_guard;
+        RECORD_FUNCTION("empty_tensor", std::vector<c10::IValue>({}));
+        AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
+        TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned",
+                    OPS_ERROR(ErrCode::NOT_SUPPORT));
+        check_size_nonnegative(size);
+        c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
+        int64_t nelements = c10::multiply_integers(size);
+        auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
+        int64_t size_bytes = nelements * dtype.itemsize();
+        c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
+            c10::StorageImpl::use_byte_size_t(),
+            size_bytes,
+            allocator->allocate(size_bytes),
+            allocator,
+            true);
 
-        auto tensor =
-            at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
+        auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
-      // Default at::TensorImpl has size [0]
-      if (size.size() != 1 || size[0] != 0)
-      {
-        tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
-      }
-      auto memory_format =
-          memory_format_opt.value_or(c10::MemoryFormat::Contiguous);
-      TORCH_CHECK(
-          memory_format == c10::MemoryFormat::Contiguous,
-          "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor", OPS_ERROR(ErrCode::NOT_SUPPORT));
-      tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
-      StorageDescHelper::SetDesc(tensor, size, tensor.strides());
+        // Default at::TensorImpl has size [0]
+        if (size.size() != 1 || size[0] != 0) {
+            tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
+        }
+        auto memory_format = memory_format_opt.value_or(c10::MemoryFormat::Contiguous);
+        TORCH_CHECK(
+            memory_format == c10::MemoryFormat::Contiguous,
+            "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor", OPS_ERROR(ErrCode::NOT_SUPPORT));
+        tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
+        StorageDescHelper::SetDesc(tensor, size, tensor.strides());
 
         return tensor;
     }
@@ -297,13 +297,15 @@ namespace at_npu
                                                      c10::optional<bool> pin_memory_opt,
                                                      int64_t dst_format)
     {
-      torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
-      TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::NOT_SUPPORT));
-      check_size_nonnegative(size);
-      c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
-      // when the shape and format are not match, fix format here.
-      aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
-      auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
+        torch_npu::profiler::NPURecordFunction profiler_guard;
+        RECORD_FUNCTION("empty_tensor", std::vector<c10::IValue>({}));
+        torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
+        TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::NOT_SUPPORT));
+        check_size_nonnegative(size);
+        c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
+        // when the shape and format are not match, fix format here.
+        aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
+        auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
         int64_t nelements = StorageDescHelper::GetMemorySize(size, format, dtype);
         int64_t size_bytes = nelements * dtype.itemsize();
         c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
@@ -313,17 +315,15 @@ namespace at_npu
             allocator,
             true);
 
-      auto tensor =
-          at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
+        auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
-      // Default NPUTensorImpl has size [0]
-      if (size.size() != 1 || size[0] != 0)
-      {
-        tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
-      }
-      tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
-      StorageDescHelper::SetDesc(tensor, size, tensor.strides(), format);
-      return tensor;
+        // Default NPUTensorImpl has size [0]
+        if (size.size() != 1 || size[0] != 0) {
+            tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
+        }
+        tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
+        StorageDescHelper::SetDesc(tensor, size, tensor.strides(), format);
+        return tensor;
     }
 
     at::Tensor NPUNativeFunctions::unsafe_empty_with_format(c10::IntArrayRef size,

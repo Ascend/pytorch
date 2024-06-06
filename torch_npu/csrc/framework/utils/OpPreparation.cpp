@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/record_function.h>
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
@@ -22,6 +23,7 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/profiler/utils.h"
 
 namespace at_npu
 {
@@ -494,17 +496,18 @@ namespace at_npu
     }
 
     at::Tensor OpPreparation::unsafe_empty_workspace(uint64_t workspace_size) {
-      ASCEND_LOGD("Alloc workspace %zu bytes unsafely.", workspace_size);
-      c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
-      c10::intrusive_ptr<c10::StorageImpl> storage_impl =
-      c10::make_intrusive<torch_npu::NPUStorageImpl>(
-        c10::StorageImpl::use_byte_size_t(), workspace_size,
-        allocator->allocate(workspace_size), allocator, true);
-      static auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(at::kByte));
-      auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(
-        storage_impl, dtype);
-      tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
-      return tensor;
+        torch_npu::profiler::NPURecordFunction profiler_guard;
+        RECORD_FUNCTION("malloc_workspace", std::vector<c10::IValue>({}));
+        ASCEND_LOGD("Alloc workspace %zu bytes unsafely.", workspace_size);
+        c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
+        c10::intrusive_ptr<c10::StorageImpl> storage_impl =
+        c10::make_intrusive<torch_npu::NPUStorageImpl>(
+            c10::StorageImpl::use_byte_size_t(), workspace_size,
+            allocator->allocate(workspace_size), allocator, true);
+        static auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(at::kByte));
+        auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
+        tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
+        return tensor;
     }
 
     bool OpPreparation::is_cpu_scalar(const at::Tensor &tensor) {
