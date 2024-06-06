@@ -29,6 +29,9 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/profiler/utils.h"
+#endif
 
 namespace at_npu {
 namespace native {
@@ -95,6 +98,10 @@ at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
                                      c10::optional<c10::Device> device_opt,
                                      c10::optional<bool> pin_memory_opt,
                                      c10::optional<c10::MemoryFormat> memory_format_opt) {
+#ifndef BUILD_LIBTORCH
+    torch_npu::profiler::NPURecordFunction profiler_guard;
+#endif
+    RECORD_FUNCTION("empty_tensor", std::vector<c10::IValue>({}));
     auto device_ = c10::device_or_default(device_opt);
     AT_ASSERT(device_.type() == c10::DeviceType::PrivateUse1, OPS_ERROR(ErrCode::PARAM));
     torch_npu::utils::maybe_initialize_npu(device_);
@@ -104,7 +111,7 @@ at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
                 "Current settings do not support Complex dtype. Please try again with jit_compile=False.",
                 OPS_ERROR(ErrCode::NOT_SUPPORT));
     check_size_nonnegative(size);
-    c10_npu::NPUGuard guard(device_);
+    c10_npu::NPUGuard guard_(device_);
     c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
     int64_t nelements = c10::multiply_integers(size);
     auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
@@ -276,6 +283,10 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                                                  c10::optional<c10::Device> device_opt,
                                                  c10::optional<bool> pin_memory_opt,
                                                  int64_t dst_format) {
+#ifndef BUILD_LIBTORCH
+    torch_npu::profiler::NPURecordFunction profiler_guard;
+#endif
+    RECORD_FUNCTION("empty_tensor", std::vector<c10::IValue>({}));
     auto device_ = c10::device_or_default(device_opt);
     torch_npu::utils::torch_check_npu(device_);
     torch_npu::utils::maybe_initialize_npu(device_);
@@ -285,7 +296,7 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                 "Current settings do not support Complex dtype. Please try again with jit_compile=False.",
                 OPS_ERROR(ErrCode::NOT_SUPPORT));
     check_size_nonnegative(size);
-    c10_npu::NPUGuard guard(device_);
+    c10_npu::NPUGuard guard_(device_);
     c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
     // when the shape and format are not match, fix format here.
     aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
