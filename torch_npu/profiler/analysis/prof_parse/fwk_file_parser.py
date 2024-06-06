@@ -226,15 +226,14 @@ class FwkFileParser:
 
         for torch_op in torch_op_data:
             api = [torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), [], torch_op.name,
-                             torch_op.args.get(Constant.SEQUENCE_UNMBER, -1), torch_op.args.get(Constant.FORWORD_THREAD_ID),
-                             torch_op.args.get(Constant.INPUT_SHAPES), torch_op.args.get(Constant.INPUT_DTYPES), torch_op.call_stack]
+                   torch_op.args.get(Constant.SEQUENCE_UNMBER, -1), torch_op.args.get(Constant.FORWORD_THREAD_ID),
+                   torch_op.args.get(Constant.INPUT_SHAPES), torch_op.args.get(Constant.INPUT_DTYPES), torch_op.call_stack]
             if torch_op.name == "mstx_mark_op":
                 mstx_mark_apis.append(api)
             else:
                 torch_op_apis.append(api)
-
-            self.filter_fwd_bwd_api(fwd_bwd_dict, torch_op, torch_op_idx)
-            torch_op_idx += 1
+                self.filter_fwd_bwd_api(fwd_bwd_dict, torch_op, torch_op_idx)
+                torch_op_idx += 1
 
         connection_ids = []
         task_queues = []
