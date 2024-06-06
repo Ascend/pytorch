@@ -37,6 +37,9 @@ constexpr const char* HCCL_BACKEND_NAME = "hccl";
 
 constexpr const char* HCCL_ASYNC_ERROR_HANDLING = "HCCL_ASYNC_ERROR_HANDLING";
 constexpr const char* HCCL_DESYNC_DEBUG = "HCCL_DESYNC_DEBUG";
+
+constexpr const int DEFAULT_TIMEOUT = 30 * 60 * 1000;
+
 enum ErrorHandlingMode { NoHandling = 0, TearDown = 1, CleanUpOnly = 2};
 
 // ProcessGroupHCCL implements HCCL bindings for c10d.
