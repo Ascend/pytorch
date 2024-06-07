@@ -37,7 +37,9 @@ typedef enum {
     ACL_OP_DETERMINISTIC,
     ACL_CUSTOMIZE_DTYPES,
     ACL_OP_PRECISION_MODE,
-    ACL_ALLOW_HF32
+    ACL_ALLOW_HF32,
+    ACL_PRECISION_MODE_V2,
+    ACL_OP_DEBUG_OPTION
 } aclCompileOpt;
 
 typedef enum aclCompileFlag {
