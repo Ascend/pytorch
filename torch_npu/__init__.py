@@ -15,7 +15,7 @@ import torch_npu
 try:
     import torch_npu.npu
 except ImportError as e:
-    from torch_npu.utils.error_code import ErrCode, pta_error
+    from torch_npu.utils._error_code import ErrCode, pta_error
     if "libhccl.so" in str(e):
         if "ASCEND_OPP_PATH" in os.environ:
             e.msg += ". Please check that the compiler package is installed. "\
@@ -49,7 +49,7 @@ from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.checkpoint.checkpoint import _apply_dcp_patch
 from torch_npu.npu._stream_check import apply_sanitizer_patch
-from torch_npu.utils.error_code import ErrCode, pta_error, _except_handler
+from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 from torch_npu.asd.asd import _asd_patch
 from .version import __version__ as __version__
 from .meta import _meta_registrations
@@ -60,7 +60,7 @@ del _op_plugin_docs
 _cann_package_check()
 
 
-__all__ = ["ErrCode"]
+__all__ = []
 
 
 def _wrap_torch_error_func(func):

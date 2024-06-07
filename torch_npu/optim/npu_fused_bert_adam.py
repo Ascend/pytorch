@@ -4,7 +4,7 @@ from collections import defaultdict
 import torch
 from torch.optim.optimizer import required
 from torch_npu.utils import npu_combine_tensors
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
 __all__ = ["NpuFusedBertAdam"]

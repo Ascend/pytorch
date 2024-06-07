@@ -2,7 +2,7 @@ import torch
 from torch import _VF
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 class NPULinearOP(object):

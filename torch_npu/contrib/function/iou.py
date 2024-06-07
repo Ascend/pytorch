@@ -1,6 +1,6 @@
 import torch
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, ops_error
+from torch_npu.utils._error_code import ErrCode, ops_error
 
 
 __all__ = ['npu_iou', 'npu_ptiou', 'npu_giou', 'npu_diou', 'npu_ciou']

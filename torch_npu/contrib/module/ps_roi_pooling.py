@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, ops_error
+from torch_npu.utils._error_code import ErrCode, ops_error
 
 __all__ = ['PSROIPool']
 

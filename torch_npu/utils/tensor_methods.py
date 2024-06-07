@@ -3,7 +3,7 @@ from functools import wraps
 import torch
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 __all__ = ["npu_dtype_cast", "npu_confusion_transpose"]

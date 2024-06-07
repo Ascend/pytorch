@@ -5,7 +5,7 @@ from typing import Optional, Iterable, Callable, Any
 
 import torch.autograd.profiler as prof
 from torch_npu._C._profiler import ProfilerActivity
-from torch_npu.utils.error_code import ErrCode, prof_error
+from torch_npu.utils._error_code import ErrCode, prof_error
 
 from .experimental_config import _ExperimentalConfig
 from .profiler_path_creator import ProfPathCreator

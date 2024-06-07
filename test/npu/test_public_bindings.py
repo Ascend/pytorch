@@ -78,7 +78,6 @@ tempFilter = {
     "torch_npu.npu_stride_copy",
     "torch_npu.npu_swiglu",
     "torch_npu.one_",
-    "torch_npu.pta_error"
 }
 
 NOT_IMPORTED_WHEN_TEST_WRITTEN = {

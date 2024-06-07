@@ -3,7 +3,7 @@ import subprocess
 import shutil
 import argparse
 
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 if 'ASCEND_HOME_PATH' not in os.environ:

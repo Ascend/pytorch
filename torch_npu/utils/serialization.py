@@ -11,7 +11,7 @@ from torch.serialization import _check_dill_version, _open_file_like, _is_zipfil
     normalize_storage_type, location_tag, _open_zipfile_writer
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False

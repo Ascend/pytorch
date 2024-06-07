@@ -5,7 +5,7 @@ from torch import Tensor
 import torch.onnx.symbolic_helper as sym_help
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 class NPUOneHotOP(torch.autograd.Function):

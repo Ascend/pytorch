@@ -18,7 +18,7 @@ import re
 import shutil
 import warnings
 
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 __all__ = ['PathManager']
