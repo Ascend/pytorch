@@ -192,6 +192,7 @@ typedef enum {
 
 typedef enum {
     ACL_OPT_DETERMINISTIC = 0,
+    ACL_OPT_ENABLE_DEBUG_KERNEL = 1
 } aclSysParamOpt;
 
 typedef enum {

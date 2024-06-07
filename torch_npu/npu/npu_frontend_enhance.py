@@ -33,7 +33,8 @@ _option_map = {"ACL_PRECISION_MODE": ["allow_fp32_to_fp16", "must_keep_origin_dt
                "ACL_OP_DEBUG_LEVEL": ["0", "1", "2", "3", "4"],
                "ACL_DEBUG_DIR": None,
                "ACL_OP_COMPILER_CACHE_MODE": ["disable", "enable", "force"],
-               "ACL_OP_COMPILER_CACHE_DIR": None}
+               "ACL_OP_COMPILER_CACHE_DIR": None,
+               "ACL_OP_DEBUG_OPTION": ["oom"]}
 
 _deprecated_option_set = {"ACL_OP_SELECT_IMPL_MODE", "ACL_OPTYPELIST_FOR_IMPLMODE"}
 
