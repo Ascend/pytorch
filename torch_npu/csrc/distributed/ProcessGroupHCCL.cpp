@@ -892,9 +892,28 @@ void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID)
             TORCH_CHECK(vec.size() == HCCL_ROOT_INFO_BYTES, DIST_ERROR(ErrCode::PARAM));
             std::memcpy(hcclID, vec.data(), vec.size());
         } catch (const std::exception& e) {
-            throw std::runtime_error("store->get() got error: " + std::string(HCCL_BLOCKING_WAIT) + DIST_ERROR(ErrCode::INTERNAL));
+            std::string exceptionMsg = c10::str(
+                "[",
+                rank_,
+                "] is setting up HCCL communicator and "
+                "retrieving hcclUniqueId from [0] via c10d key-value store by key '",
+                storeKey,
+                "', but store->get('",
+                storeKey,
+                "') got error: ");
+            throw std::runtime_error(exceptionMsg + e.what() +
+                ". This may indicate a possible application crash on rank 0 or a network set up issue." +
+                DIST_ERROR(ErrCode::INTERNAL));
         } catch (...) {
-            throw std::runtime_error("Unknown exception: " + std::string(HCCL_BLOCKING_WAIT) + DIST_ERROR(ErrCode::INTERNAL));
+            throw std::runtime_error(c10::str(
+                "Unknown exception while [",
+                rank_,
+                "] is setting up HCCL communicator and "
+                "retrieving hcclUniqueId from [0] via c10d key-value store by key '",
+                storeKey,
+                "'",
+                ". This may indicate a possible application crash on rank 0 or a network set up issue.") +
+                DIST_ERROR(ErrCode::INTERNAL));
         }
         auto main_list = store_->get(ver_key);
         if (main_list != ver_list) {
