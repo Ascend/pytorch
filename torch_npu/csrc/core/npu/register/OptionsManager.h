@@ -48,7 +48,7 @@ public:
     static char *GetNslbPath();
     static uint32_t GetNslbCntVal();
     static bool CheckGeInitDisable();
-    static uint32_t GetBindCpuConf();
+    static uint32_t GetCpuAffinityConf();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
