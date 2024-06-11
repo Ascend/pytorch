@@ -86,7 +86,7 @@ aclError SetDevice(c10::DeviceIndex device)
 
     static const bool set_pthread_affinity = has_set_pthread_affinity();
     if (!set_pthread_affinity) {
-        uint32_t bind_conf = c10_npu::option::OptionsManager::GetBindCpuConf();
+        uint32_t bind_conf = c10_npu::option::OptionsManager::GetCpuAffinityConf();
         // bind_conf=1, bind cores averagely based on device_id
         if (bind_conf == 1) {
             int core_nums = sysconf(_SC_NPROCESSORS_ONLN);

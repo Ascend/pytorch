@@ -40,7 +40,7 @@ public:
     static bool CheckPerfDumpEnable();
     static std::string GetPerfDumpPath();
     static uint32_t GetP2PBufferSize();
-    static uint32_t GetBindCpuConf();
+    static uint32_t GetCpuAffinityConf();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
