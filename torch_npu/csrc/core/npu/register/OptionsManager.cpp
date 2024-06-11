@@ -248,14 +248,14 @@ uint32_t OptionsManager::GetP2PBufferSize()
     return buf_size;
 }
 
-uint32_t OptionsManager::GetBindCpuConf()
+uint32_t OptionsManager::GetCpuAffinityConf()
 {
-    const static uint32_t bind_cpu_conf = []() -> uint32_t {
-        char* bind_core_str = std::getenv("BIND_CPU_CONF");
-        int64_t bind_cpu_conf = (bind_core_str != nullptr) ? strtol(bind_core_str, nullptr, 10) : 0;
-        return static_cast<uint32_t>(bind_cpu_conf);
+    const static uint32_t cpu_affinity_conf = []() -> uint32_t {
+        char* cpu_affinity_str = std::getenv("CPU_AFFINITY_CONF");
+        int64_t cpu_affinity_conf = (cpu_affinity_str != nullptr) ? strtol(cpu_affinity_str, nullptr, 10) : 0;
+        return static_cast<uint32_t>(cpu_affinity_conf);
     }();
-    return bind_cpu_conf;
+    return cpu_affinity_conf;
 }
 
 } // namespace option
