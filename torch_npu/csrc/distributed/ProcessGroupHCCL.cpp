@@ -2526,8 +2526,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
     for (const auto r : c10::irange(output_tensors.size())) {
         check_npu_single_tensor(output_tensors[r]);
         check_npu_single_tensor(input_tensors[r]);
-        TORCH_CHECK(
-            device == output_tensors[r].device() && device == input_tensors[r].device(),
+        TORCH_CHECK(device == output_tensors[r].device() && device == input_tensors[r].device(),
             "tensors must be on the same device", DIST_ERROR(ErrCode::PARAM));
     }
     std::vector<int64_t> output_split_sizes;

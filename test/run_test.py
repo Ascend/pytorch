@@ -146,6 +146,13 @@ def parse_args():
         help="additional arguments passed through to unittest, e.g., "
         "python run_test.py -i sparse -- TestSparse.test_factory_size_check",
     )
+    parser.add_argument(
+        "--init_method",
+        default=0,
+        type=int,
+        help="when specifying the init_method, 1 indicates the use of the \"env\" approach, "
+        "2 indicates the use of the \"shared file\" approach, and 0 indicates running both approaches",
+    )
     return parser.parse_args()
 
 
@@ -209,7 +216,12 @@ def run_test(test, test_directory, options):
 def run_distributed_test(test, test_directory, options):
     config = DISTRIBUTED_TESTS_CONFIG
     for backend, env_vars in config.items():
-        for with_init_file in {True, False}:
+        methods = {True, False}
+        if options.init_method == 1:
+            methods = {False}
+        elif options.init_method == 2:
+            methods = {True}
+        for with_init_file in methods:
             tmp_dir = tempfile.mkdtemp()
             if options.verbose:
                 with_init = ' with file init_method' if with_init_file else ''
