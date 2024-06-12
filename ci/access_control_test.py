@@ -9,6 +9,7 @@ import queue
 import argparse
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
+import random
 import psutil
 from torch_npu.utils.path_manager import PathManager
 import torch_npu
@@ -391,18 +392,21 @@ def exec_ut(files):
     def run_tests(test_files):
         test_infos = []
         has_failed = 0
+        init_method = random.randint(1, 2)
         for ut_type, ut_files in test_files.items():
             for ut_file in ut_files:
                 cmd = get_ut_cmd(ut_type, ut_file)
                 ut_info = str(cmd[-1])
                 if ut_type == "op_ut_files":
                     ut_info = "test_ops " + ut_info
+                cmd = cmd + ["--init_method={}".format(init_method)]
                 ret = run_cmd_with_timeout(cmd)
                 if ret:
                     has_failed = ret
                     test_infos.append("exec ut {} failed.".format(ut_info))
                 else:
                     test_infos.append("exec ut {} success.".format(ut_info))
+                init_method = 2 if init_method == 1 else 1
         return has_failed, test_infos
 
     ret_status, exec_infos = run_tests(files)
@@ -421,6 +425,7 @@ if __name__ == "__main__":
     parser.add_argument('--world_size', default=0, type=int, help='Number of ut nodes')
     parser.add_argument('--network_ops', action="store_true", help='Run network_ops testcases in the op-plugin repo')
     options = parser.parse_args()
+    print(f"options: {options}")
     cur_modify_files = str(BASE_DIR / 'modify_files.txt')
     test_mgr = TestMgr()
 
