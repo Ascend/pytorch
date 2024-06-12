@@ -968,7 +968,7 @@ void ProcessGroupHCCL::recordComm(std::string filename, std::string opName, cons
     std::string group_ranks = ss.str();
     CommStruct comm_struct {commName, opName};
     if (commset.find(comm_struct) == commset.end()) {
-        outfile << "[COMM]:" << commName << ", " << opName << ", " << group_ranks << "\n";
+        outfile << "[COMM]:" << commName << "," << opName << "," << group_ranks << "\n";
         outfile.close();
         commset.insert(comm_struct);
     }

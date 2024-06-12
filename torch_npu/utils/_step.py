@@ -53,6 +53,12 @@ def _get_perf_dump_path():
         return perf_dump_path
     else:
         raise RuntimeError("PERF_DUMP_PATH is empty or invalid." + pta_error(ErrCode.VALUE))
+
+
+def _get_uuid():
+    master_addr = os.environ.get("MASTER_ADDR", "127.0.0.1")
+    master_port = os.environ.get("MASTER_PORT", "8888")
+    return master_addr + "_" + master_port
     
 
 def _setup_logger(name, path):
@@ -79,19 +85,22 @@ def _custom_call(self, *args, **kwargs):
         perf_dump_path = _get_perf_dump_path()
         pid = os.getpid()
         device_id = torch_npu.npu.current_device()
-        random_uuid = uuid.uuid4()
+        local_uuid = uuid.uuid4()
         perf_dump_state.log_file_name = os.path.join(perf_dump_path, f"perf_pt_{pid}_{device_id}.log")
         _setup_logger("perf_logger", perf_dump_state.log_file_name)
         logger = logging.getLogger("perf_logger")
-        logger.info(f"[UUID]:{random_uuid}")
+        logger.info(f"[LOCALUUID]:{local_uuid}")
         logger.info("[FRAMEWORK]:PyTorch")
+        logger.info(f"[UUID]:{_get_uuid()}")
+
         perf_dump_state.has_log = True
 
     if perf_dump_state.is_outer_call:
         if not perf_dump_state.is_child_module(self) and not _is_loss_module(self):
             current_time = int(time.time() * 1000)
             logger = logging.getLogger("perf_logger")
-            logger.info(f"[STEPTIME]:{perf_dump_state.last_time},{current_time}")
+            if perf_dump_state.last_time is not None:
+                logger.info(f"[STEPTIME]:{perf_dump_state.last_time},{current_time}")
             perf_dump_state.last_time = current_time
             perf_dump_state.add_module_dict(self)
         perf_dump_state.is_outer_call = False
