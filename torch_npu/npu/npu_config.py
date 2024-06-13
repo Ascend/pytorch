@@ -82,6 +82,8 @@ def finalize_dump():
 
 
 def set_compile_mode(jit_compile=False):
+    if torch_npu.npu.is_initialized():
+        torch_npu.npu.synchronize()
     option = {"jitCompile": "enable" if jit_compile else "disable"}
     torch_npu._C._npu_setOption(option)
 
