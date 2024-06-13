@@ -139,14 +139,6 @@ def _apply_class_patches():
     add_perf_dump_patch()
 
 
-def _try_preload_opapi():
-    try:
-        ctypes.CDLL("libopapi.so")
-    except OSError as exception:
-        exception.args = (exception.args[0] + ". Please check that the opp package is installed. "\
-                "Please run 'source set_env.sh' in the CANN installation path." + pta_error(ErrCode.NOT_FOUND),)
-        raise
-
 torch.utils.rename_privateuse1_backend("npu")
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)
@@ -160,7 +152,6 @@ _apply_distributed_patches()
 _apply_class_patches()
 _asd_patch()
 _except_handler.patch_excepthook()
-_try_preload_opapi()
 # this must be placed at the end
 torch_npu._C._initExtension()
 

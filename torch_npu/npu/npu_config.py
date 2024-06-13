@@ -2,6 +2,7 @@ from logging import exception
 import inspect
 import os
 import warnings
+import torch_npu
 import torch_npu._C
 from torch_npu.utils.path_manager import PathManager
 from torch_npu.utils.error_code import ErrCode, pta_error, prof_error
@@ -82,6 +83,8 @@ def finalize_dump():
 
 
 def set_compile_mode(jit_compile=False):
+    if torch_npu.npu.is_initialized():
+        torch_npu.npu.synchronize()
     option = {"jitCompile": "enable" if jit_compile else "disable"}
     torch_npu._C._npu_setOption(option)
 
