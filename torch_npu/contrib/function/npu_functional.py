@@ -4,7 +4,7 @@ __all__ = ["dropout_with_byte_mask"]
 
 import torch
 import torch_npu as _VF
-from torch_npu.utils.error_code import ErrCode, ops_error
+from torch_npu.utils._error_code import ErrCode, ops_error
 
 Tensor = torch.Tensor
 

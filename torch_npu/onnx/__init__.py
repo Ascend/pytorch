@@ -1,9 +1,9 @@
-from .wrapper_onnx_ops import add_onnx_ops
-from .wrapper_ops_combined import add_ops_combined_for_onnx
+from .wrapper_onnx_ops import _add_onnx_ops
+from .wrapper_ops_combined import _add_ops_combined_for_onnx
 from .register_aten_ops_to_onnx import native_layer_norm
 
-__all__ = []
+__all__ = ["native_layer_norm"]
 
 
-add_onnx_ops()
-add_ops_combined_for_onnx()
+_add_onnx_ops()
+_add_ops_combined_for_onnx()

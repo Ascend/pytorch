@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, ops_error
+from torch_npu.utils._error_code import ErrCode, ops_error
 
 logger = logging.getLogger(__name__)
 

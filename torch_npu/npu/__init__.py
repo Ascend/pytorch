@@ -116,7 +116,7 @@ from torch.storage import _LegacyStorage, _warn_typed_storage_removal
 from torch._utils import classproperty
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error, prof_error
+from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
 from .utils import (synchronize, device_count, can_device_access_peer, set_device, current_device, get_device_name,
                     get_device_properties, get_device_capability, _get_device_index,
                     device, device_of, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,

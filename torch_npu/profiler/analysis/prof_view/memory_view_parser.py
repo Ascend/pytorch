@@ -1,7 +1,7 @@
 from warnings import warn
 import os
 
-from torch_npu.utils.error_code import ErrCode, prof_error
+from torch_npu.utils._error_code import ErrCode, prof_error
 from .base_parser import BaseParser
 from .memory_prepare_parser import MemoryPrepareParser
 from ..prof_common_func.path_manager import ProfilerPathManager

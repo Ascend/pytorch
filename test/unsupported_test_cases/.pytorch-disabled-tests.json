@@ -27922,6 +27922,7 @@
   "test_output_match_unflatten_cpu_uint8 (__main__.TestOnnxModelOutputConsistency_opset15CPU)": ["", [""]],
   "test_output_match_unflatten_cpu_uint8 (__main__.TestOnnxModelOutputConsistency_opset16CPU)": ["", [""]],
   "test_output_match_unflatten_cpu_uint8 (__main__.TestOnnxModelOutputConsistency_opset17CPU)": ["", [""]],
+  "test_symbolic_shape_of_values_inside_function_is_exported_as_graph_value_info (__main__.TestFxToOnnx)": ["", [""]],
   "test_conv (__main__.TestOperators)": ["", [""]],
   "test_conv_onnx_irv4 (__main__.TestOperators)": ["", [""]],
   "test_convtranspose (__main__.TestOperators)": ["", [""]],

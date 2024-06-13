@@ -2,13 +2,15 @@ from typing import Optional, List
 
 import torch
 from torch import Tensor
-import torch.onnx.symbolic_helper as sym_help
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 
-class NPUOneHotOP(torch.autograd.Function):
+__all__ = []
+
+
+class _NPUOneHotOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -21,7 +23,7 @@ class NPUOneHotOP(torch.autograd.Function):
                     on_value_i=on_value, off_value_i=off_value)
 
 
-class NPUSliceOP(torch.autograd.Function):
+class _NPUSliceOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -32,7 +34,7 @@ class NPUSliceOP(torch.autograd.Function):
         return g.op("npu::NPUSlice", self, offsetss_i=offsets, sizes_i=size)
 
 
-class NPURoiAlignOP(torch.autograd.Function):
+class _NPURoiAlignOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -46,7 +48,7 @@ class NPURoiAlignOP(torch.autograd.Function):
                     sample_num_i=sample_num, roi_end_mode_i=roi_end_mode)
 
 
-class NPUIouOP(torch.autograd.Function):
+class _NPUIouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -57,7 +59,7 @@ class NPUIouOP(torch.autograd.Function):
         return g.op("npu::NPUIou", bboxes, gtboxes, mode_i=mode)
 
 
-class NPUBatchNmsOP(torch.autograd.Function):
+class _NPUBatchNmsOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -73,7 +75,7 @@ class NPUBatchNmsOP(torch.autograd.Function):
                     transpose_box_i=transpose_box, outputs=4)
 
 
-class NPUFastGeluOP(torch.autograd.Function):
+class _NPUFastGeluOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -84,7 +86,7 @@ class NPUFastGeluOP(torch.autograd.Function):
         return g.op("npu::NPUFastGelu", self)
 
 
-class NPUFusedAttentionScoreOP(torch.autograd.Function):
+class _NPUFusedAttentionScoreOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -94,7 +96,7 @@ class NPUFusedAttentionScoreOP(torch.autograd.Function):
     def symbolic(g, query_layer: Tensor, key_layer: Tensor, value_layer: Tensor, attention_mask: Tensor,
                  scale: float, keep_prob: float, query_transpose: bool = False, key_transpose: bool = False,
                  bmm_score_transpose_a: bool = False, bmm_score_transpose_b: bool = False, value_transpose:
-                 bool = False, dx_transpose: bool = False):
+            bool = False, dx_transpose: bool = False):
         return g.op("npu::NPUFusedAttentionScore", query_layer, key_layer, value_layer, attention_mask,
                     keep_prob_f=keep_prob, scale_f=scale, query_transpose_i=query_transpose,
                     key_transpose_i=key_transpose, bmm_score_transpose_a_i=bmm_score_transpose_a,
@@ -102,7 +104,7 @@ class NPUFusedAttentionScoreOP(torch.autograd.Function):
                     dx_transpose_i=dx_transpose)
 
 
-class NPUCiouOP(torch.autograd.Function):
+class _NPUCiouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -115,7 +117,7 @@ class NPUCiouOP(torch.autograd.Function):
                     atan_sub_flag_i=atan_sub_flag)
 
 
-class NPUGroupNormSiluOP(torch.autograd.Function):
+class _NPUGroupNormSiluOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -132,7 +134,7 @@ class NPUGroupNormSiluOP(torch.autograd.Function):
                     outputs=3)
 
 
-class NPUMultiHeadAttentionOP(torch.autograd.Function):
+class _NPUMultiHeadAttentionOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -161,7 +163,7 @@ class NPUMultiHeadAttentionOP(torch.autograd.Function):
                     outputs=8)
 
 
-class NPUDeepNormOP(torch.autograd.Function):
+class _NPUDeepNormOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -172,29 +174,29 @@ class NPUDeepNormOP(torch.autograd.Function):
         return g.op("npu::NPUDeepNorm", self, gx, beta, gamma, alpha_f=alpha, epsilon_f=epsilon, outputs=3)
 
 
-class NPURmsNormOP(torch.autograd.Function):
+class _NPURmsNormOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch.ops.npu.npu_rms_norm(*args, **kwargs)
-    
+
     @staticmethod
     def symbolic(g, self: Tensor, gamma: Tensor, epsilon: float = 1e-6):
         return g.op("npu::NPURmsNorm", self, gamma, epsilon_f=epsilon, outputs=2)
 
 
-class NPUAddRmsNormOP(torch.autograd.Function):
+class _NPUAddRmsNormOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch.ops.npu.npu_add_rms_norm(*args, **kwargs)
-    
+
     @staticmethod
     def symbolic(g, x1: Tensor, x2: Tensor, gamma: Tensor, epsilon: float = 1e-6):
         return g.op("npu::NPURmsNorm", x1, x2, gamma, epsilon_f=epsilon, outputs=3)
 
 
-class NPUDiouOP(torch.autograd.Function):
+class _NPUDiouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -206,7 +208,7 @@ class NPUDiouOP(torch.autograd.Function):
         return g.op("npu::NPUDiou", self, gtboxes, trans_i=trans, is_cross_i=is_cross, mode_i=mode)
 
 
-class NPUGiouOP(torch.autograd.Function):
+class _NPUGiouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -218,7 +220,7 @@ class NPUGiouOP(torch.autograd.Function):
         return g.op("npu::NPUGiou", self, gtboxes, trans_i=trans, is_cross_i=is_cross, mode_i=mode)
 
 
-class NPUDeformableConv2dOP(torch.autograd.Function):
+class _NPUDeformableConv2dOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -235,7 +237,7 @@ class NPUDeformableConv2dOP(torch.autograd.Function):
                     deformable_groups_i=deformable_groups, modulated_i=modulated, outputs=2)
 
 
-class NPUFormatCastOP(torch.autograd.Function):
+class _NPUFormatCastOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -246,7 +248,7 @@ class NPUFormatCastOP(torch.autograd.Function):
         return g.op("npu::NPUFormatCast", self, acl_format_i=acl_format)
 
 
-class NPUSoftmaxCrossEntropyWithLogitsOP(torch.autograd.Function):
+class _NPUSoftmaxCrossEntropyWithLogitsOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -258,7 +260,7 @@ class NPUSoftmaxCrossEntropyWithLogitsOP(torch.autograd.Function):
         return g.op("npu::NPUSoftmaxCrossEntropyWithLogits", self, labels)
 
 
-class NPUPsRoiPoolingOP(torch.autograd.Function):
+class _NPUPsRoiPoolingOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -271,7 +273,7 @@ class NPUPsRoiPoolingOP(torch.autograd.Function):
                     group_size_i=group_size, output_dim_i=output_dim)
 
 
-class NPUGridAssignPositiveOP(torch.autograd.Function):
+class _NPUGridAssignPositiveOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -288,7 +290,7 @@ class NPUGridAssignPositiveOP(torch.autograd.Function):
                     gt_max_assign_all_i=gt_max_assign_all)
 
 
-class NPUIfmrOP(torch.autograd.Function):
+class _NPUIfmrOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -303,7 +305,7 @@ class NPUIfmrOP(torch.autograd.Function):
                     search_step_f=search_step, with_offset_i=with_offset, outputs=2)
 
 
-class NPUFusedAttentionScoreFwdOP(torch.autograd.Function):
+class _NPUFusedAttentionScoreFwdOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -321,7 +323,7 @@ class NPUFusedAttentionScoreFwdOP(torch.autograd.Function):
                     dx_transpose_i=dx_transpose, outputs=3)
 
 
-class NPUSignBitsUnpackOP(torch.autograd.Function):
+class _NPUSignBitsUnpackOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -338,7 +340,7 @@ class NPUSignBitsUnpackOP(torch.autograd.Function):
         return g.op("npu::NPUSignBitsUnpack", inputs, size_i=size, dtype_i=dtype)
 
 
-class NPUPtiouOP(torch.autograd.Function):
+class _NPUPtiouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -349,7 +351,7 @@ class NPUPtiouOP(torch.autograd.Function):
         return g.op("npu::NPUIou", bboxes, gtboxes, mode_i=mode)
 
 
-class NPUNormalizeBatchOP(torch.autograd.Function):
+class _NPUNormalizeBatchOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -360,7 +362,7 @@ class NPUNormalizeBatchOP(torch.autograd.Function):
         return g.op("npu::NPUNormalizeBatch", self, seq_len, normalize_type_i=normalize_type)
 
 
-class NPUNmsV4OP(torch.autograd.Function):
+class _NPUNmsV4OP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -373,7 +375,7 @@ class NPUNmsV4OP(torch.autograd.Function):
                     pad_to_max_output_size_i=pad_to_max_output_size, outputs=2)
 
 
-class NPUBoundingBoxDecodeOP(torch.autograd.Function):
+class _NPUBoundingBoxDecodeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -388,7 +390,7 @@ class NPUBoundingBoxDecodeOP(torch.autograd.Function):
                     stds3_f=stds3, max_shapes_i=max_shape, wh_ratio_clip_f=wh_ratio_clip)
 
 
-class NPUBoundingBoxEncodeOP(torch.autograd.Function):
+class _NPUBoundingBoxEncodeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -402,7 +404,7 @@ class NPUBoundingBoxEncodeOP(torch.autograd.Function):
                     stds2_f=stds2, stds3_f=stds3)
 
 
-class NPUNmsWithMaskOP(torch.autograd.Function):
+class _NPUNmsWithMaskOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -413,7 +415,7 @@ class NPUNmsWithMaskOP(torch.autograd.Function):
         return g.op("npu::NPUNmsWithMask", inputs, iou_threshold_f=iou_threshold, outputs=3)
 
 
-class NPURotatedIouOP(torch.autograd.Function):
+class _NPURotatedIouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -426,7 +428,7 @@ class NPURotatedIouOP(torch.autograd.Function):
                     is_cross_i=is_cross, v_threshold_f=v_threshold, e_threshold_f=e_threshold)
 
 
-class NPURotatedOverlapsOP(torch.autograd.Function):
+class _NPURotatedOverlapsOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -437,7 +439,7 @@ class NPURotatedOverlapsOP(torch.autograd.Function):
         return g.op("npu::NPURotatedOverlaps", self, query_boxes, trans_i=trans)
 
 
-class NPURotatedBoxDecodeOP(torch.autograd.Function):
+class _NPURotatedBoxDecodeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -448,7 +450,7 @@ class NPURotatedBoxDecodeOP(torch.autograd.Function):
         return g.op("npu::NPURotatedBoxDecode", self, deltas, weight)
 
 
-class NPURotatedBoxEncodeOP(torch.autograd.Function):
+class _NPURotatedBoxEncodeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -459,7 +461,7 @@ class NPURotatedBoxEncodeOP(torch.autograd.Function):
         return g.op("npu::NPURotatedBoxEncode", self, gt_bboxes, weight)
 
 
-class NPUYoloBoxesEncodeOP(torch.autograd.Function):
+class _NPUYoloBoxesEncodeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -471,7 +473,7 @@ class NPUYoloBoxesEncodeOP(torch.autograd.Function):
                     performance_mode_i=performance_mode)
 
 
-class NPUMaskedFillRangeOP(torch.autograd.Function):
+class _NPUMaskedFillRangeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -482,7 +484,7 @@ class NPUMaskedFillRangeOP(torch.autograd.Function):
         return g.op("npu::NPUMaskedFillRange", self, start, end, value, axis_i=axis)
 
 
-class NPUAnchorResponseFlagsOP(torch.autograd.Function):
+class _NPUAnchorResponseFlagsOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -494,7 +496,7 @@ class NPUAnchorResponseFlagsOP(torch.autograd.Function):
                     strides_i=stride, num_base_anchors_i=num_base_anchors)
 
 
-class NPUIndexingOP(torch.autograd.Function):
+class _NPUIndexingOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -510,7 +512,7 @@ class NPUIndexingOP(torch.autograd.Function):
                     shrink_axis_mask_i=shrink_axis_mask)
 
 
-class NPUSignBitsPackOP(torch.autograd.Function):
+class _NPUSignBitsPackOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -521,7 +523,7 @@ class NPUSignBitsPackOP(torch.autograd.Function):
         return g.op("npu::NPUSignBitsPack", self, size_i=size)
 
 
-class NPUStrideAddOP(torch.autograd.Function):
+class _NPUStrideAddOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -533,7 +535,7 @@ class NPUStrideAddOP(torch.autograd.Function):
                     c1_len_i=c1_len)
 
 
-class NPUScatterOP(torch.autograd.Function):
+class _NPUScatterOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -544,7 +546,7 @@ class NPUScatterOP(torch.autograd.Function):
         return g.op("npu::NPUScatter", self, indices, updates, dim_i=dim)
 
 
-class NPUQuantUpdateScatterOP(torch.autograd.Function):
+class _NPUQuantUpdateScatterOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -557,7 +559,7 @@ class NPUQuantUpdateScatterOP(torch.autograd.Function):
                     quant_axis)
 
 
-class NPUScatterNdUpdateOP(torch.autograd.Function):
+class _NPUScatterNdUpdateOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -568,7 +570,7 @@ class NPUScatterNdUpdateOP(torch.autograd.Function):
         return g.op("npu::NPUScatterNdUpdate", self, indices, updates)
 
 
-class NPULstmOP(torch.autograd.Function):
+class _NPULstmOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -585,7 +587,7 @@ class NPULstmOP(torch.autograd.Function):
                     batch_first_i=batch_first, flagSeq_i=flagSeq, direction_i=direction, outputs=8)
 
 
-class NPULstmCellOP(torch.autograd.Function):
+class _NPULstmCellOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -602,7 +604,7 @@ class NPULstmCellOP(torch.autograd.Function):
         return g.op("npu::NPULstmCell", inputs, w_ih, w_hh, h, c, b_ih, b_hh, outputs=8)
 
 
-class NPUGruOP(torch.autograd.Function):
+class _NPUGruOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -619,7 +621,7 @@ class NPUGruOP(torch.autograd.Function):
                     batch_first_i=batch_first, outputs=6)
 
 
-class NPUDropoutWithAddSoftmaxOP(torch.autograd.Function):
+class _NPUDropoutWithAddSoftmaxOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -631,7 +633,7 @@ class NPUDropoutWithAddSoftmaxOP(torch.autograd.Function):
                     dim_i=dim, outputs=3)
 
 
-class NPUScaledMaskedSoftmaxOP(torch.autograd.Function):
+class _NPUScaledMaskedSoftmaxOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -642,7 +644,7 @@ class NPUScaledMaskedSoftmaxOP(torch.autograd.Function):
         return g.op("npu::NPUScaledMaskedSoftmax", x, mask, scale_f=scale, fixed_triu_mask_i=fixed_triu_mask)
 
 
-class NPUMishOP(torch.autograd.Function):
+class _NPUMishOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -653,7 +655,7 @@ class NPUMishOP(torch.autograd.Function):
         return g.op("npu::NPUMish", self)
 
 
-class NPURotaryMulOP(torch.autograd.Function):
+class _NPURotaryMulOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -664,7 +666,7 @@ class NPURotaryMulOP(torch.autograd.Function):
         return g.op("npu::NPURotaryMul", x, r1, r2)
 
 
-class NPUPromptFlashAttentionOP(torch.autograd.Function):
+class _NPUPromptFlashAttentionOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -682,7 +684,7 @@ class NPUPromptFlashAttentionOP(torch.autograd.Function):
                     input_layout, num_key_value_heads)
 
 
-class NPUIncreFlashAttentionOP(torch.autograd.Function):
+class _NPUIncreFlashAttentionOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -700,7 +702,7 @@ class NPUIncreFlashAttentionOP(torch.autograd.Function):
                     num_heads, scale_value, input_layout, num_key_value_heads)
 
 
-class NPUMaskedSoftmaxWithRelPosBiasOP(torch.autograd.Function):
+class _NPUMaskedSoftmaxWithRelPosBiasOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -711,9 +713,9 @@ class NPUMaskedSoftmaxWithRelPosBiasOP(torch.autograd.Function):
                  inner_precision_mode: int = 0):
         return g.op("npu::NPUMaskedSoftmaxWithRelPosBias", x, atten_mask, relative_pos_bias, scale_value_f=scale_value,
                     inner_precision_mode_i=inner_precision_mode)
-    
 
-class NPUMmAllReduceBaseOP(torch.autograd.Function):
+
+class _NPUMmAllReduceBaseOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -728,7 +730,7 @@ class NPUMmAllReduceBaseOP(torch.autograd.Function):
                     dequant_scale, antiquant_group_size, comm_turn)
 
 
-class NPUDynamicQuantOp(torch.autograd.Function):
+class _NPUDynamicQuantOp(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input_dummy, smooth_scales):
@@ -741,18 +743,18 @@ class NPUDynamicQuantOp(torch.autograd.Function):
         return g.op("npu::NPUDynamicQuant", input_dummy, smooth_scales, outputs=2)
 
 
-class NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
+class _NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch.ops.npu.npu_weight_quant_batchmatmul(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, 
-                 x: torch.Tensor, 
-                 weight: torch.Tensor, 
+    def symbolic(g,
+                 x: torch.Tensor,
+                 weight: torch.Tensor,
                  antiquant_scale: torch.Tensor,
-                 antiquant_offset: Optional[Tensor], 
+                 antiquant_offset: Optional[Tensor],
                  quant_scale: Optional[Tensor],
                  quant_offset: Optional[Tensor],
                  bias: Optional[Tensor],
@@ -765,19 +767,19 @@ class NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
             quant_offset = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
         if bias is None:
             bias = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
-        return g.op("npu::NPUWeightQuantBatchMatmulV2", 
-                    x, 
-                    weight, 
-                    antiquant_scale, 
-                    antiquant_offset, 
-                    quant_scale, 
-                    quant_offset, 
+        return g.op("npu::NPUWeightQuantBatchMatmulV2",
+                    x,
+                    weight,
+                    antiquant_scale,
+                    antiquant_offset,
+                    quant_scale,
+                    quant_offset,
                     bias,
                     antiquant_group_size_i=antiquant_group_size)
-    
 
-class NPUAntiQuantOP(torch.autograd.Function):
-    
+
+class _NPUAntiQuantOP(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, x, scale, offset, dst_dtype, src_dtype):
         return torch.ops.npu.npu_anti_quant(x, scale, offset=offset, dst_dtype=dst_dtype, src_dtype=src_dtype)
@@ -797,16 +799,16 @@ class NPUAntiQuantOP(torch.autograd.Function):
         else:
             raise TypeError("The argument 'dst_dtype' must be torch.float16 or torch.bfloat16." +
                             pta_error(ErrCode.TYPE))
-        
+
         if src_dtype is None or src_dtype == torch.int8:
             src_dtype = 2
         else:
             raise TypeError("The argument 'src_dtype' must be torch.int8." + pta_error(ErrCode.TYPE))
-        
+
         return g.op("npu::NPUAntiQuant", x, scale, offset, dst_dtype_i=dst_dtype, src_dtype_i=src_dtype)
 
-    
-class NPUQuantizeOP(torch.autograd.Function):
+
+class _NPUQuantizeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -829,10 +831,11 @@ class NPUQuantizeOP(torch.autograd.Function):
             acl_dtype = 3
         else:
             raise ValueError("The argument 'dtype' must be torch.quint8, torch.qint8 or torch.qint32")
-        return g.op("npu::NPUQuantize", inputs, scales, zero_points, dtype_i=acl_dtype, axis_i=axis, div_mode_i=div_mode)
-    
+        return g.op("npu::NPUQuantize", inputs, scales, zero_points, dtype_i=acl_dtype, axis_i=axis,
+                    div_mode_i=div_mode)
 
-class NPUMoeFinalizeRoutingOP(torch.autograd.Function):
+
+class _NPUMoeFinalizeRoutingOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -844,10 +847,10 @@ class NPUMoeFinalizeRoutingOP(torch.autograd.Function):
         if skip2_optional is None:
             skip2_optional = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
         return g.op("npu::NPUMoeFinalizeRouting", expanded_permuted_rows, skip1, skip2_optional, bias,
-                 scales, expanded_src_to_dst_row, expert_for_source_row)
+                    scales, expanded_src_to_dst_row, expert_for_source_row)
 
 
-class NPUMoeComputeExpertTokensOP(torch.autograd.Function):
+class _NPUMoeComputeExpertTokensOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -860,358 +863,362 @@ class NPUMoeComputeExpertTokensOP(torch.autograd.Function):
         return g.op("npu::NPUMoeComputeExpertTokens", sorted_experts, num_experts_i=num_experts)
 
 
-def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
-    return NPUMaskedSoftmaxWithRelPosBiasOP.apply(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode)
+def _wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0,
+                                                 inner_precision_mode=0):
+    return _NPUMaskedSoftmaxWithRelPosBiasOP.apply(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode)
 
 
-def wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
-    return NPUOneHotOP.apply(self, num_classes, depth, on_value, off_value)
+def _wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
+    return _NPUOneHotOP.apply(self, num_classes, depth, on_value, off_value)
 
 
-def wrapper_npu_slice(self, offsets, size):
-    return NPUSliceOP.apply(self, offsets, size)
+def _wrapper_npu_slice(self, offsets, size):
+    return _NPUSliceOP.apply(self, offsets, size)
 
 
-def wrapper_npu_roi_align(self, rois, spatial_scale, pooled_height, pooled_width,
+def _wrapper_npu_roi_align(self, rois, spatial_scale, pooled_height, pooled_width,
                           sample_num, roi_end_mode):
-    return NPURoiAlignOP.apply(self, rois, spatial_scale, pooled_height, pooled_width,
+    return _NPURoiAlignOP.apply(self, rois, spatial_scale, pooled_height, pooled_width,
                                sample_num, roi_end_mode)
 
 
-def wrapper_npu_iou(bboxes, gtboxes, mode=0):
-    return NPUIouOP.apply(bboxes, gtboxes, mode)
+def _wrapper_npu_iou(bboxes, gtboxes, mode=0):
+    return _NPUIouOP.apply(bboxes, gtboxes, mode)
 
 
-def wrapper_npu_batch_nms(self, scores, score_threshold, iou_threshold,
+def _wrapper_npu_batch_nms(self, scores, score_threshold, iou_threshold,
                           max_size_per_class, max_total_size,
                           change_coordinate_frame=False, transpose_box=False):
-    return NPUBatchNmsOP.apply(self, scores, score_threshold,
+    return _NPUBatchNmsOP.apply(self, scores, score_threshold,
                                iou_threshold, max_size_per_class, max_total_size,
                                change_coordinate_frame, transpose_box)
 
 
-def wrapper_npu_fast_gelu(self):
-    return NPUFastGeluOP.apply(self)
+def _wrapper_npu_fast_gelu(self):
+    return _NPUFastGeluOP.apply(self)
 
 
-def wrapper_npu_fused_attention_score(query_layer, key_layer, value_layer, attention_mask,
+def _wrapper_npu_fused_attention_score(query_layer, key_layer, value_layer, attention_mask,
                                       scale, keep_prob, query_transpose=False, key_transpose=False,
                                       bmm_score_transpose_a=False, bmm_score_transpose_b=False,
                                       value_transpose=False, dx_transpose=False):
-    return NPUFusedAttentionScoreOP.apply(query_layer, key_layer, value_layer, attention_mask,
+    return _NPUFusedAttentionScoreOP.apply(query_layer, key_layer, value_layer, attention_mask,
                                           scale, keep_prob, query_transpose, key_transpose,
                                           bmm_score_transpose_a, bmm_score_transpose_b,
                                           value_transpose, dx_transpose)
 
 
-def wrapper_npu_ciou(self, gtboxes, trans=False, is_cross=True, mode=0, atan_sub_flag=False):
-    return NPUCiouOP.apply(self, gtboxes, trans, is_cross, mode, atan_sub_flag)
+def _wrapper_npu_ciou(self, gtboxes, trans=False, is_cross=True, mode=0, atan_sub_flag=False):
+    return _NPUCiouOP.apply(self, gtboxes, trans, is_cross, mode, atan_sub_flag)
 
 
-def wrapper_npu_multi_head_attention(query, key, value, query_weight, key_weight, value_weight,
+def _wrapper_npu_multi_head_attention(query, key, value, query_weight, key_weight, value_weight,
                                      attn_mask, out_proj_weight, query_bias, key_bias, value_bias,
                                      out_proj_bias, dropout_mask, attn_head_num, attn_dim_per_head,
                                      src_len, tgt_len, dropout_prob, softmax_use_float):
-    return NPUMultiHeadAttentionOP.apply(query, key, value, query_weight, key_weight, value_weight,
+    return _NPUMultiHeadAttentionOP.apply(query, key, value, query_weight, key_weight, value_weight,
                                          attn_mask, out_proj_weight, query_bias, key_bias, value_bias,
                                          out_proj_bias, dropout_mask, attn_head_num, attn_dim_per_head,
                                          src_len, tgt_len, dropout_prob, softmax_use_float)
 
 
-def wrapper_npu_diou(self, gtboxes, trans=False, is_cross=False, mode=0):
-    return NPUDiouOP.apply(self, gtboxes, trans, is_cross, mode)
+def _wrapper_npu_diou(self, gtboxes, trans=False, is_cross=False, mode=0):
+    return _NPUDiouOP.apply(self, gtboxes, trans, is_cross, mode)
 
 
-def wrapper_npu_giou(self, gtboxes, trans=False, is_cross=False, mode=0):
-    return NPUGiouOP.apply(self, gtboxes, trans, is_cross, mode)
+def _wrapper_npu_giou(self, gtboxes, trans=False, is_cross=False, mode=0):
+    return _NPUGiouOP.apply(self, gtboxes, trans, is_cross, mode)
 
 
-def wrapper_npu_deformable_conv2d(inputs, weight, offset, bias, kernel_size, stride, padding,
+def _wrapper_npu_deformable_conv2d(inputs, weight, offset, bias, kernel_size, stride, padding,
                                   dilation=[1, 1, 1, 1], groups=1, deformable_groups=1, modulated=True):
-    return NPUDeformableConv2dOP.apply(inputs, weight, offset, bias, kernel_size, stride,
+    return _NPUDeformableConv2dOP.apply(inputs, weight, offset, bias, kernel_size, stride,
                                        padding, dilation, groups, deformable_groups, modulated)
 
 
-def wrapper_npu_format_cast(self, acl_format):
-    return NPUFormatCastOP.apply(self, acl_format)
+def _wrapper_npu_format_cast(self, acl_format):
+    return _NPUFormatCastOP.apply(self, acl_format)
 
 
-def wrapper_npu_softmax_cross_entropy_with_logits(self, labels):
-    return NPUSoftmaxCrossEntropyWithLogitsOP.apply(self, labels)
+def _wrapper_npu_softmax_cross_entropy_with_logits(self, labels):
+    return _NPUSoftmaxCrossEntropyWithLogitsOP.apply(self, labels)
 
 
-def wrapper_npu_ps_roi_pooling(self, rois, spatial_scale, group_size, output_dim):
-    return NPUPsRoiPoolingOP.apply(self, rois, spatial_scale, group_size, output_dim)
+def _wrapper_npu_ps_roi_pooling(self, rois, spatial_scale, group_size, output_dim):
+    return _NPUPsRoiPoolingOP.apply(self, rois, spatial_scale, group_size, output_dim)
 
 
-def wrapper_npu_grid_assign_positive(self, overlaps, box_responsible_flags, max_overlaps,
+def _wrapper_npu_grid_assign_positive(self, overlaps, box_responsible_flags, max_overlaps,
                                      argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps,
                                      num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all):
-    return NPUGridAssignPositiveOP.apply(self, overlaps, box_responsible_flags, max_overlaps,
+    return _NPUGridAssignPositiveOP.apply(self, overlaps, box_responsible_flags, max_overlaps,
                                          argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps,
                                          num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all)
 
 
-def wrapper_npu_deep_norm(self, gx, beta, gamma, alpha=0.3, epsilon=1e-6):
-    return NPUDeepNormOP.apply(self, gx, beta, gamma, alpha, epsilon)
+def _wrapper_npu_deep_norm(self, gx, beta, gamma, alpha=0.3, epsilon=1e-6):
+    return _NPUDeepNormOP.apply(self, gx, beta, gamma, alpha, epsilon)
 
 
-def wrapper_npu_group_norm_silu(x, gamma, beta, group, eps=0.00001):
-    return NPUGroupNormSiluOP.apply(x, gamma, beta, group, eps)
+def _wrapper_npu_group_norm_silu(x, gamma, beta, group, eps=0.00001):
+    return _NPUGroupNormSiluOP.apply(x, gamma, beta, group, eps)
 
 
-def wrapper_npu_ifmr(data, data_min, data_max, cumsum, min_percentile, max_percentile,
+def _wrapper_npu_ifmr(data, data_min, data_max, cumsum, min_percentile, max_percentile,
                      search_start, search_end, search_step, with_offset):
-    return NPUIfmrOP.apply(data, data_min, data_max, cumsum, min_percentile, max_percentile,
+    return _NPUIfmrOP.apply(data, data_min, data_max, cumsum, min_percentile, max_percentile,
                            search_start, search_end, search_step, with_offset)
 
 
-def wrapper_npu_fused_attention_score_fwd(query_layer, key_layer, value_layer, attention_mask,
+def _wrapper_npu_fused_attention_score_fwd(query_layer, key_layer, value_layer, attention_mask,
                                           scale, keep_prob, query_transpose=False, key_transpose=False,
                                           bmm_score_transpose_a=False, bmm_score_transpose_b=False,
                                           value_transpose=False, dx_transpose=False):
-    return NPUFusedAttentionScoreFwdOP.apply(query_layer, key_layer, value_layer, attention_mask,
+    return _NPUFusedAttentionScoreFwdOP.apply(query_layer, key_layer, value_layer, attention_mask,
                                              scale, keep_prob, query_transpose, key_transpose,
                                              bmm_score_transpose_a, bmm_score_transpose_b,
                                              value_transpose, dx_transpose)
 
 
-def wrapper_npu_sign_bits_unpack(inputs, size, dtype):
-    return NPUSignBitsUnpackOP.apply(inputs, size, dtype)
+def _wrapper_npu_sign_bits_unpack(inputs, size, dtype):
+    return _NPUSignBitsUnpackOP.apply(inputs, size, dtype)
 
 
-def wrapper_npu_ptiou(bboxes, gtboxes, mode=0):
-    return NPUPtiouOP.apply(bboxes, gtboxes, mode)
+def _wrapper_npu_ptiou(bboxes, gtboxes, mode=0):
+    return _NPUPtiouOP.apply(bboxes, gtboxes, mode)
 
 
-def wrapper_npu_normalize_batch(self, seq_len, normalize_type=0):
-    return NPUNormalizeBatchOP.apply(self, seq_len, normalize_type)
+def _wrapper_npu_normalize_batch(self, seq_len, normalize_type=0):
+    return _NPUNormalizeBatchOP.apply(self, seq_len, normalize_type)
 
 
-def wrapper_npu_rms_norm(self, gamma, epsilon=1e-6):
-    return NPURmsNormOP.apply(self, gamma, epsilon)
+def _wrapper_npu_rms_norm(self, gamma, epsilon=1e-6):
+    return _NPURmsNormOP.apply(self, gamma, epsilon)
 
 
-def wrapper_npu_add_rms_norm(x1, x2, gamma, epsilon=1e-6):
-    return NPUAddRmsNormOP.apply(x1, x2, gamma, epsilon)
+def _wrapper_npu_add_rms_norm(x1, x2, gamma, epsilon=1e-6):
+    return _NPUAddRmsNormOP.apply(x1, x2, gamma, epsilon)
 
 
-def wrapper_npu_nms_v4(self, scores, max_output_size, iou_threshold, scores_threshold,
+def _wrapper_npu_nms_v4(self, scores, max_output_size, iou_threshold, scores_threshold,
                        pad_to_max_output_size=False):
-    return NPUNmsV4OP.apply(self, scores, max_output_size,
+    return _NPUNmsV4OP.apply(self, scores, max_output_size,
                             iou_threshold, scores_threshold, pad_to_max_output_size)
 
 
-def wrapper_npu_bounding_box_decode(rois, deltas, means0, means1, means2, means3, stds0,
+def _wrapper_npu_bounding_box_decode(rois, deltas, means0, means1, means2, means3, stds0,
                                     stds1, stds2, stds3, max_shape, wh_ratio_clip):
-    return NPUBoundingBoxDecodeOP.apply(rois, deltas, means0, means1, means2, means3,
+    return _NPUBoundingBoxDecodeOP.apply(rois, deltas, means0, means1, means2, means3,
                                         stds0, stds1, stds2, stds3, max_shape, wh_ratio_clip)
 
 
-def wrapper_npu_bounding_box_encode(anchor_box, ground_truth_box, means0, means1, means2,
+def _wrapper_npu_bounding_box_encode(anchor_box, ground_truth_box, means0, means1, means2,
                                     means3, stds0, stds1, stds2, stds3):
-    return NPUBoundingBoxEncodeOP.apply(anchor_box, ground_truth_box, means0, means1,
+    return _NPUBoundingBoxEncodeOP.apply(anchor_box, ground_truth_box, means0, means1,
                                         means2, means3, stds0, stds1, stds2, stds3)
 
 
-def wrapper_npu_nms_with_mask(inputs, iou_threshold):
-    return NPUNmsWithMaskOP.apply(inputs, iou_threshold)
+def _wrapper_npu_nms_with_mask(inputs, iou_threshold):
+    return _NPUNmsWithMaskOP.apply(inputs, iou_threshold)
 
 
-def wrapper_npu_rotated_iou(self, query_boxes, trans=False, mode=0, is_cross=True,
+def _wrapper_npu_rotated_iou(self, query_boxes, trans=False, mode=0, is_cross=True,
                             v_threshold=0.0, e_threshold=0.0):
-    return NPURotatedIouOP.apply(self, query_boxes, trans, mode, is_cross, v_threshold,
+    return _NPURotatedIouOP.apply(self, query_boxes, trans, mode, is_cross, v_threshold,
                                  e_threshold)
 
 
-def wrapper_npu_rotated_overlaps(self, query_boxes, trans=False):
-    return NPURotatedOverlapsOP.apply(self, query_boxes, trans)
+def _wrapper_npu_rotated_overlaps(self, query_boxes, trans=False):
+    return _NPURotatedOverlapsOP.apply(self, query_boxes, trans)
 
 
-def wrapper_npu_rotated_box_decode(self, deltas, weight):
-    return NPURotatedBoxDecodeOP.apply(self, deltas, weight)
+def _wrapper_npu_rotated_box_decode(self, deltas, weight):
+    return _NPURotatedBoxDecodeOP.apply(self, deltas, weight)
 
 
-def wrapper_npu_rotated_box_encode(self, gt_bboxes, weight):
-    return NPURotatedBoxEncodeOP.apply(self, gt_bboxes, weight)
+def _wrapper_npu_rotated_box_encode(self, gt_bboxes, weight):
+    return _NPURotatedBoxEncodeOP.apply(self, gt_bboxes, weight)
 
 
-def wrapper_npu_yolo_boxes_encode(self, gt_bboxes, weight):
-    return NPUYoloBoxesEncodeOP.apply(self, gt_bboxes, weight)
+def _wrapper_npu_yolo_boxes_encode(self, gt_bboxes, weight):
+    return _NPUYoloBoxesEncodeOP.apply(self, gt_bboxes, weight)
 
 
-def wrapper_npu_masked_fill_range(self, start, end, value, axis=-1):
-    return NPUMaskedFillRangeOP.apply(self, start, end, value, axis)
+def _wrapper_npu_masked_fill_range(self, start, end, value, axis=-1):
+    return _NPUMaskedFillRangeOP.apply(self, start, end, value, axis)
 
 
-def wrapper_npu_anchor_response_flags(self, featmap_size, stride, num_base_anchors):
-    return NPUAnchorResponseFlagsOP.apply(self, featmap_size, stride, num_base_anchors)
+def _wrapper_npu_anchor_response_flags(self, featmap_size, stride, num_base_anchors):
+    return _NPUAnchorResponseFlagsOP.apply(self, featmap_size, stride, num_base_anchors)
 
 
-def wrapper_npu_indexing(self, begin, end, strides, begin_mask=0, end_mask=0,
+def _wrapper_npu_indexing(self, begin, end, strides, begin_mask=0, end_mask=0,
                          ellipsis_mask=0, new_axis_mask=0, shrink_axis_mask=0):
-    return NPUIndexingOP.apply(self, begin, end, strides,
+    return _NPUIndexingOP.apply(self, begin, end, strides,
                                begin_mask, end_mask, ellipsis_mask, new_axis_mask, shrink_axis_mask)
 
 
-def wrapper_npu_sign_bits_pack(self, size):
-    return NPUSignBitsPackOP.apply(self, size)
+def _wrapper_npu_sign_bits_pack(self, size):
+    return _NPUSignBitsPackOP.apply(self, size)
 
 
-def wrapper_npu_lstm_cell(inputs, w_ih, w_hh, h, c, b_ih=None, b_hh=None):
-    return NPULstmCellOP.apply(inputs, w_ih, w_hh, h, c, b_ih, b_hh)
+def _wrapper_npu_lstm_cell(inputs, w_ih, w_hh, h, c, b_ih=None, b_hh=None):
+    return _NPULstmCellOP.apply(inputs, w_ih, w_hh, h, c, b_ih, b_hh)
 
 
-def wrapper_npu_lstm(inputs, weight, bias, seqMask, h, c, has_biases, num_layers,
+def _wrapper_npu_lstm(inputs, weight, bias, seqMask, h, c, has_biases, num_layers,
                      dropout, train, bidirectional, batch_first, flagSeq, direction):
-    return NPULstmOP.apply(inputs, weight, bias, seqMask, h, c, has_biases, num_layers,
+    return _NPULstmOP.apply(inputs, weight, bias, seqMask, h, c, has_biases, num_layers,
                            dropout, train, bidirectional, batch_first, flagSeq, direction)
 
 
-def wrapper_npu_scatter(self, indices, updates, dim):
-    return NPUScatterOP.apply(self, indices, updates, dim)
+def _wrapper_npu_scatter(self, indices, updates, dim):
+    return _NPUScatterOP.apply(self, indices, updates, dim)
 
 
-def wrapper_npu_quant_update_scatter(self, indices, updates, quant_scales, quant_zero_points, reduce, axis, quant_axis):
-    return NPUQuantUpdateScatterOP.apply(self, indices, updates, quant_scales, quant_zero_points, reduce, axis,
+def _wrapper_npu_quant_update_scatter(self, indices, updates, quant_scales, quant_zero_points, reduce, axis, quant_axis):
+    return _NPUQuantUpdateScatterOP.apply(self, indices, updates, quant_scales, quant_zero_points, reduce, axis,
                                          quant_axis)
 
 
-def wrapper_npu_scatter_nd_update(self, indices, updates):
-    return NPUScatterNdUpdateOP.apply(self, indices, updates)
+def _wrapper_npu_scatter_nd_update(self, indices, updates):
+    return _NPUScatterNdUpdateOP.apply(self, indices, updates)
 
 
-def wrapper_npu_stride_add(self, other, offset1, offset2, c1_len):
-    return NPUStrideAddOP.apply(self, other, offset1, offset2, c1_len)
+def _wrapper_npu_stride_add(self, other, offset1, offset2, c1_len):
+    return _NPUStrideAddOP.apply(self, other, offset1, offset2, c1_len)
 
 
-def wrapper_npu_dynamic_quant(input_dummy, smooth_scales=None):
-    return NPUDynamicQuantOp.apply(input_dummy, smooth_scales)
+def _wrapper_npu_dynamic_quant(input_dummy, smooth_scales=None):
+    return _NPUDynamicQuantOp.apply(input_dummy, smooth_scales)
 
 
-def wrapper_npu_gru(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
+def _wrapper_npu_gru(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
                     seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first):
-    return NPUGruOP.apply(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
+    return _NPUGruOP.apply(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
                           seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first)
 
 
-def wrapper_npu_dropout_with_add_softmax(self, x1, alpha, prob, dim):
-    return NPUDropoutWithAddSoftmaxOP.apply(self, x1, alpha, prob, dim)
+def _wrapper_npu_dropout_with_add_softmax(self, x1, alpha, prob, dim):
+    return _NPUDropoutWithAddSoftmaxOP.apply(self, x1, alpha, prob, dim)
 
 
-def wrapper_npu_scaled_masked_softmax(x, mask, scale=1, fixed_triu_mask=False):
-    return NPUScaledMaskedSoftmaxOP.apply(x, mask, scale, fixed_triu_mask)
+def _wrapper_npu_scaled_masked_softmax(x, mask, scale=1, fixed_triu_mask=False):
+    return _NPUScaledMaskedSoftmaxOP.apply(x, mask, scale, fixed_triu_mask)
 
 
-def wrapper_npu_mish(self):
-    return NPUMishOP.apply(self)
+def _wrapper_npu_mish(self):
+    return _NPUMishOP.apply(self)
 
 
-def wrapper_npu_rotary_mul(x, r1, r2):
-    return NPURotaryMulOP.apply(x, r1, r2)
+def _wrapper_npu_rotary_mul(x, r1, r2):
+    return _NPURotaryMulOP.apply(x, r1, r2)
 
 
-def wrapper_npu_prompt_flash_attention(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths,
-                                       num_heads, scale_value, pre_tokens, next_tokens, input_layout, num_key_value_heads):
-    return NPUPromptFlashAttentionOP.apply(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths,
-                                           num_heads, scale_value, pre_tokens, next_tokens, input_layout, num_key_value_heads)
+def _wrapper_npu_prompt_flash_attention(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths,
+                                       num_heads, scale_value, pre_tokens, next_tokens, input_layout,
+                                       num_key_value_heads):
+    return _NPUPromptFlashAttentionOP.apply(self, query, key, value, padding_mask, atten_mask, pse_shift,
+                                           actual_seq_lengths,
+                                           num_heads, scale_value, pre_tokens, next_tokens, input_layout,
+                                           num_key_value_heads)
 
 
-def wrapper_npu_incre_flash_attention(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths,
+def _wrapper_npu_incre_flash_attention(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths,
                                       num_heads, scale_value, input_layout, num_key_value_heads):
-    return NPUIncreFlashAttentionOP.apply(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths,
+    return _NPUIncreFlashAttentionOP.apply(self, query, key, value, padding_mask, atten_mask, pse_shift,
+                                          actual_seq_lengths,
                                           num_heads, scale_value, input_layout, num_key_value_heads)
 
 
-def wrapper_npu_mm_all_reduce_base(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
+def _wrapper_npu_mm_all_reduce_base(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
                                    dequant_scale, antiquant_group_size, comm_turn):
-    return NPUMmAllReduceBaseOP.apply(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
+    return _NPUMmAllReduceBaseOP.apply(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
                                       dequant_scale, antiquant_group_size, comm_turn)
 
 
-
-def wrapper_npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_offset, 
-                                           quant_scale, quant_offset, bias, antiquant_group_size):
-    return NPUWeightQuantBatchMatmulOP.apply(x, weight, antiquant_scale, antiquant_offset, 
-                                               quant_scale, quant_offset, bias, antiquant_group_size)
-
-
-def wrapper_npu_anti_quant(x, scale, offset=None, dst_dtype=None, src_dtype=None):
-    return NPUAntiQuantOP.apply(x, scale, offset, dst_dtype, src_dtype)
+def _wrapper_npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_offset,
+                                         quant_scale, quant_offset, bias, antiquant_group_size):
+    return _NPUWeightQuantBatchMatmulOP.apply(x, weight, antiquant_scale, antiquant_offset,
+                                             quant_scale, quant_offset, bias, antiquant_group_size)
 
 
-def wrapper_npu_quantize(inputs, scales, zero_points, dtype, axis, div_mode=True):
-    return NPUQuantizeOP.apply(inputs, scales, zero_points, dtype, axis, div_mode)
+def _wrapper_npu_anti_quant(x, scale, offset=None, dst_dtype=None, src_dtype=None):
+    return _NPUAntiQuantOP.apply(x, scale, offset, dst_dtype, src_dtype)
 
 
-def wrapper_npu_moe_compute_expert_tokens(sorted_experts, num_experts=1):
-    return NPUMoeComputeExpertTokensOP.apply(sorted_experts, num_experts)
+def _wrapper_npu_quantize(inputs, scales, zero_points, dtype, axis, div_mode=True):
+    return _NPUQuantizeOP.apply(inputs, scales, zero_points, dtype, axis, div_mode)
 
 
-def wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional, bias,
-                                      scales, expanded_src_to_dst_row, expert_for_source_row):
-    return NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2_optional, bias,
-                                          scales, expanded_src_to_dst_row, expert_for_source_row)
+def _wrapper_npu_moe_compute_expert_tokens(sorted_experts, num_experts=1):
+    return _NPUMoeComputeExpertTokensOP.apply(sorted_experts, num_experts)
 
 
-def add_onnx_ops():
-    torch_npu.npu_one_hot = wrapper_npu_one_hot
-    torch_npu.npu_slice = wrapper_npu_slice
-    torch_npu.npu_roi_align = wrapper_npu_roi_align
-    torch_npu.npu_group_norm_silu = wrapper_npu_group_norm_silu
-    torch_npu.npu_iou = wrapper_npu_iou
-    torch_npu.npu_batch_nms = wrapper_npu_batch_nms
-    torch_npu.fast_gelu = wrapper_npu_fast_gelu
-    torch_npu.npu_fast_gelu = wrapper_npu_fast_gelu
-    torch_npu.npu_fused_attention_score = wrapper_npu_fused_attention_score
-    torch_npu.npu_ciou = wrapper_npu_ciou
-    torch_npu.npu_multi_head_attention = wrapper_npu_multi_head_attention
-    torch_npu.npu_diou = wrapper_npu_diou
-    torch_npu.npu_giou = wrapper_npu_giou
-    torch_npu.npu_deformable_conv2d = wrapper_npu_deformable_conv2d
-    torch_npu.npu_format_cast = wrapper_npu_format_cast
-    torch_npu.npu_softmax_cross_entropy_with_logits = wrapper_npu_softmax_cross_entropy_with_logits
-    torch_npu.npu_ps_roi_pooling = wrapper_npu_ps_roi_pooling
-    torch_npu.npu_grid_assign_positive = wrapper_npu_grid_assign_positive
-    torch_npu.npu_ifmr = wrapper_npu_ifmr
-    torch_npu.npu_fused_attention_score_fwd = wrapper_npu_fused_attention_score_fwd
-    torch_npu.npu_sign_bits_unpack = wrapper_npu_sign_bits_unpack
-    torch_npu.npu_ptiou = wrapper_npu_ptiou
-    torch_npu.npu_normalize_batch = wrapper_npu_normalize_batch
-    torch_npu.npu_nms_v4 = wrapper_npu_nms_v4
-    torch_npu.npu_bounding_box_decode = wrapper_npu_bounding_box_decode
-    torch_npu.npu_bounding_box_encode = wrapper_npu_bounding_box_encode
-    torch_npu.npu_nms_with_mask = wrapper_npu_nms_with_mask
-    torch_npu.npu_rotated_iou = wrapper_npu_rotated_iou
-    torch_npu.npu_rotated_overlaps = wrapper_npu_rotated_overlaps
-    torch_npu.npu_rotated_box_decode = wrapper_npu_rotated_box_decode
-    torch_npu.npu_rotated_box_encode = wrapper_npu_rotated_box_encode
-    torch_npu.npu_yolo_boxes_encode = wrapper_npu_yolo_boxes_encode
-    torch_npu.npu_masked_fill_range = wrapper_npu_masked_fill_range
-    torch_npu.npu_anchor_response_flags = wrapper_npu_anchor_response_flags
-    torch_npu.npu_indexing = wrapper_npu_indexing
-    torch_npu.npu_sign_bits_pack = wrapper_npu_sign_bits_pack
-    torch_npu.npu_stride_add = wrapper_npu_stride_add
-    torch_npu.npu_deep_norm = wrapper_npu_deep_norm
-    torch_npu.npu_scatter = wrapper_npu_scatter
-    torch_npu.npu_quant_update_scatter = wrapper_npu_quant_update_scatter
-    torch_npu.npu_scatter_nd_update = wrapper_npu_scatter_nd_update
-    torch_npu.npu_lstm = wrapper_npu_lstm
-    torch_npu.npu_dynamic_quant = wrapper_npu_dynamic_quant
-    torch_npu.npu_rms_norm = wrapper_npu_rms_norm
-    torch_npu.npu_add_rms_norm = wrapper_npu_add_rms_norm
-    torch_npu.npu_lstm_cell = wrapper_npu_lstm_cell
-    torch_npu.npu_gru = wrapper_npu_gru
-    torch_npu.npu_dropout_with_add_softmax = wrapper_npu_dropout_with_add_softmax
-    torch_npu.npu_scaled_masked_softmax = wrapper_npu_scaled_masked_softmax
-    torch_npu.npu_mish = wrapper_npu_mish
-    torch_npu.npu_rotary_mul = wrapper_npu_rotary_mul
-    torch_npu.npu_prompt_flash_attention = wrapper_npu_prompt_flash_attention
-    torch_npu.npu_incre_flash_attention = wrapper_npu_incre_flash_attention
-    torch_npu.npu_masked_softmax_with_rel_pos_bias = wrapper_npu_masked_softmax_with_rel_pos_bias
-    torch_npu.npu_mm_all_reduce_base = wrapper_npu_mm_all_reduce_base
-    torch_npu.npu_weight_quant_batchmatmul = wrapper_npu_weight_quant_batchmatmul
-    torch_npu.npu_anti_quant = wrapper_npu_anti_quant
-    torch_npu.npu_quantize = wrapper_npu_quantize
-    torch_npu.npu_moe_compute_expert_tokens = wrapper_npu_moe_compute_expert_tokens
-    torch_npu.npu_moe_finalize_routing = wrapper_npu_moe_finalize_routing
+def _wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional, bias,
+                                     scales, expanded_src_to_dst_row, expert_for_source_row):
+    return _NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2_optional, bias,
+                                         scales, expanded_src_to_dst_row, expert_for_source_row)
+
+
+def _add_onnx_ops():
+    torch_npu.npu_one_hot = _wrapper_npu_one_hot
+    torch_npu.npu_slice = _wrapper_npu_slice
+    torch_npu.npu_roi_align = _wrapper_npu_roi_align
+    torch_npu.npu_group_norm_silu = _wrapper_npu_group_norm_silu
+    torch_npu.npu_iou = _wrapper_npu_iou
+    torch_npu.npu_batch_nms = _wrapper_npu_batch_nms
+    torch_npu.fast_gelu = _wrapper_npu_fast_gelu
+    torch_npu.npu_fast_gelu = _wrapper_npu_fast_gelu
+    torch_npu.npu_fused_attention_score = _wrapper_npu_fused_attention_score
+    torch_npu.npu_ciou = _wrapper_npu_ciou
+    torch_npu.npu_multi_head_attention = _wrapper_npu_multi_head_attention
+    torch_npu.npu_diou = _wrapper_npu_diou
+    torch_npu.npu_giou = _wrapper_npu_giou
+    torch_npu.npu_deformable_conv2d = _wrapper_npu_deformable_conv2d
+    torch_npu.npu_format_cast = _wrapper_npu_format_cast
+    torch_npu.npu_softmax_cross_entropy_with_logits = _wrapper_npu_softmax_cross_entropy_with_logits
+    torch_npu.npu_ps_roi_pooling = _wrapper_npu_ps_roi_pooling
+    torch_npu.npu_grid_assign_positive = _wrapper_npu_grid_assign_positive
+    torch_npu.npu_ifmr = _wrapper_npu_ifmr
+    torch_npu.npu_fused_attention_score_fwd = _wrapper_npu_fused_attention_score_fwd
+    torch_npu.npu_sign_bits_unpack = _wrapper_npu_sign_bits_unpack
+    torch_npu.npu_ptiou = _wrapper_npu_ptiou
+    torch_npu.npu_normalize_batch = _wrapper_npu_normalize_batch
+    torch_npu.npu_nms_v4 = _wrapper_npu_nms_v4
+    torch_npu.npu_bounding_box_decode = _wrapper_npu_bounding_box_decode
+    torch_npu.npu_bounding_box_encode = _wrapper_npu_bounding_box_encode
+    torch_npu.npu_nms_with_mask = _wrapper_npu_nms_with_mask
+    torch_npu.npu_rotated_iou = _wrapper_npu_rotated_iou
+    torch_npu.npu_rotated_overlaps = _wrapper_npu_rotated_overlaps
+    torch_npu.npu_rotated_box_decode = _wrapper_npu_rotated_box_decode
+    torch_npu.npu_rotated_box_encode = _wrapper_npu_rotated_box_encode
+    torch_npu.npu_yolo_boxes_encode = _wrapper_npu_yolo_boxes_encode
+    torch_npu.npu_masked_fill_range = _wrapper_npu_masked_fill_range
+    torch_npu.npu_anchor_response_flags = _wrapper_npu_anchor_response_flags
+    torch_npu.npu_indexing = _wrapper_npu_indexing
+    torch_npu.npu_sign_bits_pack = _wrapper_npu_sign_bits_pack
+    torch_npu.npu_stride_add = _wrapper_npu_stride_add
+    torch_npu.npu_deep_norm = _wrapper_npu_deep_norm
+    torch_npu.npu_scatter = _wrapper_npu_scatter
+    torch_npu.npu_quant_update_scatter = _wrapper_npu_quant_update_scatter
+    torch_npu.npu_scatter_nd_update = _wrapper_npu_scatter_nd_update
+    torch_npu.npu_lstm = _wrapper_npu_lstm
+    torch_npu.npu_dynamic_quant = _wrapper_npu_dynamic_quant
+    torch_npu.npu_rms_norm = _wrapper_npu_rms_norm
+    torch_npu.npu_add_rms_norm = _wrapper_npu_add_rms_norm
+    torch_npu.npu_lstm_cell = _wrapper_npu_lstm_cell
+    torch_npu.npu_gru = _wrapper_npu_gru
+    torch_npu.npu_dropout_with_add_softmax = _wrapper_npu_dropout_with_add_softmax
+    torch_npu.npu_scaled_masked_softmax = _wrapper_npu_scaled_masked_softmax
+    torch_npu.npu_mish = _wrapper_npu_mish
+    torch_npu.npu_rotary_mul = _wrapper_npu_rotary_mul
+    torch_npu.npu_prompt_flash_attention = _wrapper_npu_prompt_flash_attention
+    torch_npu.npu_incre_flash_attention = _wrapper_npu_incre_flash_attention
+    torch_npu.npu_masked_softmax_with_rel_pos_bias = _wrapper_npu_masked_softmax_with_rel_pos_bias
+    torch_npu.npu_mm_all_reduce_base = _wrapper_npu_mm_all_reduce_base
+    torch_npu.npu_weight_quant_batchmatmul = _wrapper_npu_weight_quant_batchmatmul
+    torch_npu.npu_anti_quant = _wrapper_npu_anti_quant
+    torch_npu.npu_quantize = _wrapper_npu_quantize
+    torch_npu.npu_moe_compute_expert_tokens = _wrapper_npu_moe_compute_expert_tokens
+    torch_npu.npu_moe_finalize_routing = _wrapper_npu_moe_finalize_routing

@@ -20,7 +20,7 @@ import subprocess
 import time
 from datetime import datetime
 
-from torch_npu.utils.error_code import ErrCode, prof_error
+from torch_npu.utils._error_code import ErrCode, prof_error
 from ...prof_common_func.constant import Constant, print_warn_msg, print_error_msg, print_info_msg
 from ...prof_common_func.path_manager import ProfilerPathManager
 from ...prof_view.base_parser import BaseParser

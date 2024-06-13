@@ -8,7 +8,7 @@ import fcntl
 import pickle
 from enum import Enum
 from abc import ABC, abstractmethod
-from torch_npu.utils.error_code import ErrCode, prof_error
+from torch_npu.utils._error_code import ErrCode, prof_error
 from .constant import print_error_msg
 
 __all__ = []

@@ -9,7 +9,7 @@ import stat
 from typing import Any, Dict, Optional, Tuple, Union
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 from . import is_initialized, _get_device_index, _lazy_init
 from .utils import _dummy_type
 from ._memory_viz import memory as _memory, segments as _segments

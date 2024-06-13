@@ -9,7 +9,7 @@ from torch.cuda.amp.grad_scaler import _MultiDeviceReplicator, OptState, \
     _refresh_per_optimizer_state
 from torch.cuda.amp.grad_scaler import GradScaler as Cuda_GradScaler
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 from .common import amp_definitely_not_available
 
 

@@ -6,7 +6,7 @@ import torch
 from torch.nn import Module
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 original_call = Module.__call__

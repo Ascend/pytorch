@@ -11,7 +11,7 @@ except ModuleNotFoundError:
 
 import torch
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 class autocast(torch.amp.autocast_mode.autocast):

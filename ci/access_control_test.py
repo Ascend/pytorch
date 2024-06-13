@@ -29,7 +29,8 @@ SLOW_TEST_BLOCKLIST = [
     'test_ops_jit',
     'test_foreach',
     'dynamo/test_dynamic_shapes',
-    'onnx/test_op_consistency'
+    'onnx/test_op_consistency',
+    'onnx/test_fx_op_consistency'
 ]
 
 # exclude some not run directly test files

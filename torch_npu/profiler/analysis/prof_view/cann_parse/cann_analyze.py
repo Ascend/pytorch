@@ -17,7 +17,7 @@ import os
 import shutil
 import subprocess
 
-from torch_npu.utils.error_code import ErrCode, prof_error
+from torch_npu.utils._error_code import ErrCode, prof_error
 from ...prof_common_func.constant import print_warn_msg, Constant, print_error_msg
 from ...prof_common_func.path_manager import ProfilerPathManager
 from ...prof_view.base_parser import BaseParser
