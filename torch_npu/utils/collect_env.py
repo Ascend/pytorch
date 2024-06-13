@@ -6,7 +6,7 @@ from collections import namedtuple
 
 import torch
 from torch.utils import collect_env as torch_collect_env
-from torch_npu.utils.path_manager import PathManager
+import torch_npu.utils.path_manager
 
 
 # System Environment Information
@@ -34,12 +34,12 @@ SystemEnv = namedtuple('SystemEnv', [
 def get_cann_version():
     ascend_home_path = os.environ.get("ASCEND_HOME_PATH", "")
     cann_version = "not known"
-    PathManager.check_directory_path_readable(os.path.realpath(ascend_home_path))
+    torch_npu.utils.path_manager.PathManager.check_directory_path_readable(os.path.realpath(ascend_home_path))
     for dirpath, _, filenames in os.walk(os.path.realpath(ascend_home_path)):
         install_files = [file for file in filenames if re.match(r"ascend_.*_install\.info", file)]
         if install_files:
             filepath = os.path.realpath(os.path.join(dirpath, install_files[0]))
-            PathManager.check_directory_path_readable(filepath)
+            torch_npu.utils.path_manager.PathManager.check_directory_path_readable(filepath)
             with open(filepath, "r") as f:
                 for line in f:
                     if line.find("version") != -1:

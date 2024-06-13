@@ -5,7 +5,10 @@ from torch.autograd.function import Function
 from torch._dynamo.decorators import forbid_in_graph
 
 
-class DeterministicAlgorithmsBeginOp(Function):
+__all__ = ["enable_deterministic_with_backward", "disable_deterministic_with_backward"]
+
+
+class _DeterministicAlgorithmsBeginOp(Function):
 
     @staticmethod
     def forward(ctx, tensor):
@@ -20,7 +23,7 @@ class DeterministicAlgorithmsBeginOp(Function):
         return grad_outputs
 
 
-class DeterministicAlgorithmsEndOp(Function):
+class _DeterministicAlgorithmsEndOp(Function):
     @staticmethod
     def forward(ctx, tensor):
         with torch.autograd.profiler.record_function("deterministic_algorithms_end_op_forward"):
@@ -36,9 +39,9 @@ class DeterministicAlgorithmsEndOp(Function):
 
 @forbid_in_graph
 def enable_deterministic_with_backward(tensor: Tensor):
-    return DeterministicAlgorithmsBeginOp.apply(tensor)
+    return _DeterministicAlgorithmsBeginOp.apply(tensor)
 
 
 @forbid_in_graph
 def disable_deterministic_with_backward(tensor: Tensor):
-    return DeterministicAlgorithmsEndOp.apply(tensor)
+    return _DeterministicAlgorithmsEndOp.apply(tensor)
