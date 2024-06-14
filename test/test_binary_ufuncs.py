@@ -486,7 +486,7 @@ class TestBinaryUfuncs(TestCase):
         )
 
         make_rhs_scalar_tensor = partial(
-            make_tensor, (), device='cpu', **op.rhs_make_tensor_kwargs
+            make_tensor, (), device="cpu", **op.rhs_make_tensor_kwargs
         )
 
         def _supported(dtypes):
@@ -1356,7 +1356,7 @@ class TestBinaryUfuncs(TestCase):
             self._do_pow_for_exponents(m1, exponents + complex_exponents, pow, 10e-4)
         else:
             self._do_pow_for_exponents(m1, exponents, math.pow, None)
-            will_raise_error = dtype is torch.half and torch.device(device).type == 'cpu'
+            will_raise_error = dtype is torch.half and torch.device(device).type == "cpu"
             if will_raise_error:
                 # On CPU,
                 # Half Tensor with complex exponents leads to computation dtype
@@ -1643,6 +1643,7 @@ class TestBinaryUfuncs(TestCase):
             self.assertEqual(cpu_out, cuda_out)
 
     
+    @skipIfTorchDynamo()
     @dtypes(*all_types_and_complex_and(torch.half))
     def test_complex_scalar_pow_tensor(self, device, dtype):
         complexes = [0.5j, 1.0 + 1.0j, -1.5j, 2.2 - 1.6j, 1 + 0j]
@@ -2970,17 +2971,17 @@ class TestBinaryUfuncs(TestCase):
     @onlyCPU
     @dtypes(torch.float)
     def test_cdiv(self, device, dtype):
-        self._test_cop(torch.div, lambda x, y: x / y, dtype, device)
+        self._test_cop(torch.div, operator.truediv, dtype, device)
 
     @onlyCPU
     @dtypes(torch.float)
     def test_cremainder(self, device, dtype):
-        self._test_cop(torch.remainder, lambda x, y: x % y, dtype, device)
+        self._test_cop(torch.remainder, operator.mod, dtype, device)
 
     @onlyCPU
     @dtypes(torch.float)
     def test_cmul(self, device, dtype):
-        self._test_cop(torch.mul, lambda x, y: x * y, dtype, device)
+        self._test_cop(torch.mul, operator.mul, dtype, device)
 
     @onlyCPU
     @dtypes(torch.float)
@@ -3132,11 +3133,19 @@ class TestBinaryUfuncs(TestCase):
         bits = iinfo.bits
         low = iinfo.min
         high = iinfo.max
-        exact_dtype = dtype != torch.uint8  # numpy changes dtype from uint8 to int16 for some out-of-limits shift values
+        exact_dtype = (
+            dtype != torch.uint8
+        )  # numpy changes dtype from uint8 to int16 for some out-of-limits shift values
         for input in (
-            torch.tensor([-1, 0, 1], device=device, dtype=dtype),  # small for non-vectorized operation
-            torch.tensor([low, high], device=device, dtype=dtype),  # small for non-vectorized operation
-            make_tensor((64, 64, 64), low=low, high=high, device=device, dtype=dtype),  # large for vectorized operation
+            torch.tensor(
+                [-1, 0, 1], device=device, dtype=dtype
+            ),  # small for non-vectorized operation
+            torch.tensor(
+                [low, high], device=device, dtype=dtype
+            ),  # small for non-vectorized operation
+            make_tensor(
+                (64, 64, 64), low=low, high=high, device=device, dtype=dtype
+            ),  # large for vectorized operation
         ):
             shift_left_expected = torch.zeros_like(input)
             shift_right_expected = torch.clamp(input, -1, 0)
@@ -3477,6 +3486,7 @@ class TestBinaryUfuncs(TestCase):
         )
         _test_helper(a, b)
 
+    @skipIfTorchDynamo()
     @dtypesIfPRIVATEUSE1(torch.float32, torch.float64, torch.bfloat16)
     @dtypes(torch.float32, torch.float64, torch.bfloat16, torch.complex64, torch.complex128)
     def test_logaddexp(self, device, dtype):
@@ -3869,11 +3879,17 @@ class TestBinaryUfuncs(TestCase):
     def test_cumulative_trapezoid(self, device):
 
         import scipy.integrate
-
+        
         if hasattr(scipy.integrate, "cumulative_trapezoid"):
-            scipy_cumulative_trapezoid = scipy.integrate.cumulative_trapezoid
+            _scipy_cumulative_trapezoid = scipy.integrate.cumulative_trapezoid
         else:  # Older version of SciPy uses a different name
-            scipy_cumulative_trapezoid = scipy.integrate.cumtrapz
+            _scipy_cumulative_trapezoid = scipy.integrate.cumtrapz
+
+        def scipy_cumulative_trapezoid(y, x=None, dx=1.0, axis=-1, initial=None):
+            if y.shape[axis] == 0:
+                return np.empty_like(y)
+            else:
+                return _scipy_cumulative_trapezoid(y, x, dx, axis, initial)
 
         def test_dx(sizes, dim, dx, device):
             t = torch.randn(sizes, device=device)
