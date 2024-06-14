@@ -84,11 +84,11 @@ aclError SetDevice(c10::DeviceIndex device)
         return ACL_ERROR_NONE;
     }
 
-    static const bool set_pthread_affinity = has_set_pthread_affinity();
-    if (!set_pthread_affinity) {
-        uint32_t bind_conf = c10_npu::option::OptionsManager::GetCpuAffinityConf();
-        // bind_conf=1, bind cores averagely based on device_id
-        if (bind_conf == 1) {
+    static uint32_t bind_conf = c10_npu::option::OptionsManager::GetCpuAffinityConf();
+    // bind_conf=1, bind cores averagely based on device_id
+    if (bind_conf == 1) {
+        static const bool set_pthread_affinity = has_set_pthread_affinity();
+        if (!set_pthread_affinity) {
             int core_nums = sysconf(_SC_NPROCESSORS_ONLN);
             int device_nums = device_count_ensure_non_zero();
             int block_size = (core_nums + device_nums - 1) / device_nums;
