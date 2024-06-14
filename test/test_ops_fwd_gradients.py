@@ -1,12 +1,20 @@
 # Owner(s): ["module: unknown"]
 
 from functools import partial
+from unittest import skipIf as skipif
+import platform
 import torch
 
 import torch_npu
 import torch_npu.testing
 from torch.testing._internal.common_utils import (
-    TestGradients, run_tests, skipIfTorchInductor, IS_MACOS)
+    IS_MACOS,
+    run_tests,
+    skipIfTorchInductor,
+    TestCase,
+    TestGradients,
+    unMarkDynamoStrictTest,
+)
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.testing._internal.common_device_type import \
     (instantiate_device_type_tests, ops, OpDTypes)
@@ -55,6 +63,10 @@ class TestFwdGradients(TestGradients):
                 call_grad_test_helper()
 
     @_gradcheck_ops(op_db)
+    @skipif(
+        platform.machine() == "s390x",
+        reason="Different precision of openblas functions: https://github.com/OpenMathLib/OpenBLAS/issues/4194",
+    )
     def test_forward_mode_AD(self, device, dtype, op):
         self._skip_helper(op, device, dtype)
 
@@ -72,5 +84,5 @@ class TestFwdGradients(TestGradients):
 
 instantiate_device_type_tests(TestFwdGradients, globals(), only_for='privateuse1')
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_tests()

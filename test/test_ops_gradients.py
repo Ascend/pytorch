@@ -2,12 +2,18 @@
 from functools import partial
 
 import torch
+
+from torch.testing._internal.common_utils import (
+    TestGradients,
+    run_tests,
+    TestCase,
+    unMarkDynamoStrictTest,
+)
+from torch.testing._internal.common_methods_invocations import op_db
+from torch.testing._internal.custom_op_db import custom_op_db
+from torch.testing._internal.hop_db import hop_db
 import torch_npu
 import torch_npu.testing
-from torch.testing._internal.common_utils import TestGradients, run_tests
-from torch.testing._internal.common_methods_invocations import op_db
-from torch.testing._internal.control_flow_opinfo_db import control_flow_opinfo_db
-from torch.testing._internal.custom_op_db import custom_op_db
 from torch.testing._internal.common_device_type import \
     (instantiate_device_type_tests, ops, OpDTypes)
 
@@ -20,7 +26,7 @@ _gradcheck_ops = partial(ops, dtypes=OpDTypes.supported,
 
 class TestBwdGradients(TestGradients):
     # Tests that gradients are computed correctly
-    @_gradcheck_ops(op_db + control_flow_opinfo_db + custom_op_db)
+    @_gradcheck_ops(op_db + hop_db + custom_op_db)
     def test_fn_grad(self, device, dtype, op):
         # This is verified by test_dtypes in test_ops.py
         if dtype not in op.supported_backward_dtypes(torch.device(device).type):
@@ -54,13 +60,13 @@ class TestBwdGradients(TestGradients):
             self._grad_test_helper(device, dtype, op, self._get_safe_inplace(op.get_inplace()))
 
     # Test that gradients of gradients are computed correctly
-    @_gradcheck_ops(op_db + control_flow_opinfo_db + custom_op_db)
+    @_gradcheck_ops(op_db + hop_db + custom_op_db)
     def test_fn_gradgrad(self, device, dtype, op):
         self._skip_helper(op, device, dtype)
         if not op.supports_gradgrad:
             self.skipTest("Op claims it doesn't support gradgrad. This is not verified.")
         else:
-            self._check_helper(device, dtype, op, op.get_op(), 'bwgrad_bwgrad')
+            self._check_helper(device, dtype, op, op.get_op(), "bwgrad_bwgrad")
 
     # Test that gradients of gradients are properly raising
     @_gradcheck_ops(op_db + custom_op_db)
@@ -71,7 +77,7 @@ class TestBwdGradients(TestGradients):
 
         err_msg = r"derivative for .* is not implemented"
         with self.assertRaisesRegex(RuntimeError, err_msg):
-            self._check_helper(device, dtype, op, op.get_op(), 'bwgrad_bwgrad')
+            self._check_helper(device, dtype, op, op.get_op(), "bwgrad_bwgrad")
 
     # Method gradgrad (and grad, see above) tests are disabled since they're
     #   costly and redundant with function gradgrad (and grad) tests
@@ -90,5 +96,5 @@ class TestBwdGradients(TestGradients):
 
 instantiate_device_type_tests(TestBwdGradients, globals(), only_for='privateuse1')
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_tests()
