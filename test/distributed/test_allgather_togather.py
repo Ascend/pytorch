@@ -43,7 +43,7 @@ class HcclAllGatherToGatherTest(HcclAllGatherTestBase):
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_togather_dist(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16, np.int32, np.int8, np.bool]
+        dtype_list = [np.float32, np.float16, np.int32, np.int8, np.bool_]
         format_list = [0, 2, 3, 29]
         shape_format = [
             [i, j, [4, 9]] for i in dtype_list for j in format_list] + \
@@ -52,7 +52,7 @@ class HcclAllGatherToGatherTest(HcclAllGatherTestBase):
             for shape in shape_format:
                 if shape[0] == np.int8:
                     shape[1] = 0
-                if shape[0] == np.bool:
+                if shape[0] == np.bool_:
                     continue
                 _, input1 = create_common_tensor(shape, -10, 10)
                 expected = self._construct_excepted_result(input1, world_size, dist.all_gather_togather)

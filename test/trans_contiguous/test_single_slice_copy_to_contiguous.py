@@ -27,7 +27,7 @@ os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 class SingleViewCopyToContiguous(TestCase):
     def test_narrow_copy_contiguous(self, device="npu"):
-        # AssertionError: required dtype in [np.bool, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
+        # AssertionError: required dtype in [np.bool_, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
         # However, considering the dtypes that Transdata supports, only np.float16, np.float32 are tested.
         dtype_list1 = [np.float16, np.float32]
         format_list_4D = [0, 3, 29, 4]
@@ -71,7 +71,7 @@ class SingleViewCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
 
     def test_strideslice_copy_contiguous(self, device="npu"):
-        dtype_list2 = [np.float16, np.float32, np.int8, np.int32, np.uint8, np.bool]
+        dtype_list2 = [np.float16, np.float32, np.int8, np.int32, np.uint8, np.bool_]
         format_list2 = [-1]
         shape_list2 = [[10, 32, 16, 9], [10, 32, 16, 9, 10]]
         shape_format2 = [

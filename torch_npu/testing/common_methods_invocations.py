@@ -1133,7 +1133,7 @@ op_db: List[OpInfo] = [
         sample_inputs_func=common_methods_invocations.sample_inputs_binary_pwise,
         supports_autograd=False,
     ),
-    # np.int8 np.int32 np.uint8 np.float16 np.float32 np.bool
+    # np.int8 np.int32 np.uint8 np.float16 np.float32 np.bool_
     UnaryUfuncInfo(
         'logical_not',
         dtypes=_dispatch_dtypes((torch.bool, )),

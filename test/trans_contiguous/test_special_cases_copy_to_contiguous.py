@@ -25,7 +25,7 @@ os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 class TestSpecialCasesCopyToContiguous(TestCase):
     def test_expand_copy_to_slice_discontiguous_tensor(self, device="npu"):
-        dtype_list = [np.bool, np.int8, np.int16, np.float16, np.float32, np.int32, np.int64]
+        dtype_list = [np.bool_, np.int8, np.int16, np.float16, np.float32, np.int32, np.int64]
         index_list = [3, 8, 16, 32]
         shape_format = [
             [i, j] for i in dtype_list for j in index_list
