@@ -44,9 +44,24 @@ bool check_storage_sizes(const Tensor &tensor, const c10::IntArrayRef &sizes)
     return false;
 }
 
+Tensor blocking_ops(Tensor x)
+{
+    auto blocking_call = []() -> int {
+        std::this_thread::sleep_for(std::chrono::seconds(180));
+        return 0;
+    };
+    at_npu::native::OpCommand cmd;
+    cmd.Name("blocking_ops");
+    cmd.SetCustomHandler(blocking_call);
+    cmd.Run();
+
+    return x;
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
     m.def("tanh_add", &tanh_add, "tanh(x) + tanh(y)");
     m.def("npu_add", &npu_add, "x + y");
     m.def("check_storage_sizes", &check_storage_sizes, "check_storage_sizes");
+    m.def("blocking_ops", &blocking_ops, "blocking_ops");
 }

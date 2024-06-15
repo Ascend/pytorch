@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import os
+import stat
+import pathlib
+import subprocess
 import unittest
 
 import torch
@@ -57,6 +60,29 @@ class TestCppExtensionAOT(TestCase):
         # float32 will cast to float16 before calculate
         t = torch_npu.npu_format_cast(torch.ones(128, 512, dtype=torch.float32).npu(), 29)
         self.assertTrue(npu_extension.check_storage_sizes(t, (32, 8, 16, 16)))
+
+
+    def test_dispatch_allreduce(self):
+        flags = os.O_WRONLY | os.O_RDONLY | os.O_CREAT
+        modes = stat.S_IWUSR | stat.S_IRUSR
+
+        code_file = os.path.join(pathlib.Path(__file__).absolute().parent, "dispatch_allreduce.py")
+        log_pth = "allreduce.log"
+        with os.fdopen(os.open(log_pth, flags, modes), "w") as f:
+            cmd = ["torchrun", "--nproc_per_node=1", code_file]
+            p = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=f)
+            p.wait()
+        
+        timeout = 0
+        with open(log_pth, 'r', encoding='utf-8') as f:
+            tmp = f.readlines()
+            for t in tmp:
+                print(t)
+                if "dispatch timeout" in t:
+                    timeout += 1
+
+        os.remove(log_pth)
+        self.assertEqual(timeout, 1)
 
 
 if __name__ == "__main__":
