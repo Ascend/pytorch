@@ -1,6 +1,9 @@
+#include <thread>
+#include <chrono>
 #include <torch/extension.h>
 #include "torch_npu/csrc/core/npu/NPUFormat.h"
 #include "torch_npu/csrc/aten/common/from_blob.h"
+#include "torch_npu/csrc/framework/OpCommand.h"
 // test   in  .setup with relative path
 #include <tmp.h>
 
@@ -74,6 +77,20 @@ bool check_from_blob_strides()
     return dtype_same && num_same && pos_same && stride_same && clone_same && add_same;
 }
 
+Tensor blocking_ops(Tensor x)
+{
+    auto blocking_call = []() -> int {
+        std::this_thread::sleep_for(std::chrono::seconds(180));
+        return 0;
+    };
+    at_npu::native::OpCommand cmd;
+    cmd.Name("blocking_ops");
+    cmd.SetCustomHandler(blocking_call);
+    cmd.Run();
+
+    return x;
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
     m.def("tanh_add", &tanh_add, "tanh(x) + tanh(y)");
@@ -81,4 +98,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
     m.def("check_storage_sizes", &check_storage_sizes, "check_storage_sizes");
     m.def("check_from_blob", &check_from_blob, "check_from_blob");
     m.def("check_from_blob_strides", &check_from_blob_strides, "check_from_blob_strides");
+    m.def("blocking_ops", &blocking_ops, "blocking_ops");
 }
