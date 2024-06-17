@@ -27420,5 +27420,6 @@
   "test_gpt2_tiny_from_config (__main__.TestFxToOnnxWithOnnxRuntime_op_level_debug_True_dynamic_shapes_True)": ["", [""]],
   "test_output_match_nn_functional_adaptive_avg_pool1d_cpu_float32 (__main__.TestOnnxModelOutputConsistency_opset18CPU)": ["", [""]],
   "test_shared_module (jit.test_data_parallel.TestDataParallel)": ["", [""]],
-  "test_python_submodule_script (jit.test_data_parallel.TestDataParallel)": ["", [""]]
+  "test_python_submodule_script (jit.test_data_parallel.TestDataParallel)": ["", [""]],
+  "test_doc_examples (__main__.TestTypeHints)": ["", [""]]
 }

@@ -104,3 +104,4 @@ test/test_jit_string.py
 test/test_jit_simple.py
 test/test_jit_profiling.py
 test/test_jit_llga_fuser.py
+test/test_type_hints.py
