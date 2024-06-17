@@ -30511,5 +30511,6 @@
   "test_forward_mode_AD_split_with_sizes_copy_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
   "test_forward_mode_AD_unsafe_chunk_npu_complex128 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
   "test_forward_mode_AD_unsafe_chunk_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
-  "test_inplace_forward_mode_AD_abs_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]]
+  "test_inplace_forward_mode_AD_abs_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
+  "test_doc_examples (__main__.TestTypeHints)": ["", [""]]
 }
