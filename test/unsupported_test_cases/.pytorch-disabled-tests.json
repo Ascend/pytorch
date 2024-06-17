@@ -28645,5 +28645,6 @@
   "test_inplace_forward_mode_AD_index_reduce_amax_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
   "test_inplace_forward_mode_AD_index_reduce_amin_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
   "test_inplace_forward_mode_AD_index_reduce_mean_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
-  "test_inplace_forward_mode_AD_index_reduce_prod_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]]
+  "test_inplace_forward_mode_AD_index_reduce_prod_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
+  "test_doc_examples (__main__.TestTypeHints)": ["", [""]]
 }

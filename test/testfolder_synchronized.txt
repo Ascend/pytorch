@@ -5,3 +5,5 @@ test/jit/fixtures_srcs
 test/jit/xnnpack
 test/onnx/assets
 test/onnx/expect
+test/typing
+mypy_plugins
