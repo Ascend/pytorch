@@ -1,3 +1,4 @@
 [submodule "third_party/op-plugin"]
 	path = third_party/op-plugin
 	url = https://gitee.com/ascend/op-plugin
+	branch = 6.0.rc2
