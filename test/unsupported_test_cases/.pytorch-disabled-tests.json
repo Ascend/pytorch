@@ -27930,5 +27930,6 @@
   "test_tensor_sharing_with_forward (jit.test_data_parallel.TestDataParallel)": ["", [""]],
   "test_tensor_sharing (jit.test_data_parallel.TestDataParallel)": ["", [""]],
   "test_shared_module (jit.test_data_parallel.TestDataParallel)": ["", [""]],
-  "test_python_submodule_script (jit.test_data_parallel.TestDataParallel)": ["", [""]]
+  "test_python_submodule_script (jit.test_data_parallel.TestDataParallel)": ["", [""]],
+  "test_doc_examples (__main__.TestTypeHints)": ["", [""]]
 }

@@ -6,3 +6,5 @@ test/jit/xnnpack
 test/onnx/dynamo
 test/onnx/assets
 test/onnx/expect
+test/typing
+mypy_plugins
