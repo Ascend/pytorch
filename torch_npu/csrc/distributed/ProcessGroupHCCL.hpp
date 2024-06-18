@@ -557,7 +557,7 @@ protected:
     bool desyncDebug_;
 
     // the perfdump path
-    std::string filepath;
+    static std::string perfdumppath;
 
     struct CommStruct {
         std::string comm_name;
