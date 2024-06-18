@@ -289,8 +289,10 @@ struct THNPUCachingHostAllocator final : public at::Allocator {
     {
         AT_ASSERT(size >= 0, PTA_ERROR(ErrCode::VALUE));
         void *ptr = nullptr;
-        if (allocator.malloc(&ptr, size) != ACL_ERROR_NONE) {
-            NPU_LOGE("allocate host pinned memory fail");
+        if (size > 0) {
+            if (allocator.malloc(&ptr, size) != ACL_ERROR_NONE) {
+                NPU_LOGE("allocate host pinned memory fail");
+            }
         }
         return {ptr, ptr, &THNPUCachingHostDeleter, at::DeviceType::CPU};
     }
