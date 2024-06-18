@@ -204,6 +204,7 @@ constexpr int64_t maxOpNumPerSyncPoint = 2;
 const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
 const int64_t ProcessGroupHCCL::kWatchdogThreadSleepMillis = 1000;
+std::string ProcessGroupHCCL::perfdumppath = "";
 // const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 
 std::ostream& operator<<(std::ostream& output, const ProcessGroupHCCL::WorkHCCL& workHCCL)
@@ -1378,7 +1379,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
 
     static bool perf_dump_enable = c10_npu::option::OptionsManager::CheckPerfDumpEnable();
     if (perf_dump_enable) {
-        if (filepath.empty()) {
+        if (perfdumppath.empty()) {
             auto pid = getpid();
             int device_id = c10_npu::current_device();
             std::ostringstream oss;
@@ -1391,19 +1392,21 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
             }
             auto path_temp = c10::str(perfDumpPath, "/", log_file_name);
             if (isFileExists(path_temp)) {
-                filepath = path_temp;
+                perfdumppath = path_temp;
                 std::ofstream outfile;
                 try {
-                    outfile.open(filepath, std::ios::app);
+                    outfile.open(perfdumppath, std::ios::app);
                 } catch (std::exception& e) {
-                    throw std::runtime_error("Open shared directory failed. Please check whether filepath is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
+                    throw std::runtime_error("Open shared directory failed. Please check whether perfdumppath is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
                 }
+
+                const std::vector<uint64_t>& ranks = groupRanks();
+                outfile << "[GLOBAL RANKID]:" << ranks[rank_] << "\n";
                 
-                outfile << "[GLOBAL RANKID]:" << rank_ << "\n";
                 outfile.close();
             }
         } else {
-            recordComm(filepath, opTypeToString(opType), rank_, hcclComms);
+            recordComm(perfdumppath, opTypeToString(opType), rank_, hcclComms);
         }
     }
 
