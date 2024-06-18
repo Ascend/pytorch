@@ -707,17 +707,25 @@ class _NPUFusedInferAttentionScoreOP(torch.autograd.Function):
                  quant_offset2: Optional[Tensor], antiquant_scale: Optional[Tensor],
                  antiquant_offset: Optional[Tensor], block_table: Optional[Tensor],
                  query_padding_size: Optional[Tensor], kv_padding_size: Optional[Tensor],
+                 key_antiquant_scale: Optional[Tensor], key_antiquant_offset: Optional[Tensor],
+                 value_antiquant_scale: Optional[Tensor], value_antiquant_offset: Optional[Tensor],
+                 key_shared_prefix: Optional[Tensor], value_shared_prefix: Optional[Tensor],
+                 actual_shared_prefix_len: Optional[Tensor],
                  num_heads: int = 1, scale: float = 1.0,
                  pre_tokens: int = 2147483647, next_tokens: int = 2147483647,
                  input_layout: str = "BSH", num_key_value_heads: int = 0,
                  sparse_mode: int = 0, inner_precise: int = 0, block_size: int = 0,
-                 antiquant_mode: int = 0, softmax_lse_flag: bool = False):
+                 antiquant_mode: int = 0, softmax_lse_flag: bool = False,
+                 key_antiquant_mode: int = 0, value_antiquant_mode: int = 0):
         return g.op("npu::NPUFusedInferAttentionScoreOP", self, query, key, value,
                     pse_shift, atten_mask, actual_seq_lengths, actual_seq_lengths_kv,
                     dequant_scale1, quant_scale1, dequant_scale2, quant_scale2, quant_offset2,
                     antiquant_scale, antiquant_offset, block_table, query_padding_size, kv_padding_size,
+                    key_antiquant_scale, key_antiquant_offset, value_antiquant_scale, value_antiquant_offset,
+                    key_shared_prefix, value_shared_prefix, actual_shared_prefix_len,
                     num_heads, scale, pre_tokens, next_tokens, input_layout, num_key_value_heads,
-                    sparse_mode, inner_precise, block_size, antiquant_mode, softmax_lse_flag)
+                    sparse_mode, inner_precise, block_size, antiquant_mode, softmax_lse_flag,
+                    key_antiquant_mode, value_antiquant_mode)
 
 
 class _NPUMaskedSoftmaxWithRelPosBiasOP(torch.autograd.Function):
@@ -1180,16 +1188,22 @@ def _wrapper_npu_fused_infer_attention_score(self, query, key, value, pse_shift,
                                             antiquant_scale,
                                             antiquant_offset, block_table, query_padding_size, kv_padding_size,
                                             num_heads, scale, pre_tokens, next_tokens, input_layout,
+                                            key_antiquant_scale, key_antiquant_offset, value_antiquant_scale, value_antiquant_offset,
+                                            key_shared_prefix, value_shared_prefix, actual_shared_prefix_len,
                                             num_key_value_heads,
-                                            sparse_mode, inner_precise, block_size, antiquant_mode, softmax_lse_flag):
+                                            sparse_mode, inner_precise, block_size, antiquant_mode, softmax_lse_flag,
+                                            key_antiquant_mode, value_antiquant_mode):
     return _NPUFusedInferAttentionScoreOP.apply(self, query, key, value, pse_shift, atten_mask, actual_seq_lengths,
                                                actual_seq_lengths_kv,
                                                dequant_scale1, quant_scale1, dequant_scale2, quant_scale2,
                                                quant_offset2, antiquant_scale,
                                                antiquant_offset, block_table, query_padding_size, kv_padding_size,
+                                               key_antiquant_scale, key_antiquant_offset, value_antiquant_scale, value_antiquant_offset,
+                                               key_shared_prefix, value_shared_prefix, actual_shared_prefix_len,
                                                num_heads, scale, pre_tokens, next_tokens, input_layout,
                                                num_key_value_heads,
-                                               sparse_mode, inner_precise, block_size, antiquant_mode, softmax_lse_flag)
+                                               sparse_mode, inner_precise, block_size, antiquant_mode, softmax_lse_flag,
+                                               key_antiquant_mode, value_antiquant_mode)
 
 
 def _wrapper_npu_mm_all_reduce_base(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
