@@ -222,12 +222,12 @@ class TestCase(expecttest.TestCase):
                 self.fail("shape error")
             if (x.dtype != y.dtype):
                 self.fail("dtype error")
-            dtype_list = [np.bool, np.uint16, np.int16, np.int32, np.float16,
+            dtype_list = [np.bool_, np.uint16, np.int16, np.int32, np.float16,
                           np.float32, np.int8, np.uint8, np.int64, np.float64]
             if x.dtype not in dtype_list:
-                self.fail("required dtype in [np.bool, np.uint16, np.int16, " +
+                self.fail("required dtype in [np.bool_, np.uint16, np.int16, " +
                           "np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]")
-            if x.dtype == np.bool:
+            if x.dtype == np.bool_:
                 result = np.equal(x, y)
                 if not result.all():
                     self.fail("result error")

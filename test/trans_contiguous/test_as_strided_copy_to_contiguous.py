@@ -38,7 +38,7 @@ class TestAsStridedCopyToContiguous(TestCase):
         return output
 
     def test_as_strided(self, device="npu"):
-        dtype_list = [np.bool, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
+        dtype_list = [np.bool_, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
         format_list = [-1]
         small_shape_list = [
             [5, 5]
