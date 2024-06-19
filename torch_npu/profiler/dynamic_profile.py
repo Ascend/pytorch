@@ -87,6 +87,7 @@ class _ConfigContext():
             data_simplification = exp_config.get('data_simplification', True)
             record_op_args = exp_config.get('record_op_args', False)
             export_type = exp_config.get('export_type', 'text')
+            msprof_tx = exp_config.get('msprof_tx', False)
             self.experimental_config = _ExperimentalConfig(
                 profiler_level=profiler_level,
                 aic_metrics=aic_metrics,
@@ -94,7 +95,8 @@ class _ConfigContext():
                 op_attr=op_attr,
                 data_simplification=data_simplification,
                 record_op_args=record_op_args,
-                export_type=export_type
+                export_type=export_type,
+                msprof_tx=msprof_tx
             )
 
     def activities(self) -> list:
@@ -159,7 +161,8 @@ class _DynamicProfile():
                 "op_attr": False,
                 "data_simplification": True,
                 "record_op_args": False,
-                "export_type": "text"
+                "export_type": "text",
+                "msprof_tx": False
             }
         }
         FileManager.create_json_file_by_path(path, json_data, indent=4)
