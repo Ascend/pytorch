@@ -441,6 +441,12 @@ bool NPUStream::isDataPreprocessStream() {
   return ptr->is_data_preprocess_stream;
 }
 
+bool StreamInitFlag() {
+    c10::DeviceIndex device_index = current_device();
+    ASCEND_LOGI("Npu StreamInitFlag Check is %d", initialize_flag[device_index]);
+    return initialize_flag[device_index];
+}
+
 aclrtStream NPUStream::stream(const bool need_empty) const {
   if (!need_empty) {
     auto cur_ptr = NPUStream_internals(*this);

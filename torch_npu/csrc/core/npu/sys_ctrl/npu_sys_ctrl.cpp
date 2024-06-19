@@ -266,8 +266,10 @@ NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
 
     this->RegisterReleaseFn([=]() ->void {
         c10_npu::NPUEventManager::GetInstance().ClearEvent();
-        auto stream = c10_npu::getCurrentNPUStream();
-        NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
+        if (c10_npu::StreamInitFlag()) {
+            auto stream = c10_npu::getCurrentNPUStream();
+            NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
+        }
         NPU_CHECK_WARN(c10_npu::ResetUsedDevices());
         NPU_CHECK_WARN(aclFinalize());
         }, ReleasePriority::PriorityLast);
