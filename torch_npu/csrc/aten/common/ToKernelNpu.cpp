@@ -52,8 +52,8 @@ static inline at::Tensor to_impl_npu(
     }
   }
   // See Note [Explicit nullopt c10::MemoryFormat argument]
-  auto r = at::empty(
-      self.sizes(), options.memory_format(memory_format).pinned_memory(pin_out), c10::nullopt);
+    auto r = at::empty_like(
+        self, options.memory_format(memory_format).pinned_memory(pin_out), c10::nullopt);
   r.copy_(self, non_blocking);
   return r;
 }
