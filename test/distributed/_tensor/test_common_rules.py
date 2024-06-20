@@ -1,6 +1,6 @@
 import torch
 from torch.distributed._tensor import DeviceMesh
-from torch.distributed._tensor.op_schema import OpSchema
+from torch.distributed._tensor._op_schema import OpSchema
 
 from torch.distributed._tensor.ops.common_rules import einop_rule, pointwise_rule
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
@@ -190,9 +190,9 @@ class CommonRulesTest(DTensorTestBase):
             "mk,kn->mn", OpSchema(mm_call, (mat1_spec, mat2_spec), {})
         )
         self.assertIsNone(output_sharding.output_spec)
-        suggestions = output_sharding.schema_suggestions
+        suggestions = output_sharding.redistribute_schema
         self.assertIsNotNone(suggestions)
-        suggested_spec = suggestions[0].args_schema[0]
+        suggested_spec = suggestions.args_schema[0]
         self.assertFalse(suggested_spec.placements[1].is_partial())
 
         # einop prop with linearity on mm, should give back suggestion
@@ -203,9 +203,9 @@ class CommonRulesTest(DTensorTestBase):
             linearity=True,
         )
         self.assertIsNone(output_sharding.output_spec)
-        suggestions = output_sharding.schema_suggestions
+        suggestions = output_sharding.redistribute_schema
         self.assertIsNotNone(suggestions)
-        mat2_spec = suggestions[0].args_schema[1]
+        mat2_spec = suggestions.args_schema[1]
         # mat2 mesh dim 1 should become partial now!
         self.assertTrue(mat2_spec.placements[1].is_partial())
 
@@ -228,9 +228,9 @@ class CommonRulesTest(DTensorTestBase):
             linearity=True,
         )
         self.assertIsNone(output_sharding.output_spec)
-        suggestions = output_sharding.schema_suggestions
+        suggestions = output_sharding.redistribute_schema
         self.assertIsNotNone(suggestions)
-        mat2_spec = suggestions[0].args_schema[1]
+        mat2_spec = suggestions.args_schema[1]
         # mat2 mesh dim 1 should become partial now!
         self.assertTrue(mat2_spec.placements[1].is_partial())
 
@@ -256,11 +256,11 @@ class CommonRulesTest(DTensorTestBase):
         )
         output_spec = output_sharding.output_spec
         self.assertIsNone(output_spec)
-        self.assertIsNotNone(output_sharding.schema_suggestions)
+        self.assertIsNotNone(output_sharding.redistribute_schema)
 
         # ensure that the suggestion is to reshard the second
         # arg by all_gather its tensor dim sharding
-        schema_suggestion = output_sharding.schema_suggestions[0]
+        schema_suggestion = output_sharding.redistribute_schema
         self.assertEqual(schema_suggestion.args_schema[0].dim_map, [0, -1])
         self.assertEqual(schema_suggestion.args_schema[1].dim_map, [-1, -1])
 
@@ -334,11 +334,11 @@ class CommonRulesTest(DTensorTestBase):
             OpSchema(lerp_call, (mat1_spec, mat2_spec, -1), {})
         )
         self.assertIsNone(output_sharding.output_spec)
-        self.assertIsNotNone(output_sharding.schema_suggestions)
+        self.assertIsNotNone(output_sharding.redistribute_schema)
 
         # ensure that the suggestion from pointwise rules still have
         # the positional args that are not DTensorSpec
-        schema_suggestion = output_sharding.schema_suggestions[0]
+        schema_suggestion = output_sharding.redistribute_schema
         self.assertEqual(len(schema_suggestion.args_schema), 3)
         self.assertEqual(schema_suggestion.args_schema[2], -1)
 
@@ -381,11 +381,11 @@ class CommonRulesTest(DTensorTestBase):
         output_sharding = pointwise_rule(OpSchema(add_call, (mat1_spec, mat2_spec), {}))
         output_spec = output_sharding.output_spec
         self.assertIsNone(output_spec)
-        self.assertIsNotNone(output_sharding.schema_suggestions)
+        self.assertIsNotNone(output_sharding.redistribute_schema)
 
         # ensure that the suggestion is to reshard the first
         # arg by all_gather first tensor dim sharding
-        schema_suggestion = output_sharding.schema_suggestions[0]
+        schema_suggestion = output_sharding.redistribute_schema
         self.assertEqual(schema_suggestion.args_schema[0].dim_map, [-1, -1, -1, 1])
         self.assertEqual(schema_suggestion.args_schema[1].dim_map, mat2)
 
@@ -413,11 +413,11 @@ class CommonRulesTest(DTensorTestBase):
         output_sharding = pointwise_rule(OpSchema(add_call, (mat1_spec, mat2_spec), {}))
         output_spec = output_sharding.output_spec
         self.assertIsNone(output_spec)
-        self.assertIsNotNone(output_sharding.schema_suggestions)
+        self.assertIsNotNone(output_sharding.redistribute_schema)
 
         # ensure that the suggestion is to reshard the second
         # arg as we should enforce the sharding of the first arg
-        schema_suggestion = output_sharding.schema_suggestions[0]
+        schema_suggestion = output_sharding.redistribute_schema
         self.assertEqual(schema_suggestion.args_schema[0].dim_map, mat1)
         self.assertEqual(schema_suggestion.args_schema[1].dim_map, mat1)
 
