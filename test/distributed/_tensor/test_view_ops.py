@@ -19,7 +19,7 @@ from torch.distributed._tensor.ops.view_ops import (
 from torch.distributed._tensor.placement_types import Placement
 from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
-from torch.utils._pytree import tree_flatten
+from torch.utils import _pytree as pytree
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
@@ -131,7 +131,7 @@ class TestViewOps(DTensorTestBase):
         dim_map = dim_maps[op]
         rules = dim_map(*args, **kwargs)
         outputs = op(*args, **kwargs)
-        flat_args, _ = tree_flatten(args)
+        flat_args = pytree.arg_tree_leaves(*args)
         in_shape = flat_args[0].shape
 
         no_shard_dims = set()
@@ -171,9 +171,7 @@ class TestViewOps(DTensorTestBase):
                 comm_mode.get_total_counts(), 0, "Expected no redistribution."
             )
 
-            full_out = out_dt.redistribute(
-                device_mesh, device_mesh.ndim * [Replicate()]
-            ).to_local()
+            full_out = out_dt.full_tensor()
 
             if dist.get_rank() == 0:
                 self.assertEqual(outputs.npu(), full_out)

@@ -28668,5 +28668,16 @@
   "test_inplace_forward_mode_AD_index_reduce_amin_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
   "test_inplace_forward_mode_AD_index_reduce_mean_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
   "test_inplace_forward_mode_AD_index_reduce_prod_npu_float64 (__main__.TestFwdGradientsPRIVATEUSE1)": ["", [""]],
-  "test_doc_examples (__main__.TestTypeHints)": ["", [""]]
+  "test_doc_examples (__main__.TestTypeHints)": ["", [""]],
+  "test_view_ops_p1 (__main__.TestViewOps)": ["", [""]],
+  "test_view_ops_p2 (__main__.TestViewOps)": ["", [""]],
+  "test_view_ops_p3 (__main__.TestViewOps)": ["", [""]],
+  "test_view_ops_p4 (__main__.TestViewOps)": ["", [""]],
+  "test_to_local_grad_hint (__main__.DTensorTest)": ["", [""]],
+  "test_full_tensor_sync (__main__.DTensorTest)": ["", [""]],
+  "test_full_tensor_grad_hint (__main__.DTensorTest)": ["", [""]],
+  "test_dtensor_new_empty_strided (__main__.DTensorTest)": ["", [""]],
+  "test_dtensor_async_output (__main__.DTensorTest)": ["", [""]],
+  "test_redistribute_sub_mesh (__main__.DTensorMeshTest)": ["", [""]],
+  "test_dtensor_api_device_mesh_context_manager (__main__.DTensorMeshTest)": ["", [""]]
 }
