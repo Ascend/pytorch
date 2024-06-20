@@ -177,6 +177,16 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
     return _GLOBAL_PARSE_NATIVE_YAML_CACHE[path]
 
 
+# Different implements of ops from origin torch. 
+# Native ops with dispatchkey CompositeImplicitAutograd but implemented as a kernel op in pta
+COMPOSITEIMPLICITAUTOGRAD_INCLUDE_LIST = [
+    'to.dtype_layout',
+    'to.device',
+    'to.dtype',
+    'to.other',
+]
+
+
 # Parses the external backend's yaml, and adds a new BackendIndex for the backend's dispatch key.
 # Returns a Tuple of (true_backend, backend_key, autograd_key, cpp_namespace, updated BackendIndex mapping)
 ParsedExternalYaml = namedtuple('ParsedExternalYaml', [
@@ -236,6 +246,7 @@ def parse_backend_yaml(
                  if isinstance(op, Dict) and ("impl_ns" in op.keys() or "op_api" in op.keys())] + \
                 [op for op in supported if not isinstance(op, Dict)]
     supported_autograd = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported_autograd]
+    supported_autograd += COMPOSITEIMPLICITAUTOGRAD_INCLUDE_LIST
 
     custom = yaml_values.pop('custom', [])
     if not isinstance(custom, list):
@@ -288,7 +299,6 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
         backend_indices[autograd_key] = autograd_idx
         backend_indices[str(autograd_key) + opapi_key] = opapi_autograd_idx
 
-    check_grouped_native_functions(backend_key, autograd_key, backend_indices, grouped_native_functions)
     return ParsedExternalYaml(true_backend, backend_key, autograd_key, cpp_namespace, backend_indices)
 
 
@@ -621,7 +631,7 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
             backend_indices,
             grouped_native_functions,
             backend_key,
-            autograd_key,
+            None,
         )
 
         gen_dispatchkey_nativefunc_headers(
@@ -631,7 +641,7 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
             backend_indices,
             grouped_native_functions,
             str(backend_key) + "OpApi",
-            autograd_key,
+            None,
         )
 
         for dispatch_key in [backend_dispatch_key, autograd_dispatch_key]:
