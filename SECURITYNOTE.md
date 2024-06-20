@@ -4,6 +4,10 @@
 
 PyTorch 1.11.0存在CVE-2022-45907漏洞，该漏洞因torch.jit.annotations.parse_type_line方法中不安全使用eval方法，存在可以执行任意代码风险。torch_npu已参考[LINK](https://github.com/pytorch/pytorch/issues/88868)进行修复。
 
+PyTorch 2.2.0以下版本存在CVE-2024-31583漏洞，该漏洞在torch/csrc/jit/mobile/interpreter.cpp组件中存在use-after-free问题（内存释放后程序继续使用该内存）。 如需要使用jit相关功能，建议用户使用2.2.0及以上的修复版本。
+
+PyTorch 2.2.0以下版本存在CVE-2024-31580漏洞，该漏洞在torch/csrc/jit/runtime/vararg_functions.cpp组件中存在buffer-overflow问题（缓冲区溢出）。 如需要使用jit相关功能，建议用户使用2.2.0及以上的修复版本。
+
 ## 系统安全加固
 
 建议用户在系统中配置开启ASLR（级别2 ），又称**全随机地址空间布局随机化**，可参考以下方式进行配置：
