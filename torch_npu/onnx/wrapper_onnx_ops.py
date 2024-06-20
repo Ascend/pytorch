@@ -743,9 +743,10 @@ class _NPUMmAllReduceBaseOP(torch.autograd.Function):
     def symbolic(g, x1: torch.Tensor, x2: torch.Tensor, hcom: str,
                  reduce_op: str = 'sum', bias: Optional[Tensor] = None, antiquant_scale: Optional[Tensor] = None,
                  antiquant_offset: Optional[Tensor] = None, x3: Optional[Tensor] = None,
-                 dequant_scale: Optional[Tensor] = None, antiquant_group_size: int = 0, comm_turn: int = 0):
+                 dequant_scale: Optional[Tensor] = None, pertoken_scale: Optional[Tensor] = None,
+                 antiquant_group_size: int = 0, comm_turn: int = 0):
         return g.op("npu::NPUMmAllReduceBase", x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
-                    dequant_scale, antiquant_group_size, comm_turn)
+                    dequant_scale, pertoken_scale, antiquant_group_size, comm_turn)
 
 
 class _NPUDynamicQuantOp(torch.autograd.Function):
@@ -1193,9 +1194,9 @@ def _wrapper_npu_fused_infer_attention_score(self, query, key, value, pse_shift,
 
 
 def _wrapper_npu_mm_all_reduce_base(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
-                                   dequant_scale, antiquant_group_size, comm_turn):
+                                    dequant_scale, pertoken_scale, antiquant_group_size, comm_turn):
     return _NPUMmAllReduceBaseOP.apply(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
-                                      dequant_scale, antiquant_group_size, comm_turn)
+                                       dequant_scale, pertoken_scale, antiquant_group_size, comm_turn)
 
 
 def _wrapper_npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_offset,
