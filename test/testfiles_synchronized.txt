@@ -77,6 +77,7 @@ test/jit/test_unsupported_ops.py
 test/jit/test_upgraders.py
 test/jit/test_warn.py
 test/jit/test_with.py
+test/onnx/torch_export/test_torch_export_with_onnxruntime.py
 test/onnx/model_defs/__init__.py
 test/onnx/model_defs/emb_seq.py
 test/onnx/model_defs/lstm_flattening_result.py
@@ -87,6 +88,7 @@ test/onnx/model_defs/squeezenet.py
 test/onnx/model_defs/srresnet.py
 test/onnx/model_defs/super_resolution.py
 test/onnx/model_defs/word_language_model.py
+test/onnx/autograd_helper.py
 test/onnx/test_autograd_funs.py
 test/onnx/test_custom_ops.py
 test/onnx/test_export_modes.py
@@ -102,6 +104,11 @@ test/onnx/test_onnxscript_no_runtime.py
 test/onnx/test_onnxscript_runtime.py
 test/onnx/test_op_consistency.py
 test/onnx/test_operators.py
+test/onnx/test_fx_to_onnx_decomp_skip.py
+test/onnx/test_pytorch_onnx_onnxruntime.py
+test/onnx/test_pytorch_onnx_shape_inference.py
+test/onnx/test_symbolic_helper.py
+test/onnx/test_verification.py
 test/onnx/verify.py
 test/onnx/dynamo/test_exporter_api.py
 test/onnx/dynamo/test_registry_dispatcher.py
