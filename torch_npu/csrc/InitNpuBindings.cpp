@@ -53,49 +53,54 @@ void AddPyMethodDefs(std::vector<PyMethodDef>& vector, PyMethodDef* methods)
 
 PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
 {
-  // cudaFree is blocking and will synchronize across all kernels executing
-  // on the current device, while aclrtFree Free device memory immediately.
-  // aclrtSynchronizeDevice should be called before aclrtFree to ensure that
-  // all of op tasks completed before device memory free.
-  ASCEND_LOGI("NPU shutdown begin.");
-  if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+    // cudaFree is blocking and will synchronize across all kernels executing
+    // on the current device, while aclrtFree Free device memory immediately.
+    // aclrtSynchronizeDevice should be called before aclrtFree to ensure that
+    // all of op tasks completed before device memory free.
+    ASCEND_LOGI("NPU shutdown begin.");
+    if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+        Py_RETURN_NONE;
+    }
+    
+    // Return aclrtSynchronizeDevice result. If sync device fails, release host
+    // resources forcibly, only record WARN logs when acl interface of stream
+    // or event fails.
+    bool success = true;
+    if (c10_npu::StreamInitFlag()) {
+        try {
+            ASCEND_LOGI("NPU shutdown synchronize device.");
+            success = c10_npu::npuSynchronizeDevice(false);
+        } catch (std::exception& e) {
+            ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
+            success = false;
+        }
+        if (!success) {
+            ASCEND_LOGE("NPU shutdown synchronize device failed.");
+        }
+        THNPUCachingHostAllocator_emptyCache();
+        try {
+            ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
+            c10_npu::NPUCachingAllocator::emptyCache(success);
+        } catch (std::exception& e) {
+            ASCEND_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
+        }
+        // To prevent entering the insert_events method of tensor destruction after the device has been released,
+        // a state variable called "shutdown_stats" is set during the shutdown process.
+        ASCEND_LOGI("NPU shutdown NPUCachingAllocator setShutdownStats.");
+        c10_npu::NPUCachingAllocator::setShutdownStats();
+    } else {
+        ASCEND_LOGI("skip device synchronize and memory free");
+    }
+
+    ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
+    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
+    if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
+        ASCEND_LOGE("NPU shutdown failed.");
+    } else {
+        ASCEND_LOGI("NPU shutdown success.");
+    }
+    
     Py_RETURN_NONE;
-  }
-  
-  // Return aclrtSynchronizeDevice result. If sync device fails, release host
-  // resources forcibly, only record WARN logs when acl interface of stream
-  // or event fails.
-  bool success = true;
-  try {
-    ASCEND_LOGI("NPU shutdown synchronize device.");
-    success = c10_npu::npuSynchronizeDevice(false);
-  } catch (std::exception& e) {
-    ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
-    success = false;
-  }
-  if (!success) {
-    ASCEND_LOGE("NPU shutdown synchronize device failed.");
-  }
-  THNPUCachingHostAllocator_emptyCache();
-  try {
-    ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
-    c10_npu::NPUCachingAllocator::emptyCache(success);
-  } catch (std::exception& e) {
-    ASCEND_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
-  }
-  // To prevent entering the insert_events method of tensor destruction after the device has been released,
-  // a state variable called "shutdown_stats" is set during the shutdown process.
-  ASCEND_LOGI("NPU shutdown NPUCachingAllocator setShutdownStats.");
-  c10_npu::NPUCachingAllocator::setShutdownStats();
-  ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
-  c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
-  if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
-    ASCEND_LOGE("NPU shutdown failed.");
-  } else {
-    ASCEND_LOGI("NPU shutdown success.");
-  }
-  
-  Py_RETURN_NONE;
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)

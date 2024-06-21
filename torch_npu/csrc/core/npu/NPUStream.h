@@ -153,6 +153,8 @@ void enCurrentNPUStream(void* cur_paras, c10::DeviceIndex device_index = -1);
 
 C10_NPU_API void setCurrentNPUStream(NPUStream stream);
 
+C10_NPU_API  bool StreamInitFlag();
+
 std::ostream& operator<<(std::ostream& stream, const NPUStream& s);
 
 } // namespace c10_npu
