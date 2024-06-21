@@ -6,3 +6,4 @@ test/jit/xnnpack
 test/onnx/dynamo
 test/onnx/assets
 test/onnx/expect
+test/onnx/internal

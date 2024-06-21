@@ -1,4 +1,7 @@
 import os
+import sys
+base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(base_path)
 
 
 def get_url(name):
@@ -9,5 +12,5 @@ def get_url(name):
         content = f.read()
         if name not in content:
             return ""
-        _url = content.split(name + "=")[1].split('\n')[0]
+        _url = content.split(name + "=")[1].split('\n')[0].strip()
     return _url
