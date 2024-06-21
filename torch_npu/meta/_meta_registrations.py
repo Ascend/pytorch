@@ -45,9 +45,11 @@ def npu_prompt_flash_attention_forward(query, key, value, *, padding_mask=None, 
 def npu_fused_infer_attention_score_forward(query, key, value, *, pse_shift=None, atten_mask=None, actual_seq_lengths=None, actual_seq_lengths_kv=None,
                                       dequant_scale1=None, quant_scale1=None, dequant_scale2=None, quant_scale2=None,
                                       quant_offset2=None, antiquant_scale=None, antiquant_offset=None, block_table=None,
-                                      query_padding_size=None, kv_padding_size=None,
-                                      num_heads=1, scale=1.0, pre_tokens=2147483647, next_tokens=2147483647, input_layout="BSH", num_key_value_heads=0,
-                                      sparse_mode=0, inner_precise=0, block_size=0, antiquant_mode=0, softmax_lse_flag=False):
+                                      query_padding_size=None, kv_padding_size=None, key_antiquant_scale=None, key_antiquant_offset=None,
+                                      value_antiquant_scale=None, value_antiquant_offset=None, key_shared_prefix=None, value_shared_prefix=None,
+                                      actual_shared_prefix_len=None, num_heads=1, scale=1.0, pre_tokens=2147483647, next_tokens=2147483647,
+                                      input_layout="BSH", num_key_value_heads=0, sparse_mode=0, inner_precise=0, block_size=0, antiquant_mode=0,
+                                      softmax_lse_flag=False, key_antiquant_mode=0, value_antiquant_mode=0):
     tmp_out = torch.empty_like(query, dtype=query.dtype, device='meta')
     B = 1
     N = 1
@@ -74,11 +76,20 @@ def npu_fused_infer_attention_score_forward(query, key, value, *, pse_shift=None
         N = query.size(0)
         S1 = query.size(1)
     if quant_scale2 is not None:
-        return (torch.empty_like(tmp_out, dtype=torch.int8), torch.empty([B, N, S1, 1], dtype=torch.float32, device='meta'))
+        if (softmax_lse_flag == True):
+            return (torch.empty_like(tmp_out, dtype=torch.int8), torch.empty([B, N, S1, 1], dtype=torch.float32, device='meta'))
+        else:
+            return (torch.empty_like(tmp_out, dtype=torch.int8), torch.empty([1], dtype=torch.float32, device='meta'))
     elif query.dtype == torch.int8:
-        return (torch.empty_like(tmp_out, dtype=torch.half), torch.empty([B, N, S1, 1], dtype=torch.float32, device='meta'))
+        if (softmax_lse_flag == True):
+            return (torch.empty_like(tmp_out, dtype=torch.half), torch.empty([B, N, S1, 1], dtype=torch.float32, device='meta'))
+        else:
+            return (torch.empty_like(tmp_out, dtype=torch.half), torch.empty([1], dtype=torch.float32, device='meta'))
     else:
-        return (torch.empty_like(tmp_out), torch.empty([B, N, S1, 1], dtype=torch.float32, device='meta'))
+        if (softmax_lse_flag == True):
+            return (torch.empty_like(tmp_out), torch.empty([B, N, S1, 1], dtype=torch.float32, device='meta'))
+        else:
+            return (torch.empty_like(tmp_out), torch.empty([1], dtype=torch.float32, device='meta'))
 
 
 @impl(m, "npu_fusion_attention")
