@@ -2168,6 +2168,7 @@ bool force_uncached_allocator()
 static void uncached_delete(void* ptr)
 {
     c10_npu::npuSynchronizeDevice(true);
+    ASCEND_LOGD("Without NPUCachingAllocator, free by aclrtFree.");
     NPU_CHECK_ERROR(aclrtFree(ptr));
 }
 
@@ -2220,7 +2221,10 @@ class NpuCachingAllocator : public NPUAllocator {
     }
   /** allocates a block which is safe to use from the provided stream */
   void malloc(void** devPtr, int device, size_t size, aclrtStream stream) {
-    Block* block = device_allocator[device]->malloc(device, size, stream);
+      TORCH_INTERNAL_ASSERT(0 <= device && static_cast<size_t>(device) < device_allocator.size(),
+                            "Allocator not initialized for device ", device, ": did you call init?",
+                            PTA_ERROR(ErrCode::PARAM));
+      Block* block = device_allocator[device]->malloc(device, size, stream);
 #ifndef BUILD_LIBTORCH
     torch_npu::profiler::reportMemoryDataToNpuProfiler({
       static_cast<int8_t>(c10::DeviceType::PrivateUse1),
@@ -2424,13 +2428,16 @@ class NpuCachingAllocator : public NPUAllocator {
       void* devPtr = nullptr;
       void (*deleteFunc)(void*) = &local_raw_delete;
 
-      if (force_uncached_allocator()) {
-          deleteFunc = &uncached_delete;
-          size_t alloc_size = size + 32;
-          NPU_CHECK_ERROR(
-              c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
-      } else {
-          if (size != 0) {
+      if (size != 0) {
+          if (force_uncached_allocator()) {
+              deleteFunc = &uncached_delete;
+              size_t alloc_size = size + 32;
+              NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size,
+                                                               aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
+              ASCEND_LOGD("Without NPUCachingAllocator, malloc by "
+                          "AclrtMallocAlign32: size=%zu",
+                          alloc_size);
+          } else {
               const_cast<NpuCachingAllocator*>(this)->malloc(&devPtr, device, size,
                                                              c10_npu::getCurrentNPUStreamNoWait(device));
           }
@@ -2454,8 +2461,9 @@ class NpuCachingAllocator : public NPUAllocator {
 
   void assertValidDevice(int device)
   {
-      int device_num = c10_npu::device_count();
-      AT_ASSERTM(0 <= device && device < device_num, "Invalid device argument.", PTA_ERROR(ErrCode::PARAM));
+      const auto device_num = device_allocator.size();
+      TORCH_CHECK(0 <= device && device < static_cast<int64_t>(device_num), "Invalid device argument ", device,
+                  ": did you call init?", PTA_ERROR(ErrCode::PARAM));
   }
 
   DeviceStats getDeviceStats(int device) override
