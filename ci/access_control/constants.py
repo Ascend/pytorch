@@ -17,7 +17,8 @@ SLOW_TEST_BLOCKLIST = [
     'onnx/test_op_consistency',
     'onnx/test_fx_op_consistency',
     'test_foreach',
-    'dynamo/test_dynamic_shapes'
+    'dynamo/test_dynamic_shapes',
+    'onnx/test_pytorch_onnx_onnxruntime'
 ]
 
 # exclude some not run directly test files
