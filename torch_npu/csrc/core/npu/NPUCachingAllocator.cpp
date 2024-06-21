@@ -2400,10 +2400,12 @@ std::mutex* getFreeMutex() {
   return caching_allocator.getNpuFreeMutex();
 }
 
-static inline void assertValidDevice(int device) {
-  int device_num = c10_npu::device_count();
-  AT_ASSERTM(0 <= device && device < device_num, "Invalid device : ", device,
-             ", valid device range is [0, ", device_num, ")", PTA_ERROR(ErrCode::VALUE));
+static inline void assertValidDevice(int device)
+{
+    const auto device_num = caching_allocator.device_allocator.size();
+    TORCH_CHECK(0 <= device && device < static_cast<int64_t>(device_num),
+                "Invalid device argument ", device, ": did you call init?",
+                PTA_ERROR(ErrCode::PARAM));
 }
 
 DeviceStats getDeviceStats(int device) {
