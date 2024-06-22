@@ -646,7 +646,8 @@ class NativeFunctionsGroupOptionalOut:
     def from_dict(
         d: Dict[SchemaKind, NativeFunction]
     ) -> Optional["NativeFunctionsGroupOptionalOut"]:
-        assert d
+        if len(d) == 0:
+            raise RuntimeError('The variable d is empty')
         if len(d) == 1:
             return None
         d = dict(d)  # non-destructive updates please
@@ -654,8 +655,11 @@ class NativeFunctionsGroupOptionalOut:
         inplace = d.pop(SchemaKind.inplace, None)
         mutable = d.pop(SchemaKind.mutable, None)
         out = d.pop(SchemaKind.out, None)
-        assert not d
-        assert functional is not None
+        if len(d) != 0:
+            raise RuntimeError('The variable d is not empty after popping keys')
+
+        if functional is None:
+            raise RuntimeError('The variable functional is None')
 
         return NativeFunctionsGroupOptionalOut(
             functional=functional,
