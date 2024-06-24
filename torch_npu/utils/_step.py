@@ -1,4 +1,5 @@
 import os
+import stat
 import logging
 from logging.handlers import RotatingFileHandler
 import uuid
@@ -12,6 +13,8 @@ from torch_npu.utils.error_code import ErrCode, pta_error
 
 
 original_call = Module.__call__
+DEFAULT_FALGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+DEFAULT_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP
 
 
 class PerfDumpState:
@@ -43,13 +46,16 @@ perf_dump_state = PerfDumpState()
 class CustomRotatingFileHandler(RotatingFileHandler):
     def doRollover(self):
         super().doRollover()
-        file_permissions = 0o640
 
-        with os.fdopen(os.open(self.baseFilename, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, file_permissions), 'w') as f:
+        fd = os.open(self.baseFilename, DEFAULT_FALGS, DEFAULT_PERMISSION)
+        os.fchmod(fd, DEFAULT_PERMISSION)
+
+        with os.fdopen(fd, 'w') as f:
             f.write(f"[LOCALUUID]:{perf_dump_state.local_uuid}\n")
             f.write("[FRAMEWORK]:PyTorch\n")
             f.write(f"[UUID]:{perf_dump_state.uuid}\n")
             f.close()
+        os.close(fd)
 
 
 def _is_loss_module(module):
@@ -81,7 +87,7 @@ def delete_pref_pt_logs(perf_dump_path, device_id):
         try:
             os.remove(log_file)
         except Exception as e:
-            raise RuntimeError(f"Failed to delete {log_file}. Please delete it manually.") from e
+            raise RuntimeError(f"Failed to delete {log_file}. Please delete it manually." + pta_error(ErrCode.SYSCALL)) from e
 
 
 def _get_uuid():
@@ -98,7 +104,7 @@ def _setup_logger(name, path):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 
-    file_handler = CustomRotatingFileHandler(path, maxBytes=50 * 1024 * 1024, backupCount=5)
+    file_handler = CustomRotatingFileHandler(path, maxBytes=50 * 1024 * 1024, backupCount=3)
     file_handler.setLevel(logging.INFO)
 
     formatter = logging.Formatter("%(message)s")
@@ -127,7 +133,7 @@ def _custom_call(self, *args, **kwargs):
         logger.info(f"[LOCALUUID]:{perf_dump_state.local_uuid}")
         logger.info("[FRAMEWORK]:PyTorch")
         logger.info(f"[UUID]:{perf_dump_state.uuid}")
-        os.chmod(perf_dump_state.log_file_name, 0o640)
+        os.chmod(perf_dump_state.log_file_name, DEFAULT_PERMISSION)
         perf_dump_state.has_log = True
 
     if perf_dump_state.is_outer_call:
