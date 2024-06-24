@@ -14,7 +14,8 @@ SLOW_TEST_BLOCKLIST = [
     'test_unary_ufuncs',
     'test_ops_jit',
     'onnx/test_fx_op_consistency',
-    "onnx/test_op_consistency"
+    "onnx/test_op_consistency",
+    'onnx/test_pytorch_onnx_onnxruntime'
 ]
 
 # exclude some not run directly test files

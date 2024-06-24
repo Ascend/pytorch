@@ -542,7 +542,7 @@ class TestFxToOnnxWithOnnxRuntime(onnx_test_common._TestONNXRuntime):
             additional_test_inputs=[((x2,),)],
         )
 
-    @pytorch_test_common.skipIfNoCuda
+    @pytorch_test_common.skipIfNoNPU
     def test__scaled_dot_product_flash_attention(self):
         class Foo(torch.nn.Module):
             def forward(self, x):
