@@ -1,15 +1,15 @@
 import re
 import itertools
 from collections import namedtuple, defaultdict
+from dataclasses import dataclass, field
 from typing import List, Dict, Sequence
-import yaml
 
 from torchgen.code_template import CodeTemplate
 from torchgen.gen import (parse_tags_yaml, FileManager, cpp_string, error_check_native_functions)
 from torchgen.model import (BackendIndex, DispatchKey, Variant,
                             NativeFunction, OperatorName, BackendMetadata, TensorOptionsArguments)
-from torchgen.utils import concatMap
-from torchgen.context import with_native_function, native_function_manager
+from torchgen.utils import concatMap, mapMaybe
+from torchgen.context import with_native_function, native_function_manager, method_with_native_function
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
 from codegen.utils import (enable_opplugin, is_op_valid, field_tag, get_opplugin_wrap_name, parse_npu_yaml)
@@ -159,20 +159,35 @@ const c10::DeviceGuard device_guard(device_or_default(device));"""
     )]
 
 
-@with_native_function
-def compute_register_symbol(f: NativeFunction):
-    out_num = len(f.func.arguments.out)
-    if out_num > 1:
-        decl = re.compile(r"(?P<name>[^\(]+)\((?P<args>.*)\) -> (?P<returns>.*)").findall(str(f.func))[0]
-        func_schema = decl[0] + '(' + ','.join(decl[1].split(',')[:-out_num]) + ', Tensor[] out) -> (' + ', '.join(
-            ['Tensor'] * out_num) + ')'
-    else:
-        func_schema = str(f.func)
-    if f.has_composite_explicit_autograd_kernel:
-        name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
-        return [f'm.def({cpp_string(func_schema)}, TORCH_FN(at_npu::native::{name}));\n']
-    else:
-        return [f'm.def({cpp_string(func_schema)});\n']
+@dataclass(frozen=True)
+class RegisterCustomSchema:
+    known_tags: Dict[str, int] = field(default_factory=dict)
+
+    @method_with_native_function
+    def __call__(self, f: NativeFunction):
+        out_num = len(f.func.arguments.out)
+        if out_num > 1:
+            decl = re.compile(r"(?P<name>[^\(]+)\((?P<args>.*)\) -> (?P<returns>.*)").findall(str(f.func))[0]
+            func_schema = decl[0] + '(' + ','.join(decl[1].split(',')[:-out_num]) + ', Tensor[] out) -> (' + ', '.join(
+                ['Tensor'] * out_num) + ')'
+        else:
+            func_schema = str(f.func)
+
+        tags = "{" + ", ".join(f"at::Tag::{tag}" for tag in sorted(f.tags)) + "}"
+        maybe_tags = ""
+        if tags not in self.known_tags:
+            idx = len(self.known_tags)
+            self.known_tags[tags] = idx
+            maybe_tags = f"const std::vector<at::Tag> tags_{idx} = {tags};\n"
+        tag_index = f", tags_{self.known_tags[tags]}"
+        if tags == "{}":
+            tag_index = ""
+
+        if f.has_composite_explicit_autograd_kernel:
+            name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
+            return f'{maybe_tags}m.def({cpp_string(func_schema)}, TORCH_FN(at_npu::native::{name}){tag_index});\n'
+        else:
+            return f'{maybe_tags}m.def({cpp_string(func_schema)}{tag_index});\n'
 
 
 @with_native_function
@@ -191,8 +206,8 @@ def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFun
             lambda f: compute_op_definition(f),
             custom_trace_functions
         )),
-        'custom_schema_registrations': list(concatMap(
-            lambda f: compute_register_symbol(f),
+        'custom_schema_registrations': list(mapMaybe(
+            RegisterCustomSchema(),
             custom_trace_functions
         )),
         'custom_impl_registrations': list(concatMap(
