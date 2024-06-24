@@ -3,7 +3,6 @@ import torch
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
 
-
 __all__ = []
 
 
@@ -253,6 +252,9 @@ class _NPUFusedAttentionLayernormQkvFwdOP(object):
             kernel_value = kernel_value.t().contiguous()
 
             norm_shape = [x.shape[-1]]
+            if seq_len == 0 or num_heads == 0:
+                raise ValueError(f"seq_len and num_heads shouldn't be zero, but seq_len is {seq_len} "
+                                 f"and num_heads is {num_heads}." + pta_error(ErrCode.VALUE))
             new_shape = (int(x.shape[0] / seq_len), seq_len, num_heads, int(x.shape[1] / num_heads))
 
             norm, mean, variance = torch.native_layer_norm(x, norm_shape, gamma, beta, eps=1e-05)
