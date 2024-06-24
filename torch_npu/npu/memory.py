@@ -21,6 +21,7 @@ import pickle
 import sys
 import os
 import stat
+import platform
 from typing import Any, Dict, Optional, Tuple, Union
 
 import torch_npu
@@ -583,6 +584,10 @@ def _record_memory_history_impl(
     max_entries: int = sys.maxsize,
     device=None,
 ):
+    if platform.machine() == "aarch64" and stacks == "all":
+        warnings.warn("Currently 'aarch64' does not support the display of c++ stacks, " \
+                      "changed to display only python.")
+        stacks = "python"
     torch_npu._C._npu_record_memory_history(enabled, context, stacks, max_entries)
 
 
