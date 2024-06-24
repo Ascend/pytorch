@@ -22,10 +22,20 @@ std::string getHcclErrorDetailStr(HcclResult error, c10::optional<std::string> p
     return interpret;
 }
 
-bool isFileExists(std::string& name)
+bool isFileExists(const std::string& path)
 {
-    std::ifstream f(name.c_str());
-    return f.good();
+    std::filesystem::path filePath(path);
+
+    if (!filePath.is_absolute()) {
+        TORCH_CHECK(false, "Path is not absolute.", DIST_ERROR(ErrCode::UNAVAIL))
+        return false;
+    }
+
+    if (std::filesystem::exists(filePath) && std::filesystem::is_regular_file(filePath)) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 // HCCL DataType mapping
