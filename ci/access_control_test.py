@@ -405,7 +405,8 @@ def exec_ut(files):
                 ut_info = str(cmd[-1])
                 if ut_type == "op_ut_files":
                     ut_info = "test_ops " + ut_info
-                cmd = cmd + ["--init_method={}".format(init_method)]
+                else:
+                    cmd = cmd + ["--init_method={}".format(init_method)]
                 ret = run_cmd_with_timeout(cmd)
                 if ret:
                     has_failed = ret
