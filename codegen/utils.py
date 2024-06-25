@@ -645,7 +645,8 @@ def get_grouped_native_functions_optional_out(
         if r is None:
             # Invariant: any NativeFunctions that are code-generated
             # should have been grouped into NativeFunctionsGroupOptionalOut objects
-            assert not any("generated" in f.tags for f in d.values())
+            if any("generated" in f.tags for f in d.values()):
+                raise RuntimeError("The variable d contains 'generated' in function tags")
             return list(d.values())
         else:
             return [r]
