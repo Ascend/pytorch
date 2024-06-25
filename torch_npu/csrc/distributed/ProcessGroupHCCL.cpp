@@ -966,11 +966,16 @@ void ProcessGroupHCCL::recordComm(std::string filename, std::string opName, cons
 {
     std::ofstream outfile;
     std::string commName = getHcclCommNameWithoutInit(currRank, hcclComms);
-    try {
-        outfile.open(filename, std::ios::app);
-    } catch (std::exception& e) {
-        throw std::runtime_error("Open shared directory failed. Please check whether filename is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
+    if (isFilePathValid(filename)) {
+        try {
+            outfile.open(filename, std::ios::app);
+        } catch (std::exception& e) {
+            throw std::runtime_error("Open shared directory failed. Please check whether file is valid." + DIST_ERROR(ErrCode::UNAVAIL));
+        }
+    } else {
+        TORCH_CHECK(false, filename, " is not exist!", DIST_ERROR(ErrCode::NOT_FOUND));
     }
+
     std::transform(opName.begin(), opName.end(), opName.begin(), ::tolower);
     const std::vector<uint64_t>& ranks = groupRanks();
     std::stringstream ss;
@@ -1407,7 +1412,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
                 TORCH_CHECK(0, "perfDumpPath is not realpath.", DIST_ERROR(ErrCode::NOT_FOUND));
             }
             auto path_temp = c10::str(perfDumpPath, "/", log_file_name);
-            if (isFileExists(path_temp)) {
+            if (isFilePathValid(path_temp)) {
                 perfdumppath = path_temp;
                 std::ofstream outfile;
                 try {
