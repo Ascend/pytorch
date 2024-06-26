@@ -170,6 +170,8 @@ public:
     }
 
     static uint64_t GetHostUid();
+
+    static int safe_strcpy_s(char* dest, const char* src, size_t destSize);
 };
 } // profiler
 } // toolkit
