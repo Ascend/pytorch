@@ -89,6 +89,13 @@ std::map<c10d::ReduceOp, HcclReduceOp> hcclOp = {
     {c10d::ReduceOp::PRODUCT, HCCL_REDUCE_PROD},
 };
 
+std::map<c10d::ReduceOp, std::string> unsupportedOp = {
+    {c10d::ReduceOp::AVG, "AVG"},
+    {c10d::ReduceOp::BAND, "BAND"},
+    {c10d::ReduceOp::BOR, "BOR"},
+    {c10d::ReduceOp::BXOR, "BXOR"}
+};
+
 // HCCL DataType mapping
 std::map<at::ScalarType, HcclDataType> kScalarTypeToHcclDataType = {
     {at::kByte, HCCL_DATA_TYPE_UINT8},
@@ -172,6 +179,14 @@ HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input)
         // This is to prevent overflow issues with sum, since we use uint8 to
         // represent a bool (see HCCLDataType mapping).
         return HCCL_REDUCE_MAX;
+    }
+    
+    if (unsupportedOp.find(reduceOp) != unsupportedOp.end()) {
+        TORCH_CHECK(false,
+            "Cannot use ReduceOp." + unsupportedOp[reduceOp] + " with HCCL",
+            DIST_ERROR(ErrCode::NOT_SUPPORT));
+    } else if (hcclOp.find(reduceOp) == hcclOp.end()) {
+        TORCH_CHECK(false, "Unhandled ReduceOp", DIST_ERROR(ErrCode::NOT_FOUND));
     }
     return hcclOp[reduceOp];
 }
