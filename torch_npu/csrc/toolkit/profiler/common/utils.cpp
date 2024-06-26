@@ -92,6 +92,23 @@ uint64_t Utils::GetHostUid()
     return CalcHashId(Join(macAddrs, "-"));
 }
 
+int Utils::safe_strcpy_s(char* dest, const char* src, size_t destSize)
+{
+    if (dest == nullptr || src == nullptr || destSize == 0) {
+        return -1;
+    }
+    size_t i = 0;
+    for (; i < destSize - 1 && src[i] != '\0'; ++i) {
+        dest[i] = src[i];
+    }
+    dest[i] = '\0';
+    if (src[i] != '\0') {
+        dest[0] = '\0';
+        return -1;
+    }
+    return 0;
+}
+
 }
 }
 }
