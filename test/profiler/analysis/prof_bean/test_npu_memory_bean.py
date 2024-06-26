@@ -10,7 +10,7 @@ class TestNpuMemoryBean(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.sample_num = 3
+        cls.sample_num = 20
         cls.samples = cls.generate_samples()
 
     @classmethod
@@ -21,11 +21,13 @@ class TestNpuMemoryBean(TestCase):
             ts = random.randint(0, 2**31)
             alloc = random.choice([0, 1024, 2048, 4096])
             mem = random.choice([0, 1024, 2048, 4096])
+            device_id = random.randint(0, 2**31)
             sample = {
                 "event": str(event),
                 "timestamp(us)": str(ts),
                 "allocated(KB)": str(alloc),
-                "memory(KB)": str(mem)
+                "memory(KB)": str(mem),
+                "Device_id": str(device_id)
             }
             samples.append(sample)
         return samples
@@ -37,7 +39,8 @@ class TestNpuMemoryBean(TestCase):
                 row = []
             else:
                 row = [sample.get("event"), sample.get("timestamp(us)"),
-                       sample.get("allocated(KB)"), float(sample.get("memory(KB)")) / Constant.KB_TO_MB, "", ""]
+                       sample.get("allocated(KB)"), float(sample.get("memory(KB)")) / Constant.KB_TO_MB,
+                       "", "", sample.get("Device_id")]
             self.assertEqual(row, npu_mem_bean.row)
 
 
