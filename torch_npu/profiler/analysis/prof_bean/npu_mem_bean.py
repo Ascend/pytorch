@@ -1,14 +1,13 @@
-from .common_bean import CommonBean
 from ..prof_common_func.constant import Constant
 
 __all__ = []
 
 
-class NpuMemoryBean(CommonBean):
-    SHOW_HEADERS = ["event", "timestamp(us)", "allocated(KB)", "memory(KB)", "active", "stream_ptr"]
+class NpuMemoryBean:
+    SHOW_HEADERS = ["event", "timestamp(us)", "allocated(KB)", "memory(KB)", "active", "stream_ptr", "Device_id"]
 
     def __init__(self, data: dict):
-        super().__init__(data)
+        self._data = data
 
     @property
     def row(self) -> list:
