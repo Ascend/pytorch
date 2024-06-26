@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from warnings import warn
-import os
 
 from torch_npu.utils.error_code import ErrCode, prof_error
 from .base_parser import BaseParser
@@ -129,18 +128,10 @@ class MemoryViewParser(BaseParser):
             self.size_record_list.extend(self._combine_record(last_ge_record, pta_record))
             pta_ptr += 1
 
-    def _add_device_type_for_npu(self, npu_app_memory_file_set: set):
-        if npu_app_memory_file_set:
-            sub_file = next(iter(npu_app_memory_file_set))
-            try:
-                device_id = os.path.basename(sub_file).split(".")[0].split("_")[2]
-            except IndexError:
-                warn(f"Can't get npu memory device id!")
-                return
-            device_tag = f"NPU:{device_id}"
-            for record in self.size_record_list:
-                if record[0] == Constant.APP:
-                    record.append(device_tag)
+    def _add_device_type_for_npu(self):
+        for record in self.size_record_list:
+            if record[0] == Constant.APP:
+                record[-1] = f"NPU:{record[-1]}"
 
     def split_component_ge(self, data: list):
         for row in data:
@@ -156,7 +147,7 @@ class MemoryViewParser(BaseParser):
         npu_app_memory_file_set = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.NPU_MEMORY)
         app_record_data = self._get_data_from_file(npu_app_memory_file_set, NpuMemoryBean)
         self.size_record_list.extend(app_record_data)
-        self._add_device_type_for_npu(npu_app_memory_file_set)
+        self._add_device_type_for_npu()
         ge_memory_record_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_MEMORY_RECORD)
         self.split_component_ge(self._get_data_from_file(ge_memory_record_file, GeMemoryRecordBean, bean_list=True))
         ge_op_memory_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_OPERATOR_MEMORY)
