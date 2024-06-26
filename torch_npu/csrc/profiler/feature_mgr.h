@@ -10,6 +10,7 @@
 #include "third_party/acl/inc/acl/acl_prof.h"
 
 #include "torch_npu/csrc/toolkit/profiler/common/singleton.h"
+#include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 namespace torch_npu {
 namespace profiler {
 
@@ -18,7 +19,7 @@ enum class FeatureType {
     FEATURE_ATTR,
     FEATURE_MAX,
 };
-
+using torch_npu::toolkit::profiler::Utils;
 struct FeatureInfo {
     char compatibility[16] = "\0";
     char featureVersion[16] = "\0";
@@ -30,15 +31,20 @@ struct FeatureInfo {
                 const char* tempAffectedComponentVersion, const char* tempInfoLog)
     {
         // 0 tempData, 1 structData
-        std::vector<std::tuple<const char*, char*>> copyList = {
-            {tempCompatibility, compatibility},
-            {tempFeatureVersion, featureVersion},
-            {tempAffectedComponent, affectedComponent},
-            {tempAffectedComponentVersion, affectedComponentVersion},
-            {tempInfoLog, infoLog},
+        std::vector<std::tuple<const char*, char*, size_t>> copyList = {
+            {tempCompatibility, compatibility, sizeof(compatibility)},
+            {tempFeatureVersion, featureVersion, sizeof(featureVersion)},
+            {tempAffectedComponent, affectedComponent, sizeof(affectedComponent)},
+            {tempAffectedComponentVersion, affectedComponentVersion, sizeof(affectedComponentVersion)},
+            {tempInfoLog, infoLog, sizeof(infoLog)},
         };
-        std::all_of(copyList.begin(), copyList.end(), [](std::tuple<const char*, char*>& copyNode) {
-            std::strcpy(std::get<1>(copyNode), std::get<0>(copyNode));
+        std::all_of(copyList.begin(), copyList.end(), [](std::tuple<const char*, char*, size_t>& copyNode) {
+            const char* src = std::get<0>(copyNode);
+            char* dest = std::get<1>(copyNode);
+            size_t destSize = std::get<2>(copyNode);
+            if (Utils::safe_strcpy_s(dest, src, destSize) != 0) {
+                return false;
+            }
             return true;
         });
     }
