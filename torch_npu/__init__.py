@@ -10,7 +10,6 @@ from functools import wraps
 import torch
 from torch.distributed.fsdp import sharded_grad_scaler
 from torch.utils.checkpoint import DefaultDeviceType
-import torch_npu
 
 try:
     import torch_npu.npu
