@@ -5,9 +5,8 @@ from ..constants import BASE_DIR
 
 
 class AccurateTest(metaclass=ABCMeta):
-    def __init__(self):
-        self.base_dir = BASE_DIR
-        self.test_dir = self.base_dir / 'test'
+    base_dir = BASE_DIR
+    test_dir = base_dir / 'test'
 
     @abstractmethod
     def identify(self, modify_file):
@@ -16,9 +15,10 @@ class AccurateTest(metaclass=ABCMeta):
         """
         raise Exception("abstract method. Subclasses should implement it.")
 
-    def find_ut_by_regex(self, regex):
+    @classmethod
+    def find_ut_by_regex(cls, regex):
         ut_files = []
-        cmd = "find {} -name {}".format(str(self.test_dir), regex)
+        cmd = "find {} -name {}".format(str(cls.test_dir), regex)
         status, output = subprocess.getstatusoutput(cmd)
         # 对于找不到的暂不作处理
         if not(status or not output):
