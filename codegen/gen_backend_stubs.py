@@ -180,10 +180,8 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
 # Different implements of ops from origin torch. 
 # Native ops with dispatchkey CompositeImplicitAutograd but implemented as a kernel op in pta
 COMPOSITEIMPLICITAUTOGRAD_INCLUDE_LIST = [
-    'to.dtype_layout',
     'to.device',
     'to.dtype',
-    'to.other',
 ]
 
 
