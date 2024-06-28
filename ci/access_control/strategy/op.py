@@ -21,5 +21,5 @@ class OpStrategy(AccurateTest):
             feature_line = filename.split('KernelNpu')[0]
             features = re.findall('[A-Z][^A-Z]*', feature_line)
             regex = '*' + '*'.join([f"{feature.lower()}" for feature in features]) + '*'
-            return self.find_ut_by_regex(regex)
+            return AccurateTest.find_ut_by_regex(regex)
         return []
