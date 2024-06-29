@@ -29,6 +29,7 @@ import torch_npu
 
 BASE_DIR = Path(__file__).absolute().parent.parent
 TEST_DIR = BASE_DIR / 'test'
+NETWORK_OPS_DIR = BASE_DIR / 'third_party/op-plugin/test'
 
 # default ut cmd execution timeout is 2000s
 EXEC_TIMEOUT = os.getenv("PTA_UT_EXEC_TIMEOUT", 2000)
@@ -279,12 +280,16 @@ def exec_ut(files):
         return result
     
     def get_ut_name(ut_file):
+        if 'op-plugin' in str(Path(ut_file)):
+            return str(Path(ut_file).relative_to(NETWORK_OPS_DIR))[:-3]
         return str(Path(ut_file).relative_to(TEST_DIR))[:-3]
 
     def get_ut_cmd(ut_type, ut_file):
         cmd = [sys.executable, "run_test.py", "-v", "-i"]
         if ut_type == "op_ut_files":
             return cmd + ["test_ops", "--", "-k", get_op_name(ut_file)]
+        if 'op-plugin' in str(Path(ut_file)):
+            cmd = [sys.executable, NETWORK_OPS_DIR / "run_test.py", "-v", "-i"]
         return cmd + [get_ut_name(ut_file)]
 
     def wait_thread(process, event_timer):
