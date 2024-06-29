@@ -3,6 +3,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).absolute().parent.parent.parent
 TEST_DIR = BASE_DIR / 'test'
+NETWORK_OPS_DIR = BASE_DIR / 'third_party/op-plugin/test'
 
 # Add slow test cases here (first element must be test_ops)
 SLOW_TEST_BLOCKLIST = [
