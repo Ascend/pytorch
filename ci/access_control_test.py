@@ -11,7 +11,7 @@ import random
 import psutil
 from access_control import (
     TestMgr,
-    BASE_DIR, TEST_DIR, SLOW_TEST_BLOCKLIST, NOT_RUN_DIRECTLY, EXEC_TIMEOUT
+    BASE_DIR, TEST_DIR, SLOW_TEST_BLOCKLIST, NOT_RUN_DIRECTLY, EXEC_TIMEOUT, NETWORK_OPS_DIR
 )
 
 
@@ -25,6 +25,8 @@ def exec_ut(files):
         return op_name[5:] if op_name.startswith("test_") else op_name
 
     def get_ut_name(ut_file):
+        if 'op-plugin' in str(Path(ut_file)):
+            return str(Path(ut_file).relative_to(NETWORK_OPS_DIR))[:-3]
         return str(Path(ut_file).relative_to(TEST_DIR))[:-3]
 
     def get_ut_cmd(ut_type, ut_file):
@@ -32,6 +34,8 @@ def exec_ut(files):
         if ut_type == "op_ut_files":
             # do not skip ops related test entries
             return cmd + ["-e"] + SLOW_TEST_BLOCKLIST[1:] + ["-i", "test_ops", "--", "-k", "_" + get_op_name(ut_file)]
+        if 'op-plugin' in str(Path(ut_file)):
+            cmd = [sys.executable, NETWORK_OPS_DIR / "run_test.py", "-v"]
         return cmd + ["-i", get_ut_name(ut_file)]
 
     def wait_thread(process, event_timer):
@@ -92,7 +96,7 @@ def exec_ut(files):
                 if ut_type == "op_ut_files":
                     ut_info = "test_ops " + ut_info
                 else:
-                    cmd = cmd + ["--init_method={}".format(init_method)]
+                    cmd = cmd if 'op-plugin' in str(Path(ut_file)) else cmd + ["--init_method={}".format(init_method)]
                 ret = run_cmd_with_timeout(cmd)
                 if ret:
                     has_failed = ret
