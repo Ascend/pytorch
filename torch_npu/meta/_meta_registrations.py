@@ -32,7 +32,12 @@ def npu_prompt_flash_attention_forward(query, key, value, *, padding_mask=None, 
     tmp_out = torch.empty_like(query, dtype=query.dtype, device='meta')
     if input_layout == "BNSD_BSND":
         tmp_out = torch.empty([query.size(0), query.size(2), query.size(1), query.size(3)], dtype=query.dtype, device='meta')
-
+    elif input_layout == "SH":
+        tmp_out = torch.empty([query.size(0), query.size(1)], dtype=query.dtype, device='meta')
+    elif input_layout == "BSH" or input_layout == "NSD":
+        tmp_out = torch.empty([query.size(0), query.size(1), query.size(2)], dtype=query.dtype, device='meta')
+    else:
+        tmp_out = torch.empty([query.size(0), query.size(1), query.size(2), query.size(3)], dtype=query.dtype, device='meta')
     if quant_scale2 is not None:
         return torch.empty_like(tmp_out, dtype=torch.int8)
     elif query.dtype == torch.int8:
