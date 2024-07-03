@@ -193,6 +193,16 @@ AscendPyTorch版本分支的维护阶段如下：
 | 1.8.1     |  长期支持  | EOL    | 2022/4/10  |                       | 2023/4/10 |
 | 1.5.0     |  长期支持  | EOL    | 2021/7/29  |                       | 2022/7/29 |
 
+## 安全声明
+
+### 漏洞风险提示
+
+PyTorch 2.2.0以下版本存在CVE-2024-31583漏洞，该漏洞在torch/csrc/jit/mobile/interpreter.cpp组件中存在use-after-free问题（内存释放后程序继续使用该内存）。 如需要使用jit相关功能，建议用户使用2.2.0及以上的修复版本。
+
+PyTorch 2.2.0以下版本存在CVE-2024-31580漏洞，该漏洞在torch/csrc/jit/runtime/vararg_functions.cpp组件中存在buffer-overflow问题（缓冲区溢出）。 如需要使用jit相关功能，建议用户使用2.2.0及以上的修复版本。
+
+PyTorch 2.2.0以下版本存在CVE-2024-31584漏洞，该漏洞在torch/csrc/jit/mobile/flatbuffer_loader.cpp组件中存在越界读取问题。 如需要使用jit相关功能，建议用户使用2.2.0及以上的修复版本。
+
 ## 参考文档
 
 有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区PyTorch Ascend Adapter](https://www.hiascend.com/software/ai-frameworks/commercial)。
