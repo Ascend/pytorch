@@ -132,6 +132,7 @@ class MemoryPrepareParser(BaseParser):
 
     def _complete_record_entry(self, ptr_records: list, torch_ops: list) -> list:
         ret_list = list()
+        torch_ops = [torch_op for torch_op in torch_ops if torch_op.name != "empty_tensor" and torch_op.name != "malloc_workspace"]
         for records in ptr_records:
             combine_data = list()
             records_len = len(records)
@@ -170,6 +171,7 @@ class MemoryPrepareParser(BaseParser):
 
     def _complete_record_entry_for_db(self, ptr_records: list, torch_ops: list) -> list:
         ret_list = list()
+        torch_ops = [torch_op for torch_op in torch_ops if torch_op.name != "empty_tensor" and torch_op.name != "malloc_workspace"]
         for records in ptr_records:
             combine_data = list()
             records_len = len(records)
