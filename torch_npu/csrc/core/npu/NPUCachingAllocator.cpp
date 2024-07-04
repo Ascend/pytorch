@@ -583,6 +583,8 @@ class CachingAllocatorConfig {
     return instance().m_expandable_segments;
   }
 
+  static bool align_hugepages() { return instance().m_align_hugepages; }
+
   static CachingAllocatorConfig &instance() {
     static CachingAllocatorConfig *s_instance = ([]() {
       auto inst = new CachingAllocatorConfig();
@@ -601,11 +603,13 @@ class CachingAllocatorConfig {
   double m_garbage_collection_threshold;
   bool m_expandable_segments;
   bool set_expandable_segments_flag = false;
+  bool m_align_hugepages = false;
 
   CachingAllocatorConfig()
       : m_max_split_size(std::numeric_limits<size_t>::max()),
         m_garbage_collection_threshold(0),
-        m_expandable_segments(true)
+        m_expandable_segments(true),
+        m_align_hugepages(false)
         {
             void* ptr = nullptr;
             auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
@@ -628,6 +632,9 @@ class CachingAllocatorConfig {
       const std::vector<std::string>& config,
       size_t i);
   size_t parseExpandableSegments(
+      const std::vector<std::string>& config,
+      size_t i);
+  size_t parseAlignHugepages(
       const std::vector<std::string>& config,
       size_t i);
 };
@@ -727,6 +734,19 @@ size_t CachingAllocatorConfig::parseExpandableSegments(
   return i;
 }
 
+size_t CachingAllocatorConfig::parseAlignHugepages(const std::vector<std::string>& config, size_t i)
+{
+    consumeToken(config, ++i, ':');
+    if (++i < config.size()) {
+        TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
+                    "Expected a single True/False argument for align_hugepages", OPS_ERROR(ErrCode::PARAM));
+        m_align_hugepages = (config[i] == "True");
+    } else {
+        TORCH_CHECK(false, "Error, expecting align_hugepages value", OPS_ERROR(ErrCode::VALUE));
+    }
+    return i;
+}
+
 void CachingAllocatorConfig::parseArgs(const char* env) {
   // If empty, set the default values
   m_max_split_size = std::numeric_limits<size_t>::max();
@@ -747,6 +767,8 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
     } else if (config[i] == "expandable_segments") {
       set_expandable_segments_flag = true;
       i = parseExpandableSegments(config, i);
+    } else if (config[i] == "align_hugepages") {
+      i = parseAlignHugepages(config, i);
     } else {
       TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::PARAM));
     }
@@ -983,7 +1005,32 @@ class DeviceCachingAllocator {
         NPU_CHECK_ERROR(params.err);
       }
     }
-    
+
+    int64_t ori_block_ptr = int64_t(params.block->ptr);
+    if (params.size() >= kRoundLarge && CachingAllocatorConfig::expandable_segments() &&
+        ori_block_ptr % kRoundLarge != 0 && CachingAllocatorConfig::align_hugepages()) {
+        char* align_ptr = reinterpret_cast<char*>((ori_block_ptr + kRoundLarge) - (ori_block_ptr % kRoundLarge));
+        size_t offset_size = align_ptr - (char*)params.block->ptr;
+        if (offset_size + params.size() <= params.block->size) {
+            auto size = params.block->size;
+            Block* remaining = params.block;
+
+            Block* block = new Block(params.device(), params.stream(), size - offset_size, params.pool, align_ptr);
+            block->expandable_segment_ = remaining->expandable_segment_;
+            block->next = remaining->next;
+            if (block->next) {
+                block->next->prev = block;
+            }
+            block->prev = remaining;
+
+            remaining->next = block;
+            remaining->size = offset_size;
+            params.pool->blocks.insert(remaining);
+
+            params.block = block;
+        }
+    }
+
     bool split_remainder = should_split(params.block, params.size());
     return alloc_found_block(
         std::move(params), orig_size, std::move(context), split_remainder);
