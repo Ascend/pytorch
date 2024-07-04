@@ -1,0 +1,7 @@
+# Python dependencies required for unit tests
+
+mypy==1.7.0
+# Pin MyPy version because new errors are likely to appear with each release
+#Description: linter
+#Pinned versions: 1.7.0
+#test that import: test_typing.py, test_type_hints.py
