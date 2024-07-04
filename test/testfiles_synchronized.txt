@@ -121,4 +121,5 @@ test/test_jit_llga_fuser.py
 test/test_type_hints.py
 test/test_typing.py
 mypy.ini
-.ci/docker/requirements-ci.txt
+test/profiler/profiler_utils_mock_events.json
+test/profiler/test_profiler.py
