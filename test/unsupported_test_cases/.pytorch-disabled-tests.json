@@ -31405,5 +31405,14 @@
   "test_sparse_zeros_trunc_npu_int32 (__main__.TestSparseUnaryUfuncsPRIVATEUSE1)": ["", [""]],
   "test_sparse_zeros_trunc_npu_int64 (__main__.TestSparseUnaryUfuncsPRIVATEUSE1)": ["", [""]],
   "test_sparse_zeros_trunc_npu_int8 (__main__.TestSparseUnaryUfuncsPRIVATEUSE1)": ["", [""]],
-  "test_sparse_zeros_trunc_npu_uint8 (__main__.TestSparseUnaryUfuncsPRIVATEUSE1)": ["", [""]]
+  "test_sparse_zeros_trunc_npu_uint8 (__main__.TestSparseUnaryUfuncsPRIVATEUSE1)": ["", [""]],
+  "test_memory_timeline_no_id (__main__.TestMemoryProfilerE2E)": ["", [""]],
+  "test_extract_gradients_from_optimizer_set_to_none (__main__.TestIdentifyGradients)": ["", [""]],
+  "test_fuzz_symbolize (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_strides (__main__.TestProfiler)": ["", [""]],
+  "test_schedule_function_count (__main__.TestProfiler)": ["", [""]],
+  "test_profiler_experimental_tree_with_memory_and_stack (__main__.TestProfilerTree)": ["", [""]],
+  "test_profiler_experimental_tree_with_stack_and_modules (__main__.TestProfilerTree)": ["", [""]],
+  "test_profiler_experimental_tree_with_stack_and_torch_dispatch (__main__.TestProfilerTree)": ["", [""]],
+  "test_profiler_experimental_tree_with_stack_and_torch_function (__main__.TestProfilerTree)": ["", [""]]
 }
