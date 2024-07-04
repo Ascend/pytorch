@@ -30082,5 +30082,6 @@
   "test_sparse_zeros_trunc_npu_int32 (__main__.TestSparseUnaryUfuncsPRIVATEUSE1)": ["", [""]],
   "test_sparse_zeros_trunc_npu_int64 (__main__.TestSparseUnaryUfuncsPRIVATEUSE1)": ["", [""]],
   "test_sparse_zeros_trunc_npu_int8 (__main__.TestSparseUnaryUfuncsPRIVATEUSE1)": ["", [""]],
-  "test_sparse_zeros_trunc_npu_uint8 (__main__.TestSparseUnaryUfuncsPRIVATEUSE1)": ["", [""]]
+  "test_sparse_zeros_trunc_npu_uint8 (__main__.TestSparseUnaryUfuncsPRIVATEUSE1)": ["", [""]],
+  "test_memory_timeline_no_id (__main__.TestMemoryProfilerE2E)": ["", [""]]
 }
