@@ -961,9 +961,11 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
     std::stringstream fileName;
     std::string commName = getHcclCommNameWithoutInit(currRank, hcclComms);
     auto master_addr = getenv("MASTER_ADDR");
+    auto hccl_algo = getenv("HCCL_ALGO");
     TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.", DIST_ERROR(ErrCode::NOT_FOUND));
     fileName << master_addr << "_" << commName << "_" << std::to_string(currRank) << ".log";
     std::string out_file_path = c10::str(nslb_path, "/", fileName.str());
+    bool need_algo = hccl_algo != nullptr && access(out_file_path.c_str(), W_OK) != 0;
     try {
         if (access(nslb_path, W_OK) != 0 && mkdir(nslb_path, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
             throw std::exception();
@@ -973,6 +975,9 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
         throw std::runtime_error("Open shared directory failed. Please check whether input path is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
     }
     std::transform(opName.begin(), opName.end(), opName.begin(), ::tolower);
+    if (need_algo) {
+        outfile << "HCCL_ALGO=" << hccl_algo << "\n";
+    }
     outfile << opName << " " << dataVol << " " << std::to_string(currRank) << "\n";
     outfile.close();
 }
