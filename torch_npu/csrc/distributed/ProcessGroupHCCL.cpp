@@ -2068,7 +2068,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
         auto inputTensors_ = inputTensors.back();
         const auto num_reduces = inputTensors_.size();
         std::vector<c10::intrusive_ptr<c10d::Work>> works;
-        for (const int i : c10::irange(num_reduces)) {
+        for (const auto i : c10::irange(num_reduces)) {
             auto& input = inputTensors_[i];
             auto& output = (i == rank_) ? outputTensor : input;
             auto reduceOpts = c10d::ReduceOptions{
