@@ -1,5 +1,5 @@
 # torch cpu版本安装方式
-torch==2.4.0 --index-url https://download.pytorch.org/whl/test/cpu
+torch==2.5.0.dev20240701 --index-url https://download.pytorch.org/whl/nightly/cpu
 # torch-npu 安装方式
 # torch_npu 在 master 分支的构建包目前对外只有编译安装的方式
 
@@ -15,6 +15,5 @@ Pillow==9.1.0
 requests==2.31.0
 torch_geometric==2.5.3
 torch-scatter==2.1.2 -f https://data.pyg.org/whl/torch-2.3.0+cpu.html
-torchvision==0.19.0 --index-url https://download.pytorch.org/whl/test/cpu
+torchvision==0.20.0.dev20240701 --index-url https://download.pytorch.org/whl/nightly/cpu
 transformers==4.40.0
-
