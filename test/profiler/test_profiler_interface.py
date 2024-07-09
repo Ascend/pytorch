@@ -9,7 +9,7 @@ from torch_npu.profiler.profiler_interface import ProfInterface
 from torch_npu.profiler.profiler_path_creator import ProfPathCreator
 from torch_npu.profiler import supported_activities
 from torch_npu._C._profiler import ProfilerActivity
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestActionController(TestCase):

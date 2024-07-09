@@ -7,8 +7,8 @@ import torch
 from torch.autograd import Variable
 import torch_npu
 
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import freeze_rng_state
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._internal.common_utils import freeze_rng_state
 
 
 class TestNpu(TestCase):

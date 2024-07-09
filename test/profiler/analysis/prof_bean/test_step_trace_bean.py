@@ -1,5 +1,5 @@
 from torch_npu.profiler.analysis.prof_bean.step_trace_bean import StepTraceBean
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestStepTraceBean(TestCase):

@@ -42,8 +42,8 @@ from torch.testing._internal.distributed._shard.sharded_tensor import (
 )
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
-from torch_npu.testing.testcase import run_tests
+from torch_npu.testing._internal.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._testcase import run_tests
 
 
 class TestModule(torch.nn.Module):

@@ -2,7 +2,7 @@ from torch_npu.profiler.analysis.prof_common_func.constant import (
     convert_ns2us_float, convert_us2ns, convert_ns2us_str, contact_2num
 )
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestConstant(TestCase):

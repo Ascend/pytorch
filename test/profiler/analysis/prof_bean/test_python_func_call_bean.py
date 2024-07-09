@@ -2,7 +2,7 @@ import random
 import struct
 from torch_npu.profiler.analysis.prof_bean.python_func_call_bean import PythonFuncCallBean
 from torch_npu.profiler.analysis.prof_common_func.constant import Constant
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestPythonFuncCallBean(TestCase):

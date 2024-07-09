@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from torch_npu.profiler.analysis.prof_bean.l2_cache_bean import L2CacheBean
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestL2CacheBean(TestCase):

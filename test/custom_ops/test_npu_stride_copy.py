@@ -3,8 +3,8 @@ import torch
 import numpy as np
 
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._internal.common_utils import create_common_tensor
 
 
 class TestNpuStrideCopy(TestCase):

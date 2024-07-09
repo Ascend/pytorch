@@ -4,8 +4,8 @@ import torch
 import torch_npu
 from torch_npu.contrib.module import MultiheadAttention
 from torch_npu.contrib.module.multihead_attention import MHAConfig
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._internal.common_utils import create_common_tensor
 
 FORMAT_ND = 2
 FORMAT_NZ = 29

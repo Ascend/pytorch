@@ -6,7 +6,7 @@ import torch
 import torch.utils.cpp_extension
 
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 PYTORCH_INSTALL_PATH = os.path.dirname(os.path.realpath(torch.__file__))

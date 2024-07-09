@@ -6,7 +6,7 @@ import json
 from torch_npu.profiler.analysis.prof_bean.ge_memory_record_bean import GeMemoryRecordBean
 from torch_npu.profiler.analysis.prof_common_func.file_manager import FileManager
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestFileManager(TestCase):

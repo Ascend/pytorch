@@ -9,7 +9,7 @@ import torch_npu
 
 # Due to compilation caching, we need to start a new process to load tensor,
 # otherwise the cache will be reused without any errors.
-# Because torch_npu.testing.testcase.TestCase will set device first and we set device
+# Because torch_npu.testing._testcase.TestCase will set device first and we set device
 # in main process then subprocess will raise error, we need a new file without set device
 # to test this case.
 

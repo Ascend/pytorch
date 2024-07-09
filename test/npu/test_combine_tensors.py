@@ -2,8 +2,8 @@ import torch
 import torch_npu
 from torch_npu.utils import npu_combine_tensors, get_part_combined_tensor, is_combined_tensor_valid
 
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import Dtypes, instantiate_tests
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._decorator import Dtypes, instantiate_tests
 
 
 @instantiate_tests

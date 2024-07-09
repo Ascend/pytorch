@@ -10,7 +10,7 @@ from torch_npu.optim import (
     NpuFusedRMSprop, NpuFusedRMSpropTF
 )
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestFusedOptim(TestCase):

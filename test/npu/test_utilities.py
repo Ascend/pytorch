@@ -3,7 +3,7 @@ import unittest
 import torch
 import numpy as np
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 device = 'npu:0'
 torch.npu.set_device(device)

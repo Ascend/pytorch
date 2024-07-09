@@ -38,7 +38,7 @@ except ImportError:
     HAS_TORCHVISION = False
 
 import torch_npu
-from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_distributed import skipIfUnsupportMultiNPU
 
 
 def _get_backend_for_tests():

@@ -1,6 +1,6 @@
 from torch_npu.profiler.analysis.prof_common_func.host_info import _get_host_info
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestHostInfo(TestCase):

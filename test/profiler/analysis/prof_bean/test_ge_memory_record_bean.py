@@ -1,5 +1,5 @@
 from torch_npu.profiler.analysis.prof_bean.ge_memory_record_bean import GeMemoryRecordBean
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestGeMemoryRecordBean(TestCase):

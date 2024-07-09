@@ -1,8 +1,8 @@
 import os
 import unittest
 import torch.distributed.run as launch
-from torch_npu.testing.testcase import run_tests, TestCase
-from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
+from torch_npu.testing._testcase import run_tests, TestCase
+from torch_npu.testing._internal.common_distributed import skipIfUnsupportMultiNPU
 
 
 def path(script):

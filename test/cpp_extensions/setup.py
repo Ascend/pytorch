@@ -5,7 +5,7 @@ from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension
 
 from torch_npu.utils.cpp_extension import NpuExtension
-from torch_npu.testing.common_utils import set_npu_device
+from torch_npu.testing._internal.common_utils import set_npu_device
 
 set_npu_device()
 

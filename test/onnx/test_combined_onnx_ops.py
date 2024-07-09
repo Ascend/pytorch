@@ -7,7 +7,7 @@ from torch.nn.parameter import Parameter
 from torch.nn import init
 
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 import torch_npu.onnx
 from torch_npu.utils.path_manager import PathManager
 

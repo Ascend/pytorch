@@ -15,7 +15,7 @@ import torch.utils.data.distributed
 import torchvision.models as models
 
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 BATCH_SIZE = 128
 EPOCHS_SIZE = 1

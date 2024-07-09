@@ -6,8 +6,8 @@ import torch
 
 import torch_npu
 import torch_npu.onnx
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import SupportedDevices
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._internal.common_utils import SupportedDevices
 from torch_npu.utils.path_manager import PathManager
 
 # acl format

@@ -1,6 +1,6 @@
 from torch_npu.profiler.analysis.prof_common_func.time_range_calculator import CommunicationTimeRange, RangeCaculator
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestTimeRangeCalculator(TestCase):

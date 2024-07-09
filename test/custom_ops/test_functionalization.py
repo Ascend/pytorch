@@ -7,8 +7,8 @@ from torch.library import Library, impl
 from torch.utils._pytree import tree_map, tree_map_only, tree_flatten
 from torch._dispatch.python import enable_crossref_functionalize, enable_python_dispatcher
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import SupportedDevices
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._internal.common_utils import SupportedDevices
 
 
 # meta register implementation

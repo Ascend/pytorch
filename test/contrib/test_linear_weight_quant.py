@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch_npu
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 from torch_npu.contrib.module import LinearWeightQuant
 
 DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]

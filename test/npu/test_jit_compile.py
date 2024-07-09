@@ -4,7 +4,7 @@ import torch
 import torch_npu
 import torch_npu._C
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestJitCompile(TestCase):

@@ -10,7 +10,7 @@ from torch_npu.profiler.analysis.prof_common_func.task_manager import (
     TaskMsgType, ConcurrentTask, ConcurrentMode, TaskStatus
 )
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TaskSuccess(ConcurrentTask):

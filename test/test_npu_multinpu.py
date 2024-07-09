@@ -18,7 +18,7 @@ import torch.cuda.comm as comm
 from torch.nn.parallel import scatter_gather
 import torch_npu
 import torch_npu.testing
-from torch_npu.testing.common_utils import get_cycles_per_ms
+from torch_npu.testing._internal.common_utils import get_cycles_per_ms
 from torch.testing._internal.common_utils import (
     IS_JETSON,
     IS_REMOTE_GPU,

@@ -1,6 +1,6 @@
 from torch_npu.profiler.analysis.prof_bean.op_summary_bean import OpSummaryBean
 from torch_npu.profiler.analysis.prof_common_func.csv_headers import CsvHeaders
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestOpSummaryBean(TestCase):

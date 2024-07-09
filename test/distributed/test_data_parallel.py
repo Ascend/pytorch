@@ -9,7 +9,7 @@ from torch.testing._internal.common_utils import run_tests, TestCase
 
 import torch_npu
 from torch_npu.npu.amp.autocast_mode import autocast
-from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_distributed import skipIfUnsupportMultiNPU
 
 
 class TestDataParallel(TestCase):

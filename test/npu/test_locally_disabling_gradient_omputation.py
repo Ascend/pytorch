@@ -1,5 +1,5 @@
 import torch
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 import torch_npu
 

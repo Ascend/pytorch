@@ -2,7 +2,7 @@ import os
 import torch
 import torch.distributed as dist
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 os.environ["MASTER_ADDR"] = '127.0.0.1'
 os.environ["MASTER_PORT"] = "29500"

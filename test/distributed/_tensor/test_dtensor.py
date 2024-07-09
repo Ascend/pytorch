@@ -26,7 +26,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
 )
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
 class DummyMLP(torch.nn.Module):

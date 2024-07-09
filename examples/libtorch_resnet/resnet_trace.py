@@ -2,7 +2,7 @@ import os
 import torch
 import torchvision
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestJitTrace(TestCase):

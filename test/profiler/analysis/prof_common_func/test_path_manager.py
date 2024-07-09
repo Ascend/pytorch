@@ -7,7 +7,7 @@ from torch_npu.profiler.analysis.prof_common_func.constant import Constant
 from torch_npu.profiler.analysis.prof_common_func.file_manager import FileManager
 from torch_npu.profiler.analysis.prof_common_func.path_manager import ProfilerPathManager
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 from torch_npu.utils.path_manager import PathManager
 
 

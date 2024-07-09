@@ -35,7 +35,7 @@ from torch._dynamo import disable as disable_dynamo
 
 from torch.testing._internal.common_device_type import largeTensorTest
 from torch.optim.optimizer import register_optimizer_step_pre_hook, register_optimizer_step_post_hook
-from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_distributed import skipIfUnsupportMultiNPU
 
 # load_tests from common_utils is used to automatically filter tests for
 # sharding on sandcastle. This line silences flake warnings

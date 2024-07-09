@@ -2,9 +2,9 @@ import itertools
 import torch
 import numpy as np
 
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_dtype_tensor
-from torch_npu.testing.decorator import Dtypes, Formats, instantiate_tests
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._internal.common_utils import create_dtype_tensor
+from torch_npu.testing._decorator import Dtypes, Formats, instantiate_tests
 
 
 # For testing TestCase methods and torch_npu.testing functions

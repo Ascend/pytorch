@@ -2,7 +2,7 @@ import random
 
 from torch_npu.profiler.analysis.prof_bean.npu_mem_bean import NpuMemoryBean
 from torch_npu.profiler.analysis.prof_common_func.constant import Constant
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestNpuMemoryBean(TestCase):

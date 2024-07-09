@@ -3,8 +3,8 @@ import torch
 from torch.testing import make_tensor
 
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import Dtypes, instantiate_tests
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._decorator import Dtypes, instantiate_tests
 
 
 @instantiate_tests

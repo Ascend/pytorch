@@ -25,7 +25,7 @@ from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
 
 import torch_npu
 from torch_npu.utils.path_manager import PathManager
-from torch_npu.testing.common_distributed import TEST_SKIPS, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_distributed import TEST_SKIPS, skipIfUnsupportMultiNPU
 
 try:
     import torchvision

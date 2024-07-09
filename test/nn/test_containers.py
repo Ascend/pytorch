@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.nn import Parameter
 import torch_npu
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 device = 'npu:0'
 torch.npu.set_device(device)

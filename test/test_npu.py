@@ -34,7 +34,7 @@ from torch.testing._internal.common_utils import TestCase, freeze_rng_state, run
     get_cycles_per_ms, parametrize, instantiate_parametrized_tests, subtest, IS_JETSON, gcIfJetson, NoTest, IS_LINUX
 from torch.testing._internal.autocast_test_lists import AutocastTestLists
 from torch.utils.viz._cycles import observe_tensor_cycles
-from torch_npu.testing.common_utils import _create_scaling_case, _create_scaling_models_optimizers
+from torch_npu.testing._internal.common_utils import _create_scaling_case, _create_scaling_models_optimizers
 
 # load_tests from common_utils is used to automatically filter tests for
 # sharding on sandcastle. This line silences flake warnings

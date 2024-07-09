@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.parallel as dp
 from torch.testing._internal.jit_utils import JitTestCase
-from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_distributed import skipIfUnsupportMultiNPU
 
 # Make the helper files in test/ importable
 pytorch_test_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))

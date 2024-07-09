@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TorchBackendsApiTestCase(TestCase):

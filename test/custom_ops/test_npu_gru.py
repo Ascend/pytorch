@@ -2,8 +2,8 @@ import torch
 from torch import _VF
 import torch_npu
 
-from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._internal.common_utils import create_common_tensor
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestGru(TestCase):

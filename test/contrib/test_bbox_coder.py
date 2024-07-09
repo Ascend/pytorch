@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import torch
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 from torch_npu.contrib.function import npu_bbox_coder_encode_yolo, \
     npu_bbox_coder_encode_xyxy2xywh, npu_bbox_coder_decode_xywh2xyxy
 

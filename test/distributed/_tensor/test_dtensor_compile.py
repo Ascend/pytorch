@@ -39,7 +39,7 @@ from functorch.compile import min_cut_rematerialization_partition
 from torch._dynamo.backends.common import aot_autograd
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
 class SimpleModel(nn.Module):

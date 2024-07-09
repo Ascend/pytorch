@@ -3,9 +3,9 @@ import torch
 import numpy as np
 
 import torch_npu
-from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import SupportedDevices
+from torch_npu.testing._internal.common_distributed import skipIfUnsupportMultiNPU
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._internal.common_utils import SupportedDevices
 
 os.environ['PYTORCH_NPU_ALLOC_CONF'] = 'expandable_segments:False'
 

@@ -6,7 +6,7 @@ import unittest
 
 import torch
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 try:
     import torch_test_cpp_extension.npu as npu_extension

@@ -7,7 +7,7 @@ from torch.testing._internal.common_utils import run_tests, TEST_WITH_DEV_DBG_AS
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 if TEST_WITH_DEV_DBG_ASAN:
     raise RuntimeError("Skip dev-asan as torch + multiprocessing spawn have known issues")

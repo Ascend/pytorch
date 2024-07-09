@@ -16,8 +16,8 @@ from torch.distributed.distributed_c10d import broadcast_object_list
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
-from torch_npu.testing.testcase import run_tests
+from torch_npu.testing._internal.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._testcase import run_tests
 
 
 class DistTensorRandomInitTest(DTensorTestBase):

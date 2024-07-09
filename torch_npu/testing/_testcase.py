@@ -26,8 +26,8 @@ import numpy as np
 
 from torch import inf
 
-from torch_npu.testing.common_utils import set_npu_device, is_iterable, iter_indices
-from torch_npu.testing.common_utils import PERF_TEST_ENABLE, PerfBaseline
+from torch_npu.testing._internal.common_utils import set_npu_device, is_iterable, iter_indices
+from torch_npu.testing._internal.common_utils import PERF_TEST_ENABLE, PerfBaseline
 
 # Environment variables set in ci script.
 IS_IN_CI = os.getenv('IN_CI') == '1'
@@ -412,8 +412,8 @@ class TestCase(expecttest.TestCase):
             try:
                 self.assertGreaterEqual(abs(x - y), prec, message)
                 return
-            except (TypeError, AssertionError):
-                pass
+            except (TypeError, AssertionError) as e:
+                print(f"Assertion failed: {e}")
             super(TestCase, self).assertNotEqual(x, y, message)
 
     def assertObjectIn(self, obj, iterable):

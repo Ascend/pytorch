@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from torch_npu.profiler.profiler_action_controller import ProfActionController
 from torch_npu.profiler.profiler_interface import ProfInterface
 from torch_npu.profiler import ProfilerAction
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing._testcase import TestCase, run_tests
 
 
 class TestActionController(TestCase):

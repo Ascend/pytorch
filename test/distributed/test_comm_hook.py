@@ -8,8 +8,8 @@ import torch.multiprocessing as mp
 from torch import nn
 
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._internal.common_distributed import skipIfUnsupportMultiNPU
 
 
 class TestDdpCommHook(nn.Module):

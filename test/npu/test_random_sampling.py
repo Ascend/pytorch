@@ -2,8 +2,8 @@ import unittest
 import torch
 import torch_npu
 
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import freeze_rng_state
+from torch_npu.testing._testcase import TestCase, run_tests
+from torch_npu.testing._internal.common_utils import freeze_rng_state
 
 TEST_NPU_SUPPORT = False
 TEST_NPU = torch.npu.is_available()
