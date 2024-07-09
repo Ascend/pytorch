@@ -65,7 +65,7 @@ class TestFwdGradients(TestGradients):
     @_gradcheck_ops(op_db)
     @skipif(
         platform.machine() == "s390x",
-        reason="Different precision of openblas functions: https://github.com/OpenMathLib/OpenBLAS/issues/4194",
+        reason="Different precision of openblas functions: OpenMathLib/OpenBLAS/issues/4194",
     )
     def test_forward_mode_AD(self, device, dtype, op):
         self._skip_helper(op, device, dtype)

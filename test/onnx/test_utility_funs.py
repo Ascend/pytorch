@@ -472,7 +472,7 @@ class TestUtilityFuns(_BaseTestCase):
                 # but it is not right!)
                 #
                 # More commentary at
-                # https://github.com/pytorch/pytorch/pull/18698/files#r340107552
+                # pytorch/pull/18698/files#r340107552
                 a = torch.tensor([[1.0, 2.0, 3.0]]).to(torch.float)
                 b = torch.tensor([[4.0, 5.0, 6.0]]).to(torch.float)
                 c = torch.cat((a, b), 0)
