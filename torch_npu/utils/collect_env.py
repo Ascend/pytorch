@@ -4,9 +4,20 @@ import sys
 import os
 from collections import namedtuple
 
-import torch
 from torch.utils import collect_env as torch_collect_env
 import torch_npu.utils.path_manager
+
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except (ImportError, NameError, AttributeError, OSError):
+    TORCH_AVAILABLE = False
+
+try:
+    import torch_npu
+    TORCH_NPU_AVAILABLE = True
+except (ImportError, NameError, AttributeError, OSError):
+    TORCH_NPU_AVAILABLE = False
 
 
 # System Environment Information
@@ -49,11 +60,6 @@ def get_cann_version():
 
 
 def get_torch_npu_version():
-    try:
-        import torch_npu
-        TORCH_NPU_AVAILABLE = True
-    except (ImportError, NameError, AttributeError, OSError):
-        TORCH_NPU_AVAILABLE = False
     torch_npu_version_str = 'N/A'
     if TORCH_NPU_AVAILABLE:
         torch_npu_version_str = torch_npu.__version__
@@ -66,8 +72,11 @@ def get_env_info():
     run_lambda = torch_collect_env.run
     pip_version, pip_list_output = torch_collect_env.get_pip_packages(run_lambda)
 
-    version_str = torch.__version__
-    debug_mode_str = str(torch.version.debug)
+    if TORCH_AVAILABLE:
+        version_str = torch.__version__
+        debug_mode_str = str(torch.version.debug)
+    else:
+        version_str = debug_mode_str = 'N/A'
 
     sys_version = sys.version.replace("\n", " ")
 
@@ -189,7 +198,7 @@ def main():
     output = get_pretty_env_info()
     print(output)
 
-    if hasattr(torch, 'utils') and hasattr(torch.utils, '_crash_handler'):
+    if TORCH_AVAILABLE and hasattr(torch, 'utils') and hasattr(torch.utils, '_crash_handler'):
         minidump_dir = torch.utils._crash_handler.DEFAULT_MINIDUMP_DIR
         if sys.platform == "linux" and os.path.exists(minidump_dir):
             dumps = [os.path.join(minidump_dir, dump) for dump in os.listdir(minidump_dir)]
