@@ -5,6 +5,7 @@ import inspect
 import json
 import os
 import unittest
+import warnings
 from importlib import import_module
 from itertools import chain
 from pathlib import Path
@@ -517,6 +518,16 @@ class TestPublicBindings(TestCase):
           `__module__` that start with the current submodule.
         '''
         failure_list = []
+        
+        try:
+            with open(
+                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'third_party/torchair/torchair/tests/st/allowlist_for_publicAPI.json')) as json_file_torchair:
+                allow_dict_torchair = json.load(json_file_torchair)
+                update_allow_dict_torchair = {f"torch_npu.dynamo.{key}": value for key, value in allow_dict_torchair.items()}
+        except Exception:
+            update_allow_dict_torchair = {}
+            warnings.warn("if you are debugging UT file in clone repo, please recursively update the torchair submodule")
+        
         with open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)),
                                   'allowlist_for_publicAPI.json')) as json_file:
             # no new entries should be added to this allow_dict.
@@ -528,7 +539,10 @@ class TestPublicBindings(TestCase):
             for modname in allow_dict["being_migrated"]:
                 if modname in allow_dict:
                     allow_dict[allow_dict["being_migrated"][modname]] = allow_dict[modname]
-
+                    
+        if update_allow_dict_torchair:
+            allow_dict.update(update_allow_dict_torchair)
+        
         def test_module(modname):
             try:
                 if "__main__" in modname:
