@@ -520,8 +520,10 @@ class TestPublicBindings(TestCase):
         failure_list = []
         
         try:
+            file_abspath = os.path.abspath(__file__)
+            air_path = 'third_party/torchair/torchair/tests/st/allowlist_for_publicAPI.json'
             with open(
-                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'third_party/torchair/torchair/tests/st/allowlist_for_publicAPI.json')) as json_file_torchair:
+                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(file_abspath))), air_path)) as json_file_torchair:
                 allow_dict_torchair = json.load(json_file_torchair)
                 update_allow_dict_torchair = {f"torch_npu.dynamo.{key}": value for key, value in allow_dict_torchair.items()}
         except Exception:
