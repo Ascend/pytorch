@@ -51,7 +51,7 @@ If the installation fails, use the download link or visit the [PyTorch official 
 3. **Install torch-npu**
 
 ```
-pip3 install torch-npu==2.3.1rc1
+pip3 install torch-npu==2.3.1
 ```
 
 ### From Source
@@ -61,7 +61,7 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 1. **Clone torch-npu**
 
    ```
-   git clone https://github.com/ascend/pytorch.git -b v2.3.1 --depth 1
+   git clone https://github.com/ascend/pytorch.git -b v2.3.1-6.0.rc2 --depth 1
    ```
 
 2. **Build Docker Image**
@@ -132,6 +132,10 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 
 | CANN Version          | Supported PyTorch Version | Supported Extension Version | Github Branch     | AscendHub Image Version/Name([Link](https://ascendhub.huawei.com/#/detail/pytorch-modelzoo)) |
 |-----------------------|---------------------------|-----------------------------|-------------------|----------------------------------------------------------------------------------------------|
+| CANN 8.0.RC2          | 2.3.1                     | 2.3.1                      | v2.3.1-6.0.rc2    | -                                                                                            |
+|                       | 2.2.0                     | 2.2.0.post2                | v2.2.0-6.0.rc2    | -                                                                                            |
+|                       | 2.1.0                     | 2.1.0.post6                 | v2.1.0-6.0.rc2    | -                                                                                            |
+|                       | 1.11.0                    | 1.11.0.post14               | v1.11.0-6.0.rc2   | -                                                                                            |
 | CANN 8.0.RC2.alpha002 | 2.3.1                     | 2.3.1rc1                    | v2.3.1            | -                                                                                            |
 | CANN 8.0.RC1          | 2.2.0                     | 2.2.0                       | v2.2.0-6.0.rc1    | -                                                                                            |
 |                       | 2.1.0                     | 2.1.0.post4                 | v2.1.0-6.0.rc1    | -                                                                                            |
@@ -201,11 +205,11 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 ## Reference Documents
 
-For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [Ascend Extension for PyTorch on the HiAI Community](https://www.hiascend.com/software/ai-frameworks/commercial).
+For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [Ascend Extension for PyTorch on the HiAI Community](https://www.hiascend.com/software/ai-frameworks?framework=pytorch).
 
 | Document Name                            | Document Link                                                                                                           |
 |------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| Installation Guide                       | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/quickstart/instg)                                      |
+| Installation Guide                       | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/configandinstg/instg/insg_0001.html)                                      |
 | Network Model Migration and Training     | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html)       |
 | Operator Adaptation                      | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
 | API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/apiref/apilist/ptaoplist_000002.html)                  |
