@@ -20,6 +20,7 @@ import builtins
 import types
 import atexit
 import traceback
+import warnings
 
 from builtins import isinstance as builtin_isinstance
 from typing import Set, Type
@@ -252,6 +253,21 @@ _apply_patches(all_monkey_patches)
 apply_class_patches()
 asd_patch()
 _except_handler.patch_excepthook()
+
+_warn_msg = {
+    "DropoutWithByteMask" : "torch.nn.DropoutWithByteMask is deprecated and will be removed in future version. Use torch_npu.contrib.module.DropoutWithByteMask instead.",
+    "dropout_with_byte_mask" : "torch.nn.functional.dropout_with_byte_mask is deprecated and will be removed in future version. Use torch_npu.contrib.function.dropout_with_byte_mask instead.",
+}
+
+
+def _wrap_torch_patch_warning_func(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        warnings.warn(_warn_msg[func.__name__])
+        return func(*args, **kwargs)
+    return wrapper
+setattr(torch.nn, "DropoutWithByteMask", _wrap_torch_patch_warning_func(torch.nn.DropoutWithByteMask))
+setattr(torch.nn.functional, "dropout_with_byte_mask", _wrap_torch_patch_warning_func(torch.nn.functional.dropout_with_byte_mask))
 
 torch_npu._C._initExtension()
 

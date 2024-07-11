@@ -35,7 +35,7 @@ class TestFuseAddSoftmaxDropout(TestCase):
 
     def test_fuse_add_softmax_dropout(self):
         training = True
-        dropout = nn.DropoutWithByteMask(0)
+        dropout = torch_npu.contrib.module.DropoutWithByteMask(0)
         npu_input1 = torch.rand(96, 12, 384, 384).npu().half()
         npu_input2 = torch.rand(96, 12, 384, 384).npu().half()
         alpha = 64

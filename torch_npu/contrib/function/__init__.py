@@ -22,6 +22,7 @@ from .roll import roll
 from .matmul_transpose import matmul_transpose
 from .fused_attention import npu_fused_attention_with_layernorm, npu_fused_attention
 from .fusion_attention import npu_fusion_attention, npu_fusion_attention_grad
+from .npu_functional import dropout_with_byte_mask
 
 __all__ = [
     "npu_iou",
@@ -41,4 +42,5 @@ __all__ = [
     "matmul_transpose",
     "npu_fused_attention",
     "npu_fused_attention_with_layernorm",
+    "dropout_with_byte_mask",
 ]
