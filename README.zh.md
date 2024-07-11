@@ -58,7 +58,7 @@ pip3 install setuptools
 ```Python
 wget https://gitee.com/ascend/pytorch/releases/download/v6.0.rc1-pytorch1.11.0/torch_npu-1.11.0.post11-cp38-cp38-linux_aarch64.whl
 
-pip3 install torch_npu-1.11.0.post11-cp38-cp38-linux_aarch64.whl
+pip3 install torch_npu-1.11.0.post14-cp38-cp38-linux_aarch64.whl
 ```
 如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
@@ -69,7 +69,7 @@ pip3 install torch_npu-1.11.0.post11-cp38-cp38-linux_aarch64.whl
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git -b v1.11.0 --depth 1
+   git clone https://gitee.com/ascend/pytorch.git -b v1.11.0-6.0.rc2 --depth 1
    ```
 
 2. **构建镜像**
@@ -140,12 +140,17 @@ print(z)
 | PyTorch1.11.0 | Python3.7.x(>=3.7.5), Python3.8.x, Python3.9.x, Python3.10.x |
 | PyTorch2.1.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
 | PyTorch2.2.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
+| PyTorch2.3.1  | Python3.8.x, Python3.9.x, Python3.10.x                       |
 
 ## 昇腾辅助软件
 
 **PyTorch Extension**版本号采用`{PyTorch版本}-{昇腾版本}`命名规则，前者为**PyTorch Extension**匹配的PyTorch版本，后者用于匹配CANN版本，详细匹配如下：
 | CANN版本         | 支持的PyTorch版本 | 支持的Extension版本 | Gitee分支          | AscendHub镜像版本/名称([链接](https://ascendhub.huawei.com/#/detail/pytorch-modelzoo)) |
 |----------------|--------------|-------------------|-------------------|----------------------|
+| CANN 8.0.RC2   | 2.3.1        | 2.3.1             | v2.3.1-6.0.rc2    | -                    |
+|                | 2.2.0        | 2.2.0.post2       | v2.2.0-6.0.rc2    | -                    |
+|                | 2.1.0        | 2.1.0.post6       | v2.1.0-6.0.rc2    | -                    |
+|                | 1.11.0       | 1.11.0.post14     | v1.11.0-6.0.rc2   | -                    |
 | CANN 8.0.RC1   | 2.2.0        | 2.2.0             | v2.2.0-6.0.rc1    | -                    |
 |                | 2.1.0        | 2.1.0.post3       | v2.1.0-6.0.rc1    | -                    |
 |                | 1.11.0       | 1.11.0.post11     | v1.11.0-6.0.rc1   | -                    |
@@ -197,6 +202,7 @@ AscendPyTorch版本分支的维护阶段如下：
 
 | **PyTorch版本** | **维护策略** | **当前状态** | **发布时间** | **后续状态** | **EOL日期** |
 |-----------|-----------|--------|------------|-----------------------|-----------|
+| 2.3.1     |  常规版本  | 维护   | 2024/06/06 | 预计2024/12/06起无维护 |           |
 | 2.2.0     |  常规版本  | 维护   | 2024/04/01 | 预计2024/10/15起无维护 |           |
 | 2.1.0     |  长期支持  | 维护   | 2023/10/15 | 预计2024/10/15起无维护 |           |
 | 2.0.1     |  常规版本  | EOL    | 2023/7/19  |                        | 2024/3/14 |
@@ -210,13 +216,13 @@ AscendPyTorch版本分支的维护阶段如下：
 
 ## 参考文档
 
-有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区Ascend Extension for PyTorch](https://www.hiascend.com/software/ai-frameworks/commercial)。
+有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区Ascend Extension for PyTorch](https://www.hiascend.com/software/ai-frameworks?framework=pytorch)。
 
 | 文档名称                   | 文档链接                                                     |
 | -------------------------- | ------------------------------------------------------------ |
-| AscendPyTorch 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/quickstart/instg) |
+| AscendPyTorch 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/configandinstg/instg/insg_0001.html) |
 | AscendPyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html) |
-| AscendPyTorch 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/700/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
+| AscendPyTorch 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/80RC1/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0048.html) |
 | AscendPyTorch API清单（PyTorch原生接口与自定义接口）            | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/apiref/apilist/ptaoplist_000002.html) |
 
 ## 许可证
