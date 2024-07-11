@@ -124,6 +124,7 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 | PyTorch1.11.0 | Python3.7.x(>=3.7.5),Python3.8.x,Python3.9.x,Python3.10.x |
 | PyTorch2.1.0  | Python3.8.x,Python3.9.x,Python3.10.x                       |
 | PyTorch2.2.0  | Python3.8.x,Python3.9.x,Python3.10.x                       |
+| PyTorch2.3.1  | Python3.8.x, Python3.9.x, Python3.10.x                       |
 
 ## Ascend Auxiliary Software
 
@@ -131,6 +132,10 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 
 | CANN Version         | Supported PyTorch Version | Supported Extension Version | Github Branch          | AscendHub Image Version/Name([Link](https://ascendhub.huawei.com/#/detail/pytorch-modelzoo)) |
 |----------------|--------------|-------------------|-------------------|----------------------|
+| CANN 8.0.RC2   | 2.3.1        | 2.3.1             | v2.3.1-6.0.rc2    | -                    |
+|                | 2.2.0        | 2.2.0.post2       | v2.2.0-6.0.rc2    | -                    |
+|                | 2.1.0        | 2.1.0.post6       | v2.1.0-6.0.rc2    | -                    |
+|                | 1.11.0       | 1.11.0.post14     | v1.11.0-6.0.rc2   | -                    |
 | CANN 8.0.RC1   | 2.2.0        | 2.2.0             | v2.2.0-6.0.rc1    | -                    |
 |                | 2.1.0        | 2.1.0.post3       | v2.1.0-6.0.rc1    | -                    |
 |                | 1.11.0       | 1.11.0.post11     | v1.11.0-6.0.rc1   | -                    |
@@ -189,6 +194,7 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 | **PyTorch** |  **Maintenance Policies** | **Status** | **Launch Date**       | **Subsequent Status**            | **EOL Date**     |
 |-----------|--------------------|--------------|------------|-----------------|-----------|
+| 2.3.1     |  Regular Release  | Maintained   | 2024/06/06 | Unmaintained 2024/12/06 estimated |           |
 | 2.2.0     |  Regular Release  | Maintained   | 2024/04/01 | Unmaintained 2024-10-15 estimated |           |
 | 2.1.0     | Long Term Support  | Maintained   | 2023/10/15 | Unmaintained 2024-10-15 estimated |           |
 | 2.0.1     | Regular Release    | EOL   | 2023/7/19  |   | 2024/3/14          |
@@ -198,13 +204,13 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 ## Reference Documents
 
-For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [Ascend Extension for PyTorch on the HiAI Community](https://www.hiascend.com/software/ai-frameworks/commercial).
+For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [Ascend Extension for PyTorch on the HiAI Community](https://www.hiascend.com/software/ai-frameworks?framework=pytorch).
 
 | Document Name                    | Document Link                                                 |
 | -------------------------------- | ------------------------------------------------------------ |
-| Installation Guide  | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/quickstart/instg) |
+| Installation Guide  | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/configandinstg/instg/insg_0001.html) |
 | Network Model Migration and Training | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html) |
-| Operator Adaptation | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
+| Operator Adaptation | [link](https://www.hiascend.com/document/detail/zh/canncommercial/80RC1/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0048.html) |
 | API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/apiref/apilist/ptaoplist_000002.html) |
 
 ## License
