@@ -4,6 +4,7 @@ import types
 import atexit
 import traceback
 import ctypes
+import warnings
 
 from functools import wraps
 
@@ -155,6 +156,21 @@ _apply_distributed_patches()
 _apply_class_patches()
 _asd_patch()
 _except_handler.patch_excepthook()
+
+_warn_msg = {
+    "DropoutWithByteMask" : "torch.nn.DropoutWithByteMask is deprecated and will be removed in future version. Use torch_npu.contrib.module.DropoutWithByteMask instead.",
+    "dropout_with_byte_mask" : "torch.nn.functional.dropout_with_byte_mask is deprecated and will be removed in future version. Use torch_npu.contrib.function.dropout_with_byte_mask instead.",
+}
+
+
+def _wrap_torch_patch_warning_func(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        warnings.warn(_warn_msg[func.__name__])
+        return func(*args, **kwargs)
+    return wrapper
+setattr(torch.nn, "DropoutWithByteMask", _wrap_torch_patch_warning_func(torch.nn.DropoutWithByteMask))
+setattr(torch.nn.functional, "dropout_with_byte_mask", _wrap_torch_patch_warning_func(torch.nn.functional.dropout_with_byte_mask))
 # this must be placed at the end
 torch_npu._C._initExtension()
 

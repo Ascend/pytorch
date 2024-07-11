@@ -10,7 +10,7 @@ def fuse_add_softmax_dropout(training, dropout, attn_mask, attn_scores, attn_hea
 
     Examples::
     >>> training = True
-    >>> dropout = nn.DropoutWithByteMask(0.1)
+    >>> dropout = torch_npu.contrib.module.DropoutWithByteMask(0.1)
     >>> npu_input1 = torch.rand(96, 12, 384, 384).half().npu()
     >>> npu_input2 = torch.rand(96, 12, 384, 384).half().npu()
     >>> alpha = 0.125
