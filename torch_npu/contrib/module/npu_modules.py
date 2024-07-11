@@ -26,7 +26,7 @@ class DropoutWithByteMask(Module):
 
     Examples::
 
-        >>> m = nn.DropoutWithByteMask(p=0.5)
+        >>> m = torch_npu.contrib.module.DropoutWithByteMask(p=0.5)
         >>> input = torch.randn(16, 16)
         >>> output = m(input)
     """

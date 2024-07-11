@@ -13,7 +13,7 @@ class TestFusedAttentionScoreFwd(TestCase):
         attn_scores = mask + attention_scores * scale
         attn_probss = torch.nn.functional.softmax(attn_scores, dim=-1)
         drop_p = 1 - keep_prob
-        drop = torch.nn.DropoutWithByteMask(p=drop_p).npu()
+        drop = torch_npu.contrib.module.DropoutWithByteMask(p=drop_p).npu()
         attn_probs = drop(attn_probss)
         context_layer = torch.matmul(attn_probs, v)
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
