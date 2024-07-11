@@ -69,6 +69,7 @@ constexpr size_t kSmallBuffer = 2097152; // "small" allocations are packed in 2 
 constexpr size_t kLargeBuffer = 20971520; // "large" allocations may be packed in 20 MiB blocks
 constexpr size_t kMinLargeAlloc = 10485760; // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kRoundLarge = 2097152; // round up large allocs to 2 MiB
+constexpr size_t kAlignRoundLarge = 16384; // round up large allocs to 16 KB
 
 using StatTypes = std::array<bool, static_cast<size_t>(StatType::NUM_TYPES)>;
 
@@ -616,9 +617,12 @@ class CachingAllocatorConfig {
   CachingAllocatorConfig()
       : m_max_split_size(std::numeric_limits<size_t>::max()),
         m_garbage_collection_threshold(0),
-        m_expandable_segments(true),
+        m_expandable_segments(false),
         m_align_hugepages(false)
         {
+            TORCH_NPU_WARN_ONCE(
+                "expandable_segments currently defaults to false. "
+                "You can enable this feature by `export PYTORCH_NPU_ALLOC_CONF = expandable_segments:True`.");
             void* ptr = nullptr;
             auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
             if (status == ACL_ERROR_NONE) {
@@ -626,7 +630,6 @@ class CachingAllocatorConfig {
             } else {
                 TORCH_NPU_WARN_ONCE("expandable_segments feature is not supportted \
                     and the possible cause is that driver and firmware packages do not match.");
-                m_expandable_segments = false;
             }
         }
 
@@ -1016,8 +1019,8 @@ class DeviceCachingAllocator {
 
     int64_t ori_block_ptr = int64_t(params.block->ptr);
     if (params.size() >= kRoundLarge && CachingAllocatorConfig::expandable_segments() &&
-        ori_block_ptr % kRoundLarge != 0 && CachingAllocatorConfig::align_hugepages()) {
-        char* align_ptr = reinterpret_cast<char*>((ori_block_ptr + kRoundLarge) - (ori_block_ptr % kRoundLarge));
+        ori_block_ptr % kAlignRoundLarge != 0 && CachingAllocatorConfig::align_hugepages()) {
+        char* align_ptr = reinterpret_cast<char*>((ori_block_ptr + kAlignRoundLarge) - (ori_block_ptr % kAlignRoundLarge));
         size_t offset_size = align_ptr - (char*)params.block->ptr;
         if (offset_size + params.size() <= params.block->size) {
             auto size = params.block->size;
