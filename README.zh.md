@@ -133,6 +133,7 @@ print(z)
 | PyTorch1.11.0 | Python3.7.x(>=3.7.5), Python3.8.x, Python3.9.x, Python3.10.x |
 | PyTorch2.1.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
 | PyTorch2.2.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
+| PyTorch2.3.1  | Python3.8.x, Python3.9.x, Python3.10.x                       |
 
 ## 昇腾辅助软件
 
@@ -190,6 +191,7 @@ AscendPyTorch版本分支的维护阶段如下：
 
 | **PyTorch版本** | **维护策略** | **当前状态** | **发布时间** | **后续状态** | **EOL日期** |
 |-----------|-----------|--------|------------|-----------------------|-----------|
+| 2.3.1     |  常规版本  | 维护   | 2024/06/06 | 预计2024/12/06起无维护 |           |
 | 2.2.0     |  常规版本  | 维护   | 2024/04/01 | 预计2024/10/15起无维护 |           |
 | 2.1.0     |  长期支持  | 维护   | 2023/10/15 | 预计2024/10/15起无维护 |           |
 | 2.0.1     |  常规版本  | EOL   | 2023/7/19  |   |  2024/3/14          |
@@ -203,13 +205,13 @@ AscendPyTorch版本分支的维护阶段如下：
 
 ## 参考文档
 
-有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区Ascend Extension for PyTorch](https://www.hiascend.com/software/ai-frameworks/commercial)。
+有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区Ascend Extension for PyTorch](https://www.hiascend.com/software/ai-frameworks?framework=pytorch)。
 
 | 文档名称                   | 文档链接                                                     |
 | -------------------------- | ------------------------------------------------------------ |
-| 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/quickstart/instg/instg_0163.html) |
+| 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/configandinstg/instg/insg_0001.html) |
 | 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html) |
-| 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/700/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
+| 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/80RC1/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0048.html) |
 | API清单（PyTorch原生接口与自定义接口）            | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/apiref/apilist/ptaoplist_000002.html) |
 
 ## 许可证
