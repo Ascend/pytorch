@@ -154,7 +154,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         }                                                                    \
     } while (0)
 
-#define NPU_CHECK_SUPPORTED_OR_ERROR(err_code)                                   \
+#define NPU_CHECK_SUPPORTED_OR_ERROR(err_code, ...)                              \
     do {                                                                         \
         auto Error = err_code;                                                   \
         static c10_npu::acl::AclErrorCode err_map;                               \
@@ -175,7 +175,8 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                     __FILE__,                                                    \
                     ":",                                                         \
                     __LINE__,                                                    \
-                    " NPU error, error code is ", Error,                         \
+                    " NPU function error: ", getErrorFunction(#err_code, ##__VA_ARGS__),    \
+                    ", error code is ", Error,                                   \
                     (err_map.error_code_map.find(Error) !=                       \
                     err_map.error_code_map.end() ?                               \
                     "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
