@@ -15,6 +15,7 @@ namespace hccl {
  */
 extern HcclResult HcclGetCommNameFace(HcclComm commHandle, char* commName);
 
+extern HcclResult HcclCommResumeFace(HcclComm comm);
 
 } // namespace native
 } // namespace at_npu

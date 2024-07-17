@@ -6,17 +6,19 @@ import contextlib
 
 import torch
 from torch._utils import _get_device_index as _torch_get_device_index
+from torch.distributed.distributed_c10d import _pg_map
 
 import torch_npu
 import torch_npu._C
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils.error_code import ErrCode, pta_error, _except_handler
 
 
 __all__ = ["synchronize", "device_count", "can_device_access_peer", "set_device", "current_device", "get_device_name",
            "get_device_properties", "mem_get_info", "get_device_capability", "utilization", "device", "device_of",
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "get_soc_version", "is_support_inf_nan", "is_bf16_supported",
-           "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle"]
+           "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
+           "stop_device", "restart_device", "check_uce_in_memory"]
 
 
 def synchronize(device=None):
@@ -382,3 +384,23 @@ def clear_npu_overflow_flag():
 def current_blas_handle():
     warnings.warn("NPU does not use blas handle.")
     return None
+
+
+def stop_device(device_id):
+    torch_npu.npu._lazy_init()
+    torch_npu._C._npu_stopDevice(device_id)
+    _except_handler.set_force_stop_exception(True)
+    for pg in _pg_map:
+        if (torch.device('npu') in pg._device_types):
+            pg._get_backend(torch.device('npu')).resume_hccl_comm(device_id)
+
+
+def restart_device(device_id):
+    torch_npu.npu._lazy_init()
+    torch_npu._C._npu_restart_device(device_id)
+    _except_handler.set_force_stop_exception(False)
+
+
+def check_uce_in_memory(device_id):
+    torch_npu.npu._lazy_init()
+    return torch_npu._C._npu_check_uce_in_memory(device_id)

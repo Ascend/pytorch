@@ -42,16 +42,12 @@ void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSi
     }
 
     // The current logic is only used in single op mode.
-    aclError error = c10_npu::queue::LaunchAsyncCopyTask(
+    NPU_CHECK_ERROR(c10_npu::queue::LaunchAsyncCopyTask(
         dst.data_ptr(),
         size * dst.element_size(),
         src.data_ptr(),
         size * dst.element_size(),
-        ACL_MEMCPY_DEVICE_TO_DEVICE);
-    if (error != ACL_ERROR_NONE) {
-        AT_ERROR("async copy device to device error.");
-        return;
-    }
+        ACL_MEMCPY_DEVICE_TO_DEVICE));
 }
 } // namespace native
 } // namespace at_npu

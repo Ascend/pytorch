@@ -140,6 +140,9 @@ aclError OpCommandImpl::InnerRun(
 {
     aclError ret;
     auto stream = c10_npu::getCurrentNPUStream();
+    if (stream.getRepoStopFlag()) {
+        CHECK_AND_THROW_FORCE_STOP(ACL_ERROR_RT_DEVICE_TASK_ABORT);
+    }
     auto inputSize = params.inBuffer.size();
     auto outputSize = params.outBuffer.size();
     // open the deterministicAlgorithms config
@@ -173,6 +176,7 @@ aclError OpCommandImpl::InnerRun(
                 at_npu::native::aoe::aoe_manager().GetDumpGraphPath().c_str(),
                 nullptr);
             if (ret != ACL_ERROR_NONE) {
+                CHECK_AND_THROW_FORCE_STOP(ret);
                 C10_NPU_SHOW_ERR_MSG();
                 TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!", PTA_ERROR(ErrCode::ACL));
             }
@@ -266,11 +270,15 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         try {
             ret = cur_paras->customHandler();
         } catch (std::exception &e) {
-            ret = ACL_ERROR_INVALID_PARAM;
-            LOG(ERROR) << e.what();
+            if (std::string(e.what()).find("device task abort") != std::string::npos) {
+                ret = ACL_ERROR_RT_DEVICE_TASK_ABORT;
+            } else {
+                ret = ACL_ERROR_INVALID_PARAM;
+                LOG(ERROR) << e.what();
+            }
             ASCEND_LOGE("Custom hand error:%s", e.what());
         }
-        if (ret != ACL_ERROR_NONE) {
+        if (ret != ACL_ERROR_NONE && ret!= ACL_ERROR_RT_DEVICE_TASK_ABORT) {
             ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
             C10_NPU_SHOW_ERR_MSG();
         }
@@ -278,7 +286,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     }
     bool reset_flag = false;
     if (!cur_paras->isJitDisable) {
-        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
+        NPU_CHECK_ERROR_WITHOUT_UCE(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
         reset_flag = true;
     }
     if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
@@ -295,7 +303,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             ACL_ENGINE_SYS,
             at_npu::native::aoe::aoe_manager().GetDumpGraphPath().c_str(),
             nullptr);
-        if (ret != ACL_ERROR_NONE) {
+        if (ret != ACL_ERROR_NONE && ret!= ACL_ERROR_RT_DEVICE_TASK_ABORT) {
             ASCEND_LOGE("In aoe mode, AclGenGraphAndDumpForOp failed!");
             C10_NPU_SHOW_ERR_MSG();
             return ret;
@@ -315,10 +323,10 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         nullptr,
         stream);
     if (reset_flag) {
-        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
+        NPU_CHECK_ERROR_WITHOUT_UCE(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
     }
 
-    if (ret != ACL_ERROR_NONE) {
+    if (ret != ACL_ERROR_NONE && ret!= ACL_ERROR_RT_DEVICE_TASK_ABORT) {
         printErrorLog(cur_paras);
         C10_NPU_SHOW_ERR_MSG();
     }
@@ -331,7 +339,7 @@ int MemcopyAsyncFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     auto cur_paras = static_cast<c10_npu::queue::CopyParas *>(in->paramVal);
     aclError ret =
         aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, stream);
-    if (ret != ACL_ERROR_NONE) {
+    if (ret != ACL_ERROR_NONE && ret!= ACL_ERROR_RT_DEVICE_TASK_ABORT) {
         ASCEND_LOGE(
             "aclrtMemcpyAsync error! ret = %d, dstLen = %zu, srcLen = %zu, kind = %d",
             ret,
@@ -348,7 +356,7 @@ int RecordEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
 
     aclError ret = aclrtRecordEvent(cur_paras->event, stream);
-    if (ret != ACL_ERROR_NONE) {
+    if (ret != ACL_ERROR_NONE && ret!= ACL_ERROR_RT_DEVICE_TASK_ABORT) {
         ASCEND_LOGE("aclrtRecordEvent error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
     }
@@ -365,7 +373,7 @@ int WaitEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
     aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
-    if (ret != ACL_ERROR_NONE) {
+    if (ret != ACL_ERROR_NONE && ret!= ACL_ERROR_RT_DEVICE_TASK_ABORT) {
         ASCEND_LOGE(
             "aclrtStreamWaitEvent error! ret = %d, eventAllocatorType = %d",
             ret,
@@ -383,7 +391,7 @@ int LazyDestroyEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
     aclError ret = c10_npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
-    if (ret != ACL_ERROR_NONE) {
+    if (ret != ACL_ERROR_NONE && ret!= ACL_ERROR_RT_DEVICE_TASK_ABORT) {
         ASCEND_LOGE("LazyDestroy error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
     }

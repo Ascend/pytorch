@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ctime>
+#include <mutex>
 #include <cstdarg>
 #include <iostream>
 #include <chrono>
@@ -99,11 +100,44 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
     return args;
 }
 
-#define NPU_CHECK_ERROR(err_code, ...)                                       \
+#define CHECK_AND_THROW_FORCE_STOP(err_code)                                 \
+    if ((err_code) == ACL_ERROR_RT_DEVICE_TASK_ABORT) {                      \
+        c10_npu::set_has_throw_error(true);                                  \
+        TORCH_CHECK(                                                         \
+            false,                                                           \
+            __func__,                                                        \
+            ":",                                                             \
+            __FILE__,                                                        \
+            ":",                                                             \
+            __LINE__,                                                        \
+            " NPU function error: FORCE STOP.",                              \
+            ", error code is ", err_code,                                    \
+            PTA_ERROR(ErrCode::ACL));                                        \
+    }                                                                        \
+
+#define CHECK_AND_THROW_UCE_ERROR()                                  \
+    if (c10_npu::get_has_throw_error() == false && c10_npu::checkUceErrAndRepair()) { \
+        c10_npu::set_has_throw_error(true);                                  \
+        TORCH_CHECK(                                                         \
+            false,                                                           \
+            __func__,                                                        \
+            ":",                                                             \
+            __FILE__,                                                        \
+            ":",                                                             \
+            __LINE__,                                                        \
+            " NPU function error: UCE ERROR.",                               \
+            PTA_ERROR(ErrCode::ACL));                                        \
+    }                                                                        \
+
+#define NPU_CHECK_ERROR_CHECK_UCE(err_code, check_uce, ...)                  \
     do {                                                                     \
         auto Error = err_code;                                               \
         static c10_npu::acl::AclErrorCode err_map;                           \
         if ((Error) != ACL_ERROR_NONE) {                                     \
+            if (check_uce) {                                                 \
+                CHECK_AND_THROW_FORCE_STOP(Error);                           \
+                CHECK_AND_THROW_UCE_ERROR();                            \
+            }                                                                \
             TORCH_CHECK(                                                     \
                 false,                                                       \
                 __func__,                                                    \
@@ -121,11 +155,16 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         }                                                                    \
     } while (0)
 
+#define NPU_CHECK_ERROR_WITHOUT_UCE(err_code, ...) NPU_CHECK_ERROR_CHECK_UCE(err_code, false, ##__VA_ARGS__)
+#define NPU_CHECK_ERROR(err_code, ...) NPU_CHECK_ERROR_CHECK_UCE(err_code, true, ##__VA_ARGS__)
+
 #define OPS_CHECK_ERROR(err_code, ...)                                       \
     do {                                                                     \
         auto Error = err_code;                                               \
         static c10_npu::acl::AclErrorCode err_map;                           \
         if ((Error) != ACL_ERROR_NONE) {                                     \
+            CHECK_AND_THROW_FORCE_STOP(Error);                               \
+            CHECK_AND_THROW_UCE_ERROR();                                \
             TORCH_CHECK(                                                     \
                 false,                                                       \
                 __func__,                                                    \
@@ -148,6 +187,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         auto Error = err_code;                                                   \
         static c10_npu::acl::AclErrorCode err_map;                               \
         if ((Error) != ACL_ERROR_NONE) {                                         \
+            CHECK_AND_THROW_FORCE_STOP(Error);                                   \
             if ((Error) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {                   \
                 static auto feature_not_support_warn_once = []() {               \
                     printf("[WARN]%s,%s:%u:%s\n",                                \
@@ -157,6 +197,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                     return true;                                                 \
                 }();                                                             \
             } else {                                                             \
+                CHECK_AND_THROW_UCE_ERROR();                                \
                 TORCH_CHECK(                                                     \
                     false,                                                       \
                     __func__,                                                    \
@@ -173,8 +214,26 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
             }                                                                    \
         }                                                                        \
     } while (0)
+
 namespace c10_npu {
+
+struct MemUceInfo {
+    int device = 0;
+    std::vector<aclrtMemUceInfo> info;
+    size_t retSize = 0;
+};
 
 C10_NPU_API const char *c10_npu_get_error_message();
 
+bool checkUceErrAndRepair();
+
+void set_mem_uce_info(MemUceInfo info);
+
+MemUceInfo get_mem_uce_info();
+
+void clear_mem_uce_info();
+
+bool get_has_throw_error();
+
+void set_has_throw_error(bool flag);
 } // namespace c10_npu
