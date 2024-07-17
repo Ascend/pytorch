@@ -160,5 +160,11 @@ aclError AclGetCannAttribute(aclCannAttr cannAttr, int32_t *value);
 
 aclError AclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int64_t *value);
 
+aclError AclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize, size_t *retSize);
+
+aclError AclrtDeviceTaskAbort(int32_t deviceId);
+
+aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize);
+
 } // namespace acl
 } // namespace c10_npu

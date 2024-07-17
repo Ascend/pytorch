@@ -13,6 +13,7 @@ namespace hccl {
 
 REGISTER_LIBRARY(libhccl)
 LOAD_FUNCTION(HcclGetCommName)
+LOAD_FUNCTION(HcclCommResume)
 
 extern HcclResult HcclGetCommNameFace(HcclComm commHandle, char* commName) {
     typedef HcclResult (*HcclGetCommNameFace)(HcclComm commHandle, char* commName);
@@ -24,6 +25,18 @@ extern HcclResult HcclGetCommNameFace(HcclComm commHandle, char* commName) {
     TORCH_CHECK(func, "Failed to find function HcclGetCommName,"
                 " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
     return func(commHandle, commName);
+}
+
+extern HcclResult HcclCommResumeFace(HcclComm comm)
+{
+    typedef HcclResult (*HcclCommResumeFace)(HcclComm comm);
+    static HcclCommResumeFace func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommResumeFace)GET_FUNC(HcclCommResume);
+    }
+    TORCH_CHECK(func, "Failed to find function HcclCommResume,"
+                " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
+    return func(comm);
 }
 } // namespace native
 } // namespace at_npu

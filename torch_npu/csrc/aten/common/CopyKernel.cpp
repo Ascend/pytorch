@@ -113,35 +113,36 @@ void copy_between_host_and_device(
     const at::Tensor& src,
     aclrtMemcpyKind kind,
     bool non_blocking) {
-  int64_t nbytes = dst.numel() * dst.element_size();
-  c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
+    int64_t nbytes = dst.numel() * dst.element_size();
+    c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
 
-  if (non_blocking) {
-    auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
-    NPU_CHECK_ERROR(ret);
-    ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
-    void* ptr = torch_npu::utils::is_npu(dst) ? src.data_ptr() : dst.data_ptr();
-    NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(ptr, stream), "aclrtSynchronizeStreamWithTimeout");
-  } else {
-    aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
-    auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
-        std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
-        nbytes,
-        std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
-        nbytes,
-        kind);
-    NPU_CHECK_ERROR(ret, "aclrtMemcpy");
-    if (error != ACL_ERROR_NONE) {
-      C10_NPU_SHOW_ERR_MSG();
-      if (c10_npu::option::OptionsManager::IsResumeModeEnable()) {
-        TORCH_NPU_WARN("ACL stream synchronize failed, error code:", error,
-                       ". But in checkpoint-resume mode will not throw exceptions.");
-      }
-      else {
-        AT_ERROR("ACL stream synchronize failed, error code:", error);
-      }
+    if (non_blocking) {
+        auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
+        NPU_CHECK_ERROR(ret);
+        ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
+        void* ptr = torch_npu::utils::is_npu(dst) ? src.data_ptr() : dst.data_ptr();
+        NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(ptr, stream), "aclrtSynchronizeStreamWithTimeout");
+    } else {
+        aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
+        auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
+            std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
+            nbytes,
+            std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
+            nbytes,
+            kind);
+        NPU_CHECK_ERROR(ret, "aclrtMemcpy");
+        if (error != ACL_ERROR_NONE) {
+            CHECK_AND_THROW_FORCE_STOP(error);
+            C10_NPU_SHOW_ERR_MSG();
+            if (c10_npu::option::OptionsManager::IsResumeModeEnable()) {
+                TORCH_NPU_WARN("ACL stream synchronize failed, error code:", error,
+                               ". But in checkpoint-resume mode will not throw exceptions.");
+            }
+            else {
+                AT_ERROR("ACL stream synchronize failed, error code:", error);
+            }
+        }
     }
-  }
 }
 
 // the format of dst and src is base format now

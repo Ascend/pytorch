@@ -22,6 +22,7 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -84,7 +85,7 @@ NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
     } else {
         prop.name = std::string(device_name);
     }
-    NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
     prop.totalGlobalMem = device_total;
     return &prop;
 }
@@ -111,7 +112,7 @@ NPUDeviceMem* GetDeviceMemories(int64_t deviceid)
     c10_npu::NPUGuard guard(deviceid);
     size_t device_free;
     size_t device_total;
-    NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
     memory.totalGlobalMem = device_total;
     memory.freeMem = device_free;
     return &memory;
@@ -304,7 +305,7 @@ PyObject* THNPModule_npuSynchronize(PyObject* _unused, PyObject* noargs)
 
 void THNPModule_setDevice(int device)
 {
-    NPU_CHECK_ERROR(c10_npu::SetDevice(device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(device));
 }
 
 PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg)
@@ -323,10 +324,47 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg)
     int pre_device = 0;
     auto ret = c10_npu::GetDevice(&pre_device);
     if (ret != ACL_ERROR_NONE) {
-        NPU_CHECK_ERROR(c10_npu::SetDevice(device));
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(device));
     } else if (pre_device != device) {
         c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(pre_device, device);
     }
+
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_stopDevice_wrap(PyObject* self, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    int device = THPUtils_unpackLong(arg);
+    setDefaultStreamsStatus(device, c10_npu::RepoStatus::STOP_EXIT);
+    c10_npu::acl::AclrtDeviceTaskAbort(device);
+
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_check_uce_in_memory_wrap(PyObject* self, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    int device = THPUtils_unpackLong(arg);
+    if (c10_npu::NPUCachingAllocator::checkUceInMem(device)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    int device = THPUtils_unpackLong(arg);
+    aclrtMemUceInfo info[MAX_MEM_UCE_INFO_ARRAY_SIZE];
+    c10_npu::clear_mem_uce_info();
+    setDefaultStreamsStatus(device, c10_npu::RepoStatus::INIT);
+    c10_npu::set_has_throw_error(false);
 
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
@@ -337,7 +375,7 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs)
     HANDLE_TH_ERRORS
     int device;
     torch_npu::utils::npu_lazy_init();
-    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device));
     return PyLong_FromLong(device);
     END_HANDLE_TH_ERRORS
 }
@@ -383,7 +421,7 @@ PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* dev
     util_info.cubeUtilization = 0;
     util_info.vectorUtilization = 0;
     util_info.utilizationExtend = nullptr;
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtGetDeviceUtilizationRate(device, &util_info));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtGetDeviceUtilizationRate(device, &util_info));
     int32_t cube = util_info.cubeUtilization;
     int32_t vector = util_info.vectorUtilization;
     int32_t util_rate = 0;
@@ -471,7 +509,7 @@ PyObject* THNPModule_setStream_wrap(
         stream_id, device_index, static_cast<c10::DeviceType>(device_type));
 
     int device;
-    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device));
     if (device != stream.device_index()) {
         THNPModule_setDevice(stream.device_index());
     }
@@ -856,7 +894,7 @@ PyObject* THNPModule_initDump(PyObject* _unused, PyObject* noargs)
 {
     HANDLE_TH_ERRORS
     pybind11::gil_scoped_release no_gil;
-    NPU_CHECK_ERROR(aclmdlInitDump());
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclmdlInitDump());
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
@@ -870,7 +908,7 @@ PyObject* THNPModule_setDump(PyObject* _unused, PyObject* arg)
     std::string cfg_file = THPUtils_unpackString(arg);
     {
         pybind11::gil_scoped_release no_gil;
-        NPU_CHECK_ERROR(aclmdlSetDump(cfg_file.c_str()));
+        NPU_CHECK_ERROR_WITHOUT_UCE(aclmdlSetDump(cfg_file.c_str()));
     }
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
@@ -881,7 +919,7 @@ PyObject* THNPModule_finalizeDump(PyObject* _unused, PyObject* noargs)
     c10_npu::npuSynchronizeDevice();
     HANDLE_TH_ERRORS
     pybind11::gil_scoped_release no_gil;
-    NPU_CHECK_ERROR(aclmdlFinalizeDump());
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclmdlFinalizeDump());
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
@@ -1099,6 +1137,9 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_synchronize", (PyCFunction)THNPModule_npuSynchronize, METH_NOARGS, nullptr},
     {"_npu_setDevice", (PyCFunction)THNPModule_setDevice_wrap, METH_O, nullptr},
     {"_npu_getDevice", (PyCFunction)THNPModule_getDevice_wrap, METH_NOARGS, nullptr},
+    {"_npu_stopDevice", (PyCFunction)THNPModule_stopDevice_wrap, METH_O, nullptr},
+    {"_npu_restart_device", (PyCFunction)THNPModule_restart_device_wrap, METH_O, nullptr},
+    {"_npu_check_uce_in_memory", (PyCFunction)THNPModule_check_uce_in_memory_wrap, METH_O, nullptr},
     {"_npu_getLocalDevice", (PyCFunction)THNPModule_getLocalDevice_wrap, METH_NOARGS, nullptr},
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
     {"_npu_canDeviceAccessPeer", (PyCFunction)THNPModule_npuCanDeviceAccessPeer_wrap, METH_VARARGS, nullptr},

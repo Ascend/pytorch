@@ -20,6 +20,7 @@ c10::DeviceIndex device_count() noexcept
     // initialize number of devices only once
     if (dev_count == 0) {
         aclError error = aclrtGetDeviceCount(&dev_count);
+        CHECK_AND_THROW_FORCE_STOP(error);
         if (error != ACL_ERROR_NONE) {
             ASCEND_LOGE("get device count of NPU failed");
             return 0;
@@ -33,7 +34,7 @@ c10::DeviceIndex device_count_ensure_non_zero()
 {
     unsigned int count = 0;
 
-    NPU_CHECK_ERROR(aclrtGetDeviceCount(&count));
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetDeviceCount(&count));
     TORCH_CHECK(count, "No NPUs are available", PTA_ERROR(ErrCode::PARAM));
 
     return static_cast<c10::DeviceIndex>(count);
@@ -46,6 +47,7 @@ aclError GetDevice(int32_t *device)
         return ACL_ERROR_NONE;
     }
     aclError err =  aclrtGetDevice(device);
+    CHECK_AND_THROW_FORCE_STOP(err);
     if (err == ACL_ERROR_NONE) {
         local_device = *device;
     } else if (err == ACL_ERROR_RT_CONTEXT_NULL && aclrtSetDevice(0) == ACL_ERROR_NONE) {
@@ -54,7 +56,7 @@ aclError GetDevice(int32_t *device)
         if (used_devices.find(local_device) == used_devices.end()) {
             std::lock_guard<std::mutex> lock(mtx);
             if (used_devices.find(local_device) == used_devices.end()) {
-                NPU_CHECK_ERROR(aclrtGetCurrentContext(&used_devices[local_device]));
+                NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
             }
         }
         return ACL_ERROR_NONE;
@@ -110,7 +112,7 @@ aclError SetDevice(c10::DeviceIndex device)
         if (used_devices.find(local_device) == used_devices.end()) {
             std::lock_guard<std::mutex> lock(mtx);
             if (used_devices.find(local_device) == used_devices.end()) {
-                NPU_CHECK_ERROR(aclrtGetCurrentContext(&used_devices[local_device]));
+                NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
             }
         }
     }
@@ -132,26 +134,27 @@ aclError ResetUsedDevices()
 aclError DestroyUsedStreams()
 {
     int32_t cur_device = 0;
-    NPU_CHECK_ERROR(GetDevice(&cur_device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(GetDevice(&cur_device));
     for (const auto it : used_devices) {
-        NPU_CHECK_ERROR(SetDevice(it.first));
+        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(it.first));
         NPUStream stream = getCurrentNPUStream(it.first);
         aclError acl_ret = acl::AclrtDestroyStreamForce(stream);
         if (acl_ret != ACL_ERROR_NONE) {
             return acl_ret;
         }
     }
-    NPU_CHECK_ERROR(SetDevice(cur_device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(cur_device));
     return ACL_ERROR_NONE;
 }
 
 aclError SynchronizeUsedDevices()
 {
     int32_t cur_device = 0;
-    NPU_CHECK_ERROR(GetDevice(&cur_device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(GetDevice(&cur_device));
     for (const auto it : used_devices) {
-        NPU_CHECK_ERROR(SetDevice(it.first));
+        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(it.first));
         aclError acl_ret = aclrtSynchronizeDevice();
+        CHECK_AND_THROW_FORCE_STOP(acl_ret);
         if (acl_ret != ACL_ERROR_NONE) {
             return acl_ret;
         }
@@ -162,7 +165,7 @@ aclError SynchronizeUsedDevices()
         trigger->traceNpuDeviceSynchronization();
     }
 #endif
-    NPU_CHECK_ERROR(SetDevice(cur_device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(cur_device));
     return ACL_ERROR_NONE;
 }
 
@@ -178,18 +181,18 @@ aclrtContext GetDeviceContext(int32_t device)
 c10::DeviceIndex current_device()
 {
     int cur_device = 0;
-    NPU_CHECK_ERROR(c10_npu::GetDevice(&cur_device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&cur_device));
     return static_cast<c10::DeviceIndex>(cur_device);
 }
 
 void set_device(c10::DeviceIndex device)
 {
-    NPU_CHECK_ERROR(c10_npu::SetDevice(device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(device));
 }
 
 void device_synchronize()
 {
-    NPU_CHECK_ERROR(aclrtSynchronizeDevice());
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeDevice());
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
     if (C10_UNLIKELY(trigger)) {
@@ -200,7 +203,7 @@ void device_synchronize()
 
 int ExchangeDevice(int device)
 {
-    NPU_CHECK_ERROR(SetDevice(device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(device));
     return device;
 }
 

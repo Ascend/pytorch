@@ -37,13 +37,13 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
                           "DeviceType must be NPU. Actual DeviceType is: ", d.type(), PTA_ERROR(ErrCode::PARAM));
     c10::Device old_device = getDevice();
     if (old_device.index() != d.index()) {
-      NPU_CHECK_ERROR(c10_npu::SetDevice(d.index()));
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(d.index()));
     }
     return old_device;
   }
   c10::Device getDevice() const override {
     int device = 0;
-    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device));
     return c10::Device(c10::DeviceType::PrivateUse1, device);
   }
   void setDevice(c10::Device d) const override{
@@ -80,7 +80,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
   // Event-related functions
   void createEvent(aclrtEvent* acl_event, const c10::EventFlag flag) const {
       auto flag_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
-      NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(acl_event, flag_));
+      NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtCreateEventWithFlag(acl_event, flag_));
       ASCEND_LOGI("Event: aclrtCreateEventWithFlag is successfully executed, event=%p", *acl_event);
 #ifndef BUILD_LIBTORCH
       const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -95,7 +95,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     if (!event)
       return;
     auto acl_event = static_cast<aclrtEvent>(event);
-    NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(acl_event, device_index));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchLazyDestroyEventTask(acl_event, device_index));
     ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", acl_event);
   }
 
@@ -122,7 +122,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     // Creates the event (lazily)
     if (!npu_event) {
         auto flag_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, flag_));
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, flag_));
         ASCEND_LOGI("Event: aclrtCreateEventWithFlag is successfully executed, event=%p", npu_event);
 #ifndef BUILD_LIBTORCH
         const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -131,7 +131,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
         }
 #endif
     }
-    NPU_CHECK_ERROR(c10_npu::queue::LaunchRecordEventTask(npu_event, npu_stream));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchRecordEventTask(npu_event, npu_stream));
     ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed, stream=%p, event=%p", npu_stream.stream(false), npu_event);
     // Makes the void* point to the (possibly just allocated) NPU event
     *event = npu_event;
@@ -147,7 +147,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     NPUStream npu_stream{stream};
     const auto orig_device = getDevice();
     setDevice(stream.device());
-    NPU_CHECK_ERROR(c10_npu::queue::LaunchWaitEventTask(npu_event, npu_stream));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchWaitEventTask(npu_event, npu_stream));
     ASCEND_LOGI("Event: aclrtStreamWaitEvent is successfully executed, stream=%p, event=%p", npu_stream.stream(false), npu_event);
     setDevice(orig_device);
   }
@@ -162,7 +162,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
         return false;
     }
     acl::aclrtEventRecordedStatus status = acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-    NPU_CHECK_ERROR(acl::AclQueryEventRecordedStatus(npu_event, &status));
+    NPU_CHECK_ERROR_WITHOUT_UCE(acl::AclQueryEventRecordedStatus(npu_event, &status));
     return (status == acl::ACL_EVENT_RECORDED_STATUS_COMPLETE);
   }
 };
