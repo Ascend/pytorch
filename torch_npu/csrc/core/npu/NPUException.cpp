@@ -73,9 +73,80 @@ static std::string getCurrentTimestamp()
 
 namespace c10_npu {
 
+bool has_throw_error = false;
+
+MemUceInfo memUceInfo;
+
+std::mutex memUceInfoMutex;
+
+void set_mem_uce_info(MemUceInfo info)
+{
+    std::lock_guard<std::mutex> lock(memUceInfoMutex);
+    memUceInfo = info;
+}
+
+MemUceInfo get_mem_uce_info()
+{
+    std::lock_guard<std::mutex> lock(memUceInfoMutex);
+    return memUceInfo;
+}
+
+void clear_mem_uce_info()
+{
+    std::lock_guard<std::mutex> lock(memUceInfoMutex);
+    memUceInfo.device = 0;
+    memUceInfo.info.clear();
+    memUceInfo.retSize = 0;
+}
+
 const char *c10_npu_get_error_message()
 {
     return c10_npu::acl::AclGetErrMsg();
+}
+
+bool checkUceErrAndRepair()
+{
+    int device = 0;
+    auto err = c10_npu::GetDevice(&device);
+    if (err != ACL_ERROR_NONE) {
+        TORCH_CHECK(false, "ERROR happend in GetDevice.", PTA_ERROR(ErrCode::ACL))
+    }
+
+    aclrtMemUceInfo info[MAX_MEM_UCE_INFO_ARRAY_SIZE];
+    size_t retSize = 0;
+
+    err = c10_npu::acl::AclrtGetMemUceInfo(device, info, sizeof(info) / sizeof(aclrtMemUceInfo), &retSize);
+    if (err == ACL_ERROR_NONE) {
+        if (retSize > 0) {
+            ASCEND_LOGE("AclrtGetMemUceInfo get UCE ERROR, retSize is %d", retSize);
+            MemUceInfo memUceInfo_;
+            memUceInfo_.device = device;
+            memUceInfo_.info.assign(info, info + retSize);
+            memUceInfo_.retSize = retSize;
+            set_mem_uce_info(memUceInfo_);
+            c10_npu::acl::AclrtMemUceRepair(device, info, retSize);
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        static c10_npu::acl::AclErrorCode err_map;
+        TORCH_CHECK(false, __func__, ":", __FILE__, ":", __LINE__, " NPU error, error code is ", err, PTA_ERROR(ErrCode::ACL),
+                    (err_map.error_code_map.find(err) != err_map.error_code_map.end() ?
+                    "\n[Error]: " + err_map.error_code_map[err] : "."), "\n", c10_npu::c10_npu_get_error_message());
+    }
+
+    return false;
+}
+
+bool get_has_throw_error()
+{
+    return has_throw_error;
+}
+
+void set_has_throw_error(bool flag)
+{
+    has_throw_error = flag;
 }
 
 } // namespace c10_npu

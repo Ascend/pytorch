@@ -79,7 +79,7 @@ public:
     {
         c10::DeviceGuard guard{stream_.device()};
         acl::aclrtStreamStatus status = acl::ACL_STREAM_STATUS_RESERVED;
-        NPU_CHECK_ERROR(acl::AclrtStreamQuery(stream(), &status));
+        NPU_CHECK_ERROR_WITHOUT_UCE(acl::AclrtStreamQuery(stream(), &status));
         if (status == acl::ACL_STREAM_STATUS_COMPLETE) {
         return true;
         }
@@ -89,7 +89,7 @@ public:
     void synchronize() const
     {
         c10::DeviceGuard guard{stream_.device()};
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()));
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()));
     }
 
     // Explicit conversion to rtStream_t.
@@ -120,6 +120,8 @@ public:
 
     bool isDataPreprocessStream();
 
+    bool getRepoStopFlag();
+
     // Explicit conversion to rtStream_t， with out empty taskQ.
     aclrtStream stream(const bool need_empty) const;
 
@@ -142,6 +144,8 @@ aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index = -1);
 NPUStatus emptyAllNPUStream();
 
 std::string getRepoInfo();
+
+void setDefaultStreamsStatus(c10::DeviceIndex device_index, RepoStatus status);
 
 C10_NPU_API bool npuSynchronizeDevice(bool check_error = true);
 

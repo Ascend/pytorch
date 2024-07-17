@@ -201,6 +201,7 @@ public:
                                size_t alloc_trace_max_entries,
                                RecordContext when) = 0;
     virtual void attachOutOfMemoryObserver(OutOfMemoryObserver observer) = 0;
+    virtual bool checkUceInMem(int device) = 0;
 };
 
 // Allocator object, statically initialized
@@ -314,6 +315,11 @@ inline bool isHistoryEnabled()
 inline void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
 {
     return get()->attachOutOfMemoryObserver(observer);
+}
+
+inline bool checkUceInMem(int device)
+{
+    return get()->checkUceInMem(device);
 }
 
 } // namespace NPUCachingAllocator

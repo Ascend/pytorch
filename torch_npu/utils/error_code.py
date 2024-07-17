@@ -98,13 +98,20 @@ class _NPUExceptionHandler(object):
         self.npu_exception = "\[ERROR\] [0-9\-\:]* \(PID:\d*, Device:\-?\d*, RankID:\-?\d*\) ERR\d{5}"
         self.npu_timeout_exception = "error code is 107020"
         self.npu_timeout_exit_offset = 3
+        self.force_stop_flag = False
 
     def _is_exception(self, exception_pattern):
         if self.exception and re.search(exception_pattern, self.exception):
             return True
         return False
+    
+    def set_force_stop_exception(self, flag):
+        self.force_stop_flag = flag
 
     def _excepthook(self, exc_type, exc, *args):
+        if self.force_stop_flag:
+            exc_type = RuntimeError
+            exc = RuntimeError("FORCE STOP." + pta_error(ErrCode.ACL))
         self.exception = str(exc)
         self._origin_excepthook(exc_type, exc, *args)
 
@@ -115,6 +122,8 @@ class _NPUExceptionHandler(object):
     def handle_exception(self):
         # exception raised by other component, such as original PyTorch, third-party library, or application code.
         if self.exception:
+            if self.force_stop_flag:
+                raise RuntimeError("FORCE STOP." + pta_error(ErrCode.ACL))
             if self._is_exception(self.npu_exception):
                 if self._is_exception(self.npu_timeout_exception):
                     # if npu timeout, let other processes exit properly before elastic agent kills them.

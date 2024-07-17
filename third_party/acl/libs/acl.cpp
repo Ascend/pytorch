@@ -17,6 +17,7 @@ aclError aclrtSynchronizeDevice(void){return 0;}
 aclError aclmdlSetDump(const char *configPath){return 0;}
 aclError aclmdlInitDump(){return 0;}
 aclError aclmdlFinalizeDump(){return 0;}
+aclError aclrtDeviceTaskAbort(int32_t deviceId, uint32_t timeout){return 0;}
 
 // Stream
 aclError aclrtCreateStream(aclrtStream *stream) { return 0; }
@@ -47,6 +48,9 @@ aclError aclrtMemcpyAsync(void *dst, size_t destMax, const void *src,
 aclError aclrtMallocHost(void **hostPtr, size_t size){return 0;}
 aclError aclrtFreeHost(void *hostPtr){return 0;}
 aclError aclrtGetMemInfo(aclrtMemAttr attr, size_t *free, size_t *total){return 0;}
+aclError aclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize, size_t *retSize){return 0;}
+aclError aclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize){return 0;}
+
 
 // op相关操作
 aclopAttr *aclopCreateAttr(){return NULL;}

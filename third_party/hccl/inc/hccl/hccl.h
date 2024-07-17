@@ -173,6 +173,8 @@ extern HcclResult HcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclData
 
 extern HcclResult HcclCommInitAll(uint32_t ndev, int32_t *devices, HcclComm *comms);
 
+extern HcclResult HcclCommResume(HcclComm comm);
+
 /**
  * @brief Initialize the comm configuration.
  * @param config Pointer to the comm configuration that needs to be initialized.

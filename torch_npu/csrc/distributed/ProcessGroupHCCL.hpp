@@ -401,6 +401,8 @@ public:
 
     int64_t getHcclComm(int rankid);
 
+    void resumeHcclComm(int device_id);
+
     std::string getHcclCommName(int rankid);
 
     // Provides an API to abort the ProcessGroup (similar to hcclCommAbort)
