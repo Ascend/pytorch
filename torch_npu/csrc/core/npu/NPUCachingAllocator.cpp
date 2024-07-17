@@ -880,6 +880,31 @@ class DeviceCachingAllocator {
       oom_observers_.emplace_back(std::move(observer));
   }
 
+  bool checkUceInMem()
+  {
+      auto memUceInfo_ = c10_npu::get_mem_uce_info();
+      if (memUceInfo_.retSize == 0) {
+          return false;
+      }
+
+      auto info = memUceInfo_.info.data();
+      const auto all_blocks = get_all_blocks();
+
+      for (int i = 0; i < memUceInfo_.retSize; ++i) {
+          size_t length = info[i].len;
+          void* addr = info[i].addr;
+          for (int j = 0; j < length; ++j) {
+              for (const Block* const head_block : all_blocks) {
+                  if (head_block->ptr <= addr && addr < head_block->ptr + head_block->size) {
+                      return true;
+                  }
+              }
+              addr += 1;
+          }
+      }
+      return false;
+  }
+
   // Must be called outside of `mutex` or deadlocks are possible with Python
   std::shared_ptr<c10::GatheredContext> maybeGatherContext(RecordContext level)
   {
@@ -2383,6 +2408,11 @@ class NpuCachingAllocator : public NPUAllocator {
       for (auto& allocator : device_allocator) {
           allocator->attachOutOfMemoryObserver(std::move(observer));
       }
+  }
+
+  bool checkUceInMem(int device) override
+  {
+      return device_allocator[device]-> checkUceInMem();
   }
 
   void emptyCache(bool check_error) override

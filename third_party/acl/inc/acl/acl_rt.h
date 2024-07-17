@@ -29,6 +29,8 @@ extern "C" {
 #define ACL_CONTINUE_ON_FAILURE 0x00000000u
 #define ACL_STOP_ON_FAILURE     0x00000001u
 
+#define MAX_MEM_UCE_INFO_ARRAY_SIZE 128
+
 constexpr int32_t DEVICE_UTILIZATION_NOT_SUPPORT = -1;
 
 typedef enum aclrtRunMode {
@@ -139,6 +141,12 @@ typedef struct aclrtMemLocation {
     uint32_t id;
     aclrtMemLocationType type;
 } aclrtMemLocation;
+
+typedef struct aclrtMemUceInfo {
+    void* addr;
+    size_t len;
+    size_t reserved[14];
+} aclrtMemUceInfo;
 
 typedef enum aclrtMemAllocationType {
     ACL_MEM_ALLOCATION_TYPE_PINNED = 0,
@@ -1427,6 +1435,12 @@ ACL_FUNC_VISIBILITY aclError aclrtGetOverflowStatus(void *outputAddr, size_t out
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtResetOverflowStatus(aclrtStream stream);
+
+ACL_FUNC_VISIBILITY aclError aclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize, size_t *retSize);
+
+ACL_FUNC_VISIBILITY aclError aclrtDeviceTaskAbort(int32_t deviceId, uint32_t timeout);
+
+ACL_FUNC_VISIBILITY aclError aclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize);
 
 #ifdef __cplusplus
 }

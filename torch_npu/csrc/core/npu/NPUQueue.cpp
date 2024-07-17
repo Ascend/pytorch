@@ -243,6 +243,13 @@ NPUStatus Repository::MakeSureQueueEmpty() {
     }
   }
 
+    if (GetStatus() == RepoStatus::STOP_EXIT) {
+        ClearQueue();
+        set_has_throw_error(true);
+        SetStatus(INIT);
+        throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
+    }
+
     if (GetStatus() == RepoStatus::ERROR_EXIT) {
         // Avoid repeatedly throwing exceptions
         SetStatus(CAN_EXIT);
@@ -252,6 +259,11 @@ NPUStatus Repository::MakeSureQueueEmpty() {
         }
 #endif
         read_idx.idx = write_idx.idx;
+        if (checkUceErrAndRepair()) {
+            set_has_throw_error(true);
+            throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
+        }
+
         throw std::runtime_error("The Inner error is reported as above. "
                                  "The process exits for this inner error, and " + repo_error + ".\n" +
                                  "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
@@ -306,8 +318,11 @@ bool Repository::ReadQueue()
             manager().Release(datas, read_idx.idx, releaseQueue);
             read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
         }
-
-        SetStatus(ERROR_EXIT);
+        if (ret == ACL_ERROR_RT_DEVICE_TASK_ABORT) {
+            SetStatus(STOP_EXIT);
+        } else {
+            SetStatus(ERROR_EXIT);
+        }
         read_idx.idx = write_idx.idx;
         __sync_synchronize();
         eventfd_write(efd_empty, 1);
@@ -329,10 +344,28 @@ void Repository::Enqueue(void* cur_paras) {
     return;
   }
 
+    if (GetStatus() == RepoStatus::STOP_EXIT) {
+        auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
+        auto type = queueParam->paramType;
+        if (type == c10_npu::queue::LAZY_DESTROY_EVENT) {
+            return;
+        }
+        ClearQueue();
+        set_has_throw_error(true);
+        SetStatus(INIT);
+        throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
+    }
+
   if (GetStatus() == RepoStatus::ERROR_EXIT) {
     // Avoid repeatedly throwing exceptions
     SetStatus(CAN_EXIT);
     read_idx.idx = write_idx.idx;
+
+    if (checkUceErrAndRepair()) {
+        set_has_throw_error(true);
+        throw std::runtime_error("UCE ERROR" + PTA_ERROR(ErrCode::ACL));
+    }
+
     throw std::runtime_error("The Inner error is reported as above. "
                              "The process exits for this inner error, and " + repo_error + ".\n" +
                              "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
@@ -477,6 +510,13 @@ void Repository::ReleaseResource() {
     close(efd_empty);
     efd_empty = -1;
   }
+}
+
+void Repository::ClearQueue()
+{
+    read_idx.idx = write_idx.idx;
+    eventfd_write(efd_empty, 1);
+    eventfd_write(efd_write, 1);
 }
 
 Repository::~Repository() {

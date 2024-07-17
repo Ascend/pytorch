@@ -258,6 +258,14 @@ void NPUPluggableAllocator::attachOutOfMemoryObserver(
         "If you need it, please file an issue describing your use case.");
 }
 
+bool NPUPluggableAllocator::checkUceInMem(int device)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support checkUceInMem. "
+        "If you need it, please file an issue describing your use case.");
+    return false;
+}
+
 std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>
     current_custom_allocator;
 

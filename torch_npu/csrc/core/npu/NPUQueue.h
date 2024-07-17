@@ -22,6 +22,7 @@ enum RepoStatus {
   NEED_EXIT = 2,
   CAN_EXIT = 3,
   ERROR_EXIT = 4,
+  STOP_EXIT = 5,
 };
 
 // c10::SmallVector max size
@@ -67,6 +68,7 @@ public:
   virtual void InitRepo(c10::DeviceIndex device_id) = 0;
   virtual bool CheckInit() const = 0;
   virtual std::string GetPara() = 0;
+  virtual void ClearQueue() = 0;
 };
 
 class NPUQueueFactoryBase {
@@ -88,6 +90,7 @@ public:
   void InitRepo(c10::DeviceIndex device_id) override;
   bool CheckInit() const override;
   std::string GetPara() override;
+  void ClearQueue() override;
 
 private:
   void ReleaseResource();
