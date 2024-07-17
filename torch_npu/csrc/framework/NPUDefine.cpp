@@ -53,7 +53,7 @@ namespace at_npu
         }
         if (params.input_data_buf != nullptr) {
           for (int i = 0; i < params.input_num; ++i) {
-            NPU_CHECK_ERROR(aclDestroyDataBuffer(params.input_data_buf[i]));
+            NPU_CHECK_ERROR_WITHOUT_UCE(aclDestroyDataBuffer(params.input_data_buf[i]));
           }
         }
         params.input_num = 0;
@@ -70,7 +70,7 @@ namespace at_npu
         if (params.output_data_buf != nullptr)
         {
           for (int i = 0; i < params.output_num; ++i) {
-            NPU_CHECK_ERROR(aclDestroyDataBuffer(params.output_data_buf[i]));
+            NPU_CHECK_ERROR_WITHOUT_UCE(aclDestroyDataBuffer(params.output_data_buf[i]));
           }
         }
         params.output_num = 0;

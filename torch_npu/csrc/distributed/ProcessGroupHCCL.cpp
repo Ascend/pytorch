@@ -60,6 +60,8 @@ std::map<c10d::ReduceOp, std::string> unsupportedOp = {
 };
 
 bool nslb_is_end = false;
+bool uce_error_flag = false;
+bool force_stop_error_flag = false;
 char* nslb_path = c10_npu::option::OptionsManager::GetNslbPath();
 
 int64_t physical_numel(const at::Tensor& self)
@@ -337,6 +339,16 @@ bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const {
             }
         }
     } catch (const std::exception& e) {
+        if (std::string(e.what()).find("UCE ERROR") == std::string::npos) {
+            uce_error_flag = true;
+            return false;
+        }
+
+        if (std::string(e.what()).find("FORCE STOP") == std::string::npos) {
+            force_stop_error_flag = true;
+            return false;
+        }
+
         if (std::string(e.what()).find("driver shutting down") == std::string::npos) {
             throw std::runtime_error(DIST_ERROR(ErrCode::INTERNAL));
         }
@@ -796,9 +808,19 @@ void ProcessGroupHCCL::workCleanupLoop()
         for (auto it = workMetaList_.begin(); it != workMetaList_.end();
              /* no increment */) {
             auto& work = *it;
-            if (needSetDevice) {
-                NPU_CHECK_ERROR(c10_npu::SetDevice(static_cast<int>(work.devices_[0].index())));
-                needSetDevice = false;
+            try {
+                if (needSetDevice) {
+                    NPU_CHECK_ERROR(c10_npu::SetDevice(static_cast<int>(work.devices_[0].index())));
+                    needSetDevice = false;
+                }
+            } catch (const std::exception& e) {
+                if (std::string(e.what()).find("UCE ERROR") == std::string::npos) {
+                    uce_error_flag = true;
+                }
+
+                if (std::string(e.what()).find("FORCE STOP") == std::string::npos) {
+                    force_stop_error_flag = true;
+                }
             }
             work.checkAndSetException();
             work.checkDispatch();
@@ -1279,6 +1301,17 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
         // View tensors' destruction invokes autograd_meta, which
         // needs to be destructed in user thread. Otherwise will
         // get deadlock. Here we enqueue work without outputs_.
+        if (uce_error_flag) {
+            uce_error_flag = false;
+            c10_npu::set_has_throw_error(true);
+            throw std::runtime_error("UCE ERROR.");
+            return;
+        }
+        if (force_stop_error_flag) {
+            force_stop_error_flag = false;
+            CHECK_AND_THROW_FORCE_STOP(ACL_ERROR_RT_DEVICE_TASK_ABORT);
+            return;
+        }
         workMetaList_.emplace_back(*work);
     }
 }
@@ -1301,6 +1334,25 @@ int64_t ProcessGroupHCCL::getHcclComm(int rankid)
     auto ret_hcom = hcclComms[0]->getHcclComm();
     int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(ret_hcom));
     return hccl_comm;
+}
+
+void ProcessGroupHCCL::resumeHcclComm(int device_id)
+{
+    at::Device device = at::Device(c10::DeviceType::PrivateUse1, device_id);
+    std::vector<at::Device> devices = {device};
+    const auto key = getKeyFromDevices(devices);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (devHCCLCommMap_.find(key) != devHCCLCommMap_.end()) {
+            // Reuse the cached communicator if there is one.
+            auto& hcclComms = devHCCLCommMap_[key];
+            for (const auto& hcclComm : hcclComms) {
+                auto comm = hcclComm->getHcclComm();
+                HCCL_CHECK_ERROR(at_npu::hccl::HcclCommResumeFace(comm));
+            }
+        }
+    }
 }
 
 std::string ProcessGroupHCCL::getHcclCommName(int rankid) {

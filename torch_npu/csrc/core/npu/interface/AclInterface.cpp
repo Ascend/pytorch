@@ -59,6 +59,9 @@ LOAD_FUNCTION(aclrtUnmapMem)
 LOAD_FUNCTION(aclGetCannAttributeList)
 LOAD_FUNCTION(aclGetCannAttribute)
 LOAD_FUNCTION(aclGetDeviceCapability)
+LOAD_FUNCTION(aclrtGetMemUceInfo)
+LOAD_FUNCTION(aclrtDeviceTaskAbort)
+LOAD_FUNCTION(aclrtMemUceRepair)
 
 aclprofStepInfoPtr init_stepinfo() {
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -545,6 +548,49 @@ aclError AclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int
     }
     TORCH_CHECK(func, "Failed to find function ", "aclGetDeviceCapability", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(deviceId, deviceInfo, value);
+}
+
+aclError AclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize, size_t *retSize)
+{
+    typedef aclError (*AclrtGetMemUceInfo)(int32_t, aclrtMemUceInfo*, size_t, size_t *);
+    static AclrtGetMemUceInfo func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetMemUceInfo) GET_FUNC(aclrtGetMemUceInfo);
+    }
+    if (func == nullptr) {
+        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtGetMemUceInfo");
+        return ACL_ERROR_NONE;
+    }
+    return func(deviceId, memUceInfoArray, arraySize, retSize);
+}
+
+aclError AclrtDeviceTaskAbort(int32_t deviceId)
+{
+    typedef aclError (*AclrtDeviceTaskAbort)(int32_t, uint32_t);
+    static AclrtDeviceTaskAbort func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtDeviceTaskAbort) GET_FUNC(aclrtDeviceTaskAbort);
+    }
+    if (func == nullptr) {
+        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtDeviceTaskAbort");
+        return ACL_ERROR_NONE;
+    }
+    uint32_t timeout = 0;
+    return func(deviceId, timeout);
+}
+
+aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize)
+{
+    typedef aclError (*AclrtMemUceRepair)(int32_t, aclrtMemUceInfo*, size_t);
+    static AclrtMemUceRepair func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemUceRepair) GET_FUNC(aclrtMemUceRepair);
+    }
+    if (func == nullptr) {
+        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMemUceRepair");
+        return ACL_ERROR_NONE;
+    }
+    return func(deviceId, memUceInfoArray, arraySize);
 }
 
 } // namespace acl
