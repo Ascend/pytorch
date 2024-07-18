@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/profiler/utils.h"
+#include "torch_npu/csrc/core/npu/npu_log.h"
 
 namespace at_npu
 {
@@ -459,14 +460,18 @@ namespace at_npu
     at::Tensor OpPreparation::apply_tensor_with_format(c10::IntArrayRef sizes, const c10::TensorOptions &options,
                                                        int64_t format, bool keep_format)
     {
-      TORCH_CHECK(options.device().type() == at_npu::key::NativeDeviceType,
-          "Expected all tensors to be on the same device. "
-          "Expected NPU tensor, please check whether the input tensor device is correct.",
-          OPS_ERROR(ErrCode::TYPE));
-      auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
-      return NPUNativeFunctions::unsafe_empty_with_format(
-          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
-          options.device_opt(), options.pinned_memory_opt(), fixFormat, keep_format);
+        TORCH_CHECK(options.device().type() == at_npu::key::NativeDeviceType,
+            "Expected all tensors to be on the same device. "
+            "Expected NPU tensor, please check whether the input tensor device is correct.",
+            OPS_ERROR(ErrCode::TYPE));
+        auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
+        if (options.dtype_opt() == at::ScalarType::Double && !FormatHelper::IsBaseFormatType((aclFormat)format)) {
+            ASCEND_LOGW("NPU don't support create double dtype tensor with inner format, repalce with base format.");
+            fixFormat = FormatHelper::GetBaseFormat((aclFormat)format);
+        }
+        return NPUNativeFunctions::unsafe_empty_with_format(
+            sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+            options.device_opt(), options.pinned_memory_opt(), fixFormat, keep_format);
     }
 
     at::Tensor OpPreparation::apply_tensor_with_sizes(c10::IntArrayRef sizes, const c10::TensorOptions &options)
