@@ -113,17 +113,6 @@ class TestPtaUnsupportApi(TestCase):
         with self.assertRaisesRegex(RuntimeError, "frexp.Tensor_out is unsupported!"):
             torch.frexp(a, out=(mantissa, exponent))
 
-    def test_isin_Tensor_Tensor_out(self):
-        a = torch.tensor([-1, -2, 3]).npu()
-        b = torch.tensor([1, 0, 3]).npu()
-        result = torch.empty_like(a)
-        with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Tensor_out is unsupported!"):
-            torch.isin(a, b, out=result)
-
-    def test_isin_Tensor_Tensor(self):
-        with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Tensor is unsupported!"):
-            torch.isin(torch.tensor([-1, -2, 3]).npu(), torch.tensor([1, 0, 3]).npu())
-
     def test_cholesky_out(self):
         a = torch.randn(3, 3).npu()
         result = torch.empty_like(a)
