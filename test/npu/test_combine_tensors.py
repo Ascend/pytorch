@@ -82,6 +82,12 @@ class TestCombineTensors(TestCase):
             idx += torch_npu.get_storage_size(tensor)
 
     @Dtypes(torch.half, torch.float, torch.bfloat16)
+    def test_untyped_storage_resize(self, dtype, device="npu"):
+        a = torch.randn((2, 2, 2, 2, 2), device=device, dtype=dtype)
+        a.untyped_storage().resize_(0)
+        a.untyped_storage().resize_(128)
+
+    @Dtypes(torch.half, torch.float, torch.bfloat16)
     def test_combine_tensors(self, dtype, device="npu"):
         x = torch.zeros((2, 2, 2, 2), device=device, dtype=dtype)
         y = torch.zeros((4, 4), device=device, dtype=dtype)
