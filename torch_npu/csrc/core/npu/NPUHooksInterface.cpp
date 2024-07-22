@@ -38,7 +38,7 @@ void NPUHooksInterface::resizePrivateUse1Bytes(const c10::Storage &storage, size
 
     auto itemsize = storage_impl->npu_desc_.data_type_.itemsize();
     std::vector<int64_t> new_size = {static_cast<int64_t>(new_bytes) / (ptrdiff_t)itemsize};
-    at_npu::native::storage_resize_npu(*storage_impl, new_bytes, new_size);
+    at_npu::native::storage_resize_npu(*storage_impl, new_bytes, new_size, true);
 }
 
 at::PrivateUse1HooksInterface* get_npu_hooks()
