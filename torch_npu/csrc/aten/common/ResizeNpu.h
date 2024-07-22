@@ -14,10 +14,13 @@
 namespace at_npu {
 namespace native {
 
+// Refresh storage_desc to ND if set force_refresh = true,
+// mainly used in storage.resize_
 static void storage_resize_npu(
     torch_npu::NPUStorageImpl& storage,
     ptrdiff_t size,
-    c10::IntArrayRef new_size)
+    c10::IntArrayRef new_size,
+    bool force_refresh = false)
 {
     if (!storage.resizable()) {
         TORCH_CHECK(false, "Trying to resize storage that is not resizable", OPS_ERROR(ErrCode::NOT_SUPPORT));
@@ -50,25 +53,29 @@ static void storage_resize_npu(
     };
     // It is necessary to properly refresh the storage according to sizes and strides,
     // not just new sizes.
-    int64_t new_data_numel = c10::multiply_integers(resize_shape);
-    int64_t new_shape_numel = c10::multiply_integers(new_size);
-    const c10::IntArrayRef &refresh_size = new_data_numel > new_shape_numel ? resize_shape : new_size;
+    if (force_refresh) {
+        int64_t new_data_numel = c10::multiply_integers(resize_shape);
+        int64_t new_shape_numel = c10::multiply_integers(new_size);
+        const c10::IntArrayRef &refresh_size = new_data_numel > new_shape_numel ? resize_shape : new_size;
 
-    // 计算连续场景下size对应的stride值
-    int64_t dim_ = static_cast<int64_t>(refresh_size.size());
-    c10::SmallVector<int64_t, 5> new_stride(dim_);
-    if (dim_ > 0) {
-        int64_t last_idx = dim_ - 1;
-        new_stride[last_idx] = 1;
-        for (auto i = last_idx - 1; i >= 0; --i) {
-            new_stride[i] = new_stride[i + 1] * std::max<int64_t>(refresh_size[i + 1], 1);
+        // 计算连续场景下size对应的stride值
+        int64_t dim_ = static_cast<int64_t>(refresh_size.size());
+        c10::SmallVector<int64_t, 5> new_stride(dim_);
+        if (dim_ > 0) {
+            int64_t last_idx = dim_ - 1;
+            new_stride[last_idx] = 1;
+            for (auto i = last_idx - 1; i >= 0; --i) {
+                new_stride[i] = new_stride[i + 1] * std::max<int64_t>(refresh_size[i + 1], 1);
+            }
         }
-    }
 
-    storage_desc.base_sizes_ = refresh_size;
-    storage_desc.base_strides_ = new_stride;
-    storage_desc.npu_format_ = ACL_FORMAT_ND;
-    storage_desc.storage_sizes_ = storage_desc.base_sizes_;
+        storage_desc.base_sizes_ = refresh_size;
+        storage_desc.base_strides_ = new_stride;
+        storage_desc.npu_format_ = ACL_FORMAT_ND;
+        storage_desc.storage_sizes_ = storage_desc.base_sizes_;
+    } else {
+        StorageDescHelper::UpdateDesc(storage_desc, resize_shape, new_size);
+    }
 
     if (old_data != nullptr) {
         ptrdiff_t copy_size = old_size;
@@ -169,7 +176,8 @@ static void _npu_storage_resize(at::TensorImpl* self, ptrdiff_t size)
     storage_resize_npu(
         *torch_npu::NPUBridge::GetNpuStorageImpl(self->storage().unsafeGetStorageImpl()),
         size,
-        new_size);
+        new_size,
+        true);
 }
 
 static at::Tensor npu_storage_resize(const at::Tensor& self, int64_t size)
@@ -177,7 +185,7 @@ static at::Tensor npu_storage_resize(const at::Tensor& self, int64_t size)
     if (!FormatHelper::IsBaseFormatType(self)) {
         AT_ERROR("Try to resize a tensor without base format");
     }
-    int64_t new_size_bytes = (size + self.storage_offset()) * static_cast<int64_t>(self.dtype().itemsize());
+    int64_t new_size_bytes = size + self.storage_offset();
     auto* self_impl = self.unsafeGetTensorImpl();
     _npu_storage_resize(self_impl, new_size_bytes);
     return self;
