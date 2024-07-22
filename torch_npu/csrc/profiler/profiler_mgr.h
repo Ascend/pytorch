@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 #include <map>
 
 #include "third_party/acl/inc/acl/acl_prof.h"
@@ -32,6 +33,8 @@ public:
     void Stop();
     void Finalize();
     void Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
+    void UploadTraceData(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
+    void UploadWithLock(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
     std::atomic<bool>& GetNpuTrace()
     {
         return npu_trace_;
@@ -60,6 +63,8 @@ private:
     ProfilerMgr& operator=(ProfilerMgr &&obj) = delete;
     void EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig);
     uint64_t CheckFeatureConfig(uint64_t datatype_config);
+    void StartDataReceiver();
+    void StopDataReceiver();
 
 private:
     static std::map<std::string, aclprofAicoreMetrics> npu_metrics_map_;
@@ -72,6 +77,9 @@ private:
     std::string path_;
     aclprofConfig *profConfig_;
     torch_npu::toolkit::profiler::DataDumper dataReceiver_;
+    torch_npu::toolkit::profiler::DataDumper traceDataReceiver_;
+    std::mutex reportDataMutex_;
+    torch_npu::toolkit::profiler::DataDumper dataReceiverWithLock_;
 };
 } // profiler
 } // torch_npu
