@@ -285,7 +285,7 @@ void finalizeNpuProfiler()
 
 void reportMarkDataToNpuProfiler(uint32_t category, const std::string &msg, uint64_t correlation_id)
 {
-    ProfilerMgr::GetInstance()->Upload(std::make_unique<torch_npu::toolkit::profiler::OpMarkData>(
+    ProfilerMgr::GetInstance()->UploadWithLock(std::make_unique<torch_npu::toolkit::profiler::OpMarkData>(
         static_cast<int64_t>(Utils::GetClockTime()),
         category,
         correlation_id,
