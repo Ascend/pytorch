@@ -27,6 +27,9 @@ std::map<std::string, uint64_t> ProfilerMgr::trace_level_map_ = {
     {"Level_none", Level_none},
 };
 
+constexpr uint32_t capacity_ = 262144;          // 2^18, Experience value for default ringbuffer size
+constexpr uint32_t trace_capacity_ = 1048576;   // 2^20, Experience value for python trace data ringbuffer size
+
 ProfilerMgr::ProfilerMgr()
     : report_enable_(false),
       npu_trace_(false),
@@ -99,10 +102,7 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
   }
 
   if (cpu_trace == true) {
-    std::string fwk_path = path_ + "/FRAMEWORK";
-    constexpr uint32_t capacity = 262144;
-    dataReceiver_.Init(fwk_path, capacity);
-    dataReceiver_.Start();
+    StartDataReceiver();
     report_enable_.store(true);
     profile_memory_.store(npu_config.npu_memory);
   }
@@ -118,8 +118,7 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
 void ProfilerMgr::Stop() {
   c10_npu::npuSynchronizeDevice();
   if (report_enable_.load() == true) {
-    dataReceiver_.Stop();
-    dataReceiver_.UnInit();
+    StopDataReceiver();
     profile_memory_.store(false);
   }
   report_enable_.store(false);
@@ -145,8 +144,41 @@ void ProfilerMgr::Finalize() {
   npu_trace_.store(false);
 }
 
-void ProfilerMgr::Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data) {
-  dataReceiver_.Report(std::move(data));
+void ProfilerMgr::StartDataReceiver()
+{
+    std::string fwk_path = path_ + "/FRAMEWORK";
+    dataReceiver_.Init(fwk_path, capacity_);
+    dataReceiver_.Start();
+    traceDataReceiver_.Init(fwk_path, trace_capacity_);
+    traceDataReceiver_.Start();
+    dataReceiverWithLock_.Init(fwk_path, capacity_);
+    dataReceiverWithLock_.Start();
+}
+
+void ProfilerMgr::StopDataReceiver()
+{
+    dataReceiver_.Stop();
+    dataReceiver_.UnInit();
+    traceDataReceiver_.Stop();
+    traceDataReceiver_.UnInit();
+    dataReceiverWithLock_.Stop();
+    dataReceiverWithLock_.UnInit();
+}
+
+void ProfilerMgr::Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data)
+{
+    dataReceiver_.Report(std::move(data));
+}
+
+void ProfilerMgr::UploadWithLock(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data)
+{
+    std::lock_guard<std::mutex> lock(reportDataMutex_);
+    dataReceiverWithLock_.Report(std::move(data));
+}
+
+void ProfilerMgr::UploadTraceData(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data)
+{
+    traceDataReceiver_.Report(std::move(data));
 }
 
 uint64_t ProfilerMgr::CheckFeatureConfig(uint64_t datatype_config)
