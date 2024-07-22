@@ -1,9 +1,10 @@
 import os
 import re
+from collections import defaultdict
 
 from ..prof_bean.torch_op_bean import TorchOpBean
 from ..prof_common_func.binary_decoder import BinaryDecoder
-from ..prof_common_func.constant import Constant, DbConstant, contact_2num
+from ..prof_common_func.constant import Constant, DbConstant, contact_2num, print_warn_msg
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.file_tag import FileTag
 from ..prof_common_func.path_manager import ProfilerPathManager
@@ -41,18 +42,22 @@ class FwkFileParser:
         if not op_mark_data:
             return enqueue_data_list
         op_mark_data.sort(key=lambda x: x.time_ns)
-        enqueue_start = None
+        tid_op_dict = defaultdict(lambda: defaultdict(list))
         for op_mark in op_mark_data:
             if not op_mark.is_enqueue:
                 continue
             if op_mark.is_enqueue_start:
-                enqueue_start = op_mark
+                tid_op_dict[op_mark.tid][op_mark.origin_name].append(op_mark)
                 continue
-            if enqueue_start and enqueue_start.tid == op_mark.tid and enqueue_start.origin_name == op_mark.origin_name:
-                op_mark.ts = enqueue_start.time_ns
-                op_mark.dur = op_mark.time_ns - enqueue_start.time_ns
-                enqueue_data_list.append(op_mark)
-            enqueue_start = None
+            start_op_list = tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
+            if not start_op_list:
+                print_warn_msg("Enquque data match failed")
+                continue
+            start_op = start_op_list.pop()
+            op_mark.ts = start_op.time_ns
+            op_mark.dur = op_mark.time_ns - start_op.time_ns
+            enqueue_data_list.append(op_mark)
+            start_op_list.clear()
         return enqueue_data_list
 
     def get_dequeue_data(self) -> list:
@@ -61,18 +66,22 @@ class FwkFileParser:
         if not op_mark_data:
             return dequeue_data_list
         op_mark_data.sort(key=lambda x: x.time_ns)
-        dequeue_start = None
+        tid_op_dict = defaultdict(lambda: defaultdict(list))
         for op_mark in op_mark_data:
             if not op_mark.is_dequeue:
                 continue
             if op_mark.is_dequeue_start:
-                dequeue_start = op_mark
+                tid_op_dict[op_mark.tid][op_mark.origin_name].append(op_mark)
                 continue
-            if dequeue_start and dequeue_start.tid == op_mark.tid and dequeue_start.origin_name == op_mark.origin_name:
-                op_mark.ts = dequeue_start.time_ns
-                op_mark.dur = op_mark.time_ns - dequeue_start.time_ns
-                dequeue_data_list.append(op_mark)
-            dequeue_start = None
+            start_op_list = tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
+            if not start_op_list:
+                print_warn_msg("Dequque data match failed")
+                continue
+            start_op = start_op_list.pop()
+            op_mark.ts = start_op.time_ns
+            op_mark.dur = op_mark.time_ns - start_op.time_ns
+            dequeue_data_list.append(op_mark)
+            start_op_list.clear()
         return dequeue_data_list
 
     def get_task_queue_data(self) -> any:
@@ -81,28 +90,36 @@ class FwkFileParser:
         if not op_mark_data:
             return [], []
         op_mark_data.sort(key=lambda x: x.time_ns)
-        enqueue_start = None
-        dequeue_start = None
+        enqueue_tid_op_dict = defaultdict(lambda: defaultdict(list))
+        dequeue_tid_op_dict = defaultdict(lambda: defaultdict(list))
         for op_mark in op_mark_data:
             if op_mark.is_enqueue_start:
-                enqueue_start = op_mark
+                enqueue_tid_op_dict[op_mark.tid][op_mark.origin_name].append(op_mark)
                 continue
             if op_mark.is_dequeue_start:
-                dequeue_start = op_mark
+                dequeue_tid_op_dict[op_mark.tid][op_mark.origin_name].append(op_mark)
                 continue
-            if op_mark.is_enqueue_end and enqueue_start:
-                if enqueue_start.tid == op_mark.tid and enqueue_start.origin_name == op_mark.origin_name:
-                    op_mark.ts = enqueue_start.time_ns
-                    op_mark.dur = op_mark.time_ns - enqueue_start.time_ns
-                    enqueue_data_list.append(op_mark)
-                    enqueue_start = None
+            if op_mark.is_enqueue_end:
+                start_op_list = enqueue_tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
+                if not start_op_list:
+                    print_warn_msg("Enquque data match failed")
+                    continue
+                start_op = start_op_list.pop()
+                op_mark.ts = start_op.time_ns
+                op_mark.dur = op_mark.time_ns - start_op.time_ns
+                enqueue_data_list.append(op_mark)
+                start_op_list.clear()
                 continue
-            if op_mark.is_dequeue_end and dequeue_start:
-                if dequeue_start.tid == op_mark.tid and dequeue_start.origin_name == op_mark.origin_name:
-                    op_mark.ts = dequeue_start.time_ns
-                    op_mark.dur = op_mark.time_ns - dequeue_start.time_ns
-                    dequeue_data_list.append(op_mark)
-                    dequeue_start = None
+            if op_mark.is_dequeue_end:
+                start_op_list = dequeue_tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
+                if not start_op_list:
+                    print_warn_msg("Dequque data match failed")
+                    continue
+                start_op = start_op_list.pop()
+                op_mark.ts = start_op.time_ns
+                op_mark.dur = op_mark.time_ns - start_op.time_ns
+                dequeue_data_list.append(op_mark)
+                start_op_list.clear()
         return enqueue_data_list, dequeue_data_list
 
     def get_torch_op_tree_node(self, only_fwk: bool = False) -> list:
