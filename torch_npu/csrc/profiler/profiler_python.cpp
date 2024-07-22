@@ -131,7 +131,7 @@ struct RawEvent {
 
 void reportPythonFuncCallDataToNpuProfiler(const RawEvent& event)
 {
-    ProfilerMgr::GetInstance()->Upload(std::make_unique<torch_npu::toolkit::profiler::PythonFuncCallData>(
+    ProfilerMgr::GetInstance()->UploadTraceData(std::make_unique<torch_npu::toolkit::profiler::PythonFuncCallData>(
         event.t_,
         torch_npu::toolkit::profiler::Utils::GetTid(),
         torch_npu::toolkit::profiler::Utils::GetPid(),
@@ -144,7 +144,7 @@ void reportPythonModuleCallDataToNpuProfiler(PyObject* mod_class, uint64_t idx)
 {
     auto py_class_name = py::handle(mod_class).attr("__class__").attr("__name__");
     std::string module_name = "nn.Module: " + std::string(py::str(py_class_name));
-    ProfilerMgr::GetInstance()->Upload(std::make_unique<torch_npu::toolkit::profiler::PythonModuleCallData>(
+    ProfilerMgr::GetInstance()->UploadTraceData(std::make_unique<torch_npu::toolkit::profiler::PythonModuleCallData>(
         idx,
         torch_npu::toolkit::profiler::Utils::GetTid(),
         torch_npu::toolkit::profiler::Utils::GetPid(),

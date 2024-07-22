@@ -5,6 +5,8 @@
 #include <vector>
 #include <deque>
 
+#include "torch_npu/csrc/core/npu/npu_log.h"
+
 namespace torch_npu {
 namespace toolkit {
 namespace profiler {
@@ -50,18 +52,21 @@ public:
     size_t curr_write_index = 0;
     size_t next_write_index = 0;
     size_t cycles = 0;
+    static const size_t cycle_limit = 1024;
     do {
       if (!is_inited_ || is_quit_) {
         return false;
       }
       cycles++;
-      if (cycles >= 1024) {
+      if (cycles >= cycle_limit) {
+        ASCEND_LOGE("RingBuffer cycles exceed: %zu", cycles);
         return false;
       }
       curr_read_index = read_index_.load(std::memory_order_relaxed);
       curr_write_index = idle_write_index_.load(std::memory_order_relaxed);
       next_write_index = curr_write_index + 1;
       if ((next_write_index & mask_) == (curr_read_index & mask_)) {
+        ASCEND_LOGE("RingBuffer is full");
         return false;
       }
     } while (!idle_write_index_.compare_exchange_weak(curr_write_index, next_write_index));

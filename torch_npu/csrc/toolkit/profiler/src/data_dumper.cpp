@@ -8,6 +8,7 @@
 
 #include "torch_npu/csrc/toolkit/profiler/inc/data_dumper.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
+#include "torch_npu/csrc/core/npu/npu_log.h"
 
 namespace torch_npu {
 namespace toolkit {
@@ -109,7 +110,9 @@ void DataDumper::Report(std::unique_ptr<BaseReportData> data)
     if (C10_UNLIKELY(!start_.load() || data == nullptr)) {
         return;
     }
-    data_chunk_buf_.Push(std::move(data));
+    if (!data_chunk_buf_.Push(std::move(data))) {
+        ASCEND_LOGE("DataDumper report data failed");
+    }
 }
 
 void DataDumper::Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap)
@@ -124,7 +127,8 @@ void DataDumper::Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap
             }
             fd = fopen(dump_file.c_str(), "ab");
             if (fd == nullptr) {
-              continue;
+                ASCEND_LOGE("DataDumper open file failed: %s", dump_file.c_str());
+                continue;
             }
             fd_map_.insert({dump_file, fd});
         } else {
