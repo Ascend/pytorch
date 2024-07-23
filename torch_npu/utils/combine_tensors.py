@@ -1,6 +1,6 @@
 import torch
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 __all__ = ["npu_combine_tensors", "get_part_combined_tensor", "is_combined_tensor_valid"]
 

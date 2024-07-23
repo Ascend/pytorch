@@ -5,7 +5,7 @@ from torch._C._distributed_rpc import _TensorPipeRpcBackendOptionsBase
 from torch._C import _get_privateuse1_backend_name
 import torch.distributed.rpc.constants as rpc_constants
 
-from torch_npu.utils.error_code import ErrCode, dist_error
+from torch_npu.utils._error_code import ErrCode, dist_error
 
 DeviceType = Union[int, str, torch.device]
 

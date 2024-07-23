@@ -5,7 +5,7 @@ from typing import Optional
 
 import torch
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, prof_error
+from torch_npu.utils._error_code import ErrCode, prof_error
 from torch_npu.profiler import _ExperimentalConfig
 
 

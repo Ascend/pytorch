@@ -19,8 +19,11 @@ from torch.testing._internal.common_utils import IS_WINDOWS, skipIfRocm
 from torch.testing._internal.two_tensor import TwoTensor
 from torch.utils.checkpoint import _pt2_selective_checkpoint_context_fn_gen, checkpoint
 import torch_npu
+import torchair
+
 
 requires_npu = functools.partial(unittest.skipIf, not torch.npu.is_available(), "requires npu")
+npu_backend = torchair.get_npu_backend()
 
 
 def checkpoint_wrapper(fn):

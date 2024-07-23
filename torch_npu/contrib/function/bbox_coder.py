@@ -1,6 +1,6 @@
 import torch
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, ops_error
+from torch_npu.utils._error_code import ErrCode, ops_error
 
 __all__ = ['npu_bbox_coder_encode_yolo',
            'npu_bbox_coder_decode_xywh2xyxy',

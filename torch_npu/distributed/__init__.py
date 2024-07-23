@@ -1,5 +1,5 @@
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, dist_error
+from torch_npu.utils._error_code import ErrCode, dist_error
 
 __all__ = [
     "batch_isend_irecv", "gather", "gather_object", "is_hccl_available", "_verify_params_across_processes"

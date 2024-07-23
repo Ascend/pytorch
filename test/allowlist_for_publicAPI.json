@@ -38,6 +38,9 @@
   "torch.backends": [
     "contextmanager"
   ],
+  "torch.cuda.amp.grad_scaler": [
+    "OptState"
+  ],
   "torch.cuda.comm": [
     "broadcast",
     "broadcast_coalesced",
@@ -45,6 +48,9 @@
     "reduce_add_coalesced",
     "scatter",
     "gather"
+  ],
+  "torch.cuda.graphs": [
+    "Optional"
   ],
   "torch.cuda.nccl": [
     "init_rank",
@@ -93,6 +99,13 @@
     "gather",
     "gather_object"
   ],
+  "torch.distributed.checkpoint.filesystem": [
+    "FileSystem",
+    "FileSystemBase"
+  ],
+  "torch.distributed.checkpoint.fsspec": [
+    "FileSystem"
+  ],
   "torch.distributed.checkpoint.state_dict": [
     "Any",
     "Callable",
@@ -104,6 +117,7 @@
     "FSDP",
     "FullOptimStateDictConfig",
     "FullStateDictConfig",
+    "Generator",
     "Iterable",
     "List",
     "ListDictValueType",
@@ -158,6 +172,10 @@
     "Tuple",
     "Union",
     "get_logger"
+  ],
+  "torch.distributed.elastic.multiprocessing.api": [
+    "LogsDest",
+    "LogsSpecs"
   ],
   "torch.distributed.elastic.multiprocessing.redirects": [
     "contextmanager",
@@ -244,9 +262,11 @@
     "Union"
   ],
   "torch.distributed.rendezvous": [
+    "Callable",
     "Dict",
     "FileStore",
     "Iterable",
+    "Iterator",
     "Optional",
     "PrefixStore",
     "Store",
@@ -636,7 +656,8 @@
     "apply_permutation"
   ],
   "torch.nn.parallel": [
-    "DistributedDataParallelCPU"
+    "DistributedDataParallelCPU",
+    "data_parallel"
   ],
   "torch.nn.parallel.comm": [
     "List"
@@ -1112,6 +1133,10 @@
   "torch.utils.data.datapipes.dataframe": [
     "DFIterDataPipe"
   ],
+  "torch.utils.data.datapipes.dataframe.dataframe_wrapper": [
+    "Any",
+    "Optional"
+  ],
   "torch.utils.dlpack": [
     "Any",
     "to_dlpack"
@@ -1524,6 +1549,9 @@
   "torch.ao.quantization.fx.tracer": [
     "ScopeContextManager"
   ],
+  "torch.ao.quantization.pt2e.export_utils": [
+    "_WrapperModule"
+  ],
   "torch.ao.quantization.pt2e.prepare": [
     "Any",
     "Argument",
@@ -1595,6 +1623,23 @@
   "torch.ao.quantization.quantizer.xnnpack_quantizer_utils": [
     "register_annotator"
   ],
+  "torch.autograd": [
+    "NestedIOFunction",
+    "detect_anomaly",
+    "enable_grad",
+    "grad",
+    "gradcheck",
+    "gradgradcheck",
+    "inference_mode",
+    "no_grad",
+    "set_detect_anomaly",
+    "set_grad_enabled",
+    "set_multithreading_enabled",
+    "variable"
+  ],
+  "torch.backends.cuda": [
+    "SDPBackend"
+  ],
   "torch.backends.xeon.run_cpu": [
     "ArgumentParser",
     "Dict",
@@ -1602,7 +1647,8 @@
     "RawTextHelpFormatter",
     "Std",
     "expanduser",
-    "start_processes"
+    "start_processes",
+    "DefaultLogsSpecs"
   ],
   "torch.distributed.algorithms.ddp_comm_hooks.mixed_precision_hooks": [
     "Any",
@@ -1742,10 +1788,15 @@
   "torch.distributed.run": [
     "ArgumentParser",
     "Callable",
+    "DefaultLogsSpecs",
     "LaunchConfig",
     "List",
+    "LogsSpecs",
+    "Optional",
+    "Set",
     "Std",
     "Tuple",
+    "Type",
     "Union",
     "check_env",
     "elastic_launch",
@@ -1753,6 +1804,12 @@
     "get_logger",
     "macros",
     "record"
+  ],
+  "torch.export": [
+    "Constraint"
+  ],
+  "torch.export.dynamic_shapes": [
+    "Constraint"
   ],
   "torch.fx.annotate": [
     "Proxy",
@@ -2437,6 +2494,9 @@
     "shape_wrapper",
     "transpose_shape"
   ],
+  "torch.utils.hipify.hipify_python": [
+    "TrieNode"
+  ],
   "torch.utils.jit.log_extract": [
     "Any",
     "List",
@@ -2657,7 +2717,14 @@
     "npu_random_choice_with_mask",
     "npu_rms_norm",
     "npu_fused_infer_attention_score",
-    "npu_convert_weight_to_int4pack"
+    "npu_convert_weight_to_int4pack",
+    "npu_ffn",
+    "npu_geglu",
+    "npu_grouped_matmul",
+    "npu_quant_matmul",
+    "npu_quant_scatter",
+    "npu_scatter_nd_update_",
+    "npu_swiglu"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
