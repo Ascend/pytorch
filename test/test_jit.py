@@ -39,6 +39,7 @@ from jit.test_python_bindings import TestPythonBindings  # noqa: F401
 from jit.test_python_ir import TestPythonIr  # noqa: F401
 from jit.test_functional_blocks import TestFunctionalBlocks  # noqa: F401
 from jit.test_remove_mutation import TestRemoveMutation  # noqa: F401
+from jit.test_torchbind import TestTorchbind  # noqa: F401
 from jit.test_module_interface import TestModuleInterface  # noqa: F401  # noqa: F401
 from jit.test_with import TestWith  # noqa: F401
 from jit.test_enum import TestEnum  # noqa: F401
@@ -96,7 +97,7 @@ import torch.nn.functional as F
 from torch.testing._internal import jit_utils
 from torch.testing._internal.common_jit import check_against_reference
 from torch.testing._internal.common_utils import run_tests, IS_WINDOWS, TEST_WITH_UBSAN, \
-    suppress_warnings, BUILD_WITH_CAFFE2, IS_SANDCASTLE, GRAPH_EXECUTOR, ProfilingMode, TestCase, \
+    suppress_warnings, IS_SANDCASTLE, GRAPH_EXECUTOR, ProfilingMode, TestCase, \
     freeze_rng_state, slowTest, TemporaryFileName, \
     enable_profiling_mode_for_profiling_tests, TEST_MKL, set_default_dtype, num_profiled_runs, \
     skipIfCrossRef, skipIfTorchDynamo
@@ -144,7 +145,7 @@ import warnings
 import zipfile
 import tracemalloc
 
-RUN_CUDA = torch.npu.is_available()
+RUN_NPU = torch.npu.is_available()
 
 
 def canonical(graph):
@@ -169,7 +170,7 @@ def doAutodiffCheck(testname):
     # these tests are disabled because BailOut nodes
     # inserted by ProfilingExecutor interfere with
     # subgraph slicing of Differentiable Graphs
-    test_exceptions = [
+    test_exceptions = (
         # functional
         'test_nn_dropout',
         'test_nn_log_softmax',
@@ -197,11 +198,9 @@ def doAutodiffCheck(testname):
         'test_split_with_sizes_dim_neg0',
         'test_split_with_sizes_size_0',
         'test_nn_max_pool2d_with_indices',
-    ]
+    )
 
-    if testname in test_exceptions:
-        return False
-    return True
+    return testname not in test_exceptions
 
 torch._C._jit_set_texpr_fuser_enabled(GRAPH_EXECUTOR == ProfilingMode.PROFILING)
 torch._C._jit_set_profiling_executor(GRAPH_EXECUTOR != ProfilingMode.LEGACY)
@@ -252,7 +251,6 @@ def MiLSTMCell(x, hx, cx, w_ih, w_hh, alpha, beta_i, beta_h, bias):
     cy = (forgetgate * cx) + (ingate * cellgate)
     hy = outgate * cy.tanh()
     return hy, cy
-
 
 
 def get_lstm_inputs(device, training=False, seq_length=None):
@@ -473,8 +471,8 @@ class TestJit(JitTestCase):
         self.assertFalse(m2.p0.is_npu)
         self.assertFalse(m2.b0.is_npu)
 
-    @unittest.skipIf(not RUN_CUDA, "restore device requires NPU")
-    def test_restore_device_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "restore device requires NPU")
+    def test_restore_device_npu(self):
         class MyModule(torch.jit.ScriptModule):
             def __init__(self):
                 super().__init__()
@@ -527,8 +525,8 @@ class TestJit(JitTestCase):
         tm = torch.jit.trace(m, (torch.rand(3)))
         self.assertEqual(tm.training, m.training)
 
-    @unittest.skipIf(not RUN_CUDA, "restore device requires NPU")
-    def test_restore_shared_storage_on_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "restore device requires NPU")
+    def test_restore_shared_storage_on_npu(self):
         class Foo(torch.jit.ScriptModule):
             def __init__(self):
                 super().__init__()
@@ -768,7 +766,7 @@ class TestJit(JitTestCase):
             test_input(func_1, torch.tensor(0.5), 1)
             test_input(func_2, torch.tensor(0.5), 1)
 
-            if RUN_CUDA:
+            if RUN_NPU:
                 test_input(func_1, torch.tensor(0.5, device="npu:0"), 0)
                 test_input(func_2, torch.tensor(0.5, device="npu:0"), 0)
 
@@ -1763,7 +1761,7 @@ graph(%Ra, %Rb):
             self.assertTrue(g2.findNode(node.kind()) is not None)
 
     @unittest.skipIf(IS_SANDCASTLE, "gtest runs these in sandcastle")
-    @unittest.skipIf(RUN_CUDA, "covered by test_cpp_cuda")
+    @unittest.skipIf(RUN_NPU, "covered by test_cpp_npu")
     @unittest.skipIf(not torch._C._jit_has_cpp_tests(), "Tests were not built, use BUILD_TEST=1")
     def test_cpp(self):
         from cpp.jit import tests_setup
@@ -1786,7 +1784,7 @@ graph(%Ra, %Rb):
             m = self.createFunctionFromGraph(g)
             self.assertEqual(outputs, m(*inputs))
 
-    @unittest.skipIf(not RUN_CUDA, "test requires NPU")
+    @unittest.skipIf(not RUN_NPU, "test requires NPU")
     @unittest.skipIf(GRAPH_EXECUTOR != ProfilingMode.PROFILING, "skip if profiling isn't enabled")
     def test_native_dropout_corner_case(self):
         with disable_autodiff_subgraph_inlining():
@@ -1879,8 +1877,8 @@ graph(%Ra, %Rb):
                 self.assertIn('aten::bernoulli_', profile(scripted_training, X))
                 self.assertNotIn('aten::bernoulli_', profile(scripted_eval, X))
 
-    @unittest.skipIf(not RUN_CUDA, "test_dropout_cuda require NPU")
-    def test_dropout_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "test_dropout_npu require NPU")
+    def test_dropout_npu(self):
         # Dropout AD is dispatched to _fused_dropout in NPU case,
         # which is not included in TestJitGeneratedFunctional
         def _zero_rate(t):
@@ -2118,7 +2116,7 @@ graph(%Ra, %Rb):
         self.assertEqual(script_out_is_sparse_csr, True)
         self.assertEqual(script_out_is_dense_csr, False)
 
-    @unittest.skipIf(not RUN_CUDA, "requires NPU")
+    @unittest.skipIf(not RUN_NPU, "requires NPU")
     def test_device_not_equal(self):
 
         def compare_device(x: torch.device):
@@ -2436,8 +2434,8 @@ graph(%Ra, %Rb):
             self.run_pass('cse', f_script.graph)
             FileCheck().check_count("prim::Constant", num_constants, exactly=True).run(f_script.graph)
 
-    @unittest.skipIf(not RUN_CUDA, "requires NPU")
-    def test_cuda_export_restore(self):
+    @unittest.skipIf(not RUN_NPU, "requires NPU")
+    def test_npu_export_restore(self):
         class Sub(torch.jit.ScriptModule):
             def __init__(self):
                 super().__init__()
@@ -3610,8 +3608,8 @@ def foo(x):
     def test_device_type(self):
         self._test_device_type('cpu')
 
-    @unittest.skipIf(not RUN_CUDA, "Requires NPU")
-    def test_device_type_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "Requires NPU")
+    def test_device_type_npu(self):
         self._test_device_type('npu')
 
     def test_string_device_implicit_conversion(self):
@@ -4316,7 +4314,7 @@ def foo(x):
             return torch.blargh(xyz)
 
         _, lineno = inspect.getsourcelines(foobar)
-        with self.assertRaisesRegex(RuntimeError, f"test_jit.py\", line {lineno + 1}"):
+        with self.assertRaisesRegex(RuntimeError, f'test_jit.py", line {lineno + 1}'):
             scripted = torch.jit.script(foobar)
 
     def test_file_line_error_class_defn(self):
@@ -4325,7 +4323,7 @@ def foo(x):
                 return torch.blargh(xyz)
 
         _, lineno = inspect.getsourcelines(FooBar)
-        with self.assertRaisesRegex(RuntimeError, f"test_jit.py\", line {lineno + 2}"):
+        with self.assertRaisesRegex(RuntimeError, f'test_jit.py", line {lineno + 2}'):
             torch.jit.script(FooBar)
 
     def test_file_line_graph(self):
@@ -4392,7 +4390,7 @@ def foo(xyz):
         loaded = self.getExportImportCopy(ft)
         _, lineno = inspect.getsourcelines(FooTest)
 
-        with self.assertRaisesRegex(RuntimeError, f'test_jit.py\", line {lineno + 3}'):
+        with self.assertRaisesRegex(RuntimeError, f'test_jit.py", line {lineno + 3}'):
             loaded(torch.rand(3, 4), torch.rand(30, 40))
 
     def test_serialized_source_ranges_graph(self):
@@ -4418,7 +4416,7 @@ def foo(xyz):
 
         _, lineno = inspect.getsourcelines(FooTest2)
 
-        with self.assertRaisesRegex(torch.jit.Error, f'test_jit.py\", line {lineno + 3}'):
+        with self.assertRaisesRegex(torch.jit.Error, f'test_jit.py", line {lineno + 3}'):
             ft = FooTest2()
             loaded = self.getExportImportCopy(ft)
             loaded()
@@ -4662,7 +4660,7 @@ def foo(xyz):
         self.assertFalse(float32(x_long))
         self.assertTrue(float32(x_float32))
 
-    @unittest.skipIf(not RUN_CUDA, "device tests require NPU")
+    @unittest.skipIf(not RUN_NPU, "device tests require NPU")
     def test_tensor_device(self):
         cpu = torch.empty(34, 56, 78, device='cpu')
         gpu = torch.empty(34, 56, 78, device='npu')
@@ -4675,7 +4673,7 @@ def foo(xyz):
         self.assertTrue(same_device(gpu, gpu))
         self.assertFalse(same_device(cpu, gpu))
 
-    @unittest.skipIf(not RUN_CUDA, "device tests require NPU")
+    @unittest.skipIf(not RUN_NPU, "device tests require NPU")
     def test_tensor_to_device(self):
         def to_device(x):
             return x.to(device="npu").to(device=torch.device("cpu"))
@@ -4691,15 +4689,15 @@ def foo(xyz):
         self.assertEqual(to_cpu(x).device, script_fn(x).device)
         self.checkScript(to_cpu, (x,))
 
-    @unittest.skipIf(not RUN_CUDA, "device tests require NPU")
-    def test_tensor_to_cuda(self):
-        def to_cuda(x):
+    @unittest.skipIf(not RUN_NPU, "device tests require NPU")
+    def test_tensor_to_npu(self):
+        def to_npu(x):
             return x.npu()
 
         x = torch.ones(3, 4)
-        script_fn = torch.jit.script(to_cuda)
-        self.assertEqual(to_cuda(x).device, script_fn(x).device)
-        self.checkScript(to_cuda, (x,))
+        script_fn = torch.jit.script(to_npu)
+        self.assertEqual(to_npu(x).device, script_fn(x).device)
+        self.checkScript(to_npu, (x,))
 
     def test_generic_list_errors(self):
         with self.assertRaisesRegex(RuntimeError, "previously matched to type"):
@@ -4902,8 +4900,8 @@ a")
                 else:
                     self.checkScript(func5, (x, y))
 
-    @unittest.skipIf(not RUN_CUDA, "device tests require NPU")
-    def test_pow_scalar_backward_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "device tests require NPU")
+    def test_pow_scalar_backward_npu(self):
         # see that scalar exponent works with npu base (#19253)
         with enable_profiling_mode_for_profiling_tests():
             for dtype in [torch.float, torch.double]:
@@ -4929,8 +4927,8 @@ a")
         cu = torch.jit.CompilationUnit(code_str)
         self.assertEqual(cu.func(*inputs), scope[fn_name](*inputs))
 
-    @unittest.skipIf(not RUN_CUDA, 'no NPU')
-    def test_scriptmodule_releases_tensors_cuda(self):
+    @unittest.skipIf(not RUN_NPU, 'no NPU')
+    def test_scriptmodule_releases_tensors_npu(self):
         with enable_profiling_mode_for_profiling_tests():
             @torch.jit.script
             def fn(x, y):
@@ -4954,6 +4952,7 @@ a")
                     test(backward=True)
                     test(backward=True)
 
+    @skipIfTorchDynamo("Not a TorchDynamo suitable test")
     def test_index(self):
         def consec(size, start=0):
             numel = torch.tensor(size).prod().item()
@@ -5680,7 +5679,7 @@ a")
 
         self.assertEqual(cu.test_integral_shape_inference(*inputs), outputs)
 
-    @unittest.skipIf(RUN_CUDA, 'This tests the CPU fuser')
+    @unittest.skipIf(RUN_NPU, 'This tests the CPU fuser')
     @unittest.skipIf(IS_SANDCASTLE, "NYI: fuser support for Sandcastle")
     @enable_cpu_fuser
     def test_batchnorm_fuser_cpu(self):
@@ -5710,7 +5709,7 @@ a")
         FileCheck().check('sqrtf').run(code)
 
     @slowTest
-    @unittest.skipIf(RUN_CUDA, 'This tests the CPU fuser')
+    @unittest.skipIf(RUN_NPU, 'This tests the CPU fuser')
     @unittest.skipIf(IS_SANDCASTLE, "NYI: fuser support for Sandcastle")
     @enable_cpu_fuser
     def test_fuser_double_float_codegen(self):
@@ -5761,7 +5760,7 @@ a")
             test_dispatch(fn, lookup_c_equivalent_fn(fn) + '(', torch.double, binary=True)
             test_dispatch(fn, lookup_c_equivalent_fn(fn) + 'f(', torch.float, binary=True)
 
-    @unittest.skipIf(RUN_CUDA, 'This tests the CPU fuser')
+    @unittest.skipIf(RUN_NPU, 'This tests the CPU fuser')
     @unittest.skipIf(IS_SANDCASTLE, "NYI: fuser support for Sandcastle")
     @enable_cpu_fuser
     def test_fuser_double_literal_precision(self):
@@ -6414,6 +6413,7 @@ a")
             cu = torch.jit.CompilationUnit(dedent(inspect.getsource(func_float_int)))
             cu.func_float_int(5.3, 0)
 
+    @skipIfTorchDynamo("Not a TorchDynamo suitable test")
     def test_math_ops(self):
         def checkMathWrap(func_name, num_args=1, is_float=True, **args):
             if is_float:
@@ -6939,6 +6939,7 @@ a")
         self.assertFalse(test_all_float_list([3.14, 0, 8.9]))
 
 
+    @skipIfTorchDynamo("Not a TorchDynamo suitable test")
     def test_number_math(self):
         ops_template = dedent('''
         def func():
@@ -7187,6 +7188,7 @@ a")
 
             test(op, tensor, const, swap_args)
 
+    @skipIfTorchDynamo("Not a TorchDynamo suitable test")
     def test_tensor_number_math(self):
         self._test_tensor_number_math()
 
@@ -7335,7 +7337,7 @@ a")
 
         ops = ['tensor', 'as_tensor']
         devices = ['', ", device='cpu'"]
-        if RUN_CUDA:
+        if RUN_NPU:
             devices.append(", device='npu'")
 
         option_pairs = [dtype + device for dtype in dtypes for device in devices]
@@ -7530,8 +7532,8 @@ dedent """
             grad = torch.autograd.grad(out.sum(), t)
             self.assertEqual(grad_ref, grad)
 
-    @unittest.skipIf(not RUN_CUDA, "No NPU")
-    def test_tensor_number_math_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "No NPU")
+    def test_tensor_number_math_npu(self):
         self._test_tensor_number_math(device='npu')
 
     def test_not(self):
@@ -7621,6 +7623,7 @@ dedent """
         with self.assertRaises(Exception):
             foo(2)
 
+    @skipIfTorchDynamo("Not a TorchDynamo suitable test")
     def test_isinstance(self):
         # test isinstance operator for static type checking
         template = dedent('''
@@ -9764,8 +9767,8 @@ dedent """
                 print(a)
                 print(b)
 
-    @unittest.skipIf(not RUN_CUDA, "requires NPU")
-    def test_script_get_device_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "requires NPU")
+    def test_script_get_device_npu(self):
         @torch.jit.script
         def foo(a):
             return a.get_device()
@@ -9981,7 +9984,7 @@ dedent """
                 super().__init__()
                 x = torch.zeros(1, 3)
                 mod_fn = lambda : mod(x)  # noqa: E731
-                self.mod = torch.jit.trace(mod_fn, tuple())
+                self.mod = torch.jit.trace(mod_fn, ())
 
             @torch.jit.script_method
             def forward(self):
@@ -10237,7 +10240,7 @@ dedent """
         n = next(graph.inputs())
         self.assertTrue(n.type() == torch._C.TensorType.getInferred())
 
-        with self.assertRaisesRegex(RuntimeError, "Inferred \'x\' to be of type \'Tensor"):
+        with self.assertRaisesRegex(RuntimeError, "Inferred 'x' to be of type 'Tensor"):
             fn("1")
 
     def test_script_define_order(self):
@@ -10418,8 +10421,8 @@ dedent """
                 self.assertEqual(m_orig.foo(), m_import.foo())
                 self.assertTrue(m_orig.foo().dtype == m_import.foo().dtype)
 
-    @unittest.skipIf(not RUN_CUDA, "testing npu tensors require NPU")
-    def test_script_module_export_tensor_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "testing npu tensors require NPU")
+    def test_script_module_export_tensor_npu(self):
         class M(torch.jit.ScriptModule):
 
             def __init__(self):
@@ -10813,8 +10816,8 @@ dedent """
         self.assertEqual(w.grad, w_ref.grad)
         self.assertEqual(b.grad, b_ref.grad)
 
-    @unittest.skipIf(not RUN_CUDA, "running tests on npu to verify cudnn fix")
-    def test_batch_norm_inference_backward_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "running tests on npu to verify cudnn fix")
+    def test_batch_norm_inference_backward_npu(self):
         with enable_profiling_mode_for_profiling_tests():
             class MyBatchNorm(torch.nn.Module):
                 def __init__(self, num_features, affine, track_running_stats):
@@ -10929,7 +10932,7 @@ dedent """
                        .check_not("Double(*, *, requires_grad=0, device=cpu)") \
                        .run(randint.graph_for())
 
-    @unittest.skipIf(not RUN_CUDA, "no NPU")
+    @unittest.skipIf(not RUN_NPU, "no NPU")
     @unittest.skipIf(GRAPH_EXECUTOR != ProfilingMode.PROFILING, "skip if profiling isn't enabled")
     def test_autodiff_complex(self):
         def foo(x: torch.Tensor, y: torch.Tensor, W: torch.Tensor):
@@ -11451,7 +11454,7 @@ dedent """
         none_type = torch._C.NoneType.get()
         g = {'NoneType' : type(None)}
         python_type = eval(none_type.annotation_str, g)
-        assert isinstance(python_type, type(None))
+        assert python_type is type(None)
 
     @skipIfTorchDynamo("TorchDynamo fails with unknown reason")
     def test_zip_enumerate_modulelist(self):
@@ -12281,7 +12284,7 @@ dedent """
         tm = torch.jit.trace(TracedModule(), torch.rand(3, 4))
 
         FileCheck().check_not("value=<Tensor>").check("aten::mm")\
-            .check("prim::CallMethod[name=\"forward\"]").check("aten::add") \
+            .check('prim::CallMethod[name="forward"]').check("aten::add") \
             .run(str(tm.graph))
         FileCheck().check("aten::mm").run(str(tm.mod.graph))
 
@@ -12768,7 +12771,7 @@ dedent """
         tracemalloc.stop()
 
         # Check if the peak sizes at most differ by an empirically obtained factor
-        assert peak_from_file < peak_from_string * 500
+        self.assertLess(peak_from_file, peak_from_string * 500)
 
     # for each type, the input type annotation and corresponding return type annotation
     def type_input_return_pairs(self):
@@ -14703,7 +14706,7 @@ dedent """
                 return self.hello("hi"), self.hello(.5)
 
         w = CompileOverloadError()
-        with self.assertRaisesRegex(Exception, "but instead found type \'str\'"):
+        with self.assertRaisesRegex(Exception, "but instead found type 'str'"):
             torch.jit.script(w)
 
         # testing overload declared first, then non-overload
@@ -14938,8 +14941,8 @@ dedent """
             jit_out = mha(query, key, value)
         torch.testing.assert_close(jit_out, py_out)
 
-    @unittest.skipIf(not RUN_CUDA, "no NPU")
-    def test_scriptmodule_multi_head_attn_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "no NPU")
+    def test_scriptmodule_multi_head_attn_npu(self):
 
         class MyModule(torch.jit.ScriptModule):
             def __init__(self, embed_dim, num_heads):
@@ -14974,8 +14977,8 @@ dedent """
                                                                   model.mod.out_proj.bias)[0]
         self.assertEqual(jit_out, py_out, atol=5e-4, rtol=1e-4)
 
-    @unittest.skipIf(not RUN_CUDA, "no NPU")
-    def test_scriptmodule_transformer_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "no NPU")
+    def test_scriptmodule_transformer_npu(self):
 
         class MyModule(torch.jit.ScriptModule):
             def __init__(self, transformer, sample_q, sample_kv):
@@ -15025,8 +15028,8 @@ dedent """
 
         self.checkScript(fn, ([torch.ones(2) + 2, torch.ones(2)],))
 
-    @unittest.skipIf(not RUN_CUDA, "no NPU")
-    def test_weak_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "no NPU")
+    def test_weak_npu(self):
         class M(torch.jit.ScriptModule):
             def __init__(self):
                 super().__init__()
@@ -15252,56 +15255,6 @@ dedent """
                     continue
                 self.assertEqual(value, getattr(loaded, "_" + name))
 
-    @unittest.skipIf(IS_WINDOWS or IS_SANDCASTLE, "NYI: TemporaryFileName support for Windows or Sandcastle")
-    @unittest.skipIf(not BUILD_WITH_CAFFE2, "PyTorch is build without Caffe2 support")
-    def test_old_models_bc(self):
-        model = {
-            'archive/version': b'1',
-            'archive/code/archive.py':
-                b'''
-                op_version_set = 0
-                def forward(self,
-                    _0: Tensor) -> Tensor:
-                  _1 = torch.zeros([10], dtype=6, layout=0, device=torch.device("cpu"))
-                  result = torch.to(torch.fill_(_1, 5), dtype=6, layout=0, device=torch.device("cpu"),
-                                    non_blocking=False, copy=False)
-                  result2 = torch.rand([10], dtype=6, layout=0, device=torch.device("cpu"))
-                  result3 = torch.rand_like(result2, dtype=6, layout=0, device=torch.device("cpu"))
-                  _2 = torch.add(torch.add(result, result2, alpha=1), result3, alpha=1)
-                  return _2
-                ''',
-            'archive/attributes.pkl': b'\x80\x02](e.',
-            'archive/libs.py': b'op_version_set = 0\n',
-            'archive/model.json':
-                b'''
-                {
-                   "protoVersion":"2",
-                   "mainModule":{
-                      "torchscriptArena":{
-                         "key":"code/archive.py"
-                      },
-                      "name":"archive",
-                      "optimize":true
-                   },
-                   "producerName":"pytorch",
-                   "producerVersion":"1.0",
-                   "libs":{
-                      "torchscriptArena":{
-                         "key":"libs.py"
-                      }
-                   }
-                }'''}
-        with TemporaryFileName() as fname:
-            archive_name = os.path.basename(os.path.normpath(fname))
-            with zipfile.ZipFile(fname, 'w') as archive:
-                for k, v in model.items():
-                    archive.writestr(k, v)
-
-            with open(fname, "rb") as f:
-                fn = torch.jit.load(f)
-
-        x = torch.zeros(10)
-        fn(x)
 
     def test_submodule_attribute_serialization(self):
         class S(torch.jit.ScriptModule):
@@ -15609,8 +15562,8 @@ dedent """
                     self.assertEqual(loaded_y.view(4), loaded_y_view)
                     self.assertEqual(loaded_y_2.view(4), loaded_y_view)
 
-    @unittest.skipIf(not RUN_CUDA, "no NPU")
-    def test_pickle_checkpoint_cuda(self):
+    @unittest.skipIf(not RUN_NPU, "no NPU")
+    def test_pickle_checkpoint_npu(self):
         self._test_pickle_checkpoint('npu')
         self._test_pickle_checkpoint_views('npu')
 
@@ -15637,7 +15590,6 @@ dedent """
     def test_unicode_comments(self):
         @torch.jit.script
         def test(self, a):
-            # 🤷🤷🤷🤷
             return torch.nn.functional.relu(a)
 
     def test_get_set_state_with_tensors(self):
