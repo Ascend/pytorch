@@ -71,9 +71,6 @@ class _KinetoProfile:
         self.prof_if.analyse(Constant.EXPORT_CHROME_TRACE, output_path)
 
     def add_metadata(self, key: str, value: str):
-        if not ProfPathCreator().is_prof_inited:
-            print_warn_msg("Profiler is not initialized. Skip this metadata.")
-            return
         if not isinstance(key, str) or not isinstance(value, str):
             print_warn_msg("The key and value of metadata must be string. Skip this metadata.")
             return
@@ -89,9 +86,6 @@ class _KinetoProfile:
             print_warn_msg("Too many metadata added. Skip this metadata")
 
     def add_metadata_json(self, key: str, value: str):
-        if not ProfPathCreator().is_prof_inited:
-            print_warn_msg("Profiler is not initialized. Skip this metadata.")
-            return
         if not isinstance(key, str) or not isinstance(value, str):
             print_warn_msg("The key and value of metadata must be string. Skip this metadata.")
             return
