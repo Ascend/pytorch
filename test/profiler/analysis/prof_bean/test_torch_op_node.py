@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock
 
-from torch_npu.profiler.analysis.prof_bean.torch_op_node import TorchOpNode
-from torch_npu.profiler.analysis.prof_common_func.constant import Constant
+from torch_npu.profiler.analysis.prof_bean._torch_op_node import TorchOpNode
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.testing._testcase import TestCase, run_tests
 
 

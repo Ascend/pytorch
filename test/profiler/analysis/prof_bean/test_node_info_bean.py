@@ -1,8 +1,8 @@
 import random
 from collections import namedtuple
 
-from torch_npu.profiler.analysis.prof_bean.node_info_bean import _NodeInfoBean
-from torch_npu.profiler.analysis.prof_common_func.constant import convert_us2ns
+from torch_npu.profiler.analysis.prof_bean._node_info_bean import NodeInfoBean
+from torch_npu.profiler.analysis.prof_common_func._constant import convert_us2ns
 from torch_npu.testing._testcase import TestCase, run_tests
 
 
@@ -32,7 +32,7 @@ class TestNodeInfoBean(TestCase):
 
     def test_property(self):
         for sample in self.samples:
-            node_indo_bean = _NodeInfoBean(sample)
+            node_indo_bean = NodeInfoBean(sample)
             device_dur = sum([float(kernel.dur) for kernel in sample])
             device_dur_with_ai_core = sum([float(kernel.dur) for kernel in sample if kernel.is_ai_core])
             min_start = min([kernel.ts for kernel in sample])

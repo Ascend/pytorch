@@ -3,7 +3,7 @@ import unittest
 from torch_npu.profiler.experimental_config import supported_ai_core_metrics
 from torch_npu.profiler.experimental_config import supported_profiler_level
 from torch_npu.profiler.experimental_config import supported_export_type
-from torch_npu.profiler.analysis.prof_common_func.constant import Constant
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.profiler.experimental_config import _ExperimentalConfig
 from torch_npu._C._profiler import _ExperimentalConfig as Cpp_ExperimentalConfig
 from torch_npu.testing._testcase import TestCase, run_tests

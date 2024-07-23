@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
-from torch_npu.profiler.profiler_action_controller import ProfActionController
-from torch_npu.profiler.profiler_interface import ProfInterface
+from torch_npu.profiler._profiler_action_controller import ProfActionController
+from torch_npu.profiler.profiler_interface import _ProfInterface
 from torch_npu.profiler import ProfilerAction
 from torch_npu.testing._testcase import TestCase, run_tests
 
@@ -9,7 +9,7 @@ from torch_npu.testing._testcase import TestCase, run_tests
 class TestActionController(TestCase):
 
     def setUp(self):
-        self.prof_if = ProfInterface()
+        self.prof_if = _ProfInterface()
         self.prof_if.init_trace = MagicMock(name='init_trace')
         self.prof_if.start_trace = MagicMock(name='start_trace')
         self.prof_if.stop_trace = MagicMock(name='stop_trace')

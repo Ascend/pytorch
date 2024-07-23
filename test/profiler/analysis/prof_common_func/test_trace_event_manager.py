@@ -1,7 +1,7 @@
 import random
 from unittest.mock import patch, Mock, MagicMock
-from torch_npu.profiler.analysis.prof_common_func.constant import Constant, convert_ns2us_str, convert_ns2us_float
-from torch_npu.profiler.analysis.prof_common_func.trace_event_manager import TraceEventManager
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant, convert_ns2us_str, convert_ns2us_float
+from torch_npu.profiler.analysis.prof_common_func._trace_event_manager import TraceEventManager
 from torch_npu.testing._testcase import TestCase, run_tests
 
 

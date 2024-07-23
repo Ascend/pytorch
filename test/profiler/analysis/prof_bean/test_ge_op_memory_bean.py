@@ -1,4 +1,4 @@
-from torch_npu.profiler.analysis.prof_bean.ge_op_memory_bean import GeOpMemoryBean
+from torch_npu.profiler.analysis.prof_bean._ge_op_memory_bean import GeOpMemoryBean
 from torch_npu.testing._testcase import TestCase, run_tests
 
 

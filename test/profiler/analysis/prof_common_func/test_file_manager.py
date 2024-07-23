@@ -3,8 +3,8 @@ import shutil
 import stat
 import json
 
-from torch_npu.profiler.analysis.prof_bean.ge_memory_record_bean import GeMemoryRecordBean
-from torch_npu.profiler.analysis.prof_common_func.file_manager import FileManager
+from torch_npu.profiler.analysis.prof_bean._ge_memory_record_bean import GeMemoryRecordBean
+from torch_npu.profiler.analysis.prof_common_func._file_manager import FileManager
 
 from torch_npu.testing._testcase import TestCase, run_tests
 

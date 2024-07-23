@@ -1,4 +1,4 @@
-from torch_npu.profiler.analysis.prof_common_func.constant import (
+from torch_npu.profiler.analysis.prof_common_func._constant import (
     convert_ns2us_float, convert_us2ns, convert_ns2us_str, contact_2num
 )
 

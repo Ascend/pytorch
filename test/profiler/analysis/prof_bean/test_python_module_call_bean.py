@@ -1,7 +1,7 @@
 import random
 import struct
-from torch_npu.profiler.analysis.prof_bean.python_module_call_bean import PythonModuleCallBean
-from torch_npu.profiler.analysis.prof_common_func.constant import Constant
+from torch_npu.profiler.analysis.prof_bean._python_module_call_bean import PythonModuleCallBean
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.testing._testcase import TestCase, run_tests
 
 
