@@ -538,17 +538,21 @@ class TestPublicBindings(TestCase):
             "torch_npu.dynamo.torchair.core._abi_compat_ge_apis",
             "torch_npu.dynamo.torchair.core._backend",
             "torch_npu.dynamo.torchair.core._torchair",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.bernoulli",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.multinomial",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.native_dropout",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.rand",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.randint",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.randn",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.randperm",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.uniform",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.custom.npu_dynamic_quant",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.custom.fused_infer_attention_score",
-            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.experimental.patch_for_hcom_allreduce",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.aten.bernoulli",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.aten.multinomial",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.aten.native_dropout",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.aten.rand",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.aten.randint",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.aten.randn",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.aten.randperm",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.aten.uniform",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.custom.npu_dynamic_quant",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.custom.fused_infer_attention_score",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.patch_for_hcom_allreduce",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_allgather",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_allreduce",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_alltoall",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_broadcast",
             "torch_npu.utils.collect_hccl_info",
 
         }
@@ -692,8 +696,7 @@ class TestPublicBindings(TestCase):
 
                 if is_public != looks_public:
                     # Skip some APIs which don't meet the guidelines for public API until they are fixed.
-                    if f"{modname}.{elem}" in temp_filter or \
-                            modname.startswith("torch_npu.dynamo.torchair.ge_concrete_graph"):
+                    if f"{modname}.{elem}" in temp_filter:
                         return
 
                     if modname in allow_dict and elem in allow_dict[modname]:
