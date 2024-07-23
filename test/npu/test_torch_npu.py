@@ -248,8 +248,7 @@ class TorchNPUApiTestCase(TestCase):
             except Exception as e:
                 queue.put(e)
 
-        option = {"MM_BMM_ND_ENABLE": "disable"}
-        torch_npu.npu.set_option(option)
+        torch_npu.npu.current_device()
         with self.assertRaisesRegex(RuntimeError, "Cannot re-initialize NPU in forked subprocess"):
             result_queue = multiprocessing.Queue()
             p = multiprocessing.Process(target=run, args=(result_queue,))
