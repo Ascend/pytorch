@@ -1,6 +1,6 @@
 from enum import Enum
 
-from torch_npu.utils.error_code import ErrCode, prof_error
+from torch_npu.utils._error_code import ErrCode, prof_error
 from .analysis.prof_common_func.constant import print_warn_msg
 
 __all__ = [

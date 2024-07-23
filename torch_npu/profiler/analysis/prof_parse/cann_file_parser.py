@@ -5,7 +5,7 @@ import re
 from enum import Enum
 from json import JSONDecodeError
 
-from torch_npu.utils.error_code import ErrCode, prof_error
+from torch_npu.utils._error_code import ErrCode, prof_error
 from ....utils.path_manager import PathManager
 from ..prof_bean.event_bean import EventBean
 from ..prof_common_func.constant import Constant, print_warn_msg

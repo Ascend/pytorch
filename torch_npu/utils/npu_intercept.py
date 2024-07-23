@@ -5,7 +5,7 @@ from functools import wraps
 
 import torch
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 from .unsupport_api import unsupported_Tensor_api, unsupported_nn_api, unsupported_nested_api
 from .collect_env import get_cann_version
 

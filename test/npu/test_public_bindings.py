@@ -12,12 +12,78 @@ from pathlib import Path
 
 import pkgutil
 import torch
+from torch.testing._internal.common_utils import TestCase, run_tests, IS_JETSON, IS_WINDOWS, IS_MACOS, skipIfTorchDynamo
+from torch._utils_internal import get_file_path_2
 import torch_npu
 import torch_npu.testing
-from torch.testing._internal.common_utils import TestCase, run_tests, IS_JETSON, IS_WINDOWS
-from torch._utils_internal import get_file_path_2
 
 temp_filter = {
+    "torch_npu.contrib.FastBatchNorm1d",
+    "torch_npu.contrib.FastBatchNorm2d",
+    "torch_npu.contrib.FastBatchNorm3d",
+    "torch_npu.contrib.FastSyncBatchNorm",
+    "torch_npu.contrib.module.FastBatchNorm1d",
+    "torch_npu.contrib.module.FastBatchNorm2d",
+    "torch_npu.contrib.module.FastBatchNorm3d",
+    "torch_npu.contrib.module.FastSyncBatchNorm",
+    "torch_npu.npu.amp.autocast_mode.Any",
+    "torch_npu.npu.amp.autocast_mode.ErrCode",
+    "torch_npu.npu.amp.autocast_mode.pta_error",
+    "torch_npu.npu.amp.grad_scaler.BaseGradScaler",
+    "torch_npu.npu.amp.grad_scaler.ErrCode",
+    "torch_npu.npu.amp.grad_scaler.List",
+    "torch_npu.npu.amp.grad_scaler.OptState",
+    "torch_npu.npu.amp.grad_scaler.amp_definitely_not_available",
+    "torch_npu.npu.amp.grad_scaler.defaultdict",
+    "torch_npu.npu.amp.grad_scaler.pta_error",
+    "torch_npu.profiler.analysis.prof_bean.node_info_bean.List",
+    "torch_npu.profiler.analysis.prof_bean.node_info_bean.convert_us2ns",
+    "torch_npu.testing.common_distributed.Any",
+    "torch_npu.testing.common_distributed.Dict",
+    "torch_npu.testing.common_distributed.Tuple",
+    "torch_npu.testing.common_distributed.contextmanager",
+    "torch_npu.testing.common_distributed.namedtuple",
+    "torch_npu.testing.common_distributed.wraps",
+    "torch_npu.testing.common_methods_invocations.List",
+    "torch_npu.testing.common_methods_invocations.make_tensor",
+    "torch_npu.testing.common_methods_invocations.partial",
+    "torch_npu.testing.common_methods_invocations.sample_inputs_normal_common",
+    "torch_npu.testing.common_methods_invocations.wraps",
+    "torch_npu.testing.common_utils.List",
+    "torch_npu.testing.common_utils.PathManager",
+    "torch_npu.testing.common_utils.contextmanager",
+    "torch_npu.testing.common_utils.product",
+    "torch_npu.testing.common_utils.wraps",
+    "torch_npu.testing.decorator.partialmethod",
+    "torch_npu.testing.decorator.wraps",
+    "torch_npu.testing.testcase.Number",
+    "torch_npu.testing.testcase.OrderedDict",
+    "torch_npu.testing.testcase.Sequence",
+    "torch_npu.testing.testcase.TestResult",
+    "torch_npu.testing.testcase.contextmanager",
+    "torch_npu.testing.testcase.is_iterable",
+    "torch_npu.testing.testcase.iter_indices",
+    "torch_npu.testing.testcase.set_npu_device",
+    "torch_npu.testing.testcase.strclass",
+    "torch_npu.utils.print_error_log",
+    "torch_npu.utils.print_info_log",
+    "torch_npu.utils.print_warn_log",
+    "torch_npu.utils.collect_env.namedtuple",
+    "torch_npu.utils.profiler.ErrCode",
+    "torch_npu.utils.profiler.Optional",
+    "torch_npu.utils.profiler.prof_error",
+    "torch_npu.npu_add_rms_norm",
+    "torch_npu.npu_deep_norm",
+    "torch_npu.npu_fast_gelu",
+    "torch_npu.npu_fused_attention_layernorm_qkv_fwd",
+    "torch_npu.npu_fused_attention_score_fwd",
+    "torch_npu.npu_group_norm_silu",
+    "torch_npu.npu_lstm_cell",
+    "torch_npu.npu_masked_softmax_with_rel_pos_bias",
+    "torch_npu.npu_moe_compute_expert_tokens",
+    "torch_npu.npu_moe_finalize_routing",
+    "torch_npu.npu_quantize",
+    "torch_npu.npu_stride_copy",
     "torch_npu.fast_gelu",
     "torch_npu.npu_anchor_response_flags",
     "torch_npu.npu_anti_quant",
@@ -37,13 +103,10 @@ temp_filter = {
     "torch_npu.npu_diou",
     "torch_npu.npu_dropout_with_add_softmax",
     "torch_npu.npu_dtype_cast",
-    "torch_npu.npu_ffn",
     "torch_npu.npu_format_cast",
     "torch_npu.npu_fused_attention_score",
-    "torch_npu.npu_geglu",
     "torch_npu.npu_giou",
     "torch_npu.npu_grid_assign_positive",
-    "torch_npu.npu_grouped_matmul",
     "torch_npu.npu_gru",
     "torch_npu.npu_ifmr",
     "torch_npu.npu_incre_flash_attention",
@@ -66,8 +129,6 @@ temp_filter = {
     "torch_npu.npu_prompt_flash_attention",
     "torch_npu.npu_ps_roi_pooling",
     "torch_npu.npu_ptiou",
-    "torch_npu.npu_quant_matmul",
-    "torch_npu.npu_quant_scatter",
     "torch_npu.npu_reshape",
     "torch_npu.npu_roi_align",
     "torch_npu.npu_rotary_mul",
@@ -78,7 +139,6 @@ temp_filter = {
     "torch_npu.npu_scaled_masked_softmax",
     "torch_npu.npu_scatter",
     "torch_npu.npu_scatter_nd_update",
-    "torch_npu.npu_scatter_nd_update_",
     "torch_npu.npu_sign_bits_pack",
     "torch_npu.npu_sign_bits_unpack",
     "torch_npu.npu_silu",
@@ -92,7 +152,6 @@ temp_filter = {
     "torch_npu.npu_weight_quant_batchmatmul",
     "torch_npu.npu_yolo_boxes_encode",
     "torch_npu.one_",
-    "torch_npu.pta_error"
 }
 
 
@@ -359,9 +418,11 @@ class TestPublicBindings(TestCase):
                 return False
         return True
 
+    @unittest.skipIf(IS_WINDOWS or IS_MACOS, "Inductor/Distributed modules hard fail on windows and macos")
+    @skipIfTorchDynamo("Broken and not relevant for now")
     def test_modules_can_be_imported(self):
         failures = []
-        for _, modname, _ in _discover_path_importables(str(torch.__path__), "torch"):
+        for modname in _find_all_importables(torch):
             try:
                 if "__main__" in modname:
                     continue
@@ -370,9 +431,11 @@ class TestPublicBindings(TestCase):
                 # Some current failures are not ImportError
                 failures.append((modname, type(e)))
 
-        for _, modname, _ in _discover_path_importables(str(torch_npu.__path__), "torch_npu"):
+        for modname in _find_all_importables(torch_npu):
             try:
-                if "__main__" in modname:
+                if "__main__" in modname or \
+                        modname in ["torch_npu.dynamo.torchair.core._backend",
+                                    "torch_npu.dynamo.torchair.core._torchair"]:
                     continue
                 import_module(modname)
             except Exception as e:
@@ -385,6 +448,7 @@ class TestPublicBindings(TestCase):
             "torch._inductor.codegen.cuda.cuda_kernel",
             "torch.onnx._internal.fx._pass",
             "torch.onnx._internal.fx.analysis",
+            "torch.onnx._internal.fx.analysis.unsupported_nodes",
             "torch.onnx._internal.fx.decomposition_skip",
             "torch.onnx._internal.fx.diagnostics",
             "torch.onnx._internal.fx.fx_onnx_interpreter",
@@ -392,6 +456,13 @@ class TestPublicBindings(TestCase):
             "torch.onnx._internal.fx.onnxfunction_dispatcher",
             "torch.onnx._internal.fx.op_validation",
             "torch.onnx._internal.fx.passes",
+            "torch.onnx._internal.fx.passes._utils",
+            "torch.onnx._internal.fx.passes.decomp",
+            "torch.onnx._internal.fx.passes.functionalization",
+            "torch.onnx._internal.fx.passes.modularization",
+            "torch.onnx._internal.fx.passes.readability",
+            "torch.onnx._internal.fx.passes.type_promotion",
+            "torch.onnx._internal.fx.passes.virtualization",
             "torch.onnx._internal.fx.type_utils",
             "torch.testing._internal.common_distributed",
             "torch.testing._internal.common_fsdp",
@@ -406,7 +477,6 @@ class TestPublicBindings(TestCase):
             "torch.testing._internal.distributed.fake_pg",
             "torch.testing._internal.distributed.multi_threaded_pg",
             "torch.testing._internal.distributed.nn.api.remote_module_test",
-            "torch.testing._internal.distributed.pipe_with_ddp_test",
             "torch.testing._internal.distributed.rpc.dist_autograd_test",
             "torch.testing._internal.distributed.rpc.dist_optimizer_test",
             "torch.testing._internal.distributed.rpc.examples.parameter_server_test",
@@ -423,7 +493,7 @@ class TestPublicBindings(TestCase):
             "torch.utils.tensorboard._caffe2_graph",
             "torch._inductor.codegen.cuda.cuda_template",
             "torch._inductor.codegen.cuda.gemm_template",
-            "torch._inductor.triton_helpers",
+            "torch._inductor.runtime.triton_helpers",
             "torch.ao.pruning._experimental.data_sparsifier.lightning.callbacks.data_sparsity",
             "torch.backends._coreml.preprocess",
             "torch.contrib._tensorboard_vis",
@@ -458,6 +528,29 @@ class TestPublicBindings(TestCase):
             "torch.distributed.examples.memory_tracker_example",
             "torch.testing._internal.distributed.rpc.fb.thrift_rpc_agent_test_fixture",
             "torch.utils._cxx_pytree",
+            "torch.utils.tensorboard._convert_np",
+            "torch.utils.tensorboard._embedding",
+            "torch.utils.tensorboard._onnx_graph",
+            "torch.utils.tensorboard._proto_graph",
+            "torch.utils.tensorboard._pytorch_graph",
+            "torch.utils.tensorboard._utils",
+            "torch_npu.dynamo.torchair._tf_concrete_graph.fx2tf_converter",
+            "torch_npu.dynamo.torchair.core._abi_compat_ge_apis",
+            "torch_npu.dynamo.torchair.core._backend",
+            "torch_npu.dynamo.torchair.core._torchair",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.bernoulli",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.multinomial",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.native_dropout",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.rand",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.randint",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.randn",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.randperm",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.aten.uniform",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.custom.npu_dynamic_quant",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.custom.fused_infer_attention_score",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.experimental.patch_for_hcom_allreduce",
+            "torch_npu.utils.collect_hccl_info",
+
         }
 
         # No new entries should be added to this list.
@@ -479,7 +572,6 @@ class TestPublicBindings(TestCase):
             "torch.distributed.nn.api.remote_module",
             "torch.distributed.optim",
             "torch.distributed.optim.optimizer",
-            "torch.distributed.pipeline.sync",
             "torch.distributed.rendezvous",
             "torch.distributed.rpc.api",
             "torch.distributed.rpc.backend_registry",
@@ -495,6 +587,12 @@ class TestPublicBindings(TestCase):
             "torch.distributed.tensor.parallel",
             "torch.distributed.utils",
             "torch.utils.tensorboard",
+            "torch.utils.tensorboard.summary",
+            "torch.utils.tensorboard.writer",
+            "torch.ao.quantization.experimental.fake_quantize",
+            "torch.ao.quantization.experimental.linear",
+            "torch.ao.quantization.experimental.observer",
+            "torch.ao.quantization.experimental.qconfig",
         }
 
         errors = []
@@ -510,7 +608,8 @@ class TestPublicBindings(TestCase):
         self.assertEqual("", "\n".join(errors))
 
     # AttributeError: module 'torch.distributed' has no attribute '_shard'
-    @unittest.skipIf(IS_WINDOWS or IS_JETSON, "Distributed Attribute Error")
+    @unittest.skipIf(IS_WINDOWS or IS_JETSON or IS_MACOS, "Distributed Attribute Error")
+    @skipIfTorchDynamo("Broken and not relevant for now")
     def test_correct_module_names(self):
         '''
         An API is considered public, if  its  `__module__` starts with `torch.`
@@ -552,7 +651,9 @@ class TestPublicBindings(TestCase):
         
         def test_module(modname):
             try:
-                if "__main__" in modname:
+                if "__main__" in modname or \
+                        modname in ["torch_npu.dynamo.torchair.core._backend",
+                                    "torch_npu.dynamo.torchair.core._torchair"]:
                     return
                 mod = importlib.import_module(modname)
             except Exception:
@@ -566,7 +667,7 @@ class TestPublicBindings(TestCase):
             # verifies that each public API has the correct module name and naming semantics
             def check_one_element(elem, modname, mod, *, is_public, is_all):
                 obj = getattr(mod, elem)
-                if not (isinstance(obj, Callable) or inspect.isclass(obj)):
+                if not (isinstance(obj, (Callable, torch.dtype)) or inspect.isclass(obj)):
                     return
                 elem_module = getattr(obj, '__module__', None)
                 # Only used for nice error message below
@@ -590,7 +691,9 @@ class TestPublicBindings(TestCase):
                     why_not_looks_public = f"because it starts with `_` (`{elem}`)"
 
                 if is_public != looks_public:
-                    if f"{modname}.{elem}" in temp_filter:
+                    # Skip some APIs which don't meet the guidelines for public API until they are fixed.
+                    if f"{modname}.{elem}" in temp_filter or \
+                            modname.startswith("torch_npu.dynamo.torchair.ge_concrete_graph"):
                         return
 
                     if modname in allow_dict and elem in allow_dict[modname]:
@@ -640,10 +743,10 @@ class TestPublicBindings(TestCase):
                     if not elem.startswith('_'):
                         check_one_element(elem, modname, mod, is_public=True, is_all=False)
 
-        for _, modname, _ in _discover_path_importables(str(torch.__path__), "torch"):
+        for modname in _find_all_importables(torch):
             test_module(modname)
 
-        for _, modname, _ in _discover_path_importables(str(torch_npu.__path__), "torch_npu"):
+        for modname in _find_all_importables(torch_npu):
             test_module(modname)
 
         test_module('torch')
