@@ -1,7 +1,21 @@
 import inspect
-from typing import Dict, List
-
+import functools
 import torch
+
+
+# Folder with the same name as pkg `triton` in workdir could cause init problem in torch 2.4
+@functools.lru_cache(None)
+def _has_triton_package() -> bool:
+    try:
+        from triton.compiler.compiler import triton_key
+        return triton_key is not None
+    except ImportError:
+        return False
+
+
+from torch.utils import _triton
+_triton.has_triton_package = _has_triton_package
+
 from torch._dynamo.utils import tensortype_to_dtype
 from torch._dynamo.variables.torch import TorchCtxManagerClassVariable, TorchInGraphFunctionVariable
 from torch._dynamo.variables.base import VariableTracker
