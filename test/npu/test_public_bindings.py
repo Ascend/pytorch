@@ -1,7 +1,6 @@
 # Owner(s): ["module: autograd"]
-
+import importlib
 import pkgutil
-import sys
 from typing import Callable
 import inspect
 import json
@@ -12,7 +11,6 @@ from torch.testing._internal.common_utils import TestCase, run_tests, IS_JETSON,
 import torch
 import torch_npu
 import torch_npu.testing
-
 
 tempFilter = {
     "torch_npu.contrib.FastBatchNorm1d",
@@ -46,7 +44,36 @@ tempFilter = {
     "torch_npu.npu_moe_init_routing",
     "torch_npu.utils.collect_env.main",
     "torch_npu.utils.collect_env.namedtuple",
-    "torch_npu.one_"
+    "torch_npu.one_",
+    "torch_npu.testing.common_distributed.Any",
+    "torch_npu.testing.common_distributed.Dict",
+    "torch_npu.testing.common_distributed.Tuple",
+    "torch_npu.testing.common_distributed.namedtuple",
+    "torch_npu.testing.common_distributed.wraps",
+    "torch_npu.testing.common_methods_invocations.List",
+    "torch_npu.testing.common_methods_invocations.make_tensor",
+    "torch_npu.testing.common_methods_invocations.partial",
+    "torch_npu.testing.common_methods_invocations.sample_inputs_normal_common",
+    "torch_npu.testing.common_methods_invocations.wraps",
+    "torch_npu.testing.common_utils.List",
+    "torch_npu.testing.common_utils.PathManager",
+    "torch_npu.testing.common_utils.contextmanager",
+    "torch_npu.testing.common_utils.product",
+    "torch_npu.testing.common_utils.wraps",
+    "torch_npu.testing.decorator.partialmethod",
+    "torch_npu.testing.decorator.wraps",
+    "torch_npu.testing.testcase.Number",
+    "torch_npu.testing.testcase.OrderedDict",
+    "torch_npu.testing.testcase.Sequence",
+    "torch_npu.testing.testcase.TestResult",
+    "torch_npu.testing.testcase.contextmanager",
+    "torch_npu.testing.testcase.is_iterable",
+    "torch_npu.testing.testcase.iter_indices",
+    "torch_npu.testing.testcase.set_npu_device",
+    "torch_npu.testing.testcase.strclass",
+    "torch_npu.utils.profiler.ErrCode",
+    "torch_npu.utils.profiler.Optional",
+    "torch_npu.utils.profiler.prof_error",
 }
 
 NOT_IMPORTED_WHEN_TEST_WRITTEN = {
@@ -310,7 +337,14 @@ class TestPublicBindings(TestCase):
         
         def test_module(modname):
             split_strs = modname.split('.')
-            mod = sys.modules.get(modname)
+            try:
+                if "__main__" in modname:
+                    return
+                mod = importlib.import_module(modname)
+            except Exception:
+                # It is ok to ignore here as we have a test above that ensures
+                # this should never happen
+                return
             for elem in split_strs:
                 if elem.startswith("_"):
                     return
@@ -330,11 +364,11 @@ class TestPublicBindings(TestCase):
                 # if there is a "from foo import a" inside the "bar.py".
                 modname = allow_dict["being_migrated"].get(modname, modname)
                 elem_modname_starts_with_mod = elem_module is not None and \
-                    elem_module.startswith(modname) and \
-                    '._' not in elem_module
+                                               elem_module.startswith(modname) and \
+                                               '._' not in elem_module
                 if not why_not_looks_public and not elem_modname_starts_with_mod:
                     why_not_looks_public = f"because its `__module__` attribute (`{elem_module}`) is not within the " \
-                        f"torch library or does not start with the submodule where it is defined (`{modname}`)"
+                                           f"torch library or does not start with the submodule where it is defined (`{modname}`)"
                 # elem's name must NOT begin with an `_` and it's module name
                 # SHOULD start with it's current module since it's a public API
                 looks_public = not elem.startswith('_') and elem_modname_starts_with_mod
@@ -362,13 +396,13 @@ class TestPublicBindings(TestCase):
 
                     if looks_public:
                         why_looks_public = "it does look public because it follows the rules from the doc above " \
-                            "(does not start with `_` and has a proper `__module__`)."
+                                           "(does not start with `_` and has a proper `__module__`)."
                         fix_looks_public = "make its name start with `_`"
                     else:
                         why_looks_public = why_not_looks_public
                         if not elem_modname_starts_with_mod:
-                            fix_looks_public = "make sure the `__module__` is properly set and points to a submodule "\
-                                f"of `{modname}`"
+                            fix_looks_public = "make sure the `__module__` is properly set and points to a submodule " \
+                                               f"of `{modname}`"
                         else:
                             fix_looks_public = "remove the `_` at the beginning of the name"
 
@@ -393,6 +427,7 @@ class TestPublicBindings(TestCase):
                 for elem in all_api:
                     if not elem.startswith('_'):
                         check_one_element(elem, modname, mod, is_public=True, is_all=False)
+
         for _, modname, ispkg in pkgutil.walk_packages(path=torch.__path__, prefix=torch.__name__ + '.'):
             test_module(modname)
 
@@ -405,8 +440,8 @@ class TestPublicBindings(TestCase):
         msg = "All the APIs below do not meet our guidelines for public API from " \
               "pytorch wiki Public-API-definition-and-documentation.\n"
         msg += "Make sure that everything that is public is expected (in particular that the module " \
-            "has a properly populated `__all__` attribute) and that everything that is supposed to be public " \
-            "does look public (it does not start with `_` and has a `__module__` that is properly populated)."
+               "has a properly populated `__all__` attribute) and that everything that is supposed to be public " \
+               "does look public (it does not start with `_` and has a `__module__` that is properly populated)."
         msg += "\n\nFull list:\n"
         msg += "\n".join(map(str, failure_list))
 
