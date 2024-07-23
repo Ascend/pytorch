@@ -68,25 +68,7 @@ static void storage_resize_npu(
     };
     // It is necessary to properly refresh the storage according to sizes and strides,
     // not just new sizes.
-    int64_t new_data_numel = c10::multiply_integers(resize_shape);
-    int64_t new_shape_numel = c10::multiply_integers(new_size);
-    const c10::IntArrayRef &refresh_size = new_data_numel > new_shape_numel ? resize_shape : new_size;
-
-    // 计算连续场景下size对应的stride值
-    int64_t dim_ = static_cast<int64_t>(refresh_size.size());
-    c10::SmallVector<int64_t, 5> new_stride(dim_);
-    if (dim_ > 0) {
-        int64_t last_idx = dim_ - 1;
-        new_stride[last_idx] = 1;
-        for (auto i = last_idx - 1; i >= 0; --i) {
-            new_stride[i] = new_stride[i + 1] * std::max<int64_t>(refresh_size[i + 1], 1);
-        }
-    }
-
-    storage_desc.base_sizes_ = refresh_size;
-    storage_desc.base_strides_ = new_stride;
-    storage_desc.npu_format_ = ACL_FORMAT_ND;
-    storage_desc.storage_sizes_ = storage_desc.base_sizes_;
+    StorageDescHelper::UpdateDesc(storage_desc, resize_shape, new_size);
 
     if (old_data != nullptr) {
         ptrdiff_t copy_size = old_size;
