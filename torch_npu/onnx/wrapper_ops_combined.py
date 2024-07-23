@@ -1,11 +1,12 @@
 import torch
-from torch import _VF
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
+
+__all__ = []
 
 
-class NPULinearOP(object):
+class _NPULinearOP(object):
 
     @staticmethod
     def forward(input_, weight, bias=None):
@@ -14,7 +15,7 @@ class NPULinearOP(object):
         return torch.ops.npu.npu_linear(input_, weight, bias)
 
 
-class NPUTransposeOP(object):
+class _NPUTransposeOP(object):
 
     @staticmethod
     def forward(self, perm, require_contiguous=True, out=None):
@@ -29,7 +30,7 @@ class NPUTransposeOP(object):
         return out
 
 
-class NPUBroadcastOP(object):
+class _NPUBroadcastOP(object):
 
     @staticmethod
     def forward(self, size, out=None):
@@ -40,7 +41,7 @@ class NPUBroadcastOP(object):
         return out
 
 
-class NPUConvTranspose2dOP(object):
+class _NPUConvTranspose2dOP(object):
 
     @staticmethod
     def forward(input_, weight, bias, padding, output_padding, stride, dilation, groups):
@@ -52,7 +53,7 @@ class NPUConvTranspose2dOP(object):
                                                                          stride, dilation, groups)
 
 
-class NPUConv2dOP(object):
+class _NPUConv2dOP(object):
 
     @staticmethod
     def forward(input_, weight, bias, stride, padding, dilation, groups):
@@ -62,7 +63,7 @@ class NPUConv2dOP(object):
                                                                padding, dilation, groups)
 
 
-class NPUConv3dOP(object):
+class _NPUConv3dOP(object):
 
     @staticmethod
     def forward(input_, weight, bias, stride, padding, dilation, groups):
@@ -72,7 +73,7 @@ class NPUConv3dOP(object):
                                                                padding, dilation, groups)
 
 
-class NPUStrideCopyOP(object):
+class _NPUStrideCopyOP(object):
 
     @staticmethod
     def forward(self, shape, stride, storage_offset, out=None):
@@ -83,7 +84,7 @@ class NPUStrideCopyOP(object):
         return out
 
 
-class NPUSortV2OP(object):
+class _NPUSortV2OP(object):
 
     @staticmethod
     def forward(self, dim=-1, descending=False, out=None):
@@ -94,7 +95,7 @@ class NPUSortV2OP(object):
         return out
 
 
-class NPULayerNormEvalOP(object):
+class _NPULayerNormEvalOP(object):
 
     @staticmethod
     def forward(input_, normalized_shape, weight=None, bias=None, eps=1e-05):
@@ -104,7 +105,7 @@ class NPULayerNormEvalOP(object):
                                                                    weight, bias, eps)
 
 
-class NPUReshapeOP(object):
+class _NPUReshapeOP(object):
 
     @staticmethod
     def forward(self, shape, can_refresh=False, out=None):
@@ -118,7 +119,7 @@ class NPUReshapeOP(object):
         return out
 
 
-class NPUPadOP(object):
+class _NPUPadOP(object):
 
     @staticmethod
     def forward(input_, paddings):
@@ -127,7 +128,7 @@ class NPUPadOP(object):
         return torch.ops.npu.npu_pad(input_, paddings)
 
 
-class NPUConvolutionOP(object):
+class _NPUConvolutionOP(object):
 
     @staticmethod
     def forward(input_, weight, bias, stride, padding, dilation, groups):
@@ -154,7 +155,7 @@ class NPUConvolutionOP(object):
                                                                    stride, padding, dilation, groups)
 
 
-class NPUConvolutionTransposeOP(object):
+class _NPUConvolutionTransposeOP(object):
 
     @staticmethod
     def forward(input_, weight, bias, padding, output_padding, stride, dilation, groups):
@@ -174,7 +175,7 @@ class NPUConvolutionTransposeOP(object):
                 input_, weight, bias, padding, output_padding, stride, dilation, groups)
 
 
-class NPUConfusionTransposeOP(object):
+class _NPUConfusionTransposeOP(object):
 
     @staticmethod
     def forward(self, perm, shape, transpose_first):
@@ -186,7 +187,7 @@ class NPUConfusionTransposeOP(object):
         return torch.ops.npu.npu_confusion_transpose(self, perm, shape, transpose_first)
 
 
-class NPUMaxOP(object):
+class _NPUMaxOP(object):
 
     @staticmethod
     def forward(self, dim, keepdim=False):
@@ -197,7 +198,7 @@ class NPUMaxOP(object):
         return torch.ops.npu.npu_max(self, dim, keepdim)
 
 
-class NPUBmmV2OP(object):
+class _NPUBmmV2OP(object):
 
     @staticmethod
     def forward(self, mat2, output_sizes):
@@ -206,7 +207,7 @@ class NPUBmmV2OP(object):
         return torch.ops.npu.npu_bmmV2(self, mat2, output_sizes)
 
 
-class NPUDtypeCastOP(object):
+class _NPUDtypeCastOP(object):
 
     @staticmethod
     def forward(self, dtype):
@@ -215,7 +216,7 @@ class NPUDtypeCastOP(object):
         return torch.ops.npu.npu_dtype_cast(self, dtype)
 
 
-class NPUSiluOP(object):
+class _NPUSiluOP(object):
 
     @staticmethod
     def forward(self):
@@ -224,7 +225,7 @@ class NPUSiluOP(object):
         return torch.ops.npu.npu_silu(self)
 
 
-class NPUMinOP(object):
+class _NPUMinOP(object):
 
     @staticmethod
     def forward(self, dim, keepdim=False):
@@ -235,7 +236,7 @@ class NPUMinOP(object):
         return torch.ops.npu.npu_min(self, dim, keepdim)
 
 
-class NPUFusedAttentionLayernormQkvFwdOP(object):
+class _NPUFusedAttentionLayernormQkvFwdOP(object):
 
     @staticmethod
     def confusion_transpose(x, new_shape):
@@ -254,11 +255,11 @@ class NPUFusedAttentionLayernormQkvFwdOP(object):
             new_shape = (int(x.shape[0] / seq_len), seq_len, num_heads, int(x.shape[1] / num_heads))
 
             norm, mean, variance = torch.native_layer_norm(x, norm_shape, gamma, beta, eps=1e-05)
-            q_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
+            q_layer = _NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
                     torch.nn.functional.linear(norm, kernel_query, bias_query), new_shape)
-            k_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
+            k_layer = _NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
                     torch.nn.functional.linear(norm, kernel_key, bias_key), new_shape)
-            v_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
+            v_layer = _NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
                     torch.nn.functional.linear(norm, kernel_value, bias_value), new_shape)
 
             return [norm, q_layer, k_layer, v_layer, mean, variance]
@@ -269,24 +270,24 @@ class NPUFusedAttentionLayernormQkvFwdOP(object):
                                 seq_len=seq_len, num_heads=num_heads, eps=eps)
 
 
-def add_ops_combined_for_onnx():
-    torch_npu.npu_linear = NPULinearOP.forward
-    torch_npu.npu_transpose = NPUTransposeOP.forward
-    torch_npu.npu_broadcast = NPUBroadcastOP.forward
-    torch_npu.npu_conv_transpose2d = NPUConvTranspose2dOP.forward
-    torch_npu.npu_conv2d = NPUConv2dOP.forward
-    torch_npu.npu_conv3d = NPUConv3dOP.forward
-    torch_npu.npu_stride_copy = NPUStrideCopyOP.forward
-    torch_npu.npu_sort_v2 = NPUSortV2OP.forward
-    torch_npu.npu_layer_norm_eval = NPULayerNormEvalOP.forward
-    torch_npu.npu_reshape = NPUReshapeOP.forward
-    torch_npu.npu_pad = NPUPadOP.forward
-    torch_npu.npu_convolution = NPUConvolutionOP.forward
-    torch_npu.npu_convolution_transpose = NPUConvolutionTransposeOP.forward
-    torch_npu.npu_confusion_transpose = NPUConfusionTransposeOP.forward
-    torch_npu.npu_max = NPUMaxOP.forward
-    torch_npu.npu_bmmV2 = NPUBmmV2OP.forward
-    torch_npu.npu_dtype_cast = NPUDtypeCastOP.forward
-    torch_npu.npu_silu = NPUSiluOP.forward
-    torch_npu.npu_min = NPUMinOP.forward
-    torch_npu.npu_fused_attention_layernorm_qkv_fwd = NPUFusedAttentionLayernormQkvFwdOP.forward
+def _add_ops_combined_for_onnx():
+    torch_npu.npu_linear = _NPULinearOP.forward
+    torch_npu.npu_transpose = _NPUTransposeOP.forward
+    torch_npu.npu_broadcast = _NPUBroadcastOP.forward
+    torch_npu.npu_conv_transpose2d = _NPUConvTranspose2dOP.forward
+    torch_npu.npu_conv2d = _NPUConv2dOP.forward
+    torch_npu.npu_conv3d = _NPUConv3dOP.forward
+    torch_npu.npu_stride_copy = _NPUStrideCopyOP.forward
+    torch_npu.npu_sort_v2 = _NPUSortV2OP.forward
+    torch_npu.npu_layer_norm_eval = _NPULayerNormEvalOP.forward
+    torch_npu.npu_reshape = _NPUReshapeOP.forward
+    torch_npu.npu_pad = _NPUPadOP.forward
+    torch_npu.npu_convolution = _NPUConvolutionOP.forward
+    torch_npu.npu_convolution_transpose = _NPUConvolutionTransposeOP.forward
+    torch_npu.npu_confusion_transpose = _NPUConfusionTransposeOP.forward
+    torch_npu.npu_max = _NPUMaxOP.forward
+    torch_npu.npu_bmmV2 = _NPUBmmV2OP.forward
+    torch_npu.npu_dtype_cast = _NPUDtypeCastOP.forward
+    torch_npu.npu_silu = _NPUSiluOP.forward
+    torch_npu.npu_min = _NPUMinOP.forward
+    torch_npu.npu_fused_attention_layernorm_qkv_fwd = _NPUFusedAttentionLayernormQkvFwdOP.forward

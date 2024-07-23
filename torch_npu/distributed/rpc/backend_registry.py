@@ -7,7 +7,7 @@ from torch.distributed.rpc import api
 from torch.distributed.rpc import constants as rpc_constants
 
 import torch_npu._C
-from torch_npu.utils.error_code import ErrCode, dist_error
+from torch_npu.utils._error_code import ErrCode, dist_error
 
 __all__ = ["construct_rpc_backend_options", "init_backend"]
 

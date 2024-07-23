@@ -2,7 +2,7 @@ __all__ = ["DropoutWithByteMask"]
 
 
 from torch.nn import Module
-from torch_npu.utils.error_code import ErrCode, ops_error
+from torch_npu.utils._error_code import ErrCode, ops_error
 from ..function import npu_functional as F
 
 

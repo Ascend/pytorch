@@ -10,7 +10,7 @@ from torch.distributed.distributed_c10d import _pg_map
 
 import torch_npu
 import torch_npu._C
-from torch_npu.utils.error_code import ErrCode, pta_error, _except_handler
+from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 
 
 __all__ = ["synchronize", "device_count", "can_device_access_peer", "set_device", "current_device", "get_device_name",

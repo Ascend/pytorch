@@ -8,7 +8,7 @@ from torch._dynamo import register_backend as _register_backend
 from torch._dynamo.backends.registry import _BACKENDS
 from torch.library import Library, impl
 
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 _global_npu_backend = None
 __all__ = []

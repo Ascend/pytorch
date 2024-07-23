@@ -232,7 +232,7 @@ class TestFusedOptim(TestCase):
             for p, p_clone in zip(params, params_clone):
                 if p.grad is not None:
                     self.assertRtolEqual(p.grad, p_clone.grad, prec=1e-3)
-            self.assertRtolEqual(grad_norm, grad_norm_fused, prec=1e-3)
+            self.assertRtolEqual(grad_norm.float(), grad_norm_fused, prec=1e-3)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from typing import Union
 
-from torch_npu.utils.error_code import ErrCode, prof_error
+from torch_npu.utils._error_code import ErrCode, prof_error
 
 __all__ = []
 

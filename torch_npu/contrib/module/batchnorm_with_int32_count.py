@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch.nn.modules.batchnorm import _NormBase as SrcNormBase
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, ops_error
+from torch_npu.utils._error_code import ErrCode, ops_error
 
 __all__ = [
     "FastBatchNorm1d",

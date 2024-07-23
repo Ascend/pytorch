@@ -8,7 +8,7 @@ from torch.distributed.distributed_c10d import ProcessGroup
 from torch.optim.sgd import SGD
 from torch_npu.npu.utils import npu_check_overflow
 from torch_npu.npu.amp.grad_scaler import _MultiDeviceReplicator, GradScaler, OptState
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 __all__ = ["ShardedGradScaler"]
 

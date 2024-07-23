@@ -4,7 +4,7 @@ from torch.nn.functional import layer_norm as origin_layernorm
 from torch.nn.functional import embedding as origin_embedding
 
 import torch_npu
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error
 from .silent_fault_data import SilentFaultData
 
 __all__ = []
