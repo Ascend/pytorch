@@ -190,6 +190,9 @@ class ProfInterface:
     def _dump_metadata(self):
         if not self.metadata:
             return
+        if not ProfPathCreator().is_prof_inited:
+            print_warn_msg("Profiler is not initialized. Skip this metadata.")
+            return
         metadata_path = os.path.join(self.prof_path, "profiler_metadata.json")
         FileManager.create_json_file_by_path(metadata_path, self.metadata, indent=4)
         self.metadata.clear()
