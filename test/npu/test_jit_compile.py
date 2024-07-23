@@ -15,10 +15,10 @@
 import expecttest
 
 import torch
+from torch.testing._internal.common_utils import TestCase, run_tests
+
 import torch_npu
 import torch_npu._C
-
-from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestJitCompile(TestCase):
