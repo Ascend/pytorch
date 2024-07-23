@@ -1,4 +1,4 @@
-from torch_npu.profiler.analysis.prof_bean.event_bean import EventBean
+from torch_npu.profiler.analysis.prof_bean._event_bean import EventBean
 from torch_npu.testing.testcase import TestCase, run_tests
 
 

@@ -3,9 +3,9 @@ import shutil
 import stat
 import json
 
-from torch_npu.profiler.analysis.prof_common_func.constant import Constant
-from torch_npu.profiler.analysis.prof_common_func.file_manager import FileManager
-from torch_npu.profiler.analysis.prof_common_func.path_manager import ProfilerPathManager
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant
+from torch_npu.profiler.analysis.prof_common_func._file_manager import FileManager
+from torch_npu.profiler.analysis.prof_common_func._path_manager import ProfilerPathManager
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.utils.path_manager import PathManager

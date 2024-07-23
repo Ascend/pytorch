@@ -1,9 +1,9 @@
 from enum import Enum
 
 from torch_npu.utils._error_code import ErrCode, prof_error
-from .analysis.prof_common_func.constant import print_warn_msg
+from .analysis.prof_common_func._constant import print_warn_msg
 
-__all__ = []
+__all__ = ["ProfilerAction", "Schedule"]
 
 
 class ProfilerAction(Enum):
@@ -72,7 +72,7 @@ class Schedule:
             print_warn_msg("Profiler won't be using warmup, this can skew profiler results")
 
 
-def default_schedule_fn(_: int) -> ProfilerAction:
+def _default_schedule_fn(_: int) -> ProfilerAction:
     """
     Default profiler behavior - immediately starts recording the events,
     keeps doing it on every profiler step.
