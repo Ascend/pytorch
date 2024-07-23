@@ -922,7 +922,7 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg)
         const char *pValue = PyUnicode_AsUTF8(value);
         option[pKey] = pValue;
     }
-    torch_npu::utils::npu_lazy_init();
+
     {
         pybind11::gil_scoped_release no_gil;
         c10_npu::option::SetOption(option);
