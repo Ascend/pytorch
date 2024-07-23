@@ -45,31 +45,44 @@ namespace {
 const uint32_t kMaxOpExecuteTimeOut = 547U;
 const size_t kMaxPathLen = 4096U;
 
-void MakeCompileCacheDirAndSetOption() {
-  char* compile_cache_mode_val = std::getenv("ACL_OP_COMPILER_CACHE_MODE");
-  std::string compile_cache_mode = (compile_cache_mode_val == nullptr) ? std::string("enable")
-                                                                      : std::string(compile_cache_mode_val);
-  if (compile_cache_mode != "enable" && compile_cache_mode != "disable" && compile_cache_mode != "force") {
-    compile_cache_mode = std::string("enable");
-  }
-  c10_npu::option::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_MODE", compile_cache_mode);
-
-  char* compile_cache_dir_val = std::getenv("ACL_OP_COMPILER_CACHE_DIR");
-  if (compile_cache_dir_val != nullptr) {
-    std::string compile_cache_dir = std::string(compile_cache_dir_val);
-    // mode : 750
-    auto ret = Mkdir(compile_cache_dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP);
-    if (ret == -1) {
-      if (errno != EEXIST) {
-        TORCH_NPU_WARN("make compile cache directory error: ", strerror(errno));
-        return;
-      }
+void MakeCompileCacheDirAndSetOption()
+{
+    char* compile_cache_mode_val = std::getenv("ACL_OP_COMPILER_CACHE_MODE");
+    std::string compile_cache_mode = (compile_cache_mode_val == nullptr) ? std::string("enable")
+                                                                        : std::string(compile_cache_mode_val);
+    if (compile_cache_mode != "enable" && compile_cache_mode != "disable" && compile_cache_mode != "force") {
+        compile_cache_mode = std::string("enable");
     }
-    c10_npu::option::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_DIR", compile_cache_dir);
-  }
+    auto compile_mode = c10_npu::option::GetOption("ACL_OP_COMPILER_CACHE_MODE");
+    if (!compile_mode.has_value() || compile_mode.value() == "") {
+        c10_npu::option::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_MODE", compile_cache_mode);
+    }
+
+    char* compile_cache_dir_val = std::getenv("ACL_OP_COMPILER_CACHE_DIR");
+    if (compile_cache_dir_val != nullptr) {
+        std::string compile_cache_dir = std::string(compile_cache_dir_val);
+        // mode : 750
+        auto ret = Mkdir(compile_cache_dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP);
+        if (ret == -1) {
+            if (errno != EEXIST) {
+                TORCH_NPU_WARN("make compile cache directory error: ", strerror(errno));
+                return;
+            }
+        }
+        auto compile_dir = c10_npu::option::GetOption("ACL_OP_COMPILER_CACHE_DIR");
+        if (!compile_dir.has_value() || compile_dir.value() == "") {
+            c10_npu::option::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_DIR", compile_cache_dir);
+        }
+    }
 }
 
-void GetAndSetDefaultJitCompileByAcl() {
+void GetAndSetDefaultJitCompileByAcl()
+{
+    auto jit_compile = c10_npu::option::GetOption("jitCompile");
+    if (jit_compile.has_value() && jit_compile.value() != "") {
+        return;
+    }
+
   auto opt_size = at_npu::native::AclGetCompileoptSize(ACL_OP_JIT_COMPILE);
   if (!opt_size.has_value()) {
     ASCEND_LOGW("Get ACL JitCompile default value size failed, use PTA default value: True");
@@ -159,7 +172,8 @@ NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), devic
 }
 
 // Environment Initialize, return Status: SUCCESS, FAILED
- NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
+NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
+{
     if (init_flag_) {
         return INIT_SUCC;
     }
@@ -196,39 +210,49 @@ NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), devic
 
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
-      const char *aclConfigPath = "acl.json";
-      NPU_CHECK_ERROR(aclmdlSetDump(aclConfigPath));
-      ASCEND_LOGD("set dump config success");
+        const char *aclConfigPath = "acl.json";
+        NPU_CHECK_ERROR(aclmdlSetDump(aclConfigPath));
+        ASCEND_LOGD("set dump config success");
     }
 
-  auto soc_name = c10_npu::acl::AclGetSocName();
-  // set global soc name
-  c10_npu::SetSocVersion(soc_name);
+    auto soc_name = c10_npu::acl::AclGetSocName();
+    // set global soc name
+    c10_npu::SetSocVersion(soc_name);
 
-  if (c10_npu::IsSupportInfNan()) {
-      c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
-  } else {
-      c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
-  }
+    if (c10_npu::IsSupportInfNan()) {
+        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+    } else {
+        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+    }
 
-  // set ACL_PRECISION_MODE by SocVersion("allow_fp32_to_fp16" or "must_keep_origin_dtype").
-  auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
-      "must_keep_origin_dtype" : "allow_fp32_to_fp16";
-  NPU_CHECK_ERROR(at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, precision_mode));
+    // set ACL_PRECISION_MODE by SocVersion("allow_fp32_to_fp16" or "must_keep_origin_dtype").
+    auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
+        "must_keep_origin_dtype" : "allow_fp32_to_fp16";
+    NPU_CHECK_ERROR(at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, precision_mode));
 
-  // set default compile cache mode and dir for users to improve op compile time
-  MakeCompileCacheDirAndSetOption();
-  // set default jit_Compile value from Get acl defalut value
-  GetAndSetDefaultJitCompileByAcl();
+    // set default compile cache mode and dir for users to improve op compile time
+    MakeCompileCacheDirAndSetOption();
+    // set default jit_Compile value from Get acl defalut value
+    GetAndSetDefaultJitCompileByAcl();
 
-  SetHF32DefaultValue();
+    SetHF32DefaultValue();
 
-  NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
-  NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
-  init_flag_ = true;
-  ASCEND_LOGD("Npu sys ctrl initialize successfully.");
+    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+    NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
 
-  return INIT_SUCC;
+    // lazy call for the setoption
+    for (const auto& iter : lazy_fn_) {
+        ASCEND_LOGD("start setoption for the lazy call.");
+        const auto& call_ = iter.first;
+        const auto& in = iter.second;
+        call_(in);
+    }
+    lazy_fn_.clear();
+
+    init_flag_ = true;
+    ASCEND_LOGD("Npu sys ctrl initialize successfully.");
+
+    return INIT_SUCC;
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
@@ -297,6 +321,11 @@ int NpuSysCtrl::InitializedDeviceID()
     }
     TORCH_CHECK(false, "no npu device has been initialized!", PTA_ERROR(ErrCode::INTERNAL));
     return -1;
+}
+
+void NpuSysCtrl::RegisterLazyFn(const option::OptionCallBack& call_, const std::string& in)
+{
+    lazy_fn_.emplace_back(std::make_pair(call_, in));
 }
 
 void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn,

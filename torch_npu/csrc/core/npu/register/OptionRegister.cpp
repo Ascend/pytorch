@@ -2,6 +2,8 @@
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/core/npu/npu_log.h"
 
 namespace c10_npu {
 namespace option {
@@ -11,10 +13,16 @@ OptionInterface::OptionInterface(OptionCallBack callback) {
 }
 
 void OptionInterface::Set(const std::string& in) {
-  this->val = in;
-  if (this->callback != nullptr) {
-    this->callback(in);
-  }
+    this->val = in;
+    if (this->callback != nullptr) {
+        if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+            ASCEND_LOGD("setoption call immediately.");
+            this->callback(in);
+        } else {
+            ASCEND_LOGD("setoption will lazy call.");
+            c10_npu::NpuSysCtrl::GetInstance().RegisterLazyFn(this->callback, in);
+        }
+    }
 }
 
 std::string OptionInterface::Get() {
