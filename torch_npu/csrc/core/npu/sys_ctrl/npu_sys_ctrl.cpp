@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
@@ -200,6 +201,8 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
 
     c10_npu::NPUCachingAllocator::init();
     NPU_LOGD("Npu caching allocator initialize successfully");
+    c10_npu::NPUWorkspaceAllocator::init();
+    NPU_LOGD("Npu workspace allocator initialize successfully");
 
     // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
     auto ret = aclrtGetDevice(&device_id_);

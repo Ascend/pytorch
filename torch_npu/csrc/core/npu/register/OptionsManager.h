@@ -35,7 +35,6 @@ public:
     static ReuseMode GetMultiStreamMemoryReuse();
     static bool CheckInfNanModeEnable();
     static bool CheckBlockingEnable();
-    static bool CheckQueueEnable();
     static bool CheckCombinedOptimizerEnable();
     static bool CheckTriCombinedOptimizerEnable();
     static bool CheckAclDumpDateEnable();
@@ -48,7 +47,9 @@ public:
     static char *GetNslbPath();
     static uint32_t GetNslbCntVal();
     static bool CheckGeInitDisable();
+    static uint32_t GetTaskQueueEnable();
     static uint32_t GetCpuAffinityConf();
+    static bool CheckForceUncached();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

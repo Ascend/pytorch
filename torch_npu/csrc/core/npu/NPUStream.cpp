@@ -167,7 +167,7 @@ static void initGlobalStreamState() {
   auto& default_streamsi = default_streams[device_id];
   NPU_CHECK_SUPPORTED_OR_ERROR(
       acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
-  if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
+    if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
     default_streamsi.repo->InitRepo(device_id);
   }
   // Initializes secondary streams
@@ -384,7 +384,7 @@ std::string getRepoInfo()
 }
 
 bool npuSynchronizeDevice(bool check_error) {
-  if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
+    if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     if (ret != SUCCESS) {
       NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());

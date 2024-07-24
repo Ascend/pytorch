@@ -174,7 +174,7 @@ void OpCommand::Run() {
   aclCmd->SetEnginePriority();
   const string &op_name = aclCmd->GetName();
   const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
-  if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
+    if (c10_npu::option::OptionsManager::GetTaskQueueEnable() && !sync) {
     RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
     ExecuteParas execParams;

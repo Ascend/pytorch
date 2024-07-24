@@ -36,10 +36,31 @@
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
+
+std::string format_size(uint64_t size)
+{
+    std::ostringstream os;
+    os.precision(2);
+    os << std::fixed;
+    if (size <= 1024) {
+        os << size << " bytes";
+    } else if (size <= 1048576) {
+        os << (size / 1024.0);
+        os << " KiB";
+    } else if (size <= 1073741824ULL) {
+        os << (size / 1048576.0);
+        os << " MiB";
+    } else {
+        os << (size / 1073741824.0);
+        os << " GiB";
+    }
+    return os.str();
+}
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -490,26 +511,6 @@ static bool BlockComparatorAddress(const Block* a, const Block* b) {
       reinterpret_cast<uintptr_t>(b->ptr);
 }
 
-
-static std::string format_size(uint64_t size) {
-  std::ostringstream os;
-  os.precision(2);
-  os << std::fixed;
-  if (size <= 1024) {
-    os << size << " bytes";
-  } else if (size <= 1048576) {
-    os << (size / 1024.0);
-    os << " KiB";
-  } else if (size <= 1073741824ULL) {
-    os << (size / 1048576.0);
-    os << " MiB";
-  } else {
-    os << (size / 1073741824.0);
-    os << " GiB";
-  }
-  return os.str();
-}
-
 struct AllocParams {
   AllocParams(
       int device,
@@ -903,6 +904,7 @@ class DeviceCachingAllocator {
             "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log "
             "can be ignored.");
         // Free all non-split cached blocks and retry alloc.
+        c10_npu::NPUWorkspaceAllocator::emptyCache(true);
         block_found = (release_cached_blocks(true, context) && alloc_block(params, true, context, lock));
     }
 

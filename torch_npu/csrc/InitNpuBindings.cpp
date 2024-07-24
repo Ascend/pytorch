@@ -20,6 +20,7 @@
 
 #include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
@@ -90,6 +91,12 @@ PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
         c10_npu::NPUCachingAllocator::setShutdownStats();
     } else {
         ASCEND_LOGI("skip device synchronize and memory free");
+    }
+    try {
+        ASCEND_LOGI("NPU shutdown NPUWorkspaceAllocator emptyCache.");
+        c10_npu::NPUWorkspaceAllocator::emptyCache(success);
+    } catch (std::exception& e) {
+        ASCEND_LOGE("NPUWorkspaceAllocator::emptyCache failed err=:%s", e.what());
     }
 
     ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
