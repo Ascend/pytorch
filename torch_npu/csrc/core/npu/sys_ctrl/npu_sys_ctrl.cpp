@@ -255,8 +255,9 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     return INIT_SUCC;
 }
 
- NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
-    NPU_CHECK_ERROR(c10_npu::SetDevice(device));
+NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int device)
+{
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(device));
     device_id_ = device;
     return INIT_SUCC;
 }

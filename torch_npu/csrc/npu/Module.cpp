@@ -321,13 +321,7 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg)
         }
     }
 
-    int pre_device = 0;
-    auto ret = c10_npu::GetDevice(&pre_device);
-    if (ret != ACL_ERROR_NONE) {
-        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(device));
-    } else if (pre_device != device) {
-        c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(pre_device, device);
-    }
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(device));
 
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
