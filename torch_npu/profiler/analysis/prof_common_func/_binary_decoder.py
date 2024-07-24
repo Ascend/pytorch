@@ -1,4 +1,5 @@
 class BinaryDecoder:
+
     @classmethod
     def decode(cls, all_bytes: bytes, class_bean: any, struct_size: int) -> list:
         result_data = []
@@ -8,3 +9,4 @@ class BinaryDecoder:
             end_index = start_index + struct_size
             result_data.append(class_bean(all_bytes[start_index: end_index]))
             start_index = end_index
+        return result_data
