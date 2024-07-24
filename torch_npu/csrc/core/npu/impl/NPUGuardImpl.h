@@ -157,7 +157,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     if (!event)
       return true;
     aclrtEvent npu_event = static_cast<aclrtEvent>(event);
-    if (c10_npu::option::OptionsManager::CheckQueueEnable() &&
+    if (c10_npu::option::OptionsManager::GetTaskQueueEnable() &&
         !c10_npu::NPUEventManager::GetInstance().IsEventRecorded(npu_event)) {
         return false;
     }

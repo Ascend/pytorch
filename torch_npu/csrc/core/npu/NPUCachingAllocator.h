@@ -11,6 +11,8 @@
 #include <mutex>
 #include <atomic>
 
+std::string format_size(uint64_t size);
+
 namespace c10_npu {
 namespace NPUCachingAllocator {
 

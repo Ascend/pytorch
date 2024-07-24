@@ -17,6 +17,7 @@
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "NPUBlockHandle.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -25,6 +26,26 @@
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
+
+std::string format_size(uint64_t size)
+{
+    std::ostringstream os;
+    os.precision(2);
+    os << std::fixed;
+    if (size <= 1024) {
+        os << size << " bytes";
+    } else if (size <= 1048576) {
+        os << (size / 1024.0);
+        os << " KiB";
+    } else if (size <= 1073741824ULL) {
+        os << (size / 1048576.0);
+        os << " MiB";
+    } else {
+        os << (size / 1073741824.0);
+        os << " GiB";
+    }
+    return os.str();
+}
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -480,26 +501,6 @@ static bool BlockComparatorAddress(const Block* a, const Block* b) {
   }
   return reinterpret_cast<uintptr_t>(a->ptr) <
       reinterpret_cast<uintptr_t>(b->ptr);
-}
-
-
-static std::string format_size(uint64_t size) {
-  std::ostringstream os;
-  os.precision(2);
-  os << std::fixed;
-  if (size <= 1024) {
-    os << size << " bytes";
-  } else if (size <= 1048576) {
-    os << (size / 1024.0);
-    os << " KiB";
-  } else if (size <= 1073741824ULL) {
-    os << (size / 1048576.0);
-    os << " MiB";
-  } else {
-    os << (size / 1073741824.0);
-    os << " GiB";
-  }
-  return os.str();
 }
 
 struct AllocParams {
@@ -963,6 +964,7 @@ class DeviceCachingAllocator {
             "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log "
             "can be ignored.");
         // Free all non-split cached blocks and retry alloc.
+        c10_npu::NPUWorkspaceAllocator::emptyCache(true);
         block_found = (release_cached_blocks(true, context) && alloc_block(params, true, context, lock));
     }
 
@@ -2227,16 +2229,6 @@ class DeviceCachingAllocator {
 
 };
 
-bool force_uncached_allocator()
-{
-    static bool force_uncached = getenv("PYTORCH_NO_NPU_MEMORY_CACHING") != nullptr;
-    if (force_uncached) {
-        TORCH_NPU_WARN_ONCE(
-            "PYTORCH_NO_NPU_MEMORY_CACHING is enabled, and the `expandable_segments` is changed to false by default.");
-    }
-    return force_uncached;
-}
-
 static void uncached_delete(void* ptr)
 {
     c10_npu::npuSynchronizeDevice(true);
@@ -2506,7 +2498,7 @@ class NpuCachingAllocator : public NPUAllocator {
       void (*deleteFunc)(void*) = &local_raw_delete;
 
       if (size != 0) {
-          if (force_uncached_allocator()) {
+          if (c10_npu::option::OptionsManager::CheckForceUncached()) {
               deleteFunc = &uncached_delete;
               size_t alloc_size = size + 32;
               NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size,
@@ -2523,7 +2515,7 @@ class NpuCachingAllocator : public NPUAllocator {
 
   c10::DeleterFnPtr raw_deleter() const override
   {
-      if (force_uncached_allocator()) {
+      if (c10_npu::option::OptionsManager::CheckForceUncached()) {
           return &uncached_delete;
       } else {
           return &local_raw_delete;
