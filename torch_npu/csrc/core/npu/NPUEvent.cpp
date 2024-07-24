@@ -48,7 +48,7 @@ bool NPUEvent::query() const
     if (!is_created_) {
         return true;
     }
-    if (c10_npu::option::OptionsManager::CheckQueueEnable() &&
+    if (c10_npu::option::OptionsManager::GetTaskQueueEnable() &&
         !c10_npu::NPUEventManager::GetInstance().IsEventRecorded(event_)) {
         return false;
     }
