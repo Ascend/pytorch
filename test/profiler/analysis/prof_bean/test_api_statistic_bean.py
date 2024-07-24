@@ -1,4 +1,4 @@
-from torch_npu.profiler.analysis.prof_bean.api_statistic_bean import ApiStatisticBean
+from torch_npu.profiler.analysis.prof_bean._api_statistic_bean import ApiStatisticBean
 from torch_npu.testing.testcase import TestCase, run_tests
 
 

@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from torch_npu.profiler.analysis.prof_bean.ai_cpu_bean import AiCpuBean
+from torch_npu.profiler.analysis.prof_bean._ai_cpu_bean import AiCpuBean
 from torch_npu.testing.testcase import TestCase, run_tests
 
 

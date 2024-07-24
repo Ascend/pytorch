@@ -4,8 +4,8 @@ import json
 
 import torch
 
+from torch_npu.profiler._profiler_path_creator import ProfPathCreator
 import torch_npu
-from torch_npu.profiler.profiler_path_creator import ProfPathCreator
 from torch_npu.utils.path_manager import PathManager
 from torch_npu.testing.testcase import TestCase, run_tests
 

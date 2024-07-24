@@ -8,22 +8,23 @@ from torch_npu._C._profiler import ProfilerActivity
 from torch_npu.utils._error_code import ErrCode, prof_error
 
 from .experimental_config import _ExperimentalConfig
-from .profiler_path_creator import ProfPathCreator
-from .profiler_interface import ProfInterface, supported_activities
-from .profiler_action_controller import ProfActionController
-from .scheduler import default_schedule_fn, ProfilerAction
-from .analysis.prof_common_func.constant import Constant
-from .analysis.prof_common_func.constant import print_warn_msg
-from .analysis.npu_profiler import NpuProfiler
-from .analysis.prof_common_func.path_manager import ProfilerPathManager
+from ._profiler_path_creator import ProfPathCreator
+from .profiler_interface import _ProfInterface, supported_activities
+from ._profiler_action_controller import ProfActionController
+from .scheduler import _default_schedule_fn, ProfilerAction
+from .analysis.prof_common_func._constant import Constant
+from .analysis.prof_common_func._constant import print_warn_msg
+from .analysis._npu_profiler import NpuProfiler
+from .analysis.prof_common_func._path_manager import ProfilerPathManager
 from ..utils.path_manager import PathManager
 
 __all__ = [
     'supported_activities',
     'analyse',
     'tensorboard_trace_handler',
-    'profile'
-]
+    'profile',
+    '_KinetoProfile'
+] 
 
 
 class _KinetoProfile:
@@ -39,7 +40,7 @@ class _KinetoProfile:
             experimental_config: Optional[_ExperimentalConfig] = None,
     ):
         self.metadata = {}
-        self.prof_if = ProfInterface(
+        self.prof_if = _ProfInterface(
             activities=activities,
             record_shapes=record_shapes,
             profile_memory=profile_memory,
@@ -163,9 +164,9 @@ class profile(_KinetoProfile):
             # add step markers into the trace and table view
             self.record_steps = True
         else:
-            self.schedule = default_schedule_fn
+            self.schedule = _default_schedule_fn
             self.record_steps = False
-        self.prof_if = ProfInterface(
+        self.prof_if = _ProfInterface(
             activities=activities_set,
             record_shapes=record_shapes,
             profile_memory=profile_memory,

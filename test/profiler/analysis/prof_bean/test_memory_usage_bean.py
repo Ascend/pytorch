@@ -1,8 +1,8 @@
 import struct
 import random
 
-from torch_npu.profiler.analysis.prof_bean.memory_use_bean import MemoryUseBean
-from torch_npu.profiler.analysis.prof_common_func.constant import Constant
+from torch_npu.profiler.analysis.prof_bean._memory_use_bean import MemoryUseBean
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.testing.testcase import TestCase, run_tests
 
 

@@ -10,9 +10,9 @@ from torch_npu._C._profiler import ProfilerActivity
 from .profiler import tensorboard_trace_handler, profile
 from .experimental_config import _ExperimentalConfig, ProfilerLevel, AiCMetrics
 from .scheduler import Schedule as schedule
-from .analysis.prof_common_func.singleton import Singleton
+from .analysis.prof_common_func._singleton import Singleton
 from ..utils.path_manager import PathManager
-from .analysis.prof_common_func.file_manager import FileManager
+from .analysis.prof_common_func._file_manager import FileManager
 
 __all__ = [
     'init',

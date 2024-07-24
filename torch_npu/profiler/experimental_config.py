@@ -1,7 +1,7 @@
 import torch_npu._C
 
-from .analysis.prof_common_func.constant import Constant, print_warn_msg
-from .analysis.prof_common_func.cann_package_manager import CannPackageManager
+from .analysis.prof_common_func._constant import Constant, print_warn_msg
+from .analysis.prof_common_func._cann_package_manager import CannPackageManager
 
 __all__ = [
     'supported_profiler_level',

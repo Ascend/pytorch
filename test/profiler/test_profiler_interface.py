@@ -4,9 +4,9 @@ from unittest import mock
 
 import torch
 
-from torch_npu.profiler.analysis.prof_common_func.constant import Constant
-from torch_npu.profiler.profiler_interface import ProfInterface
-from torch_npu.profiler.profiler_path_creator import ProfPathCreator
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant
+from torch_npu.profiler._profiler_path_creator import ProfPathCreator
+from torch_npu.profiler.profiler_interface import _ProfInterface
 from torch_npu.profiler import supported_activities
 from torch_npu._C._profiler import ProfilerActivity
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -26,7 +26,7 @@ class TestActionController(TestCase):
             shutil.rmtree(cls.prof_dir)
 
     def setUp(self):
-        self.prof_if = ProfInterface()
+        self.prof_if = _ProfInterface()
         ProfPathCreator().init(dir_name=self.prof_dir)
 
     def test_init_trace(self):
@@ -65,7 +65,7 @@ class TestActionController(TestCase):
             self.assertTrue(self._check_metadata_json(self.prof_if.prof_path))
 
     def test_analyse(self):
-        with mock.patch("torch_npu.profiler.analysis.npu_profiler.NpuProfiler.analyse") as mock_analyse:
+        with mock.patch("torch_npu.profiler.analysis._npu_profiler.NpuProfiler.analyse") as mock_analyse:
             self.prof_if.analyse()
             mock_analyse.assert_called_once()
 
