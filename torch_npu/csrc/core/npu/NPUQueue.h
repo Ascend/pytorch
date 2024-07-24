@@ -27,6 +27,9 @@ enum RepoStatus {
 
 // c10::SmallVector max size
 const int N = 32;
+// When task queue is empty, poll the read queue for at most 1ms till more tasks sent in.
+// In terms of time granularity, executing query function--IsEmptyQueue() for 200000 times is equal to 1ms.
+const int READ_QUEUE_POLL_MAX_LOOP = 200000;
 
 class ReleaseQueue {
 public:

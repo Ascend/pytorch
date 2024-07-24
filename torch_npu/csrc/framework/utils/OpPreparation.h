@@ -86,6 +86,7 @@ public:
     static at::Tensor apply_tensor_without_format(const at::Tensor &src, c10::IntArrayRef sizes);
     static at::Tensor apply_tensor_without_format(c10::IntArrayRef sizes, const c10::TensorOptions &options);
     static at::Tensor unsafe_empty_workspace(uint64_t size);
+    static at::Tensor unsafe_empty_workspace(uint64_t size, aclrtStream stream);
     // DEPRECATED: ApplyTensorWithSizes will be deprecated, please use apply_tensor_with_sizes instead.
     static at::Tensor ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options);
     // DEPRECATED: CheckMemory will be deprecated, please use check_memory instead.
