@@ -15,7 +15,7 @@
 
 import torch_npu._C
 
-from .analysis.prof_common_func.constant import Constant, print_warn_msg
+from .analysis.prof_common_func.constant import Constant, print_warn_msg, print_info_msg
 from .analysis.prof_common_func.cann_package_manager import CannPackageManager
 
 
@@ -63,6 +63,7 @@ class _ExperimentalConfig:
                  record_op_args: bool = False,
                  msprof_tx: bool = False,
                  op_attr: bool = False,
+                 gc_detect_threshold: float = None,
                  export_type: str = Constant.Text):
         self._profiler_level = profiler_level
         self._aic_metrics = aic_metrics
@@ -75,6 +76,7 @@ class _ExperimentalConfig:
         self._msprof_tx = msprof_tx
         self._export_type = export_type
         self._op_attr = op_attr
+        self._gc_detect_threshold = gc_detect_threshold
         self._check_params()
 
     def __call__(self) -> torch_npu._C._profiler._ExperimentalConfig:
@@ -88,7 +90,15 @@ class _ExperimentalConfig:
     @property
     def export_type(self):
         return self._export_type
-    
+
+    @property
+    def with_gc(self):
+        return self._gc_detect_threshold is not None
+
+    @property
+    def gc_detect_threshold(self):
+        return self._gc_detect_threshold
+
     def _check_params(self):
         if (self._profiler_level == Constant.LEVEL0 or self._profiler_level == Constant.LEVEL_NONE) and \
             self._aic_metrics != Constant.AicMetricsNone:
@@ -125,3 +135,12 @@ class _ExperimentalConfig:
         if self._op_attr and self._export_type != ExportType.Db:
             print_warn_msg("op_attr switch is invalid with export type set as text.")
             self._op_attr = False
+        if self._gc_detect_threshold is not None:
+            if not isinstance(self._gc_detect_threshold, (int, float)):
+                print_warn_msg("Parameter gc_detect_threshold is not int or float type, reset it to default.")
+                self._gc_detect_threshold = None
+            elif self._gc_detect_threshold < 0.0:
+                print_warn_msg("Parameter gc_detect_threshold can not be negetive, reset it to default.")
+                self._gc_detect_threshold = None
+            elif self._gc_detect_threshold == 0.0:
+                print_info_msg("Parameter gc_detect_threshold is set to 0, it will collect all gc events.")

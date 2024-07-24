@@ -23,3 +23,4 @@ class FileTag(Enum):
     MEMORY = 3
     PYTHON_FUNC_CALL = 4
     PYTHON_MODULE_CALL = 5
+    GC_RECORD = 6

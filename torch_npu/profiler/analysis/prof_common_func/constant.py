@@ -44,6 +44,10 @@ class Constant(object):
     # tlv constant struct
     CONSTANT_BYTES = "constant_bytes"
     NS_TO_US = 1000
+    NS_TO_MS = 1000 * 1000
+
+    # gc record struct format
+    GC_RECORD_FORMAT = "<3Q"
 
     # field name
     SEQUENCE_UNMBER = "Sequence number"
@@ -186,6 +190,7 @@ class Constant(object):
     STEP_INFO_DB_PARSER = "step_info_db"
     COMMUNICATION_DB_PARSER = "communication_db"
     TRACE_STEP_TIME_DB_PARSER = "trace_step_time_db"
+    GC_RECORD_DB_PARSER = "gc_record_db"
 
     TRACE_VIEW_TEMP = "trace_view_temp.json"
 
@@ -266,7 +271,8 @@ class DbConstant():
     TABLE_STRING_IDS = "STRING_IDS"
 
     TABLE_MSTX_EVENTS = "MSTX_EVENTS"
-
+    # python gc record table name
+    TABLE_GC_RECORD = "GC_RECORD"
     # pytorch api table name
     TABLE_PYTORCH_API = "PYTORCH_API"
     # api connection ids table name
@@ -432,5 +438,10 @@ class TableColumnsManager():
             ("id", Constant.SQL_INTEGER_TYPE),
             ("startNs", Constant.SQL_INTEGER_TYPE),
             ("endNs", Constant.SQL_INTEGER_TYPE)
+        ],
+        DbConstant.TABLE_GC_RECORD : [
+            ("startNs", Constant.SQL_INTEGER_TYPE),
+            ("endNs", Constant.SQL_INTEGER_TYPE),
+            ("globalTid", Constant.SQL_INTEGER_TYPE)
         ]
     }

@@ -34,6 +34,7 @@ from torch_npu._C._profiler import (
 from torch_npu.npu.utils import _lazy_init
 
 from .profiler_path_creator import ProfPathCreator
+from .profiler_gc_detect import ProfGCDetector
 from .scheduler import ProfilerAction
 from .experimental_config import _ExperimentalConfig
 from .analysis.prof_common_func.constant import Constant
@@ -74,6 +75,7 @@ class ProfInterface:
         self.experimental_config = experimental_config
         self.schedule = schedule
         self.metadata = metadata
+        self.gc_detector = None
         self._check_params()
         _lazy_init()
 
@@ -92,9 +94,11 @@ class ProfInterface:
             self.start_cnt = _get_syscnt()
         self.start_monotonic = _get_monotonic()
         _start_profiler(npu_prof_config, self.activities)
+        self.start_gc_detect()
 
     def stop_trace(self):
         _stop_profiler()
+        self.stop_gc_detect()
 
     def finalize_trace(self):
         _finalize_profiler()
@@ -110,6 +114,16 @@ class ProfInterface:
             NpuProfiler.analyse(self.prof_path, analysis_type, output_path, **kwargs)
         except Exception:
             print_warn_msg("Profiling data parsing failed.")
+
+    def start_gc_detect(self):
+        if self.experimental_config.with_gc:
+            self.gc_detector = ProfGCDetector(self.experimental_config.gc_detect_threshold)
+            self.gc_detector.start()
+    
+    def stop_gc_detect(self):
+        if self.experimental_config.with_gc and self.gc_detector is not None:
+            self.gc_detector.stop()
+            self.gc_detector = None
 
     def _check_params(self):
         for activity in self.activities:

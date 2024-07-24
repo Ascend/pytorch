@@ -33,6 +33,7 @@ from ..prof_view.prof_db_parse.db_parser import DbParser
 from ..prof_view.prof_db_parse.step_info_db_parser import StepInfoDbParser
 from ..prof_view.prof_db_parse.communication_db_parser import CommunicationDbParser
 from ..prof_view.prof_db_parse.trace_step_time_db_parser import TraceStepTimeDbParser
+from ..prof_view.prof_db_parse._gc_record_db_parser import GCRecordDbParser
 
 
 class ParserConfig:
@@ -61,7 +62,8 @@ class ParserConfig:
                 FwkApiDbParser,
                 TreeBuildParser,
                 MemoryPrepareParser,
-                MemoryDbParser
+                MemoryDbParser,
+                GCRecordDbParser
             ]
         }
     }
@@ -100,7 +102,8 @@ class ParserConfig:
                 MemoryDbParser,
                 StepInfoDbParser,
                 CommunicationDbParser,
-                TraceStepTimeDbParser
+                TraceStepTimeDbParser,
+                GCRecordDbParser
             ]
         }
     }
@@ -112,7 +115,8 @@ class ParserConfig:
             Constant.EXPORT_STACK: [StackViewParser]
         },
         Constant.Db: {
-            Constant.TENSORBOARD_TRACE_HANDLER: [CANNExportParser, DbParser, FwkApiDbParser, MemoryDbParser]
+            Constant.TENSORBOARD_TRACE_HANDLER: [CANNExportParser, DbParser, FwkApiDbParser, MemoryDbParser,
+                                                 GCRecordDbParser]
         }
     }
 
@@ -140,5 +144,6 @@ class ParserConfig:
         MemoryDbParser: Constant.MEMORY_DB_PARSER,
         StepInfoDbParser: Constant.STEP_INFO_DB_PARSER,
         CommunicationDbParser: Constant.COMMUNICATION_DB_PARSER,
-        TraceStepTimeDbParser: Constant.TRACE_STEP_TIME_DB_PARSER
+        TraceStepTimeDbParser: Constant.TRACE_STEP_TIME_DB_PARSER,
+        GCRecordDbParser: Constant.GC_RECORD_DB_PARSER
     }
