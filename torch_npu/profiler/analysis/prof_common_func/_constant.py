@@ -281,6 +281,7 @@ class DbConstant():
     TABLE_MEMORY_RECORD = "MEMORY_RECORD"
     TABLE_OPERATOR_MEMORY = "OP_MEMORY"
     TABLE_NPU_OP_MEM = "NPU_OP_MEM"
+    META_DATA_INFO = "META_DATA"
 
     # rank device map table name
     TABLE_RANK_DEVICE_MAP = "RANK_DEVICE_MAP"

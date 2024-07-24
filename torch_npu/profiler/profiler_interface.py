@@ -26,6 +26,7 @@ from .analysis.prof_common_func._constant import Constant
 from .analysis._npu_profiler import NpuProfiler
 from .analysis.prof_common_func._constant import print_warn_msg
 from .analysis.prof_common_func._file_manager import FileManager
+from .analysis.prof_common_func._utils import collect_env_vars
 from .analysis.prof_common_func._path_manager import ProfilerPathManager
 from ..utils.path_manager import PathManager
 from .analysis.prof_common_func._cann_package_manager import CannPackageManager
@@ -189,6 +190,8 @@ class _ProfInterface:
         FileManager.create_json_file_by_path(path, total_info, indent=4)
 
     def _dump_metadata(self):
+        if self.experimental_config.export_type == Constant.Text:
+            self.metadata.update(collect_env_vars())
         if not self.metadata:
             return
         if not ProfPathCreator().is_prof_inited:
