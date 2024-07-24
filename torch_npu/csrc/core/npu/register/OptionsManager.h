@@ -22,7 +22,6 @@ public:
     static ReuseMode GetMultiStreamMemoryReuse();
     static bool CheckInfNanModeEnable();
     static bool CheckBlockingEnable();
-    static bool CheckQueueEnable();
     static bool CheckCombinedOptimizerEnable();
     static bool CheckTriCombinedOptimizerEnable();
     static bool CheckAclDumpDateEnable();
@@ -40,7 +39,9 @@ public:
     static bool CheckPerfDumpEnable();
     static std::string GetPerfDumpPath();
     static uint32_t GetP2PBufferSize();
+    static uint32_t GetTaskQueueEnable();
     static uint32_t GetCpuAffinityConf();
+    static bool CheckForceUncached();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

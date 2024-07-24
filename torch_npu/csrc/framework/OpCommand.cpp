@@ -137,7 +137,7 @@ void OpCommand::Run() {
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
 #endif
-    if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
+    if (c10_npu::option::OptionsManager::GetTaskQueueEnable() && !sync) {
         RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
 #ifndef BUILD_LIBTORCH
         at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
