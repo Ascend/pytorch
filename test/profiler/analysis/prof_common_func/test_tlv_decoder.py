@@ -1,7 +1,7 @@
 import struct
 
-from torch_npu.profiler.analysis.prof_bean.op_mark_bean import OpMarkBean
-from torch_npu.profiler.analysis.prof_common_func.tlv_decoder import TLVDecoder
+from torch_npu.profiler.analysis.prof_bean._op_mark_bean import OpMarkBean
+from torch_npu.profiler.analysis.prof_common_func._tlv_decoder import TLVDecoder
 from torch_npu.testing.testcase import TestCase, run_tests
 
 

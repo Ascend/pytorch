@@ -1,8 +1,8 @@
 import random
 from collections import namedtuple
 
-from torch_npu.profiler.analysis.prof_bean.node_info_bean import NodeInfoBean
-from torch_npu.profiler.analysis.prof_common_func.constant import convert_us2ns
+from torch_npu.profiler.analysis.prof_bean._node_info_bean import NodeInfoBean
+from torch_npu.profiler.analysis.prof_common_func._constant import convert_us2ns
 from torch_npu.testing.testcase import TestCase, run_tests
 
 

@@ -18,21 +18,21 @@ from torch_npu._C._profiler import (
 )
 from torch_npu.npu import _lazy_init
 
-from .profiler_path_creator import ProfPathCreator
+from ._profiler_path_creator import ProfPathCreator
 from .scheduler import ProfilerAction
 from .experimental_config import _ExperimentalConfig
-from .analysis.prof_common_func.constant import Constant
-from .analysis.npu_profiler import NpuProfiler
-from .analysis.prof_common_func.constant import print_warn_msg
-from .analysis.prof_common_func.file_manager import FileManager
-from .analysis.prof_common_func.path_manager import ProfilerPathManager
+from .analysis.prof_common_func._constant import Constant
+from .analysis._npu_profiler import NpuProfiler
+from .analysis.prof_common_func._constant import print_warn_msg
+from .analysis.prof_common_func._file_manager import FileManager
+from .analysis.prof_common_func._path_manager import ProfilerPathManager
 from ..utils.path_manager import PathManager
-from .analysis.prof_common_func.cann_package_manager import CannPackageManager
+from .analysis.prof_common_func._cann_package_manager import CannPackageManager
 
 __all__ = ['supported_activities']
 
 
-class ProfInterface:
+class _ProfInterface:
     def __init__(
         self,
         activities: Optional[Iterable[ProfilerActivity]] = None,

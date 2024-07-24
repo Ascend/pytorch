@@ -1,5 +1,5 @@
-from torch_npu.profiler.analysis.prof_bean.op_summary_bean import OpSummaryBean
-from torch_npu.profiler.analysis.prof_common_func.csv_headers import CsvHeaders
+from torch_npu.profiler.analysis.prof_bean._op_summary_bean import OpSummaryBean
+from torch_npu.profiler.analysis.prof_common_func._csv_headers import CsvHeaders
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
