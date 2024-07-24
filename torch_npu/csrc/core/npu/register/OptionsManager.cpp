@@ -60,18 +60,6 @@ bool OptionsManager::CheckBlockingEnable()
     return checkBlockingEnable;
 }
 
-bool OptionsManager::CheckQueueEnable()
-{
-    if (CheckBlockingEnable()) {
-        return false;
-    }
-    const static bool checkQueueEnable = []() -> bool {
-        int32_t queue_enable = OptionsManager::GetBoolTypeOption("TASK_QUEUE_ENABLE", 1);
-        return queue_enable != 0;
-    }();
-    return checkQueueEnable;
-}
-
 bool OptionsManager::CheckCombinedOptimizerEnable()
 {
     const static bool checkCombinedOptimizerEnable = []() -> bool {
@@ -256,6 +244,28 @@ uint32_t OptionsManager::GetCpuAffinityConf()
         return static_cast<uint32_t>(cpu_affinity_conf);
     }();
     return cpu_affinity_conf;
+}
+
+uint32_t OptionsManager::GetTaskQueueEnable()
+{
+    if (CheckBlockingEnable()) {
+        return 0;
+    }
+    const static uint32_t task_queue_enable = []() -> uint32_t {
+        char* env_val = std::getenv("TASK_QUEUE_ENABLE");
+        int64_t task_queue_enable = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
+        return static_cast<uint32_t>(task_queue_enable);
+    }();
+    return task_queue_enable;
+}
+
+bool OptionsManager::CheckForceUncached()
+{
+    const static bool force_uncached = []() -> bool {
+        bool force_uncached = OptionsManager::GetBoolTypeOption("PYTORCH_NO_NPU_MEMORY_CACHING");
+        return force_uncached;
+    }();
+    return force_uncached;
 }
 
 } // namespace option

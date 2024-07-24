@@ -4,6 +4,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -299,7 +300,20 @@ bool Repository::WriteQueue(void* cur_paras) {
 bool Repository::ReadQueue()
 {
     if (IsEmptyQueue()) {
-        return false;
+        static const auto task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
+        if (task_queue_enable == 2) {
+            // read queue polls for at most 1 ms when queue is empty.
+            for (int i = 0; i < READ_QUEUE_POLL_MAX_LOOP; ++i) {
+                if (!IsEmptyQueue()) {
+                    break;
+                }
+            }
+            if (IsEmptyQueue()) {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
     __sync_synchronize();
