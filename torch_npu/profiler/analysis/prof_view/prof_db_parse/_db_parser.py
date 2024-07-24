@@ -1,7 +1,9 @@
 import os
 import re
 import shutil
+import json
 
+from ...prof_common_func._utils import collect_env_vars
 from ...prof_common_func._path_manager import ProfilerPathManager
 from ...prof_common_func._file_manager import FileManager
 from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager, print_error_msg, print_warn_msg
@@ -32,6 +34,7 @@ class DbParser(BaseParser):
             self.create_ascend_db()
             self.save_rank_info_to_db()
             self.save_host_info_to_db()
+            self.save_env_vars_info_to_db()
             DbManager.destroy_db_connect(self._conn, self._cur)
         except RuntimeError:
             print_error_msg("Failed to generate ascend_pytorch_profiler db file.")
@@ -71,3 +74,8 @@ class DbParser(BaseParser):
         host_info = _get_host_info()
         DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_HOST_INFO, TableColumnsManager.TableColumns.get(DbConstant.TABLE_HOST_INFO))
         DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_HOST_INFO, [[host_info.get('host_uid'), host_info.get('host_name')]])
+
+    def save_env_vars_info_to_db(self):
+        env_vars_dict = collect_env_vars()
+        DbManager.insert_data_into_table(self._conn, DbConstant.META_DATA_INFO,
+                                         [['ENV_VARIABLES', json.dumps(env_vars_dict.get('ENV_VARIABLES'))]])
