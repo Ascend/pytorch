@@ -21,6 +21,7 @@ __all__ = []
 class FwkFileParser:
     def __init__(self, profiler_path: str):
         self._fwk_path = ProfilerPathManager.get_fwk_path(profiler_path)
+        self._profiler_path = profiler_path
         self._file_list = {}
         self._file_dispatch()
 
@@ -167,6 +168,9 @@ class FwkFileParser:
         python_trace_data = self.get_python_trace_data()
         if python_trace_data:
             fwk_x_event_list.extend(python_trace_data)
+        gc_record_data = self.get_gc_record_trace_data()
+        if gc_record_data:
+            fwk_x_event_list.extend(gc_record_data)
         return fwk_x_event_list
 
     def get_python_trace_data(self) -> list:
@@ -265,3 +269,27 @@ class FwkFileParser:
         if not torch_op_data:
             return None
         return min(torch_op_data, key=lambda op: op.ts)
+
+    def get_gc_record_data(self):
+        gc_events = self.get_file_data_by_tag(FileTag.GC_RECORD)
+        if not gc_events:
+            return []
+        cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
+        device_id = ProfilerPathManager.get_device_id(cann_path)
+        for event in gc_events:
+            event.pid = TraceEventManager.get_pid_format(event.pid, TraceEventManager.GC_SORT_INDEX, device_id)
+        return gc_events
+
+    def get_gc_record_db_data(self):
+        gc_events = self.get_gc_record_data()
+        if not gc_events:
+            return []
+        return [[event.ts, event.ts + event.dur, contact_2num(event.pid, event.tid)] for event in gc_events]
+
+    def get_gc_record_trace_data(self):
+        gc_events = self.get_gc_record_data()
+        if not gc_events:
+            return []
+        event_list = [TraceEventManager.create_x_event(event, "GC") for event in gc_events]
+        event_list.extend(TraceEventManager.create_gc_m_event(gc_events[0].pid, gc_events[0].tid))
+        return event_list
