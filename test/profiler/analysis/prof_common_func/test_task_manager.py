@@ -4,8 +4,8 @@ import select
 import time
 import multiprocessing
 
-from torch_npu.profiler.analysis.prof_common_func.constant import Constant
-from torch_npu.profiler.analysis.prof_common_func.task_manager import (
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant
+from torch_npu.profiler.analysis.prof_common_func._task_manager import (
     ConcurrentTasksManager, send_print_req_to_manager, send_result_to_manager,
     TaskMsgType, ConcurrentTask, ConcurrentMode, TaskStatus
 )

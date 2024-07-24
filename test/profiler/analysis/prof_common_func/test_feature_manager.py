@@ -1,5 +1,5 @@
-from torch_npu.profiler.analysis.prof_common_func.constant import Constant
-from torch_npu.profiler.analysis.prof_common_func.feature_manager import _FeatureManager
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant
+from torch_npu.profiler.analysis.prof_common_func._feature_manager import FeatureManager
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
@@ -26,7 +26,7 @@ class TestFeatureManager(TestCase):
                 Constant.InfoLog: "error",
             },
         }
-        featureMgr = _FeatureManager()
+        featureMgr = FeatureManager()
         featureMgr.load_feature_info(feature_info)
         self.assertEqual(featureMgr.is_supported_feature("attr"), True)
         self.assertEqual(featureMgr.is_supported_feature("mindsporeTest"), False)
