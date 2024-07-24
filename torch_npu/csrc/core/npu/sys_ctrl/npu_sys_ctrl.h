@@ -42,7 +42,7 @@ public:
      SysStatus Initialize(int device_id = -1);
 
     // Change current device from pre_device to device
-     SysStatus ExchangeDevice(int pre_device, int device);
+     SysStatus ExchangeDevice(int device);
 
     // Init backwards thread
      SysStatus BackwardsInit();
