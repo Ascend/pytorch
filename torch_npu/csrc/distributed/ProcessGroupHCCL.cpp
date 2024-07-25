@@ -1408,6 +1408,38 @@ std::string ProcessGroupHCCL::getHcclCommNameWithoutInit(int rankid, std::vector
     return name_str;
 }
 
+void ProcessGroupHCCL::silenceCheck(at::Tensor &input, c10d::OpType opType)
+{
+    if (input.scalar_type() != at::kFloat && input.scalar_type() != at::kBFloat16) {
+        return;
+    }
+
+    if (input.requires_grad()) {
+        return;
+    }
+
+    if (opType != c10d::OpType::SEND && opType != c10d::OpType::RECV && opType != c10d::OpType::UNKNOWN) {
+        if (c10_npu::model_state().get_call_state() != c10_npu::CallStateMode::L_BACKWARD) {
+            return;
+        }
+        // Barrier will call allreduce. This is used to filter out invalid allreduce operator calls.
+        if (opType == c10d::OpType::ALLREDUCE && input.numel() <= 1) {
+            return;
+        }
+    }
+    if (silenceCheckCache_.find(opType) == silenceCheckCache_.end()) {
+        at::Tensor stepTensor = at::zeros({1}, input.options().dtype(at::kLong));
+        at::Tensor cacheTensor = at::zeros({3}, input.options().dtype(at::kFloat));
+        silenceCheckCache_.emplace(opType, std::make_pair(std::move(stepTensor), std::move(cacheTensor)));
+    }
+    at::Tensor val = at::norm(input);
+    static double min_steps = 100.0;
+    op_plugin::_npu_silent_check_v2(val, input, silenceCheckCache_[opType].second, silenceCheckCache_[opType].first, min_steps,
+        c10_npu::option::OptionsManager::GetSilenceUpperThresh().first, c10_npu::option::OptionsManager::GetSilenceSigmaThresh().first,
+        c10_npu::option::OptionsManager::GetSilenceUpperThresh().second, c10_npu::option::OptionsManager::GetSilenceSigmaThresh().second,
+        static_cast<int64_t>(c10_npu::option::OptionsManager::GetSilenceCheckFlag()));
+}
+
 template <typename Fn, typename PreProcess, typename PostProcess>
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& inputs,
@@ -1448,6 +1480,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         for (const auto i : c10::irange(devices.size())) {
             c10_npu::NPUStream& hcclStream = hcclStreams[i];
             (*(work->hcclStartEvents_))[i].record(hcclStream);
+        }
+    }
+
+    if (c10_npu::model_state().get_model_mode() == c10_npu::ModelMode::L_TRAIN
+        && c10_npu::option::OptionsManager::GetSilenceCheckFlag() != c10_npu::option::CHECK_CLOSE) {
+        for (const auto i : c10::irange(inputs.size())) {
+            npuGuard.set_index(devices[i].index());
+            c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+            silenceCheck(inputs[i], opType);
         }
     }
 
@@ -2504,7 +2545,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                     }
                 }
             },
-            c10d::OpType::ALLTOALL);
+            c10d::OpType::ALLTOALL_BASE);
     } else {
         uint64_t index = static_cast<uint64_t>(outputTensor.size(0) / ranks);
         if (outputSplitSizes.empty()) {

@@ -17,6 +17,12 @@ enum ReuseMode {
     AVOID_RECORD_STREAM = 2,
 };
 
+enum SilenceCheckMode {
+    CHECK_CLOSE = 0,
+    PRINT_WARN_LOG = 1,
+    REPORT_ALARM = 2,
+    PRINT_ALL_LOG = 3,
+};
 class OptionsManager {
 public:
     static bool IsResumeModeEnable();
@@ -39,6 +45,9 @@ public:
     static bool CheckGeInitDisable();
     static bool CheckPerfDumpEnable();
     static std::string GetPerfDumpPath();
+    static uint32_t GetSilenceCheckFlag();
+    static std::pair<double, double> GetSilenceUpperThresh();
+    static std::pair<double, double> GetSilenceSigmaThresh();
     static uint32_t GetP2PBufferSize();
     static uint32_t GetTaskQueueEnable();
     static uint32_t GetCpuAffinityConf();
@@ -49,6 +58,9 @@ public:
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
     static std::unordered_map<std::string, std::string> ParsePerfConfig(const std::string& config);
+    static std::vector<std::string> Split(const std::string& input, char delimiter);
+    static std::pair<double, double> GetSilenceThresh(const std::string& env_str,
+        std::pair<double, double> defaultThresh);
 };
 
 } // namespace option
