@@ -682,6 +682,7 @@ def _record_memory_history_impl(
         warnings.warn("Currently 'aarch64' does not support the display of c++ stacks, " \
                       "changed to display only python.")
         stacks = "python"
+    torch_npu.npu._lazy_init()
     torch_npu._C._npu_record_memory_history(enabled, context, stacks, max_entries)
 
 
@@ -774,6 +775,16 @@ def _dump_snapshot(filename="dump_snapshot.pickle"):
     s = _snapshot()
     with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "wb") as f:
         pickle.dump(s, f)
+
+    prof_path = os.path.dirname(os.path.abspath(filename))
+    activities = {torch_npu.profiler.ProfilerActivity.CPU, torch_npu.profiler.ProfilerActivity.NPU}
+    torch_npu._C._profiler._init_profiler(prof_path, activities)
+    prof_config = [prof_path, False, True, False, False, False, torch_npu._C._profiler._ExperimentalConfig()]
+    npu_prof_config = torch_npu._C._profiler.NpuProfilerConfig(*tuple(prof_config))
+    torch_npu._C._profiler._start_profiler(npu_prof_config, activities)
+
+    torch_npu._C._profiler._stop_profiler()
+    torch_npu._C._profiler._finalize_profiler()
 
 
 def _save_segment_usage(filename="output.svg", snapshot=None):
