@@ -108,4 +108,42 @@ C10_NPU_API inline void warn_or_error_on_sync()
     }
 }
 
+enum class CallStateMode { L_UNKNOW = -1, L_FORWARD = 0, L_BACKWARD };
+
+enum class ModelMode { L_UNKNOW = -1, L_TRAIN = 0, L_INFER };
+
+// it's used to store npu call state. eg: forward, backward.
+class ModelState {
+public:
+    void set_call_state(CallStateMode mode)
+    {
+        call_state_mode = mode;
+    }
+
+    CallStateMode get_call_state()
+    {
+        return call_state_mode;
+    }
+
+    void set_model_mode(ModelMode mode)
+    {
+        model_mode = mode;
+    }
+
+    ModelMode get_model_mode()
+    {
+        return model_mode;
+    }
+
+private:
+    CallStateMode call_state_mode = CallStateMode::L_UNKNOW;
+    ModelMode model_mode = ModelMode::L_UNKNOW;
+};
+
+C10_NPU_API inline ModelState& model_state()
+{
+    static ModelState model_state_;
+    return model_state_;
+}
+
 } // namespace c10_npu

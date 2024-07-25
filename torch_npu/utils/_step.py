@@ -5,6 +5,7 @@ from logging.handlers import RotatingFileHandler
 import uuid
 import time
 import glob
+import warnings
 import torch
 from torch.nn import Module
 
@@ -41,6 +42,11 @@ class PerfDumpState:
         return False
 
 perf_dump_state = PerfDumpState()
+perf_dump_enable = False
+first_forward = True
+input_hook_flag = True
+weight_hook_flag = True
+asd_enable = 1
 
 
 class CustomRotatingFileHandler(RotatingFileHandler):
@@ -114,44 +120,97 @@ def _setup_logger(name, path):
     logger.propagate = False
 
 
-def _custom_call(self, *args, **kwargs):
+def input_hook(grad):
+    torch_npu._C._npu_set_call_state(0)
+    return grad
+
+
+def output_hook(grad):
+    torch_npu._C._npu_set_call_state(1)
+    return grad
+
+
+def _custom_call(self, *args, **kwargs):    
+    global perf_dump_enable
     global perf_dump_state
+
+    global asd_enable
+    global first_forward
+    global input_hook_flag
+    global weight_hook_flag
 
     if not torch.npu.is_initialized():
         return original_call(self, *args, **kwargs)
-    
-    if not perf_dump_state.has_log:
-        perf_dump_path = _get_perf_dump_path()
-        pid = os.getpid()
-        device_id = torch_npu.npu.current_device()
-        delete_pref_pt_logs(perf_dump_path, device_id)
-        perf_dump_state.local_uuid = uuid.uuid4()
-        perf_dump_state.uuid = _get_uuid()
-        perf_dump_state.log_file_name = os.path.join(perf_dump_path, f"perf_pt_{pid}_{device_id}.log")
-        _setup_logger("perf_logger", perf_dump_state.log_file_name)
-        logger = logging.getLogger("perf_logger")
-        logger.info(f"[LOCALUUID]:{perf_dump_state.local_uuid}")
-        logger.info("[FRAMEWORK]:PyTorch")
-        logger.info(f"[UUID]:{perf_dump_state.uuid}")
-        os.chmod(perf_dump_state.log_file_name, DEFAULT_PERMISSION)
-        perf_dump_state.has_log = True
 
-    if perf_dump_state.is_outer_call:
-        if not perf_dump_state.is_child_module(self) and not _is_loss_module(self):
-            current_time = int(time.time() * 1000)
+    if perf_dump_enable:
+        if not perf_dump_state.has_log:
+            perf_dump_path = _get_perf_dump_path()
+            pid = os.getpid()
+            device_id = torch_npu.npu.current_device()
+            delete_pref_pt_logs(perf_dump_path, device_id)
+            perf_dump_state.local_uuid = uuid.uuid4()
+            perf_dump_state.uuid = _get_uuid()
+            perf_dump_state.log_file_name = os.path.join(perf_dump_path, f"perf_pt_{pid}_{device_id}.log")
+            _setup_logger("perf_logger", perf_dump_state.log_file_name)
             logger = logging.getLogger("perf_logger")
-            if perf_dump_state.last_time is not None:
-                logger.info(f"[STEPTIME]:{perf_dump_state.last_time},{current_time}")
-            perf_dump_state.last_time = current_time
-            perf_dump_state.add_module_dict(self)
-        perf_dump_state.is_outer_call = False
-        self.visited = True
+            logger.info(f"[LOCALUUID]:{perf_dump_state.local_uuid}")
+            logger.info("[FRAMEWORK]:PyTorch")
+            logger.info(f"[UUID]:{perf_dump_state.uuid}")
+            os.chmod(perf_dump_state.log_file_name, DEFAULT_PERMISSION)
+            perf_dump_state.has_log = True
+
+        if perf_dump_state.is_outer_call:
+            if not perf_dump_state.is_child_module(self) and not _is_loss_module(self):
+                current_time = int(time.time() * 1000)
+                logger = logging.getLogger("perf_logger")
+                if perf_dump_state.last_time is not None:
+                    logger.info(f"[STEPTIME]:{perf_dump_state.last_time},{current_time}")
+                perf_dump_state.last_time = current_time
+                perf_dump_state.add_module_dict(self)
+            perf_dump_state.is_outer_call = False
+            self.visited = True
+
+    if asd_enable:
+        if input_hook_flag:
+            for x in args:
+                if isinstance(x, torch.Tensor):
+                    if x.requires_grad:
+                        x.register_hook(input_hook)
+                        input_hook_flag = False
+                        break
+
+        if weight_hook_flag:
+            for param_name, param in self._parameters.items():
+                if isinstance(param, torch.Tensor):
+                    if param.requires_grad:
+                        param.register_hook(input_hook)
+                        weight_hook_flag = False
+                        break
+
+        if first_forward:
+            first_forward = False
+            self.outer = True
+            if self.training:
+                torch_npu._C._npu_set_model_mode(0)
+            else:
+                torch_npu._C._npu_set_model_mode(1)
 
     tmp = original_call(self, *args, **kwargs)
 
-    if hasattr(self, "visited") and self.visited:
-        perf_dump_state.is_outer_call = True
-        self.visited = False
+    if perf_dump_enable:
+        if hasattr(self, "visited") and self.visited:
+            perf_dump_state.is_outer_call = True
+            self.visited = False
+
+    if asd_enable:
+        if hasattr(self, "outer") and self.outer:
+            if tmp.requires_grad:
+                tmp.register_hook(output_hook)
+            input_hook_flag = True
+            weight_hook_flag = True
+            first_forward = True
+            self.outer = False
+
     return tmp
 
 
@@ -169,9 +228,21 @@ def _parse_perf_config():
 
 
 def add_perf_dump_patch():
+    global perf_dump_enable
+    global asd_enable
+
     config_dict = _parse_perf_config()
     enable_value = config_dict.get("enable", "false")
     perf_dump_enable = enable_value.lower() == "true"
 
-    if perf_dump_enable:
+    asd_value = os.getenv("NPU_ASD_ENABLE", "0")
+    if asd_value not in ["0", "1", "2", "3"]:
+        raise ValueError("NPU_ASD_ENABLE should be 0, 1, 2 or 3!" + pta_error(ErrCode.VALUE))
+    asd_enable = int(asd_value)
+
+    if asd_enable and not torch_npu._C._npu_support_silentClientV2():        
+        warnings.warn(f"Warning: CANN version lower than 8.0.RC3 and currently does not support silent check 2.0 version. It will switch to 1.0 version.")
+        asd_enable = 0
+
+    if perf_dump_enable or asd_enable:
         Module.__call__ = _custom_call
