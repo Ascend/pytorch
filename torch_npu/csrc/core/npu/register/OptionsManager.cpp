@@ -14,10 +14,20 @@
 // limitations under the License.
 
 #include <string>
+#include <unistd.h>
+#include <iomanip>
+#include <fstream>
+#include <Python.h>
+
+#include <torch/csrc/utils/object_ptr.h>
+#include <torch/csrc/Exceptions.h>
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/npu/memory_snapshot.h"
 
 namespace c10_npu {
 namespace option {
@@ -200,6 +210,58 @@ bool OptionsManager::CheckForceUncached()
         return force_uncached;
     }();
     return force_uncached;
+}
+
+std::string OptionsManager::GetOomSnapshotDumpPath()
+{
+    char* sanpshot_dump_path = std::getenv("OOM_SNAPSHOT_PATH");
+    std::string dump_path = "./";
+    if (sanpshot_dump_path != nullptr) {
+        dump_path = std::string(sanpshot_dump_path);
+    }
+    char dump_abs_path[PATH_MAX] = {'\0'};
+    if (realpath(dump_path.c_str(), dump_abs_path) == nullptr) {
+        TORCH_CHECK(false, "`OOM_SNAPSHOT_PATH` is invalid.", PTA_ERROR(ErrCode::NOT_FOUND));
+    }
+    return dump_abs_path;
+}
+
+void oom_observer(int64_t device, int64_t allocated, int64_t device_total, int64_t device_free)
+{
+    auto dumppath = c10_npu::option::OptionsManager::GetOomSnapshotDumpPath();
+    std::stringstream filename;
+    auto now = std::chrono::system_clock::now();
+    std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+    std::tm* timeInfo = std::localtime(&currentTime);
+    filename << "oom_snapshot_" << getpid() << "_" << std::put_time(timeInfo, "%Y%m%d%H%M%S") << ".pickle";
+    auto savefilepath = c10::str(dumppath, "/", filename.str());
+
+    AutoGIL g;
+    auto module = THPObjectPtr(PyImport_ImportModule("torch_npu.npu.memory"));
+    if (!module) {
+        throw python_error();
+    }
+    PyObject* p_func = PyObject_GetAttrString(module, "_dump_snapshot");
+    if (!module) {
+        throw python_error();
+    }
+    PyObject* p_args = PyTuple_New(1);
+    PyTuple_SetItem(p_args, 0, PyUnicode_FromString(savefilepath.c_str()));
+    PyObject* p_res = PyObject_CallObject(p_func, p_args);
+}
+
+void OptionsManager::IsOomSnapshotEnable()
+{
+    const static bool isOomSnapshotEnable = []() -> bool {
+        int32_t enable = OptionsManager::GetBoolTypeOption("OOM_SNAPSHOT_ENABLE", 0);
+        return enable != 0;
+    }();
+    if (isOomSnapshotEnable) {
+        c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(std::move(oom_observer));
+#ifndef BUILD_LIBTORCH
+        torch_npu::_record_memory_history("all", "all", "python", UINT64_MAX);
+#endif
+    }
 }
 
 } // namespace option
