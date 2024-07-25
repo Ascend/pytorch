@@ -201,6 +201,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     ASCEND_LOGD("Npu caching allocator initialize successfully");
     c10_npu::NPUWorkspaceAllocator::init();
     ASCEND_LOGD("Npu workspace allocator initialize successfully");
+    c10_npu::option::OptionsManager::IsOomSnapshotEnable();
     // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
 
     auto ret = aclrtGetDevice(&device_id_);
