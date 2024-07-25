@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include <unordered_map>
+#include <filesystem>
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
@@ -42,6 +43,8 @@ public:
     static uint32_t GetTaskQueueEnable();
     static uint32_t GetCpuAffinityConf();
     static bool CheckForceUncached();
+    static std::filesystem::path GetOomSnapshotDumpPath();
+    static void IsOomSnapshotEnable();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

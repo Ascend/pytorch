@@ -63,7 +63,6 @@ void _record_memory_history(c10::optional<std::string> enabled,
             when = c10_npu::NPUCachingAllocator::RecordContext::STATE;
         }
     }
-    torch_npu::utils::npu_lazy_init();
     c10_npu::NPUCachingAllocator::recordHistory(enabled.has_value(), recorder,
                                                 max_entries, when);
 }
