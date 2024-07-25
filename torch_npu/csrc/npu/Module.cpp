@@ -39,6 +39,7 @@
 #include "torch_npu/csrc/profiler/msprof_tx.h"
 #include "torch_npu/csrc/npu/memory_snapshot.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
+#include "torch_npu/csrc/core/npu/interface/OpInterface.h"
 
 struct NPUDeviceProp {
     std::string name;
@@ -1078,6 +1079,98 @@ PyObject* THNPModule_tensor_construct_from_storage(PyObject* self, PyObject* arg
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npu_set_call_state(PyObject* _unused, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(
+        THPUtils_checkLong(arg), "invalid argument to set_call_state, state type must long", PTA_ERROR(ErrCode::PARAM));
+    int64_t state = THPUtils_unpackLong(arg);
+    TORCH_CHECK(
+        state >= 0 && state <= 1, "invalid value of state, expected one of 0,1", PTA_ERROR(ErrCode::VALUE));
+    c10_npu::CallStateMode mode;
+    switch (state) {
+        case 0:
+            mode = c10_npu::CallStateMode::L_FORWARD;
+            break;
+        case 1:
+            mode = c10_npu::CallStateMode::L_BACKWARD;
+            break;
+        default:
+            mode = c10_npu::CallStateMode::L_UNKNOW;
+            break;
+    }
+    c10_npu::model_state().set_call_state(mode);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_get_call_state(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    auto mode = c10_npu::model_state().get_call_state();
+    switch (mode) {
+        case c10_npu::CallStateMode::L_FORWARD:
+            return THPUtils_packInt32(0);
+        case c10_npu::CallStateMode::L_BACKWARD:
+            return THPUtils_packInt32(1);
+        default:
+            return THPUtils_packInt32(-1);
+    }
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_set_model_mode(PyObject* _unused, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(
+        THPUtils_checkLong(arg), "invalid argument to set model mode, state type must long", PTA_ERROR(ErrCode::PARAM));
+    int64_t state = THPUtils_unpackLong(arg);
+    TORCH_CHECK(
+        state >= 0 && state <= 1, "invalid value of model mode, expected one of 0,1", PTA_ERROR(ErrCode::VALUE));
+    c10_npu::ModelMode mode;
+    switch (state) {
+        case 0:
+            mode = c10_npu::ModelMode::L_TRAIN;
+            break;
+        case 1:
+            mode = c10_npu::ModelMode::L_INFER;
+            break;
+        default:
+            mode = c10_npu::ModelMode::L_UNKNOW;
+            break;
+    }
+    c10_npu::model_state().set_model_mode(mode);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_get_model_mode(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    auto mode = c10_npu::model_state().get_model_mode();
+    switch (mode) {
+        case c10_npu::ModelMode::L_TRAIN:
+            return THPUtils_packInt32(0);
+        case c10_npu::ModelMode::L_INFER:
+            return THPUtils_packInt32(1);
+        default:
+            return THPUtils_packInt32(-1);
+    }
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_support_silentClientV2(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    if (c10_npu::opapi::IsExistAclnnSilentCheck()) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+    END_HANDLE_TH_ERRORS
+}
+
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -1122,6 +1215,11 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_sync_debug_mode", (PyCFunction)THNPModule_npu_get_sync_debug_mode, METH_NOARGS, nullptr},
     {"_tensor_construct_from_storage", (PyCFunction)THNPModule_tensor_construct_from_storage, METH_VARARGS, nullptr},
     {"_mark", (PyCFunction)THNPModule_msTxMark, METH_VARARGS, nullptr},
+    {"_npu_set_call_state", (PyCFunction)THNPModule_npu_set_call_state, METH_O, nullptr},
+    {"_npu_get_call_state", (PyCFunction)THNPModule_npu_get_call_state, METH_NOARGS, nullptr},
+    {"_npu_set_model_mode", (PyCFunction)THNPModule_npu_set_model_mode, METH_O, nullptr},
+    {"_npu_get_model_mode", (PyCFunction)THNPModule_npu_get_model_mode, METH_NOARGS, nullptr},
+    {"_npu_support_silentClientV2", (PyCFunction)THNPModule_npu_support_silentClientV2, METH_NOARGS, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()
