@@ -59,7 +59,7 @@ from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.function import fusion_attention
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, get_cann_version,\
-    serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method, \
+    serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method, add_asd_patch,\
     add_fx_methods, add_checkpoint_methods, add_launch_methods, path_manager, add_collect_env_methods
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
@@ -246,6 +246,7 @@ def apply_class_patches():
     apply_autocast_patch()
     add_launch_methods()
     add_collect_env_methods()
+    add_asd_patch()
 
 
 # Apply monkey-patches.

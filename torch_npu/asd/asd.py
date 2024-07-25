@@ -93,6 +93,9 @@ def patch_embedding(input_embedding, weight, *args, **kwargs):
 
 def asd_patch():
     env_value = os.getenv("NPU_ASD_ENABLE", "0")
+    if int(env_value) and torch_npu._C._npu_support_silentClientV2():
+        return
+
     if env_value not in ["0", "1"]:
         raise ValueError("NPU_ASD_ENABLE should be 0 or 1!" + pta_error(ErrCode.VALUE))
 

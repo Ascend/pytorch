@@ -29,6 +29,7 @@ from .combine_tensors import npu_combine_tensors, get_part_combined_tensor, is_c
 from .launch import add_launch_methods
 from .collect_env import add_collect_env_methods, get_cann_version
 from .asd_detector import set_asd_loss_scale, register_asd_hook
+from ._step import add_asd_patch
 
 __all__ = ["save_async"]
 

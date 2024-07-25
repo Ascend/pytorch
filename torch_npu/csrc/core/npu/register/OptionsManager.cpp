@@ -166,6 +166,92 @@ uint32_t OptionsManager::GetNslbCntVal()
     return nslb_val;
 }
 
+uint32_t OptionsManager::GetSilenceCheckFlag()
+{
+    const static uint32_t silence_check_flag = []() -> uint32_t {
+        char* silence_check_flag_str = std::getenv("NPU_ASD_ENABLE");
+        int64_t silence_check_flag = (silence_check_flag_str != nullptr) ? strtol(silence_check_flag_str, nullptr, 10) : 0;
+        SilenceCheckMode mode = CHECK_CLOSE;
+        switch (silence_check_flag) {
+            case 0:
+                mode = CHECK_CLOSE;
+                break;
+            case 1:
+                mode = PRINT_WARN_LOG;
+                break;
+            case 2:
+                mode = REPORT_ALARM;
+                break;
+            case 3:
+                mode = PRINT_ALL_LOG;
+                break;
+            default:
+                TORCH_CHECK(false, "NPU_ASD_ENABLE only allow 0, 1, 2 or 3", PTA_ERROR(ErrCode::VALUE));
+        }
+        return static_cast<uint32_t>(silence_check_flag);
+    }();
+    return silence_check_flag;
+}
+
+std::vector<std::string> OptionsManager::Split(const std::string& input, char delimiter)
+{
+    std::vector<std::string> result;
+    size_t start = 0;
+    size_t end = input.find(delimiter);
+
+    while (end != std::string::npos) {
+        result.push_back(input.substr(start, end - start));
+        start = end + 1;
+        end = input.find(delimiter, start);
+    }
+
+    if (start < input.length()) {
+        result.push_back(input.substr(start));
+    }
+
+    return result;
+}
+
+std::pair<double, double> OptionsManager::GetSilenceThresh(const std::string& env_str,
+    std::pair<double, double> defaultThresh)
+{
+    char* upper_thresh_ptr = std::getenv(env_str.c_str());
+    std::string upper_thresh_str = (upper_thresh_ptr != nullptr) ? std::string(upper_thresh_ptr) : "";
+    std::vector<std::string> split_result = Split(upper_thresh_str, ',');
+    if (split_result.size() != 2) {
+        return defaultThresh;
+    }
+    try {
+        double value1 = std::stod(split_result[0]);
+        value1 = value1 >= 3 ? value1 : 3;
+        double value2 = std::stod(split_result[1]);
+        value2 = value2 >= 3 ? value2 : 3;
+        if (value1 <= value2) {
+            return defaultThresh;
+        }
+        return std::make_pair(value1, value2);
+    } catch (std::exception& e) {
+        TORCH_NPU_WARN("Invalid value for environment variable: ", env_str, ". Use default values");
+    }
+    return defaultThresh;
+}
+
+std::pair<double, double> OptionsManager::GetSilenceUpperThresh()
+{
+    const static std::pair<double, double> upper_thresh = []() -> std::pair<double, double> {
+        return GetSilenceThresh("NPU_ASD_UPPER_THRESH", std::make_pair(1000000.0, 10000.0));
+    }();
+    return upper_thresh;
+}
+
+std::pair<double, double> OptionsManager::GetSilenceSigmaThresh()
+{
+    const static std::pair<double, double> sigma_thresh = []() -> std::pair<double, double> {
+        return GetSilenceThresh("NPU_ASD_SIGMA_THRESH", std::make_pair(100000.0, 5000.0));
+    }();
+    return sigma_thresh;
+}
+
 bool OptionsManager::CheckGeInitDisable()
 {
     const static bool Check_Ge_Init_Disable = []() -> bool {

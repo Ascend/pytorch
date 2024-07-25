@@ -567,5 +567,8 @@ private:
     void hcclCommWatchdog();
 
     void hcclCommWatchdogInternal();
+
+    void silenceCheck(at::Tensor &input, c10d::OpType opType);
+    std::unordered_map<c10d::OpType, std::pair<at::Tensor, at::Tensor>> silenceCheckCache_;
 };
 } // namespace c10d_npu
