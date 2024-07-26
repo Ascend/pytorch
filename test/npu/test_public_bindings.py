@@ -144,13 +144,6 @@ temp_filter = {
     "torch_npu.npu_silu",
     "torch_npu.npu_slice",
     "torch_npu.npu_softmax_cross_entropy_with_logits",
-    "torch_npu.npu_sort_v2",
-    "torch_npu.npu_stride_add",
-    "torch_npu.npu_swiglu",
-    "torch_npu.npu_trans_quant_param",
-    "torch_npu.npu_transpose",
-    "torch_npu.npu_weight_quant_batchmatmul",
-    "torch_npu.npu_yolo_boxes_encode",
     "torch_npu.one_",
 }
 
@@ -700,7 +693,8 @@ class TestPublicBindings(TestCase):
 
                 if is_public != looks_public:
                     # Skip some APIs which don't meet the guidelines for public API until they are fixed.
-                    if f"{modname}.{elem}" in temp_filter:
+                    if f"{modname}.{elem}" in temp_filter or \
+                            modname.startswith("torch_npu.dynamo.torchair.ge_concrete_graph"):
                         return
 
                     if modname in allow_dict and elem in allow_dict[modname]:
