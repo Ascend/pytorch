@@ -330,7 +330,6 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
 {
     HANDLE_TH_ERRORS
     int device = THPUtils_unpackLong(arg);
-    aclrtMemUceInfo info[MAX_MEM_UCE_INFO_ARRAY_SIZE];
     c10_npu::clear_mem_uce_info();
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::INIT);
     c10_npu::set_has_throw_error(false);
