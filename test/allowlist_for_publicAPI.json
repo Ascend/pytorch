@@ -2724,7 +2724,13 @@
     "npu_quant_matmul",
     "npu_quant_scatter",
     "npu_scatter_nd_update_",
-    "npu_swiglu"
+    "npu_swiglu",
+    "npu_yolo_boxes_encode",
+    "npu_weight_quant_batchmatmul",
+    "npu_transpose",
+    "npu_trans_quant_param",
+    "npu_stride_add",
+    "npu_sort_v2"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
