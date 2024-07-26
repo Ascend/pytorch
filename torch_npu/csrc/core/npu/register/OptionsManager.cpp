@@ -1,7 +1,6 @@
 #include <string>
 #include <unistd.h>
 #include <iomanip>
-#include <filesystem>
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -366,15 +365,18 @@ bool OptionsManager::CheckForceUncached()
     return force_uncached;
 }
 
-std::filesystem::path OptionsManager::GetOomSnapshotDumpPath()
+std::string OptionsManager::GetOomSnapshotDumpPath()
 {
     char* sanpshot_dump_path = std::getenv("OOM_SNAPSHOT_PATH");
+    std::string dump_path = "./";
     if (sanpshot_dump_path != nullptr) {
-        std::filesystem::path dump_path(sanpshot_dump_path);
-        return dump_path;
-    } else {
-        return std::filesystem::current_path();
+        dump_path = std::string(sanpshot_dump_path);
     }
+    char dump_abs_path[PATH_MAX] = {'\0'};
+    if (realpath(dump_path.c_str(), dump_abs_path) == nullptr) {
+        TORCH_CHECK(false, "`OOM_SNAPSHOT_PATH` is invalid.", PTA_ERROR(ErrCode::NOT_FOUND));
+    }
+    return dump_abs_path;
 }
 
 #ifndef BUILD_LIBTORCH
@@ -386,7 +388,7 @@ void oom_observer(int64_t device, int64_t allocated, int64_t device_total, int64
     std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
     std::tm* timeInfo = std::localtime(&currentTime);
     filename << "oom_snapshot_" << getpid() << "_" << std::put_time(timeInfo, "%Y%m%d%H%M%S") << ".pickle";
-    std::filesystem::path savefilepath = dumppath / filename.str();
+    auto savefilepath = c10::str(dumppath, "/", filename.str());
 
     pybind11::gil_scoped_acquire g;
     auto module = THPObjectPtr(PyImport_ImportModule("torch_npu.npu.memory"));
@@ -398,7 +400,7 @@ void oom_observer(int64_t device, int64_t allocated, int64_t device_total, int64
         throw python_error();
     }
     PyObject* p_args = PyTuple_New(1);
-    PyTuple_SetItem(p_args, 0, PyUnicode_FromString(savefilepath.string().c_str()));
+    PyTuple_SetItem(p_args, 0, PyUnicode_FromString(savefilepath.c_str()));
     PyObject* p_res = PyObject_CallObject(p_func, p_args);
 }
 #endif
