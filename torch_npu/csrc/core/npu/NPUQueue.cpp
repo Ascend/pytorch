@@ -247,7 +247,6 @@ NPUStatus Repository::MakeSureQueueEmpty() {
     if (GetStatus() == RepoStatus::STOP_EXIT) {
         ClearQueue();
         set_has_throw_error(true);
-        SetStatus(INIT);
         throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
     }
 
@@ -332,9 +331,7 @@ bool Repository::ReadQueue()
             manager().Release(datas, read_idx.idx, releaseQueue);
             read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
         }
-        if (ret == ACL_ERROR_RT_DEVICE_TASK_ABORT) {
-            SetStatus(STOP_EXIT);
-        } else {
+        if (GetStatus() != STOP_EXIT) {
             SetStatus(ERROR_EXIT);
         }
         read_idx.idx = write_idx.idx;
@@ -366,7 +363,6 @@ void Repository::Enqueue(void* cur_paras) {
         }
         ClearQueue();
         set_has_throw_error(true);
-        SetStatus(INIT);
         throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
     }
 
