@@ -796,9 +796,8 @@ const std::vector<uint64_t>& ProcessGroupHCCL::groupRanks() const
 void ProcessGroupHCCL::workCleanupLoop()
 {
     bool needSetDevice = true;
-    bool done = false;
     std::list<ProcessGroupHCCL::WorkHCCL> completedWorkList;
-    while (!done || !terminateProcessGroup_.load()) {
+    while (!terminateProcessGroup_.load()) {
         std::unique_lock<std::mutex> lock(workMetaListMutex_);
         // We busy-poll the work vector every kWatchdogThreadSleepMillis
         // milliseconds as long as the atomic is True.
@@ -875,8 +874,10 @@ void ProcessGroupHCCL::workCleanupLoop()
                 ++it;
             }
         }
-
-        done = workMetaList_.empty();
+    }
+    if (terminateProcessGroup_.load()) {
+        std::unique_lock<std::mutex> lock(workMetaListMutex_);
+        workMetaList_.clear();
     }
 }
 

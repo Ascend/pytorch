@@ -12,15 +12,12 @@ def main():
     device = torch.device('npu:{}'.format(local_rank))
     torch.npu.set_device(device)
 
-    dist.init_process_group(backend='hccl', timeout=datetime.timedelta(seconds=1))
-    tensor = torch.tensor([1024]).npu(non_blocking=True)
+    dist.init_process_group(backend='hccl', rank=rank, world_size=2, timeout=datetime.timedelta(seconds=10))
+    tensor = torch.tensor(1).npu()
 
-    for i in range(10):
+    dist.all_reduce(tensor)
+    if rank == 0:
         dist.all_reduce(tensor)
-        if rank == 1:
-            time.sleep(10)
-
-    dist.destroy_process_group()
 
 
 if __name__ == "__main__":
