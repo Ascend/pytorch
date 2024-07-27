@@ -374,6 +374,88 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    int device;
+    torch_npu::utils::npu_lazy_init();
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device));
+    auto stream = c10_npu::getCurrentNPUStream(device);
+
+    auto ret = aclrtSynchronizeStream(stream);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("call aclrtSynchronizeStream failed. ERROR : %d", ret);
+        return PyLong_FromLong(ret);
+    }
+
+    uint64_t workspaceSize = 0;
+    aclOpExecutor* executor;
+    ret = c10_npu::acl::AclnnStressDetectGetWorkspaceSize(&workspaceSize, &executor);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("call aclnnStressDetectGetWorkspaceSize failed. ERROR : %d", ret);
+        return PyLong_FromLong(ret);
+    }
+    void* workspaceAddr = nullptr;
+    if (workspaceSize > 0) {
+        ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
+        if (ret != ACL_ERROR_NONE) {
+            c10_npu::NPUCachingAllocator::emptyCache();
+            ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
+            if (ret != ACL_ERROR_NONE) {
+                ASCEND_LOGW("call aclrtMalloc failed, ERROR : %d. Skip stressDetect.", ret);
+                return PyLong_FromLong(ACL_ERROR_NONE);
+            }
+        }
+    }
+
+    ret = c10_npu::acl::AclnnStressDetect(workspaceAddr, workspaceSize, executor, stream);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("call aclnnStressDetect failed. ERROR : %d", ret);
+        if (workspaceSize > 0) {
+            aclrtFree(workspaceAddr);
+        }
+        return PyLong_FromLong(ret);
+    }
+    
+    if (workspaceSize > 0) {
+        aclrtFree(workspaceAddr);
+    }
+
+    ret = c10_npu::acl::AclnnStressDetectWithPressureGetWorkspaceSize(&workspaceSize, &executor);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("call aclnnStressDetectWithPressureGetWorkspaceSize failed. ERROR : %d", ret);
+        return PyLong_FromLong(ret);
+    }
+
+    if (workspaceSize > 0) {
+        ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
+        if (ret != ACL_ERROR_NONE) {
+            c10_npu::NPUCachingAllocator::emptyCache();
+            ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
+            if (ret != ACL_ERROR_NONE) {
+                ASCEND_LOGW("call aclrtMalloc failed, ERROR : %d. Skip stressDetect.", ret);
+                return PyLong_FromLong(ACL_ERROR_NONE);
+            }
+        }
+    }
+
+    ret = c10_npu::acl::AclnnStressDetectWithPressure(workspaceAddr, workspaceSize, executor, stream);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("call aclnnStressDetectWithPressure failed. ERROR : %d", ret);
+        if (workspaceSize > 0) {
+            aclrtFree(workspaceAddr);
+        }
+        return PyLong_FromLong(ret);
+    }
+
+    if (workspaceSize > 0) {
+        aclrtFree(workspaceAddr);
+    }
+
+    return PyLong_FromLong(ACL_ERROR_NONE);
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_getDeviceCount_wrap(PyObject* self, PyObject* noargs)
 {
     HANDLE_TH_ERRORS
@@ -1225,6 +1307,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_stopDevice", (PyCFunction)THNPModule_stopDevice_wrap, METH_O, nullptr},
     {"_npu_restart_device", (PyCFunction)THNPModule_restart_device_wrap, METH_O, nullptr},
     {"_npu_check_uce_in_memory", (PyCFunction)THNPModule_check_uce_in_memory_wrap, METH_O, nullptr},
+    {"_npu_stress_detect", (PyCFunction)THNPModule_stressDetect_wrap, METH_NOARGS, nullptr},
     {"_npu_getLocalDevice", (PyCFunction)THNPModule_getLocalDevice_wrap, METH_NOARGS, nullptr},
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
     {"_npu_canDeviceAccessPeer", (PyCFunction)THNPModule_npuCanDeviceAccessPeer_wrap, METH_VARARGS, nullptr},

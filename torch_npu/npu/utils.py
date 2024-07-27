@@ -18,7 +18,7 @@ __all__ = ["synchronize", "device_count", "can_device_access_peer", "set_device"
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "get_soc_version", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
-           "stop_device", "restart_device", "check_uce_in_memory"]
+           "stop_device", "restart_device", "check_uce_in_memory", "stress_detect"]
 
 
 def synchronize(device=None):
@@ -379,6 +379,11 @@ def clear_npu_overflow_flag():
         return
     float_status = torch.zeros(8).npu()
     torch_npu.npu_clear_float_status(float_status)
+
+
+def stress_detect():
+    torch_npu.npu._lazy_init()
+    return torch_npu._C._npu_stress_detect()
 
 
 def current_blas_handle():
