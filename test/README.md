@@ -2,13 +2,7 @@
 test目录为PTA相关的测试用例。
 ## 安装依赖
 
-如果是x86环境，请用requirements-x86.txt进行安装：
-
-`pip3 install -r requirements-x86.txt`
-
-如果是arm环境，请用requirements-arm.txt进行安装：
-
-`pip3 install -r requirements-arm.txt`
+`pip3 install -r requirements.txt`
 
 ## 补全脚本
 该操作需要联网

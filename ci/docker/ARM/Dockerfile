@@ -17,16 +17,15 @@ RUN mkdir /root/.pip \
 
 # Install pip package(build)
 RUN pip3.8 install pyyaml  \
-    && pip3.8 install torch==2.1.0 \
+    && pip3.8 install torch==2.4.0 \
     && pip3.8 install numpy==1.21.3 
 
 RUN pip3.9 install pyyaml  \
-    && pip3.9 install torch==2.1.0 \
+    && pip3.9 install torch==2.4.0 \
     && pip3.9 install numpy==1.21.3
 
 RUN pip3.10 install pyyaml  \
-    && pip3.10 install torch==2.1.0 \
+    && pip3.10 install torch==2.4.0 \
     && pip3.10 install numpy==1.21.3
 
 WORKDIR /home
-

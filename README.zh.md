@@ -19,25 +19,25 @@
 **aarch64:**
 
 ```Python
-pip3 install torch==2.1.0
+pip3 install torch==2.4.0
 ```
 
 **x86:**
 
 ```Python
-pip3 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
+pip3 install torch==2.4.0+cpu  --index-url https://download.pytorch.org/whl/cpu
 ```
 
 若使用pip命令安装失败，请使用下载链接或进入[PyTorch官方网站](https://pytorch.org/)进行查询下载对应版本。
 
-| 架构    | Python版本 | 下载链接                                                     |
-| ------- | ---------- | ------------------------------------------------------------ |
-| x86     | Python3.8  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp38-cp38-linux_x86_64.whl#sha256=9e5cfd931a65b38d222755a45dabb53b836be31bc620532bc66fee77e3ff67dc) |
-| x86     | Python3.9  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=86cc28df491fa84738affe752f9870791026565342f69e4ab63e5b935f00a495) |
-| x86     | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=5077921fc2b54e69a534f3a9c0b98493c79a5547c49d46f5e77e42da3610e011) |
-| aarch64 | Python3.8  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=761822761fffaa1c18a62c5deb13abaa780862577d3eadc428f1daa632536905) |
-| aarch64 | Python3.9  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=de7d63c6ecece118684415a3dbd4805af4a4c1ee1490cccf7405d8c240a481b4) |
-| aarch64 | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=a04a0296d47f28960f51c18c5489a8c3472f624ec3b5bcc8e2096314df8c3342) |
+| 架构      | Python版本   | 下载链接                                                                                                                                                                                          |
+|---------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| x86     | Python3.8  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.4.0%2Bcpu-cp38-cp38-linux_x86_64.whl#sha256=08753c3d776ae49dc9ddbae02e26720a513a4dc7997e41d95392bca71623a0cd)                             |
+| x86     | Python3.9  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.4.0%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=040abaee8affa1bb0f3ca14ca693ba81d0d90d88df5b8a839af96933a7fa2d29)                             |
+| x86     | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.4.0%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=0e59377b27823dda6d26528febb7ca06fc5b77816eaa58b4420cc8785e33d4ce)                           |
+| aarch64 | Python3.8  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.4.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=9eba83f8a8f98542f917e39000c903f154655acf6375c073cfcd4306a154eb80)   |
+| aarch64 | Python3.9  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.4.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=2786a47c8d8dec176fc679d2aab9a6f549c25452510b49650ab134135266ba33)   |
+| aarch64 | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.4.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=7c159e89d4ecf08403f9d1373d554422240b9b1146a0a19129069dc357a72b2b) |
 
 2. **安装torch_npu依赖**
 
@@ -51,7 +51,7 @@ pip3 install setuptools
 3. **安装torch_npu**
 
 ```
-pip3 install torch-npu==2.1.0.post3
+pip3 install torch-npu==2.4.0rc1
 ```
 如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
@@ -62,7 +62,7 @@ pip3 install torch-npu==2.1.0.post3
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git -b v2.1.0-6.0.rc1 --depth 1
+   git clone https://gitee.com/ascend/pytorch.git -b v2.4.0 --depth 1
    ```
 
 2. **构建镜像**
@@ -128,52 +128,54 @@ print(z)
 
 ## PyTorch与Python版本配套表
 
-| PyTorch版本   | Python版本                                                   |
-| ------------- | :----------------------------------------------------------- |
+| PyTorch版本     | Python版本                                                     |
+|---------------|:-------------------------------------------------------------|
 | PyTorch1.11.0 | Python3.7.x(>=3.7.5), Python3.8.x, Python3.9.x, Python3.10.x |
 | PyTorch2.1.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
 | PyTorch2.2.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
 | PyTorch2.3.1  | Python3.8.x, Python3.9.x, Python3.10.x                       |
+| PyTorch2.4.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
 
 ## 昇腾辅助软件
 
 **PyTorch Extension**版本号采用`{PyTorch版本}-{昇腾版本}`命名规则，前者为**PyTorch Extension**匹配的PyTorch版本，后者用于匹配CANN版本，详细匹配如下：
 
-| CANN版本         | 支持的PyTorch版本 | 支持的Extension版本 | Gitee分支          | AscendHub镜像版本/名称([链接](https://ascendhub.huawei.com/#/detail/pytorch-modelzoo)) |
-|----------------|--------------|-------------------|-------------------|----------------------|
-| CANN 8.0.RC2   | 2.3.1        | 2.3.1             | v2.3.1-6.0.rc2    | -                    |
-|                | 2.2.0        | 2.2.0.post2       | v2.2.0-6.0.rc2    | -                    |
-|                | 2.1.0        | 2.1.0.post6       | v2.1.0-6.0.rc2    | -                    |
-|                | 1.11.0       | 1.11.0.post14     | v1.11.0-6.0.rc2   | -                    |
-| CANN 8.0.RC1   | 2.2.0        | 2.2.0             | v2.2.0-6.0.rc1    | -                    |
-|                | 2.1.0        | 2.1.0.post3       | v2.1.0-6.0.rc1    | -                    |
-|                | 1.11.0       | 1.11.0.post11     | v1.11.0-6.0.rc1   | -                    |
-| CANN 7.0.0     | 2.1.0        | 2.1.0             | v2.1.0-5.0.0      | -                    |
-|                | 2.0.1        | 2.0.1.post1       | v2.0.1-5.0.0      | -                    |
-|                | 1.11.0       | 1.11.0.post8      | v1.11.0-5.0.0     | -                    |
-| CANN 7.0.RC1   | 2.1.0        | 2.1.0.rc1         | v2.1.0-5.0.rc3    | -                    |
-|                | 2.0.1        | 2.0.1             | v2.0.1-5.0.rc3    | -                    |
-|                | 1.11.0       | 1.11.0.post4      | v1.11.0-5.0.rc3   | -                    |
-| CANN 6.3.RC3.1 | 1.11.0       | 1.11.0.post3      | v1.11.0-5.0.rc2.2 | -                    |
-| CANN 6.3.RC3   | 1.11.0       | 1.11.0.post2      | v1.11.0-5.0.rc2.1 | -                    |
-| CANN 6.3.RC2   | 2.0.1        | 2.0.1.rc1         | v2.0.1-5.0.rc2    | -                    |
-|                | 1.11.0       | 1.11.0.post1      | v1.11.0-5.0.rc2   | 23.0.RC1-1.11.0      |
-|                | 1.8.1        | 1.8.1.post2       | v1.8.1-5.0.rc2    | 23.0.RC1-1.8.1       |
-| CANN 6.3.RC1   | 1.11.0       | 1.11.0            | v1.11.0-5.0.rc1   | -                    |
-|                | 1.8.1        | 1.8.1.post1       | v1.8.1-5.0.rc1    | -                    |
-| CANN 6.0.1     | 1.5.0        | 1.5.0.post8       | v1.5.0-3.0.0      | 22.0.0               |
-|                | 1.8.1        | 1.8.1             | v1.8.1-3.0.0      | 22.0.0-1.8.1         |
-|                | 1.11.0       | 1.11.0.rc2（beta) | v1.11.0-3.0.0     | -                    |
-| CANN 6.0.RC1   | 1.5.0        | 1.5.0.post7       | v1.5.0-3.0.rc3    | 22.0.RC3             |
-|                | 1.8.1        | 1.8.1.rc3         | v1.8.1-3.0.rc3    | 22.0.RC3-1.8.1       |
-|                | 1.11.0       | 1.11.0.rc1（beta) | v1.11.0-3.0.rc3   | -                    |
-| CANN 5.1.RC2   | 1.5.0        | 1.5.0.post6       | v1.5.0-3.0.rc2    | 22.0.RC2             |
-|                | 1.8.1        | 1.8.1.rc2         | v1.8.1-3.0.rc2    | 22.0.RC2-1.8.1       |
-| CANN 5.1.RC1   | 1.5.0        | 1.5.0.post5       | v1.5.0-3.0.rc1    | 22.0.RC1             |
-|                | 1.8.1        | 1.8.1.rc1         | v1.8.1-3.0.rc1    | -                    |
-| CANN 5.0.4     | 1.5.0        | 1.5.0.post4       | 2.0.4.tr5         | 21.0.4               |
-| CANN 5.0.3     | 1.8.1        | 1.5.0.post3       | 2.0.3.tr5         | 21.0.3               |
-| CANN 5.0.2     | 1.5.0        | 1.5.0.post2       | 2.0.2.tr5         | 21.0.2               |
+| CANN版本                | 支持的PyTorch版本 | 支持的Extension版本   | Gitee分支           | AscendHub镜像版本/名称([链接](https://ascendhub.huawei.com/#/detail/pytorch-modelzoo)) |
+|-----------------------|--------------|------------------|-------------------|--------------------------------------------------------------------------------|
+| CANN 8.0.RC3.alpha001 | 2.4.0        | 2.4.0rc1         | v2.4.0            | -                                                                              |
+| CANN 8.0.RC2          | 2.3.1        | 2.3.1            | v2.3.1-6.0.rc2    | -                                                                              |
+|                       | 2.2.0        | 2.2.0.post2      | v2.2.0-6.0.rc2    | -                                                                              |
+|                       | 2.1.0        | 2.1.0.post6      | v2.1.0-6.0.rc2    | -                                                                              |
+|                       | 1.11.0       | 1.11.0.post14    | v1.11.0-6.0.rc2   | -                                                                              |
+| CANN 8.0.RC1          | 2.2.0        | 2.2.0            | v2.2.0-6.0.rc1    | -                                                                              |
+|                       | 2.1.0        | 2.1.0.post3      | v2.1.0-6.0.rc1    | -                                                                              |
+|                       | 1.11.0       | 1.11.0.post11    | v1.11.0-6.0.rc1   | -                                                                              |
+| CANN 7.0.0            | 2.1.0        | 2.1.0            | v2.1.0-5.0.0      | -                                                                              |
+|                       | 2.0.1        | 2.0.1.post1      | v2.0.1-5.0.0      | -                                                                              |
+|                       | 1.11.0       | 1.11.0.post8     | v1.11.0-5.0.0     | -                                                                              |
+| CANN 7.0.RC1          | 2.1.0        | 2.1.0.rc1        | v2.1.0-5.0.rc3    | -                                                                              |
+|                       | 2.0.1        | 2.0.1            | v2.0.1-5.0.rc3    | -                                                                              |
+|                       | 1.11.0       | 1.11.0.post4     | v1.11.0-5.0.rc3   | -                                                                              |
+| CANN 6.3.RC3.1        | 1.11.0       | 1.11.0.post3     | v1.11.0-5.0.rc2.2 | -                                                                              |
+| CANN 6.3.RC3          | 1.11.0       | 1.11.0.post2     | v1.11.0-5.0.rc2.1 | -                                                                              |
+| CANN 6.3.RC2          | 2.0.1        | 2.0.1.rc1        | v2.0.1-5.0.rc2    | -                                                                              |
+|                       | 1.11.0       | 1.11.0.post1     | v1.11.0-5.0.rc2   | 23.0.RC1-1.11.0                                                                |
+|                       | 1.8.1        | 1.8.1.post2      | v1.8.1-5.0.rc2    | 23.0.RC1-1.8.1                                                                 |
+| CANN 6.3.RC1          | 1.11.0       | 1.11.0           | v1.11.0-5.0.rc1   | -                                                                              |
+|                       | 1.8.1        | 1.8.1.post1      | v1.8.1-5.0.rc1    | -                                                                              |
+| CANN 6.0.1            | 1.5.0        | 1.5.0.post8      | v1.5.0-3.0.0      | 22.0.0                                                                         |
+|                       | 1.8.1        | 1.8.1            | v1.8.1-3.0.0      | 22.0.0-1.8.1                                                                   |
+|                       | 1.11.0       | 1.11.0.rc2（beta) | v1.11.0-3.0.0     | -                                                                              |
+| CANN 6.0.RC1          | 1.5.0        | 1.5.0.post7      | v1.5.0-3.0.rc3    | 22.0.RC3                                                                       |
+|                       | 1.8.1        | 1.8.1.rc3        | v1.8.1-3.0.rc3    | 22.0.RC3-1.8.1                                                                 |
+|                       | 1.11.0       | 1.11.0.rc1（beta) | v1.11.0-3.0.rc3   | -                                                                              |
+| CANN 5.1.RC2          | 1.5.0        | 1.5.0.post6      | v1.5.0-3.0.rc2    | 22.0.RC2                                                                       |
+|                       | 1.8.1        | 1.8.1.rc2        | v1.8.1-3.0.rc2    | 22.0.RC2-1.8.1                                                                 |
+| CANN 5.1.RC1          | 1.5.0        | 1.5.0.post5      | v1.5.0-3.0.rc1    | 22.0.RC1                                                                       |
+|                       | 1.8.1        | 1.8.1.rc1        | v1.8.1-3.0.rc1    | -                                                                              |
+| CANN 5.0.4            | 1.5.0        | 1.5.0.post4      | 2.0.4.tr5         | 21.0.4                                                                         |
+| CANN 5.0.3            | 1.8.1        | 1.5.0.post3      | 2.0.3.tr5         | 21.0.3                                                                         |
+| CANN 5.0.2            | 1.5.0        | 1.5.0.post2      | 2.0.2.tr5         | 21.0.2                                                                         |
 
 ## 建议与交流
 
@@ -193,15 +195,16 @@ AscendPyTorch版本分支的维护阶段如下：
 
 ## PyTorch版本维护策略
 
-| **PyTorch版本** | **维护策略** | **当前状态** | **发布时间** | **后续状态** | **EOL日期** |
-|-----------|-----------|--------|------------|-----------------------|-----------|
-| 2.3.1     |  常规版本  | 维护   | 2024/06/06 | 预计2024/12/06起无维护 |           |
-| 2.2.0     |  常规版本  | 维护   | 2024/04/01 | 预计2024/10/15起无维护 |           |
-| 2.1.0     |  长期支持  | 维护   | 2023/10/15 | 预计2024/10/15起无维护 |           |
-| 2.0.1     |  常规版本  | EOL   | 2023/7/19  |   |  2024/3/14          |
-| 1.11.0    |  长期支持  | 维护   | 2023/4/19  | 预计2024/4/19起无维护  |           |
-| 1.8.1     |  长期支持  | EOL    | 2022/4/10  |                       | 2023/4/10 |
-| 1.5.0     |  长期支持  | EOL    | 2021/7/29  |                       | 2022/7/29 |
+| **PyTorch版本** | **维护策略** | **当前状态** | **发布时间**   | **后续状态**         | **EOL日期** |
+|---------------|----------|----------|------------|------------------|-----------|
+| 2.4.0         | 常规版本     | 维护       | 2024/07/26 | 预计2025/01/26起无维护 |           |
+| 2.3.1         | 常规版本     | 维护       | 2024/06/06 | 预计2024/12/06起无维护 |           |
+| 2.2.0         | 常规版本     | 维护       | 2024/04/01 | 预计2024/10/15起无维护 |           |
+| 2.1.0         | 长期支持     | 维护       | 2023/10/15 | 预计2024/10/15起无维护 |           |
+| 2.0.1         | 常规版本     | EOL      | 2023/7/19  |                  | 2024/3/14 |
+| 1.11.0        | 长期支持     | 维护       | 2023/4/19  | 预计2024/4/19起无维护  |           |
+| 1.8.1         | 长期支持     | EOL      | 2022/4/10  |                  | 2023/4/10 |
+| 1.5.0         | 长期支持     | EOL      | 2021/7/29  |                  | 2022/7/29 |
 
 ## 安全声明
 

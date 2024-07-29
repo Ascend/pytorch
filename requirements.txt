@@ -1,3 +1,6 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 pyyaml
 setuptools
 auditwheel
+torch==2.4.0
