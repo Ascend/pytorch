@@ -56,6 +56,7 @@ typedef void *aclrtAllocatorDesc;
 typedef void *aclrtAllocator;
 typedef void *aclrtAllocatorBlock;
 typedef void *aclrtAllocatorAddr;
+typedef struct aclOpExecutor aclOpExecutor;
 
 static const int ACL_ERROR_NONE = 0;
 static const int ACL_SUCCESS = 0;

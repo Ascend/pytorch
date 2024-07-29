@@ -58,6 +58,7 @@ __all__ = [
     "get_mm_bmm_format_nd",
     "get_npu_overflow_flag",
     "clear_npu_overflow_flag",
+    "stress_detect",
     "get_rng_state",
     "set_rng_state",
     "get_rng_state_all",
@@ -125,7 +126,7 @@ from .utils import (synchronize, device_count, can_device_access_peer, set_devic
                     device, device_of, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported, stop_device, restart_device,
                     utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag, mem_get_info,
-                    check_uce_in_memory, stop_device, restart_device)
+                    check_uce_in_memory, stop_device, restart_device, stress_detect)
 from .streams import Stream, Event
 from .mstx import mstx
 from .npu_config import *  # noqa: F403
