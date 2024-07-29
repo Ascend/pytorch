@@ -24,12 +24,14 @@
 namespace c10_npu {
 namespace {
 struct LeakyStreamInternals {
-    LeakyStreamInternals() {
+    LeakyStreamInternals()
+    {
         repo = ::std::make_unique<Repository>();
     }
     C10_DISABLE_COPY_AND_ASSIGN(LeakyStreamInternals);
 
-    ~LeakyStreamInternals() {
+    ~LeakyStreamInternals()
+    {
         // NB: this code is invoked only in the destruction of global variables
         // (since we never shrink the corresponding vectors). At this point the NPU
         // runtime might be already destroyed and invoking npuStreamDestroy leads
@@ -67,9 +69,9 @@ static std::array<LeakyStreamInternals, kStreamsPerPool>
     npu_streams[C10_COMPILE_TIME_MAX_NPUS];
 
 enum class StreamIdType : uint8_t {
-  DEFAULT = 0x0,
-  HCCL = 0x1,
-  SECONDARY = 0x2,
+    DEFAULT = 0x0,
+    HCCL = 0x1,
+    SECONDARY = 0x2,
 };
 
 std::ostream& operator<<(std::ostream& stream, StreamIdType s)
@@ -93,24 +95,24 @@ std::ostream& operator<<(std::ostream& stream, StreamIdType s)
 
 static inline StreamIdType streamIdType(c10::StreamId s)
 {
-  return static_cast<StreamIdType>((uint32_t)s >> kStreamsPerPoolBits);
+    return static_cast<StreamIdType>((uint32_t)s >> kStreamsPerPoolBits);
 }
 
 static inline size_t streamIdIndex(c10::StreamId s)
 {
-  return static_cast<size_t>((uint32_t)s & ((1 << kStreamsPerPoolBits) - 1));
+    return static_cast<size_t>((uint32_t)s & ((1 << kStreamsPerPoolBits) - 1));
 }
 
 c10::StreamId makeStreamId(StreamIdType st, size_t si)
 {
-  return static_cast<c10::StreamId>((static_cast<size_t>(st) << kStreamsPerPoolBits) | si);
+    return static_cast<c10::StreamId>((static_cast<size_t>(st) << kStreamsPerPoolBits) | si);
 }
 
 template <typename T, typename A>
 static bool pointer_within(const T* ptr, const A& arr)
 {
-  return std::greater_equal<const T*>()(ptr, arr.data()) &&
-      std::less<const T*>()(ptr, arr.data() + arr.size());
+    return std::greater_equal<const T*>()(ptr, arr.data()) &&
+        std::less<const T*>()(ptr, arr.data() + arr.size());
 }
 
 static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr)
@@ -172,17 +174,17 @@ static void initGlobalStreamState()
 
 static void initDeviceStreamState(c10::DeviceIndex device_index)
 {
-  // Switches to the requested device so streams are properly associated
-  // with it.
-  NPUGuard device_guard{device_index};
-  for (auto i = decltype(kStreamsPerPool){0}; i < kStreamsPerPool; ++i) {
-    auto& npu_streami = npu_streams[device_index][i];
+    // Switches to the requested device so streams are properly associated
+    // with it.
+    NPUGuard device_guard{device_index};
+    for (auto i = decltype(kStreamsPerPool){0}; i < kStreamsPerPool; ++i) {
+        auto& npu_streami = npu_streams[device_index][i];
 
-    npu_streami.device_index = device_index;
+        npu_streami.device_index = device_index;
 
-    NPU_CHECK_SUPPORTED_OR_ERROR(
-        acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
-  }
+        NPU_CHECK_SUPPORTED_OR_ERROR(
+            acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+    }
 }
 
 static void initNPUStreamsOnce()
@@ -217,8 +219,8 @@ static inline void check_npu(c10::DeviceIndex device_index)
 
 static uint32_t get_idx(std::atomic<uint32_t>& counter)
 {
-  auto raw_idx = counter++;
-  return raw_idx % kStreamsPerPool;
+    auto raw_idx = counter++;
+    return raw_idx % kStreamsPerPool;
 }
 
 LeakyStreamInternals* NPUStream_internals(NPUStream s)
@@ -255,14 +257,31 @@ LeakyStreamInternals* NPUStream_internals(NPUStream s)
 
 NPUStream NPUStream_fromInternals(const LeakyStreamInternals* ptr)
 {
-  return NPUStream(
-      NPUStream::UNCHECKED,
-      c10::Stream(
-          c10::Stream::UNSAFE,
-          c10::Device(c10::DeviceType::PrivateUse1, ptr->device_index),
-          NPUStream_getStreamId(ptr)));
+    return NPUStream(
+        NPUStream::UNCHECKED,
+        c10::Stream(
+            c10::Stream::UNSAFE,
+            c10::Device(c10::DeviceType::PrivateUse1, ptr->device_index),
+            NPUStream_getStreamId(ptr)));
 }
 } // namespace
+
+bool NPUStream::query() const
+{
+    c10::DeviceGuard guard{stream_.device()};
+    acl::aclrtStreamStatus status = acl::ACL_STREAM_STATUS_RESERVED;
+    NPU_CHECK_ERROR_WITHOUT_UCE(acl::AclrtStreamQuery(stream(), &status));
+    if (status == acl::ACL_STREAM_STATUS_COMPLETE) {
+        return true;
+    }
+    return false;
+}
+
+void NPUStream::synchronize() const
+{
+    c10::DeviceGuard guard{stream_.device()};
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()));
+}
 
 aclrtStream NPUStream::stream() const
 {
@@ -271,8 +290,8 @@ aclrtStream NPUStream::stream() const
     if (ptr->repo->CheckInit()) {
         NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
         if (ret != SUCCESS) {
-          ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
-          return nullptr;
+            ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+            return nullptr;
         }
     }
     auto cur_ptr = NPUStream_internals(*this);
@@ -282,98 +301,98 @@ aclrtStream NPUStream::stream() const
 
 NPUStream getNPUStreamFromPool(c10::DeviceIndex device_index)
 {
-  initNPUStreamsOnce();
-  if (device_index == -1)
-    device_index = current_device();
-  check_npu(device_index);
+    initNPUStreamsOnce();
+    if (device_index == -1) {
+        device_index = current_device();
+    }
+    check_npu(device_index);
 
-  // Initializes the stream pools (once)
-  std::call_once(
-      device_flags[device_index], initDeviceStreamState, device_index);
+    // Initializes the stream pools (once)
+    std::call_once(
+        device_flags[device_index], initDeviceStreamState, device_index);
 
-  const auto idx = get_idx(npu_counters[device_index]);
-  return NPUStream_fromInternals(&npu_streams[device_index][idx]);
-}
-
-NPUStream getStreamFromPool(
-    const bool isHighPriority,
-    c10::DeviceIndex device_index)
-{
-  initNPUStreamsOnce();
-  if (device_index == -1)
-    device_index = current_device();
-  check_npu(device_index);
-
-  // Initializes the stream pools (once)
-  std::call_once(
-      device_flags[device_index], initDeviceStreamState, device_index);
-
-  if (isHighPriority) {
     const auto idx = get_idx(npu_counters[device_index]);
     return NPUStream_fromInternals(&npu_streams[device_index][idx]);
-  }
+}
 
-  const auto idx = get_idx(npu_counters[device_index]);
-  return NPUStream_fromInternals(&npu_streams[device_index][idx]);
+NPUStream getStreamFromPool(const bool isHighPriority, c10::DeviceIndex device_index)
+{
+    initNPUStreamsOnce();
+    if (device_index == -1) {
+        device_index = current_device();
+    }
+    check_npu(device_index);
+
+    // Initializes the stream pools (once)
+    std::call_once(
+        device_flags[device_index], initDeviceStreamState, device_index);
+
+    if (isHighPriority) {
+        const auto idx = get_idx(npu_counters[device_index]);
+        return NPUStream_fromInternals(&npu_streams[device_index][idx]);
+    }
+
+    const auto idx = get_idx(npu_counters[device_index]);
+    return NPUStream_fromInternals(&npu_streams[device_index][idx]);
 }
 
 NPUStream getDefaultNPUStream(c10::DeviceIndex device_index)
 {
-  initNPUStreamsOnce();
-  if (device_index == -1) {
-    device_index = current_device();
-  }
-  return NPUStream_fromInternals(&default_streams[device_index]);
+    initNPUStreamsOnce();
+    if (device_index == -1) {
+        device_index = current_device();
+    }
+    return NPUStream_fromInternals(&default_streams[device_index]);
 }
 
 NPUStream getCurrentNPUStream(c10::DeviceIndex device_index)
 {
-  initNPUStreamsOnce();
-  if (device_index == -1) {
-    device_index = current_device();
-  }
-  check_npu(device_index);
-  return NPUStream_fromInternals(current_streams[device_index]);
+    initNPUStreamsOnce();
+    if (device_index == -1) {
+        device_index = current_device();
+    }
+    check_npu(device_index);
+    return NPUStream_fromInternals(current_streams[device_index]);
 }
 
 NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index)
 {
-  initNPUStreamsOnce();
-  if (device_index == -1) {
-    device_index = current_device();
-  }
-  check_npu(device_index);
-  return NPUStream_fromInternals(&secondary_streams[device_index]);
+    initNPUStreamsOnce();
+    if (device_index == -1) {
+        device_index = current_device();
+    }
+    check_npu(device_index);
+    return NPUStream_fromInternals(&secondary_streams[device_index]);
 }
 
 aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index)
 {
-  initNPUStreamsOnce();
-  if (device_index == -1) {
-    device_index = current_device();
-  }
-  check_npu(device_index);
-  LeakyStreamInternals* ptr = current_streams[device_index];
-  return ptr->stream;
+    initNPUStreamsOnce();
+    if (device_index == -1) {
+        device_index = current_device();
+    }
+    check_npu(device_index);
+    LeakyStreamInternals* ptr = current_streams[device_index];
+    return ptr->stream;
 }
 
 NPUStatus emptyAllNPUStream()
 {
-  initNPUStreamsOnce();
-  NPUStatus ret;
-  for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
-    auto& default_streamsi = default_streams[i];
-    if (default_streamsi.stream == nullptr) {
-      continue;
+    initNPUStreamsOnce();
+    NPUStatus ret;
+    for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
+        auto& default_streamsi = default_streams[i];
+        if (default_streamsi.stream == nullptr) {
+            continue;
+        }
+        if (default_streamsi.stream != nullptr && default_streamsi.repo->CheckInit()) {
+            ret = default_streamsi.repo->MakeSureQueueEmpty();
+            if (ret != SUCCESS) {
+                return ret;
+            }
+        }
     }
-    if (default_streamsi.stream != nullptr && default_streamsi.repo->CheckInit()) {
-      ret = default_streamsi.repo->MakeSureQueueEmpty();
-      if (ret != SUCCESS) {
-        return ret;
-      }
-    }
-  }
-  return SUCCESS;
+    return SUCCESS;
 }
 
 std::string getRepoInfo()
@@ -406,27 +425,27 @@ void setDefaultStreamsStatus(c10::DeviceIndex device_index, RepoStatus status)
 bool npuSynchronizeDevice(bool check_error)
 {
     if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
-    NPUStatus ret = c10_npu::emptyAllNPUStream();
-    if (ret != SUCCESS) {
-      ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+        NPUStatus ret = c10_npu::emptyAllNPUStream();
+        if (ret != SUCCESS) {
+            ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+        }
     }
-  }
-  auto acl_ret = aclrtSynchronizeDevice();
+    auto acl_ret = aclrtSynchronizeDevice();
     CHECK_AND_THROW_FORCE_STOP(acl_ret);
 #ifndef BUILD_LIBTORCH
-  if (acl_ret == ACL_ERROR_NONE) {
-      const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
-      if (C10_UNLIKELY(trigger)) {
-          trigger->traceNpuDeviceSynchronization();
-      }
-  }
+    if (acl_ret == ACL_ERROR_NONE) {
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuDeviceSynchronization();
+        }
+    }
 #endif
-  if (check_error) {
-    NPU_CHECK_ERROR(acl_ret, "aclrtSynchronizeDevice");
-  } else {
-    NPU_CHECK_WARN(acl_ret);
-  }
-  return acl_ret == ACL_ERROR_NONE;
+    if (check_error) {
+        NPU_CHECK_ERROR(acl_ret, "aclrtSynchronizeDevice");
+    } else {
+        NPU_CHECK_WARN(acl_ret);
+    }
+    return acl_ret == ACL_ERROR_NONE;
 }
 
 bool npuSynchronizeUsedDevices(bool check_error)
@@ -447,23 +466,21 @@ bool npuSynchronizeUsedDevices(bool check_error)
     return acl_ret == ACL_ERROR_NONE;
 }
 
-void enCurrentNPUStream(
-    void* cur_paras,
-    c10::DeviceIndex device_index)
+void enCurrentNPUStream(void* cur_paras, c10::DeviceIndex device_index)
 {
-  initNPUStreamsOnce();
-  if (device_index == -1) {
-    device_index = current_device();
-  }
-  check_npu(device_index);
-  c10_npu::queue::QueueParas* queueParam = static_cast<c10_npu::queue::QueueParas* >(cur_paras);
-  queueParam->correlation_id = c10_npu::queue::QueueParas::g_correlation_id++;
-  queueParam->paramStream = current_streams[device_index]->stream;
-  default_streams[device_index].repo->Enqueue(cur_paras);
-  if (default_streams[device_index].repo->GetStatus() == RepoStatus::INIT) {
-    default_streams[device_index].repo->MakeSureQueueEmpty();
-    default_streams[device_index].repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
-  }
+    initNPUStreamsOnce();
+    if (device_index == -1) {
+        device_index = current_device();
+    }
+    check_npu(device_index);
+    c10_npu::queue::QueueParas* queueParam = static_cast<c10_npu::queue::QueueParas* >(cur_paras);
+    queueParam->correlation_id = c10_npu::queue::QueueParas::g_correlation_id++;
+    queueParam->paramStream = current_streams[device_index]->stream;
+    default_streams[device_index].repo->Enqueue(cur_paras);
+    if (default_streams[device_index].repo->GetStatus() == RepoStatus::INIT) {
+        default_streams[device_index].repo->MakeSureQueueEmpty();
+        default_streams[device_index].repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
+    }
 }
 
 void setCurrentNPUStream(NPUStream stream)
@@ -476,7 +493,7 @@ void setCurrentNPUStream(NPUStream stream)
 
 std::ostream& operator<<(std::ostream& stream, const NPUStream& s)
 {
-  return stream << s.unwrap();
+    return stream << s.unwrap();
 }
 
 void NPUStream::setDataPreprocessStream(bool is_data_preprocess_stream)
@@ -507,7 +524,7 @@ aclrtStream NPUStream::stream(const bool need_empty) const
         AT_ASSERT(cur_ptr, PTA_ERROR(ErrCode::PTR));
         return cur_ptr->stream;
     }
-  
+
     return stream();
 }
 
