@@ -32,11 +32,14 @@ void NPUHooksInterface::resizePrivateUse1Bytes(const c10::Storage &storage, size
 {
     auto storage_impl = static_cast<torch_npu::NPUStorageImpl*>(storage.unsafeGetStorageImpl());
     auto format = storage_impl->npu_desc_.npu_format_;
-    if (!at_npu::native::FormatHelper::IsBaseFormatType(format)) {
-        AT_ERROR("Try to resize a storage without base format");
-    }
+    TORCH_CHECK(at_npu::native::FormatHelper::IsBaseFormatType(format),
+                "Try to resize a storage without base format",
+                PTA_ERROR(ErrCode::TYPE));
 
     auto itemsize = storage_impl->npu_desc_.data_type_.itemsize();
+    TORCH_CHECK(itemsize > 0,
+                "Try to resize a storage with data_type.itemsize <= 0",
+                PTA_ERROR(ErrCode::TYPE));
     std::vector<int64_t> new_size = {static_cast<int64_t>(new_bytes) / (ptrdiff_t)itemsize};
     at_npu::native::storage_resize_npu(*storage_impl, new_bytes, new_size, true);
 }

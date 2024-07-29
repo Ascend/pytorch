@@ -75,22 +75,9 @@ public:
         return stream_.id();
     }
 
-    bool query() const
-    {
-        c10::DeviceGuard guard{stream_.device()};
-        acl::aclrtStreamStatus status = acl::ACL_STREAM_STATUS_RESERVED;
-        NPU_CHECK_ERROR_WITHOUT_UCE(acl::AclrtStreamQuery(stream(), &status));
-        if (status == acl::ACL_STREAM_STATUS_COMPLETE) {
-        return true;
-        }
-        return false;
-    }
+    bool query() const;
 
-    void synchronize() const
-    {
-        c10::DeviceGuard guard{stream_.device()};
-        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()));
-    }
+    void synchronize() const;
 
     // Explicit conversion to rtStream_t.
     aclrtStream stream() const;
