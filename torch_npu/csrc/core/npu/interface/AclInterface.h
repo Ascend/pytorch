@@ -166,5 +166,13 @@ aclError AclrtDeviceTaskAbort(int32_t deviceId);
 
 aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize);
 
+aclError AclnnStressDetectGetWorkspaceSize(size_t *workspaceSize, aclOpExecutor **executor);
+
+aclError AclnnStressDetect(void *workspace, size_t workspaceSize, aclOpExecutor *executor, aclrtStream stream);
+
+aclError AclnnStressDetectWithPressureGetWorkspaceSize(size_t *workspaceSize, aclOpExecutor **executor);
+
+aclError AclnnStressDetectWithPressure(void *workspace, size_t workspaceSize, aclOpExecutor *executor, aclrtStream stream);
+
 } // namespace acl
 } // namespace c10_npu
