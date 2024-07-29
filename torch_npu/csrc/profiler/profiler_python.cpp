@@ -10,6 +10,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 
+#include <torch/csrc/utils/python_compat.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/utils/pybind.h>
 
@@ -116,7 +117,7 @@ struct RawEvent {
         if (tag_ == TraceTag::kC_Call) {
             return py::repr(misc_.arg_);
         } else if (tag_ == TraceTag::kPy_Call) {
-            auto f_code = frame_->f_code;
+            auto f_code = PyFrame_GetCode(frame_);
             auto line_no = PyFrame_GetLineNumber(frame_);
             auto file_name = trimPrefix(THPUtils_unpackString(f_code->co_filename));
             auto func_name = THPUtils_unpackString(f_code->co_name);
@@ -233,7 +234,7 @@ void PythonTracer::start(size_t max_threads)
         size_t depth = 0;  // Make sure we can't infinite loop.
         while (frame != nullptr && depth <= STACK_MAX_DEPTH) {
             current_stack.push_back(frame);
-            frame = frame->f_back;
+            frame = PyFrame_GetBack(frame);
             ++depth;
         }
         for (auto it = current_stack.rbegin(); it != current_stack.rend(); it++) {
@@ -294,11 +295,10 @@ void PythonTracer::recordReturn(TraceContext* ctx, PyFrameObject* frame, TraceTa
 
 void PythonTracer::trackModule(PyFrameObject* frame)
 {
-    auto f_code = (PyObject*)frame->f_code;
+    auto f_code = (PyObject*)PyFrame_GetCode(frame);
     if (f_code == module_call_code_) {
-        PyFrame_FastToLocals(frame);
-        auto self = PyDict_GetItemString(frame->f_locals, "self");
-        PyFrame_LocalsToFast(frame, 0);
+        auto f_locals = PyFrame_GetLocals(frame);
+        auto self = PyDict_GetItemString(f_locals, "self");
         reportPythonModuleCallDataToNpuProfiler(self, event_count_ - 1);
     }
 };
