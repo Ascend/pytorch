@@ -1,6 +1,7 @@
 import math
 import torch
 from torch.library import Library, impl
+from torch_npu.utils._error_code import ErrCode, ops_error
 
 '''
 Registering Meta implementations for custom ops
@@ -580,8 +581,17 @@ def npu_moe_compute_expert_tokens_meta(sorted_experts, num_experts=1):
 @impl(m, "npu_anti_quant")
 def npu_anti_quant_meta(x, scale, *, offset=None, dst_dtype=None, src_dtype=None):
     if dst_dtype is None:
-        return torch.empty_like(x, dtype=torch.float16)
-    return torch.empty_like(x, dtype=dst_dtype)
+        dst_dtype = torch.float16
+
+    if x.dtype == torch.int32:
+        x_shape = x.size()
+        if len(x_shape) == 0:
+            raise RuntimeError("Not supported for x is scalar when x dtype is int32" + ops_error(ErrCode.NOT_SUPPORT))
+        y_shape = (*(x_shape[:-1]), x_shape[-1] * 8)
+        y = x.new_empty(y_shape, dtype=dst_dtype)
+        return torch.empty_like(y)
+    else:
+        return torch.empty_like(x, dtype=dst_dtype)
 
 
 @impl(m, "npu_apply_rotary_pos_emb")
