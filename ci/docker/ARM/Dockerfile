@@ -6,6 +6,7 @@ RUN cd /usr/local/bin \
     && ln -s /opt/_internal/cpython-3.8.18/bin/pip3.8 pip3.8 \
     && ln -s /opt/_internal/cpython-3.9.18/bin/pip3.9 pip3.9 \
     && ln -s /opt/_internal/cpython-3.10.13/bin/pip3.10 pip3.10 \
+    && ln -s /opt/_internal/cpython-3.11.6/bin/pip3.10 pip3.11 \
     && ln -s python3.8 python3
 
 # Set pip source
@@ -27,5 +28,9 @@ RUN pip3.9 install pyyaml  \
 RUN pip3.10 install pyyaml  \
     && pip3.10 install torch==2.4.0 \
     && pip3.10 install numpy==1.21.3
+
+RUN pip3.11 install pyyaml  \
+    && pip3.11 install torch==2.4.0 \
+    && pip3.11 install numpy==1.23.2
 
 WORKDIR /home

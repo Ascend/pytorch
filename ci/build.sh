@@ -3,7 +3,7 @@
 set -e
 
 CUR_DIR=$(dirname $(readlink -f $0))
-SUPPORTED_PY_VERSION=(3.8 3.9 3.10)
+SUPPORTED_PY_VERSION=(3.8 3.9 3.10 3.11)
 PY_VERSION='3.8'                     # Default supported python version is 3.8
 DEFAULT_SCRIPT_ARGS_NUM=1            # Default supported input parameters
 export DISABLE_RPC_FRAMEWORK=FALSE
