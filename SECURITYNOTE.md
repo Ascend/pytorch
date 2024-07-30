@@ -56,13 +56,13 @@ PyTorch 2.2.0以下版本存在CVE-2024-31584漏洞，该漏洞在torch/csrc/jit
 
 torch_npu内集成性能分析工具profiler：
  - 集成原因：对标pytorch原生支持能力，提供NPU PyTorch框架开发性能分析能力，加速性能分析调试过程。
- - 使用场景：默认不采集，如用户需要进行性能分析时，可在模型训练脚本中添加AscendPyTorch Profiler接口，执行训练的同时采集性能数据，完成训练后直接输出可视化的性能数据文件。
- - 风险提示：使用该功能会在本地生成性能数据，用户需加强对相关性能数据的保护，请在需要模型性能分析时使用，分析完成后及时关闭。Profiler工具具体细节请参考[《PyTorch 模型迁移和训练指南》](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_0001.html)。
+ - 使用场景：默认不采集，如用户需要进行性能分析时，可在模型训练脚本中添加Ascend Extension for PyTorch Profiler接口，执行训练的同时采集性能数据，完成训练后直接输出可视化的性能数据文件。
+ - 风险提示：使用该功能会在本地生成性能数据，用户需加强对相关性能数据的保护，请在需要模型性能分析时使用，分析完成后及时关闭。Profiler工具具体细节请参考[《PyTorch 性能分析工具介绍》](https://www.hiascend.com/document/detail/zh/Pytorch/60RC2/ptmoddevg/trainingmigrguide/performance_tuning_0013.html)。
 
 ## 数据安全声明
 
-1. PyTorch使用过程中需要加载和保存数据，部分接口使用风险模块pickle，可能存在数据风险，如torch.load、torch.distributed.scatter_object_list等接口，可参考[torch.load](https://pytorch.org/docs/stable/generated/torch.load.html#torch.load)、[collective-functions](https://pytorch.org/docs/stable/distributed.html#collective-functions)了解具体风险。
-2. AscendPyTorch依赖CANN的基础能力实现AOE性能调优、算子dump、日志记录等功能，用户需要关注上述功能生成文件的权限控制，加强对相关数据的保护。
+1. PyTorch使用过程中需要加载和保存数据，部分接口使用风险模块pickle，可能存在数据风险，如torch.load、torch.distributed.scatter_object_list等接口，可参考[torch.load](https://pytorch.org/docs/1.11/generated/torch.load.html#torch.load)、[collective-functions](https://pytorch.org/docs/1.11/distributed.html#collective-functions)了解具体风险。
+2. Ascend Extension for PyTorch依赖CANN的基础能力实现AOE性能调优、算子dump、日志记录等功能，用户需要关注上述功能生成文件的权限控制，加强对相关数据的保护。
 
 ## 构建安全声明
 
@@ -88,10 +88,6 @@ torch_npu支持源码编译安装，在编译时会下载依赖第三方库并�
 | 自研   | 不涉及                                                                                                                                                                                                                         | setup.cfg                                     | https://gitee.com/ascend/pytorch/tags                                          | 用于打包whl的download_url入参         |
 | 自研   | 不涉及                                                                                                                                                                                                                         | third_party\op-plugin\ci\build.sh             | https://gitee.com/ascend/pytorch.git                                           | 编译脚本根据torch_npu仓库地址拉取代码进行编译    |
 | 自研   | 不涉及                                                                                                                                                                                                                         | third_party\op-plugin\ci\exec_ut.sh           | https://gitee.com/ascend/pytorch.git                                           | UT脚本根据torch_npu仓库地址下拉取代码进行UT测试 |
-| 开源引入 | https://github.com/pytorch/pytorch/blob/main/test/nn/test_convolution.py <br> https://github.com/pytorch/pytorch/blob/main/test/test_mps.py <br> https://github.com/pytorch/pytorch/blob/v1.11.0/test/test_serialization.py | test\url.ini                                  | https://download.pytorch.org/test_data/legacy_conv2d.pt                        | 用于test脚本下载相关pt文件               |
-| 开源引入 | https://github.com/pytorch/pytorch/blob/v1.11.0/test/test_serialization.py                                                                                                                                                  | test\url.ini                                  | https://download.pytorch.org/test_data/legacy_serialized.pt                    | 用于test脚本下载相关pt文件               |
-| 开源引入 | https://github.com/pytorch/pytorch/blob/v1.11.0/test/test_serialization.py                                                                                                                                                  | test\url.ini                                  | https://download.pytorch.org/test_data/gpu_tensors.pt                          | 用于test脚本下载相关pt文件               |
-| 开源引入 | https://github.com/pytorch/pytorch/blob/v1.11.0/test/test_nn.py <br> https://github.com/pytorch/pytorch/blob/v1.11.0/test/test_serialization.py                                                                             | test\url.ini                                  | https://download.pytorch.org/test_data/linear.pt                               | 用于test脚本下载相关pt文件               |
 | 开源引入 | https://github.com/pytorch/pytorch/blob/main/torch/csrc/profiler/unwind/eh_frame_hdr.h                                                                                                                                      | torch_npu\csrc\profiler\unwind\eh_frame_hdr.h | https://refspecs.linuxfoundation.org/LSB_1.3.0/gLSB/gLSB/ehframehdr.html       | c++调用栈实现相关注解网址                 |
 | 开源引入 | https://github.com/pytorch/pytorch/blob/main/torch/csrc/profiler/unwind/fde.h                                                                                                                                               | torch_npu\csrc\profiler\unwind\fde.h          | https://www.airs.com/blog/archives/460                                         | c++调用栈实现相关注解网址                 |
 | 开源引入 | https://github.com/pytorch/pytorch/blob/main/torch/csrc/profiler/unwind/fde.h                                                                                                                                               | torch_npu\csrc\profiler\unwind\fde.h          | https://web.archive.org/web/20221129184704/https://dwarfstd.org/doc/DWARF4.doc | c++调用栈实现相关注解网址                 |
@@ -101,11 +97,11 @@ torch_npu支持源码编译安装，在编译时会下载依赖第三方库并�
 
 ## 公开接口声明
 
-AscendPyTorch是PyTorch适配插件，支持用户使用PyTorch在昇腾设备上进行训练和推理。AscendPyTorch适配后支持用户使用PyTorch原生接口。除了原生PyTorch接口外，AscendPyTorch提供了部分自定义接口，包括自定义算子、亲和库和其他接口，支持PyTorch接口和自定义接口连接，具体可参考[《PyTorch 模型迁移和训练指南》](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000002.html)>API列表。
+Ascend Extension for PyTorch是PyTorch适配插件，支持用户使用PyTorch在昇腾设备上进行训练和推理。Ascend Extension for PyTorch适配后支持用户使用PyTorch原生接口。除了原生PyTorch接口外，Ascend Extension for PyTorch提供了部分自定义接口，包括自定义算子、亲和库和其他接口，支持PyTorch接口和自定义接口连接，具体可参考[《PyTorch API参考》](https://www.hiascend.com/document/detail/zh/Pytorch/60RC2/apiref/apilist/ptaoplist_000001.html)。
 
-参考[PyTorch社区公开接口规范](https://github.com/pytorch/pytorch/wiki/Public-API-definition-and-documentation)，AscendPyTorch提供了对外的自定义接口。如果一个函数看起来符合公开接口的标准且在文档中有展示，则该接口是公开接口。否则，使用该功能前可以在社区询问该功能是否确实是公开的或意外暴露的接口，因为这些未暴露接口将来可能会被修改或者删除。
+参考[PyTorch社区公开接口规范](https://github.com/pytorch/pytorch/wiki/Public-API-definition-and-documentation)，Ascend Extension for PyTorch提供了对外的自定义接口。如果一个函数看起来符合公开接口的标准且在文档中有展示，则该接口是公开接口。否则，使用该功能前可以在社区询问该功能是否确实是公开的或意外暴露的接口，因为这些未暴露接口将来可能会被修改或者删除。
 
-AscendPyTorch项目采用C++和Python联合开发，当前除Libtorch场景外正式接口只提供Python接口，在torch_npu的二进制包中动态库不直接提供服务，暴露的接口为内部使用，不建议用户使用。
+Ascend Extension for PyTorch项目采用C++和Python联合开发，当前除Libtorch场景外正式接口只提供Python接口，在torch_npu的二进制包中动态库不直接提供服务，暴露的接口为内部使用，不建议用户使用。
 
 ## 通信安全加固
 
@@ -212,16 +208,16 @@ PyTorch提供分布式训练能力，支持在单机和多机场景下进行训�
 | --------------------- | ------------------------------------ | ------------------------------------ |
 | 源设备                | 运行torch_npu进程的服务器              | 运行torch_npu进程的服务器             |
 | 源IP                  | 设备地址IP                            | 设备地址IP                            |
-| 源端口                | 操作系统自动分配，分配范围由操作系统的自身配置决定      | 默认值为60000，取值范围[0,65520]。用户可以通过HCCL_IF_BASE_PORT环境变量指定Host网卡起始端口号，配置后系统默认占用以该端口起始的16个端口      |
+| 源端口                | 操作系统自动分配，分配范围由操作系统的自身配置决定      | 默认值为60000，取值范围[1024,65520]。用户可以通过HCCL_IF_BASE_PORT环境变量指定Host网卡起始端口号，配置后系统默认占用以该端口起始的16个端口      |
 | 目的设备              | 运行torch_npu进程的服务器              | 运行torch_npu进程的服务器              |
 | 目的IP                | 设备地址IP                            | 设备地址IP                            |
-| 目的端口 （侦听）      | 默认29500/29400，用户可以设定端口号     | 默认值为60000，取值范围[0,65520]。用户可以通过HCCL_IF_BASE_PORT环境变量指定Host网卡起始端口号，配置后系统默认占用以该端口起始的16个端口      |
+| 目的端口 （侦听）      | 默认29500/29400，用户可以设定端口号     | 默认值为60000，取值范围[1024,65520]。用户可以通过HCCL_IF_BASE_PORT环境变量指定Host网卡起始端口号，配置后系统默认占用以该端口起始的16个端口      |
 | 协议                  | TCP                                  | TCP                                   |
-| 端口说明              | 1. 在静态分布式场景中（用torchrun/torch.distributed.launch使用的backend为static）， 目的端口（默认29500）用于接收和发送数据，源端口用于接收和发送数据 <br> 2. 在动态分布式场景中（用torchrun或者torch.distributed.launch使用的backend为c10d）， 目的端口（默认29400）用于接收和发送数据，源端口用于接收和发送数据。可以使用rdzv_endpoint和master_port指定端口号 <br> 3. 在分布式场景中，用torchrun或者torch.distributed.launch不指定任何参数时使用的端口号为29500       | 默认值为60000，取值范围[0,65520]。用户可以通过HCCL_IF_BASE_PORT环境变量指定Host网卡起始端口号，配置后系统默认占用以该端口起始的16个端口       |
+| 端口说明              | 1. 在静态分布式场景中（用torchrun/torch.distributed.launch使用的backend为static）， 目的端口（默认29500）用于接收和发送数据，源端口用于接收和发送数据 <br> 2. 在动态分布式场景中（用torchrun或者torch.distributed.launch使用的backend为c10d）， 目的端口（默认29400）用于接收和发送数据，源端口用于接收和发送数据。可以使用rdzv_endpoint和master_port指定端口号 <br> 3. 在分布式场景中，用torchrun或者torch.distributed.launch不指定任何参数时使用的端口号为29500       | 默认值为60000，取值范围[1024,65520]。用户可以通过HCCL_IF_BASE_PORT环境变量指定Host网卡起始端口号，配置后系统默认占用以该端口起始的16个端口       |
 | 侦听端口是否可更改     | 是                                    | 是                                    |
 | 认证方式              | 无认证方式                             | 无认证方式                             |
 | 加密方式              | 无                                    | 无                                    |
 | 所属平面              | 不涉及                                | 不涉及                                 |
 | 版本                  | 所有版本                              | 所有版本                               |
 | 特殊场景              | 无                                    | 无                                     |
-| 备注                  | 该通信过程由开源软件PyTorch控制，配置为PyTorch原生设置，可参考[PyTorch文档](https://pytorch.org/docs/stable/distributed.html#launch-utility)。源端口由操作系统自动分配，分配范围由操作系统的配置决定，例如ubuntu：采用/proc/sys/net/ipv4/ipv4_local_port_range文件指定，可通过cat /proc/sys/net/ipv4/ipv4_local_port_range或sysctl net.ipv4.ip_local_port_range查看       | 该通信过程由CANN中HCCL组件控制，torch_npu不进行控制，端口范围可参考[《环境变量参考》](https://www.hiascend.com/document/detail/zh/canncommercial/700/reference/envvar/envref_07_0001.html)的“执行相关 > 集合通信与分布式训练 > 集合通信相关配置>HCCL_IF_BASE_PORT”和[《集合通信接口参考》](https://www.hiascend.com/document/detail/zh/canncommercial/700/reference/hcclapiref/hcclapi_07_0001.html)          |
+| 备注                  | 该通信过程由开源软件PyTorch控制，配置为PyTorch原生设置，可参考[PyTorch文档](https://pytorch.org/docs/stable/distributed.html#launch-utility)。源端口由操作系统自动分配，分配范围由操作系统的配置决定，例如ubuntu：采用/proc/sys/net/ipv4/ipv4_local_port_range文件指定，可通过cat /proc/sys/net/ipv4/ipv4_local_port_range或sysctl net.ipv4.ip_local_port_range查看       | 该通信过程由CANN中HCCL组件控制，torch_npu不进行控制，端口范围可参考[《环境变量参考》](https://www.hiascend.com/document/detail/zh/canncommercial/80RC2/apiref/envvar/envref_07_0001.html)的“执行相关 > 集合通信与分布式训练 > 集合通信相关配置>HCCL_IF_BASE_PORT”          |
