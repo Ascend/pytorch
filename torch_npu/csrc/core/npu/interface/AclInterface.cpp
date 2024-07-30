@@ -595,9 +595,9 @@ aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, s
     return func(deviceId, memUceInfoArray, arraySize);
 }
 
-aclError AclnnStressDetectGetWorkspaceSize(size_t *workspaceSize, aclOpExecutor **executor)
+aclError AclnnStressDetectGetWorkspaceSize(size_t *workspaceSize, void **executor)
 {
-    typedef aclError (*AclnnStressDetectGetWorkspaceSize)(size_t*, aclOpExecutor**);
+    typedef aclError (*AclnnStressDetectGetWorkspaceSize)(size_t*, void**);
     static AclnnStressDetectGetWorkspaceSize func = nullptr;
     if (func == nullptr) {
         func = (AclnnStressDetectGetWorkspaceSize) GetOpApiFuncAddr("aclnnStressDetectGetWorkspaceSize");
@@ -606,9 +606,9 @@ aclError AclnnStressDetectGetWorkspaceSize(size_t *workspaceSize, aclOpExecutor 
     return func(workspaceSize, executor);
 }
 
-aclError AclnnStressDetect(void *workspace, size_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)
+aclError AclnnStressDetect(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream)
 {
-    typedef aclError (*AclnnStressDetect)(void*, size_t, aclOpExecutor*, aclrtStream);
+    typedef aclError (*AclnnStressDetect)(void*, size_t, void*, aclrtStream);
     static AclnnStressDetect func = nullptr;
     if (func == nullptr) {
         func = (AclnnStressDetect) GetOpApiFuncAddr("aclnnStressDetect");
@@ -617,9 +617,9 @@ aclError AclnnStressDetect(void *workspace, size_t workspaceSize, aclOpExecutor 
     return func(workspace, workspaceSize, executor, stream);
 }
 
-aclError AclnnStressDetectWithPressureGetWorkspaceSize(size_t *workspaceSize, aclOpExecutor **executor)
+aclError AclnnStressDetectWithPressureGetWorkspaceSize(size_t *workspaceSize, void **executor)
 {
-    typedef aclError (*AclnnStressDetectWithPressureGetWorkspaceSize)(size_t*, aclOpExecutor**);
+    typedef aclError (*AclnnStressDetectWithPressureGetWorkspaceSize)(size_t*, void**);
     static AclnnStressDetectWithPressureGetWorkspaceSize func = nullptr;
     if (func == nullptr) {
         func = (AclnnStressDetectWithPressureGetWorkspaceSize) GetOpApiFuncAddr("aclnnStressDetectWithPressureGetWorkspaceSize");
@@ -628,9 +628,9 @@ aclError AclnnStressDetectWithPressureGetWorkspaceSize(size_t *workspaceSize, ac
     return func(workspaceSize, executor);
 }
 
-aclError AclnnStressDetectWithPressure(void *workspace, size_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)
+aclError AclnnStressDetectWithPressure(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream)
 {
-    typedef aclError (*AclnnStressDetectWithPressure)(void*, size_t, aclOpExecutor*, aclrtStream);
+    typedef aclError (*AclnnStressDetectWithPressure)(void*, size_t, void*, aclrtStream);
     static AclnnStressDetectWithPressure func = nullptr;
     if (func == nullptr) {
         func = (AclnnStressDetectWithPressure) GetOpApiFuncAddr("aclnnStressDetectWithPressure");

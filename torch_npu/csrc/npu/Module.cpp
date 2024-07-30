@@ -389,7 +389,7 @@ PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* noargs)
     }
 
     uint64_t workspaceSize = 0;
-    aclOpExecutor* executor;
+    void* executor;
     ret = c10_npu::acl::AclnnStressDetectGetWorkspaceSize(&workspaceSize, &executor);
     if (ret != ACL_ERROR_NONE) {
         ASCEND_LOGE("call aclnnStressDetectGetWorkspaceSize failed. ERROR : %d", ret);
