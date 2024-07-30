@@ -569,6 +569,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 
 requirements = ['torch==2.1.0+cpu' if platform.machine() == 'x86_64' else 'torch==2.1.0']
