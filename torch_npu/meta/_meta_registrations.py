@@ -569,6 +569,16 @@ def npu_quantize_meta(self, scales, zero_points, dtype, axis=1, div_mode=True):
         return torch.empty_like(self, dtype=torch.int8)
     elif dtype == torch.qint32:
         return torch.empty_like(self, dtype=torch.int32)
+    elif dtype == torch.quint4x2:
+        dim_num = self.dim()
+        if self.size(dim_num - 1) % 8:
+            raise RuntimeError("If dtype is quint4x2, last dim must be divided by 8" +
+                               ops_error(ErrCode.NOT_SUPPORT))
+        output_shape = []
+        for dim in range(dim_num - 1):
+            output_shape.append(self.size(dim))
+        output_shape.append(self.size(dim_num - 1) // 8)
+        return self.new_empty(output_shape, dtype=torch.int32)
     return torch.empty_like(self, dtype=torch.int8)
 
 
