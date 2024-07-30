@@ -63,8 +63,9 @@ def _custom_call(self, *args, **kwargs):
     tmp = original_call(self, *args, **kwargs)
 
     if hasattr(self, "outer") and self.outer:
-        if tmp.requires_grad:
-            tmp.register_hook(output_hook)
+        if isinstance(tmp, torch.Tensor):
+            if tmp.requires_grad:
+                tmp.register_hook(output_hook)
         input_hook_flag = True
         weight_hook_flag = True
         first_forward = True
