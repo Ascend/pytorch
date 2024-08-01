@@ -174,5 +174,9 @@ aclError AclnnStressDetectWithPressureGetWorkspaceSize(size_t *workspaceSize, vo
 
 aclError AclnnStressDetectWithPressure(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream);
 
+aclError AclnnStressDetectRecoverGetWorkspaceSize(size_t *workspaceSize, void **executor);
+
+aclError AclnnStressDetectRecover(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream);
+
 } // namespace acl
 } // namespace c10_npu

@@ -639,5 +639,27 @@ aclError AclnnStressDetectWithPressure(void *workspace, size_t workspaceSize, vo
     return func(workspace, workspaceSize, executor, stream);
 }
 
+aclError AclnnStressDetectRecoverGetWorkspaceSize(size_t *workspaceSize, void **executor)
+{
+    typedef aclError (*AclnnStressDetectRecoverGetWorkspaceSize)(size_t*, void**);
+    static AclnnStressDetectRecoverGetWorkspaceSize func = nullptr;
+    if (func == nullptr) {
+        func = (AclnnStressDetectRecoverGetWorkspaceSize) GetOpApiFuncAddr("aclnnStressDetectRecoverGetWorkspaceSize");
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclnnStressDetectRecoverGetWorkspaceSize", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(workspaceSize, executor);
+}
+
+aclError AclnnStressDetectRecover(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream)
+{
+    typedef aclError (*AclnnStressDetectRecover)(void*, size_t, void*, aclrtStream);
+    static AclnnStressDetectRecover func = nullptr;
+    if (func == nullptr) {
+        func = (AclnnStressDetectRecover) GetOpApiFuncAddr("aclnnStressDetectRecover");
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclnnStressDetectRecover", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(workspace, workspaceSize, executor, stream);
+}
+
 } // namespace acl
 } // namespace c10
