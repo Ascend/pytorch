@@ -385,6 +385,8 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
            py::call_guard<py::gil_scoped_release>())
       .def("get_hccl_comm", &::c10d_npu::ProcessGroupHCCL::getHcclComm)
       .def("resume_hccl_comm", &::c10d_npu::ProcessGroupHCCL::resumeHcclComm)
+      .def("set_watchdog_status", &::c10d_npu::ProcessGroupHCCL::setWatchdogStatus)
+      .def("clear_workmeta_list", &::c10d_npu::ProcessGroupHCCL::clearWorkMetaList)
       .def("get_hccl_comm_name", &::c10d_npu::ProcessGroupHCCL::getHcclCommName)
       .def("_get_stream_id", &::c10d_npu::ProcessGroupHCCL::getStreamId,
            py::arg("p2p") = false)
