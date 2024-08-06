@@ -154,11 +154,9 @@ REGISTER_OPTION_HOOK(ALLOW_MATMUL_HF32, [](const std::string &val) {
 REGISTER_OPTION_BOOL_FUNCTION(IsAllowMatmulHF32, ALLOW_MATMUL_HF32, "disable", "enable")
 
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_OPTION, [](const std::string &val) {
-    TORCH_CHECK(val == "oom", "Set ACL option ACL_OP_DEBUG_OPTION error.", PTA_ERROR(ErrCode::PARAM));
-    std::string debug_option = "oom, -g";
-    NPU_CHECK_ERROR(at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_OPTION, debug_option.c_str()));
+    NPU_CHECK_ERROR(at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_OPTION, val.c_str()));
     NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_ENABLE_DEBUG_KERNEL, 1));
-    ASCEND_LOGD("Set ACL option ACL_OP_DEBUG_OPTION value to %s.", debug_option.c_str());
+    ASCEND_LOGD("Set ACL option ACL_OP_DEBUG_OPTION.");
 })
 
 } // namespace env
