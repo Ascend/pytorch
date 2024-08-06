@@ -1,4 +1,4 @@
-from functools import wraps
+from functools import partial, wraps
 import os
 import types
 
@@ -8,6 +8,21 @@ import torch.distributed as dist
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
+
+
+def with_comms(func=None):
+    if func is None:
+        return partial(
+            with_comms,
+        )
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        self.dist_init()
+        func(self)
+        self.destroy_comms()
+
+    return wrapper
 
 
 class TestObjectCollectives(TestCase):
@@ -67,21 +82,26 @@ class TestObjectCollectives(TestCase):
         self.rank = rank
         getattr(self, test_name)()
 
+    def destroy_comms(self):
+        # Wait for all ranks to reach here before starting shutdown.
+        dist.barrier()
+        dist.destroy_process_group()
+
     def dist_init(self):
         torch.npu.set_device(self.rank)
         dist.init_process_group(backend="hccl", rank=self.rank, world_size=self.world_size)
 
     @skipIfUnsupportMultiNPU(4)
+    @with_comms()
     def test_all_gather_object(self):
-        self.dist_init()
         gather_objects = ["foo", 12, {1: 2}, ["foo", 12, {1: 2}]]
         output = [None for _ in gather_objects]
         dist.all_gather_object(output, gather_objects[dist.get_rank()])
         self.assertEqual(output, gather_objects)
 
     @skipIfUnsupportMultiNPU(4)
+    @with_comms()
     def test_broadcast_object_list(self):
-        self.dist_init()
         expected_objects = ["foo", 12, {1: 2}, ["foo", 12, {1: 2}]]
         if dist.get_rank() == 0:
             objects = expected_objects  # any picklable object
@@ -91,8 +111,8 @@ class TestObjectCollectives(TestCase):
         self.assertEqual(objects, expected_objects)
 
     @skipIfUnsupportMultiNPU(4)
+    @with_comms()
     def test_scatter_object_list(self):
-        self.dist_init()
         input_list = list(range(dist.get_world_size())) if self.rank == 0 else None
         output_list = [None]
         dist.scatter_object_list(
