@@ -1151,6 +1151,18 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     return devHCCLCommMap_[devicesKey];
 }
 
+int64_t ProcessGroupHCCL::getStreamId(bool p2p)
+{
+    int device;
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+    std::vector<at::Device> devices = {at::Device(at_npu::key::NativeDeviceType, device)};
+    auto key = getKeyFromDevices(devices);
+    if ((!hcclStreams_.count(key)) || hcclStreams_[key].empty()) {
+        return -1;
+    }
+    return hcclStreams_[key][0].id();
+}
+
 namespace {
 
 // Check that all `tensors' have the same type and shape and are distributed

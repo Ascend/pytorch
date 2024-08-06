@@ -365,6 +365,8 @@ public:
   std::string getHcclCommName(int rankid);
 
   std::string getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+
+  int64_t getStreamId(bool p2p = false);
 protected:
 
     // Get the data vol for HCCL operators.
