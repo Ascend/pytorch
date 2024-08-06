@@ -818,6 +818,10 @@ void ProcessGroupHCCL::workCleanupLoop()
         // milliseconds as long as the atomic is True.
         workMetaListCV_.wait_for(lock, std::chrono::milliseconds(kWatchdogThreadSleepMillis),
                                  [&]() -> bool { return terminateProcessGroup_.load(); });
+        if (watchdogStatus == WatchdogStatus::STOP) {
+            workMetaList_.clear();
+            continue;
+        }
 
         for (auto it = workMetaList_.begin(); it != workMetaList_.end();
              /* no increment */) {
@@ -1311,23 +1315,28 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
 
 void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> work)
 {
+    if (uce_error_flag) {
+        uce_error_flag = false;
+        c10_npu::set_has_throw_error(true);
+        throw std::runtime_error("UCE ERROR.");
+        return;
+    }
+    if (force_stop_error_flag) {
+        force_stop_error_flag = false;
+        CHECK_AND_THROW_FORCE_STOP(ACL_ERROR_RT_DEVICE_TASK_ABORT);
+        return;
+    }
+    if (watchdogStatus == WatchdogStatus::STOP) {
+        std::lock_guard<std::mutex> lock(workMetaListMutex_);
+        workMetaList_.clear();
+        return;
+    }
     if (!terminateProcessGroup_.load()) {
         std::lock_guard<std::mutex> lock(workMetaListMutex_);
         // Avoid view tensors to be processed in cleanup thread.
         // View tensors' destruction invokes autograd_meta, which
         // needs to be destructed in user thread. Otherwise will
         // get deadlock. Here we enqueue work without outputs_.
-        if (uce_error_flag) {
-            uce_error_flag = false;
-            c10_npu::set_has_throw_error(true);
-            throw std::runtime_error("UCE ERROR.");
-            return;
-        }
-        if (force_stop_error_flag) {
-            force_stop_error_flag = false;
-            CHECK_AND_THROW_FORCE_STOP(ACL_ERROR_RT_DEVICE_TASK_ABORT);
-            return;
-        }
         workMetaList_.emplace_back(*work);
     }
 }
@@ -1369,6 +1378,18 @@ void ProcessGroupHCCL::resumeHcclComm(int device_id)
             }
         }
     }
+}
+
+
+void ProcessGroupHCCL::clearWorkMetaList()
+{
+    std::unique_lock<std::mutex> lock(workMetaListMutex_);
+    workMetaList_.clear();
+}
+
+void ProcessGroupHCCL::setWatchdogStatus(int status)
+{
+    watchdogStatus = WatchdogStatus(status);
 }
 
 std::string ProcessGroupHCCL::getHcclCommName(int rankid) {

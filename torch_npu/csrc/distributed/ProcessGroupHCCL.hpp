@@ -47,6 +47,12 @@ enum class HcclCommType {
     P2P = 1
 };
 
+enum WatchdogStatus {
+    INIT = 0,
+    RUN = 1,
+    STOP = 2
+};
+
 #define SHOULD_CLEAN_UP(a) ((a) != NoHandling && (a) != SkipCleanUp)
 
 #define SHOULD_TEAR_DOWN(a) ((a) != NoHandling && (a) != CleanUpOnly)
@@ -403,6 +409,10 @@ public:
 
     void resumeHcclComm(int device_id);
 
+    void setWatchdogStatus(int status);
+
+    void clearWorkMetaList();
+
     std::string getHcclCommName(int rankid);
 
     // Provides an API to abort the ProcessGroup (similar to hcclCommAbort)
@@ -634,5 +644,7 @@ private:
 
     void silenceCheck(at::Tensor &input, c10d::OpType opType);
     std::unordered_map<c10d::OpType, std::pair<at::Tensor, at::Tensor>> silenceCheckCache_;
+
+    WatchdogStatus watchdogStatus;
 };
 } // namespace c10d_npu

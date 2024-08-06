@@ -3,6 +3,7 @@ from typing import Any
 from functools import lru_cache
 import warnings
 import contextlib
+from enum import Enum
 
 import torch
 from torch._utils import _get_device_index as _torch_get_device_index
@@ -89,7 +90,7 @@ def mem_get_info(device=None):
     device_prop = torch_npu._C._npu_getDeviceMemories(device_id)
     return device_prop.free_memory, device_prop.total_memory
 
-
+    
 def get_device_capability(device=None):
     r"""Query the minor and major data of device. Cann does not 
     have a corresponding concept and is not supported. By default, it returns None
@@ -391,6 +392,10 @@ def current_blas_handle():
     return None
 
 
+WATCHDOG_STATUS_RUN = 1
+WATCHDOG_STATUS_STOP = 2
+
+
 def stop_device(device_id):
     torch_npu.npu._lazy_init()
     torch_npu._C._npu_stopDevice(device_id)
@@ -398,10 +403,16 @@ def stop_device(device_id):
     for pg in _pg_map:
         if (torch.device('npu') in pg._device_types):
             pg._get_backend(torch.device('npu')).resume_hccl_comm(device_id)
+            pg._get_backend(torch.device('npu')).set_watchdog_status(WATCHDOG_STATUS_STOP)
+            pg._get_backend(torch.device('npu')).clear_workmeta_list()
 
 
 def restart_device(device_id):
     torch_npu.npu._lazy_init()
+    for pg in _pg_map:
+        if (torch.device('npu') in pg._device_types):
+            pg._get_backend(torch.device('npu')).set_watchdog_status(WATCHDOG_STATUS_RUN)
+            pg._get_backend(torch.device('npu')).clear_workmeta_list()
     torch_npu._C._npu_restart_device(device_id)
     _except_handler.set_force_stop_exception(False)
 
