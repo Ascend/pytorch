@@ -224,11 +224,11 @@ class ConcurrentTasksManager:
             # 由于调度关系天然限制了读写时序，此处无需线程锁
             if ret_code == 0:
                 info.output = output
-            pw = info.pipe[1]
-            send_result_to_manager(pw, ret_code, None)
+            pipe_write = info.pipe[1]
+            send_result_to_manager(pipe_write, ret_code, None)
             # 线程模式需要线程内自行关闭写端pipe以触发exit
             info.pipe = (info.pipe[0], -1)
-            os.close(pw)
+            os.close(pipe_write)
 
         self.__add_listening(task_info)
         t = threading.Thread(target=thread_task_func, args=(task_info, user_input))
@@ -275,22 +275,22 @@ class ConcurrentTasksManager:
     def __add_listening(self, task_info):
         if self.epoll is None:
             self.epoll = select.epoll()
-        pr, pw = os.pipe()
+        pr, pipe_write = os.pipe()
         # 读管道设为非阻塞
         flags = fcntl.fcntl(pr, fcntl.F_GETFL)
         fcntl.fcntl(pr, fcntl.F_SETFL, flags | os.O_NONBLOCK)
-        task_info.pipe = (pr, pw)
+        task_info.pipe = (pr, pipe_write)
         self.epoll.register(pr, select.EPOLLIN | select.EPOLLET | select.EPOLLERR | select.EPOLLHUP)
         self.listening_infos[pr] = task_info
 
     def __remove_listening(self, task_info):
-        pr, pw = task_info.pipe
+        pr, pipe_write = task_info.pipe
         if pr != -1:
             self.listening_infos.pop(pr)
             self.epoll.unregister(pr)
             os.close(pr)
-        if pw != -1:
-            os.close(pw)
+        if pipe_write != -1:
+            os.close(pipe_write)
         task_info.pipe = (-1, -1)
 
     def __listen(self):
