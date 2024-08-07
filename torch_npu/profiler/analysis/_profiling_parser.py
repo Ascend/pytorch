@@ -26,6 +26,39 @@ class ProfilingParser:
             PathManager.remove_path_safety(self._output_path)
             PathManager.make_dir_safety(self._output_path)
 
+    @staticmethod
+    def simplify_data(profiler_path: str, simplify_flag: bool):
+        cann_path = ProfilerPathManager.get_cann_path(profiler_path)
+        device_path = ProfilerPathManager.get_device_path(cann_path)
+        host_path = ProfilerPathManager.get_host_path(cann_path)
+        rm_dirs = ['sqlite', 'summary', 'timeline'] if simplify_flag else ['sqlite']
+        for rm_dir in rm_dirs:
+            if device_path:
+                target_path = os.path.join(device_path, rm_dir)
+                PathManager.remove_path_safety(target_path)
+            if host_path:
+                target_path = os.path.join(host_path, rm_dir)
+                PathManager.remove_path_safety(target_path)
+        if simplify_flag:
+            if ProfilerConfig().export_type == Constant.Db:
+                profiler_metadata_path = os.path.join(profiler_path, Constant.PROFILER_META_DATA)
+                PathManager.remove_file_safety(profiler_metadata_path)
+            fwk_path = ProfilerPathManager.get_fwk_path(profiler_path)
+            PathManager.remove_path_safety(fwk_path)
+            if not cann_path:
+                return
+            cann_rm_dirs = ['analyze', 'mindstudio_profiler_log', 'mindstudio_profiler_output']
+            for cann_rm_dir in cann_rm_dirs:
+                target_path = os.path.join(cann_path, cann_rm_dir)
+                PathManager.remove_path_safety(target_path)
+            log_patten = r'msprof_analysis_\d+\.log$'
+            for cann_file in os.listdir(cann_path):
+                file_path = os.path.join(cann_path, cann_file)
+                if not os.path.isfile(file_path):
+                    continue
+                if re.match(log_patten, cann_file):
+                    PathManager.remove_file_safety(file_path)
+
     def update_export_type(self):
         if ProfilerConfig().export_type == Constant.Text:
             return
@@ -59,7 +92,7 @@ class ProfilingParser:
         except Exception as err:
             print_error_msg(f"Failed to parsing profiling data. {err}")
         if self._analysis_type == Constant.TENSORBOARD_TRACE_HANDLER:
-            ProfilerPathManager.simplify_data(self._profiler_path, ProfilerConfig().data_simplification)
+            self.simplify_data(self._profiler_path, ProfilerConfig().data_simplification)
         end_time = datetime.utcnow()
         print_info_msg(f"All profiling data parsed in a total time of {end_time - self._start_time}")
 

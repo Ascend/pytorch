@@ -10,7 +10,8 @@ def collect_env_vars():
         "ACLNN_CACHE_LIMIT": os.environ.get("ACLNN_CACHE_LIMIT", ""),
         "HOST_CACHE_CAPACITY": os.environ.get("HOST_CACHE_CAPACITY", ""),
         "ASCEND_ENHANCE_ENABLE": os.environ.get("ASCEND_ENHANCE_ENABLE", ""),
-        "PYTORCH_NPU_ALLOC_CONF": os.environ.get("PYTORCH_NPU_ALLOC_CONF", "")
+        "PYTORCH_NPU_ALLOC_CONF": os.environ.get("PYTORCH_NPU_ALLOC_CONF", ""),
+        "ASCEND_LAUNCH_BLOCKING": os.environ.get("ASCEND_LAUNCH_BLOCKING", ""),
     }
 
     return {"ENV_VARIABLES": collected_env_vars}
