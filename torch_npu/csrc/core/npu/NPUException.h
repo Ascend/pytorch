@@ -115,8 +115,9 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
             PTA_ERROR(ErrCode::ACL));                                        \
     }                                                                        \
 
-#define CHECK_AND_THROW_UCE_ERROR()                                  \
-    if (c10_npu::get_has_throw_error() == false && c10_npu::checkUceErrAndRepair()) { \
+#define CHECK_AND_THROW_UCE_ERROR(err_code)                                  \
+    if ((err_code) == ACL_ERROR_RT_DEVICE_MTE_ERROR &&                       \
+        c10_npu::get_has_throw_error() == false && c10_npu::checkUceErrAndRepair()) { \
         c10_npu::set_has_throw_error(true);                                  \
         TORCH_CHECK(                                                         \
             false,                                                           \
@@ -136,7 +137,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         if ((Error) != ACL_ERROR_NONE) {                                     \
             if (check_uce) {                                                 \
                 CHECK_AND_THROW_FORCE_STOP(Error);                           \
-                CHECK_AND_THROW_UCE_ERROR();                            \
+                CHECK_AND_THROW_UCE_ERROR(Error);                            \
             }                                                                \
             TORCH_CHECK(                                                     \
                 false,                                                       \
@@ -164,7 +165,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         static c10_npu::acl::AclErrorCode err_map;                           \
         if ((Error) != ACL_ERROR_NONE) {                                     \
             CHECK_AND_THROW_FORCE_STOP(Error);                               \
-            CHECK_AND_THROW_UCE_ERROR();                                \
+            CHECK_AND_THROW_UCE_ERROR(Error);                                \
             TORCH_CHECK(                                                     \
                 false,                                                       \
                 __func__,                                                    \
@@ -197,7 +198,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                     return true;                                                 \
                 }();                                                             \
             } else {                                                             \
-                CHECK_AND_THROW_UCE_ERROR();                                \
+                CHECK_AND_THROW_UCE_ERROR(Error);                                \
                 TORCH_CHECK(                                                     \
                     false,                                                       \
                     __func__,                                                    \
