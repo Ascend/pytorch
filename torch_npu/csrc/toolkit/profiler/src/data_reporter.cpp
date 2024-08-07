@@ -82,44 +82,37 @@ std::vector<uint8_t> MemoryData::encode()
     return resultTLV;
 }
 
-std::vector<uint8_t> PythonFuncCallData::encode()
+std::vector<uint8_t> PythonTracerFuncData::encode()
 {
     std::vector<uint8_t> result;
-    encodeFixedData<uint64_t>({start_ns, thread_id, process_id}, result);
-    encodeFixedData<uint8_t>({trace_tag}, result);
-    encodeStrData(static_cast<uint16_t>(PythonFuncCallDataType::NAME), func_name, result);
-
-    std::vector<uint8_t> resultTLV;
-    uint16_t dataType = static_cast<uint16_t>(PythonFuncCallDataType::PYTHON_FUNC_CALL_DATA);
-    for (size_t i = 0; i < sizeof(uint16_t); ++i) {
-        resultTLV.push_back((dataType >> (i * 8)) & 0xff);
+    for (const auto& item : events) {
+        encodeFixedData<uint64_t>({item.ts_, thread_id, process_id, item.key_}, result);
+        encodeFixedData<uint8_t>({item.tag_}, result);
     }
-    uint32_t length = result.size();
-    for (size_t i = 0; i < sizeof(uint32_t); ++i) {
-        resultTLV.push_back((length >> (i * 8)) & 0xff);
-    }
-    resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
-    return resultTLV;
+    return result;
 }
 
-std::vector<uint8_t> PythonModuleCallData::encode()
+std::vector<uint8_t> PythonTracerHashData::encode()
 {
     std::vector<uint8_t> result;
-    encodeFixedData<uint64_t>({idx, thread_id, process_id}, result);
-    encodeStrData(static_cast<uint16_t>(PythonModuleCallDataType::MODULE_UID), module_uid, result);
-    encodeStrData(static_cast<uint16_t>(PythonModuleCallDataType::MODULE_NAME), module_name, result);
+    for (const auto& item : hash_data) {
+        std::vector<uint8_t> item_data;
+        encodeFixedData<uint64_t>({item.first}, item_data);
+        encodeStrData(static_cast<uint16_t>(PythonTracerHashDataType::VALUE), item.second, item_data);
 
-    std::vector<uint8_t> resultTLV;
-    uint16_t dataType = static_cast<uint16_t>(PythonModuleCallDataType::PYTHON_MODULE_CALL_DATA);
-    for (size_t i = 0; i < sizeof(uint16_t); ++i) {
-        resultTLV.push_back((dataType >> (i * 8)) & 0xff);
+        std::vector<uint8_t> tlv_data;
+        uint16_t dataType = static_cast<uint16_t>(PythonTracerHashDataType::PYTHON_TRACER_HASH_DATA);
+        for (size_t i = 0; i < sizeof(uint16_t); ++i) {
+            tlv_data.push_back((dataType >> (i * 8)) & 0xff);
+        }
+        uint32_t length = item_data.size();
+        for (size_t i = 0; i < sizeof(uint32_t); ++i) {
+            tlv_data.push_back((length >> (i * 8)) & 0xff);
+        }
+        tlv_data.insert(tlv_data.end(), item_data.cbegin(), item_data.cend());
+        result.insert(result.end(), tlv_data.cbegin(), tlv_data.cend());
     }
-    uint32_t length = result.size();
-    for (size_t i = 0; i < sizeof(uint32_t); ++i) {
-        resultTLV.push_back((length >> (i * 8)) & 0xff);
-    }
-    resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
-    return resultTLV;
+    return result;
 }
 } // profiler
 } // toolkit

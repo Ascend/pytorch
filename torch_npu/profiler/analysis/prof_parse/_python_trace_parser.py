@@ -5,6 +5,9 @@ from ..prof_common_func._trace_event_manager import TraceEventManager
 __all__ = []
 
 
+MODULE_NAME_DELIMITER = "######"
+
+
 class TraceTag(Enum): 
     kPy_Call = 0
     kPy_Return = 1
@@ -35,7 +38,7 @@ class PyTraceEvent:
         self._return_idx = return_idx
 
     @property
-    def end_time(self, end_time):
+    def end_time(self):
         return self._end_time
 
     @end_time.setter
@@ -49,7 +52,7 @@ class PyTraceEvent:
     @return_idx.setter
     def return_idx(self, return_idx):
         self._return_idx = return_idx
-        
+
     @property
     def parent_id(self):
         return self._parent_id
@@ -57,7 +60,7 @@ class PyTraceEvent:
     @parent_id.setter
     def parent_id(self, parent_id):
         self._parent_id = parent_id
-    
+
     @property
     def self_id(self):
         return self._self_id
@@ -72,13 +75,13 @@ class PyTraceEvent:
     @property
     def name(self) -> str:
         if self._call_type == CallType.kPyModuleCall:
-            return "%s_%s" % (self._name, self._module_id)
+            return "%s %s_%s" % ("nn.Module:", self._name, self._module_id)
         return self._name
 
     @property
     def pid(self):
         return self._pid
-    
+
     @property
     def tid(self):
         return self._tid
@@ -113,14 +116,13 @@ class ReplayFrame:
 
 class PythonTraceParser:
 
-    def __init__(self, module_call_data: list, python_call_data: list):
-        self._module_call_data = module_call_data
+    def __init__(self, hash_data: list, python_call_data: list):
+        self._hash_data = hash_data
         self._python_call_data = python_call_data
-        self._module_name_map = {}
-        self._module_id_map = {}
+        self._hash_map = {}
 
     def get_python_trace_data(self) -> list:
-        self._gen_module_call_map()
+        self._gen_hash_map()
         python_trace_event_list = self._replay_stack()
         if not python_trace_event_list:
             return []
@@ -130,7 +132,7 @@ class PythonTraceParser:
         return trace_data
 
     def get_python_trace_api_data(self) -> list:
-        self._gen_module_call_map()
+        self._gen_hash_map()
         python_trace_event_list = self._replay_stack()
         if not python_trace_event_list:
             return []
@@ -140,25 +142,29 @@ class PythonTraceParser:
         return trace_api_data
 
     def _replay_stack(self) -> list:
-        id_counter = 0
         event_idx = 0
         max_call_end_time = 0
         replay_stack = []
         replay_result = []
-        for call_bean in self._python_call_data:
+        module_name_counter = {}
+        module_uid_map = {}
+        self._python_call_data.sort(key=lambda x: x.start_ns)
+        for id_counter, call_bean in enumerate(self._python_call_data):
+            name = str(self._hash_map.get(call_bean.key, call_bean.key))
             frame_parent_id = replay_stack[-1].id if len(replay_stack) > 0 else 0
             if call_bean.trace_tag == TraceTag.kPy_Call.value:
-                if event_idx in self._module_name_map:
+                if MODULE_NAME_DELIMITER in name:
+                    module_name, module_id = self.get_module_info_from_value(name, module_name_counter, module_uid_map)
                     replay_stack.append(ReplayFrame(
-                        call_bean, self._module_name_map[event_idx], event_idx, CallType.kPyModuleCall,
-                        self._module_id_map.get(event_idx, 0), id_counter, frame_parent_id))
+                        call_bean, module_name, event_idx, CallType.kPyModuleCall,
+                        module_id, id_counter, frame_parent_id))
                 else:
                     replay_stack.append(ReplayFrame(
-                        call_bean, call_bean.name, event_idx, CallType.kPyCall,
+                        call_bean, name, event_idx, CallType.kPyCall,
                         0, id_counter, frame_parent_id))
             elif call_bean.trace_tag == TraceTag.kC_Call.value:
                 replay_stack.append(ReplayFrame(
-                    call_bean, call_bean.name, event_idx, CallType.kCCall,
+                    call_bean, name, event_idx, CallType.kCCall,
                     0, id_counter, frame_parent_id))
             elif call_bean.trace_tag in (TraceTag.kPy_Return.value, TraceTag.kC_Return.value):
                 if len(replay_stack) > 0:
@@ -166,7 +172,6 @@ class PythonTraceParser:
                     replay_stack[-1].trace_event.return_idx = event_idx
                     replay_result.append(replay_stack[-1])
                     replay_stack.pop()
-            id_counter += 1
             event_idx += 1
             max_call_end_time = max(max_call_end_time, call_bean.start_ns)
 
@@ -187,16 +192,14 @@ class PythonTraceParser:
             output[i].parent_id = parent_event.self_id if parent_event is not None else 0
         return output
 
-    def _gen_module_call_map(self):
-        self._module_call_data.sort(key=lambda bean: bean.idx)
-        self._module_name_map.clear()
-        self._module_id_map.clear()
-        module_name_counter = {}
-        module_uid_map = {}
-        for call_bean in self._module_call_data:
-            self._module_name_map[call_bean.idx] = call_bean.module_name
-            if call_bean.module_uid not in module_uid_map:
-                cur_count = module_name_counter.get(call_bean.module_name, 0)
-                module_uid_map[call_bean.module_uid] = cur_count
-                module_name_counter[call_bean.module_name] = cur_count + 1
-            self._module_id_map[call_bean.idx] = module_uid_map.get(call_bean.module_uid, call_bean.module_uid)
+    def _gen_hash_map(self):
+        self._hash_map = {hash_bean.key: hash_bean.value for hash_bean in self._hash_data}
+    
+    @staticmethod
+    def get_module_info_from_value(name: str, module_name_counter: dict, module_uid_map: dict):
+        module_name, module_uid = name.split(MODULE_NAME_DELIMITER)
+        if module_uid not in module_uid_map:
+            cur_count = module_name_counter.get(module_name, 0)
+            module_uid_map[module_uid] = cur_count
+            module_name_counter[module_name] = cur_count + 1
+        return (module_name, module_uid_map.get(module_uid, module_uid))
