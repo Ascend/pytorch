@@ -21,6 +21,6 @@ class FileTag(Enum):
     TORCH_OP = 1
     OP_MARK = 2
     MEMORY = 3
-    PYTHON_FUNC_CALL = 4
-    PYTHON_MODULE_CALL = 5
     GC_RECORD = 6
+    PYTHON_TRACER_FUNC = 7
+    PYTHON_TRACER_HASH = 8

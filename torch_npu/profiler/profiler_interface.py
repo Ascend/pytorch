@@ -106,7 +106,7 @@ class ProfInterface:
         self._dump_profiler_info()
         self._dump_metadata()
         ProfPathCreator().is_prof_inited = False
-    
+
     def delete_prof_dir(self):
         ProfPathCreator().delete_prof_dir()
 
@@ -116,13 +116,16 @@ class ProfInterface:
         except Exception:
             print_warn_msg("Profiling data parsing failed.")
 
+    def check_gc_detect_enable(self):
+        return ProfilerActivity.CPU in self.activities and self.experimental_config.with_gc
+
     def start_gc_detect(self):
-        if self.experimental_config.with_gc:
+        if self.check_gc_detect_enable():
             self.gc_detector = ProfGCDetector(self.experimental_config.gc_detect_threshold)
             self.gc_detector.start()
     
     def stop_gc_detect(self):
-        if self.experimental_config.with_gc and self.gc_detector is not None:
+        if self.check_gc_detect_enable() and self.gc_detector is not None:
             self.gc_detector.stop()
             self.gc_detector = None
 
@@ -161,6 +164,9 @@ class ProfInterface:
             if not CannPackageManager.cann_package_support_export_db():
                 raise RuntimeError("Current cann package does not support export db. "
                                    "If you want to export db, you can install supported CANN package version.")
+
+        if ProfilerActivity.CPU not in self.activities and self.experimental_config.with_gc:
+            print_warn_msg("GC detect will not take effect while ProfilerActivity.CPU is not set.")
 
     def _dump_profiler_info(self):
         def _trans_obj2cfg(obj):

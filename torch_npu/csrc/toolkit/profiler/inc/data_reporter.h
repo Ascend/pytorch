@@ -1,10 +1,14 @@
 #ifndef TORCH_NPU_TOOLKIT_PROFILER_DATA_REPORTER_INC
 #define TORCH_NPU_TOOLKIT_PROFILER_DATA_REPORTER_INC
+
+#include "torch_npu/csrc/profiler/containers.h"
+#include "torch_npu/csrc/profiler/profiler_python.h"
+
 #include <stdint.h>
 #include <vector>
 #include <unordered_map>
 #include <string>
-#include <iostream>
+#include <utility>
 
 #include <ATen/core/ivalue.h>
 #include <ATen/record_function.h>
@@ -215,54 +219,30 @@ struct MemoryData : BaseReportData {
     std::vector<uint8_t> encode();
 };
 
-enum class PythonFuncCallDataType {
-    PYTHON_FUNC_CALL_DATA = 1,
-    NAME = 2
-};
-
-struct PythonFuncCallData : BaseReportData {
-    uint64_t start_ns{0};
+struct PythonTracerFuncData : BaseReportData {
     uint64_t thread_id{0};
     uint64_t process_id{0};
-    uint8_t trace_tag{0};
-    std::string func_name;
-    PythonFuncCallData(uint64_t start_ns,
-        uint64_t thread_id,
+    torch_npu::profiler::AppendOnlyList<torch_npu::profiler::python_tracer::TraceEvent> events;
+    PythonTracerFuncData(uint64_t thread_id,
         uint64_t process_id,
-        uint8_t trace_tag,
-        std::string func_name)
-        : BaseReportData(0, "torch.python_func_call"),
-          start_ns(start_ns),
+        torch_npu::profiler::AppendOnlyList<torch_npu::profiler::python_tracer::TraceEvent>&& events)
+        : BaseReportData(0, "torch.python_tracer_func"),
           thread_id(thread_id),
           process_id(process_id),
-          trace_tag(trace_tag),
-          func_name(std::move(func_name)) {}
+          events(std::move(events)) {}
     std::vector<uint8_t> encode();
 };
 
-enum class PythonModuleCallDataType {
-    PYTHON_MODULE_CALL_DATA = 1,
-    MODULE_UID = 2,
-    MODULE_NAME = 3
+enum class PythonTracerHashDataType {
+    PYTHON_TRACER_HASH_DATA = 1,
+    VALUE = 2
 };
 
-struct PythonModuleCallData : BaseReportData {
-    uint64_t idx{0};
-    uint64_t thread_id{0};
-    uint64_t process_id{0};
-    std::string module_uid;
-    std::string module_name;
-    PythonModuleCallData(uint64_t idx,
-        uint64_t thread_id,
-        uint64_t process_id,
-        std::string module_uid,
-        std::string module_name)
-        : BaseReportData(0, "torch.python_module_call"),
-          idx(idx),
-          thread_id(thread_id),
-          process_id(process_id),
-          module_uid(std::move(module_uid)),
-          module_name(std::move(module_name)) {}
+struct PythonTracerHashData : BaseReportData {
+    std::vector<std::pair<uint64_t, std::string>> hash_data;
+    PythonTracerHashData(std::vector<std::pair<uint64_t, std::string>> hash_data)
+        : BaseReportData(0, "torch.python_tracer_hash"),
+          hash_data(std::move(hash_data)) {}
     std::vector<uint8_t> encode();
 };
 } // profiler

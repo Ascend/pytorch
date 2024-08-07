@@ -59,8 +59,7 @@ class Constant(object):
     MODULE_HIERARCHY = "Module Hierarchy"
     FLOPS = "flops"
     NAME = "name"
-    MODULE_UID = "module_uid"
-    MODULE_NAME = "module_name"
+    VALUE = "value"
 
     # trace constant
     PROCESS_NAME = "process_name"
