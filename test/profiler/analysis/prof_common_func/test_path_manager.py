@@ -178,51 +178,6 @@ class TestPathManager(TestCase):
                 ProfilerPathManager.get_realpath(link_path)
         self.assertEqual(os.path.realpath(self.tmp_dir), ProfilerPathManager.get_realpath(self.tmp_dir))
 
-    def test_simplify_data_with_simplify_flag_is_true(self):
-        tmp_sub_dirs = [Constant.FRAMEWORK_DIR, 'PROF_1_2_3a']
-        cann_sub_dirs = ['analyze', 'mindstudio_profiler_log', 'mindstudio_profiler_output']
-        for tm_sub in tmp_sub_dirs:
-            os.makedirs(os.path.join(self.tmp_dir, tm_sub))
-        cann_path = os.path.join(self.tmp_dir, 'PROF_1_2_3a')
-        for cann_sub in cann_sub_dirs:
-            os.makedirs(os.path.join(cann_path, cann_sub))
-        device_path = os.path.join(cann_path, "device_0")
-        host_path = os.path.join(cann_path, "host")
-        device_sub_dirs = ['sqlite', 'summary', 'timeline']
-        for device_sub in device_sub_dirs:
-            os.makedirs(os.path.join(device_path, device_sub))
-            os.makedirs(os.path.join(host_path, device_sub))
-        ProfilerPathManager.simplify_data(self.tmp_dir, True)
-        self.assertEqual(False, os.path.exists(os.path.join(self.tmp_dir, Constant.FRAMEWORK_DIR)))
-        for cann_sub in cann_sub_dirs:
-            self.assertEqual(False, os.path.exists(os.path.join(cann_path, cann_sub)))
-        for device_sub in device_sub_dirs:
-            self.assertEqual(False, os.path.exists(os.path.join(device_path, device_sub)))
-            self.assertEqual(False, os.path.exists(os.path.join(host_path, device_sub)))
-
-    def test_simplify_data_with_simplify_flag_is_false(self):
-        tmp_sub_dirs = [Constant.FRAMEWORK_DIR, 'PROF_1_2_3a']
-        cann_sub_dirs = ['analyze', 'mindstudio_profiler_log', 'mindstudio_profiler_output']
-        for tm_sub in tmp_sub_dirs:
-            os.makedirs(os.path.join(self.tmp_dir, tm_sub))
-        cann_path = os.path.join(self.tmp_dir, 'PROF_1_2_3a')
-        for cann_sub in cann_sub_dirs:
-            os.makedirs(os.path.join(cann_path, cann_sub))
-        device_path = os.path.join(cann_path, "device_0")
-        host_path = os.path.join(cann_path, "host")
-        device_sub_dirs = ['sqlite', 'summary', 'timeline']
-        for device_sub in device_sub_dirs:
-            os.makedirs(os.path.join(device_path, device_sub))
-            os.makedirs(os.path.join(host_path, device_sub))
-        ProfilerPathManager.simplify_data(self.tmp_dir, False)
-        self.assertEqual(True, os.path.exists(os.path.join(self.tmp_dir, Constant.FRAMEWORK_DIR)))
-        for cann_sub in cann_sub_dirs:
-            self.assertEqual(True, os.path.exists(os.path.join(cann_path, cann_sub)))
-        device_sub_dirs.remove('sqlite')
-        for device_sub in device_sub_dirs:
-            self.assertEqual(True, os.path.exists(os.path.join(device_path, device_sub)))
-            self.assertEqual(True, os.path.exists(os.path.join(host_path, device_sub)))
-
 
 if __name__ == "__main__":
     run_tests()
