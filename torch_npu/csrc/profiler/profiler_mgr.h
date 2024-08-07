@@ -33,8 +33,9 @@ public:
     void Stop();
     void Finalize();
     void Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
-    void UploadTraceData(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
     void UploadWithLock(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
+    void UploadTraceEventData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerFuncData> data);
+    void UploadTraceHashData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerHashData> data);
     std::atomic<bool>& GetNpuTrace()
     {
         return npu_trace_;
@@ -77,7 +78,7 @@ private:
     std::string path_;
     aclprofConfig *profConfig_;
     torch_npu::toolkit::profiler::DataDumper dataReceiver_;
-    torch_npu::toolkit::profiler::DataDumper traceDataReceiver_;
+    torch_npu::toolkit::profiler::TraceDataDumper traceDataReceiver_;
     std::mutex reportDataMutex_;
     torch_npu::toolkit::profiler::DataDumper dataReceiverWithLock_;
 };
