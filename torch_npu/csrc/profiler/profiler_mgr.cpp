@@ -27,8 +27,8 @@ std::map<std::string, uint64_t> ProfilerMgr::trace_level_map_ = {
     {"Level_none", Level_none},
 };
 
-constexpr uint32_t capacity_ = 262144;          // 2^18, Experience value for default ringbuffer size
-constexpr uint32_t trace_capacity_ = 1048576;   // 2^20, Experience value for python trace data ringbuffer size
+constexpr uint32_t capacity_ = 262144;          // 2^18, Experience value for default ringbuffer size for single data
+constexpr uint32_t trace_capacity_ = 128;       // 2^7, Experience value for python trace data ringbuffer size for batch data
 
 ProfilerMgr::ProfilerMgr()
     : report_enable_(false),
@@ -176,9 +176,14 @@ void ProfilerMgr::UploadWithLock(std::unique_ptr<torch_npu::toolkit::profiler::B
     dataReceiverWithLock_.Report(std::move(data));
 }
 
-void ProfilerMgr::UploadTraceData(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data)
+void ProfilerMgr::UploadTraceEventData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerFuncData> data)
 {
     traceDataReceiver_.Report(std::move(data));
+}
+
+void ProfilerMgr::UploadTraceHashData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerHashData> data)
+{
+    traceDataReceiver_.ReportHash(std::move(data));
 }
 
 uint64_t ProfilerMgr::CheckFeatureConfig(uint64_t datatype_config)

@@ -1,6 +1,9 @@
+#include "torch_npu/csrc/profiler/containers.h"
 #include "torch_npu/csrc/profiler/profiler_python.h"
 
 #include <memory>
+#include <unordered_map>
+#include <utility>
 
 #include <Python.h>
 #include <frameobject.h>
@@ -10,6 +13,8 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 
+#include <c10/util/hash.h>
+#include <ATen/record_function.h>
 #include <torch/csrc/utils/python_compat.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/utils/pybind.h>
@@ -17,6 +22,11 @@
 namespace torch_npu {
 namespace profiler {
 namespace python_tracer {
+
+const std::string EXIT_EVENT_DESC = "__torch_npu_profiler_python_tracer_exit";  // Special hash value for exit event
+const size_t EXIT_EVENT_HASH_ID = c10::get_hash(EXIT_EVENT_DESC);               // Special hash key for exit event
+const std::string MODULE_NAME_DELIMITER = "######";
+constexpr size_t TRACE_DUMP_THRESHOLD = 1024 * DEFAULT_BLOCK_SIZE;
 
 std::string trimPrefix(std::string s)
 {
@@ -78,80 +88,50 @@ static PyTypeObject TraceContextType = {
     nullptr                     /* tp_free */
 };
 
-enum class TraceTag {
-    kPy_Call = 0,
-    kPy_Return,
-    kC_Call,
-    kC_Return
+struct PyCallInfo {
+    PyCallInfo() = default;
+    explicit PyCallInfo(PyFrameObject* frame) : line_no_(PyFrame_GetLineNumber(frame))
+    {
+        auto f_code = PyFrame_GetCode(frame);
+        file_name_ = THPUtils_unpackStringView(f_code->co_filename).data();
+        func_name_ = THPUtils_unpackStringView(f_code->co_name).data();
+    }
+
+    size_t get_hash_id()
+    {
+        return c10::get_hash(line_no_, file_name_, func_name_);
+    }
+
+    std::string get_name()
+    {
+        std::stringstream name_stream;
+        name_stream << file_name_ << "(" << line_no_ << "): " << func_name_;
+        return name_stream.str();
+    }
+
+    int line_no_{0};
+    const char* file_name_{nullptr};
+    const char* func_name_{nullptr};
 };
 
-struct RawEvent {
-    RawEvent(TraceTag tag, PyFrameObject* frame)
-        : tag_(tag),
-          frame_(frame),
-          t_(torch_npu::toolkit::profiler::Utils::GetClockTime()),
-          misc_() {}
-
-    RawEvent(TraceTag tag, PyFrameObject* frame, PyObject* arg)
-        : RawEvent(tag, frame)
+struct ModuleInfo {
+    ModuleInfo() = default;
+    explicit ModuleInfo(PyObject* module_class) : moudle_id_(reinterpret_cast<uintptr_t>(module_class))
     {
-        TORCH_INTERNAL_ASSERT_DEBUG_ONLY(tag == TraceTag::kC_Call);
-        misc_.arg_ = arg;
+        auto py_class_name = py::handle(module_class).attr("__class__").attr("__name__");
+        module_name_ = at::StringView(py::str(py_class_name));
     }
 
-    TraceTag tag_{};
-    PyFrameObject* frame_{nullptr};
-    uint64_t t_{0};
-    union {
-        PyObject* arg_;  // kC_Call
-        void* null_; // Unused (placeholder), kPy_Call, kPy_Return, kC_Return
-    } misc_{};
-
-    uint8_t tag() const
+    std::string get_name()
     {
-        return static_cast<uint8_t>(tag_);
+        std::stringstream name_stream;
+        name_stream << module_name_ << MODULE_NAME_DELIMITER << moudle_id_;
+        return name_stream.str();
     }
 
-    std::string get_func_name() const
-    {
-        if (tag_ == TraceTag::kC_Call) {
-            return py::repr(misc_.arg_);
-        } else if (tag_ == TraceTag::kPy_Call) {
-            auto f_code = PyFrame_GetCode(frame_);
-            auto line_no = PyFrame_GetLineNumber(frame_);
-            auto file_name = trimPrefix(THPUtils_unpackString(f_code->co_filename));
-            auto func_name = THPUtils_unpackString(f_code->co_name);
-            std::stringstream name_stream;
-            name_stream << file_name << "(" << line_no << "): " << func_name;
-            return name_stream.str();
-        }
-        return "";
-    }
+    uintptr_t moudle_id_{0};
+    at::StringView module_name_;
 };
-
-void reportPythonFuncCallDataToNpuProfiler(const RawEvent& event)
-{
-    ProfilerMgr::GetInstance()->UploadTraceData(std::make_unique<torch_npu::toolkit::profiler::PythonFuncCallData>(
-        event.t_,
-        torch_npu::toolkit::profiler::Utils::GetTid(),
-        torch_npu::toolkit::profiler::Utils::GetPid(),
-        event.tag(),
-        event.get_func_name()
-    ));
-}
-
-void reportPythonModuleCallDataToNpuProfiler(PyObject* mod_class, uint64_t idx)
-{
-    auto py_class_name = py::handle(mod_class).attr("__class__").attr("__name__");
-    std::string module_name = "nn.Module: " + std::string(py::str(py_class_name));
-    ProfilerMgr::GetInstance()->UploadTraceData(std::make_unique<torch_npu::toolkit::profiler::PythonModuleCallData>(
-        idx,
-        torch_npu::toolkit::profiler::Utils::GetTid(),
-        torch_npu::toolkit::profiler::Utils::GetPid(),
-        std::to_string(reinterpret_cast<uintptr_t>(mod_class)),
-        module_name
-    ));
-}
 
 constexpr size_t max_py_threads = std::numeric_limits<uint8_t>::max() + 1;
 
@@ -174,12 +154,17 @@ private:
     void recordPyCall(TraceContext* ctx, PyFrameObject* frame);
     void recordCCall(TraceContext* ctx, PyFrameObject* frame, PyObject* arg);
     void recordReturn(TraceContext* ctx, PyFrameObject* frame, TraceTag tag);
-    void trackModule(PyFrameObject* frame);
+    void recordEvent(TraceTag tag, size_t hash_key);
+    void reportTraceData();
+    void reportHashData();
 
     bool active_{false};
-    int64_t event_count_{0};
     PyObject* module_call_code_{nullptr};
     std::vector<TraceContext*> trace_contexts_;
+    std::unordered_map<size_t, PyCallInfo> py_call_cache_;
+    std::unordered_map<size_t, at::StringView> pyc_call_cache_;
+    std::unordered_map<size_t, ModuleInfo> module_info_cache_;
+    AppendOnlyList<TraceEvent> events_;
 };
 
 PythonTracer& PythonTracer::singleton()
@@ -200,8 +185,8 @@ PythonTracer::PythonTracer() : active_(false)
 
 void PythonTracer::start(size_t max_threads)
 {
-    TORCH_CHECK(!active_, "PythonTracer is already active", PROF_ERROR(ErrCode::PARAM))
-    TORCH_CHECK(!trace_contexts_.size(), "PythonTracer should not have active contexts", PROF_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(!active_, "PythonTracer is already active", PROF_ERROR(ErrCode::INTERNAL));
+    TORCH_CHECK(!trace_contexts_.size(), "PythonTracer should not have active contexts", PROF_ERROR(ErrCode::INTERNAL));
     TORCH_CHECK(max_threads > 0, "max_threads must be positive, got ", max_threads, PROF_ERROR(ErrCode::VALUE));
     TORCH_CHECK(max_threads <= max_py_threads, "max_threads must be less equal to ", max_py_threads, PROF_ERROR(ErrCode::VALUE));
 
@@ -259,49 +244,103 @@ void PythonTracer::stop()
     }
     PyThreadState_Swap(initial_thread_state);
     active_ = false;
+    reportTraceData();
+    reportHashData();
 }
 
 void PythonTracer::clear()
 {
     TORCH_CHECK(!active_, "Cannot clear state while PythonTracer is active.", PROF_ERROR(ErrCode::INTERNAL));
-    event_count_ = 0;
     for (auto i : trace_contexts_) {
         Py_DECREF((PyObject*) i);
     }
     trace_contexts_.clear();
+    py_call_cache_.clear();
+    pyc_call_cache_.clear();
+    module_info_cache_.clear();
+    events_.clear();
+}
+
+void PythonTracer::reportTraceData()
+{
+    if (events_.size() > 0) {
+        ProfilerMgr::GetInstance()->UploadTraceEventData(
+            std::make_unique<torch_npu::toolkit::profiler::PythonTracerFuncData>(
+                torch_npu::toolkit::profiler::Utils::GetTid(),
+                torch_npu::toolkit::profiler::Utils::GetPid(),
+                std::move(events_)
+            )
+        );
+        events_.clear();
+    }
+}
+
+void PythonTracer::reportHashData()
+{
+    std::vector<std::pair<uint64_t, std::string>> hash_data;
+    hash_data.resize(py_call_cache_.size() + pyc_call_cache_.size() + module_info_cache_.size() + 1);
+    size_t idx = 0;
+    for (auto& item : py_call_cache_) {
+        hash_data[idx++] = std::make_pair(item.first, trimPrefix(item.second.get_name()));
+    }
+    for (auto& item : pyc_call_cache_) {
+        hash_data[idx++] = std::make_pair(item.first, std::string(item.second.str()));
+    }
+    for (auto& item : module_info_cache_) {
+        hash_data[idx++] = std::make_pair(item.first, item.second.get_name());
+    }
+    hash_data[idx] = std::make_pair(EXIT_EVENT_HASH_ID, EXIT_EVENT_DESC);
+
+    ProfilerMgr::GetInstance()->UploadTraceHashData(
+        std::make_unique<torch_npu::toolkit::profiler::PythonTracerHashData>(
+            hash_data
+        )
+    );
+}
+
+void PythonTracer::recordEvent(TraceTag tag, size_t hash_key)
+{
+    events_.emplace_back(torch_npu::toolkit::profiler::Utils::GetClockTime(), hash_key, tag);
+    if (events_.size() >= TRACE_DUMP_THRESHOLD) {
+        reportTraceData();
+    }
 }
 
 void PythonTracer::recordPyCall(TraceContext* ctx, PyFrameObject* frame)
 {
-    ++event_count_;
-    trackModule(frame);
-    auto event = RawEvent(TraceTag::kPy_Call, frame);
-    reportPythonFuncCallDataToNpuProfiler(event);
+    auto call_info = PyCallInfo(frame);
+    auto hash_id = call_info.get_hash_id();
+    if (py_call_cache_.find(hash_id) == py_call_cache_.end()) {
+        py_call_cache_.insert({hash_id, call_info});
+    }
+
+    // check nn.Module call
+    auto f_code = (PyObject*)PyFrame_GetCode(frame);
+    if (f_code == module_call_code_) {
+        auto f_locals = PyFrame_GetLocals(frame);
+        auto module_class = PyDict_GetItemString(f_locals, "self");
+        hash_id = c10::get_hash(module_class);
+        if (module_info_cache_.find(hash_id) == module_info_cache_.end()) {
+            module_info_cache_.insert({hash_id, ModuleInfo(module_class)});
+        }
+    }
+    recordEvent(TraceTag::kPy_Call, hash_id);
 }
 
 void PythonTracer::recordCCall(TraceContext* ctx, PyFrameObject* frame, PyObject* arg)
 {
-    ++event_count_;
-    auto event = RawEvent(TraceTag::kC_Call, frame, arg);
-    reportPythonFuncCallDataToNpuProfiler(event);
+    std::string call_info = py::repr(arg);
+    auto hash_id = c10::get_hash(call_info);
+    if (pyc_call_cache_.find(hash_id) == pyc_call_cache_.end()) {
+        pyc_call_cache_.insert({hash_id, at::StringView(std::move(call_info))});
+    }
+    recordEvent(TraceTag::kC_Call, hash_id);
 }
 
 void PythonTracer::recordReturn(TraceContext* ctx, PyFrameObject* frame, TraceTag tag)
 {
-    ++event_count_;
-    auto event = RawEvent(tag, frame);
-    reportPythonFuncCallDataToNpuProfiler(event);
+    recordEvent(tag, EXIT_EVENT_HASH_ID);
 }
-
-void PythonTracer::trackModule(PyFrameObject* frame)
-{
-    auto f_code = (PyObject*)PyFrame_GetCode(frame);
-    if (f_code == module_call_code_) {
-        auto f_locals = PyFrame_GetLocals(frame);
-        auto self = PyDict_GetItemString(f_locals, "self");
-        reportPythonModuleCallDataToNpuProfiler(self, event_count_ - 1);
-    }
-};
 
 int PythonTracer::pyProfileFn(
     PyObject* obj,
