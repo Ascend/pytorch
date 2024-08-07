@@ -174,9 +174,9 @@ class FwkFileParser:
         return fwk_x_event_list
 
     def get_python_trace_data(self) -> list:
-        module_call_data = self.get_file_data_by_tag(FileTag.PYTHON_MODULE_CALL)
-        python_call_data = self.get_file_data_by_tag(FileTag.PYTHON_FUNC_CALL)
-        python_trace_parser = PythonTraceParser(module_call_data, python_call_data)
+        trace_hash_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_HASH)
+        func_call_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_FUNC)
+        python_trace_parser = PythonTraceParser(trace_hash_data, func_call_data)
         return python_trace_parser.get_python_trace_data()
 
     @classmethod
@@ -258,9 +258,9 @@ class FwkFileParser:
         start_connection_id = max(connection_ids) + 1 if connection_ids else 0
         self.update_fwd_bwd_connection_id(fwd_bwd_dict, torch_op_apis, start_connection_id)
 
-        module_call_data = self.get_file_data_by_tag(FileTag.PYTHON_MODULE_CALL)
-        python_call_data = self.get_file_data_by_tag(FileTag.PYTHON_FUNC_CALL)
-        python_trace_parser = PythonTraceParser(module_call_data, python_call_data)
+        trace_hash_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_HASH)
+        func_call_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_FUNC)
+        python_trace_parser = PythonTraceParser(trace_hash_data, func_call_data)
         python_trace_apis = python_trace_parser.get_python_trace_api_data()
         return {"torch_op": torch_op_apis, "task_queue": task_queues, "python_trace": python_trace_apis, "mstx_op": mstx_mark_apis}
 
