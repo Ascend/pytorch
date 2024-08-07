@@ -259,8 +259,9 @@ NPUStatus Repository::MakeSureQueueEmpty() {
         }
 #endif
         read_idx.idx = write_idx.idx;
-        if (checkUceErrAndRepair()) {
+        if (call_ret == ACL_ERROR_RT_DEVICE_MTE_ERROR && checkUceErrAndRepair()) {
             set_has_throw_error(true);
+            call_ret = 0;
             throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
         }
 
@@ -325,6 +326,7 @@ bool Repository::ReadQueue()
 #endif
     if (ret != 0) {
         repo_error = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
+        call_ret = ret;
         ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
                     std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
         while (!IsEmptyQueue()) { // ignore other tasks
@@ -371,8 +373,9 @@ void Repository::Enqueue(void* cur_paras) {
     SetStatus(CAN_EXIT);
     read_idx.idx = write_idx.idx;
 
-    if (checkUceErrAndRepair()) {
+    if (call_ret == ACL_ERROR_RT_DEVICE_MTE_ERROR && checkUceErrAndRepair()) {
         set_has_throw_error(true);
+        call_ret = 0;
         throw std::runtime_error("UCE ERROR" + PTA_ERROR(ErrCode::ACL));
     }
 

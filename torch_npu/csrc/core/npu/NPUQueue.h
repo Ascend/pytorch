@@ -115,6 +115,7 @@ private:
   c10::DeviceIndex device_idx;
 
 private:
+  int call_ret;
   sring_idx read_idx;
   sring_idx write_idx;
   std::atomic<RepoStatus> repo_status;
