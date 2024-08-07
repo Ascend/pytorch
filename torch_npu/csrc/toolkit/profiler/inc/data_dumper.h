@@ -40,6 +40,33 @@ private:
   RingBuffer<std::unique_ptr<BaseReportData>> data_chunk_buf_;
   std::map<std::string, FILE*> fd_map_;
 };
+
+class TraceDataDumper : public Thread {
+public:
+    explicit TraceDataDumper();
+    virtual ~TraceDataDumper();
+    void Init(const std::string &path, size_t capacity);
+    void UnInit();
+    void Report(std::unique_ptr<PythonTracerFuncData> data);
+    void ReportHash(std::unique_ptr<PythonTracerHashData> data);
+    void Start();
+    void Stop();
+
+private:
+    void CreateDumpDir();
+    void FlushTraceData();
+    void FlushHashData();
+    void Dump(const std::string& file_name, const std::vector<uint8_t>& encode_data);
+    void Run();
+
+private:
+    std::string path_;
+    std::atomic<bool> start_;
+    std::atomic<bool> init_;
+    std::unique_ptr<PythonTracerHashData> trace_hash_data_{nullptr};
+    RingBuffer<std::unique_ptr<PythonTracerFuncData>> trace_data_buf_;
+    std::map<std::string, FILE*> fd_map_;
+};
 } // profiler
 } // toolkit
 } // torch_npu
