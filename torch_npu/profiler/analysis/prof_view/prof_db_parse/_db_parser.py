@@ -35,6 +35,7 @@ class DbParser(BaseParser):
             self.save_rank_info_to_db()
             self.save_host_info_to_db()
             self.save_env_vars_info_to_db()
+            self.save_profiler_metadata_to_db()
             DbManager.destroy_db_connect(self._conn, self._cur)
         except RuntimeError:
             print_error_msg("Failed to generate ascend_pytorch_profiler db file.")
@@ -79,3 +80,18 @@ class DbParser(BaseParser):
         env_vars_dict = collect_env_vars()
         DbManager.insert_data_into_table(self._conn, DbConstant.META_DATA_INFO,
                                          [['ENV_VARIABLES', json.dumps(env_vars_dict.get('ENV_VARIABLES'))]])
+
+    def save_profiler_metadata_to_db(self):
+        profiler_metadata_path = os.path.join(self._profiler_path, Constant.PROFILER_META_DATA)
+        if not os.path.exists(profiler_metadata_path):
+            return
+        profiler_metadata = FileManager.file_read_all(profiler_metadata_path)
+        try:
+            profiler_metadata = json.loads(profiler_metadata)
+        except json.JSONDecodeError as e:
+            print_warn_msg(f"profiler_metadata.json parse failed. {e}")
+            return
+        data = [
+            [str(key), json.dumps(value)] for key, value in profiler_metadata.items()
+        ]
+        DbManager.insert_data_into_table(self._conn, DbConstant.META_DATA_INFO, data)
