@@ -255,6 +255,7 @@ class DbConstant():
     DB_ANALYSIS = "analysis.db"
 
     TABLE_STRING_IDS = "STRING_IDS"
+    TABLE_ENUM_API_TYPE = "ENUM_API_TYPE"
 
     TABLE_MSTX_EVENTS = "MSTX_EVENTS"
     # python gc record table name
@@ -328,6 +329,10 @@ class TableColumnsManager():
             ("rankId", Constant.SQL_INTEGER_TYPE),
             ("deviceId", Constant.SQL_INTEGER_TYPE)
         ],
+        DbConstant.TABLE_ENUM_API_TYPE : [
+            ("id", Constant.SQL_INTEGER_TYPE),
+            ("name", Constant.SQL_INTEGER_TYPE)
+        ],
         DbConstant.TABLE_PYTORCH_API : [
             ("startNs", Constant.SQL_TEXT_TYPE),
             ("endNs", Constant.SQL_TEXT_TYPE),
@@ -338,7 +343,8 @@ class TableColumnsManager():
             ("fwdThreadId", Constant.SQL_INTEGER_TYPE),
             ("inputDtypes", Constant.SQL_INTEGER_TYPE),
             ("inputShapes", Constant.SQL_INTEGER_TYPE),
-            ("callchainId", Constant.SQL_INTEGER_TYPE)
+            ("callchainId", Constant.SQL_INTEGER_TYPE),
+            ("type", Constant.SQL_INTEGER_TYPE)
         ],
         DbConstant.TABLE_MEMORY_RECORD : [
             ("component", Constant.SQL_INTEGER_TYPE),

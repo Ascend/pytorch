@@ -10,6 +10,13 @@ from ...prof_parse._fwk_file_parser import FwkFileParser
 __all__ = []
 
 
+class ApiType(Enum):
+    TORCH_OP = 50001
+    TASK_QUEUE = 50002
+    PYTHON_TRACE = 50003
+    MSTX_OP = 50004
+
+
 class TorchOpDataOri(Enum):
     START_NS = 0
     END_NS = 1
@@ -80,7 +87,7 @@ class FwkApiDbParser(BaseParser):
                                    queue[TaskQueueDataOri.GLOBAL_TID.value],
                                    ConnectionIdManager().get_id_from_connection_ids([queue[TaskQueueDataOri.CORRELATION_ID.value] + self._max_cann_connection_id]),
                                    Str2IdManager().get_id_from_str(queue[TaskQueueDataOri.NAME.value]),
-                                   None, None, None, None, None])
+                                   None, None, None, None, None, ApiType.TASK_QUEUE.value])
         python_trace_apis = fwk_api_data.get("python_trace", [])
         for python_trace_api in python_trace_apis:
             self._fwk_apis.append([python_trace_api[PythonTraceApiDataOri.START_NS.value],
@@ -88,7 +95,7 @@ class FwkApiDbParser(BaseParser):
                                    python_trace_api[PythonTraceApiDataOri.GLOBAL_TID.value],
                                    None,
                                    Str2IdManager().get_id_from_str(python_trace_api[PythonTraceApiDataOri.NAME.value]),
-                                   None, None, None, None, None])
+                                   None, None, None, None, None, ApiType.PYTHON_TRACE.value])
         torch_op_apis = fwk_api_data.get("torch_op", [])
         if not torch_op_apis:
             return
@@ -109,7 +116,8 @@ class FwkApiDbParser(BaseParser):
                                    torch_op_api[TorchOpDataOri.FWD_THREAD_ID.value],
                                    None if not torch_op_api[TorchOpDataOri.INPUT_DIMS.value] else Str2IdManager().get_id_from_str(torch_op_api[TorchOpDataOri.INPUT_DIMS.value]),
                                    None if not torch_op_api[TorchOpDataOri.INPUT_SHAPES.value] else Str2IdManager().get_id_from_str(torch_op_api[TorchOpDataOri.INPUT_SHAPES.value]),
-                                   None if not torch_op_api[TorchOpDataOri.CALL_STACK.value] else CallChainIdManager().get_callchain_id_from_callstack(torch_op_api[TorchOpDataOri.CALL_STACK.value])])
+                                   None if not torch_op_api[TorchOpDataOri.CALL_STACK.value] else CallChainIdManager().get_callchain_id_from_callstack(torch_op_api[TorchOpDataOri.CALL_STACK.value]),
+                                   ApiType.TORCH_OP.value])
         mstx_mark_apis = fwk_api_data.get("mstx_op", [])
         if not mstx_mark_apis:
             return
@@ -118,7 +126,7 @@ class FwkApiDbParser(BaseParser):
             self._fwk_apis.append([mstx_mark_api[TorchOpDataOri.START_NS.value], mstx_mark_api[TorchOpDataOri.END_NS.value], mstx_mark_api[TorchOpDataOri.GLOBAL_TID.value],
                                    None if not mstx_mark_api[TorchOpDataOri.CONNECTION_ID.value] else ConnectionIdManager().get_id_from_connection_ids(mstx_mark_api[TorchOpDataOri.CONNECTION_ID.value]),
                                    Str2IdManager().get_id_from_str(mstx_mark_api[TorchOpDataOri.NAME.value]),
-                                   None, mstx_mark_api[TorchOpDataOri.FWD_THREAD_ID.value], None, None, None])
+                                   None, mstx_mark_api[TorchOpDataOri.FWD_THREAD_ID.value], None, None, None, ApiType.MSTX_OP.value])
 
     def get_mstx_mark_op_connection_ids_with_cann_api(self, task_queues: list, mstx_mark_apis: list):
         sql = "select startNs, endNs, globalTid, connectionId from {} order by startNs".format(DbConstant.TABLE_MSTX_EVENTS)
@@ -249,9 +257,21 @@ class FwkApiDbParser(BaseParser):
         DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_PYTORCH_CALLCHAINS, TableColumnsManager.TableColumns.get(DbConstant.TABLE_PYTORCH_CALLCHAINS))
         DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_PYTORCH_CALLCHAINS, save_callchain_ids)
 
+    def save_enum_api_types_to_db(self):
+        if not DbManager.judge_table_exist(self._cur, DbConstant.TABLE_ENUM_API_TYPE):
+            DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_ENUM_API_TYPE, TableColumnsManager.TableColumns.get(DbConstant.TABLE_ENUM_API_TYPE))
+        api_types = [
+            (ApiType.TORCH_OP.value, 'op'),
+            (ApiType.TASK_QUEUE.value, 'queue'),
+            (ApiType.PYTHON_TRACE.value, 'trace'),
+            (ApiType.MSTX_OP.value, 'mstx')
+        ]
+        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_ENUM_API_TYPE, api_types)
+
     def save_api_data_to_db(self):
         self.save_fwk_api()
         self.save_string_ids()
         self.sava_connection_ids()
         self.save_callchain_ids()
+        self.save_enum_api_types_to_db()
         DbManager.destroy_db_connect(self._conn, self._cur)
