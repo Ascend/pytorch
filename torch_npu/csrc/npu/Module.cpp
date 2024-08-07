@@ -415,10 +415,29 @@ aclError StressDetectRecover()
                       c10_npu::acl::AclnnStressDetectRecover);
 }
 
+std::unordered_map<int, std::chrono::time_point<std::chrono::steady_clock>> last_call_times;
+const int interval_time = 3600;
+
 PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* noargs)
 {
     HANDLE_TH_ERRORS
     torch_npu::utils::npu_lazy_init();
+    
+    int device_id;
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device_id));
+
+    auto current_time = std::chrono::steady_clock::now();
+
+    if (last_call_times.find(device_id) != last_call_times.end() &&
+        std::chrono::duration_cast<std::chrono::seconds>(current_time - last_call_times[device_id]).count() < interval_time)
+    {
+        // StressDetect can only be called once every hour for the given device_id, Return 1.
+        ASCEND_LOGW("StressDetect can only be called once every hour for the given device_id:{%d}, Return 1.", device_id);
+        return PyLong_FromLong(1);
+    }
+
+    last_call_times[device_id] = current_time;
+
     auto ret = StressDetect();
     if (ret == 0) {
         ret = StressDetectWithPressure();
