@@ -187,6 +187,10 @@ class profile(_KinetoProfile):
     def __exit__(self, exe_type, exe_val, exc_tb):
         self.stop()
 
+    def __del__(self):
+        if self.stopped == False:
+            self.stop()
+
     def start(self):
         self.stopped = False
         if not self.on_trace_ready:
