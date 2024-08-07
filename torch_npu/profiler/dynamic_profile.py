@@ -13,6 +13,8 @@ from .scheduler import Schedule as schedule
 from .analysis.prof_common_func.singleton import Singleton
 from ..utils.path_manager import PathManager
 from .analysis.prof_common_func.file_manager import FileManager
+from .analysis.prof_common_func.constant import print_warn_msg
+from .analysis.prof_common_func.constant import print_error_msg
 
 __all__ = [
     'init',
@@ -143,6 +145,7 @@ class _DynamicProfile():
         self.cur_mtime = None
         self.step_num = 0
         self.cur_step = 0
+        self.repeat_init = False
 
     @staticmethod
     def init_default_config(path: str):
@@ -171,6 +174,9 @@ class _DynamicProfile():
         FileManager.create_json_file_by_path(path, json_data, indent=4)
 
     def init(self, path: str):
+        if self.config_path:
+            print_warn_msg("Init dynamic profiling repeatedly")
+            self.repeat_init = True
         log_path = os.path.join(path, 'log')
         if not os.path.exists(log_path):
             PathManager.make_dir_safety(log_path)
@@ -181,6 +187,9 @@ class _DynamicProfile():
             self.init_default_config(self.config_path)
         file_stat = os.stat(self.config_path)
         self.cur_mtime = file_stat.st_mtime
+
+    def is_repeat_init(self):
+        return self.repeat_init
 
     def step(self):
         self.cur_step += 1
@@ -197,14 +206,13 @@ class _DynamicProfile():
             self.cfg_ctx = _ConfigContext(self.config_path)
             self.enable_prof()
 
-
     def file_changed(self) -> bool:
         file_stat = os.stat(self.config_path)
         if file_stat.st_mtime == self.cur_mtime:
             return False
         self.cur_mtime = file_stat.st_mtime
         return True
-    
+
     def enable_prof(self):
         self.prof = profile(
             activities=self.cfg_ctx.activities(),
@@ -222,6 +230,11 @@ class _DynamicProfile():
 
 
 def init(path: str):
+    try:
+        PathManager.check_input_directory_path(path)
+    except RuntimeError:
+        print_error_msg(f"The path '{path}' is invalid, and profiler will not be enabled.")
+        return
     dp_path = os.path.abspath(path)
     if not os.path.exists(dp_path):
         PathManager.make_dir_safety(dp_path)
