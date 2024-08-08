@@ -6338,9 +6338,6 @@
   "func: view_as_complex": {
     "signature": "(Tensor(a) self) -> Tensor(a)"
   },
-  "func: _conj": {
-    "signature": "(Tensor(a) self) -> Tensor(a)"
-  },
   "func: _amp_update_scale_": {
     "signature": "(Tensor(a!) self, Tensor(b!) growth_tracker, Tensor found_inf, float growth_factor, float backoff_factor, int growth_interval) -> Tensor(a!)"
   },
