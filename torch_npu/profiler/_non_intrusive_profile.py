@@ -50,7 +50,7 @@ class _NonIntrusiveProfile:
     @staticmethod
     def step(*args, **kwargs):
         optimizer, *_ = args
-        if _DynamicProfile().is_repeat_init() or not _NonIntrusiveProfile.check_last_optimizer(optimizer):
+        if not _NonIntrusiveProfile.check_last_optimizer(optimizer):
             return
         dp_step()
 

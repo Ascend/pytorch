@@ -42,9 +42,6 @@ class _DynamicProfile:
         else:
             return prof_cfg_ctx
 
-    def is_repeat_init(self):
-        return self.repeat_init
-
     def step(self):
         self.cur_step += 1
         if self.prof:
