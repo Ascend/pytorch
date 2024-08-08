@@ -166,5 +166,17 @@ aclError AclGetCannAttribute(aclCannAttr cannAttr, int32_t *value);
 
 aclError AclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int64_t *value);
 
+aclError AclnnStressDetectGetWorkspaceSize(size_t *workspaceSize, void **executor);
+
+aclError AclnnStressDetect(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream);
+
+aclError AclnnStressDetectWithPressureGetWorkspaceSize(size_t *workspaceSize, void **executor);
+
+aclError AclnnStressDetectWithPressure(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream);
+
+aclError AclnnStressDetectRecoverGetWorkspaceSize(size_t *workspaceSize, void **executor);
+
+aclError AclnnStressDetectRecover(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream);
+
 } // namespace acl
 } // namespace c10_npu

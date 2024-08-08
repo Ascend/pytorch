@@ -503,3 +503,8 @@ def clear_npu_overflow_flag():
 def current_blas_handle():
     warnings.warn("NPU does not use blas handle.")
     return None
+
+
+def stress_detect():
+    torch_npu.npu._lazy_init()
+    return torch_npu._C._npu_stress_detect()

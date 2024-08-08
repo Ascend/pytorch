@@ -2,6 +2,7 @@
 
 #include "c10/util/Exception.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -544,6 +545,72 @@ aclError AclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int
     }
     TORCH_CHECK(func, "Failed to find function ", "aclGetDeviceCapability", PTA_ERROR(ErrCode::ACL));
     return func(deviceId, deviceInfo, value);
+}
+
+aclError AclnnStressDetectGetWorkspaceSize(size_t *workspaceSize, void **executor)
+{
+    typedef aclError (*AclnnStressDetectGetWorkspaceSize)(size_t*, void**);
+    static AclnnStressDetectGetWorkspaceSize func = nullptr;
+    if (func == nullptr) {
+        func = (AclnnStressDetectGetWorkspaceSize) GetOpApiFuncAddr("aclnnStressDetectGetWorkspaceSize");
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclnnStressDetectGetWorkspaceSize", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(workspaceSize, executor);
+}
+
+aclError AclnnStressDetect(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream)
+{
+    typedef aclError (*AclnnStressDetect)(void*, size_t, void*, aclrtStream);
+    static AclnnStressDetect func = nullptr;
+    if (func == nullptr) {
+        func = (AclnnStressDetect) GetOpApiFuncAddr("aclnnStressDetect");
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclnnStressDetect", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(workspace, workspaceSize, executor, stream);
+}
+
+aclError AclnnStressDetectWithPressureGetWorkspaceSize(size_t *workspaceSize, void **executor)
+{
+    typedef aclError (*AclnnStressDetectWithPressureGetWorkspaceSize)(size_t*, void**);
+    static AclnnStressDetectWithPressureGetWorkspaceSize func = nullptr;
+    if (func == nullptr) {
+        func = (AclnnStressDetectWithPressureGetWorkspaceSize) GetOpApiFuncAddr("aclnnStressDetectWithPressureGetWorkspaceSize");
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclnnStressDetectWithPressureGetWorkspaceSize", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(workspaceSize, executor);
+}
+
+aclError AclnnStressDetectWithPressure(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream)
+{
+    typedef aclError (*AclnnStressDetectWithPressure)(void*, size_t, void*, aclrtStream);
+    static AclnnStressDetectWithPressure func = nullptr;
+    if (func == nullptr) {
+        func = (AclnnStressDetectWithPressure) GetOpApiFuncAddr("aclnnStressDetectWithPressure");
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclnnStressDetectWithPressure", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(workspace, workspaceSize, executor, stream);
+}
+
+aclError AclnnStressDetectRecoverGetWorkspaceSize(size_t *workspaceSize, void **executor)
+{
+    typedef aclError (*AclnnStressDetectRecoverGetWorkspaceSize)(size_t*, void**);
+    static AclnnStressDetectRecoverGetWorkspaceSize func = nullptr;
+    if (func == nullptr) {
+        func = (AclnnStressDetectRecoverGetWorkspaceSize) GetOpApiFuncAddr("aclnnStressDetectRecoverGetWorkspaceSize");
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclnnStressDetectRecoverGetWorkspaceSize", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(workspaceSize, executor);
+}
+
+aclError AclnnStressDetectRecover(void *workspace, size_t workspaceSize, void *executor, aclrtStream stream)
+{
+    typedef aclError (*AclnnStressDetectRecover)(void*, size_t, void*, aclrtStream);
+    static AclnnStressDetectRecover func = nullptr;
+    if (func == nullptr) {
+        func = (AclnnStressDetectRecover) GetOpApiFuncAddr("aclnnStressDetectRecover");
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclnnStressDetectRecover", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(workspace, workspaceSize, executor, stream);
 }
 
 } // namespace acl
