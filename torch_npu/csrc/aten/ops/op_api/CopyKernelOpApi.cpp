@@ -184,17 +184,42 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
     if (self.numel() == 0) {
         return self;
     }
-    auto maybe_outnames = at::namedinference::compute_broadcast_outnames(self, src);
+    auto result = OpPreparation::apply_tensor_without_format(src);
+
+    if (src.is_complex() && torch_npu::utils::is_npu(src)) {
+        auto real_tensor = at::real(src);
+        auto imag_tensor = OpPreparation::apply_tensor_without_format(src);
+
+        if (src.is_conj()) {
+            auto tmp = at::imag(src);
+            tmp._set_neg(false);
+            imag_tensor = tmp.neg();
+        } else {
+            imag_tensor = at::imag(src);
+        }
+
+        auto outDtype = src.dtype();
+        auto outputSize = op_infer::broadcast_ops_npu_output_size(real_tensor, imag_tensor);
+        result = OpPreparation::apply_tensor_without_format(outputSize, real_tensor.options().dtype(outDtype));
+        EXEC_NPU_CMD(aclnnComplex, real_tensor, imag_tensor, result);
+    } else {
+        result = src;
+        if (src.is_neg()) {
+            src._set_neg(false);
+            result = src.neg();
+        }
+    }
+    auto maybe_outnames = at::namedinference::compute_broadcast_outnames(self, result);
 
     if (torch_npu::utils::is_npu(self)) {
-        if (torch_npu::utils::is_npu(src)) {
-            copy_d2d_baseformat_opapi(self, src, non_blocking);
+        if (torch_npu::utils::is_npu(result)) {
+            copy_d2d_baseformat_opapi(self, result, non_blocking);
         } else {
-            copy_h2d_baseformat_opapi(self, src, non_blocking);
+            copy_h2d_baseformat_opapi(self, result, non_blocking);
         }
     } else {
-        if (torch_npu::utils::is_npu(src)) {
-            copy_d2h_baseformat_opapi(self, src, non_blocking);
+        if (torch_npu::utils::is_npu(result)) {
+            copy_d2h_baseformat_opapi(self, result, non_blocking);
         }
     }
     at::namedinference::propagate_names_if_nonempty(self, maybe_outnames);
