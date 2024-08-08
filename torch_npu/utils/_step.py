@@ -121,12 +121,12 @@ def _setup_logger(name, path):
 
 
 def input_hook(grad):
-    torch_npu._C._npu_set_call_state(0)
+    torch_npu._C._npu_set_call_state("forward")
     return grad
 
 
 def output_hook(grad):
-    torch_npu._C._npu_set_call_state(1)
+    torch_npu._C._npu_set_call_state("backward")
     return grad
 
 
@@ -191,9 +191,9 @@ def _custom_call(self, *args, **kwargs):
             first_forward = False
             self.outer = True
             if self.training:
-                torch_npu._C._npu_set_model_mode(0)
+                torch_npu._C._npu_set_module_train_state("train")
             else:
-                torch_npu._C._npu_set_model_mode(1)
+                torch_npu._C._npu_set_module_train_state("infer")
 
     tmp = original_call(self, *args, **kwargs)
 
@@ -238,7 +238,10 @@ def add_perf_dump_patch():
 
     asd_value = os.getenv("NPU_ASD_ENABLE", "0")
     if asd_value not in ["0", "1", "2", "3"]:
-        raise ValueError("NPU_ASD_ENABLE should be 0, 1, 2 or 3!" + pta_error(ErrCode.VALUE))
+        raise ValueError("NPU_ASD_ENABLE should be 0, 1, 2 or 3. For details, 0 as `ASD closed`, "
+                         "1 as `ASD opened, print error logs` "
+                         "2 as `ASD opened, print error logs and raise exception`, "
+                         "3 as `ASD opened, print debug logs and raise exception`" + pta_error(ErrCode.VALUE))
     asd_enable = int(asd_value)
 
     if asd_enable and not torch_npu._C._npu_support_silentClientV2():        
