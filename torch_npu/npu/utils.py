@@ -409,12 +409,12 @@ def stop_device(device_id):
 
 def restart_device(device_id):
     torch_npu.npu._lazy_init()
+    torch_npu._C._npu_restart_device(device_id)
+    _except_handler.set_force_stop_exception(False)
     for pg in _pg_map:
         if (torch.device('npu') in pg._device_types):
             pg._get_backend(torch.device('npu')).set_watchdog_status(WATCHDOG_STATUS_RUN)
             pg._get_backend(torch.device('npu')).clear_workmeta_list()
-    torch_npu._C._npu_restart_device(device_id)
-    _except_handler.set_force_stop_exception(False)
 
 
 def check_uce_in_memory(device_id):
