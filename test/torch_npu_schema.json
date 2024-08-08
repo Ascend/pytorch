@@ -6452,9 +6452,6 @@
   "func: _fft_c2r.out": {
     "signature": "(Tensor self, int[] dim, int normalization, SymInt last_dim_size, *, Tensor(a!) out) -> Tensor(a!)"
   },
-  "func: _conj": {
-    "signature": "(Tensor(a) self) -> Tensor(a)"
-  },
   "func: _amp_update_scale_": {
     "signature": "(Tensor(a!) self, Tensor(b!) growth_tracker, Tensor found_inf, float growth_factor, float backoff_factor, int growth_interval) -> Tensor(a!)"
   },
