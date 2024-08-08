@@ -10,14 +10,6 @@ IS_HOSTAPI_ENABLED = os.getenv('HOSTAPI_ENABLED') == 'ON'
 
 class TestPtaUnsupportApi(TestCase):
 
-    def test__conj(self):
-        with self.assertRaisesRegex(RuntimeError, "_conj is unsupported!"):
-            torch._conj(torch.tensor([[2 + 3j, 4 - 5j], [6j, 1 + 2j]]).npu())
-
-    def test_conj(self):
-        with self.assertRaisesRegex(RuntimeError, "conj is unsupported!"):
-            torch.conj(torch.tensor([[2 + 3j, 4 - 5j], [6j, 1 + 2j]]).npu())
-
     def test_bitwise_left_shift_Tensor(self):
         with self.assertRaisesRegex(RuntimeError, "bitwise_left_shift.Tensor is unsupported!"):
             torch.bitwise_left_shift(torch.tensor([-1, -2, 3]).npu(), torch.tensor([1, 0, 3]).npu())

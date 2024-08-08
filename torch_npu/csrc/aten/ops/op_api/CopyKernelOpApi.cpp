@@ -149,33 +149,52 @@ void copy_d2h_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
 }
 
 at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
-  DO_COMPATIBILITY(aclnnInplaceCopy, NPUNativeFunctions::copy_(self, src, non_blocking));
-  if (self.numel() == 0) {
-    return self;
-  }
-  // save tensor dim name
-  c10::optional<at::DimnameList> names = src.opt_names();
-  if (names.has_value()) {
-    internal_set_names_inplace(self, names);
-  }
+    DO_COMPATIBILITY(aclnnInplaceCopy, NPUNativeFunctions::copy_(self, src, non_blocking));
+    if (self.numel() == 0) {
+        return self;
+    }
+    // save tensor dim name
+    c10::optional<at::DimnameList> names = src.opt_names();
+    if (names.has_value()) {
+        internal_set_names_inplace(self, names);
+    }
 
-  if (at_npu::key::isDeviceTensor(self)) {
-    if (at_npu::key::isDeviceTensor(src)) {
-      c10::SmallVector<at::Tensor, N> inputs = {src};
-      c10::SmallVector<at::Tensor, N> outputs = {self};
-      CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
-      EXEC_NPU_CMD(aclnnInplaceCopy, self, src);
+    auto result = OpPreparation::apply_tensor_without_format(src);
+    if (src.is_complex() && torch_npu::utils::is_npu(src)) {
+        auto real_tensor = at::real(src);
+        auto imag_tensor = OpPreparation::apply_tensor_without_format(src);
+        if (src.is_conj()) {
+            auto tmp = at::imag(src);
+            tmp._set_neg(false);
+            imag_tensor = tmp.neg();
+        } else {
+            imag_tensor = at::imag(src);
+        }
+        EXEC_NPU_CMD(aclnnComplex, real_tensor, imag_tensor, result);
     } else {
-      copy_h2d_baseformat_opapi(self, src, non_blocking);
+        result = src;
+        if (src.is_neg()) {
+            src._set_neg(false);
+            result = src.neg();
+        }
     }
-  } else {
-    if (at_npu::key::isDeviceTensor(src)) {
-      copy_d2h_baseformat_opapi(self, src, non_blocking);
+
+    if (at_npu::key::isDeviceTensor(self)) {
+        if (at_npu::key::isDeviceTensor(result)) {
+            c10::SmallVector<at::Tensor, N> inputs = {result};
+            c10::SmallVector<at::Tensor, N> outputs = {self};
+            CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
+            EXEC_NPU_CMD(aclnnInplaceCopy, self, result);
+        } else {
+            copy_h2d_baseformat_opapi(self, result, non_blocking);
+        }
+    } else {
+        if (at_npu::key::isDeviceTensor(result)) {
+            copy_d2h_baseformat_opapi(self, result, non_blocking);
+        }
     }
-  }
-  return self;
+    return self;
 }
 
 } // namespace native
 } // namespace at_npu
-
