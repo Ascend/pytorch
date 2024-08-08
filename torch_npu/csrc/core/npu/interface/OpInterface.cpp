@@ -16,9 +16,12 @@ LOAD_FUNCTION(aclnnSilentCheck)
 
 bool IsExistAclnnSilentCheck()
 {
-    static auto func = GET_FUNC(aclnnSilentCheck);
-    return func != nullptr;
+    const static bool isExist = []() -> bool {
+        static auto func = GET_FUNC(aclnnSilentCheck);
+        return func != nullptr;
+    }();
+    return isExist;
 }
 
-} // namespace acl
-} // namespace c10
+} // namespace opapi
+} // namespace c10_npu

@@ -1232,79 +1232,37 @@ PyObject* THNPModule_npu_set_call_state(PyObject* _unused, PyObject* arg)
 {
     HANDLE_TH_ERRORS
     THPUtils_assert(
-        THPUtils_checkLong(arg), "invalid argument to set_call_state, state type must long", PTA_ERROR(ErrCode::PARAM));
-    int64_t state = THPUtils_unpackLong(arg);
-    TORCH_CHECK(
-        state >= 0 && state <= 1, "invalid value of state, expected one of 0,1", PTA_ERROR(ErrCode::VALUE));
-    c10_npu::CallStateMode mode;
-    switch (state) {
-        case 0:
-            mode = c10_npu::CallStateMode::L_FORWARD;
-            break;
-        case 1:
-            mode = c10_npu::CallStateMode::L_BACKWARD;
-            break;
-        default:
-            mode = c10_npu::CallStateMode::L_UNKNOW;
-            break;
+        THPUtils_checkString(arg), "invalid value of call_state, call_state must string", PTA_ERROR(ErrCode::PARAM));
+    std::string state = THPUtils_unpackString(arg);
+    c10_npu::CallStateMode mode = c10_npu::CallStateMode::L_UNKNOW;
+    if (state == "forward") {
+        mode = c10_npu::CallStateMode::L_FORWARD;
+    } else if (state == "backward") {
+        mode = c10_npu::CallStateMode::L_BACKWARD;
+    } else {
+        TORCH_CHECK(false, "invalid value of call_state, expected one of `forward`, `backward`", PTA_ERROR(ErrCode::PARAM));
     }
     c10_npu::model_state().set_call_state(mode);
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_get_call_state(PyObject* self, PyObject* noargs)
-{
-    HANDLE_TH_ERRORS
-    auto mode = c10_npu::model_state().get_call_state();
-    switch (mode) {
-        case c10_npu::CallStateMode::L_FORWARD:
-            return THPUtils_packInt32(0);
-        case c10_npu::CallStateMode::L_BACKWARD:
-            return THPUtils_packInt32(1);
-        default:
-            return THPUtils_packInt32(-1);
-    }
-    END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_npu_set_model_mode(PyObject* _unused, PyObject* arg)
+PyObject* THNPModule_npu_set_module_train_state(PyObject* _unused, PyObject* arg)
 {
     HANDLE_TH_ERRORS
     THPUtils_assert(
-        THPUtils_checkLong(arg), "invalid argument to set model mode, state type must long", PTA_ERROR(ErrCode::PARAM));
-    int64_t state = THPUtils_unpackLong(arg);
-    TORCH_CHECK(
-        state >= 0 && state <= 1, "invalid value of model mode, expected one of 0,1", PTA_ERROR(ErrCode::VALUE));
-    c10_npu::ModelMode mode;
-    switch (state) {
-        case 0:
-            mode = c10_npu::ModelMode::L_TRAIN;
-            break;
-        case 1:
-            mode = c10_npu::ModelMode::L_INFER;
-            break;
-        default:
-            mode = c10_npu::ModelMode::L_UNKNOW;
-            break;
+        THPUtils_checkString(arg), "invalid value of train_state, train_state must string", PTA_ERROR(ErrCode::PARAM));
+    std::string state = THPUtils_unpackString(arg);
+    c10_npu::ModelMode mode = c10_npu::ModelMode::L_UNKNOW;
+    if (state == "train") {
+        mode = c10_npu::ModelMode::L_TRAIN;
+    } else if (state == "infer") {
+        mode = c10_npu::ModelMode::L_INFER;
+    } else {
+        TORCH_CHECK(false, "invalid value of train_state, expected one of `train`, `infer`", PTA_ERROR(ErrCode::PARAM));
     }
     c10_npu::model_state().set_model_mode(mode);
     Py_RETURN_NONE;
-    END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_npu_get_model_mode(PyObject* self, PyObject* noargs)
-{
-    HANDLE_TH_ERRORS
-    auto mode = c10_npu::model_state().get_model_mode();
-    switch (mode) {
-        case c10_npu::ModelMode::L_TRAIN:
-            return THPUtils_packInt32(0);
-        case c10_npu::ModelMode::L_INFER:
-            return THPUtils_packInt32(1);
-        default:
-            return THPUtils_packInt32(-1);
-    }
     END_HANDLE_TH_ERRORS
 }
 
@@ -1366,9 +1324,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_tensor_storage_resize", (PyCFunction)THNPModule_tensor_storage_resize, METH_VARARGS, nullptr},
     {"_mark", (PyCFunction)THNPModule_msTxMark, METH_VARARGS, nullptr},
     {"_npu_set_call_state", (PyCFunction)THNPModule_npu_set_call_state, METH_O, nullptr},
-    {"_npu_get_call_state", (PyCFunction)THNPModule_npu_get_call_state, METH_NOARGS, nullptr},
-    {"_npu_set_model_mode", (PyCFunction)THNPModule_npu_set_model_mode, METH_O, nullptr},
-    {"_npu_get_model_mode", (PyCFunction)THNPModule_npu_get_model_mode, METH_NOARGS, nullptr},
+    {"_npu_set_module_train_state", (PyCFunction)THNPModule_npu_set_module_train_state, METH_O, nullptr},
     {"_npu_support_silentClientV2", (PyCFunction)THNPModule_npu_support_silentClientV2, METH_NOARGS, nullptr},
     {nullptr}};
 
