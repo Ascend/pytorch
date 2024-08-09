@@ -1377,7 +1377,9 @@ void ProcessGroupHCCL::clearWorkMetaList()
     workMetaList_.clear();
 }
 
-std::string ProcessGroupHCCL::getHcclCommName(int rankid) {
+
+std::string ProcessGroupHCCL::getHcclCommName(int rankid, bool init_comm)
+{
     TORCH_CHECK(rankid >= 0, "Invalid rank ", rankid, DIST_ERROR(ErrCode::VALUE));
     auto numNPUs = c10_npu::device_count();
     TORCH_CHECK(numNPUs > 0, "Invalid device number", numNPUs, DIST_ERROR(ErrCode::VALUE));
@@ -1391,10 +1393,15 @@ std::string ProcessGroupHCCL::getHcclCommName(int rankid) {
         "If it's incorrect, it might have introduced an error.";
         TORCH_WARN_ONCE(warning_message);
     }
-
     at::Device device = at::Device(c10::DeviceType::PrivateUse1, indexFromCurDevice);
     std::vector<at::Device> devices = {device};
     const auto key = getKeyFromDevices(devices);
+    if (!init_comm) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (devHCCLCommMap_.find(key) == devHCCLCommMap_.end()) {
+            return "";
+        }
+    }
     auto& hcclComms = getHCCLComm(key, devices);
     TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
         hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
