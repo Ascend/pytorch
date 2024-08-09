@@ -413,7 +413,7 @@ public:
 
     void clearWorkMetaList();
 
-    std::string getHcclCommName(int rankid);
+    std::string getHcclCommName(int rankid, bool init_comm = true);
 
     // Provides an API to abort the ProcessGroup (similar to hcclCommAbort)
     // instead of relying on ProcessGroupHCCL destructor.
@@ -425,6 +425,7 @@ public:
     const std::vector<uint64_t>& groupRanks() const;
 
     int64_t getStreamId(bool p2p = false);
+
 protected:
     // Helper that broadcasts HCCL Master ID to all ranks through the store
     void broadcastMasterID(HcclRootInfo* hcclID);
