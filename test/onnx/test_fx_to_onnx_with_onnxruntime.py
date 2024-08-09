@@ -20,7 +20,7 @@ import transformers  # type: ignore[import]
 from torch import nn
 
 from torch._subclasses import fake_tensor
-from torch.onnx._internal import _beartype, exporter
+from torch.onnx._internal import exporter
 from torch.onnx._internal.fx import (
     diagnostics,
     fx_symbolic_graph_extractor,
@@ -712,7 +712,6 @@ class TestFxToOnnxWithOnnxRuntime(onnx_test_common._TestONNXRuntime):
             CustomModule(), (torch.randn(1, 2, 3),)
         )
 
-    @_beartype.beartype
     def _test_fx_symbolic_tracer_large_scale_exporter(
         self,
         model_name: str,
@@ -941,7 +940,6 @@ class TestFxToOnnxFakeTensorWithOnnxRuntime(onnx_test_common._TestONNXRuntime):
         super().setUp()
         self.ort_version = onnxruntime.__version__
 
-    @_beartype.beartype
     def _test_fake_tensor_mode_exporter(
         self,
         model_name: str,

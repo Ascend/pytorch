@@ -2,7 +2,7 @@ import functools
 
 import torch
 
-from torch.onnx._internal import _beartype, registration
+from torch.onnx._internal import registration
 from torch.onnx import symbolic_helper
 from torch.onnx.symbolic_opset9 import sub, mul, add, pow, sqrt, reciprocal
 
@@ -15,7 +15,6 @@ __all__ = ["native_layer_norm"]
 @_onnx_symbolic("aten::native_layer_norm")
 @symbolic_helper.quantized_args(True, False, False, False)
 @symbolic_helper.parse_args("v", "is", "v", "v", "f")
-@_beartype.beartype
 def native_layer_norm(g, inputs, normalized_shape, weight, bias, eps):
     axes = [-i for i in range(len(normalized_shape), 0, -1)]
 

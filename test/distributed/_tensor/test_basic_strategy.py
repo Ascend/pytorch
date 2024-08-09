@@ -1,6 +1,6 @@
 import torch
 from torch.distributed._tensor import DeviceMesh
-from torch.distributed._tensor.ops.basic_strategy import (
+from torch.distributed._tensor.ops._einsum_strategy import (
     EinsumDims,
     gen_einsum_strategies,
 )
