@@ -7,6 +7,7 @@ from ..utils.path_manager import PathManager
 from .dynamic_profile import _DynamicProfile
 from .dynamic_profile import init as dp_init
 from .dynamic_profile import step as dp_step
+from .analysis.prof_common_func.constant import print_error_msg
 
 
 __all__ = [
@@ -58,6 +59,11 @@ class _NonIntrusiveProfile:
     def init():
         prof_config_path = os.getenv("PROF_CONFIG_PATH", "")
         if not prof_config_path:
+            return
+        try:
+            PathManager.check_input_directory_path(prof_config_path)
+        except RuntimeError:
+            print_error_msg(f"The path '{prof_config_path}' is invalid, and profiler will not be enabled.")
             return
         dp_init(prof_config_path)
         if torch.__version__ >= "2.0.0":
