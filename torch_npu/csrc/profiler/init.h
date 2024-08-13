@@ -5,6 +5,7 @@
 namespace torch_npu {
 namespace profiler {
 TORCH_NPU_API PyMethodDef* profiler_functions();
+TORCH_NPU_API void initMstx(PyObject *module);
 }
 }
 

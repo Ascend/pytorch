@@ -9,6 +9,7 @@
 
 #include "torch_npu/csrc/toolkit/profiler/inc/data_reporter.h"
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
+#include "torch_npu/csrc/profiler/mstx_mgr.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -110,5 +111,15 @@ void finalizeNpuProfiler();
 void reportMarkDataToNpuProfiler(uint32_t category, const std::string &msg, uint64_t correlation_id);
 
 void reportMemoryDataToNpuProfiler(const MemoryUsage& data);
+
+inline int mstxRangeStart(const char* message, const aclrtStream stream)
+{
+    return MstxMgr::GetInstance()->RangeStart(message, stream);
+}
+
+inline void mstxRangeEnd(int id)
+{
+    MstxMgr::GetInstance()->RangeEnd(id);
+}
 } // profiler
 } // torch_npu
