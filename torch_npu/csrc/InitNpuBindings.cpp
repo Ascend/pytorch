@@ -175,6 +175,7 @@ PyObject* initModule() {
 
   torch_npu::autograd::initTorchFunctions(module);
   torch_npu::installCapturedTracebackPython();
+  torch_npu::profiler::initMstx(module);
 
   RegisterNPUDeviceProperties(module);
   BindGetDeviceProperties(module);

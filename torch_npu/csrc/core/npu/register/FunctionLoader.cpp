@@ -37,7 +37,7 @@ void FunctionLoader::Set(const std::string& name) {
 
 void* FunctionLoader::Get(const std::string& name) {
   if (this->handle == nullptr) {
-    auto handle = dlopen(this->fileName.c_str(), RTLD_LAZY);
+    auto handle = dlopen(this->fileName.c_str(), RTLD_LAZY | RTLD_GLOBAL);
     if (handle == nullptr) {
       AT_ERROR(dlerror());
       return nullptr;

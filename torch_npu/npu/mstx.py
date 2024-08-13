@@ -18,3 +18,35 @@ import torch_npu._C
 class mstx:
     def mark(self, message:str = ""):
         torch_npu._C._mark(message)
+
+    @staticmethod
+    def range_start(message: str, stream=None) -> int:
+        if not message:
+            print(Warning, "Invalid message for `mstx.range_start`. Please input valid message string.")
+            return 0
+        if stream:
+            if isinstance(stream, torch_npu.npu.streams.Stream):
+                stream = stream.npu_stream
+                return torch_npu._C._mstx._range_start(message, stream)
+            else:
+                print(Warning, 'Invalid type for stream for `mstx.range_start`, must be `torch_npu.npu.Stream`')
+                return 0
+        else:
+            return torch_npu._C._mstx._range_start_on_host(message)
+    
+    @staticmethod
+    def range_end(range_id: int):
+        if not isinstance(range_id, int):
+            print(Warning, "Invalid message for `mstx.range_start`. Please input return value from mstx.range_start().")
+            return
+        torch_npu._C._mstx._range_end(range_id)
+
+    @staticmethod
+    def mstx_range(message: str, stream=None):
+        def wrapper(func):
+            def inner(*args, **kargs):
+                range_id = mstx.range_start(message, stream)
+                func(*args, **kargs)
+                mstx.range_end(range_id)
+            return inner
+        return wrapper
