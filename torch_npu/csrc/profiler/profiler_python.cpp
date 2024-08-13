@@ -10,12 +10,12 @@
 
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
+#include "torch_npu/csrc/profiler/utils.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 
 #include <c10/util/hash.h>
 #include <ATen/record_function.h>
-#include <torch/csrc/utils/python_compat.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/utils/pybind.h>
 
@@ -92,7 +92,7 @@ struct PyCallInfo {
     PyCallInfo() = default;
     explicit PyCallInfo(PyFrameObject* frame) : line_no_(PyFrame_GetLineNumber(frame))
     {
-        auto f_code = PyFrame_GetCode(frame);
+        auto f_code = PyFrame_GetCode_NPU(frame);
         file_name_ = THPUtils_unpackStringView(f_code->co_filename).data();
         func_name_ = THPUtils_unpackStringView(f_code->co_name).data();
     }
@@ -214,11 +214,12 @@ void PythonTracer::start(size_t max_threads)
         auto ctx = (TraceContext*) TraceContextType.tp_alloc(&TraceContextType, 0);
         ctx->thread_state_ = thread_state;
         trace_contexts_.push_back(ctx);
-        std::vector<PyFrameObject*> current_stack;
-        auto frame = PyEval_GetFrame();
+
+        std::vector<THPFrameObjectPtr> current_stack;
+        auto frame = PyEval_GetFrame_NPU();
         size_t depth = 0;  // Make sure we can't infinite loop.
         while (frame != nullptr && depth <= STACK_MAX_DEPTH) {
-            current_stack.push_back(frame);
+            current_stack.emplace_back(frame);
             frame = PyFrame_GetBack(frame);
             ++depth;
         }
@@ -315,9 +316,9 @@ void PythonTracer::recordPyCall(TraceContext* ctx, PyFrameObject* frame)
     }
 
     // check nn.Module call
-    auto f_code = (PyObject*)PyFrame_GetCode(frame);
-    if (f_code == module_call_code_) {
-        auto f_locals = PyFrame_GetLocals(frame);
+    auto f_code = PyFrame_GetCode_NPU(frame);
+    if ((PyObject*)f_code.get() == module_call_code_) {
+        auto f_locals = PyFrame_GetLocals_NPU(frame);
         auto module_class = PyDict_GetItemString(f_locals, "self");
         hash_id = c10::get_hash(module_class);
         if (module_info_cache_.find(hash_id) == module_info_cache_.end()) {
