@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <ATen/ATen.h>
 #include <ATen/record_function.h>
+#include <torch/csrc/utils/object_ptr.h>
+#include <torch/csrc/utils/python_compat.h>
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 
@@ -33,6 +35,22 @@ public:
   static bool use_npu_simple;
 };
 
+inline THPCodeObjectPtr PyFrame_GetCode_NPU(PyFrameObject* frame)
+{
+    return THPCodeObjectPtr(PyFrame_GetCode(frame));
+}
+
+inline PyFrameObject* PyEval_GetFrame_NPU()
+{
+    auto frame = PyEval_GetFrame();
+    Py_XINCREF(frame);
+    return frame;
+}
+
+inline THPObjectPtr PyFrame_GetLocals_NPU(PyFrameObject* frame)
+{
+    return THPObjectPtr(PyFrame_GetLocals(frame));
+}
 }
 }
 
