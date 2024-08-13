@@ -159,6 +159,7 @@ PyObject* initModule() {
     RegisterNpuPluggableAllocator(module);
     initCommMethods();
     torch::installCapturedTracebackPython();
+    torch_npu::profiler::initMstx(module);
     return module;
 }
 

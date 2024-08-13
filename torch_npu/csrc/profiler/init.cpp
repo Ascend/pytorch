@@ -101,5 +101,65 @@ PyMethodDef* profiler_functions() {
     return TorchProfilerMethods;
 }
 
+PyObject* THNPModule_rangeStart(PyObject* _unused, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    char *message;
+    PyObject* stream_o = nullptr;
+    if (!PyArg_ParseTuple(args, "sO", &message, &stream_o)) {
+        return nullptr;
+    }
+    aclrtStream stream = static_cast<aclrtStream>(PyLong_AsVoidPtr(stream_o));
+    int id = mstxRangeStart(message, stream);
+    return PyLong_FromLong(id);
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_rangeStartOnHost(PyObject* _unused, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    char *message;
+    if (!PyArg_ParseTuple(args, "s", &message)) {
+        return nullptr;
+    }
+    int id = mstxRangeStart(message, nullptr);
+    return PyLong_FromLong(id);
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_rangeEnd(PyObject* self, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    mstxRangeId rangeId;
+    if (!PyArg_ParseTuple(args, "k", &rangeId)) {
+        return nullptr;
+    }
+    mstxRangeEnd(rangeId);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+static std::vector<PyMethodDef> mstxMethods = {
+    {"_range_start_on_host", (PyCFunction)THNPModule_rangeStartOnHost, METH_VARARGS, nullptr},
+    {"_range_start", (PyCFunction)THNPModule_rangeStart, METH_VARARGS, nullptr},
+    {"_range_end", (PyCFunction)THNPModule_rangeEnd, METH_VARARGS, nullptr},
+    {nullptr, nullptr, 0, nullptr}
+};
+
+void initMstx(PyObject *module)
+{
+    static struct PyModuleDef mstx_module = {
+        PyModuleDef_HEAD_INIT,
+        "_mstx",
+        nullptr,
+        -1,
+        mstxMethods.data()
+    };
+    PyObject* mstxModule = PyModule_Create(&mstx_module);
+    if (mstxModule == nullptr) {
+        return;
+    }
+    PyModule_AddObject(module, "_mstx", mstxModule);
+}
 }
 }
