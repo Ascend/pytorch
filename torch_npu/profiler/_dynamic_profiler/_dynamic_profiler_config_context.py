@@ -44,9 +44,9 @@ class ConfigContext:
             self.experimental_config = None
         else:
             profiler_level = exp_config.get('profiler_level', 'Level0')
-            profiler_level = getattr(ProfilerLevel, profiler_level)
+            profiler_level = getattr(ProfilerLevel, profiler_level, profiler_level)
             aic_metrics = exp_config.get('aic_metrics', 'AiCoreNone')
-            aic_metrics = getattr(AiCMetrics, aic_metrics)
+            aic_metrics = getattr(AiCMetrics, aic_metrics, aic_metrics)
             l2_cache = exp_config.get('l2_cache', False)
             op_attr = exp_config.get('op_attr', False)
             gc_detect_threshold = exp_config.get('gc_detect_threshold', None)
