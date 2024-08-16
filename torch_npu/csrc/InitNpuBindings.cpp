@@ -36,8 +36,15 @@ void AddPyMethodDefs(std::vector<PyMethodDef>& vector, PyMethodDef* methods)
     }
 }
 
-PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
+PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
 {
+    int check_error;
+    if (!PyBool_Check(arg)) {
+        PyErr_SetString(PyExc_TypeError, "Expected a boolean value");
+        return NULL;
+    }
+    check_error = PyObject_IsTrue(arg);
+
     // cudaFree is blocking and will synchronize across all kernels executing
     // on the current device, while aclrtFree Free device memory immediately.
     // aclrtSynchronizeDevice should be called before aclrtFree to ensure that
@@ -45,21 +52,6 @@ PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
     ASCEND_LOGI("NPU shutdown begin.");
     if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
         Py_RETURN_NONE;
-    }
-    
-    // Return aclrtSynchronizeDevice result. If sync device fails, release host
-    // resources forcibly, only record WARN logs when acl interface of stream
-    // or event fails.
-    bool success = true;
-    try {
-        ASCEND_LOGI("NPU shutdown synchronize device.");
-        success = c10_npu::npuSynchronizeUsedDevices(false);
-    } catch (std::exception& e) {
-        ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
-        success = false;
-    }
-    if (!success) {
-        ASCEND_LOGE("NPU shutdown synchronize device failed.");
     }
 
     ASCEND_LOGI("NPU shutdown ReleaseHcclCommList.");
@@ -69,13 +61,13 @@ PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
     THNPUCachingHostAllocator_emptyCache();
     try {
         ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
-        c10_npu::NPUCachingAllocator::emptyCache(success);
+        c10_npu::NPUCachingAllocator::emptyCache(check_error);
     } catch (std::exception& e) {
         ASCEND_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
     }
     try {
         ASCEND_LOGI("NPU shutdown NPUWorkspaceAllocator emptyCache.");
-        c10_npu::NPUWorkspaceAllocator::emptyCache(success);
+        c10_npu::NPUWorkspaceAllocator::emptyCache(check_error);
     } catch (std::exception& e) {
         ASCEND_LOGE("NPUWorkspaceAllocator::emptyCache failed err=:%s", e.what());
     }
@@ -91,9 +83,37 @@ PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
     Py_RETURN_NONE;
 }
 
+PyObject* THPModule_npu_shutdown_synchronize(PyObject* /* unused */)
+{
+    ASCEND_LOGI("NPU shutdown synchronize begin.");
+    if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+        Py_RETURN_FALSE;
+    }
+
+    // Return aclrtSynchronizeDevice result. If sync device fails, release host
+    // resources forcibly, only record WARN logs when acl interface of stream
+    // or event fails.
+    bool success = true;
+    try {
+        ASCEND_LOGI("NPU shutdown synchronize device.");
+        success = c10_npu::npuSynchronizeUsedDevices(false);
+    } catch (std::exception& e) {
+        ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
+        success = false;
+    }
+
+    if (success) {
+        Py_RETURN_TRUE;
+    } else {
+        ASCEND_LOGE("NPU shutdown synchronize device failed.");
+        Py_RETURN_FALSE;
+    }
+}
+
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 static PyMethodDef TorchNpuMethods[] = {
-    {"_npu_shutdown", (PyCFunction)THPModule_npu_shutdown, METH_NOARGS, nullptr},
+    {"_npu_shutdown", (PyCFunction)THPModule_npu_shutdown, METH_O, nullptr},
+    {"_npu_shutdown_synchronize", (PyCFunction)THPModule_npu_shutdown_synchronize, METH_NOARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}
 };
 
