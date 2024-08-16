@@ -884,19 +884,21 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     }
 
 #ifdef ENABLE_HCCL_ERROR_CHECKING
-    if (hccl_exec_timeout > 0) {
-        if ((hccl_exec_timeout * 1000) > (options_->opTimeout).count()) {
-            TORCH_NPU_WARN("The HCCL execution timeout ", hccl_exec_timeout*1000, "ms is bigger than watchdog timeout ",
-                (options_->opTimeout).count(), "ms which is set by init_process_group! The plog may not be recorded.");
-        }
-    } else {
-        if ((options_->opTimeout).count() == DEFAULT_TIMEOUT) {
-            // Only when the timeout is default, we will change it.
-            options_->opTimeout = std::chrono::milliseconds(DEFAULT_TIMEOUT*2);
-        }
-        if ((options_->opTimeout).count() < DEFAULT_TIMEOUT) {
-            TORCH_NPU_WARN("The HCCL execution timeout ", DEFAULT_TIMEOUT, "ms is bigger than watchdog timeout ",
-                (options_->opTimeout).count(), "ms which is set by init_process_group! The plog may not be recorded.");
+    if (asyncErrorHandling_ == TearDown) {
+        if (hccl_exec_timeout > 0) {
+            if ((hccl_exec_timeout * 1000) > (options_->opTimeout).count()) {
+                TORCH_NPU_WARN("The HCCL execution timeout ", hccl_exec_timeout*1000, "ms is bigger than watchdog timeout ",
+                    (options_->opTimeout).count(), "ms which is set by init_process_group! The plog may not be recorded.");
+            }
+        } else {
+            if ((options_->opTimeout).count() == DEFAULT_TIMEOUT) {
+                // Only when the timeout is default, we will change it.
+                options_->opTimeout = std::chrono::milliseconds(DEFAULT_TIMEOUT*2);
+            }
+            if ((options_->opTimeout).count() < DEFAULT_TIMEOUT) {
+                TORCH_NPU_WARN("The HCCL execution timeout ", DEFAULT_TIMEOUT, "ms is bigger than watchdog timeout ",
+                    (options_->opTimeout).count(), "ms which is set by init_process_group! The plog may not be recorded.");
+            }
         }
     }
     hcclCommWatchdogThread_ = std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this);
