@@ -613,11 +613,11 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     uid_(process_group_id++)
 {
     uint32_t hccl_event_timeout = c10_npu::option::OptionsManager::GetHCCLEventTimeout();
+    uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
     if (hccl_event_timeout > 0) {
         kOpWaitTimeout = hccl_event_timeout;
         ASCEND_LOGI("Set op wait timeout to %u.", hccl_event_timeout);
     } else {
-        uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
         // When no env, the default value is 0
         if (hccl_exec_timeout > 0) {
             kOpWaitTimeout = hccl_exec_timeout + kOpWaitTimeoutOffset;
@@ -669,6 +669,23 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     }
 
 #ifdef ENABLE_HCCL_ERROR_CHECKING
+    if (asyncErrorHandling_ == TearDown) {
+        if (hccl_exec_timeout > 0) {
+            if ((hccl_exec_timeout * 1000) > (options_->timeout).count()) {
+                TORCH_NPU_WARN("The HCCL execution timeout ", hccl_exec_timeout*1000, "ms is bigger than watchdog timeout ",
+                    (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded.");
+            }
+        } else {
+            if ((options_->timeout).count() == DEFAULT_TIMEOUT) {
+                // Only when the timeout is default, we will change it.
+                options_->timeout = std::chrono::milliseconds(DEFAULT_TIMEOUT*2);
+            }
+            if ((options_->timeout).count() < DEFAULT_TIMEOUT) {
+                TORCH_NPU_WARN("The HCCL execution timeout 1800000ms is bigger than watchdog timeout ",
+                    (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded.");
+            }
+        }
+    }
     hcclCommWatchdogThread_ = std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this);
 #endif
 }

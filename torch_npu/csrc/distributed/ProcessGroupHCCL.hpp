@@ -28,6 +28,8 @@ constexpr const char* HCCL_ASYNC_ERROR_HANDLING = "HCCL_ASYNC_ERROR_HANDLING";
 // This variable must be set together with HCCL_ASYNC_ERROR_HANDLING.
 constexpr const char* HCCL_DESYNC_DEBUG = "HCCL_DESYNC_DEBUG";
 
+constexpr const int DEFAULT_TIMEOUT = 30 * 60 * 1000;
+
 // NoHandling: do not handle asynchronous HCCL errors
 // TearDown: tear down process upon error, see `WorkHCCL::handleException`
 // CleanUpOnly: just clean up collectives and abort communicators without
