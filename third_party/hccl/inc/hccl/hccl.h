@@ -197,7 +197,13 @@ inline void HcclCommConfigInit(HcclCommConfig *config)
 
     config->hcclBufferSize = HCCL_COMM_DEFAULT_BUFFSIZE;
     config->hcclDeterministic = HCCL_COMM_DEFAULT_DETERMINISTIC;
+    config->hcclCommName[0] = '\0';
 }
+
+/**
+ * @brief Get a number that represents the capability of comm configuration.
+*/
+extern uint32_t HcclGetCommConfigCapability();
 
 #ifdef __cplusplus
 }
