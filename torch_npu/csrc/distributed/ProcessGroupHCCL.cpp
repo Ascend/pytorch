@@ -29,6 +29,7 @@
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/distributed/HcclCompile.h"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
+#include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 
@@ -213,6 +214,15 @@ void getP2PHcclCommCofig(HcclCommConfig* config)
 {
     HcclCommConfigInit(config);
     config->hcclBufferSize = c10_npu::option::OptionsManager::GetP2PBufferSize();
+}
+
+void checkHcclCommConfigValid(const HcclCommConfig* config)
+{
+    if (strlen(config->hcclCommName) > 0) {
+        TORCH_CHECK(isHcclFeatureSupported(HcclCommConfigCapability::HCCL_COMM_CONFIG_COMM_NAME),
+                    "The current version of CANN does not support the hcclCommName:", config->hcclCommName,
+                    DIST_ERROR(ErrCode::NOT_SUPPORT));
+    }
 }
 } // namespace
 
@@ -1045,7 +1055,8 @@ void ProcessGroupHCCL::recordComm(std::string filename, std::string opName, cons
 std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices,
-    HcclCommType commType)
+    HcclCommType commType,
+    HcclCommConfig* commConfig)
 {
     // Sanity check
     if (devicesKey.empty()) {
@@ -1087,7 +1098,12 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
         npuGuard.set_index(devices[i].index());
         switch (commType) {
             case HcclCommType::DEFAULT:
-                hcclComms[i] = HCCLComm::create(numRanks, rank, hcclID);
+                if (commConfig != nullptr) {
+                    checkHcclCommConfigValid(commConfig);
+                    hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, commConfig);
+                } else {
+                    hcclComms[i] = HCCLComm::create(numRanks, rank, hcclID);
+                }
                 break;
             case HcclCommType::P2P:
                 HcclCommConfig config;
@@ -1392,6 +1408,29 @@ void ProcessGroupHCCL::setWatchdogStatus(int status)
     watchdogStatus = WatchdogStatus(status);
 }
 
+void ProcessGroupHCCL::setHcclCommName(const std::string& hccl_comm_name)
+{
+    auto nameSize = hccl_comm_name.size();
+    TORCH_CHECK(nameSize > 0 && nameSize < COMM_NAME_MAX_LENGTH,
+                "The length of the name must be between 1 and ", COMM_NAME_MAX_LENGTH - 1, ", Invalid hcclCommName:",
+                hccl_comm_name, DIST_ERROR(ErrCode::VALUE));
+    c10::DeviceIndex indexFromCurDevice = c10_npu::current_device();
+    at::Device device = at::Device(c10::DeviceType::PrivateUse1, indexFromCurDevice);
+    std::vector <at::Device> devices = {device};
+    const auto key = getKeyFromDevices(devices);
+    std::lock_guard <std::mutex> lock(mutex_);
+    auto hcclCommNameIter = devHCCLCommNameMap_.emplace(key, hccl_comm_name);
+    auto currentHcclCommName = hcclCommNameIter.first->second;
+    TORCH_CHECK(currentHcclCommName == hccl_comm_name,
+                "The current ProcessGroup has already set the name and cannot be duplicated, Invalid hcclCommName:",
+                hccl_comm_name, ", current hcclCommName:", currentHcclCommName, DIST_ERROR(ErrCode::VALUE));
+}
+
+bool ProcessGroupHCCL::isSupportHcclCommName()
+{
+    return isHcclFeatureSupported(HcclCommConfigCapability::HCCL_COMM_CONFIG_COMM_NAME);
+}
+
 std::string ProcessGroupHCCL::getHcclCommName(int rankid, bool init_comm)
 {
     TORCH_CHECK(rankid >= 0, "Invalid rank ", rankid, DIST_ERROR(ErrCode::VALUE));
@@ -1416,7 +1455,21 @@ std::string ProcessGroupHCCL::getHcclCommName(int rankid, bool init_comm)
             return "";
         }
     }
-    auto& hcclComms = getHCCLComm(key, devices);
+    std::string hcclCommName = "";
+    std::vector <std::shared_ptr<HCCLComm>> hcclComms;
+    {
+        std::lock_guard <std::mutex> lock(mutex_);
+        hcclCommName = devHCCLCommNameMap_[key];
+    }
+    if (!hcclCommName.empty()) {
+        HcclCommConfig config;
+        HcclCommConfigInit(&config);
+        torch_npu::toolkit::profiler::Utils::safe_strcpy_s(config.hcclCommName, hcclCommName.c_str(),
+                                                           COMM_NAME_MAX_LENGTH);
+        hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
+    } else {
+        hcclComms = getHCCLComm(key, devices);
+    }
     TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
         hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
     HcclComm hcom = hcclComms[0]->getHcclComm();

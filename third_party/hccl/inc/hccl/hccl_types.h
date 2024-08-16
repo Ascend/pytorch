@@ -15,9 +15,10 @@ extern "C" {
 
 const uint32_t HCCL_COMM_CONFIG_INFO_BYTES = 24;
 const uint32_t HCCL_COMM_CONFIG_MAGIC_WORD = 0xf0f0f0f0;
-const uint32_t HCCL_COMM_CONFIG_VERSION = 1;
+const uint32_t HCCL_COMM_CONFIG_VERSION = 2;
 const uint32_t HCCL_COMM_DEFAULT_BUFFSIZE = 200;                // 200MB buffer size
 const uint32_t HCCL_COMM_DEFAULT_DETERMINISTIC = 0;             // Disable deterministic calculations
+const uint32_t COMM_NAME_MAX_LENGTH = 128;
 
 /**
  * @brief HCCL functions return value definition
@@ -122,7 +123,15 @@ typedef struct HcclCommConfigDef {
     char reserved[HCCL_COMM_CONFIG_INFO_BYTES];
     uint32_t hcclBufferSize;
     uint32_t hcclDeterministic;
+    char hcclCommName[COMM_NAME_MAX_LENGTH];
 } HcclCommConfig;
+
+typedef enum {
+    HCCL_COMM_CONFIG_BUFFER_SIZE = 0,
+    HCCL_COMM_CONFIG_DETERMINISTIC = 1,
+    HCCL_COMM_CONFIG_COMM_NAME = 2,
+    HCCL_COMM_CONFIG_RESERVED,
+} HcclCommConfigCapability;
 #ifdef __cplusplus
 }
 #endif // __cplusplus
