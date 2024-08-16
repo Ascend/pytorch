@@ -18,6 +18,7 @@ LOAD_FUNCTION(HcclScatter)
 LOAD_FUNCTION(HcclBatchSendRecv)
 LOAD_FUNCTION(HcclAlltoAll)
 LOAD_FUNCTION(HcclCommInitRootInfoConfig)
+LOAD_FUNCTION(HcclGetCommConfigCapability)
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
@@ -131,5 +132,16 @@ HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootI
     TORCH_CHECK(func, "Failed to find function ", "HcclCommInitRootInfoConfig", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(nRanks, rootInfo, rank, config, comm);
     return ret;
+}
+
+bool isHcclFeatureSupported(HcclCommConfigCapability configParameter)
+{
+    typedef uint32_t(*HcclGetCommConfigCapabilityFunc)();
+    static HcclGetCommConfigCapabilityFunc func = (HcclGetCommConfigCapabilityFunc) GET_FUNC(
+            HcclGetCommConfigCapability);
+    if (func == nullptr) {
+        return false;
+    }
+    return configParameter < func();
 }
 } // namespace c10d_npu

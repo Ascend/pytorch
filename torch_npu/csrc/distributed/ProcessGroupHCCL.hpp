@@ -407,6 +407,10 @@ public:
 
     int64_t getHcclComm(int rankid);
 
+    void setHcclCommName(const std::string& hccl_comm_name);
+
+    bool isSupportHcclCommName();
+
     void resumeHcclComm(int device_id);
 
     void setWatchdogStatus(int status);
@@ -435,7 +439,8 @@ protected:
     std::vector<std::shared_ptr<HCCLComm>>& getHCCLComm(
         const std::string& devicesKey,
         const std::vector<at::Device>& devices,
-        HcclCommType commType = HcclCommType::DEFAULT);
+        HcclCommType commType = HcclCommType::DEFAULT,
+        HcclCommConfig* commConfig = nullptr);
 
     // Get the data vol for HCCL operators.
     void recordDataVol(std::string opName, const std::string dataVol, const int currRank,
@@ -494,6 +499,8 @@ protected:
     //
     //      Note that the order of the device for the tensor list matters.
     std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>> devHCCLCommMap_;
+
+    std::unordered_map<std::string, std::string> devHCCLCommNameMap_;
 
     // Mutex to guard maps like devHCCLCommMap_.
     std::mutex mutex_;
