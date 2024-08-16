@@ -5,7 +5,7 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     _check_tensor_list, _coalescing_manager, _ensure_all_tensors_same_dtype, get_rank, _rank_not_in_group, \
     _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size,\
     _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend,\
-    get_backend, GatherOptions
+    get_backend, GatherOptions, _update_default_pg, _world
 
 __all__ = ["batch_isend_irecv", "gather", "gather_object", "is_hccl_available"]
 
@@ -186,3 +186,16 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None):
 
 def is_hccl_available():
     return "hccl" in Backend.backend_list
+
+
+def _destructor_process_group():
+    _update_default_pg(None)
+    _world.pg_map.clear()
+    _world.pg_names.clear()
+    _world.pg_group_ranks.clear()
+    _world.pg_backend_config.clear()
+    _world.pg_to_tag.clear()
+    _world.tags_to_pg.clear()
+    _world.pg_coalesce_state.clear()
+    _world.pg_default_device.clear()
+    _world.group_count = 0
