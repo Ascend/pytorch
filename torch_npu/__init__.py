@@ -195,7 +195,9 @@ del DefaultDeviceType
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
-    torch_npu._C._npu_shutdown()
+    success = torch_npu._C._npu_shutdown_synchronize()
+    torch_npu.distributed.distributed_c10d._destructor_process_group()
+    torch_npu._C._npu_shutdown(success)
     _except_handler.handle_exception()
 
 
