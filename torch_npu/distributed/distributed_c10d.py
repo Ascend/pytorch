@@ -687,6 +687,21 @@ def _new_process_group_helper(world_size, rank, group_ranks, backend, store, pg_
     return pg
 
 
+def _destructor_process_group():
+    global _pg_map
+    global _pg_names
+    global _pg_group_ranks
+    global _default_pg_init_method
+    global _group_count
+
+    _update_default_pg(None)
+    _default_pg_init_method = None
+    _pg_map.clear()
+    _pg_names.clear()
+    _pg_group_ranks.clear()
+    _group_count = 0
+
+
 def destroy_process_group(group=None):
     """
     Destroy a given process group, and deinitialize the distributed package
