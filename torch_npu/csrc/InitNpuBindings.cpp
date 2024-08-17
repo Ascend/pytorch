@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/utils/AutocastMode.h"
 #include "third_party/profiler/python/combined_traceback.h"
 #ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/core/npu/NPURecovery.h"
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
 
@@ -81,7 +82,7 @@ PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
     } else {
         ASCEND_LOGI("NPU shutdown success.");
     }
-    
+
     Py_RETURN_NONE;
 }
 
@@ -177,6 +178,9 @@ PyObject* initModule() {
     RegisterNPUDeviceMemories(module);
     BindGetDeviceMemories(module);
     RegisterNpuPluggableAllocator(module);
+#ifndef BUILD_LIBTORCH
+    c10_npu::bind_npu_recovery_functions(module);
+#endif
     initCommMethods();
     torch::installCapturedTracebackPython();
     torch_npu::profiler::initMstx(module);

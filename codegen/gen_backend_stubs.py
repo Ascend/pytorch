@@ -177,7 +177,7 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
     return _GLOBAL_PARSE_NATIVE_YAML_CACHE[path]
 
 
-# Different implements of ops from origin torch. 
+# Different implements of ops from origin torch.
 # Native ops with dispatchkey CompositeImplicitAutograd but implemented as a kernel op in pta
 COMPOSITEIMPLICITAUTOGRAD_INCLUDE_LIST = [
     'to.device',
@@ -386,6 +386,7 @@ def gen_dispatcher_registrations(
     ns_helper = NamespaceHelper(namespace_str="at")
     native_func_header = """\
 #ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/core/npu/NPURecovery.h"
 #include "torch_npu/csrc/profiler/utils.h"
 #endif
 
@@ -541,7 +542,7 @@ def gen_functionalization(fm: FileManager,
             "func_registrations",
         },
     )
-    return 
+    return
 
 
 def gen_target_registration(
@@ -660,7 +661,7 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
         custom_functions = parse_custom_yaml(source_yaml, tags_yaml_path).native_functions
         pta_template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
         fm = FileManager(install_dir=output_dir, template_dir=pta_template_dir, dry_run=dry_run)
-        
+
         grouped_custom_functions = get_grouped_native_functions_optional_out(custom_functions)
         gen_functionalization(fm, selector, grouped_custom_functions)
         gen_custom_trace(fm, custom_functions)

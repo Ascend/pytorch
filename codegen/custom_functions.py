@@ -75,6 +75,7 @@ def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
 METHOD_DEFINITION = CodeTemplate("""\
 ${return_type} ${name}(${args_str}) {
   ${unpack_out}
+  ${unsafe_tensor_check}
   ${device_guard}
   ${type_definition_body}
 }
@@ -123,7 +124,28 @@ def compute_op_definition(f: NativeFunction):
         f.func.arguments.out,
         f.func.arguments.flat_positional,
     )
+    candidate_tensor_args = []
+    for a in candidate_args:
+        if a.type.is_tensor_like():
+            candidate_tensor_args.append(f"{a.name}")
 
+    unsafe_tensor_check = """ // No check"""
+    if len(candidate_tensor_args) > 0:
+        unsafe_tensor_check = """
+#ifndef BUILD_LIBTORCH
+if (c10_npu::get_npu_data_unsafe_flag()) {"""
+        for tensor_arg in candidate_tensor_args:
+            unsafe_tensor_check = unsafe_tensor_check + f"""
+    c10_npu::check_npu_tensor_is_safe({tensor_arg});"""
+        unsafe_tensor_check = unsafe_tensor_check + """
+}
+#endif"""
+
+    candidate_args = itertools.chain(
+        self_arg,
+        f.func.arguments.out,
+        f.func.arguments.flat_positional,
+    )
     # Only tensor like arguments are eligible
     device_of = next(
         (
@@ -133,7 +155,7 @@ def compute_op_definition(f: NativeFunction):
         ),
         None,
     )
-    
+
     if has_tensor_options and device_of is not None:
         device_guard = f"""
 c10::OptionalDeviceGuard device_guard(device_of({device_of}));
@@ -154,6 +176,7 @@ const c10::DeviceGuard device_guard(device_or_default(device));"""
         name=name,
         args_str=','.join(a.defn() for a in args[:-out_num]) + ', at::TensorList out' if out_num > 1 else args_str,
         unpack_out=unpack_out,
+        unsafe_tensor_check=unsafe_tensor_check,
         device_guard=device_guard,
         type_definition_body=[TRACE_DISPATCH.substitute(impl_name=impl_name, args_exprs_str=args_exprs_str)]
     )]
