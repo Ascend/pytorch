@@ -15,6 +15,7 @@ from .focus import Focus
 from .batchnorm_with_int32_count import FastBatchNorm1d, \
     FastBatchNorm2d, FastBatchNorm3d, FastSyncBatchNorm
 from .linear_a8w8_quant import LinearA8W8Quant
+from .linear_quant import LinearQuant
 from .linear_weight_quant import LinearWeightQuant
 from .quant_conv2d import QuantConv2d
 from .npu_modules import DropoutWithByteMask
@@ -39,6 +40,7 @@ __all__ = [
     "NpuDropPath",
     "Focus",
     "LinearA8W8Quant",
+    "LinearQuant",
     "LinearWeightQuant",
     "QuantConv2d",
     "DropoutWithByteMask",

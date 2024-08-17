@@ -1265,9 +1265,9 @@ class TestNpuTranspose(TestCase):
 class TestPromptFlashAttention(TestCase):
     def testPromptFlashAttention(self):
         with FakeTensorMode():
-            q = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
-            k = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
-            v = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
+            q = torch.randn(1, 1024, 1024, dtype=torch.float16).npu()
+            k = torch.randn(1, 1024, 1024, dtype=torch.float16).npu()
+            v = torch.randn(1, 1024, 1024, dtype=torch.float16).npu()
             q.requires_grad = True
             k.requires_grad = True
             v.requires_grad = True
@@ -1281,9 +1281,9 @@ class TestPromptFlashAttention(TestCase):
 class TestFusedInferAttentionScore(TestCase):
     def testFusedInferAttentionScore(self):
         with FakeTensorMode():
-            q = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
-            k = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
-            v = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
+            q = torch.randn(1, 1024, 1024, dtype=torch.float16).npu()
+            k = torch.randn(1, 1024, 1024, dtype=torch.float16).npu()
+            v = torch.randn(1, 1024, 1024, dtype=torch.float16).npu()
             q.requires_grad = True
             k.requires_grad = True
             v.requires_grad = True
@@ -1785,6 +1785,15 @@ class TestQuantMatmul(TestCase):
             self.assertTrue(expect_ret_bf16.shape == res_bf16.shape)
             self.assertTrue(expect_ret_bf16.dtype == res_bf16.dtype)
 
+            x1 = torch.randint(-1, 1, (16, 8), dtype=torch.int32).npu()
+            x2 = torch.randint(-1, 1, (64, 5), dtype=torch.int32).npu()
+            expect_ret = torch.randint(-1, 1, (16, 40), dtype=torch.float16).npu()
+            scale = torch.randn(1, dtype=torch.float32).npu()
+            bias = torch.randint(-1, -1, (40,), dtype=torch.int32).npu()
+            res = torch_npu.npu_quant_matmul(x1, x2, scale, offset=None, bias=bias, output_dtype=torch.float16)
+            self.assertTrue(expect_ret.shape == res.shape)
+            self.assertTrue(expect_ret.dtype == res.dtype)
+
 
 class TestTranQuantParam(TestCase):
     def test_npu_trans_quant_param_meta(self):
@@ -1846,7 +1855,7 @@ class TestMoeFinalizeRouting(TestCase):
             scales = torch.randn(num_rows, top_k).to(torch.float32)
             expanded_src_to_dst_row = torch.arange(num_rows * top_k).to(torch.int32)
             expert_for_source_row = torch.randint(low = 0, high = expert_num, size = (num_rows, top_k)).to(torch.int32)
-            
+
             result = torch_npu.npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional, bias, scales,
                                                         expanded_src_to_dst_row, expert_for_source_row)
 
