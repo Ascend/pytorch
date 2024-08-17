@@ -340,154 +340,191 @@ def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offs
     return x.new_empty((dim_m, dim_n), dtype=x.dtype)
 
 
-def bias_shape_check(x2, bias, batch_val):
+def bias_shape_check(x2, bias, batch_val, is_a4w4, transpose_x2):
     bias_dim_num = bias.dim()
-    torch._check(
-        bias_dim_num == 1 or bias_dim_num == 3,
-        lambda: "bias_dim_num should be 1 or 3, please check bias dim num ",
-    )
+    if is_a4w4:
+        torch._check(
+            bias_dim_num == 1,
+            lambda: "bias_dim_num should be 1 when x1's dtype is int32, please check bias dim num " + ops_error(ErrCode.VALUE),
+        )
+    else:
+        torch._check(
+            bias_dim_num == 1 or bias_dim_num == 3,
+            lambda: "bias_dim_num should be 1 or 3 when x1's dtype is int8, please check bias dim num " + ops_error(ErrCode.VALUE),
+        )
     x2_dim_num = x2.dim()
-    x2_n_dim = x2.size(x2_dim_num - 1)
+    x2_n_dim = x2.size(x2_dim_num - 1) * 8 if (is_a4w4 and not transpose_x2) else x2.size(x2_dim_num - 1)
     bias_first_dim = bias.size(0)
     if bias_dim_num == 1:
         torch._check(
             bias_first_dim == x2_n_dim,
-            lambda: "bias_first_dim should be equal to x2 n dim, please check bias 1st dim value ",
+            lambda: "bias_first_dim should be equal to x2 n dim, please check bias 1st dim value " + ops_error(ErrCode.VALUE),
         )
         return
     bias_second_dim = bias.size(1)
     bias_third_dim = bias.size(2)
     torch._check(
         bias_first_dim == batch_val,
-        lambda: "infered batch value should be equal to bias batch dim value, please check bias batch dim value",
+        lambda: "infered batch value should be equal to bias batch dim value, please check bias batch dim value" + ops_error(ErrCode.VALUE),
     )
     torch._check(
         bias_second_dim == 1,
-        lambda: "bias_second_dim should be 1, please check bias second dim value ",
+        lambda: "bias_second_dim should be 1, please check bias second dim value " + ops_error(ErrCode.VALUE),
     )
     torch._check(
         bias_third_dim == x2_n_dim,
-        lambda: "bias_third_dim should be equal to x2_n_dim, please check bias third dim value ",
+        lambda: "bias_third_dim should be equal to x2_n_dim, please check bias third dim value " + ops_error(ErrCode.VALUE),
     )
 
 
-def quant_matmul_shape_check(x1, x2, scale, offset, pertoken_scale):
+def quant_matmul_shape_check(*args):
+    x1, x2, scale, offset, pertoken_scale, is_a4w4, transpose_x2 = args
     X_MAX_DIM = 6
     X_MIN_DIM = 2
+    INT4_IN_INT32 = 8
     x1_dim_num = x1.dim()
     x2_dim_num = x2.dim()
     x1_m_dim = x1.size(x1_dim_num - 2)
     x1_k_dim = x1.size(x1_dim_num - 1)
     x2_k_dim = x2.size(x2_dim_num - 2)
-    x2_n_dim = x2.size(x2_dim_num - 1)
+    x2_n_dim = x2.size(x2_dim_num - 1) * INT4_IN_INT32 if (is_a4w4 and not transpose_x2) else x2.size(x2_dim_num - 1)
     torch._check(
         x1_dim_num >= X_MIN_DIM and x1_dim_num <= X_MAX_DIM,
-        lambda: "x1 dim num should be 2 ~ 6, please check x1 dim num",
+        lambda: "x1 dim num should be 2 ~ 6, please check x1 dim num" + ops_error(ErrCode.VALUE),
     )
-    torch._check(
-        x2_dim_num >= X_MIN_DIM and x2_dim_num <= X_MAX_DIM,
-        lambda: "x2 dim num should be 2 ~ 6, please check x2 dim num",
-    )
-    torch._check(
-        x1_k_dim == x2_k_dim,
-        lambda: "k dim of x1 and x2 need be same, please check k dim of x1 and x2",
-    )
+    if is_a4w4 and not transpose_x2:
+        torch._check(
+            x1_k_dim * INT4_IN_INT32 == x2_k_dim,
+            lambda: "k dim of x2 should be 8 multiple of k dim of x1, please check k dim of x1 and x2" + ops_error(ErrCode.VALUE),
+        )
+    else:
+        torch._check(
+            x1_k_dim == x2_k_dim,
+            lambda: "k dim of x1 and x2 need be same, please check k dim of x1 and x2" + ops_error(ErrCode.VALUE),
+        )
+
+    if is_a4w4:
+        torch._check(
+            x2_dim_num == X_MIN_DIM,
+            lambda: "x2 dim num should be 2 when x1's dtype is int32, please check x2 dim num" + ops_error(ErrCode.VALUE),
+        )
+    else:
+        torch._check(
+            x2_dim_num >= X_MIN_DIM and x2_dim_num <= X_MAX_DIM,
+            lambda: "x2 dim num should be 2 ~ 6 when x1's dtype is int8, please check x2 dim num" + ops_error(ErrCode.VALUE),
+        )
+
     if offset is not None:
         offset_dim_num = offset.dim()
         torch._check(
             offset_dim_num == 1,
-            lambda: "the offset dim num must be 1, please check offset dim num ",
+            lambda: "the offset dim num must be 1, please check offset dim num " + ops_error(ErrCode.VALUE),
         )
         offset_first_dim = offset.size(0)
         torch._check(
             offset_first_dim == 1 or offset_first_dim == x2_n_dim,
-            lambda: "the offset 1st dim value must be 1 or x2 n dim value, please check offset 1st dim value",
+            lambda: "the offset 1st dim value must be 1 or x2 n dim value, please check offset 1st dim value" + ops_error(ErrCode.VALUE),
         )
     if pertoken_scale is not None:
         pertoken_scale_dim_num = pertoken_scale.dim()
         torch._check(
             pertoken_scale_dim_num == 1,
-            lambda: "the pertoken_scale dim num must be 1, please check scale dim num",
+            lambda: "the pertoken_scale dim num must be 1, please check scale dim num" + ops_error(ErrCode.VALUE),
         )
         pertoken_scale_first_dim = pertoken_scale.size(0)
         torch._check(
             pertoken_scale_first_dim == x1_m_dim,
-            lambda: "the pertoken_scale 1st dim value must be x1 m dim value, please check scale 1st dim value ",
+            lambda: "the pertoken_scale 1st dim value must be x1 m dim value, please check scale 1st dim value " + ops_error(ErrCode.VALUE),
         )
 
     scale_dim_num = scale.dim()
     torch._check(
         scale_dim_num == 1,
-        lambda: "the scale dim num must be 1, please check scale dim num",
+        lambda: "the scale dim num must be 1, please check scale dim num" + ops_error(ErrCode.VALUE),
     )
     scale_first_dim = scale.size(0)
     torch._check(
         scale_first_dim == 1 or scale_first_dim == x2_n_dim,
-        lambda: "the scale 1st dim value must be 1 or x2 n dim value, please check scale 1st dim value ",
+        lambda: "the scale 1st dim value must be 1 or x2 n dim value, please check scale 1st dim value " + ops_error(ErrCode.VALUE),
     )
 
 
 def quant_matmul_dtype_check(*args):
-    x1, x2, scale, offset, pertoken_scale, bias = args
+    x1, x2, scale, offset, pertoken_scale, bias, is_a4w4 = args
     torch._check(
-        x1.dtype == torch.int8 and x2.dtype == torch.int8,
-        lambda: "x1'type and x2's type should be int8, but x1.dtype is " + str(x1.dtype) + " and x2.dtype is " +
-                str(x2.dtype),
+        x1.dtype == x2.dtype,
+        lambda: "x1's type and x2's type should be same, but x1.dtype is " + str(x1.dtype) + " and x2.dtype is " +
+                str(x2.dtype) + ops_error(ErrCode.TYPE),
     )
-    scale_dtype_supported_lst = [torch.float32, torch.int64, torch.bfloat16]
+    input_dtype_supported_list = [torch.int8, torch.int32]
     torch._check(
-        scale.dtype in scale_dtype_supported_lst,
-        lambda: "scale's type supported for float32, int64 and bfloat16, but scale.dtype is " + str(scale.dtype),
+        x1.dtype in input_dtype_supported_list,
+        lambda: "input's type supported for int8 and int32, but now is " + str(x1.dtype) + ops_error(ErrCode.TYPE),
+    )
+    scale_dtype_supported_list = [torch.float32, torch.int64, torch.bfloat16]
+    torch._check(
+        scale.dtype in scale_dtype_supported_list,
+        lambda: "scale's type supported for float32, int64 and bfloat16, but scale.dtype is " + str(scale.dtype) + ops_error(ErrCode.TYPE),
     )
     if offset is not None:
         torch._check(
             offset.dtype == torch.float32,
-            lambda: "offset's type supported for float32, but offset.dtype is " + str(offset.dtype),
+            lambda: "offset's type supported for float32, but offset.dtype is " + str(offset.dtype) + ops_error(ErrCode.TYPE),
         )
     if pertoken_scale is not None:
         torch._check(
             pertoken_scale.dtype == torch.float32,
-            lambda: "pertoken_scale's type supported for float32, but pertoken_scale.dtype is " + str(offset.dtype),
+            lambda: "pertoken_scale's type supported for float32, but pertoken_scale.dtype is " + 
+                    str(offset.dtype) + ops_error(ErrCode.TYPE),
         )
     if bias is not None:
         torch._check(
             bias.dtype == torch.int32 or bias.dtype == torch.bfloat16,
-            lambda: "bias's type supported for int32 and bfloat16, but bias.dtype is " + str(bias.dtype),
+            lambda: "bias's type supported for int32 and bfloat16, but bias.dtype is " + str(bias.dtype) + ops_error(ErrCode.TYPE),
         )
 
 
-def quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dtype):
+def quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dtype, is_a4w4):
     if scale.dtype == torch.bfloat16:
         torch._check(
             output_dtype == torch.bfloat16,
-            lambda: "When scale's dtype is bfloat16, output_dtype must be bfloat16, but output_dtype is " + str(output_dtype),
+            lambda: "When scale's dtype is bfloat16, output_dtype must be bfloat16, but output_dtype is " + 
+                    str(output_dtype) + ops_error(ErrCode.TYPE),
         )
     if output_dtype == torch.bfloat16:
         torch._check(
             scale.dtype == torch.bfloat16,
             lambda: "When output_dtype is bfloat16, scale's dtype must be bfloat16, but scale's dtype is " +
-            str(scale.dtype),
+                    str(scale.dtype) + ops_error(ErrCode.TYPE),
         )
     if offset is not None:
         torch._check(
             output_dtype is None or output_dtype == torch.int8,
-            lambda: "offset only exists when output_dtype is int8, but output_dtype is " + str(output_dtype),
+            lambda: "offset only exists when output_dtype is int8, but output_dtype is " + str(output_dtype) + ops_error(ErrCode.TYPE),
         )
     if pertoken_scale is not None:
         if output_dtype == torch.float16:
             torch._check(
                 scale.dtype == torch.float32,
                 lambda: "When output_dtype is float16 and pertoken_scale is not none, scale's dtype must be float32, but scale's dtype is " +
-                str(scale.dtype),
+                        str(scale.dtype) + ops_error(ErrCode.TYPE),
             )
         torch._check(
             output_dtype == torch.float16 or output_dtype == torch.bfloat16,
-            lambda: "When pertoken_scale is not none, output_dtype must be float16 or bfloat16, but output_dtype is " + str(output_dtype),
+            lambda: "When pertoken_scale is not none, output_dtype must be float16 or bfloat16, but output_dtype is " + 
+                    str(output_dtype) + ops_error(ErrCode.TYPE),
+        )
+    if is_a4w4:
+        torch._check(
+            output_dtype == torch.float16,
+            lambda: "When input's dtype is int32, output_dtype must be float16, but output_dtype is " + 
+                    str(output_dtype) + ops_error(ErrCode.TYPE),
         )
 
 
 @impl(m, "npu_quant_matmul")
 def npu_quant_matmul_meta(x1, x2, scale, *, offset=None, pertoken_scale=None, bias=None, output_dtype=None):
+    INT4_IN_INT32 = 8
     batch_val = 1
     x1_dim_num = x1.dim()
     x2_dim_num = x2.dim()
@@ -495,36 +532,40 @@ def npu_quant_matmul_meta(x1, x2, scale, *, offset=None, pertoken_scale=None, bi
     shape_long = x1 if x1_dim_num > x2_dim_num else x2
     shape_short = x2 if x1_dim_num > x2_dim_num else x1
     vaild_offset = out_dim_num - min(x1_dim_num, x2_dim_num)
+    is_a4w4 = x1.dtype == torch.int32 and x2.dtype == torch.int32
     dim_list = []
     for i in range(0, out_dim_num - 2):
         short_dim = 1 if i < vaild_offset else shape_short.size(i - vaild_offset)
         long_dim = shape_long.size(i)
         torch._check(
             not (short_dim > 1 and long_dim > 1 and short_dim != long_dim),
-            lambda: "the batch shape cannnot be boardcast",
+            lambda: "the batch shape cannot be broadcast" + ops_error(ErrCode.VALUE),
         )
         cur_batch_val = max(short_dim, long_dim)
         batch_val = batch_val * cur_batch_val
         dim_list.append(cur_batch_val)
     dimm = x1.size(x1.dim() - 2)
-    dimn = x2.size(x2.dim() - 1)
+    transpose_x2 = x1.size(x1.dim() - 1) == x2.size(x2.dim() - 2)
+
+    dimn = x2.size(x2.dim() - 1) * INT4_IN_INT32 if (is_a4w4 and not transpose_x2) else x2.size(x2.dim() - 1)
     dim_list.append(dimm)
     dim_list.append(dimn)
-    quant_matmul_shape_check(x1, x2, scale, offset, pertoken_scale)
+    quant_matmul_shape_check(x1, x2, scale, offset, pertoken_scale, is_a4w4, transpose_x2)
     if bias is not None:
         if bias.dtype == torch.bfloat16:
             torch._check(
                 output_dtype == torch.bfloat16,
-                lambda: "When bias dtype is bfloat16, output_dtype must be bfloat16, but it is " + str(output_dtype),
+                lambda: "When bias dtype is bfloat16, output_dtype must be bfloat16, but it is " + 
+                        str(output_dtype) + ops_error(ErrCode.TYPE),
             )
         if bias.dim() == 3:
             torch._check(
                 len(dim_list) == 3,
-                lambda:"when bias dim is 3, out dim need to be 3",
+                lambda:"when bias dim is 3, out dim need to be 3" + ops_error(ErrCode.TYPE),
             )
-        bias_shape_check(x2, bias, batch_val)
-    quant_matmul_dtype_check(x1, x2, scale, offset, pertoken_scale, bias)
-    quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dtype)
+        bias_shape_check(x2, bias, batch_val, is_a4w4, transpose_x2)
+    quant_matmul_dtype_check(x1, x2, scale, offset, pertoken_scale, bias, is_a4w4)
+    quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dtype, is_a4w4)
     if output_dtype == torch.float16:
         return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
     elif output_dtype == torch.bfloat16:
