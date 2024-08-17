@@ -266,6 +266,28 @@ bool NPUPluggableAllocator::checkUceInMem(int device)
     return false;
 }
 
+bool NPUPluggableAllocator::checkBlockIsSafe(const c10::DataPtr& ptr)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support checkBlockIsSafe. "
+        "If you need it, please file an issue describing your use case.");
+    return false;
+}
+
+void NPUPluggableAllocator::markAllBlockUnsafe(int device)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support markAllBlockUnsafe. "
+        "If you need it, please file an issue describing your use case.");
+}
+
+void NPUPluggableAllocator::updateBlockToSafe(const c10::DataPtr& ptr)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support updateBlockToSafe. "
+        "If you need it, please file an issue describing your use case.");
+}
+
 std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>
     current_custom_allocator;
 

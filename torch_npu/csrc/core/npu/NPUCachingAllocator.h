@@ -204,6 +204,9 @@ public:
                                RecordContext when) = 0;
     virtual void attachOutOfMemoryObserver(OutOfMemoryObserver observer) = 0;
     virtual bool checkUceInMem(int device) = 0;
+    virtual bool checkBlockIsSafe(const c10::DataPtr& ptr) = 0;
+    virtual void markAllBlockUnsafe(int device) = 0;
+    virtual void updateBlockToSafe(const c10::DataPtr &ptr) = 0;
 };
 
 // Allocator object, statically initialized
@@ -322,6 +325,21 @@ inline void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
 inline bool checkUceInMem(int device)
 {
     return get()->checkUceInMem(device);
+}
+
+inline bool checkBlockIsSafe(const c10::DataPtr& ptr)
+{
+    return get()->checkBlockIsSafe(ptr);
+}
+
+inline void markAllBlockUnsafe(int device)
+{
+    return get()->markAllBlockUnsafe(device);
+}
+
+inline void updateBlockToSafe(const c10::DataPtr& ptr)
+{
+    return get()->updateBlockToSafe(ptr);
 }
 
 } // namespace NPUCachingAllocator
