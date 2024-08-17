@@ -76,6 +76,9 @@ struct NPUPluggableAllocator
         c10_npu::NPUCachingAllocator::RecordContext when) override;
     void attachOutOfMemoryObserver(c10_npu::NPUCachingAllocator::OutOfMemoryObserver observer) override;
     bool checkUceInMem(int device) override;
+    bool checkBlockIsSafe(const c10::DataPtr& ptr) override;
+    void markAllBlockUnsafe(int device) override;
+    void updateBlockToSafe(const c10::DataPtr &ptr) override;
 
 protected:
     std::function<void*(size_t, int, aclrtStream)> alloc_fn_;
