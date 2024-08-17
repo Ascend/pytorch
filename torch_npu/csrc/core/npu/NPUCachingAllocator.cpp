@@ -151,26 +151,26 @@ struct BlockPool{
 struct ExpandableSegment;
 
 struct Block {
-  int device; // npu
-  aclrtStream stream; // allocation stream
-  stream_set stream_uses; // streams on which the block was used
-  size_t size; // block size in bytes
-  size_t requested_size; // memory originally requested
-  BlockPool* pool; // owning memory pool
-  void* ptr; // memory address
-  bool allocated; // in-use flag
-  bool mapped{true}; // is the virtual address range this Block references
-                     // backed by physical pages. Always true when
-                     // expandable_segment_ is null. When false
-                     // This Block will be aligned to the segment size
-                     // of its expandable_segment_.
-  Block* prev; // prev block if split from a larger allocation
-  Block* next; // next block if split from a larger allocation
-  int event_count; // number of outstanding NPU events
-  int gc_count{0}; // counter for prioritizing older / less useful blocks for
-                   // garbage collection
-  ExpandableSegment* expandable_segment_{nullptr};
-
+    int device; // npu
+    aclrtStream stream; // allocation stream
+    stream_set stream_uses; // streams on which the block was used
+    size_t size; // block size in bytes
+    size_t requested_size; // memory originally requested
+    BlockPool* pool; // owning memory pool
+    void* ptr; // memory address
+    bool allocated; // in-use flag
+    bool mapped{true}; // is the virtual address range this Block references
+                       // backed by physical pages. Always true when
+                      // expandable_segment_ is null. When false
+                      // This Block will be aligned to the segment size
+                      // of its expandable_segment_.
+    Block* prev; // prev block if split from a larger allocation
+    Block* next; // next block if split from a larger allocation
+    int event_count; // number of outstanding NPU events
+    int gc_count{0}; // counter for prioritizing older / less useful blocks for
+                     // garbage collection
+    ExpandableSegment* expandable_segment_{nullptr};
+    bool is_safe{true};
     std::shared_ptr<c10::GatheredContext> context_when_allocated;
     // only set for the first block in the segment (when prev == null)
     // this records the frame information when cudaMalloc was called
@@ -178,51 +178,53 @@ struct Block {
     // memory out from our cache.
     std::shared_ptr<c10::GatheredContext> context_when_segment_allocated;
 
-  Block(int device, aclrtStream stream, size_t size, BlockPool* pool, void* ptr)
-      : device(device),
-        stream(stream),
-        stream_uses(),
-        size(size),
-        requested_size(0),
-        pool(pool),
-        ptr(ptr),
-        allocated(0),
-        prev(nullptr),
-        next(nullptr),
-        event_count(0),
-        gc_count(0) {}
+    Block(int device, aclrtStream stream, size_t size, BlockPool* pool, void* ptr)
+        : device(device),
+          stream(stream),
+          stream_uses(),
+          size(size),
+          requested_size(0),
+          pool(pool),
+          ptr(ptr),
+          allocated(0),
+          prev(nullptr),
+          next(nullptr),
+          event_count(0),
+          gc_count(0) {}
 
-  // constructor for search key
-  Block(int device, aclrtStream stream, size_t size)
-      : device(device),
-        stream(stream),
-        stream_uses(),
-        size(size),
-        requested_size(0),
-        pool(nullptr),
-        ptr(nullptr),
-        allocated(0),
-        prev(nullptr),
-        next(nullptr),
-        event_count(0),
-        gc_count(0) {}
+    // constructor for search key
+    Block(int device, aclrtStream stream, size_t size)
+        : device(device),
+          stream(stream),
+          stream_uses(),
+          size(size),
+          requested_size(0),
+          pool(nullptr),
+          ptr(nullptr),
+          allocated(0),
+          prev(nullptr),
+          next(nullptr),
+          event_count(0),
+          gc_count(0) {}
 
-  bool is_split() const {
-    return (prev != nullptr) || (next != nullptr);
-  }
-
-  void splice(Block* before, Block* after) {
-    if (before) {
-        TORCH_INTERNAL_ASSERT(before->next == after, PTA_ERROR(ErrCode::PTR));
-        before->next = this;
+    bool is_split() const
+    {
+        return (prev != nullptr) || (next != nullptr);
     }
-    prev = before;
-    if (after) {
-        TORCH_INTERNAL_ASSERT(after->prev == before, PTA_ERROR(ErrCode::PTR));
-        after->prev = this;
+
+    void splice(Block* before, Block* after)
+    {
+        if (before) {
+            TORCH_INTERNAL_ASSERT(before->next == after, PTA_ERROR(ErrCode::PTR));
+            before->next = this;
+        }
+        prev = before;
+        if (after) {
+            TORCH_INTERNAL_ASSERT(after->prev == before, PTA_ERROR(ErrCode::PTR));
+            after->prev = this;
+        }
+        next = after;
     }
-    next = after;
-  }
 };
 
 struct SegmentRange {
@@ -877,6 +879,14 @@ class DeviceCachingAllocator {
       return false;
   }
 
+  void markAllBlockUnsafe()
+  {
+      for (auto& active_block : active_blocks) {
+          active_block->is_safe = false;
+      }
+      return;
+  }
+
   // Must be called outside of `mutex` or deadlocks are possible with Python
   std::shared_ptr<c10::GatheredContext> maybeGatherContext(RecordContext level)
   {
@@ -950,7 +960,7 @@ class DeviceCachingAllocator {
           allowed_info = format_size(allowed_memory_maximum) + " allowed; ";
         }
         stats.num_ooms += 1;
-        
+
         record_trace(
             TraceEntry::OOM,
             device_free,
@@ -1103,6 +1113,7 @@ class DeviceCachingAllocator {
 
   block->allocated = true;
   block->requested_size = orig_size;
+  block->is_safe = true;
 
   block->context_when_allocated = std::move(context);
   record_trace(
@@ -1877,7 +1888,7 @@ class DeviceCachingAllocator {
     key.size =
         (key.size < CachingAllocatorConfig::max_split_size()) ? CachingAllocatorConfig::max_split_size() : key.size;
     auto it = pool.blocks.lower_bound(&key);
-    
+
     c10_npu::npuSynchronizeDevice(true);
 
     if (it == pool.blocks.end() || (*it)->stream != p.stream()) {
@@ -1961,7 +1972,7 @@ class DeviceCachingAllocator {
     aclrtFree((void*)block->ptr);
     total_allocated_memory -= block->size;
 
-    auto* pool = block->pool; 
+    auto* pool = block->pool;
 
     StatTypes stat_types = get_stat_types_for_pool(*pool);
     for_each_selected_stat_type(stat_types, [&](size_t stat_type) {
@@ -2245,7 +2256,7 @@ class NpuCachingAllocator : public NPUAllocator {
     }
   }
 
-    bool initialized() override
+  bool initialized() override
     {
         return !device_allocator.empty();
     }
@@ -2357,6 +2368,37 @@ class NpuCachingAllocator : public NPUAllocator {
   bool checkUceInMem(int device) override
   {
       return device_allocator[device]-> checkUceInMem();
+  }
+
+  bool checkBlockIsSafe(const c10::DataPtr& ptr) override
+  {
+      if (!ptr.get()) {
+          return true;
+      }
+      if (ptr.get_deleter() != &local_raw_delete) {
+          return true;
+      }
+      Block* block = get_allocated_block(ptr.get());
+      TORCH_INTERNAL_ASSERT(block != nullptr, "No allocated block can be found", PTA_ERROR(ErrCode::NOT_FOUND));
+      return block->is_safe;
+  }
+
+  void markAllBlockUnsafe(int device) override
+  {
+      return device_allocator[device]-> markAllBlockUnsafe();
+  }
+
+  void updateBlockToSafe(const c10::DataPtr &ptr) override
+  {
+      if (!ptr.get()) {
+          return;
+      }
+      if (ptr.get_deleter() != &local_raw_delete) {
+          return;
+      }
+      Block* block = get_allocated_block(ptr.get());
+      TORCH_INTERNAL_ASSERT(block != nullptr, "No allocated block can be found", PTA_ERROR(ErrCode::NOT_FOUND));
+      block->is_safe = true;
   }
 
   void emptyCache(bool check_error) override
@@ -2503,7 +2545,7 @@ class NpuCachingAllocator : public NPUAllocator {
       assertValidDevice(device);
       device_allocator[device]->resetPeakStats();
   }
-    
+
   void* raw_alloc(size_t nbytes) override
   {
     if (nbytes == 0) {

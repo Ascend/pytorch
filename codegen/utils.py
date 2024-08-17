@@ -339,6 +339,7 @@ return {self_arg_name};
 torch_npu::profiler::NPURecordFunction guard;
 #endif
 """
+            unsafe_tensor_check = """  // No data check"""
             if self.backend_index.device_guard:
                 has_tensor_options = any(
                     isinstance(a, TensorOptionsArguments)
@@ -358,6 +359,38 @@ torch_npu::profiler::NPURecordFunction guard;
                     f.func.arguments.flat_positional,
                 )
 
+                candidate_tensor_args = []
+                for a in candidate_args:
+                    if a.type.is_tensor_like():
+                        candidate_tensor_args.append(f"{a.name}")
+
+                candidate_tensor_args = list(set(candidate_tensor_args))
+                unsafe_tensor_check = """// No data check."""
+                if len(candidate_tensor_args) > 0:
+                    unsafe_tensor_check = """
+#ifndef BUILD_LIBTORCH
+if (c10_npu::get_npu_data_unsafe_flag()) {"""
+
+                if name in ["wrapper_NPU__copy_", "wrapper_NPU___foreach_copy_"]:
+                    tensor_arg = candidate_tensor_args[0] + ", " +\
+                        candidate_tensor_args[1]
+                    unsafe_tensor_check = unsafe_tensor_check + f"""
+    c10_npu::check_and_update_npu_tensor_for_copy(self, src);"""
+                else:
+                    for tensor_arg in candidate_tensor_args:
+                        unsafe_tensor_check = unsafe_tensor_check + f"""
+    c10_npu::check_npu_tensor_is_safe({tensor_arg});"""
+                
+                if len(candidate_tensor_args) > 0:
+                    unsafe_tensor_check = unsafe_tensor_check + """
+}
+#endif"""
+                candidate_args = itertools.chain(
+                    self_arg,
+                    f.func.arguments.out,
+                    f.func.arguments.flat_positional,
+                )
+
                 # Only tensor like arguments are eligible
                 device_of = next(
                     (
@@ -367,7 +400,6 @@ torch_npu::profiler::NPURecordFunction guard;
                     ),
                     None,
                 )
-                
                 if has_tensor_options and device_of is not None:
                     device_guard = f"""
 OptionalDeviceGuard device_guard(device_of({device_of}));
@@ -414,7 +446,7 @@ namespace {{
 
 {returns_type} {name}({args_str}) {{
 {device_check}
-
+{unsafe_tensor_check}
 {device_guard}
 {record_func_def}
 {return_code}
