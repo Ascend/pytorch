@@ -50,23 +50,22 @@ struct LeakyStreamInternals {
 static c10::DeviceIndex num_npus = -1;
 static constexpr int kStreamsPerPoolBits = 3;
 static constexpr int kStreamsPerPool = 1 << kStreamsPerPoolBits;
-// static constexpr unsigned int kDefaultFlags = npuStreamNonBlocking;
-
-// Default streams
+// Default streams init flags
 static bool initialize_flag[C10_COMPILE_TIME_MAX_NPUS] = {false};
 std::mutex mtx[C10_COMPILE_TIME_MAX_NPUS];
+// The stream that delivers the compute task.
 static LeakyStreamInternals default_streams[C10_COMPILE_TIME_MAX_NPUS];
-
 // In a specific scenario, the two operators have no value dependence
 // and different execution hardware, so they can be executed in parallel
 // on the default stream and the secondary stream respectively.
 static LeakyStreamInternals secondary_streams[C10_COMPILE_TIME_MAX_NPUS];
-
+// npu streams pool init flags
 static std::once_flag device_flags[C10_COMPILE_TIME_MAX_NPUS];
 static std::atomic<uint32_t> npu_counters[C10_COMPILE_TIME_MAX_NPUS];
-
-static std::array<LeakyStreamInternals, kStreamsPerPool>
-    npu_streams[C10_COMPILE_TIME_MAX_NPUS];
+// npu_streams is a stream pool, each device has a stream pool,
+// and 8 streams are created in each pool.
+static std::array<LeakyStreamInternals, kStreamsPerPool> npu_streams[C10_COMPILE_TIME_MAX_NPUS];
+static thread_local std::unique_ptr<LeakyStreamInternals* []> current_streams = nullptr;
 
 enum class StreamIdType : uint8_t {
     DEFAULT = 0x0,
@@ -136,8 +135,6 @@ static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr)
         +device_index,
         " (something has gone horribly wrong!)", PTA_ERROR(ErrCode::PTR));
 }
-
-static thread_local std::unique_ptr<LeakyStreamInternals* []> current_streams = nullptr;
 
 static void initGlobalStreamState()
 {
@@ -526,6 +523,30 @@ aclrtStream NPUStream::stream(const bool need_empty) const
     }
   
     return stream();
+}
+
+void recovery_all_npu_streams(c10::DeviceIndex device_index)
+{
+    if (!initialize_flag[device_index]) {
+        return;
+    }
+    NPUGuard device_guard{device_index};
+    auto& default_streamsi = default_streams[device_index];
+    default_streamsi.stream = nullptr;
+    NPU_CHECK_SUPPORTED_OR_ERROR(
+        acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+    auto& secondary_streamsi = secondary_streams[device_index];
+    secondary_streamsi.stream = nullptr;
+    NPU_CHECK_SUPPORTED_OR_ERROR(
+        acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+    for (auto i = decltype(kStreamsPerPool){0}; i < kStreamsPerPool; ++i) {
+        auto& npu_streami = npu_streams[device_index][i];
+        if (npu_streami.stream == nullptr) {
+            continue;
+        }
+        NPU_CHECK_SUPPORTED_OR_ERROR(
+            acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+    }
 }
 
 } // namespace c10_npu
