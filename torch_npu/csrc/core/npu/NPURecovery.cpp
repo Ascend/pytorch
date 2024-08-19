@@ -6,6 +6,7 @@
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
 
 namespace c10_npu {
@@ -122,6 +123,9 @@ void bind_npu_recovery_functions(PyObject* module)
     });
     m.def("_get_npu_data_unsafe_flag", []() -> bool {
       return get_npu_data_unsafe_flag();
+    });
+    m.def("_recovery_all_npu_stream", [](int device) -> void {
+        return c10_npu::recovery_all_npu_streams(device);
     });
 }
 

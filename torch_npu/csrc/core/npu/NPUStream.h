@@ -144,6 +144,7 @@ C10_NPU_API void setCurrentNPUStream(NPUStream stream);
 
 std::ostream& operator<<(std::ostream& stream, const NPUStream& s);
 
+void recovery_all_npu_streams(c10::DeviceIndex device_index);
 } // namespace c10_npu
 
 namespace std {
