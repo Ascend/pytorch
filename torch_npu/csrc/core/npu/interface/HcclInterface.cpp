@@ -39,5 +39,16 @@ extern HcclResult HcclCommResumeFace(HcclComm comm)
                 " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
     return func(comm);
 }
+
+extern bool isHcclFeatureSupported(HcclCommConfigCapability configParameter)
+{
+    typedef uint32_t(*HcclGetCommConfigCapabilityFunc)();
+    static HcclGetCommConfigCapabilityFunc func = (HcclGetCommConfigCapabilityFunc) GET_FUNC(
+            HcclGetCommConfigCapability);
+    if (func == nullptr) {
+        return false;
+    }
+    return configParameter < func();
+}
 } // namespace native
 } // namespace at_npu

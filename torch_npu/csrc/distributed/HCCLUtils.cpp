@@ -1,4 +1,5 @@
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
+#include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 
 
 namespace c10d_npu {
@@ -83,6 +84,11 @@ std::string getHcclDataTypeSerialString(HcclDataType type)
         TORCH_NPU_WARN_ONCE("Can not serialize undefined hccl data type.");
         return "";
     }
+}
+
+bool isSupportHcclCommName()
+{
+    return at_npu::hccl::isHcclFeatureSupported(HcclCommConfigCapability::HCCL_COMM_CONFIG_COMM_NAME);
 }
 
 }
