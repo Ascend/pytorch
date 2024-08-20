@@ -20,7 +20,7 @@
 
 #define C10_NPU_SHOW_ERR_MSG()                                           \
     do {                                                                 \
-        std::cout<< c10_npu::c10_npu_get_error_message() << std::endl;   \
+        TORCH_NPU_WARN(c10_npu::c10_npu_get_error_message());            \
     } while (0)
 
 #define NPU_CHECK_WARN(err_code)                                             \
