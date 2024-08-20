@@ -411,8 +411,6 @@ public:
 
     void setHcclCommName(const std::string& hccl_comm_name);
 
-    bool isSupportHcclCommName();
-
     void resumeHcclComm(int device_id);
 
     void setWatchdogStatus(int status);

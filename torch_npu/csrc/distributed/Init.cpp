@@ -273,6 +273,8 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
              py::arg("src") = 0,
              py::call_guard<py::gil_scoped_release>());
 
+  module.def("_is_support_hccl_comm_name", &c10d_npu::isSupportHcclCommName);
+
   shared_ptr_class_<c10d_npu::Reducer>(module, "Reducer")
       .def(py::init<
                std::vector<at::Tensor>,
@@ -385,7 +387,6 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
            py::call_guard<py::gil_scoped_release>())
       .def("get_hccl_comm", &::c10d_npu::ProcessGroupHCCL::getHcclComm)
       .def("_set_hccl_comm_name", &::c10d_npu::ProcessGroupHCCL::setHcclCommName)
-      .def("_is_support_hccl_comm_name", &::c10d_npu::ProcessGroupHCCL::isSupportHcclCommName)
       .def("resume_hccl_comm", &::c10d_npu::ProcessGroupHCCL::resumeHcclComm)
       .def("set_watchdog_status", &::c10d_npu::ProcessGroupHCCL::setWatchdogStatus)
       .def("clear_workmeta_list", &::c10d_npu::ProcessGroupHCCL::clearWorkMetaList)
