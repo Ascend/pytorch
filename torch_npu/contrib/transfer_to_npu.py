@@ -351,6 +351,8 @@ def _init():
     # torch.utils.data.DataLoader
     torch.utils.data.DataLoader.__init__ = _wrapper_data_loader(torch.utils.data.DataLoader.__init__)
 
+    torch.utils._device.DeviceContext.__init__ = _wrapper_cuda(torch.utils._device.DeviceContext.__init__)
+
     _patch_jit_script()
 
     torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
