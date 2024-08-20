@@ -24,7 +24,7 @@ class SetHcclCommNameTest(TestCase):
         dist_group = init_pg(rank, world_size)
 
         pg1 = torch.distributed.new_group()
-        isSupportHcclName = pg1._get_backend(torch.device('npu'))._is_support_hccl_comm_name()
+        isSupportHcclName = torch_npu.distributed._is_support_hccl_comm_name()
         assert isSupportHcclName
         pg1._get_backend(torch.device('npu'))._set_hccl_comm_name("test")
         pg1._get_backend(torch.device('npu'))._set_hccl_comm_name("test")
