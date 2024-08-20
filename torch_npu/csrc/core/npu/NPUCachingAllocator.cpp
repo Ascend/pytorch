@@ -2221,7 +2221,7 @@ class DeviceCachingAllocator {
 
 static void uncached_delete(void* ptr)
 {
-    c10_npu::npuSynchronizeDevice(true);
+    c10_npu::npuSynchronizeDevice(false);
     ASCEND_LOGD("Without NPUCachingAllocator, free by aclrtFree.");
     NPU_CHECK_ERROR(aclrtFree(ptr));
 }
