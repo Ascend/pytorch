@@ -1432,11 +1432,6 @@ void ProcessGroupHCCL::setHcclCommName(const std::string& hccl_comm_name)
                 hccl_comm_name, ", current hcclCommName:", currentHcclCommName, DIST_ERROR(ErrCode::VALUE));
 }
 
-bool ProcessGroupHCCL::isSupportHcclCommName()
-{
-    return isHcclFeatureSupported(HcclCommConfigCapability::HCCL_COMM_CONFIG_COMM_NAME);
-}
-
 std::string ProcessGroupHCCL::getHcclCommName(int rankid, bool init_comm)
 {
     TORCH_CHECK(rankid >= 0, "Invalid rank ", rankid, DIST_ERROR(ErrCode::VALUE));
