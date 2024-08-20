@@ -61,6 +61,8 @@ std::string getHcclDataTypeSerialString(HcclDataType type);
 
 bool isFileExists(const std::string& path);
 
+bool isSupportHcclCommName();
+
 // RAII wrapper for HCCL communicator
 class HCCLComm {
 public:
