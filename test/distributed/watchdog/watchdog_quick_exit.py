@@ -7,7 +7,7 @@ import torch_npu
 
 
 def main():
-    torch.npu.set_compile_mode(jit_compile=False)
+    torch.npu.set_compile_mode(jit_compile=True)
     rank = int(os.environ['RANK'])
     local_rank = int(os.environ['LOCAL_RANK'])
     device = torch.device('npu:{}'.format(local_rank))
