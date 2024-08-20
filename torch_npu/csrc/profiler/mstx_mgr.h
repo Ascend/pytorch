@@ -3,6 +3,7 @@
 #include <atomic>
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 #include "torch_npu/csrc/framework/interface/MstxInterface.h"
 #include "torch_npu/csrc/toolkit/profiler/common/singleton.h"
 #include "torch_npu/csrc/npu/Stream.h"
@@ -24,6 +25,8 @@ private:
 
 private:
     std::atomic<int> ptRangeId_{1};
+    std::unordered_set<int> ptRangeIdsWithStream_;
+    std::mutex mtx_;
 };
 
 }
