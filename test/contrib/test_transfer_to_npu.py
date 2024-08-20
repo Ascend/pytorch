@@ -68,6 +68,12 @@ class TestTransferToNpu(TestCase):
         a = torch.tensor(1)
         self.assertEqual(a.device.type, 'npu')
 
+    def test_device_context(self):
+        device = torch.device('cuda')
+        with device:
+            a = torch.tensor(1)
+        self.assertEqual(a.device.type, 'npu')
+
 
 if __name__ == "__main__":
     run_tests()
