@@ -9,8 +9,6 @@ namespace native {
 int MstxRangeStartA(const char* message, aclrtStream stream, int ptRangeId);
 
 void MstxRangeEnd(int ptRangeId);
-
-bool IsRangeIdWithStream(int ptRangeId);
 }
 }
 
