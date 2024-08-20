@@ -22,8 +22,13 @@ int MstxMgr::RangeStart(const char* message, const aclrtStream stream)
         int res = at_npu::native::MstxRangeStartA(message, nullptr, id);
         return id;
     }
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        ptRangeIdsWithStream_.insert(id);
+    }
     auto range_start_call = [msg_ptr = std::make_shared<std::string>(message), stream, id]() -> int {
-        return at_npu::native::MstxRangeStartA(msg_ptr->c_str(), stream, id);
+        int taskId = at_npu::native::MstxRangeStartA(msg_ptr->c_str(), stream, id);
+        return 0;
     };
     at_npu::native::OpCommand cmd;
     cmd.Name("mstx_range_start_op");
@@ -37,7 +42,16 @@ void MstxMgr::RangeEnd(int ptRangeId)
     if (!ProfilerMgr::GetInstance()->GetNpuTrace().load() || !ProfilerMgr::GetInstance()->GetMsprofTx().load()) {
         return;
     }
-    if (!at_npu::native::IsRangeIdWithStream(ptRangeId)) {
+    bool rangeIdWithStream = false;
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        auto iter = ptRangeIdsWithStream_.find(ptRangeId);
+        if (iter != ptRangeIdsWithStream_.end()) {
+            rangeIdWithStream = true;
+            ptRangeIdsWithStream_.erase(iter);
+        }
+    }
+    if (!rangeIdWithStream) {
         at_npu::native::MstxRangeEnd(ptRangeId);
         return;
     }
