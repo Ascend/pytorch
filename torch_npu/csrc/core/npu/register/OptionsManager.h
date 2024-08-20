@@ -58,7 +58,6 @@ public:
     static bool CheckGeInitDisable();
     static uint32_t GetTaskQueueEnable();
     static uint32_t GetCpuAffinityConf();
-    static bool CheckForceUncached();
     static std::string GetOomSnapshotDumpPath();
     static void IsOomSnapshotEnable();
 

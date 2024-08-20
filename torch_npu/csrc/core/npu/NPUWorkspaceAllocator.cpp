@@ -92,12 +92,6 @@ private:
     ska::flat_hash_map<aclrtStream, WorkspaceBlock*> blocks;
 }; // class DeviceworkspaceAllocator
 
-static void uncached_delete(void* ptr)
-{
-    NPU_CHECK_ERROR(aclrtSynchronizeDevice());
-    NPU_CHECK_ERROR(aclrtFree(ptr));
-}
-
 // Now we will reuse the allocated memory and not release immediately until
 // memory is insufficient for NpuCachingAllocator or NpuWorkspaceAllocator.
 // Then both will empty cache and the large memory will be released.
@@ -172,28 +166,16 @@ public:
         void* dev_ptr = nullptr;
         void (*delete_func)(void*) = &local_raw_delete;
 
-        if (c10_npu::option::OptionsManager::CheckForceUncached()) {
-            delete_func = &uncached_delete;
-            if (size != 0) {
-                size_t alloc_size = size + 32;
-                NPU_CHECK_ERROR(
-                    c10_npu::acl::AclrtMallocAlign32(&dev_ptr, alloc_size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_ONLY));
-            }
-        } else {
-            if (size != 0) {
-                const_cast<NpuWorkspaceAllocator *>(this)->malloc(&dev_ptr, device, size, stream);
-            }
+        if (size != 0) {
+            const_cast<NpuWorkspaceAllocator *>(this)->malloc(&dev_ptr, device, size, stream);
         }
+
         return {dev_ptr, dev_ptr, delete_func, c10::Device(at_npu::key::NativeDeviceType, device)};
     }
 
     c10::DeleterFnPtr raw_deleter() const override
     {
-        if (c10_npu::option::OptionsManager::CheckForceUncached()) {
-            return &uncached_delete;
-        } else {
-            return &local_raw_delete;
-        }
+        return &local_raw_delete;
     }
 }; // class NpuWorkspaceAllocator
 

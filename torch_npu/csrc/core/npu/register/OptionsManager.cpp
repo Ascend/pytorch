@@ -289,15 +289,6 @@ uint32_t OptionsManager::GetTaskQueueEnable()
     return task_queue_enable;
 }
 
-bool OptionsManager::CheckForceUncached()
-{
-    const static bool force_uncached = []() -> bool {
-        bool force_uncached = OptionsManager::GetBoolTypeOption("PYTORCH_NO_NPU_MEMORY_CACHING");
-        return force_uncached;
-    }();
-    return force_uncached;
-}
-
 std::string OptionsManager::GetOomSnapshotDumpPath()
 {
     char* sanpshot_dump_path = std::getenv("OOM_SNAPSHOT_PATH");
