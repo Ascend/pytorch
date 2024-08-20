@@ -94,7 +94,7 @@ private:
 
 static void uncached_delete(void* ptr)
 {
-    NPU_CHECK_ERROR(aclrtSynchronizeDevice());
+    NPU_CHECK_WARN(aclrtSynchronizeDevice());
     NPU_CHECK_ERROR(aclrtFree(ptr));
 }
 
