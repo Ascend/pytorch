@@ -109,7 +109,7 @@ class _ExperimentalConfig:
             self._msprof_tx = False
         if self._data_simplification is not None and not isinstance(self._data_simplification, bool):
             print_warn_msg("Invalid parameter data_simplification, which must be of boolean type, reset it to default.")
-            self._data_simplification = None
+            self._data_simplification = True
         if not isinstance(self.record_op_args, bool):
             print_warn_msg("Invalid parameter record_op_args, which must be of boolean type, reset it to False.")
             self.record_op_args = False
