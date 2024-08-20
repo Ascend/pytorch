@@ -1,4 +1,3 @@
-#include <unordered_set>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/framework/interface/MstxInterface.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
@@ -23,10 +22,6 @@ LOAD_FUNCTION(mstxRangeEnd)
 // when mstx.range_end(id) is called, we can check if this id is invalid
 static std::unordered_map<int, mstxRangeId> g_rangeIdMap;
 
-// save python range id with stream.
-// when mstx.range_end(id) is called, we cann know if add range end event on pure host or to device aswell.
-static std::unordered_set<int> g_rangeIdsWithStream;
-
 static std::mutex g_mutex;
 
 int MstxRangeStartA(const char* message, aclrtStream stream, int ptRangeId)
@@ -48,9 +43,6 @@ int MstxRangeStartA(const char* message, aclrtStream stream, int ptRangeId)
     mstxRangeId taskId = func(message, stream);
     std::lock_guard<std::mutex> lock(g_mutex);
     g_rangeIdMap.insert({ptRangeId, taskId});
-    if (stream) {
-        g_rangeIdsWithStream.insert(ptRangeId);
-    }
     return 0;
 }
 
@@ -80,15 +72,5 @@ void MstxRangeEnd(int ptRangdId)
     g_rangeIdMap.erase(iter);
 }
 
-bool IsRangeIdWithStream(int ptRangeId)
-{
-    std::lock_guard<std::mutex> lock(g_mutex);
-    auto iter = g_rangeIdsWithStream.find(ptRangeId);
-    if (iter == g_rangeIdsWithStream.end()) {
-        return false;
-    }
-    g_rangeIdsWithStream.erase(iter);
-    return true;
-}
 }
 }
