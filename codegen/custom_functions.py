@@ -191,6 +191,9 @@ def compute_register_symbol(f: NativeFunction):
             ['Tensor'] * out_num) + ')'
     else:
         func_schema = str(f.func)
+    pattern = r'\bself\b(?=[,\)])'
+    func_schema = re.sub(pattern, 'input', func_schema)
+
     if f.has_composite_explicit_autograd_kernel:
         name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
         return [f'm.def({cpp_string(func_schema)}, TORCH_FN(at_npu::native::{name}));\n']
