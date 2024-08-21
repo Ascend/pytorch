@@ -53,6 +53,7 @@ from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 from torch_npu.asd.asd import _asd_patch
+from torch_npu._C._distributed_c10d import ParallelStore
 from .version import __version__ as __version__
 from .meta import _meta_registrations
 from . import _op_plugin_docs
