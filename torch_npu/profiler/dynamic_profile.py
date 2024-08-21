@@ -8,13 +8,17 @@ from .scheduler import Schedule as schedule
 
 from .analysis.prof_common_func.singleton import Singleton
 from ..utils.path_manager import PathManager
+from .analysis.prof_common_func.constant import print_info_msg
 from .analysis.prof_common_func.constant import print_warn_msg
 from .analysis.prof_common_func.constant import print_error_msg
+from .analysis.prof_common_func.file_manager import FileManager
 from ._dynamic_profiler import logger, init_logger, DynamicProfilerMonitor
+from ._dynamic_profiler._dynamic_profiler_config_context import ConfigContext
 
 __all__ = [
     'init',
     'step',
+    'start'
 ]
 
 
@@ -72,6 +76,31 @@ class _DynamicProfile:
             self.enable_prof()
             self.cfg_ctx = None
 
+    def start(self, config_path: str):
+        if self.prof:
+            print_error_msg(f"Profiler already started. Cannot call start interface while the profiler is active. ")
+            return
+        enable_config_path = ""
+        if config_path:
+            try:
+                PathManager.check_input_file_path(config_path)
+                PathManager.check_directory_path_readable(config_path)
+                enable_config_path = config_path
+            except Exception as err:
+                logger.error(f"The provided config_path is invalid: {config_path}. Details: {err}")
+                enable_config_path = ""
+        if not enable_config_path:
+            enable_config_path = self._dynamic_monitor._config_path
+        print_info_msg(f"The start interface profiler enable config path is set to {enable_config_path}")
+        json_data = FileManager.read_json_file(enable_config_path)
+        if not json_data:
+            msg = f"Failed to read config from : {enable_config_path}. Profiler active will be set to 1 by default. "
+            print_warn_msg(msg)
+        self.cfg_ctx = ConfigContext(json_data)
+        self.step_num = self.cfg_ctx.active()
+        self.enable_prof()
+        self.cfg_ctx = None
+
     def enable_prof(self):
         self.prof = profile(
             activities=self.cfg_ctx.activities(),
@@ -103,3 +132,7 @@ def init(path: str):
 
 def step():
     _DynamicProfile().step()
+
+
+def start(config_path: str = None):
+    _DynamicProfile().start(config_path)
