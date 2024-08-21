@@ -11,6 +11,9 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/profiler/npu_profiler.h"
+#endif
 
 namespace c10_npu {
 namespace NPUWorkspaceAllocator {
@@ -47,6 +50,21 @@ public:
                 ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block->size);
                 NPU_CHECK_ERROR(aclrtSynchronizeDevice());
                 NPU_CHECK_ERROR(aclrtFree(block->data_ptr));
+#ifndef BUILD_LIBTORCH
+                record_mem_size_decrement(block->size);
+                torch_npu::profiler::reportMemoryDataToNpuProfiler({
+                    static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+                    device,
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+                    reinterpret_cast<int64_t>(block->data_ptr),
+                    -block->size,
+                    get_mem_size(),
+                    0, // reserved_bytes not used
+                    0, // active_bytes not used
+                    reinterpret_cast<int64_t>(stream)}
+                );
+#endif
             }
 
             block->size = kRoundLarge * ((alloc_size + kRoundLarge - 1) / kRoundLarge);
@@ -63,6 +81,21 @@ public:
             }
 
             ASCEND_LOGD("NPUWorkspaceAllocator malloc by AclrtMallocAlign32: size=%zu", block->size);
+#ifndef BUILD_LIBTORCH
+            record_mem_size_increment(block->size);
+            torch_npu::profiler::reportMemoryDataToNpuProfiler({
+                static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+                device,
+                static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
+                static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+                reinterpret_cast<int64_t>(block->data_ptr),
+                block->size,
+                get_mem_size(),
+                0, // reserved_bytes not used
+                0, // active_bytes not used
+                reinterpret_cast<int64_t>(stream)}
+            );
+#endif
         }
         return block->data_ptr;
     }
@@ -81,15 +114,54 @@ public:
             if (block_pair.second->data_ptr != nullptr) {
                 ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block_pair.second->size);
                 NPU_CHECK_ERROR(aclrtFree(block_pair.second->data_ptr));
+#ifndef BUILD_LIBTORCH
+                record_mem_size_decrement(block_pair.second->size);
+                torch_npu::profiler::reportMemoryDataToNpuProfiler({
+                    static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+                    device,
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+                    reinterpret_cast<int64_t>(block_pair.second->data_ptr),
+                    -block_pair.second->size,
+                    get_mem_size(),
+                    0, // reserved_bytes not used
+                    0, // active_bytes not used
+                    reinterpret_cast<int64_t>(block_pair.first)}
+                );
+#endif
             }
             delete block_pair.second;
         }
 
         blocks.clear();
     }
+#ifndef BUILD_LIBTORCH
+    void set_device(int device_id)
+    {
+        this->device = device_id;
+    }
 
+    void record_mem_size_increment(size_t size)
+    {
+        this->sum_mem += size;
+    }
+
+    void record_mem_size_decrement(size_t size)
+    {
+        this->sum_mem -= size;
+    }
+
+    uint64_t get_mem_size()
+    {
+        return sum_mem;
+    }
+#endif
 private:
     ska::flat_hash_map<aclrtStream, WorkspaceBlock*> blocks;
+#ifndef BUILD_LIBTORCH
+    uint64_t sum_mem = 0;
+    int device = 0;
+#endif
 }; // class DeviceworkspaceAllocator
 
 static void uncached_delete(void* ptr)
@@ -116,6 +188,9 @@ public:
             device_allocator.resize(device_count);
             for (const auto i : c10::irange(size, device_count)) {
                 device_allocator[i] = std::make_unique<DeviceWorkspaceAllocator>();
+#ifndef BUILD_LIBTORCH
+                device_allocator[i]->set_device(i);
+#endif
             }
         }
     }

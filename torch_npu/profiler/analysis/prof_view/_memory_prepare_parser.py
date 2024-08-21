@@ -16,17 +16,21 @@
 from collections import defaultdict
 from warnings import warn
 from math import ceil
+import os
 
 from ._base_parser import BaseParser
 from ..prof_common_func._file_tag import FileTag
 from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_parse._fwk_file_parser import FwkFileParser
 from ..prof_bean._memory_use_bean import MemoryUseBean
+from ..prof_bean._op_mark_bean import OpMarkBean
 from ..prof_common_func._constant import Constant, print_error_msg, print_warn_msg
 from ..prof_common_func._constant import convert_ns2us_float, convert_ns2us_str
 from .._profiler_config import ProfilerConfig
 
 __all__ = []
+TASK_QUEUE_ENABLE = 'TASK_QUEUE_ENABLE'
+ATEN_OP_NAME_PREFIX = 'aten'
 
 
 class MemoryPrepareParser(BaseParser):
@@ -37,6 +41,11 @@ class MemoryPrepareParser(BaseParser):
         self.memory_data = []
         self._torch_op_node = []
         self._incomplete_num = 0
+        self._is_malloc_workspace_in_dequeue_enabled = False
+        self._dequeue_record_dict = defaultdict(list)  # {(pid, tid): [dequeue_records]}
+        self._enqueue_record_dict = {}  # {corrid: enqueue}
+        self._dequeue_pids = set()
+        self._dequeue_tids = set()
 
     @staticmethod
     def _find_torch_ops_by_binary_search(ts: int, torch_ops: list):
@@ -76,7 +85,19 @@ class MemoryPrepareParser(BaseParser):
                 return ""
         return matched_torch_op.name
 
+    def _init_queue_info(self):
+        enqueue_records = FwkFileParser(self._profiler_path).get_enqueue_data()
+        for enqueue_record in enqueue_records:
+            self._enqueue_record_dict[enqueue_record.corr_id] = enqueue_record
+        dequeue_records = FwkFileParser(self._profiler_path).get_dequeue_data()
+        for dequeue_record in dequeue_records:
+            self._dequeue_pids.add(dequeue_record.pid)
+            self._dequeue_tids.add(dequeue_record.tid)
+            key = (dequeue_record.pid, dequeue_record.tid)
+            self._dequeue_record_dict.setdefault(key, []).append(dequeue_record)
+
     def _add_pta_memory_data(self):
+        self._init_queue_info()
         pta_memory_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.MEMORY)
         npu_memory_dict = {}
         torch_op_dict = {}
@@ -130,6 +151,47 @@ class MemoryPrepareParser(BaseParser):
             ret_list.append(data_buf[:])
         return ret_list
 
+    def _find_dequeue_record_by_binary_search(self, ts: int, dequeue_records: list) -> int:
+        right = len(dequeue_records) - 1
+        left = 0
+        while right > left:
+            mid = left + ceil((right - left) / 2)
+            if ts >= dequeue_records[mid].ts:
+                left = mid
+            else:
+                right = mid - 1
+        return left
+
+    def _find_related_dequeue_record(self, record: MemoryUseBean) -> OpMarkBean:
+        if not (record.pid in self._dequeue_pids and record.tid in self._dequeue_tids):
+            return None
+        dequeue_records = self._dequeue_record_dict[(record.pid, record.tid)]
+        index = self._find_dequeue_record_by_binary_search(record.time_ns, dequeue_records)
+        if not (dequeue_records[index].ts <= record.time_ns < dequeue_records[index].ts +
+                dequeue_records[index].dur):
+            warn("Cannot find dequeue record matched memory record")
+            return None
+        return dequeue_records[index]
+
+    def _find_related_enqueue_record(self, dequeue_record: OpMarkBean) -> OpMarkBean:
+        return self._enqueue_record_dict.get(dequeue_record.corr_id)
+
+    def _get_aten_op_name_by_enqueue_record(self, enqueue_record: OpMarkBean, torch_ops: list) -> str:
+        index = self._find_torch_ops_by_binary_search(enqueue_record.time_ns, torch_ops)
+        while index >= 0 and (not torch_ops[index].name.startswith(ATEN_OP_NAME_PREFIX)):
+            index = index - 1
+        if index == -1:
+            warn("Unable to find aten operator according to enqueue record.")
+            return ""
+        return torch_ops[index].name
+
+    def _find_real_op_name_of_record(self, dequeue_record: OpMarkBean, torch_ops: list) -> str:
+        enqueue_record = self._find_related_enqueue_record(dequeue_record)
+        if enqueue_record is None:
+            warn("Unable to find enqueue record according to dequeue record.")
+            return ""
+        return self._get_aten_op_name_by_enqueue_record(enqueue_record, torch_ops)
+
     def _complete_record_entry(self, ptr_records: list, torch_ops: list) -> list:
         ret_list = list()
         torch_ops = [torch_op for torch_op in torch_ops if torch_op.name != "empty_tensor" and torch_op.name != "malloc_workspace"]
@@ -138,7 +200,11 @@ class MemoryPrepareParser(BaseParser):
             records_len = len(records)
             if not records or records_len > 3:
                 continue
-            op_name = self._find_matched_torch_op_name(records[0].time_ns, torch_ops)
+            dequeue_record = self._find_related_dequeue_record(records[0])
+            if dequeue_record is None:
+                op_name = self._find_matched_torch_op_name(records[0].time_ns, torch_ops)
+            else:
+                op_name = self._find_real_op_name_of_record(dequeue_record, torch_ops)
             if records_len == 1:
                 self._incomplete_num += 2
                 combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), None, None, None, None,
@@ -177,7 +243,12 @@ class MemoryPrepareParser(BaseParser):
             records_len = len(records)
             if not records or records_len > 3:
                 continue
-            op_name = self._find_matched_torch_op_name(records[0].time_ns, torch_ops)
+            dequeue_record = self._find_related_dequeue_record(records[0])
+            if dequeue_record is None:
+                op_name = self._find_matched_torch_op_name(records[0].time_ns, torch_ops)
+            else:
+                op_name = self._find_real_op_name_of_record(dequeue_record, torch_ops)
+
             if records_len == 1:
                 self._incomplete_num += 2
                 combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, None, None, None, None,
