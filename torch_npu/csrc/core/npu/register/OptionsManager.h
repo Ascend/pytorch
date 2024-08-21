@@ -53,6 +53,7 @@ public:
     static bool CheckForceUncached();
     static std::string GetOomSnapshotDumpPath();
     static void IsOomSnapshotEnable();
+    static bool ShouldPrintWarning();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

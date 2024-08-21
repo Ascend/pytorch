@@ -67,6 +67,7 @@
   "test_is_init_in_compile_vmapped_mutated_tensor_tensor_multi_arg (__main__.DefaultsTests)": ["", [""]],
   "test_is_vmapped_mutated_tensor_tensor (__main__.DefaultsTests)": ["", [""]],
   "test_dynamic_kwarg (__main__.SubGraphTests)": ["", [""]],
+  "test_dynamic_shapes_float_guard_dynamic_shapes (torch._dynamo.testing.DynamicShapesReproTests)": ["", [""]],
   "test_torch_device_python_type (__main__.MiscTests)": ["", [""]],
   "test_torch_device_python_type_dynamic_shapes (__main__.DynamicShapesMiscTests)": ["", [""]],
   "test_torch_npu_is_available (__main__.MiscTests)": ["", [""]],

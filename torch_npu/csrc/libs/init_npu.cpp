@@ -58,7 +58,7 @@ void finalize_npu() {
       TORCH_CHECK(false, "NPU sys finalize failed.\n", PTA_ERROR(ErrCode::ACL));
     }
   } else {
-    TORCH_WARN("Please init npu device first!");
+    TORCH_NPU_WARN("Please init npu device first!");
   }
 }
 
