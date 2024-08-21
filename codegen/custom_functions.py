@@ -206,6 +206,9 @@ class RegisterCustomSchema:
         if tags == "{}":
             tag_index = ""
 
+        pattern = r'\bself\b(?=[,\)])'
+        func_schema = re.sub(pattern, 'input', func_schema)
+
         if f.has_composite_explicit_autograd_kernel:
             name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
             return f'{maybe_tags}m.def({cpp_string(func_schema)}, TORCH_FN(at_npu::native::{name}){tag_index});\n'

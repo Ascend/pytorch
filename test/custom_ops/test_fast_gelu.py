@@ -29,6 +29,13 @@ class TestFastGelu(TestCase):
         custom_output = self.custom_op_exec(npu_input)
         self.assertRtolEqual(supported_output, custom_output)
 
+    def test_fast_gelu_input_arg(self):
+        item = [np.float32, 0, [3, 16, 32]]
+        _, npu_input = create_common_tensor(item, 0, 100)
+        supported_output = self.supported_op_exec(npu_input)
+        custom_output = torch_npu.fast_gelu(input=npu_input)
+        self.assertRtolEqual(supported_output, custom_output)
+
 
 if __name__ == "__main__":
     run_tests()
