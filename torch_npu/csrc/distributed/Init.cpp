@@ -21,6 +21,7 @@
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/distributed/reducer.hpp"
 #include "torch_npu/csrc/distributed/Init.h"
+#include "torch_npu/csrc/distributed/ParallelTcpStore.hpp"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
@@ -424,6 +425,57 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
       .def_readwrite("global_ranks_in_group",
                      &::c10d_npu::ProcessGroupHCCL::Options::global_ranks_in_group);
 
+    auto cDist = py::module_::import("torch._C._distributed_c10d");
+    auto parallelStore = intrusive_ptr_no_gil_destructor_class_<::c10d::ParallelTcpStore>(
+        module, "ParallelStore", cDist.attr("Store"), R"(
+A TCP-Parallel-Epoll-based distributed key-value store implementation. The server store holds
+the data, while the client stores can connect to the server store over TCP and
+perform actions such as :meth:`~torch.distributed.store.set` to insert a key-value
+pair, :meth:`~torch.distributed.store.get` to retrieve a key-value pair, etc. There
+should always be one server store initialized because the client store(s) will wait for
+the server to establish a connection.
+
+Arguments:
+    host_name (str): The hostname or IP Address the server store should run on.
+    port (int): The port on which the server store should listen for incoming requests.
+    world_size (int, optional): The total number of store users (number of clients + 1 for the server). Default is -1 (a negative value indicates a non-fixed number of store users).
+    is_master (bool, optional): True when initializing the server store and False for client stores. Default is False.
+    timeout (timedelta, optional): Timeout used by the store during initialization and for methods such as :meth:`~torch.distributed.store.get` and :meth:`~torch.distributed.store.wait`. Default is timedelta(seconds=300)
+    wait_for_worker (bool, optional): Whether to wait for all the workers to connect with the server store. This is only applicable when world_size is a fixed value. Default is True.
+
+Example::
+    >>> import torch_npu.distributed as dist
+    >>> from datetime import timedelta
+    >>> # Run on process 1 (server)
+    >>> server_store = dist.ParallelStore("127.0.0.1", 1234, 2, True, timedelta(seconds=30))
+    >>> # Run on process 2 (client)
+    >>> client_store = dist.ParallelStore("127.0.0.1", 1234, 2, False)
+    >>> # Use any of the store methods from either the client or server after initialization
+    >>> server_store.set("first_key", "first_value")
+    >>> client_store.get("first_key")
+    )")
+      .def(py::init([](const std::string &host,
+                      uint16_t port,
+                      int worldSize,
+                      bool isServer,
+                      std::chrono::milliseconds timeout,
+                      bool waitWorkers,
+                      bool multiTenant) {
+              c10::optional<std::size_t> numWorkers = c10::nullopt;
+              if (worldSize > -1) {
+                  numWorkers = static_cast<std::size_t>(worldSize);
+              }
+
+              ::c10d::TCPStoreOptions opts{ port, isServer, numWorkers, waitWorkers, timeout, multiTenant };
+              return c10::make_intrusive <::c10d::ParallelTcpStore>(host, opts);
+           }),
+           py::arg("host") = "127.0.0.1",
+           py::arg("port") = 29500,
+           py::arg("world_size") = -1,
+           py::arg("is_server") = false,
+           py::arg("timeout") = std::chrono::milliseconds(300000),
+           py::arg("wait_workers") = true,
+           py::arg("multi_tenant") = false);
   Py_RETURN_TRUE;
 }
 

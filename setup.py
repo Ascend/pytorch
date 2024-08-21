@@ -616,4 +616,9 @@ setup(
         'egg_info': EggInfoBuild,
         'install': InstallCmd,
         'clean': Clean
+    },
+    entry_points={
+        'console_scripts': [
+            'torch_npu_run = torch_npu.distributed.run:_main',
+        ],
     })
