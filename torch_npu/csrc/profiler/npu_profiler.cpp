@@ -321,7 +321,7 @@ void reportMemoryDataToNpuProfiler(const MemoryUsage& data)
     if (!ProfilerMgr::GetInstance()->ReportMemEnable().load()) {
         return;
     }
-    ProfilerMgr::GetInstance()->Upload(std::make_unique<torch_npu::toolkit::profiler::MemoryData>(
+    ProfilerMgr::GetInstance()->UploadWithLock(std::make_unique<torch_npu::toolkit::profiler::MemoryData>(
         data.ptr,
         static_cast<int64_t>(Utils::GetClockTime()),
         data.alloc_size,
