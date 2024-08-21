@@ -1,7 +1,9 @@
+import os
 import json
-
+import torch
 from torch_npu._C._profiler import ProfilerActivity
 from ..experimental_config import _ExperimentalConfig, ProfilerLevel, AiCMetrics
+from ._dynamic_profiler_log import logger
 
 
 class ConfigContext:
@@ -16,10 +18,13 @@ class ConfigContext:
         self.with_stack = False
         self.with_flops = False
         self.with_modules = False
+        self.is_rank = False
+        self.rank_set = set()
         self.experimental_config = None
         self._active = 1
         self.is_valid = False
         self._meta_data = {}
+        self._rank_id = self.get_rank_id()
         self.parse(json_data)
 
     def parse(self, json_data: dict):
@@ -65,9 +70,37 @@ class ConfigContext:
                 export_type=export_type,
                 msprof_tx=msprof_tx
             )
+            self.parse_ranks(json_data)
+
+    def parse_ranks(self, json_data: dict):
+        self.is_rank = json_data.get("is_rank", False)
+        if not isinstance(self.is_rank, bool):
+            self.is_rank = False
+            logger.warning("Set is_rank failed, is_rank must be bool!")
+            return
+        if not self.is_rank:
+            return
+        logger.info("Set is_rank success!")
+        ranks = json_data.get("rank_list", False)
+        if not isinstance(ranks, list):
+            logger.warning("Set rank_list failed, rank_list must be list!")
+            return
+        for rank in ranks:
+            if isinstance(rank, int):
+                self.rank_set.add(rank)
 
     def valid(self) -> bool:
-        return self.is_valid
+        if not self.is_valid:
+            return False
+        if not self.is_rank:
+            return True
+        if self._rank_id in self.rank_set:
+            self._analyse = False
+            logger.info("Rank {} is in valid rank_list {}, profiler data analyse will be closed !".format(
+                self._rank_id, self.rank_set))
+            return True
+        logger.warning("Rank {} not in valid rank_list {}!".format(self._rank_id, self.rank_set))
+        return False
 
     def meta_data(self):
         if not isinstance(self._meta_data, dict):
@@ -119,3 +152,17 @@ class ConfigContext:
         cfg_json_str = bytes_shm.decode("utf-8")
         cfg_json = json.loads(cfg_json_str)
         return cfg_json
+
+    @staticmethod
+    def get_rank_id() -> int:
+        try:
+            rank_id = os.environ.get('RANK')
+            if rank_id is None and torch.distributed.is_available() and torch.distributed.is_initialized():
+                rank_id = torch.distributed.get_rank()
+            if not isinstance(rank_id, int):
+                rank_id = int(rank_id)
+        except Exception as ex:
+            logger.warning("Get rank id  %s, rank_id will be set to 0 !", str(ex))
+            rank_id = 0
+
+        return rank_id

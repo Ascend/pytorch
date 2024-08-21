@@ -20,12 +20,12 @@ class DynamicProfilerMonitor:
             poll_interval: int = 2
     ):
         self._path = path
-        self._rank_id = int(os.getenv('LOCAL_RANK', 0))
+        self._rank_id = ConfigContext.get_rank_id()
         self._buffer_size = buffer_size
         self._monitor_process = None
         self.prof_cfg_context = None
         self._shared_loop_flag = multiprocessing.Value('b', True)
-        self._poll_interval = poll_interval
+        self._step_time = multiprocessing.Value('i', poll_interval)
         self._config_path = os.path.join(self._path, 'profiler_config.json')
         self._shm_obj = DynamicProfilerShareMemory(
             self._path,
@@ -66,12 +66,16 @@ class DynamicProfilerMonitor:
             self._process.join()
             self._shm_obj.clean_resource()
 
+    def modify_step_time(self, poll_interval_time: int):
+        self._step_time.value = poll_interval_time
+        logger.info("Dynamic profiling monitor process query cfg file interval time change to %d", poll_interval_time)
+
     def _monitor_process_params(self):
         shm = None if self._shm_obj.is_mmap else self._shm_obj
         mmap_path = self._shm_obj.shm_path if self._shm_obj.is_mmap else None
         params = {
             "loop_flag": self._shared_loop_flag,
-            "poll_interval": self._poll_interval,
+            "poll_interval": self._step_time,
             "shm": shm,
             "cfg_path": self._shm_obj.config_path,
             "max_size": self._buffer_size,
@@ -116,7 +120,7 @@ def worker_func(params_dict):
             f = os.fdopen(fd, 'rb')
             mmap_obj = mmap.mmap(f.fileno(), length=max_size)
         except Exception as ex:
-            logger_monitor.info("Dynamic profiler process start failed, %s occurred!", str(ex))
+            logger_monitor.warning("Dynamic profiler process start failed, %s occurred!", str(ex))
             return
 
     last_file_t = file_stat_time
@@ -135,7 +139,7 @@ def worker_func(params_dict):
 
                 except Exception as ex:
                     data = {'is_valid': False}
-                    logger_monitor.error("Dynamic profiler process load json failed, %s has occur!", str(ex))
+                    logger_monitor.warning("Dynamic profiler process load json failed, %s has occur!", str(ex))
                 time_bytes = struct.pack("<I", last_file_t)
                 prof_cfg_bytes = time_bytes + ConfigContext.profiler_cfg_json_to_bytes(data)
                 if len(prof_cfg_bytes) > max_size:
@@ -151,5 +155,5 @@ def worker_func(params_dict):
                     logger_monitor.warning("Dynamic profiler cfg bytes write failed, %s has occur!", str(ex))
         else:
             logger_monitor.error("Dynamic profiler cfg json not exists")
-        time.sleep(poll_interval)
+        time.sleep(poll_interval.value)
     logger_monitor.info("Dynamic profiler process done")
