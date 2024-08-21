@@ -19,7 +19,7 @@ __all__ = ["synchronize", "device_count", "can_device_access_peer", "set_device"
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "get_soc_version", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
-           "stop_device", "restart_device", "check_uce_in_memory", "stress_detect"]
+           "stop_device", "check_uce_in_memory", "stress_detect"]
 
 
 def synchronize(device=None):
@@ -404,16 +404,6 @@ def stop_device(device_id):
         if (torch.device('npu') in pg._device_types):
             pg._get_backend(torch.device('npu')).resume_hccl_comm(device_id)
             pg._get_backend(torch.device('npu')).set_watchdog_status(WATCHDOG_STATUS_STOP)
-            pg._get_backend(torch.device('npu')).clear_workmeta_list()
-
-
-def restart_device(device_id):
-    torch_npu.npu._lazy_init()
-    torch_npu._C._npu_restart_device(device_id)
-    _except_handler.set_force_stop_exception(False)
-    for pg in _pg_map:
-        if (torch.device('npu') in pg._device_types):
-            pg._get_backend(torch.device('npu')).set_watchdog_status(WATCHDOG_STATUS_RUN)
             pg._get_backend(torch.device('npu')).clear_workmeta_list()
 
 
