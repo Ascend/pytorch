@@ -1,7 +1,7 @@
 import os
 import socket
 import logging
-import logging.handlers
+from logging.handlers import RotatingFileHandler
 from ...utils.path_manager import PathManager
 
 logger = logging.getLogger("DynamicProfiler")
@@ -19,7 +19,7 @@ def init_logger(logger_: logging.Logger, path: str, is_monitor_process=False):
     log_file = os.path.join(path, log_name)
     if not os.path.exists(log_file):
         PathManager.create_file_safety(log_file)
-    handler = logging.FileHandler(log_file)
+    handler = RotatingFileHandler(filename=log_file, maxBytes=1024 * 200, backupCount=1)
     formatter = logging.Formatter("%(asctime)s [%(levelname)s] [%(process)d] %(filename)s: %(message)s")
     handler.setFormatter(formatter)
     logger_.setLevel(logging.DEBUG)

@@ -1,6 +1,8 @@
 import os
 import json
 import atexit
+import time
+
 from .profiler import tensorboard_trace_handler, profile
 from .scheduler import Schedule as schedule
 
@@ -18,6 +20,8 @@ __all__ = [
 
 @Singleton
 class _DynamicProfile:
+    RECORD_TIME_STEP = 10
+
     def __init__(self) -> None:
         self.config_path = None
         self.prof = None
@@ -27,6 +31,9 @@ class _DynamicProfile:
         self.cur_step = 0
         self._dynamic_monitor = None
         self.repeat_init = False
+        self._step_record_time = None
+        self._step_time = 0
+        self._min_poll_interval = 1
 
     def init(self, path: str, buffer_size: int = 1024, poll_interval: int = 2):
         if self.repeat_init:
@@ -45,6 +52,11 @@ class _DynamicProfile:
 
     def step(self):
         self.cur_step += 1
+        if self.cur_step == self.RECORD_TIME_STEP:
+            self._step_record_time = time.time()
+        elif self.cur_step - self.RECORD_TIME_STEP == 1:
+            self._step_time = max(self._min_poll_interval, int(time.time() - self._step_record_time))
+            self._dynamic_monitor.modify_step_time(self._step_time)
         if self.prof:
             self.prof.step()
             self.step_num -= 1

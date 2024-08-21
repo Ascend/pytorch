@@ -24,6 +24,8 @@ class DynamicProfilerShareMemory:
         "with_flops": False,
         "with_modules": False,
         "active": 1,
+        "is_rank": False,
+        "rank_list": [],
         "experimental_config": {
             "profiler_level": "Level0",
             "aic_metrics": "AiCoreNone",
