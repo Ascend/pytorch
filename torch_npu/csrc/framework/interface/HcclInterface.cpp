@@ -24,7 +24,7 @@ extern HcclResult HcclSetConfig(HcclConfig config, HcclConfigValue configValue) 
         func = (HcclSetConfigFunc)GET_FUNC(HcclSetConfig);
     }
     if (func == nullptr) {
-        TORCH_WARN("Failed to find this HcclSetConfig function, get real hccl config, need to upgrade hccl version!");
+        TORCH_NPU_WARN("Failed to find this HcclSetConfig function, get real hccl config, need to upgrade hccl version!");
         return HcclResult::HCCL_SUCCESS;
     }
     return func(config, configValue);

@@ -38,6 +38,9 @@ c10::WarningHandler* getBaseHandler_()
 
 void warn_(const ::c10::Warning& warning)
 {
+    if (!c10_npu::option::OptionsManager::ShouldPrintWarning()) {
+        return;
+    }
   getBaseHandler_()->process(warning);
 }
 

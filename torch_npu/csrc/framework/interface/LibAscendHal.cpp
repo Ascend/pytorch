@@ -2,6 +2,7 @@
 
 #include "torch_npu/csrc/framework/interface/LibAscendHal.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -27,7 +28,7 @@ int64_t getFreq() {
     if (getFreqInfo == nullptr) {
         getFreqInfo = (getReqFun)GET_FUNC(halGetDeviceInfo);
         if (getFreqInfo == nullptr) {
-            TORCH_WARN("Failed to find function halGetDeviceInfo.");
+            TORCH_NPU_WARN("Failed to find function halGetDeviceInfo.");
             return ERR_FREQ;
         }
     }
@@ -44,13 +45,13 @@ int64_t getVer() {
     if (getVerInfo == nullptr) {
         getVerInfo = (getReqFun)GET_FUNC(halGetAPIVersion);
         if (getVerInfo == nullptr) {
-            TORCH_WARN("Failed to find function halGetAPIVersion.");
+            TORCH_NPU_WARN("Failed to find function halGetAPIVersion.");
             return ERR_VER;
         }
     }
     int32_t ver = ERR_VER;
     if (getVerInfo(&ver) != DRV_ERROR_NONE) {
-        TORCH_WARN("Failed to find version.");
+        TORCH_NPU_WARN("Failed to find version.");
         return ERR_VER;
     }
     return ver;

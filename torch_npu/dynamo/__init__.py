@@ -9,6 +9,7 @@ from torch._dynamo.backends.registry import _BACKENDS
 from torch.library import Library, impl
 
 from torch_npu.utils._error_code import ErrCode, pta_error
+from torch_npu.utils.utils import should_print_warning
 
 _global_npu_backend = None
 __all__ = []
@@ -96,9 +97,10 @@ class _LazyTorchair:
 
 def _get_default_backend():
     if not os.path.exists(os.path.join(os.path.dirname(__file__), 'torchair')):
-        warnings.warn(
-            "Register eager implementation for the 'npu' backend of dynamo, "
-            "as torch_npu was not compiled with torchair.")
+        if should_print_warning():
+            warnings.warn(
+                "Register eager implementation for the 'npu' backend of dynamo, "
+                "as torch_npu was not compiled with torchair.")
         return _eager_npu_backend
 
     def _lazy_exec(*args, **kwargs):

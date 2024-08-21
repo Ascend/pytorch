@@ -379,6 +379,19 @@ std::string OptionsManager::GetOomSnapshotDumpPath()
     return dump_abs_path;
 }
 
+bool OptionsManager::ShouldPrintWarning()
+{
+    static bool should_print = []() {
+        char* disabled_warning = std::getenv("NPU_DISABLED_WARNING");
+        if (disabled_warning != nullptr && strtol(disabled_warning, nullptr, 10) == 1) {
+            return false;
+        }
+        const auto rank_id = c10_npu::option::OptionsManager::GetRankId();
+        return rank_id == 0 || rank_id == -1;
+    }();
+    return should_print;
+}
+
 #ifndef BUILD_LIBTORCH
 void oom_observer(int64_t device, int64_t allocated, int64_t device_total, int64_t device_free)
 {
