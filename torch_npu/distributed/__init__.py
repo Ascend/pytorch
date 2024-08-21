@@ -23,9 +23,13 @@ if is_available() and not torch_npu._C._c10d_npu_init():
 
 
 from torch_npu._C._distributed_c10d import (
+    ParallelStore,
     _verify_params_across_processes,
     _is_support_hccl_comm_name,
 )
 
 
+from torch_npu.distributed import rendezvous
 from .distributed_c10d import batch_isend_irecv, gather, gather_object, is_hccl_available
+
+rendezvous._rendezvous_init()
