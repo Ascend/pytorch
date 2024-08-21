@@ -11,6 +11,8 @@ from ._dynamo_device import _dynamo_register_interface_for_device
 from ._inductor import _inductor_register_device_op_overrides
 from ._optim import add_optim_method
 from .asd_detector import set_asd_loss_scale, register_asd_hook
+from .utils import _apply_npu_show_warning, should_print_warning
 from ._step import add_perf_dump_patch
 
-__all__ = []
+__all__ = ["npu_combine_tensors", "get_part_combined_tensor", "is_combined_tensor_valid",
+           "register_asd_hook", "set_asd_loss_scale", "should_print_warning"]

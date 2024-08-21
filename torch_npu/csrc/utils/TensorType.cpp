@@ -60,12 +60,10 @@ static PyObject* Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwargs
     HANDLE_TH_ERRORS
     auto& tensor_type = *((PyTensorType*)type);
     if (tensor_type.is_npu) {
-        static auto warn_once = []() {
-            std::cout << "Warning: The torch.npu.*DtypeTensor constructors are no longer recommended. " \
-                         "It's best to use methods such as torch.tensor(data, dtype=*, device='npu') " \
-                         "to create tensors." << std::endl;
-            return true;
-        }();
+        TORCH_NPU_WARN_ONCE(
+            "Warning: The torch.npu.*DtypeTensor constructors are no longer recommended. "
+            "It's best to use methods such as torch.tensor(data, dtype=*, device='npu') "
+            "to create tensors.");
     }
     TORCH_CHECK_TYPE(
         !tensor_type.is_npu || c10_npu::device_count() != 0,
