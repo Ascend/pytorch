@@ -12,6 +12,8 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 
+#include "torch_npu/csrc/profiler/npu_profiler.h"
+
 namespace c10_npu {
 namespace NPUWorkspaceAllocator {
 
@@ -47,6 +49,18 @@ public:
                 ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block->size);
                 NPU_CHECK_ERROR(aclrtSynchronizeDevice());
                 NPU_CHECK_ERROR(aclrtFree(block->data_ptr));
+                record_mem_size_decrement(block->size);
+                torch_npu::profiler::reportMemoryDataToNpuProfiler({
+                    static_cast<int8_t>(at_npu::key::NativeDeviceType),
+                    device,
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+                     reinterpret_cast<int64_t>(block->data_ptr),
+                    -block->size,
+                    get_mem_size(),
+                    0, // reserved_bytes not used
+                    0, // active_bytes not used
+                    reinterpret_cast<int64_t>(stream)}
+                );
             }
 
             block->size = kRoundLarge * ((alloc_size + kRoundLarge - 1) / kRoundLarge);
@@ -63,6 +77,18 @@ public:
             }
 
             ASCEND_LOGD("NPUWorkspaceAllocator malloc by AclrtMallocAlign32: size=%zu", block->size);
+            record_mem_size_increment(block->size);
+            torch_npu::profiler::reportMemoryDataToNpuProfiler({
+                static_cast<int8_t>(at_npu::key::NativeDeviceType),
+                device,
+                static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
+                reinterpret_cast<int64_t>(block->data_ptr),
+                block->size,
+                get_mem_size(),
+                0, // reserved_bytes not used
+                0, // active_bytes not used
+                reinterpret_cast<int64_t>(stream)}
+            );
         }
         return block->data_ptr;
     }
@@ -81,6 +107,18 @@ public:
             if (block_pair.second->data_ptr != nullptr) {
                 ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block_pair.second->size);
                 NPU_CHECK_ERROR(aclrtFree(block_pair.second->data_ptr));
+                record_mem_size_decrement(block_pair.second->size);
+                torch_npu::profiler::reportMemoryDataToNpuProfiler({
+                    static_cast<int8_t>(at_npu::key::NativeDeviceType),
+                    device,
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+                    reinterpret_cast<int64_t>(block_pair.second->data_ptr),
+                    -block_pair.second->size,
+                    get_mem_size(),
+                    0, // reserved_bytes not used
+                    0, // active_bytes not used
+                    reinterpret_cast<int64_t>(block_pair.first)}
+                );
             }
             delete block_pair.second;
         }
@@ -88,8 +126,29 @@ public:
         blocks.clear();
     }
 
+    void set_device(int device_id)
+    {
+        this->device = device_id;
+    }
+
+    void record_mem_size_increment(size_t size)
+    {
+        this->sum_mem += size;
+    }
+
+    void record_mem_size_decrement(size_t size)
+    {
+        this->sum_mem -= size;
+    }
+
+    uint64_t get_mem_size()
+    {
+        return sum_mem;
+    }
 private:
     ska::flat_hash_map<aclrtStream, WorkspaceBlock*> blocks;
+    uint64_t sum_mem = 0;
+    int device = 0;
 }; // class DeviceworkspaceAllocator
 
 // Now we will reuse the allocated memory and not release immediately until
@@ -110,6 +169,7 @@ public:
             device_allocator.resize(device_count);
             for (const auto i : c10::irange(size, device_count)) {
                 device_allocator[i] = std::make_unique<DeviceWorkspaceAllocator>();
+                device_allocator[i]->set_device(i);
             }
         }
     }
