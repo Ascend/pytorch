@@ -1,6 +1,9 @@
 import torch
+from torch.distributed.distributed_c10d import _pg_map
+
+import torch_npu
 import torch_npu._C
-from torch_npu.utils._error_code import ErrCode, pta_error
+from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 
 
 def check_npu_storage_is_safe(storage_obj):
@@ -44,4 +47,19 @@ def get_npu_tensor_unsafe_check_flag() -> bool:
 
 
 def _recovery_all_npu_stream(device: int) -> None:
-    return _recovery_all_npu_stream(device)
+    return torch_npu._C._recovery_all_npu_stream(device)
+
+
+def restart_device(device_id: int, rebuild_all_resources: int = False):
+    torch_npu.npu._lazy_init()
+    if rebuild_all_resources:
+        mark_all_npu_tensor_unsafe(device_id)
+        set_npu_tensor_unsafe_check_flag(True)
+        _recovery_all_npu_stream(device_id)
+    torch_npu._C._npu_restart_device(device_id)
+    _except_handler.set_force_stop_exception(False)
+    # pg recovery
+    for pg in _pg_map:
+        if (torch.device('npu') in pg._device_types):
+            pg._get_backend(torch.device('npu')).set_watchdog_status(WATCHDOG_STATUS_RUN)
+            pg._get_backend(torch.device('npu')).clear_workmeta_list()
