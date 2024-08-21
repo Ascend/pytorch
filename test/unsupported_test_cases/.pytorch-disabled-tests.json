@@ -7,6 +7,7 @@
   "test_module_attribute_mutation_violation_negative_3 (__main__.MutationExportTests)": ["", [""]],
   "test_generate_tensor_from_list_of_numpy_primitive_type (__main__.DynamicShapesMiscTests)": ["", [""]],
   "test_generate_tensor_from_list_of_numpy_primitive_type_dynamic_shapes (__main__.DynamicShapesMiscTests)": ["", [""]],
+  "test_dynamic_shapes_float_guard_dynamic_shapes (torch._dynamo.testing.DynamicShapesReproTests)": ["", [""]],
   "test_autocast_float64 (__main__.CtxManagerTests)": ["", [""]],
   "test_zero_grad (__main__.TestDataParallel)": ["", [""]],
   "test_conv (__main__.TestMetalRewritePass)": ["", [""]],

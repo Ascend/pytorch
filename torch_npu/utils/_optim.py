@@ -13,11 +13,13 @@ from torch.optim.adam import adam as src_adam
 from torch.optim.adagrad import adagrad as src_adagrad
 from torch.optim.adadelta import adadelta as src_adadelta
 
+from .utils import should_print_warning
+
 
 def wrap_optim_warning_func(func, name):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if not wrapper.warned:
+        if not wrapper.warned and should_print_warning():
             print(f"Warning: NPU does not support argument 'foreach' in torch.optim.{name}, "
                   f"we set foreach=False by default. Please do not set any value for this argument.")
             wrapper.warned = True
