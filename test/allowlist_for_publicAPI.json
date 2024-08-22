@@ -2768,7 +2768,8 @@
     "LongTensor",
     "ShortTensor",
     "BFloat16Tensor",
-    "restart_device"
+    "restart_device",
+    "stop_device"
   ],
   "torch_npu.profiler": [
     "ProfilerActivity",
