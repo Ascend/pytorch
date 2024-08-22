@@ -19,14 +19,17 @@ except ImportError as e:
     from torch_npu.utils._error_code import ErrCode, pta_error
     if "libhccl.so" in str(e):
         if "ASCEND_OPP_PATH" in os.environ:
+            # Warning: key logs in the fault mode library!!! Don't make arbitrary modifications!!!
             e.msg += ". Please check that the compiler package is installed. "\
                        "Please run 'source set_env.sh' in the CANN installation path."\
                         + pta_error(ErrCode.NOT_FOUND)
         else:
+            # Warning: key logs in the fault mode library!!! Don't make arbitrary modifications!!!
             e.msg += ". Please check that the cann package is installed. "\
                        "Please run 'source set_env.sh' in the CANN installation path."\
                        + pta_error(ErrCode.NOT_FOUND)
     elif "libascendcl.so" in str(e):
+        # Warning: key logs in the fault mode library!!! Don't make arbitrary modifications!!!
         e.msg += ". Please check that the runtime package is installed. "\
                    "Please run 'source set_env.sh' in the CANN installation path."\
                    + pta_error(ErrCode.NOT_FOUND) 
