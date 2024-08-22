@@ -159,6 +159,7 @@ std::string get_func_error_msg(void* error_paras)
     if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
         auto cur_paras = static_cast<at_npu::native::ExecuteParas *>(queueParam->paramVal);
         auto op_name = cur_paras->opType;
+        // Warning: key logs in the fault mode library!!! Don't make arbitrary modifications!!!
         result << "the current working operator name is " << op_name;
     } else if (type == c10_npu::queue::ASYNC_MEMCPY) {
         auto cur_paras = static_cast<c10_npu::queue::CopyParas *>(queueParam->paramVal);
