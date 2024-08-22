@@ -206,6 +206,7 @@ details about logs, see the Log Reference."},
         Check whether the input parameters of the interface are correct."},
         {107001, "Invalid device ID.\n\
         Check whether the device ID is valid."},
+        /* Warning: key logs in the fault mode library!!! Don't make arbitrary modifications!!! */
         {107002, "The context is empty.\n\
         Check whether acl.rt.set_context or acl.rt.set_device is called."},
         {107003, "The stream is not in the current context.\n\

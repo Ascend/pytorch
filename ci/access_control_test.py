@@ -131,7 +131,7 @@ if __name__ == "__main__":
     elif options.distributed:
         test_mgr.load_distributed_ut()
     elif os.path.exists(cur_modify_files):
-        test_mgr.load(cur_modify_files)
+        test_mgr.load(cur_modify_files, world_size=options.world_size)
         test_mgr.analyze()
     else:
         test_mgr.load_core_ut()
