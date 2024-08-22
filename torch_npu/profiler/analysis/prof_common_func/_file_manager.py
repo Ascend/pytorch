@@ -2,6 +2,7 @@ import csv
 import json
 import os.path
 
+from typing import Dict, Optional
 from torch_npu.utils._error_code import ErrCode, prof_error
 from ....utils.path_manager import PathManager
 from ._constant import Constant, print_warn_msg
@@ -49,6 +50,25 @@ class FileManager:
         except Exception as err:
             raise RuntimeError(f"Failed to read the file: {file_path}" + prof_error(ErrCode.UNAVAIL)) from err
         return result_data
+
+    @classmethod
+    def read_json_file(cls, file_path: str) -> Optional[Dict]:
+        """Read json file and return dict data"""
+        if not os.path.isfile(file_path):
+            return {}
+        file_size = os.path.getsize(file_path)
+        if file_size <= 0:
+            return {}
+        if file_size > Constant.MAX_FILE_SIZE:
+            msg = f"The file size exceeds the preset value, please check the file: {file_path} "
+            print_warn_msg(msg)
+            return {}
+        try:
+            with open(file_path, 'r', encoding='utf-8') as json_file:
+                data = json.load(json_file)
+                return data
+        except Exception as err:
+            raise RuntimeError(f"Failed to read the file: {file_path}" + prof_error(ErrCode.UNAVAIL)) from err
 
     @classmethod
     def create_csv_file(cls, output_path: str, data: list, file_name: str, headers: list = None) -> None:
