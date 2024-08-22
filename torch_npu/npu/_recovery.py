@@ -6,6 +6,10 @@ import torch_npu._C
 from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 
 
+WATCHDOG_STATUS_RUN = 1
+WATCHDOG_STATUS_STOP = 2
+
+
 def check_npu_storage_is_safe(storage_obj):
     if isinstance(storage_obj, (torch.storage.TypedStorage, torch.storage.UntypedStorage)):
         return torch_npu._C._check_npu_data_ptr(storage_obj)
@@ -62,4 +66,15 @@ def restart_device(device_id: int, rebuild_all_resources: int = False):
     for pg in _pg_map:
         if (torch.device('npu') in pg._device_types):
             pg._get_backend(torch.device('npu')).set_watchdog_status(WATCHDOG_STATUS_RUN)
+            pg._get_backend(torch.device('npu')).clear_workmeta_list()
+
+
+def stop_device(device_id):
+    torch_npu.npu._lazy_init()
+    torch_npu._C._npu_stopDevice(device_id)
+    _except_handler.set_force_stop_exception(True)
+    for pg in _pg_map:
+        if (torch.device('npu') in pg._device_types):
+            pg._get_backend(torch.device('npu')).resume_hccl_comm(device_id)
+            pg._get_backend(torch.device('npu')).set_watchdog_status(WATCHDOG_STATUS_STOP)
             pg._get_backend(torch.device('npu')).clear_workmeta_list()
