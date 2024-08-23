@@ -46,7 +46,8 @@ class mstx:
         def wrapper(func):
             def inner(*args, **kargs):
                 range_id = mstx.range_start(message, stream)
-                func(*args, **kargs)
+                ret = func(*args, **kargs)
                 mstx.range_end(range_id)
+                return ret
             return inner
         return wrapper
