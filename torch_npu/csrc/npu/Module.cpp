@@ -38,7 +38,7 @@
 #include "torch_npu/csrc/aten/python_functions.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "third_party/acl/inc/acl/acl.h"
-#include "third_party/profiler/python/combined_traceback.h"
+#include "torch_npu/csrc/profiler/python/combined_traceback.h"
 #include "torch_npu/csrc/profiler/msprof_tx.h"
 #include "torch_npu/csrc/core/npu/interface/OpInterface.h"
 
@@ -679,9 +679,9 @@ PyObject* THNPModule_resetPeakMemoryStats(PyObject *_unused, PyObject *arg)
     Py_RETURN_NONE;
 }
 
-torch::CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredContext>& x)
+torch_npu::CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredContext>& x)
 {
-    if (torch::CapturedTraceback* sc = dynamic_cast<torch::CapturedTraceback*>(x.get())) {
+    if (torch_npu::CapturedTraceback* sc = dynamic_cast<torch_npu::CapturedTraceback*>(x.get())) {
         return sc;
     }
     TORCH_CHECK(false, "attempting to gather stack context from the wrong StackContext type.", PTA_ERROR(ErrCode::INTERNAL));
@@ -716,7 +716,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
     py::str frames_s = "frames";
 
     py::list empty_frames;
-    std::vector<torch::CapturedTraceback*> to_gather_frames;
+    std::vector<torch_npu::CapturedTraceback*> to_gather_frames;
     std::vector<py::dict> to_gather_dest;
 
     auto add_frame_key = [&](const py::dict& d, const std::shared_ptr<c10::GatheredContext>& ctx) {
@@ -834,7 +834,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
     result["segments"] = segments;
     result["device_traces"] = traces;
 
-    auto frames = torch::py_symbolize(to_gather_frames);
+    auto frames = torch_npu::py_symbolize(to_gather_frames);
     for (auto i : c10::irange(frames.size())) {
         to_gather_dest.at(i)[frames_s] = frames.at(i);
     }

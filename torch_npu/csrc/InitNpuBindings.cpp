@@ -15,7 +15,7 @@
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
-#include "third_party/profiler/python/combined_traceback.h"
+#include "torch_npu/csrc/profiler/python/combined_traceback.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
@@ -182,7 +182,7 @@ PyObject* initModule() {
     c10_npu::bind_npu_recovery_functions(module);
 #endif
     initCommMethods();
-    torch::installCapturedTracebackPython();
+    torch_npu::installCapturedTracebackPython();
     torch_npu::profiler::initMstx(module);
     return module;
 }

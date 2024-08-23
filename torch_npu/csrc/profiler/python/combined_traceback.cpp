@@ -6,7 +6,7 @@
 
 namespace py = pybind11;
 
-namespace torch {
+namespace torch_npu {
 // Locking:
 // We need to free PyCodeObjects when ~StackContext runs, but
 // CUDACachingAllocator may hold its device lock when ~StackContext runs.
@@ -167,4 +167,4 @@ void freeDeadCapturedTracebackFrames()
 
 void installCapturedTracebackPython() { CapturedTraceback::addPythonUnwinder(new PythonTraceback()); }
 
-} // namespace torch
+} // namespace torch_npu

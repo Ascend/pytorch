@@ -172,7 +172,6 @@ include_directories(${PROJECT_SOURCE_DIR}/torch_npu/csrc/aten)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/hccl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/acl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
-include_directories(${PROJECT_SOURCE_DIR}/third_party/profiler)
 
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
@@ -224,7 +223,6 @@ if (DEFINED BUILD_LIBTORCH)
 endif()
 
 set(OPS_PLUGIN_SRCS)
-add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/profiler)
 # Add subdirectory of op-plugin
 include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)

@@ -1,6 +1,6 @@
 #include "combined_traceback.h"
 
-namespace torch {
+namespace torch_npu {
 
 static std::atomic<CapturedTraceback::Python*> python_support_ = nullptr;
 
@@ -176,4 +176,4 @@ void CapturedTraceback::addPythonUnwinder(CapturedTraceback::Python* p)
     } while (!python_support_.compare_exchange_strong(old_unwinder, p));
 }
 
-} // namespace torch
+} // namespace torch_npu

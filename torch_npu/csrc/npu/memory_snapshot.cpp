@@ -1,7 +1,7 @@
 #include <ATen/Context.h>
 #include <torch/csrc/jit/serialization/pickler.h>
 
-#include "third_party/profiler/combined_traceback.h"
+#include "torch_npu/csrc/profiler/combined_traceback.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/npu/memory_snapshot.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
@@ -14,12 +14,12 @@ namespace torch_npu {
 
 std::shared_ptr<c10::GatheredContext> gather()
 {
-    return torch::CapturedTraceback::gather(true, true, false);
+    return torch_npu::CapturedTraceback::gather(true, true, false);
 }
 
 std::shared_ptr<c10::GatheredContext> gather_with_cpp()
 {
-    return torch::CapturedTraceback::gather(true, true, true);
+    return torch_npu::CapturedTraceback::gather(true, true, true);
 }
 
 static void checkOptionIn(const std::string& option,
@@ -50,7 +50,7 @@ void _record_memory_history(c10::optional<std::string> enabled,
     if (enabled && stacks == "all") {
         recorder = gather_with_cpp;
         // warm up C++ stack unwinding
-        torch::unwind::unwind();
+        torch_npu::unwind::unwind();
     }
     max_entries = (enabled && *enabled == "all") ? max_entries : 1;
     auto when = c10_npu::NPUCachingAllocator::RecordContext::NEVER;
@@ -93,12 +93,12 @@ c10::List<c10::IValue> new_list()
     return c10::List<c10::IValue>(c10::AnyType::get());
 }
 
-std::vector<c10::IValue> ivalue_symbolize(std::vector<torch::CapturedTraceback*>& to_symbolize)
+std::vector<c10::IValue> ivalue_symbolize(std::vector<torch_npu::CapturedTraceback*>& to_symbolize)
 {
     // we dedup repeated to_symbolize objects to prevent
     // creating a bunch of duplicated frame objects
-    std::unordered_map<torch::CapturedTraceback*, uint64_t> cached_frames;
-    std::vector<torch::CapturedTraceback*> unique_frames;
+    std::unordered_map<torch_npu::CapturedTraceback*, uint64_t> cached_frames;
+    std::vector<torch_npu::CapturedTraceback*> unique_frames;
     for (const auto& sc : to_symbolize) {
         auto it = cached_frames.find(sc);
         if (it == cached_frames.end()) {
@@ -136,10 +136,10 @@ std::vector<c10::IValue> ivalue_symbolize(std::vector<torch::CapturedTraceback*>
     return result;
 }
 
-torch::CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredContext>& x)
+torch_npu::CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredContext>& x)
 {
-    if (torch::CapturedTraceback* sc =
-            dynamic_cast<torch::CapturedTraceback*>(x.get())) {
+    if (torch_npu::CapturedTraceback* sc =
+            dynamic_cast<torch_npu::CapturedTraceback*>(x.get())) {
         return sc;
     }
     TORCH_CHECK(
@@ -174,7 +174,7 @@ std::string _memory_snapshot_pickled()
 
     auto empty_frames = new_list();
 
-    std::vector<torch::CapturedTraceback*> frame_tracebacks;
+    std::vector<torch_npu::CapturedTraceback*> frame_tracebacks;
     std::vector<c10::Dict<c10::IValue, c10::IValue> > frame_dict;
 
     auto add_frame_key = [&](const c10::Dict<c10::IValue, c10::IValue>& d,

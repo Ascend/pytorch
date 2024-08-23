@@ -1,14 +1,15 @@
 #pragma once
 #include <torch/csrc/jit/runtime/interpreter.h>
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "unwind/unwind.h"
 
-namespace torch {
+namespace torch_npu {
 
 // struct that holds the result of symbolizing multiple tracebacks
 // each traceback is a list of indices into all_frames
 // (lots of Frames get duplicated across traces)
-struct TORCH_API SymbolizedTracebacks {
+struct TORCH_NPU_API SymbolizedTracebacks {
     std::vector<unwind::Frame> all_frames;
     // index into all_frames, so that
     // it is possible to dedupe frame objects in
@@ -16,7 +17,7 @@ struct TORCH_API SymbolizedTracebacks {
     std::vector<std::vector<uint64_t> > tracebacks;
 };
 
-struct TORCH_API CapturedTraceback : public c10::GatheredContext {
+struct TORCH_NPU_API CapturedTraceback : public c10::GatheredContext {
     struct PyFrame {
         void* code; // PyCodeObject*, but python headers not present
         int lasti;
@@ -53,14 +54,14 @@ struct TORCH_API CapturedTraceback : public c10::GatheredContext {
 private:
     std::vector<PyFrame> frames_;
     std::vector<void*> cpp_frames_;
-    std::vector<jit::StackEntry> script_frames_;
-    friend TORCH_API SymbolizedTracebacks symbolize(const std::vector<CapturedTraceback*>& to_symbolize);
+    std::vector<torch::jit::StackEntry> script_frames_;
+    friend TORCH_NPU_API SymbolizedTracebacks symbolize(const std::vector<CapturedTraceback*>& to_symbolize);
 
     // non-owning reference to one of the immortal Python* objects
     // registered above.
     Python* python_ = nullptr;
 };
 
-TORCH_API SymbolizedTracebacks symbolize(const std::vector<CapturedTraceback*>& to_symbolize);
+TORCH_NPU_API SymbolizedTracebacks symbolize(const std::vector<CapturedTraceback*>& to_symbolize);
 
-} // namespace torch
+} // namespace torch_npu

@@ -4,11 +4,13 @@
 #include <c10/macros/Export.h>
 #include <c10/util/Optional.h>
 
-namespace torch {
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+
+namespace torch_npu {
 namespace unwind {
 // gather current stack, relatively fast.
 // gets faster once the cache of program counter locations is warm.
-TORCH_API std::vector<void*> unwind();
+TORCH_NPU_API std::vector<void*> unwind();
 
 struct Frame {
     std::string filename;
@@ -22,10 +24,10 @@ struct Frame {
 // Callers should first batch up all the unique void* pointers
 // across a number of unwind states and make a single call to
 // symbolize.
-TORCH_API std::vector<Frame> symbolize(const std::vector<void*>& frames);
+TORCH_NPU_API std::vector<Frame> symbolize(const std::vector<void*>& frames);
 
 // returns path to the library, and the offset of the addr inside the library
-TORCH_API c10::optional<std::pair<std::string, uint64_t> > libraryFor(void* addr);
+TORCH_NPU_API c10::optional<std::pair<std::string, uint64_t> > libraryFor(void* addr);
 
 struct Stats {
     size_t hits = 0;
@@ -36,4 +38,4 @@ struct Stats {
 Stats stats();
 
 } // namespace unwind
-} // namespace torch
+} // namespace torch_npu

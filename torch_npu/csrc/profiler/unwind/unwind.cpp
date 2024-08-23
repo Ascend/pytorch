@@ -3,7 +3,7 @@
 
 #if !defined(__linux__) || !defined(__x86_64__) || !defined(__has_include) ||  \
     !__has_include("ext/stdio_filebuf.h")
-namespace torch::unwind {
+namespace torch_npu::unwind {
 std::vector<void*> unwind()
 {
     TORCH_CHECK(
@@ -32,7 +32,7 @@ Stats stats()
         "record_context_cpp is not support on non-linux non-x86_64 platforms");
 }
 
-} // namespace torch::unwind
+} // namespace torch_npu::unwind
 
 #else
 
@@ -239,7 +239,7 @@ struct UnwindCache {
         return *r;
     }
 
-    torch::unwind::Stats stats() { return stats_; }
+    torch_npu::unwind::Stats stats() { return stats_; }
 
 private:
     const LibraryInfo* searchFor(uint64_t addr)
@@ -268,7 +268,7 @@ private:
     std::vector<LibraryInfo> all_libraries_;
     ska::flat_hash_map<uint64_t, Unwinder> ip_cache_;
 
-    torch::unwind::Stats stats_;
+    torch_npu::unwind::Stats stats_;
 
     // to keep track of whether we need to refresh this info
     Version last_version_;
@@ -318,7 +318,7 @@ __asm__(".global unwind_entry\n"
         "mov %rbp, %rdx;\n"
         "jmp unwind_c;\n");
 
-namespace torch::unwind {
+namespace torch_npu::unwind {
 std::vector<void*> unwind()
 {
     std::vector<void*> frames;
@@ -462,5 +462,5 @@ std::vector<Frame> symbolize(const std::vector<void*>& frames)
 
 Stats stats() { return unwind_cache.stats(); }
 
-} // namespace torch::unwind
+} // namespace torch_npu::unwind
 #endif

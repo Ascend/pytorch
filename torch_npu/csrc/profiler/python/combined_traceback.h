@@ -1,9 +1,10 @@
 #include <pybind11/pybind11.h>
 #include <torch/csrc/utils/pybind.h>
 
-#include "third_party/profiler/combined_traceback.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+#include "torch_npu/csrc/profiler/combined_traceback.h"
 
-namespace torch {
+namespace torch_npu {
 
 // symbolize combined traceback objects, converting them into lists of
 // dictionaries that are easily consumed in python.
@@ -16,6 +17,6 @@ std::vector<pybind11::object> py_symbolize(std::vector<CapturedTraceback*>& to_s
 // requires GIL to be held, frees any pending free frames
 void freeDeadCapturedTracebackFrames();
 
-TORCH_API void installCapturedTracebackPython();
+TORCH_NPU_API void installCapturedTracebackPython();
 
-} // namespace torch
+} // namespace torch_npu
