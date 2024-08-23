@@ -1,6 +1,7 @@
 #include <chrono>
 #include <sstream>
 #include <thread>
+#include <future>
 #include <unordered_map>
 
 #include <ATen/ATen.h>
@@ -348,73 +349,6 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs)
     END_HANDLE_TH_ERRORS
 }
 
-using GetWorkspaceSizeFunc = aclError (*)(uint64_t*, void**);
-using StressDetectFunc = aclError (*)(void*, uint64_t, void*, aclrtStream);
-
-aclError StressComm(const char* func_name, GetWorkspaceSizeFunc getWorkspaceSize, StressDetectFunc stressDetect)
-{
-    aclrtStream stream = nullptr;
-    NPU_CHECK_SUPPORTED_OR_ERROR(
-        c10_npu::acl::AclrtCreateStreamWithConfig(&stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
-    uint64_t workspaceSize = 0;
-    void* executor;
-    auto ret = getWorkspaceSize(&workspaceSize, &executor);
-    if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("call %sGetWorkspaceSize failed. ERROR : %d", func_name, ret);
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtDestroyStreamForce(stream));
-        return ret;
-    }
-
-    void* workspaceAddr = nullptr;
-    if (workspaceSize > 0) {
-        ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
-        if (ret != ACL_ERROR_NONE) {
-            c10_npu::NPUCachingAllocator::emptyCache();
-            ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
-            if (ret != ACL_ERROR_NONE) {
-                ASCEND_LOGW("call aclrtMalloc failed, ERROR : %d. Skip %s.", ret, func_name);
-                NPU_CHECK_ERROR(c10_npu::acl::AclrtDestroyStreamForce(stream));
-                return ACL_ERROR_NONE;
-            }
-        }
-    }
-
-    ret = stressDetect(workspaceAddr, workspaceSize, executor, stream);
-    if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("call %s failed. ERROR : %d", func_name, ret);
-        if (workspaceSize > 0) {
-            aclrtFree(workspaceAddr);
-        }
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtDestroyStreamForce(stream));
-        return ret;
-    }
-    
-    if (workspaceSize > 0) {
-        aclrtFree(workspaceAddr);
-    }
-
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtDestroyStreamForce(stream));
-    return ACL_ERROR_NONE;
-}
-
-aclError StressDetect()
-{
-    return StressComm("AclnnStressDetect", c10_npu::acl::AclnnStressDetectGetWorkspaceSize,
-                      c10_npu::acl::AclnnStressDetect);
-}
-
-aclError StressDetectWithPressure()
-{
-    return StressComm("AclnnStressDetectWithPressure", c10_npu::acl::AclnnStressDetectWithPressureGetWorkspaceSize,
-                      c10_npu::acl::AclnnStressDetectWithPressure);
-}
-
-aclError StressDetectRecover()
-{
-    return StressComm("AclnnStressDetectRecover", c10_npu::acl::AclnnStressDetectRecoverGetWorkspaceSize,
-                      c10_npu::acl::AclnnStressDetectRecover);
-}
-
 std::unordered_map<int, std::chrono::time_point<std::chrono::steady_clock>> last_call_times;
 const int interval_time = 3600;
 
@@ -430,19 +364,33 @@ PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* noargs)
     if (last_call_times.find(device_id) != last_call_times.end() &&
         std::chrono::duration_cast<std::chrono::seconds>(current_time - last_call_times[device_id]).count() < interval_time) {
         // StressDetect can only be called once every hour for the given device_id, Return 1.
-        ASCEND_LOGW("StressDetect can only be called once every hour for the given device_id:{%d}, Return 1.", device_id);
+        ASCEND_LOGW("StressDetect can only be called once every hour for the given device_id:{%d}.", device_id);
         return PyLong_FromLong(1);
     }
-
     last_call_times[device_id] = current_time;
 
-    auto ret = StressDetect();
-    if (ret == 0) {
-        ret = StressDetectWithPressure();
+    void* workspaceAddr = nullptr;
+    uint64_t size = 2;
+    size_t workspaceSize = size << 10 << 10 << 10;
+    if (workspaceSize > 0) {
+        auto ret = c10_npu::acl::AclrtMallocAlign32(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
+        if (ret != ACL_ERROR_NONE) {
+            c10_npu::NPUCachingAllocator::emptyCache();
+            ret = c10_npu::acl::AclrtMallocAlign32(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
+            if (ret != ACL_ERROR_NONE) {
+                ASCEND_LOGW("call AclrtMallocAlign32 failed, ERROR : %d. Skip StressDetect.", ret);
+                // When AclrtMallocAlign32 fail will return ACL_ERROR_NONE to avoid interrupt the training process.
+                return PyLong_FromLong(ACL_ERROR_NONE);
+            }
+        }
     }
 
-    if (ret != 0) {
-        NPU_CHECK_ERROR_WITHOUT_UCE(StressDetectRecover());
+    std::future<int> result = std::async(std::launch::async, c10_npu::acl::AclStressDetect, device_id, workspaceAddr, workspaceSize);
+
+    int ret = result.get();
+    if (ret == ACL_CLEAR_DEVICE_STATE_FAIL) {
+        ASCEND_LOGE("call AclStressDetect failed, ERROR : %d, voltage recovery fail.", ret);
+        NPU_CHECK_ERROR(ACL_CLEAR_DEVICE_STATE_FAIL, "StressDetect");
     }
 
     return PyLong_FromLong(ret);
