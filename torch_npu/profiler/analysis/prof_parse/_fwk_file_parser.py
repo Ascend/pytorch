@@ -171,7 +171,7 @@ class FwkFileParser:
         if gc_record_data:
             fwk_x_event_list.extend(gc_record_data)
         return fwk_x_event_list
-    
+
     def get_python_trace_data(self) -> list:
         trace_hash_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_HASH)
         func_call_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_FUNC)
@@ -244,15 +244,18 @@ class FwkFileParser:
                 torch_op_idx += 1
 
         connection_ids = []
-        task_queues = []
+        task_enqueues = []
+        task_dequeues = []
         enqueue_data_list, dequeue_data_list = self.get_task_queue_data()
         for enqueue_data in enqueue_data_list:
-            task_queues.append([enqueue_data.ts, enqueue_data.ts + enqueue_data.dur, contact_2num(pid, enqueue_data.tid),
-                                enqueue_data.corr_id, enqueue_data.name])
+            task_enqueues.append(
+                [enqueue_data.ts, enqueue_data.ts + enqueue_data.dur, contact_2num(pid, enqueue_data.tid),
+                 enqueue_data.corr_id, enqueue_data.name])
             connection_ids.append(enqueue_data.corr_id)
         for dequeue_data in dequeue_data_list:
-            task_queues.append([dequeue_data.ts, dequeue_data.ts + dequeue_data.dur, contact_2num(pid, dequeue_data.tid),
-                                dequeue_data.corr_id, dequeue_data.name])
+            task_dequeues.append(
+                [dequeue_data.ts, dequeue_data.ts + dequeue_data.dur, contact_2num(pid, dequeue_data.tid),
+                 dequeue_data.corr_id, dequeue_data.name])
         
         start_connection_id = max(connection_ids) + 1 if connection_ids else 0
         self.update_fwd_bwd_connection_id(fwd_bwd_dict, torch_op_apis, start_connection_id)
@@ -261,7 +264,8 @@ class FwkFileParser:
         func_call_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_FUNC)
         python_trace_parser = PythonTraceParser(trace_hash_data, func_call_data)
         python_trace_apis = python_trace_parser.get_python_trace_api_data()
-        return {"torch_op": torch_op_apis, "task_queue": task_queues, "python_trace": python_trace_apis, "mstx_op": mstx_mark_apis}
+        return {"torch_op": torch_op_apis, "task_enqueues": task_enqueues, "task_dequeues": task_dequeues,
+                "python_trace": python_trace_apis, "mstx_op": mstx_mark_apis}
 
     def get_first_fwk_op(self):
         torch_op_data = self.get_file_data_by_tag(FileTag.TORCH_OP)
