@@ -178,6 +178,14 @@ aclrtContext GetDeviceContext(int32_t device)
     return used_devices[device];
 }
 
+bool isDeviceCtxActive(int32_t device)
+{
+    if (used_devices.find(device) == used_devices.end()) {
+        return false;
+    }
+    return used_devices[device] != nullptr;
+}
+
 c10::DeviceIndex current_device()
 {
     int cur_device = 0;
