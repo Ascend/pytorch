@@ -13,8 +13,10 @@ namespace profiler {
 class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
 friend class torch_npu::toolkit::profiler::Singleton<MstxMgr>;
 public:
-    int RangeStart(const char* message, const aclrtStream stream);
-    void RangeEnd(int ptRangeId);
+    int rangeStart(const char* message, const aclrtStream stream);
+    void rangeEnd(int ptRangeId);
+    bool isMstxEnable();
+    int getRangeId();
 
 private:
     MstxMgr();
