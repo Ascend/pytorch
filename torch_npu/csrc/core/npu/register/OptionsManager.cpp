@@ -382,7 +382,7 @@ std::string OptionsManager::GetOomSnapshotDumpPath()
 bool OptionsManager::ShouldPrintWarning()
 {
     static bool should_print = []() {
-        char* disabled_warning = std::getenv("NPU_DISABLED_WARNING");
+        char* disabled_warning = std::getenv("TORCH_NPU_DISABLED_WARNING");
         if (disabled_warning != nullptr && strtol(disabled_warning, nullptr, 10) == 1) {
             return false;
         }
