@@ -651,6 +651,12 @@ private:
     void logWorkEnd(WorkHCCL& work);
 
     void silenceCheck(at::Tensor &input, c10d::OpType opType);
+
+    static std::string getMstxHcclMsg(const std::string &opName,
+                                      uint64_t dataCnt,
+                                      HcclDataType hcclType,
+                                      HcclComm comm);
+
     std::unordered_map<c10d::OpType, std::pair<at::Tensor, at::Tensor>> silenceCheckCache_;
 
     WatchdogStatus watchdogStatus;
