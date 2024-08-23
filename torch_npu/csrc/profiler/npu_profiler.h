@@ -114,12 +114,37 @@ void reportMemoryDataToNpuProfiler(const MemoryUsage& data);
 
 inline int mstxRangeStart(const char* message, const aclrtStream stream)
 {
-    return MstxMgr::GetInstance()->RangeStart(message, stream);
+    return MstxMgr::GetInstance()->rangeStart(message, stream);
 }
 
 inline void mstxRangeEnd(int id)
 {
-    MstxMgr::GetInstance()->RangeEnd(id);
+    MstxMgr::GetInstance()->rangeEnd(id);
 }
+
+inline bool mstxEnable()
+{
+    return MstxMgr::GetInstance()->isMstxEnable();
+}
+
+struct MstxRange {
+    int rangeId{0};
+    MstxRange(const std::string &message, aclrtStream stream)
+    {
+        if (message.empty()) {
+            return;
+        }
+        rangeId = MstxMgr::GetInstance()->getRangeId();
+        at_npu::native::MstxRangeStartA(message.c_str(), stream, rangeId);
+    }
+
+    ~MstxRange()
+    {
+        if (rangeId == 0) {
+            return;
+        }
+        at_npu::native::MstxRangeEnd(rangeId);
+    }
+};
 } // profiler
 } // torch_npu
