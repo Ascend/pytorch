@@ -61,6 +61,8 @@ aclError SynchronizeUsedDevices();
 
 aclrtContext GetDeviceContext(int32_t device);
 
+bool isDeviceCtxActive(int32_t device);
+
 C10_NPU_API c10::DeviceIndex current_device();
 
 C10_NPU_API void set_device(c10::DeviceIndex device);

@@ -24,8 +24,7 @@ void NPUHooksInterface::initPrivateUse1() const
 
 bool NPUHooksInterface::hasPrimaryContext(c10::DeviceIndex device_index) const
 {
-    aclrtContext device_context = c10_npu::GetDeviceContext(device_index);
-    return device_context != nullptr;
+    return c10_npu::isDeviceCtxActive(device_index);
 }
 
 void NPUHooksInterface::resizePrivateUse1Bytes(const c10::Storage &storage, size_t new_bytes) const
