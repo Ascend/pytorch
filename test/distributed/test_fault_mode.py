@@ -4,10 +4,12 @@ import subprocess
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 
 class TestMode(TestCase):
 
+    @skipIfUnsupportMultiNPU(2)
     def test_dist_init_duplicate(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_double_init.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
@@ -42,6 +44,7 @@ class TestMode(TestCase):
                     stderr
                 )
 
+    @skipIfUnsupportMultiNPU(2)
     def test_broadcast_group(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_broadcast_param.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
@@ -56,6 +59,7 @@ class TestMode(TestCase):
             message
         )
 
+    @skipIfUnsupportMultiNPU(2)
     def test_cpu_tensor(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_cpu_tensor.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
@@ -70,6 +74,7 @@ class TestMode(TestCase):
             message
         )
 
+    @skipIfUnsupportMultiNPU(2)
     def test_diff_dtype(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_diff_dtype.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
@@ -84,6 +89,7 @@ class TestMode(TestCase):
             message
         )
 
+    @skipIfUnsupportMultiNPU(2)
     def test_diff_type(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_diff_type.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
@@ -98,6 +104,7 @@ class TestMode(TestCase):
             message
         )
 
+    @skipIfUnsupportMultiNPU(2)
     def test_error_size(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_size.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
@@ -112,6 +119,7 @@ class TestMode(TestCase):
             message
         )
 
+    @skipIfUnsupportMultiNPU(2)
     def test_discontinuous_tensor(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_discontinuous_tensor.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
@@ -126,6 +134,7 @@ class TestMode(TestCase):
             message
         )
 
+    @skipIfUnsupportMultiNPU(2)
     def test_hccl_timeout(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_hccl_timeout.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,

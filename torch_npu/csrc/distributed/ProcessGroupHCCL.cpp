@@ -31,6 +31,7 @@
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
+#include "torch_npu/csrc/profiler/npu_profiler.h"
 #include <c10d/Utils.hpp>
 
 namespace c10d_npu {
@@ -1487,6 +1488,48 @@ std::string ProcessGroupHCCL::getHcclCommNameWithoutInit(int rankid, std::vector
     return name_str;
 }
 
+std::string ProcessGroupHCCL::getMstxHcclMsg(
+    const std::string &opName, uint64_t dataCnt, HcclDataType dataType, HcclComm comm)
+{
+    const static std::map<HcclDataType, std::string> dataTypes = {
+        {HCCL_DATA_TYPE_INT8, "int8"},
+        {HCCL_DATA_TYPE_INT16, "int16"},
+        {HCCL_DATA_TYPE_INT32, "int32"},
+        {HCCL_DATA_TYPE_FP16, "fp16"},
+        {HCCL_DATA_TYPE_FP32, "fp32"},
+        {HCCL_DATA_TYPE_INT64, "int64"},
+        {HCCL_DATA_TYPE_UINT64, "uint64"},
+        {HCCL_DATA_TYPE_UINT8, "uint8"},
+        {HCCL_DATA_TYPE_UINT16, "uint16"},
+        {HCCL_DATA_TYPE_UINT32, "uint32"},
+        {HCCL_DATA_TYPE_FP64, "fp64"},
+        {HCCL_DATA_TYPE_BFP16, "bfp16"}
+    };
+    static std::map<HcclComm, std::string> commNames;
+    if (!torch_npu::profiler::mstxEnable()) {
+        return "";
+    }
+    std::string hccl_message_str = opName + "@";
+    auto nameIter = commNames.find(comm);
+    if (nameIter == commNames.end()) {
+        char commName[MAX_GROUP_NAME_LEN];
+        HCCL_CHECK_ERROR(at_npu::hccl::HcclGetCommNameFace(comm, commName));
+        std::string name(commName);
+        commNames.insert({comm, name});
+        hccl_message_str += name;
+    } else {
+        hccl_message_str += nameIter->second;
+    }
+    hccl_message_str += "@";
+    std::string data_type_str = "na";
+    auto iter = dataTypes.find(dataType);
+    if (iter != dataTypes.end()) {
+        data_type_str = iter->second;
+    }
+    hccl_message_str = hccl_message_str + data_type_str + "@" + std::to_string(dataCnt);
+    return hccl_message_str;
+}
+
 void ProcessGroupHCCL::silenceCheck(at::Tensor &input, c10d::OpType opType)
 {
     if (input.scalar_type() != at::kFloat && input.scalar_type() != at::kBFloat16) {
@@ -1723,6 +1766,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
             auto numel = getNumelForHCCL(input);
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclAllreduce", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = HcclAllReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -1790,6 +1835,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
 			                                           remote_rank_list[i]
 			                                           };
 			    }
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclBatchSendRecv", sendRecvInfo[0].count, sendRecvInfo[0].dataType, comm),
+                    stream.stream(false));
 			    auto hccl_result = hcclBatchIsendIrecv(sendRecvInfo, itemNum, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -1820,6 +1868,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclBroadcast", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -1862,6 +1912,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
             auto numel = getNumelForHCCL(input);
             auto reduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclReduce", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = hcclReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -1915,6 +1967,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
             auto numel = getNumelForHCCL(input);
             auto reduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclReduce", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = hcclReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -2018,6 +2072,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                 auto numel = getNumelForHCCL(input);
                 auto hcclType = getHcclDataType(input.scalar_type());
                 auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched]() -> int {
+                    torch_npu::profiler::MstxRange range(
+                        getMstxHcclMsg("HcclAllGather", numel, hcclType, comm), stream.stream(false));
                     auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                     *is_dispatched = true;
                     return hccl_result;
@@ -2087,6 +2143,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                 auto inputDataPtr = input.data_ptr();
                 auto numel = getNumelForHCCL(input);
                 auto hcclType = getHcclDataType(input.scalar_type());
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclBroadcast", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream());
                 *is_dispatched = true;
                 return hccl_result;
@@ -2126,6 +2184,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclAllGather", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -2172,6 +2232,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclAllGather", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -2214,6 +2276,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
             auto numel = getNumelForHCCL(output);
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = HcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -2307,6 +2371,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
             auto numel = getNumelForHCCL(output);
             auto hcclReduceOp = hcclOp[opts.reduceOp];
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = HcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -2429,6 +2495,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
             auto numel = getNumelForHCCL(output);
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclScatter", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = hcclScatter(inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -2477,6 +2545,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, numel, hcclType, dstRank, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclSend", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = HcclSend(inputDataPtr, numel, hcclType, dstRank, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -2507,6 +2577,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
             auto numel = getNumelForHCCL(output);
             auto hcclType = getHcclDataType(output.scalar_type());
             auto hccl_call = [outputDataPtr, numel, hcclType, srcRank, comm, stream, is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclRecv", numel, hcclType, comm), stream.stream(false));
                 auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType, srcRank, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -2597,6 +2669,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                 HcclComm comm,
                 c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
                     RECORD_FUNCTION("HcclAlltoAll", std::vector<c10::IValue>({input}));
+                    torch_npu::profiler::MstxRange range(
+                        getMstxHcclMsg("HcclAlltoAll", input_counts, getHcclDataType(input.scalar_type()), comm),
+                        stream.stream(false));
                     auto hccl_result = hcclAlltoAll(
                         input.data_ptr(),
                         input_counts,
@@ -2689,6 +2764,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                                   comm,
                                   stream,
                                   is_dispatched]() -> int {
+                    torch_npu::profiler::MstxRange range(
+                        getMstxHcclMsg("HcclAlltoAllV", static_cast<uint64_t>(inputCounts.size()),
+                                       inputhcclDataType, comm),
+                        stream.stream(false));
                     auto hccl_result = hcclAlltoAllV(
                         inputDataPtr,
                         inputCounts.data(),
@@ -2809,6 +2888,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                               comm,
                               stream,
                               is_dispatched]() -> int {
+                torch_npu::profiler::MstxRange range(
+                    getMstxHcclMsg("HcclAlltoAllV", static_cast<uint64_t>(input_counts.size()),
+                                   inputhcclDataType, comm),
+                    stream.stream(false));
                 auto hccl_result = hcclAlltoAllV(
                     inputDataPtr,
                     input_counts.data(),

@@ -12,7 +12,7 @@ MstxMgr::MstxMgr()
 {
 }
 
-int MstxMgr::RangeStart(const char* message, const aclrtStream stream)
+int MstxMgr::rangeStart(const char* message, const aclrtStream stream)
 {
     if (!ProfilerMgr::GetInstance()->GetNpuTrace().load() || !ProfilerMgr::GetInstance()->GetMsprofTx().load()) {
         return 0;
@@ -37,9 +37,11 @@ int MstxMgr::RangeStart(const char* message, const aclrtStream stream)
     return id;
 }
 
-void MstxMgr::RangeEnd(int ptRangeId)
+void MstxMgr::rangeEnd(int ptRangeId)
 {
-    if (!ProfilerMgr::GetInstance()->GetNpuTrace().load() || !ProfilerMgr::GetInstance()->GetMsprofTx().load()) {
+    if (!ProfilerMgr::GetInstance()->GetNpuTrace().load() ||
+        !ProfilerMgr::GetInstance()->GetMsprofTx().load() ||
+        ptRangeId == 0) {
         return;
     }
     bool rangeIdWithStream = false;
@@ -63,6 +65,16 @@ void MstxMgr::RangeEnd(int ptRangeId)
     cmd.Name("mstx_range_end_op");
     cmd.SetCustomHandler(range_end_call);
     cmd.Run();
+}
+
+int MstxMgr::getRangeId()
+{
+    return ptRangeId_++;
+}
+
+bool MstxMgr::isMstxEnable()
+{
+    return ProfilerMgr::GetInstance()->GetNpuTrace().load() && ProfilerMgr::GetInstance()->GetMsprofTx().load();
 }
 }
 }
