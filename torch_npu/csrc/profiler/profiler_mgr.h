@@ -8,6 +8,7 @@
 
 #include "torch_npu/csrc/toolkit/profiler/common/singleton.h"
 #include "torch_npu/csrc/toolkit/profiler/inc/data_dumper.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 namespace torch_npu {
 namespace profiler {
 constexpr uint64_t Level_none = 0;
@@ -25,8 +26,9 @@ struct NpuTraceConfig {
   bool op_attr;
 };
 
-class ProfilerMgr : public torch_npu::toolkit::profiler::Singleton<ProfilerMgr> {
-friend class torch_npu::toolkit::profiler::Singleton<ProfilerMgr>;
+C10_NPU_API int8_t GetTraceLevel();
+
+class ProfilerMgr {
 public:
     void Init(const std::string &path, bool npu_trace);
     void Start(const NpuTraceConfig &npu_config, bool cpu_trace);
@@ -36,6 +38,8 @@ public:
     void UploadWithLock(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
     void UploadTraceEventData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerFuncData> data);
     void UploadTraceHashData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerHashData> data);
+    int8_t GetTraceLevel();
+    static ProfilerMgr *GetInstance();
     std::atomic<bool>& GetNpuTrace()
     {
         return npu_trace_;
@@ -75,6 +79,7 @@ private:
     std::atomic<bool> record_op_args_;
     std::atomic<bool> profile_memory_;
     std::atomic<bool> msprof_tx_;
+    std::atomic<int8_t> trace_level_;
     std::string path_;
     aclprofConfig *profConfig_;
     torch_npu::toolkit::profiler::DataDumper dataReceiver_;
