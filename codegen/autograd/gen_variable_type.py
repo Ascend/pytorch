@@ -16,10 +16,14 @@ from torchgen.packaged.autograd.gen_inplace_or_view_type import (
 )
 from torchgen.packaged.autograd.gen_trace_type import type_wrapper_name
 from torchgen.packaged.autograd.gen_variable_type import (
-    emit_body, gen_wrapper_registration
+    emit_body, gen_wrapper_registration, GRADIENT_IMPLEMENTED_FOR_COMPLEX
 )
 
 from .utils import NPU_AUTOGRAD_FUNCTION
+
+GRADIENT_IMPLEMENTED_FOR_COMPLEX.update((
+    "stft",
+))
 
 NPU_NATIVEFUNCTIONS = {'npu_format_cast', '_npu_format_cast'}
 
