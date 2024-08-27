@@ -1,6 +1,5 @@
 import os
 import subprocess
-import unittest
 
 import torch
 from torch.testing._internal.common_utils import TestCase, run_tests
@@ -221,19 +220,18 @@ class TestMode(TestCase):
         with self.assertRaisesRegex(ValueError, "loaded state dict has a different number of parameter groups"):
             optimizer1.load_state_dict(optimizer2.state_dict())
 
-    @unittest.skip("the stdout log cann't be got through `process.stdout.read()` in CI.")
     def test_aclopCompile(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_aclopCompileAndExecute.py')
         process = subprocess.Popen(["python", f"{path}"], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    text=True)
-        message = process.stdout.read()
+        out, error = process.communicate(timeout=1800)
         process.stderr.close()
         process.stdout.close()
         process.terminate()
         process.wait()
         self.assertIn(
             "EZ9999",
-            message
+            error
         )
 
     def test_ascyn(self):
