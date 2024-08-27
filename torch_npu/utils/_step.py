@@ -11,6 +11,7 @@ from torch.nn import Module
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
+from torch_npu.asd.asd import _silent_fault_detector_v2
 
 
 original_call = Module.__call__
@@ -43,10 +44,120 @@ class PerfDumpState:
 
 perf_dump_state = PerfDumpState()
 perf_dump_enable = False
-first_forward = True
-input_hook_flag = True
-weight_hook_flag = True
-asd_enable = 1
+IS_IN_BACKWARD = 0
+
+
+def input_hook(idx, asd_flag):
+    def hook(grad):
+        global IS_IN_BACKWARD
+
+        if idx != "":
+            IS_IN_BACKWARD = IS_IN_BACKWARD & 1  # 011 & 001 = 001
+            _silent_fault_detector_v2.silent_fault_check(idx, asd_flag, grad)
+        else:
+            IS_IN_BACKWARD = IS_IN_BACKWARD & 2  # 011 & 010 = 010
+
+        if not IS_IN_BACKWARD:
+            torch_npu._C._npu_set_call_state("forward")
+        return
+    return hook
+
+
+def output_hook(grad):
+    global IS_IN_BACKWARD
+    IS_IN_BACKWARD = 3  # 011
+    torch_npu._C._npu_set_call_state("backward")
+    return grad
+
+
+def _is_inner_module(module):
+    return len(module._modules) == 0
+
+
+class SilentCheckState:
+    def __init__(self):
+        self.init_param()
+        self.init_marks = {}
+        self.weight_hook_flags = {}
+        self.last_weight_hook_flags = {}
+
+    def init_param(self):
+        self.first_forward = True
+        self.input_hook_flag = False
+        self.is_training = False
+        self.first_module_id = ""
+        self.first_weight = None
+        self.last_weight = None
+        self.last_tensor = None
+        self.last_tensor_id = None
+        self.first_tensor_id = None
+
+    def init_module_info(self, module_id, training):
+        self.first_module_id = module_id
+        self.first_forward = False
+        self.is_training = training
+        if self.is_training:
+            torch_npu._C._npu_set_module_train_state("train")
+        else:
+            torch_npu._C._npu_set_module_train_state("infer")
+
+    def search_first_weight(self, module):
+        # Search the first weight
+        if not self.init_marks.get(self.first_module_id, False) and self.first_weight is None:
+            for param_name, param in module._parameters.items():
+                if isinstance(param, torch.Tensor) and param.requires_grad:
+                    self.first_weight = param
+                    break
+
+    def register_input_hook_before_call(self, asd_flag, *args):
+        # Search the first tensor (if the first tensor is input)
+        if self.is_training and not self.input_hook_flag:
+            for x in args:
+                if isinstance(x, torch.Tensor) and x.requires_grad:
+                    x.register_hook(input_hook(self.first_module_id, asd_flag))
+                    self.input_hook_flag = True
+                    break
+
+    def register_input_hook_after_call(self, output):
+        # Search the first tensor (if the first tensor is output of an inner module)
+        if not self.input_hook_flag:
+            if isinstance(output, torch.Tensor) and output.requires_grad:
+                output.register_hook(input_hook(self.first_module_id, asd_enable))
+                self.input_hook_flag = True
+                self.first_tensor_id = id(output)
+
+    def search_last_weight(self, module):
+        # Search the last weight (only in inner module)
+        if not self.init_marks.get(self.first_module_id, False) and _is_inner_module(module):
+            for param_name, param in module._parameters.items():
+                if isinstance(param, torch.Tensor) and param.requires_grad:
+                    self.last_weight = param
+
+    def search_last_tensor(self, output):
+        # Search the last tensor
+        if isinstance(output, torch.Tensor) and output.requires_grad:
+            self.last_tensor_id = id(output)
+            self.last_tensor = output
+
+    def init_all_hook(self, asd_flag):
+        if self.is_training:
+            # Otherwise, there is only one weight in the outer module
+            if self.first_tensor_id != self.last_tensor_id:
+                if self.last_tensor is not None:
+                    self.last_tensor.register_hook(output_hook)
+                if not self.last_weight_hook_flags.get(self.first_module_id, False):
+                    if self.last_weight is not None:
+                        self.last_weight.register_hook(output_hook)
+                        self.last_weight_hook_flags[self.first_module_id] = True
+                if not self.weight_hook_flags.get(self.first_module_id, False):
+                    if self.first_weight is not None:
+                        self.first_weight.register_hook(input_hook("", asd_flag))
+                        self.weight_hook_flags[self.first_module_id] = True
+                self.init_marks[self.first_module_id] = True
+
+
+silent_check = SilentCheckState()
+asd_enable = 0
 
 
 class CustomRotatingFileHandler(RotatingFileHandler):
@@ -120,24 +231,13 @@ def _setup_logger(name, path):
     logger.propagate = False
 
 
-def input_hook(grad):
-    torch_npu._C._npu_set_call_state("forward")
-    return grad
-
-
-def output_hook(grad):
-    torch_npu._C._npu_set_call_state("backward")
-    return grad
-
-
 def _custom_call(self, *args, **kwargs):    
     global perf_dump_enable
     global perf_dump_state
 
     global asd_enable
-    global first_forward
-    global input_hook_flag
-    global weight_hook_flag
+    global silent_check
+    global IS_IN_BACKWARD
 
     if not torch.npu.is_initialized():
         return original_call(self, *args, **kwargs)
@@ -170,46 +270,38 @@ def _custom_call(self, *args, **kwargs):
             perf_dump_state.is_outer_call = False
             self.visited = True
 
-    if asd_enable:
-        if input_hook_flag:
-            for x in args:
-                if isinstance(x, torch.Tensor):
-                    if x.requires_grad:
-                        x.register_hook(input_hook)
-                        input_hook_flag = False
-                        break
-
-        if weight_hook_flag:
-            for param_name, param in self._parameters.items():
-                if isinstance(param, torch.Tensor):
-                    if param.requires_grad:
-                        param.register_hook(input_hook)
-                        weight_hook_flag = False
-                        break
-
-        if first_forward:
-            first_forward = False
+    if asd_enable and not IS_IN_BACKWARD:
+        if silent_check.first_forward:
+            silent_check.init_module_info(id(self), self.training)
             self.outer = True
-            if self.training:
-                torch_npu._C._npu_set_module_train_state("train")
-            else:
-                torch_npu._C._npu_set_module_train_state("infer")
+
+        # Search the first tensor (if the first tensor is input)
+        silent_check.register_input_hook_before_call(asd_enable, *args)
 
     tmp = original_call(self, *args, **kwargs)
+
+    if asd_enable and silent_check.is_training and not IS_IN_BACKWARD:
+        # Search the first weight
+        silent_check.search_first_weight(self)
+
+        # Search the first tensor (if the first tensor is output of an inner module)
+        silent_check.register_input_hook_after_call(tmp)
+
+        # Search the last weight (only in inner module)
+        silent_check.search_last_weight(self)
+        
+        # Search the last tensor
+        silent_check.search_last_tensor(tmp)
 
     if perf_dump_enable:
         if hasattr(self, "visited") and self.visited:
             perf_dump_state.is_outer_call = True
             self.visited = False
 
-    if asd_enable:
+    if asd_enable and not IS_IN_BACKWARD:
         if hasattr(self, "outer") and self.outer:
-            if isinstance(tmp, torch.Tensor):
-                if tmp.requires_grad:
-                    tmp.register_hook(output_hook)
-            input_hook_flag = True
-            weight_hook_flag = True
-            first_forward = True
+            silent_check.init_all_hook(asd_enable)
+            silent_check.init_param()
             self.outer = False
 
     return tmp

@@ -5,7 +5,7 @@ from torch.nn.functional import embedding as origin_embedding
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
-from .silent_fault_data import SilentFaultData
+from .silent_fault_data import SilentFaultData, SilentFaultDataV2
 
 __all__ = []
 
@@ -104,3 +104,27 @@ def _asd_patch():
     if int(env_value):
         torch.nn.functional.layer_norm = _patch_layernorm
         torch.nn.functional.embedding = _patch_embedding
+
+
+@_Singleton
+class _SilentFaultDetectorV2:
+    def __init__(self):
+        self.silent_data_dict = dict()
+        self.min_step = 100
+
+    def silent_fault_check(self, idx, asd_enable, grad):
+        if grad.dtype != torch.bfloat16 and grad.dtype != torch.float32:
+            return
+
+        val = torch.norm(grad)
+
+        if idx not in self.silent_data_dict:
+            self.silent_data_dict[idx] = SilentFaultDataV2()
+
+        sfda = self.silent_data_dict[idx]
+
+        torch_npu._npu_silent_check_v2(val, grad, sfda.check_tensor, sfda.step_tensor, self.min_step, sfda.upper_thresh[0],
+                                       sfda.sigma_thresh[0], sfda.upper_thresh[1], sfda.sigma_thresh[1], asd_enable)
+
+
+_silent_fault_detector_v2 = _SilentFaultDetectorV2()
