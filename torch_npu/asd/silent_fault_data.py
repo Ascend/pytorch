@@ -27,3 +27,10 @@ class SilentFaultData:
         self.max_val = torch.tensor(-10 ** 10).float().npu()
         self.min_val = torch.tensor(10 ** 10).float().npu()
         self.upper_thresh, self.sigma_thresh = get_thresh()
+
+
+class SilentFaultDataV2:
+    def __init__(self):
+        self.step_tensor = torch.zeros(1, dtype=torch.int64).npu()
+        self.check_tensor = torch.zeros(3, dtype=torch.float).npu()
+        self.upper_thresh, self.sigma_thresh = get_thresh()
