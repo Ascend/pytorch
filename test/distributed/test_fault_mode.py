@@ -1,6 +1,5 @@
 import os.path
 import subprocess
-import unittest
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -24,7 +23,7 @@ class TestMode(TestCase):
             message
         )
 
-    @unittest.skip("not ok only in CI")
+    @skipIfUnsupportMultiNPU(2)
     def test_dist_use_same_addr(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_use_same_addr.py')
 
