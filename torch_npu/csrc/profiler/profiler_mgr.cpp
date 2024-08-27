@@ -9,6 +9,12 @@
 
 namespace torch_npu {
 namespace profiler {
+std::map<std::string, int8_t> trace_level_to_int_ = {
+    {"Level0", 0},
+    {"Level1", 1},
+    {"Level2", 2},
+};
+
 std::map<std::string, aclprofAicoreMetrics> ProfilerMgr::npu_metrics_map_ = {
     {"ACL_AICORE_PIPE_UTILIZATION", ACL_AICORE_PIPE_UTILIZATION},
     {"ACL_AICORE_ARITHMETIC_UTILIZATION", ACL_AICORE_ARITHMETIC_UTILIZATION},
@@ -38,6 +44,12 @@ ProfilerMgr::ProfilerMgr()
       msprof_tx_(false),
       profConfig_(nullptr) {}
 
+ProfilerMgr *ProfilerMgr::GetInstance()
+{
+    static ProfilerMgr instance;
+    return &instance;
+}
+
 void ProfilerMgr::Init(const std::string &path, bool npu_trace) {
   if (npu_trace == true) {
     at_npu::native::AclProfilingInit(path.c_str(), path.size());
@@ -60,59 +72,62 @@ void ProfilerMgr::EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, a
   }
 }
 
-void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
-  c10_npu::npuSynchronizeDevice();
-  if (npu_trace_.load() == true) {
-    aclprofAicoreMetrics aic_metrics = ACL_AICORE_NONE;
-    auto level_iter = trace_level_map_.find(npu_config.trace_level);
-    uint64_t datatype_config = (level_iter == trace_level_map_.end()) ?
-      Level0 : trace_level_map_[npu_config.trace_level];
-    auto metrics_iter = npu_metrics_map_.find(npu_config.metrics);
-    if (metrics_iter != npu_metrics_map_.end() && npu_config.metrics.compare("ACL_AICORE_NONE") != 0) {
-      datatype_config |= ACL_PROF_AICORE_METRICS;
-      aic_metrics = npu_metrics_map_[npu_config.metrics];
-    }
-    if (npu_config.l2_cache) {
-      datatype_config |= ACL_PROF_L2CACHE;
-    }
+void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace)
+{
+    c10_npu::npuSynchronizeDevice();
+    if (npu_trace_.load() == true) {
+        aclprofAicoreMetrics aic_metrics = ACL_AICORE_NONE;
+        auto level_iter = trace_level_map_.find(npu_config.trace_level);
+        uint64_t datatype_config = (level_iter == trace_level_map_.end()) ? Level0 : trace_level_map_[npu_config.trace_level];
+        auto metrics_iter = npu_metrics_map_.find(npu_config.metrics);
+        if (metrics_iter != npu_metrics_map_.end() && npu_config.metrics.compare("ACL_AICORE_NONE") != 0) {
+            datatype_config |= ACL_PROF_AICORE_METRICS;
+            aic_metrics = npu_metrics_map_[npu_config.metrics];
+        }
+        if (npu_config.l2_cache) {
+            datatype_config |= ACL_PROF_L2CACHE;
+        }
         if (npu_config.msprof_tx) {
             datatype_config |= ACL_PROF_MSPROFTX;
         }
-    if (npu_config.npu_memory) {
-      datatype_config |= ACL_PROF_TASK_MEMORY;
-      const std::string freq = "50";
-      auto prof_ret = at_npu::native::AclprofSetConfig(ACL_PROF_SYS_HARDWARE_MEM_FREQ, freq.c_str(), freq.size());
-      if (prof_ret == ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
-        ASCEND_LOGW("not support to set config for sys-hardware-mem.");
-      }
+        if (npu_config.npu_memory) {
+            datatype_config |= ACL_PROF_TASK_MEMORY;
+            const std::string freq = "50";
+            auto prof_ret = at_npu::native::AclprofSetConfig(ACL_PROF_SYS_HARDWARE_MEM_FREQ, freq.c_str(), freq.size());
+            if (prof_ret == ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
+                ASCEND_LOGW("not support to set config for sys-hardware-mem.");
+            }
+        }
+        if (npu_config.op_attr) {
+            datatype_config |= ACL_PROF_OP_ATTR;
+        }
+        datatype_config = CheckFeatureConfig(datatype_config);
+        int32_t deviceId = 0;
+        auto ret = c10_npu::GetDevice(&deviceId);
+        if (ret != ACL_ERROR_NONE) {
+            ASCEND_LOGE("Get Device ID failed.");
+            return;
+        }
+        const uint32_t deviceNum = 1;
+        uint32_t deviceIdList[deviceNum] = {deviceId};
+        EnableMsProfiler(deviceIdList, deviceNum, aic_metrics, datatype_config);
+        int8_t level_int = trace_level_to_int_.find(npu_config.trace_level) != trace_level_to_int_.end() ?
+            trace_level_to_int_[npu_config.trace_level] : -1;
+        trace_level_.store(level_int);
     }
-    if (npu_config.op_attr) {
-        datatype_config |= ACL_PROF_OP_ATTR;
-    }
-    datatype_config = CheckFeatureConfig(datatype_config);
-    int32_t deviceId = 0;
-    auto ret = c10_npu::GetDevice(&deviceId);
-    if (ret != ACL_ERROR_NONE) {
-      ASCEND_LOGE("Get Device ID failed.");
-      return;
-    }
-    const uint32_t deviceNum = 1;
-    uint32_t deviceIdList[deviceNum] = {deviceId};
-    EnableMsProfiler(deviceIdList, deviceNum, aic_metrics, datatype_config);
-  }
 
-  if (cpu_trace == true) {
-    StartDataReceiver();
-    report_enable_.store(true);
-    profile_memory_.store(npu_config.npu_memory);
-  }
+    if (cpu_trace == true) {
+        StartDataReceiver();
+        report_enable_.store(true);
+        profile_memory_.store(npu_config.npu_memory);
+    }
     msprof_tx_.store(npu_config.msprof_tx);
-  if (npu_config.record_op_args) {
-    record_op_args_.store(true);
-    const std::string op_dump_path = std::string(path_.begin(), path_.begin() + path_.find_last_not_of("/") + 1) +
-      "_op_args";
-    at_npu::native::AclopStartDumpArgs(ACL_OP_DUMP_OP_AICORE_ARGS, op_dump_path.c_str());
-  }
+    if (npu_config.record_op_args) {
+        record_op_args_.store(true);
+        const std::string op_dump_path = std::string(path_.begin(), path_.begin() + path_.find_last_not_of("/") + 1) +
+                                         "_op_args";
+        at_npu::native::AclopStartDumpArgs(ACL_OP_DUMP_OP_AICORE_ARGS, op_dump_path.c_str());
+    }
 }
 
 void ProfilerMgr::Stop() {
@@ -193,6 +208,19 @@ uint64_t ProfilerMgr::CheckFeatureConfig(uint64_t datatype_config)
         return datatype_config & ~(ACL_PROF_OP_ATTR);
     }
     return datatype_config;
+}
+
+int8_t ProfilerMgr::GetTraceLevel()
+{
+    if (npu_trace_.load()) {
+        return trace_level_.load();
+    }
+    return -1;
+}
+
+int8_t GetTraceLevel()
+{
+    return ProfilerMgr::GetInstance()->GetTraceLevel();
 }
 } // profiler
 } // torch_npu
