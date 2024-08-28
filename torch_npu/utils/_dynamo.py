@@ -15,6 +15,8 @@ from torch._dynamo.variables.misc import SkipFilesVariable
 from torch._dynamo.variables.constant import ConstantVariable
 from torch._dynamo.variables.tensor import TensorVariable
 from torch._dynamo.variables.lists import TupleVariable
+from torch._inductor.graph import GraphLowering
+from torch._inductor.codegen.common import get_wrapper_codegen_for_device
 from torch._C import DispatchKey
 from torch._prims.rng_prims import run_and_save_rng_state, run_with_rng_state
 from torch._subclasses.fake_tensor import FakeTensorMode
@@ -23,6 +25,7 @@ from torch._dynamo import optimize
 from torch import _TorchCompileWrapper
 import torch_npu
 from torch_npu.dynamo import _get_global_npu_backend
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 def get_device_npu(args, kwargs):
@@ -402,6 +405,27 @@ def patch_dynamo_optimize():
     torch._dynamo.optimize = npu_optimize
 
 
+def patch_inductor_wrapper():
+    src_init_wrapper_code = GraphLowering.init_wrapper_code
+
+    def _check_wrapper_exist(self):
+        device_types = self.device_types.copy()
+        for buffer in self.buffers:
+            device_types.add(buffer.get_device().type)
+        device_types.discard("cpu")
+        only_cpu = len(device_types) == 0
+        device_type = "cpu" if only_cpu else device_types.pop()
+        wrapper_code_gen_cls = get_wrapper_codegen_for_device(device_type)
+        if wrapper_code_gen_cls is None:
+            raise AssertionError(f"Device {device_type} not supported" + pta_error(ErrCode.NOT_SUPPORT))
+
+    def new_init_wrapper_code(self):
+        _check_wrapper_exist(self)
+        return src_init_wrapper_code(self)
+
+    GraphLowering.init_wrapper_code = new_init_wrapper_code
+
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
@@ -412,3 +436,4 @@ def add_dynamo_methods():
     patch_higher_order_ops()
     patch_functionalize_rng_ops()
     patch_dynamo_optimize()
+    patch_inductor_wrapper()
