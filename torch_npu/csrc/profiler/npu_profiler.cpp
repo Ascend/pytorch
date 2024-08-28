@@ -102,7 +102,7 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
         c10::Device device)
     {
         if (config_.profile_memory && ProfilerMgr::GetInstance()->ReportEnable().load(std::memory_order_relaxed)) {
-            ProfilerMgr::GetInstance()->Upload(std::make_unique<torch_npu::toolkit::profiler::MemoryData>(
+            ProfilerMgr::GetInstance()->UploadWithLock(std::make_unique<torch_npu::toolkit::profiler::MemoryData>(
                 reinterpret_cast<int64_t>(ptr),
                 static_cast<int64_t>(Utils::GetClockTime()),
                 alloc_size,
