@@ -91,10 +91,14 @@ class _DynamicProfile:
         if not enable_config_path:
             enable_config_path = self._dynamic_monitor._config_path
         print_info_msg(f"The start interface profiler enable config path is set to {enable_config_path}")
-        json_data = FileManager.read_json_file(enable_config_path)
-        if not json_data:
-            msg = f"Failed to read config from : {enable_config_path}. Profiler active will be set to 1 by default. "
-            print_warn_msg(msg)
+        try:
+            json_data = FileManager.read_json_file(enable_config_path)
+            if not json_data:
+                print_error_msg(f"The config data is empty from: {enable_config_path}. Please check the config file. ")
+                return
+        except RuntimeError:
+            print_error_msg(f"Failed to read config from : {enable_config_path}. Please check the config file. ")
+            return
         self.cfg_ctx = ConfigContext(json_data)
         self.step_num = self.cfg_ctx.active()
         self.enable_prof()
