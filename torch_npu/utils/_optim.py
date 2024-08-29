@@ -8,9 +8,10 @@ _device_name = None
 
 def patch_supported_devices():
     global _device_name
-    _device_name = _device_name if _device_name is not None else torch_npu.npu.get_device_name(0)
+    _device_name = (_device_name if _device_name is not None 
+                    else torch_npu.npu.get_device_name(torch_npu.npu.current_device()))
 
-    if _device_name > "Ascend910B" and _device_name < "Ascend910P":
+    if _device_name > "Ascend910B" and _device_name < "Ascend910PremiumA":
         return ["cuda", "xpu", torch._C._get_privateuse1_backend_name()]
     
     return ["cuda", "xpu"] 
