@@ -527,7 +527,7 @@ void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds t
     }
 
     if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
-        lazy_destory_tensors_.clear();
+        lazy_destroy_tensors_.clear();
     } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
         stashed_for_allocator_safety_.clear();
     }
@@ -563,14 +563,15 @@ void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds t
     }
 }
 
-void ProcessGroupHCCL::WorkHCCL::lazyDestory(std::vector<at::Tensor> tensors) {
+void ProcessGroupHCCL::WorkHCCL::lazyDestroy(std::vector<at::Tensor> tensors)
+{
     if (tensors.empty() ||
         (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::ERASE_RECORD_STREAM)) {
         return;
     }
 
     for (const auto i : c10::irange(tensors.size())) {
-        lazy_destory_tensors_.push_back(tensors[i]);
+        lazy_destroy_tensors_.push_back(tensors[i]);
     }
 }
 
@@ -586,7 +587,7 @@ void ProcessGroupHCCL::WorkHCCL::abort()
 {
     // Abort all communicators of this work
     for (const auto& hcclComm : hcclComms_) {
-        hcclComm->destropyHcclComm();
+        hcclComm->destroyHcclComm();
     }
 }
 
@@ -713,7 +714,7 @@ void abortCommsFromMap(
         auto& hcclComms = it.second;
 
         for (const auto& hcclComm : hcclComms) {
-            hcclComm->destropyHcclComm();
+            hcclComm->destroyHcclComm();
         }
         // Note that we don't remove the aborted communicators from the
         // cache. The reason is that if we do remove the communicator
@@ -752,7 +753,7 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
             auto& hcclComms = it.second;
 
             for (const auto& hcclComm : hcclComms) {
-                hcclComm->destropyHcclComm();
+                hcclComm->destroyHcclComm();
             }
         }
     }
@@ -2091,8 +2092,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
             },
             [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
             [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
-                work->lazyDestory(byte_alignment_inputTensors_);
-                work->lazyDestory(outputFlattened);
+                work->lazyDestroy(byte_alignment_inputTensors_);
+                work->lazyDestroy(outputFlattened);
                 // Copy the flattened output tensors to the outputs.
                 for (const auto i : c10::irange(outputTensors.size())) {
                     c10_npu::NPUStreamGuard guard(hcclStreams[i]);
@@ -2297,7 +2298,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 return HCCL_SUCCESS;
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
-            work->lazyDestory(inputFlattened);
+            work->lazyDestroy(inputFlattened);
             // Copy the input tensors to the flattened inputs.
             for (const auto i : c10::irange(inputTensors.size())) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
@@ -2509,7 +2510,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
             return HCCL_SUCCESS;
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
-            work->lazyDestory(inputFlattened);
+            work->lazyDestroy(inputFlattened);
             // Copy the input tensors to the flattened inputs.
             for (const auto i : c10::irange(inputTensors.size())) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);

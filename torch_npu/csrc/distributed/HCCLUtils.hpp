@@ -70,17 +70,19 @@ public:
 
     HCCLComm() : HCCLComm(nullptr) {}
 
-    ~HCCLComm() {
-        destropyHcclComm();
+    ~HCCLComm()
+    {
+        destroyHcclComm();
     }
 
     static std::shared_ptr<HCCLComm> create(
         int numRanks,
         int rank,
-        HcclRootInfo& rootInfo) {
+        HcclRootInfo& rootInfo)
+    {
         auto comm = std::make_shared<HCCLComm>();
         HCCL_CHECK_ERROR(HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
-        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destropyHcclComm();},
+        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
                                                              c10_npu::ReleasePriority::PriorityMiddle);
         return comm;
     }
@@ -93,7 +95,7 @@ public:
     {
         auto comm = std::make_shared<HCCLComm>();
         HCCL_CHECK_ERROR(hcclCommInitRootInfoConfig(numRanks, &rootInfo, rank, config, &(comm->hcclComm_)));
-        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destropyHcclComm();},
+        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
                                                              c10_npu::ReleasePriority::PriorityMiddle);
         return comm;
     }
@@ -103,23 +105,27 @@ public:
     HCCLComm& operator=(const HCCLComm&) = delete;
 
     // Move constructable
-    HCCLComm(HCCLComm&& other) {
+    HCCLComm(HCCLComm&& other)
+    {
         std::swap(hcclComm_, other.hcclComm_);
         std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
     }
 
     // Move assignable
-    HCCLComm& operator=(HCCLComm&& other) {
+    HCCLComm& operator=(HCCLComm&& other)
+    {
         std::swap(hcclComm_, other.hcclComm_);
         std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
         return *this;
     }
 
-    HcclComm getHcclComm() const{
+    HcclComm getHcclComm() const
+    {
         return hcclComm_;
     }
 
-    void destropyHcclComm() {
+    void destroyHcclComm()
+    {
         std::unique_lock<std::mutex> lock(mutex_);
         if (hcclComm_) {
             HcclCommDestroy(hcclComm_);
@@ -127,7 +133,8 @@ public:
         }
     }
 
-    HcclResult checkForHcclError() {
+    HcclResult checkForHcclError()
+    {
         std::unique_lock<std::mutex> lock(mutex_);
 #ifdef ENABLE_HCCL_ERROR_CHECKING
         if (hcclAsyncErr_ != HCCL_SUCCESS) {
