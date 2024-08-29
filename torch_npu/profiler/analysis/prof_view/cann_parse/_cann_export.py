@@ -97,11 +97,17 @@ class CANNTimelineParser(BaseParser):
                     for file_name in os.listdir(output_path):
                         if file_name.endswith('.csv'):
                             return Constant.SUCCESS, None
-                time.sleep(0.1)
+                try:
+                    time.sleep(Constant.SLEEP_TIME)
+                except InterruptedError:
+                    return Constant.FAIL, None
         else:
             patten = r'^ascend_pytorch_profiler\.db$' if ProfilerConfig().rank_id == -1 else r'^ascend_pytorch_profiler_\d+\.db$'
             while True:
                 for file in os.listdir(self._output_path):
                     if re.match(patten, file) and os.path.isfile(os.path.join(self._output_path, file)):
                         return Constant.SUCCESS, None
-                time.sleep(0.5)
+                try:
+                    time.sleep(Constant.SLEEP_TIME)
+                except InterruptedError:
+                    return Constant.FAIL, None
