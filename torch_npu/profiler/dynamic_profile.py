@@ -11,6 +11,7 @@ from ..utils.path_manager import PathManager
 from .analysis.prof_common_func._constant import print_info_msg
 from .analysis.prof_common_func._constant import print_warn_msg
 from .analysis.prof_common_func._constant import print_error_msg
+from .analysis.prof_common_func._utils import no_exception_func
 from .analysis.prof_common_func._file_manager import FileManager
 from ._dynamic_profiler import logger, init_logger, DynamicProfilerMonitor
 from ._dynamic_profiler._dynamic_profiler_config_context import ConfigContext
@@ -122,6 +123,7 @@ class _DynamicProfile:
         logger.info(f"Start Dynamic Profiler at {self.cur_step} step.")
 
 
+@no_exception_func()
 def init(path: str):
     try:
         PathManager.check_input_directory_path(path)
@@ -133,9 +135,11 @@ def init(path: str):
     _DynamicProfile().init(dp_path)
 
 
+@no_exception_func()
 def step():
     _DynamicProfile().step()
 
 
+@no_exception_func()
 def start(config_path: str = None):
     _DynamicProfile().start(config_path)
