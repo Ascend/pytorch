@@ -145,7 +145,7 @@ public:
 
         // Extend tensors lifecycle to work.synchronize, the tensors is local
         // variable and recordStream.  
-        void lazyDestory(std::vector<at::Tensor> tensors);
+        void lazyDestroy(std::vector<at::Tensor> tensors);
 
         // Helper function that sets an exception_ptr on the WorkHCCL object.
         void setException(std::exception_ptr exception_ptr);
@@ -240,7 +240,7 @@ public:
         std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_inputs_;
         std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_outputs_;
 
-        std::vector<at::Tensor> lazy_destory_tensors_;
+        std::vector<at::Tensor> lazy_destroy_tensors_;
 		
         std::vector<at::Tensor> stashed_for_allocator_safety_;
 
