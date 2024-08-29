@@ -129,6 +129,9 @@ class _ExperimentalConfig:
                 self._aic_metrics = Constant.AicMetricsNone
             else:
                 self._aic_metrics = AiCMetrics.PipeUtilization
+        if not isinstance(self._op_attr, bool):
+            print_warn_msg("Invalid parameter op_attr, which must be of boolean type, reset it to False.")
+            self._op_attr = False
         if self._export_type not in (ExportType.Text, ExportType.Db):
             print_warn_msg("Invalid parameter type, reset it to text.")
             self._export_type = ExportType.Text
