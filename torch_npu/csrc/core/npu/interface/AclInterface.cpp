@@ -272,7 +272,7 @@ aclprofConfig *AclProfilingCreateConfig(
     aclprofAicoreEvents *aicoreEvents,
     uint64_t dataTypeConfig) {
   typedef aclprofConfig *(*AclProfCreateConfigFunc) \
-    (uint32_t *, uint32_t, aclprofAicoreMetrics, aclprofAicoreEvents *, uint64_t);
+    (uint32_t *, uint32_t, aclprofAicoreMetrics, const aclprofAicoreEvents *, uint64_t);
   static AclProfCreateConfigFunc func = nullptr;
   if (func == nullptr) {
     func = (AclProfCreateConfigFunc)GET_FUNC(aclprofCreateConfig);
