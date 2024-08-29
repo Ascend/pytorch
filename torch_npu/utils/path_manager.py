@@ -175,7 +175,7 @@ class PathManager:
             msg = f"Invalid input path is a soft chain: {path}"
             raise RuntimeError(msg + pta_error(ErrCode.UNAVAIL))
 
-        pattern = r'(\.|/|_|-|\s|[~0-9a-zA-Z])+'
+        pattern = r'(\.|/|_|-|\s|[~0-9a-zA-Z]|[\u4e00-\u9fa5])+'
         if not re.fullmatch(pattern, path):
             msg = f"Invalid input path: {path}"
             raise RuntimeError(msg + pta_error(ErrCode.PARAM))

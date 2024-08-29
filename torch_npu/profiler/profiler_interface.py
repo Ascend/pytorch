@@ -43,6 +43,7 @@ from .analysis.prof_common_func.constant import print_warn_msg
 from .analysis.prof_common_func.file_manager import FileManager
 from .analysis.prof_common_func.utils import collect_env_vars
 from .analysis.prof_common_func.path_manager import ProfilerPathManager
+from .analysis.prof_common_func.utils import no_exception_func
 from ..utils.path_manager import PathManager
 from .analysis.prof_common_func.cann_package_manager import CannPackageManager
 
@@ -221,5 +222,6 @@ class ProfInterface:
         self.metadata.clear()
 
 
+@no_exception_func(set())
 def supported_activities():
     return _supported_npu_activities()
