@@ -9,7 +9,7 @@ import pickle
 from enum import Enum
 from abc import ABC, abstractmethod
 from torch_npu.utils._error_code import ErrCode, prof_error
-from ._constant import print_error_msg
+from ._constant import print_error_msg, Constant
 
 __all__ = []
 
@@ -303,7 +303,9 @@ class ConcurrentTasksManager:
                 need_exit = False
                 break
         if need_exit:
-            return True
+            time.sleep(Constant.SLEEP_TIME * 2)
+            if all((task_info.task.mode == ConcurrentMode.NON_BLOCKING for task_info in self.listening_infos.values())):
+                return True
 
         events = self.epoll.poll()
         for fd, event in events:
