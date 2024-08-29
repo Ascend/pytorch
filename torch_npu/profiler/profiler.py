@@ -14,6 +14,7 @@ from ._profiler_action_controller import ProfActionController
 from .scheduler import _default_schedule_fn, ProfilerAction
 from .analysis.prof_common_func._constant import Constant
 from .analysis.prof_common_func._constant import print_warn_msg
+from .analysis.prof_common_func._utils import no_exception_func
 from .analysis._npu_profiler import NpuProfiler
 from .analysis.prof_common_func._path_manager import ProfilerPathManager
 from ..utils.path_manager import PathManager
@@ -52,18 +53,22 @@ class _KinetoProfile:
         self.max_meta_size = 50 * 1024
         self.max_str_len = 4096
 
+    @no_exception_func()
     def __del__(self):
         ProfPathCreator().delete_export_only_prof()
 
+    @no_exception_func()
     def start(self):
         ProfPathCreator().init(export_only_mode=True)
         self.prof_if.init_trace()
         self.prof_if.start_trace()
 
+    @no_exception_func()
     def stop(self):
         self.prof_if.stop_trace()
         self.prof_if.finalize_trace()
 
+    @no_exception_func()
     def export_chrome_trace(self, output_path: str):
         output_path = ProfilerPathManager.get_realpath(output_path)
         PathManager.check_input_file_path(output_path)
@@ -75,6 +80,7 @@ class _KinetoProfile:
             return
         self.prof_if.analyse(Constant.EXPORT_CHROME_TRACE, output_path)
 
+    @no_exception_func()
     def add_metadata(self, key: str, value: str):
         if not isinstance(key, str) or not isinstance(value, str):
             print_warn_msg("The key and value of metadata must be string. Skip this metadata.")
@@ -90,6 +96,7 @@ class _KinetoProfile:
         else:
             print_warn_msg("Too many metadata added. Skip this metadata")
 
+    @no_exception_func()
     def add_metadata_json(self, key: str, value: str):
         if not isinstance(key, str) or not isinstance(value, str):
             print_warn_msg("The key and value of metadata must be string. Skip this metadata.")
@@ -108,6 +115,7 @@ class _KinetoProfile:
         else:
             print_warn_msg("Too many metadata added. Skip this metadata")
 
+    @no_exception_func()
     def export_stacks(self, output_path: str, metric: str = Constant.METRIC_CPU_TIME):
         if not self.prof_if.with_stack:
             print_warn_msg("Function export_stacks() requires with_stack=True.")
@@ -130,6 +138,7 @@ class _KinetoProfile:
         return [Constant.METRIC_CPU_TIME, Constant.METRIC_NPU_TIME]
 
 
+@no_exception_func()
 def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True):
     ProfPathCreator().init(worker_name=worker_name, dir_name=dir_name)
 
@@ -185,17 +194,21 @@ class profile(_KinetoProfile):
         self.stopped = False
         self.action_controller = ProfActionController(self.prof_if, self.on_trace_ready)
 
+    @no_exception_func()
     def __enter__(self):
         self.start()
         return self
 
+    @no_exception_func()
     def __exit__(self, exe_type, exe_val, exc_tb):
         self.stop()
 
+    @no_exception_func()
     def __del__(self):
         if self.stopped == False:
             self.stop()
 
+    @no_exception_func()
     def start(self):
         self.stopped = False
         if not self.on_trace_ready:
@@ -205,12 +218,14 @@ class profile(_KinetoProfile):
             self.step_rec_fn = prof.record_function("ProfilerStep#" + str(self.step_num))
             self.step_rec_fn.__enter__()
 
+    @no_exception_func()
     def stop(self):
         if self.record_steps and self.step_rec_fn:
             self.step_rec_fn.__exit__(None, None, None)
         self.action_controller.transit_action(self.current_action, None)
         self.stopped = True
 
+    @no_exception_func()
     def step(self):
         if self.stopped:
             print_warn_msg("Profiler is stopped, step takes no effect!")
@@ -226,6 +241,7 @@ class profile(_KinetoProfile):
             self.step_rec_fn.__enter__()
 
 
+@no_exception_func()
 def analyse(profiler_path: str, max_process_number: int = Constant.DEFAULT_PROCESS_NUMBER):
     if not isinstance(max_process_number, int) or max_process_number <= 0:
         max_process_number = Constant.DEFAULT_PROCESS_NUMBER
