@@ -1,5 +1,6 @@
 import os
 import stat
+import copy
 import json
 import time
 
@@ -9,6 +10,7 @@ from torch_npu.profiler.profiler import tensorboard_trace_handler, profile
 from torch_npu.profiler.scheduler import Schedule as schedule
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.profiler._dynamic_profiler._dynamic_profiler_config_context import ConfigContext
+from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor_shm import DynamicProfilerShareMemory
 import torch_npu.profiler.dynamic_profile as dp
 
 
@@ -57,9 +59,12 @@ class TestDynamicProfiler(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.results_path = "./dynamic_profiler_results"
+        cls.json_sample = DynamicProfilerShareMemory.JSON_DATA
+        cls.results_path = f"./dynamic_profiler_results_{str(os.getpid())}"
         cls.default_prof_dir = os.path.join(cls.results_path, "default_prof_dir")
         cls.rank_prof_dir = os.path.join(cls.results_path, "rank_prof_dir")
+        cls.invalid_rank_prof_dir = os.path.join(cls.results_path, "invalid_rank_prof_dir")
+        cls.active_rank_prof_dir = os.path.join(cls.results_path, "active_rank_prof_dir")
         cls.cfg_prof_dir = os.path.join(cls.results_path, "cfg_prof_dir")
         cls.cfg_path = os.path.join(cls.results_path, "profiler_config.json")
         dp.init(cls.results_path)
@@ -70,8 +75,7 @@ class TestDynamicProfiler(TestCase):
             PathManager.remove_path_safety(cls.results_path)
 
     def test_modify_cfg_prof_dir_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['prof_dir'] = 1
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -95,8 +99,7 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_analyse_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['analyse'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -120,8 +123,7 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_record_shapes_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['record_shapes'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -145,8 +147,7 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_profile_memory_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['profile_memory'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -170,8 +171,7 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_with_stack_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['with_stack'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -195,8 +195,7 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_with_flops_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['with_flops'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -220,8 +219,7 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_with_modules_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['with_modules'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -245,8 +243,7 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_rank_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['is_rank'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -270,8 +267,7 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_rank_list_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['is_rank'] = True
         cfg_json['rank_list'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
@@ -296,8 +292,9 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_profiler_level_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
+        if 'experimental_config' not in cfg_json.keys():
+            self.assertTrue('experimental_config' in cfg_json.keys())
         cfg_json['experimental_config']['profiler_level'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -321,8 +318,9 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_aic_metrics_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
+        if 'experimental_config' not in cfg_json.keys():
+            self.assertTrue('experimental_config' in cfg_json.keys())
         cfg_json['experimental_config']['aic_metrics'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -346,8 +344,9 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_l2_cache_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
+        if 'experimental_config' not in cfg_json.keys():
+            self.assertTrue('experimental_config' in cfg_json.keys())
         cfg_json['experimental_config']['l2_cache'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -371,8 +370,9 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_data_simplification_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
+        if 'experimental_config' not in cfg_json.keys():
+            self.assertTrue('experimental_config' in cfg_json.keys())
         cfg_json['experimental_config']['data_simplification'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -396,8 +396,9 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_record_op_args_invalid(self):
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
+        if 'experimental_config' not in cfg_json.keys():
+            self.assertTrue('experimental_config' in cfg_json.keys())
         cfg_json['experimental_config']['record_op_args'] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -421,8 +422,10 @@ class TestDynamicProfiler(TestCase):
         self.assertTrue(has_prof)
 
     def test_modify_cfg_export_type_invalid(self) -> None:
-        with open(self.cfg_path, 'r') as f:
-            cfg_json = json.load(f)
+        cfg_json = copy.deepcopy(self.json_sample)
+        cfg_json['is_rank'] = False
+        if 'experimental_config' not in cfg_json.keys():
+            self.assertTrue('experimental_config' in cfg_json.keys())
         cfg_json['experimental_config']['export_type'] = 1
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
@@ -445,12 +448,11 @@ class TestDynamicProfiler(TestCase):
             PathManager.remove_path_safety(self.cfg_prof_dir)
         self.assertTrue(has_prof)
 
-    def test_z_dynamic_profiler_default(self):
-        with open(self.cfg_path, 'r+') as f:
-            cfg_json = json.load(f)
-            cfg_json['prof_dir'] = self.default_prof_dir
-
+    def test_dynamic_profiler_default(self):
+        cfg_json = copy.deepcopy(self.json_sample)
+        cfg_json['prof_dir'] = self.default_prof_dir
         with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
+            time.sleep(1)
             json.dump(cfg_json, f, indent=4)
         time.sleep(3)
         dp.step()
@@ -463,14 +465,14 @@ class TestDynamicProfiler(TestCase):
             PathManager.remove_path_safety(self.default_prof_dir)
         self.assertTrue(has_prof)
 
-    def test_z_dynamic_profiler_rank(self):
-        with open(self.cfg_path, 'r+') as f:
-            cfg_json = json.load(f)
-            cfg_json['prof_dir'] = self.rank_prof_dir
-            cfg_json['is_rank'] = True
-            cfg_json['rank_list'] = [0]
+    def test_dynamic_profiler_rank(self):
+        cfg_json = copy.deepcopy(self.json_sample)
+        cfg_json['prof_dir'] = self.rank_prof_dir
+        cfg_json['is_rank'] = True
+        cfg_json['rank_list'] = [0]
 
         with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
+            time.sleep(1)
             json.dump(cfg_json, f, indent=4)
         time.sleep(3)
         dp.step()
@@ -483,24 +485,24 @@ class TestDynamicProfiler(TestCase):
             PathManager.remove_path_safety(self.rank_prof_dir)
         self.assertTrue(has_prof)
 
-    def test_z_dynamic_profiler_rank_invalid(self):
-        with open(self.cfg_path, 'r+') as f:
-            cfg_json = json.load(f)
-            cfg_json['prof_dir'] = self.rank_prof_dir
-            cfg_json['is_rank'] = True
-            cfg_json['rank_list'] = [1]
+    def test_dynamic_profiler_rank_invalid(self):
+        cfg_json = copy.deepcopy(self.json_sample)
+        cfg_json['prof_dir'] = self.invalid_rank_prof_dir
+        cfg_json['is_rank'] = True
+        cfg_json['rank_list'] = [1]
 
         with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
+            time.sleep(1)
             json.dump(cfg_json, f, indent=4)
         time.sleep(3)
         dp.step()
         self.model_train.train_one_step()
         dp.step()
         has_prof = False
-        if self.has_prof_dir(self.rank_prof_dir):
+        if self.has_prof_dir(self.invalid_rank_prof_dir):
             has_prof = True
-        if os.path.exists(self.rank_prof_dir):
-            PathManager.remove_path_safety(self.rank_prof_dir)
+        if os.path.exists(self.invalid_rank_prof_dir):
+            PathManager.remove_path_safety(self.invalid_rank_prof_dir)
         self.assertFalse(has_prof)
 
     @staticmethod
@@ -513,6 +515,19 @@ class TestDynamicProfiler(TestCase):
                 sub_dir = os.path.join(path, sub_dir)
                 for p in os.listdir(sub_dir):
                     if p.startswith("PROF"):
+                        return True
+        return False
+
+    @staticmethod
+    def has_analyse_dir(path: str) -> bool:
+        path = os.path.realpath(path)
+        if not os.path.exists(path):
+            return False
+        for sub_dir in os.listdir(path):
+            if sub_dir.endswith("_pt"):
+                sub_dir = os.path.join(path, sub_dir)
+                for p in os.listdir(sub_dir):
+                    if p.startswith("ASCEND"):
                         return True
         return False
 
