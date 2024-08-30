@@ -67,7 +67,7 @@ class DynamicProfilerMonitor:
 
     def modify_step_time(self, poll_interval_time: int):
         self._step_time.value = poll_interval_time
-        logger.info("Dynamic profiling monitor process query cfg file interval time change to %d", poll_interval_time)
+        logger.info("Dynamic profiling monitor process query cfg file interval time change to %ds", poll_interval_time)
 
     def _monitor_process_params(self):
         shm = None if self._shm_obj.is_mmap else self._shm_obj
@@ -143,7 +143,7 @@ def worker_func(params_dict):
                 prof_cfg_bytes = time_bytes + ConfigContext.profiler_cfg_json_to_bytes(data)
                 if len(prof_cfg_bytes) > max_size:
                     logger_monitor.warning("Dynamic profiler process load json failed, "
-                                           "because of cfg bytes size over max_size")
+                                           "because cfg bytes size over %d bytes", max_size)
                     continue
                 try:
                     if is_mmap and mmap is not None:
