@@ -203,7 +203,7 @@ public:
                                size_t alloc_trace_max_entries,
                                RecordContext when) = 0;
     virtual void attachOutOfMemoryObserver(OutOfMemoryObserver observer) = 0;
-    virtual bool checkUceInMem(int device) = 0;
+    virtual bool checkUceInMemPool(int device) = 0;
     virtual bool checkBlockIsSafe(const c10::DataPtr& ptr) = 0;
     virtual void markAllBlockUnsafe(int device) = 0;
     virtual void updateBlockToSafe(const c10::DataPtr &ptr) = 0;
@@ -322,9 +322,9 @@ inline void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
     return get()->attachOutOfMemoryObserver(observer);
 }
 
-inline bool checkUceInMem(int device)
+inline bool checkUceInMemPool(int device)
 {
-    return get()->checkUceInMem(device);
+    return get()->checkUceInMemPool(device);
 }
 
 inline bool checkBlockIsSafe(const c10::DataPtr& ptr)

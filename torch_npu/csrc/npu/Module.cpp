@@ -318,10 +318,23 @@ PyObject* THNPModule_check_uce_in_memory_wrap(PyObject* self, PyObject* arg)
 {
     HANDLE_TH_ERRORS
     int device = THPUtils_unpackLong(arg);
-    if (c10_npu::NPUCachingAllocator::checkUceInMem(device)) {
-        Py_RETURN_TRUE;
+    auto memUceInfo_ = c10_npu::get_mem_uce_info();
+    if (memUceInfo_.retSize == 0) {
+        // UCE error size is 0, return 0.
+        return PyLong_FromLong(0);
+    }
+    if (!c10_npu::NPUCachingAllocator::checkUceInMemPool(device)) {
+        // UCE error memory is not in PTA memory pool, return 1, can not recover from UCE error.
+        return PyLong_FromLong(1);
     } else {
-        Py_RETURN_FALSE;
+        c10_npu::NPUCachingAllocator::emptyCache();
+        if (!c10_npu::NPUCachingAllocator::checkUceInMemPool(device)) {
+            // UCE error memory is temporary memory in PTA memory pool, return 2, perform step-level re-execution.
+            return PyLong_FromLong(2);
+        } else {
+            // UCE error memory is persistent memory in PTA memory pool, return 3, load the checkpoint (ckpt) from healthy device.
+            return PyLong_FromLong(3);
+        }
     }
 
     END_HANDLE_TH_ERRORS
@@ -331,6 +344,11 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
 {
     HANDLE_TH_ERRORS
     int device = THPUtils_unpackLong(arg);
+    auto memUceInfo_ = c10_npu::get_mem_uce_info();
+    if (memUceInfo_.retSize > 0) {
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtMemUceRepair(memUceInfo_.device, memUceInfo_.info.data(), memUceInfo_.retSize));
+    }
+    
     c10_npu::clear_mem_uce_info();
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::INIT);
     c10_npu::set_has_throw_error(false);
