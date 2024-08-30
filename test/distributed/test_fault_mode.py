@@ -143,17 +143,11 @@ class TestMode(TestCase):
         process.stdout.close()
         process.terminate()
         process.wait()
-        device_name = torch_npu.npu.get_device_name(0)[:10]
-        if device_name in ["Ascend910A", "Ascend910P"]:
-            self.assertIn(
-                "EI0002",
-                message
-            )
-        else:
-            self.assertIn(
-                "EI9999",
-                message
-            )
+        self.assertIn(
+            "EI0002",
+            message
+        )
+
 
 
 if __name__ == "__main__":
