@@ -322,10 +322,12 @@ void ProcessGroupHCCL::WorkHCCL::checkAndSetException()
     std::unique_lock<std::mutex> lock(mutex_);
     exception_ = exception_ptr;
     if (exception_) {
-    LOG(INFO) << "[Rank " << rank_ << "]"
+        ASCEND_LOGE("[Rank %d], found async exception when checking for HCCL errors: %s", rank_,
+            getExceptionMsgFromExceptionPtr(exception_).c_str());
+        LOG(INFO) << "[Rank " << rank_ << "]"
               << " found async exception when checking for HCCL errors: "
               << getExceptionMsgFromExceptionPtr(exception_);
-  }
+    }
 }
 
 void ProcessGroupHCCL::WorkHCCL::setException(std::exception_ptr exception_ptr)
@@ -859,13 +861,6 @@ void ProcessGroupHCCL::workCleanupLoop()
 
             // If work hits an exception (either an error or timeout)
             if (work.exception()) {
-                if (SHOULD_CLEAN_UP(asyncErrorHandling_)) {
-                    // Abort work and corresponding communicators
-                    work.abort();
-                    // PG level abort, which would abort all other communicators on this
-                    // rank
-                    abort();
-                }
                 // Report desync state in case of timeout
                 if (desyncDebug_ && timedOut) {
                     try {
