@@ -347,7 +347,7 @@ class TestNpu(TestCase):
 
         for dst, try_non_blocking in product(("npu", "cpu"), (True, False)):
             # Creates source on the opposite device from destination.
-            src = torch.randn(10000, 10000, 2,
+            src = torch.randn(1000, 1000, 2, 100,
                               device="npu" if dst == "cpu" else "cpu",
                               pin_memory=True if dst == "npu" else False)
             _test_to_non_blocking(src, try_non_blocking, dst)
