@@ -12,7 +12,7 @@ def same_addr():
     dist.init_process_group(backend)
     rank = dist.get_rank()
     torch.npu.set_device(rank)
-    input_ = torch.tensor(2).npu()
+    input_ = torch.randn(100, 100, 20).npu()
     dist.all_reduce(input_)
 
 
