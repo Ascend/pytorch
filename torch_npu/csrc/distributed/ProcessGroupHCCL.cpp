@@ -474,7 +474,6 @@ void ProcessGroupHCCL::WorkHCCL::handleException(ErrorHandlingMode errorHandling
         C10_LOG_API_USAGE_ONCE("ProcessGroupHCCL.WorkHCCL.handleException");
 
         if (SHOULD_TEAR_DOWN(errorHandling)) {
-            ASCEND_LOGE("To avoid data inconsistency, we are taking the entire process down.");
             auto tearDownMsg = c10::str(
                 "To avoid data inconsistency, we are taking the entire process down.");
             LOG(ERROR) << tearDownMsg;
@@ -863,14 +862,6 @@ void ProcessGroupHCCL::workCleanupLoop()
 
             // If work hits an exception (either an error or timeout)
             if (work.exception()) {
-                if (SHOULD_CLEAN_UP(asyncErrorHandling_)) {
-                    ASCEND_LOGE("[Rank %d], async exception found, should abort work", rank_);
-                    // Abort work and corresponding communicators
-                    work.abort();
-                    // PG level abort, which would abort all other communicators on this
-                    // rank
-                    abort();
-                }
                 // Report desync state in case of timeout
                 if (desyncDebug_ && timedOut) {
                     try {
