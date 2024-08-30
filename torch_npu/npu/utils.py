@@ -7,7 +7,6 @@ from enum import Enum
 
 import torch
 from torch._utils import _get_device_index as _torch_get_device_index
-from torch.distributed.distributed_c10d import _pg_map
 
 import torch_npu
 import torch_npu._C

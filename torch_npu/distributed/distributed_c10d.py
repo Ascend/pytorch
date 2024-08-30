@@ -5,9 +5,9 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     _check_tensor_list, _coalescing_manager, _ensure_all_tensors_same_dtype, get_rank, _rank_not_in_group, \
     _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size,\
     _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend,\
-    get_backend, GatherOptions, _update_default_pg, _world, _unregister_all_process_groups
+    get_backend, GatherOptions, _update_default_pg, _world, _unregister_all_process_groups, _pg_map
 
-__all__ = ["batch_isend_irecv", "gather", "gather_object", "is_hccl_available"]
+__all__ = ["batch_isend_irecv", "gather", "gather_object", "is_hccl_available", "reinit_process_group"]
 
 
 def batch_isend_irecv(p2p_op_list):
@@ -186,6 +186,15 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None):
 
 def is_hccl_available():
     return "hccl" in Backend.backend_list
+
+
+def reinit_process_group(group=None, rebuild_link=True):
+    if not rebuild_link:
+        device_id = torch.npu.current_device()
+        npu_device = torch.device('npu')
+        for pg in _pg_map:
+            if (npu_device in pg._device_types):
+                pg._get_backend(npu_device).resume_hccl_comm(device_id)
 
 
 def _destructor_process_group():
