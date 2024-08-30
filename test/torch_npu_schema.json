@@ -4322,12 +4322,6 @@
   "func: cumsum.out": {
     "signature": "(Tensor self, int dim, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)"
   },
-  "func: diag": {
-    "signature": "(Tensor self, int "
-  },
-  "func: diag.out": {
-    "signature": "(Tensor self, int diagonal=0, *, Tensor(a!) out) -> Tensor(a!)"
-  },
   "func: div.Scalar": {
     "signature": "(Tensor self, Scalar other) -> Tensor"
   },
