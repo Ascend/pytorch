@@ -127,7 +127,6 @@ bool checkUceErrAndRepair()
             memUceInfo_.info.assign(info, info + retSize);
             memUceInfo_.retSize = retSize;
             set_mem_uce_info(memUceInfo_);
-            NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtMemUceRepair(device, info, retSize));
             return true;
         } else {
             return false;

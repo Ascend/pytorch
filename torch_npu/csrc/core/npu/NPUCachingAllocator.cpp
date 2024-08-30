@@ -854,13 +854,9 @@ class DeviceCachingAllocator {
       oom_observers_.emplace_back(std::move(observer));
   }
 
-  bool checkUceInMem()
+  bool checkUceInMemPool()
   {
       auto memUceInfo_ = c10_npu::get_mem_uce_info();
-      if (memUceInfo_.retSize == 0) {
-          return false;
-      }
-
       auto info = memUceInfo_.info.data();
       const auto all_blocks = get_all_blocks();
 
@@ -868,15 +864,21 @@ class DeviceCachingAllocator {
           size_t length = info[i].len;
           void* addr = info[i].addr;
           for (int j = 0; j < length; ++j) {
+              bool found = false;
               for (const Block* const head_block : all_blocks) {
                   if (head_block->ptr <= addr && addr < head_block->ptr + head_block->size) {
-                      return true;
+                      found = true;
+                      break;
                   }
+              }
+
+              if (!found) {
+                return false;
               }
               addr += 1;
           }
       }
-      return false;
+      return true;
   }
 
   void markAllBlockUnsafe()
@@ -2367,9 +2369,9 @@ class NpuCachingAllocator : public NPUAllocator {
       }
   }
 
-  bool checkUceInMem(int device) override
+  bool checkUceInMemPool(int device) override
   {
-      return device_allocator[device]-> checkUceInMem();
+      return device_allocator[device]-> checkUceInMemPool();
   }
 
   bool checkBlockIsSafe(const c10::DataPtr& ptr) override

@@ -263,10 +263,10 @@ void NPUPluggableAllocator::attachOutOfMemoryObserver(
         "If you need it, please file an issue describing your use case.");
 }
 
-bool NPUPluggableAllocator::checkUceInMem(int device)
+bool NPUPluggableAllocator::checkUceInMemPool(int device)
 {
     TORCH_NPU_WARN(
-        "NPUPluggableAllocator does not yet support checkUceInMem. "
+        "NPUPluggableAllocator does not yet support checkUceInMemPool. "
         "If you need it, please file an issue describing your use case.");
     return false;
 }

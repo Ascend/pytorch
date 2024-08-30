@@ -95,6 +95,7 @@
     "ProcessGroupMPI",
     "ProcessGroupNCCL",
     "is_hccl_available",
+    "reinit_process_group",
     "batch_isend_irecv",
     "gather",
     "gather_object"
