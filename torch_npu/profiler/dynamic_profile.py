@@ -26,6 +26,8 @@ __all__ = [
 @Singleton
 class _DynamicProfile:
     RECORD_TIME_STEP = 10
+    CFG_BUFFER_SIZE = 1024 * 1024
+    POLL_INTERVAL = 2
 
     def __init__(self) -> None:
         self.prof = None
@@ -39,13 +41,20 @@ class _DynamicProfile:
         self._step_time = 0
         self._min_poll_interval = 1
 
-    def init(self, path: str, buffer_size: int = 1024, poll_interval: int = 2):
+    def init(self, path: str):
         if self.repeat_init:
             print_warn_msg("Init dynamic profiling repeatedly")
             return
-        self._dynamic_monitor = DynamicProfilerMonitor(path, buffer_size, poll_interval)
+        self._dynamic_monitor = DynamicProfilerMonitor(path, self.CFG_BUFFER_SIZE, self.POLL_INTERVAL)
         self.repeat_init = True
-        atexit.register(self._dynamic_monitor.clean_resource)
+        atexit.register(self._clean_resource)
+
+    def _clean_resource(self):
+        if self.prof is not None:
+            self.prof.stop()
+            self.prof = None
+            print_warn_msg("Profiler stop when process exit, check cfg json active whether over all step!")
+        self._dynamic_monitor.clean_resource()
 
     def _dynamic_profiler_valid(self):
         prof_cfg_ctx = self._dynamic_monitor.shm_to_prof_conf_context()

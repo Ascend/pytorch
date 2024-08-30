@@ -135,6 +135,7 @@ class ConfigContext:
 
     def active(self) -> int:
         if not isinstance(self._active, int) or self._active <= 0:
+            logger.warning("Invalid parameter active, reset it to 1.")
             return self.DEFAULT_ACTIVE_NUM
         return self._active
 
