@@ -272,8 +272,9 @@ PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* noargs)
     }
 
     std::future<int> result = std::async(std::launch::async, c10_npu::acl::AclStressDetect, device_id, workspaceAddr, workspaceSize);
-
     int ret = result.get();
+
+    aclrtFree(workspaceAddr);
     if (ret == ACL_CLEAR_DEVICE_STATE_FAIL) {
         ASCEND_LOGE("call AclStressDetect failed, ERROR : %d, voltage recovery fail.", ret);
         NPU_CHECK_ERROR(ACL_CLEAR_DEVICE_STATE_FAIL, "StressDetect");
