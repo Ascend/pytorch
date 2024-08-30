@@ -77,7 +77,7 @@ struct NPUPluggableAllocator
         size_t alloc_trace_max_entries,
         c10_npu::NPUCachingAllocator::RecordContext when) override;
     void attachOutOfMemoryObserver(c10_npu::NPUCachingAllocator::OutOfMemoryObserver observer) override;
-    bool checkUceInMem(int device) override;
+    bool checkUceInMemPool(int device) override;
     bool checkBlockIsSafe(const c10::DataPtr& ptr) override;
     void markAllBlockUnsafe(int device) override;
     void updateBlockToSafe(const c10::DataPtr &ptr) override;
