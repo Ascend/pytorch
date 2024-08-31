@@ -1968,7 +1968,7 @@ utils_device.CURRENT_DEVICE == None""".split(
         self.assertTrue(same(opt_fn(mod, x), fn(mod, x)))
 
     def test_constant_getattr(self):
-        # https://github.com/pytorch/pytorch/issues/97480
+        # pytorch/issues/97480
         def fn():
             return getattr(None, "arg", 3)
 
@@ -2655,7 +2655,7 @@ utils_device.CURRENT_DEVICE == None""".split(
         self.assertEqual(cnts.frame_count, 1)
 
     def test_out_variants_with_resizing_on_graph_inputs_with_dynamic(self):
-        # https://github.com/pytorch/pytorch/issues/120482
+        # pytorch/issues/120482
         class CustomModel(torch.nn.Module):
             def __init__(self):
                 super().__init__()
@@ -2782,7 +2782,7 @@ utils_device.CURRENT_DEVICE == None""".split(
         self.assertEqual(cnts.frame_count, 2)
 
     def test_dunder_new_function_inlining(self):
-        # https://github.com/pytorch/pytorch/issues/107460
+        # pytorch/issues/107460
 
         counters.clear()
 
@@ -3574,7 +3574,7 @@ utils_device.CURRENT_DEVICE == None""".split(
         ref = fn(x)
 
         # Python code is needed here, since torch.manual_seed graph-breaks.
-        # Refs: https://github.com/pytorch/pytorch/issues/107187
+        # Refs: pytorch/issues/107187
         opt_fn = torch._dynamo.optimize(cnts, nopython=False)(fn)
         res = opt_fn(x)
 
@@ -4545,7 +4545,7 @@ def fn():
         self.assertEqual(y, 11)
         self.assertEqual(z, 61)
 
-    @unittest.skip("https://github.com/pytorch/pytorch/issues/99726")
+    @unittest.skip("pytorch/issues/99726")
     def test_cross_entropy_loss_fancy_ctor1(self):
         rand_5 = torch.randn(5)
         rand_3_5 = torch.randn(3, 5)
@@ -7623,7 +7623,7 @@ def fn():
             self.assertEqual(counter.frame_count, 2)
 
     def test_nested_function_resuming_with_correct_globals(self):
-        # https://github.com/pytorch/pytorch/issues/99665
+        # pytorch/issues/99665
         try:
             from .utils import outer_func
         except ImportError:
@@ -8200,7 +8200,7 @@ def ___make_guard_fn():
 
         f(torch.tensor([2, 3, 4]), torch.randn(9))
 
-    # See https://github.com/pytorch/pytorch/issues/119689
+    # See pytorch/issues/119689
     @unittest.expectedFailure
     @torch._dynamo.config.patch(capture_scalar_outputs=True)
     def test_runtime_assert_replacement(self):
@@ -8883,7 +8883,7 @@ def ___make_guard_fn():
         self.assertEqual(len(counters["graph_break"]), 0)
 
     def test_itertools_accumulate_symint_default_sum(self):
-        # https://github.com/pytorch/pytorch/issues/110287
+        # pytorch/issues/110287
         counters.clear()
 
         def fn(x):
