@@ -392,16 +392,14 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
       .def("set_watchdog_status", &::c10d_npu::ProcessGroupHCCL::setWatchdogStatus)
       .def("clear_workmeta_list", &::c10d_npu::ProcessGroupHCCL::clearWorkMetaList)
       .def("get_hccl_comm_name",
-           [](::c10d_npu::ProcessGroupHCCL &pg, py::args args, py::kwargs kwargs)
+           [](::c10d_npu::ProcessGroupHCCL &pg, int rankid, py::args args, py::kwargs kwargs)
               -> std::string {
-              int rankid = py::cast<int>(args[0]);
               bool init_comm = true;
               if (kwargs.contains("init_comm")) {
                 init_comm = py::cast<bool>(kwargs["init_comm"]);
               }
               return pg.getHcclCommName(rankid, init_comm);
-           },
-           py::call_guard<py::gil_scoped_release>())
+           })
       .def("_get_stream_id", &::c10d_npu::ProcessGroupHCCL::getStreamId,
            py::arg("p2p") = false)
       .def_property_readonly("options", &::c10d_npu::ProcessGroupHCCL::getOptions)
