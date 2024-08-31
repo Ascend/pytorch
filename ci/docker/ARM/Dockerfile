@@ -11,8 +11,8 @@ RUN cd /usr/local/bin \
 # Set pip source
 RUN mkdir /root/.pip \
     && echo "[global]" > /root/.pip/pip.conf \
-    && echo "index-url=https://mirrors.aliyun.com/pypi/simple" >> /root/.pip/pip.conf \
-    && echo "trusted-host=mirrors.aliyun.com" >> /root/.pip/pip.conf \
+    && echo "index-url=https://mirrors.huaweicloud.com/repository/pypi/simple" >> /root/.pip/pip.conf \
+    && echo "trusted-host=repo.huaweicloud.com" >> /root/.pip/pip.conf \
     && echo "timeout=120" >> /root/.pip/pip.conf
 
 # Install pip package(build)
@@ -33,4 +33,3 @@ RUN pip3.10 install pyyaml  \
     && pip3.10 install numpy==1.21.3
 
 WORKDIR /home
-
