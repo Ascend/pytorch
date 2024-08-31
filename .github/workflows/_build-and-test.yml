@@ -43,7 +43,7 @@ jobs:
       - name: Compile torch
         working-directory: /root/build/pytorch/pytorch
         run: |
-          pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+          pip3 install -r requirements.txt -i https://mirrors.huaweicloud.com/repository/pypi/simple
           export _GLIBCXX_USE_CXX11_ABI=0
           export USE_CUDA=0
           export USE_XNNPACK=0
@@ -51,11 +51,11 @@ jobs:
       - name: Compile and install torch_npu
         working-directory: /root/build/npu/pytorch
         run: |
-          pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+          pip3 install -r requirements.txt -i https://mirrors.huaweicloud.com/repository/pypi/simple
           bash ci/build.sh --python=3.8
           pip3 install dist/torch_npu*.whl
       - name: Do the test
         working-directory: /root/build
         run: |
-          pip3 install -r npu/pytorch/test/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple --no-deps
+          pip3 install -r npu/pytorch/test/requirements.txt -i https://mirrors.huaweicloud.com/repository/pypi/simple --no-deps
           python npu/pytorch/ci/access_control_test.py
