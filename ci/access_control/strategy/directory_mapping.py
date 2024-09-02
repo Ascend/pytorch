@@ -18,6 +18,7 @@ class DirectoryMappingStrategy(AccurateTest):
         'testing': 'test/test_testing.py',
         'jit': 'test/test_jit.py',
         'rpc': 'test/distributed/rpc',
+        'meta': 'test/test_fake_tensor.py',
     }
 
     @staticmethod
