@@ -11,6 +11,8 @@ extern "C" {
 
 typedef uint64_t mstxRangeId;
 
+ACL_FUNC_VISIBILITY void mstxMarkA(const char* message, aclrtStream stream);
+
 ACL_FUNC_VISIBILITY mstxRangeId mstxRangeStartA(const char* message, aclrtStream stream);
 
 ACL_FUNC_VISIBILITY void mstxRangeEnd(mstxRangeId id);

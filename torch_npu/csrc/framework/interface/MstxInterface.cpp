@@ -2,6 +2,7 @@
 #include "torch_npu/csrc/framework/interface/MstxInterface.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 
 namespace at_npu {
 namespace native {
@@ -15,6 +16,7 @@ namespace native {
 
 
 REGISTER_LIBRARY(libms_tools_ext)
+LOAD_FUNCTION(mstxMarkA)
 LOAD_FUNCTION(mstxRangeStartA)
 LOAD_FUNCTION(mstxRangeEnd)
 
@@ -24,19 +26,57 @@ static std::unordered_map<int, mstxRangeId> g_rangeIdMap;
 
 static std::mutex g_mutex;
 
+static std::mutex g_supportMstx;
+
+bool IsSupportMstxFunc()
+{
+    static bool isSupport = false;
+    static bool isChecked = false;
+    std::lock_guard<std::mutex> lock(g_supportMstx);
+    if (!isChecked) {
+        char* path = std::getenv("ASCEND_HOME_PATH");
+        if (path != nullptr) {
+            std::string soPath = std::string(path) + "/lib64/libms_tools_ext.so";
+            soPath = torch_npu::toolkit::profiler::Utils::RealPath(soPath);
+            isSupport = !soPath.empty();
+            isChecked = true;
+        }
+    }
+    return isSupport;
+}
+
+void MstxMarkA(const char* message, aclrtStream stream)
+{
+    using MstxMarkAFunc = void (*)(const char*, aclrtStream);
+    static MstxMarkAFunc func = nullptr;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return;
+    }
+    if (func == nullptr) {
+        func = (MstxMarkAFunc)GET_FUNC(mstxMarkA);
+        if (func == nullptr) {
+            ASCEND_LOGW("Failed to get func mstxMarkA");
+            noFuncFlag = true;
+            return;
+        }
+    }
+    func(message, stream);
+}
+
 int MstxRangeStartA(const char* message, aclrtStream stream, int ptRangeId)
 {
     using MstxRangeStartAFunc = mstxRangeId (*)(const char*, aclrtStream);
     static MstxRangeStartAFunc func = nullptr;
-    static bool flag = false;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return 0;
+    }
     if (func == nullptr) {
-        if (flag) {
-            return 0;
-        }
         func = (MstxRangeStartAFunc)GET_FUNC(mstxRangeStartA);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxRangeStartA");
-            flag = true;
+            noFuncFlag = true;
             return 0;
         }
     }
@@ -50,15 +90,15 @@ void MstxRangeEnd(int ptRangdId)
 {
     using MstxRangeEndFunc = void (*)(mstxRangeId);
     static MstxRangeEndFunc func = nullptr;
-    static bool flag = false;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return;
+    }
     if (func == nullptr) {
-        if (flag) {
-            return;
-        }
         func = (MstxRangeEndFunc)GET_FUNC(mstxRangeEnd);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxRangeEnd");
-            flag = true;
+            noFuncFlag = true;
             return;
         }
     }
