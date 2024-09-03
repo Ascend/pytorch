@@ -31,37 +31,41 @@
 PyObject *THNPStreamClass = nullptr;
 
 static PyObject* THNPStream_pynew(
-    PyTypeObject *type, PyObject *args, PyObject *kwargs) {
-  HANDLE_TH_ERRORS
+    PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    HANDLE_TH_ERRORS
 
-  int current_device;
-  NPU_CHECK_ERROR(c10_npu::GetDevice(&current_device));
+    int current_device;
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&current_device));
 
-  int priority = 0;
-  uint64_t cdata = 0;
+    int is_sync_launch = 0;
+    int priority = 0;
+    uint64_t cdata = 0;
 
-  static char *kwlist[] = {"priority", "_cdata", nullptr};
-  if (!PyArg_ParseTupleAndKeywords(
-      args, kwargs, "|iK", kwlist, &priority, &cdata)) {
-    return nullptr;
-  }
+    static char *kwlist[] = {"priority", "is_sync_launch", "_cdata", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(
+        args, kwargs, "|iiK", kwlist, &priority, &is_sync_launch, &cdata)) {
+        return nullptr;
+    }
 
-  THPObjectPtr ptr(type->tp_alloc(type, 0));
-  if (!ptr) {
-    return nullptr;
-  }
+    THPObjectPtr ptr(type->tp_alloc(type, 0));
+    if (!ptr) {
+        return nullptr;
+    }
 
-  c10_npu::NPUStream stream =
-    cdata ?
-    c10_npu::NPUStream::unpack(cdata) :
-    c10_npu::getNPUStreamFromPool();
+    c10_npu::NPUStream stream =
+        cdata ?
+        c10_npu::NPUStream::unpack(cdata) :
+        c10_npu::getNPUStreamFromPool();
 
-  THNPStream* self = (THNPStream *)ptr.get();
-  self->cdata = stream.pack();
-  new (&self->npu_stream) c10_npu::NPUStream(stream);
+    stream.setSyncLaunchStream(is_sync_launch);
 
-  return (PyObject *)ptr.release();
-  END_HANDLE_TH_ERRORS
+    THNPStream* self = (THNPStream *)ptr.get();
+    self->cdata = stream.pack();
+    new (&self->npu_stream) c10_npu::NPUStream(stream);
+
+    return (PyObject *)ptr.release();
+    END_HANDLE_TH_ERRORS
 }
 
 static void THNPStream_dealloc(THNPStream *self) {
@@ -188,15 +192,14 @@ PyTypeObject THNPStreamType = {
   THNPStream_pynew,                      /* tp_new */
 };
 
-
 void THNPStream_init(PyObject *module)
 {
-  THNPStreamClass = (PyObject*)&THNPStreamType;
-  if (PyType_Ready(&THNPStreamType) < 0) {
-    throw python_error();
-  }
-  Py_INCREF(&THNPStreamType);
-  if (PyModule_AddObject(module, "_NPUStreamBase", (PyObject *)&THNPStreamType) < 0) {
-    throw python_error();
-  }
+    THNPStreamClass = (PyObject *)&THNPStreamType;
+    if (PyType_Ready(&THNPStreamType) < 0) {
+        throw python_error();
+    }
+    Py_INCREF(&THNPStreamType);
+    if (PyModule_AddObject(module, "_NPUStreamBase", (PyObject *)&THNPStreamType) < 0) {
+        throw python_error();
+    }
 }

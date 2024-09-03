@@ -126,7 +126,11 @@ public:
 
     bool isDataPreprocessStream();
 
-    // Explicit conversion to rtStream_t， with out empty taskQ.
+    void setSyncLaunchStream(bool is_sync_launch);
+
+    bool isSyncLaunchStream() const;
+
+    // Explicit conversion to rtStream_t, with out empty taskQ.
     aclrtStream stream(const bool need_empty) const;
 
 private:
