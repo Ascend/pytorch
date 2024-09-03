@@ -23,17 +23,18 @@ class TestTorchOpBean(TestCase):
         start_thread_id = random.randint(0, 2**64 - 1)
         end_thread_id = random.randint(0, 2**64 - 1)
         forward_thread_id = random.randint(0, 2**64 - 1)
+        scope = random.randint(0, 2**8 - 1)
         is_async = random.choice([0, 1])
         name_id = random.randint(0, 100)
 
         sample = {
             Constant.CONSTANT_BYTES: struct.pack(
-                "<3q4Q?", start_ns, end_ns, sequence_number, process_id,
-                start_thread_id, end_thread_id, forward_thread_id, is_async),
+                "<3q4QB?", start_ns, end_ns, sequence_number, process_id,
+                start_thread_id, end_thread_id, forward_thread_id, scope, is_async),
             "start_ns": start_ns, "end_ns": end_ns, "sequence_number": sequence_number,
             "process_id": process_id, "start_thread_id": start_thread_id, "end_thread_id": end_thread_id,
-            "forward_thread_id": forward_thread_id, "is_async": is_async, "dur": end_ns - start_ns,
-            "args": {Constant.SEQUENCE_UNMBER: sequence_number, Constant.FORWORD_THREAD_ID: forward_thread_id}
+            "forward_thread_id": forward_thread_id, "scope": scope, "is_async": is_async, "dur": end_ns - start_ns,
+            "args": {Constant.SEQUENCE_NUMBER: sequence_number, Constant.FORWARD_THREAD_ID: forward_thread_id}
         }
 
         return sample
@@ -43,6 +44,7 @@ class TestTorchOpBean(TestCase):
             torch_op_bean = TorchOpBean(test_case)
             self.assertEqual(test_case.get("process_id"), torch_op_bean.pid)
             self.assertEqual(test_case.get("start_thread_id"), torch_op_bean.tid)
+            self.assertEqual(test_case.get("scope"), torch_op_bean.scope)
             self.assertEqual(test_case.get("name", ""), torch_op_bean.name)
             self.assertEqual(test_case.get("start_ns"), torch_op_bean.ts)
             self.assertEqual(test_case.get("dur"), torch_op_bean.dur)

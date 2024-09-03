@@ -11,6 +11,7 @@
 
 #include <ATen/core/ivalue.h>
 #include <ATen/record_function.h>
+#include <c10/core/ScalarType.h>
 
 namespace torch_npu {
 namespace toolkit {
@@ -85,6 +86,83 @@ void encode2DIntegerMatrixDatas(uint16_t type, std::vector<std::vector<T>> &data
   encodeStrData(type, rst, result);
 }
 
+class WeakTensor {
+public:
+    explicit WeakTensor(const at::Tensor& t) : weak_self_(t.getIntrusivePtr()) {}
+
+    auto get() const
+    {
+        return (c10::TensorImpl*)(weak_self_._unsafe_get_target());
+    }
+
+private:
+    c10::weak_intrusive_ptr<c10::TensorImpl> weak_self_;
+};
+
+struct TensorMetadata {
+    TensorMetadata() = default;
+    explicit TensorMetadata(const at::Tensor &t);
+
+    c10::TensorImpl* impl_;
+    const void* ptr_;
+    std::string dtype_;
+    uint64_t dtype_size_{0};
+    std::vector<int64_t> sizes_;
+    std::vector<int64_t> strides_;
+    int device_type_{0};
+    int device_index_{-1};
+};
+
+inline void append_with_delimiter(std::ostringstream &oss, const std::string &str, char delimiter = ';')
+{
+    oss << str << delimiter;
+}
+
+template<typename T>
+std::string vector_to_string(const std::vector<T> &vec)
+{
+    std::ostringstream oss;
+    if (!vec.empty()) {
+        std::copy(vec.begin(), vec.end(), std::ostream_iterator<T>(oss, ","));
+        std::string result = oss.str();
+        result.pop_back();
+        return result;
+    }
+    return "";
+}
+
+inline void encodeTensor(const TensorMetadata &t, std::ostringstream &oss)
+{
+    // append impl, ptr
+    append_with_delimiter(oss, to_string(t.impl_));
+    append_with_delimiter(oss, (t.ptr_ == nullptr) ? "" : to_string(t.ptr_));
+
+    // append dtype, dtype_size, sizes and strides
+    append_with_delimiter(oss, t.dtype_);
+    append_with_delimiter(oss, to_string(t.dtype_size_));
+    append_with_delimiter(oss, vector_to_string(t.sizes_));
+    append_with_delimiter(oss, vector_to_string(t.strides_));
+
+    // append device info
+    append_with_delimiter(oss, to_string(t.device_type_));
+    oss << to_string(t.device_index_);
+}
+
+inline void encodeTensors(uint16_t type, std::vector<TensorMetadata> tensors, std::vector<uint8_t> &result)
+{
+    std::ostringstream oss;
+    for (auto& t:tensors) {
+        encodeTensor(t, oss);
+        oss << ")";
+    }
+
+    std::string str = oss.str();
+    if (!str.empty()) {
+        str.pop_back();
+    }
+    encodeStrData(type, str, result);
+}
+
 struct BaseReportData {
     int32_t device_id{0};
     std::string tag;
@@ -99,10 +177,12 @@ enum class OpRangeDataType {
   IS_ASYNC = 2,
   NAME = 3,
   INPUT_DTYPES = 4,
-  INPUT_SHAPE = 5,
-  STACK = 6,
-  MODULE_HIERARCHY = 7,
-  EXTRA_ARGS = 8,
+  INPUT_SHAPES = 5,
+  INPUT_TENSORS = 6,
+  INPUT_SCALARS = 7,
+  STACK = 8,
+  MODULE_HIERARCHY = 9,
+  EXTRA_ARGS = 10,
   RESERVED = 30,
 };
 
@@ -116,8 +196,11 @@ struct OpRangeData : BaseReportData{
     uint64_t forward_thread_id{0};
     bool is_async{false};
     std::string name;
+    uint8_t scope{0};
     std::vector<std::string> input_dtypes;
     std::vector<std::vector<int64_t>> input_shapes;
+    std::vector<TensorMetadata> input_tensors;
+    std::vector<std::string> input_scalars;
     std::vector<std::string> stack;
     std::vector<std::string> module_hierarchy;
     std::unordered_map<std::string, c10::IValue> extra_args;
@@ -185,7 +268,7 @@ struct MemoryData : BaseReportData {
     int64_t total_active{0};
     int64_t stream_ptr{0};
     int8_t device_type{0};
-    uint8_t device_index{0};
+    int8_t device_index{0};
     uint8_t data_type{0};
     uint8_t allocator_type{0};
     uint64_t thread_id{0};
@@ -199,7 +282,7 @@ struct MemoryData : BaseReportData {
         int64_t total_active,
         int64_t stream_ptr,
         int8_t device_type,
-        uint8_t device_index,
+        int8_t device_index,
         uint8_t data_type,
         uint8_t allocator_type,
         uint64_t thread_id,

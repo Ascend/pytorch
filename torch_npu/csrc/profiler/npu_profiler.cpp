@@ -178,14 +178,31 @@ void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &a
     ProfilerMgr::GetInstance()->Init(realPath, npu_trace);
 }
 
+std::string parseTypeName(const c10::IValue &value)
+{
+    if (value.isBool()) {
+        return std::string("Bool");
+    } else if (value.isInt()) {
+        return std::string("Int");
+    } else if (value.isDouble()) {
+        return std::string("Double");
+    } else if (value.isComplexDouble()) {
+        return std::string("Complex");
+    }
+    return std::string("Others");
+}
+
 static void parseInputShapesAndDtypes(const at::RecordFunction &fn,
                                       std::vector<std::string> &dtypes,
-                                      std::vector<std::vector<int64_t>> &shapes)
+                                      std::vector<std::vector<int64_t>> &shapes,
+                                      std::vector<torch_npu::toolkit::profiler::TensorMetadata> &tensors,
+                                      std::vector<std::string> &scalars,
+                                      const ProfilerConfig &config)
 {
     auto inputs = fn.inputs();
     for (const auto &value : inputs) {
         std::vector<int64_t> shape;
-        std::string dtype = "";
+        std::string dtype = "None";
         if (value.isTensor()) {
             const at::Tensor &t = value.toTensor();
             if (t.defined() && !t.is_nested() && !t.unsafeGetTensorImpl()->has_symbolic_sizes_strides()) {
@@ -193,11 +210,17 @@ static void parseInputShapesAndDtypes(const at::RecordFunction &fn,
                 for (auto i: t.sizes()) {
                     shape.emplace_back(i);
                 }
+                if (C10_UNLIKELY(config.report_input_shapes && config.with_modules && config.profile_memory)) {
+                    tensors.emplace_back(t);
+                }
             }
         } else if (value.isTensorList()) {
             dtype = "TensorList";
         } else if (value.isScalar()) {
             dtype = "Scalar";
+            if (C10_UNLIKELY(config.report_input_shapes && config.with_modules && config.profile_memory)) {
+                scalars.emplace_back(std::move(parseTypeName(value)));
+            }
         } else if (value.isList()) {
             auto listRef = value.toListRef();
             if (listRef.empty() || listRef[0].isScalar()) {
@@ -223,8 +246,14 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes)
                 const auto &config = state_ptr->config();
                 auto ctx_ptr = state_ptr->newOpEvent(fn);
                 auto &data_ptr = ctx_ptr->data_;
+                data_ptr->scope = static_cast<uint8_t>(fn.scope());
                 if ((C10_UNLIKELY(config.report_input_shapes))) {
-                    parseInputShapesAndDtypes(fn, data_ptr->input_dtypes, data_ptr->input_shapes);
+                    parseInputShapesAndDtypes(fn,
+                                              data_ptr->input_dtypes,
+                                              data_ptr->input_shapes,
+                                              data_ptr->input_tensors,
+                                              data_ptr->input_scalars,
+                                              config);
                 }
                 if (C10_UNLIKELY(config.with_stack && fn.scope() != at::RecordScope::BACKWARD_FUNCTION)) {
                     auto cs = torch::profiler::impl::prepareCallstack(torch::jit::currentCallstack());
