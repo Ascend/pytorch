@@ -40,7 +40,7 @@ enum class MemoryAllocatorType {
 
 struct MemoryUsage {
     int8_t device_type{0};
-    uint8_t device_index{0};
+    int8_t device_index{0};
     uint8_t data_type{static_cast<uint8_t>(MemoryDataType::MEMORY_INVALID)};
     uint8_t allocator_type{static_cast<uint8_t>(MemoryAllocatorType::ALLOCATOR_INVALID)};
     int64_t ptr{0};
