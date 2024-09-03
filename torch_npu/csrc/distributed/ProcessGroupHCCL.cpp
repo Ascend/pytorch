@@ -7,6 +7,7 @@
 #include <linux/limits.h>
 #include <fstream>
 #include <iostream>
+#include <functional>
 
 #include <c10/util/Optional.h>
 #include <c10/util/irange.h>
@@ -233,7 +234,10 @@ const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
 const int64_t ProcessGroupHCCL::kWatchdogThreadSleepMillis = 1000;
 std::string ProcessGroupHCCL::perfdumppath = "";
-// const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
+std::weak_ptr<HCCLComm> ProcessGroupHCCL::global_hccl_comm_;
+std::unordered_map<std::string, uint32_t> ProcessGroupHCCL::group_ranks_map_;
+std::mutex ProcessGroupHCCL::group_ranks_map_mutex_;
+ProcessGroupHCCL* ProcessGroupHCCL::global_ = nullptr;
 
 std::ostream& operator<<(std::ostream& output, const ProcessGroupHCCL::WorkHCCL& workHCCL)
 {
@@ -692,6 +696,32 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     }
     hcclCommWatchdogThread_ = std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this);
 #endif
+
+    const std::vector<uint32_t>& ranks = groupRanks();
+    std::stringstream ss;
+    for (size_t i = 0; i < ranks.size(); ++i) {
+        ss << ranks[i];
+        if (i != ranks.size() - 1) {
+            ss << ", ";
+        }
+    }
+    std::string group_ranks = ss.str();
+
+    {
+        std::lock_guard<std::mutex> lock(group_ranks_map_mutex_);
+        auto it = group_ranks_map_.find(group_ranks);
+        if (it != group_ranks_map_.end()) {
+            group_ranks_map_[group_ranks]++;
+        } else {
+            group_ranks_map_[group_ranks] = 0;
+        }
+
+        global_hccl_id_ = group_ranks + "_" + std::to_string(group_ranks_map_[group_ranks]);
+    }
+
+    if (options_->global_ranks_in_group.empty() && uid_ == 0) {
+        global_ = this;
+    }
 }
 
 void ProcessGroupHCCL::setSequenceNumberForGroup() {}
@@ -739,6 +769,10 @@ void ProcessGroupHCCL::abort(c10::optional<std::string> abortReason)
 
 ProcessGroupHCCL::~ProcessGroupHCCL()
 {
+    if (options_->global_ranks_in_group.empty() && uid_ == 0) {
+        global_ = nullptr;
+    }
+
     terminateProcessGroup_.store(true);
 
     workMetaListCV_.notify_one();
@@ -814,10 +848,10 @@ void ProcessGroupHCCL::logWorkEnd(WorkHCCL& work)
     storeError_ = !c10d::traceUpdate(store_, traceKeyEnd_, work.seq_, opTypeToString(work.opType_));
 }
 
-const std::vector<uint64_t>& ProcessGroupHCCL::groupRanks() const
+const std::vector<uint32_t>& ProcessGroupHCCL::groupRanks() const
 {
     if (options_->global_ranks_in_group.empty() && uid_ == 0) {
-        static std::vector<uint64_t> globalRanks(size_);
+        static std::vector<uint32_t> globalRanks(size_);
         std::iota(globalRanks.begin(), globalRanks.end(), 0);
         return globalRanks;
     }
@@ -1033,7 +1067,7 @@ void ProcessGroupHCCL::recordComm(std::string filename, std::string opName, cons
     }
 
     std::transform(opName.begin(), opName.end(), opName.begin(), ::tolower);
-    const std::vector<uint64_t>& ranks = groupRanks();
+    const std::vector<uint32_t>& ranks = groupRanks();
     std::stringstream ss;
     for (size_t i = 0; i < ranks.size(); ++i) {
         ss << ranks[i];
@@ -1075,11 +1109,15 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
             return devHCCLCommMap_[devicesKey];
         }
     }
+    return createHCCLComm(devicesKey, devices, commType, commConfig);
+}
 
-    // HCCL communicator not cached, create a new entry
-    std::vector<std::shared_ptr<HCCLComm>> hcclComms;
-    hcclComms.resize(devices.size());
-
+void ProcessGroupHCCL::createHCCLComm(const std::vector<at::Device>& devices,
+    HcclCommType commType,
+    HcclCommConfig* commConfig,
+    std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
+    std::vector<c10_npu::NPUStream> &streamVal)
+{
     HcclRootInfo hcclID;
     if (rank_ == 0) {
         HCCL_CHECK_ERROR(HcclGetRootInfo(&hcclID));
@@ -1087,9 +1125,6 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     broadcastMasterID(&hcclID);
 
     c10_npu::OptionalNPUGuard npuGuard;
-    std::vector<c10_npu::NPUStream> streamVal;
-    streamVal.reserve(devices.size());
-
     for (size_t i = 0; i < devices.size(); ++i) {
         int numRanks = getSize();
         int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
@@ -1104,7 +1139,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
                     hcclComms[i] = HCCLComm::create(numRanks, rank, hcclID);
                 }
                 break;
-            case HcclCommType::P2P:
+            case HcclCommType::P2P: // P2P not support set hcclCommName
                 HcclCommConfig config;
                 getP2PHcclCommCofig(&config);
                 hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
@@ -1115,8 +1150,125 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
                     std::to_string((int)commType) + DIST_ERROR(ErrCode::PARAM));
         }
 
+        if (options_->global_ranks_in_group.empty() && uid_ == 0) {
+            global_hccl_comm_ = hcclComms[i];
+        }
+
         // Creates the HCCL streams
         streamVal.push_back(c10_npu::getNPUStreamFromPool(devices[i].index()));
+    }
+}
+
+bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
+    HcclCommType commType,
+    HcclCommConfig* commConfig,
+    std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
+    std::vector<c10_npu::NPUStream> &streamVal)
+{
+    c10_npu::OptionalNPUGuard npuGuard;
+    // global process group
+    if (options_->global_ranks_in_group.empty() && uid_ == 0) {
+        std::string rankTableFile = c10_npu::option::OptionsManager::GetRankTableFilePath();
+        if (!hcclCommInitClusterInfoConfigExist() || rankTableFile.empty() || !checkFilePathReadable(rankTableFile)) {
+            ASCEND_LOGI("The rank_table_file is not available or the hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
+            return false;
+        }
+        auto startTime = std::chrono::steady_clock::now();
+        for (size_t i = 0; i < devices.size(); ++i) {
+            int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
+
+            npuGuard.set_index(devices[i].index());
+            HcclCommConfig config;
+            if (commConfig == nullptr) {
+                HcclCommConfigInit(&config);
+                commConfig = &config;
+            }
+            auto comm = HCCLComm::createGlobalHcclComm(rankTableFile.c_str(), rank, commConfig);
+            if (comm == nullptr) {
+                ASCEND_LOGI("Create global hccl comm with ranktable failed.");
+                return false;
+            }
+            hcclComms[i] = comm;
+            global_hccl_comm_ = comm;
+            // Creates the HCCL streams
+            streamVal.push_back(c10_npu::getNPUStreamFromPool(devices[i].index()));
+        }
+        auto endTime = std::chrono::steady_clock::now();
+        auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        ASCEND_LOGI("Create global hccl comm with ranktable success, take %d milliseconds", timeElapsed.count());
+        return true;
+    }
+
+    // sub process group
+    if (!hcclCreateSubCommConfigExist()) {
+        ASCEND_LOGI("The hcclCreateSubCommConfig is not exist, switch to original interface.");
+        return false;
+    }
+    if (global_hccl_comm_.expired()) {
+        // only support create glabal process group by ranktable
+        std::string rankTableFile = c10_npu::option::OptionsManager::GetRankTableFilePath();
+        if (global_ == nullptr || !hcclCommInitClusterInfoConfigExist() || rankTableFile.empty() || !checkFilePathReadable(rankTableFile)) {
+            ASCEND_LOGI("The rank_table_file is not available or the hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
+            return false;
+        }
+        try {
+            (void)global_->getHcclComm(global_->getRank());
+        } catch (const std::exception& e) {
+            ASCEND_LOGI("create the global HCCL Communicator failed, the exception info is %s.", e.what());
+            return false;
+        }
+    }
+    std::shared_ptr<HCCLComm> globalHcclComm = global_hccl_comm_.lock();
+    if (!globalHcclComm) {
+        ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, globalHcclComm is nullptr.");
+        return false;
+    }
+
+    uint64_t hcclid = (std::hash<string>{}(global_hccl_id_));
+    auto subStartTime = std::chrono::steady_clock::now();
+    for (size_t i = 0; i < devices.size(); ++i) {
+        int numRanks = getSize();
+        int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
+
+        npuGuard.set_index(devices[i].index());
+        HcclCommConfig config;
+        if (commConfig == nullptr) {
+            HcclCommConfigInit(&config);
+            if (commType == HcclCommType::P2P) {
+                config.hcclBufferSize = c10_npu::option::OptionsManager::GetP2PBufferSize();
+            }
+            commConfig = &config;
+        }
+        auto subComm = HCCLComm::createSubHcclComm(globalHcclComm, numRanks, options_->global_ranks_in_group.data(), hcclid, rank, commConfig);
+        if (subComm == nullptr) {
+            ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed.");
+            return false;
+        }
+        hcclComms[i] = subComm;
+        // Creates the HCCL streams
+        streamVal.push_back(c10_npu::getNPUStreamFromPool(devices[i].index()));
+    }
+    auto subEndTime = std::chrono::steady_clock::now();
+    auto subTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(subEndTime - subStartTime);
+    ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig success, subCommId is %llu, take %d milliseconds.",
+        hcclid, subTimeElapsed.count());
+    return true;
+}
+
+std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
+    const std::string& devicesKey,
+    const std::vector<at::Device>& devices,
+    HcclCommType commType,
+    HcclCommConfig* commConfig)
+{
+    // HCCL communicator not cached, create a new entry
+    std::vector<std::shared_ptr<HCCLComm>> hcclComms;
+    hcclComms.resize(devices.size());
+    std::vector<c10_npu::NPUStream> streamVal;
+    streamVal.reserve(devices.size());
+
+    if (!createHCCLCommEx(devices, commType, commConfig, hcclComms, streamVal)) {
+        createHCCLComm(devices, commType, commConfig, hcclComms, streamVal);
     }
 
     hcclStreams_.emplace(devicesKey, std::move(streamVal));
@@ -1651,7 +1803,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
                     throw std::runtime_error("Open shared directory failed. Please check whether perfdumppath is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
                 }
 
-                const std::vector<uint64_t>& ranks = groupRanks();
+                const std::vector<uint32_t>& ranks = groupRanks();
                 outfile << "[GLOBAL RANKID]:" << ranks[rank_] << "\n";
                 
                 outfile.close();

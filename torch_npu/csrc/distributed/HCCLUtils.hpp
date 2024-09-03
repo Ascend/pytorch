@@ -48,6 +48,9 @@
 namespace c10d_npu {
 extern HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError);
 extern HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclCommConfig* config, HcclComm *comm);
+extern HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_t rank, HcclCommConfig *config, HcclComm *comm);
+extern HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *rankIds, uint64_t subCommId, uint32_t subCommRankId,
+    HcclCommConfig* config, HcclComm *subComm);
 
 // Provides additional detail into HCCL error codes based on when these are
 // thrown in the HCCL codebase.
@@ -60,6 +63,8 @@ HcclDataType getHcclDataType(at::ScalarType type);
 std::string getHcclDataTypeSerialString(HcclDataType type);
 
 bool isFileExists(const std::string& path);
+
+bool checkFilePathReadable(const std::string& file);
 
 bool isSupportHcclCommName();
 
@@ -98,6 +103,38 @@ public:
         c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
                                                              c10_npu::ReleasePriority::PriorityMiddle);
         return comm;
+    }
+
+    static std::shared_ptr<HCCLComm> createGlobalHcclComm(
+        const char *clusterInfo,
+        uint32_t rank,
+        HcclCommConfig* config)
+    {
+        auto comm = std::make_shared<HCCLComm>();
+        if (hcclCommInitClusterInfoConfig(clusterInfo, rank, config, &(comm->hcclComm_)) != HCCL_SUCCESS) {
+            return nullptr;
+        }
+        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
+            c10_npu::ReleasePriority::PriorityMiddle);
+        return comm;
+    }
+
+    static std::shared_ptr<HCCLComm> createSubHcclComm(
+        std::shared_ptr<HCCLComm> comm,
+        uint32_t rankNum,
+        uint32_t *rankIds,
+        uint64_t subCommId,
+        uint32_t subCommRankId,
+        HcclCommConfig* config)
+    {
+        auto subComm = std::make_shared<HCCLComm>();
+        if (hcclCreateSubCommConfig(&(comm->hcclComm_), rankNum, rankIds, subCommId, subCommRankId,
+            config, &(subComm->hcclComm_)) != HCCL_SUCCESS) {
+            return nullptr;
+        }
+        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {subComm->destroyHcclComm();},
+                                                             c10_npu::ReleasePriority::PriorityMiddle);
+        return subComm;
     }
 
     // Must not be copyable

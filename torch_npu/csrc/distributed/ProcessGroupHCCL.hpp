@@ -260,7 +260,7 @@ public:
         // Schedule HCCL operations on high priority CUDA streams
         bool is_high_priority_stream;
 
-        std::vector<uint64_t> global_ranks_in_group;
+        std::vector<uint32_t> global_ranks_in_group;
     };
 
     // If you wish to create multiple process groups, each with a potentially
@@ -426,7 +426,7 @@ public:
     std::string getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
     // Return the global ranks of a PG
-    const std::vector<uint64_t>& groupRanks() const;
+    const std::vector<uint32_t>& groupRanks() const;
 
     int64_t getStreamId(bool p2p = false);
 
@@ -624,6 +624,24 @@ private:
         PostProcess post,
         c10d::OpType opType);
 
+    std::vector<std::shared_ptr<HCCLComm>>& createHCCLComm(
+        const std::string& devicesKey,
+        const std::vector<at::Device>& devices,
+        HcclCommType commType = HcclCommType::DEFAULT,
+        HcclCommConfig* commConfig = nullptr);
+
+    void createHCCLComm(const std::vector<at::Device>& devices,
+        HcclCommType commType,
+        HcclCommConfig* commConfig,
+        std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
+        std::vector<c10_npu::NPUStream> &streamVal);
+
+    bool createHCCLCommEx(const std::vector<at::Device>& devices,
+        HcclCommType commType,
+        HcclCommConfig* commConfig,
+        std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
+        std::vector<c10_npu::NPUStream> &streamVal);
+
     // Checks for HCCL errors on each of the communicators and returns an
     // appropriate exception_ptr (nullptr if no errors).
     static std::exception_ptr checkForHCCLErrorsInternal(const std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
@@ -660,5 +678,13 @@ private:
     std::unordered_map<c10d::OpType, std::pair<at::Tensor, at::Tensor>> silenceCheckCache_;
 
     WatchdogStatus watchdogStatus;
+
+    static std::weak_ptr<HCCLComm> global_hccl_comm_;
+
+    static std::mutex group_ranks_map_mutex_;
+    static std::unordered_map<std::string, uint32_t> group_ranks_map_;
+    std::string global_hccl_id_;
+
+    static ProcessGroupHCCL* global_;
 };
 } // namespace c10d_npu
