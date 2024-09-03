@@ -188,3 +188,105 @@ class Event(torch_npu._C._NPUEventBase, _EventBase):
             return '<torch_npu.npu.Event {0:#x}>'.format(self._as_parameter_.value)
         else:
             return '<torch_npu.npu.Event uninitialized>'
+
+
+class SyncLaunchStream(torch_npu._C._NPUStreamBase, _StreamBase):
+    r"""Wrapper around a SyncLaunch NPU stream.
+
+    A Sync Launch NPU stream is a NPU stream which doesn't enable taskqueue(implemented by is_sync_launch).
+
+    Arguments:
+        device(torch.device or int, optional): a device on which to allocate
+            the stream. If :attr:`device` is ``None`` (default) or a negative
+            integer, this will use the current device.
+        priority(int, optional): priority of the stream. Lower numbers
+                                 represent higher priorities.
+    """
+
+    def __new__(cls, device=None, priority=0, **kwargs):
+        with torch_npu.npu.device(device):
+            return super(SyncLaunchStream, cls).__new__(cls, priority=priority, is_sync_launch=1, **kwargs)
+
+    def wait_event(self, event):
+        r"""Makes all future work submitted to the stream wait for an event.
+
+        Arguments:
+            event (Event): an event to wait for.
+
+        .. note:: This is a wrapper around ``npuStreamWaitEvent()``
+
+           This function returns without waiting for :attr:`event`: only future
+           operations are affected.
+
+        """
+        event.wait(self)
+
+    def wait_stream(self, stream):
+        r"""Synchronizes with another stream.
+
+        All future work submitted to this stream will wait until all kernels
+        submitted to a given stream at the time of call complete.
+
+        Arguments:
+            stream (SyncLaunchStream): a stream to synchronize.
+
+        .. note:: This function returns without waiting for currently enqueued
+           kernels in :attr:`stream`: only future operations are affected.
+        """
+        self.wait_event(stream.record_event())
+
+    def record_event(self, event=None):
+        r"""Records an event.
+
+        Arguments:
+            event (Event, optional): event to record. If not given, a new one
+                will be allocated.
+
+        Returns:
+            Recorded event.
+        """
+        if event is None:
+            event = Event()
+        event.record(self)
+        return event
+
+    def query(self):
+        r"""Checks if all the work submitted has been completed.
+
+        Returns:
+            A boolean indicating if all kernels in this stream are completed.
+        """
+        return super(SyncLaunchStream, self).query()
+
+    def synchronize(self):
+        r"""Wait for all the kernels in this stream to complete.
+
+        .. note:: This is a wrapper around ``npuStreamSynchronize()``: see
+           `NPU Stream documentation`_ for more info.
+        """
+        super(SyncLaunchStream, self).synchronize()
+
+    def set_data_preprocess_stream(self, is_data_preprocess_stream=False):
+        r"""Set data preprocess mode property to this stream.
+
+        Arguments:
+            is_data_preprocess_stream(bool): determine
+            whether to add data preprocess property.
+        """
+        super(SyncLaunchStream, self).set_data_preprocess_stream(is_data_preprocess_stream)
+
+    @property
+    def _as_parameter_(self):
+        return ctypes.c_void_p(self.npu_stream)
+
+    def __eq__(self, other):
+        if isinstance(other, SyncLaunchStream):
+            return super(SyncLaunchStream, self).__eq__(other)
+        return False
+
+    def __hash__(self):
+        return hash((self.npu_stream, self.device))
+
+    def __repr__(self):
+        return ('<torch_npu.npu.SyncLaunchStream device={0} npu_stream={1:#x}>'
+                .format(self.device, self.npu_stream))
