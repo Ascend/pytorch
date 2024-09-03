@@ -12,9 +12,29 @@ MstxMgr::MstxMgr()
 {
 }
 
+void MstxMgr::mark(const char* message, const aclrtStream stream)
+{
+    if (!isMstxEnable()) {
+        return;
+    }
+    int id = ptRangeId_++;
+    if (stream == nullptr) {
+        (void)at_npu::native::MstxMarkA(message, nullptr);
+        return;
+    }
+    auto mark_call = [msg_ptr = std::make_shared<std::string>(message), stream]() -> int {
+        (void)at_npu::native::MstxMarkA(msg_ptr->c_str(), stream);
+        return 0;
+    };
+    at_npu::native::OpCommand cmd;
+    cmd.Name("mstx_mark_op");
+    cmd.SetCustomHandler(mark_call);
+    cmd.Run();
+}
+
 int MstxMgr::rangeStart(const char* message, const aclrtStream stream)
 {
-    if (!ProfilerMgr::GetInstance()->GetNpuTrace().load() || !ProfilerMgr::GetInstance()->GetMsprofTx().load()) {
+    if (!isMstxEnable()) {
         return 0;
     }
     int id = ptRangeId_++;
@@ -39,9 +59,7 @@ int MstxMgr::rangeStart(const char* message, const aclrtStream stream)
 
 void MstxMgr::rangeEnd(int ptRangeId)
 {
-    if (!ProfilerMgr::GetInstance()->GetNpuTrace().load() ||
-        !ProfilerMgr::GetInstance()->GetMsprofTx().load() ||
-        ptRangeId == 0) {
+    if (!isMstxEnable() || ptRangeId == 0) {
         return;
     }
     bool rangeIdWithStream = false;

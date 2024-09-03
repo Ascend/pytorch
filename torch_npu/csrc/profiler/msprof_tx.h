@@ -5,38 +5,31 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
-#include "torch_npu/csrc/profiler/profiler_mgr.h"
+#include "torch_npu/csrc/profiler/npu_profiler.h"
 
 namespace torch_npu {
 namespace profiler {
-typedef enum tagMarkResult {
-    MARK_SUCCESS = 0          /**< success */
-} markResult_t;
 
-aclError profMark(const char *message, aclrtStream stream)
+void profMark(const char *message, aclrtStream stream)
 {
-    aclError markRet = at_npu::native::AclProfilingMarkEx(message, strlen(message), stream);
-    if (markRet == ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
-        NPU_LOGE("Failed to find function aclprofMarkEx");
-        TORCH_WARN_ONCE("Profiling mark is unsupported, please upgrade CANN version");
-        return MARK_SUCCESS;
+    if (at_npu::native::IsSupportMstxFunc()) {
+        at_npu::native::MstxMarkA(message, stream);
+    } else {
+        int ret = at_npu::native::AclProfilingMarkEx(message, strlen(message), stream);
     }
-    return markRet;
 }
 
 void Mark(const char *message)
 {
-    if (!ProfilerMgr::GetInstance()->GetNpuTrace().load()) {
-        return;
-    }
-    if (!ProfilerMgr::GetInstance()->GetMsprofTx().load()) {
+    if (!mstxEnable()) {
         return;
     }
     RECORD_FUNCTION("mark_op", std::vector<c10::IValue>({}));
     c10::DeviceIndex device_id = -1;
     aclrtStream stream = c10_npu::getCurrentNPUStreamNoWait(device_id);
-    auto mark_call = [message, stream]() -> int {
-        return profMark(message, stream);
+    auto mark_call = [msg_ptr = std::make_shared<std::string>(message), stream]() -> int {
+        (void)profMark(msg_ptr->c_str(), stream);
+        return 0;
     };
     at_npu::native::OpCommand cmd;
     cmd.Name("mstx_mark_op");
