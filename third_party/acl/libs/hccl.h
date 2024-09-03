@@ -93,6 +93,9 @@ hcclResult_t HcclReduceScatter(void *sendBuf, void *recvBuf, u64 recvCount, Hccl
                                HcclReduceOp op, HcclComm comm, aclrtStream stream);
 hcclResult_t HcclCommInitRootInfo(u32 nRanks, const HcclRootInfo *rootInfo, u32 rank, HcclComm *comm);
 hcclResult_t HcclCommInitRootInfoConfig(u32 nRanks, const HcclRootInfo *rootInfo, u32 rank, HcclCommConfig* config, HcclComm *comm);
+hcclResult_t HcclCommInitClusterInfoConfig(const char *clusterInfo, u32 rank, HcclCommConfig *config, HcclComm *comm);
+hcclResult_t HcclCreateSubCommConfig(HcclComm *comm, u32 rankNum, u32 *rankIds, u64 subCommId, u32 subCommRankId,
+    HcclCommConfig *config, HcclComm *subComm);
 hcclResult_t HcclGetCommName(HcclComm commHandle, char* commName);
 hcclResult_t HcclAllGather(void *sendBuf, void *recvBuf, u64 sendCount, HcclDataType dataType, HcclComm comm,
                            aclrtStream stream);

@@ -236,6 +236,16 @@ std::string OptionsManager::GetPerfDumpPath()
     }
 }
 
+std::string OptionsManager::GetRankTableFilePath()
+{
+    char* rank_table_file = std::getenv("RANK_TABLE_FILE");
+    if (rank_table_file != nullptr) {
+        return std::string(rank_table_file);
+    } else {
+        return "";
+    }
+}
+
 uint32_t OptionsManager::GetSilenceCheckFlag()
 {
     const static uint32_t silence_check_flag = []() -> uint32_t {
