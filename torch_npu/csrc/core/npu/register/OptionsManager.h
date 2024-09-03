@@ -44,6 +44,7 @@ public:
     static bool CheckGeInitDisable();
     static bool CheckPerfDumpEnable();
     static std::string GetPerfDumpPath();
+    static std::string GetRankTableFilePath();
     static uint32_t GetSilenceCheckFlag();
     static std::pair<double, double> GetSilenceUpperThresh();
     static std::pair<double, double> GetSilenceSigmaThresh();
