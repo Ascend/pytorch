@@ -14,6 +14,10 @@ hcclResult_t HcclCommInitRootInfo(u32 nRanks, const HcclRootInfo *rootInfo,
                                   u32 rank, HcclComm *comm) {return HCCL_SUCCESS;}
 hcclResult_t HcclCommInitRootInfoConfig(u32 nRanks, const HcclRootInfo *rootInfo,
                                         u32 rank, HcclCommConfig config, HcclComm *comm) {return HCCL_SUCCESS;}
+hcclResult_t HcclCommInitClusterInfoConfig(const char *clusterInfo, u32 rank, HcclCommConfig *config,
+    HcclComm *comm) {return HCCL_SUCCESS;}
+hcclResult_t HcclCreateSubCommConfig(HcclComm *comm, u32 rankNum, u32 *rankIds, u64 subCommId, u32 subCommRankId,
+    HcclCommConfig *config, HcclComm *subComm) {return HCCL_SUCCESS;}
 hcclResult_t HcclGetCommName(HcclComm commHandle, char* commName) {return HCCL_SUCCESS;}
 
 hcclResult_t HcclAllGather(void *sendBuf, void *recvBuf, u64 sendCount, HcclDataType dataType,
