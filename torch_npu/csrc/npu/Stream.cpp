@@ -14,59 +14,65 @@
 
 PyObject *THNPStreamClass = nullptr;
 
-static PyObject* THNPStream_pynew(
-    PyTypeObject *type, PyObject *args, PyObject *kwargs) {
-  HANDLE_TH_ERRORS
+static PyObject *THNPStream_pynew(
+    PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    HANDLE_TH_ERRORS
 
-  int current_device;
-  NPU_CHECK_ERROR(c10_npu::GetDevice(&current_device));
+    int current_device;
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&current_device));
 
-  int priority = 0;
-  int64_t stream_id = 0;
-  int64_t device_index = 0;
-  int64_t device_type = 0;
-  uint64_t stream_ptr = 0;
+    int is_sync_launch = 0;
+    int priority = 0;
+    int64_t stream_id = 0;
+    int64_t device_index = 0;
+    int64_t device_type = 0;
+    uint64_t stream_ptr = 0;
 
-  // NOLINTNEXTLINE(modernize-avoid-c-arrays,cppcoreguidelines-avoid-c-arrays)
-  constexpr const char* kwlist[] = {
-      "priority",
-      "stream_id",
-      "device_index",
-      "device_type",
-      "stream_ptr",
-      nullptr};
-  if (!PyArg_ParseTupleAndKeywords(
-      args,
-      kwargs,
-      "|iLLLK",
-      const_cast<char**>(kwlist),
-      &priority,
-      &stream_id,
-      &device_index,
-      &device_type,
-      &stream_ptr)) {
-    return nullptr;
-  }
+    // NOLINTNEXTLINE(modernize-avoid-c-arrays,cppcoreguidelines-avoid-c-arrays)
+    constexpr const char *kwlist[] = {
+        "priority",
+        "is_sync_launch",
+        "stream_id",
+        "device_index",
+        "device_type",
+        "stream_ptr",
+        nullptr};
+    if (!PyArg_ParseTupleAndKeywords(
+        args,
+        kwargs,
+        "|iiLLLK",
+        const_cast<char **>(kwlist),
+        &priority,
+        &is_sync_launch,
+        &stream_id,
+        &device_index,
+        &device_type,
+        &stream_ptr)) {
+        return nullptr;
+    }
 
-  THPObjectPtr ptr(type->tp_alloc(type, 0));
-  if (!ptr) {
-    return nullptr;
-  }
+    THPObjectPtr ptr(type->tp_alloc(type, 0));
+    if (!ptr) {
+        return nullptr;
+    }
 
-  c10_npu::NPUStream stream =
-    (stream_id || device_index || device_type) ?
-    c10_npu::NPUStream::unpack3(
-        stream_id, device_index, static_cast<c10::DeviceType>(device_type)) :
-    c10_npu::getNPUStreamFromPool();
+    c10_npu::NPUStream stream =
+        (stream_id || device_index || device_type) ?
+        c10_npu::NPUStream::unpack3(
+            stream_id, device_index, static_cast<c10::DeviceType>(device_type)) :
+        c10_npu::getNPUStreamFromPool();
 
-  THNPStream* self = (THNPStream *)ptr.get();
-  self->stream_id = static_cast<int64_t>(stream.id());
-  self->device_index = static_cast<int64_t>(stream.device_index());
-  self->device_type = static_cast<int64_t>(stream.device_type());
-  new (&self->npu_stream) c10_npu::NPUStream(stream);
+    stream.setSyncLaunchStream(is_sync_launch);
 
-  return (PyObject *)ptr.release();
-  END_HANDLE_TH_ERRORS
+    THNPStream *self = (THNPStream *)ptr.get();
+    self->stream_id = static_cast<int64_t>(stream.id());
+    self->device_index = static_cast<int64_t>(stream.device_index());
+    self->device_type = static_cast<int64_t>(stream.device_type());
+    new (&self->npu_stream) c10_npu::NPUStream(stream);
+
+    return (PyObject *)ptr.release();
+    END_HANDLE_TH_ERRORS
 }
 
 static void THNPStream_dealloc(THNPStream *self) {
@@ -195,19 +201,18 @@ PyTypeObject THNPStreamType = {
   THNPStream_pynew,                      /* tp_new */
 };
 
-
 void THNPStream_init(PyObject *module)
 {
-  Py_INCREF(THPStreamClass);
-  THNPStreamType.tp_base = THPStreamClass;
-  THNPStreamClass = (PyObject*)&THNPStreamType;
-  if (PyType_Ready(&THNPStreamType) < 0) {
-    throw python_error();
-  }
-  Py_INCREF(&THNPStreamType);
-  if (PyModule_AddObject(module, "_NPUStreamBase", (PyObject *)&THNPStreamType) < 0) {
-    throw python_error();
-  }
+    Py_INCREF(THPStreamClass);
+    THNPStreamType.tp_base = THPStreamClass;
+    THNPStreamClass = (PyObject *)&THNPStreamType;
+    if (PyType_Ready(&THNPStreamType) < 0) {
+        throw python_error();
+    }
+    Py_INCREF(&THNPStreamType);
+    if (PyModule_AddObject(module, "_NPUStreamBase", (PyObject *)&THNPStreamType) < 0) {
+        throw python_error();
+    }
 }
 
 std::vector<c10::optional<c10_npu::NPUStream>> THNPUtils_PySequence_to_NPUStreamList(PyObject* obj)
