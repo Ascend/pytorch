@@ -3,18 +3,42 @@
 namespace torch_npu {
 namespace toolkit {
 namespace profiler {
+TensorMetadata::TensorMetadata(const at::Tensor &t)
+{
+    WeakTensor weak_t = WeakTensor(t);
+    impl_ = weak_t.get();
+    ptr_ = t.has_storage() ? t.storage().data() : nullptr;
+    device_type_ = static_cast<int>(t.device().type());
+    device_index_ = static_cast<int>(t.device().index());
+    dtype_ = std::string(scalarTypeToTypeMeta(t.scalar_type()).name());
+    dtype_size_ = static_cast<uint64_t>(c10::elementSize(t.scalar_type()));
+    auto tensor_sizes = t.sizes();
+    sizes_.assign(tensor_sizes.begin(), tensor_sizes.end());
+    if (t.layout() == at::kStrided) {
+        auto tensor_strides = t.strides();
+        strides_.assign(tensor_strides.begin(), tensor_strides.end());
+    }
+}
+
 std::vector<uint8_t> OpRangeData::encode()
 {
     std::vector<uint8_t> result;
     encodeFixedData<int64_t>({start_ns, end_ns, sequence_number}, result);
     encodeFixedData<uint64_t>({process_id, start_thread_id, end_thread_id, forward_thread_id}, result);
+    encodeFixedData<uint8_t>({scope}, result);
     result.push_back(is_async);
     encodeStrData(static_cast<uint16_t>(OpRangeDataType::NAME), name, result);
     if (!input_dtypes.empty()) {
         encodeStrArrayData(static_cast<uint16_t>(OpRangeDataType::INPUT_DTYPES), input_dtypes, result);
     }
     if (!input_shapes.empty()) {
-        encode2DIntegerMatrixDatas<int64_t>(static_cast<uint16_t>(OpRangeDataType::INPUT_SHAPE), input_shapes, result);
+        encode2DIntegerMatrixDatas<int64_t>(static_cast<uint16_t>(OpRangeDataType::INPUT_SHAPES), input_shapes, result);
+    }
+    if (!input_tensors.empty()) {
+        encodeTensors(static_cast<uint16_t>(OpRangeDataType::INPUT_TENSORS), input_tensors, result);
+    }
+    if (!input_scalars.empty()) {
+        encodeStrArrayData(static_cast<uint16_t>(OpRangeDataType::INPUT_SCALARS), input_scalars, result);
     }
     if (!stack.empty()) {
         encodeStrArrayData(static_cast<uint16_t>(OpRangeDataType::STACK), stack, result);
@@ -65,8 +89,8 @@ std::vector<uint8_t> MemoryData::encode()
     encodeFixedData<int64_t>({ptr, time_ns, alloc_size, total_allocated,
                               total_reserved, total_active, stream_ptr},
                              result);
-    encodeFixedData<int8_t>({device_type}, result);
-    encodeFixedData<uint8_t>({device_index, data_type, allocator_type}, result);
+    encodeFixedData<int8_t>({device_type, device_index}, result);
+    encodeFixedData<uint8_t>({data_type, allocator_type}, result);
     encodeFixedData<uint64_t>({thread_id, process_id}, result);
 
     std::vector<uint8_t> resultTLV;
