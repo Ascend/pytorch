@@ -40,10 +40,9 @@ class TestSparseCoo(TestCase):
         sparse_coo_npu_neg = sparse_coo_npu.neg()
         self.assertRtolEqual(sparse_coo_cpu_neg._values(), sparse_coo_npu_neg._values())
 
-    @unittest.skip("skip test_sparse_coo_copy_ now")
     def test_sparse_coo_copy_(self):
         sparse_coo_npu, _ = self._create_sparse_coo_tensor()
-        copy_sparse_tensor = torch.rand(sparse_coo_npu.shape).to_sparse().npu().to(sparse_coo_npu.dtype)
+        copy_sparse_tensor = torch.rand(sparse_coo_npu.shape).to(sparse_coo_npu.dtype).to_sparse().npu()
         copy_sparse_tensor.copy_(sparse_coo_npu)
         self.assertRtolEqual(copy_sparse_tensor._values(), sparse_coo_npu._values())
         self.assertRtolEqual(copy_sparse_tensor._indices(), sparse_coo_npu._indices())
