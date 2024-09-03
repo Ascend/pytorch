@@ -39,6 +39,29 @@ bool isFileExists(const std::string& path)
     }
 }
 
+bool checkFilePathReadable(const std::string& file)
+{
+    std::filesystem::path filePath(file);
+
+    if (!std::filesystem::exists(filePath)) {
+        return false;
+    }
+
+    if (std::filesystem::is_symlink(filePath)) {
+        return false;
+    }
+
+    if (!std::filesystem::is_regular_file(filePath)) {
+        return false;
+    }
+
+    std::filesystem::perms perms = std::filesystem::status(filePath).permissions();
+    if ((perms & std::filesystem::perms::owner_read) == std::filesystem::perms::owner_read) {
+        return true;
+    }
+    return false;
+}
+
 // HCCL DataType mapping
 std::map<at::ScalarType, HcclDataType> kScalarTypeToHcclDataType = {
     {at::kByte, HCCL_DATA_TYPE_UINT8},

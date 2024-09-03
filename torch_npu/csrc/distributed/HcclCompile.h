@@ -19,6 +19,8 @@ LOAD_FUNCTION(HcclBatchSendRecv)
 LOAD_FUNCTION(HcclAlltoAll)
 LOAD_FUNCTION(HcclCommInitRootInfoConfig)
 LOAD_FUNCTION(HcclGetCommConfigCapability)
+LOAD_FUNCTION(HcclCommInitClusterInfoConfig)
+LOAD_FUNCTION(HcclCreateSubCommConfig)
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
@@ -140,5 +142,48 @@ bool isHcclFeatureSupported(HcclCommConfigCapability configParameter)
         return false;
     }
     return configParameter < func();
+}
+
+bool hcclCommInitClusterInfoConfigExist()
+{
+    const static bool isClusterInitExist = []() -> bool {
+        auto func = GET_FUNC(HcclCommInitClusterInfoConfig)
+        return func != nullptr;
+    }();
+    return isClusterInitExist;
+}
+
+HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_t rank, HcclCommConfig *config, HcclComm *comm)
+{
+    typedef HcclResult(*HcclCommInitClusterInfoConfigFunc)(const char *, uint32_t, HcclCommConfig *, HcclComm *);
+    static HcclCommInitClusterInfoConfigFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommInitClusterInfoConfigFunc)GET_FUNC(HcclCommInitClusterInfoConfig)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommInitClusterInfoConfig", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(clusterInfo, rank, config, comm);
+    return ret;
+}
+
+bool hcclCreateSubCommConfigExist()
+{
+    const static bool isCreateSubCommExist = []() -> bool {
+        auto func = GET_FUNC(HcclCreateSubCommConfig)
+        return func != nullptr;
+    }();
+    return isCreateSubCommExist;
+}
+
+HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *rankIds, uint64_t subCommId, uint32_t subCommRankId,
+    HcclCommConfig* config, HcclComm *subComm)
+{
+    typedef HcclResult(*HcclCreateSubCommConfigFunc)(HcclComm *, uint32_t, uint32_t *, uint64_t, uint32_t, HcclCommConfig *, HcclComm *);
+    static HcclCreateSubCommConfigFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCreateSubCommConfigFunc)GET_FUNC(HcclCreateSubCommConfig)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCreateSubCommConfig", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(comm, rankNum, rankIds, subCommId, subCommRankId, config, subComm);
+    return ret;
 }
 } // namespace c10d_npu
