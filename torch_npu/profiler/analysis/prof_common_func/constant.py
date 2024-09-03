@@ -52,8 +52,8 @@ class Constant(object):
     GC_RECORD_FORMAT = "<3Q"
 
     # field name
-    SEQUENCE_UNMBER = "Sequence number"
-    FORWORD_THREAD_ID = "Fwd thread id"
+    SEQUENCE_NUMBER = "Sequence number"
+    FORWARD_THREAD_ID = "Fwd thread id"
     OP_NAME = "op_name"
     INPUT_SHAPES = "Input Dims"
     INPUT_DTYPES = "Input type"

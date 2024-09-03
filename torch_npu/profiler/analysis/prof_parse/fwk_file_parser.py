@@ -247,7 +247,7 @@ class FwkFileParser:
 
         for torch_op in torch_op_data:
             api = [torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), [], torch_op.name,
-                   torch_op.args.get(Constant.SEQUENCE_UNMBER, -1), torch_op.args.get(Constant.FORWORD_THREAD_ID),
+                   torch_op.args.get(Constant.SEQUENCE_NUMBER, -1), torch_op.args.get(Constant.FORWARD_THREAD_ID),
                    torch_op.args.get(Constant.INPUT_SHAPES), torch_op.args.get(Constant.INPUT_DTYPES), torch_op.call_stack]
             if torch_op.name == "mstx_mark_op":
                 mstx_mark_apis.append(api)

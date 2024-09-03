@@ -100,7 +100,7 @@ enum class OpRangeDataType {
   IS_ASYNC = 2,
   NAME = 3,
   INPUT_DTYPES = 4,
-  INPUT_SHAPE = 5,
+  INPUT_SHAPES = 5,
   STACK = 6,
   MODULE_HIERARCHY = 7,
   EXTRA_ARGS = 8,
@@ -186,7 +186,7 @@ struct MemoryData : BaseReportData {
     int64_t total_active{0};
     int64_t stream_ptr{0};
     int8_t device_type{0};
-    uint8_t device_index{0};
+    int8_t device_index{0};
     uint8_t data_type{0};
     uint64_t thread_id{0};
     uint64_t process_id{0};
@@ -199,7 +199,7 @@ struct MemoryData : BaseReportData {
         int64_t total_active,
         int64_t stream_ptr,
         int8_t device_type,
-        uint8_t device_index,
+        int8_t device_index,
         uint8_t data_type,
         uint64_t thread_id,
         uint64_t process_id)

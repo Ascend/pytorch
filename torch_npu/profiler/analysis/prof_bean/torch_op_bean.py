@@ -23,19 +23,19 @@ from ..prof_common_func.constant import Constant
 class TorchOpEnum(Enum):
     START_NS = 0
     END_NS = 1
-    SEQUENCE_UNMBER = 2
+    SEQUENCE_NUMBER = 2
     PROCESS_ID = 3
     START_THREAD_ID = 4
     END_THREAD_ID = 5
-    FORWORD_THREAD_ID = 6
+    FORWARD_THREAD_ID = 6
     IS_ASYNC = 7
 
 
 class TorchOpBean:
     TLV_TYPE_DICT = {
         Constant.OP_NAME: 3,
-        Constant.INPUT_SHAPES: 5,
         Constant.INPUT_DTYPES: 4,
+        Constant.INPUT_SHAPES: 5,
         Constant.CALL_STACK: 6,
         Constant.MODULE_HIERARCHY: 7,
         Constant.FLOPS: 8
@@ -104,9 +104,9 @@ class TorchOpBean:
 
     def get_args(self) -> dict:
         args = {
-            Constant.SEQUENCE_UNMBER: int(self._constant_data[TorchOpEnum.SEQUENCE_UNMBER.value]),
-            Constant.FORWORD_THREAD_ID: int(
-                self._constant_data[TorchOpEnum.FORWORD_THREAD_ID.value])}
+            Constant.SEQUENCE_NUMBER: int(self._constant_data[TorchOpEnum.SEQUENCE_NUMBER.value]),
+            Constant.FORWARD_THREAD_ID: int(
+                self._constant_data[TorchOpEnum.FORWARD_THREAD_ID.value])}
         for type_name, type_id in self.TLV_TYPE_DICT.items():
             if type_name == Constant.OP_NAME:
                 continue

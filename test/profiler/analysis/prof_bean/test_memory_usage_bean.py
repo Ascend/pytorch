@@ -25,13 +25,13 @@ class TestMemoryUsageBean(TestCase):
         total_active = random.randint(0, 2**63 - 1)
         device_type = random.choice([0, 9])
         data_type = random.choice([0, 9])
-        device_index = random.randint(0, 2**8 - 1)
+        device_index = random.randint(-2**7, 2**7 - 1)
         stream_ptr = random.randint(0, 2**63 - 1)
         thread_id = random.randint(0, 2**64 - 1)
         process_id = random.randint(0, 2**64 - 1)
         sample = {
             Constant.CONSTANT_BYTES: struct.pack(
-                "<7qb2B2Q", ptr, time_ns, alloc_size, total_alloc, total_reserve, total_active, stream_ptr, device_type,
+                "<7q2bB2Q", ptr, time_ns, alloc_size, total_alloc, total_reserve, total_active, stream_ptr, device_type,
                 device_index, data_type, thread_id, process_id),
             "ptr": ptr, "time_ns": time_ns, "alloc_size": alloc_size / Constant.B_TO_KB, "alloc_size_for_db": alloc_size,
             "total_alloc": total_alloc / Constant.B_TO_MB, "total_alloc_for_db": total_alloc,

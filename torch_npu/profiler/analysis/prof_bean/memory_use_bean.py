@@ -38,7 +38,7 @@ class MemoryEnum(Enum):
 
 
 class MemoryUseBean(CommonBean):
-    CONSTANT_STRUCT = "<7qb2B2Q"
+    CONSTANT_STRUCT = "<7q2bB2Q"
     NPU_ID = 9
     CPU_ID = 0
 

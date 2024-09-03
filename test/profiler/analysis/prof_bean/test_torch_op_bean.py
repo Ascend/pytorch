@@ -33,7 +33,7 @@ class TestTorchOpBean(TestCase):
             "start_ns": start_ns, "end_ns": end_ns, "sequence_number": sequence_number,
             "process_id": process_id, "start_thread_id": start_thread_id, "end_thread_id": end_thread_id,
             "forward_thread_id": forward_thread_id, "is_async": is_async, "dur": end_ns - start_ns,
-            "args": {Constant.SEQUENCE_UNMBER: sequence_number, Constant.FORWORD_THREAD_ID: forward_thread_id}
+            "args": {Constant.SEQUENCE_NUMBER: sequence_number, Constant.FORWARD_THREAD_ID: forward_thread_id}
         }
 
         return sample

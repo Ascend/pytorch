@@ -14,7 +14,7 @@ std::vector<uint8_t> OpRangeData::encode()
         encodeStrArrayData(static_cast<uint16_t>(OpRangeDataType::INPUT_DTYPES), input_dtypes, result);
     }
     if (!input_shapes.empty()) {
-        encode2DIntegerMatrixDatas<int64_t>(static_cast<uint16_t>(OpRangeDataType::INPUT_SHAPE), input_shapes, result);
+        encode2DIntegerMatrixDatas<int64_t>(static_cast<uint16_t>(OpRangeDataType::INPUT_SHAPES), input_shapes, result);
     }
     if (!stack.empty()) {
         encodeStrArrayData(static_cast<uint16_t>(OpRangeDataType::STACK), stack, result);
@@ -64,8 +64,8 @@ std::vector<uint8_t> MemoryData::encode() {
     encodeFixedData<int64_t>({ptr, time_ns, alloc_size, total_allocated,
                               total_reserved, total_active, stream_ptr},
                              result);
-    encodeFixedData<int8_t>({device_type}, result);
-    encodeFixedData<uint8_t>({device_index, data_type}, result);
+    encodeFixedData<int8_t>({device_type, device_index}, result);
+    encodeFixedData<uint8_t>({data_type}, result);
     encodeFixedData<uint64_t>({thread_id, process_id}, result);
 
     std::vector<uint8_t> resultTLV;
