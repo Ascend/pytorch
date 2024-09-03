@@ -170,33 +170,35 @@ OpCommand& OpCommand::Output(
   return AddOutput(output, realType);
 }
 
-void OpCommand::Run() {
-  aclCmd->SetEnginePriority();
-  const string &op_name = aclCmd->GetName();
-  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
-  if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
-    RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
-    ExecuteParas execParams;
-    aclCmd->ExportParams(execParams);
-    c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
-    c10_npu::enCurrentNPUStream(&params);
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
-    aclCmd->releaseSource(false);
-  } else {
-    if (C10_UNLIKELY(trigger)) {
-        trigger->traceNpuAclStartExecution(op_name);
+void OpCommand::Run()
+{
+    aclCmd->SetEnginePriority();
+    const string &op_name = aclCmd->GetName();
+    const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
+    auto stream = c10_npu::getCurrentNPUStream();
+    if (!stream.isSyncLaunchStream() && c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
+        RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
+        at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
+        ExecuteParas execParams;
+        aclCmd->ExportParams(execParams);
+        c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
+        c10_npu::enCurrentNPUStream(&params);
+        at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
+        aclCmd->releaseSource(false);
+    } else {
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuAclStartExecution(op_name);
+        }
+        aclCmd->Run(sync, sync_index, outputTensor);
+        if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
+            Sync();
+        }
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuAclFinishExecution(op_name);
+        }
+        aclCmd->releaseSource();
     }
-    aclCmd->Run(sync, sync_index, outputTensor);
-    if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
-      Sync();
-    }
-    if (C10_UNLIKELY(trigger)) {
-        trigger->traceNpuAclFinishExecution(op_name);
-    }
-    aclCmd->releaseSource();
-  }
-  aclCmds->Pop();
+    aclCmds->Pop();
 }
 
 OpCommand& OpCommand::Sync(c10::SmallVector<int64_t, N> &index) {

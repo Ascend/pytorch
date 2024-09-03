@@ -31,7 +31,7 @@ __all__ = [
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
     "get_rng_state_all", "set_rng_state_all", "is_jit_compile_false",
-    "current_blas_handle", "config", "matmul", "conv", "mem_get_info", "is_bf16_supported",
+    "current_blas_handle", "config", "matmul", "conv", "mem_get_info", "is_bf16_supported", "SyncLaunchStream",
 ]
 
 from typing import Tuple
@@ -57,7 +57,7 @@ from .memory import (caching_allocator_alloc, caching_allocator_delete,
                      reset_max_memory_allocated, reset_max_memory_cached, memory_allocated,
                      max_memory_allocated, memory_reserved, max_memory_reserved,
                      memory_cached, max_memory_cached, memory_snapshot, memory_summary)
-from .streams import Stream, Event
+from .streams import Stream, Event, SyncLaunchStream
 from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, set_compile_mode, set_mm_bmm_format_nd, get_mm_bmm_format_nd,
                                    is_jit_compile_false)
