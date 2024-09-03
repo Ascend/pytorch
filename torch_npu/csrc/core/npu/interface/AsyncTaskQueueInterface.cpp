@@ -81,7 +81,8 @@ AsyncCopyTask::AsyncCopyTask(
 
 void AsyncCopyTask::LaunchCopyTask() {
   RECORD_FUNCTION(CopyParas::COPY_PARAS_MAP[copyParam_.kind], std::vector<c10::IValue>({}));
-    if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
+    auto cur_stream = c10_npu::getCurrentNPUStream();
+    if (!cur_stream.isSyncLaunchStream() && c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, CopyParas::COPY_PARAS_MAP[copyParam_.kind]);
 #endif
@@ -115,7 +116,7 @@ aclError LaunchAsyncCopyTask(
 
 void EventTask::LaunchRecordTask(c10_npu::NPUStream npuStream) {
     RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[RECORD_EVENT], std::vector<c10::IValue>({}));
-    if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
+    if (!npuStream.isSyncLaunchStream() && c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[RECORD_EVENT]);
 #endif
@@ -152,7 +153,7 @@ aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
 
 void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream) {
     RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[WAIT_EVENT], std::vector<c10::IValue>({}));
-    if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
+    if (!npuStream.isSyncLaunchStream() && c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[WAIT_EVENT]);
 #endif
@@ -187,7 +188,8 @@ aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
 
 void EventTask::LaunchLazyDestroyTask(c10::DeviceIndex device_index) {
     RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[LAZY_DESTROY_EVENT], std::vector<c10::IValue>({}));
-    if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
+    auto cur_stream = c10_npu::getCurrentNPUStream();
+    if (!cur_stream.isSyncLaunchStream() && c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[LAZY_DESTROY_EVENT]);
 #endif
