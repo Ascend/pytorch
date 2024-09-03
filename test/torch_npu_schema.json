@@ -4487,9 +4487,6 @@
   "func: _fused_moving_avg_obs_fq_helper": {
     "signature": "(Tensor self, Tensor observer_on, Tensor fake_quant_on, Tensor(a!) running_min, Tensor(b!) running_max, Tensor(c!) scale, Tensor(d!) zero_point, float averaging_const, int quant_min, int quant_max, int ch_axis, bool per_row_fake_quant=False, bool symmetric_quant=False) -> (Tensor output, Tensor mask)"
   },
-  "func: fft_rfft": {
-    "signature": "(Tensor self, int? n=None, int dim=-1, str? norm=None) -> Tensor"
-  },
   "func: fill_.Scalar": {
     "signature": "(Tensor(a!) self, Scalar value) -> Tensor(a!)"
   },
