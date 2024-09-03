@@ -45,6 +45,7 @@ struct LeakyStreamInternals {
     ::std::unique_ptr<NPUQueueBase> repo = nullptr;
     bool is_data_preprocess_stream = false;
     bool is_repo_stop = false;
+    bool is_sync_launch = false;
 };
 // Global stream state and constants
 static c10::DeviceIndex num_npus = -1;
@@ -284,7 +285,7 @@ aclrtStream NPUStream::stream() const
 {
     auto ptr = NPUStream_internals(getDefaultNPUStream());
     AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
-    if (ptr->repo->CheckInit()) {
+    if (!this->isSyncLaunchStream() && ptr->repo->CheckInit()) {
         NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
         if (ret != SUCCESS) {
             ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
@@ -512,6 +513,20 @@ bool NPUStream::getRepoStopFlag()
     auto ptr = NPUStream_internals(getCurrentNPUStream());
     AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
     return ptr->is_repo_stop;
+}
+
+void NPUStream::setSyncLaunchStream(bool is_sync_launch)
+{
+    auto ptr = NPUStream_internals(*this);
+    AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
+    ptr->is_sync_launch = is_sync_launch;
+}
+
+bool NPUStream::isSyncLaunchStream() const
+{
+    auto ptr = NPUStream_internals(*this);
+    AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
+    return ptr->is_sync_launch;
 }
 
 aclrtStream NPUStream::stream(const bool need_empty) const

@@ -107,7 +107,8 @@ __all__ = [
     "mem_efficient_sdp_enabled",
     "preferred_linalg_library",
     "sdp_kernel",
-    "mstx"
+    "mstx",
+    "SyncLaunchStream"
 ]
 
 from typing import Tuple, Union
@@ -129,7 +130,7 @@ from .utils import (synchronize, device_count, can_device_access_peer, set_devic
                     utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag, mem_get_info,
                     check_uce_in_memory, stress_detect)
 from ._recovery import restart_device, stop_device
-from .streams import Stream, Event
+from .streams import Stream, Event, SyncLaunchStream
 from .mstx import mstx
 from .npu_config import *  # noqa: F403
 from .autocast_utils import *  # noqa: F403
