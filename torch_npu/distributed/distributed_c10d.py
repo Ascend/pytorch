@@ -1,11 +1,15 @@
+from datetime import timedelta
+from typing import Optional
 import warnings
 import torch
 import torch.distributed as dist
+import torch.distributed.distributed_c10d as dist_c10d
 from torch.distributed.distributed_c10d import _get_default_group, get_group_rank, _check_single_tensor, \
     _check_tensor_list, _coalescing_manager, _ensure_all_tensors_same_dtype, get_rank, _rank_not_in_group, \
     _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size,\
     _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend,\
-    get_backend, GatherOptions, _update_default_pg, _world, _unregister_all_process_groups, _pg_map
+    get_backend, GatherOptions, _update_default_pg, _world, _unregister_all_process_groups, _pg_map,\
+    ProcessGroup, default_pg_timeout, _unregister_process_group
 
 __all__ = ["batch_isend_irecv", "gather", "gather_object", "is_hccl_available", "reinit_process_group"]
 
@@ -188,6 +192,75 @@ def is_hccl_available():
     return "hccl" in Backend.backend_list
 
 
+def _clear_pg_cache_in_torch(group: ProcessGroup):
+    if _world.pg_map.get(group) is not None:
+        del _world.pg_map[group]
+    if _world.pg_names.get(group) is not None:
+        del _world.pg_names[group]
+    if _world.pg_group_ranks.get(group) is not None:
+        del _world.pg_group_ranks[group]
+    if _world.pg_backend_config.get(group) is not None:
+        del _world.pg_backend_config[group]
+    if _world.pg_to_tag.get(group) is not None:
+        del _world.pg_to_tag[group]
+    tags_list = [key for key, value in _world.tags_to_pg.items() if group in value]
+    if len(tags_list) > 0:
+        for tag in tags_list:
+            del _world.tags_to_pg[tag]
+    if _world.pg_default_device.get(group) is not None:
+        del _world.pg_default_device[group]
+    _unregister_process_group(group.group_name)
+
+
+def _reinit_process_group(group: ProcessGroup):
+    # Prepare parameters
+    backend = dist_c10d.Backend(_world.pg_map[group][0])
+    init_method = dist_c10d._default_pg_init_method if dist_c10d._default_pg_init_method else "env://"
+    rank = group.rank()
+    world_size = dist_c10d._get_group_size(group)
+    device_id = None
+    pg_options = None
+    pg_tag = None
+    timeout = default_pg_timeout
+    group_name = _world.pg_names[group]
+    # clear processgroup and map cache
+    _world.default_pg = None
+    _clear_pg_cache_in_torch(group)
+    group._get_backend(torch.device('npu')).abort_hccl_comm("reinit")
+    group = None
+    # init store
+    rendezvous_iterator = dist_c10d.rendezvous(
+        init_method, rank, world_size, timeout=timeout
+    )
+    store, rank, world_size = next(rendezvous_iterator)
+    store.set_timeout(timeout)
+    store = dist_c10d.PrefixStore("default_pg", store)
+    if store.num_keys() > 0:
+        # "0" is a key for hccl masterID.
+        # We need to refresh this value in reinit process.
+        store.delete_key("0")
+    # new group
+    default_pg, _ = dist_c10d._new_process_group_helper(
+        world_size,
+        rank,
+        [],
+        backend,
+        store,
+        pg_options,
+        group_name,
+        timeout,
+        pg_tag,
+        device_id
+    )
+    # update info
+    dist_c10d._update_default_pg(default_pg)
+    _world.pg_group_ranks[dist_c10d.GroupMember.WORLD] = {i: i for i in range(dist_c10d.GroupMember.WORLD.size())}
+    dist_c10d._backend = _world.pg_map[dist_c10d.GroupMember.WORLD][0]
+    dist_c10d._default_pg_init_method = init_method
+    _world.pg_default_device[default_pg] = torch.device('npu')
+    group = default_pg
+
+
 def reinit_process_group(group=None, rebuild_link=True):
     if not rebuild_link:
         device_id = torch.npu.current_device()
@@ -195,6 +268,9 @@ def reinit_process_group(group=None, rebuild_link=True):
         for pg in _pg_map:
             if (npu_device in pg._device_types):
                 pg._get_backend(npu_device).resume_hccl_comm(device_id)
+    else:
+        group = _world.default_pg
+        _reinit_process_group(group)
 
 
 def _destructor_process_group():
