@@ -389,6 +389,7 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
       .def("get_hccl_comm", &::c10d_npu::ProcessGroupHCCL::getHcclComm)
       .def("_set_hccl_comm_name", &::c10d_npu::ProcessGroupHCCL::setHcclCommName)
       .def("resume_hccl_comm", &::c10d_npu::ProcessGroupHCCL::resumeHcclComm)
+      .def("abort_hccl_comm", &::c10d_npu::ProcessGroupHCCL::abort)
       .def("set_watchdog_status", &::c10d_npu::ProcessGroupHCCL::setWatchdogStatus)
       .def("clear_workmeta_list", &::c10d_npu::ProcessGroupHCCL::clearWorkMetaList)
       .def("get_hccl_comm_name",
