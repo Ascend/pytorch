@@ -18,6 +18,7 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
+#include "torch_npu/csrc/core/npu/NPURecovery.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "NPUBlockHandle.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -875,6 +876,10 @@ class DeviceCachingAllocator {
               bool found = false;
               for (const Block* const head_block : all_blocks) {
                   if (head_block->ptr <= addr && addr < head_block->ptr + head_block->size) {
+#ifndef BUILD_LIBTORCH
+                      const_cast<Block*>(head_block)->is_safe = false;
+                      c10_npu::set_npu_data_unsafe_flag(true);
+#endif
                       found = true;
                       break;
                   }
