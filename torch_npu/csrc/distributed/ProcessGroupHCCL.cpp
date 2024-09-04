@@ -1165,12 +1165,16 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
     std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
     std::vector<c10_npu::NPUStream> &streamVal)
 {
+    std::string rankTableFile = c10_npu::option::OptionsManager::GetRankTableFilePath();
+    if (rankTableFile.empty() || !checkFilePathReadable(rankTableFile)) {
+        ASCEND_LOGI("The rank_table_file is not available, switch to original interface.");
+        return false;
+    }
     c10_npu::OptionalNPUGuard npuGuard;
     // global process group
     if (options_->global_ranks_in_group.empty() && uid_ == 0) {
-        std::string rankTableFile = c10_npu::option::OptionsManager::GetRankTableFilePath();
-        if (!hcclCommInitClusterInfoConfigExist() || rankTableFile.empty() || !checkFilePathReadable(rankTableFile)) {
-            ASCEND_LOGI("The rank_table_file is not available or the hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
+        if (!hcclCommInitClusterInfoConfigExist()) {
+            ASCEND_LOGI("The hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
             return false;
         }
         auto startTime = std::chrono::steady_clock::now();
@@ -1206,9 +1210,8 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
     }
     if (global_hccl_comm_.expired()) {
         // only support create glabal process group by ranktable
-        std::string rankTableFile = c10_npu::option::OptionsManager::GetRankTableFilePath();
-        if (global_ == nullptr || !hcclCommInitClusterInfoConfigExist() || rankTableFile.empty() || !checkFilePathReadable(rankTableFile)) {
-            ASCEND_LOGI("The rank_table_file is not available or the hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
+        if (global_ == nullptr || !hcclCommInitClusterInfoConfigExist()) {
+            ASCEND_LOGI("The hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
             return false;
         }
         try {
