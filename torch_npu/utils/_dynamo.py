@@ -15,17 +15,14 @@ from torch._dynamo.variables.misc import SkipFilesVariable
 from torch._dynamo.variables.constant import ConstantVariable
 from torch._dynamo.variables.tensor import TensorVariable
 from torch._dynamo.variables.lists import TupleVariable
-from torch._inductor.graph import GraphLowering
-from torch._inductor.codegen.common import get_wrapper_codegen_for_device
 from torch._C import DispatchKey
 from torch._prims.rng_prims import run_and_save_rng_state, run_with_rng_state
 from torch._subclasses.fake_tensor import FakeTensorMode
 from torch._functorch import partitioners
 from torch._dynamo import optimize
-from torch import _TorchCompileWrapper
+from torch import _TorchCompileWrapper, _TorchCompileInductorWrapper
 import torch_npu
 from torch_npu.dynamo import _get_global_npu_backend
-from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 def get_device_npu(args, kwargs):
@@ -398,6 +395,10 @@ def patch_dynamo_optimize():
         elif isinstance(backend, _TorchCompileWrapper):
             backend_name = backend.compiler_name
 
+        if isinstance(backend, _TorchCompileInductorWrapper) or \
+            backend_name == 'inductor':
+            patch_inductor_wrapper()
+
         if backend_name == 'npu':
             # Init torchair ahead of running model.
             _get_global_npu_backend()
@@ -406,6 +407,13 @@ def patch_dynamo_optimize():
 
 
 def patch_inductor_wrapper():
+    from torch._inductor.graph import GraphLowering
+    from torch._inductor.codegen.common import get_wrapper_codegen_for_device
+    from torch_npu.utils._error_code import ErrCode, pta_error
+
+    if hasattr(GraphLowering, 'src_init_wrapper_code'):
+        return
+
     src_init_wrapper_code = GraphLowering.init_wrapper_code
 
     def _check_wrapper_exist(self):
@@ -423,6 +431,7 @@ def patch_inductor_wrapper():
         _check_wrapper_exist(self)
         return src_init_wrapper_code(self)
 
+    GraphLowering.src_init_wrapper_code = src_init_wrapper_code
     GraphLowering.init_wrapper_code = new_init_wrapper_code
 
 
@@ -436,4 +445,3 @@ def add_dynamo_methods():
     patch_higher_order_ops()
     patch_functionalize_rng_ops()
     patch_dynamo_optimize()
-    patch_inductor_wrapper()
