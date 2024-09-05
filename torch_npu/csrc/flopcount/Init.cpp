@@ -1,3 +1,4 @@
+#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/flopcount/Init.h"
 
 #include <pybind11/chrono.h>
@@ -53,3 +54,4 @@ PyMethodDef* flops_count_functions()
 
 }
 }
+#endif
