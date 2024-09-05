@@ -67,7 +67,7 @@ public:
   virtual void ChangeStatus(RepoStatus expected, RepoStatus desired) = 0;
   virtual void Enqueue(void* cur_paras) = 0;
   virtual void Dequeue() = 0;
-  virtual NPUStatus MakeSureQueueEmpty() = 0;
+  virtual NPUStatus MakeSureQueueEmpty(bool check_error = true) = 0;
   virtual void InitRepo(c10::DeviceIndex device_id) = 0;
   virtual bool CheckInit() const = 0;
   virtual std::string GetPara() = 0;
@@ -89,7 +89,7 @@ public:
   void ChangeStatus(RepoStatus expected, RepoStatus desired) override;
   void Enqueue(void* cur_paras) override;
   void Dequeue() override;
-  NPUStatus MakeSureQueueEmpty() override;
+  NPUStatus MakeSureQueueEmpty(bool check_error = true) override;
   void InitRepo(c10::DeviceIndex device_id) override;
   bool CheckInit() const override;
   std::string GetPara() override;
