@@ -96,19 +96,19 @@
     "signature": "(self, x)"
   },
   "torch_npu.contrib.MultiheadAttention.forward": {
-    "signature": "(self, query, key: Union[torch.Tensor, NoneType], value: Union[torch.Tensor, NoneType], bsz, tgt_len, s_len, key_padding_mask: Union[torch.Tensor, NoneType] = None, incremental_state: Union[Dict[str, Dict[str, Union[torch.Tensor, NoneType]]], NoneType] = None, need_weights: bool = True, static_kv: bool = False, attn_mask: Union[torch.Tensor, NoneType] = None, before_softmax: bool = False, need_head_weights: bool = False) -> Tuple[torch.Tensor, Union[torch.Tensor, NoneType]]"
+    "signature": "(self, query, key: Optional[torch.Tensor], value: Optional[torch.Tensor], bsz, tgt_len, s_len, key_padding_mask: Optional[torch.Tensor] = None, incremental_state: Optional[Dict[str, Dict[str, Optional[torch.Tensor]]]] = None, need_weights: bool = True, static_kv: bool = False, attn_mask: Optional[torch.Tensor] = None, before_softmax: bool = False, need_head_weights: bool = False) -> Tuple[torch.Tensor, Optional[torch.Tensor]]"
   },
   "torch_npu.contrib.MultiheadAttention.multi_attn": {
     "signature": "(self, query, key, value, key_padding_mask, bsz, tgt_len)"
   },
   "torch_npu.contrib.MultiheadAttention._append_prev_key_padding_mask": {
-    "signature": "(key_padding_mask: Union[torch.Tensor, NoneType], prev_key_padding_mask: Union[torch.Tensor, NoneType], batch_size: int, src_len: int, static_kv: bool) -> Union[torch.Tensor, NoneType]"
+    "signature": "(key_padding_mask: Optional[torch.Tensor], prev_key_padding_mask: Optional[torch.Tensor], batch_size: int, src_len: int, static_kv: bool) -> Optional[torch.Tensor]"
   },
   "torch_npu.contrib.MultiheadAttention._get_input_buffer": {
-    "signature": "(self, incremental_state: Union[Dict[str, Dict[str, Union[torch.Tensor, NoneType]]], NoneType]) -> Dict[str, Union[torch.Tensor, NoneType]]"
+    "signature": "(self, incremental_state: Optional[Dict[str, Dict[str, Optional[torch.Tensor]]]]) -> Dict[str, Optional[torch.Tensor]]"
   },
   "torch_npu.contrib.MultiheadAttention._set_input_buffer": {
-    "signature": "(self, incremental_state: Dict[str, Dict[str, Union[torch.Tensor, NoneType]]], buffer: Dict[str, Union[torch.Tensor, NoneType]])"
+    "signature": "(self, incremental_state: Dict[str, Dict[str, Optional[torch.Tensor]]], buffer: Dict[str, Optional[torch.Tensor]])"
   },
   "torch_npu.contrib.MultiheadAttention.apply_sparse_mask": {
     "signature": "(self, attn_weights, tgt_len: int, src_len: int, bsz: int)"
@@ -438,19 +438,19 @@
     "signature": "(self, x)"
   },
   "torch_npu.contrib.module.MultiheadAttention.forward": {
-    "signature": "(self, query, key: Union[torch.Tensor, NoneType], value: Union[torch.Tensor, NoneType], bsz, tgt_len, s_len, key_padding_mask: Union[torch.Tensor, NoneType] = None, incremental_state: Union[Dict[str, Dict[str, Union[torch.Tensor, NoneType]]], NoneType] = None, need_weights: bool = True, static_kv: bool = False, attn_mask: Union[torch.Tensor, NoneType] = None, before_softmax: bool = False, need_head_weights: bool = False) -> Tuple[torch.Tensor, Union[torch.Tensor, NoneType]]"
+    "signature": "(self, query, key: Optional[torch.Tensor], value: Optional[torch.Tensor], bsz, tgt_len, s_len, key_padding_mask: Optional[torch.Tensor] = None, incremental_state: Optional[Dict[str, Dict[str, Optional[torch.Tensor]]]] = None, need_weights: bool = True, static_kv: bool = False, attn_mask: Optional[torch.Tensor] = None, before_softmax: bool = False, need_head_weights: bool = False) -> Tuple[torch.Tensor, Optional[torch.Tensor]]"
   },
   "torch_npu.contrib.module.MultiheadAttention.multi_attn": {
     "signature": "(self, query, key, value, key_padding_mask, bsz, tgt_len)"
   },
   "torch_npu.contrib.module.MultiheadAttention._append_prev_key_padding_mask": {
-    "signature": "(key_padding_mask: Union[torch.Tensor, NoneType], prev_key_padding_mask: Union[torch.Tensor, NoneType], batch_size: int, src_len: int, static_kv: bool) -> Union[torch.Tensor, NoneType]"
+    "signature": "(key_padding_mask: Optional[torch.Tensor], prev_key_padding_mask: Optional[torch.Tensor], batch_size: int, src_len: int, static_kv: bool) -> Optional[torch.Tensor]"
   },
   "torch_npu.contrib.module.MultiheadAttention._get_input_buffer": {
-    "signature": "(self, incremental_state: Union[Dict[str, Dict[str, Union[torch.Tensor, NoneType]]], NoneType]) -> Dict[str, Union[torch.Tensor, NoneType]]"
+    "signature": "(self, incremental_state: Optional[Dict[str, Dict[str, Optional[torch.Tensor]]]]) -> Dict[str, Optional[torch.Tensor]]"
   },
   "torch_npu.contrib.module.MultiheadAttention._set_input_buffer": {
-    "signature": "(self, incremental_state: Dict[str, Dict[str, Union[torch.Tensor, NoneType]]], buffer: Dict[str, Union[torch.Tensor, NoneType]])"
+    "signature": "(self, incremental_state: Dict[str, Dict[str, Optional[torch.Tensor]]], buffer: Dict[str, Optional[torch.Tensor]])"
   },
   "torch_npu.contrib.module.MultiheadAttention.apply_sparse_mask": {
     "signature": "(self, attn_weights, tgt_len: int, src_len: int, bsz: int)"
@@ -564,7 +564,7 @@
     "signature": "(self, input1)"
   },
   "torch_npu.contrib.module.batchnorm_with_int32_count.FastSyncBatchNorm": {
-    "signature": "(num_features: int, eps: float = 1e-05, momentum: float = 0.1, affine: bool = True, track_running_stats: bool = True, process_group: Union[Any, NoneType] = None, device=None, dtype=None) -> None"
+    "signature": "(num_features: int, eps: float = 1e-05, momentum: float = 0.1, affine: bool = True, track_running_stats: bool = True, process_group: Optional[Any] = None, device=None, dtype=None) -> None"
   },
   "torch_npu.contrib.module.batchnorm_with_int32_count.FastSyncBatchNorm._check_input_dim": {
     "signature": "(self, input1)"
@@ -771,19 +771,19 @@
     "signature": "(self, x)"
   },
   "torch_npu.contrib.module.multihead_attention.MultiheadAttention.forward": {
-    "signature": "(self, query, key: Union[torch.Tensor, NoneType], value: Union[torch.Tensor, NoneType], bsz, tgt_len, s_len, key_padding_mask: Union[torch.Tensor, NoneType] = None, incremental_state: Union[Dict[str, Dict[str, Union[torch.Tensor, NoneType]]], NoneType] = None, need_weights: bool = True, static_kv: bool = False, attn_mask: Union[torch.Tensor, NoneType] = None, before_softmax: bool = False, need_head_weights: bool = False) -> Tuple[torch.Tensor, Union[torch.Tensor, NoneType]]"
+    "signature": "(self, query, key: Optional[torch.Tensor], value: Optional[torch.Tensor], bsz, tgt_len, s_len, key_padding_mask: Optional[torch.Tensor] = None, incremental_state: Optional[Dict[str, Dict[str, Optional[torch.Tensor]]]] = None, need_weights: bool = True, static_kv: bool = False, attn_mask: Optional[torch.Tensor] = None, before_softmax: bool = False, need_head_weights: bool = False) -> Tuple[torch.Tensor, Optional[torch.Tensor]]"
   },
   "torch_npu.contrib.module.multihead_attention.MultiheadAttention.multi_attn": {
     "signature": "(self, query, key, value, key_padding_mask, bsz, tgt_len)"
   },
   "torch_npu.contrib.module.multihead_attention.MultiheadAttention._append_prev_key_padding_mask": {
-    "signature": "(key_padding_mask: Union[torch.Tensor, NoneType], prev_key_padding_mask: Union[torch.Tensor, NoneType], batch_size: int, src_len: int, static_kv: bool) -> Union[torch.Tensor, NoneType]"
+    "signature": "(key_padding_mask: Optional[torch.Tensor], prev_key_padding_mask: Optional[torch.Tensor], batch_size: int, src_len: int, static_kv: bool) -> Optional[torch.Tensor]"
   },
   "torch_npu.contrib.module.multihead_attention.MultiheadAttention._get_input_buffer": {
-    "signature": "(self, incremental_state: Union[Dict[str, Dict[str, Union[torch.Tensor, NoneType]]], NoneType]) -> Dict[str, Union[torch.Tensor, NoneType]]"
+    "signature": "(self, incremental_state: Optional[Dict[str, Dict[str, Optional[torch.Tensor]]]]) -> Dict[str, Optional[torch.Tensor]]"
   },
   "torch_npu.contrib.module.multihead_attention.MultiheadAttention._set_input_buffer": {
-    "signature": "(self, incremental_state: Dict[str, Dict[str, Union[torch.Tensor, NoneType]]], buffer: Dict[str, Union[torch.Tensor, NoneType]])"
+    "signature": "(self, incremental_state: Dict[str, Dict[str, Optional[torch.Tensor]]], buffer: Dict[str, Optional[torch.Tensor]])"
   },
   "torch_npu.contrib.module.multihead_attention.MultiheadAttention.apply_sparse_mask": {
     "signature": "(self, attn_weights, tgt_len: int, src_len: int, bsz: int)"
@@ -864,7 +864,7 @@
     "signature": "(backend, *args, **kwargs)"
   },
   "torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions": {
-    "signature": "(*, num_worker_threads: int = 16, rpc_timeout: float = 60.0, init_method: str = 'env://', device_maps: Union[Dict[str, Dict[Union[int, str, torch.device], Union[int, str, torch.device]]], NoneType] = None, devices: Union[List[Union[int, str, torch.device]], NoneType] = None, _transports: Union[List, NoneType] = None, _channels: Union[List, NoneType] = None)"
+    "signature": "(*, num_worker_threads: int = 16, rpc_timeout: float = 60.0, init_method: str = 'env://', device_maps: Optional[Dict[str, Dict[Union[int, str, torch.device], Union[int, str, torch.device]]]] = None, devices: Optional[List[Union[int, str, torch.device]]] = None, _transports: Optional[List] = None, _channels: Optional[List] = None)"
   },
   "torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map": {
     "signature": "(self, to: str, device_map: Dict[Union[int, str, torch.device], Union[int, str, torch.device]])"
@@ -942,13 +942,13 @@
     "signature": "()"
   },
   "torch_npu.dynamo.torchair.ge.custom_op": {
-    "signature": "(op_type: str, *, inputs: Union[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]], NoneType], outputs: Union[List[Union[str, Tuple[str, int]]], NoneType], attrs: Union[Dict[str, ForwardRef('_Attr')], NoneType] = None, node_name: Union[str, NoneType] = None)"
+    "signature": "(op_type: str, *, inputs: Optional[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]]], outputs: Optional[List[Union[str, Tuple[str, int]]]], attrs: Optional[Dict[str, ForwardRef('_Attr')]] = None, node_name: Optional[str] = None)"
   },
   "torch_npu.dynamo.torchair.ge.ge_custom.custom_op": {
-    "signature": "(op_type: str, *, inputs: Union[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]], NoneType], outputs: Union[List[Union[str, Tuple[str, int]]], NoneType], attrs: Union[Dict[str, ForwardRef('_Attr')], NoneType] = None, node_name: Union[str, NoneType] = None)"
+    "signature": "(op_type: str, *, inputs: Optional[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]]], outputs: Optional[List[Union[str, Tuple[str, int]]]], attrs: Optional[Dict[str, ForwardRef('_Attr')]] = None, node_name: Optional[str] = None)"
   },
   "torch_npu.dynamo.torchair.inference.cache_compile": {
-    "signature": "(func, *, config: Union[torchair.configs.compiler_config.CompilerConfig, NoneType] = None, dynamic: bool = True, cache_dir: Union[str, NoneType] = None, global_rank: Union[int, NoneType] = None, tp_rank: Union[int, NoneType] = None, pp_rank: Union[int, NoneType] = None, **kwargs) -> Callable"
+    "signature": "(func, *, config: Optional[torchair.configs.compiler_config.CompilerConfig] = None, dynamic: bool = True, cache_dir: Optional[str] = None, global_rank: Optional[int] = None, tp_rank: Optional[int] = None, pp_rank: Optional[int] = None, **kwargs) -> Callable"
   },
   "torch_npu.dynamo.torchair.inference.readable_cache": {
     "signature": "(cache_bin, print_output=True, file=None)"
@@ -1338,7 +1338,7 @@
     "signature": "(self)"
   },
   "torch_npu.npu.amp.ShardedGradScaler": {
-    "signature": "(init_scale: float = 65536.0, backoff_factor: float = 0.5, growth_factor: float = 2.0, growth_interval: int = 2000, enabled: bool = True, process_group: Union[torch.distributed.distributed_c10d.ProcessGroup, NoneType] = None)"
+    "signature": "(init_scale: float = 65536.0, backoff_factor: float = 0.5, growth_factor: float = 2.0, growth_interval: int = 2000, enabled: bool = True, process_group: Optional[torch.distributed.distributed_c10d.ProcessGroup] = None)"
   },
   "torch_npu.npu.amp.ShardedGradScaler.scale": {
     "signature": "(self, outputs: Union[torch.Tensor, List[torch.Tensor]]) -> Union[torch.Tensor, List[torch.Tensor]]"
@@ -1353,7 +1353,7 @@
     "signature": "(self, optimizer: torch.optim.sgd.SGD) -> None"
   },
   "torch_npu.npu.amp.ShardedGradScaler.step": {
-    "signature": "(self, optimizer: torch.optim.sgd.SGD, *args, **kwargs) -> Union[float, NoneType]"
+    "signature": "(self, optimizer: torch.optim.sgd.SGD, *args, **kwargs) -> Optional[float]"
   },
   "torch_npu.npu.amp.ShardedGradScaler._amp_update_scale_cpu_": {
     "signature": "(self, found_inf) -> None"
@@ -1431,7 +1431,7 @@
     "signature": "(self)"
   },
   "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler": {
-    "signature": "(init_scale: float = 65536.0, backoff_factor: float = 0.5, growth_factor: float = 2.0, growth_interval: int = 2000, enabled: bool = True, process_group: Union[torch.distributed.distributed_c10d.ProcessGroup, NoneType] = None)"
+    "signature": "(init_scale: float = 65536.0, backoff_factor: float = 0.5, growth_factor: float = 2.0, growth_interval: int = 2000, enabled: bool = True, process_group: Optional[torch.distributed.distributed_c10d.ProcessGroup] = None)"
   },
   "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler.scale": {
     "signature": "(self, outputs: Union[torch.Tensor, List[torch.Tensor]]) -> Union[torch.Tensor, List[torch.Tensor]]"
@@ -1446,7 +1446,7 @@
     "signature": "(self, optimizer: torch.optim.sgd.SGD) -> None"
   },
   "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler.step": {
-    "signature": "(self, optimizer: torch.optim.sgd.SGD, *args, **kwargs) -> Union[float, NoneType]"
+    "signature": "(self, optimizer: torch.optim.sgd.SGD, *args, **kwargs) -> Optional[float]"
   },
   "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler._amp_update_scale_cpu_": {
     "signature": "(self, found_inf) -> None"
@@ -2196,7 +2196,7 @@
     "signature": "(self)"
   },
   "torch_npu.profiler.profile": {
-    "signature": "(*, activities: Union[Iterable[torch_npu._C._profiler.ProfilerActivity], NoneType] = None, schedule: Union[Callable[[int], torch_npu.profiler.scheduler.ProfilerAction], NoneType] = None, on_trace_ready: Union[Callable[..., Any], NoneType] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Union[torch_npu.profiler.experimental_config._ExperimentalConfig, NoneType] = None, use_cuda: Union[bool, NoneType] = None)"
+    "signature": "(*, activities: Optional[Iterable[torch_npu._C._profiler.ProfilerActivity]] = None, schedule: Optional[Callable[[int], torch_npu.profiler.scheduler.ProfilerAction]] = None, on_trace_ready: Optional[Callable[..., Any]] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Optional[torch_npu.profiler.experimental_config._ExperimentalConfig] = None, use_cuda: Optional[bool] = None)"
   },
   "torch_npu.profiler.profile.start": {
     "signature": "(self)"
@@ -2262,7 +2262,7 @@
     "signature": "(profiler_path: str, max_process_number: int = 36)"
   },
   "torch_npu.profiler.profiler.profile": {
-    "signature": "(*, activities: Union[Iterable[torch_npu._C._profiler.ProfilerActivity], NoneType] = None, schedule: Union[Callable[[int], torch_npu.profiler.scheduler.ProfilerAction], NoneType] = None, on_trace_ready: Union[Callable[..., Any], NoneType] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Union[torch_npu.profiler.experimental_config._ExperimentalConfig, NoneType] = None, use_cuda: Union[bool, NoneType] = None)"
+    "signature": "(*, activities: Optional[Iterable[torch_npu._C._profiler.ProfilerActivity]] = None, schedule: Optional[Callable[[int], torch_npu.profiler.scheduler.ProfilerAction]] = None, on_trace_ready: Optional[Callable[..., Any]] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Optional[torch_npu.profiler.experimental_config._ExperimentalConfig] = None, use_cuda: Optional[bool] = None)"
   },
   "torch_npu.profiler.profiler.profile.start": {
     "signature": "(self)"
@@ -2574,7 +2574,7 @@
     "signature": "(cls)"
   },
   "torch_npu.utils.serialization.load": {
-    "signature": "(f: Union[str, os.PathLike, BinaryIO, IO[bytes]], map_location: Union[Callable[[torch.types.Storage, str], torch.types.Storage], torch.device, str, Dict[str, str], NoneType] = None, pickle_module: Any = None, *, weights_only: bool = False, mmap: Union[bool, NoneType] = None, **pickle_load_args: Any) -> Any"
+    "signature": "(f: Union[str, os.PathLike, BinaryIO, IO[bytes]], map_location: Union[Callable[[torch.types.Storage, str], torch.types.Storage], torch.device, str, Dict[str, str], NoneType] = None, pickle_module: Any = None, *, weights_only: bool = False, mmap: Optional[bool] = None, **pickle_load_args: Any) -> Any"
   },
   "torch_npu.utils.serialization.save": {
     "signature": "(obj: object, f: Union[str, os.PathLike, BinaryIO, IO[bytes]], pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False) -> None"

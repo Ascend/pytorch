@@ -17,6 +17,7 @@ from torch._utils_internal import get_file_path_2
 import torch_npu
 import torch_npu.testing
 
+
 temp_filter = {
     "torch_npu.contrib.FastBatchNorm1d",
     "torch_npu.contrib.FastBatchNorm2d",
@@ -546,6 +547,7 @@ class TestPublicBindings(TestCase):
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_allreduce",
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_alltoall",
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_broadcast",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_ir_by_protoc_3_13_pb2",
             "torch_npu.utils.collect_hccl_info",
 
         }
@@ -601,7 +603,6 @@ class TestPublicBindings(TestCase):
                 continue
 
             errors.append(f"{mod} failed to import with error {excep_type}")
-
         self.assertEqual("", "\n".join(errors))
 
     # AttributeError: module 'torch.distributed' has no attribute '_shard'
