@@ -488,14 +488,10 @@ void ReleaseParamFunc(void *ptr)
 
 REGISTER_QUEUE_FUNC(AsncExecFunc, CopyFunc, ReleaseFunc, NewFunc, DeleteFunc, CopyReleaseParamFunc, ReleaseParamFunc)
 
-OpCommandImpls *OpCommandImpls::GetInstanceByTid(std::thread::id tid)
+OpCommandImpls *OpCommandImpls::GetInstance()
 {
-    if (opcommand_impls_map.find(tid) == opcommand_impls_map.end()) {
-        OpCommandImpls impl;
-        std::lock_guard<std::mutex> lock(map_mutex);
-        opcommand_impls_map[tid] = std::move(impl);
-    }
-    return &opcommand_impls_map[tid];
+    thread_local OpCommandImpls impl;
+    return &impl;
 }
 
 void OpCommandImpls::Push(OpCommandImpl *&ptr)

@@ -38,7 +38,7 @@ namespace native {
 
 OpCommand::OpCommand()
 {
-    aclCmds = OpCommandImpls::GetInstanceByTid(std::this_thread::get_id());
+    aclCmds = OpCommandImpls::GetInstance();
     aclCmds->Push(aclCmd);
     aclCmd->SetCustomHandler(nullptr);
 }
