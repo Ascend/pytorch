@@ -378,7 +378,7 @@ private:
 // the object is
 class OpCommandImpls {
 public:
-    static OpCommandImpls *GetInstanceByTid(std::thread::id tid);
+    static OpCommandImpls *GetInstance();
     void Push(OpCommandImpl *&ptr);
     void Pop();
 
@@ -389,8 +389,6 @@ private:
 
 void SetDeterministic();
 
-static std::unordered_map<std::thread::id, OpCommandImpls> opcommand_impls_map;
-static std::mutex map_mutex;
 static bool deterministicaclnn_oldstatus = false;
 
 } // namespace native
