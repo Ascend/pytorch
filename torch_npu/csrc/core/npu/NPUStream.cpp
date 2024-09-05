@@ -374,7 +374,7 @@ aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index)
     return ptr->stream;
 }
 
-NPUStatus emptyAllNPUStream()
+NPUStatus emptyAllNPUStream(bool check_error)
 {
     initNPUStreamsOnce();
     NPUStatus ret;
@@ -384,7 +384,7 @@ NPUStatus emptyAllNPUStream()
             continue;
         }
         if (default_streamsi.stream != nullptr && default_streamsi.repo->CheckInit()) {
-            ret = default_streamsi.repo->MakeSureQueueEmpty();
+            ret = default_streamsi.repo->MakeSureQueueEmpty(check_error);
             if (ret != SUCCESS) {
                 return ret;
             }
@@ -423,7 +423,7 @@ void setDefaultStreamsStatus(c10::DeviceIndex device_index, RepoStatus status)
 bool npuSynchronizeDevice(bool check_error)
 {
     if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
-        NPUStatus ret = c10_npu::emptyAllNPUStream();
+        NPUStatus ret = c10_npu::emptyAllNPUStream(check_error);
         if (ret != SUCCESS) {
             ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
         }
