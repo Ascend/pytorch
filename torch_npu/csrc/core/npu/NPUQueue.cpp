@@ -199,7 +199,8 @@ void Repository::ChangeStatus(RepoStatus expected, RepoStatus desired) {
   repo_status.compare_exchange_strong(expected, desired);
 }
 
-NPUStatus Repository::MakeSureQueueEmpty() {
+NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
+{
   if (initialized == false) {
     ASCEND_LOGE("Task queue is not initialized, shouldn't call MakeSureQueueEmpty(). !!");
     return FAILED;
@@ -248,7 +249,11 @@ NPUStatus Repository::MakeSureQueueEmpty() {
     if (GetStatus() == RepoStatus::STOP_EXIT) {
         ClearQueue();
         set_has_throw_error(true);
-        throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
+        if (check_error) {
+            throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
+        } else {
+            ASCEND_LOGE("FORCE STOP happend.");
+        }
     }
 
     if (GetStatus() == RepoStatus::ERROR_EXIT) {
@@ -263,15 +268,23 @@ NPUStatus Repository::MakeSureQueueEmpty() {
         if (call_ret == ACL_ERROR_RT_DEVICE_MTE_ERROR && checkUceErrAndRepair()) {
             set_has_throw_error(true);
             call_ret = 0;
-            throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
+            if (check_error) {
+                throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
+            } else {
+                ASCEND_LOGE("UCE ERROR happend.");
+            }
         }
 
-        throw std::runtime_error("The Inner error is reported as above. "
-                                 "The process exits for this inner error, and " + repo_error + ".\n" +
-                                 "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
-                                 "If you want to get the accurate stacktrace, "
-                                 "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." +
-                                 PTA_ERROR(ErrCode::ACL));
+        if (check_error) {
+            throw std::runtime_error("The Inner error is reported as above. "
+                                    "The process exits for this inner error, and " + repo_error + ".\n" +
+                                    "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
+                                    "If you want to get the accurate stacktrace, "
+                                    "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." +
+                                    PTA_ERROR(ErrCode::ACL));
+        } else {
+            ASCEND_LOGE("Inner error happend, detail: %s", repo_error);
+        }
     }
 
 #ifndef BUILD_LIBTORCH

@@ -132,7 +132,7 @@ NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
 
 aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index = -1);
 
-NPUStatus emptyAllNPUStream();
+NPUStatus emptyAllNPUStream(bool check_error = true);
 
 std::string getRepoInfo();
 

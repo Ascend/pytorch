@@ -353,7 +353,7 @@ PyObject* THNPModule_check_uce_in_memory_wrap(PyObject* self, PyObject* arg)
         // UCE error memory is not in PTA memory pool, return 1, can not recover from UCE error.
         return PyLong_FromLong(1);
     } else {
-        c10_npu::NPUCachingAllocator::emptyCache();
+        c10_npu::NPUCachingAllocator::emptyCache(false);
         if (!c10_npu::NPUCachingAllocator::checkUceInMemPool(device)) {
             // UCE error memory is temporary memory in PTA memory pool, return 2, perform step-level re-execution.
             return PyLong_FromLong(2);
