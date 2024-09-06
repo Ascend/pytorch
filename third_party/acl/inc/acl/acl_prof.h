@@ -34,7 +34,6 @@ extern "C" {
 #define ACL_PROF_RUNTIME_API            0x0100ULL
 #define ACL_PROF_TASK_TIME_L0           0x0800ULL
 #define ACL_PROF_TASK_MEMORY            0x1000ULL
-#define ACL_PROF_TASK_TIME_L2           0x2000ULL
 #define ACL_PROF_OP_ATTR                0x4000ULL
 /**
  * @deprecated please use aclprofGetOpTypeLen and aclprofGetOpTNameLen instead
