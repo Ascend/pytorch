@@ -17,8 +17,8 @@
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
-#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
+#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
 
