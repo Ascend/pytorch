@@ -138,6 +138,46 @@ std::vector<uint8_t> PythonTracerHashData::encode()
     }
     return result;
 }
+
+std::vector<uint8_t> ParamTensorData::encode()
+{
+    std::vector<uint8_t> result;
+    for (const auto& item : module_param_data) {
+        std::vector<uint8_t> item_data;
+        encodeFixedData<uint64_t>({item.first}, item_data);
+        encodeModuleParams(static_cast<uint16_t>(ParamTensorDataType::MODULE_PARAM), item.second, item_data);
+
+        std::vector<uint8_t> tlv_data;
+        uint16_t dataType = static_cast<uint16_t>(ParamTensorDataType::PARAM_TENSOR_DATA);
+        for (size_t i = 0; i < sizeof(uint16_t); ++i) {
+            tlv_data.push_back((dataType >> (i * 8)) & 0xff);
+        }
+        uint32_t length = item_data.size();
+        for (size_t i = 0; i < sizeof(uint32_t); ++i) {
+            tlv_data.push_back((length >> (i * 8)) & 0xff);
+        }
+        tlv_data.insert(tlv_data.end(), item_data.cbegin(), item_data.cend());
+        result.insert(result.end(), tlv_data.cbegin(), tlv_data.cend());
+    }
+    for (const auto& item : optimizer_param_data) {
+        std::vector<uint8_t> item_data;
+        encodeFixedData<uint64_t>({item.first}, item_data);
+        encodeOptimizerParams(static_cast<uint16_t>(ParamTensorDataType::OPTIMIZER_PARAM), item.second, item_data);
+
+        std::vector<uint8_t> tlv_data;
+        uint16_t dataType = static_cast<uint16_t>(ParamTensorDataType::PARAM_TENSOR_DATA);
+        for (size_t i = 0; i < sizeof(uint16_t); ++i) {
+            tlv_data.push_back((dataType >> (i * 8)) & 0xff);
+        }
+        uint32_t length = item_data.size();
+        for (size_t i = 0; i < sizeof(uint32_t); ++i) {
+            tlv_data.push_back((length >> (i * 8)) & 0xff);
+        }
+        tlv_data.insert(tlv_data.end(), item_data.cbegin(), item_data.cend());
+        result.insert(result.end(), tlv_data.cbegin(), tlv_data.cend());
+    }
+    return result;
+}
 } // profiler
 } // toolkit
 } // torch_npu
