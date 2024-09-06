@@ -17,9 +17,7 @@
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
-#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
-#endif
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 
 PyObject* module;
