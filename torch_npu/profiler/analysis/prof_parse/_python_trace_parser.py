@@ -23,8 +23,8 @@ class CallType(Enum):
 
 class PyTraceEvent:
 
-    def __init__(self, start_time, end_time, name, thread_id, process_id, 
-            self_id, parent_id, call_type, module_id, call_idx, return_idx):
+    def __init__(self, start_time, end_time, name, thread_id, process_id, self_id,
+                 parent_id, call_type, module_id, call_idx, return_idx, params):
         self._start_time = start_time
         self._end_time = end_time
         self._name = name
@@ -36,6 +36,7 @@ class PyTraceEvent:
         self._module_id = module_id # Only set call_type == CallType.kPyModuleCall
         self._call_idx = call_idx
         self._return_idx = return_idx
+        self._params = params       # Set when call_type in [kPyModuleCall, kPyOptimizerCall]
 
     @property
     def end_time(self):
@@ -93,11 +94,15 @@ class PyTraceEvent:
     @property
     def dur(self):
         return self._end_time - self._start_time
+    
+    @property
+    def params(self):
+        return self._params
 
 
 class ReplayFrame:
 
-    def __init__(self, call_bean, name, event_idx, call_type, module_id, cur_id, parent_id):
+    def __init__(self, call_bean, name, event_idx, call_type, module_id, cur_id, parent_id, params):
         self.trace_event = PyTraceEvent(
                         call_bean.start_ns, # start_time
                         -1,                 # end_time, place_holder
@@ -109,17 +114,20 @@ class ReplayFrame:
                         call_type,          # call_type
                         module_id,          # module_id
                         event_idx,          # call_idx
-                        0)                  # return_idx, place_hodler
+                        0,                  # return_idx, place_hodler
+                        params)             # module or optimizer parameters
         self.id = cur_id
         self.parent_id = parent_id
 
 
 class PythonTraceParser:
 
-    def __init__(self, hash_data: list, python_call_data: list):
+    def __init__(self, hash_data: list, python_call_data: list, param_data: list = None):
         self._hash_data = hash_data
         self._python_call_data = python_call_data
+        self._param_data = param_data
         self._hash_map = {}
+        self._param_map = {}
 
     def get_python_trace_data(self) -> list:
         self._gen_hash_map()
@@ -141,6 +149,11 @@ class PythonTraceParser:
             trace_api_data[i] = [event.ts, event.ts + event.dur, contact_2num(event.pid, event.tid), event.name]
         return trace_api_data
 
+    def get_pycall_data(self) -> list:
+        self._gen_hash_map()
+        self._gen_param_map()
+        return self._replay_stack()
+
     def _replay_stack(self) -> list:
         event_idx = 0
         max_call_end_time = 0
@@ -151,21 +164,22 @@ class PythonTraceParser:
         self._python_call_data.sort(key=lambda x: x.start_ns)
         for id_counter, call_bean in enumerate(self._python_call_data):
             name = str(self._hash_map.get(call_bean.key, call_bean.key))
+            params = self._param_map.get(call_bean.key)
             frame_parent_id = replay_stack[-1].id if len(replay_stack) > 0 else 0
             if call_bean.trace_tag == TraceTag.kPy_Call.value:
                 if MODULE_NAME_DELIMITER in name:
                     module_name, module_id = self.get_module_info_from_value(name, module_name_counter, module_uid_map)
                     replay_stack.append(ReplayFrame(
                         call_bean, module_name, event_idx, CallType.kPyModuleCall,
-                        module_id, id_counter, frame_parent_id))
+                        module_id, id_counter, frame_parent_id, params))
                 else:
                     replay_stack.append(ReplayFrame(
                         call_bean, name, event_idx, CallType.kPyCall,
-                        0, id_counter, frame_parent_id))
+                        0, id_counter, frame_parent_id, params))
             elif call_bean.trace_tag == TraceTag.kC_Call.value:
                 replay_stack.append(ReplayFrame(
                     call_bean, name, event_idx, CallType.kCCall,
-                    0, id_counter, frame_parent_id))
+                    0, id_counter, frame_parent_id, params))
             elif call_bean.trace_tag in (TraceTag.kPy_Return.value, TraceTag.kC_Return.value):
                 if len(replay_stack) > 0:
                     replay_stack[-1].trace_event.end_time = call_bean.start_ns
@@ -195,6 +209,10 @@ class PythonTraceParser:
     def _gen_hash_map(self):
         self._hash_map = {hash_bean.key: hash_bean.value for hash_bean in self._hash_data}
     
+    def _gen_param_map(self):
+        if self._param_data is not None:
+            self._param_map = {param_bean.key: param_bean.params for param_bean in self._param_data}
+
     @staticmethod
     def get_module_info_from_value(name: str, module_name_counter: dict, module_uid_map: dict):
         module_name, module_uid = name.split(MODULE_NAME_DELIMITER)

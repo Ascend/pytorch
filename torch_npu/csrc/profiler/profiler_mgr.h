@@ -38,6 +38,7 @@ public:
     void UploadWithLock(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
     void UploadTraceEventData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerFuncData> data);
     void UploadTraceHashData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerHashData> data);
+    void UploadParamData(std::unique_ptr<torch_npu::toolkit::profiler::ParamTensorData> data);
     int8_t GetTraceLevel();
     static ProfilerMgr *GetInstance();
     std::atomic<bool>& GetNpuTrace()

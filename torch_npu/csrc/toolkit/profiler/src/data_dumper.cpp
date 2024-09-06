@@ -189,6 +189,7 @@ void TraceDataDumper::Stop()
         FlushTraceData();
     }
     FlushHashData();
+    FlushParamData();
 }
 
 void TraceDataDumper::Run()
@@ -223,6 +224,14 @@ void TraceDataDumper::ReportHash(std::unique_ptr<PythonTracerHashData> data)
     trace_hash_data_ = std::move(data);
 }
 
+void TraceDataDumper::ReportParam(std::unique_ptr<ParamTensorData> data)
+{
+    if (C10_UNLIKELY(!start_.load() || data == nullptr)) {
+        return;
+    }
+    param_data_ = std::move(data);
+}
+
 void TraceDataDumper::CreateDumpDir()
 {
     static bool create_flag = true;
@@ -255,6 +264,19 @@ void TraceDataDumper::FlushHashData()
         Dump(trace_hash_data_->tag, encode_data);
     }
     trace_hash_data_ = nullptr;
+}
+
+void TraceDataDumper::FlushParamData()
+{
+    if (param_data_ == nullptr) {
+        return;
+    }
+    auto encode_data = param_data_->encode();
+    if (!encode_data.empty()) {
+        CreateDumpDir();
+        Dump(param_data_->tag, encode_data);
+    }
+    param_data_ = nullptr;
 }
 
 void TraceDataDumper::Dump(const std::string& file_name, const std::vector<uint8_t>& encode_data)

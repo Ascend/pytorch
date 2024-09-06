@@ -201,6 +201,11 @@ void ProfilerMgr::UploadTraceHashData(std::unique_ptr<torch_npu::toolkit::profil
     traceDataReceiver_.ReportHash(std::move(data));
 }
 
+void ProfilerMgr::UploadParamData(std::unique_ptr<torch_npu::toolkit::profiler::ParamTensorData> data)
+{
+    traceDataReceiver_.ReportParam(std::move(data));
+}
+
 uint64_t ProfilerMgr::CheckFeatureConfig(uint64_t datatype_config)
 {
     if (!FeatureMgr::GetInstance()->IsSupportFeature(FeatureType::FEATURE_ATTR)) {
