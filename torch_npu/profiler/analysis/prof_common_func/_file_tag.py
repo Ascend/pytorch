@@ -11,3 +11,4 @@ class FileTag(Enum):
     GC_RECORD = 6
     PYTHON_TRACER_FUNC = 7
     PYTHON_TRACER_HASH = 8
+    PARAM_TENSOR_INFO = 9

@@ -49,6 +49,7 @@ public:
     void UnInit();
     void Report(std::unique_ptr<PythonTracerFuncData> data);
     void ReportHash(std::unique_ptr<PythonTracerHashData> data);
+    void ReportParam(std::unique_ptr<ParamTensorData> data);
     void Start();
     void Stop();
 
@@ -56,6 +57,7 @@ private:
     void CreateDumpDir();
     void FlushTraceData();
     void FlushHashData();
+    void FlushParamData();
     void Dump(const std::string& file_name, const std::vector<uint8_t>& encode_data);
     void Run();
 
@@ -64,6 +66,7 @@ private:
     std::atomic<bool> start_;
     std::atomic<bool> init_;
     std::unique_ptr<PythonTracerHashData> trace_hash_data_{nullptr};
+    std::unique_ptr<ParamTensorData> param_data_{nullptr};
     RingBuffer<std::unique_ptr<PythonTracerFuncData>> trace_data_buf_;
     std::map<std::string, FILE*> fd_map_;
 };
