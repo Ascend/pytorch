@@ -31427,5 +31427,16 @@
   "test_profiler_experimental_tree_with_memory_and_stack (__main__.TestProfilerTree)": ["", [""]],
   "test_profiler_experimental_tree_with_stack_and_modules (__main__.TestProfilerTree)": ["", [""]],
   "test_profiler_experimental_tree_with_stack_and_torch_dispatch (__main__.TestProfilerTree)": ["", [""]],
-  "test_profiler_experimental_tree_with_stack_and_torch_function (__main__.TestProfilerTree)": ["", [""]]
+  "test_profiler_experimental_tree_with_stack_and_torch_function (__main__.TestProfilerTree)": ["", [""]],
+  "test_profiler_grad_not_set_to_none_pattern (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_optimizer_single_tensor_pattern (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_synchronized_dataloader_pattern (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_matmul_dim_fp16_pattern (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_extra_cuda_copy_pattern_benchmark (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_fp32_matmul_pattern (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_for_loop_indexing_pattern (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_extra_cuda_copy_pattern (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_name_pattern (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_conv2d_bias_followed_by_batchnorm2d_pattern (__main__.TestExperimentalUtils)": ["", [""]],
+  "test_profiler_pattern_matcher_json_report (__main__.TestExperimentalUtils)": ["", [""]]
 }

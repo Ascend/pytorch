@@ -13,11 +13,14 @@
 #include "torch_npu/csrc/profiler/utils.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
+#include "torch_npu/csrc/toolkit/profiler/inc/data_reporter.h"
 
 #include <c10/util/hash.h>
 #include <ATen/record_function.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/utils/pybind.h>
+#include <torch/csrc/autograd/python_variable.h>
+#include <torch/csrc/profiler/api.h>
 
 namespace torch_npu {
 namespace profiler {
@@ -27,6 +30,10 @@ const std::string EXIT_EVENT_DESC = "__torch_npu_profiler_python_tracer_exit";  
 const size_t EXIT_EVENT_HASH_ID = c10::get_hash(EXIT_EVENT_DESC);               // Special hash key for exit event
 const std::string MODULE_NAME_DELIMITER = "######";
 constexpr size_t TRACE_DUMP_THRESHOLD = 1024 * DEFAULT_BLOCK_SIZE;
+
+using TensorMetadata = torch_npu::toolkit::profiler::TensorMetadata;
+using ModuleParam = torch_npu::toolkit::profiler::ModuleParam;
+using OptimizerParam = torch_npu::toolkit::profiler::OptimizerParam;
 
 std::string trimPrefix(std::string s)
 {
@@ -157,13 +164,18 @@ private:
     void recordEvent(TraceTag tag, size_t hash_key);
     void reportTraceData();
     void reportHashData();
+    void reportParamData();
 
     bool active_{false};
+    bool record_params_{false};
     PyObject* module_call_code_{nullptr};
+    PyObject* optimizer_call_code_{nullptr};
     std::vector<TraceContext*> trace_contexts_;
     std::unordered_map<size_t, PyCallInfo> py_call_cache_;
     std::unordered_map<size_t, at::StringView> pyc_call_cache_;
     std::unordered_map<size_t, ModuleInfo> module_info_cache_;
+    std::vector<std::pair<size_t, std::vector<ModuleParam>>> module_param_cache_;
+    std::vector<std::pair<size_t, std::vector<OptimizerParam>>> optimizer_param_cache_;
     AppendOnlyList<TraceEvent> events_;
 };
 
@@ -179,6 +191,11 @@ PythonTracer::PythonTracer() : active_(false)
     module_call_code_ = py::module::import("torch.nn")
         .attr("Module")
         .attr("__call__")
+        .attr("__code__")
+        .ptr();
+    optimizer_call_code_ = py::module::import("torch.optim")
+        .attr("Optimizer")
+        .attr("_optimizer_step_code")
         .attr("__code__")
         .ptr();
 }
@@ -230,6 +247,13 @@ void PythonTracer::start(size_t max_threads)
     }
     PyThreadState_Swap(thread_states[0]);
     active_ = true;
+
+    auto config = torch::autograd::profiler::getProfilerConfig();
+    if (config.report_input_shapes
+        && (config.with_stack || config.with_modules)
+        && config.profile_memory) {
+        record_params_ = true;
+    }
 }
 
 void PythonTracer::stop()
@@ -247,6 +271,7 @@ void PythonTracer::stop()
     active_ = false;
     reportTraceData();
     reportHashData();
+    reportParamData();
 }
 
 void PythonTracer::clear()
@@ -259,6 +284,8 @@ void PythonTracer::clear()
     py_call_cache_.clear();
     pyc_call_cache_.clear();
     module_info_cache_.clear();
+    module_param_cache_.clear();
+    optimizer_param_cache_.clear();
     events_.clear();
 }
 
@@ -299,6 +326,20 @@ void PythonTracer::reportHashData()
     );
 }
 
+void PythonTracer::reportParamData()
+{
+    if (module_param_cache_.size() > 0 || optimizer_param_cache_.size() > 0) {
+        ProfilerMgr::GetInstance()->UploadParamData(
+            std::make_unique<torch_npu::toolkit::profiler::ParamTensorData>(
+                std::move(module_param_cache_),
+                std::move(optimizer_param_cache_)
+            )
+        );
+    }
+    module_param_cache_.clear();
+    optimizer_param_cache_.clear();
+}
+
 void PythonTracer::recordEvent(TraceTag tag, size_t hash_key)
 {
     events_.emplace_back(torch_npu::toolkit::profiler::Utils::GetClockTime(), hash_key, tag);
@@ -307,22 +348,108 @@ void PythonTracer::recordEvent(TraceTag tag, size_t hash_key)
     }
 }
 
+TensorMetadata toTensorMetadata(PyObject* self)
+{
+    if (!THPVariable_CheckExact(self)) {
+        TensorMetadata m;
+        return m;
+    }
+    const auto& t = THPVariable_Unpack(self);
+    TensorMetadata m{t};
+    return m;
+}
+
+c10::optional<TensorMetadata> recordIfTensor(py::handle p)
+{
+    return THPVariable_CheckExact(p.ptr())
+        ? c10::optional<TensorMetadata>(toTensorMetadata(p.ptr()))
+        : c10::nullopt;
+}
+
+std::vector<std::pair<std::string, TensorMetadata>> unpackTensorMap(const py::dict& tensor_map)
+{
+    std::vector<std::pair<std::string, TensorMetadata>> out;
+    for (auto& it : tensor_map) {
+        auto* value = it.second.ptr();
+        if (py::isinstance<py::str>(it.first) && THPVariable_CheckExact(value)) {
+            out.emplace_back(py::cast<std::string>(it.first), toTensorMetadata(value));
+        }
+    }
+    return out;
+}
+
+void parse_module_params(
+    std::vector<std::pair<size_t, std::vector<ModuleParam>>> &module_param_cache,
+    PyObject* cls,
+    size_t hash_id)
+{
+    std::vector<ModuleParam> module_params;
+    py::dict params = py::handle(cls).attr("_parameters");
+    for (auto& it : params) {
+        auto* p = it.second.ptr();
+        if (py::isinstance<py::str>(it.first) && THPVariable_CheckExact(p)) {
+            module_params.emplace_back(
+                ModuleParam{
+                    it.first.cast<std::string>(),
+                    toTensorMetadata(p),
+                    recordIfTensor(py::getattr(it.second, "grad", py::none()))});
+        }
+    }
+    if (module_params.size() > 0) {
+        module_param_cache.emplace_back(std::move(std::make_pair(hash_id, module_params)));
+    }
+}
+
+void parse_optimizer_params(
+    std::vector<std::pair<size_t, std::vector<OptimizerParam>>> &optimizer_param_cache,
+    PyObject* cls,
+    size_t hash_id)
+{
+    std::vector<OptimizerParam> optimizer_params;
+    const py::handle self{cls};
+    for (const auto& it : (py::list)self.attr("param_groups")) {
+        for (auto& param : py::cast<py::dict>(it).attr("get")("params")) {
+            if (THPVariable_CheckExact(param.ptr())) {
+                optimizer_params.emplace_back(
+                    OptimizerParam{
+                        toTensorMetadata(param.ptr()),
+                        recordIfTensor(py::getattr(param, "grad", py::none())),
+                        unpackTensorMap(py::cast<py::dict>(self.attr("state")).attr("get")(param, py::dict()))});
+            }
+        }
+    }
+    if (optimizer_params.size() > 0) {
+        optimizer_param_cache.emplace_back(std::move(std::make_pair(hash_id, optimizer_params)));
+    }
+}
+
 void PythonTracer::recordPyCall(TraceContext* ctx, PyFrameObject* frame)
 {
     auto call_info = PyCallInfo(frame);
     auto hash_id = call_info.get_hash_id();
+    auto f_code = PyFrame_GetCode_NPU(frame);
     if (py_call_cache_.find(hash_id) == py_call_cache_.end()) {
         py_call_cache_.insert({hash_id, call_info});
+
+        // check optim.Optimizer call
+        if (record_params_ && ((PyObject*)f_code.get() == optimizer_call_code_)) {
+            auto f_locals = PyFrame_GetLocals_NPU(frame);
+            auto optimizer_class = PyDict_GetItemString(f_locals, "self");
+            parse_optimizer_params(optimizer_param_cache_, (PyObject*)optimizer_class, hash_id);
+        }
     }
 
     // check nn.Module call
-    auto f_code = PyFrame_GetCode_NPU(frame);
     if ((PyObject*)f_code.get() == module_call_code_) {
         auto f_locals = PyFrame_GetLocals_NPU(frame);
         auto module_class = PyDict_GetItemString(f_locals, "self");
         hash_id = c10::get_hash(module_class);
         if (module_info_cache_.find(hash_id) == module_info_cache_.end()) {
             module_info_cache_.insert({hash_id, ModuleInfo(module_class)});
+
+            if (record_params_) {
+                parse_module_params(module_param_cache_, (PyObject*)module_class, hash_id);
+            }
         }
     }
     recordEvent(TraceTag::kPy_Call, hash_id);
