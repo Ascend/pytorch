@@ -1,7 +1,8 @@
-#ifndef BUILD_LIBTORCH
 #include <shared_mutex>
+#ifndef BUILD_LIBTORCH
 #include <torch/csrc/python_headers.h>
 #include <torch/csrc/utils/pybind.h>
+#endif
 
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -106,6 +107,7 @@ void check_and_update_npu_tensor_for_copy(const at::TensorList& dsts, const at::
     return;
 }
 
+#ifndef BUILD_LIBTORCH
 void bind_npu_recovery_functions(PyObject* module)
 {
     auto m = py::handle(module).cast<py::module>();
@@ -128,6 +130,6 @@ void bind_npu_recovery_functions(PyObject* module)
         return c10_npu::recovery_all_npu_streams(device);
     });
 }
+#endif
 
 }
-#endif
