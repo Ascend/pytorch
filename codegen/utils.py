@@ -335,7 +335,6 @@ torch_npu::profiler::NPURecordFunction guard;
                 unsafe_tensor_check = """// No data check."""
                 if len(candidate_tensor_args) > 0:
                     unsafe_tensor_check = """
-#ifndef BUILD_LIBTORCH
 if (c10_npu::get_npu_data_unsafe_flag()) {"""
 
                 if name in ["wrapper_NPU__copy_", "wrapper_NPU___foreach_copy_"]:
@@ -351,7 +350,7 @@ if (c10_npu::get_npu_data_unsafe_flag()) {"""
                 if len(candidate_tensor_args) > 0:
                     unsafe_tensor_check = unsafe_tensor_check + """
 }
-#endif"""
+"""
                 candidate_args = itertools.chain(
                     self_arg,
                     f.func.arguments.out,

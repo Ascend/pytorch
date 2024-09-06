@@ -385,8 +385,8 @@ def gen_dispatcher_registrations(
     backend_index = backend_indices[backend_dispatch_key]
     ns_helper = NamespaceHelper(namespace_str="at")
     native_func_header = """\
-#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
+#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/utils.h"
 #endif
 

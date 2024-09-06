@@ -876,10 +876,8 @@ class DeviceCachingAllocator {
               bool found = false;
               for (const Block* const head_block : all_blocks) {
                   if (head_block->ptr <= addr && addr < head_block->ptr + head_block->size) {
-#ifndef BUILD_LIBTORCH
                       const_cast<Block*>(head_block)->is_safe = false;
                       c10_npu::set_npu_data_unsafe_flag(true);
-#endif
                       found = true;
                       break;
                   }
