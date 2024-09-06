@@ -164,6 +164,10 @@ typedef struct aclrtPhysicalMemProp {
     uint64_t reserve;
 } aclrtPhysicalMemProp;
 
+typedef enum aclrtCmoType {
+    ACL_RT_CMO_TYPE_PREFETCH = 0,
+} aclrtCmoType;
+
 typedef void* aclrtDrvMemHandle;
 
 typedef void (*aclrtCallback)(void *userData);
@@ -1435,6 +1439,19 @@ ACL_FUNC_VISIBILITY aclError aclrtGetOverflowStatus(void *outputAddr, size_t out
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtResetOverflowStatus(aclrtStream stream);
+
+/**
+* @ingroup AscendCL
+* @brief cache manager operation
+* @param [in] src  device memory address
+* @param [in] size  memory size
+* @param [in] cmoType  type of operation, currently, only ACL_RT_CMO_TYPE_PREFETCH is supported
+* @param [in] stream   stream handle
+*
+* @retval ACL_SUCCESS The function is successfully executed.
+* @retval OtherValues Failure
+*/
+ACL_FUNC_VISIBILITY aclError aclrtCmoAsync(void *src, size_t size, aclrtCmoType cmoType, aclrtStream stream);
 
 ACL_FUNC_VISIBILITY aclError aclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize, size_t *retSize);
 
