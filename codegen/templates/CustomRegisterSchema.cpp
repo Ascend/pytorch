@@ -27,9 +27,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/VariableType.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
-#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
-#endif
 #include "op_plugin/OpInterface.h"
 
 namespace at_npu {

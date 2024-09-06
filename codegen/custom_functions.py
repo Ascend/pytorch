@@ -132,14 +132,13 @@ def compute_op_definition(f: NativeFunction):
     unsafe_tensor_check = """ // No check"""
     if len(candidate_tensor_args) > 0:
         unsafe_tensor_check = """
-#ifndef BUILD_LIBTORCH
 if (c10_npu::get_npu_data_unsafe_flag()) {"""
         for tensor_arg in candidate_tensor_args:
             unsafe_tensor_check = unsafe_tensor_check + f"""
     c10_npu::check_npu_tensor_is_safe({tensor_arg});"""
         unsafe_tensor_check = unsafe_tensor_check + """
 }
-#endif"""
+"""
 
     candidate_args = itertools.chain(
         self_arg,
