@@ -113,6 +113,18 @@ struct TensorMetadata {
     int device_index_{-1};
 };
 
+struct ModuleParam {
+    std::string name_;
+    TensorMetadata metadata_;
+    c10::optional<TensorMetadata> grad_;
+};
+
+struct OptimizerParam {
+    TensorMetadata metadata_;
+    c10::optional<TensorMetadata> grad_;
+    std::vector<std::pair<std::string, TensorMetadata>> state_;
+};
+
 inline void append_with_delimiter(std::ostringstream &oss, const std::string &str, char delimiter = ';')
 {
     oss << str << delimiter;
@@ -156,6 +168,49 @@ inline void encodeTensors(uint16_t type, std::vector<TensorMetadata> tensors, st
         oss << ")";
     }
 
+    std::string str = oss.str();
+    if (!str.empty()) {
+        str.pop_back();
+    }
+    encodeStrData(type, str, result);
+}
+
+inline void encodeModuleParams(uint16_t type, std::vector<ModuleParam> params, std::vector<uint8_t> &result)
+{
+    std::ostringstream oss;
+    for (auto& param: params) {
+        append_with_delimiter(oss, param.name_, ')');
+        encodeTensor(param.metadata_, oss);
+        oss << ")";
+        if (param.grad_.has_value()) {
+            encodeTensor(*(param.grad_), oss);
+        }
+        oss << "}";
+    }
+    std::string str = oss.str();
+    if (!str.empty()) {
+        str.pop_back();
+    }
+    encodeStrData(type, str, result);
+}
+
+inline void encodeOptimizerParams(uint16_t type, std::vector<OptimizerParam> params, std::vector<uint8_t> &result)
+{
+    std::ostringstream oss;
+    for (auto& param: params) {
+        encodeTensor(param.metadata_, oss);
+        oss << ")";
+        if (param.grad_.has_value()) {
+            encodeTensor(*(param.grad_), oss);
+        }
+        oss << ")";
+        for (auto s : param.state_) {
+            append_with_delimiter(oss, s.first, '>');
+            encodeTensor(s.second, oss);
+            oss << "]";
+        }
+        oss << "}";
+    }
     std::string str = oss.str();
     if (!str.empty()) {
         str.pop_back();
@@ -328,6 +383,24 @@ struct PythonTracerHashData : BaseReportData {
     PythonTracerHashData(std::vector<std::pair<uint64_t, std::string>> hash_data)
         : BaseReportData(0, "torch.python_tracer_hash"),
           hash_data(std::move(hash_data)) {}
+    std::vector<uint8_t> encode();
+};
+
+enum class ParamTensorDataType {
+    PARAM_TENSOR_DATA = 1,
+    MODULE_PARAM = 2,
+    OPTIMIZER_PARAM = 3
+};
+
+struct ParamTensorData : BaseReportData {
+    std::vector<std::pair<uint64_t, std::vector<ModuleParam>>> module_param_data;
+    std::vector<std::pair<uint64_t, std::vector<OptimizerParam>>> optimizer_param_data;
+    ParamTensorData(
+        std::vector<std::pair<uint64_t, std::vector<ModuleParam>>> module_param_data,
+        std::vector<std::pair<uint64_t, std::vector<OptimizerParam>>> optimizer_param_data)
+        : BaseReportData(0, "torch.param_tensor_info"),
+          module_param_data(std::move(module_param_data)),
+          optimizer_param_data(std::move(optimizer_param_data)) {}
     std::vector<uint8_t> encode();
 };
 } // profiler

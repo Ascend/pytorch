@@ -53,6 +53,8 @@ class Constant(object):
     FLOPS = "flops"
     NAME = "name"
     VALUE = "value"
+    MODULE_PARAM = "module parameter"
+    OPTIMIZER_PARAM = "optimizer parameter"
 
     # trace constant
     PROCESS_NAME = "process_name"

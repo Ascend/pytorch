@@ -210,7 +210,9 @@ static void parseInputShapesAndDtypes(const at::RecordFunction &fn,
                 for (auto i: t.sizes()) {
                     shape.emplace_back(i);
                 }
-                if (C10_UNLIKELY(config.report_input_shapes && config.with_modules && config.profile_memory)) {
+                if (C10_UNLIKELY(config.report_input_shapes
+                                 && (config.with_stack || config.with_modules)
+                                 && config.profile_memory)) {
                     tensors.emplace_back(t);
                 }
             }
@@ -218,7 +220,9 @@ static void parseInputShapesAndDtypes(const at::RecordFunction &fn,
             dtype = "TensorList";
         } else if (value.isScalar()) {
             dtype = "Scalar";
-            if (C10_UNLIKELY(config.report_input_shapes && config.with_modules && config.profile_memory)) {
+            if (C10_UNLIKELY(config.report_input_shapes
+                             && (config.with_stack || config.with_modules)
+                             && config.profile_memory)) {
                 scalars.emplace_back(std::move(parseTypeName(value)));
             }
         } else if (value.isList()) {
