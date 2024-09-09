@@ -98,7 +98,7 @@ static const int32_t ACL_ERROR_RT_DRV_INTERNAL_ERROR         = 507899; // drv in
 static const int32_t ACL_ERROR_RT_AICPU_INTERNAL_ERROR       = 507900; // aicpu internal error
 static const int32_t ACL_ERROR_RT_SOCKET_CLOSE               = 507901; // hdc disconnect
 
-static const int32_t ACL_CLEAR_DEVICE_STATE_FAIL             = 10007;  // voltage recovery fail
+static const int32_t ACLNN_CLEAR_DEVICE_STATE_FAIL             = 574007;  // voltage recovery fail
 
 #ifdef __cplusplus
 }
