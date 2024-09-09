@@ -10,7 +10,7 @@ namespace c10_npu {
 static uint32_t dev_count = 0;
 static thread_local int local_device = -1;
 static std::unordered_map<int8_t, aclrtContext> used_devices;
-std::mutex mtx;
+std::recursive_mutex mtx;
 
 c10::DeviceIndex device_count() noexcept
 {
@@ -50,11 +50,9 @@ aclError GetDevice(int32_t *device)
     } else if (err == ACL_ERROR_RT_CONTEXT_NULL && aclrtSetDevice(0) == ACL_ERROR_NONE) {
         *device = 0;
         local_device = 0;
+        std::lock_guard<std::recursive_mutex> lock(mtx);
         if (used_devices.find(local_device) == used_devices.end()) {
-            std::lock_guard<std::mutex> lock(mtx);
-            if (used_devices.find(local_device) == used_devices.end()) {
-                NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
-            }
+            NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
         }
         return ACL_ERROR_NONE;
     }
@@ -106,11 +104,9 @@ aclError SetDevice(c10::DeviceIndex device)
     aclError err = aclrtSetDevice(device);
     if (err == ACL_ERROR_NONE) {
         local_device = device;
+        std::lock_guard<std::recursive_mutex> lock(mtx);
         if (used_devices.find(local_device) == used_devices.end()) {
-            std::lock_guard<std::mutex> lock(mtx);
-            if (used_devices.find(local_device) == used_devices.end()) {
-                NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
-            }
+            NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
         }
     }
     return err;
@@ -118,6 +114,7 @@ aclError SetDevice(c10::DeviceIndex device)
 
 aclError ResetUsedDevices()
 {
+    std::lock_guard<std::recursive_mutex> lock(mtx);
     for (const auto it : used_devices) {
         aclError err = aclrtResetDevice(it.first);
         if (err != ACL_ERROR_NONE) {
@@ -132,6 +129,7 @@ aclError DestroyUsedStreams()
 {
     int32_t cur_device = 0;
     NPU_CHECK_ERROR_WITHOUT_UCE(GetDevice(&cur_device));
+    std::lock_guard<std::recursive_mutex> lock(mtx);
     for (const auto it : used_devices) {
         NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(it.first));
         NPUStream stream = getCurrentNPUStream(it.first);
@@ -148,6 +146,7 @@ aclError SynchronizeUsedDevices()
 {
     int32_t cur_device = 0;
     NPU_CHECK_ERROR_WITHOUT_UCE(GetDevice(&cur_device));
+    std::lock_guard<std::recursive_mutex> lock(mtx);
     for (const auto it : used_devices) {
         NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(it.first));
         aclError acl_ret = aclrtSynchronizeDevice();
@@ -162,6 +161,7 @@ aclError SynchronizeUsedDevices()
 
 aclrtContext GetDeviceContext(int32_t device)
 {
+    std::lock_guard<std::recursive_mutex> lock(mtx);
     if (used_devices.find(device) == used_devices.end()) {
         ASCEND_LOGE("NPU device %d has been initialized! Can not get context", device);
         return nullptr;
@@ -171,6 +171,7 @@ aclrtContext GetDeviceContext(int32_t device)
 
 bool isDeviceCtxActive(int32_t device)
 {
+    std::lock_guard<std::recursive_mutex> lock(mtx);
     if (used_devices.find(device) == used_devices.end()) {
         return false;
     }
