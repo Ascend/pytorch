@@ -3776,9 +3776,6 @@
   "func: adaptive_avg_pool2d.out": {
     "signature": "(Tensor self, SymInt[2] output_size, *, Tensor(a!) out) -> Tensor(a!)"
   },
-  "func: adaptive_avg_pool3d": {
-    "signature": "(Tensor self, SymInt[3] output_size) -> Tensor"
-  },
   "func: adaptive_avg_pool3d.out": {
     "signature": "(Tensor self, SymInt[3] output_size, *, Tensor(a!) out) -> Tensor(a!)"
   },
