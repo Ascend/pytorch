@@ -406,9 +406,9 @@ PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* noargs)
     int ret = result.get();
 
     aclrtFree(workspaceAddr);
-    if (ret == ACL_CLEAR_DEVICE_STATE_FAIL) {
+    if (ret == ACLNN_CLEAR_DEVICE_STATE_FAIL) {
         ASCEND_LOGE("call AclStressDetect failed, ERROR : %d, voltage recovery fail.", ret);
-        NPU_CHECK_ERROR(ACL_CLEAR_DEVICE_STATE_FAIL, "StressDetect");
+        NPU_CHECK_ERROR(ACLNN_CLEAR_DEVICE_STATE_FAIL, "StressDetect");
     }
 
     return PyLong_FromLong(ret);
