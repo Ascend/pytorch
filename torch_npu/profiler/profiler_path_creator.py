@@ -92,7 +92,7 @@ class ProfPathCreator:
 
     def delete_prof_dir(self):
         try:
-            shutil.rmtree(os.path.dirname(self._prof_path))
+            shutil.rmtree(self._prof_path)
         except Exception:
             msg = f"Remove temporary profiling data saving path failed."
             print_warn_msg(msg)
