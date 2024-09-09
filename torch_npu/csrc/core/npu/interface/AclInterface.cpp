@@ -61,6 +61,7 @@ LOAD_FUNCTION(aclGetDeviceCapability)
 LOAD_FUNCTION(aclrtGetMemUceInfo)
 LOAD_FUNCTION(aclrtDeviceTaskAbort)
 LOAD_FUNCTION(aclrtMemUceRepair)
+LOAD_FUNCTION(aclrtCmoAsync)
 
 aclprofStepInfoPtr init_stepinfo() {
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -578,6 +579,17 @@ aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, s
         return ACL_ERROR_NONE;
     }
     return func(deviceId, memUceInfoArray, arraySize);
+}
+
+aclError AclrtCmoAsync(void* src, size_t size, aclrtCmoType cmoType, aclrtStream stream)
+{
+    typedef aclError (*AclrtCmoAsync)(void*, size_t, aclrtCmoType, aclrtStream);
+    static AclrtCmoAsync func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtCmoAsync) GET_FUNC(aclrtCmoAsync);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtCmoAsync", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(src, size, cmoType, stream);
 }
 
 aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize)
