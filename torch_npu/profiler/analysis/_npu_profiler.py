@@ -2,7 +2,7 @@ import multiprocessing
 import os
 from multiprocessing.pool import Pool
 
-from .prof_common_func._constant import Constant
+from .prof_common_func._constant import Constant, print_error_msg
 from .prof_common_func._path_manager import ProfilerPathManager
 from .prof_common_func._prof_process import ProfProcess
 from ._profiling_parser import ProfilingParser
@@ -21,6 +21,14 @@ class NpuProfiler:
         profiler_path_list = ProfilerPathManager.get_profiler_path_list(input_path)
         if not profiler_path_list:
             return
+        if multiprocessing.current_process().daemon:
+            message = "The profiling data cannot be parsed during the daemon process, it is recommended that " \
+                      "you use an offline parsing interface to parse the collected data. \n" \
+                      "For example: \nfrom torch_npu.profiler.profiler import analyse\n" \
+                      "analyse(\"profiling_data_path\")"
+            print_error_msg(message)
+            return
+
         # 多profiling数据的解析
         multiprocessing.set_start_method("fork", force=True)
         process_number = min(kwargs.get("max_process_number", Constant.DEFAULT_PROCESS_NUMBER),
