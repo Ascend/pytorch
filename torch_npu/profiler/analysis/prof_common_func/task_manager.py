@@ -26,6 +26,10 @@ class ConcurrentTask(ABC):
         self.deps = deps
         self.mode = mode
 
+    @property
+    def is_non_blocking(self):
+        return (self.mode & ConcurrentMode.NON_BLOCKING) != 0
+
     @abstractmethod
     def run(self, user_input: dict):
         """An abstract method that user must implement.
@@ -302,7 +306,7 @@ class ConcurrentTasksManager:
                 break
         if need_exit:
             time.sleep(Constant.SLEEP_TIME * 2)
-            if all((task_info.task.mode == ConcurrentMode.NON_BLOCKING for task_info in self.listening_infos.values())):
+            if all((task_info.task.is_non_blocking for task_info in self.listening_infos.values())):
                 return True
 
         events = self.epoll.poll()
