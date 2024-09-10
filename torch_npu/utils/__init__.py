@@ -15,6 +15,8 @@
 
 from torch.serialization import register_package
 
+import torch_npu
+
 from .module import apply_module_patch
 from .tensor_methods import add_tensor_methods
 from .torch_funcs import add_torch_funcs
@@ -44,3 +46,8 @@ serialization_patches = [
 ]
 
 register_package(30, _npu_tag, _npu_deserialize)
+
+
+# init flopcount
+if not torch_npu._C._flops_count_init():
+    raise RuntimeError("flopcount initialization failed" + prof_error(ErrCode.UNAVAIL))

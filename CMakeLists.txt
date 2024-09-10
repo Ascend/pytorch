@@ -176,6 +176,7 @@ set(ATEN_SRCS)
 set(CORE_SRCS)
 set(FRAMEWORK_SRCS)
 set(DIST_SRCS)
+set(FLOP_SRCS)
 set(NPU_SRCS)
 set(PROF_SRCS)
 set(UTILS_SRCS)
@@ -189,6 +190,7 @@ add_subdirectory(${TORCHNPU_ROOT}/npu)
 add_subdirectory(${TORCHNPU_ROOT}/profiler)
 add_subdirectory(${TORCHNPU_ROOT}/utils)
 add_subdirectory(${TORCHNPU_ROOT}/sanitizer)
+add_subdirectory(${TORCHNPU_ROOT}/flopcount)
 
 set(OPS_PLUGIN_SRCS)
 # Add subdirectory of op-plugin
@@ -196,7 +198,7 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)
 
 # Compile code with pybind11
-set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${DIST_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${UTILS_SRCS} ${SAN_SRCS})
+set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${DIST_SRCS} ${FLOP_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${UTILS_SRCS} ${SAN_SRCS})
 
 add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})
 include(CheckCXXCompilerFlag)
