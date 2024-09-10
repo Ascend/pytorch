@@ -1,6 +1,7 @@
 import math
 import torch
 from torch.library import Library, impl
+from torch.fx.node import has_side_effect
 from torch_npu.utils._error_code import ErrCode, ops_error
 
 '''
@@ -924,3 +925,14 @@ def npu_moe_finalize_routing_meta(expanded_permuted_rows, skip1, skip2_optional,
     dimm = scales.size(0)
     dimn = expanded_permuted_rows.size(1)
     return expanded_permuted_rows.new_empty((dimm, dimn))
+
+
+has_side_effect(torch.ops.npu.npu_prefetch.default)
+
+
+@impl(m, "npu_prefetch")
+def npu_prefetch_meta(self, dependency, max_size):
+    torch._check(
+        max_size > 0,
+        lambda: f"The max_size should be greater than zero, but got {max_size}.",
+    )
