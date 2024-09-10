@@ -3626,7 +3626,6 @@
   "test_index_reduce_reduce_mean_npu_float32 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_index_reduce_reduce_prod_npu_float32 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_deepcopy_npu_complex64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
-  "test_deepcopy_npu_float32 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_deepcopy_scalar_npu_complex64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_deterministic_empty_npu_bfloat16 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_deterministic_empty_npu_bool (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
