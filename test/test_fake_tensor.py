@@ -1802,6 +1802,16 @@ class TestSeluBackward(TestCase):
             self.assertEqual(result.shape, npu_input1.shape)
 
 
+class TestNpuPrefetch(TestCase):
+    def test_npu_prefetch(self):
+        with FakeTensorMode():
+            input1 = torch.randn(8, 8).npu()
+            with self.assertRaises(RuntimeError) as cm:
+                torch_npu.npu_prefetch(input1, None, -1)
+            exception = cm.exception
+            self.assertEqual(str(exception), "The max_size should be greater than zero, but got -1.")
+
+
 instantiate_parametrized_tests(FakeTensorTest)
 instantiate_device_type_tests(FakeTensorOpInfoTest, globals(), only_for="cpu")
 
