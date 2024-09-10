@@ -786,10 +786,14 @@ class _NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
                  quant_offset: Optional[Tensor],
                  bias: Optional[Tensor],
                  antiquant_group_size: int = 0):
+        dtype = -1
         if antiquant_offset is None:
             antiquant_offset = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
         if quant_scale is None:
             quant_scale = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+            dtype = 1 # ge DataType of float16
+        else:
+            dtype = 2 # ge DataType of int8
         if quant_offset is None:
             quant_offset = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
         if bias is None:
@@ -802,7 +806,8 @@ class _NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
                     quant_scale,
                     quant_offset,
                     bias,
-                    antiquant_group_size_i=antiquant_group_size)
+                    antiquant_group_size_i=antiquant_group_size,
+                    dtype_i=dtype)
 
 
 class _NPUAntiQuantOP(torch.autograd.Function):
