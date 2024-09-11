@@ -369,7 +369,7 @@ def group_norm_silu_meta(self, gemma, beta, group, eps=0.00001):
 @impl(m, "npu_mm_all_reduce_base")
 def npu_mm_all_reduce_base_forward(x1, x2, hcom, reduce_op='sum', bias=None, antiquant_scale=None,
                                    antiquant_offset=None, x3=None, dequant_scale=None, pertoken_scale=None,
-                                   antiquant_group_size=0, comm_turn=0):
+                                   comm_quant_scale_1=None, comm_quant_scale_2=None, antiquant_group_size=0, comm_turn=0):
     dim_list = []
     for i in range(x1.dim()):
         dim_list.append(x1.size(i))

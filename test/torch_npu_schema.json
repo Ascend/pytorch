@@ -2778,7 +2778,7 @@
     "signature": "(self)"
   },
   "torch_npu.npu_mm_all_reduce_base": {
-    "signature": "(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3, dequant_scale, pertoken_scale, antiquant_group_size, comm_turn)"
+    "signature": "(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3, dequant_scale, pertoken_scale, comm_quant_scale_1, comm_quant_scale_2, antiquant_group_size, comm_turn)"
   },
   "torch_npu.npu_moe_compute_expert_tokens": {
     "signature": "(sorted_experts, num_experts=1)"
@@ -3465,7 +3465,7 @@
     "signature": "(Tensor self, Tensor x2, str hcom, int world_size, *, Tensor? bias=None, int gather_index=0, bool gather_output=True, int comm_turn=0) -> (Tensor, Tensor)"
   },
   "func: npu_mm_all_reduce_base": {
-    "signature": "(Tensor x1, Tensor x2, str hcom, *, str reduce_op='sum', Tensor? bias=None, Tensor? antiquant_scale=None, Tensor? antiquant_offset=None, Tensor? x3=None, Tensor? dequant_scale=None, Tensor? pertoken_scale=None, int antiquant_group_size=0, int comm_turn=0) -> Tensor"
+    "signature": "(Tensor x1, Tensor x2, str hcom, *, str reduce_op='sum', Tensor? bias=None, Tensor? antiquant_scale=None, Tensor? antiquant_offset=None, Tensor? x3=None, Tensor? dequant_scale=None, Tensor? pertoken_scale=None, Tensor? comm_quant_scale_1=None, Tensor? comm_quant_scale_2=None, int antiquant_group_size=0, int comm_turn=0) -> Tensor"
   },
   "func: npu_scatter_list": {
     "signature": "(Tensor[] self, Tensor indices, Tensor updates, Tensor? mask=None, str reduce='update', int axis=-2) -> Tensor[]"
