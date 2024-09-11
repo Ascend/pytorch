@@ -38,12 +38,12 @@ at::Tensor TensorMaker::make_tensor()
 
     c10::DataPtr data_ptr{data_, *device_};
 
-    c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
-            c10::StorageImpl::use_byte_size_t(),
-            size_bytes,
-            std::move(data_ptr),
-            allocator,
-            true);
+    c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl_inner(
+        c10::StorageImpl::use_byte_size_t(),
+        c10::SymInt(size_bytes),
+        std::move(data_ptr),
+        allocator,
+        true);
 
     auto tensor =
         at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);

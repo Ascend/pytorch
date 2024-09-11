@@ -45,6 +45,13 @@ struct NPUStorageImpl : public c10::StorageImpl {
   }
 };
 
+c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl_inner(
+    c10::StorageImpl::use_byte_size_t,
+    c10::SymInt size_bytes,
+    c10::DataPtr data_ptr,
+    c10::Allocator* allocator,
+    bool resizable);
+
 c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
     c10::StorageImpl::use_byte_size_t,
     c10::SymInt size_bytes,
