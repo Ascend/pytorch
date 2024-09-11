@@ -45,9 +45,9 @@ at::Tensor& NPUNativeFunctions::set_(at::Tensor& self, c10::Storage src, long st
 
 at::Tensor& NPUNativeFunctions::set_(at::Tensor& self) {
   caffe2::TypeMeta dtype = self.dtype();
-  c10::intrusive_ptr<c10::StorageImpl> npu_storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
+  c10::intrusive_ptr<c10::StorageImpl> npu_storage_impl = torch_npu::make_npu_storage_impl(
       c10::StorageImpl::use_byte_size_t(),
-      0,
+      c10::SymInt(0),
       c10_npu::NPUCachingAllocator::get()->allocate(0),
       c10_npu::NPUCachingAllocator::get(),
       true);

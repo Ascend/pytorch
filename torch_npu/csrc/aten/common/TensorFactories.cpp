@@ -116,9 +116,9 @@ at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
     int64_t nelements = c10::multiply_integers(size);
     auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
     int64_t size_bytes = nelements * dtype.itemsize();
-    c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
+    c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
         c10::StorageImpl::use_byte_size_t(),
-        size_bytes,
+        c10::SymInt(size_bytes),
         allocator->allocate(size_bytes),
         allocator,
         true);
@@ -301,13 +301,12 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
     auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
     int64_t nelements = StorageDescHelper::GetMemorySize(size, format, dtype);
     int64_t size_bytes = nelements * dtype.itemsize();
-    c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
+    c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
         c10::StorageImpl::use_byte_size_t(),
-        size_bytes,
+        c10::SymInt(size_bytes),
         allocator->allocate(size_bytes),
         allocator,
         true);
-
     auto tensor =
         at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
