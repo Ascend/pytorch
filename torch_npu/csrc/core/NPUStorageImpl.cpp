@@ -1,4 +1,5 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 namespace torch_npu {
 
