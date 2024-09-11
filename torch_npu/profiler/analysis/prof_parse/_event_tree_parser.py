@@ -189,6 +189,9 @@ class _ExtraFields_Allocation:
     def __init__(self, bean: MemoryUseBean):
         self.ptr = bean.ptr
         self.alloc_size = bean.alloc_size_for_db
+        self.total_active = bean.total_active_for_db
+        self.total_allocated = bean.total_allocated_for_db
+        self.total_reserved = bean.total_reserved_for_db
         self.device_type = bean.device_type
         self.device_index = bean.device_index
         self.id = _IDReference(None, None)
@@ -537,7 +540,7 @@ class EventTree:
             return
         
         mem_events = [_ProfilerEvent(mem_bean) for mem_bean in mem_bean_list
-                        if mem_bean.data_type != _AllocEventType.FREE.value]
+                        if mem_bean.data_type != _AllocEventType.BLOCK_FREE.value]
         
         self.events.extend(mem_events)
     
