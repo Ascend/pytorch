@@ -627,6 +627,27 @@ def npu_quantize_meta(self, scales, zero_points, dtype, axis=1, div_mode=True):
     return torch.empty_like(self, dtype=torch.int8)
 
 
+@impl(m, "npu_dynamic_quant")
+def npu_dynamic_quant(input_dummy, *, smooth_scales=None):
+    dim_num = input_dummy.dim()
+    scale_shape = []
+    for dim in range(dim_num - 1):
+        scale_shape.append(input_dummy.size(dim))
+    return (torch.empty_like(input_dummy, dtype=torch.int8),
+             input_dummy.new_empty(scale_shape, dtype=torch.float32))
+
+
+@impl(m, "npu_dynamic_quant_asymmetric")
+def npu_dynamic_quant_asymmetric(input_dummy, *, smooth_scales=None, group_index=None, dst_type=torch.int8):
+    dim_num = input_dummy.dim()
+    scale_offset_shape = []
+    for dim in range(dim_num - 1):
+        scale_offset_shape.append(input_dummy.size(dim))
+    return (torch.empty_like(input_dummy, dtype=torch.int8),
+             input_dummy.new_empty(scale_offset_shape, dtype=torch.float32),
+             input_dummy.new_empty(scale_offset_shape, dtype=torch.float32))
+
+
 @impl(m, "npu_moe_compute_expert_tokens")
 def npu_moe_compute_expert_tokens_meta(sorted_experts, num_experts=1):
     out = torch.zeros(num_experts, dtype=torch.int32, device='meta')
