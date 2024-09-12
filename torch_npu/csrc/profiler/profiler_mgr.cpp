@@ -117,9 +117,14 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace)
     }
 
     if (cpu_trace == true) {
-        StartDataReceiver();
-        report_enable_.store(true);
-        profile_memory_.store(npu_config.npu_memory);
+        std::string fwk_path = path_ + "/FRAMEWORK";
+        if (Utils::CreateDir(fwk_path)) {
+            StartDataReceiver(fwk_path);
+            report_enable_.store(true);
+            profile_memory_.store(npu_config.npu_memory);
+        } else {
+            ASCEND_LOGE("Profiler create FRAMEWORK directory failed: %s", fwk_path.c_str());
+        }
     }
     msprof_tx_.store(npu_config.msprof_tx);
     if (npu_config.record_op_args) {
@@ -159,9 +164,8 @@ void ProfilerMgr::Finalize() {
   npu_trace_.store(false);
 }
 
-void ProfilerMgr::StartDataReceiver()
+void ProfilerMgr::StartDataReceiver(const std::string &fwk_path)
 {
-    std::string fwk_path = path_ + "/FRAMEWORK";
     dataReceiver_.Init(fwk_path, capacity_);
     dataReceiver_.Start();
     traceDataReceiver_.Init(fwk_path, trace_capacity_);
