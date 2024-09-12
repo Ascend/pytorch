@@ -1755,8 +1755,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         }
     }
 
+    // No need to detect recv. batch_isend_irecv inputs is incorrect, need require special treatments.
     if (c10_npu::model_state().get_model_mode() == c10_npu::ModelMode::L_TRAIN
-        && c10_npu::option::OptionsManager::GetSilenceCheckFlag() != c10_npu::option::CHECK_CLOSE) {
+        && c10_npu::option::OptionsManager::GetSilenceCheckFlag() != c10_npu::option::CHECK_CLOSE
+        && opType != c10d::OpType::RECV && opType != c10d::OpType::UNKNOWN) {
         for (const auto i : c10::irange(inputs.size())) {
             npuGuard.set_index(devices[i].index());
             c10_npu::NPUStreamGuard guard(hcclStreams[i]);
@@ -1999,6 +2001,19 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
             cmd.Run();
             return HCCL_SUCCESS;
         },
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            // No need to detect recv.
+            if (c10_npu::model_state().get_model_mode() == c10_npu::ModelMode::L_TRAIN
+                && c10_npu::option::OptionsManager::GetSilenceCheckFlag() != c10_npu::option::CHECK_CLOSE) {
+                for (size_t i = 0; i < op_type.size(); ++i) {
+                    if (op_type[i] != "irecv") {
+                        c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                        silenceCheck(tensors[i], c10d::OpType::SEND);
+                    }
+                }
+            }
+        },
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         c10d::OpType::UNKNOWN);
 }
 
