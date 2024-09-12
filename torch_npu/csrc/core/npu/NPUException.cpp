@@ -100,6 +100,7 @@ void clear_mem_uce_info()
     memUceInfo.device = 0;
     memUceInfo.info.clear();
     memUceInfo.retSize = 0;
+    memUceInfo.mem_type = 0;
 }
 
 const char *c10_npu_get_error_message()

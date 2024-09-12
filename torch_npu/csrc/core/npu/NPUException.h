@@ -222,6 +222,7 @@ struct MemUceInfo {
     int device = 0;
     std::vector<aclrtMemUceInfo> info;
     size_t retSize = 0;
+    int mem_type = 0;
 };
 
 C10_NPU_API const char *c10_npu_get_error_message();
