@@ -1337,6 +1337,27 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
+    @SupportedDevices(['Ascend910B'])
+    def test_wrapper_npu_dynamic_quant_asymmetric(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+
+            def forward(self, input_dummy, smooth_scales_dummy):
+                output, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(input_dummy, smooth_scales=smooth_scales_dummy)
+                return output, scale, offset
+            
+        def export_onnx(onnx_model_name):
+            input_dummy = torch.rand(4, 1024, 512).uniform_(-3, 3).npu().to(torch.float16)
+            smooth_scales_dummy = torch.rand(512).uniform_(-3, 3).npu().to(torch.float16)
+            model = Model().to("npu")
+            model(input_dummy, smooth_scales_dummy)
+            self.onnx_export(model, (input_dummy, smooth_scales_dummy), onnx_model_name,
+                             ["input", "smooth_scale_dummy"], ["output", "scale", "offset"])
+        onnx_model_name = "model_npu_dynamic_quant_asymmetric.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
+
     @SupportedDevices(['Ascend910B'])      
     def test_wrapper_npu_weight_quant_batchmatmul(self):
         class Model(torch.nn.Module):

@@ -753,8 +753,23 @@ def npu_quantize_meta(self, scales, zero_points, dtype, axis=1, div_mode=True):
 
 @impl(m, "npu_dynamic_quant")
 def npu_dynamic_quant(input_dummy, *, smooth_scales=None):
+    dim_num = input_dummy.dim()
+    scale_shape = []
+    for dim in range(dim_num - 1):
+        scale_shape.append(input_dummy.size(dim))
     return (torch.empty_like(input_dummy, dtype=torch.int8),
-             torch.empty_like(input_dummy.sum(dim=-1), dtype=torch.float32))
+             input_dummy.new_empty(scale_shape, dtype=torch.float32))
+
+
+@impl(m, "npu_dynamic_quant_asymmetric")
+def npu_dynamic_quant_asymmetric(input_dummy, *, smooth_scales=None, group_index=None, dst_type=torch.int8):
+    dim_num = input_dummy.dim()
+    scale_offset_shape = []
+    for dim in range(dim_num - 1):
+        scale_offset_shape.append(input_dummy.size(dim))
+    return (torch.empty_like(input_dummy, dtype=torch.int8),
+             input_dummy.new_empty(scale_offset_shape, dtype=torch.float32),
+             input_dummy.new_empty(scale_offset_shape, dtype=torch.float32))
 
 
 @impl(m, "npu_anti_quant")
