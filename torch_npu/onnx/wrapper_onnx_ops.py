@@ -730,6 +730,37 @@ class _NPUMmAllReduceBaseOP(torch.autograd.Function):
                     dequant_scale, pertoken_scale, comm_quant_scale_1, comm_quant_scale_2, antiquant_group_size, comm_turn)
 
 
+class _NPUDynamicQuantOp(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, input_dummy, smooth_scales):
+        return torch.ops.npu.npu_dynamic_quant(input_dummy, smooth_scales=smooth_scales)
+
+    @staticmethod
+    def symbolic(g, input_dummy: Tensor, smooth_scales: Optional[Tensor] = None):
+        if smooth_scales is None:
+            smooth_scales = g.op("Constant", value_t=torch.tensor([]).to(input_dummy.type().dtype()))
+        return g.op("npu::NPUDynamicQuant", input_dummy, smooth_scales, outputs=2)
+
+
+class _NPUDynamicQuantV2Op(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, input_dummy, smooth_scales, group_index, dst_type):
+        return torch.ops.npu.npu_dynamic_quant_asymmetric(input_dummy, smooth_scales=smooth_scales,
+                                                            group_index=group_index, dst_type=dst_type)
+
+    @staticmethod
+    def symbolic(g, input_dummy: Tensor, smooth_scales: Optional[Tensor] = None,
+                 group_index: Optional[Tensor] = None, dst_type: torch.dtype = torch.int8):
+        if smooth_scales is None:
+            smooth_scales = g.op("Constant", value_t=torch.tensor([]).to(input_dummy.type().dtype()))
+        if group_index is None:
+            group_index = g.op("Constant", value_t=torch.tensor([]).to(torch.int32))
+        dst_type_i = 2 # 当前仅支持int8
+        return g.op("npu::NPUDynamicQuantV2", input_dummy, smooth_scales,
+                    group_index, dst_type_i=dst_type_i, outputs=3)
+
 
 class _NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
 
@@ -1083,6 +1114,14 @@ def _wrapper_npu_stride_add(self, other, offset1, offset2, c1_len):
     return _NPUStrideAddOP.apply(self, other, offset1, offset2, c1_len)
 
 
+def _wrapper_npu_dynamic_quant(input_dummy, smooth_scales=None):
+    return _NPUDynamicQuantOp.apply(input_dummy, smooth_scales)
+
+
+def _wrapper_npu_dynamic_quant_asymmetric(input_dummy, smooth_scales=None, group_index=None, dst_type=torch.int8):
+    return _NPUDynamicQuantV2Op.apply(input_dummy, smooth_scales, group_index, dst_type)
+
+
 def _wrapper_npu_gru(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
                     seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first):
     return _NPUGruOP.apply(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
@@ -1189,6 +1228,8 @@ def _add_onnx_ops():
     torch_npu.npu_scatter = _wrapper_npu_scatter
     torch_npu.npu_scatter_nd_update = _wrapper_npu_scatter_nd_update
     torch_npu.npu_lstm = _wrapper_npu_lstm
+    torch_npu.npu_dynamic_quant = _wrapper_npu_dynamic_quant
+    torch_npu.npu_dynamic_quant_asymmetric = _wrapper_npu_dynamic_quant_asymmetric
     torch_npu.npu_rms_norm = _wrapper_npu_rms_norm
     torch_npu.npu_add_rms_norm = _wrapper_npu_add_rms_norm
     torch_npu.npu_lstm_cell = _wrapper_npu_lstm_cell
