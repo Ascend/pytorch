@@ -82,8 +82,8 @@ class LinearA8W8Quant(nn.Module):
         scale_quant = self.scale
         first_last_dim = self.weight.dim() - 1
         second_last_dim = self.weight.dim() - 2
-        if self.scale.dtype == torch.float32 and self.pertoken_scale is None:
+        if self.scale.dtype == torch.float32 and self.pertoken_scale is None and self.output_dtype != torch.bfloat16:
             scale_quant = torch_npu.npu_trans_quant_param(self.scale, self.offset)
-        
+
         return torch_npu.npu_quant_matmul(linear_quant_input, self.weight.transpose(second_last_dim, first_last_dim),
                                           scale_quant, offset=self.offset, pertoken_scale=self.pertoken_scale, bias=self.bias, output_dtype=self.output_dtype)
