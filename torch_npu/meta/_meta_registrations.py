@@ -475,7 +475,7 @@ def quant_matmul_dtype_check(*args):
     if pertoken_scale is not None:
         torch._check(
             pertoken_scale.dtype == torch.float32,
-            lambda: "pertoken_scale's type supported for float32, but pertoken_scale.dtype is " + 
+            lambda: "pertoken_scale's type supported for float32, but pertoken_scale.dtype is " +
                     str(offset.dtype) + ops_error(ErrCode.TYPE),
         )
     if bias is not None:
@@ -489,13 +489,13 @@ def quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dt
     if scale.dtype == torch.bfloat16:
         torch._check(
             output_dtype == torch.bfloat16,
-            lambda: "When scale's dtype is bfloat16, output_dtype must be bfloat16, but output_dtype is " + 
+            lambda: "When scale's dtype is bfloat16, output_dtype must be bfloat16, but output_dtype is " +
                     str(output_dtype) + ops_error(ErrCode.TYPE),
         )
     if output_dtype == torch.bfloat16:
         torch._check(
-            scale.dtype == torch.bfloat16,
-            lambda: "When output_dtype is bfloat16, scale's dtype must be bfloat16, but scale's dtype is " +
+            scale.dtype == torch.bfloat16 or scale.dtype == torch.float32,
+            lambda: "When output_dtype is bfloat16, scale's dtype must be bfloat16 or float32, but scale's dtype is " +
                     str(scale.dtype) + ops_error(ErrCode.TYPE),
         )
     if offset is not None:
@@ -512,13 +512,13 @@ def quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dt
             )
         torch._check(
             output_dtype == torch.float16 or output_dtype == torch.bfloat16,
-            lambda: "When pertoken_scale is not none, output_dtype must be float16 or bfloat16, but output_dtype is " + 
+            lambda: "When pertoken_scale is not none, output_dtype must be float16 or bfloat16, but output_dtype is " +
                     str(output_dtype) + ops_error(ErrCode.TYPE),
         )
     if is_a4w4:
         torch._check(
             output_dtype == torch.float16,
-            lambda: "When input's dtype is int32, output_dtype must be float16, but output_dtype is " + 
+            lambda: "When input's dtype is int32, output_dtype must be float16, but output_dtype is " +
                     str(output_dtype) + ops_error(ErrCode.TYPE),
         )
 
@@ -556,7 +556,7 @@ def npu_quant_matmul_meta(x1, x2, scale, *, offset=None, pertoken_scale=None, bi
         if bias.dtype == torch.bfloat16:
             torch._check(
                 output_dtype == torch.bfloat16,
-                lambda: "When bias dtype is bfloat16, output_dtype must be bfloat16, but it is " + 
+                lambda: "When bias dtype is bfloat16, output_dtype must be bfloat16, but it is " +
                         str(output_dtype) + ops_error(ErrCode.TYPE),
             )
         if bias.dim() == 3:
