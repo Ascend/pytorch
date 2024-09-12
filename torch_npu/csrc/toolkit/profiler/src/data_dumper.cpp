@@ -123,6 +123,7 @@ void DataDumper::Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap
         auto iter = fd_map_.find(dump_file);
         if (iter == fd_map_.end()) {
             if (!Utils::IsFileExist(dump_file) && !Utils::CreateFile(dump_file)) {
+                ASCEND_LOGE("DataDumper cerate file failed: %s", dump_file.c_str());
                 continue;
             }
             fd = fopen(dump_file.c_str(), "ab");
@@ -287,6 +288,7 @@ void TraceDataDumper::Dump(const std::string& file_name, const std::vector<uint8
     auto iter = fd_map_.find(dump_file);
     if (iter == fd_map_.end()) {
         if (!Utils::IsFileExist(dump_file) && !Utils::CreateFile(dump_file)) {
+            ASCEND_LOGE("TraceDataDumper cerate file failed: %s", dump_file.c_str());
             return;
         }
         fd = fopen(dump_file.c_str(), "ab");
