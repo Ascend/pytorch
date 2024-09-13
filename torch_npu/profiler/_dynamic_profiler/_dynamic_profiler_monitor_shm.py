@@ -170,6 +170,10 @@ class DynamicProfilerShareMemory:
         if self.shm:
             try:
                 self.shm.close()
+                if self._memory_mapped_file and not self._memory_mapped_file.closed:
+                    self._memory_mapped_file.close()
+                elif self.fd:
+                    os.close(self.fd)
                 logger.info("Rank %s unlink shm", self._rank_id)
             except Exception as ex:
                 logger.warning("Rank %s unlink shm failed, may be removed, %s has occur ", self._rank_id, str(ex))
@@ -186,9 +190,9 @@ class DynamicProfilerShareMemory:
             f = None
             try:
                 # Step 1: try to open fd, first time fd not exists.
-                fd = os.open(self.shm_path, os.O_EXCL | os.O_RDWR, stat.S_IRUSR | stat.S_IWGRP | stat.S_IRGRP)
-                f = os.fdopen(fd, 'rb')
-                self.shm = mmap.mmap(f.fileno(), length=self._shm_buf_bytes_size)
+                self.fd = os.open(self.shm_path, os.O_EXCL | os.O_RDWR, stat.S_IRUSR | stat.S_IWGRP | stat.S_IRGRP)
+                self._memory_mapped_file = os.fdopen(self.fd, 'rb')
+                self.shm = mmap.mmap(self._memory_mapped_file.fileno(), length=self._shm_buf_bytes_size)
                 self.is_create_process = False
                 logger.info("Rank %d shared memory is connected.", self._rank_id)
                 break
@@ -208,9 +212,9 @@ class DynamicProfilerShareMemory:
                         f.write(byte_data)
 
                     # create mmap
-                    fd = os.open(self.shm_path, os.O_EXCL | os.O_RDWR, stat.S_IRUSR | stat.S_IWGRP | stat.S_IRGRP)
-                    f = os.fdopen(fd, 'rb')
-                    self.shm = mmap.mmap(f.fileno(), length=self._shm_buf_bytes_size)
+                    self.fd = os.open(self.shm_path, os.O_EXCL | os.O_RDWR, stat.S_IRUSR | stat.S_IWGRP | stat.S_IRGRP)
+                    self._memory_mapped_file = os.fdopen(self.fd, 'rb')
+                    self.shm = mmap.mmap(self._memory_mapped_file.fileno(), length=self._shm_buf_bytes_size)
                     self.is_create_process = True
                     logger.info("Rank %d shared memory is created.", self._rank_id)
                     break
