@@ -157,3 +157,37 @@ class FileManager:
         db_size = os.path.getsize(db_path)
         if db_size < 0 or db_size > Constant.MAX_FILE_SIZE:
             raise RuntimeError(f"Invalid db file size, please check the db file: {db_path}")
+
+
+class FdOpen:
+    """
+    creat and write file
+    """
+
+    def __init__(self: any, file_path: str, flags: int = os.O_WRONLY | os.O_CREAT, mode: int = Constant.FILE_AUTHORITY,
+                 operate: str = "w", newline: str = None) -> None:
+        self.file_path = file_path
+        self.flags = flags
+        self.newline = newline
+        self.mode = mode
+        self.operate = operate
+        self.fd = None
+        self.file_open = None
+
+    def __enter__(self: any) -> any:
+        file_dir = os.path.dirname(self.file_path)
+        PathManager.check_directory_path_writeable(file_dir)
+
+        self.fd = os.open(self.file_path, self.flags, self.mode)
+        if self.newline is None:
+            self.file_open = os.fdopen(self.fd, self.operate)
+        else:
+            self.file_open = os.fdopen(self.fd, self.operate, newline=self.newline)
+        return self.file_open
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.file_open:
+            self.file_open.close()
+        elif self.fd:
+            os.close(self.fd)
+

@@ -101,10 +101,12 @@ class DynamicProfilerShareMemory:
 
     def _create_shm(self):
         if sys.version_info >= (3, 8):
+            PathManager.check_input_directory_path(self.shm_path)
             self._create_shm_over_py38()
         else:
             self.is_mmap = True
             self.shm_path = os.path.join(self._path, "shm", self.shm_path)
+            PathManager.check_input_directory_path(self.shm_path)
             self._create_shm_py37()
 
     def _get_default_cfg_bytes(self):
@@ -180,6 +182,8 @@ class DynamicProfilerShareMemory:
                        "please update to python 3.8+ for better performance.")
         try_times = 10
         while try_times:
+            fd = None
+            f = None
             try:
                 # Step 1: try to open fd, first time fd not exists.
                 fd = os.open(self.shm_path, os.O_EXCL | os.O_RDWR, stat.S_IRUSR | stat.S_IWGRP | stat.S_IRGRP)
@@ -216,6 +220,11 @@ class DynamicProfilerShareMemory:
                     logger.warning("Rank %d shared memory create failed, retry times = %d, %s has occur .",
                                    self._rank_id, try_times, str(ex))
                     time.sleep(random.uniform(0, 0.02))  # sleep 0 ~ 20 ms
+                finally:
+                    if f is not None and not f.closed:
+                        f.close()
+                    elif fd is not None:
+                        os.close(fd)
 
         if try_times <= 0:
             raise RuntimeError("Failed to create shared memory.")

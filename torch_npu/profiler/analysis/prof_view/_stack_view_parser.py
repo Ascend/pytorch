@@ -7,6 +7,7 @@ from ..prof_common_func._constant import Constant, print_error_msg
 from ..prof_common_func._constant import print_warn_msg
 from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_common_func._tree_builder import TreeBuilder
+from ..prof_common_func._file_manager import FdOpen
 from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
 from ..prof_parse._fwk_file_parser import FwkFileParser
 from ....utils.path_manager import PathManager
@@ -38,12 +39,11 @@ class StackViewParser(BaseParser):
         output_path = os.path.realpath(self._output_path)
         parent_dir = os.path.dirname(self._output_path)
         PathManager.make_dir_safety(parent_dir)
-        PathManager.check_directory_path_writeable(parent_dir)
         file_name, suffix = os.path.splitext(output_path)
         if suffix != ".log":
             print_warn_msg("Input file is not log file. Change to log file.")
             output_path = file_name + ".log"
-        with os.fdopen(os.open(output_path, os.O_WRONLY | os.O_CREAT, Constant.FILE_AUTHORITY), "w") as f:
+        with FdOpen(output_path, os.O_WRONLY | os.O_CREAT, Constant.FILE_AUTHORITY, "w") as f:
             for torch_op_node in self._torch_op_node:
                 call_stack = torch_op_node.call_stack
                 if not call_stack:
