@@ -101,10 +101,12 @@ class DynamicProfilerShareMemory:
 
     def _create_shm(self):
         if sys.version_info >= (3, 8):
+            PathManager.check_input_directory_path(self.shm_path)
             self._create_shm_over_py38()
         else:
             self.is_mmap = True
             self.shm_path = os.path.join(self._path, "shm", self.shm_path)
+            PathManager.check_input_directory_path(self.shm_path)
             self._create_shm_py37()
 
     def _get_default_cfg_bytes(self):

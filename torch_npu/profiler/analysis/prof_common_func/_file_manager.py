@@ -110,6 +110,20 @@ class FileManager:
             raise RuntimeError(f"Can't create file: {output_path}" + prof_error(ErrCode.SYSCALL)) from err
 
     @classmethod
+    def create_text_file_by_path(cls, output_path: str, data: str) -> None:
+        if not data:
+            return
+        dir_name = os.path.dirname(output_path)
+        PathManager.make_dir_safety(dir_name)
+        PathManager.create_file_safety(output_path)
+        PathManager.check_directory_path_writeable(output_path)
+        try:
+            with open(output_path, "w") as file:
+                file.write(data)
+        except Exception as err:
+            raise RuntimeError(f"Can't create file: {output_path}" + prof_error(ErrCode.SYSCALL)) from err
+
+    @classmethod
     def create_bin_file_by_path(cls, output_path: str, data: bytes) -> None:
         if not data:
             return
