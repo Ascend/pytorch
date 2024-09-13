@@ -60,7 +60,7 @@ class FileManager:
         if file_size <= 0:
             return {}
         if file_size > Constant.MAX_FILE_SIZE:
-            msg = f"The file size exceeds the preset value, please check the file: {file_path} "
+            msg = f"The file size exceeds the preset value, please check the file: {file_path}"
             print_warn_msg(msg)
             return {}
         try:
@@ -105,6 +105,20 @@ class FileManager:
         try:
             with open(output_path, "w") as file:
                 data = json.dumps(data, indent=indent, ensure_ascii=False)
+                file.write(data)
+        except Exception as err:
+            raise RuntimeError(f"Can't create file: {output_path}" + prof_error(ErrCode.SYSCALL)) from err
+
+    @classmethod
+    def create_text_file_by_path(cls, output_path: str, data: str) -> None:
+        if not data:
+            return
+        dir_name = os.path.dirname(output_path)
+        PathManager.make_dir_safety(dir_name)
+        PathManager.create_file_safety(output_path)
+        PathManager.check_directory_path_writeable(output_path)
+        try:
+            with open(output_path, "w") as file:
                 file.write(data)
         except Exception as err:
             raise RuntimeError(f"Can't create file: {output_path}" + prof_error(ErrCode.SYSCALL)) from err
