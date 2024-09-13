@@ -109,9 +109,7 @@ void DataDumper::Report(std::unique_ptr<BaseReportData> data)
     if (C10_UNLIKELY(!start_.load() || data == nullptr)) {
         return;
     }
-    if (!data_chunk_buf_.Push(std::move(data))) {
-        ASCEND_LOGE("DataDumper report data failed");
-    }
+    data_chunk_buf_.Push(std::move(data));
 }
 
 void DataDumper::Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap)
@@ -212,9 +210,7 @@ void TraceDataDumper::Report(std::unique_ptr<PythonTracerFuncData> data)
     if (C10_UNLIKELY(!start_.load() || data == nullptr)) {
         return;
     }
-    if (!trace_data_buf_.Push(std::move(data))) {
-        ASCEND_LOGE("TraceDataDumper report data failed");
-    }
+    trace_data_buf_.Push(std::move(data));
 }
 
 void TraceDataDumper::ReportHash(std::unique_ptr<PythonTracerHashData> data)

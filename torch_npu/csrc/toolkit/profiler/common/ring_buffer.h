@@ -19,7 +19,9 @@ public:
         write_index_(0),
         idle_write_index_(0),
         capacity_(0),
-        mask_(0) {}
+        mask_(0),
+        cycles_exceed_cnt_(0),
+        full_cnt_(0) {}
 
   ~RingBuffer() {
     UnInit();
@@ -33,18 +35,29 @@ public:
     is_quit_ = false;
   }
 
-  void UnInit() {
-    if (is_inited_) {
-      data_queue_.clear();
-      read_index_ = 0;
-      write_index_ = 0;
-      idle_write_index_ = 0;
-      capacity_ = 0;
-      mask_ = 0;
-      is_quit_ = true;
-      is_inited_ = false;
+    void UnInit()
+    {
+        if (is_inited_) {
+            data_queue_.clear();
+            read_index_ = 0;
+            write_index_ = 0;
+            idle_write_index_ = 0;
+            capacity_ = 0;
+            mask_ = 0;
+            is_quit_ = true;
+            is_inited_ = false;
+            auto final_cycles_exceed_cnt = cycles_exceed_cnt_.load(std::memory_order_relaxed);
+            if (final_cycles_exceed_cnt > 0) {
+                ASCEND_LOGE("RingBuffer cycles exceed %zu times", final_cycles_exceed_cnt);
+                cycles_exceed_cnt_ = 0;
+            }
+            auto final_full_cnt = full_cnt_.load(std::memory_order_relaxed);
+            if (final_full_cnt > 0) {
+                ASCEND_LOGE("RingBuffer full %zu times", final_full_cnt);
+                full_cnt_ = 0;
+            }
+        }
     }
-  }
 
   bool Push(T data) {
     size_t curr_read_index = 0;
@@ -58,14 +71,14 @@ public:
       }
       cycles++;
       if (cycles >= cycle_limit) {
-        ASCEND_LOGE("RingBuffer cycles exceed: %zu", cycles);
+        cycles_exceed_cnt_.fetch_add(1, std::memory_order_relaxed);
         return false;
       }
       curr_read_index = read_index_.load(std::memory_order_relaxed);
       curr_write_index = idle_write_index_.load(std::memory_order_relaxed);
       next_write_index = curr_write_index + 1;
       if ((next_write_index & mask_) == (curr_read_index & mask_)) {
-        ASCEND_LOGE("RingBuffer is full");
+        full_cnt_.fetch_add(1, std::memory_order_relaxed);
         return false;
       }
     } while (!idle_write_index_.compare_exchange_weak(curr_write_index, next_write_index));
@@ -109,6 +122,10 @@ private:
   size_t capacity_;
   size_t mask_;
   std::vector<T> data_queue_;
+
+  // Ringbuffer push failed info
+  std::atomic<size_t> cycles_exceed_cnt_;
+  std::atomic<size_t> full_cnt_;
 };
 } // profiler
 } // toolkit
