@@ -23,7 +23,7 @@ from .scheduler import ProfilerAction
 from .experimental_config import _ExperimentalConfig
 from .analysis.prof_common_func.constant import Constant
 from .analysis.npu_profiler import NpuProfiler
-from .analysis.prof_common_func.constant import print_warn_msg
+from .analysis.prof_common_func.constant import print_warn_msg, _no_exception_func
 from .analysis.prof_common_func.file_manager import FileManager
 from .analysis.prof_common_func.path_manager import ProfilerPathManager
 from ..utils.path_manager import PathManager
@@ -183,5 +183,6 @@ class ProfInterface:
         self.metadata.clear()
 
 
+@_no_exception_func(set())
 def supported_activities():
     return _supported_npu_activities()

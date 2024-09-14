@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from typing import Union
+import functools
 
 from torch_npu.utils._error_code import ErrCode, prof_error
 
@@ -240,6 +241,20 @@ def convert_us2ns(us: Union[str, float, int], tail="\t") -> int:
 def contact_2num(high_num: int, low_num: int) -> int:
     MOVE_BIT = 32
     return high_num << MOVE_BIT | low_num
+
+
+def _no_exception_func(default_ret=None):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kargs):
+            try:
+                result = func(*args, **kargs)
+            except Exception as ex:
+                print_warn_msg(f"Call {func.__name__} failed. Exception: {str(ex)}")
+                return default_ret
+            return result
+        return wrapper
+    return decorator
 
 
 class DbConstant():
