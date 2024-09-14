@@ -250,7 +250,7 @@ def _no_exception_func(default_ret=None):
             try:
                 result = func(*args, **kargs)
             except Exception as ex:
-                print_error_msg(f"Call {func.__name__} failed. Exception: {str(ex)}")
+                print_warn_msg(f"Call {func.__name__} failed. Exception: {str(ex)}")
                 return default_ret
             return result
         return wrapper
