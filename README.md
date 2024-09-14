@@ -183,25 +183,25 @@ Everyone is welcome to contribute to the community. If you have any questions or
 
 The version branches of AscendPyTorch have the following maintenance phases:
 
-| **Status**        | **Duration** | **Description**                                                                                                                                                                                                                                             |
-|-------------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Planning          | 1-3 months   | Plan features.                                                                                                                                                                                                                                              |
-| Development       | 3 months     | Develop features.                                                                                                                                                                                                                                           |
-| Maintained        | 6-12 months  | Allow the incorporation of all resolved issues and release the version, Different versions of PyTorch adopt varying support policies. The maintenance periods for Regular Releases and Long-Term Support versions are 6 months and 12 months, respectively. |
-| Unmaintained      | 0-3 months   | Allow the incorporation of all resolved issues. No dedicated maintenance personnel are available. No version will be released.                                                                                                                              |
-| End Of Life (EOL) | N/A          | Do not accept any modification to a branch.                                                                                                                                                                                                                 |
+| **Status**        | **Duration** | **Description**                                                                                                                |
+|-------------------|--------------|--------------------------------------------------------------------------------------------------------------------------------|
+| Planning          | 1-3 months   | Plan features.                                                                                                                 |
+| Development       | 6-12 months     | Develop new features and fix issues, regularly release new versions. Different strategies are adopted for different versions of PyTorch, with a regular branch development cycle of 6 months and a long-term support branch development cycle of 12 months.                                                                                                             |
+| Maintained        | 3.5 years | Maintain bugs, do not incorporate new features, and release patch versions based on the impact of bugs. |
+| End Of Life (EOL) | N/A          | Do not accept any modification to a branch.                                                                                    |
 
 ##  PyTorch Maintenance Policies
 
-| **PyTorch** | **Maintenance Policies** | **Status** | **Launch Date** | **Subsequent Status**             | **EOL Date** |
-|-------------|--------------------------|------------|-----------------|-----------------------------------|--------------|
-| 2.3.1       | Regular Release          | Maintained | 2024/06/06      | Unmaintained 2024-12-06 estimated |              |
-| 2.2.0       | Regular Release          | Maintained | 2024/04/01      | Unmaintained 2024-10-15 estimated |              |
-| 2.1.0       | Long Term Support        | Maintained | 2023/10/15      | Unmaintained 2024-10-15 estimated |              |
-| 2.0.1       | Regular Release          | EOL        | 2023/7/19       |                                   | 2024/3/14    |
-| 1.11.0      | Long Term Support        | Maintained | 2023/4/19       | Unmaintained 2024-4-19 estimated  |              |
-| 1.8.1       | Long Term Support        | EOL        | 2022/4/10       |                                   | 2023/4/10    |
-| 1.5.0       | Long Term Support        | EOL        | 2021/7/29       |                                   | 2022/7/29    |
+| **PyTorch** |  **Maintenance Policies** | **Status** | **Launch Date**       | **Subsequent Status**            | **EOL Date**     |
+|-----------|--------------------|--------------|------------|-----------------|-----------|
+| 2.4.0     |  Planning  | -  | - | - |           |
+| 2.3.1     |  Regular Release  | Development   | 2024/06/06 | Expected to enter maintenance status from  December 6, 2024 |           |
+| 2.2.0     |  Regular Release  | Maintained   | 2024/04/01 | Expected to enter maintenance free status from September 10th, 2025|           |
+| 2.1.0     | Long Term Support  | Development   | 2023/10/15 | Expected to enter maintenance status from March 30, 2025 |           |
+| 2.0.1     | Regular Release    | EOL   | 2023/7/19  |   | 2024/3/14          |
+| 1.11.0    | Long Term Support  | Maintained   | 2023/4/19  | Expected to enter maintenance free status from September 10th, 2025  |           |
+| 1.8.1     | Long Term Support  | EOL          | 2022/4/10  |                 | 2023/4/10 |
+| 1.5.0     | Long Term Support  | EOL          | 2021/7/29  |                 | 2022/7/29 |
 
 ## Reference Documents
 
