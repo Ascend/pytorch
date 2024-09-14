@@ -6,11 +6,13 @@ from json import JSONDecodeError
 import os
 import socket
 
+from torch import distributed as dist
 from torch_npu._C._profiler import ProfilerActivity
 from .profiler import tensorboard_trace_handler, profile
 from .experimental_config import _ExperimentalConfig, ProfilerLevel, AiCMetrics
 from .scheduler import Schedule as schedule
 from .analysis.prof_common_func.singleton import Singleton
+from .analysis.prof_common_func.constant import _no_exception_func
 from ..utils.path_manager import PathManager
 from .analysis.prof_common_func.file_manager import FileManager
 
@@ -22,6 +24,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
+@_no_exception_func()
 def _init_logger(path: str):
     worker_name = "{}".format(socket.gethostname())
     log_name = "dp_{}_{}.log".format(worker_name, os.getpid())
@@ -51,6 +54,7 @@ class _ConfigContext():
         self.active = 1
         self.parse(path)
 
+    @_no_exception_func()
     def parse(self, path: str):
         config_data = FileManager.file_read_all(path)
         if not config_data:
@@ -79,9 +83,9 @@ class _ConfigContext():
             self.experimental_config = None
         else:
             profiler_level = exp_config.get('profiler_level', 'Level0')
-            profiler_level = getattr(ProfilerLevel, profiler_level)
+            profiler_level = getattr(ProfilerLevel, profiler_level, ProfilerLevel.Level0)
             aic_metrics = exp_config.get('aic_metrics', 'AiCoreNone')
-            aic_metrics = getattr(AiCMetrics, aic_metrics)
+            aic_metrics = getattr(AiCMetrics, aic_metrics, AiCMetrics.AiCoreNone)
             l2_cache = exp_config.get('l2_cache', False)
             op_attr = exp_config.get('op_attr', False)
             data_simplification = exp_config.get('data_simplification', True)
@@ -167,6 +171,7 @@ class _DynamicProfile():
         }
         FileManager.create_json_file_by_path(path, json_data, indent=4)
 
+    @_no_exception_func()
     def init(self, path: str):
         log_path = os.path.join(path, 'log')
         if not os.path.exists(log_path):
@@ -176,9 +181,12 @@ class _DynamicProfile():
         if not os.path.exists(self.config_path):
             logger.info("Create profiler_config.json default.")
             self.init_default_config(self.config_path)
+        if dist.is_initialized():
+            dist.barrier()
         file_stat = os.stat(self.config_path)
         self.cur_mtime = file_stat.st_mtime
 
+    @_no_exception_func()
     def step(self):
         self.cur_step += 1
         if self.prof:
@@ -194,14 +202,15 @@ class _DynamicProfile():
             self.cfg_ctx = _ConfigContext(self.config_path)
             self.enable_prof()
 
-
+    @_no_exception_func()
     def file_changed(self) -> bool:
         file_stat = os.stat(self.config_path)
         if file_stat.st_mtime == self.cur_mtime:
             return False
         self.cur_mtime = file_stat.st_mtime
         return True
-    
+
+    @_no_exception_func()
     def enable_prof(self):
         self.prof = profile(
             activities=self.cfg_ctx.activities(),
@@ -218,6 +227,7 @@ class _DynamicProfile():
         logger.info(f"Start Dynamic Profiler at {self.cur_step} step.")
 
 
+@_no_exception_func()
 def init(path: str):
     dp_path = os.path.abspath(path)
     if not os.path.exists(dp_path):
@@ -225,5 +235,6 @@ def init(path: str):
     _DynamicProfile().init(dp_path)
 
 
+@_no_exception_func()
 def step():
     _DynamicProfile().step()
