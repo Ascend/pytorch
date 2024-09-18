@@ -31438,5 +31438,14 @@
   "test_profiler_name_pattern (__main__.TestExperimentalUtils)": ["", [""]],
   "test_profiler_conv2d_bias_followed_by_batchnorm2d_pattern (__main__.TestExperimentalUtils)": ["", [""]],
   "test_profiler_pattern_matcher_json_report (__main__.TestExperimentalUtils)": ["", [""]],
-  "test_permute_tensor (__main__.TestCollectivesMultiProc)": ["", [""]]
+  "test_permute_tensor (__main__.TestCollectivesMultiProc)": ["", [""]],
+  "test_adadelta (__main__.OptimizerTests)": ["", [""]],
+  "test_adagrad (__main__.OptimizerTests)": ["", [""]],
+  "test_adam (__main__.OptimizerTests)": ["", [""]],
+  "test_adamax (__main__.OptimizerTests)": ["", [""]],
+  "test_adamw (__main__.OptimizerTests)": ["", [""]],
+  "test_asgd (__main__.OptimizerTests)": ["", [""]],
+  "test_anadam (__main__.OptimizerTests)": ["", [""]],
+  "test_rmsprop (__main__.OptimizerTests)": ["", [""]],
+  "test_rprop (__main__.OptimizerTests)": ["", [""]]
 }
