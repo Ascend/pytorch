@@ -177,6 +177,7 @@ aclError OpCommandImpl::InnerRun(
                 nullptr);
             if (ret != ACL_ERROR_NONE) {
                 CHECK_AND_THROW_FORCE_STOP(ret);
+                CHECK_AND_THROW_UCE_ERROR(ret);
                 C10_NPU_SHOW_ERR_MSG();
                 TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!", PTA_ERROR(ErrCode::ACL));
             }
