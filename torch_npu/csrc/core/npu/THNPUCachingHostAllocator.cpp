@@ -133,6 +133,7 @@ struct HostAllocator {
         // allocate a new block if no cached allocation is found
         err = aclrtMallocHost(ptr, size);
         CHECK_AND_THROW_FORCE_STOP(err);
+        CHECK_AND_THROW_UCE_ERROR(err);
         if (err != ACL_ERROR_NONE) {
             return err;
         }
@@ -161,6 +162,7 @@ struct HostAllocator {
         // insert npu events for each stream on which this block was used. This
         aclError err = insertEvents(block);
         CHECK_AND_THROW_FORCE_STOP(err);
+        CHECK_AND_THROW_UCE_ERROR(err);
         if (err != ACL_ERROR_NONE) {
             return err;
         }
@@ -182,6 +184,7 @@ struct HostAllocator {
             aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
             if (error != ACL_ERROR_NONE) {
                 CHECK_AND_THROW_FORCE_STOP(error);
+                CHECK_AND_THROW_UCE_ERROR(error);
                 C10_NPU_SHOW_ERR_MSG();
                 AT_ERROR("ACL stream synchronize failed.");
                 return error;
