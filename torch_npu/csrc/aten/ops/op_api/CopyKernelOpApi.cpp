@@ -54,6 +54,7 @@ void copy_between_host_and_device_opapi(at::Tensor& dst, const at::Tensor& src, 
         NPU_CHECK_ERROR(ret, "aclrtMemcpy");
         if (error != ACL_ERROR_NONE) {
             CHECK_AND_THROW_FORCE_STOP(error);
+            CHECK_AND_THROW_UCE_ERROR(error);
             C10_NPU_SHOW_ERR_MSG();
             if (c10_npu::option::OptionsManager::IsResumeModeEnable()) {
                 TORCH_NPU_WARN("ACL stream synchronize failed, error code:", error,
