@@ -48,11 +48,12 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend310B2", SocVersion::Ascend310B2},
     {"Ascend310B3", SocVersion::Ascend310B3},
     {"Ascend310B4", SocVersion::Ascend310B4},
-    {"Ascend910C1", SocVersion::Ascend910C1},
-    {"Ascend910C2", SocVersion::Ascend910C2},
-    {"Ascend910C3", SocVersion::Ascend910C3},
-    {"Ascend910C4", SocVersion::Ascend910C4},
-    {"Ascend910C4-1", SocVersion::Ascend910C4_1}};
+    {"Ascend910_9391", SocVersion::Ascend910_9391},
+    {"Ascend910_9392", SocVersion::Ascend910_9392},
+    {"Ascend910_9381", SocVersion::Ascend910_9381},
+    {"Ascend910_9382", SocVersion::Ascend910_9382},
+    {"Ascend910_9372", SocVersion::Ascend910_9372},
+    {"Ascend910_9361", SocVersion::Ascend910_9361}};
 
 bool SetSocVersion(const char* const socVersion) {
   if (socVersion == nullptr ||
@@ -88,7 +89,7 @@ bool IsSupportInfNan() {
         return supportInfNan;
     }
     return ((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
-        (GetSocVersion() >= SocVersion::Ascend910C1);
+        (GetSocVersion() >= SocVersion::Ascend910_9391);
 }
 
 bool IsBF16Supported()
