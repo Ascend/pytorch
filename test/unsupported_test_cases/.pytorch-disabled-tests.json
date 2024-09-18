@@ -31427,5 +31427,14 @@
   "test_profiler_experimental_tree_with_memory_and_stack (__main__.TestProfilerTree)": ["", [""]],
   "test_profiler_experimental_tree_with_stack_and_modules (__main__.TestProfilerTree)": ["", [""]],
   "test_profiler_experimental_tree_with_stack_and_torch_dispatch (__main__.TestProfilerTree)": ["", [""]],
-  "test_profiler_experimental_tree_with_stack_and_torch_function (__main__.TestProfilerTree)": ["", [""]]
+  "test_profiler_experimental_tree_with_stack_and_torch_function (__main__.TestProfilerTree)": ["", [""]],
+  "test_adadelta (__main__.OptimizerTests)": ["", [""]],
+  "test_adagrad (__main__.OptimizerTests)": ["", [""]],
+  "test_adam (__main__.OptimizerTests)": ["", [""]],
+  "test_adamax (__main__.OptimizerTests)": ["", [""]],
+  "test_adamw (__main__.OptimizerTests)": ["", [""]],
+  "test_asgd (__main__.OptimizerTests)": ["", [""]],
+  "test_anadam (__main__.OptimizerTests)": ["", [""]],
+  "test_rmsprop (__main__.OptimizerTests)": ["", [""]],
+  "test_rprop (__main__.OptimizerTests)": ["", [""]]
 }
