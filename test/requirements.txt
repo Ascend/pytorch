@@ -9,8 +9,8 @@ numpy==1.24.4
 onnx==1.16.1
 onnxruntime==1.16.3
 onnxscript==0.1.0.dev20240418
-Pillow==9.1.0
-requests==2.31.0
+Pillow==10.3.0
+requests==2.32.0
 torch_geometric==2.5.3
 transformers==4.40.0
 
