@@ -21,7 +21,7 @@ public:
 private:
     bool isEnabled_;
     bool isPaused_;
-    FlopCountContext() : isEnabled_(false),  isPaused_(false), recordedCount(0), traversedCount(0) {}
+    FlopCountContext() : recordedCount(0), traversedCount(0), isEnabled_(false),  isPaused_(false) {}
 };
 
 #endif // FLOP_COUNT_CONTEXT_H
