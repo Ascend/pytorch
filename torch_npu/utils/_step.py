@@ -78,8 +78,9 @@ class SilentCheckState:
     def __init__(self):
         self.init_param()
         self.init_marks = {}
-        self.weight_hook_flags = {}
-        self.last_weight_hook_flags = {}
+        self.weight_hook_handles = {}
+        self.last_weight_hook_handles = {}
+        self.dtype_support = True
 
     def init_param(self):
         self.first_forward = True
@@ -100,6 +101,18 @@ class SilentCheckState:
             torch_npu._C._npu_set_module_train_state("train")
         else:
             torch_npu._C._npu_set_module_train_state("infer")
+
+    def check_tensor_dtype(self, tensor):
+        if not self.dtype_support:
+            return
+        if isinstance(tensor, torch.Tensor) and tensor.requires_grad and tensor.dtype == torch.float16:
+            self.dtype_support = False
+
+    def check_dtype(self, module, *args):
+        for x in args:
+            self.check_tensor_dtype(x)
+        for param_name, param in module._parameters.items():
+            self.check_tensor_dtype(param)
 
     def search_first_weight(self, module):
         # Search the first weight
@@ -145,15 +158,15 @@ class SilentCheckState:
             if self.first_tensor_id != self.last_tensor_id:
                 if self.last_tensor is not None:
                     self.last_tensor.register_hook(output_hook)
-                if not self.last_weight_hook_flags.get(self.first_module_id, False):
+                if self.last_weight_hook_handles.get(self.first_module_id, None) is None:
                     if self.last_weight is not None:
-                        self.last_weight.register_hook(output_hook)
-                        self.last_weight_hook_flags[self.first_module_id] = True
-                if not self.weight_hook_flags.get(self.first_module_id, False):
+                        last_weight_handle = self.last_weight.register_hook(output_hook)
+                        self.last_weight_hook_handles[self.first_module_id] = last_weight_handle
+                if self.weight_hook_handles.get(self.first_module_id, None) is None:
                     if self.first_weight is not None:
-                        self.first_weight.register_hook(input_hook("", asd_flag))
-                        self.weight_hook_flags[self.first_module_id] = True
-                self.init_marks[self.first_module_id] = True
+                        first_weight_handle = self.first_weight.register_hook(input_hook("", asd_flag))
+                        self.weight_hook_handles[self.first_module_id] = first_weight_handle
+            self.init_marks[self.first_module_id] = True
 
 
 silent_check = SilentCheckState()
@@ -274,6 +287,18 @@ def _custom_call(self, *args, **kwargs):
         if silent_check.first_forward:
             silent_check.init_module_info(id(self), self.training)
             self.outer = True
+
+        if silent_check.is_training and not silent_check.init_marks.get(silent_check.first_module_id, False):
+            silent_check.check_dtype(self, *args)
+            if not silent_check.dtype_support:
+                for value in silent_check.weight_hook_handles.values():
+                    if value is not None:
+                        value.remove()
+                for value in silent_check.last_weight_hook_handles.values():
+                    if value is not None:
+                        value.remove()
+                asd_enable = 0
+                warnings.warn(f"Warning: Module has unsupported dtype tensor, silent check will be closed.")
 
         # Search the first tensor (if the first tensor is input)
         silent_check.register_input_hook_before_call(asd_enable, *args)
