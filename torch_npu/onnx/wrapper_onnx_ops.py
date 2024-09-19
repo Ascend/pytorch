@@ -878,12 +878,12 @@ class _NPUMoeFinalizeRoutingOP(torch.autograd.Function):
         return torch.ops.npu.npu_moe_finalize_routing(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, expanded_permuted_rows: Tensor, skip1: Tensor, skip2_optional: Optional[Tensor], bias: Tensor,
-                 scales: Tensor, expanded_src_to_dst_row: Tensor, expert_for_source_row: Tensor):
-        if skip2_optional is None:
-            skip2_optional = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
-        return g.op("npu::NPUMoeFinalizeRouting", expanded_permuted_rows, skip1, skip2_optional, bias,
-                 scales, expanded_src_to_dst_row, expert_for_source_row)
+    def symbolic(g, expanded_permuted_rows: Tensor, skip1: Tensor, skip2: Optional[Tensor], bias: Tensor,
+                 scales: Tensor, expanded_src_to_dst_row: Tensor, export_for_source_row: Tensor):
+        if skip2 is None:
+            skip2 = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        return g.op("npu::NPUMoeFinalizeRouting", expanded_permuted_rows, skip1, skip2, bias,
+                 scales, expanded_src_to_dst_row, export_for_source_row)
 
 
 def _wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
@@ -1179,10 +1179,10 @@ def _wrapper_npu_quantize(inputs, scales, zero_points, dtype, axis, div_mode=Tru
     return _NPUQuantizeOP.apply(inputs, scales, zero_points, dtype, axis, div_mode)
 
 
-def _wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional, bias,
-                                      scales, expanded_src_to_dst_row, expert_for_source_row):
-    return _NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2_optional, bias,
-                                          scales, expanded_src_to_dst_row, expert_for_source_row)
+def _wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2, bias,
+                                      scales, expanded_src_to_dst_row, export_for_source_row):
+    return _NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2, bias,
+                                          scales, expanded_src_to_dst_row, export_for_source_row)
 
 
 def _add_onnx_ops():
