@@ -27,6 +27,7 @@ from ..prof_view._trace_view_parser import TraceViewParser
 from ..prof_view._memory_view_parser import MemoryViewParser
 from ..prof_view._integrate_parser import IntegrateParser
 from ..prof_view._communication_parser import CommunicationParser
+from ..prof_view._memory_timeline_parser import MemoryTimelineParser
 from ..prof_view.prof_db_parse._fwk_api_db_parser import FwkApiDbParser
 from ..prof_view.prof_db_parse._memory_db_parser import MemoryDbParser
 from ..prof_view.prof_db_parse._db_parser import DbParser
@@ -90,7 +91,8 @@ class ParserConfig:
             ],
             Constant.EXPORT_CHROME_TRACE: [TracePreParser, TreeBuildParser, CANNExportParser, CANNTimelineParser,
                                            TraceViewParser],
-            Constant.EXPORT_STACK: [TreeBuildParser, CANNExportParser, CANNTimelineParser, StackViewParser]
+            Constant.EXPORT_STACK: [TreeBuildParser, CANNExportParser, CANNTimelineParser, StackViewParser],
+            Constant.EXPORT_MEMORY_TIMELINE: [MemoryTimelineParser]
         },
         Constant.Db: {
             Constant.TENSORBOARD_TRACE_HANDLER: [
@@ -114,7 +116,8 @@ class ParserConfig:
         Constant.Text: {
             Constant.TENSORBOARD_TRACE_HANDLER: [OperatorViewParser, TraceViewParser, MemoryViewParser],
             Constant.EXPORT_CHROME_TRACE: [TraceViewParser],
-            Constant.EXPORT_STACK: [StackViewParser]
+            Constant.EXPORT_STACK: [StackViewParser],
+            Constant.EXPORT_MEMORY_TIMELINE: [MemoryTimelineParser]
         },
         Constant.Db: {
             Constant.TENSORBOARD_TRACE_HANDLER: [CANNExportParser, DbParser, FwkApiDbParser, MemoryDbParser,
@@ -139,6 +142,7 @@ class ParserConfig:
         RelationParser: Constant.RELATION_PARSER,
         StackViewParser: Constant.STACK_VIEW_PARSER,
         MemoryPrepareParser: Constant.MEMORY_PREPARE,
+        MemoryTimelineParser: Constant.MEMORY_TIMELINE_PARSER,
 
         # db parser
         DbParser: Constant.DB_PARSER,

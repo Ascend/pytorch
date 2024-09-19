@@ -1,6 +1,7 @@
 import csv
 import json
 import os.path
+import gzip
 
 from typing import Dict, Optional
 from torch_npu.utils._error_code import ErrCode, prof_error
@@ -106,6 +107,20 @@ class FileManager:
             with open(output_path, "w") as file:
                 data = json.dumps(data, indent=indent, ensure_ascii=False)
                 file.write(data)
+        except Exception as err:
+            raise RuntimeError(f"Can't create file: {output_path}" + prof_error(ErrCode.SYSCALL)) from err
+
+    @classmethod
+    def create_json_gz_file_by_path(cls, output_path: str, data: list) -> None:
+        if not data:
+            return
+        dir_name = os.path.dirname(output_path)
+        PathManager.make_dir_safety(dir_name)
+        PathManager.create_file_safety(output_path)
+        PathManager.check_directory_path_writeable(output_path)
+        try:
+            with gzip.open(output_path, "wt") as file:
+                json.dump(data, file)
         except Exception as err:
             raise RuntimeError(f"Can't create file: {output_path}" + prof_error(ErrCode.SYSCALL)) from err
 

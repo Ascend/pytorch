@@ -1,14 +1,21 @@
+import io
 import dataclasses
 import itertools as it
 from enum import Enum
 from collections import defaultdict
-from typing import List, Set, Dict, DefaultDict, Optional, Tuple, Iterator, Any, cast
+from typing import List, Set, Dict, DefaultDict, Optional, Tuple, Iterator, Any
+from base64 import b64encode
+import importlib.util
 
+import numpy as np
 import torch
 from torch._C import FunctionSchema
 from torch.profiler._utils import traverse_dfs
 
-from ..prof_common_func._constant import print_warn_msg
+from ._base_parser import BaseParser
+from ..prof_common_func._path_manager import ProfilerPathManager
+from ..prof_common_func._file_manager import FileManager
+from ..prof_common_func._constant import Constant, print_warn_msg, print_error_msg
 from ..prof_parse._event_tree_parser import (
     EventTree,
     _EventType,
@@ -28,8 +35,6 @@ _DEVICE_DICT = {
     "cpu": _DeviceType.CPU.value,
     "npu": _DeviceType.NPU.value,
 }
-
-_B_TO_GB = 1024**3
 
 DeviceKeyAndVersion = Tuple["DeviceKey", int]
 TensorKeyAndVersion = Tuple["TensorKey", int]
@@ -85,9 +90,10 @@ class DeviceKey:
 class Storage:
     """
     Bundle storage pointer and allocation id.
-    The `allocation_id` is a unique id for each storage, calculated in calculate_unique_id().
-    While the allocation ID is sufficient for memory profiling, memory address pointers help
-    verify the accuracy of the results.
+    The `allocation_id` is a unique id for each storage, calculated in
+    calculate_unique_id(). Actually the allocation ID is sufficient for
+    memory profiling, sometimes however memory address pointers can help
+    verify the correctness of the results.
     """
     allocation_id: int
     ptr: int
@@ -189,13 +195,16 @@ def extract_parameters(event: _ProfilerEvent) -> Iterator[TensorKey]:
             yield param
 
 
-def extract_gradients(event: _ProfilerEvent) -> Iterator[Tuple[Optional[TensorKey], TensorKey]]:
-    for param, param_grad in extract_parameters_and_gradients(event):
+def extract_gradients(event: _ProfilerEvent) -> Iterator[TensorKey]:
+    for _, param_grad in extract_parameters_and_gradients(event):
         if param_grad is not None:
-            yield param, param_grad
+            yield param_grad
 
 
 def get_scopes(event: Optional[_ProfilerEvent]) -> Tuple[_RecordScope, ...]:
+    """
+    Get all scopes from the current node to the root node.
+    """
     scopes = []
     while event:
         if event.tag == _EventType.TorchOp:
@@ -381,7 +390,7 @@ class DataFlowNode:
             if key is not None:
                 edges[key].input_version = self._graph.lookup(key) if key else -1
 
-                # Teh conservation view is that a tensor to be mutable if encounter
+                # The conservation view is that a tensor to be mutable if encounter
                 # a schema where it is a mutable argument OR if it is ambiguous.
                 # If a tensor is mutable, assume it is mutated by the operator.
                 mutated = (True in mutable_set) or (tuple(mutable_set) == (None,))
@@ -450,13 +459,13 @@ class DataFlowGraph:
         return tuple(self._flow_nodes)
     
     def validate(self) -> None:
-        # Check that each (Tensor, version) pair has a unique creation node.
+        # Check that each (TensorKey, version) pair has a unique creation node.
         outputs: Set[Tuple[TensorKey, int]] = set()
         for node in self.flow_nodes:
             node_outputs = set(node.outputs.items())
             duplicates = outputs & node_outputs
-            if duplicates:
-                print_warn_msg(f"Warn in data flow graph: check that the memory record is complete.")
+            if duplicates and any(key.device_type == _DeviceType.NPU.value for key, _ in duplicates):
+                print_warn_msg(f"Warn in data flow graph: the NPU memory record maybe incomplete.")
                 return
             outputs |= node_outputs
 
@@ -465,43 +474,44 @@ class DataFlowGraph:
         return self._leaf_events
     
     @staticmethod
-    def leaf_op(event: _ProfilerEvent) -> bool:
+    def _leaf_op(event: _ProfilerEvent) -> bool:
         return event.tag == _EventType.TorchOp and (
             event.extra_fields.scope == _RecordScope.BACKWARD_FUNCTION.value
             or bool(SchemaMatcher.match_schemas(event.extra_fields)))
     
-    def get_children(self, event: _ProfilerEvent) -> List[_ProfilerEvent]:
-        if self.leaf_op(event) or event.tag == _EventType.Allocation:
+    def _get_children(self, event: _ProfilerEvent) -> List[_ProfilerEvent]:
+        if self._leaf_op(event) or event.tag == _EventType.Allocation:
             return []
         return event.children
 
     def _extract_leaf_events(self, root_nodes: List[_ProfilerEvent]) -> Tuple[_ProfilerEvent, ...]:
         """
-        Partially traverse the op tree and extract top level ops.
+        Get nodes which are vertices in data flow graph by travesing
+        the event tree partially.
         Consider the following code:
         ```
-        with record_function("My annotation"):
+        with record_function("## Init ##"):
             x.zero_()
             y.zero_()
         ```
-        The op tree (assuming no Autograd) will look like:
+        The event tree will look like:
           <Python context>
-            TorchOp: "My annotation"
+            TorchOp: "## Init ##"
               TorchOp: zero_
                 TorchOp: fill_
               TorchOp: zero_
                 TorchOp: fill_
 
         It's important to select the right operator as a node in the
-        dataflow graph. In this case, choosing "My annotation" loses
+        dataflow graph. In this case, choosing "## Init ##" loses
         detail from subsequent calls, while `fill_` makes the graph
         too detailed. The best nodes are top-level torch ops matching
         the torch operator schema. Memory allocations and frees should
         also be included to capture all memory usage.
         """
         leaf_events: List[_ProfilerEvent] = []
-        for event in traverse_dfs(root_nodes, children_fn=lambda e: self.get_children(e)):
-            if self.leaf_op(event) or event.tag == _EventType.Allocation:
+        for event in traverse_dfs(root_nodes, children_fn=lambda e: self._get_children(e)):
+            if self._leaf_op(event) or event.tag == _EventType.Allocation:
                 leaf_events.append(event)
         return tuple(sorted(leaf_events, key=lambda x: x.start_time_ns))
     
@@ -708,7 +718,7 @@ class MemoryProfile:
 
         # Get gradient Tensors from `AccumulateGrad` ops directly.
         for event in traverse_dfs(self._root_nodes):
-            for _, param_grad in extract_gradients(event):
+            for param_grad in extract_gradients(event):
                 self._categories.set_by_id(param_grad, Category.GRADIENT)
 
         # Temporary Tensors denotes those Tensors only used in one operation.
@@ -834,3 +844,225 @@ class MemoryProfile:
             for key, version in node.outputs.items():
                 if version == 0 or self._categories.get(key, version - 1) in prior:
                     self._categories.setdefault_by_version(key, version, Category.AUTOGRAD_DETAIL)
+
+
+class MemoryProfileTimeline:
+    def __init__(self, memory_profile: MemoryProfile):
+        """
+        The timeline contains elements of the form [timestamp, action, (TensorKey, version),
+        numbytes], representing actions (pre-existing, create, destroy, or increment_version)
+        on a memory chunk associated with a specific Tensor (identified by (TensorKey, version)).
+        Categories map each (TensorKey, version) pair to a category, and the memory history
+        tracks peak memory usage.
+        """
+        self.timeline = memory_profile.timeline
+        self.categories = memory_profile._categories
+        self.memory_history = memory_profile.memory_history
+    
+    @staticmethod
+    def _parse_device_info(device_str: str) -> Optional[DeviceKey]:
+        # If the device is "cpu".
+        if device_str == "cpu":
+            return DeviceKey(_DEVICE_DICT.get(device_str), -1)
+        
+        # If the device is "npu:0".
+        device_str_list = device_str.strip().split(":")
+        if len(device_str_list) != 2:
+            print_error_msg(f"{device_str} is not in a valid format.")
+            return None
+        
+        device_type = _DEVICE_DICT.get(device_str_list[0])
+        if device_type is None:
+            print_error_msg(f"{device_str} is not in a valid format.")
+            return None
+        
+        try:
+            device_index = int(device_str_list[1])
+            return DeviceKey(device_type, device_index)
+        except ValueError:
+            return None
+
+    def _update_sizes_by_category(self, sizes_by_category, key, version, delta):
+        category = self.categories.get(key, version) if isinstance(key, TensorKey) else None
+        category_index = _CATEGORY_TO_INDEX[category] + 1
+        sizes_by_category[-1][category_index] += int(delta)
+
+    def _get_category_index(self, key, version) -> int:
+        category = self.categories.get(key, version) if isinstance(key, TensorKey) else None
+        return _CATEGORY_TO_INDEX[category]
+    
+    def _construct_timeline(self, device_str: str) -> Tuple[List[int], List[List[int]]]:
+        """
+        For each timestamp in the `timesstamps`, compute the storage size for each category
+        and store the results in the `sizes`. The `sizes_by_category` will have the same
+        length as the `timestamps`, with each entry corresponding to a timestamp in timestamps.
+        """
+        timestamps: List[int] = []
+        sizes_by_category: List[List[int]] = []
+
+        device = self._parse_device_info(device_str)
+        if device is None:
+            return timestamps, sizes_by_category
+
+        ts_min = -1
+        for ts, action, (key, version), numbytes in self.timeline:
+            if key.device_type != device.device_type or key.device_index != device.device_index:
+                continue
+
+            # Convert timestamps from ns to us.
+            if ts != -1:
+                ts = int(ts / Constant.NS_TO_US)
+            
+            # Save the smallest timestamp as the timestemp of pre-existing allocations.
+            if ts_min == -1 or (ts < ts_min and ts > 0):
+                ts_min = ts
+            
+            # Initialize the memory usage of the first timestamp.
+            if len(timestamps) == 0:
+                timestamps.append(ts)
+                sizes_by_category.append([0 for _ in _CATEGORY_TO_INDEX] + [0])
+            # Copy the memory usage of the last timestamp if the current timestamp
+            # is later than the last timestamp.
+            elif ts != timestamps[-1]:
+                timestamps.append(ts)
+                sizes_by_category.append(sizes_by_category[-1].copy())
+
+            # For this timestamp, calculate storage size of each category according to action.
+            if action in (Action.PREEXISTING, Action.CREATE):
+                self._update_sizes_by_category(sizes_by_category, key, version, numbytes)
+            elif action == Action.INCREMENT_VERSION:
+                self._update_sizes_by_category(sizes_by_category, key, version, -numbytes)
+                self._update_sizes_by_category(sizes_by_category, key, version + 1, numbytes)
+            elif action == Action.DESTROY:
+                self._update_sizes_by_category(sizes_by_category, key, version, -numbytes)
+
+        timestamps = [ts_min if t < 0 else t for t in timestamps]
+        return timestamps, sizes_by_category
+    
+    @staticmethod
+    def _draw_memory_timeline(timestamps: List[int], stacked: List[List[int]], 
+                             max_memory_allocated: int, max_memory_reserved: int) -> Optional[str]:
+        # Import matplotlib.
+        module_name = "matplotlib.pyplot"
+        try:
+            plt = importlib.import_module(module_name)
+        except ModuleNotFoundError:
+            print_error_msg(f"{module_name} was not found.")
+            return None
+        
+        # Plot memory timeline as stacked data
+        fig = plt.figure(figsize=(20, 12), dpi=80)
+        axes = fig.gca()
+        for category, color in _CATEGORY_TO_COLORS.items():
+            idx = _CATEGORY_TO_INDEX[category]
+            axes.fill_between(timestamps / Constant.US_TO_MS, stacked[:, idx], stacked[:, idx + 1],
+                              color=color, alpha=0.7)
+        fig.legend(["Unknown" if category is None else category.name for category in _CATEGORY_TO_COLORS])
+        axes.set_xlabel("Time (ms)")
+        axes.set_ylabel("Memory (GB)")
+        title = "\n\n".join([f"Max memory allocated: {max_memory_allocated / Constant.B_TO_GB:.2f} GiB \n"
+                             f"Max memory reserved: {max_memory_reserved / Constant.B_TO_GB:.2f} GiB"])
+        axes.set_title(title)
+
+        # Embed the memory timeline image into the HTML file
+        buffer = io.BytesIO()
+        fig.savefig(buffer, format="png")
+        buffer.seek(0)
+        encoded = b64encode(buffer.read()).decode("utf-8")
+        html = f"""<html>
+<head><meta charset="utf-8" /><title>Memory Timeline HTML</title></head>
+<body>
+  <img src='data:image/png;base64,{encoded}'>
+</body>
+</html>"""
+        return html
+
+    def export_memory_timeline_json(self, output_path: str, device_str: str) -> None:
+        """
+        Saves `times` and `sizes` as a json file. `times` is a list of timestamp
+        sorted in ascending order. For each timestamp, there is the memory usage
+        of each category in `sizes` list at the time of the current timestamp.
+        """
+        # Get memory timeline data in specified device.
+        timestamps, sizes_by_category = self._construct_timeline(device_str)
+        realpath = ProfilerPathManager.get_realpath(output_path)
+        if output_path.endswith(".gz"):
+            FileManager.create_json_gz_file_by_path(realpath, [timestamps, sizes_by_category])
+        else:
+            FileManager.create_json_file_by_path(realpath, [timestamps, sizes_by_category])
+    
+    def export_memory_timeline_json_raw(self, output_path: str, device_str: str) -> None:
+        """
+        Saves raw memory events in a compressed json file. Each event consists of
+        (timestamp, action, memory bytes, category).
+        """
+        device = self._parse_device_info(device_str)
+        if device is None:
+            return
+        
+        raw_events: List[Tuple[int, int, int, int]] = []
+        for ts, action, (key, version), numbytes in self.timeline:
+            if key.device_type != device.device_type or key.device_index != device.device_index:
+                continue
+
+            if action in (Action.PREEXISTING, Action.CREATE):
+                raw_events.append((ts, _ACTION_TO_INDEX[action], numbytes, self._get_category_index(key, version)))
+            elif action == Action.INCREMENT_VERSION:
+                raw_events.append((ts, _ACTION_TO_INDEX[action], -numbytes, self._get_category_index(key, version)))
+                raw_events.append((ts, _ACTION_TO_INDEX[action], numbytes, self._get_category_index(key, version + 1)))
+            elif action == Action.DESTROY:
+                raw_events.append((ts, _ACTION_TO_INDEX[action], -numbytes, self._get_category_index(key, version)))
+        
+        realpath = ProfilerPathManager.get_realpath(output_path)
+        FileManager.create_json_gz_file_by_path(realpath, raw_events)
+
+    def export_memory_timeline_html(self, output_path: str, device_str: str) -> None:
+        """
+        Stores the memory timeline plot as PNG format in an HTML file.
+        """
+        # Get memory timeline data.
+        timestamps, sizes_by_category = self._construct_timeline(device_str)
+        timestamps = np.array(timestamps)
+        sizes_by_category = np.array(sizes_by_category)
+        if len(timestamps) == 0:
+            print_error_msg("No profiling data.")
+            return
+        
+        ts_min = min(timestamps)
+        timestamps -= ts_min                                                # For this timeline, start at 0.
+        stacked = np.cumsum(sizes_by_category, axis=1) / Constant.B_TO_GB   # Convert from B to GB.
+        
+        # Find max allocated size and max reserved size from memory history.
+        device = self._parse_device_info(device_str)
+        max_memory_allocated = max((allocated for key, _, allocated, _ in self.memory_history
+                                    if key == device), default=0)
+        max_memory_reserved = max((reserved for key, _, _, reserved in self.memory_history
+                                   if key == device), default=0)
+
+        html = self._draw_memory_timeline(timestamps, stacked, max_memory_allocated, max_memory_reserved)
+        if html is None:
+            return
+        FileManager.create_text_file_by_path(ProfilerPathManager.get_realpath(output_path), html)
+
+
+class MemoryTimelineParser(BaseParser):
+    def __init__(self, name: str, param_dict: dict):
+        super().__init__(name, param_dict)
+        self._device = self._param_dict.get("device")
+
+    def run(self, deps_data: dict):
+        try:
+            mem_profile = MemoryProfile(self._profiler_path)
+
+            # Depending on the file suffix, save the data as html, json or raw.json.gz.
+            mem_timeline = MemoryProfileTimeline(mem_profile)
+            if self._output_path.endswith(".html"):
+                mem_timeline.export_memory_timeline_html(self._output_path, self._device)
+            elif self._output_path.endswith("raw.json.gz"):
+                mem_timeline.export_memory_timeline_json_raw(self._output_path, self._device)
+            else:
+                mem_timeline.export_memory_timeline_json(self._output_path, self._device)
+        except Exception:
+            print_error_msg(f"Failed to generate {self._output_path}.")
+            return Constant.FAIL, None
+        return Constant.SUCCESS, None

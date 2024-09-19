@@ -16,7 +16,7 @@ class TestActionController(TestCase):
         self.prof_if.finalize_trace = MagicMock(name='finalize_trace')
         self.on_trace_ready = MagicMock(name='on_trace_ready')
         self.prof_if.delete_prof_dir = MagicMock(name='delete_prof_dir')
-        self.action_controller = ProfActionController(self.prof_if, self.on_trace_ready)
+        self.action_controller = ProfActionController(self, self.prof_if, self.on_trace_ready)
         self.test_cases = [
             # call_cnt_list: [init_trace, start_trace, stop_trace, finalize_trace, on_trace_ready, delete_prof_dir]
             [ProfilerAction.NONE, ProfilerAction.NONE, [0, 0, 0, 0, 0, 0]],
