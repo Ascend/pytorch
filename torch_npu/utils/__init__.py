@@ -1,4 +1,4 @@
-import torch_npu
+from torch_npu import _C
 from ._module import _apply_module_patch
 from .tensor_methods import _add_tensor_methods
 from .storage import _add_storage_methods
@@ -22,5 +22,5 @@ __all__ = ["npu_combine_tensors", "get_part_combined_tensor", "is_combined_tenso
 
 
 # init flopcount
-if not torch_npu._C._flops_count_init():
+if not _C._flops_count_init():
     raise RuntimeError("flopcount initialization failed" + prof_error(ErrCode.UNAVAIL))
