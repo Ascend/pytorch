@@ -11,9 +11,11 @@ __all__ = []
 class ProfActionController:
     def __init__(
         self,
+        prof,
         prof_inst: _ProfInterface,
         on_trace_ready: Optional[Callable[..., Any]] = None,        
     ) -> None:
+        self.prof = prof
         self.prof_inst = prof_inst
         self.action_map = self._init_action_map()
         self.on_trace_ready = on_trace_ready
@@ -26,7 +28,7 @@ class ProfActionController:
 
     def _trace_ready(self):
         if self.on_trace_ready:
-            self.on_trace_ready(self.prof_inst)
+            self.on_trace_ready(self.prof)
 
     def _init_action_map(self):
         action_map = {

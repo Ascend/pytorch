@@ -34,6 +34,7 @@ class Constant(object):
     # tlv constant struct
     CONSTANT_BYTES = "constant_bytes"
     NS_TO_US = 1000
+    US_TO_MS = 1000
     NS_TO_MS = 1000 * 1000
 
     # gc record struct format
@@ -69,6 +70,7 @@ class Constant(object):
     TENSORBOARD_TRACE_HANDLER = "tensorboard_trace_handler"
     EXPORT_CHROME_TRACE = "export_chrome_trace"
     EXPORT_STACK = "export_stack"
+    EXPORT_MEMORY_TIMELINE = "export_memory_timeline"
 
     ACL_OP_EXE_NAME = ("AscendCL@aclopCompileAndExecute".lower(), "AscendCL@aclopCompileAndExecuteV2".lower())
     AI_CORE = "AI_CORE"
@@ -81,6 +83,7 @@ class Constant(object):
     B_TO_KB = 1024.0
     KB_TO_MB = 1024.0
     B_TO_MB = 1024.0 ** 2
+    B_TO_GB = 1024.0 ** 3
     CANN_OP_MEM_LEN = 10
     PTA_OP_MEM_LEN = 14
     CANN_MEM_RECORD_LEN = 4
@@ -177,6 +180,7 @@ class Constant(object):
     RELATION_PARSER = "relation"
     STACK_VIEW_PARSER = "export_stack"
     MEMORY_PREPARE = "memory_prepare"
+    MEMORY_TIMELINE_PARSER = "memory_timeline"
 
     DB_PARSER = "cann_db"
     FWK_API_DB_PARSER = "fwk_api_db"

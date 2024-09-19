@@ -4,6 +4,7 @@ from sys import getsizeof
 from typing import Optional, Iterable, Callable, Any
 
 import torch.autograd.profiler as prof
+import torch_npu.npu
 from torch_npu._C._profiler import ProfilerActivity
 from torch_npu.utils._error_code import ErrCode, prof_error
 
@@ -129,6 +130,27 @@ class _KinetoProfile:
             return
         self.prof_if.analyse(Constant.EXPORT_STACK, output_path, metric=metric)
 
+    @no_exception_func()
+    def export_memory_timeline(self, output_path: str, device: Optional[str] = None) -> None:
+        if device is None:
+            device = "npu:0" if torch_npu.npu.is_available() else "cpu"
+        
+        missing = []
+        if not self.prof_if.record_shapes:
+            missing.append("record_shapes=True")
+        if not self.prof_if.profile_memory:
+            missing.append("profile_memory=True")
+        if not (self.prof_if.with_stack or self.prof_if.with_modules):
+            missing.append("with_stack=True or with_modules=True")
+        if missing:
+            print_warn_msg(f"{', '.join(missing)} required for memory profiling.")
+            return
+
+        if not self.prof_if.prof_path:
+            print_warn_msg("Invalid profiling path.")
+            return
+        self.prof_if.analyse(Constant.EXPORT_MEMORY_TIMELINE, output_path, device=device)
+
     def _check_str_valid(self, input_str: str):
         if len(input_str) > self.max_str_len:
             return False
@@ -144,7 +166,7 @@ def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None, ana
 
     def handler_fn(prof_inst) -> None:
         if analyse_flag:
-            prof_inst.analyse()
+            prof_inst.prof_if.analyse()
 
     return handler_fn
 
@@ -165,7 +187,13 @@ class profile(_KinetoProfile):
             # deprecated:
             use_cuda: Optional[bool] = None,
     ):
-        super().__init__()
+        super().__init__(activities=activities,
+                        record_shapes=record_shapes,
+                        profile_memory=profile_memory,
+                        with_stack=with_stack,
+                        with_flops=with_flops,
+                        with_modules=with_modules,
+                        experimental_config=experimental_config)
         activities_set = set(activities) if activities else supported_activities()
         if schedule:
             self.schedule = schedule
@@ -192,7 +220,7 @@ class profile(_KinetoProfile):
         if use_cuda is not None:
             print_warn_msg("This is npu environment, use_cuda is invalid")
         self.stopped = False
-        self.action_controller = ProfActionController(self.prof_if, self.on_trace_ready)
+        self.action_controller = ProfActionController(self, self.prof_if, self.on_trace_ready)
 
     @no_exception_func()
     def __enter__(self):
