@@ -2784,7 +2784,7 @@
     "signature": "(sorted_experts, num_experts=1)"
   },
   "torch_npu.npu_moe_finalize_routing": {
-    "signature": "(expanded_permuted_rows, skip1, skip2_optional, bias, scales, expanded_src_to_dst_row, expert_for_source_row)"
+    "signature": "(expanded_permuted_rows, skip1, skip2, bias, scales, expanded_src_to_dst_row, export_for_source_row)"
   },
   "torch_npu.npu_multi_head_attention": {
     "signature": "(query, key, value, query_weight, key_weight, value_weight, attn_mask, out_proj_weight, query_bias, key_bias, value_bias, out_proj_bias, dropout_mask, attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float)"

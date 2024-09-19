@@ -922,12 +922,12 @@ class _NPUMoeFinalizeRoutingOP(torch.autograd.Function):
         return torch.ops.npu.npu_moe_finalize_routing(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, expanded_permuted_rows: Tensor, skip1: Tensor, skip2_optional: Optional[Tensor], bias: Tensor,
-                 scales: Tensor, expanded_src_to_dst_row: Tensor, expert_for_source_row: Tensor):
-        if skip2_optional is None:
-            skip2_optional = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
-        return g.op("npu::NPUMoeFinalizeRouting", expanded_permuted_rows, skip1, skip2_optional, bias,
-                    scales, expanded_src_to_dst_row, expert_for_source_row)
+    def symbolic(g, expanded_permuted_rows: Tensor, skip1: Tensor, skip2: Optional[Tensor], bias: Tensor,
+                 scales: Tensor, expanded_src_to_dst_row: Tensor, export_for_source_row: Tensor):
+        if skip2 is None:
+            skip2 = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        return g.op("npu::NPUMoeFinalizeRouting", expanded_permuted_rows, skip1, skip2, bias,
+                    scales, expanded_src_to_dst_row, export_for_source_row)
 
 
 class _NPUMoeGatingTopKSoftmaxOP(torch.autograd.Function):
@@ -1266,10 +1266,10 @@ def _wrapper_npu_moe_compute_expert_tokens(sorted_experts, num_experts=1):
     return _NPUMoeComputeExpertTokensOP.apply(sorted_experts, num_experts)
 
 
-def _wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional, bias,
-                                     scales, expanded_src_to_dst_row, expert_for_source_row):
-    return _NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2_optional, bias,
-                                         scales, expanded_src_to_dst_row, expert_for_source_row)
+def _wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2, bias,
+                                     scales, expanded_src_to_dst_row, export_for_source_row):
+    return _NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2, bias,
+                                         scales, expanded_src_to_dst_row, export_for_source_row)
 
 
 def _wrapper_npu_moe_gating_top_k_softmax(x, finished, k):
