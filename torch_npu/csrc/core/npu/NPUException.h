@@ -219,10 +219,23 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
 namespace c10_npu {
 
 struct MemUceInfo {
-    int device = 0;
-    std::vector<aclrtMemUceInfo> info;
-    size_t retSize = 0;
-    int mem_type = 0;
+    int device;
+    aclrtMemUceInfo info[MAX_MEM_UCE_INFO_ARRAY_SIZE];
+    size_t retSize;
+    int mem_type;
+
+    MemUceInfo() : device(-1), retSize(0), mem_type(0)
+    {
+        std::memset(info, 0, sizeof(info));
+    }
+
+    void clear()
+    {
+        device = -1;
+        std::memset(info, 0, sizeof(info));
+        retSize = 0;
+        mem_type = 0;
+    }
 };
 
 C10_NPU_API const char *c10_npu_get_error_message();
