@@ -159,38 +159,26 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
         internal_set_names_inplace(self, names);
     }
 
-    auto result = OpPreparation::apply_tensor_without_format(src);
-    if (src.is_complex() && torch_npu::utils::is_npu(src)) {
-        auto real_tensor = at::real(src);
-        auto imag_tensor = OpPreparation::apply_tensor_without_format(src);
-        if (src.is_conj()) {
-            auto tmp = at::imag(src);
-            tmp._set_neg(false);
-            imag_tensor = tmp.neg();
-        } else {
-            imag_tensor = at::imag(src);
-        }
-        EXEC_NPU_CMD(aclnnComplex, real_tensor, imag_tensor, result);
-    } else {
-        result = src;
-        if (src.is_neg()) {
-            src._set_neg(false);
-            result = src.neg();
-        }
-    }
-
     if (at_npu::key::isDeviceTensor(self)) {
-        if (at_npu::key::isDeviceTensor(result)) {
-            c10::SmallVector<at::Tensor, N> inputs = {result};
+        if (at_npu::key::isDeviceTensor(src)) {
+            c10::SmallVector<at::Tensor, N> inputs = {src};
             c10::SmallVector<at::Tensor, N> outputs = {self};
             CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
-            EXEC_NPU_CMD(aclnnInplaceCopy, self, result);
+            EXEC_NPU_CMD(aclnnInplaceCopy, self, src);
         } else {
-            copy_h2d_baseformat_opapi(self, result, non_blocking);
+            copy_h2d_baseformat_opapi(self, src, non_blocking);
+        }
+        if (src.is_complex() && src.is_conj()) {
+            auto real_tensor = at::real(self);
+            auto imag_tensor = at::imag(self).neg();
+            EXEC_NPU_CMD(aclnnComplex, real_tensor, imag_tensor, self);
+        }
+        if (src.is_neg()) {
+            self.neg_();
         }
     } else {
-        if (at_npu::key::isDeviceTensor(result)) {
-            copy_d2h_baseformat_opapi(self, result, non_blocking);
+        if (at_npu::key::isDeviceTensor(src)) {
+            copy_d2h_baseformat_opapi(self, src, non_blocking);
         }
     }
     return self;
