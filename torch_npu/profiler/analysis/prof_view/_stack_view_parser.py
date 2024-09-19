@@ -7,7 +7,7 @@ from ..prof_common_func._constant import Constant, print_error_msg
 from ..prof_common_func._constant import print_warn_msg
 from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_common_func._tree_builder import TreeBuilder
-from ..prof_common_func._file_manager import FdOpen
+from ..prof_common_func._file_manager import FileManager
 from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
 from ..prof_parse._fwk_file_parser import FwkFileParser
 from ....utils.path_manager import PathManager
@@ -37,28 +37,27 @@ class StackViewParser(BaseParser):
         if not self._torch_op_node:
             return
         output_path = os.path.realpath(self._output_path)
-        parent_dir = os.path.dirname(self._output_path)
-        PathManager.make_dir_safety(parent_dir)
         file_name, suffix = os.path.splitext(output_path)
+        data = []
         if suffix != ".log":
             print_warn_msg("Input file is not log file. Change to log file.")
             output_path = file_name + ".log"
-        with FdOpen(output_path, os.O_WRONLY | os.O_CREAT, Constant.FILE_AUTHORITY, "w") as f:
-            for torch_op_node in self._torch_op_node:
-                call_stack = torch_op_node.call_stack
-                if not call_stack:
-                    continue
-                if self._metric == Constant.METRIC_CPU_TIME:
-                    total_dur = convert_ns2us_float(torch_op_node.host_self_dur)
-                else:
-                    total_dur = self._calculate_npu_dur(torch_op_node)
-                if float(total_dur) <= 0:
-                    continue
-                # remove ‘\n’ for each stack frame
-                call_stack_list = list(map(lambda x: x.strip(), call_stack.split(";")))
-                call_stack_list = list(reversed(call_stack_list))
-                call_stack_str = ";".join(call_stack_list)
-                f.write(call_stack_str + " " + str(int(total_dur)) + "\n")
+        for torch_op_node in self._torch_op_node:
+            call_stack = torch_op_node.call_stack
+            if not call_stack:
+                continue
+            if self._metric == Constant.METRIC_CPU_TIME:
+                total_dur = convert_ns2us_float(torch_op_node.host_self_dur)
+            else:
+                total_dur = self._calculate_npu_dur(torch_op_node)
+            if float(total_dur) <= 0:
+                continue
+            # remove ‘\n’ for each stack frame
+            call_stack_list = list(map(lambda x: x.strip(), call_stack.split(";")))
+            call_stack_list = list(reversed(call_stack_list))
+            call_stack_str = ";".join(call_stack_list)
+            data.append(call_stack_str + " " + str(int(total_dur)))
+        FileManager.create_text_file_by_path(output_path, "\n".join(data))
 
     def _calculate_npu_dur(self, torch_op_node: TorchOpNode):
         kernel_self = []
