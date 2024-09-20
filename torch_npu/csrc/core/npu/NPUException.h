@@ -89,6 +89,9 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 #define GRAPH_ERROR(error) formatErrorCode(SubModule::GRAPH, error)
 #define PROF_ERROR(error) formatErrorCode(SubModule::PROF, error)
 
+#define DEVICE_TASK_ABORT "107022"
+#define DEVICE_MEM_ERROR "507053"
+
 inline const char* getErrorFunction(const char* msg)
 {
     return msg;
@@ -102,7 +105,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
 
 #define CHECK_AND_THROW_FORCE_STOP(err_code)                                 \
     auto Error_stop = (int)(err_code);                                       \
-    auto stop_error = c10_npu::acl::AclrtPeekAtLastError(0);                 \
+    auto stop_error = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);                 \
     if ((stop_error) != ACL_ERROR_NONE) {                                    \
         Error_stop = stop_error;                                             \
     }                                                                        \
@@ -122,7 +125,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
 
 #define CHECK_AND_THROW_UCE_ERROR(err_code)                                  \
     auto Error_uce = (int)(err_code);                                        \
-    auto uce_error = c10_npu::acl::AclrtPeekAtLastError(0);                  \
+    auto uce_error = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);                  \
     if ((uce_error) != ACL_ERROR_NONE) {                                     \
         Error_uce = uce_error;                                               \
     }                                                                        \
