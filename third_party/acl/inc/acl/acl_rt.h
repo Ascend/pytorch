@@ -1459,6 +1459,10 @@ ACL_FUNC_VISIBILITY aclError aclrtDeviceTaskAbort(int32_t deviceId, uint32_t tim
 
 ACL_FUNC_VISIBILITY aclError aclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize);
 
+ACL_FUNC_VISIBILITY aclError aclrtGetLastError(int32_t flag);
+
+ACL_FUNC_VISIBILITY aclError aclrtPeekAtLastError(int32_t flag);
+
 #ifdef __cplusplus
 }
 #endif

@@ -65,6 +65,8 @@ LOAD_FUNCTION(aclrtGetMemUceInfo)
 LOAD_FUNCTION(aclrtDeviceTaskAbort)
 LOAD_FUNCTION(aclrtMemUceRepair)
 LOAD_FUNCTION(aclrtCmoAsync)
+LOAD_FUNCTION(aclrtGetLastError)
+LOAD_FUNCTION(aclrtPeekAtLastError)
 
 aclprofStepInfoPtr init_stepinfo() {
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -605,6 +607,32 @@ aclError AclrtCmoAsync(void* src, size_t size, aclrtCmoType cmoType, aclrtStream
     }
     TORCH_CHECK(func, "Failed to find function ", "aclrtCmoAsync", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(src, size, cmoType, stream);
+}
+
+aclError AclrtGetLastError(int32_t flag)
+{
+    typedef aclError (*AclrtGetLastError)(int32_t flag);
+    static AclrtGetLastError func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetLastError) GET_FUNC(aclrtGetLastError);
+    }
+    if (func == nullptr) {
+        return ACL_ERROR_NONE;
+    }
+    return func(flag);
+}
+
+aclError AclrtPeekAtLastError(int32_t flag)
+{
+    typedef aclError (*AclrtPeekAtLastError)(int32_t flag);
+    static AclrtPeekAtLastError func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtPeekAtLastError) GET_FUNC(aclrtPeekAtLastError);
+    }
+    if (func == nullptr) {
+        return ACL_ERROR_NONE;
+    }
+    return func(flag);
 }
 
 aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize)
