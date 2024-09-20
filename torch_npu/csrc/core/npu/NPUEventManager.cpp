@@ -64,8 +64,9 @@ aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event)
         int err = aclrtDestroyEvent(npu_event);
         if (err == ACL_ERROR_NONE) {
             ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", npu_event);
+        } else {
+            CHECK_AND_THROW_FORCE_STOP(err);
         }
-        CHECK_AND_THROW_FORCE_STOP(err);
         return err;
     }
     std::lock_guard<std::mutex> guard(event_queue_mutex_);
@@ -88,8 +89,8 @@ void NPUEventManager::ClearEvent()
         }
 #endif
         auto err = aclrtDestroyEvent(event);
-        CHECK_AND_THROW_FORCE_STOP(err);
         if (err != ACL_ERROR_NONE) {
+            CHECK_AND_THROW_FORCE_STOP(err);
             NPU_CHECK_WARN(err);
         } else {
             ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", event);

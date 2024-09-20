@@ -168,6 +168,10 @@ aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, s
 
 aclError AclrtCmoAsync(void* src, size_t size, aclrtCmoType cmoType, aclrtStream stream);
 
+aclError AclrtGetLastError(int32_t flag);
+
+aclError AclrtPeekAtLastError(int32_t flag);
+
 aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize);
 
 } // namespace acl
