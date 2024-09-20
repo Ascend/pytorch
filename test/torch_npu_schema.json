@@ -2711,9 +2711,6 @@
   "torch_npu.npu_gru": {
     "signature": "(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden, seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first)"
   },
-  "torch_npu.npu_ifmr": {
-    "signature": "(data, data_min, data_max, cumsum, min_percentile, max_percentile, search_start, search_end, search_step, with_offset)"
-  },
   "torch_npu.npu_incre_flash_attention": {
     "signature": "(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths, num_heads, scale_value, input_layout, num_key_value_heads)"
   },
@@ -2731,9 +2728,6 @@
   },
   "torch_npu.npu_lstm": {
     "signature": "(inputs, weight, bias, seqMask, h, c, has_biases, num_layers, dropout, train, bidirectional, batch_first, flagSeq, direction)"
-  },
-  "torch_npu.npu_masked_fill_range": {
-    "signature": "(self, start, end, value, axis=-1)"
   },
   "torch_npu.npu_max": {
     "signature": "(self, dim, keepdim=False)"
@@ -2755,9 +2749,6 @@
   },
   "torch_npu.npu_nms_with_mask": {
     "signature": "(inputs, iou_threshold)"
-  },
-  "torch_npu.npu_normalize_batch": {
-    "signature": "(self, seq_len, normalize_type=0)"
   },
   "torch_npu.npu_one_hot": {
     "signature": "(self, num_classes=-1, depth=1, on_value=1, off_value=0)"
@@ -2795,12 +2786,6 @@
   "torch_npu.npu_rotary_mul": {
     "signature": "(x, r1, r2)"
   },
-  "torch_npu.npu_rotated_box_decode": {
-    "signature": "(self, deltas, weight)"
-  },
-  "torch_npu.npu_rotated_box_encode": {
-    "signature": "(self, gt_bboxes, weight)"
-  },
   "torch_npu.npu_rotated_iou": {
     "signature": "(self, query_boxes, trans=False, mode=0, is_cross=True, v_threshold=0.0, e_threshold=0.0)"
   },
@@ -2809,9 +2794,6 @@
   },
   "torch_npu.npu_scaled_masked_softmax": {
     "signature": "(x, mask, scale=1, fixed_triu_mask=False)"
-  },
-  "torch_npu.npu_scatter": {
-    "signature": "(self, indices, updates, dim)"
   },
   "torch_npu.npu_scatter_nd_update": {
     "signature": "(self, indices, updates)"
@@ -2836,9 +2818,6 @@
   },
   "torch_npu.npu_sort_v2": {
     "signature": "(self, dim=-1, descending=False, out=None)"
-  },
-  "torch_npu.npu_stride_add": {
-    "signature": "(self, other, offset1, offset2, c1_len)"
   },
   "torch_npu.npu_swiglu": {
     "signature": "(*args, **kwargs)"
