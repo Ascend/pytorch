@@ -1488,12 +1488,15 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
     if (uce_error_flag) {
         uce_error_flag = false;
         c10_npu::set_has_throw_error(true);
-        throw std::runtime_error("UCE ERROR.");
+        ASCEND_LOGE("uce_error_flag is true when workEnqueue, throw UCE ERROR.");
+        throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
         return;
     }
     if (force_stop_error_flag) {
         force_stop_error_flag = false;
-        CHECK_AND_THROW_FORCE_STOP(ACL_ERROR_RT_DEVICE_TASK_ABORT);
+        c10_npu::set_has_throw_error(true);
+        ASCEND_LOGE("force_stop_error_flag is true when workEnqueue, throw FORCE STOP.");
+        throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
         return;
     }
     if (watchdogStatus == WatchdogStatus::STOP) {
