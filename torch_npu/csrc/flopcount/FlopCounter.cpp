@@ -129,3 +129,229 @@ int64_t FlopCounter::conv_backward_flop(const at::Tensor &grad_output, const at:
 
     return flop_count;
 }
+
+std::vector<std::tuple<std::vector<int64_t>, std::vector<int64_t>, std::vector<int64_t>, std::vector<int64_t>>> _unpack_flash_attention_nested_shapes(std::vector<int64_t> query,
+    std::vector<int64_t> key, std::vector<int64_t> value, int64_t head_num, std::vector<int64_t> grad_out,
+    c10::ArrayRef<int64_t> cum_seq_q, c10::ArrayRef<int64_t> cum_seq_k, std::string input_layer_str)
+{
+    // Given inputs to a flash_attention_(forward|backward) kernel, this will handle behavior for
+    // GQA and MQA and TND
+
+    // for GQA and MQA, the dim 2 or 3 of kv should equal to q
+    // for general, shape should view to [B, N, S, D]
+    TORCH_CHECK(head_num != 0, "Divisor head_num may be 0, please check it.")
+    std::vector<std::tuple<std::vector<int64_t>, std::vector<int64_t>, std::vector<int64_t>, std::vector<int64_t>>> result;
+    int64_t q_1 = query[1];
+    int64_t q_2 = query[2];
+    int64_t k_1 = key[1];
+    int64_t k_2 = key[2];
+    int64_t v_1 = value[1];
+    int64_t v_2 = value[2];
+
+    // for GQA and MQA
+    if (input_layer_str == "SBH" || input_layer_str == "BSH" || input_layer_str == "BSND") {
+        if (q_2 != k_2 && q_2!= v_2) {
+            k_2 = q_2;
+            v_2 = q_2;
+        }
+    } else {
+        if (q_1 != k_1 && q_1!= v_1) {
+            k_1 = q_1;
+            v_1 = q_1;
+        }
+    }
+
+    if (input_layer_str == "BSH") {
+        std::vector<int64_t> new_query_shape = {query[0], head_num, q_1, q_2/head_num};
+        std::vector<int64_t> new_key_shape = {key[0], head_num, k_1, k_2/head_num};
+        std::vector<int64_t> new_value_shape = {value[0], head_num, v_1, v_2/head_num};
+        std::vector<int64_t> new_grad_out_shape;
+        if (!grad_out.empty()) {
+            new_grad_out_shape = new_query_shape;
+        }
+        result.emplace_back(new_query_shape, new_key_shape, new_value_shape, new_grad_out_shape);
+    } else if (input_layer_str == "SBH") {
+        std::vector<int64_t> new_query_shape = {q_1, head_num, query[0], q_2/head_num};
+        std::vector<int64_t> new_key_shape = {k_1, head_num, key[0], k_2/head_num};
+        std::vector<int64_t> new_value_shape = {v_1, head_num, value[0], v_2/head_num};
+        std::vector<int64_t> new_grad_out_shape;
+        if (!grad_out.empty()) {
+            new_grad_out_shape = new_query_shape;
+        }
+        result.emplace_back(new_query_shape, new_key_shape, new_value_shape, new_grad_out_shape);
+    } else if (input_layer_str == "BNSD") {
+        std::vector<int64_t> new_grad_out_shape;
+        if (!grad_out.empty()) {
+            new_grad_out_shape = query;
+        }
+        result.emplace_back(query, key, value, new_grad_out_shape);
+    } else if (input_layer_str == "BSND") {
+        std::vector<int64_t> new_query_shape = {query[0], q_2, q_1, query[3]};
+        std::vector<int64_t> new_key_shape = {key[0], k_2, k_1, key[3]};
+        std::vector<int64_t> new_value_shape = {value[0], v_2, v_1, value[3]};
+        std::vector<int64_t> new_grad_out_shape;
+        if (!grad_out.empty()) {
+            new_grad_out_shape = new_query_shape;
+        }
+        result.emplace_back(new_query_shape, new_key_shape, new_value_shape, new_grad_out_shape);
+    } else if (input_layer_str == "TND") {
+        TORCH_CHECK(!cum_seq_q.empty(), "The actual_seq_qlen should not be empty when TND");
+        TORCH_CHECK(!cum_seq_k.empty(), "The actual_seq_kvlen should not be empty when TND");
+        TORCH_CHECK(cum_seq_q.size() == cum_seq_k.size(), "The size of actual_seq_qlen should be equal to actual_seq_kvlen when TND");
+
+        int64_t b = cum_seq_q.size();
+        TORCH_CHECK(b != 0, "Divisor b may be 0, please check it.")
+        std::vector<int64_t> new_query_shape = {b, q_1, query[0]/b, q_2};
+        std::vector<int64_t> new_key_shape = {b, k_1, key[0]/b, k_2};
+        std::vector<int64_t> new_value_shape = {b, v_1, value[0]/b, v_2};
+        std::vector<int64_t> new_grad_out_shape;
+        if (!grad_out.empty()) {
+            new_grad_out_shape = new_query_shape;
+        }
+        result.emplace_back(new_query_shape, new_key_shape, new_value_shape, new_grad_out_shape);
+    }
+
+    return result;
+}
+
+int64_t sdpa_flop_count(const std::vector<int64_t> query_shape, const std::vector<int64_t> key_shape, const std::vector<int64_t> value_shape)
+{
+    int64_t b, h, s_q, d_q;
+    int64_t _b2, _h2, s_k, _d2;
+    int64_t _b3, _h3, _s3, d_v;
+
+    b = query_shape[0];
+    h = query_shape[1];
+    s_q = query_shape[2];
+    d_q = query_shape[3];
+
+    _b2 = key_shape[0];
+    _h2 = key_shape[1];
+    s_k = key_shape[2];
+    _d2 = key_shape[3];
+
+    _b3 = value_shape[0];
+    _h3 = value_shape[1];
+    _s3 = value_shape[2];
+    d_v = value_shape[3];
+
+    TORCH_CHECK(b == _b2 && b == _b3, "the dim of 0 is not equal between q and kv");
+    TORCH_CHECK(h == _h2 && h == _h3, "the dim of 1 is not equal between q and kv");
+    TORCH_CHECK(s_k == _s3, "the dim of 2 is not equal between k and v");
+    TORCH_CHECK(d_q == _d2, "the dim of 3 is not equal between q and k");
+
+    int64_t total_flops = 0;
+
+    // q: [b, h, s_q, d_q] @ k: [b, h, d_q, s_k] -> scores: [b, h, s_q, s_k]
+    const at::Tensor shape1 = at::empty({b * h, s_q, d_q}, at::kFloat);
+    const at::Tensor shape2 = at::empty({b * h, d_q, s_k}, at::kFloat);
+    total_flops += FlopCounter::bmm_flop(shape1, shape2);
+
+    // scores: [b, h, s_q, s_k] @ v: [b, h, s_k, d_v] -> out: [b, h, s_q, d_v]
+    const at::Tensor shape3 = at::empty({b * h, s_q, s_k}, at::kFloat);
+    const at::Tensor shape4 = at::empty({b * h, s_k, d_v}, at::kFloat);
+    total_flops += FlopCounter::bmm_flop(shape3, shape4);
+
+    return total_flops;
+}
+
+int64_t sdpa_backward_flop_count(const std::vector<int64_t> query_shape, const std::vector<int64_t> key_shape, const std::vector<int64_t> value_shape, const std::vector<int64_t> grad_out_shape)
+{
+    int64_t b, h, s_q, d_q;
+    int64_t _b2, _h2, s_k, _d2;
+    int64_t _b3, _h3, _s3, d_v;
+    int64_t _b4, _h4, _s4, d_4;
+
+    b = query_shape[0];
+    h = query_shape[1];
+    s_q = query_shape[2];
+    d_q = query_shape[3];
+
+    _b2 = key_shape[0];
+    _h2 = key_shape[1];
+    s_k = key_shape[2];
+    _d2 = key_shape[3];
+
+    _b3 = value_shape[0];
+    _h3 = value_shape[1];
+    _s3 = value_shape[2];
+    d_v = value_shape[3];
+
+    _b4 = grad_out_shape[0];
+    _h4 = grad_out_shape[1];
+    _s4 = grad_out_shape[2];
+    d_4 = grad_out_shape[3];
+
+    TORCH_CHECK(b == _b2 && b == _b3 && b == _b4, "the dim of 0 is not equal between qkv and grad");
+    TORCH_CHECK(h == _h2 && h == _h3 && h == _h4, "the dim of 1 is not equal between qkv and grad");
+    TORCH_CHECK(s_k == _s3, "the dim of 2 is not equal between k and v");
+    TORCH_CHECK(s_q == _s4, "the dim of 2 is not equal between q and grad");
+    TORCH_CHECK(d_q == _d2, "the dim of 3 is not equal between q and k");
+    TORCH_CHECK(d_v == d_4, "the dim of 3 is not equal between v and grad");
+
+    int64_t total_flops = 0;
+
+    // gradOut: [b, h, s_q, d_v] @ v: [b, h, d_v, s_k] -> gradScores: [b, h, s_q, s_k]
+    const at::Tensor shape1 = at::empty({b * h, s_q, d_v}, at::kFloat);
+    const at::Tensor shape2 = at::empty({b * h, d_v, s_k}, at::kFloat);
+    total_flops += FlopCounter::bmm_flop(shape1, shape2);
+
+    // scores: [b, h, s_k, s_q] @ gradOut: [b, h, s_q, d_v] -> gradV: [b, h, s_k, d_v]
+    const at::Tensor shape3 = at::empty({b * h, s_k, s_q}, at::kFloat);
+    const at::Tensor shape4 = at::empty({b * h, s_q, d_v}, at::kFloat);
+    total_flops += FlopCounter::bmm_flop(shape3, shape4);
+
+    // gradScores: [b, h, s_q, s_k] @ k: [b, h, s_k, d_q] -> gradQ: [b, h, s_q, d_q]
+    const at::Tensor shape5 = at::empty({b * h, s_q, s_k}, at::kFloat);
+    const at::Tensor shape6 = at::empty({b * h, s_k, d_q}, at::kFloat);
+    total_flops += FlopCounter::bmm_flop(shape5, shape6);
+
+    // q: [b, h, d_q, s_q] @ gradScores: [b, h, s_q, s_k] -> gradK: [b, h, d_q, s_k]
+    const at::Tensor shape7 = at::empty({b * h, d_q, s_q}, at::kFloat);
+    const at::Tensor shape8 = at::empty({b * h, s_q, s_k}, at::kFloat);
+    total_flops += FlopCounter::bmm_flop(shape7, shape8);
+
+    return total_flops;
+}
+
+int64_t FlopCounter::flash_attention_forward_flop(
+    const at::Tensor &query, const at::Tensor &key, const at::Tensor &value, int64_t head_num,
+    const std::string &input_layout, const c10::OptionalIntArrayRef &actual_seq_qlen,
+    const c10::OptionalIntArrayRef &actual_seq_kvlen)
+{
+    std::vector<int64_t> grad_out_shape;
+    std::vector<int64_t> query_shape(query.sizes().begin(), query.sizes().end());
+    std::vector<int64_t> key_shape(key.sizes().begin(), key.sizes().end());
+    std::vector<int64_t> value_shape(value.sizes().begin(), value.sizes().end());
+    auto ac_seq_qlen_tmp = actual_seq_qlen.value_or(c10::ArrayRef<int64_t>{});
+    auto ac_seq_kvlen_tmp = actual_seq_kvlen.value_or(c10::ArrayRef<int64_t>{});
+
+    auto sizes = _unpack_flash_attention_nested_shapes(query_shape, key_shape, value_shape, head_num, grad_out_shape, ac_seq_qlen_tmp, ac_seq_kvlen_tmp, input_layout);
+
+    int64_t total_flops = 0;
+    for (const auto& [query_shape_new, key_shape_new, value_shape_new, _] : sizes) {
+        total_flops += sdpa_flop_count(query_shape_new, key_shape_new, value_shape_new);
+    }
+    return total_flops;
+}
+
+int64_t FlopCounter::flash_attention_backward_flop(
+    const at::Tensor &query, const at::Tensor &key, const at::Tensor &value, const at::Tensor &dy, int64_t head_num,
+    const std::string &input_layout, const c10::OptionalIntArrayRef &actual_seq_qlen,
+    const c10::OptionalIntArrayRef &actual_seq_kvlen)
+{
+    std::vector<int64_t> dy_shape(query.sizes().begin(), query.sizes().end());
+    std::vector<int64_t> query_shape(query.sizes().begin(), query.sizes().end());
+    std::vector<int64_t> key_shape(key.sizes().begin(), key.sizes().end());
+    std::vector<int64_t> value_shape(value.sizes().begin(), value.sizes().end());
+    auto ac_seq_qlen_tmp = actual_seq_qlen.value_or(c10::ArrayRef<int64_t>{});
+    auto ac_seq_kvlen_tmp = actual_seq_kvlen.value_or(c10::ArrayRef<int64_t>{});
+
+    auto sizes = _unpack_flash_attention_nested_shapes(query_shape, key_shape, value_shape, head_num, dy_shape, ac_seq_qlen_tmp, ac_seq_kvlen_tmp, input_layout);
+
+    int64_t total_flops = 0;
+    for (const auto& [query_shape_new, key_shape_new, value_shape_new, grad_out_shape] : sizes) {
+        total_flops += sdpa_backward_flop_count(query_shape_new, key_shape_new, value_shape_new, grad_out_shape);
+    }
+    return total_flops;
+}
