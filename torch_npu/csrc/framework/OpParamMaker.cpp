@@ -272,8 +272,9 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         try {
             ret = cur_paras->customHandler();
         } catch (std::exception &e) {
-            if (std::string(e.what()).find("507053") != std::string::npos || std::string(e.what()).find("107022") != std::string::npos) {
-                ret =c10_npu::acl::AclrtPeekAtLastError(0);
+            if (std::string(e.what()).find(DEVICE_TASK_ABORT) != std::string::npos ||
+                std::string(e.what()).find(DEVICE_MEM_ERROR) != std::string::npos) {
+                ret =c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
             } else {
                 ret = ACL_ERROR_INVALID_PARAM;
                 LOG(ERROR) << e.what();
@@ -306,7 +307,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             at_npu::native::aoe::aoe_manager().GetDumpGraphPath().c_str(),
             nullptr);
         if (ret != ACL_ERROR_NONE) {
-            auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(0);
+            auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
             if (ret_temp != ACL_ERROR_NONE) {
                 ret = ret_temp;
             }
@@ -333,7 +334,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     }
 
     if (ret != ACL_ERROR_NONE) {
-        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(0);
+        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         if (ret_temp != ACL_ERROR_NONE) {
             ret = ret_temp;
         }
@@ -350,7 +351,7 @@ int MemcopyAsyncFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     aclError ret =
         aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, stream);
     if (ret != ACL_ERROR_NONE) {
-        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(0);
+        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         if (ret_temp != ACL_ERROR_NONE) {
             ret = ret_temp;
         }
@@ -370,7 +371,7 @@ int RecordEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
     aclError ret = aclrtRecordEvent(cur_paras->event, stream);
     if (ret != ACL_ERROR_NONE) {
-        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(0);
+        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         if (ret_temp != ACL_ERROR_NONE) {
             ret = ret_temp;
         }
@@ -391,7 +392,7 @@ int WaitEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
     aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
     if (ret != ACL_ERROR_NONE) {
-        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(0);
+        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         if (ret_temp != ACL_ERROR_NONE) {
             ret = ret_temp;
         }
@@ -413,7 +414,7 @@ int LazyDestroyEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
     aclError ret = c10_npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
     if (ret != ACL_ERROR_NONE) {
-        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(0);
+        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         if (ret_temp != ACL_ERROR_NONE) {
             ret = ret_temp;
         }

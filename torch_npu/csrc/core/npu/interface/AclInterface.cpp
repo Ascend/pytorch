@@ -594,9 +594,9 @@ aclError AclrtCmoAsync(void* src, size_t size, aclrtCmoType cmoType, aclrtStream
     return func(src, size, cmoType, stream);
 }
 
-aclError AclrtGetLastError(int32_t flag)
+aclError AclrtGetLastError(aclrtLastErrLevel flag)
 {
-    typedef aclError (*AclrtGetLastError)(int32_t flag);
+    typedef aclError (*AclrtGetLastError)(aclrtLastErrLevel flag);
     static AclrtGetLastError func = nullptr;
     if (func == nullptr) {
         func = (AclrtGetLastError) GET_FUNC(aclrtGetLastError);
@@ -607,9 +607,9 @@ aclError AclrtGetLastError(int32_t flag)
     return func(flag);
 }
 
-aclError AclrtPeekAtLastError(int32_t flag)
+aclError AclrtPeekAtLastError(aclrtLastErrLevel flag)
 {
-    typedef aclError (*AclrtPeekAtLastError)(int32_t flag);
+    typedef aclError (*AclrtPeekAtLastError)(aclrtLastErrLevel flag);
     static AclrtPeekAtLastError func = nullptr;
     if (func == nullptr) {
         func = (AclrtPeekAtLastError) GET_FUNC(aclrtPeekAtLastError);

@@ -51,8 +51,8 @@ aclError aclrtGetMemInfo(aclrtMemAttr attr, size_t *free, size_t *total){return 
 aclError aclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize, size_t *retSize){return 0;}
 aclError aclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize){return 0;}
 aclError aclrtCmoAsync(void *src, size_t size, aclrtCmoType cmoType, aclrtStream stream){return 0;}
-aclError aclrtGetLastError(int32_t flag){return 0;}
-aclError aclrtPeekAtLastError(int32_t flag){return 0;}
+aclError aclrtGetLastError(aclrtLastErrLevel flag){return 0;}
+aclError aclrtPeekAtLastError(aclrtLastErrLevel flag){return 0;}
 
 
 // op相关操作
