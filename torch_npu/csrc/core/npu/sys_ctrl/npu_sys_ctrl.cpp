@@ -99,6 +99,17 @@ void GetAndSetDefaultJitCompileByAcl()
   ASCEND_LOGI("Get ACL JitCompile default value %s and set", value_str.c_str());
 }
 
+void SetDefaultAllowInternalFromatDisable()
+{
+    auto allow_internal_format = c10_npu::option::GetOption("ALLOW_INTERNAL_FORMAT");
+    if (allow_internal_format.has_value() && allow_internal_format.value() != "") {
+        return;
+    }
+
+    c10_npu::option::SetOption("ALLOW_INTERNAL_FORMAT", "disable");
+    ASCEND_LOGI("Set ALLOW_INTERNAL_FORMAT default value disable.");
+}
+
 void SetHF32DefaultValue() {
   // The default value of the flag used to control whether HF32 is allowed on conv is True.
   // The default value of the flag used to control whether HF32 is allowed on matmul is True,
@@ -238,6 +249,11 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     MakeCompileCacheDirAndSetOption();
     // set default jit_Compile value from Get acl defalut value
     GetAndSetDefaultJitCompileByAcl();
+    // set default allow_internal_format value
+    if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910_9391) {
+        SetDefaultAllowInternalFromatDisable();
+    }
+
 
     SetHF32DefaultValue();
 
