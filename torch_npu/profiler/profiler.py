@@ -164,6 +164,9 @@ class _KinetoProfile:
 @no_exception_func()
 def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True):
     ProfPathCreator().init(worker_name=worker_name, dir_name=dir_name)
+    if not isinstance(analyse_flag, bool):
+        print_warn_msg("analyse_flag is not bool, set by default.")
+        analyse_flag = True
 
     def handler_fn(prof_inst) -> None:
         if analyse_flag:
@@ -196,13 +199,18 @@ class profile(_KinetoProfile):
                         with_modules=with_modules,
                         experimental_config=experimental_config)
         activities_set = set(activities) if activities else supported_activities()
-        if schedule:
+        if schedule and isinstance(schedule, Callable):
             self.schedule = schedule
             # add step markers into the trace and table view
             self.record_steps = True
         else:
+            if schedule:
+                print_warn_msg("schedule is not Callable, set by default.")
             self.schedule = _default_schedule_fn
             self.record_steps = False
+        if on_trace_ready and not isinstance(on_trace_ready, Callable):
+            print_warn_msg("on_trace_ready is not Callable, set by default.")
+            on_trace_ready = None
         self.prof_if = _ProfInterface(
             activities=activities_set,
             record_shapes=record_shapes,
