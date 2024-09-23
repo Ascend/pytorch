@@ -465,7 +465,6 @@ class BdistWheelBuild(bdist_wheel):
 
         dependencies = torch_dependencies + cann_dependencies + other_dependencies
 
-        self.run_command('egg_info')
         bdist_wheel.run(self)
 
         if is_manylinux:
@@ -609,7 +608,6 @@ setup(
         'build_ext': Build,
         'build_py': PythonPackageBuild,
         'bdist_wheel': BdistWheelBuild,
-        'egg_info': EggInfoBuild,
         'install': InstallCmd,
         'clean': Clean
     },
