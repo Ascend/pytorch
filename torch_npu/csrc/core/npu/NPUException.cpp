@@ -97,10 +97,7 @@ MemUceInfo get_mem_uce_info()
 void clear_mem_uce_info()
 {
     std::lock_guard<std::mutex> lock(memUceInfoMutex);
-    memUceInfo.device = 0;
-    memUceInfo.info.clear();
-    memUceInfo.retSize = 0;
-    memUceInfo.mem_type = 0;
+    memUceInfo.clear();
 }
 
 const char *c10_npu_get_error_message()
@@ -116,17 +113,13 @@ bool checkUceErrAndRepair()
         TORCH_CHECK(false, "ERROR happend in GetDevice.", PTA_ERROR(ErrCode::ACL))
     }
 
-    aclrtMemUceInfo info[MAX_MEM_UCE_INFO_ARRAY_SIZE];
-    size_t retSize = 0;
+    MemUceInfo memUceInfo_;
+    memUceInfo_.device = device;
 
-    err = c10_npu::acl::AclrtGetMemUceInfo(device, info, sizeof(info) / sizeof(aclrtMemUceInfo), &retSize);
+    err = c10_npu::acl::AclrtGetMemUceInfo(device, memUceInfo_.info, sizeof(memUceInfo_.info) / sizeof(aclrtMemUceInfo), &memUceInfo_.retSize);
     if (err == ACL_ERROR_NONE) {
-        if (retSize > 0) {
-            ASCEND_LOGE("AclrtGetMemUceInfo get UCE ERROR, retSize is %d", retSize);
-            MemUceInfo memUceInfo_;
-            memUceInfo_.device = device;
-            memUceInfo_.info.assign(info, info + retSize);
-            memUceInfo_.retSize = retSize;
+        if (memUceInfo_.retSize > 0) {
+            ASCEND_LOGE("AclrtGetMemUceInfo get UCE ERROR, retSize is %d", memUceInfo_.retSize);
             set_mem_uce_info(memUceInfo_);
             return true;
         } else {

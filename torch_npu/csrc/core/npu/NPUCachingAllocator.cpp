@@ -856,27 +856,36 @@ class DeviceCachingAllocator {
   bool checkUceInMemPool()
   {
       auto memUceInfo_ = c10_npu::get_mem_uce_info();
-      auto info = memUceInfo_.info.data();
+      auto info = memUceInfo_.info;
       const auto all_blocks = get_all_blocks();
 
       for (int i = 0; i < memUceInfo_.retSize; ++i) {
-          size_t length = info[i].len;
           void* addr = info[i].addr;
-          for (int j = 0; j < length; ++j) {
-              bool found = false;
-              for (const Block* const head_block : all_blocks) {
-                  if (head_block->ptr <= addr && addr < head_block->ptr + head_block->size) {
-                      const_cast<Block*>(head_block)->is_safe = false;
+          size_t length = info[i].len;
+
+          // Calculate the start and end address for info[i]
+          void* addr_end = static_cast<char*>(addr) + length - 1;
+
+          bool found = false;
+
+          // Iterate through all blocks and check if there's an overlap with addr
+          for (const Block* const head_block : all_blocks) {
+              void* block_start = head_block->ptr;
+              void* block_end = static_cast<char*>(head_block->ptr) + head_block->size - 1;
+
+              // If there is an overlap, mark the block as unsafe
+              if (addr <= block_end && addr_end >= block_start) {
+                  const_cast<Block*>(head_block)->is_safe = false;
+                  found = true;
+                  // Set the unsafe flag only once
+                  if (c10_npu::get_npu_data_unsafe_flag() == false) {
                       c10_npu::set_npu_data_unsafe_flag(true);
-                      found = true;
-                      break;
                   }
               }
+          }
 
-              if (!found) {
-                return false;
-              }
-              addr += 1;
+          if (!found) {
+              return false;
           }
       }
       return true;
