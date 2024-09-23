@@ -78,33 +78,6 @@ void copy_d2d_dtype_format(at::Tensor& self, const at::Tensor& src, bool non_blo
   copy_d2d_dtype_baseformat(self, src, non_blocking);
 }
 
-void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
-    c10_npu::NPUGuard guard(src.device());
-    // p2p enable and synchronize self stream
-    if (self.device().index() != src.device().index()) {
-        bool warning_flag = false;
-        NpuP2pCtrl::get_instance().get_p2p_access(src.device().index(), self.device().index(), warning_flag);
-        // In the same 'os', tensor can copy even if the enable fails
-        if (warning_flag) {
-            ASCEND_LOGW("p2p enable from %d to %d is fails", src.device().index(), self.device().index());
-        }
-        guard.set_device(self.device());
-        c10_npu::NPUStream dst_stream = c10_npu::getCurrentNPUStream(self.device().index());
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(dst_stream));
-        guard.set_device(src.device());
-    }
-    if (self.dtype() != src.dtype()) {
-        custom_ops::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
-        return;
-    }
-    copy_d2d_dtype(self, src, non_blocking);
-    // synchronize src stream for different devices copy
-    if (self.device().index() != src.device().index()) {
-        c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(copy_stream));
-    }
-}
-
 // the format of dst and src is base format now
 // the dtype of dst and src is same
 // and src and dst are contiguous
@@ -271,6 +244,35 @@ bool can_use_memcpy(at::Tensor& dst, const at::Tensor& src) {
     return true;
   }
   return false;
+}
+
+void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+    c10_npu::NPUGuard guard(src.device());
+    // p2p enable and synchronize self stream
+    auto self_device_idx = self.device().index();
+    auto src_device_idx = src.device().index();
+    if (self_device_idx != src_device_idx) {
+        bool warning_flag = false;
+        NpuP2pCtrl::get_instance().get_p2p_access(src_device_idx, self_device_idx, warning_flag);
+        // In the same 'os', tensor can copy even if the enable fails
+        if (warning_flag) {
+            ASCEND_LOGW("p2p enable from %d to %d is fails", src_device_idx, self_device_idx);
+        }
+        guard.set_device(self.device());
+        c10_npu::NPUStream dst_stream = c10_npu::getCurrentNPUStream(self_device_idx);
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(dst_stream));
+        guard.set_device(src.device());
+    }
+    if (self.dtype() != src.dtype()) {
+        custom_ops::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
+        return;
+    }
+    copy_d2d_dtype(self, src, non_blocking);
+    // synchronize src stream for different devices copy
+    if (self_device_idx != src_device_idx) {
+        c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(copy_stream));
+    }
 }
 
 at::Tensor copy_d2d_format_cast(at::Tensor& dst, const at::Tensor& src)
