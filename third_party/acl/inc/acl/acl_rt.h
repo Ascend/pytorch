@@ -168,6 +168,10 @@ typedef enum aclrtCmoType {
     ACL_RT_CMO_TYPE_PREFETCH = 0,
 } aclrtCmoType;
 
+typedef enum aclrtLastErrLevel {
+    ACL_RT_THREAD_LEVEL = 0,
+} aclrtLastErrLevel;
+
 typedef void* aclrtDrvMemHandle;
 
 typedef void (*aclrtCallback)(void *userData);
@@ -1453,11 +1457,58 @@ ACL_FUNC_VISIBILITY aclError aclrtResetOverflowStatus(aclrtStream stream);
 */
 ACL_FUNC_VISIBILITY aclError aclrtCmoAsync(void *src, size_t size, aclrtCmoType cmoType, aclrtStream stream);
 
-ACL_FUNC_VISIBILITY aclError aclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize, size_t *retSize);
+/**
+ * @ingroup AscendCL
+ * @brief get the mem uce info
+ * @param [in] deviceId
+ * @param [in/out] memUceInfoArray
+ * @param [in] arraySize
+ * @param [out] retSize
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo *memUceInfoArray, size_t arraySize, size_t *retSize);
 
+/**
+ * @ingroup AscendCL
+ * @brief stop the task on specified device
+ * @param [in] deviceId
+ * @param [in] timeout
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
 ACL_FUNC_VISIBILITY aclError aclrtDeviceTaskAbort(int32_t deviceId, uint32_t timeout);
 
-ACL_FUNC_VISIBILITY aclError aclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize);
+/**
+ * @ingroup AscendCL
+ * @brief repair the mem uce
+ * @param [in] deviceId
+ * @param [in/out] memUceInfoArray
+ * @param [in] arraySize
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo *memUceInfoArray, size_t arraySize);
+
+/**
+ * @ingroup AscendCL
+ * @brief peek at last error by level
+ *
+ * @param level [IN] error level
+ *
+ * @retval Runtime error code
+ */
+ACL_FUNC_VISIBILITY aclError aclrtPeekAtLastError(aclrtLastErrLevel level);
+
+/**
+ * @ingroup AscendCL
+ * @brief get last error by level
+ *
+ * @param level [IN] error level
+ *
+ * @retval Runtime error code
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetLastError(aclrtLastErrLevel level);
 
 #ifdef __cplusplus
 }
