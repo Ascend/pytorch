@@ -238,10 +238,11 @@ public:
     // export op execute params
     void ExportParams(ExecuteParas &params)
     {
-        TORCH_CHECK(sizeof(ExecuteParas::opType) >= opName.length() + 1, "Too long Ascend IR Name: ", opName,
-                    OPS_ERROR(ErrCode::GE));
-        memset(params.opType, '\0', sizeof(params.opType));
-        opName.copy(params.opType, opName.length() + 1);
+        if (opName.length() + 1 < sizeof(ExecuteParas::opType)) {
+            opName.copy(params.opType, opName.length() + 1);
+        } else {
+            opName.copy(params.opType, sizeof(ExecuteParas::opType) - 1);
+        }
         params.attr = execParam.attr;
         // make params
         int inputNum = static_cast<int>(execParam.inDesc.size());

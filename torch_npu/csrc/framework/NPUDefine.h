@@ -73,7 +73,7 @@ namespace at_npu
         struct ExecuteParas
         {
             using PROCESS_FUNC = std::function<int()>;
-            char opType[50]{};
+            char opType[100]{};
             bool isJitDisable = false;
             ACL_PARAMS paras;
             CONST_PARAMS constParams;
