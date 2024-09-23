@@ -89,6 +89,9 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 #define GRAPH_ERROR(error) formatErrorCode(SubModule::GRAPH, error)
 #define PROF_ERROR(error) formatErrorCode(SubModule::PROF, error)
 
+#define DEVICE_TASK_ABORT "107022"
+#define DEVICE_MEM_ERROR "507053"
+
 inline const char* getErrorFunction(const char* msg)
 {
     return msg;
@@ -101,7 +104,12 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
 }
 
 #define CHECK_AND_THROW_FORCE_STOP(err_code)                                 \
-    if ((err_code) == ACL_ERROR_RT_DEVICE_TASK_ABORT) {                      \
+    auto Error_stop = (int)(err_code);                                       \
+    auto stop_error = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);                 \
+    if ((stop_error) != ACL_ERROR_NONE) {                                    \
+        Error_stop = stop_error;                                             \
+    }                                                                        \
+    if ((Error_stop) == ACL_ERROR_RT_DEVICE_TASK_ABORT) {                    \
         c10_npu::set_has_throw_error(true);                                  \
         TORCH_CHECK(                                                         \
             false,                                                           \
@@ -111,12 +119,17 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
             ":",                                                             \
             __LINE__,                                                        \
             " NPU function error: FORCE STOP.",                              \
-            ", error code is ", err_code,                                    \
+            ", error code is ", Error_stop,                                  \
             PTA_ERROR(ErrCode::ACL));                                        \
     }                                                                        \
 
 #define CHECK_AND_THROW_UCE_ERROR(err_code)                                  \
-    if ((err_code) == ACL_ERROR_RT_DEVICE_MTE_ERROR &&                       \
+    auto Error_uce = (int)(err_code);                                        \
+    auto uce_error = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);                  \
+    if ((uce_error) != ACL_ERROR_NONE) {                                     \
+        Error_uce = uce_error;                                               \
+    }                                                                        \
+    if ((Error_uce) == ACL_ERROR_RT_DEVICE_MEM_ERROR &&                      \
         c10_npu::get_has_throw_error() == false && c10_npu::checkUceErrAndRepair()) { \
         c10_npu::set_has_throw_error(true);                                  \
         TORCH_CHECK(                                                         \
@@ -127,6 +140,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
             ":",                                                             \
             __LINE__,                                                        \
             " NPU function error: UCE ERROR.",                               \
+            ", error code is ", Error_uce,                                   \
             PTA_ERROR(ErrCode::ACL));                                        \
     }                                                                        \
 
