@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
 import torch_npu._C
 
 
@@ -22,19 +23,22 @@ class mstx:
     @staticmethod
     def range_start(message: str, stream=None) -> int:
         if not message:
-            print(Warning, "Invalid message for mstx.range_start func. Please input valid message string.")
+            warnings.warn("Invalid message for mstx.range_start func. Please input valid message string.")
             return 0
-        if isinstance(stream, torch_npu.npu.streams.Stream):
-            stream = stream.npu_stream
+        if stream:
+            if isinstance(stream, torch_npu.npu.streams.Stream):
+                stream = stream.npu_stream
+                return torch_npu._C._mstx._range_start(message, stream)
+            else:
+                warnings.warn("Invalid stream for mstx.range_start func. Please input valid stream.")
+                return 0
         else:
-            print(Warning, 'Invalid type for stream argument, must be `torch_npu.npu.Stream`')
-            return 0
-        return torch_npu._C._mstx._range_start(message, stream)
+            return torch_npu._C._mstx._range_start_on_host(message)
 
     @staticmethod
     def range_end(range_id: int):
         if not isinstance(range_id, int):
-            print(Warning, "Invalid message for mstx.range_start func. Please input return value from mstx.range_start().")
+            warnings.warn("Invalid message for mstx.range_start func. Please input return value from mstx.range_start.")
             return
         torch_npu._C._mstx._range_end(range_id)
 
