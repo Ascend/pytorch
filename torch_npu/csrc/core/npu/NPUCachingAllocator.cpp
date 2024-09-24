@@ -858,15 +858,17 @@ class DeviceCachingAllocator {
       auto memUceInfo_ = c10_npu::get_mem_uce_info();
       auto info = memUceInfo_.info;
       const auto all_blocks = get_all_blocks();
+      bool any_found = false;
+      aclrtMemUceInfo temp_info[memUceInfo_.retSize];
+      size_t temp_retsize = 0;
 
       for (int i = 0; i < memUceInfo_.retSize; ++i) {
           void* addr = info[i].addr;
           size_t length = info[i].len;
+          bool found = false;
 
           // Calculate the start and end address for info[i]
           void* addr_end = static_cast<char*>(addr) + length - 1;
-
-          bool found = false;
 
           // Iterate through all blocks and check if there's an overlap with addr
           for (const Block* const head_block : all_blocks) {
@@ -877,6 +879,7 @@ class DeviceCachingAllocator {
               if (addr <= block_end && addr_end >= block_start) {
                   const_cast<Block*>(head_block)->is_safe = false;
                   found = true;
+                  any_found = true;
                   // Set the unsafe flag only once
                   if (c10_npu::get_npu_data_unsafe_flag() == false) {
                       c10_npu::set_npu_data_unsafe_flag(true);
@@ -884,9 +887,18 @@ class DeviceCachingAllocator {
               }
           }
 
-          if (!found) {
-              return false;
+          if (found) {
+            // update memuceinfo
+            temp_info[temp_retsize++] = info[i];
           }
+      }
+
+      std::memcpy(memUceInfo_.info, temp_info, temp_retsize * sizeof(aclrtMemUceInfo));
+      memUceInfo_.retSize = temp_retsize;
+
+      c10_npu::set_mem_uce_info(memUceInfo_);
+      if (!any_found) {
+          return false;
       }
       return true;
   }
