@@ -307,7 +307,7 @@ class ConcurrentTasksManager:
                 need_exit = False
                 break
         if need_exit:
-            time.sleep(Constant.SLEEP_TIME * 2)
+            time.sleep(Constant.SLEEP_TIME * 5)
             if all((task_info.task.is_non_blocking for task_info in self.listening_infos.values())):
                 return True
 
