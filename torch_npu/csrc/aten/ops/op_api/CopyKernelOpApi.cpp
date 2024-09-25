@@ -154,28 +154,16 @@ void copy_d2h_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
 // the format of dst and src is baseformat now, copy d2d
 void copy_d2d_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_blocking)
 {
+    if (dst.device().index() != src.device().index()) {
+        return copy_d2d(dst, src, non_blocking);
+    }
+
     c10_npu::NPUGuard guard(src.device());
-    if (dst.device().index() != src.device().index()) {
-        bool warning_flag = false;
-        bool p2p_enabled = NpuP2pCtrl::get_instance().get_p2p_access(src.device().index(), dst.device().index(), warning_flag);
-        // In the same 'os', tensor can copy even if the enable fails
-        if (warning_flag) {
-            ASCEND_LOGW("p2p enable from %d to %d is fails", src.device().index(), dst.device().index());
-        }
-        guard.set_device(dst.device());
-        c10_npu::NPUStream dst_stream = c10_npu::getCurrentNPUStream(dst.device().index());
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(dst_stream));
-        guard.set_device(src.device());
-    } else {
-        c10::SmallVector<at::Tensor, N> inputs = {src};
-        c10::SmallVector<at::Tensor, N> outputs = {dst};
-        CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
-    }
+    c10::SmallVector<at::Tensor, N> inputs = {src};
+    c10::SmallVector<at::Tensor, N> outputs = {dst};
+    CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
+
     EXEC_NPU_CMD(aclnnInplaceCopy, dst, src);
-    if (dst.device().index() != src.device().index()) {
-        c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(copy_stream));
-    }
 }
 
 
