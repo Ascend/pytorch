@@ -719,7 +719,7 @@ size_t CachingAllocatorConfig::parseExpandableSegments(
             NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
         } else {
             NPU_CHECK_SUPPORTED_OR_ERROR(status, "aclrtReserveMemAddress");
-            TORCH_NPU_WARN_ONCE("expandable_segments setting failure, now change to expandable_segments = false.");
+            TORCH_NPU_WARN_ONCE("expandable_segments setting failure, now change to `False`.");
             m_expandable_segments = false;
         }
     }
@@ -763,12 +763,12 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
       if (set_expandable_segments_flag) {
           TORCH_CHECK(m_max_split_size == std::numeric_limits<size_t>::max() && m_garbage_collection_threshold == 0,
                       "`max_split_size_mb` or `garbage_collection_threshold`, cannot be enabled with "
-                      "`expandable_segments`, please set `expandable_segments` to `false`.",
+                      "`expandable_segments`, please set `expandable_segments` to `False`.",
                       OPS_ERROR(ErrCode::PARAM));
       } else if (m_max_split_size != std::numeric_limits<size_t>::max() || m_garbage_collection_threshold != 0) {
           m_expandable_segments = false;
           TORCH_NPU_WARN_ONCE("`max_split_size_mb` or `garbage_collection_threshold` is enabled, and the "
-                              "`expandable_segments` is changed to `false` by default.");
+                              "`expandable_segments` is changed to `False` by default.");
       }
   }
 }
