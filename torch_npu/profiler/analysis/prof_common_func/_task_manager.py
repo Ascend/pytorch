@@ -6,6 +6,7 @@ import threading
 import multiprocessing
 import fcntl
 import pickle
+import signal
 from enum import Enum
 from abc import ABC, abstractmethod
 from torch_npu.utils._error_code import ErrCode, prof_error
@@ -137,6 +138,7 @@ class ConcurrentTasksManager:
 
     def run(self):
         try:
+            signal.signal(signal.SIGINT, self.finalize)
             if self.progress_bar:
                 self.__start_print_progress_bar()
 
@@ -149,13 +151,16 @@ class ConcurrentTasksManager:
         except Exception as e:
             print_error_msg(f"An error occurred: {e}")
         finally:
-            for task_info in self.task_infos.values():
-                if task_info.status != TaskStatus.Succeed:
-                    print_error_msg("Task %s has not run successfully." % task_info.task.name)
-                    self.__stop_task(task_info)
+            self.finalize()
 
-            if self.progress_bar:
-                self.__stop_print_progress_bar()
+    def finalize(self):
+        for task_info in self.task_infos.values():
+            if task_info.status != TaskStatus.Succeed:
+                print_error_msg("Task %s has not run successfully." % task_info.task.name)
+                self.__stop_task(task_info)
+
+        if self.progress_bar:
+            self.__stop_print_progress_bar()
 
     def clear(self):
         for task_info in self.listening_infos.values():
