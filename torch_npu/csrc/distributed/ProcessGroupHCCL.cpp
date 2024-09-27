@@ -1663,7 +1663,7 @@ std::string ProcessGroupHCCL::getMstxHcclMsg(
     if (!torch_npu::profiler::mstxEnable()) {
         return "";
     }
-    std::string hccl_message_str = opName + "@";
+    std::string hccl_message_str = "comm:" + opName + ",";
     auto nameIter = commNames.find(comm);
     if (nameIter == commNames.end()) {
         char commName[MAX_GROUP_NAME_LEN];
@@ -1674,13 +1674,13 @@ std::string ProcessGroupHCCL::getMstxHcclMsg(
     } else {
         hccl_message_str += nameIter->second;
     }
-    hccl_message_str += "@";
+    hccl_message_str += ",";
     std::string data_type_str = "na";
     auto iter = dataTypes.find(dataType);
     if (iter != dataTypes.end()) {
         data_type_str = iter->second;
     }
-    hccl_message_str = hccl_message_str + data_type_str + "@" + std::to_string(dataCnt);
+    hccl_message_str = hccl_message_str + data_type_str + "," + std::to_string(dataCnt);
     return hccl_message_str;
 }
 
