@@ -7,6 +7,7 @@ import functools
 from functools import wraps
 import torch
 from torch.utils._device import _device_constructors
+from torch.utils._triton import has_triton
 import torch_npu
 try:
     from packaging.version import Version as Version
@@ -262,6 +263,10 @@ def _patch_jit_script():
     torch.jit.script_method = _jit_script_method
 
 
+def _patch_has_triton():
+    return False
+
+
 def _patch_cuda():
     patchs = [
         ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
@@ -358,6 +363,8 @@ def _init():
     torch._dynamo.trace_rules._disallowed_callable_ids.function_ids = None
 
     _do_wrapper_libraries_func(_load_json_file(config_path))
+
+    setattr(torch.utils._triton, 'has_triton', _patch_has_triton)
 
 
 _init()
