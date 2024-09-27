@@ -34,6 +34,7 @@
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/npu/NPUPluggableAllocator.h"
 #include "torch_npu/csrc/npu/Stream.h"
+#include "torch_npu/csrc/npu/Stress_detect.h"
 #include "torch_npu/csrc/aten/python_functions.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "third_party/acl/inc/acl/acl.h"
@@ -371,9 +372,6 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs)
     END_HANDLE_TH_ERRORS
 }
 
-std::unordered_map<int, std::chrono::time_point<std::chrono::steady_clock>> last_call_times;
-const int interval_time = 3600;
-
 PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* noargs)
 {
     HANDLE_TH_ERRORS
@@ -382,40 +380,7 @@ PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* noargs)
     int device_id;
     NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device_id));
 
-    auto current_time = std::chrono::steady_clock::now();
-    if (last_call_times.find(device_id) != last_call_times.end() &&
-        std::chrono::duration_cast<std::chrono::seconds>(current_time - last_call_times[device_id]).count() < interval_time) {
-        // StressDetect can only be called once every hour for the given device_id, Return 1.
-        ASCEND_LOGW("StressDetect can only be called once every hour for the given device_id:{%d}.", device_id);
-        return PyLong_FromLong(1);
-    }
-    last_call_times[device_id] = current_time;
-
-    void* workspaceAddr = nullptr;
-    uint64_t size = 2;
-    size_t workspaceSize = size << 10 << 10 << 10;
-    if (workspaceSize > 0) {
-        auto ret = c10_npu::acl::AclrtMallocAlign32(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
-        if (ret != ACL_ERROR_NONE) {
-            c10_npu::NPUCachingAllocator::emptyCache();
-            ret = c10_npu::acl::AclrtMallocAlign32(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
-            if (ret != ACL_ERROR_NONE) {
-                ASCEND_LOGW("call AclrtMallocAlign32 failed, ERROR : %d. Skip StressDetect.", ret);
-                // When AclrtMallocAlign32 fail will return ACL_ERROR_NONE to avoid interrupt the training process.
-                return PyLong_FromLong(ACL_ERROR_NONE);
-            }
-        }
-    }
-
-    std::future<int> result = std::async(std::launch::async, c10_npu::acl::AclStressDetect, device_id, workspaceAddr, workspaceSize);
-    int ret = result.get();
-
-    aclrtFree(workspaceAddr);
-    if (ret == ACLNN_CLEAR_DEVICE_STATE_FAIL) {
-        ASCEND_LOGE("call AclStressDetect failed, ERROR : %d, voltage recovery fail.", ret);
-        NPU_CHECK_ERROR(ACLNN_CLEAR_DEVICE_STATE_FAIL, "StressDetect");
-    }
-
+    int ret = StressDetector::perform_stress_detect(device_id);
     return PyLong_FromLong(ret);
     END_HANDLE_TH_ERRORS
 }

@@ -14,6 +14,7 @@
 #include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/flopcount/Init.h"
 #include "torch_npu/csrc/npu/Module.h"
+#include "torch_npu/csrc/npu/Stress_detect.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
@@ -91,6 +92,8 @@ PyObject* THPModule_npu_shutdown_synchronize(PyObject* /* unused */)
     if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
         Py_RETURN_FALSE;
     }
+
+    StressDetector::stop_worker_thread();
 
     // Return aclrtSynchronizeDevice result. If sync device fails, release host
     // resources forcibly, only record WARN logs when acl interface of stream
