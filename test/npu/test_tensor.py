@@ -1,6 +1,7 @@
 import itertools
 import torch
 from torch.testing import make_tensor
+from torch.testing._internal.common_utils import DeterministicGuard
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -302,6 +303,13 @@ class TestTensor(TestCase):
             res1 = torch.zeros_like(faketensor, device=faketensor.device)
 
         self.assertEqual(res1.to('cpu'), expected.to('cpu'))
+
+    def test_empty_with_deterministic(self):
+        with DeterministicGuard(True):
+            empty_tensor = torch.empty(2, 3, 4)
+            empty_strided_tensor = torch.empty_strided((2, 3, 4), (1, 1, 1))
+            self.assertTrue(empty_tensor.isnan().all())
+            self.assertTrue(empty_strided_tensor.isnan().all())
 
 
 if __name__ == '__main__':
