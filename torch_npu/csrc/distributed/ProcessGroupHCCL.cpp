@@ -2834,20 +2834,39 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                 HcclComm comm,
                 c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
                     RECORD_FUNCTION("HcclAlltoAll", std::vector<c10::IValue>({input}));
-                    torch_npu::profiler::MstxRange range(
-                        getMstxHcclMsg("HcclAlltoAll", input_counts, getHcclDataType(input.scalar_type()), comm),
-                        stream.stream(false));
-                    auto hccl_result = hcclAlltoAll(
-                        input.data_ptr(),
-                        input_counts,
-                        getHcclDataType(input.scalar_type()),
-                        output.data_ptr(),
-                        output_counts,
-                        getHcclDataType(output.scalar_type()),
-                        comm,
-                        stream.stream());
-                    *is_dispatched = true;
-                    return hccl_result;
+                    auto inputDataPtr = input.data_ptr();
+                    auto outputDataPtr = output.data_ptr();
+                    auto inputhcclDataType = getHcclDataType(input.scalar_type());
+                    auto outputhcclDataType = getHcclDataType(output.scalar_type());
+                    auto hccl_call = [inputDataPtr,
+                                  input_counts,
+                                  inputhcclDataType,
+                                  outputDataPtr,
+                                  output_counts,
+                                  outputhcclDataType,
+                                  comm,
+                                  stream,
+                                  is_dispatched]() -> int {
+                        torch_npu::profiler::MstxRange range(
+                            getMstxHcclMsg("HcclAlltoAll", input_counts, inputhcclDataType, comm),
+                            stream.stream(false));
+                        auto hccl_result = hcclAlltoAll(
+                            inputDataPtr,
+                            input_counts,
+                            inputhcclDataType,
+                            outputDataPtr,
+                            output_counts,
+                            outputhcclDataType,
+                            comm,
+                            stream.stream(false));
+                        *is_dispatched = true;
+                        return hccl_result;
+                    };
+                    at_npu::native::OpCommand cmd;
+                    cmd.Name("HcclAlltoAll");
+                    cmd.SetCustomHandler(hccl_call);
+                    cmd.Run();
+                    return HCCL_SUCCESS;
                 },
             [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
             [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
