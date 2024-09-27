@@ -199,7 +199,9 @@ std::vector<std::tuple<std::vector<int64_t>, std::vector<int64_t>, std::vector<i
         TORCH_CHECK(!cum_seq_k.empty(), "The actual_seq_kvlen should not be empty when TND");
         TORCH_CHECK(cum_seq_q.size() == cum_seq_k.size(), "The size of actual_seq_qlen should be equal to actual_seq_kvlen when TND");
 
-        int64_t b = cum_seq_q.size();
+        size_t sizeValue = cum_seq_q.size();
+        TORCH_CHECK(sizeValue <= static_cast<size_t>(std::numeric_limits<int64_t>::max()), "cum_seq_q.size() is too large to be represented as an int64_t", OPS_ERROR(ErrCode::PARAM));
+        int64_t b = static_cast<int64_t>(sizeValue);
         TORCH_CHECK(b != 0, "Divisor b may be 0, please check it.")
         std::vector<int64_t> new_query_shape = {b, q_1, query[0]/b, q_2};
         std::vector<int64_t> new_key_shape = {b, k_1, key[0]/b, k_2};
