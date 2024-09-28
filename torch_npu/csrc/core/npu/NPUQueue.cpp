@@ -246,6 +246,14 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
     }
   }
 
+    if (GetStatus() == RepoStatus::UCE_EXIT) {
+        if (check_error) {
+            throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
+        } else {
+            ASCEND_LOGE("UCE ERROR happend.");
+        }
+    }
+
     if (GetStatus() == RepoStatus::STOP_EXIT) {
         ClearQueue();
         if (check_error) {
@@ -264,14 +272,6 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
         }
 #endif
         read_idx.idx = write_idx.idx;
-        if (call_ret == ACL_ERROR_RT_DEVICE_MEM_ERROR && checkUceErrAndRepair()) {
-            call_ret = 0;
-            if (check_error) {
-                throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
-            } else {
-                ASCEND_LOGE("UCE ERROR happend.");
-            }
-        }
 
         if (check_error) {
             throw std::runtime_error("The Inner error is reported as above. "
@@ -338,14 +338,15 @@ bool Repository::ReadQueue()
 #endif
     if (ret != 0) {
         repo_error = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
-        call_ret = ret;
         ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
                     std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
         while (!IsEmptyQueue()) { // ignore other tasks
             manager().Release(datas, read_idx.idx, releaseQueue);
             read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
         }
-        if (GetStatus() != STOP_EXIT) {
+        if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR && checkUceErrAndRepair()) {
+            SetStatus(UCE_EXIT);
+        } else if (GetStatus() != STOP_EXIT) {
             SetStatus(ERROR_EXIT);
         }
         read_idx.idx = write_idx.idx;
@@ -369,6 +370,10 @@ void Repository::Enqueue(void* cur_paras) {
     return;
   }
 
+    if (GetStatus() == RepoStatus::UCE_EXIT) {
+        throw std::runtime_error("UCE ERROR" + PTA_ERROR(ErrCode::ACL));
+    }
+
     if (GetStatus() == RepoStatus::STOP_EXIT) {
         auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
         auto type = queueParam->paramType;
@@ -383,11 +388,6 @@ void Repository::Enqueue(void* cur_paras) {
     // Avoid repeatedly throwing exceptions
     SetStatus(CAN_EXIT);
     read_idx.idx = write_idx.idx;
-
-    if (call_ret == ACL_ERROR_RT_DEVICE_MEM_ERROR && checkUceErrAndRepair()) {
-        call_ret = 0;
-        throw std::runtime_error("UCE ERROR" + PTA_ERROR(ErrCode::ACL));
-    }
 
     throw std::runtime_error("The Inner error is reported as above. "
                              "The process exits for this inner error, and " + repo_error + ".\n" +
