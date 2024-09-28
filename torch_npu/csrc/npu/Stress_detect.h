@@ -7,6 +7,7 @@
 #include <atomic>
 #include <future>
 #include <condition_variable>
+#include <sys/prctl.h>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 class StressDetector {

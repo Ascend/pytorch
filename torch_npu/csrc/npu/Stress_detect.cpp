@@ -21,6 +21,10 @@ const int StressDetector::interval_time = 3600;
 // Persistent worker thread implementation
 void StressDetector::worker_thread()
 {
+    if (prctl(PR_SET_NAME, ("StressDetect_thread")) != 0) {
+        ASCEND_LOGE("set thread name failed!");
+    }
+
     while (!stop_thread.load()) {
         std::unique_lock<std::mutex> lock(mtx);
 
