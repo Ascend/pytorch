@@ -382,7 +382,6 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
     
     c10_npu::clear_mem_uce_info();
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::INIT);
-    c10_npu::set_has_throw_error(false);
 
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
