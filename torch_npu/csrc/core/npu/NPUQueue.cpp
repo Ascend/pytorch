@@ -248,7 +248,6 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
 
     if (GetStatus() == RepoStatus::STOP_EXIT) {
         ClearQueue();
-        set_has_throw_error(true);
         if (check_error) {
             throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
         } else {
@@ -266,7 +265,6 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
 #endif
         read_idx.idx = write_idx.idx;
         if (call_ret == ACL_ERROR_RT_DEVICE_MEM_ERROR && checkUceErrAndRepair()) {
-            set_has_throw_error(true);
             call_ret = 0;
             if (check_error) {
                 throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
@@ -378,7 +376,6 @@ void Repository::Enqueue(void* cur_paras) {
             return;
         }
         ClearQueue();
-        set_has_throw_error(true);
         throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
     }
 
@@ -388,7 +385,6 @@ void Repository::Enqueue(void* cur_paras) {
     read_idx.idx = write_idx.idx;
 
     if (call_ret == ACL_ERROR_RT_DEVICE_MEM_ERROR && checkUceErrAndRepair()) {
-        set_has_throw_error(true);
         call_ret = 0;
         throw std::runtime_error("UCE ERROR" + PTA_ERROR(ErrCode::ACL));
     }
