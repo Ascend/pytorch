@@ -110,7 +110,6 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         Error_stop = stop_error;                                             \
     }                                                                        \
     if ((Error_stop) == ACL_ERROR_RT_DEVICE_TASK_ABORT) {                    \
-        c10_npu::set_has_throw_error(true);                                  \
         TORCH_CHECK(                                                         \
             false,                                                           \
             __func__,                                                        \
@@ -129,9 +128,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
     if ((uce_error) != ACL_ERROR_NONE) {                                     \
         Error_uce = uce_error;                                               \
     }                                                                        \
-    if ((Error_uce) == ACL_ERROR_RT_DEVICE_MEM_ERROR &&                      \
-        c10_npu::get_has_throw_error() == false && c10_npu::checkUceErrAndRepair()) { \
-        c10_npu::set_has_throw_error(true);                                  \
+    if ((Error_uce) == ACL_ERROR_RT_DEVICE_MEM_ERROR && c10_npu::checkUceErrAndRepair()) {     \
         TORCH_CHECK(                                                         \
             false,                                                           \
             __func__,                                                        \
@@ -262,7 +259,4 @@ MemUceInfo get_mem_uce_info();
 
 void clear_mem_uce_info();
 
-bool get_has_throw_error();
-
-void set_has_throw_error(bool flag);
 } // namespace c10_npu

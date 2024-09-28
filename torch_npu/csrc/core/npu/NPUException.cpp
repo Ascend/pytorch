@@ -76,8 +76,6 @@ static std::string getCurrentTimestamp()
 
 namespace c10_npu {
 
-bool has_throw_error = false;
-
 MemUceInfo memUceInfo;
 
 std::mutex memUceInfoMutex;
@@ -133,16 +131,6 @@ bool checkUceErrAndRepair()
     }
 
     return false;
-}
-
-bool get_has_throw_error()
-{
-    return has_throw_error;
-}
-
-void set_has_throw_error(bool flag)
-{
-    has_throw_error = flag;
 }
 
 } // namespace c10_npu
