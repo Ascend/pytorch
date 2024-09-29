@@ -22,7 +22,8 @@ enum RepoStatus {
   NEED_EXIT = 2,
   CAN_EXIT = 3,
   ERROR_EXIT = 4,
-  STOP_EXIT = 5,
+  UCE_EXIT = 5,
+  STOP_EXIT = 6,
 };
 
 // c10::SmallVector max size
@@ -115,7 +116,6 @@ private:
   c10::DeviceIndex device_idx;
 
 private:
-  int call_ret;
   sring_idx read_idx;
   sring_idx write_idx;
   std::atomic<RepoStatus> repo_status;
