@@ -117,14 +117,16 @@ class DynamicProfilerShareMemory:
 
     def _create_shm_over_py38(self):
         """Create a json monitor process based on whether the SharedMemory is successfully created py38"""
-        from multiprocessing import shared_memory, resource_tracker
+        from unittest.mock import patch
+        from multiprocessing import shared_memory
         try_times = 10
         while try_times:
             try:
                 # Step 1: try to open shm file, first time shm not exists.
-                self.shm = shared_memory.SharedMemory(name=self.shm_path)
+                with patch("multiprocessing.resource_tracker.register",
+                           lambda *args, **kwargs: None):
+                    self.shm = shared_memory.SharedMemory(name=self.shm_path)
                 self.is_create_process = False
-                resource_tracker.unregister(self.shm._name, 'shared_memory')
                 logger.info("Rank %d shared memory is connected.", self._rank_id)
                 break
             except FileNotFoundError:
