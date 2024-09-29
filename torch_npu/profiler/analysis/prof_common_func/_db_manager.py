@@ -1,4 +1,5 @@
 import os
+import sys
 import sqlite3
 
 from ._constant import Constant, print_warn_msg, print_error_msg
@@ -27,6 +28,7 @@ class DbManager:
     INSERT_SIZE = 10000
     FETCH_SIZE = 10000
     MAX_ROW_COUNT = 100000000
+    MAX_TIMEOUT = int(sys.maxsize / 1000)
 
     @classmethod
     def create_connect_db(cls, db_path: str) -> tuple:
@@ -36,7 +38,7 @@ class DbManager:
         if os.path.exists(db_path):
             FileManager.check_db_file_vaild(db_path)
         try:
-            conn = sqlite3.connect(db_path)
+            conn = sqlite3.connect(db_path, timeout=cls.MAX_TIMEOUT)
         except sqlite3.Error as err:
             return EmptyClass("emoty conn"), EmptyClass("empty curs")
         
