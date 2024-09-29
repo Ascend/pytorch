@@ -7,7 +7,7 @@ class TestHostInfo(TestCase):
 
     def test_get_host_info(self):
         host_info = get_host_info()
-        self.assertNotEqual(0, host_info.get('host_uid'))
+        self.assertNotEqual('0', host_info.get('host_uid'))
 
 
 if __name__ == "__main__":
