@@ -295,7 +295,7 @@ class DbConstant():
     TABLE_MEMORY_RECORD = "MEMORY_RECORD"
     TABLE_OPERATOR_MEMORY = "OP_MEMORY"
     TABLE_NPU_OP_MEM = "NPU_OP_MEM"
-    META_DATA_INFO = "META_DATA"
+    TABLE_META_DATA = "META_DATA"
     
     # rank device map table name
     TABLE_RANK_DEVICE_MAP = "RANK_DEVICE_MAP"
@@ -438,8 +438,12 @@ class TableColumnsManager():
             ("preparing", Constant.SQL_NUMERIC_TYPE)
         ],
         DbConstant.TABLE_HOST_INFO : [
-            ('hostUid', Constant.SQL_INTEGER_TYPE),
+            ('hostUid', Constant.SQL_TEXT_TYPE),
             ('hostName', Constant.SQL_TEXT_TYPE)
+        ],
+        DbConstant.TABLE_META_DATA : [
+            ('name', Constant.SQL_TEXT_TYPE),
+            ('value', Constant.SQL_TEXT_TYPE)
         ],
         DbConstant.TABLE_STEP_TIME : [
             ("id", Constant.SQL_INTEGER_TYPE),

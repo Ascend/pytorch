@@ -78,7 +78,8 @@ class DbParser(BaseParser):
 
     def save_env_vars_info_to_db(self):
         env_vars_dict = collect_env_vars()
-        DbManager.insert_data_into_table(self._conn, DbConstant.META_DATA_INFO,
+        DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_META_DATA, TableColumnsManager.TableColumns.get(DbConstant.TABLE_META_DATA))
+        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_META_DATA,
                                          [['ENV_VARIABLES', json.dumps(env_vars_dict.get('ENV_VARIABLES'))]])
 
     def save_profiler_metadata_to_db(self):
@@ -94,4 +95,5 @@ class DbParser(BaseParser):
         data = [
             [str(key), json.dumps(value)] for key, value in profiler_metadata.items()
         ]
-        DbManager.insert_data_into_table(self._conn, DbConstant.META_DATA_INFO, data)
+        DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_META_DATA, TableColumnsManager.TableColumns.get(DbConstant.TABLE_META_DATA))
+        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_META_DATA, data)
