@@ -604,8 +604,6 @@ protected:
 
     std::exception_ptr watchDogException_ = nullptr;
 
-    size_t uid_;
-
 private:
     // Helper that encapsulates work shared across all collective communication
     // primitives.
