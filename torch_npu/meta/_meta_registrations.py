@@ -628,6 +628,25 @@ def npu_quantize_meta(self, scales, zero_points, dtype, axis=1, div_mode=True):
     return torch.empty_like(self, dtype=torch.int8)
 
 
+@impl(m, "npu_group_quant")
+def npu_group_quant_meta(x, scale, group_index, *, offset=None, dst_dtype=None):
+    if dst_dtype == torch.quint8:
+        return torch.empty_like(x, dtype=torch.uint8)
+    elif dst_dtype == torch.qint8:
+        return torch.empty_like(x, dtype=torch.int8)
+    elif dst_dtype == torch.quint4x2:
+        dim_num = x.dim()
+        if x.size(dim_num - 1) % 8:
+            raise RuntimeError("If dst_dtype is quint4x2, last dim must be divisible by 8" +
+                               ops_error(ErrCode.NOT_SUPPORT))
+        output_shape = []
+        for dim in range(dim_num - 1):
+            output_shape.append(x.size(dim))
+        output_shape.append(x.size(dim_num - 1) // 8)
+        return x.new_empty(output_shape, dtype=torch.int32)
+    return torch.empty_like(x, dtype=torch.int8)
+
+
 @impl(m, "npu_dynamic_quant")
 def npu_dynamic_quant(input_dummy, *, smooth_scales=None):
     dim_num = input_dummy.dim()

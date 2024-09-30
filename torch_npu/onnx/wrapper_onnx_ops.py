@@ -856,7 +856,33 @@ class _NPUQuantizeOP(torch.autograd.Function):
         else:
             raise ValueError("The argument 'dtype' must be torch.quint8, torch.qint8 or torch.qint32")
         return g.op("npu::NPUQuantize", inputs, scales, zero_points, dtype_i=acl_dtype, axis_i=axis, div_mode_i=div_mode)
-    
+
+
+class _NPUGroupQuantOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_group_quant(*args[:-2], offset=args[-2], dst_dtype=args[-1], **kwargs)
+
+    @staticmethod
+    def symbolic(g,
+                 x: torch.Tensor,
+                 scale: torch.Tensor,
+                 group_index: torch.Tensor,
+                 offset: torch.Tensor,
+                 dst_dtype: torch.dtype = torch.qint8):
+        acl_dtype = 2
+        if dst_dtype == torch.quint8:
+            acl_dtype = 4
+        elif dst_dtype == torch.qint8 or dst_dtype == torch.int8:
+            acl_dtype = 2
+        elif dst_dtype == torch.quint4x2:
+            acl_dtype = 29
+        else:
+            raise TypeError("The argument 'dtype' must be torch.quint8, torch.qint8 or torch.quint4x2" +
+                            pta_error(ErrCode.TYPE))
+        return g.op("npu::NPUGroupQuant", x, scale, group_index, offset, dst_type_i=acl_dtype)
+
 
 class _NPUMoeFinalizeRoutingOP(torch.autograd.Function):
 
@@ -1162,6 +1188,10 @@ def _wrapper_npu_quantize(inputs, scales, zero_points, dtype, axis, div_mode=Tru
     return _NPUQuantizeOP.apply(inputs, scales, zero_points, dtype, axis, div_mode)
 
 
+def _wrapper_npu_group_quant(x, scale, group_index, offset=None, dst_dtype=None):
+    return _NPUGroupQuantOP.apply(x, scale, group_index, offset, dst_dtype)
+
+
 def _wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2, bias,
                                       scales, expanded_src_to_dst_row, export_for_source_row):
     return _NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2, bias,
@@ -1228,4 +1258,5 @@ def _add_onnx_ops():
     torch_npu.npu_weight_quant_batchmatmul = _wrapper_npu_weight_quant_batchmatmul
     torch_npu.npu_anti_quant = _wrapper_npu_anti_quant
     torch_npu.npu_quantize = _wrapper_npu_quantize
+    torch_npu.npu_group_quant = _wrapper_npu_group_quant
     torch_npu.npu_moe_finalize_routing = _wrapper_npu_moe_finalize_routing
