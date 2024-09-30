@@ -21,7 +21,7 @@ __all__ = []
 
 def get_host_info() -> dict:
     host_name = socket.gethostname()
-    host_uid = _get_host_uid()
+    host_uid = str(_get_host_uid())
     return {
         'host_name': host_name,
         'host_uid': host_uid
