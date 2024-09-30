@@ -604,8 +604,6 @@ std::vector<at::Tensor> ProcessGroupHCCL::WorkHCCL::result()
     return *outputs_;
 }
 
-static std::atomic<size_t> process_group_id = 0;
-
 ProcessGroupHCCL::ProcessGroupHCCL(
     const c10::intrusive_ptr<c10d::Store>& store,
     int rank,
@@ -617,8 +615,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     hcclCommCounter_(0),
     traceKeyStart_("HCCL_" + std::to_string(rank) + "_trace_start"),
     traceKeyEnd_("HCCL_" + std::to_string(rank) + "_trace_end"),
-    terminateProcessGroup_(false),
-    uid_(process_group_id++)
+    terminateProcessGroup_(false)
 {
     uint32_t hccl_event_timeout = c10_npu::option::OptionsManager::GetHCCLEventTimeout();
     uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
@@ -719,7 +716,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         global_hccl_id_ = group_ranks + "_" + std::to_string(group_ranks_map_[group_ranks]);
     }
 
-    if (options_->global_ranks_in_group.empty() && uid_ == 0) {
+    if (options_->global_ranks_in_group.empty()) {
         global_ = this;
     }
 }
@@ -769,7 +766,7 @@ void ProcessGroupHCCL::abort(c10::optional<std::string> abortReason)
 
 ProcessGroupHCCL::~ProcessGroupHCCL()
 {
-    if (options_->global_ranks_in_group.empty() && uid_ == 0) {
+    if (options_->global_ranks_in_group.empty()) {
         global_ = nullptr;
     }
 
@@ -850,7 +847,7 @@ void ProcessGroupHCCL::logWorkEnd(WorkHCCL& work)
 
 const std::vector<uint32_t>& ProcessGroupHCCL::groupRanks() const
 {
-    if (options_->global_ranks_in_group.empty() && uid_ == 0) {
+    if (options_->global_ranks_in_group.empty()) {
         static std::vector<uint32_t> globalRanks(size_);
         std::iota(globalRanks.begin(), globalRanks.end(), 0);
         return globalRanks;
@@ -1150,7 +1147,7 @@ void ProcessGroupHCCL::createHCCLComm(const std::vector<at::Device>& devices,
                     std::to_string((int)commType) + DIST_ERROR(ErrCode::PARAM));
         }
 
-        if (options_->global_ranks_in_group.empty() && uid_ == 0) {
+        if (options_->global_ranks_in_group.empty()) {
             global_hccl_comm_ = hcclComms[i];
         }
 
@@ -1172,7 +1169,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
     }
     c10_npu::OptionalNPUGuard npuGuard;
     // global process group
-    if (options_->global_ranks_in_group.empty() && uid_ == 0) {
+    if (options_->global_ranks_in_group.empty()) {
         if (!hcclCommInitClusterInfoConfigExist()) {
             ASCEND_LOGI("The hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
             return false;
