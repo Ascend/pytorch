@@ -2797,6 +2797,7 @@
     "npu_quant_scatter",
     "npu_scatter_nd_update_",
     "npu_swiglu",
+    "npu_group_quant",
     "npu_dynamic_quant",
     "npu_dynamic_quant_asymmetric",
     "npu_yolo_boxes_encode",
