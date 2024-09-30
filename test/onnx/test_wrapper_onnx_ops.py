@@ -1446,6 +1446,32 @@ class TestOnnxOps(TestCase):
                                             onnx_model_name)))
 
     @SupportedDevices(['Ascend910B'])
+    def test_wrapper_npu_group_quant(self):            
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, scale, group_index, offset):
+                dtype = torch.qint8
+                return torch_npu.npu_group_quant(x, scale, group_index, offset=offset, dst_dtype=dtype)
+
+        def export_onnx(onnx_model_name):
+            S, H, E = 6, 4, 4
+            x_shape, scale_shape, offset_shape = (S, H), (E, H), (1,)
+            x = torch.randn(*x_shape).to(torch.float).npu()
+            scale = torch.randn(*scale_shape).to(torch.float).npu()
+            group_index = torch.tensor([1, 2, 4, 6]).to(torch.int32).npu()
+            offset = torch.tensor(*offset_shape).to(torch.float).npu()
+            model = Model().to("npu")
+            model(x, scale, group_index, offset)
+            self.onnx_export(model, (x, scale, group_index, offset), onnx_model_name)
+
+        onnx_model_name = "model_npu_group_quant.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_moe_finalize_routing(self):            
         class Model(torch.nn.Module):
             def __init__(self):
