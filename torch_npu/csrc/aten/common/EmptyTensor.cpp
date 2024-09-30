@@ -2,6 +2,7 @@
 #include <torch/library.h>
 #include <c10/core/CPUAllocator.h>
 #include <ATen/EmptyTensor.h>
+#include <ATen/native/TensorFactories.h>
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
@@ -88,13 +89,23 @@ at::TensorBase empty_strided_cpu(
 }
 
 at::Tensor empty_memory_format(c10::IntArrayRef size, c10::optional<at::ScalarType> dtype_opt, c10::optional<at::Layout> layout_opt,
-    c10::optional<at::Device> device_opt, c10::optional<bool> pin_memory_opt, c10::optional<c10::MemoryFormat> memory_format_opt) {
-  return empty_cpu(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, memory_format_opt);
+    c10::optional<at::Device> device_opt, c10::optional<bool> pin_memory_opt, c10::optional<c10::MemoryFormat> memory_format_opt)
+{
+    at::Tensor result = empty_cpu(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, memory_format_opt);
+    if (C10_UNLIKELY(at::globalContext().deterministicAlgorithms() && at::globalContext().deterministicFillUninitializedMemory())) {
+        at::native::fill_empty_deterministic_(result);
+    }
+    return result;
 }
 
 at::Tensor empty_strided(c10::IntArrayRef size, c10::IntArrayRef stride, c10::optional<at::ScalarType> dtype_opt,
-                         c10::optional<at::Layout> layout_opt, c10::optional<at::Device> device_opt, c10::optional<bool> pin_memory_opt) {
-  return empty_strided_cpu(size, stride, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+                         c10::optional<at::Layout> layout_opt, c10::optional<at::Device> device_opt, c10::optional<bool> pin_memory_opt)
+{
+    at::Tensor result = empty_strided_cpu(size, stride, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+    if (C10_UNLIKELY(at::globalContext().deterministicAlgorithms() && at::globalContext().deterministicFillUninitializedMemory())) {
+        at::native::fill_empty_deterministic_(result);
+    }
+    return result;
 }
 
 TORCH_LIBRARY_IMPL(aten, CPU, m) {
