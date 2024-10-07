@@ -1167,6 +1167,10 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
         ASCEND_LOGI("The rank_table_file is not available, switch to original interface.");
         return false;
     }
+    if (c10_npu::option::OptionsManager::GetHCCLConnectTimeout() < 300) {
+        TORCH_NPU_WARN_ONCE("When creating an HCCL process group using the RANK_TABLE_FILE method, the connection may time out. ",
+            "It is recommended to set the timeout duration of HCCL_CONNECT_TIMEOUT to 300 seconds or more.");
+    }
     c10_npu::OptionalNPUGuard npuGuard;
     // global process group
     if (options_->global_ranks_in_group.empty()) {
