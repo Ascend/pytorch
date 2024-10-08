@@ -227,3 +227,8 @@ if 'TORCH_NPU_SANITIZER' in os.environ:
 
 # register npu device op overrides for inductor
 _inductor_register_device_op_overrides()
+
+if hasattr(sys, 'ps1'):
+    os.environ["TASK_QUEUE_ENABLE"] = '0'
+    warnings.warn("On the interactive interface, the value of TASK_QUEUE_ENABLE is set to 0 by default. \
+                     Do not set it to 1 to prevent some unknown errors")
