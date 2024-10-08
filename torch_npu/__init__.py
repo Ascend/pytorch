@@ -228,3 +228,8 @@ if 'TORCH_NPU_SANITIZER' in os.environ:
 
     apply_sanitizer_patch()
     csan.enable_npu_sanitizer()
+
+if hasattr(sys, 'ps1'):
+    os.environ["TASK_QUEUE_ENABLE"] = '0'
+    warnings.warn("On the interactive interface, the value of TASK_QUEUE_ENABLE is set to 0 by default. \
+                     Do not set it to 1 to prevent some unknown errors")
