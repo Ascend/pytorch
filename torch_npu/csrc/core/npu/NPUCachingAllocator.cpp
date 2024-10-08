@@ -596,6 +596,11 @@ class CachingAllocatorConfig {
     return instance().m_expandable_segments;
   }
 
+  static size_t base_addr_aligned_size()
+  {
+      return instance().m_base_addr_aligned_size;
+  }
+
   static CachingAllocatorConfig &instance() {
     static CachingAllocatorConfig *s_instance = ([]() {
       auto inst = new CachingAllocatorConfig();
@@ -614,11 +619,13 @@ class CachingAllocatorConfig {
   double m_garbage_collection_threshold;
   bool m_expandable_segments;
   bool set_expandable_segments_flag = false;
+  size_t m_base_addr_aligned_size = kAlignRoundLarge;
 
   CachingAllocatorConfig()
       : m_max_split_size(std::numeric_limits<size_t>::max()),
         m_garbage_collection_threshold(0),
-        m_expandable_segments(true)
+        m_expandable_segments(true),
+        m_base_addr_aligned_size(kAlignRoundLarge)
         {
             void* ptr = nullptr;
             auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
@@ -641,6 +648,9 @@ class CachingAllocatorConfig {
       const std::vector<std::string>& config,
       size_t i);
   size_t parseExpandableSegments(
+      const std::vector<std::string>& config,
+      size_t i);
+  size_t parseAddrAlignSize(
       const std::vector<std::string>& config,
       size_t i);
 };
@@ -740,6 +750,28 @@ size_t CachingAllocatorConfig::parseExpandableSegments(
   return i;
 }
 
+size_t CachingAllocatorConfig::parseAddrAlignSize(
+    const std::vector<std::string>& config,
+    size_t i)
+{
+    consumeToken(config, ++i, ':');
+    if (++i < config.size()) {
+        size_t val = static_cast<size_t>(stoi(config[i]));
+        TORCH_CHECK(config[i].length() == std::to_string(val).length(),
+                    "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
+                    OPS_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(val >= 0, "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
+                    OPS_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(val <= kAlignRoundLarge / 1024,
+                    "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
+                    OPS_ERROR(ErrCode::VALUE));
+        m_base_addr_aligned_size = val * 1024;
+    } else {
+        TORCH_CHECK(false, "Error, expecting base_addr_aligned_kb value", OPS_ERROR(ErrCode::VALUE));
+    }
+    return i;
+}
+
 void CachingAllocatorConfig::parseArgs(const char* env) {
   // If empty, set the default values
   m_max_split_size = std::numeric_limits<size_t>::max();
@@ -760,6 +792,8 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
     } else if (config[i] == "expandable_segments") {
       set_expandable_segments_flag = true;
       i = parseExpandableSegments(config, i);
+    } else if (config[i] == "base_addr_aligned_kb") {
+      i = parseAddrAlignSize(config, i);
     } else {
       TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], OPS_ERROR(ErrCode::PARAM));
     }
@@ -1058,9 +1092,10 @@ class DeviceCachingAllocator {
     }
 
     int64_t ori_block_ptr = int64_t(params.block->ptr);
-    if (params.size() >= kRoundLarge && CachingAllocatorConfig::expandable_segments() &&
-        ori_block_ptr % kAlignRoundLarge != 0) {
-        char* align_ptr = reinterpret_cast<char*>((ori_block_ptr + kAlignRoundLarge) - (ori_block_ptr % kAlignRoundLarge));
+    size_t align_round = CachingAllocatorConfig::base_addr_aligned_size();
+    if (params.size() >= kRoundLarge && CachingAllocatorConfig::expandable_segments() && align_round != 0 &&
+        ori_block_ptr % align_round != 0) {
+        char* align_ptr = reinterpret_cast<char*>((ori_block_ptr + align_round) - (ori_block_ptr % align_round));
         size_t offset_size = align_ptr - (char*)params.block->ptr;
         if (offset_size + params.size() <= params.block->size) {
             auto size = params.block->size;
