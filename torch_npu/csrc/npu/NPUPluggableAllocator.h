@@ -81,6 +81,7 @@ struct NPUPluggableAllocator
     bool checkBlockIsSafe(const c10::DataPtr& ptr) override;
     void markAllBlockUnsafe(int device) override;
     void updateBlockToSafe(const c10::DataPtr &ptr) override;
+    void cleanEvent() override;
 
 protected:
     std::function<void*(size_t, int, aclrtStream)> alloc_fn_;
