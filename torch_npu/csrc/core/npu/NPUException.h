@@ -16,6 +16,7 @@
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUErrorCodes.h"
+#include "torch_npu/csrc/core/npu/npu_log.h"
 
 
 #define C10_NPU_SHOW_ERR_MSG()                                           \
@@ -89,8 +90,8 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 #define GRAPH_ERROR(error) formatErrorCode(SubModule::GRAPH, error)
 #define PROF_ERROR(error) formatErrorCode(SubModule::PROF, error)
 
-#define DEVICE_TASK_ABORT "107022"
-#define DEVICE_MEM_ERROR "507053"
+#define DEVICE_TASK_ABORT "reason=[device task abort]"
+#define DEVICE_MEM_ERROR "reason=[device mem error]"
 
 inline const char* getErrorFunction(const char* msg)
 {
@@ -110,6 +111,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         Error_stop = stop_error;                                             \
     }                                                                        \
     if ((Error_stop) == ACL_ERROR_RT_DEVICE_TASK_ABORT) {                    \
+        ASCEND_LOGE("getRepoStopFlag in Run, throw FORCE STOP.");            \
         TORCH_CHECK(                                                         \
             false,                                                           \
             __func__,                                                        \
