@@ -407,6 +407,8 @@ public:
     // may indicate that there is some sort of collective desynchronization.
     uint64_t getSequenceNumberForGroup() override;
 
+    std::shared_ptr<HCCLComm> getHcclCommByRankid(const std::vector<at::Device>& devices);
+
     int64_t getHcclComm(int rankid);
 
     void setHcclCommName(const std::string& hccl_comm_name);
@@ -676,8 +678,6 @@ private:
     std::unordered_map<c10d::OpType, std::pair<at::Tensor, at::Tensor>> silenceCheckCache_;
 
     WatchdogStatus watchdogStatus;
-
-    static std::weak_ptr<HCCLComm> global_hccl_comm_;
 
     static std::mutex group_ranks_map_mutex_;
     static std::unordered_map<std::string, uint32_t> group_ranks_map_;
