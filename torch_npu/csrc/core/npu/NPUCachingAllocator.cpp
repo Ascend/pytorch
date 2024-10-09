@@ -1345,6 +1345,23 @@ class DeviceCachingAllocator {
     release_cached_blocks(check_error, context);
   }
 
+  void release_and_free_events()
+  {
+      std::unique_lock<std::recursive_mutex> lock(mutex);
+      std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
+      for (auto& st : npu_events) {
+          for (auto& e : st.second) {
+              EventPool::Event event = std::move(e.first);
+              Block* block = e.second;
+              block->event_count--;
+              if (block->event_count == 0) {
+                  free_block(block, context);
+              }
+          }
+      }
+      npu_events.clear();
+  }
+
   /** Retrieves info (total size + largest block) of the memory cache **/
   void cacheInfo(size_t* total, size_t* largest) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
@@ -2465,6 +2482,13 @@ class NpuCachingAllocator : public NPUAllocator {
       Block* block = get_allocated_block(ptr.get());
       TORCH_INTERNAL_ASSERT(block != nullptr, "No allocated block can be found", PTA_ERROR(ErrCode::NOT_FOUND));
       block->is_safe = true;
+  }
+
+  void cleanEvent() override
+  {
+      int count = static_cast<int>(device_allocator.size());
+      for (int i = 0; i < count; i++)
+          device_allocator[i]->release_and_free_events();
   }
 
   void emptyCache(bool check_error) override
