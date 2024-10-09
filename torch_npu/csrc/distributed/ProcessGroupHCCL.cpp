@@ -234,7 +234,6 @@ const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
 const int64_t ProcessGroupHCCL::kWatchdogThreadSleepMillis = 1000;
 std::string ProcessGroupHCCL::perfdumppath = "";
-std::weak_ptr<HCCLComm> ProcessGroupHCCL::global_hccl_comm_;
 std::unordered_map<std::string, uint32_t> ProcessGroupHCCL::group_ranks_map_;
 std::mutex ProcessGroupHCCL::group_ranks_map_mutex_;
 ProcessGroupHCCL* ProcessGroupHCCL::global_ = nullptr;
@@ -786,6 +785,7 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
                 hcclComm->destroyHcclComm();
             }
         }
+        devHCCLCommMap_.clear();
     }
 }
 
@@ -1147,10 +1147,6 @@ void ProcessGroupHCCL::createHCCLComm(const std::vector<at::Device>& devices,
                     std::to_string((int)commType) + DIST_ERROR(ErrCode::PARAM));
         }
 
-        if (options_->global_ranks_in_group.empty()) {
-            global_hccl_comm_ = hcclComms[i];
-        }
-
         // Creates the HCCL streams
         streamVal.push_back(c10_npu::getNPUStreamFromPool(devices[i].index()));
     }
@@ -1171,13 +1167,13 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
         TORCH_NPU_WARN_ONCE("When creating an HCCL process group using the RANK_TABLE_FILE method, the connection may time out. ",
             "It is recommended to set the timeout duration of HCCL_CONNECT_TIMEOUT to 300 seconds or more.");
     }
+    if (!hcclCommInitClusterInfoConfigExist()) {
+        ASCEND_LOGI("The hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
+        return false;
+    }
     c10_npu::OptionalNPUGuard npuGuard;
     // global process group
     if (options_->global_ranks_in_group.empty()) {
-        if (!hcclCommInitClusterInfoConfigExist()) {
-            ASCEND_LOGI("The hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
-            return false;
-        }
         auto startTime = std::chrono::steady_clock::now();
         for (size_t i = 0; i < devices.size(); ++i) {
             int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
@@ -1194,7 +1190,6 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
                 return false;
             }
             hcclComms[i] = comm;
-            global_hccl_comm_ = comm;
             // Creates the HCCL streams
             streamVal.push_back(c10_npu::getNPUStreamFromPool(devices[i].index()));
         }
@@ -1209,20 +1204,17 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
         ASCEND_LOGI("The hcclCreateSubCommConfig is not exist, switch to original interface.");
         return false;
     }
-    if (global_hccl_comm_.expired()) {
-        // only support create glabal process group by ranktable
-        if (global_ == nullptr || !hcclCommInitClusterInfoConfigExist()) {
-            ASCEND_LOGI("The hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
-            return false;
-        }
-        try {
-            (void)global_->getHcclComm(global_->getRank());
-        } catch (const std::exception& e) {
-            ASCEND_LOGI("create the global HCCL Communicator failed, the exception info is %s.", e.what());
-            return false;
-        }
+    if (global_ == nullptr) {
+        ASCEND_LOGI("The global process group is not exist, switch to original interface.");
+        return false;
     }
-    std::shared_ptr<HCCLComm> globalHcclComm = global_hccl_comm_.lock();
+    std::shared_ptr<HCCLComm> globalHcclComm = nullptr;
+    try {
+        globalHcclComm = global_->getHcclCommByRankid(devices);
+    } catch (const std::exception& e) {
+        ASCEND_LOGI("create the global HCCL Communicator failed, the exception info is %s.", e.what());
+        return false;
+    }
     if (!globalHcclComm) {
         ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, globalHcclComm is nullptr.");
         return false;
@@ -1518,6 +1510,15 @@ ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
       opTimeout(kProcessGroupHCCLOpTimeoutMillis),
       is_high_priority_stream(is_high_priority_stream)
 {
+}
+
+std::shared_ptr<HCCLComm> ProcessGroupHCCL::getHcclCommByRankid(const std::vector<at::Device>& devices)
+{
+    const auto key = getKeyFromDevices(devices);
+    auto& hcclComms = getHCCLComm(key, devices);
+    TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
+        hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
+    return hcclComms[0];
 }
 
 int64_t ProcessGroupHCCL::getHcclComm(int rankid)
