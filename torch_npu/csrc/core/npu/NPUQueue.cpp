@@ -257,6 +257,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
     if (GetStatus() == RepoStatus::STOP_EXIT) {
         ClearQueue();
         if (check_error) {
+            ASCEND_LOGE("getRepoStopFlag in EmptyQueue, throw FORCE STOP.");
             throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
         } else {
             ASCEND_LOGE("FORCE STOP happend.");
@@ -296,17 +297,30 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
 }
 
 bool Repository::WriteQueue(void* cur_paras) {
-  std::lock_guard<std::mutex> lock(mu_enqueue);
-  if (IsFullQueue()) {
-    return false;
-  }
+    std::lock_guard<std::mutex> lock(mu_enqueue);
 
-  __sync_synchronize();
-  manager().Copy(datas, write_idx.idx, cur_paras);
-  __sync_synchronize();
+    if (GetStatus() == RepoStatus::STOP_EXIT) {
+        auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
+        auto type = queueParam->paramType;
+        if (type == c10_npu::queue::LAZY_DESTROY_EVENT) {
+            return true;
+        } else {
+            ClearQueue();
+            ASCEND_LOGE("getRepoStopFlag in WriteQueue, throw FORCE STOP.");
+            throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
+        }
+    }
 
-  write_idx.idx = (write_idx.idx + 1) & (kQueueCapacity - 1);
-  return true;
+    if (IsFullQueue()) {
+        return false;
+    }
+
+    __sync_synchronize();
+    manager().Copy(datas, write_idx.idx, cur_paras);
+    __sync_synchronize();
+
+    write_idx.idx = (write_idx.idx + 1) & (kQueueCapacity - 1);
+    return true;
 }
 
 bool Repository::ReadQueue()
@@ -381,6 +395,7 @@ void Repository::Enqueue(void* cur_paras) {
             return;
         }
         ClearQueue();
+        ASCEND_LOGE("getRepoStopFlag in Enqueue, throw FORCE STOP.");
         throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
     }
 
