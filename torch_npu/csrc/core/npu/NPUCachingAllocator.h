@@ -207,6 +207,7 @@ public:
     virtual bool checkBlockIsSafe(const c10::DataPtr& ptr) = 0;
     virtual void markAllBlockUnsafe(int device) = 0;
     virtual void updateBlockToSafe(const c10::DataPtr &ptr) = 0;
+    virtual void cleanEvent() = 0;
 };
 
 // Allocator object, statically initialized
@@ -340,6 +341,11 @@ inline void markAllBlockUnsafe(int device)
 inline void updateBlockToSafe(const c10::DataPtr& ptr)
 {
     return get()->updateBlockToSafe(ptr);
+}
+
+inline void cleanEvent()
+{
+    return get()->cleanEvent();
 }
 
 } // namespace NPUCachingAllocator
