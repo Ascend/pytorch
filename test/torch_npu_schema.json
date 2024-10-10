@@ -1215,7 +1215,7 @@
     "signature": "()"
   },
   "torch_npu.npu.mstx.mark": {
-    "signature": "(self, message: str = '')"
+    "signature": "(message: str = '')"
   },
   "torch_npu.npu.preferred_linalg_library": {
     "signature": "(backend: Union[NoneType, str, torch._C._LinalgBackend] = None) -> torch._C._LinalgBackend"
@@ -1569,7 +1569,7 @@
     "signature": "()"
   },
   "torch_npu.npu.mstx.mstx.mark": {
-    "signature": "(self, message: str = '')"
+    "signature": "(message: str = '')"
   },
   "torch_npu.npu.npu_config.finalize_dump": {
     "signature": "()"

@@ -17,7 +17,8 @@ import torch_npu._C
 
 
 class mstx:
-    def mark(self, message:str = ""):
+    @staticmethod
+    def mark(message:str = ""):
         torch_npu._C._mark(message)
 
     @staticmethod
