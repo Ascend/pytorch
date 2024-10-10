@@ -35,9 +35,7 @@ class StepInfoDbParser(BaseParser):
         try:
             self._db_path = deps_data.get(Constant.DB_PARSER, "")
             torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
-            if not torch_op_node:
-                return Constant.SUCCESS, []
-            step_range = self.get_step_range(torch_op_node[0])
+            step_range = self.get_step_range(torch_op_node[0] if torch_op_node else None)
         except Exception:
             print_error_msg("Failed to get step info from db.")
             DbManager.destroy_db_connect(self.db_conn, self.db_curs)
@@ -74,9 +72,8 @@ class StepInfoDbParser(BaseParser):
 
     def get_step_range(self, root_node: TorchOpNode) -> list:
         step_node_list = []
-        for level1_node in root_node.child_node_list:
-            if level1_node.is_profiler_step():
-                step_node_list.append(level1_node)
+        if root_node is not None:
+            step_node_list = [node for node in root_node.child_node_list if node.is_profiler_step()]
         conn, curs = DbManager.create_connect_db(self._db_path)
         if not (conn and curs):
             print_warn_msg(f"Failed to connect to db file: {self._db_path}")
