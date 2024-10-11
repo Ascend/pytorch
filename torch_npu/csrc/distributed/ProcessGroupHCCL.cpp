@@ -205,13 +205,6 @@ std::string getExceptionMsgFromExceptionPtr(const std::exception_ptr& exceptionP
     }
 }
 
-// exit call back for allreduce error
-void exceptionCallback(aclrtExceptionInfo* exceptionInfo)
-{
-    // notice: Do not raise error, otherwise we will get call stacks of the rts callback function.
-    fprintf(stdout, "Inner error, see details in Ascend logs.");
-}
-
 void getP2PHcclCommCofig(HcclCommConfig* config)
 {
     HcclCommConfigInit(config);
@@ -1908,8 +1901,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
         tensors_cp,
         tensors_cp,
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
-            aclrtSetExceptionInfoCallback(exceptionCallback);
-
             auto hcclType = getHcclDataType(input.scalar_type());
             checkSupportedDataType(hcclType, functionName);
             RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
