@@ -15,17 +15,17 @@ __all__ = [
 
 
 def supported_profiler_level():
-    return set((ProfilerLevel.Level0, ProfilerLevel.Level1, ProfilerLevel.Level2))
+    return set((ProfilerLevel.Level0, ProfilerLevel.Level1, ProfilerLevel.Level2, ProfilerLevel.Level_none))
 
 
 def supported_ai_core_metrics():
-    return set((AiCMetrics.PipeUtilization, AiCMetrics.ArithmeticUtilization,
+    return set((AiCMetrics.AiCoreNone, AiCMetrics.PipeUtilization, AiCMetrics.ArithmeticUtilization,
                 AiCMetrics.Memory, AiCMetrics.MemoryL0, AiCMetrics.MemoryUB,
                 AiCMetrics.ResourceConflictRatio, AiCMetrics.L2Cache))
 
 
 def supported_export_type():
-    return set(ExportType.__members__.values())
+    return set((ExportType.Db, ExportType.Text))
 
 
 class ProfilerLevel:
