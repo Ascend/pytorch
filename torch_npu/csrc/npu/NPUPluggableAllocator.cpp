@@ -316,6 +316,13 @@ void NPUPluggableAllocator::updateBlockToSafe(const c10::DataPtr& ptr)
         "If you need it, please file an issue describing your use case.");
 }
 
+void NPUPluggableAllocator::cleanEvent()
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support cleanEvent. "
+        "If you need it, please file an issue describing your use case.");
+}
+
 std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>
     current_custom_allocator;
 
