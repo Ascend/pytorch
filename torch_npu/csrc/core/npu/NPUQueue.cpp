@@ -255,7 +255,6 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
     }
 
     if (GetStatus() == RepoStatus::STOP_EXIT) {
-        ClearQueue();
         if (check_error) {
             ASCEND_LOGE("getRepoStopFlag in EmptyQueue, throw FORCE STOP.");
             throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
@@ -272,7 +271,6 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
             PyEval_RestoreThread(gilState);
         }
 #endif
-        read_idx.idx = write_idx.idx;
 
         if (check_error) {
             throw std::runtime_error("The Inner error is reported as above. "
@@ -305,7 +303,6 @@ bool Repository::WriteQueue(void* cur_paras) {
         if (type == c10_npu::queue::LAZY_DESTROY_EVENT) {
             return true;
         } else {
-            ClearQueue();
             ASCEND_LOGE("getRepoStopFlag in WriteQueue, throw FORCE STOP.");
             throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
         }
@@ -363,10 +360,7 @@ bool Repository::ReadQueue()
         } else if (GetStatus() != STOP_EXIT) {
             SetStatus(ERROR_EXIT);
         }
-        read_idx.idx = write_idx.idx;
-        __sync_synchronize();
-        eventfd_write(efd_empty, 1);
-        eventfd_write(efd_write, 1);
+        ClearQueue();
         return false;
     }
 
@@ -394,7 +388,6 @@ void Repository::Enqueue(void* cur_paras) {
         if (type == c10_npu::queue::LAZY_DESTROY_EVENT) {
             return;
         }
-        ClearQueue();
         ASCEND_LOGE("getRepoStopFlag in Enqueue, throw FORCE STOP.");
         throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
     }
@@ -402,7 +395,6 @@ void Repository::Enqueue(void* cur_paras) {
   if (GetStatus() == RepoStatus::ERROR_EXIT) {
     // Avoid repeatedly throwing exceptions
     SetStatus(CAN_EXIT);
-    read_idx.idx = write_idx.idx;
 
     throw std::runtime_error("The Inner error is reported as above. "
                              "The process exits for this inner error, and " + repo_error + ".\n" +
@@ -491,6 +483,9 @@ void Repository::Dequeue() {
 
   SetReadWorking(true);
   while (ret == false && GetStatus() != RepoStatus::CAN_EXIT) {
+    if (GetStatus() == RepoStatus::STOP_EXIT) {
+        ClearQueue();
+    }
     ret = ReadQueue();
     if (ret == false) {
       if (GetStatus() == RepoStatus::NEED_EXIT) {
@@ -566,6 +561,7 @@ void Repository::ReleaseResource() {
 void Repository::ClearQueue()
 {
     read_idx.idx = write_idx.idx;
+    __sync_synchronize();
     eventfd_write(efd_empty, 1);
     eventfd_write(efd_write, 1);
 }
