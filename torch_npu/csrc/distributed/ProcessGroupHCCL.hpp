@@ -407,7 +407,7 @@ public:
     // may indicate that there is some sort of collective desynchronization.
     uint64_t getSequenceNumberForGroup() override;
 
-    std::shared_ptr<HCCLComm> getHcclCommByRankid(const std::vector<at::Device>& devices);
+    std::shared_ptr<HCCLComm> getHcclCommByDevices(const std::vector<at::Device>& devices);
 
     int64_t getHcclComm(int rankid);
 
