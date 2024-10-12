@@ -79,13 +79,11 @@ class TraceStepTimeParser(BaseParser):
     def get_prepare_time(self, step, step_list):
         for cur_step in step_list:
             if cur_step[StepInfoIndex.ID.value] == step:
-                fwk_step_start_ts = cur_step[StepInfoIndex.FWK_START_TS.value]
+                first_task_start_ts = cur_step[StepInfoIndex.FIRST_TASK_TS.value]
                 if step is None:
                     first_fwk_op = FwkFileParser(self._profiler_path).get_first_fwk_op()
-                    start_time = convert_ns2us_float(first_fwk_op.ts) if first_fwk_op else fwk_step_start_ts
-                else:
-                    start_time = fwk_step_start_ts
-                return cur_step[StepInfoIndex.FIRST_TASK_TS.value] - start_time
+                    return (first_task_start_ts - convert_ns2us_float(first_fwk_op.ts)) if first_fwk_op else 0
+                return first_task_start_ts - cur_step[StepInfoIndex.FWK_START_TS.value]
         return 0
 
     def create_step_file(self, output_path: str, json_str: list, file_name: str) -> None:
