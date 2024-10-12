@@ -859,7 +859,6 @@ void ProcessGroupHCCL::workCleanupLoop()
         workMetaListCV_.wait_for(lock, std::chrono::milliseconds(kWatchdogThreadSleepMillis),
                                  [&]() -> bool { return terminateProcessGroup_.load(); });
         if (watchdogStatus == WatchdogStatus::STOP) {
-            workMetaList_.clear();
             continue;
         }
 
@@ -1203,7 +1202,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
     }
     std::shared_ptr<HCCLComm> globalHcclComm = nullptr;
     try {
-        globalHcclComm = global_->getHcclCommByRankid(devices);
+        globalHcclComm = global_->getHcclCommByDevices(devices);
     } catch (const std::exception& e) {
         ASCEND_LOGI("create the global HCCL Communicator failed, the exception info is %s.", e.what());
         return false;
@@ -1484,8 +1483,6 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
         return;
     }
     if (watchdogStatus == WatchdogStatus::STOP) {
-        std::lock_guard<std::mutex> lock(workMetaListMutex_);
-        workMetaList_.clear();
         return;
     }
     if (!terminateProcessGroup_.load()) {
@@ -1505,7 +1502,7 @@ ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
 {
 }
 
-std::shared_ptr<HCCLComm> ProcessGroupHCCL::getHcclCommByRankid(const std::vector<at::Device>& devices)
+std::shared_ptr<HCCLComm> ProcessGroupHCCL::getHcclCommByDevices(const std::vector<at::Device>& devices)
 {
     const auto key = getKeyFromDevices(devices);
     auto& hcclComms = getHCCLComm(key, devices);
