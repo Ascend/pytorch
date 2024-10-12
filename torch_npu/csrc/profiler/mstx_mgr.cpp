@@ -5,6 +5,9 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
+#include "torch_npu/csrc/toolkit/profiler/common/utils.h"
+
+#include <sstream>
 
 namespace torch_npu {
 namespace profiler {
@@ -90,9 +93,40 @@ int MstxMgr::getRangeId()
     return ptRangeId_++;
 }
 
-bool MstxMgr::isMstxEnable()
+bool MstxMgr::isProfTxEnable()
 {
     return ProfilerMgr::GetInstance()->GetNpuTrace().load() && ProfilerMgr::GetInstance()->GetMsprofTx().load();
+}
+
+bool MstxMgr::isMsptiTxEnableImpl()
+{
+    bool ret = false;
+    const char* envVal = std::getenv("LD_PRELOAD");
+    if (envVal == nullptr) {
+        return ret;
+    }
+    static const std::string soName = "libmspti.so";
+    std::stringstream ss(envVal);
+    std::string path;
+    while (std::getline(ss, path, ':')) {
+        path = torch_npu::toolkit::profiler::Utils::RealPath(path);
+        if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
+            ret = true;
+            break;
+        }
+    }
+    return ret;
+}
+
+bool MstxMgr::isMsptiTxEnable()
+{
+    static bool isEnable = isMsptiTxEnableImpl();
+    return isEnable;
+}
+
+bool MstxMgr::isMstxEnable()
+{
+    return isProfTxEnable() || isMsptiTxEnable();
 }
 }
 }

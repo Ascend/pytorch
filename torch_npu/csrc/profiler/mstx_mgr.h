@@ -26,6 +26,9 @@ private:
     explicit MstxMgr(MstxMgr &&obj) = delete;
     MstxMgr& operator=(MstxMgr &&obj) = delete;
 
+    bool isProfTxEnable();
+    bool isMsptiTxEnable();
+    bool isMsptiTxEnableImpl();
 private:
     std::atomic<int> ptRangeId_{1};
     std::unordered_set<int> ptRangeIdsWithStream_;
