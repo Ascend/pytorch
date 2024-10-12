@@ -66,8 +66,8 @@ def restart_device(device_id: int, rebuild_all_resources: int = False):
     npu_device = torch.device('npu')
     for pg in _pg_map:
         if (npu_device in pg._device_types):
-            pg._get_backend(npu_device).set_watchdog_status(WATCHDOG_STATUS_RUN)
             pg._get_backend(npu_device).clear_workmeta_list()
+            pg._get_backend(npu_device).set_watchdog_status(WATCHDOG_STATUS_RUN)
 
 
 def stop_device(device_id):
@@ -78,4 +78,3 @@ def stop_device(device_id):
     for pg in _pg_map:
         if (npu_device in pg._device_types):
             pg._get_backend(npu_device).set_watchdog_status(WATCHDOG_STATUS_STOP)
-            pg._get_backend(npu_device).clear_workmeta_list()
