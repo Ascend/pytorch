@@ -61,7 +61,7 @@ c10d::DebugLevel debug_level() noexcept {
     if (!logger_.expired()) {                         \
       logger_.lock()->set_error_and_log(__VA_ARGS__); \
     }                                                 \
-    TORCH_CHECK(false, ##__VA_ARGS__);                \
+    TORCH_CHECK(false, ##__VA_ARGS__, DIST_ERROR(ErrCode::INTERNAL));                \
   }
 
 } // namespace

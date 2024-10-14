@@ -361,7 +361,7 @@ struct THNPUCachingHostAllocator final : public at::Allocator {
     // Note [COW/lazy_clone is not supported yet]
     void copy_data(void* dest, const void* src, std::size_t count) const
     {
-        TORCH_CHECK_NOT_IMPLEMENTED(false, "Not implemented for THNPUCachingHostAllocator");
+        TORCH_CHECK_NOT_IMPLEMENTED(false, "Not implemented for THNPUCachingHostAllocator", PTA_ERROR(ErrCode::NOT_SUPPORT));
     }
 };
 

@@ -72,7 +72,7 @@ at::Tensor NPUNativeFunctions::to(
         TORCH_CHECK(
             optional_memory_format.value() == c10::MemoryFormat::Preserve ||
             optional_memory_format.value() == c10::MemoryFormat::Contiguous,
-            "Only contiguous_format or preserve_format is supported.");
+            "Only contiguous_format or preserve_format is supported.", OPS_ERROR(ErrCode::NOT_SUPPORT));
     } else {
         TORCH_CHECK(
             !optional_memory_format.has_value(),

@@ -197,7 +197,7 @@ public:
         TORCH_CHECK(
             false, name(),
             " does not yet support recordHistory. "
-            "If you need it, please file an issue describing your use case.");
+            "If you need it, please file an issue describing your use case.", PTA_ERROR(ErrCode::NOT_SUPPORT));
     }
     virtual void recordHistory(bool enabled, CreateContextFn context_recorder,
                                size_t alloc_trace_max_entries,

@@ -644,7 +644,7 @@ torch::CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredCont
     if (torch::CapturedTraceback* sc = dynamic_cast<torch::CapturedTraceback*>(x.get())) {
         return sc;
     }
-    TORCH_CHECK(false, "attempting to gather stack context from the wrong StackContext type.");
+    TORCH_CHECK(false, "attempting to gather stack context from the wrong StackContext type.", OPS_ERROR(ErrCode::NOT_FOUND));
 }
 
 PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)

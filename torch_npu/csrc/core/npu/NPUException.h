@@ -221,6 +221,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                     __LINE__,                                                    \
                     " NPU function error: ", getErrorFunction(#err_code, ##__VA_ARGS__),    \
                     ", error code is ", Error,                                   \
+                    PTA_ERROR(ErrCode::ACL),                                     \
                     (err_map.error_code_map.find(Error) !=                       \
                     err_map.error_code_map.end() ?                               \
                     "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
