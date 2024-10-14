@@ -54,6 +54,7 @@ from torch.distributed.checkpoint.filesystem import (
     _write_item,
     _split_by_size_and_type
 )
+from torch_npu.utils._error_code import ErrCode, dist_error
 
 DEFAULT_SUFFIX = ".distcp"
 
@@ -219,7 +220,7 @@ def _write_files_from_queue(
                 for tensor, write_item in loader.values():
                     torch._check(
                         tensor.is_cpu,
-                        lambda: "tensor must be cpu tensor ",
+                        lambda: "tensor must be cpu tensor " + dist_error(ErrCode.TYPE),
                     )
                     write_results.append(
                         _write_item(stream, tensor, write_item, storage_key)

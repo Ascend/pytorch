@@ -24,7 +24,7 @@ at::Tensor TensorMaker::make_tensor()
     if (opts_.device().has_index()) {
         TORCH_CHECK_VALUE(
             opts_.device() == *device_,
-            "Specified device ", opts_.device(), " does not match device of data ", *device_);
+            "Specified device ", opts_.device(), " does not match device of data ", *device_, OPS_ERROR(ErrCode::PARAM));
     }
     AT_ASSERT((*device_).type() == c10::DeviceType::PrivateUse1, OPS_ERROR(ErrCode::PARAM));
     torch_npu::utils::maybe_initialize_npu(*device_);

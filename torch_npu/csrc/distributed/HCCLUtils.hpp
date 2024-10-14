@@ -43,7 +43,7 @@
             std::string err = "HCCL error in: " + std::string(__FILE__) + ":" +     \
             std::to_string(__LINE__) + ", " +                                       \
             "\n" + getHcclErrorDetailStr(result);                                   \
-            TORCH_CHECK(false, err);                                                \
+            TORCH_CHECK(false, err, DIST_ERROR(ErrCode::HCCL));                     \
         }                                                                           \
     } while (0)
 
