@@ -878,7 +878,7 @@ class DeviceCachingAllocator {
                      size_t alloc_trace_max_entries, RecordContext when)
   {
       std::unique_lock<std::recursive_mutex> lock(mutex);
-      TORCH_CHECK(when == RecordContext::NEVER || context_recorder);
+      TORCH_CHECK(when == RecordContext::NEVER || context_recorder, PTA_ERROR(ErrCode::INTERNAL));
       record_history = enabled;
       context_recorder_.store(record_history ? context_recorder : nullptr);
       alloc_trace_max_entries_ = std::max(size_t(1), alloc_trace_max_entries);

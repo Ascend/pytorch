@@ -24,11 +24,13 @@ inline const at::Tensor& resize_named_tensor_(
         " to ",
         size,
         "). This may be caused by passing a named tensor ",
-        "as an `out=` argument; please ensure that the sizes are the same. ");
+        "as an `out=` argument; please ensure that the sizes are the same. ",
+        OPS_ERROR(ErrCode::VALUE));
     TORCH_CHECK(
         !format.has_value(),
         "Unsupported memory format for named tensor resize ",
-        format.value());
+        format.value(),
+        OPS_ERROR(ErrCode::NOT_SUPPORT));
     return self;
 }
 

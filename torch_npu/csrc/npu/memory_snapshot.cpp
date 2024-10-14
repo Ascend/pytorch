@@ -27,7 +27,7 @@ static void checkOptionIn(const std::string& option,
                           const char* error)
 {
     TORCH_CHECK(valid.end() != std::find(valid.begin(), valid.end(), option),
-                error);
+                error, PTA_ERROR(ErrCode::NOT_FOUND));
 }
 
 void _record_memory_history(c10::optional<std::string> enabled,
@@ -144,7 +144,7 @@ torch::CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredCont
     }
     TORCH_CHECK(
         false,
-        "attempting to gather stack context from the wrong StackContext type.");
+        "attempting to gather stack context from the wrong StackContext type.", PTA_ERROR(ErrCode::NOT_FOUND));
 }
 
 std::string _memory_snapshot_pickled()

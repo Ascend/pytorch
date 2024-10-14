@@ -42,7 +42,7 @@ using std::vector;
             std::cout << (opstr) << std::endl;                                 \
             TORCH_CHECK((expr) == 0, __func__, ":", __FILE__, ":", __LINE__,   \
                         " NPU error,NPU error code is:", expr, "\n",           \
-                        c10_npu::acl::AclGetErrMsg());                         \
+                        c10_npu::acl::AclGetErrMsg(), OPS_ERROR(ErrCode::INTERNAL));                         \
         }                                                                      \
     } while (0)
 

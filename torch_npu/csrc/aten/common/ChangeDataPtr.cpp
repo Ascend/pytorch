@@ -8,7 +8,7 @@ namespace native {
 int64_t NPUNativeFunctions::npu_change_data_ptr(const at::Tensor& dst, const at::Tensor& src, int64_t offset) {
   TORCH_CHECK(
       offset >= 0,
-      "Expect offset equal or greater than zero, got: ", offset);
+      "Expect offset equal or greater than zero, got: ", offset, PTA_ERROR(ErrCode::VALUE));
 
   const auto& src_scalar_type = src.scalar_type();
   const auto& dst_scalar_type = dst.scalar_type();
