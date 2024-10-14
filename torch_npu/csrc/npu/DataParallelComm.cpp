@@ -504,7 +504,7 @@ at::Tensor& gather_out(at::TensorList tensors, at::Tensor& out_tensor, int64_t d
             i,
             " has device '",
             tensor.device(),
-            "'");
+            "'", PTA_ERROR(ErrCode::TYPE));
         TORCH_CHECK(tensor.ndimension() == static_cast<int64_t>(expected_size.size()),
             "Expected all input tensors to have the same number of dimensions, but ",
             "tensor at index ",
@@ -513,7 +513,7 @@ at::Tensor& gather_out(at::TensorList tensors, at::Tensor& out_tensor, int64_t d
             tensor.ndimension(),
             " dimensions, (expected ",
             expected_size.size(),
-            ")");
+            ")", PTA_ERROR(ErrCode::VALUE));
         expected_size[dim] = tensor.size(dim);
         for (const auto dimension : c10::irange(expected_size.size())) {
             TORCH_CHECK(expected_size[dimension] == tensor.size(dimension),
@@ -522,7 +522,7 @@ at::Tensor& gather_out(at::TensorList tensors, at::Tensor& out_tensor, int64_t d
                 " has invalid shape ",
                 tensor.sizes(),
                 ", but expected ",
-                at::IntArrayRef(expected_size));
+                at::IntArrayRef(expected_size), PTA_ERROR(ErrCode::VALUE));
         }
         total_size += tensor.size(dim);
     }
@@ -531,7 +531,7 @@ at::Tensor& gather_out(at::TensorList tensors, at::Tensor& out_tensor, int64_t d
         "Expected out tensor to have shape ",
         at::IntArrayRef(expected_size),
         ", but got ",
-        out_tensor.sizes())
+        out_tensor.sizes(), PTA_ERROR(ErrCode::VALUE))
     return _gather_out_impl(tensors, out_tensor, dim);
 }
 

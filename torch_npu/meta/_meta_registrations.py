@@ -583,7 +583,7 @@ def npu_trans_quant_param_meta(scale, offset=None):
     scale_dim_num = scale.dim()
     torch._check(
         scale_dim_num == 1 or (scale_dim_num == 2 and scale.size(0) == 1),
-        lambda: "the scale shape support only (1, ) and (1, n)",
+        lambda: "the scale shape support only (1, ) and (1, n)" + ops_error(ErrCode.VALUE),
     )
     output_shape = scale.size()
     if scale_dim_num == 1:
@@ -595,14 +595,14 @@ def npu_trans_quant_param_meta(scale, offset=None):
             if offset_first_dim != 1 and scale_first_dim != 1:
                 torch._check(
                     offset_first_dim == scale_first_dim,
-                    lambda: "offset first dim should be equal to scale first dim if none of them are equal to one",
+                    lambda: "offset first dim should be equal to scale first dim if none of them are equal to one" + ops_error(ErrCode.VALUE),
                 )
         output_shape = (dim_max)
     else:
         if offset is not None:
             torch._check(
                 scale.size() == offset.size(),
-                lambda: "when the input shape of scale is (1, n), shape of scale and offset should be equal",
+                lambda: "when the input shape of scale is (1, n), shape of scale and offset should be equal" + ops_error(ErrCode.VALUE),
             )
     return scale.new_empty(output_shape, dtype=torch.int64)
 
@@ -706,41 +706,41 @@ def npu_quant_conv2d(input_, weight, scale, strides, pads, dilations,
         torch._check(
             input_dim == weight_dim and weight_dim == INPUTS_DIM_LIMIT_QUANTCONV2D,
             lambda: "input dim or weight dim is not equal to 4, but now input dim is " + str(input_dim) + ", and weight dim is "
-                     + str(weight_dim),
+                     + str(weight_dim) + ops_error(ErrCode.VALUE),
         )
 
         torch._check(
             scale_dim == 1,
-            lambda: "scale dim is not equal to 1, but now scale dim is " + str(scale_dim),
+            lambda: "scale dim is not equal to 1, but now scale dim is " + str(scale_dim) + ops_error(ErrCode.VALUE),
         )
 
         torch._check(
             input_shape[1] == weight_shape[1],
             lambda: "input cin should equal to weight cin, but now input cin is " + str(input_shape[1]) + ", and weight cin is "
-                    + str(weight_shape[1]),
+                    + str(weight_shape[1]) + ops_error(ErrCode.VALUE),
         )
 
         torch._check(
             scale_shape[0] == weight_shape[0],
             lambda: "scale shape should equal to cout, but now scale shape is " + str(scale_shape[0]) + ", and cout is " +
-                    str(weight_shape[0]),
+                    str(weight_shape[0]) + ops_error(ErrCode.VALUE),
         )
 
     def check_basic_inputs_dtype():
         torch._check(
             input_.dtype == torch.int8 and weight.dtype == torch.int8,
             lambda: "input's dtype and weight's dtype should be int8, but input.dtype is " + str(input_.dtype) + ", and weight.dtype is " +
-                    str(weight.dtype),
+                    str(weight.dtype) + ops_error(ErrCode.TYPE),
         )
 
         torch._check(
             scale.dtype == torch.int64,
-            lambda: "scale's dtype should be int64, but scale.dtype is " + str(scale.dtype),
+            lambda: "scale's dtype should be int64, but scale.dtype is " + str(scale.dtype) + ops_error(ErrCode.TYPE),
         )
 
         torch._check(
             output_dtype == torch.float16,
-            lambda: "output dtype should be float16, but now dtype is " + str(output_dtype),
+            lambda: "output dtype should be float16, but now dtype is " + str(output_dtype) + ops_error(ErrCode.TYPE),
         )
 
     def check_bias_dim_shape_dtype():
@@ -748,18 +748,18 @@ def npu_quant_conv2d(input_, weight, scale, strides, pads, dilations,
         bias_shape = bias.size()
         torch._check(
             bias_dim == 1,
-            lambda: "bias dim is not equal to 1, but now bias dim is " + str(bias_dim),
+            lambda: "bias dim is not equal to 1, but now bias dim is " + str(bias_dim) + ops_error(ErrCode.VALUE),
         )
 
         torch._check(
             bias.dtype == torch.int32,
-            lambda: "bias' dtype should be int32, but bias.dtype is " + str(input_.dtype),
+            lambda: "bias' dtype should be int32, but bias.dtype is " + str(input_.dtype) + ops_error(ErrCode.VALUE),
         )
 
         torch._check(
             bias_shape[0] == weight_shape[0],
             lambda: "bias shape should equal to cout, but now bias shape is " + str(bias_shape[0]) + ", and cout is " +
-                    str(weight_shape[0]),
+                    str(weight_shape[0]) + ops_error(ErrCode.VALUE),
         )
 
     def check_attrs():
@@ -770,34 +770,34 @@ def npu_quant_conv2d(input_, weight, scale, strides, pads, dilations,
             pads_dim == ATTR_DIM_LIMIT_QUANTCONV2D and strides_dim == ATTR_DIM_LIMIT_QUANTCONV2D and
             dilations_dim == ATTR_DIM_LIMIT_QUANTCONV2D,
             lambda: "attrs's dim should be 2, but pads dim is " + str(pads_dim) + ", strides dim is "
-                    + str(strides_dim) + ", dilations dim is " + str(dilations_dim),
+                    + str(strides_dim) + ", dilations dim is " + str(dilations_dim) + ops_error(ErrCode.VALUE),
         )
         torch._check(
             pads[0] >= 0 and pads[1] >= 0,
             lambda: "pads's value should large or equal to 0, but pads is " + str(pads[0]) + ", "
-                    + str(pads[1]),
+                    + str(pads[1]) + ops_error(ErrCode.VALUE),
         )
         torch._check(
             strides[0] > 0 and strides[1] > 0,
             lambda: "strides's value should large than 0, but strides is " + str(strides[0]) + ", "
-                    + str(strides[1]),
+                    + str(strides[1]) + ops_error(ErrCode.VALUE),
         )
         torch._check(
             dilations[0] > 0 and dilations[1] > 0,
             lambda: "dilations's value should large than 0, but dilations is " + str(dilations[0]) + ", "
-                    + str(dilations[1]),
+                    + str(dilations[1]) + ops_error(ErrCode.VALUE),
         )
         torch._check(
             groups == 1,
-            lambda: "groups should be 1, but now " + str(groups),
+            lambda: "groups should be 1, but now " + str(groups) + ops_error(ErrCode.VALUE),
         )
         torch._check(
             offset_x <= 127 and offset_x >= -128,
-            lambda: "offset_x should be [-128,127], but offset_x is " + str(offset_x),
+            lambda: "offset_x should be [-128,127], but offset_x is " + str(offset_x) + ops_error(ErrCode.VALUE),
         )
         torch._check(
             round_mode == 'rint',
-            lambda: "round_mode should be rint, but round_mode is " + str(round_mode),
+            lambda: "round_mode should be rint, but round_mode is " + str(round_mode) + ops_error(ErrCode.VALUE),
         )
 
     check_basic_inputs_dim_shape()
@@ -813,7 +813,7 @@ def npu_quant_conv2d(input_, weight, scale, strides, pads, dilations,
 
     torch._check(
         hout > 0 and wout > 0,
-        lambda: "ho, wo should larger than 0, but now ho is " + str(hout) + ", and wo is " + str(wout),
+        lambda: "ho, wo should larger than 0, but now ho is " + str(hout) + ", and wo is " + str(wout) + ops_error(ErrCode.VALUE),
     )
 
     output_dim_list = [nout, cout, hout, wout]

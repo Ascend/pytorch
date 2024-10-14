@@ -92,7 +92,7 @@ public:
   }
 
   void* Init(int capacity) {
-    TORCH_CHECK(this->newFunc, "Failed to find new function.");
+    TORCH_CHECK(this->newFunc, "Failed to find new function.", PTA_ERROR(ErrCode::NOT_FOUND));
     void* ptr = this->newFunc(capacity, sizePerParams); // not check as CUDA
     return ptr;
   }
