@@ -173,6 +173,26 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 | CANN 5.0.3            | 1.8.1                     | 1.5.0.post3                 | 2.0.3.tr5         |
 | CANN 5.0.2            | 1.5.0                     | 1.5.0.post2                 | 2.0.2.tr5         |
 
+## Hardware support
+
+The Ascend training device includes the following models, all of which can be used as training environments for PyTorch models
+| Product series        | Product model                    |
+|-----------------------|----------------------------------|
+| Atlas Training series products     | Atlas 800（model: 9000） |
+|                       | Atlas 800（model：9010）          |
+|                       | Atlas 900 PoD（model：9000）      |
+|                       | Atlas 300T（model：9000）         |
+|                       | Atlas 300T Pro（model：9000）     |
+| Atlas A2 Training series products  | Atlas 800T A2       |
+|                       | Atlas 900 A2 PoD                 |
+|                       | Atlas 200T A2 Box16              |
+|                       | Atlas 300T A2                    |
+
+The Ascend inference device includes the following models, all of which can be used as inference environments for large models
+| Product series        | Product model                        |
+|-----------------------|----------------------------------|
+| Atlas 800I A2 Inference product  | Atlas 800I A2         |
+
 ## Pipeline Status
 
 Due to the asynchronous development mechanism of upstream and downstream, incompatible modifications in upstream may cause some functions of **torch_npu** to be unavailable (only upstream and downstream development branches are involved, excluding stable branches). Therefore, we built a set of daily tasks that make it easy to detect relevant issues in time and fix them within 48 hours (under normal circumstances), providing users with the latest features and stable quality.
