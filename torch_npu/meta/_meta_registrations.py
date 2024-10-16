@@ -852,3 +852,14 @@ def npu_prefetch_meta(self, dependency, max_size):
         max_size > 0,
         lambda: f"The max_size should be greater than zero, but got {max_size}.",
     )
+
+
+@impl(m, "npu_swiglu")
+def npu_swiglu_meta(x):
+    return torch.empty_like(x)
+
+
+@impl(m, "npu_swiglu_backward")
+def npu_swiglu_backward_meta(y, x):
+    return torch.empty_like(x)
+    
