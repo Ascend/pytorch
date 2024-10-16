@@ -6,16 +6,19 @@ import numpy as np
 import torch
 from torch import nan
 from torch.testing import make_tensor
-
-from torch.testing._internal.common_dtype import all_types, all_types_and, floating_types_and, integral_types
+from torch.testing._internal.common_dtype import (all_types, all_types_and, floating_types_and, 
+                                                  integral_types, _dispatch_dtypes)
 from torch.testing._internal.common_utils import (TestCase, run_tests, slowTest, skipIfTorchDynamo)
-import torch_npu
-import torch_npu.testing
 from torch.testing._internal.common_device_type import \
     (instantiate_device_type_tests, dtypes, onlyNativeDeviceTypes,
-     onlyPRIVATEUSE1, dtypesIfPRIVATEUSE1, dtypesIfCPU, onlyCPU, largeTensorTest)
+     onlyPRIVATEUSE1, dtypesIfPRIVATEUSE1, dtypesIfCPU, onlyCPU, largeTensorTest)    
+
+import torch_npu
+import torch_npu.testing
 
 SIZE = 100
+all_types_without_double = _dispatch_dtypes((torch.half, torch.float32, torch.uint8, 
+                                             torch.int8, torch.int16, torch.int32, torch.int64))
 
 
 class TestSortAndSelect(TestCase):
@@ -1014,6 +1017,7 @@ class TestSortAndSelect(TestCase):
         self.assertEqual(res[0], ref[0].squeeze())
         self.assertEqual(res[1], ref[1].squeeze())
 
+    # isin.Tensor_Tensor do not support float64 currently.
     @dtypes(*all_types())
     @dtypesIfPRIVATEUSE1(*all_types_and(torch.half))
     def test_isin(self, device, dtype):
@@ -1026,7 +1030,7 @@ class TestSortAndSelect(TestCase):
             self.assertEqual(x, y)
 
         # multi-dim tensor, multi-dim tensor
-        a = torch.arange(24, device=device, dtype=dtype).reshape([2, 3, 4])
+        a = torch.tensor(np.arange(24)).to(dtype).to(device).reshape([2, 3, 4])
         b = torch.tensor([[10, 20, 30], [0, 1, 3], [11, 22, 33]], device=device, dtype=dtype)
         assert_isin_equal(a, b)
 
@@ -1104,14 +1108,14 @@ class TestSortAndSelect(TestCase):
 
                 # multi-dimensional input case using sort-based algo
                 for assume_unique in [False, True]:
-                    a = torch.arange(6, device=device, dtype=dtype).reshape([2, 3])
-                    b = torch.arange(3, 30, device=device, dtype=dtype)
+                    a = torch.tensor(np.arange(6)).to(dtype).to(device).reshape([2, 3])
+                    b = torch.tensor(np.arange(3, 30)).to(dtype).to(device)
                     ec = define_expected([[False, False, False], [True, True, True]], invert=invert)
                     c = torch.isin(a, b, invert=invert, assume_unique=assume_unique)
                     self.assertEqual(c, ec)
 
     def test_isin_different_dtypes(self, device):
-        supported_types = all_types() if device == 'cpu' else all_types_and(torch.half)
+        supported_types = all_types() if device == 'cpu' else all_types_without_double
         for mult in [1, 10]:
             for assume_unique in [False, True]:
                 for dtype1, dtype2 in product(supported_types, supported_types):
@@ -1124,13 +1128,13 @@ class TestSortAndSelect(TestCase):
     @onlyPRIVATEUSE1
     @dtypes(*all_types())
     def test_isin_different_devices(self, device, dtype):
-        a = torch.arange(6, device=device, dtype=dtype).reshape([2, 3])
-        b = torch.arange(3, 30, device='cpu', dtype=dtype)
+        a = torch.tensor(np.arange(6)).to(dtype).to(device).reshape([2, 3])
+        b = torch.tensor(np.arange(3, 30)).to(dtype).to('cpu')
         with self.assertRaises(RuntimeError):
             torch.isin(a, b)
 
-        c = torch.arange(6, device='cpu', dtype=dtype).reshape([2, 3])
-        d = torch.arange(3, 30, device=device, dtype=dtype)
+        c = torch.tensor(np.arange(6)).to(dtype).to('cpu').reshape([2, 3])
+        d = torch.tensor(np.arange(3, 30)).to(dtype).to(device)
         with self.assertRaises(RuntimeError):
             torch.isin(c, d)
 
