@@ -130,7 +130,7 @@ class _ExperimentalConfig:
             print_warn_msg("Invalid parameter op_attr, which must be of boolean type, reset it to False.")
             self._op_attr = False
         if self._export_type not in (ExportType.Text, ExportType.Db):
-            print_warn_msg("Invalid parameter type, reset it to text.")
+            print_warn_msg("Invalid parameter export_type, reset it to text.")
             self._export_type = ExportType.Text
         if self._op_attr and self._export_type != ExportType.Db:
             print_warn_msg("op_attr switch is invalid with export type set as text.")
@@ -140,7 +140,7 @@ class _ExperimentalConfig:
                 print_warn_msg("Parameter gc_detect_threshold is not int or float type, reset it to default.")
                 self._gc_detect_threshold = None
             elif self._gc_detect_threshold < 0.0:
-                print_warn_msg("Parameter gc_detect_threshold can not be negetive, reset it to default.")
+                print_warn_msg("Parameter gc_detect_threshold can not be negative, reset it to default.")
                 self._gc_detect_threshold = None
             elif self._gc_detect_threshold == 0.0:
                 print_info_msg("Parameter gc_detect_threshold is set to 0, it will collect all gc events.")
