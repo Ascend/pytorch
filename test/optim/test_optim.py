@@ -36,7 +36,7 @@ from torch._dynamo import disable as disable_dynamo
 from torch.testing._internal.common_device_type import largeTensorTest
 from torch.optim.optimizer import register_optimizer_step_pre_hook, register_optimizer_step_post_hook
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
-
+from torch_npu.testing.common_utils import SupportedDevices
 # load_tests from common_utils is used to automatically filter tests for
 # sharding on sandcastle. This line silences flake warnings
 load_tests = load_tests
@@ -476,6 +476,7 @@ class TestOptim(TestCase):
     def _build_params_dict_single(self, weight, bias, **kwargs):
         return [dict(params=bias, **kwargs)]
 
+    @SupportedDevices(['Ascend910B'])
     def test_sgd(self):
         self._test_basic_cases(
             lambda weight, bias, maximize, foreach: SGD(
@@ -1032,6 +1033,7 @@ class TestOptim(TestCase):
             optimizer = optimizer_ctor(params, fused=True, **optimizer_params)
             optimizer.step()
 
+    @SupportedDevices(["Ascend910B"])
     def test_adam(self):
         self._test_basic_cases(
             lambda weight, bias, maximize, foreach: Adam(
@@ -1209,6 +1211,7 @@ class TestOptim(TestCase):
             Adam, lr=torch.tensor(.001), weight_decay=0.2, amsgrad=True,
         ))
 
+    @SupportedDevices(["Ascend910B"])
     def test_adamw(self):
         self._test_basic_cases(
             lambda weight, bias, maximize, foreach: AdamW(
@@ -1313,6 +1316,7 @@ class TestOptim(TestCase):
             SparseAdam([{"params": [torch.zeros(3, layout=torch.sparse_coo)]}])
 
     # ROCm precision is too low to pass this test
+    @SupportedDevices(["Ascend910B"])
     def test_adadelta(self):
         self.rel_tol = 4e-3
         self._test_basic_cases(
@@ -1363,6 +1367,7 @@ class TestOptim(TestCase):
                 lambda weight: Adadelta([weight], rho=0.95, weight_decay=1, foreach=foreach)
             )
 
+    @SupportedDevices(["Ascend910B"])
     def test_nadam(self):
         self._test_basic_cases(
             lambda weight, bias, foreach: NAdam(
@@ -1450,6 +1455,7 @@ class TestOptim(TestCase):
                 )
             )
 
+    @SupportedDevices(["Ascend910B"])
     def test_adagrad(self):
         self._test_basic_cases(
             lambda weight, bias, maximize, foreach: Adagrad(
@@ -1536,6 +1542,7 @@ class TestOptim(TestCase):
                 )
             )
 
+    @SupportedDevices(["Ascend910B"])
     def test_adamax(self):
         self._test_basic_cases(
             lambda weight, bias, maximize, foreach: Adamax(
@@ -1572,6 +1579,7 @@ class TestOptim(TestCase):
         ):
             Adamax(None, lr=1e-2, betas=(0.0, 1.0))
 
+    @SupportedDevices(["Ascend910B"])
     def test_radam(self):
         self._test_basic_cases(
             lambda weight, bias, foreach: RAdam(
@@ -1649,6 +1657,7 @@ class TestOptim(TestCase):
                 )
             )
 
+    @SupportedDevices(["Ascend910B"])
     def test_rmsprop(self):
         for foreach in (False, True):
             self._test_basic_cases(
@@ -1739,6 +1748,7 @@ class TestOptim(TestCase):
             with self.assertRaisesRegex(ValueError, "Invalid momentum value: -1.0"):
                 RMSprop(None, lr=1e-2, momentum=-1.0, foreach=foreach)
 
+    @SupportedDevices(["Ascend910B"])
     def test_asgd(self):
         for foreach in (False, True):
             self._test_basic_cases(
@@ -1791,6 +1801,7 @@ class TestOptim(TestCase):
 
     @skipIfRocm
     @skipIfTorchDynamo()
+    @SupportedDevices(["Ascend910B"])
     def test_rprop(self):
         is_npu_sm86 = torch.npu.is_available()
         for foreach in (False, True):
@@ -1825,6 +1836,7 @@ class TestOptim(TestCase):
             with self.assertRaisesRegex(ValueError, "Invalid eta values: 1.0, 0.5"):
                 Rprop(None, lr=1e-2, etas=(1.0, 0.5), foreach=foreach)
 
+    @SupportedDevices(['Ascend910B'])
     def test_lbfgs(self):
         self._test_basic_cases(
             lambda weight, bias: LBFGS([weight, bias]), ignore_multidevice=True

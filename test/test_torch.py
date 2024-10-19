@@ -70,9 +70,11 @@ load_tests = load_tests
 
 AMPERE_OR_ROCM = TEST_WITH_ROCM or tf32_is_not_fp32()
 
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
+DEVICE_NAME = torch_npu.npu.get_device_name(0)
 
-device_is_910A = True if DEVICE_NAME in ["Ascend910A", "Ascend910P"] else True
+device_is_910A = False
+if "Ascend910A" in DEVICE_NAME or "Ascend910P" in DEVICE_NAME:
+    device_is_910A = True
 
 if device_is_910A:
     all_types_and_complex_and = all_types_and

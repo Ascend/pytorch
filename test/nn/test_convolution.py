@@ -35,8 +35,15 @@ from torch.testing._internal.common_cuda import tf32_on_and_off, tf32_is_not_fp3
 
 from url import get_url
 
+from torch_npu.testing.common_utils import SupportedDevices
+
 AMPERE_OR_ROCM = TEST_WITH_ROCM or tf32_is_not_fp32()
 
+DEVICE_NAME = torch_npu.npu.get_device_name(0)
+
+device_is_910A = False
+if "Ascend910A" in DEVICE_NAME or "Ascend910P" in DEVICE_NAME:
+    device_is_910A = True
 
 if TEST_SCIPY:
     import scipy.signal
@@ -938,7 +945,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
         x = net2(x)
         x = net3(x)
         x.backward(torch.randn_like(x))
-        if device_name == 'npu':
+        if device == 'npu':
             torch_npu.npu.synchronize()
 
     @onlyPRIVATEUSE1
@@ -1535,229 +1542,6 @@ class TestConvolutionNNDeviceType(NNTestCase):
         output = m(inp, output_size=output_size)
         self.assertEqual(output.shape, output_size)
 
-    @skipMeta
-    @parametrize_test("input_shape,transposed,dilated,groups,layout,backend_expected", [
-        # === slow ===
-        subtest(((2, 6, 7), False, False, 3, torch.strided, torch._C._ConvBackend.Slow2d),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow1d'),
-        subtest(((2, 6, 7), True, False, 3, torch.strided, torch._C._ConvBackend.SlowTranspose2d),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow1d_transposed'),
-        subtest(((2, 6, 7), False, True, 3, torch.strided, torch._C._ConvBackend.SlowDilated2d),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow1d_dilated'),
-        subtest(((2, 6, 7), True, True, 3, torch.strided, torch._C._ConvBackend.SlowTranspose2d),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow1d_dilated_transposed'),
-        subtest(((2, 6, 7, 8), False, False, 3, torch.strided, torch._C._ConvBackend.Slow2d),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow2d'),
-        subtest(((2, 6, 7, 8), True, False, 3, torch.strided, torch._C._ConvBackend.SlowTranspose2d),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow2d_transposed'),
-        subtest(((2, 6, 7, 8), False, True, 3, torch.strided, torch._C._ConvBackend.SlowDilated2d),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow2d_dilated'),
-        subtest(((2, 6, 7, 8), True, True, 3, torch.strided, torch._C._ConvBackend.SlowTranspose2d),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow2d_dilated_transposed'),
-        subtest(((2, 6, 7, 8, 9), False, False, 3, torch.strided, torch._C._ConvBackend.Slow3d),
-                decorators=[onlyCPU, disableMkldnn], name='slow3d_cpu'),
-        # CUDA doesn't have a slow 3D implementation, so it goes to the dilated 3D implementation instead
-        subtest(((2, 6, 7, 8, 9), False, False, 3, torch.strided, torch._C._ConvBackend.SlowDilated3d),
-                decorators=[onlyPRIVATEUSE1, disablecuDNN], name='slow3d_cuda'),
-        # subtest(((2, 6, 7, 8, 9), True, False, 3, torch.strided, torch._C._ConvBackend.SlowTranspose3d),
-        #         decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow3d_transposed'),
-        subtest(((2, 6, 7, 8, 9), False, True, 3, torch.strided, torch._C._ConvBackend.SlowDilated3d),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow3d_dilated'),
-        # subtest(((2, 6, 7, 8, 9), True, True, 3, torch.strided, torch._C._ConvBackend.SlowTranspose3d),
-        #         decorators=[onlyNativeDeviceTypes, disableMkldnn, disablecuDNN], name='slow3d_dilated_transposed'),
-        subtest(((0, 6, 7), False, False, 3, torch.strided, torch._C._ConvBackend.Empty),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn], name='empty_batch1d'),
-        subtest(((2, 0, 7), False, False, 3, torch.strided, torch._C._ConvBackend.Empty),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn], name='empty_channel1d'),
-        subtest(((0, 0, 7), False, False, 3, torch.strided, torch._C._ConvBackend.Empty),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn], name='empty_batch_channel1d'),
-        subtest(((0, 6, 7, 8), False, False, 3, torch.strided, torch._C._ConvBackend.Empty),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn], name='empty_batch2d'),
-        subtest(((2, 0, 7, 8), False, False, 3, torch.strided, torch._C._ConvBackend.Empty),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn], name='empty_channel2d'),
-        subtest(((0, 0, 7, 8), False, False, 3, torch.strided, torch._C._ConvBackend.Empty),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn], name='empty_batch_channel2d'),
-        subtest(((0, 6, 7, 8, 9), False, False, 3, torch.strided, torch._C._ConvBackend.Empty),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn], name='empty_batch3d'),
-        subtest(((2, 0, 7, 8, 9), False, False, 3, torch.strided, torch._C._ConvBackend.Empty),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn], name='empty_channel3d'),
-        subtest(((0, 0, 7, 8, 9), False, False, 3, torch.strided, torch._C._ConvBackend.Empty),
-                decorators=[onlyNativeDeviceTypes, disableMkldnn], name='empty_batch_channel3d'),
-        # === cuda ===
-        # Note that disablecuDNN disables miopen as well.
-        subtest(((2, 6, 7), False, False, 6, torch.strided, torch._C._ConvBackend.CudaDepthwise2d),
-                decorators=[onlyPRIVATEUSE1, disablecuDNN], name='cuda_depthwise1d'),
-        subtest(((2, 6, 7, 8), False, False, 6, torch.strided, torch._C._ConvBackend.CudaDepthwise2d),
-                decorators=[onlyPRIVATEUSE1, disablecuDNN], name='cuda_depthwise2d'),
-        subtest(((2, 6, 7, 8, 9), False, False, 6, torch.strided, torch._C._ConvBackend.CudaDepthwise3d),
-                decorators=[onlyPRIVATEUSE1, disablecuDNN], name='cuda_depthwise3d'),
-        # === cudnn ===
-        subtest(((2, 6, 7), False, False, 3, torch.strided, torch._C._ConvBackend.Cudnn),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoCudnn, skipCUDAIfMiopen], name='cudnn1d'),
-        subtest(((2, 6, 7, 8), False, False, 3, torch.strided, torch._C._ConvBackend.Cudnn),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoCudnn, skipCUDAIfMiopen], name='cudnn2d'),
-        subtest(((2, 6, 7, 8, 9), False, False, 3, torch.strided, torch._C._ConvBackend.Cudnn),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoCudnn, skipCUDAIfMiopen], name='cudnn3d'),
-        subtest(((2, 6, 7), True, False, 3, torch.strided, torch._C._ConvBackend.CudnnTranspose),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoCudnn, skipCUDAIfMiopen], name='cudnn1d_transposed'),
-        subtest(((2, 6, 7, 8), True, False, 3, torch.strided, torch._C._ConvBackend.CudnnTranspose),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoCudnn, skipCUDAIfMiopen], name='cudnn2d_transposed'),
-        # subtest(((2, 6, 7, 8, 9), True, False, 3, torch.strided, torch._C._ConvBackend.CudnnTranspose),
-        #         decorators=[onlyPRIVATEUSE1, skipCUDAIfNoCudnn, skipCUDAIfMiopen], name='cudnn3d_transposed'),
-        # === miopen ===
-        subtest(((2, 6, 7), False, False, 3, torch.strided, torch._C._ConvBackend.Miopen),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoMiopen], name='miopen1d'),
-        subtest(((2, 6, 7, 8), False, False, 3, torch.strided, torch._C._ConvBackend.Miopen),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoMiopen], name='miopen2d'),
-        subtest(((2, 6, 7, 8, 9), False, False, 3, torch.strided, torch._C._ConvBackend.Miopen),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoMiopen], name='miopen3d'),
-        subtest(((2, 6, 7), True, False, 3, torch.strided, torch._C._ConvBackend.MiopenTranspose),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoMiopen], name='miopen1d_transposed'),
-        subtest(((2, 6, 7, 8), True, False, 3, torch.strided, torch._C._ConvBackend.MiopenTranspose),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoMiopen], name='miopen2d_transposed'),
-        subtest(((2, 6, 7, 8, 9), True, False, 3, torch.strided, torch._C._ConvBackend.MiopenTranspose),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoMiopen], name='miopen3d_transposed'),
-        subtest(((2, 6, 7), False, False, 6, torch.strided, torch._C._ConvBackend.MiopenDepthwise),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoMiopen], name='miopen_depthwise1d'),
-        subtest(((2, 6, 7, 8), False, False, 6, torch.strided, torch._C._ConvBackend.MiopenDepthwise),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoMiopen], name='miopen_depthwise2d'),
-        subtest(((2, 6, 7, 8, 9), False, False, 6, torch.strided, torch._C._ConvBackend.MiopenDepthwise),
-                decorators=[onlyPRIVATEUSE1, skipCUDAIfNoMiopen], name='miopen_depthwise3d'),
-        # === mkldnn ===
-        subtest(((2, 6, 7), False, False, 3, torch._mkldnn, torch._C._ConvBackend.Mkldnn),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn1d'),
-        subtest(((2, 6, 7, 8), False, False, 3, torch._mkldnn, torch._C._ConvBackend.Mkldnn),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn2d'),
-        subtest(((2, 6, 7, 8, 9), False, False, 3, torch._mkldnn, torch._C._ConvBackend.Mkldnn),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn3d'),
-        subtest(((2, 6, 7), True, False, 3, torch._mkldnn, torch._C._ConvBackend.Mkldnn),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn, unittest.expectedFailure], name='mkldnn1d_transposed'),
-        subtest(((2, 6, 7, 8), True, False, 3, torch._mkldnn, torch._C._ConvBackend.Mkldnn),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn, unittest.expectedFailure], name='mkldnn2d_transposed'),
-        subtest(((2, 6, 7, 8, 9), True, False, 3, torch._mkldnn, torch._C._ConvBackend.Mkldnn),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn, unittest.expectedFailure], name='mkldnn3d_transposed'),
-        subtest(((2, 6, 7), False, True, 3, torch.strided, torch._C._ConvBackend.Mkldnn),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn1d_cpu_input'),
-        subtest(((2, 6, 7, 8), False, True, 3, torch.strided, torch._C._ConvBackend.Mkldnn),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn2d_cpu_input'),
-        subtest(((2, 6, 7, 8, 9), False, True, 3, torch.strided, torch._C._ConvBackend.Mkldnn),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn3d_cpu_input'),
-        subtest(((0, 6, 7), False, False, 3, torch._mkldnn, torch._C._ConvBackend.MkldnnEmpty),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn_empty_batch1d'),
-        subtest(((2, 0, 7), False, False, 3, torch._mkldnn, torch._C._ConvBackend.MkldnnEmpty),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn_empty_channel1d'),
-        subtest(((0, 0, 7), False, False, 3, torch._mkldnn, torch._C._ConvBackend.MkldnnEmpty),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn_empty_batch_channel1d'),
-        subtest(((0, 6, 7, 8), False, False, 3, torch._mkldnn, torch._C._ConvBackend.MkldnnEmpty),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn_empty_batch2d'),
-        subtest(((2, 0, 7, 8), False, False, 3, torch._mkldnn, torch._C._ConvBackend.MkldnnEmpty),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn_empty_channel2d'),
-        subtest(((0, 0, 7, 8), False, False, 3, torch._mkldnn, torch._C._ConvBackend.MkldnnEmpty),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn_empty_batch_channel2d'),
-        subtest(((0, 6, 7, 8, 9), False, False, 3, torch._mkldnn, torch._C._ConvBackend.MkldnnEmpty),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn_empty_batch3d'),
-        subtest(((2, 0, 7, 8, 9), False, False, 3, torch._mkldnn, torch._C._ConvBackend.MkldnnEmpty),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn_empty_channel3d'),
-        subtest(((0, 0, 7, 8, 9), False, False, 3, torch._mkldnn, torch._C._ConvBackend.MkldnnEmpty),
-                decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn_empty_batch_channel3d'),
-        # Note: Tests for mobile backends are not currently supported. This comprises
-        # NnpackSpatial, Winograd3x3Depthwise, and Xnnpack2d backends. Testing these
-        # requires the ability to gate tests by whether PyTorch is built with USE_MOBILE=1.
-    ])
-    # Test with both bias and no bias.
-    @parametrize_test("has_bias", [False, True])
-    # Test with both stride=1 and stride>1 cases.
-    @parametrize_test("strided", [False, True])
-    # Test with both contiguous and non-contiguous inputs.
-    @parametrize_test("contiguous", [False, True])
-    def test_conv_backend(
-            self, device, input_shape, has_bias, strided, contiguous, transposed, dilated, groups,
-            layout, backend_expected):
-        # Build up inputs.
-        dtype = torch.float32
-        C_in, C_out, dim, kernel_size = input_shape[1], 12, len(input_shape) - 2, 3
-        x = torch.randn(*input_shape, device=device, dtype=dtype, requires_grad=True)
-        weight = torch.randn(C_in if transposed else C_out,
-                             C_out // groups if transposed else C_in // groups,
-                             *[kernel_size for _ in range(dim)],
-                             device=device, dtype=dtype, requires_grad=True)
-        bias = torch.randn(C_out, device=device, dtype=dtype, requires_grad=True) if has_bias else None
-
-        def _make_noncontiguous(inp):
-            if inp is None:
-                return None
-            old_requires_grad = inp.requires_grad
-            inp = torch.repeat_interleave(inp, 2, dim=-1)
-            inp = inp[..., ::2].detach().requires_grad_(old_requires_grad)
-            return inp
-
-        if not contiguous:
-            x = _make_noncontiguous(x)
-            weight = _make_noncontiguous(weight)
-            bias = _make_noncontiguous(bias)
-
-        if layout is torch._mkldnn:
-            x = x.to_mkldnn()
-            # Note that weight and bias are not supported as mkldnn tensors during training.
-
-        stride = (2,) * dim if strided else (1,) * dim
-        padding = (0,) * dim
-        dilation = (2,) * dim if dilated else (1,) * dim
-        output_padding = (0,) * dim
-        inputs = [x, weight, bias, stride, padding, dilation, transposed, output_padding, groups]
-
-        # Ensure correct backend is selected.
-        backend_actual = torch._C._select_conv_backend(*inputs)
-        self.assertEqual(backend_actual, backend_expected)
-
-        # Ensure backward call succeeds.
-        convolution = torch.ops.aten.convolution
-        output = convolution(*inputs)
-        grad_output = torch.randn(output.shape, device=device, dtype=dtype)
-        if not contiguous:
-            grad_output = _make_noncontiguous(grad_output)
-        if layout is torch._mkldnn:
-            grad_output = grad_output.to_mkldnn()
-        output.backward(grad_output)
-
-        # mkldnn doesn't support gradcheck :(
-        if layout is torch._mkldnn:
-            return
-
-        if backend_actual != torch._C._ConvBackend.Empty:
-            # Forward AD and forward-over-reverse AD smoke test in float32
-            with fwAD.dual_level():
-                dual_inputs = [(fwAD.make_dual(i, torch.rand_like(i)) if isinstance(i, torch.Tensor) else i)
-                               for i in inputs]
-                # Forward AD
-                output = convolution(*dual_inputs)
-                # Forward over reverse AD
-                grad_output_d = fwAD.make_dual(torch.rand_like(output), torch.rand_like(output))
-                if has_bias:
-                    torch.autograd.grad(output, [x, weight, bias], grad_output_d)
-                else:
-                    torch.autograd.grad(output, [x, weight], grad_output_d)
-
-        # Convert to float64 for gradcheck.
-        x = x.to(torch.float64).detach().requires_grad_(True)
-        weight = weight.to(torch.float64).detach().requires_grad_(True)
-        if bias is not None:
-            bias = bias.to(torch.float64).detach().requires_grad_(True)
-        inputs = [x, weight, bias, stride, padding, dilation, transposed, output_padding, groups]
-
-        # Set some backend-specific validation settings.
-        gradcheck_nondet_tol = 0.0
-        if torch.backends.cudnn.is_available():
-            # cuDNN introduces non-determinism
-            gradcheck_nondet_tol = GRADCHECK_NONDET_TOL
-
-        self.assertTrue(gradcheck(convolution, inputs, nondet_tol=gradcheck_nondet_tol))
-
-        # double backward doesn't support bias gradients
-        if bias is not None:
-            bias.requires_grad_(False)
-        self.assertTrue(gradgradcheck(convolution, inputs, nondet_tol=gradcheck_nondet_tol))
-
     @onlyCPU
     def test_conv_contiguous_for_oneDNN(self):
         for dtype in [torch.float, torch.bfloat16, torch.half]:
@@ -1971,7 +1755,10 @@ class TestConvolutionNNDeviceType(NNTestCase):
         F.conv2d(x, torch.randn(1, 16, 1, 1, device=device))
 
     @onlyPRIVATEUSE1
+    @SupportedDevices(['Ascend910B'])
     def test_Conv2d_size_1_kernel(self, device):
+        if not device_is_910A:
+            torch.npu.conv.allow_hf32 = False
         x_cpu = torch.randn(2, 3, 5, 5)
         conv_cpu = torch.nn.Conv2d(3, 3, kernel_size=1)
         y_cpu = conv_cpu(x_cpu)
@@ -1979,17 +1766,18 @@ class TestConvolutionNNDeviceType(NNTestCase):
         y_cpu.backward(y)
 
         with cudnn.flags(enabled=False):
-            conv_cuda = torch.nn.Conv2d(3, 3, kernel_size=1).to(device)
-            conv_cuda.bias.data.copy_(conv_cpu.bias.data)
-            conv_cuda.weight.data.copy_(conv_cpu.weight.data)
-            y_cuda = conv_cuda(x_cpu.to(device))
-            y_cuda.backward(y.to(device))
+            conv_npu = torch.nn.Conv2d(3, 3, kernel_size=1).to(device)
+            conv_npu.bias.data.copy_(conv_cpu.bias.data)
+            conv_npu.weight.data.copy_(conv_cpu.weight.data)
+            y_npu = conv_npu(x_cpu.to(device))
+            y_npu.backward(y.to(device))
 
-        self.assertEqual(y_cpu, y_cuda, atol=1e-5, rtol=0, exact_device=False)
-        self.assertEqual(conv_cpu.bias.grad.data, conv_cuda.bias.grad.data, atol=1e-5, rtol=0, exact_device=False)
-        self.assertEqual(conv_cpu.weight.grad.data, conv_cuda.weight.grad.data, atol=1e-5, rtol=0, exact_device=False)
+        self.assertEqual(y_cpu, y_npu, atol=1e-5, rtol=0, exact_device=False)
+        self.assertEqual(conv_cpu.bias.grad.data, conv_npu.bias.grad.data, atol=1e-5, rtol=0, exact_device=False)
+        self.assertEqual(conv_cpu.weight.grad.data, conv_npu.weight.grad.data, atol=1e-5, rtol=0, exact_device=False)
 
     @onlyPRIVATEUSE1
+    @SupportedDevices(["Ascend910B"])
     def test_ConvTranspose2d_size_1_kernel(self, device):
         x_cpu = torch.randn(2, 3, 5, 5)
         conv_cpu = torch.nn.ConvTranspose2d(3, 3, kernel_size=1)
@@ -1998,15 +1786,15 @@ class TestConvolutionNNDeviceType(NNTestCase):
         y_cpu.backward(y)
 
         with cudnn.flags(enabled=False):
-            conv_cuda = torch.nn.ConvTranspose2d(3, 3, kernel_size=1).to(device)
-            conv_cuda.bias.data.copy_(conv_cpu.bias.data)
-            conv_cuda.weight.data.copy_(conv_cpu.weight.data)
-            y_cuda = conv_cuda(x_cpu.to(device))
-            y_cuda.backward(y.to(device))
+            conv_npu = torch.nn.ConvTranspose2d(3, 3, kernel_size=1).to(device)
+            conv_npu.bias.data.copy_(conv_cpu.bias.data)
+            conv_npu.weight.data.copy_(conv_cpu.weight.data)
+            y_npu = conv_npu(x_cpu.to(device))
+            y_npu.backward(y.to(device))
 
-        self.assertEqual(y_cpu, y_cuda, atol=1e-5, rtol=0, exact_device=False)
-        self.assertEqual(conv_cpu.bias.grad.data, conv_cuda.bias.grad.data, atol=1e-5, rtol=0, exact_device=False)
-        self.assertEqual(conv_cpu.weight.grad.data, conv_cuda.weight.grad.data, atol=1e-5, rtol=0, exact_device=False)
+        self.assertEqual(y_cpu, y_npu, atol=1e-5, rtol=0, exact_device=False)
+        self.assertEqual(conv_cpu.bias.grad.data, conv_npu.bias.grad.data, atol=1e-5, rtol=0, exact_device=False)
+        self.assertEqual(conv_cpu.weight.grad.data, conv_npu.weight.grad.data, atol=1e-5, rtol=0, exact_device=False)
 
     @onlyPRIVATEUSE1
     def test_ConvTranspose3d_size_1_kernel(self, device):
