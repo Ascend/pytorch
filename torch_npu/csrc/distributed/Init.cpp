@@ -422,7 +422,9 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
       .def_readwrite("is_high_priority_stream",
                      &::c10d_npu::ProcessGroupHCCL::Options::is_high_priority_stream)
       .def_readwrite("global_ranks_in_group",
-                     &::c10d_npu::ProcessGroupHCCL::Options::global_ranks_in_group);
+                     &::c10d_npu::ProcessGroupHCCL::Options::global_ranks_in_group)
+      .def_readwrite("group_id",
+                     &::c10d_npu::ProcessGroupHCCL::Options::group_id);
 
     auto cDist = py::module_::import("torch._C._distributed_c10d");
     auto parallelStore = intrusive_ptr_no_gil_destructor_class_<::c10d::ParallelTcpStore>(

@@ -261,6 +261,8 @@ public:
         bool is_high_priority_stream;
 
         std::vector<uint32_t> global_ranks_in_group;
+
+        std::string group_id;
     };
 
     // If you wish to create multiple process groups, each with a potentially
@@ -678,10 +680,6 @@ private:
     std::unordered_map<c10d::OpType, std::pair<at::Tensor, at::Tensor>> silenceCheckCache_;
 
     WatchdogStatus watchdogStatus;
-
-    static std::mutex group_ranks_map_mutex_;
-    static std::unordered_map<std::string, uint32_t> group_ranks_map_;
-    std::string global_hccl_id_;
 
     static ProcessGroupHCCL* global_;
 };
