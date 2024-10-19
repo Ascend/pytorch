@@ -38,6 +38,8 @@ from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 # load_tests from common_utils is used to automatically filter tests for
 # sharding on sandcastle. This line silences flake warnings
+from torch_npu.testing.common_utils import SupportedDevices
+
 load_tests = load_tests
 
 
@@ -449,6 +451,7 @@ class TestOptim(TestCase):
     def _build_params_dict_single(self, weight, bias, **kwargs):
         return [dict(params=bias, **kwargs)]
 
+    @SupportedDevices(['Ascend910B'])
     def test_sgd(self):
         self._test_basic_cases(
             lambda weight, bias, maximize, foreach: optim.SGD(
@@ -967,6 +970,7 @@ class TestOptim(TestCase):
             optimizer = optimizer_ctor(params, fused=True, **optimizer_params)
             optimizer.step()
 
+    @SupportedDevices(['Ascend910B'])
     def test_adam(self):
         self._test_basic_cases(
             lambda weight, bias, maximize, foreach: optim.Adam(
@@ -1141,6 +1145,7 @@ class TestOptim(TestCase):
         ):
             optim.Adam(None, lr=torch.tensor(0.001), foreach=True)
 
+    @SupportedDevices(['Ascend910B'])
     def test_adamw(self):
         self._test_basic_cases(
             lambda weight, bias, maximize, foreach: optim.AdamW(
@@ -1234,6 +1239,7 @@ class TestOptim(TestCase):
             optim.SparseAdam([{"params": [torch.zeros(3, layout=torch.sparse_coo)]}])
 
     # ROCm precision is too low to pass this test
+    @SupportedDevices(['Ascend910B'])
     def test_adadelta(self):
         self.rel_tol = 4e-3
         self._test_basic_cases(
@@ -1284,6 +1290,7 @@ class TestOptim(TestCase):
                 lambda weight: optimizer([weight], rho=0.95, weight_decay=1)
             )
 
+    @SupportedDevices(['Ascend910B'])
     def test_nadam(self):
         self._test_basic_cases(
             lambda weight, bias, foreach: optim.NAdam(
@@ -1349,6 +1356,7 @@ class TestOptim(TestCase):
         with self.assertRaisesRegex(ValueError, "Invalid momentum_decay value: -0.2"):
             optim.NAdam(None, lr=1e-2, momentum_decay=-0.2)
 
+    @SupportedDevices(['Ascend910B'])
     def test_adagrad(self):
         self._test_basic_cases(
             lambda weight, bias, maximize, foreach: optim.Adagrad(
@@ -1433,6 +1441,7 @@ class TestOptim(TestCase):
                 )
             )
 
+    @SupportedDevices(['Ascend910B'])
     def test_adamax(self):
         self._test_basic_cases(
             lambda weight, bias, maximize, foreach: optim.Adamax(
@@ -1469,6 +1478,7 @@ class TestOptim(TestCase):
         ):
             optim.Adamax(None, lr=1e-2, betas=(0.0, 1.0))
 
+    @SupportedDevices(['Ascend910B'])
     def test_radam(self):
         self._test_basic_cases(
             lambda weight, bias, foreach: optim.RAdam(
@@ -1506,6 +1516,7 @@ class TestOptim(TestCase):
         with self.assertRaisesRegex(ValueError, "Invalid weight_decay value: -1"):
             optim.RAdam(None, lr=1e-2, weight_decay=-1)
 
+    @SupportedDevices(['Ascend910B'])
     def test_rmsprop(self):
         for foreach in (False, True):
             self._test_basic_cases(
@@ -1596,6 +1607,7 @@ class TestOptim(TestCase):
             with self.assertRaisesRegex(ValueError, "Invalid momentum value: -1.0"):
                 optim.RMSprop(None, lr=1e-2, momentum=-1.0, foreach=foreach)
 
+    @SupportedDevices(['Ascend910B'])
     def test_asgd(self):
         for foreach in (False, True):
             self._test_basic_cases(
@@ -1648,6 +1660,7 @@ class TestOptim(TestCase):
 
     @skipIfRocm
     @skipIfTorchDynamo()
+    @SupportedDevices(['Ascend910B'])
     def test_rprop(self):
         is_npu_sm86 = torch.npu.is_available()
         for foreach in (False, True):
@@ -1682,6 +1695,7 @@ class TestOptim(TestCase):
             with self.assertRaisesRegex(ValueError, "Invalid eta values: 1.0, 0.5"):
                 optim.Rprop(None, lr=1e-2, etas=(1.0, 0.5), foreach=foreach)
 
+    @SupportedDevices(['Ascend910B'])
     def test_lbfgs(self):
         self._test_basic_cases(
             lambda weight, bias: optim.LBFGS([weight, bias]), ignore_multidevice=True
@@ -2097,7 +2111,6 @@ class TestDifferentiableOptimizer(TestCase):
             ),
         )
 
-
     def test_adam(self):
         state = {}
         p = torch.rand(10, requires_grad=True, dtype=torch.float64)
@@ -2198,7 +2211,6 @@ class TestDifferentiableOptimizer(TestCase):
                 *state.values(),
             ),
         )
-
 
     def test_adamax(self):
         state = {}

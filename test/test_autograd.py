@@ -48,6 +48,12 @@ from torch.testing._internal.common_dtype import floating_types_and
 from torch.utils._mode_utils import no_dispatch
 from torch.utils._python_dispatch import TorchDispatchMode
 
+DEVICE_NAME = torch_npu.npu.get_device_name(0)
+
+device_is_910A = False
+if "Ascend910A" in DEVICE_NAME or "Ascend910P" in DEVICE_NAME:
+    device_is_910A = True
+
 
 def graph_desc(fn):
     if fn is None:
@@ -3309,6 +3315,8 @@ class TestAutograd(TestCase):
         self.assertEqual(type(dvar.grad), type(dvar))
 
     def test_type_conversions(self):
+        if device_is_910A:
+            os.environ["PYTORCH_NPU_ALLOC_CONF"] = "expandable_segments:False"
         x = torch.randn(5, 5)
         self.assertIsInstance(x.float(), torch.FloatTensor)
         self.assertIsInstance(x.int(), torch.IntTensor)
@@ -5541,7 +5549,9 @@ Done""")
 
     @unittest.skipIf(IS_WINDOWS, "Skipping because doesn't work for windows")
     def test_thread_shutdown(self):
-        code = """import torch
+        code = """
+import torch
+import torch_npu
 from torch.autograd import Function
 class MyFunction(Function):
     @staticmethod
@@ -9651,6 +9661,8 @@ class TestAutogradDeviceType(TestCase):
     @deviceCountAtLeast(2)
     def test_unused_output_device(self, devices):
         from torch.nn.parallel._functions import Broadcast
+        if device_is_910A:
+            os.environ["PYTORCH_NPU_ALLOC_CONF"] = "expandable_segments:False"
         x = torch.randn(5, 5, dtype=torch.float, device=devices[0], requires_grad=True)
         outputs = Broadcast.apply(list(range(len(devices))), x)
         y = outputs[-1] * 2
@@ -9678,6 +9690,8 @@ class TestAutogradDeviceType(TestCase):
 
     @deviceCountAtLeast(2)
     def test_inputbuffer_add_multidevice(self, devices):
+        if device_is_910A:
+            os.environ["PYTORCH_NPU_ALLOC_CONF"] = "expandable_segments:False"
         input_ = torch.randn(1, device=devices[0], requires_grad=True)
         output = input_.to(device=devices[1]) + input_.to(device=devices[1])
         output.backward()
