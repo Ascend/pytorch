@@ -227,8 +227,6 @@ const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
 const int64_t ProcessGroupHCCL::kWatchdogThreadSleepMillis = 1000;
 std::string ProcessGroupHCCL::perfdumppath = "";
-std::unordered_map<std::string, uint32_t> ProcessGroupHCCL::group_ranks_map_;
-std::mutex ProcessGroupHCCL::group_ranks_map_mutex_;
 ProcessGroupHCCL* ProcessGroupHCCL::global_ = nullptr;
 
 std::ostream& operator<<(std::ostream& output, const ProcessGroupHCCL::WorkHCCL& workHCCL)
@@ -686,28 +684,6 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     hcclCommWatchdogThread_ = std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this);
 #endif
 
-    const std::vector<uint32_t>& ranks = groupRanks();
-    std::stringstream ss;
-    for (size_t i = 0; i < ranks.size(); ++i) {
-        ss << ranks[i];
-        if (i != ranks.size() - 1) {
-            ss << ", ";
-        }
-    }
-    std::string group_ranks = ss.str();
-
-    {
-        std::lock_guard<std::mutex> lock(group_ranks_map_mutex_);
-        auto it = group_ranks_map_.find(group_ranks);
-        if (it != group_ranks_map_.end()) {
-            group_ranks_map_[group_ranks]++;
-        } else {
-            group_ranks_map_[group_ranks] = 0;
-        }
-
-        global_hccl_id_ = group_ranks + "_" + std::to_string(group_ranks_map_[group_ranks]);
-    }
-
     if (options_->global_ranks_in_group.empty()) {
         global_ = this;
     }
@@ -780,6 +756,7 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
         }
         devHCCLCommMap_.clear();
     }
+    ASCEND_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
 }
 
 void ProcessGroupHCCL::hcclCommWatchdog()
@@ -1212,7 +1189,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
         return false;
     }
 
-    uint64_t hcclid = (std::hash<string>{}(global_hccl_id_));
+    uint64_t hcclid = (std::hash<string>{}(options_->group_id));
     auto subStartTime = std::chrono::steady_clock::now();
     for (size_t i = 0; i < devices.size(); ++i) {
         int numRanks = getSize();
@@ -1229,7 +1206,8 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
         }
         auto subComm = HCCLComm::createSubHcclComm(globalHcclComm, numRanks, options_->global_ranks_in_group.data(), hcclid, rank, commConfig);
         if (subComm == nullptr) {
-            ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed.");
+            ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, group id is %s, subCommId is %llu.",
+                options_->group_id.c_str(), hcclid);
             return false;
         }
         hcclComms[i] = subComm;
@@ -1238,8 +1216,8 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
     }
     auto subEndTime = std::chrono::steady_clock::now();
     auto subTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(subEndTime - subStartTime);
-    ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig success, subCommId is %llu, take %d milliseconds.",
-        hcclid, subTimeElapsed.count());
+    ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, use %d ms.",
+        options_->group_id.c_str(), hcclid, subTimeElapsed.count());
     return true;
 }
 
