@@ -167,7 +167,8 @@ def _instantiate_device_type_tests(generic_test_class, scope, except_for=None, o
                 else:
                     device_type_test_class.instantiate_test(name, copy.deepcopy(test))
             else:  # Ports non-test member
-                assert name not in device_type_test_class.__dict__, f"Redefinition of directly defined member {name}"
+                if name in device_type_test_class.__dict__:
+                    raise AssertionError(f"Redefinition of directly defined member {name}")
                 nontest = getattr(generic_test_class, name)
                 setattr(device_type_test_class, name, nontest)
 
