@@ -423,7 +423,6 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
                      &::c10d_npu::ProcessGroupHCCL::Options::is_high_priority_stream)
       .def_readwrite("global_ranks_in_group",
                      &::c10d_npu::ProcessGroupHCCL::Options::global_ranks_in_group)
-      .def_readwrite("hccl_config", &::c10d_npu::ProcessGroupHCCL::Options::hccl_config)
       .def_readwrite("group_id",
                      &::c10d_npu::ProcessGroupHCCL::Options::group_id);
 
