@@ -432,11 +432,15 @@ public:
     // Return the global ranks of a PG
     const std::vector<uint32_t>& groupRanks() const;
 
-    int64_t getStreamId(bool p2p = false);
+    int64_t getStreamId(bool p2p, int peer);
 
 protected:
     // Helper that broadcasts HCCL Master ID to all ranks through the store
-    void broadcastMasterID(HcclRootInfo* hcclID);
+    void broadcastMasterID(
+        HcclRootInfo* hcclID,
+        bool isSingleP2POp,
+        const std::string& devicesKey,
+        int p2pRank);
 
     // Helper that either looks up the cached HCCL communicators or creates
     // a new set of HCCL communicators as a cache entry
@@ -444,7 +448,8 @@ protected:
         const std::string& devicesKey,
         const std::vector<at::Device>& devices,
         HcclCommType commType = HcclCommType::DEFAULT,
-        HcclCommConfig* commConfig = nullptr);
+        HcclCommConfig* commConfig = nullptr,
+        int p2pRank = 0);
 
     // Get the data vol for HCCL operators.
     void recordDataVol(std::string opName, const std::string dataVol, const int currRank,
@@ -605,7 +610,6 @@ protected:
     // Counting for the sequential number of HCCL collective call.
     uint64_t seq_{0};
 
-
     std::exception_ptr watchDogException_ = nullptr;
 
 private:
@@ -630,19 +634,44 @@ private:
         const std::string& devicesKey,
         const std::vector<at::Device>& devices,
         HcclCommType commType = HcclCommType::DEFAULT,
-        HcclCommConfig* commConfig = nullptr);
+        HcclCommConfig* commConfig = nullptr,
+        int p2pRank = 0);
 
-    void createHCCLComm(const std::vector<at::Device>& devices,
+    void createHCCLComm(
+        const std::string& devicesKey,
+        const std::vector<at::Device>& devices,
         HcclCommType commType,
         HcclCommConfig* commConfig,
         std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
-        std::vector<c10_npu::NPUStream> &streamVal);
+        std::vector<c10_npu::NPUStream> &streamVal,
+        int p2pRank);
 
-    bool createHCCLCommEx(const std::vector<at::Device>& devices,
+    bool createHCCLCommEx(
+        const std::vector<at::Device>& devices,
         HcclCommType commType,
         HcclCommConfig* commConfig,
         std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
-        std::vector<c10_npu::NPUStream> &streamVal);
+        std::vector<c10_npu::NPUStream> &streamVal,
+        int p2pRank);
+
+    // Helper that encapsulates work shared across point-to-point communication
+    // primitives. It is the same structure as the helper used for collective
+    // communication primitives.
+    template <typename Fn>
+    c10::intrusive_ptr<c10d::Work> pointToPoint(
+        std::vector<at::Tensor>& tensor,
+        Fn fn,
+        int peer,
+        c10d::OpType opType);
+
+    template <typename Fn, typename PreProcess, typename PostProcess>
+    c10::intrusive_ptr<c10d::Work> pointToPoint(
+        std::vector<at::Tensor>& tensor,
+        Fn fn,
+        int peer,
+        c10d::OpType opType,
+        PreProcess pre,
+        PostProcess post);
 
     // Checks for HCCL errors on each of the communicators and returns an
     // appropriate exception_ptr (nullptr if no errors).

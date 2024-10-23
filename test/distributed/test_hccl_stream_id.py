@@ -1,4 +1,5 @@
 import os
+from unittest.mock import patch
 
 import torch
 import torch.distributed as dist
@@ -24,9 +25,19 @@ class HcclStreamIdTest(TestCase):
         dist_group = init_pg(rank, world_size)
         input1 = torch.tensor([1]).npu()
         dist_group.all_reduce(input1)
-
         collective_stream_id = _world.default_pg._get_backend(torch.device('npu'))._get_stream_id(False)
-        p2p_stream_id = _world.default_pg._get_backend(torch.device('npu'))._get_stream_id(True)
+
+        send_tensor = torch.ones(2, 2).to(f"npu:{rank}") * 6
+        recv_tensor = torch.ones(2, 2).to(f"npu:{rank}") * -1
+        dst = 0
+        src = 1
+        if src == rank:
+            dist_group.send(send_tensor, dst)
+            p2p_stream_id = _world.default_pg._get_backend(torch.device('npu'))._get_stream_id(True, dst)
+        elif dst == rank:
+            dist_group.recv(recv_tensor, src)
+            p2p_stream_id = _world.default_pg._get_backend(torch.device('npu'))._get_stream_id(True, src)
+
         assert0 = ((collective_stream_id & 8) == 8)
         assert1 = (collective_stream_id == p2p_stream_id)
         collective_stream = torch.npu.Stream(stream_id=collective_stream_id, device_type=20)
@@ -53,12 +64,13 @@ class HcclStreamIdTest(TestCase):
             p.join()
 
     @skipIfUnsupportMultiNPU(2)
-    def test_dist_get_hccl_stream_id(self):
+    def test_dist_get_hccl_stream_id_same(self):
         # CI currently supports only 2 devices
-        ranks = [2]
-        for world_size in ranks:
-            self._test_multiprocess(HcclStreamIdTest._test_hccl_stream_id,
-                                    HcclStreamIdTest._init_dist_hccl, world_size)
+        with patch.dict(os.environ, {"P2P_HCCL_BUFFSIZE": "0"}):
+            ranks = [2]
+            for world_size in ranks:
+                self._test_multiprocess(HcclStreamIdTest._test_hccl_stream_id,
+                                        HcclStreamIdTest._init_dist_hccl, world_size)
 
 
 if __name__ == '__main__':
