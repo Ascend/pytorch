@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <functional>
+#include <cstdlib>
 
 #include <c10/util/Optional.h>
 #include <c10/util/irange.h>
@@ -162,6 +163,14 @@ at::Device getDeviceForRank(int rank)
     TORCH_CHECK(numNPUs > 0, "Invalid device number", numNPUs, DIST_ERROR(ErrCode::VALUE));
     int16_t deviceIdx = static_cast<int16_t>(rank % numNPUs);
     return at::Device(c10::DeviceType::PrivateUse1, deviceIdx);
+}
+
+std::string getKeySendRecv(int myRank, int peer)
+{
+    int lowRank = myRank < peer ? myRank : peer;
+    int highRank = myRank < peer ? peer : myRank;
+    std::string sendRecvPair = std::to_string(lowRank) + ":" + std::to_string(highRank);
+    return sendRecvPair;
 }
 
 // [Sync Streams] Helper that lets the input hcclStreams to wait for the current
@@ -931,7 +940,11 @@ std::exception_ptr ProcessGroupHCCL::checkForHCCLErrorsInternal(
     return nullptr;
 }
 
-void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID)
+void ProcessGroupHCCL::broadcastMasterID(
+    HcclRootInfo* hcclID,
+    bool isSingleP2POp,
+    const std::string& devicesKey,
+    int p2pRank)
 {
     // For every HCCL communicator that we create we need to broadcast
     // a unique ID from rank 0 to all other ranks. This broadcast is
@@ -939,7 +952,12 @@ void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID)
     // retrieving the contents of that key. A single process group
     // may create multiple HCCL communicators, so we use a sequence
     // number to differentiate between them.
-    std::string storeKey = std::to_string(hcclCommCounter_++);
+    std::string storeKey;
+    if (!isSingleP2POp) {
+        storeKey = std::to_string(hcclCommCounter_++);
+    } else {
+        storeKey = devicesKey;
+    }
     std::string ver_key = "version_key";
     auto date_list = __DATE__ != nullptr ? __DATE__ : "";
     std::vector<uint8_t> ver_list;
@@ -948,7 +966,7 @@ void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID)
     ver_list.insert(ver_list.end(), py_list, py_list + strlen(py_list));
 #endif
     ver_list.insert(ver_list.end(), date_list, date_list + strlen(date_list));
-    if (rank_ == 0) {
+    if (rank_ == 0 || (isSingleP2POp && p2pRank == 0)) {
         auto vec = std::vector<uint8_t>(
             reinterpret_cast<uint8_t*>(hcclID), reinterpret_cast<uint8_t*>(hcclID) + HCCL_ROOT_INFO_BYTES);
         store_->set(storeKey, vec);
@@ -1055,7 +1073,8 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices,
     HcclCommType commType,
-    HcclCommConfig* commConfig)
+    HcclCommConfig* commConfig,
+    int p2pRank)
 {
     // Sanity check
     if (devicesKey.empty()) {
@@ -1075,25 +1094,31 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
             return devHCCLCommMap_[devicesKey];
         }
     }
-    return createHCCLComm(devicesKey, devices, commType, commConfig);
+    return createHCCLComm(devicesKey, devices, commType, commConfig, p2pRank);
 }
 
-void ProcessGroupHCCL::createHCCLComm(const std::vector<at::Device>& devices,
+void ProcessGroupHCCL::createHCCLComm(
+    const std::string& devicesKey,
+    const std::vector<at::Device>& devices,
     HcclCommType commType,
     HcclCommConfig* commConfig,
     std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
-    std::vector<c10_npu::NPUStream> &streamVal)
+    std::vector<c10_npu::NPUStream> &streamVal,
+    int p2pRank)
 {
     HcclRootInfo hcclID;
-    if (rank_ == 0) {
+    bool isSingleP2POp = commType == HcclCommType::P2P ? true : false;
+    if (rank_ == 0 || (isSingleP2POp && p2pRank == 0)) {
         HCCL_CHECK_ERROR(HcclGetRootInfo(&hcclID));
     }
-    broadcastMasterID(&hcclID);
+    broadcastMasterID(&hcclID, isSingleP2POp, devicesKey, p2pRank);
 
     c10_npu::OptionalNPUGuard npuGuard;
     for (size_t i = 0; i < devices.size(); ++i) {
         int numRanks = getSize();
         int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
+
+        HcclCommConfig config;
 
         npuGuard.set_index(devices[i].index());
         switch (commType) {
@@ -1106,7 +1131,8 @@ void ProcessGroupHCCL::createHCCLComm(const std::vector<at::Device>& devices,
                 }
                 break;
             case HcclCommType::P2P: // P2P not support set hcclCommName
-                HcclCommConfig config;
+                numRanks = 2;
+                rank = p2pRank;
                 getP2PHcclCommCofig(&config);
                 hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
                 break;
@@ -1121,11 +1147,13 @@ void ProcessGroupHCCL::createHCCLComm(const std::vector<at::Device>& devices,
     }
 }
 
-bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
+bool ProcessGroupHCCL::createHCCLCommEx(
+    const std::vector<at::Device>& devices,
     HcclCommType commType,
     HcclCommConfig* commConfig,
     std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
-    std::vector<c10_npu::NPUStream> &streamVal)
+    std::vector<c10_npu::NPUStream> &streamVal,
+    int p2pRank)
 {
     std::string rankTableFile = c10_npu::option::OptionsManager::GetRankTableFilePath();
     if (rankTableFile.empty() || !checkFilePathReadable(rankTableFile)) {
@@ -1142,7 +1170,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
     }
     c10_npu::OptionalNPUGuard npuGuard;
     // global process group
-    if (options_->global_ranks_in_group.empty()) {
+    if (options_->global_ranks_in_group.empty() && commType == HcclCommType::DEFAULT) {
         auto startTime = std::chrono::steady_clock::now();
         for (size_t i = 0; i < devices.size(); ++i) {
             int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
@@ -1200,6 +1228,8 @@ bool ProcessGroupHCCL::createHCCLCommEx(const std::vector<at::Device>& devices,
         if (commConfig == nullptr) {
             HcclCommConfigInit(&config);
             if (commType == HcclCommType::P2P) {
+                numRanks = 2;
+                rank = p2pRank;
                 config.hcclBufferSize = c10_npu::option::OptionsManager::GetP2PBufferSize();
             }
             commConfig = &config;
@@ -1225,7 +1255,8 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices,
     HcclCommType commType,
-    HcclCommConfig* commConfig)
+    HcclCommConfig* commConfig,
+    int p2pRank)
 {
     // HCCL communicator not cached, create a new entry
     std::vector<std::shared_ptr<HCCLComm>> hcclComms;
@@ -1233,8 +1264,8 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     std::vector<c10_npu::NPUStream> streamVal;
     streamVal.reserve(devices.size());
 
-    if (!createHCCLCommEx(devices, commType, commConfig, hcclComms, streamVal)) {
-        createHCCLComm(devices, commType, commConfig, hcclComms, streamVal);
+    if (!createHCCLCommEx(devices, commType, commConfig, hcclComms, streamVal, p2pRank)) {
+        createHCCLComm(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
     }
 
     hcclStreams_.emplace(devicesKey, std::move(streamVal));
@@ -1259,14 +1290,15 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     return devHCCLCommMap_[devicesKey];
 }
 
-int64_t ProcessGroupHCCL::getStreamId(bool p2p)
+int64_t ProcessGroupHCCL::getStreamId(bool p2p, int peer)
 {
     int device;
     NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     std::vector<at::Device> devices = {at::Device(c10::DeviceType::PrivateUse1, device)};
     auto key = getKeyFromDevices(devices);
-    if (p2p && hcclCommInitRootInfoConfigExist() && (c10_npu::option::OptionsManager::GetP2PBufferSize() != 0)) {
-        key = key + P2P_DEVICE_KEY;
+    if (p2p && hcclCommInitRootInfoConfigExist() && c10_npu::option::OptionsManager::GetP2PBufferSize() != 0) {
+        TORCH_CHECK(peer >= 0, "In p2p scenarios, the passed 'dst rank id' is error.", DIST_ERROR(ErrCode::PARAM));
+        key = getKeySendRecv(rank_, peer);
     }
     if ((!hcclStreams_.count(key)) || hcclStreams_[key].empty()) {
         return -1;
@@ -1699,15 +1731,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     const auto devices = getDeviceList(inputs);
     auto key = getKeyFromDevices(devices);
     auto hcclComms = getHCCLComm(key, devices);
-    if (hcclCommInitRootInfoConfigExist() && c10_npu::option::OptionsManager::GetP2PBufferSize() != 0) {
-        auto key_p2p = key + P2P_DEVICE_KEY;
-        auto hcclComms_p2p = getHCCLComm(key_p2p, devices, HcclCommType::P2P);
-        // OpType::UNKNOWN represents batch_isend_irecv now
-        if (opType == c10d::OpType::SEND || opType == c10d::OpType::RECV || opType == c10d::OpType::UNKNOWN) {
-            hcclComms = hcclComms_p2p;
-            key = key_p2p;
-        }
-    }
 
     // Used many times below, so we stash the unordered_map lookup
     auto& hcclStreams = hcclStreams_[key];
@@ -1726,10 +1749,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         }
     }
 
-    // No need to detect recv. batch_isend_irecv inputs is incorrect, need require special treatments.
+    // No need to detect batch_isend_irecv inputs is incorrect, need require special treatments.
     if (c10_npu::model_state().get_model_mode() == c10_npu::ModelMode::L_TRAIN
         && c10_npu::option::OptionsManager::GetSilenceCheckFlag() != c10_npu::option::CHECK_CLOSE
-        && opType != c10d::OpType::RECV && opType != c10d::OpType::UNKNOWN) {
+        && opType != c10d::OpType::UNKNOWN) {
         for (const auto i : c10::irange(inputs.size())) {
             npuGuard.set_index(devices[i].index());
             c10_npu::NPUStreamGuard guard(hcclStreams[i]);
@@ -1851,6 +1874,178 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     return work;
 }
 
+template <typename Fn, typename PreProcess, typename PostProcess>
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
+    std::vector<at::Tensor>& tensors,
+    Fn fn,
+    int peer,
+    c10d::OpType opType,
+    PreProcess pre,
+    PostProcess post)
+{
+    const auto devices = getDeviceList(tensors);
+    int p2pRank = 0, p2pTargetRank = 0;
+    bool isSendRecvSelf = false;
+
+    std::string key;
+    std::vector<std::shared_ptr<HCCLComm>> hcclComms;
+
+    if (hcclCommInitRootInfoConfigExist() && c10_npu::option::OptionsManager::GetP2PBufferSize() != 0) {
+        key = getKeySendRecv(rank_, peer);
+        p2pRank = rank_ <= peer ? 0 : 1;
+        isSendRecvSelf = rank_ == peer;
+        p2pTargetRank = isSendRecvSelf ? 0 : 1 - p2pRank;
+        hcclComms = getHCCLComm(key, devices, HcclCommType::P2P, nullptr, p2pRank);
+    } else {
+        p2pTargetRank = peer;
+        key = getKeyFromDevices(devices);
+        hcclComms = getHCCLComm(key, devices);
+    }
+
+    // Bump the logical operation counter regardless of whether this op is
+    // coalesced or individual
+    seq_++;
+
+    // First let HCCL streams wait for input tensors allocation streams
+    syncStreams(devices, hcclEvents_[key], hcclStreams_[key]);
+
+    // Work itself will create the CUDA events on all GPUs of tensors
+    auto work = initWork(devices, rank_, opType);
+    // This bypasses something in Work() that crashes if {tensor} is given as
+    // output, not sure what
+    work->outputs_ = std::make_shared<std::vector<at::Tensor>>(tensors);
+
+    // is gpuGuard needed for the if block below, or can i swap them
+    c10_npu::OptionalNPUGuard npuGuard;
+
+    if (desyncDebug_) {
+        for (const auto i : c10::irange(devices.size())) {
+            c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+            (*(work->hcclStartEvents_))[i].record(hcclStream);
+        }
+    }
+
+    // No need to detect recv. batch_isend_irecv inputs is incorrect, need require special treatments.
+    if (c10_npu::model_state().get_model_mode() == c10_npu::ModelMode::L_TRAIN
+        && c10_npu::option::OptionsManager::GetSilenceCheckFlag() != c10_npu::option::CHECK_CLOSE
+        && opType == c10d::OpType::SEND) {
+        for (const auto i : c10::irange(tensors.size())) {
+            npuGuard.set_index(devices[i].index());
+            c10_npu::NPUStreamGuard guard(hcclStreams_[key][i]);
+            silenceCheck(tensors[i], opType);
+        }
+    }
+
+    pre(hcclStreams_[key], work);
+
+    if (nslb_path != nullptr && !nslb_is_end) {
+        auto nslb_num = c10_npu::option::OptionsManager::GetNslbCntVal();
+        if (seq_ <= nslb_num) {
+            size_t dataVol = 0;
+            for (auto tensor : tensors) {
+                dataVol += tensor.storage().nbytes();
+            }
+            char* global_rank = getenv("RANK");
+            TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.",
+                        DIST_ERROR(ErrCode::NOT_FOUND));
+            recordDataVol(opTypeToString(opType), std::to_string(dataVol), atoi(global_rank), hcclComms);
+        }
+        if (seq_ >= nslb_num) {
+            nslb_is_end = true;
+            nslb_record_end();
+        }
+    }
+
+    static bool perf_dump_enable = c10_npu::option::OptionsManager::CheckPerfDumpEnable();
+    if (perf_dump_enable) {
+        if (perfdumppath.empty()) {
+            auto pid = getpid();
+            int device_id = c10_npu::current_device();
+            std::ostringstream oss;
+            oss << "perf_pt_" << pid << "_" << device_id << ".log";
+            std::string log_file_name = oss.str();
+            auto perfDumpPath = c10_npu::option::OptionsManager::GetPerfDumpPath();
+            char abs_path[PATH_MAX] = {'\0'};
+            if (realpath(perfDumpPath.c_str(), abs_path) == nullptr) {
+                TORCH_CHECK(0, "perfDumpPath is not realpath.", DIST_ERROR(ErrCode::NOT_FOUND));
+            }
+            auto path_temp = c10::str(perfDumpPath, "/", log_file_name);
+            if (isFileExists(path_temp)) {
+                perfdumppath = path_temp;
+                std::ofstream outfile;
+                try {
+                    outfile.open(perfdumppath, std::ios::app);
+                } catch (std::exception& e) {
+                    throw std::runtime_error("Open shared directory failed. Please check whether perfdumppath is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
+                }
+
+                const std::vector<uint32_t>& ranks = groupRanks();
+                outfile << "[GLOBAL RANKID]:" << ranks[rank_] << "\n";
+                
+                outfile.close();
+            }
+        } else {
+            recordComm(perfdumppath, opTypeToString(opType), rank_, hcclComms);
+        }
+    }
+
+    for (const auto i : c10::irange(tensors.size())) {
+        npuGuard.set_index(devices[i].index());
+        c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+
+        // Both send tensor and recv tensor are created on a worker stream and used
+        // in different hcclStreams.  Hence, both must record the hcclStream to
+        // prevent being freed before the collective finishes.
+        //
+        // See [Sync Streams].
+        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+            work->stashed_for_allocator_safety_.push_back(tensors[i]);
+        } else {
+            c10_npu::NPUCachingAllocator::recordStream(tensors[i].storage().data_ptr(), hcclStream);
+            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                work->recorded_inputs_.push_back(std::make_pair(tensors[i].storage().getWeakStorageImpl(), hcclStream));
+            }
+        }
+    }
+    {
+        for (const auto i : c10::irange(tensors.size())) {
+            npuGuard.set_index(devices[i].index());
+            // to avoid to much task pushed to the stream, leading to stream overflow
+            // insert sync point fluxLimit(key, i)
+            c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+            hcclUs startut = TIME_NOW();
+            HCCL_CHECK_ERROR(fn(tensors[i], hcclComms[i]->getHcclComm(), hcclStream, work->is_dispatched, p2pTargetRank), opTypeToString(opType).c_str());
+        }
+    }
+    post(hcclStreams_[key], work);
+
+    // End event should only be recorded after the hcclGroupEnd()
+    for (const auto i : c10::irange(tensors.size())) {
+        c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+        (*(work->hcclEndEvents_))[i].record(hcclStream);
+        work->hcclComms_[i] = hcclComms[i];
+        work->blockingWait_ = blockingWait_;
+        work->opTimeout_ = options_->timeout;
+        work->store_ = store_;
+    }
+    // Future only needs to be created and marked completed with outputs for
+    // recv(), but still create future for use cases such as profiling even for
+    // send().
+    {
+        c10_npu::NPUMultiStreamGuard guard(hcclStreams_[key]);
+        work->future_ = c10::make_intrusive<at::ivalue::Future>(
+            c10::ListType::create(c10::TensorType::get()),
+            devices);
+        work->future_->markCompleted(at::IValue(*work->outputs_));
+    }
+
+    if (asyncErrorHandling_ != NoHandling) {
+        workEnqueue(work);
+    }
+
+    return work;
+}
+
 template <typename Fn>
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& inputs,
@@ -1865,6 +2060,22 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         [](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         opType);
+}
+
+template <typename Fn>
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
+    std::vector<at::Tensor>& tensors,
+    Fn fn,
+    int peer,
+    c10d::OpType opType)
+{
+    return pointToPoint(
+        tensors,
+        fn,
+        peer,
+        opType,
+        [](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {});
 }
 
 int g_allreduceID = 0;
@@ -2671,18 +2882,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
 {
     check_npu_tensors_different_devices(tensors);
     auto tensors_ = cast_to_origin_format(tensors);
-    return collective(
+    auto ret = pointToPoint(
         tensors_,
-        tensors_,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+        [&](at::Tensor& input, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched, int dst_rank) {
             RECORD_FUNCTION("HcclSend", std::vector<c10::IValue>({input}));
             auto inputDataPtr = input.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, numel, hcclType, dstRank, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, numel, hcclType, dst_rank, comm, stream, is_dispatched]() -> int {
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclSend", numel, hcclType, comm), stream.stream(false));
-                auto hccl_result = HcclSend(inputDataPtr, numel, hcclType, dstRank, comm, stream.stream(false));
+                auto hccl_result = HcclSend(inputDataPtr, numel, hcclType, dst_rank, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -2693,28 +2903,28 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
 
             return HCCL_SUCCESS;
         },
-        c10d::OpType::SEND);
+        dstRank, c10d::OpType::SEND);
+    return ret;
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& tensors, int srcRank, int tag)
 {
     check_npu_tensors_different_devices(tensors);
     auto tensors_ = create_base_format_tensors(tensors);
-    return collective(
-        tensors,
+    auto ret = pointToPoint(
         tensors_,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
-            RECORD_FUNCTION("HcclRecv", std::vector<c10::IValue>({input}));
+        [&](at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched, int src_rank) {
+            RECORD_FUNCTION("HcclRecv", std::vector<c10::IValue>({output}));
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
                 c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
             }
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclType = getHcclDataType(output.scalar_type());
-            auto hccl_call = [outputDataPtr, numel, hcclType, srcRank, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [outputDataPtr, numel, hcclType, src_rank, comm, stream, is_dispatched]() -> int {
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclRecv", numel, hcclType, comm), stream.stream(false));
-                auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType, srcRank, comm, stream.stream(false));
+                auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType, src_rank, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -2725,15 +2935,18 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
 
             return HCCL_SUCCESS;
         },
+        srcRank, c10d::OpType::RECV,
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
             for (size_t i = 0; i < tensors_.size(); ++i) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
-                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() ==
+                    c10_npu::option::AVOID_RECORD_STREAM) {
                     work->stashed_for_allocator_safety_.push_back(tensors_[i]);
                 } else {
                     c10_npu::NPUCachingAllocator::recordStream(tensors_[i].storage().data_ptr(), hcclStreams[i]);
-                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() ==
+                        c10_npu::option::ERASE_RECORD_STREAM) {
                         work->recorded_outputs_.push_back(
                             std::make_pair(tensors_[i].storage().getWeakStorageImpl(), hcclStreams[i]));
                     }
@@ -2742,8 +2955,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
                     tensors[i].copy_(tensors_[i], true);
                 }
             }
-        },
-        c10d::OpType::RECV);
+        });
+    return ret;
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recvAnysource(std::vector<at::Tensor>& /* unused */, int /* unused */)
