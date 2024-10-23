@@ -601,7 +601,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     c10::intrusive_ptr<Options> options)
     : c10d::Backend(rank, size),
     store_(store),
-    options_(options),
+    options_(c10::make_intrusive<Options>(*options.get())),
     hcclCommCounter_(0),
     traceKeyStart_("HCCL_" + std::to_string(rank) + "_trace_start"),
     traceKeyEnd_("HCCL_" + std::to_string(rank) + "_trace_end"),
@@ -1684,6 +1684,16 @@ void ProcessGroupHCCL::silenceCheck(at::Tensor &input, c10d::OpType opType)
         static_cast<int64_t>(c10_npu::option::OptionsManager::GetSilenceCheckFlag()));
 }
 
+HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
+{
+    HcclCommConfig config;
+    HcclCommConfigInit(&config);
+    if (options_->hccl_config.find("hcclBufferSize") != options_->hccl_config.end()) {
+        config.hcclBufferSize = options_->hccl_config["hcclBufferSize"];
+    }
+    return config;
+}
+
 template <typename Fn, typename PreProcess, typename PostProcess>
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& inputs,
@@ -1698,7 +1708,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
 
     const auto devices = getDeviceList(inputs);
     auto key = getKeyFromDevices(devices);
-    auto hcclComms = getHCCLComm(key, devices);
+    std::vector<std::shared_ptr<HCCLComm>> hcclComms;
+    if (!options_->hccl_config.empty()) {
+        HcclCommConfig config = createHcclCommConfigWithOptions();
+        hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
+    } else {
+        hcclComms = getHCCLComm(key, devices);
+    }
     if (hcclCommInitRootInfoConfigExist() && c10_npu::option::OptionsManager::GetP2PBufferSize() != 0) {
         auto key_p2p = key + P2P_DEVICE_KEY;
         auto hcclComms_p2p = getHCCLComm(key_p2p, devices, HcclCommType::P2P);

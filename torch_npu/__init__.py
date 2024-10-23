@@ -183,7 +183,10 @@ def _new_process_group_hccl_helper(dist_backend_opts, pg_options):
     store = dist_backend_opts.store
     group_rank = dist_backend_opts.group_rank
     group_size = dist_backend_opts.group_size
-    pg_options = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
+    if pg_options is None:
+        pg_options = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
+    elif not isinstance(pg_options, torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options):
+        raise AssertionError("Expected pg_options argument to be of type torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options")
     pg_options.is_high_priority_stream = False
     pg_options._timeout = dist_backend_opts.timeout
     pg_options.global_ranks_in_group = dist_backend_opts.global_ranks_in_group

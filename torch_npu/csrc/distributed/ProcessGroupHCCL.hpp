@@ -256,6 +256,8 @@ public:
             return c10::make_intrusive<Options>(is_high_priority_stream);
         }
 
+        std::unordered_map<std::string, uint32_t> hccl_config;
+
         std::chrono::milliseconds opTimeout;
         // Schedule HCCL operations on high priority CUDA streams
         bool is_high_priority_stream;
@@ -671,6 +673,8 @@ private:
     void logWorkEnd(WorkHCCL& work);
 
     void silenceCheck(at::Tensor &input, c10d::OpType opType);
+
+    HcclCommConfig createHcclCommConfigWithOptions();
 
     static std::string getMstxHcclMsg(const std::string &opName,
                                       uint64_t dataCnt,
