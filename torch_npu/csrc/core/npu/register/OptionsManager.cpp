@@ -345,6 +345,7 @@ uint32_t OptionsManager::GetP2PBufferSize()
         char* buf_val = std::getenv("P2P_HCCL_BUFFSIZE");
         // Default 0M
         int64_t buf_size = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 0;
+        TORCH_CHECK(buf_size >= 0, "P2P_HCCL_BUFFSIZE cannot be negative.", PTA_ERROR(ErrCode::VALUE));
         return static_cast<uint32_t>(buf_size);
     }();
     return buf_size;

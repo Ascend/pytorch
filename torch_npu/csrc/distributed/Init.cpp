@@ -402,7 +402,8 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
               return pg.getHcclCommName(rankid, init_comm);
            })
       .def("_get_stream_id", &::c10d_npu::ProcessGroupHCCL::getStreamId,
-           py::arg("p2p") = false)
+           py::arg("p2p") = false,
+           py::arg("peer") = -1)
       .def_property_readonly("options", &::c10d_npu::ProcessGroupHCCL::getOptions)
       .def("batch_isend_irecv",
            [](::c10d_npu::ProcessGroupHCCL &pg, std::vector<std::string> &op_type,

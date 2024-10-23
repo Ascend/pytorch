@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 import os
 import torch
 import torch.distributed as dist
@@ -42,6 +43,21 @@ class HcclSendRecvDistTest(TestCase):
             pg.send(xs, dst)
             c2p.put((dst, xs.cpu()))
         else:
+            pg.recv(res, src)
+            c2p.put((src, res.cpu()))
+
+    @classmethod
+    def _test_send_recv_dist_with_p2p(
+            cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
+        pg = init_pg(rank, world_size)
+        res = torch.ones(2, 2).to(shared_tensors.dtype).to(f"npu:{rank}")
+        xs = shared_tensors.to(f"npu:{rank}")
+        dst = 0
+        src = 1
+        if src == rank:
+            pg.send(xs, dst)
+            c2p.put((dst, xs.cpu()))
+        elif rank == dst:
             pg.recv(res, src)
             c2p.put((src, res.cpu()))
 
@@ -123,8 +139,9 @@ class HcclSendRecvDistTest(TestCase):
             pg.recv(res, src, tag).wait()
             c2p.put((src, res[0].cpu()))
 
-    def _test_multiprocess(self, f, shared_tensors, init_pg):
-        ws = self.world_size
+    def _test_multiprocess(self, f, shared_tensors, init_pg, ws=0):
+        if not ws:
+            ws = self.world_size
         # file store will delete the test file on destruction
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(2)
@@ -139,7 +156,7 @@ class HcclSendRecvDistTest(TestCase):
             p.start()
             ps.append(p)
 
-        for _ in range(ws):
+        for _ in range(2):
             pid, output = c2p.get()
             if pid == 0:
                 expected = output
@@ -154,7 +171,7 @@ class HcclSendRecvDistTest(TestCase):
             ).format(pid, expected, result)
         )
 
-        for _ in range(ws):
+        for _ in range(2):
             p2c.put(0)
 
         for p in ps:
@@ -166,6 +183,16 @@ class HcclSendRecvDistTest(TestCase):
             HcclSendRecvDistTest._test_send_recv_dist,
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_dist_hccl)
+        
+    @skipIfUnsupportMultiNPU(4)
+    def test_send_recv_hccl_dist_with_p2p(self):
+        with patch.dict(os.environ, {"P2P_HCCL_BUFFSIZE": "20"}):
+            world_size = 4
+            self._test_multiprocess(
+                HcclSendRecvDistTest._test_send_recv_dist_with_p2p,
+                torch.randn(2, 2),
+                HcclSendRecvDistTest._init_dist_hccl,
+                world_size)
 
     @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_dist_with_format(self):
