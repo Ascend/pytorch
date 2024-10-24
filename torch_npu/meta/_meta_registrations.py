@@ -857,3 +857,16 @@ def npu_prefetch_meta(self, dependency, max_size, offset=0):
         offset >= 0,
         lambda: f"The offset should be nonnegative, but got {offset}.",
     )
+
+
+@impl(m, "npu_swiglu")
+def npu_swiglu_meta(x, dim=-1):
+    output_size = list(x.size())
+    output_size[dim] = int(output_size[dim] / 2)
+    return torch.empty(output_size, dtype=x.dtype, device=x.device)
+
+
+@impl(m, "npu_swiglu_backward")
+def npu_swiglugrad_meta(y, x, dim=-1):
+    return torch.empty_like(x)
+    
