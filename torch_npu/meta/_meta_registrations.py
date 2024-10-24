@@ -842,8 +842,12 @@ has_side_effect(torch.ops.npu.npu_prefetch.default)
 
 
 @impl(m, "npu_prefetch")
-def npu_prefetch_meta(self, dependency, max_size):
+def npu_prefetch_meta(self, dependency, max_size, offset=0):
     torch._check(
         max_size > 0,
         lambda: f"The max_size should be greater than zero, but got {max_size}.",
+    )
+    torch._check(
+        offset >= 0,
+        lambda: f"The offset should be nonnegative, but got {offset}.",
     )
