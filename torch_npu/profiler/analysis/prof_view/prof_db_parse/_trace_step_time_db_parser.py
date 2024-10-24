@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import os
+from enum import Enum
 from .._base_parser import BaseParser
 from ...prof_common_func._constant import Constant, print_error_msg, print_warn_msg
 from ...prof_common_func._constant import DbConstant, TableColumnsManager
@@ -25,6 +26,12 @@ from ...prof_parse._fwk_file_parser import FwkFileParser
 __all__ = []
 
 
+class CommunicationOpIndex(Enum):
+    OP_NAME = 0
+    START_NS = 1
+    END_NS = 2
+
+
 class TraceStepTimeDbParser(BaseParser):
 
     def __init__(self, name: str, param_dict: dict):
@@ -32,7 +39,7 @@ class TraceStepTimeDbParser(BaseParser):
         self.step_range = []
         self.string_id_map = {}
         self.compute_task_info = {}
-        self.communication_task_info = {}
+        self.communication_op_info = []
         self.task_db_con = None
         self.task_db_curs = None
         self.analysis_db_con = None
@@ -97,7 +104,8 @@ class TraceStepTimeDbParser(BaseParser):
                     'step': cur_step.get(Constant.STEP_ID), 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 
                     'comun': 0, 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0, 'prepare': 0
                 }
-                origin_compute_data, origin_communication_data, bubble_data = self._get_task_data_in_step(cur_step)
+                origin_compute_data = self._get_compute_data_in_step(cur_step)
+                origin_communication_data, bubble_data = self._get_communication_data_in_step(cur_step)
                 compute_data = RangeCaculator.merge_continuous_intervals(origin_compute_data)
                 save_info['compute'] = sum(data.end_ts - data.start_ts for data in compute_data)
                 communication_data = RangeCaculator.merge_continuous_intervals(origin_communication_data)
@@ -125,7 +133,7 @@ class TraceStepTimeDbParser(BaseParser):
 
     def _init_step_range(self, deps_data: dict):
         self.step_range = deps_data.get(Constant.STEP_INFO_DB_PARSER, [])
-    
+
     def _init_task_info_from_db(self):
         conn, curs = DbManager.create_connect_db(self.db_path)
         if not (conn and curs):
@@ -141,28 +149,33 @@ class TraceStepTimeDbParser(BaseParser):
             sql = "select name, globalTaskId from {}".format(DbConstant.TABLE_COMPUTE_TASK_INFO)
             compute_task_data = DbManager.fetch_all_data(curs, sql)
             self.compute_task_info = {data[1]: data[0] for data in compute_task_data}
-        if DbManager.judge_table_exist(curs, DbConstant.TABLE_COMMUNICATION_TASK_INFO):
-            sql = "select name, globalTaskId from {}".format(DbConstant.TABLE_COMMUNICATION_TASK_INFO)
-            communication_task_data = DbManager.fetch_all_data(curs, sql)
-            self.communication_task_info = {data[1]: data[0] for data in communication_task_data}
+        if DbManager.judge_table_exist(curs, DbConstant.TABLE_COMMUNICATION_OP):
+            sql = "select opName, startNs, endNs from {}".format(DbConstant.TABLE_COMMUNICATION_OP)
+            self.communication_op_info = DbManager.fetch_all_data(curs, sql)
         DbManager.destroy_db_connect(conn, curs)
 
-    def _get_task_data_in_step(self, step_info):
+    def _get_compute_data_in_step(self, step_info):
         compute_data = []
-        communication_data = []
-        bubble_data = []
         for task_id, task_info in step_info.get(Constant.TASK_INFO, {}).items():
             if task_id in self.compute_task_info:
                 compute_data.append(
                     RangeCaculator.generate_time_range(task_info.get("startNs"), task_info.get("endNs")))
-            if task_id in self.communication_task_info:
-                time_range = RangeCaculator.generate_time_range(
-                    task_info.get("startNs"), task_info.get("endNs"), class_range=CommunicationTimeRange)
-                communication_data.append(time_range)
-                task_name = self.string_id_map.get(self.communication_task_info.get(task_id), '')
-                if task_name.startswith('hcom_receive'):
-                    bubble_data.append(time_range)
-        return compute_data, communication_data, bubble_data
+        return compute_data
+
+    def _get_communication_data_in_step(self, step_info):
+        communication_data = []
+        bubble_data = []
+        for op_info in self.communication_op_info:
+            op_start_time = op_info[CommunicationOpIndex.START_NS.value]
+            if not (step_info.get(Constant.START_TS) <= op_start_time < step_info.get(Constant.END_TS)):
+                continue
+            time_range = RangeCaculator.generate_time_range(
+                op_start_time, op_info[CommunicationOpIndex.END_NS.value], class_range=CommunicationTimeRange)
+            communication_data.append(time_range)
+            op_name = self.string_id_map.get(op_info[CommunicationOpIndex.OP_NAME.value], '')
+            if op_name.startswith('hcom_receive'):
+                bubble_data.append(time_range)
+        return communication_data, bubble_data
 
     def _get_first_device_task_ts(self, compute_task, communication_task):
         first_compute_task = compute_task[0] if compute_task else None
