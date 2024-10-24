@@ -48,7 +48,7 @@ class TraceStepTimeParser(BaseParser):
         start_time = float(start_time)
         duration = float(duration)
         for step in step_list:
-            if step[StepInfoIndex.START_TS.value] <= start_time <= step[StepInfoIndex.END_TS.value]:
+            if step[StepInfoIndex.START_TS.value] <= start_time < step[StepInfoIndex.END_TS.value]:
                 cur_step = step[StepInfoIndex.ID.value]
                 break
         for step in step_list:
