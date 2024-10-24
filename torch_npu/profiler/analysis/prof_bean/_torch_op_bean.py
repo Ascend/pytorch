@@ -21,10 +21,11 @@ class TorchOpEnum(Enum):
 
 class TorchOpBean:
     TLV_TYPE_DICT = {
-        Constant.OP_NAME: 3,
-        Constant.INPUT_SHAPES: 5,
-        Constant.INPUT_DTYPES: 4,
-        Constant.INPUT_TENSORS: 6,
+        Constant.OP_NAME: 2,
+        Constant.INPUT_SHAPES: 4,
+        Constant.INPUT_DTYPES: 3,
+        Constant.INPUT_TENSORS: 5,
+        Constant.INPUT_TENSORLISTS: 6,
         Constant.INPUT_SCALARS: 7,
         Constant.CALL_STACK: 8,
         Constant.MODULE_HIERARCHY: 9,
@@ -101,8 +102,9 @@ class TorchOpBean:
         self._call_stack = self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.CALL_STACK), "").replace(";", ";\r\n")
         self._args = self.get_args()
         self._inputs = {
-            Constant.INPUT_TENSORS: self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.INPUT_TENSORS), None),
-            Constant.INPUT_SCALARS: self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.INPUT_SCALARS), None)}
+            Constant.INPUT_TENSORS: self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.INPUT_TENSORS)),
+            Constant.INPUT_TENSORLISTS: self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.INPUT_TENSORLISTS)),
+            Constant.INPUT_SCALARS: self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.INPUT_SCALARS))}
 
     def get_args(self) -> dict:
         args = {
@@ -110,7 +112,8 @@ class TorchOpBean:
             Constant.FORWARD_THREAD_ID: int(
                 self._constant_data[TorchOpEnum.FORWARD_THREAD_ID.value])}
         for type_name, type_id in self.TLV_TYPE_DICT.items():
-            if type_name in [Constant.OP_NAME, Constant.INPUT_TENSORS, Constant.INPUT_SCALARS]:
+            if type_name in [Constant.OP_NAME, Constant.INPUT_TENSORS,
+                             Constant.INPUT_TENSORLISTS, Constant.INPUT_SCALARS]:
                 continue
             if type_id not in self._origin_data.keys():
                 continue
