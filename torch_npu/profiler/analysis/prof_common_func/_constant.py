@@ -47,6 +47,7 @@ class Constant(object):
     INPUT_DTYPES = "Input type"
     INPUT_SHAPES = "Input Dims"
     INPUT_TENSORS = "Input Tensors"
+    INPUT_TENSORLISTS = "Input TensorLists"
     INPUT_SCALARS = "Input Scalars"
     SCOPE = "Scope"
     CALL_STACK = "Call stack"
