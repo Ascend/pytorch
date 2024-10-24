@@ -265,7 +265,13 @@ class StorageSizeDict:
     
     @staticmethod
     def _flat_tensor_inputs(op: _ExtraFields_TorchOp) -> List[_TensorMetadata]:
-        return [input for input in op.inputs if isinstance(input, _TensorMetadata)]
+        flat_inputs: List[_TensorMetadata] = []
+        for item in op.inputs:
+            if isinstance(item, _TensorMetadata):
+                flat_inputs.append(item)
+            elif isinstance(item, list):
+                flat_inputs.extend(t for t in item)
+        return flat_inputs
     
     def __getitem__(self, key: TensorKey):
         return self._size_dict.get(key, 0)
@@ -295,11 +301,13 @@ class SchemaMatcher:
         return tuple(mutable or (None for _ in t.inputs))
     
     @classmethod
-    def match_schemas(cls, t: _ExtraFields_TorchOp) -> Tuple[FunctionSchema, ...]:
-        signature = tuple(TensorKey.from_tensor(i) if isinstance(i, _TensorMetadata) else i
-                          for i in t.inputs)
+    def match_schemas(cls, op: _ExtraFields_TorchOp) -> Tuple[FunctionSchema, ...]:
+        signature = tuple(TensorKey.from_tensor(input) if isinstance(input, _TensorMetadata)
+                          else [TensorKey.from_tensor(t) for t in input] if isinstance(input, list)
+                          else input
+                          for input in op.inputs)
 
-        schemas_with_same_name = cls.lookup_schemas(t.name)
+        schemas_with_same_name = cls.lookup_schemas(op.name)
         schemas_with_same_pattern: List[FunctionSchema] = []
         
         # This op name can't match a register operation schema.
@@ -329,8 +337,12 @@ class SchemaMatcher:
             return True
         if isinstance(schema_type, torch._C.TensorType):
             return isinstance(observed, TensorKey)
-
-        return not isinstance(observed, TensorKey)
+        if schema_type.isSubtypeOf(torch._C.ListType.ofTensors()):
+            return isinstance(observed, list) and all(
+                isinstance(t, TensorKey) for t in observed
+            )
+        
+        return not (isinstance(observed, TensorKey) or isinstance(observed, list))
     
     @staticmethod
     def lookup_schemas(name: str) -> Optional[Tuple[FunctionSchema, ...]]:
@@ -384,6 +396,11 @@ class DataFlowNode:
                 if isinstance(op_input, _TensorMetadata):
                     key = TensorKey.from_tensor(op_input)
                     mutable_by_key.setdefault(key, set()).add(mutable)
+                
+                if isinstance(op_input, list):
+                    for op_input_i in op_input:
+                        key = TensorKey.from_tensor(op_input_i)
+                        mutable_by_key.setdefault(key, set()).add(mutable)
         
         edges: DefaultDict[Optional[TensorKey], DataFlowEdge] = defaultdict(DataFlowEdge)
         for key, mutable_set in mutable_by_key.items():
@@ -592,10 +609,9 @@ class MemoryProfile:
 
         # First, handle Allocation event. Stores timestamp of allcoation event
         # in `allocation_times`. Add storage to `output` that can't match Tensors.
-        for event in traverse_dfs(self._root_nodes):
-            if event.tag != _EventType.Allocation:
-                continue
-
+        mem_event_list = [event for event in traverse_dfs(self._root_nodes) if event.tag == _EventType.Allocation]
+        mem_event_list.sort(key=lambda x: x.start_time_ns)
+        for event in mem_event_list:
             alloc_fields = event.extra_fields
             alloc_size = alloc_fields.alloc_size
             is_allocation = alloc_size > 0

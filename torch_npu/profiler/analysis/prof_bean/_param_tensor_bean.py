@@ -16,8 +16,8 @@ class KeyAndParam:
 
 class ParamTensorBean:
     TLV_TYPE_DICT = {
-        Constant.MODULE_PARAM: 2,
-        Constant.OPTIMIZER_PARAM: 3,
+        Constant.MODULE_PARAM: 1,
+        Constant.OPTIMIZER_PARAM: 2,
     }
     CONSTANT_STRUCT = "<Q"
 

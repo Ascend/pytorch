@@ -30,6 +30,8 @@ void call(Command c)
 }
 } // python_tracer
 using torch_npu::toolkit::profiler::Utils;
+using torch_npu::toolkit::profiler::OpRangeData;
+using torch_npu::toolkit::profiler::TensorMetadata;
 using torch::autograd::profiler::ProfilerConfig;
 using torch::autograd::profiler::ProfilerState;
 using torch::profiler::impl::ProfilerStateBase;
@@ -178,7 +180,7 @@ void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &a
     ProfilerMgr::GetInstance()->Init(realPath, npu_trace);
 }
 
-std::string parseTypeName(const c10::IValue &value)
+static std::string parseTypeName(const c10::IValue &value)
 {
     if (value.isBool()) {
         return std::string("Bool");
@@ -192,12 +194,25 @@ std::string parseTypeName(const c10::IValue &value)
     return std::string("Others");
 }
 
+static bool isValidTensor(const at::Tensor& t)
+{
+    return t.defined() && !t.is_nested() && !t.unsafeGetTensorImpl()->has_symbolic_sizes_strides();
+}
+
+static std::vector<TensorMetadata> getTensorList(const c10::IValue value)
+{
+    std::vector<TensorMetadata> tensor_list;
+    for (const auto& t: value.toTensorList()) {
+        if (isValidTensor(t)) {
+            tensor_list.emplace_back(t);
+        }
+    }
+    return tensor_list;
+}
+
 static void parseInputShapesAndDtypes(const at::RecordFunction &fn,
-                                      std::vector<std::string> &dtypes,
-                                      std::vector<std::vector<int64_t>> &shapes,
-                                      std::vector<torch_npu::toolkit::profiler::TensorMetadata> &tensors,
-                                      std::vector<std::string> &scalars,
-                                      const ProfilerConfig &config)
+                                      OpRangeData *data,
+                                      bool report_details)
 {
     auto inputs = fn.inputs();
     for (const auto &value : inputs) {
@@ -205,25 +220,24 @@ static void parseInputShapesAndDtypes(const at::RecordFunction &fn,
         std::string dtype = "None";
         if (value.isTensor()) {
             const at::Tensor &t = value.toTensor();
-            if (t.defined() && !t.is_nested() && !t.unsafeGetTensorImpl()->has_symbolic_sizes_strides()) {
+            if (isValidTensor(t)) {
                 dtype = std::string(scalarTypeToTypeMeta(t.scalar_type()).name());
                 for (auto i: t.sizes()) {
                     shape.emplace_back(i);
                 }
-                if (C10_UNLIKELY(config.report_input_shapes
-                                 && (config.with_stack || config.with_modules)
-                                 && config.profile_memory)) {
-                    tensors.emplace_back(t);
+                if (report_details) {
+                    data->input_tensors.emplace_back(t);
                 }
             }
         } else if (value.isTensorList()) {
             dtype = "TensorList";
+            if (report_details) {
+                data->input_tensorlists.emplace_back(std::move(getTensorList(value)));
+            }
         } else if (value.isScalar()) {
             dtype = "Scalar";
-            if (C10_UNLIKELY(config.report_input_shapes
-                             && (config.with_stack || config.with_modules)
-                             && config.profile_memory)) {
-                scalars.emplace_back(std::move(parseTypeName(value)));
+            if (report_details) {
+                data->input_scalars.emplace_back(std::move(parseTypeName(value)));
             }
         } else if (value.isList()) {
             auto listRef = value.toListRef();
@@ -231,8 +245,8 @@ static void parseInputShapesAndDtypes(const at::RecordFunction &fn,
                 dtype = "ScalarList";
             }
         }
-        dtypes.emplace_back(std::move(dtype));
-        shapes.emplace_back(std::move(shape));
+        data->input_dtypes.emplace_back(std::move(dtype));
+        data->input_shapes.emplace_back(std::move(shape));
     }
 }
 
@@ -252,12 +266,10 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes)
                 auto &data_ptr = ctx_ptr->data_;
                 data_ptr->scope = static_cast<uint8_t>(fn.scope());
                 if ((C10_UNLIKELY(config.report_input_shapes))) {
-                    parseInputShapesAndDtypes(fn,
-                                              data_ptr->input_dtypes,
-                                              data_ptr->input_shapes,
-                                              data_ptr->input_tensors,
-                                              data_ptr->input_scalars,
-                                              config);
+                    bool report_details = config.report_input_shapes
+                                          && (config.with_stack || config.with_modules)
+                                          && config.profile_memory;
+                    parseInputShapesAndDtypes(fn, data_ptr.get(), report_details);
                 }
                 if (C10_UNLIKELY(config.with_stack && fn.scope() != at::RecordScope::BACKWARD_FUNCTION)) {
                     auto cs = torch::profiler::impl::prepareCallstack(torch::jit::currentCallstack());

@@ -147,24 +147,39 @@ def parse_tensor_metadata(tensor_str: str) -> Optional[_TensorMetadata]:
     )
 
 
-def parse_input_from_string(types: Optional[str], 
-                            tensors: Optional[str], 
+def get_str_from_list(str_list: List[str], index: int, default_str="") -> str:
+    if 0 <= index < len(str_list):
+        return str_list[index]
+    else:
+        return default_str
+
+
+def parse_input_from_string(types: Optional[str],
+                            tensors: Optional[str],
+                            tensorlists: Optional[str],
                             scalars: Optional[str]
-                            ) -> List[Union[_TensorMetadata, str]]:
+                            ) -> List[Union[_TensorMetadata, List[_TensorMetadata], str]]:
     input_types = types.strip().split(';\r\n') if types is not None else []
     input_tensors = tensors.strip().split(')') if tensors is not None else []
+    input_tensorlists = tensorlists.strip().split('}') if tensorlists is not None else []
     input_scalars = scalars.strip().split(';') if scalars is not None else []
 
-    inputs: List[Union[_TensorMetadata, str]] = []
+    inputs: List[Union[_TensorMetadata, List[_TensorMetadata], str]] = []
 
     tensors_index: int = 0
+    tensorlists_index: int = 0
     scalars_index: int = 0
     for t in input_types:
         if t not in ["None", "Scalar", "ScalarList", "TensorList"]:
-            inputs.append(parse_tensor_metadata(input_tensors[tensors_index]))
+            inputs.append(parse_tensor_metadata(get_str_from_list(input_tensors, tensors_index)))
             tensors_index += 1
+        elif t == "TensorList":
+            input_tensorlist = get_str_from_list(input_tensorlists, tensorlists_index)
+            tensor_list = input_tensorlist.strip().rstrip(')').split(')') if input_tensorlist is not None else []
+            inputs.append([parse_tensor_metadata(t) for t in tensor_list])
+            tensorlists_index += 1
         elif t == "Scalar":
-            inputs.append(input_scalars[scalars_index])
+            inputs.append(get_str_from_list(input_scalars, scalars_index))
             scalars_index += 1
         else:
             inputs.append(t)
@@ -181,8 +196,9 @@ class _ExtraFields_TorchOp:
         
         types_string = bean.args.get(Constant.INPUT_DTYPES, None)
         tensors_string = bean.inputs.get(Constant.INPUT_TENSORS, None)
+        tensorlists_string = bean.inputs.get(Constant.INPUT_TENSORLISTS, None)
         scalars_string = bean.inputs.get(Constant.INPUT_SCALARS, None)
-        self.inputs = parse_input_from_string(types_string, tensors_string, scalars_string)
+        self.inputs = parse_input_from_string(types_string, tensors_string, tensorlists_string, scalars_string)
 
 
 class _ExtraFields_Allocation:
@@ -421,18 +437,19 @@ def get_tensor_info(sorted_events: List[_ProfilerEvent]) -> List[_RawTensorInfo]
     seen_pycalls = set()
     for ev in sorted_events:
         if ev.tag == _EventType.TorchOp:
-            tensors.extend(
-                _RawTensorInfo(i.impl, i.ptr, i.device_type, i.device_index, False, i.id)
-                for i in ev.extra_fields.inputs
-                if isinstance(i, _TensorMetadata)
-            )
+            for item in ev.extra_fields.inputs:
+                if isinstance(item, _TensorMetadata):
+                    tensors.append(_RawTensorInfo(item.impl, item.ptr, item.device_type,
+                                                  item.device_index, False, item.id))
+                elif isinstance(item, list):
+                    tensors.extend(
+                        _RawTensorInfo(t.impl, t.ptr, t.device_type, t.device_index, False, t.id)
+                        for t in item
+                    )
         elif ev.tag == _EventType.Allocation:
-            tensors.append(_RawTensorInfo(None,
-                                            ev.extra_fields.ptr,
-                                            ev.extra_fields.device_type,
-                                            ev.extra_fields.device_index,
-                                            ev.extra_fields.alloc_size < 0,
-                                            ev.extra_fields.id))
+            tensors.append(_RawTensorInfo(None, ev.extra_fields.ptr,
+                                          ev.extra_fields.device_type, ev.extra_fields.device_index,
+                                          ev.extra_fields.alloc_size < 0, ev.extra_fields.id))
         elif ev.tag == _EventType.PyCall:
             if ev.extra_fields.key is None or ev.extra_fields.key in seen_pycalls:
                 continue

@@ -348,7 +348,7 @@ void PythonTracer::recordEvent(TraceTag tag, size_t hash_key)
     }
 }
 
-TensorMetadata toTensorMetadata(PyObject* self)
+static TensorMetadata toTensorMetadata(PyObject* self)
 {
     if (!THPVariable_CheckExact(self)) {
         TensorMetadata m;
@@ -359,14 +359,14 @@ TensorMetadata toTensorMetadata(PyObject* self)
     return m;
 }
 
-c10::optional<TensorMetadata> recordIfTensor(py::handle p)
+static c10::optional<TensorMetadata> recordIfTensor(py::handle p)
 {
     return THPVariable_CheckExact(p.ptr())
         ? c10::optional<TensorMetadata>(toTensorMetadata(p.ptr()))
         : c10::nullopt;
 }
 
-std::vector<std::pair<std::string, TensorMetadata>> unpackTensorMap(const py::dict& tensor_map)
+static std::vector<std::pair<std::string, TensorMetadata>> unpackTensorMap(const py::dict& tensor_map)
 {
     std::vector<std::pair<std::string, TensorMetadata>> out;
     for (auto& it : tensor_map) {
@@ -378,7 +378,7 @@ std::vector<std::pair<std::string, TensorMetadata>> unpackTensorMap(const py::di
     return out;
 }
 
-void parse_module_params(
+static void parseModuleParams(
     std::vector<std::pair<size_t, std::vector<ModuleParam>>> &module_param_cache,
     PyObject* cls,
     size_t hash_id)
@@ -400,7 +400,7 @@ void parse_module_params(
     }
 }
 
-void parse_optimizer_params(
+static void parseOptimizerParams(
     std::vector<std::pair<size_t, std::vector<OptimizerParam>>> &optimizer_param_cache,
     PyObject* cls,
     size_t hash_id)
@@ -435,7 +435,7 @@ void PythonTracer::recordPyCall(TraceContext* ctx, PyFrameObject* frame)
         if (record_params_ && ((PyObject*)f_code.get() == optimizer_call_code_)) {
             auto f_locals = PyFrame_GetLocals_NPU(frame);
             auto optimizer_class = PyDict_GetItemString(f_locals, "self");
-            parse_optimizer_params(optimizer_param_cache_, (PyObject*)optimizer_class, hash_id);
+            parseOptimizerParams(optimizer_param_cache_, (PyObject*)optimizer_class, hash_id);
         }
     }
 
@@ -448,7 +448,7 @@ void PythonTracer::recordPyCall(TraceContext* ctx, PyFrameObject* frame)
             module_info_cache_.insert({hash_id, ModuleInfo(module_class)});
 
             if (record_params_) {
-                parse_module_params(module_param_cache_, (PyObject*)module_class, hash_id);
+                parseModuleParams(module_param_cache_, (PyObject*)module_class, hash_id);
             }
         }
     }
