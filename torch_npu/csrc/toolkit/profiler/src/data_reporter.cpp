@@ -37,6 +37,9 @@ std::vector<uint8_t> OpRangeData::encode()
     if (!input_tensors.empty()) {
         encodeTensors(static_cast<uint16_t>(OpRangeDataType::INPUT_TENSORS), input_tensors, result);
     }
+    if (!input_tensorlists.empty()) {
+        encodeTensorLists(static_cast<uint16_t>(OpRangeDataType::INPUT_TENSORLISTS), input_tensorlists, result);
+    }
     if (!input_scalars.empty()) {
         encodeStrArrayData(static_cast<uint16_t>(OpRangeDataType::INPUT_SCALARS), input_scalars, result);
     }
@@ -51,7 +54,7 @@ std::vector<uint8_t> OpRangeData::encode()
     }
 
     std::vector<uint8_t> resultTLV;
-    uint16_t dataType = static_cast<uint16_t>(OpRangeDataType::OP_RANGE_DATA);
+    uint16_t dataType = static_cast<uint16_t>(FwkDataType::OP_RANGE_DATA);
     for (size_t i = 0; i < sizeof(uint16_t); ++i) {
         resultTLV.push_back((dataType >> (i * 8)) & 0xff);
     }
@@ -71,7 +74,7 @@ std::vector<uint8_t> OpMarkData::encode()
     encodeStrData(static_cast<uint16_t>(OpMarkDataType::NAME), name, result);
 
     std::vector<uint8_t> resultTLV;
-    uint16_t dataType = static_cast<uint16_t>(OpMarkDataType::OP_MARK_DATA);
+    uint16_t dataType = static_cast<uint16_t>(FwkDataType::OP_MARK_DATA);
     for (size_t i = 0; i < sizeof(uint16_t); ++i) {
         resultTLV.push_back((dataType >> (i * 8)) & 0xff);
     }
@@ -94,7 +97,7 @@ std::vector<uint8_t> MemoryData::encode()
     encodeFixedData<uint64_t>({thread_id, process_id}, result);
 
     std::vector<uint8_t> resultTLV;
-    uint16_t dataType = static_cast<uint16_t>(MemoryDataType::MEMORY_DATA);
+    uint16_t dataType = static_cast<uint16_t>(FwkDataType::MEMORY_DATA);
     for (size_t i = 0; i < sizeof(uint16_t); ++i) {
         resultTLV.push_back((dataType >> (i * 8)) & 0xff);
     }
@@ -125,7 +128,7 @@ std::vector<uint8_t> PythonTracerHashData::encode()
         encodeStrData(static_cast<uint16_t>(PythonTracerHashDataType::VALUE), item.second, item_data);
 
         std::vector<uint8_t> tlv_data;
-        uint16_t dataType = static_cast<uint16_t>(PythonTracerHashDataType::PYTHON_TRACER_HASH_DATA);
+        uint16_t dataType = static_cast<uint16_t>(FwkDataType::PYTHON_TRACER_HASH_DATA);
         for (size_t i = 0; i < sizeof(uint16_t); ++i) {
             tlv_data.push_back((dataType >> (i * 8)) & 0xff);
         }
@@ -148,7 +151,7 @@ std::vector<uint8_t> ParamTensorData::encode()
         encodeModuleParams(static_cast<uint16_t>(ParamTensorDataType::MODULE_PARAM), item.second, item_data);
 
         std::vector<uint8_t> tlv_data;
-        uint16_t dataType = static_cast<uint16_t>(ParamTensorDataType::PARAM_TENSOR_DATA);
+        uint16_t dataType = static_cast<uint16_t>(FwkDataType::PARAM_TENSOR_DATA);
         for (size_t i = 0; i < sizeof(uint16_t); ++i) {
             tlv_data.push_back((dataType >> (i * 8)) & 0xff);
         }
@@ -165,7 +168,7 @@ std::vector<uint8_t> ParamTensorData::encode()
         encodeOptimizerParams(static_cast<uint16_t>(ParamTensorDataType::OPTIMIZER_PARAM), item.second, item_data);
 
         std::vector<uint8_t> tlv_data;
-        uint16_t dataType = static_cast<uint16_t>(ParamTensorDataType::PARAM_TENSOR_DATA);
+        uint16_t dataType = static_cast<uint16_t>(FwkDataType::PARAM_TENSOR_DATA);
         for (size_t i = 0; i < sizeof(uint16_t); ++i) {
             tlv_data.push_back((dataType >> (i * 8)) & 0xff);
         }

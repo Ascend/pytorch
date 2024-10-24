@@ -13,7 +13,7 @@ class PythonTracerHashBean:
 
     CONSTANT_STRUCT = "<Q"
     TLV_TYPE_DICT = {
-        Constant.VALUE: 2
+        Constant.VALUE: 1
     }
 
     def __init__(self, data: dict):

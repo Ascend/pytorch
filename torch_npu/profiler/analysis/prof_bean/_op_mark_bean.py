@@ -24,7 +24,7 @@ class _OpMarkCategoryEnum(Enum):
 
 class OpMarkBean:
     TLV_TYPE_DICT = {
-        Constant.NAME: 2
+        Constant.NAME: 1
     }
     CONSTANT_STRUCT = "<q4Q"
 

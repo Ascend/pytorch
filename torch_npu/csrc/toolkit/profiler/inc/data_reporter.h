@@ -125,13 +125,22 @@ struct OptimizerParam {
     std::vector<std::pair<std::string, TensorMetadata>> state_;
 };
 
-inline void append_with_delimiter(std::ostringstream &oss, const std::string &str, char delimiter = ';')
+inline void appendWithDelimiter(std::ostringstream &oss, const std::string &str, char delimiter = ';')
 {
     oss << str << delimiter;
 }
 
+inline std::string removeLastCharAndReturn(std::ostringstream &oss)
+{
+    std::string str = oss.str();
+    if (!str.empty()) {
+        str.pop_back();
+    }
+    return str;
+}
+
 template<typename T>
-std::string vector_to_string(const std::vector<T> &vec)
+std::string VectorToString(const std::vector<T> &vec)
 {
     std::ostringstream oss;
     if (!vec.empty()) {
@@ -146,32 +155,42 @@ std::string vector_to_string(const std::vector<T> &vec)
 inline void encodeTensor(const TensorMetadata &t, std::ostringstream &oss)
 {
     // append impl, ptr
-    append_with_delimiter(oss, to_string(t.impl_));
-    append_with_delimiter(oss, (t.ptr_ == nullptr) ? "" : to_string(t.ptr_));
+    appendWithDelimiter(oss, to_string(t.impl_));
+    appendWithDelimiter(oss, (t.ptr_ == nullptr) ? "" : to_string(t.ptr_));
 
     // append dtype, dtype_size, sizes and strides
-    append_with_delimiter(oss, t.dtype_);
-    append_with_delimiter(oss, to_string(t.dtype_size_));
-    append_with_delimiter(oss, vector_to_string(t.sizes_));
-    append_with_delimiter(oss, vector_to_string(t.strides_));
+    appendWithDelimiter(oss, t.dtype_);
+    appendWithDelimiter(oss, to_string(t.dtype_size_));
+    appendWithDelimiter(oss, VectorToString(t.sizes_));
+    appendWithDelimiter(oss, VectorToString(t.strides_));
 
     // append device info
-    append_with_delimiter(oss, to_string(t.device_type_));
+    appendWithDelimiter(oss, to_string(t.device_type_));
     oss << to_string(t.device_index_);
 }
 
 inline void encodeTensors(uint16_t type, std::vector<TensorMetadata> tensors, std::vector<uint8_t> &result)
 {
     std::ostringstream oss;
-    for (auto& t:tensors) {
-        encodeTensor(t, oss);
+    for (auto& tensor: tensors) {
+        encodeTensor(tensor, oss);
         oss << ")";
     }
+    std::string str = removeLastCharAndReturn(oss);
+    encodeStrData(type, str, result);
+}
 
-    std::string str = oss.str();
-    if (!str.empty()) {
-        str.pop_back();
+inline void encodeTensorLists(uint16_t type, std::vector<std::vector<TensorMetadata>> tensorlists, std::vector<uint8_t> &result)
+{
+    std::ostringstream oss;
+    for (auto& tensorlist: tensorlists) {
+        for (auto& tensor: tensorlist) {
+            encodeTensor(tensor, oss);
+            oss << ")";
+        }
+        oss << "}";
     }
+    std::string str = removeLastCharAndReturn(oss);
     encodeStrData(type, str, result);
 }
 
@@ -179,7 +198,7 @@ inline void encodeModuleParams(uint16_t type, std::vector<ModuleParam> params, s
 {
     std::ostringstream oss;
     for (auto& param: params) {
-        append_with_delimiter(oss, param.name_, ')');
+        appendWithDelimiter(oss, param.name_, ')');
         encodeTensor(param.metadata_, oss);
         oss << ")";
         if (param.grad_.has_value()) {
@@ -187,10 +206,7 @@ inline void encodeModuleParams(uint16_t type, std::vector<ModuleParam> params, s
         }
         oss << "}";
     }
-    std::string str = oss.str();
-    if (!str.empty()) {
-        str.pop_back();
-    }
+    std::string str = removeLastCharAndReturn(oss);
     encodeStrData(type, str, result);
 }
 
@@ -205,16 +221,13 @@ inline void encodeOptimizerParams(uint16_t type, std::vector<OptimizerParam> par
         }
         oss << ")";
         for (auto s : param.state_) {
-            append_with_delimiter(oss, s.first, '>');
+            appendWithDelimiter(oss, s.first, '>');
             encodeTensor(s.second, oss);
             oss << "]";
         }
         oss << "}";
     }
-    std::string str = oss.str();
-    if (!str.empty()) {
-        str.pop_back();
-    }
+    std::string str = removeLastCharAndReturn(oss);
     encodeStrData(type, str, result);
 }
 
@@ -227,18 +240,26 @@ struct BaseReportData {
     virtual std::vector<uint8_t> encode() = 0;
 };
 
+enum class FwkDataType {
+    OP_RANGE_DATA = 1,
+    OP_MARK_DATA = 2,
+    MEMORY_DATA = 3,
+    PYTHON_TRACER_HASH_DATA = 4,
+    PARAM_TENSOR_DATA = 5,
+};
+
 enum class OpRangeDataType {
-  OP_RANGE_DATA = 1,
-  IS_ASYNC = 2,
-  NAME = 3,
-  INPUT_DTYPES = 4,
-  INPUT_SHAPES = 5,
-  INPUT_TENSORS = 6,
-  INPUT_SCALARS = 7,
-  STACK = 8,
-  MODULE_HIERARCHY = 9,
-  EXTRA_ARGS = 10,
-  RESERVED = 30,
+    IS_ASYNC = 1,
+    NAME = 2,
+    INPUT_DTYPES = 3,
+    INPUT_SHAPES = 4,
+    INPUT_TENSORS = 5,
+    INPUT_TENSORLISTS = 6,
+    INPUT_SCALARS = 7,
+    STACK = 8,
+    MODULE_HIERARCHY = 9,
+    EXTRA_ARGS = 10,
+    RESERVED = 30,
 };
 
 struct OpRangeData : BaseReportData{
@@ -255,6 +276,7 @@ struct OpRangeData : BaseReportData{
     std::vector<std::string> input_dtypes;
     std::vector<std::vector<int64_t>> input_shapes;
     std::vector<TensorMetadata> input_tensors;
+    std::vector<std::vector<TensorMetadata>> input_tensorlists;
     std::vector<std::string> input_scalars;
     std::vector<std::string> stack;
     std::vector<std::string> module_hierarchy;
@@ -282,8 +304,7 @@ struct OpRangeData : BaseReportData{
 };
 
 enum class OpMarkDataType {
-  OP_MARK_DATA = 1,
-  NAME = 2,
+    NAME = 1,
 };
 
 struct OpMarkData : BaseReportData {
@@ -308,10 +329,6 @@ struct OpMarkData : BaseReportData {
           process_id(process_id),
           name(name) {}
     std::vector<uint8_t> encode();
-};
-
-enum class MemoryDataType {
-  MEMORY_DATA = 1,
 };
 
 struct MemoryData : BaseReportData {
@@ -374,8 +391,7 @@ struct PythonTracerFuncData : BaseReportData {
 };
 
 enum class PythonTracerHashDataType {
-    PYTHON_TRACER_HASH_DATA = 1,
-    VALUE = 2
+    VALUE = 1
 };
 
 struct PythonTracerHashData : BaseReportData {
@@ -387,9 +403,8 @@ struct PythonTracerHashData : BaseReportData {
 };
 
 enum class ParamTensorDataType {
-    PARAM_TENSOR_DATA = 1,
-    MODULE_PARAM = 2,
-    OPTIMIZER_PARAM = 3
+    MODULE_PARAM = 1,
+    OPTIMIZER_PARAM = 2
 };
 
 struct ParamTensorData : BaseReportData {
