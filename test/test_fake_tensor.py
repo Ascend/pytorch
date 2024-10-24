@@ -1906,6 +1906,11 @@ class TestNpuPrefetch(TestCase):
             exception = cm.exception
             self.assertEqual(str(exception), "The max_size should be greater than zero, but got -1.")
 
+            with self.assertRaises(RuntimeError) as cm:
+                torch_npu.npu_prefetch(input1, None, 10, -1)
+            exception = cm.exception
+            self.assertEqual(str(exception), "The offset should be nonnegative, but got -1.")
+
 
 instantiate_parametrized_tests(FakeTensorTest)
 instantiate_device_type_tests(FakeTensorOpInfoTest, globals(), only_for="cpu")
