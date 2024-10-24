@@ -280,8 +280,8 @@ class DbConstant():
     TABLE_CANN_API = "CANN_API"
     # task table name
     TABLE_TASK = "TASK"
-    # communicate op table name
-    TABLE_COMMUNICATE_OP = "COMMUNICATE_OP"
+    # communication op table name
+    TABLE_COMMUNICATION_OP = "COMMUNICATION_OP"
     # compute task table name
     TABLE_COMPUTE_TASK_INFO = "COMPUTE_TASK_INFO"
     # communication task table name
