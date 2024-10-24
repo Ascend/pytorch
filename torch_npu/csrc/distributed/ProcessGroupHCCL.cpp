@@ -209,6 +209,12 @@ void getP2PHcclCommCofig(HcclCommConfig* config)
 {
     HcclCommConfigInit(config);
     config->hcclBufferSize = c10_npu::option::OptionsManager::GetP2PBufferSize();
+    // Compatible with the size check of the old version of HCCL, forcibly convert
+    // the config object to a size_t=32 object, and retain the N ± 2 version
+    if (!isHcclFeatureSupported(HcclCommConfigCapability::HCCL_COMM_CONFIG_COMM_NAME)) {
+        size_t *configSize = reinterpret_cast<size_t *>(config);
+        *configSize = 32;
+    }
 }
 
 void checkHcclCommConfigValid(const HcclCommConfig* config)
