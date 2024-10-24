@@ -108,9 +108,43 @@ at::Tensor empty_strided(c10::IntArrayRef size, c10::IntArrayRef stride, c10::op
     return result;
 }
 
-TORCH_LIBRARY_IMPL(aten, CPU, m) {
-  m.impl("empty.memory_format", TORCH_FN(empty_memory_format));
-  m.impl("empty_strided", TORCH_FN(empty_strided));
-}
+class IgnoreWarningHandler : public c10::WarningHandler {
+public:
+
+    void process(const c10::Warning& warning)
+    {
+        ;
+    }
+};
+
+c10::WarningHandler* getIgnoreHandler()
+{
+    static IgnoreWarningHandler handler_ = IgnoreWarningHandler();
+    return &handler_;
+};
+
+// use to ignore the warning info when overriding operator for CPU-implement
+#define WITH_IGNORE_WARNING_OVERRIDE_OPERATOR(enable)                           \
+    int enter_warning() {                                                       \
+        if (enable) {                                                           \
+            c10::WarningUtils::set_warning_handler(getIgnoreHandler());         \
+        }                                                                       \
+        return 1;                                                               \
+    }                                                                           \
+    static int _temp_enter_warning = enter_warning();                           \
+    TORCH_LIBRARY_IMPL(aten, CPU, m) {                                          \
+        m.impl("empty.memory_format", TORCH_FN(empty_memory_format));           \
+        m.impl("empty_strided", TORCH_FN(empty_strided));                       \
+    }                                                                           \
+    int exit_warning() {                                                        \
+        if (enable) {                                                           \
+            c10::WarningUtils::set_warning_handler(nullptr);                    \
+        }                                                                       \
+        return 1;                                                               \
+    }                                                                           \
+    static int _temp_exit_warning = exit_warning();
+
+WITH_IGNORE_WARNING_OVERRIDE_OPERATOR(true)
+
 }
 }
