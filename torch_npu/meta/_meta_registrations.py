@@ -536,8 +536,40 @@ def quant_matmul_shape_check(*args):
     )
 
 
+def quant_matmul_bias_dtype_check(bias, pertoken_scale, output_dtype):
+    bias_dtype_supported_list = [torch.int32, torch.bfloat16, torch.float32, torch.float16]
+    torch._check(
+        bias.dtype in bias_dtype_supported_list,
+        lambda: "bias's type supported for int32, bfloat16, float16 and float32, but bias.dtype is " + str(bias.dtype) + ops_error(ErrCode.TYPE),
+    )
+    if bias.dtype == torch.bfloat16:
+        torch._check(
+            output_dtype == torch.bfloat16,
+            lambda: "When bias dtype is bfloat16, output_dtype must be bfloat16, but it is " +
+                    str(output_dtype) + ops_error(ErrCode.TYPE),
+        )
+    if pertoken_scale is not None:
+        if bias.dtype == torch.float16:
+            torch._check(
+                output_dtype == torch.float16,
+                lambda: "When bias dtype is float16 and pertoken is given, output_dtype must be float16, but it is " +
+                        str(output_dtype) + ops_error(ErrCode.TYPE),
+            )
+    else:
+        torch._check(
+            bias.dtype != torch.float16,
+            lambda: "Bias dtype cannot be float16 when pertoken not given." + ops_error(ErrCode.TYPE),
+        )
+        if bias.dtype == torch.float32:
+            torch._check(
+                output_dtype == torch.bfloat16,
+                lambda: "When bias dtype is float32 and pertoken not given, output_dtype must be bfloat16, but it is " +
+                        str(output_dtype) + ops_error(ErrCode.TYPE),
+            )   
+
+
 def quant_matmul_dtype_check(*args):
-    x1, x2, scale, offset, pertoken_scale, bias, is_a4w4 = args
+    x1, x2, scale, offset, pertoken_scale, bias, output_dtype, is_a4w4 = args
     torch._check(
         x1.dtype == x2.dtype,
         lambda: "x1's type and x2's type should be same, but x1.dtype is " + str(x1.dtype) + " and x2.dtype is " +
@@ -565,10 +597,7 @@ def quant_matmul_dtype_check(*args):
                     str(offset.dtype) + ops_error(ErrCode.TYPE),
         )
     if bias is not None:
-        torch._check(
-            bias.dtype == torch.int32 or bias.dtype == torch.bfloat16,
-            lambda: "bias's type supported for int32 and bfloat16, but bias.dtype is " + str(bias.dtype) + ops_error(ErrCode.TYPE),
-        )
+        quant_matmul_bias_dtype_check(bias, pertoken_scale, output_dtype)
 
 
 def quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dtype, is_a4w4):
@@ -645,19 +674,13 @@ def npu_quant_matmul_meta(x1, x2, scale, *, offset=None, pertoken_scale=None, bi
     dim_list.append(dimn)
     quant_matmul_shape_check(x1, x2, scale, offset, pertoken_scale, is_a4w4, transpose_x2)
     if bias is not None:
-        if bias.dtype == torch.bfloat16:
-            torch._check(
-                output_dtype == torch.bfloat16,
-                lambda: "When bias dtype is bfloat16, output_dtype must be bfloat16, but it is " +
-                        str(output_dtype) + ops_error(ErrCode.TYPE),
-            )
         if bias.dim() == 3:
             torch._check(
                 len(dim_list) == 3,
                 lambda:"when bias dim is 3, out dim need to be 3" + ops_error(ErrCode.TYPE),
             )
         bias_shape_check(x2, bias, batch_val, is_a4w4, transpose_x2)
-    quant_matmul_dtype_check(x1, x2, scale, offset, pertoken_scale, bias, is_a4w4)
+    quant_matmul_dtype_check(x1, x2, scale, offset, pertoken_scale, bias, output_dtype, is_a4w4)
     quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dtype, is_a4w4)
     if output_dtype == torch.float16:
         return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
