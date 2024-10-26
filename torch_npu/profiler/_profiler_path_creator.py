@@ -63,6 +63,8 @@ class ProfPathCreator:
                 dir_path = os.getcwd()
         else:
             dir_path = self._dir_path
+        if os.path.exists(dir_path):
+            PathManager.check_directory_path_writeable(dir_path)
         if not self._worker_name:
             worker_name = "{}_{}".format(socket.gethostname(), str(os.getpid()))
         else:
