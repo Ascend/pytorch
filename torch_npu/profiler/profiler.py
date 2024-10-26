@@ -113,6 +113,8 @@ class _KinetoProfile:
 
     @no_exception_func()
     def export_stacks(self, output_path: str, metric: str = Constant.METRIC_CPU_TIME):
+        output_path = ProfilerPathManager.get_realpath(output_path)
+        PathManager.check_input_file_path(output_path)
         if not self.prof_if.with_stack:
             print_warn_msg("Function export_stacks() requires with_stack=True.")
             return
