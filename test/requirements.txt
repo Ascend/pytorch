@@ -15,7 +15,7 @@ torch_geometric==2.5.3
 transformers==4.40.0
 
 torch-scatter==2.1.2
-torch==2.5.0.dev20240825
+torch==2.6.0.dev20240920
 # since 20240730, torchvision(nightly package) no longer supports python3.8
-torchvision==0.20.0.dev20240825
+torchvision==0.20.0.dev20240920
 # torch_npu 目前master分支仅支持编译安装

@@ -417,7 +417,7 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
   intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL::Options>(
       processGroupHCCL,
       "Options",
-      dist.attr("ProcessGroup").attr("Options"))
+      dist.attr("Backend").attr("Options"))
       .def(py::init<>())
       .def_readwrite("op_timeout", &::c10d_npu::ProcessGroupHCCL::Options::opTimeout)
       .def_readwrite("is_high_priority_stream",
