@@ -1,8 +1,8 @@
 import torch
-from torch.distributed._tensor.ops._common_rules import pointwise_rule
-from torch.distributed._tensor.ops.utils import register_prop_rule, normalize_dims
-from torch.distributed._tensor.ops._matrix_ops import bmm_strategy
-from torch.distributed._tensor.ops._view_ops import (
+from torch.distributed.tensor._ops._common_rules import pointwise_rule
+from torch.distributed.tensor._ops.utils import register_prop_rule, normalize_dims
+from torch.distributed.tensor._ops._matrix_ops import bmm_strategy
+from torch.distributed.tensor._ops._view_ops import (
     register_op_strategy_map,
     dim_maps,
     InputDim
