@@ -7,8 +7,8 @@ from torch_npu.utils.collect_env import get_cann_version
 _device_name = None
 _cann_version = get_cann_version()
 _foreach_black_list_for_cann_starts_with = ['8.0.RC1', '8.0.RC2']
-_foreach_black_list_for_cann_all = ['not known', '8.0.T1', '8.0.T2', '8.0.T3', '8.0.T37', '8.0.T5', '8.0.T6', '8.0.T7',
-    '8.0.T8', '8.0.T10', '8.0.T13', '8.0.T16', '8.0.T50', '8.0.T51', '8.0.T52']
+_foreach_black_list_for_cann_all = ['not known', '8.0.T1', '8.0.T2', '8.0.T3', '8.0.T5', '8.0.T6', '8.0.T7',
+    '8.0.T8', '8.0.T10', '8.0.T13', '8.0.T16', '8.0.T37', '8.0.T38', '8.0.T39', '8.0.T50', '8.0.T51', '8.0.T52']
 
 
 def patch_supported_devices():
