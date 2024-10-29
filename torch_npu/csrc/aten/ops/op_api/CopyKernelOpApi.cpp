@@ -41,7 +41,7 @@ void copy_between_host_and_device_opapi(at::Tensor& dst, const at::Tensor& src, 
         auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
         NPU_CHECK_ERROR(ret);
         ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
-        void* ptr = torch_npu::utils::is_npu(dst) ? src.data_ptr() : dst.data_ptr();
+        void* ptr = torch_npu::utils::is_npu(dst) ? get_base_data_ptr(src) : get_base_data_ptr(dst);
         NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(ptr, stream), "aclrtSynchronizeStreamWithTimeout");
     } else {
         aclError error = aclrtSynchronizeStream(stream);
