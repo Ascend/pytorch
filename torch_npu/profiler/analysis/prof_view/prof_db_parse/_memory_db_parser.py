@@ -243,7 +243,7 @@ class MemoryDbParser(BaseParser):
         DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_STRING_IDS, TableColumnsManager.TableColumns.get(DbConstant.TABLE_STRING_IDS))
         DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_STRING_IDS, Str2IdManager().get_all_string_2_id_data())
     
-    def _save_memory_data_to_db(self):
+    def save_memory_data_to_db(self):
         self.get_ge_memory_data()
         self.save_memory_record_data_to_db()
         self.save_op_memory_data_to_db()
