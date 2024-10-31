@@ -1725,8 +1725,8 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
 {
     HcclCommConfig config;
     HcclCommConfigInit(&config);
-    if (options_->hccl_config.find("hcclBufferSize") != options_->hccl_config.end()) {
-        config.hcclBufferSize = options_->hccl_config["hcclBufferSize"];
+    if (options_->hccl_config.find("hccl_buffer_size") != options_->hccl_config.end()) {
+        config.hcclBufferSize = options_->hccl_config["hccl_buffer_size"];
     }
     return config;
 }
