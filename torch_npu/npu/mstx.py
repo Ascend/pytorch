@@ -15,6 +15,8 @@
 import warnings
 import torch_npu._C
 
+__all__ = ["mstx"]
+
 
 class mstx:
     @staticmethod

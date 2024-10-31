@@ -73,6 +73,7 @@ temp_filter = {
     "torch_npu.utils.profiler.ErrCode",
     "torch_npu.utils.profiler.Optional",
     "torch_npu.utils.profiler.prof_error",
+    "torch_npu.utils.flops_count.FlopsCounter",
     "torch_npu.npu_add_rms_norm",
     "torch_npu.npu_deep_norm",
     "torch_npu.npu_fast_gelu",
