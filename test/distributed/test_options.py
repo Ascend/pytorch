@@ -24,12 +24,12 @@ class OptionsTest(TestCase):
     @classmethod
     def _test_all_reduce_with_options(cls, rank, ranks, world_size, input1):
         options = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
-        hccl_config1 = {"hcclBufferSize":300}
+        hccl_config1 = {"hccl_buffer_size":300}
         options.hccl_config = hccl_config1
         OptionsTest._init_dist_hccl(rank, options, world_size)
         input1 = input1.npu()
         dist.all_reduce(input1)
-        hccl_config2 = {"hcclBufferSize":200}
+        hccl_config2 = {"hccl_buffer_size":200}
         options.hccl_config = hccl_config2
         dist.all_reduce(input1)
         default_pg = c10d._get_default_group()._get_backend(torch.device('npu'))
