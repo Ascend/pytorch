@@ -51,6 +51,7 @@ tempFilter = {
     "torch_npu.npu_stride_add",
     "torch_npu.utils.collect_env.main",
     "torch_npu.utils.collect_env.namedtuple",
+    "torch_npu.utils.flops_count.FlopsCounter",
     "torch_npu.one_",
     "torch_npu.testing.common_distributed.Any",
     "torch_npu.testing.common_distributed.Dict",

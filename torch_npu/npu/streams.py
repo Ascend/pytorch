@@ -3,6 +3,8 @@ import ctypes
 import torch_npu
 import torch_npu._C
 
+__all__ = ["Stream", "Event", "SyncLaunchStream"]
+
 
 class Stream(torch_npu._C._NPUStreamBase):
     r"""Wrapper around a NPU stream.

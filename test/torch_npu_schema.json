@@ -1,18 +1,15 @@
 {
-  "torch_npu.asd.silent_fault_data.SilentFaultData": {
-    "signature": "()"
-  },
-  "torch_npu.asd.silent_fault_data.get_thresh": {
-    "signature": "()"
-  },
-  "torch_npu.asd.silent_fault_data.parse_thresh": {
-    "signature": "(env_var_name, default_value, min_value)"
-  },
   "torch_npu.contrib.BiLSTM": {
     "signature": "(input_size, hidden_size)"
   },
   "torch_npu.contrib.BiLSTM.forward": {
     "signature": "(self, inputs)"
+  },
+  "torch_npu.contrib.LinearQuant": {
+    "signature": "(in_features: int, out_features: int, *, bias: bool = True, offset: bool = False, pertoken_scale: bool = False, device=None, dtype=None, output_dtype=None) -> None"
+  },
+  "torch_npu.contrib.LinearQuant.forward": {
+    "signature": "(self, linear_quant_input: torch.Tensor) -> torch.Tensor"
   },
   "torch_npu.contrib.ChannelShuffle": {
     "signature": "(in_channels, groups=2, split_shuffle=True)"
@@ -230,6 +227,9 @@
   "torch_npu.contrib.roll": {
     "signature": "(x, shifts, dims)"
   },
+  "torch_npu.contrib.function.dropout_with_byte_mask": {
+    "signature": "(input1, p=0.5, training=True, inplace=False)"
+  },
   "torch_npu.contrib.function.fuse_add_softmax_dropout": {
     "signature": "(training, dropout, attn_mask, attn_scores, attn_head_size, p=0.5, dim=-1)"
   },
@@ -371,6 +371,12 @@
   "torch_npu.contrib.module.DCNv2.forward": {
     "signature": "(self, x)"
   },
+  "torch_npu.contrib.module.DropoutWithByteMask": {
+    "signature": "(p=0.5, inplace=False, max_seed=1023)"
+  },
+  "torch_npu.contrib.module.DropoutWithByteMask.forward": {
+    "signature": "(self, input1)"
+  },
   "torch_npu.contrib.module.Focus": {
     "signature": "(c1, c2, k=1, s=1, p=None, g=1, act=True)"
   },
@@ -385,6 +391,18 @@
   },
   "torch_npu.contrib.module.FusedColorJitter.forward": {
     "signature": "(self, img)"
+  },
+  "torch_npu.contrib.module.LinearQuant": {
+    "signature": "(in_features: int, out_features: int, *, bias: bool = True, offset: bool = False, pertoken_scale: bool = False, device=None, dtype=None, output_dtype=None) -> None"
+  },
+  "torch_npu.contrib.module.LinearQuant.forward": {
+    "signature": "(self, linear_quant_input: torch.Tensor) -> torch.Tensor"
+  },
+  "torch_npu.contrib.module.linear_quant.LinearQuant": {
+    "signature": "(in_features: int, out_features: int, *, bias: bool = True, offset: bool = False, pertoken_scale: bool = False, device=None, dtype=None, output_dtype=None) -> None"
+  },
+  "torch_npu.contrib.module.linear_quant.LinearQuant.forward": {
+    "signature": "(self, linear_quant_input: torch.Tensor) -> torch.Tensor"
   },
   "torch_npu.contrib.module.LabelSmoothingCrossEntropy": {
     "signature": "(num_classes=1000, smooth_factor=0.0)"
@@ -860,6 +878,12 @@
   "torch_npu.distributed.distributed_c10d.is_hccl_available": {
     "signature": "()"
   },
+  "torch_npu.distributed.distributed_c10d.reinit_process_group": {
+    "signature": "(group=None, rebuild_link=True)"
+  },
+  "torch_npu.distributed.reinit_process_group": {
+    "signature": "(group=None, rebuild_link=True)"
+  },
   "torch_npu.distributed.rpc.backend_registry.construct_rpc_backend_options": {
     "signature": "(backend, rpc_timeout=60.0, init_method='env://', **kwargs)"
   },
@@ -965,6 +989,15 @@
   "torch_npu.dynamo.torchair.npu_fx_compiler.get_npu_backend": {
     "signature": "(*, compiler_config: torchair.configs.compiler_config.CompilerConfig = None, custom_decompositions: Dict = {})"
   },
+  "torch_npu.dynamo.torchair.patch_for_hcom": {
+    "signature": "()"
+  },
+  "torch_npu.dynamo.torchair.register_fx_node_ge_converter": {
+    "signature": "(aten_op)"
+  },
+  "torch_npu.dynamo.torchair.ops.npu_print": {
+    "signature": "(*args, summarize_size=3)"
+  },
   "torch_npu.jit.optimize": {
     "signature": "(jit_mod)"
   },
@@ -1046,6 +1079,48 @@
   "torch_npu.npu.Stream.set_data_preprocess_stream": {
     "signature": "(self, is_data_preprocess_stream=False)"
   },
+  "torch_npu.npu.streams.SyncLaunchStream": {
+    "signature": "(device=None, priority=0, **kwargs)"
+  },
+  "torch_npu.npu.streams.SyncLaunchStream.wait_event": {
+    "signature": "(self, event)"
+  },
+  "torch_npu.npu.streams.SyncLaunchStream.wait_stream": {
+    "signature": "(self, stream)"
+  },
+  "torch_npu.npu.streams.SyncLaunchStream.record_event": {
+    "signature": "(self, event=None)"
+  },
+  "torch_npu.npu.streams.SyncLaunchStream.query": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu.streams.SyncLaunchStream.synchronize": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu.streams.SyncLaunchStream.set_data_preprocess_stream": {
+    "signature": "(self, is_data_preprocess_stream=False)"
+  },
+  "torch_npu.npu.SyncLaunchStream": {
+    "signature": "(device=None, priority=0, **kwargs)"
+  },
+  "torch_npu.npu.SyncLaunchStream.wait_event": {
+    "signature": "(self, event)"
+  },
+  "torch_npu.npu.SyncLaunchStream.wait_stream": {
+    "signature": "(self, stream)"
+  },
+  "torch_npu.npu.SyncLaunchStream.record_event": {
+    "signature": "(self, event=None)"
+  },
+  "torch_npu.npu.SyncLaunchStream.query": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu.SyncLaunchStream.synchronize": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu.SyncLaunchStream.set_data_preprocess_stream": {
+    "signature": "(self, is_data_preprocess_stream=False)"
+  },
   "torch_npu.npu.caching_allocator_alloc": {
     "signature": "(size, device=None, stream=None)"
   },
@@ -1057,6 +1132,9 @@
   },
   "torch_npu.npu.change_current_allocator": {
     "signature": "(allocator: torch_npu.npu.memory._NPUAllocator) -> None"
+  },
+  "torch_npu.npu.check_uce_in_memory": {
+    "signature": "(device_id)"
   },
   "torch_npu.npu.clear_npu_overflow_flag": {
     "signature": "()"
@@ -1214,6 +1292,15 @@
   "torch_npu.npu.mstx.mark": {
     "signature": "(message: str = '')"
   },
+  "torch_npu.npu.mstx.mstx_range": {
+    "signature": "(message: str, stream=None)"
+  },
+  "torch_npu.npu.mstx.range_start": {
+    "signature": "(message: str, stream=None) -> int"
+  },
+  "torch_npu.npu.mstx.range_end": {
+    "signature": "(range_id: int)"
+  },
   "torch_npu.npu.preferred_linalg_library": {
     "signature": "(backend: Union[NoneType, str, torch._C._LinalgBackend] = None) -> torch._C._LinalgBackend"
   },
@@ -1228,6 +1315,15 @@
   },
   "torch_npu.npu.reset_peak_memory_stats": {
     "signature": "(device=None)"
+  },
+  "torch_npu.npu.restart_device": {
+    "signature": "(device_id: int, rebuild_all_resources: int = False)"
+  },
+  "torch_npu.npu.stop_device": {
+    "signature": "(device_id)"
+  },
+  "torch_npu.npu.stress_detect": {
+    "signature": "()"
   },
   "torch_npu.npu.sdp_kernel": {
     "signature": "(enable_flash: bool = True, enable_math: bool = True, enable_mem_efficient: bool = True)"
@@ -1568,6 +1664,15 @@
   "torch_npu.npu.mstx.mstx.mark": {
     "signature": "(message: str = '')"
   },
+  "torch_npu.npu.mstx.mstx.range_start": {
+    "signature": "(message: str, stream=None) -> int"
+  },
+  "torch_npu.npu.mstx.mstx.range_end": {
+    "signature": "(range_id: int)"
+  },
+  "torch_npu.npu.mstx.mstx.mstx_range": {
+    "signature": "(message: str, stream=None)"
+  },
   "torch_npu.npu.npu_config.finalize_dump": {
     "signature": "()"
   },
@@ -1664,6 +1769,9 @@
   "torch_npu.npu.utils.can_device_access_peer": {
     "signature": "(device_id, peer_device_id)"
   },
+  "torch_npu.npu.utils.check_uce_in_memory": {
+    "signature": "(device_id)"
+  },
   "torch_npu.npu.utils.clear_npu_overflow_flag": {
     "signature": "()"
   },
@@ -1738,6 +1846,9 @@
   },
   "torch_npu.npu.utils.stream": {
     "signature": "(stream)"
+  },
+  "torch_npu.npu.utils.stress_detect": {
+    "signature": "()"
   },
   "torch_npu.npu.utils.synchronize": {
     "signature": "(device=None)"
@@ -2213,6 +2324,21 @@
   "torch_npu.profiler.schedule._check_params": {
     "signature": "(self)"
   },
+  "torch_npu.profiler.scheduler.ProfilerAction": {
+    "signature": "(value, names=None, *, module=None, qualname=None, type=None, start=1)"
+  },
+  "torch_npu.profiler.scheduler.ProfilerAction._generate_next_value_": {
+    "signature": "(name, start, count, last_values)"
+  },
+  "torch_npu.profiler.scheduler.ProfilerAction._member_type_": {
+    "signature": "()"
+  },
+  "torch_npu.profiler.scheduler.Schedule": {
+    "signature": "(wait: int, active: int, warmup: int = 0, repeat: int = 0, skip_first: int = 0) -> None"
+  },
+  "torch_npu.profiler.scheduler.Schedule._check_params": {
+    "signature": "(self)"
+  },
   "torch_npu.profiler.supported_activities": {
     "signature": "()"
   },
@@ -2230,6 +2356,9 @@
   },
   "torch_npu.profiler.dynamic_profile.init": {
     "signature": "(path: str)"
+  },
+  "torch_npu.profiler.dynamic_profile.start": {
+    "signature": "(config_path: str = None)"
   },
   "torch_npu.profiler.dynamic_profile.step": {
     "signature": "()"
@@ -2260,6 +2389,9 @@
   },
   "torch_npu.profiler.profiler._KinetoProfile": {
     "signature": "(*, activities: Union[Iterable[torch_npu._C._profiler.ProfilerActivity], NoneType] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Union[torch_npu.profiler.experimental_config._ExperimentalConfig, NoneType] = None)"
+  },
+  "torch_npu.profiler.profiler._KinetoProfile.export_memory_timeline": {
+    "signature": "(self, output_path: str, device: Union[str, NoneType] = None) -> None"
   },
   "torch_npu.profiler.profiler._KinetoProfile.start": {
     "signature": "(self)"
@@ -2299,6 +2431,9 @@
   },
   "torch_npu.profiler.profiler.profile.step": {
     "signature": "(self)"
+  },
+  "torch_npu.profiler.profiler.supported_activities": {
+    "signature": "()"
   },
   "torch_npu.profiler.profiler.tensorboard_trace_handler": {
     "signature": "(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True)"
@@ -2498,6 +2633,9 @@
   "torch_npu.utils.print_warn_log": {
     "signature": "(warn_msg: str)"
   },
+  "torch_npu.utils.should_print_warning": {
+    "signature": "()"
+  },
   "torch_npu.utils.register_asd_hook": {
     "signature": "(x, weight)"
   },
@@ -2512,6 +2650,12 @@
   },
   "torch_npu.utils.asd_detector.set_asd_loss_scale": {
     "signature": "(loss_scale=1.0)"
+  },
+  "torch_npu.utils.collect_env.check_directory_path_readable": {
+    "signature": "(path)"
+  },
+  "torch_npu.utils.collect_env.check_path_owner_consistent": {
+    "signature": "(path: str)"
   },
   "torch_npu.utils.collect_env.SystemEnv": {
     "signature": "(torch_version, torch_npu_version, is_debug_build, gcc_version, clang_version, cmake_version, os, libc_version, python_version, python_platform, pip_version, pip_packages, conda_packages, caching_allocator_config, is_xnnpack_available, cpu_info, cann_version)"
@@ -2535,6 +2679,9 @@
     "signature": "()"
   },
   "torch_npu.utils.collect_env.get_torch_npu_version": {
+    "signature": "()"
+  },
+  "torch_npu.utils.collect_env.get_torch_npu_install_path": {
     "signature": "()"
   },
   "torch_npu.utils.collect_env.main": {
@@ -2618,9 +2765,6 @@
   "torch_npu.utils.tensor_methods.npu_dtype_cast": {
     "signature": "(self, dtype)"
   },
-  "torch_npu.utils.utils.LogLevel": {
-    "signature": "()"
-  },
   "torch_npu.utils.utils.print_error_log": {
     "signature": "(error_msg: str)"
   },
@@ -2629,6 +2773,9 @@
   },
   "torch_npu.utils.utils.print_warn_log": {
     "signature": "(warn_msg: str)"
+  },
+  "torch_npu.utils.utils.should_print_warning": {
+    "signature": "()"
   },
   "torch_npu._npu_dropout": {
     "signature": "(*args, **kwargs)"
@@ -2710,6 +2857,15 @@
   },
   "torch_npu.npu_dtype_cast": {
     "signature": "(self, dtype)"
+  },
+  "torch_npu.npu_dynamic_quant": {
+    "signature": "(input_dummy, smooth_scales=None)"
+  },
+  "torch_npu.npu_dynamic_quant_asymmetric": {
+    "signature": "(input_dummy, smooth_scales=None, group_index=None, dst_type=torch.int8)"
+  },
+  "torch_npu.npu_group_quant": {
+    "signature": "(x, scale, group_index, offset=None, dst_dtype=None)"
   },
   "torch_npu.npu_ffn": {
     "signature": "(*args, **kwargs)"
@@ -6427,5 +6583,233 @@
   },
   "func: polar.out": {
     "signature": "(Tensor abs, Tensor angle, *, Tensor(a!) out) -> Tensor(a!)"
+  },
+  "func: _npu_silent_check_v2": {
+    "signature": "(Tensor val, Tensor(a!) input_grad, Tensor(b!) sfda, Tensor(c!) step, int c_min_steps, float c_thresh_l1, float c_coeff_l1, float c_thresh_l2, float c_coeff_l2, int npu_asd_detect) -> Tensor"
+  },
+  "func: npu_dynamic_quant_asymmetric": {
+    "signature": "(Tensor input, *, Tensor? smooth_scales=None, Tensor? group_index=None, ScalarType? dst_type=None) -> (Tensor, Tensor, Tensor)"
+  },
+  "func: npu_prefetch": {
+    "signature": "(Tensor self, Tensor? dependency, int max_size) -> ()"
+  },
+  "func: npu_group_quant": {
+    "signature": "(Tensor x, Tensor scale, Tensor group_index, *, Tensor? offset=None, ScalarType? dst_dtype=None) -> Tensor"
+  },
+  "func: stft_backward": {
+    "signature": "(Tensor grad_output, Tensor self, int n_fft, int? hop_length=None, int? win_length=None, Tensor? window=None, bool normalized=False, bool? onesided=None, bool? return_complex=None) -> Tensor"
+  },
+  "func: fft_r2c_backward": {
+    "signature": "(Tensor grad, int[] dim, int normalization, bool onesided, int last_dim_size) -> Tensor"
+  },
+  "func: fft_c2r_backward": {
+    "signature": "(Tensor grad, int[] dim, int normalization) -> Tensor"
+  },
+  "func: _foreach_norm.Scalar": {
+    "signature": "(Tensor[] tensors, Scalar ord=2) -> Tensor[]"
+  },
+  "func: _foreach_abs_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_abs": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_copy_": {
+    "signature": "(Tensor(a!)[] self, Tensor[] src, bool non_blocking=False) -> ()"
+  },
+  "func: _foreach_sign": {
+    "signature": "(Tensor[] self) -> Tensor[]"
+  },
+  "func: _foreach_sign_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_pow.ScalarAndTensor": {
+    "signature": "(Scalar self, Tensor[] exponent) -> Tensor[]"
+  },
+  "func: _foreach_reciprocal_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_reciprocal": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_expm1_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_expm1": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_erf": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_erf_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_erfc": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_erfc_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_asin": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_asin_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_sin_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_sin": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_sinh_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_sinh": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_acos_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_acos": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_cosh_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_cosh": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_atan_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_atan": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_tan_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_tan": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_tanh": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_tanh_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_clamp_max.ScalarList": {
+    "signature": "(Tensor[] self, Scalar[] scalars) -> Tensor[]"
+  },
+  "func: _foreach_clamp_max_.ScalarList": {
+    "signature": "(Tensor(a!)[] self, Scalar[] scalars) -> ()"
+  },
+  "func: _foreach_clamp_max.List": {
+    "signature": "(Tensor[] self, Tensor[] other) -> Tensor[]"
+  },
+  "func: _foreach_clamp_max_.List": {
+    "signature": "(Tensor(a!)[] self, Tensor[] other) -> ()"
+  },
+  "func: _foreach_clamp_max.Scalar": {
+    "signature": "(Tensor[] self, Scalar scalar) -> Tensor[]"
+  },
+  "func: _foreach_clamp_max_.Scalar": {
+    "signature": "(Tensor(a!)[] self, Scalar scalar) -> ()"
+  },
+  "func: _foreach_clamp_min.ScalarList": {
+    "signature": "(Tensor[] self, Scalar[] scalars) -> Tensor[]"
+  },
+  "func: _foreach_clamp_min_.ScalarList": {
+    "signature": "(Tensor(a!)[] self, Scalar[] scalars) -> ()"
+  },
+  "func: _foreach_clamp_min.List": {
+    "signature": "(Tensor[] self, Tensor[] other) -> Tensor[]"
+  },
+  "func: _foreach_clamp_min_.List": {
+    "signature": "(Tensor(a!)[] self, Tensor[] other) -> ()"
+  },
+  "func: _foreach_clamp_min.Scalar": {
+    "signature": "(Tensor[] self, Scalar scalar) -> Tensor[]"
+  },
+  "func: _foreach_clamp_min_.Scalar": {
+    "signature": "(Tensor(a!)[] self, Scalar scalar) -> ()"
+  },
+  "func: _foreach_lerp_.Scalar": {
+    "signature": "(Tensor(a!)[] self, Tensor[] tensors1, Scalar weight) -> ()"
+  },
+  "func: _foreach_lerp.Scalar": {
+    "signature": "(Tensor[] self, Tensor[] tensors1, Scalar weight) -> Tensor[]"
+  },
+  "func: _foreach_lerp_.List": {
+    "signature": "(Tensor(a!)[] self, Tensor[] tensors1, Tensor[] weights) -> ()"
+  },
+  "func: _foreach_lerp.List": {
+    "signature": "(Tensor[] self, Tensor[] tensors1, Tensor[] weights) -> Tensor[]"
+  },
+  "func: _foreach_log1p_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_log1p": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_log_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_log": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_log10_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_log10": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_log2_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _foreach_log2": {
+    "signature": "(Tensor[] tensors) -> Tensor[]"
+  },
+  "func: _foreach_zero_": {
+    "signature": "(Tensor(a!)[] self) -> ()"
+  },
+  "func: _unique": {
+    "signature": "(Tensor self, bool sorted=True, bool return_inverse=False) -> (Tensor, Tensor)"
+  },
+  "func: argsort.stable": {
+    "signature": "(Tensor self, bool stable=False, int dim=-1, bool descending=False) -> Tensor"
+  },
+  "func: dropout_": {
+    "signature": "(Tensor(a!) self, float p, bool train) -> Tensor(a!)"
+  },
+  "func: _upsample_bicubic2d_aa_backward": {
+    "signature": "(Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, bool align_corners, float? scales_h=None, float? scales_w=None) -> Tensor"
+  },
+  "func: _upsample_bicubic2d_aa_backward.grad_input": {
+    "signature": "(Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, bool align_corners, float? scales_h=None, float? scales_w=None, *, Tensor(a!) grad_input) -> Tensor(a!)"
+  },
+  "func: _upsample_bicubic2d_aa": {
+    "signature": "(Tensor self, SymInt[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None) -> Tensor"
+  },
+  "func: _upsample_bicubic2d_aa.out": {
+    "signature": "(Tensor self, SymInt[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None, *, Tensor(a!) out) -> Tensor(a!)"
+  },
+  "func: _upsample_bilinear2d_aa": {
+    "signature": "(Tensor self, SymInt[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None) -> Tensor"
+  },
+  "func: _upsample_bilinear2d_aa.out": {
+    "signature": "(Tensor self, SymInt[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None, *, Tensor(a!) out) -> Tensor(a!)"
+  },
+  "func: _upsample_bilinear2d_aa_backward": {
+    "signature": "(Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, bool align_corners, float? scales_h=None, float? scales_w=None) -> Tensor"
+  },
+  "func: _upsample_bilinear2d_aa_backward.grad_input": {
+    "signature": "(Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, bool align_corners, float? scales_h=None, float? scales_w=None, *, Tensor(a!) grad_input) -> Tensor(a!)"
+  },
+  "func: isin.Tensor_Tensor": {
+    "signature": "(Tensor elements, Tensor test_elements, *, bool assume_unique=False, bool invert=False) -> Tensor"
+  },
+  "func: isin.Tensor_Tensor_out": {
+    "signature": "(Tensor elements, Tensor test_elements, *, bool assume_unique=False, bool invert=False, Tensor(a!) out) -> Tensor(a!)"
   }
 }

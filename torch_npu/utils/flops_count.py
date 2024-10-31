@@ -1,7 +1,11 @@
+import warnings
+
 from torch_npu._C._flops_count import _FlopCountContext
 
+__all__ = []
 
-class FlopsCounter:
+
+class _FlopsCounter:
     def __init__(self, ):
         self.flop_count_instance = _FlopCountContext.GetInstance()
      
@@ -28,3 +32,11 @@ class FlopsCounter:
         recorded_count = self.flop_count_instance.recordedCount
         traversed_count = self.flop_count_instance.traversedCount
         return [recorded_count, traversed_count]
+
+
+class FlopsCounter(_FlopsCounter):
+    def __init__(self):
+        super().__init__()
+        warnings.warn("torch_npu.utils.flops_count.FlopsCounter() will be deprecated. "
+                      "If necessary, please use torch_npu.utils.flops_count._FlopsCounter().", FutureWarning)
+
