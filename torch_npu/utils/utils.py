@@ -2,6 +2,8 @@ import os
 import warnings
 from warnings import _showwarnmsg_impl
 
+__all__ = ["should_print_warning"]
+
 
 def should_print_warning():
     disabled_warning = os.environ.get("TORCH_NPU_DISABLED_WARNING", "0")

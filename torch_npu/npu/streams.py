@@ -4,6 +4,8 @@ from torch._streambase import _StreamBase, _EventBase
 import torch_npu
 import torch_npu._C
 
+__all__ = ["Stream", "Event", "SyncLaunchStream"]
+
 
 class Stream(torch_npu._C._NPUStreamBase, _StreamBase):
     r"""Wrapper around a NPU stream.
