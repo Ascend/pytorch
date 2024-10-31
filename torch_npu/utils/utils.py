@@ -3,8 +3,10 @@ import time
 import warnings
 from warnings import _showwarnmsg_impl
 
+__all__ = ["print_info_log", "print_warn_log", "print_error_log", "should_print_warning"]
 
-class LogLevel:
+
+class _LogLevel:
     ERROR = "ERROR"
     WARNING = "WARNING"
     INFO = "INFO"
@@ -17,15 +19,15 @@ def _print_log(level: str, msg: str):
 
 
 def print_info_log(info_msg: str):
-    _print_log(LogLevel.INFO, info_msg)
+    _print_log(_LogLevel.INFO, info_msg)
 
 
 def print_warn_log(warn_msg: str):
-    _print_log(LogLevel.WARNING, warn_msg)
+    _print_log(_LogLevel.WARNING, warn_msg)
 
 
 def print_error_log(error_msg: str):
-    _print_log(LogLevel.ERROR, error_msg)
+    _print_log(_LogLevel.ERROR, error_msg)
 
 
 def should_print_warning():

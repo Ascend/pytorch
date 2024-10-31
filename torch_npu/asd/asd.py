@@ -5,7 +5,7 @@ from torch.nn.functional import embedding as origin_embedding
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
-from .silent_fault_data import SilentFaultData, SilentFaultDataV2
+from ._silent_fault_data import SilentFaultData, SilentFaultDataV2
 
 __all__ = []
 
