@@ -495,6 +495,20 @@ class TestNpu(TestCase):
         default_stream.synchronize()
         self.assertTrue(default_stream.query())
 
+    def test_sync_launch_streams(self):
+        default_stream = torch_npu.npu.current_stream()
+        sync_stream = torch_npu.npu.SyncLaunchStream()
+        self.assertNotEqual(default_stream, sync_stream)
+        self.assertNotEqual(sync_stream.npu_stream, 0)
+        with torch_npu.npu.stream(sync_stream):
+            self.assertEqual(torch_npu.npu.current_stream().npu_stream, sync_stream.npu_stream)
+        self.assertTrue(sync_stream.query())
+        with torch_npu.npu.stream(sync_stream):
+            tensor1 = torch.ByteTensor(5).pin_memory()
+            tensor2 = tensor1.npu(non_blocking=True) + 1
+            sync_stream.synchronize()
+            self.assertTrue(sync_stream.query())
+
     def test_stream_event_repr(self):
         s = torch_npu.npu.current_stream()
         self.assertTrue("torch_npu.npu.Stream" in s.__repr__())
