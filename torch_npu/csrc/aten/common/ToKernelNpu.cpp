@@ -68,15 +68,11 @@ at::Tensor NPUNativeFunctions::to(
     bool copy,
     c10::optional<c10::MemoryFormat> optional_memory_format)
 {
-    if (device.has_value() && device.value().is_cpu() && optional_memory_format.has_value()) {
+    if (optional_memory_format.has_value()) {
         TORCH_CHECK(
             optional_memory_format.value() == c10::MemoryFormat::Preserve ||
             optional_memory_format.value() == c10::MemoryFormat::Contiguous,
             "Only contiguous_format or preserve_format is supported.", OPS_ERROR(ErrCode::NOT_SUPPORT));
-    } else {
-        TORCH_CHECK(
-            !optional_memory_format.has_value(),
-            "NPU not support specify memory_format.", OPS_ERROR(ErrCode::NOT_SUPPORT));
     }
 
     c10::TensorOptions options_ = c10::TensorOptions().dtype(dtype).layout(layout).device(device);
