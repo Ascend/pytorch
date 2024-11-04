@@ -1,4 +1,3 @@
-import pickle
 import sys
 import os
 import io
@@ -10,6 +9,7 @@ from itertools import groupby
 import base64
 import warnings
 import yaml
+from torch.cuda._memory_viz import format_flamegraph
 import torch_npu
 
 from torch_npu.utils._error_code import ErrCode, pta_error
@@ -84,34 +84,6 @@ def _block_extra(b):
         # old snapshot format made it more complicated to get frames/allocated size
         return _block_extra_legacy(b)
     return b['frames'], b['requested_size']
-
-
-def format_flamegraph(flamegraph_lines, flamegraph_script=None):
-    if flamegraph_script is None:
-        flamegraph_script = f'/tmp/{os.getuid()}_flamegraph.pl'
-    flamegraph_script = os.path.realpath(flamegraph_script)
-    if not os.path.exists(flamegraph_script):
-        import urllib.request
-        config_path = os.path.join(PYTORCH_NPU_INSTALL_PATH, "npu/config.yaml")
-        with open(config_path, "r") as f:
-            es = yaml.safe_load(f)
-        print(f"Downloading flamegraph.pl to: {flamegraph_script}")
-        urllib.request.urlretrieve(es['flamegraph_url'], flamegraph_script)
-        subprocess.check_call(['chmod', '+x', flamegraph_script])
-    args = [flamegraph_script, '--countname', 'bytes']
-    p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, encoding='utf-8')
-    if p.stdin is None:
-        raise RuntimeError('subprocess stdin is None.' + pta_error(ErrCode.INTERNAL))
-    if p.stdout is None:
-        raise RuntimeError('subprocess stdout is None.' + pta_error(ErrCode.INTERNAL))
-    p.stdin.write(flamegraph_lines)
-    p.stdin.close()
-    result = p.stdout.read()
-    p.stdout.close()
-    p.wait()
-    if p.wait() != 0:
-        raise RuntimeError('subprocess fails to run.' + pta_error(ErrCode.INTERNAL))
-    return result
 
 
 def _write_blocks(f, prefix, blocks):
