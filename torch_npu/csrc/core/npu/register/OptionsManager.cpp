@@ -438,14 +438,20 @@ void oom_observer(int64_t device, int64_t allocated, int64_t device_total, int64
 
 void OptionsManager::IsOomSnapshotEnable()
 {
-    const static bool isOomSnapshotEnable = []() -> bool {
-        int32_t enable = OptionsManager::GetBoolTypeOption("OOM_SNAPSHOT_ENABLE", 0);
-        return enable != 0;
-    }();
 #ifndef BUILD_LIBTORCH
-    if (isOomSnapshotEnable) {
-        c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(std::move(oom_observer));
-        torch_npu::_record_memory_history("all", "all", "python", UINT64_MAX);
+    char* env_val = std::getenv("OOM_SNAPSHOT_ENABLE");
+    int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
+    switch (envFlag) {
+        case 0:
+            break;
+        case 2:
+            c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(std::move(oom_observer));
+            torch_npu::_record_memory_history("state", "all", "python", UINT64_MAX);
+            break;
+        default:
+            c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(std::move(oom_observer));
+            torch_npu::_record_memory_history("all", "all", "python", UINT64_MAX);
+            break;
     }
 #endif
 }
