@@ -18,7 +18,6 @@ import unittest
 import time
 import warnings
 import random
-import subprocess
 import inspect
 import torch
 import expecttest
