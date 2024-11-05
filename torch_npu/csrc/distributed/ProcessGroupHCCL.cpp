@@ -702,6 +702,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     if (options_->global_ranks_in_group.empty()) {
         global_ = this;
     }
+    ASCEND_LOGI("process group created, group id is %s.", options_->group_id.c_str());
 }
 
 void ProcessGroupHCCL::setSequenceNumberForGroup() {}
@@ -1557,6 +1558,7 @@ void ProcessGroupHCCL::resumeHcclComm(int device_id)
             }
         }
     }
+    ASCEND_LOGI("resumeHcclComm success, group id is %s.", options_->group_id.c_str());
 }
 
 

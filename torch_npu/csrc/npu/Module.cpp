@@ -336,6 +336,7 @@ PyObject* THNPModule_stopDevice_wrap(PyObject* self, PyObject* arg)
     int device = THPUtils_unpackLong(arg);
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::STOP_EXIT);
     c10_npu::acl::AclrtDeviceTaskAbort(device);
+    ASCEND_LOGI("NPU stop device success, device is %d.", device);
 
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
@@ -383,6 +384,7 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
     c10_npu::clear_mem_uce_info();
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::INIT);
     c10_npu::NPUCachingAllocator::cleanEvent();
+    ASCEND_LOGI("NPU restart device success, device is %d.", device);
 
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS

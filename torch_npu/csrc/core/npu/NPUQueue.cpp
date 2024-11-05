@@ -485,6 +485,8 @@ void Repository::Dequeue() {
   while (ret == false && GetStatus() != RepoStatus::CAN_EXIT) {
     if (GetStatus() == RepoStatus::STOP_EXIT) {
         ClearQueue();
+        std::this_thread::sleep_for(std::chrono::microseconds(1000));
+        continue;
     }
     ret = ReadQueue();
     if (ret == false) {
