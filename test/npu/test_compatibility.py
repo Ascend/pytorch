@@ -50,6 +50,33 @@ def set_failure_list(api_str, value, signature, failure_list):
     failure_list.append(f"    - now it is {signature}.")
 
 
+def is_not_compatibility_for_c_api(base_signature: str, file: str):
+    content = []
+    with open(file, mode="r") as fp:
+        subs = ""
+        start_concat = False
+        for line in fp.readlines():
+            if "(" in line and ")" not in line and not subs:
+                start_concat = True
+            if start_concat:
+                subs += line
+            if ")" in line and "(" not in line and start_concat:
+                start_concat = False
+                subs = re.sub("(?<=\\()[ \n]+", "", subs)
+                subs = re.sub("(?<=,)[ \n]+", " ", subs)
+                line = subs
+                subs = ""
+            if not start_concat:
+                content.append(line)
+    text = "".join(content)
+
+    base_signature = re.escape(base_signature)
+    if not re.search(rf" +{base_signature}", text):
+        return True
+    else:
+        return False
+
+
 def is_not_compatibility(base_str, new_str, api_str=None):
     base_io_params = base_str.split("->")
     new_io_params = new_str.split("->")
@@ -218,8 +245,9 @@ class TestPublicApiCompatibility(TestCase):
 
         # load torch_npu_schema.json
         fp = open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)), "torch_npu_schema.json"))
-        base_schema = json.load(fp)
+        base_schema_ = json.load(fp)
         fp.close()
+        base_schema = {key: val for key, val in base_schema_.items() if not key.startswith("torch_c_func:")}
 
         content = {}
 
@@ -297,6 +325,47 @@ class TestPublicApiCompatibility(TestCase):
         msg += "\n\nFull list:\n"
         msg += "\n".join(map(str, failure_list))
         # empty lists are considered false in python
+        self.assertTrue(not failure_list, msg)
+
+    def test_torch_c_api_compatibility(self):
+        torch_npu_path = os.path.abspath(os.path.dirname(torch_npu.__file__))
+
+        fp = open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)), "torch_npu_schema.json"))
+        base_schema = json.load(fp)
+        fp.close()
+
+        failure_list = []
+        special_type = ["char *"]
+
+        for key, value in base_schema.items():
+            if key.startswith("torch_c_func"):
+                if "(" in key:
+                    func = key.split("(")[0].split("::")[-1]
+                elif "::" in key:
+                    func = key.split("::")[-1]
+                else:
+                    func = key.replace("torch_c_func: ", "")
+                signature = value["signature"].replace("c10_npu::", "")
+                input_out = signature.split(" -> ")
+                input_params = input_out[0]
+                out_type = input_out[1] if len(input_out) > 1 else ""
+                if "namespace" in value.keys():
+                    func = value["namespace"] + func
+                if out_type and out_type not in special_type:
+                    base_sign = out_type + " " + func + input_params
+                else:
+                    base_sign = out_type + func + input_params
+                file0 = value["file"]
+                file1 = os.path.join(torch_npu_path, "include", file0)
+                if is_not_compatibility_for_c_api(base_sign, file1):
+                    failure_list.append(f"# {key}:")
+                    failure_list.append(f"  - the signature '{base_sign}' has been changed in the file '{file0}'")
+
+        msg = "All the C++ APIs below do not meet the compatibility guidelines. "
+        msg += "If the change timeline has been reached, you can modify the torch_npu_schema.json to make it OK."
+        msg += "\n\nFull list:\n"
+        msg += "\n".join(map(str, failure_list))
+
         self.assertTrue(not failure_list, msg)
 
 
