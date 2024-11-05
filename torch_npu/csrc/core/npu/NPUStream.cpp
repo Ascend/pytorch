@@ -448,13 +448,13 @@ bool npuSynchronizeDevice(bool check_error)
         }
     }
 
-    auto acl_ret = aclrtSynchronizeDevice();
+    auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
     if (acl_ret != ACL_ERROR_NONE) {
         CHECK_AND_THROW_FORCE_STOP(acl_ret);
         CHECK_AND_THROW_UCE_ERROR(acl_ret);
     }
     if (check_error) {
-        NPU_CHECK_ERROR(acl_ret, "aclrtSynchronizeDevice");
+        NPU_CHECK_ERROR(acl_ret, "AclrtSynchronizeDeviceWithTimeout");
     } else {
         NPU_CHECK_WARN(acl_ret);
     }
