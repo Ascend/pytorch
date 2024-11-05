@@ -2289,7 +2289,7 @@
     "signature": "()"
   },
   "torch_npu.profiler._ExperimentalConfig": {
-    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, export_type: str = 'text')"
+    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: str = 'text')"
   },
   "torch_npu.profiler._ExperimentalConfig._check_params": {
     "signature": "(self)"
@@ -2346,7 +2346,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.experimental_config._ExperimentalConfig": {
-    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, export_type: str = 'text')"
+    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: str = 'text')"
   },
   "torch_npu.profiler.experimental_config._ExperimentalConfig._check_params": {
     "signature": "(self)"
@@ -3465,7 +3465,7 @@
     "signature": "(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=True, int mode=0, bool atan_sub_flag=False) -> (Tensor, Tensor)"
   },
   "func: npu_prompt_flash_attention": {
-    "signature": "(Tensor query, Tensor key, Tensor value, *, Tensor? padding_mask=None, Tensor? atten_mask=None, int[]? actual_seq_lengths=None, int num_heads=1, float scale_value=1.0, int pre_tokens=2147473647, int next_tokens=0, str input_layout=\"BSH\", int num_key_value_heads=0) -> Tensor"
+    "signature": "(Tensor query, Tensor key, Tensor value, *, Tensor? padding_mask=None, Tensor? atten_mask=None, Tensor? pse_shift=None, int[]? actual_seq_lengths=None, Tensor? deq_scale1=None, Tensor? quant_scale1=None, Tensor? deq_scale2=None, Tensor? quant_scale2=None, Tensor? quant_offset2=None, int num_heads=1, float scale_value=1.0, int pre_tokens=2147473647, int next_tokens=0, str input_layout=\"BSH\", int num_key_value_heads=0, int[]? actual_seq_lengths_kv=None, int sparse_mode=0) -> Tensor"
   },
   "func: npu_incre_flash_attention": {
     "signature": "(Tensor query, Tensor key, Tensor value, *, Tensor? padding_mask=None, Tensor? atten_mask=None, Tensor? pse_shift=None, SymInt[]? actual_seq_lengths=None, Tensor? antiquant_scale=None, Tensor? antiquant_offset=None, Tensor? block_table=None, Tensor? dequant_scale1=None, Tensor? quant_scale1=None, Tensor? dequant_scale2=None, Tensor? quant_scale2=None, Tensor? quant_offset2=None, Tensor? kv_padding_size=None, int num_heads=1, float scale_value=1.0, str input_layout=\"BSH\", int num_key_value_heads=0, int block_size=0, int inner_precise=1) -> Tensor"
@@ -3525,7 +3525,7 @@
     "signature": "(Tensor self, Tensor x2, str hcom, int world_size, *, Tensor? bias=None, int gather_index=0, bool gather_output=True, int comm_turn=0) -> (Tensor, Tensor)"
   },
   "func: npu_mm_all_reduce_base": {
-    "signature": "(Tensor x1, Tensor x2, str hcom, *, str reduce_op='sum', Tensor? bias=None, Tensor? antiquant_scale=None, Tensor? antiquant_offset=None, Tensor? x3=None, Tensor? dequant_scale=None, Tensor? pertoken_scale=None, int antiquant_group_size=0, int comm_turn=0) -> Tensor"
+    "signature": "(Tensor x1, Tensor x2, str hcom, *, str reduce_op='sum', Tensor? bias=None, Tensor? antiquant_scale=None, Tensor? antiquant_offset=None, Tensor? x3=None, Tensor? dequant_scale=None, Tensor? pertoken_scale=None, Tensor? comm_quant_scale_1=None, Tensor? comm_quant_scale_2=None, int antiquant_group_size=0, int comm_turn=0) -> Tensor"
   },
   "func: npu_scatter_list": {
     "signature": "(Tensor[] self, Tensor indices, Tensor updates, Tensor? mask=None, str reduce='update', int axis=-2) -> Tensor[]"
@@ -6486,7 +6486,7 @@
     "signature": "(Tensor query, Tensor key, Tensor value, *, Tensor? pse_shift=None, Tensor? atten_mask=None, SymInt[]? actual_seq_lengths=None, SymInt[]? actual_seq_lengths_kv=None, Tensor? dequant_scale1=None, Tensor? quant_scale1=None, Tensor? dequant_scale2=None, Tensor? quant_scale2=None, Tensor? quant_offset2=None, Tensor? antiquant_scale=None, Tensor? antiquant_offset=None, Tensor? key_antiquant_scale=None, Tensor? key_antiquant_offset=None, Tensor? value_antiquant_scale=None, Tensor? value_antiquant_offset=None, Tensor? block_table=None, Tensor? query_padding_size=None, Tensor? kv_padding_size=None, Tensor? key_shared_prefix=None, Tensor? value_shared_prefix=None, SymInt[]? actual_shared_prefix_len=None, int num_heads=1, float scale=1.0, int pre_tokens=2147483647, int next_tokens=2147483647, str input_layout=\"BSH\", int num_key_value_heads=0, int sparse_mode=0, int inner_precise=0, int block_size=0, int antiquant_mode=0, int key_antiquant_mode=0, int value_antiquant_mode=0, bool softmax_lse_flag=False) -> (Tensor, Tensor)"
   },
   "func: npu_prefetch": {
-    "signature": "(Tensor self, Tensor? dependency, int max_size) -> ()"
+    "signature": "(Tensor self, Tensor? dependency, int max_size, int offset=0) -> ()"
   },
   "func: npu_group_quant": {
     "signature": "(Tensor x, Tensor scale, Tensor group_index, *, Tensor? offset=None, ScalarType? dst_dtype=None) -> Tensor"
@@ -6733,5 +6733,398 @@
   },
   "func: _fused_adamw_": {
     "signature": "(Tensor(a!)[] self, Tensor(b!)[] grads, Tensor(c!)[] exp_avgs, Tensor(d!)[] exp_avg_sqs, Tensor(e!)[] max_exp_avg_sqs, Tensor[] state_steps, *, float lr, float beta1, float beta2, float weight_decay, float eps, bool amsgrad, bool maximize, Tensor? grad_scale=None, Tensor? found_inf=None) -> ()"
+  },
+  "torch_c_func: torch_npu::init_npu(const c10::DeviceIndex device_index = 0)": {
+    "signature": "(const c10::DeviceIndex device_index = 0) -> void",
+    "file": "torch_npu/csrc/libs/init_npu.h"
+  },
+  "torch_c_func: torch_npu::init_npu(const std::string& device_str)": {
+    "signature": "(const std::string& device_str) -> void",
+    "file": "torch_npu/csrc/libs/init_npu.h"
+  },
+  "torch_c_func: torch_npu::init_npu(const at::Device& device)": {
+    "signature": "(const at::Device& device) -> void",
+    "file": "torch_npu/csrc/libs/init_npu.h"
+  },
+  "torch_c_func: torch_npu::finalize_npu": {
+    "signature": "() -> void",
+    "file": "torch_npu/csrc/libs/init_npu.h"
+  },
+  "torch_c_func: torch::npu::synchronize": {
+    "signature": "(int64_t device_index = -1) -> void",
+    "file": "torch_npu/csrc/libs/init_npu.h"
+  },
+  "torch_c_func: c10::npu::current_device": {
+    "signature": "() -> DeviceIndex",
+    "file": "torch_npu/csrc/libs/init_npu.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::NPUEvent()": {
+    "signature": "()",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::NPUEvent(unsigned int flags)": {
+    "signature": "(unsigned int flags)",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::~NPUEvent()": {
+    "signature": "()",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::NPUEvent(c10_npu::NPUEvent&& other)": {
+    "signature": "(NPUEvent&& other)",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::aclrtEvent": {
+    "signature": "() -> operator",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::device": {
+    "signature": "() -> c10::optional<at::Device>",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::isCreated": {
+    "signature": "() -> bool",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::device_index": {
+    "signature": "() -> c10::DeviceIndex",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::event": {
+    "signature": "() -> aclrtEvent",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::query": {
+    "signature": "() -> bool",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::record()": {
+    "signature": "() -> void",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::record(const c10_npu::NPUStream& stream)": {
+    "signature": "(const NPUStream& stream) -> void",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::recordOnce": {
+    "signature": "(const NPUStream& stream) -> void",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::block": {
+    "signature": "(const NPUStream& stream) -> void",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::elapsed_time": {
+    "signature": "(const NPUEvent& other) -> float",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::synchronize": {
+    "signature": "() -> void",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::NPUGeneratorImpl": {
+    "signature": "(c10::DeviceIndex device_index = -1)",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::clone": {
+    "signature": "() -> std::shared_ptr<NPUGeneratorImpl>",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::set_current_seed": {
+    "signature": "(uint64_t seed) -> void",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::set_offset": {
+    "signature": "(uint64_t offset) -> void",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::current_seed": {
+    "signature": "() -> uint64_t",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::get_offset": {
+    "signature": "() -> uint64_t",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::seed": {
+    "signature": "() -> uint64_t",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::set_state": {
+    "signature": "(const c10::TensorImpl& new_state) -> void",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::get_state": {
+    "signature": "() -> c10::intrusive_ptr<c10::TensorImpl>",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::set_philox_offset_per_thread": {
+    "signature": "(uint64_t offset) -> void",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::philox_offset_per_thread": {
+    "signature": "() -> uint64_t",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::capture_prologue": {
+    "signature": "(int64_t* offset_extragraph) -> void",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::capture_epilogue": {
+    "signature": "() -> uint64_t",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::philox_npu_state": {
+    "signature": "(uint64_t increment) -> PhiloxNpuState",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::philox_engine_inputs": {
+    "signature": "(uint64_t increment) -> std::pair<uint64_t, uint64_t>",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::NPUGeneratorImpl::device_type": {
+    "signature": "() -> c10::DeviceType",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::detail::getDefaultNPUGenerator": {
+    "signature": "(c10::DeviceIndex device_index = -1) -> at::Generator&",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: at_npu::detail::createNPUGenerator": {
+    "signature": "(c10::DeviceIndex device_index = -1) -> at::Generator",
+    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::NPUStream(c10::Stream stream)": {
+    "signature": "(c10::Stream stream)",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::NPUStream(Unchecked, c10::Stream stream)": {
+    "signature": "(Unchecked, c10::Stream stream)",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::~NPUStream": {
+    "signature": "()",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::operator==": {
+    "signature": "(const c10_npu::NPUStream& other) -> bool",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::operator!=": {
+    "signature": "(const c10_npu::NPUStream& other) -> bool",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: aclrtStream": {
+    "signature": "() -> operator",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10::Stream": {
+    "signature": "() -> operator",
+    "namespace": "c10::",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::device_type": {
+    "signature": "() -> c10::DeviceType",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::device_index": {
+    "signature": "() -> c10::DeviceIndex",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::device": {
+    "signature": "() -> c10::Device",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::id": {
+    "signature": "() -> c10::StreamId",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::query": {
+    "signature": "() -> bool",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::synchronize": {
+    "signature": "() -> void",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::stream()": {
+    "signature": "() -> aclrtStream",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::unwrap": {
+    "signature": "() -> c10::Stream",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::pack3": {
+    "signature": "() -> c10::StreamData3",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::unpack3": {
+    "signature": "(c10::StreamId stream_id, c10::DeviceIndex device_index, c10::DeviceType device_type) -> c10_npu::NPUStream",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::setDataPreprocessStream": {
+    "signature": "(bool is_data_preprocess_stream) -> void",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::isDataPreprocessStream": {
+    "signature": "() -> bool",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::NPUStream::stream(const bool need_empty)": {
+    "signature": "(const bool need_empty) -> aclrtStream",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::getNPUStreamFromPool": {
+    "signature": "(c10::DeviceIndex device = -1) -> c10_npu::NPUStream",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::getDefaultNPUStream": {
+    "signature": "(c10::DeviceIndex device_index = -1) -> c10_npu::NPUStream",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::getCurrentNPUStream": {
+    "signature": "(c10::DeviceIndex device_index = -1) -> c10_npu::NPUStream",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: c10_npu::setCurrentNPUStream": {
+    "signature": "(c10_npu::NPUStream stream) -> void",
+    "file": "torch_npu/csrc/core/npu/NPUStream.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::OpCommand": {
+    "signature": "()",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::~OpCommand": {
+    "signature": "()",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Name": {
+    "signature": "(const string &name) -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::SetCustomHandler": {
+    "signature": "(PROC_FUNC func) -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::DynamicInputReg": {
+    "signature": "(DynamicInputRegFunc func, DyNumAndIndex num_and_index) -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Expect": {
+    "signature": "(UnifiedResult unified_result) -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Input()": {
+    "signature": "() -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Input(const at::Tensor &input, const string &descName = \"\", const c10::optional<aclFormat> &sensitive_format = c10::nullopt, const string &realData = \"\")": {
+    "signature": "(const at::Tensor &input, const string &descName = \"\", const c10::optional<aclFormat> &sensitive_format = c10::nullopt, const string &realData = \"\") -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::InputWithoutContiguous": {
+    "signature": "(const at::Tensor &input, const string &descName = \"\", const string &realData = \"\") -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Input(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape, at::ScalarType toType, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\", const string& descName = \"\")": {
+    "signature": "(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape, at::ScalarType toType, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\", const string& descName = \"\") -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType toType = at::kLong, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\", const string& descName = \"\")": {
+    "signature": "(const c10::IntArrayRef &dimListRef, at::ScalarType toType = at::kLong, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\", const string& descName = \"\") -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape, at::ScalarType toType = at::kDouble, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\")": {
+    "signature": "(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape, at::ScalarType toType = at::kDouble, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\") -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Input(const c10::Scalar &input, const at::ScalarType type, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)": {
+    "signature": "(const c10::Scalar &input, const at::ScalarType type, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Inputs": {
+    "signature": "(const at::TensorList &inputs) -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::InputScalarToNPUTensor": {
+    "signature": "(const c10::Scalar& input, const at::ScalarType type) -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Output": {
+    "signature": "(at::Tensor &output, const string &descName = \"\", const c10::optional<aclFormat> &sensitive_format = c10::nullopt, const string &realType = \"\") -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Attr(const string &name, dataType value)": {
+    "signature": "(const string &name, dataType value) -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Attr(const string &name, dataType value, bool cond)": {
+    "signature": "(const string &name, dataType value, bool cond) -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Run": {
+    "signature": "() -> void",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Sync(c10::SmallVector<int64_t, N> &sync_index)": {
+    "signature": "(c10::SmallVector<int64_t, N> &sync_index) -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: at_npu::native::OpCommand::Sync()": {
+    "signature": "() -> OpCommand&",
+    "file": "torch_npu/csrc/framework/OpCommand.h"
+  },
+  "torch_c_func: c10_npu::NPUHooksInterface::getDefaultGenerator": {
+    "signature": "(c10::DeviceIndex device_index) -> at::Generator&",
+    "file": "torch_npu/csrc/core/npu/NPUHooksInterface.h"
+  },
+  "torch_c_func: c10_npu::device_count": {
+    "signature": "() -> c10::DeviceIndex",
+    "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
+  },
+  "torch_c_func: c10_npu::GetDevice": {
+    "signature": "(int32_t *device) -> aclError",
+    "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
+  },
+  "torch_c_func: c10_npu::SetDevice": {
+    "signature": "(c10::DeviceIndex device) -> aclError",
+    "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
+  },
+  "torch_c_func: c10_npu::current_device()": {
+    "signature": "() -> c10::DeviceIndex",
+    "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
+  },
+  "torch_c_func: c10_npu::set_device": {
+    "signature": "(c10::DeviceIndex device) -> void",
+    "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
+  },
+  "torch_c_func: c10_npu::warning_state": {
+    "signature": "() -> c10_npu::WarningState&",
+    "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
+  },
+  "torch_c_func: c10_npu::warn_or_error_on_sync": {
+    "signature": "() -> void",
+    "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
+  },
+  "torch_c_func: at_npu::native::get_npu_format": {
+    "signature": "(const at::Tensor& self) -> int64_t",
+    "file": "torch_npu/csrc/core/npu/NPUFormat.h"
+  },
+  "torch_c_func: at_npu::native::get_npu_storage_sizes": {
+    "signature": "(const at::Tensor& self) -> std::vector<int64_t>",
+    "file": "torch_npu/csrc/core/npu/NPUFormat.h"
+  },
+  "torch_c_func: at_npu::native::npu_format_cast": {
+    "signature": "(const at::Tensor& self, int64_t acl_format) -> at::Tensor",
+    "file": "torch_npu/csrc/core/npu/NPUFormat.h"
+  },
+  "torch_c_func: at_npu::native::empty_with_format": {
+    "signature": "(c10::IntArrayRef sizes, const c10::TensorOptions& options, int64_t format, bool keep_format = false) -> at::Tensor",
+    "file": "torch_npu/csrc/core/npu/NPUFormat.h"
+  },
+  "torch_c_func: c10_npu::c10_npu_get_error_message": {
+    "signature": "() -> char *",
+    "file": "torch_npu/csrc/core/npu/NPUException.h"
   }
 }
