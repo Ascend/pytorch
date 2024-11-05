@@ -215,20 +215,6 @@ def _wrapper_hccl(fn):
     return decorated
 
 
-def _wrapper_data_loader(fn):
-    @wraps(fn)
-    def decorated(*args, **kwargs):
-        if kwargs:
-            pin_memory = kwargs.get('pin_memory', False)
-            pin_memory_device = kwargs.get('pin_memory_device', None)
-            if pin_memory and not pin_memory_device:
-                kwargs['pin_memory_device'] = 'npu'
-            if pin_memory and type(pin_memory_device) == str and 'cuda' in pin_memory_device:
-                kwargs['pin_memory_device'] = pin_memory_device.replace('cuda', 'npu')
-        return fn(*args, **kwargs)
-
-    return decorated
-
 
 def _wrapper_profiler(fn):
     @wraps(fn)
@@ -348,8 +334,6 @@ def _init():
 
     # torch.nn.parallel.DistributedDataParallel
     _device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
-    # torch.utils.data.DataLoader
-    torch.utils.data.DataLoader.__init__ = _wrapper_data_loader(torch.utils.data.DataLoader.__init__)
 
     torch.utils._device.DeviceContext.__init__ = _wrapper_cuda(torch.utils._device.DeviceContext.__init__)
 

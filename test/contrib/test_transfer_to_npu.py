@@ -1,4 +1,5 @@
 import torch
+from torch.utils.data import TensorDataset
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -73,6 +74,17 @@ class TestTransferToNpu(TestCase):
         with device:
             a = torch.tensor(1)
         self.assertEqual(a.device.type, 'npu')
+
+    def test_data_loader_pin_memory(self):
+        images = torch.arange(10 * 5, dtype=torch.float32).view(10, 5)
+        labels = torch.arange(10 * 5, dtype=torch.float32).view(10, 5)
+        dataset = TensorDataset(images, labels)
+        data_loader = torch.utils.data.DataLoader(
+            dataset, num_workers=2, pin_memory=True)
+
+        data_iter = iter(data_loader)
+        images0, _ = next(data_iter)
+        self.assertTrue(images0.is_pinned())
 
 
 if __name__ == "__main__":
