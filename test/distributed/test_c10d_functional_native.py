@@ -9,9 +9,14 @@ import torch
 import torch.distributed as dist
 import torch.distributed._functional_collectives as funcol
 from torch.distributed._functional_collectives import (
+    all_gather_into_tensor_coalesced,
+    all_gather_tensor,
     all_reduce,
+    all_reduce_coalesced,
     all_to_all_single,
     AsyncCollectiveTensor,
+    reduce_scatter_tensor,
+    reduce_scatter_tensor_coalesced,
 )
 from torch.testing._internal.common_distributed import (
     MultiProcessTestCase,
@@ -177,6 +182,185 @@ class TestWithHccl(MultiProcessTestCase):
             "max",
             "default",
         )
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_all_reduce_coalesced(self) -> None:
+        self._init_process_group()
+
+        inputs = [
+            torch.full((i, i), float(self.rank * i), device=self.device)
+            for i in range(10)
+        ]
+        outputs = torch.ops._c10d_functional.all_reduce_coalesced(
+            inputs,
+            "sum",
+            "default",
+        )
+        for i, (output, input) in enumerate(zip(outputs, inputs)):
+            output = torch.ops._c10d_functional.wait_tensor(output)
+            assert id(output) != id(input)
+            assert output.eq(sum(self.ranks) * i).all()
+
+        # Test Python API and AsyncCollectiveTensor
+        outputs = all_reduce_coalesced(
+            inputs,
+            "sum",
+            "default",
+        )
+        for i, (output, input) in enumerate(zip(outputs, inputs)):
+            assert not output.completed
+            assert output.eq(sum(self.ranks) * i).all()
+            assert output.completed
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_all_reduce_coalesced_(self) -> None:
+        self._init_process_group()
+
+        inputs = [
+            torch.full((i, i), float(self.rank * i), device=self.device)
+            for i in range(10)
+        ]
+        outputs = torch.ops._c10d_functional.all_reduce_coalesced_(
+            inputs,
+            "sum",
+            "default",
+        )
+        for i, (output, input) in enumerate(zip(outputs, inputs)):
+            output = torch.ops._c10d_functional.wait_tensor(output)
+            assert id(output) == id(input)
+            assert output.eq(sum(self.ranks) * i).all()
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_all_gather_into_tensor_single(self) -> None:
+        self._init_process_group()
+
+        input = torch.full((10, 10), float(self.rank), device=self.device)
+        output = torch.ops._c10d_functional.all_gather_into_tensor(
+            input,
+            self.world_size,
+            "default",
+        )
+        output = torch.ops._c10d_functional.wait_tensor(output)
+        expect = torch.cat(
+            [
+                torch.full((10, 10), float(rank), device=self.device)
+                for rank in self.ranks
+            ]
+        )
+        assert torch.allclose(output, expect)
+        assert output.eq(expect).all()
+
+        # Test out-variant of all_gather_into_tensor
+        output = torch.empty(expect.shape, device=self.device)
+        output = torch.ops._c10d_functional.all_gather_into_tensor_out(
+            input,
+            self.world_size,
+            "default",
+            out=output,
+        )
+        output = torch.ops._c10d_functional.wait_tensor(output)
+        assert torch.allclose(output, expect)
+        assert output.eq(expect).all()
+
+        # Test Python API and AsyncCollectiveTensor
+        output = all_gather_tensor(
+            input,
+            0,
+            "default",
+        )
+        assert isinstance(output, AsyncCollectiveTensor)
+        assert not output.completed
+        assert output.eq(expect).all()
+        assert output.completed
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_all_gather_into_tensor_coalesced(self) -> None:
+        self._init_process_group()
+
+        inputs = [
+            torch.full((10, 10), float(self.rank * i), device=self.device)
+            for i in range(10)
+        ]
+        outputs = torch.ops._c10d_functional.all_gather_into_tensor_coalesced(
+            inputs,
+            self.world_size,
+            "default",
+        )
+        expect = [
+            torch.cat(
+                [
+                    torch.full((10, 10), float(rank) * i, device=self.device)
+                    for rank in self.ranks
+                ]
+            )
+            for i in range(10)
+        ]
+        for i, output in enumerate(outputs):
+            output = torch.ops._c10d_functional.wait_tensor(output)
+            assert output.eq(expect[i]).all()
+
+        # Test Python API and AsyncCollectiveTensor
+        outputs = all_gather_into_tensor_coalesced(
+            inputs,
+            "default",
+        )
+        for i, output in enumerate(outputs):
+            assert not output.completed
+            assert output.eq(expect[i]).all()
+            assert output.completed
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_tensor_single(self) -> None:
+        self._init_process_group()
+
+        input = torch.tensor(self.ranks, device=self.device)
+        output = torch.ops._c10d_functional.reduce_scatter_tensor(
+            input,
+            "sum",
+            self.world_size,
+            "default",
+        )
+        output = torch.ops._c10d_functional.wait_tensor(output)
+        assert output.eq(self.rank * self.world_size).all()
+
+        # Test Python API and AsyncCollectiveTensor
+        output = reduce_scatter_tensor(
+            input,
+            "sum",
+            0,
+            "default",
+        )
+        assert isinstance(output, AsyncCollectiveTensor)
+        assert not output.completed
+        assert output.eq(self.rank * self.world_size).all()
+        assert output.completed
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_tensor_coalesced(self) -> None:
+        self._init_process_group()
+
+        inputs = [torch.tensor(self.ranks, device=self.device) * i for i in range(10)]
+        outputs = torch.ops._c10d_functional.reduce_scatter_tensor_coalesced(
+            inputs,
+            "sum",
+            self.world_size,
+            "default",
+        )
+        for i, output in enumerate(outputs):
+            output = torch.ops._c10d_functional.wait_tensor(output)
+            assert output.eq(self.rank * i * self.world_size).all()
+
+        # Test Python API and AsyncCollectiveTensor
+        outputs = reduce_scatter_tensor_coalesced(
+            inputs,
+            "sum",
+            [0] * 10,
+            "default",
+        )
+        for i, output in enumerate(outputs):
+            assert not output.completed
+            assert output.eq(self.rank * i * self.world_size).all()
+            assert output.completed
 
 if __name__ == "__main__":
     run_tests()
