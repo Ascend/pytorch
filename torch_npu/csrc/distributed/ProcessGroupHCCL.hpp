@@ -345,6 +345,11 @@ public:
         std::vector<at::Tensor>& inputTensors,
         const c10d::AllgatherOptions& opts = c10d::AllgatherOptions());
 
+    c10::intrusive_ptr<c10d::Work> allgather_into_tensor_coalesced(
+        std::vector<at::Tensor>& outputs,
+        std::vector<at::Tensor>& inputs,
+        const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
+
     c10::intrusive_ptr<c10d::Work> _allgather_base(
         at::Tensor& outputbuffer,
         at::Tensor& inputbuffer,
@@ -358,6 +363,11 @@ public:
     c10::intrusive_ptr<c10d::Work> _reduce_scatter_base(
         at::Tensor& outputTensor,
         at::Tensor& inputTensor,
+        const c10d::ReduceScatterOptions& opts = c10d::ReduceScatterOptions()) override;
+
+    c10::intrusive_ptr<c10d::Work> reduce_scatter_tensor_coalesced(
+        std::vector<at::Tensor>& outputTensors,
+        std::vector<at::Tensor>& inputTensors,
         const c10d::ReduceScatterOptions& opts = c10d::ReduceScatterOptions()) override;
 
     c10::intrusive_ptr<c10d::Work> barrier(
@@ -610,7 +620,13 @@ protected:
     static thread_local uint64_t hcclActiveGroupCounter_;
 
     // Counting for the sequential number of HCCL collective call.
+    // (specfically, how many actual kernels we launched, which differs from)
+    // op_id_ when coalescing is enabled)
     uint64_t seq_{0};
+
+    // Incrementing counter for logical operations (collective or p2p) issued on
+    // the ProcessGroup
+    uint64_t op_id_{0};
 
     std::exception_ptr watchDogException_ = nullptr;
 
@@ -623,8 +639,18 @@ private:
         std::vector<at::Tensor>& output,
         Fn fn,
         c10d::OpType opType);
+    
     template <typename Fn, typename PreProcess, typename PostProcess>
     c10::intrusive_ptr<c10d::Work> collective(
+        std::vector<at::Tensor>& input,
+        std::vector<at::Tensor>& output,
+        Fn fn,
+        PreProcess pre,
+        PostProcess post,
+        c10d::OpType opType);
+
+    template <typename Fn, typename PreProcess, typename PostProcess>
+    c10::intrusive_ptr<c10d::Work> collectiveCoalesced(
         std::vector<at::Tensor>& input,
         std::vector<at::Tensor>& output,
         Fn fn,
