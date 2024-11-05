@@ -174,5 +174,7 @@ aclError AclrtPeekAtLastError(aclrtLastErrLevel flag);
 
 aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize);
 
+aclError AclrtSynchronizeDeviceWithTimeout(void);
+
 } // namespace acl
 } // namespace c10_npu

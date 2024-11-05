@@ -129,6 +129,19 @@ int32_t OptionsManager::GetACLExecTimeout()
     return static_cast<int32_t>(envFlag);
 }
 
+int32_t OptionsManager::GetACLDeviceSyncTimeout()
+{
+    char* env_val = std::getenv("ACL_DEVICE_SYNC_TIMEOUT");
+    int64_t timeout = -1;
+    if (env_val != nullptr) {
+        int64_t envFlag = strtol(env_val, nullptr, 10);
+        TORCH_CHECK(envFlag > 0, "ACL_DEVICE_SYNC_TIMEOUT must be positive.", PTA_ERROR(ErrCode::VALUE));
+        // convert s to ms
+        timeout = envFlag * 1000;
+    }
+    return static_cast<int32_t>(timeout);
+}
+
 uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable()
 {
     char* asyncErrorHandling_val = std::getenv("HCCL_ASYNC_ERROR_HANDLING");
