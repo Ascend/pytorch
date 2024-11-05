@@ -156,7 +156,7 @@ aclError SynchronizeUsedDevices()
     std::lock_guard<std::recursive_mutex> lock(mtx);
     for (const auto it : used_devices) {
         NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(it.first));
-        aclError acl_ret = aclrtSynchronizeDevice();
+        aclError acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
         if (acl_ret != ACL_ERROR_NONE) {
             CHECK_AND_THROW_FORCE_STOP(acl_ret);
             CHECK_AND_THROW_UCE_ERROR(acl_ret);
@@ -206,7 +206,7 @@ void set_device(c10::DeviceIndex device)
 
 void device_synchronize()
 {
-    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeDevice());
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtSynchronizeDeviceWithTimeout());
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
     if (C10_UNLIKELY(trigger)) {

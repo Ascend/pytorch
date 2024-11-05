@@ -50,7 +50,7 @@ public:
         if (block->size < alloc_size) {
             if (block->data_ptr != nullptr) {
                 ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block->size);
-                NPU_CHECK_ERROR(aclrtSynchronizeDevice());
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeDeviceWithTimeout());
                 NPU_CHECK_ERROR(aclrtFree(block->data_ptr));
 #ifndef BUILD_LIBTORCH
                 record_mem_size_decrement(block->size);
@@ -115,9 +115,9 @@ public:
     // return to the system allocator
     void empty_cache(bool check_error)
     {
-        auto acl_ret = aclrtSynchronizeDevice();
+        auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
         if (check_error) {
-            NPU_CHECK_ERROR(acl_ret, "aclrtSynchronizeDevice");
+            NPU_CHECK_ERROR(acl_ret, "AclrtSynchronizeDeviceWithTimeout");
         } else {
             NPU_CHECK_WARN(acl_ret);
         }
@@ -183,7 +183,7 @@ private:
 
 static void uncached_delete(void* ptr)
 {
-    NPU_CHECK_WARN(aclrtSynchronizeDevice());
+    NPU_CHECK_WARN(c10_npu::acl::AclrtSynchronizeDeviceWithTimeout());
     NPU_CHECK_ERROR(aclrtFree(ptr));
 }
 
