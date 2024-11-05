@@ -67,6 +67,8 @@ LOAD_FUNCTION(aclrtMemUceRepair)
 LOAD_FUNCTION(aclrtCmoAsync)
 LOAD_FUNCTION(aclrtGetLastError)
 LOAD_FUNCTION(aclrtPeekAtLastError)
+LOAD_FUNCTION(aclrtSynchronizeDevice)
+LOAD_FUNCTION(aclrtSynchronizeDeviceWithTimeout)
 
 aclprofStepInfoPtr init_stepinfo() {
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -644,6 +646,25 @@ aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize
     }
     TORCH_CHECK(func, "Failed to find function ", "StressDetect", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(deviceId, workspace, workspaceSize);
+}
+
+aclError AclrtSynchronizeDeviceWithTimeout(void)
+{
+    typedef aclError (*AclrtSynchronizeDeviceWithTimeout)(int32_t);
+    static AclrtSynchronizeDeviceWithTimeout func = (AclrtSynchronizeDeviceWithTimeout)GET_FUNC(aclrtSynchronizeDeviceWithTimeout);
+    int32_t timeout = c10_npu::option::OptionsManager::GetACLDeviceSyncTimeout();
+    if (func != nullptr) {
+        return func(timeout);
+    } else {
+        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtSynchronizeDeviceWithTimeout");
+        typedef aclError (*AclrtSynchronizeDevice)(void);
+        static AclrtSynchronizeDevice func_backup = nullptr;
+        if (func_backup == nullptr) {
+            func_backup = (AclrtSynchronizeDevice)GET_FUNC(aclrtSynchronizeDevice);
+        }
+        TORCH_CHECK(func_backup, "Failed to find function ", "aclrtSynchronizeDeviceWithTimeout and aclrtSynchronizeDevice", PTA_ERROR(ErrCode::NOT_FOUND));
+        return func_backup();
+    }
 }
 
 } // namespace acl
