@@ -83,10 +83,7 @@ Tensor blocking_ops(Tensor x)
         std::this_thread::sleep_for(std::chrono::seconds(180));
         return 0;
     };
-    at_npu::native::OpCommand cmd;
-    cmd.Name("blocking_ops");
-    cmd.SetCustomHandler(blocking_call);
-    cmd.Run();
+    at_npu::native::OpCommand::RunOpApi("blocking_ops", blocking_call);
 
     return x;
 }
