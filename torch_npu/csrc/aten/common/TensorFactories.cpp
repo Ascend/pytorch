@@ -483,7 +483,7 @@ at::Tensor NPUNativeFunctions::bartlett_window(
     window_length += 1;
   }
   auto window = at::arange(window_length, options).mul_(2. / static_cast<double>(window_length - 1));
-  const int64_t first_half_size = ((unsigned int64_t)(window_length - 1) >> 1) + 1;
+  const int64_t first_half_size = ((uint64_t)(window_length - 1) >> 1) + 1;
   window.narrow(0, first_half_size, window_length - first_half_size).mul_(-1).add_(2);
   return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
