@@ -5,7 +5,6 @@ set -e
 CUR_DIR=$(dirname $(readlink -f $0))
 SUPPORTED_PY_VERSION=(3.8 3.9 3.10 3.11)
 PY_VERSION='3.8'                     # Default supported python version is 3.8
-DEFAULT_SCRIPT_ARGS_NUM=1            # Default supported input parameters
 export DISABLE_RPC_FRAMEWORK=FALSE
 
 # Parse arguments inside script
@@ -16,23 +15,7 @@ function parse_script_args() {
         return 0
     fi
 
-    while true; do
-        if [[ "x${1}" = "x" ]]; then
-            break
-        fi
-        if [[ "$(echo "${1}"|cut -b1-|cut -b-2)" == "--" ]]; then
-            args_num=$((args_num+1))
-        fi
-        if [[ ${args_num} -eq ${DEFAULT_SCRIPT_ARGS_NUM} ]]; then
-            break
-        fi
-        shift
-    done
-
-    # if num of args are not fully parsed, throw an error.
-    if [[ ${args_num} -lt ${DEFAULT_SCRIPT_ARGS_NUM} ]]; then
-        return 1
-    fi
+    args_num=$#
 
     while true; do
         case "${1}" in
@@ -43,10 +26,35 @@ function parse_script_args() {
             ;;
         --disable_torchair)
             export DISABLE_INSTALL_TORCHAIR=TRUE
+            args_num=$((args_num-1))
             shift
             ;;
         --disable_rpc)
             export DISABLE_RPC_FRAMEWORK=TRUE
+            args_num=$((args_num-1))
+            shift
+            ;;
+        --enable_lto)
+            export ENABLE_LTO=TRUE
+            args_num=$((args_num-1))
+            shift
+            ;;
+        --enable_pgo=*)
+            pgo_mode=$(echo "${1}"|cut -d"=" -f2)
+            case $pgo_mode in
+            1)
+                export PGO_MODE=1
+                args_num=$((args_num-1))
+                ;;
+            2)  
+                export PGO_MODE=2
+                args_num=$((args_num-1))
+                ;;
+            *)
+                echo "ERROR Unsupported parameters: ${1}"
+                return 1
+                ;;
+            esac
             shift
             ;;
         -*)
