@@ -1,70 +1,34 @@
-from functools import partial, partialmethod, wraps
-
 import torch
-from torch.optim.sgd import sgd as src_sgd
-from torch.optim.rprop import rprop as src_rprop
-from torch.optim.rmsprop import rmsprop as src_rmsprop
-from torch.optim.radam import radam as src_radam
-from torch.optim.nadam import nadam as src_nadam
-from torch.optim.asgd import asgd as src_asgd
-from torch.optim.adamw import adamw as src_adamw
-from torch.optim.adamax import adamax as src_adamax
-from torch.optim.adam import adam as src_adam
-from torch.optim.adagrad import adagrad as src_adagrad
-from torch.optim.adadelta import adadelta as src_adadelta
-
-from .utils import should_print_warning
+import torch.optim.optimizer as opt
+import torch_npu
+from torch_npu.utils.collect_env import get_cann_version
 
 
-def wrap_optim_warning_func(func, name):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if not wrapper.warned and should_print_warning():
-            print(f"Warning: NPU does not support argument 'foreach' in torch.optim.{name}, "
-                  f"we set foreach=False by default. Please do not set any value for this argument.")
-            wrapper.warned = True
-        return func(*args, **kwargs)
-    wrapper.warned = False
-    return wrapper
+_device_name = None
+_cann_version = get_cann_version()
+_foreach_black_list_for_cann_starts_with = ['8.0.RC1', '8.0.RC2']
+_foreach_black_list_for_cann_all = ['not known', '8.0.T1', '8.0.T2', '8.0.T3', '8.0.T5', '8.0.T6', '8.0.T7',
+    '8.0.T8', '8.0.T10', '8.0.T13', '8.0.T16', '8.0.T37', '8.0.T38', '8.0.T39', '8.0.T50', '8.0.T51', '8.0.T52']
 
 
-def partial_class(cls, *args, **kwargs):
-    cls.__init__ = partialmethod(cls.__init__, *args, **kwargs)
+def patch_supported_devices():
+    global _device_name
+    _device_name = (_device_name if _device_name is not None
+                    else torch_npu.npu.get_device_name(torch_npu.npu.current_device()))
 
+    global _cann_version
+    if _cann_version is None or _cann_version < '8.0' or _cann_version in _foreach_black_list_for_cann_all:
+        return ["cuda", "xpu"]
 
-sgd = wrap_optim_warning_func(partial(src_sgd, foreach=False), 'sgd')
-rprop = wrap_optim_warning_func(partial(src_rprop, foreach=False), 'rprop')
-rmsprop = wrap_optim_warning_func(partial(src_rmsprop, foreach=False), 'rmsprop')
-radam = wrap_optim_warning_func(partial(src_radam, foreach=False), 'radam')
-nadam = wrap_optim_warning_func(partial(src_nadam, foreach=False), 'nadam')
-asgd = wrap_optim_warning_func(partial(src_asgd, foreach=False), 'asgd')
-adamw = wrap_optim_warning_func(partial(src_adamw, foreach=False), 'adamw')
-adamax = wrap_optim_warning_func(partial(src_adamax, foreach=False), 'adamax')
-adam = wrap_optim_warning_func(partial(src_adam, foreach=False), 'adam')
-adagrad = wrap_optim_warning_func(partial(src_adagrad, foreach=False), 'adagrad')
-adadelta = wrap_optim_warning_func(partial(src_adadelta, foreach=False), 'adadelta')
+    for ver in _foreach_black_list_for_cann_starts_with:
+        if _cann_version.startswith(ver):
+            return ["cuda", "xpu"]
+
+    if _device_name > "Ascend910B" and _device_name < "Ascend910PremiumA":
+        return ["cuda", "xpu", torch._C._get_privateuse1_backend_name()]
+
+    return ["cuda", "xpu"]
 
 
 def add_optim_method():
-    partial_class(torch.optim.SGD, foreach=False)
-    torch.optim.sgd = sgd
-    partial_class(torch.optim.Rprop, foreach=False)
-    torch.optim.rprop = rprop
-    partial_class(torch.optim.RMSprop, foreach=False)
-    torch.optim.rmsprop = rmsprop
-    partial_class(torch.optim.RAdam, foreach=False)
-    torch.optim.radam = radam
-    partial_class(torch.optim.NAdam, foreach=False)
-    torch.optim.nadam = nadam
-    partial_class(torch.optim.ASGD, foreach=False)
-    torch.optim.asgd = asgd
-    partial_class(torch.optim.AdamW, foreach=False)
-    torch.optim.adamw = adamw
-    partial_class(torch.optim.Adamax, foreach=False)
-    torch.optim.adamax = adamax
-    partial_class(torch.optim.Adam, foreach=False)
-    torch.optim.adam = adam
-    partial_class(torch.optim.Adagrad, foreach=False)
-    torch.optim.adagrad = adagrad
-    partial_class(torch.optim.Adadelta, foreach=False)
-    torch.optim.adadelta = adadelta
+    opt._get_foreach_kernels_supported_devices = patch_supported_devices
