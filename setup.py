@@ -37,6 +37,12 @@ if os.environ.get("DISABLE_INSTALL_TORCHAIR") is not None:
 DISABLE_RPC = "FALSE"
 if os.environ.get("DISABLE_RPC_FRAMEWORK") is not None:
     DISABLE_RPC = os.environ.get("DISABLE_RPC_FRAMEWORK")
+ENABLE_LTO = "FALSE"
+if os.environ.get("ENABLE_LTO") is not None:
+    ENABLE_LTO = os.environ.get("ENABLE_LTO")
+PGO_MODE = 0
+if os.environ.get("PGO_MODE") is not None:
+    PGO_MODE = int(os.environ.get("PGO_MODE"))
 
 
 def get_submodule_folders():
@@ -333,6 +339,11 @@ class CPPLibBuild(build_clib, object):
         if DISABLE_RPC == 'FALSE':
             if check_tensorpipe_valid(BASE_DIR):
                 cmake_args.append('-DBUILD_TENSORPIPE=on')
+        
+        if ENABLE_LTO == "TRUE":
+            cmake_args.append('-DENABLE_LTO=on')
+        if PGO_MODE != 0:
+            cmake_args.append('-DPGO_MODE=' + str(PGO_MODE))
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
 
