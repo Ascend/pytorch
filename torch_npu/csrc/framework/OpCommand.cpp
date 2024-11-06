@@ -171,6 +171,51 @@ void OpCommand::Run() {
     aclCmds->Pop();
 }
 
+void OpCommand::RunOpApi(const string &op_name, PROC_FUNC func, bool sync)
+{
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+#endif
+    auto stream = c10_npu::getCurrentNPUStream();
+    if (!stream.isSyncLaunchStream() && c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
+        RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
+#ifndef BUILD_LIBTORCH
+        at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
+#endif
+        ExecuteParasOpApi execParams;
+        if (op_name.length() + 1 < sizeof(ExecuteParasOpApi::opType)) {
+            op_name.copy(execParams.opType, op_name.length() + 1);
+        } else {
+            op_name.copy(execParams.opType, sizeof(ExecuteParasOpApi::opType) - 1);
+        }
+        execParams.customHandler = func;
+
+        c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI, sizeof(ExecuteParasOpApi), &execParams);
+        c10_npu::enCurrentNPUStream(&params);
+#ifndef BUILD_LIBTORCH
+        at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
+#endif
+    } else {
+#ifndef BUILD_LIBTORCH
+        if (C10_UNLIKELY(trigger)) {
+            std::cout << "====== acl operator name: " << op_name << std::endl;
+        }
+#endif
+        OpCommandImpl::RunOpApi(op_name, func);
+        if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+        }
+#ifndef BUILD_LIBTORCH
+        if (C10_UNLIKELY(trigger)) {
+            (*trigger)->traceNpuAclExecution(op_name);
+        }
+#endif
+    }
+    if (sync) {
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+    }
+}
+
 OpCommand& OpCommand::Sync(c10::SmallVector<int64_t, N> &index) {
   sync_index = index;
   if (!index.empty()) {

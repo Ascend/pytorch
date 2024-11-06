@@ -122,6 +122,9 @@ public:
   OpCommand& Sync(c10::SmallVector<int64_t, N> &sync_index);
 
   OpCommand& Sync();
+
+    static void RunOpApi(const string &op_name, PROC_FUNC func, bool sync = false);
+
 private:
   OpCommand& AddTensorInput(at::Tensor &tensor,
                           at::ScalarType forceScaleType = at::ScalarType::Undefined,

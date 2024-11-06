@@ -19,6 +19,7 @@ namespace native {
 
 typedef union {
     ExecuteParas exeParas;
+    ExecuteParasOpApi exeParasOpApi;
     c10_npu::queue::CopyParas copyParas;
     c10_npu::queue::EventParas eventParas;
 } TaskParas;
@@ -305,6 +306,8 @@ public:
 
     void Run(bool sync, c10::SmallVector<int64_t, N> &sync_index, c10::SmallVector<at::Tensor, N> &outputTensor);
 
+    static void RunOpApi(const string &op_name, PROC_FUNC func);
+
     void releaseSource(bool no_blocking = true)
     {
         if (no_blocking) {
@@ -369,6 +372,8 @@ private:
         c10::SmallVector<int64_t, N> &sync_index,
         c10::SmallVector<at::Tensor, N> &outputTensor
     );
+
+    static aclError InnerRunOpApi(const string &op_name, PROC_FUNC func);
 
 private:
     string opName;

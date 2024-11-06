@@ -43,6 +43,17 @@ namespace at_npu
       this->constParams = other.constParams;
     }
 
+    void ExecuteParasOpApi::Release()
+    {
+        customHandler = nullptr;
+    }
+
+    void ExecuteParasOpApi::Copy(ExecuteParasOpApi &other)
+    {
+        strncpy(this->opType, other.opType, sizeof(ExecuteParasOpApi::opType) - 1);
+        this->customHandler = other.customHandler;
+    }
+
     NPUStatus DestroyAclParams(ACL_PARAMS& params)
     {
       if (params.input_num != 0) {
