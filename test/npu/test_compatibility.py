@@ -50,7 +50,7 @@ def set_failure_list(api_str, value, signature, failure_list):
     failure_list.append(f"    - now it is {signature}.")
 
 
-def is_not_compatibility_for_c_api(base_signature: str, file: str):
+def is_not_compatibility_for_cpp_api(base_signature: str, file: str):
     content = []
     with open(file, mode="r") as fp:
         subs = ""
@@ -244,10 +244,12 @@ class TestPublicApiCompatibility(TestCase):
             allow_dict.update(update_allow_dict_torchair)
 
         # load torch_npu_schema.json
-        fp = open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)), "torch_npu_schema.json"))
-        base_schema_ = json.load(fp)
-        fp.close()
-        base_schema = {key: val for key, val in base_schema_.items() if not key.startswith("torch_c_func:")}
+        base_schema = {}
+        with open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)), "torch_npu_schema.json")) as fp:
+            base_schema0 = json.load(fp)
+            for key, value in base_schema0.items():
+                if not key.startswith("torch_c_func:") and not key.startswith("torch_npu_public_env:"):
+                    base_schema[key] = value
 
         content = {}
 
@@ -327,12 +329,11 @@ class TestPublicApiCompatibility(TestCase):
         # empty lists are considered false in python
         self.assertTrue(not failure_list, msg)
 
-    def test_torch_c_api_compatibility(self):
+    def test_torch_cpp_api_compatibility(self):
         torch_npu_path = os.path.abspath(os.path.dirname(torch_npu.__file__))
 
-        fp = open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)), "torch_npu_schema.json"))
-        base_schema = json.load(fp)
-        fp.close()
+        with open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)), "torch_npu_schema.json")) as fp:
+            base_schema = json.load(fp)
 
         failure_list = []
         special_type = ["char *"]
@@ -357,7 +358,7 @@ class TestPublicApiCompatibility(TestCase):
                     base_sign = out_type + func + input_params
                 file0 = value["file"]
                 file1 = os.path.join(torch_npu_path, "include", file0)
-                if is_not_compatibility_for_c_api(base_sign, file1):
+                if is_not_compatibility_for_cpp_api(base_sign, file1):
                     failure_list.append(f"# {key}:")
                     failure_list.append(f"  - the signature '{base_sign}' has been changed in the file '{file0}'")
 
@@ -366,6 +367,34 @@ class TestPublicApiCompatibility(TestCase):
         msg += "\n\nFull list:\n"
         msg += "\n".join(map(str, failure_list))
 
+        self.assertTrue(not failure_list, msg)
+
+    def test_public_environments(self):
+        torch_npu_path = os.path.abspath(os.path.dirname(torch_npu.__file__))
+
+        with open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)), "torch_npu_schema.json")) as fp:
+            base_schema = json.load(fp)
+        failure_list = []
+
+        file = "torch_npu/csrc/core/npu/register/OptionsManager.h"
+        path = os.path.join(torch_npu_path, "include", file)
+
+        with open(path, mode='r') as fp:
+            context = fp.read()
+
+        for key, value in base_schema.items():
+            if key.startswith("torch_npu_public_env"):
+                base_mode = value["mode"]
+                if base_mode not in context:
+                    key = key.replace("torch_npu_public_env: ", "")
+                    failure_list.append(f"# {key}:")
+                    failure_list.append(f"  - the mode of the environment variable {key} has been changed.")
+
+        msg = "All the environment variable's mode below do not meet the compatibility guidelines. "
+        msg += "If the change timeline has been reached, you can modify the torch_npu_schema.json to make it OK."
+        msg += "\n\nFull list:\n"
+        msg += "\n".join(map(str, failure_list))
+        # empty lists are considered false in python
         self.assertTrue(not failure_list, msg)
 
 
