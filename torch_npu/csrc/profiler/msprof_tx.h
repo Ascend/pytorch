@@ -31,10 +31,7 @@ void Mark(const char *message)
         (void)profMark(msg_ptr->c_str(), stream);
         return 0;
     };
-    at_npu::native::OpCommand cmd;
-    cmd.Name("mstx_mark_op");
-    cmd.SetCustomHandler(mark_call);
-    cmd.Run();
+    at_npu::native::OpCommand::RunOpApi("mstx_mark_op", mark_call);
 }
 
 } // profiler
