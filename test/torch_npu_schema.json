@@ -2975,6 +2975,30 @@
   "torch_npu.npu_yolo_boxes_encode": {
     "signature": "(self, gt_bboxes, weight)"
   },
+  "torch_npu_public_env: INF_NAN_MODE_ENABLE": {
+    "mode": "std::unordered_map<int32_t, std::string> infNanMode = {{0, \"max\"}, {1, \"inf_nan\"}}"
+  },
+  "torch_npu_public_env: COMBINED_ENABLE": {
+    "mode": "std::unordered_map<int32_t, std::string> combinedEnableMode = {{0, \"close\"}, {1, \"open\"}}"
+  },
+  "torch_npu_public_env: ASCEND_LAUNCH_BLOCKING": {
+    "mode": "std::unordered_map<int32_t, std::string> launchBlockingMode = {{0, \"disable\"}, {1, \"enable\"}}"
+  },
+  "torch_npu_public_env: HCCL_ASYNC_ERROR_HANDLING": {
+    "mode": "std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {{0, \"close\"}, {1, \"open\"}}"
+  },
+  "torch_npu_public_env: HCCL_DESYNC_DEBUG": {
+    "mode": "std::unordered_map<int32_t, std::string> desyncDebugMode = {{0, \"close\"}, {1, \"open\"}}"
+  },
+  "torch_npu_public_env: ASCEND_GLOBAL_LOG_LEVEL": {
+    "mode": "std::unordered_map<int32_t, std::string> logLevelMode = {{0, \"debug\"}, {1, \"info\"}, {2, \"warning\"}, {3, \"error\"}, {4, \"null\"}}"
+  },
+  "torch_npu_public_env: PYTORCH_NO_NPU_MEMORY_CACHING": {
+    "mode": "std::unordered_map<int32_t, std::string> memoryCacheMode = {{0, \"open\"}, {1, \"close\"}}"
+  },
+  "torch_npu_public_env: TASK_QUEUE_ENABLE": {
+    "mode": "std::unordered_map<int32_t, std::string> taskQueueEnableMode = {{0, \"close\"}, {1, \"level 1\"}, {2, \"level 2\"}}"
+  },
   "func: npu_change_data_ptr": {
     "signature": "(Tensor dst, Tensor src, int index) -> int"
   },
