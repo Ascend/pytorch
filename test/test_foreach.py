@@ -961,7 +961,7 @@ class TestForeach(TestCase):
                 if key in sample.kwargs:
                     del sample.kwargs[key]
             # note: `_foreach_pow.Scalar` and `_foreach_pow.ScalarList` don't depend on `result`
-            # see: https://github.com/pytorch/pytorch/blob/5403c7770cd9cdc05f6c216d593ea8e8ae328ff3/tools/autograd/derivatives.yaml#L3048-L3049  # noqa: B950
+            # see: pytorch/blob/5403c7770cd9cdc05f6c216d593ea8e8ae328ff3/tools/autograd/derivatives.yaml#L3048-L3049  # noqa: B950
             if op.name == "_foreach_pow":
                 if (
                     (isinstance(sample.args[0], list) and isinstance(sample.args[0][0], Number))

@@ -1391,7 +1391,6 @@ class TestNamedTensor(TestCase):
             (create('N:2,None:3'), (create('2,3') > 0).rename('N', 'C'), 3.14),
             maybe_raises_regex="not the same as the computed output names")
 
-
     def test_using_seen_interned_string_doesnt_bump_refcount(self):
         def see_name():
             seen_name = 'N'
@@ -1406,7 +1405,7 @@ class TestNamedTensor(TestCase):
         new_refcnt = sys.getrefcount(seen_name)
         self.assertEqual(new_refcnt, old_refcnt)
 
-    # This test is failing on Python 3.12: https://github.com/pytorch/pytorch/issues/119464
+    # This test is failing on Python 3.12: pytorch/issues/119464
     @unittest.skipIf(sys.version_info >= (3, 12), "Failing on python 3.12+")
     def test_using_unseen_interned_string_bumps_refcount_permanently(self):
         # Please don't use this as a name in a different test.
@@ -1418,7 +1417,7 @@ class TestNamedTensor(TestCase):
         new_refcnt = sys.getrefcount(unseen_name)
         self.assertEqual(new_refcnt, old_refcnt + 1)
 
-    # This test is failing on Python 3.12: https://github.com/pytorch/pytorch/issues/119464
+    # This test is failing on Python 3.12: pytorch/issues/119464
     @unittest.skipIf(sys.version_info >= (3, 12), "Failing on python 3.12+")
     def test_using_unseen_uninterned_string_refcounts(self):
         # Please don't use this as a name in a different test.
