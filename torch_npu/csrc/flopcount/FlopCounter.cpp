@@ -245,14 +245,10 @@ int64_t sdpa_flop_count(const std::vector<int64_t> query_shape, const std::vecto
     int64_t total_flops = 0;
 
     // q: [b, h, s_q, d_q] @ k: [b, h, d_q, s_k] -> scores: [b, h, s_q, s_k]
-    const at::Tensor shape1 = at::empty({b * h, s_q, d_q}, at::kFloat);
-    const at::Tensor shape2 = at::empty({b * h, d_q, s_k}, at::kFloat);
-    total_flops += FlopCounter::bmm_flop(shape1, shape2);
+    total_flops += b * h * s_q * d_q * s_k * 2;
 
     // scores: [b, h, s_q, s_k] @ v: [b, h, s_k, d_v] -> out: [b, h, s_q, d_v]
-    const at::Tensor shape3 = at::empty({b * h, s_q, s_k}, at::kFloat);
-    const at::Tensor shape4 = at::empty({b * h, s_k, d_v}, at::kFloat);
-    total_flops += FlopCounter::bmm_flop(shape3, shape4);
+    total_flops += b * h * s_q * s_k * d_v * 2;
 
     return total_flops;
 }
@@ -294,24 +290,16 @@ int64_t sdpa_backward_flop_count(const std::vector<int64_t> query_shape, const s
     int64_t total_flops = 0;
 
     // gradOut: [b, h, s_q, d_v] @ v: [b, h, d_v, s_k] -> gradScores: [b, h, s_q, s_k]
-    const at::Tensor shape1 = at::empty({b * h, s_q, d_v}, at::kFloat);
-    const at::Tensor shape2 = at::empty({b * h, d_v, s_k}, at::kFloat);
-    total_flops += FlopCounter::bmm_flop(shape1, shape2);
+    total_flops += b * h * s_q * d_v * s_k * 2;
 
     // scores: [b, h, s_k, s_q] @ gradOut: [b, h, s_q, d_v] -> gradV: [b, h, s_k, d_v]
-    const at::Tensor shape3 = at::empty({b * h, s_k, s_q}, at::kFloat);
-    const at::Tensor shape4 = at::empty({b * h, s_q, d_v}, at::kFloat);
-    total_flops += FlopCounter::bmm_flop(shape3, shape4);
+    total_flops += b * h * s_k * s_q * d_v * 2;
 
     // gradScores: [b, h, s_q, s_k] @ k: [b, h, s_k, d_q] -> gradQ: [b, h, s_q, d_q]
-    const at::Tensor shape5 = at::empty({b * h, s_q, s_k}, at::kFloat);
-    const at::Tensor shape6 = at::empty({b * h, s_k, d_q}, at::kFloat);
-    total_flops += FlopCounter::bmm_flop(shape5, shape6);
+    total_flops += b * h * s_q * s_k * d_q * 2;
 
     // q: [b, h, d_q, s_q] @ gradScores: [b, h, s_q, s_k] -> gradK: [b, h, d_q, s_k]
-    const at::Tensor shape7 = at::empty({b * h, d_q, s_q}, at::kFloat);
-    const at::Tensor shape8 = at::empty({b * h, s_q, s_k}, at::kFloat);
-    total_flops += FlopCounter::bmm_flop(shape7, shape8);
+    total_flops += b * h * d_q * s_q * s_k * 2;
 
     return total_flops;
 }
