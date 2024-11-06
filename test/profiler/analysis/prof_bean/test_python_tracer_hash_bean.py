@@ -18,7 +18,7 @@ class TestPythonTracerHashBean(TestCase):
     def generate_sample(cls):
         key = random.randint(0, 2**64 - 1)
         value = ''.join(random.choice(string.ascii_letters) for _ in range(10))
-        value_idx = 2
+        value_idx = 1
         sample = {
             Constant.CONSTANT_BYTES: struct.pack("<Q", key),
             "key": key, value_idx: value, "value": value
