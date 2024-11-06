@@ -119,11 +119,11 @@ class TestForeach(TestCase):
         )
 
     # note(crcrpar): Make sure 0-size tensors are appropriately ignored by `multi_tensor_apply`
-    # which is originally reported in https://github.com/pytorch/pytorch/issues/94865.
+    # which is originally reported in pytorch/issues/94865.
     # rel:
-    #   - https://github.com/pytorch/pytorch/pull/94655
-    #   - https://github.com/pytorch/pytorch/issues/100701
-    #   - https://github.com/pytorch/pytorch/pull/100811
+    #   - pytorch/pull/94655
+    #   - pytorch/issues/100701
+    #   - pytorch/pull/100811
     @onlyPRIVATEUSE1
     @ops(
         foreach_unary_op_db + foreach_binary_op_db + foreach_pointwise_op_db + foreach_reduce_op_db + foreach_other_op_db,
@@ -361,7 +361,7 @@ class TestForeach(TestCase):
             torch._foreach_add_(tensors, 1)
             self.assertEqual(res, tensors)
 
-            # Regression test for https://github.com/pytorch/pytorch/issues/113156
+            # Regression test for pytorch/issues/113156
             torch._foreach_mul_(tensors, 1)
 
     @ops(
@@ -763,7 +763,7 @@ class TestForeach(TestCase):
                 if key in sample.kwargs:
                     del sample.kwargs[key]
             # note: `_foreach_pow.Scalar` and `_foreach_pow.ScalarList` don't depend on `result`
-            # see: https://github.com/pytorch/pytorch/blob/5403c777/tools/autograd/derivatives.yaml#L3048-L3049
+            # see: pytorch/blob/5403c777/tools/autograd/derivatives.yaml#L3048-L3049
             if op.name == "_foreach_pow":
                 if (
                     (isinstance(sample.args[0], list) and isinstance(sample.args[0][0], Number))
