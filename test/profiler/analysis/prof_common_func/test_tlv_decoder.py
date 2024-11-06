@@ -13,7 +13,7 @@ class TestTLVDecoder(TestCase):
             "pid": 555, "name": "test", "struct_size": 40
         }
         self.encoded_data = struct.pack(
-            "<HIq4QHI4c", 1, 50, 111, 2, 333, 444, 555, 2, 4, b"t", b"e", b"s", b"t"
+            "<HIq4QHI4c", 1, 50, 111, 2, 333, 444, 555, 1, 4, b"t", b"e", b"s", b"t"
         )
 
     def test_decode(self):
