@@ -131,6 +131,24 @@ void OpCommandImpl::Run(
 #endif
 }
 
+void OpCommandImpl::RunOpApi(const string &op_name, PROC_FUNC func)
+{
+    ASCEND_LOGD("Op %s Run.", op_name.c_str());
+    RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
+#ifndef BUILD_LIBTORCH
+    if (PyGILState_Check()) {
+        // we need to release GIL for NPU to compile op.
+        Py_BEGIN_ALLOW_THREADS;
+        ACL_REQUIRE_OK_OP(InnerRunOpApi(op_name, func), op_name.c_str());
+        Py_END_ALLOW_THREADS;
+    } else {
+        ACL_REQUIRE_OK_OP(InnerRunOpApi(op_name, func), op_name.c_str());
+    }
+#else
+    ACL_REQUIRE_OK_OP(InnerRunOpApi(op_name, func), op_name.c_str());
+#endif
+}
+
 aclError OpCommandImpl::InnerRun(
     const string &name,
     AclExecParam &params,
@@ -224,6 +242,33 @@ aclError OpCommandImpl::InnerRun(
             }
         }
         ++index;
+    } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
+    if (reset_flag) {
+        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
+    }
+    return ret;
+}
+
+aclError OpCommandImpl::InnerRunOpApi(const string &op_name, PROC_FUNC func)
+{
+    aclError ret;
+    auto stream = c10_npu::getCurrentNPUStream();
+    if (stream.getRepoStopFlag()) {
+        ASCEND_LOGE("getRepoStopFlag in InnerRun, throw FORCE STOP.");
+        throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
+    }
+    // open the deterministicAlgorithms config
+    SetDeterministic();
+    bool reset_flag = false;
+    if (ForceJitCompileList::GetInstance().Inlist(op_name) && env::CheckJitDisable()) {
+        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
+        reset_flag = true;
+    }
+    int index = 0;
+    do {
+        ret = func();
+        OPS_CHECK_ERROR(ret, op_name.c_str());
+        index++;
     } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
     if (reset_flag) {
         NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
@@ -345,6 +390,34 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     return ret;
 }
 
+int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
+{
+    auto cur_paras = static_cast<ExecuteParasOpApi *>(in->paramVal);
+    ASCEND_LOGD("Op %s Run.", cur_paras->opType);
+    aclError ret;
+    // open the deterministicAlgorithms config
+    SetDeterministic();
+
+    ASCEND_LOGD("Exec Op %s with custom handle", cur_paras->opType);
+    try {
+        ret = cur_paras->customHandler();
+    } catch (std::exception &e) {
+        if (std::string(e.what()).find(DEVICE_TASK_ABORT) != std::string::npos ||
+            std::string(e.what()).find(DEVICE_MEM_ERROR) != std::string::npos) {
+            ret =c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
+        } else {
+            ret = ACL_ERROR_INVALID_PARAM;
+            LOG(ERROR) << e.what();
+        }
+        ASCEND_LOGE("Custom hand error:%s", e.what());
+    }
+    if (ret != ACL_ERROR_NONE && ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
+        ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
+        C10_NPU_SHOW_ERR_MSG();
+    }
+    return ret;
+}
+
 int MemcopyAsyncFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<c10_npu::queue::CopyParas *>(in->paramVal);
@@ -431,7 +504,10 @@ void CopyFunc(void *dst, void *src)
     auto dstPtr = static_cast<c10_npu::queue::QueueParas *>(dst);
     auto srcPtr = static_cast<c10_npu::queue::QueueParas *>(src);
     dstPtr->paramVal = static_cast<uint8_t *>(dst) + sizeof(c10_npu::queue::QueueParas);
-    if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
+    if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI) {
+        // string or smallvector of struct is used, deconstructor need be called before memset
+        (static_cast<ExecuteParasOpApi *>(dstPtr->paramVal))->~ExecuteParasOpApi();
+    } else if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         // string or smallvector of struct is used, deconstructor need be called before memset
         (static_cast<ExecuteParas *>(dstPtr->paramVal))->~ExecuteParas();
     }
@@ -440,7 +516,10 @@ void CopyFunc(void *dst, void *src)
     dstPtr->paramType = srcPtr->paramType;
     dstPtr->paramLen = srcPtr->paramLen;
     dstPtr->correlation_id = srcPtr->correlation_id;
-    if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
+    if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI) {
+        new (dstPtr->paramVal) ExecuteParasOpApi();
+        (static_cast<ExecuteParasOpApi *>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParasOpApi *>(srcPtr->paramVal)));
+    } else if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         new (dstPtr->paramVal) ExecuteParas();
         (static_cast<ExecuteParas *>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas *>(srcPtr->paramVal)));
     } else if ((srcPtr->paramType == c10_npu::queue::ASYNC_MEMCPY)) {
@@ -477,6 +556,7 @@ using Func = int (*)(c10_npu::queue::QueueParas *, aclrtStream);
 using AsyncFuncMap = std::map<c10_npu::queue::QueueParamType, Func>;
 AsyncFuncMap funcMap = {
     {c10_npu::queue::COMPILE_AND_EXECUTE, ExecFunc},
+    {c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI, ExecFuncOpApi},
     {c10_npu::queue::ASYNC_MEMCPY, MemcopyAsyncFunc},
     {c10_npu::queue::RECORD_EVENT, RecordEventFunc},
     {c10_npu::queue::WAIT_EVENT, WaitEventFunc},
@@ -508,7 +588,10 @@ void ReleaseParamFunc(void *ptr)
 {
     auto queueParam = static_cast<c10_npu::queue::QueueParas *>(ptr);
     auto type = queueParam->paramType;
-    if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
+    if (type == c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI) {
+        auto cur_paras = static_cast<ExecuteParasOpApi *>(queueParam->paramVal);
+        cur_paras->Release();
+    } else if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
         auto cur_paras = static_cast<ExecuteParas *>(queueParam->paramVal);
         cur_paras->Release();
     }

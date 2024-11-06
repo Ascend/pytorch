@@ -29,10 +29,7 @@ void MstxMgr::mark(const char* message, const aclrtStream stream)
         (void)at_npu::native::MstxMarkA(msg_ptr->c_str(), stream);
         return 0;
     };
-    at_npu::native::OpCommand cmd;
-    cmd.Name("mstx_mark_op");
-    cmd.SetCustomHandler(mark_call);
-    cmd.Run();
+    at_npu::native::OpCommand::RunOpApi("mstx_mark_op", mark_call);
 }
 
 int MstxMgr::rangeStart(const char* message, const aclrtStream stream)
@@ -53,10 +50,7 @@ int MstxMgr::rangeStart(const char* message, const aclrtStream stream)
         int taskId = at_npu::native::MstxRangeStartA(msg_ptr->c_str(), stream, id);
         return 0;
     };
-    at_npu::native::OpCommand cmd;
-    cmd.Name("mstx_range_start_op");
-    cmd.SetCustomHandler(range_start_call);
-    cmd.Run();
+    at_npu::native::OpCommand::RunOpApi("mstx_range_start_op", range_start_call);
     return id;
 }
 
@@ -82,10 +76,7 @@ void MstxMgr::rangeEnd(int ptRangeId)
         at_npu::native::MstxRangeEnd(ptRangeId);
         return 0;
     };
-    at_npu::native::OpCommand cmd;
-    cmd.Name("mstx_range_end_op");
-    cmd.SetCustomHandler(range_end_call);
-    cmd.Run();
+    at_npu::native::OpCommand::RunOpApi("mstx_range_end_op", range_end_call);
 }
 
 int MstxMgr::getRangeId()
