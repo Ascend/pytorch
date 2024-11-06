@@ -22,6 +22,15 @@ enum SilenceCheckMode {
     REPORT_ALARM = 2,
     PRINT_ALL_LOG = 3,
 };
+static std::unordered_map<int32_t, std::string> infNanMode = {{0, "max"}, {1, "inf_nan"}};
+static std::unordered_map<int32_t, std::string> combinedEnableMode = {{0, "close"}, {1, "open"}};
+static std::unordered_map<int32_t, std::string> launchBlockingMode = {{0, "disable"}, {1, "enable"}};
+static std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {{0, "close"}, {1, "open"}};
+static std::unordered_map<int32_t, std::string> desyncDebugMode = {{0, "close"}, {1, "open"}};
+static std::unordered_map<int32_t, std::string> logLevelMode = {{0, "debug"}, {1, "info"}, {2, "warning"}, {3, "error"}, {4, "null"}};
+static std::unordered_map<int32_t, std::string> memoryCacheMode = {{0, "open"}, {1, "close"}};
+static std::unordered_map<int32_t, std::string> taskQueueEnableMode = {{0, "close"}, {1, "level 1"}, {2, "level 2"}};
+
 class OptionsManager {
 public:
     static bool IsResumeModeEnable();
