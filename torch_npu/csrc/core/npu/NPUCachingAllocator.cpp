@@ -372,7 +372,7 @@ struct ExpandableSegment {
     }
     for (auto i : c10::irange(begin, end)) {
       NPU_CHECK_ERROR(c10_npu::acl::AclrtMapMem(
-          ptr_ + i * segment_size_,
+          (char*)ptr_ + i * segment_size_,
           segment_size_,
           0,
           handles_.at(i).value(),
@@ -431,7 +431,7 @@ struct ExpandableSegment {
     for (auto i : c10::irange(begin, end)) {
       aclrtDrvMemHandle h = handles_.at(i).value();
       handles_.at(i) = c10::nullopt;
-      NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem(ptr_ + segment_size_ * i));
+      NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem((char*)ptr_ + segment_size_ * i));
       NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
     }
       ASCEND_LOGD("NPUCachingAllocator unmap: segment_size=%zu", segment_size_);

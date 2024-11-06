@@ -60,6 +60,7 @@ namespace at_npu
         bool isPadded = false;
       } FormatInfo;
       static std::unordered_map<aclFormat, FormatInfo> info;
+      static std::unordered_map<aclFormat, FormatInfo> InitializeInfo();
     }; // class FormatHelper
 
     // template impl
