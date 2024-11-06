@@ -33,12 +33,13 @@ struct EventParas {
 };
 
 enum QueueParamType {
-  COMPILE_AND_EXECUTE = 1,
-  ASYNC_MEMCPY = 2,
-  RECORD_EVENT = 3,
-  WAIT_EVENT = 4,
-  LAZY_DESTROY_EVENT = 5,
-  RESET_EVENT = 6,
+    COMPILE_AND_EXECUTE = 1,
+    ASYNC_MEMCPY = 2,
+    RECORD_EVENT = 3,
+    WAIT_EVENT = 4,
+    LAZY_DESTROY_EVENT = 5,
+    RESET_EVENT = 6,
+    COMPILE_AND_EXECUTE_OPAPI = 7,
 };
 
 struct QueueParas {

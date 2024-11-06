@@ -283,6 +283,13 @@ void NpuUtils::DqueueCompileExcute(c10_npu::queue::QueueParas * para, uint32_t c
   auto param_val = static_cast<at_npu::native::ExecuteParas *>(para->paramVal);
   torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), para->correlation_id);
 }
+
+void NpuUtils::DqueueCompileExcuteOpApi(c10_npu::queue::QueueParas * para, uint32_t category)
+{
+    auto param_val = static_cast<at_npu::native::ExecuteParasOpApi *>(para->paramVal);
+    torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), para->correlation_id);
+}
+
 void NpuUtils::DqueueEvent(c10_npu::queue::QueueParas * para, uint32_t category) {
     torch_npu::profiler::reportMarkDataToNpuProfiler(category,
         c10_npu::queue::EventParas::EVENT_PARAS_MAP[para->paramType], para->correlation_id);
@@ -300,6 +307,7 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, si
     if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
         static const std::map<int64_t, DqueueCall> DEQUEUE_CALL_FUNC_MAP{
             {c10_npu::queue::COMPILE_AND_EXECUTE, &DqueueCompileExcute},
+            {c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI, &DqueueCompileExcuteOpApi},
             {c10_npu::queue::ASYNC_MEMCPY, &DqueueAnyncMemcpy},
             {c10_npu::queue::RECORD_EVENT, &DqueueEvent},
             {c10_npu::queue::WAIT_EVENT, &DqueueEvent},

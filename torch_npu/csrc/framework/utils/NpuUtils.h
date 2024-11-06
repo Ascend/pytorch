@@ -55,6 +55,7 @@ public:
 private:
     using DqueueCall = void (*)(c10_npu::queue::QueueParas *para, uint32_t category);
     static void DqueueCompileExcute(c10_npu::queue::QueueParas *para, uint32_t category);
+    static void DqueueCompileExcuteOpApi(c10_npu::queue::QueueParas *para, uint32_t category);
     static void DqueueAnyncMemcpy(c10_npu::queue::QueueParas *para, uint32_t category);
     static void DqueueEvent(c10_npu::queue::QueueParas *para, uint32_t category);
     static void DqueueCompileExcuteBs(c10_npu::queue::QueueParas *para, uint32_t category);

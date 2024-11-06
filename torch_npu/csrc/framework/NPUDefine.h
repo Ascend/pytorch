@@ -89,6 +89,16 @@ namespace at_npu
             PROCESS_FUNC customHandler;
         };
 
+        struct ExecuteParasOpApi
+        {
+            using PROCESS_FUNC = std::function<int()>;
+            char opType[100]{};
+            PROCESS_FUNC customHandler;
+            ExecuteParasOpApi() = default;
+            void Release();
+            void Copy(ExecuteParasOpApi &other);
+        };
+
         NPUStatus DestroyAclParams(ACL_PARAMS &params);
         void DestroyConstParams(CONST_PARAMS &params);
     } // namespace native
