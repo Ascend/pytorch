@@ -383,19 +383,23 @@ bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const {
 // check if HCCL task is finished
 bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const
 {
-  try {
-    for (const auto i : c10::irange(devices_.size())) {
-        // Checking the work's corresponding ASCEND events' status
-        if (!(*hcclEndEvents_)[i].query()) {
-            return false;
-        }
+    // If in the Finalize, should not query event
+    if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+        return false;
     }
-  } catch (const std::exception& e) {
+    try {
+        for (const auto i : c10::irange(devices_.size())) {
+            // Checking the work's corresponding ASCEND events' status
+            if (!(*hcclEndEvents_)[i].query()) {
+                return false;
+            }
+        }
+    } catch (const std::exception& e) {
         if (std::string(e.what()).find("driver shutting down") == std::string::npos) {
             throw std::runtime_error(DIST_ERROR(ErrCode::INTERNAL));
         }
         LOG(INFO) << "[Rank " << rank_ << "] Event query failed with exception: " << e.what();
-  }
+    }
 
   return true;
 }
