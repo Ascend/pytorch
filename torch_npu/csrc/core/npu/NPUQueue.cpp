@@ -1,6 +1,7 @@
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
@@ -15,7 +16,6 @@
 #include <sstream>
 #include <sys/time.h>
 #include <sys/eventfd.h>
-#include <sys/prctl.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
 
 namespace c10_npu {
@@ -597,9 +597,8 @@ bool Repository::CheckInit() const {
 }
 
 void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
-    if (prctl(PR_SET_NAME, ("ACL_thread")) != 0) {
-        ASCEND_LOGE("set thread name failed!");
-    }
+    SetThreadName(ThreadType::aclThread);
+    SetThreadAffinity(device_id);
 
     aclError ret = c10_npu::SetDevice(device_id);
     if (ret != 0) {
@@ -629,7 +628,7 @@ void Repository::InitRepo(c10::DeviceIndex device_id) {
   std::thread cur_consumer(StartConsume, this, device_id);
   consumer = std::move(cur_consumer);
 
-  releaseQueue.InitReleaseQueue();
+  releaseQueue.InitReleaseQueue(device_id);
 }
 
 std::string Repository::GetPara()
@@ -707,17 +706,17 @@ void ReleaseQueue::PopFromReleaseQueue() {
 }
 
 void StartRelease(ReleaseQueue* releaseQue) {
-  if (prctl(PR_SET_NAME, ("Release_thread")) != 0) {
-    ASCEND_LOGE("set thread name failed!");
-  }
+    SetThreadName(ThreadType::releaseThread);
+    SetThreadAffinity(releaseQue->GetDeviceID());
 
-  while (releaseQue->GetStatus() != RepoStatus::CAN_EXIT) {
-    releaseQue->PopFromReleaseQueue();
-  }
-  return;
+    while (releaseQue->GetStatus() != RepoStatus::CAN_EXIT) {
+        releaseQue->PopFromReleaseQueue();
+    }
+    return;
 }
 
-void ReleaseQueue::InitReleaseQueue() {
+void ReleaseQueue::InitReleaseQueue(c10::DeviceIndex device_id)
+{
   if (datas == nullptr) {
     datas = releaseManager().Init(kReleaseQueueCapacity);
   }
@@ -726,6 +725,7 @@ void ReleaseQueue::InitReleaseQueue() {
   SetStatus(INIT);
   std::thread cur_releaser(StartRelease, this);
   releaser = std::move(cur_releaser);
+  device_idx = device_id;
 }
 
 ReleaseQueue::~ReleaseQueue() {
@@ -749,6 +749,12 @@ RepoStatus ReleaseQueue::GetStatus() const {
 
   return repo_status.load();
 }
+
+c10::DeviceIndex ReleaseQueue::GetDeviceID() const
+{
+    return device_idx;
+}
+
 
 void ReleaseQueue::SetStatus(RepoStatus desired) {
   if (initialized == false) {

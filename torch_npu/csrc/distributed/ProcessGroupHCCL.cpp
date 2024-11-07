@@ -26,6 +26,7 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
@@ -782,6 +783,8 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
 void ProcessGroupHCCL::hcclCommWatchdog()
 {
     try {
+        c10_npu::SetThreadName(c10_npu::ThreadType::hcclCommWatchdogThread);
+
         VLOG(2) << "[Rank " << rank_ << "] HCCL watchdog thread started!";
         workCleanupLoop();
         VLOG(2) << "[Rank " << rank_
@@ -864,7 +867,9 @@ void ProcessGroupHCCL::workCleanupLoop()
             auto& work = *it;
             try {
                 if (needSetDevice) {
-                    NPU_CHECK_ERROR(c10_npu::SetDevice(static_cast<int>(work.devices_[0].index())));
+                    c10::DeviceIndex device = static_cast<int>(work.devices_[0].index());
+                    c10_npu::SetThreadAffinity(device);
+                    NPU_CHECK_ERROR(c10_npu::SetDevice(device));
                     needSetDevice = false;
                 }
             } catch (const std::exception& e) {

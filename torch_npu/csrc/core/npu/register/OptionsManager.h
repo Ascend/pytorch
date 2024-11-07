@@ -61,7 +61,7 @@ public:
     static std::pair<double, double> GetSilenceSigmaThresh();
     static uint32_t GetP2PBufferSize();
     static uint32_t GetTaskQueueEnable();
-    static uint32_t GetCpuAffinityConf();
+    static char* GetCpuAffinityConf();
     static bool CheckForceUncached();
     static std::string GetOomSnapshotDumpPath();
     static void IsOomSnapshotEnable();
