@@ -7,6 +7,7 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -52,6 +53,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     NPU_CHECK_ERROR(c10_npu::SetDevice(d.index()));
   }
   void uncheckedSetDevice(c10::Device d) const noexcept override {
+    SetBackwardThreadName(d.index());
     NPU_CHECK_WARN(c10_npu::SetDevice(d.index()));
   }
   c10::Stream getStream(c10::Device d) const noexcept override {

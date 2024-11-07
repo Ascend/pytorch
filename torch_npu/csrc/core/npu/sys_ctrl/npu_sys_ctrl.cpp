@@ -13,6 +13,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -267,7 +268,11 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
         const auto& in = iter.second;
         call_(in);
     }
+    
     lazy_fn_.clear();
+
+    SetThreadAffinity(device_id_);
+    RecordMainThreadTid();
 
     init_flag_ = true;
     ASCEND_LOGD("Npu sys ctrl initialize successfully.");
