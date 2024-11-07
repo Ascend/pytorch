@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
+#include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -1166,6 +1167,27 @@ PyObject* THNPModule_npu_support_silentClientV2(PyObject* self, PyObject* noargs
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npu_set_thread_affinity(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    int device_index;
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device_index));
+    c10::DeviceIndex device = static_cast<c10::DeviceIndex>(device_index);
+    c10_npu::SetThreadAffinity(device, c10_npu::ThreadType::mainThread);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_reset_thread_affinity(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    int device_index;
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device_index));
+    c10::DeviceIndex device = static_cast<c10::DeviceIndex>(device_index);
+    c10_npu::SetThreadAffinity(device, c10_npu::ThreadType::unknownThread);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
 
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
@@ -1215,6 +1237,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_set_call_state", (PyCFunction)THNPModule_npu_set_call_state, METH_O, nullptr},
     {"_npu_set_module_train_state", (PyCFunction)THNPModule_npu_set_module_train_state, METH_O, nullptr},
     {"_npu_support_silentClientV2", (PyCFunction)THNPModule_npu_support_silentClientV2, METH_NOARGS, nullptr},
+    {"_npu_set_threads_affinity", (PyCFunction)THNPModule_npu_set_thread_affinity, METH_NOARGS, nullptr},
+    {"_npu_reset_threads_affinity", (PyCFunction)THNPModule_npu_reset_thread_affinity, METH_NOARGS, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()
