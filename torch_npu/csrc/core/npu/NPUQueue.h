@@ -38,8 +38,9 @@ public:
   ~ReleaseQueue();
   void PushToReleaseQueue(void* cur_paras);
   void PopFromReleaseQueue();
-  void InitReleaseQueue();
+  void InitReleaseQueue(c10::DeviceIndex device_id);
   RepoStatus GetStatus() const;
+  c10::DeviceIndex GetDeviceID() const;
 
 private:
   inline bool IsEmptyQueue() {return read_idx.idx == write_idx.idx;};
@@ -52,6 +53,7 @@ private:
 private:
   void* datas = nullptr;
   std::thread releaser;
+  c10::DeviceIndex device_idx;
 
 private:
   sring_idx read_idx;
