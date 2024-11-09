@@ -11,3 +11,6 @@
 [submodule "third_party/Tensorpipe"]
 	path = third_party/Tensorpipe
 	url = https://gitee.com/ascend/Tensorpipe.git
+[submodule "third_party/fmt"]
+	path = third_party/fmt
+	url = https://gitee.com/other_repository/fmt.git
