@@ -883,8 +883,10 @@ def npu_prefetch_meta(self, dependency, max_size, offset=0):
 
 @impl(m, "npu_swiglu")
 def npu_swiglu_meta(x, dim=-1):
-    output_size = list(x.size())
-    output_size[dim] = int(output_size[dim] / 2)
+    output_size = []
+    for i in range(x.dim()):
+        output_size.append(x.size(i))
+    output_size[dim] = math.floor(output_size[dim] / 2)
     return torch.empty(output_size, dtype=x.dtype, device=x.device)
 
 
