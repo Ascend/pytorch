@@ -33,7 +33,6 @@ import pytorch_test_common
 import torch
 from torch import export as torch_export
 from torch.onnx import _constants, verification
-from torch.onnx._internal.fx import diagnostics
 from torch.testing._internal import common_utils
 from torch.testing._internal.opinfo import core as opinfo_core
 from torch.types import Number
@@ -247,6 +246,7 @@ class _TestONNXRuntime(pytorch_test_common.ExportTestCase):
                 This is needed because Torch Dynamo uses the dynamic_shapes flag as a hint, only.
 
         """
+        from torch._dynamo import config as _dynamo_config
 
         # avoid mutable data structure
         if input_kwargs is None:
@@ -273,7 +273,8 @@ class _TestONNXRuntime(pytorch_test_common.ExportTestCase):
             self.model_type
             == pytorch_test_common.TorchModelType.TORCH_EXPORT_EXPORTEDPROGRAM
         ):
-            ref_model = torch.export.export(ref_model, args=ref_input_args)
+            with _dynamo_config.patch(do_not_emit_runtime_asserts=True):
+                ref_model = torch.export.export(ref_model, args=ref_input_args)
             if (
                 self.dynamic_shapes
             ):
@@ -284,35 +285,18 @@ class _TestONNXRuntime(pytorch_test_common.ExportTestCase):
         # Feed args and kwargs into exporter.
         # Note that exporter should flatten kwargs into positional args the exported model;
         # since ONNX doesn't represent kwargs.
-        export_error: Optional[torch.onnx.OnnxExporterError] = None
-        try:
+        with _dynamo_config.patch(do_not_emit_runtime_asserts=True):
             onnx_program = torch.onnx.dynamo_export(
                 ref_model,
                 *ref_input_args,
                 **ref_input_kwargs,
                 export_options=torch.onnx.ExportOptions(
-                    op_level_debug=self.op_level_debug,
                     dynamic_shapes=self.dynamic_shapes,
                     diagnostic_options=torch.onnx.DiagnosticOptions(
                         verbosity_level=logging.DEBUG
                     ),
                 ),
             )
-        except torch.onnx.OnnxExporterError as e:
-            export_error = e
-            onnx_program = e.onnx_program
-
-        if diagnostics.is_onnx_diagnostics_log_artifact_enabled():
-            onnx_program.save_diagnostics(
-                f"test_report_{self._testMethodName}"
-                f"_op_level_debug_{self.op_level_debug}"
-                f"_dynamic_axes_{self.dynamic_shapes}"
-                f"_model_type_{self.model_type}"
-                ".sarif"
-            )
-
-        if export_error is not None:
-            raise export_error
 
         if not skip_dynamic_shapes_check:
             assert_dynamic_shapes(onnx_program, self.dynamic_shapes)
