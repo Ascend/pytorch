@@ -614,18 +614,9 @@ class CachingAllocatorConfig {
   CachingAllocatorConfig()
       : m_max_split_size(std::numeric_limits<size_t>::max()),
         m_garbage_collection_threshold(0),
-        m_expandable_segments(true),
+        m_expandable_segments(false),
         m_base_addr_aligned_size(kAlignRoundLarge)
         {
-            void* ptr = nullptr;
-            auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
-            if (status == ACL_ERROR_NONE) {
-                NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
-            } else {
-                TORCH_NPU_WARN_ONCE("expandable_segments feature is not supportted \
-                    and the possible cause is that driver and firmware packages do not match.");
-                m_expandable_segments = false;
-            }
         }
 
   void lexArgs(const char* env, std::vector<std::string>& config);
