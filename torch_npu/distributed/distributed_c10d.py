@@ -6,8 +6,8 @@ import torch.distributed as dist
 import torch.distributed.distributed_c10d as dist_c10d
 from torch.distributed.distributed_c10d import _get_default_group, get_group_rank, _check_single_tensor, \
     _check_tensor_list, _coalescing_manager, _ensure_all_tensors_same_dtype, get_rank, _rank_not_in_group, \
-    _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size,\
-    _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend,\
+    _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size, \
+    _get_object_coll_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend,\
     get_backend, GatherOptions, _update_default_pg, _world, _unregister_all_process_groups, _pg_map,\
     ProcessGroup, default_pg_timeout, _unregister_process_group
 
@@ -144,7 +144,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None):
     # Ensure object_gather_list is specified appropriately.
     my_rank = get_rank()
     _validate_output_list_for_rank(my_rank, dst, object_gather_list)
-    current_device = _get_pg_default_device(group)
+    current_device = _get_object_coll_device(group)
     input_tensor, local_size = _object_to_tensor(obj, current_device, group)
 
     # Gather all local sizes. This is so that we can find the max size, and index
@@ -207,8 +207,6 @@ def _clear_pg_cache_in_torch(group: ProcessGroup):
     if len(tags_list) > 0:
         for tag in tags_list:
             del _world.tags_to_pg[tag]
-    if _world.pg_default_device.get(group) is not None:
-        del _world.pg_default_device[group]
     _unregister_process_group(group.group_name)
 
 
@@ -259,7 +257,6 @@ def _reinit_process_group(group: ProcessGroup):
     _world.pg_group_ranks[dist_c10d.GroupMember.WORLD] = {i: i for i in range(dist_c10d.GroupMember.WORLD.size())}
     dist_c10d._backend = _world.pg_map[dist_c10d.GroupMember.WORLD][0]
     dist_c10d._default_pg_init_method = init_method
-    _world.pg_default_device[default_pg] = torch.device('npu')
     group = default_pg
 
 
@@ -284,6 +281,5 @@ def _destructor_process_group():
     _world.pg_to_tag.clear()
     _world.tags_to_pg.clear()
     _world.pg_coalesce_state.clear()
-    _world.pg_default_device.clear()
     _unregister_all_process_groups()
     _world.group_count = 0

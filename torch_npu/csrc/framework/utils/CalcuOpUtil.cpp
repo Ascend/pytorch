@@ -69,6 +69,13 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
   _(at::ScalarType::UInt5, ACL_DT_UNDEFINED)                                   \
   _(at::ScalarType::UInt6, ACL_DT_UNDEFINED)                                   \
   _(at::ScalarType::UInt7, ACL_DT_UNDEFINED)                                   \
+  _(at::ScalarType::Int1, ACL_DT_UNDEFINED)                                    \
+  _(at::ScalarType::Int2, ACL_DT_UNDEFINED)                                    \
+  _(at::ScalarType::Int3, ACL_DT_UNDEFINED)                                    \
+  _(at::ScalarType::Int4, ACL_DT_UNDEFINED)                                    \
+  _(at::ScalarType::Int5, ACL_DT_UNDEFINED)                                    \
+  _(at::ScalarType::Int6, ACL_DT_UNDEFINED)                                    \
+  _(at::ScalarType::Int7, ACL_DT_UNDEFINED)                                    \
   _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)                               \
   _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
 
@@ -184,14 +191,14 @@ NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
     size_t dst_size,
     const std::pair<at::Tensor, int64_t> &src,
     size_t src_size, aclrtMemcpyKind kind) {
-  void *dst_ptr = reinterpret_cast<uint8_t *>(dst.first.data_ptr()) +
-                  dst.second * dst.first.itemsize();
-  void *src_ptr = reinterpret_cast<uint8_t *>(src.first.data_ptr()) +
-                  src.second * src.first.itemsize();
-  NPU_CHECK_ERROR(c10_npu::queue::LaunchAsyncCopyTask(
-      dst_ptr, dst_size, const_cast<void *>(src_ptr), src_size, kind));
+    void *dst_ptr = reinterpret_cast<uint8_t *>(dst.first.data_ptr()) +
+                    dst.second * dst.first.itemsize();
+    void *src_ptr = reinterpret_cast<uint8_t *>(src.first.data_ptr()) +
+                    src.second * src.first.itemsize();
+    NPU_CHECK_ERROR(c10_npu::queue::LaunchAsyncCopyTask(
+        dst_ptr, dst_size, const_cast<void *>(src_ptr), src_size, kind));
 
-  return "SUCCESS";
+    return NPU_STATUS_SUCCESS;
 }
 
 aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(

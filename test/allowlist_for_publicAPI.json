@@ -295,6 +295,7 @@
   ],
   "torch.fx": [
     "ProxyableClassMeta",
+    "CodeGen",
     "Tracer",
     "symbolic_trace",
     "wrap"

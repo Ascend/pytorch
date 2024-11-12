@@ -15,7 +15,7 @@ TORCH_DECLARE_REGISTRY(PrivateUse1HooksRegistry, NPUHooksInterface, NPUHooksArgs
 
 C10_DEFINE_REGISTRY(PrivateUse1HooksRegistry, NPUHooksInterface, NPUHooksArgs)
 
-void NPUHooksInterface::initPrivateUse1() const
+void NPUHooksInterface::init() const
 {
 #ifndef BUILD_LIBTORCH
     torch_npu::utils::npu_lazy_init();

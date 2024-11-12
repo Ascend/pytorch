@@ -1,13 +1,12 @@
 import ctypes
 
-from torch._streambase import _StreamBase, _EventBase
 import torch_npu
 import torch_npu._C
 
 __all__ = ["Stream", "Event", "SyncLaunchStream"]
 
 
-class Stream(torch_npu._C._NPUStreamBase, _StreamBase):
+class Stream(torch_npu._C._NPUStreamBase):
     r"""Wrapper around a NPU stream.
 
     A NPU stream is a linear sequence of execution that belongs to a specific
@@ -111,7 +110,7 @@ class Stream(torch_npu._C._NPUStreamBase, _StreamBase):
                 .format(self.device, self.npu_stream))
 
 
-class Event(torch_npu._C._NPUEventBase, _EventBase):
+class Event(torch_npu._C._NPUEventBase):
     r"""Wrapper around a NPU event.
 
     NPU events are synchronization markers that can be used to monitor the
@@ -192,7 +191,7 @@ class Event(torch_npu._C._NPUEventBase, _EventBase):
             return '<torch_npu.npu.Event uninitialized>'
 
 
-class SyncLaunchStream(torch_npu._C._NPUStreamBase, _StreamBase):
+class SyncLaunchStream(torch_npu._C._NPUStreamBase):
     r"""Wrapper around a SyncLaunch NPU stream.
 
     A Sync Launch NPU stream is a NPU stream which doesn't enable taskqueue(implemented by is_sync_launch).

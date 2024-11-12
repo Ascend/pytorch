@@ -12,7 +12,7 @@ struct TORCH_API NPUHooksInterface : public at::PrivateUse1HooksInterface {
         static auto device_gen = at_npu::detail::getDefaultNPUGenerator(device_index);
         return device_gen;
     }
-    void initPrivateUse1() const override;
+    void init() const override;
     bool hasPrimaryContext(c10::DeviceIndex device_index) const override;
     void resizePrivateUse1Bytes(const c10::Storage &storage, size_t new_bytes) const;
 };

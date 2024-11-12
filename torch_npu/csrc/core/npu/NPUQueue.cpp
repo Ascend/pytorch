@@ -207,7 +207,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
 {
   if (initialized == false) {
     ASCEND_LOGE("Task queue is not initialized, shouldn't call MakeSureQueueEmpty(). !!");
-    return FAILED;
+    return NPU_STATUS_FAILED;
   }
     ASCEND_LOGI("Begin to makesure taskqueue empty.");
   // While waiting for ACL thread to launch tasks,
@@ -243,7 +243,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
             PyEval_RestoreThread(gilState);
           }
 #endif
-          return INTERNEL_ERROR;
+          return NPU_STATUS_INTERNAL_ERROR;
         }
       }
       need_empty = false;
@@ -295,7 +295,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
   }
 #endif
 
-  return SUCCESS;
+  return NPU_STATUS_SUCCESS;
 }
 
 bool Repository::WriteQueue(void* cur_paras) {
