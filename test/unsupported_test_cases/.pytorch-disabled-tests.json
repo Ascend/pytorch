@@ -30739,5 +30739,7 @@
   "test_asgd (__main__.OptimizerTests)": ["", [""]],
   "test_anadam (__main__.OptimizerTests)": ["", [""]],
   "test_rmsprop (__main__.OptimizerTests)": ["", [""]],
-  "test_rprop (__main__.OptimizerTests)": ["", [""]]
+  "test_rprop (__main__.OptimizerTests)": ["", [""]],
+  "test_mnist_exported_with_no_warnings (__main__.TestFxToOnnx)": ["", [""]],
+  "test_save_with_without_initializer_dont_include_initializer_no_fake_mode_no_exported_program (__main__.TestFxToOnnx)": ["", [""]]
 }
