@@ -22,6 +22,7 @@ from torch.onnx import (
 )
 
 from torch.testing._internal import common_utils
+from torch.testing._internal.common_utils import skipIfNNModuleInlined
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import onnx_test_common
@@ -110,15 +111,6 @@ class TestDynamoWithONNXRuntime(onnx_test_common._TestONNXRuntime):
                     export_options=ExportOptions(
                         dynamic_shapes=True,
                     )
-                ),
-            ),
-            (
-                OrtBackendOptions(
-                    use_aot_autograd=False,
-                    export_options=ExportOptions(
-                        op_level_debug=True,
-                        dynamic_shapes=True,
-                    ),
                 ),
             ),
         ]
@@ -399,6 +391,7 @@ class TestDynamoWithONNXRuntime(onnx_test_common._TestONNXRuntime):
             (True, False),
         ]
     )
+    @skipIfNNModuleInlined("pytorch/pytorch/issues/129456")
     def test_llama_attention_with_local_backend(
         self, test_local_backend: bool, test_backward: bool
     ):
@@ -493,6 +486,7 @@ class TestDynamoWithONNXRuntime(onnx_test_common._TestONNXRuntime):
             (True, True),
         ]
     )
+    @skipIfNNModuleInlined("pytorch/pytorch/issues/129456")
     def test_llama_decoder_with_local_backend(
         self, test_local_backend: bool, test_backward: bool
     ):
@@ -583,6 +577,7 @@ class TestDynamoWithONNXRuntime(onnx_test_common._TestONNXRuntime):
             (True, True),
         ]
     )
+    @skipIfNNModuleInlined("pytorch/pytorch/issues/129456")
     def test_llama_with_local_backend(
         self, test_local_backend: bool, test_backward: bool
     ):
@@ -783,8 +778,9 @@ class TestDynamoWithONNXRuntime(onnx_test_common._TestONNXRuntime):
         result = compiled_model()
 
         self.assertEqual(len(recorded_models), 1)
+        # NOTE: Constant folded by optimizer
         self.assertTrue(
-            "aten_add" in [node.op_type for node in recorded_models[0].graph.node]
+            "Constant" in [node.op_type for node in recorded_models[0].graph.node]
         )
 
         self.assertEqual(result, torch.ones(4, 8))
@@ -823,11 +819,11 @@ class TestDynamoWithONNXRuntime(onnx_test_common._TestONNXRuntime):
 
         # Part 2: Change the ONNX model seen by the transform so that
         # ORT receives a different model.
+        # NOTE: the function is optimized away by optimizer
         def replace_relu_with_sigmoid(onnx_model):
-            for function in onnx_model.functions:
-                for node in function.node:
-                    if node.op_type == "Relu":
-                        node.op_type = "Sigmoid"
+            for node in onnx_model.graph.node:
+                if node.op_type == "Relu":
+                    node.op_type = "Sigmoid"
 
         def another_example_model(x: torch.Tensor):
             y = torch.relu(x)
