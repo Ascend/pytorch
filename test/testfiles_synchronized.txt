@@ -105,7 +105,6 @@ test/onnx/test_onnx_opset.py
 test/onnx/test_onnxscript_no_runtime.py
 test/onnx/test_onnxscript_runtime.py
 test/onnx/test_op_consistency.py
-test/onnx/test_operators.py
 test/onnx/verify.py
 test/onnx/test_fx_to_onnx_decomp_skip.py
 test/onnx/test_pytorch_onnx_onnxruntime.py
