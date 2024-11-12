@@ -2,12 +2,14 @@
 	path = third_party/op-plugin
 	url = https://gitee.com/ascend/op-plugin.git
 	ignore = dirty
+	branch = 6.0.0
 [submodule "third_party/googletest"]
 	path = third_party/googletest
 	url = https://gitee.com/mirrors/googletest.git
 [submodule "third_party/torchair/torchair"]
 	path = third_party/torchair/torchair
 	url = https://gitee.com/ascend/torchair.git
+	branch = 6.0.0
 [submodule "third_party/Tensorpipe"]
 	path = third_party/Tensorpipe
 	url = https://gitee.com/ascend/Tensorpipe.git
