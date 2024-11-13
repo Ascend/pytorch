@@ -156,7 +156,7 @@ std::string get_func_error_msg(void* error_paras)
     auto queueParam = static_cast<c10_npu::queue::QueueParas *>(error_paras);
     auto type = queueParam->paramType;
     std::stringstream result;
-    if (type == c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI) {
+    if (type == c10_npu::queue::EXECUTE_OPAPI) {
         auto cur_paras = static_cast<at_npu::native::ExecuteParasOpApi *>(queueParam->paramVal);
         auto op_name = cur_paras->opType;
         result << "the current working operator name is " << op_name;
@@ -411,7 +411,7 @@ void Repository::Enqueue(void* cur_paras) {
   if (GetStatus() != RUN && GetStatus() != INIT) {
     auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
     auto type = queueParam->paramType;
-    if (type == c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI) {
+    if (type == c10_npu::queue::EXECUTE_OPAPI) {
         auto cur_paras = static_cast<at_npu::native::ExecuteParasOpApi *>(queueParam->paramVal);
         auto op_name = cur_paras->opType;
         ASCEND_LOGE("Task queue thread is exit, cann't call Enqueue() for executing and op name is=%s.", op_name);
