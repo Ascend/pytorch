@@ -899,6 +899,19 @@ class _NPUMoeFinalizeRoutingOP(torch.autograd.Function):
                  scales, expanded_src_to_dst_row, export_for_source_row)
 
 
+class _NPUGeluOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, x, approximate="none"):
+        return torch.ops.npu.npu_gelu(x, approximate=approximate)
+
+    @staticmethod
+    def symbolic(g,
+                 x: torch.Tensor,
+                 approximate: str = "none"):
+        return g.op("npu::NPUGeluV2", x, approximate_s=approximate)
+
+
 def _wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
     return _NPUMaskedSoftmaxWithRelPosBiasOP.apply(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode)
 
@@ -1198,6 +1211,10 @@ def _wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2, bias
                                           scales, expanded_src_to_dst_row, export_for_source_row)
 
 
+def _wrapper_npu_gelu(x, approximate="none"):
+    return _NPUGeluOP.apply(x, approximate)
+
+
 def _add_onnx_ops():
     torch_npu.npu_one_hot = _wrapper_npu_one_hot
     torch_npu.npu_slice = _wrapper_npu_slice
@@ -1260,3 +1277,4 @@ def _add_onnx_ops():
     torch_npu.npu_quantize = _wrapper_npu_quantize
     torch_npu.npu_group_quant = _wrapper_npu_group_quant
     torch_npu.npu_moe_finalize_routing = _wrapper_npu_moe_finalize_routing
+    torch_npu.npu_gelu = _wrapper_npu_gelu
