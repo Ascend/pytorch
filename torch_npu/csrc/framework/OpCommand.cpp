@@ -190,7 +190,7 @@ void OpCommand::RunOpApi(const string &op_name, PROC_FUNC func, bool sync)
         }
         execParams.customHandler = func;
 
-        c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI, sizeof(ExecuteParasOpApi), &execParams);
+        c10_npu::queue::QueueParas params(c10_npu::queue::EXECUTE_OPAPI, sizeof(ExecuteParasOpApi), &execParams);
         c10_npu::enCurrentNPUStream(&params);
 #ifndef BUILD_LIBTORCH
         at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);

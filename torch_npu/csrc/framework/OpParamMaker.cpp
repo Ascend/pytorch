@@ -504,7 +504,7 @@ void CopyFunc(void *dst, void *src)
     auto dstPtr = static_cast<c10_npu::queue::QueueParas *>(dst);
     auto srcPtr = static_cast<c10_npu::queue::QueueParas *>(src);
     dstPtr->paramVal = static_cast<uint8_t *>(dst) + sizeof(c10_npu::queue::QueueParas);
-    if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI) {
+    if (dstPtr->paramType == c10_npu::queue::EXECUTE_OPAPI) {
         // string or smallvector of struct is used, deconstructor need be called before memset
         (static_cast<ExecuteParasOpApi *>(dstPtr->paramVal))->~ExecuteParasOpApi();
     } else if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
@@ -516,7 +516,7 @@ void CopyFunc(void *dst, void *src)
     dstPtr->paramType = srcPtr->paramType;
     dstPtr->paramLen = srcPtr->paramLen;
     dstPtr->correlation_id = srcPtr->correlation_id;
-    if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI) {
+    if (dstPtr->paramType == c10_npu::queue::EXECUTE_OPAPI) {
         new (dstPtr->paramVal) ExecuteParasOpApi();
         (static_cast<ExecuteParasOpApi *>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParasOpApi *>(srcPtr->paramVal)));
     } else if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
@@ -556,7 +556,7 @@ using Func = int (*)(c10_npu::queue::QueueParas *, aclrtStream);
 using AsyncFuncMap = std::map<c10_npu::queue::QueueParamType, Func>;
 AsyncFuncMap funcMap = {
     {c10_npu::queue::COMPILE_AND_EXECUTE, ExecFunc},
-    {c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI, ExecFuncOpApi},
+    {c10_npu::queue::EXECUTE_OPAPI, ExecFuncOpApi},
     {c10_npu::queue::ASYNC_MEMCPY, MemcopyAsyncFunc},
     {c10_npu::queue::RECORD_EVENT, RecordEventFunc},
     {c10_npu::queue::WAIT_EVENT, WaitEventFunc},
@@ -588,7 +588,7 @@ void ReleaseParamFunc(void *ptr)
 {
     auto queueParam = static_cast<c10_npu::queue::QueueParas *>(ptr);
     auto type = queueParam->paramType;
-    if (type == c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI) {
+    if (type == c10_npu::queue::EXECUTE_OPAPI) {
         auto cur_paras = static_cast<ExecuteParasOpApi *>(queueParam->paramVal);
         cur_paras->Release();
     } else if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
