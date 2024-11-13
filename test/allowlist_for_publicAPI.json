@@ -2806,7 +2806,9 @@
     "npu_transpose",
     "npu_trans_quant_param",
     "npu_stride_add",
-    "npu_sort_v2"
+    "npu_sort_v2",
+    "npu_gelu",
+    "npu_gelu_backward"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
