@@ -968,6 +968,19 @@ class _NPUMoeGatingTopKSoftmaxOP(torch.autograd.Function):
                  finished: Optional[Tensor],
                  k: int = 1):
         return g.op("npu::NPUMoeGatingTopKSoftmax", x, finished, k_i=k, outputs=3)
+    
+
+class _NPUGeluOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, x, approximate="none"):
+        return torch.ops.npu.npu_gelu(x, approximate=approximate)
+
+    @staticmethod
+    def symbolic(g,
+                 x: torch.Tensor,
+                 approximate: str = "none"):
+        return g.op("npu::NPUGeluV2", x, approximate_s=approximate)
 
 
 def _wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0,
@@ -1306,6 +1319,10 @@ def _wrapper_npu_moe_gating_top_k_softmax(x, finished, k):
     return _NPUMoeGatingTopKSoftmaxOP.apply(x, finished, k)
 
 
+def _wrapper_npu_gelu(x, approximate="none"):
+    return _NPUGeluOP.apply(x, approximate)
+
+
 def _add_onnx_ops():
     torch_npu.npu_one_hot = _wrapper_npu_one_hot
     torch_npu.npu_slice = _wrapper_npu_slice
@@ -1371,3 +1388,4 @@ def _add_onnx_ops():
     torch_npu.npu_moe_compute_expert_tokens = _wrapper_npu_moe_compute_expert_tokens
     torch_npu.npu_moe_finalize_routing = _wrapper_npu_moe_finalize_routing
     torch_npu.npu_moe_gating_top_k_softmax = _wrapper_npu_moe_gating_top_k_softmax
+    torch_npu.npu_gelu = _wrapper_npu_gelu

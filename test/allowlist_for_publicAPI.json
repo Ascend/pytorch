@@ -2526,7 +2526,9 @@
     "npu_dynamic_quant_asymmetric",
     "npu_scatter_nd_update_",
     "npu_stride_copy",
-    "npu_swiglu"
+    "npu_swiglu",
+    "npu_gelu",
+    "npu_gelu_backward"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
