@@ -1503,5 +1503,29 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    @SupportedDevices(['Ascend910B'])
+    def test_wrapper_npu_gelu(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+
+            def forward(self, x):
+                y = torch_npu.npu_gelu(x, approximate="none")
+                return y
+
+        def export_onnx(onnx_model_name):
+            x = torch.tensor([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]], 
+                             dtype=torch.float16).npu()
+            model = Model().to("npu")
+            model(x)
+            self.onnx_export(model, (x), onnx_model_name,
+                             input_names=["x"],
+                             output_names=["y"])
+
+        onnx_model_name = "model_npu_gelu_none.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+
 if __name__ == '__main__':
     run_tests()
