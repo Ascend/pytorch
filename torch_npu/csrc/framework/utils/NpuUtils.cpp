@@ -307,7 +307,7 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, si
     if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
         static const std::map<int64_t, DqueueCall> DEQUEUE_CALL_FUNC_MAP{
             {c10_npu::queue::COMPILE_AND_EXECUTE, &DqueueCompileExcute},
-            {c10_npu::queue::COMPILE_AND_EXECUTE_OPAPI, &DqueueCompileExcuteOpApi},
+            {c10_npu::queue::EXECUTE_OPAPI, &DqueueCompileExcuteOpApi},
             {c10_npu::queue::ASYNC_MEMCPY, &DqueueAnyncMemcpy},
             {c10_npu::queue::RECORD_EVENT, &DqueueEvent},
             {c10_npu::queue::WAIT_EVENT, &DqueueEvent},
