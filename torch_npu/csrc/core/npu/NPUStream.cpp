@@ -49,7 +49,7 @@ struct LeakyStreamInternals {
 };
 // Global stream state and constants
 static c10::DeviceIndex num_npus = -1;
-static constexpr int kStreamsPerPoolBits = 3;
+static constexpr int kStreamsPerPoolBits = 5;
 static constexpr int kStreamsPerPool = 1 << kStreamsPerPoolBits;
 static constexpr int kSyncLaunchStreamsPerPool = 4;
 // Default streams init flags
