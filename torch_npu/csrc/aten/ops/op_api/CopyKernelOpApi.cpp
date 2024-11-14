@@ -194,6 +194,9 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
     } else {
         if (torch_npu::utils::is_npu(src)) {
             copy_d2h_baseformat_opapi(self, src, non_blocking);
+            if (src.is_complex() && src.is_conj()) {
+                self.conj_physical_();
+            }
         }
     }
     at::namedinference::propagate_names_if_nonempty(self, maybe_outnames);
