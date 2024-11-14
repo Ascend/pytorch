@@ -69,6 +69,15 @@ bool uce_error_flag = false;
 bool force_stop_error_flag = false;
 char* nslb_path = c10_npu::option::OptionsManager::GetNslbPath();
 
+inline c10_npu::NPUStream getNPUStreamByCurrentType(c10::DeviceIndex device = -1)
+{
+    auto current_Stream = c10_npu::getCurrentNPUStream(device);
+    if (!current_Stream.isSyncLaunchStream()) {
+        return c10_npu::getNPUStreamFromPool(device);
+    }
+    return c10_npu::getNPUStreamFromSyncLaunchPool(device);
+}
+
 int64_t physical_numel(const at::Tensor& self)
 {
     auto sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
@@ -1159,7 +1168,7 @@ void ProcessGroupHCCL::createHCCLComm(
         }
 
         // Creates the HCCL streams
-        streamVal.push_back(c10_npu::getNPUStreamFromPool(devices[i].index()));
+        streamVal.push_back(getNPUStreamByCurrentType(devices[i].index()));
     }
 }
 
@@ -1204,7 +1213,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             }
             hcclComms[i] = comm;
             // Creates the HCCL streams
-            streamVal.push_back(c10_npu::getNPUStreamFromPool(devices[i].index()));
+            streamVal.push_back(getNPUStreamByCurrentType(devices[i].index()));
         }
         auto endTime = std::chrono::steady_clock::now();
         auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -1258,7 +1267,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
         }
         hcclComms[i] = subComm;
         // Creates the HCCL streams
-        streamVal.push_back(c10_npu::getNPUStreamFromPool(devices[i].index()));
+        streamVal.push_back(getNPUStreamByCurrentType(devices[i].index()));
     }
     auto subEndTime = std::chrono::steady_clock::now();
     auto subTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(subEndTime - subStartTime);
