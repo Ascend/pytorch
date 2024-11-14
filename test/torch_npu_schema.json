@@ -3758,9 +3758,6 @@
   "func: _index_put_impl_": {
     "signature": "(Tensor(a!) self, Tensor?[] indices, Tensor values, bool accumulate=False, bool unsafe=False) -> Tensor(a!)"
   },
-  "func: _linalg_svd": {
-    "signature": "(Tensor A, bool full_matrices=False, bool compute_uv=True, *, str? driver=None) -> (Tensor U, Tensor S, Tensor Vh)"
-  },
   "func: _linalg_svd.U": {
     "signature": "(Tensor A, bool full_matrices=False, bool compute_uv=True, *, str? driver=None, Tensor(a!) U, Tensor(b!) S, Tensor(c!) Vh) -> (Tensor(a!) U, Tensor(b!) S, Tensor(c!) Vh)"
   },
@@ -4895,29 +4892,11 @@
   "func: linalg_solve_triangular.out": {
     "signature": "(Tensor self, Tensor B, *, bool upper, bool left=True, bool unitriangular=False, Tensor(a!) out) -> Tensor(a!)"
   },
-  "func: linalg_svdvals": {
-    "signature": "(Tensor A, *, str? driver=None) -> Tensor"
-  },
-  "func: linalg_svdvals.out": {
-    "signature": "(Tensor A, *, str? driver=None, Tensor(a!) out) -> Tensor(a!)"
-  },
   "func: linspace": {
     "signature": "(Scalar start, Scalar end, int steps, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor"
   },
   "func: linspace.out": {
     "signature": "(Scalar start, Scalar end, int steps, *, Tensor(a!) out) -> Tensor(a!)"
-  },
-  "func: linalg_norm": {
-    "signature": "(Tensor self, Scalar? ord=None, int[1]? dim=None, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor"
-  },
-  "func: linalg_norm.ord_str": {
-    "signature": "(Tensor self, str ord, int[1]? dim=None, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor"
-  },
-  "func: linalg_norm.out": {
-    "signature": "(Tensor self, Scalar? ord=None, int[1]? dim=None, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)"
-  },
-  "func: linalg_norm.ord_str_out": {
-    "signature": "(Tensor self, str ord, int[1]? dim=None, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)"
   },
   "func: log": {
     "signature": "(Tensor self) -> Tensor"
@@ -5284,9 +5263,6 @@
   },
   "func: nan_to_num.out": {
     "signature": "(Tensor self, float? nan=None, float? posinf=None, float? neginf=None, *, Tensor(a!) out) -> Tensor(a!)"
-  },
-  "func: linalg_vector_norm": {
-    "signature": "(Tensor self, Scalar ord=2, int[1]? dim=None, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor"
   },
   "func: linalg_vector_norm.out": {
     "signature": "(Tensor self, Scalar ord=2, int[1]? dim=None, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)"
@@ -6214,18 +6190,6 @@
   },
   "func: selu_": {
     "signature": "(Tensor(a!) self) -> Tensor(a!)"
-  },
-  "func: linalg_matrix_norm": {
-    "signature": "(Tensor self, Scalar ord, int[] dim=[-2,-1], bool keepdim=False, *, ScalarType? dtype=None) -> Tensor"
-  },
-  "func: linalg_matrix_norm.out": {
-    "signature": "(Tensor self, Scalar ord, int[] dim=[-2,-1], bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)"
-  },
-  "func: linalg_matrix_norm.str_ord": {
-    "signature": "(Tensor self, str ord='fro', int[] dim=[-2,-1], bool keepdim=False, *, ScalarType? dtype=None) -> Tensor"
-  },
-  "func: linalg_matrix_norm.str_ord_out": {
-    "signature": "(Tensor self, str ord='fro', int[] dim=[-2,-1], bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)"
   },
   "func: l1_loss": {
     "signature": "(Tensor self, Tensor target, int reduction=Mean) -> Tensor"
