@@ -113,7 +113,7 @@ std::vector<uint8_t> PythonTracerFuncData::encode()
 {
     std::vector<uint8_t> result;
     for (const auto& item : events) {
-        encodeFixedData<uint64_t>({item.ts_, thread_id, process_id, item.key_}, result);
+        encodeFixedData<uint64_t>({item.ts_, item.tid_, process_id, item.key_}, result);
         encodeFixedData<uint8_t>({item.tag_}, result);
     }
     return result;
