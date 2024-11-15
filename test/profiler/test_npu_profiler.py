@@ -35,7 +35,8 @@ class TrainModel:
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.0001)
 
     def train_one_step(self):
-        inputs = torch.rand(self.input_shape).to(self.device)
+        inputs = torch.rand(self.input_shape, requires_grad=True).to(self.device)
+        inputs.register_hook(lambda grad: print("tersor backward hook"))
         target = torch.rand(self.out_shape).reshape(self.out_shape[0], -1).to(self.device)
         output = self.model(inputs)
         loss = self.criterion(output, target)
@@ -149,7 +150,7 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
-        self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["python_function"]))
+        self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["python_function", "built-in function print"]))
 
     def test_schedule(self):
         worker_name = self.worker_name

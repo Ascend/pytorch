@@ -562,10 +562,11 @@ class EventTree:
         self.events.extend(mem_events)
     
     def fetch_pycall_events(self, fwk_file_parser: FwkFileParser) -> None:
+        torch_tids = fwk_file_parser.get_torch_op_tids()
         trace_hash_data = fwk_file_parser.get_file_data_by_tag(FileTag.PYTHON_TRACER_HASH)
         func_call_data = fwk_file_parser.get_file_data_by_tag(FileTag.PYTHON_TRACER_FUNC)
         python_param_data = fwk_file_parser.get_file_data_by_tag(FileTag.PARAM_TENSOR_INFO)
-        python_trace_parser = PythonTraceParser(trace_hash_data, func_call_data, python_param_data)
+        python_trace_parser = PythonTraceParser(torch_tids, trace_hash_data, func_call_data, python_param_data)
 
         pycall_bean_list = python_trace_parser.get_pycall_data()
         if not pycall_bean_list:

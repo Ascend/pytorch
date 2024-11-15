@@ -1,5 +1,6 @@
+from collections import defaultdict
 from enum import Enum
-from ..prof_common_func._constant import DbConstant, contact_2num
+from ..prof_common_func._constant import contact_2num
 from ..prof_common_func._trace_event_manager import TraceEventManager
 
 __all__ = []
@@ -122,7 +123,8 @@ class ReplayFrame:
 
 class PythonTraceParser:
 
-    def __init__(self, hash_data: list, python_call_data: list, param_data: list = None):
+    def __init__(self, torch_tids: set, hash_data: list, python_call_data: list, param_data: list = None):
+        self._torch_tids = torch_tids
         self._hash_data = hash_data
         self._python_call_data = python_call_data
         self._param_data = param_data
@@ -130,39 +132,51 @@ class PythonTraceParser:
         self._param_map = {}
 
     def get_python_trace_data(self) -> list:
-        self._gen_hash_map()
-        python_trace_event_list = self._replay_stack()
-        if not python_trace_event_list:
+        trace_event_list = self._gen_python_trace_event_data()
+        if not trace_event_list:
             return []
-        trace_data = [None] * len(python_trace_event_list)
-        for i, event in enumerate(python_trace_event_list):
+        trace_data = [None] * len(trace_event_list)
+        for i, event in enumerate(trace_event_list):
             trace_data[i] = TraceEventManager.create_x_event(event, "python_function")
         return trace_data
 
     def get_python_trace_api_data(self) -> list:
-        self._gen_hash_map()
-        python_trace_event_list = self._replay_stack()
-        if not python_trace_event_list:
+        trace_event_list = self._gen_python_trace_event_data()
+        if not trace_event_list:
             return []
-        trace_api_data = [None] * len(python_trace_event_list)
-        for i, event in enumerate(python_trace_event_list):
+        trace_api_data = [None] * len(trace_event_list)
+        for i, event in enumerate(trace_event_list):
             trace_api_data[i] = [event.ts, event.ts + event.dur, contact_2num(event.pid, event.tid), event.name]
         return trace_api_data
 
     def get_pycall_data(self) -> list:
-        self._gen_hash_map()
         self._gen_param_map()
-        return self._replay_stack()
+        return self._gen_python_trace_event_data()
 
-    def _replay_stack(self) -> list:
+    def _group_tarce_data_by_tid(self):
+        trace_data_by_tid = defaultdict(lambda: [])
+        for call_bean in self._python_call_data:
+            if call_bean.tid in self._torch_tids:
+                trace_data_by_tid[call_bean.tid].append(call_bean)
+        return trace_data_by_tid
+
+    def _gen_python_trace_event_data(self):
+        self._gen_hash_map()
+        trace_event_by_tid = self._group_tarce_data_by_tid()
+        trace_event_list = []
+        for thread_trace_event in trace_event_by_tid.values():
+            trace_event_list.extend(self._replay_stack(thread_trace_event))
+        return trace_event_list
+
+    def _replay_stack(self, thread_trace_event) -> list:
         event_idx = 0
         max_call_end_time = 0
         replay_stack = []
         replay_result = []
         module_name_counter = {}
         module_uid_map = {}
-        self._python_call_data.sort(key=lambda x: x.start_ns)
-        for id_counter, call_bean in enumerate(self._python_call_data):
+        thread_trace_event.sort(key=lambda x: x.start_ns)
+        for id_counter, call_bean in enumerate(thread_trace_event):
             name = str(self._hash_map.get(call_bean.key, call_bean.key))
             params = self._param_map.get(call_bean.key)
             frame_parent_id = replay_stack[-1].id if len(replay_stack) > 0 else 0
