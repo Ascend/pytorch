@@ -1,6 +1,7 @@
 #include "torch_npu/csrc/profiler/containers.h"
 #include "torch_npu/csrc/profiler/profiler_python.h"
 
+#include <deque>
 #include <memory>
 #include <unordered_map>
 #include <utility>
@@ -48,9 +49,45 @@ std::string trimPrefix(std::string s)
     return s;
 }
 
+std::vector<PyThreadState*> getInterpreterThreads(PyInterpreterState* interpreter)
+{
+    pybind11::gil_scoped_acquire gil;
+    std::vector<PyThreadState*> threads;
+    if (interpreter != nullptr) {
+        auto* thread_state = PyInterpreterState_ThreadHead(interpreter);
+        while (thread_state != nullptr) {
+            threads.push_back(thread_state);
+            thread_state = PyThreadState_Next(thread_state);
+        }
+    }
+    return threads;
+}
+
+class GilAndRestoreThread {
+public:
+    GilAndRestoreThread() : gil_(), initial_thread_state_{PyThreadState_Get()} {}
+    ~GilAndRestoreThread()
+    {
+        PyThreadState_Swap(initial_thread_state_);
+        if (!Py_IsInitialized()) {
+            gil_.disarm();
+        }
+    }
+
+    PyThreadState* initial_thread_state() const
+    {
+        return initial_thread_state_;
+    }
+
+private:
+    pybind11::gil_scoped_acquire gil_;
+    PyThreadState* initial_thread_state_{nullptr};
+};
+
+struct ThreadLocalResult;
 struct TraceContext {
     PyObject_HEAD
-    PyThreadState* thread_state_;
+    ThreadLocalResult* thread_local_result_;
 };
 
 static PyTypeObject TraceContextType = {
@@ -93,6 +130,35 @@ static PyTypeObject TraceContextType = {
     nullptr,                    /* tp_alloc */
     PyType_GenericNew,          /* tp_new */
     nullptr                     /* tp_free */
+};
+
+class PythonTracer;
+struct ThreadLocalResult {
+    explicit ThreadLocalResult(PythonTracer* active_tracer)
+        : active_tracer_(active_tracer),
+          ctx_((TraceContext*) TraceContextType.tp_alloc(&TraceContextType, 0))
+    {
+        if (ctx_) {
+            ctx_->thread_local_result_ = this;
+        }
+    }
+
+    ThreadLocalResult() = delete;
+    ThreadLocalResult(const ThreadLocalResult&) = delete;
+    ThreadLocalResult(ThreadLocalResult&&) = delete;
+    ThreadLocalResult& operator=(const ThreadLocalResult&) = delete;
+    ThreadLocalResult& operator=(const ThreadLocalResult&&) = delete;
+
+    ~ThreadLocalResult()
+    {
+        if (ctx_) {
+            Py_DECREF((PyObject*)ctx_);
+        }
+        active_tracer_ = nullptr;
+    }
+
+    PythonTracer* active_tracer_{nullptr};
+    TraceContext* ctx_{nullptr};
 };
 
 struct PyCallInfo {
@@ -151,6 +217,14 @@ public:
         int what,
         PyObject* arg);
 
+    struct StartPyCall {
+        explicit StartPyCall(size_t key)
+            : hash_id_(static_cast<uint64_t>(key)), ts_(torch_npu::toolkit::profiler::Utils::GetClockTime()) {}
+
+        uint64_t hash_id_{0};
+        uint64_t ts_{0};
+    };
+
 private:
     PythonTracer();
     static PythonTracer& singleton();
@@ -158,6 +232,7 @@ private:
     void start(size_t max_threads = max_py_threads);
     void stop();
     void clear();
+    size_t genPyCallHashId(PyFrameObject* frame);
     void recordPyCall(TraceContext* ctx, PyFrameObject* frame);
     void recordCCall(TraceContext* ctx, PyFrameObject* frame, PyObject* arg);
     void recordReturn(TraceContext* ctx, PyFrameObject* frame, TraceTag tag);
@@ -166,17 +241,21 @@ private:
     void reportHashData();
     void reportParamData();
 
-    bool active_{false};
+private:
+    std::atomic<bool> active_{false};
     bool record_params_{false};
+    PyInterpreterState* interpreter_{nullptr};
+    std::deque<ThreadLocalResult> thread_local_results_;
     PyObject* module_call_code_{nullptr};
     PyObject* optimizer_call_code_{nullptr};
-    std::vector<TraceContext*> trace_contexts_;
     std::unordered_map<size_t, PyCallInfo> py_call_cache_;
     std::unordered_map<size_t, at::StringView> pyc_call_cache_;
     std::unordered_map<size_t, ModuleInfo> module_info_cache_;
     std::vector<std::pair<size_t, std::vector<ModuleParam>>> module_param_cache_;
     std::vector<std::pair<size_t, std::vector<OptimizerParam>>> optimizer_param_cache_;
     AppendOnlyList<TraceEvent> events_;
+    std::unordered_map<uintptr_t, std::vector<StartPyCall>> start_py_call_info_;
+    std::unordered_map<uintptr_t, uint64_t> ctx_tid_map_;
 };
 
 PythonTracer& PythonTracer::singleton()
@@ -202,35 +281,40 @@ PythonTracer::PythonTracer() : active_(false)
 
 void PythonTracer::start(size_t max_threads)
 {
-    TORCH_CHECK(!active_, "PythonTracer is already active", PROF_ERROR(ErrCode::INTERNAL));
-    TORCH_CHECK(!trace_contexts_.size(), "PythonTracer should not have active contexts", PROF_ERROR(ErrCode::INTERNAL));
+    TORCH_CHECK(thread_local_results_.empty(), "PythonTracer should not have active contexts", PROF_ERROR(ErrCode::INTERNAL));
     TORCH_CHECK(max_threads > 0, "max_threads must be positive, got ", max_threads, PROF_ERROR(ErrCode::VALUE));
     TORCH_CHECK(max_threads <= max_py_threads, "max_threads must be less equal to ", max_py_threads, PROF_ERROR(ErrCode::VALUE));
 
-    pybind11::gil_scoped_acquire gil;
+    bool expected{false};
+    bool active = active_.compare_exchange_strong(expected, true);
+    if (!active) {
+        ASCEND_LOGW("There is already an active PythonTracer. Refusing to register profile functions.");
+        return;
+    }
 
-    std::vector<PyThreadState*> thread_states { PyThreadState_Get() };
-    if (max_threads > 1) {
-        auto thread_state = thread_states[0];
-        while (thread_state != nullptr) {
-            if (thread_state != thread_states[0]) {
-                thread_states.push_back(thread_state);
-            }
-            thread_state = PyThreadState_Next(thread_state);
-        }
-        if (thread_states.size() > max_threads) {
-            ASCEND_LOGW("Warning: can only trace %zu thread. %zu are currently active.", max_threads, thread_states.size());
-            thread_states.resize(max_threads);
-        }
+    GilAndRestoreThread gil;
+    interpreter_ = PyInterpreterState_Get();
+    if (!gil.initial_thread_state()) {
+        ASCEND_LOGW("Failed to get main thread state, PythonTracer will not start.");
+        return;
+    }
+
+    std::vector<PyThreadState*> thread_states = getInterpreterThreads(interpreter_);
+    if (thread_states.empty()) {
+        ASCEND_LOGW("There is no active thread, PythonTracer will not start.")
+        return;
+    }
+    if (thread_states.size() > max_threads) {
+        ASCEND_LOGW("Can only trace %zu thread. %zu are currently active.", max_threads, thread_states.size());
+        thread_states.resize(max_threads);
     }
 
     const size_t STACK_MAX_DEPTH = 128;
-    for (const auto i : c10::irange(thread_states.size())) {
-        PyThreadState* thread_state = thread_states[i];
+    // Register the tracer in each thread.
+    for (const auto thread_state : thread_states) {
         PyThreadState_Swap(thread_state);
-        auto ctx = (TraceContext*) TraceContextType.tp_alloc(&TraceContextType, 0);
-        ctx->thread_state_ = thread_state;
-        trace_contexts_.push_back(ctx);
+        thread_local_results_.emplace_back(this);
+        auto* ctx = thread_local_results_.back().ctx_;
 
         std::vector<THPFrameObjectPtr> current_stack;
         auto frame = PyEval_GetFrame_NPU();
@@ -240,13 +324,12 @@ void PythonTracer::start(size_t max_threads)
             frame = PyFrame_GetBack(frame);
             ++depth;
         }
+        // record py call before proflier start
         for (auto it = current_stack.rbegin(); it != current_stack.rend(); it++) {
-            recordPyCall(ctx, *it);
+            start_py_call_info_[reinterpret_cast<uintptr_t>(ctx)].emplace_back(genPyCallHashId(*it));
         }
         PyEval_SetProfile(PythonTracer::pyProfileFn, (PyObject*)ctx);
     }
-    PyThreadState_Swap(thread_states[0]);
-    active_ = true;
 
     auto config = torch::autograd::profiler::getProfilerConfig();
     if (config.report_input_shapes
@@ -258,16 +341,27 @@ void PythonTracer::start(size_t max_threads)
 
 void PythonTracer::stop()
 {
-    TORCH_INTERNAL_ASSERT(active_, "PythonTracer is not running.")
+    TORCH_INTERNAL_ASSERT(active_.load(), "PythonTracer is not running.", PROF_ERROR(ErrCode::INTERNAL));
 
     pybind11::gil_scoped_acquire gil;
-
-    PyThreadState* initial_thread_state = PyThreadState_Get();
-    for (const auto i : trace_contexts_) {
-        PyThreadState_Swap(i->thread_state_);
-        PyEval_SetProfile(nullptr, nullptr);
+    for (const auto thread_state : getInterpreterThreads(interpreter_)) {
+        if (thread_state->c_profilefunc == &PythonTracer::pyProfileFn) {
+            PyThreadState_Swap(thread_state);
+            PyEval_SetProfile(nullptr, nullptr);
+        }
     }
-    PyThreadState_Swap(initial_thread_state);
+    for (const auto& start_py_call : start_py_call_info_) {
+        auto ctx_tid = ctx_tid_map_.find(start_py_call.first);
+        if (ctx_tid != ctx_tid_map_.end()) {
+            for (const auto& py_call : start_py_call.second) {
+                events_.emplace_back(
+                    ctx_tid->second,
+                    py_call.ts_,
+                    py_call.hash_id_,
+                    TraceTag::kPy_Call);
+            }
+        }
+    }
     active_ = false;
     reportTraceData();
     reportHashData();
@@ -276,17 +370,17 @@ void PythonTracer::stop()
 
 void PythonTracer::clear()
 {
-    TORCH_CHECK(!active_, "Cannot clear state while PythonTracer is active.", PROF_ERROR(ErrCode::INTERNAL));
-    for (auto i : trace_contexts_) {
-        Py_DECREF((PyObject*) i);
-    }
-    trace_contexts_.clear();
+    TORCH_CHECK(!active_.load(), "Cannot clear state while PythonTracer is active.", PROF_ERROR(ErrCode::INTERNAL));
     py_call_cache_.clear();
     pyc_call_cache_.clear();
     module_info_cache_.clear();
     module_param_cache_.clear();
     optimizer_param_cache_.clear();
     events_.clear();
+    ctx_tid_map_.clear();
+    start_py_call_info_.clear();
+    thread_local_results_.clear();
+    interpreter_ = nullptr;
 }
 
 void PythonTracer::reportTraceData()
@@ -294,7 +388,6 @@ void PythonTracer::reportTraceData()
     if (events_.size() > 0) {
         ProfilerMgr::GetInstance()->UploadTraceEventData(
             std::make_unique<torch_npu::toolkit::profiler::PythonTracerFuncData>(
-                torch_npu::toolkit::profiler::Utils::GetTid(),
                 torch_npu::toolkit::profiler::Utils::GetPid(),
                 std::move(events_)
             )
@@ -342,7 +435,11 @@ void PythonTracer::reportParamData()
 
 void PythonTracer::recordEvent(TraceTag tag, size_t hash_key)
 {
-    events_.emplace_back(torch_npu::toolkit::profiler::Utils::GetClockTime(), hash_key, tag);
+    events_.emplace_back(
+        torch_npu::toolkit::profiler::Utils::GetTid(),
+        torch_npu::toolkit::profiler::Utils::GetClockTime(),
+        hash_key,
+        tag);
     if (events_.size() >= TRACE_DUMP_THRESHOLD) {
         reportTraceData();
     }
@@ -423,8 +520,10 @@ static void parseOptimizerParams(
     }
 }
 
-void PythonTracer::recordPyCall(TraceContext* ctx, PyFrameObject* frame)
+size_t PythonTracer::genPyCallHashId(PyFrameObject* frame)
 {
+    TORCH_INTERNAL_ASSERT(frame != nullptr, "frame can not be nullptr.", PTA_ERROR(ErrCode::PARAM));
+
     auto call_info = PyCallInfo(frame);
     auto hash_id = call_info.get_hash_id();
     auto f_code = PyFrame_GetCode_NPU(frame);
@@ -452,6 +551,12 @@ void PythonTracer::recordPyCall(TraceContext* ctx, PyFrameObject* frame)
             }
         }
     }
+    return hash_id;
+}
+
+void PythonTracer::recordPyCall(TraceContext* ctx, PyFrameObject* frame)
+{
+    auto hash_id = genPyCallHashId(frame);
     recordEvent(TraceTag::kPy_Call, hash_id);
 }
 
@@ -468,6 +573,12 @@ void PythonTracer::recordCCall(TraceContext* ctx, PyFrameObject* frame, PyObject
 void PythonTracer::recordReturn(TraceContext* ctx, PyFrameObject* frame, TraceTag tag)
 {
     recordEvent(tag, EXIT_EVENT_HASH_ID);
+    
+    // record ctx to thread id map
+    auto ctx_addr = reinterpret_cast<uintptr_t>(ctx);
+    if (ctx_tid_map_.find(ctx_addr) == ctx_tid_map_.end()) {
+        ctx_tid_map_.insert({ctx_addr, torch_npu::toolkit::profiler::Utils::GetTid()});
+    }
 }
 
 int PythonTracer::pyProfileFn(
@@ -477,23 +588,24 @@ int PythonTracer::pyProfileFn(
     PyObject* arg)
 {
     auto ctx = reinterpret_cast<TraceContext*>(obj);
+    auto thread_local_result = ctx->thread_local_result_;
     switch (what) {
         case PyTrace_CALL:
-            PythonTracer::singleton().recordPyCall(ctx, frame);
+            thread_local_result->active_tracer_->recordPyCall(ctx, frame);
             break;
 
         case PyTrace_C_CALL:
-            PythonTracer::singleton().recordCCall(ctx, frame, arg);
+            thread_local_result->active_tracer_->recordCCall(ctx, frame, arg);
             break;
 
         case PyTrace_EXCEPTION:
         case PyTrace_RETURN:
-            PythonTracer::singleton().recordReturn(ctx, frame, TraceTag::kPy_Return);
+            thread_local_result->active_tracer_->recordReturn(ctx, frame, TraceTag::kPy_Return);
             break;
 
         case PyTrace_C_EXCEPTION:
         case PyTrace_C_RETURN:
-            PythonTracer::singleton().recordReturn(ctx, frame, TraceTag::kC_Return);
+            thread_local_result->active_tracer_->recordReturn(ctx, frame, TraceTag::kC_Return);
             break;
 
         default:
