@@ -5,6 +5,7 @@
 #include <c10/macros/Macros.h>
 
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
@@ -152,6 +153,12 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     NPU_CHECK_ERROR_WITHOUT_UCE(acl::AclQueryEventRecordedStatus(npu_event, &status));
     return (status == acl::ACL_EVENT_RECORDED_STATUS_COMPLETE);
   }
+
+    void recordDataPtrOnStream(const c10::DataPtr& data_ptr, const c10::Stream& stream) const override
+    {
+        NPUStream npu_stream{stream};
+        c10_npu::NPUCachingAllocator::recordStream(data_ptr, npu_stream);
+    }
 };
 
 } // namespace impl
