@@ -377,14 +377,12 @@ struct MemoryData : BaseReportData {
 };
 
 struct PythonTracerFuncData : BaseReportData {
-    uint64_t thread_id{0};
     uint64_t process_id{0};
     torch_npu::profiler::AppendOnlyList<torch_npu::profiler::python_tracer::TraceEvent> events;
-    PythonTracerFuncData(uint64_t thread_id,
+    PythonTracerFuncData(
         uint64_t process_id,
         torch_npu::profiler::AppendOnlyList<torch_npu::profiler::python_tracer::TraceEvent>&& events)
         : BaseReportData(0, "torch.python_tracer_func"),
-          thread_id(thread_id),
           process_id(process_id),
           events(std::move(events)) {}
     std::vector<uint8_t> encode();
