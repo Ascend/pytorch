@@ -1338,22 +1338,59 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
     @SupportedDevices(['Ascend910B'])
+    def test_wrapper_npu_dynamic_quant_with_group_index(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+
+            def forward(self, input_dummy, smooth_scales_dummy, group_index_dummy):
+                output, scale = torch_npu.npu_dynamic_quant(input_dummy, smooth_scales=smooth_scales_dummy, group_index=group_index_dummy)
+                return output, scale
+            
+        def export_onnx(onnx_model_name):
+            input_dummy = torch.rand(4, 1024, 512).uniform_(-3, 3).npu().to(torch.float16)
+            group_num = 10
+            smooth_scales_dummy = torch.randn((group_num, input_dummy.shape[-1])).uniform_(-3, 3).npu().to(torch.float16)
+            row_num = input_dummy.numel() // input_dummy.shape[-1]
+            group_index_list = []
+            for _ in range(group_num):
+                group_index_list.append(np.random.randint(0, row_num))
+            group_index_list = sorted(group_index_list)
+            group_index_list[-1] = row_num
+            group_index_dummy = torch.tensor(group_index_list).npu().to(torch.int32)
+            model = Model().to("npu")
+            model(input_dummy, smooth_scales_dummy, group_index_dummy)
+            self.onnx_export(model, (input_dummy, smooth_scales_dummy, group_index_dummy), onnx_model_name,
+                             ["input", "smooth_scale_dummy", "group_index_dummy"], ["output", "scale"])
+        onnx_model_name = "model_npu_dynamic_quant_with_group_index.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
+
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_dynamic_quant_asymmetric(self):
         class Model(torch.nn.Module):
             def __init__(self):
                 super(Model, self).__init__()
 
-            def forward(self, input_dummy, smooth_scales_dummy):
-                output, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(input_dummy, smooth_scales=smooth_scales_dummy)
+            def forward(self, input_dummy, smooth_scales_dummy, group_index_dummy):
+                output, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(input_dummy, smooth_scales=smooth_scales_dummy, group_index=group_index_dummy)
                 return output, scale, offset
             
         def export_onnx(onnx_model_name):
             input_dummy = torch.rand(4, 1024, 512).uniform_(-3, 3).npu().to(torch.float16)
-            smooth_scales_dummy = torch.rand(512).uniform_(-3, 3).npu().to(torch.float16)
+            group_num = 10
+            smooth_scales_dummy = torch.randn((group_num, input_dummy.shape[-1])).uniform_(-3, 3).npu().to(torch.float16)
+            row_num = input_dummy.numel() // input_dummy.shape[-1]
+            group_index_list = []
+            for _ in range(group_num):
+                group_index_list.append(np.random.randint(0, row_num))
+            group_index_list = sorted(group_index_list)
+            group_index_list[-1] = row_num
+            group_index_dummy = torch.tensor(group_index_list).npu().to(torch.int32)
             model = Model().to("npu")
-            model(input_dummy, smooth_scales_dummy)
-            self.onnx_export(model, (input_dummy, smooth_scales_dummy), onnx_model_name,
-                             ["input", "smooth_scale_dummy"], ["output", "scale", "offset"])
+            model(input_dummy, smooth_scales_dummy, group_index_dummy)
+            self.onnx_export(model, (input_dummy, smooth_scales_dummy, group_index_dummy), onnx_model_name,
+                             ["input", "smooth_scale_dummy", "group_index_dummy"], ["output", "scale", "offset"])
         onnx_model_name = "model_npu_dynamic_quant_asymmetric.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
