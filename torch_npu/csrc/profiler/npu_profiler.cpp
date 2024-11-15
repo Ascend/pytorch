@@ -319,7 +319,7 @@ void startNpuProfiler(const NpuProfilerConfig &config,
         experimental_config.msprof_tx, experimental_config.op_attr};
     ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
     if (state->tracePython()) {
-        python_tracer::call(python_tracer::Command::kStartOne);
+        python_tracer::call(python_tracer::Command::kStartAll);
     }
     if (cpu_trace) {
         registerCallback(scopes);

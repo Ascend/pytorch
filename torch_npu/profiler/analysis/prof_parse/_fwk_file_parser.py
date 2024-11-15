@@ -164,7 +164,7 @@ class FwkFileParser:
         other_event_list = TraceEventManager.create_m_event(pid, tid_dict)
         other_event_list.extend(TraceEventManager.create_fwd_flow(fwd_dict))
         fwk_x_event_list.extend(other_event_list)
-        python_trace_data = self.get_python_trace_data()
+        python_trace_data = self.get_python_trace_data(set(tid_dict.keys()))
         if python_trace_data:
             fwk_x_event_list.extend(python_trace_data)
         gc_record_data = self.get_gc_record_trace_data()
@@ -172,10 +172,10 @@ class FwkFileParser:
             fwk_x_event_list.extend(gc_record_data)
         return fwk_x_event_list
 
-    def get_python_trace_data(self) -> list:
+    def get_python_trace_data(self, torch_tids: set) -> list:
         trace_hash_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_HASH)
         func_call_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_FUNC)
-        python_trace_parser = PythonTraceParser(trace_hash_data, func_call_data)
+        python_trace_parser = PythonTraceParser(torch_tids, trace_hash_data, func_call_data)
         return python_trace_parser.get_python_trace_data()
 
     @classmethod
@@ -231,6 +231,7 @@ class FwkFileParser:
         fwd_bwd_dict = {}
         torch_op_idx = 0
         mstx_mark_apis = []
+        torch_tids = set()
 
         for torch_op in torch_op_data:
             api = [torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), [], torch_op.name,
@@ -242,6 +243,7 @@ class FwkFileParser:
                 torch_op_apis.append(api)
                 self.filter_fwd_bwd_api(fwd_bwd_dict, torch_op, torch_op_idx)
                 torch_op_idx += 1
+            torch_tids.add(torch_op.tid)
 
         connection_ids = []
         task_enqueues = []
@@ -262,7 +264,7 @@ class FwkFileParser:
 
         trace_hash_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_HASH)
         func_call_data = self.get_file_data_by_tag(FileTag.PYTHON_TRACER_FUNC)
-        python_trace_parser = PythonTraceParser(trace_hash_data, func_call_data)
+        python_trace_parser = PythonTraceParser(torch_tids, trace_hash_data, func_call_data)
         python_trace_apis = python_trace_parser.get_python_trace_api_data()
         return {"torch_op": torch_op_apis, "task_enqueues": task_enqueues, "task_dequeues": task_dequeues,
                 "python_trace": python_trace_apis, "mstx_op": mstx_mark_apis}
@@ -272,6 +274,12 @@ class FwkFileParser:
         if not torch_op_data:
             return None
         return min(torch_op_data, key=lambda op: op.ts)
+
+    def get_torch_op_tids(self):
+        torch_op_data = self.get_file_data_by_tag(FileTag.TORCH_OP)
+        if not torch_op_data:
+            return set()
+        return {op.tid for op in torch_op_data}
 
     def get_gc_record_db_data(self):
         gc_events = self.get_file_data_by_tag(FileTag.GC_RECORD)
