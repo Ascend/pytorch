@@ -65,26 +65,6 @@ namespace c10d_npu {
         return pgName + "_" + std::to_string(rank) + "_trace_end";
     }
 
-    inline bool traceUpdate(
-        c10::intrusive_ptr<c10d::Store> &store,
-        const std::string &key,
-        uint64_t seq,
-        const std::string &col)
-    {
-        std::vector<uint8_t> value(col.size() + sizeof(seq) + 1);
-        memcpy(value.data(), &seq, sizeof(seq));
-        memcpy(value.data() + sizeof(seq), col.data(), col.size());
-        try {
-            store->set(key, value);
-            return true;
-        } catch (...) {
-            LOG(ERROR) << "Store is down while updating #" << seq << " with key "
-                       << key;
-            return false;
-        }
-        return true;
-    }
-
     enum TraceDebugEvent {
         kEventStart,
         kEventEnd,
@@ -321,7 +301,7 @@ namespace c10d_npu {
         return c10::List<c10::IValue>(c10::AnyType::get());
     }
 
-    inline std::string ranks_str(const std::vector<uint64_t> &ranks)
+    inline std::string ranks_str(const std::vector<uint32_t> &ranks)
     {
         std::string str;
         for (const auto &rank : ranks) {
@@ -411,7 +391,7 @@ namespace c10d_npu {
         size_t max_entries_ = 0;
         size_t next_ = 0;
         size_t id_ = 0;
-        std::map<std::tuple<std::string, std::string>, std::vector<uint64_t>>
+        std::map<std::tuple<std::string, std::string>, std::vector<uint32_t>>
             pg_name_to_ranks_ = {};
 
         c10::optional<size_t> record(
@@ -475,7 +455,7 @@ namespace c10d_npu {
 
         void record_pg_ranks(
             const std::tuple<std::string, std::string> &pg_name,
-            std::vector<uint64_t> ranks)
+            std::vector<uint32_t> ranks)
         {
             if (!enabled_) {
                 return;
@@ -527,7 +507,7 @@ namespace c10d_npu {
         never hang. (timing must also be enabled for compute_duration - see
         TORCH_HCCL_ENABLE_TIMING).
         */
-        void retire_id(std::optional<size_t> id, bool compute_duration = true)
+        void retire_id(c10::optional<size_t> id, bool compute_duration = true)
         {
             if (!enabled_ || !id) {
                 return;

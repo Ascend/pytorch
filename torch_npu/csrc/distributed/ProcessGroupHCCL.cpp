@@ -10,6 +10,9 @@
 #include <functional>
 #include <cstdlib>
 
+#include <pybind11/pybind11.h>
+#include <pybind11/eval.h>
+
 #include <c10/util/Optional.h>
 #include <c10/util/irange.h>
 #include <c10d/ParamCommsUtils.hpp>
@@ -31,11 +34,15 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/distributed/HcclCompile.h"
+#include "torch_npu/csrc/distributed/TraceUtils.h"
+#include "torch_npu/csrc/distributed/PrefixStore.hpp"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
+
+namespace py = pybind11;
 
 namespace c10d_npu {
 namespace {
@@ -253,6 +260,50 @@ thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
 const int64_t ProcessGroupHCCL::kWatchdogThreadSleepMillis = 1000;
 std::string ProcessGroupHCCL::perfdumppath = "";
 ProcessGroupHCCL* ProcessGroupHCCL::global_ = nullptr;
+std::atomic<bool> ProcessGroupHCCL::shouldDump_(false);
+
+std::string dump_hccl_trace(
+    bool includeCollectives,
+    bool includeStackTraces,
+    bool onlyActive)
+{
+    return HCCLTraceBuffer::get()->dump(
+        c10::nullopt, includeCollectives, includeStackTraces, onlyActive);
+}
+
+c10::optional<std::function<void(std::function<void(const std::string &)>)>> &get_cpp_trace_dumper()
+{
+    static c10::optional<
+        std::function<void(std::function<void(const std::string &)>)>>
+        dumper(c10::nullopt);
+    return dumper;
+}
+
+gil_checker_t &get_gil_checker()
+{
+    static gil_checker_t gil_checker = nullptr;
+    return gil_checker;
+}
+
+std::future<bool> launchAsyncGilCheck()
+{
+    std::promise<bool> resultPromise;
+    std::future<bool> resultFuture = resultPromise.get_future();
+    TORCH_CHECK(get_gil_checker(), "Can't check GIL with null GIL checker");
+    std::thread workerThread([promise = std::move(resultPromise)]() mutable {
+        try {
+            auto& gil_checker = get_gil_checker();
+            promise.set_value((*gil_checker)());
+        } catch (...) {
+            promise.set_exception(std::current_exception());
+        }
+    });
+
+    // Detach the thread to allow it to run independently
+    workerThread.detach();
+
+    return resultFuture;
+}
 
 std::ostream& operator<<(std::ostream& output, const ProcessGroupHCCL::WorkHCCL& workHCCL)
 {
@@ -304,7 +355,8 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
     startTraceUpdated_(w.startTraceUpdated_),
     store_(w.store_),
     is_dispatched(w.is_dispatched),
-    is_reported(w.is_reported)
+    is_reported(w.is_reported),
+    trace_id_(w.trace_id_)
 {
     exception_ = w.exception_;
 }
@@ -623,6 +675,8 @@ std::vector<at::Tensor> ProcessGroupHCCL::WorkHCCL::result()
     return *outputs_;
 }
 
+static std::atomic<size_t> process_group_id = 0;
+
 ProcessGroupHCCL::ProcessGroupHCCL(
     const c10::intrusive_ptr<c10d::Store>& store,
     int rank,
@@ -634,8 +688,12 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     hcclCommCounter_(0),
     traceKeyStart_("HCCL_" + std::to_string(rank) + "_trace_start"),
     traceKeyEnd_("HCCL_" + std::to_string(rank) + "_trace_end"),
-    terminateProcessGroup_(false)
+    terminateProcessGroup_(false),
+    terminateHeartbeatMonitorThread_(false),
+    collectiveDebugInfoMode_(false),
+    uid_(process_group_id++)
 {
+    this->setGroupName(options_->group_id);
     uint32_t hccl_event_timeout = c10_npu::option::OptionsManager::GetHCCLEventTimeout();
     uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
     if (hccl_event_timeout > 0) {
@@ -653,6 +711,23 @@ ProcessGroupHCCL::ProcessGroupHCCL(
             "Get env HCCL_EXEC_TIMEOUT value %u, and set op wait timeout to %u.", hccl_exec_timeout, kOpWaitTimeout);
     }
     NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
+    logPrefix_ = createLogPrefix();
+    dumpOnException_ = getCvarBool(TORCH_HCCL_DUMP_ON_TIMEOUT, false);
+    heartbeat_ = 1ULL;
+    monitorThreadEnabled_.store(getCvarBool(TORCH_HCCL_ENABLE_MONITORING, true));
+    hcclTraceBufferSize_ = getCvarInt(TORCH_HCCL_TRACE_BUFFER_SIZE, 0);
+    heartbeatTimeoutInSec_ = getCvarInt(TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC, 60 * 10);  // 10 Mins
+    waitTimeoutDumpInMilSec_ = getCvarInt(TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC, 60 * 1000);  // 60 Sec
+    coordCheckIntervalMilSec_ = getCvarInt(TORCH_HCCL_COORD_CHECK_MILSEC, 1000);
+    hcclTraceBufferSize_ = getCvarInt(TORCH_HCCL_TRACE_BUFFER_SIZE, 0);
+
+    // store_ usually is wrapped with PrefixStore and the prefix is different
+    // across different ProcessGroupNCCL(PG) instances. We need to get the
+    // underlying non-PrefixStore for sharing global information shared across
+    // different PGs.
+    PrefixStore *prefixStore = dynamic_cast<PrefixStore *>(store_.get());
+    globalStore_ = prefixStore ? prefixStore->getUnderlyingNonPrefixStore() : store_;
+
     char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
     try {
         if (blockingWait != nullptr) {
@@ -756,23 +831,118 @@ void abortCommsFromMap(
 }
 
 // Abort all communicators on this rank
-void ProcessGroupHCCL::abort(c10::optional<std::string> abortReason)
+bool ProcessGroupHCCL::abort(c10::optional<std::string> abortReason)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     abortCommsFromMap(devHCCLCommMap_, rank_, abortReason);
+    return true;
+}
+
+void ProcessGroupHCCL::waitForFutureOrTimeout(
+    std::future<bool> &fut,
+    const std::chrono::milliseconds &timeOutMilSec,
+    const std::string &futDescription,
+    bool throwException)
+{
+    std::string errorMsg;
+    TORCH_CHECK(fut.valid(), "Expected a valid future");
+    std::future_status status = fut.wait_for(timeOutMilSec);
+    if (status == std::future_status::ready) {
+        // Calling .get() will re-raise any exception from the future, and we don't
+        // care about the retval
+        try {
+            bool result = fut.get();
+            if (result) {
+                LOG(INFO) << logPrefix()
+                          << "future is successfully executed for: " << futDescription;
+            }
+        } catch (const std::exception &e) {
+            errorMsg = c10::str(
+                logPrefix(),
+                "Exception thrown when waitng for future ",
+                futDescription,
+                ": ",
+                e.what());
+            LOG(ERROR) << errorMsg;
+        } catch (...) {
+            errorMsg = c10::str(
+                logPrefix(),
+                "Unknown exception thrown when waitng for future ",
+                futDescription);
+            LOG(ERROR) << errorMsg;
+        }
+    } else {
+        errorMsg = c10::str(
+            logPrefix(),
+            "Future for ",
+            futDescription,
+            " timed out after ",
+            timeOutMilSec.count(),
+            " ms");
+        LOG(ERROR) << errorMsg;
+    }
+    if (throwException && !errorMsg.empty()) {
+        C10_THROW_ERROR(DistBackendError, errorMsg);
+    }
+}
+
+void ProcessGroupHCCL::shutdown(c10::optional<std::string> reason)
+{
+    // Don't join threads here since the purpose of this method is to abort all
+    // communicators and signal the threads to exit. Joining on the threads could
+    // potentially block and hence avoid it in this method.
+    terminateProcessGroup_.store(true);
+    workMetaListCV_.notify_one();
+
+    // lauch abort asynchrounously and wait for it to complete or timeout
+    LOG(INFO) << logPrefix()
+              << "Launching ProcessGroupHCCL abort asynchrounously.";
+    std::future<bool> fut = std::async(std::launch::async, [this, &reason]() {
+        return this->abort(reason);
+    });
+
+    waitForFutureOrTimeout(fut, options_->timeout, "ProcessGroup abort", true);
+    LOG(INFO) << logPrefix() << "ProcessGroupHCCL aborts successfully.";
+
+    // We need to wait for abort to finish before we can safely shut down
+    // heartbeat monitoring thread.
+    terminateHeartbeatMonitorThread_.store(true);
+    monitorWakeUpCV_.notify_one();
 }
 
 ProcessGroupHCCL::~ProcessGroupHCCL()
 {
+    LOG(INFO) << logPrefix() << "ProcessGroupHCCL destructor entered.";
+
     if (options_->global_ranks_in_group.empty()) {
         global_ = nullptr;
     }
 
-    terminateProcessGroup_.store(true);
+    if (!terminateProcessGroup_.load()) {
+        TORCH_NPU_WARN_ONCE(
+            "WARNING: process group has NOT been destroyed before we destruct ProcessGroupHCCL. ",
+            "On normal program exit, the application should call destroy_process_group to ",
+            "ensure that any pending HCCL operations have finished in this process. "
+            "In rare cases this process can exit before this point and block the progress of "
+            "another member of the process group. This constraint has always been present, "
+            " but this warning has only been added since PyTorch 2.4");
+        // If user haven't explicitly destroy/shutdown process group, destructor
+        // needs to do so
+        shutdown();
+    }
 
-    workMetaListCV_.notify_one();
+    LOG(INFO) << logPrefix() << "ProcessGroupHCCL destructor entered.";
+
 #ifdef ENABLE_HCCL_ERROR_CHECKING
-    hcclCommWatchdogThread_.join();
+    if (hcclCommWatchdogThread_.joinable()) {
+        hcclCommWatchdogThread_.join();
+        LOG(INFO) << logPrefix() << "ProcessGroupHCCL watchdog thread joined.";
+    }
+    if (hcclHeartbeatMonitorThread_.joinable()) {
+        hcclHeartbeatMonitorThread_.join();
+        LOG(INFO) << logPrefix()
+                  << "ProcessGroupHCCL heart beat monitor thread joined.";
+    }
 #endif
     {
         // Destropy all HCCL Communicators on Process Group Destruction
@@ -789,12 +959,328 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
     ASCEND_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
 }
 
+bool ProcessGroupHCCL::dumpDebuggingInfo()
+{
+    // Serialize all calls to this function to avoid corrupting data, but allow
+    // multiple calls in one runtime. User is responsible for preserving the
+    // output file from an earlier call before a later call overwrites it.
+    static std::mutex writeDebugInfoMutex;
+    std::lock_guard<std::mutex> lock(writeDebugInfoMutex);
+    LOG(ERROR) << logPrefix() << "ProcessGroupHCCL preparing to dump debug info.";
+    if (hcclTraceBufferSize_ > 0) {
+        // We dump hccl trace into local disk by default and users can register
+        // their customized writer by inheriting `DebugInfoWriter` via
+        // `registerDebugInfoWriter`.
+        auto hcclTrace = dump_hccl_trace(true, true, false);
+        DebugInfoWriter &writer = DebugInfoWriter::getWriter(globalRank());
+        LOG(ERROR) << logPrefix() << "ProcessGroupHCCL dumping hccl trace to "
+                   << writer.getWriterTarget();
+        writer.write(hcclTrace);
+        return true;
+    }
+    return false;
+}
+
+void ProcessGroupHCCL::terminateProcess(std::string errMsg)
+{
+    // Logging with `FATAL`, after errMsg printed, it calls `std::abort()`
+    // to terminate the program execution.
+    LOG(FATAL) << logPrefix() << errMsg;
+}
+
+int computeDeltaMS(
+    std::chrono::time_point<std::chrono::steady_clock> start,
+    std::chrono::time_point<std::chrono::steady_clock> end)
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+        .count();
+}
+
+void dump_python_traceback()
+{
+    PyGILState_STATE gil = PyGILState_Ensure();
+    py::exec(R"(
+        import sys
+        import traceback
+        for thread_id, stack in sys._current_frames().items():
+            stack_list = traceback.format_list(traceback.extract_stack(stack))
+            print('thread {}:'.format(thread_id))
+            print(''.join(stack_list))
+    )");
+    PyGILState_Release(gil);
+}
+
+void ProcessGroupHCCL::heartbeatMonitor()
+{
+    uint64_t heartBeatCounter = 0ULL;
+    std::string errorMsg;
+    std::string exitMsg;
+    bool checkDumpSignal = (dumpOnException_ && options_->global_ranks_in_group.empty());
+    int monitorPollInterval = checkDumpSignal ? coordCheckIntervalMilSec_
+                                              : heartbeatTimeoutInSec_ * 1000;
+    auto lastTimePollStore = std::chrono::steady_clock::now();
+    auto lastTimeHeartBeatCheck = std::chrono::steady_clock::now();
+    c10::optional<DumpPipe> dumpPipe = c10::nullopt;
+    if (options_->global_ranks_in_group.empty()) {
+        // DumpPipe is one per-trainer process, and its convenient to name them
+        // after 'global' ranks in the system, So we assume processgroup options_->global_ranks_in_group.empty() is
+        // the global PG and has globally unique rank ids across trainers.
+        dumpPipe.emplace(rank_);
+    }
+
+    while (true) {
+        // This won't have any lock since this lock is only used here.
+        // Please be aware that mutex `monitorMutex_` should not be used
+        // somewhere else to avoid the deadlock.
+        std::unique_lock<std::mutex> lock(monitorMutex_);
+        if (monitorWakeUpCV_.wait_for(lock,
+                                      std::chrono::milliseconds(monitorPollInterval),
+                                      [&]{ return terminateHeartbeatMonitorThread_.load(); })) {
+            // For the normal complete or user interception, monitorWakeUpCV_
+            // will get notified, we early return and exit heartbeatMonitor.
+            return;
+        }
+        auto currentTime = std::chrono::steady_clock::now();
+
+        // We put extra functionality in the thread for the default PG (aka, options_->global_ranks_in_group.empty())
+        // because the signal is same across different PGs. We only need to run
+        // once per process to avoid duplicate things performed in too many separate
+        // threads. For example, we check a global flag on the TCPStore periodically
+        // to see if any PG on any rank observed a timeout and signaled peers to
+        // dump debugging info, and we avoid hammering the TCPStore from all PGs on
+        // the same rank.
+        if (checkDumpSignal) {
+            // There are two scenarios where monitor thread will dump on timeout:
+            // 1. The local rank is the first to observe a timeout.shouldDump_ will be
+            // set to true.
+            // 2. other ranks detected the timeout and signal the local rank to dump
+            // In addtion, monitor threads will dump if watchdog threads has no
+            // heartbeat or dumpPipe is not empty.
+            if (shouldDump_.load()) {
+                errorMsg = c10::str(
+                    logPrefix(),
+                    "Received a dump signal from this local rank and will ",
+                    "start to dump the debug info. ",
+                    "Last enqueued HCCL work: ",
+                    pgStatus_.lastEnqueuedSeq,
+                    ", last completed HCCL work: ",
+                    pgStatus_.lastCompletedSeq,
+                    ".");
+                exitMsg = c10::str(
+                    "ProcessGroupHCCL's watchdog detected an exception from the local rank. ",
+                    "This is most likely caused by incorrect usages of collectives, e.g., wrong ",
+                    "sizes used across ranks, the order of collectives is not same for all ranks ",
+                    "or the scheduled collective, for some reason, didn't run. Additionally, ",
+                    "this can be caused by GIL deadlock or other reasons such as network errors or ",
+                    "bugs in the communications library (e.g. HCCL), etc. We tried our best to ",
+                    "dump the debug info into the storage to help you debug the issue.");
+                break;
+            }
+            // We poll store to see if some ranks have flagged a timeout when
+            // we haven't polled for `heartbeat_timeout` seconds and there haven't
+            // any work added or removed for `watchdog_timeout` seconds.
+            if (computeDeltaMS(lastWorkListUpdateTime_, currentTime) >= kWatchdogThreadSleepMillis &&
+                computeDeltaMS(lastTimePollStore, currentTime) >= coordCheckIntervalMilSec_) {
+                lastTimePollStore = currentTime;
+                // Wrap globalStore_->check() in a try-catch block to avoid crashing if
+                // the store is not available.
+                bool checkExceptionDump = false;
+                try {
+                    checkExceptionDump =
+                        globalStore_->check({std::string(EXCEPTION_DUMP)});
+                } catch (const std::exception &e) {
+                    LOG(ERROR)
+                        << logPrefix()
+                        << "Failed to get exception dump flag from the global store."
+                        << e.what();
+                    break;
+                }
+                if (checkExceptionDump) {
+                    int timeOutRank = -1;
+                    if (!shouldDump_.load()) {
+                        LOG(ERROR)
+                            << logPrefix()
+                            << "First PG on this rank detecting the dump signal through tcpstore.";
+                    }
+                    shouldDump_.store(true);
+                    try {
+                        auto vec = globalStore_->get(std::string(EXCEPTION_DUMP));
+                        TORCH_CHECK_WITH(
+                            DistBackendError,
+                            vec.size() == sizeof(int),
+                            "Invalid size for the timeout rank ID");
+                        std::memcpy(&timeOutRank, vec.data(), vec.size());
+                    } catch (const std::exception &e) {
+                        LOG(ERROR) << logPrefix()
+                                   << "Failed to get timeout rank ID from the global store."
+                                   << e.what();
+                    }
+                    errorMsg = c10::str(
+                        logPrefix(),
+                        "Received a global dump signal from rank ",
+                        timeOutRank,
+                        ", and will start to dump the debug info. ",
+                        "Last enqueued HCCL work: ",
+                        pgStatus_.lastEnqueuedSeq,
+                        ", last completed HCCL work: ",
+                        pgStatus_.lastCompletedSeq,
+                        ".");
+                    exitMsg = c10::str(
+                        "ProcessGroupHCCL's watchdog detected a dump signal from rank ",
+                        timeOutRank,
+                        " and notified the current rank. ",
+                        "This is most likely caused by incorrect usages of collectives, e.g., wrong ",
+                        "sizes used across ranks, the order of collectives is not same for all ranks ",
+                        "or the scheduled collective, for some reason, didn't run. Additionally, ",
+                        "this can be caused by GIL deadlock or other reasons such as network errors or ",
+                        "bugs in the communications library (e.g. HCCL), etc. We tried our best to ",
+                        "dump the debug info into the storage to help you debug the issue.");
+                    break;
+                }
+            }
+        }
+
+        if (computeDeltaMS(lastTimeHeartBeatCheck, currentTime) >=
+            heartbeatTimeoutInSec_ * 1000) {
+            // Check the heart beat of watchdog thread.
+            lastTimeHeartBeatCheck = currentTime;
+            auto heartbeat = heartbeat_.load();
+            if (heartbeat != heartBeatCounter) {
+                heartBeatCounter = heartbeat;
+            } else {
+                if (!shouldDump_.load()) {
+                    LOG(ERROR)
+                        << logPrefix()
+                        << "First PG on this rank that detected no heartbeat of its watchdog.";
+                }
+                shouldDump_.store(true);
+                // No heartbeat increase detected and timeout.
+                errorMsg = c10::str(
+                    logPrefix(),
+                    "Heartbeat monitor timed out! Process will be terminated after dumping debug info.",
+                    " workMetaList_.size()=",
+                    workMetaList_.size());
+                exitMsg = c10::str(
+                    "ProcessGroupHCCL's watchdog got stuck for ",
+                    heartbeatTimeoutInSec_,
+                    " seconds without making progress in monitoring enqueued collectives. ",
+                    "This typically indicates a HCCL/CUDA API hang blocking the watchdog, ",
+                    "and could be triggered by another thread holding the GIL inside a ",
+                    "CUDA api, or other deadlock-prone behaviors.",
+                    "If you suspect the watchdog is not actually stuck and a longer timeout would help, ",
+                    "you can either increase the timeout (TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC) to a larger value "
+                    "or disable the heartbeat monitor (TORCH_HCCL_ENABLE_MONITORING=0)."
+                    "If either of aforementioned helps, feel free to file an issue to PyTorch about the short timeout "
+                    "or false positive abort; otherwise, please attempt to debug the hang. "
+                    "workMetaList_.size() = ",
+                    workMetaList_.size(),
+                    "");
+                break;
+            }
+        }
+        // process a request to dump the trace. only PG uid 0 will respond to dump
+        // requests, but this is fine since all PG's feed into the same flight
+        // recorder and dump. After dump, the training should continue.
+        if (dumpPipe.has_value() && dumpPipe->shouldDump()) {
+            // best effort dump, not waiting for the dump here
+            std::future<bool> fut = std::async(
+                std::launch::async, [this]() {
+                    return this->dumpDebuggingInfo();
+                });
+        }
+    }
+    LOG(ERROR) << errorMsg;
+
+    auto &cpp_dumper = get_cpp_trace_dumper();
+    if (cpp_dumper.has_value()) {
+        LOG(INFO) << "Dumping c++ stacktraces:";
+        cpp_dumper.value()([](const std::string &line) {
+            LOG(ERROR) << line;
+        });
+    }
+
+    if (checkDumpSignal && shouldDump_.load()) {
+        // Store debug info to storage if no other thread does it. (By default to
+        // local disk)
+        std::future<bool> asyncDebugDump = std::async(
+            std::launch::async,
+            [this]() {
+                return this->dumpDebuggingInfo();
+            });
+
+        // wait for the dump until timeout
+        waitForFutureOrTimeout(
+            asyncDebugDump,
+            std::chrono::milliseconds(waitTimeoutDumpInMilSec_),
+            "Flight recorder dump in heartbeatMonitor");
+    }
+
+    if (get_gil_checker() != nullptr) {
+        auto fut = launchAsyncGilCheck();
+        auto kGilCheckTimeout = std::chrono::milliseconds(300);
+        auto futStatus = fut.wait_for(kGilCheckTimeout);
+        if (futStatus != std::future_status::ready) {
+            TORCH_CHECK(
+                futStatus != std::future_status::deferred,
+                "Expected the future to have been launched eagerly.");
+            LOG(ERROR)
+                << "Could not acquire GIL within 300 ms on exit, possible GIL induced hang";
+        }
+        LOG(INFO) << "Could acquire GIL on exit";
+    } else {
+        LOG(INFO)
+            << "GIL checker was not registered, perhaps this is a no-python build?";
+    }
+
+    // There are two possible cases for the watchdog thread exit:
+    // Case one: desync report runs quickly, and it follows the step:
+    // collective timeout -> desync -> exception handling -> destructors
+    // -> set terminateHeartbeatMonitorThread_ -> notify monitorWakeUpCV_.
+    // So the code either early returns above or will skip the sleep below.
+    // Case two: desync might be slow or get stuck. Or we get stuck in
+    // destructors, we will sleep for some time before calling std::abort() to
+    // kill the whole process.
+    if ((terminateProcessGroup_.load() || collectiveDebugInfoMode_.load() ||
+         shouldDump_.load()) &&
+        !terminateHeartbeatMonitorThread_.load()) {
+        // Leave another two mins for desync report generation or process group
+        // destroy.
+        std::this_thread::sleep_for(std::chrono::seconds(heartbeatTimeoutInSec_));
+    }
+
+    // At this point, we either already sleep for another `heartbeatTimeoutInSec_`
+    // or the thread has finished. Because we don't want to block the monitor
+    // thread, so We mark the thread detach and the dump of debug info becomes
+    // "best effort". If the process exit normally, marking it detach also makes
+    // sense because we don't really care about dumping the debug info.
+
+    // We already log completion inside the thread, so it may not be necessary to
+    // check the return value here.  We mainly use a future so we can exit early
+    // if done.
+
+    if (!terminateHeartbeatMonitorThread_.load()) {
+        // Create a error message reported from MonitorThread, so
+        // we throw exception and make the whole process to be killed.
+        // After having a hang debug wiki, we need to update the wiki
+        // url here.
+        const auto finalExitMsg = c10::str(logPrefix(), exitMsg);
+        if (monitorThreadEnabled_.load()) {
+            terminateProcess(finalExitMsg);
+        } else {
+            LOG(ERROR)
+                << "PGHCCL Monitor Thread is disabled, but would have killed this job:\n"
+                << finalExitMsg;
+        }
+    }
+}
+
 void ProcessGroupHCCL::hcclCommWatchdog()
 {
     try {
         c10_npu::SetThreadName(c10_npu::ThreadType::hcclCommWatchdogThread);
 
         VLOG(2) << "[Rank " << rank_ << "] HCCL watchdog thread started!";
+        hcclHeartbeatMonitorThread_ = std::thread(&ProcessGroupHCCL::heartbeatMonitor, this);
         workCleanupLoop();
         VLOG(2) << "[Rank " << rank_
                 << "] HCCL watchdog thread terminated normally";
@@ -846,6 +1332,25 @@ void ProcessGroupHCCL::logWorkEnd(WorkHCCL& work)
 
     storeError_ = !c10d::traceUpdate(store_, traceKeyEnd_, work.seq_, opTypeToString(work.opType_));
 }
+  
+std::string ProcessGroupHCCL::createLogPrefix() const
+{
+    if (!pg_desc_.empty() && pg_desc_ != "undefined") {
+        return c10::str("[PG ", pg_name_, " (", pg_desc_, ") Rank ", rank_, "] ");
+    }
+    return c10::str("[PG ", pg_name_, " Rank ", rank_, "] ");
+}
+
+const std::string &ProcessGroupHCCL::logPrefix() const
+{
+    return logPrefix_;
+}
+
+const int &ProcessGroupHCCL::globalRank() const
+{
+    static int globalRank = rank_;
+    return globalRank;
+}
 
 const std::vector<uint32_t>& ProcessGroupHCCL::groupRanks() const
 {
@@ -896,6 +1401,32 @@ void ProcessGroupHCCL::workCleanupLoop()
 
             // If work hits an exception (either an error or timeout)
             if (work.exception()) {
+                // try to dump flight records if exception happens.
+                // Flight recorder behavior should be independent of desync Debug
+                if (dumpOnException_) {
+                    try {
+                        auto rank = globalRank();
+                        auto vec = std::vector<uint8_t>(
+                            reinterpret_cast<uint8_t *>(&rank),
+                            reinterpret_cast<uint8_t *>(&rank) + sizeof(rank));
+                        globalStore_->set(std::string(EXCEPTION_DUMP), vec);
+                        if (!shouldDump_.load()) {
+                            LOG(ERROR) << logPrefix()
+                                       << "First watchdog to set the dump signal.";
+                        }
+                        // signal the monitor thread to start dumping
+                        shouldDump_.store(true);
+                        // This sleep is used to give time for dumping before throwing
+                        // exception
+                        std::this_thread::sleep_for(
+                            std::chrono::seconds(heartbeatTimeoutInSec_));
+                    } catch (const std::exception &e) {
+                        LOG(ERROR) << logPrefix()
+                                   << "Failed to set dump signal in tcpstore. "
+                                   << "Error: " << e.what();
+                    }
+                }
+
                 // Report desync state in case of timeout
                 if (desyncDebug_ && timedOut) {
                     try {
@@ -930,11 +1461,16 @@ void ProcessGroupHCCL::workCleanupLoop()
                     work.is_reported = false;
                 }
                 it = workMetaList_.erase(it);
+                HCCLTraceBuffer::get()->retire_id(work.trace_id_, true);
             } else {
                 // Increment the iterator if the current WorkHCCL object is not
                 // completed.
                 ++it;
             }
+
+            // Increment heartbeat after each work processed,
+            // in case processing is slowed down (but not hung) by cuda api contention
+            heartbeat_++;
         }
     }
     if (terminateProcessGroup_.load()) {
@@ -1119,6 +1655,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
             return devHCCLCommMap_[devicesKey];
         }
     }
+    HCCLTraceBuffer::get()->record_pg_ranks(std::make_tuple(pg_name_, pg_desc_), groupRanks());
     return createHCCLComm(devicesKey, devices, commType, commConfig, p2pRank);
 }
 
@@ -1495,12 +2032,45 @@ void nslb_record_end()
 c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
     std::vector<at::Device> devices,
     int rank,
-    c10d::OpType opType)
+    c10d::OpType opType,
+    const char* profilingTitle,
+    const std::vector<at::Tensor>& inputs,
+    const std::vector<at::Tensor>& outputs,
+    bool record)
 {
     if (devices.size() != 1) {
         throw std::runtime_error("ProcessGroupHCCL support one device per process only" + DIST_ERROR(ErrCode::NOT_SUPPORT));
     }
-    return c10::make_intrusive<ProcessGroupHCCL::WorkHCCL>(devices, rank, opType, seq_, desyncDebug_);
+    auto r = c10::make_intrusive<ProcessGroupHCCL::WorkHCCL>(devices, rank, opType, seq_, desyncDebug_);
+    if (record) {
+        bool isP2P = c10d::isP2POp(opType);
+        // Ideally record every work that we enqueue, rather than every work we
+        // create.
+        // - at the time of this PR we do not currently enqueue every created work
+        // - but it is unsafe to steal refs to start/end cuda events from Works that
+        //   may go out of scope before flight recorder has retired them,
+        //   so we must ensure that any work that is initialized via initWork will
+        //   be enqueued
+        // - initially, moved record() into workEnqueue(), but found that makes it
+        //   hard to get access to profilingTitle,
+        //   inputs, and outputs for metadata recording, and we don't want to attach
+        //   these objects to the Work becuase it has implications for keeping those
+        //   tensors alive longer and adds overhead when copying Work objects
+        //   between threads
+        r->trace_id_ = HCCLTraceBuffer::get()->record(
+            uid_,
+            std::make_tuple(pg_name_, pg_desc_),
+            seqCollective_,
+            seqP2P_,
+            seq_,
+            profilingTitle ? profilingTitle : "",
+            inputs,
+            outputs,
+            desyncDebug_? &((*(r->hcclStartEvents_))[0]) : nullptr,
+            &((*(r->hcclEndEvents_))[0]),
+            isP2P);
+    }
+    return r;
 }
 
 void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> work)
@@ -1761,6 +2331,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     c10d::OpType opType)
 {
     // Bump collective counter
+    seqCollective_++;
     seq_++;
 
     const auto devices = getDeviceList(inputs);
@@ -1778,7 +2349,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     // First let HCCL streams wait for input tensors allocation streams
     syncStreams(devices, hcclEvents_[key], hcclStreams);
     // Work itself will create the events on all NPUs of tensors
-    auto work = initWork(devices, rank_, opType);
+    auto work = initWork(devices, rank_, opType, "", inputs, outputs, true);
     // Store references to outputs to be used by WorkHCCL::result and operator<<.
     work->outputs_ = std::make_shared<std::vector<at::Tensor>>(outputs);
     
@@ -1946,13 +2517,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
 
     // Bump the logical operation counter regardless of whether this op is
     // coalesced or individual
+    seqP2P_++;
     seq_++;
 
     // First let HCCL streams wait for input tensors allocation streams
     syncStreams(devices, hcclEvents_[key], hcclStreams_[key]);
 
     // Work itself will create the CUDA events on all GPUs of tensors
-    auto work = initWork(devices, rank_, opType);
+    auto work = initWork(devices, rank_, opType, "", tensors, tensors, true);
     // This bypasses something in Work() that crashes if {tensor} is given as
     // output, not sure what
     work->outputs_ = std::make_shared<std::vector<at::Tensor>>(tensors);
