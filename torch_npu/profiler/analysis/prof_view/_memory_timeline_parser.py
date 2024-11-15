@@ -1001,6 +1001,10 @@ class MemoryProfileTimeline:
         """
         # Get memory timeline data in specified device.
         timestamps, sizes_by_category = self._construct_timeline(device_str)
+        if not timestamps:
+            print_error_msg("No memory timeline data.")
+            return
+        
         realpath = ProfilerPathManager.get_realpath(output_path)
         if output_path.endswith(".gz"):
             FileManager.create_json_gz_file_by_path(realpath, [timestamps, sizes_by_category])
@@ -1029,6 +1033,10 @@ class MemoryProfileTimeline:
             elif action == Action.DESTROY:
                 raw_events.append((ts, _ACTION_TO_INDEX[action], -numbytes, self._get_category_index(key, version)))
         
+        if not raw_events:
+            print_error_msg("No memory timeline data.")
+            return
+        
         realpath = ProfilerPathManager.get_realpath(output_path)
         FileManager.create_json_gz_file_by_path(realpath, raw_events)
 
@@ -1038,11 +1046,12 @@ class MemoryProfileTimeline:
         """
         # Get memory timeline data.
         timestamps, sizes_by_category = self._construct_timeline(device_str)
+        if not timestamps:
+            print_error_msg("No memory timeline data.")
+            return
+        
         timestamps = np.array(timestamps)
         sizes_by_category = np.array(sizes_by_category)
-        if len(timestamps) == 0:
-            print_error_msg("No profiling data.")
-            return
         
         ts_min = min(timestamps)
         timestamps -= ts_min                                                # For this timeline, start at 0.
