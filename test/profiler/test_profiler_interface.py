@@ -4,8 +4,11 @@ from unittest import mock
 
 import torch
 
+from torch_npu.npu import Event
 from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.profiler.profiler_interface import _ProfInterface
+from torch_npu.profiler.profiler_interface import _enable_event_record
+from torch_npu.profiler.profiler_interface import _disable_event_record
 from torch_npu.profiler._profiler_path_creator import ProfPathCreator
 from torch_npu.profiler import supported_activities
 from torch_npu._C._profiler import ProfilerActivity
@@ -74,6 +77,20 @@ class TestActionController(TestCase):
         self.assertEqual(2, len(activities))
         self.assertTrue(ProfilerActivity.CPU in activities)
         self.assertTrue(ProfilerActivity.NPU in activities)
+
+    def test_event_record_should_have_return_true_attr_when_enable_record(self):
+        _enable_event_record()
+        self.assertTrue(hasattr(Event.record, "origin_func"))
+        self.assertTrue(hasattr(Event.wait, "origin_func"))
+        self.assertTrue(hasattr(Event.query, "origin_func"))
+        self.assertTrue(hasattr(Event.elapsed_time, "origin_func"))
+        self.assertTrue(hasattr(Event.synchronize, "origin_func"))
+        _disable_event_record()
+        self.assertFalse(hasattr(Event.record, "origin_func"))
+        self.assertFalse(hasattr(Event.wait, "origin_func"))
+        self.assertFalse(hasattr(Event.query, "origin_func"))
+        self.assertFalse(hasattr(Event.elapsed_time, "origin_func"))
+        self.assertFalse(hasattr(Event.synchronize, "origin_func"))
 
     def _check_profiler_info_json(self, prof_path: str) -> bool:
         if torch.distributed.is_available() and torch.distributed.is_initialized():
