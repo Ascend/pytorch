@@ -13,17 +13,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import warnings
+import functools
 import torch_npu._C
+from torch_npu.utils import print_error_log
 
 __all__ = ["mstx"]
 
 
+def _no_exception_func(default_ret=None):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                result = func(*args, **kwargs)
+            except Exception as ex:
+                print_error_log(f"Call {func.__name__} failed. Exception: {str(ex)}")
+                return default_ret
+            return result
+        return wrapper
+    return decorator
+
+
 class mstx:
     @staticmethod
+    @_no_exception_func()
     def mark(message:str = ""):
         torch_npu._C._mark(message)
 
     @staticmethod
+    @_no_exception_func()
     def range_start(message: str, stream=None) -> int:
         if not message:
             warnings.warn("Invalid message for mstx.range_start func. Please input valid message string.")
@@ -39,6 +57,7 @@ class mstx:
             return torch_npu._C._mstx._range_start_on_host(message)
 
     @staticmethod
+    @_no_exception_func()
     def range_end(range_id: int):
         if not isinstance(range_id, int):
             warnings.warn("Invalid message for mstx.range_start func. Please input return value from mstx.range_start.")
@@ -46,6 +65,7 @@ class mstx:
         torch_npu._C._mstx._range_end(range_id)
 
     @staticmethod
+    @_no_exception_func()
     def mstx_range(message: str, stream=None):
         def wrapper(func):
             def inner(*args, **kargs):
