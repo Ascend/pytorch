@@ -31,6 +31,7 @@ class Str2IdManager:
             return data
         for k, v in self._str_id_map.items():
             data.append([v, k])
+        self._str_id_map.clear()
         return data
 
 
