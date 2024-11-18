@@ -1,5 +1,6 @@
 import os
 import time
+import functools
 from typing import Optional, Iterable, Callable, Dict
 
 import torch
@@ -17,6 +18,7 @@ from torch_npu._C._profiler import (
     _get_monotonic
 )
 from torch_npu.npu import _lazy_init
+from torch_npu.npu import Event
 
 from ._profiler_path_creator import ProfPathCreator
 from ._profiler_gc_detect import ProfGCDetector
@@ -32,6 +34,32 @@ from ..utils.path_manager import PathManager
 from .analysis.prof_common_func._cann_package_manager import CannPackageManager
 
 __all__ = ['supported_activities']
+
+
+def _enable_event_record():
+    def record_wrapper(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            with torch.profiler.record_function(f"Event::{func.__name__}"):
+                out = func(*args, **kwargs)
+                return out
+
+        wrapper.origin_func = func
+        return wrapper
+
+    Event.record = record_wrapper(Event.record)
+    Event.wait = record_wrapper(Event.wait)
+    Event.query = record_wrapper(Event.query)
+    Event.elapsed_time = record_wrapper(Event.elapsed_time)
+    Event.synchronize = record_wrapper(Event.synchronize)
+
+
+def _disable_event_record():
+    Event.record = getattr(Event.record, "origin_func", Event.record)
+    Event.wait = getattr(Event.wait, "origin_func", Event.wait)
+    Event.query = getattr(Event.query, "origin_func", Event.query)
+    Event.elapsed_time = getattr(Event.elapsed_time, "origin_func", Event.elapsed_time)
+    Event.synchronize = getattr(Event.synchronize, "origin_func", Event.synchronize)
 
 
 class _ProfInterface:
@@ -81,12 +109,14 @@ class _ProfInterface:
             self.freq = _get_freq()
             self.start_cnt = _get_syscnt()
         self.start_monotonic = _get_monotonic()
+        _enable_event_record()
         _start_profiler(npu_prof_config, self.activities)
         self.start_gc_detect()
 
     def stop_trace(self):
         _stop_profiler()
         self.stop_gc_detect()
+        _disable_event_record()
 
     def finalize_trace(self):
         _finalize_profiler()
