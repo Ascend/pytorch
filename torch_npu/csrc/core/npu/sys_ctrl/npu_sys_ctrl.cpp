@@ -190,6 +190,10 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     if (init_flag_) {
         return INIT_SUCC;
     }
+    std::lock_guard<std::mutex> lock(init_mutex_);
+    if (init_flag_) {
+        return INIT_SUCC;
+    }
     std::string json_path = GetAclConfigJsonPath();
     const char *json_path_ptr = json_path == "" ? nullptr : json_path.c_str();
     ASCEND_LOGD("get acl json path:%s.", json_path_ptr);
