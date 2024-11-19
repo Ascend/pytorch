@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <mutex>
 #include "c10/macros/Export.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
@@ -78,6 +79,7 @@ private:
     int device_id_;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
     std::vector<std::pair<option::OptionCallBack, std::string>> lazy_fn_;
+    std::mutex init_mutex_;
 };
 
 aclError SetCurrentDevice();
