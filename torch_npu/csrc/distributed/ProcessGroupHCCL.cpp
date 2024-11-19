@@ -714,7 +714,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     logPrefix_ = createLogPrefix();
     dumpOnException_ = getCvarBool(TORCH_HCCL_DUMP_ON_TIMEOUT, false);
     heartbeat_ = 1ULL;
-    monitorThreadEnabled_.store(getCvarBool(TORCH_HCCL_ENABLE_MONITORING, true));
+    monitorThreadEnabled_.store(getCvarBool(TORCH_HCCL_ENABLE_MONITORING, false));
     hcclTraceBufferSize_ = getCvarInt(TORCH_HCCL_TRACE_BUFFER_SIZE, 0);
     heartbeatTimeoutInSec_ = getCvarInt(TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC, 60 * 10);  // 10 Mins
     waitTimeoutDumpInMilSec_ = getCvarInt(TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC, 60 * 1000);  // 60 Sec
@@ -893,16 +893,6 @@ void ProcessGroupHCCL::shutdown(c10::optional<std::string> reason)
     // potentially block and hence avoid it in this method.
     terminateProcessGroup_.store(true);
     workMetaListCV_.notify_one();
-
-    // lauch abort asynchrounously and wait for it to complete or timeout
-    LOG(INFO) << logPrefix()
-              << "Launching ProcessGroupHCCL abort asynchrounously.";
-    std::future<bool> fut = std::async(std::launch::async, [this, &reason]() {
-        return this->abort(reason);
-    });
-
-    waitForFutureOrTimeout(fut, options_->timeout, "ProcessGroup abort", true);
-    LOG(INFO) << logPrefix() << "ProcessGroupHCCL aborts successfully.";
 
     // We need to wait for abort to finish before we can safely shut down
     // heartbeat monitoring thread.
@@ -1280,7 +1270,9 @@ void ProcessGroupHCCL::hcclCommWatchdog()
         c10_npu::SetThreadName(c10_npu::ThreadType::hcclCommWatchdogThread);
 
         VLOG(2) << "[Rank " << rank_ << "] HCCL watchdog thread started!";
-        hcclHeartbeatMonitorThread_ = std::thread(&ProcessGroupHCCL::heartbeatMonitor, this);
+        if (monitorThreadEnabled_.load()) {
+            hcclHeartbeatMonitorThread_ = std::thread(&ProcessGroupHCCL::heartbeatMonitor, this);
+        }
         workCleanupLoop();
         VLOG(2) << "[Rank " << rank_
                 << "] HCCL watchdog thread terminated normally";
