@@ -656,7 +656,9 @@ aclError AclrtSynchronizeDeviceWithTimeout(void)
     if (func != nullptr) {
         return func(timeout);
     } else {
-        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtSynchronizeDeviceWithTimeout");
+        if (timeout > 0) {
+            TORCH_NPU_WARN_ONCE("The ACL_DEVICE_SYNC_TIMEOUT does not take effect. If you want to enable this env, please upgrade CANN to the matching version.");
+        }
         typedef aclError (*AclrtSynchronizeDevice)(void);
         static AclrtSynchronizeDevice func_backup = nullptr;
         if (func_backup == nullptr) {
