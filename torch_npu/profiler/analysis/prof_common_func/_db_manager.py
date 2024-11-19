@@ -37,7 +37,7 @@ class DbManager:
             FileManager.check_db_file_vaild(db_path)
         try:
             # timeout set int max to avoid database is locked error.
-            conn = sqlite3.connect(db_path, timeout=2147483)
+            conn = sqlite3.connect(db_path, timeout=2147483, check_same_thread=False)
         except sqlite3.Error as err:
             return EmptyClass("emoty conn"), EmptyClass("empty curs")
         
