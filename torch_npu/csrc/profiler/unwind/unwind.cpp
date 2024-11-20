@@ -342,14 +342,7 @@ c10::optional<std::pair<std::string, uint64_t> > libraryFor(void* addr)
 struct Symbolizer {
     Symbolizer()
     {
-        auto envar = std::getenv("TORCH_ADDR2LINE_BINARY");
-        if (envar != nullptr) {
-            // currently we take user's input as is without checking
-            addr2line_binary_ = envar;
-            TORCH_WARN("Use custom addr2line binary: ", addr2line_binary_);
-        } else {
-            addr2line_binary_ = "addr2line"; // default
-        }
+        addr2line_binary_ = "addr2line"; // default
     }
     static std::lock_guard<std::mutex> guard()
     {
