@@ -32,7 +32,7 @@ from torch.testing._internal.common_modules import modules, module_db, ModuleInf
 from torch.testing._internal.opinfo.core import SampleInput, DecorateInfo, OpInfo
 
 
-# For testing TestCase methods and torch.testing functions  
+# For testing TestCase methods and torch.testing functions
 class TestTesting(TestCase):
     # Ensure that assertEqual handles numpy arrays properly
     @dtypes(*all_types_and_complex_and(torch.bool, torch.half))
