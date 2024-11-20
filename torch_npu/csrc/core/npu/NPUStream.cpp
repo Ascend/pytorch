@@ -540,13 +540,6 @@ bool NPUStream::getRepoStopFlag()
     return ptr->is_repo_stop;
 }
 
-void NPUStream::setSyncLaunchStream(bool is_sync_launch)
-{
-    auto ptr = NPUStream_internals(*this);
-    AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
-    ptr->is_sync_launch = is_sync_launch;
-}
-
 bool NPUStream::isSyncLaunchStream() const
 {
     auto ptr = NPUStream_internals(*this);
@@ -596,6 +589,7 @@ static void initDeviceSyncLaunchStream(c10::DeviceIndex device_index)
         auto& sync_streami = sync_launch_streams[device_index][i];
 
         sync_streami.device_index = device_index;
+        sync_streami.is_sync_launch = true;
 
         NPU_CHECK_SUPPORTED_OR_ERROR(
             acl::AclrtCreateStreamWithConfig(&sync_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
@@ -604,6 +598,8 @@ static void initDeviceSyncLaunchStream(c10::DeviceIndex device_index)
 
 NPUStream getNPUStreamFromSyncLaunchPool(c10::DeviceIndex device_index)
 {
+    // in order to init num_npus
+    initNPUStreamsOnce();
     if (device_index == -1) {
         device_index = current_device();
     }
