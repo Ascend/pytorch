@@ -17,3 +17,4 @@ torch_geometric==2.5.3
 torch-scatter==2.1.2
 torchvision==0.18.1 
 transformers==4.40.0
+pytest==8.1.1
