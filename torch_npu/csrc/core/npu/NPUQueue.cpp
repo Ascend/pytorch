@@ -6,6 +6,7 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/NPUEventManager.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -368,6 +369,7 @@ bool Repository::ReadQueue()
             SetStatus(ERROR_EXIT);
         }
         ClearQueue();
+        c10_npu::NPUEventManager::GetInstance().ClearUnrecordedCount();
         return false;
     }
 
@@ -499,6 +501,7 @@ void Repository::Dequeue() {
   while (ret == false && GetStatus() != RepoStatus::CAN_EXIT) {
     if (GetStatus() == RepoStatus::STOP_EXIT) {
         ClearQueue();
+        c10_npu::NPUEventManager::GetInstance().ClearUnrecordedCount();
         std::this_thread::sleep_for(std::chrono::microseconds(1000));
         continue;
     }
