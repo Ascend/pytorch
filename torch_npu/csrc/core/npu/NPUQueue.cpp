@@ -282,7 +282,10 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
                                     "The process exits for this inner error, and " + repo_error + ".\n" +
                                     "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
                                     "If you want to get the accurate stacktrace, "
-                                    "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." +
+                                    "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
+                                    "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
+                                    "resulting in performance degradation. "
+                                    "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
                                     PTA_ERROR(ErrCode::ACL));
         } else {
             ASCEND_LOGE("Inner error happend, detail: %s", repo_error);
@@ -406,7 +409,10 @@ void Repository::Enqueue(void* cur_paras) {
                              "The process exits for this inner error, and " + repo_error + ".\n" +
                              "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
                              "If you want to get the accurate stacktrace, "
-                             "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." +
+                             "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
+                             "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
+                             "resulting in performance degradation. "
+                             "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
                              PTA_ERROR(ErrCode::ACL));
   }
 
