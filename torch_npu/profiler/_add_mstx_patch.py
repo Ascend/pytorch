@@ -3,10 +3,6 @@ import torch
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
-import torch_npu
-from torch_npu.utils._step import _custom_call
-
-original_tx_call = Module.__call__
 original_iter = DataLoader.__iter__
 original_save = torch.serialization.save
 original_singlenext = torch.utils.data.dataloader._SingleProcessDataLoaderIter.__next__
@@ -106,10 +102,5 @@ def _custom_save(func):
 
 
 def apply_mstx_patch():
-    global original_tx_call
-
-    if Module.__call__.__name__ == "_custom_call":
-        original_tx_call = _custom_call
-    Module.__call__ = _custom_tx_call
     DataLoader.__iter__ = _custom_dataloader_iter
     torch.serialization.save = _custom_save(original_save)
