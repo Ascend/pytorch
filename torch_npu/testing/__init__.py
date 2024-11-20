@@ -21,56 +21,58 @@ from torch_npu.testing._npu_testing_utils import update_skip_list, get_decorator
 __all__ = []
 
 
-def _filter_json(data):
-    return {key: val for key, val in data.items() if len(val) > 1 and not(val[1] and "A2" in val[1])}
+def _get_tests_dict():
 
+    def _filter_json(data):
+        return {key: val for key, val in data.items() if len(val) > 1 and not(val[1] and "A2" in val[1])}
 
-def _is_910A():
-    device_name = torch_npu.npu.get_device_name(0)
-    if "Ascend910A" in device_name or "Ascend910P" in device_name:
-        return True
-    return False
+    def _is_910A():
+        device_name = torch_npu.npu.get_device_name(0)
+        if "Ascend910A" in device_name or "Ascend910P" in device_name:
+            return True
+        return False
 
+    def _load_disabled_json(filename):
+        if os.path.isfile(filename):
+            with open(filename) as fp0:
+                if _is_910A():
+                    disabled_dict = json.load(fp0, object_hook=_filter_json)
+                else:
+                    disabled_dict = json.load(fp0)
+                return disabled_dict
+        warnings.warn("Attempted to load json file '%s' but it does not exist.", filename)
+        return {}
 
-def _load_disabled_json(filename):
-    if os.path.isfile(filename):
-        with open(filename) as fp0:
-            if _is_910A():
-                disabled_dict = json.load(fp0, object_hook=_filter_json)
-            else:
-                disabled_dict = json.load(fp0)
-            return disabled_dict
-    warnings.warn("Attempted to load json file '%s' but it does not exist.", filename)
-    return {}
+    # import test files
+    disabled_tests_dict = {}
+    slow_tests_dict = {}
+    # set them here in case the tests are running in a subprocess that doesn't call run_tests
+    if os.getenv("SLOW_TESTS_FILE", ""):
+        slow_tests_dict = maybe_load_json(os.getenv("SLOW_TESTS_FILE", ""))
+    if os.getenv("DISABLED_TESTS_FILE", ""):
+        disabled_tests_dict = _load_disabled_json(os.getenv("DISABLED_TESTS_FILE", ""))
+    if SLOW_TESTS_FILE:
+        if os.path.exists(SLOW_TESTS_FILE):
+            with open(SLOW_TESTS_FILE) as fp:
+                slow_tests_dict = json.load(fp)
+                # use env vars so pytest-xdist subprocesses can still access them
+                os.environ['SLOW_TESTS_FILE'] = SLOW_TESTS_FILE
+        else:
+            warnings.warn(f'slow test file provided but not found: {SLOW_TESTS_FILE}')
 
+    if DISABLED_TESTS_FILE:
+        if os.path.exists(DISABLED_TESTS_FILE):
+            disabled_tests_dict = _load_disabled_json(DISABLED_TESTS_FILE)
+            os.environ['DISABLED_TESTS_FILE'] = DISABLED_TESTS_FILE
+        else:
+            warnings.warn(f'disabled test file provided but not found: {DISABLED_TESTS_FILE}')
 
-# import test files
-disabled_tests_dict = {}
-slow_tests_dict = {}
-# set them here in case the tests are running in a subprocess that doesn't call run_tests
-if os.getenv("SLOW_TESTS_FILE", ""):
-    slow_tests_dict = maybe_load_json(os.getenv("SLOW_TESTS_FILE", ""))
-if os.getenv("DISABLED_TESTS_FILE", ""):
-    disabled_tests_dict = _load_disabled_json(os.getenv("DISABLED_TESTS_FILE", ""))
-if SLOW_TESTS_FILE:
-    if os.path.exists(SLOW_TESTS_FILE):
-        with open(SLOW_TESTS_FILE) as fp:
-            slow_tests_dict = json.load(fp)
-            # use env vars so pytest-xdist subprocesses can still access them
-            os.environ['SLOW_TESTS_FILE'] = SLOW_TESTS_FILE
-    else:
-        warnings.warn(f'slow test file provided but not found: {SLOW_TESTS_FILE}')
-
-
-if DISABLED_TESTS_FILE:
-    if os.path.exists(DISABLED_TESTS_FILE):
-        disabled_tests_dict = _load_disabled_json(DISABLED_TESTS_FILE)
-        os.environ['DISABLED_TESTS_FILE'] = DISABLED_TESTS_FILE
-    else:
-        warnings.warn(f'disabled test file provided but not found: {DISABLED_TESTS_FILE}')
+    return disabled_tests_dict, slow_tests_dict
 
 
 def _check_if_enable_npu(test: unittest.TestCase):
+    disabled_tests_dict, slow_tests_dict = _get_tests_dict()
+
     classname = str(test.__class__).split("'")[1].split(".")[-1]
     sanitized_testname = remove_device_and_dtype_suffixes(test._testMethodName)
 

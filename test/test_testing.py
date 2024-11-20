@@ -34,7 +34,7 @@ class TestTesting(TestCase):
     # Ensure that assertEqual handles numpy arrays properly
     @dtypes(*all_types_and_complex_and(torch.bool, torch.half))
     def test_assertEqual_numpy(self, device, dtype):
-        S = 10
+        S = 10  
         test_sizes = [
             (),
             (0,),
