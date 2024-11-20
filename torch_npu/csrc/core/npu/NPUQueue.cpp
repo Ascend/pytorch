@@ -285,7 +285,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
                                     "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
                                     "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
                                     "resulting in performance degradation. "
-                                    "Remember to unset ASCEND_LAUNCH_BLOCKING in time after debugging" +
+                                    "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
                                     PTA_ERROR(ErrCode::ACL));
         } else {
             ASCEND_LOGE("Inner error happend, detail: %s", repo_error);
@@ -412,7 +412,7 @@ void Repository::Enqueue(void* cur_paras) {
                              "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
                              "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
                              "resulting in performance degradation. "
-                             "Remember to unset ASCEND_LAUNCH_BLOCKING in time after debugging" +
+                             "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
                              PTA_ERROR(ErrCode::ACL));
   }
 
