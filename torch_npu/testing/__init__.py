@@ -10,9 +10,34 @@ from torch.testing._internal.common_utils import remove_device_and_dtype_suffixe
     IS_SANDCASTLE, TEST_SKIP_FAST, RERUN_DISABLED_TESTS, DISABLED_TESTS_FILE, SLOW_TESTS_FILE, maybe_load_json, \
     TEST_MPS, IS_FBCODE
 from torch.testing._internal.common_dtype import floating_and_complex_types_and
+import torch_npu
 from torch_npu.testing._npu_testing_utils import update_skip_list, get_decorators
 
 __all__ = []
+
+
+def _filter_json(data):
+    return {key: val for key, val in data.items() if len(val) > 1 and not(val[1] and "A2" in val[1])}
+
+
+def _is_910A():
+    device_name = torch_npu.npu.get_device_name(0)
+    if "Ascend910A" in device_name or "Ascend910P" in device_name:
+        return True
+    return False
+
+
+def _load_disabled_json(filename):
+    if os.path.isfile(filename):
+        with open(filename) as fp0:
+            if _is_910A():
+                disabled_dict = json.load(fp0, object_hook=_filter_json)
+            else:
+                disabled_dict = json.load(fp0)
+            return disabled_dict
+    warnings.warn("Attempted to load json file '%s' but it does not exist.", filename)
+    return {}
+
 
 # import test files
 disabled_tests_dict = {}
@@ -21,7 +46,7 @@ slow_tests_dict = {}
 if os.getenv("SLOW_TESTS_FILE", ""):
     slow_tests_dict = maybe_load_json(os.getenv("SLOW_TESTS_FILE", ""))
 if os.getenv("DISABLED_TESTS_FILE", ""):
-    disabled_tests_dict = maybe_load_json(os.getenv("DISABLED_TESTS_FILE", ""))
+    disabled_tests_dict = _load_disabled_json(os.getenv("DISABLED_TESTS_FILE", ""))
 if SLOW_TESTS_FILE:
     if os.path.exists(SLOW_TESTS_FILE):
         with open(SLOW_TESTS_FILE) as fp:
@@ -30,11 +55,12 @@ if SLOW_TESTS_FILE:
             os.environ['SLOW_TESTS_FILE'] = SLOW_TESTS_FILE
     else:
         warnings.warn(f'slow test file provided but not found: {SLOW_TESTS_FILE}')
+
+
 if DISABLED_TESTS_FILE:
     if os.path.exists(DISABLED_TESTS_FILE):
-        with open(DISABLED_TESTS_FILE) as fp:
-            disabled_tests_dict = json.load(fp)
-            os.environ['DISABLED_TESTS_FILE'] = DISABLED_TESTS_FILE
+        disabled_tests_dict = _load_disabled_json(DISABLED_TESTS_FILE)
+        os.environ['DISABLED_TESTS_FILE'] = DISABLED_TESTS_FILE
     else:
         warnings.warn(f'disabled test file provided but not found: {DISABLED_TESTS_FILE}')
 
@@ -51,18 +77,11 @@ def _check_if_enable_npu(test: unittest.TestCase):
         target_testname = target_test_parts[0]
         target_classname = target_test_parts[1][1:-1].split(".")[-1]
 
-        if "_npu" in test._testMethodName:
-            testname_device_replace = test._testMethodName.replace("_npu", "_privateuse1")
-        elif "_privateuse1" in test._testMethodName:
-            testname_device_replace = test._testMethodName.replace("_privateuse1", "_npu")
-        else:
-            testname_device_replace = test._testMethodName
-
         # if test method name or its sanitized version exactly matches the disabled
         # test method name AND allow non-parametrized suite names to disable
         # parametrized ones (TestSuite disables TestSuiteCPU)
         return classname.startswith(target_classname) \
-               and (target_testname in (test._testMethodName, sanitized_testname, testname_device_replace))
+               and (target_testname in (test._testMethodName, sanitized_testname))
 
     if any(matches_test(x) for x in slow_tests_dict.keys()):
         getattr(test, test._testMethodName).__dict__['slow_test'] = True

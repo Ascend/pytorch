@@ -13,6 +13,7 @@ Pillow==10.3.0
 requests==2.32.0
 torch_geometric==2.5.3
 transformers==4.40.0
+pytest==8.1.1
 
 torch-scatter==2.1.2
 torch==2.5.1
