@@ -21,6 +21,7 @@ public:
   void IncreaseUnrecordedCount(aclrtEvent event);
   void DecreaseUnrecordedCount(aclrtEvent event);
   bool IsEventRecorded(aclrtEvent event);
+  void ClearUnrecordedCount();
   ~NPUEventManager() {}
 
 private:
