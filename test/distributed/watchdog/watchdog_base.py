@@ -18,6 +18,7 @@ def main():
     dist.all_reduce(tensor)
     if rank == 0:
         dist.all_reduce(tensor)
+        time.sleep(10)
 
 
 if __name__ == "__main__":
