@@ -243,7 +243,12 @@ def _syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
     )
 
     # Don't sync batchnorm stats in inference mode (model.eval()).
-    need_sync = (bn_training and self.training)
+    need_sync = (
+        bn_training
+        and self.training
+        and torch.distributed.is_available()
+        and torch.distributed.is_initialized()
+    )
     if need_sync:
         process_group = torch.distributed.group.WORLD
         if self.process_group:
