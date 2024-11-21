@@ -123,4 +123,10 @@ bool NPUEventManager::IsEventRecorded(aclrtEvent event)
     return it == event_unrecorded_count_.end();
 }
 
+void NPUEventManager::ClearUnrecordedCount()
+{
+    std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);
+    event_unrecorded_count_.clear();
+}
+
 }  // namespace c10_npu
