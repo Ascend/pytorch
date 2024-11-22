@@ -130,6 +130,18 @@ aclError AclopCompileAndExecuteV2(const char *opType,
  */
 ACL_FUNC_VISIBILITY aclError AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value);
 
+/**
+ * @ingroup AscendCL
+ * @brief set system param option value
+ *
+ * @param aclCompileOpt [IN]      system option
+ * @param value [IN]              value of system option
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value);
+
 
 } // namespace native
 } // namespace at_npu

@@ -395,7 +395,7 @@ private:
 }; // class OpCommandImpls
 
 void SetDeterministic();
-
+void SetDeterministicOps(bool deterministicAlgorithmsStatus);
 static bool deterministicaclnn_oldstatus = false;
 
 } // namespace native

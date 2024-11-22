@@ -96,18 +96,30 @@ void OpCommandImpl::SetEnginePriority()
     }
 }
 
-void SetDeterministic()
+inline void SetDeterministicOption(bool deterministicAlgorithmsStatus)
 {
-    auto deterministicAlgorithmsStatus = at::globalContext().deterministicAlgorithms();
     if (deterministicaclnn_oldstatus != deterministicAlgorithmsStatus) {
         NPU_CHECK_ERROR(
             AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicAlgorithmsStatus ? "1" : "0"));
         NPU_CHECK_ERROR(
             AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministicAlgorithmsStatus ? 1 : 0));
+        NPU_CHECK_ERROR(
+            AclrtSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministicAlgorithmsStatus ? 1 : 0));
         HcclConfigValue configValue = {deterministicAlgorithmsStatus ? 1 : 0};
         HCCL_CHECK_ERROR(hccl::HcclSetConfig(HcclConfig::HCCL_DETERMINISTIC, configValue));
         deterministicaclnn_oldstatus = deterministicAlgorithmsStatus;
     }
+}
+
+void SetDeterministic()
+{
+    auto deterministicAlgorithmsStatus = at::globalContext().deterministicAlgorithms();
+    SetDeterministicOption(deterministicAlgorithmsStatus);
+}
+
+void SetDeterministicOps(bool deterministicAlgorithmsStatus)
+{
+    SetDeterministicOption(deterministicAlgorithmsStatus);
 }
 
 void OpCommandImpl::Run(
@@ -395,9 +407,6 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
     auto cur_paras = static_cast<ExecuteParasOpApi *>(in->paramVal);
     ASCEND_LOGD("Op %s Run.", cur_paras->opType);
     aclError ret;
-    // open the deterministicAlgorithms config
-    SetDeterministic();
-
     ASCEND_LOGD("Exec Op %s with custom handle", cur_paras->opType);
     try {
         ret = cur_paras->customHandler();

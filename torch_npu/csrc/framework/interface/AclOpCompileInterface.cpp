@@ -26,6 +26,7 @@ namespace at_npu
     LOAD_FUNCTION(aclDestroyGraphDumpOpt)
     LOAD_FUNCTION(aclopCompileAndExecuteV2)
     LOAD_FUNCTION(aclrtCtxSetSysParamOpt)
+    LOAD_FUNCTION(aclrtSetSysParamOpt)
 
 aclError AclSetCompileopt(aclCompileOpt opt, const char *value) {
     bool ge_init_disable = c10_npu::option::OptionsManager::CheckGeInitDisable();
@@ -135,6 +136,23 @@ aclError AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value) {
   }
   if (func == nullptr) {
     TORCH_WARN("Failed to find this aclrtCtxSetSysParamOpt function!");
+    return ACL_ERROR_NONE;
+  }
+  auto ret = func(opt, value);
+  return ret;
+}
+
+aclError AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value)
+{
+  typedef aclError (*AclrtSetSysParamOptFunc)(aclSysParamOpt opt, int64_t value);
+  static AclrtSetSysParamOptFunc func = nullptr;
+  if (func == nullptr)
+  {
+    func = (AclrtSetSysParamOptFunc)GET_FUNC(aclrtSetSysParamOpt);
+  }
+  if (func == nullptr)
+  {
+    TORCH_WARN("Failed to find this aclrtSetSysParamOpt function!");
     return ACL_ERROR_NONE;
   }
   auto ret = func(opt, value);
