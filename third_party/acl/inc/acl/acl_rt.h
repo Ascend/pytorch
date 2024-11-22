@@ -415,6 +415,28 @@ ACL_FUNC_VISIBILITY aclError aclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t 
 
 /**
  * @ingroup AscendCL
+ * @brief get system param option value in current process
+ *
+ * @param opt[IN] system option
+ * @param value[OUT] value of system option
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+*/
+ACL_FUNC_VISIBILITY aclError aclrtGetSysParamOpt(aclSysParamOpt opt, int64_t *value);
+
+/**
+ * @ingroup AscendCL
+ * @brief set system param option value in current process
+ *
+ * @param opt[IN] system option
+ * @param value[IN] value of system option
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+*/
+ACL_FUNC_VISIBILITY aclError aclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value);
+
+/**
+ * @ingroup AscendCL
  * @brief Specify the device to use for the operation
  * implicitly create the default context and the default stream
  *
