@@ -128,7 +128,7 @@ class Barrier(object):
             os.unlink(os.path.join(barrier_dir, f_name))
 
     @classmethod
-    def sync(cls, wait_for=None, timeout=5):
+    def sync(cls, wait_for=None, timeout=30):
         if wait_for is None:
             wait_for = dist.get_world_size()
         cls.barrier_id += 1
