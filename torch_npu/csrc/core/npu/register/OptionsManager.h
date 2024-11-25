@@ -59,6 +59,7 @@ public:
     static uint32_t GetSilenceCheckFlag();
     static std::pair<double, double> GetSilenceUpperThresh();
     static std::pair<double, double> GetSilenceSigmaThresh();
+    static uint32_t GetHcclBufferSize();
     static uint32_t GetP2PBufferSize();
     static uint32_t GetTaskQueueEnable();
     static char* GetCpuAffinityConf();
