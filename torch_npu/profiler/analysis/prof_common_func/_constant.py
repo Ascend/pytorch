@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Union
 
 from torch_npu.utils._error_code import ErrCode, prof_error
-from torch_npu.utils import should_print_warning
+from torch_npu.utils import _should_print_warning
 
 __all__ = []
 
@@ -206,7 +206,7 @@ def print_info_msg(message: str):
 
 
 def print_warn_msg(message: str):
-    if not should_print_warning():
+    if not _should_print_warning():
         return
     time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{time_str} [WARNING] [{os.getpid()}] profiler.py: {message}")
