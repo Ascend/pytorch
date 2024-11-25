@@ -9,7 +9,7 @@ from torch.serialization import _check_dill_version, _open_file_like, _is_zipfil
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
-from .utils import should_print_warning
+from .utils import _should_print_warning
 
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False
@@ -36,7 +36,7 @@ def _warn_legacy_serialization(warn_massages, key_flag: str):
             return not _warn_legacy_serialization.__dict__[warn_key]
 
     if _get_always_warn_legacy_serialization() or is_first_time(key_flag):
-        if not should_print_warning():
+        if not _should_print_warning():
             return
         print(warn_massages)
 
