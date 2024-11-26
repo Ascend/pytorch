@@ -63,6 +63,7 @@ class LinearWeightQuant(nn.Module):
         quant_scale: bool = False,
         quant_offset: bool = False,
         antiquant_group_size: int = 0,
+        inner_precise: int = 0,
     ) -> None:
         super(LinearWeightQuant, self).__init__()
         self.weight = Parameter(torch.empty((out_features, in_features), device=device), False)
@@ -89,6 +90,7 @@ class LinearWeightQuant(nn.Module):
             self.register_parameter('bias', None)
 
         self.antiquant_group_size = antiquant_group_size
+        self.inner_precise = inner_precise
 
     def forward(self, x: Tensor) -> Tensor:
         antiquant_scale = self.antiquant_scale
@@ -100,4 +102,4 @@ class LinearWeightQuant(nn.Module):
                 antiquant_offset = self.antiquant_offset.transpose(-1, -2)
         return torch_npu.npu_weight_quant_batchmatmul(x, self.weight.transpose(-1, -2), antiquant_scale,
                                                       antiquant_offset, self.quant_scale, self.quant_offset,
-                                                      self.bias, self.antiquant_group_size)
+                                                      self.bias, self.antiquant_group_size, self.inner_precise)
