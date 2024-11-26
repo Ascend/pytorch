@@ -370,6 +370,18 @@ std::pair<double, double> OptionsManager::GetSilenceSigmaThresh()
     return sigma_thresh;
 }
 
+uint32_t OptionsManager::GetHcclBufferSize()
+{
+    const static uint32_t hccl_buf_size = []() -> uint32_t {
+        char* buf_val = std::getenv("HCCL_BUFFSIZE");
+        // Default 200M
+        int64_t buf_size = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 200;
+        TORCH_CHECK(buf_size > 0, "HCCL_BUFFSIZE should be positive.", PTA_ERROR(ErrCode::VALUE));
+        return static_cast<uint32_t>(buf_size);
+    }();
+    return hccl_buf_size;
+}
+
 uint32_t OptionsManager::GetP2PBufferSize()
 {
     const static uint32_t buf_size = []() -> uint32_t {
