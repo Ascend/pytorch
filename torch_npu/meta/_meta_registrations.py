@@ -416,7 +416,7 @@ def npu_all_gather_base_mm_meta(self, x2, hcom, world_size, bias=None,
 
 
 @impl(m, "npu_weight_quant_batchmatmul")
-def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_scale=None, quant_offset=None, bias=None, antiquant_group_size=0):
+def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_scale=None, quant_offset=None, bias=None, antiquant_group_size=0, inner_precise=0):
     dim_m = x.size(0)
     if weight.dtype == torch.int32 and weight.is_contiguous():
         dim_n = weight.size(1) * 8
