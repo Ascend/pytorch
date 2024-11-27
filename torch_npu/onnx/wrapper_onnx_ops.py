@@ -1216,7 +1216,7 @@ def _wrapper_npu_stride_add(self, other, offset1, offset2, c1_len):
     return _NPUStrideAddOP.apply(self, other, offset1, offset2, c1_len)
 
 
-def _wrapper_npu_dynamic_quant(input_dummy, smooth_scales=None, group_index=None, dst_type=torch.int):
+def _wrapper_npu_dynamic_quant(input_dummy, smooth_scales=None, group_index=None, dst_type=torch.int8):
     return _NPUDynamicQuantOp.apply(input_dummy, smooth_scales, group_index, dst_type)
 
 
