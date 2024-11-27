@@ -224,6 +224,12 @@ std::string getExceptionMsgFromExceptionPtr(const std::exception_ptr& exceptionP
     }
 }
 
+void getHcclCommConfig(HcclCommConfig* config)
+{
+    HcclCommConfigInit(config);
+    config->hcclBufferSize = c10_npu::option::OptionsManager::GetHcclBufferSize();
+}
+
 void getP2PHcclCommCofig(HcclCommConfig* config)
 {
     HcclCommConfigInit(config);
@@ -1203,7 +1209,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             npuGuard.set_index(devices[i].index());
             HcclCommConfig config;
             if (commConfig == nullptr) {
-                HcclCommConfigInit(&config);
+                getHcclCommConfig(&config);
                 commConfig = &config;
             }
             auto comm = HCCLComm::createGlobalHcclComm(rankTableFile.c_str(), rank, commConfig);
@@ -1251,7 +1257,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
         npuGuard.set_index(devices[i].index());
         HcclCommConfig config;
         if (commConfig == nullptr) {
-            HcclCommConfigInit(&config);
+            getHcclCommConfig(&config);
             if (commType == HcclCommType::P2P) {
                 numRanks = 2;
                 rank = p2pRank;
