@@ -91,8 +91,7 @@ def gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
     opts.rootRank = dst
     if group is None or group is GroupMember.WORLD:
         default_pg = _get_default_group()
-        backend_str = get_backend(default_pg)
-        if 'hccl' in backend_str:
+        if tensor.device.type == 'npu':
             if my_rank == dst:
                 warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
             # To handle tensors of different shape on each rank, update recv shape first.
@@ -108,8 +107,7 @@ def gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
             default_pg = _get_default_group()
             work = default_pg.gather(output_tensors, input_tensors, opts)
     else:
-        backend_str = get_backend(group)
-        if 'hccl' in backend_str:
+        if tensor.device.type == 'npu':
             if my_rank == dst:
                 warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
             # To handle tensors of different shape on each rank, update recv shape first.
