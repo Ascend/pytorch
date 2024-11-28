@@ -102,7 +102,9 @@ class LinearQuant(nn.Module):
             raise ValueError("input and weight should be both torch.int32 or both torch.int8 datatype, "
                              f"but now input is {linear_quant_input.dtype}, weight is {self.weight.dtype}." + ops_error(ErrCode.TYPE))
 
-        if self.scale.dtype == torch.float32 and self.pertoken_scale is None and self.output_dtype != torch.bfloat16:
+        is_check_dtype_ok = (self.scale.dtype == torch.float32 and 
+                             self.output_dtype not in [torch.bfloat16, torch.int32])
+        if self.pertoken_scale is None and is_check_dtype_ok:
             scale_quant = torch_npu.npu_trans_quant_param(self.scale, self.offset)
 
         return torch_npu.npu_quant_matmul(linear_quant_input, self.weight.transpose(second_last_dim, first_last_dim),
