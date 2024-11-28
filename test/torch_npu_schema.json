@@ -2633,9 +2633,6 @@
   "torch_npu.utils.print_warn_log": {
     "signature": "(warn_msg: str)"
   },
-  "torch_npu.utils.should_print_warning": {
-    "signature": "()"
-  },
   "torch_npu.utils.register_asd_hook": {
     "signature": "(x, weight)"
   },
@@ -2773,9 +2770,6 @@
   },
   "torch_npu.utils.utils.print_warn_log": {
     "signature": "(warn_msg: str)"
-  },
-  "torch_npu.utils.utils.should_print_warning": {
-    "signature": "()"
   },
   "torch_npu._npu_dropout": {
     "signature": "(*args, **kwargs)"
