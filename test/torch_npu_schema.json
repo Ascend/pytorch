@@ -3518,9 +3518,6 @@
   "func: npu_bmm_v2_mat2_backward": {
     "signature": "(Tensor grad, Tensor mat1, Tensor mat2, SymInt[] size) -> Tensor"
   },
-  "func: selu_backward": {
-    "signature": "(Tensor grad_output, Tensor result) -> Tensor"
-  },
   "func: npu_group_norm_silu": {
     "signature": "(Tensor input, Tensor? weight, Tensor? bias, int group, float eps=0.00001) -> (Tensor, Tensor, Tensor)"
   },
@@ -6190,12 +6187,6 @@
   },
   "func: binary_cross_entropy_with_logits": {
     "signature": "(Tensor self, Tensor target, Tensor? weight=None, Tensor? pos_weight=None, int reduction=Mean) -> Tensor"
-  },
-  "func: selu": {
-    "signature": "(Tensor self) -> Tensor"
-  },
-  "func: selu_": {
-    "signature": "(Tensor(a!) self) -> Tensor(a!)"
   },
   "func: l1_loss": {
     "signature": "(Tensor self, Tensor target, int reduction=Mean) -> Tensor"
