@@ -2591,18 +2591,6 @@
   "torch_npu.utils.print_warn_log": {
     "signature": "(warn_msg: str)"
   },
-  "torch_npu.utils.register_asd_hook": {
-    "signature": "(x, weight)"
-  },
-  "torch_npu.utils.set_asd_loss_scale": {
-    "signature": "(loss_scale=1.0)"
-  },
-  "torch_npu.utils.asd_detector.register_asd_hook": {
-    "signature": "(x, weight)"
-  },
-  "torch_npu.utils.asd_detector.set_asd_loss_scale": {
-    "signature": "(loss_scale=1.0)"
-  },
   "torch_npu.utils.collect_env.SystemEnv": {
     "signature": "(torch_version, torch_npu_version, is_debug_build, gcc_version, clang_version, cmake_version, os, libc_version, python_version, python_platform, pip_version, pip_packages, conda_packages, caching_allocator_config, is_xnnpack_available, cpu_info, cann_version)"
   },
