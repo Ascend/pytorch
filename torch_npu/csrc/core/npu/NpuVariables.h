@@ -36,11 +36,7 @@ enum class SocVersion {
   Ascend310B1 = 240,
   Ascend310B2,
   Ascend310B3,
-  Ascend310B4,
-  Ascend910C1 = 250,
-  Ascend910C2,
-  Ascend910C3,
-  Ascend910C4
+  Ascend310B4
 };
 
 bool SetSocVersion(const char* const socVersion);
