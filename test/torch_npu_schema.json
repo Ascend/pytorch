@@ -2693,12 +2693,6 @@
   "torch_npu.utils.print_warn_log": {
     "signature": "(warn_msg: str)"
   },
-  "torch_npu.utils.should_print_warning": {
-    "signature": "()"
-  },
-  "torch_npu.utils.utils.should_print_warning": {
-    "signature": "()"
-  },
   "torch_npu.utils.serialization.load": {
     "signature": "(f: Union[str, os.PathLike, BinaryIO, IO[bytes]], map_location: Union[Callable[[torch.types.Storage, str], torch.types.Storage], torch.device, str, Dict[str, str], NoneType] = None, pickle_module: Any = None, *, weights_only: bool = False, mmap: Union[bool, NoneType] = None, **pickle_load_args: Any) -> Any"
   },

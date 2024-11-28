@@ -119,7 +119,7 @@ import os
 import torch
 from torch.storage import _LegacyStorage, _warn_typed_storage_removal
 from torch._utils import classproperty
-from torch_npu.utils import should_print_warning
+from torch_npu.utils import _should_print_warning
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
@@ -350,7 +350,7 @@ class _NPULegacyStorage(_LegacyStorage):
 class ByteStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
-        if should_print_warning():
+        if _should_print_warning():
             _warn_typed_storage_removal()
         return self._dtype
 
@@ -362,7 +362,7 @@ class ByteStorage(_NPULegacyStorage):
 class DoubleStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
-        if should_print_warning():
+        if _should_print_warning():
             _warn_typed_storage_removal()
         return self._dtype
 
@@ -374,7 +374,7 @@ class DoubleStorage(_NPULegacyStorage):
 class FloatStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
-        if should_print_warning():
+        if _should_print_warning():
             _warn_typed_storage_removal()
         return self._dtype
 
@@ -386,7 +386,7 @@ class FloatStorage(_NPULegacyStorage):
 class HalfStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
-        if should_print_warning():
+        if _should_print_warning():
             _warn_typed_storage_removal()
         return self._dtype
 
@@ -398,7 +398,7 @@ class HalfStorage(_NPULegacyStorage):
 class LongStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
-        if should_print_warning():
+        if _should_print_warning():
             _warn_typed_storage_removal()
         return self._dtype
 
@@ -410,7 +410,7 @@ class LongStorage(_NPULegacyStorage):
 class IntStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
-        if should_print_warning():
+        if _should_print_warning():
             _warn_typed_storage_removal()
         return self._dtype
 
@@ -422,7 +422,7 @@ class IntStorage(_NPULegacyStorage):
 class ShortStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
-        if should_print_warning():
+        if _should_print_warning():
             _warn_typed_storage_removal()
         return self._dtype
 
@@ -434,7 +434,7 @@ class ShortStorage(_NPULegacyStorage):
 class CharStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
-        if should_print_warning():
+        if _should_print_warning():
             _warn_typed_storage_removal()
         return self._dtype
 
@@ -446,7 +446,7 @@ class CharStorage(_NPULegacyStorage):
 class BoolStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
-        if should_print_warning():
+        if _should_print_warning():
             _warn_typed_storage_removal()
         return self._dtype
 
@@ -458,7 +458,7 @@ class BoolStorage(_NPULegacyStorage):
 class BFloat16Storage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
-        if should_print_warning():
+        if _should_print_warning():
             _warn_typed_storage_removal()
         return self._dtype
 
