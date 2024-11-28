@@ -2633,20 +2633,8 @@
   "torch_npu.utils.print_warn_log": {
     "signature": "(warn_msg: str)"
   },
-  "torch_npu.utils.register_asd_hook": {
-    "signature": "(x, weight)"
-  },
   "torch_npu.utils.save_async": {
     "signature": "(obj: object, f, pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False, model: torch.nn.modules.module.Module = None) -> None"
-  },
-  "torch_npu.utils.set_asd_loss_scale": {
-    "signature": "(loss_scale=1.0)"
-  },
-  "torch_npu.utils.asd_detector.register_asd_hook": {
-    "signature": "(x, weight)"
-  },
-  "torch_npu.utils.asd_detector.set_asd_loss_scale": {
-    "signature": "(loss_scale=1.0)"
   },
   "torch_npu.utils.collect_env.check_directory_path_readable": {
     "signature": "(path)"
