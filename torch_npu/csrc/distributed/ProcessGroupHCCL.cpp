@@ -12,6 +12,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/eval.h>
+#include <pybind11/embed.h>
 
 #include <c10/util/Optional.h>
 #include <c10/util/irange.h>
@@ -43,6 +44,7 @@
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 
 namespace py = pybind11;
+using namespace py::literals;
 
 namespace c10d_npu {
 namespace {
@@ -915,13 +917,6 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
     }
 
     if (!terminateProcessGroup_.load()) {
-        TORCH_NPU_WARN_ONCE(
-            "WARNING: process group has NOT been destroyed before we destruct ProcessGroupHCCL. ",
-            "On normal program exit, the application should call destroy_process_group to ",
-            "ensure that any pending HCCL operations have finished in this process. "
-            "In rare cases this process can exit before this point and block the progress of "
-            "another member of the process group. This constraint has always been present, "
-            " but this warning has only been added since PyTorch 2.4");
         // If user haven't explicitly destroy/shutdown process group, destructor
         // needs to do so
         shutdown();
@@ -955,8 +950,41 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
     ASCEND_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
 }
 
+void ProcessGroupHCCL::dumpPythonTraceback()
+{
+    std::string filePath = getCvarString({"TORCH_HCCL_DEBUG_INFO_TEMP_FILE"},  "/tmp/hccl_trace_rank_");
+    PyGILState_STATE gil = PyGILState_Ensure();
+    {
+        py::dict locals = py::dict("path"_a=filePath.c_str(), "rank"_a=rank_);
+        py::exec(R"(
+            import sys
+            import os
+            import traceback
+            import threading
+            from torch_npu.utils.path_manager import PathManager
+            try:
+                py_stacks = 'pid: {}\n'.format(os.getpid())
+                threadInfos = {}
+                for thread in threading.enumerate():
+                    threadInfos[thread.ident] = thread
+                for thread_id, stack in sys._current_frames().items():
+                    stack_list = traceback.format_list(traceback.extract_stack(stack))
+                    py_stacks += 'thread {}:\n'.format(threadInfos[thread_id] if thread_id in threadInfos.keys() else thread_id)
+                    py_stacks += ''.join(stack_list)
+                dump_file = '{path}{rank}_py_traceback'.format(**locals())
+                PathManager.check_input_directory_path(dump_file)
+                with open(dump_file, 'w') as f:
+                    f.write(py_stacks)
+            except Exception as e:
+                print(e);
+            )", py::globals(), locals);
+    }
+    PyGILState_Release(gil);
+}
+
 bool ProcessGroupHCCL::dumpDebuggingInfo()
 {
+    dumpPythonTraceback();
     // Serialize all calls to this function to avoid corrupting data, but allow
     // multiple calls in one runtime. User is responsible for preserving the
     // output file from an earlier call before a later call overwrites it.
@@ -977,6 +1005,27 @@ bool ProcessGroupHCCL::dumpDebuggingInfo()
     return false;
 }
 
+void ProcessGroupHCCL::dumpTraceAndResetStatus()
+{
+    // Store debug info to storage if no other thread does it. (By default to
+    // local disk)
+    std::future<bool> asyncDebugDump = std::async(
+        std::launch::async,
+        [this]() {
+            return this->dumpDebuggingInfo();
+        });
+
+    // wait for the dump until timeout
+    waitForFutureOrTimeout(
+        asyncDebugDump,
+        std::chrono::milliseconds(waitTimeoutDumpInMilSec_),
+        "Flight recorder dump in heartbeatMonitor");
+
+    // Increase heartbeat to avoid dump debug info frequently.
+    heartbeat_++;
+    shouldDump_.store(false);
+}
+
 void ProcessGroupHCCL::terminateProcess(std::string errMsg)
 {
     // Logging with `FATAL`, after errMsg printed, it calls `std::abort()`
@@ -990,20 +1039,6 @@ int computeDeltaMS(
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
         .count();
-}
-
-void dump_python_traceback()
-{
-    PyGILState_STATE gil = PyGILState_Ensure();
-    py::exec(R"(
-        import sys
-        import traceback
-        for thread_id, stack in sys._current_frames().items():
-            stack_list = traceback.format_list(traceback.extract_stack(stack))
-            print('thread {}:'.format(thread_id))
-            print(''.join(stack_list))
-    )");
-    PyGILState_Release(gil);
 }
 
 void ProcessGroupHCCL::heartbeatMonitor()
@@ -1070,7 +1105,7 @@ void ProcessGroupHCCL::heartbeatMonitor()
                     "this can be caused by GIL deadlock or other reasons such as network errors or ",
                     "bugs in the communications library (e.g. HCCL), etc. We tried our best to ",
                     "dump the debug info into the storage to help you debug the issue.");
-                break;
+                dumpTraceAndResetStatus();
             }
             // We poll store to see if some ranks have flagged a timeout when
             // we haven't polled for `heartbeat_timeout` seconds and there haven't
@@ -1089,7 +1124,7 @@ void ProcessGroupHCCL::heartbeatMonitor()
                         << logPrefix()
                         << "Failed to get exception dump flag from the global store."
                         << e.what();
-                    break;
+                    dumpTraceAndResetStatus();
                 }
                 if (checkExceptionDump) {
                     int timeOutRank = -1;
@@ -1131,7 +1166,7 @@ void ProcessGroupHCCL::heartbeatMonitor()
                         "this can be caused by GIL deadlock or other reasons such as network errors or ",
                         "bugs in the communications library (e.g. HCCL), etc. We tried our best to ",
                         "dump the debug info into the storage to help you debug the issue.");
-                    break;
+                    dumpTraceAndResetStatus();
                 }
             }
         }
@@ -1171,7 +1206,9 @@ void ProcessGroupHCCL::heartbeatMonitor()
                     "workMetaList_.size() = ",
                     workMetaList_.size(),
                     "");
-                break;
+                if (checkDumpSignal) {
+                    dumpTraceAndResetStatus();
+                }
             }
         }
         // process a request to dump the trace. only PG uid 0 will respond to dump
@@ -1193,39 +1230,6 @@ void ProcessGroupHCCL::heartbeatMonitor()
         cpp_dumper.value()([](const std::string &line) {
             LOG(ERROR) << line;
         });
-    }
-
-    if (checkDumpSignal && shouldDump_.load()) {
-        // Store debug info to storage if no other thread does it. (By default to
-        // local disk)
-        std::future<bool> asyncDebugDump = std::async(
-            std::launch::async,
-            [this]() {
-                return this->dumpDebuggingInfo();
-            });
-
-        // wait for the dump until timeout
-        waitForFutureOrTimeout(
-            asyncDebugDump,
-            std::chrono::milliseconds(waitTimeoutDumpInMilSec_),
-            "Flight recorder dump in heartbeatMonitor");
-    }
-
-    if (get_gil_checker() != nullptr) {
-        auto fut = launchAsyncGilCheck();
-        auto kGilCheckTimeout = std::chrono::milliseconds(300);
-        auto futStatus = fut.wait_for(kGilCheckTimeout);
-        if (futStatus != std::future_status::ready) {
-            TORCH_CHECK(
-                futStatus != std::future_status::deferred,
-                "Expected the future to have been launched eagerly.");
-            LOG(ERROR)
-                << "Could not acquire GIL within 300 ms on exit, possible GIL induced hang";
-        }
-        LOG(INFO) << "Could acquire GIL on exit";
-    } else {
-        LOG(INFO)
-            << "GIL checker was not registered, perhaps this is a no-python build?";
     }
 
     // There are two possible cases for the watchdog thread exit:

@@ -615,6 +615,8 @@ protected:
     // recorder to storage. Down the road, if we have more complicated or blocking
     // operations, we might need to use a side thread to do it.
     bool dumpDebuggingInfo();
+    void dumpTraceAndResetStatus();
+    void dumpPythonTraceback();
 
     // Function that runs as part of a separate thread aside from watchdog
     // thread because we need to check the heartbeat from watchdog thread
