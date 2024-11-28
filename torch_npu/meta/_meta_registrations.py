@@ -468,6 +468,12 @@ def quant_matmul_bias_dtype_check(bias, pertoken_scale, output_dtype):
             lambda: "When bias dtype is bfloat16, output_dtype must be bfloat16, but it is " +
                     str(output_dtype) + ops_error(ErrCode.TYPE),
         )
+    if output_dtype == torch.int32:
+        torch._check(
+            bias.dtype == torch.int32,
+            lambda: "When output_dtype dtype is int32, bias_dtype must be int32, but it is " +
+                    str(bias.dtype) + ops_error(ErrCode.TYPE),
+        )
     if pertoken_scale is not None:
         if bias.dtype == torch.float16:
             torch._check(
@@ -523,14 +529,20 @@ def quant_matmul_dtype_check(*args):
 def quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dtype, is_a4w4):
     if scale.dtype == torch.bfloat16:
         torch._check(
-            output_dtype == torch.bfloat16,
-            lambda: "When scale's dtype is bfloat16, output_dtype must be bfloat16, but output_dtype is " +
+            output_dtype in [torch.bfloat16, torch.int32],
+            lambda: "When scale's dtype is bfloat16, output_dtype must be bfloat16 or int32, but output_dtype is " +
                     str(output_dtype) + ops_error(ErrCode.TYPE),
         )
     if output_dtype == torch.bfloat16:
         torch._check(
             scale.dtype == torch.bfloat16 or scale.dtype == torch.float32,
             lambda: "When output_dtype is bfloat16, scale's dtype must be bfloat16 or float32, but scale's dtype is " +
+                    str(scale.dtype) + ops_error(ErrCode.TYPE),
+        )
+    if output_dtype == torch.int32:
+        torch._check(
+            scale.dtype in [torch.bfloat16, torch.float32],
+            lambda: "When output_dtype is int32, scale's dtype must be bfloat16 or float32, but scale's dtype is " +
                     str(scale.dtype) + ops_error(ErrCode.TYPE),
         )
     if offset is not None:
@@ -600,6 +612,8 @@ def npu_quant_matmul_meta(x1, x2, scale, *, offset=None, pertoken_scale=None, bi
         return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
     elif output_dtype == torch.bfloat16:
         return shape_long.new_empty(tuple(dim_list), dtype=torch.bfloat16)
+    elif output_dtype == torch.int32:
+        return shape_long.new_empty(tuple(dim_list), dtype=torch.int32)
     elif output_dtype is None or output_dtype == torch.int8:
         return shape_long.new_empty(tuple(dim_list), dtype=torch.int8)
     else:
