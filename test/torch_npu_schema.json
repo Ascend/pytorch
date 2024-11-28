@@ -2729,12 +2729,6 @@
   "torch_npu.utils.syncbatchnorm.SyncBatchNorm.backward": {
     "signature": "(self, grad_output)"
   },
-  "torch_npu.utils.should_print_warning": {
-    "signature": "()"
-  },
-  "torch_npu.utils.utils.should_print_warning": {
-    "signature": "()"
-  },
   "torch_npu._npu_dropout": {
     "signature": "(*args, **kwargs)"
   },
