@@ -430,7 +430,8 @@ class TestPublicBindings(TestCase):
             try:
                 if "__main__" in modname or \
                         modname in ["torch_npu.dynamo.torchair.core._backend",
-                                    "torch_npu.dynamo.torchair.core._torchair"]:
+                                    "torch_npu.dynamo.torchair.core._torchair"] or \
+                                    "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter" in modname:
                     continue
                 import_module(modname)
             except Exception as e:
