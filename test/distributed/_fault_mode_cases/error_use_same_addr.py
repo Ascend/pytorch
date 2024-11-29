@@ -12,8 +12,11 @@ def same_addr():
     dist.init_process_group(backend)
     rank = dist.get_rank()
     torch.npu.set_device(rank)
-    input_ = torch.randn(100, 100, 20).npu()
-    dist.all_reduce(input_)
-
+    input_a = torch.randn(800, 100).npu()
+    input_b = torch.randn(100, 600).npu()
+    for _ in range(200):
+        result = torch.matmul(input_a, input_b)
+        result_mean = result.mean()
+    dist.all_reduce(input_a)
 
 same_addr()
