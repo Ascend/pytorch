@@ -430,8 +430,7 @@ class TestPublicBindings(TestCase):
             try:
                 if "__main__" in modname or \
                         modname in ["torch_npu.dynamo.torchair.core._backend",
-                                    "torch_npu.dynamo.torchair.core._torchair"] or \
-                                    "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter" in modname:
+                                    "torch_npu.dynamo.torchair.core._torchair"]:
                     continue
                 import_module(modname)
             except Exception as e:
@@ -549,6 +548,7 @@ class TestPublicBindings(TestCase):
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_allreduce",
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_alltoall",
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_broadcast",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.custom.npu_selu_backward",
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_ir_by_protoc_3_13_pb2",
             "torch_npu.utils.collect_hccl_info",
 
