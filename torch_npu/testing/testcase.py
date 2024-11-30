@@ -190,6 +190,13 @@ class TestCase(expecttest.TestCase):
             if torch.is_tensor(x) and torch.is_tensor(y):
                 if auto_trans_dtype:
                     x = x.to(y.dtype)
+                if (x.dtype == torch.bfloat16) and (y.dtype == torch.bfloat16):
+                    if (x.shape != y.shape):
+                        self.fail("shape error!")
+                    result = torch.allclose(x.cpu(), y.cpu(), rtol=prec16, atol=prec16)
+                    if not result:
+                        self.fail("result error!")
+                    return
                 x = x.detach().cpu().numpy()
                 y = y.detach().cpu().numpy()  
             elif isinstance(x, Number) and isinstance(y, Number):
