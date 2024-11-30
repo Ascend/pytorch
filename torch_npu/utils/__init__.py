@@ -16,8 +16,7 @@ from .utils import _apply_npu_show_warning, _should_print_warning
 from .clip_grad_norm_ import _apply_clip_grad_norm_patch
 from ._step import add_perf_dump_patch
 
-__all__ = ["npu_combine_tensors", "get_part_combined_tensor", "is_combined_tensor_valid",
-           "register_asd_hook", "set_asd_loss_scale"]
+__all__ = ["npu_combine_tensors", "get_part_combined_tensor", "is_combined_tensor_valid"]
 
 
 # init flopcount
