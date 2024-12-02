@@ -55,6 +55,7 @@ class TestDynamicProfiler(TestCase):
     large_steps = 5
     flags = os.O_WRONLY
     mode = stat.S_IRUSR | stat.S_IWUSR
+    start_step = 0
 
     @classmethod
     def setUpClass(cls):
@@ -67,6 +68,7 @@ class TestDynamicProfiler(TestCase):
         cls.active_rank_prof_dir = os.path.join(cls.results_path, "active_rank_prof_dir")
         cls.cfg_prof_dir = os.path.join(cls.results_path, "cfg_prof_dir")
         cls.cfg_path = os.path.join(cls.results_path, "profiler_config.json")
+        os.environ["RANK"] = "0"
         dp.init(cls.results_path)
 
     @classmethod
@@ -451,13 +453,16 @@ class TestDynamicProfiler(TestCase):
     def test_dynamic_profiler_default(self):
         cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['prof_dir'] = self.default_prof_dir
+        cfg_json['start_step'] = TestDynamicProfiler.start_step + 1
         with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
             time.sleep(1)
             json.dump(cfg_json, f, indent=4)
         time.sleep(3)
         dp.step()
+        TestDynamicProfiler.start_step += 1
         self.model_train.train_one_step()
         dp.step()
+        TestDynamicProfiler.start_step += 1
         has_prof = False
         if self.has_prof_dir(self.default_prof_dir):
             has_prof = True
@@ -470,14 +475,17 @@ class TestDynamicProfiler(TestCase):
         cfg_json['prof_dir'] = self.rank_prof_dir
         cfg_json['is_rank'] = True
         cfg_json['rank_list'] = [0]
+        cfg_json['start_step'] = TestDynamicProfiler.start_step + 1
 
         with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
             time.sleep(1)
             json.dump(cfg_json, f, indent=4)
         time.sleep(3)
         dp.step()
+        TestDynamicProfiler.start_step += 1
         self.model_train.train_one_step()
         dp.step()
+        TestDynamicProfiler.start_step += 1
         has_prof = False
         if self.has_prof_dir(self.rank_prof_dir):
             has_prof = True
@@ -490,14 +498,17 @@ class TestDynamicProfiler(TestCase):
         cfg_json['prof_dir'] = self.invalid_rank_prof_dir
         cfg_json['is_rank'] = True
         cfg_json['rank_list'] = [1]
+        cfg_json['start_step'] = TestDynamicProfiler.start_step + 1
 
         with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
             time.sleep(1)
             json.dump(cfg_json, f, indent=4)
         time.sleep(3)
         dp.step()
+        TestDynamicProfiler.start_step += 1
         self.model_train.train_one_step()
         dp.step()
+        TestDynamicProfiler.start_step += 1
         has_prof = False
         if self.has_prof_dir(self.invalid_rank_prof_dir):
             has_prof = True
