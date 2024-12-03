@@ -99,14 +99,6 @@ __all__ = [
     "conv",
     "enable_deterministic_with_backward",
     "disable_deterministic_with_backward",
-    "enable_flash_sdp",
-    "enable_math_sdp",
-    "enable_mem_efficient_sdp",
-    "flash_sdp_enabled",
-    "math_sdp_enabled",
-    "mem_efficient_sdp_enabled",
-    "preferred_linalg_library",
-    "sdp_kernel",
     "mstx",
     "SyncLaunchStream"
 ]
@@ -124,7 +116,7 @@ from torch_npu.utils import _should_print_warning
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
 from .utils import (synchronize, device_count, can_device_access_peer, set_device, current_device, get_device_name,
-                    get_device_properties, get_device_capability, _get_device_index, 
+                    get_device_properties, get_device_capability, _get_device_index,
                     device, device_of, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
                     utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag, mem_get_info,
@@ -135,6 +127,7 @@ from .mstx import mstx
 from .npu_config import *  # noqa: F403
 from .autocast_utils import *  # noqa: F403
 from .backends import *  # noqa: F403
+from ._backends import *  # noqa: F403
 from .deterministic import enable_deterministic_with_backward, disable_deterministic_with_backward # noqa: F403
 
 # init profiler
@@ -454,7 +447,7 @@ class BoolStorage(_NPULegacyStorage):
     def _dtype(self):
         return torch.bool
 
-  
+
 class BFloat16Storage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
