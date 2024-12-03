@@ -13,7 +13,8 @@ from .analysis.prof_common_func._constant import print_warn_msg
 from .analysis.prof_common_func._constant import print_error_msg
 from .analysis.prof_common_func._utils import no_exception_func
 from .analysis.prof_common_func._file_manager import FileManager
-from ._dynamic_profiler import logger, init_logger, DynamicProfilerMonitor
+from ._dynamic_profiler._dynamic_profiler_log import logger, init_logger
+from ._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
 from ._dynamic_profiler._dynamic_profiler_config_context import ConfigContext
 
 __all__ = [
