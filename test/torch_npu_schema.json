@@ -1169,20 +1169,8 @@
   "torch_npu.npu.enable_deterministic_with_backward": {
     "signature": "(tensor: torch.Tensor)"
   },
-  "torch_npu.npu.enable_flash_sdp": {
-    "signature": "(enabled: bool)"
-  },
-  "torch_npu.npu.enable_math_sdp": {
-    "signature": "(enabled: bool)"
-  },
-  "torch_npu.npu.enable_mem_efficient_sdp": {
-    "signature": "(enabled: bool)"
-  },
   "torch_npu.npu.finalize_dump": {
     "signature": "()"
-  },
-  "torch_npu.npu.flash_sdp_enabled": {
-    "signature": "() -> bool"
   },
   "torch_npu.npu.get_allocator_backend": {
     "signature": "() -> str"
@@ -1247,9 +1235,6 @@
   "torch_npu.npu.manual_seed_all": {
     "signature": "(seed)"
   },
-  "torch_npu.npu.math_sdp_enabled": {
-    "signature": "() -> bool"
-  },
   "torch_npu.npu.max_memory_allocated": {
     "signature": "(device=None)"
   },
@@ -1258,9 +1243,6 @@
   },
   "torch_npu.npu.max_memory_reserved": {
     "signature": "(device=None)"
-  },
-  "torch_npu.npu.mem_efficient_sdp_enabled": {
-    "signature": "() -> bool"
   },
   "torch_npu.npu.mem_get_info": {
     "signature": "(device=None)"
@@ -1301,9 +1283,6 @@
   "torch_npu.npu.mstx.range_end": {
     "signature": "(range_id: int)"
   },
-  "torch_npu.npu.preferred_linalg_library": {
-    "signature": "(backend: Union[NoneType, str, torch._C._LinalgBackend] = None) -> torch._C._LinalgBackend"
-  },
   "torch_npu.npu.reset_accumulated_memory_stats": {
     "signature": "(device=None)"
   },
@@ -1324,9 +1303,6 @@
   },
   "torch_npu.npu.stress_detect": {
     "signature": "()"
-  },
-  "torch_npu.npu.sdp_kernel": {
-    "signature": "(enable_flash: bool = True, enable_math: bool = True, enable_mem_efficient: bool = True)"
   },
   "torch_npu.npu.seed": {
     "signature": "()"
@@ -1565,30 +1541,6 @@
   "torch_npu.npu.autocast_utils.set_autocast_enabled": {
     "signature": "(enable)"
   },
-  "torch_npu.npu.backends.enable_flash_sdp": {
-    "signature": "(enabled: bool)"
-  },
-  "torch_npu.npu.backends.enable_math_sdp": {
-    "signature": "(enabled: bool)"
-  },
-  "torch_npu.npu.backends.enable_mem_efficient_sdp": {
-    "signature": "(enabled: bool)"
-  },
-  "torch_npu.npu.backends.flash_sdp_enabled": {
-    "signature": "() -> bool"
-  },
-  "torch_npu.npu.backends.math_sdp_enabled": {
-    "signature": "() -> bool"
-  },
-  "torch_npu.npu.backends.mem_efficient_sdp_enabled": {
-    "signature": "() -> bool"
-  },
-  "torch_npu.npu.backends.preferred_linalg_library": {
-    "signature": "(backend: Union[NoneType, str, torch._C._LinalgBackend] = None) -> torch._C._LinalgBackend"
-  },
-  "torch_npu.npu.backends.sdp_kernel": {
-    "signature": "(enable_flash: bool = True, enable_math: bool = True, enable_mem_efficient: bool = True)"
-  },
   "torch_npu.npu.deterministic.disable_deterministic_with_backward": {
     "signature": "(tensor: torch.Tensor)"
   },
@@ -1809,9 +1761,6 @@
     "signature": "(device_name=None)"
   },
   "torch_npu.npu.utils.get_npu_overflow_flag": {
-    "signature": "()"
-  },
-  "torch_npu.npu.utils.get_soc_version": {
     "signature": "()"
   },
   "torch_npu.npu.utils.get_sync_debug_mode": {
