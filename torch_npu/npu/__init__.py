@@ -99,14 +99,6 @@ __all__ = [
     "conv",
     "enable_deterministic_with_backward",
     "disable_deterministic_with_backward",
-    "enable_flash_sdp",
-    "enable_math_sdp",
-    "enable_mem_efficient_sdp",
-    "flash_sdp_enabled",
-    "math_sdp_enabled",
-    "mem_efficient_sdp_enabled",
-    "preferred_linalg_library",
-    "sdp_kernel",
     "mstx",
     "SyncLaunchStream"
 ]
@@ -135,6 +127,7 @@ from .mstx import mstx
 from .npu_config import *  # noqa: F403
 from .autocast_utils import *  # noqa: F403
 from .backends import *  # noqa: F403
+from ._backends import *  # noqa: F403
 from .deterministic import enable_deterministic_with_backward, disable_deterministic_with_backward # noqa: F403
 
 # init profiler
