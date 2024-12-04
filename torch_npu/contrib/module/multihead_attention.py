@@ -8,13 +8,13 @@ import torch.nn.functional as F
 from torch.nn import Parameter
 
 import torch_npu
-from torch_npu.contrib.module.ensemble_dropout import NpuCachedDropout, DropOutTask
+from torch_npu.contrib.module.ensemble_dropout import NpuCachedDropout
 from torch_npu.utils._error_code import ErrCode, ops_error
 from ..function import matmul_transpose
 
 dropout_class = NpuCachedDropout
 
-__all__ = ["MHAConfig", "Matmul_transpose", "MultiheadAttention", "NpuLinear"]
+__all__ = ["Matmul_transpose", "MultiheadAttention"]
 
 
 def _quant_noise(module, p, block_size):
@@ -117,7 +117,7 @@ def _quant_noise(module, p, block_size):
     return module
 
 
-class NpuLinear(nn.Linear):
+class _NpuLinear(nn.Linear):
     def forward(self, input2):
         input_shape = input2.size()
         if input2.dim() == 3:
@@ -130,7 +130,7 @@ class NpuLinear(nn.Linear):
             raise RuntimeError('not support this dim' + ops_error(ErrCode.NOT_SUPPORT))
 
         
-class MHAConfig:
+class _MHAConfig:
     use_fussion_mha = False
 
     @classmethod
@@ -212,17 +212,17 @@ class MultiheadAttention(nn.Module):
                              ops_error(ErrCode.VALUE))
 
         self.k_proj = _quant_noise(
-            NpuLinear(self.kdim, embed_dim, bias=bias), q_noise, qn_block_size
+            _NpuLinear(self.kdim, embed_dim, bias=bias), q_noise, qn_block_size
         )
         self.v_proj = _quant_noise(
-            NpuLinear(self.vdim, embed_dim, bias=bias), q_noise, qn_block_size
+            _NpuLinear(self.vdim, embed_dim, bias=bias), q_noise, qn_block_size
         )
         self.q_proj = _quant_noise(
-            NpuLinear(embed_dim, embed_dim, bias=bias), q_noise, qn_block_size
+            _NpuLinear(embed_dim, embed_dim, bias=bias), q_noise, qn_block_size
         )
 
         self.out_proj = _quant_noise(
-            NpuLinear(embed_dim, embed_dim, bias=bias), q_noise, qn_block_size
+            _NpuLinear(embed_dim, embed_dim, bias=bias), q_noise, qn_block_size
         )
 
         if add_bias_kv:
@@ -298,7 +298,7 @@ class MultiheadAttention(nn.Module):
                 weights for each head. Implies *need_weights*. Default:
                 return the average attention weights over all heads.
         """
-        if MHAConfig.use_fussion_mha:
+        if _MHAConfig.use_fussion_mha:
             attn = self.multi_attn(query, key, value, key_padding_mask, bsz, tgt_len)
             return attn, None
         else:
