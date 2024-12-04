@@ -13,7 +13,7 @@ from .analysis.prof_common_func._constant import print_warn_msg
 from .analysis.prof_common_func._constant import print_error_msg
 from .analysis.prof_common_func._utils import no_exception_func
 from .analysis.prof_common_func._file_manager import FileManager
-from ._dynamic_profiler._dynamic_profiler_log import logger, init_logger
+from ._dynamic_profiler._dynamic_profiler_utils import logger, init_logger
 from ._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
 from ._dynamic_profiler._dynamic_profiler_config_context import ConfigContext
 
@@ -59,13 +59,13 @@ class _DynamicProfile:
 
     def _dynamic_profiler_valid(self):
         prof_cfg_ctx = self._dynamic_monitor.shm_to_prof_conf_context()
-        if prof_cfg_ctx is None:
-            return None
-        else:
-            return prof_cfg_ctx
+        return prof_cfg_ctx
 
     def step(self):
         self.cur_step += 1
+        cfg_ctx = self._dynamic_profiler_valid()
+        if cfg_ctx is not None:
+            self.cfg_ctx = cfg_ctx
         if self.cur_step == self.RECORD_TIME_STEP:
             self._step_record_time = time.time()
         elif self.cur_step - self.RECORD_TIME_STEP == 1:
@@ -78,10 +78,7 @@ class _DynamicProfile:
                 self.prof.stop()
                 self.prof = None
                 logger.info(f"Stop Dynamic Profiler at {self.cur_step} step.")
-        elif self.prof is None:
-            self.cfg_ctx = self._dynamic_profiler_valid()
-            if self.cfg_ctx is None:
-                return
+        elif self.prof is None and self.cfg_ctx is not None and self.cur_step == self.cfg_ctx.start_step():
             self.step_num = self.cfg_ctx.active()
             self.enable_prof()
             self.cfg_ctx = None
