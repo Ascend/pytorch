@@ -950,7 +950,25 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
     ASCEND_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
 }
 
-void ProcessGroupHCCL::dumpPythonTraceback()
+std::future<bool> ProcessGroupHCCL::launchAsyncPythonTracebackDump()
+{
+    std::promise<bool> resultPromise;
+    std::future<bool> resultFuture = resultPromise.get_future();
+    std::thread workerThread([promise = std::move(resultPromise), this]() mutable {
+        try {
+            promise.set_value(this->dumpPythonTraceback());
+        } catch (...) {
+            promise.set_exception(std::current_exception());
+        }
+    });
+
+    // Detach the thread to allow it to run independently
+    workerThread.detach();
+
+    return resultFuture;
+}
+
+bool ProcessGroupHCCL::dumpPythonTraceback()
 {
     std::string filePath = getCvarString({"TORCH_HCCL_DEBUG_INFO_TEMP_FILE"},  "/tmp/hccl_trace_rank_");
     PyGILState_STATE gil = PyGILState_Ensure();
@@ -984,7 +1002,18 @@ void ProcessGroupHCCL::dumpPythonTraceback()
 
 bool ProcessGroupHCCL::dumpDebuggingInfo()
 {
-    dumpPythonTraceback();
+    auto fut = launchAsyncPythonTracebackDump();
+    auto kGilCheckTimeout = std::chrono::milliseconds(3000);
+    auto futStatus = fut.wait_for(kGilCheckTimeout);
+    if (futStatus != std::future_status::ready) {
+        TORCH_CHECK(
+            futStatus != std::future_status::deferred,
+            "Expected the future of dumpping python traceback to have been launched eagerly.");
+      LOG(ERROR)
+            << "Could not acquire GIL within 3000 ms when dump python traceback, possible GIL induced hang";
+    }
+    LOG(INFO) << "Could dump python traceback";
+
     // Serialize all calls to this function to avoid corrupting data, but allow
     // multiple calls in one runtime. User is responsible for preserving the
     // output file from an earlier call before a later call overwrites it.
