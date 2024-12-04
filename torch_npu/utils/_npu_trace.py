@@ -1,6 +1,6 @@
 import os
 from typing import Callable
-from torch_npu.utils import print_error_log
+from torch_npu.utils.utils import _print_error_log
 
 
 def print_check_msg(msg: str):
@@ -21,7 +21,7 @@ class CallbackRegistry:
             try:
                 cb(*args, **kwargs)
             except Exception as e:
-                print_error_log(
+                _print_error_log(
                     f"Exception in callback {cb_name} for {self.name} registered with NPU trace"
                 )
 
