@@ -3,14 +3,14 @@ import numpy as np
 import torch
 import torch_npu
 from torch_npu.contrib.module import MultiheadAttention
-from torch_npu.contrib.module.multihead_attention import MHAConfig
+from torch_npu.contrib.module.multihead_attention import _MHAConfig
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 FORMAT_ND = 2
 FORMAT_NZ = 29
 npu_device = "npu:0"
-MHAConfig.set_fussion()
+_MHAConfig.set_fussion()
 
 
 class TestMultiheadAttention(unittest.TestCase):
