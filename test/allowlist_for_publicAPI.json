@@ -2835,7 +2835,16 @@
     "npu_stride_add",
     "npu_sort_v2",
     "npu_gelu",
-    "npu_gelu_backward"
+    "npu_gelu_backward",
+    "npu_all_gather_base_mm",
+    "npu_mm_reduce_scatter_base",
+    "npu_prefetch",
+    "npu_quant_scatter_",
+    "scatter_update",
+    "scatter_update_",
+    "npu_moe_compute_expert_tokens",
+    "npu_moe_gating_top_k_softmax",
+    "npu_moe_init_routing"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
