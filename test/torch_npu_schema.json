@@ -662,9 +662,6 @@
   "torch_npu.contrib.module.drop_path.NpuDropPath.enable_droppath_ensemble": {
     "signature": "(model)"
   },
-  "torch_npu.contrib.module.ensemble_dropout.DropOutTask": {
-    "signature": "(shape, dtype, device, p)"
-  },
   "torch_npu.contrib.module.ensemble_dropout.NpuCachedDropout": {
     "signature": "(p, module_name=None)"
   },
@@ -691,9 +688,6 @@
   },
   "torch_npu.contrib.module.ensemble_dropout.NpuPreGenDropout.enable_dropout_ensemble": {
     "signature": "(model)"
-  },
-  "torch_npu.contrib.module.ensemble_dropout.PreGenDropoutTask": {
-    "signature": "(device, p)"
   },
   "torch_npu.contrib.module.focus.Conv": {
     "signature": "(c1, c2, k=1, s=1, p=None, g=1, act=True)"
@@ -725,18 +719,6 @@
   "torch_npu.contrib.module.fusedcolorjitter.FusedColorJitter.forward": {
     "signature": "(self, img)"
   },
-  "torch_npu.contrib.module.fusedcolorjitter.FusedColorJitterApply": {
-    "signature": "(hue=0.0, saturation=1.0, contrast=0.0, brightness=0.0, is_normalized=False, force_return_array=False)"
-  },
-  "torch_npu.contrib.module.fusedcolorjitter.FusedColorJitterApply.hue_saturation_matrix": {
-    "signature": "(self, hue, saturation)"
-  },
-  "torch_npu.contrib.module.fusedcolorjitter.FusedColorJitterApply.get_random_transform_matrix": {
-    "signature": "(self, hue=0.05, saturation=0.5, contrast=0.5, brightness=0.125)"
-  },
-  "torch_npu.contrib.module.fusedcolorjitter.FusedColorJitterApply.apply_image_transform": {
-    "signature": "(self, img, transform_matrix, transform_offset)"
-  },
   "torch_npu.contrib.module.linear_a8w8_quant.LinearA8W8Quant": {
     "signature": "(in_features: int, out_features: int, *, bias: bool = True, offset: bool = False, pertoken_scale: bool = False, device=None, dtype=None, output_dtype=None) -> None"
   },
@@ -754,12 +736,6 @@
   },
   "torch_npu.contrib.module.linear_weight_quant.LinearWeightQuant.forward": {
     "signature": "(self, x: torch.Tensor) -> torch.Tensor"
-  },
-  "torch_npu.contrib.module.multihead_attention.MHAConfig": {
-    "signature": "()"
-  },
-  "torch_npu.contrib.module.multihead_attention.MHAConfig.set_fussion": {
-    "signature": "()"
   },
   "torch_npu.contrib.module.multihead_attention.Matmul_transpose": {
     "signature": "(tensor1, tensor2)"
@@ -799,12 +775,6 @@
   },
   "torch_npu.contrib.module.multihead_attention.MultiheadAttention.upgrade_state_dict_named": {
     "signature": "(self, state_dict, name)"
-  },
-  "torch_npu.contrib.module.multihead_attention.NpuLinear": {
-    "signature": "(in_features: int, out_features: int, bias: bool = True, device=None, dtype=None) -> None"
-  },
-  "torch_npu.contrib.module.multihead_attention.NpuLinear.forward": {
-    "signature": "(self, input2)"
   },
   "torch_npu.contrib.module.npu_modules.DropoutWithByteMask": {
     "signature": "(p=0.5, inplace=False, max_seed=1023)"
@@ -1792,12 +1762,6 @@
   },
   "torch_npu.npu.utils.utilization": {
     "signature": "(device=None)"
-  },
-  "torch_npu.onnx.native_layer_norm": {
-    "signature": "(g, inputs, normalized_shape, weight, bias, eps)"
-  },
-  "torch_npu.onnx.register_aten_ops_to_onnx.native_layer_norm": {
-    "signature": "(g, inputs, normalized_shape, weight, bias, eps)"
   },
   "torch_npu.optim.NpuFusedAdadelta": {
     "signature": "(params, lr=1.0, rho=0.9, eps=1e-06, weight_decay=0)"
