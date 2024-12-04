@@ -7,12 +7,11 @@ import torch
 from torch_npu.utils._error_code import ErrCode, ops_error
 
 __all__ = [
-    "FusedColorJitter",
-    "FusedColorJitterApply"
+    "FusedColorJitter"
 ]
 
 
-class FusedColorJitterApply(object):
+class _FusedColorJitterApply(object):
     def __init__(self,
                  hue=0.0,
                  saturation=1.0,
@@ -129,7 +128,7 @@ class FusedColorJitter(torch.nn.Module):
         self.hue = self._check_input(hue, 'hue', center=0, bound=(-0.5, 0.5),
                                      clip_first_on_zero=False)
 
-        self.transformer = FusedColorJitterApply(brightness, contrast, saturation, hue)
+        self.transformer = _FusedColorJitterApply(brightness, contrast, saturation, hue)
 
     @torch.jit.unused
     def _check_input(self, value, name, center=1, bound=(0, float('inf')), clip_first_on_zero=True):
