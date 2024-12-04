@@ -12,15 +12,13 @@ from torch_npu.utils._error_code import ErrCode, ops_error
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "DropOutTask",
     "NpuCachedDropout",
     "NpuFairseqDropout",
-    "PreGenDropoutTask",
     "NpuPreGenDropout"
 ]
 
 
-class DropOutTask:
+class _DropOutTask:
     def __init__(self, shape, dtype, device, p):
         self.shape = shape
         self.dtype = dtype
@@ -66,7 +64,7 @@ class NpuCachedDropout(torch.nn.Dropout):
             return return_obj
         key = (shape, dtype, device, self.p)
         if key not in NpuCachedDropout.task_dict:
-            dropout_task = DropOutTask(shape, dtype, device, self.p)
+            dropout_task = _DropOutTask(shape, dtype, device, self.p)
             dropout_task.request_count += 1
             NpuCachedDropout.task_dict[key] = dropout_task
             return return_obj
@@ -108,7 +106,7 @@ class NpuCachedDropout(torch.nn.Dropout):
 NpuFairseqDropout = NpuCachedDropout
 
 
-class PreGenDropoutTask:
+class _PreGenDropoutTask:
     def __init__(self, device, p):
         self.device = device
         self.p = p
@@ -186,7 +184,7 @@ class NpuPreGenDropout(torch.nn.Dropout):
 
         model_device = f"npu:{torch.npu.current_device()}"
         for p in cls.prob:
-            init_task = PreGenDropoutTask(model_device, p)
+            init_task = _PreGenDropoutTask(model_device, p)
 
             init_task.mask = torch_npu.npu_dropout_gen_mask([init_task.max_mb, 1024, 1024], p=p, 
                                                             dtype=torch.float32, device=model_device)
