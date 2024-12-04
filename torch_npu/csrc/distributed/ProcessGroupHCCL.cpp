@@ -1175,7 +1175,12 @@ void ProcessGroupHCCL::createHCCLComm(
                     checkHcclCommConfigValid(commConfig);
                     hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, commConfig);
                 } else {
-                    hcclComms[i] = HCCLComm::create(numRanks, rank, hcclID);
+                    if (!options_->hccl_config.empty()) {
+                        config = createHcclCommConfigWithOptions();
+                        hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
+                    } else {
+                        hcclComms[i] = HCCLComm::create(numRanks, rank, hcclID);
+                    }
                 }
                 break;
             case HcclCommType::P2P: // P2P not support set hcclCommName
@@ -1226,7 +1231,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             npuGuard.set_index(devices[i].index());
             HcclCommConfig config;
             if (commConfig == nullptr) {
-                getHcclCommConfig(&config);
+                config = createHcclCommConfigWithOptions();
                 commConfig = &config;
             }
             auto comm = HCCLComm::createGlobalHcclComm(rankTableFile.c_str(), rank, commConfig);
@@ -1274,7 +1279,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
         npuGuard.set_index(devices[i].index());
         HcclCommConfig config;
         if (commConfig == nullptr) {
-            getHcclCommConfig(&config);
+            config = createHcclCommConfigWithOptions();
             if (commType == HcclCommType::P2P) {
                 numRanks = 2;
                 rank = p2pRank;
@@ -1695,8 +1700,7 @@ std::string ProcessGroupHCCL::getHcclCommName(int rankid, bool init_comm)
         hcclCommName = devHCCLCommNameMap_[key];
     }
     if (!hcclCommName.empty()) {
-        HcclCommConfig config;
-        HcclCommConfigInit(&config);
+        HcclCommConfig config = createHcclCommConfigWithOptions();
         torch_npu::toolkit::profiler::Utils::safe_strcpy_s(config.hcclCommName, hcclCommName.c_str(),
                                                            COMM_NAME_MAX_LENGTH);
         hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
@@ -1799,10 +1803,23 @@ void ProcessGroupHCCL::silenceCheck(at::Tensor &input, c10d::OpType opType)
 HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
 {
     HcclCommConfig config;
-    HcclCommConfigInit(&config);
+    getHcclCommConfig(&config);
+
     if (options_->hccl_config.find("hccl_buffer_size") != options_->hccl_config.end()) {
-        config.hcclBufferSize = options_->hccl_config["hccl_buffer_size"];
+        config.hcclBufferSize = std::get<uint32_t>(options_->hccl_config["hccl_buffer_size"]);
     }
+
+    if (options_->hccl_config.find("group_name") != options_->hccl_config.end()) {
+        auto groupName = std::get<std::string>(options_->hccl_config["group_name"]);
+        uint32_t udiLength = groupName.length();
+        if (groupName.length() >= UDI_MAX_LENGTH) {
+            udiLength = UDI_MAX_LENGTH - 1;
+            TORCH_NPU_WARN("The length of group_name has exceeded the limit UDI_MAX_LENGTH which will be truncated to UDI_MAX_LENGTH - 1.");
+        }
+        strncpy(config.hcclUdi, groupName.c_str(), udiLength);
+        config.hcclUdi[udiLength] = '\0';
+    }
+
     return config;
 }
 
@@ -2384,7 +2401,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
         },
         c10d::OpType::ALLREDUCE);
 }
-
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
     std::vector<std::string>& op_type,

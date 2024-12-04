@@ -3,6 +3,7 @@
 #include <mutex>
 #include <thread>
 #include <unordered_map>
+#include <variant>
 #include <c10d/ProcessGroup.hpp>
 #include <c10d/Store.hpp>
 #include <c10d/Utils.hpp>
@@ -256,7 +257,7 @@ public:
             return c10::make_intrusive<Options>(is_high_priority_stream);
         }
 
-        std::unordered_map<std::string, uint32_t> hccl_config;
+        std::unordered_map<std::string, std::variant<uint32_t, std::string>> hccl_config;
 
         std::chrono::milliseconds opTimeout;
         // Schedule HCCL operations on high priority CUDA streams
