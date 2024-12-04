@@ -1,13 +1,12 @@
-import os
 import json
-import torch
 from torch_npu._C._profiler import ProfilerActivity
 from ..experimental_config import _ExperimentalConfig, ProfilerLevel, AiCMetrics
-from ._dynamic_profiler_log import logger
+from ._dynamic_profiler_utils import logger, _get_rank_id
 
 
 class ConfigContext:
     DEFAULT_ACTIVE_NUM = 1
+    DEFAULT_START_STEP = 0
 
     def __init__(self, json_data: dict):
         self.activity_set = set()
@@ -22,9 +21,10 @@ class ConfigContext:
         self.rank_set = set()
         self.experimental_config = None
         self._active = 1
+        self._start_step = 0
         self.is_valid = False
         self._meta_data = {}
-        self._rank_id = self.get_rank_id()
+        self._rank_id = _get_rank_id()
         self.parse(json_data)
 
     def parse(self, json_data: dict):
@@ -44,6 +44,12 @@ class ConfigContext:
         self.with_flops = json_data.get('with_flops', False)
         self.with_modules = json_data.get('with_modules', False)
         self._active = json_data.get('active', self.DEFAULT_ACTIVE_NUM)
+        self._start_step = json_data.get("start_step", self.DEFAULT_START_STEP)
+        if not isinstance(self._start_step, int) or self._start_step < 0:
+            logger.info(f"Start step is not valid, will be reset to {self.DEFAULT_START_STEP}.")
+            self._start_step = self.DEFAULT_START_STEP
+        else:
+            logger.info(f"Start step will be set to {self._start_step}.")
         exp_config = json_data.get('experimental_config')
         if not exp_config:
             self.experimental_config = None
@@ -86,7 +92,7 @@ class ConfigContext:
             logger.warning("Set rank_list failed, rank_list must be list!")
             return
         for rank in ranks:
-            if isinstance(rank, int):
+            if isinstance(rank, int) and rank >= 0:
                 self.rank_set.add(rank)
 
     def valid(self) -> bool:
@@ -139,6 +145,9 @@ class ConfigContext:
             return self.DEFAULT_ACTIVE_NUM
         return self._active
 
+    def start_step(self) -> int:
+        return self._start_step
+
     def experimental_config(self) -> _ExperimentalConfig:
         return self.experimental_config
 
@@ -154,16 +163,5 @@ class ConfigContext:
         cfg_json = json.loads(cfg_json_str)
         return cfg_json
 
-    @staticmethod
-    def get_rank_id() -> int:
-        try:
-            rank_id = os.environ.get('RANK')
-            if rank_id is None and torch.distributed.is_available() and torch.distributed.is_initialized():
-                rank_id = torch.distributed.get_rank()
-            if not isinstance(rank_id, int):
-                rank_id = int(rank_id)
-        except Exception as ex:
-            logger.warning("Get rank id  %s, rank_id will be set to 0 !", str(ex))
-            rank_id = 0
 
-        return rank_id
+
