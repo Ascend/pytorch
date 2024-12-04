@@ -6,7 +6,7 @@ import torch_npu
 import torch_npu.utils._npu_trace as npu_trace
 import torch_npu.npu._stream_check as stream_check
 import torch_npu.npu._kernel_check as kernel_check
-from torch_npu.utils import print_warn_log
+from torch_npu.utils.utils import _print_warn_log
 
 
 class SanitizerMode:
@@ -38,7 +38,7 @@ class NPUSanitizer:
 
     def enable_kernel_check(self) -> bool:
         if not self.opp_debug_kernel_path:
-            print_warn_log("ASCEND_OPP_DEBUG_PATH is not set! TORCH_NPU_SANITIZER takes no effect!")
+            _print_warn_log("ASCEND_OPP_DEBUG_PATH is not set! TORCH_NPU_SANITIZER takes no effect!")
             return False
         self.kernel_path_manager = kernel_check.KernelPathManager()
         if not os.path.exists(self.opp_debug_path):

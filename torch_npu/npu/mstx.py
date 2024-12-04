@@ -15,7 +15,7 @@
 import warnings
 import functools
 import torch_npu._C
-from torch_npu.utils import print_error_log
+from torch_npu.utils.utils import _print_error_log
 
 __all__ = ["mstx"]
 
@@ -27,7 +27,7 @@ def _no_exception_func(default_ret=None):
             try:
                 result = func(*args, **kwargs)
             except Exception as ex:
-                print_error_log(f"Call {func.__name__} failed. Exception: {str(ex)}")
+                _print_error_log(f"Call {func.__name__} failed. Exception: {str(ex)}")
                 return default_ret
             return result
         return wrapper

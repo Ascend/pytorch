@@ -4,7 +4,7 @@ import shutil
 import traceback
 from typing import Callable
 import torch_npu.utils._npu_trace as npu_trace
-from torch_npu.utils import print_info_log, print_error_log, print_warn_log
+from torch_npu.utils.utils import _print_info_log, _print_error_log, _print_warn_log
 
 
 class EventHandler:
@@ -41,21 +41,21 @@ class KernelPathManager:
                 fcntl.flock(lf, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 func()
             except IOError:
-                print_warn_log(f"Permission denied to execute {func}")
+                _print_warn_log(f"Permission denied to execute {func}")
             finally:
                 fcntl.flock(lf, fcntl.LOCK_UN)
 
     def make_opp_debug_path(self):
         if not os.path.exists(self.ascend_opp_path):
-            print_error_log("ASCEND_OPP_PATH is not exists.")
+            _print_error_log("ASCEND_OPP_PATH is not exists.")
             return
         if not os.path.exists(self.opp_debug_kernel_path):
-            print_error_log("ASCEND_OPP_DEBUG_PATH is not exists.")
+            _print_error_log("ASCEND_OPP_DEBUG_PATH is not exists.")
             return
 
         linked_path = os.path.join(self.opp_debug_kernel_path, "built-in/op_impl/ai_core/tbe/kernel")
         if not os.path.exists(linked_path):
-            print_warn_log("ASCEND_OPP_DEBUG_PATH is not valid kernel path.")
+            _print_warn_log("ASCEND_OPP_DEBUG_PATH is not valid kernel path.")
             return
         kernel_path = os.path.join(self.opp_debug_path, "built-in/op_impl/ai_core/tbe/kernel")
         if os.path.exists(kernel_path) and os.path.islink(kernel_path):
@@ -84,4 +84,4 @@ class KernelPathManager:
         try:
             os.remove(lock_file)
         except FileNotFoundError as err:
-            print_info_log(err)
+            _print_info_log(err)

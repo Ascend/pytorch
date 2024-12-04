@@ -2573,15 +2573,6 @@
   "torch_npu.utils.npu_combine_tensors": {
     "signature": "(list_of_tensor, require_copy_value=True)"
   },
-  "torch_npu.utils.print_error_log": {
-    "signature": "(error_msg: str)"
-  },
-  "torch_npu.utils.print_info_log": {
-    "signature": "(info_msg: str)"
-  },
-  "torch_npu.utils.print_warn_log": {
-    "signature": "(warn_msg: str)"
-  },
   "torch_npu.utils.save_async": {
     "signature": "(obj: object, f, pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False, model: torch.nn.modules.module.Module = None) -> None"
   },
@@ -2698,15 +2689,6 @@
   },
   "torch_npu.utils.tensor_methods.npu_dtype_cast": {
     "signature": "(self, dtype)"
-  },
-  "torch_npu.utils.utils.print_error_log": {
-    "signature": "(error_msg: str)"
-  },
-  "torch_npu.utils.utils.print_info_log": {
-    "signature": "(info_msg: str)"
-  },
-  "torch_npu.utils.utils.print_warn_log": {
-    "signature": "(warn_msg: str)"
   },
   "torch_npu._npu_dropout": {
     "signature": "(*args, **kwargs)"
