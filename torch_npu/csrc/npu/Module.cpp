@@ -196,7 +196,7 @@ void RegisterNpuPluggableAllocator(PyObject* module)
         "set_record_stream_fn",
         [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
             uint64_t func_ptr) {
-            using FuncType = void(void*, aclrtStream);
+            using FuncType = void(void*, c10_npu::NPUStream);
             std::function<FuncType> func =
                 reinterpret_cast<FuncType*>(func_ptr);
             self.set_record_stream_fn(func);
@@ -205,7 +205,7 @@ void RegisterNpuPluggableAllocator(PyObject* module)
         "set_erase_stream_fn",
         [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
             uint64_t func_ptr) {
-            using FuncType = void(void*, aclrtStream);
+            using FuncType = void(void*, c10_npu::NPUStream);
             std::function<FuncType> func =
                 reinterpret_cast<FuncType*>(func_ptr);
             self.set_erase_stream_fn(func);

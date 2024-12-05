@@ -63,13 +63,13 @@ void NPUPluggableAllocator::set_base_alloc_fn(
 }
 
 void NPUPluggableAllocator::set_record_stream_fn(
-    std::function<void(void* ptr, aclrtStream stream)> record_stream_fn)
+    std::function<void(void* ptr, c10_npu::NPUStream stream)> record_stream_fn)
 {
     record_stream_fn_ = std::move(record_stream_fn);
 }
 
 void NPUPluggableAllocator::set_erase_stream_fn(
-    std::function<void(void* ptr, aclrtStream stream)> erase_stream_fn)
+    std::function<void(void* ptr, c10_npu::NPUStream stream)> erase_stream_fn)
 {
     erase_stream_fn_ = std::move(erase_stream_fn);
 }
