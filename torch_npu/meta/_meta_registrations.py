@@ -671,13 +671,21 @@ def npu_group_quant_meta(x, scale, group_index, *, offset=None, dst_dtype=None):
 
 
 @impl(m, "npu_dynamic_quant")
-def npu_dynamic_quant(input_dummy, *, smooth_scales=None):
+def npu_dynamic_quant(input_dummy, *, smooth_scales=None, group_index=None, dst_type=torch.int8):
     dim_num = input_dummy.dim()
     scale_shape = []
     for dim in range(dim_num - 1):
         scale_shape.append(input_dummy.size(dim))
-    return (torch.empty_like(input_dummy, dtype=torch.int8),
-             input_dummy.new_empty(scale_shape, dtype=torch.float32))
+    scale = input_dummy.new_empty(scale_shape, dtype=torch.float32)
+    if dst_type == torch.quint4x2:
+        if input_dummy.size(dim_num - 1) % 8:
+            raise RuntimeError("If dst_dtype is quint4x2, last dim must be divisible by 8" +
+                               ops_error(ErrCode.PARAM))
+        scale_shape.append(input_dummy.size(dim_num - 1) // 8)
+        output = input_dummy.new_empty(scale_shape, dtype=torch.int32)
+    else:
+        output = torch.empty_like(input_dummy, dtype=torch.int8)
+    return (output, scale)
 
 
 @impl(m, "npu_dynamic_quant_asymmetric")
@@ -686,9 +694,17 @@ def npu_dynamic_quant_asymmetric(input_dummy, *, smooth_scales=None, group_index
     scale_offset_shape = []
     for dim in range(dim_num - 1):
         scale_offset_shape.append(input_dummy.size(dim))
-    return (torch.empty_like(input_dummy, dtype=torch.int8),
-             input_dummy.new_empty(scale_offset_shape, dtype=torch.float32),
-             input_dummy.new_empty(scale_offset_shape, dtype=torch.float32))
+    scale = input_dummy.new_empty(scale_offset_shape, dtype=torch.float32)
+    offset = input_dummy.new_empty(scale_offset_shape, dtype=torch.float32)
+    if dst_type == torch.quint4x2:
+        if input_dummy.size(dim_num - 1) % 8:
+            raise RuntimeError("If dst_dtype is quint4x2, last dim must be divisible by 8" +
+                               ops_error(ErrCode.PARAM))
+        scale_offset_shape.append(input_dummy.size(dim_num - 1) // 8)
+        output = input_dummy.new_empty(scale_offset_shape, dtype=torch.int32)
+    else:
+        output = torch.empty_like(input_dummy, dtype=torch.int8)
+    return (output, scale, offset)
 
 
 @impl(m, "npu_anti_quant")
