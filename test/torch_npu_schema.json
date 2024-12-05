@@ -2585,15 +2585,6 @@
   "torch_npu.utils.profiler.Singleton": {
     "signature": "(cls)"
   },
-  "torch_npu.utils.print_error_log": {
-    "signature": "(error_msg: str)"
-  },
-  "torch_npu.utils.print_info_log": {
-    "signature": "(info_msg: str)"
-  },
-  "torch_npu.utils.print_warn_log": {
-    "signature": "(warn_msg: str)"
-  },
   "torch_npu.utils.serialization.load": {
     "signature": "(f: Union[str, os.PathLike, BinaryIO, IO[bytes]], map_location: Union[Callable[[torch.types.Storage, str], torch.types.Storage], torch.device, str, Dict[str, str], NoneType] = None, pickle_module: Any = None, *, weights_only: bool = False, mmap: Union[bool, NoneType] = None, **pickle_load_args: Any) -> Any"
   },
@@ -2608,15 +2599,6 @@
   },
   "torch_npu.utils.syncbatchnorm.SyncBatchNorm.backward": {
     "signature": "(self, grad_output)"
-  },
-  "torch_npu.utils.utils.print_error_log": {
-    "signature": "(error_msg: str)"
-  },
-  "torch_npu.utils.utils.print_info_log": {
-    "signature": "(info_msg: str)"
-  },
-  "torch_npu.utils.utils.print_warn_log": {
-    "signature": "(warn_msg: str)"
   },
   "torch_npu._npu_dropout": {
     "signature": "(*args, **kwargs)"
