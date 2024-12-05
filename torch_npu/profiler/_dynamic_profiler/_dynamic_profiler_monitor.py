@@ -6,7 +6,7 @@ import json
 import struct
 import multiprocessing
 
-from ._dynamic_profiler_log import logger, logger_monitor, init_logger
+from ._dynamic_profiler_utils import logger, logger_monitor, init_logger, _get_rank_id
 from ._dynamic_profiler_config_context import ConfigContext
 from ._dynamic_profiler_monitor_shm import DynamicProfilerShareMemory
 
@@ -19,7 +19,7 @@ class DynamicProfilerMonitor:
             poll_interval: int = 2
     ):
         self._path = path
-        self._rank_id = ConfigContext.get_rank_id()
+        self._rank_id = _get_rank_id()
         self._buffer_size = buffer_size
         self._monitor_process = None
         self.prof_cfg_context = None
@@ -110,7 +110,7 @@ def worker_func(params_dict):
     file_stat_time = params_dict.get("file_stat_time")
     mmap_path = params_dict.get("mmap_path")
     is_mmap = params_dict.get("is_mmap")
-    init_logger(logger_monitor, os.path.dirname(cfg_path), True)
+    init_logger(logger_monitor, os.path.dirname(cfg_path), is_monitor_process=True)
 
     mmap_obj = None
     if is_mmap and mmap_path is not None:
