@@ -773,8 +773,14 @@ void abortCommsFromMap(
         // their responsibility to destroy the process group and recreate
         // it to recover from errors.
 
-        LOG(INFO) << "[Rank " << rank << "] Destroyed " << hcclComms.size()
+        if (abortReason.has_value()) {
+            LOG(INFO) << "[Rank " << rank << "] Destroyed " << hcclComms.size()
+                << "communicators on ASCEND device " << devName
+                << " for reason: " << *abortReason;
+        } else {
+            LOG(INFO) << "[Rank " << rank << "] Destroyed " << hcclComms.size()
                 << "communicators on ASCEND device " << devName;
+        }
     }
 }
 
@@ -783,6 +789,31 @@ void ProcessGroupHCCL::abort(c10::optional<std::string> abortReason)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     abortCommsFromMap(devHCCLCommMap_, rank_, abortReason);
+}
+
+void ProcessGroupHCCL::deleteTCPStoreKey()
+{
+    try {
+        for (const auto &key : TCPStoreKeyList_) {
+            store_->deleteKey(key);
+        }
+    } catch(...) {
+        // different ranks may delete at the same time, which could cause exception
+        TCPStoreKeyList_.clear();
+        return;
+    }
+    
+    TCPStoreKeyList_.clear();
+}
+
+void ProcessGroupHCCL::abortAndClearHcclComm(c10::optional<std::string> abortReason)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    abortCommsFromMap(devHCCLCommMap_, rank_, abortReason);
+    devHCCLCommMap_.clear();
+    devHCCLCommNameMap_.clear();
+    hcclCommCounter_ = 0;
+    return;
 }
 
 ProcessGroupHCCL::~ProcessGroupHCCL()
@@ -1019,10 +1050,12 @@ void ProcessGroupHCCL::broadcastMasterID(
             reinterpret_cast<uint8_t*>(hcclID), reinterpret_cast<uint8_t*>(hcclID) + HCCL_ROOT_INFO_BYTES);
         store_->set(storeKey, vec);
         store_->set(ver_key, ver_list);
+        TCPStoreKeyList_.emplace(storeKey);
     } else {
         try {
             auto vec = store_->get(storeKey);
             TORCH_CHECK(vec.size() == HCCL_ROOT_INFO_BYTES, DIST_ERROR(ErrCode::PARAM));
+            TCPStoreKeyList_.emplace(storeKey);
             std::memcpy(hcclID, vec.data(), vec.size());
         } catch (const std::exception& e) {
             std::string exceptionMsg = c10::str(
