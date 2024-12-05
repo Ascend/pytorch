@@ -11,7 +11,7 @@ from datetime import datetime
 from ...utils.path_manager import PathManager
 from ...utils._error_code import ErrCode, prof_error
 from ..analysis.prof_common_func._file_manager import FileManager
-from ._dynamic_profiler_log import logger
+from ._dynamic_profiler_utils import logger
 
 
 class DynamicProfilerShareMemory:
@@ -25,6 +25,7 @@ class DynamicProfilerShareMemory:
         "with_flops": False,
         "with_modules": False,
         "active": 1,
+        "start_step": 0,
         "is_rank": False,
         "rank_list": [],
         "experimental_config": {
@@ -88,7 +89,7 @@ class DynamicProfilerShareMemory:
         if pid_time is not None and pid_time - time_shm > eps:
             raise RuntimeError(f"There may exist shared memory before this task. If you kill the last task, "
                                f"dynamic profiler will not be valid. Please remove: {shm_path}, and retry." +
-                               prof_error(ErrCode.VALUE)) from err
+                               prof_error(ErrCode.VALUE))
 
     def _create_prof_cfg(self):
         if not os.path.exists(self.config_path):
