@@ -42,9 +42,9 @@ struct NPUPluggableAllocator
         std::function<void(double, int)> memory_fraction_fn);
     void set_base_alloc_fn(std::function<void*(void*, size_t*)> base_alloc_fn);
     void set_record_stream_fn(
-        std::function<void(void* ptr, aclrtStream stream)> record_stream_fn);
+        std::function<void(void* ptr, c10_npu::NPUStream stream)> record_stream_fn);
     void set_erase_stream_fn(
-        std::function<void(void* ptr, aclrtStream stream)> erase_stream_fn);
+        std::function<void(void* ptr, c10_npu::NPUStream stream)> erase_stream_fn);
     void* malloc(size_t size, int device, aclrtStream stream);
 
     c10::DataPtr allocate(size_t size) override;
@@ -88,8 +88,8 @@ protected:
     std::function<void(bool)> reset_fn_;
     std::function<void(double, int)> memory_fraction_fn_;
     std::function<void*(void*, size_t*)> base_alloc_fn_;
-    std::function<void(void* ptr, aclrtStream stream)> record_stream_fn_;
-    std::function<void(void* ptr, aclrtStream stream)> erase_stream_fn_;
+    std::function<void(void* ptr, c10_npu::NPUStream stream)> record_stream_fn_;
+    std::function<void(void* ptr, c10_npu::NPUStream stream)> erase_stream_fn_;
     std::mutex allocator_mutex_;
     // We do the bookeeping here in order to simplify custom allocators
     std::unordered_map<void*, _AllocationMetadata> allocation_metadata_;
