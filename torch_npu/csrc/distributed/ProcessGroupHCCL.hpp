@@ -440,6 +440,10 @@ public:
     // instead of relying on ProcessGroupHCCL destructor.
     void abort(c10::optional<std::string> abortReason = c10::nullopt);
 
+    void deleteTCPStoreKey();
+
+    void abortAndClearHcclComm(c10::optional<std::string> abortReason);
+
     std::string getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
     // Return the global ranks of a PG
@@ -523,6 +527,8 @@ protected:
     std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>> devHCCLCommMap_;
 
     std::unordered_map<std::string, std::string> devHCCLCommNameMap_;
+
+    std::unordered_set<std::string> TCPStoreKeyList_;
 
     // Mutex to guard maps like devHCCLCommMap_.
     std::mutex mutex_;
