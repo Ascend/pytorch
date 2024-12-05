@@ -1,6 +1,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <algorithm>
 
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -49,7 +50,9 @@ void SetSocVersion(const char* const socVersion)
   if (iter != socVersionMap.end()) {
     curSocVersion = iter->second;
   } else {
-    AT_ERROR("Unsupported soc version: ", socVersion);
+    std::string unsupported_soc(socVersion);
+    std::replace(std::begin(unsupported_soc), std::end(unsupported_soc), '_', ' ');
+    AT_ERROR("Unsupported soc version: ", unsupported_soc);
   }
 
   g_curSocVersion = curSocVersion;
