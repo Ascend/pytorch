@@ -210,67 +210,22 @@ def _clear_pg_cache_in_torch(group: ProcessGroup):
     _unregister_process_group(group.group_name)
 
 
-def _reinit_process_group(group: ProcessGroup):
-    # Prepare parameters
-    backend = dist_c10d.Backend(_world.pg_map[group][0])
-    init_method = dist_c10d._default_pg_init_method if dist_c10d._default_pg_init_method else "env://"
-    rank = group.rank()
-    world_size = dist_c10d._get_group_size(group)
-    device_id = None
-    pg_options = None
-    pg_tag = None
-    group_desc = "default_pg"
-    timeout = default_pg_timeout
-    group_name = _world.pg_names[group]
-    # clear processgroup and map cache
-    _world.default_pg = None
-    _clear_pg_cache_in_torch(group)
-    group._get_backend(torch.device('npu')).abort_hccl_comm("reinit")
-    group = None
-    # init store
-    rendezvous_iterator = dist_c10d.rendezvous(
-        init_method, rank, world_size, timeout=timeout
-    )
-    store, rank, world_size = next(rendezvous_iterator)
-    store.set_timeout(timeout)
-    store = dist_c10d.PrefixStore("default_pg", store)
-    if store.num_keys() > 0:
-        # "0" is a key for hccl masterID.
-        # We need to refresh this value in reinit process.
-        store.delete_key("0")
-    # new group
-    default_pg, _ = dist_c10d._new_process_group_helper(
-        world_size,
-        rank,
-        [],
-        backend,
-        store,
-        group_name,
-        pg_options,
-        timeout,
-        pg_tag,
-        device_id,
-        group_desc
-    )
-    # update info
-    dist_c10d._update_default_pg(default_pg)
-    _world.pg_group_ranks[dist_c10d.GroupMember.WORLD] = {i: i for i in range(dist_c10d.GroupMember.WORLD.size())}
-    dist_c10d._backend = _world.pg_map[dist_c10d.GroupMember.WORLD][0]
-    dist_c10d._default_pg_init_method = init_method
-    _world.pg_default_device[default_pg] = torch.device('npu')
-    group = default_pg
-
-
 def reinit_process_group(group=None, rebuild_link=True):
+    if group is None:
+        group = _world.default_pg
     if not rebuild_link:
         device_id = torch.npu.current_device()
         npu_device = torch.device('npu')
         for pg in _pg_map:
             if (npu_device in pg._device_types):
                 pg._get_backend(npu_device).resume_hccl_comm(device_id)
+        return None
     else:
-        group = _world.default_pg
-        _reinit_process_group(group)
+        backend = dist_c10d.Backend(_world.pg_map[group][0])
+        if 'hccl' in backend:
+            group._get_backend(torch.device('npu'))._delete_tcpstore_key()
+            group._get_backend(torch.device('npu')).abort_hccl_comm("reinit")
+        return group
 
 
 def _destructor_process_group():
