@@ -3,7 +3,7 @@ import socket
 import shutil
 from datetime import datetime
 
-from ..utils.path_manager import PathManager
+from ..utils._path_manager import PathManager
 from .analysis.prof_common_func._constant import Constant
 from .analysis.prof_common_func._singleton import Singleton
 from .analysis.prof_common_func._constant import print_warn_msg

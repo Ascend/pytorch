@@ -30,7 +30,7 @@ from .analysis.prof_common_func._constant import print_warn_msg
 from .analysis.prof_common_func._file_manager import FileManager
 from .analysis.prof_common_func._utils import collect_env_vars, no_exception_func
 from .analysis.prof_common_func._path_manager import ProfilerPathManager
-from ..utils.path_manager import PathManager
+from ..utils._path_manager import PathManager
 from .analysis.prof_common_func._cann_package_manager import CannPackageManager
 
 __all__ = ["supported_activities"]

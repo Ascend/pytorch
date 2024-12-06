@@ -3,7 +3,7 @@ import inspect
 import os
 import warnings
 import torch_npu._C
-from torch_npu.utils.path_manager import PathManager
+from torch_npu.utils._path_manager import PathManager
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
 
 # this file is used to enhance the npu frontend API by set_option or other.

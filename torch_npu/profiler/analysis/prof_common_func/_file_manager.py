@@ -5,7 +5,7 @@ import gzip
 
 from typing import Dict, Optional
 from torch_npu.utils._error_code import ErrCode, prof_error
-from ....utils.path_manager import PathManager
+from ....utils._path_manager import PathManager
 from ..prof_common_func._constant import Constant, print_warn_msg
 
 __all__ = []

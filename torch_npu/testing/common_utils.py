@@ -16,7 +16,7 @@ import numpy as np
 import torch
 
 import torch_npu
-from torch_npu.utils.path_manager import PathManager
+from torch_npu.utils._path_manager import PathManager
 
 
 @contextmanager

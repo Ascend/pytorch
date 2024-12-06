@@ -3,7 +3,7 @@ import functools
 
 import torch
 
-from ..utils.path_manager import PathManager
+from ..utils._path_manager import PathManager
 from .dynamic_profile import _DynamicProfile
 from .dynamic_profile import init as dp_init
 from .dynamic_profile import step as dp_step
