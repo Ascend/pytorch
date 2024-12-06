@@ -3,7 +3,7 @@ import socket
 import logging
 from logging.handlers import RotatingFileHandler
 import torch
-from ...utils.path_manager import PathManager
+from ...utils._path_manager import PathManager
 
 logger = logging.getLogger("DynamicProfiler")
 logger_monitor = logging.getLogger("DynamicProfilerMonitor")

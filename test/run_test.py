@@ -14,7 +14,7 @@ from torch.utils import cpp_extension
 from torch.testing._internal.common_utils import shell
 
 import torch_npu
-from torch_npu.utils.path_manager import PathManager
+from torch_npu.utils._path_manager import PathManager
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
