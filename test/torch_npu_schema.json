@@ -317,15 +317,6 @@
   "torch_npu.contrib.function.iou.npu_ptiou": {
     "signature": "(boxes1, boxes2, mode='ptiou', is_normalized=False, normalized_scale=100.0)"
   },
-  "torch_npu.contrib.function.matmul_transpose.MatmulApply": {
-    "signature": "(*args, **kwargs)"
-  },
-  "torch_npu.contrib.function.matmul_transpose.MatmulApply.forward": {
-    "signature": "(ctx, self, mat2)"
-  },
-  "torch_npu.contrib.function.matmul_transpose.MatmulApply.backward": {
-    "signature": "(ctx, grad)"
-  },
   "torch_npu.contrib.function.matmul_transpose.matmul_transpose": {
     "signature": "(*args, **kwargs)"
   },
@@ -488,15 +479,6 @@
   "torch_npu.contrib.module.NpuFairseqDropout.enable_dropout_ensemble": {
     "signature": "(model)"
   },
-  "torch_npu.contrib.module.NpuPreGenDropout": {
-    "signature": "(p, module_name=None)"
-  },
-  "torch_npu.contrib.module.NpuPreGenDropout.forward": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.contrib.module.NpuPreGenDropout.enable_dropout_ensemble": {
-    "signature": "(model)"
-  },
   "torch_npu.contrib.module.PSROIPool": {
     "signature": "(pooled_height=7, pooled_width=7, spatial_scale=0.0625, group_size=7, output_dim=22)"
   },
@@ -547,39 +529,6 @@
   },
   "torch_npu.contrib.module.activations.Swish.forward": {
     "signature": "(self, x)"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastBatchNorm1d": {
-    "signature": "(num_features, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastBatchNorm1d._check_input_dim": {
-    "signature": "(self, input1)"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastBatchNorm2d": {
-    "signature": "(num_features, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastBatchNorm2d._check_input_dim": {
-    "signature": "(self, input1)"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastBatchNorm3d": {
-    "signature": "(num_features, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastBatchNorm3d._check_input_dim": {
-    "signature": "(self, input1)"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastSyncBatchNorm": {
-    "signature": "(num_features: int, eps: float = 1e-05, momentum: float = 0.1, affine: bool = True, track_running_stats: bool = True, process_group: Optional[Any] = None, device=None, dtype=None) -> None"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastSyncBatchNorm._check_input_dim": {
-    "signature": "(self, input1)"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastSyncBatchNorm._check_non_zero_input_channels": {
-    "signature": "(self, input1)"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastSyncBatchNorm.forward": {
-    "signature": "(self, input1: torch.Tensor) -> torch.Tensor"
-  },
-  "torch_npu.contrib.module.batchnorm_with_int32_count.FastSyncBatchNorm.convert_sync_batchnorm": {
-    "signature": "(module, process_group=None)"
   },
   "torch_npu.contrib.module.bidirectional_lstm.BiLSTM": {
     "signature": "(input_size, hidden_size)"
@@ -678,15 +627,6 @@
     "signature": "(self, x)"
   },
   "torch_npu.contrib.module.ensemble_dropout.NpuFairseqDropout.enable_dropout_ensemble": {
-    "signature": "(model)"
-  },
-  "torch_npu.contrib.module.ensemble_dropout.NpuPreGenDropout": {
-    "signature": "(p, module_name=None)"
-  },
-  "torch_npu.contrib.module.ensemble_dropout.NpuPreGenDropout.forward": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.contrib.module.ensemble_dropout.NpuPreGenDropout.enable_dropout_ensemble": {
     "signature": "(model)"
   },
   "torch_npu.contrib.module.focus.Conv": {
