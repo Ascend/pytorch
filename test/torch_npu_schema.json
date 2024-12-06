@@ -2573,39 +2573,6 @@
   "torch_npu.utils.npu_combine_tensors": {
     "signature": "(list_of_tensor, require_copy_value=True)"
   },
-  "torch_npu.utils.path_manager.PathManager": {
-    "signature": "()"
-  },
-  "torch_npu.utils.path_manager.PathManager.check_input_directory_path": {
-    "signature": "(path: str)"
-  },
-  "torch_npu.utils.path_manager.PathManager.check_input_file_path": {
-    "signature": "(path: str)"
-  },
-  "torch_npu.utils.path_manager.PathManager.check_path_owner_consistent": {
-    "signature": "(path: str)"
-  },
-  "torch_npu.utils.path_manager.PathManager.check_directory_path_writeable": {
-    "signature": "(path)"
-  },
-  "torch_npu.utils.path_manager.PathManager.check_directory_path_readable": {
-    "signature": "(path)"
-  },
-  "torch_npu.utils.path_manager.PathManager.remove_path_safety": {
-    "signature": "(path: str)"
-  },
-  "torch_npu.utils.path_manager.PathManager.remove_file_safety": {
-    "signature": "(file: str)"
-  },
-  "torch_npu.utils.path_manager.PathManager.make_dir_safety": {
-    "signature": "(path: str)"
-  },
-  "torch_npu.utils.path_manager.PathManager.create_file_safety": {
-    "signature": "(path: str)"
-  },
-  "torch_npu.utils.path_manager.PathManager._input_path_common_check": {
-    "signature": "(path: str)"
-  },
   "torch_npu.utils.profiler.Profile": {
     "signature": "(*args, **kwargs)"
   },

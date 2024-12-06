@@ -6,7 +6,7 @@ from .prof_common_func._constant import Constant, print_error_msg
 from .prof_common_func._path_manager import ProfilerPathManager
 from .prof_common_func._prof_process import ProfProcess
 from ._profiling_parser import ProfilingParser
-from ...utils.path_manager import PathManager
+from ...utils._path_manager import PathManager
 
 __all__ = []
 
