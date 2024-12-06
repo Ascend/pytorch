@@ -1110,6 +1110,24 @@ class TestFastGelu(TestCase):
             self.assertEqual(a.shape, result.shape)
 
 
+class TestGelu(TestCase):
+
+    def test_npu_gelu(self):
+        with FakeTensorMode():
+            a = torch.randn(10, 3, 4).npu()
+            a.requires_grad = True
+            result = torch.ops.npu.npu_gelu(a)
+            self.assertTrue(a.shape == result.shape)
+
+    def test_npu_gelu_backward(self):
+        with FakeTensorMode():
+            a = torch.randn(10, 3, 4).npu()
+            a.requires_grad = True
+            result = torch.ops.npu.npu_gelu(a)
+            result.sum().backward()
+            self.assertTrue(a.shape == a.grad.shape)
+
+
 class TestIncreFlashAttention(TestCase):
     def testIncreFlashAttention(self):
         with FakeTensorMode():

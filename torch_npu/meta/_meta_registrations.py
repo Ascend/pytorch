@@ -184,6 +184,16 @@ def npu_fast_gelu_meta(self):
     return torch.empty_like(self)
 
 
+@impl(m, "npu_gelu")
+def npu_gelu_meta(self, *, approximate="none"):
+    return torch.empty_like(self)
+
+
+@impl(m, "npu_gelu_backward")
+def npu_gelu_backward_meta(grad, self, *, approximate="none"):
+    return torch.empty_like(self)
+
+
 @impl(m, "npu_dtype_cast")
 def npu_dtype_cast_meta(self, dtype):
     return torch.empty_like(self, dtype=dtype)
