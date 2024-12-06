@@ -6,7 +6,7 @@ from enum import Enum
 from json import JSONDecodeError
 
 from torch_npu.utils._error_code import ErrCode, prof_error
-from ....utils.path_manager import PathManager
+from ....utils._path_manager import PathManager
 from ..prof_bean._event_bean import EventBean
 from ..prof_common_func._constant import Constant, print_warn_msg
 from ..prof_common_func._constant import convert_us2ns

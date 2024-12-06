@@ -2,7 +2,7 @@ import os
 import re
 
 from torch_npu.utils._error_code import ErrCode, prof_error
-from ....utils.path_manager import PathManager
+from ....utils._path_manager import PathManager
 from ._constant import Constant
 
 __all__ = []
