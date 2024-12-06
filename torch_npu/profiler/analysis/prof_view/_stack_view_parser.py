@@ -10,7 +10,7 @@ from ..prof_common_func._tree_builder import TreeBuilder
 from ..prof_common_func._file_manager import FileManager
 from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
 from ..prof_parse._fwk_file_parser import FwkFileParser
-from ....utils.path_manager import PathManager
+from ....utils._path_manager import PathManager
 
 __all__ = []
 

@@ -24,7 +24,7 @@ from torch._utils_internal import TEST_MASTER_ADDR as MASTER_ADDR
 from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
 
 import torch_npu
-from torch_npu.utils.path_manager import PathManager
+from torch_npu.utils._path_manager import PathManager
 from torch_npu.testing.common_distributed import TEST_SKIPS, skipIfUnsupportMultiNPU
 
 try:
