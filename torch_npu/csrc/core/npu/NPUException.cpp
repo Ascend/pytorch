@@ -103,17 +103,21 @@ const char *c10_npu_get_error_message()
     return c10_npu::acl::AclGetErrMsg();
 }
 
-bool checkUceErrAndRepair()
+bool checkUceErrAndRepair(bool check_error, std::string& err_msg)
 {
     int device = 0;
     auto err = c10_npu::GetDevice(&device);
     if (err != ACL_ERROR_NONE) {
-        TORCH_CHECK(false, "ERROR happend in GetDevice.", PTA_ERROR(ErrCode::ACL))
+        err_msg = "ERROR happend in GetDevice.";
+        if (check_error) {
+            TORCH_CHECK(false, err_msg, PTA_ERROR(ErrCode::ACL))
+        } else {
+            return false;
+        }
     }
 
     MemUceInfo memUceInfo_;
     memUceInfo_.device = device;
-
     err = c10_npu::acl::AclrtGetMemUceInfo(device, memUceInfo_.info, sizeof(memUceInfo_.info) / sizeof(aclrtMemUceInfo), &memUceInfo_.retSize);
     if (err == ACL_ERROR_NONE) {
         if (memUceInfo_.retSize > 0) {
@@ -121,15 +125,19 @@ bool checkUceErrAndRepair()
             set_mem_uce_info(memUceInfo_);
             return true;
         } else {
-            return false;
+            err_msg = "AclrtGetMemUceInfo get UCE ERROR, retSize is " + std::to_string(memUceInfo_.retSize);
         }
     } else {
         static c10_npu::acl::AclErrorCode err_map;
-        TORCH_CHECK(false, __func__, ":", __FILE__, ":", __LINE__, " NPU error, error code is ", err, PTA_ERROR(ErrCode::ACL),
-                    (err_map.error_code_map.find(err) != err_map.error_code_map.end() ?
-                    "\n[Error]: " + err_map.error_code_map[err] : "."), "\n", c10_npu::c10_npu_get_error_message());
+        err_msg = std::string(__func__) + ":" + __FILE__ + ":" + std::to_string(__LINE__) +
+                        " NPU error, error code is " + std::to_string(err) + PTA_ERROR(ErrCode::ACL) +
+                        (err_map.error_code_map.find(err) != err_map.error_code_map.end() ?
+                        "\n[Error]: " + err_map.error_code_map[err] : ".") +
+                        "\n" + c10_npu_get_error_message();
+        if (check_error) {
+            TORCH_CHECK(false, err_msg);
+        }
     }
-
     return false;
 }
 

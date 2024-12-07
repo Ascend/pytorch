@@ -363,10 +363,14 @@ bool Repository::ReadQueue()
             manager().Release(datas, read_idx.idx, releaseQueue);
             read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
         }
-        if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR && checkUceErrAndRepair()) {
+        std::string err_msg;
+        if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR && checkUceErrAndRepair(false, err_msg)) {
             SetStatus(UCE_EXIT);
         } else if (GetStatus() != STOP_EXIT) {
             SetStatus(ERROR_EXIT);
+        }
+        if (!err_msg.empty()) {
+            repo_error = repo_error + ". Other error information exists:" + err_msg;
         }
         ClearQueue();
         c10_npu::NPUEventManager::GetInstance().ClearUnrecordedCount();
