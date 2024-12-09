@@ -110,8 +110,9 @@ bool checkUceErrAndRepair(bool check_error, std::string& err_msg)
     if (err != ACL_ERROR_NONE) {
         err_msg = "ERROR happend in GetDevice.";
         if (check_error) {
-            TORCH_CHECK(false, err_msg, PTA_ERROR(ErrCode::ACL))
+            TORCH_CHECK(false, err_msg, PTA_ERROR(ErrCode::ACL));
         } else {
+            err_msg += PTA_ERROR(ErrCode::ACL);
             return false;
         }
     }
