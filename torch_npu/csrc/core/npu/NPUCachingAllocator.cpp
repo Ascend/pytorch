@@ -903,6 +903,7 @@ class DeviceCachingAllocator {
               // If there is an overlap, mark the block as unsafe
               if (addr <= block_end && addr_end >= block_start) {
                   const_cast<Block*>(head_block)->is_safe = false;
+                  ASCEND_LOGI("Memory block with UCE fault error found in the NPUCachingAllocator and was marked as unsafe");
                   found = true;
                   any_found = true;
                   // Set the unsafe flag only once
@@ -1166,6 +1167,9 @@ class DeviceCachingAllocator {
 
   block->allocated = true;
   block->requested_size = orig_size;
+  if (block->is_safe == false) {
+      ASCEND_LOGI("Unsafe memory block is passively refreshed by releasing and mallocing memory again");
+  }
   block->is_safe = true;
 
   block->context_when_allocated = std::move(context);
@@ -2472,6 +2476,9 @@ class NpuCachingAllocator : public NPUAllocator {
       }
       Block* block = get_allocated_block(ptr.get());
       TORCH_INTERNAL_ASSERT(block != nullptr, "No allocated block can be found", PTA_ERROR(ErrCode::NOT_FOUND));
+      if (block->is_safe == false) {
+          ASCEND_LOGI("Triggers to refresh the data of the unsafe memory block and remove the unsafe flag");
+      }
       block->is_safe = true;
   }
 
