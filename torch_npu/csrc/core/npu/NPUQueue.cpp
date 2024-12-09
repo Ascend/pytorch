@@ -497,7 +497,7 @@ void Repository::Dequeue() {
 
   SetReadWorking(true);
   while (ret == false && GetStatus() != RepoStatus::CAN_EXIT) {
-    if (GetStatus() == RepoStatus::STOP_EXIT) {
+    if (GetStatus() == RepoStatus::STOP_EXIT || GetStatus() == RepoStatus::UCE_EXIT) {
         ClearQueue();
         c10_npu::NPUEventManager::GetInstance().ClearUnrecordedCount();
         std::this_thread::sleep_for(std::chrono::microseconds(1000));
