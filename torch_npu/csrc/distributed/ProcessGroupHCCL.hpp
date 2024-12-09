@@ -329,7 +329,7 @@ public:
         at::Tensor& inputTensors,
         const c10d::ReduceOptions& opts = c10d::ReduceOptions());
 
-    c10::intrusive_ptr<c10d::Work>batch_isend_irecv(
+    c10::intrusive_ptr<c10d::Work> batch_isend_irecv(
 	    std::vector<std::string>& op_type,
 	    std::vector<at::Tensor>& tensors,
 	    std::vector<uint32_t> remote_rank_list);
