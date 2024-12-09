@@ -130,7 +130,8 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
     if ((uce_error) != ACL_ERROR_NONE) {                                     \
         Error_uce = uce_error;                                               \
     }                                                                        \
-    if ((Error_uce) == ACL_ERROR_RT_DEVICE_MEM_ERROR && c10_npu::checkUceErrAndRepair()) {     \
+    std::string err_msg;                                                     \
+    if ((Error_uce) == ACL_ERROR_RT_DEVICE_MEM_ERROR && c10_npu::checkUceErrAndRepair(true, err_msg)) {     \
         TORCH_CHECK(                                                         \
             false,                                                           \
             __func__,                                                        \
@@ -254,7 +255,7 @@ struct MemUceInfo {
 
 C10_NPU_API const char *c10_npu_get_error_message();
 
-bool checkUceErrAndRepair();
+bool checkUceErrAndRepair(bool check_error, std::string& err_msg);
 
 void set_mem_uce_info(MemUceInfo info);
 
