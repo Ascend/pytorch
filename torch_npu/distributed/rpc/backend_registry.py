@@ -9,7 +9,7 @@ from torch.distributed.rpc import constants as rpc_constants
 import torch_npu._C
 from torch_npu.utils._error_code import ErrCode, dist_error
 
-__all__ = ["construct_rpc_backend_options", "init_backend"]
+__all__ = []
 
 
 def _get_device_count_info():
@@ -176,7 +176,7 @@ def _backend_type_repr(self):
     return "BackendType." + self.name
 
 
-def construct_rpc_backend_options(
+def _construct_rpc_backend_options(
     backend,
     rpc_timeout=rpc_constants.DEFAULT_RPC_TIMEOUT_SEC,
     init_method=rpc_constants.DEFAULT_INIT_METHOD,
@@ -188,7 +188,7 @@ def construct_rpc_backend_options(
     )
 
 
-def init_backend(backend, *args, **kwargs):
+def _init_backend(backend, *args, **kwargs):
     return backend.value.init_backend_handler(*args, **kwargs)
 
 
