@@ -18,14 +18,6 @@ import torch_npu
 import torch_npu.testing
 
 temp_filter = {
-    "torch_npu.contrib.FastBatchNorm1d",
-    "torch_npu.contrib.FastBatchNorm2d",
-    "torch_npu.contrib.FastBatchNorm3d",
-    "torch_npu.contrib.FastSyncBatchNorm",
-    "torch_npu.contrib.module.FastBatchNorm1d",
-    "torch_npu.contrib.module.FastBatchNorm2d",
-    "torch_npu.contrib.module.FastBatchNorm3d",
-    "torch_npu.contrib.module.FastSyncBatchNorm",
     "torch_npu.npu.amp.autocast_mode.Any",
     "torch_npu.npu.amp.autocast_mode.ErrCode",
     "torch_npu.npu.amp.autocast_mode.pta_error",
