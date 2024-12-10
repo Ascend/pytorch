@@ -119,7 +119,10 @@ at::Tensor NPUNativeFunctions::as_strided(
     c10::IntArrayRef stride,
     c10::optional<int64_t> storage_offset_) {
   auto dst = self;
-  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(dst, size)) {
+  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(dst, size) && !FormatHelper::IsOpInputBaseFormat(dst)) {
+    TORCH_WARN_ONCE("current tensor is running as_strided, don't perform inplace operations on the returned value."
+        " If you encounter this warning and have precision issues,"
+        " you can try torch.npu.config.allow_internal_format = False to resolve precision issues.")
     dst = FormatCastHelper::ApplyBaseFormatTensorBy(dst);
   }
   auto storage_offset = storage_offset_.value_or(dst.storage_offset());
@@ -138,7 +141,11 @@ const at::Tensor& NPUNativeFunctions::as_strided__symint(
     c10::SymIntArrayRef stride,
     c10::optional<c10::SymInt> storage_offset_) {
   at::Tensor result = self;
-  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(result, c10::asIntArrayRefUnchecked(size))) {
+  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(result, c10::asIntArrayRefUnchecked(size)) &&
+      !FormatHelper::IsOpInputBaseFormat(result)) {
+    TORCH_WARN_ONCE("current tensor is running as_strided, don't perform inplace operations on the returned value."
+        " If you encounter this warning and have precision issues,"
+        " you can try torch.npu.config.allow_internal_format = False to resolve precision issues.")
     result = FormatCastHelper::CovertSelfToBaseFormat(result);
   }
   auto storage_offset = storage_offset_.value_or(result.storage_offset());
