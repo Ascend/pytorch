@@ -3,15 +3,16 @@
 set -e
 
 CUR_DIR=$(dirname $(readlink -f $0))
-SUPPORTED_PY_VERSION=(3.8 3.9 3.10 3.11)
-PY_VERSION='3.8'                     # Default supported python version is 3.8
+SUPPORTED_PY_VERSION=(3.9 3.10 3.11)
+# Default supported python version is 3.9
+PY_VERSION="3.9"
 export DISABLE_RPC_FRAMEWORK=FALSE
 
 # Parse arguments inside script
 function parse_script_args() {
     local args_num=0
     if [[ "x${1}" = "x" ]]; then
-        # default: bash build.sh (python3.8)
+        # default: bash build.sh (python3.9)
         return 0
     fi
 
@@ -78,14 +79,14 @@ function parse_script_args() {
 }
 
 function check_python_version() {
-    matched_py_version='false'
+    matched_py_version="false"
     for ver in ${SUPPORTED_PY_VERSION[*]}; do
         if [ "${PY_VERSION}" = "${ver}" ]; then
-            matched_py_version='true'
+            matched_py_version="true"
             return 0
         fi
     done
-    if [ "${matched_py_version}" = 'false' ]; then
+    if [ "${matched_py_version}" = "false" ]; then
         echo "${PY_VERSION} is an unsupported python version, we suggest ${SUPPORTED_PY_VERSION[*]}"
         exit 1
     fi
