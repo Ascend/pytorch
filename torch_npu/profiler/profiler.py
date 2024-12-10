@@ -18,7 +18,7 @@ from .analysis.prof_common_func._constant import print_warn_msg
 from .analysis.prof_common_func._utils import no_exception_func
 from .analysis._npu_profiler import NpuProfiler
 from .analysis.prof_common_func._path_manager import ProfilerPathManager
-from ..utils.path_manager import PathManager
+from ..utils._path_manager import PathManager
 
 __all__ = [
     'supported_activities',

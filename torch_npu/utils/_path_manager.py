@@ -1,18 +1,3 @@
-# Copyright (c) 2023 Huawei Technologies Co., Ltd
-# All rights reserved.
-#
-# Licensed under the BSD 3-Clause License  (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# https://opensource.org/licenses/BSD-3-Clause
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import os
 import re
 import shutil
@@ -72,14 +57,14 @@ class PathManager:
         Parameter:
             path: the path to check
         Exception Description:
-            when invalid path, prompt the user
+            Raise a RuntimeError when the specified path does not exist
         """
 
         if not os.path.exists(path):
             msg = f"The path does not exist: {path}"
             raise RuntimeError(msg + pta_error(ErrCode.NOT_FOUND))
         if os.stat(path).st_uid != os.getuid():
-            warnings.warn(f"Warning: The {path} owner does not match the current user.")
+            warnings.warn(f"Permission mismatch: The owner of {path} does not match.")
 
     @classmethod
     def check_directory_path_writeable(cls, path):

@@ -7,7 +7,7 @@ from .profiler import tensorboard_trace_handler, profile
 from .scheduler import Schedule as schedule
 
 from .analysis.prof_common_func._singleton import Singleton
-from ..utils.path_manager import PathManager
+from ..utils._path_manager import PathManager
 from .analysis.prof_common_func._constant import print_info_msg
 from .analysis.prof_common_func._constant import print_warn_msg
 from .analysis.prof_common_func._constant import print_error_msg

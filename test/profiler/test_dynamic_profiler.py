@@ -5,7 +5,7 @@ import json
 import time
 
 import torch
-from torch_npu.utils.path_manager import PathManager
+from torch_npu.utils._path_manager import PathManager
 from torch_npu.profiler.profiler import tensorboard_trace_handler, profile
 from torch_npu.profiler.scheduler import Schedule as schedule
 from torch_npu.testing.testcase import TestCase, run_tests

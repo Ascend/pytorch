@@ -9,7 +9,7 @@ from .prof_common_func._task_manager import ConcurrentTasksManager
 from .prof_config._parser_config import ParserConfig
 from .prof_parse._cann_file_parser import CANNFileParser
 from ._profiler_config import ProfilerConfig
-from ...utils.path_manager import PathManager
+from ...utils._path_manager import PathManager
 
 __all__ = []
 

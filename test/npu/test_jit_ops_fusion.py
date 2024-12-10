@@ -4,7 +4,7 @@ import shutil
 import torch
 import torch_npu.jit
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.utils.path_manager import PathManager
+from torch_npu.utils._path_manager import PathManager
 
 
 class TestJitOpsFusion(TestCase):
