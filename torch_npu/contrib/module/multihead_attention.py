@@ -10,7 +10,7 @@ from torch.nn import Parameter
 import torch_npu
 from torch_npu.contrib.module.ensemble_dropout import NpuCachedDropout
 from torch_npu.utils._error_code import ErrCode, ops_error
-from ..function import matmul_transpose
+from ..function import _matmul_transpose
 
 dropout_class = NpuCachedDropout
 
@@ -140,7 +140,7 @@ class _MHAConfig:
 
 
 def Matmul_transpose(tensor1, tensor2):
-    return matmul_transpose.MatmulApply.apply(tensor1, tensor2)
+    return _matmul_transpose.MatmulApply.apply(tensor1, tensor2)
 
 
 class MultiheadAttention(nn.Module):
