@@ -480,6 +480,11 @@ Example::
            py::arg("timeout") = std::chrono::milliseconds(300000),
            py::arg("wait_workers") = true,
            py::arg("multi_tenant") = false);
+
+    module.def("_dump_hccl_trace", []() {
+        return py::bytes(::c10d_npu::dump_hccl_trace(true, true, false));
+    });
+
   Py_RETURN_TRUE;
 }
 

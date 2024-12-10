@@ -1003,14 +1003,14 @@ bool ProcessGroupHCCL::dumpPythonTraceback()
 {
     std::string filePath = getCvarString({"TORCH_HCCL_DEBUG_INFO_TEMP_FILE"},  "/tmp/hccl_trace_rank_");
     PyGILState_STATE gil = PyGILState_Ensure();
-    {
+    try {
         py::dict locals = py::dict("path"_a=filePath.c_str(), "rank"_a=rank_);
         py::exec(R"(
             import sys
             import os
             import traceback
             import threading
-            from torch_npu.utils.path_manager import PathManager
+            from torch_npu.utils._path_manager import PathManager
             try:
                 py_stacks = 'pid: {}\n'.format(os.getpid())
                 threadInfos = {}
@@ -1021,14 +1021,19 @@ bool ProcessGroupHCCL::dumpPythonTraceback()
                     py_stacks += 'thread {}:\n'.format(threadInfos[thread_id] if thread_id in threadInfos.keys() else thread_id)
                     py_stacks += ''.join(stack_list)
                 dump_file = '{path}{rank}_py_traceback'.format(**locals())
-                PathManager.check_input_directory_path(dump_file)
+                PathManager.check_input_file_path(dump_file)
                 with open(dump_file, 'w') as f:
                     f.write(py_stacks)
             except Exception as e:
                 print(e);
             )", py::globals(), locals);
+    } catch (const std::exception& e) {
+        LOG(ERROR) << logPrefix() << "dumpPythonTraceback error: " << e.what();
+    } catch (...) {
+        LOG(ERROR) << logPrefix() << "dumpPythonTraceback Unknown exception type.";
     }
     PyGILState_Release(gil);
+    return true;
 }
 
 bool ProcessGroupHCCL::dumpDebuggingInfo()
@@ -1522,8 +1527,8 @@ void ProcessGroupHCCL::workCleanupLoop()
                     ASCEND_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(work.opType_).c_str(), work.seq_);
                     work.is_reported = false;
                 }
-                it = workMetaList_.erase(it);
                 HCCLTraceBuffer::get()->retire_id(work.trace_id_, true);
+                it = workMetaList_.erase(it);
             } else {
                 // Increment the iterator if the current WorkHCCL object is not
                 // completed.
