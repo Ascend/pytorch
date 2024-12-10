@@ -4079,9 +4079,6 @@
   "func: cumprod.out": {
     "signature": "(Tensor self, int dim, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)"
   },
-  "func: cumprod_": {
-    "signature": "(Tensor(a!) self, int dim, *, ScalarType? dtype=None) -> Tensor(a!)"
-  },
   "func: cumprod_.dimname": {
     "signature": "(Tensor(a!) self, Dimname dim, *, ScalarType? dtype=None) -> Tensor(a!)"
   },
