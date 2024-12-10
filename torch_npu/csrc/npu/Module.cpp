@@ -468,6 +468,18 @@ PyObject* THNPModule_getCurrentStream_wrap(
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_getCurrentStream_raw(
+    PyObject* /* unused */, PyObject* device_index)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(
+        THPUtils_checkLong(device_index), "invalid argument to getCurrentStream", PTA_ERROR(ErrCode::PARAM));
+    int64_t device = THPUtils_unpackLong(device_index);
+    return PyLong_FromVoidPtr(
+        c10_npu::getCurrentNPUStream(device).stream());
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_getDefaultStream_wrap(PyObject *self /* unused */, PyObject *device_index)
 {
     HANDLE_TH_ERRORS
@@ -1204,6 +1216,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_canDeviceAccessPeer", (PyCFunction)THNPModule_npuCanDeviceAccessPeer_wrap, METH_VARARGS, nullptr},
     {"_npu_getDeviceUtilizationRate", (PyCFunction)THNPModule_getDeviceUtilizationRate_wrap, METH_O, nullptr},
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
+    {"_npu_getCurrentRawStream", (PyCFunction)THNPModule_getCurrentStream_raw, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
