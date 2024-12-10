@@ -18,14 +18,6 @@ from torch.testing._internal.common_utils import TestCase, run_tests, IS_JETSON,
 from torch._utils_internal import get_file_path_2
 
 tempFilter = {
-    "torch_npu.contrib.FastBatchNorm1d",
-    "torch_npu.contrib.FastBatchNorm2d",
-    "torch_npu.contrib.FastBatchNorm3d",
-    "torch_npu.contrib.FastSyncBatchNorm",
-    "torch_npu.contrib.module.FastBatchNorm1d",
-    "torch_npu.contrib.module.FastBatchNorm2d",
-    "torch_npu.contrib.module.FastBatchNorm3d",
-    "torch_npu.contrib.module.FastSyncBatchNorm",
     "torch_npu.npu.amp.autocast_mode.Any",
     "torch_npu.npu.amp.autocast_mode.ErrCode",
     "torch_npu.npu.amp.autocast_mode.pta_error",
