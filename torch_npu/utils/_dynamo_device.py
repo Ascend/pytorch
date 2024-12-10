@@ -1,6 +1,8 @@
 import torch
 from torch._dynamo.device_interface import DeviceInterface, register_interface_for_device, \
     caching_worker_current_devices, caching_worker_device_properties
+
+from torch_npu._C import _npu_getCurrentRawStream as get_npu_stream
 from ..npu.streams import Event, Stream
 from ..npu.utils import current_device, set_device, device_count, stream, current_stream, \
     set_stream, synchronize, get_device_capability
@@ -53,9 +55,9 @@ class NpuInterface(DeviceInterface):
     synchronize = staticmethod(synchronize)
     get_device_properties = staticmethod(get_device_properties_npu)
 
-    # Currently, NPU does not support _set_stream_by_id and get_raw_stream.
+    # Currently, NPU does not support _set_stream_by_id.
     _set_stream_by_id = staticmethod(None)
-    get_raw_stream = staticmethod(None)
+    get_raw_stream = staticmethod(get_npu_stream)
 
     @staticmethod
     def is_available() -> bool:
