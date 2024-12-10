@@ -24,8 +24,8 @@ docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
 ```
 **Compile torch_npu**
 
-Take Python 3.8 as an example
+Take Python 3.9 as an example
 ```Shell
 cd /home/pytorch
-bash ci/build.sh --python=3.8
+bash ci/build.sh --python=3.9
 ```
