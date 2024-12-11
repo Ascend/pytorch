@@ -1,10 +1,8 @@
 import multiprocessing
-import os
-from multiprocessing.pool import Pool
 
 
 from .prof_common_func._constant import Constant, print_error_msg
-from .prof_common_func._prof_process import ProfProcess
+from .prof_common_func._multi_process_pool import MultiProcessPool
 from .prof_common_func._path_manager import ProfilerPathManager
 from ._profiling_parser import ProfilingParser
 from ...utils._path_manager import PathManager
@@ -34,26 +32,16 @@ class NpuProfiler:
         multiprocessing.set_start_method("fork", force=True)
         process_number = min(kwargs.get("max_process_number", Constant.DEFAULT_PROCESS_NUMBER),
                              len(profiler_path_list))
-        pool = ProfProcessPool(processes=process_number)
+        MultiProcessPool().init_pool(process_number)
 
         for profiler_path in profiler_path_list:
             PathManager.check_directory_path_writeable(profiler_path)
             profiling_parser = ProfilingParser(profiler_path, analysis_type, output_path, kwargs)
-            pool.apply_async(profiling_parser.analyse_profiling_data)
-        pool.close()
-        pool.join()
+            MultiProcessPool().submit_task(profiling_parser.analyse_profiling_data)
+        if not kwargs.get("async_mode", False):
+            MultiProcessPool().close_pool()
 
     @classmethod
     def _check_input_path(cls, path: str):
         PathManager.check_input_directory_path(path)
         PathManager.check_path_owner_consistent(path)
-
-
-class ProfContext(type(multiprocessing.get_context())):
-    Process = ProfProcess
-
-
-class ProfProcessPool(Pool):
-    def __init__(self, *args, **kwargs):
-        kwargs['context'] = ProfContext()
-        super(ProfProcessPool, self).__init__(*args, **kwargs)
