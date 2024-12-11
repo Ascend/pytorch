@@ -10,7 +10,7 @@ from torch_npu.npu.utils import npu_check_overflow
 from torch_npu.npu.amp.grad_scaler import _MultiDeviceReplicator, GradScaler, OptState
 from torch_npu.utils._error_code import ErrCode, pta_error
 
-__all__ = ["ShardedGradScaler"]
+__all__ = []
 
 
 log = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class _GeneralMultiDeviceReplicator(_MultiDeviceReplicator):
         self._per_device_tensors: Dict[torch.device, torch.Tensor] = {}
 
 
-class ShardedGradScaler(GradScaler):
+class _ShardedGradScaler(GradScaler):
     """
     ShardedGradScaler helps perform gradient scaling in a shard aware manner. It extends
     functionality from GradScaler:

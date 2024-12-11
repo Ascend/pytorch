@@ -41,6 +41,7 @@ import torch_npu.optim
 import torch_npu.dynamo
 import torch_npu._C
 from torch_npu import profiler
+from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import _apply_module_patch, _add_tensor_methods, _add_collect_env_methods, add_perf_dump_patch,\
@@ -130,7 +131,7 @@ def _apply_distributed_patches():
 
 
 def _apply_sharded_grad_scaler_patch():
-    torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler = torch_npu.npu.amp.ShardedGradScaler
+    torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler = _ShardedGradScaler
 
 
 def _apply_class_patches():
@@ -148,6 +149,17 @@ def _apply_class_patches():
     _apply_sharded_grad_scaler_patch()
     add_perf_dump_patch()
     _apply_clip_grad_norm_patch()
+    _apply_distributed_methods_patch()
+
+
+def _apply_distributed_methods_patch():
+    torch._C._distributed_c10d._verify_params_across_processes = torch_npu.distributed._verify_params_across_processes
+    torch.distributed.batch_isend_irecv = torch_npu.distributed.distributed_c10d._batch_isend_irecv
+    torch.distributed.distributed_c10d.batch_isend_irecv = torch_npu.distributed.distributed_c10d._batch_isend_irecv
+    torch.distributed.gather = torch_npu.distributed.distributed_c10d._gather
+    torch.distributed.distributed_c10d.gather = torch_npu.distributed.distributed_c10d._gather
+    torch.distributed.gather_object = torch_npu.distributed.distributed_c10d._gather_object
+    torch.distributed.distributed_c10d.gather_object = torch_npu.distributed.distributed_c10d._gather_object
 
 
 torch.utils.rename_privateuse1_backend("npu")
