@@ -1638,6 +1638,11 @@
     "cast",
     "dataclass"
   ],
+  "torch.distributed.distributed_c10d": [
+    "gather",
+    "gather_object",
+    "batch_isend_irecv"
+  ],
   "torch.distributed.elastic.rendezvous.c10d_rendezvous_backend": [
     "Any",
     "FileStore",
