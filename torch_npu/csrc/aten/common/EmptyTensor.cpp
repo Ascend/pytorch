@@ -5,7 +5,7 @@
 #include <ATen/native/TensorFactories.h>
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 
 namespace at_npu {
 namespace native {
