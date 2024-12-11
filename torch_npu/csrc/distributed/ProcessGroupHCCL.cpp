@@ -723,7 +723,6 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     dumpOnException_ = getCvarBool(TORCH_HCCL_DUMP_ON_TIMEOUT, false);
     heartbeat_ = 1ULL;
     monitorThreadEnabled_.store(getCvarBool(TORCH_HCCL_ENABLE_MONITORING, false));
-    hcclTraceBufferSize_ = getCvarInt(TORCH_HCCL_TRACE_BUFFER_SIZE, 0);
     heartbeatTimeoutInSec_ = getCvarInt(TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC, 60 * 10);  // 10 Mins
     waitTimeoutDumpInMilSec_ = getCvarInt(TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC, 60 * 1000);  // 60 Sec
     coordCheckIntervalMilSec_ = getCvarInt(TORCH_HCCL_COORD_CHECK_MILSEC, 1000);
