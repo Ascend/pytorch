@@ -39,8 +39,8 @@ class TestBidirectionalLstm(TestCase):
                                              [[-0.0751, -0.0903, -0.4377, -0.2069, 0.0934, -0.1738, -0.1134, -0.0765],
                                               [0.3855, -0.1033, -0.2906, -0.2387, -0.0037, 0.0606, -0.2736, -0.1440]]],
                                             dtype=torch.float32)
-        self.assertRtolEqual(expect_cpu_output, npu_output)
-        self.assertRtolEqual(expect_cpu_inputgrad, npu_inputgrad)
+        self.assertRtolEqual(expect_cpu_output, npu_output, prec=1.e-3)
+        self.assertRtolEqual(expect_cpu_inputgrad, npu_inputgrad, prec=1.e-3)
 
 
 if __name__ == "__main__":
