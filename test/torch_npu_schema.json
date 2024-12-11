@@ -749,29 +749,11 @@
   "torch_npu.contrib.module.roi_align.ROIAlign.forward": {
     "signature": "(self, input_tensor, rois)"
   },
-  "torch_npu.distributed.batch_isend_irecv": {
-    "signature": "(p2p_op_list)"
-  },
-  "torch_npu.distributed.gather": {
-    "signature": "(tensor, gather_list=None, dst=0, group=None, async_op=False)"
-  },
-  "torch_npu.distributed.gather_object": {
-    "signature": "(obj, object_gather_list=None, dst=0, group=None)"
-  },
   "torch_npu.distributed.is_available": {
     "signature": "()"
   },
   "torch_npu.distributed.is_hccl_available": {
     "signature": "()"
-  },
-  "torch_npu.distributed.distributed_c10d.batch_isend_irecv": {
-    "signature": "(p2p_op_list)"
-  },
-  "torch_npu.distributed.distributed_c10d.gather": {
-    "signature": "(tensor, gather_list=None, dst=0, group=None, async_op=False)"
-  },
-  "torch_npu.distributed.distributed_c10d.gather_object": {
-    "signature": "(obj, object_gather_list=None, dst=0, group=None)"
   },
   "torch_npu.distributed.distributed_c10d.is_hccl_available": {
     "signature": "()"
@@ -781,12 +763,6 @@
   },
   "torch_npu.distributed.reinit_process_group": {
     "signature": "(group=None, rebuild_link=True)"
-  },
-  "torch_npu.distributed.rpc.backend_registry.construct_rpc_backend_options": {
-    "signature": "(backend, rpc_timeout=60.0, init_method='env://', **kwargs)"
-  },
-  "torch_npu.distributed.rpc.backend_registry.init_backend": {
-    "signature": "(backend, *args, **kwargs)"
   },
   "torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions": {
     "signature": "(*, num_worker_threads: int = 16, rpc_timeout: float = 60.0, init_method: str = 'env://', device_maps: Union[Dict[str, Dict[Union[int, str, torch.device], Union[int, str, torch.device]]], NoneType] = None, devices: Union[List[Union[int, str, torch.device]], NoneType] = None, _transports: Union[List, NoneType] = None, _channels: Union[List, NoneType] = None)"
@@ -1292,33 +1268,6 @@
   "torch_npu.npu.amp.GradScaler._npu_update_scale": {
     "signature": "(self)"
   },
-  "torch_npu.npu.amp.ShardedGradScaler": {
-    "signature": "(init_scale: float = 65536.0, backoff_factor: float = 0.5, growth_factor: float = 2.0, growth_interval: int = 2000, enabled: bool = True, process_group: Union[torch.distributed.distributed_c10d.ProcessGroup, NoneType] = None)"
-  },
-  "torch_npu.npu.amp.ShardedGradScaler.scale": {
-    "signature": "(self, outputs: Union[torch.Tensor, List[torch.Tensor]]) -> Union[torch.Tensor, List[torch.Tensor]]"
-  },
-  "torch_npu.npu.amp.ShardedGradScaler._foreach_non_finite_check_and_unscale_cpu_": {
-    "signature": "(self, grads: List, found_inf: torch.Tensor, inv_scale: torch.Tensor) -> None"
-  },
-  "torch_npu.npu.amp.ShardedGradScaler._unscale_grads_": {
-    "signature": "(self, optimizer: torch.optim.sgd.SGD, inv_scale: torch.Tensor, found_inf: torch.Tensor, allow_fp16: bool = True) -> Dict[torch.device, torch.Tensor]"
-  },
-  "torch_npu.npu.amp.ShardedGradScaler.unscale_": {
-    "signature": "(self, optimizer: torch.optim.sgd.SGD) -> None"
-  },
-  "torch_npu.npu.amp.ShardedGradScaler.step": {
-    "signature": "(self, optimizer: torch.optim.sgd.SGD, *args, **kwargs) -> Union[float, NoneType]"
-  },
-  "torch_npu.npu.amp.ShardedGradScaler._amp_update_scale_cpu_": {
-    "signature": "(self, found_inf) -> None"
-  },
-  "torch_npu.npu.amp.ShardedGradScaler._amp_update_scale_npu_": {
-    "signature": "(self, found_inf) -> None"
-  },
-  "torch_npu.npu.amp.ShardedGradScaler.update": {
-    "signature": "(self, new_scale=None) -> None"
-  },
   "torch_npu.npu.amp.autocast": {
     "signature": "(enabled: bool = True, dtype: torch.dtype = torch.float16, cache_enabled: bool = True)"
   },
@@ -1384,33 +1333,6 @@
   },
   "torch_npu.npu.amp.grad_scaler.GradScaler._npu_update_scale": {
     "signature": "(self)"
-  },
-  "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler": {
-    "signature": "(init_scale: float = 65536.0, backoff_factor: float = 0.5, growth_factor: float = 2.0, growth_interval: int = 2000, enabled: bool = True, process_group: Union[torch.distributed.distributed_c10d.ProcessGroup, NoneType] = None)"
-  },
-  "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler.scale": {
-    "signature": "(self, outputs: Union[torch.Tensor, List[torch.Tensor]]) -> Union[torch.Tensor, List[torch.Tensor]]"
-  },
-  "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler._foreach_non_finite_check_and_unscale_cpu_": {
-    "signature": "(self, grads: List, found_inf: torch.Tensor, inv_scale: torch.Tensor) -> None"
-  },
-  "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler._unscale_grads_": {
-    "signature": "(self, optimizer: torch.optim.sgd.SGD, inv_scale: torch.Tensor, found_inf: torch.Tensor, allow_fp16: bool = True) -> Dict[torch.device, torch.Tensor]"
-  },
-  "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler.unscale_": {
-    "signature": "(self, optimizer: torch.optim.sgd.SGD) -> None"
-  },
-  "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler.step": {
-    "signature": "(self, optimizer: torch.optim.sgd.SGD, *args, **kwargs) -> Union[float, NoneType]"
-  },
-  "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler._amp_update_scale_cpu_": {
-    "signature": "(self, found_inf) -> None"
-  },
-  "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler._amp_update_scale_npu_": {
-    "signature": "(self, found_inf) -> None"
-  },
-  "torch_npu.npu.amp.sharded_grad_scaler.ShardedGradScaler.update": {
-    "signature": "(self, new_scale=None) -> None"
   },
   "torch_npu.npu.autocast_utils.get_amp_supported_dtype": {
     "signature": "()"

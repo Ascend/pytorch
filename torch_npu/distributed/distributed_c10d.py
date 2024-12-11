@@ -11,10 +11,10 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     get_backend, GatherOptions, _update_default_pg, _world, _unregister_all_process_groups, _pg_map,\
     ProcessGroup, default_pg_timeout, _unregister_process_group
 
-__all__ = ["batch_isend_irecv", "gather", "gather_object", "is_hccl_available", "reinit_process_group"]
+__all__ = ["is_hccl_available", "reinit_process_group"]
 
 
-def batch_isend_irecv(p2p_op_list):
+def _batch_isend_irecv(p2p_op_list):
     group = p2p_op_list[0].group
     device = p2p_op_list[0].tensor.device
     is_multi_pg = True
@@ -47,7 +47,7 @@ def batch_isend_irecv(p2p_op_list):
     return reqs
 
 
-def gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
+def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
     """
     Gathers a list of tensors in a single process.
 
@@ -132,7 +132,7 @@ def gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
         return None
 
 
-def gather_object(obj, object_gather_list=None, dst=0, group=None):
+def _gather_object(obj, object_gather_list=None, dst=0, group=None):
     """
     Note:
     Avoid gather_object to use gather func defined in origin distributed_c10d.
@@ -174,7 +174,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None):
             for i in range(group_size)
         ]
     # All ranks call gather with equal-sized tensors.
-    gather(
+    _gather(
         input_tensor,
         gather_list=output_tensors if my_rank == dst else None,  # type: ignore[possibly-undefined]
         dst=dst,
