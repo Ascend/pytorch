@@ -19,7 +19,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
@@ -42,7 +42,7 @@ void copy_between_host_and_device_opapi(at::Tensor& dst, const at::Tensor& src, 
         NPU_CHECK_ERROR(ret);
         ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
         void* ptr = torch_npu::utils::is_npu(dst) ? get_base_data_ptr(src) : get_base_data_ptr(dst);
-        NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(ptr, stream), "aclrtSynchronizeStreamWithTimeout");
+        NPU_CHECK_ERROR(CachingHostAllocator_recordEvent(ptr, stream), "aclrtSynchronizeStreamWithTimeout");
     } else {
         aclError error = aclrtSynchronizeStream(stream);
         auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(

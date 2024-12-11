@@ -9,7 +9,7 @@
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/flopcount/Init.h"
@@ -61,7 +61,7 @@ PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
     torch_npu::data_parallel::ReleaseHcclCommList();
     ASCEND_LOGI("NPU shutdown ReleaseHcclCommList success.");
 
-    THNPUCachingHostAllocator_emptyCache();
+    at_npu::native::CachingHostAllocator_emptyCache();
     try {
         ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
         c10_npu::NPUCachingAllocator::emptyCache(check_error);
