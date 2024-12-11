@@ -5,7 +5,7 @@
 #include <c10/core/Storage.h>
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 
 #define TORCH_ASSERT_ONLY_METHOD_OPERATORS
 #include <ATen/core/Tensor.h>

@@ -3,7 +3,7 @@
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 
@@ -46,7 +46,7 @@ void finalize_npu() {
       TORCH_CHECK(false, "NPU SynchronizeDevice failed err=:%s", e.what(), PTA_ERROR(ErrCode::ACL));
     }
 
-    THNPUCachingHostAllocator_emptyCache();
+    at_npu::native::CachingHostAllocator_emptyCache();
     try {
       c10_npu::NPUCachingAllocator::emptyCache();
     } catch (std::exception& e) {
