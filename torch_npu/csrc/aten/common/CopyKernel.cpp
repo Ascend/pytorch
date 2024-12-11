@@ -11,7 +11,7 @@
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 
@@ -94,7 +94,7 @@ void copy_between_host_and_device(
         NPU_CHECK_ERROR(ret);
         ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
         void* ptr = torch_npu::utils::is_npu(dst) ? get_base_data_ptr(src) : get_base_data_ptr(dst);
-        NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(ptr, stream), "aclrtSynchronizeStreamWithTimeout");
+        NPU_CHECK_ERROR(CachingHostAllocator_recordEvent(ptr, stream), "aclrtSynchronizeStreamWithTimeout");
     } else {
         aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
         auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
