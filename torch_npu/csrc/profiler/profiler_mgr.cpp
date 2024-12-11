@@ -33,7 +33,7 @@ std::map<std::string, uint64_t> ProfilerMgr::trace_level_map_ = {
     {"Level_none", Level_none},
 };
 
-constexpr uint32_t capacity_ = 262144;          // 2^18, Experience value for default ringbuffer size for single data
+constexpr uint32_t capacity_ = 1048576;          // 2^20, Experience value for default ringbuffer size for single data
 constexpr uint32_t trace_capacity_ = 128;       // 2^7, Experience value for python trace data ringbuffer size for batch data
 
 ProfilerMgr::ProfilerMgr()
