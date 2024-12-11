@@ -116,7 +116,8 @@ class _DynamicProfile:
         self.prof = profile(
             activities=self.cfg_ctx.activities(),
             schedule=schedule(wait=0, warmup=0, active=self.cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_ctx.prof_path, analyse_flag=self.cfg_ctx.analyse()),
+            on_trace_ready=tensorboard_trace_handler(self.cfg_ctx.prof_path, analyse_flag=self.cfg_ctx.analyse(),
+                                                     async_mode=self.cfg_ctx.async_mode()),
             record_shapes=self.cfg_ctx.record_shapes,
             profile_memory=self.cfg_ctx.profile_memory,
             with_stack=self.cfg_ctx.with_stack,
