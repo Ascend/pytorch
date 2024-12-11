@@ -164,15 +164,19 @@ class _KinetoProfile:
 
 
 @no_exception_func()
-def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True):
+def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None,
+                              analyse_flag: bool = True, async_mode: bool = False):
     ProfPathCreator().init(worker_name=worker_name, dir_name=dir_name)
     if not isinstance(analyse_flag, bool):
         print_warn_msg("analyse_flag is not bool, set by default.")
         analyse_flag = True
+    if not isinstance(async_mode, bool):
+        print_warn_msg("async_mode is not bool, set by default.")
+        analyse_flag = False
 
     def handler_fn(prof_inst) -> None:
         if analyse_flag:
-            prof_inst.prof_if.analyse()
+            prof_inst.prof_if.analyse(async_mode=async_mode)
 
     return handler_fn
 

@@ -25,6 +25,7 @@ class ConfigContext:
         self.is_valid = False
         self._meta_data = {}
         self._rank_id = _get_rank_id()
+        self._async_mode = False
         self.parse(json_data)
 
     def parse(self, json_data: dict):
@@ -38,6 +39,7 @@ class ConfigContext:
         self.prof_path = json_data.get('prof_dir')
         self._meta_data = json_data.get('metadata', {})
         self._analyse = json_data.get('analyse', False)
+        self._async_mode = json_data.get('async_mode', False)
         self.record_shapes = json_data.get('record_shapes', False)
         self.profile_memory = json_data.get('profile_memory', False)
         self.with_stack = json_data.get('with_stack', False)
@@ -122,6 +124,11 @@ class ConfigContext:
     def analyse(self) -> bool:
         if isinstance(self._analyse, bool):
             return self._analyse
+        return False
+
+    def async_mode(self) -> bool:
+        if isinstance(self._async_mode, bool):
+            return self._async_mode
         return False
 
     def record_shapes(self) -> bool:
