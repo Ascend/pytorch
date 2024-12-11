@@ -9,18 +9,18 @@
 #include <c10/core/TensorImpl.h>
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 
 namespace at_npu {
 namespace native {
 
 bool NPUNativeFunctions::is_pinned(const at::Tensor& self, c10::optional<at::Device> device) {
-  // Only CPU tensors can be pinned
-  if (!self.is_cpu()) {
-    return false;
-  }
+    // Only CPU tensors can be pinned
+    if (!self.is_cpu()) {
+        return false;
+    }
 
-  return THNPUCachingHostAllocator_isPinndPtr(self.storage().mutable_data());
+    return CachingHostAllocator_isPinned(self.storage().mutable_data());
 }
 
 at::Tensor NPUNativeFunctions::_pin_memory(const at::Tensor& self, c10::optional<at::Device> device) {

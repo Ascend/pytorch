@@ -20,8 +20,11 @@
 #include <unordered_set>
 #include <utility>
 
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
+
+namespace at_npu {
+namespace native {
 
 namespace {
 struct BlockSize {
@@ -308,24 +311,24 @@ private:
 
 static HostAllocator allocator;
 
-aclError THNPUCachingHostAllocator_recordEvent(
+aclError CachingHostAllocator_recordEvent(
     void *ptr,
     c10_npu::NPUStream stream)
 {
     return allocator.recordEvent(ptr, stream);
 }
 
-bool THNPUCachingHostAllocator_isPinndPtr(void *ptr)
+bool CachingHostAllocator_isPinned(void *ptr)
 {
     return allocator.isPinndPtr(ptr);
 }
 
-void THNPUCachingHostAllocator_emptyCache()
+void CachingHostAllocator_emptyCache()
 {
     allocator.emptyCache();
 }
 
-static void THNPUCachingHostDeleter(void *ptr)
+static void CachingHostDeleter(void *ptr)
 {
 #ifndef BUILD_LIBTORCH
     // check the current thread have hold GIL Lock.
@@ -342,7 +345,7 @@ static void THNPUCachingHostDeleter(void *ptr)
 #endif
 }
 
-struct THNPUCachingHostAllocator final : public at::Allocator {
+struct CachingHostAllocator final : public at::Allocator {
     at::DataPtr allocate(size_t size) const override
     {
         AT_ASSERT(size >= 0, PTA_ERROR(ErrCode::VALUE));
@@ -352,18 +355,18 @@ struct THNPUCachingHostAllocator final : public at::Allocator {
                 ASCEND_LOGE("allocate host pinned memory fail");
             }
         }
-        return {ptr, ptr, &THNPUCachingHostDeleter, at::DeviceType::CPU};
+        return {ptr, ptr, &CachingHostDeleter, at::DeviceType::CPU};
     }
     at::DeleterFnPtr raw_deleter() const override
     {
-        return &THNPUCachingHostDeleter;
+        return &CachingHostDeleter;
     }
 };
 
-static THNPUCachingHostAllocator thnpu_caching_host_allocator;
-at::Allocator *getTHNPUCachingHostAllocator()
+static CachingHostAllocator caching_host_allocator;
+at::Allocator *getCachingHostAllocator()
 {
-    return &thnpu_caching_host_allocator;
+    return &caching_host_allocator;
 }
 
 c10::Allocator *getPinnedMemoryAllocator()
@@ -374,5 +377,8 @@ c10::Allocator *getPinnedMemoryAllocator()
     if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
         ASCEND_LOGE("Npu init fail.");
     }
-    return getTHNPUCachingHostAllocator();
+    return getCachingHostAllocator();
 }
+
+} // namespace native
+} // namespace at_npu

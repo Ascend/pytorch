@@ -2,7 +2,7 @@
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include <ATen/record_function.h>
 
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"

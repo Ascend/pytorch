@@ -2,7 +2,7 @@
 #define __PLUGIN_NATIVE_NPU_CONTIGUOUS_RESHAPE__
 
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 
 namespace at_npu {
