@@ -1,4 +1,5 @@
 import torch
+from torch.nn.parameter import UninitializedTensorMixin
 from torch.utils.data import TensorDataset
 import torch_npu
 
@@ -86,7 +87,11 @@ class TestTransferToNpu(TestCase):
         images0, _ = next(data_iter)
         self.assertTrue(images0.is_pinned())
 
-
+    def test_replace_to_method_in_allowed_methods(self):
+        for method in UninitializedTensorMixin._allowed_methods:
+            if method.__name__ == "to":
+                self.assertFalse(hasattr(method, "__self__"))   # 替换后torch.Tensor.to变成普通函数，而不是原来的绑定方法
+                break
 
 
 if __name__ == "__main__":
