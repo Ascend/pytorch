@@ -166,7 +166,7 @@ def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None,
         analyse_flag = True
     if not isinstance(async_mode, bool):
         print_warn_msg("async_mode is not bool, set by default.")
-        analyse_flag = False
+        async_mode = False
 
     def handler_fn(prof_inst) -> None:
         if analyse_flag:
