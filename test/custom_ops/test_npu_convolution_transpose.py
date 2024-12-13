@@ -7,6 +7,8 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+DEVICE_NAME = torch_npu.npu.get_device_name(0)
+
 
 class TestConvolutionTranspose(TestCase):
 
@@ -28,8 +30,12 @@ class TestConvolutionTranspose(TestCase):
     def test_npu_convolution_transpose(self):
         items = [[[np.float32, 0, [1, 3, 3, 3]], [np.float32, 0, [3, 2, 3, 3]], [np.float32, 2, [2]],
                   [1, 1], [0, 0], [0, 0], [1, 1], 1],
-                 [[np.float32, 2, [20, 16, 50, 10, 20]], [np.float32, 2, [16, 33, 3, 3, 3]], None,
+                 [[np.float16, 2, [20, 16, 50, 10, 20]], [np.float16, 2, [16, 33, 3, 3, 3]], None,
                   [0, 0, 0], [0, 0, 0], [1, 1, 1], [1, 1, 1], 1]]
+        if "Ascend910A" in DEVICE_NAME or "Ascend910P" in DEVICE_NAME:
+            items0 = [[np.float32, 2, [20, 16, 50, 10, 20]], [np.float32, 2, [16, 33, 3, 3, 3]], None,
+                      [0, 0, 0], [0, 0, 0], [1, 1, 1], [1, 1, 1], 1]
+            items.append(items0)
         for item in items:
             _, npu_input = create_common_tensor(item[0], 0, 0.001)
             _, weight = create_common_tensor(item[1], 0, 0.001)
