@@ -7,6 +7,7 @@ import functools
 from functools import wraps
 import torch
 from torch.utils._device import _device_constructors
+from torch.nn.parameter import UninitializedTensorMixin
 import torch_npu
 try:
     from packaging.version import Version as Version
@@ -287,6 +288,13 @@ def _warning_fn(msg, rank0=True):
         warnings.warn(msg, ImportWarning)
 
 
+def _replace_to_method_in_allowed_methods():
+    for i, method in enumerate(UninitializedTensorMixin._allowed_methods):
+        if method.__name__ == "to":
+            UninitializedTensorMixin._allowed_methods[i] = torch.Tensor.to
+            break
+
+
 def _init():
     _warning_fn('''
     *************************************************************************************************************
@@ -342,6 +350,8 @@ def _init():
     torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
 
     _do_wrapper_libraries_func(_load_json_file(config_path))
+
+    _replace_to_method_in_allowed_methods()
 
 
 _init()
