@@ -976,8 +976,8 @@ class MemoryProfileTimeline:
         fig.legend(["Unknown" if category is None else category.name for category in _CATEGORY_TO_COLORS])
         axes.set_xlabel("Time (ms)")
         axes.set_ylabel("Memory (GB)")
-        title = "\n\n".join([f"Max memory allocated: {max_memory_allocated / Constant.B_TO_GB:.2f} GiB \n"
-                             f"Max memory reserved: {max_memory_reserved / Constant.B_TO_GB:.2f} GiB"])
+        title = "\n\n".join([f"Max memory allocated: {max_memory_allocated / Constant.B_TO_GB:.2f} GB \n"
+                             f"Max memory reserved: {max_memory_reserved / Constant.B_TO_GB:.2f} GB"])
         axes.set_title(title)
 
         # Embed the memory timeline image into the HTML file
