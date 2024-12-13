@@ -18,7 +18,8 @@
 
 namespace c10d {
 namespace pta {
-ParallelStoreServer::ParallelStoreServer(std::string initKey, uint16_t port, c10::optional<std::size_t> numWorkers)
+ParallelStoreServer::ParallelStoreServer(std::string initKey, const std::string host, uint16_t port,
+    c10::optional<std::size_t> numWorkers)
     : initKey_{ std::move(initKey) }, numWorkers_{ numWorkers }
 {
     auto threadNum = 4U;
@@ -33,7 +34,7 @@ ParallelStoreServer::ParallelStoreServer(std::string initKey, uint16_t port, c10
     }
 
     InitializeHandlers();
-    server_ = std::make_unique<pta::ParallelTcpServer>(threadNum, port,
+    server_ = std::make_unique<pta::ParallelTcpServer>(threadNum, host, port,
         [this](int fd, const pta::StoreMessage &request) { return ProcessRequest(fd, request); });
     if (server_->Start() != 0) {
         throw std::runtime_error{
@@ -257,9 +258,9 @@ ParallelTcpStore::ParallelTcpStore(const std::string &host, const c10d::TCPStore
 {
     if (opts.isServer) {
         if (opts.multiTenant) {
-            server_ = GetSharedServer(initKey_, opts.port, opts.numWorkers);
+            server_ = GetSharedServer(initKey_, host, opts.port, opts.numWorkers);
         } else {
-            server_ = std::make_shared<pta::ParallelStoreServer>(initKey_, opts.port, opts.numWorkers);
+            server_ = std::make_shared<pta::ParallelStoreServer>(initKey_, host, opts.port, opts.numWorkers);
         }
     }
 
@@ -411,8 +412,8 @@ void ParallelTcpStore::DoWait(const pta::StoreMessage &req, pta::StoreMessage &r
     }
 }
 
-std::shared_ptr<pta::ParallelStoreServer> ParallelTcpStore::GetSharedServer(const std::string &initKey, uint16_t port,
-    c10::optional<std::size_t> numWorkers)
+std::shared_ptr<pta::ParallelStoreServer> ParallelTcpStore::GetSharedServer(const std::string &initKey,
+    const std::string host, uint16_t port, c10::optional<std::size_t> numWorkers)
 {
     std::unique_lock<std::mutex> lockGuard{ cacheServerMutex_ };
     auto pos = cachedServers_.find(port);
@@ -425,7 +426,7 @@ std::shared_ptr<pta::ParallelStoreServer> ParallelTcpStore::GetSharedServer(cons
         cachedServers_.erase(pos);
     }
 
-    auto server = std::make_shared<pta::ParallelStoreServer>(initKey, port, numWorkers);
+    auto server = std::make_shared<pta::ParallelStoreServer>(initKey, host, port, numWorkers);
     cachedServers_.emplace(port, server);
     return server;
 }
