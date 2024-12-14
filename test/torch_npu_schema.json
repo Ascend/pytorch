@@ -2676,7 +2676,7 @@
     "signature": "(self, perm, require_contiguous=True, out=None)"
   },
   "torch_npu.npu_weight_quant_batchmatmul": {
-    "signature": "(x, weight, antiquant_scale, antiquant_offset, quant_scale, quant_offset, bias, antiquant_group_size)"
+    "signature": "(x, weight, antiquant_scale, antiquant_offset=None, quant_scale=None, quant_offset=None, bias=None, antiquant_group_size=0, inner_precise=0)"
   },
   "torch_npu.npu_yolo_boxes_encode": {
     "signature": "(self, gt_bboxes, weight)"
@@ -3288,7 +3288,7 @@
     "signature": "(Tensor[] x, Tensor[] weight, *, Tensor[]? bias=None, Tensor[]? scale=None, Tensor[]? offset=None, Tensor[]? antiquant_scale=None, Tensor[]? antiquant_offset=None, int[]? group_list=None, int? split_item=0, ScalarType? output_dtype=None) -> Tensor[]"
   },
   "func: npu_weight_quant_batchmatmul": {
-    "signature": "(Tensor x, Tensor weight, Tensor antiquant_scale, Tensor? antiquant_offset=None, Tensor? quant_scale=None, Tensor? quant_offset=None, Tensor? bias=None, int antiquant_group_size=0) -> Tensor"
+    "signature": "(Tensor x, Tensor weight, Tensor antiquant_scale, Tensor? antiquant_offset=None, Tensor? quant_scale=None, Tensor? quant_offset=None, Tensor? bias=None, int antiquant_group_size=0, int inner_precise=0) -> Tensor"
   },
   "func: npu_convert_weight_to_int4pack": {
     "signature": "(Tensor weight, int inner_k_tiles=0) -> Tensor"
