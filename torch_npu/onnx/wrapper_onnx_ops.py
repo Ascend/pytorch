@@ -1295,10 +1295,11 @@ def _wrapper_npu_mm_all_reduce_base(x1, x2, hcom, reduce_op, bias, antiquant_sca
                                       antiquant_group_size, comm_turn)
 
 
-def _wrapper_npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_offset,
-                                         quant_scale, quant_offset, bias, antiquant_group_size):
-    return _NPUWeightQuantBatchMatmulOP.apply(x, weight, antiquant_scale, antiquant_offset,
-                                             quant_scale, quant_offset, bias, antiquant_group_size)
+def _wrapper_npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_offset=None, 
+                                          quant_scale=None, quant_offset=None, bias=None, antiquant_group_size=0,
+                                          inner_precise=0):
+    return _NPUWeightQuantBatchMatmulOP.apply(x, weight, antiquant_scale, antiquant_offset, 
+                                              quant_scale, quant_offset, bias, antiquant_group_size)
 
 
 def _wrapper_npu_anti_quant(x, scale, offset=None, dst_dtype=None, src_dtype=None):
