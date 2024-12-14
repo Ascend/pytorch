@@ -99,7 +99,7 @@ using ServerProcFn = std::function<StoreMessage(int fd, const StoreMessage &req)
  */
 class ParallelTcpServer {
 public:
-    explicit ParallelTcpServer(uint32_t threadNum, uint16_t port, ServerProcFn process) noexcept;
+    explicit ParallelTcpServer(uint32_t threadNum, const std::string host, uint16_t port, ServerProcFn process) noexcept;
 
     int Start() noexcept;
 
@@ -117,7 +117,7 @@ public:
     void WakeupWaitingClients(const std::string &key) noexcept;
 
 private:
-    static int CreateSocket(uint16_t port) noexcept;
+    static int CreateSocket(const std::string host, uint16_t port) noexcept;
 
     static int CreateEpoll(int targetFd = -1) noexcept;
 
@@ -134,6 +134,7 @@ private:
 private:
     const uint32_t threadNum_;
     const std::uint16_t port_;
+    const std::string host_;
     const ServerProcFn process_;
     int listenSocket_{ -1 };
     int epCtlFd_{ -1 };
