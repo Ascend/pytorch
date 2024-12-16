@@ -56,6 +56,8 @@ class TraceEventManager:
         fwd_list = []
         for fwd_id, node in event.items():
             if node.get('start') and node.get('end'):
+                if node['start']['tid'] == node['end']['tid']:
+                    continue
                 flow_id = fwd_id
                 fwd_list.extend([{"ph": "s", "bp": "e", "name": "fwdbwd", "id": flow_id, "pid": node['start']['pid'],
                     "tid": node['start']['tid'], "ts": convert_ns2us_str(node['start']['ts']), "cat": "fwdbwd"},
