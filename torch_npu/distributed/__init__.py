@@ -2,7 +2,7 @@ import torch_npu
 from torch_npu.utils._error_code import ErrCode, dist_error
 
 __all__ = [
-    "is_hccl_available", "_verify_params_across_processes", "reinit_process_group"
+    "is_hccl_available", "reinit_process_group"
 ]
 
 
