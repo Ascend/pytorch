@@ -31,7 +31,8 @@ namespace c10d {
 namespace pta {
 class ParallelStoreServer {
 public:
-    ParallelStoreServer(std::string initKey, uint16_t port, c10::optional<std::size_t> numWorkers);
+    ParallelStoreServer(std::string initKey, const std::string host, uint16_t port,
+        c10::optional<std::size_t> numWorkers);
     virtual ~ParallelStoreServer() noexcept;
     void WaitWorkers(const std::chrono::milliseconds &timeout) noexcept;
 
@@ -85,8 +86,8 @@ public:
 private:
     int64_t IncreaseKey(const std::string &key, int64_t value);
     void DoWait(const pta::StoreMessage &req, pta::StoreMessage &res);
-    static std::shared_ptr<pta::ParallelStoreServer> GetSharedServer(const std::string &initKey, uint16_t port,
-        c10::optional<std::size_t> numWorkers);
+    static std::shared_ptr<pta::ParallelStoreServer> GetSharedServer(const std::string &initKey,
+        const std::string host, uint16_t port, c10::optional<std::size_t> numWorkers);
 
 private:
     pta::TcpClient client_;

@@ -18,7 +18,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <arpa/inet.h>
 #include "c10/util/Logging.h"
 #include "ParallelTcpServer.hpp"
 
@@ -102,8 +102,15 @@ void ClientIoContext::FlushSendBuf() noexcept
 }
 
 
-ParallelTcpServer::ParallelTcpServer(uint32_t threadNum, uint16_t port, ServerProcFn process) noexcept
-    : threadNum_{ std::max(4U, threadNum) }, port_{ port }, process_{ std::move(process) }
+ParallelTcpServer::ParallelTcpServer(
+    uint32_t threadNum,
+    const std::string host,
+    uint16_t port,
+    ServerProcFn process) noexcept
+    : threadNum_{ std::max(4U, threadNum) },
+      host_{ host },
+      port_{ port },
+      process_{ std::move(process) }
 {}
 
 int ParallelTcpServer::Start() noexcept
@@ -114,7 +121,7 @@ int ParallelTcpServer::Start() noexcept
         return -1;
     }
 
-    listenSocket_ = CreateSocket(port_);
+    listenSocket_ = CreateSocket(host_, port_);
     if (listenSocket_ < 0) {
         delete[] buffer_;
         buffer_ = nullptr;
@@ -204,11 +211,11 @@ void ParallelTcpServer::WakeupWaitingClients(const std::string &key) noexcept
     }
 }
 
-int ParallelTcpServer::CreateSocket(uint16_t port) noexcept
+int ParallelTcpServer::CreateSocket(const std::string host, uint16_t port) noexcept
 {
     struct sockaddr_in servAddr {};
     servAddr.sin_family = AF_INET;
-    servAddr.sin_addr.s_addr = INADDR_ANY;
+    servAddr.sin_addr.s_addr = inet_addr(host.c_str());
     servAddr.sin_port = htons(port);
 
     auto sockFd = ::socket(AF_INET, SOCK_STREAM, 0);
