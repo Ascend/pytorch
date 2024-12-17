@@ -23,6 +23,7 @@ enum SilenceCheckMode {
     PRINT_ALL_LOG = 3,
 };
 static std::unordered_map<int32_t, std::string> infNanMode = {{0, "max"}, {1, "inf_nan"}};
+static std::unordered_map<int32_t, std::string> disableInfNanMode = {{0, "enable"}, {1, "disable"}};
 static std::unordered_map<int32_t, std::string> combinedEnableMode = {{0, "close"}, {1, "open"}};
 static std::unordered_map<int32_t, std::string> launchBlockingMode = {{0, "disable"}, {1, "enable"}};
 static std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {{0, "close"}, {1, "open"}};
@@ -36,6 +37,7 @@ public:
     static bool IsResumeModeEnable();
     static ReuseMode GetMultiStreamMemoryReuse();
     static bool CheckInfNanModeEnable();
+    static bool CheckInfNanModeForceDisable();
     static bool CheckBlockingEnable();
     static bool CheckCombinedOptimizerEnable();
     static bool CheckTriCombinedOptimizerEnable();

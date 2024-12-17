@@ -65,6 +65,18 @@ bool OptionsManager::CheckInfNanModeEnable()
     return checkInfNanModeEnable;
 }
 
+bool OptionsManager::CheckInfNanModeForceDisable()
+{
+    const static bool checkInfNanModeForceDisable = []() -> bool {
+        int32_t disable = OptionsManager::GetBoolTypeOption("INF_NAN_MODE_FORCE_DISABLE", 0);
+        if (disableInfNanMode.find(disable) == disableInfNanMode.end()) {
+            TORCH_CHECK(false, "INF_NAN_MODE_FORCE_DISABLE should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
+        }
+        return disable != 0;
+    }();
+    return checkInfNanModeForceDisable;
+}
+
 bool OptionsManager::CheckBlockingEnable()
 {
     const static bool checkBlockingEnable = []() -> bool {
