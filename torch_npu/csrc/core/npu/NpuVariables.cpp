@@ -70,9 +70,12 @@ bool IsSupportInfNan()
         (GetSocVersion() >= SocVersion::Ascend910_9391);
     if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable()) {
         if (default_support_inf_nan && !c10_npu::option::OptionsManager::CheckInfNanModeForceDisable()) {
-            AT_ERROR("Current device shouldn't to set INF_NAN_MODE_ENABLE to 0. If you want to disable ",
-                "inf_nan mode, please export INF_NAN_MODE_FORCE_DISABLE=1");
+            AT_ERROR("INF_NAN_MODE_ENABLE shouldn't be set to 0 on the current device. If you want to disable ",
+                "inf-nan mode, please export INF_NAN_MODE_FORCE_DISABLE=1");
         }
+        return false;
+    }
+    if (c10_npu::option::OptionsManager::CheckInfNanModeForceDisable()) {
         return false;
     }
     if (c10_npu::acl::IsExistGetCannAttribute()) {
