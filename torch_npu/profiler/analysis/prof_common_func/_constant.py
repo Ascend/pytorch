@@ -118,6 +118,7 @@ class Constant(object):
     AicMemoryUB = "ACL_AICORE_MEMORY_UB"
     AicResourceConflictRatio = "ACL_AICORE_RESOURCE_CONFLICT_RATIO"
     AicL2Cache = "ACL_AICORE_L2_CACHE"
+    AicMemoryAccess = "ACL_AICORE_MEMORY_ACCESS"
     AicMetricsNone = "ACL_AICORE_NONE"
     Db = "db"
     Text = "text"
