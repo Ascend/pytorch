@@ -221,7 +221,6 @@ public:
 
         // Free all cached blocks and try again.
         if ((*new_ptr) == nullptr) {
-            empty_cache(true);
             c10_npu::NPUCachingAllocator::emptyCache(true);
             *new_ptr = static_cast<void*>(device_allocator[device]->malloc(size, stream));
         }
@@ -243,12 +242,9 @@ public:
         }
     }
 
-    void empty_cache(bool check_error)
+    void empty_cache(int device, bool check_error)
     {
-        int count = static_cast<int>(device_allocator.size());
-        for (int i = 0; i < count; i++) {
-            device_allocator[i]->empty_cache(check_error);
-        }
+        device_allocator[device]->empty_cache(check_error);
     }
 
     c10::DataPtr allocate(size_t size) override
@@ -317,9 +313,9 @@ c10::DataPtr malloc_with_stream(size_t size, aclrtStream stream)
     return workspace_allocator.allocate_with_stream(size, stream);
 }
 
-void emptyCache(bool check_error)
+void emptyCache(int device, bool check_error)
 {
-    workspace_allocator.empty_cache(check_error);
+    workspace_allocator.empty_cache(device, check_error);
 }
 
 } // namespace NPUWorkspaceAllocator
