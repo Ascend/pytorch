@@ -17,6 +17,7 @@ namespace profiler {
 enum class FeatureType {
     FEATURE_MIN = 0,
     FEATURE_ATTR,
+    FEATURE_MEMORY_ACCESS,
     FEATURE_MAX,
 };
 using torch_npu::toolkit::profiler::Utils;
