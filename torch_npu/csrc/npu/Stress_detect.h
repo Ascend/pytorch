@@ -17,9 +17,6 @@ public:
 
 private:
     static void worker_thread();
-
-    // Records the last call time for each device
-    static std::unordered_map<int, std::chrono::time_point<std::chrono::steady_clock>> last_call_times;
     
     // Thread for handling the stress detection task
     static std::thread stress_detect_thread;
@@ -45,9 +42,6 @@ private:
     static int device_id;
     static void* workspaceAddr;
     static size_t workspaceSize;
-
-    // Interval between tasks
-    static const int interval_time;
 
     // Flag to indicate if the thread has been initialized
     static std::atomic<bool> thread_initialized;
