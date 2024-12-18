@@ -21,7 +21,7 @@ def supported_profiler_level():
 def supported_ai_core_metrics():
     return set((AiCMetrics.AiCoreNone, AiCMetrics.PipeUtilization, AiCMetrics.ArithmeticUtilization,
                 AiCMetrics.Memory, AiCMetrics.MemoryL0, AiCMetrics.MemoryUB,
-                AiCMetrics.ResourceConflictRatio, AiCMetrics.L2Cache))
+                AiCMetrics.ResourceConflictRatio, AiCMetrics.L2Cache, AiCMetrics.MemoryAccess))
 
 
 def supported_export_type():
@@ -43,6 +43,7 @@ class AiCMetrics:
     MemoryUB = Constant.AicMemoryUB
     ResourceConflictRatio = Constant.AicResourceConflictRatio
     L2Cache = Constant.AicL2Cache
+    MemoryAccess = Constant.AicMemoryAccess
     AiCoreNone = Constant.AicMetricsNone
 
 
@@ -120,10 +121,10 @@ class _ExperimentalConfig:
         if self._aic_metrics not in (
                 AiCMetrics.L2Cache, AiCMetrics.MemoryL0, AiCMetrics.Memory, AiCMetrics.MemoryUB,
                 AiCMetrics.PipeUtilization, AiCMetrics.ArithmeticUtilization, AiCMetrics.ResourceConflictRatio,
-                Constant.AicMetricsNone):
+                AiCMetrics.MemoryAccess, AiCMetrics.AiCoreNone):
             print_warn_msg("Invalid parameter aic_metrics, reset it to default.")
             if self._profiler_level == ProfilerLevel.Level0:
-                self._aic_metrics = Constant.AicMetricsNone
+                self._aic_metrics = AiCMetrics.AiCoreNone
             else:
                 self._aic_metrics = AiCMetrics.PipeUtilization
         if not isinstance(self._op_attr, bool):

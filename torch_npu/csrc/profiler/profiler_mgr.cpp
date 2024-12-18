@@ -23,6 +23,7 @@ std::map<std::string, aclprofAicoreMetrics> ProfilerMgr::npu_metrics_map_ = {
     {"ACL_AICORE_RESOURCE_CONFLICT_RATIO", ACL_AICORE_RESOURCE_CONFLICT_RATIO},
     {"ACL_AICORE_MEMORY_UB", ACL_AICORE_MEMORY_UB},
     {"ACL_AICORE_L2_CACHE", ACL_AICORE_L2_CACHE},
+    {"ACL_AICORE_MEMORY_ACCESS", ACL_AICORE_MEMORY_ACCESS},
     {"ACL_AICORE_NONE", ACL_AICORE_NONE},
 };
 
@@ -34,7 +35,19 @@ std::map<std::string, uint64_t> ProfilerMgr::trace_level_map_ = {
 };
 
 constexpr uint32_t capacity_ = 1048576;          // 2^20, Experience value for default ringbuffer size for single data
-constexpr uint32_t trace_capacity_ = 128;       // 2^7, Experience value for python trace data ringbuffer size for batch data
+constexpr uint32_t trace_capacity_ = 128;        // 2^7, Experience value for python trace data ringbuffer size for batch data
+
+aclprofAicoreMetrics CheckAicMetricsFeature(aclprofAicoreMetrics aic_metrics, int8_t level)
+{
+    if (aic_metrics == ACL_AICORE_MEMORY_ACCESS &&
+        !FeatureMgr::GetInstance()->IsSupportFeature(FeatureType::FEATURE_MEMORY_ACCESS)) {
+        ASCEND_LOGW("AiCMetrics is not supported to set to MemoryAccess.");
+        printf("[WARN]%s,%s:%u:AiCMetrics is not supported to set to MemoryAccess, reset to default.\n",
+               __FUNCTION__, __FILENAME__, __LINE__);
+        return (level >= 1 ? ACL_AICORE_PIPE_UTILIZATION : ACL_AICORE_NONE);
+    }
+    return aic_metrics;
+}
 
 ProfilerMgr::ProfilerMgr()
     : report_enable_(false),
@@ -77,12 +90,14 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace)
     c10_npu::npuSynchronizeDevice();
     if (npu_trace_.load() == true) {
         aclprofAicoreMetrics aic_metrics = ACL_AICORE_NONE;
+        int8_t level_int = trace_level_to_int_.find(npu_config.trace_level) != trace_level_to_int_.end() ?
+            trace_level_to_int_[npu_config.trace_level] : -1;
         auto level_iter = trace_level_map_.find(npu_config.trace_level);
         uint64_t datatype_config = (level_iter == trace_level_map_.end()) ? Level0 : trace_level_map_[npu_config.trace_level];
         auto metrics_iter = npu_metrics_map_.find(npu_config.metrics);
         if (metrics_iter != npu_metrics_map_.end() && npu_config.metrics.compare("ACL_AICORE_NONE") != 0) {
             datatype_config |= ACL_PROF_AICORE_METRICS;
-            aic_metrics = npu_metrics_map_[npu_config.metrics];
+            aic_metrics = CheckAicMetricsFeature(npu_metrics_map_[npu_config.metrics], level_int);
         }
         if (npu_config.l2_cache) {
             datatype_config |= ACL_PROF_L2CACHE;
@@ -111,8 +126,6 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace)
         const uint32_t deviceNum = 1;
         uint32_t deviceIdList[deviceNum] = {deviceId};
         EnableMsProfiler(deviceIdList, deviceNum, aic_metrics, datatype_config);
-        int8_t level_int = trace_level_to_int_.find(npu_config.trace_level) != trace_level_to_int_.end() ?
-            trace_level_to_int_[npu_config.trace_level] : -1;
         trace_level_.store(level_int);
     }
 
