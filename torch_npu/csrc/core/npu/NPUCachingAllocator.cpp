@@ -1006,7 +1006,7 @@ class DeviceCachingAllocator {
             "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log "
             "can be ignored.");
         // Free all non-split cached blocks and retry alloc.
-        c10_npu::NPUWorkspaceAllocator::emptyCache(true);
+        c10_npu::NPUWorkspaceAllocator::emptyCache(device, true);
         block_found = (release_cached_blocks(true, context) && alloc_block(params, true, context, lock));
     }
 
@@ -1342,13 +1342,14 @@ class DeviceCachingAllocator {
     set_fraction = true;
   }
 
-  /** returns cached blocks to the system allocator **/
-  void emptyCache(bool check_error) {
-    std::shared_ptr<c10::GatheredContext> context =
-        maybeGatherContext(RecordContext::ALL);
-    std::lock_guard<std::recursive_mutex> lock(mutex);
-    release_cached_blocks(check_error, context);
-  }
+    /** returns cached blocks to the system allocator **/
+    void emptyCache(int device, bool check_error)
+    {
+        std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        c10_npu::NPUWorkspaceAllocator::emptyCache(device, check_error);
+        release_cached_blocks(check_error, context);
+    }
 
   void release_and_free_events()
   {
@@ -2522,7 +2523,7 @@ class NpuCachingAllocator : public NPUAllocator {
   {
     int count = static_cast<int>(device_allocator.size());
     for (int i = 0; i < count; i++)
-      device_allocator[i]->emptyCache(check_error);
+      device_allocator[i]->emptyCache(i, check_error);
   }
 
   void* getBaseAllocation(void* ptr, size_t* outSize) override
@@ -2695,7 +2696,7 @@ class NpuCachingAllocator : public NPUAllocator {
 
   void FreeDeviceCachedMemory(int device) override
   {
-    device_allocator[device]->emptyCache(true);
+    device_allocator[device]->emptyCache(device, true);
   }
 
   std::string name() override
