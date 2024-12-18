@@ -13,6 +13,7 @@ def collect_env_vars():
         "ASCEND_ENHANCE_ENABLE": os.environ.get("ASCEND_ENHANCE_ENABLE", ""),
         "PYTORCH_NPU_ALLOC_CONF": os.environ.get("PYTORCH_NPU_ALLOC_CONF", ""),
         "ASCEND_LAUNCH_BLOCKING": os.environ.get("ASCEND_LAUNCH_BLOCKING", ""),
+        "HCCL_ALGO": os.environ.get("HCCL_ALGO", ""),
     }
 
     return {"ENV_VARIABLES": collected_env_vars}
