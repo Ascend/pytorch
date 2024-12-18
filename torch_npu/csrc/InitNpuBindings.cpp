@@ -68,12 +68,6 @@ PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
     } catch (std::exception& e) {
         ASCEND_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
     }
-    try {
-        ASCEND_LOGI("NPU shutdown NPUWorkspaceAllocator emptyCache.");
-        c10_npu::NPUWorkspaceAllocator::emptyCache(check_error);
-    } catch (std::exception& e) {
-        ASCEND_LOGE("NPUWorkspaceAllocator::emptyCache failed err=:%s", e.what());
-    }
 
     ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
     c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
