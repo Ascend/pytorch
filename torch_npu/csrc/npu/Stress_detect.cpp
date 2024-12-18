@@ -2,7 +2,6 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
-std::unordered_map<int, std::chrono::time_point<std::chrono::steady_clock>> StressDetector::last_call_times;
 std::atomic<bool> StressDetector::task_in_progress(false);
 std::atomic<bool> StressDetector::stop_thread(false);
 std::atomic<bool> StressDetector::new_task_submitted(false);
@@ -16,7 +15,6 @@ std::mutex StressDetector::mtx;
 int StressDetector::device_id;
 void* StressDetector::workspaceAddr = nullptr;
 size_t StressDetector::workspaceSize = 0;
-const int StressDetector::interval_time = 3600;
 
 // Persistent worker thread implementation
 void StressDetector::worker_thread()
@@ -53,15 +51,6 @@ void StressDetector::worker_thread()
 // Synchronous stress detection task execution
 int StressDetector::perform_stress_detect(int deviceid)
 {
-    auto current_time = std::chrono::steady_clock::now();
-    // Check the calling interval
-    if (last_call_times.find(deviceid) != last_call_times.end() &&
-        std::chrono::duration_cast<std::chrono::seconds>(current_time - last_call_times[deviceid]).count() < interval_time) {
-        ASCEND_LOGW("StressDetect can only be called once every hour for the given deviceid:{%d}, Return 1.", deviceid);
-        return 1;
-    }
-    last_call_times[deviceid] = current_time;
-
     // If it's the first call, start the persistent thread
     if (!thread_initialized.load()) {
         std::lock_guard<std::mutex> lock(mtx);  // Ensure thread safety
@@ -76,7 +65,7 @@ int StressDetector::perform_stress_detect(int deviceid)
     
     // Allocate workspace memory
     workspaceAddr = nullptr;
-    uint64_t size = 2;
+    uint64_t size = 10;
     workspaceSize = size << 10 << 10 << 10;  // Assume memory size
     if (workspaceSize > 0) {
         auto ret = c10_npu::acl::AclrtMallocAlign32(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
