@@ -11,7 +11,7 @@ from datetime import datetime
 from ...utils._path_manager import PathManager
 from ...utils._error_code import ErrCode, prof_error
 from ..analysis.prof_common_func._file_manager import FileManager
-from ._dynamic_profiler_utils import logger
+from ._dynamic_profiler_utils import DynamicProfilerUtils
 
 
 class DynamicProfilerShareMemory:
@@ -46,13 +46,13 @@ class DynamicProfilerShareMemory:
             path: str,
             config_path: str,
             rank_id: int,
-            buffer_size: int = 1024
     ):
         self._path = path
         self.config_path = config_path
         self._rank_id = rank_id
         self.shm_path = f"DynamicProfileNpuShm{datetime.utcnow().strftime('%Y%m%d%H')}"
-        self._shm_buf_bytes_size = buffer_size
+        self._shm_buf_bytes_size = DynamicProfilerUtils.CFG_BUFFER_SIZE
+        self._is_dyno = self._is_dyno = DynamicProfilerUtils.is_dyno_model()
         self.is_create_process = False
         self.shm = None
         self.cur_mtime = 0
@@ -61,11 +61,10 @@ class DynamicProfilerShareMemory:
         self._time_bytes_size = len(self._time_data_bytes)
         self._clean_shm_for_killed()
         self._create_shm()
-        if self.is_create_process:
+        if self.is_create_process and not self._is_dyno:
             self._create_prof_cfg()
 
-    @staticmethod
-    def _get_pid_st_ctime(pid):
+    def _get_pid_st_ctime(self, pid):
         try:
             fd = os.open("/proc/" + str(pid), os.O_RDONLY, stat.S_IRUSR | stat.S_IRGRP)
             stat_ino = os.fstat(fd)
@@ -73,7 +72,8 @@ class DynamicProfilerShareMemory:
             create_time = stat_ino.st_ctime
             return create_time
         except Exception as ex:
-            logger.warning("An error is occurred: %s", str(ex))
+            DynamicProfilerUtils.out_log("An error is occurred: {}".format(
+                str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
             return None
 
     def _clean_shm_for_killed(self):
@@ -93,7 +93,8 @@ class DynamicProfilerShareMemory:
 
     def _create_prof_cfg(self):
         if not os.path.exists(self.config_path):
-            logger.info("Create profiler_config.json default.")
+            DynamicProfilerUtils.out_log("Create profiler_config.json default.",
+                                         DynamicProfilerUtils.LoggerLevelEnum.INFO)
             FileManager.create_json_file_by_path(
                 self.config_path,
                 self.JSON_DATA,
@@ -130,7 +131,8 @@ class DynamicProfilerShareMemory:
                            lambda *args, **kwargs: None):
                     self.shm = shared_memory.SharedMemory(name=self.shm_path)
                 self.is_create_process = False
-                logger.info("Rank %d shared memory is connected.", self._rank_id)
+                DynamicProfilerUtils.out_log("Rank {} shared memory is connected.".format(
+                    self._rank_id), DynamicProfilerUtils.LoggerLevelEnum.INFO)
                 break
             except FileNotFoundError:
                 try:
@@ -140,16 +142,18 @@ class DynamicProfilerShareMemory:
                     self.is_create_process = True
                     bytes_data = self._get_default_cfg_bytes()
                     self.shm.buf[:self._shm_buf_bytes_size] = bytes_data
-                    logger.info("Rank %d shared memory is created.", self._rank_id)
+                    DynamicProfilerUtils.out_log("Rank {} shared memory is created.".format(
+                        self._rank_id), DynamicProfilerUtils.LoggerLevelEnum.INFO)
                     break
                 except Exception as ex:
                     # other process will go to step 1 and open shm file
                     try_times -= 1
-                    logger.warning("Rank %d shared memory create failed, retry times = %d, %s has occur.",
-                                   self._rank_id, try_times, str(ex))
+                    DynamicProfilerUtils.out_log("Rank {} shared memory create failed, "
+                                                 "retry times = {}, {} has occur.".format(
+                        self._rank_id, try_times, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
                     time.sleep(random.uniform(0, 0.02))  # sleep 0 ~ 20 ms
         if try_times <= 0:
-            raise RuntimeError("Failed to create shared memory.")
+            raise RuntimeError("Failed to create shared memory." + prof_error(ErrCode.VALUE))
 
     def clean_resource(self):
         if sys.version_info >= (3, 8):
@@ -165,9 +169,11 @@ class DynamicProfilerShareMemory:
             try:
                 self.shm.close()
                 self.shm.unlink()
-                logger.info("Rank %s unlink shm", self._rank_id)
+                DynamicProfilerUtils.out_log("Rank {} unlink shm".format(
+                    self._rank_id), DynamicProfilerUtils.LoggerLevelEnum.INFO)
             except Exception as ex:
-                logger.warning("Rank %s unlink shm failed, may be removed, %s hs occur", self._rank_id, str(ex))
+                DynamicProfilerUtils.out_log("Rank {} unlink shm failed, may be removed, {} hs occur".format(
+                    self._rank_id, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
             self.shm = None
 
     def _clean_shm_py37(self):
@@ -179,16 +185,18 @@ class DynamicProfilerShareMemory:
                     self._memory_mapped_file.close()
                 elif self.fd:
                     os.close(self.fd)
-                logger.info("Rank %s unlink shm", self._rank_id)
+                DynamicProfilerUtils.out_log("Rank {} unlink shm".format(
+                    self._rank_id), DynamicProfilerUtils.LoggerLevelEnum.INFO)
             except Exception as ex:
-                logger.warning("Rank %s unlink shm failed, may be removed, %s has occur ", self._rank_id, str(ex))
+                DynamicProfilerUtils.out_log("Rank {} unlink shm failed, may be removed, {} has occur ".format(
+                    self._rank_id, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
             PathManager.remove_path_safety(os.path.dirname(self.shm_path))
             self.shm = None
 
     def _create_shm_py37(self):
         """Create a json monitor process based on whether the SharedMemory is successfully created py37"""
-        logger.warning("Dynamic profiler is not work well on python 3.7x, "
-                       "please update to python 3.8+ for better performance.")
+        DynamicProfilerUtils.out_log("Dynamic profiler is not work well on python 3.7x, "
+                  "please update to python 3.8+ for better performance.", DynamicProfilerUtils.LoggerLevelEnum.INFO)
         try_times = 10
         while try_times:
             fd = None
@@ -199,7 +207,8 @@ class DynamicProfilerShareMemory:
                 self._memory_mapped_file = os.fdopen(self.fd, 'rb')
                 self.shm = mmap.mmap(self._memory_mapped_file.fileno(), length=self._shm_buf_bytes_size)
                 self.is_create_process = False
-                logger.info("Rank %d shared memory is connected.", self._rank_id)
+                DynamicProfilerUtils.out_log("Rank {} shared memory is connected.".format(
+                    self._rank_id), DynamicProfilerUtils.LoggerLevelEnum.INFO)
                 break
             except ValueError:
                 time.sleep(0.02)
@@ -221,13 +230,15 @@ class DynamicProfilerShareMemory:
                     self._memory_mapped_file = os.fdopen(self.fd, 'rb')
                     self.shm = mmap.mmap(self._memory_mapped_file.fileno(), length=self._shm_buf_bytes_size)
                     self.is_create_process = True
-                    logger.info("Rank %d shared memory is created.", self._rank_id)
+                    DynamicProfilerUtils.out_log("Rank {} shared memory is created.".format(
+                        self._rank_id), DynamicProfilerUtils.LoggerLevelEnum.INFO)
                     break
                 except Exception as ex:
                     # other process will go to step 1 and open shm file
                     try_times -= 1
-                    logger.warning("Rank %d shared memory create failed, retry times = %d, %s has occur .",
-                                   self._rank_id, try_times, str(ex))
+                    DynamicProfilerUtils.out_log("Rank {} shared memory create failed, "
+                                                 "retry times = {}, {} has occur .".format(
+                        self._rank_id, try_times, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
                     time.sleep(random.uniform(0, 0.02))  # sleep 0 ~ 20 ms
                 finally:
                     if f is not None and not f.closed:
@@ -236,7 +247,7 @@ class DynamicProfilerShareMemory:
                         os.close(fd)
 
         if try_times <= 0:
-            raise RuntimeError("Failed to create shared memory.")
+            raise RuntimeError("Failed to create shared memory." + prof_error(ErrCode.VALUE))
 
     def read_bytes(self, read_time=False):
         """Read bytes from shared memory"""

@@ -1,10 +1,11 @@
 import os
+import sys
 import functools
 
 import torch
 
 from ..utils._path_manager import PathManager
-from .dynamic_profile import _DynamicProfile
+from ._dynamic_profiler._dynamic_profiler_utils import DynamicProfilerUtils
 from .dynamic_profile import init as dp_init
 from .dynamic_profile import step as dp_step
 from .analysis.prof_common_func._constant import print_error_msg
@@ -58,13 +59,27 @@ class _NonIntrusiveProfile:
     @staticmethod
     def init():
         prof_config_path = os.getenv("PROF_CONFIG_PATH", "")
-        if not prof_config_path:
-            return
+        dyno_enable_flag = os.getenv("KINETO_USE_DAEMON", 0)
         try:
-            PathManager.check_input_directory_path(prof_config_path)
-        except RuntimeError:
-            print_error_msg(f"The path '{prof_config_path}' is invalid, and profiler will not be enabled.")
+            dyno_enable_flag = int(dyno_enable_flag)
+        except ValueError:
+            print_error_msg("Environment variable KINETO_USE_DAEMON value not valid, will be set to 0 !")
+            dyno_enable_flag = 0
+        if not prof_config_path and dyno_enable_flag != 1:
             return
+        is_dyno = True
+        if prof_config_path:
+            try:
+                PathManager.check_input_directory_path(prof_config_path)
+            except RuntimeError:
+                print_error_msg(f"The path '{prof_config_path}' is invalid, and profiler will not be enabled.")
+                return
+            is_dyno = False
+        if is_dyno and sys.version_info < (3, 8):
+            print_error_msg(f"Dynolog only supported above Python 3.8 !.")
+            return
+        elif is_dyno:
+            DynamicProfilerUtils.DYNAMIC_PROFILER_MODEL = DynamicProfilerUtils.DynamicProfilerConfigModel.DYNO_CONFIG
         dp_init(prof_config_path)
         if torch.__version__ >= "2.0.0":
             torch.optim.Optimizer._patch_step_function = _NonIntrusiveProfile.patch_step_function
