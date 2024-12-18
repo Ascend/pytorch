@@ -8,12 +8,9 @@ from .scheduler import Schedule as schedule
 
 from .analysis.prof_common_func._singleton import Singleton
 from ..utils._path_manager import PathManager
-from .analysis.prof_common_func._constant import print_info_msg
-from .analysis.prof_common_func._constant import print_warn_msg
-from .analysis.prof_common_func._constant import print_error_msg
 from .analysis.prof_common_func._utils import no_exception_func
 from .analysis.prof_common_func._file_manager import FileManager
-from ._dynamic_profiler._dynamic_profiler_utils import logger, init_logger
+from ._dynamic_profiler._dynamic_profiler_utils import DynamicProfilerUtils
 from ._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
 from ._dynamic_profiler._dynamic_profiler_config_context import ConfigContext
 
@@ -27,8 +24,6 @@ __all__ = [
 @Singleton
 class _DynamicProfile:
     RECORD_TIME_STEP = 10
-    CFG_BUFFER_SIZE = 1024 * 1024
-    POLL_INTERVAL = 2
 
     def __init__(self) -> None:
         self.prof = None
@@ -42,11 +37,12 @@ class _DynamicProfile:
         self._step_time = 0
         self._min_poll_interval = 1
 
-    def init(self, path: str):
+    def init(self):
         if self.repeat_init:
-            print_warn_msg("Init dynamic profiling repeatedly")
+            DynamicProfilerUtils.stdout_log("Init dynamic profiling repeatedly",
+                                            DynamicProfilerUtils.LoggerLevelEnum.WARNING)
             return
-        self._dynamic_monitor = DynamicProfilerMonitor(path, self.CFG_BUFFER_SIZE, self.POLL_INTERVAL)
+        self._dynamic_monitor = DynamicProfilerMonitor()
         self.repeat_init = True
         atexit.register(self._clean_resource)
 
@@ -54,7 +50,9 @@ class _DynamicProfile:
         if self.prof is not None:
             self.prof.stop()
             self.prof = None
-            print_warn_msg("Profiler stop when process exit, check cfg json active whether over all step!")
+            DynamicProfilerUtils.stdout_log(
+                "Profiler stop when process exit, check cfg json active whether over all step!",
+                DynamicProfilerUtils.LoggerLevelEnum.WARNING)
         self._dynamic_monitor.clean_resource()
 
     def _dynamic_profiler_valid(self):
@@ -77,7 +75,8 @@ class _DynamicProfile:
             if 0 == self.step_num:
                 self.prof.stop()
                 self.prof = None
-                logger.info(f"Stop Dynamic Profiler at {self.cur_step} step.")
+                DynamicProfilerUtils.out_log("Stop Dynamic Profiler at {} step.".format(
+                    self.cur_step), DynamicProfilerUtils.LoggerLevelEnum.INFO)
         elif self.prof is None and self.cfg_ctx is not None and self.cur_step == self.cfg_ctx.start_step():
             self.step_num = self.cfg_ctx.active()
             self.enable_prof()
@@ -85,7 +84,9 @@ class _DynamicProfile:
 
     def start(self, config_path: str):
         if self.prof:
-            print_error_msg(f"Profiler already started. Cannot call start interface while the profiler is active. ")
+            DynamicProfilerUtils.stdout_log("Profiler already started. "
+                                            "Cannot call start interface while the profiler is active. ",
+                                            DynamicProfilerUtils.LoggerLevelEnum.ERROR)
             return
         enable_config_path = ""
         if config_path:
@@ -94,18 +95,22 @@ class _DynamicProfile:
                 PathManager.check_directory_path_readable(config_path)
                 enable_config_path = config_path
             except Exception as err:
-                logger.error(f"The provided config_path is invalid: {config_path}. Details: {err}")
+                DynamicProfilerUtils.stdout_log("The provided config_path is invalid: {}. Details: {}".format(
+                    config_path, str(err)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
                 enable_config_path = ""
         if not enable_config_path:
             enable_config_path = self._dynamic_monitor._config_path
-        print_info_msg(f"The start interface profiler enable config path is set to {enable_config_path}")
+        DynamicProfilerUtils.stdout_log("The start interface profiler enable config path is set to {}".format(
+            enable_config_path), DynamicProfilerUtils.LoggerLevelEnum.INFO)
         try:
             json_data = FileManager.read_json_file(enable_config_path)
             if not json_data:
-                print_error_msg(f"The config data is empty from: {enable_config_path}. Please check the config file. ")
+                DynamicProfilerUtils.stdout_log("The config data is empty from: {}. Please check the config file. ".format(
+                    enable_config_path), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
                 return
         except RuntimeError:
-            print_error_msg(f"Failed to read config from : {enable_config_path}. Please check the config file. ")
+            DynamicProfilerUtils.stdout_log("Failed to read config from : {}. Please check the config file. ".format(
+                enable_config_path), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
             return
         self.cfg_ctx = ConfigContext(json_data)
         self.step_num = self.cfg_ctx.active()
@@ -128,19 +133,24 @@ class _DynamicProfile:
         self.prof.start()
         for key, value in self.cfg_ctx.meta_data().items():
             self.prof.add_metadata_json(str(key), json.dumps(value))
-        logger.info(f"Start Dynamic Profiler at {self.cur_step} step.")
+        DynamicProfilerUtils.out_log("Start Dynamic Profiler at {} step.".format(
+            self.cur_step), DynamicProfilerUtils.LoggerLevelEnum.INFO)
 
 
 @no_exception_func()
 def init(path: str):
+    if DynamicProfilerUtils.is_dyno_model():
+        _DynamicProfile().init()
+        return
     try:
         PathManager.check_input_directory_path(path)
     except RuntimeError:
-        print_error_msg(f"The path '{path}' is invalid, and profiler will not be enabled.")
+        DynamicProfilerUtils.stdout_log("The path '{}' is invalid, and profiler will not be enabled.".format(
+            path), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
         return
-    dp_path = os.path.abspath(path)
-    init_logger(logger, dp_path)
-    _DynamicProfile().init(dp_path)
+    DynamicProfilerUtils.CFG_CONFIG_PATH = os.path.abspath(path)
+    DynamicProfilerUtils.init_logger()
+    _DynamicProfile().init()
 
 
 @no_exception_func()
