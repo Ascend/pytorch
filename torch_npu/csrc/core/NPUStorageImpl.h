@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <ATen/Tensor.h>
 #include <c10/core/StorageImpl.h>
 #include <c10/core/Allocator.h>
@@ -45,6 +46,15 @@ struct NPUStorageImpl : public c10::StorageImpl {
     {
         return npu_desc_;
     }
+
+    uint64_t unique_id_{0};
+
+    uint64_t get_unique_id()
+    {
+        return unique_id_;
+    }
+
+    std::mutex unique_id_mutex_;
 };
 
 c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(

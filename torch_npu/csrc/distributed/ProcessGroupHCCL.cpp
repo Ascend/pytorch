@@ -32,6 +32,7 @@
 #include "torch_npu/csrc/distributed/HcclCompile.h"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
+#include "torch_npu/csrc/framework/OpHook.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
@@ -605,6 +606,10 @@ void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds t
             // Throw exception (from main thread here)
             handleException(TearDown);
         }
+    }
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PostHook();
     }
 }
 
@@ -2393,6 +2398,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
     const c10d::AllreduceOptions& opts)
 {
     check_npu_tensors_different_devices(tensors);
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("allreduce", tensors);
+    }
+
     std::vector<at::Tensor> tensors_cp = {tensors[0]};
     std::string functionName = __FUNCTION__;
     return collective(
@@ -2440,6 +2450,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
     std::vector<at::Tensor>& tensors,
     std::vector<uint32_t> remote_rank_list)
 {
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("batch_isend_irecv", tensors);
+    }
+
     std::vector<at::Tensor> tensors_tmp = {tensors[0]};
     return collective(
         tensors_tmp,
@@ -2505,6 +2519,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
     const c10d::BroadcastOptions& opts)
 {
     check_npu_tensors_different_devices(tensors);
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("broadcast", tensors);
+    }
+
     return collective(
         tensors,
         tensors,
@@ -2588,6 +2607,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
     const c10d::ReduceOptions& opts)
 {
     check_npu_tensors_different_devices(tensors);
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("reduce", tensors);
+    }
+
     std::string functionName = __FUNCTION__;
     uint64_t rank = opts.rootRank;
     std::vector<at::Tensor> tensors_cp = {tensors[0]};
@@ -2722,6 +2746,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
     const c10d::AllgatherOptions& opts)
 {
     check_npu_tensors_different_devices(inputTensors);
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("allgather", outputTensors, inputTensors);
+    }
+
     auto inputTensors_ = cast_to_origin_format(inputTensors);
     bool same_size = check_same_size(outputTensors.back());
     if (same_size) {
@@ -2889,6 +2918,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
 {
     check_npu_tensors_different_devices(inputTensors);
     check_npu_tensors_different_devices(outputTensors);
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("allgather_togather", outputTensors, inputTensors);
+    }
+
     auto inputTensors_ = cast_to_origin_format(inputTensors);
 
     return collective(
@@ -2934,6 +2968,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
     std::vector<at::Tensor> outputTensors = {outputTensor};
     check_npu_tensors_different_devices(inputTensors);
     check_npu_tensors_different_devices(outputTensors);
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("_allgather_base", outputTensors, inputTensors);
+    }
+
     auto inputTensors_ = cast_to_origin_format(inputTensors);
 
     return collective(
@@ -2970,6 +3009,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
     const c10d::ReduceScatterOptions& opts)
 {
     check_npu_tensors_different_devices(outputTensors);
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("reduce_scatter", outputTensors, inputTensors);
+    }
+
     bool same_size = check_same_size(inputTensors.back());
     if (same_size) {
         auto inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
@@ -3066,6 +3110,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
 
     auto inputs = std::vector<at::Tensor>{inputTensor};
     auto outputs = std::vector<at::Tensor>{outputTensor};
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("_reduce_scatter_base", outputs, inputs);
+    }
+
     std::string functionName = __FUNCTION__;
     return collective(
         inputs,
@@ -3217,6 +3266,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
         }
     }
 
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("scatter", outputTensors, inputTensors);
+    }
+
     std::vector<at::Tensor> inputFlattened;
     if (getRank() == opts.rootRank) {
         inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
@@ -3280,6 +3333,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& tensors, int dstRank, int tag)
 {
     check_npu_tensors_different_devices(tensors);
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("send", tensors);
+    }
+
     auto tensors_ = cast_to_origin_format(tensors);
     auto ret = pointToPoint(
         tensors_,
@@ -3306,6 +3364,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& tensors, int srcRank, int tag)
 {
     check_npu_tensors_different_devices(tensors);
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("recv", tensors);
+    }
+
     auto tensors_ = create_base_format_tensors(tensors);
     auto ret = pointToPoint(
         tensors_,
@@ -3384,6 +3447,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
     TORCH_CHECK(ranks > 0, "Invalid rank count within current process group", ranks, DIST_ERROR(ErrCode::PARAM));
     std::vector<at::Tensor> inputTensors = {inputTensor};
     std::vector<at::Tensor> outputTensors = {outputTensor};
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("alltoall_base", outputTensors, inputTensors);
+    }
+
     auto inputTensors_ = cast_to_origin_format(inputTensors);
     auto outputTensors_ = cast_to_origin_format(outputTensors);
 
@@ -3577,6 +3645,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
         TORCH_CHECK(device == output_tensors[r].device() && device == input_tensors[r].device(),
             "tensors must be on the same device", DIST_ERROR(ErrCode::PARAM));
     }
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("alltoall", output_tensors, input_tensors);
+    }
+
     std::vector<int64_t> output_split_sizes;
     std::vector<int64_t> input_split_sizes;
     std::vector<at::Tensor> output_results;

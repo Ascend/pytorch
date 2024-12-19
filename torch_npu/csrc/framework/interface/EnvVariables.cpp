@@ -115,6 +115,9 @@ REGISTER_OPTION_HOOK(FORCE_ACLNN_OP_LIST, [](const std::string &val) {
   ForceAclnn::GetInstance().RegisterOp(val);
 })
 
+REGISTER_OPTION(OP_HOOK_ENABLE)
+REGISTER_OPTION_BOOL_FUNCTION(CheckOpHookEnable, OP_HOOK_ENABLE, "disable", "enable")
+
 REGISTER_OPTION(MM_BMM_ND_ENABLE)
 REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDDisable, MM_BMM_ND_ENABLE, "enable", "disable")
 
