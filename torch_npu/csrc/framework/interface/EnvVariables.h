@@ -12,6 +12,7 @@ bool AutoTuneEnabled();
 bool CheckBmmV2Enable();
 bool CheckJitDisable();
 bool CheckProfilingEnable();
+bool CheckOpHookEnable();
 bool CheckMmBmmNDDisable();
 bool CheckForbidInternalFormat();
 bool IsAllowFP32ToFP16();

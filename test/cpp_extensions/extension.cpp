@@ -4,10 +4,13 @@
 #include "torch_npu/csrc/core/npu/NPUFormat.h"
 #include "torch_npu/csrc/aten/common/from_blob.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
+#include "torch_npu/csrc/framework/OpHook.h"
 // test   in  .setup with relative path
 #include <tmp.h>
 
 using namespace at;
+
+static int g_op_hook_call_count = 0;    // test op_hook
 
 Tensor tanh_add(Tensor x, Tensor y)
 {
@@ -88,6 +91,39 @@ Tensor blocking_ops(Tensor x)
     return x;
 }
 
+void register_op_hook()
+{
+    at_npu::native::RegisterOpHookBeginFn(
+        [](const std::string &op_name) -> void {
+            g_op_hook_call_count++;
+    });
+    at_npu::native::RegisterOpHookPreFn([](const at::Tensor &at_tensor) -> void {
+        if (!at_tensor.defined()) {
+            return;
+        }
+        g_op_hook_call_count++;
+    });
+    at_npu::native::RegisterOpHookPostFn([](const at::Tensor &at_tensor) -> void {
+        if (!at_tensor.defined()) {
+            return;
+        }
+        g_op_hook_call_count++;
+    });
+    at_npu::native::RegisterOpHookEndFn([]() -> void {
+        g_op_hook_call_count++;
+    });
+}
+
+int get_op_hook_call_count()
+{
+    return g_op_hook_call_count;
+}
+
+void reset_op_hook_call_count()
+{
+    g_op_hook_call_count = 0;
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
     m.def("tanh_add", &tanh_add, "tanh(x) + tanh(y)");
@@ -96,4 +132,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
     m.def("check_from_blob", &check_from_blob, "check_from_blob");
     m.def("check_from_blob_strides", &check_from_blob_strides, "check_from_blob_strides");
     m.def("blocking_ops", &blocking_ops, "blocking_ops");
+    m.def("register_op_hook", &register_op_hook, "register_op_hook");
+    m.def("get_op_hook_call_count", &get_op_hook_call_count, "get_op_hook_call_count");
+    m.def("reset_op_hook_call_count", &reset_op_hook_call_count, "reset_op_hook_call_count");
 }

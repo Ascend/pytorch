@@ -19,12 +19,12 @@ import stat
 import traceback
 import warnings
 import itertools
-from typing import List, Optional, Set, Dict, Union, Sequence, Iterator
+from typing import List, Optional, Set, Dict, Union, Sequence, Iterator, Tuple
 from collections import defaultdict
 from dataclasses import dataclass
 import yaml
 
-from torchgen.api.types.signatures import NativeSignature
+from torchgen.api.types.signatures import NativeSignature, DispatcherSignature
 from torchgen.context import native_function_manager
 from torchgen.code_template import CodeTemplate
 from torchgen.model import (
@@ -203,6 +203,22 @@ def get_torchgen_dir():
         _, _, exc_traceback = sys.exc_info()
         frame_summary = traceback.extract_tb(exc_traceback)[-1]
         return os.path.dirname(frame_summary.filename)
+
+
+def gen_op_hook_post_code(sig: Union[NativeSignature, DispatcherSignature]) -> Tuple[str, str]:
+    res_code: str = None
+    return_code: str = None
+
+    if sig.returns_type().cpp_type() == "void":
+        res_code = ""
+        return_code = f"""at_npu::native::OpHook::GetInstance().PostHook();
+    return;"""
+    else:
+        res_code = f"""{sig.returns_type().cpp_type()} res = """
+        return_code = f"""at_npu::native::OpHook::GetInstance().PostHook(res);
+    return res;"""
+
+    return res_code, return_code
 
 
 # This function is to add profiler information for each operator, which is later extended in the official
@@ -386,6 +402,28 @@ const DeviceGuard device_guard(device_or_default(device));"""
                 if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE:
                     impl_name = f"op_plugin::{GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key]}"
 
+            # for op_hook_check
+            res_of_op_hook_post_code, return_of_op_hook_post_code = gen_op_hook_post_code(sig)
+
+            args_exprs_str_list = [
+                e.expr
+                for e in translate(
+                    sig.arguments(), kernel_sig.arguments(), method=False
+                )
+            ]
+            lvalue_ref_list = ["C10_AS_INTARRAYREF_SLOW", "expect_int", "guard_int"]
+            auto_lvalue = ""
+            for idx, args_expr in enumerate(args_exprs_str_list):
+                if any(lvalue_ref in args_expr for lvalue_ref in lvalue_ref_list):
+                    auto_lvalue += f"""
+    auto {kernel_sig.arguments()[idx].name}_tmp = {args_expr};"""
+                    args_exprs_str_list[idx] = f"""{kernel_sig.arguments()[idx].name}_tmp"""
+
+            args_exprs_str_for_op_hook = ", ".join(e for e in args_exprs_str_list)
+
+            op_hook_blacklist = ["is_pinned", "_pin_memory"]
+            op_hook_check = ""
+
             if is_opapi(op_key) and not is_op_valid(op_key):
                 op_api_impl_name = f"{metadata.cpp_namespace}::NPUNativeOpApiFunctions::{metadata.kernel}"
                 tensor_check_str = ""
@@ -395,6 +433,23 @@ const DeviceGuard device_guard(device_or_default(device));"""
                         tensor_check_list.append(f"at_npu::native::FormatHelper::IsOpInputBaseFormat({a.name})")
                 if tensor_check_list:
                     tensor_check_str = f" && {' && '.join(tensor_check_list)}"
+
+                if self.backend_index.dispatch_key is DispatchKey.PrivateUse1:
+                    if op_key not in op_hook_blacklist:
+                        op_hook_check += f"""\
+if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {{
+{auto_lvalue}
+    at_npu::native::OpHook::GetInstance().PreHook(\"{op_key}\", {args_exprs_str_for_op_hook});
+    if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str}) {{
+        {res_of_op_hook_post_code}{op_api_impl_name}({args_exprs_str_for_op_hook});
+        {return_of_op_hook_post_code}
+    }} else {{
+        {res_of_op_hook_post_code}{impl_name}({args_exprs_str_for_op_hook});
+        {return_of_op_hook_post_code}
+    }}
+}}
+"""
+
                 return_code = f"""\
 if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str}) {{
         return {op_api_impl_name}({args_exprs_str});
@@ -403,6 +458,17 @@ if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str})
     }}
 """
             else:
+                if self.backend_index.dispatch_key is DispatchKey.PrivateUse1:
+                    if op_key not in op_hook_blacklist:
+                        op_hook_check += f"""\
+if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {{
+{auto_lvalue}
+    at_npu::native::OpHook::GetInstance().PreHook(\"{op_key}\", {args_exprs_str_for_op_hook});
+    {res_of_op_hook_post_code}{impl_name}({args_exprs_str_for_op_hook});
+    {return_of_op_hook_post_code}
+}}
+"""
+
                 return_code = f"""\
     return {impl_name}({args_exprs_str});
 """
@@ -415,6 +481,7 @@ namespace {{
 {unsafe_tensor_check}
 {device_guard}
 {record_func_def}
+{op_hook_check}
 {return_code}
 }}
 

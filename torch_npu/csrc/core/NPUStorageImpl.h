@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <ATen/Tensor.h>
 #include <c10/core/StorageImpl.h>
 #include <c10/core/Allocator.h>
@@ -28,21 +29,32 @@ public:
 };
 
 struct NPUStorageImpl : public c10::StorageImpl {
-  explicit NPUStorageImpl(use_byte_size_t use_byte_size,
-      size_t size_bytes,
-      at::DataPtr data_ptr,
-      at::Allocator* allocator,
-      bool resizable);
-  ~NPUStorageImpl() override = default;
+    explicit NPUStorageImpl(
+        use_byte_size_t use_byte_size,
+        size_t size_bytes,
+        at::DataPtr data_ptr,
+        at::Allocator* allocator,
+        bool resizable);
+    ~NPUStorageImpl() override = default;
 
-  void release_resources() override;
+    void release_resources() override;
 
-  // not private
-  NPUStorageDesc npu_desc_;
+    // not private
+    NPUStorageDesc npu_desc_;
 
-  NPUStorageDesc get_npu_desc() const {
-    return npu_desc_;
-  }
+    NPUStorageDesc get_npu_desc() const
+    {
+        return npu_desc_;
+    }
+
+    uint64_t unique_id_{0};
+
+    uint64_t get_unique_id()
+    {
+        return unique_id_;
+    }
+
+    std::mutex unique_id_mutex_;
 };
 
 c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl_inner(

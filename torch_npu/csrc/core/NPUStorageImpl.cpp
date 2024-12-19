@@ -18,6 +18,9 @@ NPUStorageImpl::NPUStorageImpl(
       allocator,
       resizable)
 {
+    std::lock_guard<std::mutex> lock(unique_id_mutex_);
+    static uint64_t idx = 0;
+    unique_id_ = idx++;
 }
 
 void NPUStorageImpl::release_resources()

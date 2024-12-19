@@ -395,6 +395,7 @@ def gen_dispatcher_registrations(
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/ForceAclnnList.h"
+#include "torch_npu/csrc/framework/OpHook.h"
 #include "op_plugin/OpInterface.h"
 """
     static_template = CodeTemplate(

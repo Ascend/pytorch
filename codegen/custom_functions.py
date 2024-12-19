@@ -12,7 +12,8 @@ from torchgen.utils import concatMap
 from torchgen.context import with_native_function, native_function_manager
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
-from codegen.utils import (enable_opplugin, is_op_valid, field_tag, get_opplugin_wrap_name, parse_npu_yaml)
+from codegen.utils import (enable_opplugin, is_op_valid, field_tag, get_opplugin_wrap_name, parse_npu_yaml,
+                           gen_op_hook_post_code)
 
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
@@ -83,6 +84,7 @@ ${return_type} ${name}(${args_str}) {
 """)
 
 TRACE_DISPATCH = CodeTemplate("""\
+${op_hook_check}
 return ${impl_name}(${args_exprs_str});""")
 
 
@@ -170,6 +172,17 @@ const c10::DeviceGuard device_guard(device_or_default(device));"""
         # kernel is operating on existing tensors
         device_guard = f"const c10::OptionalDeviceGuard device_guard(device_of({device_of}));"
 
+    # for op_hook_check
+    res_of_op_hook_post_code, return_of_op_hook_post_code = gen_op_hook_post_code(sig)
+    op_key = str(f.func.name)
+    op_hook_check = f"""\
+if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {{
+    at_npu::native::OpHook::GetInstance().PreHook(\"{op_key}\", {args_exprs_str});
+    {res_of_op_hook_post_code}{impl_name}({args_exprs_str});
+    {return_of_op_hook_post_code}
+}}
+"""
+
     return [METHOD_DEFINITION.substitute(
         return_type=out_return_type if out_num > 1 else cpp.returns_type(f.func.returns).cpp_type(),
         name=name,
@@ -177,7 +190,8 @@ const c10::DeviceGuard device_guard(device_or_default(device));"""
         unpack_out=unpack_out,
         unsafe_tensor_check=unsafe_tensor_check,
         device_guard=device_guard,
-        type_definition_body=[TRACE_DISPATCH.substitute(impl_name=impl_name, args_exprs_str=args_exprs_str)]
+        type_definition_body=[TRACE_DISPATCH.substitute(impl_name=impl_name, args_exprs_str=args_exprs_str,
+                                                        op_hook_check=op_hook_check)]
     )]
 
 
