@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestConvFunctions(TestCase):
@@ -25,6 +26,7 @@ class TestConvFunctions(TestCase):
 
         self.assertExpectedInline(str(output.size()), '''torch.Size([1, 8, 5, 5])''')
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_conv3d(self):
         filters = torch.randn(33, 16, 3, 3, 3)
         inputs = torch.randn(20, 16, 50, 10, 20)
@@ -52,6 +54,7 @@ class TestConvFunctions(TestCase):
 
         self.assertExpectedInline(str(output.size()), '''torch.Size([1, 8, 5, 5])''')
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_conv_transpose3d(self):
         inputs = torch.randn(20, 16, 50, 10, 20)
         weights = torch.randn(16, 33, 3, 3, 3)
