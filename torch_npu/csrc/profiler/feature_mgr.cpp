@@ -43,6 +43,8 @@ void FeatureMgr::FormatFeatureList(size_t size, void* featuresData)
         if (!IsTargetComponent(features->info.affectedComponent, features->info.affectedComponentVersion))  {
             ASCEND_LOGD("feature: %s, component is: %s, componentVersion is: %s",
                         features->featureName, features->info.affectedComponent, features->info.affectedComponentVersion);
+            features++;
+            i++;
             continue;
         }
         std::string featureName = features->featureName;
@@ -50,6 +52,8 @@ void FeatureMgr::FormatFeatureList(size_t size, void* featuresData)
         if (it == NAME_TABLE.end()) {
             printf("[WARN]%s,%s:%u:Do not support feature: %s, log is: %s\n", __FUNCTION__, __FILENAME__, __LINE__,
                    features->featureName, features->info.infoLog);
+            features++;
+            i++;
             continue;
         }
         auto tempInfo = FeatureInfo(features->info.compatibility, features->info.featureVersion,
@@ -59,6 +63,8 @@ void FeatureMgr::FormatFeatureList(size_t size, void* featuresData)
             tempInfo.affectedComponent[0] == '\0' || tempInfo.affectedComponentVersion[0] == '\0' ||
             tempInfo.infoLog[0] == '\0') {
             ASCEND_LOGE("Create feature info failed, feature name is: %s.", features->featureName);
+            features++;
+            i++;
             continue;
         }
         profFeatures_[NAME_TABLE[featureName]] = tempInfo;
