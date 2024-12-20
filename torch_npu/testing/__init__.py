@@ -22,7 +22,9 @@ __all__ = []
 def _get_tests_dict():
 
     def _filter_json(data):
-        return {key: val for key, val in data.items() if len(val) > 1 and not(val[1] and "A2" in val[1])}
+        if _is_910A():
+            return {key: val for key, val in data.items() if len(val) > 1 and not (val[1] and "A2" in val[1])}
+        return {key: val for key, val in data.items() if len(val) > 1 and not (val[1] and "910A" in val[1])}
 
     def _is_910A():
         device_name = torch_npu.npu.get_device_name(0)
@@ -33,10 +35,7 @@ def _get_tests_dict():
     def _load_disabled_json(filename):
         if os.path.isfile(filename):
             with open(filename) as fp0:
-                if _is_910A():
-                    disabled_dict = json.load(fp0, object_hook=_filter_json)
-                else:
-                    disabled_dict = json.load(fp0)
+                disabled_dict = json.load(fp0, object_hook=_filter_json)
                 return disabled_dict
         warnings.warn("Attempted to load json file '%s' but it does not exist.", filename)
         return {}
