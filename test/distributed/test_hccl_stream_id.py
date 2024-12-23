@@ -21,7 +21,7 @@ class HcclStreamIdTest(TestCase):
         return dist
 
     @classmethod
-    def _test_hccl_stream_id(cls, rank, world_size, init_pg, c2p):
+    def _test_hccl_stream_id(cls, rank, world_size, init_pg, c2p, p2c):
         dist_group = init_pg(rank, world_size)
         input1 = torch.tensor([1]).npu()
         dist_group.all_reduce(input1)
@@ -45,20 +45,25 @@ class HcclStreamIdTest(TestCase):
         assert2 = (collective_stream.npu_stream == p2p_stream.npu_stream)
 
         c2p.put(assert0 and assert1 and assert2)
+        p2c.get()
 
     def _test_multiprocess(self, f, init_pg, world_size):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
+        p2c = ctx.Queue(world_size)
 
         ps = []
         for rank in range(world_size):
-            p = ctx.Process(target=f, args=(rank, world_size, init_pg, c2p))
+            p = ctx.Process(target=f, args=(rank, world_size, init_pg, c2p, p2c))
             p.start()
             ps.append(p)
 
         for _ in range(world_size):
             output = c2p.get()
             self.assertEqual(True, output)
+
+        for _ in range(world_size):
+            p2c.put(0)
 
         for p in ps:
             p.join()
