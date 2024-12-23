@@ -27,12 +27,13 @@ class HcclAllGatherTestBase(TestCase):
     def _test_multiprocess(self, f, init_pg, expected, input1, world_size):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
+        p2c = ctx.Queue(world_size)
         ps = []
 
         for i in range(world_size):
             p = ctx.Process(
                 target=f,
-                args=(i, input1.cpu(), world_size, init_pg, c2p))
+                args=(i, input1.cpu(), world_size, init_pg, c2p, p2c))
             p.start()
             ps.append(p)
 
@@ -41,12 +42,16 @@ class HcclAllGatherTestBase(TestCase):
             self.assertEqual(output, expected,
                              ("rank {} Expect receive tensor {} but got {}.").format(rank, expected, output))
 
+        for _ in range(world_size):
+            p2c.put(0)
+
         for p in ps:
             p.join()
 
     def _test_multiprocess_with_inputlist(self, f, init_pg, cpu_expected, inputlist, world_size):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
+        p2c = ctx.Queue(world_size)
         ps = []
 
         gather_tensor = list()
@@ -56,7 +61,7 @@ class HcclAllGatherTestBase(TestCase):
         for i in range(world_size):
             p = ctx.Process(
                 target=f,
-                args=(i, inputlist[i].cpu(), gather_tensor, world_size, init_pg, c2p))
+                args=(i, inputlist[i].cpu(), gather_tensor, world_size, init_pg, c2p, p2c))
             p.start()
             ps.append(p)
 
@@ -64,6 +69,9 @@ class HcclAllGatherTestBase(TestCase):
             rank, output = c2p.get()
             self.assertEqual(output, cpu_expected,
                              ("rank {} Expect receive tensor {} but got {}.").format(rank, cpu_expected, output))
+
+        for _ in range(world_size):
+            p2c.put(0)
 
         for p in ps:
             p.join()
@@ -82,22 +90,24 @@ class HcclAllGatherTestBase(TestCase):
 class HcclAllGatherTest(HcclAllGatherTestBase):
 
     @classmethod
-    def _test_all_gather(cls, rank, input1, world_size, init_pg, c2p):
+    def _test_all_gather(cls, rank, input1, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input1 = input1.npu()
         gather_tensor = [torch.empty_like(input1) for _ in range(world_size)]
         pg.all_gather(gather_tensor, input1)
         c2p.put((rank, [tensor.cpu() for tensor in gather_tensor]))
         pg.barrier()
+        p2c.get()
 
     @classmethod
-    def _test_all_gather_different_shape(cls, rank, input1, gather_tensor, world_size, init_pg, c2p):
+    def _test_all_gather_different_shape(cls, rank, input1, gather_tensor, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input1 = input1.npu()
         gather_tensor = [tensor.npu() for tensor in gather_tensor]
         pg.all_gather(gather_tensor, input1)
         c2p.put((rank, [tensor.cpu() for tensor in gather_tensor]))
         pg.barrier()
+        p2c.get()
 
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_dist(self):

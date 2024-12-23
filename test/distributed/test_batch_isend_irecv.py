@@ -24,7 +24,7 @@ class HcomBatchIsendIrecvTest(TestCase):
 
 
     @classmethod
-    def _test_batch_isend_irecv(cls, rank, world_size, init_pg, c2p):
+    def _test_batch_isend_irecv(cls, rank, world_size, init_pg, c2p, p2c):
         _ = init_pg(rank, world_size)
         recv_tensors = [None for _ in range(world_size)]
         expected_tensors = [None for _ in range(world_size)]
@@ -42,22 +42,28 @@ class HcomBatchIsendIrecvTest(TestCase):
         for req in reqs:
             req.wait()
         c2p.put([[i for i in expected_tensors], [i.cpu() for i in recv_tensors]])
+        p2c.get()
 
 
     def _test_multiprocess(self, f, init_pg, world_size):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
+        p2c = ctx.Queue(world_size)
         ps = []
         for i in range(world_size):
             p = ctx.Process(
                 target=f,
-                args=(i, world_size, init_pg, c2p))
+                args=(i, world_size, init_pg, c2p, p2c))
             p.start()
             ps.append(p)
 
         for _ in range(world_size):
             expected, received = c2p.get()
             self.assertEqual(expected, received)
+
+        for _ in range(world_size):
+            p2c.put(0)
+
 
         for p in ps:
             p.join()

@@ -23,7 +23,7 @@ class HcclAlltoAllTest(TestCase):
         return dist
 
     @classmethod
-    def _test_alltoall_2p(cls, rank, world_size, init_pg, c2p):
+    def _test_alltoall_2p(cls, rank, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input1 = torch.arange(2) + rank * 2
         input1 = input1.float().npu()
@@ -33,9 +33,10 @@ class HcclAlltoAllTest(TestCase):
         cout = 0
         pg.all_to_all(output_list, input1_list)
         c2p.put((rank, [tensor.cpu() for tensor in output_list], cout))
+        p2c.get()
 
     @classmethod
-    def _test_alltoall_2p_size(cls, rank, world_size, init_pg, c2p):
+    def _test_alltoall_2p_size(cls, rank, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input_list = [(torch.zeros(rank + 1, 1) + rank).float().npu() for i in range(2)]
         output_list = [torch.empty(i + 1, 1).float().npu() for i in range(2)]
@@ -49,26 +50,29 @@ class HcclAlltoAllTest(TestCase):
                 raise RuntimeError("format error!")
 
         c2p.put((rank, [tensor.cpu() for tensor in output_list], cout))
+        p2c.get()
 
     @classmethod
-    def _test_alltoall_2p_size_nd(cls, rank, world_size, init_pg, c2p):
+    def _test_alltoall_2p_size_nd(cls, rank, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input_list = [(torch.zeros(rank + 1, rank + 1) + rank).float().npu() for i in range(2)]
         output_list = [torch.empty(i + 1, i + 1).float().npu() for i in range(2)]
         cout = 2
         pg.all_to_all(output_list, input_list)
         c2p.put((rank, [tensor.cpu() for tensor in output_list], cout))
+        p2c.get()
 
     def _test_multiprocess_2p(self, f, init_pg):
         ws = self.world_size_2p
         # file store will delete the test file on destruction
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(2)
+        p2c = ctx.Queue(2)
         ps = []
         for i in range(ws):
             p = ctx.Process(
                 target=f,
-                args=(i, ws, init_pg, c2p))
+                args=(i, ws, init_pg, c2p, p2c))
             p.start()
             ps.append(p)
 
@@ -89,6 +93,10 @@ class HcclAlltoAllTest(TestCase):
                     "rank {} Expect receive tensor {} but got {}."
                 ).format(rank, expected, output)
             )
+
+        for _ in range(ws):
+            p2c.put(0)
+
 
         for p in ps:
             p.join(2)
@@ -112,7 +120,7 @@ class HcclAlltoAllTest(TestCase):
             HcclAlltoAllTest._init_dist_hccl)
 
     @classmethod
-    def _test_alltoall_4p(cls, rank, world_size, init_pg, c2p):
+    def _test_alltoall_4p(cls, rank, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input1 = torch.arange(4) + rank * 4
         input1 = input1.float().npu()
@@ -122,9 +130,10 @@ class HcclAlltoAllTest(TestCase):
         cout = 0
         pg.all_to_all(output_list, input1_list)
         c2p.put((rank, [tensor.cpu() for tensor in output_list], cout, [1, 1, 1, 1]))
+        p2c.get()
 
     @classmethod
-    def _test_alltoall_4p_size(cls, rank, world_size, init_pg, c2p):
+    def _test_alltoall_4p_size(cls, rank, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input1 = torch.arange(7) + rank * 4
         input1 = input1.float().npu()
@@ -142,15 +151,17 @@ class HcclAlltoAllTest(TestCase):
         cout = 1
         pg.all_to_all(output_list, input1_list)
         c2p.put((rank, [tensor.cpu() for tensor in output_list], cout, outsize[rank]))
+        p2c.get()
 
     @classmethod
-    def _test_alltoall_4p_size_nd(cls, rank, world_size, init_pg, c2p):
+    def _test_alltoall_4p_size_nd(cls, rank, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input_list = [(torch.zeros(rank + 1, rank + 1) + rank).float().npu() for i in range(4)]
         output_list = [torch.empty(i + 1, i + 1).float().npu() for i in range(4)]
         cout = 2
         pg.all_to_all(output_list, input_list)
         c2p.put((rank, [tensor.cpu() for tensor in output_list], cout, None))
+        p2c.get()
 
     expected_dict = [
         [0, 4, 8, 9, 12, 13, 14],
@@ -164,11 +175,12 @@ class HcclAlltoAllTest(TestCase):
         # file store will delete the test file on destruction
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(4)
+        p2c = ctx.Queue(4)
         ps = []
         for i in range(ws):
             p = ctx.Process(
                 target=f,
-                args=(i, ws, init_pg, c2p))
+                args=(i, ws, init_pg, c2p, p2c))
             p.start()
             ps.append(p)
 
@@ -189,6 +201,9 @@ class HcclAlltoAllTest(TestCase):
                     "rank {} Expect receive tensor {} but got {}."
                 ).format(rank, expected, output)
             )
+
+        for _ in range(ws):
+            p2c.put(0)
 
         for p in ps:
             p.join(4)
