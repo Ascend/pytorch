@@ -24,7 +24,7 @@ class HcclScatterTest(TestCase):
         return dist
 
     @classmethod
-    def _test_scatter(cls, rank, input_list, world_size, init_pg, c2p):
+    def _test_scatter(cls, rank, input_list, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input_list_npu = [input.npu() for input in input_list]
         output = torch.empty_like(input_list_npu[rank])
@@ -33,21 +33,27 @@ class HcclScatterTest(TestCase):
         pg.scatter(output, input_list_npu)
         c2p.put((rank, output.cpu()))
         pg.barrier()
+        p2c.get()
 
     def _test_multiprocess(self, fn, init_pg, expected, input1, world_size):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
+        p2c = ctx.Queue(world_size)
         ps = []
         for i in range(world_size):
             p = ctx.Process(
                 target=fn,
-                args=(i, input1, world_size, init_pg, c2p))
+                args=(i, input1, world_size, init_pg, c2p, p2c))
             p.start()
             ps.append(p)
         for _ in range(world_size):
             rank, output = c2p.get()
             self.assertEqual(output, expected[rank],
                              ("rank {} Expect receive tensor {} but got {}.").format(rank, expected[rank], output))
+
+        for _ in range(world_size):
+            p2c.put(0)
+
         for p in ps:
             p.join()
 

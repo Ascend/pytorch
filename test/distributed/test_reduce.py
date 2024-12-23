@@ -24,22 +24,24 @@ class HcclReduceTest(TestCase):
         return dist
 
     @classmethod
-    def _test_reduce(cls, rank, input1, world_size, init_pg, c2p):
+    def _test_reduce(cls, rank, input1, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         dst = 0
         input1 = input1.npu()
         pg.reduce(input1, dst)
         c2p.put((rank, dst, input1.cpu()))
+        p2c.get()
 
     def _test_multiprocess(self, f, init_pg, expected, input1, world_size):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
+        p2c = ctx.Queue(world_size)
         ps = []
 
         for i in range(world_size):
             p = ctx.Process(
                 target=f,
-                args=(i, input1.cpu(), world_size, init_pg, c2p))
+                args=(i, input1.cpu(), world_size, init_pg, c2p, p2c))
             p.start()
             ps.append(p)
 
@@ -48,6 +50,9 @@ class HcclReduceTest(TestCase):
             if rank == dst:
                 self.assertEqual(output, expected,
                                  ("rank {} Expect receive tensor {} but got {}.").format(rank, expected, output))
+
+        for _ in range(world_size):
+            p2c.put(0)
 
         for p in ps:
             p.join()

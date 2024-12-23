@@ -20,7 +20,7 @@ class HcclGatherTest(TestCase):
         return dist
 
     @classmethod
-    def _test_gather(cls, test_data, world_size, init_pg, c2p):
+    def _test_gather(cls, test_data, world_size, init_pg, c2p, p2c):
         rank, input1, output1 = test_data
         pg = init_pg(rank, world_size)
         dst = 0
@@ -34,9 +34,10 @@ class HcclGatherTest(TestCase):
             c2p.put((rank, dst, [t.cpu() for t in output1]))
         else:
             c2p.put((rank, dst, []))
+        p2c.get()
 
     @classmethod
-    def _test_gather_object(cls, test_data, world_size, init_pg, c2p):
+    def _test_gather_object(cls, test_data, world_size, init_pg, c2p, p2c):
         rank, input1, output1 = test_data
         pg = init_pg(rank, world_size)
         dst = 0
@@ -49,17 +50,19 @@ class HcclGatherTest(TestCase):
             c2p.put((rank, dst, [t.cpu() for t in output1]))
         else:
             c2p.put((rank, dst, []))
+        p2c.get()
 
 
     def _test_multiprocess(self, f, init_pg, proc_data, world_size):
         input1, output1, expected = proc_data
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
+        p2c = ctx.Queue(world_size)
         ps = []
         for i in range(world_size):
             p = ctx.Process(
                 target=f,
-                args=((i, input1, output1), world_size, init_pg, c2p))
+                args=((i, input1, output1), world_size, init_pg, c2p, p2c))
             p.start()
             ps.append(p)
 
@@ -69,6 +72,10 @@ class HcclGatherTest(TestCase):
                 for i, j in zip(output, expected):
                     self.assertEqual(i, j,
                                      ("rank {} Expect receive tensor {} but got {}.").format(rank, expected, output))
+
+        for _ in range(world_size):
+            p2c.put(0)
+
         for p in ps:
             p.join()
 
