@@ -592,7 +592,7 @@ static void initDeviceSyncLaunchStream(c10::DeviceIndex device_index)
         sync_streami.is_sync_launch = true;
 
         NPU_CHECK_SUPPORTED_OR_ERROR(
-            acl::AclrtCreateStreamWithConfig(&sync_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+            acl::AclrtCreateStreamWithConfig(&sync_streami.stream, 0, ACL_STREAM_FAST_SYNC));
     }
 }
 
