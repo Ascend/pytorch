@@ -3311,9 +3311,6 @@
   "func: npu_bmm_v2_mat2_backward": {
     "signature": "(Tensor grad, Tensor mat1, Tensor mat2, SymInt[] size) -> Tensor"
   },
-  "func: selu_backward": {
-    "signature": "(Tensor grad_output, Tensor result) -> Tensor"
-  },
   "func: npu_lstm_data_backward": {
     "signature": "(Tensor? grady_opt, Tensor? gradh_opt, Tensor? gradc_opt, Tensor input, Tensor batch_sizes, Tensor weight, Tensor bias, Tensor init_h, Tensor init_c, Tensor y, Tensor h, Tensor c, Tensor i, Tensor j, Tensor f, Tensor o, Tensor tanhc, bool flag_direction) -> (Tensor, Tensor, Tensor, Tensor, Tensor)"
   },
@@ -6007,12 +6004,6 @@
   },
   "func: binary_cross_entropy_with_logits": {
     "signature": "(Tensor self, Tensor target, Tensor? weight=None, Tensor? pos_weight=None, int reduction=Mean) -> Tensor"
-  },
-  "func: selu": {
-    "signature": "(Tensor self) -> Tensor"
-  },
-  "func: selu_": {
-    "signature": "(Tensor(a!) self) -> Tensor(a!)"
   },
   "func: linalg_matrix_norm": {
     "signature": "(Tensor self, Scalar ord, int[] dim=[-2,-1], bool keepdim=False, *, ScalarType? dtype=None) -> Tensor"

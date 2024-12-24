@@ -164,11 +164,6 @@ def npu_rotary_mul_backward(grad, embedding, cosine, sine):
     return (dx, dr1, dr2)
 
 
-@impl(m, "selu_backward")
-def selu_backward_meta(self, result):
-    return torch.empty_like(self)
-
-
 @impl(m, "fast_gelu")
 def fast_gelu_meta(self):
     return torch.empty_like(self)
