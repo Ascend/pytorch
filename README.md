@@ -53,7 +53,7 @@ If the installation fails, use the download link or visit the [PyTorch official 
 3. **Install torch-npu**
 
 ```
-pip3 install torch-npu==2.1.0.post8
+pip3 install torch-npu==2.1.0.post10
 ```
 
 ### From Source
@@ -63,7 +63,7 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 1. **Clone torch-npu**
 
    ```
-   git clone https://github.com/ascend/pytorch.git -b v2.1.0-6.0.rc3 --depth 1
+   git clone https://github.com/ascend/pytorch.git -b 2.1.0-6.0.0 --depth 1
    ```
 
 2. **Build Docker Image**
@@ -135,11 +135,14 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 
 | CANN Version          | Supported PyTorch Version | Supported Extension Version | Github Branch     |
 |-----------------------|---------------------------|-----------------------------|-------------------|
-| CANN 8.0.RC3          | 2.4.0                     | 2.4.0                      | v2.4.0-6.0.rc3    |
-|                       | 2.3.1                     | 2.3.1.post2                | v2.3.1-6.0.rc3    |
+| CANN 8.0.0            | 2.4.0                     | 2.4.0.post2                 | v2.4.0-6.0.0      | 
+|                       | 2.3.1                     | 2.3.1.post4                 | v2.3.1-6.0.0      |
+|                       | 2.1.0                     | 2.1.0.post10                | v2.1.0-6.0.0      |
+| CANN 8.0.RC3          | 2.4.0                     | 2.4.0                       | v2.4.0-6.0.rc3    |
+|                       | 2.3.1                     | 2.3.1.post2                 | v2.3.1-6.0.rc3    |
 |                       | 2.1.0                     | 2.1.0.post8                 | v2.1.0-6.0.rc3    |
-| CANN 8.0.RC2          | 2.3.1                     | 2.3.1                      | v2.3.1-6.0.rc2    |
-|                       | 2.2.0                     | 2.2.0.post2                | v2.2.0-6.0.rc2    |
+| CANN 8.0.RC2          | 2.3.1                     | 2.3.1                       | v2.3.1-6.0.rc2    |
+|                       | 2.2.0                     | 2.2.0.post2                 | v2.2.0-6.0.rc2    |
 |                       | 2.1.0                     | 2.1.0.post6                 | v2.1.0-6.0.rc2    |
 |                       | 1.11.0                    | 1.11.0.post14               | v1.11.0-6.0.rc2   |
 | CANN 8.0.RC2.alpha002 | 2.3.1                     | 2.3.1rc1                    | v2.3.1            |
@@ -213,7 +216,7 @@ The version branches of AscendPyTorch have the following maintenance phases:
 |-------------------|--------------|--------------------------------------------------------------------------------------------------------------------------------|
 | Planning          | 1-3 months   | Plan features.                                                                                                                 |
 | Development       | 6-12 months     | Develop new features and fix issues, regularly release new versions. Different strategies are adopted for different versions of PyTorch, with a regular branch development cycle of 6 months and a long-term support branch development cycle of 12 months.                                                                                                             |
-| Maintained        | 3.5 years | Maintain bugs, do not incorporate new features, and release patch versions based on the impact of bugs. |
+| Maintained        | 1 year/3.5 years | Regular Release branch for 1 year, Long Term Support branch maintenance for 3.5 years. Fix major issues, do not incorporate new features, and release patch versions based on the impact of fixed bugs. |
 | End Of Life (EOL) | N/A          | Do not accept any modification to a branch.                                                                                    |
 
 ##  PyTorch Maintenance Policies
