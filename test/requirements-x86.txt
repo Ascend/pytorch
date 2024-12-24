@@ -1,8 +1,3 @@
-# torch cpu版本安装方式
-torch==2.3.1 --index-url https://download.pytorch.org/whl/cpu
-# torch-npu 安装方式
-torch-npu==2.3.1rc1
-
 beartype==0.17.0
 expecttest==0.1.3
 hypothesis
