@@ -16,6 +16,4 @@ transformers==4.40.0
 pytest==8.1.1
 
 torch-scatter==2.1.2
-torch==2.5.1
 torchvision==0.20.1
-torch_npu==2.5.1rc1
