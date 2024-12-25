@@ -495,6 +495,7 @@ class TestPublicBindings(TestCase):
             "torch.distributed._spmd.experimental_ops",
             "torch.distributed._spmd.parallel_mode",
             "torch.distributed._tensor",
+            "torch.distributed._tools.fsdp_ilp",
             "torch.distributed.algorithms._checkpoint.checkpoint_wrapper",
             "torch.distributed.algorithms._optimizer_overlap",
             "torch.distributed.rpc._testing.faulty_agent_backend_registry",
