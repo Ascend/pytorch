@@ -17,4 +17,4 @@ pytest==8.1.1
 
 torch-scatter==2.1.2
 # since 20240730, torchvision(nightly package) no longer supports python3.8
-torchvision==0.20.0.dev20241113
+torchvision==0.20.0.dev20241209
