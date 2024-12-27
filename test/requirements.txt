@@ -1,14 +1,14 @@
---extra-index-url https://download.pytorch.org/whl/nightly/cpu
--f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+--extra-index-url https://download.pytorch.org/whl/test/cpu
+-f https://data.pyg.org/whl/torch-2.5.0+cpu.html
 
 beartype==0.17.0
 expecttest==0.1.3
 hypothesis
 mypy==1.9.0
 numpy==1.24.4
-onnx==1.16.1
-onnxruntime==1.16.3
-onnxscript==0.1.0.dev20240418
+onnx==1.16.2
+onnxruntime==1.18.1
+onnxscript==0.1.0.dev20241124
 Pillow==10.3.0
 requests==2.32.0
 torch_geometric==2.5.3
@@ -16,5 +16,5 @@ transformers==4.40.0
 pytest==8.1.1
 
 torch-scatter==2.1.2
-# since 20240730, torchvision(nightly package) no longer supports python3.8
-torchvision==0.20.0.dev20241209
+# since 20240730, torchvision no longer supports python3.8
+torchvision==0.21.0
