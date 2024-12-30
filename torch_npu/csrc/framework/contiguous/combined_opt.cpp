@@ -141,45 +141,49 @@ private:
     return false;
   }
 
-  // Weak constrains for select cases
-  bool maybe_select(const ContiguousTensorDesc &tensor_desc) {
-    for (auto i = tensor_desc.sizes_.size() - 1; i > 0; i--) {
-      if (tensor_desc.strides_[i - 1] %
-              (tensor_desc.sizes_[i] * tensor_desc.strides_[i]) !=
-          0) {
-        return false;
-      }
-      if (tensor_desc.strides_[i - 1] /
-              (tensor_desc.sizes_[i] * tensor_desc.strides_[i]) !=
-          1) {
-        if (tensor_desc.offset_ %
-                (tensor_desc.sizes_[i] * tensor_desc.strides_[i]) !=
-            0) {
-          return false;
+    // Weak constrains for select cases
+    bool maybe_select(const ContiguousTensorDesc &tensor_desc) {
+        for (auto i = tensor_desc.sizes_.size() - 1; i > 0; i--) {
+            if (tensor_desc.strides_[i] == 0) {
+                return false;
+            }
+            if (tensor_desc.strides_[i - 1] %
+                    (tensor_desc.sizes_[i] * tensor_desc.strides_[i]) !=
+                0) {
+                return false;
+            }
+            if (tensor_desc.strides_[i - 1] /
+                    (tensor_desc.sizes_[i] * tensor_desc.strides_[i]) !=
+                1) {
+                if (tensor_desc.offset_ %
+                        (tensor_desc.sizes_[i] * tensor_desc.strides_[i]) !=
+                    0) {
+                    return false;
+                }
+                // Avoid combined-cases such as squeeze+indexing at the first axis.
+                if (tensor_desc.strides_[0] != tensor_desc.base_strides_[0]) {
+                    return false;
+                }
+            }
         }
-        // Avoid combined-cases such as squeeze+indexing at the first axis.
-        if (tensor_desc.strides_[0] != tensor_desc.base_strides_[0]) {
-          return false;
-        }
-      }
+        return true;
     }
-    return true;
-  }
 
-  // Weak constrains for slice cases
-  bool maybe_slice(const ContiguousTensorDesc &tensor_desc) {
-    // tensors with reduced numel will be taken into consideration.
-    if (c10::multiply_integers(tensor_desc.sizes_) <
-        c10::multiply_integers(tensor_desc.base_sizes_)) {
-      for (const auto i : c10::irange(tensor_desc.sizes_.size() - 2)) {
-        if (tensor_desc.strides_[i] % tensor_desc.strides_[i + 1] != 0) {
-          return false;
+    // Weak constrains for slice cases
+    bool maybe_slice(const ContiguousTensorDesc &tensor_desc) {
+        // tensors with reduced numel will be taken into consideration.
+        if (c10::multiply_integers(tensor_desc.sizes_) <
+            c10::multiply_integers(tensor_desc.base_sizes_)) {
+            for (const auto i : c10::irange(tensor_desc.sizes_.size() - 2)) {
+                if (tensor_desc.strides_[i + 1] == 0 ||
+                    tensor_desc.strides_[i] % tensor_desc.strides_[i + 1] != 0) {
+                    return false;
+                }
+            }
+            return true;
         }
-      }
-      return true;
+        return false;
     }
-    return false;
-  }
 
   /*
 Kernel function of "Inference",
