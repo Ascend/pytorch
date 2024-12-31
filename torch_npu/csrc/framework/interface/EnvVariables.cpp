@@ -48,7 +48,13 @@ REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string &val) {
 REGISTER_OPTION_BOOL_FUNCTION(CheckJitDisableInner, jitCompile, "enable", "disable")
 REGISTER_OPTION_CACHE(bool, isJitDisable, CheckJitDisableInner)
 REGISTER_OPTION_HOOK(jitCompile, [](const std::string &val) {
-    NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str()));
+    if (val == "enable") {
+        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
+    }
+    SET_OPTION_WITH_CACHE(isJitDisable, ("disable" == val) ? true : false);
+})
+
+REGISTER_OPTION_HOOK(jitCompileInit, [](const std::string &val) {
     SET_OPTION_WITH_CACHE(isJitDisable, ("disable" == val) ? true : false);
 })
 
