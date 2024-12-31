@@ -68,6 +68,8 @@ bool nslb_is_end = false;
 bool uce_error_flag = false;
 bool force_stop_error_flag = false;
 char* nslb_path = c10_npu::option::OptionsManager::GetNslbPath();
+bool status_save_enable = c10_npu::option::OptionsManager::CheckStatusSaveEnable();
+std::string status_save_path = c10_npu::option::OptionsManager::GetStatusSavePath();
 
 inline c10_npu::NPUStream getNPUStreamByCurrentType(c10::DeviceIndex device = -1)
 {
@@ -263,6 +265,17 @@ void checkHcclCommConfigValid(const HcclCommConfig* config)
                     DIST_ERROR(ErrCode::NOT_SUPPORT));
     }
 }
+
+void checkAndMakePath(const char* path, std::string errormessage)
+{
+    try {
+        if (access(path, W_OK) != 0 && mkdir(path, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
+            throw std::exception();
+        }
+    } catch (std::exception& e) {
+        throw std::runtime_error(errormessage + DIST_ERROR(ErrCode::NOT_FOUND));
+    }
+}
 } // namespace
 
 constexpr int64_t kSynchronizeBusyWaitMillis = 10;
@@ -272,6 +285,10 @@ thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
 const int64_t ProcessGroupHCCL::kWatchdogThreadSleepMillis = 1000;
 std::string ProcessGroupHCCL::perfdumppath = "";
 ProcessGroupHCCL* ProcessGroupHCCL::global_ = nullptr;
+std::unordered_map<std::string, ProcessGroupHCCL::StatusStruct> ProcessGroupHCCL::StatusOutput_;
+int ProcessGroupHCCL::deviceId_ = -1;
+int ProcessGroupHCCL::numRanks_ = -1;
+std::string ProcessGroupHCCL::exceptionMessage_ = "";
 
 std::ostream& operator<<(std::ostream& output, const ProcessGroupHCCL::WorkHCCL& workHCCL)
 {
@@ -301,7 +318,7 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(
     // Creates the npu event wrappers
     // Note: The actual events are lazily created when first recorded to with
     // DEFAULT_FLAGS = npuEventDisableTiming.
-    if (desyncDebug) {
+    if (desyncDebug || (status_save_enable)) {
         hcclStartEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>();
         hcclStartEvents_->reserve(devices.size());
         for (int i = 0; i < devices.size(); i++) {
@@ -859,6 +876,12 @@ void ProcessGroupHCCL::hcclCommWatchdog()
             "] HCCL watchdog thread terminated with exception: ",
             e.what());
         LOG(ERROR) << exitMsg;
+        if (status_save_enable) {
+            if (exceptionMessage_.empty()) {
+                exceptionMessage_ = e.what();
+            }
+            recordHcclStatus(status_save_path, true, true);
+        }
         watchDogException_ = std::make_exception_ptr(std::runtime_error(exitMsg));
         std::rethrow_exception(watchDogException_);
     } catch (...) {
@@ -867,6 +890,9 @@ void ProcessGroupHCCL::hcclCommWatchdog()
             rank_,
             "] HCCL watchdog thread terminated with exception: unknown");
         LOG(ERROR) << exitMsg;
+        if (status_save_enable) {
+            recordHcclStatus(status_save_path, true);
+        }
         watchDogException_ = std::make_exception_ptr(std::runtime_error(exitMsg));
         std::rethrow_exception(watchDogException_);
     }
@@ -914,7 +940,17 @@ void ProcessGroupHCCL::workCleanupLoop()
 {
     bool needSetDevice = true;
     std::list<ProcessGroupHCCL::WorkHCCL> completedWorkList;
+    auto lastrecordtime = std::chrono::steady_clock::now();
+    auto timenow = std::chrono::steady_clock::now();
+    bool recordflag = false;
+    
     while (!terminateProcessGroup_.load()) {
+        if (status_save_enable) {
+            checkAndMakePath(status_save_path.c_str(), "Open shared directory failed. Please check whether input path is valid.");
+            timenow = std::chrono::steady_clock::now();
+            recordflag = ((timenow - lastrecordtime).count() > (c10_npu::option::OptionsManager::GetStatusSaveInterval() * 1000));
+        }
+        
         std::unique_lock<std::mutex> lock(workMetaListMutex_);
         // We busy-poll the work vector every kWatchdogThreadSleepMillis
         // milliseconds as long as the atomic is True.
@@ -932,6 +968,7 @@ void ProcessGroupHCCL::workCleanupLoop()
                     c10::DeviceIndex device = static_cast<int>(work.devices_[0].index());
                     c10_npu::SetThreadAffinity(device);
                     NPU_CHECK_ERROR(c10_npu::SetDevice(device));
+                    deviceId_ = static_cast<int>(work.devices_[0].index());
                     needSetDevice = false;
                 }
             } catch (const std::exception& e) {
@@ -982,15 +1019,33 @@ void ProcessGroupHCCL::workCleanupLoop()
                     ASCEND_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(work.opType_).c_str(), work.seq_);
                     work.is_reported = false;
                 }
+                if (status_save_enable) {
+                    refreshStatusInfo(work, "end"); // Update Statusinfo，but not write into the map
+                }
                 it = workMetaList_.erase(it);
             } else {
+                if (status_save_enable && work.isStarted()) {
+                    refreshStatusInfo(work, "start"); // Update Statusinfo，but not write into the map
+                }
                 // Increment the iterator if the current WorkHCCL object is not
                 // completed.
                 ++it;
             }
         }
+
+        if (recordflag && recordHcclStatus(status_save_path)) {
+            lastrecordtime = std::chrono::steady_clock::now();
+        }
     }
+
+    if (status_save_enable) {
+        recordHcclStatus(status_save_path);
+    }
+
     if (terminateProcessGroup_.load()) {
+        if (status_save_enable) {
+            recordHcclStatus(status_save_path, true);
+        }
         std::unique_lock<std::mutex> lock(workMetaListMutex_);
         workMetaList_.clear();
     }
@@ -1121,6 +1176,75 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
     }
     outfile << opName << " " << dataVol << " " << std::to_string(currRank) << "\n";
     outfile.close();
+}
+
+void ProcessGroupHCCL::refreshStatusInfo(ProcessGroupHCCL::WorkHCCL work, std::string status)
+{
+    StatusInfo.seq = work.seq_;
+    StatusInfo.pgId = options_->group_id;
+    StatusInfo.opType = opTypeToString(work.opType_);
+    if (StatusInfo.commIds == "") {
+        for (auto i : options_->global_ranks_in_group) {
+            StatusInfo.commIds += (std::to_string(i) + " ");
+        }
+    }
+    if (StatusInfo.commIds == "") {
+        StatusInfo.commIds = "all";
+    }
+    StatusInfo.status = status;
+}
+
+void ProcessGroupHCCL::updateStatusOutput()
+{
+    if (!StatusInfo.pgId.empty()) {
+        StatusOutput_[options_->group_id] = StatusInfo;
+    }
+}
+
+bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool error)
+{
+    std::unique_lock<std::mutex> lock(StatusMapmutex_);
+    updateStatusOutput();
+    if (!options_->global_ranks_in_group.empty() && !error) {
+        return true;
+    } else if (!StatusOutput_.empty()) {
+        static auto pid = getpid();
+        static std::chrono::time_point<std::chrono::system_clock> firstrecordtime = std::chrono::system_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(firstrecordtime.time_since_epoch()).count();
+        auto end_duration = duration;
+        if (end) {
+            static std::chrono::time_point<std::chrono::system_clock> endrecordtime = std::chrono::system_clock::now();
+            end_duration = std::chrono::duration_cast<std::chrono::milliseconds>(endrecordtime.time_since_epoch()).count();
+        }
+        std::ofstream outfile;
+        std::stringstream fileName;
+        auto master_addr = getenv("MASTER_ADDR");
+        TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.", DIST_ERROR(ErrCode::NOT_FOUND));
+        int global_rank = rank_;
+        if (!options_->global_ranks_in_group.empty()) {
+            global_rank = options_->global_ranks_in_group[rank_];
+        }
+        fileName << "torch_hccl_status-" << std::to_string(global_rank) << "_" << master_addr << "_" << std::to_string(deviceId_) << "_";
+        fileName << std::to_string(numRanks_) << "_" << std::to_string(pid) << "_" << std::to_string(duration) << ".log";
+        std::string isMaster = "false";
+        if (global_rank == 0) {
+            isMaster = "true";
+        }
+        std::string out_file_path = c10::str(path, "/", fileName.str());
+        checkAndMakePath(path.c_str(), "Open shared directory failed. Please check whether input path is valid.");
+        outfile.open(out_file_path.c_str(), std::ios::trunc);
+        for (auto info = StatusOutput_.begin(); info != StatusOutput_.end(); info++) {
+            outfile << "LastCommOp-Pg-" << info->second.pgId << ":";
+            outfile << info->second.seq << "," << info->second.opType << "," << info->second.pgId << "," ;
+            outfile << info->second.commIds << "," << info->second.status <<std::endl;
+        }
+        outfile << "IsMaster:" << isMaster << std::endl;
+        outfile << "ExceptionMessage:" << exceptionMessage_ << std::endl;
+        outfile << "GlobalPgEndTime:" << end_duration << std::endl;
+        outfile.close();
+        return true;
+    }
+    return false;
 }
 
 void ProcessGroupHCCL::recordComm(std::string filename, std::string opName, const int currRank, std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
@@ -1900,7 +2024,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     work->outputs_ = std::make_shared<std::vector<at::Tensor>>(outputs);
     c10_npu::OptionalNPUGuard npuGuard;
 
-    if (desyncDebug_) {
+    if (desyncDebug_ || status_save_enable) {
         for (const auto i : c10::irange(devices.size())) {
             c10_npu::NPUStream& hcclStream = hcclStreams[i];
             (*(work->hcclStartEvents_))[i].record(hcclStream);
