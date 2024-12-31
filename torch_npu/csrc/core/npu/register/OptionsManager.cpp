@@ -209,6 +209,32 @@ char *OptionsManager::GetNslbPath()
     return std::getenv("NSLB_CP");
 }
 
+bool OptionsManager::CheckStatusSaveEnable()
+{
+    const static bool CheckStatusSaveEnable = []() -> bool {
+        int32_t status_save_enable = OptionsManager::GetBoolTypeOption("TORCH_HCCL_STATUS_SAVE_ENALBLE");
+        return status_save_enable != 0;
+    }();
+    return CheckStatusSaveEnable;
+}
+
+std::string OptionsManager::GetStatusSavePath()
+{
+    char* status_save_val = std::getenv("TORCH_HCCL_STATUS_SAVE_PATH");
+    std::string status_save_path = (status_save_val != nullptr) ? std::string(status_save_val) : "/tmp";
+    return status_save_path;
+}
+
+uint32_t OptionsManager::GetStatusSaveInterval()
+{
+    const static uint32_t status_save_interval = []() -> uint32_t {
+        char* env_val = std::getenv("TORCH_HCCL_STATUS_SAVE_INTERVAL");
+        int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 30;
+        return static_cast<uint32_t>(envFlag);
+    }();
+    return status_save_interval;
+}
+
 uint32_t OptionsManager::GetNslbCntVal()
 {
     const static uint32_t nslb_val = []() -> uint32_t {

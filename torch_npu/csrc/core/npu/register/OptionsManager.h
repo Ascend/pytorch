@@ -53,6 +53,9 @@ public:
     C10_NPU_API static bool isACLGlobalLogOn(aclLogLevel level);
     static int64_t GetRankId();
     static char *GetNslbPath();
+    static bool CheckStatusSaveEnable();
+    static std::string GetStatusSavePath();
+    static uint32_t GetStatusSaveInterval();
     static uint32_t GetNslbCntVal();
     static bool CheckGeInitDisable();
     static bool CheckPerfDumpEnable();
