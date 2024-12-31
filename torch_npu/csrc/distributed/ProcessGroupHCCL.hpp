@@ -863,6 +863,32 @@ protected:
 
     ProcessGroupStatus pgStatus_;
 
+    struct StatusStruct {
+        int seq = 0;
+        std::string pgId;
+        std::string opType;
+        std::string commIds;
+        std::string status;
+    };
+
+    StatusStruct StatusInfo;
+
+    void refreshStatusInfo(ProcessGroupHCCL::WorkHCCL work, std::string status);
+
+    static std::unordered_map<std::string, StatusStruct> StatusOutput_;
+
+    std::mutex StatusMapmutex_;
+
+    void updateStatusOutput();
+
+    bool recordHcclStatus(const std::string path, bool end = false, bool error = false);
+
+    static int deviceId_;
+
+    static int numRanks_;
+
+    static std::string exceptionMessage_;
+
 private:
     // Helper that encapsulates work shared across all collective communication
     // primitives.
