@@ -9,6 +9,7 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
+#include "torch_npu/csrc/framework/LazyInitAclops.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #ifndef BUILD_LIBTORCH
@@ -134,6 +135,7 @@ OpCommand& OpCommand::Output(
 void OpCommand::Run() {
     aclCmd->SetEnginePriority();
     const string &op_name = aclCmd->GetName();
+    at_npu::aclops::LazyInitAclops();
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
 #endif
