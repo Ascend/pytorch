@@ -1,8 +1,10 @@
+import warnings
 import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.nn.parameter import Parameter
 import torch_npu
+from torch_npu.utils._error_code import ErrCode, ops_error
 
 __all__ = ["LinearA8W8Quant"]
 
@@ -60,6 +62,8 @@ class LinearA8W8Quant(nn.Module):
                  pertoken_scale: bool = False, device=None, dtype=None, output_dtype=None) -> None:
 
         super(LinearA8W8Quant, self).__init__()
+        warnings.warn("torch_npu.contrib.module.LinearA8W8Quant is deprecated and will be removed in future version. "
+                      "Use torch_npu.contrib.module.LinearQuant instead.", FutureWarning)
         self.in_features = in_features
         self.out_features = out_features
         self.weight = Parameter(torch.empty((out_features, in_features)), False)
@@ -84,6 +88,25 @@ class LinearA8W8Quant(nn.Module):
         scale_quant = self.scale
         first_last_dim = self.weight.dim() - 1
         second_last_dim = self.weight.dim() - 2
+        if not ((linear_quant_input.dtype == torch.int32 and self.weight.dtype == torch.int32) or
+                (linear_quant_input.dtype == torch.int8 and self.weight.dtype == torch.int8)):
+            raise ValueError("input and weight should be both torch.int32 or both torch.int8 datatype, "
+                             f"but now input is {linear_quant_input.dtype}, weight is {self.weight.dtype}." + ops_error(ErrCode.TYPE))
+        if self.scale.dtype not in [torch.int64, torch.float32, torch.bfloat16]:
+            raise ValueError("scale should be torch.int64, torch.float32 or torch.bfloat16 datatype, "
+                             f"but now it is {self.scale.dtype}." + ops_error(ErrCode.TYPE))
+        if self.offset is not None and self.offset.dtype is not torch.float32:
+            raise ValueError("offset should be torch.float32 datatype, "
+                             f"but now it is {self.offset.dtype}." + ops_error(ErrCode.TYPE))
+        if self.bias is not None and self.bias.dtype not in [torch.int32, torch.bfloat16, torch.float16, torch.float32]:
+            raise ValueError("bias should be torch.int32, torch.bfloat16, torch.float16 or torch.float32 datatype, "
+                             f"but now it is {self.bias.dtype}." + ops_error(ErrCode.TYPE))
+        if self.pertoken_scale is not None and self.pertoken_scale.dtype is not torch.float32:
+            raise ValueError("pertoken_scale should be torch.float32 datatype, "
+                             f"but now it is {self.pertoken_scale.dtype}." + ops_error(ErrCode.TYPE))
+        if self.output_dtype is not None and self.output_dtype not in [torch.int8, torch.float16, torch.bfloat16]:
+            raise ValueError("output_dtype should be torch.int8, torch.float16 or torch.bfloat16, "
+                             f"but now it is {self.output_dtype}." + ops_error(ErrCode.TYPE))
         is_check_dtype_ok = (self.scale.dtype == torch.float32 and 
                              self.output_dtype not in [torch.bfloat16, torch.int32])
         if self.pertoken_scale is None and is_check_dtype_ok:
