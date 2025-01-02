@@ -399,6 +399,12 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
     SetDeterministic();
 
     ASCEND_LOGD("Exec Op %s with custom handle", cur_paras->opType);
+
+    if (cur_paras->customHandler == nullptr) {
+        ASCEND_LOGW("Custom hand is nullptr! name=%s", cur_paras->opType);
+        return ACL_ERROR_NONE;
+    }
+
     try {
         ret = cur_paras->customHandler();
     } catch (std::exception &e) {
