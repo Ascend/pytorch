@@ -394,7 +394,7 @@ private:
     c10::SmallVector<OpCommandImpl, N> objs;
 }; // class OpCommandImpls
 
-void SetDeterministic(bool isOpapi = true);
+void SetDeterministic();
 void SetDeterministicOps(bool deterministicAlgorithmsStatus);
 static bool deterministicaclnn_oldstatus = false;
 
