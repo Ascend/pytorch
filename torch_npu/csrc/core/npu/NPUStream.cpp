@@ -17,6 +17,9 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
 
 namespace c10_npu {
 namespace {
@@ -448,11 +451,15 @@ bool npuSynchronizeDevice(bool check_error)
         }
     }
 
-    auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
-    if (acl_ret != ACL_ERROR_NONE) {
-        CHECK_AND_THROW_FORCE_STOP(acl_ret);
-        CHECK_AND_THROW_UCE_ERROR(acl_ret);
-    }
+  auto acl_ret = aclrtSynchronizeDevice();
+#ifndef BUILD_LIBTORCH
+  if (acl_ret == ACL_ERROR_NONE) {
+      const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+      if (C10_UNLIKELY(trigger)) {
+          trigger->traceNpuDeviceSynchronization();
+      }
+  }
+#endif
     if (check_error) {
         NPU_CHECK_ERROR(acl_ret, "AclrtSynchronizeDeviceWithTimeout");
     } else {
@@ -544,7 +551,7 @@ aclrtStream NPUStream::stream(const bool need_empty) const
         AT_ASSERT(cur_ptr, PTA_ERROR(ErrCode::PTR));
         return cur_ptr->stream;
     }
-  
+
     return stream();
 }
 

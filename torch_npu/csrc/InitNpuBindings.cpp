@@ -19,7 +19,9 @@
 #include "torch_npu/csrc/utils/AutocastMode.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
+#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
 
 PyObject* module;
 
@@ -116,16 +118,22 @@ static PyMethodDef TorchNpuMethods[] = {
     {nullptr, nullptr, 0, nullptr}
 };
 
-PyObject* THPModule_sanitizer_enable(PyObject* /* unused */)
+#ifndef BUILD_LIBTORCH
+PyObject* THPModule_sanitizer_enable(PyObject* /* unused */, PyObject* args)
 {
-    c10_npu::impl::activateNPUTrace();
+    int mode;
+    if (!PyArg_ParseTuple(args, "i", &mode)) {
+        return NULL;
+    }
+    c10_npu::impl::activateNPUTrace(mode);
     Py_RETURN_NONE;
 }
 
 static PyMethodDef TorchSanitizerMethods[] = {
-    {"_activate_npu_trace", (PyCFunction)THPModule_sanitizer_enable, METH_NOARGS, nullptr},
+    {"_activate_npu_trace", (PyCFunction)THPModule_sanitizer_enable, METH_VARARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}
 };
+#endif
 
 void THNPStream_init(PyObject *module);
 void THNPEvent_init(PyObject *module);
@@ -139,7 +147,9 @@ PyObject* initModule() {
     at::internal::lazy_init_num_threads();
 
     AddPyMethodDefs(methods, TorchNpuMethods);
+#ifndef BUILD_LIBTORCH
     AddPyMethodDefs(methods, TorchSanitizerMethods);
+#endif
     AddPyMethodDefs(methods, THNPModule_get_methods());
     AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
     AddPyMethodDefs(methods, torch_npu::distributed::python_functions());

@@ -1,6 +1,9 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
 
 namespace c10_npu {
 
@@ -14,6 +17,12 @@ NPUEventManager &NPUEventManager::GetInstance()
 
 void NPUEventManager::run(aclrtEvent event)
 {
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuEventDeletion(reinterpret_cast<uintptr_t>(event));
+    }
+#endif
     int err = aclrtDestroyEvent(event);
     if (err != ACL_ERROR_NONE) {
         CHECK_AND_THROW_FORCE_STOP(err);
@@ -73,6 +82,12 @@ void NPUEventManager::ClearEvent()
 
     while (!npu_events_.empty()) {
         aclrtEvent event = npu_events_.front();
+#ifndef BUILD_LIBTORCH
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuEventDeletion(reinterpret_cast<uintptr_t>(event));
+        }
+#endif
         auto err = aclrtDestroyEvent(event);
         if (err != ACL_ERROR_NONE) {
             CHECK_AND_THROW_FORCE_STOP(err);

@@ -19,7 +19,7 @@ __all__ = ["synchronize", "device_count", "can_device_access_peer", "set_device"
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
-           "check_uce_in_memory", "stress_detect"]
+           "check_uce_in_memory", "stress_detect", "chmod_recursive"]
 
 
 def synchronize(device=None):
@@ -389,3 +389,12 @@ def current_blas_handle():
 def check_uce_in_memory(device_id):
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_check_uce_in_memory(device_id)
+
+
+def chmod_recursive(path, mode):
+    os.chmod(path, mode)
+    for root, dirs, files in os.walk(path):
+        for dir_name in dirs:
+            chmod_recursive(os.path.join(root, dir_name), mode)
+        for file_name in files:
+            os.chmod(os.path.join(root, file_name), mode)

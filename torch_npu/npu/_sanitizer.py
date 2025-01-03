@@ -1,77 +1,112 @@
 import os
 import atexit
-import shutil
-import logging
-import traceback
-from typing import List, Dict
 
+import torch.cuda._sanitizer as csan
 import torch_npu
 import torch_npu.utils._npu_trace as npu_trace
+import torch_npu.npu._stream_check as stream_check
+import torch_npu.npu._kernel_check as kernel_check
+from torch_npu.utils.utils import _print_warn_log
 
 
-logger = logging.getLogger(__name__)
-
-
-class EventHandler:
-
-    def _handle_acl_execution(self, acl_name: str):
-        stack_trace = traceback.StackSummary.extract(
-            traceback.walk_stack(None), lookup_lines=False
-        )
-        stack_trace.reverse()
-        stack_str = "".join(stack_trace.format())
-        print(f"====== {acl_name} python stack info:\n{stack_str}")
+class SanitizerMode:
+    STREAM = 0
+    KERNEL = 1
 
 
 class NPUSanitizer:
 
     def __init__(self):
-        event_handler = EventHandler()
-        npu_trace.register_callback_for_acl_execution(
-            event_handler._handle_acl_execution,
-            "handle_acl_execution"
-        )
-        self.folder_permission = 0o750
-        self.orig_env_var = {
-            "ASCEND_LAUNCH_BLOCKING": os.getenv('ASCEND_LAUNCH_BLOCKING'),
-            "ASCEND_OPP_PATH": os.getenv('ASCEND_OPP_PATH')
-        }
+        self.event_handler = None
+        self.dispatch = None
+        self.kernel_path_manager = None
+        self.mode = SanitizerMode.STREAM
         self.opp_debug_path = os.path.join(os.getcwd(), "opp_debug_path")
         self.opp_debug_kernel_path = os.getenv('ASCEND_OPP_DEBUG_PATH')
         self.enabled = False
 
     def enable(self):
-        if not self.opp_debug_kernel_path:
-            logger.warning("ASCEND_OPP_DEBUG_PATH is not set.")
-            return
-        linked_path = os.path.join(self.opp_debug_kernel_path, "built-in/op_impl/ai_core/tbe/kernel")
-        if not os.path.exists(linked_path):
-            logger.warning("ASCEND_OPP_DEBUG_PATH is not valid kernel path.")
-            return
-        kernel_path = os.path.join(self.opp_debug_path, "built-in/op_impl/ai_core/tbe/kernel")
-        if os.path.exists(kernel_path) and os.path.islink(kernel_path):
-            os.unlink(kernel_path)
-        if os.path.exists(self.opp_debug_path):
-            shutil.rmtree(self.opp_debug_path)
-        shutil.copytree(self.orig_env_var["ASCEND_OPP_PATH"], self.opp_debug_path)
-        os.chmod(self.opp_debug_path, self.folder_permission)
-        if os.path.exists(kernel_path):
-            if os.path.islink(kernel_path):
-                os.unlink(kernel_path)
-            else:
-                shutil.rmtree(kernel_path)
-        os.symlink(linked_path, kernel_path)
-        os.environ["ASCEND_LAUNCH_BLOCKING"] = "1"
-        os.environ["ASCEND_OPP_PATH"] = self.opp_debug_path
-        if not self.enabled:
-            torch_npu._C._activate_npu_trace()
+        if self.opp_debug_kernel_path:
+            success = self.enable_kernel_check()
+            self.mode = SanitizerMode.KERNEL
+        else:
+            success = self.enable_stream_check()
+            self.mode = SanitizerMode.STREAM
+        if not self.enabled and success:
+            torch_npu._C._activate_npu_trace(self.mode)
             self.enabled = True
 
+    def enable_kernel_check(self) -> bool:
+        if not self.opp_debug_kernel_path:
+            _print_warn_log("ASCEND_OPP_DEBUG_PATH is not set! TORCH_NPU_SANITIZER takes no effect!")
+            return False
+        self.kernel_path_manager = kernel_check.KernelPathManager()
+        if not os.path.exists(self.opp_debug_path):
+            return False
+        self.event_handler = kernel_check.EventHandler()
+        npu_trace.register_callback_for_acl_start_execution(
+            self.event_handler._handle_acl_start_execution,
+            "handle_acl_start_execution"
+        )
+        npu_trace.register_callback_for_acl_finish_execution(
+            self.event_handler._handle_acl_finish_execution,
+            "handle_acl_finish_execution"
+        )
+        return True
+
+    def enable_stream_check(self) -> bool:
+        self.event_handler = csan.EventHandler()
+        self.dispatch = stream_check.NPUSanitizerDispatchMode(self.event_handler)
+        self.dispatch.__enter__()
+        npu_trace.register_callback_for_npu_event_creation(
+            self.event_handler._handle_event_creation,
+            "handle_event_creation"
+        )
+        npu_trace.register_callback_for_npu_event_deletion(
+            self.event_handler._handle_event_deletion,
+            "handle_event_deletion"
+        )
+        npu_trace.register_callback_for_npu_event_record(
+            self.event_handler._handle_event_record,
+            "handle_event_record"
+        )
+        npu_trace.register_callback_for_npu_event_wait(
+            self.event_handler._handle_event_wait,
+            "handle_event_wait"
+        )
+        npu_trace.register_callback_for_npu_memory_allocation(
+            self.event_handler._handle_memory_allocation,
+            "handle_memory_allocation"
+        )
+        npu_trace.register_callback_for_npu_memory_deallocation(
+            self.event_handler._handle_memory_deallocation,
+            "handle_memory_deallocation"
+        )
+        npu_trace.register_callback_for_npu_stream_creation(
+            self.event_handler._handle_stream_creation,
+            "handle_stream_creation"
+        )
+        npu_trace.register_callback_for_npu_device_synchronization(
+            self.event_handler._handle_device_synchronization,
+            "handle_device_synchronization"
+        )
+        npu_trace.register_callback_for_npu_stream_synchronization(
+            self.event_handler._handle_stream_synchronization,
+            "handle_stream_synchronization"
+        )
+        npu_trace.register_callback_for_npu_event_synchronization(
+            self.event_handler._handle_event_synchronization,
+            "handle_event_synchronization"
+        )
+        return True
+
+    def __del__(self):
+        if self.dispatch:
+            self.dispatch.__exit__(None, None, None)
+
     def clear_debug_env(self):
-        if self.enabled:
-            kernel_path = os.path.join(self.opp_debug_path, "built-in/op_impl/ai_core/tbe/kernel")
-            os.unlink(kernel_path)
-            shutil.rmtree(self.opp_debug_path)
+        if self.kernel_path_manager:
+            self.kernel_path_manager.clear_debug_env()
 
 
 def enable_npu_sanitizer():

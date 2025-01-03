@@ -5,6 +5,10 @@
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
+
 
 namespace c10_npu {
 
@@ -100,11 +104,17 @@ float NPUEvent::elapsed_time(const NPUEvent& other) const
     if (ret != SUCCESS) {
         ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
     }
-
-    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(event_));
+    NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
     ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event_);
     NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(other.event_));
     ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, other.event=%p", other.event_);
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(event_));
+        trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(other.event_));
+    }
+#endif
     // raise error if either event is recorded but not yet completed
     NPU_CHECK_ERROR_WITHOUT_UCE(aclrtEventElapsedTime(&time_ms, event_, other.event_));
     return time_ms;
@@ -117,8 +127,14 @@ void NPUEvent::synchronize() const
         if (ret != SUCCESS) {
             ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
         }
-        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(event_));
+        NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
         ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event_);
+#ifndef BUILD_LIBTORCH
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(event_));
+        }
+#endif
     }
 }
 
@@ -126,8 +142,14 @@ void NPUEvent::createEvent(c10::DeviceIndex device_index)
 {
     device_index_ = device_index;
     NPUGuard guard(device_index_);
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtCreateEventWithFlag(&event_, flags_));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(&event_, flags_));
     ASCEND_LOGI("Event: aclrtCreateEventWithFlag is successfully executed, event=%p", event_);
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuEventCreation(reinterpret_cast<uintptr_t>(event_));
+    }
+#endif
     is_created_ = true;
 }
 

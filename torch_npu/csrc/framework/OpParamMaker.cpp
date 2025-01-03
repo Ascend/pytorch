@@ -458,6 +458,7 @@ int MemcopyAsyncFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 int RecordEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
+
     aclError ret = aclrtRecordEvent(cur_paras->event, stream);
     if (ret != ACL_ERROR_NONE) {
         auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);

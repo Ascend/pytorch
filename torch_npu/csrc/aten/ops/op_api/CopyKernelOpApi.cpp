@@ -23,6 +23,9 @@
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
 
 
 namespace at_npu {
@@ -59,6 +62,14 @@ void copy_between_host_and_device_opapi(at::Tensor& dst, const at::Tensor& src, 
             } else {
                 AT_ERROR("ACL stream synchronize failed, error code:", error);
             }
+        } else {
+#ifndef BUILD_LIBTORCH
+            const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+            if (C10_UNLIKELY(trigger)) {
+                trigger->traceNpuStreamSynchronization(
+                    reinterpret_cast<uintptr_t>(stream.stream(false)));
+            }
+#endif
         }
     }
 }

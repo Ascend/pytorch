@@ -154,7 +154,7 @@ void OpCommand::Run() {
     } else {
 #ifndef BUILD_LIBTORCH
         if (C10_UNLIKELY(trigger)) {
-            std::cout << "====== acl operator name: " << op_name << std::endl;
+            trigger->traceNpuAclStartExecution(op_name);
         }
 #endif
         aclCmd->Run(sync, sync_index, outputTensor);
@@ -163,7 +163,7 @@ void OpCommand::Run() {
         }
 #ifndef BUILD_LIBTORCH
         if (C10_UNLIKELY(trigger)) {
-            (*trigger)->traceNpuAclExecution(op_name);
+            trigger->traceNpuAclFinishExecution(op_name);
         }
 #endif
         aclCmd->releaseSource();
@@ -198,7 +198,7 @@ void OpCommand::RunOpApi(const string &op_name, PROC_FUNC func, bool sync)
     } else {
 #ifndef BUILD_LIBTORCH
         if (C10_UNLIKELY(trigger)) {
-            std::cout << "====== acl operator name: " << op_name << std::endl;
+            trigger->traceNpuAclStartExecution(op_name);
         }
 #endif
         OpCommandImpl::RunOpApi(op_name, func);
@@ -207,7 +207,7 @@ void OpCommand::RunOpApi(const string &op_name, PROC_FUNC func, bool sync)
         }
 #ifndef BUILD_LIBTORCH
         if (C10_UNLIKELY(trigger)) {
-            (*trigger)->traceNpuAclExecution(op_name);
+            trigger->traceNpuAclFinishExecution(op_name);
         }
 #endif
     }

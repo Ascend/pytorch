@@ -5,6 +5,9 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
 namespace c10_npu {
 namespace queue {
 std::atomic<uint64_t> QueueParas::g_correlation_id{0};
@@ -136,6 +139,15 @@ void EventTask::LaunchRecordTask(c10_npu::NPUStream npuStream) {
 aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
   EventTask recordTask(event);
   recordTask.LaunchRecordTask(npuStream);
+#ifndef BUILD_LIBTORCH
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+  if (C10_UNLIKELY(trigger)) {
+      trigger->traceNpuEventRecord(
+          reinterpret_cast<uintptr_t>(event),
+          reinterpret_cast<uintptr_t>(npuStream.stream(false))
+      );
+  }
+#endif
   return ACL_ERROR_NONE;
 }
 
@@ -163,6 +175,14 @@ void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream) {
 aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
   EventTask waitTask(event);
   waitTask.LaunchWaitTask(npuStream);
+#ifndef BUILD_LIBTORCH
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+  if (C10_UNLIKELY(trigger)) {
+      trigger->traceNpuEventWait(
+          reinterpret_cast<uintptr_t>(event),
+          reinterpret_cast<uintptr_t>(npuStream.stream(false)));
+  }
+#endif
   return ACL_ERROR_NONE;
 }
 
@@ -187,6 +207,12 @@ void EventTask::LaunchLazyDestroyTask(c10::DeviceIndex device_index) {
 
 aclError LaunchLazyDestroyEventTask(aclrtEvent event, c10::DeviceIndex device_index) {
   EventTask lazyDestroyTask(event);
+#ifndef BUILD_LIBTORCH
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+  if (C10_UNLIKELY(trigger)) {
+      trigger->traceNpuEventDeletion(reinterpret_cast<uintptr_t>(event));
+  }
+#endif
   lazyDestroyTask.LaunchLazyDestroyTask(device_index);
   return ACL_ERROR_NONE;
 }
