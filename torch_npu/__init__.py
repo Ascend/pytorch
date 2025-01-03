@@ -124,10 +124,6 @@ def _apply_patches(monkey_patches):
             setattr(dest_module, attr, getattr(patch, attr))
 
 
-def _apply_distributed_patches():
-    _apply_patches([["distributed", torch_npu.distributed]])
-
-
 def _apply_sharded_grad_scaler_patch():
     torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler = _ShardedGradScaler
 
@@ -157,6 +153,8 @@ def _apply_distributed_methods_patch():
     torch.distributed.distributed_c10d.gather = torch_npu.distributed.distributed_c10d._gather
     torch.distributed.gather_object = torch_npu.distributed.distributed_c10d._gather_object
     torch.distributed.distributed_c10d.gather_object = torch_npu.distributed.distributed_c10d._gather_object
+    torch.distributed.is_hccl_available = torch_npu.distributed.is_hccl_available
+    torch.distributed.reinit_process_group = torch_npu.distributed.reinit_process_group
 
 
 torch.utils.rename_privateuse1_backend("npu")
@@ -168,7 +166,6 @@ torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module
 
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
-_apply_distributed_patches()
 _apply_class_patches()
 _asd_patch()
 _except_handler.patch_excepthook()

@@ -9,7 +9,7 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size,\
     _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend,\
     get_backend, GatherOptions, _update_default_pg, _world, _unregister_all_process_groups, _pg_map,\
-    ProcessGroup, default_pg_timeout, _unregister_process_group
+    ProcessGroup, default_pg_timeout, ReduceScatterOptions, _unregister_process_group
 
 __all__ = ["is_hccl_available", "reinit_process_group"]
 
@@ -226,6 +226,57 @@ def reinit_process_group(group=None, rebuild_link=True):
             group._get_backend(torch.device('npu'))._delete_tcpstore_key()
             group._get_backend(torch.device('npu')).abort_hccl_comm("reinit")
         return group
+
+
+
+def _reduce_scatter_tensor_uneven(output, input, input_split_sizes=None, op=dist.ReduceOp.SUM, group=None, async_op=False):
+    if _rank_not_in_group(group):
+        _warn_not_in_group("reduce_scatter_tensor_uneven")
+        return None
+
+    if output.device.type != 'npu' or input.device.type != 'npu': 
+        warnings.warn("Support for Tensors is limited to those of type npu") 
+        return None
+
+    if group is None or group is GroupMember.WORLD:
+        group = _get_default_group()
+    group = group._get_backend(torch.device("npu"))
+
+    opts = ReduceScatterOptions()
+    opts.reduceOp = op
+    input_split_sizes = [] if input_split_sizes is None else input_split_sizes
+    
+    work = group.reduce_scatter_tensor_uneven(output, input, input_split_sizes, opts)
+
+    if async_op:
+        return work
+    else:
+        work.wait()
+        return None
+
+
+def _all_gather_into_tensor_uneven(output, input, output_split_sizes=None, group=None, async_op=False):
+    if _rank_not_in_group(group):
+        _warn_not_in_group("all_gather_into_tensor_uneven")
+        return None
+    
+    if output.device.type != 'npu' or input.device.type != 'npu':
+        warnings.warn("Support for Tensors is limited to those of type npu") 
+        return None
+    
+    if group is None or group is GroupMember.WORLD:
+        group = _get_default_group()
+    group = group._get_backend(torch.device("npu"))
+
+    output_split_sizes = [] if output_split_sizes is None else output_split_sizes
+
+    work = group.all_gather_into_tensor_uneven(output, input, output_split_sizes)
+
+    if async_op:
+        return work
+    else:
+        work.wait()
+        return None
 
 
 def _destructor_process_group():
