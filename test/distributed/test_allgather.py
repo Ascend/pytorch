@@ -8,6 +8,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch_npu
 
+import torch_npu.distributed
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
@@ -82,6 +83,8 @@ class HcclAllGatherTestBase(TestCase):
         elif op == dist._all_gather_base:
             return torch.cat((inputs.cpu(), inputs.cpu()))
         elif op == dist.all_gather_into_tensor:
+            return torch.cat((inputs.cpu(), inputs.cpu()))
+        elif op == torch_npu.distributed.all_gather_into_tensor_uneven:
             return torch.cat((inputs.cpu(), inputs.cpu()))
         else:
             raise ValueError("Unsupported op `{}`" % (str(op)))

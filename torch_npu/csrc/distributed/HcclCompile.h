@@ -12,6 +12,8 @@ namespace c10d_npu {
 
 REGISTER_LIBRARY(libhccl)
 LOAD_FUNCTION(HcclAlltoAllV)
+LOAD_FUNCTION(HcclAllGatherV)
+LOAD_FUNCTION(HcclReduceScatterV)
 LOAD_FUNCTION(HcclReduce)
 LOAD_FUNCTION(HcclGetCommAsyncError)
 LOAD_FUNCTION(HcclScatter)
@@ -21,6 +23,7 @@ LOAD_FUNCTION(HcclCommInitRootInfoConfig)
 LOAD_FUNCTION(HcclGetCommConfigCapability)
 LOAD_FUNCTION(HcclCommInitClusterInfoConfig)
 LOAD_FUNCTION(HcclCreateSubCommConfig)
+
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
@@ -37,6 +40,40 @@ extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, con
   auto ret = func(sendBuf, sendCounts, sdispls, sendType,
       recvBuf, recvCounts, rdispls, recvType, comm, stream);
   return ret;
+}
+
+extern HcclResult hcclAllGatherV(const void *sendBuf, uint64_t sendCount,
+    const void *recvBuf, const void *recvCounts, const void *rdispls,
+    HcclDataType dataType, HcclComm comm, aclrtStream stream)
+{
+    typedef HcclResult(*HcclAllGatherVFunc)(
+        const void *, uint64_t,
+        const void *, const void *, const void *,
+        HcclDataType, HcclComm, aclrtStream);
+    static HcclAllGatherVFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclAllGatherVFunc)GET_FUNC(HcclAllGatherV);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclAllGatherV", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(sendBuf, sendCount, recvBuf, recvCounts, rdispls, dataType, comm, stream);
+    return ret;
+}
+
+extern HcclResult hcclReduceScatterV(const void *sendBuf, const void *sendCounts, const void *sdispls,
+    const void *recvBuf, uint64_t recvCount,
+    HcclDataType dataType, HcclReduceOp op, HcclComm comm, aclrtStream stream)
+{
+    typedef HcclResult(*HcclReduceScatterVFunc)(
+        const void *, const void *, const void *,
+        const void *, uint64_t,
+        HcclDataType, HcclReduceOp, HcclComm, aclrtStream);
+    static HcclReduceScatterVFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclReduceScatterVFunc)GET_FUNC(HcclReduceScatterV);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclReduceScatterV", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(sendBuf, sendCounts, sdispls, recvBuf, recvCount, dataType, op, comm, stream);
+    return ret;
 }
 
 extern HcclResult hcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType sendType,

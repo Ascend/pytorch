@@ -450,6 +450,18 @@ public:
 
     at::Tensor byte_alignment(at::Tensor& tensors);
 
+    c10::intrusive_ptr<c10d::Work> _reduce_scatter_base_uneven(
+        at::Tensor& outputTensor,
+        at::Tensor& inputTensor,
+        std::vector<int64_t>& inputSplitSizes,
+        const c10d::ReduceScatterOptions& opts);
+
+    c10::intrusive_ptr<c10d::Work> _allgather_base_uneven(
+        at::Tensor& outputTensor,
+        at::Tensor& inputTensor,
+        std::vector<int64_t>& outputSplitSizes,
+        const c10d::AllgatherOptions& opts);
+
     c10::intrusive_ptr<c10d::Work> allgather(
         std::vector<std::vector<at::Tensor>>& outputTensors,
         std::vector<at::Tensor>& inputTensors,

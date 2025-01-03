@@ -148,6 +148,14 @@ extern HcclResult HcclAlltoAllV(const void *sendBuf, const void *sendCounts, con
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls, 
     HcclDataType recvType, HcclComm comm, aclrtStream stream);
 
+extern HcclResult HcclAllGatherV(const void *sendBuf, uint64_t sendCount,
+    const void *recvBuf, const void *recvCounts, const void *rdispls,
+    HcclDataType dataType, HcclComm comm, aclrtStream stream);
+
+extern HcclResult HcclReduceScatterV(const void *sendBuf, const void *sendCounts, const void *sdispls,
+    const void *recvBuf, uint64_t recvCount,
+    HcclDataType dataType, HcclReduceOp op, HcclComm comm, aclrtStream stream);
+
 extern HcclResult HcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType sendType,
     HcclReduceOp op, uint32_t root, HcclComm comm, aclrtStream stream);
 
