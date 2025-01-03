@@ -216,6 +216,29 @@ std::vector<std::tuple<std::vector<int64_t>, std::vector<int64_t>, std::vector<i
     return result;
 }
 
+inline int64_t safe_multiply(const std::vector<int64_t>& dims)
+{
+    int64_t product = 1;
+    for (auto dim : dims) {
+        if (dim == 0) {
+            return 0;
+        }
+        TORCH_CHECK(product <= INT64_MAX / dim, "Integer overflow in multiply.", OPS_ERROR(ErrCode::PARAM))
+        product *= dim;
+    }
+    return product;
+}
+
+inline int64_t safe_sum(const std::initializer_list<int64_t>& values)
+{
+    int64_t sum = 0;
+    for (auto val : values) {
+        TORCH_CHECK(sum <= INT64_MAX - val, "Integer overflow in sum.", OPS_ERROR(ErrCode::PARAM));
+        sum += val;
+    }
+    return sum;
+}
+
 int64_t sdpa_flop_count(const std::vector<int64_t> query_shape, const std::vector<int64_t> key_shape, const std::vector<int64_t> value_shape)
 {
     int64_t b, h, s_q, d_q;
@@ -242,13 +265,10 @@ int64_t sdpa_flop_count(const std::vector<int64_t> query_shape, const std::vecto
     TORCH_CHECK(s_k == _s3, "the dim of 2 is not equal between k and v");
     TORCH_CHECK(d_q == _d2, "the dim of 3 is not equal between q and k");
 
-    int64_t total_flops = 0;
-
-    // q: [b, h, s_q, d_q] @ k: [b, h, d_q, s_k] -> scores: [b, h, s_q, s_k]
-    total_flops += b * h * s_q * d_q * s_k * 2;
-
-    // scores: [b, h, s_q, s_k] @ v: [b, h, s_k, d_v] -> out: [b, h, s_q, d_v]
-    total_flops += b * h * s_q * s_k * d_v * 2;
+    int64_t total_flops = safe_sum({
+        safe_multiply({b, h, s_q, d_q, s_k, 2}), // q: [b, h, s_q, d_q] @ k: [b, h, d_q, s_k] -> scores: [b, h, s_q, s_k]
+        safe_multiply({b, h, s_q, s_k, d_v, 2})  // scores: [b, h, s_q, s_k] @ v: [b, h, s_k, d_v] -> out: [b, h, s_q, d_v]
+    });
 
     return total_flops;
 }
@@ -287,19 +307,12 @@ int64_t sdpa_backward_flop_count(const std::vector<int64_t> query_shape, const s
     TORCH_CHECK(d_q == _d2, "the dim of 3 is not equal between q and k");
     TORCH_CHECK(d_v == d_4, "the dim of 3 is not equal between v and grad");
 
-    int64_t total_flops = 0;
-
-    // gradOut: [b, h, s_q, d_v] @ v: [b, h, d_v, s_k] -> gradScores: [b, h, s_q, s_k]
-    total_flops += b * h * s_q * d_v * s_k * 2;
-
-    // scores: [b, h, s_k, s_q] @ gradOut: [b, h, s_q, d_v] -> gradV: [b, h, s_k, d_v]
-    total_flops += b * h * s_k * s_q * d_v * 2;
-
-    // gradScores: [b, h, s_q, s_k] @ k: [b, h, s_k, d_q] -> gradQ: [b, h, s_q, d_q]
-    total_flops += b * h * s_q * s_k * d_q * 2;
-
-    // q: [b, h, d_q, s_q] @ gradScores: [b, h, s_q, s_k] -> gradK: [b, h, d_q, s_k]
-    total_flops += b * h * d_q * s_q * s_k * 2;
+    int64_t total_flops = safe_sum({
+        safe_multiply({b, h, s_q, d_v, s_k, 2}), // gradOut: [b, h, s_q, d_v] @ v: [b, h, d_v, s_k] -> gradScores: [b, h, s_q, s_k]
+        safe_multiply({b, h, s_k, s_q, d_v, 2}), // scores: [b, h, s_k, s_q] @ gradOut: [b, h, s_q, d_v] -> gradV: [b, h, s_k, d_v]
+        safe_multiply({b, h, s_q, s_k, d_q, 2}), // gradScores: [b, h, s_q, s_k] @ k: [b, h, s_k, d_q] -> gradQ: [b, h, s_q, d_q]
+        safe_multiply({b, h, d_q, s_q, s_k, 2})  // q: [b, h, d_q, s_q] @ gradScores: [b, h, s_q, s_k] -> gradK: [b, h, d_q, s_k]
+    });
 
     return total_flops;
 }
