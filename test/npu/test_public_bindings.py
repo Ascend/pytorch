@@ -528,6 +528,9 @@ class TestPublicBindings(TestCase):
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_allreduce",
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_alltoall",
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_broadcast",
+            "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.experimental.hcom_reducescatter",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.experimental.patch_for_hcom_allreduce",
+            "torch_npu.dynamo.torchair.ge_concrete_graph.ge_converter.experimental.hcom_allgather",
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.custom.npu_selu_backward",
             "torch_npu.utils.collect_hccl_info",
         }
