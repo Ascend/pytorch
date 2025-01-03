@@ -267,6 +267,36 @@ void checkHcclCommConfigValid(const HcclCommConfig* config)
     }
 }
 
+void fill_equal_split_sizes_when_empty(std::vector<int64_t>& split_sizes, at::Tensor tensor, int group_size)
+{
+    if (!split_sizes.empty()) {
+        return;
+    }
+    TORCH_CHECK(group_size > 0, "Invalid group size within current process group", group_size, DIST_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(
+        tensor.size(0) % group_size == 0,
+        "Tensor's dim 0 does not divide equally across group size",
+        DIST_ERROR(ErrCode::PARAM));
+    int64_t equal_split_size = static_cast<int64_t>(tensor.size(0) / group_size);
+    for (int i = 0; i < group_size; i++) {
+        split_sizes.push_back(equal_split_size);
+    }
+}
+
+void check_split_sizes(const std::vector<int64_t>& split_sizes, const at::Tensor& tensor, int group_size)
+{
+    if (split_sizes.empty()) {
+        TORCH_CHECK(tensor.size(0) % group_size == 0, "Tensor's dim 0 does not divide equally across group size",
+                    DIST_ERROR(ErrCode::PARAM));
+    } else {
+        TORCH_CHECK(
+            split_sizes.size() == static_cast<size_t>(group_size), "Number of tensor splits not equal to group size",
+            DIST_ERROR(ErrCode::TYPE));
+        const auto sum = c10::sum_integers(split_sizes);
+        TORCH_CHECK(sum == tensor.size(0), "Split sizes dosen't match total dim 0 size", DIST_ERROR(ErrCode::TYPE));
+    }
+}
+
 void checkAndMakePath(const char* path, std::string errormessage)
 {
     try {
@@ -2876,6 +2906,163 @@ at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors)
     return inter_tensors;
 }
 
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
+    at::Tensor& outputTensor,
+    at::Tensor& inputTensor,
+    std::vector<int64_t>& inputSplitSizes,
+    const c10d::ReduceScatterOptions& opts)
+{
+    check_npu_single_tensor(outputTensor);
+    check_npu_single_tensor(inputTensor);
+    TORCH_CHECK(inputTensor.dtype() == outputTensor.dtype(), "output tensor must have the same type as input tensor", DIST_ERROR(ErrCode::PARAM));
+    std::vector<at::Tensor> inputTensors = {inputTensor};
+    std::vector<at::Tensor> outputTensors = {outputTensor};
+    check_npu_tensors_different_devices(inputTensors);
+    check_npu_tensors_different_devices(outputTensors);
+
+    fill_equal_split_sizes_when_empty(inputSplitSizes, inputTensor, size_);
+    check_split_sizes(inputSplitSizes, inputTensor, size_);
+
+    int inputSize = static_cast<int>(inputSplitSizes.size());
+    int inputRowSize = static_cast<int>(inputTensor.size(0) ? inputTensor.numel() / inputTensor.size(0) : 1);
+    std::vector<uint64_t> inputCounts;
+    std::vector<uint64_t> inputSpl;
+    inputSpl.push_back(0);
+    for (int i = 0; i < inputSize; i++) {
+        inputCounts.push_back(static_cast<uint64_t>(inputSplitSizes[i] * inputRowSize));
+        if (i > 0) {
+            inputSpl.push_back(inputSpl[i - 1] + inputCounts[i - 1]);
+        }
+    }
+
+    auto inputTensors_ = cast_to_origin_format(inputTensors);
+    auto outputTensors_ = cast_to_origin_format(outputTensors);
+
+    return collective(
+        inputTensors_,
+        outputTensors_,
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+            RECORD_FUNCTION("HcclReduceScatterV", std::vector<c10::IValue>({input}));
+            auto inputDataPtr = input.data_ptr();
+            auto outputDataPtr = output.data_ptr();
+            uint64_t outputCount = output.numel();
+            auto numel = getNumelForHCCL(output);
+            auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
+            auto hcclType = getHcclDataType(input.scalar_type());
+            auto hccl_call = [
+                inputDataPtr,
+                inputCounts,
+                inputSpl,
+                outputDataPtr,
+                outputCount,
+                hcclType,
+                hcclReduceOp,
+                numel,
+                comm,
+                stream,
+                is_dispatched]() -> int {
+                    torch_npu::profiler::MstxRange range(
+                        getMstxHcclMsg("HcclReduceScatterV", numel, hcclType, comm),
+                        stream.stream(false));
+                    auto hccl_result = hcclReduceScatterV(
+                        inputDataPtr,
+                        inputCounts.data(),
+                        inputSpl.data(),
+                        outputDataPtr,
+                        outputCount,
+                        hcclType,
+                        hcclReduceOp,
+                        comm,
+                        stream.stream(false));
+                    *is_dispatched = true;
+                    return hccl_result;
+            };
+            at_npu::native::OpCommand::RunOpApi("HcclReduceScatterV", hccl_call);
+
+            return HCCL_SUCCESS;
+        },
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        c10d::OpType::REDUCE_SCATTER);
+}
+
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
+    at::Tensor& outputTensor,
+    at::Tensor& inputTensor,
+    std::vector<int64_t>& outputSplitSizes,
+    const c10d::AllgatherOptions& opts)
+{
+    check_npu_single_tensor(outputTensor);
+    check_npu_single_tensor(inputTensor);
+    TORCH_CHECK(inputTensor.dtype() == outputTensor.dtype(), "output tensor must have the same type as input tensor", DIST_ERROR(ErrCode::PARAM));
+    std::vector<at::Tensor> inputTensors = {inputTensor};
+    std::vector<at::Tensor> outputTensors = {outputTensor};
+    check_npu_tensors_different_devices(inputTensors);
+    check_npu_tensors_different_devices(outputTensors);
+
+    fill_equal_split_sizes_when_empty(outputSplitSizes, outputTensor, size_);
+    check_split_sizes(outputSplitSizes, outputTensor, size_);
+
+    int outputSize = static_cast<int>(outputSplitSizes.size());
+    int outputRowSize = static_cast<int>(outputTensor.size(0) ? outputTensor.numel() / outputTensor.size(0) : 1);
+    std::vector<uint64_t> outputCounts;
+    std::vector<uint64_t> outputSpl;
+    outputSpl.push_back(0);
+    for (int i = 0; i < outputSize; i++) {
+        outputCounts.push_back(static_cast<uint64_t>(outputSplitSizes[i] * outputRowSize));
+        if (i > 0) {
+            outputSpl.push_back(outputSpl[i - 1] + outputCounts[i - 1]);
+        }
+    }
+
+    auto inputTensors_ = cast_to_origin_format(inputTensors);
+    auto outputTensors_ = cast_to_origin_format(outputTensors);
+
+    return collective(
+        inputTensors_,
+        outputTensors_,
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+            RECORD_FUNCTION("HcclAllGatherV", std::vector<c10::IValue>({input}));
+            auto inputDataPtr = input.data_ptr();
+            uint64_t inputCount = input.numel();
+            auto outputDataPtr = output.data_ptr();
+            auto numel = getNumelForHCCL(input);
+            auto hcclType = getHcclDataType(input.scalar_type());
+            auto hccl_call = [
+                inputDataPtr,
+                inputCount,
+                outputDataPtr,
+                outputCounts,
+                outputSpl,
+                hcclType,
+                numel,
+                comm,
+                stream,
+                is_dispatched]() -> int {
+                    torch_npu::profiler::MstxRange range(
+                        getMstxHcclMsg("HcclAllGatherV", numel, hcclType, comm),
+                        stream.stream(false));
+                    auto hccl_result = hcclAllGatherV(
+                        inputDataPtr,
+                        inputCount,
+                        outputDataPtr,
+                        outputCounts.data(),
+                        outputSpl.data(),
+                        hcclType,
+                        comm,
+                        stream.stream(false));
+                    *is_dispatched = true;
+                    return hccl_result;
+            };
+            at_npu::native::OpCommand::RunOpApi("HcclAllGatherV", hccl_call);
+
+            return HCCL_SUCCESS;
+        },
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        c10d::OpType::ALLGATHER);
+}
+
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
     std::vector<std::vector<at::Tensor>>& outputTensors,
     std::vector<at::Tensor>& inputTensors,
@@ -3554,20 +3741,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recvAnysource(std::vector<at::Tensor>& /* unused */, int /* unused */)
 {
     TORCH_CHECK(false, "ProcessGroupHCCL does not support recv", DIST_ERROR(ErrCode::NOT_SUPPORT));
-}
-
-void check_split_sizes(const std::vector<int64_t>& split_sizes, const at::Tensor& tensor, int group_size)
-{
-    if (split_sizes.empty()) {
-        TORCH_CHECK(tensor.size(0) % group_size == 0, "Tensor's dim 0 does not divide equally across group size",
-                    DIST_ERROR(ErrCode::PARAM));
-    } else {
-        TORCH_CHECK(
-            split_sizes.size() == static_cast<size_t>(group_size), "Number of tensor splits not equal to group size",
-            DIST_ERROR(ErrCode::TYPE));
-        const auto sum = c10::sum_integers(split_sizes);
-        TORCH_CHECK(sum == tensor.size(0), "Split sizes dosen't match total dim 0 size", DIST_ERROR(ErrCode::TYPE));
-    }
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(

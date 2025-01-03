@@ -413,6 +413,20 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
                -> c10::intrusive_ptr<c10d::Work> {
                return pg.batch_isend_irecv(op_type, tensors, remote_rank_list);
            },
+           py::call_guard<py::gil_scoped_release>())
+      .def("reduce_scatter_tensor_uneven",
+           &::c10d_npu::ProcessGroupHCCL::_reduce_scatter_base_uneven,
+           py::arg("output"),
+           py::arg("input"),
+           py::arg("input_split_sizes") = std::vector<int64_t>{},
+           py::arg("opts") = ::c10d::ReduceScatterOptions(),
+           py::call_guard<py::gil_scoped_release>())
+      .def("all_gather_into_tensor_uneven",
+           &::c10d_npu::ProcessGroupHCCL::_allgather_base_uneven,
+           py::arg("output"),
+           py::arg("input"),
+           py::arg("output_split_sizes") = std::vector<int64_t>{},
+           py::arg("opts") = ::c10d::AllgatherOptions(),
            py::call_guard<py::gil_scoped_release>());
 
   intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL::Options>(
