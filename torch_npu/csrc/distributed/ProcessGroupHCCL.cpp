@@ -1072,6 +1072,13 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
         if (access(nslb_path, W_OK) != 0 && mkdir(nslb_path, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
             throw std::exception();
         }
+        if (access(out_file_path.c_str(), W_OK) != 0) {
+            int fd = open(out_file_path.c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP);
+            if (fd == -1) {
+                throw std::exception();
+            }
+            close(fd);
+        }
         outfile.open(out_file_path, std::ios::app);
     } catch (std::exception& e) {
         throw std::runtime_error("Open shared directory failed. Please check whether input path is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
@@ -1537,8 +1544,13 @@ void nslb_record_end()
         if (access(nslb_path, W_OK) != 0 && mkdir(nslb_path, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
             throw std::exception();
         }
-        endfile.open(end_file_path.c_str(), std::ios::out);
-        endfile.close();
+        if (access(end_file_path.c_str(), W_OK) != 0) {
+            int fd = open(end_file_path.c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP);
+            if (fd == -1) {
+                throw std::exception();
+            }
+            close(fd);
+        }
     } catch (std::exception& e) {
         throw std::runtime_error("NSLB set end failed." + DIST_ERROR(ErrCode::NOT_FOUND));
     }
