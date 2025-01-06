@@ -1145,6 +1145,7 @@ PyObject* THNPModule_npu_set_call_state(PyObject* _unused, PyObject* arg)
         TORCH_CHECK(false, "invalid value of call_state, expected one of `forward`, `backward`", PTA_ERROR(ErrCode::PARAM));
     }
     c10_npu::model_state().set_call_state(mode);
+    ASCEND_LOGI("NPU set call state success, state is %s.", state.c_str());
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
@@ -1164,17 +1165,24 @@ PyObject* THNPModule_npu_set_module_train_state(PyObject* _unused, PyObject* arg
         TORCH_CHECK(false, "invalid value of train_state, expected one of `train`, `infer`", PTA_ERROR(ErrCode::PARAM));
     }
     c10_npu::model_state().set_model_mode(mode);
+    ASCEND_LOGI("NPU set train state success, state is %s.", state.c_str());
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_support_silentClientV2(PyObject* self, PyObject* noargs)
+PyObject* THNPModule_npu_get_silent_check_version(PyObject* self, PyObject* noargs)
 {
     HANDLE_TH_ERRORS
-    if (c10_npu::opapi::IsExistAclnnSilentCheck()) {
-        Py_RETURN_TRUE;
+    if (c10_npu::opapi::IsExistAclnnSilentCheckV2()) {
+        // silent check v3
+        return PyLong_FromLong(3);
     } else {
-        Py_RETURN_FALSE;
+        if (c10_npu::opapi::IsExistAclnnSilentCheck()) {
+            // silent check v2
+            return PyLong_FromLong(2);
+        }
+        // silent check v1
+        return PyLong_FromLong(1);
     }
     END_HANDLE_TH_ERRORS
 }
@@ -1249,7 +1257,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_mark", (PyCFunction)THNPModule_msTxMark, METH_VARARGS, nullptr},
     {"_npu_set_call_state", (PyCFunction)THNPModule_npu_set_call_state, METH_O, nullptr},
     {"_npu_set_module_train_state", (PyCFunction)THNPModule_npu_set_module_train_state, METH_O, nullptr},
-    {"_npu_support_silentClientV2", (PyCFunction)THNPModule_npu_support_silentClientV2, METH_NOARGS, nullptr},
+    {"_get_silent_check_version", (PyCFunction)THNPModule_npu_get_silent_check_version, METH_NOARGS, nullptr},
     {"_npu_set_threads_affinity", (PyCFunction)THNPModule_npu_set_thread_affinity, METH_NOARGS, nullptr},
     {"_npu_reset_threads_affinity", (PyCFunction)THNPModule_npu_reset_thread_affinity, METH_NOARGS, nullptr},
     {nullptr}};

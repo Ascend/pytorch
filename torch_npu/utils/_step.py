@@ -11,7 +11,7 @@ from torch.nn import Module
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
-from torch_npu.asd.asd import _silent_fault_detector_v2
+from torch_npu.asd.asd import _silent_fault_detector_v2, _silent_fault_detector_v3
 
 
 original_call = Module.__call__
@@ -53,7 +53,10 @@ def input_hook(idx, asd_flag):
 
         if idx != "":
             IS_IN_BACKWARD = IS_IN_BACKWARD & 1  # 011 & 001 = 001
-            _silent_fault_detector_v2.silent_fault_check(idx, asd_flag, grad)
+            if torch_npu._C._get_silent_check_version() == 3:
+                _silent_fault_detector_v3.silent_fault_check(idx, asd_flag, grad)
+            else:
+                _silent_fault_detector_v2.silent_fault_check(idx, asd_flag, grad)
         else:
             IS_IN_BACKWARD = IS_IN_BACKWARD & 2  # 011 & 010 = 010
 
@@ -360,10 +363,12 @@ def add_perf_dump_patch():
                          "2 as `ASD opened, print error logs and raise exception`, "
                          "3 as `ASD opened, print debug logs and raise exception`" + pta_error(ErrCode.VALUE))
     asd_enable = int(asd_value)
-
-    if asd_enable and not torch_npu._C._npu_support_silentClientV2():        
-        warnings.warn(f"Warning: CANN version lower than 8.0.RC3 and currently does not support silent check 2.0 version. It will switch to 1.0 version.")
-        asd_enable = 0
+    if asd_enable:
+        if torch_npu._C._get_silent_check_version() == 1:
+            warnings.warn(f"Warning: CANN version lower than 8.0.RC3 and currently does not support silent check 2.0 version or later. It will switch to 1.0 version.")
+            asd_enable = 0
+        elif torch_npu._C._get_silent_check_version() == 2:
+            warnings.warn(f"Warning: CANN version lower than 8.0.0 and currently does not support silent check 3.0 version. It will switch to 2.0 version. The asd_detect is {asd_enable}")
 
     if perf_dump_enable or asd_enable:
         Module.__call__ = _custom_call
