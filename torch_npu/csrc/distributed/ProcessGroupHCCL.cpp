@@ -28,6 +28,7 @@
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/interface/OpInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/distributed/HcclCompile.h"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
@@ -1991,17 +1992,34 @@ void ProcessGroupHCCL::silenceCheck(at::Tensor &input, c10d::OpType opType)
             return;
         }
     }
-    if (silenceCheckCache_.find(opType) == silenceCheckCache_.end()) {
-        at::Tensor stepTensor = at::zeros({1}, input.options().dtype(at::kLong));
-        at::Tensor cacheTensor = at::zeros({3}, input.options().dtype(at::kFloat));
-        silenceCheckCache_.emplace(opType, std::make_pair(std::move(stepTensor), std::move(cacheTensor)));
+    if (c10_npu::opapi::IsExistAclnnSilentCheckV2()) {
+        at::Tensor val = input.detach().pow(2).max().view(-1);
+        at::Tensor max;
+        if (silenceCheckCache_.find(opType) == silenceCheckCache_.end()) {
+            at::Tensor stepTensor = at::zeros({1}, input.options().dtype(at::kLong));
+            at::Tensor avg = input.detach().pow(2).amax().view(-1);
+            max = avg;
+            silenceCheckCache_.emplace(opType, std::make_pair(std::move(stepTensor), std::move(avg)));
+        } else {
+            max = val;
+        }
+        static double beta1 = 0.99;
+        op_plugin::_npu_silent_check_v3(val, input, silenceCheckCache_[opType].first, max, silenceCheckCache_[opType].second,
+            c10_npu::option::OptionsManager::GetSilenceUpperThresh().first, c10_npu::option::OptionsManager::GetSilenceUpperThresh().second,
+            beta1, static_cast<int64_t>(c10_npu::option::OptionsManager::GetSilenceCheckFlag()));
+    } else {
+        if (silenceCheckCache_.find(opType) == silenceCheckCache_.end()) {
+            at::Tensor stepTensor = at::zeros({1}, input.options().dtype(at::kLong));
+            at::Tensor cacheTensor = at::zeros({3}, input.options().dtype(at::kFloat));
+            silenceCheckCache_.emplace(opType, std::make_pair(std::move(stepTensor), std::move(cacheTensor)));
+        }
+        at::Tensor val = at::norm(input);
+        static double min_steps = 100.0;
+        op_plugin::_npu_silent_check_v2(val, input, silenceCheckCache_[opType].second, silenceCheckCache_[opType].first, min_steps,
+            c10_npu::option::OptionsManager::GetSilenceUpperThresh().first, c10_npu::option::OptionsManager::GetSilenceSigmaThresh().first,
+            c10_npu::option::OptionsManager::GetSilenceUpperThresh().second, c10_npu::option::OptionsManager::GetSilenceSigmaThresh().second,
+            static_cast<int64_t>(c10_npu::option::OptionsManager::GetSilenceCheckFlag()));
     }
-    at::Tensor val = at::norm(input);
-    static double min_steps = 100.0;
-    op_plugin::_npu_silent_check_v2(val, input, silenceCheckCache_[opType].second, silenceCheckCache_[opType].first, min_steps,
-        c10_npu::option::OptionsManager::GetSilenceUpperThresh().first, c10_npu::option::OptionsManager::GetSilenceSigmaThresh().first,
-        c10_npu::option::OptionsManager::GetSilenceUpperThresh().second, c10_npu::option::OptionsManager::GetSilenceSigmaThresh().second,
-        static_cast<int64_t>(c10_npu::option::OptionsManager::GetSilenceCheckFlag()));
 }
 
 HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
