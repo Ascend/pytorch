@@ -5,7 +5,7 @@ from torch.nn.functional import embedding as origin_embedding
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
-from ._silent_fault_data import SilentFaultData, SilentFaultDataV2
+from ._silent_fault_data import SilentFaultData, SilentFaultDataV2, SilentFaultDataV3
 
 __all__ = []
 
@@ -96,7 +96,7 @@ def _patch_embedding(input_embedding, weight, *args, **kwargs):
 def _asd_patch():
     env_value = os.getenv("NPU_ASD_ENABLE", "0")
 
-    if env_value.isdigit() and int(env_value) and torch_npu._C._npu_support_silentClientV2():
+    if env_value.isdigit() and int(env_value) and torch_npu._C._get_silent_check_version() > 1:
         return
 
     if env_value not in ["0", "1"]:
@@ -129,3 +129,31 @@ class _SilentFaultDetectorV2:
 
 
 _silent_fault_detector_v2 = _SilentFaultDetectorV2()
+
+
+@_Singleton
+class _SilentFaultDetectorV3:
+    def __init__(self):
+        self.silent_data_dict = dict()
+        self.beta1 = 0.99
+
+    def silent_fault_check(self, idx, asd_enable, grad):
+        if grad.dtype != torch.bfloat16 and grad.dtype != torch.float32:
+            return
+
+        val = grad.pow(2).max().view(-1)
+
+        if idx not in self.silent_data_dict:
+            self.silent_data_dict[idx] = SilentFaultDataV3()
+            self.silent_data_dict[idx].avg_tensor = grad.pow(2).amax().view(-1)
+            grad_max = self.silent_data_dict[idx].avg_tensor
+        else:
+            grad_max = val
+
+        sfda = self.silent_data_dict[idx]
+
+        torch_npu._npu_silent_check_v3(val, grad, sfda.step_tensor, grad_max, sfda.avg_tensor,
+                                       sfda.upper_thresh[0], sfda.upper_thresh[1], self.beta1, asd_enable)
+
+
+_silent_fault_detector_v3 = _SilentFaultDetectorV3()

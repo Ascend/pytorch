@@ -13,6 +13,7 @@ namespace opapi {
 
 REGISTER_LIBRARY(libopapi)
 LOAD_FUNCTION(aclnnSilentCheck)
+LOAD_FUNCTION(aclnnSilentCheckV2)
 
 bool IsExistAclnnSilentCheck()
 {
@@ -21,6 +22,15 @@ bool IsExistAclnnSilentCheck()
         return func != nullptr;
     }();
     return isExist;
+}
+
+bool IsExistAclnnSilentCheckV2()
+{
+    const static bool isExistV2 = []() -> bool {
+        static auto func = GET_FUNC(aclnnSilentCheckV2);
+        return func != nullptr;
+    }();
+    return isExistV2;
 }
 
 } // namespace opapi
