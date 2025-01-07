@@ -29990,6 +29990,7 @@
   "test_simple_model_train_dynamic (__main__.TestFusedOptim)": ["", ["A2"]],
   "test_simple_model_train_static (__main__.TestFusedOptim)": ["", ["A2"]],
   "test_unscale (__main__.TestFusedOptim)": ["", ["A2"]],
-  "test_step_3rd_optims (__main__.TestFusedOptim)": ["", ["A2"]]
-
+  "test_step_3rd_optims (__main__.TestFusedOptim)": ["", ["A2"]],
+  "test_Conv2d_size_1_kernel_npu (__main__.TestConvolutionNNDeviceTypePRIVATEUSE1)": ["", ["A2"]],
+  "test_conv2d_same_padding_backward_npu_float32 (__main__.TestConvolutionNNDeviceTypePRIVATEUSE1)": ["", ["A2"]]
 }
