@@ -1971,7 +1971,6 @@ class DeviceCachingAllocator {
     }
 
     if (p.err != ACL_ERROR_NONE) {
-      p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
       return false;
     }
     ASCEND_LOGD("NPUCachingAllocator malloc by AclrtMallocAlign32: size=%zu", size);
@@ -2601,6 +2600,10 @@ class NpuCachingAllocator : public NPUAllocator {
 
   c10::DataPtr allocate(size_t size) override
   {
+      constexpr size_t one_exa_bytes = 1152921504606846976ULL;
+      if (size >= one_exa_bytes) {
+          AT_ERROR("NPU out of memory. Tried to allocate more than 1EB memory.");
+      }
       int device = 0;
       NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
       void* devPtr = nullptr;
