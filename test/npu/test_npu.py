@@ -241,7 +241,7 @@ class TestNpu(TestCase):
     def test_out_of_memory(self):
         tensor = torch.zeros(1024, device='npu')
 
-        with self.assertRaisesRegex(RuntimeError, "Tried to allocate 8000000000.00 GiB"):
+        with self.assertRaisesRegex(RuntimeError, "Tried to allocate more than 1EB memory"):
             torch.empty(1024 * 1024 * 1024 * 8000000000, dtype=torch.int8, device='npu')
 
         # ensure out of memory error doesn't disturb subsequent kernel
