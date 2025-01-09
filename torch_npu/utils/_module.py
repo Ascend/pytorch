@@ -367,9 +367,9 @@ def _mpdl_iter_init(self, *args, **kwargs):
         torch_npu.npu.synchronize()
     except:
         pass
-    torch_npu._C._npu_set_threads_affinity()
-    origin_mpdl_iter_init(self, *args, **kwargs)
     torch_npu._C._npu_reset_threads_affinity()
+    origin_mpdl_iter_init(self, *args, **kwargs)
+    torch_npu._C._npu_set_threads_affinity()
 
 
 def _parallel_apply(
