@@ -15,6 +15,7 @@
 namespace c10_npu {
 
     static pthread_t mainthread_tid;
+    static bool has_set_affinity = false;
 
     const std::unordered_map<ThreadType, std::string> threadTypeToNameMap = {
         {releaseThread, "release_thread"},
@@ -30,9 +31,24 @@ namespace c10_npu {
         {"hcclComm_watchd", hcclCommWatchdogThread},
         {"backward_thread", backwardThread}};
 
-    void RecordMainThreadTid()
+    inline bool has_set_pthread_affinity()
+    {
+        unsigned int core_nums = static_cast<unsigned int>(sysconf(_SC_NPROCESSORS_ONLN));
+
+        cpu_set_t mask;
+        pthread_getaffinity_np(pthread_self(), sizeof(mask), &mask);
+        for (unsigned int i = 0; i < core_nums; i++) {
+            if (!CPU_ISSET(i, &mask)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void GetAffinityInfo()
     {
         mainthread_tid = pthread_self();
+        has_set_affinity = has_set_pthread_affinity();
     }
 
     ThreadType getCurrentThreadType()
@@ -74,19 +90,6 @@ namespace c10_npu {
                            static_cast<coreId>(std::min((device_id + 1) * block_size, core_nums) - 1)};
     }
 
-    inline bool has_set_pthread_affinity()
-    {
-        unsigned int core_nums = static_cast<unsigned int>(sysconf(_SC_NPROCESSORS_ONLN));
-
-        cpu_set_t mask;
-        pthread_getaffinity_np(pthread_self(), sizeof(mask), &mask);
-        for (unsigned int i = 0; i < core_nums; i++) {
-            if (!CPU_ISSET(i, &mask)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     std::string GetAffinityMapAsString(const std::unordered_map<ThreadType, coreIdRange> &threadToCoreidMap, c10::DeviceIndex device_id)
     {
@@ -243,6 +246,10 @@ namespace c10_npu {
 
     aclError SetThreadAffinity(c10::DeviceIndex device_id, ThreadType current_thread_type)
     {
+        if (has_set_affinity) {
+            ASCEND_LOGW("Thread affinity is already set.");
+            return ACL_ERROR_NONE;
+        }
         uint32_t bind_conf;
         std::vector<coreIdRange> ranges;
         parseCPUAffinityConf(bind_conf, ranges);
@@ -250,16 +257,11 @@ namespace c10_npu {
 
         // bind_conf=1, bind cores averagely based on device_id
         if (bind_conf == 1) {
-            static const bool set_pthread_affinity = has_set_pthread_affinity();
-            if (!set_pthread_affinity) {
-                return SetThreadAffinity(ranges[device_id], pthread_self());
-            }
+            return SetThreadAffinity(ranges[device_id], pthread_self());
         } else if (bind_conf == 2) {
             auto thread_core_map = GetCpuAffinityMap(device_id);
-            // When the PTA_init function runs on device 0, the main thread is initially assigned to this device 0.
-            // However, when the acl_thread is initialized, the target device ID(maybe 0-7) is determined.
-            // Therefore, the main thread should be rescheduled to the target device.
-            if (current_thread_type == ThreadType::aclThread)
+            // Bind the main thread only when the dispatch phase begins (i.e., when ThreadType::backwardThread is set)
+            if (current_thread_type == ThreadType::backwardThread)
                 SetThreadAffinity(thread_core_map.at(ThreadType::mainThread), mainthread_tid);
             return SetThreadAffinity(thread_core_map.at(current_thread_type), pthread_self());
         } else {
