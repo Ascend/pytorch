@@ -6,28 +6,28 @@
 namespace c10d {
 
 enum class BuiltinCommHookType {
-  ALLREDUCE = 1,
-  FP16_COMPRESS = 2,
+    ALLREDUCE = 1,
+    FP16_COMPRESS = 2,
 };
 
 class AllReduceCommHook : public CppCommHookInterface<c10::intrusive_ptr<ProcessGroup>> {
 public:
-  explicit AllReduceCommHook(c10::intrusive_ptr<ProcessGroup> state)
-      : CppCommHookInterface<c10::intrusive_ptr<ProcessGroup>>(state) {}
+    explicit AllReduceCommHook(c10::intrusive_ptr<ProcessGroup> state)
+        : CppCommHookInterface<c10::intrusive_ptr<ProcessGroup>>(state) {}
 
-  ~AllReduceCommHook() override = default;
+    ~AllReduceCommHook() override = default;
 
-  c10::intrusive_ptr<c10::ivalue::Future> runHook(GradBucket& bucket) override;
+    c10::intrusive_ptr<c10::ivalue::Future> runHook(GradBucket& bucket) override;
 };
 
 class FP16CompressCommHook : public CppCommHookInterface<c10::intrusive_ptr<ProcessGroup>> {
 public:
-  explicit FP16CompressCommHook(c10::intrusive_ptr<ProcessGroup> state)
-      : CppCommHookInterface<c10::intrusive_ptr<ProcessGroup>>(state) {}
+    explicit FP16CompressCommHook(c10::intrusive_ptr<ProcessGroup> state)
+        : CppCommHookInterface<c10::intrusive_ptr<ProcessGroup>>(state) {}
 
-  ~FP16CompressCommHook() override = default;
+    ~FP16CompressCommHook() override = default;
 
-  c10::intrusive_ptr<c10::ivalue::Future> runHook(GradBucket& bucket) override;
+    c10::intrusive_ptr<c10::ivalue::Future> runHook(GradBucket& bucket) override;
 };
 
 // Almost same as AllReduceCommHook, but without division inside the hook.
@@ -37,12 +37,12 @@ public:
 class _AllReduceBySumCommHook
     : public CppCommHookInterface<c10::intrusive_ptr<ProcessGroup>> {
 public:
-  explicit _AllReduceBySumCommHook(c10::intrusive_ptr<ProcessGroup> state)
-      : CppCommHookInterface<c10::intrusive_ptr<ProcessGroup>>(state) {}
+    explicit _AllReduceBySumCommHook(c10::intrusive_ptr<ProcessGroup> state)
+        : CppCommHookInterface<c10::intrusive_ptr<ProcessGroup>>(state) {}
 
-  ~_AllReduceBySumCommHook() override = default;
+    ~_AllReduceBySumCommHook() override = default;
 
-  c10::intrusive_ptr<c10::ivalue::Future> runHook(GradBucket& bucket) override;
+    c10::intrusive_ptr<c10::ivalue::Future> runHook(GradBucket& bucket) override;
 };
 
 } // namespace c10d
