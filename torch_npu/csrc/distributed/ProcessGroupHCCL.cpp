@@ -431,8 +431,8 @@ bool ProcessGroupHCCL::WorkHCCL::isCompleted()
 }
 
 bool ProcessGroupHCCL::WorkHCCL::isStarted() {
-  checkAndSetException();
-  return exception() || startedNPUExecutionInternal();
+    checkAndSetException();
+    return exception() || startedNPUExecutionInternal();
 }
 
 bool ProcessGroupHCCL::WorkHCCL::isSuccess() const
@@ -524,7 +524,7 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const
         LOG(INFO) << "[Rank " << rank_ << "] Event query failed with exception: " << e.what();
     }
 
-  return true;
+    return true;
 }
 
 bool ProcessGroupHCCL::WorkHCCL::checkTimeout(c10::optional<std::chrono::milliseconds> timeout)
