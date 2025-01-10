@@ -101,12 +101,16 @@ class DynamicProfilerUtils:
 
     @staticmethod
     def dyno_str_to_json(res: str):
-        res_dict = {}
-        pairs = str(res).split("\n")
-        char_equal = '='
-        for pair in pairs:
-            str_split = pair.split(char_equal)
-            if len(str_split) == 2:
-                res_dict[str_split[0]] = str_split[1]
+        try:
+            res_dict = {}
+            pairs = str(res).split("\n")
+            char_equal = '='
+            for pair in pairs:
+                str_split = pair.split(char_equal)
+                if len(str_split) == 2:
+                    res_dict[str_split[0].strip()] = str_split[1].strip()
+        except Exception as ex:
+            print_warn_msg(f"Dyno request response is not valid, occur error {ex}!")
+            res_dict = {}
 
         return res_dict
