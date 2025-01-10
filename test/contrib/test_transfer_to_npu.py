@@ -81,7 +81,7 @@ class TestTransferToNpu(TestCase):
         labels = torch.arange(10 * 5, dtype=torch.float32).view(10, 5)
         dataset = TensorDataset(images, labels)
         data_loader = torch.utils.data.DataLoader(
-            dataset, num_workers=2, pin_memory=True)
+            dataset, num_workers=2, pin_memory=True, pin_memory_device='cuda')
 
         data_iter = iter(data_loader)
         images0, _ = next(data_iter)
