@@ -34,14 +34,15 @@ class TestMode(TestCase):
         p = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True)
         processes.append(p)
-
+        error_info = ""
         for index, p in enumerate(processes):
             stdout, stderr = p.communicate(timeout=1800)
-            if index == 1:
-                self.assertIn(
-                    "address already in use",
-                    stderr
-                )
+            error_info = error_info + " " + stderr
+
+        self.assertIn(
+            "address already in use",
+            error_info
+        )
 
     @skipIfUnsupportMultiNPU(2)
     def test_broadcast_group(self):
