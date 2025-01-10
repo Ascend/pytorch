@@ -9,8 +9,10 @@
 #include <sstream>
 #include "NpuIpcEndPoint.h"
 #include "utils.h"
+
 namespace torch_npu {
 namespace profiler {
+
 constexpr int TYPE_SIZE = 32;
 constexpr int JOB_ID = 0;
 constexpr const char *DYNO_IPC_NAME = "dynolog";
@@ -40,7 +42,7 @@ struct Message {
     {
         std::unique_ptr<Message> ipcNpuMessage = std::make_unique<Message>(Message());
         if (type.size() + 1 > sizeof(ipcNpuMessage->metadata.type)) {
-            throw std::runtime_error("Type string is too long to fit in metadata.type");
+            throw std::runtime_error("Type string is too long to fit in metadata.type" + PROF_ERROR(ErrCode::PARAM));
         }
         memcpy(ipcNpuMessage->metadata.type, type.c_str(), type.size() + 1);
 #if __cplusplus >= 201703L
@@ -63,7 +65,7 @@ struct Message {
     {
         std::unique_ptr<Message> ipcNpuMessage = std::make_unique<Message>(Message());
         if (type.size() + 1 > sizeof(ipcNpuMessage->metadata.type)) {
-            throw std::runtime_error("Type string is too long to fit in metadata.type");
+            throw std::runtime_error("Type string is too long to fit in metadata.type" + PROF_ERROR(ErrCode::PARAM));
         }
         memcpy(ipcNpuMessage->metadata.type, type.c_str(), type.size() + 1);
         static_assert(std::is_trivially_copyable<T>::value);
@@ -81,6 +83,7 @@ public:
     IpcClient() = default;
     bool RegisterInstance(int32_t npu);
     std::string IpcClientNpuConfig();
+
 private:
     std::vector<int32_t> pids_ = GetPids();
     NpuIpcEndPoint<0> ep_{ "dynoconfigclient" + GenerateUuidV4() };
@@ -92,5 +95,6 @@ private:
     bool Recv();
     std::unique_ptr<Message> PollRecvMessage(int maxRetry, int sleeTimeUs);
 };
+
 } // namespace profiler
 } // namespace torch_npu
