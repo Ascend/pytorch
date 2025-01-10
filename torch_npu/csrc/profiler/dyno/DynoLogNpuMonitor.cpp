@@ -1,7 +1,9 @@
 #include "DynoLogNpuMonitor.h"
 #include "utils.h"
+
 namespace torch_npu {
 namespace profiler {
+
 bool DynoLogNpuMonitor::Init()
 {
     if (isInitialized_) {
@@ -15,6 +17,7 @@ bool DynoLogNpuMonitor::Init()
     }
     return res;
 }
+
 std::string DynoLogNpuMonitor::Poll()
 {
     std::string res = ipcClient_.IpcClientNpuConfig();
@@ -25,5 +28,6 @@ std::string DynoLogNpuMonitor::Poll()
     ASCEND_LOGI("Received NPU configuration successfully");
     return res;
 }
+
 } // namespace profiler
 } // namespace torch_npu

@@ -1,8 +1,10 @@
 #pragma once
 #include "MonitorBase.h"
 #include "DynoLogNpuMonitor.h"
+
 namespace torch_npu {
 namespace profiler {
+
 class PyDynamicMonitorProxy {
 public:
     PyDynamicMonitorProxy() = default;
@@ -18,6 +20,7 @@ public:
             return false;
         }
     }
+
     std::string PollDyno()
     {
         return monitor_->Poll();
@@ -26,5 +29,6 @@ public:
 private:
     MonitorBase *monitor_ = nullptr;
 };
+
 } // namespace profiler
 } // namespace torch_npu
