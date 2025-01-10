@@ -1,7 +1,7 @@
 #include "NpuIpcClient.h"
-
 namespace torch_npu {
 namespace profiler {
+
 bool torch_npu::profiler::IpcClient::RegisterInstance(int32_t id)
 {
     NpuContext context{
@@ -98,8 +98,7 @@ bool IpcClient::Recv()
             npuMessage->metadata = recvMetadata;
             npuMessage->buf = std::unique_ptr<unsigned char[]>(new unsigned char[recvMetadata.size]);
             npuMessage->src = std::string(ep_.GetName(*peekCtxt));
-            std::vector<NpuPayLoad> npuPayLoad{
-                NpuPayLoad(sizeof(struct Metadata), (void *)&npuMessage->metadata),
+            std::vector<NpuPayLoad> npuPayLoad{ NpuPayLoad(sizeof(struct Metadata), (void *)&npuMessage->metadata),
                 NpuPayLoad(recvMetadata.size, npuMessage->buf.get()) };
             auto recvCtxt = ep_.BuildNpuRcvCtxt(npuPayLoad);
             try {
@@ -130,5 +129,6 @@ std::unique_ptr<Message> IpcClient::PollRecvMessage(int maxRetry, int sleeTimeUs
     }
     return nullptr;
 }
+
 } // namespace profiler
 } // namespace torch_npu

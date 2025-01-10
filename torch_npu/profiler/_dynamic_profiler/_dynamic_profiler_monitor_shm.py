@@ -152,6 +152,13 @@ class DynamicProfilerShareMemory:
                                                  "retry times = {}, {} has occur.".format(
                         self._rank_id, try_times, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
                     time.sleep(random.uniform(0, 0.02))  # sleep 0 ~ 20 ms
+            except Exception as ex:
+                try_times -= 1
+                DynamicProfilerUtils.out_log("Rank {} shared memory create failed, "
+                                             "retry times = {}, {} has occur .".format(
+                    self._rank_id, try_times, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+                time.sleep(0.02)
+
         if try_times <= 0:
             raise RuntimeError("Failed to create shared memory." + prof_error(ErrCode.VALUE))
 
