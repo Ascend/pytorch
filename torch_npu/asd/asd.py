@@ -145,7 +145,7 @@ class _SilentFaultDetectorV3:
 
         if idx not in self.silent_data_dict:
             self.silent_data_dict[idx] = SilentFaultDataV3()
-            self.silent_data_dict[idx].avg_tensor = grad.pow(2).amax().view(-1)
+            self.silent_data_dict[idx].avg_tensor = grad.pow(2).max().view(-1)
             grad_max = self.silent_data_dict[idx].avg_tensor
         else:
             grad_max = val
