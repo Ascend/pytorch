@@ -2552,7 +2552,7 @@ void ProcessGroupHCCL::silenceCheck(at::Tensor &input, c10d::OpType opType)
         at::Tensor max;
         if (silenceCheckCache_.find(opType) == silenceCheckCache_.end()) {
             at::Tensor stepTensor = at::zeros({1}, input.options().dtype(at::kLong));
-            at::Tensor avg = input.detach().pow(2).amax().view(-1);
+            at::Tensor avg = input.detach().pow(2).max().view(-1);
             max = avg;
             silenceCheckCache_.emplace(opType, std::make_pair(std::move(stepTensor), std::move(avg)));
         } else {
