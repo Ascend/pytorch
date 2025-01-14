@@ -164,6 +164,9 @@ def run_cmake():
 
     if os.getenv('_GLIBCXX_USE_CXX11_ABI') is not None:
         cmake_args.append('-DGLIBCXX_USE_CXX11_ABI=' + os.getenv('_GLIBCXX_USE_CXX11_ABI'))
+    
+    if os.getenv('_ABI_VERSION') is not None:
+        cmake_args.append('-DABI_VERSION=' + os.getenv('_ABI_VERSION'))
 
     build_args = ['-j', str(multiprocessing.cpu_count())]
 
