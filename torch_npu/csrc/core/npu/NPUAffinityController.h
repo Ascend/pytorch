@@ -27,7 +27,7 @@ namespace c10_npu {
     // (e.g., first parallel checkpoint data loading, then transitioning to forward training).
     // Each phase may require different thread affinity settings. Therefore, we record the thread's TID
     // to adjust its affinity later as needed.
-    void RecordMainThreadTid();
+    void GetAffinityInfo();
 
     // Set backwardThread Name Once
     void SetBackwardThreadName(c10::DeviceIndex device_id);
