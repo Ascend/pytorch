@@ -171,6 +171,7 @@ class ProfilerPathManager:
 
     @classmethod
     def get_realpath(cls, path: str) -> str:
+        path = os.path.expanduser(path)
         if os.path.islink(path):
             msg = f"Invalid input path is a soft chain: {path}" + prof_error(ErrCode.UNAVAIL)
             raise RuntimeError(msg)
