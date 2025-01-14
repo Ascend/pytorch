@@ -304,6 +304,15 @@ void checkAndMakePath(const char* path, std::string errormessage)
         throw std::runtime_error(errormessage + DIST_ERROR(ErrCode::NOT_FOUND));
     }
 }
+
+void createFile(const char* path)
+{
+    int fd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP);
+    if (fd == -1) {
+        throw std::runtime_error("Create file failed. Please check whether input file is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
+    }
+    close(fd);
+}
 } // namespace
 
 constexpr int64_t kSynchronizeBusyWaitMillis = 10;
@@ -1511,7 +1520,8 @@ void ProcessGroupHCCL::workCleanupLoop()
             timenow = std::chrono::steady_clock::now();
             recordflag = ((timenow - lastrecordtime).count() > (c10_npu::option::OptionsManager::GetStatusSaveInterval() * 1000));
         }
-        
+
+        {
         std::unique_lock<std::mutex> lock(workMetaListMutex_);
         // We busy-poll the work vector every kWatchdogThreadSleepMillis
         // milliseconds as long as the atomic is True.
@@ -1623,6 +1633,7 @@ void ProcessGroupHCCL::workCleanupLoop()
             // Increment heartbeat after each work processed,
             // in case processing is slowed down (but not hung) by cuda api contention
             heartbeat_++;
+        }
         }
 
         if (recordflag && recordHcclStatus(status_save_path)) {
@@ -1808,8 +1819,11 @@ bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool e
         }
         std::ofstream outfile;
         std::stringstream fileName;
-        auto master_addr = getenv("MASTER_ADDR");
-        TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.", DIST_ERROR(ErrCode::NOT_FOUND));
+        static auto master_addr = getenv("MASTER_ADDR");
+        if (master_addr == nullptr) {
+            master_addr = "127.0.0.1";
+            ASCEND_LOGW("Unable to fetch master IP addr, environment variable is null, it will use 127.0.0.1");
+        }
         int global_rank = rank_;
         if (!options_->global_ranks_in_group.empty()) {
             global_rank = options_->global_ranks_in_group[rank_];
@@ -1822,15 +1836,24 @@ bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool e
         }
         std::string out_file_path = c10::str(path, "/", fileName.str());
         checkAndMakePath(path.c_str(), "Open shared directory failed. Please check whether input path is valid.");
+        createFile(out_file_path.c_str());
         outfile.open(out_file_path.c_str(), std::ios::trunc);
+        outfile << "{\"last_comm_op\":[";
+        bool first_op = true;
         for (auto info = StatusOutput_.begin(); info != StatusOutput_.end(); info++) {
-            outfile << "LastCommOp-Pg-" << info->second.pgId << ":";
-            outfile << info->second.seq << "," << info->second.opType << "," << info->second.pgId << "," ;
-            outfile << info->second.commIds << "," << info->second.status <<std::endl;
+            if (first_op) {
+                outfile << "{";
+            } else {
+                outfile << ", {";
+            }
+            outfile << "\"seq\":" << info->second.seq << ", \"op_type\":\"" << info->second.opType;
+            outfile << "\", \"pg_id\":" << info->second.pgId << ", \"comm_ids\":\"" << info->second.commIds;
+            outfile << "\", \"status\":\""<< info->second.status << "\"}";
+            first_op = false;
         }
-        outfile << "IsMaster:" << isMaster << std::endl;
-        outfile << "ExceptionMessage:" << exceptionMessage_ << std::endl;
-        outfile << "GlobalPgEndTime:" << end_duration << std::endl;
+        outfile << "], \"is_master\":" << isMaster;
+        outfile << ", \"exception_message\":\"" << exceptionMessage_;
+        outfile << "\", \"global_pg_end_time\":" << end_duration << "}" << std::endl;
         outfile.close();
         return true;
     }
