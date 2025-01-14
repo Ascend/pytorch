@@ -47,9 +47,9 @@ if os.environ.get("ENABLE_LTO") is not None:
 PGO_MODE = 0
 if os.environ.get("PGO_MODE") is not None:
     PGO_MODE = int(os.environ.get("PGO_MODE"))
-USE_CXX11_ABI = "FALSE"
+USE_CXX11_ABI = False
 if os.environ.get("_GLIBCXX_USE_CXX11_ABI") is not None and os.environ.get("_GLIBCXX_USE_CXX11_ABI") == "1":
-    USE_CXX11_ABI = "TRUE"
+    USE_CXX11_ABI = True
 
 
 def get_submodule_folders():
@@ -335,8 +335,6 @@ class CPPLibBuild(build_clib, object):
             '-DPYTHON_INCLUDE_DIR=' + get_paths().get('include'),
             '-DTORCH_VERSION=' + VERSION,
             '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
-        if USE_CXX11_ABI == 'TRUE':
-            cmake_args.append('-DGLIBCXX_USE_CXX11_ABI=1')
 
         if DISABLE_TORCHAIR == 'FALSE':
             if check_torchair_valid(BASE_DIR):
@@ -353,6 +351,12 @@ class CPPLibBuild(build_clib, object):
             cmake_args.append('-DENABLE_LTO=on')
         if PGO_MODE != 0:
             cmake_args.append('-DPGO_MODE=' + str(PGO_MODE))
+        
+        if USE_CXX11_ABI:
+            cmake_args.append('-DGLIBCXX_USE_CXX11_ABI=1')
+
+        if os.getenv('_ABI_VERSION') is not None:
+            cmake_args.append('-DABI_VERSION=' + os.getenv('_ABI_VERSION'))
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
 
@@ -611,10 +615,7 @@ setup(
                 extra_compile_args=extra_compile_args + ['-fstack-protector-all'] + ['-D__FILENAME__=\"InitNpuBindings.cpp\"'],
                 library_dirs=["lib"],
                 extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib'],
-                define_macros=[
-                    ('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI == "TRUE" else '0'),
-                    ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI == "TRUE" else '0')
-                ]
+                define_macros=[('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'), ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0')]
             ),
     ],
     extras_require={

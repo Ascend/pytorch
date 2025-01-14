@@ -186,6 +186,9 @@ if (${GLIBCXX_USE_CXX11_ABI} EQUAL 0)
   set(CMAKE_CXX_FLAGS "-fabi-version=11 ${CMAKE_CXX_FLAGS}")
 else()
   set(CXX_STANDARD_REQUIRED ON)
+  if (DEFINED ABI_VERSION)
+    set(CMAKE_CXX_FLAGS "-fabi-version=${ABI_VERSION} ${CMAKE_CXX_FLAGS}")
+  endif()
 endif()
 
 
