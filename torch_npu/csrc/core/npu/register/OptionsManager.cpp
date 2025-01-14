@@ -219,7 +219,7 @@ char *OptionsManager::GetNslbPath()
 bool OptionsManager::CheckStatusSaveEnable()
 {
     const static bool CheckStatusSaveEnable = []() -> bool {
-        int32_t status_save_enable = OptionsManager::GetBoolTypeOption("TORCH_HCCL_STATUS_SAVE_ENALBLE");
+        int32_t status_save_enable = OptionsManager::GetBoolTypeOption("TORCH_HCCL_STATUS_SAVE_ENABLE");
         return status_save_enable != 0;
     }();
     return CheckStatusSaveEnable;
