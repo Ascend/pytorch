@@ -530,6 +530,8 @@ namespace c10d_npu {
                     startEvent = entry->start_;
                     endEvent = entry->end_;
                 }
+                entry->retired_ = true;
+                entry->start_ = entry->end_ = nullptr;
             }
 
             if (can_compute_duration) {
@@ -552,9 +554,6 @@ namespace c10d_npu {
                     entry->duration_ = duration.value();
                 }
             }
-
-            entry->retired_ = true;
-            entry->start_ = entry->end_ = nullptr;
         }
 
         const c10::List<c10::IValue> getCollectiveTrace(
