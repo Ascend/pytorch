@@ -851,6 +851,8 @@ void ProcessGroupHCCL::abort(c10::optional<std::string> abortReason)
 void ProcessGroupHCCL::deleteTCPStoreKey()
 {
     try {
+        // all processes in a group may be killed, so delete key 0 as a last resort
+        store_->deleteKey("0");
         for (const auto &key : TCPStoreKeyList_) {
             store_->deleteKey(key);
         }
