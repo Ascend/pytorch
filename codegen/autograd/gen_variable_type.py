@@ -115,8 +115,12 @@ def gen_variable_type_func(
         )
         type_definition = re.sub(try_jit_decomposition_pattern, r"\1", type_definition, flags=re.DOTALL)
         type_definition = re.sub(use_count_pattern, "", type_definition, flags=re.DOTALL)
+
         if str(f.func.name) in NPU_AUTOGRAD_FUNCTION:
-            type_definition = type_definition.replace('at::redispatch', 'at_npu::redispatch')
+            if f.func.is_out_fn():
+                type_definition = re.sub(r'at::redispatch::(\w+)_outf', r'at_npu::redispatch::\1_out', type_definition)
+            else:
+                type_definition = type_definition.replace('at::redispatch', 'at_npu::redispatch')
 
         wrapper_registration = gen_wrapper_registration(f, "Default")
         result[f"type_derived_method_definitions"] = [type_definition]
