@@ -12,6 +12,7 @@ from torch_npu.profiler.profiler_interface import _enable_event_record
 from torch_npu.profiler.profiler_interface import _disable_event_record
 from torch_npu.profiler import supported_activities
 from torch_npu._C._profiler import ProfilerActivity
+from torch_npu.profiler.analysis.prof_common_func._cann_package_manager import CannPackageManager
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
@@ -105,12 +106,11 @@ class TestActionController(TestCase):
         return os.path.exists(path)
 
     def _check_params(self):
-        with mock.patch("torch_npu.profiler.analysis.prof_common_func.cann_package_manager.CannPackageManager.cann_package_support_export_db",
-                        return_value=False):
-            self.prof_if.activities = set(supported_activities())
-            self.prof_if.experimental_config.export_type = Constant.Db
-            with self.assertExpectedRaises(RuntimeError):
-                self._check_params()
+        CannPackageManager.SUPPORT_EXPORT_DB = False
+        self.prof_if.activities = set(supported_activities())
+        self.prof_if.experimental_config.export_type = Constant.Db
+        with self.assertExpectedRaises(RuntimeError):
+            self.prof_if._check_params()
 
 
 if __name__ == "__main__":
