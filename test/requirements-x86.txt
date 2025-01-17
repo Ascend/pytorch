@@ -13,3 +13,4 @@ torch-scatter==2.1.2 -f https://data.pyg.org/whl/torch-2.3.0+cpu.html
 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/test/cpu
 transformers==4.40.0
 pytest==8.1.1
+parameterized==0.9.0
