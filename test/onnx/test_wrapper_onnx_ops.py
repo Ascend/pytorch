@@ -1,7 +1,7 @@
 import os
 import shutil
 import unittest
-
+import numpy as np
 import torch
 
 import torch_npu
@@ -1284,7 +1284,7 @@ class TestOnnxOps(TestCase):
         def export_onnx(onnx_model_name):
             x1 = torch.rand(10, 1024).uniform_(-3, 3).npu().half()
             x2 = torch.rand(10, 1024).uniform_(-3, 3).npu().half()
-            gamma = torch.rand(10).uniform_(-3, 3).npu().half()
+            gamma = torch.rand(1024).uniform_(-3, 3).npu().half()
             model = Model().to("npu")
             model(x1, x2, gamma)
             self.onnx_export(model, (x1, x2, gamma), onnx_model_name)
