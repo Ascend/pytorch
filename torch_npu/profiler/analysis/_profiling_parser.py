@@ -68,7 +68,7 @@ class ProfilingParser:
             return
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
             return
-        if not CannPackageManager.cann_package_support_export_db():
+        if not CannPackageManager.SUPPORT_EXPORT_DB:
             raise RuntimeError("Current CANN package version does not support export db. "
                                "If you want to export db, you can install supported CANN package version.")
 
