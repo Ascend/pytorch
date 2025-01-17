@@ -39,7 +39,7 @@ class ProfPathCreator:
         if valid_dir_name:
             dir_path = ProfilerPathManager.get_realpath(dir_name)
             PathManager.check_input_directory_path(dir_path)
-            self._dir_path = dir_name
+            self._dir_path = dir_path
         elif dir_name is None:
             self._dir_path = dir_name  
         else:
