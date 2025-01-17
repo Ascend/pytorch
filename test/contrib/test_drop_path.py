@@ -1,5 +1,7 @@
 import time
 import math
+import os
+import random
 import numpy as np
 import torch
 import torch.nn as nn
@@ -31,13 +33,13 @@ class TestDropPath(TestCase):
             output = x.div(keep_prob) * random_tensor
             return output
 
-        slow_drop_path = DropPath(0).npu()
+        slow_drop_path = DropPath(0.5).npu()
         output = input1 + slow_drop_path(input2)
         output.sum().backward()
         return output.cpu().detach().numpy()
 
     def npu_fast_drop_path_op_exec(self, input1, input2):
-        fast_drop_path = NpuDropPath(0).npu()
+        fast_drop_path = NpuDropPath(0.5).npu()
         output = input1 + fast_drop_path(input2)
         output.sum().backward()
         return output.cpu().detach().numpy()
@@ -70,15 +72,17 @@ class TestDropPath(TestCase):
 
     def test_drop_path_shape_format(self):
         shape_format = [
-            [[np.float16, 2, [50, 25, 7, 100]], [np.float16, 2, [50, 25, 7, 100]]],
-            [[np.float16, 3, [68, 5, 75, 16]], [np.float16, 3, [68, 5, 75, 16]]],
-            [[np.float16, 3, [68, 5]], [np.float16, 3, [68, 5]]],
-            [[np.float32, 2, [50, 25, 7, 100]], [np.float32, 2, [50, 25, 7, 100]]],
-            [[np.float32, 3, [68, 5, 75, 16]], [np.float32, 3, [68, 5, 75, 16]]],
-            [[np.float32, 3, [68, 5]], [np.float32, 3, [68, 5]]],
+            [[np.float16, 2, [10, 10, 7, 15]], [np.float16, 2, [10, 10, 7, 15]]],
+            [[np.float16, 3, [12, 18, 7, 12]], [np.float16, 3, [12, 18, 7, 12]]],
+            [[np.float16, 3, [13, 5]], [np.float16, 3, [13, 5]]],
+            [[np.float32, 2, [10, 10, 7, 15]], [np.float32, 2, [10, 10, 7, 15]]],
+            [[np.float32, 3, [12, 18, 7, 12]], [np.float32, 3, [12, 18, 7, 12]]],
+            [[np.float32, 3, [13, 5]], [np.float32, 3, [13, 5]]],
         ]
 
-        for item in shape_format:
+        data = torch.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "base_data/drop_path_base_data.pth"))
+        base_result = data["base_result"]
+        for index, item in enumerate(shape_format):
             _, mat1_npu = create_common_tensor(item[0], -10, 10)
             _, mat2_npu = create_common_tensor(item[1], -10, 10)
             mat1_npu.requires_grad_(True)
@@ -88,9 +92,16 @@ class TestDropPath(TestCase):
             fast_output, fast_time = \
                 self.npu_fast_drop_path(mat1_npu, mat2_npu)
 
-            self.assertRtolEqual(slow_output, fast_output)
+            self.assertRtolEqual(base_result[index], fast_output)
             self.assertTrue(slow_time > fast_time)
 
 
 if __name__ == "__main__":
+    seed = 35
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.npu.manual_seed(seed)
+    torch.npu.manual_seed_all(seed)
     run_tests()

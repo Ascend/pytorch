@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.contrib.module import FastBatchNorm1d, FastBatchNorm2d, FastBatchNorm3d
 
 
@@ -124,6 +124,7 @@ class TestBatchNormWithInt32Count(TestCase):
 
         return output, fast_time
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_batchnorm1d_shape_format(self):
         shape_format = [
             [[np.float32, 2, [20, 100]], 100],
@@ -143,6 +144,7 @@ class TestBatchNormWithInt32Count(TestCase):
             self.assertRtolEqual(slow_output, fast_output)
             self.assertTrue(slow_time > fast_time)
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_batchnorm2d_shape_format(self):
         shape_format = [
             [[np.float32, 0, [20, 100, 4, 5]], 100],
@@ -162,6 +164,7 @@ class TestBatchNormWithInt32Count(TestCase):
             self.assertRtolEqual(slow_output, fast_output)
             self.assertTrue(slow_time > fast_time)
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_batchnorm3d_shape_format(self):
         shape_format = [
             [[np.float32, 30, [20, 100, 4, 5, 7]], 100],

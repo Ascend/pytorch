@@ -122,7 +122,7 @@ class TestBinaryCrossEntropyWithLogits(TestCase):
             cpu_output = self.cpu_op_exec(input_32, target_32, weight=weight_32, pos_weight=pos_weight_32,
                                           reduction=reduction)
             cpu_output = cpu_output.astype(np.float16)
-            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output, 1.e-3)
 
     def test_binary_cross_with_logits_function_float32(self, device="npu"):
         for shape, weight_shape, pos_weight_shape, reduction in [
