@@ -145,7 +145,7 @@ public:
         std::vector<at::Tensor> result() override;
 
         // Extend tensors lifecycle to work.synchronize, the tensors is local
-        // variable and recordStream.  
+        // variable and recordStream.
         void lazyDestroy(std::vector<at::Tensor> tensors);
 
         // Helper function that sets an exception_ptr on the WorkHCCL object.

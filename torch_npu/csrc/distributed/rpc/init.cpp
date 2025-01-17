@@ -64,19 +64,19 @@ PyObject *rpc_npu_init(PyObject *_unused, PyObject *noargs)
         .def("join", &TensorPipeAgent::join, py::call_guard<py::gil_scoped_release>(), py::arg("shutdown") = false,
              py::arg("timeout") = 0)
         .def("shutdown", &TensorPipeAgent::shutdown, py::call_guard<py::gil_scoped_release>())
-        .def("get_worker_info", (const WorkerInfo &(TensorPipeAgent::*)(void) const) & RpcAgent::getWorkerInfo,
+        .def("get_worker_info", (const WorkerInfo &(TensorPipeAgent::*)(void) const) &RpcAgent::getWorkerInfo,
              py::call_guard<py::gil_scoped_release>())
         .def("get_worker_info",
-             (const WorkerInfo &(TensorPipeAgent::*)(const std::string &) const) & TensorPipeAgent::getWorkerInfo,
+             (const WorkerInfo &(TensorPipeAgent::*)(const std::string &) const) &TensorPipeAgent::getWorkerInfo,
              py::call_guard<py::gil_scoped_release>())
         .def("get_worker_info",
-             (const WorkerInfo &(TensorPipeAgent::*)(worker_id_t id) const) & TensorPipeAgent::getWorkerInfo,
+             (const WorkerInfo &(TensorPipeAgent::*)(worker_id_t id) const) &TensorPipeAgent::getWorkerInfo,
              py::call_guard<py::gil_scoped_release>())
         .def("get_worker_infos",
-             (std::vector<WorkerInfo>(TensorPipeAgent::*)() const) & TensorPipeAgent::getWorkerInfos,
+             (std::vector<WorkerInfo>(TensorPipeAgent::*)() const) &TensorPipeAgent::getWorkerInfos,
              py::call_guard<py::gil_scoped_release>())
         .def("_get_device_map",
-             (DeviceMap(TensorPipeAgent::*)(const WorkerInfo &dst) const) & TensorPipeAgent::getDeviceMap,
+             (DeviceMap(TensorPipeAgent::*)(const WorkerInfo &dst) const) &TensorPipeAgent::getDeviceMap,
              py::call_guard<py::gil_scoped_release>())
         .def("_get_backend_options", &TensorPipeAgent::getBackendOptions, py::call_guard<py::gil_scoped_release>())
         .def("_update_group_membership", &TensorPipeAgent::updateGroupMembership,
