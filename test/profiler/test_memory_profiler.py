@@ -1,6 +1,8 @@
 # Owner(s): ["oncall: profiler"]
 import functools
 import gc
+import unittest
+import platform
 import itertools as it
 import textwrap
 from typing import Callable, Dict, Iterator, List, Optional, Tuple
@@ -829,6 +831,7 @@ class TestMemoryProfilerE2E(TestCase):
 
         return textwrap.indent("\n".join(out), " " * indent)
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_parameters_and_gradients(self):
         model = torch.nn.Sequential(
             torch.nn.Linear(2, 2), ScaleLayer(), torch.nn.Linear(2, 1), ScaleLayer()
@@ -862,6 +865,7 @@ class TestMemoryProfilerE2E(TestCase):
         # the python tracer.
         self._run_and_check_parameters_and_gradients(inner_fn=fwd_only, model=model)
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_parameters_and_gradients_set_to_none(self):
         model = torch.nn.Sequential(torch.nn.Linear(2, 2), torch.nn.Linear(2, 1))
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
@@ -884,6 +888,7 @@ class TestMemoryProfilerE2E(TestCase):
         self.assertTrue(all(p.grad is None for p in model.parameters()))
         self._run_and_check_parameters_and_gradients(inner_fn=fwd_bwd_step, model=model)
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_inputs_fwd(self):
         model = torch.nn.Sequential(torch.nn.Linear(2, 2), torch.nn.Linear(2, 1))
         inputs = [torch.ones((2, 2)) for _ in range(2)]
@@ -911,6 +916,7 @@ class TestMemoryProfilerE2E(TestCase):
         snapshot = memory_profile._category_snapshot()
         self.assertTrue(_memory_profiler.Category.INPUT in snapshot.values())
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_inputs_fwd_lazy(self):
         model = torch.nn.Sequential(LazyLinear(2, 2), LazyLinear(2, 1))
         inputs = [torch.ones((2, 2)) for _ in range(2)]
@@ -938,6 +944,7 @@ class TestMemoryProfilerE2E(TestCase):
         snapshot = memory_profile._category_snapshot()
         self.assertFalse(_memory_profiler.Category.INPUT in snapshot.values())
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_inputs_fwd_bwd(self):
         model = torch.nn.Sequential(torch.nn.Linear(2, 2), torch.nn.Linear(2, 1))
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
@@ -974,6 +981,7 @@ class TestMemoryProfilerE2E(TestCase):
             check(x)
             check(targets)
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_lazily_initialized(self) -> None:
         model = torch.nn.Sequential(
             torch.nn.Linear(2, 2),
@@ -995,6 +1003,7 @@ class TestMemoryProfilerE2E(TestCase):
         self._run_and_check_parameters_and_gradients(inner_fn=inner_fn, model=model)
         self.assertEqual(len(list(model.parameters())), 6)
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_manual_optimizer_step(self) -> None:
         model = torch.nn.Sequential(torch.nn.Linear(2, 2), torch.nn.Linear(2, 1))
 
@@ -1029,6 +1038,7 @@ class TestMemoryProfilerE2E(TestCase):
             aten::cat                                3 (???), 5 (???)                              -> ???""",
         )
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_categories_e2e_simple_fwd_bwd(self) -> None:
         w0 = torch.ones((1,), requires_grad=True)
         w1 = torch.ones((1,), requires_grad=True)
@@ -1076,6 +1086,7 @@ class TestMemoryProfilerE2E(TestCase):
             aten::detach                             25 (GRADIENT)                                 -> ???""",
         )
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_categories_e2e_simple_fwd_bwd_step(self) -> None:
         w0 = torch.ones((1,), requires_grad=True)
         w1 = torch.ones((1,), requires_grad=True)
