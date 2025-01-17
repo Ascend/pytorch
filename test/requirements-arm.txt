@@ -12,3 +12,4 @@ torchvision==0.16.0
 transformers==4.40.0
 setuptools==69.5.1
 pytest==8.1.1
+parameterized==0.9.0
