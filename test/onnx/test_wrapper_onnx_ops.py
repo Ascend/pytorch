@@ -1534,7 +1534,7 @@ class TestOnnxOps(TestCase):
             skip1 = torch.randn(num_rows, token_len).to(torch.float32).npu()
             skip2_optional = torch.randn(num_rows, token_len).to(torch.float32).npu()
             bias = torch.randn(expert_num, token_len).to(torch.float32).npu()
-            scales = torch.randn(expert_num, token_len).to(torch.float32).npu()
+            scales = torch.randn(num_rows, top_k).to(torch.float32).npu()
             expanded_src_to_dst_row = torch.arange(num_rows * top_k).to(torch.int32).npu()
             expert_for_source_row = torch.randint(low=0, high=expert_num, size=(num_rows, top_k)).to(torch.int32).npu()
             model = Model().to("npu")
@@ -1571,6 +1571,40 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+
+    @SupportedDevices(['Ascend910B'])
+    def test_wrapper_npu_moe_finalize_routing_v2(self):            
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, expanded_permuted_rows, skip1, skip2_optional, bias, scales,
+                        expanded_src_to_dst_row, expert_for_source_row):
+                return torch_npu.npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional,
+                                                          bias, scales, expanded_src_to_dst_row, 
+                                                          expert_for_source_row, drop_pad_mode=1)
+
+        def export_onnx(onnx_model_name):
+            expert_num = 16
+            token_len = 10
+            top_k = 4
+            num_rows = 50
+            c = 20
+            expanded_permuted_rows = torch.randn(expert_num, c, token_len).to(torch.float32).npu()
+            skip1 = torch.randn(num_rows, token_len).to(torch.float32).npu()
+            skip2_optional = torch.randn(num_rows, token_len).to(torch.float32).npu()
+            bias = torch.randn(expert_num, token_len).to(torch.float32).npu()
+            scales = torch.randn(num_rows, top_k).to(torch.float32).npu()
+            expanded_src_to_dst_row = torch.arange(num_rows * top_k).to(torch.int32).npu()
+            expert_for_source_row = torch.randint(low=0, high=expert_num, size=(num_rows, top_k)).to(torch.int32).npu()
+            model = Model().to("npu")
+            model(expanded_permuted_rows, skip1, skip2_optional, bias, scales, expanded_src_to_dst_row, expert_for_source_row)
+            self.onnx_export(model, (expanded_permuted_rows, skip1, skip2_optional, bias, scales, expanded_src_to_dst_row, expert_for_source_row), onnx_model_name)
+
+        onnx_model_name = "model_npu_moe_finalize_routing_v2.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
 
     @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_gelu(self):

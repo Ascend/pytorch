@@ -968,6 +968,31 @@ class _NPUMoeFinalizeRoutingOP(torch.autograd.Function):
                     scales, expanded_src_to_dst_row, export_for_source_row)
 
 
+class _NPUMoeFinalizeRoutingV2OP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_moe_finalize_routing(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, expanded_permuted_rows: Tensor, skip1: Optional[Tensor],
+                 skip2: Optional[Tensor], bias: Optional[Tensor],
+                 scales: Optional[Tensor], expanded_src_to_dst_row: Tensor, 
+                 export_for_source_row: Optional[Tensor], drop_pad_mode: int = 0):
+        if skip1 is None:
+            skip1 = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        if skip2 is None:
+            skip2 = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        if bias is None:
+            bias = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        if scales is None:
+            scales = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        if export_for_source_row is None:
+            export_for_source_row = g.op("Constant", value_t=torch.tensor([]).to(torch.int32))
+        return g.op("npu::NPUMoeFinalizeRoutingV2", expanded_permuted_rows, expanded_src_to_dst_row, skip1, skip2, bias,
+                 scales, export_for_source_row, drop_pad_mode_i=drop_pad_mode)
+
+
 class _NPUMoeGatingTopKSoftmaxOP(torch.autograd.Function):
 
     @staticmethod
@@ -1323,9 +1348,13 @@ def _wrapper_npu_moe_compute_expert_tokens(sorted_experts, num_experts=1):
 
 
 def _wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2, bias,
-                                     scales, expanded_src_to_dst_row, export_for_source_row):
-    return _NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2, bias,
-                                         scales, expanded_src_to_dst_row, export_for_source_row)
+                                      scales, expanded_src_to_dst_row, export_for_source_row, drop_pad_mode=0):
+    if skip1 is not None and bias is not None and scales is not None and \
+             export_for_source_row is not None and drop_pad_mode == 0:
+        return _NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2, bias,
+                                          scales, expanded_src_to_dst_row, export_for_source_row)
+    return _NPUMoeFinalizeRoutingV2OP.apply(expanded_permuted_rows, skip1, skip2, bias,
+                                          scales, expanded_src_to_dst_row, export_for_source_row, drop_pad_mode)
 
 
 def _wrapper_npu_moe_gating_top_k_softmax(x, finished, k):
