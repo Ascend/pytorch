@@ -847,13 +847,13 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     if (asyncErrorHandling_ == TearDown) {
         if (hccl_exec_timeout > 0) {
             if ((hccl_exec_timeout * 1000) > (options_->timeout).count()) {
-                TORCH_NPU_WARN("The HCCL execution timeout ", hccl_exec_timeout*1000, "ms is bigger than watchdog timeout ",
+                TORCH_NPU_WARN("The HCCL execution timeout ", hccl_exec_timeout * 1000, "ms is bigger than watchdog timeout ",
                     (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded.");
             }
         } else {
             if ((options_->timeout).count() == DEFAULT_TIMEOUT) {
                 // Only when the timeout is default, we will change it.
-                options_->timeout = std::chrono::milliseconds(DEFAULT_TIMEOUT*2);
+                options_->timeout = std::chrono::milliseconds(DEFAULT_TIMEOUT * 2);
             }
             if ((options_->timeout).count() < DEFAULT_TIMEOUT) {
                 TORCH_NPU_WARN("The HCCL execution timeout 1800000ms is bigger than watchdog timeout ",
@@ -2341,7 +2341,7 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
             profilingTitle ? profilingTitle : "",
             inputs,
             outputs,
-            desyncDebug_? &((*(r->hcclStartEvents_))[0]) : nullptr,
+            desyncDebug_ ? &((*(r->hcclStartEvents_))[0]) : nullptr,
             &((*(r->hcclEndEvents_))[0]),
             isP2P);
     }
