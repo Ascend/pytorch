@@ -37,34 +37,34 @@ public:
     };
 
     // Get NpuSysCtrl singleton instance
-     C10_NPU_API static NpuSysCtrl& GetInstance();
+    C10_NPU_API static NpuSysCtrl &GetInstance();
 
     // Environment Initialize, return SysStatus
-     SysStatus Initialize(int device_id = -1);
+    SysStatus Initialize(int device_id = -1);
 
     // Change current device from pre_device to device
-     SysStatus ExchangeDevice(int device);
+    SysStatus ExchangeDevice(int device);
 
     // Init backwards thread
-     SysStatus BackwardsInit();
+    SysStatus BackwardsInit();
 
     // Set overflow switch
-     SysStatus OverflowSwitchEnable();
+    SysStatus OverflowSwitchEnable();
 
     // Environment Finalize, return SysStatus
-     C10_NPU_API SysStatus Finalize();
+    C10_NPU_API SysStatus Finalize();
 
     // Get Init_flag
-     C10_NPU_API bool GetInitFlag();
+    C10_NPU_API bool GetInitFlag();
 
     int InitializedDeviceID();
 
-    void RegisterLazyFn(const option::OptionCallBack& call_, const std::string& in);
+    void RegisterLazyFn(const option::OptionCallBack &call_, const std::string &in);
 
     // Register fn to be called during stage of exit and
     // the callability of fn is guaranteed by the caller.
-     void RegisterReleaseFn(ReleaseFn release_fn,
-         ReleasePriority priority = ReleasePriority::PriorityMiddle);
+    void RegisterReleaseFn(ReleaseFn release_fn, ReleasePriority priority = ReleasePriority::PriorityMiddle);
+
 private:
     NpuSysCtrl();
 
@@ -80,4 +80,3 @@ private:
 aclError SetCurrentDevice();
 
 } // namespace c10_npu
-
