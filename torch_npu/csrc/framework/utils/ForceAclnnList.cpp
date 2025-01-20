@@ -19,34 +19,36 @@
 namespace at_npu {
 namespace native {
 
-void ForceAclnn::RegisterOp(const std::string &list) {
-  if (list.empty()) {
-    return;
-  }
+void ForceAclnn::RegisterOp(const std::string &list)
+{
+    if (list.empty()) {
+        return;
+    }
 
-  auto value = list;
-  std::string delimiter = ",";
-  auto start = 0U;
-  auto end = value.find(delimiter);
-  std::string token;
-  while (end != std::string::npos) {
+    auto value = list;
+    std::string delimiter = ",";
+    auto start = 0U;
+    auto end = value.find(delimiter);
+    std::string token;
+    while (end != std::string::npos) {
+        token = value.substr(start, end - start);
+        if (!token.empty()) {
+            force_aclnn_op_list_.insert(token);
+        }
+        start = end + delimiter.size();
+        end = value.find(delimiter, start);
+    }
     token = value.substr(start, end - start);
     if (!token.empty()) {
-      force_aclnn_op_list_.insert(token);
+        force_aclnn_op_list_.insert(token);
     }
-    start = end + delimiter.size();
-    end = value.find(delimiter, start);
-  }
-  token = value.substr(start, end - start);
-  if (!token.empty()) {
-    force_aclnn_op_list_.insert(token);
-  }
-  return;
+    return;
 }
 
-bool ForceAclnn::IsForceAclnnOp(const std::string &op_name) const {
-  bool ret = (force_aclnn_op_list_.find(op_name) != force_aclnn_op_list_.end());
-  return ret;
+bool ForceAclnn::IsForceAclnnOp(const std::string &op_name) const
+{
+    bool ret = (force_aclnn_op_list_.find(op_name) != force_aclnn_op_list_.end());
+    return ret;
 }
 } // namespace native
 } // namespace at_npu
