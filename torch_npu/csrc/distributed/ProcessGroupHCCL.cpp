@@ -996,7 +996,7 @@ void ProcessGroupHCCL::workCleanupLoop()
         if (status_save_enable) {
             checkAndMakePath(status_save_path.c_str(), "Open shared directory failed. Please check whether input path is valid.");
             timenow = std::chrono::steady_clock::now();
-            recordflag = ((timenow - lastrecordtime).count() > (c10_npu::option::OptionsManager::GetStatusSaveInterval() * 1000));
+            recordflag = (std::chrono::duration_cast<std::chrono::milliseconds>(timenow - lastrecordtime).count() > (c10_npu::option::OptionsManager::GetStatusSaveInterval() * 1000));
         }
 
         {
