@@ -19,13 +19,12 @@
 
 #include <ATen/ATen.h>
 
-
 namespace at_npu {
 namespace native {
 // npu tensor max size
 const int SIZE = 8;
 c10::SmallVector<int64_t, SIZE> array_to_small_vector(c10::IntArrayRef shape);
-}  // namespace native
-}  // namespace at_npu
+} // namespace native
+} // namespace at_npu
 
 #endif

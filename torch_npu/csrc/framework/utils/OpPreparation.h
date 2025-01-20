@@ -21,10 +21,8 @@ public:
     static UnifiedResult reduce_op_check(at::Tensor &out1, at::Tensor &out2, const at::Tensor &a);
     // From CalcuOpUtil part
     static aclDataType convert_to_acl_data_type(const at::ScalarType &data_type);
-    static aclDataType convert_to_acl_data_type(const at::ScalarType &data_type,
-                                                const string &realDataType);
-    static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar,
-                                            at::ScalarType scalar_data_type);
+    static aclDataType convert_to_acl_data_type(const at::ScalarType &data_type, const string &realDataType);
+    static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type);
     static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type,
                                             const c10::Device device);
     static at::Tensor copy_tensor_host_to_device(const at::Tensor &cpu_tensor);
@@ -58,8 +56,8 @@ public:
     static at::Tensor apply_tensor_with_format(const at::Tensor &src, int64_t format, bool keep_format = false);
     static at::Tensor apply_tensor_with_format(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format,
                                                bool keep_format = false);
-    static at::Tensor apply_tensor_with_format(c10::IntArrayRef sizes, const c10::TensorOptions &options, int64_t format,
-                                               bool keep_format = false);
+    static at::Tensor apply_tensor_with_format(c10::IntArrayRef sizes, const c10::TensorOptions &options,
+                                               int64_t format, bool keep_format = false);
     static at::Tensor apply_tensor_with_sizes(c10::IntArrayRef sizes, const c10::TensorOptions &options);
 
     // DEPRECATED: CheckOut will be deprecated, please use check_tensor to check output tensor instead.
@@ -95,7 +93,7 @@ public:
     static bool IsCPUScalar(const at::Tensor &tensor);
 }; // namespace OpPreparation
 
-}  // namespace native
-}  // namespace at_npu
+} // namespace native
+} // namespace at_npu
 
 #endif
