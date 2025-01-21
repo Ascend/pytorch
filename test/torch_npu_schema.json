@@ -3701,9 +3701,6 @@
   "func: arange.start_step": {
     "signature": "(Scalar start, Scalar end, Scalar step=1, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor"
   },
-  "func: argmax": {
-    "signature": "(Tensor self, int? dim=None, bool keepdim=False) -> Tensor"
-  },
   "func: argmax.out": {
     "signature": "(Tensor self, int? dim=None, bool keepdim=False, *, Tensor(a!) out) -> Tensor(a!)"
   },
