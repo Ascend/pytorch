@@ -16,6 +16,10 @@ int StressDetector::device_id;
 void* StressDetector::workspaceAddr = nullptr;
 size_t StressDetector::workspaceSize = 0;
 
+constexpr int kDetectSucceeded = 0;
+constexpr int kDetectFailed = 1;
+constexpr int kDetectFailedWithHardwareFailure = 2;
+
 // Persistent worker thread implementation
 void StressDetector::worker_thread()
 {
@@ -48,6 +52,31 @@ void StressDetector::worker_thread()
     }
 }
 
+int StressDetector::transfer_result(int detectResult)
+{
+    int ret = kDetectFailed;
+    switch (detectResult) {
+        case 0:
+            ret = kDetectSucceeded;
+            ASCEND_LOGI("Stress detect test case execution succeeded.");
+            break;
+        case ACLNN_STRESS_BIT_FAIL:
+        case ACLNN_STRESS_LOW_BIT_FAIL:
+        case ACLNN_STRESS_HIGH_BIT_FAIL:
+            ret = kDetectFailedWithHardwareFailure;
+            ASCEND_LOGE("Stress detect failed due to hardware malfunction, error code is %d.", detectResult);
+            break;
+        case ACLNN_CLEAR_DEVICE_STATE_FAIL:
+            TORCH_CHECK(false, "Stress detect error. Error code is 574007. Error message is Voltage recovery failed.", PTA_ERROR(ErrCode::ACL));
+            break;
+        default:
+            ret = kDetectFailed;
+            ASCEND_LOGE("Stress detect test case execution failed, error code is %d.", detectResult);
+            break;
+    }
+    return ret;
+}
+
 // Synchronous stress detection task execution
 int StressDetector::perform_stress_detect(int deviceid)
 {
@@ -75,7 +104,7 @@ int StressDetector::perform_stress_detect(int deviceid)
             if (ret != ACL_ERROR_NONE) {
                 ASCEND_LOGW("call AclrtMallocAlign32 failed, ERROR : %d. Skip StressDetect.", ret);
                 task_in_progress.store(false); // Task ends
-                return ACL_ERROR_NONE;
+                return kDetectFailed;
             }
         }
     }
@@ -102,7 +131,7 @@ int StressDetector::perform_stress_detect(int deviceid)
     // Synchronously wait for the task to complete and get the result
     int ret = current_task_future.get();
 
-    return ret;
+    return transfer_result(ret);
 }
 
 // Stop the thread
