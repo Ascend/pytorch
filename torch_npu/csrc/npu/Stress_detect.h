@@ -17,6 +17,8 @@ public:
 
 private:
     static void worker_thread();
+
+    static int transfer_result(int detectResult);
     
     // Thread for handling the stress detection task
     static std::thread stress_detect_thread;
