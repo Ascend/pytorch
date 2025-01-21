@@ -5,6 +5,8 @@ from collections import defaultdict
 from contextlib import contextmanager
 import torch
 from torch.distributed import run as torch_run
+from torch.distributed.argparse_util import check_env, env
+from torch.distributed.run import get_args_parser
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.elastic.utils.logging import get_logger
 from torch.distributed.elastic.agent.server.api import (
@@ -16,7 +18,21 @@ from torch.distributed.elastic.utils.store import timedelta
 from torch.distributed.elastic.multiprocessing.api import SignalException
 import torch_npu
 
-__all__ = []
+__all__ = ["parse_args"]
+
+
+def parse_args(args):
+    parser = get_args_parser()
+    parser.add_argument(
+        "--enable_tiered_parallel_tcpstore",
+        "--enable_tiered_parallel_tcpstore",
+        action=env,
+        type=str,
+        default="false",
+        help="Turn parallel tcpstore tiered optimization, if true, The agent adds a proxy role," 
+        "the worker on this node will connect to the server through the proxy.",
+    )
+    return parser.parse_args(args)
 
 logger = get_logger(__name__)
 _NUM_MEMBERS = "/num_members"
@@ -209,8 +225,8 @@ def _apply_torch_npu_run_patch():
 
 @record
 def _main(args=None):
+    args = parse_args(args)
     _apply_torch_npu_run_patch()
-    args = torch_run.parse_args(args)
     args.rdzv_backend = 'parallel'
     torch_run.run(args)
 

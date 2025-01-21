@@ -14,8 +14,10 @@ class ParallelStoreTest(unittest.TestCase):
     def setUp(self):
         self._port_offset += 1
         tcp_port = self._begin_port + self._port_offset
-        self._server = ParallelStore(port=tcp_port, agent_run=True, agent_pid=100, is_server=True, wait_workers=False, multi_tenant=True)
-        self._client = ParallelStore(port=tcp_port, agent_run=False, agent_pid=100, is_server=False)
+        self._server = ParallelStore(host="127.0.0.1", port=tcp_port, agent_run=True, agent_pid=100,
+        is_server=True, enable_tiered=True, wait_workers=False, multi_tenant=True)
+        self._client = ParallelStore(host="127.0.0.1", port=tcp_port, agent_run=False, agent_pid=100,
+        is_server=False, enable_tiered=True)
 
     def tearDown(self):
         self._client = None
@@ -67,7 +69,8 @@ class ParallelStoreTest(unittest.TestCase):
     def test_multi_server_set_get(self):
         key = 'key/ParallelStoreTest/test_multi_server_set_get'
         tcp_port = self._begin_port + self._port_offset
-        server2 = ParallelStore(port=tcp_port, agent_run=True, agent_pid=200, is_server=True, wait_workers=False, multi_tenant=True)
+        server2 = ParallelStore(host="127.0.0.1", port=tcp_port, agent_run=True, agent_pid=200,
+        is_server=True, enable_tiered=True, wait_workers=False, multi_tenant=True)
         value1 = server2.add(key, 100)
         value2 = self._server.add(key, 0)
         self.assertEqual(value1, value2)

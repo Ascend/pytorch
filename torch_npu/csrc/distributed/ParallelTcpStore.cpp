@@ -1,4 +1,4 @@
-/**
+/* *
  * @copyright Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
  *
  * Licensed under the BSD 3-Clause License  (the "License");
@@ -13,19 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <chrono>
 #include "ParallelTcpServer.hpp"
 #include "ParallelTcpStore.hpp"
+#include "ParallelStoreProxy.hpp"
+#include "StoreClient.hpp"
+#include "torch_npu/csrc/core/npu/npu_log.h"
 
 namespace c10d {
-namespace pta {
+namespace torch_npu {
 ParallelStoreServer::ParallelStoreServer(std::string initKey, const std::string host, uint16_t port,
-    c10::optional<std::size_t> numWorkers)
+    c10::optional<std::size_t> numWorkers) noexcept
     : initKey_{ std::move(initKey) }, numWorkers_{ numWorkers }
 {
     auto threadNum = 4U;
+    auto listenThreadNum = 1U;
     if (numWorkers != c10::nullopt) {
         if (*numWorkers >= 1024) {
             threadNum = 32U;
+            listenThreadNum = *numWorkers / 1024;
         } else if (*numWorkers >= 512) {
             threadNum = 16U;
         } else if (*numWorkers >= 256) {
@@ -34,11 +40,26 @@ ParallelStoreServer::ParallelStoreServer(std::string initKey, const std::string 
     }
 
     InitializeHandlers();
-    server_ = std::make_unique<pta::ParallelTcpServer>(threadNum, host, port,
-        [this](int fd, const pta::StoreMessage &request) { return ProcessRequest(fd, request); });
+    server_ = std::make_unique<torch_npu::ParallelTcpServer>(threadNum, host, port, listenThreadNum,
+        [this](int fd, const torch_npu::StoreMessage &request) { return ProcessRequest(fd, request); });
     if (server_->Start() != 0) {
         throw std::runtime_error{
             std::string("start tcp server on port ").append(std::to_string(port)).append(" failed.")
+        };
+    }
+}
+
+ParallelStoreServer::ParallelStoreServer(const std::string localSocketPath, CallBackFn callback) noexcept
+    : localSocketPath_(std::move(localSocketPath)), callback_(std::move(callback))
+{
+    auto threadNum = 1U;
+    auto listenThreadNum = 1U;
+    LocalInitializeHandlers();
+    server_ = std::make_unique<torch_npu::ParallelTcpServer>(threadNum, localSocketPath_, listenThreadNum,
+        [this](int fd, const torch_npu::StoreMessage &request) { return ProcessRequest(fd, request); });
+    if (server_->Start() != 0) {
+        throw std::runtime_error{
+            std::string("start local server on socket ").append(localSocketPath_).append(" failed.")
         };
     }
 }
@@ -65,7 +86,7 @@ void ParallelStoreServer::WaitWorkers(const std::chrono::milliseconds &timeout) 
     }
 }
 
-pta::StoreMessage ParallelStoreServer::ProcessRequest(int fd, const pta::StoreMessage &request) noexcept
+torch_npu::StoreMessage ParallelStoreServer::ProcessRequest(int fd, const torch_npu::StoreMessage &request) noexcept
 {
     auto pos = requestHandlers_.find(request.mt);
     if (pos != requestHandlers_.end()) {
@@ -76,23 +97,23 @@ pta::StoreMessage ParallelStoreServer::ProcessRequest(int fd, const pta::StoreMe
     return request;
 }
 
-pta::StoreMessage ParallelStoreServer::ProcessGetRequest(int fd, const pta::StoreMessage &request) noexcept
+torch_npu::StoreMessage ParallelStoreServer::ProcessGetRequest(int fd, const torch_npu::StoreMessage &request) noexcept
 {
-    std::unique_lock<pta::SpinLock> lockGuard{ serverLock_ };
+    std::unique_lock<torch_npu::SpinLock> lockGuard{ serverLock_ };
     auto pos = keyStore_.find(request.keys[0]);
     if (pos != keyStore_.end()) {
         lockGuard.unlock();
-        return { pta::MessageType::GET, pos->second };
+        return { torch_npu::MessageType::GET, request.fd, pos->second };
     }
     lockGuard.unlock();
 
-    return pta::StoreMessage{ pta::MessageType::GET };
+    return torch_npu::StoreMessage{ torch_npu::MessageType::GET, request.fd};
 }
 
-pta::StoreMessage ParallelStoreServer::ProcessSetRequest(int fd, const pta::StoreMessage &request) noexcept
+torch_npu::StoreMessage ParallelStoreServer::ProcessSetRequest(int fd, const torch_npu::StoreMessage &request) noexcept
 {
     bool newCreated = false;
-    std::unique_lock<pta::SpinLock> lockGuard{ serverLock_ };
+    std::unique_lock<torch_npu::SpinLock> lockGuard{ serverLock_ };
     auto pos = keyStore_.find(request.keys[0]);
     if (pos == keyStore_.end()) {
         keyStore_.emplace(request.keys[0], request.values[0]);
@@ -106,17 +127,17 @@ pta::StoreMessage ParallelStoreServer::ProcessSetRequest(int fd, const pta::Stor
         server_->WakeupWaitingClients(request.keys[0]);
     }
 
-    return pta::StoreMessage{ pta::MessageType::SET };
+    return torch_npu::StoreMessage{ torch_npu::MessageType::SET, request.fd};
 }
 
-pta::StoreMessage ParallelStoreServer::ProcessAddRequest(int fd, const pta::StoreMessage &request) noexcept
+torch_npu::StoreMessage ParallelStoreServer::ProcessAddRequest(int fd, const torch_npu::StoreMessage &request) noexcept
 {
     static bool notifiedWaitWorkers = false;
-    auto delta = pta::StoreMessagePacker::UnpackPod<int64_t>(request.values[0]);
+    auto delta = torch_npu::StoreMessagePacker::UnpackPod<int64_t>(request.values[0]);
     auto old = 0L;
     bool oldExist = false;
 
-    std::unique_lock<pta::SpinLock> lockGuard{ serverLock_ };
+    std::unique_lock<torch_npu::SpinLock> lockGuard{ serverLock_ };
     auto pos = keyStore_.find(request.keys[0]);
     if (pos != keyStore_.end()) {
         oldExist = true;
@@ -139,77 +160,77 @@ pta::StoreMessage ParallelStoreServer::ProcessAddRequest(int fd, const pta::Stor
         server_->WakeupWaitingClients(request.keys[0]);
     }
 
-    return { pta::MessageType::ADD, pta::StoreMessagePacker::PackPod(old + delta) };
+    return { torch_npu::MessageType::ADD, request.fd, torch_npu::StoreMessagePacker::PackPod(old + delta) };
 }
 
-pta::StoreMessage ParallelStoreServer::ProcessCheckRequest(int fd, const pta::StoreMessage &request) noexcept
+torch_npu::StoreMessage ParallelStoreServer::ProcessCheckRequest(int fd, const torch_npu::StoreMessage &request) noexcept
 {
-    std::unique_lock<pta::SpinLock> lockGuard{ serverLock_ };
-    pta::MessageCheckKeyRes res = pta::MessageCheckKeyRes::KEYS_NOT_READY;
+    std::unique_lock<torch_npu::SpinLock> lockGuard{ serverLock_ };
+    torch_npu::MessageCheckKeyRes res = torch_npu::MessageCheckKeyRes::KEYS_NOT_READY;
     if (CheckAllKeysExistInLock(request.keys)) {
-        res = pta::MessageCheckKeyRes::KEYS_READY;
+        res = torch_npu::MessageCheckKeyRes::KEYS_READY;
     }
     lockGuard.unlock();
 
     std::vector<uint8_t> body{ static_cast<uint8_t>(res) };
-    return { pta::MessageType::CHECK, body };
+    return { torch_npu::MessageType::CHECK, request.fd, body };
 }
 
-pta::StoreMessage ParallelStoreServer::ProcessDeleteRequest(int fd, const pta::StoreMessage &request) noexcept
+torch_npu::StoreMessage ParallelStoreServer::ProcessDeleteRequest(int fd, const torch_npu::StoreMessage &request) noexcept
 {
-    std::unique_lock<pta::SpinLock> lockGuard{ serverLock_ };
+    std::unique_lock<torch_npu::SpinLock> lockGuard{ serverLock_ };
     auto count = keyStore_.erase(request.keys[0]);
     lockGuard.unlock();
 
-    return pta::StoreMessage{ pta::MessageType::DELETE_KEY, std::vector<uint8_t>{ static_cast<uint8_t>(count > 0) } };
+    return torch_npu::StoreMessage{ torch_npu::MessageType::DELETE_KEY, request.fd, std::vector<uint8_t>{ static_cast<uint8_t>(count > 0) } };
 }
 
-pta::StoreMessage ParallelStoreServer::ProcessCompareSetRequest(int fd, const pta::StoreMessage &request) noexcept
+torch_npu::StoreMessage ParallelStoreServer::ProcessCompareSetRequest(int fd, const torch_npu::StoreMessage &request) noexcept
 {
-    std::unique_lock<pta::SpinLock> lockGuard{ serverLock_ };
+    std::unique_lock<torch_npu::SpinLock> lockGuard{ serverLock_ };
     auto pos = keyStore_.find(request.keys[0]);
     if (pos == keyStore_.end()) {
         if (request.values[0].empty()) {
             keyStore_[request.keys[0]] = request.values[1];
             lockGuard.unlock();
             server_->WakeupWaitingClients(request.keys[0]);
-            return { pta::MessageType::COMPARE_SET, request.values[1] };
+            return { torch_npu::MessageType::COMPARE_SET, request.fd, request.values[1] };
         }
 
         lockGuard.unlock();
-        return pta::StoreMessage{ pta::MessageType::COMPARE_SET };
+        return torch_npu::StoreMessage{ torch_npu::MessageType::COMPARE_SET, request.fd};
     }
 
     if (pos->second == request.values[0]) {
         pos->second = request.values[1];
         lockGuard.unlock();
-        return { pta::MessageType::COMPARE_SET, request.values[1] };
+        return { torch_npu::MessageType::COMPARE_SET, request.fd, request.values[1] };
     }
 
     lockGuard.unlock();
-    return { pta::MessageType::COMPARE_SET, pos->second };
+    return { torch_npu::MessageType::COMPARE_SET, request.fd, pos->second };
 }
 
-pta::StoreMessage ParallelStoreServer::ProcessGetNumKeyRequest(int fd, const pta::StoreMessage &request) noexcept
+torch_npu::StoreMessage ParallelStoreServer::ProcessGetNumKeyRequest(int fd, const torch_npu::StoreMessage &request) noexcept
 {
-    std::unique_lock<pta::SpinLock> lockGuard{ serverLock_ };
+    std::unique_lock<torch_npu::SpinLock> lockGuard{ serverLock_ };
     auto keyNum = keyStore_.size();
     lockGuard.unlock();
-    return { pta::MessageType::GET_NUM_KEYS, pta::StoreMessagePacker::PackPod(keyNum) };
+    return { torch_npu::MessageType::GET_NUM_KEYS, request.fd, torch_npu::StoreMessagePacker::PackPod(keyNum) };
 }
 
-pta::StoreMessage ParallelStoreServer::ProcessWaitKeysRequest(int fd, const pta::StoreMessage &request) noexcept
+torch_npu::StoreMessage ParallelStoreServer::ProcessWaitKeysRequest(int fd, const torch_npu::StoreMessage &request) noexcept
 {
     int64_t numKeysToWait = 0;
     std::vector<std::string> waitKeys;
     waitKeys.reserve(request.keys.size());
 
-    std::unique_lock<pta::SpinLock> lockGuard{ serverLock_ };
+    std::unique_lock<torch_npu::SpinLock> lockGuard{ serverLock_ };
     if (CheckAllKeysExistInLock(request.keys)) {
         lockGuard.unlock();
 
-        std::vector<uint8_t> body{ static_cast<uint8_t>(pta::MessageWaitKeyRes::KEYS_STOP_WAITING) };
-        return { pta::MessageType::WAIT, body };
+        std::vector<uint8_t> body{ static_cast<uint8_t>(torch_npu::MessageWaitKeyRes::KEYS_STOP_WAITING) };
+        return { torch_npu::MessageType::WAIT, request.fd, body };
     }
 
     for (auto &key : request.keys) {
@@ -218,61 +239,103 @@ pta::StoreMessage ParallelStoreServer::ProcessWaitKeysRequest(int fd, const pta:
             numKeysToWait++;
         }
     }
-    server_->SetKeysWaitingSocket(waitKeys, fd, numKeysToWait);
+    server_->SetKeysWaitingSocket(waitKeys, fd, request.fd, numKeysToWait);
     lockGuard.unlock();
 
-    return pta::StoreMessage{ pta::MessageType::INVALID_MSG };
+    return torch_npu::StoreMessage{ torch_npu::MessageType::INVALID_MSG, request.fd};
 }
 
 void ParallelStoreServer::InitializeHandlers() noexcept
 {
-    requestHandlers_.emplace(pta::MessageType::SET,
-        [this](int fd, const pta::StoreMessage &req) { return ProcessSetRequest(fd, req); });
-    requestHandlers_.emplace(pta::MessageType::COMPARE_SET,
-        [this](int fd, const pta::StoreMessage &req) { return ProcessCompareSetRequest(fd, req); });
-    requestHandlers_.emplace(pta::MessageType::GET,
-        [this](int fd, const pta::StoreMessage &req) { return ProcessGetRequest(fd, req); });
-    requestHandlers_.emplace(pta::MessageType::ADD,
-        [this](int fd, const pta::StoreMessage &req) { return ProcessAddRequest(fd, req); });
-    requestHandlers_.emplace(pta::MessageType::CHECK,
-        [this](int fd, const pta::StoreMessage &req) { return ProcessCheckRequest(fd, req); });
-    requestHandlers_.emplace(pta::MessageType::WAIT,
-        [this](int fd, const pta::StoreMessage &req) { return ProcessWaitKeysRequest(fd, req); });
-    requestHandlers_.emplace(pta::MessageType::GET_NUM_KEYS,
-        [this](int fd, const pta::StoreMessage &req) { return ProcessGetNumKeyRequest(fd, req); });
-    requestHandlers_.emplace(pta::MessageType::DELETE_KEY,
-        [this](int fd, const pta::StoreMessage &req) { return ProcessDeleteRequest(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::SET,
+        [this](int fd, const torch_npu::StoreMessage &req) { return ProcessSetRequest(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::COMPARE_SET,
+        [this](int fd, const torch_npu::StoreMessage &req) { return ProcessCompareSetRequest(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::GET,
+        [this](int fd, const torch_npu::StoreMessage &req) { return ProcessGetRequest(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::ADD,
+        [this](int fd, const torch_npu::StoreMessage &req) { return ProcessAddRequest(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::CHECK,
+        [this](int fd, const torch_npu::StoreMessage &req) { return ProcessCheckRequest(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::WAIT,
+        [this](int fd, const torch_npu::StoreMessage &req) { return ProcessWaitKeysRequest(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::GET_NUM_KEYS,
+        [this](int fd, const torch_npu::StoreMessage &req) { return ProcessGetNumKeyRequest(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::DELETE_KEY,
+        [this](int fd, const torch_npu::StoreMessage &req) { return ProcessDeleteRequest(fd, req); });
+}
+
+void ParallelStoreServer::LocalInitializeHandlers() noexcept
+{
+    requestHandlers_.emplace(torch_npu::MessageType::SET,
+        [this](int fd, const torch_npu::StoreMessage &req) { return callback_(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::COMPARE_SET,
+        [this](int fd, const torch_npu::StoreMessage &req) { return callback_(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::GET,
+        [this](int fd, const torch_npu::StoreMessage &req) { return callback_(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::ADD,
+        [this](int fd, const torch_npu::StoreMessage &req) { return callback_(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::CHECK,
+        [this](int fd, const torch_npu::StoreMessage &req) { return callback_(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::WAIT,
+        [this](int fd, const torch_npu::StoreMessage &req) { return callback_(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::GET_NUM_KEYS,
+        [this](int fd, const torch_npu::StoreMessage &req) { return callback_(fd, req); });
+    requestHandlers_.emplace(torch_npu::MessageType::DELETE_KEY,
+        [this](int fd, const torch_npu::StoreMessage &req) { return callback_(fd, req); });
 }
 
 bool ParallelStoreServer::CheckAllKeysExistInLock(const std::vector<std::string> &keys) noexcept
 {
     return std::all_of(keys.begin(), keys.end(), [this](const std::string &key) { return keyStore_.count(key) > 0; });
 }
-}
+} // torch_npu
 
 std::mutex ParallelTcpStore::cacheServerMutex_;
-std::unordered_map<uint16_t, std::weak_ptr<pta::ParallelStoreServer>> ParallelTcpStore::cachedServers_;
+std::unordered_map<uint16_t, std::weak_ptr<torch_npu::ParallelStoreServer>> ParallelTcpStore::cachedServers_;
 
-ParallelTcpStore::ParallelTcpStore(const std::string &host, const c10d::TCPStoreOptions &opts)
-    : Store(opts.timeout), client_{ host, opts.port }
+ParallelTcpStore::ParallelTcpStore(const std::string &host, const bool &agentRun, const uint32_t &agentPid,
+    const bool &enableTiered, const c10d::TCPStoreOptions &opts)
+    : Store(opts.timeout)
 {
     if (opts.isServer) {
+        auto start_server = std::chrono::high_resolution_clock::now();
         if (opts.multiTenant) {
             server_ = GetSharedServer(initKey_, host, opts.port, opts.numWorkers);
         } else {
-            server_ = std::make_shared<pta::ParallelStoreServer>(initKey_, host, opts.port, opts.numWorkers);
+            server_ = std::make_shared<torch_npu::ParallelStoreServer>(initKey_, host, opts.port, opts.numWorkers);
         }
+        auto end_server = std::chrono::high_resolution_clock::now();
+        auto cost_server = std::chrono::duration_cast<std::chrono::microseconds>(end_server - start_server).count();
+        ASCEND_LOGI("Create server store success, cost: %d microseconds.", cost_server);
     }
-
-    if (client_.Connect() != 0) {
+    if (!enableTiered) {
+        client_= std::make_unique<torch_npu::Client>(host, opts.port, timeout_);
+        if (client_->Connect() != 0) {
         throw std::runtime_error{ std::string("connect tcp client to server(")
                                       .append(host)
                                       .append(":")
                                       .append(std::to_string(opts.port))
                                       .append(" failed.") };
+        }
+    } else {
+        const std::string socketName = "local_abstract_namespace" + std::to_string(agentPid);
+        if (agentRun) {
+            auto start = std::chrono::high_resolution_clock::now();
+            proxy_ = std::make_unique<torch_npu::Proxy>(socketName, host, opts.port, timeout_);
+            proxy_->Start();
+            auto end = std::chrono::high_resolution_clock::now();
+            auto cost = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            ASCEND_LOGI("Create agent store and tcp connect server success, cost: %d microseconds.", cost);
+        } else {
+            client_= std::make_unique<torch_npu::Client>(socketName, timeout_);
+            if (client_->LocalConnect() != 0) {
+                throw std::runtime_error{"connect local client to server failed."};
+            }
+        }
     }
 
-    if (opts.waitWorkers) {
+    if (opts.waitWorkers && agentRun) {
         IncreaseKey(initKey_, 1);
         if (opts.isServer) {
             server_->WaitWorkers(timeout_);
@@ -282,29 +345,43 @@ ParallelTcpStore::ParallelTcpStore(const std::string &host, const c10d::TCPStore
 
 ParallelTcpStore::~ParallelTcpStore() noexcept
 {
-    client_.Close();
+    if (proxy_) {
+        proxy_->Stop();
+    } else {
+        client_->LocalClose();
+    }
 }
 
 void ParallelTcpStore::set(const std::string &key, const std::vector<uint8_t> &value)
 {
-    pta::StoreMessage request{ pta::MessageType::SET, key, value };
-    pta::StoreMessage response;
+    torch_npu::StoreMessage request{ torch_npu::MessageType::SET, 0, key, value };
+    torch_npu::StoreMessage response;
     std::lock_guard<std::mutex> lockGuard{ clientMutex_ };
-    auto ret = client_.SyncCall(request, response);
+    int ret = -1;
+    if (proxy_) {
+        ret = proxy_->SyncCall(request, response);
+    } else {
+        ret = client_->SyncCall(request, response);
+    }
     if (ret != 0) {
-        throw std::runtime_error{ std::string("set key ").append(key).append(" failed.") };
+        throw std::runtime_error{ std::string("set key ") + key + " failed or timeout." };
     }
 }
 
 std::vector<uint8_t> ParallelTcpStore::compareSet(const std::string &key, const std::vector<uint8_t> &currentValue,
     const std::vector<uint8_t> &newValue)
 {
-    pta::StoreMessage request{ pta::MessageType::COMPARE_SET, key, currentValue, newValue };
-    pta::StoreMessage response;
+    torch_npu::StoreMessage request{ torch_npu::MessageType::COMPARE_SET, 0, key, currentValue, newValue };
+    torch_npu::StoreMessage response;
     std::lock_guard<std::mutex> lockGuard{ clientMutex_ };
-    auto ret = client_.SyncCall(request, response);
+    int ret = -1;
+    if (proxy_) {
+        ret = proxy_->SyncCall(request, response);
+    } else {
+        ret = client_->SyncCall(request, response);
+    }
     if (ret != 0) {
-        throw std::runtime_error{ std::string("compare and set key ").append(key).append(" failed.") };
+        throw std::runtime_error{ std::string("compare and set key ") + key + " failed or timeout." };
     }
 
     return response.values.empty() ? std::vector<uint8_t>{} : std::move(response.values[0]);
@@ -312,22 +389,33 @@ std::vector<uint8_t> ParallelTcpStore::compareSet(const std::string &key, const 
 
 std::vector<uint8_t> ParallelTcpStore::get(const std::string &key)
 {
-    pta::StoreMessage waitReq{ pta::MessageType::WAIT, key };
-    pta::StoreMessage getReq{ pta::MessageType::GET, key };
-    pta::StoreMessage waitResp;
-    pta::StoreMessage getResp;
+    torch_npu::StoreMessage waitReq{ torch_npu::MessageType::WAIT, 0, key };
+    torch_npu::StoreMessage getReq{ torch_npu::MessageType::GET, 0, key };
+    torch_npu::StoreMessage waitResp;
+    torch_npu::StoreMessage getResp;
 
     std::lock_guard<std::mutex> lockGuard{ clientMutex_ };
-    auto ret = client_.SyncCall(waitReq, waitResp);
-    if (ret != 0) {
-        throw std::runtime_error{ std::string("get key ").append(key).append(" failed.") };
-    }
+    int ret = -1;
+    if (proxy_) {
+        ret = proxy_->SyncCall(waitReq, waitResp);
+        if (ret != 0) {
+            throw std::runtime_error{ std::string("proxy sync wait msg") + key + " failed or timeout." };
+        }
+        ret = proxy_->SyncCall(getReq, getResp);
+        if (ret != 0) {
+            throw std::runtime_error{ std::string("proxy sync get msg") + key + " failed or timeout." };
+        }
+    } else {
+        ret = client_->SyncCall(waitReq, waitResp);
+        if (ret != 0) {
+            throw std::runtime_error{ std::string("get key ") + key + " failed or timeout." };
+        }
 
-    ret = client_.SyncCall(getReq, getResp);
-    if (ret != 0) {
-        throw std::runtime_error{ std::string("get key ").append(key).append(" failed.") };
+        ret = client_->SyncCall(getReq, getResp);
+        if (ret != 0) {
+            throw std::runtime_error{ std::string("get key ") + key + " failed or timeout." };
+        }
     }
-
     return getResp.values.empty() ? std::vector<uint8_t>{} : std::move(getResp.values[0]);
 }
 
@@ -338,12 +426,17 @@ int64_t ParallelTcpStore::add(const std::string &key, int64_t value)
 
 bool ParallelTcpStore::deleteKey(const std::string &key)
 {
-    pta::StoreMessage request{ pta::MessageType::DELETE_KEY, key };
-    pta::StoreMessage response;
+    torch_npu::StoreMessage request{ torch_npu::MessageType::DELETE_KEY, 0, key };
+    torch_npu::StoreMessage response;
     std::lock_guard<std::mutex> lockGuard{ clientMutex_ };
-    auto ret = client_.SyncCall(request, response);
+    int ret = -1;
+    if (proxy_) {
+        ret = proxy_->SyncCall(request, response);
+    } else {
+        ret = client_->SyncCall(request, response);
+    }
     if (ret != 0) {
-        throw std::runtime_error{ std::string("delete key ").append(key).append(" failed.") };
+        throw std::runtime_error{ std::string("delete key ") + key + " failed or timeout." };
     }
 
     return !response.values.empty() && !response.values[0].empty() && response.values[0][0] > 0U;
@@ -356,15 +449,20 @@ bool ParallelTcpStore::check(const std::vector<std::string> &keys)
 
 int64_t ParallelTcpStore::getNumKeys()
 {
-    pta::StoreMessage request{ pta::MessageType::GET_NUM_KEYS };
-    pta::StoreMessage response;
+    torch_npu::StoreMessage request{ torch_npu::MessageType::GET_NUM_KEYS, 0};
+    torch_npu::StoreMessage response;
     std::lock_guard<std::mutex> lockGuard{ clientMutex_ };
-    auto ret = client_.SyncCall(request, response);
+    int ret = -1;
+    if (proxy_) {
+        ret = proxy_->SyncCall(request, response);
+    } else {
+        ret = client_->SyncCall(request, response);
+    }
     if (ret != 0) {
-        throw std::runtime_error{ "get number keys failed." };
+        throw std::runtime_error{ "get number keys failed or timeout." };
     }
 
-    return pta::StoreMessagePacker::UnpackPod<int64_t>(response.values[0]);
+    return torch_npu::StoreMessagePacker::UnpackPod<int64_t>(response.values[0]);
 }
 
 void ParallelTcpStore::wait(const std::vector<std::string> &keys)
@@ -374,9 +472,9 @@ void ParallelTcpStore::wait(const std::vector<std::string> &keys)
 
 void ParallelTcpStore::wait(const std::vector<std::string> &keys, const std::chrono::milliseconds &timeout)
 {
-    pta::StoreMessage request{ pta::MessageType::WAIT, keys };
-    pta::StoreMessage response;
-    client_.SetReceiveTimeout(timeout);
+    torch_npu::StoreMessage request{ torch_npu::MessageType::WAIT, 0, keys };
+    torch_npu::StoreMessage response;
+    client_->SetReceiveTimeout(timeout);
     std::lock_guard<std::mutex> lockGuard{ clientMutex_ };
     DoWait(request, response);
 }
@@ -393,26 +491,37 @@ void ParallelTcpStore::setTimeout(const std::chrono::milliseconds &timeout)
 
 int64_t ParallelTcpStore::IncreaseKey(const std::string &key, int64_t value)
 {
-    pta::StoreMessage request{ pta::MessageType::ADD, key, pta::StoreMessagePacker::PackPod(value) };
-    pta::StoreMessage response;
+    torch_npu::StoreMessage request{ torch_npu::MessageType::ADD, 0, key, torch_npu::StoreMessagePacker::PackPod(value) };
+    torch_npu::StoreMessage response;
     std::lock_guard<std::mutex> lockGuard{ clientMutex_ };
-    auto ret = client_.SyncCall(request, response);
-    if (ret != 0) {
-        throw std::runtime_error{ std::string("add key ").append(key).append(" failed.") };
+    int ret = -1;
+    if (proxy_) {
+        ret = proxy_->SyncCall(request, response);
+    } else {
+        ret = client_->SyncCall(request, response);
     }
 
-    return pta::StoreMessagePacker::UnpackPod<int64_t>(response.values[0]);
+    if (ret != 0) {
+        throw std::runtime_error{ std::string("add key ") + key + " failed or timeout." };
+    }
+
+    return torch_npu::StoreMessagePacker::UnpackPod<int64_t>(response.values[0]);
 }
 
-void ParallelTcpStore::DoWait(const pta::StoreMessage &req, pta::StoreMessage &res)
+void ParallelTcpStore::DoWait(const torch_npu::StoreMessage &req, torch_npu::StoreMessage &res)
 {
-    auto ret = client_.SyncCall(req, res);
+    int ret = -1;
+    if (proxy_) {
+        ret = proxy_->SyncCall(req, res);
+    } else {
+        ret = client_->SyncCall(req, res);
+    }
     if (ret != 0) {
-        throw std::runtime_error{ "get number keys failed." };
+        throw std::runtime_error{ "get number keys failed or timeout." };
     }
 }
 
-std::shared_ptr<pta::ParallelStoreServer> ParallelTcpStore::GetSharedServer(const std::string &initKey,
+std::shared_ptr<torch_npu::ParallelStoreServer> ParallelTcpStore::GetSharedServer(const std::string &initKey,
     const std::string host, uint16_t port, c10::optional<std::size_t> numWorkers)
 {
     std::unique_lock<std::mutex> lockGuard{ cacheServerMutex_ };
@@ -425,8 +534,7 @@ std::shared_ptr<pta::ParallelStoreServer> ParallelTcpStore::GetSharedServer(cons
 
         cachedServers_.erase(pos);
     }
-
-    auto server = std::make_shared<pta::ParallelStoreServer>(initKey, host, port, numWorkers);
+    auto server = std::make_shared<torch_npu::ParallelStoreServer>(initKey, host, port, numWorkers);
     cachedServers_.emplace(port, server);
     return server;
 }
