@@ -1,4 +1,4 @@
-/**
+/* *
  * @copyright Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
  *
  * Licensed under the BSD 3-Clause License  (the "License");
@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <cstdint>
-
+#include <map>
 #include <list>
 #include <mutex>
 #include <vector>
@@ -27,8 +27,9 @@
 #include "StoreMessagePacker.hpp"
 
 namespace c10d {
-namespace pta {
-/**
+namespace torch_npu {
+using PI = std::pair<int, int>;
+/* *
  * @brief wrapper for pthread_spinlock_t
  */
 class SpinLock {
@@ -62,7 +63,7 @@ private:
     pthread_spinlock_t spinlock_{};
 };
 
-/**
+/* *
  * @brief store client IO context for server.
  */
 class ClientIoContext {
@@ -94,59 +95,62 @@ private:
 
 using ServerProcFn = std::function<StoreMessage(int fd, const StoreMessage &req)>;
 
-/**
+/* *
  * @brief epoll based TCP server with registered message processor.
  */
 class ParallelTcpServer {
 public:
-    explicit ParallelTcpServer(uint32_t threadNum, const std::string host, uint16_t port, ServerProcFn process) noexcept;
+    explicit ParallelTcpServer(uint32_t threadNum, const std::string host, uint16_t port, uint32_t listenThreadNum,
+		ServerProcFn process) noexcept;
+    explicit ParallelTcpServer(uint32_t threadNum, const std::string localSocketPath, uint32_t listenThreadNum,
+		ServerProcFn process) noexcept;
 
     int Start() noexcept;
-
     void Stop() noexcept;
 
-    inline void SetKeysWaitingSocket(const std::vector<std::string> &keys, int socket, int64_t waitCount) noexcept
+    inline void SetKeysWaitingSocket(const std::vector<std::string> &keys, int socket, int workerFd, int64_t waitCount) noexcept
     {
         std::lock_guard<SpinLock> lockGuard{ spinLock_ };
         for (auto &key : keys) {
-            keyWaitingSockets_[key].emplace_back(socket);
+            keyWaitingSockets_[key].emplace_back(std::make_pair(socket, workerFd));
         }
-        socketWaitKeyNum_[socket] = waitCount;
+        socketWaitKeyNum_[std::make_pair(socket, workerFd)] = waitCount;
     }
 
     void WakeupWaitingClients(const std::string &key) noexcept;
 
 private:
     static int CreateSocket(const std::string host, uint16_t port) noexcept;
+    static int CreateLocalSocket(const std::string &localSocketPath) noexcept;
 
     static int CreateEpoll(int targetFd = -1) noexcept;
 
-    void LoopProcessListenFd() noexcept;
-
     void LoopProcessClients(int epollFd) noexcept;
 
-    void ProcessListenEvent(uint32_t event) noexcept;
+    void ProcessListenEvent() noexcept;
 
     void ProcessClientEvent(int epFd, int fd, uint32_t event, std::unordered_map<int, ClientIoContext> &ctx) noexcept;
 
     static int SetNonBlocking(int fd) noexcept;
-
+    static int SetBlockSocketTimeout(int fd) noexcept;
 private:
-    const uint32_t threadNum_;
-    const std::uint16_t port_;
-    const std::string host_;
-    const ServerProcFn process_;
+    const uint32_t listenThreadNum_{ 1 };
+    const uint32_t threadNum_{ 0 };
+    const std::uint16_t port_{ 0 };
+    const std::string host_{};
+    const std::string localSocketPath_{};
+    const ServerProcFn process_{ nullptr };
     int listenSocket_{ -1 };
-    int epCtlFd_{ -1 };
-    std::thread ctlThread_;
+    bool isLocalServer_{ false };
     std::vector<int> epClientFds_;
     std::vector<std::thread> clientThreads_;
+    std::vector<std::thread> listenThreads_;
     uint8_t *buffer_{ nullptr };
     std::atomic<bool> running_{ false };
 
     SpinLock spinLock_;
-    std::unordered_map<std::string, std::list<int>> keyWaitingSockets_;
-    std::unordered_map<int, int64_t> socketWaitKeyNum_;
+    std::unordered_map<std::string, std::list<PI>> keyWaitingSockets_;
+    std::map<PI, int64_t> socketWaitKeyNum_;
 };
+} // torch_npu
 } // c10d
-} // pta

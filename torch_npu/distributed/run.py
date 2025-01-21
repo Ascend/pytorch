@@ -1,13 +1,29 @@
 from torch.distributed import run as torch_run
+from torch.distributed.argparse_util import check_env, env
+from torch.distributed.run import get_args_parser
 from torch.distributed.elastic.multiprocessing.errors import record
 import torch_npu
 
-__all__ = []
+__all__ = ["parse_args"]
+
+
+def parse_args(args):
+    parser = get_args_parser()
+    parser.add_argument(
+        "--enable_tiered_parallel_tcpstore",
+        "--enable_tiered_parallel_tcpstore",
+        action=env,
+        type=str,
+        default="false",
+        help="Turn parallel tcpstore tiered optimization, if true, The agent adds a proxy role," 
+        "the worker on this node will connect to the server through the proxy.",
+    )
+    return parser.parse_args(args)
 
 
 @record
 def _main(args=None):
-    args = torch_run.parse_args(args)
+    args = parse_args(args)
     args.rdzv_backend = 'parallel'
     torch_run.run(args)
 

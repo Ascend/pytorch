@@ -15,7 +15,7 @@ from torch.distributed import Store, PrefixStore
 from torch.distributed.elastic.rendezvous.api import RendezvousParameters, RendezvousHandler, RendezvousInfo, RendezvousStoreInfo
 from torch.distributed.elastic.rendezvous.api import rendezvous_handler_registry as handler_registry
 from torch.distributed.elastic.rendezvous.utils import parse_rendezvous_endpoint
-from torch.distributed.run import parse_args as torch_parse_cmd_args
+from torch_npu.distributed.run import parse_args as torch_parse_cmd_args
 from torch_npu.distributed import ParallelStore
 
 log = logging.getLogger(__name__)
@@ -49,18 +49,21 @@ def _create_c10d_store(hostname, port, rank, world_size, timeout) -> Store:
     and port are correctly passed via ``hostname`` and ``port``. All
     non-zero ranks will create and return a ParallelStore client.
     """
+    agent_run = False
+    agent_pid = int(os.getenv('PROXY_AGENT_PID_USE_LOCAL_SOCKET_PATH', -1))
+    enable_tiered = str(os.environ.get("ENABLE_TIERED_PARALLEL_TCPSTORE", None)).lower() == "true"
     # check if port is uint16_t
     if not 0 <= port < 2**16:
         raise ValueError(f"port must have value from 0 to 65535 but was {port}.")
 
     if _torchelastic_use_agent_store():
         attempt = os.environ["TORCHELASTIC_RESTART_COUNT"]
-        tcp_store = ParallelStore(hostname, port, world_size, False, timeout)
+        tcp_store = ParallelStore(hostname, port, world_size, agent_run, agent_pid, False, enable_tiered, timeout)
         return PrefixStore(f"/worker/attempt_{attempt}", tcp_store)
     else:
         start_daemon = rank == 0
         return ParallelStore(
-            hostname, port, world_size, start_daemon, timeout, multi_tenant=True
+            hostname, port, world_size, agent_run, agent_pid, start_daemon, enable_tiered, timeout, multi_tenant=True
         )
 
 
@@ -104,14 +107,20 @@ class _ParallelTCPRendezvous(RendezvousHandler):
         master_port: int,
         rank: int,
         world_size: int,
+        agent_run: bool,
+        agent_pid: int,
         run_id: str,
+        enable_tiered: bool,
         timeout: int,
     ):
         self.master_addr = master_addr
         self.master_port = master_port
         self.rank = rank
         self.world_size = world_size
+        self.agent_run = agent_run
+        self.agent_pid = agent_pid
         self.run_id = run_id
+        self.enable_tiered = enable_tiered
         self.timeout = timedelta(seconds=timeout)
         self._store: Optional[Store] = None
 
@@ -126,7 +135,10 @@ class _ParallelTCPRendezvous(RendezvousHandler):
                 self.master_addr,
                 self.master_port,
                 self.world_size,
+                self.agent_run,
+                self.agent_pid,
                 is_master,
+                self.enable_tiered,
                 self.timeout,
                 multi_tenant=True,
             )
@@ -157,6 +169,11 @@ def _create_parallel_handler(params: RendezvousParameters) -> RendezvousHandler:
             "rank is absent in RendezvousParameters."
             "Try add --node_rank to the cmd request"
         )
+    if 'enable_tiered_parallel_tcpstore' not in origin_args:
+        raise ValueError(
+            "rank is absent in RendezvousParameters."
+            "Try add --enable_tiered_parallel_tcpstore to the cmd request"
+        )
     params.config["rank"] = origin_args.node_rank
 
     if 'master_addr' not in origin_args or 'master_port' not in origin_args:
@@ -178,10 +195,14 @@ def _create_parallel_handler(params: RendezvousParameters) -> RendezvousHandler:
         timeout = int(params.config["timeout"])
     else:
         timeout = _default_timeout_seconds
-
+    os.environ.setdefault("ENABLE_TIERED_PARALLEL_TCPSTORE", str(origin_args.enable_tiered_parallel_tcpstore))
     os.environ.setdefault("TORCH_NPU_ELASTIC_USE_AGENT_STORE", str(True))
+    enable_tiered = str(origin_args.enable_tiered_parallel_tcpstore).lower() == "true"
+    agent_run = True
+    agent_pid = os.getpid()
+    os.environ.setdefault("PROXY_AGENT_PID_USE_LOCAL_SOCKET_PATH", str(agent_pid))
     return _ParallelTCPRendezvous(
-        master_addr, master_port, rank, world_size, run_id, timeout
+        master_addr, master_port, rank, world_size, agent_run, agent_pid, run_id, enable_tiered, timeout
     )
 
 

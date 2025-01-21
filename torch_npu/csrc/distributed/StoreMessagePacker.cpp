@@ -16,7 +16,7 @@
 #include "StoreMessagePacker.hpp"
 
 namespace c10d {
-namespace pta {
+namespace torch_npu {
 /*
  * size  mt  keyN  keys       vN    values
  * +----+----+----+----------+----+------------+
@@ -32,7 +32,7 @@ namespace pta {
  */
 std::vector<uint8_t> StoreMessagePacker::Pack(const StoreMessage &message) noexcept
 {
-    constexpr uint64_t baseSize = 3U * sizeof(uint64_t) + sizeof(MessageType); // size + mt + keyN + vN
+    constexpr uint64_t baseSize = 3U * sizeof(uint64_t) + sizeof(MessageType) + sizeof(int); // size + mt + keyN + vN + fd
     uint64_t totalSize = baseSize;
     for (auto &key : message.keys) {
         totalSize += (sizeof(uint64_t) + key.size());
@@ -45,6 +45,7 @@ std::vector<uint8_t> StoreMessagePacker::Pack(const StoreMessage &message) noexc
     result.reserve(totalSize);
     PackValue(result, totalSize);
     PackValue(result, message.mt);
+    PackValue(result, message.fd);
 
     PackValue(result, message.keys.size());
     for (auto &key : message.keys) {
@@ -61,7 +62,7 @@ std::vector<uint8_t> StoreMessagePacker::Pack(const StoreMessage &message) noexc
 
 bool StoreMessagePacker::Full(const std::vector<uint8_t> &buffer) noexcept
 {
-    if (buffer.size() < sizeof(uint64_t) + sizeof(MessageType)) {
+    if (buffer.size() < sizeof(uint64_t) + sizeof(MessageType) + sizeof(int)) {
         return false;
     }
 
@@ -90,6 +91,9 @@ int64_t StoreMessagePacker::Unpack(const std::vector<uint8_t> &buffer, StoreMess
 
     message.mt = *reinterpret_cast<const MessageType *>(ptr);
     ptr += sizeof(MessageType);
+
+    message.fd = *reinterpret_cast<const int *>(ptr);
+    ptr += sizeof(int);
 
     auto keyCount = *reinterpret_cast<const uint64_t *>(ptr);
     ptr += sizeof(uint64_t);
@@ -127,5 +131,5 @@ void StoreMessagePacker::PackBytes(std::vector<uint8_t> &dest, const std::vector
     PackValue(dest, static_cast<uint64_t>(bytes.size()));
     dest.insert(dest.end(), bytes.begin(), bytes.end());
 }
-}
+} // torch_npu
 } // c10d
