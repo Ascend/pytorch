@@ -457,44 +457,68 @@ Arguments:
     host_name (str): The hostname or IP Address the server store should run on.
     port (int): The port on which the server store should listen for incoming requests.
     world_size (int, optional): The total number of store users (number of clients + 1 for the server). Default is -1 (a negative value indicates a non-fixed number of store users).
+    agentRun(bool): The client(worker), agentRun is False. The agent(proxy), agentRun is True.
+    agentPid(int): Generally, a single `torch_run` is launched on a node. If multiple `torch_run` are launched on a node, the agentPid refers to the process ID (PID) of each `torch_run`.
+                   The pid transmit to the worker through environment variable and is used for local socket communication.
     is_master (bool, optional): True when initializing the server store and False for client stores. Default is False.
+    enableTiered(bool, optional): parallel tcpstore tiered optimization, if True, The agent adds a proxy role, the worker on the node connects to the proxy via Unix Domain Socket.
+                  and the proxy connects to the server via TCP, completing the establishment and communication of the connection., Default is False.
     timeout (timedelta, optional): Timeout used by the store during initialization and for methods such as :meth:`~torch.distributed.store.get` and :meth:`~torch.distributed.store.wait`. Default is timedelta(seconds=300)
     wait_for_worker (bool, optional): Whether to wait for all the workers to connect with the server store. This is only applicable when world_size is a fixed value. Default is True.
 
+--enable_tiered_parallel_tcpstore = "false":
 Example::
     >>> import torch_npu.distributed as dist
     >>> from datetime import timedelta
     >>> # Run on process 1 (server)
-    >>> server_store = dist.ParallelStore("127.0.0.1", 1234, 2, True, timedelta(seconds=30))
+    >>> server_store = dist.ParallelStore("127.0.0.1", 1234, 2, True, 100, True, timedelta(seconds=30))
     >>> # Run on process 2 (client)
-    >>> client_store = dist.ParallelStore("127.0.0.1", 1234, 2, False)
+    >>> client_store = dist.ParallelStore("127.0.0.1", 1234, 2, False, 100, False)
     >>> # Use any of the store methods from either the client or server after initialization
     >>> server_store.set("first_key", "first_value")
     >>> client_store.get("first_key")
-    )")
-        .def(py::init([](const std::string &host,
-                        uint16_t port,
-                        int worldSize,
-                        bool isServer,
-                        std::chrono::milliseconds timeout,
-                        bool waitWorkers,
-                        bool multiTenant) {
-                c10::optional<std::size_t> numWorkers = c10::nullopt;
-                if (worldSize > -1) {
-                    numWorkers = static_cast<std::size_t>(worldSize);
-                }
 
-                ::c10d::TCPStoreOptions opts{ port, isServer, numWorkers, waitWorkers, timeout, multiTenant };
-                return c10::make_intrusive <::c10d::ParallelTcpStore>(host, opts);
+--enable_tiered_parallel_tcpstore = "true":
+Example::
+    >>> import torch_npu.distributed as dist
+    >>> from datetime import timedelta
+    >>> # Run on process 1 (server proxy)
+    >>> server_store = dist.ParallelStore("127.0.0.1", 1234, 2, True, 100, True, True, timedelta(seconds=30))
+    >>> # Run on process 2 (client)
+    >>> client_store = dist.ParallelStore("127.0.0.1", 1234, 2, False, 100, False, True)
+    >>> # Use any of the store methods from either the client or server and proxy after initialization
+    >>> server_store.set("first_key", "first_value")
+    >>> client_store.get("first_key")
+    )")
+
+      .def(py::init([](const std::string &host,
+                      uint16_t port,
+                      int worldSize,
+                      bool agentRun,
+                      uint32_t agentPid,
+                      bool isServer,
+                      bool enableTiered,
+                      std::chrono::milliseconds timeout,
+                      bool waitWorkers,
+                      bool multiTenant) {
+            c10::optional<std::size_t> numWorkers = c10::nullopt;
+            if (worldSize > -1) {
+                numWorkers = static_cast<std::size_t>(worldSize);
+            }
+            ::c10d::TCPStoreOptions opts{ port, isServer, numWorkers, waitWorkers, timeout, multiTenant };
+            return c10::make_intrusive <::c10d::ParallelTcpStore>(host, agentRun, agentPid, enableTiered, opts);
             }),
-             py::arg("host") = "127.0.0.1",
-             py::arg("port") = 29500,
-             py::arg("world_size") = -1,
-             py::arg("is_server") = false,
-             py::arg("timeout") = std::chrono::milliseconds(300000),
-             py::arg("wait_workers") = true,
-             py::arg("multi_tenant") = false);
-    Py_RETURN_TRUE;
+           py::arg("host") = "127.0.0.1",
+           py::arg("port") = 29500,
+           py::arg("world_size") = -1,
+           py::arg("agent_run") = false,
+           py::arg("agent_pid") = -1,
+           py::arg("is_server") = false,
+           py::arg("enable_tiered") = false,
+           py::arg("timeout") = std::chrono::milliseconds(300000),
+           py::arg("wait_workers") = true,
+           py::arg("multi_tenant") = false);
+  Py_RETURN_TRUE;
 }
 
 // c10d methods on torch._C
