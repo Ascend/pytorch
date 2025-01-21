@@ -99,6 +99,9 @@ static const int32_t ACL_ERROR_RT_AICPU_INTERNAL_ERROR       = 507900; // aicpu 
 static const int32_t ACL_ERROR_RT_SOCKET_CLOSE               = 507901; // hdc disconnect
 
 static const int32_t ACLNN_CLEAR_DEVICE_STATE_FAIL             = 574007;  // voltage recovery fail
+static const int32_t ACLNN_STRESS_BIT_FAIL                     = 574006;
+static const int32_t ACLNN_STRESS_LOW_BIT_FAIL                 = 574008;
+static const int32_t ACLNN_STRESS_HIGH_BIT_FAIL                = 574009;
 
 #ifdef __cplusplus
 }
