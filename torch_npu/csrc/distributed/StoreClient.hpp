@@ -1,4 +1,4 @@
-/**
+/* *
  * @copyright Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
  *
  * Licensed under the BSD 3-Clause License  (the "License");
@@ -22,20 +22,25 @@
 #include "StoreMessagePacker.hpp"
 
 namespace c10d {
-namespace pta {
-class TcpClient {
+namespace torch_npu {
+constexpr uint32_t READ_BUF_SZ = 256;
+class Client {
 public:
-    TcpClient(std::string host, uint16_t port) noexcept;
+    explicit Client(const std::string host, uint16_t port, const std::chrono::milliseconds timeout) noexcept;
+    explicit Client(const std::string localSocketPath, const std::chrono::milliseconds timeout) noexcept;
     int Connect() noexcept;
     int Close() noexcept;
+    int LocalConnect() noexcept;
+    int LocalClose() noexcept;
     int SyncCall(const StoreMessage &request, StoreMessage &response) noexcept;
     int SetReceiveTimeout(const std::chrono::milliseconds &value) const noexcept;
-
+    int GetSocketFd() noexcept;
 private:
-    const std::string host_;
-    const uint16_t port_;
+    const std::string localSocketPath_{};
+    const std::string host_{};
+    const uint16_t port_{ 0 };
     int socketFd_;
+    std::chrono::milliseconds timeout_;
 };
-} // pta
+} // torch_npu
 } // c10d
-

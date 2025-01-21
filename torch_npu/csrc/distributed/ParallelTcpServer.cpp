@@ -1,4 +1,4 @@
-/**
+/* *
  * @copyright Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
  *
  * Licensed under the BSD 3-Clause License  (the "License");
@@ -15,6 +15,7 @@
  */
 #include <sys/socket.h>
 #include <sys/epoll.h>
+#include <sys/un.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -23,7 +24,7 @@
 #include "ParallelTcpServer.hpp"
 
 namespace c10d {
-namespace pta {
+namespace torch_npu {
 static constexpr uint32_t MAX_EVENT_COUNT = 128;
 static constexpr uint32_t BUFFER_LOW_LEVEL = 32;
 static constexpr uint32_t BUFFER_EXPEND_SIZE = 256;
@@ -106,12 +107,28 @@ ParallelTcpServer::ParallelTcpServer(
     uint32_t threadNum,
     const std::string host,
     uint16_t port,
+    uint32_t listenThreadNum,
     ServerProcFn process) noexcept
     : threadNum_{ std::max(4U, threadNum) },
       host_{ host },
       port_{ port },
+      listenThreadNum_{ listenThreadNum },
       process_{ std::move(process) }
 {}
+
+ParallelTcpServer::ParallelTcpServer(
+    uint32_t threadNum,
+    const std::string localSocketPath,
+    uint32_t listenThreadNum,
+    ServerProcFn process) noexcept
+    : threadNum_{ std::max(4U, threadNum) },
+      localSocketPath_{ localSocketPath },
+      listenThreadNum_ { listenThreadNum },
+      process_{ std::move(process) }
+{
+    isLocalServer_ = true;
+}
+
 
 int ParallelTcpServer::Start() noexcept
 {
@@ -121,17 +138,12 @@ int ParallelTcpServer::Start() noexcept
         return -1;
     }
 
-    listenSocket_ = CreateSocket(host_, port_);
-    if (listenSocket_ < 0) {
-        delete[] buffer_;
-        buffer_ = nullptr;
-        return -1;
+    if (isLocalServer_) {
+        listenSocket_ = CreateLocalSocket(localSocketPath_);
+    } else {
+        listenSocket_ = CreateSocket(host_, port_);
     }
-
-    epCtlFd_ = CreateEpoll(listenSocket_);
-    if (epCtlFd_ < 0) {
-        close(listenSocket_);
-        listenSocket_ = -1;
+    if (listenSocket_ < 0) {
         delete[] buffer_;
         buffer_ = nullptr;
         return -1;
@@ -140,6 +152,7 @@ int ParallelTcpServer::Start() noexcept
     running_ = true;
     epClientFds_.reserve(threadNum_);
     clientThreads_.reserve(threadNum_);
+    listenThreads_.reserve(listenThreadNum_);
     auto initializeFailed = false;
     for (auto i = 0U; i < threadNum_; i++) {
         auto clientEpFd = CreateEpoll();
@@ -152,8 +165,9 @@ int ParallelTcpServer::Start() noexcept
         clientThreads_.emplace_back([clientEpFd](ParallelTcpServer *server) { server->LoopProcessClients(clientEpFd); },
             this);
     }
-
-    ctlThread_ = std::thread{ [](ParallelTcpServer *server) { server->LoopProcessListenFd(); }, this };
+    for (auto j = 0U; j < listenThreadNum_; j++) {
+        listenThreads_.emplace_back([](ParallelTcpServer *server) { server->ProcessListenEvent(); }, this);
+    }
     if (initializeFailed) {
         Stop();
         return -1;
@@ -173,10 +187,9 @@ void ParallelTcpServer::Stop() noexcept
         close(fd);
     }
 
-    ctlThread_.join();
-    close(epCtlFd_);
-    epCtlFd_ = -1;
-
+    for (auto &th : listenThreads_) {
+        th.join();
+    }
     close(listenSocket_);
     listenSocket_ = -1;
 
@@ -186,27 +199,27 @@ void ParallelTcpServer::Stop() noexcept
 
 void ParallelTcpServer::WakeupWaitingClients(const std::string &key) noexcept
 {
-    std::list<int> stopWaitingSockets;
+    std::list<PI> stopWaitingSockets;
     std::unique_lock<SpinLock> lockGuard{ spinLock_ };
     auto pos = keyWaitingSockets_.find(key);
     if (pos == keyWaitingSockets_.end()) {
         return;
     }
 
-    for (auto socket : pos->second) {
-        if (--socketWaitKeyNum_[socket] <= 0) {
-            stopWaitingSockets.emplace_back(socket);
-            socketWaitKeyNum_.erase(socket);
+    for (auto it : pos->second) {
+        if (--socketWaitKeyNum_[it] <= 0) {
+            stopWaitingSockets.emplace_back(it);
+            socketWaitKeyNum_.erase(it);
         }
     }
 
     keyWaitingSockets_.erase(key);
     lockGuard.unlock();
 
-    std::vector<uint8_t> body{static_cast<uint8_t>(MessageWaitKeyRes::KEYS_STOP_WAITING)};
-    StoreMessage response{MessageType::WAIT, body};
-    auto buf = StoreMessagePacker::Pack(response);
-    for (auto socket : stopWaitingSockets) {
+    std::vector<uint8_t> body{ static_cast<uint8_t>(MessageWaitKeyRes::KEYS_STOP_WAITING) };
+    for (auto [socket, workerFd] : stopWaitingSockets) {
+        StoreMessage response{ MessageType::WAIT, workerFd, body };
+        auto buf = StoreMessagePacker::Pack(response);
         write(socket, buf.data(), buf.size());
     }
 }
@@ -238,11 +251,51 @@ int ParallelTcpServer::CreateSocket(const std::string host, uint16_t port) noexc
         return -1;
     }
 
-    if (SetNonBlocking(sockFd) != 0) {
+    ret = SetBlockSocketTimeout(sockFd);
+    if (ret != 0) {
+        close(sockFd);
+        return -1;
+    }
+    return sockFd;
+}
+
+int ParallelTcpServer::CreateLocalSocket(const std::string &localSocketPath) noexcept
+{
+    if (localSocketPath.empty()) {
+        LOG(ERROR) << "local socket path invalid." << errno << " : " << strerror(errno);
+        return -1;
+    }
+    
+    struct sockaddr_un servAddr {};
+    servAddr.sun_family = AF_UNIX;
+    servAddr.sun_path[0] = '\0';
+    strncpy(servAddr.sun_path + 1, localSocketPath.c_str(), sizeof(servAddr.sun_path) - 2);
+    servAddr.sun_path[sizeof(servAddr.sun_path) - 1] = '\0';
+    auto sockFd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sockFd < 0) {
+        LOG(ERROR) << "create local  socket fd failed " << errno << " : " << strerror(errno);
+        return -1;
+    }
+
+    auto ret = ::bind(sockFd, reinterpret_cast<struct sockaddr *>(&servAddr), sizeof(servAddr));
+    if (ret != 0) {
+        LOG(ERROR) << "bind local socket fd failed " << errno << " : " << strerror(errno);
         close(sockFd);
         return -1;
     }
 
+    ret = listen(sockFd, MAX_EVENT_COUNT);
+    if (ret != 0) {
+        LOG(ERROR) << "listen local socket fd failed " << errno << " : " << strerror(errno);
+        close(sockFd);
+        return -1;
+    }
+
+    ret = SetBlockSocketTimeout(sockFd);
+    if (ret != 0) {
+        close(sockFd);
+        return -1;
+    }
     return sockFd;
 }
 
@@ -288,24 +341,15 @@ int ParallelTcpServer::SetNonBlocking(int fd) noexcept
     return 0;
 }
 
-void ParallelTcpServer::LoopProcessListenFd() noexcept
+int ParallelTcpServer::SetBlockSocketTimeout(int fd) noexcept
 {
-    int count;
-    struct epoll_event events[MAX_EVENT_COUNT];
-    while (running_) {
-        count = epoll_wait(epCtlFd_, events, MAX_EVENT_COUNT, 1000);
-        if (count < 0) {
-            LOG(ERROR) << "epoll wait failed " << errno << " : " << strerror(errno);
-            continue;
-        }
-
-        for (auto i = 0; i < count; i++) {
-            if (events[i].data.fd == listenSocket_) {
-                ProcessListenEvent(events[i].events);
-                break;
-            }
-        }
+    struct timeval timeout {6, 0};
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char *>(&timeout), sizeof(struct timeval)) != 0) {
+        LOG(ERROR) << "set block accept timeout failed " << errno << " : " << strerror(errno);
+        return -1;
     }
+    
+    return 0;
 }
 
 void ParallelTcpServer::LoopProcessClients(int epollFd) noexcept
@@ -330,7 +374,7 @@ void ParallelTcpServer::LoopProcessClients(int epollFd) noexcept
     }
 }
 
-void ParallelTcpServer::ProcessListenEvent(uint32_t event) noexcept
+void ParallelTcpServer::ProcessListenEvent() noexcept
 {
     int connFd;
     socklen_t sockLen;
@@ -340,7 +384,10 @@ void ParallelTcpServer::ProcessListenEvent(uint32_t event) noexcept
         sockLen = sizeof(cliAddr);
         connFd = accept(listenSocket_, reinterpret_cast<struct sockaddr *>(&cliAddr), &sockLen);
         if (connFd < 0) {
-            break;
+            if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                LOG(ERROR) << "accept new fd failed " << errno << " : " << strerror(errno);
+            }
+            continue;
         }
 
         auto ret = SetNonBlocking(connFd);
@@ -384,7 +431,9 @@ void ParallelTcpServer::ProcessClientEvent(int epFd, int fd, uint32_t event,
         pos->second.ReceiveData();
         while (pos->second.HasNextReq()) {
             auto response = process_(fd, pos->second.NextRequest());
-            pos->second.SendResponse(response);
+            if (response.mt != MessageType::SKIP_MSG) {
+                pos->second.SendResponse(response);
+            }
         }
 
         if (pos->second.SendBufEmpty()) {
@@ -412,5 +461,5 @@ void ParallelTcpServer::ProcessClientEvent(int epFd, int fd, uint32_t event,
         }
     }
 }
-} // pta
+} // torch_npu
 } // c10d
