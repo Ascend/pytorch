@@ -4018,6 +4018,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+            work->lazyDestroy(input_tensors_);
+            work->lazyDestroy(output_tensors_);
             c10_npu::NPUStreamGuard guard(hcclStreams[0]);
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
                 work->stashed_for_allocator_safety_.push_back(output_tensors_[0]);
