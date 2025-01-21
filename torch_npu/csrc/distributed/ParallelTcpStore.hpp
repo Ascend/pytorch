@@ -1,4 +1,4 @@
-/**
+/* *
  * @copyright Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
  *
  * Licensed under the BSD 3-Clause License  (the "License");
@@ -25,34 +25,41 @@
 #include <unordered_map>
 
 #include "c10d/TCPStore.hpp"
-#include "TcpClient.hpp"
+#include "StoreClient.hpp"
 #include "ParallelTcpServer.hpp"
 namespace c10d {
-namespace pta {
+namespace torch_npu {
+class Proxy;
+
+using CallBackFn = std::function<StoreMessage(const int &, const StoreMessage &)>;
 class ParallelStoreServer {
 public:
-    ParallelStoreServer(std::string initKey, const std::string host, uint16_t port,
-        c10::optional<std::size_t> numWorkers);
+    explicit ParallelStoreServer(std::string initKey, const std::string host, uint16_t port,
+        c10::optional<std::size_t> numWorkers) noexcept;
+    explicit ParallelStoreServer(const std::string localSocketPath, CallBackFn callback) noexcept;
     virtual ~ParallelStoreServer() noexcept;
     void WaitWorkers(const std::chrono::milliseconds &timeout) noexcept;
 
 private:
-    pta::StoreMessage ProcessRequest(int fd, const pta::StoreMessage &request) noexcept;
-    pta::StoreMessage ProcessGetRequest(int fd, const pta::StoreMessage &request) noexcept;
-    pta::StoreMessage ProcessSetRequest(int fd, const pta::StoreMessage &request) noexcept;
-    pta::StoreMessage ProcessAddRequest(int fd, const pta::StoreMessage &request) noexcept;
-    pta::StoreMessage ProcessCheckRequest(int fd, const pta::StoreMessage &request) noexcept;
-    pta::StoreMessage ProcessDeleteRequest(int fd, const pta::StoreMessage &request) noexcept;
-    pta::StoreMessage ProcessCompareSetRequest(int fd, const pta::StoreMessage &request) noexcept;
-    pta::StoreMessage ProcessGetNumKeyRequest(int fd, const pta::StoreMessage &request) noexcept;
-    pta::StoreMessage ProcessWaitKeysRequest(int fd, const pta::StoreMessage &request) noexcept;
+    torch_npu::StoreMessage ProcessRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
+    torch_npu::StoreMessage ProcessGetRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
+    torch_npu::StoreMessage ProcessSetRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
+    torch_npu::StoreMessage ProcessAddRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
+    torch_npu::StoreMessage ProcessCheckRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
+    torch_npu::StoreMessage ProcessDeleteRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
+    torch_npu::StoreMessage ProcessCompareSetRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
+    torch_npu::StoreMessage ProcessGetNumKeyRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
+    torch_npu::StoreMessage ProcessWaitKeysRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
     void InitializeHandlers() noexcept;
+    void LocalInitializeHandlers() noexcept;
     bool CheckAllKeysExistInLock(const std::vector<std::string> &keys) noexcept;
 
 private:
-    using RequestHandler = std::function<pta::StoreMessage(int, const pta::StoreMessage &)>;
-    std::unique_ptr<pta::ParallelTcpServer> server_;
-    std::unordered_map<pta::MessageType, RequestHandler> requestHandlers_;
+    CallBackFn callback_;
+    const std::string localSocketPath_;
+    using RequestHandler = std::function<torch_npu::StoreMessage(int, const torch_npu::StoreMessage &)>;
+    std::unique_ptr<torch_npu::ParallelTcpServer> server_;
+    std::unordered_map<torch_npu::MessageType, RequestHandler> requestHandlers_;
     std::unordered_map<std::string, std::vector<uint8_t>> keyStore_;
     SpinLock serverLock_;
     std::mutex initWaitMutex_;
@@ -62,11 +69,12 @@ private:
     const std::string initKey_ = "init/";
     const std::string keyPrefix_ = "/";
 };
-}
+} // torch_npu
 
 class ParallelTcpStore : public Store {
 public:
-    explicit ParallelTcpStore(const std::string &host, const TCPStoreOptions &opts = {});
+    explicit ParallelTcpStore(const std::string &host, const bool &agentRun, const uint32_t &agentPid,
+        const bool &enableTiered, const TCPStoreOptions &opts = {});
     ~ParallelTcpStore() noexcept override;
 
 public:
@@ -85,17 +93,18 @@ public:
 
 private:
     int64_t IncreaseKey(const std::string &key, int64_t value);
-    void DoWait(const pta::StoreMessage &req, pta::StoreMessage &res);
-    static std::shared_ptr<pta::ParallelStoreServer> GetSharedServer(const std::string &initKey,
-        const std::string host, uint16_t port, c10::optional<std::size_t> numWorkers);
+    void DoWait(const torch_npu::StoreMessage &req, torch_npu::StoreMessage &res);
+    static std::shared_ptr<torch_npu::ParallelStoreServer> GetSharedServer(const std::string &initKey,
+       const std::string host, uint16_t port, c10::optional<std::size_t> numWorkers);
 
 private:
-    pta::TcpClient client_;
-    std::shared_ptr<pta::ParallelStoreServer> server_;
+    std::unique_ptr<torch_npu::Client> client_;
+    std::unique_ptr<torch_npu::Proxy> proxy_;
+    std::shared_ptr<torch_npu::ParallelStoreServer> server_;
     std::mutex clientMutex_;
     std::condition_variable initWaitCond_;
     const std::string initKey_ = "init/";
     static std::mutex cacheServerMutex_;
-    static std::unordered_map<uint16_t, std::weak_ptr<pta::ParallelStoreServer>> cachedServers_;
+    static std::unordered_map<uint16_t, std::weak_ptr<torch_npu::ParallelStoreServer>> cachedServers_;
 };
 } // c10d
