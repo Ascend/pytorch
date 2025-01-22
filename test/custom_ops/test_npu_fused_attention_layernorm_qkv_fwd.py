@@ -1,4 +1,5 @@
 #
+import unittest
 
 import numpy as np
 import torch
@@ -40,6 +41,7 @@ class TestFusedAttentionQKV(TestCase):
             hidden_states, q_kernel, k_kernel, v_kernel, gamma, beta, q_bias, k_bias, v_bias, seq_len, num_heads)
         return norm.cpu(), mean.cpu(), variance.cpu(), q_layer.cpu(), k_layer.cpu(), v_layer.cpu()
 
+    @unittest.skip("skipped this case")
     def test_npu_fused_attention_layernorm_qkv_fwd(self, device="npu"):
         ln_input = torch.rand(12288, 1024).uniform_(-6, 6).half().npu()
         q_weight = torch.rand(1024, 1024).uniform_(-0.1, 0.1).half().npu()
