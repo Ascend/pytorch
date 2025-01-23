@@ -200,7 +200,9 @@ def _new_process_group_hccl_helper(dist_backend_opts, pg_options):
     pg_options._timeout = dist_backend_opts.timeout
     pg_options.global_ranks_in_group = dist_backend_opts.global_ranks_in_group
     pg_options.group_id = dist_backend_opts.group_id
-    return torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, pg_options)
+    group = torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, pg_options)
+    profiler.profile._record_process_group_info(group, group_rank)
+    return group
 
 
 # init and register hccl backend

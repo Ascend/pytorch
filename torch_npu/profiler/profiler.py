@@ -162,6 +162,11 @@ class _KinetoProfile:
     def _support_export_stacks_metrics(self):
         return [Constant.METRIC_CPU_TIME, Constant.METRIC_NPU_TIME]
 
+    @classmethod
+    @no_exception_func()
+    def _record_process_group_info(cls, group, group_rank):
+        _ProfInterface.record_process_group_info(group, group_rank)
+
 
 @no_exception_func()
 def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None,
