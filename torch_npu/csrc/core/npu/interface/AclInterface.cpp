@@ -457,24 +457,35 @@ bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_de
   return can_access_peer != 0;
 }
 
-aclError AclrtReserveMemAddress(void **virPtr, size_t size, size_t alignment, void *expectPtr, uint64_t flags) {
-  typedef aclError (*AclrtReserveMemAddress)(void**, size_t, size_t, void*, uint64_t);
-  static AclrtReserveMemAddress func = nullptr;
-  if (func == nullptr) {
-    func = (AclrtReserveMemAddress)GET_FUNC(aclrtReserveMemAddress);
-  }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtReserveMemAddress", PTA_ERROR(ErrCode::NOT_FOUND));
-  return func(virPtr, size, alignment, expectPtr, flags);
+aclError AclrtReserveMemAddress(void **virPtr, size_t size, size_t alignment, void *expectPtr, uint64_t flags,
+                                HcclComm hcclComm)
+{
+    typedef aclError (*AclrtReserveMemAddress)(void**, size_t, size_t, void*, uint64_t);
+    static AclrtReserveMemAddress func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtReserveMemAddress)GET_FUNC(aclrtReserveMemAddress);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtReserveMemAddress", PTA_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(virPtr, size, alignment, expectPtr, flags);
+    if (hcclComm) {
+        HCCL_CHECK_ERROR(at_npu::hccl::HcclCommSetMemoryRangeFace(hcclComm, &virPtr, size, alignment, flags));
+    }
+    return ret;
 }
 
-aclError AclrtReleaseMemAddress(void *virPtr) {
-  typedef aclError (*AclrtReleaseMemAddress)(void*);
-  static AclrtReleaseMemAddress func = nullptr;
-  if (func == nullptr) {
-    func = (AclrtReleaseMemAddress)GET_FUNC(aclrtReleaseMemAddress);
-  }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtReleaseMemAddress", PTA_ERROR(ErrCode::NOT_FOUND));
-  return func(virPtr);
+aclError AclrtReleaseMemAddress(void *virPtr, HcclComm hcclComm)
+{
+    typedef aclError (*AclrtReleaseMemAddress)(void*);
+    static AclrtReleaseMemAddress func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtReleaseMemAddress)GET_FUNC(aclrtReleaseMemAddress);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtReleaseMemAddress", PTA_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(virPtr);
+    if (hcclComm) {
+        HCCL_CHECK_ERROR(at_npu::hccl::HcclCommUnsetMemoryRangeFace(hcclComm, virPtr));
+    }
+    return ret;
 }
 
 aclError AclrtMallocPhysical(aclrtDrvMemHandle *handle, size_t size, const aclrtPhysicalMemProp *prop,
@@ -498,24 +509,35 @@ aclError AclrtFreePhysical(aclrtDrvMemHandle handle) {
   return func(handle);
 }
 
-aclError AclrtMapMem(void *virPtr, size_t size, size_t offset, aclrtDrvMemHandle handle, uint64_t flags) {
-  typedef aclError (*AclrtMapMem)(void*, size_t, size_t, aclrtDrvMemHandle, uint64_t);
-  static AclrtMapMem func = nullptr;
-  if (func == nullptr) {
-    func = (AclrtMapMem)GET_FUNC(aclrtMapMem);
-  }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtMapMem", PTA_ERROR(ErrCode::NOT_FOUND));
-  return func(virPtr, size, offset, handle, flags);
+aclError AclrtMapMem(void *virPtr, size_t size, size_t offset, aclrtDrvMemHandle handle, uint64_t flags,
+                     HcclComm hcclComm)
+{
+    typedef aclError (*AclrtMapMem)(void*, size_t, size_t, aclrtDrvMemHandle, uint64_t);
+    static AclrtMapMem func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMapMem)GET_FUNC(aclrtMapMem);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtMapMem", PTA_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(virPtr, size, offset, handle, flags);
+    if (hcclComm) {
+        HCCL_CHECK_ERROR(at_npu::hccl::HcclCommActivateCommMemoryFace(hcclComm, virPtr, size, offset, handle, flags));
+    }
+    return ret;
 }
 
-aclError AclrtUnmapMem(void *virPtr) {
-  typedef aclError (*AclrtUnmapMem)(void*);
-  static AclrtUnmapMem func = nullptr;
-  if (func == nullptr) {
-    func = (AclrtUnmapMem)GET_FUNC(aclrtUnmapMem);
-  }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtUnmapMem", PTA_ERROR(ErrCode::NOT_FOUND));
-  return func(virPtr);
+aclError AclrtUnmapMem(void *virPtr, HcclComm hcclComm)
+{
+    typedef aclError (*AclrtUnmapMem)(void*);
+    static AclrtUnmapMem func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtUnmapMem)GET_FUNC(aclrtUnmapMem);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtUnmapMem", PTA_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(virPtr);
+    if (hcclComm) {
+        HCCL_CHECK_ERROR(at_npu::hccl::HcclCommDeactivateCommMemoryFace(hcclComm, virPtr));
+    }
+    return ret;
 }
 
 bool IsExistGetCannAttribute()

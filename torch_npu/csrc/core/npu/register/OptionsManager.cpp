@@ -20,6 +20,15 @@ namespace option {
 
 using namespace std;
 
+bool OptionsManager::IsHcclZeroCopyEnable()
+{
+    const static bool isHcclZeroCopyEnable = []() -> bool {
+        int32_t enable = OptionsManager::GetBoolTypeOption("TORCH_HCCL_ZERO_COPY", 0);
+        return enable != 0;
+    }();
+    return isHcclZeroCopyEnable;
+}
+
 bool OptionsManager::IsResumeModeEnable()
 {
     const static bool isResumeModeEnable = []() -> bool {
