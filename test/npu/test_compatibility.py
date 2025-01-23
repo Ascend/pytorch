@@ -146,7 +146,7 @@ def func_in_class(obj, content, modname, elem, base_schema, failure_list):
 
 def func_from_yaml(content, base_schema, failure_list):
     torch_npu_path = torch_npu.__path__[0]
-    yaml_path = os.path.join(torch_npu_path, "csrc/aten/npu_native_functions_by_codegen.yaml")
+    yaml_path = os.path.join(torch_npu_path, "csrc/aten/npu_native_functions.yaml")
     with open(yaml_path, 'r') as f:
         for line in f.readlines():
             if " func:" in line:
@@ -160,7 +160,7 @@ def func_from_yaml(content, base_schema, failure_list):
                 else:
                     func_name = func
                     signature = ""
-                if "func: " + func_name in base_schema.keys():
+                if "func: " + func_name in base_schema:
                     value = base_schema["func: " + func_name]["signature"]
                     if is_not_compatibility(value, signature, api_str=func_name):
                         set_failure_list("func: " + func_name, value, signature, failure_list)
