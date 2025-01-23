@@ -176,5 +176,7 @@ aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize
 
 aclError AclrtSynchronizeDeviceWithTimeout(void);
 
+aclError AclrtEventGetTimestamp(aclrtEvent event, uint64_t *timestamp);
+
 } // namespace acl
 } // namespace c10_npu
