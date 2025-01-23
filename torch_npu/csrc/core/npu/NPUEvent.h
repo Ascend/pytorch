@@ -47,6 +47,7 @@ struct C10_NPU_API NPUEvent {
     void record(const NPUStream& stream);
     void block(const NPUStream& stream);
     float elapsed_time(const NPUEvent& other) const;
+    uint64_t recorded_time() const;
     void synchronize() const;
 
     // npu do not support IpcEventHandle until now

@@ -69,6 +69,7 @@ LOAD_FUNCTION(aclrtGetLastError)
 LOAD_FUNCTION(aclrtPeekAtLastError)
 LOAD_FUNCTION(aclrtSynchronizeDevice)
 LOAD_FUNCTION(aclrtSynchronizeDeviceWithTimeout)
+LOAD_FUNCTION(aclrtEventGetTimestamp)
 
 aclprofStepInfoPtr init_stepinfo() {
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -667,6 +668,17 @@ aclError AclrtSynchronizeDeviceWithTimeout(void)
         TORCH_CHECK(func_backup, "Failed to find function ", "aclrtSynchronizeDeviceWithTimeout and aclrtSynchronizeDevice", PTA_ERROR(ErrCode::NOT_FOUND));
         return func_backup();
     }
+}
+
+aclError AclrtEventGetTimestamp(aclrtEvent event, uint64_t *timestamp)
+{
+    typedef aclError (*AclrtEventGetTimestamp)(aclrtEvent, uint64_t*);
+    static AclrtEventGetTimestamp func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtEventGetTimestamp)GET_FUNC(aclrtEventGetTimestamp);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtEventGetTimestamp", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(event, timestamp);
 }
 
 } // namespace acl
