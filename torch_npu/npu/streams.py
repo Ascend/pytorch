@@ -170,6 +170,11 @@ class Event(torch_npu._C._NPUEventBase, _EventBase):
         """
         return super(Event, self).elapsed_time(end_event)
 
+    def recorded_time(self):
+        r"""Returns the record time stamp after the event was recorded.
+        """
+        return super(Event, self).recorded_time()
+
     def synchronize(self):
         r"""Waits for the event to complete.
 

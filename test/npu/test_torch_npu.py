@@ -216,6 +216,25 @@ class TorchNPUApiTestCase(TestCase):
         end_event.record()
         res = start_event.elapsed_time(end_event)
         self.assertIsInstance(res, float)
+    
+    def test_npu_event_recorded_time(self):
+        event_1 = torch_npu.npu.Event(enable_timing=True)
+        event_1.record()
+        event_2 = torch_npu.npu.Event(enable_timing=True)
+        event_2.record()
+        try:
+            time_stamp_1 = event_1.recorded_time()
+        except RuntimeError as e:
+            self.assertIn("Failed to find function aclrtEventGetTimestamp", str(e), f"{e}")
+        except Exception as e:
+            self.fail(f"{e}")
+        else:
+            self.assertIsInstance(time_stamp_1, int)
+            self.assertGreater(time_stamp_1, 0)
+            time_stamp_2 = event_2.recorded_time()
+            self.assertIsInstance(time_stamp_2, int)
+            self.assertGreater(time_stamp_2, 0)
+            self.assertGreater(time_stamp_2, time_stamp_1)
 
     def test_npu_event_query(self):
         event = torch_npu.npu.Event()
