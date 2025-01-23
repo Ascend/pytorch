@@ -2053,18 +2053,26 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
     getHcclCommConfig(&config);
 
     if (options_->hccl_config.find("hccl_buffer_size") != options_->hccl_config.end()) {
-        config.hcclBufferSize = std::get<uint32_t>(options_->hccl_config["hccl_buffer_size"]);
+        if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_buffer_size"])) {
+            config.hcclBufferSize = std::get<uint32_t>(options_->hccl_config["hccl_buffer_size"]);
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_buffer_size should be int.", DIST_ERROR(ErrCode::TYPE));
+        }
     }
 
     if (options_->hccl_config.find("group_name") != options_->hccl_config.end()) {
-        auto groupName = std::get<std::string>(options_->hccl_config["group_name"]);
-        uint32_t udiLength = groupName.length();
-        if (groupName.length() >= UDI_MAX_LENGTH) {
-            udiLength = UDI_MAX_LENGTH - 1;
-            TORCH_NPU_WARN("The length of group_name has exceeded the limit UDI_MAX_LENGTH which will be truncated to UDI_MAX_LENGTH - 1.");
+        if (std::holds_alternative<std::string>(options_->hccl_config["group_name"])) {
+            auto groupName = std::get<std::string>(options_->hccl_config["group_name"]);
+            uint32_t udiLength = groupName.length();
+            if (groupName.length() >= UDI_MAX_LENGTH) {
+                udiLength = UDI_MAX_LENGTH - 1;
+                TORCH_NPU_WARN("The length of group_name has exceeded the limit UDI_MAX_LENGTH which will be truncated to UDI_MAX_LENGTH - 1.");
+            }
+            strncpy(config.hcclUdi, groupName.c_str(), udiLength);
+            config.hcclUdi[udiLength] = '\0';
+        } else {
+            TORCH_CHECK(false, "Value type of group_name should be string.", DIST_ERROR(ErrCode::TYPE));
         }
-        strncpy(config.hcclUdi, groupName.c_str(), udiLength);
-        config.hcclUdi[udiLength] = '\0';
     }
 
     return config;
