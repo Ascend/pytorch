@@ -214,6 +214,42 @@ inline void HcclCommConfigInit(HcclCommConfig *config)
 */
 extern uint32_t HcclGetCommConfigCapability();
 
+/**
+ * @brief Set the virtual memory range to HCCL communicator
+ * @param comm A pointer identifying the communication resource based on.
+ * @param baseVirPtr The base address of memory range
+ * @param size The size of memory range
+ * @param alignment Memory range alignment, now only support 0
+ * @param flags The flag of this memory range, now only support 0
+*/
+extern HcclResult HcclCommSetMemoryRange(HcclComm comm, void *baseVirPtr, size_t size, size_t alignment, uint64_t flags);
+
+/**
+ * @brief Unset the virtual memory range to HCCL communicator
+ * @param comm A pointer identifying the communication resource based on.
+ * @param baseVirPtr The base address of memory range set by @ref HcclCommSetMemoryRange().
+*/
+extern HcclResult HcclCommUnsetMemoryRange(HcclComm comm, void *baseVirPtr);
+
+/**
+ * @brief Activate memory by physical memory handle.
+ * @param comm A pointer identifying the communication resource based on.
+ * @param virPtr The virtual address memory range in @ref HcclCommSetMemoryRange()
+ * @param size The length of activate memory
+ * @param offset The offset of physical memory, now only support 0
+ * @param handle The physical memory handle
+ * @param flags The flag of physical memory, now only support 0
+*/
+extern HcclResult HcclCommActivateCommMemory(HcclComm comm, void *virPtr, size_t size, size_t offset,
+                                             aclrtDrvMemHandle handle, uint64_t flags);
+
+/**
+ * @brief Deactivate memory.
+ * @param comm A pointer identifying the communication resource based on.
+ * @param virPtr The virtual address of activate memory by @ref HcclCommActivateCommMemory().
+*/
+extern HcclResult HcclCommDeactivateCommMemory(HcclComm comm, void *virPtr);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

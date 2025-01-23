@@ -6,7 +6,7 @@
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
-
+#include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 
 #include <mutex>
 #include <atomic>
@@ -208,6 +208,7 @@ public:
     virtual void markAllBlockUnsafe(int device) = 0;
     virtual void updateBlockToSafe(const c10::DataPtr &ptr) = 0;
     virtual void cleanEvent() = 0;
+    virtual void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLComm> hcclComm) {}
 };
 
 // Allocator object, statically initialized
@@ -347,6 +348,13 @@ inline void cleanEvent()
 {
     return get()->cleanEvent();
 }
+
+inline void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLComm> hcclComm)
+{
+    return get()->buildServerMemMapForHccl(device, hcclComm);
+}
+
+bool checkConfigExpandableSegments();
 
 } // namespace NPUCachingAllocator
 } // namespace c10_npu

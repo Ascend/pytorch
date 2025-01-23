@@ -5,6 +5,8 @@
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_prof.h"
+#include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
+
 
 namespace c10_npu {
 namespace acl {
@@ -139,18 +141,19 @@ aclError AclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status);
 
 bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id);
 
-aclError AclrtReserveMemAddress(void **virPtr, size_t size, size_t alignment, void *expectPtr, uint64_t flags);
+aclError AclrtReserveMemAddress(void **virPtr, size_t size, size_t alignment, void *expectPtr, uint64_t flags,
+                                HcclComm hcclComm = nullptr);
 
-aclError AclrtReleaseMemAddress(void *virPtr);
+aclError AclrtReleaseMemAddress(void *virPtr, HcclComm hcclComm = nullptr);
 
-aclError AclrtMallocPhysical(aclrtDrvMemHandle *handle, size_t size, const aclrtPhysicalMemProp *prop,
-    uint64_t flags);
+aclError AclrtMallocPhysical(aclrtDrvMemHandle *handle, size_t size, const aclrtPhysicalMemProp *prop, uint64_t flags);
 
 aclError AclrtFreePhysical(aclrtDrvMemHandle handle);
 
-aclError AclrtMapMem(void *virPtr, size_t size, size_t offset, aclrtDrvMemHandle handle, uint64_t flags);
+aclError AclrtMapMem(void *virPtr, size_t size, size_t offset, aclrtDrvMemHandle handle, uint64_t flags,
+                     HcclComm hcclComm = nullptr);
 
-aclError AclrtUnmapMem(void *virPtr);
+aclError AclrtUnmapMem(void *virPtr, HcclComm hcclComm = nullptr);
 
 bool IsExistGetCannAttribute();
 
