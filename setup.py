@@ -419,10 +419,12 @@ def get_src_py_and_dst():
     header_files = [
         "torch_npu/csrc/*.h",
         "torch_npu/csrc/*/*.h",
+        "torch_npu/csrc/*/*.hpp",
         "torch_npu/csrc/*/*/*.h",
         "torch_npu/csrc/*/*/*/*.h",
         "torch_npu/csrc/*/*/*/*/*.h",
         "third_party/acl/inc/*/*.h",
+        "third_party/hccl/inc/*/*.h",
         "third_party/acl/inc/*/*/*.h"
     ]
     add_ops_files(BASE_DIR, header_files)
