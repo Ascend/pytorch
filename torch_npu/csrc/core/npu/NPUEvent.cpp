@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
@@ -102,7 +103,7 @@ float NPUEvent::elapsed_time(const NPUEvent& other) const
     float time_ms = 0;
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     if (ret != SUCCESS) {
-        ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+        ASCEND_LOGE("Failed to empty NPU task queue, ret: %s", ret.c_str());
     }
     NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
     ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event_);
@@ -118,6 +119,27 @@ float NPUEvent::elapsed_time(const NPUEvent& other) const
     // raise error if either event is recorded but not yet completed
     NPU_CHECK_ERROR_WITHOUT_UCE(aclrtEventElapsedTime(&time_ms, event_, other.event_));
     return time_ms;
+}
+
+uint64_t NPUEvent::recorded_time() const
+{
+    TORCH_CHECK(is_created_, "Event must be recorded before getting recorded timestamp.", PTA_ERROR(ErrCode::INTERNAL));
+    NPUStatus ret = c10_npu::emptyAllNPUStream();
+    if (ret != SUCCESS) {
+        ASCEND_LOGE("Failed to empty NPU task queue, ret: %s", ret.c_str());
+    }
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(event_));
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent executed successfully, event=%p", event_);
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(event_));
+    }
+#endif
+    // raise error if either event is recorded but not yet completed
+    uint64_t time_stamp = 0;
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtEventGetTimestamp(event_, &time_stamp));
+    return time_stamp;
 }
 
 void NPUEvent::synchronize() const
