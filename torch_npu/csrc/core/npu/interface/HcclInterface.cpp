@@ -14,6 +14,10 @@ namespace hccl {
 REGISTER_LIBRARY(libhccl)
 LOAD_FUNCTION(HcclGetCommName)
 LOAD_FUNCTION(HcclCommResume)
+LOAD_FUNCTION(HcclCommSetMemoryRange)
+LOAD_FUNCTION(HcclCommUnsetMemoryRange)
+LOAD_FUNCTION(HcclCommActivateCommMemory)
+LOAD_FUNCTION(HcclCommDeactivateCommMemory)
 
 extern HcclResult HcclGetCommNameFace(HcclComm commHandle, char* commName) {
     typedef HcclResult (*HcclGetCommNameFace)(HcclComm commHandle, char* commName);
@@ -49,6 +53,57 @@ extern bool isHcclFeatureSupported(HcclCommConfigCapability configParameter)
         return false;
     }
     return configParameter < func();
+}
+
+HcclResult HcclCommSetMemoryRangeFace(HcclComm comm, void *virPtr, size_t size, size_t alignment, uint64_t flags)
+{
+    typedef HcclResult (*HcclCommSetMemoryRangeFace)(HcclComm comm, void *virPtr, size_t size, size_t alignment,
+            uint64_t flags);
+    static HcclCommSetMemoryRangeFace func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommSetMemoryRangeFace)GET_FUNC(HcclCommSetMemoryRange);
+    }
+    TORCH_CHECK(func, "Failed to find function HcclCommSetMemoryRange,"
+                      " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
+    return func(comm, virPtr, size, alignment, flags);
+}
+
+HcclResult HcclCommUnsetMemoryRangeFace(HcclComm comm, void *virPtr)
+{
+    typedef HcclResult (*HcclCommUnsetMemoryRangeFace)(HcclComm comm, void *virPtr);
+    static HcclCommUnsetMemoryRangeFace func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommUnsetMemoryRangeFace)GET_FUNC(HcclCommUnsetMemoryRange);
+    }
+    TORCH_CHECK(func, "Failed to find function HcclCommUnsetMemoryRange,"
+                      " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
+    return func(comm, virPtr);
+}
+
+HcclResult HcclCommActivateCommMemoryFace(HcclComm comm, void *virPtr, size_t size, size_t offset,
+                                          aclrtDrvMemHandle handle, uint64_t flags)
+{
+    typedef HcclResult (*HcclCommActivateCommMemoryFace)(HcclComm comm, void *virPtr, size_t size, size_t offset,
+            aclrtDrvMemHandle handle, uint64_t flags);
+    static HcclCommActivateCommMemoryFace func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommActivateCommMemoryFace)GET_FUNC(HcclCommActivateCommMemory);
+    }
+    TORCH_CHECK(func, "Failed to find function HcclCommActivateCommMemory,"
+                      " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
+    return func(comm, virPtr, size, offset, handle, flags);
+}
+
+HcclResult HcclCommDeactivateCommMemoryFace(HcclComm comm, void *virPtr)
+{
+    typedef HcclResult (*HcclCommDeactivateCommMemoryFace)(HcclComm comm, void *virPtr);
+    static HcclCommDeactivateCommMemoryFace func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommDeactivateCommMemoryFace)GET_FUNC(HcclCommDeactivateCommMemory);
+    }
+    TORCH_CHECK(func, "Failed to find function HcclCommDeactivateCommMemory,"
+                      " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
+    return func(comm, virPtr);
 }
 } // namespace native
 } // namespace at_npu

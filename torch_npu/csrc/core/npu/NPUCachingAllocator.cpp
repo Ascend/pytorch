@@ -89,6 +89,8 @@ constexpr size_t kLargeBuffer = 20971520; // "large" allocations may be packed i
 constexpr size_t kMinLargeAlloc = 10485760; // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kRoundLarge = 2097152; // round up large allocs to 2 MiB
 constexpr size_t kAlignRoundLarge = 16384; // round up large allocs to 16 KB
+constexpr size_t kSmallPoolVirAddrSize = 2147483648; // 2 GB
+constexpr size_t kLargePoolVirAddrSize = 10737418240; // 10 GB
 
 using StatTypes = std::array<bool, static_cast<size_t>(StatType::NUM_TYPES)>;
 
@@ -326,11 +328,23 @@ struct ExpandableSegment {
     // This allows for some cases where we have to unmap pages earlier in the
     // segment to put them at the end.
     max_handles_ = numSegments(device_total + device_total / 8);
+    if (c10_npu::option::OptionsManager::IsHcclZeroCopyEnable()) {
+        // prevent HCCL reserve virtual address out of memory
+        // small pool reserve 2G
+        // non-default stream large pool 10G
+        auto default_stream = c10_npu::getDefaultNPUStream().stream(false);
+        if (kSmallBuffer == segment_size_) {
+            max_handles_ = numSegments(kSmallPoolVirAddrSize);
+        } else if (default_stream != stream) {
+            max_handles_ = numSegments(kLargePoolVirAddrSize);
+        }
+    }
+
     NPU_CHECK_ERROR(c10_npu::acl::AclrtReserveMemAddress(
-        &ptr_, segment_size_ * max_handles_, 0, NULL, 1));
+        &ptr_, segment_size_ * max_handles_, 0, NULL, 1, getHcclComm()));
     ASCEND_LOGD(
-        "NPUCachingAllocator malloc by AclrtReserveMemAddress: size=%zu",
-        segment_size_ * max_handles_);
+        "NPUCachingAllocator malloc by AclrtReserveMemAddress: size=%zu, segment_size=%zu",
+        segment_size_ * max_handles_, segment_size_);
   }
   // begin must be aligned to segment_size_.
   // returns the actual range mapped, which may be
@@ -376,7 +390,8 @@ struct ExpandableSegment {
           segment_size_,
           0,
           handles_.at(i).value(),
-          0));
+          0,
+          getHcclComm()));
     }
     ASCEND_LOGD(
         "NPUCachingAllocator map: segment_size=%zu", segment_size_);
@@ -404,10 +419,26 @@ struct ExpandableSegment {
     return max_handles_ * segment_size_;
   }
 
+    void setHcclComm(std::shared_ptr<c10d_npu::HCCLComm> hcclComm)
+    {
+        TORCH_INTERNAL_ASSERT(hcclComm, "hcclComm is null.", PTA_ERROR(ErrCode::INTERNAL));
+        hcclComm_ = hcclComm;
+        HCCL_CHECK_ERROR(at_npu::hccl::HcclCommSetMemoryRangeFace(hcclComm_->getHcclComm(), ptr_,
+                                                                  segment_size_ * max_handles_, 0, 1));
+        for (int i = 0; i < handles_.size(); ++i) {
+            HCCL_CHECK_ERROR(at_npu::hccl::HcclCommActivateCommMemoryFace(hcclComm_->getHcclComm(),
+                                                                          (char*)ptr_ + i * segment_size_,
+                                                                          segment_size_,
+                                                                          0,
+                                                                          handles_.at(i).value(),
+                                                                          0));
+        }
+    }
+
   ~ExpandableSegment() {
     forEachAllocatedRange(
         [&](size_t begin, size_t end) { unmapHandles(begin, end); });
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr_));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr_, getHcclComm()));
     ASCEND_LOGD("NPUCachingAllocator free by AclrtReleaseMemAddress");
   }
 
@@ -431,7 +462,7 @@ struct ExpandableSegment {
     for (auto i : c10::irange(begin, end)) {
       aclrtDrvMemHandle h = handles_.at(i).value();
       handles_.at(i) = c10::nullopt;
-      NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem((char*)ptr_ + segment_size_ * i));
+      NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem((char*)ptr_ + segment_size_ * i, getHcclComm()));
       NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
     }
       ASCEND_LOGD("NPUCachingAllocator unmap: segment_size=%zu", segment_size_);
@@ -475,12 +506,21 @@ struct ExpandableSegment {
         ptr() + segment_size_ * begin, segment_size_ * (end - begin));
   }
 
+    HcclComm getHcclComm()
+    {
+        if (hcclComm_) {
+            return hcclComm_->getHcclComm();
+        }
+        return nullptr;
+    }
+
   int device_;
   aclrtStream stream_;
   void* ptr_{};
   size_t max_handles_;
   size_t segment_size_;
   std::vector<c10::optional<aclrtDrvMemHandle>> handles_;
+  std::shared_ptr<c10d_npu::HCCLComm> hcclComm_;
 };
 
 static bool BlockComparatorSize(const Block* a, const Block* b) {
@@ -805,6 +845,10 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
   }
 }
 
+bool checkConfigExpandableSegments()
+{
+    return CachingAllocatorConfig::expandable_segments();
+}
 
 class DeviceCachingAllocator {
  private:
@@ -854,6 +898,7 @@ class DeviceCachingAllocator {
 
   // XXX - maybe we should generalize and have multiple events
   std::vector<OutOfMemoryObserver> oom_observers_;
+    std::shared_ptr<c10d_npu::HCCLComm> hcclComm_;
 
  public:
 
@@ -1348,6 +1393,16 @@ class DeviceCachingAllocator {
         release_cached_blocks(check_error, context);
     }
 
+    void buildServerMemMapForHccl(std::shared_ptr<c10d_npu::HCCLComm> hcclComm)
+    {
+        std::unique_lock<std::recursive_mutex> lock(mutex);
+        TORCH_INTERNAL_ASSERT(!hcclComm_, "Build HCCL server group redundancy.", PTA_ERROR(ErrCode::INTERNAL));
+        hcclComm_ = hcclComm;
+        for (auto &expandable_segments: expandable_segments_) {
+            expandable_segments->setHcclComm(hcclComm);
+        }
+    }
+
   void release_and_free_events()
   {
       std::unique_lock<std::recursive_mutex> lock(mutex);
@@ -1549,8 +1604,11 @@ class DeviceCachingAllocator {
       }
     }
     auto segment_size = pool->is_small ? kSmallBuffer : kLargeBuffer;
-    expandable_segments_.emplace_back(new ExpandableSegment(
-        device, stream, segment_size));
+    auto segment = new ExpandableSegment(device, stream, segment_size);
+    if (hcclComm_) {
+        segment->setHcclComm(hcclComm_);
+    }
+    expandable_segments_.emplace_back(segment);
 
     ExpandableSegment* es = expandable_segments_.back();
     Block* candidate = new Block(device, stream, es->size(), pool, es->ptr());
@@ -2707,6 +2765,11 @@ class NpuCachingAllocator : public NPUAllocator {
   void copy_data(void* dest, const void* src, std::size_t count) const final {
     default_copy_data(dest, src, count);
   }
+  
+    void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLComm> hcclComm)
+    {
+        device_allocator[device]->buildServerMemMapForHccl(hcclComm);
+    }
 };
 
 NpuCachingAllocator caching_allocator;

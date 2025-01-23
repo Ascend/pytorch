@@ -6,7 +6,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <filesystem>
 
 #include <ATen/ATen.h>
 #include <c10/util/Optional.h>

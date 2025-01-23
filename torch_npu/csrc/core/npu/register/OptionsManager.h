@@ -79,6 +79,7 @@ static std::unordered_map<int32_t, std::string> getTaskQueueEnableMode()
 
 class OptionsManager {
 public:
+    static bool IsHcclZeroCopyEnable();
     static bool IsResumeModeEnable();
     static ReuseMode GetMultiStreamMemoryReuse();
     static bool CheckInfNanModeEnable();
