@@ -41,6 +41,16 @@ class OptionsTest(TestCase):
         pg = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
         dist.all_reduce(input1, group=pg)
 
+    @classmethod
+    def _test_options_wrong_type(cls, rank, ranks, world_size, input1):
+        options = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
+        options.hccl_config = {"group_name": 123}
+        input1 = input1.npu()
+        test_case = TestCase()
+        with test_case.assertRaisesRegex(RuntimeError, "Value type of group_name should be string"):
+            OptionsTest._init_dist_hccl(rank, options, world_size)
+            dist.all_reduce(input1)
+
     def _test_multiprocess(self, f, input1, world_size):
         ctx = mp.get_context('spawn')
 
@@ -56,6 +66,9 @@ class OptionsTest(TestCase):
         for p in ps:
             p.join()
 
+        for p in ps:
+            self.assertEqual(p.exitcode, 0)
+
     @skipIfUnsupportMultiNPU(2)
     def test_all_reduce_with_options(self):
         ranks = [2]
@@ -63,6 +76,15 @@ class OptionsTest(TestCase):
         for world_size in ranks:
             exp_input, input1 = create_common_tensor(shape, -10, 10)
             self._test_multiprocess(OptionsTest._test_all_reduce_with_options,
+                                    input1, world_size)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_options_wrong_type(self):
+        ranks = [2]
+        shape = [np.int32, 0, [2, 3, 16]]
+        for world_size in ranks:
+            exp_input, input1 = create_common_tensor(shape, -10, 10)
+            self._test_multiprocess(OptionsTest._test_options_wrong_type,
                                     input1, world_size)
 
 
