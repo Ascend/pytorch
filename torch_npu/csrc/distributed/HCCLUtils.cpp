@@ -1,3 +1,5 @@
+#include <filesystem>
+
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 
