@@ -50,6 +50,7 @@ if os.environ.get("PGO_MODE") is not None:
 USE_CXX11_ABI = False
 if os.environ.get("_GLIBCXX_USE_CXX11_ABI") is not None and os.environ.get("_GLIBCXX_USE_CXX11_ABI") == "1":
     USE_CXX11_ABI = True
+    VERSION += "+cxx11-abi"
 
 
 def get_submodule_folders():
@@ -115,7 +116,10 @@ def generate_torch_npu_version():
     sha = get_sha(torch_npu_root)
     if os.getenv("BUILD_WITHOUT_SHA") is None:
         global VERSION
-        VERSION += "+git" + sha[:7]
+        if USE_CXX11_ABI:
+            VERSION += ".git" + sha[:7]
+        else:
+            VERSION += "+git" + sha[:7]
     with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
         f.write("__version__ = '{version}'\n".format(version=VERSION))
         f.write("git_version = {}\n".format(repr(sha)))
@@ -597,6 +601,8 @@ classifiers = [
 ]
 
 requirements = ['torch==2.4.0+cpu' if platform.machine() == 'x86_64' else 'torch==2.4.0']
+if USE_CXX11_ABI:
+    requirements = ['torch==2.4.0+cpu.cxx11.abi'] if platform.machine() == 'x86_64' else []
 
 setup(
     name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
