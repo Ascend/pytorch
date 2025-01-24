@@ -151,6 +151,7 @@ NPUCallBackRegisterBuilder::NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& exec
 // it does not make full use of concurrent design capabilities.
 static constexpr size_t kQueueCapacity = 4096;
 static std::string repo_error;
+static std::string acl_error;
 
 std::string get_func_error_msg(void* error_paras)
 {
@@ -286,7 +287,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
                                     "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
                                     "resulting in performance degradation. "
                                     "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
-                                    PTA_ERROR(ErrCode::ACL));
+                                    PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error);
         } else {
             ASCEND_LOGE("Inner error happend, detail: %s", repo_error);
         }
@@ -357,6 +358,9 @@ bool Repository::ReadQueue()
     auto ret = manager().Call(datas, read_idx.idx);
 #endif
     if (ret != 0) {
+        if (ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
+            acl_error = std::string(c10_npu::c10_npu_get_error_message());
+        }
         repo_error = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
         ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
                     std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
@@ -426,7 +430,7 @@ void Repository::Enqueue(void* cur_paras) {
                              "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
                              "resulting in performance degradation. "
                              "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
-                             PTA_ERROR(ErrCode::ACL));
+                             PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error);
   }
 
     if (GetStatus() != RUN && GetStatus() != INIT) {
