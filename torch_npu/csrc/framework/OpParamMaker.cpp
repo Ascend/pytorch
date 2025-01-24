@@ -340,7 +340,6 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         }
         if (ret != ACL_ERROR_NONE && ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
             ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
-            C10_NPU_SHOW_ERR_MSG();
         }
         return ret;
     }
@@ -369,7 +368,6 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
                 ret = ret_temp;
             }
             ASCEND_LOGE("In aoe mode, AclGenGraphAndDumpForOp failed!");
-            C10_NPU_SHOW_ERR_MSG();
             return ret;
         }
     }
@@ -396,7 +394,6 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             ret = ret_temp;
         }
         printErrorLog(cur_paras);
-        C10_NPU_SHOW_ERR_MSG();
     }
 
     return ret;
@@ -429,7 +426,6 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
     }
     if (ret != ACL_ERROR_NONE && ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
         ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
-        C10_NPU_SHOW_ERR_MSG();
     }
     return ret;
 }
@@ -450,7 +446,6 @@ int MemcopyAsyncFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             cur_paras->dstLen,
             cur_paras->srcLen,
             cur_paras->kind);
-        C10_NPU_SHOW_ERR_MSG();
     }
     return ret;
 }
@@ -466,7 +461,6 @@ int RecordEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             ret = ret_temp;
         }
         ASCEND_LOGE("aclrtRecordEvent error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
-        C10_NPU_SHOW_ERR_MSG();
     }
     c10_npu::NPUEventManager::GetInstance().DecreaseUnrecordedCount(cur_paras->event);
     ASCEND_LOGI(
@@ -490,7 +484,6 @@ int WaitEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             "aclrtStreamWaitEvent error! ret = %d, eventAllocatorType = %d",
             ret,
             cur_paras->eventAllocatorType);
-        C10_NPU_SHOW_ERR_MSG();
     }
     ASCEND_LOGI(
         "Event: aclrtStreamWaitEvent dequeue is successfully executed, stream=%p, event=%p",
@@ -509,7 +502,6 @@ int LazyDestroyEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             ret = ret_temp;
         }
         ASCEND_LOGE("LazyDestroy error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
-        C10_NPU_SHOW_ERR_MSG();
     }
     ASCEND_LOGI("Event: LazyDestroyEventFunc dequeue is successfully executed, event=%p", cur_paras->event);
     return ret;
