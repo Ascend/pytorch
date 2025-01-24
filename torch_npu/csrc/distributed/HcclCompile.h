@@ -157,6 +157,32 @@ bool hcclCommInitRootInfoConfigExist()
     return exist;
 }
 
+bool hcclAllGatherVExist()
+{
+    static c10::once_flag flag;
+    static bool exist = false;
+    c10::call_once(flag, [&]() {
+        auto func = GET_FUNC(HcclAllGatherV)
+        if (func != nullptr) {
+            exist = true;
+        }
+    });
+    return exist;
+}
+
+bool hcclReduceScatterVExist()
+{
+    static c10::once_flag flag;
+    static bool exist = false;
+    c10::call_once(flag, [&]() {
+        auto func = GET_FUNC(HcclReduceScatterV)
+        if (func != nullptr) {
+            exist = true;
+        }
+    });
+    return exist;
+}
+
 HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclCommConfig* config, HcclComm *comm)
 {
     typedef HcclResult(*HcclCommInitRootInfoConfigFunc)(

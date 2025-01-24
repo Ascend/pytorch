@@ -3813,6 +3813,91 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                 }
             },
             c10d::OpType::ALLGATHER);
+    } else if (hcclAllGatherVExist()) {
+        std::vector<at::Tensor> lastOutputTensors = outputTensors.back();
+        std::vector<uint64_t> outputCounts;
+        std::vector<uint64_t> outputSpl;
+        outputSpl.push_back(0);
+        for (int i = 0; i < lastOutputTensors.size(); i++) {
+            outputCounts.push_back(lastOutputTensors[i].numel());
+            if (i > 0) {
+                outputSpl.push_back(outputSpl[i - 1] + outputCounts[i - 1]);
+            }
+        }
+
+        std::vector<at::Tensor> flattenedOutputTensors;
+        for (size_t i = 0; i < lastOutputTensors.size(); i++) {
+            flattenedOutputTensors.push_back(at::flatten(lastOutputTensors[i]));
+        }
+        std::vector<at::Tensor> inputFlattened = {at::flatten(inputTensors[0])};
+        std::vector<at::Tensor> outputFlattened = {at::cat(flattenedOutputTensors, 0)};
+        return collective(
+            inputFlattened,
+            outputFlattened,
+            [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+                RECORD_FUNCTION("HcclAllGatherV", std::vector<c10::IValue>({input}));
+                auto inputDataPtr = input.data_ptr();
+                uint64_t inputCount = input.numel();
+                auto outputDataPtr = output.data_ptr();
+                auto numel = getNumelForHCCL(input);
+                auto hcclType = getHcclDataType(input.scalar_type());
+                auto hccl_call = [
+                    inputDataPtr,
+                    inputCount,
+                    outputDataPtr,
+                    outputCounts,
+                    outputSpl,
+                    hcclType,
+                    numel,
+                    comm,
+                    stream,
+                    is_dispatched]() -> int {
+                        torch_npu::profiler::MstxRange range(
+                            getMstxHcclMsg("HcclAllGatherV", numel, hcclType, comm),
+                            stream.stream(false));
+                        auto hccl_result = hcclAllGatherV(
+                            inputDataPtr,
+                            inputCount,
+                            outputDataPtr,
+                            outputCounts.data(),
+                            outputSpl.data(),
+                            hcclType,
+                            comm,
+                            stream.stream(false));
+                        *is_dispatched = true;
+                        return hccl_result;
+                };
+                at_npu::native::OpCommand::RunOpApi("HcclAllGatherV", hccl_call);
+
+                return HCCL_SUCCESS;
+            },
+            [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+            [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+                work->lazyDestroy(inputFlattened);
+                work->lazyDestroy(outputFlattened);
+                // Copy the flattened output tensors to the outputs.
+                for (const auto i : c10::irange(outputTensors.size())) {
+                    c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+                    for (const auto j : c10::irange(outputTensors[0].size())) {
+                        // See [Sync Streams].
+                        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                            work->stashed_for_allocator_safety_.push_back(outputTensors[i][j]);
+                        } else {
+                            c10_npu::NPUCachingAllocator::recordStream(
+                                outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
+
+                            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                                work->recorded_outputs_.push_back(
+                                    std::make_pair(outputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                            }
+                        }
+                        at::Tensor output_tensor = outputFlattened[i].slice(0, outputSpl[j], outputSpl[j] + outputCounts[j]);
+                        at::Tensor output_tensor_reshape = at::reshape(output_tensor, outputTensors[i][j].sizes());
+                        outputTensors[i][j].copy_(output_tensor_reshape, true);
+                    }
+                }
+            },
+            c10d::OpType::ALLGATHER);
     } else {
         TORCH_NPU_WARN_ONCE("The current allgather operator has a defect in handling different tensor shape, \
         the work event forces a wait operation, and the allgather wait on the python side would be fake");
@@ -4058,6 +4143,90 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         c10d::OpType::REDUCE_SCATTER);
+    } else if (hcclReduceScatterVExist()) {
+        std::vector<uint64_t> inputCounts;
+        std::vector<uint64_t> inputSpl;
+        std::vector<at::Tensor> lastInputTensors = inputTensors.back();
+        inputSpl.push_back(0);
+        for (int i = 0; i < lastInputTensors.size(); i++) {
+            inputCounts.push_back(lastInputTensors[i].numel());
+            if (i > 0) {
+                inputSpl.push_back(inputSpl[i - 1] + inputCounts[i - 1]);
+            }
+        }
+
+        std::vector<at::Tensor> flattenedInputTensors;
+        for (size_t i = 0; i < lastInputTensors.size(); i++) {
+            flattenedInputTensors.push_back(at::flatten(lastInputTensors[i]));
+        }
+        std::vector<at::Tensor> inputFlattened = {at::cat(flattenedInputTensors, 0)};
+        std::vector<at::Tensor> outputFlattened = {at::flatten(outputTensors[0])};
+        return collective(
+            inputFlattened,
+            outputFlattened,
+            [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+                RECORD_FUNCTION("HcclReduceScatterV", std::vector<c10::IValue>({input}));
+                auto inputDataPtr = input.data_ptr();
+                auto outputDataPtr = output.data_ptr();
+                uint64_t outputCount = output.numel();
+                auto numel = getNumelForHCCL(output);
+                auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
+                auto hcclType = getHcclDataType(input.scalar_type());
+                auto hccl_call = [
+                    inputDataPtr,
+                    inputCounts,
+                    inputSpl,
+                    outputDataPtr,
+                    outputCount,
+                    hcclType,
+                    hcclReduceOp,
+                    numel,
+                    comm,
+                    stream,
+                    is_dispatched]() -> int {
+                        torch_npu::profiler::MstxRange range(
+                            getMstxHcclMsg("HcclReduceScatterV", numel, hcclType, comm),
+                            stream.stream(false));
+                        auto hccl_result = hcclReduceScatterV(
+                            inputDataPtr,
+                            inputCounts.data(),
+                            inputSpl.data(),
+                            outputDataPtr,
+                            outputCount,
+                            hcclType,
+                            hcclReduceOp,
+                            comm,
+                            stream.stream(false));
+                        *is_dispatched = true;
+                        return hccl_result;
+                };
+                at_npu::native::OpCommand::RunOpApi("HcclReduceScatterV", hccl_call);
+
+                return HCCL_SUCCESS;
+            },
+            [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+            [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+                work->lazyDestroy(inputFlattened);
+                work->lazyDestroy(outputFlattened);
+                // Copy the flattened output tensors to the outputs.
+                for (const auto i : c10::irange(outputTensors.size())) {
+                    c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                        work->stashed_for_allocator_safety_.push_back(outputTensors[i]);
+                    } else {
+                        c10_npu::NPUCachingAllocator::recordStream(
+                            outputTensors[i].storage().data_ptr(), hcclStreams[i]);
+
+                        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                            work->recorded_outputs_.push_back(
+                                std::make_pair(outputTensors[i].storage().getWeakStorageImpl(), hcclStreams[i]));
+                        }
+                    }
+                    at::Tensor output_tensor_reshape = at::reshape(outputFlattened[i], outputTensors[i].sizes());
+                    outputTensors[i].copy_(output_tensor_reshape, true);
+                }
+            },
+            c10d::OpType::REDUCE_SCATTER);
     } else {
         TORCH_NPU_WARN_ONCE("The current reduce_scatter operator has a defect in handling different tensor shape,",
             "the work event forces a wait operation in c++ side, and the reduce_scatter wait on the python side would be fake");
