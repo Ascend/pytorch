@@ -47,10 +47,19 @@ if os.environ.get("ENABLE_LTO") is not None:
 PGO_MODE = 0
 if os.environ.get("PGO_MODE") is not None:
     PGO_MODE = int(os.environ.get("PGO_MODE"))
+
 USE_CXX11_ABI = False
-if os.environ.get("_GLIBCXX_USE_CXX11_ABI") is not None and os.environ.get("_GLIBCXX_USE_CXX11_ABI") == "1":
+if platform.machine() == "aarch64":
+    # change to use cxx11.abi in default since 2.6 (arm)
     USE_CXX11_ABI = True
-    VERSION += "+cxx11-abi"
+
+if os.environ.get("_GLIBCXX_USE_CXX11_ABI") is not None:
+    if os.environ.get("_GLIBCXX_USE_CXX11_ABI") == "1":
+        USE_CXX11_ABI = True
+        if platform.machine() == "x86_64":
+            VERSION += "+cxx11-abi"
+    else:
+        USE_CXX11_ABI = False
 
 
 def get_submodule_folders():
