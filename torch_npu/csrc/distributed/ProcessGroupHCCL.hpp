@@ -962,6 +962,10 @@ private:
         std::vector<c10_npu::NPUStream> &streamVal,
         int p2pRank);
 
+    void createHCCLCommForZeroCopy(
+        std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
+        std::unordered_map<std::string, std::string> &envMap);
+
     // Helper that encapsulates work shared across point-to-point communication
     // primitives. It is the same structure as the helper used for collective
     // communication primitives.
