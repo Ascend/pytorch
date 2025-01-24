@@ -267,6 +267,49 @@ void checkHcclCommConfigValid(const HcclCommConfig* config)
     }
 }
 
+std::unordered_map<std::string, std::string> checkEnvVarOrLogWarning()
+{
+    std::unordered_map<std::string, std::string> map;
+    map["enable"] = "true";
+    const char* local_rank_env = getenv("LOCAL_RANK");
+    if (local_rank_env == nullptr) {
+        map["enable"] = "false";
+        TORCH_NPU_WARN_ONCE("Environment variable 'LOCAL_RANK' is not set. And HCCL_ZERO_COPY will not enable.",
+            "Please try to launch the process by using torchrun or configure the 'LOCAL_RANK' environment variable.");
+    } else {
+        map["local_rank"] = local_rank_env;
+    }
+
+    const char* global_rank_env = getenv("RANK");
+    if (global_rank_env == nullptr) {
+        map["enable"] = "false";
+        TORCH_NPU_WARN_ONCE("Environment variable 'RANK' is not set. And HCCL_ZERO_COPY will not enable.",
+            "Please try to launch the process by using torchrun or configure the 'RANK' environment variable.");
+    } else {
+        map["global_rank"] = global_rank_env;
+    }
+
+    const char* nodes_rank_env = getenv("GROUP_RANK");
+    if (nodes_rank_env == nullptr) {
+        map["enable"] = "false";
+        TORCH_NPU_WARN_ONCE("Environment variable 'GROUP_RANK' is not set. And HCCL_ZERO_COPY will not enable.",
+            "Please try to launch the process by using torchrun or configure the 'GROUP_RANK' environment variable.");
+    } else {
+        map["nodes_rank"] = nodes_rank_env;
+    }
+
+    const char* local_world_size_env = getenv("LOCAL_WORLD_SIZE");
+    if (local_world_size_env == nullptr) {
+        map["enable"] = "false";
+        TORCH_NPU_WARN_ONCE("Environment variable 'LOCAL_WORLD_SIZE' is not set. And HCCL_ZERO_COPY will not enable.",
+            "Please try to launch the process by using torchrun or configure the 'LOCAL_WORLD_SIZE' environment variable.");
+    } else {
+        map["local_world_size"] = local_world_size_env;
+    }
+
+    return map;
+}
+
 void fill_equal_split_sizes_when_empty(std::vector<int64_t>& split_sizes, at::Tensor tensor, int group_size)
 {
     if (!split_sizes.empty()) {
@@ -795,6 +838,22 @@ ProcessGroupHCCL::ProcessGroupHCCL(
 
     if (options_->global_ranks_in_group.empty()) {
         global_ = this;
+        if (c10_npu::option::OptionsManager::IsHcclZeroCopyEnable() && c10_npu::NPUCachingAllocator::checkConfigExpandableSegments()) {
+            ASCEND_LOGI("Set the HCCL_ZERO_COPY environment variable in ExpandableSegments. Try to enable the HCCL_ZERO_COPY feature.");
+            std::unordered_map<std::string, std::string> envMap = checkEnvVarOrLogWarning();
+            if (envMap["enable"] == "true") {
+                int32_t device_id = -1;
+                NPU_CHECK_ERROR(c10_npu::GetDevice(&device_id));
+                std::vector<std::shared_ptr<HCCLComm>> hcclComms(1);
+                createHCCLCommForZeroCopy(hcclComms, envMap);
+                c10_npu::NPUCachingAllocator::buildServerMemMapForHccl(device_id, hcclComms[0]);
+            } else {
+                ASCEND_LOGI("Because the environment variables are not fully configured, the HCCL_ZERO_COPY feature cannot be enabled.");
+            }
+        } else {
+            ASCEND_LOGI("The IsHcclZeroCopyEnable function return %d, the checkConfigExpandableSegments function return %d.",
+                c10_npu::option::OptionsManager::IsHcclZeroCopyEnable(), c10_npu::NPUCachingAllocator::checkConfigExpandableSegments());
+        }
     }
     ASCEND_LOGI("process group created, group id is %s.", options_->group_id.c_str());
 }
@@ -1521,6 +1580,58 @@ bool ProcessGroupHCCL::createHCCLCommEx(
     ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, use %d ms.",
         options_->group_id.c_str(), hcclid, subTimeElapsed.count());
     return true;
+}
+
+void ProcessGroupHCCL::createHCCLCommForZeroCopy(
+    std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
+    std::unordered_map<std::string, std::string> &envMap)
+{
+    ASCEND_LOGI("Rank %s create process group  HCCL communicator for hccl zero copy", envMap["global_rank"].c_str());
+    std::string localRootRank = "0";
+    HcclRootInfo hcclID;
+
+    if (envMap["local_rank"] == localRootRank) {
+        HCCL_CHECK_ERROR(HcclGetRootInfo(&hcclID));
+    }
+
+    HcclRootInfo* hcclID_ = &hcclID;
+    std::string storeKey = "hccl_zero_copy_" + envMap["nodes_rank"] + "_" + std::to_string(hcclCommCounter_);
+
+    if (envMap["local_rank"] == localRootRank) {
+        auto vec = std::vector<uint8_t>(reinterpret_cast<uint8_t*>(hcclID_), reinterpret_cast<uint8_t*>(hcclID_) + HCCL_ROOT_INFO_BYTES);
+        store_->set(storeKey, vec);
+    } else {
+        try {
+            auto vec = store_->get(storeKey);
+            TORCH_CHECK(vec.size() == HCCL_ROOT_INFO_BYTES, DIST_ERROR(ErrCode::PARAM));
+            std::memcpy(hcclID_, vec.data(), vec.size());
+        } catch (const std::exception& e) {
+            std::string exceptionMsg = c10::str(
+                "[",
+                rank_,
+                "] is setting up HCCL communicator and "
+                "retrieving hcclUniqueId from [0] via c10d key-value store by key '",
+                storeKey,
+                "', but store->get('",
+                storeKey,
+                "') got error: ");
+            throw std::runtime_error(exceptionMsg + e.what() +
+                ". This may indicate a possible application crash on rank 0 or a network set up issue." +
+                DIST_ERROR(ErrCode::INTERNAL));
+        } catch (...) {
+            throw std::runtime_error(c10::str(
+                "Unknown exception while [",
+                rank_,
+                "] is setting up HCCL communicator and "
+                "retrieving hcclUniqueId from [0] via c10d key-value store by key '",
+                storeKey,
+                "'",
+                ". This may indicate a possible application crash on rank 0 or a network set up issue.") +
+                DIST_ERROR(ErrCode::INTERNAL));
+        }
+    }
+    hcclComms[0] = HCCLComm::create(std::stoi(envMap["local_world_size"]), std::stoi(envMap["local_rank"]), hcclID);
+    return;
 }
 
 std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
