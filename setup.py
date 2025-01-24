@@ -125,7 +125,7 @@ def generate_torch_npu_version():
     sha = get_sha(torch_npu_root)
     if os.getenv("BUILD_WITHOUT_SHA") is None:
         global VERSION
-        if USE_CXX11_ABI:
+        if USE_CXX11_ABI and platform.machine() == "x86_64":
             VERSION += ".git" + sha[:7]
         else:
             VERSION += "+git" + sha[:7]
