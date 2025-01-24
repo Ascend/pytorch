@@ -4,7 +4,6 @@ import functools
 from typing import Optional, Iterable, Callable, Dict
 
 import torch
-import torch_npu._C
 from torch_npu._C._profiler import (
     ProfilerActivity,
     NpuProfilerConfig,
@@ -64,9 +63,6 @@ def _disable_event_record():
 
 
 class _ProfInterface:
-    PARALLEL_GROUP_INFO = {}
-    PARALLEL_GROUP_KEY = "parallel_group_info"
-
     def __init__(
         self,
         activities: Optional[Iterable[ProfilerActivity]] = None,
@@ -232,48 +228,14 @@ class _ProfInterface:
     def _dump_metadata(self):
         if self.experimental_config.export_type == Constant.Text:
             self.metadata.update(collect_env_vars())
-        self._add_group_info_to_metadata()
         if not self.metadata:
             return
         if not ProfPathCreator().is_prof_inited:
             print_warn_msg("Profiler is not initialized. Skip this metadata.")
             return
         metadata_path = os.path.join(self.prof_path, Constant.PROFILER_META_DATA)
-        FileManager.create_json_file_by_path(metadata_path, self.metadata)
+        FileManager.create_json_file_by_path(metadata_path, self.metadata, indent=4)
         self.metadata.clear()
-
-    def _add_group_info_to_metadata(self):
-        if self.PARALLEL_GROUP_INFO:
-            self.metadata.update({self.PARALLEL_GROUP_KEY: self.PARALLEL_GROUP_INFO})
-        try:
-            if torch.distributed.is_available() and torch.distributed.is_initialized():
-                default_group = torch.distributed.distributed_c10d._get_default_group()
-                global_rank = torch.distributed.get_rank()
-                comm_name = default_group._get_backend((torch.device("npu"))).get_hccl_comm_name(global_rank)
-                default_group_info = {
-                    comm_name: {
-                        "group_name": "default_group",
-                        "group_rank": torch.distributed.get_group_rank(default_group, global_rank),
-                        "global_ranks": torch.distributed.get_process_group_ranks(default_group)
-                    }
-                }
-                self.metadata.setdefault(self.PARALLEL_GROUP_KEY, {}).update(default_group_info)
-        except Exception as err:
-            print_warn_msg(f"Failed to get default group info, Exception: {str(err)}.")
-
-    @classmethod
-    def record_process_group_info(cls, group, group_rank):
-        if isinstance(group, torch_npu._C._distributed_c10d.ProcessGroupHCCL):
-            global_ranks = group.options.global_ranks_in_group
-            if not 0 <= group_rank < len(global_ranks):
-                return
-            global_rank = group.options.global_ranks_in_group[group_rank]
-            comm_name = group.get_hccl_comm_name(global_rank)
-            cls.PARALLEL_GROUP_INFO[comm_name] = {
-                "group_name": group.options.hccl_config.get("group_name", ""),
-                "group_rank": group_rank,
-                "global_ranks": group.options.global_ranks_in_group
-            }
 
 
 @no_exception_func(set())
