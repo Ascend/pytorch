@@ -1048,7 +1048,7 @@ class DeviceCachingAllocator {
             "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log "
             "can be ignored.");
         // Free all non-split cached blocks and retry alloc.
-        c10_npu::NPUWorkspaceAllocator::emptyCache(device, true);
+        c10_npu::NPUWorkspaceAllocator::emptyCache(device, true, true);
         block_found = (release_cached_blocks(true, context) && alloc_block(params, true, context, lock));
     }
 
@@ -1389,7 +1389,7 @@ class DeviceCachingAllocator {
     {
         std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
         std::lock_guard<std::recursive_mutex> lock(mutex);
-        c10_npu::NPUWorkspaceAllocator::emptyCache(device, check_error);
+        c10_npu::NPUWorkspaceAllocator::emptyCache(device, true, check_error);
         release_cached_blocks(check_error, context);
     }
 
