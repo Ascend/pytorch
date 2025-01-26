@@ -1358,6 +1358,60 @@ class TestGeGlu(TestCase):
             self.assertTrue(x.shape == res.shape)
 
 
+class TestNpuRopeQuantKVCache(TestCase):
+    @unittest.skip("skip test_npu_rope_quant_kvcache_meta now")
+    def test_npu_rope_quant_kvcache_meta(self):
+        with FakeTensorMode() as mode:
+            data_x = np.random.uniform(0, 1, [1, 1, 128 * 3]).astype(np.float16)
+            in_x = torch.from_numpy(data_x).to(torch.float16).npu()
+            data_cos = np.random.uniform(0, 1, [1, 1, 1, 128]).astype(np.float16)
+            in_cos = torch.from_numpy(data_cos).to(torch.float16).npu()
+            data_sin = np.random.uniform(0, 1, [1, 1, 1, 128]).astype(np.float16)
+            in_sin = torch.from_numpy(data_sin).to(torch.float16).npu()
+            data_k_cache = np.random.uniform(0, 1, [1, 2, 1, 128]).astype(np.int8)
+            in_k_cache = torch.from_numpy(data_k_cache).to(torch.int8).npu()
+            data_v_cache = np.random.uniform(0, 1, [1, 2, 1, 128]).astype(np.int8)
+            in_v_cache = torch.from_numpy(data_v_cache).to(torch.int8).npu()
+            in_indices = torch.tensor([0]).to(torch.int32).npu()
+            in_scale_k = torch.randn([128], dtype=torch.float32).npu()
+            in_scale_v = torch.randn([128], dtype=torch.float32).npu()
+            size_splits = [128, 128, 128]
+
+            fake_x = mode.from_tensor(in_x)
+            fake_cos = mode.from_tensor(in_cos)
+            fake_sin = mode.from_tensor(in_sin)
+            fake_indices = mode.from_tensor(in_indices)
+            fake_k_cache = mode.from_tensor(in_k_cache)
+            fake_v_cache = mode.from_tensor(in_v_cache)
+            fake_scale_k = mode.from_tensor(in_scale_k)
+            fake_scale_v = mode.from_tensor(in_scale_v)
+            self.assertIsNotNone(fake_x)
+            self.assertIsNotNone(fake_cos)
+            self.assertIsNotNone(fake_sin)
+            self.assertIsNotNone(fake_k_cache)
+            self.assertIsNotNone(fake_v_cache)
+            self.assertIsNotNone(fake_scale_k)
+            self.assertIsNotNone(fake_scale_v)
+            q_result, k_result, c_result, k_cache_result, v_cache_result = torch.ops.npu.npu_rope_quant_kvcache(fake_x,
+                                                                                                                fake_cos,
+                                                                                                                fake_sin,
+                                                                                                                fake_k_cache,
+                                                                                                                fake_v_cache,
+                                                                                                                fake_indices,
+                                                                                                                fake_scale_k,
+                                                                                                                fake_scale_v,
+                                                                                                                size_splits)
+
+            self.assertEqual(q_result.shape, torch.Size([1, 1, 1, 128]))
+            self.assertEqual(q_result.dtype, in_x.dtype)
+            self.assertEqual(q_result.device, in_x.device)
+            self.assertTrue(isinstance(q_result, FakeTensor))
+            self.assertEqual(k_cache_result.shape, in_k_cache.shape)
+            self.assertEqual(k_cache_result.dtype, in_k_cache.dtype)
+            self.assertEqual(k_cache_result.device, in_k_cache.device)
+            self.assertTrue(isinstance(k_cache_result, FakeTensor))
+
+
 class TestScatterUpdateMeta(TestCase):
 
     def test_scatter_update_meta(self):
