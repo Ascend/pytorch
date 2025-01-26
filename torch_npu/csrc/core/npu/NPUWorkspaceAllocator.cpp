@@ -113,8 +113,12 @@ public:
     }
 
     // return to the system allocator
-    void empty_cache(bool check_error)
+    void empty_cache(bool need_empty_queue, bool check_error)
     {
+        if (need_empty_queue) {
+            c10_npu::emptyAllNPUStream();
+        }
+
         auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
         if (check_error) {
             NPU_CHECK_ERROR(acl_ret, "AclrtSynchronizeDeviceWithTimeout");
@@ -221,6 +225,7 @@ public:
 
         // Free all cached blocks and try again.
         if ((*new_ptr) == nullptr) {
+            device_allocator[device]->empty_cache(false, true);
             c10_npu::NPUCachingAllocator::emptyCache(true);
             *new_ptr = static_cast<void*>(device_allocator[device]->malloc(size, stream));
         }
@@ -242,9 +247,9 @@ public:
         }
     }
 
-    void empty_cache(int device, bool check_error)
+    void empty_cache(int device, bool need_empty_queue, bool check_error)
     {
-        device_allocator[device]->empty_cache(check_error);
+        device_allocator[device]->empty_cache(need_empty_queue, check_error);
     }
 
     c10::DataPtr allocate(size_t size) override
@@ -313,9 +318,9 @@ c10::DataPtr malloc_with_stream(size_t size, aclrtStream stream)
     return workspace_allocator.allocate_with_stream(size, stream);
 }
 
-void emptyCache(int device, bool check_error)
+void emptyCache(int device, bool need_empty_queue, bool check_error)
 {
-    workspace_allocator.empty_cache(device, check_error);
+    workspace_allocator.empty_cache(device, need_empty_queue, check_error);
 }
 
 } // namespace NPUWorkspaceAllocator
