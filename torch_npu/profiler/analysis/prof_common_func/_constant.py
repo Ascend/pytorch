@@ -137,6 +137,10 @@ class Constant(object):
     StartMonotonic = "start_monotonic"
     SyscntEable = "syscnt_enable"
 
+    # profiler version
+    TORCH_NPU_VERSION = "torch_npu_version"
+    CANN_VERSION = "cann_version"
+
     # incompatible_features.json
     AffectedComponent = "affectedComponent"
     AffectedComponentVersion = "affectedComponentVersion"

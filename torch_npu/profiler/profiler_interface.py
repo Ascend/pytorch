@@ -19,6 +19,7 @@ from torch_npu._C._profiler import (
 )
 from torch_npu.npu import _lazy_init
 from torch_npu.npu import Event
+from torch_npu.utils.collect_env import get_torch_npu_version, get_cann_version
 
 from ._profiler_path_creator import ProfPathCreator
 from ._profiler_gc_detect import ProfGCDetector
@@ -214,7 +215,9 @@ class _ProfInterface:
         total_info = {
             Constant.CONFIG: config,
             Constant.START_INFO: start_info,
-            Constant.END_INFO: end_info}
+            Constant.END_INFO: end_info,
+            Constant.TORCH_NPU_VERSION: get_torch_npu_version().replace("'", "").replace(" ", ""),
+            Constant.CANN_VERSION: get_cann_version()}
         rank_id = os.environ.get('RANK')
         if rank_id is None and torch.distributed.is_available() and torch.distributed.is_initialized():
             rank_id = torch.distributed.get_rank()
