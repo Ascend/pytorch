@@ -930,4 +930,58 @@ def npu_swiglu_meta(x, dim=-1):
 @impl(m, "npu_swiglu_backward")
 def npu_swiglugrad_meta(y, x, dim=-1):
     return torch.empty_like(x)
-    
+
+
+def rope_quant_kvcache(x, cos, k_cache, v_cache, size_splits, kv_output=False):
+    torch._check(
+        x.dim() == 3 or x.dim() == 2,
+        lambda: f"The x's dim should be 2 or 3, but got {x.dim()}.",
+        )
+    torch._check(
+        k_cache.dim() == 4,
+        lambda: f"The k_cache's dim should be 4, but got {k_cache.dim()}.",
+        )
+    num_size_splits = len(size_splits)
+    torch._check(
+        num_size_splits == 3,
+        lambda: f"The size_splits should be 3, but got {num_size_splits}.",
+        )
+    torch._check(
+        size_splits[0] >= 0,
+        lambda: f"size_splits[0] should not less than 0, but got {size_splits[0]}.",
+        )
+    batch = x.size(0)
+    seqlen = x.size(1)
+    k_headdim = k_cache.size(2)
+    hidden_size = k_cache.size(3)
+    q_headdim = 0
+    if hidden_size != 0:
+        q_headdim = size_splits[0] // hidden_size
+    out_q_size = [batch, seqlen, q_headdim, hidden_size] if x.dim() == 3 else [batch, q_headdim, hidden_size]
+    out_k_size = [0]
+    out_v_size = [0]
+    if kv_output:
+        out_k_size = [batch, seqlen, k_headdim, hidden_size] if x.dim() == 3 else [batch, k_headdim, hidden_size]
+        out_v_size = [batch, seqlen, k_headdim, hidden_size] if x.dim() == 3 else [batch, k_headdim, hidden_size]
+    return (torch.empty(out_q_size, dtype=cos.dtype, device=x.device),
+            torch.empty(out_k_size, dtype=cos.dtype, device=x.device),
+            torch.empty(out_v_size, dtype=cos.dtype, device=x.device),
+            k_cache, v_cache)
+
+
+@impl(m, "npu_dequant_rope_quant_kvcache")
+def npu_dequant_rope_quant_kvcache_meta(x, cos, sin, k_cache, v_cache, indices, scale_k, scale_v, size_splits, *,
+                                        offset_k=None, offset_v=None, weight_scale=None, activation_scale=None, 
+                                        bias=None, quant_mode=0, input_layout="BSND", kv_output=False, 
+                                        cache_mode="contiguous"):
+    torch._check(
+        x.dtype == torch.int32,
+        lambda: f"The x's dtype should be Int32, but got {x.dtype}.",
+        )
+    return rope_quant_kvcache(x, cos, k_cache, v_cache, size_splits, kv_output=kv_output)
+
+
+@impl(m, "npu_rope_quant_kvcache")
+def npu_rope_quant_kvcache_meta(x, cos, sin, k_cache, v_cache, indices, scale_k, scale_v, size_splits, *, offset_k=None,
+                                offset_v=None, quant_mode=0, input_layout="BSND", kv_output=False, cache_mode="contiguous"):
+    return rope_quant_kvcache(x, cos, k_cache, v_cache, size_splits, kv_output=kv_output)
