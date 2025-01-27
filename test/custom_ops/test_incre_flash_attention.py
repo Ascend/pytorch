@@ -11,7 +11,7 @@ from torch_npu.testing.common_utils import SupportedDevices
 class TestIncreFlashAttention(TestCase):
 
     def supported_op_exec(self, query_states1, past_key, past_value, head_dim, hidden_size):
-        attn_weights1 = torch.matmul(query_states1, past_key.transpose(2, 3)) / 0.0078125
+        attn_weights1 = torch.matmul(query_states1, past_key.transpose(2, 3)) * (1.0 / math.sqrt(head_dim))
         attn_weights1 = torch.max(attn_weights1, torch.full(
             (1, 1), torch.finfo(attn_weights1.dtype).min, device=attn_weights1.device))
         attn_weights1 = torch.nn.functional.softmax(attn_weights1, dim=-1, dtype=torch.float32).to(query_states1.dtype)
@@ -26,7 +26,7 @@ class TestIncreFlashAttention(TestCase):
         return tensor
 
     def custom_op_exec(self, query, key, value, head_dim, hidden_size):
-        scale = 1 / 0.0078125
+        scale = 1.0 / math.sqrt(head_dim)
         return torch_npu.npu_incre_flash_attention(query, key, value, num_heads=32, input_layout="BSH", scale_value=scale)
 
     @SupportedDevices(['Ascend910B'])
