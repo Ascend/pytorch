@@ -82,7 +82,7 @@ class MemoryDbParser(BaseParser):
             self._db_path = deps_data.get(Constant.DB_PARSER, "")
             self.init_db_connect()
             self.set_start_string_id()
-            self._pta_op_memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", [])
+            self._pta_op_memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", {}).get(Constant.Db, [])
             self._pta_memory_bean_list = deps_data.get(Constant.MEMORY_PREPARE, {}).get("pta_record_list", [])
             self.init_pta_memory_data()
             self.save_memory_data_to_db()
@@ -236,7 +236,7 @@ class MemoryDbParser(BaseParser):
             torch_nop_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(only_fwk=True)
             deps_data = {Constant.TREE_BUILD_PARSER: torch_nop_node}
             _, pta_data = MemoryPrepareParser(Constant.MEMORY_PREPARE, self._param_dict).run(deps_data)
-            self._pta_op_memory_data = pta_data.get("memory_data", [])
+            self._pta_op_memory_data = pta_data.get("memory_data", {}).get(Constant.Db, [])
             self._pta_memory_bean_list = pta_data.get("pta_record_list", [])
 
     def save_strings_id(self):

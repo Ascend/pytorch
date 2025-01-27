@@ -36,7 +36,7 @@ class DynamicProfilerShareMemory:
             "gc_detect_threshold": None,
             "data_simplification": True,
             "record_op_args": False,
-            "export_type": "text",
+            "export_type": ["text"],
             "msprof_tx": False
         }
     }
