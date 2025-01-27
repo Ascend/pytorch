@@ -33,7 +33,8 @@ public:
     // StorageDesc Init/Set
     static void SetDesc(at::Tensor &dst);
     static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides);
-    static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides, aclFormat format);
+    static void SetDesc(at::Tensor &dst, const c10::IntArrayRef &size, const c10::IntArrayRef &strides,
+                        aclFormat format);
     static bool CheckDescInit(const c10::Storage &storage);
 
     // For Serialization to Get and Set NpuStorageDesc

@@ -331,7 +331,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         } catch (std::exception &e) {
             if (std::string(e.what()).find(DEVICE_TASK_ABORT) != std::string::npos ||
                 std::string(e.what()).find(DEVICE_MEM_ERROR) != std::string::npos) {
-                ret =c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
+                ret = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
             } else {
                 ret = ACL_ERROR_INVALID_PARAM;
                 LOG(ERROR) << e.what();
@@ -416,7 +416,7 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
     } catch (std::exception &e) {
         if (std::string(e.what()).find(DEVICE_TASK_ABORT) != std::string::npos ||
             std::string(e.what()).find(DEVICE_MEM_ERROR) != std::string::npos) {
-            ret =c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
+            ret = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         } else {
             ret = ACL_ERROR_INVALID_PARAM;
             LOG(ERROR) << e.what();
@@ -525,7 +525,8 @@ void CopyFunc(void *dst, void *src)
     dstPtr->correlation_id = srcPtr->correlation_id;
     if (dstPtr->paramType == c10_npu::queue::EXECUTE_OPAPI) {
         new (dstPtr->paramVal) ExecuteParasOpApi();
-        (static_cast<ExecuteParasOpApi *>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParasOpApi *>(srcPtr->paramVal)));
+        (static_cast<ExecuteParasOpApi *>(dstPtr->paramVal))
+            ->Copy(*(static_cast<ExecuteParasOpApi *>(srcPtr->paramVal)));
     } else if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         new (dstPtr->paramVal) ExecuteParas();
         (static_cast<ExecuteParas *>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas *>(srcPtr->paramVal)));
@@ -619,7 +620,8 @@ void OpCommandImpls::Push(OpCommandImpl *&ptr)
         OpCommandImpl impl;
         objs.emplace_back(std::move(impl));
     }
-    TORCH_CHECK(objs.size() > offset, "OpCommand size (", objs.size(), ") is smaller than offset (", offset, ")", OPS_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(objs.size() > offset, "OpCommand size (", objs.size(), ") is smaller than offset (", offset, ")",
+                OPS_ERROR(ErrCode::PARAM));
     ptr = &objs[offset];
 }
 

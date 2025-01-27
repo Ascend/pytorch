@@ -90,16 +90,20 @@ void StorageDescHelper::SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, c
     torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ = SetDesc(dst.dtype(), size, strides);
 }
 
-void StorageDescHelper::SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides, aclFormat format)
+void StorageDescHelper::SetDesc(at::Tensor &dst, const c10::IntArrayRef &size, const c10::IntArrayRef &strides,
+                                aclFormat format)
 {
     torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ = SetDesc(dst.dtype(), size, strides, format);
 }
 
-bool StorageDescHelper::CheckDescInit(const c10::Storage &storage) {
-    return ACL_FORMAT_UNDEFINED != torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())->npu_desc_.origin_format_;
+bool StorageDescHelper::CheckDescInit(const c10::Storage &storage)
+{
+    return ACL_FORMAT_UNDEFINED !=
+           torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())->npu_desc_.origin_format_;
 }
 
-void StorageDescHelper::GetDescForSerialization(const at::Tensor &tensor, std::unordered_map<std::string, bool> &desc_map)
+void StorageDescHelper::GetDescForSerialization(const at::Tensor &tensor,
+                                                std::unordered_map<std::string, bool> &desc_map)
 {
     // fix: when input tensor is a FakeTensor without desc.
     auto tensor_storage_impl = torch_npu::NPUBridge::GetNpuStorageImpl(tensor);
@@ -149,7 +153,8 @@ void StorageDescHelper::GetDescForSerialization(const at::Tensor &tensor, std::u
     desc_map[npu_format_] = true;
 }
 
-void StorageDescHelper::SetDescForSerialization(const at::Tensor &tensor, std::unordered_map<std::string, bool> &desc_map)
+void StorageDescHelper::SetDescForSerialization(const at::Tensor &tensor,
+                                                std::unordered_map<std::string, bool> &desc_map)
 {
     auto &cur_desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor);
     // The NPUStorageDesc object to restore
