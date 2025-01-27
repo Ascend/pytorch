@@ -40,7 +40,7 @@ class ProfilingParser:
                 target_path = os.path.join(host_path, rm_dir)
                 PathManager.remove_path_safety(target_path)
         if simplify_flag:
-            if ProfilerConfig().export_type == Constant.Db:
+            if Constant.Db in ProfilerConfig().export_type:
                 profiler_metadata_path = os.path.join(profiler_path, Constant.PROFILER_META_DATA)
                 PathManager.remove_file_safety(profiler_metadata_path)
             fwk_path = ProfilerPathManager.get_fwk_path(profiler_path)
@@ -60,11 +60,11 @@ class ProfilingParser:
                     PathManager.remove_file_safety(file_path)
 
     def update_export_type(self):
-        if ProfilerConfig().export_type == Constant.Text:
+        if Constant.Db not in ProfilerConfig().export_type:
             return
         if self._analysis_type == Constant.EXPORT_CHROME_TRACE or self._analysis_type == Constant.EXPORT_STACK:
             print_warn_msg("The setting of type in experimental_config as db will be ignored while set export_chrome_trace or export_stacks")
-            ProfilerConfig().export_type = Constant.Text
+            ProfilerConfig().export_type = [Constant.Text]
             return
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
             return
@@ -76,7 +76,7 @@ class ProfilingParser:
         cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
         if not cann_path:
             return
-        if self._analysis_type == Constant.TENSORBOARD_TRACE_HANDLER and ProfilerConfig().export_type == Constant.Db:
+        if self._analysis_type == Constant.TENSORBOARD_TRACE_HANDLER and Constant.Db in ProfilerConfig().export_type:
             patten = r'^msprof_\d+\.db$'
             for filename in os.listdir(cann_path):
                 if re.match(patten, filename) and os.path.isfile(os.path.join(cann_path, filename)):
@@ -100,15 +100,25 @@ class ProfilingParser:
         param_dict = {"profiler_path": self._profiler_path, "output_path": self._output_path}
         if self._kwargs:
             param_dict.update(self._kwargs)
+
+        parser_config = ParserConfig.ONLY_FWK_CONFIG
         if ProfilerPathManager.get_cann_path(self._profiler_path):
             CANNFileParser(self._profiler_path).del_summary_and_timeline_data()
             CANNFileParser(self._profiler_path).del_output_path_data() 
             if ProfilerConfig().get_level() == "Level_none":
-                parser_list = ParserConfig.LEVEL_NONE_CONFIG.get(ProfilerConfig().export_type).get(self._analysis_type)
+                parser_config = ParserConfig.LEVEL_NONE_CONFIG
             else:
-                parser_list = ParserConfig.COMMON_CONFIG.get(ProfilerConfig().export_type).get(self._analysis_type)
-        else:
-            parser_list = ParserConfig.ONLY_FWK_CONFIG.get(ProfilerConfig().export_type).get(self._analysis_type)
+                parser_config = ParserConfig.COMMON_CONFIG
+
+        parser_list = []
+        unique_parser_set = set()
+        for export_type in set(ProfilerConfig().export_type):
+            for parser in parser_config.get(export_type).get(self._analysis_type):
+                if parser in unique_parser_set:
+                    continue
+                unique_parser_set.add(parser)
+                parser_list.append(parser)
+
         manager = ConcurrentTasksManager(progress_bar="cursor")
         for parser in parser_list:
             manager.add_task(parser(ParserConfig.PARSER_NAME_MAP.get(parser), param_dict))

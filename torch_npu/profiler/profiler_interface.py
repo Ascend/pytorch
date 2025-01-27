@@ -178,7 +178,7 @@ class _ProfInterface:
         if ProfilerActivity.NPU not in self.activities and self.experimental_config is not None:
             print_warn_msg("Experimental config will not be uesd while ProfilerActivity.NPU is not set.")
 
-        if ProfilerActivity.NPU in self.activities and self.experimental_config.export_type == Constant.Db:
+        if ProfilerActivity.NPU in self.activities and Constant.Db in self.experimental_config.export_type:
             if not CannPackageManager.SUPPORT_EXPORT_DB:
                 raise RuntimeError("Current cann package does not support export db. "
                                    "If you want to export db, you can install supported CANN package version.")
@@ -229,7 +229,7 @@ class _ProfInterface:
         FileManager.create_json_file_by_path(path, total_info, indent=4)
 
     def _dump_metadata(self):
-        if self.experimental_config.export_type == Constant.Text:
+        if Constant.Text in self.experimental_config.export_type:
             self.metadata.update(collect_env_vars())
         if not self.metadata:
             return

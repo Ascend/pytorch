@@ -66,7 +66,7 @@ class MemoryViewParser(BaseParser):
 
     def run(self, deps_data: dict):
         try:
-            self.memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", [])
+            self.memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", {}).get(Constant.Text, [])
             self.pta_record_list = deps_data.get(Constant.MEMORY_PREPARE, {}).get("pta_record_list", [])
             self.generate_view()
         except Exception:
@@ -145,5 +145,5 @@ class MemoryViewParser(BaseParser):
             torch_nop_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(only_fwk=True)
             deps_data = {Constant.TREE_BUILD_PARSER: torch_nop_node}
             _, pta_data = MemoryPrepareParser(Constant.MEMORY_PREPARE, self._param_dict).run(deps_data)
-            self.memory_data = pta_data.get("memory_data", [])
+            self.memory_data = pta_data.get("memory_data", {}).get(Constant.Text, [])
             self.pta_record_list = pta_data.get("pta_record_list", [])
