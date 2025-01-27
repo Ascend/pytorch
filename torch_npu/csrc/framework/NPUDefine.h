@@ -5,103 +5,96 @@
 
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 
-namespace at_npu
-{
-    namespace native
+namespace at_npu {
+namespace native {
+
+struct ACL_PARAMS {
+    ACL_PARAMS()
     {
+        input_desc = nullptr;
+        input_data_buf = nullptr;
+        output_desc = nullptr;
+        output_data_buf = nullptr;
+    }
 
-        struct ACL_PARAMS
-        {
-            ACL_PARAMS()
-            {
-                input_desc = nullptr;
-                input_data_buf = nullptr;
-                output_desc = nullptr;
-                output_data_buf = nullptr;
-            }
+    int input_num{0};
+    const aclTensorDesc **input_desc;
+    const aclDataBuffer **input_data_buf;
+    int output_num{0};
+    const aclTensorDesc **output_desc;
+    aclDataBuffer **output_data_buf;
+};
 
-            int input_num{0};
-            const aclTensorDesc **input_desc;
-            const aclDataBuffer **input_data_buf;
-            int output_num{0};
-            const aclTensorDesc **output_desc;
-            aclDataBuffer **output_data_buf;
-        };
+struct ACL_DYNAMIC_PARAMS {
+    ACL_DYNAMIC_PARAMS()
+    {
+        input_desc = nullptr;
+        input_data_buf = nullptr;
+        output_desc = nullptr;
+        output_data_buf = nullptr;
+        inputDims = nullptr;
+        outputDims = nullptr;
+        inputFormats = nullptr;
+        outputFormats = nullptr;
+        compile_input_desc = nullptr;
+        compile_output_desc = nullptr;
 
-        struct ACL_DYNAMIC_PARAMS
-        {
-            ACL_DYNAMIC_PARAMS()
-            {
-                input_desc = nullptr;
-                input_data_buf = nullptr;
-                output_desc = nullptr;
-                output_data_buf = nullptr;
-                inputDims = nullptr;
-                outputDims = nullptr;
-                inputFormats = nullptr;
-                outputFormats = nullptr;
-                compile_input_desc = nullptr;
-                compile_output_desc = nullptr;
+        hasAttr = false;
+    }
 
-                hasAttr = false;
-            }
+    int input_num = 0;
+    const aclTensorDesc **input_desc;
+    const aclDataBuffer **input_data_buf;
+    int output_num = 0;
+    const aclTensorDesc **output_desc;
+    aclDataBuffer **output_data_buf;
+    int64_t *inputDims;
+    int64_t *outputDims;
+    aclFormat *inputFormats;
+    aclFormat *outputFormats;
+    const aclTensorDesc **compile_input_desc;
+    const aclTensorDesc **compile_output_desc;
+    bool hasAttr;
+    std::string dynamicKey;
+};
 
-            int input_num = 0;
-            const aclTensorDesc **input_desc;
-            const aclDataBuffer **input_data_buf;
-            int output_num = 0;
-            const aclTensorDesc **output_desc;
-            aclDataBuffer **output_data_buf;
-            int64_t *inputDims;
-            int64_t *outputDims;
-            aclFormat *inputFormats;
-            aclFormat *outputFormats;
-            const aclTensorDesc **compile_input_desc;
-            const aclTensorDesc **compile_output_desc;
-            bool hasAttr;
-            std::string dynamicKey;
-        };
+struct CONST_PARAMS {
+    int constNum = 0;
+    const int64_t **constList = nullptr;
+    const int64_t *constIdx = nullptr;
+    CONST_PARAMS() = default;
+};
 
-        struct CONST_PARAMS
-        {
-            int constNum = 0;
-            const int64_t **constList = nullptr;
-            const int64_t *constIdx = nullptr;
-            CONST_PARAMS() = default;
-        };
+struct ExecuteParas {
+    using PROCESS_FUNC = std::function<int()>;
+    char opType[100]{};
+    bool isJitDisable = false;
+    ACL_PARAMS paras;
+    CONST_PARAMS constParams;
+    const aclopAttr *attr;
+    int64_t constIdx = -1;
+    static std::atomic<uint64_t> g_pta_correlation_id;
+    uint64_t pta_correlation_id = 0;
+    c10::SmallVector<at::Tensor, N> hostMemory;
+    ExecuteParas() = default;
+    void Release();
+    void Copy(ExecuteParas &other);
+    void CopyEx(ExecuteParas& other);
+    PROCESS_FUNC customHandler;
+};
 
-        struct ExecuteParas
-        {
-            using PROCESS_FUNC = std::function<int()>;
-            char opType[100]{};
-            bool isJitDisable = false;
-            ACL_PARAMS paras;
-            CONST_PARAMS constParams;
-            const aclopAttr *attr;
-            int64_t constIdx = -1;
-            static std::atomic<uint64_t> g_pta_correlation_id;
-            uint64_t pta_correlation_id = 0;
-            c10::SmallVector<at::Tensor, N> hostMemory;
-            ExecuteParas() = default;
-            void Release();
-            void Copy(ExecuteParas &other);
-            void CopyEx(ExecuteParas& other);
-            PROCESS_FUNC customHandler;
-        };
+struct ExecuteParasOpApi {
+    using PROCESS_FUNC = std::function<int()>;
+    char opType[100]{};
+    PROCESS_FUNC customHandler;
+    ExecuteParasOpApi() = default;
+    void Release();
+    void Copy(ExecuteParasOpApi &other);
+};
 
-        struct ExecuteParasOpApi
-        {
-            using PROCESS_FUNC = std::function<int()>;
-            char opType[100]{};
-            PROCESS_FUNC customHandler;
-            ExecuteParasOpApi() = default;
-            void Release();
-            void Copy(ExecuteParasOpApi &other);
-        };
-
-        NPUStatus DestroyAclParams(ACL_PARAMS &params);
-        void DestroyConstParams(CONST_PARAMS &params);
-    } // namespace native
+NPUStatus DestroyAclParams(ACL_PARAMS &params);
+void DestroyConstParams(CONST_PARAMS &params);
+} // namespace native
 } // namespace at_npu
 
 #endif // __C10_NPU_NPUQUEUE_WITH_QUEUE__
