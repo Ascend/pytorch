@@ -38,7 +38,7 @@ class MemoryPrepareParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self.pta_record_list = []
-        self.memory_data = []
+        self.memory_data = dict()
         self._torch_op_node = []
         self._incomplete_num = 0
         self._is_malloc_workspace_in_dequeue_enabled = False
@@ -124,8 +124,10 @@ class MemoryPrepareParser(BaseParser):
                 valid_record_list = self._get_valid_record_entry(ptr_records)
                 pid_mem_buf.extend(valid_record_list)
             pid_mem_buf.sort(key=lambda x: x[0].time_ns)
-            complete_records = self._complete_record_entry(pid_mem_buf, torch_ops) if ProfilerConfig().export_type == Constant.Text else self._complete_record_entry_for_db(pid_mem_buf, torch_ops)
-            self.memory_data.extend(complete_records)
+            if Constant.Text in ProfilerConfig().export_type:
+                self.memory_data.setdefault(Constant.Text, self._complete_record_entry(pid_mem_buf, torch_ops))
+            if Constant.Db in ProfilerConfig().export_type:
+                self.memory_data.setdefault(Constant.Db, self._complete_record_entry_for_db(pid_mem_buf, torch_ops))
 
     @staticmethod
     def _get_valid_record_entry(records: list) -> list:
