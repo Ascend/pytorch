@@ -51,15 +51,22 @@ class CANNExportParser(BaseParser):
                 raise RuntimeError(err_msg)
             self._check_prof_data_size()
             start_time = datetime.utcnow()
-            export_cmd_list = [self.msprof_path, "--export=on", f"--output={self._cann_path}"]
-            if ProfilerConfig().export_type == Constant.Db:
-                export_cmd_list.append("--type=db")
-            completed_process = subprocess.run(export_cmd_list, capture_output=True, shell=False)
-            if completed_process.returncode != self.COMMAND_SUCCESS:
-                print_warn_msg(f"{self.error_msg} --output={self._cann_path}")
-                raise RuntimeError("Failed to export CANN Profiling data." + prof_error(ErrCode.INTERNAL))
-        except Exception:
-            print_error_msg("Failed to export CANN Profiling data.")
+
+            if Constant.Db in ProfilerConfig().export_type:
+                analyze_cmd_list = [self.msprof_path, "--export=on", "--type=db", f"--output={self._cann_path}"]
+                completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
+                if completed_analysis.returncode != self.COMMAND_SUCCESS:
+                    raise RuntimeError("Failed to export CANN DB Profiling data." + prof_error(ErrCode.INTERNAL))
+
+            if Constant.Text in ProfilerConfig().export_type:
+                # 避免老CANN包无type参数报错
+                analyze_cmd_list = [self.msprof_path, "--export=on", f"--output={self._cann_path}"]
+                completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
+                if completed_analysis.returncode != self.COMMAND_SUCCESS:
+                    raise RuntimeError("Failed to export CANN TEXT Profiling data." + prof_error(ErrCode.INTERNAL))
+
+        except Exception as err:
+            print_error_msg(f"Failed to export CANN Profiling data. Error msg: {err}")
             return Constant.FAIL, None
         end_time = datetime.utcnow()
         print_info_msg(f"CANN profiling data parsed in a total time of {end_time - start_time}")
@@ -90,7 +97,7 @@ class CANNTimelineParser(BaseParser):
         if not os.path.isdir(self._cann_path):
             return Constant.SUCCESS, None
         ProfilerConfig().load_info(self._profiler_path)
-        if ProfilerConfig().export_type == Constant.Text:
+        if Constant.Text in ProfilerConfig().export_type:
             output_path = os.path.join(self._cann_path, "mindstudio_profiler_output")
             while True:
                 if os.path.exists(output_path):
