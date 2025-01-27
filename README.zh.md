@@ -90,6 +90,20 @@ pip3 install torch-npu==2.3.1.post4
    bash ci/build.sh --python=3.8
    ```
 
+ **提示**
+ 
+   如果想使用新的C++ ABI编译，请首先运行如下命令，此时推荐和社区torch包相同的编译环境：glibc 2.28, gcc 11.2.1
+
+   ```
+   export _GLIBCXX_USE_CXX11_ABI=1
+   ```
+
+   同时，我们支持使用如下变量配置-fabi-version，要求和社区torch包ABI版本一致
+
+   ```
+   export _ABI_VERSION=16
+   ```
+
 
 ## 卸载
 Pytorch框架训练环境的卸载可以参考[昇腾官方文档](https://www.hiascend.com/document/detail/zh/ModelZoo/pytorchframework/ptes/ptes_00032.html)。

@@ -89,6 +89,20 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
    bash ci/build.sh --python=3.8
    ```
 
+**Tips**
+
+   If you would like to compile with new C++ ABI, then first run this command, at this point, the recommended compilation environment is same to community torch package: glibc 2.28, gcc 11.2.1
+   
+   ```
+   export _GLIBCXX_USE_CXX11_ABI=1
+   ```
+
+   Meanwhile, we support configuring -fabi-version using the following variables，require consistency with the community torch package
+
+   ```
+   export _ABI_VERSION=16
+   ```
+
 ## Getting Started
 
 ### Prerequisites
