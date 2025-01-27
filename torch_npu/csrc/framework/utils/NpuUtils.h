@@ -48,7 +48,8 @@ public:
     static bool IsOomError(aclError ret, int index);
     static void check_1d(const at::Tensor &t, const char *arg, const char *fn);
 #ifndef BUILD_LIBTORCH
-    static void ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string &data, uint64_t correlation_id = 0);
+    static void ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string &data,
+                                                uint64_t correlation_id = 0);
     static void ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset);
 #endif
 
@@ -68,3 +69,4 @@ const std::string AclFormatToString(aclFormat descFormat);
 } // namespace at_npu
 
 #endif // __NATIVE_NPU_UTILS_NUP_UTILS__
+
