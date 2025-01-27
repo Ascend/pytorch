@@ -258,16 +258,16 @@ public:
         size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen +
                              outputTensorDescArrLen + outputDataBuffArrLen;
 
-        char* basePtr = static_cast<char* >(malloc(totalMemLen));
+        char* basePtr = static_cast<char*>(malloc(totalMemLen));
         AT_ASSERT(basePtr != nullptr, OPS_ERROR(ErrCode::PTR));
-        const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+        const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc**>(basePtr);
         basePtr += inputTensorDescArrLen;
-        const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);
+        const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer**>(basePtr);
         basePtr += inputDataBuffArrLen;
 
-        const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+        const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc**>(basePtr);
         basePtr += outputTensorDescArrLen;
-        aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer** >(basePtr);
+        aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer**>(basePtr);
 
         std::copy(
             execParam.inDesc.begin(),
