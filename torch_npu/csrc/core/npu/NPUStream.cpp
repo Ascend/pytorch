@@ -452,8 +452,7 @@ bool npuSynchronizeDevice(bool check_error)
     }
     auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
     if (acl_ret != ACL_ERROR_NONE) {
-        CHECK_AND_THROW_FORCE_STOP(acl_ret);
-        CHECK_AND_THROW_UCE_ERROR(acl_ret);
+        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(acl_ret);
     }
 #ifndef BUILD_LIBTORCH
     if (acl_ret == ACL_ERROR_NONE) {
