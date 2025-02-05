@@ -207,8 +207,7 @@ aclError OpCommandImpl::InnerRun(
                 at_npu::native::aoe::aoe_manager().GetDumpGraphPath().c_str(),
                 nullptr);
             if (ret != ACL_ERROR_NONE) {
-                CHECK_AND_THROW_FORCE_STOP(ret);
-                CHECK_AND_THROW_UCE_ERROR(ret);
+                CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(ret);
                 C10_NPU_SHOW_ERR_MSG();
                 TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!", PTA_ERROR(ErrCode::ACL));
             }
@@ -330,7 +329,8 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             ret = cur_paras->customHandler();
         } catch (std::exception &e) {
             if (std::string(e.what()).find(DEVICE_TASK_ABORT) != std::string::npos ||
-                std::string(e.what()).find(DEVICE_MEM_ERROR) != std::string::npos) {
+                std::string(e.what()).find(DEVICE_MEM_ERROR) != std::string::npos ||
+                std::string(e.what()).find(DEVICE_HBM_ECC_ERROR) != std::string::npos) {
                 ret = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
             } else {
                 ret = ACL_ERROR_INVALID_PARAM;
@@ -338,7 +338,8 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             }
             ASCEND_LOGE("Custom hand error:%s", e.what());
         }
-        if (ret != ACL_ERROR_NONE && ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
+        if (ret != ACL_ERROR_NONE && ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR &&
+            ret != ACL_ERROR_RT_DEVICE_HBM_ECC_ERROR) {
             ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
         }
         return ret;
@@ -416,7 +417,8 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
         ret = cur_paras->customHandler();
     } catch (std::exception &e) {
         if (std::string(e.what()).find(DEVICE_TASK_ABORT) != std::string::npos ||
-            std::string(e.what()).find(DEVICE_MEM_ERROR) != std::string::npos) {
+            std::string(e.what()).find(DEVICE_MEM_ERROR) != std::string::npos ||
+            std::string(e.what()).find(DEVICE_HBM_ECC_ERROR) != std::string::npos) {
             ret = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         } else {
             ret = ACL_ERROR_INVALID_PARAM;
@@ -424,7 +426,8 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
         }
         ASCEND_LOGE("Custom hand error:%s", e.what());
     }
-    if (ret != ACL_ERROR_NONE && ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
+    if (ret != ACL_ERROR_NONE && ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR &&
+        ret != ACL_ERROR_RT_DEVICE_HBM_ECC_ERROR) {
         ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
     }
     return ret;

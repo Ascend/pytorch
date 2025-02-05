@@ -25,7 +25,7 @@ void NPUEventManager::run(aclrtEvent event)
 #endif
     int err = aclrtDestroyEvent(event);
     if (err != ACL_ERROR_NONE) {
-        CHECK_AND_THROW_FORCE_STOP(err);
+        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
         C10_NPU_SHOW_ERR_MSG();
         return;
     }
@@ -65,7 +65,7 @@ aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event)
         if (err == ACL_ERROR_NONE) {
             ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", npu_event);
         } else {
-            CHECK_AND_THROW_FORCE_STOP(err);
+            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
         }
         return err;
     }
@@ -90,7 +90,7 @@ void NPUEventManager::ClearEvent()
 #endif
         auto err = aclrtDestroyEvent(event);
         if (err != ACL_ERROR_NONE) {
-            CHECK_AND_THROW_FORCE_STOP(err);
+            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
             NPU_CHECK_WARN(err);
         } else {
             ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", event);
