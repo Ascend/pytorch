@@ -10,6 +10,7 @@
 #include <string>
 #include <unistd.h>
 #include <unordered_map>
+#include <regex>
 #include <c10/macros/Macros.h>
 #include <c10/util/Exception.h>
 #include <third_party/acl/inc/acl/acl_base.h>
@@ -92,6 +93,7 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 
 #define DEVICE_TASK_ABORT "reason=[device task abort]"
 #define DEVICE_MEM_ERROR "reason=[device mem error]"
+#define DEVICE_HBM_ECC_ERROR "reason=[hbm Multi-bit ECC error]"
 
 inline const char* getErrorFunction(const char* msg)
 {
@@ -104,54 +106,57 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
     return args;
 }
 
-#define CHECK_AND_THROW_FORCE_STOP(err_code)                                 \
-    auto Error_stop = (int)(err_code);                                       \
-    auto stop_error = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);                 \
-    if ((stop_error) != ACL_ERROR_NONE) {                                    \
-        Error_stop = stop_error;                                             \
+#define CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err_code)                \
+    int error_code = (int)(err_code);                                       \
+    auto error_code_peek = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);    \
+    if ((error_code_peek) != ACL_ERROR_NONE) {                               \
+        error_code = error_code_peek;                                        \
     }                                                                        \
-    if ((Error_stop) == ACL_ERROR_RT_DEVICE_TASK_ABORT) {                    \
-        ASCEND_LOGE("getRepoStopFlag in Run, throw FORCE STOP.");            \
-        TORCH_CHECK(                                                         \
-            false,                                                           \
-            __func__,                                                        \
-            ":",                                                             \
-            __FILE__,                                                        \
-            ":",                                                             \
-            __LINE__,                                                        \
-            " NPU function error: FORCE STOP.",                              \
-            ", error code is ", Error_stop,                                  \
-            PTA_ERROR(ErrCode::ACL));                                        \
-    }                                                                        \
-
-#define CHECK_AND_THROW_UCE_ERROR(err_code)                                  \
-    auto Error_uce = (int)(err_code);                                        \
-    auto uce_error = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);                  \
-    if ((uce_error) != ACL_ERROR_NONE) {                                     \
-        Error_uce = uce_error;                                               \
-    }                                                                        \
-    std::string err_msg;                                                     \
-    if ((Error_uce) == ACL_ERROR_RT_DEVICE_MEM_ERROR && c10_npu::checkUceErrAndRepair(true, err_msg)) {     \
-        TORCH_CHECK(                                                         \
-            false,                                                           \
-            __func__,                                                        \
-            ":",                                                             \
-            __FILE__,                                                        \
-            ":",                                                             \
-            __LINE__,                                                        \
-            " NPU function error: UCE ERROR.",                               \
-            ", error code is ", Error_uce,                                   \
-            PTA_ERROR(ErrCode::ACL));                                        \
+    switch (error_code) {                                                    \
+        case ACL_ERROR_RT_DEVICE_TASK_ABORT: {                               \
+            ASCEND_LOGE("getRepoStopFlag in Run, throw FORCE STOP.");        \
+            TORCH_CHECK(false, __func__, ":", __FILE__, ":", __LINE__,       \
+                " NPU function error: FORCE STOP.",                          \
+                ", error code is ", error_code, PTA_ERROR(ErrCode::ACL));    \
+            break;                                                           \
+        }                                                                    \
+        case ACL_ERROR_RT_DEVICE_HBM_ECC_ERROR: {                            \
+            ASCEND_LOGE("getRepoHBMFlag in Run, throw ECC ERROR.");         \
+            std::string error_msg(c10_npu::c10_npu_get_error_message());     \
+            std::regex pattern(R"(time us= (\d+)\.)");                       \
+            std::smatch match;                                               \
+            std::string time_msg = "";                                       \
+            if (std::regex_search(error_msg, match, pattern)) {              \
+                if (match.size() > 1) {                                      \
+                    time_msg = match[1].str();                               \
+                }                                                            \
+            }                                                                \
+            TORCH_CHECK(false, __func__, ":", __FILE__, ":", __LINE__,       \
+                " NPU function error: HBM MULTI BIT ECC ERROR.", time_msg,   \
+                ", error code is ", error_code, PTA_ERROR(ErrCode::ACL));    \
+            break;                                                           \
+        }                                                                    \
+        case ACL_ERROR_RT_DEVICE_MEM_ERROR: {                                \
+            std::string error_msg = "";                                      \
+            if (c10_npu::checkUceErrAndRepair(true, error_msg)) {            \
+                ASCEND_LOGE("getRepoStopFlag in Run, throw UCE ERROR.");     \
+                TORCH_CHECK(false, __func__, ":", __FILE__, ":", __LINE__,   \
+                " NPU function error: UCE ERROR.",                           \
+                ", error code is ", error_code, PTA_ERROR(ErrCode::ACL));    \
+            }                                                                \
+            break;                                                           \
+        }                                                                    \
+        default:                                                             \
+            break;                                                           \
     }                                                                        \
 
 #define NPU_CHECK_ERROR_CHECK_UCE(err_code, check_uce, ...)                  \
     do {                                                                     \
-        auto Error = err_code;                                               \
+        int error_code = err_code;                                           \
         static c10_npu::acl::AclErrorCode err_map;                           \
-        if ((Error) != ACL_ERROR_NONE) {                                     \
+        if ((error_code) != ACL_ERROR_NONE) {                                \
             if (check_uce) {                                                 \
-                CHECK_AND_THROW_FORCE_STOP(Error);                           \
-                CHECK_AND_THROW_UCE_ERROR(Error);                            \
+                CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(error_code);     \
             }                                                                \
             TORCH_CHECK(                                                     \
                 false,                                                       \
@@ -161,11 +166,11 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                 ":",                                                         \
                 __LINE__,                                                    \
                 " NPU function error: ", getErrorFunction(#err_code, ##__VA_ARGS__),    \
-                ", error code is ", Error,                                   \
+                ", error code is ", error_code,                              \
                 PTA_ERROR(ErrCode::ACL),                                     \
-                (err_map.error_code_map.find(Error) !=                       \
+                (err_map.error_code_map.find(error_code) !=                  \
                 err_map.error_code_map.end() ?                               \
-                "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
+                "\n[Error]: " + err_map.error_code_map[error_code] : "."),   \
                 "\n", c10_npu::c10_npu_get_error_message());                 \
         }                                                                    \
     } while (0)
@@ -178,8 +183,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         auto Error = err_code;                                               \
         static c10_npu::acl::AclErrorCode err_map;                           \
         if ((Error) != ACL_ERROR_NONE) {                                     \
-            CHECK_AND_THROW_FORCE_STOP(Error);                               \
-            CHECK_AND_THROW_UCE_ERROR(Error);                                \
+            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);              \
             TORCH_CHECK(                                                     \
                 false,                                                       \
                 __func__,                                                    \
@@ -202,7 +206,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         auto Error = err_code;                                                   \
         static c10_npu::acl::AclErrorCode err_map;                               \
         if ((Error) != ACL_ERROR_NONE) {                                         \
-            CHECK_AND_THROW_FORCE_STOP(Error);                                   \
+            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);                  \
             if ((Error) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {                   \
                 static auto feature_not_support_warn_once = []() {               \
                     printf("[WARN]%s,%s:%u:%s\n",                                \
@@ -212,7 +216,6 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                     return true;                                                 \
                 }();                                                             \
             } else {                                                             \
-                CHECK_AND_THROW_UCE_ERROR(Error);                                \
                 TORCH_CHECK(                                                     \
                     false,                                                       \
                     __func__,                                                    \

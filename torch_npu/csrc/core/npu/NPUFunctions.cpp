@@ -21,8 +21,7 @@ c10::DeviceIndex device_count() noexcept
     if (dev_count == 0) {
         aclError error = aclrtGetDeviceCount(&dev_count);
         if (error != ACL_ERROR_NONE) {
-            CHECK_AND_THROW_FORCE_STOP(error);
-            CHECK_AND_THROW_UCE_ERROR(error);
+            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(error);
             ASCEND_LOGE("get device count of NPU failed");
             return 0;
         }
@@ -49,8 +48,7 @@ aclError GetDevice(int32_t *device)
     }
     aclError err =  aclrtGetDevice(device);
     if (err != ACL_ERROR_NONE) {
-        CHECK_AND_THROW_FORCE_STOP(err);
-        CHECK_AND_THROW_UCE_ERROR(err);
+        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
     }
     if (err == ACL_ERROR_NONE) {
         local_device = *device;
@@ -115,26 +113,28 @@ aclError DestroyUsedStreams()
     return ACL_ERROR_NONE;
 }
 
-    aclError SynchronizeUsedDevices()
-    {
-        int32_t cur_device = 0;
-        NPU_CHECK_ERROR(GetDevice(&cur_device));
-        for (const auto it : used_devices) {
-            NPU_CHECK_ERROR(SetDevice(it.first));
-            aclError acl_ret = aclrtSynchronizeDevice();
-            if (acl_ret != ACL_ERROR_NONE) {
-                return acl_ret;
-            }
-#ifndef BUILD_LIBTORCH
-            const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
-            if (C10_UNLIKELY(trigger)) {
-                trigger->traceNpuDeviceSynchronization();
-            }
-#endif
+aclError SynchronizeUsedDevices()
+{
+    int32_t cur_device = 0;
+    NPU_CHECK_ERROR_WITHOUT_UCE(GetDevice(&cur_device));
+    std::lock_guard<std::recursive_mutex> lock(mtx);
+    for (const auto it : used_devices) {
+        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(it.first));
+        aclError acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
+        if (acl_ret != ACL_ERROR_NONE) {
+            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(acl_ret);
+            return acl_ret;
         }
-        NPU_CHECK_ERROR(SetDevice(cur_device));
-        return ACL_ERROR_NONE;
+#ifndef BUILD_LIBTORCH
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuDeviceSynchronization();
+        }
+#endif
     }
+    NPU_CHECK_ERROR(SetDevice(cur_device));
+    return ACL_ERROR_NONE;
+}
 
 aclrtContext GetDeviceContext(int32_t device)
 {

@@ -450,8 +450,10 @@ bool npuSynchronizeDevice(bool check_error)
             ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
         }
     }
-
-  auto acl_ret = aclrtSynchronizeDevice();
+    auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
+    if (acl_ret != ACL_ERROR_NONE) {
+        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(acl_ret);
+    }
 #ifndef BUILD_LIBTORCH
   if (acl_ret == ACL_ERROR_NONE) {
       const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();

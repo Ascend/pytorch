@@ -258,6 +258,13 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
         } else {
             ASCEND_LOGE("UCE ERROR happend.");
         }
+    } else if (GetStatus() == RepoStatus::HBM_ECC_EXIT) {
+        if (check_error) {
+            std::string error_msg = c10_npu::c10_npu_get_error_message();
+            throw std::runtime_error("HBM MULTI BIT ECC ERROR." + error_msg + PTA_ERROR(ErrCode::ACL));
+        } else {
+            ASCEND_LOGE("HBM MULTI BIT ECC ERROR happend.");
+        }
     }
 
     if (GetStatus() == RepoStatus::STOP_EXIT) {
@@ -359,7 +366,7 @@ bool Repository::ReadQueue()
 #endif
     if (ret != 0) {
         if (ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
-            acl_error = std::string(c10_npu::c10_npu_get_error_message());
+            acl_error = c10_npu::c10_npu_get_error_message();
         }
         repo_error = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
         ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
@@ -371,6 +378,8 @@ bool Repository::ReadQueue()
         std::string err_msg;
         if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR && checkUceErrAndRepair(false, err_msg)) {
             SetStatus(UCE_EXIT);
+        } else if (ret == ACL_ERROR_RT_DEVICE_HBM_ECC_ERROR) {
+            SetStatus(HBM_ECC_EXIT);
         } else if (GetStatus() != STOP_EXIT) {
             SetStatus(ERROR_EXIT);
         }
@@ -405,6 +414,18 @@ void Repository::Enqueue(void* cur_paras) {
         }
         ASCEND_LOGE("getUceErrorFlag in Enqueue, throw UCE ERROR.");
         throw std::runtime_error("UCE ERROR" + PTA_ERROR(ErrCode::ACL));
+    }
+
+    if (GetStatus() == RepoStatus::HBM_ECC_EXIT) {
+        auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
+        auto type = queueParam->paramType;
+        // The RECORD_EVENT in the destructor process should not throw an exception.
+        if (type == c10_npu::queue::LAZY_DESTROY_EVENT || type == c10_npu::queue::RECORD_EVENT) {
+            return;
+        }
+        ASCEND_LOGE("getUceErrorFlag in Enqueue, throw HBM MULTI BIT ECC ERROR.");
+        std::string error_msg = c10_npu::c10_npu_get_error_message();
+        throw std::runtime_error("HBM MULTI BIT ECC ERROR." + error_msg + PTA_ERROR(ErrCode::ACL));
     }
 
     if (GetStatus() == RepoStatus::STOP_EXIT) {
@@ -516,7 +537,8 @@ void Repository::Dequeue() {
 
   SetReadWorking(true);
   while (ret == false && GetStatus() != RepoStatus::CAN_EXIT) {
-    if (GetStatus() == RepoStatus::STOP_EXIT || GetStatus() == RepoStatus::UCE_EXIT) {
+    if (GetStatus() == RepoStatus::STOP_EXIT || GetStatus() == RepoStatus::UCE_EXIT ||
+        GetStatus() == RepoStatus::HBM_ECC_EXIT) {
         ClearQueue();
         c10_npu::NPUEventManager::GetInstance().ClearUnrecordedCount();
         std::this_thread::sleep_for(std::chrono::microseconds(1000));

@@ -24,6 +24,7 @@ enum RepoStatus {
   ERROR_EXIT = 4,
   UCE_EXIT = 5,
   STOP_EXIT = 6,
+  HBM_ECC_EXIT = 7,
 };
 
 // c10::SmallVector max size
