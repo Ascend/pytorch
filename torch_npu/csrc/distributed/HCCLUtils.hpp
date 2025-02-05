@@ -16,8 +16,7 @@
     do {                                                                     \
         auto Error = err_code;                                               \
         if ((Error) != HCCL_SUCCESS) {                                       \
-            CHECK_AND_THROW_FORCE_STOP(Error);                               \
-            CHECK_AND_THROW_UCE_ERROR(Error);                                \
+            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);              \
             TORCH_CHECK(                                                     \
                 false,                                                       \
                 __func__,                                                    \

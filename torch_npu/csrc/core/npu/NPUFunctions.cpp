@@ -21,8 +21,7 @@ c10::DeviceIndex device_count() noexcept
     if (dev_count == 0) {
         aclError error = aclrtGetDeviceCount(&dev_count);
         if (error != ACL_ERROR_NONE) {
-            CHECK_AND_THROW_FORCE_STOP(error);
-            CHECK_AND_THROW_UCE_ERROR(error);
+            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(error);
             ASCEND_LOGE("get device count of NPU failed");
             return 0;
         }
@@ -49,8 +48,7 @@ aclError GetDevice(int32_t *device)
     }
     aclError err =  aclrtGetDevice(device);
     if (err != ACL_ERROR_NONE) {
-        CHECK_AND_THROW_FORCE_STOP(err);
-        CHECK_AND_THROW_UCE_ERROR(err);
+        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
     }
     if (err == ACL_ERROR_NONE) {
         local_device = *device;
@@ -124,8 +122,7 @@ aclError SynchronizeUsedDevices()
         NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(it.first));
         aclError acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
         if (acl_ret != ACL_ERROR_NONE) {
-            CHECK_AND_THROW_FORCE_STOP(acl_ret);
-            CHECK_AND_THROW_UCE_ERROR(acl_ret);
+            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(acl_ret);
             return acl_ret;
         }
     }
