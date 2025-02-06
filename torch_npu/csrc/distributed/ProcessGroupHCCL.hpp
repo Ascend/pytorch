@@ -650,7 +650,7 @@ protected:
     std::exception_ptr watchDogException_ = nullptr;
 
     struct StatusStruct {
-        int seq = 0;
+        uint64_t seq = 0;
         std::string pgId;
         std::string opType;
         std::string commIds;

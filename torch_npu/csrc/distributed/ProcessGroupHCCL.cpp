@@ -1334,7 +1334,7 @@ bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool e
         }
         int global_rank = rank_;
         if (!options_->global_ranks_in_group.empty()) {
-            global_rank = options_->global_ranks_in_group[rank_];
+            global_rank = static_cast<int>(options_->global_ranks_in_group[rank_]);
         }
         fileName << "torch_hccl_status-" << std::to_string(global_rank) << "_" << master_addr << "_" << std::to_string(deviceId_) << "_";
         fileName << std::to_string(numRanks_) << "_" << std::to_string(pid) << "_" << std::to_string(duration) << ".log";
