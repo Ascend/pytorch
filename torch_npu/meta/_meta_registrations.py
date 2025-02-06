@@ -282,29 +282,37 @@ def npu_ffn_meta(x, weight1, weight2, activation, *, expert_tokens=None, expert_
 
 
 @impl(m, "npu_grouped_matmul")
+@impl(m, "npu_grouped_matmul.List")
 def npu_grouped_matmul_meta(x, weight, *, bias=None, scale=None, offset=None, antiquant_scale=None,
                             antiquant_offset=None, per_token_scale=None, group_list=None, 
                             activation_input=None, activation_quant_scale=None, activation_quant_offset=None,
                             split_item=0, group_type=-1, group_list_type=0, act_type=0, output_dtype=None):
     y = []
     num_x = len(x)
+    singleWeight = len(weight) == 1 and len(weight[0].shape) == 3
+    n = weight[0].shape[2] if singleWeight else weight[0].shape[1]
     if num_x > 0 and output_dtype is None:
         output_dtype = x[0].dtype
     if split_item == 0:
         for i in range(num_x):
-            y.append(x[i].new_empty((*x[i].shape[:-1], weight[i].shape[1]), dtype=output_dtype))
+            ni = n if singleWeight else weight[i].shape[1]
+            y.append(x[i].new_empty((*x[i].shape[:-1], ni), dtype=output_dtype))
     elif split_item == 1:
-        num_group_list = len(group_list)
-        y.append(x[0].new_empty((group_list[0], weight[0].shape[1]), dtype=output_dtype))
+        num_group_list = group_list.shape[0] if isinstance(group_list, torch.Tensor) else len(group_list)
+        pre_offset = group_list[0]
+        y.append(x[0].new_empty((pre_offset, n), dtype=output_dtype))
         for i in range(1, num_group_list):
-            y.append(x[0].new_empty((group_list[i] - group_list[i - 1], weight[i].shape[1]), dtype=output_dtype))
+            ni = n if singleWeight else weight[i].shape[1]
+            cur_offset = group_list[i]
+            y.append(x[0].new_empty((cur_offset - pre_offset, ni), dtype=output_dtype))
+            pre_offset = cur_offset
     elif split_item == 2:
         dim_m = 0
         for i in range(num_x):
             dim_m += x[i].shape[0]
-        y.append(x[0].new_empty((dim_m, weight[0].shape[1]), dtype=output_dtype))
+        y.append(x[0].new_empty((dim_m, n), dtype=output_dtype))
     elif split_item == 3:
-        y.append(x[0].new_empty((x[0].shape[0], weight[0].shape[1]), dtype=output_dtype))
+        y.append(x[0].new_empty((x[0].shape[0], n), dtype=output_dtype))
 
     return y
 
