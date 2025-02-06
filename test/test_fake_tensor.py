@@ -1858,6 +1858,24 @@ class TestGroupedMatmul(TestCase):
             self.assertTrue(x[0].shape[0] == res[0].shape[0])
             self.assertTrue(w[0].shape[1] == res[0].shape[1])
 
+    def test_npu_grouped_matmul_meta_4(self):
+        with FakeTensorMode():
+            torch.manual_seed(0)
+            x1 = torch.randn(1792, 1024, dtype=torch.float16).npu()
+            x = [x1]
+            w1 = torch.randn(3, 1024, 256, dtype=torch.float16).npu()
+            w = [w1]
+            b1 = torch.randn(256, dtype=torch.float16).npu()
+            b2 = torch.randn(256, dtype=torch.float16).npu()
+            b3 = torch.randn(256, dtype=torch.float16).npu()
+            b = [b1, b2, b3]
+            group_list = [256, 1280, 1792]
+            split_item = 3
+
+            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item, group_type=0)
+            self.assertTrue(x[0].shape[0] == res[0].shape[0])
+            self.assertTrue(w[0].shape[2] == res[0].shape[1])
+
 
 class TestQuantMatmul(TestCase):
     def test_npu_quant_matmul_meta(self):
