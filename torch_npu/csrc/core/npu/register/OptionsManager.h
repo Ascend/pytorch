@@ -89,8 +89,8 @@ public:
     static bool CheckTriCombinedOptimizerEnable();
     static bool CheckAclDumpDateEnable();
     static uint32_t GetHCCLConnectTimeout();
-    static uint32_t GetHCCLExecTimeout();
-    static uint32_t GetHCCLEventTimeout();
+    static int32_t GetHCCLExecTimeout();
+    static int32_t GetHCCLEventTimeout();
     static std::string CheckDisableDynamicPath();
     static int32_t GetACLExecTimeout();
     static int32_t GetACLDeviceSyncTimeout();
