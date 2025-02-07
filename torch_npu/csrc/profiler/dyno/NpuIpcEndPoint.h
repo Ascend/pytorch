@@ -107,7 +107,7 @@ public:
 
     [[nodiscard]] bool TryRcvMessage(Ctxt &ctxt) noexcept
     {
-        size_t retCode = recvmsg(socketFd, &ctxt.msghdr, MSG_DONTWAIT);
+        auto retCode = recvmsg(socketFd, &ctxt.msghdr, MSG_DONTWAIT);
         if (retCode > 0) {
             return true;
         }
@@ -173,7 +173,7 @@ protected:
     {
         auto ctxt = std::make_unique<Ctxt>(npuPayLoad.size());
         std::memset(&ctxt->msghdr, 0, sizeof(ctxt->msghdr));
-        for (int i = 0; i < npuPayLoad.size(); i++) {
+        for (auto i = 0; i < npuPayLoad.size(); i++) {
             ctxt->iov[i] = {npuPayLoad[i].data, npuPayLoad[i].size};
         }
         ctxt->msghdr.msg_name = &ctxt->messageName;
