@@ -142,18 +142,36 @@ uint32_t OptionsManager::GetHCCLConnectTimeout()
     return static_cast<uint32_t>(envFlag);
 }
 
-uint32_t OptionsManager::GetHCCLExecTimeout()
+int32_t OptionsManager::GetHCCLExecTimeout()
 {
     char* env_val = std::getenv("HCCL_EXEC_TIMEOUT");
-    int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
-    return static_cast<uint32_t>(envFlag);
+    int64_t envFlag;
+    if (env_val != nullptr) {
+        envFlag = strtol(env_val, nullptr, 10);
+        if (envFlag < 0) {
+            envFlag = -1;
+            TORCH_NPU_WARN_ONCE("Get env HCCL_EXEC_TIMEOUT less than 0, so reset it to the default value.");
+        }
+    } else {
+        envFlag = -1;
+    }
+    return static_cast<int32_t>(envFlag);
 }
 
-uint32_t OptionsManager::GetHCCLEventTimeout()
+int32_t OptionsManager::GetHCCLEventTimeout()
 {
     char* env_val = std::getenv("HCCL_EVENT_TIMEOUT");
-    int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
-    return static_cast<uint32_t>(envFlag);
+    int64_t envFlag;
+    if (env_val != nullptr) {
+        envFlag = strtol(env_val, nullptr, 10);
+        if (envFlag < 0) {
+            envFlag = -1;
+            TORCH_NPU_WARN_ONCE("Get env HCCL_EVENT_TIMEOUT less than 0, so reset it to the default value.");
+        }
+    } else {
+        envFlag = -1;
+    }
+    return static_cast<int32_t>(envFlag);
 }
 
 int32_t OptionsManager::GetACLExecTimeout()
