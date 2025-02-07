@@ -24,7 +24,7 @@ bool torch_npu::profiler::IpcClient::RegisterInstance(int32_t id)
 }
 std::string IpcClient::IpcClientNpuConfig()
 {
-    int size = pids_.size();
+    auto size = pids_.size();
     auto *req = (NpuRequest *)malloc(sizeof(NpuRequest) + sizeof(int32_t) * size);
     req->type = DYNO_IPC_TYPE;
     req->pidSize = size;

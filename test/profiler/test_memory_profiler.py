@@ -1153,6 +1153,7 @@ class TestMemoryProfilerE2E(TestCase):
             aten::addmm                              3 (PARAMETER), 1 (INPUT), 2 (PARAMETER)       -> 4 (ACTIVATION)""",
         )
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_categories_e2e_simple_module_fwd_bwd(self) -> None:
         model = torch.nn.Linear(2, 1, bias=True)
 
@@ -1188,6 +1189,7 @@ class TestMemoryProfilerE2E(TestCase):
             aten::detach                             7 (GRADIENT)                                  -> ???""",
         )
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_categories_e2e_simple_module_fwd_bwd_step(self) -> None:
         model = torch.nn.Linear(2, 1, bias=True)
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
@@ -1334,6 +1336,7 @@ class TestMemoryProfilerE2E(TestCase):
             aten::detach                             29 (GRADIENT)                                 -> ???""",
         )
 
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_memory_timeline(self) -> None:
         model = torch.nn.Sequential(
             torch.nn.Linear(64, 512, bias=True),

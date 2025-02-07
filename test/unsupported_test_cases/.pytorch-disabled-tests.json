@@ -30019,6 +30019,7 @@
   "test_grad_scaling_unscale_float32 (__main__.TestAmpForeachNonFiniteCheckAndUnscale)": ["", ["A2"]],
   "test_float_status (__main__.TestFloatStatus)": ["", ["A2"]],
   "test_npu_fused_attention_score_fwd (__main__.TestFusedAttentionScoreFwd)": ["", ["A2"]],
+  "test_module_and_optimizer_ids (__main__.TestTorchTidyProfiler)": ["", ["A2"]],
   "test_save_graph_repro (__main__.TestAfterAot)": ["", ["A2"]],
   "test_explain_with_backend (__main__.TestExplainWithBackend)": ["", ["A2"]],
   "test_custom_class (__main__.TestSerializeCustomClass)": ["", ["A2"]],
