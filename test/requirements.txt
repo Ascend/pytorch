@@ -1,6 +1,7 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
 
+coverage
 beartype==0.17.0
 expecttest==0.1.3
 hypothesis

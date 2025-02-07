@@ -21,6 +21,23 @@ RUN mkdir /root/.pip \
     && echo "trusted-host=repo.huaweicloud.com" >> /root/.pip/pip.conf \
     && echo "timeout=120" >> /root/.pip/pip.conf
 
+ARG CONFIG_FOR_LCOV=0
+
+RUN if [ "$CONFIG_FOR_LCOV" = "1" ]; then \
+    mkdir -p /etc/yum.repos.d/backup && \
+    mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/ && \
+    curl -o /etc/yum.repos.d/Centos7-aliyun.repo https://mirrors.wlnmp.com/centos/Centos7-aliyun-altarch.repo -k && \
+    yum clean all && \
+    yum makecache; \
+    fi
+
+RUN if [ "$CONFIG_FOR_LCOV" = "1" ]; then \
+    yum install -y perl-Module-Load-Conditional && \
+    yum install -y perl-Digest-MD5 && \
+    yum install -y "perl(DateTime)" && \
+    yum install -y perl-CPAN*; \
+    fi
+
 # Install pip package(build)
 RUN pip3.8 install pyyaml  \
     && pip3.8 install torch==2.4.0+cpu --index-url https://download.pytorch.org/whl/cpu \
