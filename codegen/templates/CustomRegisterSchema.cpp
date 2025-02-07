@@ -13,6 +13,7 @@
 #include <ATen/Tensor.h>
 #include <ATen/Functions.h>
 #include <ATen/native/Resize.h>
+#include <ATen/core/op_registration/adaption.h>
 
 #include <cstddef>
 #include <functional>

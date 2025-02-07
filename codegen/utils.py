@@ -54,7 +54,8 @@ GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
 GLOBAL_OPAPI_INFO_CACHE = set()
 
 CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
-FIELDS_TO_USE = ["func", "tags", "dispatch"]
+FIELDS_TO_USE = ["func", "tags", "dispatch", "device_check"]
+DEVICE_NOCHECK_SET = set()
 
 
 class PathManager:
@@ -308,7 +309,7 @@ return {self_arg_name};
 
             device_check = "  // No device check\n"
             # Backends that require device guards presumably also require device checks.
-            if self.backend_index.device_guard:
+            if self.backend_index.device_guard and op_name not in DEVICE_NOCHECK_SET:
                 device_check_args = itertools.chain(
                     f.func.arguments.out, f.func.arguments.flat_positional
                 )
@@ -499,9 +500,19 @@ namespace {{
 
 
 def gen_device_check(
-        type: DeviceCheckType, args: List[Argument], method_name: str
-    ) -> str:
-    return "  // No device check\n"
+    type: DeviceCheckType, args: List[Argument], method_name: str
+) -> str:
+    if type == DeviceCheckType.NoCheck:
+        return "  // No device check\n"
+
+    device_check = "c10::optional<at::Device> common_device = at::nullopt;\n"
+    device_check += "(void)common_device; // Suppress unused variable warning\n"
+    for arg in args:
+        # Only tensor like arguments are eligible
+        if arg.type.is_tensor_like():
+            device_check += \
+f"""c10::impl::check_and_update_common_device(common_device, {arg.name}, "{method_name}", "{arg.name}");\n"""
+    return device_check
 
 
 def arguments(
