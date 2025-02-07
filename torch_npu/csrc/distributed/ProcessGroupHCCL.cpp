@@ -52,6 +52,7 @@ namespace c10d_npu {
 namespace {
 static constexpr uint32_t kOpWaitTimeoutOffset = 30U; // second
 static uint32_t kOpWaitTimeout = 1868U; // second
+static int32_t defaultExecTimeout = 1800;
 constexpr const char* P2P_DEVICE_KEY = "_p2p";
 
 using hcclUs = std::chrono::steady_clock::time_point;
@@ -630,7 +631,7 @@ std::chrono::milliseconds GetDispatchTimeout()
     uint32_t dispatchoffset = 30U;
     uint32_t mindispatchTimeout_ = 120U;
 
-    uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
+    int32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
     if (hccl_exec_timeout > 0) {
         if (hccl_exec_timeout < dispatchTimeout_ + dispatchoffset && hccl_exec_timeout > mindispatchTimeout_ + dispatchoffset) {
             dispatchTimeout_ = hccl_exec_timeout - dispatchoffset;
@@ -824,22 +825,39 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     uid_(process_group_id++)
 {
     this->setGroupName(options_->group_id);
-    uint32_t hccl_event_timeout = c10_npu::option::OptionsManager::GetHCCLEventTimeout();
-    uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
+    int32_t hccl_event_timeout = c10_npu::option::OptionsManager::GetHCCLEventTimeout();
+    int32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
     if (hccl_event_timeout > 0) {
-        kOpWaitTimeout = hccl_event_timeout;
-        ASCEND_LOGI("Set op wait timeout to %u.", hccl_event_timeout);
-    } else {
-        // When no env, the default value is 0
-        if (hccl_exec_timeout > 0) {
+        if (hccl_exec_timeout < 0) {
+            if (hccl_event_timeout < defaultExecTimeout) {
+                TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than the default value of HCCL_EXEC_TIMEOUT:", defaultExecTimeout, ".");
+            }
+            kOpWaitTimeout = hccl_event_timeout;
+        } else if (hccl_exec_timeout == 0) {
+            kOpWaitTimeout = 0;
+            TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ", so set op wait timeout to never timeout.");
+        } else {
+            kOpWaitTimeout = hccl_event_timeout;
+            if (hccl_event_timeout < hccl_exec_timeout) {
+                TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ".");
+            }
+        }
+    }
+    if (hccl_event_timeout == 0) {
+        kOpWaitTimeout = 0;
+    }
+    if (hccl_event_timeout < 0) {
+        if (hccl_exec_timeout == 0) {
+            kOpWaitTimeout = 0;
+        }
+        if (hccl_exec_timeout > 0 && hccl_exec_timeout > kOpWaitTimeout) {
             kOpWaitTimeout = hccl_exec_timeout + kOpWaitTimeoutOffset;
             if (kOpWaitTimeout <= hccl_exec_timeout) {
                 kOpWaitTimeout = UINT_MAX;
             }
         }
-        ASCEND_LOGI(
-            "Get env HCCL_EXEC_TIMEOUT value %u, and set op wait timeout to %u.", hccl_exec_timeout, kOpWaitTimeout);
     }
+    ASCEND_LOGI("Set op wait timeout to %d.", kOpWaitTimeout);
     NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
     logPrefix_ = createLogPrefix();
     if (options_->global_ranks_in_group.empty()) {
@@ -906,6 +924,9 @@ ProcessGroupHCCL::ProcessGroupHCCL(
                 TORCH_NPU_WARN("The HCCL execution timeout ", hccl_exec_timeout * 1000, "ms is bigger than watchdog timeout ",
                     (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded.");
             }
+        } else if (hccl_exec_timeout == 0) {
+            TORCH_NPU_WARN("The HCCL execution timeout was set to never timeout, so it is bigger than watchdog timeout ",
+                (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded. You can disable watchdog by 'export HCCL_ASYNC_ERROR_HANDLING=0'.");
         } else {
             if ((options_->timeout).count() == DEFAULT_TIMEOUT) {
                 // Only when the timeout is default, we will change it.
