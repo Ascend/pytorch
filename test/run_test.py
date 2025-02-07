@@ -208,7 +208,11 @@ def run_test(test, test_directory, options):
     # in `if __name__ == '__main__': `. So call `python test_*.py` instead.
     argv = [test + ".py"] + unittest_args
 
-    command = executable + argv
+    command = executable
+    calculate_python_coverage = os.getenv("CALCULATE_PYTHON_COVERAGE")
+    if calculate_python_coverage and calculate_python_coverage == "1":
+        command = command + ["-m", "coverage", "run", "-p", "--source=torch_npu", "--branch"]
+    command = command + argv
     print_to_stderr("Executing {} ... [{}]".format(command, datetime.now(tz=timezone.utc)))
     return shell(command, test_directory)
 
