@@ -223,7 +223,7 @@ PyTorch提供分布式训练能力，支持在单机和多机场景下进行训�
 | 目的IP                | 设备地址IP                            | 设备地址IP                            |
 | 目的端口 （侦听）      | 默认29500/29400，用户可以设定端口号     | 默认值为60000，取值范围[1024,65520]。用户可以通过HCCL_IF_BASE_PORT环境变量指定Host网卡起始端口号，配置后系统默认占用以该端口起始的16个端口      |
 | 协议                  | TCP                                  | TCP                                   |
-| 端口说明              | 1. 在静态分布式场景中（用torchrun/torch.distributed.launch使用的backend为static）， 目的端口（默认29500）用于接收和发送数据，源端口用于接收和发送数据 <br> 2. 在动态分布式场景中（用torchrun或者torch.distributed.launch使用的backend为c10d）， 目的端口（默认29400）用于接收和发送数据，源端口用于接收和发送数据。可以使用rdzv_endpoint和master_port指定端口号 <br> 3. 在分布式场景中，用torchrun或者torch.distributed.launch不指定任何参数时使用的端口号为29500       | 默认值为60000，取值范围[1024,65520]。用户可以通过HCCL_IF_BASE_PORT环境变量指定Host网卡起始端口号，配置后系统默认占用以该端口起始的16个端口       |
+| 端口说明              | 分布式场景下 <br> 1. torchrun/torch.distributed.launch <br> (1) backend为static时（默认该backend），目的端口（默认29500）用于接收和发送数据，源端口用于接收和发送数据。使用master-addr指定地址，master-port指定端口 <br> (2) backend为c10d时，目的端口（默认29400）用于接收和发送数据，源端口用于接收和发送数据。使用rdzv_endpoint指定地址和端口号，格式为"地址:端口号" <br> 2. torch_npu_run:目的端口（默认29500）用于接收和发送数据，源端口用于接收和发送数据。使用master-addr指定地址，master-port指定端口       | 默认值为60000，取值范围[1024,65520]。用户可以通过HCCL_IF_BASE_PORT环境变量指定Host网卡起始端口号，配置后系统默认占用以该端口起始的16个端口       |
 | 侦听端口是否可更改     | 是                                    | 是                                    |
 | 认证方式              | 无认证方式                             | 无认证方式                             |
 | 加密方式              | 无                                    | 无                                    |
