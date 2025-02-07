@@ -12,6 +12,7 @@ from torchgen.utils import concatMap, mapMaybe
 from torchgen.context import with_native_function, native_function_manager, method_with_native_function
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
+from torchgen.dest.register_dispatch_key import RegisterDispatchKey
 from codegen.utils import (enable_opplugin, is_op_valid, field_tag, get_opplugin_wrap_name, parse_npu_yaml)
 
 
@@ -76,6 +77,7 @@ METHOD_DEFINITION = CodeTemplate("""\
 ${return_type} ${name}(${args_str}) {
   ${unpack_out}
   ${unsafe_tensor_check}
+  ${device_check}
   ${device_guard}
   ${type_definition_body}
 }
@@ -129,16 +131,23 @@ def compute_op_definition(f: NativeFunction):
         if a.type.is_tensor_like():
             candidate_tensor_args.append(f"{a.name}")
 
-    unsafe_tensor_check = """ // No check"""
+    unsafe_tensor_check = """ // No unsafe tensor check"""
     if len(candidate_tensor_args) > 0:
-        unsafe_tensor_check = """
-if (c10_npu::get_npu_data_unsafe_flag()) {"""
+        unsafe_tensor_check = \
+"""if (c10_npu::get_npu_data_unsafe_flag()) {"""
         for tensor_arg in candidate_tensor_args:
             unsafe_tensor_check = unsafe_tensor_check + f"""
     c10_npu::check_npu_tensor_is_safe({tensor_arg});"""
         unsafe_tensor_check = unsafe_tensor_check + """
 }
 """
+    candidate_args = itertools.chain(
+        f.func.arguments.out,
+        f.func.arguments.flat_positional,
+    )
+    device_check = RegisterDispatchKey.gen_device_check(
+        f.device_check, list(candidate_args), name
+    )
 
     candidate_args = itertools.chain(
         self_arg,
@@ -176,6 +185,7 @@ const c10::DeviceGuard device_guard(device_or_default(device));"""
         args_str=','.join(a.defn() for a in args[:-out_num]) + ', at::TensorList out' if out_num > 1 else args_str,
         unpack_out=unpack_out,
         unsafe_tensor_check=unsafe_tensor_check,
+        device_check=device_check,
         device_guard=device_guard,
         type_definition_body=[TRACE_DISPATCH.substitute(impl_name=impl_name, args_exprs_str=args_exprs_str)]
     )]
