@@ -37,7 +37,8 @@ supported:
   - new_empty_strided
   - record_stream
   - resize_
-  - resize_as_
+  - func: resize_as_
+    device_check: NoCheck
   - scalar_tensor
   - set_
   - set_.source_Storage
@@ -54,17 +55,21 @@ supported:
   - unfold
   - unsqueeze
   - view
-  - _copy_from_and_resize
+  - func: _copy_from_and_resize
+    device_check: NoCheck
   - flatten_dense_tensors
 
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
+    device_check: NoCheck
   - func: get_npu_format(Tensor self) -> int
   - func: npu_format_cast.Tensor(Tensor self, Tensor dst) -> Tensor
+    device_check: NoCheck
     exposed: True
   - func: npu_format_cast_.acl_format(Tensor(a!) self, int acl_format) -> Tensor(a!)
     exposed: True
   - func: npu_format_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
+    device_check: NoCheck
     exposed: True
   - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
     dispatch:
@@ -78,6 +83,7 @@ custom:
       CompositeExplicitAutograd: empty_with_format
     exposed: True
   - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
+    device_check: NoCheck
     exposed: True
   - func: get_storage_size(Tensor self) -> int
   - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
