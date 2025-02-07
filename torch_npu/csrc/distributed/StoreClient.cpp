@@ -35,7 +35,7 @@ Client::Client(const std::string host, uint16_t port, const std::chrono::millise
     : host_{ std::move(host) }, port_{ port }, socketFd_(-1), timeout_{ timeout }
 {}
 Client::Client(const std::string localSocketPath, const std::chrono::milliseconds timeout) noexcept
-    : localSocketPath_ { std::move(localSocketPath)}, timeout_{ timeout }
+    : localSocketPath_ { std::move(localSocketPath)}, socketFd_(-1), timeout_{ timeout }
 {}
 
 int Client::Connect() noexcept
