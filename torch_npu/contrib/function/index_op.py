@@ -1,8 +1,9 @@
+__all__ = ['npu_fast_condition_index_put']
+
+
 import torch
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
-
-__all__ = ['npu_fast_condition_index_put']
 
 
 def npu_fast_condition_index_put(x, condition, value):
