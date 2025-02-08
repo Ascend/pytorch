@@ -1,3 +1,9 @@
+__all__ = [
+    "Matmul_transpose",
+    "MultiheadAttention"
+]
+
+
 from typing import Dict, Optional, Tuple, List
 import math
 
@@ -6,15 +12,13 @@ from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Parameter
-
 import torch_npu
 from torch_npu.contrib.module.ensemble_dropout import NpuCachedDropout
 from torch_npu.utils._error_code import ErrCode, ops_error
 from ..function import _matmul_transpose
 
-dropout_class = NpuCachedDropout
 
-__all__ = ["Matmul_transpose", "MultiheadAttention"]
+dropout_class = NpuCachedDropout
 
 
 def _quant_noise(module, p, block_size):

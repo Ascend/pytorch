@@ -1,16 +1,15 @@
-import logging
+__all__ = []
 
+
+import logging
 from functools import reduce
 
 import torch
-
-
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
 
-logger = logging.getLogger(__name__)
 
-__all__ = []
+logger = logging.getLogger(__name__)
 
 
 class _PreGenDropoutTask:
