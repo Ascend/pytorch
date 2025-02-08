@@ -1,11 +1,12 @@
+__all__ = ["LinearQuant"]
+
+
 import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.nn.parameter import Parameter
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
-
-__all__ = ["LinearQuant"]
 
 
 class LinearQuant(nn.Module):

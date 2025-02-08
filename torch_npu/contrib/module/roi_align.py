@@ -1,3 +1,6 @@
+__all__ = ["ROIAlign"]
+
+
 import torch
 from torch import nn
 from torch.nn.modules.utils import _pair
@@ -5,8 +8,6 @@ from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
-
-__all__ = ["ROIAlign"]
 
 
 class _ROIAlign(Function):

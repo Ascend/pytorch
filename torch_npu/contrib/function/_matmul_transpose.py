@@ -1,7 +1,8 @@
+__all__ = []
+
+
 import torch
 import torch_npu
-
-__all__ = []
 
 
 class MatmulApply(torch.autograd.Function):
