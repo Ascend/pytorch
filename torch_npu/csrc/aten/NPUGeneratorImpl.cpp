@@ -4,8 +4,8 @@
 
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
-#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
 namespace at_npu {
 namespace detail {
@@ -29,9 +29,9 @@ static std::vector<at::Generator> default_gens_npu;
 * Warning: this function must only be called once!
 */
 static void initNPUGenVector() {
-  num_npus = c10_npu::device_count();
-  npu_gens_init_flag.resize(num_npus);
-  default_gens_npu.resize(num_npus);
+    num_npus = c10_npu::device_count();
+    npu_gens_init_flag.resize(num_npus);
+    default_gens_npu.resize(num_npus);
 }
 
 } // anonymous namespace
@@ -45,35 +45,35 @@ static void initNPUGenVector() {
  * NPU device.
  */
 const at::Generator& getDefaultNPUGenerator(c10::DeviceIndex device_index) {
-  std::call_once(num_npu_init_flag, initNPUGenVector);
-  c10::DeviceIndex idx = device_index;
-  if (idx == -1) {
-    idx = c10_npu::current_device();
-  } else {
-    TORCH_CHECK(idx >= 0 && idx < num_npus, PTA_ERROR(ErrCode::VALUE));
-  }
-  std::call_once(npu_gens_init_flag[idx], [&] {
-    default_gens_npu[idx] = at::make_generator<NPUGeneratorImpl>(idx);
-    default_gens_npu[idx].seed();
-  });
-  return default_gens_npu[idx];
+    std::call_once(num_npu_init_flag, initNPUGenVector);
+    c10::DeviceIndex idx = device_index;
+    if (idx == -1) {
+        idx = c10_npu::current_device();
+    } else {
+        TORCH_CHECK(idx >= 0 && idx < num_npus, PTA_ERROR(ErrCode::VALUE));
+    }
+    std::call_once(npu_gens_init_flag[idx], [&] {
+        default_gens_npu[idx] = at::make_generator<NPUGeneratorImpl>(idx);
+        default_gens_npu[idx].seed();
+    });
+    return default_gens_npu[idx];
 }
 
 /**
  * Utility to create a NPUGeneratorImpl. Returns a shared_ptr
  */
 at::Generator createNPUGenerator(c10::DeviceIndex device_index) {
-  std::call_once(num_npu_init_flag, initNPUGenVector);
-  c10::DeviceIndex idx = device_index;
-  if (idx == -1) {
-    idx = c10_npu::current_device();
-  }
-  TORCH_CHECK(idx >= 0 && idx < num_npus, "The device_index is invalid.", PTA_ERROR(ErrCode::VALUE));
-  auto gen = at::make_generator<NPUGeneratorImpl>(idx);
-  auto npu_gen = at::check_generator<NPUGeneratorImpl>(gen);
-  npu_gen->set_current_seed(c10::default_rng_seed_val);
-  npu_gen->set_philox_offset_per_thread(0);
-  return gen;
+    std::call_once(num_npu_init_flag, initNPUGenVector);
+    c10::DeviceIndex idx = device_index;
+    if (idx == -1) {
+        idx = c10_npu::current_device();
+    }
+    TORCH_CHECK(idx >= 0 && idx < num_npus, "The device_index is invalid.", PTA_ERROR(ErrCode::VALUE));
+    auto gen = at::make_generator<NPUGeneratorImpl>(idx);
+    auto npu_gen = at::check_generator<NPUGeneratorImpl>(gen);
+    npu_gen->set_current_seed(c10::default_rng_seed_val);
+    npu_gen->set_philox_offset_per_thread(0);
+    return gen;
 }
 
 } // namespace detail
@@ -108,8 +108,8 @@ NPUGeneratorImpl::NPUGeneratorImpl(c10::DeviceIndex device_index)
  * See Note [Acquire lock when using random generators]
  */
 void NPUGeneratorImpl::set_current_seed(uint64_t seed) {
-  seed_ = seed;
-  philox_offset_per_thread_ = 0;
+    seed_ = seed;
+    philox_offset_per_thread_ = 0;
 }
 
 /**
@@ -118,16 +118,16 @@ void NPUGeneratorImpl::set_current_seed(uint64_t seed) {
  * See Note [Acquire lock when using random generators]
  */
 void NPUGeneratorImpl::set_offset(uint64_t offset) {
-  philox_offset_per_thread_ = offset;
+    philox_offset_per_thread_ = offset;
 }
 
 /**
  * Gets the current offset of NPUGeneratorImpl.
  */
 uint64_t NPUGeneratorImpl::get_offset() const {
-  // Debatable if get_offset() should be allowed in captured regions.
-  // Conservatively disallow it for now.
-  return philox_offset_per_thread_;
+    // Debatable if get_offset() should be allowed in captured regions.
+    // Conservatively disallow it for now.
+    return philox_offset_per_thread_;
 }
 
 #define CAPTURE_DEFAULT_GENS_MSG \
@@ -140,9 +140,9 @@ uint64_t NPUGeneratorImpl::get_offset() const {
  * Gets the current seed of NPUGeneratorImpl.
  */
 uint64_t NPUGeneratorImpl::current_seed() const {
-  // Debatable if current_seed() should be allowed in captured regions.
-  // Conservatively disallow it for now.
-  return seed_;
+    // Debatable if current_seed() should be allowed in captured regions.
+    // Conservatively disallow it for now.
+    return seed_;
 }
 
 /**
@@ -153,9 +153,9 @@ uint64_t NPUGeneratorImpl::current_seed() const {
  * in getNonDeterministicRandom is unified for both CPU and NPU
  */
 uint64_t NPUGeneratorImpl::seed() {
-  auto random = c10::detail::getNonDeterministicRandom(true);
-  this->set_current_seed(random);
-  return random;
+    auto random = c10::detail::getNonDeterministicRandom(true);
+    this->set_current_seed(random);
+    return random;
 }
 
 /**
@@ -163,26 +163,26 @@ uint64_t NPUGeneratorImpl::seed() {
  * state is returned as a CPU byte tensor.
  */
 c10::intrusive_ptr<c10::TensorImpl> NPUGeneratorImpl::get_state() const {
-  // The RNG state comprises the seed, and an offset used for Philox.
-  // The following line is just here for BC reason. sizeof curandStateMtgp32 is 4120.
-  // It used to be static const size_t states_size = MAX_NUM_BLOCKS * sizeof(curandStateMtgp32);
-  // MAX_NUM_BLOCKS was 200 and sizeof(curandStateMtgp32) is 4120. Hardcoding these numbers here
-  // because this is just host side code and we don't want to worry about linking with npu
-  static const size_t seed_size = sizeof(uint64_t);
-  static const size_t offset_size = sizeof(int64_t);
-  static const size_t total_size = seed_size + offset_size;
+    // The RNG state comprises the seed, and an offset used for Philox.
+    // The following line is just here for BC reason. sizeof curandStateMtgp32 is 4120.
+    // It used to be static const size_t states_size = MAX_NUM_BLOCKS * sizeof(curandStateMtgp32);
+    // MAX_NUM_BLOCKS was 200 and sizeof(curandStateMtgp32) is 4120. Hardcoding these numbers here
+    // because this is just host side code and we don't want to worry about linking with npu
+    static const size_t seed_size = sizeof(uint64_t);
+    static const size_t offset_size = sizeof(int64_t);
+    static const size_t total_size = seed_size + offset_size;
 
-  auto state_tensor = at::detail::empty_cpu({(int64_t)total_size}, at::ScalarType::Byte,
-                                            c10::nullopt, c10::nullopt, c10::nullopt, c10::nullopt);
-  auto rng_state = state_tensor.data_ptr<uint8_t>();
-  // since curandStateMTGP is not used anymore, fill gen_states of THCGenerator with deterministic garbage value of -1
-  // gen_states in THCGenerator struct was an array of curandStateMtgp32s.
-  auto current_seed = this->current_seed();
-  auto offset = static_cast<int64_t>(this->philox_offset_per_thread()); // Note that old THCGeneratorState had offset as std::atomic<int64_t>
-  memcpy(rng_state, &current_seed, seed_size);
-  memcpy(rng_state + seed_size, &offset, offset_size);
+    auto state_tensor = at::detail::empty_cpu({(int64_t)total_size}, at::ScalarType::Byte,
+                                              c10::nullopt, c10::nullopt, c10::nullopt, c10::nullopt);
+    auto rng_state = state_tensor.data_ptr<uint8_t>();
+    // since curandStateMTGP is not used anymore, fill gen_states of THCGenerator with deterministic garbage value of -1
+    // gen_states in THCGenerator struct was an array of curandStateMtgp32s.
+    auto current_seed = this->current_seed();
+    auto offset = static_cast<int64_t>(this->philox_offset_per_thread()); // Note that old THCGeneratorState had offset as std::atomic<int64_t>
+    memcpy(rng_state, &current_seed, seed_size);
+    memcpy(rng_state + seed_size, &offset, offset_size);
 
-  return state_tensor.getIntrusivePtr();
+    return state_tensor.getIntrusivePtr();
 }
 
 /**
@@ -192,29 +192,29 @@ c10::intrusive_ptr<c10::TensorImpl> NPUGeneratorImpl::get_state() const {
  * and size of the internal state.
  */
 void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
-  static const size_t seed_size = sizeof(uint64_t);
-  static const size_t offset_size = sizeof(int64_t);
-  static const size_t total_size = seed_size + offset_size;
+    static const size_t seed_size = sizeof(uint64_t);
+    static const size_t offset_size = sizeof(int64_t);
+    static const size_t total_size = seed_size + offset_size;
 
-  at::detail::check_rng_state(new_state);
+    at::detail::check_rng_state(new_state);
 
-  bool no_philox_seed = false;
-  auto new_state_size = new_state.numel();
-  if (new_state_size == total_size - offset_size) {
-    no_philox_seed = true;
-  } else {
-    TORCH_CHECK(new_state_size == total_size, "RNG state is wrong size", PTA_ERROR(ErrCode::VALUE));
-  }
+    bool no_philox_seed = false;
+    auto new_state_size = new_state.numel();
+    if (new_state_size == total_size - offset_size) {
+        no_philox_seed = true;
+    } else {
+        TORCH_CHECK(new_state_size == total_size, "RNG state is wrong size", PTA_ERROR(ErrCode::VALUE));
+    }
 
-  uint64_t input_seed;
-  auto new_rng_state = new_state.data_dtype_initialized<uint8_t>();
-  memcpy(&input_seed, new_rng_state, seed_size);
-  this->set_current_seed(input_seed);
-  int64_t philox_offset = 0;
-  if (!no_philox_seed) {
-    memcpy(&philox_offset, new_rng_state + seed_size, offset_size);
-  }
-  this->set_philox_offset_per_thread(static_cast<uint64_t>(philox_offset));
+    uint64_t input_seed;
+    auto new_rng_state = new_state.data_dtype_initialized<uint8_t>();
+    memcpy(&input_seed, new_rng_state, seed_size);
+    this->set_current_seed(input_seed);
+    int64_t philox_offset = 0;
+    if (!no_philox_seed) {
+        memcpy(&philox_offset, new_rng_state + seed_size, offset_size);
+    }
+    this->set_philox_offset_per_thread(static_cast<uint64_t>(philox_offset));
 }
 
 /**
@@ -223,16 +223,16 @@ void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
  * See Note [Acquire lock when using random generators]
  */
 void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset) {
-  // see Note [Why enforce RNG offset % 4 == 0?]
-  TORCH_CHECK(offset % 4 == 0, "offset must be a multiple of 4", PTA_ERROR(ErrCode::VALUE));
-  philox_offset_per_thread_ = offset;
+    // see Note [Why enforce RNG offset % 4 == 0?]
+    TORCH_CHECK(offset % 4 == 0, "offset must be a multiple of 4", PTA_ERROR(ErrCode::VALUE));
+    philox_offset_per_thread_ = offset;
 }
 
 /**
  * Gets the current philox_offset_per_thread_ of NpuGeneratorImpl.
  */
 uint64_t NPUGeneratorImpl::philox_offset_per_thread() const {
-  return philox_offset_per_thread_;
+    return philox_offset_per_thread_;
 }
 
 /**
@@ -241,17 +241,17 @@ uint64_t NPUGeneratorImpl::philox_offset_per_thread() const {
  * offset_intragraph tracks the offset in the graphed region.
  */
 void NPUGeneratorImpl::capture_prologue(int64_t* offset_extragraph) {
-  offset_extragraph_ = offset_extragraph;
-  offset_intragraph_ = 0;
-  graph_expects_this_gen_ = true;
+    offset_extragraph_ = offset_extragraph;
+    offset_intragraph_ = 0;
+    graph_expects_this_gen_ = true;
 }
 
 /**
  * Called by NpuGraph to finalize a graph capture region for this instance.
  */
 uint64_t NPUGeneratorImpl::capture_epilogue() {
-  graph_expects_this_gen_ = false;
-  return offset_intragraph_;
+    graph_expects_this_gen_ = false;
+    return offset_intragraph_;
 }
 
 /**
@@ -276,34 +276,34 @@ uint64_t NPUGeneratorImpl::capture_epilogue() {
  * See Note [Acquire lock when using random generators]
  */
 PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment) {
-  // rounds increment up to the nearest multiple of 4
-  increment = ((increment + 3) / 4) * 4;
-  /*
-  if (at::npu::currentStreamCaptureStatus() != at::npu::CaptureStatus::None) {
-    TORCH_CHECK(graph_expects_this_gen_,
-                "philox_npu_state for an unexpected NPU generator used during capture. "
-                CAPTURE_DEFAULT_GENS_MSG);
-    // see Note [Why enforce RNG offset % 4 == 0?]
-    TORCH_INTERNAL_ASSERT(this->offset_intragraph_ % 4 == 0);
-    uint32_t offset = this->offset_intragraph_;
-    TORCH_INTERNAL_ASSERT(this->offset_intragraph_ <=
-                          std::numeric_limits<uint32_t>::max() - increment);
-    this->offset_intragraph_ += increment;
-    return PhiloxNpuState(this->seed_,
-                           this->offset_extragraph_,
-                           offset);
-  } else {
-    TORCH_CHECK(!graph_expects_this_gen_,
-                "NPU generator expects graph capture to be underway, "
-                "but the current stream is not capturing.");
-    // see Note [Why enforce RNG offset % 4 == 0?]
-    TORCH_INTERNAL_ASSERT(this->philox_offset_per_thread_ % 4 == 0);
-    uint64_t offset = this->philox_offset_per_thread_;
-    this->philox_offset_per_thread_ += increment;
-    return PhiloxNpuState(this->seed_, offset);
-  } */
+    // rounds increment up to the nearest multiple of 4
+    increment = ((increment + 3) / 4) * 4;
+    /*
+    if (at::npu::currentStreamCaptureStatus() != at::npu::CaptureStatus::None) {
+        TORCH_CHECK(graph_expects_this_gen_,
+                    "philox_npu_state for an unexpected NPU generator used during capture. "
+                    CAPTURE_DEFAULT_GENS_MSG);
+        // see Note [Why enforce RNG offset % 4 == 0?]
+        TORCH_INTERNAL_ASSERT(this->offset_intragraph_ % 4 == 0);
+        uint32_t offset = this->offset_intragraph_;
+        TORCH_INTERNAL_ASSERT(this->offset_intragraph_ <=
+                              std::numeric_limits<uint32_t>::max() - increment);
+        this->offset_intragraph_ += increment;
+        return PhiloxNpuState(this->seed_,
+                               this->offset_extragraph_,
+                               offset);
+    } else {
+        TORCH_CHECK(!graph_expects_this_gen_,
+                    "NPU generator expects graph capture to be underway, "
+                    "but the current stream is not capturing.");
+        // see Note [Why enforce RNG offset % 4 == 0?]
+        TORCH_INTERNAL_ASSERT(this->philox_offset_per_thread_ % 4 == 0);
+        uint64_t offset = this->philox_offset_per_thread_;
+        this->philox_offset_per_thread_ += increment;
+        return PhiloxNpuState(this->seed_, offset);
+    } */
 
-  return PhiloxNpuState(this->seed_, 0);
+    return PhiloxNpuState(this->seed_, 0);
 }
 
 /**
@@ -311,13 +311,13 @@ PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment) {
  * Allows incremental refactor of call sites to use philox_npu_state.
  */
 std::pair<uint64_t, uint64_t> NPUGeneratorImpl::philox_engine_inputs(uint64_t increment) {
-  // rounds increment up to the nearest multiple of 4
-  increment = ((increment + 3) / 4) * 4;
-  // see Note [Why enforce RNG offset % 4 == 0?]
-  TORCH_INTERNAL_ASSERT(this->philox_offset_per_thread_ % 4 == 0, PTA_ERROR(ErrCode::INTERNAL));
-  uint64_t offset = this->philox_offset_per_thread_;
-  this->philox_offset_per_thread_ += increment;
-  return std::make_pair(this->seed_, offset);
+    // rounds increment up to the nearest multiple of 4
+    increment = ((increment + 3) / 4) * 4;
+    // see Note [Why enforce RNG offset % 4 == 0?]
+    TORCH_INTERNAL_ASSERT(this->philox_offset_per_thread_ % 4 == 0, PTA_ERROR(ErrCode::INTERNAL));
+    uint64_t offset = this->philox_offset_per_thread_;
+    this->philox_offset_per_thread_ += increment;
+    return std::make_pair(this->seed_, offset);
 }
 
 /*
@@ -325,7 +325,7 @@ std::pair<uint64_t, uint64_t> NPUGeneratorImpl::philox_engine_inputs(uint64_t in
  * Used for type checking during run time.
  */
 c10::DeviceType NPUGeneratorImpl::device_type() {
-  return c10::DeviceType::PrivateUse1;
+    return c10::DeviceType::PrivateUse1;
 }
 
 /**
@@ -334,7 +334,7 @@ c10::DeviceType NPUGeneratorImpl::device_type() {
  * See Note [Acquire lock when using random generators]
  */
 std::shared_ptr<NPUGeneratorImpl> NPUGeneratorImpl::clone() const {
-  return std::shared_ptr<NPUGeneratorImpl>(this->clone_impl());
+    return std::shared_ptr<NPUGeneratorImpl>(this->clone_impl());
 }
 
 /**
@@ -343,15 +343,15 @@ std::shared_ptr<NPUGeneratorImpl> NPUGeneratorImpl::clone() const {
  * See Note [Acquire lock when using random generators]
  */
 NPUGeneratorImpl* NPUGeneratorImpl::clone_impl() const {
-  auto gen = new NPUGeneratorImpl(this->device().index());
-  gen->set_current_seed(this->seed_);
-  gen->set_philox_offset_per_thread(this->philox_offset_per_thread_);
-  return gen;
+    auto gen = new NPUGeneratorImpl(this->device().index());
+    gen->set_current_seed(this->seed_);
+    gen->set_philox_offset_per_thread(this->philox_offset_per_thread_);
+    return gen;
 }
 
 // this is used to register generator
 at::Generator make_npu_generator(c10::DeviceIndex device_index) {
-  return at::make_generator<NPUGeneratorImpl>(device_index);
+    return at::make_generator<NPUGeneratorImpl>(device_index);
 }
 
 REGISTER_GENERATOR_PRIVATEUSE1(make_npu_generator)
