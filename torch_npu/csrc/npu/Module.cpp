@@ -43,6 +43,7 @@
 #include "torch_npu/csrc/npu/memory_snapshot.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
 #include "torch_npu/csrc/core/npu/interface/OpInterface.h"
+#include "op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h"
 
 struct NPUDeviceProp {
     std::string name;
@@ -1209,6 +1210,49 @@ PyObject* THNPModule_npu_reset_thread_affinity(PyObject* self, PyObject* noargs)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npu_set_fft_plan_cache_max_size(PyObject* self, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    static torch::PythonArgParser parser(
+        {"set_fft_plan_cache_max_size(int64_t size)", },
+        false);
+
+    torch::ParsedArgs<1> parsed_args;
+    auto _r = parser.parse(args, nullptr, parsed_args);
+
+    int64_t cache_size = _r.toInt64(0);
+    TORCH_CHECK(
+        cache_size >= 1 && cache_size <= 99,
+        "invalid value of cache_size, expected 1 to 99",
+        PTA_ERROR(ErrCode::VALUE));
+    op_api::setFFTPlanCapacity(cache_size);
+
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_get_fft_plan_cache_max_size(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    return PyLong_FromLong(op_api::getFFTPlanCapacity());
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_get_fft_plan_cache_size(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    return PyLong_FromLong(op_api::getFFTPlanSize());
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_clear_fft_plan_cache(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    op_api::clearFFTPlanCache();
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -1260,6 +1304,10 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_get_silent_check_version", (PyCFunction)THNPModule_npu_get_silent_check_version, METH_NOARGS, nullptr},
     {"_npu_set_threads_affinity", (PyCFunction)THNPModule_npu_set_thread_affinity, METH_NOARGS, nullptr},
     {"_npu_reset_threads_affinity", (PyCFunction)THNPModule_npu_reset_thread_affinity, METH_NOARGS, nullptr},
+    {"_npu_set_fft_plan_cache_max_size", (PyCFunction)THNPModule_npu_set_fft_plan_cache_max_size, METH_VARARGS, nullptr},
+    {"_npu_get_fft_plan_cache_max_size", (PyCFunction)THNPModule_npu_get_fft_plan_cache_max_size, METH_NOARGS, nullptr},
+    {"_npu_get_fft_plan_cache_size", (PyCFunction)THNPModule_npu_get_fft_plan_cache_size, METH_NOARGS, nullptr},
+    {"_npu_clear_fft_plan_cache", (PyCFunction)THNPModule_npu_clear_fft_plan_cache, METH_NOARGS, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()
