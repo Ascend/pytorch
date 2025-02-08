@@ -29,7 +29,7 @@ from torch_npu._C._distributed_c10d import (
 )
 
 
-from torch_npu.distributed import rendezvous
+from torch_npu.distributed import rendezvous, fsdp, tensor
 from .distributed_c10d import is_hccl_available, reinit_process_group, _reduce_scatter_tensor_uneven as reduce_scatter_tensor_uneven, _all_gather_into_tensor_uneven as all_gather_into_tensor_uneven
 
 rendezvous._rendezvous_init()

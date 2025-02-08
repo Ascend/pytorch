@@ -13,6 +13,12 @@ INPUTS_DIM_LIMIT_QUANTCONV2D = 4
 ATTR_DIM_LIMIT_QUANTCONV2D = 2
 #meta register implementation
 m = Library("npu", "IMPL", "Meta")
+m_aten = Library("aten", "IMPL", "Meta")
+
+
+@impl(m_aten, "matmul_backward")
+def matmul_backward_meta(grad, self, other, mask):
+    return (torch.empty_like(self), torch.empty_like(other))
 
 
 @impl(m, "npu_incre_flash_attention")
