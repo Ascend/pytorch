@@ -37,6 +37,7 @@ class TestRoll(TestCase):
 
         return output.to("cpu").numpy(), fast_time
 
+    @SupportedDevices(['Ascend910A'])
     def test_roll_shape_format(self):
         dtype_list = [np.float16, np.float32, np.uint8, np.int32]
         format_list = [-1, 2]

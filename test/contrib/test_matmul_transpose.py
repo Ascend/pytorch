@@ -4,7 +4,7 @@ import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.contrib.function import matmul_transpose
 
 
@@ -45,6 +45,7 @@ class TestMatmulTranspose(TestCase):
 
         return output, fast_time
 
+    @SupportedDevices(['Ascend910A'])
     def test_matmul_transpose_shape_format(self):
         shape_format = [
             [[np.float16, 2, [50, 25, 7, 100]], [np.float16, 2, [50, 25, 10, 100]]],

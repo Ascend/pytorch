@@ -7,7 +7,7 @@ import torch_npu
 from torch_npu.contrib.module import NpuFairseqDropout, NpuCachedDropout
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 
 
 class NpuMNIST(nn.Module):
@@ -28,6 +28,7 @@ class NpuMNIST(nn.Module):
 
 
 class TestEnsembleDropout(unittest.TestCase):
+    @SupportedDevices(['Ascend910A'])
     def test_EnsembleDropout(self):
         model = NpuMNIST().to("npu")
         x = torch.randn(2, 10, 16, 16).to("npu")

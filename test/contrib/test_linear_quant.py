@@ -1,6 +1,7 @@
 import unittest
 import torch
 import torch_npu
+from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.contrib.module import LinearQuant
 
@@ -17,6 +18,7 @@ class TestLinearQuant(TestCase):
         output = model(x1)
         return output
 
+    @SupportedDevices(['Ascend910A'])
     @unittest.skipIf(DEVICE_NAME == 'Ascend910A' or DEVICE_NAME == 'Ascend310P',
         "OP `QuantBatchMatmulV3` is not supported on 910A or 310P, skip this ut for this device type!")
     def test_npu_linear_quant(self):

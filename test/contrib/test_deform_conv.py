@@ -4,11 +4,12 @@ import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.contrib.module import DCNv2
 
 
 class TestDeformConv(TestCase):
+    @SupportedDevices(['Ascend910A'])
     def test_npu_deform_conv_1(self):
         np.random.seed(226)
         data1 = np.random.randn(2, 2, 3, 3)
@@ -50,6 +51,7 @@ class TestDeformConv(TestCase):
         self.assertRtolEqual(expect_cpu_output, output.detach().cpu())
         self.assertRtolEqual(expect_cpu_xgrad, x.grad.cpu())
 
+    @SupportedDevices(['Ascend910A'])
     def test_npu_deform_conv_2(self):
         np.random.seed(546)
         data1 = np.random.randn(2, 2, 5, 5)

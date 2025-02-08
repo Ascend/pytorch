@@ -2,12 +2,14 @@ import unittest
 import numpy as np
 import torch
 import torch_npu
+from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.contrib.function import npu_multiclass_nms, \
     npu_batched_multiclass_nms
 
 
 class TestMultiClassNms(TestCase):
+    @SupportedDevices(['Ascend910A'])
     def test_npu_multiclass_nms_1(self):
         np.random.seed(123)
         data1 = np.random.randint(low=1, high=255, size=(1000, 4))
@@ -24,6 +26,7 @@ class TestMultiClassNms(TestCase):
         self.assertRtolEqual(expect_det_bboxes, det_bboxes.cpu())
         self.assertRtolEqual(expect_det_labels, det_labels.cpu())
 
+    @SupportedDevices(['Ascend910A'])
     def test_npu_multiclass_nms_2(self):
         np.random.seed(123)
         data1 = np.random.randn(1000, 4)
@@ -40,6 +43,7 @@ class TestMultiClassNms(TestCase):
         self.assertRtolEqual(expect_det_bboxes, det_bboxes.cpu())
         self.assertRtolEqual(expect_det_labels, det_labels.cpu())
 
+    @SupportedDevices(['Ascend910A'])
     def test_npu_batched_multiclass_nms_1(self):
         np.random.seed(339)
         data1 = np.random.randint(low=1, high=255, size=(4, 200, 80, 4))
