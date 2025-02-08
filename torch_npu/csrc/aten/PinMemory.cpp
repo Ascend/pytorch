@@ -24,19 +24,21 @@ ${ops_headers}
 namespace at_npu {
 namespace native {
 
-bool is_pinned(const at::Tensor& self, c10::optional<at::Device> device) {
-  // Only CPU tensors can be pinned
-  if (!self.is_cpu()) {
-    return false;
-  }
-  c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(c10::DeviceType::PrivateUse1)));
-  return at::_ops::is_pinned::redispatch(_dk, self, device);
+bool is_pinned(const at::Tensor& self, c10::optional<at::Device> device)
+{
+    // Only CPU tensors can be pinned
+    if (!self.is_cpu()) {
+        return false;
+    }
+    c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(c10::DeviceType::PrivateUse1)));
+    return at::_ops::is_pinned::redispatch(_dk, self, device);
 }
 
-at::Tensor _pin_memory(const at::Tensor& self, c10::optional<at::Device> device) {
-  TORCH_CHECK(self.device().is_cpu(), "cannot pin '", self.toString(), "' only dense CPU tensors can be pinned", PTA_ERROR(ErrCode::TYPE));
-  c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(c10::DeviceType::PrivateUse1)));
-  return at::_ops::_pin_memory::redispatch(_dk, self, device);
+at::Tensor _pin_memory(const at::Tensor& self, c10::optional<at::Device> device)
+{
+    TORCH_CHECK(self.device().is_cpu(), "cannot pin '", self.toString(), "' only dense CPU tensors can be pinned", PTA_ERROR(ErrCode::TYPE));
+    c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(c10::DeviceType::PrivateUse1)));
+    return at::_ops::_pin_memory::redispatch(_dk, self, device);
 }
 
 TORCH_LIBRARY_IMPL(aten, BackendSelect, m) {
