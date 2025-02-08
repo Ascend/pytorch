@@ -54,7 +54,7 @@ def npu_fused_infer_attention_score_forward(query, key, value, *, pse_shift=None
                                       quant_offset2=None, antiquant_scale=None, antiquant_offset=None, block_table=None,
                                       query_padding_size=None, kv_padding_size=None, key_antiquant_scale=None, key_antiquant_offset=None,
                                       value_antiquant_scale=None, value_antiquant_offset=None, key_shared_prefix=None, value_shared_prefix=None,
-                                      actual_shared_prefix_len=None, num_heads=1, scale=1.0, pre_tokens=2147483647, next_tokens=2147483647,
+                                      actual_shared_prefix_len=None, query_rope=None, key_rope=None, num_heads=1, scale=1.0, pre_tokens=2147483647, next_tokens=2147483647,
                                       input_layout="BSH", num_key_value_heads=0, sparse_mode=0, inner_precise=0, block_size=0, antiquant_mode=0,
                                       softmax_lse_flag=False, key_antiquant_mode=0, value_antiquant_mode=0):
     tmp_out = torch.empty_like(query, dtype=query.dtype, device='meta')
