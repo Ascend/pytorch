@@ -1,9 +1,10 @@
+__all__ = ['NpuDropPath']
+
+
 import torch
 import torch.nn as nn
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
-
-__all__ = ['NpuDropPath']
 
 
 def _npu_drop_path(x, random_tensor, keep_prob: float = 0.):
@@ -99,7 +100,7 @@ class NpuDropPath(nn.Module):
                         for _, task in cls.task_dict.items():
                             if len(task.rand_queue) >= task.request_count:
                                 continue
-                            for i in range(task.request_count - len(task.rand_queue)):
+                            for _ in range(task.request_count - len(task.rand_queue)):
                                 shape = (task.shape[0],) + (1,) * (task.ndim - 1)  
                                 random_tensor = torch.rand(shape, dtype=task.dtype, device=task.device)
                                 task.rand_queue.append(random_tensor)
