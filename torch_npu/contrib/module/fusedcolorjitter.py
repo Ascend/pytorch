@@ -1,14 +1,13 @@
+__all__ = ["FusedColorJitter"]
+
+
 import random
 from math import sin, cos, pi
 import numbers
 import numpy as np
+
 import torch
-
 from torch_npu.utils._error_code import ErrCode, ops_error
-
-__all__ = [
-    "FusedColorJitter"
-]
 
 
 class _FusedColorJitterApply(object):

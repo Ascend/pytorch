@@ -1,10 +1,11 @@
+__all__ = ["LinearWeightQuant"]
+
+
 import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.nn.parameter import Parameter
 import torch_npu
-
-__all__ = ["LinearWeightQuant"]
 
 
 class LinearWeightQuant(nn.Module):

@@ -1,11 +1,13 @@
+__all__ = [
+    'npu_bbox_coder_encode_yolo',
+    'npu_bbox_coder_decode_xywh2xyxy',
+    'npu_bbox_coder_encode_xyxy2xywh'
+]
+
+
 import torch
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
-
-__all__ = ['npu_bbox_coder_encode_yolo',
-           'npu_bbox_coder_decode_xywh2xyxy',
-           'npu_bbox_coder_encode_xyxy2xywh'
-           ]
 
 
 def _box_dtype_check(box):

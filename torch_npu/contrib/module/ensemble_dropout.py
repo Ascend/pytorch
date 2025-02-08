@@ -1,3 +1,9 @@
+__all__ = [
+    "NpuCachedDropout",
+    "NpuFairseqDropout"
+]
+
+
 import logging
 from typing import List, Optional
 from functools import reduce
@@ -5,17 +11,12 @@ from functools import reduce
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
 from torch_npu.contrib.module._ensemble_dropout import NpuPreGenDropout
 
-logger = logging.getLogger(__name__)
 
-__all__ = [
-    "NpuCachedDropout",
-    "NpuFairseqDropout"
-]
+logger = logging.getLogger(__name__)
 
 
 class _DropOutTask:
@@ -93,7 +94,7 @@ class NpuCachedDropout(torch.nn.Dropout):
             def hook_function(module, inputs, outputs):
                 for _, task in cls.task_dict.items():
                     if len(task.mask_queue) < task.request_count:
-                        for j in range(task.request_count - len(task.mask_queue)):
+                        for _ in range(task.request_count - len(task.mask_queue)):
                             mask = torch_npu.npu_dropout_gen_mask(task.shape, p=task.p, dtype=task.dtype,
                                                                   device=task.device)
                             event = None
