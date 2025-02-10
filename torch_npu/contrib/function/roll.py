@@ -1,8 +1,9 @@
-__all__ = ["roll"]
-
 import torch
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
+
+
+__all__ = ["roll"]
 
 
 class _RollWithIndexSelect(torch.autograd.Function):
