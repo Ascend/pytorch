@@ -1,16 +1,15 @@
 #include <pybind11/pybind11.h>
+#include <structmember.h>
 #include <torch/csrc/Device.h>
 #include <torch/csrc/THP.h>
-#include "torch_npu/csrc/core/npu/NPUGuard.h"
-#include <structmember.h>
-#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
-#include "torch_npu/csrc/npu/Stream.h"
-#include "torch_npu/csrc/npu/Module.h"
 #include "third_party/acl/inc/acl/acl.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
-
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/npu/Module.h"
+#include "torch_npu/csrc/npu/Stream.h"
 
 PyObject *THNPStreamClass = nullptr;
 
@@ -74,66 +73,75 @@ static PyObject *THNPStream_pynew(
     END_HANDLE_TH_ERRORS
 }
 
-static void THNPStream_dealloc(THNPStream *self) {
-  self->npu_stream.~NPUStream();
-  Py_TYPE(self)->tp_free((PyObject*)self);
+static void THNPStream_dealloc(THNPStream *self)
+{
+    self->npu_stream.~NPUStream();
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject* THNPStream_get_device(THNPStream *self, void *unused) {
-  HANDLE_TH_ERRORS
-  return THPDevice_New(self->npu_stream.device());
-  END_HANDLE_TH_ERRORS
+static PyObject* THNPStream_get_device(THNPStream *self, void *unused)
+{
+    HANDLE_TH_ERRORS
+    return THPDevice_New(self->npu_stream.device());
+    END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPStream_get_npu_stream(THNPStream *self, void *unused) {
-  HANDLE_TH_ERRORS
-  return PyLong_FromVoidPtr(self->npu_stream.stream());
-  END_HANDLE_TH_ERRORS
+static PyObject* THNPStream_get_npu_stream(THNPStream *self, void *unused)
+{
+    HANDLE_TH_ERRORS
+    return PyLong_FromVoidPtr(self->npu_stream.stream());
+    END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPStream_get_priority(THNPStream *self, void *unused) {
-  HANDLE_TH_ERRORS
-  TORCH_CHECK(false, "NPU dose not support Stream.get_priority() currently.", PTA_ERROR(ErrCode::NOT_SUPPORT));
-  END_HANDLE_TH_ERRORS
+static PyObject* THNPStream_get_priority(THNPStream *self, void *unused)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(false, "NPU dose not support Stream.get_priority() currently.", PTA_ERROR(ErrCode::NOT_SUPPORT));
+    END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPStream_priority_range() {
-  HANDLE_TH_ERRORS
-  TORCH_CHECK(false, "NPU does not support Stream.priority_range() currently.", PTA_ERROR(ErrCode::NOT_SUPPORT));
-  END_HANDLE_TH_ERRORS
+static PyObject* THNPStream_priority_range()
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(false, "NPU does not support Stream.priority_range() currently.", PTA_ERROR(ErrCode::NOT_SUPPORT));
+    END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPStream_query(THNPStream *self, PyObject *noargs) {
-  HANDLE_TH_ERRORS
-  return PyBool_FromLong(self->npu_stream.query());
-  END_HANDLE_TH_ERRORS
+static PyObject* THNPStream_query(THNPStream *self, PyObject *noargs)
+{
+    HANDLE_TH_ERRORS
+    return PyBool_FromLong(self->npu_stream.query());
+    END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPStream_synchronize(THNPStream *self, PyObject *noargs) {
-  HANDLE_TH_ERRORS
-  {
-    pybind11::gil_scoped_release no_gil;
-    self->npu_stream.synchronize();
-  }
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
+static PyObject* THNPStream_synchronize(THNPStream *self, PyObject *noargs)
+{
+    HANDLE_TH_ERRORS
+    {
+        pybind11::gil_scoped_release no_gil;
+        self->npu_stream.synchronize();
+    }
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPStream_set_data_preprocess_stream(THNPStream *self, PyObject *arg) {
-  HANDLE_TH_ERRORS
-  {
-    pybind11::gil_scoped_release no_gil;
-    bool is_data_preprocess_stream = THPUtils_unpackBool(arg);
-    self->npu_stream.setDataPreprocessStream(is_data_preprocess_stream);
-  }
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
+static PyObject* THNPStream_set_data_preprocess_stream(THNPStream *self, PyObject *arg)
+{
+    HANDLE_TH_ERRORS
+    {
+        pybind11::gil_scoped_release no_gil;
+        bool is_data_preprocess_stream = THPUtils_unpackBool(arg);
+        self->npu_stream.setDataPreprocessStream(is_data_preprocess_stream);
+    }
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPStream_eq(THNPStream *self, THNPStream *other) {
-  HANDLE_TH_ERRORS
-  return PyBool_FromLong(self->npu_stream == other->npu_stream);
-  END_HANDLE_TH_ERRORS
+static PyObject* THNPStream_eq(THNPStream *self, THNPStream *other)
+{
+    HANDLE_TH_ERRORS
+    return PyBool_FromLong(self->npu_stream == other->npu_stream);
+    END_HANDLE_TH_ERRORS
 }
 
 static struct PyMemberDef THNPStream_members[] = {
