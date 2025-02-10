@@ -1,6 +1,3 @@
-__all__ = []
-
-
 import os
 import warnings
 import json
@@ -8,7 +5,6 @@ import importlib.metadata
 import logging as logger
 import functools
 from functools import wraps
-
 import torch
 from torch.utils._device import _device_constructors
 from torch._inductor.utils import has_triton
@@ -25,6 +21,7 @@ _device_constructors()
 warnings.filterwarnings(action='once')
 
 
+__all__ = []
 torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like', 'ones_like', 'rand_like', 'randperm',
                        'arange', 'frombuffer', 'normal', '_empty_per_channel_affine_quantized', 'empty_strided',
                        'empty_like', 'scalar_tensor', 'tril_indices', 'bartlett_window', 'ones', 'sparse_coo_tensor',
@@ -47,6 +44,7 @@ is_available = torch.cuda.is_available
 device_kwargs_list = ['device', 'device_type', 'map_location', 'device_id']
 cur_path = os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(cur_path, 'apis_config.json')
+
 
 
 def _get_function_from_string(attribute_string):
@@ -152,7 +150,7 @@ def _wrapper_cuda(fn):
                 if device is not None:
                     _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
             device_ids = kwargs.get('device_ids', None)
-            if isinstance(device_ids, list):
+            if type(device_ids) == list:
                 device_ids = _replace_cuda_to_npu_in_list(device_ids, replace_int)
         return fn(*args, **kwargs)
 
@@ -160,14 +158,14 @@ def _wrapper_cuda(fn):
 
 
 def _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
-    if isinstance(device, str) and 'cuda' in device:
+    if type(device) == str and 'cuda' in device:
         kwargs[device_arg] = device.replace('cuda', 'npu')
-    elif isinstance(device, torch.device) and 'cuda' in device.type:
+    elif type(device) == torch.device and 'cuda' in device.type:
         device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
         kwargs[device_arg] = torch.device(device_info)
-    elif isinstance(device, int):
+    elif type(device) == int:
         kwargs[device_arg] = f'npu:{device}'
-    elif isinstance(device, dict):
+    elif type(device) == dict:
         kwargs[device_arg] = _replace_cuda_to_npu_in_dict(device)
 
 
@@ -209,12 +207,12 @@ def _wrapper_hccl(fn):
         if args:
             args_new = list(args)
             for idx, arg in enumerate(args_new):
-                if isinstance(arg, str) and 'nccl' in arg:
+                if type(arg) == str and 'nccl' in arg:
                     args_new[idx] = arg.replace('nccl', 'hccl')
             args = args_new
         if kwargs:
             backend = kwargs.get('backend', None)
-            if isinstance(backend, str) and 'nccl' in backend:
+            if type(backend) == str and 'nccl' in backend:
                 kwargs['backend'] = backend.replace('nccl', 'hccl')
         return fn(*args, **kwargs)
 
@@ -227,7 +225,7 @@ def _wrapper_profiler(fn):
     def decorated(*args, **kwargs):
         if kwargs:
             if 'experimental_config' in kwargs.keys() and \
-                not isinstance(kwargs.get('experimental_config'), torch_npu.profiler._ExperimentalConfig):
+                    type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
                 logger.warning(
                     'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
                     'because it can only be used in cuda, please manually modify the code '
