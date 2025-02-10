@@ -1,6 +1,3 @@
-__all__ = []
-
-
 from typing import Optional, Any
 
 import torch
@@ -11,6 +8,8 @@ from torch.nn.modules.batchnorm import _NormBase as SrcNormBase
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
+
+__all__ = []
 
 
 class _NormBase(SrcNormBase):

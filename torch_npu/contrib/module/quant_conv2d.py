@@ -1,6 +1,4 @@
-__all__ = ['QuantConv2d']
-
-
+# -*- coding: utf-8 -*-
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -8,6 +6,8 @@ from torch.nn.common_types import _size_2_t
 from torch.nn.parameter import Parameter
 from torch.nn.modules.utils import _pair
 import torch_npu
+
+__all__ = ['QuantConv2d']
 
 
 class QuantConv2d(nn.Module):
