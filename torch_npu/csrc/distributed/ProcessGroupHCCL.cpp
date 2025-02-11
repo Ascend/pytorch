@@ -3950,7 +3950,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
         std::vector<uint64_t> outputCounts;
         std::vector<uint64_t> outputSpl;
         outputSpl.push_back(0);
-        for (int i = 0; i < lastOutputTensors.size(); i++) {
+        for (size_t i = 0; i < lastOutputTensors.size(); i++) {
             outputCounts.push_back(lastOutputTensors[i].numel());
             if (i > 0) {
                 outputSpl.push_back(outputSpl[i - 1] + outputCounts[i - 1]);
@@ -4280,7 +4280,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
         std::vector<uint64_t> inputSpl;
         std::vector<at::Tensor> lastInputTensors = inputTensors.back();
         inputSpl.push_back(0);
-        for (int i = 0; i < lastInputTensors.size(); i++) {
+        for (size_t i = 0; i < lastInputTensors.size(); i++) {
             inputCounts.push_back(lastInputTensors[i].numel());
             if (i > 0) {
                 inputSpl.push_back(inputSpl[i - 1] + inputCounts[i - 1]);
