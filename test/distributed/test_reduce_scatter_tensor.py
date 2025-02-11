@@ -72,7 +72,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                 for _ in range(world_size):
                     _, input1 = create_common_tensor(shape, -10, -10)
                     input_list.append(input1.cpu())
-                expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor_uneven)
+                expected = self._construct_excepted_result(input_list, world_size, torch_npu.distributed.reduce_scatter_tensor_uneven)
                 self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor_uneven,
                                         HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list, world_size)
 
