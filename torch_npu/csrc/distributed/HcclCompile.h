@@ -1,6 +1,7 @@
 #include <c10/util/CallOnce.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 
 namespace c10d_npu {
 #undef LOAD_FUNCTION
@@ -166,7 +167,9 @@ bool hcclAllGatherVExist()
     static bool exist = false;
     c10::call_once(flag, [&]() {
         auto func = GET_FUNC(HcclAllGatherV)
-        if (func != nullptr) {
+        if (func != nullptr &&
+            c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend310P1 &&
+            c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1) {
             exist = true;
         }
     });
@@ -179,7 +182,9 @@ bool hcclReduceScatterVExist()
     static bool exist = false;
     c10::call_once(flag, [&]() {
         auto func = GET_FUNC(HcclReduceScatterV)
-        if (func != nullptr) {
+        if (func != nullptr &&
+            c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend310P1 &&
+            c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1) {
             exist = true;
         }
     });
