@@ -24,7 +24,7 @@ def patch_supported_devices():
         if _cann_version.startswith(ver):
             return ["cuda", "xpu"]
 
-    if _device_name > "Ascend910B" and _device_name < "Ascend910PremiumA":
+    if (_device_name > "Ascend910B" and _device_name < "Ascend910PremiumA") or (_device_name > "Ascend910_9"):
         return ["cuda", "xpu", torch._C._get_privateuse1_backend_name()]
 
     return ["cuda", "xpu"]
