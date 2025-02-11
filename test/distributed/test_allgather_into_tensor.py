@@ -69,7 +69,7 @@ class HcclAllGatherIntoTensorTest(HcclAllGatherTestBase):
                 if shape[0] == np.int8:
                     shape[1] = 0
                 _, input1 = create_common_tensor(shape, -10, 10)
-                expected = self._construct_excepted_result(input1, world_size, dist.all_gather_into_tensor_uneven)
+                expected = self._construct_excepted_result(input1, world_size, torch_npu.distributed.all_gather_into_tensor_uneven)
                 self._test_multiprocess(HcclAllGatherIntoTensorTest._test_all_gather_into_tensor_uneven,
                                         HcclAllGatherIntoTensorTest._init_dist_hccl, expected, input1, world_size)
 
