@@ -299,6 +299,12 @@ def _replace_to_method_in_allowed_methods():
             break
 
 
+def _del_nccl_device_backend_map():
+    if hasattr(torch.distributed.Backend, 'default_device_backend_map'):
+        if 'cuda' in torch.distributed.Backend.default_device_backend_map:
+            del torch.distributed.Backend.default_device_backend_map['cuda']
+
+
 def _init():
     _warning_fn('''
     *************************************************************************************************************
@@ -343,6 +349,9 @@ def _init():
     torch.distributed.ProcessGroup._get_backend = _wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
     torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__ = \
         _wrapper_cuda(torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__)
+    if hasattr(torch.distributed, 'init_device_mesh'):
+        _del_nccl_device_backend_map()
+        torch.distributed.init_device_mesh = _wrapper_cuda(torch.distributed.init_device_mesh)
 
     # torch.nn.parallel.DistributedDataParallel
     _device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
