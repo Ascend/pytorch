@@ -56,15 +56,20 @@ const at::Tensor& NPUNativeFunctions::resize_as_(
     const at::Tensor& self,
     const at::Tensor& the_template,
     c10::optional<c10::MemoryFormat> format) {
-  TORCH_CHECK(
-      !(self.is_sparse() || the_template.is_sparse()),
-      "NPU does not support sparse tensors.", OPS_ERROR(ErrCode::NOT_SUPPORT));
-  TORCH_CHECK(
-      !format.has_value(), "NPU does not support specify memory_format.", OPS_ERROR(ErrCode::NOT_SUPPORT));
+    TORCH_CHECK(
+        !(self.is_sparse() || the_template.is_sparse()),
+        "NPU does not support sparse tensors.", OPS_ERROR(ErrCode::NOT_SUPPORT));
 
-  const at::Tensor& result = self.resize_(the_template.sizes());
-  at::namedinference::propagate_names(result, the_template);
-  return result;
+    if (format.has_value()) {
+        auto memory_format = format.value();
+        TORCH_CHECK(
+            memory_format == c10::MemoryFormat::Preserve || memory_format == c10::MemoryFormat::Contiguous,
+            "NPU only support format is contiguous_format or preserve_format.", OPS_ERROR(ErrCode::NOT_SUPPORT));
+    }
+
+    const at::Tensor& result = self.resize_(the_template.sizes());
+    at::namedinference::propagate_names(result, the_template);
+    return result;
 }
 
 } // namespace native
