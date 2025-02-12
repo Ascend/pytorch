@@ -64,16 +64,16 @@ size_t computeStorageNbytes(
     c10::IntArrayRef strides,
     size_t itemsize_bytes)
 {
-  // size of the underlying storage is 1 bigger than the offset
-  // of the last element according to stride
-  size_t size = 1;
-  for (const auto i : c10::irange(sizes.size())) {
-    if (sizes[i] == 0) {
-      return 0;
+    // size of the underlying storage is 1 bigger than the offset
+    // of the last element according to stride
+    size_t size = 1;
+    for (const auto i : c10::irange(sizes.size())) {
+        if (sizes[i] == 0) {
+            return 0;
+        }
+        size += strides[i]*(sizes[i]-1);
     }
-    size += strides[i]*(sizes[i]-1);
-  }
-  return size * itemsize_bytes;
+    return size * itemsize_bytes;
 }
 
 } // namespace
@@ -146,119 +146,119 @@ at::Tensor empty_like_npu(
     const at::Tensor &self,
     const c10::TensorOptions &options_,
     c10::optional<c10::MemoryFormat> optional_memory_format) {
-  TORCH_CHECK(
-      !(options_.has_memory_format() && optional_memory_format.has_value()),
-      "Cannot set memory_format both in TensorOptions and explicit argument; please delete "
-      "the redundant setter.", OPS_ERROR(ErrCode::PARAM));
-
-  c10::TensorOptions options = self.options().merge_in(options_).merge_in(
-      c10::TensorOptions().memory_format(optional_memory_format));
-
-  TORCH_CHECK(
-      !(options.layout() != at::kStrided && optional_memory_format.has_value()),
-      "memory format option is only supported by strided tensors", OPS_ERROR(ErrCode::NOT_SUPPORT));
-  if (options.layout() == at::kSparse && self.is_sparse()) {
-    auto result = at::empty({0}, options); // to be resized
-    result.sparse_resize_and_clear_(
-        self.sizes(), self.sparse_dim(), self.dense_dim());
-    return result;
-  }
-
-  auto memory_format =
-      options.memory_format_opt().value_or(c10::MemoryFormat::Contiguous);
-
-  if (self.is_quantized()) {
-    // To support all features of c10::MemoryFormat::Preserve we need to add
-    // _empty_affine_quantized_strided function and use it similarly to
-    // at::Tensor clone(const at::Tensor& src, c10::optional<c10::c10::MemoryFormat>
-    // optional_memory_format) if (self.is_non_overlapping_and_dense()) ->
-    // _empty_affine_quantized_strided
-    if (memory_format == c10::MemoryFormat::Preserve)
-    {
-      memory_format = self.suggest_memory_format();
-    }
-
-    // Note [Explicit nullopt c10::MemoryFormat argument]
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // Some functions which we call default the OPTIONAL c10::MemoryFormat
-    // argument to something that's not nullopt.  If we pass the
-    // c10::MemoryFormat via TensorOptions, we must explicitly disable this
-    // defaulting process, by explicitly passing nullopt for the c10::MemoryFormat
-    // argument.  When codegen is adjusted so we can delete this argument from
-    // the method signature, the argument will just disappear entirely.
-    //
-    // BTW, there are a few places where the optional c10::MemoryFormat is None,
-    // but I still pass in nullopt for robustness.
-
-    // We could check if dtype is still quantized?  But then should we
-    // shift/scale the q_zero_point / q_scale or not?
     TORCH_CHECK(
-        !options.has_dtype() || options.dtype() == self.dtype(),
-        "It is currently not supported to specify a dtype that doesn't match "
-        "the input tensor's dtype via empty_like.  Specified: ",
-        options.dtype(),
-        " Input tensor's dtype: ",
-        self.dtype(), OPS_ERROR(ErrCode::TYPE));
-    auto qscheme = self.qscheme();
-    if (qscheme == at::kPerTensorAffine) {
-      return at::_empty_affine_quantized(
-          self.sizes(),
-          options.memory_format(memory_format),
-          self.q_scale(),
-          self.q_zero_point(),
-          // See Note [Explicit nullopt c10::MemoryFormat argument]
-          c10::nullopt);
+        !(options_.has_memory_format() && optional_memory_format.has_value()),
+        "Cannot set memory_format both in TensorOptions and explicit argument; please delete "
+        "the redundant setter.", OPS_ERROR(ErrCode::PARAM));
+
+    c10::TensorOptions options = self.options().merge_in(options_).merge_in(
+        c10::TensorOptions().memory_format(optional_memory_format));
+
+    TORCH_CHECK(
+        !(options.layout() != at::kStrided && optional_memory_format.has_value()),
+        "memory format option is only supported by strided tensors", OPS_ERROR(ErrCode::NOT_SUPPORT));
+    if (options.layout() == at::kSparse && self.is_sparse()) {
+        auto result = at::empty({0}, options); // to be resized
+        result.sparse_resize_and_clear_(
+            self.sizes(), self.sparse_dim(), self.dense_dim());
+        return result;
     }
-    else if (qscheme == at::kPerChannelAffine) {
-      // Copy the tensors with channels to avoid accidental overrides
-      return at::_empty_per_channel_affine_quantized(
-          self.sizes(),
-          self.q_per_channel_scales().clone(c10::MemoryFormat::Preserve),
-          self.q_per_channel_zero_points().clone(c10::MemoryFormat::Preserve),
-          self.q_per_channel_axis(),
-          options.memory_format(memory_format),
-          // See Note [Explicit nullopt c10::MemoryFormat argument]
-          c10::nullopt);
+
+    auto memory_format =
+        options.memory_format_opt().value_or(c10::MemoryFormat::Contiguous);
+
+    if (self.is_quantized()) {
+        // To support all features of c10::MemoryFormat::Preserve we need to add
+        // _empty_affine_quantized_strided function and use it similarly to
+        // at::Tensor clone(const at::Tensor& src, c10::optional<c10::c10::MemoryFormat>
+        // optional_memory_format) if (self.is_non_overlapping_and_dense()) ->
+        // _empty_affine_quantized_strided
+        if (memory_format == c10::MemoryFormat::Preserve)
+        {
+            memory_format = self.suggest_memory_format();
+        }
+
+        // Note [Explicit nullopt c10::MemoryFormat argument]
+        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        // Some functions which we call default the OPTIONAL c10::MemoryFormat
+        // argument to something that's not nullopt.  If we pass the
+        // c10::MemoryFormat via TensorOptions, we must explicitly disable this
+        // defaulting process, by explicitly passing nullopt for the c10::MemoryFormat
+        // argument.  When codegen is adjusted so we can delete this argument from
+        // the method signature, the argument will just disappear entirely.
+        //
+        // BTW, there are a few places where the optional c10::MemoryFormat is None,
+        // but I still pass in nullopt for robustness.
+
+        // We could check if dtype is still quantized?  But then should we
+        // shift/scale the q_zero_point / q_scale or not?
+        TORCH_CHECK(
+            !options.has_dtype() || options.dtype() == self.dtype(),
+            "It is currently not supported to specify a dtype that doesn't match "
+            "the input tensor's dtype via empty_like.  Specified: ",
+            options.dtype(),
+            " Input tensor's dtype: ",
+            self.dtype(), OPS_ERROR(ErrCode::TYPE));
+        auto qscheme = self.qscheme();
+        if (qscheme == at::kPerTensorAffine) {
+            return at::_empty_affine_quantized(
+                self.sizes(),
+                options.memory_format(memory_format),
+                self.q_scale(),
+                self.q_zero_point(),
+                // See Note [Explicit nullopt c10::MemoryFormat argument]
+                c10::nullopt);
+        }
+        else if (qscheme == at::kPerChannelAffine) {
+            // Copy the tensors with channels to avoid accidental overrides
+            return at::_empty_per_channel_affine_quantized(
+                self.sizes(),
+                self.q_per_channel_scales().clone(c10::MemoryFormat::Preserve),
+                self.q_per_channel_zero_points().clone(c10::MemoryFormat::Preserve),
+                self.q_per_channel_axis(),
+                options.memory_format(memory_format),
+                // See Note [Explicit nullopt c10::MemoryFormat argument]
+                c10::nullopt);
+        }
+        else {
+            TORCH_CHECK(false, "Unsupported qscheme: ", toString(qscheme), OPS_ERROR(ErrCode::NOT_SUPPORT));
+        }
     }
-    else {
-      TORCH_CHECK(false, "Unsupported qscheme: ", toString(qscheme), OPS_ERROR(ErrCode::NOT_SUPPORT));
-    }
-  }
 
   at::Tensor result;
 
-  if (memory_format == c10::MemoryFormat::Preserve &&
-      !(torch_npu::utils::is_npu(options))) {
-    if (self.is_non_overlapping_and_dense()) {
-      result = at::empty_strided(
-          self.sizes(), self.strides(), options.memory_format(c10::nullopt));
+    if (memory_format == c10::MemoryFormat::Preserve &&
+        !(torch_npu::utils::is_npu(options))) {
+        if (self.is_non_overlapping_and_dense()) {
+            result = at::empty_strided(
+                self.sizes(), self.strides(), options.memory_format(c10::nullopt));
+        }
+        else {
+            // See Note [Explicit nullopt c10::MemoryFormat argument]
+            result = at::empty(
+                self.sizes(),
+                options.memory_format(self.suggest_memory_format()),
+                c10::nullopt);
+        }
     }
     else {
-      // See Note [Explicit nullopt c10::MemoryFormat argument]
-      result = at::empty(
-          self.sizes(),
-          options.memory_format(self.suggest_memory_format()),
-          c10::nullopt);
+        // See Note [Explicit nullopt c10::MemoryFormat argument]
+        if (!(torch_npu::utils::is_npu(options))) {
+            result = at::empty(
+                self.sizes(), options.memory_format(memory_format), c10::nullopt);
+        }
+        else {
+            auto npu_format =
+                torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
+            result = OpPreparation::ApplyTensorWithFormat(self.sizes(), options, npu_format);
+        }
     }
-  }
-  else {
-    // See Note [Explicit nullopt c10::MemoryFormat argument]
-    if (!(torch_npu::utils::is_npu(options))) {
-      result = at::empty(
-          self.sizes(), options.memory_format(memory_format), c10::nullopt);
-    }
-    else {
-      auto npu_format =
-          torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
-      result = OpPreparation::ApplyTensorWithFormat(self.sizes(), options, npu_format);
-    }
-  }
 
-  if (self.opt_names()) {
-    at::namedinference::propagate_names(result, self.names());
-  }
+    if (self.opt_names()) {
+        at::namedinference::propagate_names(result, self.names());
+    }
 
-  return result;
+    return result;
 }
 
 at::Tensor NPUNativeFunctions::empty_like(
@@ -273,7 +273,7 @@ at::Tensor NPUNativeFunctions::empty_like(
                                       .layout(layout_opt)
                                       .pinned_memory(pin_memory_opt);
 
-  return at_npu::native::empty_like_npu(self, options, optional_memory_format);
+    return at_npu::native::empty_like_npu(self, options, optional_memory_format);
 }
 
 at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
@@ -327,16 +327,16 @@ at::Tensor NPUNativeFunctions::unsafe_empty_with_format(c10::IntArrayRef size,
                                                         c10::optional<bool> pin_memory_opt,
                                                         int64_t dst_format,
                                                         bool keep_format) {
-  // This is a special interface that can adjust the memory application results. Check before use.
+    // This is a special interface that can adjust the memory application results. Check before use.
 
-  // Some ops cannot operate directly based on ND format, such as MatMul, BatchMatMul, MaxPoolWithArgmaxV1.
-  // For these ops, specify the parameter keep_format to ensure that
-  // the specified internal format is preserved.
-  if ((!keep_format) && at_npu::native::env::CheckForbidInternalFormat()) {
-    dst_format = static_cast<int64_t>(FormatHelper::GetBaseFormat(static_cast<aclFormat>(dst_format)));
-  }
+    // Some ops cannot operate directly based on ND format, such as MatMul, BatchMatMul, MaxPoolWithArgmaxV1.
+    // For these ops, specify the parameter keep_format to ensure that
+    // the specified internal format is preserved.
+    if ((!keep_format) && at_npu::native::env::CheckForbidInternalFormat()) {
+        dst_format = static_cast<int64_t>(FormatHelper::GetBaseFormat(static_cast<aclFormat>(dst_format)));
+    }
 
-  return NPUNativeFunctions::empty_with_format(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, dst_format);
+    return NPUNativeFunctions::empty_with_format(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, dst_format);
 }
 
 at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
@@ -346,32 +346,32 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                                                  c10::optional<c10::Device> device_opt,
                                                  c10::optional<bool> pin_memory_opt,
                                                  int64_t dst_format) {
-  torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
-  caffe2::TypeMeta dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
-  c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
-                                      .device(device_opt)
-                                      .layout(layout_opt)
-                                      .pinned_memory(pin_memory_opt);
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
-  if (names.has_value())
-  {
-    internal_set_names_inplace(result, names);
-  }
+    torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
+    caffe2::TypeMeta dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
+    c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
+                                        .device(device_opt)
+                                        .layout(layout_opt)
+                                        .pinned_memory(pin_memory_opt);
+    at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
+    if (names.has_value())
+    {
+        internal_set_names_inplace(result, names);
+    }
 
-  return result;
+    return result;
 }
 
 at::Tensor empty_with_format_name_npu(c10::IntArrayRef size,
                                       c10::optional<at::DimnameList> names,
                                       const c10::TensorOptions &options,
                                       int64_t dst_format) {
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
-  if (names.has_value())
-  {
-    internal_set_names_inplace(result, names);
-  }
+    at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
+    if (names.has_value())
+    {
+        internal_set_names_inplace(result, names);
+    }
 
-  return result;
+    return result;
 }
 
 at::Tensor NPUNativeFunctions::empty_strided(
@@ -398,26 +398,26 @@ at::Tensor NPUNativeFunctions::new_empty_strided_symint(
     c10::optional<at::Layout> layout,
     c10::optional<at::Device> device,
     c10::optional<bool> pin_memory) {
-  return at::native::new_empty_strided_symint(self, size, stride, dtype, layout, device, pin_memory);
+    return at::native::new_empty_strided_symint(self, size, stride, dtype, layout, device, pin_memory);
 }
 
 at::Tensor &empty_out_npu(
     at::Tensor &result,
     c10::IntArrayRef size,
     c10::optional<c10::MemoryFormat> optional_memory_format) {
-  // Preferably, this argument would not be accepted by _out, but the code
-  // generator requires the out and non-out overloads to match exactly
-  TORCH_CHECK(
-      !optional_memory_format.has_value(),
-      "'memory_format' argument is incompatible with 'out' tensor argument", OPS_ERROR(ErrCode::PARAM));
-  check_size_nonnegative(size);
-  if (result.is_sparse()) {
-    result.sparse_resize_and_clear_(size, size.size(), 0);
-  }
-  else {
-    result.resize_(size);
-  }
-  return result;
+    // Preferably, this argument would not be accepted by _out, but the code
+    // generator requires the out and non-out overloads to match exactly
+    TORCH_CHECK(
+        !optional_memory_format.has_value(),
+        "'memory_format' argument is incompatible with 'out' tensor argument", OPS_ERROR(ErrCode::PARAM));
+    check_size_nonnegative(size);
+    if (result.is_sparse()) {
+        result.sparse_resize_and_clear_(size, size.size(), 0);
+    }
+    else {
+        result.resize_(size);
+    }
+    return result;
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ blackman_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -432,19 +432,19 @@ at::Tensor NPUNativeFunctions::blackman_window(int64_t window_length,
                                       .layout(layout_opt)
                                       .pinned_memory(pin_memory_opt);
 
-  window_function_checks("blackman_window", options, window_length);
-  if (window_length == 0) {
-    return at::empty({0}, options);
-  }
-  if (window_length == 1) {
-    return at::ones({1}, options);
-  }
-  if (periodic) {
-    window_length += 1;
-  }
-  auto window = at::arange(window_length, options).mul_(M_PI / static_cast<double>(window_length - 1));
-  window = window.mul(4).cos_().mul_(0.08) - window.mul(2).cos_().mul_(0.5) + 0.42;
-  return periodic ? window.narrow(0, 0, window_length - 1) : window;
+    window_function_checks("blackman_window", options, window_length);
+    if (window_length == 0) {
+        return at::empty({0}, options);
+    }
+    if (window_length == 1) {
+        return at::ones({1}, options);
+    }
+    if (periodic) {
+        window_length += 1;
+    }
+    auto window = at::arange(window_length, options).mul_(M_PI / static_cast<double>(window_length - 1));
+    window = window.mul(4).cos_().mul_(0.08) - window.mul(2).cos_().mul_(0.5) + 0.42;
+    return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
 
 at::Tensor NPUNativeFunctions::blackman_window(int64_t window_length,
@@ -453,7 +453,7 @@ at::Tensor NPUNativeFunctions::blackman_window(int64_t window_length,
                                                c10::optional<c10::Device> device_opt,
                                                c10::optional<bool> pin_memory_opt)
 {
-  return blackman_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+    return blackman_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ bartlett_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -464,28 +464,28 @@ at::Tensor NPUNativeFunctions::bartlett_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
-                                      .device(device_opt)
-                                      .layout(layout_opt)
-                                      .pinned_memory(pin_memory_opt);
+    c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
+                                        .device(device_opt)
+                                        .layout(layout_opt)
+                                        .pinned_memory(pin_memory_opt);
 
-  window_function_checks("bartlett_window", options, window_length);
-  if (window_length == 0)
-  {
-    return at::empty({0}, options);
-  }
-  if (window_length == 1)
-  {
-    return at::ones({1}, options);
-  }
-  if (periodic)
-  {
-    window_length += 1;
-  }
-  auto window = at::arange(window_length, options).mul_(2. / static_cast<double>(window_length - 1));
-  const int64_t first_half_size = ((uint64_t)(window_length - 1) >> 1) + 1;
-  window.narrow(0, first_half_size, window_length - first_half_size).mul_(-1).add_(2);
-  return periodic ? window.narrow(0, 0, window_length - 1) : window;
+    window_function_checks("bartlett_window", options, window_length);
+    if (window_length == 0)
+    {
+        return at::empty({0}, options);
+    }
+    if (window_length == 1)
+    {
+        return at::ones({1}, options);
+    }
+    if (periodic)
+    {
+        window_length += 1;
+    }
+    auto window = at::arange(window_length, options).mul_(2. / static_cast<double>(window_length - 1));
+    const int64_t first_half_size = ((uint64_t)(window_length - 1) >> 1) + 1;
+    window.narrow(0, first_half_size, window_length - first_half_size).mul_(-1).add_(2);
+    return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
 
 at::Tensor NPUNativeFunctions::bartlett_window(int64_t window_length,
@@ -494,7 +494,7 @@ at::Tensor NPUNativeFunctions::bartlett_window(int64_t window_length,
                                                c10::optional<c10::Device> device_opt,
                                                c10::optional<bool> pin_memory_opt)
 {
-  return bartlett_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+    return bartlett_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ hann_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -506,13 +506,13 @@ at::Tensor NPUNativeFunctions::hann_window(
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt)
 {
-  c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
-                                      .device(device_opt)
-                                      .layout(layout_opt)
-                                      .pinned_memory(pin_memory_opt);
+    c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
+                                        .device(device_opt)
+                                        .layout(layout_opt)
+                                        .pinned_memory(pin_memory_opt);
 
-  window_function_checks("hann_window", options, window_length);
-  return at::hamming_window(window_length, periodic, 0.5, 0.5, options);
+    window_function_checks("hann_window", options, window_length);
+    return at::hamming_window(window_length, periodic, 0.5, 0.5, options);
 }
 
 at::Tensor NPUNativeFunctions::hann_window(int64_t window_length,
@@ -521,7 +521,7 @@ at::Tensor NPUNativeFunctions::hann_window(int64_t window_length,
                                            c10::optional<c10::Device> device_opt,
                                            c10::optional<bool> pin_memory_opt)
 {
-  return hann_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+    return hann_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ hamming_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -535,30 +535,30 @@ at::Tensor NPUNativeFunctions::hamming_window(
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt)
 {
-  c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
-                                      .device(device_opt)
-                                      .layout(layout_opt)
-                                      .pinned_memory(pin_memory_opt);
+    c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
+                                        .device(device_opt)
+                                        .layout(layout_opt)
+                                        .pinned_memory(pin_memory_opt);
 
-  window_function_checks("hamming_window", options, window_length);
-  if (window_length == 0)
-  {
-    return at::empty({0}, options);
-  }
-  if (window_length == 1)
-  {
-    return at::ones({1}, options);
-  }
-  if (periodic)
-  {
-    window_length += 1;
-  }
-  auto window = at::arange(window_length, options);
-  window.mul_(M_PI * 2. / static_cast<double>(window_length - 1))
-      .cos_()
-      .mul_(-beta)
-      .add_(alpha);
-  return periodic ? window.narrow(0, 0, window_length - 1) : window;
+    window_function_checks("hamming_window", options, window_length);
+    if (window_length == 0)
+    {
+        return at::empty({0}, options);
+    }
+    if (window_length == 1)
+    {
+        return at::ones({1}, options);
+    }
+    if (periodic)
+    {
+        window_length += 1;
+    }
+    auto window = at::arange(window_length, options);
+    window.mul_(M_PI * 2. / static_cast<double>(window_length - 1))
+        .cos_()
+        .mul_(-beta)
+        .add_(alpha);
+    return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
 
 at::Tensor NPUNativeFunctions::hamming_window(
@@ -570,7 +570,7 @@ at::Tensor NPUNativeFunctions::hamming_window(
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt)
 {
-  return hamming_window(window_length, periodic, alpha, 0.46, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+    return hamming_window(window_length, periodic, alpha, 0.46, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 at::Tensor NPUNativeFunctions::hamming_window(
@@ -581,7 +581,7 @@ at::Tensor NPUNativeFunctions::hamming_window(
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt)
 {
-  return hamming_window(window_length, periodic, 0.54, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+    return hamming_window(window_length, periodic, 0.54, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 at::Tensor NPUNativeFunctions::hamming_window(int64_t window_length,
@@ -590,26 +590,26 @@ at::Tensor NPUNativeFunctions::hamming_window(int64_t window_length,
                                               c10::optional<c10::Device> device_opt,
                                               c10::optional<bool> pin_memory_opt)
 {
-  return hamming_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+    return hamming_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ tensor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 template <typename T>
 at::Tensor tensor_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options)
 {
-  auto result = at::empty(values.size(), options);
-  AT_ASSERT(result.is_contiguous(), OPS_ERROR(ErrCode::VALUE));
-  AT_DISPATCH_ALL_TYPES_AND_COMPLEX(result.scalar_type(), "tensor_npu", [&]
-                                    { std::copy(
-                                        values.begin(), values.end(), result.template data_ptr<scalar_t>()); });
-  return result;
+    auto result = at::empty(values.size(), options);
+    AT_ASSERT(result.is_contiguous(), OPS_ERROR(ErrCode::VALUE));
+    AT_DISPATCH_ALL_TYPES_AND_COMPLEX(result.scalar_type(), "tensor_npu", [&]
+                                        { std::copy(
+                                            values.begin(), values.end(), result.template data_ptr<scalar_t>()); });
+    return result;
 }
 
 template <typename T>
 at::Tensor tensor_backend_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options)
 {
-  auto npu_tensor = tensor_npu(values, options.device(c10::DeviceType::PrivateUse1));
-  return npu_tensor.to(options.device());
+    auto npu_tensor = tensor_npu(values, options.device(c10::DeviceType::PrivateUse1));
+    return npu_tensor.to(options.device());
 }
 
 #define TENSOR(T, _1)                                                             \
@@ -660,22 +660,22 @@ at::Tensor NPUNativeFunctions::full(
                                       .device(device_opt)
                                       .layout(layout_opt)
                                       .pinned_memory(pin_memory_opt);
-  TORCH_CHECK(
-      options.layout() != at::kSparse,
-      "full(...) is not implemented for sparse layout", OPS_ERROR(ErrCode::TYPE));
+    TORCH_CHECK(
+        options.layout() != at::kSparse,
+        "full(...) is not implemented for sparse layout", OPS_ERROR(ErrCode::TYPE));
 
-  if (!dtype_opt.has_value()) {
-    if (fill_value.isBoolean()) {
-      options = options.dtype(at::kBool);
-    } else if (fill_value.isIntegral(false)) {
-      options = options.dtype(at::kLong);
-    } else {
-      options = options.dtype(c10::get_default_dtype());
+    if (!dtype_opt.has_value()) {
+        if (fill_value.isBoolean()) {
+            options = options.dtype(at::kBool);
+        } else if (fill_value.isIntegral(false)) {
+            options = options.dtype(at::kLong);
+        } else {
+            options = options.dtype(c10::get_default_dtype());
+        }
     }
-  }
 
-  auto result = OpPreparation::ApplyTensorWithSizes(size, options);
-  return result.fill_(fill_value);
+    auto result = OpPreparation::ApplyTensorWithSizes(size, options);
+    return result.fill_(fill_value);
 }
 
 at::Tensor NPUNativeFunctions::tril_indices(
@@ -686,49 +686,49 @@ at::Tensor NPUNativeFunctions::tril_indices(
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
-                                                    .device(device_opt)
-                                                    .layout(layout_opt)
-                                                    .pinned_memory(pin_memory_opt);
-  check_args(row, col, options);
+    c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
+                                                        .device(device_opt)
+                                                        .layout(layout_opt)
+                                                        .pinned_memory(pin_memory_opt);
+    check_args(row, col, options);
 
-  auto tril_size = get_tril_size(row, col, offset);
+    auto tril_size = get_tril_size(row, col, offset);
 
-  // create an empty Tensor with correct size
-  auto result = at::empty({2 * tril_size}, options);
+    // create an empty Tensor with correct size
+    auto result = at::empty({2 * tril_size}, options);
 
-  // The following three approaches result in very little performance
-  // differences. Hence, the 2nd option is taken for simpler code, and to return
-  // contiguous tensors. Refer to #14904 for more details.
-  //
-  // 1. sequential RAM access: fill row coordinates first, then columns. This
-  //    results in two for-loop and more arithmetic operations.
-  //
-  // 2. interleaved RAM access: fill in index coordinates one by one, which
-  //    jumps between the two output Tensor rows in every iteration.
-  //
-  // 3. sequential RAM + transpose: create an n X 2 Tensor, fill the Tensor
-  //    sequentially, and then transpose it.
-  // fill the Tensor with correct values
-  int64_t i = 0;
-  int64_t r = std::max<int64_t>(0, -offset);
-  int64_t c = 0;
+    // The following three approaches result in very little performance
+    // differences. Hence, the 2nd option is taken for simpler code, and to return
+    // contiguous tensors. Refer to #14904 for more details.
+    //
+    // 1. sequential RAM access: fill row coordinates first, then columns. This
+    //    results in two for-loop and more arithmetic operations.
+    //
+    // 2. interleaved RAM access: fill in index coordinates one by one, which
+    //    jumps between the two output Tensor rows in every iteration.
+    //
+    // 3. sequential RAM + transpose: create an n X 2 Tensor, fill the Tensor
+    //    sequentially, and then transpose it.
+    // fill the Tensor with correct values
+    int64_t i = 0;
+    int64_t r = std::max<int64_t>(0, -offset);
+    int64_t c = 0;
 
-  while (i < tril_size) {
-    result[i] = r;
-    result[tril_size + i++] = c;
+    while (i < tril_size) {
+        result[i] = r;
+        result[tril_size + i++] = c;
 
-    // move to the next column and check if (r, c) is still in bound
-    c += 1;
-    if (c > r + offset || c >= col) {
-      r += 1;
-      c = 0;
-      // NOTE: not necessary to check if r is less than row here, because i
-      // and tril_size provide the guarantee
+        // move to the next column and check if (r, c) is still in bound
+        c += 1;
+        if (c > r + offset || c >= col) {
+            r += 1;
+            c = 0;
+            // NOTE: not necessary to check if r is less than row here, because i
+            // and tril_size provide the guarantee
+        }
     }
-  }
 
-  return result.reshape({2, tril_size});
+    return result.reshape({2, tril_size});
 }
 
 at::Tensor NPUNativeFunctions::triu_indices(
