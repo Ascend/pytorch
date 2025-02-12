@@ -378,7 +378,7 @@ bool Repository::ReadQueue()
         std::string err_msg;
         if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR && checkUceErrAndRepair(false, err_msg)) {
             SetStatus(UCE_EXIT);
-        } else if (ret == ACL_ERROR_RT_DEVICE_HBM_ECC_ERROR) {
+        } else if (ret == ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR) {
             SetStatus(HBM_ECC_EXIT);
         } else if (GetStatus() != STOP_EXIT) {
             SetStatus(ERROR_EXIT);

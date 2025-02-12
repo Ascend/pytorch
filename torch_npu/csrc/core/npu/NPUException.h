@@ -120,8 +120,8 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                 ", error code is ", error_code, PTA_ERROR(ErrCode::ACL));    \
             break;                                                           \
         }                                                                    \
-        case ACL_ERROR_RT_DEVICE_HBM_ECC_ERROR: {                            \
-            ASCEND_LOGE("getRepoHBMFlag in Run, throw ECC ERROR.");         \
+        case ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR: {                         \
+            ASCEND_LOGE("getRepoHBMFlag in Run, throw ECC ERROR.");          \
             std::string error_msg(c10_npu::c10_npu_get_error_message());     \
             std::regex pattern(R"(time us= (\d+)\.)");                       \
             std::smatch match;                                               \
