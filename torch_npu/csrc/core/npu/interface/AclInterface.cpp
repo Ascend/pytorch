@@ -371,30 +371,30 @@ aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag) {
 }
 
 aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
-  if (C10_UNLIKELY(
-      c10_npu::warning_state().get_sync_debug_mode() != SyncDebugMode::L_DISABLED)) {
-    c10_npu::warn_or_error_on_sync();
-  }
-#ifndef BUILD_LIBTORCH
-  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
-  if (C10_UNLIKELY(trigger)) {
-      trigger->traceNpuStreamSynchronization(reinterpret_cast<uintptr_t>(stream));
-  }
-#endif
-  typedef aclError (*AclrtSynchronizeStreamWithTimeout)(aclrtStream, int32_t);
-  static AclrtSynchronizeStreamWithTimeout func = (AclrtSynchronizeStreamWithTimeout)GET_FUNC(aclrtSynchronizeStreamWithTimeout);
-  int32_t timeout = c10_npu::option::OptionsManager::GetACLExecTimeout();
-  if (func != nullptr) {
-    return func(stream, timeout);
-  } else {
-    TORCH_NPU_WARN_ONCE(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
-    typedef aclError (*AclrtSynchronizeStream)(aclrtStream);
-    static AclrtSynchronizeStream func_backup = nullptr;
-    if (func_backup == nullptr) {
-      func_backup = (AclrtSynchronizeStream)GET_FUNC(aclrtSynchronizeStream);
+    if (C10_UNLIKELY(
+        c10_npu::warning_state().get_sync_debug_mode() != SyncDebugMode::L_DISABLED)) {
+        c10_npu::warn_or_error_on_sync();
     }
-    TORCH_CHECK(func_backup, "Failed to find function", "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func_backup(stream);
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuStreamSynchronization(reinterpret_cast<uintptr_t>(stream));
+    }
+#endif
+    typedef aclError (*AclrtSynchronizeStreamWithTimeout)(aclrtStream, int32_t);
+    static AclrtSynchronizeStreamWithTimeout func = (AclrtSynchronizeStreamWithTimeout)GET_FUNC(aclrtSynchronizeStreamWithTimeout);
+    int32_t timeout = c10_npu::option::OptionsManager::GetACLExecTimeout();
+    if (func != nullptr) {
+        return func(stream, timeout);
+    } else {
+        TORCH_NPU_WARN_ONCE(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
+        typedef aclError (*AclrtSynchronizeStream)(aclrtStream);
+        static AclrtSynchronizeStream func_backup = nullptr;
+        if (func_backup == nullptr) {
+            func_backup = (AclrtSynchronizeStream)GET_FUNC(aclrtSynchronizeStream);
+        }
+        TORCH_CHECK(func_backup, "Failed to find function", "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream", PROF_ERROR(ErrCode::NOT_FOUND));
+        return func_backup(stream);
   }
 }
 
