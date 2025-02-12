@@ -32,86 +32,86 @@ static bool validateInput(
     c10::ArrayRef<const c10::IValue> inputs,
     const c10::ArrayRef<int>& should_be_tensor) {
   std::stringstream ss;
-  if (inputs.size() < min_size) {
-    ss << "Failed to save extra arguments for flops compuation of op "
-       << op_name << ", min size: " << min_size
-       << ", actual size: " << inputs.size();
-    TORCH_NPU_WARN(ss.str());
-    return false;
-  }
-  for (auto index : should_be_tensor) {
-    if (!inputs[index].isTensor()) {
-      ss << "Failed to save extra arguments for flops compuation of op "
-         << op_name << ", input[" << index << "] must be a tensor.";
-      TORCH_NPU_WARN(ss.str());
-      return false;
+    if (inputs.size() < min_size) {
+        ss << "Failed to save extra arguments for flops compuation of op "
+        << op_name << ", min size: " << min_size
+        << ", actual size: " << inputs.size();
+        TORCH_NPU_WARN(ss.str());
+        return false;
     }
-  }
-  return true;
+    for (auto index : should_be_tensor) {
+        if (!inputs[index].isTensor()) {
+            ss << "Failed to save extra arguments for flops compuation of op "
+                << op_name << ", input[" << index << "] must be a tensor.";
+            TORCH_NPU_WARN(ss.str());
+            return false;
+        }
+    }
+    return true;
 }
 
 std::unordered_map<std::string, c10::IValue> saveExtraArgs(const at::RecordFunction& fn) {
-  // for specific types of fn, return the saved extra args for computing flops
-  std::unordered_map<std::string, c10::IValue> map;
-  auto inputs = fn.inputs();
-  std::string fname(fn.name());
+    // for specific types of fn, return the saved extra args for computing flops
+    std::unordered_map<std::string, c10::IValue> map;
+    auto inputs = fn.inputs();
+    std::string fname(fn.name());
 
-  if (inputs.empty()) {
-    // Input shape is unavailable, return empty map
+    if (inputs.empty()) {
+        // Input shape is unavailable, return empty map
+        return map;
+    }
+
+    if (fname == kConv2dOp) {
+        std::vector<int> tensors{0, 1};
+        bool check = validateInput(fname, kConv2dGroups + 1, inputs, tensors);
+        if (!check) {
+            return map;
+        }
+
+        at::Tensor input = inputs[0].toTensor();
+        at::Tensor weight = inputs[1].toTensor();
+        if (weight.sizes().size() != 4) {
+            TORCH_NPU_WARN("Failed to compute flops for op aten::conv2d because it requires a 4D kernel tensor.");
+            return map;
+        }
+        map[kInputSize] = at::IValue(input.sizes());
+        map[kWeightSize] = at::IValue(weight.sizes());
+        map[kStride] = inputs[kConv2dStride];
+        map[kPadding] = inputs[kConv2dPadding];
+        map[kDilation] = inputs[kConv2dDilation];
+        map[kGroups] = inputs[kConv2dGroups];
+    } else if (fname == kGemmOp) {
+            std::vector<int> tensors{0, 1};
+            bool check = validateInput(fname, 2, inputs, tensors);
+        if (!check) {
+            return map;
+        }
+
+        at::Tensor left = inputs[0].toTensor();
+        at::Tensor right = inputs[1].toTensor();
+        map[kMat1Size] = at::IValue(left.sizes());
+        map[kMat2Size] = at::IValue(right.sizes());
+    } else if (fname == kMulOp) {
+        std::vector<int> tensors{0};
+        bool check = validateInput(fname, 1, inputs, tensors);
+        if (!check) {
+            return map;
+        }
+
+        at::Tensor mat = inputs[0].toTensor();
+        map[kMatSize] = at::IValue(mat.sizes());
+    } else if (fname == kAddOp) {
+        std::vector<int> tensors{0};
+        bool check = validateInput(fname, 1, inputs, tensors);
+        if (!check) {
+            return map;
+        }
+
+        at::Tensor mat = inputs[0].toTensor();
+        map[kMatSize] = at::IValue(mat.sizes());
+    }
+
     return map;
-  }
-
-  if (fname == kConv2dOp) {
-    std::vector<int> tensors{0, 1};
-    bool check = validateInput(fname, kConv2dGroups + 1, inputs, tensors);
-    if (!check) {
-      return map;
-    }
-
-    at::Tensor input = inputs[0].toTensor();
-    at::Tensor weight = inputs[1].toTensor();
-    if (weight.sizes().size() != 4) {
-      TORCH_NPU_WARN("Failed to compute flops for op aten::conv2d because it requires a 4D kernel tensor.");
-      return map;
-    }
-    map[kInputSize] = at::IValue(input.sizes());
-    map[kWeightSize] = at::IValue(weight.sizes());
-    map[kStride] = inputs[kConv2dStride];
-    map[kPadding] = inputs[kConv2dPadding];
-    map[kDilation] = inputs[kConv2dDilation];
-    map[kGroups] = inputs[kConv2dGroups];
-  } else if (fname == kGemmOp) {
-    std::vector<int> tensors{0, 1};
-    bool check = validateInput(fname, 2, inputs, tensors);
-    if (!check) {
-      return map;
-    }
-
-    at::Tensor left = inputs[0].toTensor();
-    at::Tensor right = inputs[1].toTensor();
-    map[kMat1Size] = at::IValue(left.sizes());
-    map[kMat2Size] = at::IValue(right.sizes());
-  } else if (fname == kMulOp) {
-    std::vector<int> tensors{0};
-    bool check = validateInput(fname, 1, inputs, tensors);
-    if (!check) {
-      return map;
-    }
-
-    at::Tensor mat = inputs[0].toTensor();
-    map[kMatSize] = at::IValue(mat.sizes());
-  } else if (fname == kAddOp) {
-    std::vector<int> tensors{0};
-    bool check = validateInput(fname, 1, inputs, tensors);
-    if (!check) {
-      return map;
-    }
-
-    at::Tensor mat = inputs[0].toTensor();
-    map[kMatSize] = at::IValue(mat.sizes());
-  }
-
-  return map;
 }
 
 uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::string, c10::IValue> &extra_args) {
