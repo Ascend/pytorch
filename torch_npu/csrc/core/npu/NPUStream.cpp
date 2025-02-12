@@ -473,7 +473,7 @@ bool npuSynchronizeDevice(bool check_error)
 bool npuSynchronizeUsedDevices(bool check_error)
 {
     if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
-        NPUStatus ret = c10_npu::emptyAllNPUStream();
+        NPUStatus ret = c10_npu::emptyAllNPUStream(check_error);
         if (ret != NPU_STATUS_SUCCESS) {
             ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
         }
@@ -553,7 +553,7 @@ aclrtStream NPUStream::stream(const bool need_empty) const
         AT_ASSERT(cur_ptr, PTA_ERROR(ErrCode::PTR));
         return cur_ptr->stream;
     }
-  
+
     return stream();
 }
 
