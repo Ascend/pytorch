@@ -104,7 +104,7 @@ public:
     void empty_cache(bool need_empty_queue, bool check_error)
     {
         if (need_empty_queue) {
-            c10_npu::emptyAllNPUStream();
+            c10_npu::emptyAllNPUStream(check_error);
         }
 
         auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
