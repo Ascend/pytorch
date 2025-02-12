@@ -129,9 +129,9 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
 
  可以通过以下样例快速体验**昇腾NPU**。
 
-```Python
+```diff
 import torch
-import torch_npu
+- import torch_npu # torch_npu2.6.0及以后版本可以不用手动导包
 
 x = torch.randn(2, 2).npu()
 y = torch.randn(2, 2).npu()

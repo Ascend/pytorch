@@ -116,9 +116,9 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
 
 You can quickly experience **Ascend NPU** by the following simple examples.
 
-```Python
+```diff
 import torch
-import torch_npu
+- import torch_npu # No longer needed in torch_npu 2.6.0 and later versions
 
 x = torch.randn(2, 2).npu()
 y = torch.randn(2, 2).npu()
