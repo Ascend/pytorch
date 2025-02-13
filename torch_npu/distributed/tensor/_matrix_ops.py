@@ -58,7 +58,11 @@ def custom_matmul_sharding(
         if max_size_in_1:
             strategy = ([Partial()], [Shard(max_dim1_index), Shard(len(shape2) - 2)])
         elif max_dim2_index == len(shape2) - 1:
-            strategy = ([Shard(-1)], [Replicate(), Shard(max_dim2_index)])
+            output_shape = shape2[:-2] + (shape2[-1],)
+            strategy = (
+                [Shard(len(output_shape) - 1)],
+                [Replicate(), Shard(max_dim2_index)],
+            )
         else:
             strategy = ([Shard(max_dim2_index)], [Replicate(), Shard(max_dim2_index)])
     elif len(shape2) == 1:  # ...nm@m=...n
@@ -108,13 +112,19 @@ def custom_matmul_backward_sharding(
         and self_dim >= 2
         and self.shape[-2] % torch.distributed.get_world_size() == 0
     ):
-        strategy = ([Shard(-2), Partial()], [Shard(-1), Shard(-2), Replicate(), None])
+        strategy = (
+            [Shard(self_dim - 2), Partial()],
+            [Shard(grad_dim - 1), Shard(self_dim - 2), Replicate(), None],
+        )
     elif (
         self_dim >= 1
         and other_dim >= 2
         and self.shape[-1] % torch.distributed.get_world_size() == 0
     ):
-        strategy = ([Shard(-1), Shard(-2)], [Replicate(), Shard(-1), Shard(-2), None])
+        strategy = (
+            [Shard(self_dim - 1), Shard(other_dim - 2)],
+            [Replicate(), Shard(self_dim - 1), Shard(other_dim - 2), None],
+        )
     else:
         strategy = (
             [Replicate(), Replicate()],
