@@ -301,13 +301,13 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
     }
 
 #ifndef BUILD_LIBTORCH
-  // Get the GIL
-  if (gilState) {
-    PyEval_RestoreThread(gilState);
-  }
+    // Get the GIL
+    if (gilState) {
+        PyEval_RestoreThread(gilState);
+    }
 #endif
 
-  return SUCCESS;
+    return SUCCESS;
 }
 
 bool Repository::WriteQueue(void* cur_paras) {
@@ -475,53 +475,53 @@ void Repository::Enqueue(void* cur_paras) {
         }
         return;
     }
-  bool ret = false;
-  ssize_t s;
-  uint64_t u = 1;
+    bool ret = false;
+    ssize_t s;
+    uint64_t u = 1;
 
-  SetWriteWorking(true);
-  while (ret == false) {
-    ret = WriteQueue(cur_paras);
-    if (ret == false) {
-      SetWriteWorking(false);
-      __sync_synchronize();
-      if (IsFullQueue()) {
+    SetWriteWorking(true);
+    while (ret == false) {
+        ret = WriteQueue(cur_paras);
+        if (ret == false) {
+            SetWriteWorking(false);
+            __sync_synchronize();
+            if (IsFullQueue()) {
 #ifndef BUILD_LIBTORCH
-        // double check the current thread hold a Gil lock
-        if (PyGILState_Check()) {
-          Py_BEGIN_ALLOW_THREADS s = eventfd_read(efd_write, &u);
-          Py_END_ALLOW_THREADS
-        } else {
-          s = eventfd_read(efd_write, &u);
-        }
+                // double check the current thread hold a Gil lock
+                if (PyGILState_Check()) {
+                    Py_BEGIN_ALLOW_THREADS s = eventfd_read(efd_write, &u);
+                    Py_END_ALLOW_THREADS
+                } else {
+                    s = eventfd_read(efd_write, &u);
+                }
 #else
-        s = eventfd_read(efd_write, &u);
+                s = eventfd_read(efd_write, &u);
 #endif
-        if (s != 0) {
-          if (errno == EINTR) {
+                if (s != 0) {
+                    if (errno == EINTR) {
+                        continue;
+                    }
+                    ASCEND_LOGE("waiting dequeue failed. s=%zd, errno=%s.", s, strerror(errno));
+                    return;
+                }
+                SetWriteWorking(true);
+            }
             continue;
-          }
-          ASCEND_LOGE("waiting dequeue failed. s=%zd, errno=%s.", s, strerror(errno));
-          return;
         }
-        SetWriteWorking(true);
-      }
-      continue;
-    }
-    __sync_synchronize();
-    while (!IsReadWorking()) {
-      s = eventfd_write(efd_read, u);
-      if (s != 0) {
-        if (errno == EINTR) {
-          continue;
+        __sync_synchronize();
+        while (!IsReadWorking()) {
+            s = eventfd_write(efd_read, u);
+            if (s != 0) {
+                if (errno == EINTR) {
+                    continue;
+                }
+                ASCEND_LOGE("notify consumer failed!! s=%zd, errno=%s", s, strerror(errno));
+                return;
+            }
+            break;
         }
-        ASCEND_LOGE("notify consumer failed!! s=%zd, errno=%s", s, strerror(errno));
-        return;
-      }
-      break;
     }
-  }
-  SetWriteWorking(false);
+    SetWriteWorking(false);
 }
 
 void Repository::Dequeue() {
