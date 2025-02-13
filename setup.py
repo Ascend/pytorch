@@ -25,6 +25,9 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 from wheel.bdist_wheel import bdist_wheel
 
+# Disable autoloading before running 'import torch' to avoid circular dependencies
+os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
+
 from codegen.utils import PathManager
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -652,4 +655,8 @@ setup(
         'console_scripts': [
             'torch_npu_run = torch_npu.distributed.run:_main',
         ],
-    })
+        'torch.backends': [
+            'torch_npu = torch_npu:_autoload',
+        ],
+    }
+)
