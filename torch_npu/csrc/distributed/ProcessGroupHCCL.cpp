@@ -37,6 +37,7 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 #include <c10d/Utils.hpp>
 
 namespace c10d_npu {
@@ -379,6 +380,7 @@ std::unordered_map<std::string, ProcessGroupHCCL::StatusStruct> ProcessGroupHCCL
 int ProcessGroupHCCL::deviceId_ = -1;
 int ProcessGroupHCCL::numRanks_ = -1;
 std::string ProcessGroupHCCL::exceptionMessage_ = "";
+std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch.distributed");
 
 std::ostream& operator<<(std::ostream& output, const ProcessGroupHCCL::WorkHCCL& workHCCL)
 {
@@ -887,6 +889,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         }
     }
     ASCEND_LOGI("process group created, group id is %s.", options_->group_id.c_str());
+    logger->info("process group created, group id is %s.", options_->group_id.c_str());
 }
 
 void ProcessGroupHCCL::setSequenceNumberForGroup() {}
@@ -990,6 +993,7 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
         devHCCLCommMap_.clear();
     }
     ASCEND_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
+    logger->info("process group destroyed, group id is %s.", options_->group_id.c_str());
 }
 
 void ProcessGroupHCCL::hcclCommWatchdog()
