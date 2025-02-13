@@ -100,14 +100,19 @@ class _ExperimentalConfig:
         return self._gc_detect_threshold
 
     def _conver_export_type_to_list(self, export_type: Union[str, list]) -> list:
-        if export_type is None:
+        if not export_type:
+            print_warn_msg(f"Invalid parameter export_type: {export_type}, reset it to text.")
             return [ExportType.Text]
         if isinstance(export_type, str):
             return [export_type]
         elif isinstance(export_type, list):
-            return list(set(export_type))
+            try:
+                return list(set(export_type))
+            except Exception as error:
+                print_warn_msg(f"Invalid parameter export_type: {export_type}, reset it to text. Error is {error}")
+                return [ExportType.Text]
         else:
-            print_warn_msg("Invalid parameter export_type: [%s], reset it to text." % export_type)
+            print_warn_msg(f"Invalid parameter export_type: {export_type}, reset it to text.")
             return [ExportType.Text]
 
     def _check_params(self):
