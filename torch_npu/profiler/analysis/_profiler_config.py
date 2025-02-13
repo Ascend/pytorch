@@ -164,19 +164,7 @@ class ProfilerConfig:
         self._msprof_tx = experimental_config.get(Constant.MSPROF_TX, self._msprof_tx)
         self._op_attr = experimental_config.get(Constant.OP_ATTR, self._op_attr)
         self._data_simplification = experimental_config.get(Constant.DATA_SIMPLIFICATION, self._data_simplification)
-        export_type = experimental_config.get(Constant.EXPORT_TYPE, self._export_type)
-        if isinstance(export_type, str):
-            export_type = [export_type]
-        elif isinstance(export_type, list):
-            export_type = list(set(export_type))
-        else:
-            print_warn_msg(
-                "Invalid parameter export_type from profiler_info.json: [%s], reset it to text." % export_type)
-            export_type = [Constant.Text]
-        if not all(tmp_type in [Constant.Text, Constant.Db] for tmp_type in export_type):
-            print_warn_msg("Invalid parameter export_type from profiler_info.json, reset it to text.")
-            export_type = [Constant.Text]
-        self._export_type = export_type
+        self._export_type = self._get_export_type_from_profiler_info(experimental_config)
 
     def get_parser_bean(self):
         return self.LEVEL_PARSER_CONFIG.get(self._profiler_level) + self._get_l2_cache_bean()
@@ -198,3 +186,27 @@ class ProfilerConfig:
 
     def _get_l2_cache_bean(self):
         return [(CANNDataEnum.L2_CACHE, L2CacheBean)] if self._l2_cache else []
+
+    def _get_export_type_from_profiler_info(self, experimental_config: dict) -> list:
+        export_type = experimental_config.get(Constant.EXPORT_TYPE, self._export_type)
+        if not export_type:
+            print_warn_msg(f"Invalid parameter export_type from profiler_info.json: {export_type}, "
+                           f"reset it to text.")
+            return [Constant.Text]
+        if isinstance(export_type, str):
+            export_type = [export_type]
+        elif isinstance(export_type, list):
+            try:
+                export_type = list(set(export_type))
+            except Exception as error:
+                print_warn_msg(f"Invalid parameter export_type from profiler_info.json: {export_type}, "
+                               f"reset it to text. Error is {error}")
+                return [Constant.Text]
+        else:
+            print_warn_msg(
+                "Invalid parameter export_type from profiler_info.json: %s, reset it to text." % export_type)
+            return [Constant.Text]
+        if not all(tmp_type in [Constant.Text, Constant.Db] for tmp_type in export_type):
+            print_warn_msg("Invalid parameter export_type from profiler_info.json, reset it to text.")
+            return [Constant.Text]
+        return export_type
