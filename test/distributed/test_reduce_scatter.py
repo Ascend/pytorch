@@ -24,7 +24,8 @@ class HcclReduceScatterTestBase(TestCase):
         dist.init_process_group(backend='hccl', world_size=world_size, rank=rank)
         return dist
 
-    def _test_multiprocess(self, fn, init_pg, expected, input1, world_size):
+    # pylint:disable=huawei-too-many-arguments
+    def _test_multiprocess(self, fn, init_pg, expected, input1, world_size, reduce_op=dist.ReduceOp.SUM):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
         p2c = ctx.Queue(world_size)
@@ -33,7 +34,7 @@ class HcclReduceScatterTestBase(TestCase):
         for i in range(world_size):
             p = ctx.Process(
                 target=fn,
-                args=(i, input1, world_size, init_pg, c2p, p2c))
+                args=(i, input1, world_size, init_pg, c2p, p2c, reduce_op))
             p.start()
             ps.append(p)
         for _ in range(world_size):
@@ -46,20 +47,23 @@ class HcclReduceScatterTestBase(TestCase):
         for p in ps:
             p.join()
 
-    def _construct_excepted_result(self, inputs, world_size, op=dist.all_gather):
+    def _construct_excepted_result(self, inputs, world_size, op=dist.all_gather, reduce_op=dist.ReduceOp.SUM):
         if op not in [dist.reduce_scatter, dist._reduce_scatter_base, dist.reduce_scatter_tensor, torch_npu.distributed.reduce_scatter_tensor_uneven]:
             raise ValueError("Unsupported op `{}`" % (str(op)))
+        if reduce_op == dist.ReduceOp.AVG:
+            return [input.cpu() for input in inputs]
         return [input.cpu() * world_size for input in inputs]
 
 
 class HcclReduceScatterTest(HcclReduceScatterTestBase):
 
     @classmethod
-    def _test_reduce_scatter(cls, rank, input_list, world_size, init_pg, c2p, p2c):
+    # pylint:disable=huawei-too-many-arguments
+    def _test_reduce_scatter(cls, rank, input_list, world_size, init_pg, c2p, p2c, reduce_op=dist.ReduceOp.SUM):
         pg = init_pg(rank, world_size)
         input_list_npu = [input.npu() for input in input_list]
         output = torch.empty_like(input_list_npu[rank])
-        pg.reduce_scatter(output, input_list_npu)
+        pg.reduce_scatter(output, input_list_npu, reduce_op)
         c2p.put((rank, output.cpu()))
         pg.barrier()
         p2c.get()
@@ -109,6 +113,48 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
                 cpu_excepted_result = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
                                         HcclReduceScatterTest._init_dist_hccl, cpu_excepted_result, input_list, world_size)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_avg(self):
+        ranks = [2]
+        dtype_list = [np.float32, np.float16, np.int32, np.int8]
+        shape_format = [[i, 2, [4, 9]] for i in dtype_list]
+
+        for world_size in ranks:
+            for shape in shape_format:
+                if shape[0] == np.int8:
+                    shape[1] = 0
+                input_list = []
+                for _ in range(world_size):
+                    _, input1 = create_common_tensor(shape, -10, -10)
+                    input_list.append(input1.cpu())
+                expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter, dist.ReduceOp.AVG)
+                self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
+                                        HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size, dist.ReduceOp.AVG)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_with_different_shape_avg(self):
+        ranks = [2]
+        dtype_list = [np.float32, np.float16, np.int32, np.int8]
+
+        def get_random_input(dim=1, max_value=10, dtype=np.float32):
+            shape_list = list()
+            for _ in range(dim):
+                shape_list.append(randint(1, max_value))
+            if dtype == dtype_list[-1]:
+                return create_common_tensor([dtype, 0, shape_list], -10, 10)
+            else:
+                return create_common_tensor([dtype, 2, shape_list], -10, 10)
+
+        for world_size in ranks:
+            for input_dtype in dtype_list:
+                input_list = list()
+                for _ in range(world_size):
+                    _, npu_input = get_random_input(randint(1, 5), randint(1, 10), input_dtype)
+                    input_list.append(npu_input.cpu())
+                cpu_excepted_result = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter, dist.ReduceOp.AVG)
+                self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
+                                        HcclReduceScatterTest._init_dist_hccl, cpu_excepted_result, input_list, world_size, dist.ReduceOp.AVG)
 
 if __name__ == '__main__':
     run_tests()
