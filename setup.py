@@ -51,18 +51,10 @@ PGO_MODE = 0
 if os.environ.get("PGO_MODE") is not None:
     PGO_MODE = int(os.environ.get("PGO_MODE"))
 
-USE_CXX11_ABI = False
-if platform.machine() == "aarch64":
-    # change to use cxx11.abi in default since 2.6 (arm)
-    USE_CXX11_ABI = True
-
-if os.environ.get("_GLIBCXX_USE_CXX11_ABI") is not None:
-    if os.environ.get("_GLIBCXX_USE_CXX11_ABI") == "1":
-        USE_CXX11_ABI = True
-        if platform.machine() == "x86_64":
-            VERSION += "+cxx11-abi"
-    else:
-        USE_CXX11_ABI = False
+# change to use cxx11.abi in default since 2.7
+USE_CXX11_ABI = True
+if os.environ.get("_GLIBCXX_USE_CXX11_ABI") is not None and os.environ.get("_GLIBCXX_USE_CXX11_ABI") == "0":
+    USE_CXX11_ABI = False
 
 
 def get_submodule_folders():
@@ -128,10 +120,7 @@ def generate_torch_npu_version():
     sha = get_sha(torch_npu_root)
     if os.getenv("BUILD_WITHOUT_SHA") is None:
         global VERSION
-        if USE_CXX11_ABI and platform.machine() == "x86_64":
-            VERSION += ".git" + sha[:7]
-        else:
-            VERSION += "+git" + sha[:7]
+        VERSION += "+git" + sha[:7]
     with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
         f.write("__version__ = '{version}'\n".format(version=VERSION))
         f.write("git_version = {}\n".format(repr(sha)))

@@ -1,4 +1,4 @@
---extra-index-url https://download.pytorch.org/whl/test/cpu
+--extra-index-url https://download.pytorch.org/whl/nightly/cpu
 -f https://data.pyg.org/whl/torch-2.5.0+cpu.html
 
 coverage
@@ -18,4 +18,4 @@ pytest==8.1.1
 parameterized==0.9.0
 torch-scatter==2.1.2
 # since 20240730, torchvision no longer supports python3.8
-torchvision==0.21.0
+torchvision==0.22.0.dev20250120

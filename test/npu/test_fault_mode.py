@@ -98,7 +98,7 @@ class TestMode(TestCase):
             train_dataset_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=4)
 
     def test_generator(self):
-        with self.assertRaisesRegex(RuntimeError, r"Device type CUDA is not supported for torch.Generator\(\) api."):
+        with self.assertRaisesRegex(RuntimeError, r"Cannot get CUDA generator without ATen_cuda library."):
             torch.Generator(device="cuda")
 
     def test_not_supported_ops(self):

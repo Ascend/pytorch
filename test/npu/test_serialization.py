@@ -2,6 +2,7 @@ import io
 import os
 import tempfile
 import argparse
+import unittest
 
 import torch
 import torch.nn as nn
@@ -95,6 +96,7 @@ class TestSerialization(TestCase):
             self.assertExpectedInline(f'{x_loaded.device.type}:{x_loaded.device.index}', 'npu:0')
             self.assertRtolEqual(x, x_loaded.cpu())
 
+    @unittest.skip("pytorch/issues/146969, pytorch/issues/125465, pytorch/pull/142214")
     def test_save_npu_format(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')

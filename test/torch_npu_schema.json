@@ -738,7 +738,7 @@
     "signature": "(self, features, rois)"
   },
   "torch_npu.contrib.module.quant_conv2d.QuantConv2d": {
-    "signature": "(in_channels: int, out_channels: int, kernel_size: Union[int, Tuple[int, int]], output_dtype: torch.dtype, stride: Union[int, Tuple[int, int]] = 1, padding: Union[int, Tuple[int, int]] = 0, dilation: Union[int, Tuple[int, int]] = 1, groups: int = 1, bias: bool = True, offset: bool = False, offset_x: int = 0, round_mode: str = 'rint', device=None, dtype=None) -> None"
+    "signature": "(in_channels: int, out_channels: int, kernel_size: Union[int, tuple[int, int]], output_dtype: torch.dtype, stride: Union[int, tuple[int, int]] = 1, padding: Union[int, tuple[int, int]] = 0, dilation: Union[int, tuple[int, int]] = 1, groups: int = 1, bias: bool = True, offset: bool = False, offset_x: int = 0, round_mode: str = 'rint', device=None, dtype=None) -> None"
   },
   "torch_npu.contrib.module.quant_conv2d.QuantConv2d.forward": {
     "signature": "(self, quant_conv2d_input: torch.Tensor) -> torch.Tensor"

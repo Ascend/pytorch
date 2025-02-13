@@ -445,6 +445,7 @@ $dispatch_registrations_body
             backend_index, per_operator_headers=False, rocm=False
         ),
         'ops_headers': '',
+        'dispatch_helpers': dest.gen_registration_helpers(backend_index),
         'dispatch_definitions': fm.substitute_with_template(
             'RegisterDispatchDefinitions.ini',
             lambda: {
@@ -452,7 +453,6 @@ $dispatch_registrations_body
                 'ns_epilogue': ns_helper.epilogue,
                 'static_init_dispatch_registrations': static_init_dispatch_registrations,
                 'deferred_dispatch_registrations': '',
-                'dispatch_helpers': dest.gen_registration_helpers(backend_index),
                 'dispatch_namespace': dispatch_key.lower(),
                 'dispatch_namespaced_definitions': native_function_registrations,
                 'dispatch_anonymous_definitions': list(
@@ -571,6 +571,7 @@ m.impl("${schema}", TORCH_FN(op_plugin::${kernel}));"""
         'DispatchKey': 'NPU',
         'dispatch_headers': '',
         'ops_headers': '',
+        'dispatch_helpers': '',
         'dispatch_definitions': fm.substitute_with_template(
             'RegisterDispatchDefinitions.ini',
             lambda: {
@@ -578,7 +579,6 @@ m.impl("${schema}", TORCH_FN(op_plugin::${kernel}));"""
                 'ns_epilogue': ns_helper.epilogue,
                 'static_init_dispatch_registrations': static_init_dispatch_registrations,
                 'deferred_dispatch_registrations': '',
-                'dispatch_helpers': '',
                 'dispatch_namespace': '',
                 'dispatch_namespaced_definitions': '',
                 'dispatch_anonymous_definitions': '',
