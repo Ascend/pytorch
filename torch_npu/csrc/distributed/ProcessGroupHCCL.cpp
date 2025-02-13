@@ -60,7 +60,6 @@ std::map<c10d::ReduceOp, HcclReduceOp> hcclOp = {
 };
 
 std::map<c10d::ReduceOp, std::string> unsupportedOp = {
-    {c10d::ReduceOp::AVG, "AVG"},
     {c10d::ReduceOp::BAND, "BAND"},
     {c10d::ReduceOp::BOR, "BOR"},
     {c10d::ReduceOp::BXOR, "BXOR"}
@@ -110,6 +109,12 @@ uint64_t getNumelForHCCL(const at::Tensor& self)
 
 HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input)
 {
+    if (reduceOp == c10d::ReduceOp::AVG) {
+        // HCCL does not support ReduceOp::AVG yet
+        // PTA supports it by summing first, then dividing
+        return HCCL_REDUCE_SUM;
+    }
+
     if (reduceOp == c10d::ReduceOp::SUM && input.scalar_type() == at::kBool) {
         // For bool tensors, map sum to max, which both represent a bitwise or.
         // This is to prevent overflow issues with sum, since we use uint8 to
@@ -2775,6 +2780,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::AVG) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                for (auto& tensor : tensors_cp) {
+                    tensor.div_(getSize());
+                }
+            }
             if (tensors_cp[0].scalar_type() != tensors[0].scalar_type()) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
                 c10_npu::NPUCachingAllocator::recordStream(tensors_cp[0].storage().data_ptr(), hcclStreams[0]);
@@ -2935,6 +2946,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::AVG) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                for (auto& tensor : tensors_cp) {
+                    tensor.div_(getSize());
+                }
+            }
             for (const auto i : c10::irange(tensors.size())) {
                 if (tensors_cp[i].scalar_type() != tensors[i].scalar_type()) {
                     c10_npu::NPUStreamGuard guard(hcclStreams[0]);
@@ -2985,6 +3002,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::AVG) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                for (auto& tensor : tensors_cp) {
+                    tensor.div_(getSize());
+                }
+            }
             if (tensors_cp[0].scalar_type() != tensors[0].scalar_type()) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
                 c10_npu::NPUCachingAllocator::recordStream(tensors_cp[0].storage().data_ptr(), hcclStreams[0]);
@@ -3041,6 +3064,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::AVG) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                for (auto& tensor : outputTensors) {
+                    tensor.div_(getSize());
+                }
+            }
             if (outputTensors[0].scalar_type() != outputTensor.scalar_type()) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
                 c10_npu::NPUCachingAllocator::recordStream(outputTensors[0].storage().data_ptr(), hcclStreams[0]);
@@ -3155,7 +3184,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
             return HCCL_SUCCESS;
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
-        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::AVG) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                for (auto& tensor : outputTensors_) {
+                    tensor.div_(getSize());
+                }
+            }
+        },
         c10d::OpType::REDUCE_SCATTER);
 }
 
@@ -3626,7 +3662,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 }
             }
         },
-        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::AVG) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                for (auto& tensor : outputTensors) {
+                    tensor.div_(getSize());
+                }
+            }
+        },
         c10d::OpType::REDUCE_SCATTER);
     } else if (hcclReduceScatterVExist()) {
         std::vector<uint64_t> inputCounts;
@@ -3769,7 +3812,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
             auto inputDataPtr = input.data_ptr();
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
-            auto hcclReduceOp = hcclOp[opts.reduceOp];
+            auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm), stream.stream(false));
@@ -3783,7 +3826,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
             return HCCL_SUCCESS;
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
-        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::AVG) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                for (auto& tensor : outputs) {
+                    tensor.div_(getSize());
+                }
+            }
+        },
         c10d::OpType::REDUCE_SCATTER);
 }
 
@@ -3806,7 +3856,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
             auto inputDataPtr = input.data_ptr();
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
-            auto hcclReduceOp = hcclOp[opts.reduceOp];
+            auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm), stream.stream(false));
@@ -3823,7 +3873,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
             return HCCL_SUCCESS;
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
-        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::AVG) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                for (auto& tensor : outputTensors) {
+                    tensor.div_(getSize());
+                }
+            }
+        },
         c10d::OpType::REDUCE_SCATTER);
 }
 
