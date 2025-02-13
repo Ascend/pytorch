@@ -28,6 +28,7 @@
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/interface/OpInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/distributed/HcclCompile.h"
@@ -875,8 +876,18 @@ ProcessGroupHCCL::ProcessGroupHCCL(
             ASCEND_LOGI("Set the HCCL_ZERO_COPY environment variable in ExpandableSegments. Try to enable the HCCL_ZERO_COPY feature.");
             std::unordered_map<std::string, std::string> envMap = checkEnvVarOrLogWarning();
             if (envMap["enable"] == "true") {
+                auto local_rank = std::stoi(envMap["local_rank"]);
+                if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+                    ASCEND_LOGW("Device is not initialized, init device %d by rank config.", local_rank);
+                    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Initialize(local_rank);
+                }
                 int32_t device_id = -1;
                 NPU_CHECK_ERROR(c10_npu::GetDevice(&device_id));
+                if (device_id != local_rank) {
+                    ASCEND_LOGW("Device is %d, set device %d by rank config.", device_id, local_rank);
+                    NPU_CHECK_ERROR(c10_npu::SetDevice(local_rank));
+                    device_id = local_rank;
+                }
                 std::vector<std::shared_ptr<HCCLComm>> hcclComms(1);
                 createHCCLCommForZeroCopy(hcclComms, envMap);
                 c10_npu::NPUCachingAllocator::buildServerMemMapForHccl(device_id, hcclComms[0]);
