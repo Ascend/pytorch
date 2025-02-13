@@ -491,7 +491,7 @@ class BdistWheelBuild(bdist_wheel):
         torch_dependencies = ["libc10.so", "libtorch.so", "libtorch_cpu.so", "libtorch_python.so"]
         cann_dependencies = ["libhccl.so", "libascendcl.so", "libacl_op_compiler.so", "libge_runner.so",
                              "libgraph.so", "libacl_tdt_channel.so", "libfmk_parser.so", "libascend_protobuf.so"]
-        other_dependencies = ["libtorch_npu.so", "libnpu_profiler.so", "libgomp.so.1"]
+        other_dependencies = ["libtorch_npu.so", "libnpu_profiler.so", "libgomp.so.1", "libatb.so"]
 
         dependencies = torch_dependencies + cann_dependencies + other_dependencies
 
