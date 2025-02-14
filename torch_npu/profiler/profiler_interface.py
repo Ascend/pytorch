@@ -254,19 +254,21 @@ class _ProfInterface:
                     if backend != "hccl":
                         continue
                     hccl_group = group._get_backend(torch.device("npu"))
-                    comm_name = hccl_group.get_hccl_comm_name(global_rank)
-                    group_info[comm_name] = {
-                        "group_name": hccl_group.options.hccl_config.get("group_name", ""),
-                        "group_rank": torch.distributed.get_group_rank(group, global_rank),
-                        "global_ranks": torch.distributed.get_process_group_ranks(group)
-                    }
+                    comm_name = hccl_group.get_hccl_comm_name(global_rank, init_comm=False)
+                    if comm_name:
+                        group_info[comm_name] = {
+                            "group_name": hccl_group.options.hccl_config.get("group_name", ""),
+                            "group_rank": torch.distributed.get_group_rank(group, global_rank),
+                            "global_ranks": torch.distributed.get_process_group_ranks(group)
+                        }
                 default_group = torch.distributed.distributed_c10d._get_default_group()
-                comm_name = default_group._get_backend(torch.device("npu")).get_hccl_comm_name(global_rank)
-                group_info[comm_name] = {
-                    "group_name": "default_group",
-                    "group_rank": torch.distributed.get_group_rank(default_group, global_rank),
-                    "global_ranks": torch.distributed.get_process_group_ranks(default_group)
-                }
+                comm_name = default_group._get_backend(torch.device("npu")).get_hccl_comm_name(global_rank, init_comm=False)
+                if comm_name:
+                    group_info[comm_name] = {
+                        "group_name": "default_group",
+                        "group_rank": torch.distributed.get_group_rank(default_group, global_rank),
+                        "global_ranks": torch.distributed.get_process_group_ranks(default_group)
+                    }
                 if group_info:
                     self.metadata.update({self.PARALLEL_GROUP_KEY: group_info})
         except Exception as err:
