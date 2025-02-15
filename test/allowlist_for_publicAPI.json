@@ -2750,7 +2750,8 @@
     "scatter_update_",
     "npu_moe_compute_expert_tokens",
     "npu_moe_gating_top_k_softmax",
-    "npu_moe_init_routing"
+    "npu_moe_init_routing",
+    "npu_group_norm_swish"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
