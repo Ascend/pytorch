@@ -2787,6 +2787,7 @@
     "npu_apply_adam",
     "npu_bert_apply_adam",
     "npu_clear_float_status",
+    "npu_cross_entropy_loss",
     "npu_format_cast_",
     "npu_fusion_attention",
     "npu_get_float_status",
