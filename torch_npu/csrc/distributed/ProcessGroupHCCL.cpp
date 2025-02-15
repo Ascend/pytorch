@@ -488,6 +488,7 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
     store_(w.store_),
     is_dispatched(w.is_dispatched),
     is_reported(w.is_reported),
+    is_dumped(w.is_dumped),
     trace_id_(w.trace_id_)
 {
     exception_ = w.exception_;
@@ -662,6 +663,27 @@ void ProcessGroupHCCL::WorkHCCL::checkDispatch()
         ASCEND_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(opType_).c_str(), seq_);
         is_reported = false;
     }
+}
+
+bool ProcessGroupHCCL::WorkHCCL::checkExec()
+{
+    if (is_dumped) {
+        return false;
+    }
+
+    static int32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
+    if (hccl_exec_timeout <= 0) {
+        hccl_exec_timeout = 1800;
+    }
+    int32_t timeout = std::max(60, hccl_exec_timeout - 60);
+    auto currentTimepoint = std::chrono::steady_clock::now();
+    auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTimepoint - workStartTime_);
+
+    if (timeElapsed > std::chrono::milliseconds(timeout * 1000)) {
+        is_dumped = true;
+        return true;
+    }
+    return false;
 }
 
 void ProcessGroupHCCL::WorkHCCL::synchronize() {
@@ -1653,6 +1675,14 @@ void ProcessGroupHCCL::workCleanupLoop()
             }
             work.checkAndSetException();
             work.checkDispatch();
+            bool exec_timeout = work.checkExec();
+            if (exec_timeout) {
+                if (!shouldDump_.load()) {
+                    LOG(ERROR) << logPrefix()
+                        << "First watchdog exec timeout to set the dump signal.";
+                }
+                shouldDump_.store(true);
+            }
             bool timedOut = work.checkTimeout();
 
             // If work hits an exception (either an error or timeout)

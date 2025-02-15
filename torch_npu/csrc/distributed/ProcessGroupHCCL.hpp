@@ -202,6 +202,8 @@ public:
         std::shared_ptr<bool> is_dispatched = std::make_shared<bool>(false);
         bool is_reported = false;
 
+        bool is_dumped = false;
+
         // Checks if request has completed. In this specific case of HCCL, it checks
         // if the HCCL operation has completed on the NPU in its own HCCL stream.
         // Non-blocking operation.
@@ -240,6 +242,8 @@ public:
         bool checkTimeout(c10::optional<std::chrono::milliseconds> timeout = c10::nullopt);
 
         void checkDispatch();
+
+        bool checkExec();
 
     protected:
         // The cached list of NPU devices to operate on.
