@@ -2540,7 +2540,8 @@
     "npu_quant_scatter_",
     "npu_trans_quant_param",
     "scatter_update",
-    "scatter_update_"
+    "scatter_update_",
+    "npu_group_norm_swish"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
