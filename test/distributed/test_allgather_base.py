@@ -18,7 +18,7 @@ from test_allgather import HcclAllGatherTestBase
 class HcclAllGatherBaseTest(HcclAllGatherTestBase):
 
     @classmethod
-    def _test_all_gather_base(cls, rank, input1, world_size, init_pg, c2p):
+    def _test_all_gather_base(cls, rank, input1, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input1 = input1.npu()
         shape = list(input1.size())
@@ -27,6 +27,7 @@ class HcclAllGatherBaseTest(HcclAllGatherTestBase):
         pg._all_gather_base(gather_tensor, input1)
         c2p.put((rank, gather_tensor.cpu()))
         pg.barrier()
+        p2c.get()
 
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_base_dist(self):

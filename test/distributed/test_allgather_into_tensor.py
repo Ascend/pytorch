@@ -18,7 +18,7 @@ from test_allgather import HcclAllGatherTestBase
 class HcclAllGatherIntoTensorTest(HcclAllGatherTestBase):
 
     @classmethod
-    def _test_all_gather_into_tensor(cls, rank, input1, world_size, init_pg, c2p):
+    def _test_all_gather_into_tensor(cls, rank, input1, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input1 = input1.npu()
         shape = list(input1.size())
@@ -27,6 +27,7 @@ class HcclAllGatherIntoTensorTest(HcclAllGatherTestBase):
         pg.all_gather_into_tensor(gather_tensor, input1)
         c2p.put((rank, gather_tensor.cpu()))
         pg.barrier()
+        p2c.get()
 
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_into_tensor_dist(self):
@@ -46,7 +47,7 @@ class HcclAllGatherIntoTensorTest(HcclAllGatherTestBase):
                                         HcclAllGatherIntoTensorTest._init_dist_hccl, expected, input1, world_size)
 
     @classmethod
-    def _test_all_gather_into_tensor_uneven(cls, rank, input1, world_size, init_pg, c2p):
+    def _test_all_gather_into_tensor_uneven(cls, rank, input1, world_size, init_pg, c2p, p2c):
         init_pg(rank, world_size)
         input1 = input1.npu()
         shape = list(input1.size())
@@ -55,6 +56,7 @@ class HcclAllGatherIntoTensorTest(HcclAllGatherTestBase):
         torch_npu.distributed.all_gather_into_tensor_uneven(gather_tensor, input1)
         c2p.put((rank, gather_tensor.cpu()))
         dist.barrier()
+        p2c.get()
 
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_into_tensor_uneven_dist(self):
