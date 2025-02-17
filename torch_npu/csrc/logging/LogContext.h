@@ -18,13 +18,13 @@ public:
 
     std::shared_ptr<Logger> getLogger(const std::string& name = "");
     static LogContext& GetInstance();
-    void setLogs(const std::unordered_map<std::string, int>& aliasLevels);
+    void setLogs(const std::unordered_map<std::string, int>& qnameLevels);
 
 private:
-    void GetAliasAndLevelByName(const std::string& name, std::string& alias, LoggingLevel& level);
+    void GetQNameAndLevelByName(const std::string& name, std::string& qname, LoggingLevel& level);
 
     std::mutex mutex_;
-    std::unordered_map<std::string, int> aliasLevels_;
+    std::unordered_map<std::string, int> qnameLevels_;
     LoggingLevel allLevel_ = LoggingLevel::WARNING;
     std::unordered_map<std::string, std::shared_ptr<Logger>> loggers_;
 };

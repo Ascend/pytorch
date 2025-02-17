@@ -5,6 +5,15 @@ from torch_npu import _C
 
 
 def _set_logs():
+    """
+    Propagate the results torch._logging.set_logs to the C++ layer.
+
+    .. note:: The ``TORCH_LOGS`` or ``TORCH_NPU_LOGS`` environment variable has complete precedence
+        over this function, so if it was set, this function does nothing.
+
+    """
+
+    # ignore if env var is set
     if os.environ.get('TORCH_LOGS', None) is not None or os.environ.get('TORCH_NPU_LOGS', None) is not None:
         return
 
@@ -25,4 +34,4 @@ def _logging_patch():
 
 def _add_logging_module():
     torch._logging._internal.register_log("memory", "torch_npu.memory")
-    torch._logging._internal.register_log("delivery", "torch_npu.delivery")
+    torch._logging._internal.register_log("dispatch", "torch_npu.dispatch")

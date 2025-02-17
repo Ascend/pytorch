@@ -9,16 +9,16 @@ LogContext &LogContext::GetInstance()
 }
 
 // Locked from the Outside
-void LogContext::GetAliasAndLevelByName(const std::string& name, std::string& alias, LoggingLevel& level)
+void LogContext::GetQNameAndLevelByName(const std::string& name, std::string& qname, LoggingLevel& level)
 {
     std::string nameKey = name;
     level = allLevel_;
-    alias = "";
+    qname = "";
     do {
-        auto iterLevel = aliasLevels_.find(nameKey);
-        if (iterLevel != aliasLevels_.end()) {
+        auto iterLevel = qnameLevels_.find(nameKey);
+        if (iterLevel != qnameLevels_.end()) {
             level = static_cast<LoggingLevel>(iterLevel->second);
-            alias = iterLevel->first;
+            qname = iterLevel->first;
             break;
         }
         auto pos = nameKey.rfind('.');
@@ -29,23 +29,25 @@ void LogContext::GetAliasAndLevelByName(const std::string& name, std::string& al
     } while (true);
 }
 
-void LogContext::setLogs(const std::unordered_map<std::string, int>& aliasLevels)
+void LogContext::setLogs(const std::unordered_map<std::string, int>& qnameLevels)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    aliasLevels_ = aliasLevels;
-    auto iter = aliasLevels_.find("torch");
-    if (iter != aliasLevels_.end()) {
+    qnameLevels_ = qnameLevels;
+    auto iter = qnameLevels_.find("torch");
+    if (iter != qnameLevels_.end()) {
         allLevel_ = static_cast<LoggingLevel>(iter->second);
     }
+    // Global or static logger variables are initialized prior to the invocation of set_logs,
+    // the logging levels associated with these loggers should be updated to reflect the new settings.
     for (auto iter = loggers_.begin(); iter != loggers_.end(); iter++) {
         LoggingLevel level = allLevel_;
-        std::string alias = iter->second->getModuleAlias();
-        if (alias.empty()) {
-            GetAliasAndLevelByName(iter->first, alias, level);
-            iter->second->setModuleAlias(alias);
+        std::string qname = iter->second->getQName();
+        if (qname.empty()) {
+            GetQNameAndLevelByName(iter->first, qname, level);
+            iter->second->setQName(qname);
         }
-        auto iterLevel = aliasLevels_.find(alias);
-        if (iterLevel != aliasLevels_.end()) {
+        auto iterLevel = qnameLevels_.find(qname);
+        if (iterLevel != qnameLevels_.end()) {
             level = static_cast<LoggingLevel>(iterLevel->second);
         }
         iter->second->setAllowLevel(level);
@@ -59,12 +61,12 @@ std::shared_ptr<Logger> LogContext::getLogger(const std::string& name)
     if (iter != loggers_.end()) {
         return iter->second;
     }
-    std::string alias;
+    std::string qname;
     LoggingLevel level = allLevel_;
-    GetAliasAndLevelByName(name, alias, level);
+    GetQNameAndLevelByName(name, qname, level);
     std::shared_ptr<Logger> logger = std::make_shared<Logger>(name);
     logger->setAllowLevel(level);
-    logger->setModuleAlias(alias);
+    logger->setQName(qname);
     loggers_[name] = logger;
     return logger;
 }

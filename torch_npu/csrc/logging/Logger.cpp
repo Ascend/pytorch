@@ -22,14 +22,14 @@ void Logger::setAllowLevel(LoggingLevel level)
     allow_level_ = level;
 }
 
-void Logger::setModuleAlias(const std::string& alias)
+void Logger::setQName(const std::string& qname)
 {
-    alias_ = alias;
+    qname_ = qname;
 }
 
-std::string Logger::getModuleAlias()
+std::string Logger::getQName()
 {
-    return alias_;
+    return qname_;
 }
 
 void Logger::log(LoggingLevel level, const char* format, va_list args)
