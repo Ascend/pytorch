@@ -45,6 +45,7 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -390,6 +391,7 @@ int ProcessGroupHCCL::deviceId_ = -1;
 int ProcessGroupHCCL::numRanks_ = -1;
 std::string ProcessGroupHCCL::exceptionMessage_ = "";
 std::atomic<bool> ProcessGroupHCCL::shouldDump_(false);
+std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch.distributed");
 
 std::string dump_hccl_trace(
     bool includeCollectives,
@@ -999,6 +1001,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         }
     }
     ASCEND_LOGI("process group created, group id is %s.", options_->group_id.c_str());
+    logger->info("process group created, group id is %s.", options_->group_id.c_str());
 }
 
 void ProcessGroupHCCL::setSequenceNumberForGroup() {}
@@ -1180,6 +1183,7 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
         devHCCLCommMap_.clear();
     }
     ASCEND_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
+    logger->info("process group destroyed, group id is %s.", options_->group_id.c_str());
 }
 
 std::future<bool> ProcessGroupHCCL::launchAsyncPythonTracebackDump()

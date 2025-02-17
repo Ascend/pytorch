@@ -227,6 +227,7 @@ endif()
 set(ATEN_SRCS)
 set(CORE_SRCS)
 set(FRAMEWORK_SRCS)
+set(LOGGING_SRCS)
 
 if (NOT DEFINED BUILD_LIBTORCH)
   set(DIST_SRCS)
@@ -245,6 +246,7 @@ add_subdirectory(${TORCHNPU_ROOT}/aten)
 add_subdirectory(${TORCHNPU_ROOT}/core)
 add_subdirectory(${TORCHNPU_ROOT}/framework)
 add_subdirectory(${TORCHNPU_ROOT}/flopcount)
+add_subdirectory(${TORCHNPU_ROOT}/logging)
 
 if (NOT DEFINED BUILD_LIBTORCH)
   add_subdirectory(${TORCHNPU_ROOT}/distributed)
@@ -271,10 +273,10 @@ if (DEFINED BUILD_TENSORPIPE)
 endif()
 
 if (DEFINED BUILD_LIBTORCH)
-  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${FLOP_SRCS} ${FRAMEWORK_SRCS} ${NPU_CPP_LIBS_SRCS})
+  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${FLOP_SRCS} ${FRAMEWORK_SRCS} ${LOGGING_SRCS} ${NPU_CPP_LIBS_SRCS})
 else()
 # Compile code with pybind11
-  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${DIST_SRCS} ${FLOP_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${UTILS_SRCS} ${SAN_SRCS})
+  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${DIST_SRCS} ${FLOP_SRCS} ${LOGGING_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${UTILS_SRCS} ${SAN_SRCS})
 endif()
 
 add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})
