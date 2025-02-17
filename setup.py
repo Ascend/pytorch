@@ -414,6 +414,21 @@ def add_ops_files(base_dir, file_list):
     return
 
 
+def add_ops_python_files(ret_list):
+    # add ops python files
+    opplugin_path = os.path.join(BASE_DIR, 'third_party/op-plugin/op_plugin/python')
+
+    if os.path.exists(opplugin_path):
+        ops_python_files = glob.glob(os.path.join(opplugin_path, '**/*.py'), recursive=True)  
+        for src in ops_python_files:
+            dst = os.path.join(
+                os.path.join(BASE_DIR, "build/packages/torch_npu/op_plugin"),
+                os.path.relpath(src, opplugin_path))
+            os.makedirs(os.path.dirname(dst), exist_ok=True) 
+            ret_list.append((src, dst))
+    return
+
+
 def get_src_py_and_dst():
     ret = []
     generated_python_files = glob.glob(
@@ -431,6 +446,8 @@ def get_src_py_and_dst():
             os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")))
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
+
+    add_ops_python_files(ret)
 
     header_files = [
         "torch_npu/csrc/*.h",
