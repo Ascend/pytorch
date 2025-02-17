@@ -40,6 +40,7 @@ import torch_npu.npu.aclnn
 import torch_npu.optim
 import torch_npu.dynamo
 import torch_npu._C
+import torch_npu._logging
 from torch_npu import profiler
 from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
 from torch_npu.contrib.function import npu_functional
