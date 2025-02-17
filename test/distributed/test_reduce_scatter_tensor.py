@@ -49,8 +49,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                                         HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list, world_size)
 
     @classmethod
-    # pylint:disable=huawei-too-many-arguments
-    def _test_reduce_scatter_tensor_uneven(cls, rank, input_list, world_size, init_pg, c2p, reduce_op=dist.ReduceOp.SUM):
+    def _test_reduce_scatter_tensor_uneven(cls, rank, input_list, world_size, init_pg, c2p, p2c, reduce_op=dist.ReduceOp.SUM):
         init_pg(rank, world_size)
         input_list_npu = [input.npu() for input in input_list]
         input_tensor = torch.cat(input_list_npu)
@@ -58,6 +57,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
         torch_npu.distributed.reduce_scatter_tensor_uneven(output, input_tensor, reduce_op)
         c2p.put((rank, output.cpu()))
         dist.barrier()
+        p2c.get()
 
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_tensor_uneven(self):
