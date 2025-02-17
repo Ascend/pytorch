@@ -49,6 +49,7 @@ from torch_npu.utils import _apply_module_patch, _add_tensor_methods, _add_colle
      _apply_npu_show_warning, _apply_clip_grad_norm_patch
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
+import torch_npu.op_plugin
 from torch_npu.distributed.rpc.backend_registry import _rpc_backend_registry
 from torch_npu.utils import _cann_package_check, _add_intercept_methods
 from torch_npu.utils import _register_ops_under_dtensor_rules
