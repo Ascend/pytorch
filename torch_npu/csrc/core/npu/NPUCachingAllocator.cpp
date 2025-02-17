@@ -428,7 +428,7 @@ struct ExpandableSegment {
         hcclComm_ = hcclComm;
         HCCL_CHECK_ERROR(at_npu::hccl::HcclCommSetMemoryRangeFace(hcclComm_->getHcclComm(), ptr_,
                                                                   segment_size_ * max_handles_, 0, 1));
-        for (int i = 0; i < handles_.size(); ++i) {
+        for (auto i : c10::irange(handles_.size())) {
             HCCL_CHECK_ERROR(at_npu::hccl::HcclCommActivateCommMemoryFace(hcclComm_->getHcclComm(),
                                                                           (char*)ptr_ + i * segment_size_,
                                                                           segment_size_,
