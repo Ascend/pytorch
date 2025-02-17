@@ -21,8 +21,8 @@ public:
     ~Logger() = default;
 
     void setAllowLevel(LoggingLevel level);
-    void setModuleAlias(const std::string& alias);
-    std::string getModuleAlias();
+    void setQName(const std::string& qname);
+    std::string getQName();
     void debug(const char* format, ...);
     void info(const char* format, ...);
     void warn(const char* format, ...);
@@ -34,7 +34,7 @@ private:
 
     LoggingLevel allow_level_ = LoggingLevel::WARNING;
     std::string name_;
-    std::string alias_;
+    std::string qname_;
 };
 
 }
