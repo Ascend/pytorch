@@ -263,7 +263,14 @@ uint32_t OptionsManager::GetStatusSaveInterval()
 {
     const static uint32_t status_save_interval = []() -> uint32_t {
         char* env_val = std::getenv("TORCH_HCCL_STATUS_SAVE_INTERVAL");
-        int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 30;
+        int64_t envFlag = 30;
+        if (env_val != nullptr) {
+            envFlag = strtol(env_val, nullptr, 10);
+            if (envFlag <= 0) {
+                envFlag = 30;
+                TORCH_NPU_WARN_ONCE("Get env TORCH_HCCL_STATUS_SAVE_INTERVAL less than or equal to 0, so reset it to the default value.");
+            }
+        }
         return static_cast<uint32_t>(envFlag);
     }();
     return status_save_interval;
