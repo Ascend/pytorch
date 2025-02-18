@@ -349,6 +349,10 @@ PyObject* THNPModule_check_uce_in_memory_wrap(PyObject* self, PyObject* arg)
     HANDLE_TH_ERRORS
     int device = THPUtils_unpackLong(arg);
     auto memUceInfo_ = c10_npu::get_mem_uce_info();
+    if (memUceInfo_.is_hbm_ecc_error) {
+        // HBM ECC error always return 3.
+        return PyLong_FromLong(3);
+    }
     if (memUceInfo_.retSize == 0) {
         // UCE error size is 0, return 0.
         memUceInfo_.mem_type = 0;
@@ -382,7 +386,7 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
     if (memUceInfo_.retSize > 0) {
         NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtMemUceRepair(memUceInfo_.device, memUceInfo_.info, memUceInfo_.retSize));
     }
-    
+
     c10_npu::clear_mem_uce_info();
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::INIT);
     c10_npu::NPUCachingAllocator::cleanEvent();

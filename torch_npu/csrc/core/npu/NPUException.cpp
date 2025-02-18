@@ -103,6 +103,14 @@ const char *c10_npu_get_error_message()
     return c10_npu::acl::AclGetErrMsg();
 }
 
+void record_mem_hbm_ecc_error()
+{
+    MemUceInfo memUceInfo_;
+    memUceInfo_.is_hbm_ecc_error = true;
+    ASCEND_LOGE("Log HBM MULTI BIT ECC ERROR, set is_hbm_ecc_error param is true");
+    set_mem_uce_info(memUceInfo_);
+}
+
 bool checkUceErrAndRepair(bool check_error, std::string& err_msg)
 {
     int device = 0;

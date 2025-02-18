@@ -120,7 +120,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                 ", error code is ", error_code, PTA_ERROR(ErrCode::ACL));    \
             break;                                                           \
         }                                                                    \
-        case ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR: {                            \
+        case ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR: {                         \
             ASCEND_LOGE("getRepoStopFlag in Run, throw ECC ERROR.");         \
             std::string error_msg(c10_npu::c10_npu_get_error_message());     \
             std::regex pattern(R"(time us= (\d+)\.)");                       \
@@ -131,9 +131,11 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                     time_msg = match[1].str();                               \
                 }                                                            \
             }                                                                \
+            c10_npu::record_mem_hbm_ecc_error();                             \
             TORCH_CHECK(false, __func__, ":", __FILE__, ":", __LINE__,       \
-                " NPU function error: HBM MULTI BIT ECC ERROR.", time_msg,   \
-                ", error code is ", error_code, PTA_ERROR(ErrCode::ACL));    \
+                " NPU function error: HBM MULTI BIT ECC ERROR.", error_msg,  \
+                "time is ", time_msg, ", error code is ", error_code,        \
+                PTA_ERROR(ErrCode::ACL));                                    \
             break;                                                           \
         }                                                                    \
         case ACL_ERROR_RT_DEVICE_MEM_ERROR: {                                \
@@ -241,8 +243,9 @@ struct MemUceInfo {
     aclrtMemUceInfo info[MAX_MEM_UCE_INFO_ARRAY_SIZE];
     size_t retSize;
     int mem_type;
+    bool is_hbm_ecc_error;
 
-    MemUceInfo() : device(-1), retSize(0), mem_type(0)
+    MemUceInfo() : device(-1), retSize(0), mem_type(0), is_hbm_ecc_error(false)
     {
         std::memset(info, 0, sizeof(info));
     }
@@ -253,12 +256,15 @@ struct MemUceInfo {
         std::memset(info, 0, sizeof(info));
         retSize = 0;
         mem_type = 0;
+        is_hbm_ecc_error = false;
     }
 };
 
 C10_NPU_API const char *c10_npu_get_error_message();
 
 bool checkUceErrAndRepair(bool check_error, std::string& err_msg);
+
+void record_mem_hbm_ecc_error();
 
 void set_mem_uce_info(MemUceInfo info);
 
