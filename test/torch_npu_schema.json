@@ -2415,7 +2415,7 @@
     "signature": "(cls)"
   },
   "torch_npu.utils.serialization.load": {
-    "signature": "(f: Union[str, os.PathLike, BinaryIO, IO[bytes]], map_location: Union[Callable[[torch.types.Storage, str], torch.types.Storage], torch.device, str, Dict[str, str], NoneType] = None, pickle_module: Any = None, *, weights_only: bool = False, mmap: Optional[bool] = None, **pickle_load_args: Any) -> Any"
+    "signature": "(f: Union[str, os.PathLike, BinaryIO, IO[bytes]], map_location: Union[Callable[[torch.types.Storage, str], torch.types.Storage], torch.device, str, dict[str, str], NoneType] = None, pickle_module: Any = None, *, weights_only: bool = False, mmap: Optional[bool] = None, **pickle_load_args: Any) -> Any"
   },
   "torch_npu.utils.serialization.save": {
     "signature": "(obj: object, f: Union[str, os.PathLike, BinaryIO, IO[bytes]], pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False) -> None"
