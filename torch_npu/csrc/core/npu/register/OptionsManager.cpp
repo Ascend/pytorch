@@ -473,6 +473,17 @@ uint32_t OptionsManager::GetP2PBufferSize()
     return buf_size;
 }
 
+uint32_t OptionsManager::GetAclOpInitMode()
+{
+    const static uint32_t acl_op_init_mode = []() -> uint32_t {
+        char* buf_val = std::getenv("ACL_OP_INIT_MODE");
+        // Default 0
+        int64_t acl_op_init_mode = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 0;
+        return static_cast<uint32_t>(acl_op_init_mode);
+    }();
+    return acl_op_init_mode;
+}
+
 char* OptionsManager::GetCpuAffinityConf()
 {
     return std::getenv("CPU_AFFINITY_CONF");

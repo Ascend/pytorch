@@ -96,11 +96,12 @@ void OpCommandImpl::SetEnginePriority()
     }
 }
 
-inline void SetDeterministicOption(bool deterministicAlgorithmsStatus)
+inline void SetDeterministicOption(bool deterministicAlgorithmsStatus, bool isOpapi)
 {
     if (deterministicaclnn_oldstatus != deterministicAlgorithmsStatus) {
-        NPU_CHECK_ERROR(
-            AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicAlgorithmsStatus ? "1" : "0"));
+        if (!isOpapi) {
+            NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicAlgorithmsStatus ? "1" : "0"));
+        }
         NPU_CHECK_ERROR(
             AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministicAlgorithmsStatus ? 1 : 0));
         NPU_CHECK_ERROR(
@@ -111,15 +112,15 @@ inline void SetDeterministicOption(bool deterministicAlgorithmsStatus)
     }
 }
 
-void SetDeterministic()
+void SetDeterministic(bool isOpapi)
 {
     auto deterministicAlgorithmsStatus = at::globalContext().deterministicAlgorithms();
-    SetDeterministicOption(deterministicAlgorithmsStatus);
+    SetDeterministicOption(deterministicAlgorithmsStatus, isOpapi);
 }
 
 void SetDeterministicOps(bool deterministicAlgorithmsStatus)
 {
-    SetDeterministicOption(deterministicAlgorithmsStatus);
+    SetDeterministicOption(deterministicAlgorithmsStatus, true);
 }
 
 void OpCommandImpl::Run(
@@ -177,7 +178,7 @@ aclError OpCommandImpl::InnerRun(
     auto inputSize = params.inBuffer.size();
     auto outputSize = params.outBuffer.size();
     // open the deterministicAlgorithms config
-    SetDeterministic();
+    SetDeterministic(false);
     bool reset_flag = false;
     if (ForceJitCompileList::GetInstance().Inlist(name) && env::CheckJitDisable()) {
         NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
@@ -270,20 +271,12 @@ aclError OpCommandImpl::InnerRunOpApi(const string &op_name, PROC_FUNC func)
     }
     // open the deterministicAlgorithms config
     SetDeterministic();
-    bool reset_flag = false;
-    if (ForceJitCompileList::GetInstance().Inlist(op_name) && env::CheckJitDisable()) {
-        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
-        reset_flag = true;
-    }
     int index = 0;
     do {
         ret = func();
         OPS_CHECK_ERROR(ret, op_name.c_str());
         index++;
     } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
-    if (reset_flag) {
-        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
-    }
     return ret;
 }
 
@@ -322,7 +315,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     ASCEND_LOGD("Op %s Run.", cur_paras->opType);
     aclError ret;
     // open the deterministicAlgorithms config
-    SetDeterministic();
+    SetDeterministic(false);
     if (cur_paras->customHandler) {
         ASCEND_LOGD("Exec Op %s with custom handle", cur_paras->opType);
         try {
