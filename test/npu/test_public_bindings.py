@@ -547,6 +547,7 @@ class TestPublicBindings(TestCase):
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.custom.npu_selu_backward",
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_ir_by_protoc_3_13_pb2",
             "torch_npu.utils.collect_hccl_info",
+            "torch_npu.op_plugin.meta._meta_registrations",
 
         }
 
