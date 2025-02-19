@@ -77,6 +77,12 @@ static std::unordered_map<int32_t, std::string> getTaskQueueEnableMode()
     return taskQueueEnableMode;
 }
 
+static std::unordered_map<int32_t, std::string> getAclOpInitMode()
+{
+    std::unordered_map<int32_t, std::string> aclOpInitMode = {{0, "aclops init"}, {1, "aclops lazy init"}, {2, "aclops disabled"}};
+    return aclOpInitMode;
+}
+
 class OptionsManager {
 public:
     static bool IsHcclZeroCopyEnable();
@@ -113,6 +119,7 @@ public:
     static uint32_t GetHcclBufferSize();
     static uint32_t GetP2PBufferSize();
     static uint32_t GetTaskQueueEnable();
+    static uint32_t GetAclOpInitMode();
     static char* GetCpuAffinityConf();
     static bool CheckForceUncached();
     static std::string GetOomSnapshotDumpPath();
