@@ -18,7 +18,6 @@
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/framework/interface/LibAscendHal.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
-#include "torch_npu/csrc/profiler/dyno/PyDynamicMonitorProxy.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -65,10 +64,6 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
 
     py::class_<NpuProfilerConfig>(m, "NpuProfilerConfig")
         .def(py::init<std::string, bool, bool, bool, bool, bool, ExperimentalConfig>());
-    py::class_<PyDynamicMonitorProxy>(m, "PyDynamicMonitorProxy")
-        .def(py::init<>())
-        .def("init_dyno", &PyDynamicMonitorProxy::InitDyno, py::arg("npuId"))
-        .def("poll_dyno", &PyDynamicMonitorProxy::PollDyno);
     m.def("_supported_npu_activities", []() {
         std::set<NpuActivityType> activities {
             NpuActivityType::CPU,

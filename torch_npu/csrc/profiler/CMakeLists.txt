@@ -1,4 +1,4 @@
-FILE(GLOB _PROF_SRCS *.cpp python/*.cpp dyno/*.h dyno/*.cpp)
+FILE(GLOB _PROF_SRCS *.cpp python/*.cpp)
 
 LIST(APPEND PROF_SRCS ${_PROF_SRCS})
 
