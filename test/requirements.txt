@@ -1,4 +1,4 @@
---extra-index-url https://download.pytorch.org/whl/test/cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
 -f https://data.pyg.org/whl/torch-2.5.0+cpu.html
 
 coverage

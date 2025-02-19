@@ -1,11 +1,11 @@
-FROM quay.io/pypa/manylinux2014_aarch64:2023-10-07-c1e05d1
+FROM pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-2.6
 
 # Set pip
 RUN cd /usr/local/bin \
-    && ln -s /opt/_internal/cpython-3.9.18/bin/pip3.9 pip3.9 \
-    && ln -s /opt/_internal/cpython-3.10.13/bin/pip3.10 pip3.10 \
-    && ln -s /opt/_internal/cpython-3.11.6/bin/pip3.11 pip3.11 \
-    && ln -s python3.9 python3
+    && ln -s /opt/_internal/cpython-3.9.21/bin/pip3.9 pip3.9 \
+    && ln -s /opt/_internal/cpython-3.10.16/bin/pip3.10 pip3.10 \
+    && ln -s /opt/_internal/cpython-3.11.11/bin/pip3.11 pip3.11 \
+    && cd /usr/bin/ && ln -sf /opt/_internal/cpython-3.9.21/bin/python3.9 python3
 
 # Set pip source
 RUN mkdir /root/.pip \
@@ -33,15 +33,15 @@ RUN if [ "$CONFIG_FOR_LCOV" = "1" ]; then \
 
 # Install pip package(build)
 RUN pip3.9 install pyyaml  \
-    && pip3.9 install torch==2.1.0 \
+    && pip3.9 install torch==2.6.0 \
     && pip3.9 install numpy==1.21.3
 
 RUN pip3.10 install pyyaml  \
-    && pip3.10 install torch==2.1.0 \
+    && pip3.10 install torch==2.6.0 \
     && pip3.10 install numpy==1.21.3
 
 RUN pip3.11 install pyyaml  \
-    && pip3.11 install torch==2.1.0 \
+    && pip3.11 install torch==2.6.0 \
     && pip3.11 install numpy==1.23.2
 
 WORKDIR /home
