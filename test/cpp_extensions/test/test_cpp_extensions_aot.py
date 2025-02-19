@@ -76,6 +76,18 @@ class TestCppExtensionAOT(TestCase):
         os.remove(log_pth)
         self.assertEqual(timeout, 1)
 
+    def test_dump_allreduce(self):
+        dump_pth = "./hccl_trace_rank_0"
+        code_file = os.path.join(pathlib.Path(__file__).absolute().parent, "dump_allreduce.py")
+        cmd = ["torchrun", "--nproc-per-node=1", code_file]
+        p = subprocess.Popen(cmd)
+        p.wait()
+
+        self.assertTrue(os.path.exists(dump_pth))
+        self.assertTrue(os.path.exists(dump_pth + "_py_traceback"))
+        os.remove(dump_pth)
+        os.remove(dump_pth + "_py_traceback")
+
     def test_op_hook_with_add(self):
         # init
         input_1 = torch.tensor((4, 4))
