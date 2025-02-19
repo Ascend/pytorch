@@ -828,22 +828,22 @@
     "signature": "(self)"
   },
   "torch_npu.dynamo.torchair.ge.Tensor.dtype": {
-    "signature": "()"
+    "signature": "(self)"
   },
   "torch_npu.dynamo.torchair.ge.Tensor.rank": {
-    "signature": "()"
+    "signature": "(self)"
   },
   "torch_npu.dynamo.torchair.ge.TensorSpec": {
     "signature": "()"
   },
   "torch_npu.dynamo.torchair.ge.TensorSpec.dtype": {
-    "signature": "()"
+    "signature": "(self)"
   },
   "torch_npu.dynamo.torchair.ge.TensorSpec.rank": {
-    "signature": "()"
+    "signature": "(self)"
   },
   "torch_npu.dynamo.torchair.ge.TensorSpec.size": {
-    "signature": "()"
+    "signature": "(self)"
   },
   "torch_npu.dynamo.torchair.ge.custom_op": {
     "signature": "(op_type: str, *, inputs: Union[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]], NoneType], outputs: Union[List[Union[str, Tuple[str, int]]], NoneType], attrs: Union[Dict[str, ForwardRef('_Attr')], NoneType] = None, node_name: Union[str, NoneType] = None)"
