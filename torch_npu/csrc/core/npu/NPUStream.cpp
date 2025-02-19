@@ -510,6 +510,8 @@ void setCurrentNPUStream(NPUStream stream)
     initNPUStreamsOnce();
     auto ptr = NPUStream_internals(stream);
     AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
+    ASCEND_LOGI("Exchange NPU current stream from stream = %p to stream = %p",
+        current_streams[ptr->device_index]->stream, ptr->stream);
     current_streams[ptr->device_index] = ptr;
 }
 
