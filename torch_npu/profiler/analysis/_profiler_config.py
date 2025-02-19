@@ -33,7 +33,7 @@ class ProfilerConfig:
     }
     LEVEL_TRACE_PRUNE_CONFIG = {
         Constant.LEVEL_NONE: [],
-        Constant.LEVEL0: ['CANN', 'AscendCL', 'Runtime', 'GE', 'Node', 'Model', 'Hccl', 'acl_to_npu'],
+        Constant.LEVEL0: ['CANN', 'AscendCL', 'Runtime', 'GE', 'Node', 'Model', 'Hccl', 'acl_to_npu', 'Communication@'],
         Constant.LEVEL1: [],
         Constant.LEVEL2: []
     }
