@@ -75,6 +75,7 @@ from torch_npu.npu._stream_check import apply_sanitizer_patch
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
 import torch_npu.op_plugin
+from torch_npu.profiler._add_mstx_patch import _apply_mstx_patch
 from torch_npu.distributed.rpc.backend_registry import _rpc_backend_registry
 from torch_npu.utils import _cann_package_check, _add_intercept_methods
 from torch_npu.utils import _register_ops_under_dtensor_rules
@@ -166,6 +167,7 @@ def _apply_class_patches():
     _apply_sharded_grad_scaler_patch()
     add_perf_dump_patch()
     _apply_distributed_methods_patch()
+    _apply_mstx_patch()
 
 
 def _apply_distributed_methods_patch():
