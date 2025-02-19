@@ -129,21 +129,31 @@ inline bool mstxEnable()
 
 struct MstxRange {
     int rangeId{0};
-    MstxRange(const std::string &message, aclrtStream stream)
+    mstxDomainhandle_t domainHandle{nullptr};
+    MstxRange(const std::string &message, aclrtStream stream, const std::string &domainName = "default")
     {
-        if (message.empty()) {
+        if (!mstxEnable()) {
             return;
         }
         rangeId = MstxMgr::GetInstance()->getRangeId();
-        at_npu::native::MstxRangeStartA(message.c_str(), stream, rangeId);
+        if (at_npu::native::IsSupportMstxDomainFunc()) {
+            domainHandle = MstxMgr::GetInstance()->createDomain(domainName.c_str());
+            at_npu::native::MstxDomainRangeStartA(domainHandle, message.c_str(), stream, rangeId);
+        } else {
+            at_npu::native::MstxRangeStartA(message.c_str(), stream, rangeId);
+        }
     }
 
     ~MstxRange()
     {
-        if (rangeId == 0) {
+        if (rangeId == 0 || !mstxEnable()) {
             return;
         }
-        at_npu::native::MstxRangeEnd(rangeId);
+        if (at_npu::native::IsSupportMstxDomainFunc()) {
+            at_npu::native::MstxDomainRangeEnd(domainHandle, rangeId);
+        } else {
+            at_npu::native::MstxRangeEnd(rangeId);
+        }
     }
 };
 } // profiler
