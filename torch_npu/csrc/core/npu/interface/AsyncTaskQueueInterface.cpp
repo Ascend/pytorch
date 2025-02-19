@@ -1,5 +1,6 @@
 #include "AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include <ATen/record_function.h>
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
@@ -120,15 +121,17 @@ void EventTask::LaunchRecordTask(c10_npu::NPUStream npuStream) {
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[RECORD_EVENT]);
 #endif
-    c10_npu::NPUStream currentStream = c10_npu::getCurrentNPUStream();
-    c10_npu::setCurrentNPUStream(npuStream);
-    QueueParas params(RECORD_EVENT, sizeof(EventParas), &eventParam_);
-    c10_npu::NPUEventManager::GetInstance().IncreaseUnrecordedCount(eventParam_.event);
-    c10_npu::enCurrentNPUStream(&params);
-    c10_npu::setCurrentNPUStream(currentStream);
+    uint64_t prof_correlation_id = 0;
+    {
+        c10_npu::NPUStreamGuard guard(npuStream);
+        QueueParas params(RECORD_EVENT, sizeof(EventParas), &eventParam_);
+        c10_npu::NPUEventManager::GetInstance().IncreaseUnrecordedCount(eventParam_.event);
+        c10_npu::enCurrentNPUStream(&params);
+        prof_correlation_id = params.correlation_id;
+    }
     ASCEND_LOGI("Event: LaunchRecordTask is successfully executed, event=%p", eventParam_.event);
 #ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[RECORD_EVENT], params.correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[RECORD_EVENT], prof_correlation_id);
 #endif
   } else {
     NPU_CHECK_ERROR(aclrtRecordEvent(eventParam_.event, npuStream));
@@ -157,14 +160,16 @@ void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream) {
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[WAIT_EVENT]);
 #endif
-    c10_npu::NPUStream currentStream = c10_npu::getCurrentNPUStream();
-    c10_npu::setCurrentNPUStream(npuStream);
-    QueueParas params(WAIT_EVENT, sizeof(EventParas), &eventParam_);
-    c10_npu::enCurrentNPUStream(&params);
-    c10_npu::setCurrentNPUStream(currentStream);
+    uint64_t prof_correlation_id = 0;
+    {
+        c10_npu::NPUStreamGuard guard(npuStream);
+        QueueParas params(WAIT_EVENT, sizeof(EventParas), &eventParam_);
+        c10_npu::enCurrentNPUStream(&params);
+        prof_correlation_id = params.correlation_id;
+    }
     ASCEND_LOGI("Event: LaunchWaitTask is successfully executed, event=%p", eventParam_.event);
 #ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[WAIT_EVENT], params.correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[WAIT_EVENT], prof_correlation_id);
 #endif
   } else {
     NPU_CHECK_ERROR(aclrtStreamWaitEvent(npuStream, eventParam_.event));
