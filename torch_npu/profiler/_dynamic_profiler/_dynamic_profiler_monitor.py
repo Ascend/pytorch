@@ -5,7 +5,6 @@ import time
 import json
 import struct
 import multiprocessing
-from torch_npu._C._profiler import PyDynamicMonitorProxy
 from ._dynamic_profiler_config_context import ConfigContext
 from ._dynamic_profiler_utils import DynamicProfilerUtils
 from ._dynamic_profiler_monitor_shm import DynamicProfilerShareMemory
@@ -175,6 +174,13 @@ def worker_dyno_func(params_dict):
     rank_id = params_dict.get("rank_id")
     max_size = params_dict.get("max_size")
     dynamic_profiler_utils = params_dict.get("dynamic_profiler_utils")
+
+    try:
+        from IPCMonitor import PyDynamicMonitorProxy
+    except Exception as e:
+        dynamic_profiler_utils.stdout_log(f"Import IPCMonitor module failed: {e}!",
+                                          dynamic_profiler_utils.LoggerLevelEnum.WARNING)
+        return
 
     py_dyno_monitor = PyDynamicMonitorProxy()
     ret = py_dyno_monitor.init_dyno(rank_id)
