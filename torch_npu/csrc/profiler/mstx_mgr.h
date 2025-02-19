@@ -10,6 +10,9 @@
 
 namespace torch_npu {
 namespace profiler {
+
+const std::string DOMAIN_COMMUNICATION = "communication";
+
 class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
 friend class torch_npu::toolkit::profiler::Singleton<MstxMgr>;
 public:
@@ -18,6 +21,12 @@ public:
     void rangeEnd(int ptRangeId);
     bool isMstxEnable();
     int getRangeId();
+
+    mstxDomainhandle_t createDomain(const char* name);
+    void destroyDomain(mstxDomainhandle_t domain);
+    void domainMark(mstxDomainhandle_t domain, const char* message, const aclrtStream stream);
+    int domainRangeStart(mstxDomainhandle_t domain, const char* message, const aclrtStream stream);
+    void domainRangeEnd(mstxDomainhandle_t domain, int ptRangeId);
 
 private:
     MstxMgr();

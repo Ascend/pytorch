@@ -19,6 +19,11 @@ REGISTER_LIBRARY(libms_tools_ext)
 LOAD_FUNCTION(mstxMarkA)
 LOAD_FUNCTION(mstxRangeStartA)
 LOAD_FUNCTION(mstxRangeEnd)
+LOAD_FUNCTION(mstxDomainCreateA)
+LOAD_FUNCTION(mstxDomainDestroy)
+LOAD_FUNCTION(mstxDomainMarkA)
+LOAD_FUNCTION(mstxDomainRangeStartA)
+LOAD_FUNCTION(mstxDomainRangeEnd)
 
 // save python range id with cann mstx range id.
 // when mstx.range_end(id) is called, we can check if this id is invalid
@@ -26,22 +31,33 @@ static std::unordered_map<int, mstxRangeId> g_rangeIdMap;
 
 static std::mutex g_mutex;
 
-static std::mutex g_supportMstx;
+static bool IsSupportMstxFuncImpl()
+{
+    bool isSupport = false;
+    char* path = std::getenv("ASCEND_HOME_PATH");
+    if (path != nullptr) {
+        std::string soPath = std::string(path) + "/lib64/libms_tools_ext.so";
+        soPath = torch_npu::toolkit::profiler::Utils::RealPath(soPath);
+        isSupport = !soPath.empty();
+    }
+    return isSupport;
+}
+
+static bool IsSupportMstxDomainFuncImpl()
+{
+    bool isSupport = (MstxDomainCreateA("test") == nullptr) ? false : true;
+    return isSupport;
+}
 
 bool IsSupportMstxFunc()
 {
-    static bool isSupport = false;
-    static bool isChecked = false;
-    std::lock_guard<std::mutex> lock(g_supportMstx);
-    if (!isChecked) {
-        char* path = std::getenv("ASCEND_HOME_PATH");
-        if (path != nullptr) {
-            std::string soPath = std::string(path) + "/lib64/libms_tools_ext.so";
-            soPath = torch_npu::toolkit::profiler::Utils::RealPath(soPath);
-            isSupport = !soPath.empty();
-            isChecked = true;
-        }
-    }
+    static bool isSupport = IsSupportMstxFuncImpl();
+    return isSupport;
+}
+
+bool IsSupportMstxDomainFunc()
+{
+    static bool isSupport = IsSupportMstxDomainFuncImpl();
     return isSupport;
 }
 
@@ -86,7 +102,7 @@ int MstxRangeStartA(const char* message, aclrtStream stream, int ptRangeId)
     return 0;
 }
 
-void MstxRangeEnd(int ptRangdId)
+void MstxRangeEnd(int ptRangeId)
 {
     using MstxRangeEndFunc = void (*)(mstxRangeId);
     static MstxRangeEndFunc func = nullptr;
@@ -103,12 +119,117 @@ void MstxRangeEnd(int ptRangdId)
         }
     }
     std::lock_guard<std::mutex> lock(g_mutex);
-    auto iter = g_rangeIdMap.find(ptRangdId);
+    auto iter = g_rangeIdMap.find(ptRangeId);
     if (iter == g_rangeIdMap.end()) {
-        ASCEND_LOGW("Failed to find mstx range id for python input range id %d", ptRangdId);
+        ASCEND_LOGW("Failed to find mstx range id for python input range id %d", ptRangeId);
         return;
     }
     func(iter->second);
+    g_rangeIdMap.erase(iter);
+}
+
+mstxDomainhandle_t MstxDomainCreateA(const char* name)
+{
+    using MstxDomainCreateAFunc = mstxDomainhandle_t (*)(const char*);
+    static MstxDomainCreateAFunc func = nullptr;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return nullptr;
+    }
+    if (func == nullptr) {
+        func = (MstxDomainCreateAFunc)GET_FUNC(mstxDomainCreateA);
+        if (func == nullptr) {
+            ASCEND_LOGW("Failed to get func mstxDomainCreateA");
+            noFuncFlag = true;
+            return nullptr;
+        }
+    }
+    return func(name);
+}
+
+void MstxDomainDestroy(mstxDomainhandle_t handle)
+{
+    using MstxDomainDestroyFunc = void (*)(mstxDomainhandle_t);
+    static MstxDomainDestroyFunc func = nullptr;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return;
+    }
+    if (func == nullptr) {
+        func = (MstxDomainDestroyFunc)GET_FUNC(mstxDomainDestroy);
+        if (func == nullptr) {
+            ASCEND_LOGW("Failed to get func mstxDomainDestroy");
+            noFuncFlag = true;
+            return;
+        }
+    }
+    func(handle);
+}
+
+void MstxDomainMarkA(mstxDomainhandle_t handle, const char* message, aclrtStream stream)
+{
+    using MstxDomainMarkAFunc = void (*)(mstxDomainhandle_t, const char*, aclrtStream);
+    static MstxDomainMarkAFunc func = nullptr;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return;
+    }
+    if (func == nullptr) {
+        func = (MstxDomainMarkAFunc)GET_FUNC(mstxDomainMarkA);
+        if (func == nullptr) {
+            ASCEND_LOGW("Failed to get func mstxDomainMarkA");
+            noFuncFlag = true;
+            return;
+        }
+    }
+    func(handle, message, stream);
+}
+
+int MstxDomainRangeStartA(mstxDomainhandle_t handle, const char* message, aclrtStream stream, int ptRangeId)
+{
+    using MstxDomainRangeStartAFunc = mstxRangeId (*)(mstxDomainhandle_t, const char*, aclrtStream);
+    static MstxDomainRangeStartAFunc func = nullptr;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return 0;
+    }
+    if (func == nullptr) {
+        func = (MstxDomainRangeStartAFunc)GET_FUNC(mstxDomainRangeStartA);
+        if (func == nullptr) {
+            ASCEND_LOGW("Failed to get func mstxDomainRangeStartA");
+            noFuncFlag = true;
+            return 0;
+        }
+    }
+    mstxRangeId taskId = func(handle, message, stream);
+    std::lock_guard<std::mutex> lock(g_mutex);
+    g_rangeIdMap.insert({ptRangeId, taskId});
+    return 0;
+}
+
+void MstxDomainRangeEnd(mstxDomainhandle_t handle, int ptRangeId)
+{
+    using MstxDomainRangeEndFunc = void (*)(mstxDomainhandle_t, mstxRangeId);
+    static MstxDomainRangeEndFunc func = nullptr;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return;
+    }
+    if (func == nullptr) {
+        func = (MstxDomainRangeEndFunc)GET_FUNC(mstxDomainRangeEnd);
+        if (func == nullptr) {
+            ASCEND_LOGW("Failed to get func mstxDomainRangeEnd");
+            noFuncFlag = true;
+            return;
+        }
+    }
+    std::lock_guard<std::mutex> lock(g_mutex);
+    auto iter = g_rangeIdMap.find(ptRangeId);
+    if (iter == g_rangeIdMap.end()) {
+        ASCEND_LOGW("Failed to find mstx range id for python input range id %d", ptRangeId);
+        return;
+    }
+    func(handle, iter->second);
     g_rangeIdMap.erase(iter);
 }
 
