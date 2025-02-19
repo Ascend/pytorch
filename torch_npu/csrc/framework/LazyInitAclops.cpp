@@ -180,7 +180,9 @@ void LazyInitAclops()
     if (acl_op_init_mode == 0) {
         return;
     }
-    NPU_CHECK_ERROR(acl_op_init_mode != 2, "Acl op is disabled! Please check the environment variable ACL_OP_INIT_MODE.");
+    TORCH_CHECK(acl_op_init_mode != 2,
+                "Acl op is disabled! Please check the environment variable ACL_OP_INIT_MODE.",
+                PTA_ERROR(ErrCode::NOT_SUPPORT));
 
     if (!encounteredAclops.exchange(true) && c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
         RECORD_FUNCTION("LazyInitAclops", std::vector<c10::IValue>({}));
