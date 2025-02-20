@@ -2426,6 +2426,16 @@ bool check_same_size(const std::vector<at::Tensor>& input_tensors)
     return true;
 }
 
+bool has_empty_tensor(const std::vector<at::Tensor>& tensors)
+{
+    for (const auto& tensor : tensors) {
+        if (tensor.data_ptr() == nullptr) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<at::Tensor> cast_to_origin_format(const std::vector<at::Tensor>& inputTensors)
 {
     std::vector<at::Tensor> inputTensors_;
@@ -4032,7 +4042,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                 }
             },
             c10d::OpType::ALLGATHER);
-    } else if (hcclAllGatherVExist()) {
+    } else if (hcclAllGatherVExist() && !has_empty_tensor(outputTensors.back())) {
         std::vector<at::Tensor> lastOutputTensors = outputTensors.back();
         std::vector<uint64_t> outputCounts;
         std::vector<uint64_t> outputSpl;
