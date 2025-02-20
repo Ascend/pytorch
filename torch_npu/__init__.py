@@ -61,8 +61,8 @@ from torch_npu.npu._stream_check import apply_sanitizer_patch
 from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 from torch_npu.asd.asd import _asd_patch
 from torch_npu._C._distributed_c10d import ParallelStore
+from torch_npu.op_plugin.meta import _meta_registrations
 from .version import __version__ as __version__
-from .meta import _meta_registrations
 from . import _op_plugin_docs
 del _op_plugin_docs
 
