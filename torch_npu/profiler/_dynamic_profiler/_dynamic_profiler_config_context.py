@@ -32,16 +32,11 @@ class ConfigContext:
         self.parse(json_data)
 
     def parse(self, json_data: dict):
-        activities = json_data.get('activities')
         self.is_valid = json_data.get("is_valid", False)
-        if activities and isinstance(activities, list):
-            for entry in activities:
-                activity = getattr(ProfilerActivity, entry.upper(), None)
-                if activity:
-                    self.activity_set.add(activity)
+        self._parse_activity(json_data)
         self._parse_prof_dir(json_data)
         self._meta_data = json_data.get('metadata', {})
-        self._analyse = json_data.get('analyse', False)
+        self._parse_analysis(json_data)
         self._async_mode = json_data.get('async_mode', False)
         self._parse_report_shape(json_data)
         self._parse_profiler_memory(json_data)
@@ -50,39 +45,14 @@ class ConfigContext:
         self._parse_with_modules(json_data)
         self._parse_active(json_data)
         self._parse_start_step(json_data)
-        exp_config = json_data.get('experimental_config')
-        if not exp_config:
-            self.experimental_config = None
-        else:
-            profiler_level = exp_config.get('profiler_level', 'Level0')
-            profiler_level = getattr(ProfilerLevel, profiler_level, profiler_level)
-            aic_metrics = exp_config.get('aic_metrics', 'AiCoreNone')
-            aic_metrics = getattr(AiCMetrics, aic_metrics, aic_metrics)
-            l2_cache = exp_config.get('l2_cache', False)
-            op_attr = exp_config.get('op_attr', False)
-            gc_detect_threshold = exp_config.get('gc_detect_threshold', None)
-            data_simplification = exp_config.get('data_simplification', True)
-            record_op_args = exp_config.get('record_op_args', False)
-            export_type = exp_config.get('export_type', 'text')
-            msprof_tx = exp_config.get('msprof_tx', False)
-            self.experimental_config = _ExperimentalConfig(
-                profiler_level=profiler_level,
-                aic_metrics=aic_metrics,
-                l2_cache=l2_cache,
-                op_attr=op_attr,
-                gc_detect_threshold=gc_detect_threshold,
-                data_simplification=data_simplification,
-                record_op_args=record_op_args,
-                export_type=export_type,
-                msprof_tx=msprof_tx
-            )
-            self._parse_ranks(json_data)
+        self._parse_exp_cfg(json_data)
+        self._parse_ranks(json_data)
 
     def _parse_start_step(self, json_data: dict):
         if not self._is_dyno:
             self._start_step = json_data.get("start_step", self.DEFAULT_START_STEP)
         else:
-            start_step = json_data.get("PROFILE_START_ITERATION_ROUNDUP", self.DEFAULT_START_STEP)
+            start_step = json_data.get("PROFILE_START_STEP", self.DEFAULT_START_STEP)
             try:
                 self._start_step = int(start_step)
             except ValueError:
@@ -179,6 +149,90 @@ class ConfigContext:
         for rank in ranks:
             if isinstance(rank, int) and rank >= 0:
                 self._rank_set.add(rank)
+
+    def _parse_activity(self, json_data: dict):
+        if not self._is_dyno:
+            activities = json_data.get('activities')
+        else:
+            activities = json_data.get('PROFILE_ACTIVITIES').split(",")
+        if activities and isinstance(activities, list):
+            for entry in activities:
+                activity = getattr(ProfilerActivity, entry.upper(), None)
+                if activity:
+                    self.activity_set.add(activity)
+                else:
+                    DynamicProfilerUtils.out_log("Set activity failed, activity must be CPU OR NPU!",
+                                         DynamicProfilerUtils.LoggerLevelEnum.WARNING)
+    
+    def _parse_analysis(self, json_data: dict):
+        if not self._is_dyno:
+            self._analyse = json_data.get("analyse", False)
+        else:
+            self._analyse = json_data.get("PROFILE_ANALYSE", False)
+
+    def _parse_dyno_exp_cfg(self, json_data: dict): 
+        profiler_level = json_data.get('PROFILE_PROFILER_LEVEL', 'Level0')
+        profiler_level = getattr(ProfilerLevel, profiler_level, profiler_level)
+        aic_metrics = json_data.get('PROFILE_AIC_METRICS', 'AiCoreNone')
+        aic_metrics = getattr(AiCMetrics, aic_metrics, aic_metrics)
+        l2_cache = json_data.get('PROFILE_L2_CACHE', 'false')
+        l2_cache = self.BOOL_MAP.get(l2_cache.lower(), False)
+        op_attr = json_data.get('PROFILE_OP_ATTR', 'false')
+        op_attr = self.BOOL_MAP.get(op_attr.lower(), False)
+        gc_detect_threshold = json_data.get('PROFILE_GC_DETECT_THRESHOLD', None)
+        data_simplification = json_data.get('PROFILE_DATA_SIMPLIFICATION', 'true')
+        data_simplification = self.BOOL_MAP.get(data_simplification.lower(), True)
+        record_op_args = json_data.get('PROFILE_RECORD_SHAPES', 'false')
+        record_op_args = self.BOOL_MAP.get(record_op_args.lower(), False)
+        export_type = json_data.get('PROFILE_EXPORT_TYPE', 'text').lower()
+        msprof_tx = False
+        
+        self.experimental_config = _ExperimentalConfig(
+            profiler_level=profiler_level,
+            aic_metrics=aic_metrics,
+            l2_cache=l2_cache,
+            op_attr=op_attr,
+            gc_detect_threshold=gc_detect_threshold,
+            data_simplification=data_simplification,
+            record_op_args=record_op_args,
+            export_type=export_type,
+            msprof_tx=msprof_tx
+        )
+    
+    def _parse_cfg_json_exp_cfg(self, json_data: dict):
+        exp_config = json_data.get('experimental_config')
+        if not exp_config:
+            self.experimental_config = None
+            return
+        profiler_level = exp_config.get('profiler_level', 'Level0')
+        profiler_level = getattr(ProfilerLevel, profiler_level, profiler_level)
+        aic_metrics = exp_config.get('aic_metrics', 'AiCoreNone')
+        aic_metrics = getattr(AiCMetrics, aic_metrics, aic_metrics)
+        l2_cache = exp_config.get('l2_cache', False)
+        op_attr = exp_config.get('op_attr', False)
+        gc_detect_threshold = exp_config.get('gc_detect_threshold', None)
+        data_simplification = exp_config.get('data_simplification', True)
+        record_op_args = exp_config.get('record_op_args', False)
+        export_type = exp_config.get('export_type', 'text')
+        msprof_tx = exp_config.get('msprof_tx', False)
+
+        self.experimental_config = _ExperimentalConfig(
+            profiler_level=profiler_level,
+            aic_metrics=aic_metrics,
+            l2_cache=l2_cache,
+            op_attr=op_attr,
+            gc_detect_threshold=gc_detect_threshold,
+            data_simplification=data_simplification,
+            record_op_args=record_op_args,
+            export_type=export_type,
+            msprof_tx=msprof_tx
+        )
+
+    def _parse_exp_cfg(self, json_data: dict):
+        if not self._is_dyno:
+            self._parse_cfg_json_exp_cfg(json_data)
+        else:
+            self._parse_dyno_exp_cfg(json_data)
 
     def valid(self) -> bool:
         if not self.is_valid:
