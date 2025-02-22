@@ -16,7 +16,6 @@
 from collections import defaultdict
 from warnings import warn
 from math import ceil
-import os
 
 from ._base_parser import BaseParser
 from ..prof_common_func._file_tag import FileTag
@@ -24,8 +23,9 @@ from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_parse._fwk_file_parser import FwkFileParser
 from ..prof_bean._memory_use_bean import MemoryUseBean
 from ..prof_bean._op_mark_bean import OpMarkBean
-from ..prof_common_func._constant import Constant, print_error_msg, print_warn_msg
+from ..prof_common_func._constant import Constant, print_warn_msg
 from ..prof_common_func._constant import convert_ns2us_float, convert_ns2us_str
+from ..prof_common_func._log import ProfilerLogger
 from .._profiler_config import ProfilerConfig
 
 __all__ = []
@@ -46,6 +46,8 @@ class MemoryPrepareParser(BaseParser):
         self._enqueue_record_dict = {}  # {corrid: enqueue}
         self._dequeue_pids = set()
         self._dequeue_tids = set()
+        ProfilerLogger.init(self._profiler_path, "MemoryPrepareParser")
+        self.logger = ProfilerLogger.get_instance()
 
     @staticmethod
     def _find_torch_ops_by_binary_search(ts: int, torch_ops: list):
@@ -63,8 +65,8 @@ class MemoryPrepareParser(BaseParser):
         try:
             self._torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to generate pytorch memory data.")
+        except Exception as e:
+            self.logger.error("Failed to generate pytorch memory data, error: %s", str(e), exc_info=True)
             return Constant.FAIL, {}
         if self._incomplete_num > 0:
             print_warn_msg(f"{self._incomplete_num} memory record(s) are incomplete.")

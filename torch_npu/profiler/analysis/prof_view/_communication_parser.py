@@ -3,11 +3,12 @@ from collections import defaultdict
 
 from ._base_parser import BaseParser
 from ..prof_bean._torch_op_node import TorchOpNode
-from ..prof_common_func._constant import Constant, print_error_msg, print_warn_msg
+from ..prof_common_func._constant import Constant, print_warn_msg
 from ..prof_common_func._file_manager import FileManager
 from ..prof_parse._cann_file_parser import CANNFileParser
 from ..prof_parse._cann_file_parser import CANNDataEnum
 from ..prof_common_func._constant import convert_us2ns
+from ..prof_common_func._log import ProfilerLogger
 from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
 
 __all__ = []
@@ -45,6 +46,8 @@ class CommunicationParser(BaseParser):
         self._root_node = TorchOpNode()
         self._kernel_dict = {}
         self.step_list = []
+        ProfilerLogger.init(self._profiler_path, "CommunicationParser")
+        self.logger = ProfilerLogger.get_instance()
 
     @staticmethod
     def combine_size_distribution(op_dict: dict, total_dict: dict):
@@ -63,8 +66,8 @@ class CommunicationParser(BaseParser):
         try:
             self._init_step_list(deps_data)
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to generate communication.json or communication_matrix.json.")
+        except Exception as e:
+            self.logger.error("Failed to generate communication.json or communication_matrix.json, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 
@@ -272,7 +275,10 @@ class CommunicationParser(BaseParser):
     def _init_step_list(self, deps_data: dict):
         torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
         if torch_op_node:
-            self.step_list = FwkCANNRelationParser(self._profiler_path).get_step_range(torch_op_node[0], deps_data.get(
-                Constant.RELATION_PARSER, {}))
+            kernels_dict = deps_data.get(Constant.RELATION_PARSER, {})
+            if not kernels_dict:
+                self.logger.error("Init step list failed, the kernel dict is empty.")
+            self.step_list = FwkCANNRelationParser(self._profiler_path).get_step_range(torch_op_node[0], kernels_dict)
+
         if not self.step_list:
             self.step_list = [{"step_id": None, "start_ts": 0, "end_ts": float('inf'), "comm_ops": {}}]
