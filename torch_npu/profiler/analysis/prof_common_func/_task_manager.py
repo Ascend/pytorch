@@ -157,7 +157,7 @@ class ConcurrentTasksManager:
     def finalize(self):
         for task_info in self.task_infos.values():
             if task_info.status != TaskStatus.Succeed:
-                print_error_msg("Task %s has not run successfully." % task_info.task.name)
+                print_error_msg(f"Task [{task_info.task.__class__.__name__}] run failed.")
                 self.__stop_task(task_info)
 
         if self.progress_bar:

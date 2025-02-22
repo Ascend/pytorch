@@ -4,13 +4,14 @@ from collections import defaultdict
 
 from ..prof_bean._torch_op_bean import TorchOpBean
 from ..prof_common_func._binary_decoder import BinaryDecoder
-from ..prof_common_func._constant import Constant, DbConstant, contact_2num, print_warn_msg
+from ..prof_common_func._constant import Constant, contact_2num
 from ..prof_common_func._file_manager import FileManager
 from ..prof_common_func._file_tag import FileTag
 from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_common_func._tlv_decoder import TLVDecoder
 from ..prof_common_func._trace_event_manager import TraceEventManager
 from ..prof_common_func._tree_builder import TreeBuilder
+from ..prof_common_func._log import ProfilerLogger
 from ..prof_config._fwk_file_parser_config import FwkFileParserConfig
 from ._python_trace_parser import PythonTraceParser
 
@@ -23,6 +24,8 @@ class FwkFileParser:
         self._profiler_path = profiler_path
         self._file_list = {}
         self._file_dispatch()
+        ProfilerLogger.init(self._profiler_path, "FwkFileParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def get_file_data_by_tag(self, file_tag: int) -> list:
         file_path = self._file_list.get(file_tag)
@@ -41,6 +44,7 @@ class FwkFileParser:
         enqueue_data_list = []
         op_mark_data = self.get_file_data_by_tag(FileTag.OP_MARK)
         if not op_mark_data:
+            self.logger.error("Get enqueue data failed, the op mark data is empty.")
             return enqueue_data_list
         op_mark_data.sort(key=lambda x: x.time_ns)
         tid_op_dict = defaultdict(lambda: defaultdict(list))
@@ -52,7 +56,8 @@ class FwkFileParser:
                 continue
             start_op_list = tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
             if not start_op_list:
-                print_warn_msg("Enquque data match failed")
+                self.logger.warning("Enquque data match failed, the tid: %d, origin_name: %s is not exist.", 
+                                op_mark.tid, op_mark.origin_name)
                 continue
             start_op = start_op_list.pop()
             op_mark.ts = start_op.time_ns
@@ -65,6 +70,7 @@ class FwkFileParser:
         dequeue_data_list = []
         op_mark_data = self.get_file_data_by_tag(FileTag.OP_MARK)
         if not op_mark_data:
+            self.logger.error("Get dequeue data failed, the op mark data is empty.")
             return dequeue_data_list
         op_mark_data.sort(key=lambda x: x.time_ns)
         tid_op_dict = defaultdict(lambda: defaultdict(list))
@@ -76,7 +82,8 @@ class FwkFileParser:
                 continue
             start_op_list = tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
             if not start_op_list:
-                print_warn_msg("Dequque data match failed")
+                self.logger.warning("Dequque data match failed, the tid: %d, origin_name: %s is not exist.", 
+                                op_mark.tid, op_mark.origin_name)
                 continue
             start_op = start_op_list.pop()
             op_mark.ts = start_op.time_ns
@@ -103,7 +110,8 @@ class FwkFileParser:
             if op_mark.is_enqueue_end:
                 start_op_list = enqueue_tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
                 if not start_op_list:
-                    print_warn_msg("Enquque data match failed")
+                    self.logger.warning("Enquque data match failed, the tid: %d, origin_name: %s is not exist.", 
+                                    op_mark.tid, op_mark.origin_name)
                     continue
                 start_op = start_op_list.pop()
                 op_mark.ts = start_op.time_ns
@@ -114,7 +122,8 @@ class FwkFileParser:
             if op_mark.is_dequeue_end:
                 start_op_list = dequeue_tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
                 if not start_op_list:
-                    print_warn_msg("Dequque data match failed")
+                    self.logger.warning("Dequque data match failed, the tid: %d, origin_name: %s is not exist.", 
+                                    op_mark.tid, op_mark.origin_name)
                     continue
                 start_op = start_op_list.pop()
                 op_mark.ts = start_op.time_ns
@@ -126,6 +135,7 @@ class FwkFileParser:
     def get_torch_op_tree_node(self, only_fwk: bool = False) -> list:
         torch_op_list = self.get_file_data_by_tag(FileTag.TORCH_OP)
         if not torch_op_list:
+            self.logger.error("Get torch op tree node failed, the torch op data is empty.")
             return []
         enqueue_data_list = []
         if not only_fwk:
@@ -136,6 +146,7 @@ class FwkFileParser:
     def get_fwk_trace_data(self):
         torch_op_data = self.get_file_data_by_tag(FileTag.TORCH_OP)
         if not torch_op_data:
+            self.logger.error("Get fwk trace data failed, the torch op data is empty.")
             return []
         enqueue_data_list, dequeue_data_list = self.get_task_queue_data()
         pid = torch_op_data[0].pid

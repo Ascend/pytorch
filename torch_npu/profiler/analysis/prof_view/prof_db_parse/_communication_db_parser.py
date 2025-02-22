@@ -18,8 +18,9 @@ from enum import Enum
 
 from ...prof_parse._cann_file_parser import CANNDataEnum, CANNFileParser
 from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager
-from ...prof_common_func._constant import convert_us2ns, print_error_msg, print_warn_msg
+from ...prof_common_func._constant import convert_us2ns
 from ...prof_common_func._db_manager import DbManager
+from ...prof_common_func._log import ProfilerLogger
 from .._communication_parser import CommunicationParser
 
 __all__ = []
@@ -74,13 +75,15 @@ class CommunicationDbParser(CommunicationParser):
         self.cann_comm_db_curs = None
         self.analysis_db_conn = None
         self.analysis_db_curs = None
+        ProfilerLogger.init(self._profiler_path, "CommunicationDbParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
         try:
             self._init_step_list(deps_data)
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to generate communication table.")
+        except Exception as e:
+            self.logger.error("Failed to generate communication table, error: %s", str(e), exc_info=True)
             DbManager.destroy_db_connect(self.cann_comm_db_conn, self.cann_comm_db_curs)
             DbManager.destroy_db_connect(self.analysis_db_conn, self.analysis_db_curs)
             return Constant.FAIL, None
@@ -110,7 +113,7 @@ class CommunicationDbParser(CommunicationParser):
         band_width_data, matrix_data, time_data = [], [], []
         conn, curs = DbManager.create_connect_db(db_path)
         if not (conn and curs):
-            print_warn_msg(f"Failed to connect to db file: {db_path}")
+            self.logger.warning("Failed to connect to db file: %s", db_path)
             return band_width_data, matrix_data, time_data
         self.cann_comm_db_conn = conn
         self.cann_comm_db_curs = curs
@@ -219,7 +222,7 @@ class CommunicationDbParser(CommunicationParser):
         db_path = os.path.join(output_path, DbConstant.DB_ANALYSIS)
         conn, curs = DbManager.create_connect_db(db_path)
         if not (conn and curs):
-            print_warn_msg(f"Failed to connect to db file: {db_path}")
+            self.logger.warning("Failed to connect to db file: %s", db_path)
             return
         self.analysis_db_conn = conn
         self.analysis_db_curs = curs

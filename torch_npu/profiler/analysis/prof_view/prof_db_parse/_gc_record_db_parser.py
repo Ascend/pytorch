@@ -12,9 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from ...prof_common_func._db_manager import DbManager
-from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager, print_error_msg
+from ...prof_common_func._log import ProfilerLogger
+from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager
 from ...prof_parse._fwk_file_parser import FwkFileParser
 from .._base_parser import BaseParser
 
@@ -29,6 +29,8 @@ class GCRecordDbParser(BaseParser):
         self._cur = None
         self._db_path = ""
         self._gc_record_data = []
+        ProfilerLogger.init(self._profiler_path, "GCRecordDbParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
         try:
@@ -36,8 +38,8 @@ class GCRecordDbParser(BaseParser):
             self.init_db_connect()
             self._gc_record_data = FwkFileParser(self._profiler_path).get_gc_record_db_data()
             self.save_gc_record_data_to_db()
-        except Exception:
-            print_error_msg("Failed to generate gc record table.")
+        except Exception as e:
+            self.logger.error("Failed to generate gc record table, error: %s", str(e), exc_info=True)
             DbManager.destroy_db_connect(self._conn, self._cur)
             return Constant.FAIL, None
         return Constant.SUCCESS, None

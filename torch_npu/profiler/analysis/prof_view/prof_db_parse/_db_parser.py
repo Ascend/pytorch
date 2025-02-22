@@ -2,13 +2,13 @@ import os
 import re
 import shutil
 import json
-
 from ...prof_common_func._utils import collect_env_vars
 from ...prof_common_func._path_manager import ProfilerPathManager
 from ...prof_common_func._file_manager import FileManager
-from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager, print_error_msg, print_warn_msg
+from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager, print_warn_msg
 from ...prof_common_func._db_manager import DbManager
 from ...prof_common_func._host_info import get_host_info
+from ...prof_common_func._log import ProfilerLogger
 from .._base_parser import BaseParser
 from ..._profiler_config import ProfilerConfig
 
@@ -22,6 +22,8 @@ class DbParser(BaseParser):
         self._ascend_db_path = os.path.join(self._output_path, DbConstant.DB_ASCEND_PYTORCH_PROFILER)
         self._conn = None
         self._cur = None
+        ProfilerLogger.init(self._profiler_path, "DbParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, depth_data: dict):
         try:
@@ -37,8 +39,8 @@ class DbParser(BaseParser):
             self.save_env_vars_info_to_db()
             self.save_profiler_metadata_to_db()
             DbManager.destroy_db_connect(self._conn, self._cur)
-        except RuntimeError:
-            print_error_msg("Failed to generate ascend_pytorch_profiler db file.")
+        except RuntimeError as e:
+            self.logger.error("Failed to generate ascend_pytorch_profiler db file, error: %s", str(e), exc_info=True)
             DbManager.destroy_db_connect(self._conn, self._cur)
             return Constant.FAIL, ""
         return Constant.SUCCESS, self._ascend_db_path
@@ -90,7 +92,7 @@ class DbParser(BaseParser):
         try:
             profiler_metadata = json.loads(profiler_metadata)
         except json.JSONDecodeError as e:
-            print_warn_msg(f"profiler_metadata.json parse failed. {e}")
+            self.logger.warning("profiler_metadata.json parse failed. %s", str(e))
             return
         data = [
             [str(key), json.dumps(value)] for key, value in profiler_metadata.items()

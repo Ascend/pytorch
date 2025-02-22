@@ -1,8 +1,9 @@
 from enum import Enum
 from ._base_parser import BaseParser
-from ..prof_common_func._constant import Constant, print_error_msg
+from ..prof_common_func._constant import Constant
 from ..prof_common_func._file_manager import FileManager
 from ..prof_common_func._constant import convert_ns2us_float
+from ..prof_common_func._log import ProfilerLogger
 from ..prof_parse._cann_file_parser import CANNFileParser
 from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
 from ..prof_parse._fwk_file_parser import FwkFileParser
@@ -30,6 +31,8 @@ class TraceStepTimeParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self.step_range = []
+        ProfilerLogger.init(self._profiler_path, "TraceStepTimeParser")
+        self.logger = ProfilerLogger.get_instance()
 
     @classmethod
     def is_float_num(cls, num):
@@ -131,8 +134,8 @@ class TraceStepTimeParser(BaseParser):
         try:
             self._init_step_range(deps_data)
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to generate step_trace_time.csv.")
+        except Exception as e:
+            self.logger.error("Failed to generate step_trace_time.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 
