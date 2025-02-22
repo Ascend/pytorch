@@ -43,9 +43,6 @@ class ProfilingParser:
                 target_path = os.path.join(host_path, rm_dir)
                 PathManager.remove_path_safety(target_path)
         if simplify_flag:
-            if Constant.Db in ProfilerConfig().export_type:
-                profiler_metadata_path = os.path.join(profiler_path, Constant.PROFILER_META_DATA)
-                PathManager.remove_file_safety(profiler_metadata_path)
             fwk_path = ProfilerPathManager.get_fwk_path(profiler_path)
             PathManager.remove_path_safety(fwk_path)
             if not cann_path:
