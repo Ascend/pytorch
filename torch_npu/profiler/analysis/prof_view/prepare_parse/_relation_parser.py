@@ -12,8 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from ...prof_common_func._constant import Constant, print_error_msg
+from ...prof_common_func._constant import Constant
+from ...prof_common_func._log import ProfilerLogger
 from ...prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
 from ...prof_view._base_parser import BaseParser
 
@@ -23,11 +23,13 @@ __all__ = []
 class RelationParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
+        ProfilerLogger.init(self._profiler_path, "RelationParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
         try:
             kernel_dict = FwkCANNRelationParser(self._profiler_path).get_kernel_dict()
-        except Exception:
-            print_error_msg("Failed to get acl to npu flow dict.")
+        except Exception as e:
+            self.logger.error("Failed to get acl to npu flow dict, error: %s", str(e), exc_info=True)
             return Constant.FAIL, {}
         return Constant.SUCCESS, kernel_dict

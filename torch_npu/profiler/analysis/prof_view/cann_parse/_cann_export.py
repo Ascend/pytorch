@@ -25,6 +25,8 @@ from ...prof_common_func._constant import Constant, print_warn_msg, print_error_
 from ...prof_common_func._path_manager import ProfilerPathManager
 from ...prof_view._base_parser import BaseParser
 from ..._profiler_config import ProfilerConfig
+from ...prof_common_func._log import ProfilerLogger
+
 
 __all__ = []
 
@@ -39,6 +41,8 @@ class CANNExportParser(BaseParser):
         super().__init__(name, param_dict)
         self._cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
         self.msprof_path = shutil.which("msprof")
+        ProfilerLogger.init(self._profiler_path, "CANNExportParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
         try:
@@ -67,6 +71,7 @@ class CANNExportParser(BaseParser):
 
         except Exception as err:
             print_error_msg(f"Failed to export CANN Profiling data. Error msg: {err}")
+            self.logger.error("Failed to export CANN Profiling data, error: %s", str(err), exc_info=True)
             return Constant.FAIL, None
         end_time = datetime.utcnow()
         print_info_msg(f"CANN profiling data parsed in a total time of {end_time - start_time}")

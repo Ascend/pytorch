@@ -280,7 +280,7 @@ class TestNpuProfiler(TestCase):
         prof.stop()
         result_dir = os.path.join(self.results_work_path, "profiling_data")
         torch_npu.profiler.profiler.analyse(result_dir)
-        work_names = os.listdir(result_dir)
+        work_names = [p for p in os.listdir(result_dir) if p.endswith("ascend_pt")]
         os.environ["ASCEND_WORK_PATH"] = ""
         # only one device
         valid_work_name = len(work_names) == 1 and work_names[0].endswith("ascend_pt")

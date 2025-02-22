@@ -1,10 +1,11 @@
 from ._base_parser import BaseParser
-from ..prof_common_func._constant import Constant, print_error_msg
+from ..prof_common_func._constant import Constant
 from ..prof_common_func._file_manager import FileManager
 
 from ..prof_common_func._constant import convert_ns2us_float
 from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_common_func._tree_builder import TreeBuilder
+from ..prof_common_func._log import ProfilerLogger
 from ..prof_parse._fwk_file_parser import FwkFileParser
 
 __all__ = []
@@ -21,14 +22,16 @@ class OperatorViewParser(BaseParser):
         self._torch_op_node = []
         self._root_node = None
         self._kernel_dict = {}
+        ProfilerLogger.init(self._profiler_path, "OperatorViewParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
         try:
             self._torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             self._kernel_dict = deps_data.get(Constant.RELATION_PARSER, {})
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to generate operator_details.csv.")
+        except Exception as e:
+            self.logger.error("Failed to generate operator_details.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 

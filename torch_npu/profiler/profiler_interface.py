@@ -134,8 +134,8 @@ class _ProfInterface:
     def analyse(self, analysis_type: str = Constant.TENSORBOARD_TRACE_HANDLER, output_path: str = None, **kwargs):
         try:
             NpuProfiler.analyse(self.prof_path, analysis_type, output_path, **kwargs)
-        except Exception:
-            print_warn_msg("Profiling data parsing failed.")
+        except Exception as e:
+            print_warn_msg(f"Profiling data parsing failed, error: {e}")
 
     def check_gc_detect_enable(self):
         return ProfilerActivity.CPU in self.activities and self.experimental_config.with_gc

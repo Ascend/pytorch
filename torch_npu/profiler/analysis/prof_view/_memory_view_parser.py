@@ -7,11 +7,12 @@ from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_parse._fwk_file_parser import FwkFileParser
 from ..prof_common_func._file_manager import FileManager
 from ..prof_common_func._constant import convert_ns2us_str
-from ..prof_common_func._constant import Constant, print_error_msg
+from ..prof_common_func._constant import Constant
 from ..prof_bean._npu_mem_bean import NpuMemoryBean
 from ..prof_bean._ge_op_memory_bean import GeOpMemoryBean
 from ..prof_bean._ge_memory_record_bean import GeMemoryRecordBean
 from ..prof_parse._cann_file_parser import CANNFileParser, CANNDataEnum
+from ..prof_common_func._log import ProfilerLogger
 
 __all__ = []
 
@@ -33,6 +34,8 @@ class MemoryViewParser(BaseParser):
         self.ge_record_list = []
         self.memory_data = []
         self.component_list = []
+        ProfilerLogger.init(self._profiler_path, "MemoryViewParser")
+        self.logger = ProfilerLogger.get_instance()
 
     @staticmethod
     def _get_data_from_file(file_set: set, file_type_bean: any, bean_list: bool = False) -> list:
@@ -69,8 +72,8 @@ class MemoryViewParser(BaseParser):
             self.memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", {}).get(Constant.Text, [])
             self.pta_record_list = deps_data.get(Constant.MEMORY_PREPARE, {}).get("pta_record_list", [])
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to generate operator_memory.csv or memory_record.csv.")
+        except Exception as e:
+            self.logger.error("Failed to generate operator_memory.csv or memory_record.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 
