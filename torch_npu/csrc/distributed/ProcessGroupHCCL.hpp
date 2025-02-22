@@ -783,7 +783,8 @@ private:
     static std::string getMstxHcclMsg(const std::string &opName,
                                       uint64_t dataCnt,
                                       HcclDataType hcclType,
-                                      HcclComm comm);
+                                      HcclComm comm,
+                                      int64_t streamId);
 
     std::unordered_map<c10d::OpType, std::pair<at::Tensor, at::Tensor>> silenceCheckCache_;
 
