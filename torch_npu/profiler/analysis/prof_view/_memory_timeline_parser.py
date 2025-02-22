@@ -15,6 +15,7 @@ from torch.profiler._utils import traverse_dfs
 from ._base_parser import BaseParser
 from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_common_func._file_manager import FileManager
+from ..prof_common_func._log import ProfilerLogger
 from ..prof_common_func._constant import Constant, print_warn_msg, print_error_msg
 from ..prof_parse._event_tree_parser import (
     EventTree,
@@ -1074,6 +1075,8 @@ class MemoryTimelineParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self._device = self._param_dict.get("device")
+        ProfilerLogger.init(self._profiler_path, "MemoryTimelineParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
         try:
@@ -1087,7 +1090,7 @@ class MemoryTimelineParser(BaseParser):
                 mem_timeline.export_memory_timeline_json_raw(self._output_path, self._device)
             else:
                 mem_timeline.export_memory_timeline_json(self._output_path, self._device)
-        except Exception:
-            print_error_msg(f"Failed to generate {self._output_path}.")
+        except Exception as e:
+            self.logger.error("Failed to generate %s, error: %s", self._output_path, str(e), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None

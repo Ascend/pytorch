@@ -14,9 +14,10 @@
 # limitations under the License.
 
 import os
+import logging
 from enum import Enum
 from .._base_parser import BaseParser
-from ...prof_common_func._constant import Constant, print_error_msg, print_warn_msg
+from ...prof_common_func._constant import Constant, print_warn_msg
 from ...prof_common_func._constant import DbConstant, TableColumnsManager
 from ...prof_common_func._db_manager import DbManager
 from ...prof_common_func._constant import convert_ns2us_float
@@ -84,8 +85,8 @@ class TraceStepTimeDbParser(BaseParser):
             self._init_step_range(deps_data)
             self._init_task_info_from_db()
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to generate step_trace_time table.")
+        except Exception as e:
+            logging.error("Failed to generate step_trace_time table, error: %s", str(e), exc_info=True)
             DbManager.destroy_db_connect(self.task_db_con, self.task_db_curs)
             DbManager.destroy_db_connect(self.analysis_db_con, self.analysis_db_curs)
             return Constant.FAIL, None

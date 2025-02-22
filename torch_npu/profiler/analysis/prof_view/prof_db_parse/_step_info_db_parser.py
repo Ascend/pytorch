@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 
 from .._base_parser import BaseParser
 from ...prof_bean._torch_op_node import TorchOpNode
@@ -36,8 +37,8 @@ class StepInfoDbParser(BaseParser):
             self._db_path = deps_data.get(Constant.DB_PARSER, "")
             torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             step_range = self.get_step_range(torch_op_node[0] if torch_op_node else None)
-        except Exception:
-            print_error_msg("Failed to get step info from db.")
+        except Exception as e:
+            logging.error("Failed to get step info from db, error: %s", str(e), exc_info=True)
             DbManager.destroy_db_connect(self.db_conn, self.db_curs)
             return Constant.FAIL, []
         return Constant.SUCCESS, step_range

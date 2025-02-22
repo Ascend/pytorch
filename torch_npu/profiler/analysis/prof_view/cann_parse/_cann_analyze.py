@@ -21,6 +21,7 @@ from torch_npu.utils._error_code import ErrCode, prof_error
 from ...prof_common_func._constant import print_warn_msg, Constant, print_error_msg
 from ...prof_common_func._path_manager import ProfilerPathManager
 from .._base_parser import BaseParser
+from ...prof_common_func._log import ProfilerLogger
 from ..._profiler_config import ProfilerConfig
 
 __all__ = []
@@ -33,6 +34,8 @@ class CANNAnalyzeParser(BaseParser):
         super().__init__(name, param_dict)
         self._cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
         self.msprof_path = shutil.which("msprof")
+        ProfilerLogger.init(self._profiler_path, "CANNAnalyzeParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
         try:
@@ -58,5 +61,6 @@ class CANNAnalyzeParser(BaseParser):
 
         except Exception:
             print_error_msg("Failed to analyze CANN Profiling data.")
+            self.logger.error("Failed to analyze CANN Profiling data, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
