@@ -1,9 +1,7 @@
-import os
-
 from enum import Enum
 from ...prof_common_func._db_manager import DbManager
 from ...prof_common_func._id_manager import Str2IdManager, ConnectionIdManager, CallChainIdManager
-from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager, print_error_msg
+from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager
 from .._base_parser import BaseParser
 from ...prof_parse._fwk_file_parser import FwkFileParser
 
@@ -71,8 +69,8 @@ class FwkApiDbParser(BaseParser):
             fwk_api_data = FwkFileParser(self._profiler_path).get_fwk_api()
             self.get_api_data_for_db(fwk_api_data)
             self.save_api_data_to_db()
-        except Exception:
-            print_error_msg("Failed to generate framework api table.")
+        except Exception as e:
+            logging.error("Failed to generate framework api table, error: %s", str(e), exc_info=True)
             DbManager.destroy_db_connect(self._conn, self._cur)
             return Constant.FAIL, None
         return Constant.SUCCESS, None

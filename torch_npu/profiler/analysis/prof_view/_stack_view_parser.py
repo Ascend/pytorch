@@ -3,11 +3,12 @@ import os
 from ..prof_common_func._constant import convert_ns2us_float
 from ._base_parser import BaseParser
 from ..prof_bean._torch_op_node import TorchOpNode
-from ..prof_common_func._constant import Constant, print_error_msg
+from ..prof_common_func._constant import Constant
 from ..prof_common_func._constant import print_warn_msg
 from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_common_func._tree_builder import TreeBuilder
 from ..prof_common_func._file_manager import FileManager
+from ..prof_common_func._log import ProfilerLogger
 from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
 from ..prof_parse._fwk_file_parser import FwkFileParser
 from ....utils._path_manager import PathManager
@@ -22,13 +23,15 @@ class StackViewParser(BaseParser):
         self._root_node = None
         self._kernel_dict = {}
         self._metric = param_dict.get("metric")
+        ProfilerLogger.init(self._profiler_path, "StackViewParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
         try:
             self._torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to export stack.")
+        except Exception as e:
+            self.logger.error("Failed to export stack, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 

@@ -1,7 +1,8 @@
 from ._base_parser import BaseParser
-from ..prof_common_func._constant import Constant, print_error_msg, convert_ns2us_str
+from ..prof_common_func._constant import Constant, convert_ns2us_str
 from ..prof_common_func._csv_headers import CsvHeaders
 from ..prof_common_func._file_manager import FileManager
+from ..prof_common_func._log import ProfilerLogger
 from ..prof_bean._op_summary_bean import OpSummaryBean
 from ..prof_parse._cann_file_parser import CANNFileParser, CANNDataEnum
 from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
@@ -16,6 +17,8 @@ class KernelViewParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self.step_range = []
+        ProfilerLogger.init(self._profiler_path, "KernelViewParser")
+        self.logger = ProfilerLogger.get_instance()
 
     @classmethod
     def _project_map_for_headers(cls, input_headers: list):
@@ -36,8 +39,8 @@ class KernelViewParser(BaseParser):
             ProfilerConfig().load_info(self._profiler_path)
             self._init_step_range(deps_data)
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to generate kernel_details.csv.")
+        except Exception as e:
+            self.logger.error("Failed to generate kernel_details.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 
@@ -68,8 +71,13 @@ class KernelViewParser(BaseParser):
     def _init_step_range(self, deps_data: dict):
         torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
         if torch_op_node:
-            step_range = FwkCANNRelationParser(self._profiler_path).get_step_range(torch_op_node[0], deps_data.get(
-                Constant.RELATION_PARSER, {}))
+            kernel_dict = deps_data.get(Constant.RELATION_PARSER, {})
+            if not kernel_dict:
+                self.logger.error("Kernel view get step range failed, the kernel dict is empty.")
+                return
+            step_range = FwkCANNRelationParser(self._profiler_path).get_step_range(torch_op_node[0], kernel_dict)
+            if not step_range:
+                self.logger.error("Kernel view get step range failed, the step range is empty.")
             for step_data in step_range:
                 step_id = step_data.get(Constant.STEP_ID)
                 step_start = convert_ns2us_str(step_data.get(Constant.START_TS, 0))

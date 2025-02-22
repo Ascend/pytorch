@@ -1,11 +1,12 @@
 import os
 
 from ._base_parser import BaseParser
-from ..prof_common_func._constant import Constant, print_error_msg
+from ..prof_common_func._constant import Constant
 from ..prof_common_func._file_manager import FileManager
 from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_common_func._trace_event_manager import TraceEventManager
 from ..prof_common_func._tree_builder import TreeBuilder
+from ..prof_common_func._log import ProfilerLogger
 from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
 from .._profiler_config import ProfilerConfig
 from ..prof_parse._cann_file_parser import CANNFileParser
@@ -26,6 +27,8 @@ class TraceViewParser(BaseParser):
         self._trace_data = []
         self._torch_op_node = []
         self._root_node = None
+        ProfilerLogger.init(self._profiler_path, "TraceViewParser")
+        self.logger = ProfilerLogger.get_instance()
 
     @staticmethod
     def _prune_trace_by_level(json_data: list) -> list:
@@ -51,8 +54,8 @@ class TraceViewParser(BaseParser):
                 self._root_node = torch_op_node[0]
                 self._torch_op_node = torch_op_node[1:]
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to generate trace_view.json.")
+        except Exception as e:
+            self.logger.error("Failed to generate trace_view.json, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 

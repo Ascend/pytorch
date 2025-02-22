@@ -8,7 +8,8 @@ from ...prof_common_func._db_manager import DbManager
 from ...prof_common_func._id_manager import Str2IdManager
 from ...prof_common_func._path_manager import ProfilerPathManager
 from ...prof_parse._cann_file_parser import CANNFileParser, CANNDataEnum
-from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager, print_error_msg
+from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager
+from ...prof_common_func._log import ProfilerLogger
 from .._base_parser import BaseParser
 
 __all__ = []
@@ -65,6 +66,8 @@ class MemoryDbParser(BaseParser):
         self._pta_record_list = []
         self._ge_record_list = []
         self._record_list = []
+        ProfilerLogger.init(self._profiler_path, "MemoryDbParser")
+        self.logger = ProfilerLogger.get_instance()
 
     @staticmethod
     def _combine_record(last_record, cur_record):
@@ -86,8 +89,8 @@ class MemoryDbParser(BaseParser):
             self._pta_memory_bean_list = deps_data.get(Constant.MEMORY_PREPARE, {}).get("pta_record_list", [])
             self.init_pta_memory_data()
             self.save_memory_data_to_db()
-        except Exception:
-            print_error_msg("Failed to generate memory_record table or op_memory table.")
+        except Exception as e:
+            self.logger.error("Failed to generate memory_record table or op_memory table, error: %s", str(e), exc_info=True)
             DbManager.destroy_db_connect(self._conn, self._cur)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
