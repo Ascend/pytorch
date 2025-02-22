@@ -1,6 +1,7 @@
 from ._fwk_file_parser import FwkFileParser
 from ..prof_bean._torch_op_node import TorchOpNode
 from ..prof_common_func._constant import Constant, print_error_msg
+from ..prof_common_func._log import ProfilerLogger
 from ..prof_parse._cann_file_parser import CANNFileParser
 
 __all__ = []
@@ -9,6 +10,8 @@ __all__ = []
 class FwkCANNRelationParser:
     def __init__(self, profiler_path: str):
         self._profiler_path = profiler_path
+        ProfilerLogger.init(self._profiler_path, "FwkCANNRelationParser")
+        self.logger = ProfilerLogger.get_instance()
 
     @classmethod
     def combine_kernel_dict(cls, acl_to_npu_dict: dict, dequeue_data_list: list):
@@ -45,28 +48,31 @@ class FwkCANNRelationParser:
     def get_kernel_dict(self) -> dict:
         acl_to_npu_dict = CANNFileParser(self._profiler_path).get_acl_to_npu_data()
         if not acl_to_npu_dict:
+            print_error_msg("Failed to get acl to npu flow events.")
             return acl_to_npu_dict
         dequeue_data_list = FwkFileParser(self._profiler_path).get_dequeue_data()
         return self.combine_kernel_dict(acl_to_npu_dict, dequeue_data_list)
 
     def get_step_range(self, root_node: TorchOpNode, kernel_dict: dict):
         if not kernel_dict:
-            print_error_msg("Failed to get acl to npu flow events.")
+            self.logger.error("Get step range failed, the kernel dict is empty.")
             return []
-        step_node_list = []
-        for level1_node in root_node.child_node_list:
-            if level1_node.is_profiler_step():
-                step_node_list.append(level1_node)
+        # Get ProfilerStep#x node
+        step_node_list = [node for node in root_node.child_node_list if node.is_profiler_step()]
         if not step_node_list:
+            self.logger.error("Get step range failed, the step node list is empty.")
             return []
+        
+        # Gather flow events start time in each step node
         if not FwkFileParser(self._profiler_path).has_task_queue_data():
             acl_start_time_list = sorted(list(kernel_dict.keys()))
             self._update_step_node_info(step_node_list, acl_start_time_list)
+        # Get step range on device by flow events
         step_range = []
         for step_node in step_node_list:
             step_id = step_node.event.name.split("#")[-1]
             if not step_node.corr_id_total:
-                print_error_msg("Some step lost the correlation id information.")
+                self.logger.error("There is no flow events in %s range.", step_node.event.name)
                 return []
             corr_id_list = sorted(step_node.corr_id_total)
             min_index, max_index = 0, len(corr_id_list) - 1

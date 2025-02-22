@@ -1,6 +1,7 @@
 from ._base_parser import BaseParser
-from ..prof_common_func._constant import Constant, print_error_msg
+from ..prof_common_func._constant import Constant
 from ..prof_common_func._file_manager import FileManager
+from ..prof_common_func._log import ProfilerLogger
 from ..prof_parse._cann_file_parser import CANNFileParser, CANNDataEnum
 from .._profiler_config import ProfilerConfig
 
@@ -21,13 +22,15 @@ class IntegrateParser(BaseParser):
 
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
+        ProfilerLogger.init(self._profiler_path, "IntegrateParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
         try:
             ProfilerConfig().load_info(self._profiler_path)
             self.generate_view()
-        except Exception:
-            print_error_msg("Failed to generate data_preprocess.csv or l2_cache.csv.")
+        except Exception as e:
+            self.logger.error("Failed to generate data_preprocess.csv or l2_cache.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 

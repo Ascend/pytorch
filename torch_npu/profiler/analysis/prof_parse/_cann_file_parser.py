@@ -12,6 +12,7 @@ from ..prof_common_func._constant import Constant, print_warn_msg
 from ..prof_common_func._constant import convert_us2ns
 from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_common_func._file_manager import FileManager
+from ..prof_common_func._log import ProfilerLogger
 
 __all__ = []
 
@@ -66,9 +67,12 @@ class CANNFileParser:
     }
 
     def __init__(self, profiler_path: str):
+        self._profiler_path = profiler_path
         self._cann_path = ProfilerPathManager.get_cann_path(profiler_path)
         self._file_dict = {}
         self._file_dispatch()
+        ProfilerLogger.init(profiler_path, "CANNFileParser")
+        self.logger = ProfilerLogger.get_instance()
 
     @classmethod
     def _json_load(cls, data: str) -> list:
@@ -98,6 +102,7 @@ class CANNFileParser:
 
     @classmethod
     def combine_acl_to_npu(cls, timeline_data: list) -> dict:
+        logger = ProfilerLogger.get_instance()
         flow_dict, event_dict = {}, {}
         for data in timeline_data:
             if data.get("cat") == cls.HOST_TO_DEVICE and data.get("ph") == cls.START_FLOW:
@@ -112,6 +117,13 @@ class CANNFileParser:
                 ts = data.get("ts")
                 unique_id = f"{pid}-{tid}-{ts}"
                 event_dict[unique_id] = data
+
+        if not flow_dict:
+            logger.error("There is no HostToDevice flow events in msprof timeline.")
+
+        if not event_dict:
+            logger.error("There is no kernel events in msprof timeline.")
+
         acl_to_npu_dict = {}
         for flow in flow_dict.values():
             start_event = flow.get("start")
@@ -123,8 +135,11 @@ class CANNFileParser:
                 unique_id = f"{pid}-{tid}-{ts}"
                 kernel_event = event_dict.get(unique_id)
                 if not kernel_event:
+                    logger.warning("The kernel event of unique_id(pid: %d, tid: %d, ts: %d) is not exist in msprof timeline.", 
+                                    pid, tid, ts)
                     continue
                 acl_to_npu_dict.setdefault(convert_us2ns(start_event.get("ts", 0)), []).append(EventBean(kernel_event))
+                
         return acl_to_npu_dict
 
     def get_timeline_all_data(self) -> list:
@@ -133,6 +148,9 @@ class CANNFileParser:
         for msprof_file in msprof_file_list:
             data = self._json_load(FileManager.file_read_all(msprof_file, "rt"))
             timeline_data.extend(data)
+
+        if not timeline_data:
+            self.logger.error("Get timeline all data failed, the timeline data is empty.")
         return timeline_data
 
     def get_analyze_communication_data(self, file_type: Enum) -> dict:
@@ -153,21 +171,24 @@ class CANNFileParser:
     def get_localtime_diff(self) -> float:
         localtime_diff = 0
         if not self._cann_path:
+            self.logger.error("Get localtime diff failed, the CANN path is not exist.")
             return localtime_diff
         start_info_path = ProfilerPathManager.get_start_info_path(self._cann_path)
         if not start_info_path:
+            self.logger.error("Get localtime diff failed, the start info path is not exist.")
             return localtime_diff
         try:
             info_json = ast.literal_eval(FileManager.file_read_all(start_info_path, "rt"))
             localtime_diff = convert_us2ns(info_json.get(Constant.CANN_BEGIN_TIME, 0)) - int(
                 info_json.get(Constant.CANN_BEGIN_MONOTONIC, 0))
-        except Exception:
-            print_warn_msg("Failed to get CANN localtime diff.")
+        except Exception as e:
+            self.logger.error("Failed to get CANN localtime diff, error: %s", str(e), exc_info=True)
         return localtime_diff
 
     def del_summary_and_timeline_data(self):
         device_path = ProfilerPathManager.get_device_path(self._cann_path)
         if not device_path:
+            self.logger.error("Delete summary and timeline data failed, the device path is not exist.")
             return
         summary_path = os.path.join(device_path, "summary")
         timeline_path = os.path.join(device_path, "timeline")
