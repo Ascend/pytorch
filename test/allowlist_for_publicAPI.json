@@ -958,7 +958,6 @@
   ],
   "torch.serialization": [
     "Any",
-    "BinaryIO",
     "Dict",
     "IO",
     "Optional",
@@ -1088,6 +1087,7 @@
   "torch.types": [
     "Any",
     "Device",
+    "FileLike",
     "List",
     "Number",
     "Sequence",

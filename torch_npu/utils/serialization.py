@@ -5,7 +5,7 @@ from typing import Any, Optional
 import torch
 from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile,\
     _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler,\
-    _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL
+    _legacy_load, _load, FileLike, MAP_LOCATION, DEFAULT_PROTOCOL
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
@@ -126,7 +126,7 @@ def _update_cpu_remap_info(map_location):
 
 
 def load(
-    f: FILE_LIKE,
+    f: FileLike,
     map_location: MAP_LOCATION = None,
     pickle_module: Any = None,
     *,
@@ -216,7 +216,7 @@ def load(
 
 def _get_npu_save_result(
     obj: object,
-    f: FILE_LIKE,
+    f: FileLike,
     pickle_module: Any = pickle,
     pickle_protocol: int = DEFAULT_PROTOCOL,
     _use_new_zipfile_serialization: bool = True,
@@ -240,7 +240,7 @@ def _get_npu_save_result(
 
 def save(
     obj: object,
-    f: FILE_LIKE,
+    f: FileLike,
     pickle_module: Any = pickle,
     pickle_protocol: int = DEFAULT_PROTOCOL,
     _use_new_zipfile_serialization: bool = True,
