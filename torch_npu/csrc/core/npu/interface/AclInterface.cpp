@@ -16,10 +16,10 @@ namespace c10_npu {
 namespace acl {
 #undef LOAD_FUNCTION
 #define LOAD_FUNCTION(funcName) \
-  REGISTER_FUNCTION(libascendcl, funcName)
+    REGISTER_FUNCTION(libascendcl, funcName)
 #undef GET_FUNC
 #define GET_FUNC(funcName)           \
-  GET_FUNCTION(libascendcl, funcName)
+    GET_FUNCTION(libascendcl, funcName)
 
 REGISTER_LIBRARY(libascendcl)
 LOAD_FUNCTION(aclGetRecentErrMsg)
