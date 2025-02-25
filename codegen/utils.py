@@ -309,7 +309,7 @@ return {self_arg_name};
 
             device_check = "  // No device check\n"
             # Backends that require device guards presumably also require device checks.
-            if self.backend_index.device_guard and op_name not in DEVICE_NOCHECK_SET:
+            if self.backend_index.device_guard and str(f.func.name) not in DEVICE_NOCHECK_SET:
                 device_check_args = itertools.chain(
                     f.func.arguments.out, f.func.arguments.flat_positional
                 )
