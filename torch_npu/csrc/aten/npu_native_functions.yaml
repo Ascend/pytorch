@@ -48,7 +48,7 @@ supported:
   - squeeze.dim
   - to.device
   - to.dtype
-  - to.dtype_layout
+  - _to_copy
   - to.other
   - tril_indices
   - triu_indices
