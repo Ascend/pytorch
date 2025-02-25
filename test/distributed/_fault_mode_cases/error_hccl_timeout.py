@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 import torch.distributed as dist
 import torch_npu
@@ -18,7 +19,7 @@ def hccl_timeout():
     out = zeros if rank > 0 else tensor
     dist.all_reduce(out)
     if rank == 1:
-        exit()
+        time.sleep(200)
     dist.all_reduce(out)
 
 
