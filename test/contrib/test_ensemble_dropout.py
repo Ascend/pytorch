@@ -32,11 +32,11 @@ class TestEnsembleDropout(unittest.TestCase):
         model = NpuMNIST().to("npu")
         x = torch.randn(2, 10, 16, 16).to("npu")
         NpuFairseqDropout.enable_dropout_ensemble(model)
-        dropout = NpuFairseqDropout(p=1)
+        dropout = NpuFairseqDropout(p=0.5)
         output = model(x, dropout)
 
         NpuCachedDropout.enable_dropout_ensemble(model)
-        dropout = NpuCachedDropout(p=1)
+        dropout = NpuCachedDropout(p=0.5)
         output = model(x, dropout)
 
 
