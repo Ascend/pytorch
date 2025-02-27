@@ -9,7 +9,7 @@ def hccl_timeout():
     os.environ["MASTER_ADDR"] = "127.0.0.1"
     os.environ["MASTER_PORT"] = "29500"
     os.environ["HCCL_WHITELIST_DISABLE"] = "1"
-    os.environ["HCCL_EXEC_TIMEOUT"] = "180"
+    os.environ["HCCL_EXEC_TIMEOUT"] = "100"
     backend = "hccl"
     dist.init_process_group(backend)
     rank = dist.get_rank()

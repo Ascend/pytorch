@@ -258,6 +258,25 @@ std::string getExceptionMsgFromExceptionPtr(const std::exception_ptr& exceptionP
     }
 }
 
+bool getDeterministicState()
+{
+    static bool cachedDeterministicState = []() {
+        // The env variable has a higher priority.
+        const char* envValue = std::getenv("HCCL_DETERMINISTIC");
+        if (envValue != nullptr) {
+            std::string valueStr(envValue);
+            std::transform(valueStr.begin(), valueStr.end(), valueStr.begin(), ::tolower);
+            if (valueStr == "true") {
+                return true;
+            }
+        }
+
+        return at::globalContext().deterministicAlgorithms();
+    }();
+
+    return cachedDeterministicState;
+}
+
 void getHcclCommConfig(HcclCommConfig* config, bool isP2P = false)
 {
     HcclCommConfigInit(config);
@@ -266,6 +285,9 @@ void getHcclCommConfig(HcclCommConfig* config, bool isP2P = false)
     } else {
         config->hcclBufferSize = c10_npu::option::OptionsManager::GetP2PBufferSize();
     }
+
+    // Temporarily adding this logic to set deterministic states to avoid a known issues within HCCL.
+    config->hcclDeterministic = getDeterministicState() ? 1 : 0;
 
     // Compatible with the size check of the old version of HCCL, forcibly convert
     // the config object to a size_t=32 object, and retain the N ± 2 version
@@ -2864,15 +2886,7 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
 
     // update group name in hccl comm config
     std::string groupName = getGroupName();
-    uint32_t groupNameLength = groupName.length();
-    if (groupNameLength >= COMM_NAME_MAX_LENGTH) {
-        groupNameLength = COMM_NAME_MAX_LENGTH - 1;
-        TORCH_NPU_WARN("The length of group_name has exceeded the limit COMM_NAME_MAX_LENGTH, "
-                       "so the group name will be truncated to COMM_NAME_MAX_LENGTH - 1.");
-    }
-    torch_npu::toolkit::profiler::Utils::safe_strcpy_s(config.hcclCommName, groupName.c_str(),
-                                                       groupNameLength);
-    config.hcclCommName[groupNameLength] = '\0';
+    torch_npu::toolkit::profiler::Utils::safe_strcpy_s(config.hcclCommName, groupName.c_str(), COMM_NAME_MAX_LENGTH);
 
     if (options_->hccl_config.empty()) {
         return config;
