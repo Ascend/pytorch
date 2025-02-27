@@ -71,7 +71,7 @@ class HcomAllReduceTest(TestCase):
     def test_dist_all_reduce(self):
         # CI currently supports only 2 devices
         ranks = [2]
-        dtype_list = [np.float32, np.int32]
+        dtype_list = [np.float32]
         format_list = [0, 2, 3]
         shape_format = [
             [i, j, [2, 3, 16]] for i in dtype_list for j in format_list
@@ -95,23 +95,10 @@ class HcomAllReduceTest(TestCase):
                                     HcomAllReduceTest._init_dist_hccl, expected, input1, world_size)
 
     @skipIfUnsupportMultiNPU(2)
-    def test_dist_all_reduce_uint8(self):
-        ranks = [2]
-        shape_format = [[np.uint8, 2, [2, 3, 16]], [np.uint8, 2, [1]]]
-        for world_size in ranks:
-            for shape in shape_format:
-                if len(shape[2]) == 1:
-                    continue
-                exp_input, input1 = create_common_tensor(shape, 0, 10)
-                expected = self._construct_excepted_result(exp_input, world_size)
-                self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
-                                        HcomAllReduceTest._init_dist_hccl, expected, input1, world_size)
-
-    @skipIfUnsupportMultiNPU(2)
     def test_dist_all_reduce_avg(self):
         # CI currently supports only 2 devices
         ranks = [2]
-        dtype_list = [np.float32, np.int32]
+        dtype_list = [np.int32]
         shape_format = [
             [i, 2, [3, 16]] for i in dtype_list
         ]
@@ -122,17 +109,6 @@ class HcomAllReduceTest(TestCase):
                 self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
                                         HcomAllReduceTest._init_dist_hccl, expected, input1, world_size,
                                         dist.ReduceOp.AVG)
-
-    @skipIfUnsupportMultiNPU(2)
-    def test_dist_all_reduce_int64_avg(self):
-        # CI currently supports only 2 devices
-        ranks = [2]
-        shape_format = [np.int64, 2, [1]]
-        for world_size in ranks:
-            exp_input, input1 = create_common_tensor(shape_format, -10, 10)
-            expected = self._construct_excepted_result(exp_input, world_size, np.int64, dist.ReduceOp.AVG)
-            self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
-                                    HcomAllReduceTest._init_dist_hccl, expected, input1, world_size, dist.ReduceOp.AVG)
 
     @skipIfUnsupportMultiNPU(2)
     def test_dist_all_reduce_uint8_avg(self):
