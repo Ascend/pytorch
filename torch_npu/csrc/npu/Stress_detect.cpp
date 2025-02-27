@@ -1,6 +1,7 @@
 #include "Stress_detect.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/interface/MlInterface.h"
 
 std::atomic<bool> StressDetector::task_in_progress(false);
 std::atomic<bool> StressDetector::stop_thread(false);
@@ -38,7 +39,18 @@ void StressDetector::worker_thread()
         }
 
         // Execute the task
-        int ret = c10_npu::acl::AclStressDetect(device_id, workspaceAddr, workspaceSize);
+        int ret = -1;
+        if (c10_npu::amlapi::IsExistAmlAicoreDetectOnline()) {
+            AmlAicoreDetectAttr attr;
+            attr.mode = AML_DETECT_RUN_MODE_ONLINE;
+            attr.workspace = workspaceAddr;
+            attr.workspaceSize = workspaceSize;
+            ret = c10_npu::amlapi::AmlAicoreDetectOnlineFace(device_id, &attr);
+            ASCEND_LOGI("Stress detect with AmlAicoreDetectOnline, result is %d.", ret);
+        } else {
+            ret = c10_npu::acl::AclStressDetect(device_id, workspaceAddr, workspaceSize);
+            ASCEND_LOGI("Stress detect with StressDetect, result is %d.", ret);
+        }
 
         // Task complete, free memory
         aclrtFree(workspaceAddr);
