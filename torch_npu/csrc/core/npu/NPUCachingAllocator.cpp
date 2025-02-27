@@ -1047,9 +1047,8 @@ class DeviceCachingAllocator {
     }
 
     if (!block_found) {
-        ASCEND_LOGE(
-            "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log "
-            "can be ignored.");
+        ASCEND_LOGE("Get a block from the existing pool failed. %s",
+            "Try to free cached blocks and reallocate. This error log can be ignored.");
         // Free all non-split cached blocks and retry alloc.
         c10_npu::NPUWorkspaceAllocator::emptyCache(device, true, true);
         block_found = (release_cached_blocks(true, context) && alloc_block(params, true, context, lock));
