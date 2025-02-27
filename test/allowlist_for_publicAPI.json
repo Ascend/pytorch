@@ -2519,6 +2519,7 @@
     "npu_rms_norm",
     "npu_moe_compute_expert_tokens",
     "npu_fused_infer_attention_score",
+    "npu_mla_prolog",
     "npu_convert_weight_to_int4pack",
     "npu_ffn",
     "npu_geglu",
