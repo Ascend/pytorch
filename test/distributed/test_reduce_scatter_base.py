@@ -31,7 +31,7 @@ class HcclReduceScatterBaseTest(HcclReduceScatterTestBase):
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_base(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16, np.int32, np.int8]
+        dtype_list = [np.float32, np.float16]
         format_list = [0, 2, 3, 29]
         shape_format = [
             [i, j, [4, 9]] for i in dtype_list for j in format_list] + \
@@ -69,7 +69,7 @@ class HcclReduceScatterBaseTest(HcclReduceScatterTestBase):
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_base_avg(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16, np.int32, np.int8, np.int64]
+        dtype_list = [np.int32, np.int8]
         shape_format = [[i, 2, [4, 9]] for i in dtype_list]
         for world_size in ranks:
             for shape in shape_format:

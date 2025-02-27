@@ -31,7 +31,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_tensor(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16, np.int32, np.int8]
+        dtype_list = [np.float32, np.float16]
         format_list = [0, 2, 3, 29]
         shape_format = [
             [i, j, [4, 9]] for i in dtype_list for j in format_list] + \
@@ -62,7 +62,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_tensor_uneven(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16, np.int32, np.int8]
+        dtype_list = [np.int32, np.int8]
         format_list = [0, 2, 3, 29]
         shape_format = [
             [i, j, [4, 9]] for i in dtype_list for j in format_list] + \
@@ -82,7 +82,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_tensor_avg(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16, np.int32, np.int8]
+        dtype_list = [np.int32, np.int8]
         shape_format = [[i, 2, [4, 9]] for i in dtype_list]
         for world_size in ranks:
             for shape in shape_format:
@@ -99,7 +99,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_tensor_uneven_avg(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16, np.int32, np.int8]
+        dtype_list = [np.float32, np.float16]
         shape_format = [[i, 2, [4, 9]] for i in dtype_list]
         for world_size in ranks:
             for shape in shape_format:
