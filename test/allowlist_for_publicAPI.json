@@ -2714,6 +2714,7 @@
     "empty_with_format",
     "npu_alloc_float_status",
     "npu_apply_adam",
+    "npu_advance_step_flashattn",
     "npu_bert_apply_adam",
     "npu_clear_float_status",
     "npu_cross_entropy_loss",
