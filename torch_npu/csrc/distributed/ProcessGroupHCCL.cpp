@@ -2777,7 +2777,7 @@ std::string mapToJson(const std::unordered_map<std::string, std::string>& map)
         if (!first) {
             ss << ",";
         }
-        ss << pair.first << ": " << pair.second;
+        ss << "\"" << pair.first << "\"" << ": " << "\"" << pair.second << "\"";
         first = false;
     }
     ss << "}";
@@ -2807,25 +2807,23 @@ std::string ProcessGroupHCCL::getMstxHcclMsg(
     }
     std::unordered_map<std::string, std::string> msgDict;
     msgDict["opName"] = opName;
-    std::string hccl_message_str = "comm:" + opName + "-";
     auto nameIter = commNames.find(comm);
     if (nameIter == commNames.end()) {
         char commName[MAX_GROUP_NAME_LEN];
         HCCL_CHECK_ERROR(at_npu::hccl::HcclGetCommNameFace(comm, commName));
         std::string name(commName);
         commNames.insert({comm, name});
-        msgDict["commName"] = name;
+        msgDict["groupName"] = name;
     } else {
-        msgDict["commName"] = nameIter->second;
+        msgDict["groupName"] = nameIter->second;
     }
-    hccl_message_str += "-";
     std::string data_type_str = "na";
     auto iter = dataTypes.find(dataType);
     if (iter != dataTypes.end()) {
         data_type_str = iter->second;
     }
     msgDict["dataType"] = data_type_str;
-    msgDict["dataCnt"] = std::to_string(dataCnt);
+    msgDict["count"] = std::to_string(dataCnt);
     msgDict["streamId"] = std::to_string(streamId);
     return mapToJson(msgDict);
 }
@@ -3546,8 +3544,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
 			                                           };
 			    }
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclBatchSendRecv", sendRecvInfo[0].count, sendRecvInfo[0].dataType, comm, streamId),
-                    stream.stream(false));
+                    getMstxHcclMsg("HcclBatchSendRecv", sendRecvInfo[0].count,
+                                   sendRecvInfo[0].dataType, comm, streamId),
+                    stream.stream(false),
+                    torch_npu::profiler::DOMAIN_COMMUNICATION);
 			    auto hccl_result = hcclBatchIsendIrecv(sendRecvInfo, itemNum, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
