@@ -129,7 +129,7 @@ inline bool mstxEnable()
 
 struct MstxRange {
     int rangeId{0};
-    mstxDomainhandle_t domainHandle{nullptr};
+    mstxDomainHandle_t domainHandle{nullptr};
     MstxRange(const std::string &message, aclrtStream stream, const std::string &domainName = "default")
     {
         if (!mstxEnable()) {

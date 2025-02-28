@@ -12,6 +12,7 @@ namespace torch_npu {
 namespace profiler {
 
 const std::string DOMAIN_COMMUNICATION = "communication";
+const std::string DOMAIN_MSLEAKS = "msleaks";
 
 class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
 friend class torch_npu::toolkit::profiler::Singleton<MstxMgr>;
@@ -22,11 +23,15 @@ public:
     bool isMstxEnable();
     int getRangeId();
 
-    mstxDomainhandle_t createDomain(const char* name);
-    void destroyDomain(mstxDomainhandle_t domain);
-    void domainMark(mstxDomainhandle_t domain, const char* message, const aclrtStream stream);
-    int domainRangeStart(mstxDomainhandle_t domain, const char* message, const aclrtStream stream);
-    void domainRangeEnd(mstxDomainhandle_t domain, int ptRangeId);
+    mstxDomainHandle_t createDomain(const char* name);
+    void destroyDomain(mstxDomainHandle_t domain);
+    void domainMark(mstxDomainHandle_t domain, const char* message, const aclrtStream stream);
+    int domainRangeStart(mstxDomainHandle_t domain, const char* message, const aclrtStream stream);
+    void domainRangeEnd(mstxDomainHandle_t domain, int ptRangeId);
+    mstxMemHeapHandle_t memHeapRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc);
+    void memHeapUnregister(mstxDomainHandle_t domain, void* ptr);
+    void memRegionsRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc);
+    void memRegionsUnregister(mstxDomainHandle_t domain, void* ptr);
 
 private:
     MstxMgr();
@@ -35,6 +40,8 @@ private:
     explicit MstxMgr(MstxMgr &&obj) = delete;
     MstxMgr& operator=(MstxMgr &&obj) = delete;
 
+    bool isMsleaksEnable();
+    bool isMsleaksEnableImpl();
     bool isProfTxEnable();
     bool isMsptiTxEnable();
     bool isMsptiTxEnableImpl();
@@ -43,6 +50,5 @@ private:
     std::unordered_set<int> ptRangeIdsWithStream_;
     std::mutex mtx_;
 };
-
 }
 } // namespace torch_npu
