@@ -16,15 +16,24 @@ int MstxRangeStartA(const char* message, aclrtStream stream, int ptRangeId);
 
 void MstxRangeEnd(int ptRangeId);
 
-mstxDomainhandle_t MstxDomainCreateA(const char* name);
+mstxDomainHandle_t MstxDomainCreateA(const char* name);
 
-void MstxDomainDestroy(mstxDomainhandle_t handle);
+void MstxDomainDestroy(mstxDomainHandle_t handle);
 
-void MstxDomainMarkA(mstxDomainhandle_t handle, const char* message, aclrtStream stream);
+void MstxDomainMarkA(mstxDomainHandle_t handle, const char* message, aclrtStream stream);
 
-int MstxDomainRangeStartA(mstxDomainhandle_t handle, const char* message, aclrtStream stream, int ptRangeId);
+int MstxDomainRangeStartA(mstxDomainHandle_t handle, const char* message, aclrtStream stream, int ptRangeId);
 
-void MstxDomainRangeEnd(mstxDomainhandle_t handle, int ptRangeId);
+void MstxDomainRangeEnd(mstxDomainHandle_t handle, int ptRangeId);
+
+mstxMemHeapHandle_t MstxMemHeapRegister(mstxDomainHandle_t domain, const mstxMemHeapDesc_t* desc);
+
+void MstxMemHeapUnregister(mstxDomainHandle_t domain, mstxMemHeapHandle_t heap);
+
+void MstxMemRegionsRegister(mstxDomainHandle_t domain, const mstxMemRegionsRegisterBatch_t* desc);
+
+void MstxMemRegionsUnregister(mstxDomainHandle_t domain, const mstxMemRegionsUnregisterBatch_t* desc);
+
 }
 }
 

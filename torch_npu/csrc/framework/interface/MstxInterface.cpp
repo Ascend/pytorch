@@ -24,6 +24,10 @@ LOAD_FUNCTION(mstxDomainDestroy)
 LOAD_FUNCTION(mstxDomainMarkA)
 LOAD_FUNCTION(mstxDomainRangeStartA)
 LOAD_FUNCTION(mstxDomainRangeEnd)
+LOAD_FUNCTION(mstxMemHeapRegister)
+LOAD_FUNCTION(mstxMemHeapUnregister)
+LOAD_FUNCTION(mstxMemRegionsRegister)
+LOAD_FUNCTION(mstxMemRegionsUnregister)
 
 // save python range id with cann mstx range id.
 // when mstx.range_end(id) is called, we can check if this id is invalid
@@ -128,9 +132,9 @@ void MstxRangeEnd(int ptRangeId)
     g_rangeIdMap.erase(iter);
 }
 
-mstxDomainhandle_t MstxDomainCreateA(const char* name)
+mstxDomainHandle_t MstxDomainCreateA(const char* name)
 {
-    using MstxDomainCreateAFunc = mstxDomainhandle_t (*)(const char*);
+    using MstxDomainCreateAFunc = mstxDomainHandle_t (*)(const char*);
     static MstxDomainCreateAFunc func = nullptr;
     static bool noFuncFlag = false;
     if (noFuncFlag) {
@@ -147,9 +151,9 @@ mstxDomainhandle_t MstxDomainCreateA(const char* name)
     return func(name);
 }
 
-void MstxDomainDestroy(mstxDomainhandle_t handle)
+void MstxDomainDestroy(mstxDomainHandle_t handle)
 {
-    using MstxDomainDestroyFunc = void (*)(mstxDomainhandle_t);
+    using MstxDomainDestroyFunc = void (*)(mstxDomainHandle_t);
     static MstxDomainDestroyFunc func = nullptr;
     static bool noFuncFlag = false;
     if (noFuncFlag) {
@@ -166,9 +170,9 @@ void MstxDomainDestroy(mstxDomainhandle_t handle)
     func(handle);
 }
 
-void MstxDomainMarkA(mstxDomainhandle_t handle, const char* message, aclrtStream stream)
+void MstxDomainMarkA(mstxDomainHandle_t handle, const char* message, aclrtStream stream)
 {
-    using MstxDomainMarkAFunc = void (*)(mstxDomainhandle_t, const char*, aclrtStream);
+    using MstxDomainMarkAFunc = void (*)(mstxDomainHandle_t, const char*, aclrtStream);
     static MstxDomainMarkAFunc func = nullptr;
     static bool noFuncFlag = false;
     if (noFuncFlag) {
@@ -185,9 +189,9 @@ void MstxDomainMarkA(mstxDomainhandle_t handle, const char* message, aclrtStream
     func(handle, message, stream);
 }
 
-int MstxDomainRangeStartA(mstxDomainhandle_t handle, const char* message, aclrtStream stream, int ptRangeId)
+int MstxDomainRangeStartA(mstxDomainHandle_t handle, const char* message, aclrtStream stream, int ptRangeId)
 {
-    using MstxDomainRangeStartAFunc = mstxRangeId (*)(mstxDomainhandle_t, const char*, aclrtStream);
+    using MstxDomainRangeStartAFunc = mstxRangeId (*)(mstxDomainHandle_t, const char*, aclrtStream);
     static MstxDomainRangeStartAFunc func = nullptr;
     static bool noFuncFlag = false;
     if (noFuncFlag) {
@@ -207,9 +211,9 @@ int MstxDomainRangeStartA(mstxDomainhandle_t handle, const char* message, aclrtS
     return 0;
 }
 
-void MstxDomainRangeEnd(mstxDomainhandle_t handle, int ptRangeId)
+void MstxDomainRangeEnd(mstxDomainHandle_t handle, int ptRangeId)
 {
-    using MstxDomainRangeEndFunc = void (*)(mstxDomainhandle_t, mstxRangeId);
+    using MstxDomainRangeEndFunc = void (*)(mstxDomainHandle_t, mstxRangeId);
     static MstxDomainRangeEndFunc func = nullptr;
     static bool noFuncFlag = false;
     if (noFuncFlag) {
@@ -231,6 +235,82 @@ void MstxDomainRangeEnd(mstxDomainhandle_t handle, int ptRangeId)
     }
     func(handle, iter->second);
     g_rangeIdMap.erase(iter);
+}
+
+mstxMemHeapHandle_t MstxMemHeapRegister(mstxDomainHandle_t domain, mstxMemHeapDesc_t const* desc)
+{
+    using MstxMemHeapRegisterFunc = mstxMemHeapHandle_t (*)(mstxDomainHandle_t, mstxMemHeapDesc_t const*);
+    static MstxMemHeapRegisterFunc func = nullptr;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return nullptr;
+    }
+    if (func == nullptr) {
+        func = (MstxMemHeapRegisterFunc)GET_FUNC(mstxMemHeapRegister);
+        if (func == nullptr) {
+            ASCEND_LOGW("Failed to get func mstxMemHeapRegister");
+            noFuncFlag = true;
+            return nullptr;
+        }
+    }
+    return func(domain, desc);
+}
+
+void MstxMemHeapUnregister(mstxDomainHandle_t domain, mstxMemHeapHandle_t heap)
+{
+    using MstxMemHeapUnregisterFunc = void (*)(mstxDomainHandle_t, mstxMemHeapHandle_t);
+    static MstxMemHeapUnregisterFunc func = nullptr;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return;
+    }
+    if (func == nullptr) {
+        func = (MstxMemHeapUnregisterFunc)GET_FUNC(mstxMemHeapUnregister);
+        if (func == nullptr) {
+            ASCEND_LOGW("Failed to get func mstxMemHeapUnregister");
+            noFuncFlag = true;
+            return;
+        }
+    }
+    func(domain, heap);
+}
+
+void MstxMemRegionsRegister(mstxDomainHandle_t domain, mstxMemRegionsRegisterBatch_t const* desc)
+{
+    using MstxMemRegionsRegisterFunc = void (*)(mstxDomainHandle_t, mstxMemRegionsRegisterBatch_t const*);
+    static MstxMemRegionsRegisterFunc func = nullptr;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return;
+    }
+    if (func == nullptr) {
+        func = (MstxMemRegionsRegisterFunc)GET_FUNC(mstxMemRegionsRegister);
+        if (func == nullptr) {
+            ASCEND_LOGW("Failed to get func mstxMemRegionsRegister");
+            noFuncFlag = true;
+            return;
+        }
+    }
+    func(domain, desc);
+}
+
+void MstxMemRegionsUnregister(mstxDomainHandle_t domain, mstxMemRegionsUnregisterBatch_t const* desc)
+{
+    using MstxMemRegionsUnregisterFunc = void (*)(mstxDomainHandle_t, mstxMemRegionsUnregisterBatch_t const*);
+    static MstxMemRegionsUnregisterFunc func = nullptr;
+    static bool noFuncFlag = false;
+    if (noFuncFlag) {
+        return;
+    }
+    if (func == nullptr) {
+        func = (MstxMemRegionsUnregisterFunc)GET_FUNC(mstxMemRegionsUnregister);
+        if (func == nullptr) {
+            ASCEND_LOGW("Failed to get func mstxMemRegionsUnregister");
+            noFuncFlag = true;
+            return;
+        }
+    }
+    func(domain, desc);
 }
 
 }
