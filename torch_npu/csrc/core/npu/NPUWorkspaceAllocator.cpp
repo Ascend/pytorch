@@ -51,6 +51,8 @@ public:
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeDeviceWithTimeout());
                 NPU_CHECK_ERROR(aclrtFree(block->data_ptr));
 #ifndef BUILD_LIBTORCH
+                mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
+                torch_npu::profiler::MstxMgr::GetInstance()->memRegionsUnregister(msleaksDomain, block->data_ptr);
                 record_mem_size_decrement(block->size);
                 torch_npu::profiler::reportMemoryDataToNpuProfiler({
                     static_cast<int8_t>(c10::DeviceType::PrivateUse1),
@@ -82,6 +84,9 @@ public:
 
             ASCEND_LOGD("NPUWorkspaceAllocator malloc by AclrtMallocAlign32: size=%zu", block->size);
 #ifndef BUILD_LIBTORCH
+            mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
+            mstxMemVirtualRangeDesc_t desc{device, block->data_ptr, block->size};
+            torch_npu::profiler::MstxMgr::GetInstance()->memRegionsRegister(msleaksDomain, &desc);
             record_mem_size_increment(block->size);
             torch_npu::profiler::reportMemoryDataToNpuProfiler({
                 static_cast<int8_t>(c10::DeviceType::PrivateUse1),
@@ -119,6 +124,8 @@ public:
                 ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block_pair.second->size);
                 NPU_CHECK_ERROR(aclrtFree(block_pair.second->data_ptr));
 #ifndef BUILD_LIBTORCH
+                mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
+                torch_npu::profiler::MstxMgr::GetInstance()->memRegionsUnregister(msleaksDomain, block_pair.second->data_ptr);
                 record_mem_size_decrement(block_pair.second->size);
                 torch_npu::profiler::reportMemoryDataToNpuProfiler({
                     static_cast<int8_t>(c10::DeviceType::PrivateUse1),
