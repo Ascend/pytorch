@@ -84,17 +84,20 @@ int MstxMgr::getRangeId()
     return ptRangeId_++;
 }
 
-mstxDomainhandle_t MstxMgr::createDomain(const char* name)
+mstxDomainHandle_t MstxMgr::createDomain(const char* name)
 {
+    if (!isMsleaksEnable() && !isMstxEnable()) {
+        return nullptr;
+    }
     return at_npu::native::MstxDomainCreateA(name);
 }
 
-void MstxMgr::destroyDomain(mstxDomainhandle_t domain)
+void MstxMgr::destroyDomain(mstxDomainHandle_t domain)
 {
     at_npu::native::MstxDomainDestroy(domain);
 }
 
-void MstxMgr::domainMark(mstxDomainhandle_t domain, const char* message, const aclrtStream stream)
+void MstxMgr::domainMark(mstxDomainHandle_t domain, const char* message, const aclrtStream stream)
 {
     if (!isMstxEnable()) {
         return;
@@ -111,7 +114,7 @@ void MstxMgr::domainMark(mstxDomainhandle_t domain, const char* message, const a
     at_npu::native::OpCommand::RunOpApi("mstx_domain_mark_op", mark_call);
 }
 
-int MstxMgr::domainRangeStart(mstxDomainhandle_t domain, const char* message, const aclrtStream stream)
+int MstxMgr::domainRangeStart(mstxDomainHandle_t domain, const char* message, const aclrtStream stream)
 {
     if (!isMstxEnable()) {
         return 0;
@@ -133,7 +136,7 @@ int MstxMgr::domainRangeStart(mstxDomainhandle_t domain, const char* message, co
     return id;
 }
 
-void MstxMgr::domainRangeEnd(mstxDomainhandle_t domain, int ptRangeId)
+void MstxMgr::domainRangeEnd(mstxDomainHandle_t domain, int ptRangeId)
 {
     if (!isMstxEnable() || ptRangeId == 0) {
         return;
@@ -156,6 +159,76 @@ void MstxMgr::domainRangeEnd(mstxDomainhandle_t domain, int ptRangeId)
         return 0;
     };
     at_npu::native::OpCommand::RunOpApi("mstx_domain_range_end_op", range_end_call);
+}
+
+mstxMemHeapHandle_t MstxMgr::memHeapRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc)
+{
+    if (!isMsleaksEnable() || desc==nullptr) {
+        return nullptr;
+    }
+    mstxMemHeapDesc_t heapDesc;
+    heapDesc.typeSpecificDesc = reinterpret_cast<void const *>(desc);
+    return at_npu::native::MstxMemHeapRegister(domain, &heapDesc);
+}
+
+void MstxMgr::memHeapUnregister(mstxDomainHandle_t domain, void* ptr)
+{
+    if (!isMsleaksEnable() || ptr == nullptr) {
+        return;
+    }
+    at_npu::native::MstxMemHeapUnregister(domain, reinterpret_cast<mstxMemHeapHandle_t>(ptr));
+}
+
+void MstxMgr::memRegionsRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc)
+{
+    if (!isMsleaksEnable() || desc == nullptr) {
+        return;
+    }
+    mstxMemRegionsRegisterBatch_t batch;
+    batch.regionCount = 1;
+    batch.regionDescArray = reinterpret_cast<const void *>(desc);
+    at_npu::native::MstxMemRegionsRegister(domain, &batch);
+}
+
+void MstxMgr::memRegionsUnregister(mstxDomainHandle_t domain, void* ptr)
+{
+    if (!isMsleaksEnable() || ptr == nullptr) {
+        return;
+    }
+    mstxMemRegionsUnregisterBatch_t unregisterBatch;
+    unregisterBatch.refCount = 1;
+    mstxMemRegionRef_t regionRef[1] = {};
+    regionRef[0].refType = MSTX_MEM_REGION_REF_TYPE_POINTER;
+    regionRef[0].pointer = ptr;
+    unregisterBatch.refArray = regionRef;
+    at_npu::native::MstxMemRegionsUnregister(domain, &unregisterBatch);
+}
+
+
+bool MstxMgr::isMsleaksEnable()
+{
+    static bool isEnable = isMsleaksEnableImpl();
+    return isEnable;
+}
+
+bool MstxMgr::isMsleaksEnableImpl()
+{
+    bool ret = false;
+    const char* envVal = std::getenv("LD_PRELOAD");
+    if (envVal == nullptr) {
+        return ret;
+    }
+    static const std::string soName = "libascend_hal_hook.so";
+    std::stringstream ss(envVal);
+    std::string path;
+    while (std::getline(ss, path, ':')) {
+        path = torch_npu::toolkit::profiler::Utils::RealPath(path);
+        if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
+            ret = true;
+            break;
+        }
+    }
+    return ret;
 }
 
 bool MstxMgr::isProfTxEnable()
