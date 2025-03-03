@@ -45,6 +45,8 @@ class TestPluggableAllocator(TestCase):
         extra_ldflags.append(f"-L{PYTORCH_INSTALL_PATH}")
         extra_include_paths = ["cpp_extensions"]
         extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include'))
+        extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include/third_party/hccl/inc'))
+        extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include/third_party/acl/inc'))
 
         cls.module = torch.utils.cpp_extension.load(
             name="pluggable_allocator_extensions",
@@ -57,7 +59,7 @@ class TestPluggableAllocator(TestCase):
             build_directory=cls.build_directory,
             verbose=True,
         )
-    
+
     def test_pluggable_allocator(self):
         os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
         # Load the allocator
