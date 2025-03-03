@@ -17,4 +17,4 @@ transformers==4.40.0
 pytest==8.1.1
 parameterized==0.9.0
 torch-scatter==2.1.2
-torchvision==0.22.0.dev20250215
+torchvision==0.22.0.dev20250228

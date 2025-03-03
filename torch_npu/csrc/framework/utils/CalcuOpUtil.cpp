@@ -74,6 +74,7 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
     _(at::ScalarType::Int5, ACL_DT_UNDEFINED)                                                                          \
     _(at::ScalarType::Int6, ACL_DT_UNDEFINED)                                                                          \
     _(at::ScalarType::Int7, ACL_DT_UNDEFINED)                                                                          \
+    _(at::ScalarType::Float8_e8m0fnu, ACL_DT_UNDEFINED)                                                                \
     _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)                                                                     \
     _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
 
