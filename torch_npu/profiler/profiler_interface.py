@@ -32,6 +32,7 @@ from .analysis.prof_common_func._constant import print_warn_msg
 from .analysis.prof_common_func._file_manager import FileManager
 from .analysis.prof_common_func._utils import collect_env_vars, no_exception_func
 from .analysis.prof_common_func._path_manager import ProfilerPathManager
+from .analysis.prof_common_func._log import ProfilerLogger
 from ..utils._path_manager import PathManager
 from .analysis.prof_common_func._cann_package_manager import CannPackageManager
 
@@ -127,6 +128,7 @@ class _ProfInterface:
         self._dump_profiler_info()
         self._dump_metadata()
         ProfPathCreator().is_prof_inited = False
+        ProfilerLogger.destroy()
 
     def delete_prof_dir(self):
         ProfPathCreator().delete_prof_dir()
