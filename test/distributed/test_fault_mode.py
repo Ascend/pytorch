@@ -136,7 +136,6 @@ class TestMode(TestCase):
         )
 
     @skipIfUnsupportMultiNPU(2)
-    @unittest.skip("Case Failures not caused by pr, skip first.")
     def test_hccl_timeout(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_hccl_timeout.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
