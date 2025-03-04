@@ -43,8 +43,6 @@ class ProfilingParser:
                 target_path = os.path.join(host_path, rm_dir)
                 PathManager.remove_path_safety(target_path)
         if simplify_flag:
-            fwk_path = ProfilerPathManager.get_fwk_path(profiler_path)
-            PathManager.remove_path_safety(fwk_path)
             if not cann_path:
                 return
             cann_rm_dirs = ['analyze', 'mindstudio_profiler_log', 'mindstudio_profiler_output']
