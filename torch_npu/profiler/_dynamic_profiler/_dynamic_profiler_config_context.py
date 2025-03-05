@@ -7,6 +7,7 @@ from ._dynamic_profiler_utils import DynamicProfilerUtils
 class ConfigContext:
     DEFAULT_ACTIVE_NUM = 1
     DEFAULT_START_STEP = 0
+    DEFAULT_WARMUP = 0
     DEADLINE_PROF_DIR = "./"
     BOOL_MAP = {'true': True, 'false': False}
 
@@ -24,6 +25,7 @@ class ConfigContext:
         self.experimental_config = None
         self._active = 1
         self._start_step = 0
+        self._warmup = 0
         self.is_valid = False
         self._meta_data = {}
         self._async_mode = False
@@ -44,6 +46,7 @@ class ConfigContext:
         self._parse_with_stack(json_data)
         self._parse_with_modules(json_data)
         self._parse_active(json_data)
+        self._parse_warmup(json_data)
         self._parse_start_step(json_data)
         self._parse_exp_cfg(json_data)
         self._parse_ranks(json_data)
@@ -80,6 +83,16 @@ class ConfigContext:
                 self._active = int(active)
             except ValueError:
                 self._active = self.DEFAULT_ACTIVE_NUM
+
+    def _parse_warmup(self, json_data: dict):
+        if not self._is_dyno:
+            self._warmup = json_data.get("warmup", self.DEFAULT_WARMUP)
+        else:
+            warmup = json_data.get("WARMUP_ITERATIONS", self.DEFAULT_WARMUP)
+            try:
+                self._warmup = int(warmup)
+            except ValueError:
+                self._warmup = self.DEFAULT_WARMUP
 
     def _parse_with_stack(self, json_data: dict):
         if not self._is_dyno:
@@ -290,6 +303,13 @@ class ConfigContext:
                                          DynamicProfilerUtils.LoggerLevelEnum.WARNING)
             return self.DEFAULT_ACTIVE_NUM
         return self._active
+
+    def warmup(self) -> int:
+        if not isinstance(self._warmup, int) or self._warmup <= 0:
+            DynamicProfilerUtils.out_log("Invalid parameter warmup, reset it to 0.",
+                                         DynamicProfilerUtils.LoggerLevelEnum.WARNING)
+            return self.DEFAULT_WARMUP
+        return self._warmup
 
     def start_step(self) -> int:
         return self._start_step
