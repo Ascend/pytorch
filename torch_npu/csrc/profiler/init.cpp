@@ -72,6 +72,7 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
         return activities;
     });
     m.def("_init_profiler", initNpuProfiler);
+    m.def("_warmup_profiler", &warmupNpuProfiler, py::arg("config"), py::arg("activities"));
     m.def("_start_profiler",
         &startNpuProfiler,
         py::arg("config"),
