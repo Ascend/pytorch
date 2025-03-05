@@ -148,4 +148,6 @@ C10_NPU_API inline ModelState& model_state()
     return model_state_;
 }
 
+bool IsContextInitialized();
+
 } // namespace c10_npu

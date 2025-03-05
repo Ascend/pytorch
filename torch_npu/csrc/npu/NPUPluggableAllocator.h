@@ -66,6 +66,17 @@ struct NPUPluggableAllocator
     void resetAccumulatedStats(int device) override;
     void resetPeakStats(int device) override;
     c10_npu::NPUCachingAllocator::SnapshotInfo snapshot() override;
+
+    // CUDAGraph interactions
+    void beginAllocateToPool(
+        c10::DeviceIndex device,
+        c10_npu::MempoolId_t mempool_id,
+        std::function<bool(aclrtStream)>) override;
+    void endAllocateToPool(
+        c10::DeviceIndex device,
+        c10_npu::MempoolId_t mempool_id) override;
+    void releasePool(c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) override;
+
     void FreeDeviceCachedMemory(int device) override;
     std::string name() override;
     void copy_data(void* dest, const void* src, std::size_t count) const final;
