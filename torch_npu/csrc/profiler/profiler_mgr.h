@@ -31,6 +31,7 @@ C10_NPU_API int8_t GetTraceLevel();
 class ProfilerMgr {
 public:
     void Init(const std::string &path, bool npu_trace);
+    void Warmup(const NpuTraceConfig &npu_config, bool cpu_trace);
     void Start(const NpuTraceConfig &npu_config, bool cpu_trace);
     void Stop();
     void Finalize();
@@ -68,6 +69,9 @@ private:
     explicit ProfilerMgr(ProfilerMgr &&obj) = delete;
     ProfilerMgr& operator=(ProfilerMgr &&obj) = delete;
     void EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig);
+    void WarmupMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig);
+    uint64_t PrepareProfilerConfig(const NpuTraceConfig &npu_config);
+    aclprofAicoreMetrics PrepareProfilerAicMetrics(const NpuTraceConfig &npu_config);
     uint64_t CheckFeatureConfig(uint64_t datatype_config);
     void StartDataReceiver(const std::string &fwk_path);
     void StopDataReceiver();
@@ -80,6 +84,7 @@ private:
     std::atomic<bool> record_op_args_;
     std::atomic<bool> profile_memory_;
     std::atomic<bool> msprof_tx_;
+    std::atomic<bool> enable_warmup_;
     std::atomic<int8_t> trace_level_;
     std::string path_;
     aclprofConfig *profConfig_;
