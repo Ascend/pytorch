@@ -302,6 +302,17 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes)
     registeration_state_ptr->setCallbackHandle(handle);
 }
 
+void warmupNpuProfiler(const NpuProfilerConfig &config,
+    const std::set<NpuActivityType> &activities)
+{
+    bool cpu_trace = activities.count(NpuActivityType::CPU);
+    ExperimentalConfig experimental_config = config.experimental_config;
+    NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
+        config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args,
+        experimental_config.msprof_tx, experimental_config.op_attr};
+    ProfilerMgr::GetInstance()->Warmup(npu_config, cpu_trace);
+}
+
 void startNpuProfiler(const NpuProfilerConfig &config,
     const std::set<NpuActivityType> &activities,
     const std::unordered_set<at::RecordScope> &scopes)
