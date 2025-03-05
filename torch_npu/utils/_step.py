@@ -44,31 +44,25 @@ class PerfDumpState:
 
 perf_dump_state = PerfDumpState()
 perf_dump_enable = False
-IS_IN_BACKWARD = 0
+IS_IN_BACKWARD = False
+loggerSilent = logging.getLogger("torch_npu.silent_check")
 
 
 def input_hook(idx, asd_flag):
     def hook(grad):
         global IS_IN_BACKWARD
-
-        if idx != "":
-            IS_IN_BACKWARD = IS_IN_BACKWARD & 1  # 011 & 001 = 001
-            if torch_npu._C._get_silent_check_version() == 3:
-                _silent_fault_detector_v3.silent_fault_check(idx, asd_flag, grad)
-            else:
-                _silent_fault_detector_v2.silent_fault_check(idx, asd_flag, grad)
-        else:
-            IS_IN_BACKWARD = IS_IN_BACKWARD & 2  # 011 & 010 = 010
-
-        if not IS_IN_BACKWARD:
-            torch_npu._C._npu_set_call_state("forward")
+        loggerSilent.info(f"input_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to False. idx is {idx}, flag is {asd_flag}")
+        IS_IN_BACKWARD = False
+        torch_npu._C._npu_set_call_state("forward")
+        _silent_fault_detector_v2.silent_fault_check(idx, asd_flag, grad)
         return
     return hook
 
 
 def output_hook(grad):
     global IS_IN_BACKWARD
-    IS_IN_BACKWARD = 3  # 011
+    loggerSilent.info(f"output_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to True.")
+    IS_IN_BACKWARD = True
     torch_npu._C._npu_set_call_state("backward")
     return grad
 
@@ -91,10 +85,9 @@ class SilentCheckState:
         self.is_training = False
         self.first_module_id = ""
         self.first_weight = None
+        self.first_weight_id = None
         self.last_weight = None
-        self.last_tensor = None
-        self.last_tensor_id = None
-        self.first_tensor_id = None
+        self.last_weight_id = None
 
     def init_module_info(self, module_id, training):
         self.first_module_id = module_id
@@ -123,24 +116,8 @@ class SilentCheckState:
             for param_name, param in module._parameters.items():
                 if isinstance(param, torch.Tensor) and param.requires_grad:
                     self.first_weight = param
+                    self.first_weight_id = id(param)
                     break
-
-    def register_input_hook_before_call(self, asd_flag, *args):
-        # Search the first tensor (if the first tensor is input)
-        if self.is_training and not self.input_hook_flag:
-            for x in args:
-                if isinstance(x, torch.Tensor) and x.requires_grad:
-                    x.register_hook(input_hook(self.first_module_id, asd_flag))
-                    self.input_hook_flag = True
-                    break
-
-    def register_input_hook_after_call(self, output):
-        # Search the first tensor (if the first tensor is output of an inner module)
-        if not self.input_hook_flag:
-            if isinstance(output, torch.Tensor) and output.requires_grad:
-                output.register_hook(input_hook(self.first_module_id, asd_enable))
-                self.input_hook_flag = True
-                self.first_tensor_id = id(output)
 
     def search_last_weight(self, module):
         # Search the last weight (only in inner module)
@@ -148,27 +125,22 @@ class SilentCheckState:
             for param_name, param in module._parameters.items():
                 if isinstance(param, torch.Tensor) and param.requires_grad:
                     self.last_weight = param
-
-    def search_last_tensor(self, output):
-        # Search the last tensor
-        if isinstance(output, torch.Tensor) and output.requires_grad:
-            self.last_tensor_id = id(output)
-            self.last_tensor = output
+                    self.last_weight_id = id(param)
 
     def init_all_hook(self, asd_flag):
         if self.is_training:
-            # Otherwise, there is only one weight in the outer module
-            if self.first_tensor_id != self.last_tensor_id:
-                if self.last_tensor is not None:
-                    self.last_tensor.register_hook(output_hook)
-                if self.last_weight_hook_handles.get(self.first_module_id, None) is None:
-                    if self.last_weight is not None:
+            if self.last_weight is not None and self.first_weight is not None:
+                # Otherwise, there is only one weight in the outer module
+                if self.first_weight_id != self.last_weight_id:
+                    loggerSilent.info(f"init_all_hook: module init, first_module_id is {self.first_module_id}.")
+                    if self.last_weight_hook_handles.get(self.first_module_id, None) is None:
                         last_weight_handle = self.last_weight.register_hook(output_hook)
                         self.last_weight_hook_handles[self.first_module_id] = last_weight_handle
-                if self.weight_hook_handles.get(self.first_module_id, None) is None:
-                    if self.first_weight is not None:
-                        first_weight_handle = self.first_weight.register_hook(input_hook("", asd_flag))
+                    if self.weight_hook_handles.get(self.first_module_id, None) is None:
+                        first_weight_handle = self.first_weight.register_hook(input_hook(self.first_module_id, asd_flag))
                         self.weight_hook_handles[self.first_module_id] = first_weight_handle
+                else:
+                    loggerSilent.info(f"init_all_hook: module only have one weight, first_module_id is {self.first_module_id}.")
             self.init_marks[self.first_module_id] = True
 
 
@@ -303,23 +275,14 @@ def _custom_call(self, *args, **kwargs):
                 asd_enable = 0
                 warnings.warn(f"Warning: Module has unsupported dtype tensor, silent check will be closed.")
 
-        # Search the first tensor (if the first tensor is input)
-        silent_check.register_input_hook_before_call(asd_enable, *args)
-
     tmp = original_call(self, *args, **kwargs)
 
     if asd_enable and silent_check.is_training and not IS_IN_BACKWARD:
         # Search the first weight
         silent_check.search_first_weight(self)
 
-        # Search the first tensor (if the first tensor is output of an inner module)
-        silent_check.register_input_hook_after_call(tmp)
-
         # Search the last weight (only in inner module)
         silent_check.search_last_weight(self)
-        
-        # Search the last tensor
-        silent_check.search_last_tensor(tmp)
 
     if perf_dump_enable:
         if hasattr(self, "visited") and self.visited:
@@ -369,6 +332,8 @@ def add_perf_dump_patch():
             asd_enable = 0
         elif torch_npu._C._get_silent_check_version() == 2:
             warnings.warn(f"Warning: CANN version lower than 8.0.0 and currently does not support silent check 3.0 version. It will switch to 2.0 version. The asd_detect is {asd_enable}")
+        else:
+            loggerSilent.info(f"Silent check 3.0 version will be enabled. The asd_detect is {asd_enable}")
 
     if perf_dump_enable or asd_enable:
         Module.__call__ = _custom_call
