@@ -58,6 +58,9 @@ class DynamicProfilerMonitor:
         self.prof_cfg_context = ConfigContext(json_data)
         if not self.prof_cfg_context.valid():
             return None
+        if self.prof_cfg_context.is_dyno_monitor():
+            self._call_dyno_monitor(json_data)
+            return None
         return self.prof_cfg_context
 
     def clean_resource(self):
@@ -103,6 +106,17 @@ class DynamicProfilerMonitor:
             self._process = None
             DynamicProfilerUtils.out_log("Rank {} no need to create process.".format(
                 self._rank_id), DynamicProfilerUtils.LoggerLevelEnum.INFO)
+
+    def _call_dyno_monitor(self, json_data: dict):
+        json_data = {key: str(value) for key, value in json_data.items()}
+        try:
+            from IPCMonitor import PyDynamicMonitorProxy
+        except Exception as e:
+            dynamic_profiler_utils.stdout_log(f"Import IPCMonitro module failed :{e}!",
+                                             dynamic_profiler_utils.LoggerLevelEnum.WARNING)
+            return
+        py = PyDynamicMonitorProxy()
+        py.enable_dyno_npu_monitor(json_data)
 
 
 def worker_func(params_dict):
