@@ -19,6 +19,7 @@
 
 #include "torch_npu/csrc/distributed/rpc/init.h"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
+#include "torch_npu/csrc/distributed/ProcessGroupLCCL.hpp"
 #include "torch_npu/csrc/distributed/reducer.hpp"
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/distributed/ParallelTcpStore.hpp"
@@ -442,6 +443,12 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
         .def_readwrite("hccl_config", &::c10d_npu::ProcessGroupHCCL::Options::hccl_config)
         .def_readwrite("group_id",
                        &::c10d_npu::ProcessGroupHCCL::Options::group_id);
+    
+    // bind for ProcessGroupLCCL
+    auto processGroupLCCL = intrusive_ptr_no_gil_destructor_class_<::c10d_npu::ProcessGroupLCCL>(
+        module, "ProcessGroupLCCL", dist.attr("Backend"))
+        .def(py::init<const c10::intrusive_ptr<::c10d::Store>&, int, int>(),
+            py::call_guard<py::gil_scoped_release>());
 
     auto cDist = py::module_::import("torch._C._distributed_c10d");
     auto parallelStore = intrusive_ptr_no_gil_destructor_class_<::c10d::ParallelTcpStore>(
