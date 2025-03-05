@@ -30,11 +30,15 @@ class ConfigContext:
         self._meta_data = {}
         self._async_mode = False
         self._is_dyno = DynamicProfilerUtils.is_dyno_model()
+        self._is_dyno_monitor = False
         self._rank_id = DynamicProfilerUtils.get_rank_id()
         self.parse(json_data)
 
     def parse(self, json_data: dict):
         self.is_valid = json_data.get("is_valid", False)
+        self._is_dyno_monitor = "NPU_MONITOR_START" in json_data
+        if self._is_dyno_monitor:
+            return
         self._parse_activity(json_data)
         self._parse_prof_dir(json_data)
         self._meta_data = json_data.get('metadata', {})
@@ -108,7 +112,7 @@ class ConfigContext:
         if not self._is_dyno:
             self.record_shapes = json_data.get('record_shapes', False)
         else:
-            record_shapes = json_data.get("PROFILE_REPORT_INPUT_SHAPES")
+            record_shapes = json_data.get("PROFILE_RECORD_SHAPES")
             if isinstance(record_shapes, str):
                 self.record_shapes = self.BOOL_MAP.get(record_shapes.lower(), False)
             else:
@@ -193,12 +197,14 @@ class ConfigContext:
         op_attr = json_data.get('PROFILE_OP_ATTR', 'false')
         op_attr = self.BOOL_MAP.get(op_attr.lower(), False)
         gc_detect_threshold = json_data.get('PROFILE_GC_DETECT_THRESHOLD', None)
+        if gc_detect_threshold is not None:
+            gc_detect_threshold = float(gc_detect_threshold)
         data_simplification = json_data.get('PROFILE_DATA_SIMPLIFICATION', 'true')
         data_simplification = self.BOOL_MAP.get(data_simplification.lower(), True)
-        record_op_args = json_data.get('PROFILE_RECORD_SHAPES', 'false')
-        record_op_args = self.BOOL_MAP.get(record_op_args.lower(), False)
+        record_op_args = False
         export_type = json_data.get('PROFILE_EXPORT_TYPE', 'text').lower()
-        msprof_tx = False
+        msprof_tx = json_data.get('PROFILE_MSPROF_TX', 'false')
+        msprof_tx = self.BOOL_MAP.get(msprof_tx.lower(), False)
         
         self.experimental_config = _ExperimentalConfig(
             profiler_level=profiler_level,
@@ -316,6 +322,9 @@ class ConfigContext:
 
     def experimental_config(self) -> _ExperimentalConfig:
         return self.experimental_config
+
+    def is_dyno_monitor(self) -> bool:
+        return self._is_dyno_monitor
 
     @staticmethod
     def profiler_cfg_json_to_bytes(json_dict: dict) -> bytes:
