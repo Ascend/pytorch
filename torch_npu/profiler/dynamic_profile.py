@@ -78,7 +78,7 @@ class _DynamicProfile:
                 DynamicProfilerUtils.out_log("Stop Dynamic Profiler at {} step.".format(
                     self.cur_step), DynamicProfilerUtils.LoggerLevelEnum.INFO)
         elif self.prof is None and self.cfg_ctx is not None and self.cur_step == self.cfg_ctx.start_step():
-            self.step_num = self.cfg_ctx.active()
+            self.step_num = self.cfg_ctx.active() + self.cfg_ctx.warmup()
             self.enable_prof()
             self.cfg_ctx = None
 
@@ -113,14 +113,14 @@ class _DynamicProfile:
                 enable_config_path), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
             return
         self.cfg_ctx = ConfigContext(json_data)
-        self.step_num = self.cfg_ctx.active()
+        self.step_num = self.cfg_ctx.active() + self.cfg_ctx.warmup()
         self.enable_prof()
         self.cfg_ctx = None
 
     def enable_prof(self):
         self.prof = profile(
             activities=self.cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=self.cfg_ctx.active(), repeat=1, skip_first=0),
+            schedule=schedule(wait=0, warmup=self.cfg_ctx.warmup(), active=self.cfg_ctx.active(), repeat=1, skip_first=0),
             on_trace_ready=tensorboard_trace_handler(self.cfg_ctx.prof_path, analyse_flag=self.cfg_ctx.analyse(),
                                                      async_mode=self.cfg_ctx.async_mode()),
             record_shapes=self.cfg_ctx.record_shapes,
