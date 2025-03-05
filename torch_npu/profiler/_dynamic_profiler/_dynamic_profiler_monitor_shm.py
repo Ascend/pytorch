@@ -25,6 +25,7 @@ class DynamicProfilerShareMemory:
         "with_flops": False,
         "with_modules": False,
         "active": 1,
+        "warmup": 0,
         "start_step": 0,
         "is_rank": False,
         "rank_list": [],
