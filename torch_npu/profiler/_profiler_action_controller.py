@@ -33,7 +33,7 @@ class ProfActionController:
     def _init_action_map(self):
         action_map = {
             (ProfilerAction.NONE, ProfilerAction.NONE): [],
-            (ProfilerAction.NONE, ProfilerAction.WARMUP): [self.prof_inst.init_trace],
+            (ProfilerAction.NONE, ProfilerAction.WARMUP): [self.prof_inst.init_trace, self.prof_inst.warmup_trace],
             (ProfilerAction.NONE, ProfilerAction.RECORD): [
                 self.prof_inst.init_trace, self.prof_inst.start_trace],
             (ProfilerAction.NONE, ProfilerAction.RECORD_AND_SAVE): [
@@ -62,7 +62,7 @@ class ProfActionController:
                 self.prof_inst.finalize_trace, self._trace_ready],
             (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.WARMUP): [
                 self.prof_inst.stop_trace, self.prof_inst.finalize_trace,
-                self._trace_ready, self.prof_inst.init_trace],
+                self._trace_ready, self.prof_inst.init_trace, self.prof_inst.warmup_trace],
             (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.RECORD): [
                 self.prof_inst.stop_trace, self.prof_inst.finalize_trace,
                 self._trace_ready, self.prof_inst.init_trace, self.prof_inst.start_trace],

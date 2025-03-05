@@ -15,10 +15,24 @@ namespace native {
 
 
 REGISTER_LIBRARY(libmsprofiler)
+LOAD_FUNCTION(aclprofWarmup)
 LOAD_FUNCTION(aclprofSetConfig)
 LOAD_FUNCTION(aclprofGetSupportedFeatures)
 LOAD_FUNCTION(aclprofMarkEx)
 
+aclError AclProfilingWarmup(const aclprofConfig *profilerConfig)
+{
+    typedef aclError (*AclProfWarmupFunc)(const aclprofConfig *);
+    static AclProfWarmupFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclProfWarmupFunc)GET_FUNC(aclprofWarmup);
+        if (func == nullptr) {
+            return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
+        }
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclprofWarmup", PROF_ERROR(ErrCode::NOT_FOUND));
+    return func(profilerConfig);
+}
 
 aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size_t configLength) {
     typedef aclError(*AclprofSetConfigFunc)(aclprofConfigType, const char *, size_t);

@@ -10,6 +10,7 @@ from torch_npu._C._profiler import (
     NpuProfilerConfig,
     _supported_npu_activities,
     _init_profiler,
+    _warmup_profiler,
     _start_profiler,
     _stop_profiler,
     _finalize_profiler,
@@ -103,6 +104,12 @@ class _ProfInterface:
         ProfPathCreator().create_prof_dir()
         self.prof_path = ProfPathCreator().get_prof_dir()
         _init_profiler(self.prof_path, self.activities)
+
+    def warmup_trace(self):
+        prof_config = [self.prof_path, self.record_shapes, self.profile_memory,
+                       self.with_stack, self.with_flops, self.with_modules, self.experimental_config()]
+        npu_prof_config = NpuProfilerConfig(*tuple(prof_config))
+        _warmup_profiler(npu_prof_config, self.activities)
 
     def start_trace(self):
         prof_config = [self.prof_path, self.record_shapes, self.profile_memory,
