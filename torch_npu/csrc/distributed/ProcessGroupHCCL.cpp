@@ -2127,7 +2127,7 @@ std::string mapToJson(const std::unordered_map<std::string, std::string>& map)
         if (!first) {
             ss << ",";
         }
-        ss << "\"" << pair.first << "\"" << ": " << "\"" << pair.second << "\"";
+        ss << "\\\"" << pair.first << "\\\"" << ": " << "\\\"" << pair.second << "\\\"";
         first = false;
     }
     ss << "}";
@@ -2135,7 +2135,8 @@ std::string mapToJson(const std::unordered_map<std::string, std::string>& map)
 }
 
 std::string ProcessGroupHCCL::getMstxHcclMsg(
-    const std::string &opName, uint64_t dataCnt, HcclDataType dataType, HcclComm comm, int64_t streamId)
+    const std::string &opName, uint64_t dataCnt, HcclDataType dataType, HcclComm comm, int64_t streamId,
+    int srcRank, int dstRank)
 {
     const static std::map<HcclDataType, std::string> dataTypes = {
         {HCCL_DATA_TYPE_INT8, "int8"},
@@ -2171,6 +2172,12 @@ std::string ProcessGroupHCCL::getMstxHcclMsg(
     auto iter = dataTypes.find(dataType);
     if (iter != dataTypes.end()) {
         data_type_str = iter->second;
+    }
+    if (srcRank != -1) {
+        msgDict["srcRank"] = std::to_string(srcRank);
+    }
+    if (dstRank != -1) {
+        msgDict["destRank"] = std::to_string(dstRank);
     }
     msgDict["dataType"] = data_type_str;
     msgDict["count"] = std::to_string(dataCnt);
@@ -2818,7 +2825,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclAllreduce", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclAllreduce", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclAllReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
@@ -2895,7 +2902,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
 			                                           };
 			    }
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclBatchSendRecv", sendRecvInfo[0].count, sendRecvInfo[0].dataType, comm, streamId),
+                    getMstxHcclMsg("HcclBatchSendRecv", sendRecvInfo[0].count, sendRecvInfo[0].dataType, comm, streamId, -1, -1),
                     stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 			    auto hccl_result = hcclBatchIsendIrecv(sendRecvInfo, itemNum, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -2943,7 +2950,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, numel, hcclType, root, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclBroadcast", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclBroadcast", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -2992,7 +2999,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclAllreduce", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclAllreduce", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclAllReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
@@ -3060,7 +3067,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
             auto reduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclReduce", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclReduce", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = hcclReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream.stream(false));
@@ -3120,7 +3127,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
             auto reduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclReduce", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclReduce", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = hcclReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream.stream(false));
@@ -3243,7 +3250,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
                 is_dispatched,
                 streamId]() -> int {
                     torch_npu::profiler::MstxRange range(
-                        getMstxHcclMsg("HcclReduceScatterV", numel, hcclType, comm, streamId),
+                        getMstxHcclMsg("HcclReduceScatterV", numel, hcclType, comm, streamId, -1, -1),
                         stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
                     auto hccl_result = hcclReduceScatterV(
                         inputDataPtr,
@@ -3329,7 +3336,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
                 is_dispatched,
                 streamId]() -> int {
                     torch_npu::profiler::MstxRange range(
-                        getMstxHcclMsg("HcclAllGatherV", numel, hcclType, comm, streamId),
+                        getMstxHcclMsg("HcclAllGatherV", numel, hcclType, comm, streamId, -1, -1),
                         stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
                     auto hccl_result = hcclAllGatherV(
                         inputDataPtr,
@@ -3400,7 +3407,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                 auto hcclType = getHcclDataType(input.scalar_type());
                 auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched, streamId]() -> int {
                     torch_npu::profiler::MstxRange range(
-                        getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, streamId), stream.stream(false),
+                        getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                         torch_npu::profiler::DOMAIN_COMMUNICATION);
                     auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                     *is_dispatched = true;
@@ -3479,7 +3486,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     is_dispatched,
                     streamId]() -> int {
                         torch_npu::profiler::MstxRange range(
-                            getMstxHcclMsg("HcclAllGatherV", numel, hcclType, comm, streamId),
+                            getMstxHcclMsg("HcclAllGatherV", numel, hcclType, comm, streamId, -1, -1),
                             stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
                         auto hccl_result = hcclAllGatherV(
                             inputDataPtr,
@@ -3555,7 +3562,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                 auto numel = getNumelForHCCL(input);
                 auto hcclType = getHcclDataType(input.scalar_type());
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclBroadcast", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclBroadcast", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream());
                 *is_dispatched = true;
@@ -3595,7 +3602,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_into_tensor_coalesced
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -3641,7 +3648,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -3692,7 +3699,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -3739,7 +3746,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
@@ -3822,7 +3829,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                     is_dispatched,
                     streamId]() -> int {
                         torch_npu::profiler::MstxRange range(
-                            getMstxHcclMsg("HcclReduceScatterV", numel, hcclType, comm, streamId),
+                            getMstxHcclMsg("HcclReduceScatterV", numel, hcclType, comm, streamId, -1, -1),
                             stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
                         auto hccl_result = hcclReduceScatterV(
                             inputDataPtr,
@@ -3929,7 +3936,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
@@ -3975,7 +3982,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
@@ -4111,7 +4118,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclScatter", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclScatter", numel, hcclType, comm, streamId, -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = hcclScatter(inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -4163,7 +4170,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
             auto hcclType = getHcclDataType(input.scalar_type());
             auto hccl_call = [inputDataPtr, numel, hcclType, dst_rank, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclSend", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclSend", numel, hcclType, comm, streamId, -1, dst_rank), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclSend(inputDataPtr, numel, hcclType, dst_rank, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -4198,7 +4205,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
             auto hcclType = getHcclDataType(output.scalar_type());
             auto hccl_call = [outputDataPtr, numel, hcclType, src_rank, comm, stream, is_dispatched, streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclRecv", numel, hcclType, comm, streamId), stream.stream(false),
+                    getMstxHcclMsg("HcclRecv", numel, hcclType, comm, streamId, src_rank, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType, src_rank, comm, stream.stream(false));
                 *is_dispatched = true;
@@ -4296,7 +4303,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                                   is_dispatched,
                                   streamId]() -> int {
                         torch_npu::profiler::MstxRange range(
-                            getMstxHcclMsg("HcclAlltoAll", input_counts, inputhcclDataType, comm, streamId),
+                            getMstxHcclMsg("HcclAlltoAll", input_counts, inputhcclDataType, comm, streamId, -1, -1),
                             stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
                         auto hccl_result = hcclAlltoAll(
                             inputDataPtr,
@@ -4396,7 +4403,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                                   streamId]() -> int {
                     torch_npu::profiler::MstxRange range(
                         getMstxHcclMsg("HcclAlltoAllV", static_cast<uint64_t>(inputCounts.size()),
-                                       inputhcclDataType, comm, streamId),
+                                       inputhcclDataType, comm, streamId, -1, -1),
                         stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
                     auto hccl_result = hcclAlltoAllV(
                         inputDataPtr,
@@ -4523,7 +4530,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                               streamId]() -> int {
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclAlltoAllV", static_cast<uint64_t>(input_counts.size()),
-                                   inputhcclDataType, comm, streamId),
+                                   inputhcclDataType, comm, streamId, -1, -1),
                     stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
                 auto hccl_result = hcclAlltoAllV(
                     inputDataPtr,
