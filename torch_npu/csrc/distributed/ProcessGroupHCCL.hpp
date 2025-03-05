@@ -784,7 +784,9 @@ private:
                                       uint64_t dataCnt,
                                       HcclDataType hcclType,
                                       HcclComm comm,
-                                      int64_t streamId);
+                                      int64_t streamId,
+                                      int srcRank,
+                                      int dstRank);
 
     std::unordered_map<c10d::OpType, std::pair<at::Tensor, at::Tensor>> silenceCheckCache_;
 
