@@ -218,7 +218,7 @@ bool MstxMgr::isMsleaksEnableImpl()
     if (envVal == nullptr) {
         return ret;
     }
-    static const std::string soName = "libascend_hal_hook.so";
+    static const std::string soName = "libascend_kernel_hook.so";
     std::stringstream ss(envVal);
     std::string path;
     while (std::getline(ss, path, ':')) {
