@@ -55,6 +55,7 @@ ProfilerMgr::ProfilerMgr()
       record_op_args_(false),
       profile_memory_(false),
       msprof_tx_(false),
+      enable_warmup_(false),
       profConfig_(nullptr) {}
 
 ProfilerMgr *ProfilerMgr::GetInstance()
@@ -63,59 +64,128 @@ ProfilerMgr *ProfilerMgr::GetInstance()
     return &instance;
 }
 
-void ProfilerMgr::Init(const std::string &path, bool npu_trace) {
-  if (npu_trace == true) {
-    at_npu::native::AclProfilingInit(path.c_str(), path.size());
-    npu_trace_.store(true);
-    FeatureMgr::GetInstance()->Init();
-  }
-  path_ = path;
+void ProfilerMgr::Init(const std::string &path, bool npu_trace)
+{
+    if (npu_trace) {
+        at_npu::native::AclProfilingInit(path.c_str(), path.size());
+        npu_trace_.store(true);
+        FeatureMgr::GetInstance()->Init();
+    }
+    path_ = path;
+}
+
+void ProfilerMgr::WarmupMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig)
+{
+    profConfig_ = at_npu::native::AclProfilingCreateConfig(deviceIdList, deviceNum, aicMetrics, nullptr, dataTypeConfig);
+    if (profConfig_ == nullptr) {
+        ASCEND_LOGE("Create Prof Config failed.");
+        return;
+    }
+    auto ret = at_npu::native::AclProfilingWarmup(profConfig_);
+    if (ret == ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
+        ASCEND_LOGW("Not support aclprofWarmup.");
+    } else if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("Profiling warmup failed.");
+    }
 }
 
 void ProfilerMgr::EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig) {
-  profConfig_ = at_npu::native::AclProfilingCreateConfig(deviceIdList, deviceNum, aicMetrics, nullptr, dataTypeConfig);
-  if (profConfig_ == nullptr) {
-    ASCEND_LOGE("Create Prof Config failed.");
-    return;
-  }
-  auto ret = at_npu::native::AclProfilingStart(profConfig_);
-  if (ret != ACL_ERROR_NONE) {
-    ASCEND_LOGE("Profiling start failed.");
-    return;
-  }
+    // Avoid duplicate config creation in scenarios where warmup is turned on
+    if (profConfig_ == nullptr) {
+        profConfig_ = at_npu::native::AclProfilingCreateConfig(deviceIdList, deviceNum, aicMetrics, nullptr, dataTypeConfig);
+    }
+  
+    if (profConfig_ == nullptr) {
+        ASCEND_LOGE("Create Prof Config failed.");
+        return;
+    }
+
+    auto ret = at_npu::native::AclProfilingStart(profConfig_);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("Profiling start failed.");
+        return;
+    }
+}
+
+uint64_t ProfilerMgr::PrepareProfilerConfig(const NpuTraceConfig &npu_config)
+{
+    auto level_iter = trace_level_map_.find(npu_config.trace_level);
+    uint64_t datatype_config = (level_iter == trace_level_map_.end()) ? Level0 : trace_level_map_[npu_config.trace_level];
+    auto metrics_iter = npu_metrics_map_.find(npu_config.metrics);
+    if (metrics_iter != npu_metrics_map_.end() && npu_config.metrics.compare("ACL_AICORE_NONE") != 0) {
+        datatype_config |= ACL_PROF_AICORE_METRICS;
+    }
+    if (npu_config.l2_cache) {
+        datatype_config |= ACL_PROF_L2CACHE;
+    }
+    if (npu_config.msprof_tx) {
+        datatype_config |= ACL_PROF_MSPROFTX;
+    }
+    if (npu_config.npu_memory) {
+        datatype_config |= ACL_PROF_TASK_MEMORY;
+        const std::string freq = "50";
+        auto prof_ret = at_npu::native::AclprofSetConfig(ACL_PROF_SYS_HARDWARE_MEM_FREQ, freq.c_str(), freq.size());
+        if (prof_ret == ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
+            ASCEND_LOGW("not support to set config for sys-hardware-mem.");
+        }
+    }
+    if (npu_config.op_attr) {
+        datatype_config |= ACL_PROF_OP_ATTR;
+    }
+    datatype_config = CheckFeatureConfig(datatype_config);
+    return datatype_config;
+}
+
+
+aclprofAicoreMetrics ProfilerMgr::PrepareProfilerAicMetrics(const NpuTraceConfig &npu_config)
+{
+    aclprofAicoreMetrics aic_metrics = ACL_AICORE_NONE;
+    int8_t level_int = trace_level_to_int_.find(npu_config.trace_level) != trace_level_to_int_.end() ? trace_level_to_int_[npu_config.trace_level] : -1;
+    auto metrics_iter = npu_metrics_map_.find(npu_config.metrics);
+    if (metrics_iter != npu_metrics_map_.end() && npu_config.metrics.compare("ACL_AICORE_NONE") != 0) {
+        aic_metrics = CheckAicMetricsFeature(npu_metrics_map_[npu_config.metrics], level_int);
+    }
+    return aic_metrics;
+}
+
+void ProfilerMgr::Warmup(const NpuTraceConfig &npu_config, bool cpu_trace)
+{
+    if (npu_trace_.load()) {
+        auto datatype_config = PrepareProfilerConfig(npu_config);
+        auto aic_metrics = PrepareProfilerAicMetrics(npu_config);
+        int8_t level_int = trace_level_to_int_.find(npu_config.trace_level) != trace_level_to_int_.end() ? trace_level_to_int_[npu_config.trace_level] : -1;
+        int32_t deviceId = 0;
+        auto ret = c10_npu::GetDevice(&deviceId);
+        if (ret != ACL_ERROR_NONE) {
+            ASCEND_LOGE("Get Device ID failed.");
+            return;
+        }
+        const uint32_t deviceNum = 1;
+        uint32_t deviceIdList[deviceNum] = {deviceId};
+        WarmupMsProfiler(deviceIdList, deviceNum, aic_metrics, datatype_config);
+        trace_level_.store(level_int);
+    }
+
+    if (cpu_trace) {
+        std::string fwk_path = path_ + "/FRAMEWORK";
+        if (Utils::CreateDir(fwk_path)) {
+            StartDataReceiver(fwk_path);
+            report_enable_.store(true);
+            profile_memory_.store(npu_config.npu_memory);
+        } else {
+            ASCEND_LOGE("Profiler create FRAMEWORK directory failed: %s", fwk_path.c_str());
+        }
+    }
+
+    enable_warmup_.store(true);
 }
 
 void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace)
 {
-    if (npu_trace_.load() == true) {
-        aclprofAicoreMetrics aic_metrics = ACL_AICORE_NONE;
-        int8_t level_int = trace_level_to_int_.find(npu_config.trace_level) != trace_level_to_int_.end() ?
-            trace_level_to_int_[npu_config.trace_level] : -1;
-        auto level_iter = trace_level_map_.find(npu_config.trace_level);
-        uint64_t datatype_config = (level_iter == trace_level_map_.end()) ? Level0 : trace_level_map_[npu_config.trace_level];
-        auto metrics_iter = npu_metrics_map_.find(npu_config.metrics);
-        if (metrics_iter != npu_metrics_map_.end() && npu_config.metrics.compare("ACL_AICORE_NONE") != 0) {
-            datatype_config |= ACL_PROF_AICORE_METRICS;
-            aic_metrics = CheckAicMetricsFeature(npu_metrics_map_[npu_config.metrics], level_int);
-        }
-        if (npu_config.l2_cache) {
-            datatype_config |= ACL_PROF_L2CACHE;
-        }
-        if (npu_config.msprof_tx) {
-            datatype_config |= ACL_PROF_MSPROFTX;
-        }
-        if (npu_config.npu_memory) {
-            datatype_config |= ACL_PROF_TASK_MEMORY;
-            const std::string freq = "50";
-            auto prof_ret = at_npu::native::AclprofSetConfig(ACL_PROF_SYS_HARDWARE_MEM_FREQ, freq.c_str(), freq.size());
-            if (prof_ret == ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
-                ASCEND_LOGW("not support to set config for sys-hardware-mem.");
-            }
-        }
-        if (npu_config.op_attr) {
-            datatype_config |= ACL_PROF_OP_ATTR;
-        }
-        datatype_config = CheckFeatureConfig(datatype_config);
+    if (npu_trace_.load()) {
+        auto datatype_config = PrepareProfilerConfig(npu_config);
+        auto aic_metrics = PrepareProfilerAicMetrics(npu_config);
+        int8_t level_int = trace_level_to_int_.find(npu_config.trace_level) != trace_level_to_int_.end() ? trace_level_to_int_[npu_config.trace_level] : -1;
         int32_t deviceId = 0;
         auto ret = c10_npu::GetDevice(&deviceId);
         if (ret != ACL_ERROR_NONE) {
@@ -128,7 +198,7 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace)
         trace_level_.store(level_int);
     }
 
-    if (cpu_trace == true) {
+    if (cpu_trace && enable_warmup_.load() == false) {
         std::string fwk_path = path_ + "/FRAMEWORK";
         if (Utils::CreateDir(fwk_path)) {
             StartDataReceiver(fwk_path);
@@ -138,6 +208,7 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace)
             ASCEND_LOGE("Profiler create FRAMEWORK directory failed: %s", fwk_path.c_str());
         }
     }
+    enable_warmup_.store(false);
     msprof_tx_.store(npu_config.msprof_tx);
     if (npu_config.record_op_args) {
         record_op_args_.store(true);
@@ -147,33 +218,37 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace)
     }
 }
 
-void ProfilerMgr::Stop() {
-  c10_npu::npuSynchronizeDevice();
-  if (report_enable_.load() == true) {
-    StopDataReceiver();
-    profile_memory_.store(false);
-  }
-  report_enable_.store(false);
-  if (npu_trace_.load() == true) {
-    at_npu::native::AclProfilingStop(profConfig_);
-    auto ret = at_npu::native::AclProfilingDestroyConfig(profConfig_);
-    if (ret != ACL_SUCCESS) {
-        ASCEND_LOGE("AclProfDestoryConfig fail, error code: %d", ret);
+void ProfilerMgr::Stop()
+{
+    c10_npu::npuSynchronizeDevice();
+    if (report_enable_.load()) {
+        StopDataReceiver();
+        profile_memory_.store(false);
     }
-    profConfig_ = nullptr;
-  }
+    
+    if (npu_trace_.load()) {
+        at_npu::native::AclProfilingStop(profConfig_);
+        auto ret = at_npu::native::AclProfilingDestroyConfig(profConfig_);
+        if (ret != ACL_SUCCESS) {
+            ASCEND_LOGE("AclProfDestoryConfig fail, error code: %d", ret);
+        }
+        profConfig_ = nullptr;
+    }
     msprof_tx_.store(false);
-  if (record_op_args_.load() == true) {
-    at_npu::native::AclopStopDumpArgs(ACL_OP_DUMP_OP_AICORE_ARGS);
-    record_op_args_.store(false);
-  }
+    report_enable_.store(false);
+    enable_warmup_.store(false);
+    if (record_op_args_.load()) {
+        at_npu::native::AclopStopDumpArgs(ACL_OP_DUMP_OP_AICORE_ARGS);
+        record_op_args_.store(false);
+    }
 }
 
-void ProfilerMgr::Finalize() {
-  if (npu_trace_.load() == true) {
-    at_npu::native::AclProfilingFinalize();
-  }
-  npu_trace_.store(false);
+void ProfilerMgr::Finalize()
+{
+    if (npu_trace_.load()) {
+        at_npu::native::AclProfilingFinalize();
+    }
+    npu_trace_.store(false);
 }
 
 void ProfilerMgr::StartDataReceiver(const std::string &fwk_path)
@@ -198,27 +273,42 @@ void ProfilerMgr::StopDataReceiver()
 
 void ProfilerMgr::Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data)
 {
+    if (enable_warmup_.load()) {
+        return;
+    }
     dataReceiver_.Report(std::move(data));
 }
 
 void ProfilerMgr::UploadWithLock(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data)
 {
+    if (enable_warmup_.load()) {
+        return;
+    }
     std::lock_guard<std::mutex> lock(reportDataMutex_);
     dataReceiverWithLock_.Report(std::move(data));
 }
 
 void ProfilerMgr::UploadTraceEventData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerFuncData> data)
 {
+    if (enable_warmup_.load()) {
+        return;
+    }
     traceDataReceiver_.Report(std::move(data));
 }
 
 void ProfilerMgr::UploadTraceHashData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerHashData> data)
 {
+    if (enable_warmup_.load()) {
+        return;
+    }
     traceDataReceiver_.ReportHash(std::move(data));
 }
 
 void ProfilerMgr::UploadParamData(std::unique_ptr<torch_npu::toolkit::profiler::ParamTensorData> data)
 {
+    if (enable_warmup_.load()) {
+        return;
+    }
     traceDataReceiver_.ReportParam(std::move(data));
 }
 
