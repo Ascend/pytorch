@@ -138,6 +138,8 @@ static PyMethodDef TorchSanitizerMethods[] = {
 
 void THNPStream_init(PyObject *module);
 void THNPEvent_init(PyObject *module);
+void THNPGraph_init(PyObject *module);
+void THNPMemPool_init(PyObject* module);
 PyMethodDef* THNPModule_get_methods();
 
 static std::vector<PyMethodDef> methods;
@@ -173,6 +175,8 @@ PyObject* initModule() {
     // C, so these lines have to execute first)..
     THNPStream_init(module);
     THNPEvent_init(module);
+    THNPGraph_init(module);
+    THNPMemPool_init(module);
 
     RegisterNPUDeviceProperties(module);
     BindGetDeviceProperties(module);

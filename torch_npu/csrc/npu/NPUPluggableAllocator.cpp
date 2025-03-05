@@ -256,6 +256,38 @@ c10_npu::NPUCachingAllocator::SnapshotInfo NPUPluggableAllocator::snapshot()
     }
 }
 
+// CUDAGraph interactions
+void NPUPluggableAllocator::beginAllocateToPool(
+    c10::DeviceIndex device,
+    c10_npu::MempoolId_t mempool_id,
+    std::function<bool(aclrtStream)> filter)
+{
+    TORCH_CHECK(
+        false,
+        "NPUPluggableAllocator does not yet support beginAllocateToPool. "
+        "If you need it, please file an issue describing your use case.");
+}
+
+void NPUPluggableAllocator::endAllocateToPool(
+    c10::DeviceIndex device,
+    c10_npu::MempoolId_t mempool_id)
+{
+    TORCH_CHECK(
+        false,
+        "NPUPluggableAllocator does not yet support endAllocateToPool. "
+        "If you need it, please file an issue describing your use case.");
+}
+
+void NPUPluggableAllocator::releasePool(
+    c10::DeviceIndex device,
+    c10_npu::MempoolId_t mempool_id)
+{
+    TORCH_CHECK(
+        false,
+        "NPUPluggableAllocator does not yet support releasePool. "
+        "If you need it, please file an issue describing your use case.");
+}
+
 void NPUPluggableAllocator::FreeDeviceCachedMemory(int device)
 {
     TORCH_NPU_WARN("NPUPluggableAllocator does not yet support FreeDeviceCachedMemory. "

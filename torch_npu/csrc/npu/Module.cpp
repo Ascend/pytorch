@@ -246,6 +246,27 @@ void RegisterNpuPluggableAllocator(PyObject* module)
         return torch::npu::NPUPluggableAllocator::createCustomAllocator(
             malloc_fn, free_fn);
     });
+    m.def(
+        "_npu_beginAllocateCurrentStreamToPool",
+        [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+            auto stream = c10_npu::getCurrentNPUStream(device);
+            TORCH_CHECK(stream, "Expected stream capture to be under way");
+            c10_npu::NPUCachingAllocator::beginAllocateToPool(
+                device, mempool_id, [stream](aclrtStream target) {
+                return target == stream;
+            });
+        });
+    m.def(
+        "_npu_beginAllocateToPool",
+        [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+            c10_npu::NPUCachingAllocator::beginAllocateToPool(
+                device, mempool_id, [](aclrtStream) { return true; });
+        });
+    m.def(
+        "_npu_endAllocateCurrentStreamToPool",
+        [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+            c10_npu::NPUCachingAllocator::endAllocateToPool(device, mempool_id);
+        });
 }
 
 PyObject* THNPModule_msTxMark(PyObject* self, PyObject* args)
@@ -554,6 +575,21 @@ PyObject* THNPModule_setStream_wrap(
     }
     c10_npu::setCurrentNPUStream(stream);
     Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_isCurrentStreamCapturing_wrap(
+    PyObject* self,
+    PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    // If there's no npu context, c10_npu::currentStreamCaptureStatus returns
+    // CaptureStatus::None without initializing a context.
+    if (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None) {
+        Py_RETURN_FALSE;
+    } else {
+        Py_RETURN_TRUE;
+    }
     END_HANDLE_TH_ERRORS
 }
 
@@ -1309,6 +1345,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"_npu_isCurrentStreamCapturing", (PyCFunction)THNPModule_isCurrentStreamCapturing_wrap, METH_NOARGS, nullptr},
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
     {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},

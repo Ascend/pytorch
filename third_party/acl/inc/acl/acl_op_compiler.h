@@ -1,7 +1,7 @@
 /**
 * @file acl_op_compiler.h
 *
-* Copyright (C) Huawei Technologies Co., Ltd. 2019-2020. All Rights Reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2019-2020. All rights reserved.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,7 +25,7 @@ typedef enum aclCompileType {
 typedef enum {
     ACL_PRECISION_MODE,
     ACL_AICORE_NUM,
-    ACL_AUTO_TUNE_MODE,
+    ACL_AUTO_TUNE_MODE, // The auto_tune_mode has been discarded
     ACL_OP_SELECT_IMPL_MODE,
     ACL_OPTYPELIST_FOR_IMPLMODE,
     ACL_OP_DEBUG_LEVEL,

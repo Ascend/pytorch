@@ -12,6 +12,7 @@
 #include "torch_npu/csrc/framework/LazyInitAclops.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
@@ -131,6 +132,9 @@ OpCommand& OpCommand::Output(
 }
 
 void OpCommand::Run() {
+    // Check for npu graph
+    c10_npu::assertNotCapturing("Cannot run aclop operators");
+
     aclCmd->SetEnginePriority();
     const string &op_name = aclCmd->GetName();
     at_npu::aclops::LazyInitAclops();

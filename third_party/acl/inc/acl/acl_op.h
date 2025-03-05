@@ -1,7 +1,7 @@
 /**
 * @file acl_op.h
 *
-* Copyright (C) Huawei Technologies Co., Ltd. 2019-2020. All Rights Reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2019-2020. All rights reserved.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -540,6 +540,17 @@ ACL_FUNC_VISIBILITY aclError aclopUpdateParams(const char *opType,
 
 /**
  * @ingroup AscendCL
+ * @brief set max op queue num
+ *
+ * @param maxOpNum [IN]   number of max op queue
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclopSetMaxOpQueueNum(uint64_t maxOpNum);
+
+/**
+ * @ingroup AscendCL
  * @brief inferShape the specified operator synchronously
  *
  * @param opType [IN]       type of op
@@ -569,7 +580,7 @@ ACL_FUNC_VISIBILITY aclError aclopInferShape(const char *opType,
  * @brief Enable the dump function of the corresponding dump type.
  *
  * @param dumpType [IN]       type of dump
- * @param path [IN]    dump path
+ * @param path     [IN]       dump path
  *
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure

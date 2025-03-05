@@ -36,12 +36,26 @@ __all__ = [
     "memory_summary",
     "get_allocator_backend",
     "NPUPluggableAllocator",
-    "change_current_allocator"
+    "change_current_allocator",
+    "MemPool",
+    "MemPoolContext",
+    "use_mem_pool",
 ]
 
 if not hasattr(torch_npu._C, "_npu_NPUAllocator"):
     # Define dummy base classes
     torch_npu._C.__dict__["_npu_NPUAllocator"] = _dummy_type("_npu_NPUAllocator")
+
+if not hasattr(torch_npu._C, "_MemPool"):
+    # Define dummy base classes
+    torch_npu._C.__dict__["_MemPool"] = _dummy_type("_MemPool")
+    torch_npu._C.__dict__["_MemPoolContext"] = _dummy_type("_MemPoolContext")
+    torch_npu._C.__dict__["_npu_beginAllocateToPool"] = _dummy_type(
+        "_npu_beginAllocateToPool"
+    )
+    torch_npu._C.__dict__["_npu_endAllocateCurrentStreamToPool"] = _dummy_type(
+        "_npu_endAllocateCurrentStreamToPool"
+    )
 
 
 @contextlib.contextmanager
@@ -629,6 +643,76 @@ def _get_current_allocator() -> _NPUAllocator:
         See :ref:`npu-memory-management` for details on creating and using a custom allocator
     """
     return _NPUAllocator(torch_npu._C._npu_getAllocator())
+
+
+class MemPool(torch_npu._C._MemPool):
+    r"""MemPool represents a pool of memory in a caching allocator. Currently,
+    it's just the ID of the pool object maintained in the NPUCachingAllocator.
+
+    Args:
+        allocator(torch_npu._C._npu_NPUAllocator, optional): a
+            torch_npu._C._npu_NPUAllocator object that can be used to
+            define how memory gets allocated in the pool. If :attr:`allocator`
+            is ``None`` (default), memory allocation follows the default/
+            current configuration of the NPUCachingAllocator.
+
+    """
+
+    def __init__(self, allocator: Optional[torch_npu._C._npu_NPUAllocator] = None):
+        super().__init__(allocator, True)
+
+    @property
+    def id(self) -> Tuple[int, int]:
+        r"""Returns the ID of this pool as a tuple of two ints."""
+        return super().id
+
+    @property
+    def allocator(self) -> Optional[torch_npu._C._npu_NPUAllocator]:
+        r"""Returns the allocator this MemPool routes allocations to"""
+        return super().allocator
+
+
+class MemPoolContext(torch_npu._C._MemPoolContext):
+    r"""MemPoolContext holds the currently active pool and stashes the previous
+    pool. On deletion it makes the previous pool active.
+
+    Args:
+        pool(torch_npu.npu.MemPool): a MemPool object to be made active so that
+        allocations route to this pool.
+
+    """
+
+    def __init__(self, pool: MemPool):
+        super().__init__(pool)
+
+    @staticmethod
+    def active_pool() -> Optional[torch_npu._C._MemPool]:
+        r"""Returns the active MemPool"""
+        return torch_npu._C._MemPoolContext.active_pool()
+
+
+@contextlib.contextmanager
+def use_mem_pool(pool: MemPool, device=None):
+    r"""A context manager that routes allocations to a given pool.
+
+    Args:
+        pool(torch_npu.npu.MemPool): a MemPool object to be made active so that
+            allocations route to this pool.
+        device (torch.device or int, optional): selected device. Uses MemPool on
+            the current device, given by :func:`~torch_npu.npu.current_device,
+            if :attr:`device` is ``None`` (default).
+
+    """
+    ctx = MemPoolContext(pool)
+    device_index = (
+        torch_npu.npu.current_device() if device is None else _get_device_index(device)
+    )
+    torch_npu._C._npu_beginAllocateToPool(device_index, pool.id)
+    try:
+        yield
+    finally:
+        torch_npu._C._npu_endAllocateCurrentStreamToPool(device_index, pool.id)
+        del ctx
 
 
 def _record_memory_history(enabled="all", *args, **kwargs):

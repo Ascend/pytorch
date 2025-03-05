@@ -179,4 +179,21 @@ int GetLocalDevice()
 {
     return local_device;
 }
+
+bool IsContextInitialized()
+{
+    int32_t device = -1;
+    aclError err = aclrtGetDevice(&device);
+    if (err == ACL_ERROR_NONE) {
+        return true;
+    } else {
+        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+        if (err == ACL_ERROR_RT_CONTEXT_NULL) {
+            return false;
+        }
+        NPU_CHECK_ERROR_WITHOUT_UCE(err);
+        return false;
+    }
+}
+
 }
