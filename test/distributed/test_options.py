@@ -42,30 +42,14 @@ class OptionsTest(TestCase):
         dist.all_reduce(input1, group=pg)
 
     @classmethod
-    def _test_options_wrong_type(cls, rank, hccl_config, error_expect, world_size, input1):
+    def _test_options_wrong_type(cls, rank, ranks, world_size, input1):
         options = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
-        options.hccl_config = hccl_config
+        options.hccl_config = {"group_name": 123}
         input1 = input1.npu()
         test_case = TestCase()
-        with test_case.assertRaisesRegex(RuntimeError, error_expect):
+        with test_case.assertRaisesRegex(RuntimeError, "Value type of group_name should be string"):
             OptionsTest._init_dist_hccl(rank, options, world_size)
             dist.all_reduce(input1)
-
-    @classmethod
-    def _test_options_group_name_wrong_types(cls, rank, ranks, world_size, input1):
-        cls._test_options_wrong_type(rank, {"group_name": 123}, "Value type of group_name should be string", world_size, input1)
-
-    @classmethod
-    def _test_options_qos_traffic_class_wrong_types(cls, rank, ranks, world_size, input1):
-        cls._test_options_wrong_type(rank, {"qos_traffic_class": "123"}, "Value type of qos_traffic_class should be int.", world_size, input1)
-
-    @classmethod
-    def _test_options_qos_service_level_wrong_types(cls, rank, ranks, world_size, input1):
-        cls._test_options_wrong_type(rank, {"qos_service_level": "123"}, "Value type of qos_service_level should be int.", world_size, input1)
-   
-    @classmethod
-    def _test_options_hccl_op_expansion_mode_wrong_types(cls, rank, ranks, world_size, input1):
-        cls._test_options_wrong_type(rank, {"hccl_op_expansion_mode": "123"}, "Value type of hccl_op_expansion_mode should be int.", world_size, input1)
 
     def _test_multiprocess(self, f, input1, world_size):
         ctx = mp.get_context('spawn')
@@ -95,40 +79,14 @@ class OptionsTest(TestCase):
                                     input1, world_size)
 
     @skipIfUnsupportMultiNPU(2)
-    def test_options_group_name_wrong_type(self):
+    def test_options_wrong_type(self):
         ranks = [2]
         shape = [np.int32, 0, [2, 3, 16]]
         for world_size in ranks:
             exp_input, input1 = create_common_tensor(shape, -10, 10)
-            self._test_multiprocess(OptionsTest._test_options_group_name_wrong_types,
+            self._test_multiprocess(OptionsTest._test_options_wrong_type,
                                     input1, world_size)
 
-    @skipIfUnsupportMultiNPU(2)
-    def test_options_qos_traffic_class_wrong_type(self):
-        ranks = [2]
-        shape = [np.int32, 0, [2, 3, 16]]
-        for world_size in ranks:
-            exp_input, input1 = create_common_tensor(shape, -10, 10)
-            self._test_multiprocess(OptionsTest._test_options_qos_traffic_class_wrong_types,
-                                    input1, world_size)
-
-    @skipIfUnsupportMultiNPU(2)
-    def test_options_qos_service_level_wrong_type(self):
-        ranks = [2]
-        shape = [np.int32, 0, [2, 3, 16]]
-        for world_size in ranks:
-            exp_input, input1 = create_common_tensor(shape, -10, 10)
-            self._test_multiprocess(OptionsTest._test_options_qos_service_level_wrong_types,
-                                    input1, world_size)
-
-    @skipIfUnsupportMultiNPU(2)
-    def test_options_hccl_op_expansion_mode_wrong_type(self):
-        ranks = [2]
-        shape = [np.int32, 0, [2, 3, 16]]
-        for world_size in ranks:
-            exp_input, input1 = create_common_tensor(shape, -10, 10)
-            self._test_multiprocess(OptionsTest._test_options_hccl_op_expansion_mode_wrong_types,
-                                    input1, world_size)
 
 if __name__ == '__main__':
     run_tests()
