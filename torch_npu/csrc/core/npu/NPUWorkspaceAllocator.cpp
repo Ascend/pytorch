@@ -121,7 +121,10 @@ public:
     void empty_cache(bool need_empty_queue, bool check_error)
     {
         if (need_empty_queue) {
+            ASCEND_LOGI("NPUWorkspaceAllocator empty_cache in main_thread.");
             c10_npu::emptyAllNPUStream(check_error);
+        } else {
+            ASCEND_LOGI("NPUWorkspaceAllocator empty_cache in acl_thread.");
         }
 
         auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
