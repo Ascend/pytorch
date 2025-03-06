@@ -785,9 +785,12 @@ aclError AclmdlUnload(uint32_t modelId)
 
 bool IsCaptureSupported()
 {
-    static bool is_support;
+    static bool is_support = false;
     static bool have_load_func = false;
-    if (!have_load_func) {
+    static bool default_support_capture = ((GetSocVersion() >= SocVersion::Ascend910B1) &&
+        (GetSocVersion() < SocVersion::Ascend310B1)) ||
+        (GetSocVersion() >= SocVersion::Ascend910_9391);
+    if (default_support_capture && !have_load_func) {
         have_load_func = true;
         typedef aclError (*AclmdlGetCaptureInfo)(aclrtStream, aclmdlCaptureStatus *, uint32_t *);
         static AclmdlGetCaptureInfo func = (AclmdlGetCaptureInfo) GET_FUNC(aclmdlGetCaptureInfo);
