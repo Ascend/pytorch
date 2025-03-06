@@ -2257,6 +2257,30 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
         }
     }
 
+    if (options_->hccl_config.find("qos_traffic_class") != options_->hccl_config.end()) {
+        if (std::holds_alternative<uint32_t>(options_->hccl_config["qos_traffic_class"])) {
+            config.hcclRdmaTrafficClass = std::get<uint32_t>(options_->hccl_config["qos_traffic_class"]);
+        } else {
+            TORCH_CHECK(false, "Value type of qos_traffic_class should be int.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
+    if (options_->hccl_config.find("qos_service_level") != options_->hccl_config.end()) {
+        if (std::holds_alternative<uint32_t>(options_->hccl_config["qos_service_level"])) {
+            config.hcclRdmaServiceLevel = std::get<uint32_t>(options_->hccl_config["qos_service_level"]);
+        } else {
+            TORCH_CHECK(false, "Value type of qos_service_level should be int.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
+    if (options_->hccl_config.find("hccl_op_expansion_mode") != options_->hccl_config.end()) {
+        if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_op_expansion_mode"])) {
+            config.hcclOpExpansionMode = std::get<uint32_t>(options_->hccl_config["hccl_op_expansion_mode"]);
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_op_expansion_mode should be int.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
     return config;
 }
 
