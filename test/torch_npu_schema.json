@@ -3247,5 +3247,9 @@
   "torch_c_func: c10_npu::c10_npu_get_error_message": {
     "signature": "() -> char *",
     "file": "torch_npu/csrc/core/npu/NPUException.h"
+  },
+   "torch_c_func: npu_dropout_gen_mask": {
+    "signature": "(const at::Tensor &self, at::IntArrayRef size, double p, int64_t seed, int64_t offset, c10::optional<bool> parallel, c10::optional<bool> sync) -> at::Tensor",
+    "file": "third_party/op-plugin/op_plugin/include/ops.h"
   }
 }
