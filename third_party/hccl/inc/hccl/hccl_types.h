@@ -15,14 +15,11 @@ extern "C" {
 
 const uint32_t HCCL_COMM_CONFIG_INFO_BYTES = 24;
 const uint32_t HCCL_COMM_CONFIG_MAGIC_WORD = 0xf0f0f0f0;
-const uint32_t HCCL_COMM_CONFIG_VERSION = 5;
+const uint32_t HCCL_COMM_CONFIG_VERSION = 3;
 const uint32_t HCCL_COMM_DEFAULT_BUFFSIZE = 200;                // 200MB buffer size
 const uint32_t HCCL_COMM_DEFAULT_DETERMINISTIC = 0;             // Disable deterministic calculations
 const uint32_t COMM_NAME_MAX_LENGTH = 128;
 const uint32_t UDI_MAX_LENGTH = 128;
-const uint32_t HCCL_COMM_TRAFFIC_CLASS_CONFIG_NOT_SET = 0xffffffff;
-const uint32_t HCCL_COMM_SERVICE_LEVEL_CONFIG_NOT_SET = 0xffffffff;
-const uint32_t HCCL_COMM_DEFAULT_OP_EXPANSION_MODE = 0;
 
 /**
  * @brief HCCL functions return value definition
@@ -129,16 +126,12 @@ typedef struct HcclCommConfigDef {
     uint32_t hcclDeterministic;
     char hcclCommName[COMM_NAME_MAX_LENGTH];
     char hcclUdi[UDI_MAX_LENGTH];
-    uint32_t hcclOpExpansionMode;
-    uint32_t hcclRdmaTrafficClass;
-    uint32_t hcclRdmaServiceLevel;
 } HcclCommConfig;
 
 typedef enum {
     HCCL_COMM_CONFIG_BUFFER_SIZE = 0,
     HCCL_COMM_CONFIG_DETERMINISTIC = 1,
     HCCL_COMM_CONFIG_COMM_NAME = 2,
-    HCCL_COMM_CONFIG_OP_EXPANSION_MODE = 3,
     HCCL_COMM_CONFIG_RESERVED,
 } HcclCommConfigCapability;
 #ifdef __cplusplus
