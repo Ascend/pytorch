@@ -165,7 +165,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
         c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
     }
 
-    int acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
+    auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
     if (acl_op_init_mode == 0) {
         at_npu::aclops::InitAclops();
     } else {
