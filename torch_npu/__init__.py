@@ -220,10 +220,6 @@ def _new_process_group_lccl_helper(dist_backend_opts, pg_options):
     return torch_npu._C._distributed_c10d.ProcessGroupLCCL(store, group_rank, group_size)
 
 
-torch.distributed.Backend.register_backend("lccl", lambda dist_backend_opts, pg_options:
-    _new_process_group_lccl_helper(dist_backend_opts, pg_options), extended_api=True, devices=["npu"])
-
-
 # set default device type for gradient checkpointing
 DefaultDeviceType.set_device_type("npu")
 del DefaultDeviceType
