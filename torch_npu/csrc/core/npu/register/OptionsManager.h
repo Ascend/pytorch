@@ -23,6 +23,12 @@ enum SilenceCheckMode {
     PRINT_ALL_LOG = 3,
 };
 
+static std::unordered_map<int32_t, std::string> getHcclZeroCopyMode()
+{
+    std::unordered_map<int32_t, std::string> hcclZeroCopyMode = {{0, "close"}, {1, "open"}};
+    return hcclZeroCopyMode;
+}
+
 static std::unordered_map<int32_t, std::string> getInfNanMode()
 {
     std::unordered_map<int32_t, std::string> infNanMode = {{0, "max"}, {1, "inf_nan"}};
@@ -81,6 +87,12 @@ static std::unordered_map<int32_t, std::string> getAclOpInitMode()
 {
     std::unordered_map<int32_t, std::string> aclOpInitMode = {{0, "aclops init"}, {1, "aclops lazy init"}, {2, "aclops disabled"}};
     return aclOpInitMode;
+}
+
+static std::unordered_map<int64_t, std::string> getOOMSnapshotEnableMode()
+{
+    std::unordered_map<int64_t, std::string> OOMSnapshotEnableMode = {{0, "close"}, {1, "all"}, {2, "state"}};
+    return OOMSnapshotEnableMode;
 }
 
 class OptionsManager {
