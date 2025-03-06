@@ -176,7 +176,7 @@ void LazyInitAclopsCore()
 
 void LazyInitAclops()
 {
-    static int acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
+    static auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
     if (acl_op_init_mode == 0) {
         return;
     }
