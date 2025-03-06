@@ -51,7 +51,7 @@ loggerSilent = logging.getLogger("torch_npu.silent_check")
 def input_hook(idx, asd_flag):
     def hook(grad):
         global IS_IN_BACKWARD
-        loggerSilent.info(f"input_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to False. idx is {idx}, flag is {asd_flag}")
+        loggerSilent.debug(f"input_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to False. idx is {idx}, flag is {asd_flag}")
         IS_IN_BACKWARD = False
         torch_npu._C._npu_set_call_state("forward")
         _silent_fault_detector_v2.silent_fault_check(idx, asd_flag, grad)
@@ -61,7 +61,7 @@ def input_hook(idx, asd_flag):
 
 def output_hook(grad):
     global IS_IN_BACKWARD
-    loggerSilent.info(f"output_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to True.")
+    loggerSilent.debug(f"output_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to True.")
     IS_IN_BACKWARD = True
     torch_npu._C._npu_set_call_state("backward")
     return grad
@@ -132,7 +132,7 @@ class SilentCheckState:
             if self.last_weight is not None and self.first_weight is not None:
                 # Otherwise, there is only one weight in the outer module
                 if self.first_weight_id != self.last_weight_id:
-                    loggerSilent.info(f"init_all_hook: module init, first_module_id is {self.first_module_id}.")
+                    loggerSilent.debug(f"init_all_hook: module init, first_module_id is {self.first_module_id}.")
                     if self.last_weight_hook_handles.get(self.first_module_id, None) is None:
                         last_weight_handle = self.last_weight.register_hook(output_hook)
                         self.last_weight_hook_handles[self.first_module_id] = last_weight_handle
@@ -140,7 +140,7 @@ class SilentCheckState:
                         first_weight_handle = self.first_weight.register_hook(input_hook(self.first_module_id, asd_flag))
                         self.weight_hook_handles[self.first_module_id] = first_weight_handle
                 else:
-                    loggerSilent.info(f"init_all_hook: module only have one weight, first_module_id is {self.first_module_id}.")
+                    loggerSilent.debug(f"init_all_hook: module only have one weight, first_module_id is {self.first_module_id}.")
             self.init_marks[self.first_module_id] = True
 
 
@@ -333,7 +333,7 @@ def add_perf_dump_patch():
         elif torch_npu._C._get_silent_check_version() == 2:
             warnings.warn(f"Warning: CANN version lower than 8.0.0 and currently does not support silent check 3.0 version. It will switch to 2.0 version. The asd_detect is {asd_enable}")
         else:
-            loggerSilent.info(f"Silent check 3.0 version will be enabled. The asd_detect is {asd_enable}")
+            loggerSilent.debug(f"Silent check 3.0 version will be enabled. The asd_detect is {asd_enable}")
 
     if perf_dump_enable or asd_enable:
         Module.__call__ = _custom_call
