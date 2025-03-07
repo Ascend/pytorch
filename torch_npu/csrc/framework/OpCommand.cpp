@@ -133,7 +133,9 @@ OpCommand& OpCommand::Output(
 
 void OpCommand::Run() {
     // Check for npu graph
-    c10_npu::assertNotCapturing("Cannot run aclop operators");
+    if (aclCmd->CheckCustomHandlerNull()) {
+        c10_npu::assertNotCapturing("Cannot run aclop operators");
+    }
 
     aclCmd->SetEnginePriority();
     const string &op_name = aclCmd->GetName();
