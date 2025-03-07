@@ -200,6 +200,11 @@ public:
         execParam.customHandler = func;
     }
 
+    bool CheckCustomHandlerNull()
+    {
+        return execParam.customHandler == nullptr;
+    }
+
     const string &GetName() const { return opName; }
 
     void AddInput(
