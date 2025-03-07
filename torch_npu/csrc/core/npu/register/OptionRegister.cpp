@@ -9,7 +9,7 @@ namespace c10_npu {
 namespace option {
 
 OptionInterface::OptionInterface(OptionCallBack callback) {
-  this->callback = callback;
+    this->callback = callback;
 }
 
 void OptionInterface::Set(const std::string& in) {
@@ -26,70 +26,70 @@ void OptionInterface::Set(const std::string& in) {
 }
 
 std::string OptionInterface::Get() {
-  return val;
+    return val;
 }
 
 
 namespace register_options {
 OptionRegister* OptionRegister::GetInstance() {
-  static OptionRegister instance;
-  return &instance;
+    static OptionRegister instance;
+    return &instance;
 }
 
 void OptionRegister::Register(const std::string& name,
     ::std::unique_ptr<OptionInterface>& ptr) {
-  std::lock_guard<std::mutex> lock(mu_);
-  registry.emplace(name, std::move(ptr));
+    std::lock_guard<std::mutex> lock(mu_);
+    registry.emplace(name, std::move(ptr));
 }
 
 void OptionRegister::Set(const std::string& name, const std::string& val) {
-  auto itr = registry.find(name);
-  if (itr != registry.end()) {
-    itr->second->Set(val);
-  } else {
-    AT_ERROR("invalid npu option name:", name);
-  }
+    auto itr = registry.find(name);
+    if (itr != registry.end()) {
+        itr->second->Set(val);
+    } else {
+        AT_ERROR("invalid npu option name:", name);
+    }
 }
 
 c10::optional<std::string> OptionRegister::Get(const std::string& name) {
-  auto itr = registry.find(name);
-  if (itr != registry.end()) {
-    return itr->second->Get();
-  }
-  return c10::nullopt; // default value
+    auto itr = registry.find(name);
+    if (itr != registry.end()) {
+        return itr->second->Get();
+    }
+    return c10::nullopt; // default value
 }
 
 OptionInterfaceBuilder::OptionInterfaceBuilder(
     const std::string& name,
     ::std::unique_ptr<OptionInterface>& ptr,
     const std::string& type) {
-  OptionRegister::GetInstance()->Register(name, ptr);
+    OptionRegister::GetInstance()->Register(name, ptr);
 
-  // init the value if env variable.
-  if (type == "env") {
-    std::string env_name = name;
-    std::transform(env_name.begin(), env_name.end(), env_name.begin(), ::toupper);
-    char* env_val = std::getenv(env_name.c_str());
-    if (env_val != nullptr) {
-      std::string val(env_val);
-      OptionRegister::GetInstance()->Set(name, val);
+    // init the value if env variable.
+    if (type == "env") {
+        std::string env_name = name;
+        std::transform(env_name.begin(), env_name.end(), env_name.begin(), ::toupper);
+        char* env_val = std::getenv(env_name.c_str());
+        if (env_val != nullptr) {
+            std::string val(env_val);
+            OptionRegister::GetInstance()->Set(name, val);
+        }
     }
-  }
 }
 } // namespace register_options
 
 void SetOption(const std::string& key, const std::string& val) {
-  register_options::OptionRegister::GetInstance()->Set(key, val);
+    register_options::OptionRegister::GetInstance()->Set(key, val);
 }
 
 void SetOption(const std::map<std::string, std::string>& options) {
-  for (auto item : options) {
-    SetOption(item.first, item.second);
-  }
+    for (auto item : options) {
+        SetOption(item.first, item.second);
+    }
 }
 
 c10::optional<std::string> GetOption(const std::string& key) {
-  return register_options::OptionRegister::GetInstance()->Get(key);
+    return register_options::OptionRegister::GetInstance()->Get(key);
 }
 
 } // namespace option
