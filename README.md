@@ -235,16 +235,18 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 ##  PyTorch Maintenance Policies
 
-| **PyTorch** |  **Maintenance Policies** | **Status** | **Launch Date**       | **Subsequent Status**            | **EOL Date**     |
-|-----------|--------------------|--------------|------------|-----------------|-----------|
-| 2.4.0     |  Regular Release  | Development  | 2024/10/15 |Expected to enter maintenance status from  March 15, 2025 |           |
-| 2.3.1     |  Regular Release  | Development   | 2024/06/06 | Expected to enter maintenance status from  December 6, 2024 |           |
-| 2.2.0     |  Regular Release  | Maintained   | 2024/04/01 | Expected to enter maintenance free status from September 10th, 2025|           |
-| 2.1.0     | Long Term Support  | Development   | 2023/10/15 | Expected to enter maintenance status from March 30, 2025 |           |
-| 2.0.1     | Regular Release    | EOL   | 2023/7/19  |   | 2024/3/14          |
-| 1.11.0    | Long Term Support  | Maintained   | 2023/4/19  | Expected to enter maintenance free status from September 10th, 2025  |           |
-| 1.8.1     | Long Term Support  | EOL          | 2022/4/10  |                 | 2023/4/10 |
-| 1.5.0     | Long Term Support  | EOL          | 2021/7/29  |                 | 2022/7/29 |
+| **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                               | **EOL Date** |
+|-------------|--------------------------|-------------|-----------------|---------------------------------------------------------------------|--------------|
+| 2.6.0       | Regular Release          | Development | 2025/02/20      | Expected to enter maintenance status from  July 20, 2025            |              |
+| 2.5.1       | Regular Release          | Development | 2024/11/08      | Expected to enter maintenance status from  April 8, 2025            |              |
+| 2.4.0       | Regular Release          | Development | 2024/10/15      | Expected to enter maintenance status from  June 15, 2025           |              |
+| 2.3.1       | Regular Release          | Development | 2024/06/06      | Expected to enter maintenance status from  June 7, 2025         |              |
+| 2.2.0       | Regular Release          | Maintained  | 2024/04/01      | Expected to enter maintenance free status from September 10th, 2025 |              |
+| 2.1.0       | Long Term Support        | Development | 2023/10/15      | Expected to enter maintenance status from September 15, 2025            |              |
+| 2.0.1       | Regular Release          | EOL         | 2023/7/19       |                                                                     | 2024/3/14    |
+| 1.11.0      | Long Term Support        | Maintained  | 2023/4/19       | Expected to enter maintenance free status from September 10th, 2025 |              |
+| 1.8.1       | Long Term Support        | EOL         | 2022/4/10       |                                                                     | 2023/4/10    |
+| 1.5.0       | Long Term Support        | EOL         | 2021/7/29       |                                                                     | 2022/7/29    |
 
 ## Reference Documents
 
