@@ -6,6 +6,7 @@
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+#include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 
 namespace at_npu {
 namespace detail {
@@ -28,7 +29,9 @@ static std::vector<at::Generator> default_gens_npu;
 * Populates the global variables related to NPU generators
 * Warning: this function must only be called once!
 */
-static void initNPUGenVector() {
+static void initNPUGenVector()
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     num_npus = c10_npu::device_count();
     npu_gens_init_flag.resize(num_npus);
     default_gens_npu.resize(num_npus);
@@ -44,7 +47,9 @@ static void initNPUGenVector() {
  * getDefaultNPUGenerator gets the default generator for a particular
  * NPU device.
  */
-const at::Generator& getDefaultNPUGenerator(c10::DeviceIndex device_index) {
+const at::Generator& getDefaultNPUGenerator(c10::DeviceIndex device_index)
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     std::call_once(num_npu_init_flag, initNPUGenVector);
     c10::DeviceIndex idx = device_index;
     if (idx == -1) {
@@ -62,7 +67,9 @@ const at::Generator& getDefaultNPUGenerator(c10::DeviceIndex device_index) {
 /**
  * Utility to create a NPUGeneratorImpl. Returns a shared_ptr
  */
-at::Generator createNPUGenerator(c10::DeviceIndex device_index) {
+at::Generator createNPUGenerator(c10::DeviceIndex device_index)
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     std::call_once(num_npu_init_flag, initNPUGenVector);
     c10::DeviceIndex idx = device_index;
     if (idx == -1) {
@@ -97,8 +104,9 @@ at::Generator createNPUGenerator(c10::DeviceIndex device_index) {
  */
 NPUGeneratorImpl::NPUGeneratorImpl(c10::DeviceIndex device_index)
   : c10::GeneratorImpl{c10::Device(c10::DeviceType::PrivateUse1, device_index),
-              c10::DispatchKeySet(c10::DispatchKey::PrivateUse1)} {
-  // at::npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
+              c10::DispatchKeySet(c10::DispatchKey::PrivateUse1)}
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
 }
 
 /**
@@ -107,7 +115,9 @@ NPUGeneratorImpl::NPUGeneratorImpl(c10::DeviceIndex device_index)
  *
  * See Note [Acquire lock when using random generators]
  */
-void NPUGeneratorImpl::set_current_seed(uint64_t seed) {
+void NPUGeneratorImpl::set_current_seed(uint64_t seed)
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     seed_ = seed;
     philox_offset_per_thread_ = 0;
 }
@@ -117,14 +127,18 @@ void NPUGeneratorImpl::set_current_seed(uint64_t seed) {
  *
  * See Note [Acquire lock when using random generators]
  */
-void NPUGeneratorImpl::set_offset(uint64_t offset) {
+void NPUGeneratorImpl::set_offset(uint64_t offset)
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     philox_offset_per_thread_ = offset;
 }
 
 /**
  * Gets the current offset of NPUGeneratorImpl.
  */
-uint64_t NPUGeneratorImpl::get_offset() const {
+uint64_t NPUGeneratorImpl::get_offset() const
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     // Debatable if get_offset() should be allowed in captured regions.
     // Conservatively disallow it for now.
     return philox_offset_per_thread_;
@@ -139,7 +153,9 @@ uint64_t NPUGeneratorImpl::get_offset() const {
 /**
  * Gets the current seed of NPUGeneratorImpl.
  */
-uint64_t NPUGeneratorImpl::current_seed() const {
+uint64_t NPUGeneratorImpl::current_seed() const
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     // Debatable if current_seed() should be allowed in captured regions.
     // Conservatively disallow it for now.
     return seed_;
@@ -152,7 +168,9 @@ uint64_t NPUGeneratorImpl::current_seed() const {
  * You can move this function to Generator.cpp if the algorithm
  * in getNonDeterministicRandom is unified for both CPU and NPU
  */
-uint64_t NPUGeneratorImpl::seed() {
+uint64_t NPUGeneratorImpl::seed()
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     auto random = c10::detail::getNonDeterministicRandom(true);
     this->set_current_seed(random);
     return random;
@@ -162,12 +180,14 @@ uint64_t NPUGeneratorImpl::seed() {
  * Gets the current internal state of NpuGeneratorImpl. The internal
  * state is returned as a CPU byte tensor.
  */
-c10::intrusive_ptr<c10::TensorImpl> NPUGeneratorImpl::get_state() const {
+c10::intrusive_ptr<c10::TensorImpl> NPUGeneratorImpl::get_state() const
+{
     // The RNG state comprises the seed, and an offset used for Philox.
     // The following line is just here for BC reason. sizeof curandStateMtgp32 is 4120.
     // It used to be static const size_t states_size = MAX_NUM_BLOCKS * sizeof(curandStateMtgp32);
     // MAX_NUM_BLOCKS was 200 and sizeof(curandStateMtgp32) is 4120. Hardcoding these numbers here
     // because this is just host side code and we don't want to worry about linking with npu
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     static const size_t seed_size = sizeof(uint64_t);
     static const size_t offset_size = sizeof(int64_t);
     static const size_t total_size = seed_size + offset_size;
@@ -191,7 +211,9 @@ c10::intrusive_ptr<c10::TensorImpl> NPUGeneratorImpl::get_state() const {
  * comments of NPUGeneratorImpl::state for information about the layout
  * and size of the internal state.
  */
-void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
+void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state)
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     static const size_t seed_size = sizeof(uint64_t);
     static const size_t offset_size = sizeof(int64_t);
     static const size_t total_size = seed_size + offset_size;
@@ -222,7 +244,9 @@ void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
  *
  * See Note [Acquire lock when using random generators]
  */
-void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset) {
+void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset)
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     // see Note [Why enforce RNG offset % 4 == 0?]
     TORCH_CHECK(offset % 4 == 0, "offset must be a multiple of 4", PTA_ERROR(ErrCode::VALUE));
     philox_offset_per_thread_ = offset;
@@ -231,7 +255,9 @@ void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset) {
 /**
  * Gets the current philox_offset_per_thread_ of NpuGeneratorImpl.
  */
-uint64_t NPUGeneratorImpl::philox_offset_per_thread() const {
+uint64_t NPUGeneratorImpl::philox_offset_per_thread() const
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     return philox_offset_per_thread_;
 }
 
@@ -240,7 +266,9 @@ uint64_t NPUGeneratorImpl::philox_offset_per_thread() const {
  * offset_extragraph is the initial offset at the start of the graphed region.
  * offset_intragraph tracks the offset in the graphed region.
  */
-void NPUGeneratorImpl::capture_prologue(int64_t* offset_extragraph) {
+void NPUGeneratorImpl::capture_prologue(int64_t* offset_extragraph)
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     offset_extragraph_ = offset_extragraph;
     offset_intragraph_ = 0;
     graph_expects_this_gen_ = true;
@@ -249,7 +277,9 @@ void NPUGeneratorImpl::capture_prologue(int64_t* offset_extragraph) {
 /**
  * Called by NpuGraph to finalize a graph capture region for this instance.
  */
-uint64_t NPUGeneratorImpl::capture_epilogue() {
+uint64_t NPUGeneratorImpl::capture_epilogue()
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     graph_expects_this_gen_ = false;
     return offset_intragraph_;
 }
@@ -275,7 +305,9 @@ uint64_t NPUGeneratorImpl::capture_epilogue() {
  *
  * See Note [Acquire lock when using random generators]
  */
-PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment) {
+PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment)
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     // rounds increment up to the nearest multiple of 4
     increment = ((increment + 3) / 4) * 4;
     /*
@@ -310,7 +342,9 @@ PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment) {
  * Temporarily accommodates call sites that use philox_engine_inputs.
  * Allows incremental refactor of call sites to use philox_npu_state.
  */
-std::pair<uint64_t, uint64_t> NPUGeneratorImpl::philox_engine_inputs(uint64_t increment) {
+std::pair<uint64_t, uint64_t> NPUGeneratorImpl::philox_engine_inputs(uint64_t increment)
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     // rounds increment up to the nearest multiple of 4
     increment = ((increment + 3) / 4) * 4;
     // see Note [Why enforce RNG offset % 4 == 0?]
@@ -324,7 +358,9 @@ std::pair<uint64_t, uint64_t> NPUGeneratorImpl::philox_engine_inputs(uint64_t in
  * Gets the DeviceType of NPUGeneratorImpl.
  * Used for type checking during run time.
  */
-c10::DeviceType NPUGeneratorImpl::device_type() {
+c10::DeviceType NPUGeneratorImpl::device_type()
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     return c10::DeviceType::PrivateUse1;
 }
 
@@ -333,7 +369,9 @@ c10::DeviceType NPUGeneratorImpl::device_type() {
  *
  * See Note [Acquire lock when using random generators]
  */
-std::shared_ptr<NPUGeneratorImpl> NPUGeneratorImpl::clone() const {
+std::shared_ptr<NPUGeneratorImpl> NPUGeneratorImpl::clone() const
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     return std::shared_ptr<NPUGeneratorImpl>(this->clone_impl());
 }
 
@@ -342,7 +380,9 @@ std::shared_ptr<NPUGeneratorImpl> NPUGeneratorImpl::clone() const {
  *
  * See Note [Acquire lock when using random generators]
  */
-NPUGeneratorImpl* NPUGeneratorImpl::clone_impl() const {
+NPUGeneratorImpl* NPUGeneratorImpl::clone_impl() const
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     auto gen = new NPUGeneratorImpl(this->device().index());
     gen->set_current_seed(this->seed_);
     gen->set_philox_offset_per_thread(this->philox_offset_per_thread_);
@@ -350,7 +390,9 @@ NPUGeneratorImpl* NPUGeneratorImpl::clone_impl() const {
 }
 
 // this is used to register generator
-at::Generator make_npu_generator(c10::DeviceIndex device_index) {
+at::Generator make_npu_generator(c10::DeviceIndex device_index)
+{
+    c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     return at::make_generator<NPUGeneratorImpl>(device_index);
 }
 
