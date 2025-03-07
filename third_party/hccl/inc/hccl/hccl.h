@@ -6,7 +6,7 @@
 #ifndef HCCL_H_
 #define HCCL_H_
 
-#include <hccl/hccl_types.h>
+#include "hccl_types.h"
 #include <acl/acl.h>
 
 #ifdef __cplusplus
@@ -207,6 +207,9 @@ inline void HcclCommConfigInit(HcclCommConfig *config)
     config->hcclDeterministic = HCCL_COMM_DEFAULT_DETERMINISTIC;
     config->hcclCommName[0] = '\0';
     config->hcclUdi[0] = '\0';
+    config->hcclRdmaTrafficClass = HCCL_COMM_TRAFFIC_CLASS_CONFIG_NOT_SET;
+    config->hcclRdmaServiceLevel = HCCL_COMM_SERVICE_LEVEL_CONFIG_NOT_SET;
+    config->hcclOpExpansionMode = HCCL_COMM_DEFAULT_OP_EXPANSION_MODE;
 }
 
 /**
