@@ -1430,18 +1430,13 @@ class DeviceCachingAllocator {
     return basePtr;
   }
 
-  void recordStream(Block* block, c10_npu::NPUStream stream) {
-    std::lock_guard<std::recursive_mutex> lock(mutex);
-    if (stream.stream() == block->stream) {
-      // ignore uses on the allocation stream, since those don't require any
-      // special synchronization
-      return;
+    void recordStream(Block* block, c10_npu::NPUStream stream) {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        block->stream_uses.insert(stream);
+        if (C10_UNLIKELY(!captures_underway.empty())) {
+            block_to_npugraph_stream_uses[block].insert(stream);
+        }
     }
-    block->stream_uses.insert(stream);
-    if (C10_UNLIKELY(!captures_underway.empty())) {
-      block_to_npugraph_stream_uses[block].insert(stream);
-    }
-  }
 
   void eraseStream(Block* block, c10_npu::NPUStream stream) {
     std::shared_ptr<c10::GatheredContext> context =
