@@ -6,10 +6,10 @@ namespace at_npu {
 namespace hccl {
 #undef LOAD_FUNCTION
 #define LOAD_FUNCTION(funcName) \
-  REGISTER_FUNCTION(libhccl, funcName)
+    REGISTER_FUNCTION(libhccl, funcName)
 #undef GET_FUNC
 #define GET_FUNC(funcName) \
-  GET_FUNCTION(libhccl, funcName)
+    GET_FUNCTION(libhccl, funcName)
 
 REGISTER_LIBRARY(libhccl)
 LOAD_FUNCTION(HcclGetCommName)
