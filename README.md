@@ -238,10 +238,10 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 | **PyTorch** |  **Maintenance Policies** | **Status** | **Launch Date**       | **Subsequent Status**            | **EOL Date**     |
 |-----------|--------------------|--------------|------------|-----------------|-----------|
-| 2.4.0     |  Regular Release  | Development  | 2024/10/15 |Expected to enter maintenance status from  March 15, 2025 |           |
-| 2.3.1     |  Regular Release  | Development   | 2024/06/06 | Expected to enter maintenance status from  December 6, 2024 |           |
+| 2.4.0     |  Regular Release  | Development  | 2024/10/15 |Expected to enter maintenance status from  June 15, 2025 |           |
+| 2.3.1     |  Regular Release  | Development   | 2024/06/06 | Expected to enter maintenance status from  June 7th, 2025 |           |
 | 2.2.0     |  Regular Release  | Maintained   | 2024/04/01 | Expected to enter maintenance free status from September 10th, 2025|           |
-| 2.1.0     | Long Term Support  | Development   | 2023/10/15 | Expected to enter maintenance status from March 30, 2025 |           |
+| 2.1.0     | Long Term Support  | Development   | 2023/10/15 | Expected to enter maintenance status from September 30, 2025 |           |
 | 2.0.1     | Regular Release    | EOL   | 2023/7/19  |   | 2024/3/14          |
 | 1.11.0    | Long Term Support  | Maintained   | 2023/4/19  | Expected to enter maintenance free status from September 10th, 2025  |           |
 | 1.8.1     | Long Term Support  | EOL          | 2022/4/10  |                 | 2023/4/10 |
