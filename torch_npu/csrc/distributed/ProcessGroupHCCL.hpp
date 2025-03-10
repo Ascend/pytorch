@@ -497,6 +497,17 @@ protected:
         int rank,
         c10d::OpType opType);
 
+    // Do not call this directly, use ProcessGroup::setGroupName instead.
+    void setGroupName(const std::string& name)
+    {
+        pg_name_ = name;
+    }
+
+    const std::string& getGroupName() const
+    {
+        return pg_name_;
+    }
+
     static const int64_t kWatchdogThreadSleepMillis;
 
     // The store is used to broadcast the HCCL Master ID of rank 0.
@@ -646,6 +657,8 @@ protected:
     // Incrementing counter for logical operations (collective or p2p) issued on
     // the ProcessGroup
     uint64_t op_id_{0};
+
+    std::string pg_name_;
 
     std::exception_ptr watchDogException_ = nullptr;
 
