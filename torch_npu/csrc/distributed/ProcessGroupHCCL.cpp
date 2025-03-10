@@ -249,16 +249,37 @@ std::string getExceptionMsgFromExceptionPtr(const std::exception_ptr& exceptionP
     }
 }
 
-void getHcclCommConfig(HcclCommConfig* config)
+bool getDeterministicState()
 {
-    HcclCommConfigInit(config);
-    config->hcclBufferSize = c10_npu::option::OptionsManager::GetHcclBufferSize();
+    static bool cachedDeterministicState = []() {
+        // The env variable has a higher priority.
+        const char* envValue = std::getenv("HCCL_DETERMINISTIC");
+        if (envValue != nullptr) {
+            std::string valueStr(envValue);
+            std::transform(valueStr.begin(), valueStr.end(), valueStr.begin(), ::tolower);
+            if (valueStr == "true") {
+                return true;
+            }
+        }
+
+        return at::globalContext().deterministicAlgorithms();
+    }();
+
+    return cachedDeterministicState;
 }
 
-void getP2PHcclCommCofig(HcclCommConfig* config)
+void getHcclCommConfig(HcclCommConfig* config, bool isP2P = false)
 {
     HcclCommConfigInit(config);
-    config->hcclBufferSize = c10_npu::option::OptionsManager::GetP2PBufferSize();
+    if (!isP2P) {
+        config->hcclBufferSize = c10_npu::option::OptionsManager::GetHcclBufferSize();
+    } else {
+        config->hcclBufferSize = c10_npu::option::OptionsManager::GetP2PBufferSize();
+    }
+
+    // Temporarily adding this logic to set deterministic states to avoid a known issues within HCCL.
+    config->hcclDeterministic = getDeterministicState() ? 1 : 0;
+
     // Compatible with the size check of the old version of HCCL, forcibly convert
     // the config object to a size_t=32 object, and retain the N ± 2 version
     if (!isHcclFeatureSupported(HcclCommConfigCapability::HCCL_COMM_CONFIG_COMM_NAME)) {
@@ -773,6 +794,8 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     traceKeyEnd_("HCCL_" + std::to_string(rank) + "_trace_end"),
     terminateProcessGroup_(false)
 {
+    std::string groupName = "group_name_" + options->group_id;
+    this->setGroupName(groupName);
     int32_t hccl_event_timeout = c10_npu::option::OptionsManager::GetHCCLEventTimeout();
     int32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
     if (hccl_event_timeout > 0) {
@@ -1500,18 +1523,14 @@ void ProcessGroupHCCL::createHCCLComm(
                     checkHcclCommConfigValid(commConfig);
                     hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, commConfig);
                 } else {
-                    if (!options_->hccl_config.empty()) {
-                        config = createHcclCommConfigWithOptions();
-                        hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
-                    } else {
-                        hcclComms[i] = HCCLComm::create(numRanks, rank, hcclID);
-                    }
+                    config = createHcclCommConfigWithOptions();
+                    hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
                 }
                 break;
             case HcclCommType::P2P: // P2P not support set hcclCommName
                 numRanks = 2;
                 rank = p2pRank;
-                getP2PHcclCommCofig(&config);
+                getHcclCommConfig(&config, true);
                 hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
                 break;
             default:
@@ -1677,6 +1696,8 @@ void ProcessGroupHCCL::createHCCLCommForZeroCopy(
                 DIST_ERROR(ErrCode::INTERNAL));
         }
     }
+    // This HCCL comm is only created for zero copy and will not be used for HCCL operators.
+    // So there is no need to pass HCCL comm config and specify HCCL comm name.
     hcclComms[0] = HCCLComm::create(std::stoi(envMap["local_world_size"]), std::stoi(envMap["local_rank"]), hcclID);
     return;
 }
@@ -2085,20 +2106,19 @@ std::string ProcessGroupHCCL::getHcclCommName(int rankid, bool init_comm)
             return "";
         }
     }
+
+    HcclCommConfig config = createHcclCommConfigWithOptions();
     std::string hcclCommName = "";
-    std::vector <std::shared_ptr<HCCLComm>> hcclComms;
     {
         std::lock_guard <std::mutex> lock(mutex_);
         hcclCommName = devHCCLCommNameMap_[key];
     }
     if (!hcclCommName.empty()) {
-        HcclCommConfig config = createHcclCommConfigWithOptions();
         torch_npu::toolkit::profiler::Utils::safe_strcpy_s(config.hcclCommName, hcclCommName.c_str(),
                                                            COMM_NAME_MAX_LENGTH);
-        hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
-    } else {
-        hcclComms = getHCCLComm(key, devices);
     }
+    std::vector <std::shared_ptr<HCCLComm>> hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
+
     TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
         hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
     HcclComm hcom = hcclComms[0]->getHcclComm();
@@ -2239,6 +2259,14 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
     HcclCommConfig config;
     getHcclCommConfig(&config);
 
+    // update group name in hccl comm config
+    std::string groupName = getGroupName();
+    torch_npu::toolkit::profiler::Utils::safe_strcpy_s(config.hcclCommName, groupName.c_str(), COMM_NAME_MAX_LENGTH);
+
+    if (options_->hccl_config.empty()) {
+        return config;
+    }
+
     if (options_->hccl_config.find("hccl_buffer_size") != options_->hccl_config.end()) {
         if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_buffer_size"])) {
             config.hcclBufferSize = std::get<uint32_t>(options_->hccl_config["hccl_buffer_size"]);
@@ -2304,13 +2332,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
 
     const auto devices = getDeviceList(inputs);
     auto key = getKeyFromDevices(devices);
-    std::vector<std::shared_ptr<HCCLComm>> hcclComms;
-    if (!options_->hccl_config.empty()) {
-        HcclCommConfig config = createHcclCommConfigWithOptions();
-        hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
-    } else {
-        hcclComms = getHCCLComm(key, devices);
-    }
+    HcclCommConfig config = createHcclCommConfigWithOptions();
+    std::vector<std::shared_ptr<HCCLComm>> hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
 
     // Used many times below, so we stash the unordered_map lookup
     auto& hcclStreams = hcclStreams_[key];
@@ -2470,13 +2493,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
 
     const auto devices = getDevice(inputs);
     auto key = getKeyFromDevice(devices);
-    std::vector<std::shared_ptr<HCCLComm>> hcclComms;
-    if (!options_->hccl_config.empty()) {
-        HcclCommConfig config = createHcclCommConfigWithOptions();
-        hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
-    } else {
-        hcclComms = getHCCLComm(key, devices);
-    }
+    HcclCommConfig config = createHcclCommConfigWithOptions();
+    std::vector<std::shared_ptr<HCCLComm>> hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
 
     // Used many times below, so we stash the unordered_map lookup
     auto& hcclStreams = hcclStreams_[key];
