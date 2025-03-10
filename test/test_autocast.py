@@ -4,9 +4,14 @@ import collections
 import unittest
 
 import torch
+from torch.testing._internal.common_utils import (
+    IS_WINDOWS,
+    run_tests,
+    skipIfTorchDynamo,
+    TestCase,
+)
 import torch_npu
 import torch_npu.testing
-from torch.testing._internal.common_utils import TestCase, run_tests, IS_WINDOWS
 from torch.testing._internal.autocast_test_lists import AutocastCPUTestLists
 from torch.utils._python_dispatch import TorchDispatchMode
 
@@ -103,22 +108,26 @@ class TestAutocastCPU(TestCase):
         else:
             return op_with_args[0], op_with_args[1], op_with_args[2]
 
+    @skipIfTorchDynamo()
     def test_autocast_torch_expect_builtin_promote(self):
         for op, args1, args2, out_type in self.autocast_lists.torch_expect_builtin_promote:
             self._run_autocast_outofplace(op, args1, torch.float32, out_type=out_type)
             self._run_autocast_outofplace(op, args2, torch.float32, out_type=out_type, amp_dtype=torch.float16)
 
+    @skipIfTorchDynamo()
     def test_autocast_methods_expect_builtin_promote(self):
         for op, args1, args2, out_type in self.autocast_lists.methods_expect_builtin_promote:
             self._run_autocast_outofplace(op, args1, torch.float32, module=None, out_type=out_type)
             self._run_autocast_outofplace(op, args2, torch.float32, module=None, out_type=out_type, amp_dtype=torch.float16)
 
+    @skipIfTorchDynamo()
     def test_autocast_torch_16(self):
         for op_with_args in self.autocast_lists.torch_16:
             op, args, maybe_kwargs = self.args_maybe_kwargs(op_with_args)
             self._run_autocast_outofplace(op, args, torch.bfloat16, add_kwargs=maybe_kwargs)
             self._run_autocast_outofplace(op, args, torch.float16, add_kwargs=maybe_kwargs, amp_dtype=torch.float16)
 
+    @skipIfTorchDynamo()
     def test_autocast_nn_16(self):
         for op_with_args in self.autocast_lists.nn_16:
             op, args, maybe_kwargs = self.args_maybe_kwargs(op_with_args)
@@ -134,12 +143,14 @@ class TestAutocastCPU(TestCase):
                 amp_dtype=torch.float16,
             )
 
+    @skipIfTorchDynamo()
     def test_autocast_torch_fp32(self):
         for op_with_args in self.autocast_lists.torch_fp32:
             op, args, maybe_kwargs = self.args_maybe_kwargs(op_with_args)
             self._run_autocast_outofplace(op, args, torch.float32, add_kwargs=maybe_kwargs)
             self._run_autocast_outofplace(op, args, torch.float32, add_kwargs=maybe_kwargs, amp_dtype=torch.float16)
 
+    @skipIfTorchDynamo()
     def test_autocast_nn_fp32(self):
         for op_with_args in self.autocast_lists.nn_fp32:
             op, args, maybe_kwargs = self.args_maybe_kwargs(op_with_args)
@@ -155,6 +166,7 @@ class TestAutocastCPU(TestCase):
                 amp_dtype=torch.float16,
             )
 
+    @skipIfTorchDynamo()
     def test_autocast_torch_need_autocast_promote(self):
         for op, args1, args2 in self.autocast_lists.torch_need_autocast_promote:
             self._run_autocast_outofplace(op, args1, torch.float32)
@@ -180,6 +192,15 @@ class TestAutocastCPU(TestCase):
     def test_autocast_disabled_with_fp32_dtype(self):
         with torch.autocast(device_type='cpu', dtype=torch.float32, enabled=False):
             _ = torch.ones(10)
+
+    def test_generic_autocast(self):
+        for op_with_args in self.autocast_lists.torch_16:
+            op, args, maybe_kwargs = self.args_maybe_kwargs(op_with_args)
+            with torch.amp.autocast(device_type="cpu"):
+                generic_autocast_output = getattr(torch, op)(*args, **maybe_kwargs)
+            with torch.cpu.amp.autocast():
+                cpu_autocast_output = getattr(torch, op)(*args, **maybe_kwargs)
+            self.assertEqual(generic_autocast_output, cpu_autocast_output)
 
 
 class CustomLinear(torch.autograd.Function):
@@ -288,11 +309,20 @@ class TestTorchAutocast(TestCase):
         self.assertEqual(cpu_fast_dtype, torch.bfloat16)
 
     def test_invalid_device(self):
-        dev = 'not a real device'
-        msg = f'unsupported autocast device_type \'{dev}\''
+        dev = "not a real device"
+        msg = f"Invalid device string: '{dev}'"
         with self.assertRaisesRegex(RuntimeError, msg):
             with torch.autocast(device_type=dev):
                 _ = torch.tensor(1)
+        with self.assertRaisesRegex(RuntimeError, msg):
+            assert torch.amp.is_autocast_available(device_type=dev)
+
+    def test_non_string_device(self):
+        """Test that `autocast` throws a ValueError when provided a `torch.device` object for `device_type` instead of a string"""
+        dev = torch.device("cpu")
+        msg = f"Expected `device_type` of type `str`, got: `{type(dev)}`"
+        with self.assertRaisesRegex(expected_exception=ValueError, expected_regex=msg):
+            torch.autocast(device_type=dev)
 
 
 if __name__ == '__main__':
