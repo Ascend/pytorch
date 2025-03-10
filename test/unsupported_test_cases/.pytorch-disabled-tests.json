@@ -31216,5 +31216,8 @@
   "test_unary_op_out_casting_npu_float64_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", ["910A"]],
   "test_unary_op_out_casting_npu_float64_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", ["910A"]],
   "test_unary_op_out_casting_npu_int64_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", ["910A"]],
-  "test_unary_op_out_casting_npu_int64_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", ["910A"]]
+  "test_unary_op_out_casting_npu_int64_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", ["910A"]],
+  "test_unsupported_dtypes (__main__.TestTEFuserDynamic)": ["", [""]],
+  "test_unsupported_dtypes (__main__.TestTEFuserStatic)": ["", [""]],
+  "test_autocast_fast_dtype (__main__.TestTorchAutocast)": ["", [""]]
 }

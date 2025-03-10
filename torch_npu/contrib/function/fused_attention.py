@@ -1,4 +1,6 @@
 import functools
+import warnings
+
 import torch
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
@@ -86,6 +88,9 @@ class _FusedAttentionWithLayerNorm(torch.autograd.Function):
                 beta,
                 scale=1,
                 keep_prob=0):
+        warnings.warn("torch_npu.contrib.npu_fused_attention_with_layernorm is deprecated and "
+                      "will be removed in future version. Use torch_npu.npu_fusion_attention and "
+                      "torch.nn.LayerNorm instead.", FutureWarning)
         _check_compatibility_once(hidden_states, attention_mask, query_kernel,
                                  key_kernel, value_kernel, query_bias,
                                  key_bias, value_bias, gamma, beta)
