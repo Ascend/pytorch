@@ -30,6 +30,8 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUGraph.h"
+#include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -1788,6 +1790,7 @@ void ProcessGroupHCCL::workCleanupLoop()
                 }
                 HCCLTraceBuffer::get()->retire_id(work.trace_id_, true);
                 it = workMetaList_.erase(it);
+                c10_npu::NPUGraph::dec_pending_event_queries();
             } else {
                 if (status_save_enable && work.isStarted()) {
                     refreshStatusInfo(work, "start"); // Update Statusinfo，but not write into the map
@@ -2956,6 +2959,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     PostProcess post,
     c10d::OpType opType)
 {
+    c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
+
     // Bump collective counter
     seqCollective_++;
     seq_++;
@@ -3102,8 +3107,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     work->blockingWait_ = blockingWait_;
     work->opTimeout_ = options_->timeout;
     work->store_ = store_;
-    if (asyncErrorHandling_ != NoHandling) {
+    c10_npu::NPUGraph::inc_pending_event_queries();
+    if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
+    } else {
+        c10_npu::NPUGraph::dec_pending_event_queries();
     }
     
     return work;
@@ -3118,6 +3126,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     PostProcess post,
     c10d::OpType opType)
 {
+    c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
     // Bump collective counter
     seq_++;
 
@@ -3258,8 +3267,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     work->blockingWait_ = blockingWait_;
     work->opTimeout_ = options_->timeout;
     work->store_ = store_;
-    if (asyncErrorHandling_ != NoHandling) {
+    c10_npu::NPUGraph::inc_pending_event_queries();
+    if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
+    } else {
+        c10_npu::NPUGraph::dec_pending_event_queries();
     }
     
     return work;
@@ -3274,6 +3286,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
     PreProcess pre,
     PostProcess post)
 {
+    c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
     const auto devices = getDeviceList(tensors);
     int p2pRank = 0, p2pTargetRank = 0;
     bool isSendRecvSelf = false;
@@ -3431,8 +3444,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
         work->future_->markCompleted(at::IValue(*work->outputs_));
     }
 
-    if (asyncErrorHandling_ != NoHandling) {
+    c10_npu::NPUGraph::inc_pending_event_queries();
+    if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
+    } else {
+        c10_npu::NPUGraph::dec_pending_event_queries();
     }
 
     return work;
