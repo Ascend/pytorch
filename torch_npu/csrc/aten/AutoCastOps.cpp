@@ -19,7 +19,7 @@ at::Tensor binary_cross_entropy_banned(const at::Tensor &, const at::Tensor &,
              "safe to autocast.");
 }
 TORCH_LIBRARY_IMPL(_, AutocastPrivateUse1, m) {
-     m.fallback(torch::CppFunction::makeFallthrough());
+    m.fallback(torch::CppFunction::makeFallthrough());
 }
 
 TORCH_LIBRARY_IMPL(aten, AutocastPrivateUse1, m) {
