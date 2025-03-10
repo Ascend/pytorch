@@ -11,6 +11,8 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     get_backend, GatherOptions, _update_default_pg, _world, _unregister_all_process_groups, _pg_map, \
     ProcessGroup, default_pg_timeout, ReduceScatterOptions, _unregister_process_group
 
+from torch_npu.utils._error_code import ErrCode, dist_error
+
 __all__ = ["is_hccl_available", "reinit_process_group"]
 
 
@@ -32,6 +34,9 @@ def _batch_isend_irecv(p2p_op_list):
         tensors = []
         remote_rank_list = []
         for p2p_op in p2p_op_list:
+            if p2p_op.tensor.device.type != "npu":
+                deviceType = p2p_op.tensor.device.type
+                raise RuntimeError(f"No backend type associated with device type {deviceType}" + dist_error(ErrCode.PARAM))
             op_type.append(p2p_op.op.__name__)
             tensors.append(p2p_op.tensor)
             rank_for_op = get_group_rank(group, p2p_op.peer) if is_multi_pg else p2p_op.peer
