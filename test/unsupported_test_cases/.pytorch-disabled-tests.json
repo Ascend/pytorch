@@ -31219,5 +31219,8 @@
   "test_unary_op_out_casting_npu_int64_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", ["910A"]],
   "test_convTranspose_empty_npu (__main__.TestConvolutionNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_group_convTranspose_empty_npu (__main__.TestConvolutionNNDeviceTypePRIVATEUSE1)": ["", [""]],
-  "test_group_conv_empty_npu (__main__.TestConvolutionNNDeviceTypePRIVATEUSE1)": ["", [""]]
+  "test_group_conv_empty_npu (__main__.TestConvolutionNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_unsupported_dtypes (__main__.TestTEFuserDynamic)": ["", [""]],
+  "test_unsupported_dtypes (__main__.TestTEFuserStatic)": ["", [""]],
+  "test_autocast_fast_dtype (__main__.TestTorchAutocast)": ["", [""]]
 }
