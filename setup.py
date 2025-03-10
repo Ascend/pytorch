@@ -362,7 +362,8 @@ class CPPLibBuild(build_clib, object):
         if os.getenv('_ABI_VERSION') is not None:
             cmake_args.append('-DABI_VERSION=' + os.getenv('_ABI_VERSION'))
 
-        build_args = ['-j', str(multiprocessing.cpu_count())]
+        max_jobs = os.getenv("MAX_JOBS", str(multiprocessing.cpu_count()))
+        build_args = ['-j', max_jobs]
 
         subprocess.check_call([self.cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
         for base_dir, dirs, files in os.walk(build_type_dir):
