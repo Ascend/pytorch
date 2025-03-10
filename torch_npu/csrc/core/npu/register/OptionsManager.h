@@ -89,11 +89,6 @@ static std::unordered_map<int32_t, std::string> getAclOpInitMode()
     return aclOpInitMode;
 }
 
-static std::unordered_map<int64_t, std::string> getOOMSnapshotEnableMode()
-{
-    std::unordered_map<int64_t, std::string> OOMSnapshotEnableMode = {{0, "close"}, {1, "all"}, {2, "state"}};
-    return OOMSnapshotEnableMode;
-}
 
 class OptionsManager {
 public:

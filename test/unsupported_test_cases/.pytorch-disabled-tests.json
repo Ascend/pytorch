@@ -30141,5 +30141,7 @@
   "test_custom_op_fallthrough (__main__.TestUtilityFuns_opset_15)": ["", ["A2"]],
   "test_custom_op_fallthrough (__main__.TestUtilityFuns_opset_16)": ["", ["A2"]],
   "test_custom_op_fallthrough (__main__.TestUtilityFuns_opset_17)": ["", ["A2"]],
-  "test_custom_op_fallthrough (__main__.TestUtilityFuns_opset_9)": ["", ["A2"]]
+  "test_custom_op_fallthrough (__main__.TestUtilityFuns_opset_9)": ["", ["A2"]],
+  "test_unsupported_dtypes (__main__.TestTEFuserDynamic)": ["", [""]],
+  "test_unsupported_dtypes (__main__.TestTEFuserStatic)": ["", [""]]
 }

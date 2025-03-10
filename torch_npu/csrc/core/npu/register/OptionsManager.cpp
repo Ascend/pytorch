@@ -581,10 +581,6 @@ void OptionsManager::IsOomSnapshotEnable()
 #ifndef BUILD_LIBTORCH
     char* env_val = std::getenv("OOM_SNAPSHOT_ENABLE");
     int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
-    std::unordered_map<int64_t, std::string> OOMSnapshotEnableMode = getOOMSnapshotEnableMode();
-    if (OOMSnapshotEnableMode.find(envFlag) == OOMSnapshotEnableMode.end()) {
-        TORCH_CHECK(false, "OOM_SNAPSHOT_ENABLE should be 0, 1 or 2", PTA_ERROR(ErrCode::VALUE));
-    }
     switch (envFlag) {
         case 0:
             break;
