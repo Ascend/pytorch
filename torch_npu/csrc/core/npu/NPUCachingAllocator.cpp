@@ -987,7 +987,7 @@ class DeviceCachingAllocator {
 
   void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
   {
-      oom_observers_.emplace_back(std::move(observer));
+      oom_observers_.emplace_back(observer);
   }
 
   bool checkUceInMemPool()
@@ -2831,7 +2831,7 @@ class NpuCachingAllocator : public NPUAllocator {
   void attachOutOfMemoryObserver(OutOfMemoryObserver observer) override
   {
       for (auto& allocator : device_allocator) {
-          allocator->attachOutOfMemoryObserver(std::move(observer));
+          allocator->attachOutOfMemoryObserver(observer);
       }
   }
 
