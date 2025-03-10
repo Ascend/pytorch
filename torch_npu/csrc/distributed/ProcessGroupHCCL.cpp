@@ -1859,9 +1859,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     }
 
     // No need to detect batch_isend_irecv inputs is incorrect, need require special treatments.
+    // Broadcast only need detect src rank, need require special treatments.
     if (c10_npu::model_state().get_model_mode() == c10_npu::ModelMode::L_TRAIN
         && c10_npu::option::OptionsManager::GetSilenceCheckFlag() != c10_npu::option::CHECK_CLOSE
-        && opType != c10d::OpType::UNKNOWN) {
+        && opType != c10d::OpType::UNKNOWN && opType != c10d::OpType::BROADCAST) {
         for (const auto i : c10::irange(inputs.size())) {
             npuGuard.set_index(devices[i].index());
             c10_npu::NPUStreamGuard guard(hcclStreams[i]);
@@ -2489,6 +2490,20 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
 
             return HCCL_SUCCESS;
         },
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            // Only need detect src rank.
+            if (c10_npu::model_state().get_model_mode() == c10_npu::ModelMode::L_TRAIN
+                && c10_npu::option::OptionsManager::GetSilenceCheckFlag() != c10_npu::option::CHECK_CLOSE) {
+                const std::vector<uint32_t>& ranks = groupRanks();
+                if (opts.rootRank == ranks[rank_]) {
+                    for (const auto i : c10::irange(tensors.size())) {
+                        c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                        silenceCheck(tensors[i], c10d::OpType::BROADCAST);
+                    }
+                }
+            }
+        },
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         c10d::OpType::BROADCAST);
 }
 
