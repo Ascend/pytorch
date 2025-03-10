@@ -349,11 +349,4 @@ NPUGeneratorImpl* NPUGeneratorImpl::clone_impl() const {
     return gen;
 }
 
-// this is used to register generator
-at::Generator make_npu_generator(c10::DeviceIndex device_index) {
-    return at::make_generator<NPUGeneratorImpl>(device_index);
-}
-
-REGISTER_GENERATOR_PRIVATEUSE1(make_npu_generator)
-
 } // namespace at_npu

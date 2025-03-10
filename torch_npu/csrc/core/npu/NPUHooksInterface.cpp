@@ -22,6 +22,11 @@ void NPUHooksInterface::init() const
 #endif
 }
 
+at::Generator NPUHooksInterface::getNewGenerator(c10::DeviceIndex device_index) const
+{
+    return at::make_generator<at_npu::NPUGeneratorImpl>(device_index);
+}
+
 bool NPUHooksInterface::hasPrimaryContext(c10::DeviceIndex device_index) const
 {
     return c10_npu::isDeviceCtxActive(device_index);
