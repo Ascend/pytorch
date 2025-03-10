@@ -15,6 +15,7 @@ SLOW_TEST_BLOCKLIST = [
     'test_reductions',
     'test_unary_ufuncs',
     'test_ops_jit',
+    'test_jit_fuser_te.py',
     "onnx/test_op_consistency",
     "onnx/test_fx_op_consistency",
     'test_foreach',
