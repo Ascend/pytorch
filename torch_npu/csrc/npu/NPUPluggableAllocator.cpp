@@ -332,6 +332,20 @@ void NPUPluggableAllocator::cleanEvent()
         "If you need it, please file an issue describing your use case.");
 }
 
+std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState> NPUPluggableAllocator::getCheckpointState(c10::DeviceIndex device, c10_npu::MempoolId_t id)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support getCheckpointState. "
+        "If you need it, please file an issue describing your use case.");
+}
+
+c10_npu::NPUCachingAllocator::CheckpointDelta NPUPluggableAllocator::setCheckpointPoolState(c10::DeviceIndex device, std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState> pps)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support setCheckpointPoolState. "
+        "If you need it, please file an issue describing your use case.");
+}
+
 std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>
     current_custom_allocator;
 

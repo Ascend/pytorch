@@ -91,6 +91,12 @@ struct NPUPluggableAllocator
     void markAllBlockUnsafe(int device) override;
     void updateBlockToSafe(const c10::DataPtr &ptr) override;
     void cleanEvent() override;
+    std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState> getCheckpointState(
+        c10::DeviceIndex device,
+        c10_npu::MempoolId_t id) override;
+    c10_npu::NPUCachingAllocator::CheckpointDelta setCheckpointPoolState(
+        c10::DeviceIndex device,
+        std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState> pps) override;
 
 protected:
     std::function<void*(size_t, int, aclrtStream)> alloc_fn_;
