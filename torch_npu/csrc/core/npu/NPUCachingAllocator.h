@@ -125,6 +125,10 @@ struct SegmentInfo {
     std::shared_ptr<c10::GatheredContext> context_when_allocated;
 };
 
+struct AllocatorState {
+    virtual ~AllocatorState() = default;
+};
+
 struct TraceEntry {
     enum Action {
         ALLOC,          // API made to the caching allocator for new memory
@@ -162,6 +166,14 @@ struct TraceEntry {
 struct SnapshotInfo {
     std::vector<SegmentInfo> segments;
     std::vector<std::vector<TraceEntry> > device_traces;
+};
+
+// returns the pointers freed in the pool
+// and the pointers allocated. Note: a pointer
+// may appear in both freed and allocated
+struct CheckpointDelta {
+    std::vector<void*> ptrs_freed;
+    std::vector<at::DataPtr> dataptrs_allocd;
 };
 
 enum struct RecordContext {
@@ -204,6 +216,15 @@ public:
     virtual void releasePool(c10::DeviceIndex device, MempoolId_t mempool_id) = 0;
     virtual void FreeDeviceCachedMemory(int device) = 0;
     virtual std::string name() = 0;
+    virtual bool checkPoolLiveAllocations(
+        c10::DeviceIndex device,
+        MempoolId_t mempool_id,
+        const std::unordered_set<void*>& expected_live_allocations)
+    {
+        TORCH_CHECK(false, name(),
+            " does not yet support checkPoolLiveAllocations. "
+            "If you need it, please file an issue describing your use case.", PTA_ERROR(ErrCode::NOT_SUPPORT));
+    }
     virtual bool isHistoryEnabled()
     {
         TORCH_CHECK(
@@ -221,6 +242,12 @@ public:
     virtual void updateBlockToSafe(const c10::DataPtr &ptr) = 0;
     virtual void cleanEvent() = 0;
     virtual void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLComm> hcclComm) {}
+    virtual std::shared_ptr<AllocatorState> getCheckpointState(
+        c10::DeviceIndex device,
+        MempoolId_t id) = 0;
+    virtual CheckpointDelta setCheckpointPoolState(
+        c10::DeviceIndex device,
+        std::shared_ptr<AllocatorState> pps) = 0;
 };
 
 // Allocator object, statically initialized
@@ -309,6 +336,20 @@ inline SnapshotInfo snapshot()
     return get()->snapshot();
 }
 
+inline std::shared_ptr<AllocatorState> getCheckpointState(
+    c10::DeviceIndex device,
+    MempoolId_t id)
+{
+    return get()->getCheckpointState(device, id);
+}
+
+inline CheckpointDelta setCheckpointPoolState(
+    c10::DeviceIndex device,
+    std::shared_ptr<AllocatorState> pps)
+{
+    return get()->setCheckpointPoolState(device, std::move(pps));
+}
+
 // CUDAGraph interactions
 inline void beginAllocateToPool(
     c10::DeviceIndex device,
@@ -348,6 +389,14 @@ inline void recordHistory(bool enabled, CreateContextFn context_recorder,
 inline bool isHistoryEnabled()
 {
     return get()->isHistoryEnabled();
+}
+
+inline bool checkPoolLiveAllocations(
+    c10::DeviceIndex device,
+    MempoolId_t mempool_id,
+    const std::unordered_set<void*>& expected_live_allocations)
+{
+    return get()->checkPoolLiveAllocations(device, mempool_id, expected_live_allocations);
 }
 
 inline void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
