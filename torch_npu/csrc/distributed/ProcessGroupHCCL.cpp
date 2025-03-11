@@ -2786,15 +2786,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
     }
     post(hcclStreams_[key], work);
 
-    // End event should only be recorded after the hcclGroupEnd()
-    for (const auto i : c10::irange(tensors.size())) {
-        c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
-        (*(work->hcclEndEvents_))[i].record(hcclStream);
-        work->hcclComms_[i] = hcclComms[i];
-        work->blockingWait_ = blockingWait_;
-        work->opTimeout_ = options_->timeout;
-        work->store_ = store_;
-    }
     // Future only needs to be created and marked completed with outputs for
     // recv(), but still create future for use cases such as profiling even for
     // send().
@@ -2806,6 +2797,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
         work->future_->markCompleted(at::IValue(*work->outputs_));
     }
 
+    // End event should only be recorded after the hcclGroupEnd()
+    for (const auto i : c10::irange(tensors.size())) {
+        c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+        (*(work->hcclEndEvents_))[i].record(hcclStream);
+        work->hcclComms_[i] = hcclComms[i];
+        work->blockingWait_ = blockingWait_;
+        work->opTimeout_ = options_->timeout;
+        work->store_ = store_;
+    }
+    
     c10_npu::NPUGraph::inc_pending_event_queries();
     if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
