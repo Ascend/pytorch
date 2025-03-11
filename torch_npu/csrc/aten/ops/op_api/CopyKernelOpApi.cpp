@@ -73,6 +73,21 @@ void copy_between_host_and_device_opapi(at::Tensor& dst, const at::Tensor& src, 
     }
 }
 
+// the format of dst and src is baseformat now, copy d2d
+void copy_d2d_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_blocking)
+{
+    if (dst.device().index() != src.device().index()) {
+        return copy_d2d(dst, src, non_blocking);
+    }
+
+    c10_npu::NPUGuard guard(src.device());
+    c10::SmallVector<at::Tensor, N> inputs = {src};
+    c10::SmallVector<at::Tensor, N> outputs = {dst};
+    CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
+
+    EXEC_NPU_CMD(aclnnInplaceCopy, dst, src);
+}
+
 // the format of dst and src is base format now
 // the dtype of dst and src is same
 // and src and dst are contiguous
@@ -122,7 +137,7 @@ void copy_h2d_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
     // if necessary, copy back into dst
     if (!dst_contig.is_same(dst)) {
         TORCH_INTERNAL_ASSERT(dst_contig.device() == dst.device(), OPS_ERROR(ErrCode::VALUE));
-        copy_d2d_dtype(dst, dst_contig, non_blocking);
+        copy_d2d_baseformat_opapi(dst, dst_contig, non_blocking);
     }
 }
 
@@ -149,22 +164,6 @@ void copy_d2h_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
         dst.copy_(dst_contig, non_blocking); // h2h, use cpu copy
     }
 }
-
-// the format of dst and src is baseformat now, copy d2d
-void copy_d2d_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_blocking)
-{
-    if (dst.device().index() != src.device().index()) {
-        return copy_d2d(dst, src, non_blocking);
-    }
-
-    c10_npu::NPUGuard guard(src.device());
-    c10::SmallVector<at::Tensor, N> inputs = {src};
-    c10::SmallVector<at::Tensor, N> outputs = {dst};
-    CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
-
-    EXEC_NPU_CMD(aclnnInplaceCopy, dst, src);
-}
-
 
 at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking)
 {
