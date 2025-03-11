@@ -279,6 +279,15 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
     if (GetStatus() == RepoStatus::ERROR_EXIT) {
         // Avoid repeatedly throwing exceptions
         SetStatus(CAN_EXIT);
+
+        if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) {
+            auto errmsg = GetQueueErrMsg();
+            const char *memerror = "Failed to allocate memory";
+            if (strstr(errmsg, memerror) != nullptr) {
+                c10_npu::option::oom_observer();
+            }
+        }
+        
 #ifndef BUILD_LIBTORCH
         if (gilState) {
             PyEval_RestoreThread(gilState);
@@ -444,6 +453,14 @@ void Repository::Enqueue(void* cur_paras) {
     if (GetStatus() == RepoStatus::ERROR_EXIT) {
         // Avoid repeatedly throwing exceptions
         SetStatus(CAN_EXIT);
+
+        if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) {
+            auto errmsg = GetQueueErrMsg();
+            const char *memerror = "Failed to allocate memory";
+            if (strstr(errmsg, memerror) != nullptr) {
+                c10_npu::option::oom_observer();
+            }
+        }
 
         throw std::runtime_error("The Inner error is reported as above. "
                                 "The process exits for this inner error, and " + repo_error + ".\n" +
@@ -628,6 +645,16 @@ void Repository::ClearQueue()
     __sync_synchronize();
     eventfd_write(efd_empty, 1);
     eventfd_write(efd_write, 1);
+}
+
+void Repository::SetQueueErrMsg(const char *errmsg)
+{
+    error_msg = errmsg;
+}
+
+const char* Repository::GetQueueErrMsg()
+{
+    return error_msg;
 }
 
 Repository::~Repository() {
