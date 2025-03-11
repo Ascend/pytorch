@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include <ATen/ATen.h>
+#include <ATen/CachedTensorUtils.h>
 #include <torch/csrc/autograd/utils/wrap_outputs.h>
 #include <torch/csrc/autograd/generated/VariableType.h>
 #include <torch/csrc/autograd/generated/variable_factories.h>
@@ -133,6 +134,48 @@ void BindGetDeviceMemories(PyObject* module)
     }, py::return_value_policy::reference);
 }
 
+// We choose to ignore certain blocks that are currently allocated
+// when we set the pool to its checkpoint. For those blocks, we need
+// to swap out the deleter function of their corresponding blocks
+// so that a deallocation is not triggered when they die.
+void removeStorageDeleterFns(
+    const std::vector<c10::StorageImpl*>& stale_live_storages,
+    std::unordered_set<void*> definitely_stale_pointers)
+{
+    for (c10::StorageImpl* stale_storage : stale_live_storages) {
+        auto ptr = stale_storage->data_ptr().get();
+        auto allocated_pointer = definitely_stale_pointers.find(ptr);
+        TORCH_CHECK(allocated_pointer != definitely_stale_pointers.end());
+        auto t = c10_npu::NPUCachingAllocator::get();
+        bool succeeded = stale_storage->mutable_data_ptr().compare_exchange_deleter(
+            t->raw_deleter(), &c10::detail::deleteNothing);
+
+        TORCH_CHECK(succeeded,
+            "Unexpected deleter function on storage, could not swap function", PTA_ERROR(ErrCode::PARAM));
+    }
+}
+
+void addStorageDeleterFns(
+    std::vector<c10::StorageImpl*>& storages_to_add_deleters_to,
+    c10_npu::NPUCachingAllocator::CheckpointDelta& delta)
+{
+    std::unordered_map<void*, c10::StorageImpl*> storages;
+    for (auto& storage : storages_to_add_deleters_to) {
+        storages[storage->data_ptr().get()] = storage;
+    }
+
+    for (auto& data_ptr : delta.dataptrs_allocd) {
+        auto storage_pair = storages.find(data_ptr.get());
+        if (storage_pair != storages.end()) {
+            auto ctx = storage_pair->second->data_ptr().get_context();
+            TORCH_CHECK(ctx == nullptr, " Not expecting deleter function", PTA_ERROR(ErrCode::PARAM));
+            storage_pair->second->set_data_ptr_noswap(std::move(data_ptr));
+        } else {
+            data_ptr.release_context();
+        }
+    }
+}
+
 void RegisterNpuPluggableAllocator(PyObject* module)
 {
     auto m = py::handle(module).cast<py::module>();
@@ -141,6 +184,11 @@ void RegisterNpuPluggableAllocator(PyObject* module)
         c10_npu::NPUCachingAllocator::NPUAllocator,
         std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>>(
         m, "_npu_NPUAllocator");
+    py::class_<
+        c10_npu::NPUCachingAllocator::AllocatorState,
+        std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState>>(
+        m, "_npu_NPUAllocator_AllocatorState");
+
     m.def("_npu_getAllocator", []() {
       return py::cast(torch::npu::NPUPluggableAllocator::getCurrentAllocator());
     });
@@ -211,16 +259,19 @@ void RegisterNpuPluggableAllocator(PyObject* module)
                 reinterpret_cast<FuncType*>(func_ptr);
             self.set_erase_stream_fn(func);
         });
-    m.def("_npu_customAllocator", [](uint64_t malloc_ptr, uint64_t free_ptr) {
-        using MallocFuncType = void*(size_t, int, aclrtStream);
-        using FreeFuncType = void(void*, size_t, int, aclrtStream);
-        std::function<MallocFuncType> malloc_fn =
-            reinterpret_cast<MallocFuncType*>(malloc_ptr);
-        std::function<FreeFuncType> free_fn =
-            reinterpret_cast<FreeFuncType*>(free_ptr);
-        return torch::npu::NPUPluggableAllocator::createCustomAllocator(
-            malloc_fn, free_fn);
-    });
+
+    m.def(
+        "_npu_customAllocator",
+        [](uint64_t malloc_ptr, uint64_t free_ptr) {
+            using MallocFuncType = void*(size_t, int, aclrtStream);
+            using FreeFuncType = void(void*, size_t, int, aclrtStream);
+            std::function<MallocFuncType> malloc_fn =
+                reinterpret_cast<MallocFuncType*>(malloc_ptr);
+            std::function<FreeFuncType> free_fn =
+                reinterpret_cast<FreeFuncType*>(free_ptr);
+            return torch::npu::NPUPluggableAllocator::createCustomAllocator(
+                malloc_fn, free_fn);
+        });
     m.def(
         "_npu_beginAllocateCurrentStreamToPool",
         [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
@@ -242,6 +293,162 @@ void RegisterNpuPluggableAllocator(PyObject* module)
         [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
             c10_npu::NPUCachingAllocator::endAllocateToPool(device, mempool_id);
         });
+    m.def(
+        "_npu_releasePool",
+        [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+            c10_npu::NPUCachingAllocator::releasePool(device, mempool_id);
+        });
+    m.def(
+        "_tensors_data_ptrs_at_indices_equal",
+        [](py::list& tensors, py::list& data_ptrs, py::list& indices) {
+            for (size_t i = 0, end = indices.size(); i < end; ++i) {
+            auto index = indices[i].cast<int64_t>();
+            auto t = tensors[index].cast<at::Tensor>();
+            auto data_ptr = data_ptrs[index].cast<int64_t>();
+            if (reinterpret_cast<int64_t>(t.data_ptr()) != data_ptr) {
+                return false;
+            }
+            }
+            return true;
+        });
+    m.def(
+        "_storage_Use_Count",
+        [](size_t storage_impl_ptr) {
+            // NOLINTNEXTLINE(performance-no-int-to-ptr)
+            c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
+            return c10::raw::weak_intrusive_ptr::use_count(storage_impl);
+        });
+    m.def(
+        "_npu_getCheckpointState",
+        [](c10::DeviceIndex device, c10_npu::MempoolId_t id) {
+            return c10_npu::NPUCachingAllocator::getCheckpointState(device, id);
+        });
+    m.def(
+        "_npu_setCheckpointPoolState",
+        [](c10::DeviceIndex device,
+            std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState> pps,
+            const std::vector<size_t>& stale_storages_ptr,
+            const std::vector<size_t>& storages_to_add_deleters_to_ptr = {}) {
+            std::unordered_set<c10::StorageImpl*> ptr_set;
+            // iterate on std::vector for determinism
+            std::vector<c10::StorageImpl*> ptrs;
+            for (size_t ptr_int : stale_storages_ptr) {
+                // NOLINTNEXTLINE(performance-no-int-to-ptr)
+                c10::StorageImpl* ptr = (c10::StorageImpl*)ptr_int;
+                if (!ptr_set.count(ptr)) {
+                    ptrs.push_back(ptr);
+                    ptr_set.insert(ptr);
+                }
+            }
+            auto delta = c10_npu::NPUCachingAllocator::setCheckpointPoolState(device, std::move(pps));
+            auto& freed_pointers = delta.ptrs_freed;
+    
+            std::unordered_set<void*> allocd_set;
+            for (auto& data_ptr : delta.dataptrs_allocd) {
+                allocd_set.insert(data_ptr.get());
+            }
+            std::unordered_set<void*> freed_pointer_set;
+            size_t definite_freed_count = 0;
+            for (void* ptr : freed_pointers) {
+                if (!allocd_set.count(ptr)) {
+                    definite_freed_count += 1;
+                }
+                freed_pointer_set.insert((ptr));
+            }
+            // that block has already been freed,
+            // so even those this will error, so too will the allocator
+            // when the corresponding tensor dies because there is no
+            // live tensor corresponding to it
+            TORCH_CHECK(
+                ptr_set.size() >= definite_freed_count,
+                "Any stale tensors which are being manually freed"
+                " must be passed to set checkpoint", PTA_ERROR(ErrCode::PARAM));
+    
+            removeStorageDeleterFns(ptrs, freed_pointer_set);
+            std::vector<c10::StorageImpl*> storages_to_add_deleters_to;
+            storages_to_add_deleters_to.reserve(storages_to_add_deleters_to_ptr.size());
+            for (size_t ptr_int : storages_to_add_deleters_to_ptr) {
+                // NOLINTNEXTLINE(performance-no-int-to-ptr)
+                storages_to_add_deleters_to.push_back((c10::StorageImpl*)ptr_int);
+            }
+    
+            addStorageDeleterFns(storages_to_add_deleters_to, delta);
+            });
+        m.def(
+            "_free_And_Remove_DeleterFn",
+            [](size_t storage_impl_ptr) {
+                // NOLINTNEXTLINE(performance-no-int-to-ptr)
+                c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
+                auto alloc = c10_npu::NPUCachingAllocator::get();
+                auto data_ptr = storage_impl->data_ptr().get();
+                bool succeeded = storage_impl->mutable_data_ptr().compare_exchange_deleter(
+                    alloc->raw_deleter(), c10::detail::deleteNothing);
+                TORCH_CHECK(succeeded, "Expected standard deleter", PTA_ERROR(ErrCode::PARAM));
+                c10_npu::NPUCachingAllocator::raw_delete(data_ptr);
+            });
+        m.def(
+            "_has_Standard_Deleter",
+            [](size_t storage_impl_ptr) {
+                // NOLINTNEXTLINE(performance-no-int-to-ptr)
+                c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
+                auto alloc = c10_npu::NPUCachingAllocator::get();
+                return (storage_impl->data_ptr().get_deleter() == alloc->raw_deleter());
+            });
+        m.def(
+            "_add_cached_tensor",
+            [](const at::Tensor& t) {
+                at::caching::add_cached_tensor(t);
+            });
+        m.def(
+            "_remove_cached_tensor",
+            [](const at::Tensor& t) {
+                at::caching::remove_cached_tensor(t);
+            });
+        m.def(
+            "_construct_NPU_Tensor_From_Storage_And_Metadata",
+            [](py::dict& metadata, c10::Storage s) {
+                auto dtype_arg = metadata["dtype"].ptr();
+                auto meta = c10::scalarTypeToTypeMeta(torch::toScalarType(dtype_arg));
+    
+                constexpr c10::DispatchKeySet npu_dks(c10::DispatchKey::PrivateUse1);
+                at::Tensor tensor = at::detail::make_tensor_base<c10::TensorImpl>(
+                    std::move(s), npu_dks, meta);
+    
+                tensor.unsafeGetTensorImpl()->set_sizes_and_strides(
+                    metadata["size"].cast<std::vector<int64_t>>(),
+                    metadata["stride"].cast<std::vector<int64_t>>());
+                tensor.unsafeGetTensorImpl()->set_storage_offset(
+                    metadata["storage_offset"].cast<int64_t>());
+                return tensor;
+            });
+        m.def(
+            "_npu_checkPoolLiveAllocations",
+            [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id,
+                const py::set& expected_live_allocations) {
+                std::unordered_set<void*> allocations;
+                allocations.reserve(expected_live_allocations.size());
+                for (auto& elem : expected_live_allocations) {
+                    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+                    allocations.insert(reinterpret_cast<void*>(py::cast<size_t>(elem)));
+                }
+                return c10_npu::NPUCachingAllocator::checkPoolLiveAllocations(device, mempool_id, allocations);
+            });
+        m.def(
+            "_set_cached_tensors_enabled",
+            [](bool enabled) {
+                at::caching::set_cached_tensors_enabled(enabled);
+            });
+        m.def(
+            "_construct_storage_from_data_pointer",
+            [](int64_t data_ptr, c10::Device device, size_t size_bytes) {
+                c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
+                    c10::StorageImpl::use_byte_size_t(),
+                    size_bytes,
+                    at::DataPtr(reinterpret_cast<void*>(data_ptr), device),
+                    nullptr,
+                    false);
+                return c10::Storage(storage_impl);
+            });
 }
 
 PyObject* THNPModule_msTxMark(PyObject* self, PyObject* args)
