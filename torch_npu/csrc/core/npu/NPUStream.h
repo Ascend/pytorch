@@ -134,6 +134,8 @@ NPUStatus emptyAllNPUStream(bool check_error = true);
 
 std::string getRepoInfo();
 
+void setRepoErrMsg(const char* errmsg);
+
 void setDefaultStreamsStatus(c10::DeviceIndex device_index, RepoStatus status);
 
 C10_NPU_API bool npuSynchronizeDevice(bool check_error = true);

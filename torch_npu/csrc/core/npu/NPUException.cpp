@@ -1,5 +1,6 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 
@@ -100,7 +101,9 @@ void clear_mem_uce_info()
 
 const char *c10_npu_get_error_message()
 {
-    return c10_npu::acl::AclGetErrMsg();
+    auto errmsg = c10_npu::acl::AclGetErrMsg();
+    c10_npu::setRepoErrMsg(errmsg);
+    return errmsg;
 }
 
 void record_mem_hbm_ecc_error()

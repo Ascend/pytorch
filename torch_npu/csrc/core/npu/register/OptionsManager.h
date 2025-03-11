@@ -129,7 +129,7 @@ public:
     static char* GetCpuAffinityConf();
     static bool CheckForceUncached();
     static std::string GetOomSnapshotDumpPath();
-    static void IsOomSnapshotEnable();
+    static bool IsOomSnapshotEnable();
     static bool ShouldPrintWarning();
 
 private:
@@ -139,6 +139,8 @@ private:
     static std::pair<double, double> GetSilenceThresh(const std::string& env_str,
         std::pair<double, double> defaultThresh);
 };
+
+void oom_observer(int64_t device = 0, int64_t allocated = 0, int64_t device_total = 0, int64_t device_free = 0);
 
 } // namespace option
 } // namespace c10_npu
