@@ -430,6 +430,19 @@ std::string getRepoInfo()
     return repo_info.str();
 }
 
+void setRepoErrMsg(const char* errmsg)
+{
+    for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
+        auto& default_streamsi = default_streams[i];
+        if (default_streamsi.stream == nullptr) {
+            continue;
+        }
+        if (default_streamsi.stream != nullptr &&default_streamsi.repo->CheckInit()) {
+            default_streamsi.repo->SetQueueErrMsg(errmsg);
+        }
+    }
+}
+
 void setDefaultStreamsStatus(c10::DeviceIndex device_index, RepoStatus status)
 {
     if (status == c10_npu::RepoStatus::STOP_EXIT) {
