@@ -550,9 +550,9 @@ bool OptionsManager::ShouldPrintWarning()
     return should_print;
 }
 
-#ifndef BUILD_LIBTORCH
 void oom_observer(int64_t device, int64_t allocated, int64_t device_total, int64_t device_free)
 {
+#ifndef BUILD_LIBTORCH
     auto dumppath = c10_npu::option::OptionsManager::GetOomSnapshotDumpPath();
     std::stringstream filename;
     auto now = std::chrono::system_clock::now();
@@ -573,27 +573,34 @@ void oom_observer(int64_t device, int64_t allocated, int64_t device_total, int64
     PyObject* p_args = PyTuple_New(1);
     PyTuple_SetItem(p_args, 0, PyUnicode_FromString(savefilepath.c_str()));
     PyObject* p_res = PyObject_CallObject(p_func, p_args);
-}
 #endif
+}
 
-void OptionsManager::IsOomSnapshotEnable()
+
+bool OptionsManager::IsOomSnapshotEnable()
 {
-#ifndef BUILD_LIBTORCH
-    char* env_val = std::getenv("OOM_SNAPSHOT_ENABLE");
+    static bool isFirstCall = true;
+    const static char *env_val = std::getenv("OOM_SNAPSHOT_ENABLE");
     int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
-    switch (envFlag) {
-        case 0:
-            break;
-        case 2:
-            c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(std::move(oom_observer));
-            torch_npu::_record_memory_history("state", "all", "python", UINT64_MAX);
-            break;
-        default:
-            c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(std::move(oom_observer));
-            torch_npu::_record_memory_history("all", "all", "python", UINT64_MAX);
-            break;
+#ifndef BUILD_LIBTORCH
+    if (isFirstCall) {
+        switch (envFlag) {
+            case 0:
+                break;
+            case 2:
+                c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(std::move(oom_observer));
+                torch_npu::_record_memory_history("state", "all", "python", UINT64_MAX);
+                isFirstCall = false;
+                break;
+            default:
+                c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(std::move(oom_observer));
+                torch_npu::_record_memory_history("all", "all", "python", UINT64_MAX);
+                isFirstCall = false;
+                break;
+        }
     }
 #endif
+    return (envFlag != 0);
 }
 
 } // namespace option
