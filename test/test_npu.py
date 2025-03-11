@@ -3,6 +3,7 @@
 from itertools import product, chain
 import collections
 import contextlib
+import ctypes
 from copy import deepcopy
 import gc
 import os
@@ -4218,6 +4219,70 @@ class TestBlockStateAbsorption(TestCase):
             # fail, so just set CWD to this script's directory
             cwd=os.path.dirname(os.path.realpath(__file__))).strip().decode('ascii')
         self.assertEqual(rc, "False", "Triton was imported when importing torch!")
+
+
+@unittest.skipIf(not TEST_PRIVATEUSE1, "npu not available, skipping tests")
+class TestMemPool(TestCase):
+    def test_mempool_id(self):
+        pool1 = torch_npu.npu.graph_pool_handle()
+        pool2 = torch_npu.npu.MemPool().id
+
+        # first value of id in a user created pool is always zero
+        self.assertEqual(pool1[0] == 0, pool2[0] == 0)
+
+        # each call to torch_npu.npu.graph_pool_handle() or torch_npu.npu.MemPool()
+        # increments the id
+        self.assertTrue(abs(pool2[1] - pool1[1]) > 0)
+
+    def test_mempool_context(self):
+        active_pool = torch_npu.npu.MemPoolContext.active_pool()
+
+        # there is no active pool if none was made active
+        self.assertEqual(active_pool, None)
+
+        pool = torch_npu.npu.MemPool()
+        ctx = torch_npu.npu.MemPoolContext(pool)
+        active_pool = torch_npu.npu.MemPoolContext.active_pool()
+
+        # pool was made active
+        self.assertEqual(active_pool, pool)
+
+        del ctx
+        active_pool = torch_npu.npu.MemPoolContext.active_pool()
+
+        # ctx was deleted, so active pool is the previous one
+        self.assertEqual(active_pool, None)
+
+    def test_mempool_multithread(self):
+        pool_ids = []
+        active_pool_ids = []
+
+        def create_mempool_and_make_active():
+            pool = torch_npu.npu.MemPool()
+            pool_ids.extend([pool.id])
+
+            ctx = torch_npu.npu.MemPoolContext(pool)
+            active_pool = torch_npu.npu.MemPoolContext.active_pool()
+            active_pool_ids.extend([active_pool.id])
+            del ctx
+
+        num_threads = 4
+        threads = [
+            threading.Thread(target=create_mempool_and_make_active)
+            for t in range(num_threads)
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        # each thread should create a unique mempool, since
+        # mempool id creation is atomic
+        self.assertEqual(len(set(pool_ids)), 4)
+
+        # each thread should have different active mempool, since
+        # the pointer to the mempool is thread local
+        self.assertEqual(len(set(active_pool_ids)), 4)
 
 
 instantiate_parametrized_tests(TestNpu)

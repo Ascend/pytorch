@@ -4,6 +4,7 @@
 
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "third_party/acl/inc/acl/acl_base.h"
+#include "third_party/acl/inc/acl/acl_mdl.h"
 #include "third_party/acl/inc/acl/acl_prof.h"
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 
@@ -180,6 +181,20 @@ aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize
 aclError AclrtSynchronizeDeviceWithTimeout(void);
 
 aclError AclrtEventGetTimestamp(aclrtEvent event, uint64_t *timestamp);
+
+aclError AclmdlBeginCapture(aclrtStream stream, aclmdlCaptureMode mode);
+
+aclError AclmdlGetCaptureInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId);
+
+aclError AclmdlEndCapture(aclrtStream stream, uint32_t *modelId);
+
+aclError AclmdlDebugPrint(uint32_t modelId);
+
+aclError AclmdlExecuteAsync(uint32_t modelId, aclrtStream stream);
+
+aclError AclmdlUnload(uint32_t modelId);
+
+bool IsCaptureSupported();
 
 } // namespace acl
 } // namespace c10_npu

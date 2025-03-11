@@ -1,6 +1,5 @@
 #include "AclInterface.h"
 #include <dlfcn.h>
-#include "third_party/acl/inc/acl/acl_rt.h"
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
@@ -70,6 +69,12 @@ LOAD_FUNCTION(aclrtPeekAtLastError)
 LOAD_FUNCTION(aclrtSynchronizeDevice)
 LOAD_FUNCTION(aclrtSynchronizeDeviceWithTimeout)
 LOAD_FUNCTION(aclrtEventGetTimestamp)
+LOAD_FUNCTION(aclmdlBeginCapture)
+LOAD_FUNCTION(aclmdlGetCaptureInfo)
+LOAD_FUNCTION(aclmdlEndCapture)
+LOAD_FUNCTION(aclmdlDebugPrint)
+LOAD_FUNCTION(aclmdlExecuteAsync)
+LOAD_FUNCTION(aclmdlUnload)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -701,6 +706,98 @@ aclError AclrtEventGetTimestamp(aclrtEvent event, uint64_t *timestamp)
     }
     TORCH_CHECK(func, "Failed to find function ", "aclrtEventGetTimestamp", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(event, timestamp);
+}
+
+aclError AclmdlBeginCapture(aclrtStream stream, aclmdlCaptureMode mode)
+{
+    typedef aclError (*AclmdlBeginCapture)(aclrtStream, aclmdlCaptureMode);
+    static AclmdlBeginCapture func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlBeginCapture) GET_FUNC(aclmdlBeginCapture);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlBeginCapture", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, mode);
+}
+
+aclError AclmdlGetCaptureInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId)
+{
+    typedef aclError (*AclmdlGetCaptureInfo)(aclrtStream, aclmdlCaptureStatus *, uint32_t *);
+    static AclmdlGetCaptureInfo func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlGetCaptureInfo) GET_FUNC(aclmdlGetCaptureInfo);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlGetCaptureInfo", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, status, modelId);
+}
+
+aclError AclmdlEndCapture(aclrtStream stream, uint32_t *modelId)
+{
+    typedef aclError (*AclmdlEndCapture)(aclrtStream, uint32_t *);
+    static AclmdlEndCapture func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlEndCapture) GET_FUNC(aclmdlEndCapture);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlEndCapture", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, modelId);
+}
+
+aclError AclmdlDebugPrint(uint32_t modelId)
+{
+    typedef aclError (*AclmdlDebugPrint)(uint32_t);
+    static AclmdlDebugPrint func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlDebugPrint) GET_FUNC(aclmdlDebugPrint);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlDebugPrint", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(modelId);
+}
+
+aclError AclmdlExecuteAsync(uint32_t modelId, aclrtStream stream)
+{
+    typedef aclError (*AclmdlExecuteAsync)(uint32_t, const aclmdlDataset *, aclmdlDataset *, aclrtStream);
+    static AclmdlExecuteAsync func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlExecuteAsync) GET_FUNC(aclmdlExecuteAsync);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlExecuteAsync", PTA_ERROR(ErrCode::NOT_FOUND));
+
+    static aclmdlDataset *inputs = aclmdlCreateDataset();
+    static aclmdlDataset *outputs = aclmdlCreateDataset();
+    return func(modelId, inputs, outputs, stream);
+}
+
+aclError AclmdlUnload(uint32_t modelId)
+{
+    typedef aclError (*AclmdlUnload)(uint32_t);
+    static AclmdlUnload func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlUnload) GET_FUNC(aclmdlUnload);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlUnload", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(modelId);
+}
+
+bool IsCaptureSupported()
+{
+    static bool is_support = false;
+    static bool have_load_func = false;
+    static bool default_support_capture = ((GetSocVersion() >= SocVersion::Ascend910B1) &&
+        (GetSocVersion() < SocVersion::Ascend310B1)) ||
+        (GetSocVersion() >= SocVersion::Ascend910_9391);
+    if (default_support_capture && !have_load_func) {
+        have_load_func = true;
+        typedef aclError (*AclmdlGetCaptureInfo)(aclrtStream, aclmdlCaptureStatus *, uint32_t *);
+        static AclmdlGetCaptureInfo func = (AclmdlGetCaptureInfo) GET_FUNC(aclmdlGetCaptureInfo);
+        is_support = (func != nullptr);
+    }
+
+    return is_support;
 }
 
 } // namespace acl

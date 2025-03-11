@@ -1,7 +1,7 @@
 /**
 * @file acl_mdl.h
 *
-* Copyright (C) Huawei Technologies Co., Ltd. 2019-2020. All Rights Reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2019-2023. All rights reserved.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,6 +21,7 @@
 extern "C" {
 #endif
 
+#define ACL_DIM_ENDPOINTS        2
 #define ACL_MAX_DIM_CNT          128
 #define ACL_MAX_TENSOR_NAME_LEN  128
 #define ACL_MAX_BATCH_NUM        128
@@ -39,28 +40,33 @@ extern "C" {
 #define ACL_DYNAMIC_AIPP_NAME "ascend_dynamic_aipp_data"
 #define ACL_ATTR_NAME_DATA_DUMP_ORIGIN_OP_NAMES "_datadump_original_op_names"
 
+/* used for ACL_MDL_WORKSPACE_MEM_OPTIMIZE */
+#define ACL_WORKSPACE_MEM_OPTIMIZE_DEFAULT 0
+#define ACL_WORKSPACE_MEM_OPTIMIZE_INPUTOUTPUT 1
+
 typedef struct aclmdlDataset aclmdlDataset;
 typedef struct aclmdlDesc aclmdlDesc;
 typedef struct aclmdlAIPP aclmdlAIPP;
 typedef struct aclAippExtendInfo aclAippExtendInfo;
 typedef struct aclmdlConfigHandle aclmdlConfigHandle;
+typedef struct aclmdlExecConfigHandle aclmdlExecConfigHandle;
 
 typedef enum {
     ACL_YUV420SP_U8 = 1,
-    ACL_XRGB8888_U8,
-    ACL_RGB888_U8,
-    ACL_YUV400_U8,
-    ACL_NC1HWC0DI_FP16,
-    ACL_NC1HWC0DI_S8,
-    ACL_ARGB8888_U8,
-    ACL_YUYV_U8,
-    ACL_YUV422SP_U8,
-    ACL_AYUV444_U8,
-    ACL_RAW10,
-    ACL_RAW12,
-    ACL_RAW16,
-    ACL_RAW24,
-    ACL_AIPP_RESERVED = 0xffff,
+    ACL_XRGB8888_U8 = 2,
+    ACL_RGB888_U8 = 3,
+    ACL_YUV400_U8 = 4,
+    ACL_NC1HWC0DI_FP16 = 5,
+    ACL_NC1HWC0DI_S8 = 6,
+    ACL_ARGB8888_U8 = 7,
+    ACL_YUYV_U8 = 8,
+    ACL_YUV422SP_U8 = 9,
+    ACL_AYUV444_U8 = 10,
+    ACL_RAW10 = 11,
+    ACL_RAW12 = 12,
+    ACL_RAW16 = 13,
+    ACL_RAW24 = 14,
+    ACL_AIPP_RESERVED = 0xFFFF,
 } aclAippInputFormat;
 
 typedef enum {
@@ -76,8 +82,34 @@ typedef enum {
     ACL_MDL_INPUTQ_NUM_SIZET,
     ACL_MDL_INPUTQ_ADDR_PTR, /**< pointer to inputQ with shallow copy */
     ACL_MDL_OUTPUTQ_NUM_SIZET,
-    ACL_MDL_OUTPUTQ_ADDR_PTR /**< pointer to outputQ with shallow copy */
+    ACL_MDL_OUTPUTQ_ADDR_PTR, /**< pointer to outputQ with shallow copy */
+    ACL_MDL_WORKSPACE_MEM_OPTIMIZE,
+    ACL_MDL_WEIGHT_PATH_PTR, /**< pointer to weight path with deep copy */
+    ACL_MDL_MODEL_DESC_PTR, /**< pointer to model desc of model with shallow copy */
+    ACL_MDL_MODEL_DESC_SIZET,
+    ACL_MDL_KERNEL_PTR, /**< pointer to kernel bin of model with shallow copy */
+    ACL_MDL_KERNEL_SIZET,
+    ACL_MDL_KERNEL_ARGS_PTR, /**< pointer to kernel args of model with shallow copy */
+    ACL_MDL_KERNEL_ARGS_SIZET,
+    ACL_MDL_STATIC_TASK_PTR, /**< pointer to static task desc of model with shallow copy */
+    ACL_MDL_STATIC_TASK_SIZET,
+    ACL_MDL_DYNAMIC_TASK_PTR, /**< pointer to dynamic task desc of model with shallow copy */
+    ACL_MDL_DYNAMIC_TASK_SIZET,
+    ACL_MDL_MEM_MALLOC_POLICY_SIZET,
+    ACL_MDL_FIFO_PTR, /**< pointer to fifo memory of model with shallow copy */
+    ACL_MDL_FIFO_SIZET
 } aclmdlConfigAttr;
+
+typedef enum {
+    ACL_MDL_STREAM_SYNC_TIMEOUT = 0,
+    ACL_MDL_EVENT_SYNC_TIMEOUT,
+    ACL_MDL_WORK_ADDR_PTR, /**< param */
+    ACL_MDL_WORK_SIZET, /**< param */
+    ACL_MDL_MPAIMID_SIZET, /**< param reserved */
+    ACL_MDL_AICQOS_SIZET, /**< param reserved */
+    ACL_MDL_AICOST_SIZET, /**< param reserved */
+    ACL_MDL_MEC_TIMETHR_SIZET /**< param reserved */
+} aclmdlExecConfigAttr;
 
 typedef enum {
     ACL_DATA_WITHOUT_AIPP = 0,
@@ -88,9 +120,14 @@ typedef enum {
 
 typedef struct aclmdlIODims {
     char name[ACL_MAX_TENSOR_NAME_LEN]; /**< tensor name */
-    size_t dimCount;  /**< dim array count */
+    size_t dimCount; /**< dim array count */
     int64_t dims[ACL_MAX_DIM_CNT]; /**< dim data array */
 } aclmdlIODims;
+
+typedef struct aclmdlIODimsRange {
+    size_t rangeCount; /**< dim range array count */
+    int64_t range[ACL_MAX_DIM_CNT][ACL_DIM_ENDPOINTS]; /**< range data array */
+} aclmdlIODimsRange;
 
 typedef struct aclAippDims {
     aclmdlIODims srcDims; /**< input dims before model transform */
@@ -165,6 +202,30 @@ typedef struct aclAippInfo {
     aclAippExtendInfo *aippExtend; /**< reserved parameters, current version needs to be null */
 } aclAippInfo;
 
+typedef struct aclmdlExeOMDesc {
+    size_t workSize;
+    size_t weightSize;
+    size_t modelDescSize;
+    size_t kernelSize;
+    size_t kernelArgsSize;
+    size_t staticTaskSize;
+    size_t dynamicTaskSize;
+    size_t fifoTaskSize;
+    size_t reserved[8];
+} aclmdlExeOMDesc;
+
+typedef enum {
+    ACL_MODEL_CAPTURE_MODE_GLOBAL = 0,
+    ACL_MODEL_CAPTURE_MODE_THREAD_LOCAL,
+    ACL_MODEL_CAPTURE_MODE_RELAXED,
+} aclmdlCaptureMode;
+
+typedef enum {
+    ACL_MODEL_CAPTURE_STATUS_NONE = 0,
+    ACL_MODEL_CAPTURE_STATUS_ACTIVE,
+    ACL_MODEL_CAPTURE_STATUS_INVALIDATED,
+} aclmdlCaptureStatus;
+
 /**
  * @ingroup AscendCL
  * @brief Create data of type aclmdlDesc
@@ -195,6 +256,31 @@ ACL_FUNC_VISIBILITY aclError aclmdlDestroyDesc(aclmdlDesc *modelDesc);
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclmdlGetDesc(aclmdlDesc *modelDesc, uint32_t modelId);
+
+/**
+ * @ingroup AscendCL
+ * @brief Get aclmdlDesc data of the model according to the model path
+ *
+ * @param  modelDesc [OUT]   aclmdlDesc pointer
+ * @param  modelPath [IN]    model path
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlGetDescFromFile(aclmdlDesc *modelDesc, const char *modelPath);
+
+/**
+ * @ingroup AscendCL
+ * @brief Get aclmdlDesc data of the model according to the model and modelSize
+ *
+ * @param  modelDesc [OUT]   aclmdlDesc pointer
+ * @param  model [IN]        model pointer
+ * @param  modelSize [IN]    model size
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlGetDescFromMem(aclmdlDesc *modelDesc, const void *model, size_t modelSize);
 
 /**
  * @ingroup AscendCL
@@ -243,6 +329,25 @@ ACL_FUNC_VISIBILITY size_t aclmdlGetInputSizeByIndex(aclmdlDesc *modelDesc, size
  * @retval Specify the size of the output
  */
 ACL_FUNC_VISIBILITY size_t aclmdlGetOutputSizeByIndex(aclmdlDesc *modelDesc, size_t index);
+
+/**
+ * @ingroup AscendCL
+ * @brief Create config handle of execute
+ *
+ * @retval the aclmdlCreateExecConfigHandle pointer
+ */
+ACL_FUNC_VISIBILITY aclmdlExecConfigHandle *aclmdlCreateExecConfigHandle();
+
+/**
+ * @ingroup AscendCL
+ * @brief Destroy config handle of model execute
+ *
+ * @param  handle [IN]  Pointer to aclmdlExecConfigHandle to be destroyed
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlDestroyExecConfigHandle(const aclmdlExecConfigHandle *handle);
 
 /**
  * @ingroup AscendCL
@@ -345,6 +450,83 @@ ACL_FUNC_VISIBILITY aclError aclmdlLoadFromFile(const char *modelPath, uint32_t 
 
 /**
  * @ingroup AscendCL
+ * @brief Load offline bundle model data from file
+ * and manage memory internally by the system
+ *
+ * @par Function
+ * After the system finishes loading the bundle model,
+ * the bundle model ID returned is used as a mark to identify the bundle model
+ * during subsequent operations
+ *
+ * @param modelPath [IN]   Storage path for offline bundle model file
+ * @param bundleId [OUT]   Bundle model id generated after
+ *        the system finishes loading the bundle model
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlBundleLoadFromFile(const char *modelPath, uint32_t *bundleId);
+
+/**
+ * @ingroup AscendCL
+ * @brief Load offline bundle model data from memory and manage the memory of
+ * model running internally by the system
+ *
+ * @par Function
+ * After the system finishes loading the bundle model,
+ * the bundle model ID returned is used as a mark to identify the bundle  model
+ * during subsequent operations
+ *
+ * @param model [IN]      Bundle model data stored in memory
+ * @param modelSize [IN]  model data size
+ * @param bundleId [OUT]  Bundle model id generated after
+ *        the system finishes loading the model
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlBundleLoadFromMem(const void *model,  size_t modelSize, uint32_t *bundleId);
+
+/**
+ * @ingroup AscendCL
+ * @brief unload bundle model with bundle model id
+ *
+ * @param  bundleId [IN]   bundle model id to be unloaded
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlBundleUnload(uint32_t bundleId);
+
+/**
+ * @ingroup AscendCL
+ * @brief get bundle model inner model nums
+ *
+ * @param bundleId [IN] bundle id acquired by aclmdlBundleLoadFromFile or aclmdlBundleLoadFromMem
+ * @param modelNum [OUT]    the pointer to model num
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlBundleGetModelNum(uint32_t bundleId, size_t *modelNum);
+
+/**
+ * @ingroup AscendCL
+ * @brief get inner model id by index
+ *
+ * @param bundleId [IN] bundle id acquired by aclmdlBundleLoadFromFile or aclmdlBundleLoadFromMem
+ * @param index [IN] index of bundle models
+ * @param modelId [OUT]    the pointer to inner model id which to be executed
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlBundleGetModelId(uint32_t bundleId, size_t index, uint32_t *modelId);
+
+/**
+ * @ingroup AscendCL
  * @brief Load offline model data from memory and manage the memory of
  * model running internally by the system
  *
@@ -361,8 +543,7 @@ ACL_FUNC_VISIBILITY aclError aclmdlLoadFromFile(const char *modelPath, uint32_t 
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclmdlLoadFromMem(const void *model,  size_t modelSize,
-                                               uint32_t *modelId);
+ACL_FUNC_VISIBILITY aclError aclmdlLoadFromMem(const void *model,  size_t modelSize, uint32_t *modelId);
 
 /**
  * @ingroup AscendCL
@@ -464,6 +645,37 @@ ACL_FUNC_VISIBILITY aclError aclmdlExecute(uint32_t modelId, const aclmdlDataset
 
 /**
  * @ingroup AscendCL
+ * @brief Execute model synchronous inference until the inference result is returned
+ *
+ * @param  modelId [IN]   ID of the model to perform inference
+ * @param  input [IN]     Input data for model inference
+ * @param  output [OUT]   Output data for model inference
+ * @param  stream [IN]   stream
+ * @param  handle [IN]   config of model execute
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlExecuteV2(uint32_t modelId, const aclmdlDataset *input, aclmdlDataset *output,
+                                             aclrtStream stream, const aclmdlExecConfigHandle *handle);
+
+/**
+ * @ingroup AscendCL
+ * @brief Execute model asynchronous inference until the inference result is returned
+ *
+ * @param  modelId [IN]   ID of the model to perform inference
+ * @param  input [IN]     Input data for model inference
+ * @param  output [OUT]   Output data for model inference
+ * @param  stream [IN]   stream
+ * @param  handle [IN]   config of model execute
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY  aclError aclmdlExecuteAsyncV2(uint32_t modelId, const aclmdlDataset *input, aclmdlDataset *output,
+                                                   aclrtStream stream, const aclmdlExecConfigHandle *handle);
+/**
+ * @ingroup AscendCL
  * @brief Execute model asynchronous inference until the inference result is returned
  *
  * @param  modelId [IN]   ID of the model to perform inference
@@ -504,6 +716,19 @@ ACL_FUNC_VISIBILITY aclError aclmdlUnload(uint32_t modelId);
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclmdlQuerySize(const char *fileName, size_t *workSize, size_t *weightSize);
+
+/**
+ * @ingroup AscendCL
+ * @brief Get the size of each partition and working memory size
+ * required for model execution according to the model file
+ *
+ * @param  fileName [IN]          Model path to get memory information
+ * @param  aclmdlExeOMDesc [OUT]  The size of each partition and working memory size
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlQueryExeOMDesc(const char *fileName, aclmdlExeOMDesc *mdlPartitionSize);
 
 /**
  * @ingroup AscendCL
@@ -614,6 +839,20 @@ ACL_FUNC_VISIBILITY aclError aclmdlGetInputDimsV2(const aclmdlDesc *modelDesc, s
 
 /**
  * @ingroup AscendCL
+ * @brief get input dims range info
+ *
+ * @param modelDesc [IN]  model description
+ * @param index [IN]  input tensor index
+ * @param dimsRange [OUT]  dims range info
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlGetInputDimsRange(const aclmdlDesc *modelDesc, size_t index,
+                                                     aclmdlIODimsRange *dimsRange);
+
+/**
+ * @ingroup AscendCL
  * @brief get output dims info
  *
  * @param modelDesc [IN] model description
@@ -653,7 +892,7 @@ ACL_FUNC_VISIBILITY aclError aclmdlGetCurOutputDims(const aclmdlDesc *modelDesc,
  * @param modelDesc [IN]   model description
  * @param opName [IN]      op name
  * @param attr [IN]        attr name
- * 
+ *
  * @retval the attr value
  */
 ACL_FUNC_VISIBILITY const char *aclmdlGetOpAttr(aclmdlDesc *modelDesc, const char *opName, const char *attr);
@@ -824,6 +1063,18 @@ ACL_FUNC_VISIBILITY aclmdlAIPP *aclmdlCreateAIPP(uint64_t batchSize);
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclmdlDestroyAIPP(const aclmdlAIPP *aippParmsSet);
+
+/**
+ * @ingroup AscendCL
+ * @brief Get dynamic aipp data need size according to batchSize
+ *
+ * @param batchSize [IN]    batchsizes of model
+ * @param size [OUT]    Pointer of aipp data need size according to batchSize
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlGetAippDataSize(uint64_t batchSize, size_t *size);
 
 /**
  * @ingroup AscendCL
@@ -1239,6 +1490,21 @@ ACL_FUNC_VISIBILITY aclError aclmdlSetConfigOpt(aclmdlConfigHandle *handle, aclm
 
 /**
  * @ingroup AscendCL
+ * @brief set config for model execute
+ *
+ * @param handle [OUT]    pointer to model execute config handle
+ * @param attr [IN]       config attr in model execute config handle to be set
+ * @param attrValue [IN]  pointer to model execute config value
+ * @param valueSize [IN]  memory size of attrValue
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlSetExecConfigOpt(aclmdlExecConfigHandle *handle, aclmdlExecConfigAttr attr,
+                                                    const void *attrValue, size_t valueSize);
+
+/**
+ * @ingroup AscendCL
  * @brief get real tensor name from modelDesc
  *
  * @param modelDesc [IN]  pointer to modelDesc
@@ -1248,6 +1514,46 @@ ACL_FUNC_VISIBILITY aclError aclmdlSetConfigOpt(aclmdlConfigHandle *handle, aclm
  * @retval Failure return NULL
  */
 ACL_FUNC_VISIBILITY const char *aclmdlGetTensorRealName(const aclmdlDesc *modelDesc, const char *name);
+
+/**
+ * @ingroup AscendCL
+ * @brief begin capture
+ * @param stream [IN] set the stream to be captured
+ * @param mode [IN] capture mode
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlBeginCapture(aclrtStream stream, aclmdlCaptureMode mode);
+
+/**
+ * @ingroup AscendCL
+ * @brief obtain the capture information of a stream
+ * @param stream [IN] stream to be queried
+ * @param status [OUT] return the stream status
+ * @param modelId [OUT] return the model id
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlGetCaptureInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId);
+
+/**
+ * @ingroup AscendCL
+ * @brief end the stream capture and obtain the corresponding model
+ * @param stream [IN] stream to be ended
+ * @param modelId [OUT] return the model id
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlEndCapture(aclrtStream stream, uint32_t *modelId);
+
+/**
+ * @ingroup AscendCL
+ * @brief print model information
+ * @param modelId [IN] model information needs to be printed
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlDebugPrint(uint32_t modelId);
 
 #ifdef __cplusplus
 }
