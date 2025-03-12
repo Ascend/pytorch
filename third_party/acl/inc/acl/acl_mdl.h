@@ -1523,7 +1523,7 @@ ACL_FUNC_VISIBILITY const char *aclmdlGetTensorRealName(const aclmdlDesc *modelD
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclmdlBeginCapture(aclrtStream stream, aclmdlCaptureMode mode);
+ACL_FUNC_VISIBILITY aclError aclmdlCaptureBegin(aclrtStream stream, aclmdlCaptureMode mode);
 
 /**
  * @ingroup AscendCL
@@ -1534,7 +1534,7 @@ ACL_FUNC_VISIBILITY aclError aclmdlBeginCapture(aclrtStream stream, aclmdlCaptur
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclmdlGetCaptureInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId);
+ACL_FUNC_VISIBILITY aclError aclmdlCaptureGetInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId);
 
 /**
  * @ingroup AscendCL
@@ -1544,7 +1544,7 @@ ACL_FUNC_VISIBILITY aclError aclmdlGetCaptureInfo(aclrtStream stream, aclmdlCapt
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclmdlEndCapture(aclrtStream stream, uint32_t *modelId);
+ACL_FUNC_VISIBILITY aclError aclmdlCaptureEnd(aclrtStream stream, uint32_t *modelId);
 
 /**
  * @ingroup AscendCL
