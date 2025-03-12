@@ -25,6 +25,7 @@ LOAD_FUNCTION(aclprofStop)
 LOAD_FUNCTION(aclprofFinalize)
 LOAD_FUNCTION(aclprofCreateConfig)
 LOAD_FUNCTION(aclprofDestroyConfig)
+LOAD_FUNCTION(aclsysGetCANNVersion)
 
 aclprofStepInfoPtr init_stepinfo() {
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -197,5 +198,18 @@ aclError AclopStopDumpArgs(uint32_t dumpType) {
     return func(dumpType);
 }
 
+aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version)
+{
+    typedef aclError(*AclsysGetCANNVersionFunc)(aclCANNPackageName, aclCANNPackageVersion*);
+    static AclsysGetCANNVersionFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclsysGetCANNVersionFunc)GET_FUNC(aclsysGetCANNVersion);
+        if (func == nullptr) {
+            return ACL_ERROR_FEATURE_UNSUPPORTED;
+        }
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclsysGetCANNVersion", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(name, version);
+}
 } // namespace native
 } // namespace at_npu

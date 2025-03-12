@@ -86,6 +86,8 @@ typedef enum aclrtMemMallocPolicy {
     ACL_MEM_MALLOC_HUGE_FIRST_P2P,
     ACL_MEM_MALLOC_HUGE_ONLY_P2P,
     ACL_MEM_MALLOC_NORMAL_ONLY_P2P,
+    ACL_MEM_MALLOC_HUGE1G_ONLY,
+    ACL_MEM_MALLOC_HUGE1G_ONLY_P2P,
     ACL_MEM_TYPE_LOW_BAND_WIDTH   = 0x0100,
     ACL_MEM_TYPE_HIGH_BAND_WIDTH  = 0x1000,
 } aclrtMemMallocPolicy;
@@ -101,6 +103,8 @@ typedef enum aclrtMemAttr {
     ACL_DDR_MEM_P2P_NORMAL,
     ACL_HBM_MEM_P2P_HUGE,
     ACL_HBM_MEM_P2P_NORMAL,
+    ACL_HBM_MEM_HUGE1G,
+    ACL_HBM_MEM_P2P_HUGE1G,
 } aclrtMemAttr;
 
 typedef enum aclrtGroupAttr {
