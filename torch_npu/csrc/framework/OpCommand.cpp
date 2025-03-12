@@ -133,7 +133,7 @@ OpCommand& OpCommand::Output(
 
 void OpCommand::Run() {
     // Check for npu graph
-    if (aclCmd->CheckCustomHandlerNull()) {
+    if (c10_npu::is_stream_capturing.load() && aclCmd->CheckCustomHandlerNull()) {
         c10_npu::assertNotCapturing("Cannot run aclop operators");
     }
 

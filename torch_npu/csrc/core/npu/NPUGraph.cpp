@@ -127,6 +127,8 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlCaptureMode capture_mode)
     // prevent potentially unsafe CUDA API calls during capture.
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureBegin(capture_stream_, capture_mode));
 
+    c10_npu::is_stream_capturing.store(true);
+
     aclmdlCaptureStatus status;
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureGetInfo(stream, &status, &model_id_));
     TORCH_INTERNAL_ASSERT(status == aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_ACTIVE);
@@ -141,6 +143,8 @@ void NPUGraph::capture_end()
 
     uint32_t model_id;
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureEnd(capture_stream_, &model_id));
+
+    c10_npu::is_stream_capturing.store(false);
 
     c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
 
