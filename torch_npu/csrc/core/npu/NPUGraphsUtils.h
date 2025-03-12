@@ -74,7 +74,7 @@ inline CaptureStatus currentStreamCaptureStatusMayInitCtx()
     aclmdlCaptureStatus is_capturing{ACL_MODEL_CAPTURE_STATUS_NONE};
     uint32_t modelId;
     NPU_CHECK_ERROR(
-        c10_npu::acl::AclmdlGetCaptureInfo(c10_npu::getCurrentNPUStream(), &is_capturing, &modelId));
+        c10_npu::acl::AclmdlCaptureGetInfo(c10_npu::getCurrentNPUStream(), &is_capturing, &modelId));
     return CaptureStatus(is_capturing);
 }
 
