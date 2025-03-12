@@ -10,6 +10,8 @@
 
 namespace c10_npu {
 
+static std::atomic<bool> is_stream_capturing(false);
+
 using CaptureId_t = unsigned long long;
 
 // first is set if the instance is created by NPUGraph::capture_begin.
