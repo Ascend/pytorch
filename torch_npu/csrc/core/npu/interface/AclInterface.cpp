@@ -69,9 +69,9 @@ LOAD_FUNCTION(aclrtPeekAtLastError)
 LOAD_FUNCTION(aclrtSynchronizeDevice)
 LOAD_FUNCTION(aclrtSynchronizeDeviceWithTimeout)
 LOAD_FUNCTION(aclrtEventGetTimestamp)
-LOAD_FUNCTION(aclmdlBeginCapture)
-LOAD_FUNCTION(aclmdlGetCaptureInfo)
-LOAD_FUNCTION(aclmdlEndCapture)
+LOAD_FUNCTION(aclmdlCaptureBegin)
+LOAD_FUNCTION(aclmdlCaptureGetInfo)
+LOAD_FUNCTION(aclmdlCaptureEnd)
 LOAD_FUNCTION(aclmdlDebugPrint)
 LOAD_FUNCTION(aclmdlExecuteAsync)
 LOAD_FUNCTION(aclmdlUnload)
@@ -708,39 +708,39 @@ aclError AclrtEventGetTimestamp(aclrtEvent event, uint64_t *timestamp)
     return func(event, timestamp);
 }
 
-aclError AclmdlBeginCapture(aclrtStream stream, aclmdlCaptureMode mode)
+aclError AclmdlCaptureBegin(aclrtStream stream, aclmdlCaptureMode mode)
 {
-    typedef aclError (*AclmdlBeginCapture)(aclrtStream, aclmdlCaptureMode);
-    static AclmdlBeginCapture func = nullptr;
+    typedef aclError (*AclmdlCaptureBegin)(aclrtStream, aclmdlCaptureMode);
+    static AclmdlCaptureBegin func = nullptr;
     if (func == nullptr) {
-        func = (AclmdlBeginCapture) GET_FUNC(aclmdlBeginCapture);
+        func = (AclmdlCaptureBegin) GET_FUNC(aclmdlCaptureBegin);
     }
 
-    TORCH_CHECK(func, "Failed to find function aclmdlBeginCapture", PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(func, "Failed to find function aclmdlCaptureBegin", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(stream, mode);
 }
 
-aclError AclmdlGetCaptureInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId)
+aclError AclmdlCaptureGetInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId)
 {
-    typedef aclError (*AclmdlGetCaptureInfo)(aclrtStream, aclmdlCaptureStatus *, uint32_t *);
-    static AclmdlGetCaptureInfo func = nullptr;
+    typedef aclError (*AclmdlCaptureGetInfo)(aclrtStream, aclmdlCaptureStatus *, uint32_t *);
+    static AclmdlCaptureGetInfo func = nullptr;
     if (func == nullptr) {
-        func = (AclmdlGetCaptureInfo) GET_FUNC(aclmdlGetCaptureInfo);
+        func = (AclmdlCaptureGetInfo) GET_FUNC(aclmdlCaptureGetInfo);
     }
 
-    TORCH_CHECK(func, "Failed to find function aclmdlGetCaptureInfo", PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(func, "Failed to find function aclmdlCaptureGetInfo", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(stream, status, modelId);
 }
 
-aclError AclmdlEndCapture(aclrtStream stream, uint32_t *modelId)
+aclError AclmdlCaptureEnd(aclrtStream stream, uint32_t *modelId)
 {
-    typedef aclError (*AclmdlEndCapture)(aclrtStream, uint32_t *);
-    static AclmdlEndCapture func = nullptr;
+    typedef aclError (*AclmdlCaptureEnd)(aclrtStream, uint32_t *);
+    static AclmdlCaptureEnd func = nullptr;
     if (func == nullptr) {
-        func = (AclmdlEndCapture) GET_FUNC(aclmdlEndCapture);
+        func = (AclmdlCaptureEnd) GET_FUNC(aclmdlCaptureEnd);
     }
 
-    TORCH_CHECK(func, "Failed to find function aclmdlEndCapture", PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(func, "Failed to find function aclmdlCaptureEnd", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(stream, modelId);
 }
 
@@ -792,8 +792,8 @@ bool IsCaptureSupported()
         (GetSocVersion() >= SocVersion::Ascend910_9391);
     if (default_support_capture && !have_load_func) {
         have_load_func = true;
-        typedef aclError (*AclmdlGetCaptureInfo)(aclrtStream, aclmdlCaptureStatus *, uint32_t *);
-        static AclmdlGetCaptureInfo func = (AclmdlGetCaptureInfo) GET_FUNC(aclmdlGetCaptureInfo);
+        typedef aclError (*AclmdlCaptureGetInfo)(aclrtStream, aclmdlCaptureStatus *, uint32_t *);
+        static AclmdlCaptureGetInfo func = (AclmdlCaptureGetInfo) GET_FUNC(aclmdlCaptureGetInfo);
         is_support = (func != nullptr);
     }
 

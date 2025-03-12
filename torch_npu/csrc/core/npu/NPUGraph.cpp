@@ -20,7 +20,7 @@ constexpr int kSynchronizeBusyWaitMillis = 10;
 MempoolId_t graph_pool_handle()
 {
     // Sets just the second value, to distinguish it from MempoolId_ts created from
-    // aclmdlGetCaptureInfo id_s in capture_begin.
+    // aclmdlCaptureGetInfo id_s in capture_begin.
     auto new_pool = c10_npu::MemPool();
     return new_pool.id();
 }
@@ -110,7 +110,7 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlCaptureMode capture_mode)
     c10_npu::NPUCachingAllocator::beginAllocateToPool(capture_dev_, mempool_id_, [this](aclrtStream stream) {
         aclmdlCaptureStatus status;
         uint32_t model_id;
-        NPU_CHECK_ERROR(c10_npu::acl::AclmdlGetCaptureInfo(stream, &status, &model_id));
+        NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureGetInfo(stream, &status, &model_id));
         return status == aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_ACTIVE && model_id == model_id_;
     });
 
@@ -125,10 +125,10 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlCaptureMode capture_mode)
 
     // cudaStreamCaptureModeGlobal is the most conservative option to
     // prevent potentially unsafe CUDA API calls during capture.
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlBeginCapture(capture_stream_, capture_mode));
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureBegin(capture_stream_, capture_mode));
 
     aclmdlCaptureStatus status;
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlGetCaptureInfo(stream, &status, &model_id_));
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureGetInfo(stream, &status, &model_id_));
     TORCH_INTERNAL_ASSERT(status == aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_ACTIVE);
 }
 
@@ -140,7 +140,7 @@ void NPUGraph::capture_end()
                 "Capture must end on the same stream it began on.");
 
     uint32_t model_id;
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlEndCapture(capture_stream_, &model_id));
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureEnd(capture_stream_, &model_id));
 
     c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
 
