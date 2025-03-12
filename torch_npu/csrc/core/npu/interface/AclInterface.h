@@ -182,11 +182,11 @@ aclError AclrtSynchronizeDeviceWithTimeout(void);
 
 aclError AclrtEventGetTimestamp(aclrtEvent event, uint64_t *timestamp);
 
-aclError AclmdlBeginCapture(aclrtStream stream, aclmdlCaptureMode mode);
+aclError AclmdlCaptureBegin(aclrtStream stream, aclmdlCaptureMode mode);
 
-aclError AclmdlGetCaptureInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId);
+aclError AclmdlCaptureGetInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId);
 
-aclError AclmdlEndCapture(aclrtStream stream, uint32_t *modelId);
+aclError AclmdlCaptureEnd(aclrtStream stream, uint32_t *modelId);
 
 aclError AclmdlDebugPrint(uint32_t modelId);
 
