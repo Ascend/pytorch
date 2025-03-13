@@ -81,6 +81,16 @@ void RegisterNPUDeviceProperties(PyObject* module)
           []() { return c10_npu::NPUCachingAllocator::isHistoryEnabled(); });
 }
 
+std::string GetDeviceName()
+{
+    const char* device_name = c10_npu::acl::AclrtGetSocName();
+    if (device_name == nullptr) {
+        ASCEND_LOGE("NPU get device name fail.");
+        return "";
+    }
+    return std::string(device_name);
+}
+
 NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
 {
     const char* device_name;
@@ -103,6 +113,9 @@ void BindGetDeviceProperties(PyObject* module)
     auto m = py::handle(module).cast<py::module>();
     m.def("_npu_getDeviceProperties", [](int deviceid) -> NPUDeviceProp* {
       return GetDeviceProperties(deviceid);
+    }, py::return_value_policy::reference);
+    m.def("_npu_getDeviceName", []() -> std::string {
+      return GetDeviceName();
     }, py::return_value_policy::reference);
 }
 
