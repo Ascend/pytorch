@@ -12,12 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
-
 from .._base_parser import BaseParser
 from ...prof_bean._torch_op_node import TorchOpNode
-from ...prof_common_func._constant import DbConstant, Constant, TableColumnsManager, print_error_msg, print_warn_msg
-from ...prof_common_func._db_manager import DbManager
+from ...prof_common_func._constant import DbConstant, Constant, TableColumnsManager, print_warn_msg
+from ...prof_common_func._db_manager import TorchDb
+from ...prof_common_func._log import ProfilerLogger
 
 __all__ = []
 
@@ -28,42 +27,39 @@ class StepInfoDbParser(BaseParser):
 
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
-        self.db_conn = None
-        self.db_curs = None
-        self._db_path = ""
+        ProfilerLogger.init(self._profiler_path, "StepInfoDbParser")
+        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
         try:
-            self._db_path = deps_data.get(Constant.DB_PARSER, "")
             torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             step_range = self.get_step_range(torch_op_node[0] if torch_op_node else None)
-        except Exception as e:
-            logging.error("Failed to get step info from db, error: %s", str(e), exc_info=True)
-            DbManager.destroy_db_connect(self.db_conn, self.db_curs)
+        except Exception as error:
+            self.logger.error("Failed to get step info from db, error: %s", str(error), exc_info=True)
             return Constant.FAIL, []
         return Constant.SUCCESS, step_range
 
-    def get_api_data_in_time_range(self, begin_ts, end_ts, db_cur) -> list:
-        if not DbManager.judge_table_exist(db_cur, DbConstant.TABLE_CANN_API):
+    def get_api_data_in_time_range(self, begin_ts, end_ts) -> list:
+        if not TorchDb().judge_table_exist(DbConstant.TABLE_CANN_API):
             print_warn_msg("Failed to get api data from db.")
             return []
         sql = f"select connectionId from {DbConstant.TABLE_CANN_API} " \
               f"where type={self.NODE_LEVEL} and {begin_ts} <= startNs and endNs <= {end_ts}"
-        return DbManager.fetch_all_data(db_cur, sql)
+        return TorchDb().fetch_all_data(sql)
 
-    def get_all_api_data(self, db_cur) -> list:
-        if not DbManager.judge_table_exist(db_cur, DbConstant.TABLE_CANN_API):
+    def get_all_api_data(self) -> list:
+        if not TorchDb().judge_table_exist(DbConstant.TABLE_CANN_API):
             print_warn_msg("Failed to get api data from db.")
             return []
         sql = f"select connectionId from {DbConstant.TABLE_CANN_API} where type={self.NODE_LEVEL}"
-        return DbManager.fetch_all_data(db_cur, sql)
+        return TorchDb().fetch_all_data(sql)
 
-    def get_task_info_from_api(self, api_data, db_cur) -> dict:
-        if not DbManager.judge_table_exist(db_cur, DbConstant.TABLE_TASK):
+    def get_task_info_from_api(self, api_data) -> dict:
+        if not TorchDb().judge_table_exist(DbConstant.TABLE_TASK):
             print_warn_msg("Failed to get task data from db.")
             return {}
         sql = f"select startNs, endNs, connectionId, globalTaskId from {DbConstant.TABLE_TASK}"
-        task_data = DbManager.fetch_all_data(db_cur, sql)
+        task_data = TorchDb().fetch_all_data(sql)
         api_connection_ids = {info[0] for info in api_data}
         api_task_info = {}
         for task_info in task_data:
@@ -75,19 +71,16 @@ class StepInfoDbParser(BaseParser):
         step_node_list = []
         if root_node is not None:
             step_node_list = [node for node in root_node.child_node_list if node.is_profiler_step()]
-        conn, curs = DbManager.create_connect_db(self._db_path)
-        if not (conn and curs):
-            print_warn_msg(f"Failed to connect to db file: {self._db_path}")
+        if not TorchDb().create_connect_db():
+            print_warn_msg(f"Failed to connect to db file: {TorchDb().get_db_path()}")
             return []
-        self.db_conn = conn
-        self.db_curs = curs
         step_range = []
         if not step_node_list:
             start_time = 0
             end_time = float('inf')
             step_id = None
-            api_data = self.get_all_api_data(curs)
-            task_info = self.get_task_info_from_api(api_data, curs)
+            api_data = self.get_all_api_data()
+            task_info = self.get_task_info_from_api(api_data)
             device_start_ts = min(info['startNs'] for info in task_info.values()) if task_info else start_time
             device_end_ts = max(info['endNs'] for info in task_info.values()) if task_info else Constant.INVALID_VALUE
             step_range.append(
@@ -102,8 +95,8 @@ class StepInfoDbParser(BaseParser):
         else:
             for step_node in step_node_list:
                 step_id = step_node.event.name.split("#")[-1]
-                api_data = self.get_api_data_in_time_range(step_node.start_time, step_node.end_time, curs)
-                task_info = self.get_task_info_from_api(api_data, curs)
+                api_data = self.get_api_data_in_time_range(step_node.start_time, step_node.end_time)
+                task_info = self.get_task_info_from_api(api_data)
                 device_start_ts = \
                     min(info['startNs'] for info in task_info.values()) if task_info else step_node.start_time
                 device_end_ts = \
@@ -118,7 +111,6 @@ class StepInfoDbParser(BaseParser):
                     }
                 )
         self.save_step_time(step_node_list)
-        DbManager.destroy_db_connect(conn, curs)
         return step_range
 
     def save_step_time(self, step_node_list: list) -> None:
@@ -127,5 +119,5 @@ class StepInfoDbParser(BaseParser):
         step_time_list = []
         for step_node in step_node_list:
             step_time_list.append([step_node.event.name.split("#")[-1], step_node.start_time, step_node.end_time])
-        DbManager.create_table_with_headers(self.db_conn, self.db_curs, DbConstant.TABLE_STEP_TIME, TableColumnsManager.TableColumns.get(DbConstant.TABLE_STEP_TIME))
-        DbManager.insert_data_into_table(self.db_conn, DbConstant.TABLE_STEP_TIME, step_time_list)
+        TorchDb().create_table_with_headers(DbConstant.TABLE_STEP_TIME, TableColumnsManager.TableColumns.get(DbConstant.TABLE_STEP_TIME))
+        TorchDb().insert_data_into_table(DbConstant.TABLE_STEP_TIME, step_time_list)

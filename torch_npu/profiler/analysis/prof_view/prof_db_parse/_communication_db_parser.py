@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from enum import Enum
 
 from ...prof_parse._cann_file_parser import CANNDataEnum, CANNFileParser
 from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager
+from ...prof_common_func._db_manager import AnalysisDb
 from ...prof_common_func._constant import convert_us2ns
 from ...prof_common_func._db_manager import DbManager
 from ...prof_common_func._log import ProfilerLogger
@@ -73,8 +73,6 @@ class CommunicationDbParser(CommunicationParser):
         super().__init__(name, param_dict)
         self.cann_comm_db_conn = None
         self.cann_comm_db_curs = None
-        self.analysis_db_conn = None
-        self.analysis_db_curs = None
         ProfilerLogger.init(self._profiler_path, "CommunicationDbParser")
         self.logger = ProfilerLogger.get_instance()
 
@@ -82,10 +80,9 @@ class CommunicationDbParser(CommunicationParser):
         try:
             self._init_step_list(deps_data)
             self.generate_view()
-        except Exception as e:
-            self.logger.error("Failed to generate communication table, error: %s", str(e), exc_info=True)
+        except Exception as error:
+            self.logger.error("Failed to generate communication table, error: %s", str(error), exc_info=True)
             DbManager.destroy_db_connect(self.cann_comm_db_conn, self.cann_comm_db_curs)
-            DbManager.destroy_db_connect(self.analysis_db_conn, self.analysis_db_curs)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 
@@ -110,6 +107,7 @@ class CommunicationDbParser(CommunicationParser):
         self.save_communication_db_data(band_width_data, matrix_data, time_data, output_path)
 
     def get_communication_db_data(self, db_path: str):
+        # 在处理原analysis.db里的数据
         band_width_data, matrix_data, time_data = [], [], []
         conn, curs = DbManager.create_connect_db(db_path)
         if not (conn and curs):
@@ -119,18 +117,18 @@ class CommunicationDbParser(CommunicationParser):
         self.cann_comm_db_curs = curs
         if DbManager.judge_table_exist(curs, DbConstant.TABLE_ANALYZER_BANDWIDTH):
             sql = "select hccl_op_name, group_name, transport_type, transit_size, transit_time, " \
-                  "bandwidth, large_packet_ratio, package_size, count, total_duration" \
-                  " from {};".format(DbConstant.TABLE_ANALYZER_BANDWIDTH)
+                  "bandwidth, large_packet_ratio, package_size, count, total_duration " \
+                  "from {};".format(DbConstant.TABLE_ANALYZER_BANDWIDTH)
             band_width_data = DbManager.fetch_all_data(curs, sql)
         if DbManager.judge_table_exist(curs, DbConstant.TABLE_ANALYZER_MATRIX):
             sql = "select hccl_op_name, group_name, src_rank, dst_rank, "\
-                  "transport_type, transit_size, transit_time, bandwidth" \
-                  " from {};".format(DbConstant.TABLE_ANALYZER_MATRIX)
+                  "transport_type, transit_size, transit_time, bandwidth " \
+                  "from {};".format(DbConstant.TABLE_ANALYZER_MATRIX)
             matrix_data = DbManager.fetch_all_data(curs, sql)
         if DbManager.judge_table_exist(curs, DbConstant.TABLE_ANALYZER_TIME):
             sql = "select hccl_op_name, group_name, start_timestamp, elapse_time, "\
-                  "transit_time, wait_time, synchronization_time, idle_time" \
-                  " from {};".format(DbConstant.TABLE_ANALYZER_TIME)
+                  "transit_time, wait_time, synchronization_time, idle_time " \
+                  "from {};".format(DbConstant.TABLE_ANALYZER_TIME)
             time_data = DbManager.fetch_all_data(curs, sql)
         DbManager.destroy_db_connect(conn, curs)
         return band_width_data, matrix_data, time_data
@@ -218,21 +216,16 @@ class CommunicationDbParser(CommunicationParser):
             reformat_data += extract_data_from_dict(step, self.COLLECTIVE, collective_dict)
         return reformat_data
 
-    def save_communication_db_data(self, band_width_data, matrix_data, time_data, output_path):
-        db_path = os.path.join(output_path, DbConstant.DB_ANALYSIS)
-        conn, curs = DbManager.create_connect_db(db_path)
-        if not (conn and curs):
-            self.logger.warning("Failed to connect to db file: %s", db_path)
+    def save_communication_db_data(self, band_width_data, matrix_data, time_data):
+        if not AnalysisDb().create_connect_db():
+            self.logger.warning("Failed to connect to db file: %s", AnalysisDb().get_db_path())
             return
-        self.analysis_db_conn = conn
-        self.analysis_db_curs = curs
-        DbManager.create_table_with_headers(conn, curs, DbConstant.TABLE_ANALYZER_BANDWIDTH,
-                                            TableColumnsManager.TableColumns.get(DbConstant.TABLE_ANALYZER_BANDWIDTH))
-        DbManager.insert_data_into_table(conn, DbConstant.TABLE_ANALYZER_BANDWIDTH, band_width_data)
-        DbManager.create_table_with_headers(conn, curs, DbConstant.TABLE_ANALYZER_MATRIX,
-                                            TableColumnsManager.TableColumns.get(DbConstant.TABLE_ANALYZER_MATRIX))
-        DbManager.insert_data_into_table(conn, DbConstant.TABLE_ANALYZER_MATRIX, matrix_data)
-        DbManager.create_table_with_headers(conn, curs, DbConstant.TABLE_ANALYZER_TIME,
-                                            TableColumnsManager.TableColumns.get(DbConstant.TABLE_ANALYZER_TIME))
-        DbManager.insert_data_into_table(conn, DbConstant.TABLE_ANALYZER_TIME, time_data)
-        DbManager.destroy_db_connect(conn, curs)
+        AnalysisDb().create_table_with_headers(DbConstant.TABLE_ANALYZER_BANDWIDTH,
+                                               TableColumnsManager.TableColumns.get(DbConstant.TABLE_ANALYZER_BANDWIDTH))
+        AnalysisDb().insert_data_into_table(DbConstant.TABLE_ANALYZER_BANDWIDTH, band_width_data)
+        AnalysisDb().create_table_with_headers(DbConstant.TABLE_ANALYZER_MATRIX,
+                                               TableColumnsManager.TableColumns.get(DbConstant.TABLE_ANALYZER_MATRIX))
+        AnalysisDb().insert_data_into_table(DbConstant.TABLE_ANALYZER_MATRIX, matrix_data)
+        AnalysisDb().create_table_with_headers(DbConstant.TABLE_ANALYZER_TIME,
+                                               TableColumnsManager.TableColumns.get(DbConstant.TABLE_ANALYZER_TIME))
+        AnalysisDb().insert_data_into_table(DbConstant.TABLE_ANALYZER_TIME, time_data)
