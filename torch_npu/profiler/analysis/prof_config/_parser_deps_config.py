@@ -54,20 +54,8 @@ class ParserDepsConfig:
         Constant.MEMORY_PREPARE: {Constant.MODE: ConcurrentMode.PTHREAD,
                                   Constant.DEPS: [Constant.TREE_BUILD_PARSER]},
         Constant.DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                  Constant.DEPS: [Constant.CANN_EXPORT_PARSER]},
-        Constant.FWK_API_DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                     Constant.DEPS: [Constant.DB_PARSER]},
-        Constant.MEMORY_DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                    Constant.DEPS: [Constant.DB_PARSER, Constant.MEMORY_PREPARE, Constant.FWK_API_DB_PARSER]},
-        Constant.STEP_INFO_DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                       Constant.DEPS: [Constant.DB_PARSER, Constant.TREE_BUILD_PARSER]},
-        Constant.COMMUNICATION_DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                           Constant.DEPS: [Constant.DB_PARSER, Constant.CANN_ANALYZE_PARSER,
-                                                           Constant.STEP_INFO_DB_PARSER]},
-        Constant.TRACE_STEP_TIME_DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                             Constant.DEPS: [Constant.DB_PARSER, Constant.STEP_INFO_DB_PARSER]},
-        Constant.GC_RECORD_DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                       Constant.DEPS: [Constant.DB_PARSER]},
+                             Constant.DEPS: [Constant.CANN_EXPORT_PARSER, Constant.MEMORY_PREPARE,
+                                             Constant.TREE_BUILD_PARSER]},
         Constant.MEMORY_TIMELINE_PARSER: {}
     }
 
@@ -77,13 +65,6 @@ class ParserDepsConfig:
         Constant.MEMORY_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
         Constant.STACK_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
         Constant.CANN_EXPORT_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
-        Constant.DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                  Constant.DEPS: [Constant.CANN_EXPORT_PARSER]},
-        Constant.FWK_API_DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                     Constant.DEPS: [Constant.DB_PARSER]},
-        Constant.MEMORY_DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                    Constant.DEPS: [Constant.DB_PARSER, Constant.FWK_API_DB_PARSER]},
-        Constant.GC_RECORD_DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                       Constant.DEPS: [Constant.DB_PARSER]},
+        Constant.DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD, Constant.DEPS: [Constant.CANN_EXPORT_PARSER]},
         Constant.MEMORY_TIMELINE_PARSER: {}
     }

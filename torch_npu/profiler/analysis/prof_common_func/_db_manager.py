@@ -3,6 +3,7 @@ import sqlite3
 
 from ._constant import Constant, print_warn_msg, print_error_msg
 from ._file_manager import FileManager
+from ._singleton import Singleton
 
 __all__ = []
 
@@ -167,3 +168,54 @@ class DbManager:
             print_error_msg("SQLite Error: %s" % " ".join(err.args))
             return []
         return res
+
+
+class BasicDb:
+    def __init__(self) -> None:
+        self.db_path = None
+        self.conn = None
+        self.curs = None
+
+    def init(self, db_path: str) -> None:
+        if self.db_path is None:
+            self.db_path = db_path
+
+    def create_connect_db(self) -> bool:
+        if self.conn and self.curs:
+            return True
+        self.conn, self.curs = DbManager.create_connect_db(self.db_path)
+        return True if (self.conn and self.curs) else False
+
+    def get_db_path(self) -> str:
+        return self.db_path
+
+    def close(self) -> None:
+        self.db_path = None
+        DbManager.destroy_db_connect(self.conn, self.curs)
+
+    def judge_table_exist(self, table_name: str) -> bool:
+        return DbManager.judge_table_exist(self.curs, table_name)
+
+    def create_table_with_headers(self, table_name: str, headers: list) -> None:
+        DbManager.create_table_with_headers(self.conn, self.curs, table_name, headers)
+
+    def insert_data_into_table(self, table_name: str, data: list) -> None:
+        DbManager.insert_data_into_table(self.conn, table_name, data)
+
+    def fetch_all_data(self, sql: str) -> list:
+        return DbManager.fetch_all_data(self.curs, sql)
+
+    def fetch_one_data(self, sql: str) -> list:
+        return DbManager.fetch_one_data(self.curs, sql)
+
+
+@Singleton
+class TorchDb(BasicDb):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+@Singleton
+class AnalysisDb(BasicDb):
+    def __init__(self) -> None:
+        super().__init__()
