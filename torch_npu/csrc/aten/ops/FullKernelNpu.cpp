@@ -7,14 +7,15 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::full_out(at::IntArrayRef size, const at::Scalar& fill_value, at::Tensor& out) {
-  OpPreparation::CheckOut(
-      {},
-      out,
-      out,
-      size);
-  out.fill_(fill_value);
-  return out;
+at::Tensor& NPUNativeFunctions::full_out(at::IntArrayRef size, const at::Scalar& fill_value, at::Tensor& out)
+{
+    OpPreparation::CheckOut(
+        {},
+        out,
+        out,
+        size);
+    out.fill_(fill_value);
+    return out;
 }
 
 at::Tensor NPUNativeFunctions::full(
@@ -24,7 +25,8 @@ at::Tensor NPUNativeFunctions::full(
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
-    c10::optional<bool> pin_memory_opt) {
+    c10::optional<bool> pin_memory_opt)
+{
     c10::TensorOptions option = c10::TensorOptions().dtype(dtype_opt)
                                             .device(device_opt)
                                             .layout(layout_opt)
