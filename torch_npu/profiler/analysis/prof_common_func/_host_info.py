@@ -19,7 +19,7 @@ from torch_npu._C._profiler import _get_host_uid
 __all__ = []
 
 
-def _get_host_info() -> dict:
+def get_host_info() -> dict:
     host_name = socket.gethostname()
     host_uid = str(_get_host_uid())
     return {

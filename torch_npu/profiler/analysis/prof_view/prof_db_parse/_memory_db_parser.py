@@ -1,13 +1,10 @@
-import os
-
 from enum import Enum
 from collections import namedtuple
 from ...prof_parse._fwk_file_parser import FwkFileParser
 from .._memory_prepare_parser import MemoryPrepareParser
-from ...prof_common_func._db_manager import DbManager
+from ...prof_common_func._db_manager import TorchDb
 from ...prof_common_func._id_manager import Str2IdManager
 from ...prof_common_func._path_manager import ProfilerPathManager
-from ...prof_parse._cann_file_parser import CANNFileParser, CANNDataEnum
 from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager
 from ...prof_common_func._log import ProfilerLogger
 from .._base_parser import BaseParser
@@ -57,9 +54,6 @@ class GeOpMemRecordsOri(Enum):
 class MemoryDbParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
-        self._conn = None
-        self._cur = None
-        self._db_path = ""
         self._pta_op_memory_data = []
         self._ge_op_memory_data = []
         self._pta_memory_bean_list = []
@@ -82,32 +76,29 @@ class MemoryDbParser(BaseParser):
     
     def run(self, deps_data: dict):
         try:
-            self._db_path = deps_data.get(Constant.DB_PARSER, "")
             self.init_db_connect()
             self.set_start_string_id()
             self._pta_op_memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", {}).get(Constant.Db, [])
             self._pta_memory_bean_list = deps_data.get(Constant.MEMORY_PREPARE, {}).get("pta_record_list", [])
             self.init_pta_memory_data()
             self.save_memory_data_to_db()
-        except Exception as e:
-            self.logger.error("Failed to generate memory_record table or op_memory table, error: %s", str(e), exc_info=True)
-            DbManager.destroy_db_connect(self._conn, self._cur)
+        except Exception as error:
+            self.logger.error("Failed to generate memory_record table or op_memory table, error: %s", str(error), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
     
     def init_db_connect(self):
-        self._conn, self._cur = DbManager.create_connect_db(self._db_path)
-        if not (self._conn and self._cur):
-            raise RuntimeError(f"Failed to connect to db file: {self._db_path}")
+        if not TorchDb().create_connect_db():
+            raise RuntimeError(f"Failed to connect to db file: {TorchDb().get_db_path()}")
 
     def set_start_string_id(self):
         Str2IdManager().set_start_id(DbConstant.START_STRING_ID_MEMORY)
 
     def get_ge_memory_data(self):
-        if not DbManager.judge_table_exist(self._cur, DbConstant.TABLE_NPU_OP_MEM):
+        if not TorchDb().judge_table_exist(DbConstant.TABLE_NPU_OP_MEM):
             return
         sql = "select operatorName, addr, type, size, timestampNs, totalAllocate, totalReserve, deviceId from {}".format(DbConstant.TABLE_NPU_OP_MEM)
-        ge_mem_records = DbManager.fetch_all_data(self._cur, sql)
+        ge_mem_records = TorchDb().fetch_all_data(sql)
         record_type_dict = {}
         for index, mem_record in enumerate(ge_mem_records):
             if ge_mem_records[index][GeOpMemRecordsOri.TYPE.value] in record_type_dict:
@@ -117,7 +108,7 @@ class MemoryDbParser(BaseParser):
                     ge_mem_records[index] = tuple(record)
                 continue
             sql = "select value from {} where id = {}".format(DbConstant.TABLE_STRING_IDS, ge_mem_records[index][GeOpMemRecordsOri.TYPE.value])
-            record_type = DbManager.fetch_one_data(self._cur, sql)
+            record_type = TorchDb().fetch_one_data(sql)
             if record_type and record_type[0]:
                 if record_type[0] == "release":
                     record = list(ge_mem_records[index])
@@ -181,8 +172,8 @@ class MemoryDbParser(BaseParser):
             return
         for memory in self._pta_op_memory_data:
             memory[OpMemoryTableRow.NAME.value] = Str2IdManager().get_id_from_str(memory[OpMemoryTableRow.NAME.value])
-        DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_OPERATOR_MEMORY, TableColumnsManager.TableColumns.get(DbConstant.TABLE_OPERATOR_MEMORY))
-        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_OPERATOR_MEMORY, self._pta_op_memory_data + self._ge_op_memory_data)
+        TorchDb().create_table_with_headers(DbConstant.TABLE_OPERATOR_MEMORY, TableColumnsManager.TableColumns.get(DbConstant.TABLE_OPERATOR_MEMORY))
+        TorchDb().insert_data_into_table(DbConstant.TABLE_OPERATOR_MEMORY, self._pta_op_memory_data + self._ge_op_memory_data)
 
     def get_pta_memort_record_list(self):
         if not self._pta_memory_bean_list:
@@ -231,8 +222,8 @@ class MemoryDbParser(BaseParser):
         self.get_pta_ge_record_list()
         if not self._record_list:
             return
-        DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_MEMORY_RECORD, TableColumnsManager.TableColumns.get(DbConstant.TABLE_MEMORY_RECORD))
-        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_MEMORY_RECORD, self._record_list)
+        TorchDb().create_table_with_headers(DbConstant.TABLE_MEMORY_RECORD, TableColumnsManager.TableColumns.get(DbConstant.TABLE_MEMORY_RECORD))
+        TorchDb().insert_data_into_table(DbConstant.TABLE_MEMORY_RECORD, self._record_list)
 
     def init_pta_memory_data(self):
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
@@ -243,12 +234,11 @@ class MemoryDbParser(BaseParser):
             self._pta_memory_bean_list = pta_data.get("pta_record_list", [])
 
     def save_strings_id(self):
-        DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_STRING_IDS, TableColumnsManager.TableColumns.get(DbConstant.TABLE_STRING_IDS))
-        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_STRING_IDS, Str2IdManager().get_all_string_2_id_data())
+        TorchDb().create_table_with_headers(DbConstant.TABLE_STRING_IDS, TableColumnsManager.TableColumns.get(DbConstant.TABLE_STRING_IDS))
+        TorchDb().insert_data_into_table(DbConstant.TABLE_STRING_IDS, Str2IdManager().get_all_string_2_id_data())
     
     def save_memory_data_to_db(self):
         self.get_ge_memory_data()
         self.save_memory_record_data_to_db()
         self.save_op_memory_data_to_db()
         self.save_strings_id()
-        DbManager.destroy_db_connect(self._conn, self._cur)
