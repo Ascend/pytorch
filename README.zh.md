@@ -133,7 +133,7 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
 
 ```diff
 import torch
-- import torch_npu # torch_npu2.6.0及以后版本可以不用手动导包
+- import torch_npu # torch_npu2.5.1及以后版本可以不用手动导包
 
 x = torch.randn(2, 2).npu()
 y = torch.randn(2, 2).npu()
