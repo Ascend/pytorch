@@ -12,15 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import os
-import logging
 from enum import Enum
 from .._base_parser import BaseParser
 from ...prof_common_func._constant import Constant, print_warn_msg
 from ...prof_common_func._constant import DbConstant, TableColumnsManager
-from ...prof_common_func._db_manager import DbManager
+from ...prof_common_func._db_manager import AnalysisDb, TorchDb
 from ...prof_common_func._constant import convert_ns2us_float
+from ...prof_common_func._log import ProfilerLogger
 from ...prof_common_func._time_range_calculator import CommunicationTimeRange, RangeCaculator
 from ...prof_parse._fwk_file_parser import FwkFileParser
 
@@ -41,11 +39,8 @@ class TraceStepTimeDbParser(BaseParser):
         self.string_id_map = {}
         self.compute_task_info = {}
         self.communication_op_info = []
-        self.task_db_con = None
-        self.task_db_curs = None
-        self.analysis_db_con = None
-        self.analysis_db_curs = None
-        self.db_path = ""
+        ProfilerLogger.init(self._profiler_path, "TraceStepTimeDbParser")
+        self.logger = ProfilerLogger.get_instance()
 
     @staticmethod
     def get_e2e_time(task_time_list):
@@ -66,29 +61,21 @@ class TraceStepTimeDbParser(BaseParser):
             return (first_task_start_ts - first_fwk_op.ts) if first_fwk_op else 0
         return first_task_start_ts - step_info.get(Constant.FWK_START_TS, 0)
 
-    def save_step_trace_db_data(self, output_path, step_trace_data):
-        db_path = os.path.join(output_path, DbConstant.DB_ANALYSIS)
-        conn, curs = DbManager.create_connect_db(db_path)
-        if not (conn and curs):
-            print_warn_msg(f"Failed to connect to db file: {db_path}")
+    def save_step_trace_db_data(self, step_trace_data):
+        if not AnalysisDb().create_connect_db():
+            print_warn_msg(f"Failed to connect to db file: {AnalysisDb().get_db_path()}")
             return
-        self.analysis_db_con = conn
-        self.analysis_db_curs = curs
-        DbManager.create_table_with_headers(conn, curs, DbConstant.TABLE_STEP_TRACE_TIME,
-                                            TableColumnsManager.TableColumns.get(DbConstant.TABLE_STEP_TRACE_TIME))
-        DbManager.insert_data_into_table(conn, DbConstant.TABLE_STEP_TRACE_TIME, step_trace_data)
-        DbManager.destroy_db_connect(conn, curs)
+        AnalysisDb().create_table_with_headers(DbConstant.TABLE_STEP_TRACE_TIME,
+                                               TableColumnsManager.TableColumns.get(DbConstant.TABLE_STEP_TRACE_TIME))
+        AnalysisDb().insert_data_into_table(DbConstant.TABLE_STEP_TRACE_TIME, step_trace_data)
 
     def run(self, deps_data: dict):
         try:
-            self.db_path = deps_data.get(Constant.DB_PARSER, "")
             self._init_step_range(deps_data)
             self._init_task_info_from_db()
             self.generate_view()
-        except Exception as e:
-            logging.error("Failed to generate step_trace_time table, error: %s", str(e), exc_info=True)
-            DbManager.destroy_db_connect(self.task_db_con, self.task_db_curs)
-            DbManager.destroy_db_connect(self.analysis_db_con, self.analysis_db_curs)
+        except Exception as error:
+            self.logger.error("Failed to generate step_trace_time table, error: %s", str(error), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 
@@ -130,30 +117,26 @@ class TraceStepTimeDbParser(BaseParser):
             step_time_data = [step['compute'], step['comunNotOverlp'], step['Overlp'], step['comun'], step['free'],
                               step['stage'], step['bubble'], step['comunNotOverlpRec'], step['prepare']]
             reformat_time.append([step['step'], ] + [convert_ns2us_float(data) for data in step_time_data])
-        self.save_step_trace_db_data(self._output_path, reformat_time)
+        self.save_step_trace_db_data(reformat_time)
 
     def _init_step_range(self, deps_data: dict):
         self.step_range = deps_data.get(Constant.STEP_INFO_DB_PARSER, [])
 
     def _init_task_info_from_db(self):
-        conn, curs = DbManager.create_connect_db(self.db_path)
-        if not (conn and curs):
-            print_warn_msg(f"Failed to connect to db file: {self.db_path}")
+        if not TorchDb().create_connect_db():
+            print_warn_msg(f"Failed to connect to db file: {TorchDb().get_db_path()}")
             return
-        self.task_db_con = conn
-        self.task_db_curs = curs
-        if DbManager.judge_table_exist(curs, DbConstant.TABLE_STRING_IDS):
+        if TorchDb().judge_table_exist(DbConstant.TABLE_STRING_IDS):
             sql = "select id, value from {}".format(DbConstant.TABLE_STRING_IDS)
-            string_id_data = DbManager.fetch_all_data(curs, sql)
+            string_id_data = TorchDb().fetch_all_data(sql)
             self.string_id_map = {data[0]: data[1] for data in string_id_data}
-        if DbManager.judge_table_exist(curs, DbConstant.TABLE_COMPUTE_TASK_INFO):
+        if TorchDb().judge_table_exist(DbConstant.TABLE_COMPUTE_TASK_INFO):
             sql = "select name, globalTaskId from {}".format(DbConstant.TABLE_COMPUTE_TASK_INFO)
-            compute_task_data = DbManager.fetch_all_data(curs, sql)
+            compute_task_data = TorchDb().fetch_all_data(sql)
             self.compute_task_info = {data[1]: data[0] for data in compute_task_data}
-        if DbManager.judge_table_exist(curs, DbConstant.TABLE_COMMUNICATION_OP):
+        if TorchDb().judge_table_exist(DbConstant.TABLE_COMMUNICATION_OP):
             sql = "select opName, startNs, endNs from {}".format(DbConstant.TABLE_COMMUNICATION_OP)
-            self.communication_op_info = DbManager.fetch_all_data(curs, sql)
-        DbManager.destroy_db_connect(conn, curs)
+            self.communication_op_info = TorchDb().fetch_all_data(sql)
 
     def _get_compute_data_in_step(self, step_info):
         compute_data = []
