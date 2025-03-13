@@ -70,6 +70,7 @@ torch_npu支持源码编译安装，在编译时会下载依赖第三方库并�
 
 1. 建议用户结合运行环境资源状况编写对应训练脚本。若训练脚本与资源状况不匹配，如数据集加载内存大小超出内存容量限制、训练脚本在本地生成数据超过磁盘空间大小等情况，可能引发错误并导致进程意外退出。
 2. PyTorch和torch_npu在运行异常时会退出进程并打印报错信息，属于正常现象。建议用户根据报错提示定位具体错误原因，包括设定算子同步执行、查看CANN日志、解析生成的Core Dump文件等方式。
+3. PyTorch和torch_npu的分布式特性仅适用于内部通信。出于性能考虑，这些分布式特性不包含任何授权协议，并且会发送未加密的消息。关于PyTorch分布式特性的详细说明及安全注意事项，可参考[using-distributed-features](https://github.com/pytorch/pytorch/security#using-distributed-features)。
 
 ## 公网地址声明
 
