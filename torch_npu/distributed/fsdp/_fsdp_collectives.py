@@ -38,3 +38,15 @@ def all_gather_copy_in_npu(
     with torch.no_grad():
         torch._foreach_copy_(foreach_copy_dsts, all_gather_inputs)
     return all_gather_input, all_gather_output
+
+
+@torch.library.impl(lib, "split_with_sizes_copy", "PrivateUse1")
+def split_with_sizes_copy(
+    all_gather_output: torch.Tensor,
+    all_gather_input_split_sizes: List[int],
+    dim: int,
+    out: List[torch.Tensor],
+) -> None:
+    torch.split_with_sizes_copy(
+        all_gather_output, all_gather_input_split_sizes, dim=dim, out=out
+    )

@@ -4,6 +4,8 @@
 #include <torch/csrc/utils/pybind.h>
 #endif
 
+#include <torch/csrc/autograd/autograd.h>
+
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -107,6 +109,25 @@ void check_and_update_npu_tensor_for_copy(const at::TensorList& dsts, const at::
     return;
 }
 
+void _unsafe_set_npu_version_counter(const std::vector<at::Tensor>& tensors, const std::vector<int64_t>& versions)
+{
+    auto tensors_len = tensors.size();
+    auto versions_len = versions.size();
+    TORCH_CHECK(
+        tensors_len == versions_len,
+        "tensors_len is not equals to versions_len",
+        "tensors_len=",
+        tensors_len,
+        ", versions_len=",
+        versions_len,
+        PTA_ERROR(ErrCode::PARAM));
+    for (const auto i : c10::irange(tensors_len)) {
+        auto vc = torch::autograd::impl::version_counter(tensors[i]);
+        vc.set_version(versions[i]);
+    }
+    return;
+}
+
 #ifndef BUILD_LIBTORCH
 void bind_npu_recovery_functions(PyObject* module)
 {
@@ -128,6 +149,10 @@ void bind_npu_recovery_functions(PyObject* module)
     });
     m.def("_recovery_all_npu_stream", [](int device) -> void {
         return c10_npu::recovery_all_npu_streams(device);
+    });
+    m.def("_unsafe_set_npu_version_counter",
+        [](const std::vector<at::Tensor>& tensors, const std::vector<int64_t>& versions) -> void {
+        return _unsafe_set_npu_version_counter(tensors, versions);
     });
 }
 #endif
