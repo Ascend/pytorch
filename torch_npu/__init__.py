@@ -208,16 +208,28 @@ def _new_process_group_hccl_helper(dist_backend_opts, pg_options):
     return torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, pg_options)
 
 
-# init and register hccl backend
-torch.distributed.Backend.register_backend("hccl", lambda dist_backend_opts, pg_options:
-    _new_process_group_hccl_helper(dist_backend_opts, pg_options), extended_api=True, devices=["npu"])
-
-
 def _new_process_group_lccl_helper(dist_backend_opts, pg_options):
     store = dist_backend_opts.store
     group_rank = dist_backend_opts.group_rank
     group_size = dist_backend_opts.group_size
     return torch_npu._C._distributed_c10d.ProcessGroupLCCL(store, group_rank, group_size)
+
+
+def _register_distributed_backend_for_npu():
+    # init and register lccl backend
+    torch.distributed.Backend.register_backend("lccl", lambda dist_backend_opts, pg_options:
+        _new_process_group_lccl_helper(dist_backend_opts, pg_options), extended_api=True, devices=["npu"])
+
+    # init and register hccl backend
+    # Note: The hccl backend must be registered last. 
+    # This is because the "Backend.default_device_backend_map" variable is refreshed during each registration process. 
+    # Therefore, it is essential to register the hccl backend last.
+    torch.distributed.Backend.register_backend("hccl", lambda dist_backend_opts, pg_options:
+        _new_process_group_hccl_helper(dist_backend_opts, pg_options), extended_api=True, devices=["npu"])
+
+
+# init and register distributed backend
+_register_distributed_backend_for_npu()
 
 
 # set default device type for gradient checkpointing
