@@ -1,8 +1,9 @@
 from enum import Enum
-from ...prof_common_func._db_manager import DbManager
+from ...prof_common_func._db_manager import TorchDb
 from ...prof_common_func._id_manager import Str2IdManager, ConnectionIdManager, CallChainIdManager
 from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager
 from .._base_parser import BaseParser
+from ...prof_common_func._log import ProfilerLogger
 from ...prof_parse._fwk_file_parser import FwkFileParser
 
 __all__ = []
@@ -54,24 +55,21 @@ class FwkApiDbParser(BaseParser):
 
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
-        self._conn = None
-        self._cur = None
-        self._db_path = ""
         self._max_cann_connection_id = 0
         self._fwk_apis = []
- 
+        ProfilerLogger.init(self._profiler_path, "FwkApiDbParser")
+        self.logger = ProfilerLogger.get_instance()
+
     def run(self, deps_data: dict):
         try:
-            self._db_path = deps_data.get(Constant.DB_PARSER, "")
             self.init_db_connect()
             self.set_start_string_id()
             self.get_max_cann_id()
             fwk_api_data = FwkFileParser(self._profiler_path).get_fwk_api()
             self.get_api_data_for_db(fwk_api_data)
             self.save_api_data_to_db()
-        except Exception as e:
-            logging.error("Failed to generate framework api table, error: %s", str(e), exc_info=True)
-            DbManager.destroy_db_connect(self._conn, self._cur)
+        except Exception as error:
+            self.logger.error("Failed to generate framework api table, error: %s", str(error), exc_info=True)
             return Constant.FAIL, None
         return Constant.SUCCESS, None
 
@@ -138,8 +136,9 @@ class FwkApiDbParser(BaseParser):
                                    ApiType.MSTX_OP.value])
 
     def get_mstx_mark_op_connection_ids_with_cann_api(self, task_enqueues: list, task_dequeues: list, mstx_mark_apis: list):
-        sql = "select startNs, endNs, globalTid, connectionId from {} order by startNs".format(DbConstant.TABLE_MSTX_EVENTS)
-        cann_tx_apis = DbManager.fetch_all_data(self._cur, sql)
+        sql = "select startNs, endNs, globalTid, connectionId from {} order by startNs".format(
+            DbConstant.TABLE_MSTX_EVENTS)
+        cann_tx_apis = TorchDb().fetch_all_data(sql)
         if not cann_tx_apis:
             raise RuntimeWarning("Failed to get msprof_tx apis")
         mstx_mark_apis.sort(key=lambda x: x[TorchOpDataOri.START_NS.value])
@@ -150,14 +149,16 @@ class FwkApiDbParser(BaseParser):
 
     def get_torch_op_connection_ids_with_cann_api(self, task_enqueues: list, task_dequeues: list, torch_op_apis: list):
         sql = "select id from {} where value = 'launch'".format(DbConstant.TABLE_STRING_IDS)
-        node_launch_str_ids = DbManager.fetch_one_data(self._cur, sql)
+        node_launch_str_ids = TorchDb().fetch_one_data(sql)
         node_launch_str_id = 0
         if node_launch_str_ids and node_launch_str_ids[0]:
             node_launch_str_id = node_launch_str_ids[0]
         else:
             raise RuntimeWarning("Failed to find node launch str id")
-        sql = "select startNs, endNs, globalTid, connectionId from {} where name = {} and type = 10000 order by startNs".format(DbConstant.TABLE_CANN_API, node_launch_str_id) # 10000 : node level
-        node_lauch_apis = DbManager.fetch_all_data(self._cur, sql)
+        sql = "select startNs, endNs, globalTid, connectionId from {} " \
+              "where name = {} and type = 10000 order by startNs" \
+            .format(DbConstant.TABLE_CANN_API, node_launch_str_id)  # 10000 : node level
+        node_lauch_apis = TorchDb().fetch_all_data(sql)
         if not node_lauch_apis:
             raise RuntimeWarning("Failed to get node launch apis")
         torch_op_apis.sort(key=lambda x: x[TorchOpDataOri.START_NS.value])
@@ -229,29 +230,31 @@ class FwkApiDbParser(BaseParser):
 
     def set_start_string_id(self):
         Str2IdManager().set_start_id(DbConstant.START_STRING_ID_FWK_API)
-    
+
     def get_max_cann_id(self):
-        if not DbManager.judge_table_exist(self._cur, DbConstant.TABLE_CANN_API):
+        if not TorchDb().judge_table_exist(DbConstant.TABLE_CANN_API):
             return
         sql = "select max(connectionId) from {}".format(DbConstant.TABLE_CANN_API)
-        connectionIds = DbManager.fetch_one_data(self._cur, sql)
+        connectionIds = TorchDb().fetch_one_data(sql)
         if connectionIds and connectionIds[0]:
             self._max_cann_connection_id = connectionIds[0] + 1
-  
+
     def init_db_connect(self) -> None:
-        self._conn, self._cur = DbManager.create_connect_db(self._db_path)
-        if not (self._conn and self._cur):
-            raise RuntimeError(f"Failed to connect to db file: {self._db_path}")
+        if not TorchDb().create_connect_db():
+            raise RuntimeError(f"Failed to connect to db file: {TorchDb().get_db_path()}")
 
     def save_fwk_api(self):
         if not self._fwk_apis:
             return
-        DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_PYTORCH_API, TableColumnsManager.TableColumns.get(DbConstant.TABLE_PYTORCH_API))
-        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_PYTORCH_API, self._fwk_apis)
+        TorchDb().create_table_with_headers(DbConstant.TABLE_PYTORCH_API,
+                                            TableColumnsManager.TableColumns.get(DbConstant.TABLE_PYTORCH_API))
+        TorchDb().insert_data_into_table(DbConstant.TABLE_PYTORCH_API, self._fwk_apis)
 
     def save_string_ids(self):
-        DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_STRING_IDS, TableColumnsManager.TableColumns.get(DbConstant.TABLE_STRING_IDS))
-        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_STRING_IDS, Str2IdManager().get_all_string_2_id_data())
+        TorchDb().create_table_with_headers(DbConstant.TABLE_STRING_IDS,
+                                            TableColumnsManager.TableColumns.get(DbConstant.TABLE_STRING_IDS))
+        TorchDb().insert_data_into_table(DbConstant.TABLE_STRING_IDS,
+                                         Str2IdManager().get_all_string_2_id_data())
 
     def sava_connection_ids(self):
         connection_ids = ConnectionIdManager().get_all_connection_ids()
@@ -261,8 +264,9 @@ class FwkApiDbParser(BaseParser):
         for index, conn_ids in connection_ids.items():
             for conn_id in conn_ids:
                 save_connection_ids.append([index, conn_id])
-        DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_CONNECTION_IDS, TableColumnsManager.TableColumns.get(DbConstant.TABLE_CONNECTION_IDS))
-        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_CONNECTION_IDS, save_connection_ids)
+        TorchDb().create_table_with_headers(DbConstant.TABLE_CONNECTION_IDS,
+                                            TableColumnsManager.TableColumns.get(DbConstant.TABLE_CONNECTION_IDS))
+        TorchDb().insert_data_into_table(DbConstant.TABLE_CONNECTION_IDS, save_connection_ids)
 
     def save_callchain_ids(self):
         callchain_ids = CallChainIdManager().get_all_callchain_id()
@@ -272,19 +276,21 @@ class FwkApiDbParser(BaseParser):
         for index, callstack_ids in callchain_ids.items():
             for callstack_id in callstack_ids:
                 save_callchain_ids.append([index] + callstack_id)
-        DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_PYTORCH_CALLCHAINS, TableColumnsManager.TableColumns.get(DbConstant.TABLE_PYTORCH_CALLCHAINS))
-        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_PYTORCH_CALLCHAINS, save_callchain_ids)
+        TorchDb().create_table_with_headers(DbConstant.TABLE_PYTORCH_CALLCHAINS,
+                                            TableColumnsManager.TableColumns.get(DbConstant.TABLE_PYTORCH_CALLCHAINS))
+        TorchDb().insert_data_into_table(DbConstant.TABLE_PYTORCH_CALLCHAINS, save_callchain_ids)
 
     def save_enum_api_types_to_db(self):
-        if not DbManager.judge_table_exist(self._cur, DbConstant.TABLE_ENUM_API_TYPE):
-            DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_ENUM_API_TYPE, TableColumnsManager.TableColumns.get(DbConstant.TABLE_ENUM_API_TYPE))
+        if not TorchDb().judge_table_exist(DbConstant.TABLE_ENUM_API_TYPE):
+            TorchDb().create_table_with_headers(DbConstant.TABLE_ENUM_API_TYPE,
+                                                TableColumnsManager.TableColumns.get(DbConstant.TABLE_ENUM_API_TYPE))
         api_types = [
             (ApiType.TORCH_OP.value, 'op'),
             (ApiType.TASK_QUEUE.value, 'queue'),
             (ApiType.PYTHON_TRACE.value, 'trace'),
             (ApiType.MSTX_OP.value, 'mstx')
         ]
-        DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_ENUM_API_TYPE, api_types)
+        TorchDb().insert_data_into_table(DbConstant.TABLE_ENUM_API_TYPE, api_types)
 
     def save_api_data_to_db(self):
         self.save_fwk_api()
@@ -292,4 +298,3 @@ class FwkApiDbParser(BaseParser):
         self.sava_connection_ids()
         self.save_callchain_ids()
         self.save_enum_api_types_to_db()
-        DbManager.destroy_db_connect(self._conn, self._cur)

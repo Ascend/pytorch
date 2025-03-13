@@ -28,13 +28,7 @@ from ..prof_view._memory_view_parser import MemoryViewParser
 from ..prof_view._integrate_parser import IntegrateParser
 from ..prof_view._communication_parser import CommunicationParser
 from ..prof_view._memory_timeline_parser import MemoryTimelineParser
-from ..prof_view.prof_db_parse._fwk_api_db_parser import FwkApiDbParser
-from ..prof_view.prof_db_parse._memory_db_parser import MemoryDbParser
 from ..prof_view.prof_db_parse._db_parser import DbParser
-from ..prof_view.prof_db_parse._step_info_db_parser import StepInfoDbParser
-from ..prof_view.prof_db_parse._communication_db_parser import CommunicationDbParser
-from ..prof_view.prof_db_parse._trace_step_time_db_parser import TraceStepTimeDbParser
-from ..prof_view.prof_db_parse._gc_record_db_parser import GCRecordDbParser
 
 __all__ = []
 
@@ -59,14 +53,11 @@ class ParserConfig:
         Constant.Db: {
             Constant.TENSORBOARD_TRACE_HANDLER: [
                 CANNExportParser,
-                DbParser,
                 CANNTimelineParser,
                 CANNAnalyzeParser,
-                FwkApiDbParser,
                 TreeBuildParser,
                 MemoryPrepareParser,
-                MemoryDbParser,
-                GCRecordDbParser
+                DbParser
             ]
         }
     }
@@ -97,17 +88,11 @@ class ParserConfig:
         Constant.Db: {
             Constant.TENSORBOARD_TRACE_HANDLER: [
                 CANNExportParser,
-                DbParser,
                 CANNTimelineParser,
                 CANNAnalyzeParser,
-                FwkApiDbParser,
                 TreeBuildParser,
                 MemoryPrepareParser,
-                MemoryDbParser,
-                StepInfoDbParser,
-                CommunicationDbParser,
-                TraceStepTimeDbParser,
-                GCRecordDbParser
+                DbParser
             ]
         }
     }
@@ -120,8 +105,7 @@ class ParserConfig:
             Constant.EXPORT_MEMORY_TIMELINE: [MemoryTimelineParser]
         },
         Constant.Db: {
-            Constant.TENSORBOARD_TRACE_HANDLER: [CANNExportParser, DbParser, FwkApiDbParser, MemoryDbParser,
-                                                 GCRecordDbParser]
+            Constant.TENSORBOARD_TRACE_HANDLER: [CANNExportParser, DbParser]
         }
     }
 
@@ -146,10 +130,4 @@ class ParserConfig:
 
         # db parser
         DbParser: Constant.DB_PARSER,
-        FwkApiDbParser: Constant.FWK_API_DB_PARSER,
-        MemoryDbParser: Constant.MEMORY_DB_PARSER,
-        StepInfoDbParser: Constant.STEP_INFO_DB_PARSER,
-        CommunicationDbParser: Constant.COMMUNICATION_DB_PARSER,
-        TraceStepTimeDbParser: Constant.TRACE_STEP_TIME_DB_PARSER,
-        GCRecordDbParser: Constant.GC_RECORD_DB_PARSER
     }
