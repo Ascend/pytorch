@@ -9,8 +9,8 @@
 
 #include <ATen/ATen.h>
 #include <c10/util/Optional.h>
-#include "hccl/hccl.h"
-#include "hccl/hccl_types.h"
+#include "third_party/hccl/inc/hccl/hccl.h"
+#include "third_party/hccl/inc/hccl/hccl_types.h"
 
 #define HCCL_CHECK_ERROR(err_code, ...)                                      \
     do {                                                                     \
