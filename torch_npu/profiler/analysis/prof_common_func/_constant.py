@@ -188,7 +188,8 @@ class Constant(object):
     MEMORY_PREPARE = "memory_prepare"
     MEMORY_TIMELINE_PARSER = "memory_timeline"
 
-    DB_PARSER = "cann_db"
+    DB_PARSER = "torch_db"
+    BASIC_DB_PARSER = "basic_db"
     FWK_API_DB_PARSER = "fwk_api_db"
     MEMORY_DB_PARSER = "memory_db"
     STEP_INFO_DB_PARSER = "step_info_db"
