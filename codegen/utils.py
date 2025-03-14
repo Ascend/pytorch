@@ -57,6 +57,7 @@ GLOBAL_OPAPI_INFO_CACHE = set()
 CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
 FIELDS_TO_USE = ["func", "tags", "dispatch", "device_check"]
 DEVICE_NOCHECK_SET = set()
+DEVICE_CHECK_NOTSUPPORT_TYPE = {"Tensor[]?"}
 
 
 class PathManager:
@@ -475,7 +476,7 @@ def gen_device_check(
     device_check += "(void)common_device; // Suppress unused variable warning\n"
     for arg in args:
         # Only tensor like arguments are eligible
-        if arg.type.is_tensor_like():
+        if arg.type.is_tensor_like() and str(arg.type) not in DEVICE_CHECK_NOTSUPPORT_TYPE:
             device_check += \
 f"""c10::impl::check_and_update_common_device(common_device, {arg.name}, "{method_name}", "{arg.name}");\n"""
     return device_check
