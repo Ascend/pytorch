@@ -2544,6 +2544,7 @@
     "npu_trans_quant_param",
     "scatter_update",
     "scatter_update_",
+    "npu_kronecker_quant",
     "npu_group_norm_swish"
   ],
   "torch_npu.contrib": [
