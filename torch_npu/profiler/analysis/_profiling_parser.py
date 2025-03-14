@@ -66,7 +66,7 @@ class ProfilingParser:
             return
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
             return
-        if not CannPackageManager.SUPPORT_EXPORT_DB:
+        if not CannPackageManager.is_support_export_db():
             raise RuntimeError("Current CANN package version does not support export db. "
                                "If you want to export db, you can install supported CANN package version.")
 
@@ -103,7 +103,7 @@ class ProfilingParser:
         parser_config = ParserConfig.ONLY_FWK_CONFIG
         if ProfilerPathManager.get_cann_path(self._profiler_path):
             CANNFileParser(self._profiler_path).del_summary_and_timeline_data()
-            CANNFileParser(self._profiler_path).del_output_path_data() 
+            CANNFileParser(self._profiler_path).del_output_path_data()
             if ProfilerConfig().get_level() == "Level_none":
                 parser_config = ParserConfig.LEVEL_NONE_CONFIG
             else:
