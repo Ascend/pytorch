@@ -45,10 +45,20 @@ REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string &val) {
   aclmdlSetDump(val.c_str());
 })
 
+auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
+
 REGISTER_OPTION_BOOL_FUNCTION(CheckJitDisableInner, jitCompile, "enable", "disable")
 REGISTER_OPTION_CACHE(bool, isJitDisable, CheckJitDisableInner)
 REGISTER_OPTION_HOOK(jitCompile, [](const std::string &val) {
-    NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str()));
+    if (acl_op_init_mode == 0) {
+        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str()));
+    } else if (GET_OPTION_WITH_CACHE(isJitDisable) != ("disable" == val)) {
+        TORCH_CHECK(acl_op_init_mode != 2,
+                    "Jit compile set is disabled! If you want to set, ",
+                    "please change the environment variable ACL_OP_INIT_MODE to 0 or 1.",
+                    PTA_ERROR(ErrCode::NOT_SUPPORT));
+        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str()));
+    }
     SET_OPTION_WITH_CACHE(isJitDisable, ("disable" == val) ? true : false);
 })
 
