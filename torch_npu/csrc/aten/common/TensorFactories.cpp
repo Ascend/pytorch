@@ -606,9 +606,10 @@ at::Tensor tensor_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options
 {
     auto result = at::empty(values.size(), options);
     AT_ASSERT(result.is_contiguous(), OPS_ERROR(ErrCode::VALUE));
-    AT_DISPATCH_ALL_TYPES_AND_COMPLEX(result.scalar_type(), "tensor_npu", [&]
-                                        { std::copy(
-                                            values.begin(), values.end(), result.template data_ptr<scalar_t>()); });
+    AT_DISPATCH_ALL_TYPES_AND_COMPLEX(result.scalar_type(), "tensor_npu", [&] {
+        std::copy(
+            values.begin(), values.end(), result.template data_ptr<scalar_t>());
+    });
     return result;
 }
 
@@ -646,9 +647,8 @@ at::Tensor NPUNativeFunctions::clone(
         // clone with base formats
         auto baseSelf = OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
         at::Tensor baseSrc = src;
-        if (!FormatHelper::IsBaseFormatType(src))
-        {
-          baseSrc = FormatCastHelper::ApplyBaseFormatTensorBy(src);
+        if (!FormatHelper::IsBaseFormatType(src)) {
+            baseSrc = FormatCastHelper::ApplyBaseFormatTensorBy(src);
         }
         copy_d2d_dtype_baseformat(baseSelf, baseSrc, false);
         return baseSelf;

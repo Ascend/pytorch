@@ -23,7 +23,8 @@ namespace {
 // needs to ensure that the parameters are correct.
 
 // the caller should ensure the tensor.is_npu == true
-bool is_same_format(const at::Tensor& a, const at::Tensor& b) {
+bool is_same_format(const at::Tensor& a, const at::Tensor& b)
+{
     bool isSameFormat = FormatHelper::GetFormat(a) == FormatHelper::GetFormat(b);
     if (!isSameFormat) {
         bool isBaseFormat =
@@ -33,7 +34,8 @@ bool is_same_format(const at::Tensor& a, const at::Tensor& b) {
     return true;
 }
 
-bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& src) {
+bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& src)
+{
     // Some Ops support inputs with 5HD/NZ format, Transdata is redundant
     // Record:
     // Op:Reshape; SliceD || Supportformat: 5HD/NZ
@@ -47,14 +49,16 @@ void copy_d2d_last_method(
     at::Tensor& self,
     const at::Tensor& src,
     bool same_type,
-    bool non_blocking) {
+    bool non_blocking)
+{
     // general copy method but Low performance
     RECORD_FUNCTION("contiguous_d_ViewCopy", std::vector<c10::IValue>({src}));
     op_plugin::npu_view_copy(self, src, non_blocking);
 }
 
 // the dst and src are same format now
-void copy_d2d_dtype_format(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+void copy_d2d_dtype_format(at::Tensor& self, const at::Tensor& src, bool non_blocking)
+{
     // Note: Src & Self have the same format.
     if (try_to_optimize_copy_with_any_format(self, src)) {
         return;
@@ -85,7 +89,8 @@ void copy_between_host_and_device(
     at::Tensor& dst,
     const at::Tensor& src,
     aclrtMemcpyKind kind,
-    bool non_blocking) {
+    bool non_blocking)
+{
     int64_t nbytes = dst.numel() * dst.element_size();
     c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
 
@@ -124,7 +129,8 @@ void copy_between_host_and_device(
 void copy_h2d_baseformat_dtype_contigous(
     at::Tensor& dst,
     const at::Tensor& src,
-    bool non_blocking) {
+    bool non_blocking)
+{
     c10_npu::OptionalNPUGuard device_guard;
     device_guard.set_device(dst.device());
     aclrtMemcpyKind kind = aclrtMemcpyKind::ACL_MEMCPY_HOST_TO_DEVICE;
@@ -137,7 +143,8 @@ void copy_h2d_baseformat_dtype_contigous(
 void copy_d2h_baseformat_dtype_contigous(
     at::Tensor& dst,
     const at::Tensor& src,
-    bool non_blocking) {
+    bool non_blocking)
+{
     c10_npu::OptionalNPUGuard device_guard;
     device_guard.set_device(src.device());
     aclrtMemcpyKind kind = aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST;
@@ -149,7 +156,8 @@ void copy_h2d_baseformat(
     at::Tensor& dst,
     const at::Tensor& src,
     bool non_blocking,
-    bool dst_must_be_contiguous = false) {
+    bool dst_must_be_contiguous = false)
+{
     bool same_type = (src.dtype() == dst.dtype());
     bool same_size = (src.sizes() == dst.sizes());
     bool dst_is_contiguous = dst_must_be_contiguous ? true : dst.is_contiguous();
@@ -177,7 +185,8 @@ void copy_h2d_baseformat(
 }
 
 // the format of dst and src is baseformat now
-void copy_d2h_baseformat(at::Tensor& dst, const at::Tensor& src, bool non_blocking) {
+void copy_d2h_baseformat(at::Tensor& dst, const at::Tensor& src, bool non_blocking)
+{
     bool same_type = (src.dtype() == dst.dtype());
     bool same_size = (src.sizes() == dst.sizes());
     bool dst_is_contiguous = dst.is_contiguous();
@@ -199,7 +208,8 @@ void copy_d2h_baseformat(at::Tensor& dst, const at::Tensor& src, bool non_blocki
     }
 }
 
-void copy_h2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+void copy_h2d(at::Tensor& self, const at::Tensor& src, bool non_blocking)
+{
     c10_npu::NPUGuard guard(self.device());
     if (!FormatHelper::IsBaseFormatType(self)) {
         at::Tensor dst = OpPreparation::ApplyTensorWithSizes(self.sizes(), self.options());
@@ -210,7 +220,8 @@ void copy_h2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
     copy_h2d_baseformat(self, src, non_blocking);
 }
 
-void copy_d2h(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+void copy_d2h(at::Tensor& self, const at::Tensor& src, bool non_blocking)
+{
     c10_npu::NPUGuard guard(src.device());
     if (!FormatHelper::IsBaseFormatType(src)) {
         at::Tensor src_4D = FormatCastHelper::ApplyBaseFormatTensorBy(src);
@@ -222,7 +233,8 @@ void copy_d2h(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
 } // namespace
 
 // the caller should guarantee that the format and dtype are same
-bool can_use_memcpy(at::Tensor& dst, const at::Tensor& src) {
+bool can_use_memcpy(at::Tensor& dst, const at::Tensor& src)
+{
     if (StorageDescHelper::IsSameDesc(dst, src)) {
         // Make sure that the metadata are same.
         if (!dst.sizes().equals(src.sizes())) {
@@ -245,7 +257,8 @@ bool can_use_memcpy(at::Tensor& dst, const at::Tensor& src) {
     return false;
 }
 
-void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking)
+{
     c10_npu::NPUGuard guard(src.device());
     // p2p enable and synchronize self stream
     auto self_device_idx = self.device().index();
@@ -296,7 +309,8 @@ at::Tensor copy_d2d_format_cast(at::Tensor& dst, const at::Tensor& src)
 }
 
 // the dst and src are same dtype now
-void copy_d2d_dtype(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+void copy_d2d_dtype(at::Tensor& self, const at::Tensor& src, bool non_blocking)
+{
     if (!is_same_format(self, src)) {
         auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
         if (src.is_contiguous() && FormatHelper::IsBaseFormatType(src) && src_desc.base_sizes_.size() == 1) {
@@ -325,7 +339,8 @@ void copy_d2d_dtype(at::Tensor& self, const at::Tensor& src, bool non_blocking) 
 void copy_d2d_dtype_baseformat(
     at::Tensor& self,
     const at::Tensor& src,
-    bool non_blocking) {
+    bool non_blocking)
+{
     if (!self.is_contiguous()) {
         // Contiguous/discontiguous source tensor copy to discontiguous self tensor
         return copy_d2d_last_method(self, src, true, non_blocking);
@@ -355,14 +370,16 @@ void copy_d2d_dtype_baseformat(
     copy_d2d_last_method(self, src, true, non_blocking);
 }
 
-bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& src) {
+bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& src)
+{
     // Some Ops support inputs with 5HD/NZ format, Transdata is redundant
     // Record:
     // Op:Reshape; SliceD || Supportformat: 5HD/NZ
     return TransContiguous::ContiguousOptimizeWithAnyFormat(self, src);
 }
 
-at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking)
+{
     if (self.numel() == 0) {
         return self;
     }

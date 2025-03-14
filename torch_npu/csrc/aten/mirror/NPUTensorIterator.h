@@ -14,7 +14,8 @@ namespace native {
 struct NPUOperandInfo {
     using StrideVector = c10::SmallVector<int64_t, 6>;
     NPUOperandInfo() {}
-    explicit NPUOperandInfo(const at::Tensor& t) : tensor(t) {
+    explicit NPUOperandInfo(const at::Tensor& t) : tensor(t)
+    {
         if (t.defined()) {
             target_dtype = t.scalar_type();
             current_dtype = target_dtype;
@@ -22,15 +23,18 @@ struct NPUOperandInfo {
         validate();
     }
     NPUOperandInfo(const at::Tensor& t, at::ScalarType dtype)
-        : tensor(t), target_dtype(dtype), current_dtype(t.scalar_type()) {
+        : tensor(t), target_dtype(dtype), current_dtype(t.scalar_type())
+    {
         validate();
     }
 
-    bool is_type_defined() const {
+    bool is_type_defined() const
+    {
         return target_dtype != at::ScalarType::Undefined;
     }
 
-    void validate() {
+    void validate()
+    {
         TORCH_CHECK(
             !tensor.defined() || tensor.layout() == at::kStrided,
             "unsupported tensor layout: ", tensor.layout(), OPS_ERROR(ErrCode::TYPE));
@@ -81,39 +85,50 @@ public:
         at::Tensor& out2,
         const at::Tensor& a);
 
-    int noutputs() const {
+    int noutputs() const
+    {
         return num_outputs_;
     }
 
-    c10::IntArrayRef strides(int arg) const {
+    c10::IntArrayRef strides(int arg) const
+    {
         return operands_[arg].stride_bytes;
     }
-    at::ScalarType dtype(int arg = 0) const {
+
+    at::ScalarType dtype(int arg = 0) const
+    {
         return operands_[arg].current_dtype;
     }
-    at::ScalarType common_dtype() const {
+
+    at::ScalarType common_dtype() const
+    {
         return common_dtype_;
     }
 
-    const c10::SmallVector<NPUOperandInfo, 4> GetOperandInfo() const {
+    const c10::SmallVector<NPUOperandInfo, 4> GetOperandInfo() const
+    {
         return operands_;
     }
 
     // Construction
-    void add_output(const at::Tensor& output) {
+    void add_output(const at::Tensor& output)
+    {
         operands_.emplace_back(output);
         num_outputs_++;
     }
 
-    void add_input(const at::Tensor& input) {
+    void add_input(const at::Tensor& input)
+    {
         operands_.emplace_back(input);
     }
 
-    void promote_common_dtype() {
+    void promote_common_dtype()
+    {
         common_dtype_strategy_ = CommonDTypeStrategy::PROMOTE;
     }
 
-    void compute_common_dtype_only_for_inputs() {
+    void compute_common_dtype_only_for_inputs()
+    {
         common_dtype_strategy_ = CommonDTypeStrategy::PROMOTE_INPUTS;
     }
 
