@@ -144,6 +144,7 @@ def compute_op_definition(f: NativeFunction):
     candidate_args = itertools.chain(
         f.func.arguments.out,
         f.func.arguments.flat_positional,
+        f.func.arguments.flat_kwarg_only,
     )
     device_check = RegisterDispatchKey.gen_device_check(
         f.device_check, list(candidate_args), name
