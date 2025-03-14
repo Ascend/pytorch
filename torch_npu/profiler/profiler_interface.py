@@ -34,7 +34,6 @@ from .analysis.prof_common_func._file_manager import FileManager
 from .analysis.prof_common_func._utils import collect_env_vars, no_exception_func
 from .analysis.prof_common_func._path_manager import ProfilerPathManager
 from ..utils._path_manager import PathManager
-from .analysis.prof_common_func._cann_package_manager import CannPackageManager
 
 __all__ = ['supported_activities']
 
@@ -187,11 +186,6 @@ class _ProfInterface:
 
         if ProfilerActivity.NPU not in self.activities and self.experimental_config is not None:
             print_warn_msg("Experimental config will not be uesd while ProfilerActivity.NPU is not set.")
-
-        if ProfilerActivity.NPU in self.activities and Constant.Db in self.experimental_config.export_type:
-            if not CannPackageManager.SUPPORT_EXPORT_DB:
-                raise RuntimeError("Current cann package does not support export db. "
-                                   "If you want to export db, you can install supported CANN package version.")
 
         if ProfilerActivity.CPU not in self.activities and self.experimental_config.with_gc:
             print_warn_msg("GC detect will not take effect while ProfilerActivity.CPU is not set.")
