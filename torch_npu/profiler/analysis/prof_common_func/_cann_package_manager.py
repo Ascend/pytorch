@@ -19,4 +19,10 @@ def check_cann_package_support_export_db() -> bool:
 
 
 class CannPackageManager:
-    SUPPORT_EXPORT_DB = check_cann_package_support_export_db()
+    SUPPORT_EXPORT_DB = None
+
+    @classmethod
+    def is_support_export_db(cls) -> bool:
+        if cls.SUPPORT_EXPORT_DB is None:
+            cls.SUPPORT_EXPORT_DB = check_cann_package_support_export_db()
+        return cls.SUPPORT_EXPORT_DB
