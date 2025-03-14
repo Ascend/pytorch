@@ -2751,6 +2751,7 @@
     "npu_quant_scatter_",
     "scatter_update",
     "scatter_update_",
+    "npu_kronecker_quant",
     "npu_moe_compute_expert_tokens",
     "npu_moe_gating_top_k_softmax",
     "npu_moe_init_routing",
