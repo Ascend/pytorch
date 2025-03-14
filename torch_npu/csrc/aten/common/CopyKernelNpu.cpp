@@ -19,7 +19,8 @@ namespace native {
 // the dst and src have same elemsize
 // if exceptCopySize is not defined, we will copy dst storage size
 // so: caller should make sure that the storage size of src and dst are reasonable.
-void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSize) {
+void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSize)
+{
     c10_npu::NPUGuard guard(src.device());
     int64_t size = exceptSize;
     auto dst_mem_size = StorageDescHelper::GetMemorySize(dst);
@@ -49,5 +50,6 @@ void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSi
         size * dst.element_size(),
         ACL_MEMCPY_DEVICE_TO_DEVICE));
 }
+
 } // namespace native
 } // namespace at_npu

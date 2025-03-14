@@ -37,7 +37,8 @@ inline const at::Tensor& resize_named_tensor_(
 const at::Tensor& NPUNativeFunctions::resize_(
     const at::Tensor& self,
     c10::IntArrayRef size,
-    c10::optional<c10::MemoryFormat> format) {
+    c10::optional<c10::MemoryFormat> format)
+{
     if (self.has_names()) {
         return resize_named_tensor_(self, size, format);
     }
@@ -55,7 +56,8 @@ const at::Tensor& NPUNativeFunctions::resize_(
 const at::Tensor& NPUNativeFunctions::resize_as_(
     const at::Tensor& self,
     const at::Tensor& the_template,
-    c10::optional<c10::MemoryFormat> format) {
+    c10::optional<c10::MemoryFormat> format)
+{
     TORCH_CHECK(
         !(self.is_sparse() || the_template.is_sparse()),
         "NPU does not support sparse tensors.", OPS_ERROR(ErrCode::NOT_SUPPORT));
