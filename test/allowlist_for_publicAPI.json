@@ -2810,6 +2810,7 @@
     "npu_dynamic_quant_asymmetric",
     "npu_yolo_boxes_encode",
     "npu_yolo_boxes_encode",
+    "npu_gemma_rms_norm",
     "npu_weight_quant_batchmatmul",
     "npu_transpose",
     "npu_trans_quant_param",
