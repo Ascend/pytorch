@@ -1,9 +1,10 @@
+#include <c10/util/accumulate.h>
+
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
-#include <c10/util/accumulate.h>
 
 namespace at_npu {
 namespace native {
@@ -99,8 +100,8 @@ void StorageDescHelper::SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, c
 
 bool StorageDescHelper::CheckDescInit(const c10::Storage &storage)
 {
-    return ACL_FORMAT_UNDEFINED !=
-           torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())->npu_desc_.origin_format_;
+    return torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())->npu_desc_.origin_format_ !=
+           ACL_FORMAT_UNDEFINED;
 }
 
 void StorageDescHelper::GetDescForSerialization(const at::Tensor &tensor,
@@ -163,7 +164,8 @@ void StorageDescHelper::SetDescForSerialization(const at::Tensor &tensor,
 
     auto str_to_small_vector = [](std::string str) -> c10::SmallVector<int64_t, 5> {
         int start = 0;
-        while ((start < static_cast<int64_t>(str.size())) && (str[start++] != '/'));
+        while ((start < static_cast<int64_t>(str.size())) && (str[start++] != '/')) {
+        }
         int end = start;
         c10::SmallVector<int64_t, 5> vec;
         while (end < static_cast<int64_t>(str.size())) {
@@ -253,9 +255,9 @@ torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dty
     return npu_desc;
 }
 
-int64_t StorageDescHelper::GetMemorySize(const torch_npu::NPUStorageDesc &desc)
+int64_t StorageDescHelper::GetMemorySize(const torch_npu::NPUStorageDesc &dst)
 {
-    const auto &physical_size = FormatHelper::GetStorageSizes(desc);
+    const auto &physical_size = FormatHelper::GetStorageSizes(dst);
     return c10::multiply_integers(physical_size);
 }
 

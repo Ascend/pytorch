@@ -1,8 +1,8 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
-#include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/framework/InferFormat.h"
 
 namespace at_npu {
 namespace native {
