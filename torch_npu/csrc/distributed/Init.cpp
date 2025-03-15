@@ -95,7 +95,8 @@ using intrusive_ptr_no_gil_destructor_class_ =
 
 class BroadcastWork {
 public:
-    inline std::vector<at::Tensor> cast_tensors(at::TensorList tensors) {
+    inline std::vector<at::Tensor> cast_tensors(at::TensorList tensors)
+    {
         static auto cast_back_to_ori_format = [](const at::Tensor &t) {
             return at_npu::native::custom_ops::npu_format_cast(t, torch_npu::NPUBridge::GetNpuStorageImpl(t)->npu_desc_.origin_format_);
         };
@@ -114,7 +115,8 @@ public:
         work_ = process_group->broadcast(flat_tensor_, broadcastOptions);
     }
 
-    void finish() {
+    void finish()
+    {
         work_->wait();
         auto output_tensors = torch::utils::unflatten_dense_tensors(
             flat_tensor_.front(), cast_tensors_);
@@ -149,7 +151,8 @@ void broadcast_coalesced(
     c10::intrusive_ptr<c10d::ProcessGroup> process_group,
     at::TensorList tensors,
     size_t buffer_size,
-    int rank) {
+    int rank)
+{
     // Coalesce tensors into buckets taking into account the maximum buffer size.
     // This routine is multi-device aware, so the tensors can be split across
     // multiple devices and can contain a mix of CPU and CUDA tensors.
@@ -184,7 +187,8 @@ void broadcast_coalesced(
 void _register_comm_hook(
     c10d_npu::Reducer& reducer,
     py::object state,
-    py::object comm_hook) {
+    py::object comm_hook)
+{
     reducer.register_comm_hook(std::make_unique<::c10d::PythonCommHook>(
         std::move(state), std::move(comm_hook)));
 }
@@ -194,11 +198,13 @@ void _register_comm_hook(
 // function of the reducer input to set the hook type.
 void _register_builtin_comm_hook(
     c10d_npu::Reducer& reducer,
-    ::c10d::BuiltinCommHookType comm_hook_type) {
+    ::c10d::BuiltinCommHookType comm_hook_type)
+{
     reducer.register_builtin_comm_hook(comm_hook_type);
 }
 
-PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
+PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
+{
     auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
     if (!torch_npu_C_module) {
         throw python_error();
@@ -559,7 +565,8 @@ static PyMethodDef methods[] = { // NOLINT
 #endif
     {nullptr, nullptr, 0, nullptr}};
 
-PyMethodDef* python_functions() {
+PyMethodDef* python_functions()
+{
     return methods;
 }
 

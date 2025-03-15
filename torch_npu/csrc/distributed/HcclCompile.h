@@ -78,7 +78,8 @@ extern HcclResult hcclReduceScatterV(const void *sendBuf, const void *sendCounts
 }
 
 extern HcclResult hcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType sendType,
-    HcclReduceOp op, uint32_t root, HcclComm comm, aclrtStream stream) {
+    HcclReduceOp op, uint32_t root, HcclComm comm, aclrtStream stream)
+{
     typedef HcclResult(*HcclReduceVFunc)(
         void *, void *, uint64_t, HcclDataType, HcclReduceOp, uint32_t, HcclComm, aclrtStream);
     static HcclReduceVFunc func = nullptr;
@@ -90,7 +91,8 @@ extern HcclResult hcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclD
     return ret;
 }
 
-HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError) {
+HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError)
+{
     typedef HcclResult(*HcclGetCommAsyncErrorVFunc)(HcclComm, HcclResult*);
     static HcclGetCommAsyncErrorVFunc func = nullptr;
     if (func == nullptr) {

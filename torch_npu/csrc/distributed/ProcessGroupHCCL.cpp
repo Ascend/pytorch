@@ -528,7 +528,8 @@ bool ProcessGroupHCCL::WorkHCCL::isCompleted()
     return exception() || finishedNPUExecutionInternal();
 }
 
-bool ProcessGroupHCCL::WorkHCCL::isStarted() {
+bool ProcessGroupHCCL::WorkHCCL::isStarted()
+{
     checkAndSetException();
     return exception() || startedNPUExecutionInternal();
 }
@@ -573,7 +574,8 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecution()
     return finishedNPUExecutionInternal();
 }
 
-bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const {
+bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const
+{
     try {
         for (const auto i : c10::irange(devices_.size())) {
             // Checking the work's corresponding ASCEND events' status
@@ -712,7 +714,8 @@ bool ProcessGroupHCCL::WorkHCCL::checkExec()
     return false;
 }
 
-void ProcessGroupHCCL::WorkHCCL::synchronize() {
+void ProcessGroupHCCL::WorkHCCL::synchronize()
+{
     // Call Synchronize without a timeout. We use this method to avoid adding a
     // timeout argument to the public synchronize API.
     synchronizeInternal(kNoTimeout);
@@ -1823,17 +1826,20 @@ void ProcessGroupHCCL::workCleanupLoop()
 }
 
 std::exception_ptr ProcessGroupHCCL::WorkHCCL::checkForHCCLErrors(
-    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const {
+    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const
+{
     return checkForHCCLErrorsInternal(hcclComms);
 }
 
 std::exception_ptr ProcessGroupHCCL::checkForHCCLErrors(
-    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) {
+    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
+{
     return checkForHCCLErrorsInternal(hcclComms);
 }
 
 std::exception_ptr ProcessGroupHCCL::checkForHCCLErrorsInternal(
-    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) {
+    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
+{
     for (const auto& hcclComm : hcclComms) {
         HcclResult hcclAsyncErr = hcclComm->checkForHcclError();
         if (hcclAsyncErr != HCCL_SUCCESS) {

@@ -343,7 +343,8 @@ public:
         // return intrusive_ptr of the object
         static c10::intrusive_ptr<Options> create(
             bool is_high_priority_stream = false,
-            std::chrono::milliseconds timeout = kNoTimeout) {
+            std::chrono::milliseconds timeout = kNoTimeout)
+        {
             return c10::make_intrusive<Options>(is_high_priority_stream);
         }
 
@@ -418,11 +419,13 @@ public:
 
     ~ProcessGroupHCCL() override;
 
-    c10::intrusive_ptr<Options> getOptions() {
+    c10::intrusive_ptr<Options> getOptions()
+    {
         return options_;
     }
 
-    const std::string getBackendName() const {
+    const std::string getBackendName() const
+    {
         return std::string(HCCL_BACKEND_NAME);
     }
     c10::intrusive_ptr<c10d::Work> broadcast(
