@@ -32681,5 +32681,21 @@
   "test_unary_op_out_casting_npu_int64_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", ["910A"]],
   "test_unary_op_out_casting_npu_int64_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", ["910A"]],
   "test_unsupported_dtypes (__main__.TestTEFuserDynamic)": ["", [""]],
-  "test_unsupported_dtypes (__main__.TestTEFuserStatic)": ["", [""]]
+  "test_unsupported_dtypes (__main__.TestTEFuserStatic)": ["", [""]],
+  "test_embedding_padding_idx_npu_float32 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_embedding_padding_idx_npu_float16 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_embedding_bag_non_contiguous_weight_npu_int32_int32_float32 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_embedding_bag_non_contiguous_weight_npu_int32_int32_bfloat16 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_embedding_bag_non_contiguous_weight_npu_int32_int64_bfloat16 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_embedding_bag_non_contiguous_weight_npu_int32_int64_float32 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_embedding_bag_non_contiguous_weight_npu_int64_int32_float32 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_embedding_bag_non_contiguous_weight_npu_int64_int32_bfloat16 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_embedding_bag_non_contiguous_weight_npu_int64_int64_float32 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_embedding_bag_non_contiguous_weight_npu_int64_int64_bfloat16 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_baddbmm_large_input_2_1000_1000_1000_npu_float16 (__main__.TestMatmulPRIVATEUSE1)": ["", [""]],
+  "test_variant_consistency_eager_unbind_copy_npu_complex64 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
+  "test_conj_view__refs_unbind_copy_npu_complex64 (__main__.TestMathBitsPRIVATEUSE1)": ["", [""]],
+  "test_conj_view_unbind_copy_npu_complex64 (__main__.TestMathBitsPRIVATEUSE1)": ["", [""]],
+  "test_neg_conj_view__refs_unbind_copy_npu_complex128 (__main__.TestMathBitsPRIVATEUSE1)": ["", [""]],
+  "test_neg_conj_view_unbind_copy_npu_complex128 (__main__.TestMathBitsPRIVATEUSE1)": ["", [""]]
 }
