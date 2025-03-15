@@ -253,7 +253,7 @@ FormatShape InferShapeNDToNZ(c10::IntArrayRef dims, size_t itemsize)
     FormatShape res;
     // sum(keepdim = false) may make tensor dim = 0
     FormatShape dim;
-    for (int i = 0; i < dims.size(); i++) {
+    for (size_t i = 0; i < dims.size(); i++) {
         dim.emplace_back(dims[i]);
     }
 
@@ -265,7 +265,7 @@ FormatShape InferShapeNDToNZ(c10::IntArrayRef dims, size_t itemsize)
         dim.emplace_back(1);
     }
 
-    int i = 0;
+    size_t i = 0;
     for (; i < dim.size() - 2; i++) {
         res.emplace_back(dim[i]);
     }
@@ -483,7 +483,7 @@ FormatShape InferShapeofND(c10::IntArrayRef dims, size_t itemsize)
 {
     FormatShape res;
     res.resize(dims.size());
-    for (int j = 0; j < dims.size(); j++) {
+    for (size_t j = 0; j < dims.size(); j++) {
         res[j] = dims[j];
     }
     return res;
