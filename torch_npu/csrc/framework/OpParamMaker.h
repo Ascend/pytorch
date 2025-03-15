@@ -397,8 +397,6 @@ private:
 void SetDeterministic(bool isOpapi = true);
 void SetDeterministicOps(bool deterministicAlgorithmsStatus);
 
-static bool deterministicaclnn_oldstatus = false;
-
 } // namespace native
 } // namespace at_npu
 

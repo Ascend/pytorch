@@ -38,8 +38,8 @@ public:
     static bool CheckDescInit(const c10::Storage &storage);
 
     // For Serialization to Get and Set NpuStorageDesc
-    static void GetDescForSerialization(const at::Tensor &dst, std::unordered_map<std::string, bool> &desc_map);
-    static void SetDescForSerialization(const at::Tensor &dst, std::unordered_map<std::string, bool> &desc_map);
+    static void GetDescForSerialization(const at::Tensor &tensor, std::unordered_map<std::string, bool> &desc_map);
+    static void SetDescForSerialization(const at::Tensor &tensor, std::unordered_map<std::string, bool> &desc_map);
 
     static void CopyDesc(at::Tensor &dst, const at::Tensor &src);
     static void CopyDesc(at::Tensor &dst, const c10::Storage &src);
