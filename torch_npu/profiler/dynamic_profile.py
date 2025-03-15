@@ -13,6 +13,8 @@ from .analysis.prof_common_func._file_manager import FileManager
 from ._dynamic_profiler._dynamic_profiler_utils import DynamicProfilerUtils
 from ._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
 from ._dynamic_profiler._dynamic_profiler_config_context import ConfigContext
+from ._dynamic_profiler._dynamic_monitor_proxy import PyDynamicMonitorProxySingleton
+
 
 __all__ = [
     'init',
@@ -45,6 +47,7 @@ class _DynamicProfile:
         self._dynamic_monitor = DynamicProfilerMonitor()
         self.repeat_init = True
         atexit.register(self._clean_resource)
+        atexit.register(self._finalize_dynolog)
 
     def _clean_resource(self):
         if self.prof is not None:
@@ -54,6 +57,11 @@ class _DynamicProfile:
                 "Profiler stop when process exit, check cfg json active whether over all step!",
                 DynamicProfilerUtils.LoggerLevelEnum.WARNING)
         self._dynamic_monitor.clean_resource()
+
+    def _finalize_dynolog(self):
+        py_dyno_monitor = PyDynamicMonitorProxySingleton().get_proxy()
+        if py_dyno_monitor:
+            py_dyno_monitor.finalize_dyno()
 
     def _dynamic_profiler_valid(self):
         prof_cfg_ctx = self._dynamic_monitor.shm_to_prof_conf_context()
