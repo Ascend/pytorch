@@ -23,7 +23,7 @@ public:
     static std::tuple<aclTensorDesc*, aclDataBuffer*> CovertNPUTensorWithZeroDimToAclInput(const at::Tensor &tensor,
                                                                                            const string &descName);
 
-    static std::tuple<aclTensorDesc*, aclDataBuffer*> CovertScalarToAclInput(const at::Tensor &tensor,
+    static std::tuple<aclTensorDesc*, aclDataBuffer*> CovertScalarToAclInput(const at::Tensor &aclInput,
                                                                              at::ScalarType type);
 
     static std::tuple<aclTensorDesc*, aclDataBuffer*> CovertToAclOutput(const at::Tensor &tensor,
