@@ -153,7 +153,8 @@ public:
     // Returns the relative time in nanoseconds when gradients were ready,
     // with respect to the time `prepare_for_backward` was called. The
     // vector is for parameters for a single model replica.
-    std::vector<int64_t> get_backward_stats() const {
+    std::vector<int64_t> get_backward_stats() const
+    {
         return backward_stats_;
     }
 
@@ -194,7 +195,8 @@ public:
     // Returns true if we should rebuild buckets, else false. We only rebuild
     // buckets once after the first iteration and never rebuild them if
     // find_unused_parameters_.
-    inline bool should_rebuild_buckets() const {
+    inline bool should_rebuild_buckets() const
+    {
         return (static_graph_ || !find_unused_parameters_) && !has_rebuilt_bucket_;
     }
 

@@ -253,7 +253,8 @@ Reducer::Reducer(
 // Additionally, there are also some built-in C++ hook implementations that can
 // be specified by calling `register_builtin_comm_hook` from Python API.
 
-Reducer::~Reducer() noexcept(false) {
+Reducer::~Reducer() noexcept(false)
+{
     // Remove all hooks on variables registered by this Reducer. This is necessary
     // to make DDP failure recoverable. Otherwise, multiple Reducer instances
     // (from recoveries) will add their hooks to the original model, and those
@@ -267,24 +268,29 @@ Reducer::~Reducer() noexcept(false) {
     }
 }
 
-bool Reducer::dynamic_graph_find_unused() {
+bool Reducer::dynamic_graph_find_unused()
+{
     return !static_graph_ && find_unused_parameters_;
 }
 
-bool Reducer::static_graph_first_iteration() {
+bool Reducer::static_graph_first_iteration()
+{
     return static_graph_ && num_iterations_ == 1;
 }
 
-bool Reducer::static_graph_after_first_iteration() {
+bool Reducer::static_graph_after_first_iteration()
+{
     return static_graph_ && num_iterations_ > 1;
 }
 
-bool Reducer::ddp_graph_static() {
+bool Reducer::ddp_graph_static()
+{
     std::lock_guard<std::mutex> lock(mutex_);
     return ddp_graph_static_;
 }
 
-void Reducer::initialize_local_used_map() {
+void Reducer::initialize_local_used_map()
+{
     const auto variable_count = params_.size();
     at::TensorOptions options = options.dtype(at::kInt);
 
@@ -303,7 +309,8 @@ void Reducer::initialize_local_used_map() {
 
 void Reducer::check_grad_layout(
     const at::Tensor& grad,
-    const at::Tensor& bucket_view) {
+    const at::Tensor& bucket_view)
+{
     // Ensure that the gradient type matches the bucket type.
     REDUCER_CHECK(
         grad.options().type_equal(bucket_view.options()),
@@ -334,7 +341,8 @@ void Reducer::check_grad_layout(
 }
 
 
-void Reducer::mark_variable_ready_dense(size_t variable_index) {
+void Reducer::mark_variable_ready_dense(size_t variable_index)
+{
     const auto replica_index = 0;
     const auto& bucket_index = variable_locators_[variable_index];
     auto& bucket = buckets_[bucket_index.bucket_index];
@@ -416,7 +424,8 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
     });
 }
 
-void Reducer::mark_variable_ready_sparse(size_t variable_index) {
+void Reducer::mark_variable_ready_sparse(size_t variable_index)
+{
     const auto replica_index = 0;
     const auto& bucket_index = variable_locators_[variable_index];
     auto& bucket = buckets_[bucket_index.bucket_index];
@@ -449,7 +458,8 @@ void Reducer::mark_variable_ready_sparse(size_t variable_index) {
 }
 
 std::vector<c10d::GradBucket> Reducer::get_grad_buckets(
-    bool return_zero_tensors) const {
+    bool return_zero_tensors) const
+{
     std::lock_guard<std::mutex> lock(mutex_);
     std::vector<c10d::GradBucket> gradBuckets;
     gradBuckets.reserve(buckets_.size());
@@ -471,18 +481,21 @@ std::vector<c10d::GradBucket> Reducer::get_grad_buckets(
 }
 void Reducer::set_forward_pass_work_handle(
     c10::intrusive_ptr<c10d::Work> forwardPassWorkHandle,
-    bool useStaticWorldSize) {
+    bool useStaticWorldSize)
+{
     std::lock_guard<std::mutex> lock(mutex_);
     forwardPassWorkHandle_.workHandle = std::move(forwardPassWorkHandle);
     forwardPassWorkHandle_.useStaticWorldSize = useStaticWorldSize;
 }
 
-at::Tensor Reducer::get_local_used_map_on_device() const {
+at::Tensor Reducer::get_local_used_map_on_device() const
+{
     std::lock_guard<std::mutex> lock(mutex_);
     return local_used_map_dev_;
 }
 
-void Reducer::push_rebuilt_params_for_all_indices() {
+void Reducer::push_rebuilt_params_for_all_indices()
+{
     std::lock_guard<std::mutex> lock(mutex_);
     if (!should_rebuild_buckets() || !rebuilt_param_indices_.empty()) {
         return;
@@ -493,12 +506,14 @@ void Reducer::push_rebuilt_params_for_all_indices() {
     }
 }
 
-void Reducer::push_rebuilt_params(const size_t& index) {
+void Reducer::push_rebuilt_params(const size_t& index)
+{
     rebuilt_params_.push_back(params_[index]);
     rebuilt_param_indices_.push_back(index);
 }
 
-void Reducer::set_divide_factor() {
+void Reducer::set_divide_factor()
+{
     // If it was scheduled, wait on allreduce in forward pass that tells us
     // division factor based on no. of currently participating processes.
     if (div_factor_ == kUnsetDivFactor) {
@@ -517,7 +532,8 @@ void Reducer::set_divide_factor() {
 
 // Right now delay_all_reduce is only called when static_graph_=true and
 // num_iterations_==1.
-void Reducer::delay_all_reduce() {
+void Reducer::delay_all_reduce()
+{
     std::lock_guard<std::mutex> lock(this->mutex_);
 
     if (should_collect_runtime_stats()) {
@@ -555,14 +571,16 @@ void Reducer::delay_all_reduce() {
     finalize_backward();
 }
 
-void Reducer::set_logger(std::weak_ptr<c10d::Logger> logger) {
+void Reducer::set_logger(std::weak_ptr<c10d::Logger> logger)
+{
     logger_ = logger;
 }
 
 // The function `autograd_hook` is called after the gradient for a
 // model parameter has been accumulated into its gradient tensor.
 // This function is only to be called from the autograd thread.
-void Reducer::autograd_hook(size_t index) {
+void Reducer::autograd_hook(size_t index)
+{
     std::lock_guard<std::mutex> lock(this->mutex_);
     // Ignore if we don't expect to be called.
     // This may be the case if the user wants to accumulate gradients
@@ -644,7 +662,8 @@ void Reducer::autograd_hook(size_t index) {
     }
 }
 
-void Reducer::all_reduce_local_used_map() {
+void Reducer::all_reduce_local_used_map()
+{
     // See Note [Skip allreducing local_used_map_dev]
     // H2D from local_used_map_ to local_used_map_dev_
     local_used_map_dev_.copy_(local_used_map_, true);
@@ -652,7 +671,8 @@ void Reducer::all_reduce_local_used_map() {
     local_used_work_ = process_group_->allreduce(temp_local_used_map_dev_vec_);
 }
 
-at::Tensor& Reducer::get_param_from_index(size_t index) {
+at::Tensor& Reducer::get_param_from_index(size_t index)
+{
     const auto& bucket_index = variable_locators_[index];
     auto& bucket = buckets_[bucket_index.bucket_index];
     auto& replica = bucket.replicas[0];
@@ -663,7 +683,8 @@ at::Tensor& Reducer::get_param_from_index(size_t index) {
     return variable;
 }
 
-void Reducer::checkAndRaiseMarkedTwiceError(size_t index) {
+void Reducer::checkAndRaiseMarkedTwiceError(size_t index)
+{
     // Something is wrong if all variables contained in this bucket replica have
     // already been marked as ready.
     // We don't expect the same variable to be marked ready twice.
@@ -732,7 +753,8 @@ void Reducer::checkAndRaiseMarkedTwiceError(size_t index) {
     }
 }
 
-void Reducer::mark_variable_ready(size_t variable_index) {
+void Reducer::mark_variable_ready(size_t variable_index)
+{
     REDUCER_CHECK(variable_index < variable_locators_.size(), logger_,
                   "Out of range variable index.", DIST_ERROR(ErrCode::PARAM));
 
@@ -795,7 +817,8 @@ void Reducer::mark_variable_ready(size_t variable_index) {
 }
 
 c10::intrusive_ptr<c10::ivalue::Future> Reducer::run_comm_hook(
-    c10d::GradBucket& grad_bucket) {
+    c10d::GradBucket& grad_bucket)
+{
     if (comm_hook_ == nullptr) {
         return run_allreduce_hook(grad_bucket);
     } else {
@@ -804,12 +827,14 @@ c10::intrusive_ptr<c10::ivalue::Future> Reducer::run_comm_hook(
 }
 
 c10::intrusive_ptr<c10::ivalue::Future> Reducer::run_allreduce_hook(
-    c10d::GradBucket& grad_bucket) {
+    c10d::GradBucket& grad_bucket)
+{
     c10d::_AllReduceBySumCommHook allreduce_hook(process_group_);
     return allreduce_hook.runHook(grad_bucket);
 }
 
-void Reducer::all_reduce_bucket(Bucket& bucket) {
+void Reducer::all_reduce_bucket(Bucket& bucket)
+{
     std::vector<at::Tensor> tensors;
     tensors.reserve(bucket.replicas.size());
     for (const auto& replica : bucket.replicas) {
@@ -833,7 +858,8 @@ void Reducer::all_reduce_bucket(Bucket& bucket) {
 
 std::vector<at::Tensor> Reducer::get_variables_for_bucket(
     size_t bucket_index,
-    const Bucket& bucket) const {
+    const Bucket& bucket) const
+{
     // Check if we have cached mapping previously.
     if (has_rebuilt_bucket_ &&
         cached_variables_for_bucket_.find(bucket_index) !=
@@ -865,7 +891,8 @@ std::vector<at::Tensor> Reducer::get_variables_for_bucket(
 }
 
 // Called when the bucket at the specified index is ready to be reduced.
-void Reducer::mark_bucket_ready(size_t bucket_index) {
+void Reducer::mark_bucket_ready(size_t bucket_index)
+{
     TORCH_INTERNAL_ASSERT(bucket_index >= next_bucket_,
                           DIST_ERROR(ErrCode::PARAM));
 
@@ -890,7 +917,8 @@ void Reducer::mark_bucket_ready(size_t bucket_index) {
     }
 }
 
-void Reducer::install_futures(c10::List<c10::intrusive_ptr<c10::ivalue::Future>> futs) {
+void Reducer::install_futures(c10::List<c10::intrusive_ptr<c10::ivalue::Future>> futs)
+{
     // Append instead of overwrite so that this method can be called multiple
     // times in one iteration.
     if (!installed_futures_) {
@@ -902,7 +930,8 @@ void Reducer::install_futures(c10::List<c10::intrusive_ptr<c10::ivalue::Future>>
 
 void Reducer::initialize_buckets(
     std::vector<std::vector<size_t>> bucket_indices,
-    std::vector<size_t> per_bucket_sizes) {
+    std::vector<size_t> per_bucket_sizes)
+{
     // If initialize_buckets is called inside DDP constructor, then
     // it does not matter rpc context ptr is nullptr or not, as grad
     // will not be mutated.
@@ -1074,7 +1103,8 @@ void Reducer::initialize_buckets(
 // (see Note:  "Gradient Layout Contract" in initialize_buckets).
 void Reducer::initialize_bucket_views(
     Reducer::BucketReplica& replica,
-    at::Tensor& contents) {
+    at::Tensor& contents)
+{
     for (const auto i : c10::irange(replica.variables.size())) {
         auto& v = replica.variables[i];
         const auto offset = replica.offsets[i];
@@ -1130,7 +1160,8 @@ void Reducer::populate_bucket_views_out(
     }
 }
 
-void Reducer::prepare_for_forward() {
+void Reducer::prepare_for_forward()
+{
     std::lock_guard<std::mutex> lock(mutex_);
     num_iterations_++;
     if (should_collect_runtime_stats()) {
@@ -1138,7 +1169,8 @@ void Reducer::prepare_for_forward() {
     }
 }
 
-void Reducer::reset_bucket_counting() {
+void Reducer::reset_bucket_counting()
+{
     next_bucket_ = 0;
     // Reset num_buckets_ready_ at the beginning of backward computation
     // in each iteration.
@@ -1163,7 +1195,8 @@ void Reducer::reset_bucket_counting() {
 // done immediately because the model output may be ignored, and we only
 // want to start performing reductions on `torch.autograd.backward()`.
 void Reducer::search_unused_parameters(
-    const std::vector<torch::autograd::Variable>& outputs) {
+    const std::vector<torch::autograd::Variable>& outputs)
+{
     std::unordered_set<torch::autograd::Node*> seen;
     std::vector<torch::autograd::Node*> queue;
 
@@ -1243,7 +1276,8 @@ void Reducer::search_unused_parameters(
 }
 
 void Reducer::prepare_for_backward(
-    const std::vector<torch::autograd::Variable>& outputs) {
+    const std::vector<torch::autograd::Variable>& outputs)
+{
     std::lock_guard<std::mutex> lock(mutex_);
 
     backward_compute_start_time_ = current_time_in_nanos();
@@ -1279,7 +1313,8 @@ void Reducer::copy_bucket_to_grad(
     torch::autograd::Variable& variable,
     Reducer::BucketReplica& replica,
     size_t intra_bucket_index,
-    bool global_unused) {
+    bool global_unused)
+{
     const auto& bucket_view = replica.bucket_views_out[intra_bucket_index];
     runGradCallbackForVariable(variable, [&](auto& grad) {
         // If a parameter is globally unused, we keep its grad untouched.
@@ -1302,7 +1337,8 @@ void Reducer::copy_bucket_to_grad(
     });
 }
 
-std::vector<std::string> Reducer::getUnmarkedParamsForIteration() {
+std::vector<std::string> Reducer::getUnmarkedParamsForIteration()
+{
     std::vector<std::string> unMarkedParamNames;
     for (const auto& it : param_names_) {
         if (perIterationReadyParams_.find(it.first) ==
@@ -1313,7 +1349,8 @@ std::vector<std::string> Reducer::getUnmarkedParamsForIteration() {
     return unMarkedParamNames;
 }
 
-std::vector<size_t> Reducer::getUnmarkedParamIndicesForIteration() {
+std::vector<size_t> Reducer::getUnmarkedParamIndicesForIteration()
+{
     std::vector<size_t> unmarked_param_indices;
     const auto variable_count = params_.size();
     for (const auto variable_index : c10::irange(variable_count)) {
@@ -1326,7 +1363,8 @@ std::vector<size_t> Reducer::getUnmarkedParamIndicesForIteration() {
 }
 
 // A bucket with one or more dense tensors needs to be unflattened.
-void Reducer::finalize_bucket_dense(Bucket& bucket) {
+void Reducer::finalize_bucket_dense(Bucket& bucket)
+{
     size_t replica_index = 0;
     auto& replica = bucket.replicas[replica_index];
     for (const auto intra_bucket_index : c10::irange(replica.variables.size())) {
@@ -1415,7 +1453,8 @@ void Reducer::finalize_bucket_dense(Bucket& bucket) {
     }
 }
 
-void Reducer::finalize_backward() {
+void Reducer::finalize_backward()
+{
     // No longer expect autograd hooks to fire after this function returns.
     TORCH_INTERNAL_ASSERT(expect_autograd_hooks_,
                           DIST_ERROR(ErrCode::INTERNAL));
@@ -1510,7 +1549,8 @@ void Reducer::finalize_backward() {
 
 void Reducer::runGradCallbackForVariable(
     at::Tensor& variable,
-    GradCallback&& cb) {
+    GradCallback&& cb)
+{
 #ifdef _WIN32
     cb(variable.mutable_grad());
 #else
@@ -1525,7 +1565,8 @@ void Reducer::runGradCallbackForVariable(
 }
 
 #ifndef _WIN32
-void Reducer::RpcContext::set(ContextPtr&& new_context_ptr) {
+void Reducer::RpcContext::set(ContextPtr&& new_context_ptr)
+{
     // We should set 'new_context_ptr' even if it's nullptr. That means the
     // reducer is under a local backward run.
     const auto new_context_raw_ptr = new_context_ptr.get();
@@ -1539,7 +1580,8 @@ void Reducer::RpcContext::set(ContextPtr&& new_context_ptr) {
 #endif
 
 void Reducer::sync_bucket_indices(
-    std::vector<std::vector<size_t>>& bucket_indices) {
+    std::vector<std::vector<size_t>>& bucket_indices)
+{
     auto num_buckets = bucket_indices.size();
     std::vector<size_t> bucket_sizes;
     bucket_sizes.reserve(num_buckets);
@@ -1611,7 +1653,8 @@ void Reducer::sync_bucket_indices(
     }
 }
 
-bool Reducer::rebuild_buckets() {
+bool Reducer::rebuild_buckets()
+{
     // Ensure reduction for previous backwards pass is finished. If user's model
     // has unused parameters for example, this will raise an error recommending to
     // run with find_unused_parameters=True, instead of the size mismatch
@@ -1693,7 +1736,8 @@ bool Reducer::rebuild_buckets() {
 }
 
 // See Note [DDP Communication Hook]
-void Reducer::register_comm_hook(std::unique_ptr<c10d::CommHookInterface> iface) {
+void Reducer::register_comm_hook(std::unique_ptr<c10d::CommHookInterface> iface)
+{
     REDUCER_CHECK(
         comm_hook_ == nullptr,
         logger_,
@@ -1704,7 +1748,8 @@ void Reducer::register_comm_hook(std::unique_ptr<c10d::CommHookInterface> iface)
 }
 
 // See Note [DDP Communication Hook]
-void Reducer::register_builtin_comm_hook(c10d::BuiltinCommHookType comm_hook_type) {
+void Reducer::register_builtin_comm_hook(c10d::BuiltinCommHookType comm_hook_type)
+{
     REDUCER_CHECK(
         comm_hook_ == nullptr,
         logger_,
@@ -1725,7 +1770,8 @@ void Reducer::register_builtin_comm_hook(c10d::BuiltinCommHookType comm_hook_typ
     }
 }
 
-void Reducer::ensure_prior_reduction_finished() {
+void Reducer::ensure_prior_reduction_finished()
+{
     // Check that any prior reduction has finished.
     // The variable `require_finalize_` is true until all gradients
     // have been computed and reduction of all buckets has been kicked off.
@@ -1823,15 +1869,18 @@ void Reducer::ensure_prior_reduction_finished() {
     }
 }
 
-void Reducer::set_ddp_runtime_logging_sample_rate(int sample_rate) {
+void Reducer::set_ddp_runtime_logging_sample_rate(int sample_rate)
+{
     ddp_runtime_logging_sample_rate_ = sample_rate;
 }
 
-int Reducer::get_ddp_runtime_logging_sample_rate() {
+int Reducer::get_ddp_runtime_logging_sample_rate()
+{
     return ddp_runtime_logging_sample_rate_;
 }
 
-bool Reducer::should_collect_runtime_stats() {
+bool Reducer::should_collect_runtime_stats()
+{
     if (num_iterations_ > 0 &&
         (num_iterations_ <= 10 ||
         num_iterations_ % get_ddp_runtime_logging_sample_rate() == 0)) {
@@ -1840,37 +1889,43 @@ bool Reducer::should_collect_runtime_stats() {
     return false;
 }
 
-void Reducer::record_forward_compute_start_time() {
+void Reducer::record_forward_compute_start_time()
+{
     if (timer_) {
         timer_->record(Timer::Event::kForwardStart);
     }
 }
 
-void Reducer::record_backward_compute_start_time() {
+void Reducer::record_backward_compute_start_time()
+{
     if (timer_) {
         timer_->record(Timer::Event::kBackwardComputeStart);
     }
 }
 
-void Reducer::record_backward_compute_end_time() {
+void Reducer::record_backward_compute_end_time()
+{
     if (timer_) {
         timer_->record(Timer::Event::kBackwardComputeEnd);
     }
 }
 
-void Reducer::record_backward_comm_start_time() {
+void Reducer::record_backward_comm_start_time()
+{
     if (timer_) {
         timer_->record(Timer::Event::kBackwardCommStart);
     }
 }
 
-void Reducer::record_backward_comm_end_time() {
+void Reducer::record_backward_comm_end_time()
+{
     if (timer_) {
         timer_->record(Timer::Event::kBackwardCommEnd);
     }
 }
 
-void Reducer::set_static_graph() {
+void Reducer::set_static_graph()
+{
     std::lock_guard<std::mutex> lock(mutex_);
     REDUCER_CHECK(
         num_iterations_ == 0,
@@ -1901,7 +1956,8 @@ struct BucketKey {
     }
 };
 
-inline bool operator==(const BucketKey& lhs, const BucketKey& rhs) {
+inline bool operator==(const BucketKey& lhs, const BucketKey& rhs)
+{
     return lhs.type == rhs.type && lhs.device == rhs.device;
 }
 
@@ -1912,7 +1968,8 @@ std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket
     const std::vector<size_t>& bucket_size_limits,
     const std::vector<bool>& expect_sparse_gradient,
     const std::vector<int64_t>& tensor_indices,
-    const c10::optional<std::weak_ptr<c10d::Logger>>& logger) {
+    const c10::optional<std::weak_ptr<c10d::Logger>>& logger)
+{
     // Either expect_sparse_gradient is not specified or it has as many elements
     // as the vector with tensors.
     TORCH_INTERNAL_ASSERT(expect_sparse_gradient.empty() ||
@@ -2036,7 +2093,8 @@ std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket
 void verify_params_across_processes(
     const c10::intrusive_ptr<c10d::ProcessGroup>& process_group,
     const std::vector<at::Tensor>& params,
-    const c10::optional<std::weak_ptr<c10d::Logger>>& logger) {
+    const c10::optional<std::weak_ptr<c10d::Logger>>& logger)
+{
     size_t i = 0;
     for (const auto& t : params) {
         i += static_cast<size_t>(2 * t.dim());

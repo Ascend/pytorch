@@ -14,14 +14,16 @@ class NpuTimer : public c10d::Timer {
 public:
     explicit NpuTimer(c10::Device dev) : device(dev) {}
 
-    void record(Event event) override {
+    void record(Event event) override
+    {
         // Parent class sets the host-side time
         Timer::record(event);
         c10_npu::NPUGuard g(device);
         getEvent(event).record();
     }
 
-    c10::optional<int64_t> measureDifference(Event start, Event end) override {
+    c10::optional<int64_t> measureDifference(Event start, Event end) override
+    {
         // Currently elapsed_time does not support the return of negative values.
         // So measureDifference is only calculated when the debug level is detail.
         if (debug_level() != DebugLevel::Detail) {
@@ -73,7 +75,8 @@ private:
     c10_npu::NPUEvent backward_comm_start = c10_npu::NPUEvent(ACL_EVENT_TIME_LINE);
     c10_npu::NPUEvent backward_comm_end = c10_npu::NPUEvent(ACL_EVENT_TIME_LINE);
 
-    c10_npu::NPUEvent& getEvent(Event event) {
+    c10_npu::NPUEvent& getEvent(Event event)
+    {
         switch (event) {
             case Event::kForwardStart:
                 return forward_start;
