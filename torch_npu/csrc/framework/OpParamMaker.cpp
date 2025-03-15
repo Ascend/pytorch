@@ -1,17 +1,17 @@
 #include <unistd.h>
-#include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
+#include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/distributed/HCCLUtils.hpp"
+#include "torch_npu/csrc/framework/OpCmdHelper.h"
+#include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
+#include "torch_npu/csrc/framework/interface/HcclInterface.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/framework/OpParamMaker.h"
-#include "torch_npu/csrc/framework/OpCmdHelper.h"
-#include "torch_npu/csrc/framework/interface/HcclInterface.h"
-#include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -19,6 +19,9 @@
 
 namespace at_npu {
 namespace native {
+
+static bool deterministicaclnn_oldstatus = false;
+
 void OpAttrMaker::Set(aclopAttr *attr, const string &name, bool value)
 {
     aclopSetAttrBool(attr, name.c_str(), value);
@@ -100,7 +103,8 @@ inline void SetDeterministicOption(bool deterministicAlgorithmsStatus, bool isOp
 {
     if (deterministicaclnn_oldstatus != deterministicAlgorithmsStatus) {
         if (!isOpapi) {
-            NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicAlgorithmsStatus ? "1" : "0"));
+            NPU_CHECK_ERROR(
+                AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicAlgorithmsStatus ? "1" : "0"));
         }
         NPU_CHECK_ERROR(
             AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministicAlgorithmsStatus ? 1 : 0));
@@ -131,7 +135,7 @@ void OpCommandImpl::Run(
     ASCEND_LOGD("Op %s Run.", opName.c_str());
     RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
 #ifndef BUILD_LIBTORCH
-    if (PyGILState_Check()) {
+    if (PyGILState_Check() != 0) {
         // we need to release GIL for NPU to compile op.
         Py_BEGIN_ALLOW_THREADS;
         ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
@@ -149,7 +153,7 @@ void OpCommandImpl::RunOpApi(const string &op_name, PROC_FUNC func)
     ASCEND_LOGD("Op %s Run.", op_name.c_str());
     RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
 #ifndef BUILD_LIBTORCH
-    if (PyGILState_Check()) {
+    if (PyGILState_Check() != 0) {
         // we need to release GIL for NPU to compile op.
         Py_BEGIN_ALLOW_THREADS;
         ACL_REQUIRE_OK_OP(InnerRunOpApi(op_name, func), op_name.c_str());
@@ -225,7 +229,7 @@ aclError OpCommandImpl::InnerRun(
                 params.attr,
                 ACL_ENGINE_SYS,
                 ACL_COMPILE_SYS,
-                NULL,
+                nullptr,
                 stream);
             OPS_CHECK_ERROR(ret, name.c_str());
         } else {
@@ -241,7 +245,7 @@ aclError OpCommandImpl::InnerRun(
                 params.attr,
                 ACL_ENGINE_SYS,
                 ACL_COMPILE_SYS,
-                NULL,
+                nullptr,
                 stream);
             OPS_CHECK_ERROR(ret, name.c_str());
             for (size_t i = 0; i < sync_index.size(); i++) {
