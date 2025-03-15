@@ -8,6 +8,7 @@ import multiprocessing
 from ._dynamic_profiler_config_context import ConfigContext
 from ._dynamic_profiler_utils import DynamicProfilerUtils
 from ._dynamic_profiler_monitor_shm import DynamicProfilerShareMemory
+from ._dynamic_monitor_proxy import PyDynamicMonitorProxySingleton
 
 
 class DynamicProfilerMonitor:
@@ -109,14 +110,9 @@ class DynamicProfilerMonitor:
 
     def _call_dyno_monitor(self, json_data: dict):
         json_data = {key: str(value) for key, value in json_data.items()}
-        try:
-            from IPCMonitor import PyDynamicMonitorProxy
-        except Exception as e:
-            dynamic_profiler_utils.stdout_log(f"Import IPCMonitro module failed :{e}!",
-                                             dynamic_profiler_utils.LoggerLevelEnum.WARNING)
-            return
-        py = PyDynamicMonitorProxy()
-        py.enable_dyno_npu_monitor(json_data)
+        py_dyno_monitor = PyDynamicMonitorProxySingleton().get_proxy()
+        if py_dyno_monitor:
+            py_dyno_monitor.enable_dyno_npu_monitor(json_data)
 
 
 def worker_func(params_dict):
@@ -189,14 +185,9 @@ def worker_dyno_func(params_dict):
     max_size = params_dict.get("max_size")
     dynamic_profiler_utils = params_dict.get("dynamic_profiler_utils")
 
-    try:
-        from IPCMonitor import PyDynamicMonitorProxy
-    except Exception as e:
-        dynamic_profiler_utils.stdout_log(f"Import IPCMonitor module failed: {e}!",
-                                          dynamic_profiler_utils.LoggerLevelEnum.WARNING)
+    py_dyno_monitor = PyDynamicMonitorProxySingleton().get_proxy()
+    if not py_dyno_monitor:
         return
-
-    py_dyno_monitor = PyDynamicMonitorProxy()
     ret = py_dyno_monitor.init_dyno(rank_id)
     if not ret:
         dynamic_profiler_utils.out_log("Init dynolog failed !", dynamic_profiler_utils.LoggerLevelEnum.WARNING)
