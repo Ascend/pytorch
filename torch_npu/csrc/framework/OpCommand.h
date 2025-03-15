@@ -15,11 +15,11 @@ namespace native {
 
 // get common dtype and shape from op adapter layer
 struct UnifiedResult {
-  c10::optional<at::ScalarType> common_type = c10::nullopt;
-  c10::optional<c10::IntArrayRef> common_shape = c10::nullopt;
-  // judge result tensor's dtype is defined or not.
-  // if result's dtype is defined, result_type_defined is true and result's dtype remains unchanged.
-  bool result_type_defined = false;
+    c10::optional<at::ScalarType> common_type = c10::nullopt;
+    c10::optional<c10::IntArrayRef> common_shape = c10::nullopt;
+    // judge result tensor's dtype is defined or not.
+    // if result's dtype is defined, result_type_defined is true and result's dtype remains unchanged.
+    bool result_type_defined = false;
 };
 
 class TORCH_NPU_API OpCommand {

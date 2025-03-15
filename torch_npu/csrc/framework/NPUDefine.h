@@ -9,13 +9,7 @@ namespace at_npu {
 namespace native {
 
 struct ACL_PARAMS {
-    ACL_PARAMS()
-    {
-        input_desc = nullptr;
-        input_data_buf = nullptr;
-        output_desc = nullptr;
-        output_data_buf = nullptr;
-    }
+    ACL_PARAMS() : input_desc(nullptr), input_data_buf(nullptr), output_desc(nullptr), output_data_buf(nullptr) {}
 
     int input_num{0};
     const aclTensorDesc **input_desc;
@@ -27,19 +21,10 @@ struct ACL_PARAMS {
 
 struct ACL_DYNAMIC_PARAMS {
     ACL_DYNAMIC_PARAMS()
+        : input_desc(nullptr), input_data_buf(nullptr), output_desc(nullptr), output_data_buf(nullptr),
+          inputDims(nullptr), outputDims(nullptr), inputFormats(nullptr), outputFormats(nullptr),
+          compile_input_desc(nullptr), compile_output_desc(nullptr), hasAttr(false)
     {
-        input_desc = nullptr;
-        input_data_buf = nullptr;
-        output_desc = nullptr;
-        output_data_buf = nullptr;
-        inputDims = nullptr;
-        outputDims = nullptr;
-        inputFormats = nullptr;
-        outputFormats = nullptr;
-        compile_input_desc = nullptr;
-        compile_output_desc = nullptr;
-
-        hasAttr = false;
     }
 
     int input_num = 0;
