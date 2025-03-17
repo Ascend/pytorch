@@ -50,7 +50,7 @@ ParallelStoreServer::ParallelStoreServer(std::string initKey, const std::string 
 }
 
 ParallelStoreServer::ParallelStoreServer(const std::string localSocketPath, CallBackFn callback) noexcept
-    : localSocketPath_(std::move(localSocketPath)), callback_(std::move(callback))
+    : localSocketPath_(localSocketPath), callback_(std::move(callback))
 {
     auto threadNum = 1U;
     auto listenThreadNum = 1U;
