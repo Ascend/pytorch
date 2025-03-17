@@ -121,9 +121,9 @@ int64_t FlopCounter::conv_backward_flop(const at::Tensor &grad_output, const at:
     if (output_mask[1]) {
         std::vector<int64_t> grad_weight_shape(gradeWeight.sizes().begin(), gradeWeight.sizes().end());
         if (transposed) {
-            flop_count += conv_flop_count(t(grad_output_shape), t(input_shape), t(grad_weight_shape), transposed=false);
+            flop_count += conv_flop_count(t(grad_output_shape), t(input_shape), t(grad_weight_shape), false);
         } else {
-            flop_count += conv_flop_count(t(input_shape), t(grad_output_shape), t(grad_weight_shape), transposed=false);
+            flop_count += conv_flop_count(t(input_shape), t(grad_output_shape), t(grad_weight_shape), false);
         }
     }
 
@@ -150,30 +150,30 @@ std::vector<std::tuple<std::vector<int64_t>, std::vector<int64_t>, std::vector<i
 
     // for GQA and MQA
     if (input_layer_str == "SBH" || input_layer_str == "BSH" || input_layer_str == "BSND") {
-        if (q_2 != k_2 && q_2!= v_2) {
+        if (q_2 != k_2 && q_2 != v_2) {
             k_2 = q_2;
             v_2 = q_2;
         }
     } else {
-        if (q_1 != k_1 && q_1!= v_1) {
+        if (q_1 != k_1 && q_1 != v_1) {
             k_1 = q_1;
             v_1 = q_1;
         }
     }
 
     if (input_layer_str == "BSH") {
-        std::vector<int64_t> new_query_shape = {query[0], head_num, q_1, q_2/head_num};
-        std::vector<int64_t> new_key_shape = {key[0], head_num, k_1, k_2/head_num};
-        std::vector<int64_t> new_value_shape = {value[0], head_num, v_1, v_2/head_num};
+        std::vector<int64_t> new_query_shape = {query[0], head_num, q_1, q_2 / head_num};
+        std::vector<int64_t> new_key_shape = {key[0], head_num, k_1, k_2 / head_num};
+        std::vector<int64_t> new_value_shape = {value[0], head_num, v_1, v_2 / head_num};
         std::vector<int64_t> new_grad_out_shape;
         if (!grad_out.empty()) {
             new_grad_out_shape = new_query_shape;
         }
         result.emplace_back(new_query_shape, new_key_shape, new_value_shape, new_grad_out_shape);
     } else if (input_layer_str == "SBH") {
-        std::vector<int64_t> new_query_shape = {q_1, head_num, query[0], q_2/head_num};
-        std::vector<int64_t> new_key_shape = {k_1, head_num, key[0], k_2/head_num};
-        std::vector<int64_t> new_value_shape = {v_1, head_num, value[0], v_2/head_num};
+        std::vector<int64_t> new_query_shape = {q_1, head_num, query[0], q_2 / head_num};
+        std::vector<int64_t> new_key_shape = {k_1, head_num, key[0], k_2 / head_num};
+        std::vector<int64_t> new_value_shape = {v_1, head_num, value[0], v_2 / head_num};
         std::vector<int64_t> new_grad_out_shape;
         if (!grad_out.empty()) {
             new_grad_out_shape = new_query_shape;
@@ -203,9 +203,9 @@ std::vector<std::tuple<std::vector<int64_t>, std::vector<int64_t>, std::vector<i
         TORCH_CHECK(sizeValue <= static_cast<size_t>(std::numeric_limits<int64_t>::max()), "cum_seq_q.size() is too large to be represented as an int64_t", OPS_ERROR(ErrCode::PARAM));
         int64_t b = static_cast<int64_t>(sizeValue);
         TORCH_CHECK(b != 0, "Divisor b may be 0, please check it.")
-        std::vector<int64_t> new_query_shape = {b, q_1, query[0]/b, q_2};
-        std::vector<int64_t> new_key_shape = {b, k_1, key[0]/b, k_2};
-        std::vector<int64_t> new_value_shape = {b, v_1, value[0]/b, v_2};
+        std::vector<int64_t> new_query_shape = {b, q_1, query[0] / b, q_2};
+        std::vector<int64_t> new_key_shape = {b, k_1, key[0] / b, k_2};
+        std::vector<int64_t> new_value_shape = {b, v_1, value[0] / b, v_2};
         std::vector<int64_t> new_grad_out_shape;
         if (!grad_out.empty()) {
             new_grad_out_shape = new_query_shape;
@@ -241,9 +241,18 @@ inline int64_t safe_sum(const std::initializer_list<int64_t>& values)
 
 int64_t sdpa_flop_count(const std::vector<int64_t> query_shape, const std::vector<int64_t> key_shape, const std::vector<int64_t> value_shape)
 {
-    int64_t b, h, s_q, d_q;
-    int64_t _b2, _h2, s_k, _d2;
-    int64_t _b3, _h3, _s3, d_v;
+    int64_t b;
+    int64_t h;
+    int64_t s_q;
+    int64_t d_q;
+    int64_t _b2;
+    int64_t _h2;
+    int64_t s_k;
+    int64_t _d2;
+    int64_t _b3;
+    int64_t _h3;
+    int64_t _s3;
+    int64_t d_v;
 
     b = query_shape[0];
     h = query_shape[1];
@@ -275,10 +284,22 @@ int64_t sdpa_flop_count(const std::vector<int64_t> query_shape, const std::vecto
 
 int64_t sdpa_backward_flop_count(const std::vector<int64_t> query_shape, const std::vector<int64_t> key_shape, const std::vector<int64_t> value_shape, const std::vector<int64_t> grad_out_shape)
 {
-    int64_t b, h, s_q, d_q;
-    int64_t _b2, _h2, s_k, _d2;
-    int64_t _b3, _h3, _s3, d_v;
-    int64_t _b4, _h4, _s4, d_4;
+    int64_t b;
+    int64_t h;
+    int64_t s_q;
+    int64_t d_q;
+    int64_t _b2;
+    int64_t _h2;
+    int64_t s_k;
+    int64_t _d2;
+    int64_t _b3;
+    int64_t _h3;
+    int64_t _s3;
+    int64_t d_v;
+    int64_t _b4;
+    int64_t _h4;
+    int64_t _s4;
+    int64_t d_4;
 
     b = query_shape[0];
     h = query_shape[1];
