@@ -105,7 +105,7 @@ public:
 
     ~ProcessGroupLCCL() override;
 
-    const std::string getBackendName() const
+    const std::string getBackendName() const override
     {
         return LCCL_BACKEND_NAME;
     }
