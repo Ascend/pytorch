@@ -3,8 +3,8 @@ import pickle
 from typing import Any, Optional
 
 import torch
-from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile,\
-    _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler,\
+from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile, \
+    _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler, \
     _legacy_load, _load, FileLike, MAP_LOCATION, DEFAULT_PROTOCOL
 
 import torch_npu
