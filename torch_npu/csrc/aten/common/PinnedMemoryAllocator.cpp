@@ -1,6 +1,5 @@
 #include <stdexcept>
 #include <ATen/Context.h>
-#include <ATen/Config.h>
 #include <ATen/TensorUtils.h>
 #include <c10/core/Storage.h>
 #include <ATen/ATen.h>
@@ -26,7 +25,6 @@ bool NPUNativeFunctions::is_pinned(const at::Tensor& self, c10::optional<at::Dev
 
 at::Tensor NPUNativeFunctions::_pin_memory(const at::Tensor& self, c10::optional<at::Device> device)
 {
-    // TORCH_INTERNAL_ASSERT_DEBUG_ONLY(!device.has_value() || device->is_npu());
     auto allocator = getPinnedMemoryAllocator();
     auto storage = c10::Storage(
         c10::Storage::use_byte_size_t(),
