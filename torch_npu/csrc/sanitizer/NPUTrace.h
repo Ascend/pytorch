@@ -15,8 +15,9 @@ struct NPUTrace {
     static void setTrace(const PyCallbackTrigger*);
     static const PyCallbackTrigger* getTrace()
     {
-        if (!have_state)
+        if (!have_state) {
             return nullptr;
+        }
         return npu_trace_state.load(std::memory_order_acquire);
     }
 };
