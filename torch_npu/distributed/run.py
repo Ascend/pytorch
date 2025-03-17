@@ -1,3 +1,5 @@
+__all__ = ["parse_args"]
+
 from typing import List
 import json
 import time
@@ -17,8 +19,6 @@ from torch.distributed.elastic.agent.server.api import (
 from torch.distributed.elastic.utils.store import timedelta
 from torch.distributed.elastic.multiprocessing.api import SignalException
 import torch_npu
-
-__all__ = ["parse_args"]
 
 
 def parse_args(args):

@@ -1,3 +1,5 @@
+__all__ = ["is_hccl_available", "reinit_process_group"]
+
 from datetime import timedelta
 from typing import Optional
 import warnings
@@ -11,8 +13,6 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     get_backend, GatherOptions, _update_default_pg, _world, _pg_map, ProcessGroup, default_pg_timeout, ReduceScatterOptions
 
 from torch_npu.utils._error_code import ErrCode, dist_error
-
-__all__ = ["is_hccl_available", "reinit_process_group"]
 
 
 def _batch_isend_irecv(p2p_op_list):
