@@ -9,11 +9,11 @@
 #include <ATen/native/Copy.h>
 #include <ATen/native/Resize.h>
 #include <ATen/quantized/QTensorImpl.h>
-#include "torch_npu/csrc/core/npu/NPUException.h"
 #include <c10/util/Optional.h>
 #include <algorithm>
 #include <vector>
 
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"

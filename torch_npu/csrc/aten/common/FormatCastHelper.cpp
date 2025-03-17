@@ -1,9 +1,9 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
-#include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 
 namespace at_npu {
 namespace native {

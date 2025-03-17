@@ -20,9 +20,6 @@ at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor&
     AT_ASSERT(
         src.dtype() == self.dtype(),
         "input tensors of copy_memory_ should have same dtype", OPS_ERROR(ErrCode::PARAM));
-    // AT_ASSERT(
-    //     src.is_contiguous() && self.is_contiguous(),
-    //     "input tensors of copy_memory_ should be contiguous");
     AT_ASSERT(
         src.device().index() == self.device().index(),
         "input tensors of copy_memory_ should have same device index", OPS_ERROR(ErrCode::PARAM));

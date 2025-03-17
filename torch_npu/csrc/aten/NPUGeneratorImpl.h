@@ -4,7 +4,6 @@
 #include <ATen/core/Generator.h>
 #include <ATen/Tensor.h>
 #include <ATen/Context.h>
-#include <limits>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 
