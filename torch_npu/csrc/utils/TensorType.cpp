@@ -10,45 +10,49 @@ namespace utils {
 using namespace at;
 using namespace torch::autograd;
 
-std::vector<std::pair<Backend, ScalarType>> all_declared_types_npu() {
-  std::vector<std::pair<Backend, ScalarType>> ret;
-  // can't easily iterate over enum classes, does not support BFloat16 now
-  std::vector<Backend> backends = { c10::Backend::PrivateUse1 };
-  std::vector<ScalarType> scalar_types = {
-    ScalarType::Byte, ScalarType::Char, ScalarType::Double, ScalarType::Float,
-    ScalarType::Int, ScalarType::Long, ScalarType::Short, ScalarType::Half,
-    ScalarType::Bool, ScalarType::BFloat16
-  };
+std::vector<std::pair<Backend, ScalarType>> all_declared_types_npu()
+{
+    std::vector<std::pair<Backend, ScalarType>> ret;
+    // can't easily iterate over enum classes, does not support BFloat16 now
+    std::vector<Backend> backends = { c10::Backend::PrivateUse1 };
+    std::vector<ScalarType> scalar_types = {
+        ScalarType::Byte, ScalarType::Char, ScalarType::Double, ScalarType::Float,
+        ScalarType::Int, ScalarType::Long, ScalarType::Short, ScalarType::Half,
+        ScalarType::Bool, ScalarType::BFloat16
+    };
 
-  for (auto& backend : backends) {
-    for (auto& scalar_type : scalar_types) {
-      ret.emplace_back(std::make_pair(backend, scalar_type));
+    for (auto& backend : backends) {
+        for (auto& scalar_type : scalar_types) {
+            ret.emplace_back(std::make_pair(backend, scalar_type));
+        }
     }
-  }
 
-  return ret;
+    return ret;
 }
 
 struct PyTensorType {
-  PyTypeObject py_type;
-  THPDtype* dtype;
-  THPLayout* layout;
-  bool is_npu;
-  char name[64];
-  int backend;
-  int scalar_type;
+    PyTypeObject py_type;
+    THPDtype* dtype;
+    THPLayout* layout;
+    bool is_npu;
+    char name[64];
+    int backend;
+    int scalar_type;
 
-  Backend get_backend() const {
-    return static_cast<Backend>(backend);
-  }
+    Backend get_backend() const
+    {
+        return static_cast<Backend>(backend);
+    }
 
-  DispatchKey get_dispatch_key() const {
-    return backendToDispatchKey(static_cast<Backend>(backend));
-  }
+    DispatchKey get_dispatch_key() const
+    {
+        return backendToDispatchKey(static_cast<Backend>(backend));
+    }
 
-  ScalarType get_scalar_type() const {
-    return static_cast<ScalarType>(scalar_type);
-  }
+    ScalarType get_scalar_type() const
+    {
+        return static_cast<ScalarType>(scalar_type);
+    }
 };
 
 static_assert(std::is_standard_layout<PyTensorType>::value, "PyTensorType must be standard layout");
@@ -78,7 +82,8 @@ static PyObject* Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwargs
     END_HANDLE_TH_ERRORS
 }
 
-static PyObject* Tensor_instancecheck(PyObject* _self, PyObject* arg) {
+static PyObject* Tensor_instancecheck(PyObject* _self, PyObject* arg)
+{
   HANDLE_TH_ERRORS
   auto self = (PyTensorType*)_self;
   if (THPVariable_Check(arg)) {
@@ -93,15 +98,18 @@ static PyObject* Tensor_instancecheck(PyObject* _self, PyObject* arg) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* Tensor_dtype(PyTensorType* self, void *unused) {
+PyObject* Tensor_dtype(PyTensorType* self, void *unused)
+{
   return torch::autograd::utils::wrap(self->dtype);
 }
 
-PyObject* Tensor_layout(PyTensorType* self, void *unused) {
+PyObject* Tensor_layout(PyTensorType* self, void *unused)
+{
   return torch::autograd::utils::wrap(self->layout);
 }
 
-PyObject* Tensor_is_npu(PyTensorType* self, void *unused) {
+PyObject* Tensor_is_npu(PyTensorType* self, void *unused)
+{
   if (self->is_npu) {
     Py_RETURN_TRUE;
   } else {
@@ -109,7 +117,8 @@ PyObject* Tensor_is_npu(PyTensorType* self, void *unused) {
   }
 }
 
-PyObject* Tensor_is_sparse(PyTensorType *self, void *unused) {
+PyObject* Tensor_is_sparse(PyTensorType *self, void *unused)
+{
   if (self->layout->layout == at::Layout::Strided) {
     Py_RETURN_FALSE;
   } else {
@@ -138,7 +147,8 @@ static PyTypeObject metaclass = {
   sizeof(PyTypeObject)                         /* tp_basicsize */
 };
 
-static void py_initialize_metaclass(PyTypeObject& metaclass) {
+static void py_initialize_metaclass(PyTypeObject& metaclass)
+{
   metaclass.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
   metaclass.tp_methods = metaclass_methods;
   metaclass.tp_getset = metaclass_properties;
@@ -154,7 +164,8 @@ static PyTypeObject tensor_type_prototype = {
   sizeof(PyTensorType)                         /* tp_basicsize */
 };
 
-static void py_initialize_tensor_type(PyTypeObject& type, const char* name, PyObject* tp_dict) {
+static void py_initialize_tensor_type(PyTypeObject& type, const char* name, PyObject* tp_dict)
+{
   // NOTE: we don't use the typical static declaration of PyTypeObject because
   // we need to initialize as many types as there are VariableType instances.
   // We copy the basic object fields from a prototype definition and initialize
@@ -173,7 +184,8 @@ static void py_initialize_tensor_type(PyTypeObject& type, const char* name, PyOb
   }
 }
 
-static std::string get_module(Backend backend) {
+static std::string get_module(Backend backend)
+{
     switch (backend) {
         case Backend::CPU:
             return "torch";
@@ -190,13 +202,15 @@ static std::string get_module(Backend backend) {
     }
 }
 
-static std::string get_name(Backend backend, ScalarType scalarType) {
+static std::string get_name(Backend backend, ScalarType scalarType)
+{
   std::ostringstream ss;
   ss << get_module(backend) << "." << toString(scalarType) << "Tensor";
   return ss.str();
 }
 
-static void set_type(PyTensorType& type_obj, Backend backend, ScalarType scalarType) {
+static void set_type(PyTensorType& type_obj, Backend backend, ScalarType scalarType)
+{
   // This field is lazily initialized from backend and scalar_type
   type_obj.backend = static_cast<int>(backend);
   type_obj.scalar_type = static_cast<int>(scalarType);
@@ -205,13 +219,15 @@ static void set_type(PyTensorType& type_obj, Backend backend, ScalarType scalarT
   type_obj.is_npu = (backend == c10::Backend::PrivateUse1);
 }
 
-static void set_name(PyTensorType& type_obj, const std::string& name) {
+static void set_name(PyTensorType& type_obj, const std::string& name)
+{
   size_t n = sizeof(type_obj.name);
   strncpy(type_obj.name, name.c_str(), n);
   type_obj.name[n - 1] = '\0';
 }
 
-static THPObjectPtr get_tensor_dict() {
+static THPObjectPtr get_tensor_dict()
+{
   auto torch = THPObjectPtr(PyImport_ImportModule("torch"));
   if (!torch) {
       throw python_error();
@@ -242,7 +258,8 @@ static THPObjectPtr get_tensor_dict() {
 
 static std::vector<PyTensorType> tensor_types;
 
-static void initialize_npu_aten_types(std::vector<PyTensorType>& tensor_types) {
+static void initialize_npu_aten_types(std::vector<PyTensorType>& tensor_types)
+{
   // only initialize npu types
   auto declared_types = all_declared_types_npu();
   tensor_types.resize(declared_types.size());
@@ -256,7 +273,8 @@ static void initialize_npu_aten_types(std::vector<PyTensorType>& tensor_types) {
   }
 }
 
-void _initialize_python_bindings() {
+void _initialize_python_bindings()
+{
   // Initialize the at::Type* pointers, name, and properties of the PyTensorType
   // vector. After this call, the vector must not be resized.
   initialize_npu_aten_types(tensor_types);
@@ -282,12 +300,17 @@ void _initialize_python_bindings() {
   py_bind_tensor_types(tensor_types);
 }
 
-static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types) {
+static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types)
+{
     auto torch_module = THPObjectPtr(PyImport_ImportModule("torch"));
-    if (!torch_module) throw python_error();
+    if (!torch_module) {
+        throw python_error();
+    }
 
     auto tensor_classes = THPObjectPtr(PyObject_GetAttrString(torch_module.get(), "_tensor_classes"));
-    if (!tensor_classes) throw python_error();
+    if (!tensor_classes) {
+        throw python_error();
+    }
 
     for (auto& tensor_type : tensor_types) {
         auto name = std::string(tensor_type.name);
@@ -296,7 +319,9 @@ static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types) 
         auto module_name = name.substr(0, idx);
 
         auto module_obj = THPObjectPtr(PyImport_ImportModule(module_name.c_str()));
-        if (!module_obj) throw python_error();
+        if (!module_obj) {
+            throw python_error();
+        }
 
         PyObject* type_obj = (PyObject*)&tensor_type;
         Py_INCREF(type_obj);
@@ -310,7 +335,8 @@ static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types) 
 }
 
 // Callback for python part. Used for additional initialization of python classes
-static PyObject* THPModule_initExtension(PyObject *_unused, PyObject *noargs) {
+static PyObject* THPModule_initExtension(PyObject *_unused, PyObject *noargs)
+{
   HANDLE_TH_ERRORS
   _initialize_python_bindings();
   Py_RETURN_NONE;
@@ -323,7 +349,8 @@ static PyMethodDef TorchNpuExtensionMethods[] = {
     {nullptr, nullptr, 0, nullptr}
 };
 
-PyMethodDef* npu_extension_functions() {
+PyMethodDef* npu_extension_functions()
+{
   return TorchNpuExtensionMethods;
 }
 }
