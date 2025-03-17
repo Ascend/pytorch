@@ -5,8 +5,8 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
 namespace at_npu {
 namespace detail {
@@ -103,8 +103,8 @@ at::Generator createNPUGenerator(c10::DeviceIndex device_index)
  * NPUGeneratorImpl class implementation
  */
 NPUGeneratorImpl::NPUGeneratorImpl(c10::DeviceIndex device_index)
-  : c10::GeneratorImpl{c10::Device(c10::DeviceType::PrivateUse1, device_index),
-              c10::DispatchKeySet(c10::DispatchKey::PrivateUse1)}
+    : c10::GeneratorImpl{c10::Device(c10::DeviceType::PrivateUse1, device_index),
+        c10::DispatchKeySet(c10::DispatchKey::PrivateUse1)}
 {
     c10_npu::assertNotCapturing("Not support Generator while in capture mode");
 }
@@ -310,30 +310,6 @@ PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment)
     c10_npu::assertNotCapturing("Not support Generator while in capture mode");
     // rounds increment up to the nearest multiple of 4
     increment = ((increment + 3) / 4) * 4;
-    /*
-    if (at::npu::currentStreamCaptureStatus() != at::npu::CaptureStatus::None) {
-        TORCH_CHECK(graph_expects_this_gen_,
-                    "philox_npu_state for an unexpected NPU generator used during capture. "
-                    CAPTURE_DEFAULT_GENS_MSG);
-        // see Note [Why enforce RNG offset % 4 == 0?]
-        TORCH_INTERNAL_ASSERT(this->offset_intragraph_ % 4 == 0);
-        uint32_t offset = this->offset_intragraph_;
-        TORCH_INTERNAL_ASSERT(this->offset_intragraph_ <=
-                              std::numeric_limits<uint32_t>::max() - increment);
-        this->offset_intragraph_ += increment;
-        return PhiloxNpuState(this->seed_,
-                               this->offset_extragraph_,
-                               offset);
-    } else {
-        TORCH_CHECK(!graph_expects_this_gen_,
-                    "NPU generator expects graph capture to be underway, "
-                    "but the current stream is not capturing.");
-        // see Note [Why enforce RNG offset % 4 == 0?]
-        TORCH_INTERNAL_ASSERT(this->philox_offset_per_thread_ % 4 == 0);
-        uint64_t offset = this->philox_offset_per_thread_;
-        this->philox_offset_per_thread_ += increment;
-        return PhiloxNpuState(this->seed_, offset);
-    } */
 
     return PhiloxNpuState(this->seed_, 0);
 }

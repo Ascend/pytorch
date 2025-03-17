@@ -1,6 +1,6 @@
-#include "NPUMemoryOverlap.h"
-#include "torch_npu/csrc/core/npu/NPUException.h"
 #include <c10/core/Layout.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
+#include "NPUMemoryOverlap.h"
 
 namespace at_npu {
 namespace native {

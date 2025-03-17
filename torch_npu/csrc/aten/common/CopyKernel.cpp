@@ -114,9 +114,8 @@ void copy_between_host_and_device(
             C10_NPU_SHOW_ERR_MSG();
             if (c10_npu::option::OptionsManager::IsResumeModeEnable()) {
                 TORCH_NPU_WARN("ACL stream synchronize failed, error code:", error,
-                               ". But in checkpoint-resume mode will not throw exceptions.");
-            }
-            else {
+                    ". But in checkpoint-resume mode will not throw exceptions.");
+            } else {
                 AT_ERROR("ACL stream synchronize failed, error code:", error);
             }
         }
