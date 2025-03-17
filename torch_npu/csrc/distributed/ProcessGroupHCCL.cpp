@@ -53,7 +53,7 @@ using hcclUs = std::chrono::steady_clock::time_point;
 #define DURATION_US(x) (std::chrono::duration_cast<std::chrono::microseconds>(x))
 #define TIME_NOW() ({ std::chrono::steady_clock::now(); })
 
-#define MAX_GROUP_NAME_LEN 128
+constexpr int32_t MAX_GROUP_NAME_LEN = 128;
 
 // HCCL ReduceOp mapping
 std::map<c10d::ReduceOp, HcclReduceOp> hcclOp = {
@@ -1325,7 +1325,7 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
 {
     std::ofstream outfile;
     std::stringstream fileName;
-    std::string commName = getHcclCommNameWithoutInit(currRank, hcclComms);
+    std::string commName = getHcclCommNameWithoutInit(hcclComms);
     auto master_addr = getenv("MASTER_ADDR");
     auto hccl_algo = getenv("HCCL_ALGO");
     TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.", DIST_ERROR(ErrCode::NOT_FOUND));
@@ -1439,7 +1439,7 @@ bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool e
 void ProcessGroupHCCL::recordComm(std::string filename, std::string opName, const int currRank, std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
 {
     std::ofstream outfile;
-    std::string commName = getHcclCommNameWithoutInit(currRank, hcclComms);
+    std::string commName = getHcclCommNameWithoutInit(hcclComms);
     if (isFileExists(filename)) {
         try {
             outfile.open(filename, std::ios::app);
@@ -1540,7 +1540,7 @@ void ProcessGroupHCCL::createHCCLComm(
             default:
                 throw std::runtime_error(
                     "create/get the HCCL Communicator failed for comm type:" +
-                    std::to_string((int)commType) + DIST_ERROR(ErrCode::PARAM));
+                    std::to_string(static_cast<int>(commType)) + DIST_ERROR(ErrCode::PARAM));
         }
 
         // Creates the HCCL streams
@@ -1747,7 +1747,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
 
 int64_t ProcessGroupHCCL::getStreamId(bool p2p, int peer)
 {
-    int device;
+    int device = -1;
     NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     std::vector<at::Device> devices = {at::Device(c10::DeviceType::PrivateUse1, device)};
     auto key = getKeyFromDevices(devices);
@@ -2130,7 +2130,7 @@ std::string ProcessGroupHCCL::getHcclCommName(int rankid, bool init_comm)
     return std::string(commName);
 }
 
-std::string ProcessGroupHCCL::getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
+std::string ProcessGroupHCCL::getHcclCommNameWithoutInit(std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
 {
     TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
         hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
@@ -2380,7 +2380,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
             }
             char* global_rank = getenv("RANK");
             TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.", DIST_ERROR(ErrCode::NOT_FOUND));
-            recordDataVol(opTypeToString(opType), std::to_string(dataVol), atoi(global_rank), hcclComms);
+            recordDataVol(opTypeToString(opType), std::to_string(dataVol), strtol(global_rank, nullptr, 10), hcclComms);
         }
         if (op_id_ >= nslb_num) {
             nslb_is_end = true;
@@ -2542,7 +2542,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
             }
             char* global_rank = getenv("RANK");
             TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.", DIST_ERROR(ErrCode::NOT_FOUND));
-            recordDataVol(opTypeToString(opType), std::to_string(dataVol), atoi(global_rank), hcclComms);
+            recordDataVol(opTypeToString(opType), std::to_string(dataVol), strtol(global_rank, nullptr, 10), hcclComms);
         }
         if (op_id_ >= nslb_num) {
             nslb_is_end = true;
@@ -2658,7 +2658,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
 {
     c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
     const auto devices = getDeviceList(tensors);
-    int p2pRank = 0, p2pTargetRank = 0;
+    int p2pRank = 0;
+    int p2pTargetRank = 0;
     bool isSendRecvSelf = false;
 
     std::string key;
@@ -2722,7 +2723,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
             char* global_rank = getenv("RANK");
             TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.",
                         DIST_ERROR(ErrCode::NOT_FOUND));
-            recordDataVol(opTypeToString(opType), std::to_string(dataVol), atoi(global_rank), hcclComms);
+            recordDataVol(opTypeToString(opType), std::to_string(dataVol), strtol(global_rank, nullptr, 10), hcclComms);
         }
         if (op_id_ >= nslb_num) {
             nslb_is_end = true;
@@ -3205,7 +3206,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
         c10d::OpType::REDUCE);
 }
 
-#define ADDRESS_ALIGNMENT_BYTE 512
+constexpr int64_t ADDRESS_ALIGNMENT_BYTE = 512;
 at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors)
 {
     at::Tensor inter_tensors = at::reshape(tensors, {1, tensors.numel()});
@@ -3227,7 +3228,7 @@ at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors)
 
         inter_tensors = op_plugin::constant_pad_nd(inter_tensors, {0, num_add}, 0);
 
-        if (transflag == true) {
+        if (transflag) {
             inter_tensors = at_npu::native::custom_ops::npu_dtype_cast(inter_tensors, at::ScalarType::Bool);
         }
     }
