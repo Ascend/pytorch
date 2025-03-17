@@ -1,3 +1,5 @@
+__all__ = ["NPUTensorPipeRpcBackendOptions"]
+
 from typing import Dict, List, Optional, Union
 
 import torch
@@ -8,9 +10,6 @@ import torch.distributed.rpc.constants as rpc_constants
 from torch_npu.utils._error_code import ErrCode, dist_error
 
 DeviceType = Union[int, str, torch.device]
-
-
-__all__ = ["NPUTensorPipeRpcBackendOptions"]
 
 
 def _to_device(device: DeviceType) -> torch.device:
