@@ -21,7 +21,7 @@ public:
     static UnifiedResult reduce_op_check(at::Tensor &out1, at::Tensor &out2, const at::Tensor &a);
     // From CalcuOpUtil part
     static aclDataType convert_to_acl_data_type(const at::ScalarType &data_type);
-    static aclDataType convert_to_acl_data_type(const at::ScalarType &data_type, const string &realDataType);
+    static aclDataType convert_to_acl_data_type(const at::ScalarType &data_type, const std::string &realDataType);
     static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type);
     static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type,
                                             const c10::Device device);
@@ -83,8 +83,8 @@ public:
     static at::Tensor apply_tensor_without_format(const at::Tensor &src);
     static at::Tensor apply_tensor_without_format(const at::Tensor &src, c10::IntArrayRef sizes);
     static at::Tensor apply_tensor_without_format(c10::IntArrayRef sizes, const c10::TensorOptions &options);
-    static at::Tensor unsafe_empty_workspace(uint64_t size);
-    static at::Tensor unsafe_empty_workspace(uint64_t size, aclrtStream stream);
+    static at::Tensor unsafe_empty_workspace(uint64_t workspace_size);
+    static at::Tensor unsafe_empty_workspace(uint64_t workspace_size, aclrtStream stream);
     // DEPRECATED: ApplyTensorWithSizes will be deprecated, please use apply_tensor_with_sizes instead.
     static at::Tensor ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options);
     // DEPRECATED: CheckMemory will be deprecated, please use check_memory instead.
