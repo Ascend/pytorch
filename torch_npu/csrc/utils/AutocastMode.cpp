@@ -68,7 +68,7 @@ static PyMethodDef methods[] = { // NOLINT
 
 PyMethodDef* autocast_mode_functions()
 {
-  return methods;
+    return methods;
 }
 
 }

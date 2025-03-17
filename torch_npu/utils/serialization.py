@@ -5,9 +5,9 @@ import threading
 from typing import Any, Optional
 
 import torch
-from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile,\
-    _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler,\
-    _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL,\
+from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile, \
+    _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler, \
+    _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL, \
     normalize_storage_type, location_tag, _open_zipfile_writer
 
 import torch_npu
