@@ -1,14 +1,14 @@
 #include <ATen/record_function.h>
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
-#include "torch_npu/csrc/framework/FormatHelper.h"
-#include "torch_npu/csrc/framework/InferFormat.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
-#include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/framework/InferFormat.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/utils.h"
 #endif
@@ -97,7 +97,7 @@ aclDataType OpPreparation::convert_to_acl_data_type(const at::ScalarType &data_t
     return CalcuOpUtil::ConvertToAclDataType(data_type);
 }
 
-aclDataType OpPreparation::convert_to_acl_data_type(const at::ScalarType &data_type, const string &realDataType)
+aclDataType OpPreparation::convert_to_acl_data_type(const at::ScalarType &data_type, const std::string &realDataType)
 {
     return CalcuOpUtil::ConvertToAclDataType(data_type, realDataType);
 }
@@ -272,10 +272,10 @@ at::Tensor OpPreparation::apply_tensor_with_format(c10::IntArrayRef sizes,
                 "Expected all tensors to be on the same device. "
                 "Expected NPU tensor, please check whether the input tensor device is correct.",
                 OPS_ERROR(ErrCode::TYPE));
-    auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
-    if (options.dtype_opt() == at::ScalarType::Double && !FormatHelper::IsBaseFormatType((aclFormat)format)) {
+    auto fixFormat = InferFormat::GuessStorageFormat(sizes, static_cast<aclFormat>(format));
+    if (options.dtype_opt() == at::ScalarType::Double && !FormatHelper::IsBaseFormatType(static_cast<aclFormat>(format))) {
         ASCEND_LOGW("NPU don't support create double dtype tensor with inner format, repalce with base format.");
-        fixFormat = FormatHelper::GetBaseFormat((aclFormat)format);
+        fixFormat = FormatHelper::GetBaseFormat(static_cast<aclFormat>(format));
     }
     return NPUNativeFunctions::unsafe_empty_with_format(sizes,
                                                         optTypeMetaToScalarType(options.dtype_opt()),
@@ -335,8 +335,8 @@ void OpPreparation::CheckOut(const std::initializer_list<at::Tensor> &input,
 
     bool is_read_write = false;
     // check if output is also an input
-    for (const auto &input : inputs) {
-        if (output.is_same(input)) {
+    for (const auto &local_input : inputs) {
+        if (output.is_same(local_input)) {
             is_read_write = true;
             break;
         }
@@ -473,7 +473,7 @@ at::Tensor OpPreparation::ApplyTensorWithFormat(c10::IntArrayRef sizes,
                 "Expected all tensors to be on the same device. "
                 "Expected NPU tensor, please check whether the input tensor device is correct.",
                 OPS_ERROR(ErrCode::TYPE));
-    auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
+    auto fixFormat = InferFormat::GuessStorageFormat(sizes, static_cast<aclFormat>(format));
     return NPUNativeFunctions::unsafe_empty_with_format(sizes,
                                                         optTypeMetaToScalarType(options.dtype_opt()),
                                                         options.layout_opt(),

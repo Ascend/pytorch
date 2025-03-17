@@ -1,8 +1,8 @@
 #ifndef __PLUGIN_NATIVE_UTILS_JITCOMPILELIST__
 #define __PLUGIN_NATIVE_UTILS_JITCOMPILELIST__
 
-#include <string>
 #include <set>
+#include <string>
 
 using std::string;
 using std::vector;
@@ -13,7 +13,7 @@ namespace native {
 class ForceJitCompileList {
 public:
     static ForceJitCompileList &GetInstance();
-    void RegisterJitlist(const std::string &blacklist);
+    void RegisterJitlist(const std::string &jitlist);
     bool Inlist(const std::string &opName) const;
     void DisplayJitlist() const;
     ~ForceJitCompileList() = default;
