@@ -1,25 +1,24 @@
 #include <ATen/record_function.h>
 
+#include "third_party/acl/inc/acl/acl_base.h"
+#include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/aten/mirror/NPUMemoryOverlap.h"
-#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/core/npu/NpuVariables.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "third_party/acl/inc/acl/acl_base.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
-#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 namespace {
 constexpr float EPSILON = 1e-6;
@@ -84,7 +83,7 @@ constexpr aclDataType kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(at:
 AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(ENUM_PAIR_FUNC)
 #undef DEFINE_ENUM
 
-static std::map<const string, const aclDataType> STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
+static std::map<const std::string, const aclDataType> STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
     {"uint16", ACL_UINT16}, {"uint8", ACL_UINT8}, {"uint64", ACL_UINT64}, {"string", ACL_STRING}};
 
 aclError AclrtMemcpyAsyncParamCheck(void *dst, size_t destMax, const void *src, size_t count, aclrtMemcpyKind kind,
@@ -111,7 +110,7 @@ aclDataType CalcuOpUtil::ConvertToAclDataType(const at::ScalarType &data_type)
     return acl_dtype;
 }
 
-aclDataType CalcuOpUtil::ConvertToAclDataType(const at::ScalarType &data_type, const string &realDataType)
+aclDataType CalcuOpUtil::ConvertToAclDataType(const at::ScalarType &data_type, const std::string &realDataType)
 {
     auto acl_dtype = kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(data_type)];
     TORCH_CHECK(acl_dtype != ACL_DT_UNDEFINED, std::string(c10::toString(data_type)) + " has not been supported",
@@ -238,8 +237,9 @@ int64_t CalcuOpUtil::GetTensorNpuFormat(const at::Tensor &tensor)
 void CalcuOpUtil::CheckMemoryOverLaps(c10::ArrayRef<at::Tensor> inputs, c10::ArrayRef<at::Tensor> outputs)
 {
     for (const auto i : c10::irange(outputs.size())) {
-        if (!outputs[i].defined())
+        if (!outputs[i].defined()) {
             continue;
+        }
 
         assert_no_internal_overlap(outputs[i]);
 
@@ -260,7 +260,7 @@ float CalcuOpUtil::GetScalarFloatValue(const c10::Scalar &scalar)
     if (scalar.isFloatingPoint()) {
         value = scalar.toFloat();
     } else {
-        value = (float)scalar.toInt();
+        value = static_cast<float>(scalar.toInt());
     }
 
     return value;
@@ -289,7 +289,7 @@ static std::unordered_map<uint8_t, aclCubeMathType> ACL_CUBE_MATH_TYPE_MAP = {
 int8_t CalcuOpUtil::GetCubeMathType(bool allowHf32)
 {
     bool allowFp32ToFp16 = native::env::IsAllowFP32ToFP16();
-    uint8_t CubeMathTypeCode = ((uint8_t)allowHf32 << 1) + (uint8_t)allowFp32ToFp16;
+    uint8_t CubeMathTypeCode = (static_cast<uint8_t>(allowHf32) << 1) + static_cast<uint8_t>(allowFp32ToFp16);
     auto iter = ACL_CUBE_MATH_TYPE_MAP.find(CubeMathTypeCode);
     if (iter == ACL_CUBE_MATH_TYPE_MAP.end()) {
         return ALLOW_FP32_DOWN_PRECISION;

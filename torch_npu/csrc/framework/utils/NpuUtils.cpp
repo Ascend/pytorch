@@ -1,22 +1,19 @@
 #include <mutex>
 #include <set>
 
-#include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
-#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/CustomFunctions.h"
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 #endif
