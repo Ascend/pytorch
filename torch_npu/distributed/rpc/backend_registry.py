@@ -1,3 +1,5 @@
+__all__ = []
+
 import torch
 import torch.distributed as dist
 import torch.distributed.rpc as rpc
@@ -8,8 +10,6 @@ from torch.distributed.rpc import constants as rpc_constants
 
 import torch_npu._C
 from torch_npu.utils._error_code import ErrCode, dist_error
-
-__all__ = []
 
 
 def _get_device_count_info():

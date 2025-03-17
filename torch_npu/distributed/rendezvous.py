@@ -1,3 +1,5 @@
+__all__ = []
+
 try:
     from urllib.parse import urlparse, urlunparse
 except ImportError as e:
@@ -21,8 +23,6 @@ from torch_npu.distributed import ParallelStore
 log = logging.getLogger(__name__)
 
 _default_timeout_seconds = 600
-
-__all__ = []
 
 
 def _rendezvous_error(msg):
