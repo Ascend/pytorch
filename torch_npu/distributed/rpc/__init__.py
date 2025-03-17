@@ -1,6 +1,6 @@
-import torch.distributed.rpc as rpc
-
 __all__ = []
+
+import torch.distributed.rpc as rpc
 
 
 if rpc.is_available():

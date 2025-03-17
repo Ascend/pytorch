@@ -1,10 +1,10 @@
+__all__ = ["parse_args"]
+
 from torch.distributed import run as torch_run
 from torch.distributed.argparse_util import check_env, env
 from torch.distributed.run import get_args_parser
 from torch.distributed.elastic.multiprocessing.errors import record
 import torch_npu
-
-__all__ = ["parse_args"]
 
 
 def parse_args(args):

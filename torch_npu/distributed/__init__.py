@@ -1,9 +1,9 @@
-import torch_npu
-from torch_npu.utils._error_code import ErrCode, dist_error
-
 __all__ = [
     "is_hccl_available", "reinit_process_group", "reduce_scatter_tensor_uneven", "all_gather_into_tensor_uneven"
 ]
+
+import torch_npu
+from torch_npu.utils._error_code import ErrCode, dist_error
 
 
 def is_available():
