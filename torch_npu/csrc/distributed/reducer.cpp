@@ -862,7 +862,7 @@ std::vector<at::Tensor> Reducer::get_variables_for_bucket(
     // Check if we have cached mapping previously.
     if (has_rebuilt_bucket_ &&
         cached_variables_for_bucket_.find(bucket_index) !=
-            cached_variables_for_bucket_.end()) {
+        cached_variables_for_bucket_.end()) {
         return cached_variables_for_bucket_[bucket_index];
     }
     std::vector<at::Tensor> variables_for_bucket;
@@ -1619,7 +1619,7 @@ void Reducer::sync_bucket_indices(
     num_buckets = static_cast<size_t>(indices_accessor[indices_accessor_Index]);
 
     // Broadcast bucket_sizes
-    auto bucket_sizes_tensor = at::empty({(int64_t)num_buckets}, at::kInt);
+    auto bucket_sizes_tensor = at::empty({static_cast<int64_t>(num_buckets)}, at::kInt);
     auto bucket_sizes_accessor = bucket_sizes_tensor.accessor<int, 1>();
     for (const auto i : c10::irange(num_buckets)) {
         // For rank != 0, it is possible that local num buckets bucket_sizes.size()
@@ -1627,7 +1627,7 @@ void Reducer::sync_bucket_indices(
         bucket_sizes_accessor[i] =
             static_cast<int>(bucket_sizes.at(std::min(i, (bucket_sizes.size() - 1))));
     }
-    auto bucket_sizes_tensor_device = at::empty({(int64_t)num_buckets}, options);
+    auto bucket_sizes_tensor_device = at::empty({static_cast<int64_t>(num_buckets)}, options);
     bucket_sizes_tensor_device.copy_(bucket_sizes_tensor, true);
     std::vector<at::Tensor> bucket_sizes_tensor_list = {
         bucket_sizes_tensor_device};
@@ -2061,14 +2061,14 @@ std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket
         std::sort(result.begin(), result.end(),
                   [](const std::tuple<std::vector<size_t>, size_t>& a,
                      const std::tuple<std::vector<size_t>, size_t>& b) {
-                      auto indices_a = std::get<0>(a);
-                      auto indices_b = std::get<0>(b);
-                      const auto amin =
-                          std::min_element(indices_a.begin(), indices_a.end());
-                      const auto bmin =
-                          std::min_element(indices_b.begin(), indices_b.end());
-                      return *amin < *bmin;
-                  });
+                        auto indices_a = std::get<0>(a);
+                        auto indices_b = std::get<0>(b);
+                        const auto amin =
+                            std::min_element(indices_a.begin(), indices_a.end());
+                        const auto bmin =
+                            std::min_element(indices_b.begin(), indices_b.end());
+                        return *amin < *bmin;
+                    });
     }
 
     // Return bucket indices and size limits as separate entries in tuple, as

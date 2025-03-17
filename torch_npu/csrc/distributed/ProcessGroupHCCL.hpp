@@ -133,7 +133,7 @@ enum class HcclCommType {
     P2P = 1
 };
 
-enum WatchdogStatus {
+enum class WatchdogStatus {
     INIT = 0,
     RUN = 1,
     STOP = 2
@@ -424,7 +424,7 @@ public:
         return options_;
     }
 
-    const std::string getBackendName() const
+    const std::string getBackendName() const override
     {
         return std::string(HCCL_BACKEND_NAME);
     }
@@ -579,7 +579,7 @@ public:
 
     void abortAndClearHcclComm(c10::optional<std::string> abortReason);
 
-    std::string getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+    std::string getHcclCommNameWithoutInit(std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
     // Return the global ranks of a PG
     const std::vector<uint32_t>& groupRanks() const;
