@@ -72,7 +72,7 @@ size_t computeStorageNbytes(
         if (sizes[i] == 0) {
             return 0;
         }
-        size += strides[i]*(sizes[i]-1);
+        size += strides[i] * (sizes[i] - 1);
     }
     return size * itemsize_bytes;
 }
