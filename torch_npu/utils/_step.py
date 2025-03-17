@@ -54,7 +54,10 @@ def input_hook(idx, asd_flag):
         loggerSilent.debug(f"input_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to False. idx is {idx}, flag is {asd_flag}")
         IS_IN_BACKWARD = False
         torch_npu._C._npu_set_call_state("forward")
-        _silent_fault_detector_v2.silent_fault_check(idx, asd_flag, grad)
+        if torch_npu._C._get_silent_check_version() == 3:
+            _silent_fault_detector_v3.silent_fault_check(idx, asd_flag, grad)
+        else:
+            _silent_fault_detector_v2.silent_fault_check(idx, asd_flag, grad)
         return
     return hook
 
