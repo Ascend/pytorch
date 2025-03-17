@@ -89,6 +89,7 @@ constexpr size_t kMinBlockSize = 512; // all sizes are rounded to at least 512 b
 constexpr size_t kSmallSize = 1048576; // largest "small" allocation is 1 MiB
 constexpr size_t kSmallBuffer = 2097152; // "small" allocations are packed in 2 MiB blocks
 constexpr size_t kLargeBuffer = 20971520; // "large" allocations may be packed in 20 MiB blocks
+constexpr size_t kLargeBufferForHccl = 134217728; // "large for hccl" allocations may be packed in 128 MiB blocks
 constexpr size_t kMinLargeAlloc = 10485760; // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kRoundLarge = 2097152; // round up large allocs to 2 MiB
 constexpr size_t kAlignRoundLarge = 16384; // round up large allocs to 16 KB
@@ -2152,7 +2153,9 @@ class DeviceCachingAllocator {
         return c;
       }
     }
-    auto segment_size = pool->is_small ? kSmallBuffer : kLargeBuffer;
+    auto segment_size = pool->is_small ? kSmallBuffer : (
+      c10_npu::option::OptionsManager::IsHcclZeroCopyEnable() ? kLargeBufferForHccl : kLargeBuffer
+    );
     auto segment = new ExpandableSegment(device, stream, segment_size);
     if (hcclComm_) {
         segment->setHcclComm(hcclComm_);
