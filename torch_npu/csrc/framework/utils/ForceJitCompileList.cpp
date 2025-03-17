@@ -1,4 +1,3 @@
-#include <cstdint>
 #include <string>
 #include <vector>
 #include "torch_npu/csrc/core/npu/npu_log.h"
@@ -31,15 +30,17 @@ void ForceJitCompileList::RegisterJitlist(const std::string &jitlist)
     std::string token;
     while (end != std::string::npos) {
         token = value.substr(start, end - start);
-        if (!token.empty())
+        if (!token.empty()) {
             jit_list_.emplace(token);
+        }
         start = end + delimiter.size();
         end = value.find(delimiter, start);
     }
     // if start + end > value.size(), substring only split(start, value.size() - start)
     token = value.substr(start, end);
-    if (!token.empty())
+    if (!token.empty()) {
         jit_list_.emplace(token);
+    }
     DisplayJitlist();
     return;
 }

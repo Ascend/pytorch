@@ -1,7 +1,7 @@
 #ifndef __NPU_STORAGE_GUARD__
 #define __NPU_STORAGE_GUARD__
 #include <ATen/ATen.h>
-#include <stdint.h>
+#include <cstdint>
 
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 
