@@ -1,9 +1,9 @@
 #include <ATen/ATen.h>
 #include <ATen/NamedTensorUtils.h>
 
-#include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/common/ResizeNpu.h"
 
 namespace at_npu {
 namespace native {

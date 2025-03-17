@@ -2,7 +2,6 @@
 
 #include <ATen/Utils.h>
 #include <c10/core/Allocator.h>
-#include "torch_npu/csrc/aten/common/from_blob.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
@@ -10,6 +9,7 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/aten/common/TensorFactories.h"
+#include "torch_npu/csrc/aten/common/from_blob.h"
 
 namespace at_npu {
 

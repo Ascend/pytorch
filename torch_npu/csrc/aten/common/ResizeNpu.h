@@ -49,7 +49,7 @@ static void storage_resize_npu(
         return;
     }
     std::vector<int64_t> resize_shape = {
-        size/static_cast<ptrdiff_t>(itemsize)
+        size / static_cast<ptrdiff_t>(itemsize)
     };
     // It is necessary to properly refresh the storage according to sizes and strides,
     // not just new sizes.
@@ -151,7 +151,6 @@ static void resize_nd_npu(
     const int64_t* size,
     const int64_t* stride)
 {
-    // AT_CHECK(nDimension >= 0, "resizeNd nDimension must be non-negative");
     c10::IntArrayRef sizes(size, nDimension);
     at::optional<c10::IntArrayRef> strides;
     if (stride != nullptr) {
