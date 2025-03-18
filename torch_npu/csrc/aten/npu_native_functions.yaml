@@ -39,7 +39,6 @@ supported:
   - resize_
   - func: resize_as_
     device_check: NoCheck
-  - scalar_tensor
   - set_
   - set_.source_Storage
   - set_.source_Storage_storage_offset
