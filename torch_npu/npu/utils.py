@@ -19,7 +19,32 @@ __all__ = ["synchronize", "device_count", "can_device_access_peer", "set_device"
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
-           "check_uce_in_memory", "stress_detect", "chmod_recursive"]
+           "check_uce_in_memory", "stress_detect", "chmod_recursive", "get_cann_version"]
+
+
+def get_cann_version(module="CANN"):
+    r"""
+    Args:
+        module: can be selected from [\"CANN\", \"RUNTIME\", \"COMPILER\", \"HCCL\", \"TOOLKIT\", \"OPP\", \"OPP_KERNEL\", \"DRIVER\"]
+
+    Returns: current version.
+
+    """
+    return torch_npu._C._get_cann_version(module)
+
+
+def _is_gte_cann_version(version, module="CANN"):
+    r"""
+    compare current cann_version and version.
+    Args:
+        version: the features are supported or not from which cann version.
+        module: can be selected from [\"CANN\", \"RUNTIME\", \"COMPILER\", \"HCCL\", \"TOOLKIT\", \"OPP\", \"OPP_KERNEL\", \"DRIVER\"]
+
+    Returns: If current_version >= version, return True, else return False.
+
+    """
+    result = torch_npu._C._is_gte_cann_version(version, module)
+    return True if result else False
 
 
 def synchronize(device=None):

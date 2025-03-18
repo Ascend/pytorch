@@ -7,6 +7,7 @@
 #include "third_party/acl/inc/acl/acl_mdl.h"
 #include "third_party/acl/inc/acl/acl_prof.h"
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
+#include "third_party/acl/inc/acl/acl.h"
 
 
 namespace c10_npu {
@@ -191,6 +192,8 @@ aclError AclmdlCaptureEnd(aclrtStream stream, uint32_t *modelId);
 aclError AclmdlDebugPrint(uint32_t modelId);
 
 aclError AclmdlExecuteAsync(uint32_t modelId, aclrtStream stream);
+
+aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version);
 
 aclError AclmdlUnload(uint32_t modelId);
 
