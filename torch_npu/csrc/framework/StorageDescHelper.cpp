@@ -171,7 +171,7 @@ void StorageDescHelper::SetDescForSerialization(const at::Tensor &tensor,
             if (str[end] != '/') {
                 end++;
             } else {
-                vec.emplace_back(std::stoi(str.substr(start, end - start)));
+                vec.emplace_back(std::stoll(str.substr(start, end - start)));
                 end++;
                 start = end;
             }
