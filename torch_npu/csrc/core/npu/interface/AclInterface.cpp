@@ -75,6 +75,7 @@ LOAD_FUNCTION(aclmdlCaptureEnd)
 LOAD_FUNCTION(aclmdlDebugPrint)
 LOAD_FUNCTION(aclmdlExecuteAsync)
 LOAD_FUNCTION(aclmdlUnload)
+LOAD_FUNCTION(aclsysGetCANNVersion)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -769,6 +770,20 @@ aclError AclmdlExecuteAsync(uint32_t modelId, aclrtStream stream)
     static aclmdlDataset *inputs = aclmdlCreateDataset();
     static aclmdlDataset *outputs = aclmdlCreateDataset();
     return func(modelId, inputs, outputs, stream);
+}
+
+aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version)
+{
+    using aclsysGetCANNVersionFunc = aclError(*)(aclCANNPackageName, aclCANNPackageVersion *);
+    static aclsysGetCANNVersionFunc func = nullptr;
+    if (func == nullptr) {
+        func = (aclsysGetCANNVersionFunc)GET_FUNC(aclsysGetCANNVersion);
+        if (func == nullptr) {
+        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+        }
+    }
+
+    return func(name, version);
 }
 
 aclError AclmdlUnload(uint32_t modelId)

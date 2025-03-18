@@ -43,6 +43,7 @@
 #include "torch_npu/csrc/profiler/msprof_tx.h"
 #include "torch_npu/csrc/npu/memory_snapshot.h"
 #include "torch_npu/csrc/core/npu/interface/OpInterface.h"
+#include "torch_npu/csrc/npu/GetCANNInfo.h"
 #include "op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h"
 
 struct NPUDeviceProp {
@@ -1306,6 +1307,32 @@ PyObject* THNPModule_npu_clear_fft_plan_cache(PyObject* self, PyObject* noargs)
     END_HANDLE_TH_ERRORS
 }
 
+static PyObject* THNPModule_get_cann_version(PyObject* self, PyObject *args)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(THPUtils_checkString(args), "invalid value of module, module must be string", PTA_ERROR(ErrCode::PARAM));
+    std::string module = THPUtils_unpackString(args);
+    std::string version = GetCANNVersion(module);
+    return THPUtils_packString(version);
+    END_HANDLE_TH_ERRORS
+}
+
+static PyObject* THNPModule_is_gte_cann_version(PyObject* self, PyObject *args)
+{
+    HANDLE_TH_ERRORS
+    static torch::PythonArgParser parser(
+        {"_is_gte_cann_version(std::string version, std::string module)", },
+        false);
+    torch::ParsedArgs<2> parsed_args;
+    auto _r = parser.parse(args, nullptr, parsed_args);
+    string version = _r.string(0);
+    string module = _r.string(1);
+
+    bool compareResult = IsGteCANNVersion(version, module);
+    return Py_BuildValue("i", int(compareResult));
+    END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -1362,6 +1389,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_fft_plan_cache_max_size", (PyCFunction)THNPModule_npu_get_fft_plan_cache_max_size, METH_NOARGS, nullptr},
     {"_npu_get_fft_plan_cache_size", (PyCFunction)THNPModule_npu_get_fft_plan_cache_size, METH_NOARGS, nullptr},
     {"_npu_clear_fft_plan_cache", (PyCFunction)THNPModule_npu_clear_fft_plan_cache, METH_NOARGS, nullptr},
+    {"_get_cann_version", (PyCFunction)THNPModule_get_cann_version, METH_O, nullptr},
+    {"_is_gte_cann_version", (PyCFunction)THNPModule_is_gte_cann_version, METH_VARARGS, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()
