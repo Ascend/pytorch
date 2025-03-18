@@ -8,7 +8,7 @@ import os
 import warnings
 import unittest
 from torch.testing._internal.common_utils import TestCase, run_tests, IS_JETSON, IS_WINDOWS
-import torch
+import torch   
 import torch_npu
 import torch_npu.testing
 
