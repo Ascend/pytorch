@@ -2,9 +2,10 @@ import os
 import mmap
 import stat
 import time
-import json
 import struct
 import multiprocessing
+from ...utils._path_manager import PathManager
+from ..analysis.prof_common_func._file_manager import FileManager
 from ._dynamic_profiler_config_context import ConfigContext
 from ._dynamic_profiler_utils import DynamicProfilerUtils
 from ._dynamic_profiler_monitor_shm import DynamicProfilerShareMemory
@@ -144,8 +145,9 @@ def worker_func(params_dict):
             if not last_file_t or last_file_t != file_t:
                 last_file_t = file_t
                 try:
-                    with open(cfg_path, 'r') as f:
-                        data = json.load(f)
+                    PathManager.check_input_file_path(cfg_path)
+                    PathManager.check_directory_path_readable(cfg_path)
+                    data = FileManager.read_json_file(cfg_path)
                     # convert json to bytes
                     data['is_valid'] = True
                     DynamicProfilerUtils.out_log("Dynamic profiler process load json success",
