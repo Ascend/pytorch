@@ -79,24 +79,6 @@ size_t computeStorageNbytes(
 
 } // namespace
 
-at::Tensor NPUNativeFunctions::scalar_tensor(
-    const c10::Scalar& s,
-    c10::optional<at::ScalarType> dtype,
-    c10::optional<at::Layout> layout,
-    c10::optional<at::Device> device,
-    c10::optional<bool> pin_memory)
-{
-    at::tracer::impl::NoTracerDispatchMode tracer_guard;
-    at::AutoDispatchBelowAutograd mode;
-    auto result = at::native::empty_cpu({}, dtype, layout, c10::make_optional(c10::Device(at::kCPU)), pin_memory);
-    at::native::fill_(result, s);
-    if (device.has_value()) {
-        AT_ASSERT(device.value().type() == c10::DeviceType::PrivateUse1, OPS_ERROR(ErrCode::TYPE));
-        return result.to(device.value());
-    }
-    return result.to(at::device(c10::DeviceType::PrivateUse1));
-}
-
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ empty ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 at::Tensor NPUNativeFunctions::empty(
     c10::IntArrayRef size,
