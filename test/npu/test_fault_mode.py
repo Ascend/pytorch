@@ -102,11 +102,18 @@ class TestMode(TestCase):
             torch.Generator(device="cuda")
 
     def test_not_supported_ops(self):
-        with self.assertRaisesRegex(RuntimeError, "_copy_from_and_resize now only support copy with same size!"):
-            with self.assertRaisesRegex(Warning, "CAUTION: The operator 'aten::linalg_lstsq.out' is not currently "
-                                                 "supported  on the NPU backend and will fall back to run on the CPU. "
-                                                 "This may have performance implications. (function npu_cpu_fallback)"):
-                torch.linalg.lstsq(torch.randn(1, 3, 3).npu(), torch.randn(2, 3, 3).npu())
+        command = ['python', '-c', 'import torch; import torch_npu; torch.rand(1, 3, 3).npu().logit()']
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        message = process.stderr.read()
+        process.stderr.close()
+        process.stdout.close()
+        process.terminate()
+        process.wait()
+        self.assertIn(
+            "CAUTION: The operator 'aten::logit' is not currently supported on the NPU backend and will fall back "
+            "to run on the CPU. This may have performance implications. (function npu_cpu_fallback)",
+            message
+        )
 
     def test_param_verification(self):
         with self.assertRaisesRegex(RuntimeError, "Expected all tensors to be on the same device. "
