@@ -16,7 +16,7 @@ import torch_npu
 
 
 NOT_IMPORT_LIST = [
-    "torch_npu.npu.BoolTensor",
+    "torch_npu.npu.BoolTensor",  
     "torch_npu.npu.ByteTensor",
     "torch_npu.npu.CharTensor",
     "torch_npu.npu.DoubleTensor",
