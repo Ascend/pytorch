@@ -9,7 +9,7 @@ mypy==1.9.0
 numpy==1.24.4
 onnx==1.17.0
 onnxruntime==1.18.1
-onnxscript==0.2.2 --no-deps
+onnxscript==0.2.2
 Pillow==10.3.0
 requests==2.32.0
 torch_geometric==2.5.3
