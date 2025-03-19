@@ -69,6 +69,7 @@ LOAD_FUNCTION(aclrtPeekAtLastError)
 LOAD_FUNCTION(aclrtSynchronizeDevice)
 LOAD_FUNCTION(aclrtSynchronizeDeviceWithTimeout)
 LOAD_FUNCTION(aclrtEventGetTimestamp)
+LOAD_FUNCTION(aclsysGetCANNVersion)
 LOAD_FUNCTION(aclmdlCaptureBegin)
 LOAD_FUNCTION(aclmdlCaptureGetInfo)
 LOAD_FUNCTION(aclmdlCaptureEnd)
@@ -674,6 +675,20 @@ aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize
     }
     TORCH_CHECK(func, "Failed to find function ", "StressDetect", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(deviceId, workspace, workspaceSize);
+}
+
+aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version)
+{
+    using aclsysGetCANNVersionFunc = aclError(*)(aclCANNPackageName, aclCANNPackageVersion *);
+    static aclsysGetCANNVersionFunc func = nullptr;
+    if (func == nullptr) {
+        func = (aclsysGetCANNVersionFunc)GET_FUNC(aclsysGetCANNVersion);
+        if (func == nullptr) {
+        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+        }
+    }
+
+    return func(name, version);
 }
 
 aclError AclrtSynchronizeDeviceWithTimeout(void)

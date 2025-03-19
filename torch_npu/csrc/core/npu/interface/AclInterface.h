@@ -7,6 +7,7 @@
 #include "third_party/acl/inc/acl/acl_mdl.h"
 #include "third_party/acl/inc/acl/acl_prof.h"
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
+#include "third_party/acl/inc/acl/acl.h"
 
 
 namespace c10_npu {
@@ -175,6 +176,8 @@ aclError AclrtCmoAsync(void* src, size_t size, aclrtCmoType cmoType, aclrtStream
 aclError AclrtGetLastError(aclrtLastErrLevel flag);
 
 aclError AclrtPeekAtLastError(aclrtLastErrLevel flag);
+
+aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version);
 
 aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize);
 
