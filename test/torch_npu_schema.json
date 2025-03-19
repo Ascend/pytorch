@@ -1125,7 +1125,7 @@
     "signature": "()"
   },
   "torch_npu.npu.mstx.mark": {
-    "signature": "(message: str = '')"
+    "signature": "(message='')"
   },
   "torch_npu.npu.mstx.mstx.range_start": {
     "signature": "(message: str, stream=None) -> int"
@@ -1422,7 +1422,7 @@
     "signature": "()"
   },
   "torch_npu.npu.mstx.mstx.mark": {
-    "signature": "(message: str = '')"
+    "signature": "(message='')"
   },
   "torch_npu.npu.npu_config.finalize_dump": {
     "signature": "()"
