@@ -46,6 +46,9 @@ __all__ = [
     "max_memory_cached",
     "memory_snapshot",
     "memory_summary",
+    "MemPool",
+    "MemPoolContext",
+    "use_mem_pool",
     "get_allocator_backend",
     "NPUPluggableAllocator",
     "change_current_allocator",
@@ -100,7 +103,12 @@ __all__ = [
     "enable_deterministic_with_backward",
     "disable_deterministic_with_backward",
     "mstx",
-    "SyncLaunchStream"
+    "SyncLaunchStream",
+    "NPUGraph",
+    "graph",
+    "graph_pool_handle",
+    "is_current_stream_capturing",
+    "make_graphed_callables"
 ]
 
 from typing import Tuple, Union
@@ -129,6 +137,14 @@ from .autocast_utils import *  # noqa: F403
 from .backends import *  # noqa: F403
 from ._backends import *  # noqa: F403
 from .deterministic import enable_deterministic_with_backward, disable_deterministic_with_backward # noqa: F403
+
+from .graphs import (
+    NPUGraph,
+    graph,
+    graph_pool_handle,
+    is_current_stream_capturing,
+    make_graphed_callables,
+)
 
 # init profiler
 if not torch_npu._C._profiler_init():

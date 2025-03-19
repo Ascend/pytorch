@@ -114,6 +114,7 @@ static const int ACL_ERROR_INVALID_OPP_PATH = 148049;
 static const int ACL_ERROR_OP_UNSUPPORTED_DYNAMIC = 148050;
 static const int ACL_ERROR_RELATIVE_RESOURCE_NOT_CLEARED = 148051;
 static const int ACL_ERROR_UNSUPPORTED_JPEG = 148052;
+static const int ACL_ERROR_INVALID_BUNDLE_MODEL_ID = 148053;
 
 static const int ACL_ERROR_BAD_ALLOC = 200000;
 static const int ACL_ERROR_API_NOT_SUPPORT = 200001;
@@ -715,7 +716,7 @@ ACL_FUNC_VISIBILITY aclError aclGetCannAttribute(aclCannAttr cannAttr, int32_t *
  * @brief Get capability value of the specified device
  *
  * @param  deviceId [IN]  device id
- * @param  infoType [IN]  device capability to query
+ * @param  deviceInfo [IN]  device capability to query
  * @param  value [OUT]    returned device capability value
  *
  * @retval ACL_SUCCESS  The function is successfully executed.

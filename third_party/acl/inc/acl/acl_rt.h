@@ -638,16 +638,16 @@ ACL_FUNC_VISIBILITY aclError aclrtRecordEvent(aclrtEvent event, aclrtStream stre
  */
 ACL_FUNC_VISIBILITY aclError aclrtResetEvent(aclrtEvent event, aclrtStream stream);
 
- /**
- * @ingroup AscendCL
- * @brief Queries an event's status
- *
- * @param  event [IN]    event to query
- * @param  status [OUT]  event status
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- */
+/**
+* @ingroup AscendCL
+* @brief Queries an event's status
+*
+* @param  event [IN]    event to query
+* @param  status [OUT]  event status
+*
+* @retval ACL_SUCCESS The function is successfully executed.
+* @retval OtherValues Failure
+*/
 ACL_DEPRECATED_MESSAGE("aclrtQueryEvent is deprecated, use aclrtQueryEventStatus instead")
 ACL_FUNC_VISIBILITY aclError aclrtQueryEvent(aclrtEvent event, aclrtEventStatus *status);
 

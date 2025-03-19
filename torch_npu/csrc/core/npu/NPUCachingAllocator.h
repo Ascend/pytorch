@@ -3,9 +3,10 @@
 #include <c10/core/Allocator.h>
 #include <c10/util/Registry.h>
 #include <c10/util/SmallVector.h>
+#include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 
 #include <mutex>
@@ -110,17 +111,18 @@ struct BlockInfo {
 
 // Struct containing info of a memory segment (i.e. one contiguous cudaMalloc).
 struct SegmentInfo {
-  int64_t device = 0;
-  int64_t  address = 0;
-  aclrtStream stream = 0;
-  int64_t total_size = 0;
-  int64_t requested_size = 0;
-  int64_t allocated_size = 0;
-  int64_t active_size = 0;
-  bool is_large = false;
-  bool is_expandable = false;
-  std::vector<BlockInfo> blocks;
-  std::shared_ptr<c10::GatheredContext> context_when_allocated;
+    int64_t device = 0;
+    int64_t  address = 0;
+    aclrtStream stream = 0;
+    int64_t total_size = 0;
+    int64_t requested_size = 0;
+    int64_t allocated_size = 0;
+    int64_t active_size = 0;
+    bool is_large = false;
+    bool is_expandable = false;
+    MempoolId_t owner_private_pool_id = {0, 0};
+    std::vector<BlockInfo> blocks;
+    std::shared_ptr<c10::GatheredContext> context_when_allocated;
 };
 
 struct TraceEntry {
@@ -190,6 +192,16 @@ public:
     virtual void resetAccumulatedStats(int device) = 0;
     virtual void resetPeakStats(int device) = 0;
     virtual SnapshotInfo snapshot() = 0;
+
+    // CUDAGraph interactions
+    virtual void beginAllocateToPool(
+        c10::DeviceIndex device,
+        MempoolId_t mempool_id,
+        std::function<bool(aclrtStream)> filter) = 0;
+    virtual void endAllocateToPool(
+        c10::DeviceIndex device,
+        MempoolId_t mempool_id) = 0;
+    virtual void releasePool(c10::DeviceIndex device, MempoolId_t mempool_id) = 0;
     virtual void FreeDeviceCachedMemory(int device) = 0;
     virtual std::string name() = 0;
     virtual bool isHistoryEnabled()
@@ -297,6 +309,25 @@ inline SnapshotInfo snapshot()
     return get()->snapshot();
 }
 
+// CUDAGraph interactions
+inline void beginAllocateToPool(
+    c10::DeviceIndex device,
+    MempoolId_t mempool_id,
+    std::function<bool(aclrtStream)> filter)
+{
+    get()->beginAllocateToPool(device, mempool_id, std::move(filter));
+}
+
+inline void endAllocateToPool(c10::DeviceIndex device, MempoolId_t mempool_id)
+{
+    get()->endAllocateToPool(device, mempool_id);
+}
+
+inline void releasePool(c10::DeviceIndex device, MempoolId_t mempool_id)
+{
+    return get()->releasePool(device, mempool_id);
+}
+
 inline void FreeDeviceCachedMemory(int device)
 {
     return get()->FreeDeviceCachedMemory(device);
@@ -357,4 +388,47 @@ inline void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLC
 bool checkConfigExpandableSegments();
 
 } // namespace NPUCachingAllocator
+} // namespace c10_npu
+
+namespace c10_npu {
+
+// MemPool represents a pool of memory in a caching allocator. Currently,
+// it's just the ID of the pool object maintained in the NPUCachingAllocator.
+//
+// An allocator pointer can be passed to the MemPool to define how the
+// allocations should be done in the pool. For example: using a different
+// system allocator such as ncclMemAlloc.
+struct C10_NPU_API MemPool {
+    MemPool(
+        NPUCachingAllocator::NPUAllocator* allocator = nullptr,
+        bool is_user_created = true);
+
+    MempoolId_t id();
+    NPUCachingAllocator::NPUAllocator* allocator();
+
+private:
+    static std::atomic<CaptureId_t> uid_;
+    static std::atomic<CaptureId_t> uuid_;
+    NPUCachingAllocator::NPUAllocator* allocator_;
+    bool is_user_created_;
+    MempoolId_t id_;
+};
+
+// MemPoolContext holds the currently active pool and stashes the previous
+// pool. On deletion it makes the previous pool active.
+struct C10_NPU_API MemPoolContext {
+    MemPoolContext(MemPool* mempool);
+
+    ~MemPoolContext();
+
+    // getActiveMemPool() can be used to get the currently active pool.
+    // For instance: in NPUCachingAllocator, we can route allocations
+    // to a user provided allocator, by doing:
+
+    static MemPool* getActiveMemPool();
+
+private:
+    MemPool* prev_mempool_;
+};
+
 } // namespace c10_npu

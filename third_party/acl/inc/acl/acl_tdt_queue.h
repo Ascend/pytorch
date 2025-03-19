@@ -1,7 +1,7 @@
 /**
 * @file acl_tdt_queue.h
 *
-* Copyright (C) Huawei Technologies Co., Ltd. 2020-2021. All Rights Reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2019-2020. All rights reserved.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,6 +20,10 @@ extern "C" {
 #define ACL_TDT_QUEUE_PERMISSION_MANAGE 1
 #define ACL_TDT_QUEUE_PERMISSION_DEQUEUE 2
 #define ACL_TDT_QUEUE_PERMISSION_ENQUEUE 4
+
+#define ACL_TDT_QUEUE_ROUTE_UNBIND 0
+#define ACL_TDT_QUEUE_ROUTE_BIND 1
+#define ACL_TDT_QUEUE_ROUTE_BIND_ABNORMAL 2
 
 typedef void *acltdtBuf;
 typedef struct tagMemQueueAttr acltdtQueueAttr;
@@ -40,8 +44,9 @@ typedef enum {
 
 typedef enum {
     ACL_TDT_QUEUE_ROUTE_QUERY_SRC = 0,
-    ACL_TDT_QUEUE_ROUTE_QUERY_DST,
-    ACL_TDT_QUEUE_ROUTE_QUERY_SRC_AND_DST
+    ACL_TDT_QUEUE_ROUTE_QUERY_DST = 1,
+    ACL_TDT_QUEUE_ROUTE_QUERY_SRC_AND_DST = 2,
+    ACL_TDT_QUEUE_ROUTE_QUERY_ABNORMAL = 100
 } acltdtQueueRouteQueryMode;
 
 typedef enum {
@@ -49,6 +54,11 @@ typedef enum {
     ACL_TDT_QUEUE_ROUTE_QUERY_SRC_ID_UINT32,
     ACL_TDT_QUEUE_ROUTE_QUERY_DST_ID_UINT32
 } acltdtQueueRouteQueryInfoParamType;
+
+typedef enum {
+    ACL_TDT_NORMAL_MEM = 0,
+    ACL_TDT_DVPP_MEM
+} acltdtAllocBufType;
 
 /**
  * @ingroup AscendCL
@@ -256,6 +266,123 @@ ACL_FUNC_VISIBILITY aclError acltdtGetBufData(const acltdtBuf buf, void **dataPt
 
 /**
  * @ingroup AscendCL
+ * @brief set data buf effective len
+ *
+ * @param buf [IN] acltdtBuf
+ * @param len [IN] set effective len to data buf which must be smaller than size acquired by acltdtGetBufData
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see acltdtGetBufData acltdtGetBufDataLen
+ */
+ACL_FUNC_VISIBILITY aclError acltdtSetBufDataLen(acltdtBuf buf, size_t len);
+
+/**
+ * @ingroup AscendCL
+ * @brief get data buf effective len
+ *
+ * @param buf [IN] acltdtBuf
+ * @param len [OUT] get effective len which is set by acltdtSetBufDataLen
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see acltdtSetBufDataLen
+ */
+ACL_FUNC_VISIBILITY aclError acltdtGetBufDataLen(acltdtBuf buf, size_t *len);
+
+/**
+ * @ingroup AscendCL
+ * @brief append acltdtBuf to acltdtBuf chain
+ *
+ * @param headBuf [IN] acltdtBuf chain head
+ * @param buf [IN] acltdtBuf will be appended
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ */
+ACL_FUNC_VISIBILITY aclError acltdtAppendBufChain(acltdtBuf headBuf, acltdtBuf buf);
+
+/**
+ * @ingroup AscendCL
+ * @brief get acltdtBuf chain total size
+ *
+ * @param headBuf [IN] acltdtBuf chain head
+ * @param num [OUT] acltdtBuf chain total size
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see acltdtAppendBufChain
+ */
+ACL_FUNC_VISIBILITY aclError acltdtGetBufChainNum(acltdtBuf headBuf, uint32_t *num);
+
+/**
+ * @ingroup AscendCL
+ * @brief get acltdtBuf from acltdtBuf chain by index
+ *
+ * @param headBuf [IN] acltdtBuf chain head
+ * @param index [IN] the index which is smaller than num acquired from acltdtGetBufChainNum
+ * @param buf [OUT] the acltdtBuf from acltdtBuf on index
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see acltdtAppendBufChain acltdtGetBufChainNum
+ */
+ACL_FUNC_VISIBILITY aclError acltdtGetBufFromChain(acltdtBuf headBuf, uint32_t index, acltdtBuf *buf);
+
+/**
+ * @ingroup AscendCL
+ * @brief get private data buf address and size
+ *
+ * @param buf [IN] acltdtBuf
+ * @param dataPtr [IN/OUT] pointer to the user ptr
+ * @param size [IN] the current private data area size, less than or equal to 96B
+ * @param offset [IN] address offset, less than or equal to 96B
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see acltdtGetBufUserData
+ */
+ACL_FUNC_VISIBILITY aclError acltdtGetBufUserData(const acltdtBuf buf, void *dataPtr, size_t size, size_t offset);
+
+/**
+ * @ingroup AscendCL
+ * @brief set private data buf address and size
+ *
+ * @param buf [OUT] acltdtBuf
+ * @param dataPtr [IN] pointer to the user ptr
+ * @param size [IN] the current private data area size, less than or equal to 96B
+ * @param offset [IN] address offset, less than or equal to 96B
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see acltdtSetBufUserData
+ */
+ACL_FUNC_VISIBILITY aclError acltdtSetBufUserData(acltdtBuf buf, const void *dataPtr, size_t size, size_t offset);
+
+/**
+ * @ingroup AscendCL
+ * @brief copy buf ref
+ *
+ * @param buf [IN] acltdtBuf
+ * @param newBuf [OUT] Make a reference copy of the data area of buf and
+ *                     create a new buf header pointing to the same data area
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see acltdtCopyBufRef
+ */
+ACL_FUNC_VISIBILITY aclError acltdtCopyBufRef(const acltdtBuf buf, acltdtBuf *newBuf);
+
+/**
+ * @ingroup AscendCL
  * @brief Create the queue attr
  *
  * @retval null for failed
@@ -356,7 +483,7 @@ ACL_FUNC_VISIBILITY aclError acltdtDestroyQueueRoute(const acltdtQueueRoute *rou
  * @param param [OUT]        pointer to parameter value
  *
  * @retval ACL_SUCCESS for success, other for failure
- * 
+ *
  * @see acltdtCreateQueueRoute
  */
 ACL_FUNC_VISIBILITY aclError acltdtGetQueueRouteParam(const acltdtQueueRoute *route,
@@ -371,7 +498,7 @@ ACL_FUNC_VISIBILITY aclError acltdtGetQueueRouteParam(const acltdtQueueRoute *ro
  *
  * @retval null for failed
  * @retval OtherValues success
- * 
+ *
  * @see acltdtDestroyQueueRouteList
  */
 ACL_FUNC_VISIBILITY acltdtQueueRouteList* acltdtCreateQueueRouteList();
@@ -398,7 +525,7 @@ ACL_FUNC_VISIBILITY aclError acltdtDestroyQueueRouteList(const acltdtQueueRouteL
  *
  * @retval ACL_SUCCESS  The function is successfully executed.
  * @retval OtherValues Failure
- * 
+ *
  * @see acltdtCreateQueueRouteList | acltdtCreateQueueRoute
  *
  */
@@ -452,7 +579,7 @@ ACL_FUNC_VISIBILITY  acltdtQueueRouteQueryInfo* acltdtCreateQueueRouteQueryInfo(
  *
  * @retval ACL_SUCCESS  The function is successfully executed.
  * @retval OtherValues Failure
- * 
+ *
  * @see acltdtCreateQueueRouteQueryInfo
  *
  */
@@ -468,7 +595,7 @@ ACL_FUNC_VISIBILITY aclError acltdtDestroyQueueRouteQueryInfo(const acltdtQueueR
  * @param param [IN]        pointer to parameter value
  *
  * @retval ACL_SUCCESS for success, other for failure
- * 
+ *
  * @see acltdtCreateQueueRouteQueryInfo
  */
 ACL_FUNC_VISIBILITY aclError acltdtSetQueueRouteQueryInfo(acltdtQueueRouteQueryInfo *param,
@@ -481,4 +608,4 @@ ACL_FUNC_VISIBILITY aclError acltdtSetQueueRouteQueryInfo(acltdtQueueRouteQueryI
 }
 #endif
 
-#endif //INC_EXTERNAL_ACL_ACL_TDT_QUEUE_H_
+#endif // INC_EXTERNAL_ACL_ACL_TDT_QUEUE_H_
