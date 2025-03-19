@@ -6,16 +6,17 @@ from ._dynamic_profiler_utils import DynamicProfilerUtils
 class PyDynamicMonitorProxySingleton():
     def __init__(self):
         self._proxy = None
-        self._load_proxy()
+        self._load_success = True
 
     def _load_proxy(self):
-        if not self._proxy:
+        if not self._proxy and self._load_success:
             try:
                 from IPCMonitor import PyDynamicMonitorProxy
-                self._proxy = PyDynamicMonitorProxy()
             except Exception as e:
-                dynamic_profiler_utils.stdout_log(f"Import IPCMonitro module failed :{e}!",
-                                                dynamic_profiler_utils.LoggerLevelEnum.WARNING)
+                self._load_success = False
+                return
+            self._proxy = PyDynamicMonitorProxy()
 
     def get_proxy(self):
+        self._load_proxy()
         return self._proxy
