@@ -10,6 +10,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 
@@ -17,6 +18,18 @@
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
+
+namespace at_npu {
+namespace native {
+
+at::Tensor allocate_workspace(uint64_t workspace_size, aclrtStream stream)
+{
+    return at_npu::native::OpPreparation::unsafe_empty_workspace(workspace_size, stream);
+}
+
+} // namespace native
+} // namespace at_npu
+
 
 namespace c10_npu {
 namespace NPUWorkspaceAllocator {
