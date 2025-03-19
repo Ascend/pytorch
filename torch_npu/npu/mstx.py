@@ -37,13 +37,16 @@ def _no_exception_func(default_ret=None):
 class mstx:
     @staticmethod
     @_no_exception_func()
-    def mark(message:str = ""):
+    def mark(message=""):
+        if not message or not isinstance(message, str):
+            warnings.warn("Invalid message for mstx.mark func. Please input valid message string.")
+            return
         torch_npu._C._mark(message)
 
     @staticmethod
     @_no_exception_func()
     def range_start(message: str, stream=None) -> int:
-        if not message:
+        if not message or not isinstance(message, str):
             warnings.warn("Invalid message for mstx.range_start func. Please input valid message string.")
             return 0
         if stream:
