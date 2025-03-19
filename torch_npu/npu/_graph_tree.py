@@ -891,6 +891,17 @@ class NPUGraphNode:
         # one jit kernel across multiple inputs
         dst.copy_(src)
 
+    def _record_input(self, idx, dst, src, dst_record, src_record):
+        expanded_dims = self.expanded_dims[idx]
+        dst = index_expanded_dims(dst, expanded_dims)
+        src = index_expanded_dims(src, expanded_dims)
+        dtype = dst.dtype
+        if dtype not in dst_record.keys():
+            dst_record[dtype] = []
+            src_record[dtype] = []
+        dst_record[dtype].append(dst)
+        src_record[dtype].append(src)
+
     def run_first_inputs(self, new_inputs):
         if config.triton.fast_path_cudagraph_asserts:
             self.debug_check_invariants_before_invocation()
@@ -910,6 +921,8 @@ class NPUGraphNode:
         if not len(self.static_input_data_ptrs) == len(new_inputs):
             raise RuntimeError("check len(self.static_input_data_ptrs) == len(new_inputs) fail")
         # NB: this ranges over non-static inputs too
+        dst_record = {}
+        src_record = {}
         for idx, data_ptr in enumerate(self.static_input_data_ptrs):
             if idx in self.npugraph_managed_idxs:
                 continue
@@ -917,13 +930,17 @@ class NPUGraphNode:
                 pass
             elif data_ptr is not None:
                 # static input, e.g., parameter
-                if not data_ptr == new_inputs[idx].data_ptr():
-                    raise RuntimeError("check data_ptr == new_inputs[idx].data_ptr() fail")
+                pass
             else:
                 # non-static input, need to copy it into NPU graph
                 dst = self.reconstructed_inputs[idx]
                 src = new_inputs[idx]
-                self._copy_input(idx, dst, src)
+                self._record_input(idx, dst, src, dst_record, src_record)
+
+        for dtype in dst_record.keys():
+            if dtype not in src_record.keys():
+                raise RuntimeError("Record for foreach_copy failed in NPUGraphNode.run.")
+            torch._foreach_copy_(dst_record[dtype], src_record[dtype])
 
         new_inputs.clear()
         self.run_graph()
