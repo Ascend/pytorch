@@ -1,5 +1,5 @@
 #include <iostream>
-#include "torch_npu/csrc/npu/GetCANNInfo.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
