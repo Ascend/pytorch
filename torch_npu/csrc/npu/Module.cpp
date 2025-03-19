@@ -43,7 +43,7 @@
 #include "torch_npu/csrc/profiler/msprof_tx.h"
 #include "torch_npu/csrc/npu/memory_snapshot.h"
 #include "torch_npu/csrc/core/npu/interface/OpInterface.h"
-#include "torch_npu/csrc/npu/GetCANNInfo.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h"
 
 struct NPUDeviceProp {
