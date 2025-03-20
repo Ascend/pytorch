@@ -2559,7 +2559,8 @@
     "scatter_update",
     "scatter_update_",
     "npu_kronecker_quant",
-    "npu_group_norm_swish"
+    "npu_group_norm_swish",
+    "npu_mrope"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
