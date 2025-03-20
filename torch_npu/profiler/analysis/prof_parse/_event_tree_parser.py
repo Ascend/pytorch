@@ -608,11 +608,6 @@ class EventTree:
     def get_root_nodes(self) -> List[_ProfilerEvent]:
         events: List[_ProfilerEvent] = []
         for ev in self.sorted_events:
-            if ev.tag == _EventType.Allocation:
-                device_type = ev.extra_fields.device_type
-            else:
-                device_type = _DeviceType.CPU.value
-            if ev.parent is None and device_type == _DeviceType.CPU.value:
+            if ev.parent is None:
                 events.append(ev)
-        
         return events
