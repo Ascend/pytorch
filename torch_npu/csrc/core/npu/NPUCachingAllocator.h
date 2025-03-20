@@ -436,6 +436,8 @@ inline void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLC
 
 bool checkConfigExpandableSegments();
 
+bool isConfig1GPageSizeEnable();
+
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
 
