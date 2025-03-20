@@ -2227,7 +2227,7 @@ void ProcessGroupHCCL::silenceCheck(at::Tensor &input, c10d::OpType opType)
         }
     }
     if (c10_npu::opapi::IsExistAclnnSilentCheckV2()) {
-        at::Tensor val = input.detach().pow(2).max().view(-1);
+        at::Tensor val = at::norm(input, std::numeric_limits<float>::infinity()).pow(2).view(-1);
         at::Tensor max;
         if (silenceCheckCache_.find(opType) == silenceCheckCache_.end()) {
             at::Tensor stepTensor = at::zeros({1}, input.options().dtype(at::kLong));
