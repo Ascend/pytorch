@@ -141,7 +141,7 @@ class _SilentFaultDetectorV3:
         if grad.dtype != torch.bfloat16 and grad.dtype != torch.float32:
             return
 
-        val = grad.pow(2).max().view(-1)
+        val = torch.norm(grad, float('inf')).pow(2).view(-1)
 
         if idx not in self.silent_data_dict:
             self.silent_data_dict[idx] = SilentFaultDataV3()
