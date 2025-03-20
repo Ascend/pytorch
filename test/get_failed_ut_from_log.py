@@ -18,19 +18,22 @@ def get_error_or_fail_ut(file):
 
 
 def write_to_json(ut_list=None):
-    file1 = ".pytorch-disabled-tests.json"
+    file1 = "unsupported_test_cases/.pytorch-disabled-tests.json"
     fr = open(file1)
     content = json.load(fr)
+    if not ut_list:
+        return
     for line in ut_list:
         content[line] = ["", [""]]
     with open("./pytorch-disabled-tests.json", mode="w") as fp:
         fp.write("{\n")
         length = len(content.keys()) - 1
         for i, (key, (value1, value2)) in enumerate(content.items()):
+            value2_str = "\"" + "\",\"".join(value2) + "\""
             if i < length:
-                fp.write(f"  \"{key}\": [\"{value1}\", [\"\"]]" + ",\n")
+                fp.write(f"  \"{key}\": [\"{value1}\", [{value2_str}]]" + ",\n")
             else:
-                fp.write(f"  \"{key}\": [\"{value1}\", [\"\"]]" + "\n")
+                fp.write(f"  \"{key}\": [\"{value1}\", [{value2_str}]]" + "\n")
         fp.write("}\n")
     fr.close()
 

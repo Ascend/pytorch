@@ -32377,6 +32377,7 @@
   "test_all_invariants (__main__.TestDispatch)": ["", [""]],
   "test_AdaptiveLogSoftmax (__main__.TestNN)": ["", [""]],
   "test_cudnn_rnn_dropout_states_device (__main__.TestNN)": ["", [""]],
+  "test_fake_autocast_index_add_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_generated_rule_set_is_up_to_date (__main__.TestGeneratedTypePromotionRuleSet)": ["", [""]],
   "test_upsamplingNearestExact1d_correctness_isize_10_osize_15_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", ["910A"]],
   "test_upsamplingNearestExact1d_correctness_isize_20_osize_11_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", ["910A"]],

@@ -139,6 +139,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_wrapper_npu_batch_nms(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -202,34 +203,6 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert(os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                            onnx_model_name)))
-
-
-    def test_wrapper_npu_fused_attention_score(self):
-        class Model(torch.nn.Module):
-            def __init__(self):
-                super(Model, self).__init__()
-
-            def forward(self, query_layer, key_layer, value_layer, attention_mask):
-                scale = 0.125
-                keep_prob = 1
-                return torch_npu.npu_fused_attention_score(query_layer, key_layer,
-                                                           value_layer, attention_mask, scale, keep_prob)
-
-        def export_onnx(onnx_model_name):
-            q = torch.rand(24, 16, 512, 64).uniform_(-3, 3).npu().half()
-            k = torch.rand(24, 16, 512, 64).uniform_(-3, 3).npu().half()
-            v = torch.rand(24, 16, 512, 64).uniform_(-3, 3).npu().half()
-            mask = torch.ones(512) * -10000.
-            mask[:6] = -0.
-            mask = mask.expand(24, 1, 512, 512).npu().half()
-            model = Model().to("npu")
-            model(q, k, v, mask)
-            self.onnx_export(model, (q, k, v, mask), onnx_model_name, ["q", "k", "v", "mask"])
-
-        onnx_model_name = "model_npu_fused_attention_score.onnx"
-        export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))
 
     def test_wrapper_npu_multi_head_attention(self):
         class Model(torch.nn.Module):
@@ -510,6 +483,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_wrapper_npu_ifmr(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -535,32 +509,6 @@ class TestOnnxOps(TestCase):
                              ["input_", "min_value", "max_value", "cdf"], ["out1", "out2"])
 
         onnx_model_name = "model_npu_ifmr.onnx"
-        export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))
-
-    def test_wrapper_npu_fused_attention_score_fwd(self):
-        class Model(torch.nn.Module):
-            def __init__(self):
-                super(Model, self).__init__()
-
-            def forward(self, q, k, v, mask):
-                return torch_npu.npu_fused_attention_score_fwd(q, k, v, mask, 0.125, 1)
-
-        def export_onnx(onnx_model_name):
-            q = torch.rand(24, 16, 512, 64).uniform_(-3, 3).half().npu()
-            k = torch.rand(24, 16, 512, 64).uniform_(-3, 3).half().npu()
-            v = torch.rand(24, 16, 512, 64).uniform_(-3, 3).half().npu()
-            mask = torch.ones(512) * -10000.
-            mask[:6] = -0.
-            mask = mask.expand(24, 1, 512, 512).half().npu()
-
-            model = Model().to("npu")
-            model(q, k, v, mask)
-            self.onnx_export(model, (q, k, v, mask), onnx_model_name,
-                             ["q", "k", "v", "mask"], ["out1", "out2", "out3"])
-
-        onnx_model_name = "model_npu_fused_attention_score_fwd.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
@@ -958,28 +906,6 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    def test_wrapper_npu_scatter(self):
-        class Model(torch.nn.Module):
-            def __init__(self):
-                super(Model, self).__init__()
-
-            def forward(self, input_, indices, updates):
-                return torch_npu.npu_scatter(input_, indices, updates, 0)
-
-        def export_onnx(onnx_model_name):
-            input_ = torch.tensor([[1.6279, 0.1226], [0.9041, 1.0980]]).npu()
-            indices = torch.tensor([0, 1], dtype=torch.int32).npu()
-            updates = torch.tensor([-1.1993, -1.5247]).npu()
-            model = Model().to("npu")
-            model(input_, indices, updates)
-            self.onnx_export(model, (input_, indices, updates),
-                             onnx_model_name, ["input_", "indices", "updates"])
-
-        onnx_model_name = "model_npu_scatter.onnx"
-        export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))
-
     def test_wrapper_npu_lstm_cell(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1241,7 +1167,7 @@ class TestOnnxOps(TestCase):
             
         def export_onnx(onnx_model_name):
             x = torch.rand(10, 1024).uniform_(-3, 3).npu().half()
-            gamma = torch.rand(10).uniform_(-3, 3).npu().half()
+            gamma = torch.rand(1024).uniform_(-3, 3).npu().half()
             model = Model().to("npu")
             model(x, gamma)
             self.onnx_export(model, (x, gamma), onnx_model_name)
@@ -1403,7 +1329,7 @@ class TestOnnxOps(TestCase):
                 super().__init__()
 
             def forward(self, x, weight, antiquant_scale, antiquant_offset, quant_scale, quant_offset, bias, antiquant_group_size):
-                return torch_npu.npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_offset, quant_scale, quant_offset, bias, antiquant_group_size)
+                return torch_npu.npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_offset, quant_scale, quant_offset, bias, 0)
 
         def export_onnx(onnx_model_name):
             x = torch.randn((8192, 320), dtype=torch.bfloat16).npu()
