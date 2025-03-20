@@ -427,11 +427,29 @@ aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *u
 aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy policy) {
     typedef aclError (*AclrtMallocAlign32)(void**, size_t, aclrtMemMallocPolicy);
     static AclrtMallocAlign32 func = (AclrtMallocAlign32)GET_FUNC(aclrtMallocAlign32);
+    aclError ret;
     if (func != nullptr) {
-        return func(devPtr, size, policy);
+        ret = func(devPtr, size, policy);
+    } else {
+        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMallocAlign32");
+        ret = aclrtMalloc(devPtr, size, policy);
     }
-    TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMallocAlign32");
-    return aclrtMalloc(devPtr, size, policy);
+
+    if (ret != ACL_RT_SUCCESS && (policy == aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY)) {
+        TORCH_NPU_WARN_ONCE("The malloc 1G large-page physical memory failed, so malloc 2M page memory."
+                            "Using the 2M memory page may result in performance degradation. "
+                            "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is "
+                            "enabled, but the pre-allocated number of 1G large pages is insufficient or 1G large-page "
+                            "memory pre-allocation is not enabled.");
+        policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
+        if (func != nullptr) {
+            ret = func(devPtr, size, policy);
+        } else {
+            TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMallocAlign32");
+            ret = aclrtMalloc(devPtr, size, policy);
+        }
+    }
+    return ret;
 }
 
 aclError AclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status) {
@@ -502,7 +520,22 @@ aclError AclrtMallocPhysical(aclrtDrvMemHandle *handle, size_t size, const aclrt
         func = (AclrtMallocPhysical)GET_FUNC(aclrtMallocPhysical);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclrtMallocPhysical", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(handle, size, prop, flags);
+    aclError ret = func(handle, size, prop, flags);
+    if (ret != ACL_RT_SUCCESS && (prop->memAttr == ACL_HBM_MEM_HUGE1G)) {
+        TORCH_NPU_WARN_ONCE("The malloc 1G large-page physical memory failed, so malloc 2M page memory."
+                            "Using the 2M memory page may result in performance degradation. "
+                            "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration "
+                            "is enabled, but the pre-allocated number of 1G large pages is insufficient "
+                            "or 1G large-page memory pre-allocation is not enabled.");
+        aclrtPhysicalMemProp prop_update = {prop->handleType,
+                                            prop->allocationType,
+                                            ACL_HBM_MEM_HUGE,
+                                            {prop->location.id,
+                                             prop->location.type},
+                                            prop->reserve};
+        ret = func(handle, size, &prop_update, flags);
+    }
+    return ret;
 }
 
 aclError AclrtFreePhysical(aclrtDrvMemHandle handle) {

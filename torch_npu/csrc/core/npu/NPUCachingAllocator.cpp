@@ -16,7 +16,6 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
-#include "torch_npu/csrc/framework/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
@@ -25,6 +24,7 @@
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
@@ -97,11 +97,10 @@ constexpr size_t kRoundLarge = 2097152; // round up large allocs to 2 MiB
 constexpr size_t kAlignRoundLarge = 16384; // round up large allocs to 16 KB
 constexpr size_t kSmallPoolVirAddrSize = 2147483648; // 2 GB
 constexpr size_t kLargePoolVirAddrSize = 10737418240; // 10 GB
-constexpr size_t kCannMajor = 8; // minimum cann version which supports 1g mem 8.1
-constexpr size_t kCannMinor = 1; // minimum cann version which supports 1g mem 8.1
-constexpr size_t kDriverMajor = 25; // minimum driver version which supports 1g mem 25.0
-constexpr size_t kDriverMinor = 0; // minimum driver version which supports 1g mem 25.0
-
+const std::string kMinCannVersion = "8.1.RC1"; // minimum cann version which supports 1g mem 8.1.RC1
+const std::string kMinDriverVersion = "25.0.RC1"; // minimum driver version which supports 1g mem 25.0.RC1
+const std::string kCannModule = "CANN"; // cann module name
+const std::string kDriverModule = "DRIVER"; // driver module name
 
 using StatTypes = std::array<bool, static_cast<size_t>(StatType::NUM_TYPES)>;
 
@@ -144,40 +143,6 @@ void update_stat_array(
       });
 }
 
-// 比较cann版本
-inline bool IsCannVersionSufficient(const std::string& v1, const int major, const int minor)
-{
-    const char delimiter = '.';
-    std::vector<int> versionNum1;
-    size_t pos = 0;
-    std::string::const_iterator it = v1.begin();
-    // verson consists of 4 parts: major,minor,release,patch
-    // start from 8.1 and 25.0
-    // get major
-    if ((pos = v1.find(delimiter, pos) != std::string::npos)) {
-        versionNum1.push_back(std::stoi(v1.substr(it - v1.begin(), pos)));
-        it = v1.begin() + pos + 1;
-    }
-    // get minor
-    pos = v1.find(delimiter, pos);
-    versionNum1.push_back(std::stoi(v1.substr(it - v1.begin(), pos)));
-    // compare cann version, only for major and minor. e.g. 8.1, 8 is major , 1 is minor.
-    if (versionNum1.size() < 2) {
-        return false;
-    }
-    if (versionNum1[0] < major) {
-        return false;
-    }
-    if (versionNum1[0] > major) {
-        return true;
-    }
-    if (versionNum1[1] >= minor) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
 bool IsMallocPage1GMem(bool is_small_pool)
 {
     static bool is_support_page_size_1g = []() {
@@ -185,13 +150,7 @@ bool IsMallocPage1GMem(bool is_small_pool)
             return false;
         }
 
-        aclCANNPackageVersion cann_version;
-        aclError cann_version_ret = at_npu::native::AclsysGetCANNVersion(ACL_PKG_NAME_CANN, &cann_version);
-        if (cann_version_ret != ACL_SUCCESS) {
-            return false;
-        }
-
-        if (!IsCannVersionSufficient(cann_version.version, kCannMajor, kCannMinor)) {
+        if (!IsGteCANNVersion(kMinCannVersion, kCannModule)) {
             TORCH_NPU_WARN_ONCE("The application for 1G large-page physical memory failed. "
             "Using the HUGE_MEM memory page allocation method may result in performance degradation. "
             "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is enabled, "
@@ -200,13 +159,7 @@ bool IsMallocPage1GMem(bool is_small_pool)
             return false;
         }
 
-        aclCANNPackageVersion driver_version;
-        aclError driver_version_ret = at_npu::native::AclsysGetCANNVersion(ACL_PKG_NAME_DRIVER, &driver_version);
-        if (driver_version_ret != ACL_SUCCESS) {
-            return false;
-        }
-
-        if (!IsCannVersionSufficient(driver_version.version, kDriverMajor, kDriverMinor)) {
+        if (!IsGteCANNVersion(kMinDriverVersion, kDriverModule)) {
             TORCH_NPU_WARN_ONCE("The application for 1G large-page physical memory failed. "
             "Using the HUGE_MEM memory page allocation method may result in performance degradation. "
             "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is enabled, "
@@ -462,16 +415,6 @@ struct ExpandableSegment {
         prop.reserve = 0;
         auto status =
             c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
-        if (status != ACL_RT_SUCCESS &&
-            IsMallocPage1GMem(!(prop.memAttr == ACL_HBM_MEM_HUGE1G))) {
-            TORCH_NPU_WARN("The malloc 1G large-page physical memory failed, so malloc 2M page memory."
-                           "Using the 2M memory page may result in performance degradation. "
-                           "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration "
-                           "is enabled, but the pre-allocated number of 1G large pages is insufficient "
-                           "or 1G large-page memory pre-allocation is not enabled.");
-            prop.memAttr = ACL_HBM_MEM_HUGE;
-            status = c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
-        }
         if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
             for (auto j : c10::irange(begin, i)) {
                 auto h = handles_.at(j).value();
@@ -2741,15 +2684,6 @@ class DeviceCachingAllocator {
                     policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY;
                 }
                 p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
-                if (p.err != ACL_RT_SUCCESS && IsMallocPage1GMem(p.pool->is_small)) {
-                    TORCH_NPU_WARN("The malloc 1G large-page physical memory failed, so malloc 2M page memory."
-                    "Using the 2M memory page may result in performance degradation. "
-                    "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is enabled, "
-                    "but the pre-allocated number of 1G large pages is insufficient or 1G large-page memory "
-                    "pre-allocation is not enabled.");
-                    policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
-                    p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
-                }
             }
             if (p.err != ACL_ERROR_NONE) {
                 return false;

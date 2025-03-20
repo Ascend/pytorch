@@ -74,8 +74,6 @@ aclError AclopStartDumpArgs(uint32_t dumpType, const char *path);
 
 aclError AclopStopDumpArgs(uint32_t dumpType);
 
-aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version);
-
 } // namespace native
 } // namespace at_npu
 
