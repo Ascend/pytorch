@@ -65,10 +65,10 @@ class ProfPathCreator:
             dir_path = self._dir_path
         if os.path.exists(dir_path):
             PathManager.check_directory_path_writeable(dir_path)
-        if not self._worker_name:
-            worker_name = "{}_{}".format(socket.gethostname(), str(os.getpid()))
-        else:
-            worker_name = self._worker_name
+        worker_name = "{}_{}".format(
+            self._worker_name or socket.gethostname(),
+            str(os.getpid())
+        )
         span_name = "{}_{}_ascend_pt".format(worker_name, datetime.utcnow().strftime("%Y%m%d%H%M%S%f")[:-3])
         self._prof_path = os.path.join(dir_path, span_name)
         PathManager.check_input_directory_path(self._prof_path)
