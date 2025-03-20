@@ -276,7 +276,7 @@ std::string _memory_snapshot_pickled()
         for (const auto& te : traceInfo) {
             auto trace_entry = new_dict();
             trace_entry.insert(action_s, action_to_str(te.action_));
-            trace_entry.insert(TraceEntry::OOM == te.action_ ? device_free_s
+            trace_entry.insert(te.action_ == TraceEntry::OOM ? device_free_s
                                                              : addr_s,
                                te.addr_);
             trace_entry.insert(size_s, (int64_t)te.size_);
