@@ -21,6 +21,7 @@
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "NPUBlockHandle.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
@@ -89,12 +90,17 @@ constexpr size_t kMinBlockSize = 512; // all sizes are rounded to at least 512 b
 constexpr size_t kSmallSize = 1048576; // largest "small" allocation is 1 MiB
 constexpr size_t kSmallBuffer = 2097152; // "small" allocations are packed in 2 MiB blocks
 constexpr size_t kLargeBuffer = 20971520; // "large" allocations may be packed in 20 MiB blocks
+constexpr size_t kExtraLargeBuffer = 1073741824; // "extra large" allocations may be packed in 1 GB blocks
 constexpr size_t kLargeBufferForHccl = 134217728; // "large for hccl" allocations may be packed in 128 MiB blocks
 constexpr size_t kMinLargeAlloc = 10485760; // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kRoundLarge = 2097152; // round up large allocs to 2 MiB
 constexpr size_t kAlignRoundLarge = 16384; // round up large allocs to 16 KB
 constexpr size_t kSmallPoolVirAddrSize = 2147483648; // 2 GB
 constexpr size_t kLargePoolVirAddrSize = 10737418240; // 10 GB
+const std::string kMinCannVersion = "8.1.RC1"; // minimum cann version which supports 1g mem 8.1.RC1
+const std::string kMinDriverVersion = "25.0.RC1"; // minimum driver version which supports 1g mem 25.0.RC1
+const std::string kCannModule = "CANN"; // cann module name
+const std::string kDriverModule = "DRIVER"; // driver module name
 
 using StatTypes = std::array<bool, static_cast<size_t>(StatType::NUM_TYPES)>;
 
@@ -135,6 +141,36 @@ void update_stat_array(
       stat_types, [&stat_array, amount](size_t stat_type) {
         update_stat(stat_array[stat_type], amount);
       });
+}
+
+bool IsMallocPage1GMem(bool is_small_pool)
+{
+    static bool is_support_page_size_1g = []() {
+        if (!c10_npu::NPUCachingAllocator::isConfig1GPageSizeEnable()) {
+            return false;
+        }
+
+        if (!IsGteCANNVersion(kMinCannVersion, kCannModule)) {
+            TORCH_NPU_WARN_ONCE("The application for 1G large-page physical memory failed. "
+            "Using the HUGE_MEM memory page allocation method may result in performance degradation. "
+            "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is enabled, "
+            "but the current driver version does not support this feature. "
+            "Please upgrade the CANN package version.");
+            return false;
+        }
+
+        if (!IsGteCANNVersion(kMinDriverVersion, kDriverModule)) {
+            TORCH_NPU_WARN_ONCE("The application for 1G large-page physical memory failed. "
+            "Using the HUGE_MEM memory page allocation method may result in performance degradation. "
+            "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is enabled, "
+            "but the current driver version does not support this feature. "
+            "Please upgrade the CANN package version 1-2.");
+            return false;
+        }
+        return true;
+    }();
+
+    return !is_small_pool && is_support_page_size_1g;
 }
 
 struct Block;
@@ -373,7 +409,7 @@ struct ExpandableSegment {
         aclrtPhysicalMemProp prop = {};
         prop.handleType = ACL_MEM_HANDLE_TYPE_NONE;
         prop.allocationType = ACL_MEM_ALLOCATION_TYPE_PINNED;
-        prop.memAttr = ACL_HBM_MEM_HUGE;
+        prop.memAttr = (segment_size_ == kExtraLargeBuffer) ? ACL_HBM_MEM_HUGE1G : ACL_HBM_MEM_HUGE;
         prop.location.type = ACL_MEM_LOCATION_TYPE_DEVICE;
         prop.location.id = device_;
         prop.reserve = 0;
@@ -748,6 +784,11 @@ class CachingAllocatorConfig {
       return instance().m_base_addr_aligned_size;
   }
 
+  static bool page_size_1g_enable()
+  {
+      return instance().m_page_size_1g;
+  }
+
   static CachingAllocatorConfig &instance() {
     static CachingAllocatorConfig *s_instance = ([]() {
       auto inst = new CachingAllocatorConfig();
@@ -767,6 +808,7 @@ class CachingAllocatorConfig {
   bool m_expandable_segments;
   bool set_expandable_segments_flag = false;
   size_t m_base_addr_aligned_size = kAlignRoundLarge;
+  bool m_page_size_1g = false; // 新增1G页配置标志
 
   CachingAllocatorConfig()
       : m_max_split_size(std::numeric_limits<size_t>::max()),
@@ -789,6 +831,9 @@ class CachingAllocatorConfig {
       const std::vector<std::string>& config,
       size_t i);
   size_t parseAddrAlignSize(
+      const std::vector<std::string>& config,
+      size_t i);
+  size_t parsePageSize(
       const std::vector<std::string>& config,
       size_t i);
 };
@@ -910,6 +955,19 @@ size_t CachingAllocatorConfig::parseAddrAlignSize(
     return i;
 }
 
+size_t CachingAllocatorConfig::parsePageSize(const std::vector<std::string>& config, size_t i)
+{
+    TORCH_CHECK(i + 2 < config.size(), "page_size requires format 'page_size:1g'", OPS_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(config[i+1] == ":", "Expected ':' after page_size", OPS_ERROR(ErrCode::VALUE));
+
+    if (config[i+2] == "1g") {
+        m_page_size_1g = true;
+    } else {
+        TORCH_CHECK(false, "Unsupported page_size value: ", config[i+2], OPS_ERROR(ErrCode::VALUE));
+    }
+    return i + 2; // 返回最后处理的索引位置
+}
+
 void CachingAllocatorConfig::parseArgs(const char* env) {
   // If empty, set the default values
   m_max_split_size = std::numeric_limits<size_t>::max();
@@ -932,6 +990,8 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
       i = parseExpandableSegments(config, i);
     } else if (config[i] == "base_addr_aligned_kb") {
       i = parseAddrAlignSize(config, i);
+    } else if (config[i] == "page_size") {
+      i = parsePageSize(config, i);
     } else {
       TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::PARAM));
     }
@@ -958,6 +1018,11 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
 bool checkConfigExpandableSegments()
 {
     return CachingAllocatorConfig::expandable_segments();
+}
+
+bool isConfig1GPageSizeEnable()
+{
+    return CachingAllocatorConfig::page_size_1g_enable();
 }
 
 class DeviceCachingAllocator {
@@ -1191,7 +1256,10 @@ class DeviceCachingAllocator {
     auto size = round_size(orig_size);
     auto& pool = get_pool(size, stream);
 
-    const size_t alloc_size = get_allocation_size(size);
+    // 开环境变量 大池子放1G内存块
+    const size_t alloc_size = IsMallocPage1GMem(pool.is_small)
+                              ? kExtraLargeBuffer * ((size + kExtraLargeBuffer - 1) / kExtraLargeBuffer)
+                              : get_allocation_size(size);
     AllocParams params(device, size, stream, &pool, alloc_size, stats);
     params.stat_types = get_stat_types_for_pool(pool);
 
@@ -2156,6 +2224,10 @@ class DeviceCachingAllocator {
     auto segment_size = pool->is_small ? kSmallBuffer : (
       c10_npu::option::OptionsManager::IsHcclZeroCopyEnable() ? kLargeBufferForHccl : kLargeBuffer
     );
+    // 此处申请虚拟内存，segment_size是页大小，实际虚拟内存巨大
+    if (IsMallocPage1GMem(pool->is_small)) {
+        segment_size = kExtraLargeBuffer;
+    }
     auto segment = new ExpandableSegment(device, stream, segment_size);
     if (hcclComm_) {
         segment->setHcclComm(hcclComm_);
@@ -2606,8 +2678,11 @@ class DeviceCachingAllocator {
                 ptr = active_pool->allocator()->raw_alloc(size);
                 p.err = ptr ? ACL_ERROR_NONE : ACL_ERROR_RT_MEMORY_ALLOCATION;
             } else {
-                p.err = c10_npu::acl::AclrtMallocAlign32(
-                    &ptr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
+                auto policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
+                if (IsMallocPage1GMem(p.pool->is_small)) {
+                    policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY;
+                }
+                p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
             }
             if (p.err != ACL_ERROR_NONE) {
                 return false;
