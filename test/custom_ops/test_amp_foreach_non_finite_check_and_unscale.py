@@ -67,4 +67,6 @@ class TestAmpForeachNonFiniteCheckAndUnscale(TestCase):
 
 
 if __name__ == "__main__":
-    run_tests()
+    device_name = torch_npu.npu.get_device_name(0)[:10]
+    if device_name in ["Ascend910A"]:
+        run_tests()
