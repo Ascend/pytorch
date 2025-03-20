@@ -14,7 +14,8 @@ extern PyObject *THNPStreamClass;
 
 TORCH_NPU_API void THNPStream_init(PyObject *module);
 
-inline bool THNPStream_Check(PyObject* obj) {
+inline bool THNPStream_Check(PyObject* obj)
+{
     return THNPStreamClass && PyObject_IsInstance(obj, THNPStreamClass);
 }
 

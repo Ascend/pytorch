@@ -480,7 +480,7 @@ PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* dev
     } else if (cube != DEVICE_UTILIZATION_NOT_SUPPORT && vector != DEVICE_UTILIZATION_NOT_SUPPORT) {
         util_rate = (cube + vector) / 2;
     }
-    TORCH_CHECK(util_rate <=100 && util_rate >= 0, "invalid result to util_rate", PTA_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(util_rate <= 100 && util_rate >= 0, "invalid result to util_rate", PTA_ERROR(ErrCode::VALUE));
     return PyLong_FromLong(util_rate);
     END_HANDLE_TH_ERRORS
 }
@@ -852,7 +852,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
                 to_gather_dest.emplace_back(trace_entry);
             }
             trace_entry[action_s] = action_to_str(te.action_);
-            trace_entry[TraceEntry::OOM == te.action_ ? device_free_s : addr_s] = te.addr_;
+            trace_entry[te.action_ == TraceEntry::OOM ? device_free_s : addr_s] = te.addr_;
             trace_entry[size_s] = te.size_;
             trace_entry[stream_s] = int64_t(te.stream_);
             trace.append(trace_entry);
@@ -1171,8 +1171,8 @@ PyObject* THNPModule_tensor_construct_from_storage(PyObject* self, PyObject* arg
     HANDLE_TH_ERRORS
     static torch::PythonArgParser parser(
         {"set_storage_with_format_(Storage source)", },
-        /* traceable= */ false
-        );
+        /* traceable= */
+        false);
 
     torch::ParsedArgs<1> parsed_args;
     auto _r = parser.parse(args, nullptr, parsed_args);
