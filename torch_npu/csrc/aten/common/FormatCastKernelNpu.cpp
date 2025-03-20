@@ -35,22 +35,22 @@ at::Tensor format_cast_impl_out_npu(at::Tensor& dst, const at::Tensor& src)
     return dst;
 }
 
-// convert src from src_format to dst_format, write the result into dst
-at::Tensor& NPUNativeFunctions::npu_format_cast_(at::Tensor& dst, const at::Tensor& src)
+// convert src from src_format to dst_format, write the result into dst(self)
+at::Tensor& NPUNativeFunctions::npu_format_cast_(at::Tensor& self, const at::Tensor& src)
 {
-    torch_npu::utils::torch_check_npu(dst);
+    torch_npu::utils::torch_check_npu(self);
     torch_npu::utils::torch_check_npu(src);
     auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
-    auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
+    auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
     if (src_desc.npu_format_ == dst_desc.npu_format_) {
-        dst.copy_(src);
-        return dst;
+        self.copy_(src);
+        return self;
     }
 
     // calculate the output result of the NPU
-    format_cast_impl_out_npu(dst, src);
+    format_cast_impl_out_npu(self, src);
 
-    return dst;
+    return self;
 }
 
 // conver self to acl_format, write the result into new result tensor
@@ -83,48 +83,48 @@ at::Tensor npu_format_cast_impl(
 
 // conver self to dst'format, write the result into new result tensor
 at::Tensor NPUNativeFunctions::npu_format_cast(
-    const at::Tensor& src,
+    const at::Tensor& self,
     const at::Tensor& dst)
 {
     torch_npu::utils::torch_check_npu(dst);
     auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
     int64_t dst_format = dst_desc.npu_format_;
-    return custom_ops::npu_format_cast(src, dst_format);
+    return custom_ops::npu_format_cast(self, dst_format);
 }
 
 // conver self to acl_format, write the result into self
 at::Tensor& NPUNativeFunctions::npu_format_cast_(
-    at::Tensor& src,
+    at::Tensor& self,
     int64_t acl_format)
 {
-    torch_npu::utils::torch_check_npu(src);
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+    torch_npu::utils::torch_check_npu(self);
+    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
     if (src_desc.npu_format_ == acl_format) {
-        return src;
+        return self;
     }
-    if (FormatHelper::IsBaseFormatType(src) &&
+    if (FormatHelper::IsBaseFormatType(self) &&
         FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
-        FormatCastHelper::format_cast_as_base_format(src, static_cast<aclFormat>(acl_format));
-        return src;
+        FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
+        return self;
     }
 
     at::Tensor dst = OpPreparation::ApplyTensorWithFormat(
-        src_desc.base_sizes_, src.options(), acl_format);
+        src_desc.base_sizes_, self.options(), acl_format);
 
     // calculate the output result of the NPU
-    format_cast_impl_out_npu(dst, src);
+    format_cast_impl_out_npu(dst, self);
 
     // format cast only change physical layout of base tensor and view tensor's
     // metadata remain unchanged
-    src.set_(dst.storage(), src.storage_offset(), src.sizes(), src.strides());
+    self.set_(dst.storage(), self.storage_offset(), self.sizes(), self.strides());
 
-    return src;
+    return self;
 }
 
-int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& src)
+int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& self)
 {
-    torch_npu::utils::torch_check_npu(src);
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+    torch_npu::utils::torch_check_npu(self);
+    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
     return src_desc.npu_format_;
 }
 
