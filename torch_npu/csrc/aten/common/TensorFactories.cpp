@@ -281,7 +281,7 @@ at::Tensor NPUNativeFunctions::empty_with_format(
     c10_npu::NPUGuard guard_(device_);
     c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
     // when the shape and format are not match, fix format here.
-    aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
+    aclFormat format = InferFormat::GuessStorageFormat(size, static_cast<aclFormat>(dst_format));
     auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
     int64_t nelements = StorageDescHelper::GetMemorySize(size, format, dtype);
     int64_t size_bytes = nelements * dtype.itemsize();
@@ -472,7 +472,7 @@ at::Tensor NPUNativeFunctions::bartlett_window(
         window_length += 1;
     }
     auto window = at::arange(window_length, options).mul_(2. / static_cast<double>(window_length - 1));
-    const int64_t first_half_size = ((uint64_t)(window_length - 1) >> 1) + 1;
+    const int64_t first_half_size = (static_cast<uint64_t>(window_length - 1) >> 1) + 1;
     window.narrow(0, first_half_size, window_length - first_half_size).mul_(-1).add_(2);
     return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
