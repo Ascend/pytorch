@@ -120,7 +120,7 @@ struct PhiloxNpuState {
 struct TORCH_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
     // Constructors
     NPUGeneratorImpl(c10::DeviceIndex device_index = -1);
-    ~NPUGeneratorImpl() = default;
+    ~NPUGeneratorImpl() override = default;
 
     // NPUGeneratorImpl methods
     std::shared_ptr<NPUGeneratorImpl> clone() const;
