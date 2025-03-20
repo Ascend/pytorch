@@ -1,11 +1,13 @@
 import os
 import pickle
+import re
 from typing import Any, Optional
 
 import torch
 from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile, \
     _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler, \
     _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL
+from torch.serialization import _default_to_weights_only, UNSAFE_MESSAGE
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
@@ -130,20 +132,72 @@ def load(
     map_location: MAP_LOCATION = None,
     pickle_module: Any = None,
     *,
-    weights_only: bool = False,
+    weights_only: Optional[bool] = None,
     mmap: Optional[bool] = None,
     **pickle_load_args: Any
 ) -> Any:
     _update_cpu_remap_info(map_location)
     torch._C._log_api_usage_once("torch.load")
-    UNSAFE_MESSAGE = (
-        "Weights only load failed. Re-running `torch.load` with `weights_only` set to `False`"
-        " will likely succeed, but it can result in arbitrary code execution."
-        "Do it only if you get the file from a trusted source. WeightsUnpickler error: "
+    DOCS_MESSAGE = (
+        "\n\nCheck the documentation of torch.load to learn more about types accepted by default with weights_only."
     )
-    # Add ability to force safe only weight loads via environment variable
-    if os.getenv("TORCH_FORCE_WEIGHTS_ONLY_LOAD", "0").lower() in ['1', 'y', 'yes', 'true']:
+
+    def _get_wo_message(message: str) -> str:
+        unsafe_global_pattern = r"GLOBAL (\S+) was not an allowed global by default."
+        has_unsafe_global = re.search(unsafe_global_pattern, message) is not None
+        blocklist_pattern = r"whose module (\S+) is blocked"
+        has_blocklist = re.search(blocklist_pattern, message) is not None
+        import_pattern = r"(\S+) must be (\S+) to load"
+        has_import = re.search(import_pattern, message) is not None
+        if has_unsafe_global:
+            updated_message = (
+                "Weights only load failed. This file can still be loaded, to do so you have two options, "
+                "\033[1mdo those steps only if you trust the source of the checkpoint\033[0m. "
+                f"\n\t(1) {UNSAFE_MESSAGE}\n\t(2) Alternatively, to load with `weights_only=True` please check "
+                "the recommended steps in the following error message.\n\tWeightsUnpickler error: "
+                + message
+            )
+        else:
+            if has_import:
+                return f"Weights only load failed. {message}\n {UNSAFE_MESSAGE}\n"
+            else:
+                updated_message = f"Weights only load failed. {UNSAFE_MESSAGE}\n"
+                if not has_blocklist:
+                    updated_message += (
+                        "Please file an issue with the following so that we can make "
+                        "`weights_only=True` compatible with your use case: WeightsUnpickler error: "
+                    )
+            updated_message += message
+        return updated_message + DOCS_MESSAGE
+
+    weights_only_not_set = weights_only is None
+    if weights_only_not_set:
+        weights_only = _default_to_weights_only(pickle_module)
+
+    true_values = ["1", "y", "yes", "true"]
+    # Add ability to force safe only or non-safe weight loads via environment variables
+    force_weights_only_load = (
+        os.getenv("TORCH_FORCE_WEIGHTS_ONLY_LOAD", "0") in true_values
+    )
+    force_no_weights_only_load = (
+        os.getenv("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", "0") in true_values
+    )
+
+    if force_weights_only_load and force_no_weights_only_load:
+        raise RuntimeError(
+            "Only one of `TORCH_FORCE_WEIGHTS_ONLY_LOAD` or `TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD` "
+            "should be set, but both were set." + pta_error(ErrCode.PARAM)
+        )
+    elif force_weights_only_load:
         weights_only = True
+    elif force_no_weights_only_load:
+        # TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD can only override if callsite did not explicitly set weights_only
+        if weights_only_not_set:
+            print(
+                "Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the"
+                "`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False."
+            )
+            weights_only = False
 
     if weights_only:
         if pickle_module is not None:
@@ -169,6 +223,11 @@ def load(
                 if _is_torchscript_zip(opened_zipfile):
                     print(f"Warning: 'torch.load' received a zip file that looks like a TorchScript archive"
                           " dispatching to 'torch.jit.load' (call 'torch.jit.load' directly to silence this warning)")
+                    if weights_only:
+                        raise RuntimeError(
+                            "Cannot use ``weights_only=True`` with TorchScript archives passed to "
+                            "``torch.load``. " + UNSAFE_MESSAGE + pta_error(ErrCode.PARAM)
+                        )
                     opened_file.seek(orig_position)
                     return torch.jit.load(opened_file, map_location=map_location)
                 if mmap:
@@ -182,24 +241,26 @@ def load(
                         return _load(opened_zipfile, map_location, _weights_only_unpickler,
                                      overall_storage=overall_storage, **pickle_load_args)
                     except RuntimeError as e:
-                        raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e) + pta_error(ErrCode.SYSCALL)) from None
+                        raise pickle.UnpicklingError(_get_wo_message(str(e)) + pta_error(ErrCode.SYSCALL)) from None
                 return _load(opened_zipfile, map_location, pickle_module,
                              overall_storage=overall_storage, **pickle_load_args)
         else:
             if mmap:
-                raise RuntimeError("mmap can only be used with files saved with `torch.save(_use_new_zipfile_serialization=True), ",
-                                   "please torch.save your checkpoint with this option in order to use mmap." +
-                                   pta_error(ErrCode.PARAM))
+                raise RuntimeError("mmap can only be used with files saved with "
+                                   "`torch.save(_use_new_zipfile_serialization=True), "
+                                   "please torch.save your checkpoint with this option in order to use mmap."
+                                   + pta_error(ErrCode.PARAM))
             if weights_only:
                 try:
                     return _legacy_load(opened_file, map_location, _weights_only_unpickler, **pickle_load_args)
                 except RuntimeError as e:
-                    raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e) + pta_error(ErrCode.SYSCALL)) from None
+                    raise pickle.UnpicklingError(_get_wo_message(str(e)) + pta_error(ErrCode.SYSCALL)) from None
 
             warn_massage = (
-                "Warning: since the loaded file is not a zipfile, only \"torch.device\" and \"str\" type parameters are currently supported for parameter types of map_location"
-                "If parameter types of map_location is \"Callable[[torch.Tensor, str], torch.Tensor]\" or \"Dict[str, str]\", which is only support for zipfile,"
-                "all tensors are currently loaded onto the CPU, which may introduce problems"
+                "Warning: since the loaded file is not a zipfile, only \"torch.device\" and \"str\" type parameters "
+                "are currently supported for parameter types of map_location. If parameter types of map_location is "
+                "\"Callable[[torch.Tensor, str], torch.Tensor]\" or \"Dict[str, str]\", which is only support for "
+                "zipfile, all tensors are currently loaded onto the CPU, which may introduce problems."
             )
             _warn_legacy_serialization(warn_massage, "load")
 

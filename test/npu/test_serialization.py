@@ -88,10 +88,10 @@ class TestSerialization(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             torch.serialization.save(x, path, _use_new_zipfile_serialization=False)
-            x_loaded = torch.load(path, map_location="npu:0")
+            x_loaded = torch.load(path, map_location="npu:0", weights_only=False)
             self.assertExpectedInline(f'{x_loaded.device.type}:{x_loaded.device.index}', 'npu:0')
             self.assertRtolEqual(x, x_loaded.cpu())
-            x_loaded = torch.load(path, map_location=torch.device("npu:0"))
+            x_loaded = torch.load(path, map_location=torch.device("npu:0"), weights_only=False)
             self.assertExpectedInline(f'{x_loaded.device.type}:{x_loaded.device.index}', 'npu:0')
             self.assertRtolEqual(x, x_loaded.cpu())
 
@@ -181,7 +181,7 @@ class TestSerialization(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             torch.save((x, model, number), path)
-            x_loaded, model_loaded, number_loaded = torch.load(path)
+            x_loaded, model_loaded, number_loaded = torch.load(path, weights_only=False)
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
             self.assertExpectedInline(str(model), str(model_loaded))
             self.assertTrue(number, number_loaded)
@@ -205,7 +205,7 @@ class TestSerialization(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(args, path)
-            args_loaded = torch.load(path)
+            args_loaded = torch.load(path, weights_only=False)
             self.assertTrue(args, args_loaded)
 
     def test_serialization_model(self):
@@ -213,7 +213,7 @@ class TestSerialization(TestCase):
             path = os.path.join(tmpdir, 'data.pt')
             model = NpuMNIST().npu()
             torch.save(model, path)
-            loaded_model = torch.load(path)
+            loaded_model = torch.load(path, weights_only=False)
             self.assertExpectedInline(str(model), str(loaded_model))
 
     def test_serialization_weight_norm(self):
@@ -221,7 +221,7 @@ class TestSerialization(TestCase):
             path = os.path.join(tmpdir, 'data.pt')
             model = WN(2, 4).npu()
             torch.save(model, path)
-            loaded_model = torch.load(path)
+            loaded_model = torch.load(path, weights_only=False)
             self.assertExpectedInline(str(model), str(loaded_model))
 
     def test_model_storage_ptr(self):
