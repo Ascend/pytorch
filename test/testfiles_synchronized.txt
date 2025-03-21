@@ -120,6 +120,7 @@ test/test_jit_profiling.py
 test/test_jit_llga_fuser.py
 test/test_type_hints.py
 test/test_typing.py
+test/test_fx_reinplace_pass.py
 mypy.ini
 test/profiler/profiler_utils_mock_events.json
 test/profiler/test_execution_trace.py
