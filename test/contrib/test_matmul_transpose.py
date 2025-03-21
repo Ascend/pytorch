@@ -45,7 +45,7 @@ class TestMatmulTranspose(TestCase):
 
         return output, fast_time
 
-    @SupportedDevices(['Ascend910A'])
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_matmul_transpose_shape_format(self):
         shape_format = [
             [[np.float16, 2, [50, 25, 7, 100]], [np.float16, 2, [50, 25, 10, 100]]],

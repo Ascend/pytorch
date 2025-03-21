@@ -186,7 +186,6 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    @unittest.skip("Case Failures not caused by pr, skip first")
     def test_wrapper_npu_conv3d(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -213,6 +212,9 @@ class TestOnnxOps(TestCase):
                     [1, 1, 1], [1, 1, 1], [1, 1, 1], 1
                 return torch_npu.npu_conv3d(input_, self.weight, self.bias,
                                             stride, paddings, dilation, groups)
+
+        torch.npu.config.allow_internal_format = True
+        torch.npu.set_compile_mode(jit_compile=True)
 
         def export_onnx(onnx_model_name):
             input_ = torch.rand([1, 128, 4, 14, 14]).npu()

@@ -9,7 +9,20 @@ from torch_npu.contrib.function import npu_bbox_coder_encode_yolo, \
 
 
 class TestBboxCoder(TestCase):
-    @SupportedDevices(['Ascend910A'])
+    @SupportedDevices(["Ascend910B"])
+    def test_npu_bbox_coder_encode_xyxy2xywh_A2(self):
+        bboxes = torch.tensor([[1., 2., 3., 4.], [3., 4., 5., 6.]], dtype=torch.float32).to("npu")
+        gt_bboxes = torch.tensor([[5., 6., 7., 8.], [7., 8., 9., 6.]], dtype=torch.float32).to("npu")
+        npuout_1 = npu_bbox_coder_encode_xyxy2xywh(bboxes, gt_bboxes)
+        npuout_2 = npu_bbox_coder_encode_xyxy2xywh(bboxes / 512., gt_bboxes / 512., is_normalized=True,
+                                                   normalized_scale=512.)
+        expect_cpu = torch.tensor([[1.3330, 1.3330, 0.0000, 0.0000],
+                                   [1.3330, 0.6665, 0.0000, np.nan]], dtype=torch.float32)
+
+        self.assertRtolEqual(expect_cpu.numpy(), npuout_1.cpu().numpy())
+        self.assertRtolEqual(expect_cpu.numpy(), npuout_2.cpu().numpy())
+
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_npu_bbox_coder_encode_xyxy2xywh(self):
         np.random.seed(123)
         data1 = np.random.randint(low=0, high=512, size=(6, 4))

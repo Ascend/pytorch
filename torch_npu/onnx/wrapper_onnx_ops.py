@@ -1006,6 +1006,8 @@ class _NPUMoeGatingTopKSoftmaxOP(torch.autograd.Function):
                  x: torch.Tensor,
                  finished: Optional[Tensor],
                  k: int = 1):
+        if finished is None:
+            finished = g.op("npu::NPUMoeGatingTopKSoftmax", value_t=torch.tensor([]).to(torch.bool))
         return g.op("npu::NPUMoeGatingTopKSoftmax", x, finished, k_i=k, outputs=3)
     
 

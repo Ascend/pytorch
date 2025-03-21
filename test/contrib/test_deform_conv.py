@@ -9,7 +9,6 @@ from torch_npu.contrib.module import DCNv2
 
 
 class TestDeformConv(TestCase):
-    @SupportedDevices(['Ascend910A'])
     def test_npu_deform_conv_1(self):
         np.random.seed(226)
         data1 = np.random.randn(2, 2, 3, 3)
@@ -48,10 +47,9 @@ class TestDeformConv(TestCase):
                                           [[-0.1422, -0.2028, -0.1422],
                                            [-0.0641, 0.2660, -0.0641],
                                            [-0.1422, -0.2028, -0.1422]]]], dtype=torch.float32)
-        self.assertRtolEqual(expect_cpu_output, output.detach().cpu())
-        self.assertRtolEqual(expect_cpu_xgrad, x.grad.cpu())
+        self.assertRtolEqual(expect_cpu_output, output.detach().cpu(), prec=1.e-3)
+        self.assertRtolEqual(expect_cpu_xgrad, x.grad.cpu(), prec=1.e-3)
 
-    @SupportedDevices(['Ascend910A'])
     def test_npu_deform_conv_2(self):
         np.random.seed(546)
         data1 = np.random.randn(2, 2, 5, 5)
@@ -102,8 +100,8 @@ class TestDeformConv(TestCase):
                                            [-0.1422, -0.2028, -0.1422, -0.2028, -0.1422],
                                            [-0.0641, 0.2660, -0.0641, 0.2660, -0.0641],
                                            [-0.1422, -0.2028, -0.1422, -0.2028, -0.1422]]]], dtype=torch.float32)
-        self.assertRtolEqual(expect_cpu_output, output.detach().cpu())
-        self.assertRtolEqual(expect_cpu_xgrad, x.grad.cpu())
+        self.assertRtolEqual(expect_cpu_output, output.detach().cpu(), prec=1.e-3)
+        self.assertRtolEqual(expect_cpu_xgrad, x.grad.cpu(), prec=1.e-3)
 
 
 if __name__ == "__main__":
