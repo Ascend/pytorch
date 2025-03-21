@@ -1354,7 +1354,7 @@ class TestOnnxOps(TestCase):
 
         def export_onnx(onnx_model_name):
             x = torch.randn((8192, 320), dtype=torch.bfloat16).npu()
-            weight = torch.randn((320, 256), dtype=torch.int8).npu()
+            weight = torch.randn((320, 256), dtype=torch.int8, device="npu")
             antiquantscale = torch.randn((1, 256), dtype=torch.bfloat16).npu()
             antiquantoffset = torch.randn((1, 256), dtype=torch.bfloat16).npu()
             model = Model().to("npu")
