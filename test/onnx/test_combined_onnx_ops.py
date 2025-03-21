@@ -213,6 +213,9 @@ class TestOnnxOps(TestCase):
                 return torch_npu.npu_conv3d(input_, self.weight, self.bias,
                                             stride, paddings, dilation, groups)
 
+        torch.npu.config.allow_internal_format = True
+        torch.npu.set_compile_mode(jit_compile=True)
+
         def export_onnx(onnx_model_name):
             input_ = torch.rand([1, 128, 4, 14, 14]).npu()
             model = Model().to("npu")
