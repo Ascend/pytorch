@@ -31238,5 +31238,14 @@
   "test_conj_view__refs_unbind_copy_npu_complex64 (__main__.TestMathBitsPRIVATEUSE1)": ["", [""]],
   "test_conj_view_unbind_copy_npu_complex64 (__main__.TestMathBitsPRIVATEUSE1)": ["", [""]],
   "test_neg_conj_view__refs_unbind_copy_npu_complex128 (__main__.TestMathBitsPRIVATEUSE1)": ["", [""]],
-  "test_neg_conj_view_unbind_copy_npu_complex128 (__main__.TestMathBitsPRIVATEUSE1)": ["", [""]]
+  "test_neg_conj_view_unbind_copy_npu_complex128 (__main__.TestMathBitsPRIVATEUSE1)": ["", [""]],
+  "test_reinplace_scatter_twice_with_different_view_op_invalid2 (__main__.TestReinplacePass)": ["", [""]],
+  "test_reinplace_scatter_twice_with_different_view_op_invalid (__main__.TestReinplacePass)": ["", [""]],
+  "test_reinplace_scatter_twice (__main__.TestReinplacePass)": ["", [""]],
+  "test_reinplace_scatter_twice_with_different_view_op_valid (__main__.TestReinplacePass)": ["", [""]],
+  "test_out_node_updated (__main__.TestReinplacePass)": ["", [""]],
+  "test_reinplace_with_view (__main__.TestReinplacePass)": ["", [""]],
+  "test_reinplace_basic (__main__.TestReinplacePass)": ["", [""]],
+  "test_reinplace_index_mutation (__main__.TestReinplacePass)": ["", [""]],
+  "test_reinplace_scatter_op (__main__.TestReinplacePass)": ["", [""]]
 }
