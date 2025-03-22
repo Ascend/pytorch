@@ -104,43 +104,48 @@ const std::string kDriverModule = "DRIVER"; // driver module name
 
 using StatTypes = std::array<bool, static_cast<size_t>(StatType::NUM_TYPES)>;
 
-void update_stat(Stat& stat, int64_t amount) {
-  stat.current += amount;
-  stat.peak = std::max(stat.current, stat.peak);
-  if (amount > 0) {
-    stat.allocated += amount;
-  }
-  if (amount < 0) {
-    stat.freed += -amount;
-  }
+void update_stat(Stat& stat, int64_t amount)
+{
+    stat.current += amount;
+    stat.peak = std::max(stat.current, stat.peak);
+    if (amount > 0) {
+        stat.allocated += amount;
+    }
+    if (amount < 0) {
+        stat.freed += -amount;
+    }
 }
 
-void reset_accumulated_stat(Stat& stat) {
-  stat.allocated = 0;
-  stat.freed = 0;
+void reset_accumulated_stat(Stat& stat)
+{
+    stat.allocated = 0;
+    stat.freed = 0;
 }
 
-void reset_peak_stat(Stat& stat) {
-  stat.peak = stat.current;
+void reset_peak_stat(Stat& stat)
+{
+    stat.peak = stat.current;
 }
 
 template <typename Func>
-void for_each_selected_stat_type(const StatTypes& stat_types, Func f) {
-  for (const auto stat_type : c10::irange(stat_types.size())) {
-    if (stat_types[stat_type]) {
-      f(stat_type);
+void for_each_selected_stat_type(const StatTypes& stat_types, Func f)
+{
+    for (const auto stat_type : c10::irange(stat_types.size())) {
+        if (stat_types[stat_type]) {
+            f(stat_type);
+        }
     }
-  }
 }
 
 void update_stat_array(
     StatArray& stat_array,
     int64_t amount,
-    const StatTypes& stat_types) {
-  for_each_selected_stat_type(
-      stat_types, [&stat_array, amount](size_t stat_type) {
-        update_stat(stat_array[stat_type], amount);
-      });
+    const StatTypes& stat_types)
+{
+    for_each_selected_stat_type(
+        stat_types, [&stat_array, amount](size_t stat_type) {
+            update_stat(stat_array[stat_type], amount);
+        });
 }
 
 bool IsMallocPage1GMem(bool is_small_pool)
@@ -272,9 +277,9 @@ struct Block {
 };
 
 struct SegmentRange {
-  char* ptr;
-  size_t size;
-  SegmentRange(void* p, size_t s) : ptr(static_cast<char*>(p)), size(s) {}
+    char* ptr;
+    size_t size;
+    SegmentRange(void* p, size_t s) : ptr(static_cast<char*>(p)), size(s) {}
 };
 
 
@@ -584,10 +589,10 @@ struct BlockState {
 };
 
 struct SegmentState {
-  std::vector<BlockState> blocks;
-  bool is_small = false;
+    std::vector<BlockState> blocks;
+    bool is_small = false;
 
-  explicit SegmentState(Block* head);
+    explicit SegmentState(Block* head);
 };
 
 struct PrivatePoolState : AllocatorState {
@@ -602,29 +607,31 @@ struct PrivatePoolState : AllocatorState {
 };
 
 struct RestoreResult {
-  std::vector<void*> allocations_freed;
-  std::vector<Block*> allocations_created;
+    std::vector<void*> allocations_freed;
+    std::vector<Block*> allocations_created;
 };
 
-static bool BlockComparatorSize(const Block* a, const Block* b) {
-  if (a->stream != b->stream) {
-    return reinterpret_cast<uintptr_t>(a->stream) <
-        reinterpret_cast<uintptr_t>(b->stream);
-  }
-  if (a->size != b->size) {
-    return a->size < b->size;
-  }
-  return reinterpret_cast<uintptr_t>(a->ptr) <
-      reinterpret_cast<uintptr_t>(b->ptr);
+static bool BlockComparatorSize(const Block* a, const Block* b)
+{
+    if (a->stream != b->stream) {
+        return reinterpret_cast<uintptr_t>(a->stream) <
+            reinterpret_cast<uintptr_t>(b->stream);
+    }
+    if (a->size != b->size) {
+        return a->size < b->size;
+    }
+    return reinterpret_cast<uintptr_t>(a->ptr) <
+        reinterpret_cast<uintptr_t>(b->ptr);
 }
 
-static bool BlockComparatorAddress(const Block* a, const Block* b) {
-  if (a->stream != b->stream) {
-    return reinterpret_cast<uintptr_t>(a->stream) <
-        reinterpret_cast<uintptr_t>(b->stream);
-  }
-  return reinterpret_cast<uintptr_t>(a->ptr) <
-      reinterpret_cast<uintptr_t>(b->ptr);
+static bool BlockComparatorAddress(const Block* a, const Block* b)
+{
+    if (a->stream != b->stream) {
+        return reinterpret_cast<uintptr_t>(a->stream) <
+            reinterpret_cast<uintptr_t>(b->stream);
+    }
+    return reinterpret_cast<uintptr_t>(a->ptr) <
+        reinterpret_cast<uintptr_t>(b->ptr);
 }
 
 struct AllocParams {
