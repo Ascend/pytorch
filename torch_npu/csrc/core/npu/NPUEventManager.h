@@ -14,27 +14,27 @@ namespace c10_npu {
 
 class NPUEventManager {
 public:
-  static NPUEventManager& GetInstance();
-  aclError QueryAndDestroyEvent();
-  aclError LazyDestroy(aclrtEvent npu_event);
-  void ClearEvent();
-  void IncreaseUnrecordedCount(aclrtEvent event);
-  void DecreaseUnrecordedCount(aclrtEvent event);
-  bool IsEventRecorded(aclrtEvent event);
-  void ClearUnrecordedCount();
-  ~NPUEventManager() {}
+    static NPUEventManager& GetInstance();
+    aclError QueryAndDestroyEvent();
+    aclError LazyDestroy(aclrtEvent npu_event);
+    void ClearEvent();
+    void IncreaseUnrecordedCount(aclrtEvent event);
+    void DecreaseUnrecordedCount(aclrtEvent event);
+    bool IsEventRecorded(aclrtEvent event);
+    void ClearUnrecordedCount();
+    ~NPUEventManager() {}
 
 private:
-  void run(aclrtEvent event);
+    void run(aclrtEvent event);
 
 private:
-  std::mutex event_queue_mutex_;
-  NPUEventManager();
-  std::deque<aclrtEvent> npu_events_;
-  std::shared_ptr<c10::TaskThreadPool> thread_pool_;
+    std::mutex event_queue_mutex_;
+    NPUEventManager();
+    std::deque<aclrtEvent> npu_events_;
+    std::shared_ptr<c10::TaskThreadPool> thread_pool_;
 
-  std::mutex event_unrecorded_count_mutex_;
-  ska::flat_hash_map<aclrtEvent, int> event_unrecorded_count_;
+    std::mutex event_unrecorded_count_mutex_;
+    ska::flat_hash_map<aclrtEvent, int> event_unrecorded_count_;
 };
 
 } // namespace c10_npu
