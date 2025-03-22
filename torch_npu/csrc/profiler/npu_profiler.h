@@ -139,7 +139,7 @@ struct MstxRange {
         }
         rangeId = MstxMgr::GetInstance()->getRangeId();
         if (at_npu::native::IsSupportMstxDomainFunc()) {
-            domainHandle = MstxMgr::GetInstance()->createDomain(domainName.c_str());
+            domainHandle = MstxMgr::GetInstance()->createProfDomain(domainName.c_str());
             at_npu::native::MstxDomainRangeStartA(domainHandle, message.c_str(), stream, rangeId);
         } else {
             at_npu::native::MstxRangeStartA(message.c_str(), stream, rangeId);
