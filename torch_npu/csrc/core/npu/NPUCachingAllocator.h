@@ -45,68 +45,68 @@ C10_DECLARE_REGISTRY(FreeNPUMemoryCallbacksRegistry, FreeMemoryCallback);
 // not counted as a word boundary, so you would otherwise have to list each
 // of these functions.
 struct Stat {
-  int64_t current = 0;
-  int64_t peak = 0;
-  int64_t allocated = 0;
-  int64_t freed = 0;
+    int64_t current = 0;
+    int64_t peak = 0;
+    int64_t allocated = 0;
+    int64_t freed = 0;
 };
 
 enum struct StatType : uint64_t {
-  AGGREGATE = 0,
-  SMALL_POOL = 1,
-  LARGE_POOL = 2,
-  NUM_TYPES = 3  // remember to update this whenever a new stat type is added
+    AGGREGATE = 0,
+    SMALL_POOL = 1,
+    LARGE_POOL = 2,
+    NUM_TYPES = 3  // remember to update this whenever a new stat type is added
 };
 
 typedef std::array<Stat, static_cast<size_t>(StatType::NUM_TYPES)> StatArray;
 // Struct containing memory allocator summary statistics for a device.
 struct DeviceStats {
-  // COUNT: allocations requested by client code
-  StatArray allocation;
-  // COUNT: number of allocated segments from npuMalloc().
-  StatArray segment;
-  // COUNT: number of active memory blocks (allocated or used by stream)
-  StatArray active;
-  // COUNT: number of inactive, split memory blocks (unallocated but can't be released via npuFree)
-  StatArray inactive_split;
+    // COUNT: allocations requested by client code
+    StatArray allocation;
+    // COUNT: number of allocated segments from npuMalloc().
+    StatArray segment;
+    // COUNT: number of active memory blocks (allocated or used by stream)
+    StatArray active;
+    // COUNT: number of inactive, split memory blocks (unallocated but can't be released via npuFree)
+    StatArray inactive_split;
 
-  // SUM: bytes requested by client code
-  StatArray allocated_bytes;
-  // SUM: bytes reserved by this memory allocator (both free and used)
-  StatArray reserved_bytes;
-  // SUM: bytes within active memory blocks
-  StatArray active_bytes;
-  // SUM: bytes within inactive, split memory blocks
-  StatArray inactive_split_bytes;
-  // SUM: bytes requested by client code
-  StatArray requested_bytes;
+    // SUM: bytes requested by client code
+    StatArray allocated_bytes;
+    // SUM: bytes reserved by this memory allocator (both free and used)
+    StatArray reserved_bytes;
+    // SUM: bytes within active memory blocks
+    StatArray active_bytes;
+    // SUM: bytes within inactive, split memory blocks
+    StatArray inactive_split_bytes;
+    // SUM: bytes requested by client code
+    StatArray requested_bytes;
 
-  // COUNT: total number of failed calls to NPU malloc necessitating cache flushes.
-  int64_t num_alloc_retries = 0;
+    // COUNT: total number of failed calls to NPU malloc necessitating cache flushes.
+    int64_t num_alloc_retries = 0;
 
-  // COUNT: total number of OOMs (i.e. failed calls to NPU after cache flush)
-  int64_t num_ooms = 0;
+    // COUNT: total number of OOMs (i.e. failed calls to NPU after cache flush)
+    int64_t num_ooms = 0;
 
-  // COUNT: total number of oversize blocks allocated from pool
-  Stat oversize_allocations;
+    // COUNT: total number of oversize blocks allocated from pool
+    Stat oversize_allocations;
 
-  // COUNT: total number of oversize blocks requiring malloc
-  Stat oversize_segments;
+    // COUNT: total number of oversize blocks requiring malloc
+    Stat oversize_segments;
 
-  // SIZE: maximum block size that is allowed to be split.
-  int64_t max_split_size = 0;
+    // SIZE: maximum block size that is allowed to be split.
+    int64_t max_split_size = 0;
 };
 
 typedef std::shared_ptr<c10::GatheredContext> (*CreateContextFn)(void);
 
 // Struct containing info of an allocation block (i.e. a fractional part of a cudaMalloc)..
 struct BlockInfo {
-  int64_t size = 0;
-  int64_t requested_size = 0;
-  int32_t gc_counter = 0;
-  bool allocated = false;
-  bool active = false;
-  std::shared_ptr<c10::GatheredContext> context_when_allocated;
+    int64_t size = 0;
+    int64_t requested_size = 0;
+    int32_t gc_counter = 0;
+    bool allocated = false;
+    bool active = false;
+    std::shared_ptr<c10::GatheredContext> context_when_allocated;
 };
 
 // Struct containing info of a memory segment (i.e. one contiguous cudaMalloc).
