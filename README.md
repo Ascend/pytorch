@@ -148,6 +148,10 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 
 | CANN Version          | Supported PyTorch Version | Supported Extension Version | Github Branch     |
 |-----------------------|---------------------------|-----------------------------|-------------------|
+| CANN 8.1.RC1          | 2.5.1                     | 2.5.0                       | v2.5.1-7.0.0      |
+|                       | 2.4.0                     | 2.4.0.post3                 | v2.4.0-7.0.0      |
+|                       | 2.3.1                     | 2.3.1.post5                 | v2.3.1-7.0.0      |
+|                       | 2.1.0                     | 2.1.0.post11                | v2.1.0-7.0.0      |
 | CANN 8.0.0.alpha001   | 2.5.1                     | 2.5.1rc1                    | v2.5.1            |
 | CANN 8.0.0            | 2.4.0                     | 2.4.0.post2                 | v2.4.0-6.0.0      | 
 |                       | 2.3.1                     | 2.3.1.post4                 | v2.3.1-6.0.0      |
