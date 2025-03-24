@@ -39,12 +39,12 @@ pip3 install setuptools
 
 If the installation fails, use the download link or visit the [PyTorch official website](https://pytorch.org/) to download the installation package of the corresponding version.
 
-| OS arch | Python version | link                                                  |
-| ------- | -------------- | ----------------------------------------------------- |
-| x86     | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=b68274aeb4047ba8c73e903f0621e2a4adb54ad5282b0845689c3e1dcd2e2546) |
-| x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=35a9e78b7e4096968b54c1a198687b981569c50ae93e661aa430f9fd208da102) |
-| x86     | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp311-cp311-linux_x86_64.whl#sha256=5b6ae523bfb67088a17ca7734d131548a2e60346c622621e4248ed09dd0790cc) |
-| aarch64 | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp39-cp39-manylinux_2_28_aarch64.whl#sha256=2ab9c6b3d6eea506bda9b82a0155e974d8ef8e38b417589d144568b4fa59afe1) |
+| OS arch | Python version | link                                                                                                                                                                          |
+|---------|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| x86     | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=b68274aeb4047ba8c73e903f0621e2a4adb54ad5282b0845689c3e1dcd2e2546)             |
+| x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=35a9e78b7e4096968b54c1a198687b981569c50ae93e661aa430f9fd208da102)           |
+| x86     | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp311-cp311-linux_x86_64.whl#sha256=5b6ae523bfb67088a17ca7734d131548a2e60346c622621e4248ed09dd0790cc)           |
+| aarch64 | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp39-cp39-manylinux_2_28_aarch64.whl#sha256=2ab9c6b3d6eea506bda9b82a0155e974d8ef8e38b417589d144568b4fa59afe1)   |
 | aarch64 | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=90832f4d118c566b8652a2196ac695fc1f14cf420db27b5a1b41c7eaaf2141e9) |
 | aarch64 | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl#sha256=d3dab9fb0294f268aec28e8aaba834e9d006b90a50db5bc2fe2191a9d48c6084) |
 
@@ -154,7 +154,6 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 |                       | 2.3.1                     | 2.3.1.post5                 | v2.3.1-7.0.0      |
 |                       | 2.1.0                     | 2.1.0.post11                | v2.1.0-7.0.0      |
 | CANN 8.0.0.beta1      | 2.6.0                     | 2.6.0rc1                    | v2.6.0            |
-| CANN 8.0.0.alpha001   | 2.5.1                     | 2.5.1rc1                    | v2.5.1            |
 | CANN 8.0.0            | 2.4.0                     | 2.4.0.post2                 | v2.4.0-6.0.0      | 
 |                       | 2.3.1                     | 2.3.1.post4                 | v2.3.1-6.0.0      |
 |                       | 2.1.0                     | 2.1.0.post10                | v2.1.0-6.0.0      |
@@ -165,7 +164,6 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 |                       | 2.2.0                     | 2.2.0.post2                 | v2.2.0-6.0.rc2    |
 |                       | 2.1.0                     | 2.1.0.post6                 | v2.1.0-6.0.rc2    |
 |                       | 1.11.0                    | 1.11.0.post14               | v1.11.0-6.0.rc2   |
-| CANN 8.0.RC2.alpha002 | 2.3.1                     | 2.3.1rc1                    | v2.3.1            |
 | CANN 8.0.RC1          | 2.2.0                     | 2.2.0                       | v2.2.0-6.0.rc1    |
 |                       | 2.1.0                     | 2.1.0.post4                 | v2.1.0-6.0.rc1    |
 |                       | 1.11.0                    | 1.11.0.post11               | v1.11.0-6.0.rc1   |
@@ -241,18 +239,18 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 ##  PyTorch Maintenance Policies
 
-| **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                               | **EOL Date** |
-|-------------|--------------------------|-------------|-----------------|---------------------------------------------------------------------|--------------|
-| 2.6.0       | Regular Release          | Development | 2025/02/20      | Expected to enter maintenance status from  July 20, 2025            |              |
-| 2.5.1       | Regular Release          | Development | 2024/11/08      | Expected to enter maintenance status from  April 8, 2025            |              |
-| 2.4.0       | Regular Release          | Development | 2024/10/15      | Expected to enter maintenance status from  June 15, 2025           |              |
-| 2.3.1       | Regular Release          | Development | 2024/06/06      | Expected to enter maintenance status from  June 7, 2025         |              |
-| 2.2.0       | Regular Release          | Maintained  | 2024/04/01      | Expected to enter maintenance free status from September 10th, 2025 |              |
-| 2.1.0       | Long Term Support        | Development | 2023/10/15      | Expected to enter maintenance status from September 15, 2025            |              |
-| 2.0.1       | Regular Release          | EOL         | 2023/7/19       |                                                                     | 2024/3/14    |
-| 1.11.0      | Long Term Support        | Maintained  | 2023/4/19       | Expected to enter maintenance free status from September 10th, 2025 |              |
-| 1.8.1       | Long Term Support        | EOL         | 2022/4/10       |                                                                     | 2023/4/10    |
-| 1.5.0       | Long Term Support        | EOL         | 2021/7/29       |                                                                     | 2022/7/29    |
+| **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
+|-------------|--------------------------|-------------|-----------------|-------------------------------------------------------------------|--------------|
+| 2.6.0       | Regular Release          | Development | 2025/03/31      | Expected to enter maintenance status from August 31, 2025         |              |
+| 2.5.1       | Regular Release          | Development | 2024/11/08      | Expected to enter maintenance status from April 8, 2025           |              |
+| 2.4.0       | Regular Release          | Development | 2024/10/15      | Expected to enter maintenance status from June 15, 2025           |              |
+| 2.3.1       | Regular Release          | Development | 2024/06/06      | Expected to enter maintenance status from June 7, 2025            |              |
+| 2.2.0       | Regular Release          | Maintained  | 2024/04/01      | Expected to enter maintenance free status from September 10, 2025 |              |
+| 2.1.0       | Long Term Support        | Development | 2023/10/15      | Expected to enter maintenance status from September 15, 2025      |              |
+| 2.0.1       | Regular Release          | EOL         | 2023/7/19       |                                                                   | 2024/3/14    |
+| 1.11.0      | Long Term Support        | Maintained  | 2023/4/19       | Expected to enter maintenance free status from September 10, 2025 |              |
+| 1.8.1       | Long Term Support        | EOL         | 2022/4/10       |                                                                   | 2023/4/10    |
+| 1.5.0       | Long Term Support        | EOL         | 2021/7/29       |                                                                   | 2022/7/29    |
 
 ## Reference Documents
 
