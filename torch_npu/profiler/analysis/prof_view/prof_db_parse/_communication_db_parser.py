@@ -94,9 +94,9 @@ class CommunicationDbParser(CommunicationParser):
             }]
 
     def generate_view(self) -> None:
-        self.generate_communication_db(self._output_path)
+        self.generate_communication_db()
     
-    def generate_communication_db(self, output_path: str):
+    def generate_communication_db(self):
         db_files = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.ANALYSIS_DB)
         if not db_files:
             return
@@ -104,7 +104,7 @@ class CommunicationDbParser(CommunicationParser):
         band_width_data, matrix_data, time_data = \
             self.set_step_and_type_info_for_db_data(band_width_data, matrix_data, time_data)
         matrix_data = self.reformat_matrix_db_data(matrix_data)
-        self.save_communication_db_data(band_width_data, matrix_data, time_data, output_path)
+        self.save_communication_db_data(band_width_data, matrix_data, time_data)
 
     def get_communication_db_data(self, db_path: str):
         # 在处理原analysis.db里的数据
