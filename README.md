@@ -51,7 +51,7 @@ If the installation fails, use the download link or visit the [PyTorch official 
 3. **Install torch-npu**
 
 ```
-pip3 install torch-npu==2.5.1rc1
+pip3 install torch-npu==2.5.1
 ```
 
 ### From Source
@@ -152,7 +152,6 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 |                       | 2.4.0                     | 2.4.0.post3                 | v2.4.0-7.0.0      |
 |                       | 2.3.1                     | 2.3.1.post5                 | v2.3.1-7.0.0      |
 |                       | 2.1.0                     | 2.1.0.post11                | v2.1.0-7.0.0      |
-| CANN 8.0.0.alpha001   | 2.5.1                     | 2.5.1rc1                    | v2.5.1            |
 | CANN 8.0.0            | 2.4.0                     | 2.4.0.post2                 | v2.4.0-6.0.0      | 
 |                       | 2.3.1                     | 2.3.1.post4                 | v2.3.1-6.0.0      |
 |                       | 2.1.0                     | 2.1.0.post10                | v2.1.0-6.0.0      |
@@ -163,7 +162,6 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 |                       | 2.2.0                     | 2.2.0.post2                 | v2.2.0-6.0.rc2    |
 |                       | 2.1.0                     | 2.1.0.post6                 | v2.1.0-6.0.rc2    |
 |                       | 1.11.0                    | 1.11.0.post14               | v1.11.0-6.0.rc2   |
-| CANN 8.0.RC2.alpha002 | 2.3.1                     | 2.3.1rc1                    | v2.3.1            |
 | CANN 8.0.RC1          | 2.2.0                     | 2.2.0                       | v2.2.0-6.0.rc1    |
 |                       | 2.1.0                     | 2.1.0.post4                 | v2.1.0-6.0.rc1    |
 |                       | 1.11.0                    | 1.11.0.post11               | v1.11.0-6.0.rc1   |
@@ -239,17 +237,17 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 ##  PyTorch Maintenance Policies
 
-| **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                               | **EOL Date** |
-|-------------|--------------------------|-------------|-----------------|---------------------------------------------------------------------|--------------|
-| 2.5.1       | Regular Release          | Development | 2024/11/08      | Expected to enter maintenance status from  April 8, 2025            |              |
-| 2.4.0       | Regular Release          | Development | 2024/10/15      | Expected to enter maintenance status from  June 15, 2025           |              |
-| 2.3.1       | Regular Release          | Development | 2024/06/06      | Expected to enter maintenance status from  June 7th, 2025         |              |
-| 2.2.0       | Regular Release          | Maintained  | 2024/04/01      | Expected to enter maintenance free status from September 10th, 2025 |              |
-| 2.1.0       | Long Term Support        | Development | 2023/10/15      | Expected to enter maintenance status from September 15, 2025            |              |
-| 2.0.1       | Regular Release          | EOL         | 2023/7/19       |                                                                     | 2024/3/14    |
-| 1.11.0      | Long Term Support        | Maintained  | 2023/4/19       | Expected to enter maintenance free status from September 10th, 2025 |              |
-| 1.8.1       | Long Term Support        | EOL         | 2022/4/10       |                                                                     | 2023/4/10    |
-| 1.5.0       | Long Term Support        | EOL         | 2021/7/29       |                                                                     | 2022/7/29    |
+| **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
+|-------------|--------------------------|-------------|-----------------|-------------------------------------------------------------------|--------------|
+| 2.5.1       | Regular Release          | Development | 2024/11/08      | Expected to enter maintenance status from April 8, 2025           |              |
+| 2.4.0       | Regular Release          | Development | 2024/10/15      | Expected to enter maintenance status from June 15, 2025           |              |
+| 2.3.1       | Regular Release          | Development | 2024/06/06      | Expected to enter maintenance status from June 7, 2025            |              |
+| 2.2.0       | Regular Release          | Maintained  | 2024/04/01      | Expected to enter maintenance free status from September 10, 2025 |              |
+| 2.1.0       | Long Term Support        | Development | 2023/10/15      | Expected to enter maintenance status from September 15, 2025      |              |
+| 2.0.1       | Regular Release          | EOL         | 2023/7/19       |                                                                   | 2024/3/14    |
+| 1.11.0      | Long Term Support        | Maintained  | 2023/4/19       | Expected to enter maintenance free status from September 10, 2025 |              |
+| 1.8.1       | Long Term Support        | EOL         | 2022/4/10       |                                                                   | 2023/4/10    |
+| 1.5.0       | Long Term Support        | EOL         | 2021/7/29       |                                                                   | 2022/7/29    |
 
 ## Reference Documents
 
