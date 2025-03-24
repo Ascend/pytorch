@@ -30,14 +30,14 @@ pip3 install torch==2.3.1+cpu  --index-url https://download.pytorch.org/whl/cpu
 
 若使用pip命令安装失败，请使用下载链接或进入[PyTorch官方网站](https://pytorch.org/)进行查询下载对应版本。
 
-| 架构    | Python版本 | 下载链接                                                     |
-| ------- | ---------- | ------------------------------------------------------------ |
-| x86     | Python3.8  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1%2Bcpu-cp38-cp38-linux_x86_64.whl#sha256=cab92d5101e6db686c5525e04d87cedbcf3a556073d71d07fbe7d1ce09630ffb) |
-| x86     | Python3.9  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=a3cb8e61ba311cee1bb7463cbdcf3ebdfd071e2091e74c5785e3687eb02819f9) |
-| x86     | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=d679e21d871982b9234444331a26350902cfd2d5ca44ce6f49896af8b3a3087d) |
-| x86     | Python3.11 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1%2Bcpu-cp311-cp311-linux_x86_64.whl#sha256=a272defe305dbd944aa28a91cc3db0f0149495b3ebec2e39723a7224fa05dc57) |
-| aarch64 | Python3.8  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=3b7c1498f904f67eb1e331f2ebe8742771a2ce71b9ee9bc01de967257e881c7d) |
-| aarch64 | Python3.9  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=db6bff4ba6273b59ae443de04b5adc36d6a40bb2898866133bff2d52f276eafe) |
+| 架构      | Python版本   | 下载链接                                                                                                                                                                                          |
+|---------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| x86     | Python3.8  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1%2Bcpu-cp38-cp38-linux_x86_64.whl#sha256=cab92d5101e6db686c5525e04d87cedbcf3a556073d71d07fbe7d1ce09630ffb)                             |
+| x86     | Python3.9  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=a3cb8e61ba311cee1bb7463cbdcf3ebdfd071e2091e74c5785e3687eb02819f9)                             |
+| x86     | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=d679e21d871982b9234444331a26350902cfd2d5ca44ce6f49896af8b3a3087d)                           |
+| x86     | Python3.11 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1%2Bcpu-cp311-cp311-linux_x86_64.whl#sha256=a272defe305dbd944aa28a91cc3db0f0149495b3ebec2e39723a7224fa05dc57)                           |
+| aarch64 | Python3.8  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=3b7c1498f904f67eb1e331f2ebe8742771a2ce71b9ee9bc01de967257e881c7d)   |
+| aarch64 | Python3.9  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=db6bff4ba6273b59ae443de04b5adc36d6a40bb2898866133bff2d52f276eafe)   |
 | aarch64 | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=6544fdf29018668c0a6d4a1bcc955982c1ada70806281b010cba93bdcfbdcf22) |
 | aarch64 | Python3.11 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.3.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=2aaf0e37734cbc5fe6bfcc81ada36ecbb899d4ddbe13498bd84aaca8a91c8628) |
 
@@ -53,7 +53,7 @@ pip3 install setuptools
 3. **安装torch_npu**
 
 ```
-pip3 install torch-npu==2.3.1.post4
+pip3 install torch-npu==2.3.1.post5
 ```
 如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
@@ -64,7 +64,7 @@ pip3 install torch-npu==2.3.1.post4
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git -b v2.3.1 --depth 1
+   git clone https://gitee.com/ascend/pytorch.git -b v2.3.1-7.0.0 --depth 1
    ```
 
 2. **构建镜像**
@@ -147,10 +147,11 @@ print(z)
 | PyTorch版本     | Python版本                                                     |
 |---------------|:-------------------------------------------------------------|
 | PyTorch1.11.0 | Python3.7.x(>=3.7.5), Python3.8.x, Python3.9.x, Python3.10.x |
-| PyTorch2.1.0  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x                       |
+| PyTorch2.1.0  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x        |
 | PyTorch2.2.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
-| PyTorch2.3.1  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x                       |
-| PyTorch2.4.0  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x                       |
+| PyTorch2.3.1  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x        |
+| PyTorch2.4.0  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x        |
+| PyTorch2.5.1  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
 
 ## 昇腾辅助软件
 
@@ -171,8 +172,7 @@ print(z)
 | CANN 8.0.RC2          | 2.3.1        | 2.3.1            | v2.3.1-6.0.rc2    | 
 |                       | 2.2.0        | 2.2.0.post2      | v2.2.0-6.0.rc2    |
 |                       | 2.1.0        | 2.1.0.post6      | v2.1.0-6.0.rc2    |
-|                       | 1.11.0       | 1.11.0.post14    | v1.11.0-6.0.rc2   | 
-| CANN 8.0.RC2.alpha002 | 2.3.1        | 2.3.1rc1         | v2.3.1            | 
+|                       | 1.11.0       | 1.11.0.post14    | v1.11.0-6.0.rc2   |
 | CANN 8.0.RC1          | 2.2.0        | 2.2.0            | v2.2.0-6.0.rc1    |
 |                       | 2.1.0        | 2.1.0.post4      | v2.1.0-6.0.rc1    | 
 |                       | 1.11.0       | 1.11.0.post11    | v1.11.0-6.0.rc1   | 
@@ -241,16 +241,17 @@ AscendPyTorch版本分支的维护阶段如下：
 
 ## PyTorch版本维护策略
 
-| **PyTorch版本** | **维护策略** | **当前状态** | **发布时间** | **后续状态** | **EOL日期** |
-|-----------|-----------|--------|------------|-----------------------|-----------|
-| 2.4.0     |  常规分支  | 开发    | 2024/10/15 | 预计2025/06/15起进入维护状态 |         -  | 
-| 2.3.1     |  常规分支  | 开发   | 2024/06/06 | 预计2025/06/07起进入维护状态 |           |
-| 2.2.0     |  常规分支   | 维护   | 2024/04/01 | 预计2025/09/10起进入无维护状态 |           |
-| 2.1.0     |  长期支持  | 开发   | 2023/10/15 | 预计2025/09/15起进入维护状态 |           |
-| 2.0.1     |  常规分支   | EOL   | 2023/7/19  |   |  2024/03/14          |
-| 1.11.0    |  长期支持  | 维护   | 2023/4/19  | 预计2025/09/10起进入无维护状态  |           |
-| 1.8.1     |  长期支持  | EOL    | 2022/4/10  |                       | 2023/4/10 |
-| 1.5.0     |  长期支持  | EOL    | 2021/7/29  |                       | 2022/7/29 |
+| **PyTorch版本** | **维护策略** | **当前状态** | **发布时间**   | **后续状态**             | **EOL日期**  |
+|---------------|----------|----------|------------|----------------------|------------|
+| 2.5.1         | 常规分支     | 开发       | 2024/11/08 | 预计2025/04/08起进入维护状态  | -          | 
+| 2.4.0         | 常规分支     | 开发       | 2024/10/15 | 预计2025/06/15起进入维护状态  | -          | 
+| 2.3.1         | 常规分支     | 开发       | 2024/06/06 | 预计2025/06/07起进入维护状态  |            |
+| 2.2.0         | 常规分支     | 维护       | 2024/04/01 | 预计2025/09/10起进入无维护状态 |            |
+| 2.1.0         | 长期支持     | 开发       | 2023/10/15 | 预计2025/09/15起进入维护状态  |            |
+| 2.0.1         | 常规分支     | EOL      | 2023/7/19  |                      | 2024/03/14 |
+| 1.11.0        | 长期支持     | 维护       | 2023/4/19  | 预计2025/09/10起进入无维护状态 |            |
+| 1.8.1         | 长期支持     | EOL      | 2022/4/10  |                      | 2023/4/10  |
+| 1.5.0         | 长期支持     | EOL      | 2021/7/29  |                      | 2022/7/29  |
 
 ## 安全声明
 
