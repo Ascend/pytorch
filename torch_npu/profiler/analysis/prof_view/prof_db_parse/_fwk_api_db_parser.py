@@ -158,16 +158,16 @@ class FwkApiDbParser(BaseParser):
         sql = "select startNs, endNs, globalTid, connectionId from {} " \
               "where name = {} and type = 10000 order by startNs" \
             .format(DbConstant.TABLE_CANN_API, node_launch_str_id)  # 10000 : node level
-        node_lauch_apis = TorchDb().fetch_all_data(sql)
-        if not node_lauch_apis:
+        node_launch_apis = TorchDb().fetch_all_data(sql)
+        if not node_launch_apis:
             raise RuntimeWarning("Failed to get node launch apis")
         torch_op_apis.sort(key=lambda x: x[TorchOpDataOri.START_NS.value])
         torch_op_len = len(torch_op_apis)
         if task_enqueues and task_dequeues:
             self.get_torch_op_connection_ids_with_task_queue(task_enqueues, task_dequeues, torch_op_apis, torch_op_len,
-                                                             node_lauch_apis)
+                                                             node_launch_apis)
         else:
-            self.get_torch_op_connection_ids_without_task_queue(torch_op_apis, torch_op_len, node_lauch_apis)
+            self.get_torch_op_connection_ids_without_task_queue(torch_op_apis, torch_op_len, node_launch_apis)
 
     def get_torch_op_connection_ids_with_task_queue(self, task_enqueues: list, task_dequeues: list, torch_op_apis: list, torch_op_len: int, node_lauch_apis: list):
         enqueue_corr_ids = {task_enqueue[TaskQueueDataOri.CORRELATION_ID.value] for task_enqueue in task_enqueues}
