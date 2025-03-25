@@ -2,9 +2,9 @@
 #include <torch/csrc/profiler/combined_traceback.h>
 #include <torch/csrc/jit/serialization/pickler.h>
 
+#include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/npu/memory_snapshot.h"
-#include "torch_npu/csrc/utils/LazyInit.h"
 
 using torch::jit::Pickler;
 using c10_npu::NPUCachingAllocator::BlockInfo;
