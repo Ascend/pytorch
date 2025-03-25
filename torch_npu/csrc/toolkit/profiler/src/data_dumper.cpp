@@ -22,13 +22,15 @@ DataDumper::~DataDumper() {
   UnInit();
 }
 
-void DataDumper::Init(const std::string &path, size_t capacity = kDefaultRingBuffer) {
+void DataDumper::Init(const std::string &path, size_t capacity = kDefaultRingBuffer)
+{
   path_ = path;
   data_chunk_buf_.Init(capacity);
   init_.store(true);
 }
 
-void DataDumper::UnInit() {
+void DataDumper::UnInit()
+{
     if (init_.load()) {
         data_chunk_buf_.UnInit();
         init_.store(false);
@@ -43,14 +45,16 @@ void DataDumper::UnInit() {
     }
 }
 
-void DataDumper::Start() {
+void DataDumper::Start()
+{
     if (!init_.load() || Thread::Start() != 0) {
         return;
     }
     start_.store(true);
 }
 
-void DataDumper::Stop() {
+void DataDumper::Stop()
+{
   if (start_.load() == true) {
     start_.store(false);
     Thread::Stop();
@@ -58,7 +62,8 @@ void DataDumper::Stop() {
   Flush();
 }
 
-void DataDumper::GatherAndDumpData() {
+void DataDumper::GatherAndDumpData()
+{
     std::map<std::string, std::vector<uint8_t>> dataMap;
     uint64_t batchSize = 0;
     while (batchSize < kBatchMaxLen) {
@@ -85,7 +90,8 @@ void DataDumper::GatherAndDumpData() {
     }
 }
 
-void DataDumper::Run() {
+void DataDumper::Run()
+{
     for (;;) {
         if (!start_.load()) {
             break;
@@ -98,7 +104,8 @@ void DataDumper::Run() {
     }
 }
 
-void DataDumper::Flush() {
+void DataDumper::Flush()
+{
   while (data_chunk_buf_.Size() != 0) {
     GatherAndDumpData();
   }
