@@ -20,6 +20,8 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend310P2", SocVersion::Ascend310P2},
     {"Ascend310P3", SocVersion::Ascend310P3},
     {"Ascend310P4", SocVersion::Ascend310P4},
+    {"Ascend310P5", SocVersion::Ascend310P5},
+    {"Ascend310P7", SocVersion::Ascend310P7},
     {"Ascend910B1", SocVersion::Ascend910B1},
     {"Ascend910B2", SocVersion::Ascend910B2},
     {"Ascend910B2C", SocVersion::Ascend910B2C},
