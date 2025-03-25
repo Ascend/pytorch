@@ -30,7 +30,7 @@ int LcclCommInitRankLocal(int rankSize, int rank, LcclComm *comms)
     typedef int(*lcalCommInitRankLocal)(int, int, LcclComm *);
     static lcalCommInitRankLocal func = nullptr;
     if (func == nullptr) {
-        func = (lcalCommInitRankLocal)GET_FUNC(LcclCommInitRankLocal);
+        func = (lcalCommInitRankLocal)GET_FUNC(LcalCommInitRankLocal);
         if (func == nullptr) {
             TORCH_CHECK(func, "Failed to find function ", "lcalCommInitRankLocal", PTA_ERROR(ErrCode::NOT_FOUND));
             return -1;
@@ -44,7 +44,7 @@ int LcclCommInit(int rank, int rankSize, LcclComm *comms)
     typedef int(*lcalCommInit)(int, int, LcclComm *);
     static lcalCommInit func = nullptr;
     if (func == nullptr) {
-        func = (lcalCommInit)GET_FUNC(LcclCommInit);
+        func = (lcalCommInit)GET_FUNC(LcalCommInit);
         if (func == nullptr) {
             TORCH_CHECK(func, "Failed to find function ", "lcalCommInit", PTA_ERROR(ErrCode::NOT_FOUND));
             return -1;
