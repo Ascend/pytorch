@@ -13,19 +13,18 @@
 namespace torch_npu {
 namespace toolkit {
 namespace profiler {
-DataDumper::DataDumper()
-    : path_(""),
-      start_(false),
-      init_(false) {}
+DataDumper::DataDumper() : path_(""), start_(false), init_(false) {}
 
-DataDumper::~DataDumper() {
-  UnInit();
+DataDumper::~DataDumper()
+{
+    UnInit();
 }
 
-void DataDumper::Init(const std::string &path, size_t capacity = kDefaultRingBuffer) {
-  path_ = path;
-  data_chunk_buf_.Init(capacity);
-  init_.store(true);
+void DataDumper::Init(const std::string &path, size_t capacity = kDefaultRingBuffer)
+{
+    path_ = path;
+    data_chunk_buf_.Init(capacity);
+    init_.store(true);
 }
 
 void DataDumper::UnInit()
@@ -44,22 +43,25 @@ void DataDumper::UnInit()
     }
 }
 
-void DataDumper::Start() {
+void DataDumper::Start()
+{
     if (!init_.load() || Thread::Start() != 0) {
         return;
     }
     start_.store(true);
 }
 
-void DataDumper::Stop() {
-  if (start_.load() == true) {
-    start_.store(false);
-    Thread::Stop();
-  }
-  Flush();
+void DataDumper::Stop()
+{
+    if (start_.load() == true) {
+        start_.store(false);
+        Thread::Stop();
+    }
+    Flush();
 }
 
-void DataDumper::GatherAndDumpData() {
+void DataDumper::GatherAndDumpData()
+{
     std::map<std::string, std::vector<uint8_t>> dataMap;
     uint64_t batchSize = 0;
     while (batchSize < kBatchMaxLen) {
@@ -72,7 +74,7 @@ void DataDumper::GatherAndDumpData() {
         const std::string &key = data->tag;
         auto iter = dataMap.find(key);
         if (iter == dataMap.end()) {
-            dataMap.insert({key, encodeData});
+            dataMap.insert({ key, encodeData });
         } else {
             iter->second.insert(iter->second.end(), encodeData.cbegin(), encodeData.cend());
         }
@@ -86,7 +88,8 @@ void DataDumper::GatherAndDumpData() {
     }
 }
 
-void DataDumper::Run() {
+void DataDumper::Run()
+{
     for (;;) {
         if (!start_.load()) {
             break;
@@ -99,10 +102,11 @@ void DataDumper::Run() {
     }
 }
 
-void DataDumper::Flush() {
-  while (data_chunk_buf_.Size() != 0) {
-    GatherAndDumpData();
-  }
+void DataDumper::Flush()
+{
+    while (data_chunk_buf_.Size() != 0) {
+        GatherAndDumpData();
+    }
 }
 
 void DataDumper::Report(std::unique_ptr<BaseReportData> data)
@@ -129,19 +133,15 @@ void DataDumper::Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap
                 ASCEND_LOGE("DataDumper open file failed: %s", dump_file.c_str());
                 continue;
             }
-            fd_map_.insert({dump_file, fd});
+            fd_map_.insert({ dump_file, fd });
         } else {
             fd = iter->second;
         }
-        fwrite(reinterpret_cast<const char*>(data.second.data()), sizeof(char), data.second.size(), fd);
+        fwrite(reinterpret_cast<const char *>(data.second.data()), sizeof(char), data.second.size(), fd);
     }
 }
 
-TraceDataDumper::TraceDataDumper()
-    : path_(""),
-      start_(false),
-      init_(false),
-      trace_hash_data_(nullptr) {}
+TraceDataDumper::TraceDataDumper() : path_(""), start_(false), init_(false), trace_hash_data_(nullptr) {}
 
 TraceDataDumper::~TraceDataDumper()
 {
@@ -277,7 +277,7 @@ void TraceDataDumper::FlushParamData()
     param_data_ = nullptr;
 }
 
-void TraceDataDumper::Dump(const std::string& file_name, const std::vector<uint8_t>& encode_data)
+void TraceDataDumper::Dump(const std::string &file_name, const std::vector<uint8_t> &encode_data)
 {
     FILE *fd = nullptr;
     const std::string dump_file = path_ + "/" + file_name;
@@ -292,11 +292,11 @@ void TraceDataDumper::Dump(const std::string& file_name, const std::vector<uint8
             ASCEND_LOGE("TraceDataDumper open file failed: %s", dump_file.c_str());
             return;
         }
-        fd_map_.insert({dump_file, fd});
+        fd_map_.insert({ dump_file, fd });
     } else {
         fd = iter->second;
     }
-    fwrite(reinterpret_cast<const char*>(encode_data.data()), sizeof(char), encode_data.size(), fd);
+    fwrite(reinterpret_cast<const char *>(encode_data.data()), sizeof(char), encode_data.size(), fd);
 }
 } // profiler
 } // toolkit

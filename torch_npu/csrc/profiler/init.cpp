@@ -22,7 +22,8 @@
 namespace torch_npu {
 namespace profiler {
 
-PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
+PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused)
+{
     auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
     if (!torch_npu_C_module) {
         return nullptr;
@@ -97,7 +98,8 @@ static PyMethodDef TorchProfilerMethods[] = { // NOLINT
 };
 
 
-PyMethodDef* profiler_functions() {
+PyMethodDef* profiler_functions()
+{
     return TorchProfilerMethods;
 }
 

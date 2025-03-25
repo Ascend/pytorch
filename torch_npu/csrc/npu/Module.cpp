@@ -31,9 +31,9 @@
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
+#include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/npu/DataParallelComm.h"
-#include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/npu/NPUPluggableAllocator.h"
 #include "torch_npu/csrc/npu/Stream.h"
 #include "torch_npu/csrc/npu/Stress_detect.h"
@@ -263,7 +263,7 @@ PyObject* THNPModule_msTxMark(PyObject* self, PyObject* args)
     HANDLE_TH_ERRORS
     const char *input_string;
     if (!PyArg_ParseTuple(args, "s", &input_string)) {
-        return NULL;
+        return nullptr;
     }
     torch_npu::profiler::Mark(input_string);
 

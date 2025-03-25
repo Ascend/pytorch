@@ -19,26 +19,26 @@ constexpr uint32_t kNotifyInterval = 256;
 
 class DataDumper : public Thread {
 public:
-  explicit DataDumper();
-  virtual ~DataDumper();
-  void Init(const std::string &path, size_t capacity);
-  void UnInit();
-  void Report(std::unique_ptr<BaseReportData> data);
-  void Start();
-  void Stop();
+    explicit DataDumper();
+    virtual ~DataDumper();
+    void Init(const std::string &path, size_t capacity);
+    void UnInit();
+    void Report(std::unique_ptr<BaseReportData> data);
+    void Start();
+    void Stop();
 
 private:
-  void Flush();
-  void Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap);
-  void Run();
-  void GatherAndDumpData();
+    void Flush();
+    void Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap);
+    void Run();
+    void GatherAndDumpData();
 
 private:
-  std::string path_;
-  std::atomic<bool> start_;
-  std::atomic<bool> init_;
-  RingBuffer<std::unique_ptr<BaseReportData>> data_chunk_buf_;
-  std::map<std::string, FILE*> fd_map_;
+    std::string path_;
+    std::atomic<bool> start_;
+    std::atomic<bool> init_;
+    RingBuffer<std::unique_ptr<BaseReportData>> data_chunk_buf_;
+    std::map<std::string, FILE *> fd_map_;
 };
 
 class TraceDataDumper : public Thread {
@@ -58,17 +58,17 @@ private:
     void FlushTraceData();
     void FlushHashData();
     void FlushParamData();
-    void Dump(const std::string& file_name, const std::vector<uint8_t>& encode_data);
+    void Dump(const std::string &file_name, const std::vector<uint8_t> &encode_data);
     void Run();
 
 private:
     std::string path_;
     std::atomic<bool> start_;
     std::atomic<bool> init_;
-    std::unique_ptr<PythonTracerHashData> trace_hash_data_{nullptr};
-    std::unique_ptr<ParamTensorData> param_data_{nullptr};
+    std::unique_ptr<PythonTracerHashData> trace_hash_data_{ nullptr };
+    std::unique_ptr<ParamTensorData> param_data_{ nullptr };
     RingBuffer<std::unique_ptr<PythonTracerFuncData>> trace_data_buf_;
-    std::map<std::string, FILE*> fd_map_;
+    std::map<std::string, FILE *> fd_map_;
 };
 } // profiler
 } // toolkit
