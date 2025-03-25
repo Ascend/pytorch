@@ -1,9 +1,9 @@
 #ifndef THNP_EVENT_INC
 #define THNP_EVENT_INC
 
+#include <torch/csrc/python_headers.h>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
-#include <torch/csrc/python_headers.h>
 
 struct THNPEvent {
     PyObject_HEAD
