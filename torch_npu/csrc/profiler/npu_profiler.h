@@ -20,9 +20,9 @@ void registerFunctions(CallFn call);
 } // python_tracer
 
 enum class NpuActivityType {
-  NONE = 0,
-  CPU,
-  NPU,
+    NONE = 0,
+    CPU,
+    NPU,
 };
 
 enum class MemoryDataType {
@@ -72,21 +72,21 @@ struct ExperimentalConfig {
 };
 
 struct NpuProfilerConfig {
-  explicit NpuProfilerConfig(
-    std::string path,
-    bool record_shapes = false,
-    bool profile_memory = false,
-    bool with_stack = false,
-    bool with_flops = false,
-    bool with_modules = false,
-    ExperimentalConfig experimental_config = ExperimentalConfig())
-    : path(path),
-      record_shapes(record_shapes),
-      profile_memory(profile_memory),
-      with_stack(with_stack),
-      with_flops(with_flops),
-      with_modules(with_modules),
-      experimental_config(experimental_config) {}
+    explicit NpuProfilerConfig(
+        std::string path,
+        bool record_shapes = false,
+        bool profile_memory = false,
+        bool with_stack = false,
+        bool with_flops = false,
+        bool with_modules = false,
+        ExperimentalConfig experimental_config = ExperimentalConfig())
+        : path(path),
+          record_shapes(record_shapes),
+          profile_memory(profile_memory),
+          with_stack(with_stack),
+          with_flops(with_flops),
+          with_modules(with_modules),
+          experimental_config(experimental_config) {}
 
     ~NpuProfilerConfig() = default;
     std::string path;
