@@ -15,24 +15,25 @@ namespace profiler {
 
 std::unordered_map<std::string, c10::IValue> saveExtraArgs(const at::RecordFunction& fn);
 
-uint64_t computeFlops(const std::string &op_name,
-    const std::unordered_map<std::string, c10::IValue> &extra_args);
+uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::string, c10::IValue> &extra_args);
 
 class NPURecordFunction {
 public:
-  NPURecordFunction(bool enable_ = false) : enable(enable_) {
-    if (NPURecordFunction::use_npu_simple) {
-      at::enableRecordFunction(enable);
+    NPURecordFunction(bool enable_ = false) : enable(enable_)
+    {
+        if (NPURecordFunction::use_npu_simple) {
+            at::enableRecordFunction(enable);
+        }
     }
-  }
 
-  ~NPURecordFunction() {
-    if (NPURecordFunction::use_npu_simple) {
-      at::enableRecordFunction(!enable);
+    ~NPURecordFunction()
+    {
+        if (NPURecordFunction::use_npu_simple) {
+            at::enableRecordFunction(!enable);
+        }
     }
-  }
-  bool enable = false;
-  static bool use_npu_simple;
+    bool enable = false;
+    static bool use_npu_simple;
 };
 
 inline THPCodeObjectPtr PyFrame_GetCode_NPU(PyFrameObject* frame)

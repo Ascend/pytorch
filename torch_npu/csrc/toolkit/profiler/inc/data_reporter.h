@@ -18,72 +18,78 @@ namespace toolkit {
 namespace profiler {
 
 template<typename T>
-std::string to_string(T value) {
-  std::ostringstream oss;
-  oss << value;
-  return oss.str();
+std::string to_string(T value)
+{
+    std::ostringstream oss;
+    oss << value;
+    return oss.str();
 }
 
 template<typename T>
-void encodeFixedData(const std::vector<T> &datas, std::vector<uint8_t> &result) {
-  for (auto data : datas) {
-    for (size_t i = 0; i < sizeof(T); ++i) {
-      result.push_back((static_cast<size_t>(data) >> (i * 8)) & 0xff);
+void encodeFixedData(const std::vector<T> &datas, std::vector<uint8_t> &result)
+{
+    for (auto data : datas) {
+        for (size_t i = 0; i < sizeof(T); ++i) {
+            result.push_back((static_cast<size_t>(data) >> (i * 8)) & 0xff);
+        }
     }
-  }
 }
 
-inline void encodeStrData(uint16_t type, const std::string &data, std::vector<uint8_t> &result) {
-  for (size_t i = 0; i < sizeof(uint16_t); ++i) {
-    result.push_back((type >> (i * 8)) & 0xff);
-  }
-  uint32_t length = data.size();
-  for (size_t i = 0; i < sizeof(uint32_t); ++i) {
-    result.push_back((length >> (i * 8)) & 0xff);
-  }
-  for (const auto &c : data) {
-    result.push_back(c);
-  }
+inline void encodeStrData(uint16_t type, const std::string &data, std::vector<uint8_t> &result)
+{
+    for (size_t i = 0; i < sizeof(uint16_t); ++i) {
+        result.push_back((type >> (i * 8)) & 0xff);
+    }
+    uint32_t length = data.size();
+    for (size_t i = 0; i < sizeof(uint32_t); ++i) {
+        result.push_back((length >> (i * 8)) & 0xff);
+    }
+    for (const auto &c : data) {
+        result.push_back(c);
+    }
 }
 
-inline void encodeStrArrayData(uint16_t type, const std::vector<std::string> &datas, std::vector<uint8_t> &result) {
-  std::string rst;
-  for (auto str : datas) {
-    rst += (str + ";");
-  }
-  if (!rst.empty()) {
-    rst.pop_back();
-  }
-  encodeStrData(type, rst, result);
+inline void encodeStrArrayData(uint16_t type, const std::vector<std::string> &datas, std::vector<uint8_t> &result)
+{
+    std::string rst;
+    for (auto str : datas) {
+        rst += (str + ";");
+    }
+    if (!rst.empty()) {
+        rst.pop_back();
+    }
+    encodeStrData(type, rst, result);
 }
 
-inline void encodeMapData(uint16_t type, const std::unordered_map<std::string, c10::IValue> &datas, std::vector<uint8_t> &result) {
-  std::string rst;
-  for (auto &entry : datas) {
-    rst += entry.first + ":" + to_string(entry.second) + ";";
-  }
-  if (!rst.empty()) {
-    rst.pop_back();
-  }
-  encodeStrData(type, rst, result);
+inline void encodeMapData(uint16_t type, const std::unordered_map<std::string, c10::IValue> &datas, std::vector<uint8_t> &result)
+{
+    std::string rst;
+    for (auto &entry : datas) {
+        rst += entry.first + ":" + to_string(entry.second) + ";";
+    }
+    if (!rst.empty()) {
+        rst.pop_back();
+    }
+    encodeStrData(type, rst, result);
 }
 
 template<typename T>
-void encode2DIntegerMatrixDatas(uint16_t type, std::vector<std::vector<T>> &datas, std::vector<uint8_t> &result) {
-  std::string rst;
-  for (auto tensor : datas) {
-    std::stringstream ss;
-    copy(tensor.begin(), tensor.end(), std::ostream_iterator<T>(ss, ","));
-    std::string str = ss.str();
-    if (!str.empty()) {
-      str.pop_back();
+void encode2DIntegerMatrixDatas(uint16_t type, std::vector<std::vector<T>> &datas, std::vector<uint8_t> &result)
+{
+    std::string rst;
+    for (auto tensor : datas) {
+        std::stringstream ss;
+        copy(tensor.begin(), tensor.end(), std::ostream_iterator<T>(ss, ","));
+        std::string str = ss.str();
+        if (!str.empty()) {
+            str.pop_back();
+        }
+        rst += (str + ";");
     }
-    rst += (str + ";");
-  }
-  if (!rst.empty()) {
-    rst.pop_back();
-  }
-  encodeStrData(type, rst, result);
+    if (!rst.empty()) {
+        rst.pop_back();
+    }
+    encodeStrData(type, rst, result);
 }
 
 class WeakTensor {
@@ -262,7 +268,7 @@ enum class OpRangeDataType {
     RESERVED = 30,
 };
 
-struct OpRangeData : BaseReportData{
+struct OpRangeData : BaseReportData {
     int64_t start_ns{0};
     int64_t end_ns{0};
     int64_t sequence_number{0};
