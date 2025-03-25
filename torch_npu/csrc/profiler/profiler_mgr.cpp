@@ -89,7 +89,8 @@ void ProfilerMgr::WarmupMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, a
     }
 }
 
-void ProfilerMgr::EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig) {
+void ProfilerMgr::EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig)
+{
     // Avoid duplicate config creation in scenarios where warmup is turned on
     if (profConfig_ == nullptr) {
         profConfig_ = at_npu::native::AclProfilingCreateConfig(deviceIdList, deviceNum, aicMetrics, nullptr, dataTypeConfig);
