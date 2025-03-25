@@ -25,15 +25,15 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             [](c10_npu::NPUGraph& self,
                std::optional<c10_npu::MempoolId_t> pool_opt,
                std::string capture_error_mode) {
-                aclmdlCaptureMode capture_mode;
+                aclmdlRICaptureMode capture_mode;
                 c10_npu::MempoolId_t pool = pool_opt.has_value()
                     ? pool_opt.value() : c10_npu::MempoolId_t{0, 0};
                 if (capture_error_mode == "global") {
-                    capture_mode = aclmdlCaptureMode::ACL_MODEL_CAPTURE_MODE_GLOBAL;
+                    capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL;
                 } else if (capture_error_mode == "thread_local") {
-                    capture_mode = aclmdlCaptureMode::ACL_MODEL_CAPTURE_MODE_THREAD_LOCAL;
+                    capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_THREAD_LOCAL;
                 } else if (capture_error_mode == "relaxed") {
-                    capture_mode = aclmdlCaptureMode::ACL_MODEL_CAPTURE_MODE_RELAXED;
+                    capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
                 } else {
                     TORCH_CHECK(
                         false,
