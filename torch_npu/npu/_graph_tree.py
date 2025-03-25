@@ -554,7 +554,9 @@ class NPUWarmupNode:
         # See: output_is_alias_of_persistent_static_inputs below. We should only be returning freshly created
         # storages in path_live_weakrefs.
         existing_path_data_ptrs = {
-            t.data_ptr() for t in self.path_live_weakrefs() if t()
+            t.data_ptr()
+            for t in self.path_live_weakrefs()
+            if t()
         }
 
         def get_non_npugraph_inps():
@@ -603,7 +605,9 @@ class NPUWarmupNode:
         if config.triton.slow_path_cudagraph_asserts and not self.already_warm:
             out_refs = self.path_live_weakrefs()
             new_storages = [
-                t for t in out_refs if t.data_ptr() not in non_npugraph_inps
+                t
+                for t in out_refs
+                if t.data_ptr() not in non_npugraph_inps
             ]
             check_memory_pool(self.device_index, self.npu_graphs_pool, new_storages)
 
@@ -734,10 +738,12 @@ class NPUGraphNode:
         # Path is a series of nodes from root to the current node
         self.outputs_weakrefs: OutputList[Optional[StorageWeakRefWrapper]] = []
         self.path_weakrefs: LevelList[OutputList[Optional[StorageWeakRefWrapper]]] = [
-            node.outputs_weakrefs for node in self._path_from_root
+            node.outputs_weakrefs
+            for node in self._path_from_root
         ]
         self.path_stacktraces: LevelList[StackTraces] = [
-            node.stack_traces for node in self._path_from_root
+            node.stack_traces
+            for node in self._path_from_root
         ]
         self.tensor_weakrefs: OutputList[Optional[TensorWeakRef]] = []
 
@@ -1305,7 +1311,8 @@ class NPUGraphNode:
     ) -> Optional[PathOutputIndex]:
         for depth, output_refs in enumerate(self.path_weakrefs):
             for output_index, storage_ref in enumerate(output_refs):
-                if (storage_and_ptr := maybe_deref(storage_ref)) is not None:
+                storage_and_ptr = maybe_deref(storage_ref)
+                if storage_and_ptr is not None:
                     storage, ptr = storage_and_ptr
                     if ptr == t.untyped_storage().data_ptr():
                         return (depth, output_index)
@@ -1378,7 +1385,8 @@ class NPUGraphNode:
             for output_idx, output_liveness in enumerate(outputs_liveness):
                 # tensor can die early, but it can't be alive when it should be dead
                 w = self.path_weakrefs[depth][output_idx]
-                if (stor_weak_ptr_and_data_ptr := maybe_deref(w)) is not None:
+                stor_weak_ptr_and_data_ptr = maybe_deref(w)
+                if stor_weak_ptr_and_data_ptr is not None:
                     if output_liveness is None:
                         raise RuntimeError("check output_liveness is not None fail")
                     stor_weak_ptr, stor_data_ptr = stor_weak_ptr_and_data_ptr
