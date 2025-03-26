@@ -113,7 +113,7 @@ struct BlockInfo {
 struct SegmentInfo {
     int64_t device = 0;
     int64_t  address = 0;
-    aclrtStream stream = 0;
+    aclrtStream stream = nullptr;
     int64_t total_size = 0;
     int64_t requested_size = 0;
     int64_t allocated_size = 0;
