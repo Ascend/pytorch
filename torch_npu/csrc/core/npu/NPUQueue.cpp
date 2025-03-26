@@ -20,91 +20,105 @@
 #include <third_party/acl/inc/acl/acl_rt.h>
 
 namespace c10_npu {
-
-struct timeval delay = {0, 1};
+struct timeval delay = { 0, 1 };
 
 namespace {
-
 class CallBackManager {
 public:
     CallBackManager() {}
     ~CallBackManager() {}
-    void SetExec(const ACL_EXEC_FUNC& func) {
+    void SetExec(const ACL_EXEC_FUNC &func)
+    {
         this->execFunc = func;
     }
 
-    void SetCopy(const ACL_COPY_FUNC& func) {
+    void SetCopy(const ACL_COPY_FUNC &func)
+    {
         this->copyFunc = func;
     }
 
-    void SetRelease(const ACL_RELEASE_FUNC& func) {
+    void SetRelease(const ACL_RELEASE_FUNC &func)
+    {
         this->releaseFunc = func;
     }
 
-    void SetCopyReleaseParam(const ACL_COPY_RELEASE_PARM_FUNC& func) {
+    void SetCopyReleaseParam(const ACL_COPY_RELEASE_PARM_FUNC &func)
+    {
         this->copyReleaseParamFunc = func;
     }
 
-    void SetReleaseParam(const ACL_RELEASE_PARAM_FUNC& func) {
+    void SetReleaseParam(const ACL_RELEASE_PARAM_FUNC &func)
+    {
         this->releaseParamFunc = func;
     }
 
-    void SetNew(const ACL_NEW_FUNC& func) {
+    void SetNew(const ACL_NEW_FUNC &func)
+    {
         this->newFunc = func;
     }
 
-    void SetDelete(const ACL_DELETE_FUNC& func) {
+    void SetDelete(const ACL_DELETE_FUNC &func)
+    {
         this->deleteFunc = func;
     }
 
-    void *getCurrentParams(void* head, int offset)
+    void *getCurrentParams(void *head, int offset)
     {
-        return (uint8_t*)head + sizePerParams * offset;
+        return (uint8_t *)head + sizePerParams * offset;
     }
 
-    int Call(void* head, int offset) {
+    int Call(void *head, int offset)
+    {
         TORCH_CHECK(this->execFunc, "Failed to find execution function.", PTA_ERROR(ErrCode::NOT_FOUND));
-        auto dstPtr = (uint8_t*)head + sizePerParams * offset;
+        auto dstPtr = (uint8_t *)head + sizePerParams * offset;
         return this->execFunc(dstPtr);
     }
 
-    void Copy(void* dstHead, int offset, void* src) {
+    void Copy(void *dstHead, int offset, void *src)
+    {
         TORCH_CHECK(this->copyFunc, "Failed to find copy function.", PTA_ERROR(ErrCode::NOT_FOUND));
-        auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
+        auto dstPtr = (uint8_t *)dstHead + sizePerParams * offset;
         return this->copyFunc(dstPtr, src);
     }
 
-    void Release(void* head, int offset, ReleaseQueue& releaseQueue) {
+    void Release(void *head, int offset, ReleaseQueue &releaseQueue)
+    {
         TORCH_CHECK(this->releaseFunc, "Failed to find release function.", PTA_ERROR(ErrCode::NOT_FOUND));
-        auto ptr = (uint8_t*)head +  sizePerParams * offset;
+        auto ptr = (uint8_t *)head + sizePerParams * offset;
         return this->releaseFunc(ptr, releaseQueue);
     }
 
-    void CopyRealseParam(void* dstHead, int offset, void* src) {
-        TORCH_CHECK(this->copyReleaseParamFunc, "Failed to find copy release params function.", PTA_ERROR(ErrCode::NOT_FOUND));
-        auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
+    void CopyRealseParam(void *dstHead, int offset, void *src)
+    {
+        TORCH_CHECK(this->copyReleaseParamFunc, "Failed to find copy release params function.",
+            PTA_ERROR(ErrCode::NOT_FOUND));
+        auto dstPtr = (uint8_t *)dstHead + sizePerParams * offset;
         return this->copyReleaseParamFunc(dstPtr, src);
     }
 
-    void ReleaseParam(void* head, int offset) {
+    void ReleaseParam(void *head, int offset)
+    {
         TORCH_CHECK(this->releaseParamFunc, "Failed to find release params function.", PTA_ERROR(ErrCode::NOT_FOUND));
-        auto ptr = (uint8_t*)head +  sizePerParams * offset;
+        auto ptr = (uint8_t *)head + sizePerParams * offset;
         return this->releaseParamFunc(ptr);
     }
 
-    void* Init(int capacity) {
+    void *Init(int capacity)
+    {
         TORCH_CHECK(this->newFunc, "Failed to find new function.", PTA_ERROR(ErrCode::NOT_FOUND));
-        void* ptr = this->newFunc(capacity, sizePerParams); // not check as CUDA
+        void *ptr = this->newFunc(capacity, sizePerParams); // not check as CUDA
         return ptr;
     }
 
-    void DeInit(void* ptr) {
+    void DeInit(void *ptr)
+    {
         if (ptr != nullptr) {
             TORCH_CHECK(this->deleteFunc, "Failed to find delete function.", PTA_ERROR(ErrCode::NOT_FOUND));
             this->deleteFunc(ptr);
             ptr = nullptr;
         }
     }
+
 private:
     int sizePerParams = 0;
     ACL_EXEC_FUNC execFunc = nullptr;
@@ -116,22 +130,24 @@ private:
     ACL_RELEASE_PARAM_FUNC releaseParamFunc = nullptr;
 }; // class CallBackManager
 
-CallBackManager& manager() {
+CallBackManager &manager()
+{
     static CallBackManager instance;
     return instance;
 }
 
-CallBackManager& releaseManager() {
+CallBackManager &releaseManager()
+{
     static CallBackManager releaseinstance;
     return releaseinstance;
 }
 } // namespace
 
 namespace register_queue_cb {
-NPUCallBackRegisterBuilder::NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execFunc,
-    const ACL_COPY_FUNC& copyFunc, const ACL_RELEASE_FUNC& releaseFunc,
-    const ACL_NEW_FUNC& newFunc, const ACL_DELETE_FUNC& deleteFunc,
-    const ACL_COPY_RELEASE_PARM_FUNC& copyReleaseParamF, const ACL_RELEASE_PARAM_FUNC& releaseParamF) {
+NPUCallBackRegisterBuilder::NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC &execFunc, const ACL_COPY_FUNC &copyFunc,
+    const ACL_RELEASE_FUNC &releaseFunc, const ACL_NEW_FUNC &newFunc, const ACL_DELETE_FUNC &deleteFunc,
+    const ACL_COPY_RELEASE_PARM_FUNC &copyReleaseParamF, const ACL_RELEASE_PARAM_FUNC &releaseParamF)
+{
     manager().SetExec(execFunc);
     manager().SetCopy(copyFunc);
     manager().SetRelease(releaseFunc);
@@ -153,7 +169,7 @@ static constexpr size_t kQueueCapacity = 4096;
 static std::string repo_error;
 static std::string acl_error;
 
-std::string get_func_error_msg(void* error_paras)
+std::string get_func_error_msg(void *error_paras)
 {
     auto queueParam = static_cast<c10_npu::queue::QueueParas *>(error_paras);
     auto type = queueParam->paramType;
@@ -169,9 +185,8 @@ std::string get_func_error_msg(void* error_paras)
         result << "the current working operator name is " << op_name;
     } else if (type == c10_npu::queue::ASYNC_MEMCPY) {
         auto cur_paras = static_cast<c10_npu::queue::CopyParas *>(queueParam->paramVal);
-        result << "the current copy params are srclen=" << cur_paras->srcLen
-               << ", dstlen=" << cur_paras->dstLen
-               << ", kind=" << cur_paras->kind;
+        result << "the current copy params are srclen=" << cur_paras->srcLen << ", dstlen=" << cur_paras->dstLen <<
+            ", kind=" << cur_paras->kind;
     } else {
         auto cur_paras = static_cast<c10_npu::queue::EventParas *>(queueParam->paramVal);
         result << "the current working event is " << cur_paras->event;
@@ -179,7 +194,8 @@ std::string get_func_error_msg(void* error_paras)
     return result.str();
 }
 
-RepoStatus Repository::GetStatus() const {
+RepoStatus Repository::GetStatus() const
+{
     if (initialized == false) {
         ASCEND_LOGE("Task queue is not initialized, shouldn't call GetStatus(). !!");
     }
@@ -187,7 +203,8 @@ RepoStatus Repository::GetStatus() const {
     return repo_status.load();
 }
 
-void Repository::SetStatus(RepoStatus desired) {
+void Repository::SetStatus(RepoStatus desired)
+{
     if (initialized == false) {
         ASCEND_LOGE("Task queue is not initialized, shouldn't call SetStatus(). !!");
         return;
@@ -196,7 +213,8 @@ void Repository::SetStatus(RepoStatus desired) {
     repo_status = desired;
 }
 
-void Repository::ChangeStatus(RepoStatus expected, RepoStatus desired) {
+void Repository::ChangeStatus(RepoStatus expected, RepoStatus desired)
+{
     if (initialized == false) {
         ASCEND_LOGE("Task queue is not initialized, shouldn't call ChangeStatus(). !!");
         return;
@@ -287,7 +305,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
                 c10_npu::option::oom_observer();
             }
         }
-        
+
 #ifndef BUILD_LIBTORCH
         if (gilState) {
             PyEval_RestoreThread(gilState);
@@ -296,14 +314,15 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
 
         if (check_error) {
             throw std::runtime_error("The Inner error is reported as above. "
-                                    "The process exits for this inner error, and " + repo_error + ".\n" +
-                                    "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
-                                    "If you want to get the accurate stacktrace, "
-                                    "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
-                                    "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
-                                    "resulting in performance degradation. "
-                                    "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
-                                    PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error);
+                "The process exits for this inner error, and " +
+                repo_error + ".\n" +
+                "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
+                "If you want to get the accurate stacktrace, "
+                "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
+                "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
+                "resulting in performance degradation. "
+                "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
+                PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error);
         } else {
             ASCEND_LOGE("Inner error happend, detail: %s", repo_error);
         }
@@ -319,7 +338,8 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
     return SUCCESS;
 }
 
-bool Repository::WriteQueue(void* cur_paras) {
+bool Repository::WriteQueue(void *cur_paras)
+{
     std::lock_guard<std::mutex> lock(mu_enqueue);
 
     if (GetStatus() == RepoStatus::STOP_EXIT) {
@@ -379,7 +399,7 @@ bool Repository::ReadQueue()
         }
         repo_error = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
         ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
-                    std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
+            std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
         while (!IsEmptyQueue()) { // ignore other tasks
             manager().Release(datas, read_idx.idx, releaseQueue);
             read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
@@ -410,7 +430,8 @@ bool Repository::ReadQueue()
     return true;
 }
 
-void Repository::Enqueue(void* cur_paras) {
+void Repository::Enqueue(void *cur_paras)
+{
     if (initialized == false) {
         ASCEND_LOGE("Task queue is not initialized, shouldn't call Enqueue(). !!");
         return;
@@ -463,14 +484,15 @@ void Repository::Enqueue(void* cur_paras) {
         }
 
         throw std::runtime_error("The Inner error is reported as above. "
-                                "The process exits for this inner error, and " + repo_error + ".\n" +
-                                "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
-                                "If you want to get the accurate stacktrace, "
-                                "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
-                                "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
-                                "resulting in performance degradation. "
-                                "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
-                                PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error);
+            "The process exits for this inner error, and " +
+            repo_error + ".\n" +
+            "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
+            "If you want to get the accurate stacktrace, "
+            "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
+            "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
+            "resulting in performance degradation. "
+            "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
+            PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error);
     }
 
     if (GetStatus() != RUN && GetStatus() != INIT) {
@@ -487,7 +509,7 @@ void Repository::Enqueue(void* cur_paras) {
         } else if (type == c10_npu::queue::ASYNC_MEMCPY) {
             auto cur_paras = static_cast<c10_npu::queue::CopyParas *>(queueParam->paramVal);
             ASCEND_LOGW("Task queue thread is exit, can't call Enqueue() for copy, srclen=%zu, dstlen is %zu, kind=%d",
-                        cur_paras->srcLen, cur_paras->dstLen, cur_paras->kind);
+                cur_paras->srcLen, cur_paras->dstLen, cur_paras->kind);
         } else {
             auto cur_paras = static_cast<c10_npu::queue::EventParas *>(queueParam->paramVal);
             ASCEND_LOGW("Task queue thread is exit, can't call Enqueue() for event, event is=%p", cur_paras->event);
@@ -543,7 +565,8 @@ void Repository::Enqueue(void* cur_paras) {
     SetWriteWorking(false);
 }
 
-void Repository::Dequeue() {
+void Repository::Dequeue()
+{
     if (initialized == false) {
         ASCEND_LOGE("Task queue is not initialized, shouldn't call Dequeue(). !!");
         return;
@@ -594,8 +617,7 @@ void Repository::Dequeue() {
             continue;
         }
         __sync_synchronize();
-        notify_empty = need_empty &&
-            IsEmptyQueue(); // need_empty && (ret == false || IsEmptyQueue());
+        notify_empty = need_empty && IsEmptyQueue(); // need_empty && (ret == false || IsEmptyQueue());
         while (notify_empty) {
             s = eventfd_write(efd_empty, u);
             if (s != 0) {
@@ -623,7 +645,8 @@ void Repository::Dequeue() {
     SetReadWorking(false);
 }
 
-void Repository::ReleaseResource() {
+void Repository::ReleaseResource()
+{
     manager().DeInit(datas);
     if (efd_read > 0) {
         close(efd_read);
@@ -652,12 +675,13 @@ void Repository::SetQueueErrMsg(const char *errmsg)
     error_msg = errmsg;
 }
 
-const char* Repository::GetQueueErrMsg()
+const char *Repository::GetQueueErrMsg()
 {
     return error_msg;
 }
 
-Repository::~Repository() {
+Repository::~Repository()
+{
     if (initialized) {
         if (consumer.joinable()) {
             SetStatus(NEED_EXIT);
@@ -669,15 +693,18 @@ Repository::~Repository() {
     }
 }
 
-bool Repository::IsFullQueue() const {
+bool Repository::IsFullQueue() const
+{
     return ((write_idx.idx + 1) & (kQueueCapacity - 1)) == read_idx.idx;
 }
 
-bool Repository::CheckInit() const {
+bool Repository::CheckInit() const
+{
     return initialized;
 }
 
-void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
+void StartConsume(Repository *repo, c10::DeviceIndex device_id)
+{
     SetThreadName(ThreadType::aclThread);
     SetThreadAffinity(device_id);
 
@@ -693,7 +720,8 @@ void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
     return;
 }
 
-void Repository::InitRepo(c10::DeviceIndex device_id) {
+void Repository::InitRepo(c10::DeviceIndex device_id)
+{
     if (datas == nullptr) {
         datas = manager().Init(kQueueCapacity);
         ASCEND_LOGI("TaskQueue is enable");
@@ -724,7 +752,7 @@ std::string Repository::GetPara()
 }
 
 static constexpr size_t kReleaseQueueCapacity = 8192;
-bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
+bool ReleaseQueue::WriteToReleaseQueue(void *cur_paras)
 {
     if (IsFullQueue()) {
         return false;
@@ -737,7 +765,8 @@ bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
     return true;
 }
 
-void ReleaseQueue::PushToReleaseQueue(void* cur_paras) {
+void ReleaseQueue::PushToReleaseQueue(void *cur_paras)
+{
     if (initialized == false) {
         ASCEND_LOGE("Release queue is not initialized, shouldn't call PushToReleaseQueue(). !!");
         return;
@@ -752,7 +781,8 @@ void ReleaseQueue::PushToReleaseQueue(void* cur_paras) {
     }
 }
 
-bool ReleaseQueue::ReadFromReleaseQueue() {
+bool ReleaseQueue::ReadFromReleaseQueue()
+{
     if (IsEmptyQueue()) {
         return false;
     }
@@ -766,7 +796,8 @@ bool ReleaseQueue::ReadFromReleaseQueue() {
     return true;
 }
 
-void ReleaseQueue::PopFromReleaseQueue() {
+void ReleaseQueue::PopFromReleaseQueue()
+{
     if (initialized == false) {
         ASCEND_LOGE("Release queue is not initialized, shouldn't call PopFromReleaseQueue(). !!");
         return;
@@ -786,7 +817,8 @@ void ReleaseQueue::PopFromReleaseQueue() {
     }
 }
 
-void StartRelease(ReleaseQueue* releaseQue) {
+void StartRelease(ReleaseQueue *releaseQue)
+{
     SetThreadName(ThreadType::releaseThread);
     SetThreadAffinity(releaseQue->GetDeviceID());
 
@@ -809,7 +841,8 @@ void ReleaseQueue::InitReleaseQueue(c10::DeviceIndex device_id)
     device_idx = device_id;
 }
 
-ReleaseQueue::~ReleaseQueue() {
+ReleaseQueue::~ReleaseQueue()
+{
     if (initialized) {
         if (releaser.joinable()) {
             SetStatus(NEED_EXIT);
@@ -819,11 +852,13 @@ ReleaseQueue::~ReleaseQueue() {
     releaseManager().DeInit(datas);
 }
 
-bool ReleaseQueue::IsFullQueue() const {
+bool ReleaseQueue::IsFullQueue() const
+{
     return ((write_idx.idx + 1) % kReleaseQueueCapacity) == read_idx.idx;
 }
 
-RepoStatus ReleaseQueue::GetStatus() const {
+RepoStatus ReleaseQueue::GetStatus() const
+{
     if (initialized == false) {
         ASCEND_LOGE("Release queue is not initialized, shouldn't call GetStatus(). !!");
     }
@@ -836,7 +871,8 @@ c10::DeviceIndex ReleaseQueue::GetDeviceID() const
     return device_idx;
 }
 
-void ReleaseQueue::SetStatus(RepoStatus desired) {
+void ReleaseQueue::SetStatus(RepoStatus desired)
+{
     if (initialized == false) {
         ASCEND_LOGE("Release queue is not initialized, shouldn't call SetStatus(). !!");
         return;
@@ -845,7 +881,8 @@ void ReleaseQueue::SetStatus(RepoStatus desired) {
     repo_status = desired;
 }
 
-void ReleaseQueue::ChangeStatus(RepoStatus expected, RepoStatus desired) {
+void ReleaseQueue::ChangeStatus(RepoStatus expected, RepoStatus desired)
+{
     if (initialized == false) {
         ASCEND_LOGE("Release queue is not initialized, shouldn't call ChangeStatus(). !!");
         return;
