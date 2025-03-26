@@ -2764,10 +2764,15 @@ private:
             for (auto &e : st.second) {
                 EventPool::Event event = std::move(e.first);
                 Block *block = e.second;
-                if (check_error) {
-                    NPU_CHECK_ERROR(aclrtSynchronizeEvent(*event));
+                auto err = aclrtSynchronizeEvent(*event);
+                if (err != ACL_ERROR_NONE) {
+                    if (check_error) {
+                        NPU_CHECK_ERROR(err);
+                    } else {
+                        ASCEND_LOGE("Event: aclrtSynchronizeEvent failed, event = %p", event.get());
+                    }
                 } else {
-                    NPU_CHECK_WARN(aclrtSynchronizeEvent(*event));
+                    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event.get());
                 }
 #ifndef BUILD_LIBTORCH
                 const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -2775,7 +2780,6 @@ private:
                     trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(event.get()));
                 }
 #endif
-                ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event.get());
 
                 block->event_count--;
                 if (block->event_count == 0) {
