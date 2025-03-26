@@ -1411,17 +1411,25 @@ public:
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
 #ifndef BUILD_LIBTORCH
-        mstxDomainHandle_t msleaksDomain =
-            torch_npu::profiler::MstxMgr::GetInstance()->createDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
-        mstxMemVirtualRangeDesc_t desc{ block->device, block->ptr, block->size };
-        torch_npu::profiler::MstxMgr::GetInstance()->memRegionsRegister(msleaksDomain, &desc);
-        torch_npu::profiler::reportMemoryDataToNpuProfiler({ static_cast<int8_t>(c10::DeviceType::PrivateUse1),
-            block->device, static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC), allocator_type,
-            reinterpret_cast<int64_t>(block->ptr), block->size,
+        if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
+            mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
+            mstxMemVirtualRangeDesc_t heapDesc{block->device, block->ptr, stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current};
+            torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(msleaksDomain, &heapDesc);
+            mstxMemVirtualRangeDesc_t regionDesc{block->device, block->ptr, block->size};
+            torch_npu::profiler::MstxMgr::GetInstance()->memRegionsRegister(msleaksDomain, &regionDesc);
+        }
+        torch_npu::profiler::reportMemoryDataToNpuProfiler({
+            static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+            block->device,
+            static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
+            allocator_type,
+            reinterpret_cast<int64_t>(block->ptr),
+            block->size,
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-            reinterpret_cast<int64_t>(block->stream) });
+            reinterpret_cast<int64_t>(block->stream)}
+        );
 #endif
 
         return block;
@@ -1471,16 +1479,24 @@ public:
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 #ifndef BUILD_LIBTORCH
-        mstxDomainHandle_t msleaksDomain =
-            torch_npu::profiler::MstxMgr::GetInstance()->createDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
-        torch_npu::profiler::MstxMgr::GetInstance()->memRegionsUnregister(msleaksDomain, orig_block_ptr);
-        torch_npu::profiler::reportMemoryDataToNpuProfiler({ static_cast<int8_t>(c10::DeviceType::PrivateUse1),
-            block->device, static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE), allocator_type,
-            reinterpret_cast<int64_t>(orig_block_ptr), -orig_block_size,
+        if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
+            mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
+            mstxMemVirtualRangeDesc_t desc{block->device, orig_block_ptr, stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current};
+            torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(msleaksDomain, &desc);
+            torch_npu::profiler::MstxMgr::GetInstance()->memRegionsUnregister(msleaksDomain, orig_block_ptr);
+        }
+        torch_npu::profiler::reportMemoryDataToNpuProfiler({
+            static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+            block->device,
+            static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+            allocator_type,
+            reinterpret_cast<int64_t>(orig_block_ptr),
+            -orig_block_size,
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-            reinterpret_cast<int64_t>(block->stream) });
+            reinterpret_cast<int64_t>(block->stream)}
+        );
 #endif
     }
 
@@ -2149,12 +2165,6 @@ private:
         StatTypes stat_types = get_stat_types_for_pool(*to_map->pool);
         for_each_selected_stat_type(stat_types,
             [&](size_t stat_type) { update_stat(stats.reserved_bytes[stat_type], mapped_range.size); });
-#ifndef BUILD_LIBTORCH
-        mstxDomainHandle_t msleaksDomain =
-            torch_npu::profiler::MstxMgr::GetInstance()->createDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
-        mstxMemVirtualRangeDesc_t desc{ to_map->device, mapped_range.ptr, mapped_range.size };
-        torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(msleaksDomain, &desc);
-#endif
 
         record_trace(TraceEntry::SEGMENT_MAP, int64_t(mapped_range.ptr), mapped_range.size, to_map->stream,
             to_map->device, ctx);
@@ -2535,12 +2545,7 @@ private:
 
         // p.block came from new, not npuMalloc. It should not be nullptr here.
         TORCH_INTERNAL_ASSERT(p.block != nullptr && p.block->ptr != nullptr);
-#ifndef BUILD_LIBTORCH
-        mstxDomainHandle_t msleaksDomain =
-            torch_npu::profiler::MstxMgr::GetInstance()->createDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
-        mstxMemVirtualRangeDesc_t desc{ p.block->device, p.block->ptr, p.block->size };
-        torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(msleaksDomain, &desc);
-#endif
+
         record_trace(TraceEntry::SEGMENT_ALLOC, int64_t(p.block->ptr), p.block->size, p.stream(), p.device(), ctx);
         p.block->context_when_segment_allocated = ctx;
         return true;
@@ -2661,11 +2666,6 @@ private:
         if (block->size >= CachingAllocatorConfig::max_split_size()) {
             update_stat(stats.oversize_segments, -1);
         }
-#ifndef BUILD_LIBTORCH
-        mstxDomainHandle_t msleaksDomain =
-            torch_npu::profiler::MstxMgr::GetInstance()->createDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
-        torch_npu::profiler::MstxMgr::GetInstance()->memHeapUnregister(msleaksDomain, block->ptr);
-#endif
 
         ASCEND_LOGD("pta_memory acl_free: free_size = %zu", block->size);
 
@@ -2721,11 +2721,6 @@ private:
             block->pool->owner_PrivatePool->npuMalloc_count--;
         }
 
-#ifndef BUILD_LIBTORCH
-        mstxDomainHandle_t msleaksDomain =
-            torch_npu::profiler::MstxMgr::GetInstance()->createDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
-        torch_npu::profiler::MstxMgr::GetInstance()->memHeapUnregister(msleaksDomain, block->ptr);
-#endif
         record_trace(TraceEntry::SEGMENT_UNMAP, int64_t(unmapped.ptr), unmapped.size, block->stream, block->device,
             context ? context : block->context_when_segment_allocated);
     }
