@@ -103,7 +103,7 @@ HcclDataType getHcclDataType(at::ScalarType type)
 std::string getHcclDataTypeSerialString(HcclDataType type)
 {
     const auto& iter = kHcclDataTypeToStringMap.find(type);
-    if (iter != kHcclDataTypeToStringMap.end()) {
+    if (iter != kHcclDataTypeToStringMap.cend()) {
         return iter->second;
     } else {
         TORCH_NPU_WARN_ONCE("Can not serialize undefined hccl data type.");
