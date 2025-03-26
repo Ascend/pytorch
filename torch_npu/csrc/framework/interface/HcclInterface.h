@@ -1,3 +1,6 @@
+#ifndef __PLUGIN_NATIVE_NPU_INTERFACE_HCCLINTERFACE__
+#define __PLUGIN_NATIVE_NPU_INTERFACE_HCCLINTERFACE__
+
 #include "third_party/hccl/inc/hccl/hccl.h"
 
 namespace at_npu {
@@ -17,3 +20,4 @@ extern HcclResult HcclSetConfig(HcclConfig config, HcclConfigValue configValue);
 } // namespace hccl
 } // namespace native
 } // namespace at_npu
+#endif
