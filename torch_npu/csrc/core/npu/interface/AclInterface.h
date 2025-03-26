@@ -183,19 +183,19 @@ aclError AclrtSynchronizeDeviceWithTimeout(void);
 
 aclError AclrtEventGetTimestamp(aclrtEvent event, uint64_t *timestamp);
 
-aclError AclmdlCaptureBegin(aclrtStream stream, aclmdlCaptureMode mode);
+aclError AclmdlRICaptureBegin(aclrtStream stream, aclmdlRICaptureMode mode);
 
-aclError AclmdlCaptureGetInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId);
+aclError AclmdlRICaptureGetInfo(aclrtStream stream, aclmdlRICaptureStatus *status, aclmdlRI *modelRI);
 
-aclError AclmdlCaptureEnd(aclrtStream stream, uint32_t *modelId);
+aclError AclmdlRICaptureEnd(aclrtStream stream, aclmdlRI *modelRI);
 
-aclError AclmdlDebugPrint(uint32_t modelId);
+aclError AclmdlRIDebugPrint(aclmdlRI modelRI);
 
-aclError AclmdlExecuteAsync(uint32_t modelId, aclrtStream stream);
+aclError AclmdlRIExecuteAsync(aclmdlRI modelRI, aclrtStream stream);
 
 aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version);
 
-aclError AclmdlUnload(uint32_t modelId);
+aclError AclmdlRIDestroy(aclmdlRI modelRI);
 
 bool IsCaptureSupported();
 

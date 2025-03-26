@@ -20,7 +20,7 @@ constexpr int kSynchronizeBusyWaitMillis = 10;
 MempoolId_t graph_pool_handle()
 {
     // Sets just the second value, to distinguish it from MempoolId_ts created from
-    // aclmdlCaptureGetInfo id_s in capture_begin.
+    // aclmdlRICaptureGetInfo id_s in capture_begin.
     auto new_pool = c10_npu::MemPool();
     return new_pool.id();
 }
@@ -73,7 +73,7 @@ NPUGraph::NPUGraph()
     : capture_stream_(c10_npu::getCurrentNPUStream()) {
 }
 
-void NPUGraph::capture_begin(MempoolId_t pool, aclmdlCaptureMode capture_mode)
+void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode)
 {
     TORCH_CHECK(!has_graph_exec_,
                 "This NPUGraph instance already owns a captured graph. "
@@ -108,10 +108,10 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlCaptureMode capture_mode)
     // autograd thread's free() call triggering an invalid cudaEventRecord in the caching allocator
     // due to the capture status being updated _after_ a capture had already started.
     c10_npu::NPUCachingAllocator::beginAllocateToPool(capture_dev_, mempool_id_, [this](aclrtStream stream) {
-        aclmdlCaptureStatus status;
-        uint32_t model_id;
-        NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureGetInfo(stream, &status, &model_id));
-        return status == aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_ACTIVE && model_id == model_id_;
+        aclmdlRICaptureStatus status;
+        aclmdlRI model_ri;
+        NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &model_ri));
+        return status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE && model_ri == model_ri_;
     });
 
     // At this point, any NCCL watchdogs should be aware that we are in capture mode
@@ -125,13 +125,13 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlCaptureMode capture_mode)
 
     // cudaStreamCaptureModeGlobal is the most conservative option to
     // prevent potentially unsafe CUDA API calls during capture.
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureBegin(capture_stream_, capture_mode));
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureBegin(capture_stream_, capture_mode));
 
     c10_npu::is_stream_capturing.store(true);
 
-    aclmdlCaptureStatus status;
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureGetInfo(stream, &status, &model_id_));
-    TORCH_INTERNAL_ASSERT(status == aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_ACTIVE);
+    aclmdlRICaptureStatus status;
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &model_ri_));
+    TORCH_INTERNAL_ASSERT(status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE);
 }
 
 void NPUGraph::capture_end()
@@ -141,14 +141,14 @@ void NPUGraph::capture_end()
     TORCH_CHECK(stream == capture_stream_,
                 "Capture must end on the same stream it began on.");
 
-    uint32_t model_id;
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlCaptureEnd(capture_stream_, &model_id));
+    aclmdlRI model_ri;
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureEnd(capture_stream_, &model_ri));
 
     c10_npu::is_stream_capturing.store(false);
 
     c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
 
-    TORCH_CHECK(model_id == model_id_, "Invalid end capture model id: ", model_id);
+    TORCH_CHECK(model_ri == model_ri_, "Invalid end capture model id: ", model_ri);
 
     // In typical graph usage some tensors (e.g. the tensors used for graph IO) are not freed
     // between replays.
@@ -171,8 +171,8 @@ void NPUGraph::replay()
 
     c10::OptionalDeviceGuard device_guard{capture_stream_.device()};
 
-    // model_id_ may be replayed in any stream.
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlExecuteAsync(model_id_, c10_npu::getCurrentNPUStream()));
+    // model_ri_ may be replayed in any stream.
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIExecuteAsync(model_ri_, c10_npu::getCurrentNPUStream()));
 }
 
 void NPUGraph::enable_debug_mode()
@@ -184,8 +184,8 @@ void NPUGraph::debug_dump()
 {
     if (_npu_graphs_debug) {
         if (has_graph_exec_) {
-            TORCH_WARN("DEBUG: calling NPUGraph::debug_dump() for model id ", model_id_);
-            NPU_CHECK_ERROR(c10_npu::acl::AclmdlDebugPrint(model_id_));
+            TORCH_WARN("DEBUG: calling NPUGraph::debug_dump() for model id ", model_ri_);
+            NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIDebugPrint(model_ri_));
         }
     } else {
         TORCH_WARN("NPU Graphs debug not enabled, set with NPUGraph::enable_debug_mode().");
@@ -216,7 +216,7 @@ void NPUGraph::reset()
     if (has_graph_exec_) {
         // notifyCaptureDestroy may throw. How should we handle this?
         c10_npu::NPUCachingAllocator::releasePool(capture_dev_, mempool_id_);
-        NPU_CHECK_ERROR(c10_npu::acl::AclmdlUnload(model_id_));
+        NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIDestroy(model_ri_));
         has_graph_exec_ = false;
     }
 }
