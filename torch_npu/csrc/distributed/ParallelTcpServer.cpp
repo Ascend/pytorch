@@ -206,7 +206,7 @@ void ParallelTcpServer::WakeupWaitingClients(const std::string &key) noexcept
         return;
     }
 
-    for (auto it : pos->second) {
+    for (auto it : std::as_const(pos->second)) {
         if (--socketWaitKeyNum_[it] <= 0) {
             stopWaitingSockets.emplace_back(it);
             socketWaitKeyNum_.erase(it);
@@ -332,7 +332,7 @@ int ParallelTcpServer::SetNonBlocking(int fd) noexcept
         return -1;
     }
 
-    auto ret = fcntl(fd, F_SETFL, old | O_NONBLOCK);
+    auto ret = fcntl(fd, F_SETFL, static_cast<int>(old) | O_NONBLOCK);
     if (ret != 0) {
         LOG(ERROR) << "set fd flags failed " << errno << " : " << strerror(errno);
         return -1;
