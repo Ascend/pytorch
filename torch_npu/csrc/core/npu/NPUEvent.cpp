@@ -70,7 +70,9 @@ void NPUEvent::record()
 
 void NPUEvent::recordOnce(const NPUStream& stream)
 {
-    if (!was_recorded_) record(stream);
+    if (!was_recorded_) {
+        record(stream);
+    }
 }
 
 void NPUEvent::record(const NPUStream& stream)
