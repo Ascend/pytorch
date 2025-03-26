@@ -261,8 +261,9 @@ namespace c10_npu {
         } else if (bind_conf == 2) {
             auto thread_core_map = GetCpuAffinityMap(device_id);
             // Bind the main thread only when the dispatch phase begins (i.e., when ThreadType::backwardThread is set)
-            if (current_thread_type == ThreadType::backwardThread)
+            if (current_thread_type == ThreadType::backwardThread) {
                 SetThreadAffinity(thread_core_map.at(ThreadType::mainThread), mainthread_tid);
+            }
             return SetThreadAffinity(thread_core_map.at(current_thread_type), pthread_self());
         } else {
             ASCEND_LOGD("Thread affinity setting is disabled.");
