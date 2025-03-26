@@ -5,7 +5,7 @@
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/utils/ForceAclnnList.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
-#include "torch_npu/csrc/framework/aoe/AoeUtils.h"
+#include "torch_npu/csrc/framework/aoe/AoeDumpGraphManager.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
@@ -13,11 +13,12 @@ namespace at_npu {
 namespace native {
 namespace env {
 
-void ValidPathCheck(const std::string& file_path) {
-  char abs_path[PATH_MAX] = {'\0'};
-  if (realpath(file_path.c_str(), abs_path) == nullptr) {
-    TORCH_CHECK(0, "configPath path Fails, path ", (char*)file_path.c_str(), PTA_ERROR(ErrCode::PTR));
-  }
+void ValidPathCheck(const std::string& file_path)
+{
+    char abs_path[PATH_MAX] = {'\0'};
+    if (realpath(file_path.c_str(), abs_path) == nullptr) {
+        TORCH_CHECK(0, "configPath path Fails, path ", (char*)file_path.c_str(), PTA_ERROR(ErrCode::PTR));
+    }
 }
 
 REGISTER_OPTION_HOOK(autotune, [](const std::string& val) {
@@ -66,7 +67,8 @@ REGISTER_OPTION_HOOK(jitCompileInit, [](const std::string &val) {
     SET_OPTION_WITH_CACHE(isJitDisable, ("disable" == val) ? true : false);
 })
 
-bool CheckJitDisable() {
+bool CheckJitDisable()
+{
     return GET_OPTION_WITH_CACHE(isJitDisable);
 }
 
@@ -93,24 +95,25 @@ REGISTER_OPTION_HOOK(ACL_PRECISION_MODE, [](const std::string &val) {
   NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str()));
 })
 
-bool IsAllowFP32ToFP16() {
-  // For Ascend910B1 and subsequent device, the default precision mode is must_keep_origin_dtype,
-  // and the default value for others is allow_fp32_to_fp16.
-  bool is_allow_fp32_to_fp16 = c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910B1;
+bool IsAllowFP32ToFP16()
+{
+    // For Ascend910B1 and subsequent device, the default precision mode is must_keep_origin_dtype,
+    // and the default value for others is allow_fp32_to_fp16.
+    bool is_allow_fp32_to_fp16 = c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910B1;
 
-  static const std::string precision_mode = "ACL_PRECISION_MODE";
-  auto precision_mode_val = c10_npu::option::GetOption(precision_mode);
-  if (precision_mode_val.has_value()) {
-    if (precision_mode_val.value() == "must_keep_origin_dtype") {
-      is_allow_fp32_to_fp16 = false;
-    } else if (precision_mode_val.value() == "allow_fp32_to_fp16") {
-      is_allow_fp32_to_fp16 = true;
-    } else {
-      ASCEND_LOGW("Unsupported precision mode value, using default value according to soc version.");
+    static const std::string precision_mode = "ACL_PRECISION_MODE";
+    auto precision_mode_val = c10_npu::option::GetOption(precision_mode);
+    if (precision_mode_val.has_value()) {
+        if (precision_mode_val.value() == "must_keep_origin_dtype") {
+            is_allow_fp32_to_fp16 = false;
+        } else if (precision_mode_val.value() == "allow_fp32_to_fp16") {
+            is_allow_fp32_to_fp16 = true;
+        } else {
+            ASCEND_LOGW("Unsupported precision mode value, using default value according to soc version.");
+        }
     }
-  }
 
-  return is_allow_fp32_to_fp16;
+    return is_allow_fp32_to_fp16;
 }
 
 REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string &val) {
