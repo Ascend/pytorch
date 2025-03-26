@@ -1,5 +1,5 @@
-#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "third_party/acl/inc/acl/acl_prof.h"
 
@@ -34,7 +34,8 @@ aclError AclProfilingWarmup(const aclprofConfig *profilerConfig)
     return func(profilerConfig);
 }
 
-aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size_t configLength) {
+aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size_t configLength)
+{
     typedef aclError(*AclprofSetConfigFunc)(aclprofConfigType, const char *, size_t);
     static AclprofSetConfigFunc func = nullptr;
     if (func == nullptr) {

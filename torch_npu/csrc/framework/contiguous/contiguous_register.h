@@ -10,7 +10,6 @@
 
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
-#include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousUtils.h"
 
 namespace at_npu {
@@ -18,13 +17,13 @@ namespace native {
 
 class ContiguousOpt {
 public:
-  ContiguousOpt() {}
-  virtual ~ContiguousOpt() = default;
-  virtual bool Optimizer(at::Tensor &self, const at::Tensor &src,
+    ContiguousOpt() {}
+    virtual ~ContiguousOpt() = default;
+    virtual bool Optimizer(at::Tensor &self, const at::Tensor &src,
                          const ContiguousTensorDesc &src_desc) = 0;
-  virtual bool CanOptimizer(const ContiguousTensorDesc &src_desc) {
-    return false;
-  }
+    virtual bool CanOptimizer(const ContiguousTensorDesc &src_desc) {
+        return false;
+    }
     virtual bool CachedOptimizer(at::Tensor &self, const at::Tensor &src,
                                  const ContiguousTensorDesc &src_desc)
     {
@@ -35,32 +34,32 @@ public:
 namespace register_opt {
 class CopyOptRegister {
 public:
-  ~CopyOptRegister() = default;
-  static CopyOptRegister *GetInstance() {
-    static CopyOptRegister instance;
-    return &instance;
-  }
-  void Register(std::string &name, ::std::unique_ptr<ContiguousOpt> &ptr) {
-    std::lock_guard<std::mutex> lock(mu_);
-    registry.emplace(name, std::move(ptr));
-  }
-
-  bool CanOptimize(std::string &name, const ContiguousTensorDesc &src_desc) {
-    auto itr = registry.find(name);
-    if (itr != registry.end()) {
-      return itr->second->CanOptimizer(src_desc);
+    ~CopyOptRegister() = default;
+    static CopyOptRegister *GetInstance() {
+        static CopyOptRegister instance;
+        return &instance;
     }
-    return false;
-  }
+    void Register(std::string &name, ::std::unique_ptr<ContiguousOpt> &ptr) {
+        std::lock_guard<std::mutex> lock(mu_);
+        registry.emplace(name, std::move(ptr));
+    }
 
-  bool Run(const std::string &name, at::Tensor &self, const at::Tensor &src,
+    bool CanOptimize(std::string &name, const ContiguousTensorDesc &src_desc) {
+        auto itr = registry.find(name);
+        if (itr != registry.end()) {
+          return itr->second->CanOptimizer(src_desc);
+        }
+        return false;
+    }
+
+    bool Run(const std::string &name, at::Tensor &self, const at::Tensor &src,
            const ContiguousTensorDesc &src_desc) {
-    auto itr = registry.find(name);
-    if (itr != registry.end()) {
-      return itr->second->Optimizer(self, src, src_desc);
+        auto itr = registry.find(name);
+        if (itr != registry.end()) {
+            return itr->second->Optimizer(self, src, src_desc);
+        }
+        return false;
     }
-    return false;
-  }
 
     bool CachedRun(const std::string &name, at::Tensor &self, const at::Tensor &src,
                    const ContiguousTensorDesc &src_desc)
@@ -73,17 +72,17 @@ public:
     }
 
 private:
-  CopyOptRegister() {}
-  mutable std::mutex mu_;
-  mutable std::map<std::string, ::std::unique_ptr<ContiguousOpt>> registry;
+    CopyOptRegister() {}
+    mutable std::mutex mu_;
+    mutable std::map<std::string, ::std::unique_ptr<ContiguousOpt>> registry;
 }; // class CopyOptRegister
 
 class CopyOptBuilder {
 public:
-  CopyOptBuilder(std::string name, ::std::unique_ptr<ContiguousOpt> &ptr) {
-    CopyOptRegister::GetInstance()->Register(name, ptr);
-  }
-  ~CopyOptBuilder() = default;
+    CopyOptBuilder(std::string name, ::std::unique_ptr<ContiguousOpt> &ptr) {
+        CopyOptRegister::GetInstance()->Register(name, ptr);
+    }
+    ~CopyOptBuilder() = default;
 }; // class CopyOptBuilder
 } // namespace register_opt
 
