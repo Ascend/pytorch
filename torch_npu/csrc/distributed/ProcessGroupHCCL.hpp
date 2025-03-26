@@ -252,10 +252,10 @@ public:
 
         // return intrusive_ptr of the object
         static c10::intrusive_ptr<Options> create(
-            bool is_high_priority_stream = false,
+            bool _is_high_priority_stream = false,
             std::chrono::milliseconds timeout = kNoTimeout)
         {
-            return c10::make_intrusive<Options>(is_high_priority_stream);
+            return c10::make_intrusive<Options>(_is_high_priority_stream);
         }
 
         std::unordered_map<std::string, std::variant<uint32_t, std::string>> hccl_config;

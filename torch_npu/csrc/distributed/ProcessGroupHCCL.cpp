@@ -50,8 +50,6 @@ static int32_t defaultExecTimeout = 1800;
 constexpr const char* P2P_DEVICE_KEY = "_p2p";
 
 using hcclUs = std::chrono::steady_clock::time_point;
-#define DURATION_US(x) (std::chrono::duration_cast<std::chrono::microseconds>(x))
-#define TIME_NOW() ({ std::chrono::steady_clock::now(); })
 
 constexpr int32_t MAX_GROUP_NAME_LEN = 128;
 
@@ -1755,7 +1753,7 @@ int64_t ProcessGroupHCCL::getStreamId(bool p2p, int peer)
         TORCH_CHECK(peer >= 0, "In p2p scenarios, the passed 'dst rank id' is error.", DIST_ERROR(ErrCode::PARAM));
         key = getKeySendRecv(rank_, peer);
     }
-    if ((!hcclStreams_.count(key)) || hcclStreams_[key].empty()) {
+    if ((hcclStreams_.count(key) == 0) || hcclStreams_[key].empty()) {
         return -1;
     }
     return hcclStreams_[key][0].id();
@@ -2280,13 +2278,13 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
 
     if (options_->hccl_config.find("group_name") != options_->hccl_config.end()) {
         if (std::holds_alternative<std::string>(options_->hccl_config["group_name"])) {
-            auto groupName = std::get<std::string>(options_->hccl_config["group_name"]);
-            uint32_t udiLength = groupName.length();
-            if (groupName.length() >= UDI_MAX_LENGTH) {
+            auto hcclGroupName = std::get<std::string>(options_->hccl_config["group_name"]);
+            uint32_t udiLength = hcclGroupName.length();
+            if (hcclGroupName.length() >= UDI_MAX_LENGTH) {
                 udiLength = UDI_MAX_LENGTH - 1;
                 TORCH_NPU_WARN("The length of group_name has exceeded the limit UDI_MAX_LENGTH which will be truncated to UDI_MAX_LENGTH - 1.");
             }
-            strncpy(config.hcclUdi, groupName.c_str(), udiLength);
+            strncpy(config.hcclUdi, hcclGroupName.c_str(), udiLength);
             config.hcclUdi[udiLength] = '\0';
         } else {
             TORCH_CHECK(false, "Value type of group_name should be string.", DIST_ERROR(ErrCode::TYPE));
@@ -2448,7 +2446,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
             // to avoid to much task pushed to the stream, leading to stream overflow
             // insert sync point fluxLimit(key, i)
             c10_npu::NPUStream& hcclStream = hcclStreams[i];
-            hcclUs startut = TIME_NOW();
+            hcclUs startut = std::chrono::steady_clock::now();
             HCCL_CHECK_ERROR(fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream, work->is_dispatched), opTypeToString(opType).c_str());
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
                 work->recorded_outputs_.push_back(
@@ -2610,7 +2608,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
             // to avoid to much task pushed to the stream, leading to stream overflow
             // insert sync point fluxLimit(key, i)
             c10_npu::NPUStream& hcclStream = hcclStreams[0];
-            hcclUs startut = TIME_NOW();
+            hcclUs startut = std::chrono::steady_clock::now();
             HCCL_CHECK_ERROR(fn(inputs[i], outputs[i], hcclComms[0]->getHcclComm(), hcclStream, work->is_dispatched), opTypeToString(opType).c_str());
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
                 work->recorded_outputs_.push_back(
@@ -2788,7 +2786,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
             // to avoid to much task pushed to the stream, leading to stream overflow
             // insert sync point fluxLimit(key, i)
             c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
-            hcclUs startut = TIME_NOW();
+            hcclUs startut = std::chrono::steady_clock::now();
             HCCL_CHECK_ERROR(fn(tensors[i], hcclComms[i]->getHcclComm(), hcclStream, work->is_dispatched, p2pTargetRank), opTypeToString(opType).c_str());
         }
     }
@@ -3253,7 +3251,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
     check_split_sizes(inputSplitSizes, inputTensor, size_);
 
     int inputSize = static_cast<int>(inputSplitSizes.size());
-    int inputRowSize = static_cast<int>(inputTensor.size(0) ? inputTensor.numel() / inputTensor.size(0) : 1);
+    int inputRowSize = static_cast<int>(inputTensor.size(0) != 0 ? inputTensor.numel() / inputTensor.size(0) : 1);
     std::vector<uint64_t> inputCounts;
     std::vector<uint64_t> inputSpl;
     inputSpl.push_back(0);
@@ -3341,7 +3339,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
     check_split_sizes(outputSplitSizes, outputTensor, size_);
 
     int outputSize = static_cast<int>(outputSplitSizes.size());
-    int outputRowSize = static_cast<int>(outputTensor.size(0) ? outputTensor.numel() / outputTensor.size(0) : 1);
+    int outputRowSize = static_cast<int>(outputTensor.size(0) != 0 ? outputTensor.numel() / outputTensor.size(0) : 1);
     std::vector<uint64_t> outputCounts;
     std::vector<uint64_t> outputSpl;
     outputSpl.push_back(0);
@@ -4359,8 +4357,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
 
         int inputSize = static_cast<int>(inputSplitSizes.size());
         int outSize = static_cast<int>(outputSplitSizes.size());
-        int inputRowSize = static_cast<int>(inputTensor.size(0) ? inputTensor.numel() / inputTensor.size(0) : 1);
-        int outputRowSize = static_cast<int>(outputTensor.size(0) ? outputTensor.numel() / outputTensor.size(0) : 1);
+        int inputRowSize = static_cast<int>(inputTensor.size(0) != 0 ? inputTensor.numel() / inputTensor.size(0) : 1);
+        int outputRowSize = static_cast<int>(outputTensor.size(0) != 0 ? outputTensor.numel() / outputTensor.size(0) : 1);
         std::vector<uint64_t> inputCounts;
         std::vector<uint64_t> inputSpl;
         std::vector<uint64_t> outputCounts;
