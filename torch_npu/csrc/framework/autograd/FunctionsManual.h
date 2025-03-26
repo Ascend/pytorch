@@ -20,13 +20,13 @@ namespace details {
 // A simple way to imperatively compute index ranges for slots
 // that have been flattened
 struct IndexRangeGenerator {
-  IndexRange range(size_t range_size) {
-    i += range_size;
-    return {i - range_size, i};
-  }
-  size_t size() { return i; }
-  private:
-    size_t i = 0;
+    IndexRange range(size_t range_size) {
+        i += range_size;
+        return {i - range_size, i};
+    }
+    size_t size() const { return i; }
+    private:
+        size_t i = 0;
 };
 
 Tensor toNonOptFwGrad(const c10::optional<Tensor>& t);
