@@ -3,8 +3,8 @@
 
 namespace at_npu {
 namespace native {
-int64_t getFreq();
-bool isSyscntEnable();
+    int64_t getFreq();
+    bool isSyscntEnable();
 } // namespace native
 } // namespace torchat_npu_npu
 #endif

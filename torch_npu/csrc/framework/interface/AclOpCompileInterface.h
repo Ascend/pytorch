@@ -10,7 +10,8 @@ namespace native {
  * @ingroup AscendCL
  * @brief an interface set compile flag
  *
- * @param flag [IN]     flag: ACL_OPCOMPILE_DEFAULT represent static compile while ACL_OPCOMPILE_FUZZ represent dynamic compile
+ * @param flag [IN] flag: ACL_OPCOMPILE_DEFAULT represent static compile
+    while ACL_OPCOMPILE_FUZZ represent dynamic compile
  *
  * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
