@@ -175,7 +175,7 @@ class MemoryDbParser(BaseParser):
         TorchDb().create_table_with_headers(DbConstant.TABLE_OPERATOR_MEMORY, TableColumnsManager.TableColumns.get(DbConstant.TABLE_OPERATOR_MEMORY))
         TorchDb().insert_data_into_table(DbConstant.TABLE_OPERATOR_MEMORY, self._pta_op_memory_data + self._ge_op_memory_data)
 
-    def get_pta_memort_record_list(self):
+    def get_pta_memory_record_list(self):
         if not self._pta_memory_bean_list:
             return
         for memory_bean in self._pta_memory_bean_list:
@@ -218,7 +218,7 @@ class MemoryDbParser(BaseParser):
             pta_ptr += 1
 
     def save_memory_record_data_to_db(self):
-        self.get_pta_memort_record_list()
+        self.get_pta_memory_record_list()
         self.get_pta_ge_record_list()
         if not self._record_list:
             return
