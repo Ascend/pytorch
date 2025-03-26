@@ -63,7 +63,7 @@ at_npu::lccl::LcclDataType getLcclDataType(at::ScalarType type)
 std::string getLcclDataTypeSerialString(at_npu::lccl::LcclDataType type)
 {
     const auto& iter = kLcclDataTypeToStringMap.find(type);
-    if (iter != kLcclDataTypeToStringMap.end()) {
+    if (iter != kLcclDataTypeToStringMap.cend()) {
         return iter->second;
     } else {
         TORCH_NPU_WARN_ONCE("Cannot serialize undefined LCCL data type.");
