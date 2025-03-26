@@ -84,9 +84,17 @@ int MstxMgr::getRangeId()
     return ptRangeId_++;
 }
 
-mstxDomainHandle_t MstxMgr::createDomain(const char* name)
+mstxDomainHandle_t MstxMgr::createProfDomain(const char *name)
 {
-    if (!isMsleaksEnable() && !isMstxEnable()) {
+    if (!isMstxEnable()) {
+        return nullptr;
+    }
+    return at_npu::native::MstxDomainCreateA(name);
+}
+
+mstxDomainHandle_t MstxMgr::createLeaksDomain(const char* name)
+{
+    if (!at_npu::native::IsSupportMstxFunc()) {
         return nullptr;
     }
     return at_npu::native::MstxDomainCreateA(name);
@@ -163,7 +171,7 @@ void MstxMgr::domainRangeEnd(mstxDomainHandle_t domain, int ptRangeId)
 
 mstxMemHeapHandle_t MstxMgr::memHeapRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc)
 {
-    if (!isMsleaksEnable() || desc==nullptr) {
+    if (!at_npu::native::IsSupportMstxFunc() || desc == nullptr) {
         return nullptr;
     }
     mstxMemHeapDesc_t heapDesc;
@@ -173,7 +181,7 @@ mstxMemHeapHandle_t MstxMgr::memHeapRegister(mstxDomainHandle_t domain, mstxMemV
 
 void MstxMgr::memHeapUnregister(mstxDomainHandle_t domain, void* ptr)
 {
-    if (!isMsleaksEnable() || ptr == nullptr) {
+    if (!at_npu::native::IsSupportMstxFunc() || ptr == nullptr) {
         return;
     }
     at_npu::native::MstxMemHeapUnregister(domain, reinterpret_cast<mstxMemHeapHandle_t>(ptr));
@@ -181,7 +189,7 @@ void MstxMgr::memHeapUnregister(mstxDomainHandle_t domain, void* ptr)
 
 void MstxMgr::memRegionsRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc)
 {
-    if (!isMsleaksEnable() || desc == nullptr) {
+    if (!at_npu::native::IsSupportMstxFunc() || desc == nullptr) {
         return;
     }
     mstxMemRegionsRegisterBatch_t batch;
@@ -192,7 +200,7 @@ void MstxMgr::memRegionsRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeD
 
 void MstxMgr::memRegionsUnregister(mstxDomainHandle_t domain, void* ptr)
 {
-    if (!isMsleaksEnable() || ptr == nullptr) {
+    if (!at_npu::native::IsSupportMstxFunc() || ptr == nullptr) {
         return;
     }
     mstxMemRegionsUnregisterBatch_t unregisterBatch;

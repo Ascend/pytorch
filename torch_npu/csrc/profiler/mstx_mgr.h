@@ -20,10 +20,11 @@ public:
     void mark(const char* message, const aclrtStream stream);
     int rangeStart(const char* message, const aclrtStream stream);
     void rangeEnd(int ptRangeId);
+    bool isMsleaksEnable();
     bool isMstxEnable();
     int getRangeId();
-
-    mstxDomainHandle_t createDomain(const char* name);
+    mstxDomainHandle_t createProfDomain(const char* name);
+    mstxDomainHandle_t createLeaksDomain(const char* name);
     void destroyDomain(mstxDomainHandle_t domain);
     void domainMark(mstxDomainHandle_t domain, const char* message, const aclrtStream stream);
     int domainRangeStart(mstxDomainHandle_t domain, const char* message, const aclrtStream stream);
@@ -40,7 +41,6 @@ private:
     explicit MstxMgr(MstxMgr &&obj) = delete;
     MstxMgr& operator=(MstxMgr &&obj) = delete;
 
-    bool isMsleaksEnable();
     bool isMsleaksEnableImpl();
     bool isProfTxEnable();
     bool isMsptiTxEnable();
