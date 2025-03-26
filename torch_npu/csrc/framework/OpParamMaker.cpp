@@ -8,7 +8,7 @@
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
-#include "torch_npu/csrc/framework/aoe/AoeUtils.h"
+#include "torch_npu/csrc/framework/aoe/AoeDumpGraphManager.h"
 #include "torch_npu/csrc/framework/interface/HcclInterface.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"

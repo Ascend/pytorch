@@ -24,7 +24,7 @@ public:
   bool aoe_enable = false;
   // to save graph for autotune, default path is ./
   std::string autotune_graphdumppath = "./";
-  aclGraphDumpOption* AclGraphDumpOption = NULL;
+  aclGraphDumpOption* AclGraphDumpOption = nullptr;
   std::unordered_set<std::string> white_list_ = {
       "Abs",
       "AccumulateNV2",

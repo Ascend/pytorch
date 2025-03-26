@@ -22,7 +22,8 @@ constexpr uint32_t ERR_FREQ = 0;
 constexpr uint32_t ERR_VER = 0;
 constexpr uint32_t FREQ_CONFIG = 24;
 
-int64_t getFreq() {
+int64_t getFreq()
+{
     using getReqFun = int32_t (*)(uint32_t, int32_t, int32_t, int64_t*);
     static getReqFun getFreqInfo = nullptr;
     if (getFreqInfo == nullptr) {
@@ -39,7 +40,8 @@ int64_t getFreq() {
     return ERR_FREQ;
 }
 
-int64_t getVer() {
+int64_t getVer()
+{
     using getReqFun = int32_t (*)(int32_t*);
     static getReqFun getVerInfo = nullptr;
     if (getVerInfo == nullptr) {
@@ -57,7 +59,8 @@ int64_t getVer() {
     return ver;
 }
 
-bool isSyscntEnable() {
+bool isSyscntEnable()
+{
     constexpr int32_t supportVersion = 0x071905;
     return getVer() >= supportVersion && getFreq() != ERR_FREQ;
 }
