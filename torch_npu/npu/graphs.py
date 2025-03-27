@@ -66,11 +66,11 @@ class NPUGraph(torch_npu._C._NPUGraph):
             pool (optional): Token (returned by :func:`~torch.npu.graph_pool_handle` or
                 :meth:`other_Graph_instance.pool()<torch.npu.NPUGraph.pool>`) that hints this graph may share memory
                 with the indicated pool.  See :ref:`Graph memory management<graph-memory-management>`.
-            capture_error_mode (str, optional): specifies the aclmdlCaptureMode for the graph capture stream.
+            capture_error_mode (str, optional): specifies the aclmdlRICaptureMode for the graph capture stream.
                 Can be "global", "thread_local" or "relaxed". During npu graph capture, some actions, such as npuMalloc,
                 may be unsafe. "global" will error on actions in other threads, "thread_local" will only error for
                 actions in the current thread, and "relaxed" will not error on these actions. Do NOT change this setting
-                unless you're familiar with `aclmdlCaptureMode`_
+                unless you're familiar with `aclmdlRICaptureMode`_
         """  # noqa: B950
         super().capture_begin(pool=pool, capture_error_mode=capture_error_mode)
 
@@ -115,11 +115,11 @@ class graph:
             may share memory from the specified pool. See :ref:`Graph memory management<graph-memory-management>`.
         stream (torch.npu.Stream, optional): If supplied, will be set as the current stream in the context.
             If not supplied, ``graph`` sets its own internal side stream as the current stream in the context.
-        capture_error_mode (str, optional): specifies the aclmdlCaptureMode for the graph capture stream.
+        capture_error_mode (str, optional): specifies the aclmdlRICaptureMode for the graph capture stream.
             Can be "global", "thread_local" or "relaxed". During npu graph capture, some actions, such as npuMalloc,
             may be unsafe. "global" will error on actions in other threads, "thread_local" will only error for
             actions in the current thread, and "relaxed" will not error on actions. Do NOT change this setting
-            unless you're familiar with `aclmdlCaptureMode`_
+            unless you're familiar with `aclmdlRICaptureMode`_
 
     .. note::
         For effective memory sharing, if you pass a ``pool`` used by a previous capture and the previous capture
