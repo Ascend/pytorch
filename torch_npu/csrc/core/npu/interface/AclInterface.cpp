@@ -69,12 +69,12 @@ LOAD_FUNCTION(aclrtPeekAtLastError)
 LOAD_FUNCTION(aclrtSynchronizeDevice)
 LOAD_FUNCTION(aclrtSynchronizeDeviceWithTimeout)
 LOAD_FUNCTION(aclrtEventGetTimestamp)
-LOAD_FUNCTION(aclmdlCaptureBegin)
-LOAD_FUNCTION(aclmdlCaptureGetInfo)
-LOAD_FUNCTION(aclmdlCaptureEnd)
-LOAD_FUNCTION(aclmdlDebugPrint)
-LOAD_FUNCTION(aclmdlExecuteAsync)
-LOAD_FUNCTION(aclmdlUnload)
+LOAD_FUNCTION(aclmdlRICaptureBegin)
+LOAD_FUNCTION(aclmdlRICaptureGetInfo)
+LOAD_FUNCTION(aclmdlRICaptureEnd)
+LOAD_FUNCTION(aclmdlRIDebugPrint)
+LOAD_FUNCTION(aclmdlRIExecuteAsync)
+LOAD_FUNCTION(aclmdlRIDestroy)
 LOAD_FUNCTION(aclsysGetCANNVersion)
 
 
@@ -743,67 +743,65 @@ aclError AclrtEventGetTimestamp(aclrtEvent event, uint64_t *timestamp)
     return func(event, timestamp);
 }
 
-aclError AclmdlCaptureBegin(aclrtStream stream, aclmdlCaptureMode mode)
+aclError AclmdlRICaptureBegin(aclrtStream stream, aclmdlRICaptureMode mode)
 {
-    typedef aclError (*AclmdlCaptureBegin)(aclrtStream, aclmdlCaptureMode);
-    static AclmdlCaptureBegin func = nullptr;
+    typedef aclError (*AclmdlRICaptureBegin)(aclrtStream, aclmdlRICaptureMode);
+    static AclmdlRICaptureBegin func = nullptr;
     if (func == nullptr) {
-        func = (AclmdlCaptureBegin) GET_FUNC(aclmdlCaptureBegin);
+        func = (AclmdlRICaptureBegin) GET_FUNC(aclmdlRICaptureBegin);
     }
 
-    TORCH_CHECK(func, "Failed to find function aclmdlCaptureBegin", PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureBegin", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(stream, mode);
 }
 
-aclError AclmdlCaptureGetInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId)
+aclError AclmdlRICaptureGetInfo(aclrtStream stream, aclmdlRICaptureStatus *status, aclmdlRI *modelRI)
 {
-    typedef aclError (*AclmdlCaptureGetInfo)(aclrtStream, aclmdlCaptureStatus *, uint32_t *);
-    static AclmdlCaptureGetInfo func = nullptr;
+    typedef aclError (*AclmdlRICaptureGetInfo)(aclrtStream, aclmdlRICaptureStatus *, aclmdlRI *);
+    static AclmdlRICaptureGetInfo func = nullptr;
     if (func == nullptr) {
-        func = (AclmdlCaptureGetInfo) GET_FUNC(aclmdlCaptureGetInfo);
+        func = (AclmdlRICaptureGetInfo) GET_FUNC(aclmdlRICaptureGetInfo);
     }
 
-    TORCH_CHECK(func, "Failed to find function aclmdlCaptureGetInfo", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, status, modelId);
+    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureGetInfo", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, status, modelRI);
 }
 
-aclError AclmdlCaptureEnd(aclrtStream stream, uint32_t *modelId)
+aclError AclmdlRICaptureEnd(aclrtStream stream, aclmdlRI *modelRI)
 {
-    typedef aclError (*AclmdlCaptureEnd)(aclrtStream, uint32_t *);
-    static AclmdlCaptureEnd func = nullptr;
+    typedef aclError (*AclmdlRICaptureEnd)(aclrtStream, aclmdlRI *);
+    static AclmdlRICaptureEnd func = nullptr;
     if (func == nullptr) {
-        func = (AclmdlCaptureEnd) GET_FUNC(aclmdlCaptureEnd);
+        func = (AclmdlRICaptureEnd) GET_FUNC(aclmdlRICaptureEnd);
     }
 
-    TORCH_CHECK(func, "Failed to find function aclmdlCaptureEnd", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, modelId);
+    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureEnd", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, modelRI);
 }
 
-aclError AclmdlDebugPrint(uint32_t modelId)
+aclError AclmdlRIDebugPrint(aclmdlRI modelRI)
 {
-    typedef aclError (*AclmdlDebugPrint)(uint32_t);
-    static AclmdlDebugPrint func = nullptr;
+    typedef aclError (*AclmdlRIDebugPrint)(aclmdlRI);
+    static AclmdlRIDebugPrint func = nullptr;
     if (func == nullptr) {
-        func = (AclmdlDebugPrint) GET_FUNC(aclmdlDebugPrint);
+        func = (AclmdlRIDebugPrint) GET_FUNC(aclmdlRIDebugPrint);
     }
 
-    TORCH_CHECK(func, "Failed to find function aclmdlDebugPrint", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(modelId);
+    TORCH_CHECK(func, "Failed to find function aclmdlRIDebugPrint", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(modelRI);
 }
 
-aclError AclmdlExecuteAsync(uint32_t modelId, aclrtStream stream)
+aclError AclmdlRIExecuteAsync(aclmdlRI modelRI, aclrtStream stream)
 {
-    typedef aclError (*AclmdlExecuteAsync)(uint32_t, const aclmdlDataset *, aclmdlDataset *, aclrtStream);
-    static AclmdlExecuteAsync func = nullptr;
+    typedef aclError (*AclmdlRIExecuteAsync)(aclmdlRI, aclrtStream);
+    static AclmdlRIExecuteAsync func = nullptr;
     if (func == nullptr) {
-        func = (AclmdlExecuteAsync) GET_FUNC(aclmdlExecuteAsync);
+        func = (AclmdlRIExecuteAsync) GET_FUNC(aclmdlRIExecuteAsync);
     }
 
-    TORCH_CHECK(func, "Failed to find function aclmdlExecuteAsync", PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(func, "Failed to find function aclmdlRIExecuteAsync", PTA_ERROR(ErrCode::NOT_FOUND));
 
-    static aclmdlDataset *inputs = aclmdlCreateDataset();
-    static aclmdlDataset *outputs = aclmdlCreateDataset();
-    return func(modelId, inputs, outputs, stream);
+    return func(modelRI, stream);
 }
 
 aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version)
@@ -820,16 +818,16 @@ aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *ve
     return func(name, version);
 }
 
-aclError AclmdlUnload(uint32_t modelId)
+aclError AclmdlRIDestroy(aclmdlRI modelRI)
 {
-    typedef aclError (*AclmdlUnload)(uint32_t);
-    static AclmdlUnload func = nullptr;
+    typedef aclError (*AclmdlRIDestroy)(aclmdlRI);
+    static AclmdlRIDestroy func = nullptr;
     if (func == nullptr) {
-        func = (AclmdlUnload) GET_FUNC(aclmdlUnload);
+        func = (AclmdlRIDestroy) GET_FUNC(aclmdlRIDestroy);
     }
 
-    TORCH_CHECK(func, "Failed to find function aclmdlUnload", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(modelId);
+    TORCH_CHECK(func, "Failed to find function aclmdlRIDestroy", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(modelRI);
 }
 
 bool IsCaptureSupported()
@@ -841,8 +839,8 @@ bool IsCaptureSupported()
         (GetSocVersion() >= SocVersion::Ascend910_9391);
     if (default_support_capture && !have_load_func) {
         have_load_func = true;
-        typedef aclError (*AclmdlCaptureGetInfo)(aclrtStream, aclmdlCaptureStatus *, uint32_t *);
-        static AclmdlCaptureGetInfo func = (AclmdlCaptureGetInfo) GET_FUNC(aclmdlCaptureGetInfo);
+        typedef aclError (*AclmdlRICaptureGetInfo)(aclrtStream, aclmdlRICaptureStatus *, aclmdlRI *);
+        static AclmdlRICaptureGetInfo func = (AclmdlRICaptureGetInfo) GET_FUNC(aclmdlRICaptureGetInfo);
         is_support = (func != nullptr);
     }
 
