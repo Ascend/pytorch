@@ -401,7 +401,7 @@ protected:
     // This function is called inside `finalize_backward`, it happens only if
     // DDP communication hook was registered to recreate just bucket_views_out
     // with the result of `future_work`.
-    void populate_bucket_views_out(BucketReplica& replica, at::Tensor& tensor);
+    void populate_bucket_views_out(BucketReplica& replica, at::Tensor& tensor) const;
 
     // If gradient_as_bucket_view_ is false, after allreduce buckets,
     // copy bucket results back to grads.
@@ -460,9 +460,10 @@ protected:
 
         VariableLocator() = default;
 
-        VariableLocator(size_t bucket_index_, size_t intra_bucket_index_) {
-        bucket_index = bucket_index_;
-        intra_bucket_index = intra_bucket_index_;
+        VariableLocator(size_t bucket_index_, size_t intra_bucket_index_)
+        {
+            bucket_index = bucket_index_;
+            intra_bucket_index = intra_bucket_index_;
         }
     };
 
@@ -491,7 +492,7 @@ protected:
     void record_backward_comm_start_time();
     void record_backward_comm_end_time();
 
-    int get_ddp_runtime_logging_sample_rate();
+    int get_ddp_runtime_logging_sample_rate() const;
     int ddp_runtime_logging_sample_rate_ = kDDPRuntimeLoggingSampleRate;
 
     bool is_multi_device_module_ = false;
@@ -561,9 +562,9 @@ private:
     void initialize_local_used_map();
     // get current cuda stream
     const c10::Stream get_current_stream();
-    bool dynamic_graph_find_unused();
-    bool static_graph_first_iteration();
-    bool static_graph_after_first_iteration();
+    bool dynamic_graph_find_unused() const;
+    bool static_graph_first_iteration() const;
+    bool static_graph_after_first_iteration() const;
 
     // comm_hook_ is used to access the DDP communication hook if registered.
     std::unique_ptr<c10d::CommHookInterface> comm_hook_;

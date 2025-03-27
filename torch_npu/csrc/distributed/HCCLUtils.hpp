@@ -1,11 +1,11 @@
 #pragma once
+#include <map>
+#include <memory>
+#include <string>
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
-#include <map>
-#include <memory>
-#include <string>
 
 #include <ATen/ATen.h>
 #include <c10/util/Optional.h>

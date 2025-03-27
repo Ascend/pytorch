@@ -15,10 +15,10 @@
  */
 #include <chrono>
 #include "ParallelTcpServer.hpp"
-#include "ParallelTcpStore.hpp"
 #include "ParallelStoreProxy.hpp"
 #include "StoreClient.hpp"
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "ParallelTcpStore.hpp"
 
 namespace c10d {
 namespace torch_npu {
