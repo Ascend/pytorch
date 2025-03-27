@@ -143,7 +143,7 @@ class _ParallelTCPRendezvous(RendezvousHandler):
                 multi_tenant=True,
             )
         store = PrefixStore(self.run_id, self._store)
-        bootstrap_store_info = RendezvousStoreInfo.build(self.rank, store)
+        bootstrap_store_info = RendezvousStoreInfo(self.master_addr, self.master_port)
         return RendezvousInfo(store, self.rank, self.world_size, bootstrap_store_info)
 
     def is_closed(self):
