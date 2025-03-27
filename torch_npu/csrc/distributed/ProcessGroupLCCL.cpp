@@ -104,7 +104,7 @@ std::vector<at::Tensor> ProcessGroupLCCL::WorkLCCL::result()
     return *outputs_;
 }
 
-void ProcessGroupLCCL::WorkLCCL::checkAndThrowException()
+void ProcessGroupLCCL::WorkLCCL::checkAndThrowException() const
 {
     // Set the appropriate exception if found.
     checkAndSetException();
@@ -115,7 +115,7 @@ void ProcessGroupLCCL::WorkLCCL::checkAndThrowException()
     }
 }
 
-void ProcessGroupLCCL::WorkLCCL::checkAndSetException()
+void ProcessGroupLCCL::WorkLCCL::checkAndSetException() const
 {
     if (exception()) {
         // We already have an exception.

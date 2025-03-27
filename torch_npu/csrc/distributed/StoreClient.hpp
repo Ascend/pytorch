@@ -34,7 +34,7 @@ public:
     int LocalClose() noexcept;
     int SyncCall(const StoreMessage &request, StoreMessage &response) noexcept;
     int SetReceiveTimeout(const std::chrono::milliseconds &value) const noexcept;
-    int GetSocketFd() noexcept;
+    int GetSocketFd() const noexcept;
 private:
     const std::string localSocketPath_{};
     const std::string host_{};
