@@ -82,11 +82,11 @@ void *FunctionRegister::Get(const std::string &soName, const std::string &funcNa
     return nullptr;
 }
 
-FunctionRegisterBuilder::FunctionRegisterBuilder(const std::string &name, ::std::unique_ptr<FunctionLoader> &ptr)
+FunctionRegisterBuilder::FunctionRegisterBuilder(const std::string &name, ::std::unique_ptr<FunctionLoader> &ptr) noexcept
 {
     FunctionRegister::GetInstance()->Register(name, ptr);
 }
-FunctionRegisterBuilder::FunctionRegisterBuilder(const std::string &soName, const std::string &funcName)
+FunctionRegisterBuilder::FunctionRegisterBuilder(const std::string &soName, const std::string &funcName) noexcept
 {
     FunctionRegister::GetInstance()->Register(soName, funcName);
 }

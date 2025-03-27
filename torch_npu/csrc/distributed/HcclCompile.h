@@ -32,7 +32,7 @@ extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, con
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
     HcclDataType recvType, HcclComm comm, aclrtStream stream)
 {
-    typedef HcclResult(*HcclAlltoAllVFunc)(
+    using HcclAlltoAllVFunc = HcclResult(*)(
         const void *, const void *, const void *, HcclDataType,
         const void *, const void *, const void *, HcclDataType,
         HcclComm, aclrtStream);
@@ -50,7 +50,7 @@ extern HcclResult hcclAllGatherV(const void *sendBuf, uint64_t sendCount,
     const void *recvBuf, const void *recvCounts, const void *rdispls,
     HcclDataType dataType, HcclComm comm, aclrtStream stream)
 {
-    typedef HcclResult(*HcclAllGatherVFunc)(
+    using HcclAllGatherVFunc = HcclResult(*)(
         const void *, uint64_t,
         const void *, const void *, const void *,
         HcclDataType, HcclComm, aclrtStream);
@@ -67,7 +67,7 @@ extern HcclResult hcclReduceScatterV(const void *sendBuf, const void *sendCounts
     const void *recvBuf, uint64_t recvCount,
     HcclDataType dataType, HcclReduceOp op, HcclComm comm, aclrtStream stream)
 {
-    typedef HcclResult(*HcclReduceScatterVFunc)(
+    using HcclReduceScatterVFunc = HcclResult(*)(
         const void *, const void *, const void *,
         const void *, uint64_t,
         HcclDataType, HcclReduceOp, HcclComm, aclrtStream);
@@ -83,7 +83,7 @@ extern HcclResult hcclReduceScatterV(const void *sendBuf, const void *sendCounts
 extern HcclResult hcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType sendType,
     HcclReduceOp op, uint32_t root, HcclComm comm, aclrtStream stream)
 {
-    typedef HcclResult(*HcclReduceVFunc)(
+    using HcclReduceVFunc = HcclResult(*)(
         void *, void *, uint64_t, HcclDataType, HcclReduceOp, uint32_t, HcclComm, aclrtStream);
     static HcclReduceVFunc func = nullptr;
     if (func == nullptr) {
@@ -96,7 +96,7 @@ extern HcclResult hcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclD
 
 HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError)
 {
-    typedef HcclResult(*HcclGetCommAsyncErrorVFunc)(HcclComm, HcclResult*);
+    using HcclGetCommAsyncErrorVFunc = HcclResult(*)(HcclComm, HcclResult*);
     static HcclGetCommAsyncErrorVFunc func = nullptr;
     if (func == nullptr) {
         func = (HcclGetCommAsyncErrorVFunc)GET_FUNC(HcclGetCommAsyncError);
@@ -109,7 +109,7 @@ HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError)
 HcclResult hcclScatter(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType dataType, uint32_t root,
     HcclComm comm, aclrtStream stream)
 {
-    typedef HcclResult(*HcclScatterVFunc)(void *, void *, uint64_t, HcclDataType, uint32_t, HcclComm, aclrtStream);
+    using HcclScatterVFunc = HcclResult(*)(void *, void *, uint64_t, HcclDataType, uint32_t, HcclComm, aclrtStream);
     static HcclScatterVFunc func = nullptr;
     if (func == nullptr) {
         func = (HcclScatterVFunc)GET_FUNC(HcclScatter);
@@ -121,7 +121,7 @@ HcclResult hcclScatter(void *sendBuf, void *recvBuf, uint64_t count, HcclDataTyp
 
 HcclResult hcclBatchIsendIrecv(void* sendRecvInfo, uint32_t itemNum, HcclComm comm, aclrtStream stream)
 {
-    typedef HcclResult(*HcclBatchIsendIrecvVFunc)(
+    using HcclBatchIsendIrecvVFunc = HcclResult(*)(
         void *, uint32_t, HcclComm, aclrtStream);
     static HcclBatchIsendIrecvVFunc func = nullptr;
     if (func == nullptr) {
@@ -136,7 +136,7 @@ HcclResult hcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclDataType se
     const void *recvBuf, uint64_t recvCount, HcclDataType recvType,
     HcclComm comm, aclrtStream stream)
 {
-    typedef HcclResult(*HcclAlltoAllFunc)(
+    using HcclAlltoAllFunc = HcclResult(*)(
         const void *, uint64_t, HcclDataType,
         const void *, uint64_t, HcclDataType,
         HcclComm, aclrtStream);
@@ -195,7 +195,7 @@ bool hcclReduceScatterVExist()
 
 HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclCommConfig* config, HcclComm *comm)
 {
-    typedef HcclResult(*HcclCommInitRootInfoConfigFunc)(
+    using HcclCommInitRootInfoConfigFunc = HcclResult(*)(
         uint32_t, const HcclRootInfo *, uint32_t, HcclCommConfig*, HcclComm *);
     static HcclCommInitRootInfoConfigFunc func = nullptr;
     if (func == nullptr) {
@@ -208,7 +208,7 @@ HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootI
 
 bool isHcclFeatureSupported(HcclCommConfigCapability configParameter)
 {
-    typedef uint32_t(*HcclGetCommConfigCapabilityFunc)();
+    using HcclGetCommConfigCapabilityFunc = uint32_t(*)();
     static HcclGetCommConfigCapabilityFunc func = (HcclGetCommConfigCapabilityFunc) GET_FUNC(
             HcclGetCommConfigCapability);
     if (func == nullptr) {
@@ -228,7 +228,7 @@ bool hcclCommInitClusterInfoConfigExist()
 
 HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_t rank, HcclCommConfig *config, HcclComm *comm)
 {
-    typedef HcclResult(*HcclCommInitClusterInfoConfigFunc)(const char *, uint32_t, HcclCommConfig *, HcclComm *);
+    using HcclCommInitClusterInfoConfigFunc = HcclResult(*)(const char *, uint32_t, HcclCommConfig *, HcclComm *);
     static HcclCommInitClusterInfoConfigFunc func = nullptr;
     if (func == nullptr) {
         func = (HcclCommInitClusterInfoConfigFunc)GET_FUNC(HcclCommInitClusterInfoConfig)
@@ -250,7 +250,7 @@ bool hcclCreateSubCommConfigExist()
 HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *rankIds, uint64_t subCommId, uint32_t subCommRankId,
     HcclCommConfig* config, HcclComm *subComm)
 {
-    typedef HcclResult(*HcclCreateSubCommConfigFunc)(HcclComm *, uint32_t, uint32_t *, uint64_t, uint32_t, HcclCommConfig *, HcclComm *);
+    using HcclCreateSubCommConfigFunc = HcclResult(*)(HcclComm *, uint32_t, uint32_t *, uint64_t, uint32_t, HcclCommConfig *, HcclComm *);
     static HcclCreateSubCommConfigFunc func = nullptr;
     if (func == nullptr) {
         func = (HcclCreateSubCommConfigFunc)GET_FUNC(HcclCreateSubCommConfig)
