@@ -124,7 +124,7 @@ namespace c10d_npu {
         std::string report =
             "\n\t - To our best knowledge, the lagging/dead/mismatched ranks "
             "that caused the desync are:";
-        if (startRanks.size()) {
+        if (startRanks.size() != 0) {
             report += c10::str(
                 "\n\t   - [",
                 ranksToString(startRanks),
@@ -132,7 +132,7 @@ namespace c10d_npu {
                 lagSeq,
                 " (count from 1)");
         }
-        if (endRanks.size()) {
+        if (endRanks.size() != 0) {
             report += c10::str(
                 "\n\t     [",
                 ranksToString(endRanks),
@@ -165,7 +165,7 @@ namespace c10d_npu {
                 }
             }
 
-            if (collectivesStart.size()) {
+            if (collectivesStart.size() != 0) {
                 report += c10::str("\n\t   #", seq, " started ranks:");
                 for (auto &mapPair : collectivesStart) {
                     report += c10::str(
@@ -175,7 +175,7 @@ namespace c10d_npu {
                         mapPair.first);
                 }
             }
-            if (collectivesEnd.size()) {
+            if (collectivesEnd.size() != 0) {
                 report += c10::str("\n\t   #", seq, " finished ranks:");
                 for (auto &mapPair : collectivesEnd) {
                     report += c10::str(
@@ -324,7 +324,7 @@ namespace c10d_npu {
         }
         HCCLTraceBuffer()
         {
-            max_entries_ = getCvarInt({"TORCH_HCCL_TRACE_BUFFER_SIZE"}, 0);
+            max_entries_ = static_cast<size_t>(getCvarInt({"TORCH_HCCL_TRACE_BUFFER_SIZE"}, 0));
             capture_cpp_stack_ = getCvarBool({"TORCH_HCCL_TRACE_CPP_STACK"}, false);
             enabled_ = max_entries_ > 0;
         }
@@ -464,7 +464,7 @@ namespace c10d_npu {
             pg_name_to_ranks_[pg_name] = ranks;
         }
 
-        void update_state(Entry &r)
+        void update_state(Entry &r) const
         {
             if (r.start_ != nullptr) {
                 bool started = r.start_->query();
@@ -589,7 +589,7 @@ namespace c10d_npu {
                 if (includeStacktraces) {
                     auto &tb = stracebacks.tracebacks.at(i);
                     auto frames = new_list();
-                    for (int64_t frame : tb) {
+                    for (uint64_t frame : tb) {
                         frames.push_back(all_frames.at(frame));
                     }
                     dict.insert(frames_key, frames);

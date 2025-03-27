@@ -113,7 +113,7 @@ public:
     static int64_t GetRankId();
     static char *GetNslbPath();
     static bool CheckStatusSaveEnable();
-    static std::string GetStatusSavePath();
+    static std::string GetStatusSavePath() noexcept;
     static uint32_t GetStatusSaveInterval();
     static uint32_t GetNslbCntVal();
     static bool CheckGeInitDisable();

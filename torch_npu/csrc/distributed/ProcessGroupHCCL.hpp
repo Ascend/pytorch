@@ -455,7 +455,7 @@ public:
 	    std::vector<at::Tensor>& tensors,
 	    std::vector<uint32_t> remote_rank_list);
 
-    at::Tensor byte_alignment(at::Tensor& tensors);
+    at::Tensor byte_alignment(at::Tensor& tensors) const;
 
     c10::intrusive_ptr<c10d::Work> _reduce_scatter_base_uneven(
         at::Tensor& outputTensor,
@@ -579,7 +579,7 @@ public:
 
     void abortAndClearHcclComm(c10::optional<std::string> abortReason);
 
-    std::string getHcclCommNameWithoutInit(std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+    std::string getHcclCommNameWithoutInit(std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
 
     // Return the global ranks of a PG
     const std::vector<uint32_t>& groupRanks() const;
@@ -668,7 +668,7 @@ protected:
         std::future<bool>& fut,
         const std::chrono::milliseconds& timeOutMilSec,
         const std::string& futDescription,
-        bool throwException = false);
+        bool throwException = false) const;
 
     static const int64_t kWatchdogThreadSleepMillis;
 
@@ -1067,7 +1067,7 @@ TORCH_API c10::optional<std::function<void(std::function<void(const std::string 
 // Similar to get_cpp_trace_dumper, this stores a function defined in
 // torch-python layer that lets us check whether the GIL can be acquired,
 // helpful for instrumenting in cases where a hang was observed.
-typedef bool (*gil_checker_t)();
+using gil_checker_t = bool (*)();
 
 TORCH_API gil_checker_t &get_gil_checker();
 } // namespace c10d_npu

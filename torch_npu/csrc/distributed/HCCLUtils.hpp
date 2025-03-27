@@ -1,11 +1,11 @@
 #pragma once
+#include <map>
+#include <memory>
+#include <string>
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
-#include <map>
-#include <memory>
-#include <string>
 
 #include <ATen/ATen.h>
 #include <c10/util/Optional.h>
@@ -91,7 +91,7 @@ inline std::string getCvarString(
         const char *val = std::getenv(env[i].c_str());
         if (val == nullptr) {
             continue;
-        } else if (i) {
+        } else if (i != 0) {
             WARN_ENV_VAR_ONCE(env[i], env[0]);
         }
         ret = val;
@@ -112,10 +112,10 @@ inline int getCvarInt(const std::vector<std::string> &env, int def)
      * versions of a variable get higher priority than the latter
      * versions of the same variable */
     for (ssize_t i = static_cast<ssize_t>(env.size()) - 1; i >= 0; i--) {
-        char *val = std::getenv(env[i].c_str());
+        const char *val = std::getenv(env[i].c_str());
         if (val == nullptr) {
             continue;
-        } else if (i) {
+        } else if (i != 0) {
             WARN_ENV_VAR_ONCE(env[i], env[0]);
         }
         try {
@@ -139,10 +139,10 @@ inline bool getCvarBool(const std::vector<std::string> &env, bool def)
      * versions of a variable get higher priority than the latter
      * versions of the same variable */
     for (ssize_t i = static_cast<ssize_t>(env.size()) - 1; i >= 0; i--) {
-        char *val_ = std::getenv(env[i].c_str());
+        const char *val_ = std::getenv(env[i].c_str());
         if (val_ == nullptr) {
             continue;
-        } else if (i) {
+        } else if (i != 0) {
             WARN_ENV_VAR_ONCE(env[i], env[0]);
         }
 

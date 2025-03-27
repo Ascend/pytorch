@@ -25,8 +25,8 @@
 #include <thread>
 
 #include "c10/util/Logging.h"
-#include "StoreClient.hpp"
 #include "StoreMessagePacker.hpp"
+#include "StoreClient.hpp"
 
 namespace c10d {
 namespace torch_npu {
@@ -228,7 +228,7 @@ int Client::SetReceiveTimeout(const std::chrono::milliseconds &value) const noex
     return ret;
 }
 
-int Client::GetSocketFd() noexcept
+int Client::GetSocketFd() const noexcept
 {
     return socketFd_;
 }

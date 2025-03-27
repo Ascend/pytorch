@@ -16,7 +16,7 @@ public:
 
     ~LogContext() = default;
 
-    std::shared_ptr<Logger> getLogger(const std::string& name = "");
+    std::shared_ptr<Logger> getLogger(const std::string& name = "") noexcept;
     static LogContext& GetInstance();
     void setLogs(const std::unordered_map<std::string, int>& qnameLevels);
 
