@@ -256,7 +256,7 @@ bool OptionsManager::CheckStatusSaveEnable()
     return CheckStatusSaveEnable;
 }
 
-std::string OptionsManager::GetStatusSavePath()
+std::string OptionsManager::GetStatusSavePath() noexcept
 {
     char* status_save_val = std::getenv("TORCH_HCCL_STATUS_SAVE_PATH");
     std::string status_save_path = (status_save_val != nullptr) ? std::string(status_save_val) : "/tmp";
