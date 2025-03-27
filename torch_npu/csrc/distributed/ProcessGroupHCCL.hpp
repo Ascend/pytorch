@@ -848,6 +848,8 @@ protected:
     // timeout and hccl errors.
     bool dumpOnException_;
 
+    bool hasGlobalDumped = false;
+
     // the perfdump path
     static std::string perfdumppath;
 

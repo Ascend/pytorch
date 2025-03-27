@@ -1406,7 +1406,7 @@ void ProcessGroupHCCL::heartbeatMonitor()
             // we haven't polled for `heartbeat_timeout` seconds and there haven't
             // any work added or removed for `watchdog_timeout` seconds.
             if (computeDeltaMS(lastWorkListUpdateTime_, currentTime) >= kWatchdogThreadSleepMillis &&
-                computeDeltaMS(lastTimePollStore, currentTime) >= coordCheckIntervalMilSec_) {
+                computeDeltaMS(lastTimePollStore, currentTime) >= coordCheckIntervalMilSec_ && !hasGlobalDumped) {
                 lastTimePollStore = currentTime;
                 // Wrap globalStore_->check() in a try-catch block to avoid crashing if
                 // the store is not available.
@@ -1462,6 +1462,7 @@ void ProcessGroupHCCL::heartbeatMonitor()
                         "bugs in the communications library (e.g. HCCL), etc. We tried our best to ",
                         "dump the debug info into the storage to help you debug the issue.");
                     dumpTraceAndResetStatus();
+                    hasGlobalDumped = true;
                 }
             }
         }
@@ -1716,12 +1717,23 @@ void ProcessGroupHCCL::workCleanupLoop()
             work.checkAndSetException();
             work.checkDispatch();
             bool exec_timeout = work.checkExec();
-            if (exec_timeout) {
-                if (!shouldDump_.load()) {
+            if (dumpOnException_ && exec_timeout) {
+                try {
+                    auto rank = globalRank();
+                    auto vec = std::vector<uint8_t>(
+                        reinterpret_cast<uint8_t *>(&rank),
+                        reinterpret_cast<uint8_t *>(&rank) + sizeof(rank));
+                    globalStore_->set(std::string(EXCEPTION_DUMP), vec);
+                    if (!shouldDump_.load()) {
+                        LOG(ERROR) << logPrefix()
+                            << "First watchdog exec timeout to set the dump signal.";
+                    }
+                    shouldDump_.store(true);
+                } catch (const std::exception &e) {
                     LOG(ERROR) << logPrefix()
-                        << "First watchdog exec timeout to set the dump signal.";
+                               << "Failed to set exec timeout dump signal in tcpstore. "
+                               << "Error: " << e.what();
                 }
-                shouldDump_.store(true);
             }
             bool timedOut = work.checkTimeout();
 
