@@ -156,7 +156,7 @@ const std::string &TensorPipeAgent::guessAddress()
     static const std::string uvAddress = []() {
         tensorpipe_npu::Error error;
         std::string result;
-        char *ifnameEnv = std::getenv(kSocketIfnameEnvVar.c_str());
+        const char *ifnameEnv = std::getenv(kSocketIfnameEnvVar.c_str());
         if (ifnameEnv != nullptr) {
             std::tie(error, result) = tensorpipe_npu::transport::uv::lookupAddrForIface(ifnameEnv);
             if (error) {

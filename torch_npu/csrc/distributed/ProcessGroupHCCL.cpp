@@ -4,11 +4,11 @@
 #include <tuple>
 #include <unordered_set>
 #include <unistd.h>
-#include <linux/limits.h>
 #include <fstream>
 #include <iostream>
 #include <functional>
 #include <cstdlib>
+#include <linux/limits.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/eval.h>
@@ -41,13 +41,13 @@
 #include "torch_npu/csrc/distributed/HcclCompile.h"
 #include "torch_npu/csrc/distributed/TraceUtils.h"
 #include "torch_npu/csrc/distributed/PrefixStore.hpp"
-#include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/framework/OpHook.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 #include "torch_npu/csrc/logging/LogContext.h"
+#include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -80,7 +80,7 @@ std::map<c10d::ReduceOp, std::string> unsupportedOp = {
 bool nslb_is_end = false;
 bool uce_error_flag = false;
 bool force_stop_error_flag = false;
-char* nslb_path = c10_npu::option::OptionsManager::GetNslbPath();
+const char* nslb_path = c10_npu::option::OptionsManager::GetNslbPath();
 bool status_save_enable = c10_npu::option::OptionsManager::CheckStatusSaveEnable();
 std::string status_save_path = c10_npu::option::OptionsManager::GetStatusSavePath();
 
@@ -488,7 +488,7 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(
     if (desyncDebug || (status_save_enable)) {
         hcclStartEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>();
         hcclStartEvents_->reserve(devices.size());
-        for (int i = 0; i < devices.size(); i++) {
+        for (size_t i = 0; i < devices.size(); i++) {
             hcclStartEvents_->emplace_back(ACL_EVENT_CAPTURE_STREAM_PROGRESS);
         }
     }
@@ -657,7 +657,7 @@ bool ProcessGroupHCCL::WorkHCCL::checkTimeout(c10::optional<std::chrono::millise
     return true;
 }
 
-std::chrono::milliseconds GetDispatchTimeout()
+std::chrono::milliseconds GetDispatchTimeout() noexcept
 {
     uint32_t dispatchTimeout_ = 600U;
     uint32_t dispatchoffset = 30U;
@@ -665,8 +665,8 @@ std::chrono::milliseconds GetDispatchTimeout()
 
     int32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
     if (hccl_exec_timeout > 0) {
-        if (hccl_exec_timeout < dispatchTimeout_ + dispatchoffset && hccl_exec_timeout > mindispatchTimeout_ + dispatchoffset) {
-            dispatchTimeout_ = hccl_exec_timeout - dispatchoffset;
+        if (static_cast<uint32_t>(hccl_exec_timeout) < dispatchTimeout_ + dispatchoffset && static_cast<uint32_t>(hccl_exec_timeout) > mindispatchTimeout_ + dispatchoffset) {
+            dispatchTimeout_ = static_cast<uint32_t>(hccl_exec_timeout) - dispatchoffset;
         };
     };
     ASCEND_LOGI("set dispatchTimeout_ %u s.", dispatchTimeout_);
@@ -887,12 +887,12 @@ ProcessGroupHCCL::ProcessGroupHCCL(
             if (hccl_event_timeout < defaultExecTimeout) {
                 TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than the default value of HCCL_EXEC_TIMEOUT:", defaultExecTimeout, ".");
             }
-            kOpWaitTimeout = hccl_event_timeout;
+            kOpWaitTimeout = static_cast<uint32_t>(hccl_event_timeout);
         } else if (hccl_exec_timeout == 0) {
             kOpWaitTimeout = 0;
             TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ", so set op wait timeout to never timeout.");
         } else {
-            kOpWaitTimeout = hccl_event_timeout;
+            kOpWaitTimeout = static_cast<uint32_t>(hccl_event_timeout);
             if (hccl_event_timeout < hccl_exec_timeout) {
                 TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ".");
             }
@@ -905,9 +905,9 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         if (hccl_exec_timeout == 0) {
             kOpWaitTimeout = 0;
         }
-        if (hccl_exec_timeout > 0 && hccl_exec_timeout > kOpWaitTimeout) {
-            kOpWaitTimeout = hccl_exec_timeout + kOpWaitTimeoutOffset;
-            if (kOpWaitTimeout <= hccl_exec_timeout) {
+        if (hccl_exec_timeout > 0 && static_cast<uint32_t>(hccl_exec_timeout) > kOpWaitTimeout) {
+            kOpWaitTimeout = static_cast<uint32_t>(hccl_exec_timeout) + kOpWaitTimeoutOffset;
+            if (kOpWaitTimeout <= static_cast<uint32_t>(hccl_exec_timeout)) {
                 kOpWaitTimeout = UINT_MAX;
             }
         }
@@ -933,7 +933,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     PrefixStore *prefixStore = dynamic_cast<PrefixStore *>(store_.get());
     globalStore_ = prefixStore ? prefixStore->getUnderlyingNonPrefixStore() : store_;
 
-    char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
+    const char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
     try {
         if (blockingWait != nullptr) {
             auto val = std::stoi(blockingWait);
@@ -1083,7 +1083,7 @@ void ProcessGroupHCCL::waitForFutureOrTimeout(
     std::future<bool> &fut,
     const std::chrono::milliseconds &timeOutMilSec,
     const std::string &futDescription,
-    bool throwException)
+    bool throwException) const
 {
     std::string errorMsg;
     TORCH_CHECK(fut.valid(), "Expected a valid future");
@@ -1360,8 +1360,8 @@ void ProcessGroupHCCL::heartbeatMonitor()
         // somewhere else to avoid the deadlock.
         std::unique_lock<std::mutex> lock(monitorMutex_);
         if (monitorWakeUpCV_.wait_for(lock,
-                                      std::chrono::milliseconds(monitorPollInterval),
-                                      [&]{ return terminateHeartbeatMonitorThread_.load(); })) {
+            std::chrono::milliseconds(monitorPollInterval),
+            [&]{ return terminateHeartbeatMonitorThread_.load(); })) {
             // For the normal complete or user interception, monitorWakeUpCV_
             // will get notified, we early return and exit heartbeatMonitor.
             return;
@@ -2764,7 +2764,7 @@ std::string ProcessGroupHCCL::getHcclCommName(int rankid, bool init_comm)
     return std::string(commName);
 }
 
-std::string ProcessGroupHCCL::getHcclCommNameWithoutInit(std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
+std::string ProcessGroupHCCL::getHcclCommNameWithoutInit(std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const
 {
     TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
         hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
@@ -3013,7 +3013,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
             for (auto tensor:inputs) {
                 dataVol += tensor.storage().nbytes();
             }
-            char* global_rank = getenv("RANK");
+            const char* global_rank = getenv("RANK");
             TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.", DIST_ERROR(ErrCode::NOT_FOUND));
             recordDataVol(opTypeToString(opType), std::to_string(dataVol), strtol(global_rank, nullptr, 10), hcclComms);
         }
@@ -3174,7 +3174,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
             for (auto tensor:inputs) {
                 dataVol += tensor.storage().nbytes();
             }
-            char* global_rank = getenv("RANK");
+            const char* global_rank = getenv("RANK");
             TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.", DIST_ERROR(ErrCode::NOT_FOUND));
             recordDataVol(opTypeToString(opType), std::to_string(dataVol), strtol(global_rank, nullptr, 10), hcclComms);
         }
@@ -3355,7 +3355,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
             for (auto tensor : tensors) {
                 dataVol += tensor.storage().nbytes();
             }
-            char* global_rank = getenv("RANK");
+            const char* global_rank = getenv("RANK");
             TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.",
                         DIST_ERROR(ErrCode::NOT_FOUND));
             recordDataVol(opTypeToString(opType), std::to_string(dataVol), strtol(global_rank, nullptr, 10), hcclComms);
@@ -3860,7 +3860,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
 }
 
 constexpr int64_t ADDRESS_ALIGNMENT_BYTE = 512;
-at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors)
+at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors) const
 {
     at::Tensor inter_tensors = at::reshape(tensors, {1, tensors.numel()});
     if (tensors.element_size() == 0) {
@@ -4864,7 +4864,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclSend", numel, hcclType, comm, streamId, -1, dst_rank), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
-                auto hccl_result = HcclSend(inputDataPtr, numel, hcclType, dst_rank, comm, stream.stream(false));
+                auto hccl_result = HcclSend(inputDataPtr, numel, hcclType, static_cast<uint32_t>(dst_rank), comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -4899,7 +4899,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclRecv", numel, hcclType, comm, streamId, src_rank, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
-                auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType, src_rank, comm, stream.stream(false));
+                auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType, static_cast<uint32_t>(src_rank), comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
             };

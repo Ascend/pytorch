@@ -413,7 +413,7 @@ void ParallelTcpServer::ProcessListenEvent() noexcept
 void ParallelTcpServer::ProcessClientEvent(int epFd, int fd, uint32_t event,
     std::unordered_map<int, ClientIoContext> &ctx) noexcept
 {
-    if (event & (EPOLLRDHUP | EPOLLHUP)) {
+    if ((event & (EPOLLRDHUP | EPOLLHUP)) != 0) {
         epoll_ctl(epFd, EPOLL_CTL_DEL, fd, nullptr);
         close(fd);
         fd = -1;
@@ -427,7 +427,7 @@ void ParallelTcpServer::ProcessClientEvent(int epFd, int fd, uint32_t event,
     }
 
     auto setEvents = pos->second.currentEvents_;
-    if (event & EPOLLIN) {
+    if ((event & EPOLLIN) != 0) {
         pos->second.ReceiveData();
         while (pos->second.HasNextReq()) {
             auto response = process_(fd, pos->second.NextRequest());
@@ -443,7 +443,7 @@ void ParallelTcpServer::ProcessClientEvent(int epFd, int fd, uint32_t event,
         }
     }
 
-    if (event & EPOLLOUT) {
+    if ((event & EPOLLOUT) != 0) {
         pos->second.FlushSendBuf();
         setEvents = EPOLLIN | EPOLLRDHUP | EPOLLHUP;
     }

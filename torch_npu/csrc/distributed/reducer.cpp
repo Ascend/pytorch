@@ -31,12 +31,12 @@
 #include <torch/csrc/utils/memory.h>
 #include <c10d/debug.h>
 
-#include "torch_npu/csrc/distributed/reducer.hpp"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/distributed/reducer.hpp"
 
 namespace c10d_npu {
 namespace {
@@ -269,17 +269,17 @@ Reducer::~Reducer() noexcept(false)
     }
 }
 
-bool Reducer::dynamic_graph_find_unused()
+bool Reducer::dynamic_graph_find_unused() const
 {
     return !static_graph_ && find_unused_parameters_;
 }
 
-bool Reducer::static_graph_first_iteration()
+bool Reducer::static_graph_first_iteration() const
 {
     return static_graph_ && num_iterations_ == 1;
 }
 
-bool Reducer::static_graph_after_first_iteration()
+bool Reducer::static_graph_after_first_iteration() const
 {
     return static_graph_ && num_iterations_ > 1;
 }
@@ -1147,7 +1147,8 @@ void Reducer::initialize_bucket_views(
 // (see Note:  "Gradient Layout Contract" in initialize_buckets).
 void Reducer::populate_bucket_views_out(
     Reducer::BucketReplica& replica,
-    at::Tensor& tensor) {
+    at::Tensor& tensor) const
+{
     replica.bucket_views_out.clear();
     for (size_t i = 0; i < replica.variables.size(); i++) {
         const auto& v = replica.variables[i];
@@ -1871,7 +1872,7 @@ void Reducer::set_ddp_runtime_logging_sample_rate(int sample_rate)
     ddp_runtime_logging_sample_rate_ = sample_rate;
 }
 
-int Reducer::get_ddp_runtime_logging_sample_rate()
+int Reducer::get_ddp_runtime_logging_sample_rate() const
 {
     return ddp_runtime_logging_sample_rate_;
 }
@@ -1948,7 +1949,8 @@ struct BucketKey {
     const c10::Device device;
 
     // See torch/csrc/utils/hash.h for dispatch code.
-    static size_t hash(const BucketKey& key) {
+    static size_t hash(const BucketKey& key)
+    {
         return c10::get_hash(key.type, key.device);
     }
 };
