@@ -50,6 +50,7 @@ typedef struct aclmdlAIPP aclmdlAIPP;
 typedef struct aclAippExtendInfo aclAippExtendInfo;
 typedef struct aclmdlConfigHandle aclmdlConfigHandle;
 typedef struct aclmdlExecConfigHandle aclmdlExecConfigHandle;
+typedef void *aclmdlRI;
 
 typedef enum {
     ACL_YUV420SP_U8 = 1,
@@ -215,16 +216,16 @@ typedef struct aclmdlExeOMDesc {
 } aclmdlExeOMDesc;
 
 typedef enum {
-    ACL_MODEL_CAPTURE_MODE_GLOBAL = 0,
-    ACL_MODEL_CAPTURE_MODE_THREAD_LOCAL,
-    ACL_MODEL_CAPTURE_MODE_RELAXED,
-} aclmdlCaptureMode;
+    ACL_MODEL_RI_CAPTURE_MODE_GLOBAL = 0,
+    ACL_MODEL_RI_CAPTURE_MODE_THREAD_LOCAL,
+    ACL_MODEL_RI_CAPTURE_MODE_RELAXED,
+} aclmdlRICaptureMode;
 
 typedef enum {
-    ACL_MODEL_CAPTURE_STATUS_NONE = 0,
-    ACL_MODEL_CAPTURE_STATUS_ACTIVE,
-    ACL_MODEL_CAPTURE_STATUS_INVALIDATED,
-} aclmdlCaptureStatus;
+    ACL_MODEL_RI_CAPTURE_STATUS_NONE = 0,
+    ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE,
+    ACL_MODEL_RI_CAPTURE_STATUS_INVALIDATED,
+} aclmdlRICaptureStatus;
 
 /**
  * @ingroup AscendCL
@@ -663,45 +664,34 @@ ACL_FUNC_VISIBILITY aclError aclmdlExecuteV2(uint32_t modelId, const aclmdlDatas
  * @ingroup AscendCL
  * @brief Execute model asynchronous inference until the inference result is returned
  *
- * @param  modelId [IN]   ID of the model to perform inference
- * @param  input [IN]     Input data for model inference
- * @param  output [OUT]   Output data for model inference
- * @param  stream [IN]   stream
- * @param  handle [IN]   config of model execute
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- */
-ACL_FUNC_VISIBILITY  aclError aclmdlExecuteAsyncV2(uint32_t modelId, const aclmdlDataset *input, aclmdlDataset *output,
-                                                   aclrtStream stream, const aclmdlExecConfigHandle *handle);
-/**
- * @ingroup AscendCL
- * @brief Execute model asynchronous inference until the inference result is returned
- *
- * @param  modelId [IN]   ID of the model to perform inference
- * @param  input [IN]     Input data for model inference
- * @param  output [OUT]   Output data for model inference
+ * @param  modelRI [IN]   runtime instance of the model to perform inference
  * @param  stream [IN]    stream
  *
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
- *
- * @see aclmdlLoadFromFile | aclmdlLoadFromMem | aclmdlLoadFromFileWithMem |
- * aclmdlLoadFromMemWithMem
  */
-ACL_FUNC_VISIBILITY aclError aclmdlExecuteAsync(uint32_t modelId, const aclmdlDataset *input,
-                                                aclmdlDataset *output, aclrtStream stream);
+ACL_FUNC_VISIBILITY aclError aclmdlRIExecuteAsync(aclmdlRI modelRI, aclrtStream stream);
 
 /**
  * @ingroup AscendCL
  * @brief unload model with model id
  *
  * @param  modelId [IN]   model id to be unloaded
+ * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlUnload(uint32_t modelId);
+
+/**
+ * @ingroup AscendCL
+ * @brief destroy the model
+ *
+ * @param  modelRI [IN]   runtime instance of the model to be destroyed
  *
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclmdlUnload(uint32_t modelId);
+ACL_FUNC_VISIBILITY aclError aclmdlRIDestroy(aclmdlRI modelRI);
 
 /**
  * @ingroup AscendCL
@@ -1523,37 +1513,37 @@ ACL_FUNC_VISIBILITY const char *aclmdlGetTensorRealName(const aclmdlDesc *modelD
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclmdlCaptureBegin(aclrtStream stream, aclmdlCaptureMode mode);
+ACL_FUNC_VISIBILITY aclError aclmdlRICaptureBegin(aclrtStream stream, aclmdlRICaptureMode mode);
 
 /**
  * @ingroup AscendCL
  * @brief obtain the capture information of a stream
  * @param stream [IN] stream to be queried
  * @param status [OUT] return the stream status
- * @param modelId [OUT] return the model id
+ * @param modelRI [OUT] return the model runtime instance
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclmdlCaptureGetInfo(aclrtStream stream, aclmdlCaptureStatus *status, uint32_t *modelId);
+ACL_FUNC_VISIBILITY aclError aclmdlRICaptureGetInfo(aclrtStream stream, aclmdlRICaptureStatus *status, aclmdlRI *modelRI);
 
 /**
  * @ingroup AscendCL
  * @brief end the stream capture and obtain the corresponding model
  * @param stream [IN] stream to be ended
- * @param modelId [OUT] return the model id
+ * @param modelRI [OUT] return the model runtime instance
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclmdlCaptureEnd(aclrtStream stream, uint32_t *modelId);
+ACL_FUNC_VISIBILITY aclError aclmdlRICaptureEnd(aclrtStream stream, aclmdlRI *modelRI);
 
 /**
  * @ingroup AscendCL
  * @brief print model information
- * @param modelId [IN] model information needs to be printed
+ * @param modelRI [IN] model runtime instance
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclmdlDebugPrint(uint32_t modelId);
+ACL_FUNC_VISIBILITY aclError aclmdlRIDebugPrint(aclmdlRI modelRI);
 
 #ifdef __cplusplus
 }

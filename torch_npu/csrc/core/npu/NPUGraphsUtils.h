@@ -18,33 +18,33 @@ using CaptureId_t = unsigned long long;
 // second is set if the instance is created by at::cuda::graph_pool_handle.
 using MempoolId_t = std::pair<CaptureId_t, CaptureId_t>;
 
-// RAII guard for "aclmdlCaptureMode", a thread-local value
+// RAII guard for "aclmdlRICaptureMode", a thread-local value
 // that controls the error-checking strictness of a capture.
 struct C10_NPU_API NPUStreamCaptureModeGuard{
-    NPUStreamCaptureModeGuard(aclmdlCaptureMode desired)
+    NPUStreamCaptureModeGuard(aclmdlRICaptureMode desired)
     : strictness_(desired) {}
     ~NPUStreamCaptureModeGuard() {}
 
     private:
-    aclmdlCaptureMode strictness_;
+    aclmdlRICaptureMode strictness_;
 };
 
-// Protects against enum aclmdlCaptureStatus implementation changes.
+// Protects against enum aclmdlRICaptureStatus implementation changes.
 // Some compilers seem not to like static_assert without the messages.
 static_assert(
-    int(aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_NONE) == 0,
-    "unexpected int(ACL_MODEL_CAPTURE_STATUS_NONE) value");
+    int(aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_NONE) == 0,
+    "unexpected int(ACL_MODEL_RI_CAPTURE_STATUS_NONE) value");
 static_assert(
-    int(aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_ACTIVE) == 1,
-    "unexpected int(ACL_MODEL_CAPTURE_STATUS_ACTIVE) value");
+    int(aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE) == 1,
+    "unexpected int(ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE) value");
 static_assert(
-    int(aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_INVALIDATED) == 2,
-    "unexpected int(ACL_MODEL_CAPTURE_STATUS_INVALIDATED) value");
+    int(aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_INVALIDATED) == 2,
+    "unexpected int(ACL_MODEL_RI_CAPTURE_STATUS_INVALIDATED) value");
 
 enum class CaptureStatus : int {
-    None = int(aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_NONE),
-    Active = int(aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_ACTIVE),
-    Invalidated = int(aclmdlCaptureStatus::ACL_MODEL_CAPTURE_STATUS_INVALIDATED)
+    None = int(aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_NONE),
+    Active = int(aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE),
+    Invalidated = int(aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_INVALIDATED)
 };
 
 inline std::ostream &operator<<(std::ostream &os, CaptureStatus status)
@@ -73,10 +73,10 @@ inline CaptureStatus currentStreamCaptureStatusMayInitCtx()
         return CaptureStatus::None;
     }
 
-    aclmdlCaptureStatus is_capturing{ACL_MODEL_CAPTURE_STATUS_NONE};
-    uint32_t modelId;
+    aclmdlRICaptureStatus is_capturing{ACL_MODEL_RI_CAPTURE_STATUS_NONE};
+    aclmdlRI model_ri;
     NPU_CHECK_ERROR(
-        c10_npu::acl::AclmdlCaptureGetInfo(c10_npu::getCurrentNPUStream(), &is_capturing, &modelId));
+        c10_npu::acl::AclmdlRICaptureGetInfo(c10_npu::getCurrentNPUStream(), &is_capturing, &model_ri));
     return CaptureStatus(is_capturing);
 }
 

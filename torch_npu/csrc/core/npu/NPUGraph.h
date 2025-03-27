@@ -24,7 +24,7 @@ struct TORCH_NPU_API NPUGraph {
 
     void capture_begin(
         MempoolId_t pool = {0, 0},
-        aclmdlCaptureMode capture_mode = aclmdlCaptureMode::ACL_MODEL_CAPTURE_MODE_GLOBAL);
+        aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL);
     void capture_end();
     void replay();
     void reset();
@@ -33,7 +33,7 @@ struct TORCH_NPU_API NPUGraph {
     void debug_dump();
 
 protected:
-    uint32_t model_id_ = -1;
+    aclmdlRI model_ri_ = nullptr;
 
     static std::atomic<int> pending_event_queries;
 
