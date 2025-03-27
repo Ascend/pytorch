@@ -49,6 +49,7 @@ class FwkFileParser:
             return enqueue_data_list
         op_mark_data.sort(key=lambda x: x.time_ns)
         tid_op_dict = defaultdict(lambda: defaultdict(list))
+        match_failed_num = 0
         for op_mark in op_mark_data:
             if not op_mark.is_enqueue:
                 continue
@@ -57,14 +58,15 @@ class FwkFileParser:
                 continue
             start_op_list = tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
             if not start_op_list:
-                self.logger.warning("Enquque data match failed, the tid: %d, origin_name: %s is not exist.", 
-                                op_mark.tid, op_mark.origin_name)
+                match_failed_num += 1
                 continue
             start_op = start_op_list.pop()
             op_mark.ts = start_op.time_ns
             op_mark.dur = op_mark.time_ns - start_op.time_ns
             enqueue_data_list.append(op_mark)
             start_op_list.clear()
+        if match_failed_num:
+            self.logger.warning(f"{match_failed_num} enqueue data match failed.")
         return enqueue_data_list
 
     def get_dequeue_data(self) -> list:
@@ -75,6 +77,7 @@ class FwkFileParser:
             return dequeue_data_list
         op_mark_data.sort(key=lambda x: x.time_ns)
         tid_op_dict = defaultdict(lambda: defaultdict(list))
+        match_failed_num = 0
         for op_mark in op_mark_data:
             if not op_mark.is_dequeue:
                 continue
@@ -83,14 +86,15 @@ class FwkFileParser:
                 continue
             start_op_list = tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
             if not start_op_list:
-                self.logger.warning("Dequque data match failed, the tid: %d, origin_name: %s is not exist.", 
-                                op_mark.tid, op_mark.origin_name)
+                match_failed_num += 1
                 continue
             start_op = start_op_list.pop()
             op_mark.ts = start_op.time_ns
             op_mark.dur = op_mark.time_ns - start_op.time_ns
             dequeue_data_list.append(op_mark)
             start_op_list.clear()
+        if match_failed_num:
+            self.logger.warning(f"{match_failed_num} enqueue data match failed.")
         return dequeue_data_list
 
     def get_task_queue_data(self) -> any:
@@ -101,6 +105,7 @@ class FwkFileParser:
         op_mark_data.sort(key=lambda x: x.time_ns)
         enqueue_tid_op_dict = defaultdict(lambda: defaultdict(list))
         dequeue_tid_op_dict = defaultdict(lambda: defaultdict(list))
+        enqueue_match_failed_num, dequeue_match_failed_num = 0, 0
         for op_mark in op_mark_data:
             if op_mark.is_enqueue_start:
                 enqueue_tid_op_dict[op_mark.tid][op_mark.origin_name].append(op_mark)
@@ -111,8 +116,7 @@ class FwkFileParser:
             if op_mark.is_enqueue_end:
                 start_op_list = enqueue_tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
                 if not start_op_list:
-                    self.logger.warning("Enquque data match failed, the tid: %d, origin_name: %s is not exist.", 
-                                    op_mark.tid, op_mark.origin_name)
+                    enqueue_match_failed_num += 1
                     continue
                 start_op = start_op_list.pop()
                 op_mark.ts = start_op.time_ns
@@ -123,14 +127,17 @@ class FwkFileParser:
             if op_mark.is_dequeue_end:
                 start_op_list = dequeue_tid_op_dict.get(op_mark.tid, {}).get(op_mark.origin_name, [])
                 if not start_op_list:
-                    self.logger.warning("Dequque data match failed, the tid: %d, origin_name: %s is not exist.", 
-                                    op_mark.tid, op_mark.origin_name)
+                    dequeue_match_failed_num += 1
                     continue
                 start_op = start_op_list.pop()
                 op_mark.ts = start_op.time_ns
                 op_mark.dur = op_mark.time_ns - start_op.time_ns
                 dequeue_data_list.append(op_mark)
                 start_op_list.clear()
+        if enqueue_match_failed_num:
+            self.logger.warning(f"{enqueue_match_failed_num} enqueue data match failed.")
+        if dequeue_match_failed_num:
+            self.logger.warning(f"{dequeue_match_failed_num} dequeue data match failed.")
         return enqueue_data_list, dequeue_data_list
 
     def get_torch_op_tree_node(self, only_fwk: bool = False) -> list:
@@ -231,7 +238,7 @@ class FwkFileParser:
                 bwd_op_id = node['end']['idx']
                 torch_op_apis[fwb_op_id][3].append(start_connection_id)
                 torch_op_apis[bwd_op_id][3].append(start_connection_id)
-                
+
                 start_connection_id += 1
 
     def get_fwk_api(self) -> dict:
@@ -248,7 +255,8 @@ class FwkFileParser:
         for torch_op in torch_op_data:
             api = [torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), [], torch_op.name,
                    torch_op.args.get(Constant.SEQUENCE_NUMBER, -1), torch_op.args.get(Constant.FORWARD_THREAD_ID),
-                   torch_op.args.get(Constant.INPUT_DTYPES), torch_op.args.get(Constant.INPUT_SHAPES), torch_op.call_stack]
+                   torch_op.args.get(Constant.INPUT_DTYPES), torch_op.args.get(Constant.INPUT_SHAPES),
+                   torch_op.call_stack]
             if torch_op.name == "mstx_mark_op":
                 mstx_mark_apis.append(api)
             else:
@@ -270,7 +278,7 @@ class FwkFileParser:
             task_dequeues.append(
                 [dequeue_data.ts, dequeue_data.ts + dequeue_data.dur, contact_2num(pid, dequeue_data.tid),
                  dequeue_data.corr_id, dequeue_data.name])
-        
+
         start_connection_id = max(connection_ids) + 1 if connection_ids else 0
         self.update_fwd_bwd_connection_id(fwd_bwd_dict, torch_op_apis, start_connection_id)
 
