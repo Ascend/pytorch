@@ -337,7 +337,7 @@ public:
 	    std::vector<at::Tensor>& tensors,
 	    std::vector<uint32_t> remote_rank_list);
 
-    at::Tensor byte_alignment(at::Tensor& tensors);
+    at::Tensor byte_alignment(at::Tensor& tensors) const;
 
     c10::intrusive_ptr<c10d::Work> _reduce_scatter_base_uneven(
         at::Tensor& outputTensor,
@@ -459,7 +459,7 @@ public:
 
     void abortAndClearHcclComm(c10::optional<std::string> abortReason);
 
-    std::string getHcclCommNameWithoutInit(std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+    std::string getHcclCommNameWithoutInit(std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
 
     // Return the global ranks of a PG
     const std::vector<uint32_t>& groupRanks() const;

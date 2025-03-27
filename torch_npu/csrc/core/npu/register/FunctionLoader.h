@@ -72,11 +72,11 @@ public:
     /**
         ctr
         */
-    FunctionRegisterBuilder(const std::string& name, ::std::unique_ptr<FunctionLoader>& ptr);
+    FunctionRegisterBuilder(const std::string& name, ::std::unique_ptr<FunctionLoader>& ptr) noexcept;
     /**
         ctr
         */
-    FunctionRegisterBuilder(const std::string& soName, const std::string& funcName);
+    FunctionRegisterBuilder(const std::string& soName, const std::string& funcName) noexcept;
 }; // class FunctionRegisterBuilder
 
 } // namespace register_function

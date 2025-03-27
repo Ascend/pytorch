@@ -21,11 +21,11 @@
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/distributed/ProcessGroupLCCL.hpp"
 #include "torch_npu/csrc/distributed/reducer.hpp"
-#include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/distributed/ParallelTcpStore.hpp"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/distributed/Init.h"
 
 
 namespace {
@@ -49,7 +49,7 @@ public:
         : impl_(c10::intrusive_ptr<T>::unsafe_steal_from_new(impl)) {}
     ~IntrusivePtrNoGilDestructor() {
         if (impl_) {
-            if (PyGILState_Check()) {
+            if (PyGILState_Check() != 0) {
                 pybind11::gil_scoped_release release;
                 impl_.reset();
             } else {
@@ -95,7 +95,7 @@ using intrusive_ptr_no_gil_destructor_class_ =
 
 class BroadcastWork {
 public:
-    inline std::vector<at::Tensor> cast_tensors(at::TensorList tensors)
+    inline std::vector<at::Tensor> cast_tensors(at::TensorList tensors) const
     {
         static auto cast_back_to_ori_format = [](const at::Tensor &t) {
             return at_npu::native::custom_ops::npu_format_cast(t, torch_npu::NPUBridge::GetNpuStorageImpl(t)->npu_desc_.origin_format_);

@@ -72,10 +72,10 @@ public:
         void synchronizeInternal(std::chrono::milliseconds timeout);
 
         // Checks for LCCL errors and sets an appropriate exception_ptr.
-        void checkAndSetException();
+        void checkAndSetException() const;
 
         // Checks for LCCL errors and throws an appropriate exception.
-        void checkAndThrowException();
+        void checkAndThrowException() const;
 
         // Just checks whether NPU execution has completed, without modifying
         // exception_ptr.
