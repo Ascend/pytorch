@@ -67,9 +67,9 @@ PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
     at_npu::native::CachingHostAllocator_emptyCache();
     try {
         ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
-        c10_npu::NPUCachingAllocator::emptyCache(check_error);
-    } catch (std::exception& e) {
-        ASCEND_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
+        c10_npu::NPUCachingAllocator::emptyCache(false);
+    } catch (...) {
+        ASCEND_LOGE("NPUCachingAllocator::emptyCache failed");
     }
 
     ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
