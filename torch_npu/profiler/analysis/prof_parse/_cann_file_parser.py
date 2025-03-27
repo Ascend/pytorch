@@ -52,9 +52,9 @@ class CANNFileParser:
                                         r"^memory_record_\d{1,20}.*\.csv",
                                         r"^memory_record_slice_\d{1,20}.*\.csv"],
         CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d{1,20}.*\.csv",
-                                        r"^ge_operator_memory_slice_\d{1,20}.*\.csv",
-                                        r"^operator_memory_\d{1,20}.*\.csv",
-                                        r"^operator_memory_slice_\d{1,20}.*\.csv"],
+                                          r"^ge_operator_memory_slice_\d{1,20}.*\.csv",
+                                          r"^operator_memory_\d{1,20}.*\.csv",
+                                          r"^operator_memory_slice_\d{1,20}.*\.csv"],
         CANNDataEnum.L2_CACHE: [r"^l2_cache_\d{1,20}.*\.csv", r"^l2_cache_slice_\d{1,20}.*\.csv"],
         CANNDataEnum.AI_CPU: [r"^aicpu_\d{1,20}.*\.csv", r"^aicpu_slice_\d{1,20}.*\.csv"],
         CANNDataEnum.COMMUNICATION: [r"^communication\.json"],
@@ -125,6 +125,7 @@ class CANNFileParser:
             logger.error("There is no kernel events in msprof timeline.")
 
         acl_to_npu_dict = {}
+        warning_kernel_num = 0
         for flow in flow_dict.values():
             start_event = flow.get("start")
             end_event = flow.get("end")
@@ -135,11 +136,11 @@ class CANNFileParser:
                 unique_id = f"{pid}-{tid}-{ts}"
                 kernel_event = event_dict.get(unique_id)
                 if not kernel_event:
-                    logger.warning("The kernel event of unique_id(pid: %d, tid: %d, ts: %d) is not exist in msprof timeline.", 
-                                    pid, tid, ts)
+                    warning_kernel_num += 1
                     continue
                 acl_to_npu_dict.setdefault(convert_us2ns(start_event.get("ts", 0)), []).append(EventBean(kernel_event))
-                
+        if warning_kernel_num:
+            logger.warning(f"{warning_kernel_num} kernels do not exist in the msprof timeline.")
         return acl_to_npu_dict
 
     def get_timeline_all_data(self) -> list:
@@ -200,7 +201,8 @@ class CANNFileParser:
         PathManager.remove_path_safety(output_path)
 
     def _file_dispatch(self):
-        all_file_list = ProfilerPathManager.get_output_all_file_list_by_type(self._cann_path, self.MINDSTUDIO_PROFILER_OUTPUT)
+        all_file_list = ProfilerPathManager.get_output_all_file_list_by_type(self._cann_path,
+                                                                             self.MINDSTUDIO_PROFILER_OUTPUT)
         all_file_list += ProfilerPathManager.get_analyze_all_file(self._cann_path, self.ANALYZE)
         all_file_list += ProfilerPathManager.get_database_all_file(self._cann_path)
         for file_path in all_file_list:
