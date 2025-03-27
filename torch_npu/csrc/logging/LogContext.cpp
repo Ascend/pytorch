@@ -54,7 +54,7 @@ void LogContext::setLogs(const std::unordered_map<std::string, int>& qnameLevels
     }
 }
 
-std::shared_ptr<Logger> LogContext::getLogger(const std::string& name)
+std::shared_ptr<Logger> LogContext::getLogger(const std::string& name) noexcept
 {
     std::lock_guard<std::mutex> lock(mutex_);
     auto iter = loggers_.find(name);
