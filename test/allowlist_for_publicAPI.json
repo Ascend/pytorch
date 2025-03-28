@@ -2396,6 +2396,17 @@
     "SpectralOpFuzzer",
     "namedtuple"
   ],
+  "torch.utils.benchmark.examples.blas_compare": [
+    "Dict",
+    "Tuple"
+  ],
+  "torch.utils.benchmark.examples.end_to_end": [
+    "Dict",
+    "List",
+    "Measurement",
+    "Timer",
+    "Tuple"
+  ],
   "torch.utils.benchmark.op_fuzzers.binary": [
     "FuzzedParameter",
     "FuzzedTensor",
