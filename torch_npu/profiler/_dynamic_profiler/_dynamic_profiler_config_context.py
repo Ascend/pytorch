@@ -312,7 +312,7 @@ class ConfigContext:
         return self._active
 
     def warmup(self) -> int:
-        if not isinstance(self._warmup, int) or self._warmup <= 0:
+        if not isinstance(self._warmup, int) or self._warmup < 0:
             DynamicProfilerUtils.out_log("Invalid parameter warmup, reset it to 0.",
                                          DynamicProfilerUtils.LoggerLevelEnum.WARNING)
             return self.DEFAULT_WARMUP
