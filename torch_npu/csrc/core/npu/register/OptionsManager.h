@@ -109,6 +109,7 @@ public:
     static uint32_t GetHcclBufferSize();
     static uint32_t GetP2PBufferSize();
     static uint32_t GetTaskQueueEnable();
+    static uint32_t GetStreamsPerDevice();
     static char* GetCpuAffinityConf();
     static bool CheckForceUncached();
     static std::string GetOomSnapshotDumpPath();
