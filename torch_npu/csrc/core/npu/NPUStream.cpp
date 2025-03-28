@@ -103,19 +103,44 @@ std::ostream& operator<<(std::ostream& stream, StreamIdType s)
     return stream;
 }
 
+int GetStreamsPerPoolBits()
+{
+    const static int StreamsPerPoolBits = []() -> int {
+        if (c10_npu::option::OptionsManager::GetStreamsPerDevice() == 8) {
+            return 3;
+        }
+        return kStreamsPerPoolBits;
+    }();
+    return StreamsPerPoolBits;
+}
+
+int GetStreamsPerPool()
+{
+    const static int StreamsPerPool = []() -> int {
+        if (c10_npu::option::OptionsManager::GetStreamsPerDevice() == 8) {
+            return 8;
+        }
+        return kStreamsPerPool;
+    }();
+    return StreamsPerPool;
+}
+
 static inline StreamIdType streamIdType(c10::StreamId s)
 {
-    return static_cast<StreamIdType>((uint32_t)s >> kStreamsPerPoolBits);
+    static int StreamsPerPoolBits = GetStreamsPerPoolBits();
+    return static_cast<StreamIdType>((uint32_t)s >> StreamsPerPoolBits);
 }
 
 static inline size_t streamIdIndex(c10::StreamId s)
 {
-    return static_cast<size_t>((uint32_t)s & ((1 << kStreamsPerPoolBits) - 1));
+    static int StreamsPerPoolBits = GetStreamsPerPoolBits();
+    return static_cast<size_t>((uint32_t)s & ((1 << StreamsPerPoolBits) - 1));
 }
 
 c10::StreamId makeStreamId(StreamIdType st, size_t si)
 {
-    return static_cast<c10::StreamId>((static_cast<size_t>(st) << kStreamsPerPoolBits) | si);
+    static int StreamsPerPoolBits = GetStreamsPerPoolBits();
+    return static_cast<c10::StreamId>((static_cast<size_t>(st) << StreamsPerPoolBits) | si);
 }
 
 template <typename T, typename A>
@@ -189,7 +214,8 @@ static void initDeviceStreamState(c10::DeviceIndex device_index)
     // Switches to the requested device so streams are properly associated
     // with it.
     NPUGuard device_guard{device_index};
-    for (auto i = decltype(kStreamsPerPool){0}; i < kStreamsPerPool; ++i) {
+    static int StreamsPerPool = GetStreamsPerPool();
+    for (auto i = decltype(StreamsPerPool){0}; i < StreamsPerPool; ++i) {
         auto& npu_streami = npu_streams[device_index][i];
 
         npu_streami.device_index = device_index;
@@ -232,7 +258,8 @@ static inline void check_npu(c10::DeviceIndex device_index)
 static uint32_t get_idx(std::atomic<uint32_t>& counter)
 {
     auto raw_idx = counter++;
-    return raw_idx % kStreamsPerPool;
+    static int StreamsPerPool = GetStreamsPerPool();
+    return raw_idx % StreamsPerPool;
 }
 
 static uint32_t get_sync_launch_stream_idx(std::atomic<uint32_t>& counter)
@@ -572,7 +599,8 @@ void recovery_all_npu_streams(c10::DeviceIndex device_index)
     secondary_streamsi.stream = nullptr;
     NPU_CHECK_SUPPORTED_OR_ERROR(
         acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
-    for (auto i = decltype(kStreamsPerPool){0}; i < kStreamsPerPool; ++i) {
+    static int StreamsPerPool = GetStreamsPerPool();
+    for (auto i = decltype(StreamsPerPool){0}; i < StreamsPerPool; ++i) {
         auto& npu_streami = npu_streams[device_index][i];
         if (npu_streami.stream == nullptr) {
             continue;
