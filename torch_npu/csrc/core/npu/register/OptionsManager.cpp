@@ -492,6 +492,21 @@ uint32_t OptionsManager::GetAclOpInitMode()
     return acl_op_init_mode;
 }
 
+uint32_t OptionsManager::GetStreamsPerDevice()
+{
+    const static uint32_t streams_per_device = []() -> uint32_t {
+        char* buf_val = std::getenv("STREAMS_PER_DEVICE");
+        // Default 8
+        int64_t streams_per_device = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 8;
+        if (streams_per_device != 8 && streams_per_device != 32) {
+            streams_per_device = 8;
+            TORCH_NPU_WARN_ONCE("STREAMS_PER_DEVICE only support 8 or 32, but get other value, so reset it to the default value 8");
+        }
+        return static_cast<uint32_t>(streams_per_device);
+    }();
+    return streams_per_device;
+}
+
 char* OptionsManager::GetCpuAffinityConf()
 {
     return std::getenv("CPU_AFFINITY_CONF");
