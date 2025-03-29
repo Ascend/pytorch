@@ -20,6 +20,7 @@ public:
     StoreMessage HandleLocalServerMessage(const int &fd, const torch_npu::StoreMessage &message) noexcept;
     void WriteData(const int &fd, std::vector<uint8_t> &buf, int64_t &unpackSize) noexcept;
     int LoopProcessData() noexcept;
+    int SetReceiveTimeout(const std::chrono::milliseconds &value) const noexcept;
 
 private:
     const std::string host_{};
