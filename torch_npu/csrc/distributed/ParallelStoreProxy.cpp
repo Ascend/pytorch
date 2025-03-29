@@ -129,5 +129,10 @@ int Proxy::LoopProcessData() noexcept
 
     return result;
 }
+
+int Proxy::SetReceiveTimeout(const std::chrono::milliseconds &value) const noexcept
+{
+    return tcpClient_->SetReceiveTimeout(value);
+}
 } // torch_npu
 } // c10d
