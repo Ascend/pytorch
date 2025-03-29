@@ -474,7 +474,11 @@ void ParallelTcpStore::wait(const std::vector<std::string> &keys, const std::chr
 {
     torch_npu::StoreMessage request{ torch_npu::MessageType::WAIT, 0, keys };
     torch_npu::StoreMessage response;
-    client_->SetReceiveTimeout(timeout);
+    if (proxy_) {
+        proxy_->SetReceiveTimeout(timeout);
+    } else {
+        client_->SetReceiveTimeout(timeout);
+    }
     std::lock_guard<std::mutex> lockGuard{ clientMutex_ };
     DoWait(request, response);
 }
