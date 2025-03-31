@@ -123,7 +123,7 @@ std::unordered_map<ThreadType, coreIdRange> GetCpuAffinityMap(c10::DeviceIndex d
             threadToCoreidMap[thread_type] = current_core_range;
         }
     } else {
-        int remaining_type_count = thread_types.size() - 1;
+        size_t remaining_type_count = thread_types.size() - 1;
         int i = 0;
         for (auto thread_type : thread_types) {
             if (thread_type == ThreadType::unknownThread) {
