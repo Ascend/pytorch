@@ -38,7 +38,7 @@ def _is_gte_cann_version(version, module="CANN"):
     compare current cann_version and version.
     Args:
         version: the features are supported or not from which cann version.
-        module: can be selected from [\"CANN\", \"RUNTIME\", \"COMPILER\", \"HCCL\", \"TOOLKIT\", \"OPP\", \"OPP_KERNEL\", \"DRIVER\"]
+        module: can be selected from [\"CANN\", \"RUNTIME\", \"COMPILER\", \"HCCL\", \"TOOLKIT\", \"OPP\", \"OPP_KERNEL\"]
 
     Returns: If current_version >= version, return True, else return False.
 
