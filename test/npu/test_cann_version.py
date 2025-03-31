@@ -28,7 +28,7 @@ class TestCANNversion(TestCase):
             self.assertTrue(result, f"The env version is {version_env}, the result from _is_gte_cann_version is False")
         else:
             with self.assertRaisesRegex(RuntimeError,
-                    "When the version is less than \"8.1.RC1\", this function is not supported"):
+                    "When the version 7.0.0 is less than \"8.1.RC1\", this function is not supported"):
                 _is_gte_cann_version("7.0.0", "CANN")
 
 
