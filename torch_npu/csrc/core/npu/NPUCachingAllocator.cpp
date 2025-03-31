@@ -410,7 +410,7 @@ struct ExpandableSegment {
             prop.allocationType = ACL_MEM_ALLOCATION_TYPE_PINNED;
             prop.memAttr = (segment_size_ == kExtraLargeBuffer) ? ACL_HBM_MEM_HUGE1G : ACL_HBM_MEM_HUGE;
             prop.location.type = ACL_MEM_LOCATION_TYPE_DEVICE;
-            prop.location.id = device_;
+            prop.location.id = static_cast<unsigned>(device_);
             prop.reserve = 0;
             auto status = c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
             if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
@@ -512,7 +512,7 @@ private:
 
     void forEachAllocatedRange(std::function<void(size_t, size_t)> fn)
     {
-        auto start = 0;
+        size_t start = 0;
         for (auto i : c10::irange(handles_.size())) {
             if (handles_.at(i) && (i == 0 || !handles_.at(i - 1))) {
                 start = i;
@@ -531,7 +531,7 @@ private:
     size_t segmentLeft(char *p)
     {
         auto size = p - ptr();
-        return size / segment_size_;
+        return static_cast<size_t>(size) / segment_size_;
     }
 
     size_t segmentRight(char *p)
@@ -1120,7 +1120,7 @@ public:
         aclrtMemUceInfo temp_info[memUceInfo_.retSize];
         size_t temp_retsize = 0;
 
-        for (int i = 0; i < memUceInfo_.retSize; ++i) {
+        for (size_t i = 0; i < memUceInfo_.retSize; ++i) {
             void *addr = info[i].addr;
             size_t length = info[i].len;
             bool found = false;
@@ -1900,7 +1900,7 @@ public:
             pool_to_id[pair.second] = pair.first;
         }
 
-        size_t total_active = 0;
+        uint64_t total_active = 0;
         std::vector<SegmentInfo> result;
         const auto all_blocks = get_all_blocks();
 
