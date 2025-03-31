@@ -10,8 +10,6 @@
 
 namespace c10_npu {
 
-static std::atomic<bool> is_stream_capturing(false);
-
 using CaptureId_t = unsigned long long;
 
 // first is set if the instance is created by NPUGraph::capture_begin.
@@ -75,8 +73,9 @@ inline CaptureStatus currentStreamCaptureStatusMayInitCtx()
 
     aclmdlRICaptureStatus is_capturing{ACL_MODEL_RI_CAPTURE_STATUS_NONE};
     aclmdlRI model_ri;
+    auto s = c10_npu::getCurrentNPUStream();
     NPU_CHECK_ERROR(
-        c10_npu::acl::AclmdlRICaptureGetInfo(c10_npu::getCurrentNPUStream(), &is_capturing, &model_ri));
+        c10_npu::acl::AclmdlRICaptureGetInfo(s.stream(false), &is_capturing, &model_ri));
     return CaptureStatus(is_capturing);
 }
 
