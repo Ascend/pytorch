@@ -225,6 +225,8 @@ void Repository::ChangeStatus(RepoStatus expected, RepoStatus desired)
 
 NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
 {
+    std::string error_msg;
+    std::string runtime_error;
     if (initialized == false) {
         ASCEND_LOGE("Task queue is not initialized, shouldn't call MakeSureQueueEmpty(). !!");
         return NPU_STATUS_FAILED;
@@ -271,27 +273,18 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
     }
 
     if (GetStatus() == RepoStatus::UCE_EXIT) {
-        if (check_error) {
-            throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
-        } else {
-            ASCEND_LOGE("UCE ERROR happend.");
-        }
-    } else if (GetStatus() == RepoStatus::HBM_ECC_EXIT) {
-        if (check_error) {
-            std::string error_msg = c10_npu::c10_npu_get_error_message();
-            throw std::runtime_error("HBM MULTI BIT ECC ERROR." + error_msg + PTA_ERROR(ErrCode::ACL));
-        } else {
-            ASCEND_LOGE("HBM MULTI BIT ECC ERROR happend.");
-        }
+        runtime_error = "UCE ERROR." + PTA_ERROR(ErrCode::ACL);
+        error_msg = "UCE ERROR happend.";
+    }
+    
+    if (GetStatus() == RepoStatus::HBM_ECC_EXIT) {
+        runtime_error = "HBM MULTI BIT ECC ERROR." + std::string(c10_npu::c10_npu_get_error_message()) + PTA_ERROR(ErrCode::ACL);
+        error_msg = "HBM MULTI BIT ECC ERROR happend.";
     }
 
     if (GetStatus() == RepoStatus::STOP_EXIT) {
-        if (check_error) {
-            ASCEND_LOGE("getRepoStopFlag in EmptyQueue, throw FORCE STOP.");
-            throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
-        } else {
-            ASCEND_LOGE("FORCE STOP happend.");
-        }
+        runtime_error = "FORCE STOP." + PTA_ERROR(ErrCode::ACL);
+        error_msg = "FORCE STOP happend.";
     }
 
     if (GetStatus() == RepoStatus::ERROR_EXIT) {
@@ -306,26 +299,17 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
             }
         }
 
-#ifndef BUILD_LIBTORCH
-        if (gilState) {
-            PyEval_RestoreThread(gilState);
-        }
-#endif
-
-        if (check_error) {
-            throw std::runtime_error("The Inner error is reported as above. "
-                "The process exits for this inner error, and " +
-                repo_error + ".\n" +
-                "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
-                "If you want to get the accurate stacktrace, "
-                "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
-                "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
-                "resulting in performance degradation. "
-                "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
-                PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error);
-        } else {
-            ASCEND_LOGE("Inner error happend, detail: %s", repo_error);
-        }
+        runtime_error = "The Inner error is reported as above. "
+            "The process exits for this inner error, and " +
+            repo_error + ".\n" +
+            "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
+            "If you want to get the accurate stacktrace, "
+            "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
+            "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
+            "resulting in performance degradation. "
+            "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
+            PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error;
+        error_msg = "Inner error happend, detail: " + repo_error;
     }
 
 #ifndef BUILD_LIBTORCH
@@ -334,6 +318,13 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
         PyEval_RestoreThread(gilState);
     }
 #endif
+
+    if (!error_msg.empty()) {
+        ASCEND_LOGE(error_msg);
+    }
+    if (check_error && !runtime_error.empty()) {
+        throw std::runtime_error(runtime_error);
+    }
 
     return NPU_STATUS_SUCCESS;
 }
