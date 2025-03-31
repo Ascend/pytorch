@@ -52,13 +52,15 @@ void Logger::log(LoggingLevel level, const char* format, va_list args)
     long nowMs = ts.tv_nsec / 1000000;
 
     auto rank = c10_npu::option::OptionsManager::GetRankId();
+    std::ostringstream oss;
     if (rank != -1) {
-        std::cerr << "[rank:" << rank << "]:[" << timeBuffer << ":" << std::setfill('0') << std::setw(3) << nowMs << "] " << name_ <<
-            ": [" << LoggingLevelNames[level] << "] " << buffer << std::endl;
-    } else {
-        std::cerr << "[" << timeBuffer << ":" << std::setfill('0') << std::setw(3) << nowMs << "] " << name_ << ": [" <<
-            LoggingLevelNames[level] << "] " << buffer << std::endl;
+        oss << "[rank:" << rank << "]:";
     }
+    oss << "[" << timeBuffer << ":" << std::setfill('0') << std::setw(3) << nowMs << "] " << name_ << ": [" <<
+        LoggingLevelNames[level] << "] " << buffer << std::endl;
+    std::string s = oss.str();
+    std::cerr.write(s.c_str(), s.size());
+    std::cerr.flush();
 }
 
 void Logger::debug(const char* format, ...)

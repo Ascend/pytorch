@@ -1511,6 +1511,7 @@ void ProcessGroupHCCL::createHCCLComm(
     broadcastMasterID(&hcclID, isSingleP2POp, devicesKey, p2pRank);
 
     c10_npu::OptionalNPUGuard npuGuard;
+    auto startTime = std::chrono::steady_clock::now();
     for (size_t i = 0; i < devices.size(); ++i) {
         int numRanks = getSize();
         int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
@@ -1543,6 +1544,10 @@ void ProcessGroupHCCL::createHCCLComm(
         // Creates the HCCL streams
         streamVal.push_back(getNPUStreamByCurrentType(devices[i].index()));
     }
+    auto endTime = std::chrono::steady_clock::now();
+    auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+    logger->info("Create hccl comm by hcclCommInitRootInfoConfig success, group id is %s, commType is %d, use %d ms.",
+        options_->group_id.c_str(), static_cast<int>(commType), timeElapsed.count());
 }
 
 bool ProcessGroupHCCL::createHCCLCommEx(
@@ -1591,6 +1596,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
         auto endTime = std::chrono::steady_clock::now();
         auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
         ASCEND_LOGI("Create global hccl comm with ranktable success, take %d milliseconds", timeElapsed.count());
+        logger->info("Create global hccl comm with ranktable success, take %d milliseconds", timeElapsed.count());
         return true;
     }
 
@@ -1645,6 +1651,8 @@ bool ProcessGroupHCCL::createHCCLCommEx(
     auto subEndTime = std::chrono::steady_clock::now();
     auto subTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(subEndTime - subStartTime);
     ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, use %d ms.",
+        options_->group_id.c_str(), hcclid, subTimeElapsed.count());
+    logger->info("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, use %d ms.",
         options_->group_id.c_str(), hcclid, subTimeElapsed.count());
     return true;
 }
