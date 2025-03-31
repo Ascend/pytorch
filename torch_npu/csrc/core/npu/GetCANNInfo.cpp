@@ -82,8 +82,12 @@ std::string GetCANNVersion(const std::string& module)
 bool IsGteCANNVersion(const std::string version, const std::string module)
 {
     static std::string baseVersion = "8.1.RC1";
+    static std::string unsupportedModule = "DRIVER";
+    if (module.compare(unsupportedModule) == 0) {
+        TORCH_CHECK(false, "When the module is DRIVER, this function is not supported.", PTA_ERROR(ErrCode::VALUE));
+    }
     if (version.compare(baseVersion) < 0) {
-        TORCH_CHECK(false, "When the version is less than \"8.1.RC1\", this function is not supported.", PTA_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(false, "When the version " + version + " is less than \"8.1.RC1\", this function is not supported.", PTA_ERROR(ErrCode::VALUE));
     }
     std::string currentVersion = GetCANNVersion(module);
     double current_num = VersionToNum(currentVersion);
