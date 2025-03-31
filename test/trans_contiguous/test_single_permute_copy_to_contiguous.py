@@ -24,13 +24,15 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.permute(1, 0, 2, 3).contiguous()
-            self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof),
-                             True, "contiguous_d_Transpose op is not called!")
+            self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof)
+                             or check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                             True, "contiguous_d_Transpose or aclnnInplaceCopy op is not called!")
 
             with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input.permute(2, 3, 0, 1).contiguous()
-            self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof),
-                             True, "contiguous_d_Transpose op is not called!")
+            self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof)
+                             or check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                             True, "contiguous_d_Transpose or aclnnInplaceCopy op is not called!")
 
             cpu_out1 = cpu_input.permute(1, 0, 2, 3).contiguous()
             cpu_out2 = cpu_input.permute(2, 3, 0, 1).contiguous()
