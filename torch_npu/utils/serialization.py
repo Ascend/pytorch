@@ -298,7 +298,11 @@ def _npu_save(
     for key in sorted(serialized_storages.keys()):
         name = f"data/{key}"
         storage = serialized_storages[key]
-        num_bytes = storage.nbytes()
+        if storage.device.type != "cpu":
+            storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
+            num_bytes = storage_tensor.size().numel() * storage_tensor.element_size()
+        else:
+            num_bytes = storage.nbytes()
         global _serialization_tls
         if _serialization_tls.skip_data:
             zip_file.write_record_metadata(name, num_bytes)
