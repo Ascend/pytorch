@@ -5,6 +5,10 @@
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "third_party/acl/inc/acl/acl.h"
 
+constexpr size_t kVersionIndex1 = 1;
+constexpr size_t kVersionIndex2 = 2;
+constexpr size_t kVersionIndex3 = 3;
+constexpr size_t kVersionIndex4 = 4;
 
 std::unordered_map<std::string, aclCANNPackageName> packageNameMap = {
     {"CANN", ACL_PKG_NAME_CANN},
@@ -27,28 +31,76 @@ double VersionToNum(std::string versionStr)
     int TVersion = -1;
     int alphaVersion = 0;
     if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+)"))) {
-        major = stoi(results[1]);
-        minor = stoi(results[2]);
-        RCVersion = stoi(results[3]);
+        major = stoi(results[kVersionIndex1]);
+        minor = stoi(results[kVersionIndex2]);
+        RCVersion = stoi(results[kVersionIndex3]);
     } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).([0-9]+)"))) {
-        major = stoi(results[1]);
-        minor = stoi(results[2]);
-        release = stoi(results[3]);
+        major = stoi(results[kVersionIndex1]);
+        minor = stoi(results[kVersionIndex2]);
+        release = stoi(results[kVersionIndex3]);
     } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).T([0-9]+)"))) {
-        major = stoi(results[1]);
-        minor = stoi(results[2]);
-        TVersion = stoi(results[3]);
+        major = stoi(results[kVersionIndex1]);
+        minor = stoi(results[kVersionIndex2]);
+        TVersion = stoi(results[kVersionIndex3]);
     } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+).alpha([0-9]+)"))) {
-        major = stoi(results[1]);
-        minor = stoi(results[2]);
-        RCVersion = stoi(results[3]);
-        alphaVersion = stoi(results[4]);
+        major = stoi(results[kVersionIndex1]);
+        minor = stoi(results[kVersionIndex2]);
+        RCVersion = stoi(results[kVersionIndex3]);
+        alphaVersion = stoi(results[kVersionIndex4]);
     } else {
         TORCH_NPU_WARN_ONCE("Version: " + versionStr + " is invalid.");
         return 0.0;
     }
 
-    double num = ((major + 1) * 100000000) + ((minor + 1) * 1000000) + ((release + 1) * 10000) + ((RCVersion + 1) * 100 + 5000) + ((TVersion + 1) * 100) - (100 - alphaVersion);
+    double num = ((major + 1) * 100000000) + ((minor + 1) * 1000000) + ((release + 1) * 10000) +
+                 ((RCVersion + 1) * 100 + 5000) + ((TVersion + 1) * 100) - (100 - alphaVersion);
+    return num;
+}
+
+double DriverVersionToNum(std::string versionStr)
+{
+    std::smatch results;
+    int major = -1;
+    int minor = -1;
+    int release = -1;
+    int TVersion = -1;
+    int RCVersion = -51;
+    int bVersion = 0;
+    // driver version check only supports pattern listed here:
+    // 24.1.0,24.1.RC1,24.1.rc1,24.1.RC1.B10,24.1.rc1.b10,24.1.T1
+    if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+)"))) {
+        major = stoi(results[kVersionIndex1]);
+        minor = stoi(results[kVersionIndex2]);
+        RCVersion = stoi(results[kVersionIndex3]);
+    } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).rc([0-9]+)"))) {
+        major = stoi(results[kVersionIndex1]);
+        minor = stoi(results[kVersionIndex2]);
+        RCVersion = stoi(results[kVersionIndex3]);
+    } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).([0-9]+)"))) {
+        major = stoi(results[kVersionIndex1]);
+        minor = stoi(results[kVersionIndex2]);
+        release = stoi(results[kVersionIndex3]);
+    } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).T([0-9]+)"))) {
+        major = stoi(results[kVersionIndex1]);
+        minor = stoi(results[kVersionIndex2]);
+        TVersion = stoi(results[kVersionIndex3]);
+    } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+).B([0-9]+)"))) {
+        major = stoi(results[kVersionIndex1]);
+        minor = stoi(results[kVersionIndex2]);
+        RCVersion = stoi(results[kVersionIndex3]);
+        bVersion = stoi(results[kVersionIndex4]);
+    } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).rc([0-9]+).b([0-9]+)"))) {
+        major = stoi(results[kVersionIndex1]);
+        minor = stoi(results[kVersionIndex2]);
+        RCVersion = stoi(results[kVersionIndex3]);
+        bVersion = stoi(results[kVersionIndex4]);
+    } else {
+        TORCH_NPU_WARN_ONCE("Driver Version: " + versionStr + " is invalid or not supported yet.");
+        return 0.0;
+    }
+
+    double num = ((major + 1) * 100000000) + ((minor + 1) * 1000000) + ((release + 1) * 10000) +
+                 ((RCVersion + 1) * 100 + 5000) + ((TVersion + 1) * 100) + bVersion;
     return num;
 }
 
@@ -97,4 +149,23 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
     } else {
         return false;
     }
+}
+
+bool IsGteDriverVersion(const std::string driverVersion)
+{
+    // if cann does not support AclsysGetCANNVersion，GetCANNVersion("DRIVER") will return "".
+    // The result of this function will be false, even if current driver version meets the requirement.
+    const static std::string baseCANNVersion = "8.1.RC1";
+    std::string currentCANNVersion = GetCANNVersion("CANN");
+    double currentCannNum = VersionToNum(currentCANNVersion);
+    double boundaryCannNum = VersionToNum(baseCANNVersion);
+    if (currentCannNum < boundaryCannNum) {
+        TORCH_CHECK(false, "When the cann version is less than \"8.1.RC1\", this function is not supported.",
+                    PTA_ERROR(ErrCode::VALUE));
+    }
+    // check driver version
+    std::string currentDriverVersion = GetCANNVersion("DRIVER");
+    double currentDriverNum = DriverVersionToNum(currentDriverVersion);
+    double boundaryDriverNum = DriverVersionToNum(driverVersion);
+    return currentDriverNum >= boundaryDriverNum;
 }
