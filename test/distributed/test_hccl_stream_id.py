@@ -39,6 +39,11 @@ class HcclStreamIdTest(TestCase):
             p2p_stream_id = _world.default_pg._get_backend(torch.device('npu'))._get_stream_id(True, src)
 
         stream_num = os.environ.get("STREAMS_PER_DEVICE", 8)
+        try:
+            stream_num = int(stream_num)
+        except Exception:
+            stream_num = 8
+
         if stream_num != 32:
             stream_num = 8
         assert0 = ((collective_stream_id & stream_num) == stream_num)

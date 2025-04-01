@@ -80,7 +80,8 @@ class TestDropPath(TestCase):
             [[np.float32, 3, [13, 5]], [np.float32, 3, [13, 5]]],
         ]
 
-        data = torch.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "base_data/drop_path_base_data.pth"))
+        data = torch.load(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                       "base_data/drop_path_base_data.pth"), weights_only=False)
         base_result = data["base_result"]
         for index, item in enumerate(shape_format):
             _, mat1_npu = create_common_tensor(item[0], -10, 10)
