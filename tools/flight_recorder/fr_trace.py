@@ -93,12 +93,15 @@ def extract_hccl_info(recorder_dict):
         if not entries:
             continue
         last_entry = entries[-1]
+        frames = last_entry.get("frames", [{}])
+        if not frames:
+            frames = [{}]
         hccl_dict[rank] = {
             "state": last_entry.get("state", None),
             "record_id": last_entry.get("record_id", None),
             "pg_id": last_entry.get("pg_id", None),
             "time_discovered_completed_ns": last_entry.get("time_discovered_completed_ns", None),
-            "name": last_entry.get("frames", [{}])[0].get("name", None),
+            "name": frames[0].get("name", None),
         }
     return hccl_dict
 
@@ -110,26 +113,34 @@ def analyze_pg_groups(hccl_dict):
         pg_groups[op["pg_id"]].append(op)
 
     for pg_id, group in pg_groups.items():
-        scheduled_ops = [op for op in group if op["state"] == "scheduled"]
-        completed_ops = [op for op in group if op["state"] == "completed"]
+        scheduled_ops = [op for op in group if op.get("state") == "scheduled"]
+        completed_ops = [op for op in group if op.get("state") == "completed"]
+
         # Case 1: All NPUs are scheduled and have the same record_id and name
-        if len(scheduled_ops) == len(group):
-            record_id = scheduled_ops[0]["record_id"]
-            name = scheduled_ops[0]["name"]
-            if all(op["record_id"] == record_id and op["name"] == name for op in scheduled_ops):
+        if len(scheduled_ops) == len(group) and scheduled_ops:
+            record_id = scheduled_ops[0].get("record_id")
+            name = scheduled_ops[0].get("name")
+            if all(
+                op.get("record_id") == record_id and op.get("name") == name
+                for op in scheduled_ops
+            ):
                 logging.info(
                     f"The pg_id {pg_id}'s Communication Operator {name} "
                     "executed too slowly, causing the HCCL to time out."
                 )
                 continue
 
-        # Case 2: There is a completed operator and its record_id is 1 less than other scheduled operators
+        # Case 2: Completed operator's record_id is 1 less than scheduled operators
         if completed_ops and scheduled_ops:
             completed_op = completed_ops[0]
-            scheduled_record_id = scheduled_ops[0]["record_id"]
-            if completed_op["record_id"] == scheduled_record_id - 1:
+            scheduled_record_id = scheduled_ops[0].get("record_id")
+            if (
+                completed_op.get("record_id") is not None
+                and scheduled_record_id is not None
+                and completed_op.get("record_id") == scheduled_record_id - 1
+            ):
                 logging.info(
-                    f"The pg_id {pg_id}'s rank {completed_op['pg_id']}'s "
+                    f"The pg_id {pg_id}'s rank {completed_op.get('pg_id')}'s "
                     "Computational task took too long, causing the other ranks' "
                     "HCCL task to time out."
                 )
@@ -137,10 +148,13 @@ def analyze_pg_groups(hccl_dict):
 
         # Case 3: All operators are completed
         if not scheduled_ops and completed_ops:
-            latest_op = max(completed_ops, key=lambda x: x["time_discovered_completed_ns"] or 0)
+            latest_op = max(
+                completed_ops,
+                key=lambda x: x.get("time_discovered_completed_ns", 0) or 0
+            )
             logging.info(
                 f"The computational task of the pg_id {pg_id} "
-                f"after the communication operator {latest_op['name']} "
+                f"after the communication operator {latest_op.get('name', 'unknown')} "
                 "took too long."
             )
             continue
