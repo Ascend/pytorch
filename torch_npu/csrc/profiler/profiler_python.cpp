@@ -343,7 +343,7 @@ void PythonTracer::stop()
 {
     TORCH_INTERNAL_ASSERT(active_.load(), "PythonTracer is not running.", PROF_ERROR(ErrCode::INTERNAL));
 
-    pybind11::gil_scoped_acquire gil;
+    GilAndRestoreThread gil;
     for (const auto thread_state : getInterpreterThreads(interpreter_)) {
         if (thread_state->c_profilefunc == &PythonTracer::pyProfileFn) {
             PyThreadState_Swap(thread_state);
@@ -573,7 +573,7 @@ void PythonTracer::recordCCall(TraceContext* ctx, PyFrameObject* frame, PyObject
 void PythonTracer::recordReturn(TraceContext* ctx, PyFrameObject* frame, TraceTag tag)
 {
     recordEvent(tag, EXIT_EVENT_HASH_ID);
-    
+
     // record ctx to thread id map
     auto ctx_addr = reinterpret_cast<uintptr_t>(ctx);
     if (ctx_tid_map_.find(ctx_addr) == ctx_tid_map_.end()) {
