@@ -99,7 +99,6 @@ constexpr size_t kLargePoolVirAddrSize = 10737418240; // 10 GB
 const std::string kMinCannVersion = "8.1.RC1";        // minimum cann version which supports 1g mem 8.1.RC1
 const std::string kMinDriverVersion = "25.0.RC1";     // minimum driver version which supports 1g mem 25.0.RC1
 const std::string kCannModule = "CANN";               // cann module name
-const std::string kDriverModule = "DRIVER";           // driver module name
 
 using StatTypes = std::array<bool, static_cast<size_t>(StatType::NUM_TYPES)>;
 
@@ -157,12 +156,12 @@ bool IsMallocPage1GMem(bool is_small_pool)
             return false;
         }
 
-        if (!IsGteCANNVersion(kMinDriverVersion, kDriverModule)) {
+        if (!IsGteDriverVersion(kMinDriverVersion)) {
             TORCH_NPU_WARN_ONCE("The application for 1G large-page physical memory failed. "
                 "Using the HUGE_MEM memory page allocation method may result in performance degradation. "
                 "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is enabled, "
                 "but the current driver version does not support this feature. "
-                "Please upgrade the CANN package version 1-2.");
+                "Please upgrade the HDK(driver) package version.");
             return false;
         }
         return true;
