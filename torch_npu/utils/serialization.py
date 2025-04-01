@@ -239,7 +239,11 @@ def _npu_save(
                 storage_dtype = obj.dtype
                 storage_type_str = obj._pickle_storage_type()
                 storage_type = getattr(torch, storage_type_str)
-                storage_numel = obj._size()
+                if storage.device.type != "cpu":
+                    storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
+                    storage_numel = storage_tensor.size().numel() * storage_tensor.element_size() // obj._element_size()
+                else:
+                    storage_numel = obj._size()
 
             else:
                 storage = obj
