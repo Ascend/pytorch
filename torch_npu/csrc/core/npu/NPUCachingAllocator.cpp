@@ -987,6 +987,28 @@ bool isConfig1GPageSizeEnable()
     return CachingAllocatorConfig::page_size_1g_enable();
 }
 
+// To prevent the deadlock situation, temporarily release the lock.
+//
+// Deadlock Scenario Description:
+//
+// 1. Main Thread:
+//    - Acquires the lock and performs sync to clear the taskqueue.
+//    - taskqueue wait a empty signal from the sub-thread.
+//
+// 2. Sub-thread:
+//    - Python function (tbe op compile) called in CANN may trigger GC that introduces a resource release operation.
+//    - The release operation (`free`) cannot acquire the same lock holded in main thread.
+//    - Unable to send a signal to the main thread.
+class UnlockGuard {
+public:
+    explicit UnlockGuard(std::unique_lock<std::recursive_mutex>& lock) : lock_(lock) { lock_.unlock(); }
+
+    ~UnlockGuard() { lock_.lock(); }
+
+private:
+    std::unique_lock<std::recursive_mutex>& lock_;
+};
+
 class DeviceCachingAllocator {
 private:
     // lock around all operations
@@ -1227,13 +1249,13 @@ public:
         if (!block_found) {
             // Do garbage collection if the flag is set.
             if (C10_UNLIKELY(set_fraction && CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
-                garbage_collect_cached_blocks(context);
+                garbage_collect_cached_blocks(context, lock);
             }
             // Attempt allocate
             block_found = alloc_block(params, false, context, lock) ||
                 // Free enough available cached blocks to satisfy alloc and retry
                 // alloc.
-                (release_available_cached_blocks(params, context) && alloc_block(params, false, context, lock));
+                (release_available_cached_blocks(params, context, lock) && alloc_block(params, false, context, lock));
         }
 
         if (!block_found && C10_LIKELY(captures_underway.empty())) {
@@ -1241,6 +1263,11 @@ public:
                 "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log "
                 "can be ignored.");
             // Free all non-split cached blocks and retry alloc.
+            {
+                UnlockGuard guard(lock);
+                // Make sure taskqueue is empty, then execute release_cached_blocks
+                c10_npu::npuSynchronizeDevice(true);
+            }
             c10_npu::NPUWorkspaceAllocator::emptyCache(device, true, true);
             block_found = (release_cached_blocks(true, context) && alloc_block(params, true, context, lock));
         }
@@ -1564,6 +1591,8 @@ public:
     void emptyCache(int device, bool check_error)
     {
         std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
+        // Make sure event deque from taskqueue, then synchronize Event
+        c10_npu::npuSynchronizeDevice(check_error);
         std::lock_guard<std::recursive_mutex> lock(mutex);
         c10_npu::NPUWorkspaceAllocator::emptyCache(device, true, check_error);
         release_cached_blocks(check_error, context);
@@ -2423,7 +2452,8 @@ private:
         return freed_memory;
     }
 
-    void garbage_collect_cached_blocks(const std::shared_ptr<c10::GatheredContext> &ctx)
+    void garbage_collect_cached_blocks(const std::shared_ptr<c10::GatheredContext>& ctx,
+                                       std::unique_lock<std::recursive_mutex>& lock)
     {
         // Free unused cached blocks to reclaim NPU memory.
         // Unlike release_cached_blocks(), this does not enforce synchronization and
@@ -2453,7 +2483,10 @@ private:
             return;
         }
 
-        c10_npu::npuSynchronizeDevice(true);
+        {
+            UnlockGuard guard(lock);
+            c10_npu::npuSynchronizeDevice(true);
+        }
 
         // Repeat GC until we reach reclaim > target size.
         bool block_freed = true;
@@ -2553,7 +2586,8 @@ private:
     }
 
     /* * Free one or more oversize blocks to the system allocator.  But only enough to satisfy the target size * */
-    bool release_available_cached_blocks(const AllocParams &p, const std::shared_ptr<c10::GatheredContext> &ctx)
+    bool release_available_cached_blocks(const AllocParams& p, const std::shared_ptr<c10::GatheredContext>& ctx,
+                                         std::unique_lock<std::recursive_mutex>& lock)
     {
         if (CachingAllocatorConfig::max_split_size() == std::numeric_limits<size_t>::max()) {
             return false;
@@ -2564,7 +2598,10 @@ private:
             (key.size < CachingAllocatorConfig::max_split_size()) ? CachingAllocatorConfig::max_split_size() : key.size;
         auto it = pool.blocks.lower_bound(&key);
 
-        c10_npu::npuSynchronizeDevice(true);
+        {
+            UnlockGuard guard(lock);
+            c10_npu::npuSynchronizeDevice(true);
+        }
 
         if (it == pool.blocks.end() || (*it)->stream != p.stream()) {
             // No single block is large enough; free multiple oversize blocks, starting with the largest
@@ -2595,11 +2632,9 @@ private:
         return true;
     }
 
+    // npuSynchronizeDevice must be executed before this function can be called
     bool release_cached_blocks(bool check_error, const std::shared_ptr<c10::GatheredContext> &context)
     {
-        // Make sure event deque from taskqueue, then synchronize Event
-        c10_npu::npuSynchronizeDevice(check_error);
-
         // First ensure that all blocks that can't currently be allocated due to
         // outstanding events are returned to the pool.
         synchronize_and_free_events(check_error, context);
