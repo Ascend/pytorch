@@ -75,7 +75,7 @@ class HcclScatterTest(TestCase):
             for shape in shape_format:
                 input_list = []
                 for _ in range(world_size):
-                    _, npu_input = create_common_tensor(shape, -10, -10)
+                    _, npu_input = create_common_tensor(shape, -10, 10)
                     input_list.append(npu_input.cpu())
                 expected = self._construct_expected_result(input_list, dist.scatter)
                 self._test_multiprocess(HcclScatterTest._test_scatter,
