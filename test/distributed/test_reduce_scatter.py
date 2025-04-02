@@ -83,7 +83,7 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
                     shape[1] = 0
                 input_list = []
                 for _ in range(world_size):
-                    _, input1 = create_common_tensor(shape, -10, -10)
+                    _, input1 = create_common_tensor(shape, -10, 10)
                     input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
@@ -126,7 +126,7 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
                     shape[1] = 0
                 input_list = []
                 for _ in range(world_size):
-                    _, input1 = create_common_tensor(shape, -10, -10)
+                    _, input1 = create_common_tensor(shape, -10, 10)
                     input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter, dist.ReduceOp.AVG)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
