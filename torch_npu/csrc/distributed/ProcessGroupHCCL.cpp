@@ -2274,9 +2274,11 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
     HcclCommConfig config;
     getHcclCommConfig(&config);
 
-    // update group name in hccl comm config
-    std::string groupName = getGroupName();
-    torch_npu::toolkit::profiler::Utils::safe_strcpy_s(config.hcclCommName, groupName.c_str(), COMM_NAME_MAX_LENGTH);
+    if (isHcclFeatureSupported(HcclCommConfigCapability::HCCL_COMM_CONFIG_COMM_NAME)) {
+        // Update group name in hccl comm config when this capability is supported.
+        std::string groupName = getGroupName();
+        torch_npu::toolkit::profiler::Utils::safe_strcpy_s(config.hcclCommName, groupName.c_str(), COMM_NAME_MAX_LENGTH);
+    }
 
     if (options_->hccl_config.empty()) {
         return config;
