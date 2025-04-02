@@ -4588,6 +4588,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                     at::Tensor output_tensor_reshape = at::reshape(outputFlattened[i], outputTensors[i].sizes());
                     outputTensors[i].copy_(output_tensor_reshape, true);
                 }
+                if (opts.reduceOp == c10d::ReduceOp::AVG) {
+                    c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                    for (auto& tensor : outputTensors) {
+                        tensor.div_(getSize());
+                    }
+                }
             },
             c10d::OpType::REDUCE_SCATTER);
     } else {

@@ -42,7 +42,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                     shape[1] = 0
                 input_list = []
                 for _ in range(world_size):
-                    _, input1 = create_common_tensor(shape, -10, -10)
+                    _, input1 = create_common_tensor(shape, -10, 10)
                     input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor)
                 self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor,
@@ -74,7 +74,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                     shape[1] = 0
                 input_list = []
                 for _ in range(world_size):
-                    _, input1 = create_common_tensor(shape, -10, -10)
+                    _, input1 = create_common_tensor(shape, -10, 10)
                     input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, torch_npu.distributed.reduce_scatter_tensor_uneven)
                 self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor_uneven,
@@ -91,7 +91,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                     shape[1] = 0
                 input_list = []
                 for _ in range(world_size):
-                    _, input1 = create_common_tensor(shape, -10, -10)
+                    _, input1 = create_common_tensor(shape, -10, 10)
                     input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor, dist.ReduceOp.AVG)
                 self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor,
@@ -108,7 +108,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                     shape[1] = 0
                 input_list = []
                 for _ in range(world_size):
-                    _, input1 = create_common_tensor(shape, -10, -10)
+                    _, input1 = create_common_tensor(shape, -10, 10)
                     input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor_uneven, dist.ReduceOp.AVG)
                 self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor_uneven,
