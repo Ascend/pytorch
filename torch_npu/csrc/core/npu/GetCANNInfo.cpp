@@ -53,7 +53,11 @@ double VersionToNum(std::string versionStr)
         return 0.0;
     }
 
-    double num = ((major + 1) * 100000000) + ((minor + 1) * 1000000) + ((release + 1) * 10000) + ((RCVersion + 1) * 100 + 5000) + ((TVersion + 1) * 100) - (100 - alphaVersion);
+    double num = ((static_cast<double>(major) + 1.0) * 100000000) +
+                  ((static_cast<double>(minor) + 1.0) * 1000000) +
+                  ((static_cast<double>(release) + 1.0) * 10000) +
+                   ((static_cast<double>(RCVersion) + 1.0) * 100 + 5000) +
+                   ((static_cast<double>(TVersion) + 1) * 100) - (100 - static_cast<double>(alphaVersion));
     return num;
 }
 
