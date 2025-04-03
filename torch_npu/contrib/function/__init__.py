@@ -10,11 +10,6 @@ from .fused_attention import npu_fused_attention_with_layernorm, npu_fused_atten
 from .npu_functional import dropout_with_byte_mask
 
 __all__ = [
-    "npu_iou",
-    "npu_ptiou",
-    "npu_giou",
-    "npu_diou",
-    "npu_ciou",
     "npu_multiclass_nms",
     "npu_batched_multiclass_nms",
     "npu_single_level_responsible_flags",
