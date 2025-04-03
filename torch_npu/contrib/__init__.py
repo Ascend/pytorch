@@ -9,11 +9,6 @@ from .module import ChannelShuffle, Prefetcher, LabelSmoothingCrossEntropy, ROIA
 
 __all__ = [
     # from function
-    "npu_iou",
-    "npu_ptiou",
-    "npu_giou",
-    "npu_diou",
-    "npu_ciou",
     "npu_multiclass_nms",
     "npu_batched_multiclass_nms",
     "npu_single_level_responsible_flags",
@@ -32,13 +27,8 @@ __all__ = [
     "Prefetcher",
     "LabelSmoothingCrossEntropy",
     "ROIAlign",
-    "DCNv2",
     "ModulatedDeformConv",
-    "Mish",
-    "BiLSTM",
     "PSROIPool",
-    "SiLU",
-    "Swish",
     "NpuFairseqDropout",
     "NpuCachedDropout",
     "MultiheadAttention",
@@ -46,7 +36,6 @@ __all__ = [
     "Focus",
     "LinearA8W8Quant",
     "LinearQuant",
-    "FusedColorJitter",
     "LinearWeightQuant",
     "QuantConv2d",
 ]

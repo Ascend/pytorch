@@ -8,7 +8,6 @@ import torch_npu
 __all__ = [
     "ModulatedDeformConv2dFunction",
     "ModulatedDeformConv",
-    "DCNv2"
 ]
 
 

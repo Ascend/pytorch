@@ -73,17 +73,14 @@ custom:
   - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
     dispatch:
       CompositeExplicitAutograd: empty_with_format
-    exposed: True
   - func: unsafe_empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor
     dispatch:
       CompositeExplicitAutograd: empty_with_format
   - func: empty_with_format.names(int[] size, Dimname[]? names, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
     dispatch:
       CompositeExplicitAutograd: empty_with_format
-    exposed: True
   - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
     device_check: NoCheck
-    exposed: True
   - func: get_storage_size(Tensor self) -> int
   - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
     exposed: True
