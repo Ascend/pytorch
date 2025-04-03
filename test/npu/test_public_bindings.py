@@ -642,6 +642,9 @@ class TestPublicBindings(TestCase):
             for modname in allow_dict["being_migrated"]:
                 if modname in allow_dict:
                     allow_dict[allow_dict["being_migrated"][modname]] = allow_dict[modname]
+        with open(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), 'deprecated_apis.json')) as json_file:
+            deprecated_dict = json.load(json_file)
 
         if update_allow_dict_torchair:
             allow_dict.update(update_allow_dict_torchair)
@@ -693,7 +696,8 @@ class TestPublicBindings(TestCase):
                             modname.startswith("torch_npu.dynamo.torchair.ge_concrete_graph"):
                         return
 
-                    if modname in allow_dict and elem in allow_dict[modname]:
+                    if ((modname in allow_dict and elem in allow_dict[modname]) or
+                        (modname in deprecated_dict and elem in deprecated_dict[modname])):
                         return
 
                     if is_public:
