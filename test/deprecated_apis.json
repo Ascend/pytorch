@@ -1,0 +1,59 @@
+{
+    "torch_npu": [
+        "npu_broadcast",
+        "npu_conv2d",
+        "npu_conv_transpose2d",
+        "npu_convolution",
+        "npu_convolution_transpose",
+        "npu_dtype_cast",
+        "npu_gru",
+        "npu_layer_norm_eval",
+        "npu_min",
+        "npu_mish",
+        "npu_ptiou",
+        "npu_reshape",
+        "npu_silu",
+        "npu_sort_v2"
+    ],
+    "torch_npu.contrib": [
+        "BiLSTM",
+        "DCNv2",
+        "FusedColorJitter",
+        "Mish",
+        "SiLU",
+        "Swish",
+        "npu_ciou",
+        "npu_diou",
+        "npu_giou",
+        "npu_iou",
+        "npu_ptiou"
+    ],
+    "torch_npu.contrib.module": [
+        "BiLSTM",
+        "DCNv2",
+        "FusedColorJitter",
+        "Mish",
+        "SiLU",
+        "Swish"
+    ],
+    "torch_npu.contrib.function": [
+        "npu_ciou",
+        "npu_diou",
+        "npu_giou",
+        "npu_iou",
+        "npu_ptiou"
+    ],
+    "torch_npu.contrib.function.iou": [
+        "npu_ciou",
+        "npu_diou",
+        "npu_giou",
+        "npu_iou",
+        "npu_ptiou"
+    ],
+    "torch_npu.contrib.module.deform_conv": [
+        "DCNv2"
+    ],
+    "torch_npu.contrib.module.fusedcolorjitter": [
+        "FusedColorJitter"
+    ]
+}
