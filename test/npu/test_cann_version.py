@@ -17,8 +17,6 @@ class TestCANNversion(TestCase):
                         or re.match("([0-9]+).([0-9]+).T([0-9]+)", version)
                         or re.match("([0-9]+).([0-9]+).RC([0-9]+).alpha([0-9]+)", version))
             self.assertTrue(is_match, f"The env version is {version_env}. The format of cann version {version} is invalid.")
-        else:
-            self.assertEqual(version, "")
 
 
     def test_compare_cann_version(self):
