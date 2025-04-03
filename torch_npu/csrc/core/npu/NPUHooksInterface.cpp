@@ -48,6 +48,11 @@ void NPUHooksInterface::resizePrivateUse1Bytes(const c10::Storage &storage, size
     at_npu::native::storage_resize_npu(*storage_impl, new_bytes, new_size, true);
 }
 
+bool NPUHooksInterface::isAvailable() const
+{
+    return c10_npu::device_count() > 0;
+}
+
 at::PrivateUse1HooksInterface* get_npu_hooks()
 {
     static at::PrivateUse1HooksInterface* npu_hooks;
