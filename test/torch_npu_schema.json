@@ -1,10 +1,4 @@
 {
-  "torch_npu.contrib.BiLSTM": {
-    "signature": "(input_size, hidden_size)"
-  },
-  "torch_npu.contrib.BiLSTM.forward": {
-    "signature": "(self, inputs)"
-  },
   "torch_npu.contrib.ChannelShuffle": {
     "signature": "(in_channels, groups=2, split_shuffle=True)"
   },
@@ -14,29 +8,11 @@
   "torch_npu.contrib.ChannelShuffle.forward": {
     "signature": "(self, x1, x2)"
   },
-  "torch_npu.contrib.DCNv2": {
-    "signature": "(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, deformable_groups=1, bias=True, pack=True)"
-  },
-  "torch_npu.contrib.DCNv2.init_param": {
-    "signature": "(self)"
-  },
-  "torch_npu.contrib.DCNv2.forward": {
-    "signature": "(self, x)"
-  },
   "torch_npu.contrib.Focus": {
     "signature": "(c1, c2, k=1, s=1, p=None, g=1, act=True)"
   },
   "torch_npu.contrib.Focus.forward": {
     "signature": "(self, x)"
-  },
-  "torch_npu.contrib.FusedColorJitter": {
-    "signature": "(brightness=0, contrast=0, saturation=0, hue=0)"
-  },
-  "torch_npu.contrib.FusedColorJitter._check_input": {
-    "signature": "(self, value, name, center=1, bound=(0, inf), clip_first_on_zero=True)"
-  },
-  "torch_npu.contrib.FusedColorJitter.forward": {
-    "signature": "(self, img)"
   },
   "torch_npu.contrib.LabelSmoothingCrossEntropy": {
     "signature": "(num_classes=1000, smooth_factor=0.0)"
@@ -61,12 +37,6 @@
   },
   "torch_npu.contrib.LinearWeightQuant.forward": {
     "signature": "(self, x: torch.Tensor) -> torch.Tensor"
-  },
-  "torch_npu.contrib.Mish": {
-    "signature": "()"
-  },
-  "torch_npu.contrib.Mish.forward": {
-    "signature": "(self, x)"
   },
   "torch_npu.contrib.ModulatedDeformConv": {
     "signature": "(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, deformable_groups=1, bias=True, pack=True)"
@@ -161,18 +131,6 @@
   "torch_npu.contrib.ROIAlign.forward": {
     "signature": "(self, input_tensor, rois)"
   },
-  "torch_npu.contrib.SiLU": {
-    "signature": "()"
-  },
-  "torch_npu.contrib.SiLU.forward": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.contrib.Swish": {
-    "signature": "()"
-  },
-  "torch_npu.contrib.Swish.forward": {
-    "signature": "(self, x)"
-  },
   "torch_npu.contrib.matmul_transpose": {
     "signature": "(*args, **kwargs)"
   },
@@ -188,12 +146,6 @@
   "torch_npu.contrib.npu_bbox_coder_encode_yolo": {
     "signature": "(bboxes, gt_bboxes, stride)"
   },
-  "torch_npu.contrib.npu_ciou": {
-    "signature": "(boxes1, boxes2, trans=True, is_cross=False, mode=0)"
-  },
-  "torch_npu.contrib.npu_diou": {
-    "signature": "(boxes1, boxes2, trans=True, is_cross=False, mode=0)"
-  },
   "torch_npu.contrib.npu_fast_condition_index_put": {
     "signature": "(x, condition, value)"
   },
@@ -203,17 +155,8 @@
   "torch_npu.contrib.npu_fused_attention_with_layernorm": {
     "signature": "(*args, **kwargs)"
   },
-  "torch_npu.contrib.npu_giou": {
-    "signature": "(boxes1, boxes2, is_permuted=True)"
-  },
-  "torch_npu.contrib.npu_iou": {
-    "signature": "(boxes1, boxes2, mode='ptiou', is_normalized=False, normalized_scale=100.0)"
-  },
   "torch_npu.contrib.npu_multiclass_nms": {
     "signature": "(multi_bboxes, multi_scores, score_thr=0.05, nms_thr=0.45, max_num=50, score_factors=None)"
-  },
-  "torch_npu.contrib.npu_ptiou": {
-    "signature": "(boxes1, boxes2, mode='ptiou', is_normalized=False, normalized_scale=100.0)"
   },
   "torch_npu.contrib.npu_single_level_responsible_flags": {
     "signature": "(featmap_size, gt_bboxes, stride, num_base_anchors)"
@@ -242,12 +185,6 @@
   "torch_npu.contrib.function.npu_bbox_coder_encode_yolo": {
     "signature": "(bboxes, gt_bboxes, stride)"
   },
-  "torch_npu.contrib.function.npu_ciou": {
-    "signature": "(boxes1, boxes2, trans=True, is_cross=False, mode=0)"
-  },
-  "torch_npu.contrib.function.npu_diou": {
-    "signature": "(boxes1, boxes2, trans=True, is_cross=False, mode=0)"
-  },
   "torch_npu.contrib.function.npu_fast_condition_index_put": {
     "signature": "(x, condition, value)"
   },
@@ -257,17 +194,8 @@
   "torch_npu.contrib.function.npu_fused_attention_with_layernorm": {
     "signature": "(*args, **kwargs)"
   },
-  "torch_npu.contrib.function.npu_giou": {
-    "signature": "(boxes1, boxes2, is_permuted=True)"
-  },
-  "torch_npu.contrib.function.npu_iou": {
-    "signature": "(boxes1, boxes2, mode='ptiou', is_normalized=False, normalized_scale=100.0)"
-  },
   "torch_npu.contrib.function.npu_multiclass_nms": {
     "signature": "(multi_bboxes, multi_scores, score_thr=0.05, nms_thr=0.45, max_num=50, score_factors=None)"
-  },
-  "torch_npu.contrib.function.npu_ptiou": {
-    "signature": "(boxes1, boxes2, mode='ptiou', is_normalized=False, normalized_scale=100.0)"
   },
   "torch_npu.contrib.function.npu_single_level_responsible_flags": {
     "signature": "(featmap_size, gt_bboxes, stride, num_base_anchors)"
@@ -302,21 +230,6 @@
   "torch_npu.contrib.function.index_op.npu_fast_condition_index_put": {
     "signature": "(x, condition, value)"
   },
-  "torch_npu.contrib.function.iou.npu_ciou": {
-    "signature": "(boxes1, boxes2, trans=True, is_cross=False, mode=0)"
-  },
-  "torch_npu.contrib.function.iou.npu_diou": {
-    "signature": "(boxes1, boxes2, trans=True, is_cross=False, mode=0)"
-  },
-  "torch_npu.contrib.function.iou.npu_giou": {
-    "signature": "(boxes1, boxes2, is_permuted=True)"
-  },
-  "torch_npu.contrib.function.iou.npu_iou": {
-    "signature": "(boxes1, boxes2, mode='ptiou', is_normalized=False, normalized_scale=100.0)"
-  },
-  "torch_npu.contrib.function.iou.npu_ptiou": {
-    "signature": "(boxes1, boxes2, mode='ptiou', is_normalized=False, normalized_scale=100.0)"
-  },
   "torch_npu.contrib.function.matmul_transpose.matmul_transpose": {
     "signature": "(*args, **kwargs)"
   },
@@ -332,12 +245,6 @@
   "torch_npu.contrib.function.roll.roll": {
     "signature": "(x, shifts, dims)"
   },
-  "torch_npu.contrib.module.BiLSTM": {
-    "signature": "(input_size, hidden_size)"
-  },
-  "torch_npu.contrib.module.BiLSTM.forward": {
-    "signature": "(self, inputs)"
-  },
   "torch_npu.contrib.module.ChannelShuffle": {
     "signature": "(in_channels, groups=2, split_shuffle=True)"
   },
@@ -346,15 +253,6 @@
   },
   "torch_npu.contrib.module.ChannelShuffle.forward": {
     "signature": "(self, x1, x2)"
-  },
-  "torch_npu.contrib.module.DCNv2": {
-    "signature": "(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, deformable_groups=1, bias=True, pack=True)"
-  },
-  "torch_npu.contrib.module.DCNv2.init_param": {
-    "signature": "(self)"
-  },
-  "torch_npu.contrib.module.DCNv2.forward": {
-    "signature": "(self, x)"
   },
   "torch_npu.contrib.module.DropoutWithByteMask": {
     "signature": "(p=0.5, inplace=False, max_seed=1023)"
@@ -367,15 +265,6 @@
   },
   "torch_npu.contrib.module.Focus.forward": {
     "signature": "(self, x)"
-  },
-  "torch_npu.contrib.module.FusedColorJitter": {
-    "signature": "(brightness=0, contrast=0, saturation=0, hue=0)"
-  },
-  "torch_npu.contrib.module.FusedColorJitter._check_input": {
-    "signature": "(self, value, name, center=1, bound=(0, inf), clip_first_on_zero=True)"
-  },
-  "torch_npu.contrib.module.FusedColorJitter.forward": {
-    "signature": "(self, img)"
   },
   "torch_npu.contrib.module.LabelSmoothingCrossEntropy": {
     "signature": "(num_classes=1000, smooth_factor=0.0)"
@@ -400,12 +289,6 @@
   },
   "torch_npu.contrib.module.LinearWeightQuant.forward": {
     "signature": "(self, x: torch.Tensor) -> torch.Tensor"
-  },
-  "torch_npu.contrib.module.Mish": {
-    "signature": "()"
-  },
-  "torch_npu.contrib.module.Mish.forward": {
-    "signature": "(self, x)"
   },
   "torch_npu.contrib.module.ModulatedDeformConv": {
     "signature": "(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, deformable_groups=1, bias=True, pack=True)"
@@ -500,42 +383,6 @@
   "torch_npu.contrib.module.ROIAlign.forward": {
     "signature": "(self, input_tensor, rois)"
   },
-  "torch_npu.contrib.module.SiLU": {
-    "signature": "()"
-  },
-  "torch_npu.contrib.module.SiLU.forward": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.contrib.module.Swish": {
-    "signature": "()"
-  },
-  "torch_npu.contrib.module.Swish.forward": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.contrib.module.activations.Mish": {
-    "signature": "()"
-  },
-  "torch_npu.contrib.module.activations.Mish.forward": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.contrib.module.activations.SiLU": {
-    "signature": "()"
-  },
-  "torch_npu.contrib.module.activations.SiLU.forward": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.contrib.module.activations.Swish": {
-    "signature": "()"
-  },
-  "torch_npu.contrib.module.activations.Swish.forward": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.contrib.module.bidirectional_lstm.BiLSTM": {
-    "signature": "(input_size, hidden_size)"
-  },
-  "torch_npu.contrib.module.bidirectional_lstm.BiLSTM.forward": {
-    "signature": "(self, inputs)"
-  },
   "torch_npu.contrib.module.channel_shuffle.ChannelShuffle": {
     "signature": "(in_channels, groups=2, split_shuffle=True)"
   },
@@ -574,15 +421,6 @@
   },
   "torch_npu.contrib.module.crossentropy.LabelSmoothingCrossEntropy.forward": {
     "signature": "(self, pred, target)"
-  },
-  "torch_npu.contrib.module.deform_conv.DCNv2": {
-    "signature": "(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, deformable_groups=1, bias=True, pack=True)"
-  },
-  "torch_npu.contrib.module.deform_conv.DCNv2.init_param": {
-    "signature": "(self)"
-  },
-  "torch_npu.contrib.module.deform_conv.DCNv2.forward": {
-    "signature": "(self, x)"
   },
   "torch_npu.contrib.module.deform_conv.ModulatedDeformConv": {
     "signature": "(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, deformable_groups=1, bias=True, pack=True)"
@@ -649,15 +487,6 @@
   },
   "torch_npu.contrib.module.focus.fast_slice": {
     "signature": "(x)"
-  },
-  "torch_npu.contrib.module.fusedcolorjitter.FusedColorJitter": {
-    "signature": "(brightness=0, contrast=0, saturation=0, hue=0)"
-  },
-  "torch_npu.contrib.module.fusedcolorjitter.FusedColorJitter._check_input": {
-    "signature": "(self, value, name, center=1, bound=(0, inf), clip_first_on_zero=True)"
-  },
-  "torch_npu.contrib.module.fusedcolorjitter.FusedColorJitter.forward": {
-    "signature": "(self, img)"
   },
   "torch_npu.contrib.module.linear_a8w8_quant.LinearA8W8Quant": {
     "signature": "(in_features: int, out_features: int, *, bias: bool = True, offset: bool = False, pertoken_scale: bool = False, device=None, dtype=None, output_dtype=None) -> None"
@@ -2432,12 +2261,6 @@
   "torch_npu._npu_dropout": {
     "signature": "(*args, **kwargs)"
   },
-  "torch_npu.copy_memory_": {
-    "signature": "(*args, **kwargs)"
-  },
-  "torch_npu.empty_with_format": {
-    "signature": "(*args, **kwargs)"
-  },
   "torch_npu.fast_gelu": {
     "signature": "(self)"
   },
@@ -2449,9 +2272,6 @@
   },
   "torch_npu.npu_anti_quant": {
     "signature": "(x, scale, offset=None, dst_dtype=None, src_dtype=None)"
-  },
-  "torch_npu.npu_apply_adam": {
-    "signature": "(*args, **kwargs)"
   },
   "torch_npu.npu_batch_nms": {
     "signature": "(self, scores, score_threshold, iou_threshold, max_size_per_class, max_total_size, change_coordinate_frame=False, transpose_box=False)"
@@ -2468,47 +2288,23 @@
   "torch_npu.npu_bounding_box_encode": {
     "signature": "(anchor_box, ground_truth_box, means0, means1, means2, means3, stds0, stds1, stds2, stds3)"
   },
-  "torch_npu.npu_broadcast": {
-    "signature": "(self, size, out=None)"
-  },
-  "torch_npu.npu_ciou": {
-    "signature": "(self, gtboxes, trans=False, is_cross=True, mode=0, atan_sub_flag=False)"
-  },
   "torch_npu.npu_clear_float_status": {
     "signature": "(*args, **kwargs)"
   },
   "torch_npu.npu_confusion_transpose": {
     "signature": "(self, perm, shape, transpose_first)"
   },
-  "torch_npu.npu_conv2d": {
-    "signature": "(input_, weight, bias, stride, padding, dilation, groups)"
-  },
   "torch_npu.npu_conv3d": {
     "signature": "(input_, weight, bias, stride, padding, dilation, groups)"
-  },
-  "torch_npu.npu_conv_transpose2d": {
-    "signature": "(input_, weight, bias, padding, output_padding, stride, dilation, groups)"
   },
   "torch_npu.npu_convert_weight_to_int4pack": {
     "signature": "(*args, **kwargs)"
   },
-  "torch_npu.npu_convolution": {
-    "signature": "(input_, weight, bias, stride, padding, dilation, groups)"
-  },
-  "torch_npu.npu_convolution_transpose": {
-    "signature": "(input_, weight, bias, padding, output_padding, stride, dilation, groups)"
-  },
   "torch_npu.npu_deformable_conv2d": {
     "signature": "(inputs, weight, offset, bias, kernel_size, stride, padding, dilation=[1, 1, 1, 1], groups=1, deformable_groups=1, modulated=True)"
   },
-  "torch_npu.npu_diou": {
-    "signature": "(self, gtboxes, trans=False, is_cross=False, mode=0)"
-  },
   "torch_npu.npu_dropout_with_add_softmax": {
     "signature": "(self, x1, alpha, prob, dim)"
-  },
-  "torch_npu.npu_dtype_cast": {
-    "signature": "(self, dtype)"
   },
   "torch_npu.npu_dynamic_quant": {
     "signature": "(input_dummy, smooth_scales=None)"
@@ -2546,29 +2342,17 @@
   "torch_npu.npu_get_float_status": {
     "signature": "(*args, **kwargs)"
   },
-  "torch_npu.npu_giou": {
-    "signature": "(self, gtboxes, trans=False, is_cross=False, mode=0)"
-  },
   "torch_npu.npu_grid_assign_positive": {
     "signature": "(self, overlaps, box_responsible_flags, max_overlaps, argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps, num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all)"
   },
   "torch_npu.npu_grouped_matmul": {
     "signature": "(*args, **kwargs)"
   },
-  "torch_npu.npu_gru": {
-    "signature": "(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden, seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first)"
-  },
   "torch_npu.npu_incre_flash_attention": {
     "signature": "(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths, num_heads, scale_value, input_layout, num_key_value_heads)"
   },
   "torch_npu.npu_indexing": {
     "signature": "(self, begin, end, strides, begin_mask=0, end_mask=0, ellipsis_mask=0, new_axis_mask=0, shrink_axis_mask=0)"
-  },
-  "torch_npu.npu_iou": {
-    "signature": "(bboxes, gtboxes, mode=0)"
-  },
-  "torch_npu.npu_layer_norm_eval": {
-    "signature": "(input_, normalized_shape, weight=None, bias=None, eps=1e-05)"
   },
   "torch_npu.npu_linear": {
     "signature": "(input_, weight, bias=None)"
@@ -2579,17 +2363,8 @@
   "torch_npu.npu_max": {
     "signature": "(self, dim, keepdim=False)"
   },
-  "torch_npu.npu_min": {
-    "signature": "(self, dim, keepdim=False)"
-  },
-  "torch_npu.npu_mish": {
-    "signature": "(self)"
-  },
   "torch_npu.npu_multi_head_attention": {
     "signature": "(query, key, value, query_weight, key_weight, value_weight, attn_mask, out_proj_weight, query_bias, key_bias, value_bias, out_proj_bias, dropout_mask, attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float)"
-  },
-  "torch_npu.npu_nms_rotated": {
-    "signature": "(*args, **kwargs)"
   },
   "torch_npu.npu_nms_v4": {
     "signature": "(self, scores, max_output_size, iou_threshold, scores_threshold, pad_to_max_output_size=False)"
@@ -2609,9 +2384,6 @@
   "torch_npu.npu_ps_roi_pooling": {
     "signature": "(self, rois, spatial_scale, group_size, output_dim)"
   },
-  "torch_npu.npu_ptiou": {
-    "signature": "(bboxes, gtboxes, mode=0)"
-  },
   "torch_npu.npu_quant_matmul": {
     "signature": "(*args, **kwargs)"
   },
@@ -2620,9 +2392,6 @@
   },
   "torch_npu.npu_random_choice_with_mask": {
     "signature": "(*args, **kwargs)"
-  },
-  "torch_npu.npu_reshape": {
-    "signature": "(self, shape, can_refresh=False, out=None)"
   },
   "torch_npu.npu_rms_norm": {
     "signature": "(self, gamma, epsilon=1e-06)"
@@ -2654,17 +2423,11 @@
   "torch_npu.npu_sign_bits_unpack": {
     "signature": "(inputs, size, dtype)"
   },
-  "torch_npu.npu_silu": {
-    "signature": "(self)"
-  },
   "torch_npu.npu_slice": {
     "signature": "(self, offsets, size)"
   },
   "torch_npu.npu_softmax_cross_entropy_with_logits": {
     "signature": "(self, labels)"
-  },
-  "torch_npu.npu_sort_v2": {
-    "signature": "(self, dim=-1, descending=False, out=None)"
   },
   "torch_npu.npu_swiglu": {
     "signature": "(*args, **kwargs)"
@@ -2785,15 +2548,6 @@
   },
   "func: get_npu_format": {
     "signature": "(Tensor self) -> int"
-  },
-  "func: empty_with_format": {
-    "signature": "(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor"
-  },
-  "func: empty_with_format.names": {
-    "signature": "(int[] size, Dimname[]? names, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor"
-  },
-  "func: copy_memory_": {
-    "signature": "(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)"
   },
   "func: copy_": {
     "signature": ""
