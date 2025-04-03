@@ -22,42 +22,42 @@ std::unordered_map<std::string, aclCANNPackageName> packageNameMap = {
     {"DRIVER", ACL_PKG_NAME_DRIVER}
 };
 
-double VersionToNum(std::string versionStr)
+int64_t VersionToNum(std::string versionStr)
 {
     std::smatch results;
-    int major = -1;
-    int minor = -1;
-    int release = -1;
-    int RCVersion = -51;
-    int TVersion = -1;
-    int alphaVersion = 0;
+    int64_t major = -1;
+    int64_t minor = -1;
+    int64_t release = -1;
+    int64_t RCVersion = -51;
+    int64_t TVersion = -1;
+    int64_t alphaVersion = 0;
     if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+)"))) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        RCVersion = stoi(results[kVersionIndex3]);
+        major = stoll(results[kVersionIndex1]);
+        minor = stoll(results[kVersionIndex2]);
+        RCVersion = stoll(results[kVersionIndex3]);
     } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).([0-9]+)"))) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        release = stoi(results[kVersionIndex3]);
+        major = stoll(results[kVersionIndex1]);
+        minor = stoll(results[kVersionIndex2]);
+        release = stoll(results[kVersionIndex3]);
     } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).T([0-9]+)"))) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        TVersion = stoi(results[kVersionIndex3]);
+        major = stoll(results[kVersionIndex1]);
+        minor = stoll(results[kVersionIndex2]);
+        TVersion = stoll(results[kVersionIndex3]);
     } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+).alpha([0-9]+)"))) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        RCVersion = stoi(results[kVersionIndex3]);
-        alphaVersion = stoi(results[kVersionIndex4]);
+        major = stoll(results[kVersionIndex1]);
+        minor = stoll(results[kVersionIndex2]);
+        RCVersion = stoll(results[kVersionIndex3]);
+        alphaVersion = stoll(results[kVersionIndex4]);
     } else {
         TORCH_NPU_WARN_ONCE("Version: " + versionStr + " is invalid.");
-        return 0.0;
+        return 0;
     }
 
-    double num = ((static_cast<double>(major) + 1.0) * 100000000) +
-                 ((static_cast<double>(minor) + 1.0) * 1000000) +
-                 ((static_cast<double>(release) + 1.0) * 10000) +
-                 ((static_cast<double>(RCVersion) + 1.0) * 100 + 5000) +
-                 ((static_cast<double>(TVersion) + 1.0) * 100) - (100 - static_cast<double>(alphaVersion));
+    int64_t num = ((major + 1) * 100000000) +
+                 ((minor + 1) * 1000000) +
+                 ((release + 1) * 10000) +
+                 ((RCVersion + 1) * 100 + 5000) +
+                 ((TVersion + 1) * 100) - (100 - alphaVersion);
     return num;
 }
 
@@ -146,8 +146,8 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
         TORCH_CHECK(false, "When the version is less than \"8.1.RC1\", this function is not supported.", PTA_ERROR(ErrCode::VALUE));
     }
     std::string currentVersion = GetCANNVersion(module);
-    double current_num = VersionToNum(currentVersion);
-    double boundary_num = VersionToNum(version);
+    int64_t current_num = VersionToNum(currentVersion);
+    int64_t boundary_num = VersionToNum(version);
     if (current_num >= boundary_num) {
         return true;
     } else {
@@ -161,8 +161,8 @@ bool IsGteDriverVersion(const std::string driverVersion)
     // The result of this function will be false, even if current driver version meets the requirement.
     const static std::string baseCANNVersion = "8.1.RC1";
     std::string currentCANNVersion = GetCANNVersion("CANN");
-    double currentCannNum = VersionToNum(currentCANNVersion);
-    double boundaryCannNum = VersionToNum(baseCANNVersion);
+    int64_t currentCannNum = VersionToNum(currentCANNVersion);
+    int64_t boundaryCannNum = VersionToNum(baseCANNVersion);
     if (currentCannNum < boundaryCannNum) {
         TORCH_CHECK(false, "When the cann version is less than \"8.1.RC1\", this function is not supported.",
                     PTA_ERROR(ErrCode::VALUE));
