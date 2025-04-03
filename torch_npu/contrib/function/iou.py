@@ -1,9 +1,12 @@
+__all__ = []
+
+import warnings
+
 import torch
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
 
-
-__all__ = ['npu_iou', 'npu_ptiou', 'npu_giou', 'npu_diou', 'npu_ciou']
+warnings.filterwarnings(action='once')
 
 
 def _box_dtype_check(box):
@@ -52,6 +55,8 @@ def npu_iou(boxes1,
     Returns:
         Tensor: IoU, sized [N,M].
     """
+    warnings.warn("torch_npu.contrib.npu_iou is deprecated. "
+                  "Please use torch_npu.npu_iou or torch_npu.npu_ptiou for replacement.", FutureWarning)
 
     if mode not in ["iou", "ptiou"]:
         raise ValueError("Expected mode in [iou, ptiou]" + ops_error(ErrCode.VALUE))
@@ -114,6 +119,8 @@ def npu_giou(boxes1,
     Returns:
         Tensor: IoU, sized [n, 1].
     """
+    warnings.warn("torch_npu.contrib.npu_giou is deprecated. "
+                  "Please use torch_npu.npu_giou for replacement.", FutureWarning)
 
     if boxes1.shape != boxes2.shape:
         raise ValueError("Expected boxes1.shape == boxes2.shape" + ops_error(ErrCode.VALUE))
@@ -173,6 +180,8 @@ def npu_diou(boxes1,
     Returns:
         Tensor: IoU, sized [1, n].
     """
+    warnings.warn("torch_npu.contrib.function.npu_diou is deprecated. "
+                  "Please use torch_npu.npu_diou for replacement.", FutureWarning)
 
     out = torch_npu.npu_diou(boxes1, boxes2, trans, is_cross, mode)
 
@@ -224,6 +233,8 @@ def npu_ciou(boxes1,
         Tensor: IoU, sized [1, n].
 
     """
+    warnings.warn("torch_npu.contrib.function.npu_ciou is deprecated. "
+                  "Please use torch_npu.npu_ciou for replacement.", FutureWarning)
 
     out = torch_npu.npu_ciou(boxes1, boxes2, trans, is_cross, mode, True)
 

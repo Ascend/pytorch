@@ -1,5 +1,9 @@
+import warnings
+
 import torch
 import torch_npu
+
+warnings.filterwarnings(action='once')
 
 
 class BiLSTM(torch.nn.Module):
@@ -59,6 +63,8 @@ class BiLSTM(torch.nn.Module):
     def __init__(self, input_size, hidden_size):
         super(BiLSTM, self).__init__()
 
+        warnings.warn("torch_npu.contrib.BiLSTM is deprecated. "
+                      "Please check document for replacement.", FutureWarning)
         self.fw_rnn = torch.nn.LSTM(input_size, hidden_size, bidirectional=False)
         self.bw_rnn = torch.nn.LSTM(input_size, hidden_size, bidirectional=False)
 
