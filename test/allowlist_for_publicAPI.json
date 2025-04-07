@@ -2859,7 +2859,8 @@
     "npu_moe_gating_top_k_softmax",
     "npu_moe_init_routing",
     "npu_group_norm_swish",
-    "npu_mrope"
+    "npu_mrope",
+    "npu_grouped_matmul_finalize_routing"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
