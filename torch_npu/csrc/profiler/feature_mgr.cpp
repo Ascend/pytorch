@@ -8,7 +8,7 @@ namespace torch_npu {
 namespace profiler {
 
 namespace {
-const static char* VERSION = "master\0";
+const static char* VERSION = "2.6.0\0";
 
 static std::unordered_map<std::string, FeatureType> NAME_TABLE = {
     {"ATTR", FeatureType::FEATURE_ATTR},
