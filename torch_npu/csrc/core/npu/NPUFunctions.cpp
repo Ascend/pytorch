@@ -187,6 +187,10 @@ c10::DeviceIndex current_device()
 
 bool IsContextInitialized()
 {
+    if (local_device >= 0) {
+        return true;
+    }
+
     int32_t device = -1;
     aclError err =  aclrtGetDevice(&device);
     if (err == ACL_ERROR_NONE) {
