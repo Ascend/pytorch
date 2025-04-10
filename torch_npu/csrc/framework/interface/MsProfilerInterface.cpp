@@ -18,6 +18,7 @@ REGISTER_LIBRARY(libmsprofiler)
 LOAD_FUNCTION(aclprofWarmup)
 LOAD_FUNCTION(aclprofSetConfig)
 LOAD_FUNCTION(aclprofGetSupportedFeatures)
+LOAD_FUNCTION(aclprofGetSupportedFeaturesV2)
 LOAD_FUNCTION(aclprofMarkEx)
 
 aclError AclProfilingWarmup(const aclprofConfig *profilerConfig)
@@ -52,12 +53,16 @@ aclError AclprofGetSupportedFeatures(size_t* featuresSize, void** featuresData)
     typedef aclError(*AclprofGetSupportedFeaturesFunc)(size_t*, void**);
     static AclprofGetSupportedFeaturesFunc func = nullptr;
     if (func == nullptr) {
-        func = (AclprofGetSupportedFeaturesFunc)GET_FUNC(aclprofGetSupportedFeatures);
+        func = (AclprofGetSupportedFeaturesFunc)GET_FUNC(aclprofGetSupportedFeaturesV2);
         if (func == nullptr) {
-            return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
+            func = (AclprofGetSupportedFeaturesFunc)GET_FUNC(aclprofGetSupportedFeatures);
         }
     }
-    return func(featuresSize, featuresData);
+
+    if (func != nullptr) {
+        return func(featuresSize, featuresData);
+    }
+    return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
 }
 
 aclError AclProfilingMarkEx(const char *msg, size_t msgLen, aclrtStream stream)
