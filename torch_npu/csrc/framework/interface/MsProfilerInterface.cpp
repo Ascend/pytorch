@@ -55,11 +55,9 @@ aclError AclprofGetSupportedFeatures(size_t* featuresSize, void** featuresData)
     static AclprofGetSupportedFeaturesFunc func = nullptr;
     if (func == nullptr) {
         func = (AclprofGetSupportedFeaturesFunc)GET_FUNC(aclprofGetSupportedFeaturesV2);
-    }
-    if (func != nullptr) {
-        return func(featuresSize, featuresData);
-    } else {
-        func = (AclprofGetSupportedFeaturesFunc)GET_FUNC(aclprofGetSupportedFeatures);
+        if (func == nullptr) {
+            func = (AclprofGetSupportedFeaturesFunc)GET_FUNC(aclprofGetSupportedFeatures);
+        }
     }
     
     if (func != nullptr) {
