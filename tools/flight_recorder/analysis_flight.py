@@ -1,4 +1,5 @@
 import os
+import sys
 import pickle
 import logging
 from collections import defaultdict
@@ -100,7 +101,7 @@ def analyze_pg_groups(hccl_dict):
             latest_op = max(completed_ops, key=lambda x: x["time_discovered_completed_ns"] or 0)
             logging.info(
                 f"The computational task of the pg_id {pg_id} "
-                f"after the communication operator {latest_op['name']} " 
+                f"after the communication operator {latest_op['name']} "
                 "took too long."
             )
 
@@ -111,14 +112,20 @@ def analyze_pg_groups(hccl_dict):
 def main():
     # 设置默认值
     default_path = os.getenv("TORCH_HCCL_DEBUG_INFO_TEMP_FILE")
-    default_world_size = 8
 
     # 使用 argparse 解析命令行参数
     parser = argparse.ArgumentParser(description="Process HCCL debug info.")
-    parser.add_argument('--path', type=str, default=default_path, help='Path to the recorder data file')
-    parser.add_argument('--world-size', type=int, default=default_world_size, help='World size for the operation')
-    
+    parser.add_argument("--path", type=str, default=default_path, help="Path to the recorder data file")
+    parser.add_argument(
+        "--world-size",
+        type=int,
+        default=8,
+        help="World size for the operation (range: greater than or equal to 2)",
+    )
+
     args = parser.parse_args()
+    if args.world_size <= 1 or args.world_size > sys.maxsize:
+        parser.error("--world-size must be in [2, 2^63-1]")
 
     logging.info("Path: %r", args.path)
     logging.info("World Size: %r", args.world_size)
