@@ -132,8 +132,8 @@ PyObject* THNPModule_rangeStartOnHost(PyObject* _unused, PyObject* args)
 PyObject* THNPModule_rangeEnd(PyObject* self, PyObject* args)
 {
     HANDLE_TH_ERRORS
-    mstxRangeId rangeId;
-    if (!PyArg_ParseTuple(args, "k", &rangeId)) {
+    int rangeId;
+    if (!PyArg_ParseTuple(args, "i", &rangeId)) {
         return nullptr;
     }
     mstxRangeEnd(rangeId);
