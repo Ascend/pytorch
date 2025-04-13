@@ -76,6 +76,8 @@ LOAD_FUNCTION(aclmdlRIDebugPrint)
 LOAD_FUNCTION(aclmdlRIExecuteAsync)
 LOAD_FUNCTION(aclmdlRIDestroy)
 LOAD_FUNCTION(aclsysGetCANNVersion)
+LOAD_FUNCTION(aclrtHostRegister)
+LOAD_FUNCTION(aclrtHostUnregister)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -844,6 +846,30 @@ bool IsCaptureSupported()
     }
 
     return is_support;
+}
+
+aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterTpye type, void **devPtr)
+{
+    typedef aclError (*AclrtHostRegister)(void *, uint64_t, aclrtHostRegisterTpye, void **);
+    static AclrtHostRegister func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtHostRegister) GET_FUNC(aclrtHostRegister);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtHostRegister", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(ptr, size, type, devPtr);
+}
+
+aclError AclrtHostUnregister(void *ptr)
+{
+    typedef aclError (*AclrtHostUnregister)(void *);
+    static AclrtHostUnregister func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtHostUnregister) GET_FUNC(aclrtHostUnregister);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtHostUnregister", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(ptr);
 }
 
 } // namespace acl
