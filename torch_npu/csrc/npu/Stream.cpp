@@ -250,3 +250,12 @@ std::vector<c10::optional<c10_npu::NPUStream>> THNPUtils_PySequence_to_NPUStream
     }
     return streams;
 }
+
+c10_npu::NPUStream THNPUtils_PyObject_to_NPUStream(PyObject* stream)
+{
+    TORCH_CHECK(PyObject_IsInstance(stream, THNPStreamClass), "Need torch_npu.npu.Stream argument type.");
+    return c10_npu::NPUStream::unpack3(
+        (reinterpret_cast<THNPStream *>(stream))->stream_id,
+        (reinterpret_cast<THNPStream *>(stream))->device_index,
+        static_cast<c10::DeviceType>((reinterpret_cast<THNPStream *>(stream))->device_type));
+}

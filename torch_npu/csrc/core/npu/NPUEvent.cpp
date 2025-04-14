@@ -91,6 +91,9 @@ void NPUEvent::record(const NPUStream& stream)
 
 void NPUEvent::block(const NPUStream& stream)
 {
+    if (!is_created_ && (flags_ == ACL_EVENT_EXTERNAL)) {
+        createEvent(stream.device_index());
+    }
     if (is_created_) {
         NPUGuard guard(stream.device_index());
         c10_npu::queue::LaunchWaitEventTask(event_, stream);
@@ -159,6 +162,16 @@ void NPUEvent::synchronize() const
             trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(event_));
         }
 #endif
+    }
+}
+
+void NPUEvent::reset(const NPUStream& stream) const
+{
+    if (is_created_) {
+        TORCH_CHECK(flags_ == ACL_EVENT_EXTERNAL,
+                    "API reset() only support ACL_EVENT_EXTERNAL flag event.", PTA_ERROR(ErrCode::INTERNAL));
+        NPUGuard guard(stream.device_index());
+        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtResetEvent(event_, stream.stream()));
     }
 }
 
