@@ -25,6 +25,30 @@ MempoolId_t graph_pool_handle()
     return new_pool.id();
 }
 
+void graph_task_group_begin(c10_npu::NPUStream stream)
+{
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskGrpBegin(stream));
+}
+
+NPUTaskGroupHandle graph_task_group_end(c10_npu::NPUStream stream)
+{
+    aclrtTaskGrp group;
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskGrpEnd(stream, &group));
+    NPUTaskGroupHandle handle;
+    handle.task_group = group;
+    return handle;
+}
+
+void graph_task_update_begin(c10_npu::NPUStream stream, NPUTaskGroupHandle handle)
+{
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskUpdateBegin(stream, handle.task_group));
+}
+
+void graph_task_update_end(c10_npu::NPUStream stream)
+{
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskUpdateEnd(stream));
+}
+
 /**
  * Note [CUDA Graph Wrapper Class]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

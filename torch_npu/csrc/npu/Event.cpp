@@ -17,10 +17,11 @@ static PyObject* THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *k
     unsigned char enable_timing = 0;
     unsigned char blocking = 0;
     unsigned char interprocess = 0;
+    unsigned char external = 0;
 
-    constexpr const char* kwlist[] = {"enable_timing", "blocking", "interprocess", nullptr};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|bbb", const_cast<char**>(kwlist),
-        &enable_timing, &blocking, &interprocess)) {
+    constexpr const char* kwlist[] = {"enable_timing", "blocking", "interprocess", "graph_external", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|bbbb", const_cast<char**>(kwlist),
+        &enable_timing, &blocking, &interprocess, &external)) {
         return nullptr;
     }
 
@@ -36,6 +37,9 @@ static PyObject* THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *k
         flags = enable_timing ? (ACL_EVENT_TIME_LINE | ACL_EVENT_SYNC) : ACL_EVENT_SYNC;
     } else {
         flags = enable_timing ? ACL_EVENT_TIME_LINE : ACL_EVENT_DEFAULT;
+    }
+    if (external) {
+        flags = ACL_EVENT_EXTERNAL;
     }
     new (&self->npu_event) c10_npu::NPUEvent(flags);
 
@@ -121,6 +125,18 @@ static PyObject* THNPEvent_synchronize(THNPEvent *self, PyObject *noargs)
     END_HANDLE_TH_ERRORS
 }
 
+static PyObject* THNPEvent_reset(THNPEvent *self, THNPStream *stream)
+{
+    HANDLE_TH_ERRORS
+    {
+        pybind11::gil_scoped_release no_gil;
+        self->npu_event.reset(stream->npu_stream);
+        ASCEND_LOGI("Event: reset api is successfully executed, event=%p", self->npu_event.event());
+    }
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
 static struct PyGetSetDef THNPEvent_properties[] = {
     {"device", (getter)THNPEvent_get_device, nullptr, nullptr, nullptr},
     {"npu_event", (getter)THNPEvent_get_npu_event, nullptr, nullptr, nullptr},
@@ -134,6 +150,7 @@ static PyMethodDef THNPEvent_methods[] = {
     {(char*)"elapsed_time", (PyCFunction)THNPEvent_elapsed_time, METH_O, nullptr},
     {(char*)"recorded_time", (PyCFunction)THNPEvent_recorded_time, METH_NOARGS, nullptr},
     {(char*)"synchronize", (PyCFunction)THNPEvent_synchronize, METH_NOARGS, nullptr},
+    {(char*)"reset", (PyCFunction)THNPEvent_reset, METH_O, nullptr},
     {nullptr}
 };
 
