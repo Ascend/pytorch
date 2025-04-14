@@ -220,5 +220,13 @@ aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterTpye type,
  */
 aclError AclrtHostUnregister(void *ptr);
 
+aclError AclmdlRICaptureTaskGrpBegin(aclrtStream stream);
+
+aclError AclmdlRICaptureTaskGrpEnd(aclrtStream stream, aclrtTaskGrp *handle);
+
+aclError AclmdlRICaptureTaskUpdateBegin(aclrtStream stream, aclrtTaskGrp handle);
+
+aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
+
 } // namespace acl
 } // namespace c10_npu

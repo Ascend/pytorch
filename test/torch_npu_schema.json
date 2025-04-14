@@ -755,6 +755,30 @@
   "torch_npu.npu.Event.synchronize": {
     "signature": "(self)"
   },
+  "torch_npu.npu.ExternalEvent": {
+    "signature": "()"
+  },
+  "torch_npu.npu.ExternalEvent.record": {
+    "signature": "(self, stream=None)"
+  },
+  "torch_npu.npu.ExternalEvent.wait": {
+    "signature": "(self, stream=None)"
+  },
+  "torch_npu.npu.ExternalEvent.reset": {
+    "signature": "(self, stream=None)"
+  },
+  "torch_npu.npu.graph_task_group_begin": {
+    "signature": "(stream)"
+  },
+  "torch_npu.npu.graph_task_group_end": {
+    "signature": "(stream)"
+  },
+  "torch_npu.npu.graph_task_update_begin": {
+    "signature": "(stream, handle)"
+  },
+  "torch_npu.npu.graph_task_update_end": {
+    "signature": "(stream)"
+  },
   "torch_npu.npu.FloatStorage": {
     "signature": "(*args, wrap_storage=None, dtype=None, device=None, _internal=False)"
   },
