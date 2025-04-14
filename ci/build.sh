@@ -6,7 +6,6 @@ CUR_DIR=$(dirname $(readlink -f $0))
 SUPPORTED_PY_VERSION=(3.9 3.10 3.11)
 # Default supported python version is 3.9
 PY_VERSION="3.9"
-export DISABLE_RPC_FRAMEWORK=FALSE
 
 # Parse arguments inside script
 function parse_script_args() {
