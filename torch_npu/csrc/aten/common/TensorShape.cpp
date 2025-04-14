@@ -146,17 +146,15 @@ const at::Tensor& NPUNativeFunctions::as_strided__symint(
     c10::SymIntArrayRef stride,
     c10::optional<c10::SymInt> storage_offset_)
 {
-    at::Tensor result = self;
-    if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(result, c10::asIntArrayRefUnchecked(size)) &&
-        !FormatHelper::IsOpInputBaseFormat(result)) {
-        TORCH_WARN_ONCE("current tensor is running as_strided, don't perform inplace operations on the returned value."
-            " If you encounter this warning and have precision issues,"
-            " you can try torch.npu.config.allow_internal_format = False to resolve precision issues.")
-        result = FormatCastHelper::CovertSelfToBaseFormat(result);
+    if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(self, c10::asIntArrayRefUnchecked(size)) &&
+        !FormatHelper::IsOpInputBaseFormat(self)) {
+        TORCH_CHECK(false, "Current tensor is running as_strided__symint while internal format is not allowed."
+            " You can try torch.npu.config.allow_internal_format = False to avoid the problem.",
+            PTA_ERROR(ErrCode::NOT_SUPPORT))
     }
-    auto storage_offset = storage_offset_.value_or(result.storage_offset());
-    at::native::setStrided(result, size, stride, storage_offset);
-    return result;
+    auto storage_offset = storage_offset_.value_or(self.sym_storage_offset());
+    at::native::setStrided(self, size, stride, std::move(storage_offset));
+    return self;
 }
 
 at::Tensor NPUNativeFunctions::unsqueeze(const at::Tensor& self, int64_t dim)
