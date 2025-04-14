@@ -14,6 +14,15 @@ namespace c10_npu {
 // to CUDAGraph::capture_begin
 TORCH_NPU_API MempoolId_t graph_pool_handle();
 
+struct TORCH_NPU_API NPUTaskGroupHandle {
+    aclrtTaskGrp task_group;
+};
+
+TORCH_NPU_API void graph_task_group_begin(c10_npu::NPUStream stream);
+TORCH_NPU_API NPUTaskGroupHandle graph_task_group_end(c10_npu::NPUStream stream);
+TORCH_NPU_API void graph_task_update_begin(c10_npu::NPUStream stream, NPUTaskGroupHandle handle);
+TORCH_NPU_API void graph_task_update_end(c10_npu::NPUStream stream);
+
 struct TORCH_NPU_API NPUGraph {
     NPUGraph();
     ~NPUGraph();

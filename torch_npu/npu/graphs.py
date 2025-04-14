@@ -13,11 +13,19 @@ if not hasattr(torch_npu._C, "_NPUStreamBase"):
     torch_npu._C.__dict__["_npu_isCurrentStreamCapturing"] = _dummy_type(
         "_npu_isCurrentStreamCapturing"
     )
+    torch_npu._C.__dict__["_graph_task_group_begin"] = _dummy_type("_graph_task_group_begin")
+    torch_npu._C.__dict__["_graph_task_group_end"] = _dummy_type("_graph_task_group_end")
+    torch_npu._C.__dict__["_graph_task_update_begin"] = _dummy_type("_graph_task_update_begin")
+    torch_npu._C.__dict__["_graph_task_update_end"] = _dummy_type("_graph_task_update_end")
 
 from torch_npu._C import (  # noqa: F401
     _npu_isCurrentStreamCapturing,
     _NPUGraph,
     _graph_pool_handle,
+    _graph_task_group_begin,
+    _graph_task_group_end,
+    _graph_task_update_begin,
+    _graph_task_update_end,
 )
 
 
@@ -39,6 +47,22 @@ def graph_pool_handle():
         This API is in beta and may change in future releases.
     """
     return _graph_pool_handle()
+
+
+def graph_task_group_begin(stream):
+    _graph_task_group_begin(stream)
+
+
+def graph_task_group_end(stream):
+    return _graph_task_group_end(stream)
+
+
+def graph_task_update_begin(stream, handle):
+    _graph_task_update_begin(stream, handle)
+
+
+def graph_task_update_end(stream):
+    _graph_task_update_end(stream)
 
 
 # Python shim helps Sphinx process docstrings more reliably.
