@@ -76,6 +76,10 @@ LOAD_FUNCTION(aclmdlRIDebugPrint)
 LOAD_FUNCTION(aclmdlRIExecuteAsync)
 LOAD_FUNCTION(aclmdlRIDestroy)
 LOAD_FUNCTION(aclsysGetCANNVersion)
+LOAD_FUNCTION(aclmdlRICaptureTaskGrpBegin)
+LOAD_FUNCTION(aclmdlRICaptureTaskGrpEnd)
+LOAD_FUNCTION(aclmdlRICaptureTaskUpdateBegin)
+LOAD_FUNCTION(aclmdlRICaptureTaskUpdateEnd)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -202,13 +206,16 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag)
     //   2. There is no limit on the number of events.
     //   3. Only support query event record status, aclrtQueryEvent and aclrtQueryEventWaitStatus are not supported.
     //   4. aclrtDestroyEvent change to asynchronous destroy event.
-    static AclrtCreateEventWithFlagFunc func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventExWithFlag);
-    if (func == nullptr) {
-        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtCreateEventExWithFlag");
-        func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventWithFlag);
+    static AclrtCreateEventWithFlagFunc func_ex = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventExWithFlag);
+    if (func_ex == nullptr) {
+        TORCH_NPU_WARN_ONCE(func_ex, "Failed to find function ", "aclrtCreateEventExWithFlag");
     }
+    static AclrtCreateEventWithFlagFunc func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventWithFlag);
     TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(event, flag);
+    if ((flag == ACL_EVENT_EXTERNAL) || (func_ex == nullptr)) {
+        return func(event, flag);
+    }
+    return func_ex(event, flag);
 }
 
 aclError AclQueryEventWaitStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus)
@@ -844,6 +851,54 @@ bool IsCaptureSupported()
     }
 
     return is_support;
+}
+
+aclError AclmdlRICaptureTaskGrpBegin(aclrtStream stream)
+{
+    typedef aclError (*AclmdlRICaptureTaskGrpBegin)(aclrtStream);
+    static AclmdlRICaptureTaskGrpBegin func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlRICaptureTaskGrpBegin) GET_FUNC(aclmdlRICaptureTaskGrpBegin);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskGrpBegin", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream);
+}
+
+aclError AclmdlRICaptureTaskGrpEnd(aclrtStream stream, aclrtTaskGrp *handle)
+{
+    typedef aclError (*AclmdlRICaptureTaskGrpEnd)(aclrtStream, aclrtTaskGrp*);
+    static AclmdlRICaptureTaskGrpEnd func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlRICaptureTaskGrpEnd) GET_FUNC(aclmdlRICaptureTaskGrpEnd);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskGrpEnd", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, handle);
+}
+
+aclError AclmdlRICaptureTaskUpdateBegin(aclrtStream stream, aclrtTaskGrp handle)
+{
+    typedef aclError (*AclmdlRICaptureTaskUpdateBegin)(aclrtStream, aclrtTaskGrp);
+    static AclmdlRICaptureTaskUpdateBegin func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlRICaptureTaskUpdateBegin) GET_FUNC(aclmdlRICaptureTaskUpdateBegin);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskUpdateBegin", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, handle);
+}
+
+aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream)
+{
+    typedef aclError (*AclmdlRICaptureTaskUpdateEnd)(aclmdlRI);
+    static AclmdlRICaptureTaskUpdateEnd func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlRICaptureTaskUpdateEnd) GET_FUNC(aclmdlRICaptureTaskUpdateEnd);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskUpdateEnd", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream);
 }
 
 } // namespace acl

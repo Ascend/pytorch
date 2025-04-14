@@ -3,7 +3,7 @@ import ctypes
 import torch_npu
 import torch_npu._C
 
-__all__ = ["Stream", "Event", "SyncLaunchStream"]
+__all__ = ["Stream", "Event", "SyncLaunchStream", "ExternalEvent"]
 
 
 class Stream(torch_npu._C._NPUStreamBase):
@@ -132,7 +132,8 @@ class Event(torch_npu._C._NPUEventBase):
     """
 
     def __new__(cls, enable_timing=False, blocking=False, interprocess=False):
-        return super(Event, cls).__new__(cls, enable_timing=enable_timing, blocking=blocking, interprocess=interprocess)
+        return super(Event, cls).__new__(cls, enable_timing=enable_timing, blocking=blocking,
+                                         interprocess=interprocess, graph_external=False)
 
     def record(self, stream=None):
         r"""Records the event in a given stream.
@@ -194,6 +195,66 @@ class Event(torch_npu._C._NPUEventBase):
             return '<torch_npu.npu.Event {0:#x}>'.format(self._as_parameter_.value)
         else:
             return '<torch_npu.npu.Event uninitialized>'
+
+
+class ExternalEvent(torch_npu._C._NPUEventBase):
+    r"""Wrapper around a NPU event with graph_external=True.
+
+    The difference from torch.npu.Event is that you can call wait() before
+    record(). Before reusing ExternalEvent, you need to call reset() to clear
+    the flag.
+
+    Event is captured in the graph as an external event node when performing
+    stream capture.
+
+    The underlying NPU events are lazily initialized when the event is first
+    recorded or waited.
+
+    """
+
+    def __new__(cls):
+        return super(ExternalEvent, cls).__new__(cls, enable_timing=False, blocking=False,
+                                                 interprocess=False, graph_external=True)
+
+    def record(self, stream=None):
+        r"""Records the event in a given stream.
+
+        Uses ``torch_npu.npu.current_stream()`` if no stream is specified. The
+        stream's device must match the event's device.
+        """
+        if stream is None:
+            stream = torch_npu.npu.current_stream()
+        super(ExternalEvent, self).record(stream)
+
+    def wait(self, stream=None):
+        r"""Makes all future work submitted to the given stream wait for this
+        event.
+
+        Use ``torch_npu.npu.current_stream()`` if no stream is specified.
+        """
+        if stream is None:
+            stream = torch_npu.npu.current_stream()
+        super(ExternalEvent, self).wait(stream)
+
+    def reset(self, stream=None):
+        r"""Reset an event.
+
+        Users need to make sure to wait for the tasks in the Stream
+        to complete before resetting the Event.
+        """
+        if stream is None:
+            stream = torch_npu.npu.current_stream()
+        super(ExternalEvent, self).reset(stream)
+
+    @property
+    def _as_parameter_(self):
+        return ctypes.c_void_p(self.npu_event)
+
+    def __repr__(self):
+        if self.npu_event:
+            return '<torch_npu.npu.ExternalEvent {0:#x}>'.format(self._as_parameter_.value)
+        else:
+            return '<torch_npu.npu.ExternalEvent uninitialized>'
 
 
 class SyncLaunchStream(torch_npu._C._NPUStreamBase):

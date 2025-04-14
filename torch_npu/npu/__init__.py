@@ -108,7 +108,12 @@ __all__ = [
     "graph",
     "graph_pool_handle",
     "is_current_stream_capturing",
-    "make_graphed_callables"
+    "make_graphed_callables",
+    "ExternalEvent",
+    "graph_task_group_begin",
+    "graph_task_group_end",
+    "graph_task_update_begin",
+    "graph_task_update_end"
 ]
 
 from typing import Tuple, Union
@@ -130,7 +135,7 @@ from .utils import (synchronize, device_count, can_device_access_peer, set_devic
                     utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag, mem_get_info,
                     check_uce_in_memory, stress_detect)
 from ._recovery import restart_device, stop_device
-from .streams import Stream, Event, SyncLaunchStream
+from .streams import Stream, Event, SyncLaunchStream, ExternalEvent
 from .mstx import mstx
 from .npu_config import *  # noqa: F403
 from .autocast_utils import *  # noqa: F403
@@ -144,6 +149,10 @@ from .graphs import (
     graph_pool_handle,
     is_current_stream_capturing,
     make_graphed_callables,
+    graph_task_group_begin,
+    graph_task_group_end,
+    graph_task_update_begin,
+    graph_task_update_end,
 )
 
 # init profiler
