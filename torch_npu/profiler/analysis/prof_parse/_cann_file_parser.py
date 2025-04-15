@@ -119,7 +119,7 @@ class CANNFileParser:
                 event_dict[unique_id] = data
 
         if not flow_dict:
-            logger.error("There is no HostToDevice flow events in msprof timeline.")
+            logger.warning("There is no HostToDevice flow events in msprof timeline.")
 
         if not event_dict:
             logger.error("There is no kernel events in msprof timeline.")
