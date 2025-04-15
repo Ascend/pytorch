@@ -1545,6 +1545,44 @@ ACL_FUNC_VISIBILITY aclError aclmdlRICaptureEnd(aclrtStream stream, aclmdlRI *mo
  */
 ACL_FUNC_VISIBILITY aclError aclmdlRIDebugPrint(aclmdlRI modelRI);
 
+/**
+ * @ingroup AscendCL
+ * @brief the start interface of the task group
+ * @param stream [IN] capture stream
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlRICaptureTaskGrpBegin(aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
+ * @brief the end interface of the task group
+ * @param stream [IN] capture stream
+ * @param handle [OUT] task group handle
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlRICaptureTaskGrpEnd(aclrtStream stream, aclrtTaskGrp *handle);
+
+/**
+ * @ingroup AscendCL
+ * @brief begin to update the task group specified by the handle
+ * @param stream [IN] specify the stream used for task update
+ * @param handle [IN] task group handle
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlRICaptureTaskUpdateBegin(aclrtStream stream, aclrtTaskGrp handle);
+
+/**
+ * @ingroup AscendCL
+ * @brief end the update of the task
+ * @param stream [IN] specify the stream used for task update
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
+
 #ifdef __cplusplus
 }
 #endif
