@@ -350,6 +350,9 @@ def _init():
         _wrapper_cuda(torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__)
     _del_nccl_device_backend_map()
     torch.distributed.init_device_mesh = _wrapper_cuda(torch.distributed.init_device_mesh)
+    
+    # CudaGraph
+    torch.cuda.CudaGraph = torch.npu.NPUGraph
 
     # torch.nn.parallel.DistributedDataParallel
     _device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
