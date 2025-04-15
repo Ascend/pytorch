@@ -55,7 +55,7 @@ class ParserDepsConfig:
                                   Constant.DEPS: [Constant.TREE_BUILD_PARSER]},
         Constant.DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
                              Constant.DEPS: [Constant.CANN_EXPORT_PARSER, Constant.MEMORY_PREPARE,
-                                             Constant.TREE_BUILD_PARSER]},
+                                             Constant.TREE_BUILD_PARSER, Constant.CANN_ANALYZE_PARSER]},
         Constant.MEMORY_TIMELINE_PARSER: {}
     }
 
