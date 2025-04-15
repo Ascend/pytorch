@@ -123,7 +123,7 @@ OpCommand& OpCommand::Output(at::Tensor &output, const string &descName,
 void OpCommand::Run() {
     // Check for npu graph
     if (aclCmd->CheckCustomHandlerNull()) {
-        c10_npu::assertNotCapturing("Cannot run aclop operators");
+        c10_npu::assertNotCapturingAclop(aclCmd->GetName());
     }
 
     aclCmd->SetEnginePriority();
