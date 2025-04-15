@@ -126,7 +126,7 @@ void InitializeJitCompilationMode()
     std::string value_str = GetJitCompileMode();
     if (value_str != "") {
         c10_npu::option::SetOption("jitCompileInit", value_str);
-        ASCEND_LOGI("Set jitCompileInit option to %s", value_str);
+        ASCEND_LOGI("Set jitCompileInit option to %s", value_str.c_str());
     } else {
         c10_npu::option::SetOption("jitCompileInit", "disable");
         ASCEND_LOGI("Set jitCompileInit option to default value: disable");
