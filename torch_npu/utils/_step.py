@@ -333,8 +333,6 @@ def add_perf_dump_patch():
         if torch_npu._C._get_silent_check_version() == 1:
             warnings.warn(f"Warning: CANN version lower than 8.0.RC3 and currently does not support silent check 2.0 version or later. It will switch to 1.0 version.")
             asd_enable = 0
-        elif torch_npu._C._get_silent_check_version() == 2:
-            warnings.warn(f"Warning: CANN version lower than 8.0.0 and currently does not support silent check 3.0 version. It will switch to 2.0 version. The asd_detect is {asd_enable}")
         else:
             loggerSilent.debug(f"Silent check 3.0 version will be enabled. The asd_detect is {asd_enable}")
 
