@@ -855,9 +855,9 @@ bool IsCaptureSupported()
     return is_support;
 }
 
-aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterTpye type, void **devPtr)
+aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterType type, void **devPtr)
 {
-    typedef aclError (*AclrtHostRegister)(void *, uint64_t, aclrtHostRegisterTpye, void **);
+    typedef aclError (*AclrtHostRegister)(void *, uint64_t, aclrtHostRegisterType, void **);
     static AclrtHostRegister func = nullptr;
     if (func == nullptr) {
         func = (AclrtHostRegister) GET_FUNC(aclrtHostRegister);

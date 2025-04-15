@@ -209,7 +209,7 @@ bool IsCaptureSupported();
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterTpye type, void **devPtr);
+aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterType type, void **devPtr);
 
 /**
  * @ingroup AscendCL

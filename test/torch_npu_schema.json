@@ -2603,9 +2603,6 @@
   "func: unsafe_empty_with_format": {
     "signature": "(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor"
   },
-  "func: unsafe_empty_with_format": {
-    "signature": "(int[] size, *, ScalarType? dtype=None, Device? device=None) -> Tensor"
-  },
   "func: npu_format_cast": {
     "signature": "(Tensor self, int acl_format) -> Tensor"
   },

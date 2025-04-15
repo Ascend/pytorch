@@ -29,7 +29,7 @@ void* mallocHostMemory(size_t size)
 void* registerSvmMem(void* ptr, size_t size)
 {
     void *svmPtr = nullptr;
-    aclrtHostRegisterTpye regType = ACL_HOST_REGISTER_MAPPED;
+    aclrtHostRegisterType regType = ACL_HOST_REGISTER_MAPPED;
     uintptr_t aligned_ptr = (reinterpret_cast<uintptr_t>(ptr) + kAlignSize - 1) / kAlignSize * kAlignSize;
     void* alignedPtr = reinterpret_cast<void*>(aligned_ptr);
     if (c10_npu::acl::AclrtHostRegister(alignedPtr, size, regType, &svmPtr) != ACL_ERROR_NONE) {
