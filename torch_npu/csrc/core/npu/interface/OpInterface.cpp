@@ -26,10 +26,7 @@ bool IsExistAclnnSilentCheck()
 
 bool IsExistAclnnSilentCheckV2()
 {
-    const static bool isExistV2 = []() -> bool {
-        static auto func = GET_FUNC(aclnnSilentCheckV2);
-        return func != nullptr;
-    }();
+    const static bool isExistV2 = false;
     return isExistV2;
 }
 
