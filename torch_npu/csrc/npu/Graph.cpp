@@ -7,6 +7,7 @@
 
 #include "torch_npu/csrc/core/npu/NPUGraph.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
+#include "torch_npu/csrc/npu/Stream.h"
 
 template <typename T>
 using shared_ptr_class_ = py::class_<T, std::shared_ptr<T>>;
@@ -16,7 +17,26 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
     // but CI linter and some builds prefer "module".
     auto torch_N_m = py::handle(module).cast<py::module>();
 
-    torch_N_m.def("_graph_pool_handle", &c10_npu::graph_pool_handle);
+    py::class_<c10_npu::NPUTaskGroupHandle>(torch_N_m, "_NPUTaskGroupHandle")
+            .def_readonly("task_group", &c10_npu::NPUTaskGroupHandle::task_group);
+
+    torch_N_m.def("_graph_pool_handle", &c10_npu::graph_pool_handle)
+        .def("_graph_task_group_begin", [](py::object py_stream) {
+            auto stream = (*py_stream).ptr();
+            c10_npu::graph_task_group_begin(THNPUtils_PyObject_to_NPUStream(stream));
+        })
+        .def("_graph_task_group_end", [](py::object py_stream) {
+            auto stream = (*py_stream).ptr();
+            return c10_npu::graph_task_group_end(THNPUtils_PyObject_to_NPUStream(stream));
+        })
+        .def("_graph_task_update_begin", [](py::object py_stream, c10_npu::NPUTaskGroupHandle handle) {
+            auto stream = (*py_stream).ptr();
+            c10_npu::graph_task_update_begin(THNPUtils_PyObject_to_NPUStream(stream), handle);
+        })
+        .def("_graph_task_update_end", [](py::object py_stream) {
+            auto stream = (*py_stream).ptr();
+            c10_npu::graph_task_update_end(THNPUtils_PyObject_to_NPUStream(stream));
+        });
 
     shared_ptr_class_<c10_npu::NPUGraph>(torch_N_m, "_NPUGraph")
         .def(py::init<>())
