@@ -345,6 +345,9 @@ def _init():
     torch.distributed.ProcessGroup._get_backend = _wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
     torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__ = \
         _wrapper_cuda(torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__)
+    
+    # CudaGraph
+    torch.cuda.CudaGraph = torch.npu.NPUGraph
 
     # torch.nn.parallel.DistributedDataParallel
     _device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
