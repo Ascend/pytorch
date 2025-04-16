@@ -98,7 +98,22 @@ inline void assertNotCapturing(const std::string &attempt)
                 " during NPU graph capture. If you need this call to be captured, "
                 "please file an issue. "
                 "Current npuStreamCaptureStatus: ",
-                status);
+                status,
+                PTA_ERROR(ErrCode::NOT_SUPPORT));
+}
+
+inline void assertNotCapturingAclop(const std::string &opName)
+{
+    auto status = currentStreamCaptureStatus();
+    TORCH_CHECK(status == CaptureStatus::None,
+                "Cannot run aclop operators during NPU graph capture. Current working aclop is ",
+                opName,
+                ". If you need this call to be captured, "
+                "please try to set torch.npu.config.allow_internal_format = False. "
+                "If still fail, the operator needs aclnn implementation and please file an issue. "
+                "Current npuStreamCaptureStatus: ",
+                status,
+                PTA_ERROR(ErrCode::NOT_SUPPORT));
 }
 
 } // namespace c10_npu
