@@ -45,7 +45,7 @@ class DbParser(BaseParser):
         AnalysisDb().init(os.path.join(self._output_path, DbConstant.DB_ANALYSIS))
 
         parser_db_map = self.PYTORCH_DB_MAP
-        if ProfilerPathManager.get_cann_path(self._profiler_path) and ProfilerConfig().get_level() != "Level_none":
+        if ProfilerPathManager.get_cann_path(self._profiler_path) and ProfilerConfig().get_level() != Constant.LEVEL_NONE:
             parser_db_map = {**self.PYTORCH_DB_MAP, **self.ANALYSIS_DB_MAP}
         try:
             for name, parser in parser_db_map.items():
