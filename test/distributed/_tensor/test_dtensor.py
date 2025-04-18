@@ -404,6 +404,16 @@ class DTensorTest(DTensorTestBase):
         reloaded_st = torch.load(buffer)
         self.assertEqual(sharded_tensor, reloaded_st)
 
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_dtensor_to_copy(self):
+        device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
+        shard_spec = [Shard(0)]
+        tensor = torch.randn(4, 2).npu()
+        dtensor = distribute_tensor(tensor, device_mesh, shard_spec)
+        dtensor_cpu = dtensor.cpu()
+        self.assertEqual(dtensor_cpu._local_tensor, dtensor._local_tensor)
+
 
 class DTensorMeshTest(DTensorTestBase):
     @property
