@@ -114,10 +114,10 @@ class CANNTimelineParser(BaseParser):
                 except InterruptedError:
                     return Constant.FAIL, None
         else:
-            patten = r'^ascend_pytorch_profiler\.db$' if ProfilerConfig().rank_id == -1 else r'^ascend_pytorch_profiler_\d+\.db$'
+            patten = r'^msprof_\d+\.db$'
             while True:
-                for file in os.listdir(self._output_path):
-                    if re.match(patten, file) and os.path.isfile(os.path.join(self._output_path, file)):
+                for file in os.listdir(self._cann_path):
+                    if re.match(patten, file) and os.path.isfile(os.path.join(self._cann_path, file)):
                         return Constant.SUCCESS, None
                 try:
                     time.sleep(Constant.SLEEP_TIME)
