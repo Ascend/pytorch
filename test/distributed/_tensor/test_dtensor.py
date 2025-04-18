@@ -13,7 +13,7 @@ from torch.distributed._tensor import (
     DTensor,
     init_device_mesh,
 )
-from torch.distributed._tensor.placement_types import _Partial, Replicate, Shard
+from torch.distributed._tensor.placement_types import Partial, Replicate, Shard
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
     parallelize_module,
@@ -177,7 +177,7 @@ class DTensorTest(DTensorTestBase):
         ddp_tensor = DTensor.from_local(local_tensor, device_mesh, replica_spec)
         self.assertEqual(ddp_tensor.size(), local_tensor.size())
 
-        partial_spec = [_Partial()]
+        partial_spec = [Partial()]
         partial_tensor = DTensor.from_local(local_tensor, device_mesh, partial_spec)
         self.assertEqual(partial_tensor.size(), local_tensor.size())
 
@@ -336,7 +336,7 @@ class DTensorTest(DTensorTestBase):
 
         sharded_dtensor = distribute_tensor(global_tensor, device_mesh, placements)
         local_out = sharded_dtensor.redistribute(placements=[Replicate()]).to_local(
-            grad_placements=[_Partial()]
+            grad_placements=[Partial()]
         )
         local_out.sum().backward()
 
@@ -363,7 +363,7 @@ class DTensorTest(DTensorTestBase):
         global_tensor = torch.ones(8, 3, requires_grad=True)
 
         sharded_dtensor = distribute_tensor(global_tensor, device_mesh, placements)
-        local_out = sharded_dtensor.full_tensor(grad_placements=[_Partial()])
+        local_out = sharded_dtensor.full_tensor(grad_placements=[Partial()])
         local_out.sum().backward()
 
         replica_grad = sharded_dtensor.grad.full_tensor()
@@ -520,6 +520,16 @@ class DTensorTest(DTensorTestBase):
         buffer.seek(0)
         reloaded_st = torch.load(buffer)
         self.assertEqual(sharded_tensor, reloaded_st)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_dtensor_to_copy(self):
+        device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
+        shard_spec = [Shard(0)]
+        tensor = torch.randn(4, 2).npu()
+        dtensor = distribute_tensor(tensor, device_mesh, shard_spec)
+        dtensor_cpu = dtensor.cpu()
+        self.assertEqual(dtensor_cpu._local_tensor, dtensor._local_tensor)
 
 
 class DTensorMeshTest(DTensorTestBase):
