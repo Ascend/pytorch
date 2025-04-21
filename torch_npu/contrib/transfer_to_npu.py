@@ -351,7 +351,7 @@ def _init():
         _wrapper_cuda(torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__)
     if hasattr(torch.distributed, 'init_device_mesh'):
         _del_nccl_device_backend_map()
-        torch.distributed.init_device_mesh = _wrapper_cuda(torch.distributed.init_device_mesh)
+        torch.distributed.device_mesh.init_device_mesh = _wrapper_cuda(torch.distributed.device_mesh.init_device_mesh)
     
     # CUDAGraph
     torch.cuda.CUDAGraph = torch.npu.NPUGraph
