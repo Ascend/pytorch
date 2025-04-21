@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import torch_npu
+from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.decorator import Dtypes, instantiate_tests
 
@@ -30,6 +31,7 @@ class TestNpuStrideAdd(TestCase):
         output = output.numpy()
         return output
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_StrideAdd(self):
         input1 = torch.tensor([[[[[1.]]]]]).npu()
         input2 = input1
