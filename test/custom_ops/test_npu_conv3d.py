@@ -50,6 +50,8 @@ class TestNpuConv3d(TestCase):
             self.assertRtolEqual(custom_output, npu_output)
 
     def test_npu_conv3d_fp32(self):
+        torch.npu.config.allow_internal_format = True
+        torch.npu.set_compile_mode(jit_compile=True)
         shape_format = [
             # input, weigth, bias, stride, padding, dilation, groups
             [[np.float32, 30, [1, 128, 4, 14, 14]], [np.float32, 30, [1, 128, 3, 3, 3]], None, [1, 1, 1], [1, 1, 1],

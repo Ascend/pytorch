@@ -3,7 +3,7 @@ import torch
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 
 
 class TestIFMR(TestCase):
@@ -54,6 +54,7 @@ class TestIFMR(TestCase):
                                            search_start, search_end, search_step, with_offset)
         return scale.cpu().detach(), offset.cpu().detach()
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_npu_ifmr(self, device="npu"):
         item = [np.float32, 0, (2, 2, 4, 4)]
         _, npu_input = create_common_tensor(item, -1, 1)

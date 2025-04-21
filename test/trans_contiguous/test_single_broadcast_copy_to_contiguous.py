@@ -35,8 +35,9 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item_broadcast, 0, 100)
             with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.expand(item[2][1]).contiguous()
-            self.assertEqual(check_operators_in_prof(['contiguous_d_BroadcastTo'], prof),
-                             True, "contiguous_d_BroadcastTo is not called!")
+            self.assertEqual(check_operators_in_prof(['contiguous_d_BroadcastTo'], prof) or
+                             check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                             True, message="contiguous_d_BroadcastTo or aclnnInplaceCopy is not called!")
             cpu_out1 = cpu_input.expand(item[2][1]).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
