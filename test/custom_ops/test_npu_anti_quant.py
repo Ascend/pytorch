@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+from ml_dtypes import int4
 import torch
 
 import torch_npu
@@ -7,10 +8,26 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
+def unpack_int4(s32arr):
+    dst_shape = s32arr.numpy().shape
+    if len(dst_shape) == 0:
+        dst_shape = (8, )
+    else:
+        dst_shape = (*(dst_shape[:-1]), dst_shape[-1] * 8)
+
+    sa1 = s32arr.numpy().astype(np.int32)
+    sa2 = sa1.tobytes()
+    sa3 = np.frombuffer(sa2, dtype=np.uint8)
+    shift = np.array([0, 4], dtype=np.uint8)
+    sa4 = np.bitwise_and(sa3.reshape([-1, 1]) >> shift, 0b00001111).astype(int4).astype(np.int8).reshape(dst_shape)
+    return torch.from_numpy(sa4)
+
 
 class TestAntiQuant(TestCase):
 
     def custom_op_exec(self, input_x, scale, offset, dst_dtype, src_dtype):
+        if input_x.dtype == torch.int32:
+            input_x = unpack_int4(input_x)
         scale = torch.broadcast_to(scale, input_x.shape)
         if offset is None:
             offset = torch.zeros_like(scale)
@@ -36,8 +53,8 @@ class TestAntiQuant(TestCase):
             [[np.int8, -1, [10, 100]], [np.float32, -1, [100]], [np.float32, -1, [100]], torch.bfloat16, torch.int8],
             [[np.int32, -1, [10, 25]], [np.float32, -1, [200]], [np.float32, -1, [200]], torch.float16, None],
             [[np.int32, -1, [10, 25]], [np.float32, -1, [200]], [np.float32, -1, [200]], torch.bfloat16, None],
-            [[np.int32, -1, [10, 25]], [np.float32, -1, [200]], [np.float32, -1, [200]], torch.float16, torch.quint4x2],
-            [[np.int32, -1, [10, 25]], [np.float32, -1, [200]], [np.float32, -1, [200]], torch.bfloat16, torch.quint4x2],
+            [[np.int32, -1, [10, 25]], [np.float32, -1, [200]], [np.float32, -1, [200]], torch.float16, None],
+            [[np.int32, -1, [10, 25]], [np.float32, -1, [200]], [np.float32, -1, [200]], torch.bfloat16, None],
         ]
         
         for item in shape_format:

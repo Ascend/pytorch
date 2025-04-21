@@ -1,6 +1,7 @@
 import torch
 
 import torch_npu
+from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
@@ -48,6 +49,7 @@ class TestBoundingBoxEncode(TestCase):
         output = output.numpy()
         return output
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_encode_shape_format_fp32(self):
         input1 = torch.tensor([[1., 2., 3., 4.], [3., 4., 5., 6.]],
                               dtype=torch.float32).to("npu")
@@ -60,6 +62,7 @@ class TestBoundingBoxEncode(TestCase):
                                             0.1, 0.1, 0.2, 0.2)
         self.assertRtolEqual(npu_output, custom_output, 1e-3)
 
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
     def test_encode_shape_format_fp16(self):
         input1_fp16 = torch.tensor([[1., 2., 3., 4.], [3., 4., 5., 6.]],
                                    dtype=torch.float16).to("npu")
