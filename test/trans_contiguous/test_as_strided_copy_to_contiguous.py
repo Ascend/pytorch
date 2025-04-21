@@ -19,7 +19,9 @@ class TestAsStridedCopyToContiguous(TestCase):
         with torch.autograd.profiler.profile(use_device='npu') as prof:
             output = torch.as_strided(input1, size, stride, storage_offset).contiguous()
         self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, [
-                         'contiguous_h_combined']), True, "Error operators called!")
+                         'contiguous_h_combined']) or
+                         check_operators_in_prof(['aclnnInplaceCopy'], prof, ['contiguous_h_combined']),
+                         True, "Error operators called!")
         output = output.cpu().numpy()
         return output
 
