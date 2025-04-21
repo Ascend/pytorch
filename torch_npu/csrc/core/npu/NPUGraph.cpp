@@ -99,6 +99,12 @@ NPUGraph::NPUGraph()
 
 void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode)
 {
+    static const auto _task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
+    TORCH_CHECK(_task_queue_enable != 2,
+        "Do not support TASK_QUEUE_ENABLE = 2 during NPU graph capture, please "
+        "export TASK_QUEUE_ENABLE=1/0.",
+        PTA_ERROR(ErrCode::NOT_SUPPORT));
+
     TORCH_CHECK(!has_graph_exec_,
                 "This NPUGraph instance already owns a captured graph. "
                 "To capture a new graph, create a new instance.");
