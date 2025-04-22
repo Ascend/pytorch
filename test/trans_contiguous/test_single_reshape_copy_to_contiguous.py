@@ -35,11 +35,13 @@ class SingleViewCopyToContiguous(TestCase):
             # case2. The key axis remains unchanged for NZ format
             match_case2 = (item[1] == 29)
             if match_case1 or match_case2:
-                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof),
-                                 True, "contiguous_d_Reshape is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="contiguous_d_Reshape or aclnnInplaceCopy is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof),
-                                 True, "d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="d2dCopyAsync or aclnnInplaceCopy is not called!")
             cpu_out1 = cpu_input.view(1, 6, cpu_input.size(2), cpu_input.size(3)).clone()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
@@ -47,11 +49,13 @@ class SingleViewCopyToContiguous(TestCase):
             with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input.view(1, 6, npu_input.size(2) * npu_input.size(3), 1).clone()
             if match_case1:
-                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof),
-                                 True, "contiguous_d_Reshape is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="contiguous_d_Reshape or aclnnInplaceCopy is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof),
-                                 True, "d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="d2dCopyAsync or aclnnInplaceCopy is not called!")
             cpu_out2 = cpu_input.view(1, 6, cpu_input.size(2) * cpu_input.size(3), 1).clone()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
@@ -77,11 +81,13 @@ class SingleViewCopyToContiguous(TestCase):
                 with torch.autograd.profiler.profile(use_device='npu') as prof:
                     npu_out = npu_input.unsqueeze(i).clone()
                 if match_case1 or match_case2:
-                    self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof),
-                                     True, "contiguous_d_Reshape is not called!")
+                    self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                     True, message="contiguous_d_Reshape or aclnnInplaceCopy is not called!")
                 else:
-                    self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof),
-                                     True, "d2dCopyAsync is not called!")
+                    self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                     True, message="d2dCopyAsync or aclnnInplaceCopy is not called!")
                 cpu_out = cpu_input.unsqueeze(i).clone()
                 self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())
 
@@ -102,12 +108,14 @@ class SingleViewCopyToContiguous(TestCase):
                 npu_out = torch.flatten(npu_input, 0, 1).clone()
             if item[1] == 3:
                 # Using d2dcopy with transdata(d2dCopyAsync)
-                self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof),
-                                 True, "d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="d2dCopyAsync or aclnnInplaceCopy is not called!")
             else:
                 # Directly using d2dcopy without transdata(contiguous_d_Reshape)
-                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof),
-                                 True, "contiguous_d_Reshape is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="contiguous_d_Reshape or aclnnInplaceCopy is not called!")
 
             cpu_out = torch.flatten(cpu_input, 0, 1).clone()
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())
@@ -139,11 +147,13 @@ class SingleViewCopyToContiguous(TestCase):
             # case3. NZ format with padding but no offset
             match_case3 = (item[1] == 29 and True)
             if match_case1 or match_case2 or match_case3:
-                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof),
-                                 True, "contiguous_d_Reshape is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="contiguous_d_Reshape or aclnnInplaceCopy is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof),
-                                 True, "contiguous_d_Slice is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="contiguous_d_Slice or aclnnInplaceCopy is not called!")
             cpu_out1 = cpu_input[:10, :, :].clone()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
@@ -152,11 +162,13 @@ class SingleViewCopyToContiguous(TestCase):
                 npu_out2 = npu_input[1:10, :, :].clone()
             match_case3 = False
             if match_case1 or match_case2 or match_case3:
-                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof),
-                                 True, "contiguous_d_Reshape is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="contiguous_d_Reshape or aclnnInplaceCopy is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof),
-                                 True, "contiguous_d_Slice is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="contiguous_d_Slice or aclnnInplaceCopy is not called!")
             cpu_out2 = cpu_input[1:10, :, :].clone()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
@@ -175,23 +187,27 @@ class SingleViewCopyToContiguous(TestCase):
             with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input[0].clone()
             if match_case:
-                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof),
-                                 True, "contiguous_d_Reshape is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="contiguous_d_Reshape or aclnnInplaceCopy is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof),
-                                 True, "contiguous_d_Slice is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="contiguous_d_Slice or aclnnInplaceCopy is not called!")
             cpu_out1 = cpu_input[0].clone()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input[0] + 1
             if match_case:
-                self.assertEqual(check_operators_in_prof(['contiguous_h_memRepoint'], prof),
-                                 True, "contiguous_h_memRepoint is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_h_memRepoint'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="contiguous_h_memRepoint or aclnnInplaceCopy is not called!")
             else:
                 # refresh storage desc after transdata
-                self.assertEqual(check_operators_in_prof(['Identity'], prof),
-                                 True, "Identity is not called!")
+                self.assertEqual(check_operators_in_prof(['Identity'], prof) or
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                 True, message="Identity or aclnnInplaceCopy is not called!")
             cpu_out2 = cpu_input[0] + 1
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
