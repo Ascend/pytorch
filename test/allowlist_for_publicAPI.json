@@ -2858,7 +2858,9 @@
     "npu_moe_init_routing",
     "npu_group_norm_swish",
     "npu_mrope",
-    "npu_grouped_matmul_finalize_routing"
+    "npu_grouped_matmul_finalize_routing",
+    "npu_alltoallv_gmm",
+    "npu_gmm_alltoallv"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
