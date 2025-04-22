@@ -35,6 +35,8 @@ C10_NPU_API c10::DeviceIndex device_count_ensure_non_zero();
  */
 C10_NPU_API aclError GetDevice(int32_t *device);
 
+aclError GetDeviceWithoutSet(int32_t *device);
+
 /**
  * @ingroup torch_npu
  * @brief set device id by ACL interface: aclrtSetDevice,
@@ -68,6 +70,10 @@ C10_NPU_API void set_device(c10::DeviceIndex device);
 C10_NPU_API void device_synchronize();
 
 C10_NPU_API int ExchangeDevice(int device);
+
+int MaybeExchangeDevice(int to_device);
+
+void SetTargetDevice();
 
 int GetLocalDevice();
 
