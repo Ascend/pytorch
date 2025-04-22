@@ -9,6 +9,8 @@
 
 #include "torch_npu/csrc/npu/Stream.h"
 
+#define ACL_EVENT_DEFAULT 0x0000000Eu
+
 PyObject *THNPEventClass = nullptr;
 
 static PyObject* THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
