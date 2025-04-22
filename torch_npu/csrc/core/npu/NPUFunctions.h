@@ -101,14 +101,7 @@ C10_NPU_API inline WarningState& warning_state()
 
 // this function has to be called from callers performing npu synchronizing
 // operations, to raise proper error or warning
-C10_NPU_API inline void warn_or_error_on_sync()
-{
-    if (warning_state().get_sync_debug_mode() == SyncDebugMode::L_ERROR) {
-        TORCH_CHECK(false, "called a synchronizing NPU operation", PTA_ERROR(ErrCode::ACL));
-    } else if (warning_state().get_sync_debug_mode() == SyncDebugMode::L_WARN) {
-        TORCH_NPU_WARN("called a synchronizing NPU operation");
-    }
-}
+C10_NPU_API void warn_or_error_on_sync();
 
 enum class CallStateMode { L_UNKNOW = -1, L_FORWARD = 0, L_BACKWARD };
 
@@ -149,5 +142,7 @@ C10_NPU_API inline ModelState& model_state()
 }
 
 bool IsContextInitialized();
+
+C10_NPU_API void stream_synchronize(aclrtStream stream);
 
 } // namespace c10_npu
