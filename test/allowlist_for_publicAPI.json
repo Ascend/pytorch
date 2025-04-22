@@ -2530,6 +2530,7 @@
     "npu_nms_rotated",
     "npu_random_choice_with_mask",
     "npu_rms_norm",
+    "npu_add_rms_norm_cast",
     "npu_moe_compute_expert_tokens",
     "npu_fused_infer_attention_score",
     "npu_mla_prolog",
