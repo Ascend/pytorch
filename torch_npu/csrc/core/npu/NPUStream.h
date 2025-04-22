@@ -20,13 +20,8 @@ class C10_NPU_API NPUStream {
 public:
     enum Unchecked { UNCHECKED };
 
-    explicit NPUStream(c10::Stream stream) : stream_(stream)
-    {
-        TORCH_CHECK(stream_.device_type() == c10::DeviceType::PrivateUse1, PTA_ERROR(ErrCode::TYPE));
-    }
-
+    explicit NPUStream(c10::Stream stream);
     explicit NPUStream(Unchecked, c10::Stream stream) : stream_(stream) {}
-
     ~NPUStream() {}
 
     bool operator==(const NPUStream& other) const noexcept
@@ -122,7 +117,7 @@ C10_NPU_API NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
 
 C10_NPU_API NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
 
-NPUStream getStreamFromPool(const bool isHighPriority, c10::DeviceIndex device_index);
+C10_NPU_API NPUStream getStreamFromPool(const bool isHighPriority, c10::DeviceIndex device_index);
 
 C10_NPU_API NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
 

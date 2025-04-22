@@ -560,6 +560,11 @@ std::ostream& operator<<(std::ostream& stream, const NPUStream& s)
     return stream << s.unwrap();
 }
 
+NPUStream::NPUStream(c10::Stream stream) : stream_(stream)
+{
+    TORCH_CHECK(stream_.device_type() == c10::DeviceType::PrivateUse1, PTA_ERROR(ErrCode::TYPE));
+}
+
 void NPUStream::setDataPreprocessStream(bool is_data_preprocess_stream)
 {
     auto ptr = NPUStream_internals(getCurrentNPUStream());
