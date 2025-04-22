@@ -2822,6 +2822,7 @@
     "npu_nms_rotated",
     "npu_random_choice_with_mask",
     "npu_rms_norm",
+    "npu_add_rms_norm_cast",
     "npu_fused_infer_attention_score",
     "npu_mla_prolog",
     "npu_convert_weight_to_int4pack",
