@@ -622,6 +622,24 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_getDeviceWithoutSet_wrap(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    int device;
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDeviceWithoutSet(&device));
+    return PyLong_FromLong(device);
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_maybeExchangeDevice_wrap(PyObject* self, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    int64_t device = THPUtils_unpackLong(arg);
+    int current_device = c10_npu::MaybeExchangeDevice(device);
+    return PyLong_FromLong(current_device);
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* noargs)
 {
     HANDLE_TH_ERRORS
@@ -1547,6 +1565,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_synchronize", (PyCFunction)THNPModule_npuSynchronize, METH_NOARGS, nullptr},
     {"_npu_setDevice", (PyCFunction)THNPModule_setDevice_wrap, METH_O, nullptr},
     {"_npu_getDevice", (PyCFunction)THNPModule_getDevice_wrap, METH_NOARGS, nullptr},
+    {"_npu_getDeviceWithoutSet", (PyCFunction)THNPModule_getDeviceWithoutSet_wrap, METH_NOARGS, nullptr},
+    {"_npu_maybeExchangeDevice", (PyCFunction)THNPModule_maybeExchangeDevice_wrap, METH_O, nullptr},
     {"_npu_stopDevice", (PyCFunction)THNPModule_stopDevice_wrap, METH_O, nullptr},
     {"_npu_restart_device", (PyCFunction)THNPModule_restart_device_wrap, METH_O, nullptr},
     {"_npu_check_uce_in_memory", (PyCFunction)THNPModule_check_uce_in_memory_wrap, METH_O, nullptr},
