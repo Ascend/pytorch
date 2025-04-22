@@ -47,13 +47,13 @@ class CANNAnalyzeParser(BaseParser):
                 print_error_msg(err_msg)
                 raise RuntimeError(err_msg)
 
-            if Constant.Db in ProfilerConfig().export_type:
+            if Constant.Db in self._export_type:
                 analyze_cmd_list = [self.msprof_path, "--analyze=on", "--type=db", f"--output={self._cann_path}"]
                 completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
                 if completed_analysis.returncode != self.COMMAND_SUCCESS:
                     print_warn_msg("Failed to analyze CANN DB Profiling data.")
 
-            if Constant.Text in ProfilerConfig().export_type:
+            if Constant.Text in self._export_type:
                 analyze_cmd_list = [self.msprof_path, "--analyze=on", f"--output={self._cann_path}"]
                 completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
                 if completed_analysis.returncode != self.COMMAND_SUCCESS:

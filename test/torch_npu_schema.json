@@ -2019,7 +2019,7 @@
     "signature": "(self)"
   },
   "torch_npu.profiler.profiler.analyse": {
-    "signature": "(profiler_path: str, max_process_number: int = 36)"
+    "signature": "(profiler_path: str, max_process_number: int = 36, export_type: Union[str, list] = None)"
   },
   "torch_npu.profiler.profiler.profile": {
     "signature": "(*, activities: Optional[Iterable[torch_npu._C._profiler.ProfilerActivity]] = None, schedule: Optional[Callable[[int], torch_npu.profiler.scheduler.ProfilerAction]] = None, on_trace_ready: Optional[Callable[..., Any]] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Optional[torch_npu.profiler.experimental_config._ExperimentalConfig] = None, use_cuda: Optional[bool] = None)"
