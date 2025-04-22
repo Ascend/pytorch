@@ -29,8 +29,9 @@ class BaseParser(ConcurrentTask, ABC):
         self._profiler_path = None
         self._output_path = None
         deps, mode = self._init_param(name)
+        self._export_type = param_dict.get(Constant.EXPORT_TYPE, [])
         super(BaseParser, self).__init__(name, deps, mode)
-        
+
     def _init_param(self, name: str) -> any:
         self._profiler_path = self._param_dict.get("profiler_path")
         self._output_path = self._param_dict.get("output_path")

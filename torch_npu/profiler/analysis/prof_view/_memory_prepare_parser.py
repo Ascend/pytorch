@@ -126,9 +126,9 @@ class MemoryPrepareParser(BaseParser):
                 valid_record_list = self._get_valid_record_entry(ptr_records)
                 pid_mem_buf.extend(valid_record_list)
             pid_mem_buf.sort(key=lambda x: x[0].time_ns)
-            if Constant.Text in ProfilerConfig().export_type:
+            if Constant.Text in self._export_type:
                 self.memory_data.setdefault(Constant.Text, self._complete_record_entry(pid_mem_buf, torch_ops))
-            if Constant.Db in ProfilerConfig().export_type:
+            if Constant.Db in self._export_type:
                 self.memory_data.setdefault(Constant.Db, self._complete_record_entry_for_db(pid_mem_buf, torch_ops))
 
     @staticmethod

@@ -1,7 +1,7 @@
 import os.path
 import json
 from sys import getsizeof
-from typing import Optional, Iterable, Callable, Any
+from typing import Optional, Iterable, Callable, Any, Union
 
 import torch.autograd.profiler as prof
 import torch_npu.npu
@@ -136,7 +136,6 @@ class _KinetoProfile:
     def export_memory_timeline(self, output_path: str, device: Optional[str] = None) -> None:
         if device is None:
             device = "npu:0" if torch_npu.npu.is_available() else "cpu"
-        
         missing = []
         if not self.prof_if.record_shapes:
             missing.append("record_shapes=True")
@@ -284,11 +283,24 @@ class profile(_KinetoProfile):
 
 
 @no_exception_func()
-def analyse(profiler_path: str, max_process_number: int = Constant.DEFAULT_PROCESS_NUMBER):
+def analyse(profiler_path: str, max_process_number: int = Constant.DEFAULT_PROCESS_NUMBER,
+            export_type: Union[str, list] = None):
     if not isinstance(max_process_number, int) or max_process_number <= 0:
         max_process_number = Constant.DEFAULT_PROCESS_NUMBER
         print_warn_msg("Invalid max_process_number, reset it to default!")
     if max_process_number > os.cpu_count():
         max_process_number = os.cpu_count()
         print_warn_msg("max_process_number exceeds the number of cpu cores, reset it to the number of cpu cores!")
-    NpuProfiler.analyse(profiler_path, max_process_number=max_process_number)
+    if export_type is not None:
+        if isinstance(export_type, str):
+            export_type = [export_type]
+        elif isinstance(export_type, list):
+            export_type = list(set(export_type))
+        else:
+            print_warn_msg(f"Invalid parameter export_type: {export_type}, reset it to None.")
+            export_type = None
+        if export_type is not None:
+            if not export_type or not all(_type in [Constant.Text, Constant.Db] for _type in export_type):
+                print_warn_msg(f"Invalid parameter export_type: {export_type}, reset it to None.")
+                export_type = None
+    NpuProfiler.analyse(profiler_path, max_process_number=max_process_number, export_type=export_type)
