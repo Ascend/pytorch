@@ -448,7 +448,9 @@ def get_src_py_and_dst():
         "torch_npu/csrc/*/*/*/*/*.h",
         "third_party/acl/inc/*/*.h",
         "third_party/hccl/inc/*/*.h",
-        "third_party/acl/inc/*/*/*.h"
+        "third_party/acl/inc/*/*/*.h",
+        "torch_npu/csrc/distributed/HCCLUtils.hpp",
+        "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
     ]
     add_ops_files(BASE_DIR, header_files)
     glob_header_files = []

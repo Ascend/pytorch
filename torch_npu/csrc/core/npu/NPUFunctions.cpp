@@ -210,4 +210,27 @@ int GetLocalDevice()
     return local_device;
 }
 
+void warn_or_error_on_sync()
+{
+    if (warning_state().get_sync_debug_mode() == SyncDebugMode::L_ERROR) {
+        TORCH_CHECK(false, "called a synchronizing NPU operation", PTA_ERROR(ErrCode::ACL));
+    } else if (warning_state().get_sync_debug_mode() == SyncDebugMode::L_WARN) {
+        TORCH_NPU_WARN("called a synchronizing NPU operation");
+    }
 }
+
+void stream_synchronize(aclrtStream stream)
+{
+    if (C10_UNLIKELY(warning_state().get_sync_debug_mode() != SyncDebugMode::L_DISABLED)) {
+        warn_or_error_on_sync();
+    }
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuStreamSynchronization(reinterpret_cast<uintptr_t>(stream));
+    }
+#endif
+    NPU_CHECK_ERROR(aclrtSynchronizeStream(stream));
+}
+
+} // namespace c10_npu
