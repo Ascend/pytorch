@@ -14,6 +14,7 @@ static uint32_t dev_count = 0;
 static thread_local int local_device = -1;
 static std::unordered_map<int8_t, aclrtContext> used_devices;
 std::recursive_mutex mtx;
+thread_local int targetDeviceIndex = -1;
 
 c10::DeviceIndex device_count() noexcept
 {
@@ -42,6 +43,12 @@ c10::DeviceIndex device_count_ensure_non_zero()
 
 aclError GetDevice(int32_t *device)
 {
+    if (targetDeviceIndex >= 0) {
+        *device = targetDeviceIndex;
+        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(targetDeviceIndex));
+        return ACL_ERROR_NONE;
+    }
+
     if (local_device >= 0) {
         *device = local_device;
         return ACL_ERROR_NONE;
@@ -64,10 +71,34 @@ aclError GetDevice(int32_t *device)
     return err;
 }
 
+aclError GetDeviceWithoutSet(int32_t *device)
+{
+    if (targetDeviceIndex >= 0) {
+        *device = targetDeviceIndex;
+        return ACL_ERROR_NONE;
+    }
+
+    if (local_device >= 0) {
+        *device = local_device;
+        return ACL_ERROR_NONE;
+    }
+    aclError err =  aclrtGetDevice(device);
+    if (err != ACL_ERROR_NONE) {
+        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+    }
+    if (err == ACL_ERROR_NONE) {
+        local_device = *device;
+    } else if (err == ACL_ERROR_RT_CONTEXT_NULL) {
+        *device = -1;
+        return ACL_ERROR_NONE;
+    }
+    return err;
+}
+
 aclError SetDevice(c10::DeviceIndex device)
 {
     TORCH_CHECK(device >= 0, "device id must be positive!", PTA_ERROR(ErrCode::VALUE));
-
+    targetDeviceIndex = -1;
     if (local_device == device) {
         return ACL_ERROR_NONE;
     }
@@ -140,7 +171,7 @@ aclrtContext GetDeviceContext(int32_t device)
 {
     std::lock_guard<std::recursive_mutex> lock(mtx);
     if (used_devices.find(device) == used_devices.end()) {
-        ASCEND_LOGE("NPU device %d has been initialized! Can not get context", device);
+        ASCEND_LOGE("NPU device %d has not been initialized! Can not get context", device);
         return nullptr;
     }
     return used_devices[device];
@@ -162,27 +193,51 @@ c10::DeviceIndex current_device()
     return static_cast<c10::DeviceIndex>(cur_device);
 }
 
-    void set_device(c10::DeviceIndex device)
-    {
-        NPU_CHECK_ERROR(c10_npu::SetDevice(device));
-    }
+void set_device(c10::DeviceIndex device)
+{
+    NPU_CHECK_ERROR(c10_npu::SetDevice(device));
+}
 
-    void device_synchronize()
-    {
-        NPU_CHECK_ERROR(aclrtSynchronizeDevice());
+void device_synchronize()
+{
+    NPU_CHECK_ERROR(aclrtSynchronizeDevice());
 #ifndef BUILD_LIBTORCH
-        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
-        if (C10_UNLIKELY(trigger)) {
-            trigger->traceNpuDeviceSynchronization();
-        }
-#endif
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuDeviceSynchronization();
     }
+#endif
+}
 
-    int ExchangeDevice(int device)
-    {
-        NPU_CHECK_ERROR(SetDevice(device));
+int ExchangeDevice(int device)
+{
+    targetDeviceIndex = -1;
+    NPU_CHECK_ERROR(SetDevice(device));
 
     return device;
+}
+
+int MaybeExchangeDevice(int to_device)
+{
+    int cur_device = -1;
+    NPU_CHECK_ERROR_WITHOUT_UCE(GetDeviceWithoutSet(&cur_device));
+    if (to_device == cur_device) {
+        return cur_device;
+    }
+    if (isDeviceCtxActive(to_device)) {
+        ASCEND_LOGI("NPU device %d has not been initialized! We will set targetDeviceIndex.", to_device);
+        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(to_device));
+    } else {
+        targetDeviceIndex = to_device;
+    }
+    return cur_device;
+}
+
+void SetTargetDevice()
+{
+    if (targetDeviceIndex >= 0) {
+        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(targetDeviceIndex));
+    }
 }
 
 bool IsContextInitialized()
