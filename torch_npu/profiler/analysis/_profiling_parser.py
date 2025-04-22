@@ -26,8 +26,7 @@ class ProfilingParser:
             self._output_path = os.path.join(profiler_path, Constant.OUTPUT_DIR)
             PathManager.remove_path_safety(self._output_path)
             PathManager.make_dir_safety(self._output_path)
-        ProfilerLogger.init(self._profiler_path, "ProfilingParser")
-        self.logger = ProfilerLogger.get_instance()
+        self.logger = None
 
     @staticmethod
     def simplify_data(profiler_path: str, simplify_flag: bool):
@@ -58,6 +57,9 @@ class ProfilingParser:
                     PathManager.remove_file_safety(file_path)
 
     def update_export_type(self):
+        export_type = self._kwargs.get('export_type', None)
+        if export_type is not None:
+            ProfilerConfig().export_type = export_type
         if Constant.Db not in ProfilerConfig().export_type:
             return
         if self._analysis_type == Constant.EXPORT_CHROME_TRACE or self._analysis_type == Constant.EXPORT_STACK:
@@ -81,6 +83,8 @@ class ProfilingParser:
                     PathManager.remove_file_safety(os.path.join(cann_path, filename))
 
     def analyse_profiling_data(self):
+        ProfilerLogger.init(self._profiler_path, "ProfilingParser")
+        self.logger = ProfilerLogger.get_instance()
         print_info_msg(f"Start parsing profiling data: {self._profiler_path}")
         ProfilerConfig().load_info(self._profiler_path)
         self.update_export_type()
@@ -99,6 +103,7 @@ class ProfilingParser:
         param_dict = {"profiler_path": self._profiler_path, "output_path": self._output_path}
         if self._kwargs:
             param_dict.update(self._kwargs)
+        param_dict[Constant.EXPORT_TYPE] = ProfilerConfig().export_type
 
         parser_config = ParserConfig.ONLY_FWK_CONFIG
         if ProfilerPathManager.get_cann_path(self._profiler_path):
