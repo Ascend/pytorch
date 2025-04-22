@@ -56,13 +56,13 @@ class CANNExportParser(BaseParser):
             self._check_prof_data_size()
             start_time = datetime.utcnow()
 
-            if Constant.Db in ProfilerConfig().export_type:
+            if Constant.Db in self._export_type:
                 analyze_cmd_list = [self.msprof_path, "--export=on", "--type=db", f"--output={self._cann_path}"]
                 completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
                 if completed_analysis.returncode != self.COMMAND_SUCCESS:
                     raise RuntimeError("Failed to export CANN DB Profiling data." + prof_error(ErrCode.INTERNAL))
 
-            if Constant.Text in ProfilerConfig().export_type:
+            if Constant.Text in self._export_type:
                 # 避免老CANN包无type参数报错
                 analyze_cmd_list = [self.msprof_path, "--export=on", f"--output={self._cann_path}"]
                 completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
@@ -102,7 +102,7 @@ class CANNTimelineParser(BaseParser):
         if not os.path.isdir(self._cann_path):
             return Constant.SUCCESS, None
         ProfilerConfig().load_info(self._profiler_path)
-        if Constant.Text in ProfilerConfig().export_type:
+        if Constant.Text in self._export_type:
             output_path = os.path.join(self._cann_path, "mindstudio_profiler_output")
             while True:
                 if os.path.exists(output_path):
