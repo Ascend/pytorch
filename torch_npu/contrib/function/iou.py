@@ -6,7 +6,7 @@ import torch
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
 
-warnings.filterwarnings(action='once')
+warnings.filterwarnings(action='once', category=FutureWarning)
 
 
 def _box_dtype_check(box):
