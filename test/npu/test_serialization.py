@@ -1,6 +1,7 @@
 import io
 import os
 import tempfile
+import tarfile
 import argparse
 
 import torch
@@ -273,6 +274,25 @@ class TestSerialization(TestCase):
                 save_load_check(a.storage(), s)
                 b = torch.tensor([], dtype=other_dtype, device='npu')
                 save_load_check(a, b)
+
+    def test_tarfile_with_weights_only_unpickler(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "mock.tar")
+            with tarfile.open(path, 'w') as tar:
+                tar.add(os.path.devnull, arcname="empty_file")
+
+            with self.assertRaisesRegex(
+                Exception, "Cannot use ``weights_only=True`` with files saved in the legacy .tar format"
+            ):
+                torch.load(path, weights_only=True)
+
+            with self.assertRaisesRegex(Exception, "Unsupported operand"):
+                with open(path, "rb") as opened_file:
+                    try:
+                        with tarfile.open(fileobj=opened_file, mode="r:", format=tarfile.PAX_FORMAT):
+                            pass
+                    finally:
+                        torch.load(opened_file, weights_only=True)
 
 
 if __name__ == "__main__":
