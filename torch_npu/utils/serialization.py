@@ -9,7 +9,7 @@ import torch
 from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile, \
     _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler, \
     _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL, \
-    normalize_storage_type, location_tag, _serialization_tls, closing, _should_read_directly
+    normalize_storage_type, location_tag, _serialization_tls, _check_seekable, closing, _should_read_directly
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
@@ -196,6 +196,7 @@ def load(
                                    "please torch.save your checkpoint with this option in order to use mmap." +
                                    pta_error(ErrCode.PARAM))
             if weights_only:
+                _check_seekable(opened_file)
                 f_should_read_directly = _should_read_directly(opened_file)
                 if f_should_read_directly and opened_file.tell() == 0:
                     try:
@@ -207,7 +208,7 @@ def load(
                             ) from None
                     except tarfile.TarError:
                         # ignore TarError and pass opened_file to torch._legacy_load
-                        pass
+                        opened_file.seek(0)
                 try:
                     return _legacy_load(opened_file, map_location, _weights_only_unpickler, **pickle_load_args)
                 except RuntimeError as e:
