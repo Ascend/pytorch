@@ -53,7 +53,7 @@ pip3 install setuptools
 3. **安装torch_npu**
 
 ```
-pip3 install torch-npu==2.4.0.post2
+pip3 install torch-npu==2.4.0.post4
 ```
 如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
@@ -64,7 +64,7 @@ pip3 install torch-npu==2.4.0.post2
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git -b v2.4.0-6.0.0 --depth 1
+   git clone https://gitee.com/ascend/pytorch.git -b v2.4.0-7.0.0 --depth 1
    ```
 
 2. **构建镜像**
@@ -159,6 +159,10 @@ print(z)
 
 | CANN版本                | 支持的PyTorch版本 | 支持的Extension版本   | Gitee分支           | 
 |-----------------------|--------------|------------------|-------------------|
+| CANN 8.1.RC1          | 2.5.1        | 2.5.1            | v2.5.1-7.0.0      |
+|                       | 2.4.0        | 2.4.0.post4      | v2.4.0-7.0.0      |
+|                       | 2.3.1        | 2.3.1.post6      | v2.3.1-7.0.0      |
+|                       | 2.1.0        | 2.1.0.post12     | v2.1.0-7.0.0      |
 | CANN 8.0.0            | 2.4.0        | 2.4.0.post2      | v2.4.0-6.0.0      |
 |                       | 2.3.1        | 2.3.1.post4      | v2.3.1-6.0.0      |
 |                       | 2.1.0        | 2.1.0.post10     | v2.1.0-6.0.0      |
