@@ -2,13 +2,14 @@ import os
 import io
 import sys
 import pickle
-from typing import Any, Optional
+import tarfile
+from typing import Dict, Any, Optional
 
 import torch
 from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile, \
     _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler, \
     _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL, \
-    normalize_storage_type, location_tag
+    normalize_storage_type, location_tag, _check_seekable, closing, _should_read_directly
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
@@ -190,19 +191,34 @@ def load(
                              overall_storage=overall_storage, **pickle_load_args)
         else:
             if mmap:
-                raise RuntimeError("mmap can only be used with files saved with `torch.save(_use_new_zipfile_serialization=True), ",
+                raise RuntimeError("mmap can only be used with files saved with "
+                                   "`torch.save(_use_new_zipfile_serialization=True), "
                                    "please torch.save your checkpoint with this option in order to use mmap." +
                                    pta_error(ErrCode.PARAM))
             if weights_only:
+                _check_seekable(opened_file)
+                f_should_read_directly = _should_read_directly(opened_file)
+                if f_should_read_directly and opened_file.tell() == 0:
+                    try:
+                        with closing(tarfile.open(fileobj=opened_file, mode="r:", format=tarfile.PAX_FORMAT)):
+                            raise pickle.UnpicklingError(
+                                UNSAFE_MESSAGE +
+                                "Cannot use ``weights_only=True`` with files saved in the legacy .tar format." +
+                                pta_error(ErrCode.NOT_SUPPORT)
+                            ) from None
+                    except tarfile.TarError:
+                        # ignore TarError and pass opened_file to torch._legacy_load
+                        opened_file.seek(0)
                 try:
                     return _legacy_load(opened_file, map_location, _weights_only_unpickler, **pickle_load_args)
                 except RuntimeError as e:
                     raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e) + pta_error(ErrCode.SYSCALL)) from None
 
             warn_massage = (
-                "Warning: since the loaded file is not a zipfile, only \"torch.device\" and \"str\" type parameters are currently supported for parameter types of map_location"
-                "If parameter types of map_location is \"Callable[[torch.Tensor, str], torch.Tensor]\" or \"Dict[str, str]\", which is only support for zipfile,"
-                "all tensors are currently loaded onto the CPU, which may introduce problems"
+                "Warning: since the loaded file is not a zipfile, only \"torch.device\" and \"str\" type parameters "
+                "are currently supported for parameter types of map_location. If parameter types of map_location is "
+                "\"Callable[[torch.Tensor, str], torch.Tensor]\" or \"Dict[str, str]\", which is only support for "
+                "zipfile, all tensors are currently loaded onto the CPU, which may introduce problems"
             )
             _warn_legacy_serialization(warn_massage, "load")
 
