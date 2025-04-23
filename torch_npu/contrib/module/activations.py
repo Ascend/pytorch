@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch_npu
 
-warnings.filterwarnings(action='once')
+warnings.filterwarnings(action='once', category=FutureWarning)
 
 
 class Mish(nn.Module):
