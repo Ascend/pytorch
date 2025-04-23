@@ -9,7 +9,7 @@ import torch
 
 from torch_npu.utils._error_code import ErrCode, ops_error
 
-warnings.filterwarnings(action='once')
+warnings.filterwarnings(action='once', category=FutureWarning)
 
 
 class _FusedColorJitterApply(object):
