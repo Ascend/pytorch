@@ -1,5 +1,9 @@
 # Ascend Extension for PyTorch插件 安全声明
 
+## 漏洞风险提示
+
+PyTorch 2.6.0以下版本存在CVE-2025-32434漏洞，该漏洞因torch/serialization.py组件兼容性处理导致潜在的远程代码执行（RCE）风险。 torch_npu已参考[LINK](https://github.com/pytorch/pytorch/pull/145020)进行修复。
+
 ## 系统安全加固
 
 建议用户在系统中配置开启ASLR（级别2 ），又称**全随机地址空间布局随机化**，可参考以下方式进行配置：
