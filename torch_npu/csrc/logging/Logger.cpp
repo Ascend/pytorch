@@ -22,6 +22,11 @@ void Logger::setAllowLevel(LoggingLevel level)
     allow_level_ = level;
 }
 
+LoggingLevel Logger::getAllowLevel()
+{
+    return allow_level_;
+}
+
 void Logger::setQName(const std::string& qname)
 {
     qname_ = qname;
