@@ -20,6 +20,7 @@ public:
     Logger(const std::string &name) : name_(name) {};
     ~Logger() = default;
 
+    LoggingLevel getAllowLevel();
     void setAllowLevel(LoggingLevel level);
     void setQName(const std::string& qname);
     std::string getQName();
