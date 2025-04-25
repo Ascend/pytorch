@@ -8,6 +8,8 @@ PyTorch 2.2.0以下版本存在CVE-2024-31580漏洞，该漏洞在torch/csrc/jit
 
 PyTorch 2.2.0以下版本存在CVE-2024-31584漏洞，该漏洞在torch/csrc/jit/mobile/flatbuffer_loader.cpp组件中存在越界读取问题。 如需要使用jit相关功能，建议用户使用2.2.0及以上的修复版本。
 
+PyTorch 2.6.0以下版本存在CVE-2025-32434漏洞，该漏洞因torch/serialization.py组件兼容性处理导致潜在的远程代码执行（RCE）风险。 torch_npu已参考[LINK](https://github.com/pytorch/pytorch/pull/145020)进行修复。
+
 ## 系统安全加固
 
 建议用户在系统中配置开启ASLR（级别2 ），又称**全随机地址空间布局随机化**，可参考以下方式进行配置：
