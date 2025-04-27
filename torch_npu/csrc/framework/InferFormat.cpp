@@ -59,6 +59,8 @@ aclFormat InferFormat::GuessStorageFormat(const c10::IntArrayRef &size, aclForma
 {
     if (format == ACL_FORMAT_FRACTAL_NZ && size.size() < 2) {
         // scalar scene and rank=1 scene do not support NZ
+        TORCH_WARN_ONCE("Cannot create tensor with NZ format while dim < 2, "
+                        "tensor will be created with ND format.");
         return ACL_FORMAT_ND;
     }
 
