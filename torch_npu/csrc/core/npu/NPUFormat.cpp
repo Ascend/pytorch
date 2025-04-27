@@ -46,5 +46,12 @@ at::Tensor empty_with_format(c10::IntArrayRef sizes, const c10::TensorOptions& o
     return OpPreparation::ApplyTensorWithFormat(sizes, options, format, keep_format);
 }
 
+at::Tensor empty_with_swapped_memory(c10::IntArrayRef size,
+                                     c10::optional<at::ScalarType> dtype_opt,
+                                     c10::optional<c10::Device> device_opt)
+{
+    return NPUNativeFunctions::empty_with_swapped_memory(size, dtype_opt, device_opt);
+}
+
 } // namespace native
 } // namespace at_npu
