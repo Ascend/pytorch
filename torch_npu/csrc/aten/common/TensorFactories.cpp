@@ -318,6 +318,8 @@ at::Tensor NPUNativeFunctions::unsafe_empty_with_format(
     // the specified internal format is preserved.
     if ((!keep_format) && at_npu::native::env::CheckForbidInternalFormat()) {
         dst_format = static_cast<int64_t>(FormatHelper::GetBaseFormat(static_cast<aclFormat>(dst_format)));
+        TORCH_WARN_ONCE("Cannot create tensor with interal format while allow_internel_format=False, "
+                        "tensor will be created with base format.");
     }
 
     return NPUNativeFunctions::empty_with_format(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, dst_format);
