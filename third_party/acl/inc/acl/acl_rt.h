@@ -93,6 +93,10 @@ typedef enum aclrtMemMallocPolicy {
     ACL_MEM_TYPE_HIGH_BAND_WIDTH  = 0x1000,
 } aclrtMemMallocPolicy;
 
+typedef enum aclrtHostRegisterType {
+    ACL_HOST_REGISTER_MAPPED = 0U,
+} aclrtHostRegisterType;
+
 typedef enum aclrtMemAttr {
     ACL_DDR_MEM,
     ACL_HBM_MEM,

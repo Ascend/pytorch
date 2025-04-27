@@ -2552,6 +2552,9 @@
   "func: unsafe_empty_with_format": {
     "signature": "(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor"
   },
+  "func: empty_with_swapped_memory": {
+    "signature": "(int[] size, *, ScalarType? dtype=None, Device? device=None) -> Tensor"
+  },
   "func: npu_format_cast": {
     "signature": "(Tensor self, int acl_format) -> Tensor"
   },
@@ -2993,6 +2996,10 @@
   },
   "torch_c_func: at_npu::native::empty_with_format": {
     "signature": "(c10::IntArrayRef sizes, const c10::TensorOptions& options, int64_t format, bool keep_format = false) -> at::Tensor",
+    "file": "torch_npu/csrc/core/npu/NPUFormat.h"
+  },
+  "torch_c_func: at_npu::native::empty_with_swapped_memory": {
+    "signature": "(c10::IntArrayRef size, c10::optional<at::ScalarType> dtype_opt, c10::optional<c10::Device> device_opt) -> at::Tensor",
     "file": "torch_npu/csrc/core/npu/NPUFormat.h"
   },
   "torch_c_func: c10_npu::c10_npu_get_error_message": {

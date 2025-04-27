@@ -29,5 +29,9 @@ TORCH_NPU_API at::Tensor npu_format_cast(const at::Tensor& self, int64_t acl_for
 TORCH_NPU_API at::Tensor empty_with_format(c10::IntArrayRef sizes, const c10::TensorOptions& options,
                                            int64_t format, bool keep_format = false);
 
+TORCH_NPU_API at::Tensor empty_with_swapped_memory(c10::IntArrayRef size,
+                                                   c10::optional<at::ScalarType> dtype_opt,
+                                                   c10::optional<c10::Device> device_opt);
+
 } // namespace native
 } // namespace at_npu
