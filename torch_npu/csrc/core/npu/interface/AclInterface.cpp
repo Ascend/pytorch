@@ -80,6 +80,8 @@ LOAD_FUNCTION(aclmdlRICaptureTaskGrpBegin)
 LOAD_FUNCTION(aclmdlRICaptureTaskGrpEnd)
 LOAD_FUNCTION(aclmdlRICaptureTaskUpdateBegin)
 LOAD_FUNCTION(aclmdlRICaptureTaskUpdateEnd)
+LOAD_FUNCTION(aclrtHostRegister)
+LOAD_FUNCTION(aclrtHostUnregister)
 
 
 aclprofStepInfoPtr init_stepinfo() {
@@ -900,6 +902,30 @@ aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream)
 
     TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskUpdateEnd", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(stream);
+}
+
+aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterType type, void **devPtr)
+{
+    typedef aclError (*AclrtHostRegister)(void *, uint64_t, aclrtHostRegisterType, void **);
+    static AclrtHostRegister func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtHostRegister) GET_FUNC(aclrtHostRegister);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtHostRegister", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(ptr, size, type, devPtr);
+}
+
+aclError AclrtHostUnregister(void *ptr)
+{
+    typedef aclError (*AclrtHostUnregister)(void *);
+    static AclrtHostUnregister func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtHostUnregister) GET_FUNC(aclrtHostUnregister);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtHostUnregister", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(ptr);
 }
 
 } // namespace acl
