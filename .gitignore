@@ -201,3 +201,4 @@ torch_npu/csrc/aten/RegisterAutogradNPU.cpp
 torch_npu/csrc/aten/RegisterCPU.cpp
 torch_npu/csrc/aten/RegisterNPU.cpp
 torch_npu/csrc/aten/python_custom_functions.cpp
+torch_npu/_op_plugin_docs.py
