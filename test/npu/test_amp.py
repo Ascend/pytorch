@@ -455,6 +455,7 @@ class TestAmp(TestCase):
             @staticmethod
             @torch.npu.amp.custom_fwd
             def forward(ctx, a, b):
+                self.assertTrue(ctx._dtype is torch.get_autocast_dtype("npu"))
                 self.assertTrue(a.dtype is torch.float32)
                 self.assertTrue(b.dtype is torch.float32)
                 self.assertTrue(torch.npu.is_autocast_enabled())
@@ -464,6 +465,7 @@ class TestAmp(TestCase):
             @staticmethod
             @torch.npu.amp.custom_bwd
             def backward(ctx, grad):
+                self.assertTrue(ctx._dtype is torch.get_autocast_dtype("npu"))
                 self.assertTrue(torch.npu.is_autocast_enabled())
                 a, b = ctx.saved_tensors
                 return grad.mm(b.t()), a.t().mm(grad)
@@ -484,6 +486,7 @@ class TestAmp(TestCase):
             @staticmethod
             @torch.npu.amp.custom_fwd(cast_inputs=torch.float32)
             def forward(ctx, a, container, expect_type):
+                self.assertTrue(ctx._dtype is torch.get_autocast_dtype("npu"))
                 b = container[1][0]
                 self.assertTrue(a.dtype is expect_type)
                 self.assertTrue(b.dtype is expect_type)
@@ -494,6 +497,7 @@ class TestAmp(TestCase):
             @staticmethod
             @torch.npu.amp.custom_bwd
             def backward(ctx, grad):
+                self.assertTrue(ctx._dtype is torch.get_autocast_dtype("npu"))
                 a, b = ctx.saved_tensors
                 return grad.mm(b.t()), None, None
 
