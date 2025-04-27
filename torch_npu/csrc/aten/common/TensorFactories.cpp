@@ -30,6 +30,7 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/utils.h"
 #endif
@@ -409,7 +410,7 @@ at::Tensor &empty_out_npu(
     return result;
 }
 
-at::Tensor NPUNativeFunctions::empty_with_swap_memory(
+at::Tensor NPUNativeFunctions::empty_with_swapped_memory(
     c10::IntArrayRef size,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<c10::Device> device_opt)
@@ -417,9 +418,8 @@ at::Tensor NPUNativeFunctions::empty_with_swap_memory(
 #ifndef BUILD_LIBTORCH
     torch_npu::profiler::NPURecordFunction profiler_guard;
 #endif
-    RECORD_FUNCTION("empty_with_swap_memory", std::vector<c10::IValue>({}));
-    // swap_memory is in CPU, so it doesn't need initialize_npu and NPUGuard
-    auto device_ = c10::device_or_default(device_opt);
+    RECORD_FUNCTION("empty_with_swapped_memory", std::vector<c10::IValue>({}));
+    auto device_ = device_opt.value_or(at::Device(c10::DeviceType::PrivateUse1, c10_npu::current_device()));
     torch_npu::utils::torch_check_npu(device_);
     torch_npu::utils::maybe_initialize_npu(device_);
     TORCH_CHECK(!(at::isComplexType(dtype_or_default(dtype_opt)) && !at_npu::native::env::CheckJitDisable()),

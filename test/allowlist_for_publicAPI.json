@@ -2517,6 +2517,7 @@
     "_npu_dropout",
     "copy_memory_",
     "empty_with_format",
+    "empty_with_swapped_memory",
     "npu_alloc_float_status",
     "npu_apply_adam",
     "npu_advance_step_flashattn",
