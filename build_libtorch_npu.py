@@ -13,6 +13,9 @@ from sysconfig import get_paths
 from distutils.version import LooseVersion
 from distutils import file_util
 
+# Disable autoloading before running 'import torch' to avoid circular dependencies
+os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
+
 from codegen.utils import PathManager
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
