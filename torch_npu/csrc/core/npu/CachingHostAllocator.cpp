@@ -306,23 +306,28 @@ private:
 };
 } // namespace
 
-static HostAllocator allocator;
+static HostAllocator& getHostAllocator()
+{
+    // Construct allocator inside a function to prevent initialization when import
+    static HostAllocator allocator;
+    return allocator;
+}
 
 aclError CachingHostAllocator_recordEvent(
     void *ptr,
     c10_npu::NPUStream stream)
 {
-    return allocator.recordEvent(ptr, stream);
+    return getHostAllocator().recordEvent(ptr, stream);
 }
 
 bool CachingHostAllocator_isPinned(void *ptr)
 {
-    return allocator.isPinndPtr(ptr);
+    return getHostAllocator().isPinndPtr(ptr);
 }
 
 void CachingHostAllocator_emptyCache()
 {
-    allocator.emptyCache();
+    getHostAllocator().emptyCache();
 }
 
 static void CachingHostDeleter(void *ptr)
@@ -332,13 +337,13 @@ static void CachingHostDeleter(void *ptr)
     if (PyGILState_Check()) {
         // the current thread should not hold GIL.
         Py_BEGIN_ALLOW_THREADS
-            allocator.free(ptr);
+        getHostAllocator().free(ptr);
         Py_END_ALLOW_THREADS
     } else {
-        allocator.free(ptr);
+        getHostAllocator().free(ptr);
     }
 #else
-    allocator.free(ptr);
+    getHostAllocator().free(ptr);
 #endif
 }
 
@@ -348,7 +353,7 @@ struct CachingHostAllocator final : public at::Allocator {
         AT_ASSERT(size >= 0, PTA_ERROR(ErrCode::VALUE));
         void *ptr = nullptr;
         if (size > 0) {
-            if (allocator.malloc(&ptr, size) != ACL_ERROR_NONE) {
+            if (getHostAllocator().malloc(&ptr, size) != ACL_ERROR_NONE) {
                 ASCEND_LOGE("allocate host pinned memory fail");
             }
         }
