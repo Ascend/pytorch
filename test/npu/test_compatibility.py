@@ -243,6 +243,10 @@ class TestPublicApiCompatibility(TestCase):
         if update_allow_dict_torchair:
             allow_dict.update(update_allow_dict_torchair)
 
+        with open(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), 'deprecated_apis.json')) as json_file:
+            deprecated_dict = json.load(json_file)
+
         # load torch_npu_schema.json
         base_schema = {}
         with open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)), "torch_npu_schema.json")) as fp:
@@ -273,6 +277,8 @@ class TestPublicApiCompatibility(TestCase):
                     return
                 obj = getattr(mod, elem)
                 if not (isinstance(obj, (Callable, torch.dtype)) or inspect.isclass(obj)):
+                    return
+                if modname in deprecated_dict and elem in deprecated_dict[modname]:
                     return
                 elem_module = getattr(obj, '__module__', None)
 
@@ -321,6 +327,13 @@ class TestPublicApiCompatibility(TestCase):
         for func in deleted_apis:
             failure_list.append(f"# {func}:")
             failure_list.append(f"  - {func} has been deleted.")
+
+        newly_apis = set(now_funcs) - set(base_funcs)
+        for func in newly_apis:
+            failure_list.append(f"# {func}:")
+            failure_list.append(f"  - {func} is new. Please add it to the torch_npu_schema.json")
+            signature = content[func]["signature"]
+            failure_list.append(f"  - it's signature is {signature}.")
 
         msg = "All the APIs below do not meet the compatibility guidelines. "
         msg += "If the change timeline has been reached, you can modify the torch_npu_schema.json to make it OK."
