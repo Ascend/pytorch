@@ -208,7 +208,7 @@
   "test_check_inplace_nn_SELU_npu_float64 (__main__.TestModulePRIVATEUSE1)": ["", [""]],
   "test_check_inplace_nn_SiLU_npu_float64 (__main__.TestModulePRIVATEUSE1)": ["", [""]],
   "test_check_inplace_nn_Threshold_npu_float64 (__main__.TestModulePRIVATEUSE1)": ["", [""]],
-  "test_forward_nn_Conv3d_npu_float32 (__main__.TestModulePRIVATEUSE1)": ["", ["910A"]],
+  "test_forward_nn_Conv3d_npu_float32 (__main__.TestModulePRIVATEUSE1)": ["", ["A2"]],
   "test_forward_nn_LPPool2d_npu_float64 (__main__.TestModulePRIVATEUSE1)": ["", [""]],
   "test_if_train_and_eval_modes_differ_nn_LazyConvTranspose2d_npu_float32 (__main__.TestModulePRIVATEUSE1)": ["", [""]],
   "test_pickle_nn_AdaptiveMaxPool3d_npu_float64 (__main__.TestModulePRIVATEUSE1)": ["", [""]],
