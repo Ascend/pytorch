@@ -725,6 +725,189 @@
   "torch_npu.npu.DoubleStorage": {
     "signature": "(*args, wrap_storage=None, dtype=None, device=None, _internal=False)"
   },
+  "torch_npu.npu.MemPoolContext.active_pool": {
+    "signature": "() -> Optional[torch_npu._C._MemPool]"
+  },
+  "torch_npu.npu.memory.MemPoolContext.active_pool": {
+    "signature": "() -> Optional[torch_npu._C._MemPool]"
+  },
+  "torch_npu.npu.graphs.graph_task_group_begin": {
+    "signature": "(stream)"
+  },
+  "torch_npu.npu.graphs.NPUGraph": {
+    "signature": "()"
+  },
+  "torch_npu.profiler.experimental_config._ExperimentalConfig._conver_export_type_to_list": {
+    "signature": "(self, export_type: Union[str, list]) -> list"
+  },
+  "torch_npu.npu.utils.get_cann_version": {
+    "signature": "(module='CANN')"
+  },
+  "torch_npu.contrib.module.activations.Mish": {
+    "signature": "()"
+  },
+  "torch_npu.npu.graphs.graph": {
+    "signature": "(npu_graph, pool=None, stream=None, capture_error_mode: str = 'global')"
+  },
+  "torch_npu.npu.graphs.graph_task_update_end": {
+    "signature": "(stream)"
+  },
+  "torch_npu.npu.graph_pool_handle": {
+    "signature": "()"
+  },
+  "torch_npu.contrib.module.bidirectional_lstm.BiLSTM.forward": {
+    "signature": "(self, inputs)"
+  },
+  "torch_npu.npu.graphs.is_current_stream_capturing": {
+    "signature": "()"
+  },
+  "torch_npu.npu_diou": {
+    "signature": "(self, gtboxes, trans=False, is_cross=False, mode=0)"
+  },
+  "torch_npu.npu.graphs.NPUGraph.capture_begin": {
+    "signature": "(self, pool=None, capture_error_mode='global')"
+  },
+  "torch_npu.npu_giou": {
+    "signature": "(self, gtboxes, trans=False, is_cross=False, mode=0)"
+  },
+  "torch_npu.npu.memory.MemPoolContext": {
+    "signature": "(pool: torch_npu.npu.memory.MemPool)"
+  },
+  "torch_npu.npu_iou": {
+    "signature": "(bboxes, gtboxes, mode=0)"
+  },
+  "torch_npu.contrib.module.activations.Mish.forward": {
+    "signature": "(self, x)"
+  },
+  "torch_npu.npu.graphs.graph_pool_handle": {
+    "signature": "()"
+  },
+  "torch_npu.npu.NPUGraph.capture_end": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu_mla_prolog": {
+    "signature": "(*args, **kwargs)"
+  },
+  "torch_npu.npu.MemPoolContext": {
+    "signature": "(pool: torch_npu.npu.memory.MemPool)"
+  },
+  "torch_npu.profiler._ExperimentalConfig._conver_export_type_to_list": {
+    "signature": "(self, export_type: Union[str, list]) -> list"
+  },
+  "torch_npu.npu.memory.MemPool": {
+    "signature": "(allocator: Optional[torch_npu._C._npu_NPUAllocator] = None)"
+  },
+  "torch_npu.npu.graphs.graph_task_group_end": {
+    "signature": "(stream)"
+  },
+  "torch_npu.contrib.module.bidirectional_lstm.BiLSTM": {
+    "signature": "(input_size, hidden_size)"
+  },
+  "torch_npu.npu.graphs.NPUGraph.reset": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu_cross_entropy_loss": {
+    "signature": "(*args, **kwargs)"
+  },
+  "torch_npu.npu.memory.use_mem_pool": {
+    "signature": "(pool: torch_npu.npu.memory.MemPool, device=None)"
+  },
+  "torch_npu.npu.streams.ExternalEvent.reset": {
+    "signature": "(self, stream=None)"
+  },
+  "torch_npu.npu.graphs.graph_task_update_begin": {
+    "signature": "(stream, handle)"
+  },
+  "torch_npu.npu_grouped_matmul_finalize_routing": {
+    "signature": "(*args, **kwargs)"
+  },
+  "torch_npu.npu.streams.ExternalEvent.record": {
+    "signature": "(self, stream=None)"
+  },
+  "torch_npu.npu_advance_step_flashattn": {
+    "signature": "(*args, **kwargs)"
+  },
+  "torch_npu.contrib.module.activations.Swish.forward": {
+    "signature": "(self, x)"
+  },
+  "torch_npu.npu.NPUGraph.reset": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu.use_mem_pool": {
+    "signature": "(pool: torch_npu.npu.memory.MemPool, device=None)"
+  },
+  "torch_npu.npu.MemPool": {
+    "signature": "(allocator: Optional[torch_npu._C._npu_NPUAllocator] = None)"
+  },
+  "torch_npu.npu.streams.ExternalEvent.wait": {
+    "signature": "(self, stream=None)"
+  },
+  "torch_npu.npu.NPUGraph": {
+    "signature": "()"
+  },
+  "torch_npu.npu.graphs.make_graphed_callables": {
+    "signature": "(callables, sample_args, num_warmup_iters=3, allow_unused_input=False, pool=None)"
+  },
+  "torch_npu.npu.streams.ExternalEvent": {
+    "signature": "()"
+  },
+  "torch_npu.npu.NPUGraph.pool": {
+    "signature": "(self)"
+  },
+  "torch_npu.contrib.module.activations.SiLU.forward": {
+    "signature": "(self, x)"
+  },
+  "torch_npu.npu_gmm_alltoallv": {
+    "signature": "(*args, **kwargs)"
+  },
+  "torch_npu.npu_mrope": {
+    "signature": "(*args, **kwargs)"
+  },
+  "torch_npu.npu.streams.Event.recorded_time": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu.make_graphed_callables": {
+    "signature": "(callables, sample_args, num_warmup_iters=3, allow_unused_input=False, pool=None)"
+  },
+  "torch_npu.npu.NPUGraph.capture_begin": {
+    "signature": "(self, pool=None, capture_error_mode='global')"
+  },
+  "torch_npu.npu.graph": {
+    "signature": "(npu_graph, pool=None, stream=None, capture_error_mode: str = 'global')"
+  },
+  "torch_npu.npu.Event.recorded_time": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu_alltoallv_gmm": {
+    "signature": "(*args, **kwargs)"
+  },
+  "torch_npu.npu.graphs.NPUGraph.replay": {
+    "signature": "(self)"
+  },
+  "torch_npu.contrib.module.activations.Swish": {
+    "signature": "()"
+  },
+  "torch_npu.npu.NPUGraph.replay": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu_group_norm_swish": {
+    "signature": "(*args, **kwargs)"
+  },
+  "torch_npu.npu.graphs.NPUGraph.capture_end": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu.is_current_stream_capturing": {
+    "signature": "()"
+  },
+  "torch_npu.npu.graphs.NPUGraph.pool": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu_ciou": {
+    "signature": "(self, gtboxes, trans=False, is_cross=True, mode=0, atan_sub_flag=False)"
+  },
+  "torch_npu.contrib.module.activations.SiLU": {
+    "signature": "()"
+  },
   "torch_npu.npu.Event": {
     "signature": "(enable_timing=False, blocking=False, interprocess=False)"
   },
@@ -2552,6 +2735,21 @@
   "func: unsafe_empty_with_format": {
     "signature": "(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor"
   },
+  "func: empty_with_format.names": {
+    "signature": "(int[] size, Dimname[]? names, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor"
+  },
+  "func: empty_with_format": {
+    "signature": "(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor"
+  },
+  "func: copy_memory_": {
+    "signature": "(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)"
+  },
+  "func: _copy_from_and_resize": {
+    "signature": ""
+  },
+  "func: resize_as_": {
+    "signature": ""
+  },
   "func: npu_format_cast": {
     "signature": "(Tensor self, int acl_format) -> Tensor"
   },
@@ -2605,6 +2803,9 @@
   },
   "torch_npu_public_env: TASK_QUEUE_ENABLE": {
     "mode": "std::unordered_map<int32_t, std::string> taskQueueEnableMode = {{0, \"close\"}, {1, \"level 1\"}, {2, \"level 2\"}}"
+  },
+  "torch_npu_public_env: INF_NAN_MODE_FORCE_DISABLE": {
+    "mode": "std::unordered_map<int32_t, std::string> disableInfNanMode = {{0, \"enable\"}, {1, \"disable\"}}"
   },
   "torch_c_func: torch_npu::init_npu(const c10::DeviceIndex device_index = 0)": {
     "signature": "(const c10::DeviceIndex device_index = 0) -> void",
