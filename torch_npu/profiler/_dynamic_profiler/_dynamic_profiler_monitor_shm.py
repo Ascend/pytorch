@@ -38,7 +38,9 @@ class DynamicProfilerShareMemory:
             "data_simplification": True,
             "record_op_args": False,
             "export_type": ["text"],
-            "msprof_tx": False
+            "msprof_tx": False,
+            "mstx_domain_include": [],
+            "mstx_domain_exclude": []
         }
     }
 

@@ -64,7 +64,9 @@ class _ExperimentalConfig:
                  record_op_args: bool = False,
                  op_attr: bool = False,
                  gc_detect_threshold: float = None,
-                 export_type: Union[str, list] = None):
+                 export_type: Union[str, list] = None,
+                 mstx_domain_include: list = None,
+                 mstx_domain_exclude: list = None):
         self._profiler_level = profiler_level
         self._aic_metrics = aic_metrics
         if self._profiler_level != Constant.LEVEL_NONE:
@@ -77,7 +79,10 @@ class _ExperimentalConfig:
         self._export_type = self._conver_export_type_to_list(export_type)
         self._op_attr = op_attr
         self._gc_detect_threshold = gc_detect_threshold
+        self._mstx_domain_include = mstx_domain_include if mstx_domain_include else []
+        self._mstx_domain_exclude = mstx_domain_exclude if mstx_domain_exclude else []
         self._check_params()
+        self._check_mstx_domain_params()
 
     def __call__(self) -> torch_npu._C._profiler._ExperimentalConfig:
         return torch_npu._C._profiler._ExperimentalConfig(trace_level=self._profiler_level,
@@ -85,7 +90,9 @@ class _ExperimentalConfig:
                                                           l2_cache=self._l2_cache,
                                                           record_op_args=self.record_op_args,
                                                           msprof_tx=self._msprof_tx,
-                                                          op_attr=self._op_attr)
+                                                          op_attr=self._op_attr,
+                                                          mstx_domain_include=self._mstx_domain_include,
+                                                          mstx_domain_exclude=self._mstx_domain_exclude)
 
     @property
     def export_type(self):
@@ -163,3 +170,37 @@ class _ExperimentalConfig:
                 self._gc_detect_threshold = None
             elif self._gc_detect_threshold == 0.0:
                 print_info_msg("Parameter gc_detect_threshold is set to 0, it will collect all gc events.")
+
+    def _check_mstx_domain_params(self):
+        if not self._msprof_tx:
+            if self._mstx_domain_include is not None or self._mstx_domain_exclude is not None:
+                print_warn_msg("mstx_domain_include and mstx_domain_exclude are only valid when msprof_tx is True.")
+            self._mstx_domain_include = []
+            self._mstx_domain_exclude = []
+            return
+        if self._mstx_domain_include is not None:
+            if not isinstance(self._mstx_domain_include, list):
+                print_warn_msg("Invalid parameter mstx_domain_include, which must be of list type, " \
+                               "reset it to default.")
+                self._mstx_domain_include = []
+            if any(not isinstance(domain, str) for domain in self._mstx_domain_include):
+                print_warn_msg("Invalid parameter mstx_domain_include, which contents must be of str type, " \
+                               "reset it to default.")
+                self._mstx_domain_include = []
+            else:
+                self._mstx_domain_include = list(set(self._mstx_domain_include))
+        if self._mstx_domain_exclude is not None:
+            if not isinstance(self._mstx_domain_exclude, list):
+                print_warn_msg("Invalid parameter mstx_domain_exclude, which must be of list type, " \
+                               "reset it to default.")
+                self._mstx_domain_exclude = []
+            if any(not isinstance(domain, str) for domain in self._mstx_domain_exclude):
+                print_warn_msg("Invalid parameter _mstx_domain_exclude, which contents must be of str type, " \
+                               "reset it to default.")
+                self._mstx_domain_exclude = []
+            else:
+                self._mstx_domain_exclude = list(set(self._mstx_domain_exclude))
+        if self._mstx_domain_include and self._mstx_domain_exclude:
+            print_warn_msg("Parameter mstx_domain_include and mstx_domain_exclude can not be both set, " \
+                           "only mstx_domain_include will work.")
+            self._mstx_domain_exclude = []

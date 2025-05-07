@@ -24,6 +24,8 @@ struct NpuTraceConfig {
     bool record_op_args;
     bool msprof_tx;
     bool op_attr;
+    std::vector<std::string> mstx_domain_include;
+    std::vector<std::string> mstx_domain_exclude;
 };
 
 C10_NPU_API int8_t GetTraceLevel();
@@ -62,6 +64,8 @@ public:
         return profile_memory_;
     }
 
+    bool IsMstxDomainEnabled(const std::string &domainName);
+
 private:
     ProfilerMgr();
     explicit ProfilerMgr(const ProfilerMgr &obj) = delete;
@@ -92,6 +96,9 @@ private:
     torch_npu::toolkit::profiler::TraceDataDumper traceDataReceiver_;
     std::mutex reportDataMutex_;
     torch_npu::toolkit::profiler::DataDumper dataReceiverWithLock_;
+
+    std::vector<std::string> mstx_domain_include_;
+    std::vector<std::string> mstx_domain_exclude_;
 };
 } // profiler
 } // torch_npu
