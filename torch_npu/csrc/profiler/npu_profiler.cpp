@@ -309,7 +309,8 @@ void warmupNpuProfiler(const NpuProfilerConfig &config,
     ExperimentalConfig experimental_config = config.experimental_config;
     NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
         config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args,
-        experimental_config.msprof_tx, experimental_config.op_attr};
+        experimental_config.msprof_tx, experimental_config.op_attr, experimental_config.mstx_domain_include,
+        experimental_config.mstx_domain_exclude};
     ProfilerMgr::GetInstance()->Warmup(npu_config, cpu_trace);
 }
 
@@ -327,7 +328,8 @@ void startNpuProfiler(const NpuProfilerConfig &config,
     ExperimentalConfig experimental_config = config.experimental_config;
     NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
         config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args,
-        experimental_config.msprof_tx, experimental_config.op_attr};
+        experimental_config.msprof_tx, experimental_config.op_attr, experimental_config.mstx_domain_include,
+        experimental_config.mstx_domain_exclude};
     ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
     if (state->tracePython()) {
         python_tracer::call(python_tracer::Command::kStartAll);

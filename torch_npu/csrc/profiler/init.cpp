@@ -36,29 +36,35 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused)
         .value("NPU", NpuActivityType::NPU);
 
     py::class_<ExperimentalConfig>(m, "_ExperimentalConfig")
-        .def(py::init<std::string, std::string, bool, bool, bool, bool>(),
+        .def(py::init<std::string, std::string, bool, bool, bool, bool,
+             std::vector<std::string>, std::vector<std::string>>(),
              py::arg("trace_level") = "Level0",
              py::arg("metrics") = "ACL_AICORE_NONE",
              py::arg("l2_cache") = false,
              py::arg("record_op_args") = false,
              py::arg("msprof_tx") = false,
-             py::arg("op_attr") = false
+             py::arg("op_attr") = false,
+             py::arg("mstx_domain_include") = std::vector<std::string>{},
+             py::arg("mstx_domain_exclude") = std::vector<std::string>{}
         )
         .def(py::pickle(
             [](const ExperimentalConfig& p) {
-                return py::make_tuple(p.trace_level, p.metrics, p.l2_cache, p.record_op_args, p.msprof_tx, p.op_attr);
+                return py::make_tuple(p.trace_level, p.metrics, p.l2_cache, p.record_op_args, p.msprof_tx, p.op_attr,
+                                      p.mstx_domain_include, p.mstx_domain_exclude);
             },
             [](py::tuple t) {
-                if (t.size() < 6) {  // 6表示ExperimentalConfig的配置有六项
-                    throw std::runtime_error("Expected atleast 5 values in state" + PROF_ERROR(ErrCode::PARAM));
+                if (t.size() < 8) {  // 8表示ExperimentalConfig的配置有八项
+                    throw std::runtime_error("Expected atleast 8 values in state" + PROF_ERROR(ErrCode::PARAM));
                 }
                 return ExperimentalConfig(
-                    t[0].cast<std::string>(),
-                    t[1].cast<std::string>(),
-                    t[2].cast<bool>(),
-                    t[3].cast<bool>(),
-                    t[4].cast<bool>(),
-                    t[5].cast<bool>()
+                    t[static_cast<size_t>(ExperConfigType::TRACE_LEVEL)].cast<std::string>(),
+                    t[static_cast<size_t>(ExperConfigType::METRICS)].cast<std::string>(),
+                    t[static_cast<size_t>(ExperConfigType::L2_CACHE)].cast<bool>(),
+                    t[static_cast<size_t>(ExperConfigType::RECORD_OP_ARGS)].cast<bool>(),
+                    t[static_cast<size_t>(ExperConfigType::MSPROF_TX)].cast<bool>(),
+                    t[static_cast<size_t>(ExperConfigType::OP_ATTR)].cast<bool>(),
+                    t[static_cast<size_t>(ExperConfigType::MSTX_DOMAIN_INCLUDE)].cast<std::vector<std::string>>(),
+                    t[static_cast<size_t>(ExperConfigType::MSTX_DOMAIN_EXCLUDE)].cast<std::vector<std::string>>()
                 );
             }
         ));
@@ -103,16 +109,45 @@ PyMethodDef* profiler_functions()
     return TorchProfilerMethods;
 }
 
-PyObject* THNPModule_rangeStart(PyObject* _unused, PyObject* args)
+PyObject* THNPModule_markOnHost(PyObject* _unused, PyObject* args)
 {
     HANDLE_TH_ERRORS
-    char *message;
+    const char* message;
+    const char* domain;
+    if (!PyArg_ParseTuple(args, "ss", &message, &domain)) {
+        return nullptr;
+    }
+    mstxMark(message, nullptr, domain);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_mark(PyObject* _unused, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    const char* message;
+    const char* domain;
     PyObject* stream_o = nullptr;
-    if (!PyArg_ParseTuple(args, "sO", &message, &stream_o)) {
+    if (!PyArg_ParseTuple(args, "sOs", &message, &stream_o, &domain)) {
         return nullptr;
     }
     aclrtStream stream = static_cast<aclrtStream>(PyLong_AsVoidPtr(stream_o));
-    int id = mstxRangeStart(message, stream);
+    mstxMark(message, stream, domain);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_rangeStart(PyObject* _unused, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    const char* message;
+    const char* domain;
+    PyObject* stream_o = nullptr;
+    if (!PyArg_ParseTuple(args, "sOs", &message, &stream_o, &domain)) {
+        return nullptr;
+    }
+    aclrtStream stream = static_cast<aclrtStream>(PyLong_AsVoidPtr(stream_o));
+    int id = mstxRangeStart(message, stream, domain);
     return PyLong_FromLong(id);
     END_HANDLE_TH_ERRORS
 }
@@ -120,11 +155,12 @@ PyObject* THNPModule_rangeStart(PyObject* _unused, PyObject* args)
 PyObject* THNPModule_rangeStartOnHost(PyObject* _unused, PyObject* args)
 {
     HANDLE_TH_ERRORS
-    char *message;
-    if (!PyArg_ParseTuple(args, "s", &message)) {
+    const char* message;
+    const char* domain;
+    if (!PyArg_ParseTuple(args, "ss", &message, &domain)) {
         return nullptr;
     }
-    int id = mstxRangeStart(message, nullptr);
+    int id = mstxRangeStart(message, nullptr, domain);
     return PyLong_FromLong(id);
     END_HANDLE_TH_ERRORS
 }
@@ -133,15 +169,18 @@ PyObject* THNPModule_rangeEnd(PyObject* self, PyObject* args)
 {
     HANDLE_TH_ERRORS
     int rangeId;
-    if (!PyArg_ParseTuple(args, "i", &rangeId)) {
+    const char* domain;
+    if (!PyArg_ParseTuple(args, "is", &rangeId, &domain)) {
         return nullptr;
     }
-    mstxRangeEnd(rangeId);
+    mstxRangeEnd(rangeId, domain);
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
 
 static std::vector<PyMethodDef> mstxMethods = {
+    {"_mark_on_host", (PyCFunction)THNPModule_markOnHost, METH_VARARGS, nullptr},
+    {"_mark", (PyCFunction)THNPModule_mark, METH_VARARGS, nullptr},
     {"_range_start_on_host", (PyCFunction)THNPModule_rangeStartOnHost, METH_VARARGS, nullptr},
     {"_range_start", (PyCFunction)THNPModule_rangeStart, METH_VARARGS, nullptr},
     {"_range_end", (PyCFunction)THNPModule_rangeEnd, METH_VARARGS, nullptr},

@@ -500,7 +500,7 @@
   "torch_npu.contrib.module.linear_weight_quant.LinearWeightQuant.forward": {
     "signature": "(self, x: torch.Tensor) -> torch.Tensor"
   },
-   "torch_npu.contrib.module.linear_quant.LinearQuant": {
+  "torch_npu.contrib.module.linear_quant.LinearQuant": {
     "signature": "(in_features: int, out_features: int, *, bias: bool = True, offset: bool = False, pertoken_scale: bool = False, device=None, dtype=None, output_dtype=None) -> None"
   },
   "torch_npu.contrib.module.linear_quant.LinearQuant.forward": {
@@ -1161,16 +1161,16 @@
     "signature": "()"
   },
   "torch_npu.npu.mstx.mark": {
-    "signature": "(message='')"
+    "signature": "(message: str, stream=None, domain: str = 'default')"
   },
   "torch_npu.npu.mstx.range_start": {
-    "signature": "(message: str, stream=None) -> int"
+    "signature": "(message: str, stream=None, domain: str = 'default') -> int"
   },
   "torch_npu.npu.mstx.range_end": {
-    "signature": "(range_id: int)"
+    "signature": "(range_id: int, domain: str = 'default')"
   },
   "torch_npu.npu.mstx.mstx_range": {
-    "signature": "(message: str, stream=None)"
+    "signature": "(message: str, stream=None, domain: str = 'default')"
   },
   "torch_npu.npu.reset_accumulated_memory_stats": {
     "signature": "(device=None)"
@@ -1449,16 +1449,16 @@
     "signature": "()"
   },
   "torch_npu.npu.mstx.mstx.mark": {
-    "signature": "(message='')"
+    "signature": "(message: str, stream=None, domain: str = 'default')"
   },
   "torch_npu.npu.mstx.mstx.range_start": {
-    "signature": "(message: str, stream=None) -> int"
+    "signature": "(message: str, stream=None, domain: str = 'default') -> int"
   },
   "torch_npu.npu.mstx.mstx.range_end": {
-    "signature": "(range_id: int)"
+    "signature": "(range_id: int, domain: str = 'default')"
   },
   "torch_npu.npu.mstx.mstx.mstx_range": {
-    "signature": "(message: str, stream=None)"
+    "signature": "(message: str, stream=None, domain: str = 'default')"
   },
   "torch_npu.npu.npu_config.finalize_dump": {
     "signature": "()"
@@ -2100,9 +2100,12 @@
     "signature": "()"
   },
   "torch_npu.profiler._ExperimentalConfig": {
-    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None)"
+    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
   },
   "torch_npu.profiler._ExperimentalConfig._check_params": {
+    "signature": "(self)"
+  },
+  "torch_npu.profiler._ExperimentalConfig._check_mstx_domain_params": {
     "signature": "(self)"
   },
   "torch_npu.profiler.profile": {
@@ -2157,9 +2160,12 @@
     "signature": "()"
   },
   "torch_npu.profiler.experimental_config._ExperimentalConfig": {
-    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None)"
+    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
   },
   "torch_npu.profiler.experimental_config._ExperimentalConfig._check_params": {
+    "signature": "(self)"
+  },
+  "torch_npu.profiler.experimental_config._ExperimentalConfig._check_mstx_domain_params": {
     "signature": "(self)"
   },
   "torch_npu.profiler.experimental_config.supported_ai_core_metrics": {
