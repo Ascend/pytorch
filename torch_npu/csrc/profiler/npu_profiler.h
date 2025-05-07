@@ -10,6 +10,7 @@
 #include "torch_npu/csrc/toolkit/profiler/inc/data_reporter.h"
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
 #include "torch_npu/csrc/profiler/mstx_mgr.h"
+#include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -52,15 +53,18 @@ struct MemoryUsage {
 };
 
 struct ExperimentalConfig {
-    ExperimentalConfig(std::string level = "Level0", std::string metrics = "ACL_AICORE_NONE", bool l2_cache = false,
-        bool record_op_args = false, bool msprof_tx = false, bool op_attr = false)
+    ExperimentalConfig(std::string level = "Level0", std::string metrics = "ACL_AICORE_NONE",
+                       bool l2_cache = false, bool record_op_args = false, bool msprof_tx = false,
+                       bool op_attr = false, std::vector<std::string> mstx_domain_include = {},
+                       std::vector<std::string> mstx_domain_exclude = {})
         : trace_level(level),
           metrics(metrics),
           l2_cache(l2_cache),
           record_op_args(record_op_args),
           msprof_tx(msprof_tx),
-          op_attr(op_attr)
-    {}
+          op_attr(op_attr),
+          mstx_domain_include(mstx_domain_include),
+          mstx_domain_exclude(mstx_domain_exclude) {}
     ~ExperimentalConfig() = default;
 
     std::string trace_level;
@@ -69,6 +73,8 @@ struct ExperimentalConfig {
     bool record_op_args;
     bool msprof_tx;
     bool op_attr;
+    std::vector<std::string> mstx_domain_include;
+    std::vector<std::string> mstx_domain_exclude;
 };
 
 struct NpuProfilerConfig {
@@ -116,14 +122,23 @@ void reportMarkDataToNpuProfiler(uint32_t category, const std::string &msg, uint
 
 void reportMemoryDataToNpuProfiler(const MemoryUsage &data);
 
-inline int mstxRangeStart(const char *message, const aclrtStream stream)
+inline void mstxMark(const char* message, const aclrtStream stream, const char* domain)
 {
-    return MstxMgr::GetInstance()->rangeStart(message, stream);
+    if (at_npu::native::IsSupportMstxFunc()) {
+        MstxMgr::GetInstance()->mark(message, stream, domain);
+    } else {
+        (void)at_npu::native::AclProfilingMarkEx(message, strlen(message), stream);
+    }
 }
 
-inline void mstxRangeEnd(int id)
+inline int mstxRangeStart(const char* message, const aclrtStream stream, const char* domain)
 {
-    MstxMgr::GetInstance()->rangeEnd(id);
+    return MstxMgr::GetInstance()->rangeStart(message, stream, domain);
+}
+
+inline void mstxRangeEnd(int id, const char* domain)
+{
+    MstxMgr::GetInstance()->rangeEnd(id, domain);
 }
 
 inline bool mstxEnable()
@@ -140,7 +155,7 @@ struct MstxRange {
             return;
         }
         rangeId = MstxMgr::GetInstance()->getRangeId();
-        if (at_npu::native::IsSupportMstxDomainFunc()) {
+        if (at_npu::native::IsSupportMstxDomainFunc() && MstxMgr::GetInstance()->isMstxTxDomainEnable(domainName)) {
             domainHandle = MstxMgr::GetInstance()->createProfDomain(domainName.c_str());
             at_npu::native::MstxDomainRangeStartA(domainHandle, message.c_str(), stream, rangeId);
         } else {

@@ -235,6 +235,8 @@ class ConfigContext:
         record_op_args = exp_config.get('record_op_args', False)
         export_type = exp_config.get('export_type', 'text')
         msprof_tx = exp_config.get('msprof_tx', False)
+        mstx_domain_include = exp_config.get('mstx_domain_include', None)
+        mstx_domain_exclude = exp_config.get('mstx_domain_exclude', None)
 
         self.experimental_config = _ExperimentalConfig(
             profiler_level=profiler_level,
@@ -245,7 +247,9 @@ class ConfigContext:
             data_simplification=data_simplification,
             record_op_args=record_op_args,
             export_type=export_type,
-            msprof_tx=msprof_tx
+            msprof_tx=msprof_tx,
+            mstx_domain_include=mstx_domain_include,
+            mstx_domain_exclude=mstx_domain_exclude
         )
 
     def _parse_exp_cfg(self, json_data: dict):
