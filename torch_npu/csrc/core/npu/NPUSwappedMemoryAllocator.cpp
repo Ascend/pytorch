@@ -5,7 +5,7 @@
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
-#include "torch_npu/csrc/core/npu/NPUSwapMemoryAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUSwappedMemoryAllocator.h"
 
 size_t kAlignSize = 4096; // The first address must be aligned to page_size
 
@@ -61,9 +61,9 @@ static void svm_deleter(void* ptr)
 }
 
 namespace c10_npu {
-namespace NPUSwapMemoryAllocator {
+namespace NPUSwappedMemoryAllocator {
 
-class NpuSwapMemoryAllocator : public c10::Allocator {
+class NpuSwappedMemoryAllocator : public c10::Allocator {
 public:
     c10::DataPtr allocate(size_t size) override
     {
@@ -85,9 +85,9 @@ public:
     {
         default_copy_data(dest, src, count);
     }
-}; // class NpuSwapMemoryAllocator
+}; // class NpuSwappedMemoryAllocator
 
-NpuSwapMemoryAllocator swapmemory_allocator;
+NpuSwappedMemoryAllocator swapmemory_allocator;
 
 c10::Allocator* get()
 {
@@ -103,5 +103,5 @@ void emptyCache()
     memBlocks.clear();
 }
 
-} // namespace NPUSwapMemoryAllocator
+} // namespace NPUSwappedMemoryAllocator
 } // namespace c10_npu
