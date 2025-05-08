@@ -6,7 +6,7 @@
 #include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/npu/DataParallelComm.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/core/npu/NPUSwapMemoryAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUSwappedMemoryAllocator.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
@@ -72,10 +72,10 @@ PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
         ASCEND_LOGE("NPUCachingAllocator::emptyCache failed");
     }
     try {
-        ASCEND_LOGI("NPU shutdown NPUSwapMemoryAllocator emptyCache.");
-        c10_npu::NPUSwapMemoryAllocator::emptyCache();
+        ASCEND_LOGI("NPU shutdown NPUSwappedMemoryAllocator emptyCache.");
+        c10_npu::NPUSwappedMemoryAllocator::emptyCache();
     } catch (...) {
-        ASCEND_LOGE("NPUSwapMemoryAllocator::emptyCache failed");
+        ASCEND_LOGE("NPUSwappedMemoryAllocator::emptyCache failed");
     }
 
     ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
