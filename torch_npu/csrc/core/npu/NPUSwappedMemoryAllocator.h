@@ -3,11 +3,11 @@
 #include <c10/core/Allocator.h>
 
 namespace c10_npu {
-namespace NPUSwapMemoryAllocator {
+namespace NPUSwappedMemoryAllocator {
 
 c10::Allocator* get();
 
 TORCH_NPU_API void emptyCache();
 
-} // namespace NPUSwapMemoryAllocator
+} // namespace NPUSwappedMemoryAllocator
 } // namespace c10_npu
