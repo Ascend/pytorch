@@ -16,7 +16,7 @@
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/core/npu/NPUSwapMemoryAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUSwappedMemoryAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
@@ -429,7 +429,7 @@ at::Tensor NPUNativeFunctions::empty_with_swapped_memory(
                 PTA_ERROR(ErrCode::NOT_SUPPORT));
     check_size_nonnegative(size);
     c10_npu::NPUGuard guard_(device_);
-    c10::Allocator *allocator = c10_npu::NPUSwapMemoryAllocator::get();
+    c10::Allocator *allocator = c10_npu::NPUSwappedMemoryAllocator::get();
     int64_t nelements = c10::multiply_integers(size);
     auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
     int64_t size_bytes = nelements * dtype.itemsize();
