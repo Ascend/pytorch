@@ -16,6 +16,7 @@
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUSwappedMemoryAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
@@ -29,6 +30,7 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/utils.h"
 #endif
@@ -408,6 +410,46 @@ at::Tensor &empty_out_npu(
         result.resize_(size);
     }
     return result;
+}
+
+at::Tensor NPUNativeFunctions::empty_with_swapped_memory(
+    c10::IntArrayRef size,
+    c10::optional<at::ScalarType> dtype_opt,
+    c10::optional<c10::Device> device_opt)
+{
+#ifndef BUILD_LIBTORCH
+    torch_npu::profiler::NPURecordFunction profiler_guard;
+#endif
+    RECORD_FUNCTION("empty_with_swapped_memory", std::vector<c10::IValue>({}));
+    auto device_ = device_opt.value_or(at::Device(c10::DeviceType::PrivateUse1, c10_npu::current_device()));
+    torch_npu::utils::torch_check_npu(device_);
+    torch_npu::utils::maybe_initialize_npu(device_);
+    TORCH_CHECK(!(at::isComplexType(dtype_or_default(dtype_opt)) && !at_npu::native::env::CheckJitDisable()),
+                "Current settings do not support Complex dtype. Please try again with jit_compile=False.",
+                PTA_ERROR(ErrCode::NOT_SUPPORT));
+    check_size_nonnegative(size);
+    c10_npu::NPUGuard guard_(device_);
+    c10::Allocator *allocator = c10_npu::NPUSwappedMemoryAllocator::get();
+    int64_t nelements = c10::multiply_integers(size);
+    auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
+    int64_t size_bytes = nelements * dtype.itemsize();
+    c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
+        c10::StorageImpl::use_byte_size_t(),
+        c10::SymInt(size_bytes),
+        allocator->allocate(size_bytes),
+        allocator,
+        true);
+
+    auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
+
+    // Default at::TensorImpl has size [0]
+    if (size.size() != 1 || size[0] != 0) {
+        tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
+    }
+    tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
+    StorageDescHelper::SetDesc(tensor, size, tensor.strides());
+
+    return tensor;
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ blackman_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

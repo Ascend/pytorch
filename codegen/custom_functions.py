@@ -165,6 +165,7 @@ def compute_op_definition(f: NativeFunction):
         None,
     )
 
+    device_guard = ""
     if has_tensor_options and device_of is not None:
         device_guard = f"""
 c10::OptionalDeviceGuard device_guard(device_of({device_of}));
