@@ -85,6 +85,10 @@ custom:
   - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
     exposed: True
   - func: _npu_format_cast(Tensor self, int acl_format) -> Tensor
+  - func: empty_with_swapped_memory(int[] size, *, ScalarType? dtype=None, Device? device=None) -> Tensor
+    dispatch:
+      CompositeExplicitAutograd: empty_with_swapped_memory
+    exposed: True
 
 symint:
   - as_strided_

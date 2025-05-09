@@ -207,5 +207,26 @@ aclError AclmdlRICaptureTaskUpdateBegin(aclrtStream stream, aclrtTaskGrp handle)
 
 aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
 
+/**
+ * @ingroup AscendCL
+ * @brief register host memory
+ * @param ptr [IN]      memory pointer
+ * @param size [IN]     memory size
+ * @param type [IN]     memory register size
+ * @param devPtr [OUT]  pointer to allocated memory on device
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterTpye type, void **devPtr);
+
+/**
+ * @ingroup AscendCL
+ * @brief unregister host memory
+ * @param ptr [IN]     memory pointer
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+aclError AclrtHostUnregister(void *ptr);
+
 } // namespace acl
 } // namespace c10_npu

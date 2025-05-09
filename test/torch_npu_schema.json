@@ -857,6 +857,9 @@
   "torch_npu.contrib.module.activations.SiLU.forward": {
     "signature": "(self, x)"
   },
+  "torch_npu.empty_with_swapped_memory": {
+    "signature": "(*args, **kwargs)"
+  },
   "torch_npu.npu_gmm_alltoallv": {
     "signature": "(*args, **kwargs)"
   },
@@ -2756,6 +2759,9 @@
   "func: resize_as_": {
     "signature": ""
   },
+  "func: empty_with_swapped_memory": {
+    "signature": "(int[] size, *, ScalarType? dtype=None, Device? device=None) -> Tensor"
+  },
   "func: npu_format_cast": {
     "signature": "(Tensor self, int acl_format) -> Tensor"
   },
@@ -3200,6 +3206,10 @@
   },
   "torch_c_func: at_npu::native::empty_with_format": {
     "signature": "(c10::IntArrayRef sizes, const c10::TensorOptions& options, int64_t format, bool keep_format = false) -> at::Tensor",
+    "file": "torch_npu/csrc/core/npu/NPUFormat.h"
+  },
+  "torch_c_func: at_npu::native::empty_with_swapped_memory": {
+    "signature": "(c10::IntArrayRef size, c10::optional<at::ScalarType> dtype_opt, c10::optional<c10::Device> device_opt) -> at::Tensor",
     "file": "torch_npu/csrc/core/npu/NPUFormat.h"
   },
   "torch_c_func: c10_npu::c10_npu_get_error_message": {
