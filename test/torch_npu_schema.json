@@ -2654,6 +2654,9 @@
   "torch_npu.npu_transpose": {
     "signature": "(self, perm, require_contiguous=True, out=None)"
   },
+  "torch_npu.npu_transpose_batchmatmul": {
+    "signature": "(*args, **kwargs)"
+  },
   "torch_npu.npu_weight_quant_batchmatmul": {
     "signature": "(x, weight, antiquant_scale, antiquant_offset=None, quant_scale=None, quant_offset=None, bias=None, antiquant_group_size=0, inner_precise=0)"
   },
