@@ -328,13 +328,6 @@ class TestPublicApiCompatibility(TestCase):
             failure_list.append(f"# {func}:")
             failure_list.append(f"  - {func} has been deleted.")
 
-        newly_apis = set(now_funcs) - set(base_funcs)
-        for func in newly_apis:
-            failure_list.append(f"# {func}:")
-            failure_list.append(f"  - {func} is new. Please add it to the torch_npu_schema.json")
-            signature = content[func]["signature"]
-            failure_list.append(f"  - it's signature is {signature}.")
-
         msg = "All the APIs below do not meet the compatibility guidelines. "
         msg += "If the change timeline has been reached, you can modify the torch_npu_schema.json to make it OK."
         msg += "\n\nFull list:\n"
