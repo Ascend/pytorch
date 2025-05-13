@@ -2603,6 +2603,9 @@
   "torch_npu.npu_fusion_attention": {
     "signature": "(*args, **kwargs)"
   },
+  "torch_npu.npu_fusion_attention_v2": {
+    "signature": "(*args, **kwargs)"
+  },
   "torch_npu.npu_get_float_status": {
     "signature": "(*args, **kwargs)"
   },
