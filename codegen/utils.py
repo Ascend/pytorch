@@ -53,6 +53,7 @@ from torchgen.dest.register_dispatch_key import RegisterDispatchKey
 
 GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
 GLOBAL_OPAPI_INFO_CACHE = set()
+GLOBAL_INTERNAL_FORMAT_OPAPI_INFO_CACHE = set()
 
 CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
 FIELDS_TO_USE = ["func", "tags", "dispatch", "device_check"]
@@ -430,8 +431,17 @@ const DeviceGuard device_guard(device_or_default(device));"""
                         tensor_check_list.append(f"at_npu::native::FormatHelper::IsOpInputBaseFormat({a.name})")
                 if tensor_check_list:
                     tensor_check_str = f" && {' && '.join(tensor_check_list)}"
-                return_code = f"""\
+                if not is_opapi_support_internal_format(op_key):
+                    return_code = f"""\
 if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str}) {{
+        return {op_api_impl_name}({args_exprs_str});
+    }} else {{
+        return {impl_name}({args_exprs_str});
+    }}
+"""
+                else:
+                    return_code = f"""\
+if (({force_aclnn} || at_npu::native::env::CheckJitDisable())) {{
         return {op_api_impl_name}({args_exprs_str});
     }} else {{
         return {impl_name}({args_exprs_str});
@@ -558,6 +568,22 @@ def update_opapi_info(op_info):
 def is_opapi(op_key):
     global GLOBAL_OPAPI_INFO_CACHE
     return op_key in GLOBAL_OPAPI_INFO_CACHE
+
+
+def update_internal_format_opapi_info(op_info):
+    global GLOBAL_INTERNAL_FORMAT_OPAPI_INFO_CACHE
+    if isinstance(op_info, str):
+        return
+    elif isinstance(op_info, dict):
+        if op_info.get("internal_format_opapi", False):
+            GLOBAL_INTERNAL_FORMAT_OPAPI_INFO_CACHE.add(op_info.get("func").split("(")[0])
+    else:
+        print(f"Warning: Unsupported parameter types, only str and dict is supported, but input is {type(op_info)}")
+
+
+def is_opapi_support_internal_format(op_key):
+    global GLOBAL_INTERNAL_FORMAT_OPAPI_INFO_CACHE
+    return op_key in GLOBAL_INTERNAL_FORMAT_OPAPI_INFO_CACHE
 
 
 def get_target_functions(yaml_path: str, target_op_type: str = None) -> List:
