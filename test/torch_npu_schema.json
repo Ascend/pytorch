@@ -2573,6 +2573,9 @@
   "torch_npu.npu_fusion_attention": {
     "signature": "(*args, **kwargs)"
   },
+  "torch_npu.npu_fusion_attention_v2": {
+    "signature": "(*args, **kwargs)"
+  },
   "torch_npu.npu_geglu": {
     "signature": "(self, dim=-1, approximate=1, activate_left=False)"
   },
