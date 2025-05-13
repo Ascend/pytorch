@@ -154,6 +154,16 @@ bool FormatHelper::IsOpInputBaseFormat(const c10::List<c10::optional<at::Tensor>
     return iter == tensors.end();
 }
 
+bool FormatHelper::IsOpInputBaseFormat(const c10::optional<at::TensorList> &tensors)
+{
+    if (!tensors.has_value()) {
+        return true;
+    }
+    const auto &iter =
+        std::find_if(tensors.value().begin(), tensors.value().end(), [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
+    return iter == tensors.value().end();
+}
+
 bool FormatHelper::IsOpInputBaseFormat(const at::TensorList &tensors)
 {
     const auto &iter =
