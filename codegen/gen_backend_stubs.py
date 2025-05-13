@@ -42,7 +42,7 @@ from codegen.gen_functionalization_type import gen_functionalization_definition,
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured, add_header_to_template_file,
                            get_grouped_native_functions_optional_out, parse_npu_yaml, get_opplugin_wrap_name,
                            get_target_functions, merge_custom_yaml, field_tag, gen_custom_yaml_path,
-                           update_opapi_info, is_opapi, PathManager, filt_exposed_api, get_target_native_registration,
+                           update_opapi_info, is_opapi, update_internal_format_opapi_info, PathManager, filt_exposed_api, get_target_native_registration,
                            NativeFunctionsGroupOptionalOut, gen_device_check, DEVICE_NOCHECK_SET)
 from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch,
                                       gen_custom_functions_dispatch)
@@ -150,6 +150,7 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
         supported_es = source_es.get('supported', []) + source_es.get('autograd', []) + custom_es
         for es in supported_es:
             update_opapi_info(es)
+            update_internal_format_opapi_info(es)
         custom_es = field_tag(custom_es)
         for e in custom_es:
             func, m = NativeFunction.from_yaml(e, "Location", valid_tags)
