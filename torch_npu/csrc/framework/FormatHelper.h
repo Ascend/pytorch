@@ -39,6 +39,7 @@ public:
 
     static bool IsOpInputBaseFormat(const at::Tensor &tensor);
     static bool IsOpInputBaseFormat(const c10::optional<at::Tensor> &tensor);
+    static bool IsOpInputBaseFormat(const c10::optional<at::TensorList> &tensors);
     static bool IsOpInputBaseFormat(const c10::List<c10::optional<at::Tensor>> &tensors);
     static bool IsOpInputBaseFormat(const at::TensorList &tensors);
     static bool IsOpInputBaseFormat(const at::ITensorListRef &tensors);
