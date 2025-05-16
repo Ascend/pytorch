@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, Optional
 from functools import lru_cache
 import warnings
 import contextlib
@@ -15,7 +15,7 @@ from torch_npu.npu._backends import get_soc_version
 
 
 __all__ = ["synchronize", "device_count", "can_device_access_peer", "set_device", "current_device", "get_device_name",
-           "get_device_properties", "mem_get_info", "get_device_capability", "utilization", "device", "device_of",
+           "get_device_properties", "mem_get_info", "get_device_capability", "utilization", "device", "device_of", "StreamContext",
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
@@ -206,39 +206,73 @@ class device_of(device):
         super(device_of, self).__init__(idx)
 
 
-@contextlib.contextmanager
-def stream(stream):
+class StreamContext:
     r"""Context-manager that selects a given stream.
 
     All NPU kernels queued within its context will be enqueued on a selected
     stream.
 
+    Args:
+        Stream (Stream): selected stream. This manager is a no-op if it's
+            ``None``.
+    .. note:: Streams are per-device.
+    """
+    cur_stream: Optional["torch_npu.npu.Stream"]
+
+    def __init__(self, stream_ctx: Optional["torch_npu.npu.Stream"]):
+        self.stream = stream_ctx
+        self.idx = _get_device_index(None, True)
+        if not torch.jit.is_scripting():
+            if self.idx is None:
+                self.idx = -1
+
+        self.src_prev_stream = (
+            None if not torch.jit.is_scripting() else torch.npu.default_stream()
+        )
+        self.dst_prev_stream = (
+            None if not torch.jit.is_scripting() else torch.npu.default_stream()
+        )
+
+    def __enter__(self):
+        # Local cur_stream variable for type refinement
+        cur_stream = self.stream
+        # Return if stream is None or NPU device not available
+        if cur_stream is None or self.idx == -1:
+            return
+        self.src_prev_stream = torch.npu.current_stream()
+
+        # If the stream is not on the current device, then
+        # set the current stream on the device
+        if self.src_prev_stream.device != cur_stream.device:
+            with device(cur_stream.device):
+                self.dst_prev_stream = torch.npu.current_stream(cur_stream.device)
+        torch.npu.set_stream(cur_stream)
+
+    def __exit__(self, exec_type: Any, exec_value: Any, traceback: Any):
+        # Local cur_stream variable for type refinement
+        cur_stream = self.stream
+        # If stream is None or no NPU device available, return
+        if cur_stream is None or self.idx == -1:
+            return
+
+        # Reset the stream on the original device
+        # and destination device
+        if self.src_prev_stream.device != cur_stream.device:  # type: ignore[union-attr]
+            torch.npu.set_stream(self.dst_prev_stream)  # type: ignore[arg-type]
+        torch.npu.set_stream(self.src_prev_stream)  # type: ignore[arg-type]
+
+
+def stream(stream):
+    r"""Wrap around the Context-manager StreamContext that selects a given stream.
+
     Arguments:
         stream (Stream): selected stream. This manager is a no-op if it's
             ``None``.
 
-    .. note:: Streams are per-device. If the selected stream is not on the
-        current device, this function will also change the current device to
-        match the stream.
+    ..Note:: In eager mode stream is of type Stream class while in JIT it is
+      an object of the custom class ``torch.classes.npu.Stream``.
     """
-    if stream is None:
-        yield
-        return
-    src_prev_stream = current_stream()
-
-    if src_prev_stream.device != stream.device:
-        # The given stream is on a different device; have to restore the
-        # current_stream on that device on exit as well
-        with device(stream.device):
-            dst_prev_stream = current_stream()
-
-    torch.npu.set_stream(stream)
-    try:
-        yield
-    finally:
-        if src_prev_stream.device != stream.device:
-            torch.npu.set_stream(dst_prev_stream)
-        torch.npu.set_stream(src_prev_stream)
+    return StreamContext(stream)
 
 
 def set_stream(stream):

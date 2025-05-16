@@ -1088,6 +1088,9 @@
   "torch_npu.npu.device_of": {
     "signature": "(obj)"
   },
+  "torch_npu.npu.StreamContext": {
+    "signature": "(stream_ctx: Optional[ForwardRef('torch_npu.npu.Stream')])"
+  },
   "torch_npu.npu.disable_deterministic_with_backward": {
     "signature": "(tensor: torch.Tensor)"
   },
@@ -1621,6 +1624,9 @@
   },
   "torch_npu.npu.utils.device_of": {
     "signature": "(obj)"
+  },
+  "torch_npu.npu.utils.StreamContext": {
+    "signature": "(stream_ctx: Optional[ForwardRef('torch_npu.npu.Stream')])"
   },
   "torch_npu.npu.utils.finalize_dump": {
     "signature": "()"
