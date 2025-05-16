@@ -14,6 +14,7 @@ __all__ = [
     "is_available",
     "device",
     "device_of",
+    "StreamContext",
     "stream",
     "set_stream",
     "current_stream",
@@ -130,7 +131,7 @@ import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
 from .utils import (synchronize, device_count, can_device_access_peer, set_device, current_device, get_device_name,
                     get_device_properties, get_device_capability, _get_device_index,
-                    device, device_of, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
+                    device, device_of, StreamContext, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
                     utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag, mem_get_info,
                     check_uce_in_memory, stress_detect)
