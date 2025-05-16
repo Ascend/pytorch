@@ -2,6 +2,7 @@ import unittest
 import contextlib
 import collections
 import multiprocessing
+import threading
 
 import torch
 import torch_npu
@@ -171,7 +172,27 @@ class TorchNPUApiTestCase(TestCase):
     def test_npu_stream(self):
         s = torch_npu.npu.current_stream()
         res = torch_npu.npu.stream(s)
-        self.assertIsInstance(res, contextlib._GeneratorContextManager)
+        self.assertIsInstance(res, torch_npu.npu.utils.StreamContext)
+
+    def test_npu_streamcontext(self):
+        s = torch_npu.npu.current_stream()
+ 
+        def thread_func():
+            res1 = torch_npu.npu.Stream()
+            res2 = torch_npu.npu.Stream()
+            with torch_npu.npu.stream(res1) as current:
+                self.assertEqual(torch_npu.npu.current_stream(), res1)
+            with torch_npu.npu.stream(res2) as current:
+                self.assertEqual(torch_npu.npu.current_stream(), res2)
+            with torch_npu.npu.stream(res1) as current:
+                self.assertEqual(torch_npu.npu.current_stream(), res1)
+            with torch_npu.npu.stream(res2) as current:
+                self.assertEqual(torch_npu.npu.current_stream(), res2)
+
+        thread = threading.Thread(target=thread_func)
+        thread.start()
+        thread.join()
+        self.assertEqual(torch_npu.npu.current_stream(), s)
 
     def test_npu_synchronize(self):
         res = torch_npu.npu.synchronize()
