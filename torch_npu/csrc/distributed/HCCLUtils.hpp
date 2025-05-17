@@ -69,55 +69,27 @@ bool checkFilePathReadable(const std::string& file);
 bool isSupportHcclCommName();
 
 // RAII wrapper for HCCL communicator
-class HCCLComm {
+class C10_NPU_API HCCLComm {
 public:
-    explicit HCCLComm(HcclComm hcclComm) : hcclComm_(hcclComm), hcclAsyncErr_(HCCL_SUCCESS) {}
-
+    explicit HCCLComm(HcclComm hcclComm);
     HCCLComm() : HCCLComm(nullptr) {}
-
-    ~HCCLComm()
-    {
-        destroyHcclComm();
-    }
+    ~HCCLComm();
 
     static std::shared_ptr<HCCLComm> create(
         int numRanks,
         int rank,
-        HcclRootInfo& rootInfo)
-    {
-        auto comm = std::make_shared<HCCLComm>();
-        HCCL_CHECK_ERROR(HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
-        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
-                                                             c10_npu::ReleasePriority::PriorityMiddle);
-        return comm;
-    }
+        HcclRootInfo& rootInfo);
 
     static std::shared_ptr<HCCLComm> create_config(
         int numRanks,
         int rank,
         HcclRootInfo& rootInfo,
-        HcclCommConfig* config)
-    {
-        auto comm = std::make_shared<HCCLComm>();
-        HCCL_CHECK_ERROR(hcclCommInitRootInfoConfig(numRanks, &rootInfo, rank, config, &(comm->hcclComm_)));
-        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
-                                                             c10_npu::ReleasePriority::PriorityMiddle);
-        return comm;
-    }
+        HcclCommConfig* config);
 
     static std::shared_ptr<HCCLComm> createGlobalHcclComm(
         const char *clusterInfo,
         uint32_t rank,
-        HcclCommConfig* config)
-    {
-        auto comm = std::make_shared<HCCLComm>();
-        if (hcclCommInitClusterInfoConfig(clusterInfo, rank, config, &(comm->hcclComm_)) != HCCL_SUCCESS) {
-            return nullptr;
-        }
-        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
-            c10_npu::ReleasePriority::PriorityMiddle);
-        return comm;
-    }
+        HcclCommConfig* config);
 
     static std::shared_ptr<HCCLComm> createSubHcclComm(
         std::shared_ptr<HCCLComm> comm,
@@ -125,67 +97,26 @@ public:
         uint32_t *rankIds,
         uint64_t subCommId,
         uint32_t subCommRankId,
-        HcclCommConfig* config)
-    {
-        auto subComm = std::make_shared<HCCLComm>();
-        if (hcclCreateSubCommConfig(&(comm->hcclComm_), rankNum, rankIds, subCommId, subCommRankId,
-            config, &(subComm->hcclComm_)) != HCCL_SUCCESS) {
-            return nullptr;
-        }
-        c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {subComm->destroyHcclComm();},
-                                                             c10_npu::ReleasePriority::PriorityMiddle);
-        return subComm;
-    }
+        HcclCommConfig* config);
 
     // Must not be copyable
     HCCLComm(const HCCLComm&) = delete;
     HCCLComm& operator=(const HCCLComm&) = delete;
 
     // Move constructable
-    HCCLComm(HCCLComm&& other)
-    {
-        std::swap(hcclComm_, other.hcclComm_);
-        std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
-    }
+    HCCLComm(HCCLComm&& other);
 
     // Move assignable
-    HCCLComm& operator=(HCCLComm&& other)
-    {
-        std::swap(hcclComm_, other.hcclComm_);
-        std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
-        return *this;
-    }
+    HCCLComm& operator=(HCCLComm&& other);
 
     HcclComm getHcclComm() const
     {
         return hcclComm_;
     }
 
-    void destroyHcclComm()
-    {
-        std::unique_lock<std::mutex> lock(mutex_);
-        if (hcclComm_) {
-            HcclCommDestroy(hcclComm_);
-            hcclComm_ = nullptr;
-        }
-    }
+    void destroyHcclComm();
 
-    HcclResult checkForHcclError()
-    {
-        std::unique_lock<std::mutex> lock(mutex_);
-#ifdef ENABLE_HCCL_ERROR_CHECKING
-        if (hcclAsyncErr_ != HCCL_SUCCESS) {
-            return hcclAsyncErr_;
-        }
-        if (hcclComm_ != nullptr) {
-            C10D_HCCL_CHECK(hcclGetCommAsyncError(hcclComm_, &hcclAsyncErr_));
-        }
-        return hcclAsyncErr_;
-#else
-        // Always return success, if error checks are disabled.
-        return HCCL_SUCCESS;
-#endif
-    }
+    HcclResult checkForHcclError();
 
 protected:
     HcclComm hcclComm_;

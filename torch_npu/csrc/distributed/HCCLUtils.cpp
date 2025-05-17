@@ -116,4 +116,109 @@ bool isSupportHcclCommName()
     return at_npu::hccl::isHcclFeatureSupported(HcclCommConfigCapability::HCCL_COMM_CONFIG_COMM_NAME);
 }
 
+HCCLComm::HCCLComm(HcclComm hcclComm) : hcclComm_(hcclComm), hcclAsyncErr_(HCCL_SUCCESS) {}
+    
+HCCLComm::~HCCLComm()
+{
+    destroyHcclComm();
 }
+
+std::shared_ptr<HCCLComm> HCCLComm::create(
+    int numRanks,
+    int rank,
+    HcclRootInfo& rootInfo)
+{
+    auto comm = std::make_shared<HCCLComm>();
+    HCCL_CHECK_ERROR(HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
+    c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
+                                                         c10_npu::ReleasePriority::PriorityMiddle);
+    return comm;
+}
+
+std::shared_ptr<HCCLComm> HCCLComm::create_config(
+    int numRanks,
+    int rank,
+    HcclRootInfo& rootInfo,
+    HcclCommConfig* config)
+{
+    auto comm = std::make_shared<HCCLComm>();
+    HCCL_CHECK_ERROR(hcclCommInitRootInfoConfig(numRanks, &rootInfo, rank, config, &(comm->hcclComm_)));
+    c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
+                                                         c10_npu::ReleasePriority::PriorityMiddle);
+    return comm;
+}
+
+std::shared_ptr<HCCLComm> HCCLComm::createGlobalHcclComm(
+    const char *clusterInfo,
+    uint32_t rank,
+    HcclCommConfig* config)
+{
+    auto comm = std::make_shared<HCCLComm>();
+    if (hcclCommInitClusterInfoConfig(clusterInfo, rank, config, &(comm->hcclComm_)) != HCCL_SUCCESS) {
+        return nullptr;
+    }
+    c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
+                                                         c10_npu::ReleasePriority::PriorityMiddle);
+    return comm;
+}
+
+std::shared_ptr<HCCLComm> HCCLComm::createSubHcclComm(
+    std::shared_ptr<HCCLComm> comm,
+    uint32_t rankNum,
+    uint32_t *rankIds,
+    uint64_t subCommId,
+    uint32_t subCommRankId,
+    HcclCommConfig* config)
+{
+    auto subComm = std::make_shared<HCCLComm>();
+    if (hcclCreateSubCommConfig(&(comm->hcclComm_), rankNum, rankIds, subCommId, subCommRankId,
+        config, &(subComm->hcclComm_)) != HCCL_SUCCESS) {
+        return nullptr;
+    }
+    c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {subComm->destroyHcclComm();},
+                                                         c10_npu::ReleasePriority::PriorityMiddle);
+    return subComm;
+}
+
+// Move constructable
+HCCLComm::HCCLComm(HCCLComm&& other)
+{
+    std::swap(hcclComm_, other.hcclComm_);
+    std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
+}
+
+// Move assignable
+HCCLComm& HCCLComm::operator=(HCCLComm&& other)
+{
+    std::swap(hcclComm_, other.hcclComm_);
+    std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
+    return *this;
+}
+
+void HCCLComm::destroyHcclComm()
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+    if (hcclComm_) {
+        HcclCommDestroy(hcclComm_);
+        hcclComm_ = nullptr;
+    }
+}
+
+HcclResult HCCLComm::checkForHcclError()
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+#ifdef ENABLE_HCCL_ERROR_CHECKING
+    if (hcclAsyncErr_ != HCCL_SUCCESS) {
+        return hcclAsyncErr_;
+    }
+    if (hcclComm_ != nullptr) {
+        C10D_HCCL_CHECK(hcclGetCommAsyncError(hcclComm_, &hcclAsyncErr_));
+    }
+    return hcclAsyncErr_;
+#else
+    // Always return success, if error checks are disabled.
+    return HCCL_SUCCESS;
+#endif
+}
+
+} // namespace c10d_npu
