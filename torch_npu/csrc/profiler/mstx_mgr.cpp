@@ -60,7 +60,7 @@ void MstxMgr::mark(const char* message, const aclrtStream stream, const char* do
         markImpl(msg_ptr->c_str(), stream, domainHandle);
         return 0;
     };
-    at_npu::native::OpCommand::RunOpApi("mstx_mark_op", mark_call);
+    at_npu::native::OpCommand::RunOpApiV2("mstx_mark_op", mark_call);
 }
 
 int MstxMgr::rangeStart(const char* message, const aclrtStream stream, const char* domain)
@@ -86,7 +86,7 @@ int MstxMgr::rangeStart(const char* message, const aclrtStream stream, const cha
         rangeStartImpl(msg_ptr->c_str(), stream, id, domainHandle);
         return 0;
     };
-    at_npu::native::OpCommand::RunOpApi("mstx_range_start_op", range_start_call);
+    at_npu::native::OpCommand::RunOpApiV2("mstx_range_start_op", range_start_call);
     return id;
 }
 
@@ -117,7 +117,7 @@ void MstxMgr::rangeEnd(int ptRangeId, const char* domain)
         rangeEndImpl(ptRangeId, domainHandle);
         return 0;
     };
-    at_npu::native::OpCommand::RunOpApi("mstx_range_end_op", range_end_call);
+    at_npu::native::OpCommand::RunOpApiV2("mstx_range_end_op", range_end_call);
 }
 
 int MstxMgr::getRangeId()

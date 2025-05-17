@@ -272,22 +272,23 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
         }
     }
 
-    if (GetStatus() == RepoStatus::UCE_EXIT) {
+    const RepoStatus current_status = GetStatus();
+    if (current_status == RepoStatus::UCE_EXIT) {
         runtime_error = "UCE ERROR." + PTA_ERROR(ErrCode::ACL);
         error_msg = "UCE ERROR happend.";
     }
     
-    if (GetStatus() == RepoStatus::HBM_ECC_EXIT) {
+    if (current_status == RepoStatus::HBM_ECC_EXIT) {
         runtime_error = "HBM MULTI BIT ECC ERROR." + std::string(c10_npu::c10_npu_get_error_message()) + PTA_ERROR(ErrCode::ACL);
         error_msg = "HBM MULTI BIT ECC ERROR happend.";
     }
 
-    if (GetStatus() == RepoStatus::STOP_EXIT) {
+    if (current_status == RepoStatus::STOP_EXIT) {
         runtime_error = "FORCE STOP." + PTA_ERROR(ErrCode::ACL);
         error_msg = "FORCE STOP happend.";
     }
 
-    if (GetStatus() == RepoStatus::ERROR_EXIT) {
+    if (current_status == RepoStatus::ERROR_EXIT) {
         // Avoid repeatedly throwing exceptions
         SetStatus(CAN_EXIT);
 
@@ -428,7 +429,8 @@ void Repository::Enqueue(void *cur_paras)
         return;
     }
 
-    if (GetStatus() == RepoStatus::UCE_EXIT) {
+    const RepoStatus current_status = GetStatus();
+    if (current_status == RepoStatus::UCE_EXIT) {
         auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
         auto type = queueParam->paramType;
         // The RECORD_EVENT in the destructor process should not throw an exception.
@@ -439,7 +441,7 @@ void Repository::Enqueue(void *cur_paras)
         throw std::runtime_error("UCE ERROR" + PTA_ERROR(ErrCode::ACL));
     }
 
-    if (GetStatus() == RepoStatus::HBM_ECC_EXIT) {
+    if (current_status == RepoStatus::HBM_ECC_EXIT) {
         auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
         auto type = queueParam->paramType;
         // The RECORD_EVENT in the destructor process should not throw an exception.
@@ -451,7 +453,7 @@ void Repository::Enqueue(void *cur_paras)
         throw std::runtime_error("HBM MULTI BIT ECC ERROR." + error_msg + PTA_ERROR(ErrCode::ACL));
     }
 
-    if (GetStatus() == RepoStatus::STOP_EXIT) {
+    if (current_status == RepoStatus::STOP_EXIT) {
         auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
         auto type = queueParam->paramType;
         // The RECORD_EVENT in the destructor process should not throw an exception.
@@ -462,7 +464,7 @@ void Repository::Enqueue(void *cur_paras)
         throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
     }
 
-    if (GetStatus() == RepoStatus::ERROR_EXIT) {
+    if (current_status == RepoStatus::ERROR_EXIT) {
         // Avoid repeatedly throwing exceptions
         SetStatus(CAN_EXIT);
 
@@ -486,7 +488,7 @@ void Repository::Enqueue(void *cur_paras)
             PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error);
     }
 
-    if (GetStatus() != RUN && GetStatus() != INIT) {
+    if (current_status != RUN && current_status != INIT) {
         auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
         auto type = queueParam->paramType;
         if (type == c10_npu::queue::EXECUTE_OPAPI) {
