@@ -40,6 +40,7 @@ enum QueueParamType {
     LAZY_DESTROY_EVENT = 5,
     RESET_EVENT = 6,
     EXECUTE_OPAPI = 7,
+    EXECUTE_OPAPI_V2 = 8,
 };
 
 struct QueueParas {

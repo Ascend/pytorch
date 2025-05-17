@@ -68,6 +68,13 @@ struct ExecuteParas {
     PROCESS_FUNC customHandler;
 };
 
+struct ExecuteParasOpApiV2 {
+    using PROCESS_FUNC = std::function<int()>;
+    std::string *opName;
+    PROCESS_FUNC *customHandler;
+    ExecuteParasOpApiV2() = default;
+};
+
 struct ExecuteParasOpApi {
     using PROCESS_FUNC = std::function<int()>;
     char opType[100]{};
@@ -75,6 +82,7 @@ struct ExecuteParasOpApi {
     ExecuteParasOpApi() = default;
     void Release();
     void Copy(ExecuteParasOpApi &other);
+    void Copy(ExecuteParasOpApiV2 &other);
 };
 
 NPUStatus DestroyAclParams(ACL_PARAMS &params);
