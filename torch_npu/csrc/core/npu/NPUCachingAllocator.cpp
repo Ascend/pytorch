@@ -25,6 +25,9 @@
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
 
 std::string format_size(uint64_t size)
 {

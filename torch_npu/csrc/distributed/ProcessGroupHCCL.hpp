@@ -94,7 +94,7 @@ enum class WatchdogStatus {
 //
 //   // Now continue on other work in the current stream.
 
-class ProcessGroupHCCL : public c10d::Backend {
+class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 public:
     class WorkHCCL : public c10d::Work, public std::enable_shared_from_this<WorkHCCL> {
     public:
