@@ -44,7 +44,19 @@ void ExecuteParasOpApi::Release() { customHandler = nullptr; }
 void ExecuteParasOpApi::Copy(ExecuteParasOpApi &other)
 {
     strncpy(this->opType, other.opType, sizeof(ExecuteParasOpApi::opType) - 1);
-    this->customHandler = other.customHandler;
+    this->customHandler = std::move(other.customHandler);
+}
+
+void ExecuteParasOpApi::Copy(ExecuteParasOpApiV2 &other)
+{
+    static const auto max_len = sizeof(ExecuteParasOpApi::opType);
+    auto len = other.opName->length();
+    if (len + 1 < max_len) {
+        other.opName->copy(this->opType, len + 1);
+    } else {
+        other.opName->copy(this->opType, max_len - 1);
+    }
+    this->customHandler = std::move(*(other.customHandler));
 }
 
 NPUStatus DestroyAclParams(ACL_PARAMS& params)

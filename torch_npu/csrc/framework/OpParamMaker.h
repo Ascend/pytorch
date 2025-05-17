@@ -244,10 +244,11 @@ public:
     // export op execute params
     void ExportParams(ExecuteParas &params)
     {
+        static const auto max_len = sizeof(ExecuteParas::opType);
         if (opName.length() + 1 < sizeof(ExecuteParas::opType)) {
             opName.copy(params.opType, opName.length() + 1);
         } else {
-            opName.copy(params.opType, sizeof(ExecuteParas::opType) - 1);
+            opName.copy(params.opType, max_len - 1);
         }
         params.attr = execParam.attr;
         // make params
