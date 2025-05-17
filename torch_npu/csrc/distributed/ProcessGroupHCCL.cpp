@@ -3549,7 +3549,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclAllreduce", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclAllreduce", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -3625,7 +3625,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
                 *is_dispatched = true;
                 return hccl_result;
 			};
-            at_npu::native::OpCommand::RunOpApi("HcclBatchSendRecv", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclBatchSendRecv", hccl_call);
             return HCCL_SUCCESS;
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
@@ -3673,7 +3673,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclBroadcast", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclBroadcast", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -3791,7 +3791,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclReduce", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclReduce", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -3851,7 +3851,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclReduce", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclReduce", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -3982,7 +3982,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
                     *is_dispatched = true;
                     return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclReduceScatterV", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclReduceScatterV", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -4067,7 +4067,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
                     *is_dispatched = true;
                     return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclAllGatherV", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclAllGatherV", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -4130,7 +4130,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     *is_dispatched = true;
                     return hccl_result;
                 };
-                at_npu::native::OpCommand::RunOpApi("HcclAllgather", hccl_call);
+                at_npu::native::OpCommand::RunOpApiV2("HcclAllgather", hccl_call);
 
                 return HCCL_SUCCESS;
             },
@@ -4217,7 +4217,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                         *is_dispatched = true;
                         return hccl_result;
                 };
-                at_npu::native::OpCommand::RunOpApi("HcclAllGatherV", hccl_call);
+                at_npu::native::OpCommand::RunOpApiV2("HcclAllGatherV", hccl_call);
 
                 return HCCL_SUCCESS;
             },
@@ -4373,7 +4373,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclAllGather", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclAllGather", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -4424,7 +4424,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclAllGather", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclAllGather", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -4472,7 +4472,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclReduceScatter", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclReduceScatter", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -4563,7 +4563,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                         *is_dispatched = true;
                         return hccl_result;
                 };
-                at_npu::native::OpCommand::RunOpApi("HcclReduceScatterV", hccl_call);
+                at_npu::native::OpCommand::RunOpApiV2("HcclReduceScatterV", hccl_call);
 
                 return HCCL_SUCCESS;
             },
@@ -4668,7 +4668,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclReduceScatter", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclReduceScatter", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -4844,7 +4844,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclScatter", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclScatter", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -4896,7 +4896,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclSend", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclSend", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -4931,7 +4931,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclRecv", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclRecv", hccl_call);
 
             return HCCL_SUCCESS;
         },
@@ -5037,7 +5037,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                         *is_dispatched = true;
                         return hccl_result;
                     };
-                    at_npu::native::OpCommand::RunOpApi("HcclAlltoAll", hccl_call);
+                    at_npu::native::OpCommand::RunOpApiV2("HcclAlltoAll", hccl_call);
                     return HCCL_SUCCESS;
                 },
             [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
@@ -5139,7 +5139,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                     *is_dispatched = true;
                     return hccl_result;
                 };
-                at_npu::native::OpCommand::RunOpApi("HcclAlltoAllV", hccl_call);
+                at_npu::native::OpCommand::RunOpApiV2("HcclAlltoAllV", hccl_call);
 
                 return HCCL_SUCCESS;
             },
@@ -5266,7 +5266,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                 *is_dispatched = true;
                 return hccl_result;
             };
-            at_npu::native::OpCommand::RunOpApi("HcclAlltoAllV", hccl_call);
+            at_npu::native::OpCommand::RunOpApiV2("HcclAlltoAllV", hccl_call);
 
             return HCCL_SUCCESS;
         },

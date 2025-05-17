@@ -519,14 +519,24 @@ void CopyFunc(void *dst, void *src)
         (static_cast<ExecuteParas *>(dstPtr->paramVal))->~ExecuteParas();
     }
 
+    const bool is_opapi_v2 = (srcPtr->paramType == c10_npu::queue::EXECUTE_OPAPI_V2);
     dstPtr->paramStream = srcPtr->paramStream;
-    dstPtr->paramType = srcPtr->paramType;
+    if (is_opapi_v2) {
+        dstPtr->paramType = c10_npu::queue::EXECUTE_OPAPI;
+    } else {
+        dstPtr->paramType = srcPtr->paramType;
+    }
     dstPtr->paramLen = srcPtr->paramLen;
     dstPtr->correlation_id = srcPtr->correlation_id;
     if (dstPtr->paramType == c10_npu::queue::EXECUTE_OPAPI) {
         new (dstPtr->paramVal) ExecuteParasOpApi();
-        (static_cast<ExecuteParasOpApi *>(dstPtr->paramVal))
-            ->Copy(*(static_cast<ExecuteParasOpApi *>(srcPtr->paramVal)));
+        if (is_opapi_v2) {
+            (static_cast<ExecuteParasOpApi *>(dstPtr->paramVal))
+                ->Copy(*(static_cast<ExecuteParasOpApiV2 *>(srcPtr->paramVal)));
+        } else {
+            (static_cast<ExecuteParasOpApi *>(dstPtr->paramVal))
+                ->Copy(*(static_cast<ExecuteParasOpApi *>(srcPtr->paramVal)));
+        }
     } else if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         new (dstPtr->paramVal) ExecuteParas();
         (static_cast<ExecuteParas *>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas *>(srcPtr->paramVal)));
@@ -586,7 +596,10 @@ void CopyReleaseParamFunc(void *dst, void *src)
     auto srcPtr = static_cast<c10_npu::queue::QueueParas *>(src);
     dstPtr->paramType = srcPtr->paramType;
     dstPtr->paramVal = static_cast<uint8_t *>(dst) + sizeof(c10_npu::queue::QueueParas);
-    if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
+    if (srcPtr->paramType == c10_npu::queue::EXECUTE_OPAPI) {
+        (static_cast<ExecuteParasOpApi *>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParasOpApi *>(srcPtr->paramVal)));
+        (static_cast<ExecuteParasOpApi *>(srcPtr->paramVal))->Release();
+    } else if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         (static_cast<ExecuteParas *>(dstPtr->paramVal))->CopyEx(*(static_cast<ExecuteParas *>(srcPtr->paramVal)));
         (static_cast<ExecuteParas *>(srcPtr->paramVal))->hostMemory.clear();
     }
