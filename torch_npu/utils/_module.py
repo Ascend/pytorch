@@ -17,6 +17,7 @@ from torch.nn.modules.batchnorm import _NormBase, _LazyNormBase
 from torch.nn.modules.module import Module
 from torch.nn.parallel._functions import _streams
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter
+from torch.utils.data._utils import worker, pin_memory
 from torch._utils import _get_device_index, _get_all_device_indices, _get_available_device_type, ExceptionWrapper
 from torch.nn.parallel.parallel_apply import get_a_var
 from torch.nn.parallel.scatter_gather import gather, scatter_kwargs
@@ -29,6 +30,8 @@ from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils._error_code import ErrCode, pta_error
 
 origin_mpdl_iter_init = _MultiProcessingDataLoaderIter.__init__
+origin_worker_loop = worker._worker_loop
+origin_pin_memory_loop = pin_memory._pin_memory_loop
 
 CONV3D_SUPPORT_FP32_SOC_PREFIX = ["Ascend910B", "Ascend910_93"]
 
@@ -367,9 +370,17 @@ def _mpdl_iter_init(self, *args, **kwargs):
         torch_npu.npu.synchronize()
     except:
         pass
-    torch_npu._C._npu_reset_threads_affinity()
     origin_mpdl_iter_init(self, *args, **kwargs)
-    torch_npu._C._npu_set_threads_affinity()
+
+
+def _npu_worker_loop(*args, **kwargs):
+    torch_npu._C._npu_set_thread_affinity(-1, -1)
+    origin_worker_loop(*args, **kwargs)
+
+
+def _npu_pin_memory_loop(*args, **kwargs):
+    torch_npu._C._npu_set_thread_affinity(-1, -1)
+    origin_pin_memory_loop(*args, **kwargs)
 
 
 def _parallel_apply(
@@ -519,6 +530,8 @@ def _apply_module_patch():
     torch.nn.Module.cast_weight = cast_weight
     torch.nn.modules.rnn.LSTM.forward = _lstm_forward
     torch.nn.modules.batchnorm.SyncBatchNorm.forward = _syncbn_forward
-    torch.utils.data.dataloader._MultiProcessingDataLoaderIter.__init__ = _mpdl_iter_init
     torch.nn.parallel.DataParallel.parallel_apply = npu_parallel_apply
     torch.nn.parallel.data_parallel = npu_data_parallel
+    torch.utils.data.dataloader._MultiProcessingDataLoaderIter.__init__ = _mpdl_iter_init
+    torch.utils.data._utils.worker._worker_loop = _npu_worker_loop
+    torch.utils.data._utils.pin_memory._pin_memory_loop = _npu_pin_memory_loop

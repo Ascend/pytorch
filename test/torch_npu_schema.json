@@ -2762,6 +2762,9 @@
   "torch_npu.npu.utils.chmod_recursive": {
     "signature": "(path, mode)"
   },
+  "torch_npu.utils.set_thread_affinity": {
+    "signature": "(core_range: List[int] = None)"
+  },
   "torch_npu.dynamo.torchair.scope.npu_stream_switch": {
     "signature": "(stream_tag: str, stream_priority: int = 0)"
   },

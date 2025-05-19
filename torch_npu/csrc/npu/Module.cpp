@@ -1453,24 +1453,32 @@ PyObject* THNPModule_npu_get_silent_check_version(PyObject* self, PyObject* noar
     END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_set_thread_affinity(PyObject* self, PyObject* noargs)
+PyObject* THNPModule_npu_get_thread_affinity(PyObject* self, PyObject* noargs)
 {
     HANDLE_TH_ERRORS
-    int device_index;
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device_index));
-    c10::DeviceIndex device = static_cast<c10::DeviceIndex>(device_index);
-    c10_npu::SetThreadAffinity(device, c10_npu::ThreadType::mainThread);
+    c10_npu::GetThreadAffinityInfo();
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_reset_thread_affinity(PyObject* self, PyObject* noargs)
+PyObject* THNPModule_npu_set_thread_affinity(PyObject* self, PyObject* args)
 {
     HANDLE_TH_ERRORS
-    int device_index;
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device_index));
-    c10::DeviceIndex device = static_cast<c10::DeviceIndex>(device_index);
-    c10_npu::SetThreadAffinity(device, c10_npu::ThreadType::unknownThread);
+    int core_start;
+    int core_end;
+    if (!PyArg_ParseTuple(args, "ii", &core_start, &core_end)) {
+        throw torch::TypeError("Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
+    }
+
+    if (core_start == -1) {
+        int device_index;
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device_index));
+        c10::DeviceIndex device = static_cast<c10::DeviceIndex>(device_index);
+        c10_npu::SetThreadType(c10_npu::ThreadType::OTHER_THREAD);
+        c10_npu::SetThreadAffinity(device);
+    } else {
+        c10_npu::SetThreadAffinity(core_start, core_end);
+    }
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
@@ -1596,8 +1604,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_set_call_state", (PyCFunction)THNPModule_npu_set_call_state, METH_O, nullptr},
     {"_npu_set_module_train_state", (PyCFunction)THNPModule_npu_set_module_train_state, METH_O, nullptr},
     {"_get_silent_check_version", (PyCFunction)THNPModule_npu_get_silent_check_version, METH_NOARGS, nullptr},
-    {"_npu_set_threads_affinity", (PyCFunction)THNPModule_npu_set_thread_affinity, METH_NOARGS, nullptr},
-    {"_npu_reset_threads_affinity", (PyCFunction)THNPModule_npu_reset_thread_affinity, METH_NOARGS, nullptr},
+    {"_npu_get_thread_affinity", (PyCFunction)THNPModule_npu_get_thread_affinity, METH_NOARGS, nullptr},
+    {"_npu_set_thread_affinity", (PyCFunction)THNPModule_npu_set_thread_affinity, METH_VARARGS, nullptr},
     {"_npu_set_fft_plan_cache_max_size", (PyCFunction)THNPModule_npu_set_fft_plan_cache_max_size, METH_VARARGS, nullptr},
     {"_npu_get_fft_plan_cache_max_size", (PyCFunction)THNPModule_npu_get_fft_plan_cache_max_size, METH_NOARGS, nullptr},
     {"_npu_get_fft_plan_cache_size", (PyCFunction)THNPModule_npu_get_fft_plan_cache_size, METH_NOARGS, nullptr},
