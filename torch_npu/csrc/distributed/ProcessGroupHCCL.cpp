@@ -1419,7 +1419,7 @@ bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool e
                 outfile << ", {";
             }
             outfile << "\"seq\":" << info->second.seq << ", \"op_type\":\"" << info->second.opType;
-            outfile << "\", \"pg_id\":" << info->second.pgId << ", \"comm_ids\":\"" << info->second.commIds;
+            outfile << "\", \"pg_id\":\"" << info->second.pgId << "\", \"comm_ids\":\"" << info->second.commIds;
             outfile << "\", \"status\":\""<< info->second.status << "\"}";
             first_op = false;
         }
