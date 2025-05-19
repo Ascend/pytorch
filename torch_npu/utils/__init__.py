@@ -1,3 +1,6 @@
+__all__ = ["npu_combine_tensors", "get_part_combined_tensor", "is_combined_tensor_valid", "FlopsCounter",
+           "set_thread_affinity"]
+
 from torch_npu import _C
 from ._module import _apply_module_patch
 from .tensor_methods import _add_tensor_methods
@@ -15,8 +18,7 @@ from .asd_detector import set_asd_loss_scale, register_asd_hook
 from .utils import _print_error_log, _print_warn_log, _print_info_log, _apply_npu_show_warning, _should_print_warning
 from ._step import add_perf_dump_patch
 from .flops_count import _FlopsCounter as FlopsCounter
-
-__all__ = ["npu_combine_tensors", "get_part_combined_tensor", "is_combined_tensor_valid", "FlopsCounter"]
+from .affinity import _set_thread_affinity as set_thread_affinity
 
 
 # init flopcount
