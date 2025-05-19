@@ -153,9 +153,11 @@ struct MstxRange {
             return;
         }
         rangeId = MstxMgr::GetInstance()->getRangeId();
-        if (at_npu::native::IsSupportMstxDomainFunc() && MstxMgr::GetInstance()->isMstxTxDomainEnable(domainName)) {
-            domainHandle = MstxMgr::GetInstance()->createProfDomain(domainName.c_str());
-            at_npu::native::MstxDomainRangeStartA(domainHandle, message.c_str(), stream, rangeId);
+        if (at_npu::native::IsSupportMstxDomainFunc()) {
+            if (MstxMgr::GetInstance()->isMstxTxDomainEnable(domainName)) {
+                domainHandle = MstxMgr::GetInstance()->createProfDomain(domainName);
+                at_npu::native::MstxDomainRangeStartA(domainHandle, message.c_str(), stream, rangeId);
+            }
         } else {
             at_npu::native::MstxRangeStartA(message.c_str(), stream, rangeId);
         }
@@ -167,7 +169,9 @@ struct MstxRange {
             return;
         }
         if (at_npu::native::IsSupportMstxDomainFunc()) {
-            at_npu::native::MstxDomainRangeEnd(domainHandle, rangeId);
+            if (domainHandle != nullptr) {
+                at_npu::native::MstxDomainRangeEnd(domainHandle, rangeId);
+            }
         } else {
             at_npu::native::MstxRangeEnd(rangeId);
         }
