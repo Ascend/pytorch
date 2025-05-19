@@ -173,12 +173,12 @@ class _ExperimentalConfig:
 
     def _check_mstx_domain_params(self):
         if not self._msprof_tx:
-            if self._mstx_domain_include is not None or self._mstx_domain_exclude is not None:
+            if self._mstx_domain_include or self._mstx_domain_exclude:
                 print_warn_msg("mstx_domain_include and mstx_domain_exclude are only valid when msprof_tx is True.")
             self._mstx_domain_include = []
             self._mstx_domain_exclude = []
             return
-        if self._mstx_domain_include is not None:
+        if self._mstx_domain_include:
             if not isinstance(self._mstx_domain_include, list):
                 print_warn_msg("Invalid parameter mstx_domain_include, which must be of list type, " \
                                "reset it to default.")
@@ -189,7 +189,7 @@ class _ExperimentalConfig:
                 self._mstx_domain_include = []
             else:
                 self._mstx_domain_include = list(set(self._mstx_domain_include))
-        if self._mstx_domain_exclude is not None:
+        if self._mstx_domain_exclude:
             if not isinstance(self._mstx_domain_exclude, list):
                 print_warn_msg("Invalid parameter mstx_domain_exclude, which must be of list type, " \
                                "reset it to default.")
