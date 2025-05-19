@@ -2756,6 +2756,9 @@
   "torch_npu.npu_all_gather_base_mm": {
     "signature": "(*args, **kwargs)"
   },
+  "torch_npu.utils.set_thread_affinity": {
+    "signature": "(core_range: List[int] = None)"
+  },
   "torch_npu.dynamo.torchair.scope.npu_stream_switch": {
     "signature": "(stream_tag: str, stream_priority: int = 0)"
   },
