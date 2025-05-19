@@ -23,6 +23,7 @@
 #include <atomic>
 #include <unordered_map>
 #include <functional>
+#include <netdb.h>
 
 #include "StoreMessagePacker.hpp"
 
@@ -120,6 +121,8 @@ public:
     void WakeupWaitingClients(const std::string &key) noexcept;
 
 private:
+    static int CreateSocketWithFamily(const std::string host, uint16_t port, int family) noexcept;
+    static int CreateSocketAndListen(const ::addrinfo &addr) noexcept;
     static int CreateSocket(const std::string host, uint16_t port) noexcept;
     static int CreateLocalSocket(const std::string &localSocketPath) noexcept;
 
