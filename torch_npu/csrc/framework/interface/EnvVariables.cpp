@@ -1,5 +1,6 @@
 #include <climits>
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 
 #include "third_party/acl/inc/acl/acl_mdl.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
@@ -46,6 +47,8 @@ REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string &val) {
   aclmdlSetDump(val.c_str());
 })
 
+static bool acl_op_has_init = false;
+
 REGISTER_OPTION_BOOL_FUNCTION(CheckJitDisableInner, jitCompile, "enable", "disable")
 REGISTER_OPTION_CACHE(bool, isJitDisable, CheckJitDisableInner)
 REGISTER_OPTION_HOOK(jitCompile, [](const std::string &val) {
@@ -57,7 +60,14 @@ REGISTER_OPTION_HOOK(jitCompile, [](const std::string &val) {
                     "Jit compile set is disabled! If you want to set, ",
                     "please change the environment variable ACL_OP_INIT_MODE to 0 or 1.",
                     PTA_ERROR(ErrCode::NOT_SUPPORT));
+        if (!acl_op_has_init) {
+            c10_npu::SetThreadAffinity(c10_npu::ThreadType::OTHER_THREAD);
+        }
         NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str()));
+        if (!acl_op_has_init) {
+            c10_npu::SetThreadAffinity(c10_npu::ThreadType::MAIN_THREAD);
+            acl_op_has_init = true;
+        }
     }
     SET_OPTION_WITH_CACHE(isJitDisable, ("disable" == val) ? true : false);
 })
