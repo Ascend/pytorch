@@ -52,7 +52,6 @@ void NPUGuardImpl::setDevice(c10::Device d) const
 
 void NPUGuardImpl::uncheckedSetDevice(c10::Device d) const noexcept
 {
-    SetBackwardThreadName(d.index());
     NPU_CHECK_WARN(c10_npu::SetDevice(d.index()));
 }
 
