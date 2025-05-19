@@ -12,6 +12,7 @@ namespace torch_npu {
 namespace profiler {
 
 const std::string DOMAIN_COMMUNICATION = "communication";
+const std::string DOMAIN_DEFAULT = "default";
 const std::string DOMAIN_MSLEAKS = "msleaks";
 
 class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
