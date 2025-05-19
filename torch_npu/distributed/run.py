@@ -25,6 +25,8 @@ def parse_args(args):
 def _main(args=None):
     args = parse_args(args)
     args.rdzv_backend = 'parallel'
+    if not args.rdzv_endpoint:
+        args.rdzv_endpoint = f"{args.master_addr}:{args.master_port}"
     torch_run.run(args)
 
 

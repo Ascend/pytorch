@@ -1,11 +1,15 @@
 __all__ = ["is_hccl_available", "reinit_process_group"]
 
+import os
 from datetime import timedelta
 from typing import Optional
+from functools import wraps
 import warnings
+import logging
 import torch
 import torch.distributed as dist
 import torch.distributed.distributed_c10d as dist_c10d
+from torch.distributed.elastic.rendezvous import RendezvousParameters
 from torch.distributed.distributed_c10d import _get_default_group, get_group_rank, _check_single_tensor, \
     _check_tensor_list, _coalescing_manager, _ensure_all_tensors_same_dtype, get_rank, _rank_not_in_group, \
     _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size, \
@@ -14,6 +18,9 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     ProcessGroup, default_pg_timeout, ReduceScatterOptions, _unregister_process_group
 
 from torch_npu.utils._error_code import ErrCode, dist_error
+
+
+logger = logging.getLogger("torch.distributed")
 
 
 def _batch_isend_irecv(p2p_op_list):
@@ -283,6 +290,34 @@ def _all_gather_into_tensor_uneven(output, input, output_split_sizes=None, group
     else:
         work.wait()
         return None
+
+
+def _trigger__get_addr_and_port_decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Only supports obtaining the master_addr and master_port through the endpoint when the backend is static.
+        if len(args) > 0 and isinstance(args[0], RendezvousParameters) and args[0].backend == "parallel":
+            args[0].backend = "static"
+            master_addr, master_port = func(*args, **kwargs)
+            args[0].backend = "parallel"
+            return master_addr, master_port
+        else:
+            return func(*args, **kwargs)
+    return wrapper
+
+
+def _trigger_rendezvous_decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        use_parallel = os.getenv("TORCH_NPU_USE_PARALLEL_TCPSTORE", "False")
+        if use_parallel == "True":
+            if len(args) > 0 and args[0] == "env://":
+                master_addr = os.getenv("MASTER_ADDR", "127.0.0.1")
+                master_port = os.getenv("MASTER_PORT", "29500")
+                args = (f"parallel://{master_addr}:{master_port}",) + args[1:]
+                logger.info(f"torch_npu_run change the rendezvous url from env:// to {args[0]}")
+        return func(*args, **kwargs)
+    return wrapper
 
 
 def _destructor_process_group():
