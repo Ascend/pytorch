@@ -252,6 +252,15 @@ void SetThreadAffinity(c10::DeviceIndex device_id)
     }
 }
 
+void SetThreadAffinity(ThreadType type)
+{
+    int device_index;
+    NPU_CHECK_ERROR_WITHOUT_UCE(GetDevice(&device_index));
+    c10::DeviceIndex device = static_cast<c10::DeviceIndex>(device_index);
+    SetThreadType(type);
+    SetThreadAffinity(device);
+}
+
 void SetThreadAffinity(int core_start, int core_end)
 {
     static int core_nums = sysconf(_SC_NPROCESSORS_ONLN);
