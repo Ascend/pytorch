@@ -45,6 +45,49 @@ class TestExperimentalConfig(TestCase):
         experimental_config = _ExperimentalConfig()
         self.assertTrue(isinstance(experimental_config(), Cpp_ExperimentalConfig))
 
+    def test_mstx_domain_switches_will_reset_when_msproftx_not_enabled(self):
+        experimental_config = _ExperimentalConfig(msprof_tx=False,
+                                                  mstx_domain_include=['x'],
+                                                  mstx_domain_exclude=['y'])
+        self.assertEqual([], experimental_config._mstx_domain_include)
+        self.assertEqual([], experimental_config._mstx_domain_exclude)
+
+    def test_mstx_domain_switches_will_save_empty_list_when_not_set_domain_switches(self):
+        experimental_config = _ExperimentalConfig(msprof_tx=True)
+        self.assertEqual([], experimental_config._mstx_domain_include)
+        self.assertEqual([], experimental_config._mstx_domain_exclude)
+
+    def test_mstx_domain_switches_will_reset_when_input_invalid_domain_switches(self):
+        experimental_config = _ExperimentalConfig(msprof_tx=True,
+                                                  mstx_domain_include=1,
+                                                  mstx_domain_exclude=1)
+        self.assertEqual([], experimental_config._mstx_domain_include)
+        self.assertEqual([], experimental_config._mstx_domain_exclude)
+
+        experimental_config = _ExperimentalConfig(msprof_tx=True,
+                                                  mstx_domain_include=[1],
+                                                  mstx_domain_exclude=[1])
+        self.assertEqual([], experimental_config._mstx_domain_include)
+        self.assertEqual([], experimental_config._mstx_domain_exclude)
+
+    def test_mstx_domain_switches_will_reset_exclude_domain_when_both_set_domain_switches(self):
+        experimental_config = _ExperimentalConfig(msprof_tx=True,
+                                                  mstx_domain_include=['x'],
+                                                  mstx_domain_exclude=['y'])
+        self.assertEqual(['x'], experimental_config._mstx_domain_include)
+        self.assertEqual([], experimental_config._mstx_domain_exclude)
+
+    def test_mstx_domain_switches_will_save_when_input_valid_domain_switches(self):
+        experimental_config = _ExperimentalConfig(msprof_tx=True,
+                                                  mstx_domain_include=['x'])
+        self.assertEqual(['x'], experimental_config._mstx_domain_include)
+        self.assertEqual([], experimental_config._mstx_domain_exclude)
+
+        experimental_config = _ExperimentalConfig(msprof_tx=True,
+                                                  mstx_domain_exclude=['y'])
+        self.assertEqual([], experimental_config._mstx_domain_include)
+        self.assertEqual(['y'], experimental_config._mstx_domain_exclude)
+
 
 if __name__ == "__main__":
     run_tests()

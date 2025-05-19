@@ -130,6 +130,9 @@ mstxDomainHandle_t MstxMgr::createProfDomain(const std::string &name)
     if (!at_npu::native::IsSupportMstxDomainFunc()) {
         return nullptr;
     }
+    if (name == DOMAIN_DEFAULT) { // don't need to create default domain
+        return nullptr;
+    }
     std::lock_guard<std::mutex> lock(mstxDomainsMtx);
     auto iter = mstxDomains_.find(name);
     if (iter != mstxDomains_.end()) {
