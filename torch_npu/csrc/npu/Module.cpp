@@ -1506,11 +1506,7 @@ PyObject* THNPModule_npu_set_thread_affinity(PyObject* self, PyObject* args)
     }
 
     if (core_start == -1) {
-        int device_index;
-        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device_index));
-        c10::DeviceIndex device = static_cast<c10::DeviceIndex>(device_index);
-        c10_npu::SetThreadType(c10_npu::ThreadType::OTHER_THREAD);
-        c10_npu::SetThreadAffinity(device);
+        c10_npu::SetThreadAffinity(c10_npu::ThreadType::OTHER_THREAD);
     } else {
         c10_npu::SetThreadAffinity(core_start, core_end);
     }
