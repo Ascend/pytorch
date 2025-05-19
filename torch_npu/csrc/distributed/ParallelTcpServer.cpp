@@ -226,18 +226,49 @@ void ParallelTcpServer::WakeupWaitingClients(const std::string &key) noexcept
 
 int ParallelTcpServer::CreateSocket(const std::string host, uint16_t port) noexcept
 {
-    struct sockaddr_in servAddr {};
-    servAddr.sin_family = AF_INET;
-    servAddr.sin_addr.s_addr = inet_addr(host.c_str());
-    servAddr.sin_port = htons(port);
+    auto sockFd = CreateSocketWithFamily(host, port, AF_INET);
+    if (sockFd >= 0) {
+        return sockFd;
+    }
+    
+    sockFd = CreateSocketWithFamily(host, port, AF_INET6);
+    if (sockFd >= 0) {
+        return sockFd;
+    }
+    return -1;
+}
 
-    auto sockFd = ::socket(AF_INET, SOCK_STREAM, 0);
+int ParallelTcpServer::CreateSocketWithFamily(const std::string host, uint16_t port, int family) noexcept
+{
+    struct addrinfo hints = {0};
+    hints.ai_family = family;
+    hints.ai_socktype = SOCK_STREAM;
+
+    ::addrinfo* result = nullptr;
+    int r = ::getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
+    if (r != 0) {
+        LOG(ERROR) << "getaddrinfo failed " << errno << " : " << strerror(errno);
+        return -1;
+    }
+
+    for (::addrinfo* addr = result; addr != nullptr; addr = addr->ai_next) {
+        int sockFd = CreateSocketAndListen(*addr);
+        if (sockFd >= 0) {
+            return sockFd;
+        }
+    }
+    return -1;
+}
+
+int ParallelTcpServer::CreateSocketAndListen(const ::addrinfo &addr) noexcept
+{
+    auto sockFd = ::socket(addr.ai_family, addr.ai_socktype, addr.ai_protocol);
     if (sockFd < 0) {
         LOG(ERROR) << "create server socket fd failed " << errno << " : " << strerror(errno);
         return -1;
     }
 
-    auto ret = ::bind(sockFd, reinterpret_cast<struct sockaddr *>(&servAddr), sizeof(servAddr));
+    auto ret = ::bind(sockFd, addr.ai_addr, addr.ai_addrlen);
     if (ret != 0) {
         LOG(ERROR) << "bind server socket fd failed " << errno << " : " << strerror(errno);
         close(sockFd);

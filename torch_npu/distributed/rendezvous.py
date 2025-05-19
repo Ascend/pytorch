@@ -197,6 +197,7 @@ def _create_parallel_handler(params: RendezvousParameters) -> RendezvousHandler:
         timeout = _default_timeout_seconds
     os.environ.setdefault("ENABLE_TIERED_PARALLEL_TCPSTORE", str(origin_args.enable_tiered_parallel_tcpstore))
     os.environ.setdefault("TORCH_NPU_ELASTIC_USE_AGENT_STORE", str(True))
+    os.environ.setdefault("TORCH_NPU_USE_PARALLEL_TCPSTORE", str(True))
     enable_tiered = str(origin_args.enable_tiered_parallel_tcpstore).lower() == "true"
     agent_run = True
     agent_pid = os.getpid()

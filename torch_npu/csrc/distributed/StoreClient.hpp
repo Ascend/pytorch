@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <string>
 #include <chrono>
+#include <netdb.h>
 
 #include "StoreMessagePacker.hpp"
 
@@ -29,6 +30,8 @@ public:
     explicit Client(const std::string host, uint16_t port, const std::chrono::milliseconds timeout) noexcept;
     explicit Client(const std::string localSocketPath, const std::chrono::milliseconds timeout) noexcept;
     int Connect() noexcept;
+    int TryConnect(int family) noexcept;
+    int TryConnectCore(const ::addrinfo &addr) noexcept;
     int Close() noexcept;
     int LocalConnect() noexcept;
     int LocalClose() noexcept;
