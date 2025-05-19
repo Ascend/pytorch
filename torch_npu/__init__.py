@@ -161,6 +161,8 @@ def _apply_distributed_methods_patch():
     torch.distributed.distributed_c10d.gather_object = torch_npu.distributed.distributed_c10d._gather_object
     torch.distributed.is_hccl_available = torch_npu.distributed.is_hccl_available
     torch.distributed.reinit_process_group = torch_npu.distributed.reinit_process_group
+    torch.distributed.distributed_c10d.rendezvous = torch_npu.distributed.distributed_c10d._trigger_rendezvous_decorator(torch.distributed.distributed_c10d.rendezvous)    
+    torch.distributed.launcher.api._get_addr_and_port = torch_npu.distributed.distributed_c10d._trigger__get_addr_and_port_decorator(torch.distributed.launcher.api._get_addr_and_port)
 
 
 torch.utils.rename_privateuse1_backend("npu")
