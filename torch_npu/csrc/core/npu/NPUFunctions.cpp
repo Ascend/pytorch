@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
@@ -102,6 +103,7 @@ aclError SetDevice(c10::DeviceIndex device)
     if (local_device == device) {
         return ACL_ERROR_NONE;
     }
+    c10_npu::SetThreadAffinity(device);
 
     aclError err = aclrtSetDevice(device);
     if (err == ACL_ERROR_NONE) {

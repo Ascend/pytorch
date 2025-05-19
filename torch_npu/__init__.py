@@ -297,3 +297,6 @@ if hasattr(sys, 'ps1'):
 def _autoload():
     # We should restore this switch as sub processes need to inherit its value
     os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
+
+
+torch_npu._C._npu_get_thread_affinity()

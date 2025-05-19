@@ -698,9 +698,7 @@ bool Repository::CheckInit() const
 
 void StartConsume(Repository *repo, c10::DeviceIndex device_id)
 {
-    SetThreadName(ThreadType::aclThread);
-    SetThreadAffinity(device_id);
-
+    SetThreadType(ThreadType::ACL_THREAD);
     aclError ret = c10_npu::SetDevice(device_id);
     if (ret != 0) {
         C10_NPU_SHOW_ERR_MSG();
@@ -812,7 +810,7 @@ void ReleaseQueue::PopFromReleaseQueue()
 
 void StartRelease(ReleaseQueue *releaseQue)
 {
-    SetThreadName(ThreadType::releaseThread);
+    SetThreadType(ThreadType::RELEASE_THREAD);
     SetThreadAffinity(releaseQue->GetDeviceID());
 
     while (releaseQue->GetStatus() != RepoStatus::CAN_EXIT) {

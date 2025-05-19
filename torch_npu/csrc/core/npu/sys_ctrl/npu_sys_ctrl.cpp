@@ -189,10 +189,6 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
 
     lazy_fn_.clear();
 
-    GetAffinityInfo();
-
-    SetThreadAffinity(device_id_);
-
     init_flag_ = true;
     ASCEND_LOGD("Npu sys ctrl initialize successfully.");
 
