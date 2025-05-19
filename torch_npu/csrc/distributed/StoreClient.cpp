@@ -38,27 +38,26 @@ Client::Client(const std::string localSocketPath, const std::chrono::millisecond
     : localSocketPath_ { localSocketPath }, socketFd_(-1), timeout_{ timeout }
 {}
 
-int Client::Connect() noexcept
+int Client::TryConnectCore(const ::addrinfo &addr) noexcept
 {
-    socketFd_ = socket(AF_INET, SOCK_STREAM, 0);
+    socketFd_ = ::socket(addr.ai_family, addr.ai_socktype, addr.ai_protocol);
     if (socketFd_ < 0) {
         LOG(ERROR) << "create tcp client socket failed " << errno << " : " << strerror(errno);
         return -1;
     }
+
     auto ret = SetReceiveTimeout(timeout_);
     if (ret < 0) {
         LOG(ERROR) << "set socket timeout failed. " << errno << " : " << strerror(errno);
+        close(socketFd_);
+        socketFd_ = -1;
         return -1;
     }
-    struct sockaddr_in servAddr {};
-    servAddr.sin_family = AF_INET;
-    servAddr.sin_port = htons(port_);
-    servAddr.sin_addr.s_addr = inet_addr(host_.c_str());
 
     int lastError = 0;
-    auto endTime = std::chrono::steady_clock::now() + std::chrono::minutes(1);
+    auto endTime = std::chrono::steady_clock::now() + timeout_;
     while (std::chrono::steady_clock::now() < endTime) {
-        ret = connect(socketFd_, reinterpret_cast<const struct sockaddr *>(&servAddr), sizeof(servAddr));
+        ret = connect(socketFd_, addr.ai_addr, addr.ai_addrlen);
         if (ret == 0) {
             return 0;
         }
@@ -79,21 +78,62 @@ int Client::Connect() noexcept
         }
     }
 
+    close(socketFd_);
+    socketFd_ = -1;
+    return -1;
+}
+
+int Client::TryConnect(int family) noexcept
+{
+    struct addrinfo hints = {0};
+    hints.ai_family = family;
+    hints.ai_socktype = SOCK_STREAM;
+
+    ::addrinfo* result = nullptr;
+    int r = ::getaddrinfo(host_.c_str(), std::to_string(port_).c_str(), &hints, &result);
+    if (r != 0) {
+        LOG(ERROR) << "getaddrinfo failed " << errno << " : " << strerror(errno);
+        return -1;
+    }
+
+    for (::addrinfo* addr = result; addr != nullptr; addr = addr->ai_next) {
+        int ret = TryConnectCore(*addr);
+        if (ret == 0) {
+            return 0;
+        }
+    }
+    return -1;
+}
+
+int Client::Connect() noexcept
+{
+    auto ret = TryConnect(AF_INET);
+    if (ret >= 0) {
+        return 0;
+    }
+    
+    ret = TryConnect(AF_INET6);
+    if (ret >= 0) {
+        return 0;
+    }
     return -1;
 }
 
 int Client::Close() noexcept
 {
     shutdown(socketFd_, SHUT_RDWR);
-    auto ret = close(socketFd_);
-    if (ret == 0) {
-        socketFd_ = -1;
-        return 0;
+    if (socketFd_ >= 0) {
+        auto ret = close(socketFd_);
+        if (ret == 0) {
+            socketFd_ = -1;
+            return 0;
+        }
+        LOG(ERROR) << "close socket to server(" << host_ << ":" << port_ << ") failed " << errno << " : " <<
+            strerror(errno);
+        return ret;
     }
 
-    LOG(ERROR) << "close socket to server(" << host_ << ":" << port_ << ") failed " << errno << " : " <<
-        strerror(errno);
-    return ret;
+    return 0;
 }
 
 int Client::LocalConnect() noexcept
@@ -120,7 +160,7 @@ int Client::LocalConnect() noexcept
     servAddr.sun_path[sizeof(servAddr.sun_path) - 1] = '\0';
 
     int lastError = 0;
-    auto endTime = std::chrono::steady_clock::now() + std::chrono::minutes(1);
+    auto endTime = std::chrono::steady_clock::now() + timeout_;
     while (std::chrono::steady_clock::now() < endTime) {
         ret = connect(socketFd_, reinterpret_cast<const struct sockaddr *>(&servAddr), sizeof(servAddr));
         if (ret == 0) {
