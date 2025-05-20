@@ -44,6 +44,7 @@
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
 #include "torch_npu/csrc/core/npu/interface/OpInterface.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
+#include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h"
 
 struct NPUDeviceProp {
@@ -1010,6 +1011,16 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
         segments.append(segmentInfoToDict(segmentInfo));
     }
 
+    auto workspace_snapshot = c10_npu::NPUWorkspaceAllocator::snapshot();
+    for (int i = 0; i < workspace_snapshot.segments.size(); i++) {
+        segments.append(segmentInfoToDict(workspace_snapshot.segments[i]));
+    }
+
+    for (int i = 0; i < workspace_snapshot.device_traces.size(); i++) {
+        snapshot.device_traces[i].insert(snapshot.device_traces[i].begin(), workspace_snapshot.device_traces[i].begin(),
+                                         workspace_snapshot.device_traces[i].end());
+    }
+
     py::list traces;
     py::str action_s = "action";
     py::str alloc_s = "alloc";
@@ -1021,6 +1032,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
     py::str segment_unmap_s = "segment_unmap";
 
     py::str snapshot_s = "snapshot";
+    py::str workspace_snapshot_s = "workspace_snapshot";
     py::str oom_s = "oom";
     py::str device_free_s = "device_free";
 
@@ -1042,6 +1054,8 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
                 return oom_s;
             case TraceEntry::SNAPSHOT:
                 return snapshot_s;
+            case TraceEntry::WORKSPACE_SNAPSHOT:
+                return workspace_snapshot_s;
             case TraceEntry::SEGMENT_UNMAP:
                 return segment_unmap_s;
             case TraceEntry::SEGMENT_MAP:
