@@ -26,6 +26,8 @@ struct NpuTraceConfig {
     bool op_attr;
     std::vector<std::string> mstx_domain_include;
     std::vector<std::string> mstx_domain_exclude;
+    bool sys_io;
+    bool sys_interconnection;
 };
 
 C10_NPU_API int8_t GetTraceLevel();
