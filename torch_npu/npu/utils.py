@@ -1,5 +1,5 @@
 import os
-from typing import Any, Optional
+from typing import Any, Optional, Union, List, cast
 from functools import lru_cache
 import warnings
 import contextlib
@@ -60,9 +60,82 @@ def synchronize(device=None):
         return torch_npu._C._npu_synchronize()
 
 
+def _parse_visible_devices() -> Union[List[int], List[str]]:
+    r"""Parse ASCEND_RT_VISIBLE_DEVICES environment variable."""
+    var = os.getenv("ASCEND_RT_VISIBLE_DEVICES")
+    if var is None:
+        return list(range(64))
+
+    rc: List[int] = []
+
+    if not var:
+        return rc
+
+    # Multiple Device IDs are separated by ',' and cannot contain any other characters. 
+    # If any other characters are included, only the Device IDs before them will be read
+    for idx, c in enumerate(var):
+        if not (c.isdigit() or c == ","):
+            break
+        if idx + 1 == len(var):
+            idx += 1
+
+    for elem in var[:idx].split(","):
+        if not elem:
+            return rc
+        x = int(elem)
+        rc.append(x)
+
+    return rc
+
+
+def _raw_device_count_ascend_hal() -> int:
+    r"""Return number of devices as reported by ascend_hal or negative value if ascend_hal discovery/initialization failed."""
+    from ctypes import byref, c_int, CDLL
+
+    ascend_hal_h = CDLL("libascend_hal.so")
+
+    dev_count = c_int(-1)
+    rc = ascend_hal_h.drvGetDevNum(byref(dev_count))
+
+
+    if rc != 0:
+        warnings.warn("Can't get ascend_hal device count")
+        return -1
+    del ascend_hal_h
+    return dev_count.value
+
+
+def _device_count_ascend_hal() -> int:
+    r"""Return number of devices as reported by ascend_hal taking ASCEND_RT_VISIBLE_DEVICES into account.
+
+    Negative value is returned if ascend_hal discovery or initialization has failed.
+    """
+    visible_devices = _parse_visible_devices()
+    if not visible_devices:
+        return 0
+    try:
+        raw_cnt = _raw_device_count_ascend_hal()
+        if raw_cnt <= 0:
+            return raw_cnt
+        # Trim the list up to a maximum available device
+        for idx, val in enumerate(visible_devices):
+            # `rts` need ascending order
+            if idx > 0 and val <= visible_devices[idx - 1]:
+                return 0
+            if cast(int, val) >= raw_cnt:
+                return idx
+    except OSError:
+        return -1
+    except AttributeError:
+        return -1
+    return len(visible_devices)
+
+
 @lru_cache(maxsize=1)
-def device_count():
-    return torch_npu._C._npu_getDeviceCount()
+def device_count() -> int:
+    r"""Return the number of NPUs available."""
+    ascend_hal_count = _device_count_ascend_hal()
+    return torch_npu._C._npu_getDeviceCount() if ascend_hal_count < 0 else ascend_hal_count
 
 
 def can_device_access_peer(device_id, peer_device_id):

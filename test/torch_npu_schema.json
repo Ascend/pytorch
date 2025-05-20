@@ -1083,7 +1083,7 @@
     "signature": "(device)"
   },
   "torch_npu.npu.device_count": {
-    "signature": "()"
+    "signature": "() -> int"
   },
   "torch_npu.npu.device_of": {
     "signature": "(obj)"
@@ -1620,7 +1620,7 @@
     "signature": "(device)"
   },
   "torch_npu.npu.utils.device_count": {
-    "signature": "()"
+    "signature": "() -> int"
   },
   "torch_npu.npu.utils.device_of": {
     "signature": "(obj)"

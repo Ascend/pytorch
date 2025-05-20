@@ -1955,7 +1955,6 @@
   "test_cuda_graph_error_options (__main__.TestNpu)": ["", [""]],
   "test_batch_norm_gather_stats (__main__.TestNpu)": ["", [""]],
   "test_matmul_device_mismatch (__main__.TestNpu)": ["", [""]],
-  "test_lazy_init (__main__.TestNpu)": ["", [""]],
   "test_npu_kernel_loop_overflow (__main__.TestNpu)": ["", [""]],
   "test_allocator_settings (__main__.TestNpu)": ["", [""]],
   "test_raises_oom (__main__.TestNpu)": ["", [""]],

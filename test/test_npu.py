@@ -3317,11 +3317,11 @@ exit(2)
                 with self.assertRaisesRegex(RuntimeError, "Expected all tensors to be on the same device"):
                     torch.addmm(s, m1, m2)
 
-    @unittest.skipIf(not TEST_MULTINPU, "Testing on one NPU is sufficient")
+    @unittest.skipIf(TEST_MULTINPU, "Testing on one NPU is sufficient")
     def test_lazy_init(self):
-        """ Validate that no NPU calls are made during `import torch` call"""
+        """ Validate that no NPU calls are made during `import torch_npu` call"""
         from subprocess import check_output
-        VISIBLE_DEVICES = "HIP_VISIBLE_DEVICES" if TEST_WITH_ROCM else "CUDA_VISIBLE_DEVICES"
+        VISIBLE_DEVICES = "HIP_VISIBLE_DEVICES" if TEST_WITH_ROCM else "ASCEND_RT_VISIBLE_DEVICES"
         test_script = f"import os; import torch; import torch_npu; os.environ['{VISIBLE_DEVICES}']='32';print(torch_npu.npu.device_count())"
         rc = check_output([sys.executable, '-c', test_script]).decode("ascii").strip()
         self.assertEqual(rc, "0")
