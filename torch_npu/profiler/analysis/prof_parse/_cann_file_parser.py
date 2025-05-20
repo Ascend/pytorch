@@ -33,6 +33,10 @@ class CANNDataEnum(Enum):
     REPORT_DB = 12
     ANALYSIS_DB = 13
     API_STATISTIC = 14
+    NIC = 15
+    ROCE = 16
+    PCIE = 17
+    HCCS = 18
 
 
 class CANNFileParser:
@@ -63,7 +67,11 @@ class CANNFileParser:
         CANNDataEnum.OP_STATISTIC: [r"^op_statistic_\d{1,20}.*\.csv", r"^op_statistic_slice_\d{1,20}.*\.csv"],
         CANNDataEnum.NPU_MODULE_MEM: [r"^npu_module_mem_\d{1,20}.*\.csv", r"^npu_module_mem_slice_\d{1,20}.*\.csv"],
         CANNDataEnum.REPORT_DB: [r"^msprof_\d{1,20}\.db"],
-        CANNDataEnum.ANALYSIS_DB: [r"communication_analyzer\.db"]
+        CANNDataEnum.ANALYSIS_DB: [r"communication_analyzer\.db"],
+        CANNDataEnum.NIC: [r"^nic_\d{1,20}.*\.csv"],
+        CANNDataEnum.ROCE: [r"^roce_\d{1,20}.*\.csv"],
+        CANNDataEnum.PCIE: [r"^pcie_\d{1,20}.*\.csv"],
+        CANNDataEnum.HCCS: [r"^hccs_\d{1,20}.*\.csv"]
     }
 
     def __init__(self, profiler_path: str):

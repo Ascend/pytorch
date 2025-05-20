@@ -133,6 +133,23 @@ uint64_t ProfilerMgr::PrepareProfilerConfig(const NpuTraceConfig &npu_config)
     if (npu_config.op_attr) {
         datatype_config |= ACL_PROF_OP_ATTR;
     }
+    if (npu_config.sys_io) {
+        const std::string sysIoFreq = "100";
+        aclError sysIoRet = at_npu::native::AclprofSetConfig(ACL_PROF_SYS_IO_FREQ, sysIoFreq.c_str(), sysIoFreq.size());
+        if (sysIoRet != ACL_SUCCESS) {
+            ASCEND_LOGW("Failed call aclprofSetConfig to ACL_PROF_SYS_IO_FREQ. error_code : %d",
+                        static_cast<int>(sysIoRet));
+        }
+    }
+    if (npu_config.sys_interconnection) {
+        const std::string sysInterconnectionFreq  = "50";
+        aclError sysInterconnectionRet =
+          at_npu::native::AclprofSetConfig(ACL_PROF_SYS_INTERCONNECTION_FREQ, sysInterconnectionFreq.c_str(), sysInterconnectionFreq.size());
+        if (sysInterconnectionRet != ACL_SUCCESS) {
+            ASCEND_LOGW("Failed call aclprofSetConfig to ACL_PROF_SYS_INTERCONNECTION_FREQ. error_code : %d",
+                        static_cast<int>(sysInterconnectionRet));
+        }
+    }
     datatype_config = CheckFeatureConfig(datatype_config);
     return datatype_config;
 }
