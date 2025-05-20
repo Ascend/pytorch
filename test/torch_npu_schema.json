@@ -1047,7 +1047,7 @@
     "signature": "(device)"
   },
   "torch_npu.npu.device_count": {
-    "signature": "()"
+    "signature": "() -> int"
   },
   "torch_npu.npu.device_of": {
     "signature": "(obj)"
@@ -1580,9 +1580,6 @@
   "torch_npu.npu.streams.SyncLaunchStream.set_data_preprocess_stream": {
     "signature": "(self, is_data_preprocess_stream=False)"
   },
-  "torch_npu.npu.utils.can_device_access_peer": {
-    "signature": "(device_id, peer_device_id)"
-  },
   "torch_npu.npu.utils.clear_npu_overflow_flag": {
     "signature": "()"
   },
@@ -1604,9 +1601,6 @@
   "torch_npu.npu.utils.device": {
     "signature": "(device)"
   },
-  "torch_npu.npu.utils.device_count": {
-    "signature": "()"
-  },
   "torch_npu.npu.utils.device_of": {
     "signature": "(obj)"
   },
@@ -1615,15 +1609,6 @@
   },
   "torch_npu.npu.utils.finalize_dump": {
     "signature": "()"
-  },
-  "torch_npu.npu.utils.get_device_capability": {
-    "signature": "(device=None)"
-  },
-  "torch_npu.npu.utils.get_device_name": {
-    "signature": "(device_name=None)"
-  },
-  "torch_npu.npu.utils.get_device_properties": {
-    "signature": "(device_name=None)"
   },
   "torch_npu.npu.utils.get_npu_overflow_flag": {
     "signature": "()"
@@ -1639,9 +1624,6 @@
   },
   "torch_npu.npu.utils.is_support_inf_nan": {
     "signature": "()"
-  },
-  "torch_npu.npu.utils.mem_get_info": {
-    "signature": "(device=None)"
   },
   "torch_npu.npu.utils.npu_check_overflow": {
     "signature": "(grad)"
@@ -1666,9 +1648,6 @@
   },
   "torch_npu.npu.utils.stress_detect": {
     "signature": "()"
-  },
-  "torch_npu.npu.utils.utilization": {
-    "signature": "(device=None)"
   },
   "torch_npu.optim.NpuFusedAdadelta": {
     "signature": "(params, lr=1.0, rho=0.9, eps=1e-06, weight_decay=0)"

@@ -117,7 +117,7 @@ __all__ = [
     "graph_task_update_end"
 ]
 
-from typing import Tuple, Union
+from typing import Tuple, Union, List, cast, Optional
 from multiprocessing.util import register_after_fork as _register_after_fork
 import traceback
 import threading
@@ -129,11 +129,10 @@ from torch_npu.utils import _should_print_warning
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
-from .utils import (synchronize, device_count, can_device_access_peer, set_device, current_device, get_device_name,
-                    get_device_properties, get_device_capability, _get_device_index,
+from .utils import (synchronize, set_device, current_device, _get_device_index,
                     device, device_of, StreamContext, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
-                    utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag, mem_get_info,
+                    finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag,
                     check_uce_in_memory, stress_detect)
 from ._recovery import restart_device, stop_device
 from .streams import Stream, Event, SyncLaunchStream, ExternalEvent
@@ -326,6 +325,151 @@ def is_available():
     if (not hasattr(torch_npu._C, '_npu_setDevice')):
         return False
     return device_count() > 0
+
+
+def _parse_visible_devices() -> Union[List[int], List[str]]:
+    r"""Parse ASCEND_RT_VISIBLE_DEVICES environment variable."""
+    var = os.getenv("ASCEND_RT_VISIBLE_DEVICES")
+    if var is None:
+        return list(range(64))
+
+    rc: List[int] = []
+
+    if not var:
+        return rc
+
+    # Multiple Device IDs are separated by ',' and cannot contain any other characters.
+    # If any other characters are included, only the Device IDs before them will be read
+    for idx, c in enumerate(var):
+        if not (c.isdigit() or c == ","):
+            break
+        if idx + 1 == len(var):
+            idx += 1
+
+    for elem in var[:idx].split(","):
+        if not elem:
+            return rc
+        x = int(elem)
+        rc.append(x)
+
+    return rc
+
+
+def _raw_device_count_ascend_hal() -> int:
+    r"""Return number of devices as reported by ascend_hal or negative value if ascend_hal discovery/initialization failed."""
+    from ctypes import byref, c_int, CDLL
+
+    ascend_hal_h = CDLL("libascend_hal.so")
+
+    dev_count = c_int(-1)
+    rc = ascend_hal_h.drvGetDevNum(byref(dev_count))
+
+
+    if rc != 0:
+        warnings.warn("Can't get ascend_hal device count")
+        return -1
+    del ascend_hal_h
+    return dev_count.value
+
+
+def _device_count_ascend_hal() -> int:
+    r"""Return number of devices as reported by ascend_hal taking ASCEND_RT_VISIBLE_DEVICES into account.
+
+    Negative value is returned if ascend_hal discovery or initialization has failed.
+    """
+    visible_devices = _parse_visible_devices()
+    if not visible_devices:
+        return 0
+    try:
+        raw_cnt = _raw_device_count_ascend_hal()
+        if raw_cnt <= 0:
+            return raw_cnt
+        # Trim the list up to a maximum available device
+        for idx, val in enumerate(visible_devices):
+            # `rts` need ascending order
+            if idx > 0 and val <= visible_devices[idx - 1]:
+                return 0
+            if cast(int, val) >= raw_cnt:
+                return idx
+    except OSError:
+        return -1
+    except AttributeError:
+        return -1
+    return len(visible_devices)
+
+
+_cached_device_count: Optional[int] = None
+
+
+def device_count() -> int:
+    r"""Return the number of NPUs available."""
+    global _cached_device_count
+    if _cached_device_count is not None:
+        return _cached_device_count
+    ascend_hal_count = _device_count_ascend_hal()
+    r = torch_npu._C._npu_getDeviceCount() if ascend_hal_count < 0 else ascend_hal_count
+    # NB: Do not cache the device count prior to NPU initialization, because
+    # the number of devices can change due to changes to ASCEND_RT_VISIBLE_DEVICES
+    # setting prior to NPU initialization.
+    if _initialized:
+        _cached_device_count = r
+    return r
+
+
+def can_device_access_peer(device_id, peer_device_id):
+    r"""Checks if peer access between two devices is possible.
+    """
+    device_id = _get_device_index(device_id, optional=True)
+    peer_device_id = _get_device_index(peer_device_id, optional=True)
+    if device_id < 0 or device_id >= device_count():
+        raise AssertionError("Invalid devide id" + pta_error(ErrCode.VALUE))
+    if peer_device_id < 0 or peer_device_id >= device_count():
+        raise AssertionError("Invalid peer devide id" + pta_error(ErrCode.VALUE))
+    return torch_npu._C._npu_canDeviceAccessPeer(device_id, peer_device_id)
+
+
+def get_device_name(device_name=None):
+    device_id = _get_device_index(device_name, optional=True)
+    if device_id < 0 or device_id >= device_count():
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
+    return torch_npu._C._npu_getDeviceName()
+
+
+def get_device_properties(device_name=None):
+    device_id = _get_device_index(device_name, optional=True)
+    if device_id < 0 or device_id >= device_count():
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
+    torch_npu.npu._lazy_init()
+    return torch_npu._C._npu_getDeviceProperties(device_id)
+
+
+def mem_get_info(device=None):
+    if device is None:
+        device = torch_npu.npu.current_device()
+    device_id = _get_device_index(device)
+    if device_id < 0 or device_id >= device_count():
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
+    torch_npu.npu._lazy_init()
+    device_prop = torch_npu._C._npu_getDeviceMemories(device_id)
+    return device_prop.free_memory, device_prop.total_memory
+
+
+def get_device_capability(device=None):
+    r"""Query the minor and major data of device. Cann does not
+    have a corresponding concept and is not supported. By default, it returns None
+    """
+    warnings.warn("torch.npu.get_device_capability isn't implemented!")
+    return None
+
+
+def utilization(device=None):
+    r"""Query the comprehensive utilization rate of device
+    """
+    device_id = _get_device_index(device, optional=True)
+    if device_id < 0 or device_id >= device_count():
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
+    torch_npu.npu._lazy_init()
+    return torch_npu._C._npu_getDeviceUtilizationRate(device_id)
 
 
 from .random import *  # noqa: F403

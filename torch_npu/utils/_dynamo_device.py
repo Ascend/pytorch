@@ -4,9 +4,9 @@ from torch._dynamo.device_interface import DeviceInterface, register_interface_f
 
 from torch_npu._C import _npu_getCurrentRawStream as get_npu_stream
 from ..npu.streams import Event, Stream
-from ..npu.utils import current_device, set_device, device_count, stream, current_stream, \
+from ..npu import current_device, set_device, device_count, stream, current_stream, \
     set_stream, synchronize, get_device_capability
-from ..npu.utils import get_device_properties as get_device_properties_npu
+from ..npu import get_device_properties as get_device_properties_npu
 
 
 class NpuInterface(DeviceInterface):

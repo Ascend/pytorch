@@ -25,7 +25,6 @@ from torch.nn.parallel.replicate import replicate
 
 import torch_npu
 from torch_npu.npu.amp.autocast_mode import autocast
-from torch_npu.npu.utils import get_device_name
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils._error_code import ErrCode, pta_error
 
@@ -123,7 +122,7 @@ def cast_weight(self, device):
             return
         if issubclass(class_name, torch.nn.Conv3d):
             module.weight.data = module.weight.data.to(device)
-            device_name = get_device_name()
+            device_name = torch_npu.npu.get_device_name()
             if any(device_name.startswith(prefix) for prefix in CONV3D_SUPPORT_FP32_SOC_PREFIX):
                 module.weight.data = torch_npu.npu_format_cast(module.weight.data, 33)
                 return
