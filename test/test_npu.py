@@ -3400,22 +3400,14 @@ exit(2)
 
     @unittest.skipIf(TEST_MULTINPU, "Testing on one NPU is sufficient")
     def test_lazy_init(self):
-        """ Validate that no NPU calls are made during `import torch` call"""
+        """ Validate that no NPU calls are made during `import torch_npu` call"""
         def check_output(script: str) -> str:
             return subprocess.check_output([sys.executable, "-c", script]).decode("ascii").strip()
 
-        VISIBLE_DEVICES = "HIP_VISIBLE_DEVICES" if TEST_WITH_ROCM else "CUDA_VISIBLE_DEVICES"
+        VISIBLE_DEVICES = "HIP_VISIBLE_DEVICES" if TEST_WITH_ROCM else "ASCEND_RT_VISIBLE_DEVICES"
         test_script = f"import os; import torch;os.environ['{VISIBLE_DEVICES}']='32';print(torch.cuda.device_count())"
         rc = check_output(test_script)
         self.assertEqual(rc, "0")
-        if not TEST_WITH_ROCM:
-            # Check that `cuInit` was not called during the import
-            # By using ctypes and calling cuDeviceCountGet() and expect CUDA_ERROR_NOT_INITIALIZED == 3
-            # See pytorch issues 116276 for more details
-            libcuda_name = "libcuda.so.1" if not IS_WINDOWS else "nvcuda.dll"
-            cuda_driver_api_call = f"ctypes.CDLL('{libcuda_name}').cuDeviceGetCount(ctypes.byref(x))"
-            rc = check_output(f"import torch; import ctypes;x=ctypes.c_int(-1);print({cuda_driver_api_call})")
-            self.assertEqual(rc, "3")
 
 
 class TestNpuMallocAsync(TestCase):
