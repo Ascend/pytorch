@@ -14,6 +14,10 @@ from .prof_bean._l2_cache_bean import L2CacheBean
 from .prof_bean._api_statistic_bean import ApiStatisticBean
 from .prof_bean._op_statistic_bean import OpStatisticBean
 from .prof_bean._npu_module_mem_bean import NpuModuleMemoryBean
+from .prof_bean._nic_bean import NicBean
+from .prof_bean._roce_bean import RoCEBean
+from .prof_bean._pcie_bean import PcieBean
+from .prof_bean._hccs_bean import HccsBean
 
 __all__ = []
 
@@ -48,6 +52,8 @@ class ProfilerConfig:
         self._is_cluster = False
         self._localtime_diff = 0
         self._syscnt_enable = False
+        self._sys_io = False
+        self._sys_interconnection = False
         self._freq = 100.0
         self._time_offset = 0
         self._start_cnt = 0
@@ -162,12 +168,19 @@ class ProfilerConfig:
         self._op_attr = experimental_config.get(Constant.OP_ATTR, self._op_attr)
         self._data_simplification = experimental_config.get(Constant.DATA_SIMPLIFICATION, self._data_simplification)
         self._export_type = self._get_export_type_from_profiler_info(experimental_config)
+        self._sys_io = experimental_config.get(Constant.SYS_IO, self._sys_io)
+        self._sys_interconnection = experimental_config.get(Constant.SYS_INTERCONNECTION, self._sys_interconnection)
 
     def load_rank_info(self, info_json: dict):
         self._rank_id = info_json.get(Constant.RANK_ID, -1)
 
     def get_parser_bean(self):
-        return self.LEVEL_PARSER_CONFIG.get(self._profiler_level) + self._get_l2_cache_bean()
+        return (
+            self.LEVEL_PARSER_CONFIG.get(self._profiler_level) +
+            self._get_l2_cache_bean() +
+            self._get_sys_io_bean() +
+            self._get_sys_interconnection_bean()
+        )
 
     def get_prune_config(self):
         return self.LEVEL_TRACE_PRUNE_CONFIG.get(self._profiler_level)
@@ -186,6 +199,12 @@ class ProfilerConfig:
 
     def _get_l2_cache_bean(self):
         return [(CANNDataEnum.L2_CACHE, L2CacheBean)] if self._l2_cache else []
+    
+    def _get_sys_io_bean(self):
+        return [(CANNDataEnum.NIC, NicBean), (CANNDataEnum.ROCE, RoCEBean)] if self._sys_io else []
+
+    def _get_sys_interconnection_bean(self):
+        return [(CANNDataEnum.PCIE, PcieBean), (CANNDataEnum.HCCS, HccsBean)] if self._sys_interconnection else []
 
     def _get_export_type_from_profiler_info(self, experimental_config: dict) -> list:
         export_type = experimental_config.get(Constant.EXPORT_TYPE, self._export_type)

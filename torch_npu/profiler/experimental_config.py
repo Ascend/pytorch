@@ -66,7 +66,9 @@ class _ExperimentalConfig:
                  gc_detect_threshold: float = None,
                  export_type: Union[str, list] = None,
                  mstx_domain_include: list = None,
-                 mstx_domain_exclude: list = None):
+                 mstx_domain_exclude: list = None,
+                 sys_io: bool = False,
+                 sys_interconnection: bool = False):
         self._profiler_level = profiler_level
         self._aic_metrics = aic_metrics
         if self._profiler_level != Constant.LEVEL_NONE:
@@ -81,6 +83,8 @@ class _ExperimentalConfig:
         self._gc_detect_threshold = gc_detect_threshold
         self._mstx_domain_include = mstx_domain_include if mstx_domain_include else []
         self._mstx_domain_exclude = mstx_domain_exclude if mstx_domain_exclude else []
+        self._sys_io = sys_io
+        self._sys_interconnection = sys_interconnection
         self._check_params()
         self._check_mstx_domain_params()
 
@@ -92,7 +96,9 @@ class _ExperimentalConfig:
                                                           msprof_tx=self._msprof_tx,
                                                           op_attr=self._op_attr,
                                                           mstx_domain_include=self._mstx_domain_include,
-                                                          mstx_domain_exclude=self._mstx_domain_exclude)
+                                                          mstx_domain_exclude=self._mstx_domain_exclude,
+                                                          sys_io=self._sys_io,
+                                                          sys_interconnection=self._sys_interconnection)
 
     @property
     def export_type(self):
@@ -170,6 +176,12 @@ class _ExperimentalConfig:
                 self._gc_detect_threshold = None
             elif self._gc_detect_threshold == 0.0:
                 print_info_msg("Parameter gc_detect_threshold is set to 0, it will collect all gc events.")
+        if not isinstance(self._sys_io, bool):
+            print_warn_msg("Invalid parameter sys_io, which must be of boolean type, reset it to False.")
+            self._sys_io = False
+        if not isinstance(self._sys_interconnection, bool):
+            print_warn_msg("Invalid parameter sys_interconnection, which must be of boolean type, reset it to False.")
+            self._sys_interconnection = False
 
     def _check_mstx_domain_params(self):
         if not self._msprof_tx:
