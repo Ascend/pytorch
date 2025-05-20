@@ -13,6 +13,10 @@ class IntegrateParser(BaseParser):
     copy and integrate files from cann
     """
     CSV_FILENAME_MAP = {
+        CANNDataEnum.NIC: "nic.csv",
+        CANNDataEnum.ROCE: "roce.csv",
+        CANNDataEnum.PCIE: "pcie.csv",
+        CANNDataEnum.HCCS: "hccs.csv",
         CANNDataEnum.AI_CPU: "data_preprocess.csv",
         CANNDataEnum.L2_CACHE: "l2_cache.csv",
         CANNDataEnum.API_STATISTIC: "api_statistic.csv",
