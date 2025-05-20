@@ -11,7 +11,7 @@ def _set_thread_affinity(core_range: List[int] = None):
         torch_npu._C._npu_set_thread_affinity(-1, -1)
     elif (len(core_range) == 2):
         if core_range[0] < 0 or core_range[1] < 0:
-            raise ValueError("Expected core core_range should be nonnegative." + pta_error(ErrCode.PARAM))
+            raise ValueError("Core range should be nonnegative." + pta_error(ErrCode.PARAM))
         torch_npu._C._npu_set_thread_affinity(core_range[0], core_range[1])
     else:
         raise ValueError("The length of input list of set_thread_affinity should be 2." + pta_error(ErrCode.PARAM))

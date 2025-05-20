@@ -10,7 +10,6 @@
 
 namespace c10_npu {
 
-static bool has_set_affinity = false;
 static thread_local ThreadType local_thread = ThreadType::MAIN_THREAD;
 
 using CoreId = unsigned int;
@@ -147,10 +146,14 @@ void printCoreRanges(const uint32_t mode, const std::vector<CoreIdRange> &ranges
     ASCEND_LOGD("Read CPU affinity config: %s", oss.str().c_str());
 }
 
-void GetThreadAffinityInfo()
+bool getThreadAffinityInfo()
 {
     parseCPUAffinityConf(cpu_affinity_mode, device_ranges);
     printCoreRanges(cpu_affinity_mode, device_ranges);
+
+    if (cpu_affinity_mode == 0) {
+        return false;
+    }
 
     cpu_set_t mask;
     pthread_getaffinity_np(pthread_self(), sizeof(mask), &mask);
@@ -158,12 +161,17 @@ void GetThreadAffinityInfo()
         for (unsigned int i = range.start; i < range.end; i++) {
             if (!CPU_ISSET(i, &mask)) {
                 ASCEND_LOGW("Thread affinity is already set.");
-                has_set_affinity = true;
-                return;
+                return false;
             }
         }
     }
-    has_set_affinity = false;
+    return true;
+}
+
+inline bool needToSetThreadAffinity()
+{
+    static bool need_to_set_affinity = getThreadAffinityInfo();
+    return need_to_set_affinity;
 }
 
 void SetThreadType(ThreadType type)
@@ -224,7 +232,7 @@ ThreadCoreMap getCpuAffinityMap(c10::DeviceIndex device_id, const std::vector<Co
 
 void SetThreadAffinity(c10::DeviceIndex device_id)
 {
-    if (has_set_affinity || cpu_affinity_mode == 0 || local_thread == ThreadType::USER_THREAD) {
+    if (!needToSetThreadAffinity() || local_thread == ThreadType::USER_THREAD) {
         return;
     }
 
@@ -254,6 +262,9 @@ void SetThreadAffinity(c10::DeviceIndex device_id)
 
 void SetThreadAffinity(ThreadType type)
 {
+    if (!needToSetThreadAffinity()) {
+        return;
+    }
     int device_index;
     NPU_CHECK_ERROR_WITHOUT_UCE(GetDevice(&device_index));
     c10::DeviceIndex device = static_cast<c10::DeviceIndex>(device_index);
@@ -263,6 +274,9 @@ void SetThreadAffinity(ThreadType type)
 
 void SetThreadAffinity(int core_start, int core_end)
 {
+    if (!needToSetThreadAffinity()) {
+        return;
+    }
     static int core_nums = sysconf(_SC_NPROCESSORS_ONLN);
     core_start = std::min(core_start, core_nums);
     core_end = std::min(core_end, core_nums);
