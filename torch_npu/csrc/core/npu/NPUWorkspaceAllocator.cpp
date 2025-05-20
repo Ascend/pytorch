@@ -9,7 +9,6 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 
@@ -40,6 +39,9 @@ constexpr size_t kRoundLarge = 2097152; // Alloceted memory is aligned to 2 MiB.
 struct WorkspaceBlock {
     void* data_ptr;
     size_t size;
+    bool allocated = 0;
+    int64_t requested_size = 0;
+    std::shared_ptr<c10::GatheredContext> context_when_allocated = nullptr;
     WorkspaceBlock() : data_ptr(nullptr), size(0) {}
 };
 
@@ -48,10 +50,21 @@ public:
     DeviceWorkspaceAllocator()
     {
         blocks.clear();
+        context_recorder_.store(nullptr);
     }
 
+    std::shared_ptr<c10::GatheredContext> maybeGatherContext(RecordContext level)
+    {
+        if (record_context_ < level) {
+            return nullptr;
+        }
+        return context_recorder_.load()();
+    }
+    
     void* malloc(size_t size, aclrtStream stream)
     {
+        auto context = maybeGatherContext(RecordContext::STATE);
+
         size_t alloc_size = size + 32;
 
         auto it = blocks.find(stream);
@@ -103,6 +116,8 @@ public:
             if (err != ACL_ERROR_NONE) {
                 return nullptr;
             }
+            block->context_when_allocated = std::move(context);
+            block->requested_size = size;
 
             ASCEND_LOGD("NPUWorkspaceAllocator malloc by AclrtMallocAlign32: size=%zu", block->size);
 #ifndef BUILD_LIBTORCH
@@ -186,6 +201,78 @@ public:
         blocks.clear();
     }
 
+    void record_history(bool enabled, CreateContextFn context_recorder, RecordContext when)
+    {
+        TORCH_CHECK(when == RecordContext::NEVER || context_recorder, PTA_ERROR(ErrCode::INTERNAL));
+        record_flag = enabled;
+        context_recorder_.store(record_flag ? context_recorder : nullptr);
+        record_context_ = enabled ? when : RecordContext::NEVER;
+    }
+
+    std::vector<TraceEntry> get_trace()
+    {
+        std::vector<TraceEntry> alloc_trace;
+#ifndef BUILD_LIBTORCH
+        if (!record_flag) {
+            return alloc_trace;
+        }
+        for (const auto& block_pair : blocks) {
+            auto te = TraceEntry(TraceEntry::WORKSPACE_SNAPSHOT, device, int64_t(block_pair.second->data_ptr),
+                                 block_pair.second->size, block_pair.first,
+                                 record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated
+                                                                         : nullptr);
+            alloc_trace.emplace_back(te);
+
+            te = TraceEntry(TraceEntry::SEGMENT_ALLOC, device, int64_t(block_pair.second->data_ptr),
+                            block_pair.second->size, block_pair.first,
+                            record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated
+                                                                    : nullptr);
+            alloc_trace.emplace_back(te);
+
+            te = TraceEntry(TraceEntry::ALLOC, device, int64_t(block_pair.second->data_ptr), block_pair.second->size,
+                            block_pair.first,
+                            record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated
+                                                                    : nullptr);
+            alloc_trace.emplace_back(te);
+        }
+#endif
+        return alloc_trace;
+    }
+
+    std::vector<SegmentInfo> get_segm()
+    {
+        std::vector<SegmentInfo> result;
+#ifndef BUILD_LIBTORCH
+        for (const auto& block_pair : blocks) {
+            result.emplace_back();
+            SegmentInfo& segment_info = result.back();
+            segment_info.device = device;
+            segment_info.address = reinterpret_cast<int64_t>(block_pair.second->data_ptr);
+            segment_info.stream = block_pair.first;
+            segment_info.is_large = true;
+            segment_info.is_expandable = false;
+            segment_info.context_when_allocated = block_pair.second->context_when_allocated;
+
+            const WorkspaceBlock* block = block_pair.second;
+            segment_info.blocks.emplace_back();
+            BlockInfo& block_info = segment_info.blocks.back();
+            block_info.size = block->size;
+            block_info.requested_size = block->requested_size;
+            block_info.allocated = block->allocated;
+            block_info.active = block->allocated;
+
+            segment_info.total_size += block_info.size;
+            if (block_info.allocated) {
+                segment_info.allocated_size += block_info.size;
+                segment_info.active_size += block_info.size;
+                segment_info.requested_size += block_info.requested_size;
+            }
+            block_info.context_when_allocated = block->context_when_allocated;
+        }
+#endif
+        return result;
+    }
+
 #ifndef BUILD_LIBTORCH
     void set_device(int device_id)
     {
@@ -210,7 +297,9 @@ public:
 
 private:
     ska::flat_hash_map<aclrtStream, WorkspaceBlock*> blocks;
-
+    bool record_flag = false;
+    std::atomic<CreateContextFn> context_recorder_;
+    RecordContext record_context_ = RecordContext::NEVER;
 #ifndef BUILD_LIBTORCH
     uint64_t sum_mem = 0;
     int device = 0;
@@ -279,6 +368,25 @@ public:
     void empty_cache(int device, bool need_empty_queue, bool check_error)
     {
         device_allocator[device]->empty_cache(need_empty_queue, check_error);
+    }
+
+    void record_history(bool enabled, CreateContextFn context_recorder, RecordContext when)
+    {
+        for (auto& allocator : device_allocator) {
+            allocator->record_history(enabled, context_recorder, when);
+        }
+    }
+
+    SnapshotInfo snapshot()
+    {
+        SnapshotInfo result;
+        int count = static_cast<int>(device_allocator.size());
+        for (int i = 0; i < count; i++) {
+            result.device_traces.emplace_back(device_allocator[i]->get_trace());
+            auto snap = device_allocator[i]->get_segm();
+            result.segments.insert(result.segments.end(), snap.begin(), snap.end());
+        }
+        return result;
     }
 
     c10::DataPtr allocate(size_t size) override
@@ -350,6 +458,15 @@ c10::DataPtr malloc_with_stream(size_t size, aclrtStream stream)
 void emptyCache(int device, bool need_empty_queue, bool check_error)
 {
     workspace_allocator.empty_cache(device, need_empty_queue, check_error);
+}
+
+void recordHistory(bool enabled, CreateContextFn context_recorder, RecordContext when)
+{
+    workspace_allocator.record_history(enabled, context_recorder, when);
+}
+SnapshotInfo snapshot()
+{
+    return workspace_allocator.snapshot();
 }
 
 } // namespace NPUWorkspaceAllocator
