@@ -313,6 +313,43 @@ class TorchNPUApiTestCase(TestCase):
             rc = check_output([sys.executable, '-c', test_script]).decode("ascii").strip()
             self.assertEqual(rc, "True")
 
+    def test_npu_lazy_init(self):
+        """ Validate that no NPU calls are made during `import torch_npu` call or `torch.npu.device_count()` call"""
+        VISIBLE_DEVICES = "ASCEND_RT_VISIBLE_DEVICES"
+        # Check that `rts` was not called during the import
+        # By using torch_npu._C._npu_getDeviceCount() because it will not change if `rts` was called
+        # torch_npu.npu.device_count() will parses ASCEND_RT_VISIBLE_DEVICES and will change along with it
+        test_script = f"import os; import torch; import torch_npu; os.environ['{VISIBLE_DEVICES}']='32';print(torch_npu._C._npu_getDeviceCount())"
+        rc = check_output([sys.executable, "-c", test_script]).decode("ascii").strip()
+        self.assertEqual(rc, "0")
+
+        test_script = f"import os; import torch; import torch_npu; torch.npu.device_count(); os.environ['{VISIBLE_DEVICES}']='32';print(torch_npu._C._npu_getDeviceCount())"
+        rc = check_output([sys.executable, "-c", test_script]).decode("ascii").strip()
+        self.assertEqual(rc, "0")
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_device_count_not_cached_pre_init(self):
+        visible_devices = "ASCEND_RT_VISIBLE_DEVICES"
+        test_script = f"""\
+import torch
+import torch_npu
+import os
+r1 = torch.npu.device_count()
+os.environ['{visible_devices}'] = '0'
+r2 = torch.npu.device_count()
+torch.empty(10, device='npu')
+print(f"{{r1}}, {{r2}}")
+"""
+
+        r = (
+            check_output([sys.executable, "-c", test_script])
+            .decode("ascii")
+            .strip()
+        )
+
+        x = torch.npu.device_count()
+        self.assertEqual(f"{x}, 1", r)
+
 
 if __name__ == "__main__":
     run_tests()
