@@ -4,6 +4,7 @@
 
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/npu/memory_snapshot.h"
 
 using torch::jit::Pickler;
@@ -65,6 +66,7 @@ void _record_memory_history(c10::optional<std::string> enabled,
     }
     c10_npu::NPUCachingAllocator::recordHistory(enabled.has_value(), recorder,
                                                 max_entries, when);
+    c10_npu::NPUWorkspaceAllocator::recordHistory(enabled.has_value(), recorder, when);
 }
 
 std::string write_pickle(const c10::IValue& v)
