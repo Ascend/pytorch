@@ -145,8 +145,9 @@ struct TraceEntry {
                        // segments)
         SNAPSHOT, // a call to snapshot, used to correlate memory snapshots to
                   // trace events
-        OOM // the allocator threw an OutOfMemoryError (addr_ is the amount of
+        OOM, // the allocator threw an OutOfMemoryError (addr_ is the amount of
             // free bytes reported by cuda)
+        WORKSPACE_SNAPSHOT
     };
     TraceEntry(Action action, int device, int64_t addr, size_t size,
                aclrtStream stream,
