@@ -106,6 +106,8 @@ class Constant(object):
     MSPROF_TX = '_msprof_tx'
     OP_ATTR = "_op_attr"
     DATA_SIMPLIFICATION = '_data_simplification'
+    SYS_IO = '_sys_io'
+    SYS_INTERCONNECTION = '_sys_interconnection'
     EXPORT_TYPE = '_export_type'
     LEVEL0 = "Level0"
     LEVEL1 = "Level1"
