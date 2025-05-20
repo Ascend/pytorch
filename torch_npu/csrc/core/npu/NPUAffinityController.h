@@ -13,7 +13,6 @@ enum ThreadType {
     USER_THREAD = 5,        // Thread responsible for user.
 };
 
-void GetThreadAffinityInfo();
 void SetThreadType(ThreadType type);
 
 void SetThreadAffinity(c10::DeviceIndex device);
