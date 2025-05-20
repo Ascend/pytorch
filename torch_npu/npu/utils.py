@@ -1,6 +1,5 @@
 import os
 from typing import Any, Optional
-from functools import lru_cache
 import warnings
 import contextlib
 from enum import Enum
@@ -14,8 +13,7 @@ from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 from torch_npu.npu._backends import get_soc_version
 
 
-__all__ = ["synchronize", "device_count", "can_device_access_peer", "set_device", "current_device", "get_device_name",
-           "get_device_properties", "mem_get_info", "get_device_capability", "utilization", "device", "device_of", "StreamContext",
+__all__ = ["synchronize", "set_device", "current_device", "device", "device_of", "StreamContext",
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
@@ -60,23 +58,6 @@ def synchronize(device=None):
         return torch_npu._C._npu_synchronize()
 
 
-@lru_cache(maxsize=1)
-def device_count():
-    return torch_npu._C._npu_getDeviceCount()
-
-
-def can_device_access_peer(device_id, peer_device_id):
-    r"""Checks if peer access between two devices is possible.
-    """
-    device_id = _get_device_index(device_id, optional=True)
-    peer_device_id = _get_device_index(peer_device_id, optional=True)
-    if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid devide id" + pta_error(ErrCode.VALUE))
-    if peer_device_id < 0 or peer_device_id >= device_count():
-        raise AssertionError("Invalid peer devide id" + pta_error(ErrCode.VALUE))
-    return torch_npu._C._npu_canDeviceAccessPeer(device_id, peer_device_id)
-
-
 def set_device(device):
     device_id = _get_device_index(device, optional=True)
     if device_id >= 0:
@@ -86,50 +67,6 @@ def set_device(device):
 def current_device():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDevice()
-
-
-def get_device_name(device_name=None):
-    device_id = _get_device_index(device_name, optional=True)
-    if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
-    return torch_npu._C._npu_getDeviceName()
-
-
-def get_device_properties(device_name=None):
-    device_id = _get_device_index(device_name, optional=True)
-    if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
-    torch_npu.npu._lazy_init()
-    return torch_npu._C._npu_getDeviceProperties(device_id)
-
-
-def mem_get_info(device=None):
-    if device is None:
-        device = torch_npu.npu.current_device()
-    device_id = _get_device_index(device)
-    if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
-    torch_npu.npu._lazy_init()
-    device_prop = torch_npu._C._npu_getDeviceMemories(device_id)
-    return device_prop.free_memory, device_prop.total_memory
-
-
-def get_device_capability(device=None):
-    r"""Query the minor and major data of device. Cann does not
-    have a corresponding concept and is not supported. By default, it returns None
-    """
-    warnings.warn("torch.npu.get_device_capability isn't implemented!")
-    return None
-
-
-def utilization(device=None):
-    r"""Query the comprehensive utilization rate of device
-    """
-    device_id = _get_device_index(device, optional=True)
-    if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
-    torch_npu.npu._lazy_init()
-    return torch_npu._C._npu_getDeviceUtilizationRate(device_id)
 
 
 class device(object):

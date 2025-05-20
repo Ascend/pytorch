@@ -405,7 +405,7 @@ class TestNpuMultiNpu(TestCase):
 
         msg = r'Attempting to deserialize object on NPU device 9'
         with self.assertRaisesRegex(RuntimeError, msg):
-            _ = torch.load(buf)
+            _ = torch.load(buf, weights_only=False)
 
     @unittest.skipIf(not TEST_MULTINPU, "detected only one NPU")
     def test_multigpu_serialization_remap(self):

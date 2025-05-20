@@ -3,6 +3,8 @@ import contextlib
 import collections
 import multiprocessing
 import threading
+import sys
+from subprocess import check_output
 
 import torch
 import torch_npu
@@ -296,6 +298,20 @@ class TorchNPUApiTestCase(TestCase):
             p.join(timeout=100)
             if not result_queue.empty():
                 raise result_queue.get()
+
+    def test_npu_device_count_without_visible_devices(self):
+        test_script = f"import torch; import torch_npu; \
+        count1 = torch.npu.device_count(); count2 = torch_npu._C._npu_getDeviceCount(); print(count1 == count2)"
+        rc = check_output([sys.executable, '-c', test_script]).decode("ascii").strip()
+        self.assertEqual(rc, "True")
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_npu_device_count_with_visible_devices(self):
+        for var in ['', ',', ' ,', ', ', '0,', ',0', '0, ', '0, 1', '0 ,1', '0,1', '0,32,1', '0,32,0', '0,0', '0,1,1', 'npu0', '1,0']:
+            test_script = f"import os; import torch; import torch_npu; os.environ['ASCEND_RT_VISIBLE_DEVICES'] = '{var}'; \
+            count1 = torch.npu.device_count(); count2 = torch_npu._C._npu_getDeviceCount(); print(count1 == count2)"
+            rc = check_output([sys.executable, '-c', test_script]).decode("ascii").strip()
+            self.assertEqual(rc, "True")
 
 
 if __name__ == "__main__":

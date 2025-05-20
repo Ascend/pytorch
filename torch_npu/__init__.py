@@ -69,8 +69,9 @@ from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import _apply_module_patch, _add_tensor_methods, _add_collect_env_methods, \
     _add_storage_methods, _add_serialization_methods, add_dynamo_methods, add_perf_dump_patch, \
-    _dynamo_register_interface_for_device, add_optim_method, _inductor_register_device_op_overrides, \
+    add_optim_method, _inductor_register_device_op_overrides, \
     _apply_npu_show_warning
+from torch_npu.utils._dynamo_device import _dynamo_register_interface_for_device
 from torch_npu.npu._stream_check import apply_sanitizer_patch
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc

@@ -455,7 +455,7 @@ class TestNpu(TestCase):
             with self.assertRaisesRegex(RuntimeError, "Invalid device string"):
                 torch.save([torch.nn.Parameter(torch.randn(10, 10))], fname,
                            _use_new_zipfile_serialization=True)
-                torch.load(fname, 'npu0')
+                torch.load(fname, 'npu0', weights_only=False)
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
@@ -3400,22 +3400,42 @@ exit(2)
 
     @unittest.skipIf(TEST_MULTINPU, "Testing on one NPU is sufficient")
     def test_lazy_init(self):
-        """ Validate that no NPU calls are made during `import torch` call"""
+        """ Validate that no NPU calls are made during `import torch_npu` call"""
         def check_output(script: str) -> str:
             return subprocess.check_output([sys.executable, "-c", script]).decode("ascii").strip()
 
-        VISIBLE_DEVICES = "HIP_VISIBLE_DEVICES" if TEST_WITH_ROCM else "CUDA_VISIBLE_DEVICES"
-        test_script = f"import os; import torch;os.environ['{VISIBLE_DEVICES}']='32';print(torch.cuda.device_count())"
+        VISIBLE_DEVICES = "HIP_VISIBLE_DEVICES" if TEST_WITH_ROCM else "ASCEND_RT_VISIBLE_DEVICES"
+        # Check that `rts` was not called during the import
+        # By using torch_npu._C._npu_getDeviceCount() because it will not change if `rts` was called
+        # torch_npu.npu.device_count() will parses ASCEND_RT_VISIBLE_DEVICES and will change along with it
+        test_script = f"import os; import torch; import torch_npu; os.environ['{VISIBLE_DEVICES}']='32';print(torch.npu.device_count())"
         rc = check_output(test_script)
         self.assertEqual(rc, "0")
-        if not TEST_WITH_ROCM:
-            # Check that `cuInit` was not called during the import
-            # By using ctypes and calling cuDeviceCountGet() and expect CUDA_ERROR_NOT_INITIALIZED == 3
-            # See pytorch issues 116276 for more details
-            libcuda_name = "libcuda.so.1" if not IS_WINDOWS else "nvcuda.dll"
-            cuda_driver_api_call = f"ctypes.CDLL('{libcuda_name}').cuDeviceGetCount(ctypes.byref(x))"
-            rc = check_output(f"import torch; import ctypes;x=ctypes.c_int(-1);print({cuda_driver_api_call})")
-            self.assertEqual(rc, "3")
+
+    @unittest.skipIf(not TEST_MULTINPU, "requires multiple devices")
+    def test_device_count_not_cached_pre_init(self):
+        visible_devices = (
+            "HIP_VISIBLE_DEVICES" if torch.version.hip else "ASCEND_RT_VISIBLE_DEVICES"
+        )
+        test_script = f"""\
+import torch
+import torch_npu
+import os
+r1 = torch.npu.device_count()
+os.environ['{visible_devices}'] = '0'
+r2 = torch.npu.device_count()
+torch.empty(10, device='npu')
+print(f"{{r1}}, {{r2}}")
+"""
+
+        r = (
+            subprocess.check_output([sys.executable, "-c", test_script])
+            .decode("ascii")
+            .strip()
+        )
+
+        x = torch.npu.device_count()
+        self.assertEqual(f"{x}, 1", r)
 
 
 class TestNpuMallocAsync(TestCase):
