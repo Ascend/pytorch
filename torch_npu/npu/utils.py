@@ -1,8 +1,6 @@
 import os
 from typing import Any, Optional
-from functools import lru_cache
 import warnings
-import contextlib
 from enum import Enum
 
 import torch
@@ -60,9 +58,8 @@ def synchronize(device=None):
         return torch_npu._C._npu_synchronize()
 
 
-@lru_cache(maxsize=1)
-def device_count():
-    return torch_npu._C._npu_getDeviceCount()
+def device_count() -> int:
+    return torch_npu.npu.device_count()
 
 
 def can_device_access_peer(device_id, peer_device_id):
@@ -70,9 +67,9 @@ def can_device_access_peer(device_id, peer_device_id):
     """
     device_id = _get_device_index(device_id, optional=True)
     peer_device_id = _get_device_index(peer_device_id, optional=True)
-    if device_id < 0 or device_id >= device_count():
+    if device_id < 0 or device_id >= torch_npu.npu.device_count():
         raise AssertionError("Invalid devide id" + pta_error(ErrCode.VALUE))
-    if peer_device_id < 0 or peer_device_id >= device_count():
+    if peer_device_id < 0 or peer_device_id >= torch_npu.npu.device_count():
         raise AssertionError("Invalid peer devide id" + pta_error(ErrCode.VALUE))
     return torch_npu._C._npu_canDeviceAccessPeer(device_id, peer_device_id)
 
@@ -90,14 +87,14 @@ def current_device():
 
 def get_device_name(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
-    if device_id < 0 or device_id >= device_count():
+    if device_id < 0 or device_id >= torch_npu.npu.device_count():
         raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     return torch_npu._C._npu_getDeviceName()
 
 
 def get_device_properties(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
-    if device_id < 0 or device_id >= device_count():
+    if device_id < 0 or device_id >= torch_npu.npu.device_count():
         raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDeviceProperties(device_id)
@@ -107,7 +104,7 @@ def mem_get_info(device=None):
     if device is None:
         device = torch_npu.npu.current_device()
     device_id = _get_device_index(device)
-    if device_id < 0 or device_id >= device_count():
+    if device_id < 0 or device_id >= torch_npu.npu.device_count():
         raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
     device_prop = torch_npu._C._npu_getDeviceMemories(device_id)
@@ -126,7 +123,7 @@ def utilization(device=None):
     r"""Query the comprehensive utilization rate of device
     """
     device_id = _get_device_index(device, optional=True)
-    if device_id < 0 or device_id >= device_count():
+    if device_id < 0 or device_id >= torch_npu.npu.device_count():
         raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDeviceUtilizationRate(device_id)
