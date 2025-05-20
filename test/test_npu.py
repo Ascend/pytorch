@@ -3405,7 +3405,10 @@ exit(2)
             return subprocess.check_output([sys.executable, "-c", script]).decode("ascii").strip()
 
         VISIBLE_DEVICES = "HIP_VISIBLE_DEVICES" if TEST_WITH_ROCM else "ASCEND_RT_VISIBLE_DEVICES"
-        test_script = f"import os; import torch;os.environ['{VISIBLE_DEVICES}']='32';print(torch.cuda.device_count())"
+        # Check that `rts` was not called during the import
+        # By using torch_npu._C._npu_getDeviceCount() because it will not change if `rts` was called
+        # torch_npu.npu.device_count() will parses ASCEND_RT_VISIBLE_DEVICES and will change along with it
+        test_script = f"import os; import torch; import torch_npu; os.environ['{VISIBLE_DEVICES}']='32';print(torch_npu._C._npu_getDeviceCount())"
         rc = check_output(test_script)
         self.assertEqual(rc, "0")
 
