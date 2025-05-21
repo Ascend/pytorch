@@ -114,3 +114,9 @@ class DynamicProfilerUtils:
             res_dict = {}
 
         return res_dict
+
+    @staticmethod
+    def parse_str_params_to_list(params):
+        if params is None or params == 'None':
+            return []
+        return [item.strip() for item in params.split(',')]

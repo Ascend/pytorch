@@ -2124,7 +2124,7 @@
     "signature": "()"
   },
   "torch_npu.profiler._ExperimentalConfig": {
-    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
+    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
   },
   "torch_npu.profiler._ExperimentalConfig._check_params": {
     "signature": "(self)"
@@ -2199,7 +2199,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.experimental_config._ExperimentalConfig": {
-    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
+    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
   },
   "torch_npu.profiler.experimental_config._ExperimentalConfig._check_params": {
     "signature": "(self)"
