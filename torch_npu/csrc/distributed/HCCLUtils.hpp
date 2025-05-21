@@ -51,6 +51,7 @@ extern HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo
 extern HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_t rank, HcclCommConfig *config, HcclComm *comm);
 extern HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *rankIds, uint64_t subCommId, uint32_t subCommRankId,
     HcclCommConfig* config, HcclComm *subComm);
+    extern HcclResult hcclSetGlobalCommInfo(uint32_t masterIp, uint32_t masterPort, uint32_t totalRankSize, uint32_t nodeID, uint32_t localRankSize);
 
 // Provides additional detail into HCCL error codes based on when these are
 // thrown in the HCCL codebase.
