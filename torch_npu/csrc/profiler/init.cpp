@@ -36,7 +36,7 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused)
         .value("NPU", NpuActivityType::NPU);
 
     py::class_<ExperimentalConfig>(m, "_ExperimentalConfig")
-        .def(py::init<std::string, std::string, bool, bool, bool, bool,
+        .def(py::init<std::string, std::string, bool, bool, bool, bool, std::vector<std::string>,
              std::vector<std::string>, std::vector<std::string>, bool, bool>(),
              py::arg("trace_level") = "Level0",
              py::arg("metrics") = "ACL_AICORE_NONE",
@@ -44,6 +44,7 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused)
              py::arg("record_op_args") = false,
              py::arg("msprof_tx") = false,
              py::arg("op_attr") = false,
+             py::arg("host_sys") = std::vector<std::string>{},
              py::arg("mstx_domain_include") = std::vector<std::string>{},
              py::arg("mstx_domain_exclude") = std::vector<std::string>{},
              py::arg("sys_io") = false,
@@ -52,7 +53,8 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused)
         .def(py::pickle(
             [](const ExperimentalConfig& p) {
                 return py::make_tuple(p.trace_level, p.metrics, p.l2_cache, p.record_op_args, p.msprof_tx, p.op_attr,
-                                      p.mstx_domain_include, p.mstx_domain_exclude, p.sys_io, p.sys_interconnection);
+                                      p.host_sys, p.mstx_domain_include, p.mstx_domain_exclude, p.sys_io,
+                                      p.sys_interconnection);
             },
             [](py::tuple t) {
                 if (t.size() < static_cast<size_t>(ExperConfigType::CONFIG_TYPE_MAX_COUNT)) {
@@ -68,6 +70,7 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused)
                     t[static_cast<size_t>(ExperConfigType::RECORD_OP_ARGS)].cast<bool>(),
                     t[static_cast<size_t>(ExperConfigType::MSPROF_TX)].cast<bool>(),
                     t[static_cast<size_t>(ExperConfigType::OP_ATTR)].cast<bool>(),
+                    t[static_cast<size_t>(ExperConfigType::HOST_SYS)].cast<std::vector<std::string>>(),
                     t[static_cast<size_t>(ExperConfigType::MSTX_DOMAIN_INCLUDE)].cast<std::vector<std::string>>(),
                     t[static_cast<size_t>(ExperConfigType::MSTX_DOMAIN_EXCLUDE)].cast<std::vector<std::string>>(),
                     t[static_cast<size_t>(ExperConfigType::SYS_IO)].cast<bool>(),

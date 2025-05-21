@@ -55,7 +55,7 @@ struct MemoryUsage {
 struct ExperimentalConfig {
     ExperimentalConfig(std::string level = "Level0", std::string metrics = "ACL_AICORE_NONE",
                        bool l2_cache = false, bool record_op_args = false, bool msprof_tx = false,
-                       bool op_attr = false, std::vector<std::string> mstx_domain_include = {},
+                       bool op_attr = false, std::vector<std::string> host_sys = {}, std::vector<std::string> mstx_domain_include = {},
                        std::vector<std::string> mstx_domain_exclude = {}, bool sys_io = false,
                        bool sys_interconnection = false)
         : trace_level(level),
@@ -64,6 +64,7 @@ struct ExperimentalConfig {
           record_op_args(record_op_args),
           msprof_tx(msprof_tx),
           op_attr(op_attr),
+          host_sys(host_sys),
           mstx_domain_include(mstx_domain_include),
           mstx_domain_exclude(mstx_domain_exclude),
           sys_io(sys_io),
@@ -76,6 +77,7 @@ struct ExperimentalConfig {
     bool record_op_args;
     bool msprof_tx;
     bool op_attr;
+    std::vector<std::string> host_sys;
     std::vector<std::string> mstx_domain_include;
     std::vector<std::string> mstx_domain_exclude;
     bool sys_io;
