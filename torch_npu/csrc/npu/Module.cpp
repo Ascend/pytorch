@@ -789,6 +789,40 @@ PyObject* THNPModule_setStream_wrap(
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npu_eraseStream_wrap(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+    HANDLE_TH_ERRORS
+    PyObject *tensor_obj = nullptr;
+    int64_t stream_id = 0;
+    int64_t device_index = 0;
+    int64_t device_type = 0;
+
+    constexpr const char* kwlist[] = {
+        "tensor", "stream_id", "device_index", "device_type", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(
+        args,
+        kwargs,
+        "OLLL",
+        const_cast<char**>(kwlist),
+        &tensor_obj,
+        &stream_id,
+        &device_index,
+        &device_type)) {
+    }
+
+    if (!THPVariable_Check(tensor_obj)) {
+        TORCH_CHECK(false, "tensor is not torch.Tensor.", PTA_ERROR(ErrCode::TYPE));
+    }
+
+    // 获取 at::Tensor
+    at::Tensor tensor = THPVariable_Unpack(tensor_obj);
+    auto stream = c10_npu::NPUStream::unpack3(
+        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+    c10_npu::NPUCachingAllocator::eraseStream(tensor.storage().data_ptr(), stream);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_isCurrentStreamCapturing_wrap(
     PyObject* self,
     PyObject* noargs)
@@ -1575,6 +1609,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getCurrentRawStream", (PyCFunction)THNPModule_getCurrentStream_raw, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"_npu_eraseStream", (PyCFunction)THNPModule_npu_eraseStream_wrap, METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_isCurrentStreamCapturing", (PyCFunction)THNPModule_isCurrentStreamCapturing_wrap, METH_NOARGS, nullptr},
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
     {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},

@@ -477,6 +477,23 @@ class TestNpu(TestCase):
 
         self.assertEqual(result.tolist(), [1, 2, 3, 4])
 
+    def test_erase_stream(self):
+        stream1 = torch_npu.npu.Stream()
+        stream2 = torch_npu.npu.Stream()
+
+        with torch_npu.npu.stream(stream2):
+            matrix1 = torch.ones(1000, 1000, device='npu')
+            matrix2 = torch.ones(1000, 1000, device='npu')
+            tensor1 = torch.matmul(matrix1, matrix2)
+            data_ptr1 = tensor1.data_ptr()
+
+            tensor1.record_stream(stream1)
+            torch_npu.erase_stream(tensor1, stream1)
+            del tensor1
+
+            tensor2 = torch.ones(1000, 1000, device='npu')
+            self.assertEqual(tensor2.data_ptr(), data_ptr1)
+
     @staticmethod
     def _stream_synchronize(self, spin_time_cycles):
         s = torch_npu.npu.current_stream()
