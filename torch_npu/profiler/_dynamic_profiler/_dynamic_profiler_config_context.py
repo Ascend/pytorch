@@ -179,8 +179,8 @@ class ConfigContext:
                     self.activity_set.add(activity)
                 else:
                     DynamicProfilerUtils.out_log("Set activity failed, activity must be CPU OR NPU!",
-                                         DynamicProfilerUtils.LoggerLevelEnum.WARNING)
-    
+                                                 DynamicProfilerUtils.LoggerLevelEnum.WARNING)
+
     def _parse_analysis(self, json_data: dict):
         if not self._is_dyno:
             self._analyse = json_data.get("analyse", False)
@@ -188,7 +188,7 @@ class ConfigContext:
             self._analyse = json_data.get("PROFILE_ANALYSE", 'false')
             self._analyse = self.BOOL_MAP.get(self._analyse.lower(), False)
 
-    def _parse_dyno_exp_cfg(self, json_data: dict): 
+    def _parse_dyno_exp_cfg(self, json_data: dict):
         profiler_level = json_data.get('PROFILE_PROFILER_LEVEL', 'Level0')
         profiler_level = getattr(ProfilerLevel, profiler_level, profiler_level)
         aic_metrics = json_data.get('PROFILE_AIC_METRICS', 'AiCoreNone')
@@ -206,7 +206,14 @@ class ConfigContext:
         export_type = json_data.get('PROFILE_EXPORT_TYPE', 'text').lower()
         msprof_tx = json_data.get('PROFILE_MSPROF_TX', 'false')
         msprof_tx = self.BOOL_MAP.get(msprof_tx.lower(), False)
-        
+        host_sys = DynamicProfilerUtils.parse_str_params_to_list(json_data.get('PROFILE_HOST_SYS', None))
+        mstx_domain_include = DynamicProfilerUtils.parse_str_params_to_list(json_data.get('PROFILE_MSTX_DOMAIN_INCLUDE', None))
+        mstx_domain_exclude = DynamicProfilerUtils.parse_str_params_to_list(json_data.get('PROFILE_MSTX_DOMAIN_EXCLUDE', None))
+        sys_io = json_data.get('PROFILE_SYS_IO', 'false')
+        sys_io = self.BOOL_MAP.get(sys_io.lower(), False)
+        sys_interconnection = json_data.get('PROFILE_SYS_INTERCONNECTION', 'false')
+        sys_interconnection = self.BOOL_MAP.get(sys_interconnection.lower(), False)
+
         self.experimental_config = _ExperimentalConfig(
             profiler_level=profiler_level,
             aic_metrics=aic_metrics,
@@ -216,9 +223,14 @@ class ConfigContext:
             data_simplification=data_simplification,
             record_op_args=record_op_args,
             export_type=export_type,
-            msprof_tx=msprof_tx
+            msprof_tx=msprof_tx,
+            host_sys=host_sys,
+            mstx_domain_include=mstx_domain_include,
+            mstx_domain_exclude=mstx_domain_exclude,
+            sys_io=sys_io,
+            sys_interconnection=sys_interconnection,
         )
-    
+
     def _parse_cfg_json_exp_cfg(self, json_data: dict):
         exp_config = json_data.get('experimental_config')
         if not exp_config:
@@ -237,6 +249,9 @@ class ConfigContext:
         msprof_tx = exp_config.get('msprof_tx', False)
         mstx_domain_include = exp_config.get('mstx_domain_include', None)
         mstx_domain_exclude = exp_config.get('mstx_domain_exclude', None)
+        host_sys = exp_config.get('host_sys', None)
+        sys_io = exp_config.get('sys_io', None)
+        sys_interconnection = exp_config.get('sys_interconnection', None)
 
         self.experimental_config = _ExperimentalConfig(
             profiler_level=profiler_level,
@@ -249,7 +264,10 @@ class ConfigContext:
             export_type=export_type,
             msprof_tx=msprof_tx,
             mstx_domain_include=mstx_domain_include,
-            mstx_domain_exclude=mstx_domain_exclude
+            mstx_domain_exclude=mstx_domain_exclude,
+            host_sys=host_sys,
+            sys_io=sys_io,
+            sys_interconnection=sys_interconnection
         )
 
     def _parse_exp_cfg(self, json_data: dict):
