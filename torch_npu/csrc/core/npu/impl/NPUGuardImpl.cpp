@@ -176,6 +176,15 @@ bool NPUGuardImpl::queryEvent(void *event) const
     return (status == acl::ACL_EVENT_RECORDED_STATUS_COMPLETE);
 }
 
+void NPUGuardImpl::synchronizeDevice(const c10::DeviceIndex device_index) const
+{
+    int orig_device = -1;
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&orig_device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(device_index));
+    c10_npu::npuSynchronizeDevice();
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(orig_device));
+}
+
 void NPUGuardImpl::recordDataPtrOnStream(const c10::DataPtr &data_ptr, const c10::Stream &stream) const
 {
     NPUStream npu_stream{stream};
