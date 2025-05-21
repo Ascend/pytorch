@@ -21,7 +21,7 @@ def check_npu_tensor_is_safe(tensor_obj):
     if isinstance(tensor_obj, torch.Tensor):
         return check_npu_storage_is_safe(tensor_obj.untyped_storage())
     else:
-        raise RuntimeError(f"param type should be Tensor, could not be {type(storage_obj)}" + pta_error(ErrCode.TYPE))
+        raise RuntimeError(f"param type should be Tensor, could not be {type(tensor_obj)}" + pta_error(ErrCode.TYPE))
 
 
 def mark_all_npu_tensor_unsafe(device: int):
@@ -39,7 +39,7 @@ def update_npu_tensor_to_safe(tensor_obj):
     if isinstance(tensor_obj, torch.Tensor):
         return update_npu_storage_to_safe(tensor_obj.untyped_storage())
     else:
-        raise RuntimeError(f"param type should be Tensor, could not be {type(storage_obj)}" + pta_error(ErrCode.TYPE))
+        raise RuntimeError(f"param type should be Tensor, could not be {type(tensor_obj)}" + pta_error(ErrCode.TYPE))
 
 
 def set_npu_tensor_unsafe_check_flag(flag: bool) -> None:
