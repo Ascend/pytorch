@@ -169,6 +169,14 @@ static constexpr size_t kQueueCapacity = 4096;
 static std::string repo_error;
 static std::string acl_error;
 
+std::unordered_map<RepoStatus, std::string> deviceErrorMap = {
+    {RepoStatus::UCE_EXIT, "UCE ERROR"},
+    {RepoStatus::HBM_ECC_EXIT, "HBM MULTI BIT ECC ERROR"},
+    {RepoStatus::STOP_EXIT, "FORCE STOP"},
+    {RepoStatus::SUSPECT_MEM_EXIT, "SUSPECT MEM ERROR"},
+    {RepoStatus::HCCS_LINK_EXIT, "HCCS LINK ERROR"}
+};
+
 std::string get_func_error_msg(void *error_paras)
 {
     auto queueParam = static_cast<c10_npu::queue::QueueParas *>(error_paras);
@@ -273,19 +281,19 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
     }
 
     const RepoStatus current_status = GetStatus();
-    if (current_status == RepoStatus::UCE_EXIT) {
-        runtime_error = "UCE ERROR." + PTA_ERROR(ErrCode::ACL);
-        error_msg = "UCE ERROR happend.";
-    }
-    
-    if (current_status == RepoStatus::HBM_ECC_EXIT) {
-        runtime_error = "HBM MULTI BIT ECC ERROR." + std::string(c10_npu::c10_npu_get_error_message()) + PTA_ERROR(ErrCode::ACL);
-        error_msg = "HBM MULTI BIT ECC ERROR happend.";
+    auto iter = deviceErrorMap.find(current_status);
+    if (iter != deviceErrorMap.end()) {
+        std::string throwError = iter->second;
+        std::string error_msg;
+        if (current_status != RepoStatus::STOP_EXIT && current_status != RepoStatus::UCE_EXIT) {
+            error_msg = c10_npu::c10_npu_get_error_message();
+        }
+        runtime_error = throwError + error_msg + PTA_ERROR(ErrCode::ACL);
+        error_msg = throwError + " happend.";
     }
 
-    if (current_status == RepoStatus::STOP_EXIT) {
-        runtime_error = "FORCE STOP." + PTA_ERROR(ErrCode::ACL);
-        error_msg = "FORCE STOP happend.";
+    if (current_status == RepoStatus::CAN_EXIT) {
+        error_msg = "Inner error happend with CAN_EXIT status, detail: " + repo_error;
     }
 
     if (current_status == RepoStatus::ERROR_EXIT) {
@@ -334,17 +342,8 @@ bool Repository::WriteQueue(void *cur_paras)
 {
     std::lock_guard<std::mutex> lock(mu_enqueue);
 
-    if (GetStatus() == RepoStatus::STOP_EXIT) {
-        auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
-        auto type = queueParam->paramType;
-        // The RECORD_EVENT in the destructor process should not throw an exception.
-        if (type == c10_npu::queue::LAZY_DESTROY_EVENT || type == c10_npu::queue::RECORD_EVENT) {
-            return true;
-        } else {
-            ASCEND_LOGE("getRepoStopFlag in WriteQueue, throw FORCE STOP.");
-            throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
-        }
-    }
+    const RepoStatus current_status = GetStatus();
+    ThrowDeviceError(current_status, cur_paras);
 
     if (IsFullQueue()) {
         return false;
@@ -356,6 +355,30 @@ bool Repository::WriteQueue(void *cur_paras)
 
     write_idx.idx = (write_idx.idx + 1) & (kQueueCapacity - 1);
     return true;
+}
+
+void Repository::CheckDeviceError(int ret, std::string& err_msg)
+{
+    if (ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
+        acl_error = c10_npu::c10_npu_get_error_message();
+    }
+    if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR || acl_error.find(DEVICE_HBM_ECC_ERROR) != std::string::npos) {
+        if (checkUceErrAndRepair(false, err_msg)) {
+            ASCEND_LOGE("UCE ERROR happened, set task queue status to UCE_EXIT");
+            SetStatus(UCE_EXIT);
+        }
+    } else if (ret == ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR || acl_error.find(DEVICE_HBM_ECC_ERROR) != std::string::npos) {
+        record_mem_hbm_ecc_error();
+        SetStatus(HBM_ECC_EXIT);
+    } else if (ret == ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR || acl_error.find(SUSPECT_DEVICE_MEM_ERROR) != std::string::npos) {
+        ASCEND_LOGE("SUSPECT MEM ERROR happened, set task queue status to SUSPECT_MEM_EXIT");
+        SetStatus(SUSPECT_MEM_EXIT);
+    } else if (ret == ACL_ERROR_RT_LINK_ERROR || acl_error.find(HCCS_LINK_ERROR) != std::string::npos) {
+        ASCEND_LOGE("HCCS LINK ERROR happened, set task queue status to HCCS_LINK_EXIT");
+        SetStatus(HCCS_LINK_EXIT);
+    } else if (GetStatus() != STOP_EXIT) {
+        SetStatus(ERROR_EXIT);
+    }
 }
 
 bool Repository::ReadQueue()
@@ -386,9 +409,6 @@ bool Repository::ReadQueue()
     auto ret = manager().Call(datas, read_idx.idx);
 #endif
     if (ret != 0) {
-        if (ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
-            acl_error = c10_npu::c10_npu_get_error_message();
-        }
         repo_error = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
         ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
             std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
@@ -397,15 +417,7 @@ bool Repository::ReadQueue()
             read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
         }
         std::string err_msg;
-        if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR && checkUceErrAndRepair(false, err_msg)) {
-            SetStatus(UCE_EXIT);
-        } else if (ret == ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR ||
-            acl_error.find(DEVICE_HBM_ECC_ERROR) != std::string::npos) {
-            record_mem_hbm_ecc_error();
-            SetStatus(HBM_ECC_EXIT);
-        } else if (GetStatus() != STOP_EXIT) {
-            SetStatus(ERROR_EXIT);
-        }
+        CheckDeviceError(ret, err_msg);
         if (!err_msg.empty()) {
             repo_error = repo_error + ". Other error information exists:" + err_msg;
         }
@@ -422,6 +434,27 @@ bool Repository::ReadQueue()
     return true;
 }
 
+void Repository::ThrowDeviceError(RepoStatus current_status, void* cur_paras)
+{
+    auto iter = deviceErrorMap.find(current_status);
+    if (iter == deviceErrorMap.end()) {
+        return;
+    }
+    std::string throwError = iter->second;
+    auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
+    auto type = queueParam->paramType;
+    // The RECORD_EVENT in the destructor process should not throw an exception.
+    if (type == c10_npu::queue::LAZY_DESTROY_EVENT || type == c10_npu::queue::RECORD_EVENT) {
+        return;
+    }
+    ASCEND_LOGE("getUceErrorFlag in Enqueue, throw %s.", throwError.c_str());
+    std::string error_msg;
+    if (current_status != RepoStatus::STOP_EXIT && current_status != RepoStatus::UCE_EXIT) {
+        error_msg = c10_npu::c10_npu_get_error_message();
+    }
+    throw std::runtime_error(throwError + error_msg + PTA_ERROR(ErrCode::ACL));
+}
+
 void Repository::Enqueue(void *cur_paras)
 {
     if (initialized == false) {
@@ -430,38 +463,10 @@ void Repository::Enqueue(void *cur_paras)
     }
 
     const RepoStatus current_status = GetStatus();
-    if (current_status == RepoStatus::UCE_EXIT) {
-        auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
-        auto type = queueParam->paramType;
-        // The RECORD_EVENT in the destructor process should not throw an exception.
-        if (type == c10_npu::queue::LAZY_DESTROY_EVENT || type == c10_npu::queue::RECORD_EVENT) {
-            return;
-        }
-        ASCEND_LOGE("getUceErrorFlag in Enqueue, throw UCE ERROR.");
-        throw std::runtime_error("UCE ERROR" + PTA_ERROR(ErrCode::ACL));
-    }
+    ThrowDeviceError(current_status, cur_paras);
 
-    if (current_status == RepoStatus::HBM_ECC_EXIT) {
-        auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
-        auto type = queueParam->paramType;
-        // The RECORD_EVENT in the destructor process should not throw an exception.
-        if (type == c10_npu::queue::LAZY_DESTROY_EVENT || type == c10_npu::queue::RECORD_EVENT) {
-            return;
-        }
-        ASCEND_LOGE("getUceErrorFlag in Enqueue, throw HBM MULTI BIT ECC ERROR.");
-        std::string error_msg = c10_npu::c10_npu_get_error_message();
-        throw std::runtime_error("HBM MULTI BIT ECC ERROR." + error_msg + PTA_ERROR(ErrCode::ACL));
-    }
-
-    if (current_status == RepoStatus::STOP_EXIT) {
-        auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
-        auto type = queueParam->paramType;
-        // The RECORD_EVENT in the destructor process should not throw an exception.
-        if (type == c10_npu::queue::LAZY_DESTROY_EVENT || type == c10_npu::queue::RECORD_EVENT) {
-            return;
-        }
-        ASCEND_LOGE("getRepoStopFlag in Enqueue, throw FORCE STOP.");
-        throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
+    if (current_status == RepoStatus::CAN_EXIT) {
+        ASCEND_LOGE("Inner error happend with CAN_EXIT status, detail: %s", repo_error.c_str());
     }
 
     if (current_status == RepoStatus::ERROR_EXIT) {
@@ -572,8 +577,7 @@ void Repository::Dequeue()
 
     SetReadWorking(true);
     while (ret == false && GetStatus() != RepoStatus::CAN_EXIT) {
-        if (GetStatus() == RepoStatus::STOP_EXIT || GetStatus() == RepoStatus::UCE_EXIT ||
-            GetStatus() == RepoStatus::HBM_ECC_EXIT) {
+        if (deviceErrorMap.find(GetStatus()) != deviceErrorMap.end()) {
             ClearQueue();
             c10_npu::NPUEventManager::GetInstance().ClearUnrecordedCount();
             std::this_thread::sleep_for(std::chrono::microseconds(1000));
