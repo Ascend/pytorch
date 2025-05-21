@@ -43,6 +43,18 @@ struct WorkspaceBlock {
     WorkspaceBlock() : data_ptr(nullptr), size(0) {}
 };
 
+void update_stat(Stat &stat, int64_t amount)
+{
+    stat.current += amount;
+    stat.peak = std::max(stat.current, stat.peak);
+    if (amount > 0) {
+        stat.allocated += amount;
+    }
+    if (amount < 0) {
+        stat.freed += -amount;
+    }
+}
+
 class DeviceWorkspaceAllocator {
 public:
     DeviceWorkspaceAllocator()
@@ -76,6 +88,7 @@ public:
                 ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block->size);
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeDeviceWithTimeout());
                 NPU_CHECK_ERROR(aclrtFree(block->data_ptr));
+                update_stat(stats.reserved_bytes, -block->size);
 #ifndef BUILD_LIBTORCH
                 if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
                     mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
@@ -113,6 +126,7 @@ public:
             block->requested_size = size;
 
             ASCEND_LOGD("NPUWorkspaceAllocator malloc by AclrtMallocAlign32: size=%zu", block->size);
+            update_stat(stats.reserved_bytes, block->size);
 #ifndef BUILD_LIBTORCH
             if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
                 mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
@@ -134,7 +148,15 @@ public:
             );
 #endif
         }
+
+        allocated_size = block->size;
+        update_stat(stats.allocated_bytes, block->size);
         return block->data_ptr;
+    }
+
+    void free()
+    {
+        update_stat(stats.allocated_bytes, -allocated_size);
     }
 
     // return to the system allocator
@@ -158,6 +180,7 @@ public:
             if (block_pair.second->data_ptr != nullptr) {
                 ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block_pair.second->size);
                 NPU_CHECK_ERROR(aclrtFree(block_pair.second->data_ptr));
+                update_stat(stats.reserved_bytes, -block_pair.second->size);
 #ifndef BUILD_LIBTORCH
                 if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
                     mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
@@ -276,6 +299,22 @@ public:
         return sum_mem;
     }
 #endif
+
+    DeviceStats getStats()
+    {
+        return stats;
+    }
+
+    void *getStreamPtr(aclrtStream stream)
+    {
+        auto it = blocks.find(stream);
+        if (it == blocks.end()) {
+            return nullptr;
+        }
+        WorkspaceBlock *block = it->second;
+        return block->data_ptr;
+    }
+
 private:
     ska::flat_hash_map<aclrtStream, WorkspaceBlock*> blocks;
     bool record_flag = false;
@@ -285,6 +324,8 @@ private:
     uint64_t sum_mem = 0;
     int device = 0;
 #endif
+    DeviceStats stats;
+    size_t allocated_size = 0;
 }; // class DeviceworkspaceAllocator
 
 static void uncached_delete(void* ptr)
@@ -293,14 +334,30 @@ static void uncached_delete(void* ptr)
     NPU_CHECK_ERROR(aclrtFree(ptr));
 }
 
-// Now we will reuse the allocated memory and not release immediately until
-// memory is insufficient for NpuCachingAllocator or NpuWorkspaceAllocator.
-// Then both will empty cache and the large memory will be released.
-static void local_raw_delete(void* ptr)
-{
-}
+static void local_raw_delete(void* ptr);
 
 class NpuWorkspaceAllocator : public c10::Allocator {
+private:
+    // allocated blocks by device pointer
+    ska::flat_hash_map<void *, int> allocated_ptrs;
+
+    void replace_allocated_ptr(void *new_ptr, void *src_ptr, int device)
+    {
+        auto it = allocated_ptrs.find(src_ptr);
+        if (it != allocated_ptrs.end()) {
+            allocated_ptrs.erase(it);
+        }
+        allocated_ptrs[new_ptr] = device;
+    }
+
+    int get_allocated_device(void *ptr)
+    {
+        auto it = allocated_ptrs.find(ptr);
+        if (it == allocated_ptrs.end()) {
+            return -1;
+        }
+        return it->second;
+    }
 public:
     std::vector<std::unique_ptr<DeviceWorkspaceAllocator>> device_allocator;
 
@@ -320,6 +377,7 @@ public:
 
     void malloc(void** new_ptr, int device, size_t size, aclrtStream stream)
     {
+        auto src_ptr = static_cast<void*>(device_allocator[device]->getStreamPtr(stream));
         *new_ptr = static_cast<void*>(device_allocator[device]->malloc(size, stream));
 
         // Free all cached blocks and try again.
@@ -344,11 +402,16 @@ public:
                 " free)",
                 PTA_ERROR(ErrCode::MEMORY));
         }
+
+        if ((*new_ptr) != src_ptr) {
+            replace_allocated_ptr(*new_ptr, src_ptr, device);
+        }
     }
 
     void empty_cache(int device, bool need_empty_queue, bool check_error)
     {
         device_allocator[device]->empty_cache(need_empty_queue, check_error);
+        allocated_ptrs.clear();
     }
 
     void record_history(bool enabled, CreateContextFn context_recorder, RecordContext when)
@@ -415,9 +478,41 @@ public:
     {
         default_copy_data(dest, src, count);
     }
+
+    void assertValidDevice(int device)
+    {
+        const auto device_num = device_allocator.size();
+        TORCH_CHECK(0 <= device && device < static_cast<int64_t>(device_num), "Invalid device argument ", device,
+                    ": did you call init?", PTA_ERROR(ErrCode::PARAM));
+    }
+
+    void free(void* ptr)
+    {
+        if (!ptr) {
+            return;
+        }
+        int device = get_allocated_device(ptr);
+        if (device != -1) {
+            device_allocator[device]->free();
+        }
+    }
+
+    DeviceStats getDeviceStats(int device)
+    {
+        assertValidDevice(device);
+        return device_allocator[device]->getStats();
+    }
 }; // class NpuWorkspaceAllocator
 
 NpuWorkspaceAllocator workspace_allocator;
+
+// Now we will reuse the allocated memory and not release immediately until
+// memory is insufficient for NpuCachingAllocator or NpuWorkspaceAllocator.
+// Then both will empty cache and the large memory will be released.
+static void local_raw_delete(void* ptr)
+{
+    workspace_allocator.free(ptr);
+}
 
 c10::Allocator* get()
 {
@@ -449,6 +544,12 @@ SnapshotInfo snapshot()
 {
     return workspace_allocator.snapshot();
 }
+
+DeviceStats getDeviceStats(int device)
+{
+    return workspace_allocator.getDeviceStats(device);
+}
+
 
 } // namespace NPUWorkspaceAllocator
 } // namespace c10_npu
