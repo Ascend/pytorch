@@ -3,6 +3,12 @@
 
 namespace c10_npu {
 
+using CoreId = unsigned int;
+struct CoreIdRange {
+    CoreId start;
+    CoreId end;
+};
+
 enum ThreadType {
     MAIN_THREAD = 0,        // 1st performance hotspot, responsible for operator dispatching.
     ACL_THREAD = 1,         // 2rd performance hotspot in PTA, responsible for handling the task queue.
