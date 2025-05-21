@@ -1,5 +1,7 @@
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/GetAffinityCPUInfo.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 
 #include <pthread.h>
 #include <unistd.h>
@@ -12,11 +14,6 @@ namespace c10_npu {
 
 static thread_local ThreadType local_thread = ThreadType::MAIN_THREAD;
 
-using CoreId = unsigned int;
-struct CoreIdRange {
-    CoreId start;
-    CoreId end;
-};
 using ThreadCoreMap = std::unordered_map<ThreadType, CoreIdRange>;
 
 static uint32_t cpu_affinity_mode;
@@ -72,6 +69,21 @@ void parseCPUAffinityConf(uint32_t &mode, std::vector<CoreIdRange> &ranges)
     std::string inputStr(input);
     std::istringstream stream(inputStr);
     std::string option;
+
+    std::regex pattern("npu_affine:(\\d)");
+    std::smatch match;
+    if (std::regex_search(inputStr, match, pattern)) {
+        int isAffinity = std::stoi(match[1].str());
+        if (isAffinity != 0) {
+            if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910_9391) {
+                for (int i = 0; i < device_nums; i++) {
+                    ranges[i] = GetAssignAffinityCPU(i);
+                }
+            } else {
+                TORCH_NPU_WARN_ONCE("The \"npu_affine\" option of the CPU_AFFINITY_CONF is disabled on this soc version.");
+            }
+        }
+    }
 
     // Handle cases where only `mode` is provided, or `mode:` without value
     if (isAllDigits(inputStr)) {
