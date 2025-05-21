@@ -2696,6 +2696,9 @@
   "torch_npu_public_env: INF_NAN_MODE_FORCE_DISABLE": {
     "mode": "std::unordered_map<int32_t, std::string> disableInfNanMode = {{0, \"enable\"}, {1, \"disable\"}}"
   },
+  "torch_npu.erase_stream": {
+    "signature": "(tensor, stream)"
+  },
   "torch_npu.utils.FlopsCounter": {
     "signature": "()"
   },
