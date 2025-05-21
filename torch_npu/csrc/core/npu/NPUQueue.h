@@ -25,6 +25,8 @@ enum RepoStatus {
   UCE_EXIT = 5,
   STOP_EXIT = 6,
   HBM_ECC_EXIT = 7,
+  SUSPECT_MEM_EXIT = 8,
+  HCCS_LINK_EXIT = 9,
 };
 
 // c10::SmallVector max size
@@ -113,6 +115,8 @@ private:
   bool IsReadWorking() const {return read_idx.working;};
   bool WriteQueue(void* cur_paras);
   bool ReadQueue();
+  void CheckDeviceError(int ret, std::string& err_msg);
+  void ThrowDeviceError(RepoStatus current_status, void* cur_paras);
 
 private:
   void* datas = nullptr;

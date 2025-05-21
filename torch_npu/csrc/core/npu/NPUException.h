@@ -94,6 +94,8 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 #define DEVICE_TASK_ABORT "reason=[device task abort]"
 #define DEVICE_MEM_ERROR "reason=[device mem error]"
 #define DEVICE_HBM_ECC_ERROR "reason=[hbm Multi-bit ECC error]"
+#define SUSPECT_DEVICE_MEM_ERROR "reason=[suspect device mem error]"
+#define HCCS_LINK_ERROR "reason=[link error]"
 
 inline const char* getErrorFunction(const char* msg)
 {
@@ -112,53 +114,33 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
     if ((error_code_peek) != ACL_ERROR_NONE) {                               \
         error_code = error_code_peek;                                        \
     }                                                                        \
-    switch (error_code) {                                                    \
-        case ACL_ERROR_RT_DEVICE_TASK_ABORT: {                               \
-            ASCEND_LOGE("getRepoStopFlag in Run, throw FORCE STOP.");        \
-            TORCH_CHECK(false, __func__, ":", __FILE__, ":", __LINE__,       \
-                " NPU function error: FORCE STOP.",                          \
-                ", error code is ", error_code, PTA_ERROR(ErrCode::ACL));    \
-            break;                                                           \
-        }                                                                    \
-        case ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR: {                         \
-            ASCEND_LOGE("getRepoStopFlag in Run, throw ECC ERROR.");         \
-            std::string error_msg(c10_npu::c10_npu_get_error_message());     \
-            std::regex pattern(R"(time us= (\d+)\.)");                       \
-            std::smatch match;                                               \
-            std::string time_msg = "";                                       \
-            if (std::regex_search(error_msg, match, pattern)) {              \
-                if (match.size() > 1) {                                      \
-                    time_msg = match[1].str();                               \
-                }                                                            \
-            }                                                                \
-            c10_npu::record_mem_hbm_ecc_error();                             \
-            TORCH_CHECK(false, __func__, ":", __FILE__, ":", __LINE__,       \
-                " NPU function error: HBM MULTI BIT ECC ERROR.", error_msg,  \
-                "time is ", time_msg, ", error code is ", error_code,        \
-                PTA_ERROR(ErrCode::ACL));                                    \
-            break;                                                           \
-        }                                                                    \
-        case ACL_ERROR_RT_DEVICE_MEM_ERROR: {                                \
-            std::string error_msg = "";                                      \
-            if (c10_npu::checkUceErrAndRepair(true, error_msg)) {            \
-                ASCEND_LOGE("getRepoStopFlag in Run, throw UCE ERROR.");     \
-                TORCH_CHECK(false, __func__, ":", __FILE__, ":", __LINE__,   \
-                " NPU function error: UCE ERROR.",                           \
-                ", error code is ", error_code, PTA_ERROR(ErrCode::ACL));    \
-            }                                                                \
-            break;                                                           \
-        }                                                                    \
-        default:                                                             \
-            break;                                                           \
+    std::string device_error_msg = c10_npu::handleDeviceError(error_code);   \
+    if (!device_error_msg.empty()) {                                         \
+        TORCH_CHECK(                                                         \
+            false,                                                           \
+            __func__,                                                        \
+            ":",                                                             \
+            __FILE__,                                                        \
+            ":",                                                             \
+            __LINE__,                                                        \
+            " NPU function error: ", device_error_msg,                       \
+            ", error code is ", error_code,                                  \
+            PTA_ERROR(ErrCode::ACL));                                        \
     }                                                                        \
+
 
 #define NPU_CHECK_ERROR_CHECK_UCE(err_code, check_uce, ...)                  \
     do {                                                                     \
         int error_code = err_code;                                           \
         static c10_npu::acl::AclErrorCode err_map;                           \
         if ((error_code) != ACL_ERROR_NONE) {                                \
+            std::string device_error_msg = "";                               \
             if (check_uce) {                                                 \
-                CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(error_code);     \
+                auto error_code_peek = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);    \
+                if ((error_code_peek) != ACL_ERROR_NONE) {                   \
+                    error_code = error_code_peek;                            \
+                }                                                            \
+                device_error_msg = c10_npu::handleDeviceError(error_code);   \
             }                                                                \
             TORCH_CHECK(                                                     \
                 false,                                                       \
@@ -167,7 +149,8 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                 __FILE__,                                                    \
                 ":",                                                         \
                 __LINE__,                                                    \
-                " NPU function error: ", getErrorFunction(#err_code, ##__VA_ARGS__),    \
+                " NPU function error: ", (device_error_msg.empty() ?         \
+                getErrorFunction(#err_code, ##__VA_ARGS__) : device_error_msg),    \
                 ", error code is ", error_code,                              \
                 PTA_ERROR(ErrCode::ACL),                                     \
                 (err_map.error_code_map.find(error_code) !=                  \
@@ -271,5 +254,17 @@ void set_mem_uce_info(MemUceInfo info);
 MemUceInfo get_mem_uce_info();
 
 void clear_mem_uce_info();
+
+std::string handleDeviceTaskAbort(int errorCode);
+
+std::string handleHbmMultiBitEccError(int errorCode);
+
+std::string handleDeviceMemError(int errorCode);
+
+std::string handleSuspectDeviceMemError(int errorCode);
+
+std::string handleLinkError(int errorCode);
+
+std::string handleDeviceError(int errorCode);
 
 } // namespace c10_npu
