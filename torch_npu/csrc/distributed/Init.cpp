@@ -448,7 +448,11 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
                        &::c10d_npu::ProcessGroupHCCL::Options::global_ranks_in_group)
         .def_readwrite("hccl_config", &::c10d_npu::ProcessGroupHCCL::Options::hccl_config)
         .def_readwrite("group_id",
-                       &::c10d_npu::ProcessGroupHCCL::Options::group_id);
+                       &::c10d_npu::ProcessGroupHCCL::Options::group_id)
+        .def_readwrite("master_addr",
+                       &::c10d_npu::ProcessGroupHCCL::Options::master_addr)
+        .def_readwrite("master_port",
+                       &::c10d_npu::ProcessGroupHCCL::Options::master_port);
     
     // bind for ProcessGroupLCCL
     auto processGroupLCCL = intrusive_ptr_no_gil_destructor_class_<::c10d_npu::ProcessGroupLCCL>(
