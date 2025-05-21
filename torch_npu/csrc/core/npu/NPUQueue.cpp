@@ -514,7 +514,7 @@ void Repository::Enqueue(void *cur_paras)
     uint64_t u = 1;
 
     SetWriteWorking(true);
-    while (ret == false) {
+    while (ret == false && (GetStatus() == RUN || GetStatus() == INIT)) {
         ret = WriteQueue(cur_paras);
         if (ret == false) {
             SetWriteWorking(false);
