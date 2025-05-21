@@ -1,12 +1,16 @@
 import os
 import atexit
 
+import torch
 import torch.cuda._sanitizer as csan
+from packaging import version
 import torch_npu
 import torch_npu.utils._npu_trace as npu_trace
 import torch_npu.npu._stream_check as stream_check
 import torch_npu.npu._kernel_check as kernel_check
 from torch_npu.utils.utils import _print_warn_log
+
+PTA_SUPPORT_DISPATCHMODE_VERSION = "2.3"
 
 
 class SanitizerMode:
@@ -110,7 +114,11 @@ class NPUSanitizer:
 
 
 def enable_npu_sanitizer():
-    npu_sanitizer.enable()
+    current_pytorch_version = torch.__version__
+    if version.parse(current_pytorch_version) < version.parse(PTA_SUPPORT_DISPATCHMODE_VERSION):
+        _print_warn_log(f"Current Pytorch's version {current_pytorch_version} doesn't support npu_sanitizer.")
+    else:
+        npu_sanitizer.enable()
 
 
 npu_sanitizer = NPUSanitizer()
