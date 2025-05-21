@@ -26,6 +26,7 @@ LOAD_FUNCTION(HcclCommInitRootInfoConfig)
 LOAD_FUNCTION(HcclGetCommConfigCapability)
 LOAD_FUNCTION(HcclCommInitClusterInfoConfig)
 LOAD_FUNCTION(HcclCreateSubCommConfig)
+LOAD_FUNCTION(HcclSetGlobalCommInfo)
 
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
@@ -257,6 +258,27 @@ HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *r
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCreateSubCommConfig", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm, rankNum, rankIds, subCommId, subCommRankId, config, subComm);
+    return ret;
+}
+
+bool hcclSetGlobalCommInfoExist()
+{
+    const static bool isSetGlobalCommInfoExist = []() -> bool {
+        auto func = GET_FUNC(HcclSetGlobalCommInfo)
+        return func != nullptr;
+    }();
+    return isSetGlobalCommInfoExist;
+}
+
+HcclResult hcclSetGlobalCommInfo(uint32_t masterIp, uint32_t masterPort, uint32_t totalRankSize, uint32_t nodeID, uint32_t localRankSize)
+{
+    typedef HcclResult(*HcclSetGlobalCommInfoFunc)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+    static HcclSetGlobalCommInfoFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclSetGlobalCommInfoFunc)GET_FUNC(HcclSetGlobalCommInfo)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclSetGlobalCommInfo", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(masterIp, masterPort, totalRankSize, nodeID, localRankSize);
     return ret;
 }
 } // namespace c10d_npu

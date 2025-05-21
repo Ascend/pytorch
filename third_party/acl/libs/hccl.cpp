@@ -34,3 +34,4 @@ hcclResult_t HcclBatchSendRecv(HcclSendRecvItemDef* sendRecvInfo, u32 itemNum, h
     aclrtStream stream) {return HCCL_SUCCESS;}
 hcclResult_t HcclCommInitAll(u32 ndev, s32 *devices, hcclComm_t *comms) {return HCCL_SUCCESS;}
 hcclResult_t HcclCommResume(hcclComm_t comm) {return HCCL_SUCCESS;}
+hcclResult_t HcclSetGlobalCommInfo(u32 masterIp, u32 masterPort, u32 totalRankSize, u32 nodeID, u32 localRankSize){return HCCL_SUCCESS;}
