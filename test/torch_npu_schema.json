@@ -2732,6 +2732,9 @@
   "torch_npu.npu_group_norm_silu": {
     "signature": "(x, gamma, beta, group, eps=1e-05)"
   },
+  "torch_npu.erase_stream": {
+    "signature": "(tensor, stream)"
+  },
   "torch_npu.utils.FlopsCounter": {
     "signature": "()"
   },

@@ -1,3 +1,5 @@
+__all__ = ["erase_stream"]
+
 import os
 import sys
 import types
@@ -58,6 +60,7 @@ from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.checkpoint.checkpoint import _apply_dcp_patch
 from torch_npu.npu._stream_check import apply_sanitizer_patch
+from torch_npu.npu.utils import _erase_stream as erase_stream
 from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 from torch_npu.asd.asd import _asd_patch
 from torch_npu._C._distributed_c10d import ParallelStore
@@ -68,9 +71,6 @@ del _op_plugin_docs
 
 
 _cann_package_check()
-
-
-__all__ = []
 
 
 def _wrap_torch_error_func(func):
