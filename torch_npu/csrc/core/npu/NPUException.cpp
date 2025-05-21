@@ -77,6 +77,14 @@ static std::string getCurrentTimestamp()
 
 namespace c10_npu {
 
+std::unordered_map<int, std::function<std::string(int)>> errCodeHandlerMap = {
+    {ACL_ERROR_RT_DEVICE_TASK_ABORT, std::bind(&handleDeviceTaskAbort, std::placeholders::_1)},
+    {ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR, std::bind(&handleHbmMultiBitEccError, std::placeholders::_1)},
+    {ACL_ERROR_RT_DEVICE_MEM_ERROR, std::bind(&handleDeviceMemError, std::placeholders::_1)},
+    {ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR, std::bind(&handleSuspectDeviceMemError, std::placeholders::_1)},
+    {ACL_ERROR_RT_LINK_ERROR, std::bind(&handleLinkError, std::placeholders::_1)}
+};
+
 MemUceInfo memUceInfo;
 
 std::mutex memUceInfoMutex;
@@ -151,6 +159,62 @@ bool checkUceErrAndRepair(bool check_error, std::string& err_msg)
         }
     }
     return false;
+}
+
+std::string handleDeviceTaskAbort(int errorCode)
+{
+    ASCEND_LOGE("getRepoStopFlag in Run, throw FORCE STOP.");
+    return "FORCE STOP";
+}
+
+std::string handleHbmMultiBitEccError(int errorCode)
+{
+    ASCEND_LOGE("getRepoStopFlag in Run, throw ECC ERROR.");
+    std::string error_msg(c10_npu::c10_npu_get_error_message());
+    std::regex pattern(R"(time us= (\d+)\.)");
+    std::smatch match;
+    std::string time_msg = "";
+    if (std::regex_search(error_msg, match, pattern)) {
+        if (match.size() > 1) {
+            time_msg = match[1].str();
+        }
+    }
+    c10_npu::record_mem_hbm_ecc_error();
+    return "HBM MULTI BIT ECC ERROR." + error_msg + "time is " + time_msg;
+}
+
+std::string handleDeviceMemError(int errorCode)
+{
+    std::string error_msg = "";
+    if (c10_npu::checkUceErrAndRepair(true, error_msg)) {
+        ASCEND_LOGE("getRepoStopFlag in Run, throw UCE ERROR.");
+        return "UCE ERROR";
+    }
+    return "";
+}
+
+std::string handleSuspectDeviceMemError(int errorCode)
+{
+    ASCEND_LOGE("getRepoStopFlag in Run, throw SUSPECT MEM ERROR.");
+    return "SUSPECT MEM ERROR";
+}
+
+std::string handleLinkError(int errorCode)
+{
+    ASCEND_LOGE("getRepoStopFlag in Run, throw HCCS LINK ERROR.");
+    return "HCCS LINK ERROR";
+}
+
+std::string handleDeviceError(int errorCode)
+{
+    auto handlerIter = errCodeHandlerMap.find(errorCode);
+    if (handlerIter != errCodeHandlerMap.end()) {
+        std::function<std::string(int)> handler = handlerIter->second;
+        if (handler != nullptr) {
+            return handler(errorCode);
+        }
+    }
+    return "";
 }
 
 } // namespace c10_npu
