@@ -357,6 +357,10 @@ public:
         std::vector<uint32_t> global_ranks_in_group;
 
         std::string group_id;
+
+        std::string master_addr;
+
+        uint32_t master_port;
     };
 
     // A struct to hold the latest status of the process group.

@@ -20,6 +20,8 @@
 #include <c10d/TraceUtils.h>
 #include <c10d/Utils.hpp>
 
+#include <arpa/inet.h>
+
 #include "op_plugin/OpInterface.h"
 #include "third_party/acl/inc/acl/acl.h"
 #include "third_party/acl/inc/acl/acl_base.h"
@@ -2106,6 +2108,47 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     return createHCCLComm(devicesKey, devices, commType, commConfig, p2pRank);
 }
 
+void setGlobalCommInfoToHccl(std::string master_addr, uint32_t master_port)
+{
+    const char* envPtr;
+    if (master_addr.empty()) {
+        ASCEND_LOGI("Failed to get TCP info for hcclSetGlobalCommInfo.");
+        return;
+    }
+    struct sockaddr_in sa;
+    inet_pton(AF_INET, std::string(master_addr).c_str(), &(sa.sin_addr));
+    uint32_t masterIp = ntohl(sa.sin_addr.s_addr);
+    if (!master_port) {
+        ASCEND_LOGI("Failed to get TCP info for hcclSetGlobalCommInfo.");
+        return;
+    }
+    uint32_t masterPort = master_port;
+    envPtr = std::getenv("WORLD_SIZE");
+    if (envPtr == nullptr) {
+        ASCEND_LOGI("Failed to get env info for hcclSetGlobalCommInfo.");
+        return;
+    }
+    uint32_t totalRankSize = std::stoi(std::string(envPtr));
+    envPtr = std::getenv("GROUP_RANK");
+    if (envPtr == nullptr) {
+        ASCEND_LOGI("Failed to get env info for hcclSetGlobalCommInfo.");
+        return;
+    }
+    uint32_t nodeID = std::stoi(std::string(envPtr));
+    envPtr = std::getenv("LOCAL_WORLD_SIZE");
+    if (envPtr == nullptr) {
+        ASCEND_LOGI("Failed to get env info for hcclSetGlobalCommInfo.");
+        return;
+    }
+    uint32_t localRankSize = std::stoi(std::string(envPtr));
+    auto info = hcclSetGlobalCommInfo(masterIp, masterPort, totalRankSize, nodeID, localRankSize);
+    if (info == HCCL_SUCCESS) {
+        ASCEND_LOGI("Succeeded to set global HCCL communication information.");
+    } else {
+        ASCEND_LOGI("Failed to set global HCCL communication information.");
+    }
+}
+
 void ProcessGroupHCCL::createHCCLComm(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices,
@@ -2129,6 +2172,14 @@ void ProcessGroupHCCL::createHCCLComm(
         int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
 
         HcclCommConfig config;
+
+        if (options_->global_ranks_in_group.empty()) {
+            if (!hcclSetGlobalCommInfoExist()) {
+                ASCEND_LOGI("The hcclSetGlobalCommInfo does not exist. Skip it.");
+            } else {
+                setGlobalCommInfoToHccl(options_->master_addr, options_->master_port);
+            }
+        }
 
         npuGuard.set_index(devices[i].index());
         switch (commType) {
