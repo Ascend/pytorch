@@ -130,9 +130,35 @@ uint64_t ProfilerMgr::PrepareProfilerConfig(const NpuTraceConfig &npu_config)
             ASCEND_LOGW("not support to set config for sys-hardware-mem.");
         }
     }
+    PrepareProfilerHostSysConfig(npu_config.host_sys);
+    PrepareProfilerDeviceSysConfig(npu_config);
     if (npu_config.op_attr) {
         datatype_config |= ACL_PROF_OP_ATTR;
     }
+    datatype_config = CheckFeatureConfig(datatype_config);
+    return datatype_config;
+}
+
+void ProfilerMgr::PrepareProfilerHostSysConfig(const std::vector<std::string> &host_sys)
+{
+    if (!host_sys.empty()) {
+        std::string hostSysStr;
+        for (size_t i = 0; i < host_sys.size(); ++i) {
+            if (i > 0) {
+                hostSysStr += ",";
+            }
+            hostSysStr += host_sys[i];
+        }
+        aclError hostSysRet = at_npu::native::AclprofSetConfig(ACL_PROF_HOST_SYS, hostSysStr.c_str(), hostSysStr.size());
+        if (hostSysRet != ACL_SUCCESS) {
+            ASCEND_LOGE("Failed call aclprofSetConfig to ACL_PROF_HOST_SYS. error_code: %d",
+                static_cast<int>(hostSysRet));
+        }
+    }
+}
+
+void ProfilerMgr::PrepareProfilerDeviceSysConfig(const NpuTraceConfig &npu_config)
+{
     if (npu_config.sys_io) {
         const std::string sysIoFreq = "100";
         aclError sysIoRet = at_npu::native::AclprofSetConfig(ACL_PROF_SYS_IO_FREQ, sysIoFreq.c_str(), sysIoFreq.size());
@@ -150,10 +176,7 @@ uint64_t ProfilerMgr::PrepareProfilerConfig(const NpuTraceConfig &npu_config)
                         static_cast<int>(sysInterconnectionRet));
         }
     }
-    datatype_config = CheckFeatureConfig(datatype_config);
-    return datatype_config;
 }
-
 
 aclprofAicoreMetrics ProfilerMgr::PrepareProfilerAicMetrics(const NpuTraceConfig &npu_config)
 {

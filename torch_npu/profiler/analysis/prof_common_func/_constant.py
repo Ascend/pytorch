@@ -124,6 +124,11 @@ class Constant(object):
     AicMetricsNone = "ACL_AICORE_NONE"
     Db = "db"
     Text = "text"
+    CPU = "cpu"
+    MEM = "mem"
+    DISK = "disk"
+    NETWORK = "network"
+    OSRT = "osrt"
 
     # profiler end info
     END_INFO = "end_info"

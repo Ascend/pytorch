@@ -24,6 +24,7 @@ struct NpuTraceConfig {
     bool record_op_args;
     bool msprof_tx;
     bool op_attr;
+    std::vector<std::string> host_sys;
     std::vector<std::string> mstx_domain_include;
     std::vector<std::string> mstx_domain_exclude;
     bool sys_io;
@@ -77,6 +78,8 @@ private:
     void EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig);
     void WarmupMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig);
     uint64_t PrepareProfilerConfig(const NpuTraceConfig &npu_config);
+    void PrepareProfilerDeviceSysConfig(const NpuTraceConfig &npu_config);
+    void PrepareProfilerHostSysConfig(const std::vector<std::string> &host_sys);
     aclprofAicoreMetrics PrepareProfilerAicMetrics(const NpuTraceConfig &npu_config);
     uint64_t CheckFeatureConfig(uint64_t datatype_config);
     void StartDataReceiver(const std::string &fwk_path);

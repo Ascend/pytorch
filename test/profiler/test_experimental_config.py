@@ -88,6 +88,24 @@ class TestExperimentalConfig(TestCase):
         self.assertEqual([], experimental_config._mstx_domain_include)
         self.assertEqual(['y'], experimental_config._mstx_domain_exclude)
 
+    def test_host_sys_switches_will_save_empty_list_when_not_set_host_sys(self):
+        experimental_config = _ExperimentalConfig()
+        self.assertEqual([], experimental_config._host_sys)
+
+    def test_host_sys_switches_will_save_when_set_valid_host_sys(self):
+        experimental_config = _ExperimentalConfig(host_sys=[Constant.CPU, Constant.MEM])
+        self.assertEqual(["cpu", "mem"], experimental_config._host_sys)
+
+    def test_sys_switches_will_save_empty_list_when_not_set_sys(self):
+        experimental_config = _ExperimentalConfig()
+        self.assertEqual(False, experimental_config._sys_io)
+        self.assertEqual(False, experimental_config._sys_interconnection)
+
+    def test_sys_switches_will_save_when_set_valid_sys(self):
+        experimental_config = _ExperimentalConfig(sys_io=True, sys_interconnection=True)
+        self.assertEqual(True, experimental_config._sys_io)
+        self.assertEqual(True, experimental_config._sys_interconnection)
+
 
 if __name__ == "__main__":
     run_tests()

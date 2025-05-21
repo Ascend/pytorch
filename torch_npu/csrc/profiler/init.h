@@ -11,6 +11,7 @@ enum class ExperConfigType {
     RECORD_OP_ARGS,
     MSPROF_TX,
     OP_ATTR,
+    HOST_SYS,
     MSTX_DOMAIN_INCLUDE,
     MSTX_DOMAIN_EXCLUDE,
     SYS_IO,
