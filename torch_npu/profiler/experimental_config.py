@@ -12,7 +12,8 @@ __all__ = [
     "supported_export_type",
     "ProfilerLevel", 
     "AiCMetrics",
-    "ExportType"
+    "ExportType",
+    "HostSystem"
 ]
 
 
@@ -54,6 +55,14 @@ class ExportType:
     Text = Constant.Text
 
 
+class HostSystem:
+    CPU = Constant.CPU
+    MEM = Constant.MEM
+    DISK = Constant.DISK
+    NETWORK = Constant.NETWORK
+    OSRT = Constant.OSRT
+
+
 class _ExperimentalConfig:
     def __init__(self,
                  profiler_level: int = Constant.LEVEL0,
@@ -65,6 +74,7 @@ class _ExperimentalConfig:
                  op_attr: bool = False,
                  gc_detect_threshold: float = None,
                  export_type: Union[str, list] = None,
+                 host_sys: list = None,
                  mstx_domain_include: list = None,
                  mstx_domain_exclude: list = None,
                  sys_io: bool = False,
@@ -79,6 +89,7 @@ class _ExperimentalConfig:
         self._data_simplification = data_simplification
         self.record_op_args = record_op_args
         self._export_type = self._conver_export_type_to_list(export_type)
+        self._host_sys = host_sys if host_sys else []
         self._op_attr = op_attr
         self._gc_detect_threshold = gc_detect_threshold
         self._mstx_domain_include = mstx_domain_include if mstx_domain_include else []
@@ -87,6 +98,7 @@ class _ExperimentalConfig:
         self._sys_interconnection = sys_interconnection
         self._check_params()
         self._check_mstx_domain_params()
+        self._check_host_sys_params()
 
     def __call__(self) -> torch_npu._C._profiler._ExperimentalConfig:
         return torch_npu._C._profiler._ExperimentalConfig(trace_level=self._profiler_level,
@@ -95,6 +107,7 @@ class _ExperimentalConfig:
                                                           record_op_args=self.record_op_args,
                                                           msprof_tx=self._msprof_tx,
                                                           op_attr=self._op_attr,
+                                                          host_sys=self._host_sys,
                                                           mstx_domain_include=self._mstx_domain_include,
                                                           mstx_domain_exclude=self._mstx_domain_exclude,
                                                           sys_io=self._sys_io,
@@ -216,3 +229,13 @@ class _ExperimentalConfig:
             print_warn_msg("Parameter mstx_domain_include and mstx_domain_exclude can not be both set, " \
                            "only mstx_domain_include will work.")
             self._mstx_domain_exclude = []
+
+    def _check_host_sys_params(self):
+        if not isinstance(self._host_sys, list):
+            print_warn_msg("Invalid parameter host_sys, which must be of list type, reset it to empty.")
+            self._host_sys = []
+        if not all(host_sys in [HostSystem.CPU, HostSystem.MEM, HostSystem.DISK, HostSystem.NETWORK, HostSystem.OSRT]
+                   for host_sys in self._host_sys):
+            print_warn_msg("Invalid parameter host_sys, reset it to empty.")
+            self._host_sys = []
+        self._host_sys = list(set(str(item) for item in self._host_sys))
