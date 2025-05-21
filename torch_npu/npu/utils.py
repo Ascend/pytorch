@@ -529,3 +529,36 @@ def chmod_recursive(path, mode):
             chmod_recursive(os.path.join(root, dir_name), mode)
         for file_name in files:
             os.chmod(os.path.join(root, file_name), mode)
+
+
+def _erase_stream(tensor, stream):
+    r"""Remove the tags of the tensor that are used by this stream through the record_stream function.
+
+    The memory can be reused between multiple streams. By default, the record_stream is used to mark the memory pool
+    to prevent the reused memory from being returned to the memory pool in advance. Each time the memory pool
+    applies for memory, it queries the event on the device to determine whether the operator has been executed and
+    can be safely released. However, the combination of host and device has a side effect. When the host is dispatched
+    much faster than the device, the peak memory usage may be increased because the device is not completely executed
+    when the host is querying.
+
+    This api provides the erase_stream capability with memory pool. The memory can be returned in advance by actively
+    erasing and freeing the memory after the event wait. The subsequent operators must be executed after the event wait.
+    Therefore, the memory that is released back to the memory pool in advance will not be trampled by the subsequent operators.
+
+    Args:
+        tensor(Tensor): The tensor whose tag needs to be removed.
+        stream(Stream): The tensor is marked in the stream and the tag needs to be removed in the current operation.
+
+    Warning:
+        When the current api is in use, it must be used in conjunction with the event wait method.
+        Otherwise, memory trampling behavior may occur.
+    """
+
+    if not isinstance(tensor, torch.Tensor):
+        raise TypeError(f"tensor should be torch.Tensor, could not be {type(tensor)}" + pta_error(ErrCode.TYPE))
+    if not isinstance(stream, torch_npu.npu.Stream):
+        raise TypeError(f"stream should be torch_npu.npu.Stream, could not be {type(stream)}" + pta_error(ErrCode.TYPE))
+    torch_npu._C._npu_eraseStream(tensor=tensor,
+                                stream_id=stream.stream_id,
+                                device_index=stream.device_index,
+                                device_type=stream.device_type)

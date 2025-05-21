@@ -2696,6 +2696,9 @@
   "torch_npu.npu_yolo_boxes_encode": {
     "signature": "(self, gt_bboxes, weight)"
   },
+  "torch_npu.erase_stream": {
+    "signature": "(tensor, stream)"
+  },
   "torch_npu.utils.FlopsCounter": {
     "signature": "()"
   },
