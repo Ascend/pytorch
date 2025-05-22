@@ -2827,6 +2827,7 @@
     "npu_add_rms_norm_cast",
     "npu_fused_infer_attention_score",
     "npu_mla_prolog",
+    "npu_mla_prolog_v2",
     "npu_convert_weight_to_int4pack",
     "npu_ffn",
     "npu_geglu",
