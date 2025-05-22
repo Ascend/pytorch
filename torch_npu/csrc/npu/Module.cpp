@@ -46,6 +46,7 @@
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h"
+#include "torch_npu/csrc/aten/common/from_blob.h"
 
 struct NPUDeviceProp {
     std::string name;
@@ -462,6 +463,16 @@ void RegisterNpuPluggableAllocator(PyObject* module)
                     nullptr,
                     false);
                 return c10::Storage(storage_impl);
+            });
+        m.def(
+            "_weak_ref_tensor",
+            [](const at::Tensor& t) {
+                void* data_ptr = t.data_ptr();
+                std::vector<int64_t> sizes = t.sizes().vec();
+                std::vector<int64_t> strides = t.strides().vec();
+                auto options = t.options();
+                auto new_tensor = at_npu::native::from_blob(data_ptr, sizes, strides, options);
+                return new_tensor;
             });
 }
 

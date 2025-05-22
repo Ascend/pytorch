@@ -1,8 +1,18 @@
+__all__ = ["is_current_stream_capturing", "graph_pool_handle", "graph_task_group_begin",
+           "graph_task_group_end", "graph_task_update_begin", "graph_task_update_end",
+           "NPUGraph", "graph", "make_graphed_callables"]
+
 import gc
+import re
 import typing
+from copy import deepcopy
+from dataclasses import dataclass, field
+from typing import List, Dict, Any, Optional, Tuple
 
 import torch
 import torch_npu._C
+from torch_npu._C import _weak_ref_tensor as TensorWeakRef
+from torch_npu.utils._error_code import ErrCode, pta_error
 from .utils import _dummy_type
 
 
@@ -65,6 +75,86 @@ def graph_task_update_end(stream):
     _graph_task_update_end(stream)
 
 
+@dataclass
+class _GraphDispatchRecord:
+    """存储单次操作的完整记录"""
+    event: Any = None
+    handle: Any = None
+    kwargs: Dict[str, Any] = field(default_factory=dict)
+    args: Tuple[Any, ...] = field(default_factory=tuple)
+    op_cache_entry: Any = None
+
+
+class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
+    tensor_schema_name = {}
+    update_stream = None
+
+    def __init__(self):
+        self.graph_dispatch_records = []
+        if not self.update_stream:
+            self.update_stream = torch_npu.npu.Stream()
+
+    @classmethod
+    def update_schema(cls, name, schame):
+        if name in cls.tensor_schema_name:
+            return
+        pattern = r'(?:Tensor\??\s*)(\w+)'
+        cls.tensor_schema_name[name] = re.findall(pattern, schame)
+    
+    def update_capture_record(self, cpu_update_input):
+        if len(cpu_update_input) == 1:
+            new_list = [cpu_update_input[0].copy() for _ in range(len(self.graph_dispatch_records))]
+            cpu_update_input = new_list 
+        if len(self.graph_dispatch_records) != len(self.graph_dispatch_records):
+            raise RuntimeError(f"Currently, there are {len(self.graph_dispatch_records)} operators that need to be updated by capture, "
+                f"and there are only {len(self.graph_dispatch_records)} elements in the incoming cpu_update_input list", pta_error(ErrCode.PARAM))
+        with torch.npu.stream(self.update_stream):
+            for graph_dispatch_record, update_input in zip(self.graph_dispatch_records, cpu_update_input):
+                graph_task_update_begin(self.update_stream, graph_dispatch_record.handle)
+                for key in update_input:
+                    graph_dispatch_record.kwargs[key] = update_input[key]
+                graph_dispatch_record.op_cache_entry(*graph_dispatch_record.args, **graph_dispatch_record.kwargs)
+                graph_task_update_end(self.update_stream)
+                graph_dispatch_record.event.record(self.update_stream)
+
+    def _append_dispatch_record(self, event, handle, args, kwargs, func):
+        args_ref = []
+        for element in args:
+            if torch.is_tensor(element):
+                args_ref.append(TensorWeakRef(element))
+            else:
+                args_ref.append(deepcopy(element))
+        kwargs_ref = {}
+        for key, vaule in kwargs.items():
+            if key == "out":
+                kwargs_ref[key] = [TensorWeakRef(vaule[0]), TensorWeakRef(vaule[1])]
+            elif key in self.tensor_schema_name[str(func.__name__)]:
+                kwargs_ref[key] = TensorWeakRef(vaule)
+            else:
+                kwargs_ref[key] = deepcopy(vaule)
+        return _GraphDispatchRecord(event=event, handle=handle, kwargs=kwargs_ref, args=tuple(args_ref), op_cache_entry=func)
+
+    def __torch_dispatch__(self, func, types, args=(), kwargs=None):
+        if func.__name__ == "npu_fused_infer_attention_score":
+            raise RuntimeError("Only support npu_fused_infer_attention_score.out", pta_error(ErrCode.NOT_SUPPORT))
+        elif func.__name__ == "npu_fused_infer_attention_score.out":
+            self.update_schema(str(func.__name__), str(func._schema))
+            stream = torch_npu.npu.current_stream()
+            event = torch.npu.ExternalEvent()
+            event.wait(stream)
+            event.reset(stream)
+            # begin graph task
+            graph_task_group_begin(stream)
+            func(*args, **kwargs)
+            handle = graph_task_group_end(stream)
+            # save state for update
+            self.graph_dispatch_records.append(
+                self._append_dispatch_record(event, handle, args, kwargs, func))
+            return kwargs["out"]
+        else:
+            return func(*args, **kwargs)
+
+
 # Python shim helps Sphinx process docstrings more reliably.
 class NPUGraph(torch_npu._C._NPUGraph):
     r"""Wrapper around a NPU graph.
@@ -75,6 +165,11 @@ class NPUGraph(torch_npu._C._NPUGraph):
 
     def __new__(cls):
         return super().__new__(cls)
+    
+    def __init__(self):
+        self.graph_dispatch_mode = _GraphDispatchMode()
+        self.auto_dispatch_capture = False
+        return super().__init__()
 
     def capture_begin(self, pool=None, capture_error_mode="global"):
         r"""Begin capturing NPU work on the current stream.
@@ -122,6 +217,12 @@ class NPUGraph(torch_npu._C._NPUGraph):
         """
         return super().pool()
 
+    def update(self, cpu_update_input):
+        if not self.auto_dispatch_capture:
+            raise RuntimeError("The current graph configuration does not support update,"
+                "Try to capture by setting auto_dispatch_capture=True during capture", pta_error(ErrCode.PARAM))
+        self.graph_dispatch_mode.update_capture_record(cpu_update_input)
+
 
 class graph:
     r"""Context-manager that captures NPU work into a :class:`torch.npu.NPUGraph` object for later replay.
@@ -157,6 +258,7 @@ class graph:
         npu_graph,
         pool=None,
         stream=None,
+        auto_dispatch_capture=False,
         capture_error_mode: str = "global",
     ):
         # Lazy-init of default_capture_stream helps avoid circular-import errors.
@@ -174,6 +276,7 @@ class graph:
         self.stream_ctx = torch.npu.stream(self.capture_stream)
         self.npu_graph = npu_graph
         self.capture_error_mode = capture_error_mode
+        self.npu_graph.auto_dispatch_capture = auto_dispatch_capture
 
     def __enter__(self):
         # Free as much memory as we can for the graph
@@ -183,13 +286,16 @@ class graph:
 
         # Stackoverflow seems comfortable with this pattern
         self.stream_ctx.__enter__()
-
+        if self.npu_graph.auto_dispatch_capture:
+            self.npu_graph.graph_dispatch_mode.__enter__()
         self.npu_graph.capture_begin(
             *self.pool, capture_error_mode=self.capture_error_mode
         )
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.npu_graph.capture_end()
+        if self.npu_graph.auto_dispatch_capture:
+            self.npu_graph.graph_dispatch_mode.__exit__(exc_type, exc_value, traceback)
         self.stream_ctx.__exit__(exc_type, exc_value, traceback)
         # returning None should propagate exceptions from either capture_end or stream_ctx.__exit__()
 
