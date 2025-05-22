@@ -288,7 +288,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
         if (current_status != RepoStatus::STOP_EXIT && current_status != RepoStatus::UCE_EXIT) {
             error_msg = c10_npu::c10_npu_get_error_message();
         }
-        runtime_error = throwError + error_msg + PTA_ERROR(ErrCode::ACL);
+        runtime_error = throwError + ", " + error_msg + PTA_ERROR(ErrCode::ACL);
         error_msg = throwError + " happend.";
     }
 
@@ -452,7 +452,7 @@ void Repository::ThrowDeviceError(RepoStatus current_status, void* cur_paras)
     if (current_status != RepoStatus::STOP_EXIT && current_status != RepoStatus::UCE_EXIT) {
         error_msg = c10_npu::c10_npu_get_error_message();
     }
-    throw std::runtime_error(throwError + error_msg + PTA_ERROR(ErrCode::ACL));
+    throw std::runtime_error(throwError + ", " + error_msg + PTA_ERROR(ErrCode::ACL));
 }
 
 void Repository::Enqueue(void *cur_paras)
