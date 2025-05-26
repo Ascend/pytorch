@@ -1,4 +1,5 @@
-from unittest.mock import patch
+import json
+from unittest.mock import patch, mock_open
 
 import torch
 from torch.nn.parameter import UninitializedTensorMixin
@@ -6,7 +7,7 @@ from torch.utils.data import TensorDataset
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.contrib.transfer_to_npu import _del_nccl_device_backend_map
+from torch_npu.contrib import transfer_to_npu
 
 
 class TestTransferToNpu(TestCase):
@@ -100,7 +101,7 @@ class TestTransferToNpu(TestCase):
         # 模拟 default_device_backend_map 的存在及其内容
         mock_backend.default_device_backend_map = {'cpu': 'gloo', 'cuda': 'nccl', 'npu': 'hccl'}
 
-        _del_nccl_device_backend_map()
+        transfer_to_npu._del_nccl_device_backend_map()
 
         # 验证 'cuda' 是否被删除
         self.assertNotIn('cuda', mock_backend.default_device_backend_map)
@@ -110,10 +111,134 @@ class TestTransferToNpu(TestCase):
         # 模拟 default_device_backend_map 中没有 'cuda'
         mock_backend.default_device_backend_map = {'cpu': 'gloo', 'npu': 'hccl'}
 
-        _del_nccl_device_backend_map()
+        transfer_to_npu._del_nccl_device_backend_map()
 
         # 验证 'cuda' 仍然不存在
         self.assertNotIn('cuda', mock_backend.default_device_backend_map)
+        
+    def test_input_validation(self):
+        # Test file is a link
+        with patch('os.path.islink', return_value=True):
+            self.assertFalse(transfer_to_npu._check_input_file_valid('dummy_path'))
+
+        # Test file does not exist
+        with patch('os.path.islink', return_value=False), \
+                patch('os.path.realpath'), \
+                patch('os.path.exists', return_value=False):
+            self.assertFalse(transfer_to_npu._check_input_file_valid('dummy_path'))
+
+        # Test file not readable
+        with patch('os.path.islink', return_value=False), \
+                patch('os.path.realpath'), \
+                patch('os.path.exists', return_value=True), \
+                patch('os.access', return_value=False):
+            self.assertFalse(transfer_to_npu._check_input_file_valid('dummy_path'))
+
+        # Test file name too long
+        with patch('os.path.islink', return_value=False), \
+                patch('os.path.realpath'), \
+                patch('os.path.exists', return_value=True), \
+                patch('os.access', return_value=True), \
+                patch('os.path.basename', return_value='a' * 201):
+            self.assertFalse(transfer_to_npu._check_input_file_valid('dummy_path'))
+
+        # Test file too large
+        with patch('os.path.islink', return_value=False), \
+                patch('os.path.realpath'), \
+                patch('os.path.exists', return_value=True), \
+                patch('os.access', return_value=True), \
+                patch('os.path.basename', return_value='valid_name'), \
+                patch('os.path.getsize', return_value=11 * 1024 ** 2):
+            self.assertFalse(transfer_to_npu._check_input_file_valid('dummy_path'))
+
+        # Test valid file
+        with patch('os.path.islink', return_value=False), \
+                patch('os.path.realpath'), \
+                patch('os.path.exists', return_value=True), \
+                patch('os.access', return_value=True), \
+                patch('os.path.basename', return_value='valid_name'), \
+                patch('os.path.getsize', return_value=1024):
+            self.assertTrue(transfer_to_npu._check_input_file_valid('dummy_path'))
+
+    def test_load_json_file(self):
+        # Test with invalid file
+        with patch('torch_npu.contrib.transfer_to_npu._check_input_file_valid', return_value=False):
+            self.assertEqual(transfer_to_npu._load_json_file('invalid_path'), {})
+
+        # Test with JSON decode error
+        with patch('torch_npu.contrib.transfer_to_npu._check_input_file_valid', return_value=True), \
+                patch('builtins.open', mock_open(read_data='invalid json')), \
+                patch('json.load', side_effect=json.JSONDecodeError('Expecting value', 'doc', 0)):
+            self.assertEqual(transfer_to_npu._load_json_file('dummy_path'), {})
+
+        # Test with file content not a dict
+        with patch('torch_npu.contrib.transfer_to_npu._check_input_file_valid', return_value=True), \
+                patch('builtins.open', mock_open(read_data='["not", "a", "dict"]')), \
+                patch('json.load', return_value=["not", "a", "dict"]):
+            self.assertEqual(transfer_to_npu._load_json_file('dummy_path'), {})
+
+        # Test with valid JSON dict
+        valid_json_data = '{"key": "value"}'
+        with patch('torch_npu.contrib.transfer_to_npu._check_input_file_valid', return_value=True), \
+                patch('builtins.open', mock_open(read_data=valid_json_data)), \
+                patch('json.load', return_value={"key": "value"}):
+            self.assertEqual(transfer_to_npu._load_json_file('valid_path'), {"key": "value"})
+
+    def test_wrapper_function(self):
+        @transfer_to_npu._wrapper_libraries_func
+        def test_function():
+            return torch.cuda.is_available()
+
+        self.assertFalse(test_function())
+
+    def test_replace_cuda_to_npu_in_dict(self):
+        input_dict = {
+            "device": "cuda:0",
+            "cuda_version": "10.2",
+            "non_cuda_key": "no replacement needed",
+            "123": "cuda_core"
+        }
+        expected_dict = {
+            "device": "npu:0",
+            "npu_version": "10.2",
+            "non_npu_key": "no replacement needed",
+            "123": "npu_core"
+        }
+
+        result_dict = transfer_to_npu._replace_cuda_to_npu_in_dict(input_dict)
+        self.assertEqual(result_dict, expected_dict)
+
+    def test_wrapper_hccl_args_and_kwargs(self):
+        @transfer_to_npu._wrapper_hccl
+        def mock_function(*args, **kwargs):
+            return args, kwargs
+
+        args_input = ('nccl', 'cpu')
+        kwargs_input = {'backend': 'nccl', 'device': 'gpu'}
+        expected_args_output = ('hccl', 'cpu')
+        expected_kwargs_output = {'backend': 'hccl', 'device': 'gpu'}
+
+        args_output, kwargs_output = mock_function(*args_input, **kwargs_input)
+
+        self.assertEqual(args_output, expected_args_output)
+        self.assertEqual(kwargs_output, expected_kwargs_output)
+
+    def test_wrapper_profiler_experimental_config(self):
+        @transfer_to_npu._wrapper_profiler
+        def mock_function(*args, **kwargs):
+            return kwargs
+
+        wrong_config = 'not_a_valid_config'
+        correct_config = torch_npu.profiler._ExperimentalConfig(1, 1)
+
+        with patch('logging.warning') as mock_logger:
+            result = mock_function(experimental_config=wrong_config)
+            mock_logger.assert_called_once()
+            self.assertNotIn('experimental_config', result)
+
+        result = mock_function(experimental_config=correct_config)
+        self.assertIn('experimental_config', result)
+        self.assertIs(result['experimental_config'], correct_config)
 
 
 if __name__ == "__main__":
