@@ -11,8 +11,6 @@ if not torch.accelerator.is_available():
     TestCase = NoTest  # noqa: F811
     sys.exit()
 
-TEST_MULTIACCELERATOR = torch.accelerator.device_count() > 1
-
 
 class TestAccelerator(TestCase):
     def test_current_accelerator(self):
@@ -28,6 +26,29 @@ class TestAccelerator(TestCase):
                     ValueError, "doesn't match the current accelerator"
                 ):
                     torch.accelerator.set_device_index("cpu")
+
+    def test_generic_stream_behavior(self):
+        s1 = torch.Stream()
+        s2 = torch.Stream()
+        torch.accelerator.set_stream(s1)
+        self.assertEqual(torch.accelerator.current_stream(), s1)
+        event = torch.Event()
+        a = torch.randn(1000)
+        b = torch.randn(1000)
+        c = a + b
+        torch.accelerator.set_stream(s2)
+        self.assertEqual(torch.accelerator.current_stream(), s2)
+        a_acc = a.to(torch.accelerator.current_accelerator(), non_blocking=True)
+        b_acc = b.to(torch.accelerator.current_accelerator(), non_blocking=True)
+        torch.accelerator.set_stream(s1)
+        self.assertEqual(torch.accelerator.current_stream(), s1)
+        event.record(s2)
+        event.synchronize()
+        c_acc = a_acc + b_acc
+        event.record(s2)
+        torch.accelerator.synchronize()
+        self.assertTrue(event.query())
+        self.assertEqual(c_acc.cpu(), c)
 
     def test_current_stream_query(self):
         s = torch.accelerator.current_stream()
