@@ -66,6 +66,12 @@ c10::Stream NPUGuardImpl::getDefaultStream(c10::Device d) const
     return c10_npu::getDefaultNPUStream(d.index());
 }
 
+c10::Stream NPUGuardImpl::getNewStream(c10::Device d, int priority) const
+{
+    bool isHighPriority = priority != 0 ? true : false;
+    return c10_npu::getStreamFromPool(isHighPriority, d.index());
+}
+
 c10::Stream NPUGuardImpl::getStreamFromGlobalPool(c10::Device d, bool isHighPriority) const
 {
     return c10_npu::getStreamFromPool(isHighPriority, d.index());
@@ -174,6 +180,28 @@ bool NPUGuardImpl::queryEvent(void *event) const
     acl::aclrtEventRecordedStatus status = acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
     NPU_CHECK_ERROR_WITHOUT_UCE(acl::AclQueryEventRecordedStatus(npu_event, &status));
     return (status == acl::ACL_EVENT_RECORDED_STATUS_COMPLETE);
+}
+
+void NPUGuardImpl::synchronizeEvent(void* event) const
+{
+    if (!event) {
+        return;
+    }
+
+    aclrtEvent npu_event = static_cast<aclrtEvent>(event);
+
+    NPUStatus ret = c10_npu::emptyAllNPUStream();
+    if (ret != NPU_STATUS_SUCCESS) {
+        ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+    }
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(npu_event));
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", npu_event);
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(npu_event));
+    }
+#endif
 }
 
 void NPUGuardImpl::synchronizeDevice(const c10::DeviceIndex device_index) const

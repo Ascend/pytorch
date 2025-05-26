@@ -30,6 +30,7 @@ struct C10_NPU_API NPUGuardImpl final : public c10::impl::DeviceGuardImplInterfa
 
     c10::Stream getStream(c10::Device d) const noexcept override;
     c10::Stream getDefaultStream(c10::Device d) const override;
+    c10::Stream getNewStream(c10::Device d, int priority = 0) const override;
     c10::Stream getStreamFromGlobalPool(c10::Device d, bool isHighPriority = false) const override;
     // NB: These do NOT set the current device
     c10::Stream exchangeStream(c10::Stream s) const noexcept override;
@@ -43,6 +44,7 @@ struct C10_NPU_API NPUGuardImpl final : public c10::impl::DeviceGuardImplInterfa
     void block(void *event, const c10::Stream &stream) const override;
     // May be called from any device
     bool queryEvent(void *event) const override;
+    void synchronizeEvent(void* event) const override;
     void synchronizeDevice(const c10::DeviceIndex device_index) const override;
     void recordDataPtrOnStream(const c10::DataPtr &data_ptr, const c10::Stream &stream) const override;
 };
