@@ -834,7 +834,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         }
     }
     ASCEND_LOGI("Set op wait timeout to %u.", kOpWaitTimeout);
-    NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
     const char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
     try {
         if (blockingWait != nullptr) {
