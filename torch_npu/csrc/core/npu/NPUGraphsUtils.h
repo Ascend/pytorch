@@ -65,19 +65,7 @@ inline std::ostream &operator<<(std::ostream &os, CaptureStatus status)
 }
 
 // Use this version where you're sure a CUDA context exists already.
-inline CaptureStatus currentStreamCaptureStatusMayInitCtx()
-{
-    if (!c10_npu::acl::IsCaptureSupported()) {
-        return CaptureStatus::None;
-    }
-
-    aclmdlRICaptureStatus is_capturing{ACL_MODEL_RI_CAPTURE_STATUS_NONE};
-    aclmdlRI model_ri;
-    auto s = c10_npu::getCurrentNPUStream();
-    NPU_CHECK_ERROR(
-        c10_npu::acl::AclmdlRICaptureGetInfo(s.stream(false), &is_capturing, &model_ri));
-    return CaptureStatus(is_capturing);
-}
+C10_NPU_API CaptureStatus currentStreamCaptureStatusMayInitCtx();
 
 // Use this version where you don't want to create a CUDA context if none exists.
 inline CaptureStatus currentStreamCaptureStatus()
