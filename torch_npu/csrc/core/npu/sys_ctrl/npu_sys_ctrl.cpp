@@ -178,7 +178,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     }
 
     NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
-    NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
 
     // lazy call for the setoption
     for (const auto &iter: lazy_fn_) {

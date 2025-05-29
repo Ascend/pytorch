@@ -17,6 +17,17 @@
         auto Error = err_code;                                               \
         if ((Error) != HCCL_SUCCESS) {                                       \
             CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);              \
+            if (c10_npu::option::OptionsManager::ShouldPrintLessError()) {   \
+                std::ostringstream oss;                                      \
+                oss << " HCCL function error: " << getErrorFunction(#err_code, ##__VA_ARGS__)    \
+                   << ", error code is " << Error << " "                    \
+                   << DIST_ERROR(ErrCode::HCCL) + ".\n";                     \
+                std::string err_msg = oss.str();                          \
+                ASCEND_LOGE("%s", err_msg.c_str());                       \
+                TORCH_CHECK(                                                 \
+                    false,                                                   \
+                    c10_npu::c10_npu_get_error_message());                   \
+            } else {                                                         \
             TORCH_CHECK(                                                     \
                 false,                                                       \
                 __func__,                                                    \
@@ -27,8 +38,9 @@
                 " HCCL function error: ", getErrorFunction(#err_code, ##__VA_ARGS__),   \
                 ", error code is ", Error,                                   \
                 DIST_ERROR(ErrCode::HCCL) + ".\n" +                          \
-                c10_npu::acl::AclGetErrMsg());                               \
+                c10_npu::c10_npu_get_error_message());                               \
         }                                                                    \
+    }                                                                       \
     } while (0)
 
 #define ENABLE_HCCL_ERROR_CHECKING

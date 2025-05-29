@@ -57,8 +57,9 @@ def _format_error_msg(submodule, error_code):
             return rank
         except Exception:
             return -1
-
-    error_msg = "\n[ERROR] {time} (PID:{pid}, Device:{device}, RankID:{rank}) {error_code} {submodule_name} {error_code_msg}"
+    error_msg = ""
+    if not get_env_compact_error_output():
+        error_msg += "\n[ERROR] {time} (PID:{pid}, Device:{device}, RankID:{rank}) {error_code} {submodule_name} {error_code_msg}"
 
     return error_msg.format(
             time=time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()),
@@ -88,6 +89,10 @@ def graph_error(error: ErrCode) -> str:
 
 def prof_error(error: ErrCode) -> str:
     return _format_error_msg(_SubModuleID.PROF, error)
+
+
+def get_env_compact_error_output():
+    return int(os.getenv("TORCH_NPU_COMPACT_ERROR_OUTPUT", "0"))
 
 
 class _NPUExceptionHandler(object):
@@ -123,7 +128,7 @@ class _NPUExceptionHandler(object):
             if self.force_stop_flag:
                 raise RuntimeError("FORCE STOP." + pta_error(ErrCode.ACL))
             if self._is_exception(self.npu_exception):
-                if self._is_exception(self.npu_timeout_exception):
+                if self._is_exception(self.npu_timeout_exception) or get_env_compact_error_output():
                     # if npu timeout, let other processes exit properly before elastic agent kills them.
                     time.sleep(self.npu_timeout_exit_offset)
             else:

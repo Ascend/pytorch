@@ -133,6 +133,7 @@ public:
     static std::string GetOomSnapshotDumpPath();
     static bool IsOomSnapshotEnable();
     static bool ShouldPrintWarning();
+    static bool ShouldPrintLessError();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

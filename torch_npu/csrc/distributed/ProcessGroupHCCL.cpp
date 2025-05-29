@@ -915,7 +915,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         }
     }
     ASCEND_LOGI("Set op wait timeout to %d.", kOpWaitTimeout);
-    NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
     logPrefix_ = createLogPrefix();
     if (options_->global_ranks_in_group.empty()) {
         numRanks_ = size_;
