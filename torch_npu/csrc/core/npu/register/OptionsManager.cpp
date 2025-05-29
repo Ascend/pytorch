@@ -622,5 +622,14 @@ bool OptionsManager::IsOomSnapshotEnable()
     return (envFlag != 0);
 }
 
+bool OptionsManager::ShouldPrintLessError()
+{
+    static bool should_print = []() -> bool {
+        int32_t disabled_error = OptionsManager::GetBoolTypeOption("TORCH_NPU_COMPACT_ERROR_OUTPUT");
+        return disabled_error != 0;
+    }();
+    return should_print;
+}
+
 } // namespace option
 } // namespace c10_npu
