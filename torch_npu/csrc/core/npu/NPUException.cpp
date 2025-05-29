@@ -51,7 +51,9 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode)
     int deviceIndex = -1;
     c10_npu::GetDevice(&deviceIndex);
     auto rank_id = c10_npu::option::OptionsManager::GetRankId();
+    if (c10_npu::option::OptionsManager::ShouldPrintLessError()) {
     oss << "\n[ERROR] " << getCurrentTimestamp() << " (PID:" << getpid() << ", Device:" << deviceIndex << ", RankID:" << rank_id << ") ";
+    }
     oss << "ERR" << std::setw(2) << std::setfill('0') << static_cast<int>(submodule);
     oss << std::setw(3) << std::setfill('0') << static_cast<int>(errorCode);
     oss << " " << submoduleMap[submodule] << " " << errCodeMap[errorCode];
@@ -107,11 +109,48 @@ void clear_mem_uce_info()
     memUceInfo.clear();
 }
 
+const std::string c10_npu_check_error_message(std::string& errmsg)
+{
+    std::regex dateRegex(R"(\d{4}-\d{2}-\d{2}-\d{2}:\d{2}:\d{2}\.\d{3}\.\d{3})");
+    std::smatch match;
+
+    if (std::regex_search(errmsg, match, dateRegex)) {
+        size_t dateEndPos = match.position(0) + match.length(0);
+        size_t tracePos = errmsg.find("TraceBack (most recent call last):\n", dateEndPos);
+        std::string content;
+        if (tracePos != std::string::npos) {
+            content = errmsg.substr(dateEndPos, tracePos - dateEndPos);
+        } else {
+            content = errmsg.substr(dateEndPos);
+        }
+
+        std::regex ws_regex("[\\s\\t\\n\\r]+");
+        content = std::regex_replace(content, ws_regex, " ");
+        if (!content.empty() && content.front() == ' ')
+            content.erase(0, 1);
+        if (!content.empty() && content.back() == ' ')
+            content.pop_back();
+
+        return content;
+    }
+
+    return "";
+}
+
+
 const char *c10_npu_get_error_message()
 {
     auto errmsg = c10_npu::acl::AclGetErrMsg();
-    c10_npu::setRepoErrMsg(errmsg);
-    return errmsg;
+    if (c10_npu::option::OptionsManager::ShouldPrintLessError()) {
+        std::string log(errmsg);
+        std::string errmsg_ = c10_npu::c10_npu_check_error_message(log);
+        thread_local std::string processedErrMsg = errmsg_;
+        c10_npu::setRepoErrMsg(processedErrMsg.c_str());
+        return processedErrMsg.c_str();
+    } else {
+        c10_npu::setRepoErrMsg(errmsg);
+        return errmsg;
+    }
 }
 
 void record_mem_hbm_ecc_error()

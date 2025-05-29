@@ -142,7 +142,31 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                 }                                                            \
                 device_error_msg = c10_npu::handleDeviceError(error_code);   \
             }                                                                \
-            TORCH_CHECK(                                                     \
+            if (((error_code) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) && (device_error_msg.empty())) {              \
+                static auto feature_not_support_warn_once = []() {               \
+                    printf("[WARN]%s,%s:%u:%s\n",                                \
+                           __FUNCTION__, __FILENAME__, __LINE__,                 \
+                           "Feature is not supportted and the possible cause is" \
+                           " that driver and firmware packages do not match.");  \
+                    return true;                                                 \
+                }();                                                             \
+            } else if (c10_npu::option::OptionsManager::ShouldPrintLessError()) { \
+                std::ostringstream oss;                                          \
+                oss << " NPU function error: "                                   \
+                    << (device_error_msg.empty() ? getErrorFunction(#err_code, ##__VA_ARGS__) : device_error_msg) \
+                    << ", error code is " << error_code << " "                     \
+                    << PTA_ERROR(ErrCode::ACL)                                    \
+                    << (err_map.error_code_map.find(error_code) != err_map.error_code_map.end() ? \
+                      err_map.error_code_map[error_code] : ".")            \
+                    << "\n";                                                 \
+                std::string err_msg = oss.str();                          \
+                ASCEND_LOGE("%s", err_msg.c_str());                       \
+                TORCH_CHECK(                                                     \
+                    false,                                                       \
+                    (device_error_msg.empty() ? "" : device_error_msg),        \
+                    c10_npu::c10_npu_get_error_message());                       \
+            } else {                                                         \
+                TORCH_CHECK(                                                     \
                 false,                                                       \
                 __func__,                                                    \
                 ":",                                                         \
@@ -157,6 +181,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                 err_map.error_code_map.end() ?                               \
                 "\n[Error]: " + err_map.error_code_map[error_code] : "."),   \
                 "\n", c10_npu::c10_npu_get_error_message());                 \
+            }                                                                 \
         }                                                                    \
     } while (0)
 
@@ -168,7 +193,21 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         auto Error = err_code;                                               \
         static c10_npu::acl::AclErrorCode err_map;                           \
         if ((Error) != ACL_ERROR_NONE) {                                     \
-            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);              \
+            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);               \
+            if (c10_npu::option::OptionsManager::ShouldPrintLessError())      \
+            {                                                                \
+                std::ostringstream oss;                                      \
+                oss << " OPS function error: " << getErrorFunction(#err_code, ##__VA_ARGS__)    \
+                   << ", error code is " << Error  << " "                    \
+                   << OPS_ERROR(ErrCode::ACL)                                 \
+                   << (err_map.error_code_map.find(Error) != err_map.error_code_map.end() ?      \
+                      err_map.error_code_map[Error] : ".") + "\n";           \
+                std::string err_msg = oss.str();                          \
+                ASCEND_LOGE("%s", err_msg.c_str());                       \
+                TORCH_CHECK(                                                 \
+                    false,                                                   \
+                    c10_npu::c10_npu_get_error_message());                   \
+            } else {                                                         \
             TORCH_CHECK(                                                     \
                 false,                                                       \
                 __func__,                                                    \
@@ -184,40 +223,9 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                 "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
                 "\n", c10_npu::c10_npu_get_error_message());                 \
         }                                                                    \
+        }                                                                    \
     } while (0)
 
-#define NPU_CHECK_SUPPORTED_OR_ERROR(err_code, ...)                              \
-    do {                                                                         \
-        auto Error = err_code;                                                   \
-        static c10_npu::acl::AclErrorCode err_map;                               \
-        if ((Error) != ACL_ERROR_NONE) {                                         \
-            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);                  \
-            if ((Error) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {                   \
-                static auto feature_not_support_warn_once = []() {               \
-                    printf("[WARN]%s,%s:%u:%s\n",                                \
-                           __FUNCTION__, __FILENAME__, __LINE__,                 \
-                           "Feature is not supportted and the possible cause is" \
-                           " that driver and firmware packages do not match.");  \
-                    return true;                                                 \
-                }();                                                             \
-            } else {                                                             \
-                TORCH_CHECK(                                                     \
-                    false,                                                       \
-                    __func__,                                                    \
-                    ":",                                                         \
-                    __FILE__,                                                    \
-                    ":",                                                         \
-                    __LINE__,                                                    \
-                    " NPU function error: ", getErrorFunction(#err_code, ##__VA_ARGS__),    \
-                    ", error code is ", Error,                                   \
-                    PTA_ERROR(ErrCode::ACL),                                     \
-                    (err_map.error_code_map.find(Error) !=                       \
-                    err_map.error_code_map.end() ?                               \
-                    "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
-                    "\n", c10_npu::c10_npu_get_error_message());                 \
-            }                                                                    \
-        }                                                                        \
-    } while (0)
 
 namespace c10_npu {
 
@@ -244,6 +252,8 @@ struct MemUceInfo {
 };
 
 C10_NPU_API const char *c10_npu_get_error_message();
+
+C10_NPU_API const std::string c10_npu_check_error_message(std::string& errmsg);
 
 bool checkUceErrAndRepair(bool check_error, std::string& err_msg);
 

@@ -197,7 +197,7 @@ static void initGlobalStreamState()
     default_streams[device_id].device_index = device_id;
     npu_counters[device_id] = 0;
     auto& default_streamsi = default_streams[device_id];
-    NPU_CHECK_SUPPORTED_OR_ERROR(
+    NPU_CHECK_ERROR(
         acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
     if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
         default_streamsi.repo->InitRepo(device_id);
@@ -205,7 +205,7 @@ static void initGlobalStreamState()
     // Initializes secondary streams
     secondary_streams[device_id].device_index = device_id;
     auto &secondary_streamsi = secondary_streams[device_id];
-    NPU_CHECK_SUPPORTED_OR_ERROR(
+    NPU_CHECK_ERROR(
         acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
 }
 
@@ -220,7 +220,7 @@ static void initDeviceStreamState(c10::DeviceIndex device_index)
 
         npu_streami.device_index = device_index;
 
-        NPU_CHECK_SUPPORTED_OR_ERROR(
+        NPU_CHECK_ERROR(
             acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
     }
 }
@@ -612,11 +612,11 @@ void recovery_all_npu_streams(c10::DeviceIndex device_index)
     NPUGuard device_guard{device_index};
     auto& default_streamsi = default_streams[device_index];
     default_streamsi.stream = nullptr;
-    NPU_CHECK_SUPPORTED_OR_ERROR(
+    NPU_CHECK_ERROR(
         acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
     auto& secondary_streamsi = secondary_streams[device_index];
     secondary_streamsi.stream = nullptr;
-    NPU_CHECK_SUPPORTED_OR_ERROR(
+    NPU_CHECK_ERROR(
         acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
     static int StreamsPerPool = GetStreamsPerPool();
     for (auto i = decltype(StreamsPerPool){0}; i < StreamsPerPool; ++i) {
@@ -624,7 +624,7 @@ void recovery_all_npu_streams(c10::DeviceIndex device_index)
         if (npu_streami.stream == nullptr) {
             continue;
         }
-        NPU_CHECK_SUPPORTED_OR_ERROR(
+        NPU_CHECK_ERROR(
             acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
     }
 }
@@ -638,7 +638,7 @@ static void initDeviceSyncLaunchStream(c10::DeviceIndex device_index)
         sync_streami.device_index = device_index;
         sync_streami.is_sync_launch = true;
 
-        NPU_CHECK_SUPPORTED_OR_ERROR(
+        NPU_CHECK_ERROR(
             acl::AclrtCreateStreamWithConfig(&sync_streami.stream, 0, ACL_STREAM_FAST_SYNC));
     }
 }
