@@ -889,7 +889,7 @@ size_t CachingAllocatorConfig::parseExpandableSegments(const std::vector<std::st
             if (status == ACL_ERROR_NONE) {
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
             } else {
-                NPU_CHECK_SUPPORTED_OR_ERROR(status, "aclrtReserveMemAddress");
+                NPU_CHECK_ERROR(status, "aclrtReserveMemAddress");
                 TORCH_NPU_WARN_ONCE("expandable_segments setting failure, now change to `False`.");
                 m_expandable_segments = false;
             }
