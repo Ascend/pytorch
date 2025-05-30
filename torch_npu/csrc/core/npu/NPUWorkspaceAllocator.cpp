@@ -115,6 +115,7 @@ public:
                     reinterpret_cast<int64_t>(stream)}
                 );
 #endif
+                block->data_ptr = nullptr;
             }
 
             block->size = kRoundLarge * ((alloc_size + kRoundLarge - 1) / kRoundLarge);
