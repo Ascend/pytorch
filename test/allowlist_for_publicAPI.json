@@ -2865,7 +2865,8 @@
     "npu_grouped_matmul_finalize_routing",
     "npu_alltoallv_gmm",
     "npu_gmm_alltoallv",
-    "npu_transpose_batchmatmul"
+    "npu_transpose_batchmatmul",
+    "npu_gather_sparse_index"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
