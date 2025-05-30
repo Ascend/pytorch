@@ -21,7 +21,7 @@ prop = driver.active.utils.get_device_properties(device)
 num_cube_core = prop["num_aicore"]
 num_vector_core = prop["num_aicore"]
 
-# unit byte
+# unit byte 
 npu_block = 32
 
 traced_fx_graph_cache = os.environ.get("INDUCTOR_ASCEND_FX_GRAPH_CACHE", None)
