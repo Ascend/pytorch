@@ -18,6 +18,7 @@ from .utils import _print_error_log, _print_warn_log, _print_info_log, _apply_np
 from ._step import add_perf_dump_patch
 from .flops_count import _FlopsCounter as FlopsCounter
 from .affinity import _set_thread_affinity as set_thread_affinity
+from ._graph_tree import _apply_npugraph_tree_methods
 
 
 # init flopcount
