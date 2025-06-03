@@ -7,7 +7,7 @@
 #include <torch/csrc/distributed/c10d/Types.hpp>
 #include <torch/csrc/distributed/c10d/Utils.hpp>
 #include <torch/csrc/jit/serialization/pickler.h>
-#include "torch_npu/csrc/profiler/python/combined_traceback.h"
+#include <torch/csrc/profiler/combined_traceback.h>
 
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
@@ -63,26 +63,6 @@ namespace c10d_npu {
     inline std::string getTraceEndKey(const std::string &pgName, int rank)
     {
         return pgName + "_" + std::to_string(rank) + "_trace_end";
-    }
-
-    inline bool traceUpdate(
-        c10::intrusive_ptr<c10d::Store> &store,
-        const std::string &key,
-        uint64_t seq,
-        const std::string &col)
-    {
-        std::vector<uint8_t> value(col.size() + sizeof(seq) + 1);
-        memcpy(value.data(), &seq, sizeof(seq));
-        memcpy(value.data() + sizeof(seq), col.data(), col.size());
-        try {
-            store->set(key, value);
-            return true;
-        } catch (...) {
-            LOG(ERROR) << "Store is down while updating #" << seq << " with key "
-                       << key;
-            return false;
-        }
-        return true;
     }
 
     enum TraceDebugEvent {
@@ -247,7 +227,7 @@ namespace c10d_npu {
     DebugInfoWriter &DebugInfoWriter::getWriter(int rank)
     {
         if (writer_ == nullptr) {
-            std::string fileNamePrefix = getCvarString(
+            std::string fileNamePrefix = c10d::getCvarString(
                 {"TORCH_HCCL_DEBUG_INFO_TEMP_FILE"}, "/tmp/hccl_trace_rank_");
             // Using std::unique_ptr here to auto-delete the writer object
             // when the pointer itself is destroyed.
@@ -295,9 +275,9 @@ namespace c10d_npu {
         // warn: might be slow in getting cpp traces
         // because of slow/broken addr2line
         // in different system libs
-        std::shared_ptr<torch_npu::CapturedTraceback> tb =
-            torch_npu::CapturedTraceback::gather(true, true, false);
-        torch_npu::SymbolizedTracebacks s_tbs = torch_npu::symbolize({tb.get()});
+        std::shared_ptr<torch::CapturedTraceback> tb =
+            torch::CapturedTraceback::gather(true, true, false);
+        torch::SymbolizedTracebacks s_tbs = torch::symbolize({tb.get()});
         const auto &s_tb = s_tbs.tracebacks.at(0);
         std::stringstream oss;
         LOG(ERROR) << "get traceback size:" << s_tb.size();
@@ -321,7 +301,7 @@ namespace c10d_npu {
         return c10::List<c10::IValue>(c10::AnyType::get());
     }
 
-    inline std::string ranks_str(const std::vector<uint64_t> &ranks)
+    inline std::string ranks_str(const std::vector<uint32_t> &ranks)
     {
         std::string str;
         for (const auto &rank : ranks) {
@@ -344,8 +324,8 @@ namespace c10d_npu {
         }
         HCCLTraceBuffer()
         {
-            max_entries_ = getCvarInt({"TORCH_HCCL_TRACE_BUFFER_SIZE"}, 0);
-            capture_cpp_stack_ = getCvarBool({"TORCH_HCCL_TRACE_CPP_STACK"}, false);
+            max_entries_ = c10d::getCvarInt({"TORCH_HCCL_TRACE_BUFFER_SIZE"}, 0);
+            capture_cpp_stack_ = c10d::getCvarBool({"TORCH_HCCL_TRACE_CPP_STACK"}, false);
             enabled_ = max_entries_ > 0;
         }
         using Event = c10_npu::NPUEvent;
@@ -368,7 +348,7 @@ namespace c10d_npu {
             size_t op_id_;
             std::string profiling_name_;
 
-            std::shared_ptr<torch_npu::CapturedTraceback> traceback_;
+            std::shared_ptr<torch::CapturedTraceback> traceback_;
             // we borrow pointers to start_ and end_ so we can query the state
             // on reporting. However, once the event is completed, the call
             // to `complete` will clear these.
@@ -411,7 +391,7 @@ namespace c10d_npu {
         size_t max_entries_ = 0;
         size_t next_ = 0;
         size_t id_ = 0;
-        std::map<std::tuple<std::string, std::string>, std::vector<uint64_t>>
+        std::map<std::tuple<std::string, std::string>, std::vector<uint32_t>>
             pg_name_to_ranks_ = {};
 
         c10::optional<size_t> record(
@@ -431,7 +411,7 @@ namespace c10d_npu {
                 return c10::nullopt;
             }
             auto traceback =
-                torch_npu::CapturedTraceback::gather(true, true, capture_cpp_stack_);
+                torch::CapturedTraceback::gather(true, true, capture_cpp_stack_);
             std::lock_guard<std::mutex> guard(mutex_);
 
             auto te = Entry{
@@ -475,7 +455,7 @@ namespace c10d_npu {
 
         void record_pg_ranks(
             const std::tuple<std::string, std::string> &pg_name,
-            std::vector<uint64_t> ranks)
+            std::vector<uint32_t> ranks)
         {
             if (!enabled_) {
                 return;
@@ -527,7 +507,7 @@ namespace c10d_npu {
         never hang. (timing must also be enabled for compute_duration - see
         TORCH_HCCL_ENABLE_TIMING).
         */
-        void retire_id(std::optional<size_t> id, bool compute_duration = true)
+        void retire_id(c10::optional<size_t> id, bool compute_duration = true)
         {
             if (!enabled_ || !id) {
                 return;
@@ -550,6 +530,8 @@ namespace c10d_npu {
                     startEvent = entry->start_;
                     endEvent = entry->end_;
                 }
+                entry->retired_ = true;
+                entry->start_ = entry->end_ = nullptr;
             }
 
             if (can_compute_duration) {
@@ -572,9 +554,6 @@ namespace c10d_npu {
                     entry->duration_ = duration.value();
                 }
             }
-
-            entry->retired_ = true;
-            entry->start_ = entry->end_ = nullptr;
         }
 
         const c10::List<c10::IValue> getCollectiveTrace(
@@ -583,14 +562,14 @@ namespace c10d_npu {
         {
             auto entries = new_list();
             auto result = dump_entries();
-            std::vector<torch_npu::CapturedTraceback *> tracebacks;
-            torch_npu::SymbolizedTracebacks stracebacks;
+            std::vector<torch::CapturedTraceback *> tracebacks;
+            torch::SymbolizedTracebacks stracebacks;
             std::vector<c10::IValue> all_frames;
             if (includeStacktraces) {
                 for (auto &e : result) {
                     tracebacks.push_back(e.traceback_.get());
                 }
-                stracebacks = torch_npu::symbolize(tracebacks);
+                stracebacks = torch::symbolize(tracebacks);
                 for (const auto &f : stracebacks.all_frames) {
                     auto d = new_dict();
                     d.insert(name_key, f.funcname);
@@ -733,5 +712,4 @@ namespace c10d_npu {
             return pickle_str(result);
         }
     };
-
 } // namespace c10d
