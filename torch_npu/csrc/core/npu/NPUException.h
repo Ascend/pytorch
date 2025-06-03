@@ -146,7 +146,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
             if (((error_code) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) && (device_error_msg.empty())) {              \
                 static auto feature_not_support_warn_once = []() {               \
                     printf("[WARN]%s,%s:%u:%s\n",                                \
-                           __FUNCTION__, __FILENAME__, __LINE__,                 \
+                           __FUNCTION__, __FILE__, __LINE__,                 \
                            "Feature is not supportted and the possible cause is" \
                            " that driver and firmware packages do not match.");  \
                     return true;                                                 \
