@@ -2569,7 +2569,8 @@
     "npu_alltoallv_gmm",
     "npu_gmm_alltoallv",
     "npu_transpose_batchmatmul",
-    "npu_gather_sparse_index"
+    "npu_gather_sparse_index",
+    "npu_moe_distribute_combine_add_rms_norm"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
