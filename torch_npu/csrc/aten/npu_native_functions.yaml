@@ -70,7 +70,7 @@ custom:
   - func: npu_format_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
     device_check: NoCheck
     exposed: True
-  - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
+  - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, int? base_addr_aligned_kb=None) -> Tensor
     dispatch:
       CompositeExplicitAutograd: empty_with_format
   - func: unsafe_empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor
