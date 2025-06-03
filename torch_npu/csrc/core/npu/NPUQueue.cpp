@@ -174,8 +174,7 @@ std::unordered_map<RepoStatus, std::string> deviceErrorMap = {
     {RepoStatus::HBM_ECC_EXIT, "HBM MULTI BIT ECC ERROR"},
     {RepoStatus::STOP_EXIT, "FORCE STOP"},
     {RepoStatus::SUSPECT_MEM_EXIT, "SUSPECT MEM ERROR"},
-    {RepoStatus::HCCS_LINK_EXIT, "HCCS LINK ERROR"},
-    {RepoStatus::HCCL_OP_RETRY_EXIT, "HCCL OP RETRY FAILED"}
+    {RepoStatus::HCCS_LINK_EXIT, "HCCS LINK ERROR"}
 };
 
 std::string get_func_error_msg(void *error_paras)
@@ -377,9 +376,6 @@ void Repository::CheckDeviceError(int ret, std::string& err_msg)
     } else if (ret == ACL_ERROR_RT_LINK_ERROR || acl_error.find(HCCS_LINK_ERROR) != std::string::npos) {
         ASCEND_LOGE("HCCS LINK ERROR happened, set task queue status to HCCS_LINK_EXIT");
         SetStatus(HCCS_LINK_EXIT);
-    } else if (ret == ACL_ERROR_RT_COMM_OP_RETRY_FAIL || acl_error.find(HCCL_OP_RETRY_FAILED) != std::string::npos) {
-        ASCEND_LOGE("HCCL OP RETRY FAILED happened, set task queue status to HCCL_OP_RETRY_EXIT");
-        SetStatus(HCCL_OP_RETRY_EXIT);
     } else if (GetStatus() != STOP_EXIT) {
         SetStatus(ERROR_EXIT);
     }
