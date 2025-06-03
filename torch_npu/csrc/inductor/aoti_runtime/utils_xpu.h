@@ -5,8 +5,8 @@
 // in model.so, and should not refer to any aten/c10 headers except the stable
 // C ABI defined in torch/csrc/inductor/aoti_torch/c/shim.h. The same rule
 // applies to other files under torch/csrc/inductor/aoti_runtime/.
-#include <torch/csrc/inductor/aoti_runtime/utils.h>
-#include <torch/csrc/inductor/aoti_torch/c/shim_xpu.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim_xpu.h>
 
 namespace torch::aot_inductor {
 

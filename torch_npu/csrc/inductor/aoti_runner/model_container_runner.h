@@ -2,8 +2,8 @@
 #pragma once
 
 #include <ATen/Tensor.h>
-#include <torch/csrc/inductor/aoti_runtime/interface.h>
-#include <torch/csrc/inductor/aoti_torch/proxy_executor.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/interface.h>
+#include <torch_npu/csrc/inductor/aoti_torch/proxy_executor.h>
 
 // Forward declare DynamicLibrary
 namespace at {

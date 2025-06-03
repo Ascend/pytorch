@@ -1,6 +1,6 @@
 #pragma once
 
-#include <torch/csrc/inductor/aoti_runtime/arrayref_tensor.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/arrayref_tensor.h>
 
 namespace torch::aot_inductor {
 
@@ -66,7 +66,7 @@ struct ThreadLocalCachedOutputTensor<ArrayRefTensor<T>> {
     // NOLINTNEXTLINE(*arrays*)
     storage_ = std::make_unique<T[]>(t.numel());
     AtenTensorHandle handle = nullptr;
-    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob(
+    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob_npu(
         storage_.get(),
         t.sizes().size(),
         t.sizes().data(),

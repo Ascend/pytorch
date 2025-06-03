@@ -225,7 +225,8 @@ def copy_hpp():
             "torch_npu/csrc/framework/*.h",
             "torch_npu/csrc/framework/*/*.h",
             "torch_npu/csrc/framework/*/*/*.h",
-            "torch_npu/csrc/libs/*.h"
+            "torch_npu/csrc/libs/*.h",
+            "torch_npu/csrc/inductor/**/*.h",
         ]
         glob_header_files = []
         for regex_pattern in header_files:

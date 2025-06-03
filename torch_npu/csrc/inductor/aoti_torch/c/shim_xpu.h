@@ -1,7 +1,7 @@
 #ifndef AOTI_TORCH_SHIM_XPU
 #define AOTI_TORCH_SHIM_XPU
 
-#include <torch/csrc/inductor/aoti_torch/c/shim.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
 
 #ifdef USE_XPU
 #ifdef __cplusplus

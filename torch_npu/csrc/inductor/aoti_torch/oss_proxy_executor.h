@@ -4,8 +4,8 @@
 #include <ATen/core/ivalue.h>
 #include <c10/macros/Export.h>
 #include <nlohmann/json.hpp>
-#include <torch/csrc/inductor/aoti_torch/c/shim.h>
-#include <torch/csrc/inductor/aoti_torch/proxy_executor.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
+#include <torch_npu/csrc/inductor/aoti_torch/proxy_executor.h>
 #include <iostream>
 #include <utility>
 

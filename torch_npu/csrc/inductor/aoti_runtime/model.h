@@ -14,11 +14,11 @@
 // in model.so, and should not refer to any aten/c10 headers except the stable
 // C ABI defined in torch/csrc/inductor/aoti_torch/c/shim.h. The same rule
 // applies to other files under torch/csrc/inductor/aoti_runtime/.
-#include <torch/csrc/inductor/aoti_runtime/device_utils.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>
 #ifdef USE_XPU
-#include <torch/csrc/inductor/aoti_runtime/utils_xpu.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/utils_xpu.h>
 #else
-#include <torch/csrc/inductor/aoti_runtime/utils.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
 #endif
 
 #define AOTI_RUNTIME_CHECK(EXPR, MSG) \
@@ -34,7 +34,6 @@
 // symbol and link it into the final .so.
 // For information on the binary format, see `man objcopy`, under
 // the "binary-architecture" flag:
-// todo: use #embed in C++ 23 once available
 // The constants are NOT readonly because they may be mutated.
 // NOLINTNEXTLINE(*array*)
 extern uint8_t _binary_constants_bin_start[];
@@ -57,6 +56,23 @@ GPUPtr RAII_gpuMalloc(size_t num_bytes) {
 }
 
 #endif // USE_CUDA
+
+#ifdef USE_NPU
+
+using NPUPtr = std::unique_ptr<void, std::function<void(void*)>>;
+
+NPUPtr RAII_npuMalloc(size_t num_bytes) {
+  void* data_ptr;
+  // aclrtMalloc doesn't support allocate 0-bytes. In this case,
+  // e.g, model has no weight, we should do padding.
+  size_t padding_bytes = 32;
+  if (num_bytes == 0) num_bytes = padding_bytes;
+  AOTI_RUNTIME_DEVICE_CHECK(aclrtMalloc((void**)&data_ptr, num_bytes, ACL_MEM_MALLOC_HUGE_FIRST));
+  auto deleter = [](void* ptr) { AOTI_RUNTIME_DEVICE_CHECK(aclrtFree(ptr)); };
+  return NPUPtr(data_ptr, deleter);
+}
+
+#endif // USE_NPU
 
 #ifdef USE_XPU
 
@@ -91,7 +107,7 @@ inline void parse_device_str(
     const std::string& device_str,
     int32_t& device_type,
     int32_t& device_idx) {
-  std::regex re("(cpu|cuda|xpu)(:([0-9]+))?");
+  std::regex re("(cpu|cuda|xpu|npu)(:([0-9]+))?");
   std::smatch sm;
   bool matched = std::regex_match(device_str, sm, re);
   AOTI_RUNTIME_CHECK(matched, "Invalid device: " + device_str);
@@ -103,6 +119,10 @@ inline void parse_device_str(
 #ifdef USE_XPU
   } else if (sm[1].str() == "xpu") {
     device_type = aoti_torch_device_type_xpu();
+#endif
+#ifdef USE_NPU
+  } else if (sm[1].str() == "npu") {
+    device_type = aoti_torch_device_type_npu();
 #endif
   } else {
     AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
@@ -152,6 +172,14 @@ class AOTInductorModelBase {
       aoti_torch_set_current_xpu_device(device_idx_);
     }
 #endif // USE_XPU
+#ifdef USE_NPU
+    if (device_idx_ == -1) {
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtSetDevice(0));
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtGetDevice(&device_idx_));
+    } else {
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtSetDevice(device_idx_));
+    }
+#endif // USE_NPU
   }
 
   // NOLINTNEXTLINE(modernize-use-equals-default)
@@ -171,6 +199,15 @@ class AOTInductorModelBase {
       delete *run_finished_;
     }
 #endif // USE_XPU
+#ifdef USE_NPU
+    if (run_finished_) {
+      auto code = aclrtDestroyEvent(*run_finished_);
+      if (code != ACL_SUCCESS) {
+        std::cerr << "Failed to destroy NPU event in AOTInductor model erorr code: "
+                  << code << std::endl;
+      }
+    }
+#endif // USE_NPU
   }
 
   AOTInductorModelBase(AOTInductorModelBase&&) = delete;
@@ -200,6 +237,12 @@ class AOTInductorModelBase {
       delete *run_finished_;
       run_finished_.reset();
     }
+#elif defined(USE_NPU)
+    if (!run_finished_) {
+        aclrtEvent run_finished;
+        AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
+        run_finished_.emplace(run_finished);
+    }
 #else // !USE_CUDA && !USE_XPU
     run_finished_ = false;
 #endif
@@ -212,6 +255,8 @@ class AOTInductorModelBase {
 #elif defined(USE_XPU)
     run_finished_ = std::make_optional<sycl::event*>(new sycl::event(
         static_cast<sycl::queue*>(stream)->ext_oneapi_submit_barrier()));
+#elif defined(USE_NPU)
+    AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, stream));
 #else // !USE_CUDA && !USE_XPU
     run_finished_ = true;
 #endif // USE_CUDA
@@ -233,6 +278,12 @@ class AOTInductorModelBase {
       delete *run_finished_;
       run_finished_.reset();
     }
+#elif defined(USE_NPU)
+    if (!run_finished_) {
+      aclrtEvent run_finished;
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
+      run_finished_.emplace(run_finished);
+    }
 #else // !USE_CUDA && !USE_XPU
     run_finished_ = false;
 #endif
@@ -247,6 +298,8 @@ class AOTInductorModelBase {
     run_finished_ = std::make_optional<sycl::event*>(new sycl::event(
         static_cast<sycl::queue*>(stream)->ext_oneapi_submit_barrier()));
 
+#elif defined(USE_NPU)
+    AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, stream));
 #else // !USE_CUDA && !USE_XPU
     run_finished_ = true;
 #endif // USE_CUDA
@@ -264,6 +317,8 @@ class AOTInductorModelBase {
       compute_gpu_constant_blob(blob_size, constants_internal_offset);
 #if defined(USE_CUDA) || defined(USE_XPU)
       constant_blob_ = RAII_gpuMalloc(blob_size);
+#elif defined(USE_NPU)
+    constant_blob_ = RAII_npuMalloc(blob_size);
 #endif
     }
     if (!include_weights) {
@@ -273,7 +328,7 @@ class AOTInductorModelBase {
     size_t bytes_read = 0;
     for (size_t i = 0; i < num_constants; i++) {
       bool from_folded = this->constant_from_folded(i);
-#if not defined(USE_XPU) && not defined(USE_CUDA)
+#if not defined(USE_XPU) && not defined(USE_CUDA) && not defined(USE_NPU)
       if (from_folded) {
         // We do not reallocate and copy for CPU.
         continue;
@@ -303,11 +358,11 @@ class AOTInductorModelBase {
       AtenTensorHandle tensor_handle = nullptr;
 #ifdef AOTI_USE_CREATE_TENSOR_FROM_BLOB_V1
       // When opaque_metadata_size is not 0, we need to have the
-      // aoti_torch_create_tensor_from_blob_v2 available
+      // aoti_torch_create_tensor_from_blob_npu_v2 available
       AOTI_RUNTIME_CHECK(
           opaque_metadata_size == 0,
           "Expect opaque_metadata_size to be 0 when AOTI_USE_CREATE_TENSOR_FROM_BLOB_V1 is defined");
-      AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob(
+      AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob_npu(
           internal_ptr,
           ndim,
           size,
@@ -318,7 +373,7 @@ class AOTInductorModelBase {
           device_idx_,
           &tensor_handle));
 #else
-      AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob_v2(
+      AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob_npu_v2(
           internal_ptr,
           ndim,
           size,
@@ -344,6 +399,11 @@ class AOTInductorModelBase {
     return std::move(constant_blob_);
   }
 #endif
+#ifdef USE_NPU
+  NPUPtr&& release_constant_blob() {
+    return std::move(constant_blob_);
+  }
+#endif
 
   std::shared_ptr<std::vector<ConstantHandle>> get_constants_array() {
     return constants_;
@@ -358,11 +418,10 @@ class AOTInductorModelBase {
       size_t bytes_read,
       size_t data_size,
       bool skip_copy) {
-#if defined(USE_CUDA) || defined(USE_XPU)
+#if defined(USE_CUDA) || defined(USE_XPU) || defined(USE_NPU)
     auto* constants_ptr = static_cast<uint8_t*>(constant_blob_.get());
     uint8_t* internal_ptr = constants_ptr + constant_offset;
     // Copy data to GPU memory
-    // TODO: Handle shared storage case.
     if (!skip_copy) {
 #ifdef USE_XPU
       sycl::queue* queue_ptr = nullptr;
@@ -371,6 +430,13 @@ class AOTInductorModelBase {
           ->memcpy(internal_ptr, _get_constants_start() + bytes_read, data_size)
           .wait();
 
+#elif defined(USE_NPU)
+        AOTI_RUNTIME_DEVICE_CHECK(aclrtMemcpy(
+            internal_ptr,
+            data_size,
+            _get_constants_start() + bytes_read,
+            data_size,
+            ACL_MEMCPY_HOST_TO_DEVICE));
 #else
       AOTI_RUNTIME_DEVICE_CHECK(cudaMemcpy(
           internal_ptr,
@@ -391,7 +457,7 @@ class AOTInductorModelBase {
   void compute_gpu_constant_blob(
       size_t& blob_size,
       std::vector<size_t>& constants_internal_offset) {
-#if defined(USE_CUDA) || defined(USE_XPU)
+#if defined(USE_CUDA) || defined(USE_XPU) || defined(USE_NPU)
     size_t num_constants = this->num_constants();
     // Compute required blob size with 64-alignment if on GPU.
     blob_size = 0;
@@ -541,6 +607,19 @@ class AOTInductorModelBase {
     throw std::runtime_error(
         std::string("The model did not finish successfully. Error: ") +
         cudaGetErrorString(cudaGetLastError()));
+
+#elif defined(USE_NPU)
+        if (!run_finished_) {
+          throw std::runtime_error{"Model NPU event was not initialized"};
+        }
+        aclrtEventRecordedStatus recordStatus = ACL_EVENT_RECORDED_STATUS_NOT_READY;
+        AOTI_RUNTIME_DEVICE_CHECK(aclrtQueryEventStatus(*run_finished_, &recordStatus));
+    
+        if (recordStatus == ACL_EVENT_RECORDED_STATUS_COMPLETE) {
+          return true;
+        } else {
+          return false;
+        }
 #elif defined(USE_XPU)
     if (!run_finished_) {
       throw std::runtime_error{"Model XPU event was not initialized"};
@@ -645,6 +724,11 @@ class AOTInductorModelBase {
   GPUPtr constant_blob_;
 #endif // USE_CUDA
 
+#ifdef USE_NPU
+  // Holds the blob storage for constants' at::Tensor for CUDA.
+  NPUPtr constant_blob_;
+#endif // USE_NPU
+
 #ifdef USE_MMAP_SELF
   uint8_t* self_mmap = NULL;
 #endif
@@ -663,6 +747,8 @@ class AOTInductorModelBase {
   std::optional<cudaEvent_t> run_finished_;
 #elif defined(USE_XPU)
   std::optional<sycl::event*> run_finished_;
+#elif defined(USE_NPU)
+  std::optional<aclrtEvent> run_finished_;
 #else // !USE_CUDA
   bool run_finished_{};
 #endif

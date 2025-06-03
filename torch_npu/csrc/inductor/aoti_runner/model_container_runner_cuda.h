@@ -2,7 +2,7 @@
 #pragma once
 
 #include <c10/cuda/CUDAStream.h>
-#include <torch/csrc/inductor/aoti_runner/model_container_runner.h>
+#include <torch_npu/csrc/inductor/aoti_runner/model_container_runner.h>
 
 namespace torch::inductor {
 

@@ -96,6 +96,7 @@ using AOTITorchError = int32_t;
 AOTI_TORCH_EXPORT int32_t aoti_torch_device_type_cpu();
 AOTI_TORCH_EXPORT int32_t aoti_torch_device_type_cuda();
 AOTI_TORCH_EXPORT int32_t aoti_torch_device_type_xpu();
+AOTI_TORCH_EXPORT int32_t aoti_torch_device_type_npu();
 AOTI_TORCH_EXPORT int32_t aoti_torch_device_type_privateuse1();
 
 AOTI_TORCH_EXPORT int32_t aoti_torch_dtype_float8_e5m2();
@@ -305,6 +306,32 @@ AOTI_TORCH_EXPORT AOTITorchError aoti_torch_create_tensor_from_blob(
 );
 
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_create_tensor_from_blob_v2(
+    void* data,
+    int64_t ndim,
+    const int64_t* sizes_ptr,
+    const int64_t* strides_ptr,
+    int64_t storage_offset,
+    int32_t dtype,
+    int32_t device_type,
+    int32_t device_index,
+    AtenTensorHandle* ret, // returns new reference
+    int32_t layout,
+    const uint8_t* opaque_metadata,
+    int64_t opaque_metadata_size);
+
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_create_tensor_from_blob_npu(
+    void* data,
+    int64_t ndim,
+    const int64_t* sizes_ptr,
+    const int64_t* strides_ptr,
+    int64_t storage_offset,
+    int32_t dtype,
+    int32_t device_type,
+    int32_t device_index,
+    AtenTensorHandle* ret // returns new reference
+);
+
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_create_tensor_from_blob_npu_v2(
     void* data,
     int64_t ndim,
     const int64_t* sizes_ptr,

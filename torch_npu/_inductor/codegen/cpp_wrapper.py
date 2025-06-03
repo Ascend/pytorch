@@ -1,5 +1,6 @@
 import functools
 import os
+import sys
 from itertools import chain, count, zip_longest
 from typing import Any, Callable, List, Optional, Tuple, TYPE_CHECKING, Union
 import sympy
@@ -10,7 +11,7 @@ from torch._inductor.codecache import CudaKernelParamCache
 from torch._inductor.codecache import get_cpp_wrapper_cubin_path_name
 from torch._inductor.codegen.aoti_hipify_utils import maybe_hipify_code_wrapper
 from torch._inductor.codegen.common import get_device_op_overrides
-from torch._inductor.codegen.cpp_utils import cexpr, DTYPE_TO_CPP
+from torch._inductor.codegen.cpp_utils import cexpr, DTYPE_TO_CPP, DEVICE_TO_ATEN
 from torch._inductor.codegen.cpp_wrapper_cpu import CppWrapperCpu
 from torch._inductor.codegen.multi_kernel import MultiKernelCall
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg
@@ -19,6 +20,7 @@ from torch._inductor.runtime.runtime_utils import dynamo_timed
 from torch._inductor.runtime.triton_heuristics import grid as default_grid_fn
 from torch._inductor.utils import DeferredLineBase
 from torch._inductor.virtualized import V
+from torch._inductor.utils import _align, ALIGN_BYTES
 
 from ..config import npu_block as NPU_ALIGN_BYTES
 
@@ -199,12 +201,112 @@ class CppWrapperNpu(CppWrapperCpu):
         # comment at CppWrapperCpu `codegen_subgraph` function.
         return CppWrapperNpu()
 
+    def super_write_header_rewrite(self):
+        """Copied from CppWrapperCpu to:
+           (1) change __file__ path for cpython, so that we can use aoti_runtime in current path.
+           (2) rewrite include path of aoti header file.
+        """
+        if V.graph.is_const_graph:
+            # We do not write header for constant graph, it will be written by main module.
+            return
+
+        if V.graph.aot_mode:
+            self.header.splice(
+                """
+                #include <torch_npu/csrc/inductor/aoti_runtime/interface.h>
+                #include <torch_npu/csrc/inductor/aoti_runtime/model.h>
+                """
+            )
+            with open(
+                os.path.join(os.path.dirname(__file__), "aoti_runtime", "interface.cpp")
+            ) as f:
+                self.header.splice(f.read())
+        else:
+            self.header.splice(
+                """
+                import torch
+                from torch._inductor.codecache import CppWrapperCodeCache
+
+                cpp_wrapper_src = (
+                '''
+                #include <pybind11/pybind11.h>
+                namespace py = pybind11;
+
+                class RAIIPyObject {
+                public:
+                    RAIIPyObject() : obj_(nullptr) {}
+                    RAIIPyObject(PyObject* obj) : obj_(obj) {}
+                    ~RAIIPyObject() {
+                        Py_XDECREF(obj_);
+                    }
+                    RAIIPyObject& operator=(const RAIIPyObject& other) {
+                        if (this != &other) {
+                            Py_XDECREF(obj_);
+                            obj_ = other.obj_;
+                            Py_XINCREF(obj_);
+                        }
+                        return *this;
+                    }
+                    operator PyObject*() {
+                        return obj_;
+                    }
+                    PyObject* get() {
+                        return obj_;
+                    }
+                private:
+                    PyObject* obj_;
+                };
+
+                #include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>
+                #include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
+                using namespace torch::aot_inductor;
+                """
+            )
+
+        self.header.splice(
+            f"""
+            #include <torch_npu/csrc/inductor/aoti_runtime/arrayref_tensor.h>
+            #include <torch_npu/csrc/inductor/aoti_runtime/thread_local.h>
+            #include <torch_npu/csrc/inductor/aoti_runtime/scalar_to_tensor.h>
+            // Here comment c_shim_npu.h because npu doesn't implement it.
+            // #include <torch_npu/csrc/inductor/aoti_torch/generated/c_shim_{self.device}.h>
+
+            #include <c10/util/generic_math.h>
+            typedef at::Half half;
+            typedef at::BFloat16 bfloat16;
+
+            // Round up to the nearest multiple of {ALIGN_BYTES}
+            [[maybe_unused]] static int64_t align(int64_t nbytes) {{
+              return (nbytes + {ALIGN_BYTES} - 1) & -{ALIGN_BYTES};
+            }}
+            """
+        )
+        extend_aoti_c_shim_include = (
+            f"torch/csrc/inductor/aoti_torch/generated/extend/c_shim_{self.device}.h"
+        )
+        extend_aoti_c_shim_path = os.path.join(
+            os.path.dirname(torch.__file__),
+            "include",
+            extend_aoti_c_shim_include,
+        )
+        if os.path.exists(extend_aoti_c_shim_path):
+            self.header.splice(f"#include <{extend_aoti_c_shim_include}>")
+
+        enable_kernel_profile = config.cpp.enable_kernel_profile and sys.platform in [
+            "linux",
+            "win32",
+        ]
+        if config.profiler_mark_wrapper_call or enable_kernel_profile:
+            # No C shim for profiling APIs, assuming profiling is a debugging feature which
+            # does not provide any ABI compatibility promise.
+            self.header.splice("#include <ATen/record_function.h>")
+
     def write_header(self):
         if V.graph.is_const_graph:
             # We do not write header for constant graph, it will be written by main module.
             return
 
-        super().write_header()
+        self.super_write_header_rewrite()
         self.header.splice("#include <unistd.h>")
         self.header.splice("#include <filesystem>")
         self.header.splice(self.device_codegen.abi_compatible_header())
@@ -212,7 +314,7 @@ class CppWrapperNpu(CppWrapperCpu):
             maybe_hipify_code_wrapper(self.device_codegen.kernel_driver())
         )
         self.header.splice("#include <torch_npu/csrc/framework/OpCommand.h>")
-        self.header.splice("#include \"experiment/runtime/runtime/rt.h\"")
+        self.header.splice("#include <experiment/runtime/runtime/rt.h>")
 
     def write_get_raw_stream(self, device_idx: int, graph=None) -> str:
         name = f"stream{device_idx}"
@@ -343,24 +445,12 @@ class CppWrapperNpu(CppWrapperCpu):
             device_index,
             graph: "GraphLowering",  # for per-graph caching
     ):
-        """
-        typedef struct {
-            const char *name; //mangled_name
-            const char *kernelPath; //get_cpp_wrapper_cubin_path_name()
-            int shared; // shared_mem
-            int device; // device_index
-        } LoadKernelArgs;
-        """
-
         keys = (get_cpp_wrapper_cubin_path_name(), "mangled_name", "shared_mem")
         kernel_var_name = f"kernels.{kernel_name}" if V.graph.aot_mode else kernel_name
         self.writeline(f"if ({kernel_var_name} == nullptr) {{")
         deferred_gpu_kernel_line = DeferredNpuKernelLine(
             kernel_name,
-            # "    " + kernel_var_name + r' = loadKernel("%s", "%s", %s, {});'.format(
-            #     device_index
-            # ),
-            "    " + kernel_var_name + r' = loadKernel("%s", "%s", %s);',
+            "    " + kernel_var_name + r' = loadKernel("%s", "%s", %s, this->cubin_dir_);',
             keys,
             self.additional_files,
         )
@@ -393,7 +483,25 @@ class CppWrapperNpu(CppWrapperCpu):
 
         return struct_data, arg_data
 
-    def generate_args_decl(self, call_args, arg_types, arg_signatures, kernel_id, grid_var):
+    def codegen_device(self, device):
+        if device.type not in DEVICE_TO_ATEN:
+            raise RuntimeError(device.type + "not found in DEVICE_TO_ATEN")
+        device_str = DEVICE_TO_ATEN[device.type][5:].lower() # remove "at::k"
+        if device_str == "privateuse1":
+            device_str = "npu"
+        self.used_cached_devices.add(device_str)
+        return f"cached_torch_device_type_{device_str}, {device.index if device.index else 0}"
+
+    def generate_launch_call(
+        self,
+        call_args,
+        arg_types,
+        arg_signatures,
+        kernel_id,
+        grid_var,
+        kernel_name
+    ):
+        kernel_val_name = f"kernels.{kernel_name}" if V.graph.aot_mode else kernel_name
         new_args: list[str] = []
 
         # Add more cases for other types as needed
@@ -412,29 +520,9 @@ class CppWrapperNpu(CppWrapperCpu):
             "fp64": "double",
         }
 
-        kernel_args_var = f"kernel_args_var_{kernel_id}"
 
-        rtError_t_str = f'ret_{kernel_id}'
-        ffts_addr_str = f'ffts_addr_{kernel_id}'
-        ffts_len_str = f'ffts_len_{kernel_id}'
-        workspace_addr_str = f'workspace_addr_{kernel_id}'
-
-        before_strucr_str = \
-            f"\n    rtError_t {rtError_t_str};\n" + \
-            f"    void* {ffts_addr_str} = NULL;\n" + \
-            f"    uint32_t {ffts_len_str};\n" + \
-            f"    {rtError_t_str} = rtGetC2cCtrlAddr((uint64_t*)&{ffts_addr_str}, &{ffts_len_str});\n" + \
-            f"    if ({rtError_t_str} != RT_ERROR_NONE) return;\n" + \
-            f"    void* {workspace_addr_str} = NULL;\n\n"
-
-        struct_def_head = f'    struct __attribute__((packed)) {{\n        void* ffts_addr __attribute__((aligned(8)));\n        void* workspace_addr __attribute__((aligned(8)));\n'
-        struct_def_end = f'\n        int32_t gridX __attribute__((aligned(4))); int32_t gridY __attribute__((aligned(4))); int32_t gridZ __attribute__((aligned(4)));\n    }}'
-
-        struct_arg_head = f' {kernel_args_var} = {{\n        static_cast<void*>({ffts_addr_str}),\n        static_cast<void*>({workspace_addr_str}),\n'
-        struct_arg_end = f'\n        static_cast<int32_t>({grid_var}.grid_x), static_cast<int32_t>({grid_var}.grid_y), static_cast<int32_t>({grid_var}.grid_z)\n    }};\n'
-
-        struct_def_body = '        '
-        struct_arg_body = '        '
+        struct_def_body = ''
+        struct_arg_body = ''
 
         def process_args(arg, arg_type, arg_signature=None):
             var_name = f"var_{next(self.arg_var_id)}"
@@ -499,9 +587,43 @@ class CppWrapperNpu(CppWrapperCpu):
         ):
             process_args(arg, arg_type, arg_signature)
 
-        return kernel_args_var, before_strucr_str + \
-                                struct_def_head + struct_def_body + struct_def_end + \
-                                struct_arg_head + struct_arg_body + struct_arg_end
+        launch_str = f"""
+    auto launch_call_{kernel_id} = [=]() {{
+        int32_t grid_x = {grid_var}.grid_x;
+        int32_t grid_y = {grid_var}.grid_y;
+        int32_t grid_z = {grid_var}.grid_z;
+        rtError_t ret;
+        void* ffts_addr = NULL;
+        uint32_t ffts_len;
+        ret = rtGetC2cCtrlAddr((uint64_t*)&ffts_addr, &ffts_len);
+        if (ret != RT_ERROR_NONE) return ret;
+        void* workspace_addr = NULL;
+
+        struct __attribute__((packed)) {{
+            void* ffts_addr __attribute__((aligned(8)));
+            void* workspace_addr __attribute__((aligned(8)));
+            {struct_def_body}
+            int32_t grid_x __attribute__((aligned(4)));
+            int32_t grid_y __attribute__((aligned(4)));
+            int32_t grid_z __attribute__((aligned(4)));
+        }} kernel_args = {{
+            static_cast<void*>(ffts_addr),
+            static_cast<void*>(workspace_addr),
+            {struct_arg_body}
+            static_cast<int32_t>(grid_x),
+            static_cast<int32_t>(grid_y),
+            static_cast<int32_t>(grid_z)
+        }};
+        
+        uint32_t block_num = grid_x * grid_y * grid_z;
+        auto arg_ptr = static_cast<void*>(&kernel_args);
+        auto arg_size = sizeof(kernel_args);
+        ret = rtKernelLaunch({kernel_val_name}, block_num, arg_ptr, arg_size, NULL, stream);
+        if (ret != RT_ERROR_NONE) return ret;
+        return ret;
+    }};
+        """
+        return f"launch_call_{kernel_id}", launch_str
 
     def generate_default_grid(
             self,
@@ -572,7 +694,7 @@ class CppWrapperNpu(CppWrapperCpu):
             device_index, call_args = self.prepare_triton_kernel_call(
                 device_index, call_args
             )
-            kernel_var_name = self.generate_load_kernel_once(kernel_name, device_index, V.graph)
+            _ = self.generate_load_kernel_once(kernel_name, device_index, V.graph)
 
             # args with value 1 are added into equal_to_1 and constants
             # in triton_meta (in the Python codegen) which makes them
@@ -607,51 +729,26 @@ class CppWrapperNpu(CppWrapperCpu):
                 DeferredNpuGridLine(kernel_name, grid_var, grid, autotune_configs)
             )
 
-            # gen kernel args
-            kernel_args_var, call_args_str = self.generate_args_decl(
-                call_args, arg_types, arg_signatures, current_kernel_id, grid_var
+            call, call_args_str = self.generate_launch_call(
+                call_args, arg_types, arg_signatures, current_kernel_id, grid_var, kernel_name
             )
             self.writeline(f"{call_args_str}")
 
-            kernel_var_name = (
-                f"kernels.{kernel_name}" if V.graph.aot_mode else kernel_name
-            )
             # add debug printer code for all triton kernel related calls
             debug_printer_manager = V.graph.wrapper_code.debug_printer
             debug_printer_manager.set_printer_args(
                 call_args, kernel_name, arg_types, None
             )
             with debug_printer_manager:
-
-                '''
-                typedef struct {
-                    const char* kernelName; // f"'{kernel_name}'" <- 'triton_unk_fused_sigmoid_1'
-                    const void* func; // kernel_var_name <- kernels.triton_unk_fused_sigmoid_1
-                    rtStream_t stream; // stream
-                    int gridX; // f"{grid_var}.grid_x",
-                    int gridY; // f"{grid_var}.grid_y",
-                    int gridZ; // f"{grid_var}.grid_z",
-                    int *profilerRegistered; //nullptr
-                    void *kernelArgs; // f'static_cast<void*>(&{kernel_args_var})'
-                    int32_t kernelArgsSize; // f'sizeof({kernel_args_var})'
-                } LaunchKernelArgs;
-                '''
-
                 self.writeline(f"if ({grid_var}.is_non_zero()) {{")
                 self.writeline(
                     DeferredNpuKernelLine(
                         kernel_name,
-                        r"    launchKernel({}, {}, {}, {}, {}, {}, {}, {});".format( \
-                            f'"{kernel_name}"',
-                            kernel_var_name,
-                            stream,
-                            f"{grid_var}.grid_x",
-                            f"{grid_var}.grid_y",
-                            f"{grid_var}.grid_z",
-                            f"static_cast<void*>(&{kernel_args_var})",
-                            f'sizeof({kernel_args_var})',
+                        r"    launchKernel({}, {});".format( \
+                            call,
+                           f'"{kernel_name}"',
                         ),
-                        tuple(),
+                        (),
                         self.additional_files,
                     ),
                 )

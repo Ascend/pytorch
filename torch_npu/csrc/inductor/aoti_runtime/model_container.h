@@ -10,7 +10,7 @@
 // in model.so, and should not refer to any aten/c10 headers except the stable
 // C ABI defined in torch/csrc/inductor/aoti_torch/c/shim.h. The same rule
 // applies to other files under torch/csrc/inductor/aoti_runtime/.
-#include <torch/csrc/inductor/aoti_runtime/model.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/model.h>
 
 namespace torch::aot_inductor {
 
@@ -52,7 +52,7 @@ class AOTInductorModelContainer {
       output_names_.emplace_back(model->output_name(static_cast<int64_t>(i)));
     }
     model->load_constants();
-#if defined(USE_CUDA) || defined(USE_XPU)
+#if defined(USE_CUDA) || defined(USE_XPU) || defined(USE_NPU)
     constant_blob_ = model->release_constant_blob();
     constants_internal_offset_.resize(model->num_constants());
     model->compute_gpu_constant_blob(blob_size_, constants_internal_offset_);
@@ -299,6 +299,13 @@ class AOTInductorModelContainer {
           ->memcpy(internal_constants_ptr, user_constant_ptr, constant_size)
           .wait();
 
+#elif defined(USE_NPU)
+AOTI_RUNTIME_DEVICE_CHECK(aclrtMemcpy(
+    internal_constants_ptr,
+    constant_size,
+    user_constant_ptr,
+    constant_size,
+    ACL_MEMCPY_HOST_TO_DEVICE));
 #else
       AOTI_RUNTIME_DEVICE_CHECK(cudaMemcpy(
           internal_constants_ptr,
@@ -316,7 +323,7 @@ class AOTInductorModelContainer {
       AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_get_strides(tensor, &stride));
       AOTI_TORCH_ERROR_CODE_CHECK(
           aoti_torch_get_storage_offset(tensor, &offset));
-      AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob(
+      AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob_npu(
           internal_constants_ptr,
           models_[0]->constant_ndim(idx),
           models_[0]->constant_shape(idx),
@@ -325,6 +332,8 @@ class AOTInductorModelContainer {
           models_[0]->constant_dtype(idx),
 #ifdef USE_XPU
           aoti_torch_device_type_xpu(),
+#elif defined(USE_NPU)
+          aoti_torch_device_type_npu(),
 #else
           aoti_torch_device_type_cuda(),
 #endif
@@ -418,6 +427,17 @@ class AOTInductorModelContainer {
   std::vector<size_t> constants_internal_offset_;
 #endif // USE_CUDA
 
+#ifdef USE_NPU
+  // Holds the blob storage for constants' at::Tensor for CUDA.
+  NPUPtr constant_blob_;
+  NPUPtr constant_blob_secondary_;
+
+  // Let's place this within USE_NPU at the moment before we fully support
+  // update for CPU cases.
+  size_t blob_size_;
+  std::vector<size_t> constants_internal_offset_;
+#endif // USE_NPU
+
   // Determine which constants is being used for the model.
   // If true,
   // constants_map_secondary/constant_blob_secondary/constants_array_secondary
@@ -484,6 +504,20 @@ class AOTInductorModelContainer {
     }
   }
 #endif // USE_CUDA
+
+#ifdef USE_NPU
+  void* get_constant_blob_ptr(bool get_inactive) {
+    if ((get_inactive && use_secondary_) ||
+        (!get_inactive && !use_secondary_)) {
+      return constant_blob_.get();
+    } else {
+      if (!constant_blob_secondary_) {
+        constant_blob_secondary_ = RAII_npuMalloc(blob_size_);
+      }
+      return constant_blob_secondary_.get();
+    }
+  }
+#endif // USE_NPU
 
   std::shared_ptr<ConstantMap> get_constants_map(bool get_inactive) {
     if ((get_inactive && use_secondary_) ||

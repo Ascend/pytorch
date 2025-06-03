@@ -573,7 +573,13 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.codegen.tile_generator",
             "torch_npu._inductor.codegen.triton",
             "torch_npu._inductor.codegen.triton_utils",
+            "torch_npu._inductor.codegen.cpp_utils",
             "torch_npu._inductor.codegen.wrapper",
+            "torch_npu._inductor.codecache",
+            "torch_npu._inductor.cpp_builder",
+            "torch_npu._inductor.fx_passes.joint_graph",
+            "torch_npu._inductor.ir",
+            "torch_npu._inductor.graph",
         }
 
         # No new entries should be added to this list.

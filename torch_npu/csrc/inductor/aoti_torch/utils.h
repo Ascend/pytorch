@@ -8,7 +8,7 @@
 #include <c10/util/ArrayRef.h>
 #include <c10/util/Logging.h>
 #include <c10/util/OptionalArrayRef.h>
-#include <torch/csrc/inductor/aoti_torch/c/shim.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
 #include <optional>
 
 #define AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE(...)    \

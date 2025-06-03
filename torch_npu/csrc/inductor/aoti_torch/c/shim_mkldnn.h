@@ -2,7 +2,7 @@
 #define AOTI_TORCH_SHIM_MKLDNN
 
 #include <ATen/Config.h>
-#include <torch/csrc/inductor/aoti_torch/c/shim.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
 
 #if AT_MKLDNN_ENABLED()
 #ifdef __cplusplus

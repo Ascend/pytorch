@@ -28,10 +28,7 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
         return "AOTICudaStreamGuard"
 
     def kernel_driver(self):
-        source_codes = """
-            static std::unordered_map<std::string, size_t> registered_names;
-            static std::unordered_map<std::string, std::unique_ptr<size_t>> func_stubs;
-
+        source_code = """
             namespace {
 
             struct Grid {
@@ -73,33 +70,33 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
                     return 0;
                 }
             }
+        """
 
-            std::vector<std::string> stringSplit(const std::string& s) {
-                std::vector<std::string> tokens;
-                std::istringstream iss(s);
-                std::string token;
-                while (iss >> token) {
-                    tokens.push_back(token);
-                }
-                return tokens;
-            }
+        load_code = """
+            static std::unordered_map<std::string, size_t> registered_names;
+            static std::unordered_map<std::string, std::unique_ptr<size_t>> func_stubs;
             
             static inline void * loadKernel(
-                std::string filePath,
-                const std::string &nameFuncMode,
-                uint32_t sharedMemBytes,
-                const std::optional<std::string> &cubinDir = std::nullopt) {
+                    std::string filePath,
+                    const std::string &&nameFuncMode,
+                    uint32_t sharedMemBytes,
+                    const std::optional<std::string> &cubinDir = std::nullopt) {
                 if (cubinDir) {
                     std::filesystem::path p1{*cubinDir};
                     std::filesystem::path p2{filePath};
                     filePath = (p1 / p2.filename()).string();
                 }
-                auto splitNameMode = stringSplit(nameFuncMode);
-                if (splitNameMode.size() != 2) {
-                    throw std::runtime_error(std::string("funcName not right: ") + nameFuncMode);
+                std::string funcName;
+                std::string kernel_mode_str;
+                size_t spacePos = nameFuncMode.find(' ');
+                if (spacePos != std::string::npos) {
+                    kernel_mode_str = nameFuncMode.substr(spacePos + 1);
+                    funcName = nameFuncMode.substr(0, spacePos);
+                } else {
+                    throw std::runtime_error(std::string("Parse kernel name failed, expect "
+                                                        "'kernel_name kernel_mode', bug got: ") + nameFuncMode);
                 }
-                auto funcName = splitNameMode[0];
-                auto kernel_mode_str = splitNameMode[1];
+
                 std::ifstream file(std::string(filePath), std::ios::binary | std::ios::ate);
                 if (!file.is_open()) {
                     throw std::runtime_error(std::string("open npubin failed"));
@@ -119,10 +116,11 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
                 devbin.data = buffer;
                 devbin.length = data_size;
                 const std::string kernel_mode{kernel_mode_str};
-                if (kernel_mode == "aiv")
+                if (kernel_mode == "aiv") {
                     devbin.magic = RT_DEV_BINARY_MAGIC_ELF_AIVEC;
-                else
+                } else {
                     devbin.magic = RT_DEV_BINARY_MAGIC_ELF;
+                }
                 devbin.version = 0;
 
                 int device = 0;
@@ -153,35 +151,20 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
 
                 return func_stub_handle;
             }
-
-            static void launchKernel(std::string kernelName, const void* func, rtStream_t stream, int gridX, int gridY, int gridZ, void *kernelArgs, int32_t kernelArgsSize) {{
-            std::string name = "";
-            name.append(kernelName);
-            char *kargs = new char[kernelArgsSize];
-            memcpy(kargs, kernelArgs, kernelArgsSize);
-            auto launch_call = [=]() {{
-                uint32_t blockNum = gridX * gridY * gridZ;
-                
-                rtError_t ret;
-                unsigned long int beginTime = 0;
-                unsigned long int endTime = 0;
-                unsigned long int opName = 0;
-                unsigned int threadId = 0;
-                const char* kernelNameC = kernelName.c_str();
-                size_t length = name.length();
-                {{
-                    beginTime = MsprofSysCycleTime();
-                }}
-                ret = rtKernelLaunch(func, blockNum, kargs, kernelArgsSize, NULL, stream);
-                delete[] kargs;
-                return ret;
-            }};
-            at_npu::native::OpCommand cmd;
-            cmd.Name(name.c_str())
-                .SetCustomHandler(launch_call)
-                .Run();
-            }}
         """
+
+        launch_code = """
+            static inline void launchKernel(
+                    std::function<int()> launch_call,
+                    std::string&& kernel_name) {
+                at_npu::native::OpCommand cmd;
+                cmd.Name(kernel_name.c_str())
+                    .SetCustomHandler(launch_call)
+                    .Run();
+            }
+        """
+        extra_code = ""
+        source_codes = source_code + load_code + launch_code + extra_code
         return source_codes
 
     def abi_compatible_header(self):

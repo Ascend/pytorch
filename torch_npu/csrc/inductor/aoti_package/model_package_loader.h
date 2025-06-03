@@ -2,7 +2,7 @@
 #pragma once
 
 #include <ATen/Tensor.h>
-#include <torch/csrc/inductor/aoti_runner/model_container_runner.h>
+#include <torch_npu/csrc/inductor/aoti_runner/model_container_runner.h>
 
 namespace torch::inductor {
 class TORCH_API AOTIModelPackageLoader {

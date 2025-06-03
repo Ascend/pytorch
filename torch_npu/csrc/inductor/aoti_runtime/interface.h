@@ -4,7 +4,7 @@
 // in model.so, and should not refer to any aten/c10 headers except the stable
 // C ABI defined in torch/csrc/inductor/aoti_torch/c/shim.h. The same rule
 // applies to other files under torch/csrc/inductor/aoti_runtime/.
-#include <torch/csrc/inductor/aoti_runtime/utils.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
 
 extern "C" {
 struct AOTInductorModelOpaque;
@@ -19,7 +19,6 @@ using AOTInductorStreamHandle = AOTInductorStreamOpaque*;
 struct AOTInductorConstantMap;
 using AOTInductorConstantMapHandle = AOTInductorConstantMap*;
 
-// TODO: Deprecate this API. This was kept for BC compatibility.
 // Please use AOTInductorModelContainerCreateWithDevice instead.
 AOTIRuntimeError AOTInductorModelContainerCreate(
     AOTInductorModelContainerHandle* container_handle,

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <torch/csrc/inductor/aoti_torch/c/shim.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
 
 #ifdef __cplusplus
 extern "C" {

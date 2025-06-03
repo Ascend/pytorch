@@ -1,7 +1,7 @@
 // Definition of AOTI runtime interface functions
 
-#include <torch/csrc/inductor/aoti_runtime/interface.h>
-#include <torch/csrc/inductor/aoti_runtime/model_container.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/interface.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/model_container.h>
 
 #include <iostream>
 #include <sstream>
@@ -55,7 +55,7 @@ AOTIRuntimeError AOTInductorModelContainerCreate(
       return AOTInductorModelContainerCreateWithDevice(
         container_handle,
         num_models,
-        is_cpu ? "cpu" : "cuda",
+        is_cpu ? "cpu" : "npu",
         cubin_dir);
 }
 

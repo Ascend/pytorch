@@ -2,7 +2,7 @@
 
 #include <ATen/core/ivalue.h>
 #include <c10/macros/Export.h>
-#include <torch/csrc/inductor/aoti_torch/c/shim.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
 
 namespace torch::aot_inductor {
 

@@ -1,7 +1,7 @@
 #if !defined(C10_MOBILE) && !defined(ANDROID)
 #pragma once
 
-#include <torch/csrc/inductor/aoti_runner/model_container_runner.h>
+#include <torch_npu/csrc/inductor/aoti_runner/model_container_runner.h>
 
 namespace torch::inductor {
 class TORCH_API AOTIModelContainerRunnerCpu : public AOTIModelContainerRunner {

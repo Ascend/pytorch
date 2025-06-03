@@ -1,7 +1,7 @@
 #pragma once
 
-#include <torch/csrc/inductor/aoti_runtime/utils.h>
-#include <torch/csrc/inductor/aoti_torch/c/shim.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
 
 #include <cassert>
 #include <cstdint>
@@ -229,7 +229,7 @@ class ArrayRefTensor {
 
   AtenTensorHandle borrowAsTensor() const {
     AtenTensorHandle result = nullptr;
-    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob_v2(
+    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob_npu_v2(
         data(),
         sizes_.size(),
         sizes_.data(),
