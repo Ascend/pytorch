@@ -136,4 +136,27 @@ protected:
     mutable std::mutex mutex_;
     HcclResult hcclAsyncErr_;
 };
+
+class TORCH_API DebugInfoWriter {
+public:
+    virtual ~DebugInfoWriter();
+    virtual void write(const std::string &hcclTrace);
+    static DebugInfoWriter &getWriter(int rank);
+    static void registerWriter(std::unique_ptr<DebugInfoWriter> writer);
+    virtual std::string getWriterTarget()
+    {
+        return filename_;
+    }
+
+protected:
+    DebugInfoWriter(std::string namePrefix, int rank)
+    {
+        filename_ = c10::str(namePrefix, rank);
+    }
+    std::string filename_;
+
+private:
+    static std::unique_ptr<DebugInfoWriter> writer_;
+    static std::atomic<bool> hasWriterRegistered_;
+};
 } // namespace c10d_npu
