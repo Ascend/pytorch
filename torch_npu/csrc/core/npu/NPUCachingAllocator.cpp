@@ -3328,6 +3328,35 @@ public:
         return { devPtr, devPtr, deleteFunc, c10::Device(c10::DeviceType::PrivateUse1, device) };
     }
 
+    c10::DataPtr allocate_with_aligned(size_t size, size_t base_addr_aligned_kb) const override
+    {
+        constexpr size_t one_exa_bytes = 1152921504606846976ULL;
+        if (C10_UNLIKELY(size >= one_exa_bytes)) {
+            AT_ERROR("NPU out of memory. Tried to allocate more than 1EB memory.");
+        }
+        int device = 0;
+        NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+        void *realPtr = nullptr;
+        void (*deleteFunc)(void *) = &local_raw_delete;
+
+        size_t aligned = base_addr_aligned_kb * 1024;
+        if (size != 0) {
+            if (c10_npu::option::OptionsManager::CheckForceUncached()) {
+                deleteFunc = &uncached_delete;
+                size_t alloc_size = size + 32 + aligned;
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&realPtr, alloc_size,
+                                                                 aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
+                ASCEND_LOGD("Without NPUCachingAllocator, malloc by "
+                            "AclrtMallocAlign32: size=%zu", alloc_size);
+            } else {
+                const_cast<NpuCachingAllocator *>(this)->malloc(&realPtr, device, size + aligned,
+                                                                c10_npu::getCurrentNPUStreamNoWait(device));
+            }
+        }
+        void *devPtr = reinterpret_cast<void*>(aligned * ((reinterpret_cast<uintptr_t>(realPtr) + aligned - 1) / aligned));
+        return { devPtr, realPtr, deleteFunc, c10::Device(c10::DeviceType::PrivateUse1, device) };
+    }
+
     c10::DeleterFnPtr raw_deleter() const override
     {
         if (c10_npu::option::OptionsManager::CheckForceUncached()) {
