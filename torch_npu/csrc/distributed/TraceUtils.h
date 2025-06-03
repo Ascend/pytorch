@@ -11,6 +11,7 @@
 
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
+#include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 
 #include <sys/types.h>
 #include <cstdlib>
@@ -28,6 +29,7 @@ namespace c10d_npu {
     // (minor when adding fields, major when changing existing fields)
     static c10::IValue version_val = "2.1";
     static c10::IValue pg_config_key = "pg_config";
+    static c10::IValue pg_status_key = "pg_status";
     static c10::IValue record_id_key = "record_id";
     static c10::IValue pg_id_key = "pg_id";
     static c10::IValue pg_name_key = "process_group";
@@ -42,7 +44,7 @@ namespace c10d_npu {
     static c10::IValue output_dtypes_key = "output_dtypes";
     static c10::IValue time_created_key = "time_created_ns";
     static c10::IValue duration_key = "duration_ms";
-
+    static c10::IValue timeout_key = "timeout_ms";
     static c10::IValue frames_key = "frames";
     static c10::IValue state_key = "state";
     static c10::IValue line_key = "line";
@@ -205,52 +207,6 @@ namespace c10d_npu {
         return hcclStartEvent.elapsed_time(hcclEndEvent);
     }
 
-    DebugInfoWriter::~DebugInfoWriter() = default;
-
-    void DebugInfoWriter::write(const std::string &hcclTrace)
-    {
-        // Open a file for writing. The ios::binary flag is used to write data as
-        // binary.
-        std::ofstream file(filename_, std::ios::binary);
-
-        // Check if the file was opened successfully.
-        if (!file.is_open()) {
-            LOG(ERROR) << "Error opening file for writing HCCLPG debug info: "
-                       << filename_;
-            return;
-        }
-
-        file.write(hcclTrace.data(), hcclTrace.size());
-        LOG(INFO) << "Finished writing HCCLPG debug info to " << filename_;
-    }
-
-    DebugInfoWriter &DebugInfoWriter::getWriter(int rank)
-    {
-        if (writer_ == nullptr) {
-            std::string fileNamePrefix = getCvarString(
-                {"TORCH_HCCL_DEBUG_INFO_TEMP_FILE"}, "/tmp/hccl_trace_rank_");
-            // Using std::unique_ptr here to auto-delete the writer object
-            // when the pointer itself is destroyed.
-            std::unique_ptr<DebugInfoWriter> writerPtr(
-                new DebugInfoWriter(fileNamePrefix, rank));
-            DebugInfoWriter::registerWriter(std::move(writerPtr));
-        }
-        return *writer_;
-    }
-
-    void DebugInfoWriter::registerWriter(std::unique_ptr<DebugInfoWriter> writer)
-    {
-        TORCH_CHECK_WITH(
-            DistBackendError,
-            hasWriterRegistered_.load() == false,
-            "debugInfoWriter already registered");
-        hasWriterRegistered_.store(true);
-        writer_ = std::move(writer);
-    }
-
-    std::unique_ptr<DebugInfoWriter> DebugInfoWriter::writer_ = nullptr;
-    std::atomic<bool> DebugInfoWriter::hasWriterRegistered_(false);
-
     inline std::string pickle_str(const c10::IValue &v)
     {
         std::vector<char> result;
@@ -358,6 +314,9 @@ namespace c10d_npu {
             // was 'enqueued'- not necessarily started
             c10::time_t time_created_;
 
+            // configured timeout for this entry
+            c10::time_t timeout_ms_;
+
             // Is this a P2P event?
             bool isP2P_;
 
@@ -391,6 +350,7 @@ namespace c10d_npu {
         size_t max_entries_ = 0;
         size_t next_ = 0;
         size_t id_ = 0;
+        std::map<size_t, std::shared_ptr<ProcessGroupStatus>> all_pg_status_ = {};
         std::map<std::tuple<std::string, std::string>, std::vector<uint32_t>>
             pg_name_to_ranks_ = {};
 
@@ -405,10 +365,16 @@ namespace c10d_npu {
             const std::vector<at::Tensor> &outputs,
             Event *start,
             Event *end,
+            std::chrono::milliseconds timeout_ms,
+            std::shared_ptr<ProcessGroupStatus> pg_status,
             bool isP2P)
         {
             if (!enabled_) {
                 return c10::nullopt;
+            }
+            if (all_pg_status_.find(pg_id) == all_pg_status_.end()) {
+                // Current pg_status is not in FR.
+                all_pg_status_[pg_id] = std::move(pg_status);
             }
             auto traceback =
                 torch_npu::CapturedTraceback::gather(true, true, capture_cpp_stack_);
@@ -426,6 +392,7 @@ namespace c10d_npu {
                 std::move(start),
                 std::move(end),
                 c10::getTime(),
+                timeout_ms.count(),
                 isP2P};
 
             for (const auto &input : inputs) {
@@ -654,6 +621,7 @@ namespace c10d_npu {
                         ? int64_t(*e.time_discovered_completed_)
                         : c10::IValue());
                 dict.insert(retired_key, e.retired_);
+                dict.insert(timeout_key, e.timeout_ms_);
                 dict.insert(is_p2p_key, e.isP2P_);
 
                 entries.push_back(dict);
@@ -675,6 +643,19 @@ namespace c10d_npu {
             return pg_config;
         }
 
+        const c10::Dict<c10::IValue, c10::IValue> getPgStatus()
+        {
+            auto all_pg_status = new_dict();
+            for (const auto& [pg_id, status] : all_pg_status_) {
+                auto pg_status = new_dict();
+                pg_status.insert("last_enqueued_collective", status->lastEnqueuedSeq);
+                pg_status.insert("last_started_collective", status->lastStartedSeq);
+                pg_status.insert("last_completed_collective", status->lastCompletedSeq);
+                all_pg_status.insert(std::to_string(pg_id), pg_status);
+            }
+            return all_pg_status;
+        }
+
         // dump all collectives + hcclDumpMap
         std::string dump(
             const c10::optional<std::unordered_map<
@@ -688,6 +669,7 @@ namespace c10d_npu {
             // common values
             result.insert(version_key, version_val);
             result.insert(pg_config_key, getPgConfig());
+            result.insert(pg_status_key, getPgStatus());
 
             // collective trace
             if (includeCollectives) {

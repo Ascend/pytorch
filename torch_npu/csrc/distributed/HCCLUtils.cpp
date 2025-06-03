@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <fstream>
 
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
@@ -221,4 +222,47 @@ HcclResult HCCLComm::checkForHcclError()
 #endif
 }
 
+void DebugInfoWriter::write(const std::string &hcclTrace)
+{
+    // Open a file for writing. The ios::binary flag is used to write data as
+    // binary.
+    std::ofstream file(filename_, std::ios::binary);
+
+    // Check if the file was opened successfully.
+    if (!file.is_open()) {
+        LOG(ERROR) << "Error opening file for writing HCCLPG debug info: "
+                   << filename_;
+        return;
+    }
+
+    file.write(hcclTrace.data(), hcclTrace.size());
+    LOG(INFO) << "Finished writing HCCLPG debug info to " << filename_;
+}
+
+DebugInfoWriter &DebugInfoWriter::getWriter(int rank)
+{
+    if (writer_ == nullptr) {
+        std::string fileNamePrefix = getCvarString(
+            {"TORCH_HCCL_DEBUG_INFO_TEMP_FILE"}, "/tmp/hccl_trace_rank_");
+        // Using std::unique_ptr here to auto-delete the writer object
+        // when the pointer itself is destroyed.
+        std::unique_ptr<DebugInfoWriter> writerPtr(
+            new DebugInfoWriter(fileNamePrefix, rank));
+        DebugInfoWriter::registerWriter(std::move(writerPtr));
+    }
+    return *writer_;
+}
+
+void DebugInfoWriter::registerWriter(std::unique_ptr<DebugInfoWriter> writer)
+{
+    TORCH_CHECK_WITH(
+        DistBackendError,
+        hasWriterRegistered_.load() == false,
+        "debugInfoWriter already registered");
+    hasWriterRegistered_.store(true);
+    writer_ = std::move(writer);
+}
+
+std::unique_ptr<DebugInfoWriter> DebugInfoWriter::writer_ = nullptr;
+std::atomic<bool> DebugInfoWriter::hasWriterRegistered_(false);
 } // namespace c10d_npu

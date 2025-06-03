@@ -414,6 +414,7 @@ int ProcessGroupHCCL::deviceId_ = -1;
 int ProcessGroupHCCL::numRanks_ = -1;
 std::string ProcessGroupHCCL::exceptionMessage_ = "";
 std::atomic<bool> ProcessGroupHCCL::shouldDump_(false);
+std::atomic<bool> ProcessGroupHCCL::monitorThreadEnabled_(false);
 std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch.distributed");
 
 std::string dump_hccl_trace(
@@ -467,6 +468,10 @@ std::ostream& operator<<(std::ostream& output, const ProcessGroupHCCL::WorkHCCL&
         workHCCL.seq_,
         ", OpType=",
         opTypeToString(workHCCL.opType_),
+        ", NumelIn=",
+        workHCCL.numelIn_,
+        ", NumelOut=",
+        workHCCL.numelOut_,
         ", Timeout(ms)=",
         workHCCL.opTimeout_.count(),
         ")");
@@ -487,7 +492,7 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(
     // Creates the npu event wrappers
     // Note: The actual events are lazily created when first recorded to with
     // DEFAULT_FLAGS = npuEventDisableTiming.
-    if (desyncDebug || (status_save_enable)) {
+    if (desyncDebug || (status_save_enable) || ProcessGroupHCCL::monitorThreadEnabled_.load()) {
         hcclStartEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>();
         hcclStartEvents_->reserve(devices.size());
         for (size_t i = 0; i < devices.size(); i++) {
@@ -511,6 +516,8 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
     workStartTime_(w.workStartTime_),
     seq_(w.seq_),
     startTraceUpdated_(w.startTraceUpdated_),
+    numelIn_(w.numelIn_),
+    numelOut_(w.numelOut_),
     store_(w.store_),
     is_dispatched(w.is_dispatched),
     is_reported(w.is_reported),
@@ -1390,9 +1397,9 @@ void ProcessGroupHCCL::heartbeatMonitor()
                     "Received a dump signal from this local rank and will ",
                     "start to dump the debug info. ",
                     "Last enqueued HCCL work: ",
-                    pgStatus_.lastEnqueuedSeq,
+                    pgStatus_->lastEnqueuedSeq,
                     ", last completed HCCL work: ",
-                    pgStatus_.lastCompletedSeq,
+                    pgStatus_->lastCompletedSeq,
                     ".");
                 exitMsg = c10::str(
                     "ProcessGroupHCCL's watchdog detected an exception from the local rank. ",
@@ -1449,9 +1456,9 @@ void ProcessGroupHCCL::heartbeatMonitor()
                         timeOutRank,
                         ", and will start to dump the debug info. ",
                         "Last enqueued HCCL work: ",
-                        pgStatus_.lastEnqueuedSeq,
+                        pgStatus_->lastEnqueuedSeq,
                         ", last completed HCCL work: ",
-                        pgStatus_.lastCompletedSeq,
+                        pgStatus_->lastCompletedSeq,
                         ".");
                     exitMsg = c10::str(
                         "ProcessGroupHCCL's watchdog detected a dump signal from rank ",
@@ -1792,6 +1799,17 @@ void ProcessGroupHCCL::workCleanupLoop()
                 }
             }
 
+            // a work could be started but not completed, so we should not update
+            // lastStartedSeq and lastStartedOpName if the work state is checked
+            // multiple times after the start
+            if (monitorThreadEnabled_.load() && pgStatus_->lastStartedSeq < static_cast<int64_t>(work.seq_) &&
+                work.isStarted()) {
+                pgStatus_->lastStartedSeq = static_cast<int64_t>(work.seq_);
+                pgStatus_->lastStartedWorkName = opTypeToString(work.opType_);
+                pgStatus_->lastStartedNumelIn = work.numelIn_;
+                pgStatus_->lastStartedNumelOut = work.numelOut_;
+            }
+
             // Clean up completed work
             if (work.isCompleted()) {
                 if (*(work.is_dispatched) && work.is_reported) {
@@ -1801,6 +1819,10 @@ void ProcessGroupHCCL::workCleanupLoop()
                 if (status_save_enable) {
                     refreshStatusInfo(work, "end"); // Update Statusinfo，but not write into the map
                 }
+                pgStatus_->lastCompletedSeq = static_cast<int64_t>(work.seq_);
+                pgStatus_->lastCompletedWorkName = opTypeToString(work.opType_);
+                pgStatus_->lastCompletedNumelIn = work.numelIn_;
+                pgStatus_->lastCompletedNumelOut = work.numelOut_;
                 HCCLTraceBuffer::get()->retire_id(work.trace_id_, true);
                 it = workMetaList_.erase(it);
                 c10_npu::NPUGraph::dec_pending_event_queries();
@@ -2676,6 +2698,8 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
             outputs,
             desyncDebug_ ? &((*(r->hcclStartEvents_))[0]) : nullptr,
             &((*(r->hcclEndEvents_))[0]),
+            options_->timeout,
+            pgStatus_,
             isP2P);
     }
     return r;
@@ -2705,6 +2729,11 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
         // needs to be destructed in user thread. Otherwise will
         // get deadlock. Here we enqueue work without outputs_.
         workMetaList_.emplace_back(*work);
+        // update the PG status related to the last enqueued work
+        pgStatus_->lastEnqueuedSeq = work->seq_;
+        pgStatus_->lastEnqueuedWorkName = opTypeToString(work->opType_);
+        pgStatus_->lastEnqueuedNumelIn = work->numelIn_;
+        pgStatus_->lastEnqueuedNumelOut = work->numelOut_;
     }
 }
 
@@ -3182,6 +3211,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     work->blockingWait_ = blockingWait_;
     work->opTimeout_ = options_->timeout;
     work->store_ = store_;
+    // Record size info for debug. We only record the size on the first device as
+    // multi-device per process is deprecated
+    work->numelIn_ = 0;
+    work->numelOut_ = 0;
+    for (const auto& input : inputs) {
+        work->numelIn_ += input.numel();
+    }
+    for (const auto& output : outputs) {
+        work->numelOut_ += output.numel();
+    }
     c10_npu::NPUGraph::inc_pending_event_queries();
     if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
@@ -3342,6 +3381,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     work->blockingWait_ = blockingWait_;
     work->opTimeout_ = options_->timeout;
     work->store_ = store_;
+    // Record size info for debug. We only record the size on the first device as
+    // multi-device per process is deprecated
+    work->numelIn_ = inputs[0].numel();
+    work->numelOut_ = outputs[0].numel();
     c10_npu::NPUGraph::inc_pending_event_queries();
     if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
@@ -3519,6 +3562,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
         work->blockingWait_ = blockingWait_;
         work->opTimeout_ = options_->timeout;
         work->store_ = store_;
+        // Record size info for debug. We only record the size on the first device
+        // as multi-device per process is deprecated
+        work->numelIn_ = work->numelOut_ = tensors[i].numel();
     }
     
     c10_npu::NPUGraph::inc_pending_event_queries();

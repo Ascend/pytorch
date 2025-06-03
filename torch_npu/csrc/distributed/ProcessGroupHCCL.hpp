@@ -69,6 +69,37 @@ static std::vector<std::string> TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC = {
 static std::vector<std::string> TORCH_HCCL_COORD_CHECK_MILSEC = {
     "TORCH_HCCL_COORD_CHECK_MILSEC"};
 
+// A struct to hold the latest status of the process group.
+struct ProcessGroupStatus {
+    // the sequential number of the last collective enqueued into workMetaList_
+    // This is useful for indentifying a rank that has not join a collective
+    // initialized to be -1 to indicate no collective has been enqueued
+    int64_t lastEnqueuedSeq{-1};
+    // the sequential number of the last collective started as the kernel
+    int64_t lastStartedSeq{-1};
+    // the sequential number of the last colletive completed marked by
+    // the watchdog thread
+    // initialized to be -1 to indicate no collective has been completed
+    int64_t lastCompletedSeq{-1};
+
+    // the name of the last collective enqueued into workMetaList_
+    std::string lastEnqueuedWorkName;
+    // the name of the last collective started as the kernel
+    std::string lastStartedWorkName;
+    // the name of the last collective completed
+    std::string lastCompletedWorkName;
+
+    // the sizes of the last work enqueued
+    size_t lastEnqueuedNumelIn;
+    size_t lastEnqueuedNumelOut;
+    // the sizes of the last work completed
+    size_t lastCompletedNumelIn;
+    size_t lastCompletedNumelOut;
+    // the sizes of the last work started
+    size_t lastStartedNumelIn;
+    size_t lastStartedNumelOut;
+};
+
 struct DumpPipe {
     DumpPipe(int rank)
     {
@@ -283,6 +314,11 @@ public:
         // This will be used by desync debug.
         bool startTraceUpdated_{false};
 
+        // Record collective sizes for debug. We only record the size on the first
+        // device as multi-device per process is deprecated
+        size_t numelIn_ = -1;
+        size_t numelOut_ = -1;
+
         // Wrapper method for the static checkForHCCLErrors which can be overridden
         // for tests.
         virtual std::exception_ptr checkForHCCLErrors(
@@ -361,34 +397,6 @@ public:
         std::string master_addr;
 
         uint32_t master_port;
-    };
-
-    // A struct to hold the latest status of the process group.
-    struct ProcessGroupStatus {
-        // the sequential number of the last collective enqueued into workMetaList_
-        // This is useful for indentifying a rank that has not join a collective
-        // initialized to be -1 to indicate no collective has been enqueued
-        int64_t lastEnqueuedSeq{-1};
-        // the sequential number of the last collective started as the kernel
-        int64_t lastStartedSeq{-1};
-        // the sequential number of the last colletive completed marked by
-        // the watchdog thread
-        // initialized to be -1 to indicate no collective has been completed
-        int64_t lastCompletedSeq{-1};
-
-        // the name of the last collective enqueued into workMetaList_
-        std::string lastEnqueuedWorkName;
-        // the name of the last collective started as the kernel
-        std::string lastStartedWorkName;
-        // the name of the last collective completed
-        std::string lastCompletedWorkName;
-
-        // the sizes of the last work enqueued
-        size_t lastEnqueuedNumelIn;
-        size_t lastEnqueuedNumelOut;
-        // the sizes of the last work completed
-        size_t lastCompletedNumelIn;
-        size_t lastCompletedNumelOut;
     };
 
     // If you wish to create multiple process groups, each with a potentially
@@ -746,7 +754,7 @@ protected:
     int hcclTraceBufferSize_;
 
     // We gate the heartbeat monitor thread so that we can roll it out gradually.
-    std::atomic<bool> monitorThreadEnabled_;
+    static std::atomic<bool> monitorThreadEnabled_;
 
     // Monitor thread which checks the heartbeat of Watchdog thread.
     // If the monitor thread finds there is no heartbeat, it will dump debug info
@@ -896,7 +904,7 @@ protected:
 
     std::exception_ptr watchDogException_ = nullptr;
 
-    ProcessGroupStatus pgStatus_;
+    std::shared_ptr<ProcessGroupStatus> pgStatus_ = std::make_shared<ProcessGroupStatus>();
 
     struct StatusStruct {
         uint64_t seq = 0;
