@@ -48,6 +48,7 @@ struct NPUPluggableAllocator
     void* malloc(size_t size, int device, aclrtStream stream);
 
     c10::DataPtr allocate(size_t size) override;
+    c10::DataPtr allocate_with_aligned(size_t size, size_t base_addr_aligned_kb) const override;
     c10::DeleterFnPtr raw_deleter() const override;
 
     void* raw_alloc(size_t nbytes) override;

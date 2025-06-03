@@ -294,7 +294,8 @@ at::Tensor OpPreparation::apply_tensor_with_sizes(c10::IntArrayRef sizes, const 
                                                  options.layout_opt(),
                                                  options.device_opt(),
                                                  options.pinned_memory_opt(),
-                                                 format);
+                                                 format,
+                                                 c10::nullopt);
 }
 
 void OpPreparation::CheckOut(const std::initializer_list<at::Tensor> &inputs, at::Tensor &output, at::Tensor dst)
@@ -495,7 +496,8 @@ at::Tensor OpPreparation::ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10
                                                  options.layout_opt(),
                                                  options.device_opt(),
                                                  options.pinned_memory_opt(),
-                                                 format);
+                                                 format,
+                                                 c10::nullopt);
 }
 
 void OpPreparation::CheckMemory(const std::initializer_list<at::Tensor> &inputs,
