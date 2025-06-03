@@ -96,6 +96,7 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 #define DEVICE_HBM_ECC_ERROR "reason=[hbm Multi-bit ECC error]"
 #define SUSPECT_DEVICE_MEM_ERROR "reason=[suspect device mem error]"
 #define HCCS_LINK_ERROR "reason=[link error]"
+#define HCCL_OP_RETRY_FAILED "reason=[hccl op retry failed]"
 
 inline const char* getErrorFunction(const char* msg)
 {
@@ -274,6 +275,8 @@ std::string handleDeviceMemError(int errorCode);
 std::string handleSuspectDeviceMemError(int errorCode);
 
 std::string handleLinkError(int errorCode);
+
+std::string handleHcclOpRetryFailed(int errorCode);
 
 std::string handleDeviceError(int errorCode);
 
