@@ -190,6 +190,7 @@ using OutOfMemoryObserver =
 
 class NPUAllocator : public c10::Allocator {
 public:
+    virtual c10::DataPtr allocate_with_aligned(size_t size, size_t aligned) const = 0;
     virtual void* raw_alloc(size_t nbytes) = 0;
     virtual void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream) = 0;
     virtual void raw_delete(void* ptr) = 0;
@@ -262,6 +263,11 @@ C10_NPU_API extern std::atomic<NPUAllocator*> allocator;
 inline NPUAllocator* get()
 {
     return allocator.load();
+}
+
+inline c10::DataPtr allocate_with_aligned(size_t size, size_t base_addr_aligned_kb)
+{
+    return get()->allocate_with_aligned(size, base_addr_aligned_kb);
 }
 
 // Called directly by clients.

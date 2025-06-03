@@ -266,7 +266,8 @@ at::Tensor NPUNativeFunctions::empty_with_format(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt,
-    int64_t dst_format)
+    int64_t dst_format,
+    c10::optional<int64_t> base_addr_aligned_kb)
 {
 #ifndef BUILD_LIBTORCH
     torch_npu::profiler::NPURecordFunction profiler_guard;
@@ -288,11 +289,21 @@ at::Tensor NPUNativeFunctions::empty_with_format(
     auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
     int64_t nelements = StorageDescHelper::GetMemorySize(size, format, dtype);
     int64_t size_bytes = nelements * dtype.itemsize();
-    c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
-        c10::StorageImpl::use_byte_size_t(),
-        c10::SymInt(size_bytes),
-        allocator,
-        true);
+    c10::intrusive_ptr<c10::StorageImpl> storage_impl;
+    if (!base_addr_aligned_kb.has_value()) {
+        storage_impl = torch_npu::make_npu_storage_impl(
+            c10::StorageImpl::use_byte_size_t(),
+            c10::SymInt(size_bytes),
+            allocator,
+            true);
+    } else {
+        storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
+            c10::StorageImpl::use_byte_size_t(),
+            static_cast<size_t>(size_bytes),
+            c10_npu::NPUCachingAllocator::allocate_with_aligned(size_bytes, base_addr_aligned_kb.value()),
+            allocator,
+            true);
+    }
     auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
     // Default NPUTensorImpl has size [0]
@@ -324,7 +335,7 @@ at::Tensor NPUNativeFunctions::unsafe_empty_with_format(
                         "tensor will be created with base format.");
     }
 
-    return NPUNativeFunctions::empty_with_format(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, dst_format);
+    return NPUNativeFunctions::empty_with_format(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, dst_format, c10::nullopt);
 }
 
 at::Tensor NPUNativeFunctions::empty_with_format(
