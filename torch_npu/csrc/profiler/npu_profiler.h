@@ -26,6 +26,11 @@ enum class NpuActivityType {
     NPU,
 };
 
+enum class MemoryComponentType {
+    CACHING_ALLOCATOR = 0,
+    WORKSPACE_ALLOCATOR,
+};
+
 enum class MemoryDataType {
     MEMORY_MALLOC = 0,
     MEMORY_FREE,
@@ -42,6 +47,7 @@ enum class MemoryAllocatorType {
 struct MemoryUsage {
     int8_t device_type{0};
     int8_t device_index{0};
+    uint8_t component_type{static_cast<uint8_t>(MemoryComponentType::CACHING_ALLOCATOR)};
     uint8_t data_type{static_cast<uint8_t>(MemoryDataType::MEMORY_INVALID)};
     uint8_t allocator_type{static_cast<uint8_t>(MemoryAllocatorType::ALLOCATOR_INVALID)};
     int64_t ptr{0};

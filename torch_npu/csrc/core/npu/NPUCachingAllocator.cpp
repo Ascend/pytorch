@@ -1450,7 +1450,8 @@ public:
             torch_npu::profiler::MstxMgr::GetInstance()->memRegionsRegister(msleaksDomain, &regionDesc);
         }
         torch_npu::profiler::reportMemoryDataToNpuProfiler({ static_cast<int8_t>(c10::DeviceType::PrivateUse1),
-            block->device, static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC), allocator_type,
+            block->device, static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::CACHING_ALLOCATOR),
+            static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC), allocator_type,
             reinterpret_cast<int64_t>(block->ptr), block->size,
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
@@ -1513,7 +1514,8 @@ public:
             torch_npu::profiler::MstxMgr::GetInstance()->memRegionsUnregister(msleaksDomain, orig_block_ptr);
         }
         torch_npu::profiler::reportMemoryDataToNpuProfiler({ static_cast<int8_t>(c10::DeviceType::PrivateUse1),
-            block->device, static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE), allocator_type,
+            block->device, static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::CACHING_ALLOCATOR),
+            static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE), allocator_type,
             reinterpret_cast<int64_t>(orig_block_ptr), -orig_block_size,
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
@@ -2279,7 +2281,8 @@ private:
         });
 #ifndef BUILD_LIBTORCH
         torch_npu::profiler::reportMemoryDataToNpuProfiler({ static_cast<int8_t>(c10::DeviceType::PrivateUse1),
-            block->device, static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_BLOCK_FREE), allocator_type,
+            block->device, static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::CACHING_ALLOCATOR),
+            static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_BLOCK_FREE), allocator_type,
             reinterpret_cast<int64_t>(orig_block_ptr), -original_block_size,
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,

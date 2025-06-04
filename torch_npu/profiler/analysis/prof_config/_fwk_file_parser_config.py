@@ -25,7 +25,7 @@ class FwkFileParserConfig:
     FILE_BEAN_MAP = {
         FileTag.TORCH_OP: {"bean": TorchOpBean, "is_tlv": True, "struct_size": 58},
         FileTag.OP_MARK: {"bean": OpMarkBean, "is_tlv": True, "struct_size": 40},
-        FileTag.MEMORY: {"bean": MemoryUseBean, "is_tlv": True, "struct_size": 76},
+        FileTag.MEMORY: {"bean": MemoryUseBean, "is_tlv": True, "struct_size": 77},
         FileTag.GC_RECORD: {"bean": GCRecordBean, "is_tlv": False, "struct_size": 24},
         FileTag.PYTHON_TRACER_FUNC: {"bean": PythonTracerFuncBean, "is_tlv": False, "struct_size": 33},
         FileTag.PYTHON_TRACER_HASH: {"bean": PythonTracerHashBean, "is_tlv": True, "struct_size": 8},

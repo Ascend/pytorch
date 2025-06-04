@@ -106,14 +106,15 @@ public:
                 torch_npu::profiler::reportMemoryDataToNpuProfiler({
                     static_cast<int8_t>(c10::DeviceType::PrivateUse1),
                     device,
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
                     static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
                     static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
                     reinterpret_cast<int64_t>(block->data_ptr),
                     -block->size,
-                    get_mem_size(),
-                    0, // reserved_bytes not used
-                    0, // active_bytes not used
-                  reinterpret_cast<int64_t>(stream)}
+                    stats.allocated_bytes.current,
+                    stats.reserved_bytes.current,
+                    stats.allocated_bytes.current,
+                    reinterpret_cast<int64_t>(stream)}
                 );
 #endif
                 block->data_ptr = nullptr;
@@ -146,13 +147,14 @@ public:
             torch_npu::profiler::reportMemoryDataToNpuProfiler({
                 static_cast<int8_t>(c10::DeviceType::PrivateUse1),
                 device,
+                static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
                 static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
                 static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
                 reinterpret_cast<int64_t>(block->data_ptr),
                 block->size,
-                get_mem_size(),
-                0, // reserved_bytes not used
-                0, // active_bytes not used
+                stats.allocated_bytes.current,
+                stats.reserved_bytes.current,
+                stats.allocated_bytes.current,
                 reinterpret_cast<int64_t>(stream)}
             );
             const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -165,12 +167,46 @@ public:
 
         allocated_size = block->size;
         update_stat(stats.allocated_bytes, block->size);
+#ifndef BUILD_LIBTORCH
+        torch_npu::profiler::reportMemoryDataToNpuProfiler({
+            static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+            device,
+            static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
+            static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
+            static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+            reinterpret_cast<int64_t>(block->data_ptr),
+            block->size,
+            stats.allocated_bytes.current,
+            stats.reserved_bytes.current,
+            stats.allocated_bytes.current,
+            reinterpret_cast<int64_t>(stream)}
+        );
+#endif
         return block->data_ptr;
     }
 
     void free()
     {
         update_stat(stats.allocated_bytes, -allocated_size);
+#ifndef BUILD_LIBTORCH
+        for (const auto& block_pair : blocks) {
+            if (block_pair.second->data_ptr != nullptr) {
+                torch_npu::profiler::reportMemoryDataToNpuProfiler({
+                    static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+                    device,
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+                    reinterpret_cast<int64_t>(block_pair.second->data_ptr),
+                    -allocated_size,
+                    stats.allocated_bytes.current,
+                    stats.reserved_bytes.current,
+                    stats.allocated_bytes.current,
+                    reinterpret_cast<int64_t>(block_pair.first)}
+                );
+            }
+        }
+#endif
     }
 
     // return to the system allocator
@@ -209,13 +245,14 @@ public:
                 torch_npu::profiler::reportMemoryDataToNpuProfiler({
                     static_cast<int8_t>(c10::DeviceType::PrivateUse1),
                     device,
+                    static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
                     static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
                     static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
                     reinterpret_cast<int64_t>(block_pair.second->data_ptr),
                     -block_pair.second->size,
-                    get_mem_size(),
-                    0, // reserved_bytes not used
-                    0, // active_bytes not used
+                    stats.allocated_bytes.current,
+                    stats.reserved_bytes.current,
+                    stats.allocated_bytes.current,
                     reinterpret_cast<int64_t>(block_pair.first)}
                 );
 #endif
