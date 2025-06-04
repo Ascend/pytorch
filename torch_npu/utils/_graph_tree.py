@@ -2,6 +2,7 @@ import functools
 from typing import (
     Any,
     Callable,
+    Dict,
     List,
     Optional,
     Sequence,
@@ -17,7 +18,11 @@ from torch._inductor.compile_fx import (
     index_expanded_dims_and_copy_,
     static_input,
 )
-from torch._inductor.cudagraph_utils import PlaceholderInfo
+from torch._inductor.cudagraph_utils import (
+    _get_use_stack_trace,
+    format_default_skip_message,
+    PlaceholderInfo,
+)
 from torch._inductor.output_code import get_expanded_dims
 from torch._inductor.utils import (
     align_inputs_from_check_idxs,
@@ -25,6 +30,32 @@ from torch._inductor.utils import (
     remove_unaligned_input_idxs,
     InputType,
 )
+
+
+def npugraph_mark_step_begin():
+    from torch_npu.npu._graph_tree import mark_step_begin
+    mark_step_begin()
+
+
+def check_multiple_devices_or_any_cpu_nodes(
+    device_node_mapping: Dict[torch.device, torch.fx.Node]
+) -> Optional[str]:
+    cpu_node = device_node_mapping.get(torch.device("cpu"))
+    if cpu_node:
+        msg = f"cpu device ({cpu_node.name})"
+        stack_trace = _get_use_stack_trace(cpu_node)
+        if stack_trace:
+            return format_default_skip_message(f"{msg}. Found from : \n {stack_trace}")
+        return format_default_skip_message(msg)
+
+    if (
+        len(device_node_mapping) == 1
+        and next(iter(device_node_mapping.keys())).type == "npu"
+    ):
+        return None
+
+    keys_repr = (repr(key) for key in device_node_mapping.keys())
+    return format_default_skip_message(f"multiple devices: {', '.join(keys_repr)}")
 
 
 def npugraphify(
@@ -172,3 +203,5 @@ def npugraphify_impl(
 
 def _apply_npugraph_tree_methods():
     torch._inductor.compile_fx.cudagraphify = npugraphify
+    torch._inductor.cudagraph_utils.check_multiple_devices_or_any_cpu_nodes = check_multiple_devices_or_any_cpu_nodes
+    torch.compiler.npugraph_mark_step_begin = npugraph_mark_step_begin

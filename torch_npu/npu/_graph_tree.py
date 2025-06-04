@@ -637,7 +637,7 @@ class NPUWarmupNode:
                 out_tensor is not None
                 and isinstance(out_tensor, torch.Tensor)
                 and out_tensor.is_npu
-                and out_tensor.untyped_storage().data_ptr() not in non_npugraph_inps_storage_ptrs
+                and out_tensor.untyped_storage()._cdata not in non_npugraph_inps_storage_ptrs
                 and out_tensor.untyped_storage().data_ptr() != 0
             )
 
