@@ -1,18 +1,11 @@
-# 飞行记录器超时类问题分析
+# 飞行记录器分析
 
 训练任务卡住是阻塞AI大规模分布式集群训练任务的主要和关键问题，当前需要等待集合通信超时才能感知，影响集群可用性。框架需要支持检测训练任务卡住问题，做到提前识别并保存必要的诊断信息，提高问题定位效率和集群设备可用性。当HeartbeatMonitor长时间未检测到心跳时，即可认为训练任务已经卡住，需要触发诊断信息保存。
+主要功能包括：解析多个 rank 的跟踪数据文件、重建进程组和成员关系、检测通信不匹配（类型、大小、状态等、提供详细的错误报告和调试信息
 
-本工具提供torch npu上飞行记录器flight recorder记录日志的读取解析能力，并根据解析后的日志提供超时类问题的初步分析能力，主要支持以下三种情况的超时类问题的识别和分析
+# 使用方法
 
-|问题| 具体内容 | 
-| --- | --- |
-|类型一  | 同通信域内的某张卡计算超时，导致其他卡等待触发飞行记录器和hccl time out | 
-|类型二  | 同通信域内的通信算子之后的非通信任务耗时过长|
-|类型三  | 同通信域内的某个通信算子进行通信时执行超时 |
-
-## 使用方法
-
-### 1 飞行记录器开启方法
+## 1 飞行记录器开启方法
 
 按照如下方法设置环境变量开启飞行记录器
 
@@ -24,24 +17,27 @@ export TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC=20 # 用于控制心跳超时时间，�
 export TORCH_HCCL_DEBUG_INFO_TEMP_FILE=/tmp/  #保存诊断信息的文件路径
 ```
 
-### 2 工具使用方法
+## 2 工具使用方法
 
 ```
-python fr_trace.py <dump dir containing trace files> <--prefix prefix for files>
+bash python fr_trace.py <trace_dir> [options]
 ```
 
-脚本从命令行参数传入 `dump dir` 的值，为必选值。
+## 3 入参说明
 
-* `dump dir`：从命令行第一个参数获取
+| 参数名 | 含义 | 使用限制 |
+| --- | --- | --- |
+| `trace_dir` | 包含跟踪文件的目录，每个 rank 一个文件，命名格式为 `<prefix>_<rank>`。 | 可选。数据类型：string |
+| `--selected-ranks` | 指定需要展示跟踪的 rank 列表。 | 可选。数据类型：int 列表。必须与 `--just-print-entries` 同时使用。 |
+| `--allow-incomplete-ranks` | 允许对不完整的 rank 数据进行尽力分析并输出结果。 | 可选。无参数值。默认关闭。 |
+| `--pg-filters` | 指定需要展示的进程组（PG）的过滤条件列表，可以是 PG 名称或描述。 | 可选。数据类型：string 列表。必须与 `--just-print-entries` 同时使用。 |
+| `-o`, `--output` | 指定输出文件路径。 | 可选。数据类型：string。默认无输出文件。 |
+| `-p`, `--prefix` | 指定文件名前缀，用于提取 rank。如果不指定，将尝试推断一个公共前缀。 | 可选。数据类型：string。默认无前缀。 |
+| `-j`, `--just-print-entries` | 仅打印跟踪条目，不进行完整分析。 | 可选。无参数值。默认关闭。 |
+| `-v`, `--verbose` | 启用详细日志输出。 | 可选。无参数值。默认关闭。 |
 
-| 参数名| 含义 | 使用限制 |
-| --- | --- | --- | 
-| dump dir | 飞行记录器的分析路径 | 必选。数据类型：string 待分析的飞行记录器的日志路径 | 
-| -p, --prefix | 文件路径前缀 | 可选。数据类型：str 日志文件共同前缀，如果不指定将自动判断生成 | 
+## 使用示例
 
-
-### 3 输出示例
-
-```
-2025-02-19 08:10:07,162 - INFO - The pg_id 0's rank 0's Computational task took too long, causing the other ranks' HCCL task to time out.
+```bash
+python script.py trace_dir --selected-ranks 0 1 2 --allow-incomplete-ranks --pg-filters pg1 pg2 -o output.txt -p prefix_ -j -v
 ```
