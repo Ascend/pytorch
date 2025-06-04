@@ -19,7 +19,21 @@ LOAD_FUNCTION(aclprofWarmup)
 LOAD_FUNCTION(aclprofSetConfig)
 LOAD_FUNCTION(aclprofGetSupportedFeatures)
 LOAD_FUNCTION(aclprofGetSupportedFeaturesV2)
+LOAD_FUNCTION(aclprofRegisterDeviceCallback)
 LOAD_FUNCTION(aclprofMarkEx)
+
+aclError AclProfilingRegisterDeviceCallback()
+{
+    typedef aclError (*AclProfRegisterDeviceCallbackFunc)();
+    static AclProfRegisterDeviceCallbackFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclProfRegisterDeviceCallbackFunc)GET_FUNC(aclprofRegisterDeviceCallback);
+        if (func == nullptr) {
+            return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
+        }
+    }
+    return func();
+}
 
 aclError AclProfilingWarmup(const aclprofConfig *profilerConfig)
 {

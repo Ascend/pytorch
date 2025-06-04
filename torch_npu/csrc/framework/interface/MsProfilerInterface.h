@@ -7,6 +7,8 @@
 namespace at_npu {
 namespace native {
 
+aclError AclProfilingRegisterDeviceCallback();
+
 aclError AclProfilingWarmup(const aclprofConfig *profilerConfig);
 
 aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size_t configLength);
