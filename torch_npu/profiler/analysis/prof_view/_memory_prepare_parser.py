@@ -210,13 +210,15 @@ class MemoryPrepareParser(BaseParser):
             else:
                 op_name = self._find_real_op_name_of_record(dequeue_record, torch_ops)
             if records_len == 1:
-                self._incomplete_num += 2
+                if hasattr(records[0], 'component_type') and records[0].component_type == Constant.CACHING_TYPE:
+                    self._incomplete_num += 2
                 combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), None, None, None, None,
                                 records[0].total_allocated, records[0].total_reserved, records[0].total_active,
                                 None, None, None,
                                 records[0].stream_ptr, records[0].device_tag]
             elif records_len == 2:
-                self._incomplete_num += 1
+                if hasattr(records[0], 'component_type') and records[0].component_type == Constant.CACHING_TYPE:
+                    self._incomplete_num += 1
                 active_release_time = convert_ns2us_str(records[1].time_ns, "\t") if records[1].data_type == Constant.MEMORY_BLOCK_FREE else None
                 release_time = convert_ns2us_str(records[1].time_ns, "\t") if records[1].data_type == Constant.MEMORY_FREE else None
                 duration_time = convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t") if records[1].data_type == Constant.MEMORY_FREE else None
@@ -253,13 +255,15 @@ class MemoryPrepareParser(BaseParser):
             else:
                 op_name = self._find_real_op_name_of_record(dequeue_record, torch_ops)
             if records_len == 1:
-                self._incomplete_num += 2
+                if hasattr(records[0], 'component_type') and records[0].component_type == Constant.CACHING_TYPE:
+                    self._incomplete_num += 2
                 combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, None, None, None, None,
                                 records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
                                 None, None, None,
                                 records[0].stream_ptr, records[0].device_index]
             elif records_len == 2:
-                self._incomplete_num += 1
+                if hasattr(records[0], 'component_type') and records[0].component_type == Constant.CACHING_TYPE:
+                    self._incomplete_num += 1
                 active_release_time = records[1].time_ns if records[1].data_type == Constant.MEMORY_BLOCK_FREE else None
                 release_time = records[1].time_ns if records[1].data_type == Constant.MEMORY_FREE else None
                 duration_time = records[1].time_ns - records[0].time_ns if records[1].data_type == Constant.MEMORY_FREE else None

@@ -93,7 +93,7 @@ std::vector<uint8_t> MemoryData::encode()
                               total_reserved, total_active, stream_ptr},
                              result);
     encodeFixedData<int8_t>({device_type, device_index}, result);
-    encodeFixedData<uint8_t>({data_type, allocator_type}, result);
+    encodeFixedData<uint8_t>({component_type, data_type, allocator_type}, result);
     encodeFixedData<uint64_t>({thread_id, process_id}, result);
 
     std::vector<uint8_t> resultTLV;

@@ -81,6 +81,7 @@ class Constant(object):
     GE = "GE"
     APP = "APP"
     PTA_GE = "PTA+GE"
+    WORKSPACE = "WORKSPACE"
     B_TO_KB = 1024.0
     KB_TO_MB = 1024.0
     B_TO_MB = 1024.0 ** 2
@@ -93,6 +94,8 @@ class Constant(object):
     MEMORY_MALLOC = 0
     MEMORY_FREE = 1
     MEMORY_BLOCK_FREE = 2
+    CACHING_TYPE = 0
+    WORKSPACE_TYPE = 1
 
     # profiler config
     CONFIG = "config"

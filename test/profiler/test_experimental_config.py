@@ -93,8 +93,8 @@ class TestExperimentalConfig(TestCase):
         self.assertEqual([], experimental_config._host_sys)
 
     def test_host_sys_switches_will_save_when_set_valid_host_sys(self):
-        experimental_config = _ExperimentalConfig(host_sys=[Constant.CPU, Constant.MEM])
-        self.assertEqual(["cpu", "mem"], experimental_config._host_sys)
+        experimental_config = _ExperimentalConfig(host_sys=[Constant.CPU])
+        self.assertEqual(["cpu"], experimental_config._host_sys)
 
     def test_sys_switches_will_save_empty_list_when_not_set_sys(self):
         experimental_config = _ExperimentalConfig()
