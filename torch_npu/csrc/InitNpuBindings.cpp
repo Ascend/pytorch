@@ -20,6 +20,7 @@
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
+#include "torch_npu/csrc/profiler/python/combined_traceback.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
@@ -195,6 +196,7 @@ PyObject* initModule()
 #endif
     initCommMethods();
     torch::installCapturedTracebackPython();
+    torch_npu::installCapturedTracebackPython();
     torch_npu::profiler::initMstx(module);
     return module;
 }
