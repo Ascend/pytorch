@@ -1,14 +1,19 @@
-FROM pytorch/manylinux-builder:cpu-2.1
+FROM pytorch/manylinux-builder:cpu-2.6
 
-# Install python
+ENV PATH /usr/local/bin:$PATH
+
+RUN echo "alias ll='ls -l --color=auto'" >> /root/.bashrc
+
+# Set pip&python
 RUN cd /usr/local/bin \
-    && ln -s /opt/_internal/cpython-3.9.0/bin/pip3.9 pip3.9 \
-    && ln -s /opt/_internal/cpython-3.10.1/bin/pip3.10 pip3.10 \
-    && ln -s /opt/_internal/cpython-3.11.0/bin/pip3.11 pip3.11 \
-    && ln -s /opt/_internal/cpython-3.9.0/bin/python3.9 python3.9 \
-    && ln -s /opt/_internal/cpython-3.10.1/bin/python3.10 python3.10 \
-    && ln -s /opt/_internal/cpython-3.11.0/bin/python3.11 python3.11 \
-    && ln -s python3.9 python3
+    && ln -sf /opt/_internal/cpython-3.9.0/bin/pip3.9 pip3.9 \
+    && ln -sf /opt/_internal/cpython-3.10.1/bin/pip3.10 pip3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.0/bin/pip3.11 pip3.11 \
+    && ln -sf /opt/_internal/cpython-3.9.0/bin/pip3.9 pip3 \
+    && ln -sf /opt/_internal/cpython-3.9.0/bin/python3.9 python3.9 \
+    && ln -sf /opt/_internal/cpython-3.10.1/bin/python3.10 python3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.0/bin/python3.11 python3.11 \
+    && ln -sf /opt/_internal/cpython-3.9.0/bin/python3.9 python3
 
 # Set pip source
 RUN mkdir /root/.pip \

@@ -1,11 +1,11 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
--f https://data.pyg.org/whl/torch-2.5.0+cpu.html
+-f https://data.pyg.org/whl/torch-2.6.0+cpu.html
 
 coverage
 beartype==0.17.0
 expecttest==0.1.3
 hypothesis
-mypy==1.9.0
+mypy==1.13.0
 numpy==1.24.4
 onnx==1.16.2
 onnxruntime==1.18.1
@@ -17,6 +17,5 @@ transformers==4.40.0
 pytest==8.1.1
 parameterized==0.9.0
 torch-scatter==2.1.2
-# since 20240730, torchvision no longer supports python3.8
 torchvision==0.21.0
 ml-dtypes==0.2.0

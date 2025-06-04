@@ -1,11 +1,19 @@
 FROM pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-2.6
 
-# Set pip
+ENV PATH /usr/local/bin:$PATH
+
+RUN echo "alias ll='ls -l --color=auto'" >> /root/.bashrc
+
+# Set pip&python
 RUN cd /usr/local/bin \
-    && ln -s /opt/_internal/cpython-3.9.21/bin/pip3.9 pip3.9 \
-    && ln -s /opt/_internal/cpython-3.10.16/bin/pip3.10 pip3.10 \
-    && ln -s /opt/_internal/cpython-3.11.11/bin/pip3.11 pip3.11 \
-    && cd /usr/bin/ && ln -sf /opt/_internal/cpython-3.9.21/bin/python3.9 python3
+    && ln -sf /opt/_internal/cpython-3.9.21/bin/pip3.9 pip3.9 \
+    && ln -sf /opt/_internal/cpython-3.10.16/bin/pip3.10 pip3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.11/bin/pip3.11 pip3.11 \
+    && ln -sf /opt/_internal/cpython-3.9.21/bin/pip3.9 pip3 \
+    && ln -sf /opt/_internal/cpython-3.9.21/bin/python3.9 python3.9 \
+    && ln -sf /opt/_internal/cpython-3.10.16/bin/python3.10 python3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.11/bin/python3.11 python3.11 \
+    && ln -sf /opt/_internal/cpython-3.9.21/bin/python3.9 python3
 
 # Set pip source
 RUN mkdir /root/.pip \
