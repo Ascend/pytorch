@@ -194,5 +194,18 @@ class TestCppExtensionAOT(TestCase):
             self._test_multiprocess(TestCppExtensionAOT._test_op_hook_with_all_reduce,
                                     TestCppExtensionAOT._init_dist_hccl, expected, input1, world_size)
 
+    def test_dump_allreduce(self):
+        dump_pth = "./hccl_trace_rank_0"
+        code_file = os.path.join(pathlib.Path(__file__).absolute().parent, "dump_allreduce.py")
+        cmd = ["torchrun", "--nproc-per-node=1", code_file]
+        p = subprocess.Popen(cmd)
+        p.wait()
+
+        self.assertTrue(os.path.exists(dump_pth))
+        self.assertTrue(os.path.exists(dump_pth + "_py_traceback"))
+        os.remove(dump_pth)
+        os.remove(dump_pth + "_py_traceback")
+
+
 if __name__ == "__main__":
     run_tests()
