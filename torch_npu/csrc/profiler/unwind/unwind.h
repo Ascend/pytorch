@@ -15,7 +15,7 @@ TORCH_NPU_API std::vector<void*> unwind();
 struct Frame {
     std::string filename;
     std::string funcname;
-    uint64_t lineno;
+    uint64_t lineno = 0;
 };
 
 // note: symbolize is really slow
