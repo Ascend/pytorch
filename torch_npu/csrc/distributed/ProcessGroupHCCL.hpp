@@ -69,6 +69,37 @@ static std::vector<std::string> TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC = {
 static std::vector<std::string> TORCH_HCCL_COORD_CHECK_MILSEC = {
     "TORCH_HCCL_COORD_CHECK_MILSEC"};
 
+// A struct to hold the latest status of the process group.
+struct ProcessGroupStatus {
+    // the sequential number of the last collective enqueued into workMetaList_
+    // This is useful for indentifying a rank that has not join a collective
+    // initialized to be -1 to indicate no collective has been enqueued
+    int64_t lastEnqueuedSeq{-1};
+    // the sequential number of the last collective started as the kernel
+    int64_t lastStartedSeq{-1};
+    // the sequential number of the last colletive completed marked by
+    // the watchdog thread
+    // initialized to be -1 to indicate no collective has been completed
+    int64_t lastCompletedSeq{-1};
+
+    // the name of the last collective enqueued into workMetaList_
+    std::string lastEnqueuedWorkName;
+    // the name of the last collective started as the kernel
+    std::string lastStartedWorkName;
+    // the name of the last collective completed
+    std::string lastCompletedWorkName;
+
+    // the sizes of the last work enqueued
+    size_t lastEnqueuedNumelIn;
+    size_t lastEnqueuedNumelOut;
+    // the sizes of the last work completed
+    size_t lastCompletedNumelIn;
+    size_t lastCompletedNumelOut;
+    // the sizes of the last work started
+    size_t lastStartedNumelIn;
+    size_t lastStartedNumelOut;
+};
+
 struct DumpPipe {
     DumpPipe(int rank)
     {
@@ -202,6 +233,8 @@ public:
         std::shared_ptr<bool> is_dispatched = std::make_shared<bool>(false);
         bool is_reported = false;
 
+        bool is_dumped = false;
+
         // Checks if request has completed. In this specific case of HCCL, it checks
         // if the HCCL operation has completed on the NPU in its own HCCL stream.
         // Non-blocking operation.
@@ -241,6 +274,8 @@ public:
 
         void checkDispatch();
 
+        bool checkExec();
+
     protected:
         // The cached list of NPU devices to operate on.
         // HCCL support one device per rank only
@@ -278,6 +313,11 @@ public:
         // Indicates if the hccl start event has been updated to the store trace.
         // This will be used by desync debug.
         bool startTraceUpdated_{false};
+
+        // Record collective sizes for debug. We only record the size on the first
+        // device as multi-device per process is deprecated
+        size_t numelIn_ = -1;
+        size_t numelOut_ = -1;
 
         // Wrapper method for the static checkForHCCLErrors which can be overridden
         // for tests.
@@ -357,34 +397,6 @@ public:
         std::string master_addr;
 
         uint32_t master_port;
-    };
-
-    // A struct to hold the latest status of the process group.
-    struct ProcessGroupStatus {
-        // the sequential number of the last collective enqueued into workMetaList_
-        // This is useful for indentifying a rank that has not join a collective
-        // initialized to be -1 to indicate no collective has been enqueued
-        int64_t lastEnqueuedSeq{-1};
-        // the sequential number of the last collective started as the kernel
-        int64_t lastStartedSeq{-1};
-        // the sequential number of the last colletive completed marked by
-        // the watchdog thread
-        // initialized to be -1 to indicate no collective has been completed
-        int64_t lastCompletedSeq{-1};
-
-        // the name of the last collective enqueued into workMetaList_
-        std::string lastEnqueuedWorkName;
-        // the name of the last collective started as the kernel
-        std::string lastStartedWorkName;
-        // the name of the last collective completed
-        std::string lastCompletedWorkName;
-
-        // the sizes of the last work enqueued
-        size_t lastEnqueuedNumelIn;
-        size_t lastEnqueuedNumelOut;
-        // the sizes of the last work completed
-        size_t lastCompletedNumelIn;
-        size_t lastCompletedNumelOut;
     };
 
     // If you wish to create multiple process groups, each with a potentially
@@ -742,7 +754,7 @@ protected:
     int hcclTraceBufferSize_;
 
     // We gate the heartbeat monitor thread so that we can roll it out gradually.
-    std::atomic<bool> monitorThreadEnabled_;
+    static std::atomic<bool> monitorThreadEnabled_;
 
     // Monitor thread which checks the heartbeat of Watchdog thread.
     // If the monitor thread finds there is no heartbeat, it will dump debug info
@@ -848,6 +860,8 @@ protected:
     // timeout and hccl errors.
     bool dumpOnException_;
 
+    bool hasGlobalDumped = false;
+
     // the perfdump path
     static std::string perfdumppath;
 
@@ -891,6 +905,8 @@ protected:
 
     std::exception_ptr watchDogException_ = nullptr;
 
+    std::shared_ptr<ProcessGroupStatus> pgStatus_ = std::make_shared<ProcessGroupStatus>();
+
     struct StatusStruct {
         uint64_t seq = 0;
         std::string pgId;
@@ -922,8 +938,6 @@ protected:
     std::string logPrefix_;
 
     std::string pg_desc_;
-
-    ProcessGroupStatus pgStatus_;
 
 private:
     // Helper that encapsulates work shared across all collective communication
