@@ -16,7 +16,7 @@ from .npu_fusion_attention_graph import register_fa_pass
 from .config import aggresive_autotune, num_vector_core
 from .config import log as npulog
 from .decomposition import _register_npu_inductor_decompositons
-from .lowering import make_reduction
+from .lowering import make_reduction, npu_make_fallback
 from .npu_choices import should_use_persistent_reduction
 from .npu_device import NewNPUDeviceOpOverrides, NewNpuInterface
 from .runtime import _load_cached_autotuning
@@ -44,6 +44,7 @@ for i in range(16):
 device = get_interface_for_device("npu")
 
 inductor_lowering.make_reduction = make_reduction
+inductor_lowering.make_fallback = npu_make_fallback
 
 
 def patch_torch_for_aoti():

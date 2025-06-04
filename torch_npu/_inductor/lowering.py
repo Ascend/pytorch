@@ -29,9 +29,35 @@ from torch._inductor.lowering import (
     make_pointwise,
     _make_reduction_inner,
     _validate_reduction_axis,
+    add_needs_realized_inputs,
+    add_layout_constraint
 )
 import torch_npu
 from torch_npu import npu_dtype_cast
+
+
+def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False):
+    if op in decompositions and not override_decomp:
+        raise RuntimeError(f"both a fallback and a decomp for same op: {op}")
+
+    def register_fallback(op_overload):
+        add_needs_realized_inputs(op_overload)
+        if layout_constraint is not None:
+            add_layout_constraint(op_overload, layout_constraint)
+        return register_lowering(op_overload, type_promotion_kind=None)(
+            fallback_handler(op_overload)
+        )
+
+    if isinstance(op, torch._ops.OpOverloadPacket):
+        for ol in op.overloads():
+            op_overload = getattr(op, ol)
+            register_fallback(op_overload)
+    elif isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+        register_fallback(op)
+    else:
+        raise RuntimeError(f"Unsupported fallback {op} with type {type(op)}")
+
+make_fallback = npu_make_fallback
 
 
 def make_reduction(reduction_type: str, override_return_dtype=None):
