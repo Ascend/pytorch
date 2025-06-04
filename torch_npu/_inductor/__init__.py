@@ -12,7 +12,7 @@ from torch_npu.utils._inductor import NPUDeviceOpOverrides
 
 from . import config as npu_config
 from . import codegen
-from . import npu_fusion_attention_graph
+from .npu_fusion_attention_graph import register_fa_pass
 from .config import aggresive_autotune, num_vector_core
 from .config import log as npulog
 from .decomposition import _register_npu_inductor_decompositons
@@ -96,3 +96,5 @@ if (aggresive_autotune):
 
 InductorChoices.should_use_persistent_reduction = should_use_persistent_reduction
 autotune_cache._load_cached_autotuning = _load_cached_autotuning
+
+register_fa_pass()

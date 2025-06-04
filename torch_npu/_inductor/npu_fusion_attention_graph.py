@@ -155,7 +155,7 @@ def npu_fusion_attention_graph(query, key, value, head_num, input_layout, pse=No
 torch_npu.npu_fusion_attention_graph = npu_fusion_attention_graph
 
 
-def register_fx_pass():
+def register_fa_pass():
     TOKEN_MAX = 2147483647
     from torch._inductor.pattern_matcher import register_replacement, fwd_only, joint_fwd_bwd
     from torch._inductor.fx_passes.joint_graph import patterns
@@ -252,5 +252,3 @@ def register_fx_pass():
             **register_replacement_kwargs,
         )
 
-
-register_fx_pass()
