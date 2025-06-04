@@ -131,6 +131,7 @@ struct NpuProfilerThreadLocalState : public ProfilerStateBase {
                 device.index(),
                 0,
                 0,
+                0,
                 Utils::GetTid(),
                 Utils::GetPid()
             ));
@@ -389,6 +390,7 @@ void reportMemoryDataToNpuProfiler(const MemoryUsage& data)
         data.stream_ptr,
         data.device_type,
         data.device_index,
+        data.component_type,
         data.data_type,
         data.allocator_type,
         Utils::GetTid(),

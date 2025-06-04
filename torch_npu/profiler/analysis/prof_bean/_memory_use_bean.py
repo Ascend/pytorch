@@ -19,14 +19,15 @@ class MemoryEnum(Enum):
     STREAM_PTR = 6
     DEVICE_TYPE = 7
     DEVICE_INDEX = 8
-    DATA_TYPE = 9
-    ALLOCATOR_TYPE = 10
-    THREAD_ID = 11
-    PROCESS_ID = 12
+    COMPONENT_TYPE = 9
+    DATA_TYPE = 10
+    ALLOCATOR_TYPE = 11
+    THREAD_ID = 12
+    PROCESS_ID = 13
 
 
 class MemoryUseBean(CommonBean):
-    CONSTANT_STRUCT = "<7q2b2B2Q"
+    CONSTANT_STRUCT = "<7q2b3B2Q"
     NPU_ID = 20
     CPU_ID = 0
     INNER_ALLOCATOR = 0
@@ -87,6 +88,10 @@ class MemoryUseBean(CommonBean):
     @property
     def device_index(self) -> int:
         return int(self._constant_data[MemoryEnum.DEVICE_INDEX.value])
+
+    @property
+    def component_type(self) -> int:
+        return int(self._constant_data[MemoryEnum.COMPONENT_TYPE.value])
 
     @property
     def data_type(self) -> int:

@@ -53,6 +53,11 @@ class MemoryViewParser(BaseParser):
 
     @staticmethod
     def _combine_record(last_record, cur_record):
+        if hasattr(cur_record, 'component_type') and cur_record.component_type == Constant.WORKSPACE_TYPE:
+            cur_record_list = [Constant.WORKSPACE, convert_ns2us_str(cur_record.time_ns, tail="\t"),
+                               cur_record.total_allocated, cur_record.total_reserved, cur_record.total_active,
+                               cur_record.stream_ptr, cur_record.device_tag]
+            return [cur_record_list]
         cur_record_list = cur_record.row
         if last_record:
             pta_ge_record_list = [Constant.PTA_GE, convert_ns2us_str(cur_record.time_ns, tail="\t"),
