@@ -443,6 +443,7 @@ class TableColumnsManager():
             ("type", Constant.SQL_TEXT_TYPE)
         ],
         DbConstant.TABLE_STEP_TRACE_TIME : [
+            ("deviceId", Constant.SQL_INTEGER_TYPE),
             ("step", Constant.SQL_TEXT_TYPE),
             ("computing", Constant.SQL_NUMERIC_TYPE),
             ("communication_not_overlapped", Constant.SQL_NUMERIC_TYPE),

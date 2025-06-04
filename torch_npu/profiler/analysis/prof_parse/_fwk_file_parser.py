@@ -162,22 +162,27 @@ class FwkFileParser:
                 len(torch_op_data) + len(enqueue_data_list) * 2 + len(dequeue_data_list) * 2)
         index = 0
         fwd_dict = {}
+        correlation_id_name_dict = {}
         for torch_op in torch_op_data:
             self.filter_fwd_bwd_event(fwd_dict, torch_op)
             tid_dict[torch_op.tid] = False
             fwk_x_event_list[index] = TraceEventManager.create_x_event(torch_op, "cpu_op")
-            index += 1
-        for enqueue_data in enqueue_data_list:
-            tid_dict[enqueue_data.tid] = False
-            fwk_x_event_list[index] = TraceEventManager.create_x_event(enqueue_data, "enqueue")
-            index += 1
-            fwk_x_event_list[index] = TraceEventManager.create_task_queue_flow(Constant.FLOW_START_PH, enqueue_data)
             index += 1
         for dequeue_data in dequeue_data_list:
             tid_dict[dequeue_data.tid] = True
             fwk_x_event_list[index] = TraceEventManager.create_x_event(dequeue_data, "dequeue")
             index += 1
             fwk_x_event_list[index] = TraceEventManager.create_task_queue_flow(Constant.FLOW_END_PH, dequeue_data)
+            index += 1
+            correlation_id_name_dict[dequeue_data.corr_id] = dequeue_data.origin_name
+        for enqueue_data in enqueue_data_list:
+            tid_dict[enqueue_data.tid] = False
+            fwk_x_event_list[index] = TraceEventManager.create_x_event(enqueue_data, "enqueue")
+            if enqueue_data.corr_id in correlation_id_name_dict:
+                # append correlation name with '@' prefix for consistent with Dequeue
+                fwk_x_event_list[index]['name'] += f"@{correlation_id_name_dict[enqueue_data.corr_id]}"
+            index += 1
+            fwk_x_event_list[index] = TraceEventManager.create_task_queue_flow(Constant.FLOW_START_PH, enqueue_data)
             index += 1
         other_event_list = TraceEventManager.create_m_event(pid, tid_dict)
         other_event_list.extend(TraceEventManager.create_fwd_flow(fwd_dict))
@@ -268,15 +273,21 @@ class FwkFileParser:
         task_enqueues = []
         task_dequeues = []
         enqueue_data_list, dequeue_data_list = self.get_task_queue_data()
-        for enqueue_data in enqueue_data_list:
-            task_enqueues.append(
-                [enqueue_data.ts, enqueue_data.ts + enqueue_data.dur, contact_2num(pid, enqueue_data.tid),
-                 enqueue_data.corr_id, enqueue_data.name])
-            connection_ids.append(enqueue_data.corr_id)
+        correlation_id_name_dict = {}
         for dequeue_data in dequeue_data_list:
             task_dequeues.append(
                 [dequeue_data.ts, dequeue_data.ts + dequeue_data.dur, contact_2num(pid, dequeue_data.tid),
                  dequeue_data.corr_id, dequeue_data.name])
+            correlation_id_name_dict[dequeue_data.corr_id] = dequeue_data.origin_name
+        for enqueue_data in enqueue_data_list:
+            name = enqueue_data.name
+            if enqueue_data.corr_id in correlation_id_name_dict:
+                # append correlation name with '@' prefix for consistent with Dequeue
+                name += f"@{correlation_id_name_dict[enqueue_data.corr_id]}"
+            task_enqueues.append(
+                [enqueue_data.ts, enqueue_data.ts + enqueue_data.dur, contact_2num(pid, enqueue_data.tid),
+                 enqueue_data.corr_id, name])
+            connection_ids.append(enqueue_data.corr_id)
 
         start_connection_id = max(connection_ids) + 1 if connection_ids else 0
         self.update_fwd_bwd_connection_id(fwd_bwd_dict, torch_op_apis, start_connection_id)
