@@ -7,7 +7,7 @@ from torch._inductor.virtualized import V
 
 
 class IndexAnalysis:
-    def __init__(self, kernel, raw_index, is_store_index=False):
+    def __init__(self, kernel, raw_index, is_store_index=False, is_index_expr=False):
         self.index = raw_index.subs(V.graph.sizevars.var_to_val)
         self.kernel = kernel
         self.tiling_axis = [x.symbol() for x in self.kernel.tiling_axis]
@@ -33,6 +33,7 @@ class IndexAnalysis:
         self.var_list = tuple([x[0] for x in self.var_stride if x[0] in self.tiling_axis])
         self.stride_list = tuple([x[1] for x in self.var_stride if x[0] in self.tiling_axis])
         self.is_store_index = is_store_index
+        self.is_index_expr = is_index_expr
 
     def get_most_similar_shape(self):
         matched_dims = 0
@@ -67,6 +68,8 @@ class IndexAnalysis:
         return new_shape
 
     def analyze_permute_shape(self):
+        if self.is_index_expr:
+            return
         if self.gold == self.similar:
             self.need_permute = False
             return
@@ -135,7 +138,7 @@ class IndexAnalysis:
             index = var_list.index(x)
             if (index == i):
                 continue
-            new_var = sympy_index_symbol(f"{x}_{index}")
+            new_var = sympy_index_symbol(f"{x}") if self.is_index_expr else sympy_index_symbol(f"{x}_{index}")
             if new_var in self.var_replacements:
                 continue
             direction = ["None"] * len(gold)

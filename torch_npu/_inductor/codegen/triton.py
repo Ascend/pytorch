@@ -52,6 +52,8 @@ from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import (
     Placeholder,
+    get_bounds_index_expr,
+    upcast_compute_type
 )
 from torch._inductor.utils import sympy_index_symbol, generate_assert
 from torch._inductor.utils import sympy_subs
@@ -113,6 +115,51 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
     @staticmethod
     def ceil(x):
         return f"tl_math.ceil({x})"
+
+    @classmethod
+    def index_expr(cls, expr, dtype):
+        indexing = V.kernel.indexing(expr, block_ptr=False, is_index_expr=True)
+        if not isinstance(indexing, IndexingOptions):
+            raise TypeError(f"not a IndexingOptions : {indexing}")
+
+        # Our sympy expr printing casts to the current kernel index dtype.
+        # we only respect non int32-int64 dtypes and otherwise use current kernel indexing dtype
+        index_dtype = torch.int32 if V.kernel.index_dtype == "tl.int32" else torch.int64
+        dtype = dtype if dtype not in (torch.int32, torch.int64) else index_dtype
+        var = V.kernel.cse.generate(
+            V.kernel.compute,
+            indexing.index_str,
+            bounds=get_bounds_index_expr(expr),
+            dtype=dtype,
+        )
+
+        if dtype not in (torch.int32, torch.int64):
+            var = V.kernel.cse.generate(
+                V.kernel.compute,
+                cls.to_dtype(var, dtype),
+                dtype=upcast_compute_type(dtype),
+            )
+        else:
+            # We are not always consistent in enforcing that the output of the index expr printing
+            # results in the indexing dtype. So if we detect that we have an input which might type promote
+            # to a dtype other than indexing dtype, add a cast.
+            # Trying to avoid
+            dtype = index_dtype
+            for index_var in expr.free_symbols:
+                if symbol_is_type(index_var, SymT.TMP):
+                    dtype = torch.promote_types(
+                        dtype, V.kernel.cse.varname_map[index_var.name].dtype
+                    )
+
+            if dtype != index_dtype:
+                var = V.kernel.cse.generate(
+                    V.kernel.compute,
+                    cls.to_dtype(var, index_dtype),
+                    dtype=index_dtype,
+                )
+
+        var.mask_vars = indexing.mask_vars
+        return var
 
 
 def group_fn(self, sizes):
@@ -1256,13 +1303,7 @@ class NPUIndexTritonKernel(TritonKernel):
         original_index = index
         store_cache = self.cse.store_cache
         if name in store_cache:
-            index_analyze = IndexAnalysis(self, index)
-            index_analyze.analyze_index()
             result_var = store_cache[name]
-            if index_analyze.need_permute:
-                line = f"{result_var}{index_analyze.generate_statement()}"
-                buffer = self.compute if self.persistent_reduction else self.loads
-                result_var = self.cse.generate(buffer, line, dtype=result_var.dtype)
             return result_var
 
         index_analyze = IndexAnalysis(self, index)
@@ -1355,7 +1396,8 @@ class NPUIndexTritonKernel(TritonKernel):
     def prepare_indexing(
             self,
             index: sympy.Expr,
-            index_analyze
+            index_analyze,
+            is_index_expr=False
     ):
         index = sympy_subs(index, V.graph.sizevars.precomputed_replacements)
         # if simple replacements didn't get rid of floor/ceil, try full subs
@@ -1410,16 +1452,17 @@ class NPUIndexTritonKernel(TritonKernel):
             dense_indexing=False,
             override_mask=None,
             block_ptr=False,
-            index_analyze=None
+            index_analyze=None,
+            is_index_expr=False
     ) -> Union[IndexingOptions, BlockPtrOptions]:
         """
         Compute the index and mask to pass to tl.load() or tl.store()
         """
         if not index_analyze:
-            index_analyze = IndexAnalysis(self, index)
+            index_analyze = IndexAnalysis(self, index, is_index_expr=is_index_expr)
         index_analyze.analyze_index()
 
-        index = self.prepare_indexing(index, index_analyze)
+        index = self.prepare_indexing(index, index_analyze, is_index_expr)
         index_vars = index.free_symbols
         has_rindex = False
         index = sympy_subs(index, V.graph.sizevars.precomputed_replacements)
