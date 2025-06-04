@@ -106,6 +106,14 @@ void ProfilerMgr::EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, a
         ASCEND_LOGE("Profiling start failed.");
         return;
     }
+
+    ASCEND_LOGI("Try to register set device callback function.");
+    ret = at_npu::native::AclProfilingRegisterDeviceCallback();
+    if (ret == ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
+        ASCEND_LOGW("Not support set device callback function.");
+    } else if (ret != ACL_SUCCESS) {
+        ASCEND_LOGE("Failed to register set device callback function.");
+    }
 }
 
 uint64_t ProfilerMgr::PrepareProfilerConfig(const NpuTraceConfig &npu_config)
