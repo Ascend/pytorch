@@ -1,3 +1,5 @@
+import copy
+from collections import defaultdict
 from enum import Enum
 from ._base_parser import BaseParser
 from ..prof_common_func._constant import Constant
@@ -9,6 +11,24 @@ from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
 from ..prof_parse._fwk_file_parser import FwkFileParser
 
 __all__ = []
+
+
+def default_time():
+    return {
+        'compute': 0,
+        'comunNotOverlp': 0,
+        'Overlp': 0,
+        'comun': 0,
+        'free': 0,
+        'stage': 0,
+        'bubble': 0,
+        'comunNotOverlpRec': 0,
+        'prepare': 0
+    }
+
+
+def step_time_dict():
+    return defaultdict(default_time)
 
 
 class _StepInfoIndex(Enum):
@@ -25,8 +45,8 @@ class TraceStepTimeParser(BaseParser):
     STEP_TRACE = "step_trace_time.csv"
     timeflag = {'Communication': 'comun', 'Computing': 'compute', 'Free': 'free',
                 'Communication(Not Overlapped)': 'comunNotOverlp', 'hcom_receive': 'bubble'}
-    title = ['Step', 'Computing', 'Communication(Not Overlapped)', 'Overlapped', 'Communication', 'Free', 'Stage',
-             'Bubble', 'Communication(Not Overlapped and Exclude Receive)', 'Preparing']
+    title = ['Device_id', 'Step', 'Computing', 'Communication(Not Overlapped)', 'Overlapped', 'Communication',
+             'Free', 'Stage', 'Bubble', 'Communication(Not Overlapped and Exclude Receive)', 'Preparing']
 
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
@@ -43,18 +63,21 @@ class TraceStepTimeParser(BaseParser):
             return False
 
     @classmethod
-    def count_time(cls, add_type, start_time, duration, step_list, save_time):
+    def count_time(cls, add_type, data, step_list, save_time, pid_device_map):
+        start_time = data.get('ts', 0)
+        duration = data.get('dur', 0)
+        device_id = pid_device_map[data['pid']]
         cur_step = None
         if not cls.is_float_num(start_time) or not cls.is_float_num(duration):
             print('Ts or dur format error!')
             return
         start_time = float(start_time)
         duration = float(duration)
-        for step in step_list:
+        for step in step_list.get(device_id, []):
             if step[_StepInfoIndex.START_TS.value] <= start_time < step[_StepInfoIndex.END_TS.value]:
                 cur_step = step[_StepInfoIndex.ID.value]
                 break
-        for step in step_list:
+        for step in step_list.get(device_id, []):
             if cur_step == step[_StepInfoIndex.ID.value]:
                 if start_time < step[_StepInfoIndex.E2E_START_TS.value] or \
                     step[_StepInfoIndex.E2E_START_TS.value] == -1:
@@ -67,10 +90,7 @@ class TraceStepTimeParser(BaseParser):
                        step[_StepInfoIndex.FIRST_TASK_TS.value] == -1:
                         step[_StepInfoIndex.FIRST_TASK_TS.value] = start_time
                 break
-        for cur_save in save_time:
-            if cur_save.get('step') == cur_step:
-                cur_save[cls.timeflag.get(add_type)] += duration
-                break
+        save_time[device_id][cur_step][cls.timeflag.get(add_type)] += duration
 
     @classmethod
     def get_e2e_time(cls, step, step_list):
@@ -91,43 +111,51 @@ class TraceStepTimeParser(BaseParser):
 
     def create_step_file(self, output_path: str, json_str: list, file_name: str) -> None:
         step_list = []
-        save_time = []
+        save_time = defaultdict(step_time_dict)
         if not json_str:
             return
-        # get step time
+        # obtain the mapping between pid and device_id(rank_id)
+        pid_device_map = {}
+        for data in json_str:
+            if data.get('name') == 'process_labels' and data.get('args', {}).get('labels', '').startswith('NPU'):
+                label = data['args']['labels']
+                pid_device_map[data.get('pid')] = -1 if label == 'NPU' else int(label.split(' ')[1]) # "labels": "NPU 0"
+        # get initial step time
         for cur_step in self.step_range:
             step_list.append(
                 [cur_step.get(Constant.STEP_ID), convert_ns2us_float(cur_step.get(Constant.START_TS)),
                  convert_ns2us_float(cur_step.get(Constant.END_TS)), -1, -1,
                  convert_ns2us_float(cur_step.get(Constant.FWK_START_TS)), -1])
-            save_time.append(
-                {'step': cur_step.get(Constant.STEP_ID), 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0,
-                 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0, 'prepare': 0})
         if not self.step_range:
-            save_time.append(
-                {'step': None, 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0, 'free': 0, 'stage': 0,
-                 'bubble': 0, 'comunNotOverlpRec': 0, 'prepare': 0})
             step_list.append([None, -1, -1, -1, -1, -1, -1])
-
+        # every device should have its own step_list
+        step_dict = {}
+        for device in set(pid_device_map.values()):
+            step_dict[device] = copy.deepcopy(step_list)
         has_analysis_data_flag = False
+        bubble_data = []
+        # traverse json and calculate time
         for data in json_str:
             if data.get('name') in {'Communication', 'Computing', 'Free', 'Communication(Not Overlapped)'}:
-                self.count_time(data.get('name'), data.get('ts', 0), data.get('dur', 0), step_list, save_time)
+                self.count_time(data.get('name'), data, step_dict, save_time, pid_device_map)
                 has_analysis_data_flag = True
             elif str(data.get('name')).startswith('hcom_receive'):
-                self.count_time('hcom_receive', data.get('ts', 0), data.get('dur', 0), step_list, save_time)
+                bubble_data.append(data)
+                self.count_time('hcom_receive', data, step_dict, save_time, pid_device_map)
         if not has_analysis_data_flag:
             return
-        for calc_time in save_time:
-            calc_time['comunNotOverlpRec'] = calc_time['comunNotOverlp'] - calc_time['bubble']
-            calc_time['Overlp'] = calc_time['comun'] - calc_time['comunNotOverlp']
-            calc_time['stage'] = self.get_e2e_time(calc_time['step'], step_list) - calc_time['bubble']
-            calc_time['prepare'] = self.get_prepare_time(calc_time['step'], step_list)
         print_time = []
-        for step in save_time:
-            print_time.append(
-                [step['step'], step['compute'], step['comunNotOverlp'], step['Overlp'], step['comun'], step['free'],
-                 step['stage'], step['bubble'], step['comunNotOverlpRec'], step['prepare']])
+        for device, device_time in save_time.items():
+            for step, step_time in device_time.items():
+                step_time['comunNotOverlpRec'] = step_time['comunNotOverlp'] - step_time['bubble']
+                step_time['Overlp'] = step_time['comun'] - step_time['comunNotOverlp']
+                step_time['stage'] = self.get_e2e_time(step, step_dict.get(device, [])) - step_time['bubble']
+                step_time['prepare'] = self.get_prepare_time(step, step_dict.get(device, []))
+                print_time.append(
+                    [device, step, step_time['compute'], step_time['comunNotOverlp'], step_time['Overlp'],
+                     step_time['comun'], step_time['free'], step_time['stage'], step_time['bubble'],
+                     step_time['comunNotOverlpRec'], step_time['prepare']])
+        print_time.sort(key=lambda x: (x[0], x[1]))
         FileManager.create_csv_file(output_path, print_time, file_name, self.title)
 
     def run(self, deps_data: dict):
