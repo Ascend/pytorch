@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import defaultdict
 from enum import Enum
 from .._base_parser import BaseParser
 from ...prof_common_func._constant import Constant, print_warn_msg
@@ -25,10 +26,11 @@ from ...prof_parse._fwk_file_parser import FwkFileParser
 __all__ = []
 
 
-class CommunicationOpIndex(Enum):
+class OpIndex(Enum):
     OP_NAME = 0
     START_NS = 1
     END_NS = 2
+    DEVICE_ID = 3
 
 
 class TraceStepTimeDbParser(BaseParser):
@@ -36,9 +38,8 @@ class TraceStepTimeDbParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self.step_range = []
-        self.string_id_map = {}
-        self.compute_task_info = {}
-        self.communication_op_info = []
+        self.compute_task_info = defaultdict(list)
+        self.communication_op_info = defaultdict(list)
         ProfilerLogger.init(self._profiler_path, "TraceStepTimeDbParser")
         self.logger = ProfilerLogger.get_instance()
 
@@ -86,28 +87,32 @@ class TraceStepTimeDbParser(BaseParser):
                 {'step': None, 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0, 'free': 0,
                  'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0, 'prepare': 0})
         else:
-            # get step time
-            for cur_step in self.step_range:
-                save_info = {
-                    'step': cur_step.get(Constant.STEP_ID), 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 
-                    'comun': 0, 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0, 'prepare': 0
-                }
-                origin_compute_data = self._get_compute_data_in_step(cur_step)
-                origin_communication_data, bubble_data = self._get_communication_data_in_step(cur_step)
-                compute_data = RangeCaculator.merge_continuous_intervals(origin_compute_data)
-                save_info['compute'] = sum(data.end_ts - data.start_ts for data in compute_data)
-                communication_data = RangeCaculator.merge_continuous_intervals(origin_communication_data)
-                save_info['comun'] = sum(data.end_ts - data.start_ts for data in communication_data)
-                pure_communication_data, free_data = \
-                    RangeCaculator.compute_pipeline_overlap(communication_data, compute_data)
-                save_info['comunNotOverlp'] = \
-                    sum(data.end_ts - data.start_ts for data in pure_communication_data)
-                save_info['free'] = sum(data.end_ts - data.start_ts for data in free_data)
-                save_info['bubble'] = sum(data.end_ts - data.start_ts for data in bubble_data)
-                save_info['stage'] = self.get_e2e_time(compute_data + communication_data) - save_info['bubble']
-                first_task_start_ts = self._get_first_device_task_ts(compute_data, communication_data)
-                save_info['prepare'] = self.get_prepare_time(first_task_start_ts, cur_step)
-                save_time.append(save_info)
+            device_ids = list(set(self.compute_task_info.keys()) | set(self.communication_op_info.keys()))
+            device_ids.sort()
+            for device_id in device_ids:
+                # get step time
+                for cur_step in self.step_range:
+                    save_info = {
+                        'step': cur_step.get(Constant.STEP_ID), 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0,
+                        'comun': 0, 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0, 'prepare': 0,
+                        'deviceId': device_id
+                    }
+                    origin_compute_data = self._get_compute_data_in_step(cur_step, device_id)
+                    origin_communication_data, bubble_data = self._get_communication_data_in_step(cur_step, device_id)
+                    compute_data = RangeCaculator.merge_continuous_intervals(origin_compute_data)
+                    save_info['compute'] = sum(data.end_ts - data.start_ts for data in compute_data)
+                    communication_data = RangeCaculator.merge_continuous_intervals(origin_communication_data)
+                    save_info['comun'] = sum(data.end_ts - data.start_ts for data in communication_data)
+                    pure_communication_data, free_data = \
+                        RangeCaculator.compute_pipeline_overlap(communication_data, compute_data)
+                    save_info['comunNotOverlp'] = \
+                        sum(data.end_ts - data.start_ts for data in pure_communication_data)
+                    save_info['free'] = sum(data.end_ts - data.start_ts for data in free_data)
+                    save_info['bubble'] = sum(data.end_ts - data.start_ts for data in bubble_data)
+                    save_info['stage'] = self.get_e2e_time(compute_data + communication_data) - save_info['bubble']
+                    first_task_start_ts = self._get_first_device_task_ts(compute_data, communication_data)
+                    save_info['prepare'] = self.get_prepare_time(first_task_start_ts, cur_step)
+                    save_time.append(save_info)
 
         for calc_time in save_time:
             calc_time['comunNotOverlpRec'] = calc_time['comunNotOverlp'] - calc_time['bubble']
@@ -116,7 +121,8 @@ class TraceStepTimeDbParser(BaseParser):
         for step in save_time:
             step_time_data = [step['compute'], step['comunNotOverlp'], step['Overlp'], step['comun'], step['free'],
                               step['stage'], step['bubble'], step['comunNotOverlpRec'], step['prepare']]
-            reformat_time.append([step['step'], ] + [convert_ns2us_float(data) for data in step_time_data])
+            reformat_time.append([step['deviceId'], step['step']] + \
+                                 [convert_ns2us_float(data) for data in step_time_data])
         self.save_step_trace_db_data(reformat_time)
 
     def _init_step_range(self, deps_data: dict):
@@ -126,37 +132,75 @@ class TraceStepTimeDbParser(BaseParser):
         if not TorchDb().create_connect_db():
             print_warn_msg(f"Failed to connect to db file: {TorchDb().get_db_path()}")
             return
-        if TorchDb().judge_table_exist(DbConstant.TABLE_STRING_IDS):
-            sql = "select id, value from {}".format(DbConstant.TABLE_STRING_IDS)
-            string_id_data = TorchDb().fetch_all_data(sql)
-            self.string_id_map = {data[0]: data[1] for data in string_id_data}
+        if not TorchDb().judge_table_exist(DbConstant.TABLE_STRING_IDS):
+            self.logger.error(f"{DbConstant.TABLE_STRING_IDS} does not exist.")
+            return
         if TorchDb().judge_table_exist(DbConstant.TABLE_COMPUTE_TASK_INFO):
-            sql = "select name, globalTaskId from {}".format(DbConstant.TABLE_COMPUTE_TASK_INFO)
+            sql = """
+            SELECT 
+                STRING_IDS.value,
+                task.startNs,
+                task.endNs,
+                task.deviceId
+            FROM COMPUTE_TASK_INFO AS comp
+            JOIN TASK AS task
+                ON comp.globalTaskId = task.globalTaskId
+            JOIN STRING_IDS
+                ON comp.name = STRING_IDS.id
+            """
             compute_task_data = TorchDb().fetch_all_data(sql)
-            self.compute_task_info = {data[1]: data[0] for data in compute_task_data}
+            for item in compute_task_data:
+                self.compute_task_info[item[OpIndex.DEVICE_ID.value]].append(item)
         if TorchDb().judge_table_exist(DbConstant.TABLE_COMMUNICATION_OP):
-            sql = "select opName, startNs, endNs from {}".format(DbConstant.TABLE_COMMUNICATION_OP)
-            self.communication_op_info = TorchDb().fetch_all_data(sql)
+            sql = """
+            WITH comm_info AS (
+                SELECT (SELECT value FROM STRING_IDS WHERE id = c.opName) AS opName,
+                    startNs,
+                    endNs,
+                    connectionId
+                FROM COMMUNICATION_OP c
+            )
+            SELECT 
+                comm.opName,
+                comm.startNs,
+                comm.endNs,
+                t.deviceId
+            FROM comm_info comm
+            JOIN (
+                SELECT 
+                    connectionId,
+                    deviceId
+                FROM TASK
+                GROUP BY connectionId
+                HAVING COUNT(DISTINCT deviceId) = 1
+            ) t
+            ON comm.connectionId = t.connectionId
+            """
+            communication_op_data = TorchDb().fetch_all_data(sql)
+            for item in communication_op_data:
+                self.communication_op_info[item[OpIndex.DEVICE_ID.value]].append(item)
 
-    def _get_compute_data_in_step(self, step_info):
+    def _get_compute_data_in_step(self, step_info, device_id):
         compute_data = []
-        for task_id, task_info in step_info.get(Constant.TASK_INFO, {}).items():
-            if task_id in self.compute_task_info:
-                compute_data.append(
-                    RangeCaculator.generate_time_range(task_info.get("startNs"), task_info.get("endNs")))
+        for op_info in self.compute_task_info[device_id]:
+            op_start_time = op_info[OpIndex.START_NS.value]
+            if not (step_info.get(Constant.START_TS) <= op_start_time < step_info.get(Constant.END_TS)):
+                continue
+            time_range = RangeCaculator.generate_time_range(op_start_time, op_info[OpIndex.END_NS.value])
+            compute_data.append(time_range)
         return compute_data
 
-    def _get_communication_data_in_step(self, step_info):
+    def _get_communication_data_in_step(self, step_info, device_id):
         communication_data = []
         bubble_data = []
-        for op_info in self.communication_op_info:
-            op_start_time = op_info[CommunicationOpIndex.START_NS.value]
+        for op_info in self.communication_op_info[device_id]:
+            op_start_time = op_info[OpIndex.START_NS.value]
             if not (step_info.get(Constant.START_TS) <= op_start_time < step_info.get(Constant.END_TS)):
                 continue
             time_range = RangeCaculator.generate_time_range(
-                op_start_time, op_info[CommunicationOpIndex.END_NS.value], class_range=CommunicationTimeRange)
+                op_start_time, op_info[OpIndex.END_NS.value], class_range=CommunicationTimeRange)
             communication_data.append(time_range)
-            op_name = self.string_id_map.get(op_info[CommunicationOpIndex.OP_NAME.value], '')
+            op_name = op_info[OpIndex.OP_NAME.value]
             if op_name.startswith('hcom_receive'):
                 bubble_data.append(time_range)
         return communication_data, bubble_data
