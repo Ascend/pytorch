@@ -27,7 +27,7 @@ namespace c10d_npu {
     static c10::IValue version_key = "version";
     // Update whenever changing contents or formatting of the dump
     // (minor when adding fields, major when changing existing fields)
-    static c10::IValue version_val = "2.1";
+    static c10::IValue version_val = "2.4";
     static c10::IValue pg_config_key = "pg_config";
     static c10::IValue pg_status_key = "pg_status";
     static c10::IValue record_id_key = "record_id";
