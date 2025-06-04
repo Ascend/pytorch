@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
+#include "torch_npu/csrc/profiler/combined_traceback.h"
 #include "torch_npu/csrc/npu/memory_snapshot.h"
 
 using torch::jit::Pickler;
@@ -20,7 +21,11 @@ std::shared_ptr<c10::GatheredContext> gather()
 
 std::shared_ptr<c10::GatheredContext> gather_with_cpp()
 {
+#if defined(__x86_64__)
     return torch::CapturedTraceback::gather(true, true, true);
+#else
+    return torch_npu::CapturedTraceback::gather(true, true, true);
+#endif
 }
 
 static void checkOptionIn(const std::string& option,
@@ -51,7 +56,11 @@ void _record_memory_history(c10::optional<std::string> enabled,
     if (enabled && stacks == "all") {
         recorder = gather_with_cpp;
         // warm up C++ stack unwinding
+#if defined(__x86_64__)
         torch::unwind::unwind();
+#else
+        torch_npu::unwind::unwind();
+#endif
     }
     max_entries = (enabled && *enabled == "all") ? max_entries : 1;
     auto when = c10_npu::NPUCachingAllocator::RecordContext::NEVER;

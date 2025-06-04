@@ -47,6 +47,8 @@
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h"
 #include "torch_npu/csrc/aten/common/from_blob.h"
+#include "torch_npu/csrc/profiler/combined_traceback.h"
+#include "torch_npu/csrc/profiler/python/combined_traceback.h"
 
 struct NPUDeviceProp {
     std::string name;
@@ -969,9 +971,15 @@ PyObject* THNPModule_resetPeakMemoryStats(PyObject *_unused, PyObject *arg)
     Py_RETURN_NONE;
 }
 
-torch::CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredContext>& x)
+#if defined(__x86_64__)
+    using CapturedTraceback = torch::CapturedTraceback;
+#elif defined(__aarch64__)
+    using CapturedTraceback = torch_npu::CapturedTraceback;
+#endif
+
+CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredContext>& x)
 {
-    if (torch::CapturedTraceback* sc = dynamic_cast<torch::CapturedTraceback*>(x.get())) {
+    if (CapturedTraceback* sc = dynamic_cast<CapturedTraceback*>(x.get())) {
         return sc;
     }
     TORCH_CHECK(false, "attempting to gather stack context from the wrong StackContext type.", OPS_ERROR(ErrCode::NOT_FOUND));
@@ -1006,7 +1014,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
     py::str frames_s = "frames";
 
     py::list empty_frames;
-    std::vector<torch::CapturedTraceback*> to_gather_frames;
+    std::vector<CapturedTraceback*> to_gather_frames;
     std::vector<py::dict> to_gather_dest;
 
     auto add_frame_key = [&](const py::dict& d, const std::shared_ptr<c10::GatheredContext>& ctx) {
@@ -1137,7 +1145,11 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
     result["segments"] = segments;
     result["device_traces"] = traces;
 
+#if defined(__x86_64__)
     auto frames = torch::py_symbolize(to_gather_frames);
+#else
+    auto frames = torch_npu::py_symbolize(to_gather_frames);
+#endif
     for (auto i : c10::irange(frames.size())) {
         to_gather_dest.at(i)[frames_s] = frames.at(i);
     }
