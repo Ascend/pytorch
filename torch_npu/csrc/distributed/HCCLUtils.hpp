@@ -139,7 +139,7 @@ protected:
 
 class TORCH_API DebugInfoWriter {
 public:
-    virtual ~DebugInfoWriter();
+    virtual ~DebugInfoWriter() = default;
     virtual void write(const std::string &hcclTrace);
     static DebugInfoWriter &getWriter(int rank);
     static void registerWriter(std::unique_ptr<DebugInfoWriter> writer);
