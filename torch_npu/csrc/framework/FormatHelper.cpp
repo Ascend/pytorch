@@ -131,7 +131,7 @@ FormatShape FormatHelper::GetStorageSizes(const torch_npu::NPUStorageDesc &desc)
 
 bool FormatHelper::IsOpInputBaseFormat(const at::Tensor &tensor)
 {
-    if (!torch_npu::utils::is_npu(tensor)) {
+    if (!torch_npu::utils::is_npu(tensor) || (typeid(*tensor.storage().unsafeGetStorageImpl()) != typeid(torch_npu::NPUStorageImpl))) {
         return true;
     }
     const auto format = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).npu_format_;
