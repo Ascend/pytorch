@@ -13,14 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FILTER_COL_LIST = ["Device_id"]
-
 __all__ = []
 
 
 class CommonBean:
     def __init__(self, data: dict):
-        for col in FILTER_COL_LIST:
-            if col in data:
-                data.pop(col)
         self._data = data

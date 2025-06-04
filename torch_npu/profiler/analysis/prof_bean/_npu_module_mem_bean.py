@@ -5,7 +5,7 @@ __all__ = []
 
 
 class NpuModuleMemoryBean(CommonBean):
-    SHOW_HEADERS = ["Component", "Timestamp(us)", "Total Reserved(MB)", "Device"]
+    SHOW_HEADERS = ["Device_id", "Component", "Timestamp(us)", "Total Reserved(MB)", "Device"]
 
     def __init__(self, data: dict):
         super().__init__(data)

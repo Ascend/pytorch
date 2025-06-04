@@ -10,6 +10,7 @@ class EventBean:
 
     def __init__(self, data: dict):
         self._origin_data = data
+        self.device_id = -1
 
     @property
     def ts(self) -> int:
