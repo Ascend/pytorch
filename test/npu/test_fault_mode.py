@@ -102,7 +102,7 @@ class TestMode(TestCase):
             torch.Generator(device="cuda")
 
     def test_not_supported_ops(self):
-        command = ['python', '-c', 'import torch; import torch_npu; torch.rand(1, 3, 3).npu().logit()']
+        command = ['python', '-c', 'import torch; import torch_npu; t = torch.rand(1, 3, 3).npu();t.fmax(t)']
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         message = process.stderr.read()
         process.stderr.close()
@@ -110,7 +110,7 @@ class TestMode(TestCase):
         process.terminate()
         process.wait()
         self.assertIn(
-            "CAUTION: The operator 'aten::logit' is not currently supported on the NPU backend and will fall back "
+            "CAUTION: The operator 'aten::fmax.out' is not currently supported on the NPU backend and will fall back "
             "to run on the CPU. This may have performance implications. (function npu_cpu_fallback)",
             message
         )
