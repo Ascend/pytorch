@@ -2699,6 +2699,9 @@
   "torch_npu.erase_stream": {
     "signature": "(tensor, stream)"
   },
+  "torch_npu.matmul_checksum": {
+    "signature": "(a, b, c)"
+  },
   "torch_npu.utils.FlopsCounter": {
     "signature": "()"
   },
