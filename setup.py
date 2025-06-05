@@ -622,6 +622,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 
+requirements = ['torch==2.7.1+cpu' if platform.machine() == 'x86_64' else 'torch==2.7.1']
 
 setup(
     name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
@@ -646,6 +647,7 @@ setup(
                 define_macros=[('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'), ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0')]
             ),
     ],
+    install_requires=requirements,
     extras_require={
     },
     package_data={
