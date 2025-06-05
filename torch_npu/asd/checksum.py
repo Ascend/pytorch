@@ -36,12 +36,16 @@ def _matmul_checksum(a, b, c):
     n = c.shape[-1]
 
     c_max, _ = torch.max(torch.abs(c), dim=-1)
+    c_mean = torch.mean(torch.abs(c), dim=-1)
     c_sum_accum_error = math.sqrt(n * (n + 1) * (2 * n + 1) / 48) * c_max * 2 ** (-t)
-    c_ele_round_error_accum = c_max * 2 ** (-8) * math.sqrt(n_b)
+    if torch.min(c_max / c_mean) > 5:
+        c_ele_round_error_accum = c_max * 2 ** (-8) * math.sqrt(n_b)
+    else:
+        c_ele_round_error_accum = c_mean * 2 ** (-8) * n_b
 
     b_max, _ = torch.max(torch.abs(b), dim=-1, keepdim=True)
     delta_1 = math.sqrt(n_b * (n_b + 1) * (2 * n_b + 1) / 48) * b_max * 2 ** (-t)
-    delta_4 = matmul(torch.abs(a), delta_1).squeeze()
+    delta_4 = matmul(torch.abs(a), delta_1).squeeze(-1)
     a_max, _ = torch.max(torch.abs(a), dim=-1)
     delta_2_3 = math.sqrt((m_b * (m_b + 1) * (m_b + 0.5) + 2 * m_b) / 24) * a_max * torch.max(b_max) * 2 ** (-t)
     error_total = (c_sum_accum_error + c_ele_round_error_accum + delta_2_3 + delta_4).to(torch.float)
