@@ -1537,17 +1537,12 @@ PyObject* THNPModule_npu_set_module_train_state(PyObject* _unused, PyObject* arg
 PyObject* THNPModule_npu_get_silent_check_version(PyObject* self, PyObject* noargs)
 {
     HANDLE_TH_ERRORS
-    if (c10_npu::opapi::IsExistAclnnSilentCheckV2()) {
-        // silent check v3
-        return PyLong_FromLong(3);
-    } else {
-        if (c10_npu::opapi::IsExistAclnnSilentCheck()) {
-            // silent check v2
-            return PyLong_FromLong(2);
-        }
-        // silent check v1
-        return PyLong_FromLong(1);
+    if (c10_npu::opapi::IsExistAclnnSilentCheck()) {
+        // silent check v2
+        return PyLong_FromLong(2);
     }
+    // silent check v1
+    return PyLong_FromLong(1);
     END_HANDLE_TH_ERRORS
 }
 

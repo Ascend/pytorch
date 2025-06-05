@@ -2,6 +2,7 @@ import os
 import stat
 import logging
 from logging.handlers import RotatingFileHandler
+from functools import wraps
 import uuid
 import time
 import glob
@@ -11,12 +12,13 @@ from torch.nn import Module
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
-from torch_npu.asd.asd import _silent_fault_detector_v2, _silent_fault_detector_v3
+from torch_npu.asd.asd import _silent_check_decorator, silent_check, _matmul_silent_check_decorator, matmul_check
 
 
 original_call = Module.__call__
 DEFAULT_FALGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
 DEFAULT_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP
+loggerSilent = logging.getLogger("torch_npu.silent_check")
 
 
 class PerfDumpState:
@@ -44,111 +46,6 @@ class PerfDumpState:
 
 perf_dump_state = PerfDumpState()
 perf_dump_enable = False
-IS_IN_BACKWARD = False
-loggerSilent = logging.getLogger("torch_npu.silent_check")
-
-
-def input_hook(idx, asd_flag):
-    def hook(grad):
-        global IS_IN_BACKWARD
-        loggerSilent.debug(f"input_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to False. idx is {idx}, flag is {asd_flag}")
-        IS_IN_BACKWARD = False
-        torch_npu._C._npu_set_call_state("forward")
-        if torch_npu._C._get_silent_check_version() == 3:
-            _silent_fault_detector_v3.silent_fault_check(idx, asd_flag, grad)
-        else:
-            _silent_fault_detector_v2.silent_fault_check(idx, asd_flag, grad)
-        return
-    return hook
-
-
-def output_hook(grad):
-    global IS_IN_BACKWARD
-    loggerSilent.debug(f"output_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to True.")
-    IS_IN_BACKWARD = True
-    torch_npu._C._npu_set_call_state("backward")
-    return grad
-
-
-def _is_inner_module(module):
-    return len(module._modules) == 0
-
-
-class SilentCheckState:
-    def __init__(self):
-        self.init_param()
-        self.init_marks = {}
-        self.weight_hook_handles = {}
-        self.last_weight_hook_handles = {}
-        self.dtype_support = True
-
-    def init_param(self):
-        self.first_forward = True
-        self.input_hook_flag = False
-        self.is_training = False
-        self.first_module_id = ""
-        self.first_weight = None
-        self.first_weight_id = None
-        self.last_weight = None
-        self.last_weight_id = None
-
-    def init_module_info(self, module_id, training):
-        self.first_module_id = module_id
-        self.first_forward = False
-        self.is_training = training
-        if self.is_training:
-            torch_npu._C._npu_set_module_train_state("train")
-        else:
-            torch_npu._C._npu_set_module_train_state("infer")
-
-    def check_tensor_dtype(self, tensor):
-        if not self.dtype_support:
-            return
-        if isinstance(tensor, torch.Tensor) and tensor.requires_grad and tensor.dtype == torch.float16:
-            self.dtype_support = False
-
-    def check_dtype(self, module, *args):
-        for x in args:
-            self.check_tensor_dtype(x)
-        for param_name, param in module._parameters.items():
-            self.check_tensor_dtype(param)
-
-    def search_first_weight(self, module):
-        # Search the first weight
-        if not self.init_marks.get(self.first_module_id, False) and self.first_weight is None:
-            for param_name, param in module._parameters.items():
-                if isinstance(param, torch.Tensor) and param.requires_grad:
-                    self.first_weight = param
-                    self.first_weight_id = id(param)
-                    break
-
-    def search_last_weight(self, module):
-        # Search the last weight (only in inner module)
-        if not self.init_marks.get(self.first_module_id, False) and _is_inner_module(module):
-            for param_name, param in module._parameters.items():
-                if isinstance(param, torch.Tensor) and param.requires_grad:
-                    self.last_weight = param
-                    self.last_weight_id = id(param)
-
-    def init_all_hook(self, asd_flag):
-        if self.is_training:
-            if self.last_weight is not None and self.first_weight is not None:
-                # Otherwise, there is only one weight in the outer module
-                if self.first_weight_id != self.last_weight_id:
-                    loggerSilent.debug(f"init_all_hook: module init, first_module_id is {self.first_module_id}.")
-                    if self.last_weight_hook_handles.get(self.first_module_id, None) is None:
-                        last_weight_handle = self.last_weight.register_hook(output_hook)
-                        self.last_weight_hook_handles[self.first_module_id] = last_weight_handle
-                    if self.weight_hook_handles.get(self.first_module_id, None) is None:
-                        first_weight_handle = self.first_weight.register_hook(input_hook(self.first_module_id, asd_flag))
-                        self.weight_hook_handles[self.first_module_id] = first_weight_handle
-                else:
-                    loggerSilent.debug(f"init_all_hook: module only have one weight, first_module_id is {self.first_module_id}.")
-            self.init_marks[self.first_module_id] = True
-
-
-silent_check = SilentCheckState()
-asd_enable = 0
 
 
 class CustomRotatingFileHandler(RotatingFileHandler):
@@ -222,90 +119,65 @@ def _setup_logger(name, path):
     logger.propagate = False
 
 
-def _custom_call(self, *args, **kwargs):    
-    global perf_dump_enable
-    global perf_dump_state
+def _perf_dump_decorator(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        global perf_dump_enable
+        global perf_dump_state
 
-    global asd_enable
-    global silent_check
-    global IS_IN_BACKWARD
+        if not torch.npu.is_initialized():
+            return func(self, *args, **kwargs)
 
-    if not torch.npu.is_initialized():
-        return original_call(self, *args, **kwargs)
-
-    if perf_dump_enable:
-        if not perf_dump_state.has_log:
-            perf_dump_path = _get_perf_dump_path()
-            pid = os.getpid()
-            device_id = torch_npu.npu.current_device()
-            delete_pref_pt_logs(perf_dump_path, device_id)
-            perf_dump_state.local_uuid = uuid.uuid4()
-            perf_dump_state.uuid = _get_uuid()
-            perf_dump_state.log_file_name = os.path.join(perf_dump_path, f"perf_pt_{pid}_{device_id}.log")
-            _setup_logger("perf_logger", perf_dump_state.log_file_name)
-            logger = logging.getLogger("perf_logger")
-            logger.info(f"[LOCALUUID]:{perf_dump_state.local_uuid}")
-            logger.info("[FRAMEWORK]:PyTorch")
-            logger.info(f"[UUID]:{perf_dump_state.uuid}")
-            os.chmod(perf_dump_state.log_file_name, DEFAULT_PERMISSION)
-            perf_dump_state.has_log = True
-
-        if perf_dump_state.is_outer_call:
-            if not perf_dump_state.is_child_module(self) and not _is_loss_module(self):
-                current_time = int(time.time() * 1000)
+        if perf_dump_enable:
+            if not perf_dump_state.has_log:
+                perf_dump_path = _get_perf_dump_path()
+                pid = os.getpid()
+                device_id = torch_npu.npu.current_device()
+                delete_pref_pt_logs(perf_dump_path, device_id)
+                perf_dump_state.local_uuid = uuid.uuid4()
+                perf_dump_state.uuid = _get_uuid()
+                perf_dump_state.log_file_name = os.path.join(perf_dump_path, f"perf_pt_{pid}_{device_id}.log")
+                _setup_logger("perf_logger", perf_dump_state.log_file_name)
                 logger = logging.getLogger("perf_logger")
-                if perf_dump_state.last_time is not None:
-                    logger.info(f"[STEPTIME]:{perf_dump_state.last_time},{current_time}")
-                perf_dump_state.last_time = current_time
-                perf_dump_state.add_module_dict(self)
-            perf_dump_state.is_outer_call = False
-            self.visited = True
+                logger.info(f"[LOCALUUID]:{perf_dump_state.local_uuid}")
+                logger.info("[FRAMEWORK]:PyTorch")
+                logger.info(f"[UUID]:{perf_dump_state.uuid}")
+                os.chmod(perf_dump_state.log_file_name, DEFAULT_PERMISSION)
+                perf_dump_state.has_log = True
 
-    if asd_enable and not IS_IN_BACKWARD:
-        if silent_check.first_forward:
-            silent_check.init_module_info(id(self), self.training)
-            self.outer = True
+            if perf_dump_state.is_outer_call:
+                if not perf_dump_state.is_child_module(self) and not _is_loss_module(self):
+                    current_time = int(time.time() * 1000)
+                    logger = logging.getLogger("perf_logger")
+                    if perf_dump_state.last_time is not None:
+                        logger.info(f"[STEPTIME]:{perf_dump_state.last_time},{current_time}")
+                    perf_dump_state.last_time = current_time
+                    perf_dump_state.add_module_dict(self)
+                perf_dump_state.is_outer_call = False
+                self.visited = True
 
-        if silent_check.is_training and not silent_check.init_marks.get(silent_check.first_module_id, False):
-            silent_check.check_dtype(self, *args)
-            if not silent_check.dtype_support:
-                for value in silent_check.weight_hook_handles.values():
-                    if value is not None:
-                        value.remove()
-                for value in silent_check.last_weight_hook_handles.values():
-                    if value is not None:
-                        value.remove()
-                asd_enable = 0
-                warnings.warn(f"Warning: Module has unsupported dtype tensor, silent check will be closed.")
+        tmp = func(self, *args, **kwargs)
 
-    tmp = original_call(self, *args, **kwargs)
+        if perf_dump_enable:
+            if hasattr(self, "visited") and self.visited:
+                perf_dump_state.is_outer_call = True
+                self.visited = False
 
-    if asd_enable and silent_check.is_training and not IS_IN_BACKWARD:
-        # Search the first weight
-        silent_check.search_first_weight(self)
-
-        # Search the last weight (only in inner module)
-        silent_check.search_last_weight(self)
-
-    if perf_dump_enable:
-        if hasattr(self, "visited") and self.visited:
-            perf_dump_state.is_outer_call = True
-            self.visited = False
-
-    if asd_enable and not IS_IN_BACKWARD:
-        if hasattr(self, "outer") and self.outer:
-            silent_check.init_all_hook(asd_enable)
-            silent_check.init_param()
-            self.outer = False
-
-    return tmp
+        return tmp
+    return wrapper
 
 
-def _parse_perf_config():
-    perf_dump_config = os.getenv("PERF_DUMP_CONFIG")
+@_perf_dump_decorator
+@_silent_check_decorator
+@_matmul_silent_check_decorator
+def _custom_call(self, *args, **kwargs):
+    return original_call(self, *args, **kwargs)
+
+
+def _parse_config(config):
     config_dict = {}
-    if perf_dump_config:
-        config_items = perf_dump_config.split(',')
+    if config:
+        config_items = config.split(',')
         for item in config_items:
             key_value = item.split(':')
             if len(key_value) == 2:
@@ -314,27 +186,96 @@ def _parse_perf_config():
     return config_dict
 
 
+def _prase_asd_config(asd_config):
+    # checksum
+    with_checksum_str = asd_config.get("with_checksum", "false")
+    if with_checksum_str not in ["true", "false"]:
+        raise ValueError("NPU_ASD_CONFIG-with_checksum should be true or false. For details, 0 as `with checksum closed`, 1 as `with checksum opened`." + pta_error(ErrCode.VALUE))
+    with_checksum = with_checksum_str == "true"
+    matmul_check.set_with_checksum(with_checksum)
+
+    # cooldown
+    cooldown = asd_config.get("cooldown", "5")
+    if cooldown.isdigit() and cooldown != "0":
+        matmul_check.set_cooldown(int(cooldown))
+    else:
+        warnings.warn(f"Warning: NPU_ASD_CONFIG-cooldown is invalid, use the default value of 5.")
+
+    # strikes_sum
+    strikes_sum = asd_config.get("strikes_sum", "3")
+    if strikes_sum.isdigit() and strikes_sum != "0":
+        matmul_check.set_strikes_num(int(strikes_sum))
+    else:
+        warnings.warn(f"Warning: NPU_ASD_CONFIG-strikes_sum is invalid, use the default value of 3.")
+
+    # strikes_window
+    strikes_window = asd_config.get("strikes_window", "480")
+    if strikes_window.isdigit() and strikes_window != "0":
+        matmul_check.set_strikes_window(int(strikes_window))
+    else:
+        warnings.warn(f"Warning: NPU_ASD_CONFIG-strikes_window is invalid, use the default value of 480.")
+
+    # checksum_cooldown
+    checksum_cooldown = asd_config.get("checksum_cooldown", "180")
+    if checksum_cooldown.isdigit() and checksum_cooldown != "0":
+        matmul_check.set_checksum_cooldown(int(checksum_cooldown))
+    else:
+        warnings.warn(f"Warning: NPU_ASD_CONFIG-checksum_cooldown is invalid, use the default value of 180.")
+
+    # upper_thresh1
+    upper_thresh1 = asd_config.get("upper_thresh1", "1000000")
+    if upper_thresh1.isdigit() and int(upper_thresh1) >= 3:
+        matmul_check.set_upper_thresh1(int(upper_thresh1))
+    else:
+        warnings.warn(f"Warning: NPU_ASD_CONFIG-upper_thresh1 is invalid, use the default value of 1000000.")
+
+    # upper_thresh2
+    upper_thresh2 = asd_config.get("upper_thresh2", "100")
+    if upper_thresh2.isdigit() and int(upper_thresh2) >= 3:
+        matmul_check.set_upper_thresh2(int(upper_thresh2))
+    else:
+        warnings.warn(f"Warning: NPU_ASD_CONFIG-upper_thresh2 is invalid, use the default value of 100.")
+
+
 def add_perf_dump_patch():
     global perf_dump_enable
-    global asd_enable
 
-    config_dict = _parse_perf_config()
+    perf_dump_config = os.getenv("PERF_DUMP_CONFIG")
+    config_dict = _parse_config(perf_dump_config)
     enable_value = config_dict.get("enable", "false")
     perf_dump_enable = enable_value.lower() == "true"
 
-    asd_value = os.getenv("NPU_ASD_ENABLE", "0")
-    if asd_value not in ["0", "1", "2", "3"]:
-        raise ValueError("NPU_ASD_ENABLE should be 0, 1, 2 or 3. For details, 0 as `ASD closed`, "
-                         "1 as `ASD opened, print error logs` "
-                         "2 as `ASD opened, print error logs and raise exception`, "
-                         "3 as `ASD opened, print debug logs and raise exception`" + pta_error(ErrCode.VALUE))
-    asd_enable = int(asd_value)
-    if asd_enable:
+    asd_enable = 0
+    asd_config = os.getenv("NPU_ASD_CONFIG", None)
+    if asd_config is not None:
+        asd_config_dict = _parse_config(asd_config)
+        asd_config_enable = asd_config_dict.get("enable", "false")
+        if asd_config_enable not in ["true", "false"]:
+            raise ValueError("NPU_ASD_CONFIG-enable should be true or false. For details, false as `ASD closed`, true as `ASD opened`." + pta_error(ErrCode.VALUE))
+        if asd_config_enable == "true":
+            warnings.warn(f'Silent data corruption check may take up 1.5GB device memory, please make sure there are enough free space in device')
+            _prase_asd_config(asd_config_dict)
+            asd_enable = 1
+            matmul_check.set_matmul_hook_enable(asd_enable)
+            loggerSilent.info(f"Silent check 3.0 version will be enabled. The checksum enable is {matmul_check.get_with_checksum()}, "
+                              f"cooldown is {matmul_check.get_cooldown()}, strikes_num is {matmul_check.get_strikes_num()}, strikes_window is {matmul_check.get_strikes_window()}, "
+                              f"checksum_cooldown is {matmul_check.get_checksum_cooldown()}, upper_thresh1 is {matmul_check.get_upper_thresh1()}, upper_thresh2 is {matmul_check.get_upper_thresh2()}.")
+    else:
+        asd_value = os.getenv("NPU_ASD_ENABLE", "0")
         if torch_npu._C._get_silent_check_version() == 1:
-            warnings.warn(f"Warning: CANN version lower than 8.0.RC3 and currently does not support silent check 2.0 version or later. It will switch to 1.0 version.")
-            asd_enable = 0
+            if asd_value == "1":
+                warnings.warn(f"Warning: CANN version lower than 8.0.RC3 and currently does not support silent check 2.0 version or later. It will switch to 1.0 version.")
         else:
-            loggerSilent.debug(f"Silent check 3.0 version will be enabled. The asd_detect is {asd_enable}")
+            if asd_value not in ["0", "1", "2", "3"]:
+                raise ValueError("NPU_ASD_ENABLE should be 0, 1, 2 or 3. For details, 0 as `ASD closed`, "
+                                "1 as `ASD opened, print error logs`, "
+                                "2 as `ASD opened, print error logs and raise exception`, "
+                                "3 as `ASD opened, print debug logs and raise exception`" + pta_error(ErrCode.VALUE))
+            asd_enable = int(asd_value)
+            if asd_enable:
+                warnings.warn(f"Warning: Silent check 2.0 version will be enabled. The asd_detect is {asd_enable}. It is recommended to enable silent check v3 using the NPU_ASD_CONFIG.\n"
+                              "Silent data corruption check may take up 1.5GB device memory, please make sure there are enough free space in device. ")
+                silent_check.set_check_enable(asd_enable)
 
     if perf_dump_enable or asd_enable:
         Module.__call__ = _custom_call
