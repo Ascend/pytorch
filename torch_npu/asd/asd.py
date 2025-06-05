@@ -303,8 +303,6 @@ class _MatmulSilentCheck:
         self.registered_modules = []
         self.matmul_hook_enable = 0
         self.matmul_with_bf16 = False
-        self.check_stream = None
-        self.check_event = None
         self.statistic_value = None
         self.is_outer_call = True
         # link to checksum
@@ -324,12 +322,13 @@ class _MatmulSilentCheck:
             daemon=True
         )
         self.lock = threading.Lock()
-        self.queue_len = 8192
+        self.queue_len = 1024
         self.statistic_cpu_value = None
         self.name_list = ["" for _ in range(self.queue_len)]
         self.head_index = 0
         self.tail_index = 0
         self.history_abnormal_list = []
+        self.last_tocpu_time = None
         # Parameter filtering
         self.filter_index = -1
         self.filter_interval = 3
@@ -404,13 +403,12 @@ class _MatmulSilentCheck:
         return self.upper_thresh2
     
     def init_stream(self):
-        if self.check_stream is None:
-            self.check_stream = torch_npu.npu.Stream()
-            self.check_event = torch_npu.npu.Event(enable_timing=False)
-            self.statistic_value = torch.tensor(0., device=torch_npu.npu.current_device())
+        if self.statistic_value is None:
+            self.statistic_value = torch.tensor(0., device=f"npu:{torch_npu.npu.current_device()}")
             self.checksum_state = 0
             self.statistic_cpu_value = torch.zeros((self.queue_len,), device='cpu', dtype=torch.float32).pin_memory()
             self.statistic_cpu_value.fill_(-1)
+            self.last_tocpu_time = time.time()
         if self.store is None:
             if torch.distributed.is_initialized():
                 self.store = torch.distributed.distributed_c10d._get_default_store()
@@ -449,22 +447,17 @@ class _MatmulSilentCheck:
             return
 
         if self.matmul_hook_enable >= 1:
-            default_stream = torch_npu.npu.current_stream()
-            with torch_npu.npu.stream(self.check_stream):
-                with torch.no_grad():
-                    self.check_stream.wait_stream(default_stream)
-                    self.statistic_value.fill_(torch.pow(torch.norm(grad, float('inf')), 2).detach().float())
+            with torch.no_grad():
+                self.statistic_value.fill_(torch.pow(torch.norm(grad, float('inf')), 2).detach().float())
 
-                    #Asynchronously copy the value to host
-                    self.lock.acquire()
-                    self.statistic_cpu_value[self.tail_index].copy_(self.statistic_value.data, non_blocking=True)
-                    self.name_list[self.tail_index] = name
-                    self.tail_index = (self.tail_index + 1) % self.queue_len
-                    self.lock.release()
-                    self.check_event.record(self.check_stream)
-            if self.tail_index == self.head_index:
+                #Asynchronously copy the value to host
+                self.lock.acquire()
+                self.statistic_cpu_value[self.tail_index].copy_(self.statistic_value.data, non_blocking=True)
+                self.name_list[self.tail_index] = name
+                self.tail_index = (self.tail_index + 1) % self.queue_len
+                self.lock.release()
+            if self.tail_index == self.head_index or abs(time.time() - self.last_tocpu_time) >= 60:
                 # The queue is full, synchronize to empty the queue
-                self.check_event.synchronize()
                 torch_npu.npu.synchronize()
 
     def _async_detect(self):
@@ -481,6 +474,8 @@ class _MatmulSilentCheck:
             val = self.statistic_cpu_value[self.head_index].item()
             name = self.name_list[self.head_index]
             while val > 0 and name != "":
+                self.last_tocpu_time = time.time()
+                loggerSilent.debug(f"[silent data] name:{name}, val: {val}, pre_val: {self.check_stat[name]['pre_val']}, avg: {self.check_stat[name]['avg']}, step: {self.check_stat[name]['step']}, none_zero_step: {self.check_stat[name]['none_zero_step']}")
                 result, self.check_stat[name]['avg'], self.check_stat[name]['none_zero_step'] = self._silent_check(
                     val, self.check_stat[name]['pre_val'], self.check_stat[name]['avg'], self.check_stat[name]['none_zero_step'],
                     self.upper_thresh1, self.upper_thresh2
@@ -690,7 +685,7 @@ def _trigger_matmul_decorator(func):
     def wrapper(a, b, *args, **kwargs):
         global matmul_check
         result = func(a, b, *args, **kwargs)
-        if matmul_check.checksum_enable:
+        if matmul_check.checksum_enable and a.dtype == torch.bfloat16 and b.dtype == torch.bfloat16:
             checksum = torch_npu.matmul_checksum(a, b, result)
             matmul_check.checksum_result.logical_or_(checksum)
         return result
@@ -702,7 +697,7 @@ def _trigger_tensor_matmul_decorator(func):
     def wrapper(self, other):
         global matmul_check
         result = func(self, other)
-        if matmul_check.checksum_enable:
+        if matmul_check.checksum_enable and other.dtype == torch.bfloat16 and self.dtype == torch.bfloat16:
             checksum = torch_npu.matmul_checksum(self, other, result)
             matmul_check.checksum_result.logical_or_(checksum)
         return result
