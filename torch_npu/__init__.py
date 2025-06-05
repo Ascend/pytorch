@@ -1,4 +1,4 @@
-__all__ = ["erase_stream"]
+__all__ = ["erase_stream", "matmul_checksum"]
 
 import os
 import sys
@@ -87,6 +87,7 @@ from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.npu.utils import _erase_stream as erase_stream
 from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 from torch_npu.asd.asd import _asd_patch
+from torch_npu.asd.checksum import _matmul_checksum as matmul_checksum
 from torch_npu._C._distributed_c10d import ParallelStore
 from torch_npu.op_plugin.meta import _meta_registrations
 from torch_npu.version import __version__ as __version__
