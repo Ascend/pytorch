@@ -24,11 +24,5 @@ bool IsExistAclnnSilentCheck()
     return isExist;
 }
 
-bool IsExistAclnnSilentCheckV2()
-{
-    const static bool isExistV2 = false;
-    return isExistV2;
-}
-
 } // namespace opapi
 } // namespace c10_npu
