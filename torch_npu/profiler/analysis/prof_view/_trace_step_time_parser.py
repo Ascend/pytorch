@@ -147,6 +147,8 @@ class TraceStepTimeParser(BaseParser):
         print_time = []
         for device, device_time in save_time.items():
             for step, step_time in device_time.items():
+                if self.step_range and step is None:
+                    continue
                 step_time['comunNotOverlpRec'] = step_time['comunNotOverlp'] - step_time['bubble']
                 step_time['Overlp'] = step_time['comun'] - step_time['comunNotOverlp']
                 step_time['stage'] = self.get_e2e_time(step, step_dict.get(device, [])) - step_time['bubble']
@@ -155,7 +157,7 @@ class TraceStepTimeParser(BaseParser):
                     [device, step, step_time['compute'], step_time['comunNotOverlp'], step_time['Overlp'],
                      step_time['comun'], step_time['free'], step_time['stage'], step_time['bubble'],
                      step_time['comunNotOverlpRec'], step_time['prepare']])
-        print_time.sort(key=lambda x: (x[0], x[1]))
+        print_time.sort(key=lambda x: (x[0], int(x[1])))  # step is a string
         FileManager.create_csv_file(output_path, print_time, file_name, self.title)
 
     def run(self, deps_data: dict):
