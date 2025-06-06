@@ -328,7 +328,6 @@ class _MatmulSilentCheck:
         self.head_index = 0
         self.tail_index = 0
         self.history_abnormal_list = []
-        self.last_tocpu_time = None
         # Parameter filtering
         self.filter_index = -1
         self.filter_interval = 3
@@ -408,7 +407,6 @@ class _MatmulSilentCheck:
             self.checksum_state = 0
             self.statistic_cpu_value = torch.zeros((self.queue_len,), device='cpu', dtype=torch.float32).pin_memory()
             self.statistic_cpu_value.fill_(-1)
-            self.last_tocpu_time = time.time()
         if self.store is None:
             if torch.distributed.is_initialized():
                 self.store = torch.distributed.distributed_c10d._get_default_store()
@@ -456,7 +454,7 @@ class _MatmulSilentCheck:
                 self.name_list[self.tail_index] = name
                 self.tail_index = (self.tail_index + 1) % self.queue_len
                 self.lock.release()
-            if self.tail_index == self.head_index or abs(time.time() - self.last_tocpu_time) >= 60:
+            if self.tail_index == self.head_index:
                 # The queue is full, synchronize to empty the queue
                 torch_npu.npu.synchronize()
 
@@ -473,8 +471,7 @@ class _MatmulSilentCheck:
             self.lock.acquire()
             val = self.statistic_cpu_value[self.head_index].item()
             name = self.name_list[self.head_index]
-            while val > 0 and name != "":
-                self.last_tocpu_time = time.time()
+            while val >= 0 and name != "":
                 loggerSilent.debug(f"[silent data] name:{name}, val: {val}, pre_val: {self.check_stat[name]['pre_val']}, avg: {self.check_stat[name]['avg']}, step: {self.check_stat[name]['step']}, none_zero_step: {self.check_stat[name]['none_zero_step']}")
                 result, self.check_stat[name]['avg'], self.check_stat[name]['none_zero_step'] = self._silent_check(
                     val, self.check_stat[name]['pre_val'], self.check_stat[name]['avg'], self.check_stat[name]['none_zero_step'],
