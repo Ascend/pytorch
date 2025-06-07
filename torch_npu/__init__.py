@@ -252,6 +252,7 @@ def _npu_shutdown():
     torch_npu.distributed.distributed_c10d._destructor_process_group()
     torch_npu._C._npu_shutdown(success)
     _except_handler.handle_exception()
+    torch_npu.asd.asd.matmul_check._cleanup()
 
 
 # register npu shutdown hook on exit

@@ -201,12 +201,12 @@ def _prase_asd_config(asd_config):
     else:
         warnings.warn(f"Warning: NPU_ASD_CONFIG-cooldown is invalid, use the default value of 5.")
 
-    # strikes_sum
-    strikes_sum = asd_config.get("strikes_sum", "3")
-    if strikes_sum.isdigit() and strikes_sum != "0":
-        matmul_check.set_strikes_num(int(strikes_sum))
+    # strikes_num
+    strikes_num = asd_config.get("strikes_num", "3")
+    if strikes_num.isdigit() and strikes_num != "0":
+        matmul_check.set_strikes_num(int(strikes_num))
     else:
-        warnings.warn(f"Warning: NPU_ASD_CONFIG-strikes_sum is invalid, use the default value of 3.")
+        warnings.warn(f"Warning: NPU_ASD_CONFIG-strikes_num is invalid, use the default value of 3.")
 
     # strikes_window
     strikes_window = asd_config.get("strikes_window", "480")

@@ -125,6 +125,8 @@ class _SilentFaultDetectorV2:
         self.min_step = 100
 
     def silent_fault_check(self, idx, asd_flag, grad):
+        if grad is None:
+            return
         if grad.dtype != torch.bfloat16 and grad.dtype != torch.float32:
             return
 
@@ -459,7 +461,7 @@ class _MatmulSilentCheck:
                 torch_npu.npu.synchronize()
 
     def _async_detect(self):
-        while True:
+        while self.check_thread_running:
             if hasattr(torch, "npu") and torch.npu.is_initialized() and torch.distributed.is_initialized():
                 break
             time.sleep(10)
@@ -467,11 +469,11 @@ class _MatmulSilentCheck:
         if local_rank.isdigit():
             torch.npu.set_device(int(local_rank))
 
-        while True:
+        while self.check_thread_running:
             self.lock.acquire()
             val = self.statistic_cpu_value[self.head_index].item()
             name = self.name_list[self.head_index]
-            while val >= 0 and name != "":
+            while val != -1 and name != "":
                 loggerSilent.debug(f"[silent data] name:{name}, val: {val}, pre_val: {self.check_stat[name]['pre_val']}, avg: {self.check_stat[name]['avg']}, step: {self.check_stat[name]['step']}, none_zero_step: {self.check_stat[name]['none_zero_step']}")
                 result, self.check_stat[name]['avg'], self.check_stat[name]['none_zero_step'] = self._silent_check(
                     val, self.check_stat[name]['pre_val'], self.check_stat[name]['avg'], self.check_stat[name]['none_zero_step'],
@@ -483,7 +485,7 @@ class _MatmulSilentCheck:
                     new_abnormal = {'time_str': current_time,
                                     'time': time.time(),
                                     'name': name,
-                                    'rank': torch.distributed.get_rank(),
+                                    'rank': self.rank,
                                     'val': val,
                                     'pre_val': self.check_stat[name]['pre_val'],
                                     'avg': self.check_stat[name]['avg'],
@@ -510,7 +512,7 @@ class _MatmulSilentCheck:
         elif math.isnan(val) or math.isinf(val):
             return True, avg, none_zero_step
         else:
-            if none_zero_step != 0 and avg != 0:
+            if none_zero_step >= 10 and avg != 0:
                 thres = avg * alpha1 / (1 - 0.99 ** none_zero_step)
                 thres2 = avg * alpha2 / (1 - 0.99 ** none_zero_step)
             else:
@@ -525,12 +527,19 @@ class _MatmulSilentCheck:
                 return False, avg, none_zero_step
 
     def _abnormal_process(self, new_abnormal):
+        counting_abnormal_pos = []
         i = len(self.history_abnormal_list) - 1
         if i < 0:
             self._generate_event_log(new_abnormal)
             self.history_abnormal_list.append(new_abnormal)
+            if self.strikes_num == 1:
+                self._generate_warning_log(counting_abnormal_pos, new_abnormal)
+                new_abnormal['striked'] = True
+                if self.with_checksum:
+                    self.checksum_state = 1
+                    if not self.matmul_with_bf16:
+                        warnings.warn(f"Warning: Module has no supported dtype grad, checksum will not to be linked.")
             return
-        counting_abnormal_pos = []
         while i >= 0:
             old_abnormal = self.history_abnormal_list[i]
             old_time = old_abnormal['time']
@@ -538,6 +547,14 @@ class _MatmulSilentCheck:
             if old_abnormal['counted'] and abs(new_time - old_time) >= self.cooldown * 60:
                 # A new counted abnormal
                 self._generate_event_log(new_abnormal)
+                if self.strikes_num == 1:
+                    self._generate_warning_log(counting_abnormal_pos, new_abnormal)
+                    new_abnormal['striked'] = True
+                    if self.with_checksum:
+                        self.checksum_state = 1
+                        if not self.matmul_with_bf16:
+                            warnings.warn(f"Warning: Module has no supported dtype grad, checksum will not to be linked.")
+                    break
                 counting_abnormal_pos.append(i)
                 i -= 1
                 while i >= 0:
@@ -601,14 +618,14 @@ class _MatmulSilentCheck:
             self.store.set(f"rank_{self.rank}_warn_log", current_log + "\n" + warning_str if current_log != "" else warning_str)
 
     def _generate_silent_log(self):
-        warning_str = f"[Warning][Rank {torch.distributed.get_rank()}]: The result of Matmul checksum is abnormal!"
+        warning_str = f"[Warning][Rank {self.rank}]: The result of Matmul checksum is abnormal!"
         loggerSilent.warning(warning_str)
         if self.store is not None and self.rank is not None and self.rank != 0:
             current_log = self.store.get(f"rank_{self.rank}_warn_log").decode()
             self.store.set(f"rank_{self.rank}_warn_log", current_log + "\n" + warning_str if current_log != "" else warning_str)
 
     def _tcp_comm_checksum_state(self):
-        while True:
+        while self.checksum_state_thread_running:
             if hasattr(torch, "npu") and torch.npu.is_initialized() and torch.distributed.is_initialized() and self.store is not None:
                 break
             time.sleep(10)
@@ -621,7 +638,7 @@ class _MatmulSilentCheck:
         last_checksum_time = None
         if self.rank == 0:
             self.store.add('counter2', world_size)
-        while True:
+        while self.checksum_state_thread_running:
             if self.rank == 0:
                 for i in range(1, world_size):
                     msg = self.store.get(f"rank_{i}_warn_log").decode()
@@ -673,6 +690,15 @@ class _MatmulSilentCheck:
 
             time.sleep(10)
 
+    def _cleanup(self):
+        if self.check_thread_running:
+            self.check_thread_running = False
+            self.check_thread.join()
+
+        if self.checksum_state_thread_running:
+            self.checksum_state_thread_running = False
+            self.checksum_state_thread.join()
+
 
 matmul_check = _MatmulSilentCheck()
 
@@ -715,13 +741,13 @@ def _matmul_silent_check_decorator(func):
             self.matmul_check_outer = True
 
             if not matmul_check.check_thread_running:
-                matmul_check.check_thread.start()
                 matmul_check.check_thread_running = True
+                matmul_check.check_thread.start()
 
             # 2 for checksum
             if not matmul_check.checksum_state_thread_running:
-                matmul_check.checksum_state_thread.start()
                 matmul_check.checksum_state_thread_running = True
+                matmul_check.checksum_state_thread.start()
             if matmul_check.with_checksum and not matmul_check.matmul_trigger:
                 torch_npu.asd.checksum.matmul = original_matmul
                 torch.matmul = _trigger_matmul_decorator(original_matmul)
