@@ -267,10 +267,6 @@ public:
         std::vector<uint32_t> global_ranks_in_group;
 
         std::string group_id;
-
-        std::string master_addr;
-
-        uint32_t master_port;
     };
 
     // If you wish to create multiple process groups, each with a potentially
