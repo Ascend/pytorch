@@ -659,7 +659,7 @@ class _MatmulSilentCheck:
                 self.store.add('counter2', 0 - world_size)
             self.store.add('counter', 1)
 
-            while int(self.store.get('counter').decode()) < world_size:
+            while int(self.store.get('counter').decode()) < world_size and self.checksum_state_thread_running:
                 time.sleep(0.1)
 
             global_state = int(self.store.get('checksum_state').decode())
@@ -681,7 +681,7 @@ class _MatmulSilentCheck:
                 self.checksum_state = 0
             self.store.add('counter2', 1)
 
-            while int(self.store.get('counter2').decode()) < world_size:
+            while int(self.store.get('counter2').decode()) < world_size and self.checksum_state_thread_running:
                 time.sleep(0.1)
             
             if self.rank == 0:
