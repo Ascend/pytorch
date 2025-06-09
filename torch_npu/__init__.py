@@ -223,9 +223,6 @@ torch_npu._C._initExtension()
 
 def _new_process_group_hccl_helper(dist_backend_opts, pg_options):
     store = dist_backend_opts.store
-    store_tcp = store
-    while hasattr(store_tcp, 'underlying_store') and not hasattr(store_tcp, 'host'):
-        store_tcp = store_tcp.underlying_store
     group_rank = dist_backend_opts.group_rank
     group_size = dist_backend_opts.group_size
     if pg_options is None or not isinstance(pg_options, torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options):
@@ -234,9 +231,6 @@ def _new_process_group_hccl_helper(dist_backend_opts, pg_options):
     pg_options._timeout = dist_backend_opts.timeout
     pg_options.global_ranks_in_group = dist_backend_opts.global_ranks_in_group
     pg_options.group_id = dist_backend_opts.group_id
-    if (hasattr(store_tcp, 'host') and hasattr(store_tcp, 'port')):
-        pg_options.master_addr = store_tcp.host
-        pg_options.master_port = store_tcp.port
     return torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, pg_options)
 
 
