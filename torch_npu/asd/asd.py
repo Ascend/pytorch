@@ -402,6 +402,12 @@ class _MatmulSilentCheck:
 
     def get_upper_thresh2(self):
         return self.upper_thresh2
+
+    def set_grad_sample_interval(self, grad_sample_interval):
+        self.filter_interval = grad_sample_interval
+
+    def get_grad_sample_interval(self):
+        return self.filter_interval
     
     def init_stream(self):
         if self.statistic_value is None:
