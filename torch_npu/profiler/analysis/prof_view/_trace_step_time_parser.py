@@ -157,7 +157,11 @@ class TraceStepTimeParser(BaseParser):
                     [device, step, step_time['compute'], step_time['comunNotOverlp'], step_time['Overlp'],
                      step_time['comun'], step_time['free'], step_time['stage'], step_time['bubble'],
                      step_time['comunNotOverlpRec'], step_time['prepare']])
-        print_time.sort(key=lambda x: (x[0], int(x[1])))  # step is a string
+        if print_time:
+            if self.step_range:
+                print_time.sort(key=lambda x: (x[0], int(x[1])))  # step is a string
+            else:
+                print_time.sort(key=lambda x: x[0])  # step is None
         FileManager.create_csv_file(output_path, print_time, file_name, self.title)
 
     def run(self, deps_data: dict):
