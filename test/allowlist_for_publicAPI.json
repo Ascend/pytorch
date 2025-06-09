@@ -2875,7 +2875,8 @@
     "npu_nsa_select_attention_infer",
     "npu_transpose_batchmatmul",
     "npu_gather_sparse_index",
-    "npu_moe_distribute_combine_add_rms_norm"
+    "npu_moe_distribute_combine_add_rms_norm",
+    "npu_moe_eplb_update_expert"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
