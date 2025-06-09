@@ -236,6 +236,13 @@ def _prase_asd_config(asd_config):
     else:
         warnings.warn(f"Warning: NPU_ASD_CONFIG-upper_thresh2 is invalid, use the default value of 100.")
 
+    # grad_sample_interval
+    grad_sample_interval = asd_config.get("grad_sample_interval", "3")
+    if grad_sample_interval.isdigit() and grad_sample_interval != "0":
+        matmul_check.set_grad_sample_interval(int(grad_sample_interval))
+    else:
+        warnings.warn(f"Warning: NPU_ASD_CONFIG-grad_sample_interval is invalid, use the default value of 3.")
+
 
 def add_perf_dump_patch():
     global perf_dump_enable
@@ -259,7 +266,8 @@ def add_perf_dump_patch():
             matmul_check.set_matmul_hook_enable(asd_enable)
             loggerSilent.info(f"Silent check 3.0 version will be enabled. The checksum enable is {matmul_check.get_with_checksum()}, "
                               f"cooldown is {matmul_check.get_cooldown()}, strikes_num is {matmul_check.get_strikes_num()}, strikes_window is {matmul_check.get_strikes_window()}, "
-                              f"checksum_cooldown is {matmul_check.get_checksum_cooldown()}, upper_thresh1 is {matmul_check.get_upper_thresh1()}, upper_thresh2 is {matmul_check.get_upper_thresh2()}.")
+                              f"checksum_cooldown is {matmul_check.get_checksum_cooldown()}, upper_thresh1 is {matmul_check.get_upper_thresh1()}, "
+                              f"upper_thresh2 is {matmul_check.get_upper_thresh2()}. grad_sample_interval is {matmul_check.get_grad_sample_interval()}.")
     else:
         asd_value = os.getenv("NPU_ASD_ENABLE", "0")
         if torch_npu._C._get_silent_check_version() == 1:
