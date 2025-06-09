@@ -1071,6 +1071,13 @@ TORCH_API std::string dump_hccl_trace(
     bool includeStackTraces,
     bool onlyActive);
 
+// Dumps the HCCL comm traces and additional information about the Process
+// Group in JSON formatted string.
+// We don't include stack traces in JSON format as it is far too much data.
+TORCH_API std::string dump_hccl_trace_json(
+    bool includeCollectives,
+    bool onlyActive);
+
 // Gets a mutable reference to a global optional function.Heartbeat Monitor
 // will use this function to dump traces, if available. Inside fbcode, we
 // store a function here that uses an internal tool for process tracing

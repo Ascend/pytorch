@@ -433,6 +433,12 @@ std::string dump_hccl_trace(
         c10::nullopt, includeCollectives, includeStackTraces, onlyActive);
 }
 
+std::string dump_hccl_trace_json(bool includeCollectives, bool onlyActive)
+{
+    return HCCLTraceBuffer::get()->dump_json(
+        c10::nullopt, includeCollectives, onlyActive);
+}
+
 c10::optional<std::function<void(std::function<void(const std::string &)>)>> &get_cpp_trace_dumper()
 {
     static c10::optional<

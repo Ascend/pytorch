@@ -14,3 +14,6 @@
 [submodule "third_party/fmt"]
 	path = third_party/fmt
 	url = https://gitee.com/mirrors/fmt.git
+[submodule "third_party/nlohmann"]
+	path = third_party/nlohmann
+	url = https://gitee.com/mirrors/nlohmann-json.git
