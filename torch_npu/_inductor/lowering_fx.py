@@ -79,6 +79,7 @@ from torch.utils._sympy.functions import (
     Identity,
     ModularIndexing,
 )
+from .config import log
 
 
 aten = torch.ops.aten
@@ -467,8 +468,13 @@ def get_last_node(gm: torch.fx.GraphModule):
 
 def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode]):
     fx_call_inputs = []
-    for snode in snodes:
-        snode.node.data.traced_graph.last_node.name = snode.node.get_name()
+    try:
+        for snode in snodes:
+            snode.node.data.traced_graph.last_node.name = snode.node.get_name()
+    except Exception as e:
+        log.warning(f"Could not rebuild fx graph for {snodes}, reason: {e}")
+        return None, None, None, None
+
     if len(snodes) == 1:
         traced_graph = snodes[0].node.data.traced_graph
     else:

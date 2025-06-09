@@ -2,6 +2,7 @@ import torch
 from torch_npu.npu import device_count
 from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
 from torch_npu.utils._inductor import NPUDeviceOpOverrides
+from . import config as npu_config
 
 
 ## Override original inductor device overrides in torch_npu
@@ -153,7 +154,15 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
             }
         """
 
+        # Could not use OpCommand when debug_kernel, because we want to
+        # use torch::save, which will cause dead lock in child thread.
         launch_code = """
+            static inline void launchKernel(
+                    std::function<int()> launch_call,
+                    std::string&& kernel_name) {
+                launch_call();
+            }
+        """ if npu_config.aot_inductor.debug_kernel else """
             static inline void launchKernel(
                     std::function<int()> launch_call,
                     std::string&& kernel_name) {

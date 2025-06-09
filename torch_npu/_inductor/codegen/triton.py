@@ -572,7 +572,8 @@ class NPUIndexTritonKernel(TritonKernel):
             "numof_reduction_axis": self.numof_reduction_axis(),
             "split_axis_dtype": split_axis_dtype,
             "dual_reduction": self.numof_reduction_axis() > 1,
-            "traced_graph_hash": "TRACED_GRAPH_HASH"
+            "traced_graph_hash": "TRACED_GRAPH_HASH",
+            "traced_graph_dir": "TRACED_GRAPH_DIR",
             # "coordinate_descent_tuning" : True
 
         }

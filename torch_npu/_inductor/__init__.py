@@ -68,12 +68,12 @@ if os.environ.get("DISABLE_AOTI_PATCH", "0") != "1":
     patch_torch_for_aoti()
 
 
-if npu_config.check_accuracy:
+if npu_config.dump_fx_graph:
     from .codegen.ir_fx import _patch_npu_inductor_ir
 
     _patch_npu_inductor_ir()
 
-if npu_config.check_accuracy:
+if npu_config.dump_fx_graph:
     from .lowering_fx import _register_npu_inductor_fallbacks
 else:
     from .lowering import _register_npu_inductor_fallbacks

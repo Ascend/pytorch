@@ -20,7 +20,6 @@ from torch._inductor.codegen.simd import schedule_log, scheduler
 from torch._inductor.codegen.triton import (TritonScheduling, log, config)
 from torch._inductor.codegen.triton import (
     TritonScheduling,
-    log,
     config,
     schedule_log,
     get_fused_kernel_name,
@@ -52,6 +51,8 @@ from ..lowering_fx import (
     generate_fx_graph_code,
     dump_fx_graph_code
 )
+
+from ..config import log
 
 
 def flatten_groups(nums):
@@ -125,16 +126,19 @@ class NPUTritonScheduling(TritonScheduling):
             V.graph.removed_buffers |= kernel.removed_buffers
             V.graph.inplaced_to_remove |= kernel.inplaced_to_remove
 
-            if npu_config.check_accuracy:
+            traced_graph_hash = None
+            if npu_config.dump_fx_graph:
                 if not npu_config.traced_fx_graph_cache:
                     npu_config.traced_fx_graph_cache = os.path.join(os.getenv("TORCHINDUCTOR_CACHE_DIR"),
                                                                     'traced_fx_graph_cache')
                 os.makedirs(npu_config.traced_fx_graph_cache, exist_ok=True)
                 traced_graph, fx_call_args, fx_args, compile_kwargs = create_fx_from_snodes_by_traced_graph(nodes)
-                traced_graph_hash = code_hash(traced_graph.print_readable(print_output=False))
+                if traced_graph is None:
+                    log.warning(f"For nodes {nodes}, could not gen fx graph while dump-graph.")
+                else:
+                    traced_graph_hash = code_hash(traced_graph.print_readable(print_output=False))
 
-            kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash \
-                if npu_config.check_accuracy else None)
+            kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash)
 
             kernel.kernel_name = kernel_name
             kernel.code_hash = code_hash(src_code)
@@ -153,7 +157,7 @@ class NPUTritonScheduling(TritonScheduling):
         self.codegen_comment(node_schedule)
         final_kernel.call_kernel(final_kernel.kernel_name)
 
-        if npu_config.check_accuracy:
+        if npu_config.dump_fx_graph and traced_graph is not None:
             new_compile_kwargs = create_compile_kwargs(final_kernel, fx_call_args, fx_args)
             if new_compile_kwargs:
                 compile_kwargs |= new_compile_kwargs
@@ -161,7 +165,6 @@ class NPUTritonScheduling(TritonScheduling):
                 os.makedirs(fx_dump_path, exist_ok=True)
                 fx_code = generate_fx_graph_code(traced_graph.code, src_code, kernel_name, compile_kwargs)
                 dump_fx_graph_code(fx_code, fx_dump_path, traced_graph_hash)
-                os.environ[traced_graph_hash] = fx_dump_path
 
         if config.nan_asserts:
             final_kernel.codegen_nan_check()
@@ -198,12 +201,13 @@ class NPUTritonScheduling(TritonScheduling):
         wrapper = V.graph.wrapper_code
         if (src_code, traced_graph_hash) in wrapper.src_to_kernel:
             kernel_name = wrapper.src_to_kernel[(src_code, traced_graph_hash)]
-            if npu_config.check_accuracy:
+            if npu_config.dump_fx_graph:
                 src_code = src_code.replace(str(Placeholder.DESCRIPTIVE_NAME), kernel_name)
                 subs_name = kernel_name if config.triton.unique_kernel_names else "triton_"
                 src_code = src_code.replace(str(Placeholder.KERNEL_NAME), subs_name)
                 if traced_graph_hash:
                     src_code = src_code.replace('TRACED_GRAPH_HASH', traced_graph_hash)
+                    src_code = src_code.replace('TRACED_GRAPH_DIR', npu_config.traced_fx_graph_cache)
         else:
             fused_name = (
                 get_fused_kernel_name(node_schedule, config.triton.descriptive_names)
@@ -225,6 +229,7 @@ class NPUTritonScheduling(TritonScheduling):
             src_code = src_code.replace(str(Placeholder.KERNEL_NAME), subs_name)
             if traced_graph_hash:
                 src_code = src_code.replace('TRACED_GRAPH_HASH', traced_graph_hash)
+                src_code = src_code.replace('TRACED_GRAPH_DIR', npu_config.traced_fx_graph_cache)
 
             # TODO(voz): Ostensibly, we should not need this. But there are cases where C++ codegen does
             # not use BracesBuffer, so we have no good indicator of a C++ buffer atm.

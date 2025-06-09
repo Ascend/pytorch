@@ -24,10 +24,46 @@ num_vector_core = prop["num_aicore"]
 # unit byte 
 npu_block = 32
 
+
+# For debug
+class aot_inductor:
+    # If debug_kernel is set, codegen in python wrapper (output_code.py) and cpp wrapper (model.pt2)
+    # will be modified to dump fx graph and weights. Meanwhile, generate repro func in output_code.py. 
+    # Then, run aoti and output_code.py will dump tensor args before and after each triton kernel,
+    # which can be used to detect which kernel is incorrect.
+    debug_kernel = os.environ.get("AOTI_ASCEND_DEBUG_KERNEL", False)
+
+    # No need to set debug_kernel_in_run manually. It will be set in output_code.py
+    # by codegen if debug_kernel is set.
+    debug_kernel_in_run = False
+
+    # Path that to be used for dump weights in aoti to reproduce when debug_kernel is set.
+    repro_tensor_path = os.environ.get("AOTI_ASCEND_REPRO_TENSOR_PATH", "aoti_repro_tensors")
+
+    # Path that to be used for dump tensor args before and after triton kernel in aoti execute
+    # when debug_kernel is set.
+    dump_path_cpp = os.environ.get("AOTI_ASCEND_DUMP_PATH_CPP", "aoti_dump_cpp")
+
+    # Path that to be used for dump tensor args before and after triton kernel in output_code.py
+    # when debug_kernel_in_run is set.
+    dump_path_py = os.environ.get("AOTI_DUMP_PATH_PY", "aoti_dump_py")
+
+
 traced_fx_graph_cache = os.environ.get("INDUCTOR_ASCEND_FX_GRAPH_CACHE", None)
 check_accuracy = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY", False)
 auto_fallback = os.environ.get("INDUCTOR_ASCEND_AUTO_FALLBACK", True)
 fallback_warning = os.environ.get("INDUCTOR_ASCEND_FALLBACK_WARNING", False)
+
+# Trace fx graph when lowering and dump.
+dump_fx_graph = os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH", False) \
+                or check_accuracy \
+                or aot_inductor.debug_kernel
+# Specify kernel ids that to be force fallback to fx graph call.
+# Usage: `torch_npu._inductor.config.force_fallback_kernel_id = 'all' `
+#    or  `torch_npu._inductor.config.force_fallback_kernel_id = [1, 2, 10] `
+# (1) 'all' means try to fallback all kernel to fx graph call.
+# (2) [1, 2, 10] means try to fallback kernel like triton_xxx_1, triton_xxx_2 and triton_xxx_10
+force_fallback_kernel_id = []
 
 acc_comp_tol = {
     torch.float32: {'rtol': 1.3e-6, 'atol': 1e-5},

@@ -22,6 +22,7 @@ from torch._inductor.utils import DeferredLineBase
 from torch._inductor.virtualized import V
 from torch._inductor.utils import _align, ALIGN_BYTES
 
+from .. import config as npu_config
 from ..config import npu_block as NPU_ALIGN_BYTES
 
 if TYPE_CHECKING:
@@ -193,6 +194,8 @@ class CppWrapperNpu(CppWrapperCpu):
         self.device_codegen = get_device_op_overrides(self.device)
         super().__init__()
         self.grid_id = count()
+        self.visited_raii_handle = set()
+        self.visited_handle_for_kernel_id = dict()
 
     @staticmethod
     def create(
@@ -315,6 +318,8 @@ class CppWrapperNpu(CppWrapperCpu):
         )
         self.header.splice("#include <torch_npu/csrc/framework/OpCommand.h>")
         self.header.splice("#include <experiment/runtime/runtime/rt.h>")
+        if npu_config.aot_inductor.debug_kernel:
+            self.header.splice("#include <torch/torch.h>")
 
     def write_get_raw_stream(self, device_idx: int, graph=None) -> str:
         name = f"stream{device_idx}"
@@ -492,6 +497,59 @@ class CppWrapperNpu(CppWrapperCpu):
         self.used_cached_devices.add(device_str)
         return f"cached_torch_device_type_{device_str}, {device.index if device.index else 0}"
 
+    def write_wrapper_decl(self):
+        super().write_wrapper_decl()
+        with self.prefix.indent():
+            if not V.graph.aot_mode:
+                return
+            dump_path = npu_config.aot_inductor.dump_path_cpp
+            if npu_config.aot_inductor.debug_kernel:
+                self.prefix.splice(
+                    f"""
+                    auto dump_path = std::filesystem::current_path() / "{dump_path}";
+                    if (!std::filesystem::exists(dump_path)) {{
+                        std::filesystem::create_directory(dump_path);
+                    }}
+                    """
+                )
+
+                self.prefix.splice(
+                    """
+                    auto  tensor_handle_to_tensor_pointer = [](AtenTensorHandle handle) {
+                        return reinterpret_cast<at::Tensor*>(handle);
+                    };
+                    """
+                )
+
+    def generate_debug_str(self, args, kernel_name, kernel_id, mark):
+        if not npu_config.aot_inductor.debug_kernel:
+            return ""
+        if kernel_id not in self.visited_handle_for_kernel_id:
+            self.visited_handle_for_kernel_id[kernel_id] = set()
+        
+        def get_tensor_from_handle(h, t):
+            if h in self.visited_handle_for_kernel_id[kernel_id]:
+                return ""
+            self.visited_handle_for_kernel_id[kernel_id].add(h)
+            return f"        auto {t} = *tensor_handle_to_tensor_pointer({h});\n"
+        
+        # Only dump tensor args, e.g, ['buf2', '8L', '4L'] => ['buf2']
+        tensor_args = [arg for arg in args if not arg[0].isdigit()]
+
+        tensor_args_h = [f"{arg}_h" for arg in tensor_args]
+        tensor_args_t = [f"{arg}_t" for arg in tensor_args]
+        handle_tensor_str = "".join([
+            get_tensor_from_handle(h, t) for h, t in zip(tensor_args_h, tensor_args_t)
+        ])
+
+        dump_path = npu_config.aot_inductor.dump_path_cpp
+        return f"""
+        c10_npu::npuSynchronizeDevice();
+        \n{handle_tensor_str}
+        std::vector<at::Tensor> arg_{mark}{{{", ".join(tensor_args_t)}}};
+        torch::save(arg_{mark}, "{dump_path}/{kernel_id}_{kernel_name}_{mark}.pt");
+        """
+
     def generate_launch_call(
         self,
         call_args,
@@ -545,6 +603,12 @@ class CppWrapperNpu(CppWrapperCpu):
                             f"{device_ptr_type} {var_name} = reinterpret_cast<{device_ptr_type}>({arg}.data_ptr());"
                         )
                     )
+                    if npu_config.aot_inductor.debug_kernel:
+                        if arg not in self.visited_raii_handle:
+                            self.writeline(
+                                f"AtenTensorHandle {arg}_h = {arg}.get();"
+                            )
+                            self.visited_raii_handle.add(arg)
                     struct_data = f'void* {var_name} __attribute__((aligned(8)));'
                     arg_data = f'static_cast<void*>({var_name})'
 
@@ -587,6 +651,9 @@ class CppWrapperNpu(CppWrapperCpu):
         ):
             process_args(arg, arg_type, arg_signature)
 
+        debug_str_before_kernel = self.generate_debug_str(call_args, kernel_name, kernel_id, "before")
+        debug_str_after_kernel = self.generate_debug_str(call_args, kernel_name, kernel_id, "after")
+
         launch_str = f"""
     auto launch_call_{kernel_id} = [=]() {{
         int32_t grid_x = {grid_var}.grid_x;
@@ -618,7 +685,9 @@ class CppWrapperNpu(CppWrapperCpu):
         uint32_t block_num = grid_x * grid_y * grid_z;
         auto arg_ptr = static_cast<void*>(&kernel_args);
         auto arg_size = sizeof(kernel_args);
+        {debug_str_before_kernel}
         ret = rtKernelLaunch({kernel_val_name}, block_num, arg_ptr, arg_size, NULL, stream);
+        {debug_str_after_kernel}
         if (ret != RT_ERROR_NONE) return ret;
         return ret;
     }};

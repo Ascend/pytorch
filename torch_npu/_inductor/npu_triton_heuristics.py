@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import time
+from itertools import count
 from typing import Any, Callable, List, Optional
 import torch
 import triton
@@ -46,6 +47,8 @@ except ImportError:
     OutOfResources = None
     autograd_profiler = None
 
+from torch_npu.utils._error_code import ErrCode, pta_error
+
 from .codegen.split_tiling import SplitTiling
 from .utils import get_current_raw_stream
 from .codegen.tile_generator import TileGenerator
@@ -54,12 +57,13 @@ from .config import aggresive_autotune
 from .config import log
 from . import config as npu_config
 
+kernel_idx = count()
 
-# torch-261
+
 class NPUCachingAutotuner(CachingAutotuner):
     def __init__(
             self,
-            fn,
+            fn, 
             triton_meta,  # passed directly to triton
             configs,
             save_cache_hook,
@@ -76,6 +80,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                          size_hints, inductor_meta, custom_kernel, filename, reset_to_zero_arg_names)
 
         self.exceptions = []
+        self.fn_name = None
 
     def precompile(self, warm_cache_only=False):
         # xpu_graph changed TORCHINDUCTOR_CACHE_DIR.
@@ -498,9 +503,10 @@ class NPUCachingAutotuner(CachingAutotuner):
     def get_fx_graph_call(self, auto_fallback=False):
         kernel_name = self.inductor_meta.get("kernel_name", "triton_")
         traced_graph_hash = self.inductor_meta.get("traced_graph_hash")
-        dump_path = os.getenv(traced_graph_hash, None)
-        if not dump_path:
-            return None
+        dump_dir = self.inductor_meta.get("traced_hash_dir", "")
+        dump_path = os.path.join(dump_dir, traced_graph_hash)
+        if dump_dir == "" or not os.path.exists(dump_path):
+            return None, None, None, None
         sys.path.append(dump_path)
         fx_module = importlib.import_module(traced_graph_hash)
         sys.path.remove(dump_path)
@@ -532,18 +538,62 @@ class NPUCachingAutotuner(CachingAutotuner):
             return fx_graph_call(*fx_args)
 
         if auto_fallback:
-            return fallback_call, kernel_name
+            return fallback_call, kernel_name, None, None
         return fx_graph_call, kernel_name, dump_path, fx_module
 
     def data_dump(self, *args, dump_path=None):
         data_dump_path = os.path.join(dump_path, 'data.pth')
         torch.save(args, data_dump_path)
 
-    def check_accuracy(self, *args, launcher, grid, stream, **kwargs):
-        fx_call_and_kwargs = self.get_fx_graph_call()
-        if not fx_call_and_kwargs:
+    def get_fn_name(self):
+        if self.fn_name is not None:
+            return self.fn_name
+        try:
+            self.fn_name = self.fn.fn.__name__
+        except AttributeError:
+            self.fn_name = "unknown"
+        return self.fn_name
+
+    def fallback_to_fx(self, *args, launcher, grid_, stream, **kwargs):
+        """
+        Try to fallback kernel to fx graph call according to kernel id.
+        """
+        def should_fallback():
+            fallback_id = npu_config.force_fallback_kernel_id
+            if fallback_id != "all" and not isinstance(fallback_id, list):
+                raise RuntimeError("torch_npu._inductor.config.aot_inductor.force_fallback_kernel_id "
+                                   "should be set to 'all' or List, e.g, [1, 2, 10]." + pta_error(ErrCode.VALUE))
+        
+        if not should_fallback():
             return None
+        
+        fx_graph_call, _, _, fx_module = self.get_fx_graph_call()
+        if not fx_graph_call:
+            return None
+
+        call_outputs_indices = fx_module.call_args_mapping[fx_module.num_inputs:]
+        fx_args = []
+        for idx in fx_module.call_args_mapping:
+            arg = args[idx]
+            if isinstance(arg, torch.Tensor):
+                fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(
+                    arg)
+                fx_args.append(fx_arg)
+
+        fx_graph_call(*fx_args)
+        for actual, expected in zip([args[i] for i in call_outputs_indices], fx_args[fx_module.num_inputs:]):
+            if actual.dtype != expected.dtype:
+                expected = expected.to(actual.dtype)
+            actual.copy_(expected)
+        for arg in fx_args:
+            del arg
+        return True
+        
+
+    def check_accuracy(self, *args, launcher, grid, stream, **kwargs):
         fx_graph_call, kernel_name, dump_path, fx_module = self.get_fx_graph_call()
+        if not fx_graph_call:
+            return None
         call_outputs_indices = fx_module.call_args_mapping[fx_module.num_inputs:]
         self.data_dump(*args, dump_path=dump_path)
 
@@ -586,6 +636,28 @@ class NPUCachingAutotuner(CachingAutotuner):
         for arg in fx_args:
             del arg
         return True
+
+    def debug_kernel_in_run(self, *args, launcher, grid_, stream, **kwargs):
+        '''
+        Save tensors for kernel args and outputs before and after kernel execute.
+        These tensors can be load and compared with tensors dumped by aot-inductor cpp runtime.
+        '''
+        dump_path = npu_config.aot_inductor.dump_path_py
+        if not os.path.exists(dump_path):
+            os.makedirs(dump_path)
+
+        idx = next(kernel_idx)
+        fn_name = self.get_fn_name()
+        dump_args = [arg for arg in args if isinstance(arg, torch.Tensor)]
+        torch.npu.synchronize()
+        torch.save(dump_args, f"{dump_path}/{idx}_{fn_name}_before.pt")
+
+        result = super().run(*args, grid=grid_, stream=stream, **kwargs)
+
+        torch.npu.synchronize()
+        torch.save(dump_args, f"{dump_path}/{idx}_{fn_name}_after.pt")
+        return result
+
 
     def run(
             self, *args, grid, stream, benchmark_run=False, **kwargs
@@ -630,6 +702,15 @@ class NPUCachingAutotuner(CachingAutotuner):
         if npu_config.check_accuracy:
             if self.check_accuracy(*args, launcher=launcher, grid=grid, stream=stream, **kwargs):
                 return
+        elif npu_config.force_fallback_kernel_id:
+            fallback_result = self.fallback_to_fx(*args, launcher=launcher, grid_=grid, stream=stream, **kwargs)
+            if fallback_result is not None:
+                log.debug(f"fallback kernel {self.get_fn_name()} to fx graph call.")
+                return
+            else:
+                log.warning(f"kernel {self.get_fn_name()} could not fallback to fx.")
+        elif npu_config.aot_inductor.debug_kernel_in_run:
+            return self.debug_kernel_in_run(*args, launcher=launcher, grid_=grid, stream=stream, **kwargs)
 
         # it is faster than entering and exiting a context manager, even if the context
         # manager is a nullcontext.
