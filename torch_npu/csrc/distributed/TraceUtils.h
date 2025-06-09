@@ -15,6 +15,7 @@
 
 #include <sys/types.h>
 #include <cstdlib>
+#include <nlohmann/json.hpp>
 #include <fstream>
 #include <string>
 #include <system_error>
@@ -22,38 +23,46 @@
 
 namespace c10d_npu {
 
-    static c10::IValue entries_key = "entries";
-    static c10::IValue hccl_comm_key = "hccl_comm_state";
-    static c10::IValue version_key = "version";
-    // Update whenever changing contents or formatting of the dump
-    // (minor when adding fields, major when changing existing fields)
-    static c10::IValue version_val = "2.1";
-    static c10::IValue pg_config_key = "pg_config";
-    static c10::IValue pg_status_key = "pg_status";
-    static c10::IValue record_id_key = "record_id";
-    static c10::IValue pg_id_key = "pg_id";
-    static c10::IValue pg_name_key = "process_group";
-    static c10::IValue collective_seq_id_key = "collective_seq_id";
-    static c10::IValue p2p_seq_id_key = "p2p_seq_id";
-    static c10::IValue is_p2p_key = "is_p2p";
-    static c10::IValue op_id_key = "op_id";
-    static c10::IValue profiling_name_key = "profiling_name";
-    static c10::IValue input_sizes_key = "input_sizes";
-    static c10::IValue input_dtypes_key = "input_dtypes";
-    static c10::IValue output_sizes_key = "output_sizes";
-    static c10::IValue output_dtypes_key = "output_dtypes";
-    static c10::IValue time_created_key = "time_created_ns";
-    static c10::IValue duration_key = "duration_ms";
-    static c10::IValue timeout_key = "timeout_ms";
-    static c10::IValue frames_key = "frames";
-    static c10::IValue state_key = "state";
-    static c10::IValue line_key = "line";
-    static c10::IValue name_key = "name";
-    static c10::IValue filename_key = "filename";
-    static c10::IValue retired_key = "retired";
-    static c10::IValue time_discovered_started_key = "time_discovered_started_ns";
-    static c10::IValue time_discovered_completed_key =
-        "time_discovered_completed_ns";
+#define DEFINE_CONSTANT(name, value) \
+    static c10::IValue name = value;   \
+    static std::string name##_str = value;
+// Update whenever changing contents or formatting of the dump
+// (minor when adding fields, major when changing existing fields)
+// Also update both JSON and Pickle dumps to make use of the newly defined
+// field(s).
+DEFINE_CONSTANT(version_val, "2.4")
+DEFINE_CONSTANT(entries_key, "entries")
+DEFINE_CONSTANT(hccl_comm_key, "hccl_comm_state")
+DEFINE_CONSTANT(version_key, "version")
+DEFINE_CONSTANT(pg_config_key, "pg_config")
+DEFINE_CONSTANT(pg_status_key, "pg_status")
+DEFINE_CONSTANT(record_id_key, "record_id")
+DEFINE_CONSTANT(pg_id_key, "pg_id")
+DEFINE_CONSTANT(pg_name_key, "process_group")
+DEFINE_CONSTANT(collective_seq_id_key, "collective_seq_id")
+DEFINE_CONSTANT(p2p_seq_id_key, "p2p_seq_id")
+DEFINE_CONSTANT(is_p2p_key, "is_p2p")
+DEFINE_CONSTANT(op_id_key, "op_id")
+DEFINE_CONSTANT(profiling_name_key, "profiling_name")
+DEFINE_CONSTANT(input_sizes_key, "input_sizes")
+DEFINE_CONSTANT(input_dtypes_key, "input_dtypes")
+DEFINE_CONSTANT(output_sizes_key, "output_sizes")
+DEFINE_CONSTANT(output_dtypes_key, "output_dtypes")
+DEFINE_CONSTANT(time_created_key, "time_created_ns")
+DEFINE_CONSTANT(duration_key, "duration_ms")
+DEFINE_CONSTANT(timeout_key, "timeout_ms")
+DEFINE_CONSTANT(frames_key, "frames")
+DEFINE_CONSTANT(state_key, "state")
+DEFINE_CONSTANT(line_key, "line")
+DEFINE_CONSTANT(name_key, "name")
+DEFINE_CONSTANT(filename_key, "filename")
+DEFINE_CONSTANT(retired_key, "retired")
+DEFINE_CONSTANT(time_discovered_started_key, "time_discovered_started_ns")
+DEFINE_CONSTANT(time_discovered_completed_key, "time_discovered_completed_ns")
+DEFINE_CONSTANT(completed_state, "completed")
+DEFINE_CONSTANT(scheduled_state, "scheduled")
+DEFINE_CONSTANT(started_state, "started")
+#undef DEFINE_CONSTANT
 
     /* Trace Utils Related to TORCH_HCCL_DESYNC_DEBUG */
 
@@ -334,9 +343,9 @@ namespace c10d_npu {
             std::optional<c10::time_t> time_discovered_completed_;
 
             // size information for input/output tensors
-            c10::SmallVector<int, 4> input_dims_;
+            c10::SmallVector<int64_t, 4> input_dims_;
             std::vector<c10::ScalarType> input_dtypes_;
-            c10::SmallVector<int, 4> output_dims_;
+            c10::SmallVector<int64_t, 4> output_dims_;
             std::vector<c10::ScalarType> output_dtypes_;
             c10::SmallVector<int64_t, 8> sizes_; // flattened from inputs, outputs
             bool retired_ = false;               // is this work entry no longer in the workMetaList_?
@@ -398,14 +407,14 @@ namespace c10d_npu {
             for (const auto &input : inputs) {
                 c10::IntArrayRef sizes = input.sizes();
                 te.input_dtypes_.push_back(input.dtype().toScalarType());
-                te.input_dims_.push_back(sizes.size());
+                te.input_dims_.push_back(static_cast<int64_t>(sizes.size()));
                 te.sizes_.insert(te.sizes_.end(), sizes.begin(), sizes.end());
             }
 
             for (const auto &output : outputs) {
                 c10::IntArrayRef sizes = output.sizes();
                 te.output_dtypes_.push_back(output.dtype().toScalarType());
-                te.output_dims_.push_back(sizes.size());
+                te.output_dims_.push_back(static_cast<int64_t>(sizes.size()));
                 te.sizes_.insert(te.sizes_.end(), sizes.begin(), sizes.end());
             }
 
@@ -575,7 +584,7 @@ namespace c10d_npu {
                 }
 
                 auto it = e.sizes_.begin();
-                auto read_sizes = [&](const c10::SmallVector<int, 4> &dims) {
+                auto read_sizes = [&](const c10::SmallVector<int64_t, 4> &dims) {
                     auto sizes = new_list();
                     for (auto dim : dims) {
                         auto arg_sizes = new_list();
@@ -643,6 +652,19 @@ namespace c10d_npu {
             return pg_config;
         }
 
+        const std::map<std::string, std::map<std::string, std::string>> getPgConfigJson()
+        {
+            std::map<std::string, std::map<std::string, std::string>> result;
+            for (const auto& [pg_name, ranks] : pg_name_to_ranks_) {
+                auto pg_info = std::map<std::string, std::string>();
+                pg_info["name"] = std::get<0>(pg_name);
+                pg_info["desc"] = std::get<1>(pg_name);
+                pg_info["ranks"] = ranks_str(ranks);
+                result.emplace(std::get<0>(pg_name), pg_info);
+            }
+            return result;
+        }
+
         const c10::Dict<c10::IValue, c10::IValue> getPgStatus()
         {
             auto all_pg_status = new_dict();
@@ -654,6 +676,114 @@ namespace c10d_npu {
                 all_pg_status.insert(std::to_string(pg_id), pg_status);
             }
             return all_pg_status;
+        }
+
+        const std::map<std::string, std::map<std::string, std::string>> getPgStatusJson()
+        {
+            std::map<std::string, std::map<std::string, std::string>> result;
+            for (const auto& [pg_id, status] : all_pg_status_) {
+                auto pg_status = std::map<std::string, std::string>();
+                pg_status["last_enqueued_collective"] =
+                    std::to_string(status->lastEnqueuedSeq);
+                pg_status["last_started_collective"] =
+                    std::to_string(status->lastStartedSeq);
+                pg_status["last_completed_collective"] =
+                    std::to_string(status->lastCompletedSeq);
+                result[std::to_string(pg_id)] = pg_status;
+            }
+            return result;
+        }
+
+        std::string dump_json(
+            const c10::optional<std::unordered_map<
+                std::string,
+                std::unordered_map<std::string, std::string>>>& hcclDumpMap,
+            bool includeCollectives,
+            bool onlyActive)
+        {
+            using json = nlohmann::json;
+            json result;
+            result[version_key_str] = version_val_str;
+            result[pg_config_key_str] = getPgConfigJson();
+            result[pg_status_key_str] = getPgStatusJson();
+
+            // collective trace
+            if (includeCollectives) {
+                std::list<json> entries;
+                for (auto& e : dump_entries()) {
+                json j;
+                if (onlyActive && e.time_discovered_completed_.has_value()) {
+                    continue;
+                }
+                j[record_id_key_str] = int64_t(e.id_);
+                j[pg_id_key_str] = int64_t(e.pg_id_);
+                j[pg_name_key_str] = e.pg_name_;
+                j[collective_seq_id_key_str] = int64_t(e.collective_seq_id_);
+                j[p2p_seq_id_key_str] = int64_t(e.p2p_seq_id_);
+                j[op_id_key_str] = int64_t(e.op_id_);
+                j[profiling_name_key_str] = e.profiling_name_;
+                j[time_created_key_str] = int64_t(e.time_created_);
+                if (e.duration_) {
+                    j[duration_key_str] = *e.duration_;
+                }
+                auto it = e.sizes_.begin();
+                auto read_sizes = [&](const c10::SmallVector<int64_t, 4>& dims) {
+                    auto sizes = std::list<std::list<int64_t>>();
+                    for (auto dim : dims) {
+                    auto arg_sizes = std::list<int64_t>();
+                    for (auto i : c10::irange(dim)) {
+                        (void)i;
+                        arg_sizes.push_back(*it++);
+                    }
+                    sizes.push_back(arg_sizes);
+                    }
+                    return sizes;
+                };
+                j[input_sizes_key_str] = read_sizes(e.input_dims_);
+                std::vector<std::string> input_dtypes_strs;
+                input_dtypes_strs.reserve(e.input_dtypes_.size());
+                for (const auto& input_dtype : e.input_dtypes_) {
+                    input_dtypes_strs.emplace_back(c10::toString(input_dtype));
+                }
+                j[input_dtypes_key_str] = input_dtypes_strs;
+                j[output_sizes_key_str] = read_sizes(e.output_dims_);
+                std::vector<std::string> output_dtypes_strs;
+                output_dtypes_strs.reserve(e.output_dtypes_.size());
+                for (const auto& output_dtype : e.output_dtypes_) {
+                    output_dtypes_strs.emplace_back(c10::toString(output_dtype));
+                }
+                j[output_dtypes_key_str] = output_dtypes_strs;
+                if (e.time_discovered_completed_.has_value()) {
+                    j[state_key_str] = completed_state_str;
+                } else if (e.time_discovered_started_.has_value()) {
+                    j[state_key_str] = started_state_str;
+                } else {
+                    j[state_key_str] = scheduled_state_str;
+                }
+                j[time_discovered_started_key_str] =
+                    e.time_discovered_started_.has_value()
+                    ? int64_t(*e.time_discovered_started_)
+                    : 0;
+                j[time_discovered_completed_key_str] =
+                    e.time_discovered_completed_.has_value()
+                    ? int64_t(*e.time_discovered_completed_)
+                    : 0;
+                j[retired_key_str] = e.retired_;
+                j[timeout_key_str] = e.timeout_ms_;
+                j[is_p2p_key_str] = e.isP2P_;
+                entries.emplace_back(j);
+                }
+
+                if (!entries.empty()) {
+                result[entries_key_str] = entries;
+                }
+            }
+
+            if (hcclDumpMap.has_value()) {
+                result[hccl_comm_key_str] = hcclDumpMap.value();
+            }
+
+            return result.dump();
         }
 
         // dump all collectives + hcclDumpMap

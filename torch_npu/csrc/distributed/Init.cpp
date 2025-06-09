@@ -536,6 +536,22 @@ Example::
            py::arg("wait_workers") = true,
            py::arg("multi_tenant") = false);
 
+    module.def("_dump_hccl_trace_json",
+        [](std::optional<bool> includeCollectives,
+            std::optional<bool> onlyActive) {
+            return py::bytes(::c10d_npu::dump_hccl_trace_json(
+                includeCollectives.value_or(true), onlyActive.value_or(false)));
+        },
+        py::arg("includeCollectives") = std::optional<bool>(),
+        py::arg("onlyActive") = std::optional<bool>(),
+        R"(
+        Arguments:
+                includeCollectives(bool, optional): Whether to include collective work traces. Default is True.
+                onlyActive (bool, optional): Whether to only include active collective work traces. Default is False.
+        Returns:
+                Stringified json work traces.
+                Default settings return everything - i.e. contains HCCL comm dumps and collective traces.
+        )");
     module.def("_dump_hccl_trace",
         [](std::optional<bool> includeCollectives,
             std::optional<bool> includeStackTraces,
