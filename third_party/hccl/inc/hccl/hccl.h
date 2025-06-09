@@ -183,8 +183,6 @@ extern HcclResult HcclCommInitAll(uint32_t ndev, int32_t *devices, HcclComm *com
 
 extern HcclResult HcclCommResume(HcclComm comm);
 
-extern HcclResult HcclSetGlobalCommInfo(uint32_t masterIp, uint32_t masterPort, uint32_t totalRankSize, uint32_t nodeID, uint32_t localRankSize);
-
 /**
  * @brief Initialize the comm configuration.
  * @param config Pointer to the comm configuration that needs to be initialized.
