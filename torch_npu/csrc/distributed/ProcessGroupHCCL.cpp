@@ -26,7 +26,6 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
@@ -288,13 +287,7 @@ void getHcclCommConfig(HcclCommConfig* config, bool isP2P = false)
     }
 
     // Temporarily adding this logic to set deterministic states to avoid a known issues within HCCL.
-    const std::string baseCannVersion = "8.2.RC1";
-    const std::string baseCannModule = "CANN";
-    if (IsGteCANNVersion(baseCannVersion, baseCannModule)) {
-        config->hcclDeterministic = 0xffffffff;
-    } else {
-        config->hcclDeterministic = getDeterministicState() ? 1 : 0;
-    }
+    config->hcclDeterministic = getDeterministicState() ? 1 : 0;
 
     // Compatible with the size check of the old version of HCCL, forcibly convert
     // the config object to a size_t=32 object, and retain the N ± 2 version
