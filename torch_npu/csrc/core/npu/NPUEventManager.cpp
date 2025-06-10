@@ -105,10 +105,10 @@ void NPUEventManager::IncreaseUnrecordedCount(aclrtEvent event)
     auto it = event_unrecorded_count_.find(event);
     if (it != event_unrecorded_count_.end()) {
         it->second++;
-        ASCEND_LOGI("Event: unrecorded count increase, now=%d.", it->second);
+        ASCEND_LOGD("Event: unrecorded count increase, now=%d.", it->second);
     } else {
         event_unrecorded_count_.insert(std::pair<aclrtEvent, int>(event, 1));
-        ASCEND_LOGI("Event: unrecorded count increase, now=%d.", 1);
+        ASCEND_LOGD("Event: unrecorded count increase, now=%d.", 1);
     }
 }
 
@@ -123,10 +123,10 @@ void NPUEventManager::DecreaseUnrecordedCount(aclrtEvent event)
         (void *) event, PTA_ERROR(ErrCode::INTERNAL));
     if (it->second == 1) {
         event_unrecorded_count_.erase(event);
-        ASCEND_LOGI("Event: unrecorded count decrease, now=%d.", 0);
+        ASCEND_LOGD("Event: unrecorded count decrease, now=%d.", 0);
     } else {
         it->second--;
-        ASCEND_LOGI("Event: unrecorded count decrease, now=%d.", it->second);
+        ASCEND_LOGD("Event: unrecorded count decrease, now=%d.", it->second);
     }
 }
 
