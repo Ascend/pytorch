@@ -508,7 +508,7 @@ int LazyDestroyEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         }
         ASCEND_LOGE("LazyDestroy error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
     }
-    ASCEND_LOGI("Event: LazyDestroyEventFunc dequeue is successfully executed, event=%p", cur_paras->event);
+    ASCEND_LOGD("Event: LazyDestroyEventFunc dequeue is successfully executed, event=%p", cur_paras->event);
     return ret;
 }
 

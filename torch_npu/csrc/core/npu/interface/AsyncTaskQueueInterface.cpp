@@ -113,7 +113,7 @@ void EventTask::LaunchRecordTask(c10_npu::NPUStream npuStream)
             c10_npu::enCurrentNPUStream(&params);
             prof_correlation_id = params.correlation_id;
         }
-        ASCEND_LOGI("Event: LaunchRecordTask is successfully executed, event=%p", eventParam_.event);
+        ASCEND_LOGD("Event: LaunchRecordTask is successfully executed, event=%p", eventParam_.event);
 #ifndef BUILD_LIBTORCH
         at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[RECORD_EVENT],
             prof_correlation_id);
@@ -189,7 +189,7 @@ void EventTask::LaunchLazyDestroyTask(c10::DeviceIndex device_index)
 #endif
         QueueParas params(LAZY_DESTROY_EVENT, sizeof(EventParas), &eventParam_);
         c10_npu::enCurrentNPUStream(&params, device_index);
-        ASCEND_LOGI("Event: LaunchLazyDestroyTask is successfully executed, event=%p", eventParam_.event);
+        ASCEND_LOGD("Event: LaunchLazyDestroyTask is successfully executed, event=%p", eventParam_.event);
 #ifndef BUILD_LIBTORCH
         at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[LAZY_DESTROY_EVENT],
             params.correlation_id);
