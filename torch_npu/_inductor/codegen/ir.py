@@ -99,7 +99,8 @@ def rebuild_flattened_dims(indexing):
             # don't create duplicated axis, e.g. y1:1024, y1 % 1024 is duplicated
             expr, divisor, length = pair[1]
             if not old_node.parent.duplicated_check(divisor, length):
-                V.kernel.expr_substituted[expr] = old_node.symbol()
+                if expr not in V.kernel.expr_substituted:
+                    V.kernel.expr_substituted[expr] = old_node.symbol()
                 break
 
             for axis in pair:
