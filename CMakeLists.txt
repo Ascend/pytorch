@@ -205,6 +205,7 @@ include_directories(${PROJECT_SOURCE_DIR}/torch_npu/csrc/aten)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/hccl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/acl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
+include_directories(${PROJECT_SOURCE_DIR}/third_party/nlohmann/include)
 
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
