@@ -217,4 +217,5 @@ instantiate_parametrized_tests(HCCLTraceTest)
 
 
 if __name__ == "__main__":
-    run_tests()
+    if torch.npu.is_available() and torch.npu.device_count() >= 2:
+        run_tests()
