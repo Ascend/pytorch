@@ -229,9 +229,8 @@ void syncStreams(
         c10_npu::NPUStream& hcclStream = hcclStreams[i];
         c10_npu::NPUEvent& hcclEvent = hcclEvents[i];
         hcclEvent.record(c10_npu::getCurrentNPUStream(devices[i].index()));
-        ASCEND_LOGI("Event: record hccl group is successfully executed, event=%p", hcclEvent.event());
         hcclEvent.block(hcclStream);
-        ASCEND_LOGI("Event: block hccl group is successfully executed, event=%p", hcclEvent.event());
+        ASCEND_LOGI("Event: record and block hccl group is successfully executed, event=%p", hcclEvent.event());
     }
 }
 
