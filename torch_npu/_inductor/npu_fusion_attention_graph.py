@@ -27,7 +27,6 @@ def npu_fa(*args, **kwargs):
             args[8] = 1.0 / args[8]
         except IndexError:
             args[8] = 1.0 / (args[8] + 1e-6)
-            print("args[8]: zero can not be divided")
     r1, r2, r3, r4, seed, offset, numel = torch_npu.npu_fusion_attention(*args, **kwargs)
     r2.requires_grad = False
     r3.requires_grad = False

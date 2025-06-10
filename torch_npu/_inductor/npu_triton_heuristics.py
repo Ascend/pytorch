@@ -627,10 +627,8 @@ class NPUCachingAutotuner(CachingAutotuner):
                 abs_diff = torch.abs(actual - expected)
                 rel_diff = abs_diff / torch.abs(expected)
                 rel_diff.masked_fill_(matches, 0)
-                print(
-                    f"CHECK ACCURACY FAILED! Greatest Relative Difference: {rel_diff.max().item()}, " f"Kernel Name: {kernel_name}",
-                    flush=True)
-                print(f"kernel {kernel_name} Dump Path: {dump_path}")
+                log.warning(f"CHECK ACCURACY FAILED! Greatest Relative Difference: {rel_diff.max().item()}, Kernel Name: {kernel_name}")
+                log.warning(f"kernel {kernel_name} Dump Path: {dump_path}")
                 actual.copy_(expected)
             del matches
         for arg in fx_args:
