@@ -292,6 +292,8 @@ if (DEFINED BUILD_TORCHAIR)
   add_dependencies(${PLUGIN_NAME} copy_torchair_pyfiles)
 endif()
 
+add_subdirectory(${TORCHNPU_THIRD_PARTY_ROOT}/fmt EXCLUDE_FROM_ALL)
+
 link_directories(${PYTORCH_INSTALL_DIR}/lib)
 link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
 
@@ -310,7 +312,7 @@ if (DEFINED BUILD_TENSORPIPE)
   target_link_libraries(${PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/build/packages/torch_npu/lib/libtensorpipe.so)
 endif()
 
-target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10)
+target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 fmt::fmt-header-only)
 
 if (NOT DEFINED BUILD_LIBTORCH)
   set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")

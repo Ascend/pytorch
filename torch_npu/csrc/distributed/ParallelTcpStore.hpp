@@ -75,7 +75,10 @@ class ParallelTcpStore : public Store {
 public:
     explicit ParallelTcpStore(const std::string &host, const bool &agentRun, const uint32_t &agentPid,
         const bool &enableTiered, const TCPStoreOptions &opts = {});
+
     ~ParallelTcpStore() noexcept override;
+
+    c10::intrusive_ptr<Store> clone() override;
 
 public:
     void set(const std::string &key, const std::vector<uint8_t> &value) override;
@@ -98,6 +101,12 @@ private:
        const std::string host, uint16_t port, c10::optional<std::size_t> numWorkers);
 
 private:
+    std::string host_;
+    uint16_t port_;
+    bool agentRun_;
+    uint32_t agentPid_;
+    bool enableTiered_;
+
     std::unique_ptr<torch_npu::Client> client_;
     std::unique_ptr<torch_npu::Proxy> proxy_;
     std::shared_ptr<torch_npu::ParallelStoreServer> server_;

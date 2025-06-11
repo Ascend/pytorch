@@ -430,6 +430,7 @@ class TestPublicBindings(TestCase):
         # do not get imported by public code.
         private_allowlist = {
             "torch._inductor.codegen.cuda.cuda_kernel",
+            "torch.onnx._internal.exporter._isolated",
             "torch.onnx._internal.fx._pass",
             "torch.onnx._internal.fx.analysis",
             "torch.onnx._internal.fx.analysis.unsupported_nodes",

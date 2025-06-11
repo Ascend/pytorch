@@ -1,6 +1,8 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 # Owner(s): ["oncall: distributed"]
 import os
+from functools import wraps
+from typing import Tuple, Dict, Any
 
 import torch
 import torch.distributed._functional_collectives as funcol
@@ -25,7 +27,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTe
 from torch.testing._internal.distributed.fake_pg import FakeStore
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.common_distributed import init_pg, skipIfUnsupportMultiNPU, TEST_SKIPS
 from torch_npu.testing.testcase import run_tests
 
 
@@ -48,7 +50,43 @@ def _set_env_var(addr="localhost", port="29500", world_size=1, rank=0):
     os.environ["RANK"] = f"{rank}"
 
 
-class DeviceMeshTest(DTensorTestBase):
+def with_comms(func):
+    if func is None:
+        raise RuntimeError("Test function is None.")
+
+    def get_device_type(self):
+        if torch.npu.is_available() and torch.npu.device_count() >= self.world_size:
+            return "npu"
+        return "cpu"
+
+    @wraps(func)  # pyre-ignore[6]
+    def wrapper(
+        self, *args: Tuple[object], **kwargs: Dict[str, Any]  # type: ignore[misc]
+    ) -> None:
+
+        pg_backend = (
+            "hccl" if get_device_type(self) == "npu" else "gloo"
+        )
+        if pg_backend == "hccl" and torch.npu.device_count() < self.world_size:
+            raise RuntimeError(TEST_SKIPS[f"multi-npu-{self.world_size}"].message)
+
+        init_pg(backend=pg_backend, world_size=self.world_size, rank=self.rank, file_name=self.file_name)
+
+        torch.npu.manual_seed(0)
+        torch.npu.initial_seed()
+        func(self, *args, **kwargs)  # type: ignore[misc]
+        self.destroy_pg()
+
+    return wrapper
+
+
+class NPUDTensorTestBase(DTensorTestBase):
+    @property
+    def device_type(self):
+        return "npu"
+
+
+class DeviceMeshTest(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 2
@@ -210,7 +248,7 @@ class DeviceMeshTest(DTensorTestBase):
 
 
 #DeviceMeshTest with resetting world_size to 4.
-class DeviceMeshTestF(DTensorTestBase):
+class DeviceMeshTestF(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 4
@@ -286,7 +324,7 @@ class DeviceMeshTestF(DTensorTestBase):
             DeviceMesh.from_group(groups, self.device_type, invalid_mesh)
 
 
-class DeviceMeshTestNDim(DTensorTestBase):
+class DeviceMeshTestNDim(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 2
@@ -328,7 +366,7 @@ class DeviceMeshTestNDim(DTensorTestBase):
 
 
 #DeviceMeshTestNDim with resetting world_size to 8.
-class DeviceMeshTestNDimE(DTensorTestBase):
+class DeviceMeshTestNDimE(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 8
@@ -450,7 +488,7 @@ class DeviceMeshTestNDimE(DTensorTestBase):
             self.assertEqual(ref_ranks, ranks)
 
 
-class InitDeviceMeshTest(DTensorTestBase):
+class InitDeviceMeshTest(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 2
@@ -500,7 +538,7 @@ class InitDeviceMeshTest(DTensorTestBase):
             )
 
 
-class TestDeviceMeshGetItem(DTensorTestBase):
+class TestDeviceMeshGetItem(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 2
@@ -635,7 +673,7 @@ class TestDeviceMeshGetItem(DTensorTestBase):
 
 
 #TestDeviceMeshGetItem with resetting world_size to 8.
-class TestDeviceMeshGetItemE(DTensorTestBase):
+class TestDeviceMeshGetItemE(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 8
@@ -756,7 +794,7 @@ class TestDeviceMeshGetItemE(DTensorTestBase):
         self.assertEqual(dp_cp_mesh.get_group(), mesh_3d.get_group(mesh_dim="dp_cp"))
 
 
-class TestMeshEnv(DTensorTestBase):
+class TestMeshEnv(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 2
@@ -826,7 +864,7 @@ class TestMeshEnv(DTensorTestBase):
         )
 
 
-class DeviceMeshCollectiveTest(DTensorTestBase):
+class DeviceMeshCollectiveTest(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 2

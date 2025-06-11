@@ -296,7 +296,12 @@ std::unordered_map<uint16_t, std::weak_ptr<torch_npu::ParallelStoreServer>> Para
 
 ParallelTcpStore::ParallelTcpStore(const std::string &host, const bool &agentRun, const uint32_t &agentPid,
     const bool &enableTiered, const c10d::TCPStoreOptions &opts)
-    : Store(opts.timeout)
+    : Store{opts.timeout},
+      host_{host},
+      port_{opts.port},
+      agentRun_{agentRun},
+      agentPid_{agentPid},
+      enableTiered_{enableTiered}
 {
     if (opts.isServer) {
         auto start_server = std::chrono::high_resolution_clock::now();
@@ -350,6 +355,17 @@ ParallelTcpStore::~ParallelTcpStore() noexcept
     } else {
         client_->LocalClose();
     }
+}
+
+c10::intrusive_ptr<Store> ParallelTcpStore::clone()
+{
+    c10d::TCPStoreOptions opts;
+    opts.port = port_;
+    opts.isServer = false;
+    opts.waitWorkers = false;
+    opts.timeout = timeout_;
+
+    return c10::make_intrusive<ParallelTcpStore>(host_, agentRun_, agentPid_, enableTiered_, opts);
 }
 
 void ParallelTcpStore::set(const std::string &key, const std::vector<uint8_t> &value)
