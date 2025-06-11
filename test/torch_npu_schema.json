@@ -1064,6 +1064,9 @@
   "torch_npu.npu.check_uce_in_memory": {
     "signature": "(device_id)"
   },
+  "torch_npu.npu.get_uce_addr": {
+    "signature": "()"
+  },
   "torch_npu.npu.clear_npu_overflow_flag": {
     "signature": "()"
   },
