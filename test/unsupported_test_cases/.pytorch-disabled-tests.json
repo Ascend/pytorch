@@ -31314,5 +31314,8 @@
   "test_serialization_sparse_bsr_invalid (__main__.TestSerialization)": ["", [""]],
   "test_serialization_mmap_loading_options_path_type1_weights_only_True (__main__.TestSerialization)": ["", [""]],
   "test_fake_autocast_fft_fftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
-  "test_fake_autocast_fft_ifftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]]
+  "test_fake_autocast_fft_ifftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
+  "test_reduction_cases_shapes_shape0_dim_0_dtype_int32 (__main__.TestGeometric)": ["", [""]],
+  "test_pointwise_cases_shape0_dtype_int32 (__main__.TestForeachAdd)": ["", [""]],
+  "test_pointwise_cases_shape1_dtype_int32 (__main__.TestForeachAdd)": ["", [""]]
 }

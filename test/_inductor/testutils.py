@@ -3,6 +3,7 @@
 from enum import Enum, unique
 from collections.abc import Sequence
 import os
+import time
 import numpy as np
 import torch
 from torch.testing._internal.common_utils import TestCase
@@ -43,4 +44,44 @@ class TestUtils(TestCase):
         else:
             raise ValueError('Invalid parameter \"dtype\" is found : {}'.format(dtype))
 
-    
+
+def benchmark_test(fn, fn_triton, args=(), name="gen_fn", times=10, repeat=10, profile=False):
+    print(f"--------------------benchmark_{name} for {times * repeat} times--------------------")
+    stream = torch.npu.current_stream()
+    profiler = None
+    if profile:
+        profiler = create_profiler()
+
+    stream.synchronize()
+    if profile:
+        profiler.start()
+    start = time.perf_counter()
+    for _ in range(times * repeat):
+        fn_triton(*args)
+        if profile:
+            profiler.step()
+    stream.synchronize()
+    end = time.perf_counter()
+    if profile:
+        profiler.stop()
+    time_compiled = (end - start) / (times * repeat)
+    time_compiled *= 1000000
+    print(f"time_compiled:{time_compiled:.6f}")
+
+    if profile:
+        profiler = create_profiler()
+    print(f"Runing eager {name} for {times * repeat} times")
+    start = time.perf_counter()
+    for _ in range(times * repeat):
+        fn(*args)
+        if profile:
+            profiler.step()
+    stream.synchronize()
+    end = time.perf_counter()
+    time_eager = (end - start) / (times * repeat)
+    time_eager *= 1000000
+    print(f"time_eager:{time_eager:.6f}")
+    accelerated = (time_eager - time_compiled) / time_compiled * 100
+    print(f"Accelerated: {accelerated:.4f}% eager takes {time_eager:.3f} us, triton takes {time_compiled:.3f} us")
+
+    return time_eager, time_compiled

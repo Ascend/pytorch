@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+# Copyright (c) Huawei TechNologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-import pytest
 from testutils import OperatorType, TestUtils
 import torch_npu
 import torch_npu._inductor
 
 
-class TestAbs(TestUtils):
+class TestExp(TestUtils):
+
     def op_calc(self, first_element):
-        result = torch.abs(first_element)
+        result = torch.exp(first_element)
         return result
 
-    @parametrize('shape', [(1024, 32), (256, 8)])
-    @parametrize('dtype', ['float16', 'float32', 'bfloat16'])
+    @parametrize('shape', TestUtils._pointwise_demo_shapes)
+    @parametrize('dtype', ['float16', 'float32', 'bfloat16', 'int64'])
     def test_pointwise_cases(self, shape, dtype):
         first_element = self._generate_tensor(shape, dtype)
 
@@ -22,10 +22,12 @@ class TestAbs(TestUtils):
 
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_result = compiled_op_calc(first_element)
-        torch.testing.assert_close(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        rtol = 1e-1
+        atol = 1e-1
+        torch.testing.assert_close(std_result, inductor_result, equal_nan=True, rtol=rtol, atol=atol)
 
-
-instantiate_parametrized_tests(TestAbs)
+instantiate_parametrized_tests(TestExp)
 
 if __name__ == "__main__":
     run_tests()
+

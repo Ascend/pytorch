@@ -1,0 +1,34 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei TechNologies Co., Ltd. 2023-2023. All rights reserved.
+import torch
+from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
+from testutils import OperatorType, TestUtils
+import torch_npu
+import torch_npu._inductor
+
+
+class TestEmbeddingDenseBackward(TestUtils):
+
+    def op_calc(self, slice_4, sum_23):
+        result = torch.ops.aten.embedding_dense_backward.default(sum_23, slice_4, 512, -1, False)
+        return result
+
+    @parametrize('shape', [(1, 512, 128)])
+    @parametrize('dtype', ['float32'])
+    def test_pointwise_cases(self, shape, dtype):
+        torch_npu._inductor.config.enable_npu_indexing = True
+        first_element = torch.randint(low=0, high=128, size=(1, 512), dtype=torch.int64).npu()
+        second_element = self._generate_tensor(shape, dtype)
+
+        std_result = self.op_calc(first_element, second_element)
+
+        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
+        inductor_result = compiled_op_calc(first_element, second_element)
+
+        torch.testing.assert_close(std_result, inductor_result, rtol=1e-1, atol=1e-1)
+
+
+instantiate_parametrized_tests(TestEmbeddingDenseBackward)
+
+if __name__ == "__main__":
+    run_tests()
