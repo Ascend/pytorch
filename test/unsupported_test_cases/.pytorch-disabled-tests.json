@@ -31603,5 +31603,7 @@
   "test_serialization_backwards_compat_safe (__main__.TestSerialization)": ["", [""]],
   "test_serialization_sparse_invalid (__main__.TestOldSerialization)": ["", [""]],
   "test_weights_only_error_unsafe_global_False (__main__.TestSerialization)": ["", [""]],
-  "test_use_pinned_memory_for_d2h (__main__.TestSerialization)": ["", [""]]
+  "test_use_pinned_memory_for_d2h (__main__.TestSerialization)": ["", [""]],
+  "test_fake_autocast_fft_fftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
+  "test_fake_autocast_fft_ifftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]]
 }
