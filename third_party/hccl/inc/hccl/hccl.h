@@ -183,6 +183,8 @@ extern HcclResult HcclCommInitAll(uint32_t ndev, int32_t *devices, HcclComm *com
 
 extern HcclResult HcclCommResume(HcclComm comm);
 
+extern HcclResult HcclCommWorkingDevNicSet(HcclComm comm, uint32_t *ranks, bool *useBackup, uint32_t nRanks);
+
 /**
  * @brief Initialize the comm configuration.
  * @param config Pointer to the comm configuration that needs to be initialized.

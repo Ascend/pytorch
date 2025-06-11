@@ -239,6 +239,18 @@ def reinit_process_group(group=None, rebuild_link=True):
         return group
 
 
+def _comm_switch_nic(ranks, useBackup):
+    nRanks = len(ranks)
+    npu_device = torch.device('npu')
+    rankid = int(os.environ['RANK'])
+    result = True
+    for pg in _pg_map:
+        if (npu_device in pg._device_types):
+            presult = pg._get_backend(npu_device)._set_switch_nic_comm(rankid, nRanks, ranks, useBackup)
+            if not presult:
+                result = False
+    return result
+
 
 def _reduce_scatter_tensor_uneven(output, input, input_split_sizes=None, op=dist.ReduceOp.SUM, group=None, async_op=False):
     if _rank_not_in_group(group):
