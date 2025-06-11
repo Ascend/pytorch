@@ -63,6 +63,7 @@ extern HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo
 extern HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_t rank, HcclCommConfig *config, HcclComm *comm);
 extern HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *rankIds, uint64_t subCommId, uint32_t subCommRankId,
     HcclCommConfig* config, HcclComm *subComm);
+extern HcclResult hcclCommWorkingDevNicSet(HcclComm comm, uint32_t *ranks, bool *useBackup, uint32_t nRanks);
 
 // Provides additional detail into HCCL error codes based on when these are
 // thrown in the HCCL codebase.
@@ -110,6 +111,9 @@ public:
         uint64_t subCommId,
         uint32_t subCommRankId,
         HcclCommConfig* config);
+
+    int hcclCommType;
+    int p2pPeer;
 
     // Must not be copyable
     HCCLComm(const HCCLComm&) = delete;

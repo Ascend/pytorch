@@ -571,6 +571,17 @@ public:
 
     void resumeHcclComm(int device_id);
 
+    bool setCommWorkingDevNic(
+        const HcclComm& comm,
+        int nranks,
+        std::vector<uint32_t>& ranks,
+        std::vector<bool>& useBackup,
+        int rankid,
+        int hcclCommType,
+        int p2pPeer);
+
+    bool setSwitchNicComm(int rankid, int nranks, std::vector<uint32_t>& ranks, std::vector<bool>& useBackup);
+
     void setWatchdogStatus(int status);
 
     void clearWorkMetaList();
@@ -676,6 +687,16 @@ protected:
     const std::string& getGroupName() const
     {
         return pg_name_;
+    }
+    
+    void setP2pPeer(int newPeer)
+    {
+        peer_ = newPeer;
+    }
+
+    const int getP2pPeer() const
+    {
+        return peer_;
     }
 
     static const int64_t kWatchdogThreadSleepMillis;
@@ -898,6 +919,8 @@ protected:
     uint64_t op_id_{0};
 
     std::string pg_name_;
+
+    int peer_;
 
     std::exception_ptr watchDogException_ = nullptr;
 
