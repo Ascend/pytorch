@@ -303,6 +303,7 @@ class _MatmulSilentCheck:
         self.check_stat = {}
         self.hook_dict = {}
         self.registered_modules = []
+        self.visited_modules_id = []
         self.matmul_hook_enable = 0
         self.matmul_with_bf16 = False
         self.statistic_value = None
@@ -410,7 +411,7 @@ class _MatmulSilentCheck:
         return self.filter_interval
     
     def init_stream(self):
-        if self.statistic_value is None:
+        if self.statistic_cpu_value is None:
             self.statistic_value = torch.tensor(0., device=f"npu:{torch_npu.npu.current_device()}")
             self.checksum_state = 0
             self.statistic_cpu_value = torch.zeros((self.queue_len,), device='cpu', dtype=torch.float32).pin_memory()
@@ -764,7 +765,8 @@ def _matmul_silent_check_decorator(func):
                 for name, module in self.named_modules():
                     if matmul_check.get_matmul_hook_enable() == 0:
                         break
-                    if len(module._modules) == 0 and name not in matmul_check.registered_modules:
+                    if len(module._modules) == 0 and name not in matmul_check.registered_modules and id(module) not in matmul_check.visited_modules_id:
+                        matmul_check.visited_modules_id.append(id(module))
                         for _, param in module.named_parameters():
                             if not isinstance(param, torch.Tensor) or param.dim() < 2:
                                 continue
@@ -772,7 +774,7 @@ def _matmul_silent_check_decorator(func):
                                 matmul_check.register_module_hook(module, name)
                             # check dtype
                             if param.dtype == torch.float16:
-                                for value in self.hook_dict.values():
+                                for value in matmul_check.hook_dict.values():
                                     if value is not None:
                                         value.remove()
                                 matmul_check.set_matmul_hook_enable(0)
