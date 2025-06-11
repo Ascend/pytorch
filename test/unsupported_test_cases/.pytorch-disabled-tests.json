@@ -31592,5 +31592,7 @@
   "test_reinplace_with_view (__main__.TestReinplacePass)": ["", [""]],
   "test_reinplace_basic (__main__.TestReinplacePass)": ["", [""]],
   "test_reinplace_index_mutation (__main__.TestReinplacePass)": ["", [""]],
-  "test_reinplace_scatter_op (__main__.TestReinplacePass)": ["", [""]]
+  "test_reinplace_scatter_op (__main__.TestReinplacePass)": ["", [""]],
+  "test_fake_autocast_fft_fftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
+  "test_fake_autocast_fft_ifftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]]
 }
