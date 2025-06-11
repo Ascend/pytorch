@@ -17,7 +17,7 @@ __all__ = ["synchronize", "set_device", "current_device", "device", "device_of",
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
-           "check_uce_in_memory", "stress_detect", "get_cann_version"]
+           "check_uce_in_memory", "stress_detect", "get_cann_version", "get_uce_addr"]
 
 
 def get_cann_version(module="CANN"):
@@ -384,6 +384,11 @@ def current_blas_handle():
 def check_uce_in_memory(device_id):
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_check_uce_in_memory(device_id)
+
+
+def get_uce_addr():
+    torch_npu.npu._lazy_init()
+    return torch_npu._C._npu_get_uce_addr()
 
 
 def _erase_stream(tensor, stream):
