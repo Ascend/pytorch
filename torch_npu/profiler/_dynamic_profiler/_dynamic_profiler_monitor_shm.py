@@ -185,8 +185,9 @@ class DynamicProfilerShareMemory:
                 DynamicProfilerUtils.out_log("Rank {} unlink shm".format(
                     self._rank_id), DynamicProfilerUtils.LoggerLevelEnum.INFO)
             except Exception as ex:
-                DynamicProfilerUtils.out_log("Rank {} unlink shm failed, may be removed, {} hs occur".format(
-                    self._rank_id, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+                if self._rank_id != -1:
+                    DynamicProfilerUtils.out_log("Rank {} unlink shm failed, may be removed, {} hs occur".format(
+                        self._rank_id, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
             self.shm = None
 
     def _clean_shm_py37(self):
@@ -201,8 +202,9 @@ class DynamicProfilerShareMemory:
                 DynamicProfilerUtils.out_log("Rank {} unlink shm".format(
                     self._rank_id), DynamicProfilerUtils.LoggerLevelEnum.INFO)
             except Exception as ex:
-                DynamicProfilerUtils.out_log("Rank {} unlink shm failed, may be removed, {} has occur ".format(
-                    self._rank_id, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+                if self._rank_id != -1:
+                    DynamicProfilerUtils.out_log("Rank {} unlink shm failed, may be removed, {} has occur ".format(
+                        self._rank_id, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
             PathManager.remove_path_safety(os.path.dirname(self.shm_path))
             self.shm = None
 
