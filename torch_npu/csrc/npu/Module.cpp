@@ -597,6 +597,22 @@ PyObject* THNPModule_check_uce_in_memory_wrap(PyObject* self, PyObject* arg)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_get_uce_addr_wrap(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    auto memUceInfo_ = c10_npu::get_mem_uce_info();
+
+    py::list result;
+    for (size_t i = 0; i < memUceInfo_.retSize; ++i) {
+        py::dict data;
+        data["ptr"] = reinterpret_cast<int64_t>(memUceInfo_.info[i].addr);
+        data["size"] = memUceInfo_.info[i].len;
+        result.append(data);
+    }
+    return result.release().ptr();
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
 {
     HANDLE_TH_ERRORS
@@ -1621,6 +1637,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_stopDevice", (PyCFunction)THNPModule_stopDevice_wrap, METH_O, nullptr},
     {"_npu_restart_device", (PyCFunction)THNPModule_restart_device_wrap, METH_O, nullptr},
     {"_npu_check_uce_in_memory", (PyCFunction)THNPModule_check_uce_in_memory_wrap, METH_O, nullptr},
+    {"_npu_get_uce_addr", (PyCFunction)THNPModule_get_uce_addr_wrap, METH_NOARGS, nullptr},
     {"_npu_stress_detect", (PyCFunction)THNPModule_stressDetect_wrap, METH_NOARGS, nullptr},
     {"_npu_getLocalDevice", (PyCFunction)THNPModule_getLocalDevice_wrap, METH_NOARGS, nullptr},
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
