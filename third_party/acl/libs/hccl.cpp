@@ -34,3 +34,4 @@ hcclResult_t HcclBatchSendRecv(HcclSendRecvItemDef* sendRecvInfo, u32 itemNum, h
     aclrtStream stream) {return HCCL_SUCCESS;}
 hcclResult_t HcclCommInitAll(u32 ndev, s32 *devices, hcclComm_t *comms) {return HCCL_SUCCESS;}
 hcclResult_t HcclCommResume(hcclComm_t comm) {return HCCL_SUCCESS;}
+hcclResult_t HcclCommWorkingDevNicSet(HcclComm comm, u32 *ranks, bool *useBackup, u32 nRanks){return HCCL_SUCCESS;}

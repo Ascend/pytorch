@@ -571,6 +571,17 @@ public:
 
     void resumeHcclComm(int device_id);
 
+    bool setCommWorkingDevNic(
+        const HcclComm& comm,
+        int nranks,
+        std::vector<uint32_t>& ranks,
+        std::vector<bool>& useBackup,
+        int rankid,
+        int hcclCommType,
+        int p2pPeer);
+
+    bool setSwitchNicComm(int rankid, int nranks, std::vector<uint32_t>& ranks, std::vector<bool>& useBackup);
+
     void setWatchdogStatus(int status);
 
     void clearWorkMetaList();
@@ -652,7 +663,17 @@ protected:
     {
         return pg_desc_;
     }
-    
+
+    void setP2pPeer(int newPeer)
+    {
+        peer_ = newPeer;
+    }
+
+    const int getP2pPeer() const
+    {
+        return peer_;
+    }
+
     // In the timeout case and we will dump debug info such as the NCCL flight
     // recorder to storage. Down the road, if we have more complicated or blocking
     // operations, we might need to use a side thread to do it.
@@ -897,6 +918,8 @@ protected:
 
     std::string pg_name_;
     std::string pg_desc_;
+
+    int peer_;
 
     std::exception_ptr watchDogException_ = nullptr;
 

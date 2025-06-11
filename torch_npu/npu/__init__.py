@@ -341,6 +341,11 @@ def _lazy_new(cls, *args, **kwargs):
     return super(_NPUBase, cls).__new__(cls, *args, **kwargs)
 
 
+def _comm_switch_nic(ranks, useBackup):
+    torch_npu.npu.synchronize()
+    return torch_npu.distributed.distributed_c10d._comm_switch_nic(ranks, useBackup)
+
+
 class _NPUBase:
     is_npu = True
     is_sparse = False
