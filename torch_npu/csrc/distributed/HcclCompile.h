@@ -26,6 +26,7 @@ LOAD_FUNCTION(HcclCommInitRootInfoConfig)
 LOAD_FUNCTION(HcclGetCommConfigCapability)
 LOAD_FUNCTION(HcclCommInitClusterInfoConfig)
 LOAD_FUNCTION(HcclCreateSubCommConfig)
+LOAD_FUNCTION(HcclCommWorkingDevNicSet)
 
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
@@ -257,6 +258,27 @@ HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *r
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCreateSubCommConfig", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm, rankNum, rankIds, subCommId, subCommRankId, config, subComm);
+    return ret;
+}
+
+bool hcclCommWorkingDevNicSetExist()
+{
+    const static bool isHcclCommWorkingDevNicSetExist = []() -> bool {
+        auto func = GET_FUNC(HcclCommWorkingDevNicSet)
+        return func != nullptr;
+    }();
+    return isHcclCommWorkingDevNicSetExist;
+}
+
+HcclResult hcclCommWorkingDevNicSet(HcclComm comm, uint32_t *ranks, bool *useBackup, uint32_t nRanks)
+{
+    using HcclCommWorkingDevNicSetFunc = HcclResult(*)(HcclComm, uint32_t *, bool *, uint32_t);
+    static HcclCommWorkingDevNicSetFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommWorkingDevNicSetFunc)GET_FUNC(HcclCommWorkingDevNicSet)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommWorkingDevNicSet", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(comm, ranks, useBackup, nRanks);
     return ret;
 }
 } // namespace c10d_npu

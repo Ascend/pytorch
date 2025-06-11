@@ -2168,12 +2168,14 @@ void ProcessGroupHCCL::createHCCLComm(
                     config = createHcclCommConfigWithOptions();
                     hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
                 }
+                hcclComms[i]->hcclCommType = static_cast<int>(HcclCommType::DEFAULT);
                 break;
             case HcclCommType::P2P: // P2P not support set hcclCommName
                 numRanks = 2;
                 rank = p2pRank;
                 getHcclCommConfig(&config, true);
                 hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
+                hcclComms[i]->hcclCommType = static_cast<int>(HcclCommType::P2P);
                 break;
             default:
                 throw std::runtime_error(
@@ -2739,6 +2741,94 @@ void ProcessGroupHCCL::resumeHcclComm(int device_id)
         }
     }
     ASCEND_LOGI("resumeHcclComm success, group id is %s.", options_->group_id.c_str());
+}
+
+bool ProcessGroupHCCL::setCommWorkingDevNic(
+    const HcclComm& comm,
+    int nranks,
+    std::vector<uint32_t>& ranks,
+    std::vector<bool>& useBackup,
+    int rankid,
+    int hcclCommType,
+    int p2pPeer)
+{
+    HcclComm sendComm = comm;
+    uint32_t sendnRank = 0;
+    std::vector<uint32_t> sendRanks;
+    std::vector<bool> sendUseBackup;
+    if (hcclCommType == 1) {
+        int p2pRank = rankid <= p2pPeer ? 0 : 1;
+        bool isSendRecvSelf = rank_ == p2pPeer;
+        int p2pTargetRank = isSendRecvSelf ? 0 : 1 - p2pRank;
+        for (int i = 0; i < nranks; i++) {
+            if (ranks[i] == rankid) {
+                sendRanks.push_back(p2pRank);
+                sendUseBackup.push_back(useBackup[i]);
+                sendnRank++;
+            }
+            if (ranks[i] == p2pTargetRank) {
+                sendRanks.push_back(p2pTargetRank);
+                sendUseBackup.push_back(useBackup[i]);
+                sendnRank++;
+            }
+        }
+    } else {
+        for (int i = 0; i < nranks; i++) {
+            uint32_t localrank = 0;
+            for (uint32_t val : groupRanks()) {
+                if (ranks[i] == val) {
+                    sendRanks.push_back(localrank);
+                    sendUseBackup.push_back(useBackup[i]);
+                    sendnRank++;
+                    break;
+                }
+                localrank++;
+            }
+        }
+    }
+    if (sendnRank == 0) {
+        return true;
+    }
+    bool useBackupArr[sendUseBackup.size()];
+    uint32_t sendRanksArr[sendRanks.size()];
+    for (size_t i = 0; i < sendnRank; i++) {
+        useBackupArr[i] = sendUseBackup[i];
+        sendRanksArr[i] = sendRanks[i];
+    }
+    auto ret = hcclCommWorkingDevNicSet(sendComm, sendRanksArr, useBackupArr, sendnRank);
+    if (ret != HCCL_SUCCESS) {
+        ASCEND_LOGI("Fail to hcclCommWorkingDevNicSet");
+        return false;
+    }
+    return true;
+}
+
+bool ProcessGroupHCCL::setSwitchNicComm(int rankid, int nranks, std::vector<uint32_t>& ranks, std::vector<bool>& useBackup)
+{
+    if (!hcclCommWorkingDevNicSetExist()) {
+        ASCEND_LOGI("The hcclCommWorkingDevNicSet does not exist. Skip it.");
+        return true;
+    }
+    at::Device device = getDeviceForRank(rankid);
+    std::vector<at::Device> devices = {device};
+    auto key = getKeyFromDevices(devices);
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (devHCCLCommMap_.find(key) != devHCCLCommMap_.end()) {
+            auto& hcclComms = devHCCLCommMap_[key];
+            for (auto& hcclComm : hcclComms) {
+                HcclComm comm = hcclComm->getHcclComm();
+                bool result = setCommWorkingDevNic(comm, nranks, ranks, useBackup, rankid, hcclComm->hcclCommType, hcclComm->p2pPeer);
+                if (!result) {
+                    return false;
+                }
+            }
+        } else {
+            return true;
+        }
+    }
+    ASCEND_LOGI("Succeed to hcclCommWorkingDevNicSet");
+    return true;
 }
 
 void ProcessGroupHCCL::setWatchdogStatus(int status)
@@ -3357,6 +3447,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
         p2pRank = rank_ <= peer ? 0 : 1;
         isSendRecvSelf = rank_ == peer;
         p2pTargetRank = isSendRecvSelf ? 0 : 1 - p2pRank;
+        setP2pPeer(peer);
         hcclComms = getHCCLComm(key, devices, HcclCommType::P2P, nullptr, p2pRank);
     } else {
         p2pTargetRank = peer;

@@ -108,4 +108,5 @@ hcclResult_t HcclScatter(void *sendBuf, void *recvBuf, u64 count, HcclDataType d
 hcclResult_t HcclBatchSendRecv(HcclSendRecvItemDef* sendRecvInfo, u32 itemNum, hcclComm_t comm, aclrtStream stream);
 hcclResult_t HcclCommInitAll(u32 ndev, s32 *devices, hcclComm_t *comms);
 hcclResult_t HcclCommResume(hcclComm_t comm);
+hcclResult_t HcclCommWorkingDevNicSet(HcclComm comm, u32 *ranks, bool *useBackup, u32 nRanks);
 }

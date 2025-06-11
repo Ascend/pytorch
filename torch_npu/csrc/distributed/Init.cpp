@@ -396,6 +396,12 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
         .def("get_hccl_comm", &::c10d_npu::ProcessGroupHCCL::getHcclComm)
         .def("_set_hccl_comm_name", &::c10d_npu::ProcessGroupHCCL::setHcclCommName)
         .def("resume_hccl_comm", &::c10d_npu::ProcessGroupHCCL::resumeHcclComm)
+        .def("_set_switch_nic_comm",
+            &::c10d_npu::ProcessGroupHCCL::setSwitchNicComm,
+             py::arg("rankid"),
+             py::arg("nRanks"),
+             py::arg("ranks") = std::vector<uint32_t>{},
+             py::arg("useBackup") = std::vector<bool>{})
         .def("abort_hccl_comm", &::c10d_npu::ProcessGroupHCCL::abortAndClearHcclComm)
         .def("_delete_tcpstore_key", &::c10d_npu::ProcessGroupHCCL::deleteTCPStoreKey)
         .def("set_watchdog_status", &::c10d_npu::ProcessGroupHCCL::setWatchdogStatus)
