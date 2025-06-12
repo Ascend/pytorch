@@ -1,13 +1,19 @@
+import os
+
+os.environ["ASCEND_LAUNCH_BLOCKING"] = "0"
+
 from unittest.mock import patch, MagicMock, call, ANY
 import weakref
 import pytest
 import torch
 import torch_npu
 from torch_npu.npu._graph_tree import (
+    check_memory_pool,
     clear_cublass_cache,
     clear_cublas_manager,
     disable_conv_cache_emptying,
     enable_history_recording,
+    format_tb,
     npugraphify,
     npugraphify_impl,
     TreeManagerContainer,
@@ -15,7 +21,9 @@ from torch_npu.npu._graph_tree import (
     NPUWarmupNode,
     CompilationMode,
     get_container,
+    get_block_addrs,
     get_manager,
+    get_npugraph_segments,
     reset_npugraph_trees,
     local,
     OutputAliasInfo,
@@ -24,8 +32,13 @@ from torch_npu.npu._graph_tree import (
     AliasesNewOutput,
     NPUGraphNode,
     WrappedFunction,
+    NPUGraphTreeManager,
+    ExecutionState,
+    FunctionID,
+    GraphID,
 )
 from torch_npu.testing.testcase import TestCase, run_tests
+
 
 device = "npu:0"
 torch.npu.set_device(device)
@@ -255,7 +268,7 @@ def basic_npu_graph_node(mock_wrapped_function, mock_parent_node):
         )
 
 
-class TestOutputAliasInfo:
+class TestOutputAliasInfo(TestCase):
     def test_aliases_prior_graph_output_validation(self):
         with pytest.raises(RuntimeError):
             AliasesPriorGraphOutput("invalid_index")
@@ -654,6 +667,519 @@ class TestNPUGraphNodeRun(TestCase):
         # Execute and verify cleanup
         node.run(input_copy)
         self.assertEqual(len(input_copy), 0)
+
+
+class TestGetNpugraphSegments(TestCase):
+    @patch('torch.npu.memory_snapshot')  
+    def test_get_npugraph_segments(self, mock_snapshot):            
+        mock_snapshot.return_value = [
+                    {"segment_pool_id": (0, 1), "address": 1000, "blocks": []},
+                    {"segment_pool_id": (0, 0), "address": 2000, "blocks": []},
+                    {"segment_pool_id": (0, 1), "address": 3000, "blocks": []},
+                ]                      
+        result = get_npugraph_segments((0, 1))                      
+        self.assertEqual(len(result), 2)      
+        mock_snapshot.assert_called_once_with()
+
+
+class TestGetBlockAddrs(TestCase):
+    @patch('torch_npu.npu._graph_tree.get_npugraph_segments')
+    def test_get_block_addrs_live_only(self, mock_segments):
+        mock_segments.return_value = [
+            {
+                "segment_pool_id": (0, 0),
+                "address": 1000,
+                "blocks": [
+                    {"state": "active_allocated", "size": 100},
+                    {"state": "inactivate", "size": 200},
+                    {"state": "active_allocated", "size": 300},
+                ]
+            },
+            {
+                "segment_pool_id": (0, 0),
+                "address": 2000,
+                "blocks": [
+                    {"state": "active_allocated", "size": 50},
+                    {"state": "inactivate", "size": 150},
+                ]
+            }
+        ]
+        result = get_block_addrs((0, 0), live_only=True)
+        self.assertEqual(result, [1000, 1300, 2000])
+        mock_segments.assert_called_once_with((0, 0))
+
+    @patch('torch_npu.npu._graph_tree.get_npugraph_segments')
+    def test_get_block_addrs_all_blocks(self, mock_segments):
+        mock_segments.return_value = [
+            {
+                "segment_pool_id": (0, 0),
+                "address": 1000,
+                "blocks": [
+                    {"state": "active_allocated", "size": 100},
+                    {"state": "inactivate", "size": 200},
+                ]
+            }
+        ]
+        result = get_block_addrs((0, 0), live_only=False)
+        self.assertEqual(result, [1000, 1100])
+        mock_segments.assert_called_once_with((0, 0))
+
+
+class TestFormatTb(TestCase):
+    def test_format_tb(self):
+        frames = [
+            {"filename": "/path/to/file.py", "line": 42, "name": "test_function"},
+            {"filename": "/path/to/module.py", "line": 100, "name": "helper_method"},
+        ]
+        result = format_tb(frames)
+        self.assertIn("/path/to/file.py", result)
+        self.assertIn("test_function", result)
+        self.assertIn("/path/to/module.py", result)
+        self.assertIn("helper_method", result)
+        self.assertIn("line 100", result)
+
+
+class TestCheckMemoryPool(TestCase):
+    @patch('torch_npu._C._npu_checkPoolLiveAllocations')
+    def test_check_memory_pool_fast_path_pass(self, mock_check):
+        mock_check.return_value = True
+
+        mock_storage1 = MagicMock(spec=StorageWeakRefWrapper)
+        mock_storage1.data_ptr.return_value = 1001
+        mock_storage1.return_value = True
+
+        mock_storage2 = MagicMock(spec=StorageWeakRefWrapper)
+        mock_storage2.data_ptr.return_value = 1002
+        mock_storage2.return_value = True
+
+        check_memory_pool("npu:0", (0, 0), [mock_storage1, mock_storage2])
+        mock_check.assert_called_once_with(
+            "npu:0", (0, 0), {1001, 1002}
+        )
+
+    @patch('torch_npu._C._npu_checkPoolLiveAllocations')
+    @patch('torch_npu.npu._graph_tree.get_npugraph_segments')
+    @patch('torch_npu.npu._graph_tree.format_tb')
+    @patch('gc.collect')
+    def test_check_memory_pool_slow_path_all_match(
+        self, mock_gc, mock_format_tb, mock_segments, mock_check
+    ):
+        mock_check.return_value = False
+        mock_segments.return_value = [
+            {
+                "segment_pool_id": (0, 0),
+                "address": 1000,
+                "blocks": [
+                    {"state": "active_allocated", "size": 100, "frames": []},
+                    {"state": "inactivate", "size": 200},
+                ]
+            }
+        ]
+        mock_storage = MagicMock(spec=StorageWeakRefWrapper)
+        mock_storage.data_ptr.return_value = 1000
+        mock_storage.return_value = True
+        check_memory_pool("npu:0", (0, 0), [mock_storage])
+        mock_gc.assert_called_once_with()
+        mock_segments.assert_called_once_with((0, 0))
+        mock_format_tb.assert_not_called()
+
+    @patch('torch_npu._C._npu_checkPoolLiveAllocations')
+    @patch('torch_npu.npu._graph_tree.get_npugraph_segments')
+    @patch('torch_npu.npu._graph_tree.format_tb')
+    @patch('gc.collect')
+    def test_check_memory_pool_slow_path_unallocated_storage(
+        self, mock_gc, mock_format_tb, mock_segments, mock_check
+    ):
+        mock_check.return_value = False
+        mock_segments.return_value = [
+            {
+                "segment_pool_id": (0, 0),
+                "address": 2000,
+                "blocks": [
+                    {"state": "active_allocated", "size": 100, "frames": []},
+                ]
+            }
+        ]
+        mock_storage = MagicMock(spec=StorageWeakRefWrapper)
+        mock_storage.data_ptr.return_value = 1000
+        mock_storage.return_value = True
+        with self.assertRaisesRegex(
+            RuntimeError, r"These storage data ptrs are not allocated in pool \(0, 0\) but should be \{1000\}"
+        ):
+            check_memory_pool("npu:0", (0, 0), [mock_storage])
+
+    @patch('torch_npu._C._npu_checkPoolLiveAllocations')
+    @patch('torch_npu.npu._graph_tree.get_npugraph_segments')
+    @patch('torch_npu.npu._graph_tree.format_tb')
+    @patch('gc.collect')
+    def test_check_memory_pool_slow_path_unaccounted_blocks(
+        self, mock_gc, mock_format_tb, mock_segments, mock_check
+    ):
+        mock_check.return_value = False
+        mock_segments.return_value = [
+            {
+                "segment_pool_id": (0, 0),
+                "address": 1000,
+                "blocks": [
+                    {"state": "active_allocated", "size": 100, "frames": [
+                        {"filename": "/path/to/file.py", "line": 42, "name": "allocate_func"}
+                    ]},
+                ]
+            }
+        ]
+        live_storages = []
+        mock_format_tb.return_value = "Formatted Traceback"
+        with self.assertRaisesRegex(
+            RuntimeError, "These live storage data ptrs are in the npugraph pool but not accounted for"
+        ):
+            check_memory_pool("npu:0", (0, 0), live_storages)
+
+    def test_check_memory_pool_invalid_input(self):
+        invalid_storages = [1, 2, 3]
+        with self.assertRaisesRegex(
+            RuntimeError, r"check all\(isinstance\(elem, StorageWeakRefWrapper\) for elem in live_storages_ptrs\) fail"
+        ):
+            check_memory_pool("npu:0", (0, 0), invalid_storages)
+
+
+class TestNPUGraphTreeManager:
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager._run')
+    def test_run_forward_mode(self, mock_run):
+        manager = NPUGraphTreeManager(0)
+        manager.id_to_mode[FunctionID(1)] = CompilationMode.FORWARD
+        result = manager.run([torch.tensor([1.0])], FunctionID(1))
+        mock_run.assert_called_once_with([torch.tensor([1.0])], FunctionID(1))
+        self.assertTrue(manager.running_forwards_with_pending_backwards)
+        self.assertTrue(result == mock_run.return_value)
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager._run')
+    def test_run_backward_mode(self, mock_run):
+        manager = NPUGraphTreeManager(0)
+        manager.id_to_mode[FunctionID(1)] = CompilationMode.BACKWARD
+        result = manager.run([torch.tensor([1.0])], FunctionID(1))
+        mock_run.assert_called_once_with([torch.tensor([1.0])], FunctionID(1))
+        self.assertFalse(manager.running_forwards_with_pending_backwards)
+        self.assertTrue(result == mock_run.return_value)
+
+    def test_set_to_running_backward(self):
+        manager = NPUGraphTreeManager(0)
+        manager.running_forwards_with_pending_backwards = True
+        manager.set_to_running_backward()
+        self.assertFalse(manager.running_forwards_with_pending_backwards)
+
+    def test_shutdown(self):
+        manager = NPUGraphTreeManager(0)
+        mock_node1 = MagicMock()
+        mock_node2 = MagicMock()
+        mock_node3 = MagicMock()
+        manager.roots = {FunctionID(1): [mock_node1]}
+        mock_node1.children = {FunctionID(2): [mock_node2]}
+        mock_node2.children = {FunctionID(3): [mock_node3]}
+        manager.shutdown()
+        mock_node1.remove_node_cached_tensors.assert_called_once_with()
+        mock_node2.remove_node_cached_tensors.assert_called_once_with()
+        mock_node3.remove_node_cached_tensors.assert_called_once_with()
+        assert mock_node1.graph is None
+        assert mock_node2.graph is None
+        assert mock_node3.graph is None
+        assert manager.graph is None
+        assert manager.roots is None
+        assert manager.current_node is None
+
+    @patch('torch.npu.synchronize')
+    @patch('torch_npu.npu._graph_tree.NPUGraphNode')
+    def test_record_function(self, mock_node, mock_synchronize):
+        manager = NPUGraphTreeManager(0)
+        manager.ids_to_funcs[FunctionID(1)] = MagicMock()
+        manager.ids_to_stack_traces[FunctionID(1)] = "stack_trace"
+        manager.npu_graphs_thread_pool = "pool_handle"
+        manager.device_index = 0
+        manager.stream = MagicMock()
+        
+        # 设置模拟返回值
+        mock_node_instance = MagicMock()
+        mock_node.return_value = mock_node_instance
+        mock_node_instance.run_first_inputs.return_value = [torch.tensor([1.0])]
+        
+        # 执行测试
+        result = manager.record_function([torch.tensor([1.0])], FunctionID(1))
+        
+        # 验证调用
+        mock_synchronize.assert_any_call()
+        mock_node.assert_called_once_with(
+            manager.ids_to_funcs[FunctionID(1)],
+            ANY,  # graph_id
+            None,  # parent
+            [torch.tensor([1.0])],
+            "pool_handle",
+            0,
+            "stack_trace",
+            manager.stream
+        )
+        assert isinstance(mock_node.call_args[0][1], GraphID)
+        assert manager.current_node == mock_node_instance
+        assert manager.path_state == ExecutionState.RECORDING
+        assert result == [torch.tensor([1.0])]
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.update_generation')
+    def test_execute_node(self, mock_update_gen):
+        manager = NPUGraphTreeManager(0)
+        mock_node = MagicMock()
+        mock_node.run.return_value = [torch.tensor([1.0])]
+        
+        # 执行测试
+        result = manager.execute_node(mock_node, [torch.tensor([1.0])])
+        
+        # 验证调用
+        mock_update_gen.assert_called_once_with()
+        assert manager.current_node == mock_node
+        assert manager.path_state == ExecutionState.EXECUTION
+        assert result == [torch.tensor([1.0])]
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.update_generation')
+    @patch('torch_npu.npu._graph_tree.NPUWarmupNode')
+    def test_run_eager(self, mock_warmup_node, mock_update_gen):
+        manager = NPUGraphTreeManager(0)
+        manager.ids_to_funcs[FunctionID(1)] = MagicMock()
+        manager.ids_to_stack_traces[FunctionID(1)] = "stack_trace"
+        manager.npu_graphs_thread_pool = "pool_handle"
+        manager.graph = MagicMock()
+        manager.device_index = 0
+        manager.stream = MagicMock()
+        
+        # 设置模拟返回值
+        mock_node_instance = MagicMock()
+        mock_warmup_node.return_value = mock_node_instance
+        mock_node_instance.run.return_value = [torch.tensor([1.0])]
+        
+        # 执行测试
+        result = manager.run_eager([torch.tensor([1.0])], FunctionID(1))
+        
+        # 验证调用
+        mock_update_gen.assert_called_once_with()
+        mock_warmup_node.assert_called_once_with(
+            manager.ids_to_funcs[FunctionID(1)],
+            None,
+            "pool_handle",
+            manager.graph,
+            0,
+            "stack_trace",
+            manager.stream,
+            False,
+            GraphID(-1),
+        )
+        assert manager.current_node == mock_node_instance
+        assert manager.path_state == ExecutionState.WARMUP
+        assert result == [torch.tensor([1.0])]
+
+    def test_new_graph_id(self):
+        manager = NPUGraphTreeManager(0)
+        id1 = manager.new_graph_id()
+        id2 = manager.new_graph_id()
+        assert isinstance(id1, GraphID)
+        assert isinstance(id2, GraphID)
+        assert id1 != id2
+
+    def test_new_func_id(self):
+        manager = NPUGraphTreeManager(0)
+        id1 = manager.new_func_id()
+        id2 = manager.new_func_id()
+        assert isinstance(id1, FunctionID)
+        assert isinstance(id2, FunctionID)
+        assert id1 != id2
+
+    def test_in_recording_property(self):
+        manager = NPUGraphTreeManager(0)
+        manager.path_state = ExecutionState.NONE
+        assert manager.in_recording is False
+        manager.path_state = ExecutionState.RECORDING
+        assert manager.in_recording is True
+
+    def test_in_warmup_property(self):
+        manager = NPUGraphTreeManager(0)
+        manager.path_state = ExecutionState.NONE
+        assert manager.in_warmup is False
+        manager.path_state = ExecutionState.WARMUP
+        assert manager.in_warmup is True
+
+    def test_get_roots(self):
+        manager = NPUGraphTreeManager(0)
+        mock_node1 = MagicMock()
+        mock_node2 = MagicMock()
+        manager.roots = {
+            FunctionID(1): [mock_node1],
+            FunctionID(2): [mock_node2]
+        }
+        roots = list(manager.get_roots())
+        assert roots == [mock_node1, mock_node2]
+
+    def test_current_node_property_and_setter(self):
+        manager = NPUGraphTreeManager(0)
+        assert manager.current_node is None
+        assert manager.path_state == ExecutionState.NONE
+        mock_node = MagicMock()
+        manager.current_node = mock_node
+        assert manager.current_node == mock_node
+        assert manager._current_node == mock_node
+        manager.current_node = None
+        assert manager.current_node is None
+        assert manager.path_state == ExecutionState.NONE
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.get_curr_generation')
+    def test_update_generation(self, mock_get_gen):
+        manager = NPUGraphTreeManager(0)
+        mock_get_gen.return_value = 5
+        manager.update_generation()
+        assert manager.current_gen == 5
+        mock_get_gen.assert_called_once_with()
+
+    @patch('torch_npu.npu._graph_tree.MarkStepBox.mark_step_counter', 3)
+    def test_get_curr_generation_mark_step(self):
+        result = NPUGraphTreeManager.get_curr_generation()
+        assert result == 3
+
+    @patch('torch_npu.npu._graph_tree.MarkStepBox.mark_step_counter', 0)
+    @patch('torch_npu.npu._graph_tree.GenerationTracker.generation', 5)
+    def test_get_curr_generation_generation_tracker(self):
+        result = NPUGraphTreeManager.get_curr_generation()
+        assert result == 5
+
+    @patch('torch_npu.npu._graph_tree.MarkStepBox.mark_step_counter', 3)
+    def test_user_invoked_mark_step_true(self):
+        result = NPUGraphTreeManager.user_invoked_mark_step()
+        assert result is True
+
+    @patch('torch_npu.npu._graph_tree.MarkStepBox.mark_step_counter', 0)
+    def test_user_invoked_mark_step_false(self):
+        result = NPUGraphTreeManager.user_invoked_mark_step()
+        assert result is False
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.in_new_torch_compile_invocation')
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.user_invoked_mark_step')
+    def test_can_start_new_generation_true_user_mark_step(
+        self, mock_user_mark_step, mock_in_new_invocation
+    ):
+        manager = NPUGraphTreeManager(0)
+        mock_in_new_invocation.return_value = True
+        mock_user_mark_step.return_value = True
+        result = manager.can_start_new_generation
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.in_new_torch_compile_invocation')
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.user_invoked_mark_step')
+    def test_can_start_new_generation_true_no_pending_backwards(
+        self, mock_user_mark_step, mock_in_new_invocation
+    ):
+        manager = NPUGraphTreeManager(0)
+        manager.running_forwards_with_pending_backwards = False
+        mock_in_new_invocation.return_value = True
+        mock_user_mark_step.return_value = False
+        result = manager.can_start_new_generation()
+        assert result is True
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.in_new_torch_compile_invocation')
+    def test_can_start_new_generation_false_pending_backwards(
+        self, mock_in_new_invocation
+    ):
+        manager = NPUGraphTreeManager(0)
+        manager.running_forwards_with_pending_backwards = True
+        mock_in_new_invocation.return_value = True
+        result = manager.can_start_new_generation()
+        assert result is False
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.in_new_torch_compile_invocation')
+    def test_can_start_new_generation_false_not_new_invocation(
+        self, mock_in_new_invocation
+    ):
+        manager = NPUGraphTreeManager(0)
+        mock_in_new_invocation.return_value = False
+        result = manager.can_start_new_generation()
+        assert result is False
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.get_curr_generation')
+    def test_in_new_torch_compile_invocation_true(self, mock_get_gen):
+        manager = NPUGraphTreeManager(0)
+        manager.current_gen = 1
+        mock_get_gen.return_value = 2
+        result = manager.in_new_torch_compile_invocation()
+        assert result is True
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.get_curr_generation')
+    def test_in_new_torch_compile_invocation_false(self, mock_get_gen):
+        manager = NPUGraphTreeManager(0)
+        manager.current_gen = 1
+        mock_get_gen.return_value = 1
+        result = manager.in_new_torch_compile_invocation()
+        assert result is False
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.in_new_torch_compile_invocation')
+    @patch('warnings.warn')
+    def test_check_warn_on_unable_to_start_executing_no_warn(
+        self, mock_warn, mock_in_new_invocation
+    ):
+        manager = NPUGraphTreeManager(0)
+        mock_in_new_invocation.return_value = False
+        manager.check_warn_on_unable_to_start_executing(FunctionID(1))
+        mock_warn.assert_not_called()
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.in_new_torch_compile_invocation')
+    @patch('warnings.warn')
+    def test_check_warn_on_unable_to_start_executing_already_warned(
+        self, mock_warn, mock_in_new_invocation
+    ):
+        manager = NPUGraphTreeManager(0)
+        manager.warned_functions.add(FunctionID(1))
+        mock_in_new_invocation.return_value = True
+        manager.check_warn_on_unable_to_start_executing(FunctionID(1))
+        mock_warn.assert_not_called()
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.in_new_torch_compile_invocation')
+    @patch('warnings.warn')
+    def test_check_warn_on_unable_to_start_executing_no_repeated_pattern(
+        self, mock_warn, mock_in_new_invocation
+    ):
+        manager = NPUGraphTreeManager(0)
+        mock_in_new_invocation.return_value = True
+        
+        mock_node = MagicMock()
+        mock_node._path_from_root = [MagicMock()]
+        mock_node._path_from_root[0].wrapped_function.id = FunctionID(2)
+        mock_node.wrapped_function.id = FunctionID(1)
+        manager.current_node = mock_node
+        manager.check_warn_on_unable_to_start_executing(FunctionID(1))
+        mock_warn.assert_not_called()
+
+    @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager.in_new_torch_compile_invocation')
+    @patch('warnings.warn')
+    def test_check_warn_on_unable_to_start_executing_warn(
+        self, mock_warn, mock_in_new_invocation
+    ):
+        manager = NPUGraphTreeManager(0)
+        mock_in_new_invocation.return_value = True
+        
+        mock_node1 = MagicMock()
+        mock_node1.wrapped_function.id = FunctionID(1)
+        mock_node1.parent = MagicMock()
+        mock_node1.parent.wrapped_function.id = FunctionID(0)
+        
+        mock_node2 = MagicMock()
+        mock_node2.wrapped_function.id = FunctionID(1)
+        mock_node2.parent = MagicMock()
+        mock_node2.parent.wrapped_function.id = FunctionID(0)
+        
+        mock_current_node = MagicMock()
+        mock_current_node.wrapped_function.id = FunctionID(1)
+        mock_current_node.parent = MagicMock()
+        mock_current_node.parent.wrapped_function.id = FunctionID(0)
+        
+        mock_current_node._path_from_root = [mock_node1, mock_node2]
+        manager.current_node = mock_current_node
+        manager.check_warn_on_unable_to_start_executing(FunctionID(1))
+        mock_warn.assert_called_once_with(
+            "Unable to hit fast path of NPUGraphs because of pending, uninvoked backwards. "
+            "Consider running with torch.no_grad() or using torch.compiler.npugraph_mark_step_begin() "
+            "before each model invocation"
+        )
+        assert FunctionID(1) in manager.warned_functions
 
 
 if __name__ == "__main__":
