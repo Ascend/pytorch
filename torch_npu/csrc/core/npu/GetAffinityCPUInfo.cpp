@@ -9,7 +9,7 @@ static int DcmiInit()
 {
     int ret = c10_npu::dcmi::DcmiInit();
     if (ret != NPU_OK) {
-        TORCH_CHECK(false, "Failed to init dcmi.\n", PTA_ERROR(ErrCode::INTERNAL));
+        TORCH_CHECK(false, "Failed to init dcmi. ", PTA_ERROR(ErrCode::INTERNAL));
     }
     return ret;
 }
@@ -23,7 +23,9 @@ std::string GetAffinityCPUBaseInfo(int card_id)
     int cpu_id = 0;
     ret = c10_npu::dcmi::DcmiGetDeviceIdInCard(card_id, &device_id_max, &mcu_id, &cpu_id);
     if (ret != NPU_OK) {
-        TORCH_CHECK(false, "dcmi get device id in card error code is " + std::to_string(ret), PTA_ERROR(ErrCode::INTERNAL));
+        TORCH_NPU_WARN_ONCE("dcmi_get_device_id_in_card is not supported. "
+                            "The npu_affine configuration of CPU_AFFINITY_CONF will be disabled.");
+        return "";
     }
     device_id = std::max(0, device_id_max - 1);
     char affinity_cpu[TOPO_INFO_MAX_LENTH] = {0};
@@ -32,7 +34,9 @@ std::string GetAffinityCPUBaseInfo(int card_id)
     if (ret == NPU_OK) {
         return affinity_cpu;
     }
-    TORCH_CHECK(false, "dcmi get affinity cpu error code is " + std::to_string(ret), PTA_ERROR(ErrCode::INTERNAL));
+    TORCH_NPU_WARN_ONCE("dcmi_get_affinity_cpu_info_by_device_id is not supported. "
+                        "The npu_affine configuration of CPU_AFFINITY_CONF will be disabled.");
+    return "";
 }
 
 std::unordered_map<int, c10_npu::CoreIdRange> CardIdAffinityCPU;
@@ -63,6 +67,9 @@ void GetExclusiveAffinityCPU()
     std::map<int, std::string> CardIdAffinityCpuDefault;
     for (int i = 0; i < device_count; i++) {
         std::string affinity_cpu = GetAffinityCPUBaseInfo(i);
+        if (affinity_cpu.empty()) {
+            return;
+        }
         CardIdAffinityCpuDefault[i] = affinity_cpu;
         auto it = SameAffinityCpuNum.find(affinity_cpu);
         if (it != SameAffinityCpuNum.end()) {
@@ -96,6 +103,9 @@ void GetExclusiveAffinityCPU()
 c10_npu::CoreIdRange GetAssignAffinityCPU(int card_id)
 {
     GetExclusiveAffinityCPU();
+    if (CardIdAffinityCPU.empty()) {
+        return {0, 0};
+    }
     auto it = CardIdAffinityCPU.find(card_id);
     if (it != CardIdAffinityCPU.end()) {
         return it->second;
