@@ -75,12 +75,12 @@ void parseCPUAffinityConf(uint32_t &mode, std::vector<CoreIdRange> &ranges)
     if (std::regex_search(inputStr, match, pattern)) {
         int isAffinity = std::stoi(match[1].str());
         if (isAffinity != 0) {
-            if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910_9391) {
-                for (int i = 0; i < device_nums; i++) {
-                    ranges[i] = GetAssignAffinityCPU(i);
+            for (int i = 0; i < device_nums; i++) {
+                CoreIdRange getRange = GetAssignAffinityCPU(i);
+                if (getRange.start == 0 && getRange.end == 0) {
+                    break;
                 }
-            } else {
-                TORCH_NPU_WARN_ONCE("The \"npu_affine\" option of the CPU_AFFINITY_CONF is disabled on this soc version.");
+                ranges[i] = getRange;
             }
         }
     }
