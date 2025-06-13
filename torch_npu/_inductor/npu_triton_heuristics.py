@@ -12,6 +12,7 @@ import time
 from itertools import count
 from typing import Any, Callable, List, Optional
 import torch
+from torch._logging import warning_once
 import triton
 from torch._dynamo.utils import dynamo_timed
 from torch._inductor import config
@@ -81,6 +82,40 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         self.exceptions = []
         self.fn_name = None
+
+    @staticmethod
+    def api_accuracy_checker(expected, actual, kernel_name, dump_path):
+        from msprobe.core.common.const import CompareConst
+        from msprobe.pytorch.api_accuracy_checker.compare.compare_utils import BENCHMARK_COMPARE_SUPPORT_LIST
+        from msprobe.pytorch.api_accuracy_checker.triton_adapter.get_compare_result import get_compare_result
+        from msprobe.pytorch.api_accuracy_checker.triton_adapter.precision_compare import precision_compare
+        from msprobe.pytorch.api_accuracy_checker.triton_adapter.common.compare_utils import \
+            convert_compare_column_to_row, print_check_details
+        from msprobe.pytorch.api_accuracy_checker.triton_adapter.precision_standard.triton_standard_register import \
+            exist_in_precision_standard
+
+        dtype = actual.dtype
+
+        # only float use precision standard
+        if exist_in_precision_standard(kernel_name):
+            if str(dtype) in BENCHMARK_COMPARE_SUPPORT_LIST:
+                compare_column = precision_compare(kernel_name, expected, actual, dtype)  # calc metrics
+                compare_row = convert_compare_column_to_row(compare_column, kernel_name)
+                status = get_compare_result(compare_row, kernel_name)  # get compare results
+                if status == CompareConst.ERROR:
+                    log.warning(f'CHECK ACCURACY FAILED! kernel: {kernel_name}, Dump Path: {dump_path}')
+                    print_check_details(compare_column, kernel_name)
+                    actual.copy_(expected)
+                checked_by_msprobe = True
+            else:
+                log.warning(f'The data type {dtype} is not supported for new precision standard. '
+                            f'Check accuracy by tolerance method.')
+                checked_by_msprobe = False
+        else:
+            log.warning(f'kernel_name {kernel_name} does not in new precision standard. '
+                        f'Check accuracy by tolerance method.')
+            checked_by_msprobe = False
+        return checked_by_msprobe
 
     def precompile(self, warm_cache_only=False):
         # xpu_graph changed TORCHINDUCTOR_CACHE_DIR.
@@ -613,24 +648,37 @@ class NPUCachingAutotuner(CachingAutotuner):
             grid=grid,
             stream=stream,
         )
+
+        try:
+            import msprobe
+            has_msprobe = True
+        except ImportError:
+            has_msprobe = False
+            warning_once(log, "msprobe import failed, please check. "
+                              "It may be due to missing dependencies or other factors. "
+                              "Check accuracy by tolerance method.")
         for actual, expected in zip([args[i] for i in call_outputs_indices], fx_args[fx_module.num_inputs:]):
             if actual.dtype != expected.dtype:
                 expected = expected.to(actual.dtype)
-            acc_comp_tol = npu_config.acc_comp_tol.get(actual.dtype, npu_config.acc_comp_tol['default'])
-            rtol = acc_comp_tol['rtol']
-            atol = acc_comp_tol['atol']
+            checked_by_msprobe = False
+            if has_msprobe:
+                checked_by_msprobe = self.api_accuracy_checker(expected, actual, kernel_name, dump_path)
+            if not has_msprobe or not checked_by_msprobe:
+                acc_comp_tol = npu_config.acc_comp_tol.get(actual.dtype, npu_config.acc_comp_tol['default'])
+                rtol = acc_comp_tol['rtol']
+                atol = acc_comp_tol['atol']
 
-            matches = torch.isclose(
-                actual, expected, rtol=rtol, atol=atol, equal_nan=False
-            )
-            if not matches.all():
-                abs_diff = torch.abs(actual - expected)
-                rel_diff = abs_diff / torch.abs(expected)
-                rel_diff.masked_fill_(matches, 0)
-                log.warning(f"CHECK ACCURACY FAILED! Greatest Relative Difference: {rel_diff.max().item()}, Kernel Name: {kernel_name}")
-                log.warning(f"kernel {kernel_name} Dump Path: {dump_path}")
-                actual.copy_(expected)
-            del matches
+                matches = torch.isclose(
+                    actual, expected, rtol=rtol, atol=atol, equal_nan=False
+                )
+                if not matches.all():
+                    abs_diff = torch.abs(actual - expected)
+                    rel_diff = abs_diff / torch.abs(expected)
+                    rel_diff.masked_fill_(matches, 0)
+                    log.warning(f"CHECK ACCURACY FAILED! Greatest Relative Difference: {rel_diff.max().item()}, "
+                                f"Kernel Name: {kernel_name}, Dump Path: {dump_path}")
+                    actual.copy_(expected)
+                del matches
         for arg in fx_args:
             del arg
         return True
