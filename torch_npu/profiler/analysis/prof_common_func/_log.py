@@ -34,7 +34,6 @@ class ProfilerLogger:
     BACKUP_COUNT = 3
     # logger instance
     _instance = None
-    _pid = None
 
     @classmethod
     def get_instance(cls) -> logging.Logger:
@@ -55,9 +54,7 @@ class ProfilerLogger:
             RuntimeError: If logger initialization fails
         """
         if cls._instance is not None:
-            if cls._pid == os.getpid():
-                return
-            cls.destroy()
+            return
 
         # Create logs directory
         log_dir = os.path.join(output_dir, cls.DEFAULT_LOG_DIR)
@@ -92,7 +89,6 @@ class ProfilerLogger:
         logger.addHandler(file_handler)
 
         cls._instance = logger
-        cls._pid = os.getpid()
         logger.info("Profiler logger initialized at: %s", log_file)
 
     @classmethod
