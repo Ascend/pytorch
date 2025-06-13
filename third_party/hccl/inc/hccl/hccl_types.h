@@ -13,20 +13,16 @@
 extern "C" {
 #endif // __cplusplus
 
-const uint32_t HCCL_ROOT_INFO_BYTES =  4108; // 4108: root info length
-const uint32_t COMM_NAME_MAX_LENGTH = 128; // group name max length
-const uint32_t UDI_MAX_LENGTH = 128; // UDI max length
-
 const uint32_t HCCL_COMM_CONFIG_INFO_BYTES = 24;
 const uint32_t HCCL_COMM_CONFIG_MAGIC_WORD = 0xf0f0f0f0;
 const uint32_t HCCL_COMM_CONFIG_VERSION = 5;
-const uint32_t HCCL_COMM_DEFAULT_BUFFSIZE = 200;
-const uint32_t HCCL_COMM_BUFFSIZE_CONFIG_NOT_SET = 0xffffffff;
-const uint32_t HCCL_COMM_DETERMINISTIC_CONFIG_NOT_SET = 0xffffffff;
-const uint32_t HCCL_COMM_DEFAULT_OP_EXPANSION_MODE = 0;
-// 0xffffffff表示用户未配置TC或SL
+const uint32_t HCCL_COMM_DEFAULT_BUFFSIZE = 200;                // 200MB buffer size
+const uint32_t HCCL_COMM_DEFAULT_DETERMINISTIC = 0;             // Disable deterministic calculations
+const uint32_t COMM_NAME_MAX_LENGTH = 128;
+const uint32_t UDI_MAX_LENGTH = 128;
 const uint32_t HCCL_COMM_TRAFFIC_CLASS_CONFIG_NOT_SET = 0xffffffff;
 const uint32_t HCCL_COMM_SERVICE_LEVEL_CONFIG_NOT_SET = 0xffffffff;
+const uint32_t HCCL_COMM_DEFAULT_OP_EXPANSION_MODE = 0;
 
 /**
  * @brief HCCL functions return value definition
@@ -91,6 +87,8 @@ typedef enum {
     HCCL_DATA_TYPE_BFP16 = 11,  /**< bfp16 */
     HCCL_DATA_TYPE_RESERVED     /**< reserved */
 } HcclDataType;
+
+const uint32_t HCCL_ROOT_INFO_BYTES =  4108; // 4108: root info length
 
 /**
  * @brief HCCL root info
