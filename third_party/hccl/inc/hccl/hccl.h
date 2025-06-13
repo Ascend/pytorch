@@ -206,7 +206,7 @@ inline void HcclCommConfigInit(HcclCommConfig *config)
     info->reserved = 0;
 
     config->hcclBufferSize = HCCL_COMM_DEFAULT_BUFFSIZE;
-    config->hcclDeterministic = HCCL_COMM_DETERMINISTIC_CONFIG_NOT_SET;
+    config->hcclDeterministic = HCCL_COMM_DEFAULT_DETERMINISTIC;
     config->hcclCommName[0] = '\0';
     config->hcclUdi[0] = '\0';
     config->hcclRdmaTrafficClass = HCCL_COMM_TRAFFIC_CLASS_CONFIG_NOT_SET;
