@@ -77,7 +77,7 @@ class KernelViewParser(BaseParser):
                 return
             step_range = FwkCANNRelationParser(self._profiler_path).get_step_range(torch_op_node[0], kernel_dict)
             if not step_range:
-                self.logger.error("Kernel view get step range failed, the step range is empty.")
+                self.logger.warning("Kernel view get step range failed, the step range is empty.")
             for step_data in step_range:
                 step_id = step_data.get(Constant.STEP_ID)
                 step_start = convert_ns2us_str(step_data.get(Constant.START_TS, 0))
