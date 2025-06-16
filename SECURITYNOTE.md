@@ -51,7 +51,7 @@ torch_npu内集成性能分析工具profiler：
 
 ## 数据安全声明
 
-1. PyTorch使用过程中需要加载和保存数据，部分接口使用风险模块pickle，可能存在数据风险，如torch.load、torch.distributed.scatter_object_list等接口，可参考[torch.load](https://pytorch.org/docs/main/generated/torch.load.html#torch.load)、[collective-functions](https://pytorch.org/docs/main/distributed.html#collective-functions)了解具体风险。
+1. PyTorch使用过程中需要加载和保存数据，部分接口使用风险模块pickle，可能存在数据风险，如torch.load、torch.jit.load、torch.distributed.scatter_object_list等接口，可参考[torch.load](https://pytorch.org/docs/main/generated/torch.load.html#torch.load)、[collective-functions](https://pytorch.org/docs/main/distributed.html#collective-functions)了解具体风险。
 2. Ascend Extension for PyTorch依赖CANN的基础能力实现AOE性能调优、算子dump、日志记录等功能，用户需要关注上述功能生成文件的权限控制，加强对相关数据的保护。
 
 ## 构建安全声明
