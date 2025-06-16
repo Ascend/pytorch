@@ -80,7 +80,7 @@ from torch.utils._sympy.functions import (
     ModularIndexing,
 )
 from .config import log
-
+from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
 
 aten = torch.ops.aten
 tr_c10d = torch.ops.tr_c10d
@@ -97,105 +97,11 @@ def _init_set(input_list, output_set):
                 output_set.add(other_fn)
 
 
-GENERATE_LIST = [
-    aten.mul,
-    aten.add,
-    aten.sub,
-    aten.div,
-    aten.exp,
-    aten.maximum,
-    aten.sum,
-    aten.select,
-    aten.unsqueeze,
-    aten.repeat,
-    # aten.clone,
-    aten.reshape,
-    aten.where,
-    aten.lt,
-    aten.minimum,
-    aten.gt,
-    aten.le,
-    aten.ceil,
-    aten.floor,
-    aten.rsqrt,
-    aten.abs,
-    aten.log,
-    aten.bitwise_xor,
-    aten.amax,
-    # backward
-    prims.convert_element_type,
-    aten.min,
-    aten.max,
-    aten.erf,
-    aten.argmax,
-    aten.argmin,
-    aten.clamp_min,
-    aten.slice,
-    aten.neg,
-    aten.cat,
-    aten.arange,
-    aten.expand,
-    aten.eq,
-    aten.where,
-    aten.scalar_tensor,
-    aten.ge,
-    aten.permute,
-    aten.sqrt,
-    aten.relu,
-    aten.clamp,
-    aten.clamp_max,
-    aten.mean,
-    # npu.npu_dtype_cast
-    npu.npu_dtype_cast,
-    aten.select_scatter,
-    aten.slice_scatter,
-    prims.broadcast_in_dim,
-    prims.maximum,
-    aten.ne,
-    aten.sigmoid,
-    aten.sign,
-    aten.logical_and,
-    aten.logical_or,
-    aten.logical_not,
-    aten.pow,
-    aten.gelu,
-    aten.tanh,
-    aten.isnan,
-    aten.bitwise_and,
-    aten.squeeze,
-    aten.copy,
-    aten.reciprocal
-]
-
-GENERATE_LIST2 = [
-    "foreach"
-]
-
-FALLBACK_LIST = []
-
-# 先删除从lowering已经注册的op，再更新，不然会lowering的时候找到在torch注册的op
-LOWERING_OVERLOAD_OP = [
-    aten.cumsum,
-    aten.mean,
-    # aten.max,
-    # aten.min,
-    # aten.mul,
-    aten.var_mean,
-    aten.var,
-
-    aten.embedding,
-    aten.split,
-    aten.split_with_sizes,
-    aten.nll_loss_forward,
-    aten.gather,
-    aten.cat,
-    aten.clone
-]
-
 LOWERING_OVERLOAD_OP = list(set(GENERATE_LIST) | set(LOWERING_OVERLOAD_OP))
 
 fn_to_aten_fn = {}
 node_id = itertools.count(0)
+snodes_to_fx = {}
 
 
 def register_fn_to_aten_fn(fn, aten_fn=None):
@@ -466,6 +372,18 @@ def get_last_node(gm: torch.fx.GraphModule):
     return last_node
 
 
+def tensor_info(tensor):
+    if isinstance(tensor, (list, tuple)):
+        infos = ", ".join(tensor_info(t) for t in tensor)
+        return f"[{infos}]"
+    if not isinstance(tensor, torch.Tensor):
+        return str(tensor)
+    info = str(tensor)
+    info = info[:-1]
+    info += f", strides={tensor.stride()})"
+    return info
+
+
 def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode]):
     fx_call_inputs = []
     try:
@@ -531,6 +449,7 @@ def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode])
         if not V.graph.try_get_buffer(call_output).layout.is_contiguous()
     ]
     fx_args = fx_inputs + fx_outputs
+    snodes_to_fx[str(snodes)] = f"{gm}\n inputs: {tensor_info(fx_inputs)}\n outputs: {tensor_info(fx_outputs)}\n"
 
     return gm, fx_call_args, fx_args, {
         "num_inputs": num_inputs,

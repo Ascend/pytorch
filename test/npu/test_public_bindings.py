@@ -580,6 +580,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.fx_passes.joint_graph",
             "torch_npu._inductor.ir",
             "torch_npu._inductor.graph",
+            "torch_npu._inductor.lowering_op_list"
         }
 
         # No new entries should be added to this list.

@@ -246,6 +246,18 @@ class NPUTritonScheduling(TritonScheduling):
             metadata_comment = f"# kernel path: {kernel_path}"
             origins, detailed_origins = get_kernel_metadata(node_schedule, wrapper)
             metadata_comment += "\n" + origins + "\n" + detailed_origins
+            # Extra debug message for npu.
+            snode_str = ""
+            snodes = [node for node in node_schedule if node not in (DisableReduction, EnableReduction)]
+            snode_str = f"\n# SchedulerNodes: {snodes}"
+            metadata_comment += snode_str + "\n"
+            if npu_config.dump_fx_graph:
+                from ..lowering_fx import snodes_to_fx
+                gm = snodes_to_fx.get(str(snodes), "")
+                gm_str = "\n# Graph Module str:\n"
+                gm_str += "\n".join([f"# {line}" for line in gm.split("\n")])
+                metadata_comment += gm_str + "\n"
+
             wrapper.define_kernel(
                 kernel_name, compile_wrapper.getvalue(), metadata_comment
             )
