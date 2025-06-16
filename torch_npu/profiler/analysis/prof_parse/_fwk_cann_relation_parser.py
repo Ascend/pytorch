@@ -61,7 +61,7 @@ class FwkCANNRelationParser:
         # Get ProfilerStep#x node
         step_node_list = [node for node in root_node.child_node_list if node.is_profiler_step()]
         if not step_node_list:
-            self.logger.error("Get step range failed, the step node list is empty.")
+            self.logger.warning("Get step range failed, the step node list is empty.")
             return []
         
         # Gather flow events start time in each step node
