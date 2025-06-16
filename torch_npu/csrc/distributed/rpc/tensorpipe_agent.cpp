@@ -633,7 +633,7 @@ void TensorPipeAgent::respond(std::shared_ptr<tensorpipe_npu::Pipe> &pipe)
     pipeRead(pipe, [this, pipe](const tensorpipe_npu::Error &error, c10::intrusive_ptr<Message> requestMessage,
                                 std::vector<c10::Stream> streams) mutable {
         if (error) {
-            if (shuttingDown_) {
+            if (shuttingDown_.load()) {
                 // This is expected.
             } else {
                 LOG(WARNING) << "RPC agent for " << workerInfo_.name_
