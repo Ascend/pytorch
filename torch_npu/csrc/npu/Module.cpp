@@ -960,6 +960,7 @@ PyObject* THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
     result["reserved_bytes"] = statArrayToDict(stats.reserved_bytes);
     result["active_bytes"] = statArrayToDict(stats.active_bytes);
     result["inactive_split_bytes"] = statArrayToDict(stats.inactive_split_bytes);
+    result["requested_bytes"] = statArrayToDict(stats.requested_bytes);
     result["oversize_allocations"] = statToDict(stats.oversize_allocations);
     result["oversize_segments"] = statToDict(stats.oversize_segments);
 
