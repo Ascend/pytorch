@@ -368,8 +368,8 @@ def _ddp_init_helper(
 def _mpdl_iter_init(self, *args, **kwargs):
     try:
         torch_npu.npu.synchronize()
-    except:
-        pass
+    except Exception as e:
+        print(e)
     origin_mpdl_iter_init(self, *args, **kwargs)
 
 
