@@ -2177,12 +2177,15 @@ void ProcessGroupHCCL::createHCCLComm(
                     config = createHcclCommConfigWithOptions();
                     hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
                 }
+                hcclComms[i]->hcclCommType = static_cast<int>(HcclCommType::DEFAULT);
                 break;
             case HcclCommType::P2P: // P2P not support set hcclCommName
                 numRanks = 2;
                 rank = p2pRank;
                 getHcclCommConfig(&config, true);
                 hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
+                hcclComms[i]->hcclCommType = static_cast<int>(HcclCommType::P2P);
+                hcclComms[i]->p2pPeer = getP2pPeer();
                 break;
             default:
                 throw std::runtime_error(
