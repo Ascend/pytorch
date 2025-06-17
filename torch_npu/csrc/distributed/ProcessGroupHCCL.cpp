@@ -2186,6 +2186,7 @@ void ProcessGroupHCCL::createHCCLComm(
                 getHcclCommConfig(&config, true);
                 hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
                 hcclComms[i]->hcclCommType = static_cast<int>(HcclCommType::P2P);
+                hcclComms[i]->p2pPeer = getP2pPeer();
                 break;
             default:
                 throw std::runtime_error(
