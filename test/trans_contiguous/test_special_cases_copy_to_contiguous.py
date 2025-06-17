@@ -38,6 +38,14 @@ class TestSpecialCasesCopyToContiguous(TestCase):
             npu_out = torch.as_strided(npu_input, (1, 32, 96, 96), (746496, 0, 96, 1), 737280).clone()
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())
 
+    def test_h2d_copy_discontiguous(self):
+        a = torch.randn(256, 320)
+        b = a.transpose(-1, -2) # make b NOT contiguous
+        self.assertFalse(b.is_contiguous())
+        b = b.npu()
+        self.assertFalse(b.is_contiguous()) # after to npu, b is still NOT contiguous
+        self.assertEqual(b.stride(), (1, 320))
+
 
 if __name__ == "__main__":
     run_tests()

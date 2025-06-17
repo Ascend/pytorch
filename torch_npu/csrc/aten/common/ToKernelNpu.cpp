@@ -97,7 +97,12 @@ at::Tensor NPUNativeFunctions::_to_copy(
             "Only contiguous_format or preserve_format is supported.", OPS_ERROR(ErrCode::NOT_SUPPORT));
         options = options.memory_format(optional_memory_format.value());
     } else {
-        options = options.memory_format(c10::MemoryFormat::Contiguous);
+        if (torch_npu::utils::is_npu(self)) {
+            options = options.memory_format(c10::MemoryFormat::Contiguous);
+        } else {
+            // keep the same as cpu default memory format: Preserve
+            options = options.memory_format(c10::MemoryFormat::Preserve);
+        }
     }
     TORCH_CHECK(
         options.requires_grad_opt() == c10::nullopt,
