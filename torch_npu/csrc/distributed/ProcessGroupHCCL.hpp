@@ -936,7 +936,9 @@ protected:
 
     StatusStruct StatusInfo;
 
-    void refreshStatusInfo(ProcessGroupHCCL::WorkHCCL work, std::string status);
+    bool refreshStatusInfo(ProcessGroupHCCL::WorkHCCL work, std::string status);
+
+    bool is_refreshed = false;
 
     static std::unordered_map<std::string, StatusStruct> StatusOutput_;
 
