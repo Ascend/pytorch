@@ -57,7 +57,7 @@ namespace c10d_npu {
 namespace {
 static constexpr uint32_t kOpWaitTimeoutOffset = 30U; // second
 static uint32_t kOpWaitTimeout = 1868U; // second
-static int32_t defaultExecTimeout = 1800;
+static int32_t defaultExecTimeout = 1836;
 constexpr const char* P2P_DEVICE_KEY = "_p2p";
 
 using hcclUs = std::chrono::steady_clock::time_point;
@@ -721,7 +721,7 @@ bool ProcessGroupHCCL::WorkHCCL::checkExec()
 
     static int32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
     if (hccl_exec_timeout <= 0) {
-        hccl_exec_timeout = 1800;
+        hccl_exec_timeout = defaultExecTimeout;
     }
     int32_t timeout = std::max(60, hccl_exec_timeout - 60);
     auto currentTimepoint = std::chrono::steady_clock::now();
@@ -904,30 +904,23 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     this->setGroupName(groupName);
     int32_t hccl_event_timeout = c10_npu::option::OptionsManager::GetHCCLEventTimeout();
     int32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
+    if (hccl_exec_timeout < 0) {
+        hccl_exec_timeout = defaultExecTimeout;
+    }
+
     if (hccl_event_timeout > 0) {
-        if (hccl_exec_timeout < 0) {
-            if (hccl_event_timeout < defaultExecTimeout) {
-                TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than the default value of HCCL_EXEC_TIMEOUT:", defaultExecTimeout, ".");
-            }
-            kOpWaitTimeout = static_cast<uint32_t>(hccl_event_timeout);
+        kOpWaitTimeout = static_cast<uint32_t>(hccl_event_timeout);
+        if (hccl_event_timeout <= hccl_exec_timeout) {
+            TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than or equal to the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ".");
         } else if (hccl_exec_timeout == 0) {
-            kOpWaitTimeout = 0;
-            TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ", so set op wait timeout to never timeout.");
-        } else {
-            kOpWaitTimeout = static_cast<uint32_t>(hccl_event_timeout);
-            if (hccl_event_timeout < hccl_exec_timeout) {
-                TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ".");
-            }
+            TORCH_NPU_WARN_ONCE("The value of HCCL_EXEC_TIMEOUT was set to 0(never timeout), so it is bigger than the value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, ".");
         }
-    }
-    if (hccl_event_timeout == 0) {
+    } else if (hccl_event_timeout == 0) {
         kOpWaitTimeout = 0;
-    }
-    if (hccl_event_timeout < 0) {
+    } else {
         if (hccl_exec_timeout == 0) {
             kOpWaitTimeout = 0;
-        }
-        if (hccl_exec_timeout > 0 && static_cast<uint32_t>(hccl_exec_timeout) > kOpWaitTimeout) {
+        } else {
             kOpWaitTimeout = static_cast<uint32_t>(hccl_exec_timeout) + kOpWaitTimeoutOffset;
             if (kOpWaitTimeout <= static_cast<uint32_t>(hccl_exec_timeout)) {
                 kOpWaitTimeout = UINT_MAX;
@@ -994,22 +987,23 @@ ProcessGroupHCCL::ProcessGroupHCCL(
 
 #ifdef ENABLE_HCCL_ERROR_CHECKING
     if (asyncErrorHandling_ == TearDown) {
-        if (hccl_exec_timeout > 0) {
-            if ((hccl_exec_timeout * 1000) > (options_->timeout).count()) {
-                TORCH_NPU_WARN("The HCCL execution timeout ", hccl_exec_timeout * 1000, "ms is bigger than watchdog timeout ",
-                    (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded.");
+        if ((options_->timeout).count() != DEFAULT_TIMEOUT) {
+            if ((options_->timeout).count() <= hccl_exec_timeout * 1000) {
+                TORCH_NPU_WARN("The watchdog timeout ", (options_->timeout).count(), "ms(which is set by init_process_group) is less than or equal to HCCL execution timeout ",
+                    hccl_exec_timeout * 1000, "ms! The plog may not be recorded.");
+            } else if (hccl_exec_timeout == 0) {
+                TORCH_NPU_WARN("The HCCL execution timeout was set to 0(never timeout), so it is bigger than watchdog timeout ",
+                    (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded. You can disable watchdog by 'export HCCL_ASYNC_ERROR_HANDLING=0'.");
             }
-        } else if (hccl_exec_timeout == 0) {
-            TORCH_NPU_WARN("The HCCL execution timeout was set to never timeout, so it is bigger than watchdog timeout ",
-                (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded. You can disable watchdog by 'export HCCL_ASYNC_ERROR_HANDLING=0'.");
         } else {
-            if ((options_->timeout).count() == DEFAULT_TIMEOUT) {
-                // Only when the timeout is default, we will change it.
-                options_->timeout = std::chrono::milliseconds(DEFAULT_TIMEOUT * 2);
-            }
-            if ((options_->timeout).count() < DEFAULT_TIMEOUT) {
-                TORCH_NPU_WARN("The HCCL execution timeout 1800000ms is bigger than watchdog timeout ",
-                    (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded.");
+            if (hccl_exec_timeout == 0) {
+                options_->timeout = std::chrono::milliseconds(LLONG_MAX);
+            } else {
+                long long watchdog_timeout = (static_cast<long long>(hccl_exec_timeout) + 1800) * 1000;
+                if (watchdog_timeout <= static_cast<long long>(hccl_exec_timeout) * 1000) {
+                    watchdog_timeout = LLONG_MAX;
+                }
+                options_->timeout = std::chrono::milliseconds(watchdog_timeout);
             }
         }
     }

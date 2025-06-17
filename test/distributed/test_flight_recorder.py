@@ -147,7 +147,7 @@ class HCCLTraceTest(HCCLTraceTestBase):
             self.assertEqual(last["output_dtypes"], ["Float"])
             self.assertEqual(last["collective_seq_id"], 2)
             # HCCL_EXEC_TIMEOUT will impact watchdog timeout
-            self.assertEqual(last["timeout_ms"], 3600000)
+            self.assertEqual(last["timeout_ms"], 3636000)
             now = datetime.now()
             event_created_time = datetime.fromtimestamp(
                 last["time_created_ns"] / 1000000000
@@ -290,7 +290,7 @@ class HCCLTraceTest(HCCLTraceTestBase):
         self.assertEqual(last["output_sizes"], ((3, 4),))
         self.assertEqual(last["output_dtypes"], ["Float"])
         # timeout_ms adapt to npu
-        self.assertEqual(last["timeout_ms"], 3600000)
+        self.assertEqual(last["timeout_ms"], 3636000)
         self.assertEqual(last["collective_seq_id"] - first["collective_seq_id"], 9)
         dist.destroy_process_group()
 
