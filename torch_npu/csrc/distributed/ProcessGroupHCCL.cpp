@@ -1830,7 +1830,7 @@ void ProcessGroupHCCL::workCleanupLoop()
                     work.is_reported = false;
                 }
                 if (status_save_enable) {
-                    refreshStatusInfo(work, "end"); // Update Statusinfo，but not write into the map
+                    is_refreshed = refreshStatusInfo(work, "end"); // Update Statusinfo，but not write into the map
                 }
                 pgStatus_->lastCompletedSeq = static_cast<int64_t>(work.seq_);
                 pgStatus_->lastCompletedWorkName = opTypeToString(work.opType_);
@@ -1841,7 +1841,7 @@ void ProcessGroupHCCL::workCleanupLoop()
                 c10_npu::NPUGraph::dec_pending_event_queries();
             } else {
                 if (status_save_enable && work.isStarted()) {
-                    refreshStatusInfo(work, "start"); // Update Statusinfo，but not write into the map
+                    is_refreshed = refreshStatusInfo(work, "start"); // Update Statusinfo，but not write into the map
                 }
                 // Increment the iterator if the current WorkHCCL object is not
                 // completed.
@@ -1852,6 +1852,10 @@ void ProcessGroupHCCL::workCleanupLoop()
             // in case processing is slowed down (but not hung) by cuda api contention
             heartbeat_++;
         }
+        }
+
+        if (status_save_enable && is_refreshed) {
+            updateStatusOutput();
         }
 
         if (recordflag && recordHcclStatus(status_save_path)) {
@@ -2000,8 +2004,11 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
     outfile.close();
 }
 
-void ProcessGroupHCCL::refreshStatusInfo(ProcessGroupHCCL::WorkHCCL work, std::string status)
+bool ProcessGroupHCCL::refreshStatusInfo(ProcessGroupHCCL::WorkHCCL work, std::string status)
 {
+    if (StatusInfo.seq == work.seq_ && StatusInfo.status == status) {
+        return false;
+    }
     StatusInfo.seq = work.seq_;
     StatusInfo.pgId = options_->group_id;
     StatusInfo.opType = opTypeToString(work.opType_);
@@ -2014,19 +2021,21 @@ void ProcessGroupHCCL::refreshStatusInfo(ProcessGroupHCCL::WorkHCCL work, std::s
         StatusInfo.commIds = "all";
     }
     StatusInfo.status = status;
+    return true;
 }
 
 void ProcessGroupHCCL::updateStatusOutput()
 {
+    std::unique_lock<std::mutex> lock(StatusMapmutex_);
     if (!StatusInfo.pgId.empty()) {
         StatusOutput_[options_->group_id] = StatusInfo;
     }
+    is_refreshed = false;
 }
 
 bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool error)
 {
     std::unique_lock<std::mutex> lock(StatusMapmutex_);
-    updateStatusOutput();
     if (!options_->global_ranks_in_group.empty() && !error) {
         return true;
     } else if (!StatusOutput_.empty()) {
