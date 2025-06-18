@@ -18,13 +18,13 @@ Install **PyTorch** through pip.
 
 **For Aarch64:**
 
-```Python
+```bash
 pip3 install torch==2.5.1
 ```
 
 **For x86:**
 
-```Python
+```bash
 pip3 install torch==2.5.1+cpu  --index-url https://download.pytorch.org/whl/cpu
 ```
 
@@ -32,7 +32,7 @@ pip3 install torch==2.5.1+cpu  --index-url https://download.pytorch.org/whl/cpu
 
 Run the following command to install dependencies.
 
-```Python
+```bash
 pip3 install pyyaml
 pip3 install setuptools
 ```
@@ -50,7 +50,7 @@ If the installation fails, use the download link or visit the [PyTorch official 
 
 3. **Install torch-npu**
 
-```
+```bash
 pip3 install torch-npu==2.5.1
 ```
 
@@ -129,7 +129,7 @@ print(z)
 
 ## User Manual
 
-Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for more detailed informations.
+Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for more detailed information.
 
 ## PyTorch and Python Version Matching Table
 
