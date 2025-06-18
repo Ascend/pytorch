@@ -7,6 +7,7 @@ import multiprocessing
 import fcntl
 import pickle
 import signal
+import stat
 from enum import Enum
 from abc import ABC, abstractmethod
 from torch_npu.utils._error_code import ErrCode, prof_error
@@ -287,9 +288,19 @@ class ConcurrentTasksManager:
         if self.epoll is None:
             self.epoll = select.epoll()
         pr, pipe_write = os.pipe()
-        # 读管道设为非阻塞
-        flags = fcntl.fcntl(pr, fcntl.F_GETFL)
-        fcntl.fcntl(pr, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+        try:
+            # 设置读管道为非阻塞并限制权限
+            flags = fcntl.fcntl(pr, fcntl.F_GETFL)
+            fcntl.fcntl(pr, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+            # 设置管道文件描述符权限（只允许当前用户访问）
+            os.fchmod(pr, stat.S_IRUSR | stat.S_IWUSR)
+            os.fchmod(pipe_write, stat.S_IRUSR | stat.S_IWUSR)
+        except (OSError, AttributeError):
+            flags = fcntl.fcntl(pr, fcntl.F_GETFL)
+            fcntl.fcntl(pr, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
         task_info.pipe = (pr, pipe_write)
         self.epoll.register(pr, select.EPOLLIN | select.EPOLLET | select.EPOLLERR | select.EPOLLHUP)
         self.listening_infos[pr] = task_info
