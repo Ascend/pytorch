@@ -553,9 +553,9 @@ def make_graphed_callables(
             @staticmethod
             @torch.autograd.function.once_differentiable
             def backward(ctx, *grads):
-                if (len(grads) != len(static_grad_inputs)):
+                if (len(grads) != len(static_grad_outputs)):
                     raise RuntimeError("The length of grads"
-                        + " is not equal with the length of static_grad_inputs.")
+                        + " is not equal with the length of static_grad_outputs.")
                 for g, grad in zip(static_grad_outputs, grads):
                     if g is not None:
                         # don't copy if autograd gods have been kind and the
