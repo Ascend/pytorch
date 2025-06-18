@@ -51,7 +51,7 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode)
     int deviceIndex = -1;
     c10_npu::GetDevice(&deviceIndex);
     auto rank_id = c10_npu::option::OptionsManager::GetRankId();
-    if (c10_npu::option::OptionsManager::ShouldPrintLessError()) {
+    if (!(c10_npu::option::OptionsManager::ShouldPrintLessError())) {
     oss << "\n[ERROR] " << getCurrentTimestamp() << " (PID:" << getpid() << ", Device:" << deviceIndex << ", RankID:" << rank_id << ") ";
     }
     oss << "ERR" << std::setw(2) << std::setfill('0') << static_cast<int>(submodule);
@@ -112,6 +112,11 @@ void clear_mem_uce_info()
 
 const std::string c10_npu_check_error_message(std::string& errmsg)
 {
+    static const std::regex errorRegex(R"(^E[1-9A-Z]9999)");
+    if (std::regex_search(errmsg, errorRegex)) {
+        return "CANN Inner Error. Please rectify the fault based on the error information in the ascend log.";
+    }
+
     std::regex dateRegex(R"(\d{4}-\d{2}-\d{2}-\d{2}:\d{2}:\d{2}\.\d{3}\.\d{3})");
     std::smatch match;
 
