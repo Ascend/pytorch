@@ -20,7 +20,7 @@ export TORCH_HCCL_DEBUG_INFO_TEMP_FILE=/tmp/  #保存诊断信息的文件路径
 ## 2 工具使用方法
 
 ```
-bash python fr_trace.py <trace_dir> [options]
+python fr_trace.py <trace_dir> [options]
 ```
 
 ## 3 入参说明
@@ -39,5 +39,5 @@ bash python fr_trace.py <trace_dir> [options]
 ## 使用示例
 
 ```bash
-python script.py trace_dir --selected-ranks 0 1 2 --allow-incomplete-ranks --pg-filters pg1 pg2 -o output.txt -p prefix_ -j -v
+python script.py trace_dir --selected-ranks 0 1 2 --allow-incomplete-ranks --pg-filters pg1 pg2 -o output.pkl -p prefix_ -j -v
 ```
