@@ -18,13 +18,13 @@
 
 **aarch64:**
 
-```Python
+```bash
 pip3 install torch==2.1.0
 ```
 
 **x86:**
 
-```Python
+```bash
 pip3 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
 ```
 
@@ -45,14 +45,14 @@ pip3 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
 
 运行以下命令安装依赖。
 
-```Python
+```bash
 pip3 install pyyaml
 pip3 install setuptools
 ```
 
 3. **安装torch_npu**
 
-```
+```bash
 pip3 install torch-npu==2.1.0.post12
 ```
 如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
@@ -110,7 +110,7 @@ Pytorch框架训练环境的卸载可以参考[昇腾官方文档](https://www.h
 
 torch_npu的卸载只需执行命令：
 
-  ```
+  ```bash
   pip3 uninstall torch_npu
   ```
 
