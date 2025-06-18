@@ -157,6 +157,8 @@ public:
                 stats.allocated_bytes.current,
                 reinterpret_cast<int64_t>(stream)}
             );
+            this->last_block = block;
+            this->last_stream = stream;
             const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
             if (C10_UNLIKELY(trigger)) {
                 trigger->traceNpuMemoryAllocation(
@@ -181,6 +183,8 @@ public:
             stats.allocated_bytes.current,
             reinterpret_cast<int64_t>(stream)}
         );
+        this->last_block = block;
+        this->last_stream = stream;
 #endif
         return block->data_ptr;
     }
@@ -189,22 +193,20 @@ public:
     {
         update_stat(stats.allocated_bytes, -allocated_size);
 #ifndef BUILD_LIBTORCH
-        for (const auto& block_pair : blocks) {
-            if (block_pair.second->data_ptr != nullptr) {
-                torch_npu::profiler::reportMemoryDataToNpuProfiler({
-                    static_cast<int8_t>(c10::DeviceType::PrivateUse1),
-                    device,
-                    static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
-                    static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
-                    static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
-                    reinterpret_cast<int64_t>(block_pair.second->data_ptr),
-                    -allocated_size,
-                    stats.allocated_bytes.current,
-                    stats.reserved_bytes.current,
-                    stats.allocated_bytes.current,
-                    reinterpret_cast<int64_t>(block_pair.first)}
-                );
-            }
+        if (this->last_block && this->last_block->data_ptr && this->last_stream) {
+            torch_npu::profiler::reportMemoryDataToNpuProfiler({
+                static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+                device,
+                static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
+                static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+                static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+                reinterpret_cast<int64_t>(this->last_block->data_ptr),
+                -allocated_size,
+                stats.allocated_bytes.current,
+                stats.reserved_bytes.current,
+                stats.allocated_bytes.current,
+                reinterpret_cast<int64_t>(this->last_stream)}
+            );
         }
 #endif
     }
@@ -379,6 +381,8 @@ private:
 #ifndef BUILD_LIBTORCH
     uint64_t sum_mem = 0;
     int device = 0;
+    aclrtStream last_stream = nullptr;
+    WorkspaceBlock* last_block = nullptr;
 #endif
     DeviceStats stats;
     size_t allocated_size = 0;

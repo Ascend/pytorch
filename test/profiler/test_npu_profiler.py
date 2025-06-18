@@ -187,6 +187,23 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_MEMORY))
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.MEMORY_RECORD))
 
+    def test_memory_when_workspace(self):
+        original_value = os.environ.get("TASK_QUEUE_ENABLE")
+        os.environ["TASK_QUEUE_ENABLE"] = "2"
+        worker_name = self.worker_name
+        with torch_npu.profiler.profile(
+                profile_memory=True,
+                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+        ) as prof:
+            for _ in range(self.small_steps):
+                self.model_train.train_one_step()
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_MEMORY))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.MEMORY_RECORD))
+        if original_value is None:
+            del os.environ["TASK_QUEUE_ENABLE"]
+        else:
+            os.environ["TASK_QUEUE_ENABLE"] = original_value
+
     def test_ascend_work_path(self):
         PathManager.remove_path_safety(self.results_work_path)
         os.environ["ASCEND_WORK_PATH"] = self.results_work_path
