@@ -1260,8 +1260,7 @@ public:
 
         if (!block_found && C10_LIKELY(captures_underway.empty())) {
             ASCEND_LOGE(
-                "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log "
-                "can be ignored.");
+                "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log can be ignored.");
             // Free all non-split cached blocks and retry alloc.
             {
                 UnlockGuard guard(lock);
