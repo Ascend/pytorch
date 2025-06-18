@@ -77,6 +77,6 @@ python ci/access_control_test.py --distributed
     可用于复现问题的用例：
     `python test_jit.py -v -k test_annotated_empty_dict`
 
-2. test_public_bindings.py 用例的作用
+2. test_public_bindings.py 用例的功能
 
     该用例是为了校验接口的公开规范性，如果该用例报错，请确认报错的接口是否要公开，并按照报错的提示进行修改。
