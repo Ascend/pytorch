@@ -352,6 +352,7 @@ def _init():
     if hasattr(torch.distributed, 'init_device_mesh'):
         _del_nccl_device_backend_map()
         torch.distributed.device_mesh.init_device_mesh = _wrapper_cuda(torch.distributed.device_mesh.init_device_mesh)
+    torch.distributed.new_group = _wrapper_hccl(torch.distributed.new_group)
     
     # CUDAGraph
     torch.cuda.CUDAGraph = torch.npu.NPUGraph
