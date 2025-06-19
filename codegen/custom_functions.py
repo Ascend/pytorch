@@ -7,7 +7,7 @@ import yaml
 from torchgen.code_template import CodeTemplate
 from torchgen.gen import (parse_tags_yaml, FileManager, cpp_string, error_check_native_functions)
 from torchgen.model import (BackendIndex, DispatchKey, Variant,
-                            NativeFunction, OperatorName, BackendMetadata, TensorOptionsArguments)
+                            NativeFunction, OperatorName, BackendMetadata, TensorOptionsArguments, OptionalType)
 from torchgen.utils import concatMap
 from torchgen.context import with_native_function, native_function_manager
 from torchgen.api.types import DispatcherSignature
@@ -129,14 +129,27 @@ def compute_op_definition(f: NativeFunction):
         f.func.arguments.flat_positional,
     )
     candidate_tensor_args = []
+    candidate_tensor_args_without_optional = []
     for a in candidate_args:
         if a.type.is_tensor_like():
             candidate_tensor_args.append(f"{a.name}")
 
+    pos = 0
+    for a in f.func.arguments.flat_positional:
+        if a.type.is_tensor_like() and not isinstance(a.type, OptionalType):
+            candidate_tensor_args_without_optional.append([f"{a.name}", pos])
+        pos += 1
+
     unsafe_tensor_check = """ // No unsafe tensor check"""
     if len(candidate_tensor_args) > 0:
-        unsafe_tensor_check = \
-"""if (c10_npu::get_npu_data_unsafe_flag()) {"""
+        unsafe_tensor_check = """"""
+        for tensor_arg in candidate_tensor_args_without_optional:
+            unsafe_tensor_check += \
+f"""at_npu::autograd::VariableType::unpack({tensor_arg[0]}, "{tensor_arg[0]}", {tensor_arg[1]});
+"""
+        unsafe_tensor_check += \
+"""
+if (c10_npu::get_npu_data_unsafe_flag()) {"""
         for tensor_arg in candidate_tensor_args:
             unsafe_tensor_check = unsafe_tensor_check + f"""
     c10_npu::check_npu_tensor_is_safe({tensor_arg});"""
