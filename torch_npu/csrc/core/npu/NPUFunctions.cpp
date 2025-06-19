@@ -137,7 +137,7 @@ aclError DestroyUsedStreams()
     for (const auto it : used_devices) {
         NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(it.first));
         NPUStream stream = getCurrentNPUStream(it.first);
-        aclError acl_ret = acl::AclrtDestroyStreamForce(stream);
+        aclError acl_ret = acl::AclrtDestroyStreamForce(stream.stream(false));
         if (acl_ret != ACL_ERROR_NONE) {
             return acl_ret;
         }
