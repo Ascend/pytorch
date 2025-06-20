@@ -932,6 +932,9 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     const char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
 
     logPrefix_ = createLogPrefix();
+    if (options_->global_ranks_in_group.empty()) {
+        numRanks_ = size_;
+    }
     dumpOnException_ = c10d::getCvarBool(TORCH_HCCL_DUMP_ON_TIMEOUT, false);
     heartbeat_ = 1ULL;
     monitorThreadEnabled_.store(c10d::getCvarBool(TORCH_HCCL_ENABLE_MONITORING, false));
