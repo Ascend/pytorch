@@ -36,19 +36,6 @@ using TensorMetadata = torch_npu::toolkit::profiler::TensorMetadata;
 using ModuleParam = torch_npu::toolkit::profiler::ModuleParam;
 using OptimizerParam = torch_npu::toolkit::profiler::OptimizerParam;
 
-std::string trimPrefix(std::string s)
-{
-    static std::vector<std::string> prefixes = py::module::import("torch.profiler.python_tracer")
-        .attr("_prefix_regex")().cast<std::vector<std::string>>();
-    for (const auto& p : prefixes) {
-        if (s.compare(0, p.size(), p) == 0) {
-            s.erase(0, p.size());
-            return s;
-        }
-    }
-    return s;
-}
-
 std::vector<PyThreadState*> getInterpreterThreads(PyInterpreterState* interpreter)
 {
     pybind11::gil_scoped_acquire gil;
@@ -240,6 +227,7 @@ private:
     void reportTraceData();
     void reportHashData();
     void reportParamData();
+    std::string trimPrefix(std::string s);
 
 private:
     std::atomic<bool> active_{false};
@@ -248,6 +236,7 @@ private:
     std::deque<ThreadLocalResult> thread_local_results_;
     PyObject* module_call_code_{nullptr};
     PyObject* optimizer_call_code_{nullptr};
+    std::vector<std::string> func_name_prefixes_;
     std::unordered_map<size_t, PyCallInfo> py_call_cache_;
     std::unordered_map<size_t, at::StringView> pyc_call_cache_;
     std::unordered_map<size_t, ModuleInfo> module_info_cache_;
@@ -277,6 +266,9 @@ PythonTracer::PythonTracer() : active_(false)
         .attr("_optimizer_step_code")
         .attr("__code__")
         .ptr();
+    func_name_prefixes_ = py::module::import("torch.profiler.python_tracer")
+        .attr("_prefix_regex")()
+        .cast<std::vector<std::string>>();
 }
 
 void PythonTracer::start(size_t max_threads)
@@ -383,6 +375,17 @@ void PythonTracer::clear()
     interpreter_ = nullptr;
 }
 
+std::string PythonTracer::trimPrefix(std::string s)
+{
+    for (const auto& p : func_name_prefixes_) {
+        if (s.compare(0, p.size(), p) == 0) {
+            s.erase(0, p.size());
+            return s;
+        }
+    }
+    return s;
+}
+
 void PythonTracer::reportTraceData()
 {
     if (events_.size() > 0) {
@@ -402,7 +405,7 @@ void PythonTracer::reportHashData()
     hash_data.resize(py_call_cache_.size() + pyc_call_cache_.size() + module_info_cache_.size() + 1);
     size_t idx = 0;
     for (auto& item : py_call_cache_) {
-        hash_data[idx++] = std::make_pair(item.first, trimPrefix(item.second.get_name()));
+        hash_data[idx++] = std::make_pair(item.first, trimPrefix(std::move(item.second.get_name())));
     }
     for (auto& item : pyc_call_cache_) {
         hash_data[idx++] = std::make_pair(item.first, std::string(item.second.str()));
