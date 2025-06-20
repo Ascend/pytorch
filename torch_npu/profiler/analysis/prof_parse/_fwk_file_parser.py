@@ -153,11 +153,14 @@ class FwkFileParser:
 
     def get_fwk_trace_data(self):
         torch_op_data = self.get_file_data_by_tag(FileTag.TORCH_OP)
-        if not torch_op_data:
-            self.logger.error("Get fwk trace data failed, the torch op data is empty.")
-            return []
         enqueue_data_list, dequeue_data_list = self.get_task_queue_data()
-        pid = torch_op_data[0].pid
+        if torch_op_data:
+            pid = torch_op_data[0].pid
+        elif enqueue_data_list or dequeue_data_list:
+            pid = enqueue_data_list[0].pid if enqueue_data_list else dequeue_data_list[0].pid
+        else:
+            self.logger.error("Get fwk trace data failed, framework data is empty.")
+            return []
         tid_dict = {}
         fwk_x_event_list = [None] * (
                 len(torch_op_data) + len(enqueue_data_list) * 2 + len(dequeue_data_list) * 2)
@@ -248,9 +251,15 @@ class FwkFileParser:
 
     def get_fwk_api(self) -> dict:
         torch_op_data = self.get_file_data_by_tag(FileTag.TORCH_OP)
-        if not torch_op_data:
+        enqueue_data_list, dequeue_data_list = self.get_task_queue_data()
+        if torch_op_data:
+            pid = torch_op_data[0].pid
+        elif enqueue_data_list or dequeue_data_list:
+            pid = enqueue_data_list[0].pid if enqueue_data_list else dequeue_data_list[0].pid
+        else:
+            self.logger.error("Get fwk api data failed, framework data is empty.")
             return {}
-        pid = torch_op_data[0].pid
+
         torch_op_apis = []
         fwd_bwd_dict = {}
         torch_op_idx = 0
@@ -273,13 +282,13 @@ class FwkFileParser:
         connection_ids = []
         task_enqueues = []
         task_dequeues = []
-        enqueue_data_list, dequeue_data_list = self.get_task_queue_data()
         correlation_id_name_dict = {}
         for dequeue_data in dequeue_data_list:
             task_dequeues.append(
                 [dequeue_data.ts, dequeue_data.ts + dequeue_data.dur, contact_2num(pid, dequeue_data.tid),
                  dequeue_data.corr_id, dequeue_data.name])
             correlation_id_name_dict[dequeue_data.corr_id] = dequeue_data.origin_name
+            torch_tids.add(dequeue_data.tid)
         for enqueue_data in enqueue_data_list:
             name = enqueue_data.name
             if enqueue_data.corr_id in correlation_id_name_dict:
@@ -289,6 +298,7 @@ class FwkFileParser:
                 [enqueue_data.ts, enqueue_data.ts + enqueue_data.dur, contact_2num(pid, enqueue_data.tid),
                  enqueue_data.corr_id, name])
             connection_ids.append(enqueue_data.corr_id)
+            torch_tids.add(enqueue_data.tid)
 
         start_connection_id = max(connection_ids) + 1 if connection_ids else 0
         self.update_fwd_bwd_connection_id(fwd_bwd_dict, torch_op_apis, start_connection_id)
