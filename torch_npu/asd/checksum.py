@@ -41,5 +41,10 @@ def _matmul_checksum(a, b, c):
     error_total = (c_ele_round_error_accum).to(torch.float)
 
     error = torch.abs(c_sum - c1_trans)
-    flag = (error - error_total) > 1e-20
-    return torch.any(flag)
+    flag = (error - 5 * error_total) > 5 * 1e-20
+    any_flag = torch.any(flag)
+    if any_flag:
+        matmul(a, b, out=c)
+        c_mean2 = torch.mean(torch.abs(c), dim=-1)
+        return torch.any(c_mean != c_mean2)
+    return any_flag
