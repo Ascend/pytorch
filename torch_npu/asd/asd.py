@@ -611,7 +611,7 @@ class _MatmulSilentCheck:
             self.store.set(f"rank_{self.rank}_info_log", current_log + "\n" + info_str if current_log != "" else info_str)
 
     def _generate_warning_log(self, counting_abnormal_pos, new_abnormal):
-        warning_str = f"[Warning][{new_abnormal['time_str']}] [Rank {new_abnormal['rank']}]: Training instability happens, feature detection detects abnormal results!"
+        warning_str = f"[Warning][{new_abnormal['time_str']}] [Rank {new_abnormal['rank']}]: feature detection detects abnormal results!"
         index = 0
         for pos in reversed(counting_abnormal_pos):
             warning_str = warning_str + "\n" + f"Grad-norm spike: index {index}, time {self.history_abnormal_list[pos]['time_str']}, param name {self.history_abnormal_list[pos]['name']}, abnormal value {self.history_abnormal_list[pos]['val']}, previous value {self.history_abnormal_list[pos]['pre_val']}, "
@@ -673,7 +673,7 @@ class _MatmulSilentCheck:
             if global_state:
                 now_time = time.time()
                 if last_checksum_time is None or abs(now_time - last_checksum_time) > self.checksum_cooldown * 60:
-                    loggerSilent.info(f'[Info] Rank {self.rank}: Training instability happened, checksum is on.')
+                    loggerSilent.info(f'[Info] Rank {self.rank}: feature detection detects abnormal results, checksum is on.')
                     last_checksum_time = now_time
                     if self.checksum_result is None:
                         self.checksum_result = torch.tensor(False, dtype=torch.bool, device='npu')
