@@ -74,7 +74,7 @@ class FwkCANNRelationParser:
             step_id = step_node.event.name.split("#")[-1]
             if not step_node.corr_id_total:
                 self.logger.error("There is no flow events in %s range.", step_node.event.name)
-                return []
+                continue
             corr_id_list = sorted(step_node.corr_id_total)
             min_index, max_index = 0, len(corr_id_list) - 1
             min_kernel_list, max_kernel_list = [], []
