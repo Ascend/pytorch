@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "StoreMessagePacker.hpp"
 
 namespace c10d {
@@ -86,6 +87,7 @@ int64_t StoreMessagePacker::Unpack(const std::vector<uint8_t> &buffer, StoreMess
     }
 
     auto ptr = buffer.data();
+    auto ptr_end = ptr + buffer.size();
     auto totalSize = *reinterpret_cast<const uint64_t *>(ptr);
     ptr += sizeof(uint64_t);
 
@@ -103,6 +105,9 @@ int64_t StoreMessagePacker::Unpack(const std::vector<uint8_t> &buffer, StoreMess
         ptr += sizeof(uint64_t);
         message.keys.emplace_back(reinterpret_cast<const char *>(ptr), keySize);
         ptr += keySize;
+        if (ptr > ptr_end) {
+            break;
+        }
     }
 
     auto valueCount = *reinterpret_cast<const uint64_t *>(ptr);
@@ -113,6 +118,9 @@ int64_t StoreMessagePacker::Unpack(const std::vector<uint8_t> &buffer, StoreMess
         ptr += sizeof(uint64_t);
         message.values.emplace_back(ptr, ptr + valueSize);
         ptr += valueSize;
+        if (ptr > ptr_end) {
+            break;
+        }
     }
 
     return static_cast<int64_t>(totalSize);
