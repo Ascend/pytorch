@@ -1,6 +1,5 @@
 import torch
 import torch_npu
-import torch_npu._inductor
 
 
 def test_reduction_cases_shapes():
@@ -26,7 +25,6 @@ def test_reduction_cases_shapes():
         view: "f32[9600, 2304]" = torch.ops.aten.view.default(add_3, [9600, 2304]);
         return [None, primals_5, getitem_3, rsqrt, add_2, view, primals_2]
 
-    torch_npu._inductor.config.enable_npu_indexing = True
     primals_2: "f32[32, 2304]" = torch.randn((32, 2304), device=device, dtype=torch.float32)
     primals_5: "f32[1, 9600, 2304]" = torch.randn((1, 9600, 2304), device=device, dtype=torch.float32)
     add: "f32[1, 2, 2304]" = torch.randn((1, 2, 2304), device=device, dtype=torch.float32)

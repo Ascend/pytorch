@@ -3,7 +3,6 @@
 import torch
 from testutils import benchmark_test
 import torch_npu
-import torch_npu._inductor
 
 
 class Test_issue59():

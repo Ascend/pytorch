@@ -5,7 +5,6 @@ from torch.testing._internal.common_utils import run_tests, parametrize, instant
 import pytest
 from testutils import OperatorType, TestUtils
 import torch_npu
-import torch_npu._inductor
 
 
 class TestAbs(TestUtils):

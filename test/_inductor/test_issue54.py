@@ -6,7 +6,6 @@ from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
 from testutils import benchmark_test
 import torch_npu
-import torch_npu._inductor
 
 
 class Test_issue54():

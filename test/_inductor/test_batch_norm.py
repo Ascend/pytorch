@@ -4,7 +4,6 @@ import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import OperatorType, TestUtils
 import torch_npu
-import torch_npu._inductor
 
 
 class TestNativeBatchNorm(TestUtils):
@@ -17,7 +16,8 @@ class TestNativeBatchNorm(TestUtils):
         # 创建运行均值和方差张量
         running_mean = torch.zeros(32).npu()
         running_var = torch.ones(32).npu()
-
+        momentum = 0.1
+        eps = 1e-05
         # 执行批量归一化
         output, running_mean_out, running_var_out = torch.native_batch_norm(
             input=input_element,
@@ -26,8 +26,8 @@ class TestNativeBatchNorm(TestUtils):
             running_mean=running_mean,
             running_var=running_var,
             training=True,
-            momentum=0.1,
-            eps=1e-05
+            momentum=momentum,
+            eps=eps
         )
         return output, running_mean_out, running_var_out
 
@@ -43,6 +43,7 @@ class TestNativeBatchNorm(TestUtils):
         rtol = 1e-1
         atol = 1e-1
         torch.testing.assert_close(std_ret, inductor_ret, equal_nan=True, rtol=rtol, atol=atol)
+
 
 instantiate_parametrized_tests(TestNativeBatchNorm)
 

@@ -4,7 +4,6 @@ import torch
 import triton
 import triton.language as tl
 import torch_npu
-import torch_npu._inductor
 
 
 # 实际就是 layernorm的计算过程 ： torch.nn.LayerNorm(convert_element_type_25, elementwise_affine=False, eps=1e-6)

@@ -3,7 +3,6 @@
 import torch
 import torch.nn as nn
 import torch_npu
-import torch_npu._inductor
 
 
 class Test_issue70():

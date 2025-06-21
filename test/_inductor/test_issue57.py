@@ -6,7 +6,6 @@ from testutils import benchmark_test
 import triton
 import triton.language as tl
 import torch_npu
-import torch_npu._inductor
 
 
 class Test_issue57():
