@@ -16,11 +16,13 @@
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include "c10/util/Logging.h"
+#include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "ParallelTcpServer.hpp"
 
 namespace c10d {
@@ -311,6 +313,11 @@ int ParallelTcpServer::CreateLocalSocket(const std::string &localSocketPath) noe
     auto ret = ::bind(sockFd, reinterpret_cast<struct sockaddr *>(&servAddr), sizeof(servAddr));
     if (ret != 0) {
         LOG(ERROR) << "bind local socket fd failed " << errno << " : " << strerror(errno);
+        close(sockFd);
+        return -1;
+    }
+
+    if (!at_npu::native::NpuUtils::setFilePermissions(sockFd, S_IRUSR | S_IWUSR | S_IRGRP)) {
         close(sockFd);
         return -1;
     }
