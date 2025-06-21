@@ -46,6 +46,7 @@ public:
     static bool check_5d_5d_match(const at::Tensor &tensor);
     static bool IsOomError(aclError ret, int index);
     static void check_1d(const at::Tensor &t, const char *arg, const char *fn);
+    static bool setFilePermissions(int fd, mode_t mode);
 #ifndef BUILD_LIBTORCH
     static void ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string &data,
                                                 uint64_t correlation_id = 0);
