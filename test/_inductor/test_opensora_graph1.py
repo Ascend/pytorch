@@ -1,7 +1,6 @@
 import torch
 from torch import device
 import torch_npu
-import torch_npu._inductor
 device_npu = 'npu'
 
 

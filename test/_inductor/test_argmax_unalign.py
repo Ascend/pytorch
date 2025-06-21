@@ -5,9 +5,7 @@ from torch.testing._internal.common_utils import run_tests, parametrize, instant
 import pytest
 from testutils import OperatorType, TestUtils
 import torch_npu
-import torch_npu._inductor
 
-torch_npu._inductor.config.enable_npu_indexing = True
 
 
 class TestMaxWithIndex(TestUtils):
@@ -18,7 +16,6 @@ class TestMaxWithIndex(TestUtils):
     @parametrize('dim', [-1])
     @parametrize('dtype', ['float32'])
     def test_reduction_cases(self, shape, dim, dtype):
-        print('npu_indexing= {}'.format(torch_npu._inductor.config.enable_npu_indexing))
         input_element = torch.randn(size=shape, dtype=eval('torch.' + dtype), device=torch.device("npu")) * 2000
         std_argmax = self.op_calc(input_element, dim)
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)

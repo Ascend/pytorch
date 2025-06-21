@@ -5,7 +5,6 @@ import torch.nn as nn
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import OperatorType, TestUtils
 import torch_npu
-import torch_npu._inductor
 
 
 class TestEmbeddingDense():
@@ -16,8 +15,7 @@ class TestEmbeddingDense():
         return output
 
     def test_pointwise_cases(self):
-        torch_npu._inductor.config.enable_npu_indexing = True
-
+        
         input = torch.tensor([[14, 1, 2, 10, 0, 10, 0],
                         [9, 13, 13, 4, 7, 15, 14],
                         [8, 0, 3, 15, 4, 2, 6],

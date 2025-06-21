@@ -4,7 +4,6 @@ import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import OperatorType, TestUtils
 import torch_npu
-import torch_npu._inductor
 
 
 class TestForeachAdd(TestUtils):
@@ -21,7 +20,6 @@ class TestForeachAdd(TestUtils):
     @parametrize('shape', TestUtils._pointwise_demo_shapes)
     @parametrize('dtype', ['int32'])
     def test_pointwise_cases(self, shape, dtype):
-        torch_npu._inductor.config.enable_npu_indexing = True
         first_element = self._generate_tensor(shape, dtype)
         second_element = self._generate_tensor(shape, dtype)
 

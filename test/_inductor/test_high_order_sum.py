@@ -3,7 +3,6 @@
 import torch.nn.functional as F
 import torch
 import torch_npu
-import torch_npu._inductor
 
 
 def op_sum(npu_dropout_backward_9):

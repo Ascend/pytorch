@@ -14,7 +14,6 @@ from torch._inductor import config
 import pytest
 from testutils import OperatorType, TestUtils
 import torch_npu
-import torch_npu._inductor
 
 
 class TestDebugMsg(TestUtils):    

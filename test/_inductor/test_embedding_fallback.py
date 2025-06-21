@@ -4,7 +4,6 @@ import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import OperatorType, TestUtils
 import torch_npu
-import torch_npu._inductor
 
 
 class TestEmbeddingDenseBackward(TestUtils):
@@ -16,7 +15,6 @@ class TestEmbeddingDenseBackward(TestUtils):
     @parametrize('shape', [(1, 512, 128)])
     @parametrize('dtype', ['float32'])
     def test_pointwise_cases(self, shape, dtype):
-        torch_npu._inductor.config.enable_npu_indexing = True
         first_element = torch.randint(low=0, high=128, size=(1, 512), dtype=torch.int64).npu()
         second_element = self._generate_tensor(shape, dtype)
 
