@@ -545,6 +545,7 @@ class TestPublicBindings(TestCase):
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.custom.npu_dequant_bias",
             "torch_npu.utils.collect_hccl_info",
             "torch_npu.op_plugin.meta._meta_registrations",
+            "torch_npu.op_plugin.atb._atb_meta_registrations",
 
         }
 
