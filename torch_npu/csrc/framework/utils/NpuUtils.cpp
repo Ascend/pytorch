@@ -1,5 +1,6 @@
 #include <mutex>
 #include <set>
+#include <sys/stat.h>
 
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -265,6 +266,15 @@ void NpuUtils::check_1d(const at::Tensor &t, const char *arg, const char *fn)
 {
     TORCH_CHECK(t.dim() == 1, fn, ": Expected 1-D argument ", arg, ", but got ", t.dim(), "-D",
                 OPS_ERROR(ErrCode::PARAM));
+}
+
+bool NpuUtils::setFilePermissions(int fd, mode_t mode)
+{
+    if (fchmod(fd, mode) == -1) {
+        ASCEND_LOGI("Failed to set permissions.");
+        return false;
+    }
+    return true;
 }
 
 #ifndef BUILD_LIBTORCH
