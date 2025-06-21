@@ -198,8 +198,8 @@ class ConfigContext:
         op_attr = json_data.get('PROFILE_OP_ATTR', 'false')
         op_attr = self.BOOL_MAP.get(op_attr.lower(), False)
         gc_detect_threshold = json_data.get('PROFILE_GC_DETECT_THRESHOLD', None)
-        if isinstance(gc_detect_threshold, str) and gc_detect_threshold != "None":
-            gc_detect_threshold = float(gc_detect_threshold)
+        if isinstance(gc_detect_threshold, str):
+            gc_detect_threshold = None if gc_detect_threshold == "None" else float(gc_detect_threshold)
         data_simplification = json_data.get('PROFILE_DATA_SIMPLIFICATION', 'true')
         data_simplification = self.BOOL_MAP.get(data_simplification.lower(), True)
         record_op_args = False
