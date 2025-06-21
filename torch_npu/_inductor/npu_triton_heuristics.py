@@ -118,24 +118,6 @@ class NPUCachingAutotuner(CachingAutotuner):
         return checked_by_msprobe
 
     def precompile(self, warm_cache_only=False):
-        # xpu_graph changed TORCHINDUCTOR_CACHE_DIR.
-        # When TORCHINDUCTOR_COMPILE_THREADS > 1, multiprocessing's fork method
-        # does not propagate TORCHINDUCTOR_CACHE_DIR into the child threads.
-        # However, after all the child threads finished, the main thread reaches
-        # here and inherits xpu_graph's TORCHINDUCTOR_CACHE_DIR. Then the main
-        # thread finds the cache dir does not have any compiled kernel. It will
-        # compile all kernels one by one.
-        # So we directly replace TORCHINDUCTOR_CACHE_DIR with the standard cache dir.
-        if ("xpu_graph" in os.getenv("TORCHINDUCTOR_CACHE_DIR", "")):
-            import getpass
-            import tempfile
-            sanitized_username = re.sub(r'[\\/:*?"<>|]', "_", getpass.getuser())
-            cache_dir = os.path.join(
-                tempfile.gettempdir(),
-                "torchinductor_" + sanitized_username,
-            )
-            os.environ["TORCHINDUCTOR_CACHE_DIR"] = cache_dir
-            os.environ["TRITON_CACHE_DIR"] = os.path.join(cache_dir, "triton", "0")
         with self.lock:
             if self.launchers:
                 return

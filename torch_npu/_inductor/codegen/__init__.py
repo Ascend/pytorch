@@ -11,7 +11,7 @@ from torch._inductor.ir import Reduction, LoopBody
 from torch_npu._inductor.codegen._sizevars import simplify
 from torch_npu._inductor.codegen.ir import (num_splits, loopbody__call__, transform_dims_in_indexing,
                                             substituted_dims_in_indexing)
-from torch_npu._inductor.codegen.schduling import create_tiling
+from torch_npu._inductor.codegen.scheduling import create_tiling
 from torch_npu._inductor.codegen.triton import group_fn, select_index_dtype
 from torch_npu._inductor.codegen.triton import is_compatible
 

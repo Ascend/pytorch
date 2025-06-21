@@ -568,7 +568,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.codegen.ir_fx",
             "torch_npu._inductor.codegen.kernel_analysis",
             "torch_npu._inductor.codegen.npu_kernel_features",
-            "torch_npu._inductor.codegen.schduling",
+            "torch_npu._inductor.codegen.scheduling",
             "torch_npu._inductor.codegen.split_tiling",
             "torch_npu._inductor.codegen.tile_generator",
             "torch_npu._inductor.codegen.triton",

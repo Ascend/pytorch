@@ -37,8 +37,8 @@ from torch._inductor.virtualized import (
 )
 from torch.fx.immutable_collections import immutable_dict
 from torch.fx.immutable_collections import immutable_dict
-from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel, flatten
 
+from .triton import NPUIndexTritonKernel, flatten
 from .kernel_analysis import ReductionAnalysis
 from .npu_kernel_features import NumelList, NPUKernelFeatures
 from .split_tiling import SplitTiling
@@ -231,8 +231,6 @@ class NPUTritonScheduling(TritonScheduling):
                 src_code = src_code.replace('TRACED_GRAPH_HASH', traced_graph_hash)
                 src_code = src_code.replace('TRACED_GRAPH_DIR', npu_config.traced_fx_graph_cache)
 
-            # TODO(voz): Ostensibly, we should not need this. But there are cases where C++ codegen does
-            # not use BracesBuffer, so we have no good indicator of a C++ buffer atm.
             src_code = src_code.replace("#pragma CMT", "#")
 
             basename, _, kernel_path = get_path(code_hash(src_code.strip()), "py")

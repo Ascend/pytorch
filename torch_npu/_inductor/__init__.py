@@ -18,7 +18,7 @@ from .config import log as npulog
 from .decomposition import _register_npu_inductor_decompositons
 from .lowering import make_reduction, npu_make_fallback
 from .npu_choices import should_use_persistent_reduction
-from .npu_device import NewNPUDeviceOpOverrides, NewNpuInterface
+from .npu_device import NewNPUDeviceOpOverrides
 from .runtime import _load_cached_autotuning
 from .utils import get_current_raw_stream
 
@@ -26,7 +26,7 @@ set_compile_threads()
 
 
 def _inductor_register_backend_for_device():
-    from .codegen.schduling import NPUTritonScheduling
+    from .codegen.scheduling import NPUTritonScheduling
     from .codegen.wrapper import NPUWrapperCodeGen
     from .codegen.cpp_wrapper import CppWrapperNpu
     register_backend_for_device('npu', NPUTritonScheduling, NPUWrapperCodeGen, CppWrapperNpu)
@@ -40,9 +40,7 @@ def _inductor_register_device_op_overrides():
 
 
 _inductor_register_device_op_overrides()
-register_interface_for_device("npu", NewNpuInterface)
-for i in range(16):
-    register_interface_for_device(f"npu:{i}", NewNpuInterface)
+
 device = get_interface_for_device("npu")
 
 inductor_lowering.make_reduction = make_reduction

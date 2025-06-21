@@ -206,30 +206,3 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
 
     def cpp_device_ptr(self):
         return "void*"
-
-
-## Override original dynamo device interface in torch_npu
-class NewNpuInterface(NpuInterface):
-
-    @staticmethod
-    def is_available() -> bool:
-        return device_count() > 0
-
-    @staticmethod
-    def get_compute_capability(device=None):
-        # npu has no concept of cc. triton-npu compiler depends on subarch instead
-        return torch.npu.get_device_name(device)
-
-    @staticmethod
-    def exchange_device(device: int) -> int:
-        curr_device = current_device()
-        set_device(device)
-        return curr_device
-
-    @staticmethod
-    def maybe_exchange_device(device: int) -> int:
-        return device
-
-    @staticmethod
-    def is_bf16_supported(including_emulation: bool = False):
-        return True
