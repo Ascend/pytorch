@@ -212,6 +212,8 @@ inline void HcclCommConfigInit(HcclCommConfig *config)
     config->hcclRdmaTrafficClass = HCCL_COMM_TRAFFIC_CLASS_CONFIG_NOT_SET;
     config->hcclRdmaServiceLevel = HCCL_COMM_SERVICE_LEVEL_CONFIG_NOT_SET;
     config->hcclOpExpansionMode = HCCL_COMM_DEFAULT_OP_EXPANSION_MODE;
+    config->hcclWorldRankID = 0;
+    config->hcclJobID = 0;
 }
 
 /**
