@@ -481,7 +481,7 @@ class _MatmulSilentCheck:
             val = self.statistic_cpu_value[self.head_index].item()
             name = self.name_list[self.head_index]
             while val != -1 and name != "":
-                loggerSilent.debug(f"[silent data] name:{name}, val: {val}, pre_val: {self.check_stat[name]['pre_val']}, avg: {self.check_stat[name]['avg']}, step: {self.check_stat[name]['step']}, none_zero_step: {self.check_stat[name]['none_zero_step']}")
+                loggerSilent.debug(f"[silent data] name:{name}, val: {val}, pre_val: {self.check_stat[name]['pre_val']}, avg: {self.check_stat[name]['avg']}, bp time: {self.check_stat[name]['step']}, none_zero_step: {self.check_stat[name]['none_zero_step']}")
                 result, self.check_stat[name]['avg'], self.check_stat[name]['none_zero_step'] = self._silent_check(
                     val, self.check_stat[name]['pre_val'], self.check_stat[name]['avg'], self.check_stat[name]['none_zero_step'],
                     self.upper_thresh1, self.upper_thresh2
@@ -604,7 +604,7 @@ class _MatmulSilentCheck:
     def _generate_event_log(self, new_abnormal):
         info_str = f"[Event][{new_abnormal['time_str']}] [Rank {new_abnormal['rank']}]: A grad-norm spike may happen, "
         info_str = info_str + f"param name {new_abnormal['name']}, abnormal value {new_abnormal['val']}, previous value {new_abnormal['pre_val']}, "
-        info_str = info_str + f"history avg {new_abnormal['avg']}, step {new_abnormal['step']}, normal count {new_abnormal['none_zero_step']}."
+        info_str = info_str + f"history avg {new_abnormal['avg']}, bp time {new_abnormal['step']}, normal count {new_abnormal['none_zero_step']}."
         loggerSilent.info(info_str)
         if self.store is not None and self.rank is not None and self.rank != 0:
             current_log = self.store.get(f"rank_{self.rank}_info_log").decode()
@@ -615,10 +615,10 @@ class _MatmulSilentCheck:
         index = 0
         for pos in reversed(counting_abnormal_pos):
             warning_str = warning_str + "\n" + f"Grad-norm spike: index {index}, time {self.history_abnormal_list[pos]['time_str']}, param name {self.history_abnormal_list[pos]['name']}, abnormal value {self.history_abnormal_list[pos]['val']}, previous value {self.history_abnormal_list[pos]['pre_val']}, "
-            warning_str = warning_str + f"history avg {self.history_abnormal_list[pos]['avg']}, step {self.history_abnormal_list[pos]['step']}, normal count {self.history_abnormal_list[pos]['none_zero_step']}."
+            warning_str = warning_str + f"history avg {self.history_abnormal_list[pos]['avg']}, bp time {self.history_abnormal_list[pos]['step']}, normal count {self.history_abnormal_list[pos]['none_zero_step']}."
             index += 1
         warning_str = warning_str + "\n" + f"Grad-norm spike: index {index}, time {new_abnormal['time_str']}, param name {new_abnormal['name']}, abnormal value {new_abnormal['val']}, previous value {new_abnormal['pre_val']}, "
-        warning_str = warning_str + f"history avg {new_abnormal['avg']}, step {new_abnormal['step']}, normal count {new_abnormal['none_zero_step']}."
+        warning_str = warning_str + f"history avg {new_abnormal['avg']}, bp time {new_abnormal['step']}, normal count {new_abnormal['none_zero_step']}."
         loggerSilent.warning(warning_str)
         if self.store is not None and self.rank is not None and self.rank != 0:
             current_log = self.store.get(f"rank_{self.rank}_warn_log").decode()
