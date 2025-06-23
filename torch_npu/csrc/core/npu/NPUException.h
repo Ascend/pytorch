@@ -3,6 +3,7 @@
 #include <ctime>
 #include <mutex>
 #include <cstdarg>
+#include <cstring>
 #include <iostream>
 #include <chrono>
 #include <iomanip>

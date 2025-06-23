@@ -545,7 +545,8 @@ include_directories = [
     BASE_DIR,
     os.path.join(BASE_DIR, 'patch/include'),
     os.path.join(BASE_DIR, 'third_party/hccl/inc'),
-    os.path.join(BASE_DIR, 'third_party/acl/inc')
+    os.path.join(BASE_DIR, 'third_party/acl/inc'),
+    os.path.join(BASE_DIR, 'third_party/nlohmann/include')
 ]
 
 extra_link_args = []
