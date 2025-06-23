@@ -15,7 +15,7 @@ extern "C" {
 
 const uint32_t HCCL_COMM_CONFIG_INFO_BYTES = 24;
 const uint32_t HCCL_COMM_CONFIG_MAGIC_WORD = 0xf0f0f0f0;
-const uint32_t HCCL_COMM_CONFIG_VERSION = 5;
+const uint32_t HCCL_COMM_CONFIG_VERSION = 6;
 const uint32_t HCCL_COMM_DEFAULT_BUFFSIZE = 200;                // 200MB buffer size
 const uint32_t HCCL_COMM_DEFAULT_DETERMINISTIC = 0;             // Disable deterministic calculations
 const uint32_t COMM_NAME_MAX_LENGTH = 128;
@@ -132,6 +132,8 @@ typedef struct HcclCommConfigDef {
     uint32_t hcclOpExpansionMode;
     uint32_t hcclRdmaTrafficClass;
     uint32_t hcclRdmaServiceLevel;
+    uint32_t hcclWorldRankID;
+    uint64_t hcclJobID;
 } HcclCommConfig;
 
 typedef enum {
