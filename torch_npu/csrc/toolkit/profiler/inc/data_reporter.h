@@ -344,8 +344,8 @@ struct MemoryData : BaseReportData {
     uint64_t thread_id{ 0 };
     uint64_t process_id{ 0 };
     MemoryData(int64_t ptr, int64_t time_ns, int64_t alloc_size, int64_t total_allocated, int64_t total_reserved,
-        int64_t total_active, int64_t stream_ptr, int8_t device_type, int8_t device_index, uint8_t data_type,
-        uint8_t component_type, uint8_t allocator_type, uint64_t thread_id, uint64_t process_id)
+        int64_t total_active, int64_t stream_ptr, int8_t device_type, int8_t device_index, uint8_t component_type,
+        uint8_t data_type, uint8_t allocator_type, uint64_t thread_id, uint64_t process_id)
         : BaseReportData(0, "torch.memory_usage"),
           ptr(ptr),
           time_ns(time_ns),
