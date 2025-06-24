@@ -65,6 +65,8 @@ class MemoryDbParser(BaseParser):
 
     @staticmethod
     def _combine_record(last_record, cur_record):
+        if cur_record[MemoryRecordTableRow.COMPONENT.value] == Str2IdManager().get_id_from_str(Constant.WORKSPACE):
+            return [cur_record]
         pta_ge_record_list = cur_record[:]
         pta_ge_record_list[MemoryRecordTableRow.COMPONENT.value] = Str2IdManager().get_id_from_str(Constant.PTA_GE)
         if last_record:
@@ -179,9 +181,16 @@ class MemoryDbParser(BaseParser):
         if not self._pta_memory_bean_list:
             return
         for memory_bean in self._pta_memory_bean_list:
+            if memory_bean.component_type == Constant.WORKSPACE_TYPE:
+                self._pta_record_list.append([Str2IdManager().get_id_from_str(Constant.WORKSPACE), memory_bean.time_ns,
+                                              memory_bean.total_allocated_for_db, memory_bean.total_reserved_for_db,
+                                              memory_bean.total_active_for_db, memory_bean.stream_ptr,
+                                              memory_bean.device_index])
+                continue
             self._pta_record_list.append([Str2IdManager().get_id_from_str(Constant.PTA), memory_bean.time_ns,
                                           memory_bean.total_allocated_for_db, memory_bean.total_reserved_for_db,
-                                          memory_bean.total_active_for_db, memory_bean.stream_ptr, memory_bean.device_index])
+                                          memory_bean.total_active_for_db, memory_bean.stream_ptr,
+                                          memory_bean.device_index])
     
     def get_pta_ge_record_list(self):
         """
@@ -203,7 +212,9 @@ class MemoryDbParser(BaseParser):
             if ge_record[1] >= pta_record[1]:
                 self._record_list.extend(self._combine_record(last_ge_record, pta_record))
                 pta_ptr += 1
-                last_pta_record = pta_record
+                if pta_record[MemoryRecordTableRow.COMPONENT.value] != \
+                    Str2IdManager().get_id_from_str(Constant.WORKSPACE):
+                    last_pta_record = pta_record
             else:
                 self._record_list.extend(self._combine_record(last_pta_record, ge_record))
                 ge_ptr += 1
