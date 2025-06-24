@@ -4,6 +4,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 
 namespace c10_npu {
 namespace option {
@@ -84,6 +85,18 @@ OptionInterfaceBuilder::OptionInterfaceBuilder(const std::string &name, ::std::u
 
 void SetOption(const std::string &key, const std::string &val)
 {
+    if (c10_npu::IsAclnnOnly()) {
+        if (key == "jitCompile" && val == "enable") {
+            TORCH_NPU_WARN_ONCE("Current device only support jit_compile=False, ",
+                "the requested value True is invalid and has been reverted to False.");
+            return register_options::OptionRegister::GetInstance()->Set(key, "disable");
+        }
+        if (key == "ALLOW_INTERNAL_FORMAT" && val == "enable") {
+            TORCH_NPU_WARN_ONCE("Current device only support allow_internal_format=False, ",
+                "the requested value True is invalid and has been reverted to False.");
+            return register_options::OptionRegister::GetInstance()->Set(key, "disable");
+        }
+    }
     register_options::OptionRegister::GetInstance()->Set(key, val);
 }
 

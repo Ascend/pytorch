@@ -574,6 +574,7 @@ void *NewFunc(int caption, int &size)
 void DeleteFunc(void *ptr)
 {
     free(ptr);
+    ptr = nullptr;
 }
 
 using Func = int (*)(c10_npu::queue::QueueParas *, aclrtStream);

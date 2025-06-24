@@ -395,6 +395,8 @@ def gen_dispatcher_registrations(
     ns_helper = NamespaceHelper(namespace_str="at")
     native_func_header = """\
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/utils.h"
 #endif

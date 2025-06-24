@@ -24,7 +24,9 @@ static std::unordered_map<at::ScalarType, std::vector<double>> floating_limits_m
     {at::ScalarType::Double, {std::numeric_limits<double>::max(), std::numeric_limits<double>::min()}},
     {at::ScalarType::Float, {std::numeric_limits<float>::max(), std::numeric_limits<float>::min()}},
     {at::ScalarType::BFloat16, {std::numeric_limits<float>::max(), std::numeric_limits<float>::min()}},
-    {at::ScalarType::Half, {65504, -65504}}};
+    {at::ScalarType::Half, {65504, -65504}},
+    {at::ScalarType::Float8_e5m2, {57345, -57345}},
+    {at::ScalarType::Float8_e4m3fn, {449, -449}}};
 static std::unordered_map<at::ScalarType, std::vector<long>> integral_limits_map{
     {at::ScalarType::Long, {std::numeric_limits<long>::max(), std::numeric_limits<long>::min()}},
     {at::ScalarType::Int, {std::numeric_limits<int>::max(), std::numeric_limits<int>::min()}},
@@ -274,7 +276,7 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor, at::ScalarType forceSca
 {
     std::tuple<aclTensorDesc*, aclDataBuffer*> res;
     if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
-        tensor = custom_ops::npu_dtype_cast(tensor, commonType.value());
+        tensor = custom_ops::_npu_dtype_cast(tensor, commonType.value());
     }
     // as for dim=0, the dtype of tensor can not be `uint16` because of `TBE`
     if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).storage_sizes_.empty()) {
@@ -331,7 +333,7 @@ OpCommand& OpCommand::AddScalarInput(const c10::Scalar& input, at::ScalarType ty
 OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType)
 {
     if (resultTypeDefined == false && commonType.has_value() && commonType.value() != output.scalar_type()) {
-        output = custom_ops::npu_dtype_cast(output, commonType.value());
+        output = custom_ops::_npu_dtype_cast(output, commonType.value());
     }
     auto res = OpCmdHelper::CovertToAclOutput(output, realType);
     aclCmd->AddOutput(std::get<0>(res), std::get<1>(res));

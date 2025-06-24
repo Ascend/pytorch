@@ -423,6 +423,9 @@ void TensorPipeAgent::startImpl()
             priority = opts_.transports->size() - 1 - (iter - opts_.transports->begin());
         }
         std::unique_ptr<TransportRegistration> reg = TensorPipeTransportRegistry()->Create(key);
+        if (reg == nullptr || reg->transport == nullptr) {
+            TORCH_CHECK(false, "TensorPipeTransport get nullptr", DIST_ERROR(ErrCode::PTR));
+        }
         if (!reg->transport->isViable()) {
             continue;
         }

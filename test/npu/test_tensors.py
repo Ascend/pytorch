@@ -1,4 +1,5 @@
 from copy import deepcopy
+import unittest
 import numpy as np
 import torch
 import torch_npu
@@ -20,6 +21,16 @@ types = [
     torch.BoolTensor,
     torch.BFloat16Tensor,
 ]
+
+
+def skipIfUnsupport910_95():
+    def skip_dec(func):
+        def wrapper(self):
+            if "Ascend910_95" not in torch_npu.npu.get_device_name():
+                return unittest.SkipTest("Device 910_95 condition not satisfied")
+            return func(self)
+        return wrapper
+    return skip_dec
 
 
 def get_npu_type(type_name):
@@ -381,6 +392,17 @@ class TestViewOps(TestCase):
         self.assertEqual(tensor.view(torch.Size([3, 5])).size(), target)
         self.assertEqual(tensor.view(-1, 5).size(), target)
         self.assertEqual(tensor.view(3, -1).size(), target)
+
+
+class TestTensorDtype(TestCase):
+    @skipIfUnsupport910_95()
+    def test_fp8(self):
+        tensor1 = torch.randn([2, 2], dtype=torch.float32).npu()
+        tensor2 = torch.randn([2, 2], dtype=torch.float32).npu()
+        tensor_f8e5m2 = tensor1.to(torch.float8_e5m2)
+        tensor_f8e4m3fn = tensor2.to(torch.float8_e4m3fn)
+        self.assertEqual(tensor_f8e5m2.dtype, torch.float8_e5m2)
+        self.assertEqual(tensor_f8e4m3fn.dtype, torch.float8_e4m3fn)
 
 
 if __name__ == "__main__":

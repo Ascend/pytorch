@@ -2598,7 +2598,7 @@
     "signature": "(*args, **kwargs)"
   },
   "torch_npu.npu_format_cast": {
-    "signature": "(self, acl_format)"
+    "signature": "(self, acl_format, customize_dtype=None)"
   },
   "torch_npu.npu_format_cast_": {
     "signature": "(*args, **kwargs)"
@@ -2838,16 +2838,16 @@
     "signature": "(int[] size, *, ScalarType? dtype=None, Device? device=None) -> Tensor"
   },
   "func: npu_format_cast": {
-    "signature": "(Tensor self, int acl_format) -> Tensor"
+    "signature": "(Tensor self, int acl_format, int? customize_dtype=None) -> Tensor"
   },
   "func: npu_format_cast_": {
-    "signature": "(Tensor(a!) self, Tensor src) -> Tensor(a!)"
+    "signature": "(Tensor(a!) self, Tensor src, int? customize_dtype=None) -> Tensor(a!)"
   },
   "func: npu_format_cast_.acl_format": {
-    "signature": "(Tensor(a!) self, int acl_format) -> Tensor(a!)"
+    "signature": "(Tensor(a!) self, int acl_format, int? customize_dtype=None) -> Tensor(a!)"
   },
   "func: npu_format_cast.Tensor": {
-    "signature": "(Tensor self, Tensor dst) -> Tensor"
+    "signature": "(Tensor self, Tensor dst, int? customize_dtype=None) -> Tensor"
   },
   "func: npu_change_data_ptr": {
     "signature": "(Tensor dst, Tensor src, int index) -> int"
@@ -2866,6 +2866,9 @@
   },
   "func: _npu_format_cast": {
     "signature": "(Tensor self, int acl_format) -> Tensor"
+  },
+  "func: _npu_format_cast.aclnn": {
+    "signature": "(Tensor self, int acl_format, int customize_dtype) -> Tensor"
   },
   "torch_npu_public_env: INF_NAN_MODE_ENABLE": {
     "mode": "std::unordered_map<int32_t, std::string> infNanMode = {{0, \"max\"}, {1, \"inf_nan\"}}"

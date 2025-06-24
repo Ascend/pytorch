@@ -35,6 +35,8 @@ public:
     static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides);
     static void SetDesc(at::Tensor &dst, const c10::IntArrayRef &size, const c10::IntArrayRef &strides,
                         aclFormat format);
+    static void SetDesc(at::Tensor &dst, const c10::IntArrayRef &base_size,
+        const c10::IntArrayRef &storage_size, const c10::IntArrayRef &strides, aclFormat format);
     static bool CheckDescInit(const c10::Storage &storage);
 
     // For Serialization to Get and Set NpuStorageDesc
@@ -63,6 +65,8 @@ private:
                                              const c10::IntArrayRef& strides);
     static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, const c10::IntArrayRef& size,
                                              const c10::IntArrayRef& strides, aclFormat format);
+    static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, const c10::IntArrayRef& base_size,
+        const c10::IntArrayRef& storage_size, const c10::IntArrayRef& strides, aclFormat format);
 };
 
 } // namespace native

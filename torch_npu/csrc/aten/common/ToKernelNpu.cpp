@@ -166,7 +166,7 @@ at::Tensor NPUNativeFunctions::to(
             "dtype cast repalce with float.");
     }
     dtype = (dtype == at::ScalarType::Double) ? at::ScalarType::Float : dtype;
-    return custom_ops::npu_dtype_cast(self, dtype);
+    return custom_ops::_npu_dtype_cast(self, dtype);
 }
 
 at::Tensor NPUNativeFunctions::to(

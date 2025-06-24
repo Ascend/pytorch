@@ -726,6 +726,7 @@ BlockState::BlockState(Block *block)
 
 SegmentState::SegmentState(Block *head)
 {
+    TORCH_INTERNAL_ASSERT(head != nullptr, PTA_ERROR(ErrCode::PTR));
     TORCH_INTERNAL_ASSERT(head->prev == nullptr && head->pool != nullptr);
     is_small = head->pool->is_small;
 
@@ -882,7 +883,7 @@ size_t CachingAllocatorConfig::parseExpandableSegments(const std::vector<std::st
         if (m_expandable_segments) {
             void *ptr = nullptr;
             auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, nullptr, 1);
-            if (status == ACL_ERROR_NONE) {
+            if (status == ACL_ERROR_NONE && ptr != nullptr) {
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
             } else {
                 NPU_CHECK_ERROR(status, "aclrtReserveMemAddress");
@@ -2218,6 +2219,9 @@ private:
             // map_block will map some of unmapped and merge with free
             auto remaining = size - candidate->size;
             auto new_candidate = candidate->next;
+            if (C10_UNLIKELY(new_candidate == nullptr)) {
+                return nullptr;
+            }
             if (!map_block(new_candidate, std::min(remaining, candidate->next->size), ctx)) {
                 return nullptr;
             }
@@ -2441,7 +2445,11 @@ private:
     {
         bool freed_memory = false;
         for (const auto &name : FreeNPUMemoryCallbacksRegistry()->Keys()) {
-            freed_memory |= FreeNPUMemoryCallbacksRegistry()->Create(name)->Execute();
+            if (FreeNPUMemoryCallbacksRegistry()->Create(name) != nullptr) {
+                freed_memory |= FreeNPUMemoryCallbacksRegistry()->Create(name)->Execute();
+            } else {
+                TORCH_CHECK(false, "free memory callback get nullptr", PTA_ERROR(ErrCode::PTR));
+            }
         }
         return freed_memory;
     }

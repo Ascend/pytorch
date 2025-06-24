@@ -3760,7 +3760,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (tensors[0].scalar_type() == at::kBool || tensors[0].scalar_type() == at::kByte) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
-                tensors_cp[0] = at_npu::native::custom_ops::npu_dtype_cast(tensors[0], at::kInt);
+                tensors_cp[0] = at_npu::native::custom_ops::_npu_dtype_cast(tensors[0], at::kInt);
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
@@ -3938,7 +3938,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
             for (const auto i : c10::irange(tensors.size())) {
                 if (tensors[i].scalar_type() == at::kBool || tensors[i].scalar_type() == at::kByte) {
                     c10_npu::NPUStreamGuard guard(hcclStreams[0]);
-                    tensors_cp[i] = at_npu::native::custom_ops::npu_dtype_cast(tensors[i], at::kInt);
+                    tensors_cp[i] = at_npu::native::custom_ops::_npu_dtype_cast(tensors[i], at::kInt);
                 }
             }
         },
@@ -4002,7 +4002,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (tensors[0].scalar_type() == at::kBool || tensors[0].scalar_type() == at::kByte) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
-                tensors_cp[0] = at_npu::native::custom_ops::npu_dtype_cast(tensors[0], at::kInt);
+                tensors_cp[0] = at_npu::native::custom_ops::_npu_dtype_cast(tensors[0], at::kInt);
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
@@ -4062,11 +4062,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (inputTensors[0].scalar_type() == at::kBool || inputTensors[0].scalar_type() == at::kByte) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
-                inputTensors[0] = at_npu::native::custom_ops::npu_dtype_cast(inputTensors[0], at::kInt);
+                inputTensors[0] = at_npu::native::custom_ops::_npu_dtype_cast(inputTensors[0], at::kInt);
             }
             if (outputTensors[0].scalar_type() == at::kBool || outputTensors[0].scalar_type() == at::kByte) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
-                outputTensors[0] = at_npu::native::custom_ops::npu_dtype_cast(outputTensors[0], at::kInt);
+                outputTensors[0] = at_npu::native::custom_ops::_npu_dtype_cast(outputTensors[0], at::kInt);
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
@@ -4101,14 +4101,14 @@ at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors) const
     if (num_add != 0) {
         bool transflag = false;
         if (inter_tensors.scalar_type() == at::ScalarType::Bool) {
-            inter_tensors = at_npu::native::custom_ops::npu_dtype_cast(inter_tensors, at::ScalarType::Int);
+            inter_tensors = at_npu::native::custom_ops::_npu_dtype_cast(inter_tensors, at::ScalarType::Int);
             transflag = true;
         }
 
         inter_tensors = op_plugin::constant_pad_nd(inter_tensors, {0, num_add}, 0);
 
         if (transflag) {
-            inter_tensors = at_npu::native::custom_ops::npu_dtype_cast(inter_tensors, at::ScalarType::Bool);
+            inter_tensors = at_npu::native::custom_ops::_npu_dtype_cast(inter_tensors, at::ScalarType::Bool);
         }
     }
     return inter_tensors;

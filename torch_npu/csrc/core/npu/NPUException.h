@@ -260,7 +260,7 @@ bool checkUceErrAndRepair(bool check_error, std::string& err_msg);
 
 void record_mem_hbm_ecc_error();
 
-void set_mem_uce_info(MemUceInfo info);
+void set_mem_uce_info(MemUceInfo& info);
 
 MemUceInfo get_mem_uce_info();
 

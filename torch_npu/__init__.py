@@ -1,4 +1,4 @@
-__all__ = ["erase_stream", "matmul_checksum"]
+__all__ = ["erase_stream", "matmul_checksum", "HiFloat8Tensor"]
 
 import os
 import sys
@@ -61,6 +61,7 @@ from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.checkpoint.checkpoint import _apply_dcp_patch
 from torch_npu.npu._stream_check import apply_sanitizer_patch
 from torch_npu.npu.utils import _erase_stream as erase_stream
+from torch_npu.utils.hif8_tensor import HiFloat8Tensor
 from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 from torch_npu.asd.asd import _asd_patch
 from torch_npu.asd.checksum import _matmul_checksum as matmul_checksum
@@ -89,6 +90,11 @@ for name in dir(torch.ops.npu):
     if name in public_npu_functions:
         __all__.append(name)
     setattr(torch, name, _wrap_torch_error_func(getattr(torch.ops.npu, name)))
+
+for name in dir(torch_npu._C._cd.DType):
+    if name.startswith('__') or name in ['_dir', 'name']:
+        continue
+    setattr(torch_npu, name, getattr(torch_npu._C._cd.DType, name))
 
 all_monkey_patches = [
     ["nn.functional", npu_functional],
