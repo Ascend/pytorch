@@ -98,7 +98,6 @@ int64_t StoreMessagePacker::Unpack(const std::vector<uint8_t> &buffer, StoreMess
 
     auto keyCount = *reinterpret_cast<const uint64_t *>(ptr);
     ptr += sizeof(uint64_t);
-    message.keys.reserve(keyCount);
     for (auto i = 0UL; i < keyCount; i++) {
         auto keySize = *reinterpret_cast<const uint64_t *>(ptr);
         ptr += sizeof(uint64_t);
@@ -111,7 +110,6 @@ int64_t StoreMessagePacker::Unpack(const std::vector<uint8_t> &buffer, StoreMess
 
     auto valueCount = *reinterpret_cast<const uint64_t *>(ptr);
     ptr += sizeof(uint64_t);
-    message.values.reserve(valueCount);
     for (auto i = 0UL; i < valueCount; i++) {
         auto valueSize = *reinterpret_cast<const uint64_t *>(ptr);
         ptr += sizeof(uint64_t);
