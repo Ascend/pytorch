@@ -19,11 +19,7 @@
 #include <c10d/ParamCommsUtils.hpp>
 #include <c10d/TraceUtils.h>
 #include <c10d/Utils.hpp>
-#include <c10d/TCPStore.hpp>
-#include <c10d/PrefixStore.hpp>
 #include <torch/csrc/distributed/c10d/PrefixStore.hpp>
-
-#include <arpa/inet.h>
 
 #include "op_plugin/OpInterface.h"
 #include "third_party/acl/inc/acl/acl.h"
@@ -67,7 +63,6 @@ constexpr const char* P2P_DEVICE_KEY = "_p2p";
 using hcclUs = std::chrono::steady_clock::time_point;
 
 constexpr int32_t MAX_GROUP_NAME_LEN = 128;
-constexpr int32_t NSLB_JOBID_OFFSET = 32;
 
 // HCCL ReduceOp mapping
 std::map<c10d::ReduceOp, HcclReduceOp> hcclOp = {
@@ -954,24 +949,6 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     // different PGs.
     c10d::PrefixStore *prefixStore = dynamic_cast<c10d::PrefixStore *>(store_.get());
     globalStore_ = prefixStore ? prefixStore->getUnderlyingNonPrefixStore() : store_;
-
-    c10::intrusive_ptr<c10d::Store> getTcpStore = store_;
-    while (getTcpStore) {
-        c10d::PrefixStore *asPrefixStore = dynamic_cast<c10d::PrefixStore *>(getTcpStore.get());
-        c10d::TCPStore *tcpStore = dynamic_cast<c10d::TCPStore *>(getTcpStore.get());
-        if (tcpStore) {
-            if (!(tcpStore->getHost().empty())) {
-                tcp_master_addr_ = tcpStore->getHost();
-                tcp_master_port_ = tcpStore->getPort();
-                break;
-            }
-        }
-        if (asPrefixStore) {
-            getTcpStore = asPrefixStore->getUnderlyingStore();
-        } else {
-            break;
-        }
-    }
 
     try {
         if (blockingWait != nullptr) {
@@ -2173,30 +2150,6 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     return createHCCLComm(devicesKey, devices, commType, commConfig, p2pRank);
 }
 
-void ProcessGroupHCCL::setNSLBCommConfig(HcclCommConfig** commConfig)
-{
-    const char* envPtr = std::getenv("RANK");
-    if (envPtr == nullptr) {
-        ASCEND_LOGI("Failed to get env info for NSLB-DP.");
-        return;
-    }
-    uint32_t worldRankID = std::stoi(std::string(envPtr));
-    options_->hccl_config["hccl_world_rank_id"] = worldRankID;
-    uint32_t masterPort = tcp_master_port_;
-    struct sockaddr_in sa;
-    std::string master_addr = tcp_master_addr_;
-    inet_pton(AF_INET, std::string(master_addr).c_str(), &(sa.sin_addr));
-    uint32_t masterIp = ntohl(sa.sin_addr.s_addr);
-    uint64_t jobID = masterPort;
-    jobID = (jobID << NSLB_JOBID_OFFSET);
-    jobID += masterIp;
-    options_->hccl_config["hccl_job_id"] = jobID;
-    if ((*commConfig) != nullptr) {
-        (*commConfig)->hcclWorldRankID = worldRankID;
-        (*commConfig)->hcclJobID = jobID;
-    }
-}
-
 void ProcessGroupHCCL::createHCCLComm(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices,
@@ -2220,10 +2173,6 @@ void ProcessGroupHCCL::createHCCLComm(
         int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
 
         HcclCommConfig config;
-
-        if (options_->global_ranks_in_group.empty()) {
-            setNSLBCommConfig(&commConfig);
-        }
 
         npuGuard.set_index(devices[i].index());
         switch (commType) {
@@ -3144,22 +3093,6 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
             config.hcclOpExpansionMode = std::get<uint32_t>(options_->hccl_config["hccl_op_expansion_mode"]);
         } else {
             TORCH_CHECK(false, "Value type of hccl_op_expansion_mode should be int.", DIST_ERROR(ErrCode::TYPE));
-        }
-    }
-
-    if (options_->hccl_config.find("hccl_world_rank_id") != options_->hccl_config.end()) {
-        if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_world_rank_id"])) {
-            config.hcclOpExpansionMode = std::get<uint32_t>(options_->hccl_config["hccl_world_rank_id"]);
-        } else {
-            TORCH_CHECK(false, "Value type of hccl_world_rank_id should be int.", DIST_ERROR(ErrCode::TYPE));
-        }
-    }
-
-    if (options_->hccl_config.find("hccl_job_id") != options_->hccl_config.end()) {
-        if (std::holds_alternative<uint64_t>(options_->hccl_config["hccl_job_id"])) {
-            config.hcclOpExpansionMode = std::get<uint64_t>(options_->hccl_config["hccl_job_id"]);
-        } else {
-            TORCH_CHECK(false, "Value type of hccl_job_id should be int.", DIST_ERROR(ErrCode::TYPE));
         }
     }
 
