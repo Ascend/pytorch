@@ -520,7 +520,7 @@ class NPUCachingAutotuner(CachingAutotuner):
     def get_fx_graph_call(self, auto_fallback=False):
         kernel_name = self.inductor_meta.get("kernel_name", "triton_")
         traced_graph_hash = self.inductor_meta.get("traced_graph_hash")
-        dump_dir = self.inductor_meta.get("traced_hash_dir", "")
+        dump_dir = self.inductor_meta.get("traced_graph_dir", "")
         dump_path = os.path.join(dump_dir, traced_graph_hash)
         if dump_dir == "" or not os.path.exists(dump_path):
             return None, None, None, None
@@ -730,6 +730,14 @@ class NPUCachingAutotuner(CachingAutotuner):
         if npu_config.check_accuracy:
             if self.check_accuracy(*args, launcher=launcher, grid=grid, stream=stream, **kwargs):
                 return
+
+        elif npu_config.dump_fx_graph:
+            fx_graph_call, kernel_name, dump_path, _ = self.get_fx_graph_call()
+            if not fx_graph_call:
+                log.warning(f"data dump for kernel {kernel_name} failed!")
+            else:
+                self.data_dump(*args, dump_path=dump_path)
+
         elif npu_config.force_fallback_kernel_id:
             fallback_result = self.fallback_to_fx(*args, launcher=launcher, grid_=grid, stream=stream, **kwargs)
             if fallback_result is not None:
