@@ -109,7 +109,8 @@ class MemoryViewParser(BaseParser):
             if ge_record.time_ns >= pta_record.time_ns:
                 self.size_record_list.extend(self._combine_record(last_ge_record, pta_record))
                 pta_ptr += 1
-                last_pta_record = pta_record
+                if hasattr(pta_record, 'component_type') and pta_record.component_type != Constant.WORKSPACE_TYPE:
+                    last_pta_record = pta_record
             else:
                 self.size_record_list.extend(self._combine_record(last_pta_record, ge_record))
                 ge_ptr += 1
