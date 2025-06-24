@@ -1,5 +1,5 @@
 --extra-index-url https://download.pytorch.org/whl/nightly/cpu
--f https://data.pyg.org/whl/torch-2.6.0+cpu.html
+-f https://data.pyg.org/whl/torch-2.7.0+cpu.html
 
 coverage
 beartype==0.17.0
@@ -17,5 +17,5 @@ transformers==4.40.0
 pytest==8.1.1
 parameterized==0.9.0
 torch-scatter==2.1.2
-torchvision-0.22.0.dev20250516
+torchvision==0.23.0.dev20250620
 ml-dtypes==0.2.0

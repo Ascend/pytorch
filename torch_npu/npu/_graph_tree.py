@@ -80,6 +80,7 @@ from torch.multiprocessing.reductions import StorageWeakRef
 from torch.storage import UntypedStorage
 from torch.types import _bool
 from torch.utils import _pytree as pytree
+from torch.utils._ordered_set import OrderedSet
 from torch.utils.weak import TensorWeakRef
 
 import torch_npu
@@ -342,7 +343,7 @@ def npugraphify_impl(model, inputs, static_input_idxs, *args, **kwargs):
         copy_misaligned_inputs(inputs, check_input_idxs)
 
         fn, out = npugraphify(model, inputs, new_static_input_idxs, *args, **kwargs)
-        fn = align_inputs_from_check_idxs(fn, inputs_to_check=check_input_idxs)
+        fn = align_inputs_from_check_idxs(fn, inputs_to_check=check_input_idxs, mutated_input_idxs=OrderedSet())
         fn_cache[int_key] = fn
 
         return out
