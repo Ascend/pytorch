@@ -384,7 +384,7 @@ public:
             return c10::make_intrusive<Options>(_is_high_priority_stream);
         }
 
-        std::unordered_map<std::string, std::variant<uint32_t, uint64_t, std::string>> hccl_config;
+        std::unordered_map<std::string, std::variant<uint32_t, std::string>> hccl_config;
 
         std::chrono::milliseconds opTimeout;
         // Schedule HCCL operations on high priority CUDA streams
@@ -570,8 +570,6 @@ public:
     void setHcclCommName(const std::string& hccl_comm_name);
 
     void resumeHcclComm(int device_id);
-
-    void setNSLBCommConfig(HcclCommConfig** commConfig);
 
     bool setCommWorkingDevNic(
         const HcclComm& comm,
@@ -954,10 +952,6 @@ protected:
     static int numRanks_;
 
     static std::string exceptionMessage_;
-
-    std::string tcp_master_addr_;
-
-    uint32_t tcp_master_port_;
 
 private:
     // Helper that encapsulates work shared across all collective communication
