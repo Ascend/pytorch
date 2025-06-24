@@ -5,6 +5,7 @@ from functools import wraps
 from typing import Tuple, Dict, Any
 
 import torch
+import torch.distributed as dist
 import torch.distributed._functional_collectives as funcol
 from torch.distributed._tensor import DTensor
 from torch.distributed.device_mesh import _mesh_resources, DeviceMesh, init_device_mesh
@@ -197,7 +198,7 @@ class DeviceMeshTest(NPUDTensorTestBase):
         local_tensor = torch.randn(2, 8)
         global_tensor = funcol.all_gather_tensor(
             local_tensor, gather_dim=0, group=(mesh, 0)
-        )
+        ).wait()
         self.assertEqual(global_tensor.shape, (self.world_size * 2, 8))
 
     @skipIfUnsupportMultiNPU(2)
@@ -209,7 +210,7 @@ class DeviceMeshTest(NPUDTensorTestBase):
         mesh_pg = ref_global_mesh.get_group()
         global_mesh = DeviceMesh.from_group(mesh_pg, self.device_type)
         self.assertEqual(ref_global_mesh, global_mesh)
-        self.assertEqual(ref_global_mesh._dim_group_infos, global_mesh._dim_group_infos)
+        self.assertEqual(ref_global_mesh._dim_group_names, global_mesh._dim_group_names)
         self.assertEqual(
             ref_global_mesh._coordinate_on_dim, global_mesh._coordinate_on_dim
         )
@@ -218,7 +219,7 @@ class DeviceMeshTest(NPUDTensorTestBase):
             mesh_pg, self.device_type, mesh=torch.arange(self.world_size)
         )
         self.assertEqual(ref_global_mesh, global_mesh)
-        self.assertEqual(ref_global_mesh._dim_group_infos, global_mesh._dim_group_infos)
+        self.assertEqual(ref_global_mesh._dim_group_names, global_mesh._dim_group_names)
         self.assertEqual(
             ref_global_mesh._coordinate_on_dim, global_mesh._coordinate_on_dim
         )
@@ -468,24 +469,74 @@ class DeviceMeshTestNDimE(NPUDTensorTestBase):
             mesh_dim_names=mesh_dim_names[:2],
         )
 
-        ref_mesh_dp_dim_group_infos = ref_mesh._dim_group_infos[:2]
-        for (_, ref_ranks, _), (_, ranks, _) in zip(
-            ref_mesh_dp_dim_group_infos, dp_mesh._dim_group_infos
-        ):
-            self.assertEqual(ref_ranks, ranks)
+        ref_mesh_dp_dim_group_names = ref_mesh._dim_group_names[:2]
+        self.assertEqual(ref_mesh_dp_dim_group_names, ref_mesh._dim_group_names[:2])
         # Cannot check directly for mesh equality since parent meshes are not
         # the same since the ref's parent mesh is 3D
         self.assertEqual(dp_mesh["dp_replicate"].mesh, ref_mesh["dp_replicate"].mesh)
-        for (_, ref_ranks, _), (_, ranks, _) in zip(
-            dp_mesh["dp_replicate"]._dim_group_infos,
-            ref_mesh["dp_replicate"]._dim_group_infos,
-        ):
-            self.assertEqual(ref_ranks, ranks)
+        self.assertEqual(
+            dp_mesh["dp_replicate"]._dim_group_names,
+            ref_mesh["dp_replicate"]._dim_group_names,
+        )
         self.assertEqual(dp_mesh["dp_shard"].mesh, ref_mesh["dp_shard"].mesh)
-        for (_, ref_ranks, _), (_, ranks, _) in zip(
-            dp_mesh["dp_shard"]._dim_group_infos, ref_mesh["dp_shard"]._dim_group_infos
+        self.assertEqual(
+            dp_mesh["dp_shard"]._dim_group_names,
+            ref_mesh["dp_shard"]._dim_group_names,
+        )
+
+    @skipIfUnsupportMultiNPU(8)
+    @with_comms
+    def test_from_group_with_mesh_shape_2d(self):
+        """Tests ``from_group`` when passing ``mesh_shape`` as 2D."""
+        # Consider the following scenario where the process group has been created,
+        # but we need to create the 2D HSDP mesh from it later in the program.
+        mesh_shape = (2, 4)
+        mesh_dim_names = ("dp_replicate", "dp_shard")
+        ref_mesh = init_device_mesh(
+            self.device_type, mesh_shape, mesh_dim_names=mesh_dim_names
+        )
+
+        # Create shard groups (e.g. (0, 1, 2, 3), (4, 5, 6, 7))
+        # and assign the correct shard group to each rank
+        shard_rank_lists = list(range(0, self.world_size // 2)), list(
+            range(self.world_size // 2, self.world_size)
+        )
+        shard_groups = (
+            new_group(shard_rank_lists[0]),
+            new_group(shard_rank_lists[1]),
+        )
+        current_shard_group = (
+            shard_groups[0] if self.rank in shard_rank_lists[0] else shard_groups[1]
+        )
+
+        # Create replicate groups (for example, (0, 4), (1, 5), (2, 6), (3, 7))
+        # and assign the correct replicate group to each rank
+        current_replicate_group = None
+        shard_factor = len(shard_rank_lists[0])
+        for i in range(self.world_size // 2):
+            replicate_group_ranks = list(range(i, self.world_size, shard_factor))
+            replicate_group = new_group(replicate_group_ranks)
+            if self.rank in replicate_group_ranks:
+                current_replicate_group = replicate_group
+
+        dp_mesh = DeviceMesh.from_group(
+            [not_none(current_replicate_group), current_shard_group],
+            self.device_type,
+            mesh=ref_mesh.mesh,
+            mesh_dim_names=("dp_replicate", "dp_shard"),
+        )
+
+        # self.assertEqual(ref_mesh._dim_group_names, dp_mesh._dim_group_names)
+        for mesh_dim_group, ref_mesh_dim_group in zip(
+            dp_mesh.get_all_groups(), ref_mesh.get_all_groups()
         ):
-            self.assertEqual(ref_ranks, ranks)
+            mesh_dim_group_ranks = dist.get_process_group_ranks(mesh_dim_group)
+            ref_mesh_dim_group_ranks = dist.get_process_group_ranks(ref_mesh_dim_group)
+            self.assertEqual(mesh_dim_group_ranks, ref_mesh_dim_group_ranks)
+        # check both the 2d mesh and the submeshes are exactly the same.
+        self.assertEqual(dp_mesh, ref_mesh)
+        self.assertEqual(dp_mesh["dp_replicate"], ref_mesh["dp_replicate"])
+        self.assertEqual(dp_mesh["dp_shard"], ref_mesh["dp_shard"])
 
 
 class InitDeviceMeshTest(NPUDTensorTestBase):
