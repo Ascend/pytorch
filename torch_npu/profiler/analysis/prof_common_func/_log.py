@@ -34,6 +34,7 @@ class ProfilerLogger:
     BACKUP_COUNT = 3
     # logger instance
     _instance = None
+    _pid = None
 
     @classmethod
     def get_instance(cls) -> logging.Logger:
@@ -54,7 +55,9 @@ class ProfilerLogger:
             RuntimeError: If logger initialization fails
         """
         if cls._instance is not None:
-            return
+            if cls._pid == os.getpid():
+                return
+            cls.destroy()
 
         # Create logs directory
         log_dir = os.path.join(output_dir, cls.DEFAULT_LOG_DIR)
@@ -89,6 +92,7 @@ class ProfilerLogger:
         logger.addHandler(file_handler)
 
         cls._instance = logger
+        cls._pid = os.getpid()
         logger.info("Profiler logger initialized at: %s", log_file)
 
     @classmethod
@@ -106,9 +110,21 @@ class ProfilerLogger:
 
     @classmethod
     def destroy(cls) -> None:
-        """Close and cleanup the logger."""
+        """
+        Close and cleanup the logger.
+        To avoid the deadlock problem caused by directly calling close on handler in multi-process scenarios, close the
+        file descriptor manually.
+        """
         if cls._instance:
             for handler in cls._instance.handlers[:]:
-                handler.close()
                 cls._instance.removeHandler(handler)
+                if cls._pid == os.getpid():
+                    handler.close()
+                else:
+                    try:
+                        if hasattr(handler.stream, 'fileno'):
+                            fileno = handler.stream.fileno()
+                            os.close(fileno)
+                    except (OSError, AttributeError, ValueError):
+                        logging.warning("Close profiler logger handler stream failed.")
             cls._instance = None
