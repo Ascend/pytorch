@@ -1,5 +1,5 @@
 import os
-from functools import wraps
+from functools import wraps, partial
 import logging
 import time
 import warnings
@@ -314,17 +314,11 @@ class _MatmulSilentCheck:
         self.checksum_result = None
         self.checksum_state = None
         self.checksum_state_thread_running = False
-        self.checksum_state_thread = threading.Thread(
-            target=self._tcp_comm_checksum_state,
-            daemon=True
-        )
+        self.checksum_state_thread = None
         # Use another thread to receive the statistic value and detect SDC
         self.check_thread_running = False
-        self.check_thread = threading.Thread(
-            target=self._async_detect,
-            daemon=True
-        )
-        self.lock = threading.Lock()
+        self.check_thread = None
+        self._lock = None
         self.queue_len = 1024
         self.statistic_cpu_value = None
         self.name_list = ["" for _ in range(self.queue_len)]
@@ -409,7 +403,13 @@ class _MatmulSilentCheck:
 
     def get_grad_sample_interval(self):
         return self.filter_interval
-    
+
+    @property
+    def lock(self):
+        if self._lock is None:
+            self._lock = threading.Lock()
+        return self._lock
+
     def init_stream(self):
         if self.statistic_cpu_value is None:
             self.statistic_value = torch.tensor(0., device=f"npu:{torch_npu.npu.current_device()}")
@@ -431,7 +431,8 @@ class _MatmulSilentCheck:
     
     def register_module_hook(self, module, name):
         self.check_stat[name + "_backward"] = {'avg': 0, 'pre_val': 0, 'step': 0, 'none_zero_step': 0}
-        self.hook_dict[name + "_backward"] = module.register_full_backward_hook(lambda module, grad_input, grad_output, n=name + "_backward": self.module_hook(module, grad_input, grad_output, n))
+        hook = partial(self.module_hook, name=name + "_backward")
+        self.hook_dict[name + "_backward"] = module.register_full_backward_hook(hook)
         self.registered_modules.append(name)
     
     def module_hook(self, module, grad_input, grad_output, name):
@@ -472,6 +473,8 @@ class _MatmulSilentCheck:
             if hasattr(torch, "npu") and torch.npu.is_initialized() and torch.distributed.is_initialized():
                 break
             time.sleep(10)
+        if not self.check_thread_running:
+            return
         local_rank = os.getenv("LOCAL_RANK", "-1")
         if local_rank.isdigit():
             torch.npu.set_device(int(local_rank))
@@ -636,6 +639,8 @@ class _MatmulSilentCheck:
             if hasattr(torch, "npu") and torch.npu.is_initialized() and torch.distributed.is_initialized() and self.store is not None:
                 break
             time.sleep(10)
+        if not self.checksum_state_thread_running:
+            return
         local_rank = os.getenv("LOCAL_RANK", "-1")
         self.rank = torch.distributed.get_rank()
         world_size = torch.distributed.get_world_size()
@@ -697,14 +702,44 @@ class _MatmulSilentCheck:
 
             time.sleep(10)
 
+    def __getstate__(self):
+        self._cleanup()
+        state = self.__dict__.copy()
+        state['_lock'] = None
+        state['store'] = None
+        return state
+    
+    def __setstate(self, state):
+        self.__dict__.update(state)
+        self.store = None
+
+    def _startup(self):        
+        if not self.check_thread_running:
+            self.check_thread_running = True
+            self.check_thread = threading.Thread(
+                target=self._async_detect,
+                daemon=True
+            )
+            self.check_thread.start()
+
+        if not self.checksum_state_thread_running:
+            self.checksum_state_thread_running = True
+            self.checksum_state_thread = threading.Thread(
+                target=self._tcp_comm_checksum_state,
+                daemon=True
+            )
+            self.checksum_state_thread.start()
+
     def _cleanup(self):
         if self.check_thread_running:
             self.check_thread_running = False
             self.check_thread.join()
+            self.check_thread = None
 
         if self.checksum_state_thread_running:
             self.checksum_state_thread_running = False
             self.checksum_state_thread.join()
+            self.checksum_state_thread = None
 
 
 matmul_check = _MatmulSilentCheck()
@@ -747,14 +782,7 @@ def _matmul_silent_check_decorator(func):
             matmul_check.init_module_info(id(self), self.training)
             self.matmul_check_outer = True
 
-            if not matmul_check.check_thread_running:
-                matmul_check.check_thread_running = True
-                matmul_check.check_thread.start()
-
-            # 2 for checksum
-            if not matmul_check.checksum_state_thread_running:
-                matmul_check.checksum_state_thread_running = True
-                matmul_check.checksum_state_thread.start()
+            matmul_check._startup()
             if matmul_check.with_checksum and not matmul_check.matmul_trigger:
                 torch_npu.asd.checksum.matmul = original_matmul
                 torch.matmul = _trigger_matmul_decorator(original_matmul)
