@@ -16,8 +16,6 @@ from ._silent_fault_data import SilentFaultData, SilentFaultDataV2
 __all__ = []
 
 
-original_matmul = torch.matmul
-original_tensor_matmul = torch.Tensor.matmul
 loggerSilent = logging.getLogger("torch_npu.silent_check")
 
 
@@ -784,6 +782,8 @@ def _matmul_silent_check_decorator(func):
 
             matmul_check._startup()
             if matmul_check.with_checksum and not matmul_check.matmul_trigger:
+                original_matmul = torch.matmul
+                original_tensor_matmul = torch.Tensor.matmul
                 torch_npu.asd.checksum.matmul = original_matmul
                 torch.matmul = _trigger_matmul_decorator(original_matmul)
                 torch.Tensor.matmul = _trigger_tensor_matmul_decorator(original_tensor_matmul)
