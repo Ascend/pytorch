@@ -3,6 +3,7 @@ import json
 import atexit
 import time
 
+from ..npu import mstx, current_stream
 from .profiler import tensorboard_trace_handler, profile
 from .scheduler import Schedule as schedule
 
@@ -38,6 +39,7 @@ class _DynamicProfile:
         self._step_record_time = None
         self._step_time = 0
         self._min_poll_interval = 1
+        self._step_mstx_range_id = 0
 
     def init(self):
         if self.repeat_init:
@@ -78,6 +80,9 @@ class _DynamicProfile:
             self._step_time = max(self._min_poll_interval, int(time.time() - self._step_record_time))
             self._dynamic_monitor.modify_step_time(self._step_time)
         if self.prof:
+            if self._step_mstx_range_id:
+                mstx.range_end(self._step_mstx_range_id)
+                self._step_mstx_range_id = mstx.range_start(f"step {self.cur_step}", current_stream())
             self.prof.step()
             self.step_num -= 1
             if 0 == self.step_num:
@@ -138,7 +143,9 @@ class _DynamicProfile:
             with_modules=self.cfg_ctx.with_modules,
             experimental_config=self.cfg_ctx.experimental_config
         )
+        self.prof._set_step_num_offset_for_dynamic_prof(self.cur_step)
         self.prof.start()
+        self._step_mstx_range_id = mstx.range_start(f"step {self.cur_step}", current_stream())
         for key, value in self.cfg_ctx.meta_data().items():
             self.prof.add_metadata_json(str(key), json.dumps(value))
         DynamicProfilerUtils.out_log("Start Dynamic Profiler at {} step.".format(
