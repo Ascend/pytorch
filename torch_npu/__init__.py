@@ -239,16 +239,15 @@ def _new_process_group_lccl_helper(dist_backend_opts, pg_options):
 
 
 def _register_distributed_backend_for_npu():
+    # init and register hccl backend
+    # Note: Since torch 2.8, the hccl backend must be registered at first to keep a right default_device_backend_map
+    torch.distributed.Backend.register_backend("hccl", lambda dist_backend_opts, pg_options:
+        _new_process_group_hccl_helper(dist_backend_opts, pg_options), extended_api=True, devices=["npu"])
+
     # init and register lccl backend
     torch.distributed.Backend.register_backend("lccl", lambda dist_backend_opts, pg_options:
         _new_process_group_lccl_helper(dist_backend_opts, pg_options), extended_api=True, devices=["npu"])
 
-    # init and register hccl backend
-    # Note: The hccl backend must be registered last. 
-    # This is because the "Backend.default_device_backend_map" variable is refreshed during each registration process. 
-    # Therefore, it is essential to register the hccl backend last.
-    torch.distributed.Backend.register_backend("hccl", lambda dist_backend_opts, pg_options:
-        _new_process_group_hccl_helper(dist_backend_opts, pg_options), extended_api=True, devices=["npu"])
 
 
 # init and register distributed backend

@@ -668,11 +668,11 @@ class HCCLTraceTest(HCCLTraceTestBase):
 
 
 def check_if_test_is_skipped(fn):
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self, f, *args, **kwargs):
         for skip in TEST_SKIPS.values():
             if self.processes[0].exitcode == skip.exit_code:
-                return MultiProcessTestCase._check_return_codes(self, *args, **kwargs)
-        return fn(self, *args, **kwargs)
+                return MultiProcessTestCase._check_return_codes(self, f, *args, **kwargs)
+        return fn(self, f, *args, **kwargs)
 
     return wrapper
 
@@ -693,7 +693,7 @@ class HCCLTraceTestDumpOnTimeoutBase(HCCLTraceTestBase):
         return pg
 
     @check_if_test_is_skipped
-    def _check_return_codes(self, elapsed_time):
+    def _check_return_codes(self, fn, elapsed_time):
         # the base test infra assumes processes exit with matching return codes,
         # but we want rank0 to abort and rank1 to exit cleanly in this test
         self.assertEqual(self.processes[0].exitcode, -6)
@@ -758,7 +758,7 @@ instantiate_parametrized_tests(HCCLTraceTest)
 
 class HCCLTraceTestTimeoutDumpOnStuckRanks(HCCLTraceTestDumpOnTimeoutBase):
     @check_if_test_is_skipped
-    def _check_return_codes(self, elapsed_time):
+    def _check_return_codes(self, fn, elapsed_time):
         # the base test infra assumes processes exit with matching return codes,
         # but we want rank0 to abort and rank1 to exit cleanly in this test
         self.assertEqual(self.processes[0].exitcode, -6)
@@ -819,7 +819,7 @@ class HcclErrorDumpTest(HCCLTraceTestBase):
             return None
 
     @check_if_test_is_skipped
-    def _check_return_codes(self, elapsed_time):
+    def _check_return_codes(self, fn, elapsed_time):
         # the base test infra assumes processes exit with matching return codes,
         # but we want rank0 to abort with exception and rank1 to exit with exit 1
         self.assertEqual(self.processes[0].exitcode, -6)
@@ -925,7 +925,7 @@ class HCCLTraceTestDumpOnHcclTimeout(HCCLTraceTestBase):
         super().tearDown()
 
     @check_if_test_is_skipped
-    def _check_return_codes(self, elapsed_time):
+    def _check_return_codes(self, fn, elapsed_time):
         # the base test infra assumes processes exit with matching return codes,
         # but we want rank0 to hccl exec timeout and rank1 to exit cleanly in this test
         self.assertEqual(self.processes[0].exitcode, 10)
