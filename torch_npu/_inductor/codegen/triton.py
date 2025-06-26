@@ -575,6 +575,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "traced_graph_hash": "TRACED_GRAPH_HASH",
             "traced_graph_dir": "TRACED_GRAPH_DIR",
             "store_cubin": config.triton.store_cubin,
+            "force_disable_caches": config.force_disable_caches,
         }
         return inductor_meta
 
