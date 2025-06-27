@@ -118,6 +118,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Control needed ut cases')
     parser.add_argument('--all', action="store_true", help='Run all testcases')
     parser.add_argument('--distributed', action="store_true", help='Run distributed testcases')
+    parser.add_argument('--inductor', action="store_true", help='Run inductor testcases')
     parser.add_argument('--rank', default=0, type=int, help='Index of current ut nodes')
     parser.add_argument('--world_size', default=0, type=int, help='Number of ut nodes')
     parser.add_argument('--network_ops', action="store_true", help='Run network_ops testcases in the op-plugin repo')
@@ -130,6 +131,8 @@ if __name__ == "__main__":
         test_mgr.load_all_ut(options.distributed, options.network_ops)
     elif options.distributed:
         test_mgr.load_distributed_ut()
+    elif options.inductor:
+        test_mgr.load_inductor_ut()
     elif os.path.exists(cur_modify_files):
         test_mgr.load(cur_modify_files, world_size=options.world_size)
         test_mgr.analyze()
