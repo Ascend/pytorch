@@ -46,7 +46,23 @@ REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string &val) {
   aclmdlSetDump(val.c_str());
 })
 
-REGISTER_OPTION_BOOL_FUNCTION(CheckJitDisableInner, jitCompile, "enable", "disable")
+bool CheckJitDisableInner()
+{
+    auto val = c10_npu::option::GetOption("jitCompile");
+    if (val.has_value()) {
+        if (val.value() == ("disable")) {
+            return true;
+        }
+        if (val.value() == ("enable")) {
+            return false;
+        }
+    }
+    if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) {
+        return true;
+    }
+    return false;
+}
+
 REGISTER_OPTION_CACHE(bool, isJitDisable, CheckJitDisableInner)
 REGISTER_OPTION_HOOK(jitCompile, [](const std::string &val) {
     auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();

@@ -70,6 +70,14 @@ private:
             ResetDataPtr(src, self,
                          static_cast<int64_t *>(src.storage().data_ptr().get()));
             return true;
+        case at::ScalarType::Float8_e5m2:
+            ResetDataPtr(src, self,
+                         static_cast<uint8_t *>(src.storage().data_ptr().get()));
+            return true;
+        case at::ScalarType::Float8_e4m3fn:
+            ResetDataPtr(src, self,
+                         static_cast<uint8_t *>(src.storage().data_ptr().get()));
+            return true;
         default:
             // Turn to conducting d2dCopyAsync for other dtypes.
             return false;

@@ -174,6 +174,7 @@ aclError AclrtSetStreamFailureMode(aclrtStream stream, uint64_t mode) {
     if (stream == nullptr) { // default stream
         return ACL_ERROR_INVALID_PARAM;
     }
+
     typedef aclError(*aclrtSetStreamFailureModeFunc)(aclrtStream, uint64_t);
     static aclrtSetStreamFailureModeFunc func = (aclrtSetStreamFailureModeFunc)GET_FUNC(aclrtSetStreamFailureMode);
     if (func == nullptr) {
@@ -844,7 +845,8 @@ bool IsCaptureSupported()
     static bool have_load_func = false;
     static bool default_support_capture = ((GetSocVersion() >= SocVersion::Ascend910B1) &&
         (GetSocVersion() < SocVersion::Ascend310B1)) ||
-        (GetSocVersion() >= SocVersion::Ascend910_9391);
+        ((GetSocVersion() >= SocVersion::Ascend910_9391) &&
+        (GetSocVersion() < SocVersion::Ascend910_95));
     if (default_support_capture && !have_load_func) {
         have_load_func = true;
         typedef aclError (*AclmdlRICaptureGetInfo)(aclrtStream, aclmdlRICaptureStatus *, aclmdlRI *);

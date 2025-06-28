@@ -345,7 +345,7 @@ class TestONNXExport(pytorch_test_common.ExportTestCase):
                 return x[mask]
 
         f = io.BytesIO()
-        torch.onnx.export(
+        torch.onnx.utils._export(
             FooMod(),
             (torch.rand(3, 4),),
             f,
