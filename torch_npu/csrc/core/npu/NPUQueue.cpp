@@ -707,6 +707,8 @@ bool Repository::CheckInit() const
 void StartConsume(Repository *repo, c10::DeviceIndex device_id)
 {
     SetThreadType(ThreadType::ACL_THREAD);
+    SetThreadAffinity(device_id);
+
     aclError ret = c10_npu::SetDevice(device_id);
     if (ret != 0) {
         C10_NPU_SHOW_ERR_MSG();

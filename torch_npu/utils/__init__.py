@@ -1,5 +1,5 @@
 __all__ = ["save_async", "npu_combine_tensors", "get_part_combined_tensor", "is_combined_tensor_valid", "FlopsCounter",
-           "set_thread_affinity"]
+           "set_thread_affinity", "reset_thread_affinity"]
 
 from torch_npu import _C
 from ._module import _apply_module_patch
@@ -19,6 +19,7 @@ from .clip_grad_norm_ import _apply_clip_grad_norm_patch
 from ._step import add_perf_dump_patch
 from .flops_count import _FlopsCounter as FlopsCounter
 from .affinity import _set_thread_affinity as set_thread_affinity
+from .affinity import _reset_thread_affinity as reset_thread_affinity
 
 
 # init flopcount

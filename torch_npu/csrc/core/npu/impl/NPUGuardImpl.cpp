@@ -52,6 +52,7 @@ void NPUGuardImpl::setDevice(c10::Device d) const
 
 void NPUGuardImpl::uncheckedSetDevice(c10::Device d) const noexcept
 {
+    c10_npu::StartMainThreadBind(d.index());
     NPU_CHECK_WARN(c10_npu::SetDevice(d.index()));
 }
 
