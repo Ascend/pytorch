@@ -122,7 +122,8 @@ OpCommand& OpCommand::Output(at::Tensor &output, const string &descName,
     return AddOutput(output, realType);
 }
 
-void OpCommand::Run() {
+void OpCommand::Run()
+{
     // Check for npu graph
     if (aclCmd->CheckCustomHandlerNull()) {
         c10_npu::assertNotCapturingAclop(aclCmd->GetName());
