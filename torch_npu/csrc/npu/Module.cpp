@@ -1576,6 +1576,15 @@ PyObject* THNPModule_npu_set_thread_affinity(PyObject* self, PyObject* args)
     } else {
         c10_npu::SetThreadAffinity(core_start, core_end);
     }
+
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_reset_thread_affinity(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    c10_npu::SetThreadAffinity(c10_npu::ThreadType::MAIN_THREAD);
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
@@ -1704,6 +1713,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_set_module_train_state", (PyCFunction)THNPModule_npu_set_module_train_state, METH_O, nullptr},
     {"_get_silent_check_version", (PyCFunction)THNPModule_npu_get_silent_check_version, METH_NOARGS, nullptr},
     {"_npu_set_thread_affinity", (PyCFunction)THNPModule_npu_set_thread_affinity, METH_VARARGS, nullptr},
+    {"_npu_reset_thread_affinity", (PyCFunction)THNPModule_npu_reset_thread_affinity, METH_NOARGS, nullptr},
     {"_npu_set_fft_plan_cache_max_size", (PyCFunction)THNPModule_npu_set_fft_plan_cache_max_size, METH_VARARGS, nullptr},
     {"_npu_get_fft_plan_cache_max_size", (PyCFunction)THNPModule_npu_get_fft_plan_cache_max_size, METH_NOARGS, nullptr},
     {"_npu_get_fft_plan_cache_size", (PyCFunction)THNPModule_npu_get_fft_plan_cache_size, METH_NOARGS, nullptr},
