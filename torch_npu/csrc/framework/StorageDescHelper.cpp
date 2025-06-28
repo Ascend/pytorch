@@ -98,6 +98,13 @@ void StorageDescHelper::SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, c
     torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ = SetDesc(dst.dtype(), size, strides, format);
 }
 
+void StorageDescHelper::SetDesc(at::Tensor &dst, const c10::IntArrayRef &base_size,
+    const c10::IntArrayRef &storage_size, const c10::IntArrayRef &strides, aclFormat format)
+{
+    torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ =
+        SetDesc(dst.dtype(), base_size, storage_size, strides, format);
+}
+
 bool StorageDescHelper::CheckDescInit(const c10::Storage &storage)
 {
     return torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())->npu_desc_.origin_format_ !=
@@ -250,6 +257,22 @@ torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dty
     aclFormat npuFormat;
     std::tie(baseFormat, npuFormat) = InferFormat::GuessFormatUnit(size, format);
     npu_desc.storage_sizes_ = FormatHelper::GetStorageSizes(npuFormat, size, dtype);
+    npu_desc.origin_format_ = baseFormat;
+    npu_desc.npu_format_ = npuFormat;
+    return npu_desc;
+}
+
+torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dtype, const c10::IntArrayRef& base_size,
+    const c10::IntArrayRef& storage_size, const c10::IntArrayRef& strides, aclFormat format)
+{
+    struct torch_npu::NPUStorageDesc npu_desc;
+    npu_desc.data_type_ = dtype;
+    npu_desc.base_sizes_ = base_size;
+    npu_desc.base_strides_ = strides;
+    aclFormat baseFormat;
+    aclFormat npuFormat;
+    std::tie(baseFormat, npuFormat) = InferFormat::GuessFormatUnit(base_size, format);
+    npu_desc.storage_sizes_ = storage_size;
     npu_desc.origin_format_ = baseFormat;
     npu_desc.npu_format_ = npuFormat;
     return npu_desc;

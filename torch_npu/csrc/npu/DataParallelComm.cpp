@@ -137,7 +137,7 @@ void check_inputs(TensorList inputs, TensorList outputs, int input_multiplier, i
 {
     // need to check len(inputs) == len(outputs)
     size_t len = inputs.size();
-    if (len <= 0) {
+    if (len == 0) {
         throw std::runtime_error("input sequence can't be empty" + PTA_ERROR(ErrCode::PARAM));
     }
 

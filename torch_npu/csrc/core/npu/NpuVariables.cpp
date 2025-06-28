@@ -39,28 +39,37 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend910_9372", SocVersion::Ascend910_9372},
     {"Ascend910_9362", SocVersion::Ascend910_9362}};
 
-void SetSocVersion(const char* const socVersion) {
-  if (socVersion == nullptr ||
-      g_curSocVersion != SocVersion::UnsupportedSocVersion) {
-    return;
-  }
+void SetSocVersion(const char* const socVersion)
+{
+    if (socVersion == nullptr ||
+        g_curSocVersion != SocVersion::UnsupportedSocVersion) {
+        return;
+    }
 
-  SocVersion curSocVersion = SocVersion::UnsupportedSocVersion;
+    SocVersion curSocVersion = SocVersion::UnsupportedSocVersion;
+    std::string inputVersion = socVersion;
+    std::string ascend95Version = "Ascend910_95";
 
-  auto const& iter = socVersionMap.find(socVersion);
-  if (iter != socVersionMap.end()) {
-    curSocVersion = iter->second;
-  } else {
-    std::string unsupported_soc(socVersion);
-    std::replace(std::begin(unsupported_soc), std::end(unsupported_soc), '_', ' ');
-    AT_ERROR("Unsupported soc version: ", unsupported_soc);
-  }
+    auto const& iter = socVersionMap.find(socVersion);
+    if (iter != socVersionMap.end()) {
+        curSocVersion = iter->second;
+    } else if ((inputVersion.compare(0, ascend95Version.size(), ascend95Version) == 0)) {
+        curSocVersion = SocVersion::Ascend910_95;
+    } else {
+        std::string unsupported_soc(socVersion);
+        std::replace(std::begin(unsupported_soc), std::end(unsupported_soc), '_', ' ');
+        AT_ERROR("Unsupported soc version: ", unsupported_soc);
+    }
 
-  g_curSocVersion = curSocVersion;
+    g_curSocVersion = curSocVersion;
 }
 
 const SocVersion& GetSocVersion()
 {
+    if (g_curSocVersion == SocVersion::UnsupportedSocVersion) {
+        auto soc_name = c10_npu::acl::AclGetSocName();
+        SetSocVersion(soc_name);
+    }
     return g_curSocVersion;
 }
 
@@ -93,6 +102,11 @@ bool IsSupportInfNan()
 bool IsBF16Supported()
 {
     return GetSocVersion() >= SocVersion::Ascend910B1;
+}
+
+bool IsAclnnOnly()
+{
+    return GetSocVersion() >= SocVersion::Ascend910_95;
 }
 }  // namespace c10_npu
 

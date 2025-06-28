@@ -52,6 +52,10 @@ std::unordered_map<aclFormat, FormatHelper::FormatInfo> FormatHelper::Initialize
         {ACL_FORMAT_NDC1HWC0,
          (FormatInfo){ACL_FORMAT_NDC1HWC0, ACL_FORMAT_NCDHW, InferShapeOfNDC1HWC0, "NDC1HWC0", true}},
         {ACL_FRACTAL_Z_3D, (FormatInfo){ACL_FRACTAL_Z_3D, ACL_FORMAT_NCDHW, InferShapeOfFZ3D, "FRACTAL_Z_3D", true}},
+        {ACL_FORMAT_FRACTAL_NZ_C0_16,
+            (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_16, ACL_FORMAT_ND, nullptr, "FRACTAL_NZ_C0_16", true}},
+        {ACL_FORMAT_FRACTAL_NZ_C0_32,
+            (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_32, ACL_FORMAT_ND, nullptr, "FRACTAL_NZ_C0_32", true}},
     };
 };
 
