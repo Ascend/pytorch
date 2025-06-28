@@ -20,9 +20,12 @@ enum ThreadType {
 };
 
 void SetThreadType(ThreadType type);
-
 void SetThreadAffinity(c10::DeviceIndex device);
 void SetThreadAffinity(ThreadType type);
 void SetThreadAffinity(int core_start, int core_end);
+
+void SetMainThread();
+bool NeedMainThreadBind();
+void StartMainThreadBind(c10::DeviceIndex device_id);
 
 } // namespace c10_npu

@@ -4,7 +4,6 @@
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
-#include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -158,8 +157,6 @@ void SetPrecisionMode()
 
 void LazyInitAclopsCore()
 {
-    c10_npu::SetThreadAffinity(c10_npu::ThreadType::OTHER_THREAD);
-
 #ifndef BUILD_LIBTORCH
     PyThreadState *gilState = nullptr;
     if (PyGILState_Check()) {
@@ -175,8 +172,6 @@ void LazyInitAclopsCore()
         PyEval_RestoreThread(gilState);
     }
 #endif
-
-    c10_npu::SetThreadAffinity(c10_npu::ThreadType::MAIN_THREAD);
 }
 
 void LazyInitAclops()
@@ -198,14 +193,10 @@ void LazyInitAclops()
 
 void InitAclopsCore()
 {
-    SetThreadAffinity(c10_npu::ThreadType::OTHER_THREAD);
-
     SetPrecisionMode();
     MakeCompileCacheDirAndSetOption();
     GetAndSetDefaultJitCompileByAcl();
     SetHF32DefaultValue();
-
-    SetThreadAffinity(c10_npu::ThreadType::MAIN_THREAD);
 }
 
 void InitAclops()
