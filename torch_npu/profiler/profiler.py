@@ -229,6 +229,7 @@ class profile(_KinetoProfile):
         self.on_trace_ready = on_trace_ready
         self.step_num = 0
         self.current_action = self.schedule(self.step_num)
+        self._step_num_offset = 0
         self.step_rec_fn: Optional[prof.record_function] = None
         if use_cuda is not None:
             print_warn_msg("This is npu environment, use_cuda is invalid")
@@ -250,13 +251,17 @@ class profile(_KinetoProfile):
             self.stop()
 
     @no_exception_func()
+    def _set_step_num_offset_for_dynamic_prof(self, step: int):
+        self._step_num_offset = step
+
+    @no_exception_func()
     def start(self):
         self.stopped = False
         if not self.on_trace_ready:
             ProfPathCreator().init(export_only_mode=True)
         self.action_controller.transit_action(ProfilerAction.NONE, self.current_action)
         if self.record_steps:
-            self.step_rec_fn = prof.record_function("ProfilerStep#" + str(self.step_num))
+            self.step_rec_fn = prof.record_function("ProfilerStep#" + str(self.step_num + self._step_num_offset))
             self.step_rec_fn.__enter__()
 
     @no_exception_func()
