@@ -255,8 +255,8 @@ class _NPUFormatCastOP(torch.autograd.Function):
         return torch.ops.npu.npu_format_cast(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, self: Tensor, acl_format: int):
-        return g.op("npu::NPUFormatCast", self, acl_format_i=acl_format)
+    def symbolic(g, self: Tensor, acl_format: int, customize_dtype: int = None):
+        return g.op("npu::NPUFormatCast", self, acl_format_i=acl_format, customize_dtype_i=customize_dtype)
 
 
 class _NPUSoftmaxCrossEntropyWithLogitsOP(torch.autograd.Function):
@@ -1042,8 +1042,8 @@ def _wrapper_npu_deformable_conv2d(inputs, weight, offset, bias, kernel_size, st
                                        padding, dilation, groups, deformable_groups, modulated)
 
 
-def _wrapper_npu_format_cast(self, acl_format):
-    return _NPUFormatCastOP.apply(self, acl_format)
+def _wrapper_npu_format_cast(self, acl_format, customize_dtype=None):
+    return _NPUFormatCastOP.apply(self, acl_format, customize_dtype)
 
 
 def _wrapper_npu_softmax_cross_entropy_with_logits(self, labels):

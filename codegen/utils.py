@@ -434,6 +434,7 @@ const DeviceGuard device_guard(device_or_default(device));"""
                     device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
 
             op_key = str(f.func.name)
+            is_aclnn_only = "c10_npu::IsAclnnOnly()"
             if enable_opplugin():
                 if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE:
                     impl_name = f"op_plugin::{GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key]}"
@@ -505,6 +506,11 @@ if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {{
 if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str}) {{
         return {op_api_impl_name}({args_exprs_str});
     }} else {{
+        if ({is_aclnn_only}) {{
+            TORCH_CHECK(false,
+                "Current device only support aclnn operator, and current operator {impl_name} do not support internal format.",
+                PTA_ERROR(ErrCode::NOT_SUPPORT));
+        }}
         return {impl_name}({args_exprs_str});
     }}
 """

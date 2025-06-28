@@ -89,6 +89,7 @@ public:
     static int64_t GetTensorNpuFormat(const at::Tensor &tensor);
     static c10::SmallVector<int64_t, SHAPE_SIZE> ConvertIntArrayRefToSmallVector(c10::IntArrayRef intArray);
     static int8_t GetCubeMathType(bool allowHf32);
+    static at::ScalarType ConvertToScalarType(const aclDataType data_type);
 };
 
 } // namespace native

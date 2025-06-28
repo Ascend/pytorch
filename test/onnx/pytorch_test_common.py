@@ -15,7 +15,6 @@ import pytest
 
 import torch
 from torch.autograd import function
-from torch.onnx._internal import diagnostics
 from torch.testing._internal import common_utils
 import torch_npu
 
@@ -417,4 +416,3 @@ class ExportTestCase(common_utils.TestCase):
         set_rng_seed(0)
         if torch.npu.is_available():
             torch.npu.manual_seed_all(0)
-        diagnostics.engine.clear()
