@@ -29,8 +29,6 @@ from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils._error_code import ErrCode, pta_error
 
 origin_mpdl_iter_init = _MultiProcessingDataLoaderIter.__init__
-origin_worker_loop = worker._worker_loop
-origin_pin_memory_loop = pin_memory._pin_memory_loop
 
 CONV3D_SUPPORT_FP32_SOC_PREFIX = ["Ascend910B", "Ascend910_93"]
 
@@ -369,17 +367,9 @@ def _mpdl_iter_init(self, *args, **kwargs):
         torch_npu.npu.synchronize()
     except Exception as e:
         print(e)
+    torch_npu._C._npu_set_thread_affinity(-1, -1)
     origin_mpdl_iter_init(self, *args, **kwargs)
-
-
-def _npu_worker_loop(*args, **kwargs):
-    torch_npu._C._npu_set_thread_affinity(-1, -1)
-    origin_worker_loop(*args, **kwargs)
-
-
-def _npu_pin_memory_loop(*args, **kwargs):
-    torch_npu._C._npu_set_thread_affinity(-1, -1)
-    origin_pin_memory_loop(*args, **kwargs)
+    torch_npu._C._npu_reset_thread_affinity()
 
 
 def _parallel_apply(
@@ -532,5 +522,3 @@ def _apply_module_patch():
     torch.nn.parallel.DataParallel.parallel_apply = npu_parallel_apply
     torch.nn.parallel.data_parallel = npu_data_parallel
     torch.utils.data.dataloader._MultiProcessingDataLoaderIter.__init__ = _mpdl_iter_init
-    torch.utils.data._utils.worker._worker_loop = _npu_worker_loop
-    torch.utils.data._utils.pin_memory._pin_memory_loop = _npu_pin_memory_loop
