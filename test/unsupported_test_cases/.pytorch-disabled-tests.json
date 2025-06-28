@@ -31607,6 +31607,5 @@
   "test_fake_autocast_fft_fftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_fake_autocast_fft_ifftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_replicate (__main__.TestDataParallel)": ["", [""]],
-  "test_replicate_buffers (__main__.TestDataParallel)": ["", [""]],
-  "test_export_dict (__main__.TestONNXExport)": ["", [""]]
+  "test_replicate_buffers (__main__.TestDataParallel)": ["", [""]]
 }
