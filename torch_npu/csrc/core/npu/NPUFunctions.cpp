@@ -103,7 +103,10 @@ aclError SetDevice(c10::DeviceIndex device)
     if (local_device == device) {
         return ACL_ERROR_NONE;
     }
-    c10_npu::SetThreadAffinity(device);
+
+    if (c10_npu::NeedMainThreadBind()) {
+        c10_npu::SetThreadAffinity(device);
+    }
 
     aclError err = aclrtSetDevice(device);
     if (err == ACL_ERROR_NONE) {
