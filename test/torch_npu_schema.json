@@ -2550,7 +2550,7 @@
     "signature": "(*args, **kwargs)"
   },
   "torch_npu.npu_format_cast": {
-    "signature": "(self, acl_format)"
+    "signature": "(self, acl_format, customize_dtype=None)"
   },
   "torch_npu.npu_format_cast_": {
     "signature": "(*args, **kwargs)"
@@ -2814,16 +2814,16 @@
     "signature": "(int[] size, *, ScalarType? dtype=None, Device? device=None) -> Tensor"
   },
   "func: npu_format_cast": {
-    "signature": "(Tensor self, int acl_format) -> Tensor"
+    "signature": "(Tensor self, int acl_format, int? customize_dtype=None) -> Tensor"
   },
   "func: npu_format_cast_": {
-    "signature": "(Tensor(a!) self, Tensor src) -> Tensor(a!)"
+    "signature": "(Tensor(a!) self, Tensor src, int? customize_dtype=None) -> Tensor(a!)"
   },
   "func: npu_format_cast_.acl_format": {
-    "signature": "(Tensor(a!) self, int acl_format) -> Tensor(a!)"
+    "signature": "(Tensor(a!) self, int acl_format, int? customize_dtype=None) -> Tensor(a!)"
   },
   "func: npu_format_cast.Tensor": {
-    "signature": "(Tensor self, Tensor dst) -> Tensor"
+    "signature": "(Tensor self, Tensor dst, int? customize_dtype=None) -> Tensor"
   },
   "func: npu_change_data_ptr": {
     "signature": "(Tensor dst, Tensor src, int index) -> int"
@@ -2842,6 +2842,9 @@
   },
   "func: _npu_format_cast": {
     "signature": "(Tensor self, int acl_format) -> Tensor"
+  },
+  "func: _npu_format_cast.aclnn": {
+    "signature": "(Tensor self, int acl_format, int customize_dtype) -> Tensor"
   },
   "torch_c_func: torch_npu::init_npu(const c10::DeviceIndex device_index = 0)": {
     "signature": "(const c10::DeviceIndex device_index = 0) -> void",

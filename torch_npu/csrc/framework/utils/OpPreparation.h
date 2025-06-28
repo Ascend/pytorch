@@ -22,6 +22,7 @@ public:
     // From CalcuOpUtil part
     static aclDataType convert_to_acl_data_type(const at::ScalarType &data_type);
     static aclDataType convert_to_acl_data_type(const at::ScalarType &data_type, const std::string &realDataType);
+    static at::ScalarType convert_to_scalar_type(const aclDataType data_type);
     static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type);
     static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type,
                                             const c10::Device device);

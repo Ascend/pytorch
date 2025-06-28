@@ -29,6 +29,6 @@
 
 #define TORCH_NPU_API C10_NPU_API
 
-#define C10_COMPILE_TIME_MAX_NPUS 16
+#define C10_COMPILE_TIME_MAX_NPUS 32
 // A maximum of 8 P2P links can be created on a NPU device
 #define C10_P2P_ACCESS_MAX_NPUS 8

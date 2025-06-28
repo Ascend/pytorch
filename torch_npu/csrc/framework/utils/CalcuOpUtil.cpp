@@ -52,8 +52,8 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
     _(at::ScalarType::Bits4x2, ACL_DT_UNDEFINED)                                                                       \
     _(at::ScalarType::Bits8, ACL_DT_UNDEFINED)                                                                         \
     _(at::ScalarType::Bits16, ACL_DT_UNDEFINED)                                                                        \
-    _(at::ScalarType::Float8_e5m2, ACL_DT_UNDEFINED)                                                                   \
-    _(at::ScalarType::Float8_e4m3fn, ACL_DT_UNDEFINED)                                                                 \
+    _(at::ScalarType::Float8_e5m2, ACL_FLOAT8_E5M2)                                                                    \
+    _(at::ScalarType::Float8_e4m3fn, ACL_FLOAT8_E4M3FN)                                                                \
     _(at::ScalarType::Float8_e5m2fnuz, ACL_DT_UNDEFINED)                                                               \
     _(at::ScalarType::Float8_e4m3fnuz, ACL_DT_UNDEFINED)                                                               \
     _(at::ScalarType::UInt16, ACL_UINT16)                                                                              \
@@ -85,6 +85,36 @@ AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(ENUM_PAIR_FUNC)
 
 static std::map<const std::string, const aclDataType> STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
     {"uint16", ACL_UINT16}, {"uint8", ACL_UINT8}, {"uint64", ACL_UINT64}, {"string", ACL_STRING}};
+
+static std::unordered_map<const aclDataType, const at::ScalarType>
+    ACL_TYPE_TO_SCALAR_TYPE_MAP = {{ACL_DT_UNDEFINED, at::ScalarType::Undefined},
+                                   {ACL_FLOAT, at::ScalarType::Float},
+                                   {ACL_FLOAT16, at::ScalarType::Half},
+                                   {ACL_INT8, at::ScalarType::Char},
+                                   {ACL_INT32, at::ScalarType::Int},
+                                   {ACL_UINT8, at::ScalarType::Byte},
+                                   {ACL_INT16, at::ScalarType::Short},
+                                   {ACL_UINT16, at::ScalarType::UInt16},
+                                   {ACL_UINT32, at::ScalarType::UInt32},
+                                   {ACL_INT64, at::ScalarType::Long},
+                                   {ACL_UINT64, at::ScalarType::UInt64},
+                                   {ACL_DOUBLE, at::ScalarType::Double},
+                                   {ACL_BOOL, at::ScalarType::Bool},
+                                   {ACL_STRING, at::ScalarType::Undefined},
+                                   {ACL_COMPLEX64, at::ScalarType::ComplexFloat},
+                                   {ACL_COMPLEX128, at::ScalarType::ComplexDouble},
+                                   {ACL_BF16, at::ScalarType::BFloat16},
+                                   {ACL_INT4, at::ScalarType::Undefined},
+                                   {ACL_UINT1, at::ScalarType::Undefined},
+                                   {ACL_COMPLEX32, at::ScalarType::ComplexHalf},
+                                   {ACL_HIFLOAT8, at::ScalarType::Byte},
+                                   {ACL_FLOAT8_E5M2, at::ScalarType::Float8_e5m2},
+                                   {ACL_FLOAT8_E4M3FN, at::ScalarType::Float8_e4m3fn},
+                                   {ACL_FLOAT8_E8M0, at::ScalarType::Byte},
+                                   {ACL_FLOAT6_E3M2, at::ScalarType::Byte},
+                                   {ACL_FLOAT6_E2M3, at::ScalarType::Byte},
+                                   {ACL_FLOAT4_E2M1, at::ScalarType::Byte},
+                                   {ACL_FLOAT4_E1M2, at::ScalarType::Byte}};
 
 aclError AclrtMemcpyAsyncParamCheck(void *dst, size_t destMax, const void *src, size_t count, aclrtMemcpyKind kind,
                                     aclrtStream stream)
@@ -294,6 +324,18 @@ int8_t CalcuOpUtil::GetCubeMathType(bool allowHf32)
     if (iter == ACL_CUBE_MATH_TYPE_MAP.end()) {
         return ALLOW_FP32_DOWN_PRECISION;
     }
+    return iter->second;
+}
+
+at::ScalarType CalcuOpUtil::ConvertToScalarType(const aclDataType data_type)
+{
+    auto iter = ACL_TYPE_TO_SCALAR_TYPE_MAP.find(data_type);
+    if (iter == ACL_TYPE_TO_SCALAR_TYPE_MAP.end()) {
+        TORCH_CHECK(false,
+            std::string("aclDataType:") + std::to_string(data_type) + " has not been supported",
+            OPS_ERROR(ErrCode::NOT_SUPPORT))
+    }
+    
     return iter->second;
 }
 

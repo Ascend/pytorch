@@ -92,7 +92,7 @@ MemUceInfo memUceInfo;
 
 std::mutex memUceInfoMutex;
 
-void set_mem_uce_info(MemUceInfo info)
+void set_mem_uce_info(MemUceInfo& info)
 {
     std::lock_guard<std::mutex> lock(memUceInfoMutex);
     memUceInfo = info;

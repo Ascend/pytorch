@@ -96,6 +96,11 @@ aclDataType OpPreparation::convert_to_acl_data_type(const at::ScalarType &data_t
     return CalcuOpUtil::ConvertToAclDataType(data_type, realDataType);
 }
 
+at::ScalarType OpPreparation::convert_to_scalar_type(const aclDataType data_type)
+{
+    return CalcuOpUtil::ConvertToScalarType(data_type);
+}
+
 at::Tensor OpPreparation::copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type)
 {
     return CalcuOpUtil::CopyScalarToDevice(cpu_scalar, scalar_data_type);
