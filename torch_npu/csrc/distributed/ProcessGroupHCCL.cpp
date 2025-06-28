@@ -1710,6 +1710,7 @@ void ProcessGroupHCCL::workCleanupLoop()
             try {
                 if (needSetDevice) {
                     c10::DeviceIndex device = static_cast<int>(work.devices_[0].index());
+                    c10_npu::SetThreadAffinity(device);
                     NPU_CHECK_ERROR(c10_npu::SetDevice(device));
                     deviceId_ = static_cast<int>(work.devices_[0].index());
                     needSetDevice = false;
