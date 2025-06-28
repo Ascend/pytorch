@@ -271,6 +271,14 @@ class TestNpuProfiler(TestCase):
             self.assertEqual(True, is_int)
             self.assertEqual(True, metrics > 0)
 
+    def test_set_step_num_offset_for_dynamic_profiler(self):
+        worker_name = self.worker_name
+        prof = torch_npu.profiler.profile(
+            schedule=torch_npu.profiler.schedule(wait=0, warmup=1, active=1, repeat=1, skip_first=2),
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name))
+        prof._set_step_num_offset_for_dynamic_prof(10)
+        self.assertEqual(10, prof._step_num_offset)
+
     def test_kineto_start_stop(self):
         PathManager.remove_path_safety(self.results_work_path)
         os.environ["ASCEND_WORK_PATH"] = self.results_work_path
