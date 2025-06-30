@@ -166,8 +166,20 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                     false,                                                       \
                     (device_error_msg.empty() ? "" : device_error_msg),        \
                     c10_npu::c10_npu_get_error_message());                       \
+            } else if (error_code == ACL_ERROR_RT_DEVICE_TASK_ABORT) {       \
+                TORCH_CHECK(                                                 \
+                false,                                                       \
+                __func__,                                                    \
+                ":",                                                         \
+                __FILE__,                                                    \
+                ":",                                                         \
+                __LINE__,                                                    \
+                " NPU function error: ", (device_error_msg.empty() ?         \
+                " FORCE STOP" : device_error_msg),                           \
+                ", error code is ", error_code,                              \
+                PTA_ERROR(ErrCode::ACL));                                    \
             } else {                                                         \
-                TORCH_CHECK(                                                     \
+                TORCH_CHECK(                                                 \
                 false,                                                       \
                 __func__,                                                    \
                 ":",                                                         \
