@@ -32,10 +32,10 @@ if torch.get_default_dtype() is not torch.float32:
 
 class TestMatmul(TestCase):
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super().setUp()
 
     def tearDown(self):
-        super(self.__class__, self).tearDown()
+        super().tearDown()
 
     @skipIfRocmVersionLessThan((5, 2))
     # imported 'tol' as 'xtol' to avoid aliasing in code above
