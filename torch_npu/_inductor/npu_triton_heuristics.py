@@ -1,5 +1,6 @@
 # This file is based on triton_heuristics with heuristics designed for NPU
 import copy
+import traceback
 import functools
 import hashlib
 import importlib
@@ -118,6 +119,11 @@ class NPUCachingAutotuner(CachingAutotuner):
         return checked_by_msprobe
 
     def precompile(self, warm_cache_only=False):
+        
+        def sort_exceptions(exceptions):
+            # Lower the priority of 'ub overflow' error.
+            exceptions.sort(key=lambda e: "ub overflow" in e)
+
         with self.lock:
             if self.launchers:
                 return
@@ -125,23 +131,37 @@ class NPUCachingAutotuner(CachingAutotuner):
             compiled_binaries = []
             if not self.configs:
                 raise RuntimeError("No triton configs are available")
-            for c in self.configs:
+            exc_msgs = []
+            for i, c in enumerate(self.configs):
                 try:
+                    log.debug(
+                        f"[Precompile][Pid {os.getpid()}] "
+                        f"Start Compile Kernel {self.get_fn_name()} with config-{i} \nconfig {c}\n"
+                    )
                     compiled_binary, launcher = self._precompile_config(
                         c, warm_cache_only
                     )
+                    log.debug(
+                        f"[Precompile][Pid {os.getpid()}] "
+                        f"Success Compile Kernel {self.get_fn_name()} with config-{i}"
+                    )
                 except Exception as e:
                     log.debug(
-                        f"[thread {os.getpid()}][InductorNPU.precompile] Exception = {e}, kernel = {self.fn.__name__} config = {c}")
-                    # Skip the config if the compilation fails
+                        f"[Precompile][Pid {os.getpid()}] "
+                        f"Failed Compile Kernel {self.get_fn_name()} with config-{i}, exception {e}"
+                    )
+                    # Record the exception if the compilation fails
+                    exc_msg = traceback.format_exc()
+                    exc_msgs.append(exc_msg)
                     continue
                 if launcher is not None:
                     self.launchers.append(launcher)
                     compiled_binaries.append(compiled_binary)
 
             if len(self.launchers) == 0:
+                sort_exceptions(exc_msgs)
                 raise RuntimeError(
-                    "No valid triton configs. Report a fatal compilation error"
+                    f"No valid triton configs. Report a fatal compilation error. \nExtra {exc_msgs[0]}"
                 )
 
             self.configs = None
@@ -240,7 +260,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 binary._init_handles()
 
             except Exception:
-                log.exception(
+                log.debug(
                     "Triton compilation failed: %s\n%s\nmetadata: %s",
                     self.inductor_meta.get("kernel_name", "triton_"),
                     self.fn.src,
@@ -269,6 +289,8 @@ class NPUCachingAutotuner(CachingAutotuner):
             else binary.metadata,
             "shared": binary_shared,
         }
+
+        scope["log"] = log
 
         scope["num_warps"] = (
             binary.num_warps
@@ -407,6 +429,10 @@ class NPUCachingAutotuner(CachingAutotuner):
                 else:
                     grid_0, grid_1, grid_2 = grid
 
+                log.debug(
+                    f"[Runtime] Launch KERNEL {self.get_fn_name()} with "
+                    f"grid {{grid_0, grid_1, grid_2}} and cfg {{grid_meta}}"
+                )
                 args = {', '.join(call_args)},
                 launch_args = get_launch_args(
                     grid, grid_0, grid_1, grid_2, stream, function,
