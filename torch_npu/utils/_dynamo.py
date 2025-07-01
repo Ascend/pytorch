@@ -1,4 +1,5 @@
 import inspect
+import sys
 from typing import Dict, List
 
 import torch
@@ -106,29 +107,59 @@ def TensorVariable_call_method(self, tx, name, args, kwargs):
         return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
 
 
-def _register_inductor_npu():
-    from torch_npu import _inductor
+class _InductorNpuRegistry:
+    _disabled_register = False
+    _has_inited = False
 
-
-def _try_register_inductor_npu(backend_name="inductor"):
-    # None means using default backend: inductor
-    if backend_name is None:
-        _register_inductor_npu()
-        return
+    @classmethod
+    def register_inductor_npu(cls):
+        if cls.has_initialized() or cls._disabled_register:
+            return
+        from torch_npu import _inductor
+        cls._has_inited = True
     
-    # List some mostly useful backends that don't want to init inductor_npu
-    disable_register_list = [
-        "aot_eager",
-        "eager",
-        "cudagraphs",
-        "npu",
-    ]
-    if backend_name in disable_register_list:
-        return
-    if "torchair" in backend_name:
-        return
+    @classmethod
+    def disable_register(cls):
+        cls._disabled_register = True
 
-    _register_inductor_npu()
+    @classmethod
+    def enable_register(cls):
+        cls._disabled_register = False
+    
+    @classmethod
+    def has_initialized(cls):
+        if cls._has_inited:
+            return True
+        # Maybe initialized by call `import torch_npu._inductor` manually.
+        if 'torch_npu._inductor' in sys.modules:
+            cls._has_inited = True
+        return cls._has_inited
+
+
+def is_inductor_npu_initialized():
+    return _InductorNpuRegistry.has_initialized()
+
+
+def disable_register_inductor_npu():
+    _InductorNpuRegistry.disable_register()
+
+
+def enable_register_inductor_npu():
+    _InductorNpuRegistry.enable_register()
+
+
+def register_inductor_npu():
+    _InductorNpuRegistry.register_inductor_npu()
+
+
+def patch_inductor_wrapper():
+    from torch import _TorchCompileInductorWrapper
+    src_call = _TorchCompileInductorWrapper.__call__
+    
+    def new_call(self, model_, inputs_):
+        register_inductor_npu()
+        return src_call(self, model_, inputs_)
+    _TorchCompileInductorWrapper.__call__ = new_call
 
 
 def patch_dynamo_optimize():
@@ -150,8 +181,7 @@ def patch_dynamo_optimize():
         if backend_name == 'npu':
             # Init torchair ahead of running model.
             _get_global_npu_backend()
-        
-        _try_register_inductor_npu(backend_name)
+
         return src_optimize(*args, **kwargs)
     torch._dynamo.optimize = npu_optimize
 
@@ -161,7 +191,7 @@ def patch__aoti_compile_and_package_inner():
     src_fn = _aoti_compile_and_package_inner
 
     def wrap__aoti_compile_and_package_inner(*args, **kwargs):
-        _try_register_inductor_npu()
+        register_inductor_npu()
         return src_fn(*args, **kwargs)
     torch._inductor._aoti_compile_and_package_inner = wrap__aoti_compile_and_package_inner
 
@@ -175,4 +205,5 @@ def add_dynamo_methods():
     TensorVariable.call_method = TensorVariable_call_method
     patch_dynamo_optimize()
     patch__aoti_compile_and_package_inner()
+    patch_inductor_wrapper()
 
