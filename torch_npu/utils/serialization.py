@@ -3,6 +3,7 @@ import io
 import sys
 import pickle
 import re
+import threading
 from typing import Any, Optional
 
 import torch
@@ -10,16 +11,17 @@ from torch.serialization import _check_dill_version, _open_file_like, _is_zipfil
     _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler, \
     _legacy_load, _load, FileLike, MAP_LOCATION, DEFAULT_PROTOCOL, \
     normalize_storage_type, location_tag, _serialization_tls, _get_storage_alignment
-from torch.serialization import _default_to_weights_only, UNSAFE_MESSAGE
+from torch.serialization import _default_to_weights_only, UNSAFE_MESSAGE, _open_zipfile_writer
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
 from .utils import _should_print_warning
 
+__all__ = ["load", "save", "save_async"]
+
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False
-
-__all__ = ["load", "save"]
+save_async_stream_map = {}
 
 
 def _get_always_warn_legacy_serialization():
@@ -427,6 +429,146 @@ def save(
         )
         _warn_legacy_serialization(warn_massage, "save")
     return torch.serialization.save(obj, f, pickle_module, pickle_protocol, True, _disable_byteorder_record)
+
+
+def save_async(
+    obj: object,
+    f,
+    pickle_module: Any = pickle,
+    pickle_protocol: int = DEFAULT_PROTOCOL,
+    _use_new_zipfile_serialization: bool = True,
+    _disable_byteorder_record: bool = False,
+    model: torch.nn.Module = None
+) -> None:
+    if _use_new_zipfile_serialization is False:
+        raise RuntimeError("Error: torch_npu.save_async with \"_use_new_zipfile_serialization = False\"\
+                           is not recommended for npu tensor, which may bring unexpected errors and hopefully \
+                           set \"_use_new_zipfile_serialization = True\"",
+                           "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving" +
+                           pta_error(ErrCode.PARAM))
+
+    _check_dill_version(pickle_module)
+    save_args = (obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
+
+    device = torch.npu.current_device()
+    save_thread = threading.Thread(target=_save_data_thread, args=(save_args, device, model))
+    save_thread.start()
+
+
+def _save_data_thread(save_args,
+                     device,
+                     model: torch.nn.Module = None):
+    global save_async_stream_map
+    torch.npu.set_device(device)
+
+    def hook_fn(*args):
+        torch.npu.current_stream().wait_stream(save_async_stream_map.get(device))
+
+    if device not in save_async_stream_map:
+        save_async_stream = torch.npu.Stream()
+        save_async_stream_map[device] = save_async_stream
+        if isinstance(model, torch.nn.Module):
+            model.register_full_backward_hook(hook_fn)
+    else:
+        save_async_stream = save_async_stream_map[device]
+
+    obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record = save_args
+    with torch.npu.stream(save_async_stream):
+        data_value, serialized_storages = _save(obj, pickle_module, pickle_protocol)
+        storage_value = []
+        for key in sorted(serialized_storages.keys()):
+            name = f'data/{key}'
+            storage = serialized_storages.get(key)
+            # given that we copy things around anyway, we might use storage.cpu()
+            # this means to that to get tensors serialized, you need to implement
+            # .cpu() on the underlying Storage
+            if storage.device.type != 'cpu':
+                storage = storage.cpu()
+            # Now that it is on the CPU we can directly copy it into the zip file
+            if storage.device.type != "cpu":
+                storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
+                num_bytes = storage_tensor.size().numel() * storage_tensor.element_size()
+            else:
+                num_bytes = storage.nbytes()
+            storage_value.append((name, storage, num_bytes))
+
+    with _open_zipfile_writer(f) as opened_zipfile:
+        opened_zipfile.write_record('data.pkl', data_value, len(data_value))
+
+        for name, storage, num_bytes in storage_value:
+            opened_zipfile.write_record(name, storage.data_ptr(), num_bytes)
+
+
+def _save(obj, pickle_module, pickle_protocol):
+    serialized_storages = {}
+    id_map: Dict[int, str] = {}
+
+    # Since loading storages that view the same data with different dtypes is
+    # not supported, we need to keep track of the dtype associated with each
+    # storage data_ptr and throw an error if the dtype is ever different.
+    storage_dtypes: Dict[int, torch.dtype] = {}
+
+    def persistent_id(obj):
+        if isinstance(obj, torch.storage.TypedStorage) or torch.is_storage(obj):
+
+            if isinstance(obj, torch.storage.TypedStorage):
+                storage = obj._untyped_storage
+                storage_dtype = obj.dtype
+                storage_type_str = obj._pickle_storage_type()
+                storage_type = getattr(torch, storage_type_str)
+                if storage.device.type != "cpu":
+                    storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
+                    storage_numel = storage_tensor.size().numel() * storage_tensor.element_size() // obj._element_size()
+                else:
+                    storage_numel = obj._size()
+
+            else:
+                storage = obj
+                storage_dtype = torch.uint8
+                storage_type = normalize_storage_type(type(obj))
+                if storage.device.type != "cpu":
+                    storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
+                    storage_numel = storage_tensor.size().numel() * storage_tensor.element_size()
+                else:
+                    storage_numel = storage.nbytes()
+
+            # If storage is allocated, ensure that any other saved storages
+            # pointing to the same data all have the same dtype. If storage is
+            # not allocated, don't perform this check
+            if storage.data_ptr() != 0:
+                if storage.data_ptr() in storage_dtypes:
+                    if storage_dtype != storage_dtypes[storage.data_ptr()]:
+                        raise RuntimeError(
+                            'Cannot save multiple tensors or storages that '
+                            'view the same data as different types' + pta_error(ErrCode.VALUE))
+                else:
+                    storage_dtypes[storage.data_ptr()] = storage_dtype
+
+            storage_key = id_map.setdefault(storage._cdata, str(len(id_map)))
+            location = location_tag(storage)
+            serialized_storages[storage_key] = storage
+
+            return ('storage',
+                    storage_type,
+                    storage_key,
+                    location,
+                    storage_numel)
+
+        return None
+
+    # Write the pickle data for `obj`
+    data_buf = io.BytesIO()
+    pickler = pickle_module.Pickler(data_buf, protocol=pickle_protocol)
+    pickler.persistent_id = persistent_id
+    if isinstance(obj, torch.nn.Module):
+        hook_handle = obj._backward_hooks.copy()
+        obj._backward_hooks.clear()
+        pickler.dump(obj)
+        obj._backward_hooks.update(hook_handle)
+    else:
+        pickler.dump(obj)
+    data_value = data_buf.getvalue()
+    return data_value, serialized_storages
 
 
 def _add_serialization_methods():
