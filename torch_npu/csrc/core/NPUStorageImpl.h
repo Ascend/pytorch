@@ -24,7 +24,7 @@ public:
     aclFormat origin_format_ = ACL_FORMAT_UNDEFINED;
     aclFormat npu_format_ = ACL_FORMAT_ND;
     // used to make CANN GE tensor from storagImpl
-    caffe2::TypeMeta data_type_;
+    caffe2::TypeMeta data_type_ = caffe2::TypeMeta::Make<uint8_t>();
 };
 
 struct NPUStorageImpl : public c10::StorageImpl {
