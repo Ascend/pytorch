@@ -123,7 +123,7 @@ int64_t DriverVersionToNum(std::string versionStr)
                   ((release + 1) * 10000) +
                   ((RCVersion + 1) * 100 + 5000) +
                   ((TVersion + 1) * 100) -
-                  (alphaVersion ? 1 : 0) * (100 - alphaVersion) +
+                  (alphaVersion != 0 ? 1 : 0) * (100 - alphaVersion) +
                   (bVersion - 1) + patch;
     return num;
 }

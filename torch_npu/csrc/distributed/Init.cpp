@@ -576,7 +576,7 @@ Example::
               Default settings return everything - i.e. contains HCCL comm dumps and collective traces.
         )");
 
-  Py_RETURN_TRUE;
+    Py_RETURN_TRUE;
 }
 
 // c10d methods on torch._C
