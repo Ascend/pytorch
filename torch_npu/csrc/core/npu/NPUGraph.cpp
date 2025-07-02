@@ -1,4 +1,3 @@
-#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/core/npu/NPUGraph.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
@@ -10,7 +9,6 @@
 #include <vector>
 
 #include <ATen/Functions.h>
-#include <torch/csrc/Exceptions.h>
 
 namespace c10_npu {
 
@@ -261,4 +259,3 @@ NPUGraph::~NPUGraph()
 }
 
 } // namespace c10_npu
-#endif
