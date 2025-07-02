@@ -18,7 +18,6 @@
 
 namespace at_npu {
 namespace native {
-
 void ForceAclnn::RegisterOp(const std::string &list)
 {
     if (list.empty()) {

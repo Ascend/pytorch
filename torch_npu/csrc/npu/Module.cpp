@@ -1219,7 +1219,8 @@ PyObject* THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject *
     END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject *obj) {
+PyObject* THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject *obj)
+{
     HANDLE_TH_ERRORS
     void* mem_ptr = PyLong_AsVoidPtr(obj);
     c10_npu::NPUCachingAllocator::raw_delete(mem_ptr);
@@ -1271,7 +1272,8 @@ PyObject* THNPModule_npuUnlockMutex(PyObject *module, PyObject *noargs)
     Py_RETURN_NONE;
 }
 
-PyObject* THNPModule_initDump(PyObject* _unused, PyObject* noargs) {
+PyObject* THNPModule_initDump(PyObject* _unused, PyObject* noargs)
+{
     HANDLE_TH_ERRORS
     pybind11::gil_scoped_release no_gil;
     NPU_CHECK_ERROR_WITHOUT_UCE(aclmdlInitDump());
