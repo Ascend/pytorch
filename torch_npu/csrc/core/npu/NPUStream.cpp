@@ -259,7 +259,7 @@ static uint32_t get_idx(std::atomic<uint32_t>& counter)
 {
     auto raw_idx = counter++;
     static int StreamsPerPool = GetStreamsPerPool();
-    return raw_idx % StreamsPerPool;
+    return raw_idx % static_cast<uint32_t>(StreamsPerPool);
 }
 
 static uint32_t get_sync_launch_stream_idx(std::atomic<uint32_t>& counter)

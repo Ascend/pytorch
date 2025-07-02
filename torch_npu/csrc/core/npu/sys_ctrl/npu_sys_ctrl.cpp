@@ -277,8 +277,8 @@ void NpuSysCtrl::RegisterLazyFn(const option::OptionCallBack& call_, const std::
     lazy_fn_.emplace_back(std::make_pair(call_, in));
 }
 
-void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn,
-                                   ReleasePriority priority) {
+void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn, ReleasePriority priority)
+{
     const auto& iter = this->release_fn_.find(priority);
     if (iter != release_fn_.end()) {
         release_fn_[priority].emplace_back(release_fn);

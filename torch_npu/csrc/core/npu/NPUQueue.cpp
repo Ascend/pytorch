@@ -249,7 +249,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
     // occur.
 #ifndef BUILD_LIBTORCH
     PyThreadState *gilState = nullptr;
-    if (PyGILState_Check()) {
+    if (PyGILState_Check() != 0) {
         gilState = PyEval_SaveThread();
     }
 #endif
@@ -523,7 +523,7 @@ void Repository::Enqueue(void *cur_paras)
     uint64_t u = 1;
 
     SetWriteWorking(true);
-    while (ret == false && (GetStatus() == RUN || GetStatus() == INIT)) {
+    while (!ret && (GetStatus() == RUN || GetStatus() == INIT)) {
         ret = WriteQueue(cur_paras);
         if (ret == false) {
             SetWriteWorking(false);
@@ -531,7 +531,7 @@ void Repository::Enqueue(void *cur_paras)
             if (IsFullQueue()) {
 #ifndef BUILD_LIBTORCH
                 // double check the current thread hold a Gil lock
-                if (PyGILState_Check()) {
+                if (PyGILState_Check() != 0) {
                     Py_BEGIN_ALLOW_THREADS s = eventfd_read(efd_write, &u);
                     Py_END_ALLOW_THREADS
                 } else {
