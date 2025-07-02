@@ -88,14 +88,8 @@ def get_cann_version():
 
 def get_torch_npu_version():
     torch_npu_version_str = 'N/A'
-    torch_npu_root = get_torch_npu_install_path()
-    version_path = os.path.join(torch_npu_root, "torch_npu", "version.py")
-    check_directory_path_readable(version_path)
-    with open(version_path, "r") as f:
-        for line in f:
-            if line.find("__version__") != -1:
-                torch_npu_version_str = line.strip().split("=")[-1]
-                break
+    if TORCH_NPU_AVAILABLE:
+        torch_npu_version_str = torch_npu.__version__
     return torch_npu_version_str
 
 
