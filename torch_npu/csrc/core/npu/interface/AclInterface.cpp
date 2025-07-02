@@ -410,7 +410,7 @@ aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
         }
         TORCH_CHECK(func_backup, "Failed to find function", "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream", PROF_ERROR(ErrCode::NOT_FOUND));
         return func_backup(stream);
-  }
+    }
 }
 
 aclError AclrtDestroyStreamForce(aclrtStream stream) {

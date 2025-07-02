@@ -39,7 +39,8 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend910_9372", SocVersion::Ascend910_9372},
     {"Ascend910_9362", SocVersion::Ascend910_9362}};
 
-void SetSocVersion(const char* const socVersion) {
+void SetSocVersion(const char* const socVersion)
+{
   if (socVersion == nullptr ||
       g_curSocVersion != SocVersion::UnsupportedSocVersion) {
     return;

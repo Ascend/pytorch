@@ -122,7 +122,8 @@ def foreach_all_gather_copy_out_npu(
             # Copy to a temporary and then chunk-cat into the final all-gather
             # output tensors
             param_all_gather_outputs = [
-                torch.empty_like(t) for t in param_all_gather_outputs
+                torch.empty_like(t)
+                for t in param_all_gather_outputs
             ]
             shard_i_copy_infos.append((fsdp_param, param_all_gather_outputs))
         split_with_sizes_out.extend(param_all_gather_outputs)
