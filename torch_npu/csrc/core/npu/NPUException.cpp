@@ -132,10 +132,12 @@ const std::string c10_npu_check_error_message(std::string& errmsg)
 
         std::regex ws_regex("[\\s\\t\\n\\r]+");
         content = std::regex_replace(content, ws_regex, " ");
-        if (!content.empty() && content.front() == ' ')
+        if (!content.empty() && content.front() == ' ') {
             content.erase(0, 1);
-        if (!content.empty() && content.back() == ' ')
+        }
+        if (!content.empty() && content.back() == ' ') {
             content.pop_back();
+        }
 
         return content;
     }
