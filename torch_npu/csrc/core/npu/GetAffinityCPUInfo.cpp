@@ -93,8 +93,10 @@ void GetExclusiveAffinityCPU()
             offset = find_offset->second;
         }
         c10_npu::CoreIdRange cpu_range = parseAffinityCPU(affinity_cpu);
-        int length = (cpu_range.end - cpu_range.start + 1) / same_num;
-        c10_npu::CoreIdRange exclusiveAffinityCpu = {cpu_range.start + offset * length, (cpu_range.start + length - 1) + offset * length};
+        unsigned int length = (cpu_range.end - cpu_range.start + 1) / static_cast<unsigned int>(same_num);
+        c10_npu::CoreIdRange exclusiveAffinityCpu = {
+            cpu_range.start + static_cast<unsigned int>(offset) * length,
+            (cpu_range.start + length - 1) + static_cast<unsigned int>(offset) * length};
         offsetMap[affinity_cpu] = offset + 1;
         CardIdAffinityCPU[card_id] = exclusiveAffinityCpu;
     }

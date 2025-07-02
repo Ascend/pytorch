@@ -47,7 +47,7 @@ void* registerSvmMem(void* ptr, size_t size)
 void* mallocHostSwapMemory(size_t size)
 {
     if (!initialized) {
-        kAlignSize = sysconf(_SC_PAGESIZE);
+        kAlignSize = static_cast<size_t>(sysconf(_SC_PAGESIZE));
         initialized = true;
     }
     size = (size + kAlignSize - 1) & ~(kAlignSize - 1);

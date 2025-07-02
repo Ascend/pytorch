@@ -2510,7 +2510,7 @@ private:
 
         // Repeat GC until we reach reclaim > target size.
         bool block_freed = true;
-        while (gc_reclaimed < target_size && block_freed == true && freeable_block_count > 0) {
+        while (gc_reclaimed < target_size && block_freed && freeable_block_count > 0) {
             // Free blocks exceeding this age threshold first.
             double age_threshold = total_age / freeable_block_count;
             // Stop iteration if we can no longer free a block.
