@@ -16,7 +16,11 @@ namespace torch_npu {
 
 std::shared_ptr<c10::GatheredContext> gather()
 {
+#if defined(__x86_64__)
     return torch::CapturedTraceback::gather(true, true, false);
+#else
+    return torch_npu::CapturedTraceback::gather(true, true, false);
+#endif
 }
 
 std::shared_ptr<c10::GatheredContext> gather_with_cpp()
