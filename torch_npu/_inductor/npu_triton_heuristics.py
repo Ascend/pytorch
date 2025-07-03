@@ -538,7 +538,7 @@ class NPUCachingAutotuner(CachingAutotuner):
     def get_fx_graph_call(self, auto_fallback=False):
         kernel_name = self.inductor_meta.get("kernel_name", "triton_")
         traced_graph_hash = self.inductor_meta.get("traced_graph_hash")
-        dump_dir = self.inductor_meta.get("traced_hash_dir", "")
+        dump_dir = self.inductor_meta.get("traced_graph_dir", "")
         dump_path = os.path.join(dump_dir, traced_graph_hash)
         if dump_dir == "" or not os.path.exists(dump_path):
             return None, None, None, None
