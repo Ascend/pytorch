@@ -1,15 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei TechNologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-import pytest
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
-
 class TestGe(TestUtils):
-
     def op_calc(self, first_element, second_element):
         return torch.ge(first_element, second_element)
 
@@ -24,7 +19,7 @@ class TestGe(TestUtils):
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_result = compiled_op_calc(first_element, second_element)
 
-        torch.testing.assert_close(std_result, inductor_result)
+        self.assertEqual(std_result, inductor_result)
 
 
 instantiate_parametrized_tests(TestGe)

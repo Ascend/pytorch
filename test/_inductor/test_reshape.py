@@ -1,14 +1,12 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-import pytest
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
 
 
 class TestReshape(TestUtils):
-
     B, N, S, D = (1, 12, 256, 8)
 
     def op_calc(self, a, b):
@@ -28,7 +26,7 @@ class TestReshape(TestUtils):
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_reshape = compiled_op_calc(a, b)
 
-        torch.testing.assert_close(std_reshape, inductor_reshape, rtol=1e-3, atol=1e-3)
+        self.assertEqual(std_reshape, inductor_reshape, atol=1e-3, rtol=1e-3)
 
 
 instantiate_parametrized_tests(TestReshape)

@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
 import torch
-import triton
-import triton.language as tl
+from torch.testing._internal.common_utils import run_tests
+from testutils import TestUtils
 import torch_npu
 
 
-# 实际就是 layernorm的计算过程 ： torch.nn.LayerNorm(convert_element_type_25, elementwise_affine=False, eps=1e-6)
-class Test_issue62():
+class Test_issue62(TestUtils):
     def op_func(self, addmm_5, add):
         split = torch.ops.aten.split.Tensor(addmm_5, 1536, 1)
         getitem = split[0]
@@ -37,17 +34,14 @@ class Test_issue62():
         return add_5
 
     def test_issue62(self):
-        test = Test_issue62()
         addmm_5 = torch.randn((2, 9216), device='npu:0', dtype=torch.float16)
         add = torch.randn((2, 4096, 1536), device='npu:0', dtype=torch.float16)
 
-        std_ret = test.op_func(addmm_5, add)
-        compiled_func = torch.compile(test.op_func, backend="inductor")
+        std_ret = self.op_func(addmm_5, add)
+        compiled_func = torch.compile(self.op_func, backend="inductor")
         inductor_ret = compiled_func(addmm_5, add)
-        torch.testing.assert_close(std_ret, inductor_ret, atol=1e-2, rtol=1e-2)
-        print("valid ok")
+        self.assertEqual(std_ret, inductor_ret, atol=1e-2, rtol=1e-2)
 
 
 if __name__ == "__main__":
-    test = Test_issue62()
-    test.test_issue62()
+    run_tests()

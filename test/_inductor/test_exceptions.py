@@ -1,4 +1,4 @@
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch
 from torch._inductor.codecache import TritonCodeCache
 from torch.testing._internal.common_utils import run_tests

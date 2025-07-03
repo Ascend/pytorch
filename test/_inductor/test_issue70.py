@@ -1,28 +1,22 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
 import torch
-import torch.nn as nn
+from torch.testing._internal.common_utils import run_tests
+from testutils import TestUtils
 import torch_npu
 
 
-class Test_issue70():
-
+class Test_issue70(TestUtils):
     def op_forward(self, x):
         return x.mean(-1)
 
-
     def test_issue70(self):
-        test = Test_issue70()
-        compiled_net = torch.compile(test.op_forward, backend="inductor")
+        compiled_net = torch.compile(self.op_forward, backend="inductor")
 
         input = torch.randn((1, 1, 7168)).npu()
 
-        output = test.op_forward(input)
+        output = self.op_forward(input)
         output1 = compiled_net(input)
-        torch.testing.assert_allclose(output, output1, rtol=1e-03, atol=1e-03)
-        print("valid ok")
+        self.assertEqual(output, output1, atol=1e-3, rtol=1e-3)
 
 
 if __name__ == "__main__":
-    test = Test_issue70()
-    test.test_issue70()
+    run_tests()

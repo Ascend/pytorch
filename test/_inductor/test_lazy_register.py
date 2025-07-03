@@ -1,16 +1,6 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
-import os
-import re
-import logging
-import tempfile
-from pathlib import Path
-
 import torch
-from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from torch._inductor import config
-import pytest
-from testutils import OperatorType, TestUtils
+from torch.testing._internal.common_utils import run_tests
+from testutils import TestUtils
 import torch_npu
 
 
@@ -39,7 +29,6 @@ class TestLazyRegister(TestUtils):
         self.assertFalse(torch_npu.utils._dynamo.is_inductor_npu_initialized())
 
         torch_npu.utils._dynamo.enable_register_inductor_npu()
-
 
 
 if __name__ == "__main__":

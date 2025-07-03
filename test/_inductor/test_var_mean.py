@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
 class TestVarMean(TestUtils):
-    
     def op_calc(self, input_element, dim):
         return torch.var_mean(input_element, dim)
 
@@ -24,10 +21,8 @@ class TestVarMean(TestUtils):
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
         inductor_var, inductor_mean = compiled_op_calc(input_element, dim)
 
-        rtol = 1e-1
-        atol = 1e-1
-        torch.testing.assert_close(std_var, inductor_var, equal_nan=True, rtol=rtol, atol=atol)
-        torch.testing.assert_close(std_mean, inductor_mean, equal_nan=True, rtol=rtol, atol=atol)
+        self.assertEqual(std_var, inductor_var, atol=1e-1, rtol=1e-1, equal_nan=True)
+        self.assertEqual(std_mean, inductor_mean, atol=1e-1, rtol=1e-1, equal_nan=True)
 
 
 instantiate_parametrized_tests(TestVarMean)

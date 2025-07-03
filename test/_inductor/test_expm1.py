@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei TechNologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
 class TestExpm1(TestUtils):
-
     def op_calc(self, first_element):
         result = torch.expm1(first_element)
         return result
@@ -21,7 +18,8 @@ class TestExpm1(TestUtils):
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_result = compiled_op_calc(first_element)
 
-        torch.testing.assert_close(std_result, inductor_result, equal_nan=True, atol=1e-3, rtol=1e-3)
+        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3, equal_nan=True)
+
 
 instantiate_parametrized_tests(TestExpm1)
 

@@ -1,19 +1,17 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+
 import os
 import re
 import logging
 import tempfile
 from pathlib import Path
-os.environ["INDUCTOR_ASCEND_DUMP_FX_GRAPH"] = "1"
-os.environ["TORCH_COMPILE_DEBUG"] = "1"
-
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from torch._inductor import config
-import pytest
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
+
+os.environ["INDUCTOR_ASCEND_DUMP_FX_GRAPH"] = "1"
+os.environ["TORCH_COMPILE_DEBUG"] = "1"
 
 
 class TestDebugMsg(TestUtils):    

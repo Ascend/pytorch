@@ -1,11 +1,10 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
 class TestSum(TestUtils):
-
     def op_calc(self, input_element, dim):
         return torch.sum(input_element, dim)
     # 规约轴和非规约轴对齐用例 float32 XBLOCK_SUB>=8:shape=(8,32)
@@ -35,7 +34,7 @@ class TestSum(TestUtils):
         else:
             inductor_sum = inductor_sum_tmp
 
-        torch.testing.assert_close(std_sum, inductor_sum, rtol=1e-1, atol=1e-1)
+        self.assertEqual(std_sum, inductor_sum, atol=1e-1, rtol=1e-1)
 
     @parametrize('shape', [(32, 16, 64, 128)])
     @parametrize('dim', _reduction_extest_dim4d_all)
@@ -47,7 +46,7 @@ class TestSum(TestUtils):
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
         inductor_sum = compiled_op_calc(input_element, dim)
 
-        torch.testing.assert_close(std_sum, inductor_sum, rtol=1e-1, atol=1e-1)
+        self.assertEqual(std_sum, inductor_sum, atol=1e-1, rtol=1e-1)
 
 
 instantiate_parametrized_tests(TestSum)

@@ -1,15 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-import pytest
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
-
 class TestArgmax(TestUtils):
-
     def argmax(self, a, dim):
         return torch.argmax(a, dim)
 
@@ -21,7 +16,7 @@ class TestArgmax(TestUtils):
         argmax_triton = torch.compile(self.argmax, backend="inductor", dynamic=False)
         r = self.argmax(a, dim)
         r1 = argmax_triton(a, dim)
-        torch.testing.assert_close(r, r1, rtol=1e-3, atol=1e-3)
+        self.assertEqual(r, r1, atol=1e-3, rtol=1e-3)
 
 instantiate_parametrized_tests(TestArgmax)
 

@@ -1,11 +1,10 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
 class TestRsqrt(TestUtils):
-
     def op_calc(self, first_element):
         result = torch.rsqrt(first_element)
         return result
@@ -20,7 +19,7 @@ class TestRsqrt(TestUtils):
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_result = compiled_op_calc(first_element)
 
-        torch.testing.assert_close(std_result, inductor_result, rtol=1e-1, atol=1e-1)
+        self.assertEqual(std_result, inductor_result, atol=1e-1, rtol=1e-1)
 
 
 instantiate_parametrized_tests(TestRsqrt)

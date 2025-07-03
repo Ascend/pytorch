@@ -31318,6 +31318,7 @@
   "test_reduction_cases_shapes_shape0_dim_0_dtype_int32 (__main__.TestGeometric)": ["", [""]],
   "test_pointwise_cases_shape0_dtype_int32 (__main__.TestForeachAdd)": ["", [""]],
   "test_pointwise_cases_shape1_dtype_int32 (__main__.TestForeachAdd)": ["", [""]],
+  "test_pointwise_cases (__main__.TestEmbeddingDense)": ["", [""]],
   "test_fake_autocast_mT_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_fake_autocast_scatter_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_fake_autocast_special_i0e_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],

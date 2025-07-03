@@ -1,15 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-import pytest
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
-
 class TestAttnCp(TestUtils):
-
     shape = (8, 8, 256, 128)
     dim = -1
 
@@ -29,7 +24,7 @@ class TestAttnCp(TestUtils):
         func = torch.compile(self.foo, backend="inductor")
         r = func(a, b, c)
         r1 = self.foo(a, b, c)
-        torch.testing.assert_close(r, r1, rtol=1e-3, atol=1e-3)
+        self.assertEqual(r, r1, atol=1e-3, rtol=1e-3)
 
 instantiate_parametrized_tests(TestAttnCp)
 

@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
@@ -21,7 +19,7 @@ class TestSumAdd(TestUtils):
         r1 = self.foo(a, b, dim)
         func = torch.compile(self.foo, backend="inductor", dynamic=False)
         r = func(a, b, dim)
-        torch.testing.assert_close(r, r1, rtol=1e-3, atol=1e-3)
+        self.assertEqual(r, r1, atol=1e-3, rtol=1e-3)
 
     @parametrize('shape', [(9, 10, 31, 63)])
     @parametrize('dim', [0, 1])
@@ -31,7 +29,8 @@ class TestSumAdd(TestUtils):
         r1 = self.foo(a, b, dim)
         func = torch.compile(self.foo, backend="inductor", dynamic=False)
         r = func(a, b, dim)
-        torch.testing.assert_close(r, r1, rtol=1e-3, atol=1e-3)
+        self.assertEqual(r, r1, atol=1e-3, rtol=1e-3)
+
 
 instantiate_parametrized_tests(TestSumAdd)
 

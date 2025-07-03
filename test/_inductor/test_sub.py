@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
 class TestSub(TestUtils):
-
     def op_calc(self, first_element, second_element):
         result = first_element - second_element
         return result
@@ -22,7 +19,8 @@ class TestSub(TestUtils):
 
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_sum = compiled_op_calc(first_element, second_element)
-        torch.testing.assert_close(std_sub, inductor_sum)
+        self.assertEqual(std_sub, inductor_sum)
+
 
 instantiate_parametrized_tests(TestSub)
 

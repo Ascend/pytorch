@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
 class TestArrange(TestUtils):
-
     def op_calc(self, start, end, step):
         a = torch.arange(start, end, step, device=torch.device('npu'))
         y = a + a
@@ -26,7 +23,7 @@ class TestArrange(TestUtils):
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
         inductor_arrange = compiled_op_calc(start, end, step)
 
-        torch.testing.assert_close(std_arrange, inductor_arrange)
+        self.assertEqual(std_arrange, inductor_arrange)
 
 instantiate_parametrized_tests(TestArrange)
 

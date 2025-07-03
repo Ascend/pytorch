@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import copy
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
@@ -32,7 +30,7 @@ class TestBroadcast(TestUtils):
             std_broadcast = self.op_calc(a, b, dim, new_shape)
             inductor_broadcast = compiled_op_calc(a, b, dim, new_shape)
 
-            torch.testing.assert_close(std_broadcast.float(), inductor_broadcast.float(), rtol=1e-3, atol=1e-3)
+            self.assertEqual(std_broadcast.float(), inductor_broadcast.float(), atol=1e-3, rtol=1e-3)
 
 
 instantiate_parametrized_tests(TestBroadcast)

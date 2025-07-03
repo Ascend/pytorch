@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
 import torch
-from testutils import benchmark_test
+from torch.testing._internal.common_utils import run_tests
+from testutils import TestUtils
 import torch_npu
 
 
-class Test_issue59():
+class Test_issue59(TestUtils):
     def layernorm_backward(self, x, y, z):
         sum = torch.sum(x)
         mean = sum / torch.numel(sum)
@@ -22,24 +21,18 @@ class Test_issue59():
 
     def test_issue59(self):
         device = 'npu'
-        test = Test_issue59()
         x = torch.randn((1, 1024), device=device, dtype=torch.float32)
         y = torch.randn((1, 1024), device=device, dtype=torch.float32)
         z = torch.randn((1, 1024), device=device, dtype=torch.float32)
 
-        mul, add, mean_2 = test.layernorm_backward(x, y, z)
-        func = torch.compile(test.layernorm_backward, backend="inductor", dynamic=False)
+        mul, add, mean_2 = self.layernorm_backward(x, y, z)
+        func = torch.compile(self.layernorm_backward, backend="inductor", dynamic=False)
         mul_t, add_t, mean_2_t = func(x, y, z)
 
-        torch.testing.assert_close(mul, mul_t, rtol=1e-3, atol=1e-3)
-        torch.testing.assert_close(add, add_t, rtol=1e-3, atol=1e-3)
-        torch.testing.assert_close(mean_2, mean_2_t, rtol=1e-3, atol=1e-3)
-
-        print("valid ok")
-        benchmark_test(test.layernorm_backward, func, args=(x, y, z),
-                       name="issue59", times=10, repeat=10, profile=False)
+        self.assertEqual(mul, mul_t, atol=1e-3, rtol=1e-3)
+        self.assertEqual(add, add_t, atol=1e-3, rtol=1e-3)
+        self.assertEqual(mean_2, mean_2_t, atol=1e-3, rtol=1e-3)
 
 
 if __name__ == "__main__":
-    test = Test_issue59()
-    test.test_issue59()
+    run_tests()

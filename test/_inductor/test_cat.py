@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
@@ -20,9 +18,8 @@ class TestCat(TestUtils):
         std_cat = self.op_calc(input_element, dim)
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_cat = compiled_op_calc(input_element, dim)
-        rtol = 1e-1
-        atol = 1e-1
-        torch.testing.assert_close(std_cat, inductor_cat, equal_nan=True, rtol=rtol, atol=atol)
+        self.assertEqual(std_cat, inductor_cat, atol=1e-1, rtol=1e-1, equal_nan=True)
+
 
 instantiate_parametrized_tests(TestCat)
 

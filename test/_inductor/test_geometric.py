@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
 class TestGeometric(TestUtils):
-    
     def op_calc(self):
         # 创建一个形状为 (3, 3)的张量， 每个位置的概率为 0.5
         prob = torch.full((16, 16), 0.5).npu()

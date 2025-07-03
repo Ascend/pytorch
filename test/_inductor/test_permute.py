@@ -1,12 +1,10 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
-
 class TestPermute(TestUtils):
-    
     _permute_dims = [
         (0, 1, 2, 3), (0, 1, 3, 2), (0, 2, 1, 3), (0, 2, 3, 1),
         (0, 3, 1, 2), (0, 3, 2, 1), (1, 0, 2, 3), (1, 0, 3, 2),
@@ -33,7 +31,7 @@ class TestPermute(TestUtils):
             compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
             inductor_permute = compiled_op_calc(a, b, dim)
 
-            torch.testing.assert_close(std_permute, inductor_permute, rtol=1e-3, atol=1e-3)
+            self.assertEqual(std_permute, inductor_permute, atol=1e-3, rtol=1e-3)
 
 instantiate_parametrized_tests(TestPermute)
 

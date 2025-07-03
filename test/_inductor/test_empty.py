@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei TechNologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
 class TestEmpty(TestUtils):
-    
     def op_calc(self):
         x = torch.empty(8, 64, 128, dtype=torch.float32).npu()
         x.uniform_(-100, 100)

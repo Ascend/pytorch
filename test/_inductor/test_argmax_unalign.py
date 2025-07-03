@@ -1,11 +1,7 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-import pytest
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
-
 
 
 class TestMaxWithIndex(TestUtils):
@@ -20,7 +16,7 @@ class TestMaxWithIndex(TestUtils):
         std_argmax = self.op_calc(input_element, dim)
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
         inductor_argmax = compiled_op_calc(input_element, dim)
-        torch.testing.assert_close(std_argmax, inductor_argmax, rtol=1e-2, atol=1e-2)
+        self.assertEqual(std_argmax, inductor_argmax, atol=1e-2, rtol=1e-2)
 
 instantiate_parametrized_tests(TestMaxWithIndex)
 

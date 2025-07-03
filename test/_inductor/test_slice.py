@@ -1,13 +1,10 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
-import pytest
-from testutils import OperatorType, TestUtils
+from testutils import TestUtils
 import torch_npu
 
 
-
 class TestSlice(TestUtils):
-
     def op_calc(self, a, b, dim, step):
         if dim == 0:
             target = a.shape[0]
@@ -44,7 +41,8 @@ class TestSlice(TestUtils):
             compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
             inductor_slice = compiled_op_calc(a, b, dim, min(shape) // 2)
 
-            torch.testing.assert_close(std_slice, inductor_slice, rtol=1e-3, atol=1e-3)
+            self.assertEqual(std_slice, inductor_slice, atol=1e-3, rtol=1e-3)
+
 
 instantiate_parametrized_tests(TestSlice)
 
