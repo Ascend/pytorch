@@ -14,15 +14,14 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
-#define AOTI_RUNTIME_DEVICE_CHECK(EXPR)                    \
-  do {                                                     \
-    const cudaError_t code = EXPR;                         \
-    const char* msg = cudaGetErrorString(code);            \
-    if (code != cudaSuccess) {                             \
-      throw std::runtime_error(                            \
-          std::string("CUDA error: ") + std::string(msg)); \
-    }                                                      \
-  } while (0)
+#define AOTI_RUNTIME_DEVICE_CHECK(EXPR)                                               \
+    do {                                                                              \
+        const cudaError_t code = EXPR;                                                \
+        const char *msg = cudaGetErrorString(code);                                   \
+        if (code != cudaSuccess) {                                                    \
+            throw std::runtime_error(std::string("CUDA error: ") + std::string(msg)); \
+        }                                                                             \
+    } while (0)
 
 namespace torch::aot_inductor {
 
@@ -34,19 +33,19 @@ using DeviceStreamType = cudaStream_t;
 #include <level_zero/ze_api.h>
 #include <sycl/sycl.hpp>
 #include <sstream>
-#define AOTI_RUNTIME_DEVICE_CHECK(EXPR)                                   \
-  do {                                                                    \
-    const ze_result_t status = EXPR;                                      \
-    if (status != ZE_RESULT_SUCCESS) {                                    \
-      std::stringstream ss;                                               \
-      ss << "L0 runtime error: " << std::hex << std::uppercase << status; \
-      throw std::runtime_error(ss.str());                                 \
-    }                                                                     \
-  } while (0)
+#define AOTI_RUNTIME_DEVICE_CHECK(EXPR)                                         \
+    do {                                                                        \
+        const ze_result_t status = EXPR;                                        \
+        if (status != ZE_RESULT_SUCCESS) {                                      \
+            std::stringstream ss;                                               \
+            ss << "L0 runtime error: " << std::hex << std::uppercase << status; \
+            throw std::runtime_error(ss.str());                                 \
+        }                                                                       \
+    } while (0)
 
 namespace torch::aot_inductor {
 
-using DeviceStreamType = sycl::queue*;
+using DeviceStreamType = sycl::queue *;
 
 } // namespace torch::aot_inductor
 
@@ -55,19 +54,18 @@ using DeviceStreamType = sycl::queue*;
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 
-typedef void* NPUdeviceptr;
+typedef void *NPUdeviceptr;
 
-typedef void* NPUfunction;
+typedef void *NPUfunction;
 
-#define AOTI_RUNTIME_DEVICE_CHECK(EXPR)                          \
-  do {                                                           \
-    const aclError code = EXPR;                                  \
-    if (code != ACL_SUCCESS) {                                   \
-      throw std::runtime_error(                                  \
-          std::string("NPU error core: ") + std::to_string(code) \
-          + std::string(" ") +  std::string(__FILE__) + std::string(":") + std::to_string(__LINE__)); \
-    }                                                            \
-  } while (0)
+#define AOTI_RUNTIME_DEVICE_CHECK(EXPR)                                                                          \
+    do {                                                                                                         \
+        const aclError code = EXPR;                                                                              \
+        if (code != ACL_SUCCESS) {                                                                               \
+            throw std::runtime_error(std::string("NPU error core: ") + std::to_string(code) + std::string(" ") + \
+                std::string(__FILE__) + std::string(":") + std::to_string(__LINE__));                            \
+        }                                                                                                        \
+    } while (0)
 
 namespace torch::aot_inductor {
 
@@ -77,15 +75,15 @@ using DeviceStreamType = aclrtStream;
 
 #else
 
-#define AOTI_RUNTIME_DEVICE_CHECK(EXPR)            \
-  bool ok = EXPR;                                  \
-  if (!ok) {                                       \
-    throw std::runtime_error("CPU runtime error"); \
-  }
+#define AOTI_RUNTIME_DEVICE_CHECK(EXPR)                \
+    bool ok = EXPR;                                    \
+    if (!ok) {                                         \
+        throw std::runtime_error("CPU runtime error"); \
+    }
 
 namespace torch::aot_inductor {
 
-using DeviceStreamType = void*;
+using DeviceStreamType = void *;
 
 } // namespace torch::aot_inductor
 
