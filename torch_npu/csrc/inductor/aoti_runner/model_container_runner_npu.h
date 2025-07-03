@@ -4,7 +4,6 @@
 #include <torch_npu/csrc/inductor/aoti_runner/model_container_runner.h>
 
 namespace torch::inductor {
-
 // NOTICE: Following APIs are subject to change due to active development
 // We provide NO BC guarantee for these APIs
 class TORCH_API AOTIModelContainerRunnerNpu : public AOTIModelContainerRunner {
@@ -28,5 +27,4 @@ private:
     bool init_flag_;
     std::unique_ptr<torch::aot_inductor::ProxyExecutor> proxy_executor_npu_;
 };
-
 } // namespace torch::inductor

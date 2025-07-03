@@ -11,48 +11,45 @@
 #include <cuda_runtime.h>
 
 namespace torch::aot_inductor {
-
-inline void delete_cuda_guard(void* ptr) {
-  AOTI_TORCH_ERROR_CODE_CHECK(
-      aoti_torch_delete_cuda_guard(reinterpret_cast<CUDAGuardHandle>(ptr)));
+inline void delete_cuda_guard(void *ptr)
+{
+    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_delete_cuda_guard(reinterpret_cast<CUDAGuardHandle>(ptr)));
 }
 
-inline void delete_cuda_stream_guard(void* ptr) {
-  AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_delete_cuda_stream_guard(
-      reinterpret_cast<CUDAStreamGuardHandle>(ptr)));
+inline void delete_cuda_stream_guard(void *ptr)
+{
+    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_delete_cuda_stream_guard(reinterpret_cast<CUDAStreamGuardHandle>(ptr)));
 }
 
 class AOTICudaGuard {
- public:
-  AOTICudaGuard(int32_t device_index) : guard_(nullptr, delete_cuda_guard) {
-    CUDAGuardHandle ptr = nullptr;
-    AOTI_TORCH_ERROR_CODE_CHECK(
-        aoti_torch_create_cuda_guard(device_index, &ptr));
-    guard_.reset(ptr);
-  }
+public:
+    AOTICudaGuard(int32_t device_index) : guard_(nullptr, delete_cuda_guard)
+    {
+        CUDAGuardHandle ptr = nullptr;
+        AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_cuda_guard(device_index, &ptr));
+        guard_.reset(ptr);
+    }
 
-  void set_index(int32_t device_index) {
-    AOTI_TORCH_ERROR_CODE_CHECK(
-        aoti_torch_cuda_guard_set_index(guard_.get(), device_index));
-  }
+    void set_index(int32_t device_index)
+    {
+        AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_cuda_guard_set_index(guard_.get(), device_index));
+    }
 
- private:
-  std::unique_ptr<CUDAGuardOpaque, DeleterFnPtr> guard_;
+private:
+    std::unique_ptr<CUDAGuardOpaque, DeleterFnPtr> guard_;
 };
 
 class AOTICudaStreamGuard {
- public:
-  AOTICudaStreamGuard(cudaStream_t stream, int32_t device_index)
-      : guard_(nullptr, delete_cuda_stream_guard) {
-    CUDAStreamGuardHandle ptr = nullptr;
-    AOTI_TORCH_ERROR_CODE_CHECK(
-        aoti_torch_create_cuda_stream_guard(stream, device_index, &ptr));
-    guard_.reset(ptr);
-  }
+public:
+    AOTICudaStreamGuard(cudaStream_t stream, int32_t device_index) : guard_(nullptr, delete_cuda_stream_guard)
+    {
+        CUDAStreamGuardHandle ptr = nullptr;
+        AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_cuda_stream_guard(stream, device_index, &ptr));
+        guard_.reset(ptr);
+    }
 
- private:
-  std::unique_ptr<CUDAStreamGuardOpaque, DeleterFnPtr> guard_;
+private:
+    std::unique_ptr<CUDAStreamGuardOpaque, DeleterFnPtr> guard_;
 };
-
 } // namespace torch::aot_inductor
 #endif // USE_CUDA

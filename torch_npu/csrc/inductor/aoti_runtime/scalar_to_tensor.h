@@ -3,21 +3,19 @@
 #include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
 
 namespace torch::aot_inductor {
-
-template <typename T>
-inline RAIIAtenTensorHandle scalar_to_tensor_handle(T value) {
-  throw std::runtime_error("Unsupported scalar_to_tensor_handle");
+template <typename T> inline RAIIAtenTensorHandle scalar_to_tensor_handle(T value)
+{
+    throw std::runtime_error("Unsupported scalar_to_tensor_handle");
 }
 
 // Specialize for supported C++ primitive types
-#define AOTI_RUNTIME_SCALAR_TO_TENSOR(dtype, ctype)                         \
-  template <>                                                               \
-  inline RAIIAtenTensorHandle scalar_to_tensor_handle<ctype>(ctype value) { \
-    AtenTensorHandle tensor_handle;                                         \
-    AOTI_TORCH_ERROR_CODE_CHECK(                                            \
-        aoti_torch_scalar_to_tensor_##dtype(value, &tensor_handle));        \
-    return RAIIAtenTensorHandle(tensor_handle);                             \
-  }
+#define AOTI_RUNTIME_SCALAR_TO_TENSOR(dtype, ctype)                                              \
+    template <> inline RAIIAtenTensorHandle scalar_to_tensor_handle<ctype>(ctype value)          \
+    {                                                                                            \
+        AtenTensorHandle tensor_handle;                                                          \
+        AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_scalar_to_tensor_##dtype(value, &tensor_handle)); \
+        return RAIIAtenTensorHandle(tensor_handle);                                              \
+    }
 
 AOTI_RUNTIME_SCALAR_TO_TENSOR(float32, float)
 AOTI_RUNTIME_SCALAR_TO_TENSOR(float64, double)
@@ -31,5 +29,4 @@ AOTI_RUNTIME_SCALAR_TO_TENSOR(int32, int32_t)
 AOTI_RUNTIME_SCALAR_TO_TENSOR(int64, int64_t)
 AOTI_RUNTIME_SCALAR_TO_TENSOR(bool, bool)
 #undef AOTI_RUNTIME_SCALAR_TO_TENSOR
-
 } // namespace torch::aot_inductor
