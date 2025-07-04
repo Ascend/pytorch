@@ -115,7 +115,7 @@ at::Tensor format_cast_impl_out_npu_aclnn(const at::Tensor& src,
     auto src_new_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src_new)->npu_desc_;
 
     at::Tensor dst = create_tensor_with_format_and_shape(
-        src_new_desc.base_sizes_, storageSizes, src.dtype(), acl_format);
+        src_new.sizes(), storageSizes, src.dtype(), acl_format);
 
     // calculate the output result of the NPU
     EXEC_NPU_CMD(aclnnNpuFormatCast, src_new, dst);

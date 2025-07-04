@@ -26,6 +26,12 @@ class TestFormatCast(TestCase):
         custom_output = self.custom_op_exec(npu_input, acl_format)
         self.assertRtolEqual(supported_output, custom_output)
 
+    def test_npu_format_cast_view(self):
+        tensor = torch.randint(-5, 5, (1, 64), dtype=torch.int8).npu()
+        tensor = tensor.t()
+        nz_output = torch_npu.npu_format_cast(tensor, 29)
+        self.assertEqual(torch_npu.get_npu_format(nz_output), 29)
+
 
 if __name__ == "__main__":
     run_tests()
