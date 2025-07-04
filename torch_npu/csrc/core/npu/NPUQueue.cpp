@@ -314,7 +314,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
             repo_error + ".\n" +
             "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
             "If you want to get the accurate stacktrace, "
-            "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
+            "please set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
             "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
             "resulting in performance degradation. "
             "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
@@ -490,7 +490,7 @@ void Repository::Enqueue(void *cur_paras)
             repo_error + ".\n" +
             "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
             "If you want to get the accurate stacktrace, "
-            "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
+            "please set the environment variable ASCEND_LAUNCH_BLOCKING=1.\n" +
             "Note: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, "
             "resulting in performance degradation. "
             "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
