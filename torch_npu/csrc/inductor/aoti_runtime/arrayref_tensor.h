@@ -34,10 +34,11 @@ public:
     // / @{
 
     // / Construct an empty MiniArrayRef.
-    /* implicit */ constexpr MiniArrayRef() : Data(nullptr), Length(0) {}
+    /* implicit */
+    constexpr MiniArrayRef() : Data(nullptr), Length(0) {}
 
     // / Construct an MiniArrayRef from a single element.
-    // TODO Make this explicit
+    // Make this explicit
     constexpr MiniArrayRef(const T &OneElt) : Data(&OneElt), Length(1) {}
 
     // / Construct an MiniArrayRef from a pointer and length.
