@@ -7,7 +7,7 @@
 
 #ifdef USE_CUDA
 
-// FIXME: Currently, CPU and CUDA backend are mutually exclusive.
+// Currently, CPU and CUDA backend are mutually exclusive.
 // This is a temporary workaround. We need a better way to support
 // multi devices.
 

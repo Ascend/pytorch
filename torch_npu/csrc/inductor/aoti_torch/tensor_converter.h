@@ -17,7 +17,7 @@ TORCH_API std::vector<AtenTensorHandle> unsafe_alloc_new_handles_from_tensors(
 // alloc_tensors_by_stealing_from_handles is used for creating a vector of aten
 // tensors by stealing from an array of handles. Only the handles are stolen,
 // and the array itself is borrowed.
-//
+
 // WARNING: Can NOT be called in model.so
 TORCH_API std::vector<at::Tensor> alloc_tensors_by_stealing_from_handles(
     AtenTensorHandle* handles,

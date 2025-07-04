@@ -154,7 +154,7 @@ AOTIRuntimeError AOTInductorModelContainerGetOutputName(
 // around the compiled model; it doesn't handle concurrency, queueing, device
 // management, etc.  Use this if bare-metal performance is needed and you are
 // willing to handle other "management" aspects yourself.
-//
+
 // constant_map_handle is an opaque type to satisfy the C ABI.  It should be a
 // std::unordered_map<std::string, at::Tensor*>*.
 AOTIRuntimeError AOTInductorModelCreate(
