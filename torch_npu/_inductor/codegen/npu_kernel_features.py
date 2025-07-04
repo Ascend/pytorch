@@ -12,6 +12,15 @@ from torch.utils._ordered_set import OrderedSet
 
 
 class NumelList(Tuple):
+    @staticmethod
+    def calc_numels(other):
+        if isinstance(other, Iterable):
+            numel = NumelList.calc_numels(other)
+            return numel
+        elif isinstance(other, NumelList):
+            return other.numels()
+        else:
+            return other
 
     def numels(self):
         numel = functools.reduce(lambda a, b: a * b, self)

@@ -11,8 +11,13 @@ import os
 import re
 import sys
 import time
+import shutil
+import hashlib
+import csv
+import uuid
 from itertools import count
 from typing import Any, Callable, List, Optional
+from contextlib import contextmanager
 import torch
 from torch._logging import warning_once
 import triton
@@ -50,6 +55,7 @@ except ImportError:
     OutOfResources = None
     autograd_profiler = None
 
+import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
 
 from .codegen.split_tiling import SplitTiling
@@ -61,6 +67,83 @@ from .config import log
 from . import config as npu_config
 
 kernel_idx = count()
+
+
+@contextmanager
+def create_profiler(torch_path):
+    experimental_config = torch_npu.profiler._ExperimentalConfig(
+        aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization,
+        profiler_level=torch_npu.profiler.ProfilerLevel.Level0, )
+    profile_path = torch_path
+    with torch_npu.profiler.profile(
+        activities=[torch_npu.profiler.ProfilerActivity.NPU],
+        record_shapes=False,
+        profile_memory=False,
+        with_stack=False,
+        schedule=torch_npu.profiler.schedule(wait=0, warmup=1, active=1, repeat=1, skip_first=1),
+        on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(profile_path),
+        experimental_config=experimental_config) as prof:
+        yield prof
+
+
+def delete_file_base(base_path):
+    if os.path.exists(base_path):
+        shutil.rmtree(base_path)
+
+
+def read_device_time(torch_path, triton_only=True, return_list=True):
+    for root, _, files in os.walk(torch_path):
+        for file in files:
+            if file != 'kernel_details.csv':
+                continue
+            target_file = os.path.join(root, file)
+            with open(target_file, newline='') as csvfile:
+                durations = []
+                reader = csv.DictReader(csvfile)
+                for row_read in reader:
+                    durations.append(float(row_read['Duration(us)']))
+            if return_list:
+                return durations
+            ret = sum(durations)
+            return ret
+    raise RuntimeError(f"Could not find kernel_details.csv from dir {torch_path}")
+
+
+def _summarize_statistics(times, quantiles, return_mode):
+    if quantiles is not None:
+        ret = torch.quantile(times, torch.tensor(quantiles, dtype=torch.float)).tolist()
+        if len(ret) == 1:
+            ret = ret[0]
+        return ret
+    if return_mode == "all":
+        return times.tolist()
+    return getattr(torch, return_mode)(times).item()
+
+
+def do_bench_using_profiling_npu(fn, warmup=2, rep=10, grad_to_none=None, quantiles=None, return_mode="mean"):
+    if return_mode not in ["min", "max", "mean", "median", "all"]:
+        raise RuntimeError("return_mode must be one of 'min', 'max', 'mean', 'median', 'all'")
+
+    stream = torch.npu.current_stream()
+    stream.synchronize()
+
+    # Warm-up
+    for _ in range(warmup):
+        fn()
+    stream.synchronize()
+
+    random_uuid = uuid.uuid4().hex
+    md5_hash = hashlib.md5(random_uuid.encode()).hexdigest()
+    torch_path = os.path.join(os.getcwd(), "profile_result", f"triton_{md5_hash}")
+    with create_profiler(torch_path) as prof:
+        stream.synchronize()
+        for _ in range(rep + 10):
+            fn()
+            prof.step()
+        stream.synchronize()
+    times = read_device_time(torch_path, triton_only=False, return_list=True)
+    delete_file_base(torch_path)
+    return _summarize_statistics(torch.tensor(times), quantiles, return_mode)
 
 
 class NPUCachingAutotuner(CachingAutotuner):
@@ -524,13 +607,11 @@ class NPUCachingAutotuner(CachingAutotuner):
                 stream=stream,
             )
 
-        if with_profiler:
-            from torch._inductor.utils import do_bench_using_profiling
-            ret = do_bench_using_profiling(kernel_call, warmup=10, rep=1)
+        if self.inductor_meta.get("profile_bandwidth_with_do_bench_using_profiling", False):
+            return do_bench_using_profiling_npu(kernel_call, rep=1)
 
-        # remove fast_flush=True for high version triton
-        ret = benchmarker.benchmark_gpu(kernel_call, rep=1)
-        return ret
+        return benchmarker.benchmark_gpu(kernel_call, rep=1)
+
 
     def autotune_to_one_config(self, *args, **kwargs):
         """Do the actual autotuning"""
@@ -1151,11 +1232,8 @@ def benchmark_all_configs(self, *args, input_grid, **kwargs):
     def do_batch_benchmark(tilling_kernel_list):
 
         def delete_file(base_path):
-            import shutil
             if os.path.exists(base_path):
                 shutil.rmtree(base_path)
-
-        import torch_npu
 
         stream = torch.npu.current_stream()
         experimental_config = torch_npu.profiler._ExperimentalConfig(
@@ -1165,7 +1243,6 @@ def benchmark_all_configs(self, *args, input_grid, **kwargs):
             data_simplification=False
         )
 
-        import uuid
         random_uuid = uuid.uuid4().hex
         md5_hash = hashlib.md5(random_uuid.encode()).hexdigest()
 

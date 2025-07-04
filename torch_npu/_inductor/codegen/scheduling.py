@@ -16,7 +16,7 @@ from torch._inductor.codecache import code_hash
 from torch._inductor.codegen.multi_kernel import MultiKernel
 from torch._inductor.codegen.simd import DisableReduction, EnableReduction
 from torch._inductor.codegen.simd import DisableReduction, EnableReduction, SIMDKernelFeatures, SIMDKernel
-from torch._inductor.codegen.simd import schedule_log, scheduler
+from torch._inductor.codegen.simd import schedule_log, scheduler, WhyNoFuse, TritonTemplateBuffer
 from torch._inductor.codegen.triton import (TritonScheduling, log, config)
 from torch._inductor.codegen.triton import (
     TritonScheduling,
@@ -284,6 +284,127 @@ class NPUTritonScheduling(TritonScheduling):
         return self.codegen_node_schedule(
             NPUKernelFeatures(node_schedule, numel, rnumel), nodes
         )
+
+    # adapt is_reduction_tiling_valid to NumelList
+    def can_fuse(self, node1, node2):
+        """
+        Hook called by Scheduler to determine if the Triton backend
+        can fuse node1 and node2.  These nodes might already be
+        FusedSchedulerNodes.
+        """
+
+        if isinstance(node1, scheduler.ForeachKernelSchedulerNode) or isinstance(
+                node2, scheduler.ForeachKernelSchedulerNode
+        ):
+            return scheduler.ForeachKernelSchedulerNode.can_fuse(node1, node2)
+
+        _, (numel1, rnumel1) = node1.group
+        _, (numel2, rnumel2) = node2.group
+        why = WhyNoFuse(node1, node2)
+
+        if node1.is_split_scan() and not node2.is_split_scan():
+            if node2.is_reduction():
+                why("Split scan cannot fuse with reductions")
+        elif node2.is_split_scan() and not node1.is_split_scan():
+            if node1.is_reduction():
+                why("Split scan cannot fuse with reductions")
+
+        if node1.is_reduction() and node2.is_reduction():
+            reduction_can_fuse = numel1 == numel2 and rnumel1 == rnumel2
+            if not reduction_can_fuse:
+                why(
+                    "numel/rnumel mismatch (reduce) (%s, %s), (%s, %s)",
+                    numel1,
+                    numel2,
+                    rnumel1,
+                    rnumel2,
+                )
+            return reduction_can_fuse
+
+        if not node1.is_reduction() and not node2.is_reduction():
+            if not (numel1 == numel2 and rnumel1 == rnumel2):
+                why(
+                    "numel/rnumel mismatch (non-reduce) (%s, %s), (%s, %s)",
+                    numel1,
+                    numel2,
+                    rnumel1,
+                    rnumel2,
+                )
+                return False
+
+            if node1.is_template():
+                # Only allow fusion for TritonTemplates for now.
+                # Fusion for CUDATemplates are not supported.
+                is_triton_template = isinstance(node1.node, TritonTemplateBuffer)
+                if not is_triton_template:
+                    why("node1 is not TritonTemplateBuffer")
+                return is_triton_template
+
+            # check for a bad combined tiling
+            tiling1 = self.select_tiling(node1.get_nodes(), numel1, rnumel1)
+            tiling2 = self.select_tiling(node2.get_nodes(), numel1, rnumel1)
+            tiling3 = self.select_tiling(
+                node1.get_nodes() + node2.get_nodes(), numel1, rnumel1
+            )
+            if config.triton.tiling_prevents_pointwise_fusion:
+                cond = True
+                if len(tiling1) > 2:
+                    if len(tiling2) > 2:
+                        cond = tiling1 == tiling2 == tiling3
+                    else:
+                        cond = tiling1 == tiling3
+                elif len(tiling2) > 2:
+                    cond = tiling2 == tiling3
+                if not cond:
+                    why(
+                        "tiling mismatch (%s, %s, %s)",
+                        tiling1,
+                        tiling2,
+                        tiling3,
+                    )
+                    return False
+
+            return True
+
+        if not node1.is_reduction() and node2.is_reduction():
+            if not (rnumel1 == 1 and rnumel2 != 1):
+                raise RuntimeError("rnumel1 must be 1 and rnumel2 must not be 1")
+            if numel1 == numel2 * rnumel2:
+                if not all(
+                        SIMDKernel.is_compatible((numel2, rnumel2), n.get_ranges())
+                        for n in node1.get_nodes()
+                ):
+                    why("nodes numel/rnumel incompatibility")
+                    return False
+                if (
+                        config.triton.tiling_prevents_reduction_fusion
+                        and not node1.is_template()
+                ):
+                    is_reduction_tiling_valid = tuple(
+                        self.select_tiling(node1.get_nodes(), numel1).values()
+                    ) in (
+                            (numel1, 1),
+                            (numel2, rnumel2, 1),
+                             numel1
+                    )
+                    if not is_reduction_tiling_valid:
+                        why("invalid tiling for reduction")
+                    return is_reduction_tiling_valid
+                return True
+
+            if numel1 != numel2:
+                why("nodes numel incompatibility")
+            return numel1 == numel2
+
+        if not (node1.is_reduction() and not node2.is_reduction()):
+            raise RuntimeError(
+                "Expected node1 to be a reduction and node2 not to be a reduction"
+            )
+        # swap args to hit the case above
+        return self.can_fuse_horizontal(node2, node1)
+
+    can_fuse_vertical = can_fuse
+    can_fuse_horizontal = can_fuse
 
     def decide_codegen_dims_in_kernel(self, node_schedule, kernel):
         def current_reduction_nodes(nodes):

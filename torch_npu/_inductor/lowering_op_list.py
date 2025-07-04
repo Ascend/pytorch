@@ -93,7 +93,6 @@ LOWERING_OVERLOAD_OP = [
     aten.amax,
     aten.argmax,
     aten.argmin,
-    aten.sum,
 
     aten.var_mean,
     aten.var,

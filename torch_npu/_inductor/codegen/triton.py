@@ -576,6 +576,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "traced_graph_dir": "TRACED_GRAPH_DIR",
             "store_cubin": config.triton.store_cubin,
             "force_disable_caches": config.force_disable_caches,
+            "profile_bandwidth_with_do_bench_using_profiling": config.profile_bandwidth_with_do_bench_using_profiling,
         }
         return inductor_meta
 
@@ -1343,7 +1344,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     line, indexing.block_shape, indexing.reshape_suffix
                 )
             elif isinstance(original_index, sympy.Integer):
-                line = f"tl.load({var} + ({original_index}))"
+                line = f"tl.load({var} + tl.arange(0,1) +  ({original_index}))"
                 full_list = ["1"] * (len(self.tiling_axis) if self.tiling_axis else 1)
                 append_broadcast = f"[{', '.join(full_list)} ]"
             else:
