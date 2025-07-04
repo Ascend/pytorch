@@ -2,6 +2,7 @@
 import copy
 import traceback
 import functools
+from functools import lru_cache
 import hashlib
 import importlib
 import json
@@ -543,12 +544,20 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.save_cache_hook:
             self.save_cache_hook(self.launchers[0].config, self.autotune_time_taken_ns)
 
-    def get_fx_graph_call(self, auto_fallback=False):
-        kernel_name = self.inductor_meta.get("kernel_name", "triton_")
+    @lru_cache(None)
+    def get_fx_graph_dump_path(self):
         traced_graph_hash = self.inductor_meta.get("traced_graph_hash")
         dump_dir = self.inductor_meta.get("traced_graph_dir", "")
         dump_path = os.path.join(dump_dir, traced_graph_hash)
         if dump_dir == "" or not os.path.exists(dump_path):
+            return None
+        return dump_path
+
+    def get_fx_graph_call(self, auto_fallback=False):
+        kernel_name = self.inductor_meta.get("kernel_name", "triton_")
+        traced_graph_hash = self.inductor_meta.get("traced_graph_hash")
+        dump_path = self.get_fx_graph_dump_path()
+        if not dump_path:
             return None, None, None, None
         sys.path.append(dump_path)
         fx_module = importlib.import_module(traced_graph_hash)
@@ -585,8 +594,13 @@ class NPUCachingAutotuner(CachingAutotuner):
         return fx_graph_call, kernel_name, dump_path, fx_module
 
     def data_dump(self, *args, dump_path=None):
+        dump_path = self.get_fx_graph_dump_path() if dump_path is None else dump_path
+        if dump_path is None:
+            log.warning(f"data dump for kernel {self.get_fn_name()} failed, no valid dump_path is supplied.")
+            return False
         data_dump_path = os.path.join(dump_path, 'data.pth')
         torch.save(args, data_dump_path)
+        return True
 
     def get_fn_name(self):
         if self.fn_name is not None:
@@ -606,6 +620,16 @@ class NPUCachingAutotuner(CachingAutotuner):
             if fallback_id != "all" and not isinstance(fallback_id, list):
                 raise RuntimeError("torch_npu._inductor.config.aot_inductor.force_fallback_kernel_id "
                                    "should be set to 'all' or List, e.g, [1, 2, 10]." + pta_error(ErrCode.VALUE))
+
+            if isinstance(fallback_id, list):
+                kernel_name = self.get_fn_name()
+                try:
+                    kernel_id = int(kernel_name.split("_")[-1])
+                except ValueError:
+                    kernel_id = -1
+                if kernel_id not in fallback_id:
+                    return False
+            return True
         
         if not should_fallback():
             return None
@@ -638,7 +662,6 @@ class NPUCachingAutotuner(CachingAutotuner):
         if not fx_graph_call:
             return None
         call_outputs_indices = fx_module.call_args_mapping[fx_module.num_inputs:]
-        self.data_dump(*args, dump_path=dump_path)
 
         fx_args = []
         for idx in fx_module.call_args_mapping:
@@ -712,6 +735,28 @@ class NPUCachingAutotuner(CachingAutotuner):
         torch.save(dump_args, f"{dump_path}/{idx}_{fn_name}_after.pt")
         return result
 
+    def maybe_run_debug(self, *args, grid_, stream, launcher, **kwargs):
+        kernel_name = self.get_fn_name()
+        log.info(f"Try to run debug mode for kernel {kernel_name}.")
+        if npu_config.dump_fx_graph:
+            _ = self.data_dump(*args)
+
+        if npu_config.check_accuracy:
+            if self.check_accuracy(*args, launcher=launcher, grid=grid_, stream=stream, **kwargs):
+                return "check_accuracy"
+        elif npu_config.force_fallback_kernel_id:
+            fallback_result = self.fallback_to_fx(*args, launcher=launcher, grid_=grid_, stream=stream, **kwargs)
+            if fallback_result is not None:
+                log.debug(f"fallback kernel {self.get_fn_name()} to fx graph call.")
+                return "force_fallback_kernel_id"
+            else:
+                log.warning(f"kernel {self.get_fn_name()} could not fallback to fx.")
+        elif npu_config.aot_inductor.debug_kernel_in_run:
+            _ = self.debug_kernel_in_run(*args, launcher=launcher, grid_=grid_, stream=stream, **kwargs)
+            return "debug_kernel_in_run"
+
+        log.info(f"No debug mode is activated for kernel {kernel_name}.")
+        return None
 
     def run(
             self, *args, grid, stream, benchmark_run=False, **kwargs
@@ -753,26 +798,10 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.dump_launch_params:
             _dump_launch_params(args, kwargs, launcher, self.fn.__name__)
 
-        if npu_config.check_accuracy:
-            if self.check_accuracy(*args, launcher=launcher, grid=grid, stream=stream, **kwargs):
-                return
-
-        elif npu_config.dump_fx_graph:
-            fx_graph_call, kernel_name, dump_path, _ = self.get_fx_graph_call()
-            if not fx_graph_call:
-                log.warning(f"data dump for kernel {kernel_name} failed!")
-            else:
-                self.data_dump(*args, dump_path=dump_path)
-
-        elif npu_config.force_fallback_kernel_id:
-            fallback_result = self.fallback_to_fx(*args, launcher=launcher, grid_=grid, stream=stream, **kwargs)
-            if fallback_result is not None:
-                log.debug(f"fallback kernel {self.get_fn_name()} to fx graph call.")
-                return
-            else:
-                log.warning(f"kernel {self.get_fn_name()} could not fallback to fx.")
-        elif npu_config.aot_inductor.debug_kernel_in_run:
-            return self.debug_kernel_in_run(*args, launcher=launcher, grid_=grid, stream=stream, **kwargs)
+        debug_mode = self.maybe_run_debug(*args, grid_=grid, stream=stream, launcher=launcher, **kwargs)
+        if debug_mode:
+            log.info(f"Kernel {self.get_fn_name()} goes into {debug_mode} and return.")
+            return
 
         # it is faster than entering and exiting a context manager, even if the context
         # manager is a nullcontext.
