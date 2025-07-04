@@ -1,3 +1,4 @@
+#!/bin/bash
 # 配置CANN相关环境变量
 CANN_INSTALL_PATH_CONF='/etc/Ascend/ascend_cann_install.info'
 
