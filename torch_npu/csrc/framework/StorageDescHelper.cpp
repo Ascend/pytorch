@@ -61,9 +61,13 @@ void StorageDescHelper::UpdateDesc(torch_npu::NPUStorageDesc &npuDesc, const c10
         }
     }
     npuDesc.base_strides_ = new_stride;
-
     // 更新物理内存信息
-    npuDesc.storage_sizes_ = FormatHelper::GetStorageSizes(npuDesc);
+    int NCDHW_OR_NDHWC_DIM = 5;
+    if ((npuDesc.npu_format_ == ACL_FORMAT_NCDHW || npuDesc.npu_format_ == ACL_FORMAT_NDHWC) && new_size.size() < NCDHW_OR_NDHWC_DIM) {
+        npuDesc.storage_sizes_ = new_size;
+    } else {
+        npuDesc.storage_sizes_ = FormatHelper::GetStorageSizes(npuDesc);
+    }
     if (new_data_numel > new_shape_numel) {
         // Refresh format to base format only when flattening storage data
         npuDesc.storage_sizes_ = new_size;
