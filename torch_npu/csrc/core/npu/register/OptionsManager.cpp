@@ -482,10 +482,11 @@ uint32_t OptionsManager::GetAclOpInitMode()
     const static uint32_t acl_op_init_mode = []() -> uint32_t {
         char* buf_val = std::getenv("ACL_OP_INIT_MODE");
         // Default 0
-        int64_t acl_op_init_mode = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 0;
+        int64_t acl_op_init_mode = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 1;
         std::unordered_map<int32_t, std::string> aclOpInitMode = getAclOpInitMode();
         if (aclOpInitMode.find(acl_op_init_mode) == aclOpInitMode.end()) {
-            TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value 0.");
+            acl_op_init_mode = 1;
+            TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value 1.");
         }
         return static_cast<uint32_t>(acl_op_init_mode);
     }();
