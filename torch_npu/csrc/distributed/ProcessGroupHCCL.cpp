@@ -2056,30 +2056,34 @@ bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool e
         }
         fileName << "torch_hccl_status-" << std::to_string(global_rank) << "_" << master_addr << "_" << std::to_string(deviceId_) << "_";
         fileName << std::to_string(numRanks_) << "_" << std::to_string(pid) << "_" << std::to_string(duration) << ".log";
-        std::string isMaster = "false";
+        bool isMaster = false;
         if (global_rank == 0) {
-            isMaster = "true";
+            isMaster = true;
         }
         std::string out_file_path = c10::str(path, "/", fileName.str());
         checkAndMakePath(path.c_str(), "Open shared directory failed. Please check whether input path is valid.");
         createFile(out_file_path.c_str());
-        outfile.open(out_file_path.c_str(), std::ios::trunc);
-        outfile << "{\"last_comm_op\":[";
-        bool first_op = true;
+        using json = nlohmann::json;
+        json result;
+        std::list<json> last_comm_ops;
         for (auto info = StatusOutput_.begin(); info != StatusOutput_.end(); info++) {
-            if (first_op) {
-                outfile << "{";
-            } else {
-                outfile << ", {";
-            }
-            outfile << "\"seq\":" << info->second.seq << ", \"op_type\":\"" << info->second.opType;
-            outfile << "\", \"pg_id\":\"" << info->second.pgId << "\", \"comm_ids\":\"" << info->second.commIds;
-            outfile << "\", \"status\":\""<< info->second.status << "\"}";
-            first_op = false;
+            json comm_op;
+            comm_op["seq"] = info->second.seq;
+            comm_op["op_type"] = info->second.opType;
+            comm_op["pg_id"] = info->second.pgId;
+            comm_op["comm_ids"] = info->second.commIds;
+            comm_op["status"] = info->second.status;
+            last_comm_ops.emplace_back(comm_op);
         }
-        outfile << "], \"is_master\":" << isMaster;
-        outfile << ", \"exception_message\":\"" << exceptionMessage_;
-        outfile << "\", \"global_pg_end_time\":" << end_duration << "}" << std::endl;
+        if (!last_comm_ops.empty()) {
+            result["last_comm_op"] = last_comm_ops;
+        }
+        result["is_master"] = isMaster;
+        result["exception_message"] = exceptionMessage_;
+        result["global_pg_end_time"] = end_duration;
+        std::string result_str = result.dump();
+        outfile.open(out_file_path.c_str(), std::ios::trunc);
+        outfile << result_str << std::endl;
         outfile.close();
         return true;
     }
