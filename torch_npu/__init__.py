@@ -63,6 +63,7 @@ from torch_npu.npu._stream_check import apply_sanitizer_patch
 from torch_npu.npu.utils import _erase_stream as erase_stream
 from torch_npu.utils.hif8_tensor import HiFloat8Tensor
 from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
+from torch_npu.utils._to_int import _device_wrapper, _replace_to_method_in_allowed_methods
 from torch_npu.asd.asd import _asd_patch
 from torch_npu.asd.checksum import _matmul_checksum as matmul_checksum
 from torch_npu._C._distributed_c10d import ParallelStore
@@ -277,3 +278,7 @@ if hasattr(sys, 'ps1'):
     os.environ["TASK_QUEUE_ENABLE"] = '0'
     warnings.warn("On the interactive interface, the value of TASK_QUEUE_ENABLE is set to 0 by default. \
                      Do not set it to 1 to prevent some unknown errors")
+
+_device_wrapper(torch.Tensor, ["to"])
+_device_wrapper(torch.nn.Module, ["to", "to_empty"])
+_replace_to_method_in_allowed_methods()

@@ -763,6 +763,78 @@ class TestNpu(TestCase):
         with self.assertRaisesRegex(RuntimeError, "ERR01007 OPS feature not supported"):
             x.contiguous(memory_format=torch.channels_last_3d)
 
+    def test_to_int(self):
+        class M(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.l1 = torch.nn.Linear(2, 2)
+
+            def forward(self, x):
+                return self.l1(x)
+
+        # args
+        x = torch.rand(2, 2).to(0)
+        m = M().to(0)
+        out = m(x)
+        self.assertEqual(out.device.type, "npu")
+
+        with self.assertRaisesRegex(AssertionError, "Torch not compiled with CUDA enabled"):
+            x = torch.rand(2, 2).to("cuda:0")
+
+        with self.assertRaisesRegex(AssertionError, "Torch not compiled with CUDA enabled"):
+            m = M().to("cuda:0")
+
+        # kwargs
+        x = torch.rand(2, 2).to(device=0)
+        m = M().to(device=0)
+        out = m(x)
+        self.assertEqual(out.device.type, "npu")
+
+        with self.assertRaisesRegex(AssertionError, "Torch not compiled with CUDA enabled"):
+            x = torch.rand(2, 2).to(device="cuda:0")
+
+        with self.assertRaisesRegex(AssertionError, "Torch not compiled with CUDA enabled"):
+            m = M().to(device="cuda:0")
+
+    def test_module_to_empty(self):
+        class MyModule(torch.nn.Module):
+            def __init__(self, in_features, out_features, device=None, dtype=None):
+                super().__init__()
+                factory_kwargs = {"device": device, "dtype": dtype}
+                self.weight = torch.nn.Parameter(torch.randn(in_features, out_features, **factory_kwargs))
+
+            def forward(self, x):
+                return x @ self.weight
+
+        # Test meta module instantiation.
+        input1 = torch.randn(5, 10, device="npu:0", dtype=torch.float32)
+        m = MyModule(10, 1, device='meta', dtype=torch.float32)
+        m(input1)
+
+        # Test materializing meta module on a real device.
+        m.to_empty(device=0)
+        m(input1)
+        with torch.no_grad():
+            torch.nn.init.kaiming_uniform_(m.weight)
+        m(input1)
+
+        # Test creating meta module from materialized module.
+        m.to_empty(device='meta')
+        m(input1)
+
+        with self.assertRaisesRegex(AssertionError, "Torch not compiled with CUDA enabled"):
+            m.to_empty(device="cuda:0")
+
+    def test_lazymodule_to(self):
+        input_data = torch.randn(5, 10, 5).to(0)
+        lazy_linear = torch.nn.LazyLinear(64).to(0)
+        output_data = lazy_linear(input_data)
+        self.assertEqual(output_data.device.type, "npu")
+
+        with self.assertRaisesRegex(AssertionError, "Torch not compiled with CUDA enabled"):
+            lazy_linear = torch.nn.LazyLinear(64).to("cuda:0")
+
+
 
 if __name__ == '__main__':
     run_tests()
