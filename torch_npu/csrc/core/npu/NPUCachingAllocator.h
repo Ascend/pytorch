@@ -188,6 +188,11 @@ using OutOfMemoryObserver =
     std::function<void(int64_t device, int64_t allocated, int64_t device_total,
                        int64_t device_free)>;
 
+struct ShareableHandle {
+    ptrdiff_t offset;
+    std::string handle;
+};
+
 class NPUAllocator : public c10::Allocator {
 public:
     virtual c10::DataPtr allocate_with_aligned(size_t size, size_t aligned) const = 0;
@@ -227,6 +232,8 @@ public:
             " does not yet support checkPoolLiveAllocations. "
             "If you need it, please file an issue describing your use case.", PTA_ERROR(ErrCode::NOT_SUPPORT));
     }
+    virtual ShareableHandle shareIpcHandle(void* ptr) = 0;
+    virtual std::shared_ptr<void> getIpcDevPtr(std::string handle) = 0;
     virtual bool isHistoryEnabled()
     {
         TORCH_CHECK(
@@ -374,6 +381,16 @@ inline void endAllocateToPool(c10::DeviceIndex device, MempoolId_t mempool_id)
 inline void releasePool(c10::DeviceIndex device, MempoolId_t mempool_id)
 {
     return get()->releasePool(device, mempool_id);
+}
+
+inline std::shared_ptr<void> getIpcDevPtr(std::string handle)
+{
+    return get()->getIpcDevPtr(handle);
+}
+
+inline ShareableHandle shareIpcHandle(void* ptr)
+{
+    return get()->shareIpcHandle(ptr);
 }
 
 inline void FreeDeviceCachedMemory(int device)

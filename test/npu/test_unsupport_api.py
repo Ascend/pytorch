@@ -67,16 +67,6 @@ class TestPtaUnsupportApi(TestCase):
             coalesce_tensor = sparse_tensor.coalesce().npu()
             coalesce_tensor.ccol_indices()
 
-    def test_Tensor_is_shared_runtimeerror(self):
-        with self.assertRaisesRegex(RuntimeError, r"(.*) is not supported in npu."):
-            input_tensor = torch.tensor([1, 2, 3]).npu()
-            input_tensor.is_shared()
-
-    def test_Tensor_share_memory__runtimeerror(self):
-        with self.assertRaisesRegex(RuntimeError, r"(.*) is not supported in npu."):
-            input_tensor = torch.tensor([1, 2, 3]).npu()
-            input_tensor.share_memory_()
-
     def test_Module_share_memory_runtimeerror(self):
         with self.assertRaisesRegex(RuntimeError, r"(.*) is not supported in npu."):
             model = SimpleModel().npu()

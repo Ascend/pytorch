@@ -25,6 +25,7 @@ extern "C" {
 #define ACL_PATCH_VERSION              0
 #define ACL_PKG_VERSION_MAX_SIZE       128
 #define ACL_PKG_VERSION_PARTS_MAX_SIZE 64
+#define ACL_IPC_HANDLE_SIZE            65
 
 /**
  * @ingroup AscendCL
