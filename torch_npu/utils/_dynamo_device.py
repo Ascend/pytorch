@@ -65,11 +65,26 @@ class NpuInterface(DeviceInterface):
 
     @staticmethod
     def get_compute_capability(device=None):
-        r"""Query the minor and major data of device. Cann does not 
-        have a corresponding concept and is not supported. By default, it returns None
+        r"""Different from cuda, only return the chip model here.
         """
-        return None
+        return torch.npu.get_device_name(device)
+
+    @staticmethod
+    def exchange_device(device: int) -> int:
+        curr_device = current_device()
+        set_device(device)
+        return curr_device
+
+    @staticmethod
+    def maybe_exchange_device(device: int) -> int:
+        return device
+
+    @staticmethod
+    def is_bf16_supported(including_emulation: bool = False):
+        return True
 
 
 def _dynamo_register_interface_for_device():
     register_interface_for_device("npu", NpuInterface)
+    for i in range(32):
+        register_interface_for_device(f"npu:{i}", NpuInterface)
