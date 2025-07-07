@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 import subprocess
+import ctypes
 import torch
 import torch.utils.cpp_extension
 
@@ -27,6 +28,7 @@ def build_stub(base_dir):
 
 class TestPluggableAllocator(TestCase):
     module = None
+    new_alloc = None
     build_directory = "allocator/build"
 
     @classmethod
@@ -59,15 +61,40 @@ class TestPluggableAllocator(TestCase):
     def test_pluggable_allocator(self):
         os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
         # Load the allocator
-        new_alloc = torch_npu.npu.memory.NPUPluggableAllocator(os_path, 'my_malloc', 'my_free')
+        TestPluggableAllocator.new_alloc = torch_npu.npu.memory.NPUPluggableAllocator(os_path, 'my_malloc', 'my_free')
         # Swap the current allocator
-        torch_npu.npu.memory.change_current_allocator(new_alloc)
+        torch_npu.npu.memory.change_current_allocator(TestPluggableAllocator.new_alloc)
         # This will allocate memory in the device using the new allocator
         self.assertFalse(self.module.check_custom_allocator_used())
         npu_tensor = torch.zeros(10, device='npu')
         cpu_tensor = torch.zeros(10)
         self.assertRtolEqual(npu_tensor.cpu().numpy(), cpu_tensor.numpy())
         self.assertTrue(self.module.check_custom_allocator_used())
+
+    def test_set_get_device_stats_fn(self):
+        os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
+        myallocator = ctypes.CDLL(os_path)
+        get_device_stats_fn = ctypes.cast(getattr(myallocator, "my_get_device_stats"), ctypes.c_void_p).value
+
+        msg = "get_device_stats_fn_ is not define, please set by set_get_device_stats_fn"
+        with self.assertRaisesRegex(RuntimeError, msg):
+            torch.npu.memory_stats_as_nested_dict()
+
+        TestPluggableAllocator.new_alloc.allocator().set_get_device_stats_fn(get_device_stats_fn)
+        self.assertEqual(torch.npu.memory_stats_as_nested_dict()["num_alloc_retries"], 0)
+
+    def test_set_reset_peak_status_fn(self):
+        os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
+        myallocator = ctypes.CDLL(os_path)
+        reset_peak_status_fn = ctypes.cast(getattr(myallocator, "my_reset_peak_status"), ctypes.c_void_p).value
+
+        msg = "reset_peak_status_fn_ is not define, please set by set_reset_peak_status_fn"
+        with self.assertRaisesRegex(RuntimeError, msg):
+            torch.npu.reset_peak_memory_stats()
+
+        TestPluggableAllocator.new_alloc.allocator().set_reset_peak_status_fn(reset_peak_status_fn)
+        torch.npu.reset_peak_memory_stats()
+        self.assertEqual(torch.npu.max_memory_allocated(), 0)
 
     def test_pluggable_allocator_after_init(self):
         os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
