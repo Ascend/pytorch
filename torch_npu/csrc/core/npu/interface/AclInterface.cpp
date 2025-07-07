@@ -82,6 +82,13 @@ LOAD_FUNCTION(aclmdlRICaptureTaskGrpBegin)
 LOAD_FUNCTION(aclmdlRICaptureTaskGrpEnd)
 LOAD_FUNCTION(aclmdlRICaptureTaskUpdateBegin)
 LOAD_FUNCTION(aclmdlRICaptureTaskUpdateEnd)
+LOAD_FUNCTION(aclrtIpcMemGetExportKey)
+LOAD_FUNCTION(aclrtIpcMemSetImportPid)
+LOAD_FUNCTION(aclrtIpcMemImportByKey)
+LOAD_FUNCTION(aclrtIpcMemClose)
+LOAD_FUNCTION(aclrtMemExportToShareableHandle)
+LOAD_FUNCTION(aclrtMemSetPidToShareableHandle)
+LOAD_FUNCTION(aclrtMemImportFromShareableHandle)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -927,6 +934,91 @@ aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream)
 
     TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskUpdateEnd", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(stream);
+}
+
+aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *name, size_t len)
+{
+    typedef aclError (*AclrtIpcMemGetExportKey)(void *, size_t, char *, size_t);
+    static AclrtIpcMemGetExportKey func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtIpcMemGetExportKey) GET_FUNC(aclrtIpcMemGetExportKey);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtIpcMemGetExportKey", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(devPtr, size, name, len);
+}
+
+aclError AclrtIpcMemSetImportPid(const char *name, int32_t pid[], int num)
+{
+    typedef aclError (*AclrtIpcMemSetImportPid)(const char *, int32_t[], int);
+    static AclrtIpcMemSetImportPid func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtIpcMemSetImportPid) GET_FUNC(aclrtIpcMemSetImportPid);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtIpcMemSetImportPid", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(name, pid, num);
+}
+
+aclError AclrtIpcMemImportByKey(void **devPtr, const char *name)
+{
+    typedef aclError (*AclrtIpcMemImportByKey)(void **, const char *);
+    static AclrtIpcMemImportByKey func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtIpcMemImportByKey) GET_FUNC(aclrtIpcMemImportByKey);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtIpcMemImportByKey", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(devPtr, name);
+}
+
+aclError AclrtIpcMemClose(const char *name)
+{
+    typedef aclError (*AclrtIpcMemClose)(const char *);
+    static AclrtIpcMemClose func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtIpcMemClose) GET_FUNC(aclrtIpcMemClose);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtIpcMemClose", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(name);
+}
+
+aclError AclrtMemExportToShareableHandle(aclrtDrvMemHandle handle, aclrtMemHandleType handleType,
+                                         uint64_t flags, uint64_t *shareableHandle)
+{
+    typedef aclError (*AclrtMemExportToShareableHandle)(aclrtDrvMemHandle, aclrtMemHandleType, uint64_t, uint64_t *);
+    static AclrtMemExportToShareableHandle func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemExportToShareableHandle) GET_FUNC(aclrtMemExportToShareableHandle);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtMemExportToShareableHandle", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(handle, handleType, flags, shareableHandle);
+}
+
+aclError AclrtMemSetPidToShareableHandle(uint64_t shareableHandle, int32_t *pid, size_t pidNum)
+{
+    typedef aclError (*AclrtMemSetPidToShareableHandle)(uint64_t, int32_t *, size_t);
+    static AclrtMemSetPidToShareableHandle func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemSetPidToShareableHandle) GET_FUNC(aclrtMemSetPidToShareableHandle);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtMemSetPidToShareableHandle", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(shareableHandle, pid, pidNum);
+}
+
+aclError AclrtMemImportFromShareableHandle(uint64_t shareableHandle, int32_t deviceId, aclrtDrvMemHandle *handle)
+{
+    typedef aclError (*AclrtMemImportFromShareableHandle)(uint64_t, int32_t, aclrtDrvMemHandle *);
+    static AclrtMemImportFromShareableHandle func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemImportFromShareableHandle) GET_FUNC(aclrtMemImportFromShareableHandle);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtMemImportFromShareableHandle", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(shareableHandle, deviceId, handle);
 }
 
 } // namespace acl

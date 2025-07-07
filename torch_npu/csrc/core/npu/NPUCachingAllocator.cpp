@@ -23,6 +23,7 @@
 #include "NPUBlockHandle.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
+#include "torch_npu/csrc/core/npu/NPUIPCPidManager.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #ifndef BUILD_LIBTORCH
@@ -99,6 +100,12 @@ constexpr size_t kLargePoolVirAddrSize = 10737418240; // 10 GB
 const std::string kMinCannVersion = "8.1.RC1";        // minimum cann version which supports 1g mem 8.1.RC1
 const std::string kMinDriverVersion = "25.0.RC1";     // minimum driver version which supports 1g mem 25.0.RC1
 const std::string kCannModule = "CANN";               // cann module name
+
+static char SHAREABLE_HANDLE_VERSION = 1;
+enum ShareableHandleType : char {
+    SHAREABLE_NPU_MALLOC = 'c',
+    SHAREABLE_NPU_EXPANDABLE_SEGMENT = 'e'
+};
 
 using StatTypes = std::array<bool, static_cast<size_t>(StatType::NUM_TYPES)>;
 
@@ -355,7 +362,10 @@ bevhavior for allocator tensors that need to be used cross-process.
 */
 
 struct ExpandableSegment {
-    ExpandableSegment(int device, aclrtStream stream, size_t size)
+    ExpandableSegment(
+        int device,
+        std::optional<aclrtStream> stream,
+        size_t size)
         : device_(device),
           stream_(stream),
           max_handles_(0),
@@ -376,7 +386,7 @@ struct ExpandableSegment {
             auto default_stream = c10_npu::getDefaultNPUStream().stream(false);
             if (kSmallBuffer == segment_size_) {
                 max_handles_ = numSegments(kSmallPoolVirAddrSize);
-            } else if (default_stream != stream) {
+            } else if (default_stream != *stream) {
                 max_handles_ = numSegments(kLargePoolVirAddrSize);
             }
         }
@@ -399,7 +409,7 @@ struct ExpandableSegment {
             return rangeFromHandles(begin, end);
         }
         while (end > handles_.size()) {
-            handles_.emplace_back(c10::nullopt);
+            handles_.emplace_back(std::nullopt);
         }
         for (auto i : c10::irange(begin, end)) {
             TORCH_INTERNAL_ASSERT(!handles_.at(i), PTA_ERROR(ErrCode::INTERNAL));
@@ -415,18 +425,18 @@ struct ExpandableSegment {
             if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
                 for (auto j : c10::irange(begin, i)) {
                     auto h = handles_.at(j).value();
-                    handles_.at(j) = c10::nullopt;
-                    NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
+                    handles_.at(j) = std::nullopt;
+                    NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h.handle));
                 }
                 trimHandles();
                 return rangeFromHandles(begin, begin);
             }
             NPU_CHECK_ERROR(status, "aclrtMallocPhysical");
-            handles_.at(i) = handle;
+            handles_.at(i) = Handle{handle, std::nullopt};
         }
         for (auto i : c10::irange(begin, end)) {
             NPU_CHECK_ERROR(c10_npu::acl::AclrtMapMem((char *)ptr_ + i * segment_size_, segment_size_, 0,
-                handles_.at(i).value(), 0, getHcclComm()));
+                handles_.at(i).value().handle, 0, getHcclComm()));
         }
         ASCEND_LOGD("NPUCachingAllocator map: segment_size=%zu", segment_size_);
         return rangeFromHandles(begin, end);
@@ -444,6 +454,59 @@ struct ExpandableSegment {
         }
         unmapHandles(begin, end);
         return rangeFromHandles(begin, end);
+    }
+
+    // Setup IPC sharing for range.
+    // Returns the (larger) range that was actually shared.
+    // Serializes data to std::ostream that can be passed to the
+    // other process, and then restored as an exapandable segment
+    // via ExpandableSegment::fromShared(istream);
+    SegmentRange share(SegmentRange range, std::ostream& buf)
+    {
+        auto begin = segmentLeft(range.ptr);
+        auto end = segmentRight(range.ptr + range.size);
+        ShareHeader header{segment_size_, end - begin};
+        buf.write((const char*)&header, sizeof(ShareHeader));
+        for (auto i : c10::irange(begin, end)) {
+            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+            auto& handle = handles_.at(i).value();
+            if (!handle.shareableHandle) {
+                uint64_t shareableHandle = 0;
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtMemExportToShareableHandle(
+                    handle.handle, ACL_MEM_HANDLE_TYPE_NONE, 0, &shareableHandle));
+                int32_t* pids = nullptr;
+                int pid_num = torch_npu::ipc::getPids(&pids);
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtMemSetPidToShareableHandle(shareableHandle, pids, pid_num));
+                handle.shareableHandle = shareableHandle;
+            }
+            uint64_t shandle = *handle.shareableHandle;
+            buf.write((const char*)&shandle, sizeof(uint64_t));
+        }
+        return rangeFromHandles(begin, end);
+    }
+
+    static std::unique_ptr<ExpandableSegment> fromShared(
+        c10::DeviceIndex device,
+        std::istream& buf)
+    {
+        ShareHeader header{};
+        buf.read((char*)&header, sizeof(ShareHeader));
+        auto segment = std::make_unique<ExpandableSegment>(
+            device,
+            std::nullopt,
+            header.segment_size);
+        for (auto i : c10::irange(header.num_handles)) {
+            (void)i;
+            uint64_t shareableHandle = 0;
+            buf.read((char*)&shareableHandle, sizeof(uint64_t));
+            int32_t deviceId = static_cast<int32_t>(device);
+            aclrtDrvMemHandle handle;
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtMemImportFromShareableHandle(
+                shareableHandle, deviceId, &handle));
+            segment->handles_.emplace_back(Handle{handle, std::nullopt});
+        }
+        segment->mapAndSetAccess(0, header.num_handles);
+        return segment;
     }
 
     char *ptr() const
@@ -464,7 +527,7 @@ struct ExpandableSegment {
             segment_size_ * max_handles_, 0, 1));
         for (auto i : c10::irange(handles_.size())) {
             HCCL_CHECK_ERROR(at_npu::hccl::HcclCommActivateCommMemoryFace(hcclComm_->getHcclComm(),
-                (char *)ptr_ + i * segment_size_, segment_size_, 0, handles_.at(i).value(), 0));
+                (char *)ptr_ + i * segment_size_, segment_size_, 0, handles_.at(i).value().handle, 0));
         }
     }
 
@@ -476,6 +539,15 @@ struct ExpandableSegment {
     }
 
 private:
+    void mapAndSetAccess(size_t begin, size_t end)
+    {
+        for (auto i : c10::irange(begin, end)) {
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtMapMem((char *)ptr_ + i * segment_size_, segment_size_, 0,
+                handles_.at(i).value().handle, 0, getHcclComm()));
+        }
+        ASCEND_LOGD("NPUCachingAllocator mapAndSetAccess: segment_size=%zu", segment_size_);
+    }
+
     void unmapHandles(size_t begin, size_t end)
     {
         // note: unlike aclrtFree, MemUnmap and MemRelease do
@@ -485,18 +557,23 @@ private:
         // cannot call c10::npu::stream_synchronize because
         // it might grab the GIL which can lead to a deadlock
         // Locking order must be GIL -> Allocator Lock
-        NPU_CHECK_ERROR(aclrtSynchronizeStream(stream_));
+        if (stream_) {
+            NPU_CHECK_ERROR(aclrtSynchronizeStream(*stream_));
+        } else {
+            c10_npu::NPUGuard device_guard(device_);
+            c10_npu::npuSynchronizeDevice(true);
+        }
 #ifndef BUILD_LIBTORCH
         const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
         if (C10_UNLIKELY(trigger)) {
-            trigger->traceNpuStreamSynchronization(reinterpret_cast<uintptr_t>(stream_));
+            trigger->traceNpuStreamSynchronization(reinterpret_cast<uintptr_t>(*stream_));
         }
 #endif
         for (auto i : c10::irange(begin, end)) {
-            aclrtDrvMemHandle h = handles_.at(i).value();
-            handles_.at(i) = c10::nullopt;
+            Handle h = handles_.at(i).value();
+            handles_.at(i) = std::nullopt;
             NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem((char *)ptr_ + segment_size_ * i, getHcclComm()));
-            NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h.handle));
         }
         ASCEND_LOGD("NPUCachingAllocator unmap: segment_size=%zu", segment_size_);
         trimHandles();
@@ -553,11 +630,19 @@ private:
     }
 
     int device_;
-    aclrtStream stream_;
+    std::optional<aclrtStream> stream_;
     void *ptr_{};
     size_t max_handles_;
     size_t segment_size_;
-    std::vector<c10::optional<aclrtDrvMemHandle>> handles_;
+    struct Handle {
+        aclrtDrvMemHandle handle;
+        std::optional<uint64_t> shareableHandle;
+    };
+    struct ShareHeader {
+        size_t segment_size;
+        size_t num_handles;
+    };
+    std::vector<std::optional<Handle>> handles_;
     std::shared_ptr<c10d_npu::HCCLComm> hcclComm_;
 };
 
@@ -1009,6 +1094,13 @@ public:
 private:
     std::unique_lock<std::recursive_mutex>& lock_;
 };
+
+struct handle_str {
+    char data[ACL_IPC_HANDLE_SIZE];
+};
+
+// handle for ptr
+ska::flat_hash_map<void *, handle_str> ipc_handle_map;
 
 class DeviceCachingAllocator {
 private:
@@ -1540,6 +1632,40 @@ public:
             *outSize = size;
         }
         return basePtr;
+    }
+
+    ShareableHandle shareIpcHandle(Block* block)
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        std::ostringstream ss;
+        ss.put(SHAREABLE_HANDLE_VERSION);
+        ptrdiff_t offset = 0;
+        if (!block->expandable_segment_) {
+            ss.put(SHAREABLE_NPU_MALLOC);
+            size_t base_size;
+            void* base_ptr = getBaseAllocation(block, &base_size);
+            offset = (char*)block->ptr - (char*)base_ptr;
+
+            handle_str handle;
+            auto it = ipc_handle_map.find(base_ptr);
+            if (it == ipc_handle_map.end()) {
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemGetExportKey(
+                    base_ptr, base_size, handle.data, ACL_IPC_HANDLE_SIZE));
+                int32_t* pids = nullptr;
+                int pid_num = torch_npu::ipc::getPids(&pids);
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemSetImportPid(handle.data, pids, pid_num));
+                ipc_handle_map[base_ptr] = handle;
+            } else {
+                handle = it->second;
+            }
+            ss.write((char*)&handle, ACL_IPC_HANDLE_SIZE);
+        } else {
+            ss.put(SHAREABLE_NPU_EXPANDABLE_SEGMENT);
+            auto full_range = block->expandable_segment_->share(
+                SegmentRange(block->ptr, block->size), ss);
+            offset = (char*)block->ptr - (char*)full_range.ptr;
+        }
+        return ShareableHandle{offset, ss.str()};
     }
 
     void recordStream(Block *block, c10_npu::NPUStream stream)
@@ -2685,6 +2811,11 @@ private:
             context ? context : block->context_when_segment_allocated);
 
         ASCEND_LOGI("NPUCachingAllocator free by aclrtFree: size=%zu", block->size);
+        auto it = ipc_handle_map.find(block->ptr);
+        if (it != ipc_handle_map.end()) {
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemClose(it->second.data));
+            ipc_handle_map.erase(it);
+        }
         aclrtFree((void *)block->ptr);
         total_allocated_memory -= block->size;
 
@@ -3158,6 +3289,15 @@ public:
         return device_allocator[block->device]->getBaseAllocation(block, outSize);
     }
 
+    ShareableHandle shareIpcHandle(void* ptr) override
+    {
+        Block* block = get_allocated_block(ptr);
+        if (!block) {
+            AT_ERROR("invalid device pointer: ", ptr);
+        }
+        return device_allocator[block->device]->shareIpcHandle(block);
+    }
+
     void recordStream(const c10::DataPtr &ptr, c10_npu::NPUStream stream) override
     {
         // Empty tensor's storage().data() might be a null ptr. As there is no
@@ -3407,6 +3547,109 @@ public:
     void raw_delete(void *ptr) override
     {
         this->free(ptr);
+    }
+
+    std::mutex IpcMutex;
+    struct MemHandleCacheEntry {
+        MemHandleCacheEntry(
+            c10::DeviceIndex device,
+            std::string& handle,
+            const DeviceCachingAllocator& allocator)
+            : device_(device)
+        {
+            int type = SHAREABLE_NPU_MALLOC;
+            std::istringstream ss(handle);
+            if (handle.size() != ACL_IPC_HANDLE_SIZE) {
+                auto version = ss.get();
+                TORCH_CHECK(
+                    version <= SHAREABLE_HANDLE_VERSION,
+                    "received sharable handle from a future version of torch that this version does not know how to handle",
+                    PTA_ERROR(ErrCode::NOT_SUPPORT));
+                type = ss.get();
+            }
+            // otherwise this is coming from an old pytorch where it has to be a raw
+            // SHAREABLE_NPU_MALLOC
+            if (type == SHAREABLE_NPU_MALLOC) {
+                handle_str handle_r;
+                ss.read(handle_r.data, ACL_IPC_HANDLE_SIZE);
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemImportByKey(&npu_ipc_ptr_, handle_r.data));
+                handle_s.assign(handle_r.data, ACL_IPC_HANDLE_SIZE);
+            } else if (type == SHAREABLE_NPU_EXPANDABLE_SEGMENT) {
+                expandable_segment_ =
+                    ExpandableSegment::fromShared(device, ss)
+                        .release();
+            } else {
+                TORCH_INTERNAL_ASSERT(
+                    false, "Unexpected or illformed shareable handle type");
+            }
+        }
+        // this struct expects that clear is explicitly called to
+        // free resources, because we only want this code running when
+        // the shared pointer to this entry is destructed, not during
+        // deinitialization when npu may already have been shutdown.
+        // This replicates the previous behavior of this map when it
+        // stored raw npu_ipc_ptr_ handles.
+        void clear()
+        {
+            if (npu_ipc_ptr_) {
+                c10_npu::NPUGuard device_guard(device_);
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemClose(handle_s.c_str()));
+                npu_ipc_ptr_ = nullptr;
+            }
+            if (expandable_segment_) {
+                delete expandable_segment_;
+                expandable_segment_ = nullptr;
+            }
+        }
+        void* ptr()
+        {
+            if (npu_ipc_ptr_) {
+                return npu_ipc_ptr_;
+            } else {
+                return expandable_segment_->ptr();
+            }
+        }
+        c10::DeviceIndex device_;
+        ExpandableSegment* expandable_segment_{nullptr};
+        void* npu_ipc_ptr_{nullptr}; // nullptr if expandable_segment_ is not null
+        std::weak_ptr<void> wp_;
+        std::string handle_s;
+    };
+    ska::flat_hash_map<std::string, MemHandleCacheEntry> ipcMemHandle_to_devptr;
+
+    std::shared_ptr<void> getIpcDevPtr(std::string handle) override
+    {
+        std::lock_guard<std::mutex> lock(IpcMutex);
+
+        auto iter = ipcMemHandle_to_devptr.find(handle);
+        if (iter != ipcMemHandle_to_devptr.end()) {
+            auto devptr = iter->second.wp_.lock();
+            TORCH_INTERNAL_ASSERT(devptr, "entry in cache has missing shared_ptr");
+            return devptr;
+        }
+        int curr_device = 0;
+        NPU_CHECK_ERROR(c10_npu::GetDevice(&curr_device));
+        auto inserted = ipcMemHandle_to_devptr.insert(
+            iter,
+            {handle,
+            MemHandleCacheEntry(
+                static_cast<c10::DeviceIndex>(curr_device), handle, *device_allocator[curr_device])});
+        auto sp = std::shared_ptr<void>(
+            inserted->second.ptr(), [handle, this](void* ptr) {
+                std::unique_lock<std::mutex> deleter_lock(IpcMutex);
+
+                auto it = ipcMemHandle_to_devptr.find(handle);
+                TORCH_INTERNAL_ASSERT(it != ipcMemHandle_to_devptr.end());
+                auto entry = std::move(it->second);
+                ipcMemHandle_to_devptr.erase(it);
+
+                // ExpandableSegment synchronizes on destruction in unmapHandles, so
+                // we need to release the lock first to minimize the performance hit.
+                deleter_lock.unlock();
+                entry.clear();
+            });
+        inserted->second.wp_ = sp;
+        return sp;
     }
 
     void FreeDeviceCachedMemory(int device) override

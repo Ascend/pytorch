@@ -14,6 +14,7 @@
 #include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/flopcount/Init.h"
 #include "torch_npu/csrc/logging/Init.h"
+#include "torch_npu/csrc/ipc/StorageSharing.h"
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/custom_dtype/Init.h"
 #include "torch_npu/csrc/npu/Stress_detect.h"
@@ -168,6 +169,7 @@ PyObject* initModule()
     AddPyMethodDefs(methods, torch_npu::autocast::autocast_mode_functions());
     AddPyMethodDefs(methods, torch_npu::flopcount::flops_count_functions());
     AddPyMethodDefs(methods, torch_npu::logging::logging_functions());
+    AddPyMethodDefs(methods, torch_npu::reductions::reductions_functions());
     AddPyMethodDefs(methods, c10_npu::custom_dtype_functions());
     static struct PyModuleDef torchnpu_module = {
         PyModuleDef_HEAD_INIT,

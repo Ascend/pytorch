@@ -6,8 +6,6 @@ value: parent_module(object)
 """
 
 unsupported_Tensor_api = {
-    "is_shared": torch.Tensor,
-    "share_memory_": torch.Tensor
 }
 
 unsupported_nn_api = {

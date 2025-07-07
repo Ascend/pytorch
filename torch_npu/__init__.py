@@ -60,6 +60,7 @@ from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.checkpoint.checkpoint import _apply_dcp_patch
 from torch_npu.npu._stream_check import apply_sanitizer_patch
+from torch_npu.multiprocessing.reductions import _add_reductions_methods
 from torch_npu.npu.utils import _erase_stream as erase_stream
 from torch_npu.utils.hif8_tensor import HiFloat8Tensor
 from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
@@ -158,6 +159,7 @@ def _apply_class_patches():
     _apply_clip_grad_norm_patch()
     _apply_distributed_methods_patch()
     _apply_mstx_patch()
+    _add_reductions_methods()
 
 
 def _apply_distributed_methods_patch():

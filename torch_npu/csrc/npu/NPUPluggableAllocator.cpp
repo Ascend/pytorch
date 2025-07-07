@@ -305,6 +305,23 @@ std::string NPUPluggableAllocator::name()
     return "pluggable";
 }
 
+std::shared_ptr<void> NPUPluggableAllocator::getIpcDevPtr(std::string handle)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support getIpcDevPtr. "
+        "If you need it, please file an issue describing your use case.");
+    auto sp = std::shared_ptr<void>();
+    return sp;
+}
+
+c10_npu::NPUCachingAllocator::ShareableHandle NPUPluggableAllocator::shareIpcHandle(void* ptr)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support shareIPcHandle. "
+        "If you need it, please file an issue describing your use case.");
+    return c10_npu::NPUCachingAllocator::ShareableHandle{0, nullptr};
+}
+
 void NPUPluggableAllocator::recordHistory(
     bool enabled,
     c10_npu::NPUCachingAllocator::CreateContextFn context_recorder,
