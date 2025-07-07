@@ -275,6 +275,24 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             std::function<FuncType> func =
                 reinterpret_cast<FuncType*>(func_ptr);
             self.set_erase_stream_fn(func);
+        })
+        .def(
+        "set_get_device_stats_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType=c10_npu::NPUCachingAllocator::DeviceStats(int);
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_get_device_stats_fn(func);
+        })
+        .def(
+        "set_reset_peak_status_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(int);
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_reset_peak_status_fn(func);
         });
 
     m.def(

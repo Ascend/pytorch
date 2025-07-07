@@ -74,6 +74,18 @@ void NPUPluggableAllocator::set_erase_stream_fn(
     erase_stream_fn_ = std::move(erase_stream_fn);
 }
 
+void NPUPluggableAllocator::set_get_device_stats_fn(
+    std::function<c10_npu::NPUCachingAllocator::DeviceStats(int)> get_device_stats_fn)
+{
+    get_device_stats_fn_ = std::move(get_device_stats_fn);
+}
+
+void NPUPluggableAllocator::set_reset_peak_status_fn(
+    std::function<void(int)> reset_peak_status_fn)
+{
+    reset_peak_status_fn_ = std::move(reset_peak_status_fn);
+}
+
 void* NPUPluggableAllocator::malloc(
     size_t size,
     int device,
@@ -212,8 +224,11 @@ void NPUPluggableAllocator::eraseStream(
 
 c10_npu::NPUCachingAllocator::DeviceStats NPUPluggableAllocator::getDeviceStats(int device)
 {
-    TORCH_NPU_WARN("NPUPluggableAllocator does not yet support getDeviceStats. "
-                  "If you need it, please file an issue describing your use case.");
+    if (get_device_stats_fn_) {
+        return get_device_stats_fn_(device);
+    } else {
+        TORCH_CHECK(false, "get_device_stats_fn_ is not define, please set by set_get_device_stats_fn");
+    }
 }
 
 void NPUPluggableAllocator::resetAccumulatedStats(int device)
@@ -224,8 +239,11 @@ void NPUPluggableAllocator::resetAccumulatedStats(int device)
 
 void NPUPluggableAllocator::resetPeakStats(int device)
 {
-    TORCH_NPU_WARN("NPUPluggableAllocator does not yet support resetPeakStats. "
-                  "If you need it, please file an issue describing your use case.");
+    if (reset_peak_status_fn_) {
+        reset_peak_status_fn_(device);
+    } else {
+        TORCH_CHECK(false, "reset_peak_status_fn_ is not define, please set by set_reset_peak_status_fn");
+    }
 }
 
 c10_npu::NPUCachingAllocator::SnapshotInfo NPUPluggableAllocator::snapshot()
