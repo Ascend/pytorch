@@ -83,6 +83,8 @@ struct NPUPluggableAllocator
     void FreeDeviceCachedMemory(int device) override;
     std::string name() override;
     void copy_data(void* dest, const void* src, std::size_t count) const final;
+    std::shared_ptr<void> getIpcDevPtr(std::string handle) override;
+    c10_npu::NPUCachingAllocator::ShareableHandle shareIpcHandle(void*) override;
     void recordHistory(
         bool enabled,
         c10_npu::NPUCachingAllocator::CreateContextFn context_recorder,
