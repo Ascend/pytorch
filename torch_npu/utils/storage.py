@@ -1,7 +1,7 @@
 __all__ = []
 
 import copy
-from typing import Any, Dict
+from typing import Any, Dict, Union
 from collections import OrderedDict
 
 import torch
@@ -98,6 +98,37 @@ def _deepcopy(self, memo):
         return self._new_wrapped_storage(copy.deepcopy(self._untyped_storage, memo))
 
 
+def _share_npu_(self, *args, **kwargs):
+    return torch_npu._C._share_npu_(self, *args, **kwargs)
+
+
+def _typed_storage_share_npu_(self, *args, **kwargs):
+    return self._untyped_storage._share_npu_(*args, **kwargs)
+
+
+def _new_shared_npu(*args, **kwargs):
+    return torch_npu._C._new_shared_npu(*args, **kwargs)
+
+
+def _typed_storage_new_shared_npu(*args, **kwargs):
+    return torch.UntypedStorage._new_shared_npu(*args, **kwargs)
+
+
+def _release_ipc_counter_npu(*args, **kwargs):
+    return torch_npu._C._release_ipc_counter_npu(*args, **kwargs)
+
+
+def _typed_storage_release_ipc_counter_npu(*args, device: Union[str, torch.device] = "npu", **kwargs):
+    return torch.UntypedStorage._release_ipc_counter_npu(*args, **kwargs)
+
+
 def _add_storage_methods():
     torch.storage.UntypedStorage.cpu = _cpu
     torch.storage.TypedStorage._deepcopy = _deepcopy
+
+    setattr(torch.UntypedStorage, "_share_npu_", _share_npu_)
+    setattr(torch.UntypedStorage, "_new_shared_npu", _new_shared_npu)
+    setattr(torch.UntypedStorage, "_release_ipc_counter_npu", _release_ipc_counter_npu)
+    setattr(torch.TypedStorage, "_share_npu_", _typed_storage_share_npu_)
+    setattr(torch.TypedStorage, "_new_shared_npu", _typed_storage_new_shared_npu)
+    setattr(torch.TypedStorage, "_release_ipc_counter_npu", _typed_storage_release_ipc_counter_npu)

@@ -83,6 +83,7 @@ from torch_npu.distributed.rpc.backend_registry import _rpc_backend_registry
 from torch_npu.utils import _cann_package_check, _add_intercept_methods
 from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
+from torch_npu.multiprocessing.reductions import _add_reductions_methods
 from torch_npu.npu.utils import _erase_stream as erase_stream
 from torch_npu.utils.hif8_tensor import HiFloat8Tensor
 from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
@@ -177,6 +178,7 @@ def _apply_class_patches():
     add_perf_dump_patch()
     _apply_distributed_methods_patch()
     _apply_mstx_patch()
+    _add_reductions_methods()
 
 
 def _apply_distributed_methods_patch():

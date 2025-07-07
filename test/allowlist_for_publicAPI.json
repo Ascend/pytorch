@@ -584,7 +584,9 @@
     "ForkingPickler",
     "Union",
     "check_serializing_named_tensor",
-    "register_after_fork"
+    "register_after_fork",
+    "reduce_tensor",
+    "reduce_storage"
   ],
   "torch.multiprocessing.spawn": [
     "Optional"

@@ -228,5 +228,20 @@ aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterType type,
  */
 aclError AclrtHostUnregister(void *ptr);
 
+aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *name, size_t len);
+
+aclError AclrtIpcMemSetImportPid(const char *name, int32_t pid[], int num);
+
+aclError AclrtIpcMemImportByKey(void **devPtr, const char *name);
+
+aclError AclrtIpcMemClose(const char *name);
+
+aclError AclrtMemExportToShareableHandle(aclrtDrvMemHandle handle, aclrtMemHandleType handleType,
+                                         uint64_t flags, uint64_t *shareableHandle);
+
+aclError AclrtMemSetPidToShareableHandle(uint64_t shareableHandle, int32_t *pid, size_t pidNum);
+
+aclError AclrtMemImportFromShareableHandle(uint64_t shareableHandle, int32_t deviceId, aclrtDrvMemHandle *handle);
+
 } // namespace acl
 } // namespace c10_npu
