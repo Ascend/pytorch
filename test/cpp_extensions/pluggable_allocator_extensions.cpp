@@ -4,8 +4,10 @@
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 extern "C" {
+using c10_npu::NPUCachingAllocator::DeviceStats;
 static bool useflag = false;
 
 void* my_malloc(ssize_t size, int device, aclrtStream stream)
@@ -26,6 +28,17 @@ void my_free(void* ptr, ssize_t size, int device, aclrtStream stream)
 bool check_custom_allocator_used()
 {
     return useflag;
+}
+
+DeviceStats my_get_device_stats(int device)
+{
+    DeviceStats stats;
+    return stats;
+}
+
+void my_reset_peak_status(int device)
+{
+    std::cout<<"resetPeakStatus success!"<<std::endl;
 }
 }
 
