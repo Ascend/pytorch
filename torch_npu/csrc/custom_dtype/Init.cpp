@@ -3,7 +3,6 @@
 #include <torch/csrc/utils/object_ptr.h>
 #include <torch/csrc/utils/pybind.h>
 #endif
-#include "torch_npu/csrc/custom_dtype/extension.h"
 
 
 namespace c10_npu {
@@ -27,14 +26,6 @@ struct DTypeConstants {
     static const int int4_value;
     static const int uint1_value;
     static const int complex32_value;
-    static const int hifloat8_value;
-    static const int float8_e5m2_value;
-    static const int float8_e4m3fn_value;
-    static const int float8_e8m0_value;
-    static const int float6_e3m2_value;
-    static const int float6_e2m3_value;
-    static const int float4_e2m1_value;
-    static const int float4_e1m2_value;
 };
 
 const int DTypeConstants::float32_value = static_cast<int>(DType::FLOAT);
@@ -56,14 +47,6 @@ const int DTypeConstants::bfloat16_value = static_cast<int>(DType::BF16);
 const int DTypeConstants::int4_value = static_cast<int>(DType::INT4);
 const int DTypeConstants::uint1_value = static_cast<int>(DType::UINT1);
 const int DTypeConstants::complex32_value = static_cast<int>(DType::COMPLEX32);
-const int DTypeConstants::hifloat8_value = static_cast<int>(DType::HIFLOAT8);
-const int DTypeConstants::float8_e5m2_value = static_cast<int>(DType::FLOAT8_E5M2);
-const int DTypeConstants::float8_e4m3fn_value = static_cast<int>(DType::FLOAT8_E4M3FN);
-const int DTypeConstants::float8_e8m0_value = static_cast<int>(DType::FLOAT8_E8M0);
-const int DTypeConstants::float6_e3m2_value = static_cast<int>(DType::FLOAT6_E3M2);
-const int DTypeConstants::float6_e2m3_value = static_cast<int>(DType::FLOAT6_E2M3);
-const int DTypeConstants::float4_e2m1_value = static_cast<int>(DType::FLOAT4_E2M1);
-const int DTypeConstants::float4_e1m2_value = static_cast<int>(DType::FLOAT4_E1M2);
 
 #ifndef BUILD_LIBTORCH
 PyObject* cd_initExtension(PyObject*, PyObject *)
@@ -94,20 +77,7 @@ PyObject* cd_initExtension(PyObject*, PyObject *)
         .def_readonly_static("bfloat16", &DTypeConstants::bfloat16_value)
         .def_readonly_static("int4", &DTypeConstants::int4_value)
         .def_readonly_static("uint1", &DTypeConstants::uint1_value)
-        .def_readonly_static("complex32", &DTypeConstants::complex32_value)
-        .def_readonly_static("hifloat8", &DTypeConstants::hifloat8_value)
-        .def_readonly_static("float8_e5m2", &DTypeConstants::float8_e5m2_value)
-        .def_readonly_static("float8_e4m3fn", &DTypeConstants::float8_e4m3fn_value)
-        .def_readonly_static("float8_e8m0", &DTypeConstants::float8_e8m0_value)
-        .def_readonly_static("float6_e3m2", &DTypeConstants::float6_e3m2_value)
-        .def_readonly_static("float6_e2m3", &DTypeConstants::float6_e2m3_value)
-        .def_readonly_static("float4_e2m1", &DTypeConstants::float4_e2m1_value)
-        .def_readonly_static("float4_e1m2", &DTypeConstants::float4_e1m2_value);
-
-    m.def("cast_to_fp8", &cast_to_fp8, "Cast to FP8", py::call_guard<py::gil_scoped_release>());
-    m.def("cast_to_fp8_noalloc", &cast_to_fp8_noalloc, "Cast to FP8",
-        py::call_guard<py::gil_scoped_release>());
-    m.def("cast_from_fp8", &cast_from_fp8, "Cast from FP8", py::call_guard<py::gil_scoped_release>());
+        .def_readonly_static("complex32", &DTypeConstants::complex32_value);
 
     Py_RETURN_NONE;
 }
@@ -140,15 +110,7 @@ const std::string CustomDataTypeToString(int64_t dType)
             {DType::BF16, "torch_npu.bfloat16"},
             {DType::INT4, "torch_npu.int4"},
             {DType::UINT1, "torch_npu.uint1"},
-            {DType::COMPLEX32, "torch_npu.complex32"},
-            {DType::HIFLOAT8, "torch_npu.hifloat8"},
-            {DType::FLOAT8_E5M2, "torch_npu.float8_e5m2"},
-            {DType::FLOAT8_E4M3FN, "torch_npu.float8_e4m3fn"},
-            {DType::FLOAT8_E8M0, "torch_npu.float8_e8m0"},
-            {DType::FLOAT6_E3M2, "torch_npu.float6_e3m2"},
-            {DType::FLOAT6_E2M3, "torch_npu.float6_e2m3"},
-            {DType::FLOAT4_E2M1, "torch_npu.float4_e2m1"},
-            {DType::FLOAT4_E1M2, "torch_npu.float4_e1m2"}};
+            {DType::COMPLEX32, "torch_npu.complex32"}};
 
     const auto iter = TYPE_TO_STRING_MAP.find(static_cast<DType>(dType));
     return iter != TYPE_TO_STRING_MAP.end() ? iter->second : "Unknown dtype";
