@@ -227,7 +227,7 @@ c10_npu::NPUCachingAllocator::DeviceStats NPUPluggableAllocator::getDeviceStats(
     if (get_device_stats_fn_) {
         return get_device_stats_fn_(device);
     } else {
-        TORCH_CHECK(false, "get_device_stats_fn_ is not define, please set by set_get_device_stats_fn");
+        TORCH_NPU_WARN("get_device_stats_fn_ is not define, please set by set_get_device_stats_fn");
     }
 }
 
@@ -242,7 +242,7 @@ void NPUPluggableAllocator::resetPeakStats(int device)
     if (reset_peak_status_fn_) {
         reset_peak_status_fn_(device);
     } else {
-        TORCH_CHECK(false, "reset_peak_status_fn_ is not define, please set by set_reset_peak_status_fn");
+        TORCH_NPU_WARN("reset_peak_status_fn_ is not define, please set by set_reset_peak_status_fn");
     }
 }
 
