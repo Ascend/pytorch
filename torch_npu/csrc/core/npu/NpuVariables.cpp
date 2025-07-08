@@ -47,14 +47,10 @@ void SetSocVersion(const char* const socVersion)
     }
 
     SocVersion curSocVersion = SocVersion::UnsupportedSocVersion;
-    std::string inputVersion = socVersion;
-    std::string ascend95Version = "Ascend910_95";
 
     auto const& iter = socVersionMap.find(socVersion);
     if (iter != socVersionMap.end()) {
         curSocVersion = iter->second;
-    } else if ((inputVersion.compare(0, ascend95Version.size(), ascend95Version) == 0)) {
-        curSocVersion = SocVersion::Ascend910_95;
     } else {
         std::string unsupported_soc(socVersion);
         std::replace(std::begin(unsupported_soc), std::end(unsupported_soc), '_', ' ');
@@ -106,7 +102,7 @@ bool IsBF16Supported()
 
 bool IsAclnnOnly()
 {
-    return GetSocVersion() >= SocVersion::Ascend910_95;
+    return false;
 }
 }  // namespace c10_npu
 
