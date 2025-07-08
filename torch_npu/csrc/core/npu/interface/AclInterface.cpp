@@ -852,8 +852,7 @@ bool IsCaptureSupported()
     static bool have_load_func = false;
     static bool default_support_capture = ((GetSocVersion() >= SocVersion::Ascend910B1) &&
         (GetSocVersion() < SocVersion::Ascend310B1)) ||
-        ((GetSocVersion() >= SocVersion::Ascend910_9391) &&
-        (GetSocVersion() < SocVersion::Ascend910_95));
+        ((GetSocVersion() >= SocVersion::Ascend910_9391));
     if (default_support_capture && !have_load_func) {
         have_load_func = true;
         typedef aclError (*AclmdlRICaptureGetInfo)(aclrtStream, aclmdlRICaptureStatus *, aclmdlRI *);
