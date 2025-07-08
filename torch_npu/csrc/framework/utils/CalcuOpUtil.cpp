@@ -52,8 +52,8 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
     _(at::ScalarType::Bits4x2, ACL_DT_UNDEFINED)                                                                       \
     _(at::ScalarType::Bits8, ACL_DT_UNDEFINED)                                                                         \
     _(at::ScalarType::Bits16, ACL_DT_UNDEFINED)                                                                        \
-    _(at::ScalarType::Float8_e5m2, ACL_FLOAT8_E5M2)                                                                   \
-    _(at::ScalarType::Float8_e4m3fn, ACL_FLOAT8_E4M3FN)                                                                 \
+    _(at::ScalarType::Float8_e5m2, ACL_DT_UNDEFINED)                                                                   \
+    _(at::ScalarType::Float8_e4m3fn, ACL_DT_UNDEFINED)                                                                 \
     _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)                                                                     \
     _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
 
@@ -95,15 +95,7 @@ static std::unordered_map<const aclDataType, const at::ScalarType>
                                    {ACL_BF16, at::ScalarType::BFloat16},
                                    {ACL_INT4, at::ScalarType::Undefined},
                                    {ACL_UINT1, at::ScalarType::Undefined},
-                                   {ACL_COMPLEX32, at::ScalarType::ComplexHalf},
-                                   {ACL_HIFLOAT8, at::ScalarType::Byte},
-                                   {ACL_FLOAT8_E5M2, at::ScalarType::Float8_e5m2},
-                                   {ACL_FLOAT8_E4M3FN, at::ScalarType::Float8_e4m3fn},
-                                   {ACL_FLOAT8_E8M0, at::ScalarType::Byte},
-                                   {ACL_FLOAT6_E3M2, at::ScalarType::Byte},
-                                   {ACL_FLOAT6_E2M3, at::ScalarType::Byte},
-                                   {ACL_FLOAT4_E2M1, at::ScalarType::Byte},
-                                   {ACL_FLOAT4_E1M2, at::ScalarType::Byte}};
+                                   {ACL_COMPLEX32, at::ScalarType::ComplexHalf}};
 
 aclError AclrtMemcpyAsyncParamCheck(
     void *dst, size_t destMax, const void *src, size_t count, aclrtMemcpyKind kind, aclrtStream stream)

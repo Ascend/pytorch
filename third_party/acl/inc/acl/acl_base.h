@@ -165,14 +165,6 @@ typedef enum {
     ACL_INT4 = 29,
     ACL_UINT1 = 30,
     ACL_COMPLEX32 = 33,
-    ACL_HIFLOAT8 = 34,
-    ACL_FLOAT8_E5M2 = 35,
-    ACL_FLOAT8_E4M3FN = 36,
-    ACL_FLOAT8_E8M0 = 37,
-    ACL_FLOAT6_E3M2 = 38,
-    ACL_FLOAT6_E2M3 = 39,
-    ACL_FLOAT4_E2M1 = 40,
-    ACL_FLOAT4_E1M2 = 41,
 } aclDataType;
 
 typedef enum {
