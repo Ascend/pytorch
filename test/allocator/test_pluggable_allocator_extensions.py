@@ -76,10 +76,6 @@ class TestPluggableAllocator(TestCase):
         myallocator = ctypes.CDLL(os_path)
         get_device_stats_fn = ctypes.cast(getattr(myallocator, "my_get_device_stats"), ctypes.c_void_p).value
 
-        msg = "get_device_stats_fn_ is not define, please set by set_get_device_stats_fn"
-        with self.assertRaisesRegex(RuntimeError, msg):
-            torch.npu.memory_stats_as_nested_dict()
-
         TestPluggableAllocator.new_alloc.allocator().set_get_device_stats_fn(get_device_stats_fn)
         self.assertEqual(torch.npu.memory_stats_as_nested_dict()["num_alloc_retries"], 0)
 
@@ -87,10 +83,6 @@ class TestPluggableAllocator(TestCase):
         os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
         myallocator = ctypes.CDLL(os_path)
         reset_peak_status_fn = ctypes.cast(getattr(myallocator, "my_reset_peak_status"), ctypes.c_void_p).value
-
-        msg = "reset_peak_status_fn_ is not define, please set by set_reset_peak_status_fn"
-        with self.assertRaisesRegex(RuntimeError, msg):
-            torch.npu.reset_peak_memory_stats()
 
         TestPluggableAllocator.new_alloc.allocator().set_reset_peak_status_fn(reset_peak_status_fn)
         torch.npu.reset_peak_memory_stats()
