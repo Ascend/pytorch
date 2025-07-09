@@ -6,6 +6,9 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 from torch.utils.checkpoint import checkpoint
 import torch.distributed as dist
 import torch.nn as nn
+
+from torch_npu.testing.common_utils import SupportedDevices
+
 os.environ["ASCEND_LAUNCH_BLOCKING"] = '0'
 import torch_npu
 
@@ -156,6 +159,7 @@ class TestMode(TestCase):
         with self.assertRaisesRegex(RuntimeError, "Invalid device argument"):
             torch.npu.reset_max_memory_allocated(device="npu:8")
 
+    @SupportedDevices(['Ascend910B'])
     def test_aclrtSetDevice(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_set_device.py')
         process = subprocess.Popen(["python", f"{path}"], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
