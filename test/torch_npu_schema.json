@@ -786,7 +786,7 @@
     "signature": "(self)"
   },
   "torch_npu.npu_mla_prolog": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu.MemPoolContext": {
     "signature": "(pool: torch_npu.npu.memory.MemPool)"
@@ -807,7 +807,7 @@
     "signature": "(self)"
   },
   "torch_npu.npu_cross_entropy_loss": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu.memory.use_mem_pool": {
     "signature": "(pool: torch_npu.npu.memory.MemPool, device=None)"
@@ -819,13 +819,13 @@
     "signature": "(stream, handle)"
   },
   "torch_npu.npu_grouped_matmul_finalize_routing": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu.streams.ExternalEvent.record": {
     "signature": "(self, stream=None)"
   },
   "torch_npu.npu_advance_step_flashattn": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.contrib.module.activations.Swish.forward": {
     "signature": "(self, x)"
@@ -858,13 +858,13 @@
     "signature": "(self, x)"
   },
   "torch_npu.empty_with_swapped_memory": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_gmm_alltoallv": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_mrope": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu.streams.Event.recorded_time": {
     "signature": "(self)"
@@ -882,7 +882,7 @@
     "signature": "(self)"
   },
   "torch_npu.npu_alltoallv_gmm": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu.graphs.NPUGraph.replay": {
     "signature": "(self)"
@@ -894,7 +894,7 @@
     "signature": "(self)"
   },
   "torch_npu.npu_group_norm_swish": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu.graphs.NPUGraph.capture_end": {
     "signature": "(self)"
@@ -2463,13 +2463,13 @@
     "signature": "(self, grad_output)"
   },
   "torch_npu._npu_dropout": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.fast_gelu": {
     "signature": "(self)"
   },
   "torch_npu.npu_alloc_float_status": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_anchor_response_flags": {
     "signature": "(self, featmap_size, stride, num_base_anchors)"
@@ -2481,7 +2481,7 @@
     "signature": "(self, scores, score_threshold, iou_threshold, max_size_per_class, max_total_size, change_coordinate_frame=False, transpose_box=False)"
   },
   "torch_npu.npu_bert_apply_adam": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_bmmV2": {
     "signature": "(self, mat2, output_sizes)"
@@ -2493,7 +2493,7 @@
     "signature": "(anchor_box, ground_truth_box, means0, means1, means2, means3, stds0, stds1, stds2, stds3)"
   },
   "torch_npu.npu_clear_float_status": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_confusion_transpose": {
     "signature": "(self, perm, shape, transpose_first)"
@@ -2502,7 +2502,7 @@
     "signature": "(input_, weight, bias, stride, padding, dilation, groups)"
   },
   "torch_npu.npu_convert_weight_to_int4pack": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_deformable_conv2d": {
     "signature": "(inputs, weight, offset, bias, kernel_size, stride, padding, dilation=[1, 1, 1, 1], groups=1, deformable_groups=1, modulated=True)"
@@ -2526,31 +2526,31 @@
     "signature": "(self, other, offset1, offset2, c1_len)"
   },
   "torch_npu.npu_ffn": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_format_cast": {
     "signature": "(self, acl_format, customize_dtype=None)"
   },
   "torch_npu.npu_format_cast_": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_fused_attention_score": {
     "signature": "(query_layer, key_layer, value_layer, attention_mask, scale, keep_prob, query_transpose=False, key_transpose=False, bmm_score_transpose_a=False, bmm_score_transpose_b=False, value_transpose=False, dx_transpose=False)"
   },
   "torch_npu.npu_fusion_attention": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_geglu": {
     "signature": "(self, dim=-1, approximate=1, activate_left=False)"
   },
   "torch_npu.npu_get_float_status": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_grid_assign_positive": {
     "signature": "(self, overlaps, box_responsible_flags, max_overlaps, argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps, num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all)"
   },
   "torch_npu.npu_grouped_matmul": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_incre_flash_attention": {
     "signature": "(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths, num_heads, scale_value, input_layout, num_key_value_heads)"
@@ -2589,13 +2589,13 @@
     "signature": "(self, rois, spatial_scale, group_size, output_dim)"
   },
   "torch_npu.npu_quant_matmul": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_quant_scatter": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_random_choice_with_mask": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_rms_norm": {
     "signature": "(self, gamma, epsilon=1e-06)"
@@ -2619,7 +2619,7 @@
     "signature": "(self, indices, updates)"
   },
   "torch_npu.npu_scatter_nd_update_": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_sign_bits_pack": {
     "signature": "(self, size)"
@@ -2634,16 +2634,16 @@
     "signature": "(self, labels)"
   },
   "torch_npu.npu_swiglu": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_trans_quant_param": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_transpose": {
     "signature": "(self, perm, require_contiguous=True, out=None)"
   },
   "torch_npu.npu_transpose_batchmatmul": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_weight_quant_batchmatmul": {
     "signature": "(x, weight, antiquant_scale, antiquant_offset=None, quant_scale=None, quant_offset=None, bias=None, antiquant_group_size=0, inner_precise=0)"
@@ -2676,25 +2676,25 @@
     "signature": "(self)"
   },
   "torch_npu.scatter_update": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.scatter_update_": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_quantize": {
     "signature": "(inputs, scales, zero_points, dtype, axis, div_mode=True)"
   },
   "torch_npu.npu_quant_scatter_": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_prefetch": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_moe_init_routing": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_moe_gating_top_k_softmax": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_moe_finalize_routing": {
     "signature": "(expanded_permuted_rows, skip1, skip2, bias, scales, expanded_src_to_dst_row, export_for_source_row, drop_pad_mode=0)"
@@ -2703,7 +2703,7 @@
     "signature": "(sorted_experts, num_experts=1)"
   },
   "torch_npu.npu_mm_reduce_scatter_base": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.npu_group_norm_silu": {
     "signature": "(x, gamma, beta, group, eps=1e-05)"
@@ -2715,7 +2715,7 @@
     "signature": "(self)"
   },
   "torch_npu.npu_all_gather_base_mm": {
-    "signature": "(*args, **kwargs)"
+    "signature": "(*args: _P.args, **kwargs: _P.kwargs) -> ~_T"
   },
   "torch_npu.utils.set_thread_affinity": {
     "signature": "(core_range: List[int] = None)"
