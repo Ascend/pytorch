@@ -330,7 +330,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
 #endif
 
     if (!error_msg.empty()) {
-        ASCEND_LOGE(error_msg);
+        ASCEND_LOGE("%s", error_msg.c_str());
     }
     if (check_error && !runtime_error.empty()) {
         throw std::runtime_error(runtime_error);
