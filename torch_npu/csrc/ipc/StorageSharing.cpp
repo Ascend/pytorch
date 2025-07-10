@@ -71,7 +71,7 @@ static PyObject* THNPStorage_shareNpu(PyObject* self, PyObject* args)
         aclrtNotify ipc_event_handle;
 
         if (sent_data->event_sync_required_) {
-            // TO BE DONE
+            // NPU does not suppurt event_sync in IPC now.
         }
 
         _event_handle = PyBytes_FromStringAndSize(

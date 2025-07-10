@@ -228,13 +228,13 @@ aclError AclmdlRICaptureTaskUpdateBegin(aclrtStream stream, aclrtTaskGrp handle)
 
 aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
 
-aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *name, size_t len);
+aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *key, size_t len, uint64_t flag);
 
-aclError AclrtIpcMemSetImportPid(const char *name, int32_t pid[], int num);
+aclError AclrtIpcMemSetImportPid(const char *key, int32_t *pid, size_t num);
 
-aclError AclrtIpcMemImportByKey(void **devPtr, const char *name);
+aclError AclrtIpcMemImportByKey(void **devPtr, const char *key, uint64_t flag);
 
-aclError AclrtIpcMemClose(const char *name);
+aclError AclrtIpcMemClose(const char *key);
 
 aclError AclrtMemExportToShareableHandle(aclrtDrvMemHandle handle, aclrtMemHandleType handleType,
                                          uint64_t flags, uint64_t *shareableHandle);

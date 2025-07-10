@@ -1650,9 +1650,9 @@ public:
             auto it = ipc_handle_map.find(base_ptr);
             if (it == ipc_handle_map.end()) {
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemGetExportKey(
-                    base_ptr, base_size, handle.data, ACL_IPC_HANDLE_SIZE));
+                    base_ptr, base_size, handle.data, ACL_IPC_HANDLE_SIZE, 0));
                 int32_t* pids = nullptr;
-                int pid_num = torch_npu::ipc::getPids(&pids);
+                size_t pid_num = torch_npu::ipc::getPids(&pids);
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemSetImportPid(handle.data, pids, pid_num));
                 ipc_handle_map[base_ptr] = handle;
             } else {
@@ -3572,7 +3572,7 @@ public:
             if (type == SHAREABLE_NPU_MALLOC) {
                 handle_str handle_r;
                 ss.read(handle_r.data, ACL_IPC_HANDLE_SIZE);
-                NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemImportByKey(&npu_ipc_ptr_, handle_r.data));
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemImportByKey(&npu_ipc_ptr_, handle_r.data, 0));
                 handle_s.assign(handle_r.data, ACL_IPC_HANDLE_SIZE);
             } else if (type == SHAREABLE_NPU_EXPANDABLE_SEGMENT) {
                 expandable_segment_ =
