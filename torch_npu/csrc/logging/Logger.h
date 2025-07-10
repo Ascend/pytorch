@@ -29,9 +29,14 @@ public:
     void warn(const char* format, ...);
     void error(const char* format, ...);
     void critical(const char* format, ...);
+    void long_debug(const char* format, ...);
+    void long_info(const char* format, ...);
+    void long_warn(const char* format, ...);
+    void long_error(const char* format, ...);
+    void long_critical(const char* format, ...);
 
 private:
-    void log(LoggingLevel level, const char* format, va_list args);
+    void log(LoggingLevel level, const int log_buffer_size, const char* format, va_list args);
 
     LoggingLevel allow_level_ = LoggingLevel::WARNING;
     std::string name_;
