@@ -8,6 +8,8 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 namespace npu_logging {
+static const int BASE_PRINT_LIMIT = 1024;
+static const int LONG_PRINT_LIMIT = 4096;
 
 static std::unordered_map<LoggingLevel, std::string> LoggingLevelNames = {
     {LoggingLevel::DEBUG, "DEBUG"},
@@ -37,9 +39,8 @@ std::string Logger::getQName()
     return qname_;
 }
 
-void Logger::log(LoggingLevel level, const char* format, va_list args)
+void Logger::log(LoggingLevel level, const int log_buffer_size, const char* format, va_list args)
 {
-    const int log_buffer_size = 1024;
     char buffer[log_buffer_size] = {0};
 
     int ret = vsnprintf(buffer, log_buffer_size, format, args);
@@ -75,7 +76,7 @@ void Logger::debug(const char* format, ...)
     }
     va_list args;
     va_start(args, format);
-    log(LoggingLevel::DEBUG, format, args);
+    log(LoggingLevel::DEBUG, BASE_PRINT_LIMIT, format, args);
     va_end(args);
 }
 
@@ -86,7 +87,7 @@ void Logger::info(const char* format, ...)
     }
     va_list args;
     va_start(args, format);
-    log(LoggingLevel::INFO, format, args);
+    log(LoggingLevel::INFO, BASE_PRINT_LIMIT, format, args);
     va_end(args);
 }
 
@@ -97,7 +98,7 @@ void Logger::warn(const char* format, ...)
     }
     va_list args;
     va_start(args, format);
-    log(LoggingLevel::WARNING, format, args);
+    log(LoggingLevel::WARNING, BASE_PRINT_LIMIT, format, args);
     va_end(args);
 }
 
@@ -108,7 +109,7 @@ void Logger::error(const char* format, ...)
     }
     va_list args;
     va_start(args, format);
-    log(LoggingLevel::ERROR, format, args);
+    log(LoggingLevel::ERROR, BASE_PRINT_LIMIT, format, args);
     va_end(args);
 }
 
@@ -119,7 +120,62 @@ void Logger::critical(const char* format, ...)
     }
     va_list args;
     va_start(args, format);
-    log(LoggingLevel::CRITICAL, format, args);
+    log(LoggingLevel::CRITICAL, BASE_PRINT_LIMIT, format, args);
+    va_end(args);
+}
+
+void Logger::long_debug(const char* format, ...)
+{
+    if (allow_level_ > LoggingLevel::DEBUG) {
+        return;
+    }
+    va_list args;
+    va_start(args, format);
+    log(LoggingLevel::DEBUG, LONG_PRINT_LIMIT, format, args);
+    va_end(args);
+}
+
+void Logger::long_info(const char* format, ...)
+{
+    if (allow_level_ > LoggingLevel::INFO) {
+        return;
+    }
+    va_list args;
+    va_start(args, format);
+    log(LoggingLevel::INFO, LONG_PRINT_LIMIT, format, args);
+    va_end(args);
+}
+
+void Logger::long_warn(const char* format, ...)
+{
+    if (allow_level_ > LoggingLevel::WARNING) {
+        return;
+    }
+    va_list args;
+    va_start(args, format);
+    log(LoggingLevel::WARNING, LONG_PRINT_LIMIT, format, args);
+    va_end(args);
+}
+
+void Logger::long_error(const char* format, ...)
+{
+    if (allow_level_ > LoggingLevel::ERROR) {
+        return;
+    }
+    va_list args;
+    va_start(args, format);
+    log(LoggingLevel::ERROR, LONG_PRINT_LIMIT, format, args);
+    va_end(args);
+}
+
+void Logger::long_critical(const char* format, ...)
+{
+    if (allow_level_ > LoggingLevel::CRITICAL) {
+        return;
+    }
+    va_list args;
+    va_start(args, format);
+    log(LoggingLevel::CRITICAL, LONG_PRINT_LIMIT, format, args);
     va_end(args);
 }
 
