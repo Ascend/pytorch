@@ -169,6 +169,7 @@ NpuIPCSentData::NpuIPCSentData(
 {
     if (npu_ipc_global_entities.sync_events_used_.load() <
         NPU_IPC_MAXIMUM_EVENTS_TO_USE) {
+        // NPU does not suppurt event_sync in IPC now.
     } else {
         auto stream = c10_npu::getCurrentNPUStream(device.index());
         c10_npu::stream_synchronize(stream);
@@ -182,6 +183,7 @@ NpuIPCSentData::~NpuIPCSentData()
     ReturnRefCounter(handle_, offset_);
     try {
         if (event_sync_required_) {
+            // NPU does not suppurt event_sync in IPC now.
         }
     } catch (...) { /* No throw */
     }

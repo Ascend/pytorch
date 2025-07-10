@@ -187,8 +187,6 @@ typedef void (*aclrtCallback)(void *userData);
 
 typedef void (*aclrtExceptionInfoCallback)(aclrtExceptionInfo *exceptionInfo);
 
-typedef int aclrtNotify;
-
 /**
  * @ingroup AscendCL
  * @brief Set a callback function to handle exception information
