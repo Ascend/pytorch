@@ -2225,6 +2225,10 @@ def _register_npu_inductor_fallbacks():
     @register_lowering(npu.npu_dtype_cast, type_promotion_kind=None)
     def _convert_npu_type(x: TensorBox, dtype: torch.dtype):
         return to_dtype(x, dtype, copy=True)
+    
+    @register_lowering(npu._npu_dtype_cast, type_promotion_kind=None)
+    def _convert__npu_type(x: TensorBox, dtype: torch.dtype):
+        return to_dtype(x, dtype, copy=True)
 
     def var_mean_sum_(x, axis, correction, keepdim, return_mean):
         if correction is None:

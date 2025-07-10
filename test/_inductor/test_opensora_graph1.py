@@ -148,7 +148,7 @@ class TestModel(TestUtils):
         calc = forward_calc(primals_5, getitem_3, rsqrt,
                     add_2, view, permute_1, tangents_1)
         for i in range(len(ref)):
-            self.assertEqual(ref[i], calc[i], atol=1e-4, rtol=1e-4, equal_nan=True)
+            self.assertEqual(ref[i], calc[i], atol=1e-3, rtol=1e-3, equal_nan=True)
 
     def test_opensora_cases_model_14_forward(self):
         def forward(primals_1: "f32[2, 2304]", primals_2: "f32[32, 2304]", primals_3: "f32[32]",

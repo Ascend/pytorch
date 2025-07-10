@@ -1,5 +1,5 @@
 import torch
-from torch_npu import npu_dtype_cast
+from torch_npu import npu_dtype_cast, _npu_dtype_cast
 
 aten = torch.ops.aten
 tr_c10d = torch.ops.tr_c10d
@@ -56,6 +56,7 @@ GENERATE_LIST = [
     aten.clamp_max,
     aten.mean,
     npu_dtype_cast,
+    _npu_dtype_cast,
     aten.select_scatter,
     aten.slice_scatter,
     prims.broadcast_in_dim,
