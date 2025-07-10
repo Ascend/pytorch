@@ -936,43 +936,43 @@ aclError AclrtHostUnregister(void *ptr)
     return func(ptr);
 }
 
-aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *name, size_t len)
+aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *key, size_t len, uint64_t flag)
 {
-    typedef aclError (*AclrtIpcMemGetExportKey)(void *, size_t, char *, size_t);
+    typedef aclError (*AclrtIpcMemGetExportKey)(void *, size_t, char *, size_t, uint64_t);
     static AclrtIpcMemGetExportKey func = nullptr;
     if (func == nullptr) {
         func = (AclrtIpcMemGetExportKey) GET_FUNC(aclrtIpcMemGetExportKey);
     }
 
     TORCH_CHECK(func, "Failed to find function aclrtIpcMemGetExportKey", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(devPtr, size, name, len);
+    return func(devPtr, size, key, len, flag);
 }
 
-aclError AclrtIpcMemSetImportPid(const char *name, int32_t pid[], int num)
+aclError AclrtIpcMemSetImportPid(const char *key, int32_t *pid, size_t num)
 {
-    typedef aclError (*AclrtIpcMemSetImportPid)(const char *, int32_t[], int);
+    typedef aclError (*AclrtIpcMemSetImportPid)(const char *, int32_t *, size_t);
     static AclrtIpcMemSetImportPid func = nullptr;
     if (func == nullptr) {
         func = (AclrtIpcMemSetImportPid) GET_FUNC(aclrtIpcMemSetImportPid);
     }
 
     TORCH_CHECK(func, "Failed to find function aclrtIpcMemSetImportPid", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(name, pid, num);
+    return func(key, pid, num);
 }
 
-aclError AclrtIpcMemImportByKey(void **devPtr, const char *name)
+aclError AclrtIpcMemImportByKey(void **devPtr, const char *key, uint64_t flag)
 {
-    typedef aclError (*AclrtIpcMemImportByKey)(void **, const char *);
+    typedef aclError (*AclrtIpcMemImportByKey)(void **, const char *, uint64_t);
     static AclrtIpcMemImportByKey func = nullptr;
     if (func == nullptr) {
         func = (AclrtIpcMemImportByKey) GET_FUNC(aclrtIpcMemImportByKey);
     }
 
     TORCH_CHECK(func, "Failed to find function aclrtIpcMemImportByKey", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(devPtr, name);
+    return func(devPtr, key, flag);
 }
 
-aclError AclrtIpcMemClose(const char *name)
+aclError AclrtIpcMemClose(const char *key)
 {
     typedef aclError (*AclrtIpcMemClose)(const char *);
     static AclrtIpcMemClose func = nullptr;
@@ -981,7 +981,7 @@ aclError AclrtIpcMemClose(const char *name)
     }
 
     TORCH_CHECK(func, "Failed to find function aclrtIpcMemClose", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(name);
+    return func(key);
 }
 
 aclError AclrtMemExportToShareableHandle(aclrtDrvMemHandle handle, aclrtMemHandleType handleType,
