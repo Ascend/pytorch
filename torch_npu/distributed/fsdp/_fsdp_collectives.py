@@ -36,7 +36,10 @@ def all_gather_copy_in_npu(
     )
     foreach_copy_dsts = torch.split(all_gather_input, inp_split_sizes)
     with torch.no_grad():
-        torch._foreach_copy_(foreach_copy_dsts, all_gather_inputs)
+        if foreach_copy_dsts[0].device == all_gather_inputs[0].device:
+            torch._foreach_copy_(foreach_copy_dsts, all_gather_inputs, non_blocking=True)
+        else:
+            torch._foreach_copy_(foreach_copy_dsts, all_gather_inputs)
     return all_gather_input, all_gather_output
 
 
