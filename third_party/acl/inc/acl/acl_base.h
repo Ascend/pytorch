@@ -48,6 +48,7 @@ extern "C" {
 typedef void *aclrtStream;
 typedef void *aclrtEvent;
 typedef void *aclrtContext;
+typedef void *aclrtNotify;
 typedef int aclError;
 typedef uint16_t aclFloat16;
 typedef struct aclDataBuffer aclDataBuffer;
