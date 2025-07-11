@@ -283,7 +283,7 @@ class profile(_KinetoProfile):
         self.current_action = self.schedule(self.step_num)
         self.action_controller.transit_action(prev_action, self.current_action)
         if self.record_steps:
-            self.step_rec_fn = prof.record_function("ProfilerStep#" + str(self.step_num))
+            self.step_rec_fn = prof.record_function("ProfilerStep#" + str(self.step_num + self._step_num_offset))
             self.step_rec_fn.__enter__()
 
 
