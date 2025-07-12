@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+import time
 from typing import Union
 
 from torch_npu.utils._error_code import ErrCode, prof_error
@@ -217,20 +217,23 @@ class Constant(object):
 
 
 def print_info_msg(message: str):
-    time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{time_str} [INFO] [{os.getpid()}] profiler.py: {message}")
+    current_time = time.localtime()
+    time_str = time.strftime("[%Y-%m-%d %H:%M:%S]", current_time)
+    print(f"{time_str} [INFO] [{os.getpid()}] profiler.py: {message}", flush=True)
 
 
 def print_warn_msg(message: str):
     if not _should_print_warning():
         return
-    time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{time_str} [WARNING] [{os.getpid()}] profiler.py: {message}")
+    current_time = time.localtime()
+    time_str = time.strftime("[%Y-%m-%d %H:%M:%S]", current_time)
+    print(f"{time_str} [WARNING] [{os.getpid()}] profiler.py: {message}", flush=True)
 
 
 def print_error_msg(message: str):
-    time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{time_str} [ERROR] [{os.getpid()}] profiler.py: {message}")
+    current_time = time.localtime()
+    time_str = time.strftime("[%Y-%m-%d %H:%M:%S]", current_time)
+    print(f"{time_str} [ERROR] [{os.getpid()}] profiler.py: {message}", flush=True)
 
 
 def convert_ns2us_float(ns) -> float:
