@@ -8,7 +8,7 @@ from ..utils._path_manager import PathManager
 from ._dynamic_profiler._dynamic_profiler_utils import DynamicProfilerUtils
 from .dynamic_profile import init as dp_init
 from .dynamic_profile import step as dp_step
-from .analysis.prof_common_func._constant import print_error_msg
+from .analysis.prof_common_func._constant import print_error_msg, print_warn_msg
 
 
 __all__ = [
@@ -59,11 +59,19 @@ class _NonIntrusiveProfile:
     @staticmethod
     def init():
         prof_config_path = os.getenv("PROF_CONFIG_PATH", "")
-        dyno_enable_flag = os.getenv("KINETO_USE_DAEMON", 0)
+        kine_to_value = os.getenv("KINETO_USE_DAEMON")
+        msmonitor_value = os.getenv("MSMONITOR_USE_DAEMON")
+
+        if kine_to_value is not None:
+            print_warn_msg(
+                "Environment variable 'KINETO_USE_DAEMON' will be deprecated. "
+                "Please use 'MSMONITOR_USE_DAEMON' instead."
+            )
+        dyno_enable_flag = msmonitor_value or kine_to_value or 0
         try:
             dyno_enable_flag = int(dyno_enable_flag)
         except ValueError:
-            print_error_msg("Environment variable KINETO_USE_DAEMON value not valid, will be set to 0 !")
+            print_error_msg("Environment variable 'MSMONITOR_USE_DAEMON' value not valid, will be set to 0 !")
             dyno_enable_flag = 0
         if not prof_config_path and dyno_enable_flag != 1:
             return
