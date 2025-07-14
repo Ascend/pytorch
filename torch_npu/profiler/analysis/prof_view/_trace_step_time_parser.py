@@ -51,8 +51,6 @@ class TraceStepTimeParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self.step_range = []
-        ProfilerLogger.init(self._profiler_path, "TraceStepTimeParser")
-        self.logger = ProfilerLogger.get_instance()
 
     @classmethod
     def is_float_num(cls, num):
@@ -165,6 +163,8 @@ class TraceStepTimeParser(BaseParser):
         FileManager.create_csv_file(output_path, print_time, file_name, self.title)
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "TraceStepTimeParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             self._init_step_range(deps_data)
             self.generate_view()
