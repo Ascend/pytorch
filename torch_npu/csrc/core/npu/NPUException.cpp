@@ -47,11 +47,14 @@ void warn_(const ::c10::Warning& warning)
 
 std::string formatErrorCode(SubModule submodule, ErrCode errorCode)
 {
+    if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {
+        return " ";
+    }
     std::ostringstream oss;
     int deviceIndex = -1;
     c10_npu::GetDevice(&deviceIndex);
     auto rank_id = c10_npu::option::OptionsManager::GetRankId();
-    if (!(c10_npu::option::OptionsManager::ShouldPrintLessError())) {
+    if (!(c10_npu::option::OptionsManager::IsCompactErrorOutput())) {
     oss << "\n[ERROR] " << getCurrentTimestamp() << " (PID:" << getpid() << ", Device:" << deviceIndex << ", RankID:" << rank_id << ") ";
     }
     oss << "ERR" << std::setw(2) << std::setfill('0') << static_cast<int>(submodule);
@@ -149,10 +152,10 @@ const std::string c10_npu_check_error_message(std::string& errmsg)
 const char *c10_npu_get_error_message()
 {
     auto errmsg = c10_npu::acl::AclGetErrMsg();
-    if (c10_npu::option::OptionsManager::ShouldPrintLessError()) {
+    if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {
         std::string log(errmsg);
         std::string errmsg_ = c10_npu::c10_npu_check_error_message(log);
-        thread_local std::string processedErrMsg = errmsg_;
+        thread_local std::string processedErrMsg = "CANN error: " + errmsg_;
         c10_npu::setRepoErrMsg(processedErrMsg.c_str());
         return processedErrMsg.c_str();
     } else {
