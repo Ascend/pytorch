@@ -17,7 +17,7 @@
         auto Error = err_code;                                               \
         if ((Error) != HCCL_SUCCESS) {                                       \
             CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);              \
-            if (c10_npu::option::OptionsManager::ShouldPrintLessError()) {   \
+            if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {   \
                 std::ostringstream oss;                                      \
                 oss << " HCCL function error: " << getErrorFunction(#err_code, ##__VA_ARGS__)    \
                    << ", error code is " << Error << " "                    \
