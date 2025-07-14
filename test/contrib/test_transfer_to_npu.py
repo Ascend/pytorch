@@ -12,6 +12,27 @@ from torch_npu.contrib import transfer_to_npu
 
 class TestTransferToNpu(TestCase):
 
+    def test_generator(self):
+        g0 = torch.Generator()
+        self.assertTrue(isinstance(g0, torch.Generator))
+        self.assertEqual(g0.device.type, 'cpu')
+
+        g1 = torch.Generator('cuda')
+        self.assertTrue(isinstance(g1, torch.Generator))
+        self.assertEqual(g1.device.type, 'npu')
+
+        g2 = torch.Generator(torch.device('cuda'))
+        self.assertTrue(isinstance(g2, torch.Generator))
+        self.assertEqual(g2.device.type, 'npu')
+
+        g3 = torch.Generator(device='cuda')
+        self.assertTrue(isinstance(g3, torch.Generator))
+        self.assertEqual(g3.device.type, 'npu')
+
+        g4 = torch.Generator(device=torch.device('cuda'))
+        self.assertTrue(isinstance(g4, torch.Generator))
+        self.assertEqual(g4.device.type, 'npu')
+
     def test_wrap_isinstance(self):
         # check builtins isinstance grammar
         self.assertTrue(isinstance(1, int))
