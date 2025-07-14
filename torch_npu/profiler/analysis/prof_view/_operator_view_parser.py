@@ -22,10 +22,10 @@ class OperatorViewParser(BaseParser):
         self._torch_op_node = []
         self._root_node = None
         self._kernel_dict = {}
-        ProfilerLogger.init(self._profiler_path, "OperatorViewParser")
-        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "OperatorViewParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             self._torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             self._kernel_dict = deps_data.get(Constant.RELATION_PARSER, {})

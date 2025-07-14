@@ -17,8 +17,6 @@ class KernelViewParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self.step_range = []
-        ProfilerLogger.init(self._profiler_path, "KernelViewParser")
-        self.logger = ProfilerLogger.get_instance()
 
     @classmethod
     def _project_map_for_headers(cls, input_headers: list):
@@ -35,6 +33,8 @@ class KernelViewParser(BaseParser):
         return output_headers
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "KernelViewParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             ProfilerConfig().load_info(self._profiler_path)
             self._init_step_range(deps_data)

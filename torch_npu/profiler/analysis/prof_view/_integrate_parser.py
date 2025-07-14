@@ -26,10 +26,10 @@ class IntegrateParser(BaseParser):
 
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
-        ProfilerLogger.init(self._profiler_path, "IntegrateParser")
-        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "IntegrateParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             ProfilerConfig().load_info(self._profiler_path)
             self.generate_view()
