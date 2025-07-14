@@ -28,10 +28,10 @@ class TracePreParser(BaseParser):
 
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
-        ProfilerLogger.init(self._profiler_path, "TracePreParser")
-        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "TracePreParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             fwk_trace_data = FwkFileParser(self._profiler_path).get_fwk_trace_data()
             trace_file_path = os.path.join(self._output_path, Constant.TRACE_VIEW_TEMP) if os.path.isdir(
