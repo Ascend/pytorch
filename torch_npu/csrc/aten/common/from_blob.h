@@ -41,6 +41,12 @@ public:
         return *this;
     }
 
+    TensorMaker& deleter(std::function<void(void*)> value) noexcept
+    {
+        deleter_ = std::move(value);
+
+        return *this;
+    }
     at::Tensor make_tensor();
 
 private:
@@ -58,12 +64,37 @@ private:
     c10::optional<c10::Device> device_{};
     at::TensorOptions opts_{};
     c10::Allocator* allocator_{};
+    std::function<void(void*)> deleter_{};
 };
 
 inline TensorMaker for_blob(void* data, at::IntArrayRef sizes) noexcept
 {
     return TensorMaker{data, sizes};
 }
+
+TORCH_NPU_API at::Tensor from_blob(
+    void* data,
+    at::IntArrayRef sizes,
+    std::function<void(void*)> deleter,
+    const at::TensorOptions& options = {},
+    const c10::optional<c10::Device> target_device = c10::nullopt);
+
+TORCH_NPU_API at::Tensor from_blob(
+    void* data,
+    at::IntArrayRef sizes,
+    at::IntArrayRef strides,
+    int64_t storage_offset,
+    const std::function<void(void*)>& deleter,
+    const at::TensorOptions& options = {},
+    const c10::optional<c10::Device> target_device = c10::nullopt);
+
+TORCH_NPU_API at::Tensor from_blob(
+    void* data,
+    at::IntArrayRef sizes,
+    at::IntArrayRef strides,
+    const std::function<void(void*)>& deleter,
+    const at::TensorOptions& options = {},
+    const c10::optional<c10::Device> target_device = c10::nullopt);
 
 TORCH_NPU_API at::Tensor from_blob(
     void* data,

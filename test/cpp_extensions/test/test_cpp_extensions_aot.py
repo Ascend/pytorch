@@ -53,6 +53,7 @@ class TestCppExtensionAOT(TestCase):
     def test_from_blob(self):
         self.assertTrue(npu_extension.check_from_blob())
         self.assertTrue(npu_extension.check_from_blob_strides())
+        self.assertTrue(npu_extension.check_from_blob_delete())
 
     def test_dispatch_allreduce(self):
         flags = os.O_WRONLY | os.O_RDONLY | os.O_CREAT
