@@ -27,8 +27,6 @@ class TraceViewParser(BaseParser):
         self._trace_data = []
         self._torch_op_node = []
         self._root_node = None
-        ProfilerLogger.init(self._profiler_path, "TraceViewParser")
-        self.logger = ProfilerLogger.get_instance()
 
     @staticmethod
     def _prune_trace_by_level(json_data: list) -> list:
@@ -47,6 +45,8 @@ class TraceViewParser(BaseParser):
         return result
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "TraceViewParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             ProfilerConfig().load_info(self._profiler_path)
             torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])

@@ -23,10 +23,10 @@ __all__ = []
 class RelationParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
-        ProfilerLogger.init(self._profiler_path, "RelationParser")
-        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "RelationParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             kernel_dict = FwkCANNRelationParser(self._profiler_path).get_kernel_dict()
         except Exception as e:

@@ -23,10 +23,10 @@ class StackViewParser(BaseParser):
         self._root_node = None
         self._kernel_dict = {}
         self._metric = param_dict.get("metric")
-        ProfilerLogger.init(self._profiler_path, "StackViewParser")
-        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "StackViewParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             self._torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             self.generate_view()
