@@ -151,7 +151,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                            " that driver and firmware packages do not match.");  \
                     return true;                                                 \
                 }();                                                             \
-            } else if (c10_npu::option::OptionsManager::ShouldPrintLessError()) { \
+            } else if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) { \
                 std::ostringstream oss;                                          \
                 oss << " NPU function error: "                                   \
                     << (device_error_msg.empty() ? getErrorFunction(#err_code, ##__VA_ARGS__) : device_error_msg) \
@@ -207,7 +207,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
         static c10_npu::acl::AclErrorCode err_map;                           \
         if ((Error) != ACL_ERROR_NONE) {                                     \
             CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);               \
-            if (c10_npu::option::OptionsManager::ShouldPrintLessError())      \
+            if (c10_npu::option::OptionsManager::IsCompactErrorOutput())      \
             {                                                                \
                 std::ostringstream oss;                                      \
                 oss << " OPS function error: " << getErrorFunction(#err_code, ##__VA_ARGS__)    \
