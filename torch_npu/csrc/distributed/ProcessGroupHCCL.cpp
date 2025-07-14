@@ -2746,7 +2746,7 @@ void ProcessGroupHCCL::resumeHcclComm(int device_id)
 {
     at::Device device = at::Device(c10::DeviceType::PrivateUse1, device_id);
     std::vector<at::Device> devices = {device};
-    const auto key = getKeyFromDevices(devices);
+    auto key = getKeyFromDevices(devices);
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -2756,6 +2756,17 @@ void ProcessGroupHCCL::resumeHcclComm(int device_id)
             for (const auto& hcclComm : hcclComms) {
                 auto comm = hcclComm->getHcclComm();
                 HCCL_CHECK_ERROR(at_npu::hccl::HcclCommResumeFace(comm));
+            }
+        }
+        if (hcclCommInitRootInfoConfigExist() && c10_npu::option::OptionsManager::GetP2PBufferSize() != 0) {
+            key = getKeySendRecv(rank_, getP2pPeer());
+            if (devHCCLCommMap_.find(key) != devHCCLCommMap_.end()) {
+                // Reuse the cached communicator if there is one.
+                auto& hcclComms = devHCCLCommMap_[key];
+                for (const auto& hcclComm : hcclComms) {
+                    auto comm = hcclComm->getHcclComm();
+                    HCCL_CHECK_ERROR(at_npu::hccl::HcclCommResumeFace(comm));
+                }
             }
         }
     }
