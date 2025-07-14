@@ -2421,7 +2421,13 @@ int64_t ProcessGroupHCCL::getStreamId(bool p2p, int peer)
     std::vector<at::Device> devices = {at::Device(c10::DeviceType::PrivateUse1, device)};
     auto key = getKeyFromDevices(devices);
     if (p2p && hcclCommInitRootInfoConfigExist() && c10_npu::option::OptionsManager::GetP2PBufferSize() != 0) {
-        TORCH_CHECK(peer >= 0, "In p2p scenarios, the passed 'dst rank id' is error.", DIST_ERROR(ErrCode::PARAM));
+        TORCH_CHECK(
+            peer >= 0,
+            "In p2p scenarios, the passed 'dst rank id' : ",
+            peer,
+            " is error, ",
+            "expected value >= 0.",
+            DIST_ERROR(ErrCode::PARAM));
         key = getKeySendRecv(rank_, peer);
     }
     if ((hcclStreams_.count(key) == 0) || hcclStreams_[key].empty()) {
