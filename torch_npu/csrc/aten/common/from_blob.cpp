@@ -36,7 +36,12 @@ at::Tensor TensorMaker::make_tensor()
 
     std::size_t size_bytes = computeStorageSize();
 
-    c10::DataPtr data_ptr{data_, *device_};
+    c10::DataPtr data_ptr{};
+    if (deleter_) {
+        data_ptr = c10::InefficientStdFunctionContext::makeDataPtr(data_, std::move(deleter_), *device_);
+    } else {
+        data_ptr = c10::DataPtr(data_, *device_);
+    }
 
     c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
         c10::StorageImpl::use_byte_size_t(),
@@ -84,6 +89,54 @@ std::size_t TensorMaker::computeStorageSize() const noexcept
         storage_size += storage_offset_.value();
     }
     return storage_size;
+}
+
+at::Tensor from_blob(
+    void* data,
+    at::IntArrayRef sizes,
+    std::function<void(void*)> deleter,
+    const at::TensorOptions& options,
+    const c10::optional<c10::Device> target_device)
+{
+    return for_blob(data, sizes)
+        .deleter(std::move(deleter))
+        .options(options)
+        .target_device(target_device)
+        .make_tensor();
+}
+
+at::Tensor from_blob(
+    void* data,
+    at::IntArrayRef sizes,
+    at::IntArrayRef strides,
+    int64_t storage_offset,
+    const std::function<void(void*)>& deleter,
+    const at::TensorOptions& options,
+    const c10::optional<c10::Device> target_device)
+{
+    return for_blob(data, sizes)
+        .strides(strides)
+        .storage_offset(storage_offset)
+        .deleter(deleter)
+        .options(options)
+        .target_device(target_device)
+        .make_tensor();
+}
+
+at::Tensor from_blob(
+    void* data,
+    at::IntArrayRef sizes,
+    at::IntArrayRef strides,
+    const std::function<void(void*)>& deleter,
+    const at::TensorOptions& options,
+    const c10::optional<c10::Device> target_device)
+{
+    return for_blob(data, sizes)
+        .strides(strides)
+        .deleter(deleter)
+        .options(options)
+        .target_device(target_device)
+        .make_tensor();
 }
 
 at::Tensor from_blob(
