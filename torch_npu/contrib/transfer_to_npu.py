@@ -29,7 +29,7 @@ torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like'
                        'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
                        'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
                        '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-                       'empty_quantized', '_pin_memory', 'autocast', 'load', "Generator", 'set_default_device']
+                       'empty_quantized', '_pin_memory', 'autocast', 'load', 'set_default_device']
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to', 
                               'pin_memory']
 torch_module_fn_white_list = ['to', 'to_empty']
@@ -45,6 +45,13 @@ device_kwargs_list = ['device', 'device_type', 'map_location', 'device_id']
 cur_path = os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(cur_path, 'apis_config.json')
 
+
+class _GeneratorProxy(torch.Generator):
+
+    def __new__(cls, device='cpu'):
+        device = _replace_cuda_to_npu_in_list([device], None)[0]
+        instance = super().__new__(cls, device)
+        return instance
 
 
 def _get_function_from_string(attribute_string):
@@ -329,6 +336,7 @@ def _init():
     # torch.*
     _device_wrapper(torch, torch_fn_white_list)
     torch.UntypedStorage.__new__ = _wrapper_cuda(torch.UntypedStorage.__new__)
+    torch.Generator = _GeneratorProxy
 
     # torch.Tensor.*
     _device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
