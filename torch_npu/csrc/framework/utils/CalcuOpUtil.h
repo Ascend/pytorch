@@ -36,22 +36,23 @@ using std::vector;
 #define ASCEND_ALWAYS_INLINE inline
 #endif
 
-#define ACL_REQUIRE_OK_OP(expr, opstr)                                                                                 \
-    do {                                                                                                               \
-        if (ASCEND_UNLIKELY((expr) != 0)) {                                                                            \
-            std::cout << (opstr) << std::endl;                                                                         \
-            TORCH_CHECK((expr) == 0,                                                                                   \
-                        __func__,                                                                                      \
-                        ":",                                                                                           \
-                        __FILE__,                                                                                      \
-                        ":",                                                                                           \
-                        __LINE__,                                                                                      \
-                        " NPU error,NPU error code is:",                                                               \
-                        expr,                                                                                          \
-                        "\n",                                                                                          \
-                        c10_npu::acl::AclGetErrMsg(),                                                                  \
-                        OPS_ERROR(ErrCode::INTERNAL));                                                                 \
-        }                                                                                                              \
+#define ACL_REQUIRE_OK_OP(expr, opstr)                                                             \
+    do {                                                                                           \
+        if (ASCEND_UNLIKELY((expr) != 0)) {                                                        \
+            std::cout << (opstr) << std::endl;                                                     \
+            if (c10_npu::option::OptionsManager::IsCompactErrorOutput())  {                        \
+                std::ostringstream oss;                                                            \
+                oss << " NPU error,NPU error code is:" << (expr) << "\n"                             \
+                  << OPS_ERROR(ErrCode::INTERNAL);                                                 \
+                std::string err_msg=oss.str();                                                     \
+                ASCEND_LOGE("%s", err_msg.c_str());                                                \
+                TORCH_CHECK((expr) == 0, c10_npu::c10_npu_get_error_message());                    \
+            } else {                                                                               \
+                TORCH_CHECK((expr) == 0, __func__, ":", __FILE__, ":", __LINE__,                   \
+                        " NPU error,NPU error code is:", expr, "\n",                               \
+                        c10_npu::acl::AclGetErrMsg(), OPS_ERROR(ErrCode::INTERNAL));               \
+            }                                                                                      \
+        }                                                                                          \
     } while (0)
 
 using StorageAndOffsetMemSizePair = std::pair<const c10::StorageImpl *, int64_t>;
