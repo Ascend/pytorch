@@ -48,6 +48,17 @@ bool check_from_blob()
     return dtype_same && num_same && pos1_same && pos2_same && pos3_same && sub_same;
 }
 
+bool check_from_blob_delete()
+{
+    int isgone = 0;
+    {
+        auto data = torch::tensor({1.0, 2.0, 3.0}, torch::kFloat).to(at::Device("npu:0"));
+        auto res = at_npu::native::from_blob(data.data_ptr(), data.sizes(), [&](void*) { isgone++; });
+    }
+    bool is_deleted = (isgone == 1);
+    return is_deleted;
+}
+
 bool check_from_blob_strides()
 {
     auto data = torch::tensor({1, 2, 3, 4, 5, 6, 7, 8, 9}, torch::kInt32).to(at::Device("npu:0"));
@@ -131,6 +142,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
     m.def("check_storage_sizes", &check_storage_sizes, "check_storage_sizes");
     m.def("check_from_blob", &check_from_blob, "check_from_blob");
     m.def("check_from_blob_strides", &check_from_blob_strides, "check_from_blob_strides");
+    m.def("check_from_blob_delete", &check_from_blob_delete, "check_from_blob_delete");
     m.def("blocking_ops", &blocking_ops, "blocking_ops");
     m.def("register_op_hook", &register_op_hook, "register_op_hook");
     m.def("get_op_hook_call_count", &get_op_hook_call_count, "get_op_hook_call_count");
