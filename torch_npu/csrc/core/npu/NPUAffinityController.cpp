@@ -9,6 +9,7 @@
 #include <sys/prctl.h>
 #include <string>
 #include <unordered_map>
+#include <mutex>
 
 namespace c10_npu {
 
@@ -16,6 +17,7 @@ static thread_local ThreadType local_thread = ThreadType::MAIN_THREAD;
 
 static pthread_t main_thread;
 static bool start_main_thread_bind = false;
+static std::mutex core_map_mutex;
 
 using ThreadCoreMap = std::unordered_map<ThreadType, CoreIdRange>;
 
@@ -264,6 +266,7 @@ CoreIdRange getCoreRange(c10::DeviceIndex device_id, ThreadType type)
     if (cpu_affinity_mode == 0 || cpu_affinity_mode == 1) {
         core_range = device_ranges[device_id];
     } else {
+        std::lock_guard<std::mutex> lock(core_map_mutex);
         if (device_thread_core_maps.find(device_id) == device_thread_core_maps.end()) {
             device_thread_core_maps.emplace(device_id, getCpuAffinityMap(device_id, device_ranges));
         }
