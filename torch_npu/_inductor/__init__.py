@@ -9,10 +9,12 @@ from torch._inductor.runtime import autotune_cache
 from torch_npu.npu import device_count
 from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
 from torch_npu.utils._inductor import NPUDeviceOpOverrides
+from torch_npu.utils._triton import patch_triton_for_inductor
 
 from . import config as npu_config
 from . import codegen
 from .npu_fusion_attention_graph import register_fa_pass
+from .codecache import patch_cache_base_get_system
 from .config import aggresive_autotune, num_vector_core, set_compile_threads
 from .config import log as npulog
 from .decomposition import _register_npu_inductor_decompositons
@@ -99,3 +101,6 @@ InductorChoices.should_use_persistent_reduction = should_use_persistent_reductio
 autotune_cache._load_cached_autotuning = _load_cached_autotuning
 
 register_fa_pass()
+
+patch_cache_base_get_system()
+patch_triton_for_inductor()

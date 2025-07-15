@@ -16,6 +16,7 @@ from torch._dynamo import optimize
 from torch import _TorchCompileWrapper
 import torch_npu
 from torch_npu.dynamo import _get_global_npu_backend
+from torch_npu.utils._triton import patch_triton_for_dynamo
 
 
 class NPUTorchCtxManagerClassVariable(TorchCtxManagerClassVariable):
@@ -206,4 +207,5 @@ def add_dynamo_methods():
     patch_dynamo_optimize()
     patch__aoti_compile_and_package_inner()
     patch_inductor_wrapper()
+    patch_triton_for_dynamo()
 
