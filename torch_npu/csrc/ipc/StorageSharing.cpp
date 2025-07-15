@@ -14,6 +14,8 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
 
 #include "torch_npu/csrc/ipc/NPUIPCTypes.h"
 #include "torch_npu/csrc/ipc/StorageSharing.h"
@@ -32,6 +34,12 @@ static PyObject* THNPStorage_shareNpu(PyObject* self, PyObject* args)
         storage.device_type() == at::DeviceType::PrivateUse1,
         "_share_npu_: only available on NPU.", PTA_ERROR(ErrCode::PARAM));
     c10::StorageImpl* storage_impl = storage.unsafeGetStorageImpl();
+
+    auto npu_storage_impl = static_cast<torch_npu::NPUStorageImpl*>(storage.unsafeGetStorageImpl());
+    auto format = npu_storage_impl->npu_desc_.npu_format_;
+    TORCH_CHECK(at_npu::native::FormatHelper::IsBaseFormatType(format),
+                "Try to share a storage without base format",
+                PTA_ERROR(ErrCode::TYPE));
 
     if (storage_impl->received_cuda()) {
         AT_ERROR(
