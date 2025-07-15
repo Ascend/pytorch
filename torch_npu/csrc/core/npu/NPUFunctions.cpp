@@ -46,7 +46,6 @@ aclError GetDevice(int32_t *device)
 {
     if (targetDeviceIndex >= 0) {
         *device = targetDeviceIndex;
-        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(targetDeviceIndex));
         return ACL_ERROR_NONE;
     }
 
@@ -60,13 +59,8 @@ aclError GetDevice(int32_t *device)
     }
     if (err == ACL_ERROR_NONE) {
         local_device = *device;
-    } else if (err == ACL_ERROR_RT_CONTEXT_NULL && aclrtSetDevice(0) == ACL_ERROR_NONE) {
+    } else if (err == ACL_ERROR_RT_CONTEXT_NULL) {
         *device = 0;
-        local_device = 0;
-        std::lock_guard<std::recursive_mutex> lock(mtx);
-        if (used_devices.find(local_device) == used_devices.end()) {
-            NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
-        }
         return ACL_ERROR_NONE;
     }
     return err;
