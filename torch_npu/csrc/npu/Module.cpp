@@ -1679,6 +1679,15 @@ static PyObject* THNPModule_add_ipc_pid(PyObject* self, PyObject *args)
     END_HANDLE_TH_ERRORS
 }
 
+static PyObject* THNPModule_get_ipc_pid(PyObject* self, PyObject *noargs)
+{
+    HANDLE_TH_ERRORS
+    int32_t pid;
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtDeviceGetBareTgid(&pid));
+    return THPUtils_packInt32(pid);
+    END_HANDLE_TH_ERRORS
+}
+
 static PyObject* THNPModule_add_p2p_access(PyObject* self, PyObject *args)
 {
     HANDLE_TH_ERRORS
@@ -1757,6 +1766,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_get_cann_version", (PyCFunction)THNPModule_get_cann_version, METH_O, nullptr},
     {"_is_gte_cann_version", (PyCFunction)THNPModule_is_gte_cann_version, METH_VARARGS, nullptr},
     {"_add_ipc_pid", (PyCFunction)THNPModule_add_ipc_pid, METH_VARARGS, nullptr},
+    {"_get_ipc_pid", (PyCFunction)THNPModule_get_ipc_pid, METH_NOARGS, nullptr},
     {"_add_p2p_access", (PyCFunction)THNPModule_add_p2p_access, METH_VARARGS, nullptr},
     {nullptr}};
 
