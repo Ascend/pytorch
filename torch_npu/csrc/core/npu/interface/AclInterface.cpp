@@ -89,6 +89,7 @@ LOAD_FUNCTION(aclrtIpcMemClose)
 LOAD_FUNCTION(aclrtMemExportToShareableHandle)
 LOAD_FUNCTION(aclrtMemSetPidToShareableHandle)
 LOAD_FUNCTION(aclrtMemImportFromShareableHandle)
+LOAD_FUNCTION(aclrtDeviceGetBareTgid)
 
 
 aclprofStepInfoPtr init_stepinfo() {
@@ -1019,6 +1020,18 @@ aclError AclrtMemImportFromShareableHandle(uint64_t shareableHandle, int32_t dev
 
     TORCH_CHECK(func, "Failed to find function aclrtMemImportFromShareableHandle", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(shareableHandle, deviceId, handle);
+}
+
+aclError AclrtDeviceGetBareTgid(int32_t *pid)
+{
+    typedef aclError (*AclrtDeviceGetBareTgid)(int32_t *);
+    static AclrtDeviceGetBareTgid func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtDeviceGetBareTgid) GET_FUNC(aclrtDeviceGetBareTgid);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtDeviceGetBareTgid", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(pid);
 }
 
 } // namespace acl
