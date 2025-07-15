@@ -1204,6 +1204,7 @@ void ProcessGroupHCCL::abortAndClearHcclComm(c10::optional<std::string> abortRea
     abortCommsFromMap(devHCCLCommMap_, rank_, abortReason);
     devHCCLCommMap_.clear();
     devHCCLCommNameMap_.clear();
+    p2pSendRecvKeys_.clear();
     hcclCommCounter_ = 0;
     return;
 }
@@ -1246,6 +1247,7 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
             }
         }
         devHCCLCommMap_.clear();
+        p2pSendRecvKeys_.clear();
     }
     ASCEND_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
     logger->info("process group destroyed, group id is %s.", options_->group_id.c_str());
@@ -2360,6 +2362,9 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             return false;
         }
         hcclComms[i] = subComm;
+        if (commType == HcclCommType::P2P) {
+            hcclComms[i]->p2pPeer = getP2pPeer();
+        }
         // Creates the HCCL streams
         streamVal.push_back(getNPUStreamByCurrentType(devices[i].index()));
     }
@@ -2462,6 +2467,14 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
 
     // Move the HCCL resource to cache
     devHCCLCommMap_.emplace(devicesKey, std::move(hcclComms));
+    if (commType == HcclCommType::P2P) {
+        auto iter = p2pSendRecvKeys_.find(rank_);
+        if (iter == p2pSendRecvKeys_.end()) {
+            p2pSendRecvKeys_.emplace(rank_, std::vector<std::string>{devicesKey});
+        } else {
+            iter->second.push_back(devicesKey);
+        }
+    }
     return devHCCLCommMap_[devicesKey];
 }
 
@@ -2816,6 +2829,19 @@ void ProcessGroupHCCL::resumeHcclComm(int device_id)
             for (const auto& hcclComm : hcclComms) {
                 auto comm = hcclComm->getHcclComm();
                 HCCL_CHECK_ERROR(at_npu::hccl::HcclCommResumeFace(comm));
+            }
+        }
+        if (p2pSendRecvKeys_.find(rank_) != p2pSendRecvKeys_.end()) {
+            auto p2pKeys = p2pSendRecvKeys_[rank_];
+            for (const auto& p2pKey : p2pKeys) {
+                if (devHCCLCommMap_.find(p2pKey) != devHCCLCommMap_.end()) {
+                    // Reuse the cached communicator if there is one.
+                    auto& hcclComms = devHCCLCommMap_[p2pKey];
+                    for (const auto& hcclComm : hcclComms) {
+                        auto comm = hcclComm->getHcclComm();
+                        HCCL_CHECK_ERROR(at_npu::hccl::HcclCommResumeFace(comm));
+                    }
+                }
             }
         }
     }

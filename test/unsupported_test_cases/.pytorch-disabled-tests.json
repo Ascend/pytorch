@@ -31601,5 +31601,6 @@
   "test_fake_autocast_special_bessel_j1_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_fake_autocast_nn_functional_multi_head_attention_forward_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_fake_autocast_norm_nuc_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
-  "test_fake_autocast_tanh_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]]
+  "test_fake_autocast_tanh_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
+  "test_unwaited (__main__.TestWithHccl)": ["", [""]]
 }
