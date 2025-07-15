@@ -2415,11 +2415,9 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     // Move the HCCL resource to cache
     devHCCLCommMap_.emplace(devicesKey, std::move(hcclComms));
     if (commType == HcclCommType::P2P) {
-        int deviceId = -1;
-        NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceId));
-        auto iter = p2pSendRecvKeys_.find(deviceId);
+        auto iter = p2pSendRecvKeys_.find(rank_);
         if (iter == p2pSendRecvKeys_.end()) {
-            p2pSendRecvKeys_.emplace(deviceId, std::vector<std::string>{devicesKey});
+            p2pSendRecvKeys_.emplace(rank_, std::vector<std::string>{devicesKey});
         } else {
             iter->second.push_back(devicesKey);
         }
@@ -2779,8 +2777,8 @@ void ProcessGroupHCCL::resumeHcclComm(int device_id)
                 HCCL_CHECK_ERROR(at_npu::hccl::HcclCommResumeFace(comm));
             }
         }
-        if (p2pSendRecvKeys_.find(device_id) != p2pSendRecvKeys_.end()) {
-            auto p2pKeys = p2pSendRecvKeys_[device_id];
+        if (p2pSendRecvKeys_.find(rank_) != p2pSendRecvKeys_.end()) {
+            auto p2pKeys = p2pSendRecvKeys_[rank_];
             for (const auto& p2pKey : p2pKeys) {
                 if (devHCCLCommMap_.find(p2pKey) != devHCCLCommMap_.end()) {
                     // Reuse the cached communicator if there is one.
