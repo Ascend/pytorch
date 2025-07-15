@@ -243,5 +243,7 @@ aclError AclrtMemSetPidToShareableHandle(uint64_t shareableHandle, int32_t *pid,
 
 aclError AclrtMemImportFromShareableHandle(uint64_t shareableHandle, int32_t deviceId, aclrtDrvMemHandle *handle);
 
+aclError AclrtDeviceGetBareTgid(int32_t *pid);
+
 } // namespace acl
 } // namespace c10_npu
