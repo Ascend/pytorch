@@ -75,6 +75,7 @@ from torch_npu.utils import _apply_module_patch, _add_tensor_methods, _add_colle
     _apply_npu_show_warning
 from torch_npu.utils._dynamo_device import _dynamo_register_interface_for_device
 from torch_npu.npu._stream_check import apply_sanitizer_patch
+from torch_npu.npu._format import _apply_npu_format_patch
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
 import torch_npu.op_plugin
@@ -175,6 +176,7 @@ def _apply_class_patches():
     _apply_distributed_methods_patch()
     _apply_mstx_patch()
     _add_reductions_methods()
+    _apply_npu_format_patch()
     _apply_fsdp_patch()
 
 
@@ -192,6 +194,7 @@ def _apply_distributed_methods_patch():
     torch.distributed.launcher.api._get_addr_and_port = torch_npu.distributed.distributed_c10d._trigger__get_addr_and_port_decorator(torch.distributed.launcher.api._get_addr_and_port)
 
 
+torch.serialization.add_safe_globals([torch_npu.npu._format.Format])
 torch.utils.rename_privateuse1_backend("npu")
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)
