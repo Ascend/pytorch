@@ -75,6 +75,7 @@ from torch_npu.utils import _apply_module_patch, _add_tensor_methods, _add_colle
     _apply_npu_show_warning
 from torch_npu.utils._dynamo_device import _dynamo_register_interface_for_device
 from torch_npu.npu._stream_check import apply_sanitizer_patch
+from torch_npu.npu._format import _apply_npu_format_patch
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
 import torch_npu.op_plugin
@@ -174,6 +175,7 @@ def _apply_class_patches():
     _apply_distributed_methods_patch()
     _apply_mstx_patch()
     _add_reductions_methods()
+    _apply_npu_format_patch()
 
 
 def _apply_distributed_methods_patch():
