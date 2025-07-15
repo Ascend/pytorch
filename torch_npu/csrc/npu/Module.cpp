@@ -1032,6 +1032,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
     py::str requested_size_s = "requested_size";
     py::str stream_s = "stream";
     py::str segment_type_s = "segment_type";
+    py::str segment_pool_id = "segment_pool_id";
     py::str large_s = "large";
     py::str small_s = "small";
     py::str size_s = "size";
@@ -1071,6 +1072,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
         // represent the stream rather than a torch.cuda.stream object
         segmentDict[stream_s] = int64_t(segmentInfo.stream);
         segmentDict[segment_type_s] = (segmentInfo.is_large ? large_s : small_s);
+        segmentDict[segment_pool_id] = segmentInfo.owner_private_pool_id;
         segmentDict[is_expandable_s] = segmentInfo.is_expandable;
         add_frame_key(segmentDict, segmentInfo.context_when_allocated);
 
