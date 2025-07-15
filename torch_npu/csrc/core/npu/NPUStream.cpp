@@ -229,6 +229,8 @@ static void initNPUStreamsOnce()
 {
     // Inits default and secondary streams (once, globally)
     c10::DeviceIndex device_index = current_device();
+    // makesure on real devcie
+    SetTargetDevice();
     if (!initialize_flag[device_index]) {
         std::lock_guard<std::mutex> lock(mtx[device_index]);
         if (!initialize_flag[device_index]) {
