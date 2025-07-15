@@ -746,6 +746,8 @@ protected:
     //
     //      Note that the order of the device for the tensor list matters.
     std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>> devHCCLCommMap_;
+    
+    std::unordered_map<int, std::vector<std::string>> p2pSendRecvKeys_;
 
     std::unordered_map<std::string, std::string> devHCCLCommNameMap_;
 
