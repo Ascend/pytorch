@@ -57,14 +57,15 @@ class ProfilerLogger:
         if cls._instance is not None:
             if cls._pid == os.getpid():
                 return
-            cls.destroy()
 
         # Create logs directory
         log_dir = os.path.join(output_dir, cls.DEFAULT_LOG_DIR)
         PathManager.make_dir_safety(log_dir)
 
         # Create logger
-        logger = logging.getLogger(cls.DEFAULT_LOGGER_NAME)
+        logger = logging.getLogger(
+            f"{cls.DEFAULT_LOGGER_NAME}_{custom_name}" if custom_name else cls.DEFAULT_LOGGER_NAME
+        )
         logger.setLevel(cls.DEFAULT_LOG_LEVEL)
         logger.propagate = False
 
@@ -112,19 +113,11 @@ class ProfilerLogger:
     def destroy(cls) -> None:
         """
         Close and cleanup the logger.
-        To avoid the deadlock problem caused by directly calling close on handler in multi-process scenarios, close the
-        file descriptor manually.
+        To avoid the deadlock problem caused by directly calling close on handler in multi-process scenarios,
+        when child process updates instance, the parent process instance obtained by fork does not call this method.
         """
         if cls._instance:
             for handler in cls._instance.handlers[:]:
                 cls._instance.removeHandler(handler)
-                if cls._pid == os.getpid():
-                    handler.close()
-                else:
-                    try:
-                        if hasattr(handler.stream, 'fileno'):
-                            fileno = handler.stream.fileno()
-                            os.close(fileno)
-                    except (OSError, AttributeError, ValueError):
-                        logging.warning("Close profiler logger handler stream failed.")
+                handler.close()
             cls._instance = None
