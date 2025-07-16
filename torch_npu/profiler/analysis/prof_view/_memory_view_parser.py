@@ -34,8 +34,6 @@ class MemoryViewParser(BaseParser):
         self.ge_record_list = []
         self.memory_data = []
         self.component_list = []
-        ProfilerLogger.init(self._profiler_path, "MemoryViewParser")
-        self.logger = ProfilerLogger.get_instance()
 
     @staticmethod
     def _get_data_from_file(file_set: set, file_type_bean: any, bean_list: bool = False) -> list:
@@ -73,6 +71,8 @@ class MemoryViewParser(BaseParser):
         return [cur_record_list, pta_ge_record_list]
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "MemoryViewParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             self.memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", {}).get(Constant.Text, [])
             self.pta_record_list = deps_data.get(Constant.MEMORY_PREPARE, {}).get("pta_record_list", [])
