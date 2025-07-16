@@ -41,10 +41,10 @@ class CANNExportParser(BaseParser):
         super().__init__(name, param_dict)
         self._cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
         self.msprof_path = shutil.which("msprof")
-        ProfilerLogger.init(self._profiler_path, "CANNExportParser")
-        self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "CANNExportParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             ProfilerConfig().load_info(self._profiler_path)
             if not os.path.isdir(self._cann_path):

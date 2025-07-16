@@ -46,8 +46,6 @@ class CommunicationParser(BaseParser):
         self._root_node = TorchOpNode()
         self._kernel_dict = {}
         self.step_list = []
-        ProfilerLogger.init(self._profiler_path, "CommunicationParser")
-        self.logger = ProfilerLogger.get_instance()
 
     @staticmethod
     def combine_size_distribution(op_dict: dict, total_dict: dict):
@@ -63,6 +61,8 @@ class CommunicationParser(BaseParser):
             return round(dividend / divisor, 4)
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "CommunicationParser")
+        self.logger = ProfilerLogger.get_instance()
         try:
             self._init_step_list(deps_data)
             self.generate_view()
