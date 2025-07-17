@@ -253,7 +253,7 @@ AscendPyTorch版本分支的维护阶段如下：
 
 ## 安全声明
 
-[Ascend Extension for PyTorch插件 安全声明](https://gitee.com/ascend/pytorch/blob/master/SECURITYNOTE.md)
+[Ascend Extension for PyTorch插件 安全声明](./SECURITYNOTE.md)
 
 ## 参考文档
 
