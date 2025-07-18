@@ -113,6 +113,18 @@ aclError SetDevice(c10::DeviceIndex device)
     return err;
 }
 
+aclError MaybeSetDevice(c10::DeviceIndex device)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx);
+    if (used_devices.find(device) == used_devices.end()) {
+        ASCEND_LOGI("MaybeSetDevice: NPU device %d has not been initialized! We will set targetDeviceIndex.", device);
+        targetDeviceIndex = device;
+    } else {
+        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(device));
+    }
+    return ACL_ERROR_NONE;
+}
+
 aclError ResetUsedDevices()
 {
     std::lock_guard<std::recursive_mutex> lock(mtx);

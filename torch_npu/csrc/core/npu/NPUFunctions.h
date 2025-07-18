@@ -48,6 +48,8 @@ aclError GetDeviceWithoutSet(int32_t *device);
  */
 C10_NPU_API aclError SetDevice(c10::DeviceIndex device);
 
+C10_NPU_API aclError MaybeSetDevice(c10::DeviceIndex device);
+
 /**
  * @ingroup torch_npu
  * @brief reset all device id by ACL interface: aclrtResetDevice.
