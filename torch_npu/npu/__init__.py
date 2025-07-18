@@ -98,7 +98,6 @@ __all__ = [
     "stop_device",
     "restart_device",
     "check_uce_in_memory",
-    "get_uce_addr",
     "config",
     "matmul",
     "conv",
@@ -134,7 +133,7 @@ from .utils import (synchronize, set_device, current_device, _get_device_index,
                     device, device_of, StreamContext, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
                     finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag,
-                    check_uce_in_memory, stress_detect, get_uce_addr)
+                    check_uce_in_memory, stress_detect, _get_uce_addr)
 from ._recovery import restart_device, stop_device
 from .streams import Stream, Event, SyncLaunchStream, ExternalEvent
 from .mstx import mstx
