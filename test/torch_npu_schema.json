@@ -878,9 +878,6 @@
   "torch_npu.npu_gmm_alltoallv": {
     "signature": "(*args, **kwargs)"
   },
-  "torch_npu.npu_mrope": {
-    "signature": "(*args, **kwargs)"
-  },
   "torch_npu.npu.streams.Event.recorded_time": {
     "signature": "(self)"
   },
