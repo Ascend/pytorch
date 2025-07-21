@@ -1,4 +1,5 @@
 #include <c10/core/DeviceGuard.h>
+#include <c10/util/llvmMathExtras.h>
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include <c10/util/Logging.h>
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -133,14 +134,16 @@ struct HostAllocator {
             c10_npu::SetCurrentDevice();
         }
 
+        // Round up the allocation to the nearest power of two to improve reuse.
+        size_t roundSize = c10::llvm::PowerOf2Ceil(size);
         // allocate a new block if no cached allocation is found
-        err = aclrtMallocHost(ptr, size);
+        err = aclrtMallocHost(ptr, roundSize);
         if (err != ACL_ERROR_NONE) {
             CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
             return err;
         }
 
-        blocks.insert({*ptr, Block(size, *ptr, true)});
+        blocks.insert({*ptr, Block(roundSize, *ptr, true)});
         return ACL_ERROR_NONE;
     }
 
