@@ -123,7 +123,7 @@ class TestNpuGraphFunctions(TestCase):
             model, inputs, (), device_index=0, is_backward=False, is_inference=False
         )
         mock_manager.add_function.assert_called_with(
-            model, inputs, (), None, CompilationMode.FORWARD, (),
+            model, inputs, (), None, CompilationMode.FORWARD, (), (), ()
         )
 
         # Test backward mode
@@ -132,7 +132,7 @@ class TestNpuGraphFunctions(TestCase):
             model, inputs, (), device_index=0, is_backward=True, is_inference=False
         )
         mock_manager.add_function.assert_called_with(
-            model, inputs, (), None, CompilationMode.BACKWARD, (),
+            model, inputs, (), None, CompilationMode.BACKWARD, (), (), ()
         )
 
         # Test invalid mode combination
@@ -204,6 +204,7 @@ class TestNPUWarmupNode(TestCase):
             stack_traces=None,
             stream=stream,
             already_warm=False,
+            graph_id=1,
         )
         outputs = node.run([])
         self.assertEqual(len(node.outputs_weakrefs), 1)
@@ -760,6 +761,32 @@ class TestCheckMemoryPool(TestCase):
     @patch('torch_npu.npu._graph_tree.get_npugraph_segments')
     @patch('torch_npu.npu._graph_tree.format_tb')
     @patch('gc.collect')
+    def test_check_memory_pool_slow_path_all_match(
+        self, mock_gc, mock_format_tb, mock_segments, mock_check
+    ):
+        mock_check.return_value = False
+        mock_segments.return_value = [
+            {
+                "segment_pool_id": (0, 0),
+                "address": 1000,
+                "blocks": [
+                    {"state": "active_allocated", "size": 100, "frames": []},
+                    {"state": "inactivate", "size": 200},
+                ]
+            }
+        ]
+        mock_storage = MagicMock(spec=StorageWeakRefWrapper)
+        mock_storage.data_ptr.return_value = 1000
+        mock_storage.return_value = True
+        check_memory_pool("npu:0", (0, 0), [mock_storage])
+        mock_gc.assert_called_once_with()
+        mock_segments.assert_called_once_with((0, 0))
+        mock_format_tb.assert_not_called()
+
+    @patch('torch_npu._C._npu_checkPoolLiveAllocations')
+    @patch('torch_npu.npu._graph_tree.get_npugraph_segments')
+    @patch('torch_npu.npu._graph_tree.format_tb')
+    @patch('gc.collect')
     def test_check_memory_pool_slow_path_unallocated_storage(
         self, mock_gc, mock_format_tb, mock_segments, mock_check
     ):
@@ -939,6 +966,7 @@ class TestNPUGraphTreeManager:
             "stack_trace",
             manager.stream,
             False,
+            GraphID(-1),
         )
         assert manager.current_node == mock_node_instance
         assert manager.path_state == ExecutionState.WARMUP

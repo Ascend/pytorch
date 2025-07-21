@@ -411,91 +411,115 @@ void RegisterNpuPluggableAllocator(PyObject* module)
     
             addStorageDeleterFns(storages_to_add_deleters_to, delta);
             });
-        m.def(
-            "_free_And_Remove_DeleterFn",
-            [](size_t storage_impl_ptr) {
+    m.def(
+        "_free_And_Remove_DeleterFn",
+        [](size_t storage_impl_ptr) {
+            // NOLINTNEXTLINE(performance-no-int-to-ptr)
+            c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
+            auto alloc = c10_npu::NPUCachingAllocator::get();
+            auto data_ptr = storage_impl->data_ptr().get();
+            bool succeeded = storage_impl->mutable_data_ptr().compare_exchange_deleter(
+                alloc->raw_deleter(), c10::detail::deleteNothing);
+            TORCH_CHECK(succeeded, "Expected standard deleter", PTA_ERROR(ErrCode::PARAM));
+            c10_npu::NPUCachingAllocator::raw_delete(data_ptr);
+        });
+    m.def(
+        "_has_Standard_Deleter",
+        [](size_t storage_impl_ptr) {
+            // NOLINTNEXTLINE(performance-no-int-to-ptr)
+            c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
+            auto alloc = c10_npu::NPUCachingAllocator::get();
+            return (storage_impl->data_ptr().get_deleter() == alloc->raw_deleter());
+        });
+    m.def(
+        "_add_cached_tensor",
+        [](const at::Tensor& t) {
+            at::caching::add_cached_tensor(t);
+        });
+    m.def(
+        "_remove_cached_tensor",
+        [](const at::Tensor& t) {
+            at::caching::remove_cached_tensor(t);
+        });
+    m.def(
+        "_construct_NPU_Tensor_From_Storage_And_Metadata",
+        [](py::dict& metadata, c10::Storage s) {
+            auto dtype_arg = metadata["dtype"].ptr();
+            auto meta = c10::scalarTypeToTypeMeta(torch::toScalarType(dtype_arg));
+
+            constexpr c10::DispatchKeySet npu_dks(c10::DispatchKey::PrivateUse1);
+            at::Tensor tensor = at::detail::make_tensor_base<c10::TensorImpl>(
+                std::move(s), npu_dks, meta);
+
+            tensor.unsafeGetTensorImpl()->set_sizes_and_strides(
+                metadata["size"].cast<std::vector<int64_t>>(),
+                metadata["stride"].cast<std::vector<int64_t>>());
+            tensor.unsafeGetTensorImpl()->set_storage_offset(
+                metadata["storage_offset"].cast<int64_t>());
+            return tensor;
+        });
+    m.def(
+        "_npu_checkPoolLiveAllocations",
+        [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id,
+            const py::set& expected_live_allocations) {
+            std::unordered_set<void*> allocations;
+            allocations.reserve(expected_live_allocations.size());
+            for (auto& elem : expected_live_allocations) {
                 // NOLINTNEXTLINE(performance-no-int-to-ptr)
-                c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
-                auto alloc = c10_npu::NPUCachingAllocator::get();
-                auto data_ptr = storage_impl->data_ptr().get();
-                bool succeeded = storage_impl->mutable_data_ptr().compare_exchange_deleter(
-                    alloc->raw_deleter(), c10::detail::deleteNothing);
-                TORCH_CHECK(succeeded, "Expected standard deleter", PTA_ERROR(ErrCode::PARAM));
-                c10_npu::NPUCachingAllocator::raw_delete(data_ptr);
-            });
-        m.def(
-            "_has_Standard_Deleter",
-            [](size_t storage_impl_ptr) {
-                // NOLINTNEXTLINE(performance-no-int-to-ptr)
-                c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
-                auto alloc = c10_npu::NPUCachingAllocator::get();
-                return (storage_impl->data_ptr().get_deleter() == alloc->raw_deleter());
-            });
-        m.def(
-            "_add_cached_tensor",
-            [](const at::Tensor& t) {
-                at::caching::add_cached_tensor(t);
-            });
-        m.def(
-            "_remove_cached_tensor",
-            [](const at::Tensor& t) {
-                at::caching::remove_cached_tensor(t);
-            });
-        m.def(
-            "_construct_NPU_Tensor_From_Storage_And_Metadata",
-            [](py::dict& metadata, c10::Storage s) {
-                auto dtype_arg = metadata["dtype"].ptr();
-                auto meta = c10::scalarTypeToTypeMeta(torch::toScalarType(dtype_arg));
-    
-                constexpr c10::DispatchKeySet npu_dks(c10::DispatchKey::PrivateUse1);
-                at::Tensor tensor = at::detail::make_tensor_base<c10::TensorImpl>(
-                    std::move(s), npu_dks, meta);
-    
-                tensor.unsafeGetTensorImpl()->set_sizes_and_strides(
-                    metadata["size"].cast<std::vector<int64_t>>(),
-                    metadata["stride"].cast<std::vector<int64_t>>());
-                tensor.unsafeGetTensorImpl()->set_storage_offset(
-                    metadata["storage_offset"].cast<int64_t>());
-                return tensor;
-            });
-        m.def(
-            "_npu_checkPoolLiveAllocations",
-            [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id,
-                const py::set& expected_live_allocations) {
-                std::unordered_set<void*> allocations;
-                allocations.reserve(expected_live_allocations.size());
-                for (auto& elem : expected_live_allocations) {
-                    // NOLINTNEXTLINE(performance-no-int-to-ptr)
-                    allocations.insert(reinterpret_cast<void*>(py::cast<size_t>(elem)));
+                allocations.insert(reinterpret_cast<void*>(py::cast<size_t>(elem)));
+            }
+            return c10_npu::NPUCachingAllocator::checkPoolLiveAllocations(device, mempool_id, allocations);
+        });
+    m.def(
+        "_set_cached_tensors_enabled",
+        [](bool enabled) {
+            at::caching::set_cached_tensors_enabled(enabled);
+        });
+    m.def(
+        "_construct_storage_from_data_pointer",
+        [](int64_t data_ptr, c10::Device device, size_t size_bytes) {
+            c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
+                c10::StorageImpl::use_byte_size_t(),
+                size_bytes,
+                at::DataPtr(reinterpret_cast<void*>(data_ptr), device),
+                nullptr,
+                false);
+            return c10::Storage(storage_impl);
+        });
+    m.def(
+        "_weak_ref_tensor",
+        [](const at::Tensor& t) {
+            void* data_ptr = t.data_ptr();
+            std::vector<int64_t> sizes = t.sizes().vec();
+            std::vector<int64_t> strides = t.strides().vec();
+            auto options = t.options();
+            auto new_tensor = at_npu::native::from_blob(data_ptr, sizes, strides, options);
+            return new_tensor;
+        });
+    m.def(
+        "_set_storage_access_error_msg",
+        [](const at::Tensor& t, std::string s) {
+            t.unsafeGetTensorImpl()->release_storage_and_set_meta_custom_data_ptr_error_msg_(s);
+        });
+    m.def(
+        "_set_storage_data_ptr_access_error_msg",
+        [](size_t storage_impl_ptr, std::string s) {
+            // NOLINTNEXTLINE(performance-no-int-to-ptr)
+            c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
+            storage_impl->release_data_and_set_meta_custom_data_ptr_error_msg_(s);
+        });
+    m.def(
+        "_tensors_data_ptrs_at_indices_equal",
+        [](py::list& tensors, py::list& data_ptrs, py::list& indices) {
+            for (auto index : indices) {
+                auto t = tensors[index].cast<at::Tensor>();
+                auto data_ptr = data_ptrs[index].cast<int64_t>();
+                if (reinterpret_cast<int64_t>(t.data_ptr()) != data_ptr) {
+                return false;
                 }
-                return c10_npu::NPUCachingAllocator::checkPoolLiveAllocations(device, mempool_id, allocations);
-            });
-        m.def(
-            "_set_cached_tensors_enabled",
-            [](bool enabled) {
-                at::caching::set_cached_tensors_enabled(enabled);
-            });
-        m.def(
-            "_construct_storage_from_data_pointer",
-            [](int64_t data_ptr, c10::Device device, size_t size_bytes) {
-                c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
-                    c10::StorageImpl::use_byte_size_t(),
-                    size_bytes,
-                    at::DataPtr(reinterpret_cast<void*>(data_ptr), device),
-                    nullptr,
-                    false);
-                return c10::Storage(storage_impl);
-            });
-        m.def(
-            "_weak_ref_tensor",
-            [](const at::Tensor& t) {
-                void* data_ptr = t.data_ptr();
-                std::vector<int64_t> sizes = t.sizes().vec();
-                std::vector<int64_t> strides = t.strides().vec();
-                auto options = t.options();
-                auto new_tensor = at_npu::native::from_blob(data_ptr, sizes, strides, options);
-                return new_tensor;
-            });
+            }
+            return true;
+        });
 }
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs)
@@ -1043,6 +1067,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
     py::str requested_size_s = "requested_size";
     py::str stream_s = "stream";
     py::str segment_type_s = "segment_type";
+    py::str segment_pool_id = "segment_pool_id";
     py::str large_s = "large";
     py::str small_s = "small";
     py::str size_s = "size";
@@ -1081,6 +1106,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
         // we want the python objects to pickle easily so use an int to
         // represent the stream rather than a torch.cuda.stream object
         segmentDict[stream_s] = int64_t(segmentInfo.stream);
+        segmentDict[segment_pool_id] = segmentInfo.owner_private_pool_id;
         segmentDict[segment_type_s] = (segmentInfo.is_large ? large_s : small_s);
         segmentDict[is_expandable_s] = segmentInfo.is_expandable;
         add_frame_key(segmentDict, segmentInfo.context_when_allocated);
