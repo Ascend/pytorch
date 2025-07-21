@@ -290,11 +290,11 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
             error_msg = c10_npu::c10_npu_get_error_message();
         }
         runtime_error = throwError + ", " + error_msg + PTA_ERROR(ErrCode::ACL);
-        error_msg = throwError + " happend.";
+        error_msg = throwError + " happened.";
     }
 
     if (current_status == RepoStatus::CAN_EXIT) {
-        error_msg = "Inner error happend with CAN_EXIT status, detail: " + repo_error;
+        error_msg = "Inner error happened with CAN_EXIT status, detail: " + repo_error;
     }
 
     if (current_status == RepoStatus::ERROR_EXIT) {
@@ -319,7 +319,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
             "resulting in performance degradation. "
             "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
             PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error;
-        error_msg = "Inner error happend, detail: " + repo_error;
+        error_msg = "Inner error happened, detail: " + repo_error;
     }
 
 #ifndef BUILD_LIBTORCH
@@ -470,7 +470,7 @@ void Repository::Enqueue(void *cur_paras)
     ThrowDeviceError(current_status, cur_paras);
 
     if (current_status == RepoStatus::CAN_EXIT) {
-        ASCEND_LOGE("Inner error happend with CAN_EXIT status, detail: %s", repo_error.c_str());
+        ASCEND_LOGE("Inner error happened with CAN_EXIT status, detail: %s", repo_error.c_str());
     }
 
     if (current_status == RepoStatus::ERROR_EXIT) {
