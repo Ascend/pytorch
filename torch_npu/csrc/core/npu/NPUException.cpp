@@ -48,15 +48,13 @@ void warn_(const ::c10::Warning& warning)
 std::string formatErrorCode(SubModule submodule, ErrCode errorCode)
 {
     if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {
-        return " ";
+        return "";
     }
     std::ostringstream oss;
     int deviceIndex = -1;
     c10_npu::GetDevice(&deviceIndex);
     auto rank_id = c10_npu::option::OptionsManager::GetRankId();
-    if (!(c10_npu::option::OptionsManager::IsCompactErrorOutput())) {
     oss << "\n[ERROR] " << getCurrentTimestamp() << " (PID:" << getpid() << ", Device:" << deviceIndex << ", RankID:" << rank_id << ") ";
-    }
     oss << "ERR" << std::setw(2) << std::setfill('0') << static_cast<int>(submodule);
     oss << std::setw(3) << std::setfill('0') << static_cast<int>(errorCode);
     oss << " " << submoduleMap[submodule] << " " << errCodeMap[errorCode];
@@ -176,7 +174,7 @@ bool checkUceErrAndRepair(bool check_error, std::string& err_msg)
     int device = 0;
     auto err = c10_npu::GetDevice(&device);
     if (err != ACL_ERROR_NONE) {
-        err_msg = "ERROR happend in GetDevice.";
+        err_msg = "ERROR happened in GetDevice.";
         if (check_error) {
             TORCH_CHECK(false, err_msg, PTA_ERROR(ErrCode::ACL));
         } else {
