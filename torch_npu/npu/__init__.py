@@ -114,7 +114,9 @@ __all__ = [
     "graph_task_group_begin",
     "graph_task_group_end",
     "graph_task_update_begin",
-    "graph_task_update_end"
+    "graph_task_update_end",
+    "set_device_limit",
+    "get_device_limit"
 ]
 
 from typing import Tuple, Union

@@ -18,6 +18,9 @@ aclError aclmdlSetDump(const char *configPath){return 0;}
 aclError aclmdlInitDump(){return 0;}
 aclError aclmdlFinalizeDump(){return 0;}
 aclError aclrtDeviceTaskAbort(int32_t deviceId, uint32_t timeout){return 0;}
+aclError aclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t* value){return 0;}
+aclError aclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t value){return 0;}
+aclError aclrtResetDeviceResLimit(int32_t deviceId){return 0;}
 
 // Stream
 aclError aclrtCreateStream(aclrtStream *stream) { return 0; }

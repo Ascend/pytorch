@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "third_party/acl/inc/acl/acl_rt.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
@@ -288,6 +289,44 @@ void stream_synchronize(aclrtStream stream)
     }
 #endif
     NPU_CHECK_ERROR(aclrtSynchronizeStream(stream));
+}
+
+aclError SetDeviceResLimit(int32_t device, int32_t type, uint32_t value)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx);
+    if (used_devices.find(device) == used_devices.end()) {
+        TORCH_CHECK(false, "NPU device ", device, " has not been initialized! Can not get device resource limit");
+    }
+    TORCH_CHECK(device >= 0, "device id must be positive!", PTA_ERROR(ErrCode::VALUE));
+    c10_npu::acl::aclrtDevResModelType restype = static_cast<c10_npu::acl::aclrtDevResModelType>(type);
+    aclError err = c10_npu::acl::AclrtSetDeviceResLimit(device, restype, value);
+    NPU_CHECK_ERROR(err);
+    return err;
+}
+
+uint32_t GetDeviceResLimit(int32_t device, int32_t type)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx);
+    if (used_devices.find(device) == used_devices.end()) {
+        TORCH_CHECK(false, "NPU device ", device, " has not been initialized! Can not get device resource limit");
+    }
+    TORCH_CHECK(device >= 0, "device id must be positive!", PTA_ERROR(ErrCode::VALUE));
+    c10_npu::acl::aclrtDevResModelType restype = static_cast<c10_npu::acl::aclrtDevResModelType>(type);
+    uint32_t value;
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtGetDeviceResLimit(device, restype, &value));
+    return value;
+}
+
+aclError ResetDeviceResLimit(int32_t device)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx);
+    if (used_devices.find(device) == used_devices.end()) {
+        TORCH_CHECK(false, "NPU device ", device, " has not been initialized! Can not reset device resource limit");
+    }
+    TORCH_CHECK(device >= 0, "device id must be positive!", PTA_ERROR(ErrCode::VALUE));
+    aclError err = c10_npu::acl::AclrtResetDeviceResLimit(device);
+    NPU_CHECK_ERROR(err);
+    return err;
 }
 
 } // namespace c10_npu

@@ -78,6 +78,12 @@ class TorchNPUDeviceTestCase(TestCase):
         torch_npu.npu.synchronize()
         after_free_memory, after_total_memory = torch_npu.npu.mem_get_info(0)
         self.assertEqual(before_total_memory, after_total_memory)
+    
+    @unittest.skip("CANN doesn't support now.")
+    def test_set_device_res_limit(self):
+        ans_dict = {'cube_core_num': 12, 'vector_core_num': 24}
+        torch.npu.set_device_limit(torch.npu.current_device(), 12, 24)
+        self.assertEqual(ans_dict, torch.npu.get_device_limit(torch.npu.current_device()))
 
 class TorchNPUMemoryApiTestCase(TestCase):
     def test_npu_memory_stats(self):
