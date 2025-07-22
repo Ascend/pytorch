@@ -181,6 +181,11 @@ typedef enum aclrtLastErrLevel {
     ACL_RT_THREAD_LEVEL = 0,
 } aclrtLastErrLevel;
 
+typedef enum {
+    ACL_RT_DEV_RES_CUBE_CORE = 0,
+    ACL_RT_DEV_RES_VECTOR_CORE,
+} aclrtDevResModelType;
+
 typedef void* aclrtDrvMemHandle;
 
 typedef void (*aclrtCallback)(void *userData);
@@ -1540,6 +1545,37 @@ ACL_FUNC_VISIBILITY aclError aclrtPeekAtLastError(aclrtLastErrLevel level);
  * @retval Runtime error code
  */
 ACL_FUNC_VISIBILITY aclError aclrtGetLastError(aclrtLastErrLevel level);
+
+/**
+ * @ingroup AscendCL
+ * @brief Get the value of the current device's limited resources
+ * @param [in] deviceId  the device id
+ * @param [in] type      resources type
+ * @param [out] value    resources limit value
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t* value);
+
+/**
+ * @ingroup AscendCL
+ * @brief Set the value of the current device's limited resources
+ * @param [in] deviceId  the device id
+ * @param [in] type      resource type
+ * @param [in] value     resource limit value
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t value);
+
+/**
+ * @ingroup AscendCL
+ * @brief Reset the value of the current device's limited resources
+ * @param [in] deviceId  the device id
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtResetDeviceResLimit(int32_t deviceId);
 
 #ifdef __cplusplus
 }

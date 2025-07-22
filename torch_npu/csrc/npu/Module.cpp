@@ -1700,6 +1700,50 @@ static PyObject* THNPModule_add_p2p_access(PyObject* self, PyObject *args)
     END_HANDLE_TH_ERRORS
 }
 
+static PyObject* THNPModule_set_device_res_limit(PyObject* self, PyObject *args)
+{
+    HANDLE_TH_ERRORS
+    PyObject* device = nullptr;
+    PyObject* type = nullptr;
+    PyObject* value = nullptr;
+
+    if (!PyArg_ParseTuple(args, "OOO",  &device,  &type, &value)) {
+        throw torch::TypeError("Pybind failed to parse parameters." +
+                               PTA_ERROR(ErrCode::TYPE));
+    }
+    int32_t device_ = THPUtils_unpackLong(device);
+    int32_t type_ = THPUtils_unpackLong(type);
+    uint32_t value_ =  static_cast<uint32_t>(THPUtils_unpackUInt32(value));
+    c10_npu::SetDeviceResLimit(device_, type_, value_);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+static PyObject* THNPModule_get_device_res_limit(PyObject* self, PyObject *args)
+{
+    HANDLE_TH_ERRORS
+    PyObject* device = nullptr;
+    PyObject* type = nullptr;
+
+    if (!PyArg_ParseTuple(args, "OO",  &device, &type)) {
+        throw torch::TypeError("Pybind failed to parse parameters." +
+                               PTA_ERROR(ErrCode::TYPE));
+    }
+    int32_t device_ = THPUtils_unpackLong(device);
+    int32_t type_ = THPUtils_unpackLong(type);
+    uint32_t value = c10_npu::GetDeviceResLimit(device_, type_);
+    return PyLong_FromUnsignedLong(value);
+    END_HANDLE_TH_ERRORS
+}
+
+static PyObject* THNPModule_reset_device_res_limit(PyObject* self, PyObject *args)
+{
+    HANDLE_TH_ERRORS
+    int32_t device = THPUtils_unpackLong(args);
+    c10_npu::ResetDeviceResLimit(device);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
 
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
@@ -1765,6 +1809,9 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_add_ipc_pid", (PyCFunction)THNPModule_add_ipc_pid, METH_VARARGS, nullptr},
     {"_get_ipc_pid", (PyCFunction)THNPModule_get_ipc_pid, METH_NOARGS, nullptr},
     {"_add_p2p_access", (PyCFunction)THNPModule_add_p2p_access, METH_VARARGS, nullptr},
+    {"_npu_get_device_res_limit", (PyCFunction)THNPModule_get_device_res_limit, METH_VARARGS, nullptr},
+    {"_npu_set_device_res_limit", (PyCFunction)THNPModule_set_device_res_limit, METH_VARARGS, nullptr},
+    {"_npu_reset_device_res_limit", (PyCFunction)THNPModule_reset_device_res_limit, METH_O, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()

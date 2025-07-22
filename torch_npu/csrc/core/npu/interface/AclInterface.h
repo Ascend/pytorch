@@ -32,6 +32,12 @@ enum aclrtStreamStatus {
 };
 using aclrtStreamStatus = enum aclrtStreamStatus;
 
+enum aclrtDevResModelType {
+    ACL_RT_DEV_RES_CUBE_CORE = 0,
+    ACL_RT_DEV_RES_VECTOR_CORE = 1,
+};
+using aclrtDevResModelType = enum aclrtDevResModelType;
+
 /**
   aclprofStepInfo is provide by acl, it used to be store dispatch op info.
  */
@@ -244,6 +250,12 @@ aclError AclrtMemSetPidToShareableHandle(uint64_t shareableHandle, int32_t *pid,
 aclError AclrtMemImportFromShareableHandle(uint64_t shareableHandle, int32_t deviceId, aclrtDrvMemHandle *handle);
 
 aclError AclrtDeviceGetBareTgid(int32_t *pid);
+
+aclError AclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t* value);
+
+aclError AclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t value);
+
+aclError AclrtResetDeviceResLimit(int32_t deviceId);
 
 } // namespace acl
 } // namespace c10_npu
