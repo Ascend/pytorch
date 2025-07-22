@@ -90,6 +90,9 @@ LOAD_FUNCTION(aclrtMemExportToShareableHandle)
 LOAD_FUNCTION(aclrtMemSetPidToShareableHandle)
 LOAD_FUNCTION(aclrtMemImportFromShareableHandle)
 LOAD_FUNCTION(aclrtDeviceGetBareTgid)
+LOAD_FUNCTION(aclrtGetDeviceResLimit)
+LOAD_FUNCTION(aclrtSetDeviceResLimit)
+LOAD_FUNCTION(aclrtResetDeviceResLimit)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1031,6 +1034,42 @@ aclError AclrtDeviceGetBareTgid(int32_t *pid)
 
     TORCH_CHECK(func, "Failed to find function aclrtDeviceGetBareTgid", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(pid);
+}
+
+aclError AclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t* value)
+{
+    typedef aclError (*AclrtGetDeviceResLimit)(int32_t, aclrtDevResModelType, uint32_t*);
+    static AclrtGetDeviceResLimit func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetDeviceResLimit) GET_FUNC(aclrtGetDeviceResLimit);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtGetDeviceResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(deviceId, type, value);
+}
+
+aclError AclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t value)
+{
+    typedef aclError (*AclrtSetDeviceResLimit)(int32_t, aclrtDevResModelType, uint32_t);
+    static AclrtSetDeviceResLimit func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtSetDeviceResLimit) GET_FUNC(aclrtSetDeviceResLimit);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtSetDeviceResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(deviceId, type, value);
+}
+
+aclError AclrtResetDeviceResLimit(int32_t deviceId)
+{
+    typedef aclError (*AclrtResetDeviceResLimit)(int32_t);
+    static AclrtResetDeviceResLimit func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtResetDeviceResLimit) GET_FUNC(aclrtResetDeviceResLimit);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtResetDeviceResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(deviceId);
 }
 
 } // namespace acl

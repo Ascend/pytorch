@@ -81,6 +81,12 @@ void SetTargetDevice();
 
 int GetLocalDevice();
 
+aclError SetDeviceResLimit(int32_t device, int32_t type, uint32_t value);
+
+C10_NPU_API uint32_t GetDeviceResLimit(int32_t deviceId, int32_t type);
+
+aclError ResetDeviceResLimit(int32_t deviceId);
+
 enum class SyncDebugMode { L_DISABLED = 0, L_WARN, L_ERROR };
 
 // it's used to store npu synchronization state
