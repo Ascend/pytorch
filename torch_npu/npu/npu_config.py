@@ -6,12 +6,14 @@ import torch_npu
 import torch_npu._C
 from torch_npu.utils._path_manager import PathManager
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
+from .utils import _get_device_index
 
 # this file is used to enhance the npu frontend API by set_option or other.
 
 __all__ = ["set_option", "set_aoe", 
            "set_compile_mode", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
-           "is_jit_compile_false", "finalize_dump", "init_dump", "set_dump"]
+           "is_jit_compile_false", "finalize_dump", "init_dump", "set_dump",
+           "set_device_limit", "get_device_limit"]
 
 _option_map = {"ACL_PRECISION_MODE": ["allow_fp32_to_fp16", "must_keep_origin_dtype"],
                "ACL_OP_SELECT_IMPL_MODE": ["high_performance", "high_precision"],
@@ -170,3 +172,42 @@ class _allowHF32Conv:
             hf32_value = torch_npu._C._npu_getOption("ALLOW_CONV_HF32")
             return (hf32_value is None) or (hf32_value.decode() == "") or (hf32_value.decode() == "enable")
         return None
+
+
+class _call_once_class:
+    def __init__(self, func):
+        self.func = func
+        self.called = False
+        self.result = None
+
+    def __call__(self, *args, **kwargs):
+        if self.called:
+            raise RuntimeError(f"Function '{self.func.__name__}' has already been called, \
+                 You can only set this interface once.")
+
+        self.called = True
+        self.result = self.func(*args, **kwargs)
+        return self.result
+
+
+@_call_once_class
+def set_device_limit(device, cube_num=-1, vector_num=-1):
+    from torch_npu.npu import device_count
+    device_id = _get_device_index(device, optional=True)
+    if device_id < 0 or device_id >= device_count():
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
+    torch_npu.npu._lazy_init()
+    if cube_num != -1:
+        torch_npu._C._npu_set_device_res_limit(device_id, 0, cube_num)
+    if vector_num != -1:
+        torch_npu._C._npu_set_device_res_limit(device_id, 1, vector_num)
+
+
+def get_device_limit(device):
+    from torch_npu.npu import device_count
+    device_id = _get_device_index(device, optional=True)
+    if device_id < 0 or device_id >= device_count():
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
+    torch_npu.npu._lazy_init()
+    return {"cube_core_num": torch_npu._C._npu_get_device_res_limit(device_id, 0), \
+           "vector_core_num": torch_npu._C._npu_get_device_res_limit(device_id, 1)}
