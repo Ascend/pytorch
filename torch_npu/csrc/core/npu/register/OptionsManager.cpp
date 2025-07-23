@@ -497,7 +497,7 @@ uint32_t OptionsManager::GetStreamsPerDevice()
 {
     const static uint32_t streams_per_device = []() -> uint32_t {
         char* buf_val = std::getenv("STREAMS_PER_DEVICE");
-        // Default 8
+        // Default 32
         int64_t streams_per_device = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 32;
         if (streams_per_device != 8 && streams_per_device != 32) {
             streams_per_device = 32;
