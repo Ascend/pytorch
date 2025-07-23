@@ -51,7 +51,7 @@ If the installation fails, use the download link or visit the [PyTorch official 
 3. **Install torch-npu**
 
 ```bash
-pip3 install torch-npu==2.5.1
+pip3 install torch-npu==2.5.1.post1
 ```
 
 ### From Source
@@ -61,7 +61,7 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 1. **Clone torch-npu**
 
    ```
-   git clone https://github.com/ascend/pytorch.git -b v2.5.1-7.0.0 --depth 1
+   git clone https://github.com/ascend/pytorch.git -b v2.5.1-7.1.0 --depth 1
    ```
 
 2. **Build Docker Image**
@@ -148,6 +148,9 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 
 | CANN Version          | Supported PyTorch Version | Supported Extension Version | Github Branch     |
 |-----------------------|---------------------------|-----------------------------|-------------------|
+| CANN 8.2.RC1          | 2.6.0         | 2.6.0            | v2.6.0-7.1.0      |
+|                       | 2.5.1        | 2.5.1.post1      | v2.5.1-7.1.0      |
+|                       | 2.1.0        | 2.1.0.post13     | v2.1.0-7.1.0      |
 | CANN 8.1.RC1          | 2.5.1                     | 2.5.1                       | v2.5.1-7.0.0      |
 |                       | 2.4.0                     | 2.4.0.post4                 | v2.4.0-7.0.0      |
 |                       | 2.3.1                     | 2.3.1.post6                 | v2.3.1-7.0.0      |
@@ -239,9 +242,9 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 | **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
 |-------------|--------------------------|-------------|-----------------|-------------------------------------------------------------------|--------------|
-| 2.5.1       | Regular Release          | Development | 2024/11/08      | Expected to enter maintenance status from April 8, 2025           |              |
-| 2.4.0       | Regular Release          | Development | 2024/10/15      | Expected to enter maintenance status from June 15, 2025           |              |
-| 2.3.1       | Regular Release          | Development | 2024/06/06      | Expected to enter maintenance status from June 7, 2025            |              |
+| 2.5.1       | Regular Release          | Development | 2024/11/08      | Expected to enter maintenance status from August 8, 2025           |              |
+| 2.4.0       | Regular Release          | Maintained | 2024/10/15      | Expected to enter maintenance free status from June 15, 2026           |              |
+| 2.3.1       | Regular Release          | Maintained | 2024/06/06      | Expected to enter maintenance free status from June 7, 2026            |              |
 | 2.2.0       | Regular Release          | Maintained  | 2024/04/01      | Expected to enter maintenance free status from September 10, 2025 |              |
 | 2.1.0       | Long Term Support        | Development | 2023/10/15      | Expected to enter maintenance status from September 15, 2025      |              |
 | 2.0.1       | Regular Release          | EOL         | 2023/7/19       |                                                                   | 2024/3/14    |
@@ -255,10 +258,10 @@ For more detailed information on installation guides, model migration, training/
 
 | Document Name                            | Document Link                                                                                                           |
 |------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| Installation Guide                       | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC3/configandinstg/instg/insg_0001.html)                                      |
-| Network Model Migration and Training     | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC3/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html)       |
-| Operator Adaptation                      | [link](https://www.hiascend.com/document/detail/zh/canncommercial/80RC3/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
-| API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC3/apiref/apilist/ptaoplist_000002.html)                  |
+| Installation Guide                       | [link](https://www.hiascend.com/document/detail/zh/Pytorch/710/configandinstg/instg/insg_0001.html)                                      |
+| Network Model Migration and Training     | [link](https://www.hiascend.com/document/detail/zh/Pytorch/710/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html)       |
+| Operator Adaptation                      | [link](https://www.hiascend.com/document/detail/zh/canncommercial/81RC1/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
+| API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/Pytorch/710/apiref/apilist/ptaoplist_000002.html)                  |
 
 ## License
 
