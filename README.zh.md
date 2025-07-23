@@ -51,7 +51,7 @@ pip3 install setuptools
 3. **安装torch_npu**
 
 ```bash
-pip3 install torch-npu==2.6.0rc1
+pip3 install torch-npu==2.6.0
 ```
 如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
@@ -158,6 +158,9 @@ print(z)
 
 | CANN版本                | 支持的PyTorch版本 | 支持的Extension版本   | Gitee分支           | 
 |-----------------------|--------------|------------------|-------------------|
+| CANN 8.2.RC1          | 2.6.0        | 2.6.0            | v2.6.0-7.1.0      |
+|                       | 2.5.1        | 2.5.1.post1      | v2.5.1-7.1.0      |
+|                       | 2.1.0        | 2.1.0.post13     | v2.1.0-7.1.0      |
 | CANN 8.1.RC1          | 2.5.1        | 2.5.1            | v2.5.1-7.0.0      |
 |                       | 2.4.0        | 2.4.0.post4      | v2.4.0-7.0.0      |
 |                       | 2.3.1        | 2.3.1.post6      | v2.3.1-7.0.0      |
@@ -243,10 +246,10 @@ AscendPyTorch版本分支的维护阶段如下：
 
 | **PyTorch版本** | **维护策略** | **当前状态** | **发布时间**   | **后续状态**             | **EOL日期** |
 |---------------|----------|----------|------------|----------------------|-----------|
-| 2.6.0         | 常规分支     | 开发       | 2025/03/31 | 预计2025/08/31起进入维护状态  | -         | 
-| 2.5.1         | 常规分支     | 开发       | 2024/11/08 | 预计2025/04/08起进入维护状态  | -         | 
-| 2.4.0         | 常规分支     | 开发       | 2024/10/15 | 预计2025/06/15起进入维护状态  | -         | 
-| 2.3.1         | 常规分支     | 开发       | 2024/06/06 | 预计2025/06/07起进入维护状态  |           |
+| 2.6.0         | 常规分支     | 开发       | 2025/07/25 | 预计2026/01/25起进入维护状态  | -         | 
+| 2.5.1         | 常规分支     | 开发       | 2024/11/08 | 预计2025/08/08起进入维护状态  | -         | 
+| 2.4.0         | 常规分支     | 维护       | 2024/10/15 | 预计2026/06/15起进入无维护状态  | -         | 
+| 2.3.1         | 常规分支     | 维护       | 2024/06/06 | 预计2026/06/07起进入无维护状态  |           |
 | 2.2.0         | 常规分支     | 维护       | 2024/04/01 | 预计2025/09/10起进入无维护状态 |           |
 | 2.1.0         | 长期支持     | 开发       | 2023/10/15 | 预计2025/09/15起进入维护状态  |           |
 | 2.0.1         | 常规分支     | EOL      | 2023/7/19  |                      | 2024/3/14 |
@@ -264,10 +267,10 @@ AscendPyTorch版本分支的维护阶段如下：
 
 | 文档名称                   | 文档链接                                                     |
 | -------------------------- | ------------------------------------------------------------ |
-| 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC3/configandinstg/instg/insg_0001.html) |
-| 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC3/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html) |
-| 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/80RC3/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0048.html) |
-| API清单（PyTorch原生接口与自定义接口）            | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC3/apiref/apilist/ptaoplist_000002.html) |
+| 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/710/configandinstg/instg/insg_0001.html) |
+| 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/710/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html) |
+| 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/82RC1/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0048.html) |
+| API清单（PyTorch原生接口与自定义接口）            | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/710/apiref/apilist/ptaoplist_000002.html) |
 
 ## 许可证
 
