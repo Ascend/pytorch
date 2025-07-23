@@ -1,3 +1,4 @@
+import warnings
 from typing import Union
 
 import torch_npu._C
@@ -69,6 +70,7 @@ class _ExperimentalConfig:
                  aic_metrics: int = Constant.AicMetricsNone,
                  l2_cache: bool = False,
                  msprof_tx: bool = False,
+                 mstx: bool = False,
                  data_simplification: bool = True,
                  record_op_args: bool = False,
                  op_attr: bool = False,
@@ -86,6 +88,7 @@ class _ExperimentalConfig:
                 self._aic_metrics = Constant.AicPipeUtilization
         self._l2_cache = l2_cache
         self._msprof_tx = msprof_tx
+        self._mstx = mstx
         self._data_simplification = data_simplification
         self.record_op_args = record_op_args
         self._export_type = self._conver_export_type_to_list(export_type)
@@ -105,7 +108,7 @@ class _ExperimentalConfig:
                                                           metrics=self._aic_metrics,
                                                           l2_cache=self._l2_cache,
                                                           record_op_args=self.record_op_args,
-                                                          msprof_tx=self._msprof_tx,
+                                                          msprof_tx=self._msprof_tx or self._mstx,
                                                           op_attr=self._op_attr,
                                                           host_sys=self._host_sys,
                                                           mstx_domain_include=self._mstx_domain_include,
@@ -147,16 +150,21 @@ class _ExperimentalConfig:
             print_warn_msg("Please use level1 or level2 if you want to collect aic metrics, reset aic metrics to None!")
             self._aic_metrics = Constant.AicMetricsNone
         if not isinstance(self._l2_cache, bool):
-            print_warn_msg("Invalid parameter l2_cache, which must be of boolean type, reset it to False.")
+            print_warn_msg("Invalid parameter l2_cache, which must be of bool type, reset it to False.")
             self._l2_cache = False
         if not isinstance(self._msprof_tx, bool):
-            print_warn_msg("Invalid parameter msprof_tx, which must be of boolean type, reset it to False.")
+            print_warn_msg("Invalid parameter msprof_tx, which must be of bool type, reset it to False.")
             self._msprof_tx = False
+        if self._msprof_tx:
+            warnings.warn("The parameter msprof_tx will be deprecated. Please use the new parameter mstx instead.")
+        if not isinstance(self._mstx, bool):
+            print_warn_msg("Invalid parameter mstx, which must be of bool type, reset it to False.")
+            self._mstx = False
         if self._data_simplification is not None and not isinstance(self._data_simplification, bool):
-            print_warn_msg("Invalid parameter data_simplification, which must be of boolean type, reset it to default.")
+            print_warn_msg("Invalid parameter data_simplification, which must be of bool type, reset it to default.")
             self._data_simplification = True
         if not isinstance(self.record_op_args, bool):
-            print_warn_msg("Invalid parameter record_op_args, which must be of boolean type, reset it to False.")
+            print_warn_msg("Invalid parameter record_op_args, which must be of bool type, reset it to False.")
             self.record_op_args = False
         if self._profiler_level not in \
            (ProfilerLevel.Level0, ProfilerLevel.Level1, ProfilerLevel.Level2, ProfilerLevel.Level_none):
@@ -172,7 +180,7 @@ class _ExperimentalConfig:
             else:
                 self._aic_metrics = AiCMetrics.PipeUtilization
         if not isinstance(self._op_attr, bool):
-            print_warn_msg("Invalid parameter op_attr, which must be of boolean type, reset it to False.")
+            print_warn_msg("Invalid parameter op_attr, which must be of bool type, reset it to False.")
             self._op_attr = False
         if not all(export_type in [ExportType.Text, ExportType.Db] for export_type in self._export_type):
             print_warn_msg("Invalid parameter export_type, reset it to text.")
@@ -190,16 +198,16 @@ class _ExperimentalConfig:
             elif self._gc_detect_threshold == 0.0:
                 print_info_msg("Parameter gc_detect_threshold is set to 0, it will collect all gc events.")
         if not isinstance(self._sys_io, bool):
-            print_warn_msg("Invalid parameter sys_io, which must be of boolean type, reset it to False.")
+            print_warn_msg("Invalid parameter sys_io, which must be of bool type, reset it to False.")
             self._sys_io = False
         if not isinstance(self._sys_interconnection, bool):
-            print_warn_msg("Invalid parameter sys_interconnection, which must be of boolean type, reset it to False.")
+            print_warn_msg("Invalid parameter sys_interconnection, which must be of bool type, reset it to False.")
             self._sys_interconnection = False
 
     def _check_mstx_domain_params(self):
-        if not self._msprof_tx:
+        if not self._msprof_tx and not self._mstx:
             if self._mstx_domain_include or self._mstx_domain_exclude:
-                print_warn_msg("mstx_domain_include and mstx_domain_exclude are only valid when msprof_tx is True.")
+                print_warn_msg("mstx_domain_include and mstx_domain_exclude are valid when msprof_tx or mstx is True.")
             self._mstx_domain_include = []
             self._mstx_domain_exclude = []
             return
