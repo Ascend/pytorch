@@ -206,6 +206,8 @@ class ConfigContext:
         export_type = json_data.get('PROFILE_EXPORT_TYPE', 'text').lower()
         msprof_tx = json_data.get('PROFILE_MSPROF_TX', 'false')
         msprof_tx = self.BOOL_MAP.get(msprof_tx.lower(), False)
+        mstx = json_data.get('PROFILE_MSTX', 'false')
+        mstx = self.BOOL_MAP.get(mstx.lower(), False)
         host_sys = DynamicProfilerUtils.parse_str_params_to_list(json_data.get('PROFILE_HOST_SYS', None))
         mstx_domain_include = DynamicProfilerUtils.parse_str_params_to_list(json_data.get('PROFILE_MSTX_DOMAIN_INCLUDE', None))
         mstx_domain_exclude = DynamicProfilerUtils.parse_str_params_to_list(json_data.get('PROFILE_MSTX_DOMAIN_EXCLUDE', None))
@@ -224,6 +226,7 @@ class ConfigContext:
             record_op_args=record_op_args,
             export_type=export_type,
             msprof_tx=msprof_tx,
+            mstx=mstx,
             host_sys=host_sys,
             mstx_domain_include=mstx_domain_include,
             mstx_domain_exclude=mstx_domain_exclude,
@@ -247,6 +250,7 @@ class ConfigContext:
         record_op_args = exp_config.get('record_op_args', False)
         export_type = exp_config.get('export_type', 'text')
         msprof_tx = exp_config.get('msprof_tx', False)
+        mstx = exp_config.get('mstx', False)
         mstx_domain_include = exp_config.get('mstx_domain_include', None)
         mstx_domain_exclude = exp_config.get('mstx_domain_exclude', None)
         host_sys = exp_config.get('host_sys', None)
@@ -263,6 +267,7 @@ class ConfigContext:
             record_op_args=record_op_args,
             export_type=export_type,
             msprof_tx=msprof_tx,
+            mstx=mstx,
             mstx_domain_include=mstx_domain_include,
             mstx_domain_exclude=mstx_domain_exclude,
             host_sys=host_sys,
