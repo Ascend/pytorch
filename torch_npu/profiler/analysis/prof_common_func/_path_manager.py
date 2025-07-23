@@ -2,8 +2,7 @@ import os
 import re
 
 from torch_npu.utils._error_code import ErrCode, prof_error
-from ....utils._path_manager import PathManager
-from ..prof_common_func._constant import Constant
+from ._constant import Constant
 
 __all__ = []
 
@@ -51,7 +50,7 @@ class ProfilerPathManager:
             return info_path
         else:
             return ""
-    
+
     @classmethod
     def get_host_path(cls, cann_path: str) -> str:
         host_path = os.path.join(cann_path, 'host')
@@ -176,3 +175,31 @@ class ProfilerPathManager:
             msg = f"Invalid input path is a soft chain: {path}" + prof_error(ErrCode.UNAVAIL)
             raise RuntimeError(msg)
         return os.path.realpath(path)
+
+    @classmethod
+    def get_all_subdir(cls, path, max_depth=4, cur_depth=0):
+        paths = []
+        if cur_depth > max_depth:
+            return paths
+        with os.scandir(path) as entries:
+            for entry in entries:
+                if entry.is_dir():
+                    full_path = entry.path
+                    paths.append(full_path)
+                    # Recursively obtain subdirectories and paths
+                    paths.extend(cls.get_all_subdir(full_path, max_depth, cur_depth + 1))
+        return paths
+
+    @classmethod
+    def path_is_other_writable(cls, path):
+        stat_info = os.stat(path)
+        return bool(stat_info.st_mode & 0o022)
+
+    @classmethod
+    def check_path_permission(cls, path):
+        file_stat = os.stat(path)
+        current_uid = os.getuid()
+        file_uid = file_stat.st_uid
+        if file_uid not in (0, current_uid):
+            raise PermissionError(f"The '{path}' path and current owner have inconsistent permissions."
+                                  f"please execute 'chown root {path}'" + prof_error(ErrCode.PERMISSION))
