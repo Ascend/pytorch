@@ -2,6 +2,7 @@ import os
 import shutil
 import stat
 import json
+from unittest.mock import patch
 
 from torch_npu.profiler.analysis.prof_bean._ge_memory_record_bean import GeMemoryRecordBean
 from torch_npu.profiler.analysis.prof_common_func._file_manager import FileManager
@@ -81,6 +82,19 @@ class TestFileManager(TestCase):
             read_data = json.load(fp)
         expect = {**data1, **data2}
         self.assertEqual(read_data, expect)
+
+    @patch('os.stat')
+    @patch('os.geteuid')
+    def test_check_file_owner(self, mock_geteuid, mock_stat):
+        test_file = "file_owner.json"
+        test_path = os.path.join(self.tmp_dir, test_file)
+        mock_geteuid.return_value = 1000
+        mock_stat.return_value.st_uid = 0
+        self.assertTrue(FileManager.check_file_owner(test_path))
+        mock_stat.return_value.st_uid = 1000
+        self.assertTrue(FileManager.check_file_owner(test_path))
+        mock_stat.return_value.st_uid = 9999
+        self.assertFalse(FileManager.check_file_owner(test_path))
 
 
 if __name__ == "__main__":

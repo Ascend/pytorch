@@ -1,7 +1,7 @@
 import os
 import shutil
 import stat
-import json
+from unittest.mock import patch, MagicMock
 
 from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.profiler.analysis.prof_common_func._file_manager import FileManager
@@ -177,6 +177,72 @@ class TestPathManager(TestCase):
             with self.assertRaises(RuntimeError):
                 ProfilerPathManager.get_realpath(link_path)
         self.assertEqual(os.path.realpath(self.tmp_dir), ProfilerPathManager.get_realpath(self.tmp_dir))
+
+    @classmethod
+    def create_dir_structure(cls, base_path, structure):
+        for name, children in structure.items():
+            dir_path = os.path.join(base_path, name)
+            os.makedirs(dir_path, exist_ok=True)
+            cls.create_dir_structure(dir_path, children)
+
+    def test_get_all_subdir(self):
+        dir_structure = {
+            'dir1': {
+                'subdir1': {},
+                'subdir2': {
+                    'subsubdir1': {}
+                }
+            },
+            'dir2': {},
+            'dir3': {
+                'subdir3': {
+                    'subsubdir2': {
+                        'deepdir': {}
+                    }
+                }
+            }
+        }
+        self.create_dir_structure(self.tmp_dir, dir_structure)
+        result = ProfilerPathManager.get_all_subdir(self.tmp_dir)
+        expected = [
+            os.path.join(self.tmp_dir, 'dir1'),
+            os.path.join(self.tmp_dir, 'dir1', 'subdir1'),
+            os.path.join(self.tmp_dir, 'dir1', 'subdir2'),
+            os.path.join(self.tmp_dir, 'dir1', 'subdir2', 'subsubdir1'),
+            os.path.join(self.tmp_dir, 'dir2'),
+            os.path.join(self.tmp_dir, 'dir3'),
+            os.path.join(self.tmp_dir, 'dir3', 'subdir3'),
+            os.path.join(self.tmp_dir, 'dir3', 'subdir3', 'subsubdir2'),
+            os.path.join(self.tmp_dir, 'dir3', 'subdir3', 'subsubdir2', 'deepdir'),
+        ]
+        self.assertCountEqual(result, expected)
+
+        result_depth_2 = ProfilerPathManager.get_all_subdir(self.tmp_dir, max_depth=2)
+        expected_depth_2 = [
+            os.path.join(self.tmp_dir, 'dir1'),
+            os.path.join(self.tmp_dir, 'dir1', 'subdir1'),
+            os.path.join(self.tmp_dir, 'dir1', 'subdir2'),
+            os.path.join(self.tmp_dir, 'dir1', 'subdir2', 'subsubdir1'),
+            os.path.join(self.tmp_dir, 'dir2'),
+            os.path.join(self.tmp_dir, 'dir3'),
+            os.path.join(self.tmp_dir, 'dir3', 'subdir3'),
+            os.path.join(self.tmp_dir, 'dir3', 'subdir3', 'subsubdir2'),
+        ]
+        self.assertCountEqual(result_depth_2, expected_depth_2)
+
+    @patch('os.stat')
+    def test_path_is_other_writable(self, mock_stat):
+        mock_stat_result = MagicMock()
+        mock_stat_result.st_mode = 0o777
+        mock_stat.return_value = mock_stat_result
+
+        self.assertTrue(ProfilerPathManager.path_is_other_writable(self.tmp_dir))
+        mock_stat_result.st_mode = 0o755
+        self.assertFalse(ProfilerPathManager.path_is_other_writable(self.tmp_dir))
+        mock_stat_result.st_mode = 0o775
+        self.assertTrue(ProfilerPathManager.path_is_other_writable(self.tmp_dir))
+        mock_stat_result.st_mode = 0o700
+        self.assertFalse(ProfilerPathManager.path_is_other_writable(self.tmp_dir))
 
 
 if __name__ == "__main__":

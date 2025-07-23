@@ -186,3 +186,11 @@ class FileManager:
         db_size = os.path.getsize(db_path)
         if db_size < 0 or db_size > Constant.MAX_FILE_SIZE:
             raise RuntimeError(f"Invalid db file size, please check the db file: {db_path}")
+
+    @classmethod
+    def check_file_owner(cls, path):
+        stat_info = os.stat(path)
+        if stat_info.st_uid == 0:
+            return True
+        current_uid = os.geteuid()
+        return current_uid == stat_info.st_uid
