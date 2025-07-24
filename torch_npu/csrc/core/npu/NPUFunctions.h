@@ -57,6 +57,8 @@ C10_NPU_API aclError MaybeSetDevice(c10::DeviceIndex device);
  * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
+std::vector<int8_t> GetUsedDevices();
+
 aclError ResetUsedDevices();
 
 aclError DestroyUsedStreams();
