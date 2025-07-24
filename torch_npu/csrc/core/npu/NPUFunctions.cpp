@@ -126,6 +126,16 @@ aclError MaybeSetDevice(c10::DeviceIndex device)
     return ACL_ERROR_NONE;
 }
 
+std::vector<int8_t> GetUsedDevices()
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx);
+    std::vector<int8_t> used_devices_list;
+    for (const auto it : used_devices) {
+        used_devices_list.emplace_back(it.first);
+    }
+    return used_devices_list;
+}
+
 aclError ResetUsedDevices()
 {
     std::lock_guard<std::recursive_mutex> lock(mtx);

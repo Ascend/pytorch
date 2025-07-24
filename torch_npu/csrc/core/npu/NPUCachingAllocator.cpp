@@ -3274,10 +3274,28 @@ public:
 
     void emptyCache(bool check_error) override
     {
-        int count = static_cast<int>(device_allocator.size());
-        for (int i = 0; i < count; i++) {
-            device_allocator[i]->emptyCache(i, check_error);
+        ASCEND_LOGD("Begin empty cache with check_error = %d", check_error);
+        int32_t current_device = 0;
+        if (check_error) {
+            NPU_CHECK_ERROR(c10_npu::GetDevice(&current_device));
+        } else {
+            NPU_CHECK_WARN(c10_npu::GetDevice(&current_device));
         }
+        auto used_devices_list = c10_npu::GetUsedDevices();
+        for (int8_t device_idx : used_devices_list) {
+            if (check_error) {
+                NPU_CHECK_ERROR(c10_npu::SetDevice(device_idx));
+            } else {
+                NPU_CHECK_WARN(c10_npu::SetDevice(device_idx));
+            }
+            device_allocator[device_idx]->emptyCache(device_idx, check_error);
+        }
+        if (check_error) {
+            NPU_CHECK_ERROR(c10_npu::MaybeSetDevice(current_device));
+        } else {
+            NPU_CHECK_WARN(c10_npu::MaybeSetDevice(current_device));
+        }
+        ASCEND_LOGD("End empty cache with check_error = %d", check_error);
     }
 
     void *getBaseAllocation(void *ptr, size_t *outSize) override
