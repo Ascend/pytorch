@@ -257,5 +257,7 @@ aclError AclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uin
 
 aclError AclrtResetDeviceResLimit(int32_t deviceId);
 
+aclError AclrtStreamGetId(aclrtStream stream, int32_t* stream_id);
+
 } // namespace acl
 } // namespace c10_npu

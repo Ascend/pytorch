@@ -93,6 +93,7 @@ LOAD_FUNCTION(aclrtDeviceGetBareTgid)
 LOAD_FUNCTION(aclrtGetDeviceResLimit)
 LOAD_FUNCTION(aclrtSetDeviceResLimit)
 LOAD_FUNCTION(aclrtResetDeviceResLimit)
+LOAD_FUNCTION(aclrtStreamGetId)
 
 
 aclprofStepInfoPtr init_stepinfo() {
@@ -1071,6 +1072,17 @@ aclError AclrtResetDeviceResLimit(int32_t deviceId)
 
     TORCH_CHECK(func, "Failed to find function aclrtResetDeviceResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(deviceId);
+}
+
+aclError AclrtStreamGetId(aclrtStream stream, int32_t* stream_id)
+{
+    typedef aclError(*AclrtStreamGetIdFunc)(aclrtStream, int32_t*);
+    static AclrtStreamGetIdFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtStreamGetIdFunc)GET_FUNC(aclrtStreamGetId);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtStreamGetId", PROF_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, stream_id);
 }
 
 } // namespace acl
