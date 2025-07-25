@@ -113,7 +113,7 @@ public:
                     stats.allocated_bytes.current,
                     stats.reserved_bytes.current,
                     stats.allocated_bytes.current,
-                    reinterpret_cast<int64_t>(stream)}
+                    stream }
                 );
 #endif
                 block->data_ptr = nullptr;
@@ -154,7 +154,7 @@ public:
                 stats.allocated_bytes.current,
                 stats.reserved_bytes.current,
                 stats.allocated_bytes.current,
-                reinterpret_cast<int64_t>(stream)}
+                stream }
             );
             this->last_block = block;
             this->last_stream = stream;
@@ -180,7 +180,7 @@ public:
             stats.allocated_bytes.current,
             stats.reserved_bytes.current,
             stats.allocated_bytes.current,
-            reinterpret_cast<int64_t>(stream)}
+            stream }
         );
         this->last_block = block;
         this->last_stream = stream;
@@ -204,7 +204,7 @@ public:
                 stats.allocated_bytes.current,
                 stats.reserved_bytes.current,
                 stats.allocated_bytes.current,
-                reinterpret_cast<int64_t>(this->last_stream)}
+                this->last_stream }
             );
         }
 #endif
@@ -254,7 +254,7 @@ public:
                     stats.allocated_bytes.current,
                     stats.reserved_bytes.current,
                     stats.allocated_bytes.current,
-                    reinterpret_cast<int64_t>(block_pair.first)}
+                    block_pair.first }
                 );
 #endif
             }
