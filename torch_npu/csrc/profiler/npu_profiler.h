@@ -7,6 +7,9 @@
 
 #include <ATen/record_function.h>
 
+#include "third_party/acl/inc/acl/acl_base.h"
+#include "third_party/acl/inc/acl/acl_rt.h"
+
 #include "torch_npu/csrc/toolkit/profiler/inc/data_reporter.h"
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
 #include "torch_npu/csrc/profiler/mstx_mgr.h"
@@ -55,7 +58,7 @@ struct MemoryUsage {
     int64_t total_allocated{0};
     int64_t total_reserved{0};
     int64_t total_active{0};
-    int64_t stream_ptr{0};
+    aclrtStream stream{nullptr};
 };
 
 struct ExperimentalConfig {

@@ -1548,7 +1548,7 @@ public:
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-            reinterpret_cast<int64_t>(block->stream) });
+            block->stream });
 #endif
 
         return block;
@@ -1612,7 +1612,7 @@ public:
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-            reinterpret_cast<int64_t>(block->stream) });
+            block->stream });
 #endif
     }
 
@@ -2416,7 +2416,7 @@ private:
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-            reinterpret_cast<int64_t>(block->stream) });
+            block->stream });
 #endif
     }
 
