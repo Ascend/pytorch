@@ -6,6 +6,7 @@
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
@@ -380,6 +381,10 @@ void reportMemoryDataToNpuProfiler(const MemoryUsage& data)
     if (!ProfilerMgr::GetInstance()->ReportMemEnable().load()) {
         return;
     }
+    int32_t stream_id;
+    if (c10_npu::acl::AclrtStreamGetId(data.stream, &stream_id) != ACL_ERROR_NONE) {
+        stream_id = -1;
+    }
     ProfilerMgr::GetInstance()->UploadWithLock(std::make_unique<torch_npu::toolkit::profiler::MemoryData>(
         data.ptr,
         static_cast<int64_t>(Utils::GetClockTime()),
@@ -387,7 +392,7 @@ void reportMemoryDataToNpuProfiler(const MemoryUsage& data)
         data.total_allocated,
         data.total_reserved,
         data.total_active,
-        data.stream_ptr,
+        stream_id,
         data.device_type,
         data.device_index,
         data.component_type,
