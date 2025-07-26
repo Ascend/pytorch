@@ -4263,6 +4263,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
 
     auto inputTensors_ = cast_to_origin_format(inputTensors);
     bool same_size = check_same_size(outputTensors.back());
+    static const bool isCannVersionGteBase = []() {
+        const std::string baseCannversion = "8.3.RC1";
+        const std::string baseCannModule = "CANN";
+        return IsGteCANNVersion(baseCannversion, baseCannModule);
+    }();
     if (same_size) {
         int outsize = static_cast<int>(outputTensors[0].size());
         uint64_t output_nums[outsize];
@@ -4335,7 +4340,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                 }
             },
             c10d::OpType::ALLGATHER);
-    } else if (hcclAllGatherVExist() && !has_empty_tensor(outputTensors.back())) {
+    } else if (isCannVersionGteBase && hcclAllGatherVExist() && !has_empty_tensor(outputTensors.back())) {
         std::vector<at::Tensor> lastOutputTensors = outputTensors.back();
         std::vector<uint64_t> outputCounts;
         std::vector<uint64_t> outputSpl;
@@ -4619,6 +4624,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
     }
     auto streamId = getStreamId(false, -1);
     bool same_size = check_same_size(inputTensors.back());
+    static const bool isCannVersionGteBase = []() {
+        const std::string baseCannversion = "8.3.RC1";
+        const std::string baseCannModule = "CANN";
+        return IsGteCANNVersion(baseCannversion, baseCannModule);
+    }();
     if (same_size) {
         auto inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
         check_npu_tensors_different_devices(inputFlattened);
@@ -4679,7 +4689,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
             }
         },
         c10d::OpType::REDUCE_SCATTER);
-    } else if (hcclReduceScatterVExist()) {
+    } else if (isCannVersionGteBase && hcclReduceScatterVExist()) {
         std::vector<uint64_t> inputCounts;
         std::vector<uint64_t> inputSpl;
         std::vector<at::Tensor> lastInputTensors = inputTensors.back();
