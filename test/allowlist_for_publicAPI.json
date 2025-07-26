@@ -2880,7 +2880,11 @@
     "npu_transpose_batchmatmul",
     "npu_gather_sparse_index",
     "npu_moe_distribute_combine_add_rms_norm",
-    "npu_moe_eplb_update_expert"
+    "npu_moe_eplb_update_expert",
+    "npu_moe_distribute_dispatch_setup",
+    "npu_moe_distribute_dispatch_teardown",
+    "npu_moe_distribute_combine_setup",
+    "npu_moe_distribute_combine_teardown"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
