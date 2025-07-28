@@ -154,14 +154,16 @@ aclError DestroyUsedStreams()
     NPU_CHECK_ERROR_WITHOUT_UCE(GetDevice(&cur_device));
     std::lock_guard<std::recursive_mutex> lock(mtx);
     for (const auto it : used_devices) {
-        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(it.first));
-        NPUStream stream = getCurrentNPUStream(it.first);
-        aclError acl_ret = acl::AclrtDestroyStreamForce(stream.stream(false));
-        if (acl_ret != ACL_ERROR_NONE) {
-            return acl_ret;
+        if (c10_npu::StreamInitFlag(it.first)) {
+            NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(it.first));
+            NPUStream stream = getCurrentNPUStream(it.first);
+            aclError acl_ret = acl::AclrtDestroyStreamForce(stream.stream(false));
+            if (acl_ret != ACL_ERROR_NONE) {
+                return acl_ret;
+            }
         }
     }
-    NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(cur_device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(MaybeSetDevice(cur_device));
     return ACL_ERROR_NONE;
 }
 
@@ -184,7 +186,7 @@ aclError SynchronizeUsedDevices()
         }
 #endif
     }
-    NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(cur_device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(MaybeSetDevice(cur_device));
     return ACL_ERROR_NONE;
 }
 
