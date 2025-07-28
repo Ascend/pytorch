@@ -427,7 +427,6 @@ aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index)
 
 NPUStatus emptyAllNPUStream(bool check_error)
 {
-    initNPUStreamsOnce();
     NPUStatus ret;
     for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
         auto& default_streamsi = default_streams[i];
@@ -665,4 +664,9 @@ NPUStream getNPUStreamFromSyncLaunchPool(c10::DeviceIndex device_index)
     return NPUStream_fromInternals(&sync_launch_streams[device_index][idx]);
 }
 
+bool StreamInitFlag(c10::DeviceIndex device_index)
+{
+    ASCEND_LOGI("Device %d, Npu StreamInitFlag Check is %d", device_index, initialize_flag[device_index]);
+    return initialize_flag[device_index];
+}
 } // namespace c10_npu
