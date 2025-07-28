@@ -53,6 +53,19 @@
 struct NPUDeviceProp {
     std::string name;
     size_t totalGlobalMem = 0;
+    int64_t cube_core_num = 0;
+    int64_t vector_core_num = 0;
+    int64_t L2_cache_size = 0;
+    std::optional<int> major;
+    std::optional<int> minor;
+    std::optional<int> is_multi_gpu_board;
+    std::optional<int> is_integrated;
+    std::optional<int> multi_processor_count;
+    std::optional<int> max_threads_per_multi_processor;
+    std::optional<int> warp_size;
+    std::optional<int> regs_per_multiprocessor;
+    std::optional<std::string> gcnArchName;
+    std::optional<std::string> uuid;
 };
 
 struct NPUDeviceMem {
@@ -67,10 +80,25 @@ void RegisterNPUDeviceProperties(PyObject* module)
     py::class_<NPUDeviceProp>(m, "_NPUDeviceProperties")
         .def_readonly("name", &NPUDeviceProp::name)
         .def_readonly("total_memory", &NPUDeviceProp::totalGlobalMem)
+        .def_readonly("cube_core_num", &NPUDeviceProp::cube_core_num)
+        .def_readonly("vector_core_num", &NPUDeviceProp::vector_core_num)
+        .def_readonly("L2_cache_size", &NPUDeviceProp::L2_cache_size)
+        .def_readonly("major", &NPUDeviceProp::major)
+        .def_readonly("minor", &NPUDeviceProp::minor)
+        .def_readonly("is_multi_gpu_board", &NPUDeviceProp::is_multi_gpu_board)
+        .def_readonly("is_integrated", &NPUDeviceProp::is_integrated)
+        .def_readonly("multi_processor_count", &NPUDeviceProp::multi_processor_count)
+        .def_readonly("max_threads_per_multi_processor", &NPUDeviceProp::max_threads_per_multi_processor)
+        .def_readonly("warp_size", &NPUDeviceProp::warp_size)
+        .def_readonly("regs_per_multiprocessor", &NPUDeviceProp::regs_per_multiprocessor)
+        .def_readonly("gcnArchName", &NPUDeviceProp::gcnArchName)
+        .def_readonly("uuid", &NPUDeviceProp::uuid)
         .def("__repr__", [](const NPUDeviceProp &prop) {
             std::ostringstream stream;
             stream << "_NPUDeviceProperties(name='" << prop.name << "', total_memory="
-                << prop.totalGlobalMem / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB)";
+                << prop.totalGlobalMem / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB, cube_core_num="
+                << prop.cube_core_num << ", vector_core_num=" << prop.vector_core_num << ", L2_cache_size="
+                << prop.L2_cache_size / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB)";
             return stream.str();
         });
     m.def(
@@ -98,6 +126,10 @@ NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
     const char* device_name;
     size_t device_free;
     size_t device_total;
+    int64_t cube_core_num;
+    int64_t vector_core_num;
+    int64_t L2_cache_size;
+
     device_name = c10_npu::acl::AclrtGetSocName();
     if (device_name == nullptr) {
         prop.name = " ";
@@ -107,6 +139,16 @@ NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
     }
     NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
     prop.totalGlobalMem = device_total;
+
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_AI_CORE_NUM, &cube_core_num));
+    prop.cube_core_num = cube_core_num;
+
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_VECTOR_CORE_NUM, &vector_core_num));
+    prop.vector_core_num = vector_core_num;
+
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_L2_SIZE, &L2_cache_size));
+    prop.L2_cache_size = L2_cache_size;
+
     return &prop;
 }
 
