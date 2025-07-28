@@ -55,10 +55,25 @@ class TorchNPUDeviceTestCase(TestCase):
         self.assertIsInstance(res, str)
 
     def test_npu_get_device_properties(self):
-        name = torch_npu.npu.get_device_properties(0).name
-        self.assertIsInstance(name, str)
-        total_memory = torch_npu.npu.get_device_properties(0).total_memory
-        self.assertIsInstance(total_memory, int)
+        props = torch_npu.npu.get_device_properties(0)
+        self.assertIsInstance(props.name, str)
+        self.assertIsInstance(props.total_memory, int)
+        self.assertIsInstance(props.cube_core_num, int)
+        self.assertIsInstance(props.vector_core_num, int)
+        self.assertIsInstance(props.L2_cache_size, int)
+
+    def test_npu_get_unsupported_device_properties(self):
+        props = torch_npu.npu.get_device_properties(0)
+        unsupported_fields = [
+            'major', 'minor', 'is_multi_gpu_board', 'is_integrated', 'multi_processor_count',
+            'max_threads_per_multi_processor', 'warp_size', 'regs_per_multiprocessor', 'gcnArchName', 'uuid'
+        ]
+        for field in unsupported_fields:
+            try:
+                value = getattr(props, field)
+                self.assertIsNone(value, msg=f"Field '{field}' should return None for NPU, but got {value}.")
+            except Exception as e:
+                self.fail(f"Accessing unsupported field '{field}' raised unexpected exception: {type(e).__name__}")
 
     def test_npu_get_device_capability(self):
         res = torch_npu.npu.get_device_capability()
