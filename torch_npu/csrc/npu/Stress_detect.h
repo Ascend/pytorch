@@ -9,10 +9,11 @@
 #include <condition_variable>
 #include <sys/prctl.h>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
+#include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 
 class StressDetector {
 public:
-    TORCH_NPU_API static int perform_stress_detect(int deviceid);
+    TORCH_NPU_API static int perform_stress_detect(int deviceid, int mode, int64_t comm);
     TORCH_NPU_API static void stop_worker_thread();
 
 private:
@@ -44,6 +45,8 @@ private:
     static int device_id;
     static void* workspaceAddr;
     static size_t workspaceSize;
+    static int stressMode;
+    static void* localHcclComm;
 
     // Flag to indicate if the thread has been initialized
     static std::atomic<bool> thread_initialized;
