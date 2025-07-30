@@ -361,6 +361,10 @@ However, it is possible to temporarily disable (expandable_segments:False) the
 bevhavior for allocator tensors that need to be used cross-process.
 */
 
+std::mutex ipcHandleMutex;
+ska::flat_hash_map<uint64_t, aclrtDrvMemHandle> ipcShareableHandle_to_handle;
+ska::flat_hash_set<aclrtDrvMemHandle> ipcHandles;
+
 struct ExpandableSegment {
     ExpandableSegment(
         int device,
@@ -489,6 +493,7 @@ struct ExpandableSegment {
         c10::DeviceIndex device,
         std::istream& buf)
     {
+        std::lock_guard<std::mutex> lock(ipcHandleMutex);
         ShareHeader header{};
         buf.read((char*)&header, sizeof(ShareHeader));
         auto segment = std::make_unique<ExpandableSegment>(
@@ -499,11 +504,21 @@ struct ExpandableSegment {
             (void)i;
             uint64_t shareableHandle = 0;
             buf.read((char*)&shareableHandle, sizeof(uint64_t));
+
+            auto iter = ipcShareableHandle_to_handle.find(shareableHandle);
+            if (iter != ipcShareableHandle_to_handle.end()) {
+                aclrtDrvMemHandle handle = iter->second;
+                segment->handles_.emplace_back(Handle{handle, shareableHandle});
+                continue;
+            }
+
             int32_t deviceId = static_cast<int32_t>(device);
             aclrtDrvMemHandle handle;
             NPU_CHECK_ERROR(c10_npu::acl::AclrtMemImportFromShareableHandle(
                 shareableHandle, deviceId, &handle));
-            segment->handles_.emplace_back(Handle{handle, std::nullopt});
+            segment->handles_.emplace_back(Handle{handle, shareableHandle});
+            ipcShareableHandle_to_handle.insert(iter, {shareableHandle, handle});
+            ipcHandles.insert(handle);
         }
         segment->mapAndSetAccess(0, header.num_handles);
         return segment;
@@ -573,6 +588,13 @@ private:
             Handle h = handles_.at(i).value();
             handles_.at(i) = c10::nullopt;
             NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem((char *)ptr_ + segment_size_ * i, getHcclComm()));
+            if (C10_UNLIKELY(h.shareableHandle)) {
+                std::lock_guard<std::mutex> lock(ipcHandleMutex);
+                auto iter = ipcHandles.find(h.handle);
+                if (iter != ipcHandles.end()) {
+                    continue;
+                }
+            }
             NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h.handle));
         }
         ASCEND_LOGD("NPUCachingAllocator unmap: segment_size=%zu", segment_size_);
@@ -3317,6 +3339,15 @@ public:
             NPU_CHECK_WARN(c10_npu::MaybeSetDevice(current_device));
         }
         ASCEND_LOGD("End empty cache with check_error = %d", check_error);
+    }
+
+    void clearIpcHandles() override
+    {
+        std::lock_guard<std::mutex> lock(ipcHandleMutex);
+        for (auto &handle : ipcHandles) {
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(handle));
+        }
+        ipcHandles.clear();
     }
 
     void *getBaseAllocation(void *ptr, size_t *outSize) override
