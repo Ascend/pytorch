@@ -742,15 +742,29 @@ PyObject* THNPModule_maybeExchangeDevice_wrap(PyObject* self, PyObject* arg)
     END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* noargs)
+PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* args)
 {
     HANDLE_TH_ERRORS
+    PyObject* value1 = nullptr;
+    PyObject* value2 = nullptr;
+
+    if (!PyArg_ParseTuple(args, "OO",  &value1,  &value2)) {
+        ASCEND_LOGE("Stress detect failed, argument is invalid.");
+        return PyLong_FromLong(1);
+    }
+    int mode = THPUtils_unpackLong(value1);
+    int64_t comm = THPUtils_unpackLong(value2);
+
     torch_npu::utils::npu_lazy_init();
 
-    int device_id;
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device_id));
+    int deviceId;
+    aclError err = c10_npu::GetDevice(&deviceId);
+    if (err != ACL_ERROR_NONE) {
+        ASCEND_LOGE("Stress detect failed, error happened in GetDevice, err is %d.", err);
+        return PyLong_FromLong(1);
+    }
 
-    int ret = StressDetector::perform_stress_detect(device_id);
+    int ret = StressDetector::perform_stress_detect(deviceId, mode, comm);
     return PyLong_FromLong(ret);
     END_HANDLE_TH_ERRORS
 }
@@ -1822,7 +1836,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_restart_device", (PyCFunction)THNPModule_restart_device_wrap, METH_O, nullptr},
     {"_npu_check_uce_in_memory", (PyCFunction)THNPModule_check_uce_in_memory_wrap, METH_O, nullptr},
     {"_npu_get_uce_addr", (PyCFunction)THNPModule_get_uce_addr_wrap, METH_NOARGS, nullptr},
-    {"_npu_stress_detect", (PyCFunction)THNPModule_stressDetect_wrap, METH_NOARGS, nullptr},
+    {"_npu_stress_detect", (PyCFunction)THNPModule_stressDetect_wrap, METH_VARARGS, nullptr},
     {"_npu_getLocalDevice", (PyCFunction)THNPModule_getLocalDevice_wrap, METH_NOARGS, nullptr},
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
     {"_npu_canDeviceAccessPeer", (PyCFunction)THNPModule_npuCanDeviceAccessPeer_wrap, METH_VARARGS, nullptr},
