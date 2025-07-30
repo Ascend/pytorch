@@ -203,6 +203,7 @@ public:
     virtual bool initialized() = 0;
     virtual void setMemoryFraction(double fraction, int device) = 0;
     virtual void emptyCache(bool check_error) = 0;
+    virtual void clearIpcHandles() = 0;
     virtual void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) = 0;
     virtual void* getBaseAllocation(void* ptr, size_t* size) = 0;
     virtual void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
@@ -308,6 +309,11 @@ inline void setMemoryFraction(double fraction, int device)
 C10_NPU_API inline void emptyCache(bool check_error = true)
 {
     return get()->emptyCache(check_error);
+}
+
+inline void clearIpcHandles()
+{
+    return get()->clearIpcHandles();
 }
 
 inline void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock)
