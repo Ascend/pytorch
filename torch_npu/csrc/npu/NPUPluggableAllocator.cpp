@@ -196,6 +196,12 @@ void NPUPluggableAllocator::emptyCache(bool check_error)
     }
 }
 
+void NPUPluggableAllocator::clearIpcHandles()
+{
+    TORCH_NPU_WARN("NPUPluggableAllocator does not yet support clearIpcHandles. "
+                   "If you need it, please file an issue describing your use case.");
+}
+
 void NPUPluggableAllocator::cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock)
 {
     TORCH_NPU_WARN("NPUPluggableAllocator does not yet support cacheInfo. "
