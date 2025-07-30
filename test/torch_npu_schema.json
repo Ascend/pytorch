@@ -1197,7 +1197,7 @@
     "signature": "(device_id)"
   },
   "torch_npu.npu.stress_detect": {
-    "signature": "()"
+    "signature": "(mode=0)"
   },
   "torch_npu.npu.seed": {
     "signature": "()"
@@ -1665,7 +1665,7 @@
     "signature": "(device=None)"
   },
   "torch_npu.npu.utils.stress_detect": {
-    "signature": "()"
+    "signature": "(mode=0)"
   },
   "torch_npu.npu.utils.utilization": {
     "signature": "(device=None)"

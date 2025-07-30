@@ -32,7 +32,15 @@ typedef struct AmlAicoreDetectAttr {
     uint8_t reserve[64];
 } AmlAicoreDetectAttr;
 
+struct AmlP2PDetectAttr {
+    void *workspace;
+    uint64_t workspaceSize;
+    uint8_t reserve[64];
+};
+
 AmlStatus AmlAicoreDetectOnline(int32_t deviceId, const AmlAicoreDetectAttr *attr);
+
+AmlStatus AmlP2PDetectOnline(int32_t devId, void *comm, const AmlP2PDetectAttr *attr);
 
 #ifdef __cplusplus
 }
