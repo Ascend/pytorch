@@ -1646,6 +1646,16 @@ PyObject* THNPModule_npu_get_silent_check_version(PyObject* self, PyObject* noar
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_aclnn_reselect_static_kernel(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    NPUStatus ret = c10_npu::emptyAllNPUStream();
+    TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
+    c10_npu::opapi::ReselectStaticKernel();
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_npu_set_thread_affinity(PyObject* self, PyObject* args)
 {
     HANDLE_TH_ERRORS
@@ -1877,6 +1887,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_set_call_state", (PyCFunction)THNPModule_npu_set_call_state, METH_O, nullptr},
     {"_npu_set_module_train_state", (PyCFunction)THNPModule_npu_set_module_train_state, METH_O, nullptr},
     {"_get_silent_check_version", (PyCFunction)THNPModule_npu_get_silent_check_version, METH_NOARGS, nullptr},
+    {"_aclnn_reselect_static_kernel", (PyCFunction)THNPModule_aclnn_reselect_static_kernel, METH_NOARGS, nullptr},
     {"_npu_set_thread_affinity", (PyCFunction)THNPModule_npu_set_thread_affinity, METH_VARARGS, nullptr},
     {"_npu_reset_thread_affinity", (PyCFunction)THNPModule_npu_reset_thread_affinity, METH_NOARGS, nullptr},
     {"_npu_set_fft_plan_cache_max_size", (PyCFunction)THNPModule_npu_set_fft_plan_cache_max_size, METH_VARARGS, nullptr},

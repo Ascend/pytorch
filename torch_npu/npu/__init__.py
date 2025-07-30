@@ -474,6 +474,11 @@ def utilization(device=None):
     return torch_npu._C._npu_getDeviceUtilizationRate(device_id)
 
 
+def _aclnn_reselect_static_kernel():
+    torch_npu.npu._lazy_init()
+    torch_npu._C._aclnn_reselect_static_kernel()
+
+
 from .random import *  # noqa: F403
 from .memory import *  # noqa: F403
 
