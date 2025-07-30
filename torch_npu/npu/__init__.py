@@ -436,6 +436,11 @@ def _comm_switch_nic(ranks, useBackup):
     return torch_npu.distributed.distributed_c10d._comm_switch_nic(ranks, useBackup)
 
 
+def _aclnn_reselect_static_kernel():
+    torch_npu.npu._lazy_init()
+    torch_npu._C._aclnn_reselect_static_kernel()
+
+
 class _NPUBase:
     is_npu = True
     is_sparse = False
