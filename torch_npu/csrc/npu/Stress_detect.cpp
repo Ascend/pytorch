@@ -16,6 +16,8 @@ std::mutex StressDetector::mtx;
 int StressDetector::device_id;
 void* StressDetector::workspaceAddr = nullptr;
 size_t StressDetector::workspaceSize = 0;
+int StressDetector::stressMode = 0;
+void* StressDetector::localHcclComm = nullptr;
 
 constexpr int kDetectSucceeded = 0;
 constexpr int kDetectFailed = 1;
@@ -40,16 +42,35 @@ void StressDetector::worker_thread()
 
         // Execute the task
         int ret = -1;
-        if (c10_npu::amlapi::IsExistAmlAicoreDetectOnline()) {
-            AmlAicoreDetectAttr attr;
-            attr.mode = AML_DETECT_RUN_MODE_ONLINE;
-            attr.workspace = workspaceAddr;
-            attr.workspaceSize = workspaceSize;
-            ret = c10_npu::amlapi::AmlAicoreDetectOnlineFace(device_id, &attr);
-            ASCEND_LOGI("Stress detect with AmlAicoreDetectOnline, result is %d.", ret);
-        } else {
-            ret = c10_npu::acl::AclStressDetect(device_id, workspaceAddr, workspaceSize);
-            ASCEND_LOGI("Stress detect with StressDetect, result is %d.", ret);
+        try {
+            if (stressMode == 0) {
+                if (c10_npu::amlapi::IsExistAmlAicoreDetectOnline()) {
+                    AmlAicoreDetectAttr attr;
+                    attr.mode = AML_DETECT_RUN_MODE_ONLINE;
+                    attr.workspace = workspaceAddr;
+                    attr.workspaceSize = workspaceSize;
+                    ret = c10_npu::amlapi::AmlAicoreDetectOnlineFace(device_id, &attr);
+                    ASCEND_LOGI("Stress detect with AmlAicoreDetectOnline, result is %d.", ret);
+                } else {
+                    ret = c10_npu::acl::AclStressDetect(device_id, workspaceAddr, workspaceSize);
+                    ASCEND_LOGI("Stress detect with StressDetect, result is %d.", ret);
+                }
+            } else {
+                if (c10_npu::amlapi::IsExistAmlP2PDetectOnline()) {
+                    AmlP2PDetectAttr attr;
+                    attr.workspace = workspaceAddr;
+                    attr.workspaceSize = workspaceSize;
+                    ret = c10_npu::amlapi::AmlP2PDetectOnlineFace(device_id, localHcclComm, &attr);
+                    ASCEND_LOGI("Stress detect with AmlP2PDetectOnline, result is %d.", ret);
+                } else {
+                    ASCEND_LOGW("Stress detect with AmlP2PDetectOnline failed, CANN version lower than 8.2.RC1 and currently does not support AmlP2PDetectOnline.");
+                    TORCH_NPU_WARN("Stress detect with AmlP2PDetectOnline failed, CANN version lower than 8.2.RC1 and currently does not support AmlP2PDetectOnline.");
+                }
+            }
+        } catch (std::exception &e) {
+            ret = -1;
+            ASCEND_LOGW("Stress detect failed. type is %d, error:%s", stressMode, e.what());
+            TORCH_NPU_WARN("Stress detect failed. type is ", stressMode, ", error: ", e.what());
         }
 
         // Task complete, free memory
@@ -76,21 +97,23 @@ int StressDetector::transfer_result(int detectResult)
         case ACLNN_STRESS_LOW_BIT_FAIL:
         case ACLNN_STRESS_HIGH_BIT_FAIL:
             ret = kDetectFailedWithHardwareFailure;
-            ASCEND_LOGE("Stress detect failed due to hardware malfunction, error code is %d.", detectResult);
+            ASCEND_LOGW("Stress detect failed due to hardware malfunction, error code is %d.", detectResult);
+            TORCH_NPU_WARN("Stress detect failed due to hardware malfunction, error code is ", detectResult);
             break;
         case ACLNN_CLEAR_DEVICE_STATE_FAIL:
             TORCH_CHECK(false, "Stress detect error. Error code is 574007. Error message is Voltage recovery failed.", PTA_ERROR(ErrCode::ACL));
             break;
         default:
             ret = kDetectFailed;
-            ASCEND_LOGE("Stress detect test case execution failed, error code is %d.", detectResult);
+            ASCEND_LOGW("Stress detect test case execution failed, error code is %d.", detectResult);
+            TORCH_NPU_WARN("Stress detect test case execution failed, error code is ", detectResult);
             break;
     }
     return ret;
 }
 
 // Synchronous stress detection task execution
-int StressDetector::perform_stress_detect(int deviceid)
+int StressDetector::perform_stress_detect(int deviceid, int mode, int64_t comm)
 {
     // If it's the first call, start the persistent thread
     if (!thread_initialized.load()) {
@@ -115,6 +138,7 @@ int StressDetector::perform_stress_detect(int deviceid)
             ret = c10_npu::acl::AclrtMallocAlign32(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
             if (ret != ACL_ERROR_NONE) {
                 ASCEND_LOGW("call AclrtMallocAlign32 failed, ERROR : %d. Skip StressDetect.", ret);
+                TORCH_NPU_WARN("call AclrtMallocAlign32 failed, skip StressDetect, error is ", ret);
                 task_in_progress.store(false); // Task ends
                 return kDetectFailed;
             }
@@ -132,6 +156,8 @@ int StressDetector::perform_stress_detect(int deviceid)
         StressDetector::device_id = deviceid;
         StressDetector::workspaceAddr = workspaceAddr;
         StressDetector::workspaceSize = workspaceSize;
+        StressDetector::stressMode = mode;
+        StressDetector::localHcclComm = reinterpret_cast<void*>(static_cast<intptr_t>(comm));
 
         // Mark new task submitted
         new_task_submitted.store(true);
