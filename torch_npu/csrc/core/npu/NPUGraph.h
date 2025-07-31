@@ -4,6 +4,8 @@
 #include <c10/core/Device.h>
 #include <c10/util/flat_hash_map.h>
 
+#include "third_party/acl/inc/acl/acl_base.h"
+#include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
@@ -18,10 +20,16 @@ struct TORCH_NPU_API NPUTaskGroupHandle {
     aclrtTaskGrp task_group;
 };
 
+typedef TORCH_NPU_API void (*NPUCallbackFunc)(void *fnData);
+
 TORCH_NPU_API void graph_task_group_begin(c10_npu::NPUStream stream);
 TORCH_NPU_API NPUTaskGroupHandle graph_task_group_end(c10_npu::NPUStream stream);
 TORCH_NPU_API void graph_task_update_begin(c10_npu::NPUStream stream, NPUTaskGroupHandle handle);
 TORCH_NPU_API void graph_task_update_end(c10_npu::NPUStream stream);
+
+TORCH_NPU_API void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData);
+TORCH_NPU_API void subscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
+TORCH_NPU_API void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
 
 struct TORCH_NPU_API NPUGraph {
     NPUGraph();
