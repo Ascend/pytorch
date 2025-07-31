@@ -47,6 +47,22 @@ void graph_task_update_end(c10_npu::NPUStream stream)
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskUpdateEnd(stream));
 }
 
+void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData)
+{
+    aclrtCallbackBlockType type = aclrtCallbackBlockType::ACL_CALLBACK_BLOCK;
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtLaunchCallback(func, fnData, type, stream));
+}
+
+void subscribe_report(uint64_t threadId, c10_npu::NPUStream stream)
+{
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtSubscribeReport(threadId, stream));
+}
+
+void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stream)
+{
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtUnSubscribeReport(threadId, stream));
+}
+
 /**
  * Note [CUDA Graph Wrapper Class]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
