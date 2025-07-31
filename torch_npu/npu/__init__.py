@@ -418,6 +418,18 @@ def device_count() -> int:
     return r
 
 
+def _launch_host_func(op_stream, fn, user_data):
+    torch_npu._C._launch_host_func(op_stream, fn, user_data)
+
+
+def _subscribe_report(op_stream):
+    torch_npu._C._subscribe_report(op_stream)
+
+
+def _unsubscribe_report(op_stream):
+    torch_npu._C._unsubscribe_report(op_stream)
+
+
 def can_device_access_peer(device_id, peer_device_id):
     r"""Checks if peer access between two devices is possible.
     """

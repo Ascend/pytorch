@@ -94,6 +94,9 @@ LOAD_FUNCTION(aclrtGetDeviceResLimit)
 LOAD_FUNCTION(aclrtSetDeviceResLimit)
 LOAD_FUNCTION(aclrtResetDeviceResLimit)
 LOAD_FUNCTION(aclrtStreamGetId)
+LOAD_FUNCTION(aclrtLaunchCallback)
+LOAD_FUNCTION(aclrtSubscribeReport)
+LOAD_FUNCTION(aclrtUnSubscribeReport)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1082,6 +1085,42 @@ aclError AclrtStreamGetId(aclrtStream stream, int32_t* stream_id)
     }
     TORCH_CHECK(func, "Failed to find function ", "aclrtStreamGetId", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stream, stream_id);
+}
+
+aclError AclrtLaunchCallback(aclrtCallback fn, void *userData, aclrtCallbackBlockType blockType, aclrtStream stream)
+{
+    typedef aclError (*AclrtLaunchCallback)(aclrtCallback, void *, aclrtCallbackBlockType, aclrtStream);
+    static AclrtLaunchCallback func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtLaunchCallback) GET_FUNC(aclrtLaunchCallback);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtLaunchCallback", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(fn, userData, blockType, stream);
+}
+
+aclError AclrtSubscribeReport(uint64_t threadId, aclrtStream stream)
+{
+    typedef aclError (*AclrtSubscribeReport)(uint64_t, aclrtStream);
+    static AclrtSubscribeReport func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtSubscribeReport) GET_FUNC(aclrtSubscribeReport);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtSubscribeReport", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(threadId, stream);
+}
+
+aclError AclrtUnSubscribeReport(uint64_t theadId, aclrtStream stream)
+{
+    typedef aclError (*AclrtUnSubscribeReport)(uint64_t, aclrtStream);
+    static AclrtUnSubscribeReport func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtUnSubscribeReport) GET_FUNC(aclrtUnSubscribeReport);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtUnSubscribeReport", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(theadId, stream);
 }
 
 } // namespace acl
