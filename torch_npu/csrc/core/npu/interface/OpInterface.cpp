@@ -1,5 +1,6 @@
 #include "OpInterface.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
+#include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
 
 namespace c10_npu {
 
@@ -18,7 +19,7 @@ LOAD_FUNCTION(aclnnSilentCheckV2)
 bool IsExistAclnnSilentCheck()
 {
     const static bool isExist = []() -> bool {
-        static auto func = GET_FUNC(aclnnSilentCheck);
+        static auto func = GetOpApiFuncAddr("aclnnSilentCheck");
         return func != nullptr;
     }();
     return isExist;
