@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import os
+import pwd
 import re
 import shutil
 import subprocess
@@ -77,9 +78,7 @@ class CANNExportParser(BaseParser):
 
     def _check_msprof_environment(self):
         self._check_msprof_profile_path_is_valid()
-        self._check_msprof_cmd_path_exist()
-        self._check_msprof_cmd_path_permission()
-        self._check_msprof_py_path_permission()
+        self._check_msprof_path()
 
     def _check_msprof_profile_path_is_valid(self):
         self._check_profiler_path_parent_dir_invalid(ProfilerPathManager.get_all_subdir(self._cann_path))
@@ -94,21 +93,27 @@ class CANNExportParser(BaseParser):
                                    f"Please execute 'chmod -R 755 '{self._cann_path}' '.")
         return False
 
-    def _check_msprof_cmd_path_exist(self):
+    def _check_msprof_path(self):
         if not self.msprof_path:
             raise RuntimeError("Export CANN Profiling data failed! 'msprof' command not found!"
                                + prof_error(ErrCode.NOT_FOUND))
-
-    def _check_msprof_cmd_path_permission(self):
-        ProfilerPathManager.check_path_permission(self.msprof_path)
-
-    def _check_msprof_py_path_permission(self):
+        if not ProfilerPathManager.check_path_permission(self.msprof_path):
+            raise PermissionError(f"The '{self.msprof_path}' path and current owner have inconsistent permissions."
+                                  f"please execute 'chown -R {pwd.getpwuid(os.getuid()).pw_name} "
+                                  f"{os.path.normpath(os.path.join(self.msprof_path, '../../..'))}'"
+                                  + prof_error(ErrCode.PERMISSION))
         msprof_script_path = self._get_msprof_script_path(self._MSPROF_PY_PATH)
         if not msprof_script_path:
             raise FileNotFoundError(
-                "Failed to find msprof.py path. Please check the CANN environment."
+                f"Failed to find msprof.py path in {self.msprof_path}. Please check the CANN environment."
             )
-        ProfilerPathManager.check_path_permission(msprof_script_path)
+        # The path "os.path.join(msprof_script_path, '../../../../../../..')"  represents the layer of "ascend-toolkit",
+        # such as "xxx/ascend-toolkit"
+        if not ProfilerPathManager.check_path_permission(msprof_script_path):
+            raise PermissionError(f"The '{msprof_script_path}' path and current owner have inconsistent permissions."
+                                  f"please execute 'chown -R {pwd.getpwuid(os.getuid()).pw_name} "
+                                  f"{os.path.normpath(os.path.join(msprof_script_path, '../../../../../../..'))}'"
+                                  + prof_error(ErrCode.PERMISSION))
 
     def _get_msprof_script_path(self, script_path: str) -> str:
         msprof_path = os.path.realpath(self.msprof_path.strip())

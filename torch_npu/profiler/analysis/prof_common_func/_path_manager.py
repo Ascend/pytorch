@@ -201,5 +201,6 @@ class ProfilerPathManager:
         current_uid = os.getuid()
         file_uid = file_stat.st_uid
         if file_uid not in (0, current_uid):
-            raise PermissionError(f"The '{path}' path and current owner have inconsistent permissions."
-                                  f"please execute 'chown root {path}'" + prof_error(ErrCode.PERMISSION))
+            return False
+        return True
+

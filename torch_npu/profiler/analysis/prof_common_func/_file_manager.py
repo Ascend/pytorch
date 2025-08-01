@@ -194,3 +194,11 @@ class FileManager:
             return True
         current_uid = os.geteuid()
         return current_uid == stat_info.st_uid
+
+    @classmethod
+    def check_file_writable(cls, path):
+        return os.access(path, os.W_OK)
+
+    @classmethod
+    def check_file_readable(cls, path) -> bool:
+        return os.access(path, os.R_OK)
