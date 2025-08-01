@@ -8,7 +8,7 @@ from json import JSONDecodeError
 from torch_npu.utils._error_code import ErrCode, prof_error
 from ....utils._path_manager import PathManager
 from ..prof_bean._event_bean import EventBean
-from ..prof_common_func._constant import Constant, print_warn_msg
+from ..prof_common_func._constant import Constant
 from ..prof_common_func._constant import convert_us2ns
 from ..prof_common_func._path_manager import ProfilerPathManager
 from ..prof_common_func._file_manager import FileManager
@@ -77,10 +77,19 @@ class CANNFileParser:
     def __init__(self, profiler_path: str):
         self._profiler_path = profiler_path
         self._cann_path = ProfilerPathManager.get_cann_path(profiler_path)
+        self._check_cann_path_valid()
         self._file_dict = {}
         self._file_dispatch()
         ProfilerLogger.init(profiler_path, "CANNFileParser")
         self.logger = ProfilerLogger.get_instance()
+
+    def _check_cann_path_valid(self):
+        if not FileManager.check_file_readable(self._cann_path):
+            raise PermissionError(f"Path '{self._cann_path}' owner is not readable. "
+                                  f"Please execute 'chmod -R 755 '{self._cann_path}' '.")
+        if not FileManager.check_file_writable(self._cann_path):
+            raise PermissionError(f"Path '{self._cann_path}' owner is not writable. "
+                                  f"Please execute 'chmod -R 755 '{self._cann_path}' '.")
 
     @classmethod
     def _json_load(cls, data: str) -> list:
