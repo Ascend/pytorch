@@ -25,7 +25,7 @@ pip3 install torch==2.6.0
 **For x86:**
 
 ```bash
-pip3 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
+pip3 install torch==2.6.0+cpu  --index-url https://download.pytorch.org/whl/cpu
 ```
 
 2. **Install torch-npu dependencies**
