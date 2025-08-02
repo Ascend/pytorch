@@ -151,7 +151,7 @@ REGISTER_OPTION(MM_BMM_ND_ENABLE)
 REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDDisable, MM_BMM_ND_ENABLE, "enable", "disable")
 
 REGISTER_OPTION(ALLOW_INTERNAL_FORMAT)
-REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckForbidInternalFormat, ALLOW_INTERNAL_FORMAT, "enable", "disable")
+REGISTER_OPTION_BOOL_FUNCTION(CheckForbidInternalFormat, ALLOW_INTERNAL_FORMAT, "enable", "disable")
 
 REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string &val) {
   static const std::string mm_hf32_option_name = "ALLOW_MATMUL_HF32";
