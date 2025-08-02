@@ -312,3 +312,15 @@ Ascend Extension for PyTorch 通过以下向量评估一个漏洞的严重等级
 涉及第三方的开源组件部分漏洞说明：
 
 PyTorch 2.6.0版本存在CVE-2025-2148漏洞，该漏洞在torch.ops.profiler._call_end_callbacks_on_jit_fut接口中存在内存损坏问题。 该漏洞PyTorch社区处理中，Ascend Extension for PyTorch中的profiler功能不受该漏洞影响。如需使用相关功能，请关注社区[issue](https://github.com/pytorch/pytorch/issues/147722)进展。
+
+PyTorch 2.6.0版本存在CVE-2025-2953漏洞，该漏洞在torch.mkldnn_max_pool2d接口中存在浮点异常崩溃问题。 如需使用相关功能，建议用户使用2.7.1及以上的修复版本。
+
+PyTorch 2.6.0版本存在CVE-2025-3121漏洞，该漏洞在torch.jit.jit_module_from_flatbuffer接口中存在内存损坏问题。 该漏洞PyTorch社区处理中，如需使用相关功能，请关注社区[issue](https://github.com/pytorch/pytorch/issues/149800)进展。
+
+PyTorch 2.6.0版本存在CVE-2025-3000漏洞，该漏洞在使用torch.jit.script装饰器时存在内存损坏问题。 该漏洞PyTorch社区处理中，如需使用相关功能，请关注社区[issue](https://github.com/pytorch/pytorch/issues/149623)进展。
+
+PyTorch 2.6.0版本存在CVE-2025-3001漏洞，该漏洞在torch.lstm_cell接口中存在内存损坏问题。 该漏洞PyTorch社区处理中，如需使用相关功能，请关注社区[issue](https://github.com/pytorch/pytorch/issues/149626)进展。
+
+PyTorch 2.6.0版本存在CVE-2025-2149漏洞，该漏洞影响Quantized Sigmoid模块的nnq_Sigmoid方法，存在不正确初始化问题。 该漏洞PyTorch社区处理中，如需使用相关功能，请关注社区[issue](https://github.com/pytorch/pytorch/issues/147818)进展。
+
+PyTorch 2.6.0版本存在CVE-2025-3136漏洞，该漏洞在torch.cuda.memory.caching_allocator_detele接口中存在内存损坏问题。 该漏洞PyTorch社区处理中，Ascend Extension for PyTorch的torch_npu.npu.memory.caching_allocator_detele接口受该漏洞影响。如需使用相关功能，请关注社区[issue](https://github.com/pytorch/pytorch/issues/149626)进展，Ascend Extension for PyTorch会同步进行修复。
