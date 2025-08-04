@@ -122,7 +122,7 @@ const std::string c10_npu_check_error_message(std::string& errmsg)
     std::smatch match;
 
     if (std::regex_search(errmsg, match, dateRegex)) {
-        size_t dateEndPos = match.position(0) + match.length(0);
+        size_t dateEndPos = static_cast<size_t>(match.position(0) + match.length(0));
         size_t tracePos = errmsg.find("TraceBack (most recent call last):\n", dateEndPos);
         std::string content;
         if (tracePos != std::string::npos) {

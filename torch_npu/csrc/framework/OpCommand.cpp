@@ -214,7 +214,7 @@ void OpCommand::RunOpApi(const string &op_name, PROC_FUNC func, bool sync)
     }
 }
 
-void OpCommand::RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool sync)
+void OpCommand::RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool is_sync)
 {
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -250,7 +250,7 @@ void OpCommand::RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool sy
         }
 #endif
     }
-    if (sync) {
+    if (is_sync) {
         NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
     }
 }
