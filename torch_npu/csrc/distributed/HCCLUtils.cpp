@@ -117,7 +117,8 @@ bool isSupportHcclCommName()
     return at_npu::hccl::isHcclFeatureSupported(HcclCommConfigCapability::HCCL_COMM_CONFIG_COMM_NAME);
 }
 
-HCCLComm::HCCLComm(HcclComm hcclComm) : hcclComm_(hcclComm), hcclAsyncErr_(HCCL_SUCCESS) {}
+HCCLComm::HCCLComm(HcclComm hcclComm) : hcclComm_(hcclComm), hcclAsyncErr_(HCCL_SUCCESS),
+    hcclCommType(0), p2pPeer(0) {}
     
 HCCLComm::~HCCLComm()
 {
@@ -186,6 +187,8 @@ HCCLComm::HCCLComm(HCCLComm&& other)
 {
     std::swap(hcclComm_, other.hcclComm_);
     std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
+    std::swap(hcclCommType, other.hcclCommType);
+    std::swap(p2pPeer, other.p2pPeer);
 }
 
 // Move assignable
@@ -193,6 +196,8 @@ HCCLComm& HCCLComm::operator=(HCCLComm&& other)
 {
     std::swap(hcclComm_, other.hcclComm_);
     std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
+    std::swap(hcclCommType, other.hcclCommType);
+    std::swap(p2pPeer, other.p2pPeer);
     return *this;
 }
 

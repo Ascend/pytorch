@@ -2776,7 +2776,7 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
         // get deadlock. Here we enqueue work without outputs_.
         workMetaList_.emplace_back(*work);
         // update the PG status related to the last enqueued work
-        pgStatus_->lastEnqueuedSeq = work->seq_;
+        pgStatus_->lastEnqueuedSeq = static_cast<int64_t>(work->seq_);
         pgStatus_->lastEnqueuedWorkName = opTypeToString(work->opType_);
         pgStatus_->lastEnqueuedNumelIn = work->numelIn_;
         pgStatus_->lastEnqueuedNumelOut = work->numelOut_;
@@ -2861,9 +2861,9 @@ bool ProcessGroupHCCL::setCommWorkingDevNic(
     if (hcclCommType == 1) {
         int p2pRank = rankid <= p2pPeer ? 0 : 1;
         bool isSendRecvSelf = rank_ == p2pPeer;
-        int p2pTargetRank = isSendRecvSelf ? 0 : 1 - p2pRank;
+        uint32_t p2pTargetRank = isSendRecvSelf ? 0 : 1 - p2pRank;
         for (int i = 0; i < nranks; i++) {
-            if (ranks[i] == rankid) {
+            if (ranks[i] == static_cast<uint32_t>(rankid)) {
                 sendRanks.push_back(p2pRank);
                 sendUseBackup.push_back(useBackup[i]);
                 sendnRank++;
@@ -3361,10 +3361,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     work->numelIn_ = 0;
     work->numelOut_ = 0;
     for (const auto& input : inputs) {
-        work->numelIn_ += input.numel();
+        work->numelIn_ += static_cast<size_t>(input.numel());
     }
     for (const auto& output : outputs) {
-        work->numelOut_ += output.numel();
+        work->numelOut_ += static_cast<size_t>(output.numel());
     }
     c10_npu::NPUGraph::inc_pending_event_queries();
     if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
@@ -3528,8 +3528,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     work->store_ = store_;
     // Record size info for debug. We only record the size on the first device as
     // multi-device per process is deprecated
-    work->numelIn_ = inputs[0].numel();
-    work->numelOut_ = outputs[0].numel();
+    work->numelIn_ = static_cast<size_t>(inputs[0].numel());
+    work->numelOut_ = static_cast<size_t>(outputs[0].numel());
     c10_npu::NPUGraph::inc_pending_event_queries();
     if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
@@ -3710,7 +3710,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
         work->store_ = store_;
         // Record size info for debug. We only record the size on the first device
         // as multi-device per process is deprecated
-        work->numelIn_ = work->numelOut_ = tensors[i].numel();
+        work->numelIn_ = work->numelOut_ = static_cast<size_t>(tensors[i].numel());
     }
     
     c10_npu::NPUGraph::inc_pending_event_queries();
