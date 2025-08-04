@@ -132,7 +132,7 @@ public:
                 return nullptr;
             }
             block->context_when_allocated = std::move(context);
-            block->requested_size = size;
+            block->requested_size = static_cast<int64_t>(size);
 
             ASCEND_LOGD("NPUWorkspaceAllocator malloc by AclrtMallocAlign32: size=%zu", block->size);
             update_stat(stats.reserved_bytes, block->size);
@@ -397,27 +397,6 @@ static void uncached_delete(void* ptr)
 static void local_raw_delete(void* ptr);
 
 class NpuWorkspaceAllocator : public c10::Allocator {
-private:
-    // allocated blocks by device pointer
-    ska::flat_hash_map<void *, int> allocated_ptrs;
-
-    void replace_allocated_ptr(void *new_ptr, void *src_ptr, int device)
-    {
-        auto it = allocated_ptrs.find(src_ptr);
-        if (it != allocated_ptrs.end()) {
-            allocated_ptrs.erase(it);
-        }
-        allocated_ptrs[new_ptr] = device;
-    }
-
-    int get_allocated_device(void *ptr)
-    {
-        auto it = allocated_ptrs.find(ptr);
-        if (it == allocated_ptrs.end()) {
-            return -1;
-        }
-        return it->second;
-    }
 public:
     std::vector<std::unique_ptr<DeviceWorkspaceAllocator>> device_allocator;
 
@@ -561,6 +540,28 @@ public:
     {
         assertValidDevice(device);
         return device_allocator[device]->getStats();
+    }
+
+private:
+    // allocated blocks by device pointer
+    ska::flat_hash_map<void *, int> allocated_ptrs;
+
+    void replace_allocated_ptr(void *new_ptr, void *src_ptr, int device)
+    {
+        auto it = allocated_ptrs.find(src_ptr);
+        if (it != allocated_ptrs.end()) {
+            allocated_ptrs.erase(it);
+        }
+        allocated_ptrs[new_ptr] = device;
+    }
+
+    int get_allocated_device(void *ptr)
+    {
+        auto it = allocated_ptrs.find(ptr);
+        if (it == allocated_ptrs.end()) {
+            return -1;
+        }
+        return it->second;
     }
 }; // class NpuWorkspaceAllocator
 

@@ -218,10 +218,10 @@ std::string getAffinityMapAsString(c10::DeviceIndex device_id, const ThreadCoreM
     return oss.str();
 }
 
-ThreadCoreMap getCpuAffinityMap(c10::DeviceIndex device_id, const std::vector<CoreIdRange> &device_ranges)
+ThreadCoreMap getCpuAffinityMap(c10::DeviceIndex device_id, const std::vector<CoreIdRange> &deviceRanges)
 {
     ThreadCoreMap threadCoreMap;
-    CoreIdRange range = device_ranges[device_id];
+    CoreIdRange range = deviceRanges[device_id];
     unsigned int core_nums = range.end - range.start + 1;
     if (core_nums < threadTypeList.size()) {
         ASCEND_LOGW("Device %d available core numbers (%d) are insufficient for all %zu thread types and will bind available cores to all threads.",

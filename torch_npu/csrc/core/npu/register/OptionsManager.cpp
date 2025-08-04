@@ -470,9 +470,9 @@ uint32_t OptionsManager::GetP2PBufferSize()
     const static uint32_t buf_size = []() -> uint32_t {
         char* buf_val = std::getenv("P2P_HCCL_BUFFSIZE");
         // Default 0M
-        int64_t buf_size = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 20;
-        TORCH_CHECK(buf_size >= 0, "P2P_HCCL_BUFFSIZE cannot be negative.", PTA_ERROR(ErrCode::VALUE));
-        return static_cast<uint32_t>(buf_size);
+        int64_t buf_size_ = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 20;
+        TORCH_CHECK(buf_size_ >= 0, "P2P_HCCL_BUFFSIZE cannot be negative.", PTA_ERROR(ErrCode::VALUE));
+        return static_cast<uint32_t>(buf_size_);
     }();
     return buf_size;
 }
@@ -482,13 +482,13 @@ uint32_t OptionsManager::GetAclOpInitMode()
     const static uint32_t acl_op_init_mode = []() -> uint32_t {
         char* buf_val = std::getenv("ACL_OP_INIT_MODE");
         // Default 0
-        int64_t acl_op_init_mode = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 0;
+        int64_t acl_op_init_mode_ = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 0;
         std::unordered_map<int32_t, std::string> aclOpInitMode = getAclOpInitMode();
-        if (aclOpInitMode.find(acl_op_init_mode) == aclOpInitMode.end()) {
-            acl_op_init_mode = 0;
+        if (aclOpInitMode.find(acl_op_init_mode_) == aclOpInitMode.end()) {
+            acl_op_init_mode_ = 0;
             TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value 0.");
         }
-        return static_cast<uint32_t>(acl_op_init_mode);
+        return static_cast<uint32_t>(acl_op_init_mode_);
     }();
     return acl_op_init_mode;
 }
