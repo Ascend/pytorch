@@ -88,11 +88,11 @@ at::Tensor create_tensor_with_format_and_shape(c10::IntArrayRef baseSizes,
     const caffe2::TypeMeta dtype, int64_t acl_format)
 {
     c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
-    int64_t nelements = 1;
+    size_t nelements = 1;
     for (const auto& num : storageSizes) {
         nelements *= num;
     }
-    int64_t size_bytes = nelements * dtype.itemsize();
+    size_t size_bytes = nelements * dtype.itemsize();
     c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
         c10::StorageImpl::use_byte_size_t(),
         c10::SymInt(size_bytes),

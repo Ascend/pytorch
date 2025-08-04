@@ -170,6 +170,8 @@ NpuIPCSentData::NpuIPCSentData(
     if (npu_ipc_global_entities.sync_events_used_.load() <
         NPU_IPC_MAXIMUM_EVENTS_TO_USE) {
         // NPU does not suppurt event_sync in IPC now.
+        event_ = nullptr;
+        event_sync_required_ = false;
     } else {
         auto stream = c10_npu::getCurrentNPUStream(device.index());
         c10_npu::stream_synchronize(stream);

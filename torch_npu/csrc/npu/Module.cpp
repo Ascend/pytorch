@@ -1190,11 +1190,11 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
     }
 
     auto workspace_snapshot = c10_npu::NPUWorkspaceAllocator::snapshot();
-    for (int i = 0; i < workspace_snapshot.segments.size(); i++) {
+    for (size_t i = 0; i < workspace_snapshot.segments.size(); i++) {
         segments.append(segmentInfoToDict(workspace_snapshot.segments[i]));
     }
 
-    for (int i = 0; i < workspace_snapshot.device_traces.size(); i++) {
+    for (size_t i = 0; i < workspace_snapshot.device_traces.size(); i++) {
         snapshot.device_traces[i].insert(snapshot.device_traces[i].begin(), workspace_snapshot.device_traces[i].begin(),
                                          workspace_snapshot.device_traces[i].end());
     }

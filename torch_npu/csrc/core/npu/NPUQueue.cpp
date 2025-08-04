@@ -452,11 +452,11 @@ void Repository::ThrowDeviceError(RepoStatus current_status, void* cur_paras)
         return;
     }
     ASCEND_LOGE("getUceErrorFlag in Enqueue, throw %s.", throwError.c_str());
-    std::string error_msg;
+    std::string device_error_msg;
     if (current_status != RepoStatus::STOP_EXIT && current_status != RepoStatus::UCE_EXIT) {
-        error_msg = c10_npu::c10_npu_get_error_message();
+        device_error_msg = c10_npu::c10_npu_get_error_message();
     }
-    throw std::runtime_error(throwError + ", " + error_msg + PTA_ERROR(ErrCode::ACL));
+    throw std::runtime_error(throwError + ", " + device_error_msg + PTA_ERROR(ErrCode::ACL));
 }
 
 void Repository::Enqueue(void *cur_paras)
