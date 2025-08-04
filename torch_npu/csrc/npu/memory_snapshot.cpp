@@ -172,6 +172,7 @@ std::string _memory_snapshot_pickled()
     c10::IValue requested_size_s = "requested_size";
     c10::IValue stream_s = "stream";
     c10::IValue segment_type_s = "segment_type";
+    c10::IValue segment_pool_id = "segment_pool_id";
     c10::IValue large_s = "large";
     c10::IValue small_s = "small";
     c10::IValue size_s = "size";
@@ -213,6 +214,8 @@ std::string _memory_snapshot_pickled()
         segmentDict.insert(stream_s, int64_t(segmentInfo.stream));
         segmentDict.insert(segment_type_s,
                            (segmentInfo.is_large ? large_s : small_s));
+        segmentDict.insert(segment_pool_id,
+                           std::tuple<int64_t, int64_t>(segmentInfo.owner_private_pool_id));
         segmentDict.insert(is_expandable_s, segmentInfo.is_expandable);
 
         add_frame_key(segmentDict, segmentInfo.context_when_allocated);
