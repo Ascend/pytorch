@@ -575,3 +575,4 @@ def _add_serialization_methods():
     torch.save = save
     torch.load = load
     torch.serialization._save = _npu_save
+    torch.serialization.add_safe_globals([torch_npu.utils.storage._rebuild_npu_tensor])

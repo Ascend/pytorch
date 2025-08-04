@@ -195,6 +195,7 @@ def _apply_distributed_methods_patch():
     torch.distributed.launcher.api._get_addr_and_port = torch_npu.distributed.distributed_c10d._trigger__get_addr_and_port_decorator(torch.distributed.launcher.api._get_addr_and_port)
 
 
+torch.serialization.add_safe_globals([torch_npu.npu._format.Format])
 torch.utils.rename_privateuse1_backend("npu")
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)

@@ -4,6 +4,7 @@ import torch
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
+from torch_npu.utils.storage import _reduce_ex
 
 
 __all__ = []
@@ -84,3 +85,4 @@ def _npu_type(self, dtype=None, non_blocking=False, **kwargs):
 def _add_tensor_methods():
     torch.Tensor.type_raw = torch.Tensor.type
     torch.Tensor.type = _npu_type
+    torch.Tensor.__reduce_ex__ = _reduce_ex
