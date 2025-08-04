@@ -282,6 +282,10 @@ class TestPublicApiCompatibility(TestCase):
                     return
                 elem_module = getattr(obj, '__module__', None)
 
+                # the compatibility of apis from torch._ops.npu is checked in op-plugin.
+                if elem_module == "torch._ops.npu":
+                    return
+
                 modname = allow_dict["being_migrated"].get(modname, modname)
                 elem_modname_starts_with_mod = elem_module is not None and \
                                                elem_module.startswith(modname) and \
@@ -327,6 +331,13 @@ class TestPublicApiCompatibility(TestCase):
         for func in deleted_apis:
             failure_list.append(f"# {func}:")
             failure_list.append(f"  - {func} has been deleted.")
+        
+        newly_apis = set(now_funcs) - set(base_funcs)
+        for func in newly_apis:
+            failure_list.append(f"# {func}:")
+            failure_list.append(f"  - {func} is new. Please add it to the torch_npu_schema.json")
+            signature = content[func]["signature"]
+            failure_list.append(f"  - it's signature is {signature}.")
 
         msg = "All the APIs below do not meet the compatibility guidelines. "
         msg += "If the change timeline has been reached, you can modify the torch_npu_schema.json to make it OK."

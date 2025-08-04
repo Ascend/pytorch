@@ -622,6 +622,14 @@ class TestPublicBindings(TestCase):
           `__module__` that start with the current submodule.
         '''
         failure_list = []
+
+        def _get_test_torch_version():
+            torch_npu_version = torch_npu.__version__
+            version_list = torch_npu_version.split('.')
+            if len(version_list) > 2:
+                return f'v{version_list[0]}.{version_list[1]}'
+            else:
+                raise RuntimeError("Invalid torch_npu version.")
         
         try:
             file_abspath = os.path.abspath(__file__)
@@ -633,6 +641,23 @@ class TestPublicBindings(TestCase):
         except Exception:
             update_allow_dict_torchair = {}
             warnings.warn("if you are debugging UT file in clone repo, please recursively update the torchair submodule")
+        
+        try:
+            file_abspath = os.path.abspath(__file__)
+            op_plugin_path = 'third_party/op-plugin/test/allowlist_for_publicAPI.json'
+            with open(
+                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(file_abspath))), op_plugin_path)) as json_file_op_plugin:
+                version_tag = _get_test_torch_version()
+                allow_dict_info = json.load(json_file_op_plugin)
+                allow_dict_op_plugin = {}
+                if "torch_npu" in allow_dict_info and "all_version" in allow_dict_info["torch_npu"]:
+                    allow_dict_op_plugin["torch_npu"] = allow_dict_info["torch_npu"]["all_version"]
+                    if version_tag in allow_dict_info["torch_npu"] and allow_dict_info["torch_npu"][version_tag]:
+                        allow_dict_op_plugin["torch_npu"].extend(allow_dict_info["torch_npu"][version_tag])
+
+        except Exception as e:
+            allow_dict_op_plugin = {}
+            warnings.warn(f"{e}")
        
         with open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)),
                                   'allowlist_for_publicAPI.json')) as json_file:
@@ -651,6 +676,12 @@ class TestPublicBindings(TestCase):
                     
         if update_allow_dict_torchair:
             allow_dict.update(update_allow_dict_torchair)
+        
+        if allow_dict_op_plugin and "torch_npu" in allow_dict_op_plugin:
+            if "torch_npu" in allow_dict:
+                allow_dict["torch_npu"].extend(allow_dict_op_plugin["torch_npu"])
+            else:
+                allow_dict.update(allow_dict_op_plugin["torch_npu"])
         
         def test_module(modname):
             try:
