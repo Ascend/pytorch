@@ -191,18 +191,10 @@ void LazyInitAclops()
     }
 }
 
-void InitAclopsCore()
-{
-    SetPrecisionMode();
-    MakeCompileCacheDirAndSetOption();
-    GetAndSetDefaultJitCompileByAcl();
-    SetHF32DefaultValue();
-}
-
 void InitAclops()
 {
     RECORD_FUNCTION("InitAclops", std::vector<c10::IValue>({}));
-    InitAclopsCore();
+    LazyInitAclopsCore();
     ASCEND_LOGI("Init for aclops finished.")
 }
 
