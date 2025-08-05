@@ -13,7 +13,8 @@ namespace profiler {
 
 const std::string DOMAIN_COMMUNICATION = "communication";
 const std::string DOMAIN_DEFAULT = "default";
-const std::string DOMAIN_MSLEAKS = "msleaks";
+const std::string DOMAIN_CACHING = "ptaCaching";
+const std::string DOMAIN_WORKSPACE = "ptaWorkspace";
 
 class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
 friend class torch_npu::toolkit::profiler::Singleton<MstxMgr>;

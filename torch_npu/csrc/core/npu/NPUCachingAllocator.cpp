@@ -1562,7 +1562,7 @@ public:
 #ifndef BUILD_LIBTORCH
         if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
             mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
-                torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
+                torch_npu::profiler::DOMAIN_CACHING.c_str());
             mstxMemVirtualRangeDesc_t heapDesc{ block->device, block->ptr,
                 stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current };
             torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(msleaksDomain, &heapDesc);
@@ -1628,7 +1628,7 @@ public:
 #ifndef BUILD_LIBTORCH
         if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
             mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
-                torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
+                torch_npu::profiler::DOMAIN_CACHING.c_str());
             mstxMemVirtualRangeDesc_t desc{ block->device, orig_block_ptr,
                 stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current };
             torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(msleaksDomain, &desc);
