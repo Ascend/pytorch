@@ -1,3 +1,4 @@
+#include <dlfcn.h>
 #include <mutex>
 #include <memory>
 #include <string>
@@ -14,7 +15,7 @@ public:
     /**
         ctr
         */
-    explicit FunctionLoader(const std::string& filename);
+    explicit FunctionLoader(const std::string& filename, int flags = RTLD_LAZY);
     /**
         dectr
         */
@@ -30,6 +31,7 @@ public:
 private:
     mutable std::mutex mu_;
     std::string fileName;
+    int flags;
     void* handle = nullptr;
     mutable std::unordered_map<std::string, void*> registry;
 }; // class FunctionLoader
@@ -81,9 +83,9 @@ public:
 
 } // namespace register_function
 
-#define REGISTER_LIBRARY(soName)                                                \
-    auto library_##soName =                                                       \
-        ::std::unique_ptr<c10_npu::option::FunctionLoader>(new c10_npu::option::FunctionLoader(#soName));      \
+#define REGISTER_LIBRARY(soName, ...)                                                \
+    auto library_##soName = ::std::unique_ptr<c10_npu::option::FunctionLoader>( \
+        new c10_npu::option::FunctionLoader(#soName, ##__VA_ARGS__));  \
     static c10_npu::option::register_function::FunctionRegisterBuilder                             \
         register_library_##soName(#soName, library_##soName);
 
