@@ -14,7 +14,7 @@ namespace native {
   GET_FUNCTION(libmsprofiler, funcName)
 
 
-REGISTER_LIBRARY(libmsprofiler)
+REGISTER_LIBRARY(libmsprofiler, RTLD_LAZY | RTLD_GLOBAL)
 LOAD_FUNCTION(aclprofWarmup)
 LOAD_FUNCTION(aclprofSetConfig)
 LOAD_FUNCTION(aclprofGetSupportedFeatures)
