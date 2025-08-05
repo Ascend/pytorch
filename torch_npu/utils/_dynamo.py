@@ -1,5 +1,6 @@
 import inspect
 import sys
+import warnings
 from typing import Dict, List
 
 import torch
@@ -153,12 +154,34 @@ def register_inductor_npu():
     _InductorNpuRegistry.register_inductor_npu()
 
 
+def _detect_non_cpu_tensor(graph):
+    nodes = graph.nodes
+    for node in nodes:
+        if not hasattr(node, "meta"):
+            continue
+        example_value = node.meta.get("example_value", None)
+        if isinstance(example_value, torch.Tensor):
+            device_type = example_value.device.type
+            if device_type != "cpu":
+                return True
+    return False
+
+
 def patch_inductor_wrapper():
     from torch import _TorchCompileInductorWrapper
     src_call = _TorchCompileInductorWrapper.__call__
     
     def new_call(self, model_, inputs_):
-        register_inductor_npu()
+        if not is_inductor_npu_initialized():
+            # For each model_, detect at most once.
+            try:
+                has_non_cpu_tensor = _detect_non_cpu_tensor(model_.graph)
+                if has_non_cpu_tensor:
+                    register_inductor_npu()
+            except Exception as e:
+                warnings.warn(f"Detect non cpu tensor from graph failed. Reason: {e}. "
+                              "Do register inductor_npu default.")
+                register_inductor_npu()
         return src_call(self, model_, inputs_)
     _TorchCompileInductorWrapper.__call__ = new_call
 
