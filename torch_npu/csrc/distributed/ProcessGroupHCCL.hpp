@@ -926,6 +926,8 @@ protected:
 
     int peer_;
 
+    std::vector<uint32_t> global_ranks_in_group;
+
     std::exception_ptr watchDogException_ = nullptr;
 
     std::shared_ptr<ProcessGroupStatus> pgStatus_ = std::make_shared<ProcessGroupStatus>();
@@ -1003,7 +1005,7 @@ private:
         HcclCommConfig* commConfig = nullptr,
         int p2pRank = 0);
 
-    void createHCCLComm(
+    void createHCCLCommOrigin(
         const std::string& devicesKey,
         const std::vector<at::Device>& devices,
         HcclCommType commType,
@@ -1013,6 +1015,7 @@ private:
         int p2pRank);
 
     bool createHCCLCommEx(
+        const std::string& devicesKey,
         const std::vector<at::Device>& devices,
         HcclCommType commType,
         HcclCommConfig* commConfig,
