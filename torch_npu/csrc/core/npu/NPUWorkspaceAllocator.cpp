@@ -94,8 +94,9 @@ public:
                 update_stat(stats.reserved_bytes, -block->size);
 #ifndef BUILD_LIBTORCH
                 if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
-                    mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
-                    torch_npu::profiler::MstxMgr::GetInstance()->memRegionsUnregister(msleaksDomain, block->data_ptr);
+                    mstxDomainHandle_t workspaceDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
+                    mstxMemVirtualRangeDesc_t desc{ device, block->data_ptr, stats.reserved_bytes.current };
+                    torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(workspaceDomain, &desc);
                 }
                 record_mem_size_decrement(block->size);
                 const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -139,9 +140,9 @@ public:
             update_stat(stats.reserved_bytes, block->size);
 #ifndef BUILD_LIBTORCH
             if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
-                mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
-                mstxMemVirtualRangeDesc_t desc{device, block->data_ptr, block->size};
-                torch_npu::profiler::MstxMgr::GetInstance()->memRegionsRegister(msleaksDomain, &desc);
+                mstxDomainHandle_t workspaceDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
+                mstxMemVirtualRangeDesc_t desc{ device, block->data_ptr, stats.reserved_bytes.current };
+                torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(workspaceDomain, &desc);
             }
             record_mem_size_increment(block->size);
             torch_npu::profiler::reportMemoryDataToNpuProfiler({
@@ -170,6 +171,11 @@ public:
         allocated_size = block->size;
         update_stat(stats.allocated_bytes, block->size);
 #ifndef BUILD_LIBTORCH
+        if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
+            mstxDomainHandle_t workspaceDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
+            mstxMemVirtualRangeDesc_t desc{ device, block->data_ptr, stats.allocated_bytes.current };
+            torch_npu::profiler::MstxMgr::GetInstance()->memRegionsRegister(workspaceDomain, &desc);
+        }
         torch_npu::profiler::reportMemoryDataToNpuProfiler({
             static_cast<int8_t>(c10::DeviceType::PrivateUse1),
             device,
@@ -194,6 +200,10 @@ public:
         update_stat(stats.allocated_bytes, -allocated_size);
 #ifndef BUILD_LIBTORCH
         if (this->last_block && this->last_block->data_ptr && this->last_stream) {
+            if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
+                mstxDomainHandle_t workspaceDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
+                torch_npu::profiler::MstxMgr::GetInstance()->memRegionsUnregister(workspaceDomain, this->last_block->data_ptr);
+            }
             torch_npu::profiler::reportMemoryDataToNpuProfiler({
                 static_cast<int8_t>(c10::DeviceType::PrivateUse1),
                 device,
@@ -235,8 +245,10 @@ public:
                 update_stat(stats.reserved_bytes, -block_pair.second->size);
 #ifndef BUILD_LIBTORCH
                 if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
-                    mstxDomainHandle_t msleaksDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_MSLEAKS.c_str());
-                    torch_npu::profiler::MstxMgr::GetInstance()->memRegionsUnregister(msleaksDomain, block_pair.second->data_ptr);
+                    mstxDomainHandle_t workspaceDomain = torch_npu::profiler::MstxMgr::GetInstance()->
+                    createLeaksDomain(torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
+                    mstxMemVirtualRangeDesc_t desc{ device, block_pair.second->data_ptr, stats.reserved_bytes.current };
+                    torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(workspaceDomain, &desc);
                 }
                 record_mem_size_decrement(block_pair.second->size);
                 const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
