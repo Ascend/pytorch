@@ -2201,7 +2201,7 @@ void ProcessGroupHCCL::setNSLBCommConfig(HcclCommConfig** commConfig)
     }
 }
 
-void ProcessGroupHCCL::createHCCLComm(
+void ProcessGroupHCCL::createHCCLCommOrigin(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices,
     HcclCommType commType,
@@ -2265,6 +2265,7 @@ void ProcessGroupHCCL::createHCCLComm(
 }
 
 bool ProcessGroupHCCL::createHCCLCommEx(
+    const std::string& devicesKey,
     const std::vector<at::Device>& devices,
     HcclCommType commType,
     HcclCommConfig* commConfig,
@@ -2352,10 +2353,27 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             }
             commConfig = &config;
         }
-        auto subComm = HCCLComm::createSubHcclComm(globalHcclComm, numRanks, options_->global_ranks_in_group.data(), hcclid, rank, commConfig);
+        std::shared_ptr<HCCLComm> subComm = nullptr;
+        if (commType == HcclCommType::P2P && options_->global_ranks_in_group.empty()) {
+            uint32_t peer = static_cast<uint32_t>(getP2pPeer());
+            uint32_t lowRank = rank_ < peer ? rank_ : peer;
+            uint32_t highRank = rank_ < peer ? peer : rank_;
+            std::vector<uint32_t> p2pRanks = {lowRank, highRank};
+            hcclid = (std::hash<string>{}(devicesKey));
+            std::string p2pName = "p2p_" + std::to_string(lowRank) + "_" + std::to_string(highRank);
+            if (strlen(commConfig->hcclCommName) > 0) {
+                torch_npu::toolkit::profiler::Utils::safe_strcpy_s(commConfig->hcclCommName, p2pName.c_str(), COMM_NAME_MAX_LENGTH);
+            }
+            if (strlen(commConfig->hcclUdi) > 0) {
+                torch_npu::toolkit::profiler::Utils::safe_strcpy_s(commConfig->hcclUdi, p2pName.c_str(), UDI_MAX_LENGTH);
+            }
+            subComm = HCCLComm::createSubHcclComm(globalHcclComm, numRanks, p2pRanks.data(), hcclid, rank, commConfig);
+        } else {
+            subComm = HCCLComm::createSubHcclComm(globalHcclComm, numRanks, options_->global_ranks_in_group.data(), hcclid, rank, commConfig);
+        }
         if (subComm == nullptr) {
-            ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, group id is %s, subCommId is %llu.",
-                options_->group_id.c_str(), hcclid);
+            ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, group id is %s, subCommId is %llu, devicesKey is %s.",
+                options_->group_id.c_str(), hcclid, devicesKey.c_str());
             return false;
         }
         hcclComms[i] = subComm;
@@ -2367,10 +2385,10 @@ bool ProcessGroupHCCL::createHCCLCommEx(
     }
     auto subEndTime = std::chrono::steady_clock::now();
     auto subTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(subEndTime - subStartTime);
-    ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, use %d ms.",
-        options_->group_id.c_str(), hcclid, subTimeElapsed.count());
-    logger->info("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, use %d ms.",
-        options_->group_id.c_str(), hcclid, subTimeElapsed.count());
+    ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, devicesKey is %s, use %d ms.",
+        options_->group_id.c_str(), hcclid, devicesKey.c_str(), subTimeElapsed.count());
+    logger->info("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, devicesKey is %s, use %d ms.",
+        options_->group_id.c_str(), hcclid, devicesKey.c_str(), subTimeElapsed.count());
     return true;
 }
 
@@ -2442,8 +2460,8 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     std::vector<c10_npu::NPUStream> streamVal;
     streamVal.reserve(devices.size());
 
-    if (!createHCCLCommEx(devices, commType, commConfig, hcclComms, streamVal, p2pRank)) {
-        createHCCLComm(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
+    if (!createHCCLCommEx(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank)) {
+        createHCCLCommOrigin(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
     }
 
     hcclStreams_.emplace(devicesKey, std::move(streamVal));
