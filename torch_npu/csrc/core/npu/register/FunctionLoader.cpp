@@ -1,13 +1,13 @@
-#include <dlfcn.h>
-
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 
 namespace c10_npu {
 namespace option {
-FunctionLoader::FunctionLoader(const std::string &name)
+
+FunctionLoader::FunctionLoader(const std::string &name, int flags)
 {
     this->fileName = name + ".so";
+    this->flags = flags;
 }
 
 FunctionLoader::~FunctionLoader()
@@ -25,7 +25,7 @@ void FunctionLoader::Set(const std::string &name)
 void *FunctionLoader::Get(const std::string &name)
 {
     if (this->handle == nullptr) {
-        auto handle = dlopen(this->fileName.c_str(), RTLD_LAZY | RTLD_GLOBAL);
+        auto handle = dlopen(this->fileName.c_str(), this->flags);
         if (handle == nullptr) {
             AT_ERROR(dlerror());
             return nullptr;
