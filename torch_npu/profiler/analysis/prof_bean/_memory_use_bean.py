@@ -35,6 +35,7 @@ class MemoryUseBean(CommonBean):
     def __init__(self, data: dict):
         super().__init__(data)
         self._constant_data = struct.unpack(self.CONSTANT_STRUCT, self._data.get(Constant.CONSTANT_BYTES))
+        self._device_index = -1
 
     @property
     def ptr(self) -> int:
@@ -87,7 +88,12 @@ class MemoryUseBean(CommonBean):
 
     @property
     def device_index(self) -> int:
-        return int(self._constant_data[MemoryEnum.DEVICE_INDEX.value])
+        return (self._device_index if self._device_index != -1 else
+                int(self._constant_data[MemoryEnum.DEVICE_INDEX.value]))
+
+    @device_index.setter
+    def device_index(self, value: int) -> None:
+        self._device_index = value
 
     @property
     def component_type(self) -> int:

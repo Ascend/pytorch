@@ -43,5 +43,5 @@ class GeMemoryRecordBean(CommonBean):
         return None
 
     @property
-    def device_tag(self) -> float:
+    def device_tag(self) -> str:
         return self._data.get("Device", "")

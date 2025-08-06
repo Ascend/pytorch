@@ -332,7 +332,12 @@ class FwkFileParser:
         if not gc_events:
             return []
         cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
-        device_id = ProfilerPathManager.get_device_id(cann_path)
+        device_ids = ProfilerPathManager.get_device_id(cann_path)
+        device_id = None
+        if not device_ids:
+            device_id = Constant.INVALID_VALUE
+        else:
+            device_id = device_ids[0]
         event_list = [None] * len(gc_events)
         for idx, event in enumerate(gc_events):
             event.pid = TraceEventManager.get_pid_format(event.pid, TraceEventManager.GC_SORT_INDEX, device_id)
