@@ -1,4 +1,5 @@
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
@@ -178,6 +179,7 @@ void NPUEvent::createEvent(c10::DeviceIndex device_index)
 {
     device_index_ = device_index;
     NPUGuard guard(device_index_);
+    LazySetDevice();
     NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtCreateEventWithFlag(&event_, flags_));
     ASCEND_LOGI("Event: aclrtCreateEventWithFlag is successfully executed, event=%p", event_);
 #ifndef BUILD_LIBTORCH

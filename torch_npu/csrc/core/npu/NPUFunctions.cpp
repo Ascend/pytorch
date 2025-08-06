@@ -280,6 +280,13 @@ bool IsContextInitialized()
     }
 }
 
+void LazySetDevice()
+{
+    if (local_device < 0) {
+        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(0));
+    }
+}
+
 void warn_or_error_on_sync()
 {
     if (warning_state().get_sync_debug_mode() == SyncDebugMode::L_ERROR) {
