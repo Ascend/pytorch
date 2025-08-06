@@ -81,6 +81,8 @@ int MaybeExchangeDevice(int to_device);
 
 void SetTargetDevice();
 
+void LazySetDevice();
+
 int GetLocalDevice();
 
 aclError SetDeviceResLimit(int32_t device, int32_t type, uint32_t value);
