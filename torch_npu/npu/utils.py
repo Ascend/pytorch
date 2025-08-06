@@ -445,23 +445,23 @@ def stress_detect(mode=0):
             warnings.warn("The torch.distributed should to be initialized for p2p detection.")
             return 1
         global hccl_detect_group
+        rank = int(os.getenv('RANK', -1))
+        local_world_size = int(os.getenv('LOCAL_WORLD_SIZE', -1))
+        if rank == -1 or local_world_size == -1:
+            warnings.warn("Environment variable 'RANK' or 'LOCAL_WORLD_SIZE' is not set.")
+            return 1
+        worker_index = rank // local_world_size
+        local_rank = rank % local_world_size
         if hccl_detect_group is None:
-            rank = int(os.getenv('RANK', -1))
-            local_world_size = int(os.getenv('LOCAL_WORLD_SIZE', -1))
-            if rank == -1 or local_world_size == -1:
-                warnings.warn("Environment variable 'RANK' or 'LOCAL_WORLD_SIZE' is not set.")
-                return 1
-            worker_index = rank // local_world_size
-            local_rank = rank % local_world_size
             local_ranks = []
             for i in range(local_world_size):
                 local_ranks.append(local_world_size * worker_index + i)
-            try:
-                hccl_detect_group = torch.distributed.new_group(ranks=local_ranks)
-                comm = hccl_detect_group._get_backend(torch.device('npu')).get_hccl_comm(local_rank)
-            except Exception as err:
-                warnings.warn("Create local hccl group for p2p detection failed.")
-                return 1
+            hccl_detect_group = torch.distributed.new_group(ranks=local_ranks)
+        try:
+            comm = hccl_detect_group._get_backend(torch.device('npu')).get_hccl_comm(local_rank)
+        except Exception as err:
+            warnings.warn("Create local hccl group for p2p detection failed.")
+            return 1
     return torch_npu._C._npu_stress_detect(mode, comm)
 
 
