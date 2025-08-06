@@ -204,14 +204,15 @@ class CANNFileParser:
         return localtime_diff
 
     def del_summary_and_timeline_data(self):
-        device_path = ProfilerPathManager.get_device_path(self._cann_path)
-        if not device_path:
+        device_paths = ProfilerPathManager.get_device_path(self._cann_path)
+        if not device_paths:
             self.logger.error("Delete summary and timeline data failed, the device path is not exist.")
             return
-        summary_path = os.path.join(device_path, "summary")
-        timeline_path = os.path.join(device_path, "timeline")
-        PathManager.remove_path_safety(summary_path)
-        PathManager.remove_path_safety(timeline_path)
+        for device_path in device_paths:
+            summary_path = os.path.join(device_path, "summary")
+            timeline_path = os.path.join(device_path, "timeline")
+            PathManager.remove_path_safety(summary_path)
+            PathManager.remove_path_safety(timeline_path)
 
     def del_output_path_data(self):
         output_path = os.path.join(self._cann_path, self.MINDSTUDIO_PROFILER_OUTPUT)

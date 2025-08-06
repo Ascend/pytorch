@@ -69,15 +69,19 @@ class MemoryDbParser(BaseParser):
             return [cur_record]
         pta_ge_record_list = cur_record[:]
         pta_ge_record_list[MemoryRecordTableRow.COMPONENT.value] = Str2IdManager().get_id_from_str(Constant.PTA_GE)
-        if last_record:
-            pta_ge_record_list[MemoryRecordTableRow.TOTAL_ALLOCATED.value] = last_record[MemoryRecordTableRow.TOTAL_ALLOCATED.value] + cur_record[MemoryRecordTableRow.TOTAL_ALLOCATED.value]
-            pta_ge_record_list[MemoryRecordTableRow.TOTAL_RESERVED.value] = last_record[MemoryRecordTableRow.TOTAL_RESERVED.value] + cur_record[MemoryRecordTableRow.TOTAL_RESERVED.value]
-            pta_ge_record_list[MemoryRecordTableRow.TOTAL_ACTIVATE.value] = last_record[MemoryRecordTableRow.TOTAL_ACTIVATE.value] + cur_record[MemoryRecordTableRow.TOTAL_ACTIVATE.value]
+        if last_record.get(cur_record[MemoryRecordTableRow.DEVICE_ID.value]):
+            last_record_data = last_record[cur_record[MemoryRecordTableRow.DEVICE_ID.value]]
+            pta_ge_record_list[MemoryRecordTableRow.TOTAL_ALLOCATED.value] = last_record_data[MemoryRecordTableRow.TOTAL_ALLOCATED.value] + cur_record[MemoryRecordTableRow.TOTAL_ALLOCATED.value]
+            pta_ge_record_list[MemoryRecordTableRow.TOTAL_RESERVED.value] = last_record_data[MemoryRecordTableRow.TOTAL_RESERVED.value] + cur_record[MemoryRecordTableRow.TOTAL_RESERVED.value]
+            pta_ge_record_list[MemoryRecordTableRow.TOTAL_ACTIVATE.value] = last_record_data[MemoryRecordTableRow.TOTAL_ACTIVATE.value] + cur_record[MemoryRecordTableRow.TOTAL_ACTIVATE.value]
             pta_ge_record_list[MemoryRecordTableRow.STREAM_PTR.value] = cur_record[MemoryRecordTableRow.STREAM_PTR.value] if cur_record[MemoryRecordTableRow.STREAM_PTR.value] else last_record[MemoryRecordTableRow.STREAM_PTR.value]
         return [cur_record, pta_ge_record_list]
     
     def run(self, deps_data: dict):
         try:
+            cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
+            device_ids = ProfilerPathManager.get_device_id(cann_path)
+            self.device_index = device_ids[0] if len(device_ids) == 1 else -1
             self.init_db_connect()
             self.set_start_string_id()
             self._pta_op_memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", {}).get(Constant.Db, [])
@@ -185,12 +189,12 @@ class MemoryDbParser(BaseParser):
                 self._pta_record_list.append([Str2IdManager().get_id_from_str(Constant.WORKSPACE), memory_bean.time_ns,
                                               memory_bean.total_allocated_for_db, memory_bean.total_reserved_for_db,
                                               memory_bean.total_active_for_db, memory_bean.stream_ptr,
-                                              memory_bean.device_index])
-                continue
-            self._pta_record_list.append([Str2IdManager().get_id_from_str(Constant.PTA), memory_bean.time_ns,
-                                          memory_bean.total_allocated_for_db, memory_bean.total_reserved_for_db,
-                                          memory_bean.total_active_for_db, memory_bean.stream_ptr,
-                                          memory_bean.device_index])
+                                              self.device_index if self.device_index != -1 else memory_bean.device_index])
+            else:
+                self._pta_record_list.append([Str2IdManager().get_id_from_str(Constant.PTA), memory_bean.time_ns,
+                                              memory_bean.total_allocated_for_db, memory_bean.total_reserved_for_db,
+                                              memory_bean.total_active_for_db, memory_bean.stream_ptr,
+                                              self.device_index if self.device_index != -1 else memory_bean.device_index])
     
     def get_pta_ge_record_list(self):
         """
@@ -204,8 +208,8 @@ class MemoryDbParser(BaseParser):
             raise RuntimeError(f"Can't sort records for cann memory record") from e
         ge_ptr = 0
         pta_ptr = 0
-        last_ge_record = None
-        last_pta_record = None
+        last_ge_record = {}
+        last_pta_record = {}
         while ge_ptr < len(self._ge_record_list) and pta_ptr < len(self._pta_record_list):
             ge_record = self._ge_record_list[ge_ptr]
             pta_record = self._pta_record_list[pta_ptr]
@@ -214,11 +218,11 @@ class MemoryDbParser(BaseParser):
                 pta_ptr += 1
                 if pta_record[MemoryRecordTableRow.COMPONENT.value] != \
                     Str2IdManager().get_id_from_str(Constant.WORKSPACE):
-                    last_pta_record = pta_record
+                    last_pta_record[pta_record[MemoryRecordTableRow.DEVICE_ID.value]] = pta_record
             else:
                 self._record_list.extend(self._combine_record(last_pta_record, ge_record))
                 ge_ptr += 1
-                last_ge_record = ge_record
+                last_ge_record[ge_record[MemoryRecordTableRow.DEVICE_ID.value]] = ge_record
         while ge_ptr < len(self._ge_record_list):
             ge_record = self._ge_record_list[ge_ptr]
             self._record_list.extend(self._combine_record(last_pta_record, ge_record))

@@ -57,12 +57,13 @@ class MemoryViewParser(BaseParser):
                                cur_record.stream_ptr, cur_record.device_tag]
             return [cur_record_list]
         cur_record_list = cur_record.row
-        if last_record:
+        if last_record.get(cur_record.device_tag):
+            last_record_data = last_record[cur_record.device_tag]
             pta_ge_record_list = [Constant.PTA_GE, convert_ns2us_str(cur_record.time_ns, tail="\t"),
-                                  cur_record.total_allocated + last_record.total_allocated,
-                                  cur_record.total_reserved + last_record.total_reserved,
-                                  cur_record.total_active + last_record.total_active,
-                                  cur_record.stream_ptr if cur_record.stream_ptr else last_record.stream_ptr,
+                                  cur_record.total_allocated + last_record_data.total_allocated,
+                                  cur_record.total_reserved + last_record_data.total_reserved,
+                                  cur_record.total_active + last_record_data.total_active,
+                                  cur_record.stream_ptr if cur_record.stream_ptr else last_record_data.stream_ptr,
                                   cur_record.device_tag]
         else:
             pta_ge_record_list = [Constant.PTA_GE, convert_ns2us_str(cur_record.time_ns, tail="\t"),
@@ -76,6 +77,9 @@ class MemoryViewParser(BaseParser):
         try:
             self.memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", {}).get(Constant.Text, [])
             self.pta_record_list = deps_data.get(Constant.MEMORY_PREPARE, {}).get("pta_record_list", [])
+            cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
+            device_ids = ProfilerPathManager.get_device_id(cann_path)
+            self.device_index = device_ids[0] if len(device_ids) == 1 else -1
             self.generate_view()
         except Exception as e:
             self.logger.error("Failed to generate operator_memory.csv or memory_record.csv, error: %s", str(e), exc_info=True)
@@ -101,26 +105,28 @@ class MemoryViewParser(BaseParser):
             raise RuntimeError(f"Can't sort records for cann memory record" + prof_error(ErrCode.INTERNAL)) from e
         ge_ptr = 0
         pta_ptr = 0
-        last_ge_record = None
-        last_pta_record = None
+        last_ge_record = {}
+        last_pta_record = {}
         while ge_ptr < len(self.ge_record_list) and pta_ptr < len(self.pta_record_list):
             ge_record = self.ge_record_list[ge_ptr]
             pta_record = self.pta_record_list[pta_ptr]
+            pta_record.device_index = self.device_index
             if ge_record.time_ns >= pta_record.time_ns:
                 self.size_record_list.extend(self._combine_record(last_ge_record, pta_record))
                 pta_ptr += 1
                 if hasattr(pta_record, 'component_type') and pta_record.component_type != Constant.WORKSPACE_TYPE:
-                    last_pta_record = pta_record
+                    last_pta_record[pta_record.device_tag] = pta_record
             else:
                 self.size_record_list.extend(self._combine_record(last_pta_record, ge_record))
                 ge_ptr += 1
-                last_ge_record = ge_record
+                last_ge_record[ge_record.device_tag] = ge_record
         while ge_ptr < len(self.ge_record_list):
             ge_record = self.ge_record_list[ge_ptr]
             self.size_record_list.extend(self._combine_record(last_pta_record, ge_record))
             ge_ptr += 1
         while pta_ptr < len(self.pta_record_list):
             pta_record = self.pta_record_list[pta_ptr]
+            pta_record.device_index = self.device_index
             self.size_record_list.extend(self._combine_record(last_ge_record, pta_record))
             pta_ptr += 1
 
