@@ -124,16 +124,21 @@ class CANNExportParser(BaseParser):
     def _check_prof_data_size(self):
         if not self._cann_path:
             return
-        device_data_path = os.path.join(ProfilerPathManager.get_device_path(self._cann_path), "data")
-        host_data_path = os.path.join(self._cann_path, "host", "data")
+        device_paths = ProfilerPathManager.get_device_path(self._cann_path)
         prof_data_size = 0
-        for root, dirs, files in os.walk(device_data_path):
+        host_data_path = os.path.join(self._cann_path, "host", "data")
+        for root, _, files in os.walk(host_data_path):
             prof_data_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
-        for root, dirs, files in os.walk(host_data_path):
-            prof_data_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
-        if prof_data_size >= Constant.PROF_WARN_SIZE:
-            print_warn_msg("The parsing time is expected to exceed 30 minutes, "
-                           "and you can choose to stop the process and use offline parsing.")
+        if not device_paths and prof_data_size < Constant.PROF_WARN_SIZE:
+            return
+        for device_path in device_paths:
+            device_data_path = os.path.join(device_path, "data")
+            for root, _, files in os.walk(device_data_path):
+                prof_data_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
+            if prof_data_size >= Constant.PROF_WARN_SIZE:
+                print_warn_msg("The parsing time is expected to exceed 30 minutes, "
+                               "and you can choose to stop the process and use offline parsing.")
+                return
 
 
 class CANNTimelineParser(BaseParser):
