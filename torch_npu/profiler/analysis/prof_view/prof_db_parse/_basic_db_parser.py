@@ -60,10 +60,16 @@ class BasicDbParser(BaseParser):
     def save_rank_info_to_db(self):
         if ProfilerConfig().rank_id == -1:
             return
+        device_ids = ProfilerPathManager.get_device_id(self._cann_path)
+        device_id = None
+        if len(device_ids) != 1:
+            device_id = Constant.INVALID_VALUE
+        else:
+            device_id = device_ids[0]
         TorchDb().create_table_with_headers(DbConstant.TABLE_RANK_DEVICE_MAP,
                                             TableColumnsManager.TableColumns.get(DbConstant.TABLE_RANK_DEVICE_MAP))
         TorchDb().insert_data_into_table(DbConstant.TABLE_RANK_DEVICE_MAP,
-                                         [[ProfilerConfig().rank_id, ProfilerPathManager.get_device_id(self._cann_path)]])
+                                         [[ProfilerConfig().rank_id, device_id]])
     
     def save_host_info_to_db(self):
         if TorchDb().judge_table_exist(DbConstant.TABLE_HOST_INFO):

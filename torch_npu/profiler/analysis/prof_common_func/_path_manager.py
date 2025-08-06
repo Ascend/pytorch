@@ -60,59 +60,47 @@ class ProfilerPathManager:
             return ""
 
     @classmethod
-    def get_device_path(cls, cann_path: str) -> str:
+    def get_device_path(cls, cann_path: str) -> list:
+        device_paths = []
         sub_dirs = os.listdir(os.path.realpath(cann_path))
         for sub_dir in sub_dirs:
             sub_path = os.path.join(cann_path, sub_dir)
             if os.path.isdir(sub_path) and re.match(r"^device_\d", sub_dir):
-                return sub_path
-        return ""
+                device_paths.append(sub_path)
+        return device_paths
 
     @classmethod
-    def get_device_id(cls, cann_path: str) -> int:
+    def get_device_id(cls, cann_path: str) -> list:
         if not cann_path:
-            return Constant.INVALID_VALUE
-        device_path = cls.get_device_path(cann_path)
-        if not device_path:
-            return Constant.INVALID_VALUE
-        device_path_split = os.path.basename(device_path).split("_")
-        if len(device_path_split) != 2:
-            return Constant.INVALID_VALUE
-        if not device_path_split[1].isdigit:
-            return Constant.INVALID_VALUE
-        return int(device_path_split[1])
+            return []
+        device_paths = cls.get_device_path(cann_path)
+        if not device_paths:
+            return []
+        device_id_list = []
+        for device_path in device_paths:
+            device_path_split = os.path.basename(device_path).split("_")
+            if len(device_path_split) != 2:
+                return []
+            if not device_path_split[1].isdigit():
+                return []
+            device_id_list.append(int(device_path_split[1]))
+        return device_id_list
 
     @classmethod
     def get_start_info_path(cls, cann_path: str) -> str:
         start_info_path = os.path.join(cann_path, "host", "start_info")
         if os.path.exists(start_info_path):
             return start_info_path
-        device_path = cls.get_device_path(cann_path)
-        if not device_path:
+        device_paths = cls.get_device_path(cann_path)
+        if not device_paths:
             return ""
-        device_path_split = os.path.basename(device_path).split("_")
+        device_path_split = os.path.basename(device_paths[0]).split("_")
         if len(device_path_split) != 2:
             return ""
         start_info_file = f"start_info.{device_path_split[1]}"
-        start_info_path = os.path.join(device_path, start_info_file)
+        start_info_path = os.path.join(device_paths[0], start_info_file)
         if os.path.exists(start_info_path):
             return start_info_path
-        return ""
-
-    @classmethod
-    def get_feature_json_path(cls, profiler_path: str) -> str:
-        cann_path = cls.get_cann_path(profiler_path)
-        if cann_path is None:
-            return ""
-        device_path = cls.get_host_path(cann_path)
-        if not device_path:
-            device_path = cls.get_device_path(cann_path)
-            if not device_path:
-                return ""
-        sub_files = os.listdir(device_path)
-        for sub_file in sub_files:
-            if sub_file == "incompatible_features.json":
-                return os.path.join(device_path, sub_file)
         return ""
 
 
