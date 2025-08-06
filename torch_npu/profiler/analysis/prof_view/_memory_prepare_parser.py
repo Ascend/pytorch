@@ -198,6 +198,9 @@ class MemoryPrepareParser(BaseParser):
 
     def _complete_record_entry(self, ptr_records: list, torch_ops: list) -> list:
         ret_list = list()
+        cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
+        device_ids = ProfilerPathManager.get_device_id(cann_path)
+        device_tag = "NPU:" + str(device_ids[0]) if len(device_ids) == 1 else ""
         torch_ops = [torch_op for torch_op in torch_ops if torch_op.name != "empty_tensor" and torch_op.name != "malloc_workspace"]
         for records in ptr_records:
             combine_data = list()
@@ -215,7 +218,7 @@ class MemoryPrepareParser(BaseParser):
                 combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), None, None, None, None,
                                 records[0].total_allocated, records[0].total_reserved, records[0].total_active,
                                 None, None, None,
-                                records[0].stream_ptr, records[0].device_tag]
+                                records[0].stream_ptr, device_tag or records[0].device_tag]
             elif records_len == 2:
                 if hasattr(records[0], 'component_type') and records[0].component_type == Constant.CACHING_TYPE:
                     self._incomplete_num += 1
@@ -226,7 +229,7 @@ class MemoryPrepareParser(BaseParser):
                 combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), release_time, active_release_time, duration_time,
                                 active_duration_time, records[0].total_allocated, records[0].total_reserved, records[0].total_active,
                                 records[1].total_allocated, records[1].total_reserved, records[1].total_active,
-                                records[0].stream_ptr, records[0].device_tag]
+                                records[0].stream_ptr, device_tag or records[0].device_tag]
             elif records_len == 3:
                 free_idx = 1 if records[1].data_type == Constant.MEMORY_FREE else 2
                 active_idx = 1 if free_idx == 2 else 2
@@ -237,12 +240,15 @@ class MemoryPrepareParser(BaseParser):
                 combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), release_time, active_release_time, duration_time,
                                 active_duration_time, records[0].total_allocated, records[0].total_reserved, records[0].total_active,
                                 records[free_idx].total_allocated, records[free_idx].total_reserved, records[free_idx].total_active,
-                                records[0].stream_ptr, records[0].device_tag]
+                                records[0].stream_ptr, device_tag or records[0].device_tag]
             ret_list.append(combine_data[:])
         return ret_list
 
     def _complete_record_entry_for_db(self, ptr_records: list, torch_ops: list) -> list:
         ret_list = list()
+        cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
+        device_ids = ProfilerPathManager.get_device_id(cann_path)
+        device_index = device_ids[0] if len(device_ids) == 1 else -1
         torch_ops = [torch_op for torch_op in torch_ops if torch_op.name != "empty_tensor" and torch_op.name != "malloc_workspace"]
         for records in ptr_records:
             combine_data = list()
@@ -260,7 +266,7 @@ class MemoryPrepareParser(BaseParser):
                 combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, None, None, None, None,
                                 records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
                                 None, None, None,
-                                records[0].stream_ptr, records[0].device_index]
+                                records[0].stream_ptr, device_index if device_index != -1 else records[0].device_index]
             elif records_len == 2:
                 if hasattr(records[0], 'component_type') and records[0].component_type == Constant.CACHING_TYPE:
                     self._incomplete_num += 1
@@ -271,7 +277,7 @@ class MemoryPrepareParser(BaseParser):
                 combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, release_time, active_release_time, duration_time,
                                 active_duration_time, records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
                                 records[1].total_allocated_for_db, records[1].total_reserved_for_db, records[1].total_active_for_db,
-                                records[0].stream_ptr, records[0].device_index]
+                                records[0].stream_ptr, device_index if device_index != -1 else records[0].device_index]
             elif records_len == 3:
                 free_idx = 1 if records[1].data_type == Constant.MEMORY_FREE else 2
                 active_idx = 1 if free_idx == 2 else 2
@@ -280,7 +286,7 @@ class MemoryPrepareParser(BaseParser):
                 combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, records[free_idx].time_ns, records[active_idx].time_ns, duration_time,
                                 active_duration_time, records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
                                 records[free_idx].total_allocated_for_db, records[free_idx].total_reserved_for_db, records[free_idx].total_active_for_db,
-                                records[0].stream_ptr, records[0].device_index]
+                                records[0].stream_ptr, device_index if device_index != -1 else records[0].device_index]
             ret_list.append(combine_data[:])
         return ret_list
 
