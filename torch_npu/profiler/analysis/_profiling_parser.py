@@ -31,13 +31,14 @@ class ProfilingParser:
     @staticmethod
     def simplify_data(profiler_path: str, simplify_flag: bool):
         cann_path = ProfilerPathManager.get_cann_path(profiler_path)
-        device_path = ProfilerPathManager.get_device_path(cann_path)
+        device_paths = ProfilerPathManager.get_device_path(cann_path)
         host_path = ProfilerPathManager.get_host_path(cann_path)
         rm_dirs = ['sqlite', 'summary', 'timeline'] if simplify_flag else ['sqlite']
         for rm_dir in rm_dirs:
-            if device_path:
-                target_path = os.path.join(device_path, rm_dir)
-                PathManager.remove_path_safety(target_path)
+            if device_paths:
+                for device_path in device_paths:
+                    target_path = os.path.join(device_path, rm_dir)
+                    PathManager.remove_path_safety(target_path)
             if host_path:
                 target_path = os.path.join(host_path, rm_dir)
                 PathManager.remove_path_safety(target_path)
