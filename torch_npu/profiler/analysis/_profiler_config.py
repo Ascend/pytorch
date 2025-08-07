@@ -153,7 +153,7 @@ class ProfilerConfig:
             self._is_cluster = re.match(r"^profiler_info_\d+\.json", os.path.basename(info_file_path))
 
     def load_timediff_info(self, profiler_path: str, info_json: dict):
-        if ("ProfilerActivity.NPU" in info_json.get(Constant.CONFIG, {}).get(Constant.COMMON_CONFIG, {})
+        if (Constant.NPU_ACTIVITIES in info_json.get(Constant.CONFIG, {}).get(Constant.COMMON_CONFIG, {})
                 .get(Constant.ACTIVITIES, [])):
             self._localtime_diff = CANNFileParser(profiler_path).get_localtime_diff()
         end_info = info_json.get(Constant.END_INFO, {})
