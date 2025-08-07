@@ -29,6 +29,7 @@ class MemoryViewParser(BaseParser):
 
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
+        self._activities = param_dict.get(Constant.ACTIVITIES, [])
         self.size_record_list = []
         self.pta_record_list = []
         self.ge_record_list = []
@@ -146,13 +147,16 @@ class MemoryViewParser(BaseParser):
         """
         add ge memory and app memory from cann files
         """
-        npu_app_memory_file_set = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.NPU_MEMORY)
+        npu_app_memory_file_set = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.NPU_MEMORY) \
+            if Constant.NPU_ACTIVITIES in self._activities else set()
         app_record_data = self._get_data_from_file(npu_app_memory_file_set, NpuMemoryBean)
         self.size_record_list.extend(app_record_data)
         self._add_device_type_for_npu()
-        ge_memory_record_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_MEMORY_RECORD)
+        ge_memory_record_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_MEMORY_RECORD) \
+            if Constant.NPU_ACTIVITIES in self._activities else set()
         self.split_component_ge(self._get_data_from_file(ge_memory_record_file, GeMemoryRecordBean, bean_list=True))
-        ge_op_memory_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_OPERATOR_MEMORY)
+        ge_op_memory_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_OPERATOR_MEMORY) \
+            if Constant.NPU_ACTIVITIES in self._activities else set()
         self.memory_data.extend(self._get_data_from_file(ge_op_memory_file, GeOpMemoryBean))
 
     def _init_pta_data(self):
