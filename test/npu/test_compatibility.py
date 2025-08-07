@@ -254,6 +254,19 @@ class TestPublicApiCompatibility(TestCase):
             for key, value in base_schema0.items():
                 if not key.startswith("torch_c_func:") and not key.startswith("torch_npu_public_env:"):
                     base_schema[key] = value
+        
+        # load torchair torch_npu_schema.json
+        torchair_schema = {}
+        try:
+            air_path = 'third_party/torchair/torchair/tests/st/torch_npu_schema.json'
+            with open(get_file_path_2(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), air_path)) as fp:
+                torchair_schema = json.load(fp)
+        except Exception:
+            warnings.warn(
+                "if you are debugging UT file in clone repo, please recursively update the torchair submodule")
+        
+        if torchair_schema:
+            base_schema.update(torchair_schema)
 
         content = {}
 
