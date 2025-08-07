@@ -7,6 +7,7 @@ from .prof_common_func._cann_package_manager import CannPackageManager
 from .prof_common_func._path_manager import ProfilerPathManager
 from .prof_common_func._task_manager import ConcurrentTasksManager
 from .prof_common_func._log import ProfilerLogger
+from .prof_common_func._utils import no_exception_func
 from .prof_config._parser_config import ParserConfig
 from .prof_parse._cann_file_parser import CANNFileParser
 from ._profiler_config import ProfilerConfig
@@ -83,6 +84,7 @@ class ProfilingParser:
                 if re.match(patten, filename) and os.path.isfile(os.path.join(cann_path, filename)):
                     PathManager.remove_file_safety(os.path.join(cann_path, filename))
 
+    @no_exception_func()
     def analyse_profiling_data(self):
         ProfilerLogger.init(self._profiler_path, "ProfilingParser")
         self.logger = ProfilerLogger.get_instance()
