@@ -1,11 +1,11 @@
---extra-index-url https://download.pytorch.org/whl/test/cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
 -f https://data.pyg.org/whl/torch-2.7.0+cpu.html
 
 coverage
 beartype==0.17.0
 expecttest==0.1.3
 hypothesis
-mypy==1.14.0
+mypy==1.16.0
 numpy==1.24.4
 onnx==1.18.0
 onnxruntime==1.18.1

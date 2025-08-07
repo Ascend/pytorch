@@ -19,13 +19,13 @@ Install **PyTorch** through pip.
 **For Aarch64:**
 
 ```bash
-pip3 install torch==2.1.0
+pip3 install torch==2.8.0
 ```
 
 **For x86:**
 
 ```bash
-pip3 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
+pip3 install torch==2.8.0+cpu  --index-url https://download.pytorch.org/whl/cpu
 ```
 
 2. **Install torch-npu dependencies**
@@ -39,21 +39,19 @@ pip3 install setuptools
 
 If the installation fails, use the download link or visit the [PyTorch official website](https://pytorch.org/) to download the installation package of the corresponding version.
 
-| OS arch | Python version | link                                                                                                                                                                                          |
-|---------|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| x86     | Python3.8      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp38-cp38-linux_x86_64.whl#sha256=9e5cfd931a65b38d222755a45dabb53b836be31bc620532bc66fee77e3ff67dc)                             |
-| x86     | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=86cc28df491fa84738affe752f9870791026565342f69e4ab63e5b935f00a495)                             |
-| x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=5077921fc2b54e69a534f3a9c0b98493c79a5547c49d46f5e77e42da3610e011)                           |
-| x86     | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp311-cp311-linux_x86_64.whl#sha256=5954924ce74bc7e6a6c811e3fa4bdda9936d9889f6369fd068420c444bfd1cae)                           |
-| aarch64 | Python3.8      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=761822761fffaa1c18a62c5deb13abaa780862577d3eadc428f1daa632536905)   |
-| aarch64 | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=de7d63c6ecece118684415a3dbd4805af4a4c1ee1490cccf7405d8c240a481b4)   |
-| aarch64 | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=a04a0296d47f28960f51c18c5489a8c3472f624ec3b5bcc8e2096314df8c3342) |
-| aarch64 | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=8132efb782cd181cc2dcca5e58effbe4217cdb2581206ac71466d535bf778867) |
+| OS arch | Python version | link                                                                                                                                                                          |
+|---------|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| x86     | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp39-cp39-manylinux_2_28_x86_64.whl#sha256=bda4f93d64dcd9ae5d51844bbccc6fcb7d603522bcc95d256b5fe3bdb9dccca3)    |
+| x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl#sha256=16d75fa4e96ea28a785dfd66083ca55eb1058b6d6c5413f01656ca965ee2077e)  |
+| x86     | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=cb06175284673a581dd91fb1965662ae4ecaba6e5c357aa0ea7bb8b84b6b7eeb)  |
+| aarch64 | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp39-cp39-manylinux_2_28_aarch64.whl#sha256=eac8b7ef5c7ca106daec5e829dfa8ca56ca47601db13b402d2608861ad3ab926)   |
+| aarch64 | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=b2149858b8340aeeb1f3056e0bff5b82b96e43b596fe49a9dba3184522261213) |
+| aarch64 | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl#sha256=680129efdeeec3db5da3f88ee5d28c1b1e103b774aef40f9d638e2cce8f8d8d8) |
 
 3. **Install torch-npu**
 
 ```
-pip3 install torch-npu==2.1.0.post13
+pip3 install torch-npu==2.8.0rc1
 ```
 
 ### From Source
@@ -63,7 +61,7 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 1. **Clone torch-npu**
 
    ```
-   git clone https://github.com/ascend/pytorch.git -b 2.1.0-7.1.0 --depth 1
+   git clone https://github.com/ascend/pytorch.git -b 2.8.0 --depth 1
    ```
 
 2. **Build Docker Image**
@@ -82,16 +80,16 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 
 4. **Compile torch-npu**
 
-   Take **Python 3.8** as an example.
+   Take **Python 3.9** as an example.
 
    ```
    cd /home/pytorch
-   bash ci/build.sh --python=3.8
+   bash ci/build.sh --python=3.9
    ```
 
 **Tips**
 
-   If you would like to compile with new C++ ABI, then first run this command, at this point, the recommended compilation environment is same to community torch package: glibc 2.28, gcc 11.2.1
+   If you would like to compile with new C++ ABI, then first run this command, at this point, the recommended compilation environment is same to community torch package: glibc 2.28, gcc 13.3.1
    
    ```
    export _GLIBCXX_USE_CXX11_ABI=1
@@ -100,7 +98,7 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
    Meanwhile, we support configuring -fabi-version using the following variables，require consistency with the community torch package
 
    ```
-   export _ABI_VERSION=16
+   export _ABI_VERSION=18
    ```
 
 ## Getting Started
@@ -144,6 +142,7 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 | PyTorch2.4.0    | Python3.8.x,Python3.9.x,Python3.10.x,Python3.11.x         |
 | PyTorch2.5.1    | Python3.9.x,Python3.10.x,Python3.11.x                     |
 | PyTorch2.6.0    | Python3.9.x,Python3.10.x,Python3.11.x                     |
+| PyTorch2.8.0    | Python3.9.x,Python3.10.x,Python3.11.x                     |
 
 ## Ascend Auxiliary Software
 
@@ -151,9 +150,10 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 
 | CANN Version          | Supported PyTorch Version | Supported Extension Version | Github Branch     |
 |-----------------------|---------------------------|-----------------------------|-------------------|
-| CANN 8.2.RC1          | 2.6.0         | 2.6.0            | v2.6.0-7.1.0      |
-|                       | 2.5.1        | 2.5.1.post1      | v2.5.1-7.1.0      |
-|                       | 2.1.0        | 2.1.0.post13     | v2.1.0-7.1.0      |
+| CANN 8.3.RC1.alpha001 | 2.8.0                     | 2.8.0rc1                    | v2.8.0            |
+| CANN 8.2.RC1          | 2.6.0                     | 2.6.0                       | v2.6.0-7.1.0      |
+|                       | 2.5.1                     | 2.5.1.post1                 | v2.5.1-7.1.0      |
+|                       | 2.1.0                     | 2.1.0.post13                | v2.1.0-7.1.0      |
 | CANN 8.1.RC1          | 2.5.1                     | 2.5.1                       | v2.5.1-7.0.0      |
 |                       | 2.4.0                     | 2.4.0.post4                 | v2.4.0-7.0.0      |
 |                       | 2.3.1                     | 2.3.1.post6                 | v2.3.1-7.0.0      |
@@ -245,10 +245,11 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 | **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
 |-------------|--------------------------|-------------|-----------------|-------------------------------------------------------------------|--------------|
-| 2.6.0         | Regular Release        | Development       | 2025/07/25 | Expected to enter maintenance status from January 25, 2026  | -         | 
-| 2.5.1       | Regular Release          | Development | 2024/11/08      | Expected to enter maintenance status from August 8, 2025           |              |
-| 2.4.0       | Regular Release          | Maintained | 2024/10/15      | Expected to enter maintenance free status from June 15, 2026           |              |
-| 2.3.1       | Regular Release          | Maintained | 2024/06/06      | Expected to enter maintenance free status from June 7, 2026            |              |
+| 2.8.0       | Regular Release          | Development | 2025/08/08      | Expected to enter maintenance status from February 8, 2026        |              |
+| 2.6.0       | Regular Release          | Development | 2025/07/25      | Expected to enter maintenance status from January 25, 2026        |              | 
+| 2.5.1       | Regular Release          | Development | 2024/11/08      | Expected to enter maintenance status from August 8, 2025          |              |
+| 2.4.0       | Regular Release          | Maintained  | 2024/10/15      | Expected to enter maintenance free status from June 15, 2026      |              |
+| 2.3.1       | Regular Release          | Maintained  | 2024/06/06      | Expected to enter maintenance free status from June 7, 2026       |              |
 | 2.2.0       | Regular Release          | Maintained  | 2024/04/01      | Expected to enter maintenance free status from September 10, 2025 |              |
 | 2.1.0       | Long Term Support        | Development | 2023/10/15      | Expected to enter maintenance status from September 15, 2025      |              |
 | 2.0.1       | Regular Release          | EOL         | 2023/7/19       |                                                                   | 2024/3/14    |
