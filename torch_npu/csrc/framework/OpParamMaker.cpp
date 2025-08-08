@@ -21,6 +21,7 @@ namespace at_npu {
 namespace native {
 
 static bool deterministicaclnn_oldstatus = false;
+static bool aclop_deterministicaclnn_oldstatus = false;
 
 void OpAttrMaker::Set(aclopAttr *attr, const string &name, bool value)
 {
@@ -101,11 +102,12 @@ void OpCommandImpl::SetEnginePriority()
 
 inline void SetDeterministicOption(bool deterministicAlgorithmsStatus, bool isOpapi)
 {
+    if (!isOpapi && aclop_deterministicaclnn_oldstatus != deterministicAlgorithmsStatus) {
+        NPU_CHECK_ERROR(
+            AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicAlgorithmsStatus ? "1" : "0"));
+        aclop_deterministicaclnn_oldstatus = deterministicAlgorithmsStatus;
+    }
     if (deterministicaclnn_oldstatus != deterministicAlgorithmsStatus) {
-        if (!isOpapi) {
-            NPU_CHECK_ERROR(
-                AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicAlgorithmsStatus ? "1" : "0"));
-        }
         NPU_CHECK_ERROR(
             AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministicAlgorithmsStatus ? 1 : 0));
         NPU_CHECK_ERROR(
