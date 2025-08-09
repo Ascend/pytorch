@@ -59,6 +59,7 @@ class ProfilerConfig:
         self._start_cnt = 0
         self._export_type = [Constant.Text]
         self._rank_id = -1
+        self._activities = []
 
     @property
     def data_simplification(self):
@@ -71,6 +72,10 @@ class ProfilerConfig:
     @export_type.setter
     def export_type(self, export_type: list):
         self._export_type = export_type
+
+    @property
+    def activities(self) -> list:
+        return self._activities
 
     @property
     def msprof_tx(self):
@@ -142,6 +147,7 @@ class ProfilerConfig:
     def load_info(self, profiler_path: str):
         self.load_is_cluster(profiler_path)
         info_json = self._get_json_data(ProfilerPathManager.get_info_file_path(profiler_path))
+        self._activities = info_json.get(Constant.CONFIG, {}).get(Constant.COMMON_CONFIG, {}).get(Constant.ACTIVITIES, [])
         self.load_rank_info(info_json)
         self.load_experimental_cfg_info(info_json)
         self.load_timediff_info(profiler_path, info_json)
@@ -156,8 +162,7 @@ class ProfilerConfig:
         self._rank_id = info_json.get(Constant.RANK_ID, -1)
 
     def load_timediff_info(self, profiler_path: str, info_json: dict):
-        if (Constant.NPU_ACTIVITIES in info_json.get(Constant.CONFIG, {}).get(Constant.COMMON_CONFIG, {})
-                .get(Constant.ACTIVITIES, [])):
+        if Constant.NPU_ACTIVITIES in self._activities:
             self._localtime_diff = CANNFileParser(profiler_path).get_localtime_diff()
         end_info = info_json.get(Constant.END_INFO, {})
         if not self._localtime_diff and end_info:
