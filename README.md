@@ -61,7 +61,7 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 1. **Clone torch-npu**
 
    ```
-   git clone https://github.com/ascend/pytorch.git -b 2.8.0 --depth 1
+   git clone https://github.com/ascend/pytorch.git -b v2.8.0 --depth 1
    ```
 
 2. **Build Docker Image**
@@ -245,7 +245,7 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 | **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
 |-------------|--------------------------|-------------|-----------------|-------------------------------------------------------------------|--------------|
-| 2.8.0       | Regular Release          | Development | 2025/08/08      | Expected to enter maintenance status from February 8, 2026        |              |
+| 2.8.0       | Regular Release          | Development | 2025/08/12      | Expected to enter maintenance status from February 12, 2026       |              |
 | 2.6.0       | Regular Release          | Development | 2025/07/25      | Expected to enter maintenance status from January 25, 2026        |              | 
 | 2.5.1       | Regular Release          | Development | 2024/11/08      | Expected to enter maintenance status from August 8, 2025          |              |
 | 2.4.0       | Regular Release          | Maintained  | 2024/10/15      | Expected to enter maintenance free status from June 15, 2026      |              |
