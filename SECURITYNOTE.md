@@ -99,6 +99,7 @@ torch_npu支持源码编译安装，在编译时会下载依赖第三方库并�
 | 自研   | 不涉及                                                                                                                                                                                                                            | requirements.txt                       | https://download.pytorch.org/whl/cpu                                           | 下载链接，用于下载torch-cpu版本           |
 | 自研   | 不涉及                                                                                                                                                                                                                            | test\get_synchronized_files.sh         | https://github.com/pytorch/pytorch.git                                         | 下载链接，用于下载pytorch的测试用例          |
 
+| 开源引入 | https://github.com/richgel999/miniz/blob/3.0.2/miniz.h | build_libtorch_npu.py                           | https://github.com/richgel999/miniz/releases/download/3.0.2/miniz-3.0.2.zip                        | 下载链接，用于下载miniz库，miniz用于AOTInductor压缩和解压缩pt2模型文件               |
 ## 公开接口声明
 
 Ascend Extension for PyTorch是PyTorch适配插件，支持用户使用PyTorch在昇腾设备上进行训练和推理。Ascend Extension for PyTorch适配后支持用户使用PyTorch原生接口。除了原生PyTorch接口外，Ascend Extension for PyTorch提供了部分自定义接口，包括自定义算子、亲和库和其他接口，支持PyTorch接口和自定义接口连接，具体可参考[《PyTorch API参考》](https://www.hiascend.com/document/detail/zh/Pytorch/60RC2/apiref/apilist/ptaoplist_000001.html)。

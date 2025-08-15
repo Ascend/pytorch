@@ -267,12 +267,54 @@ def copy_cmake():
     copy_file(cmake_file, dst_path)
 
 
+def download_miniz():
+    # 设置基础路径
+    miniz_url = "https://github.com/richgel999/miniz/releases/download/3.0.2/miniz-3.0.2.zip"
+    miniz_dir = os.path.join(BASE_DIR, "third_party/miniz-3.0.2")
+    
+    if os.path.exists(miniz_dir):  # 检查目录是否存在
+        try:
+            shutil.rmtree(miniz_dir)  # 递归删除整个目录及内容
+            print(f"has cleaned {miniz_dir}")
+        except Exception as e:
+            print(f"clean {miniz_dir} failed, error: {str(e)}")
+            raise RuntimeError(f"clean {miniz_dir} failed") from e
+    
+    os.makedirs(miniz_dir, exist_ok=True)  # 重建空目录
+    zip_path = os.path.join(miniz_dir, "miniz.zip")
+
+    # 获取wget绝对路径
+    wget_path = shutil.which("wget")
+    if not wget_path:
+        raise RuntimeError("wget not found, please install wget")
+    
+    # 获取unzip绝对路径
+    unzip_path = shutil.which("unzip")
+    if not unzip_path:
+        raise RuntimeError("unzip not found, please install unzip")
+
+    # 使用绝对路径下载文件
+    subprocess.check_call([
+        wget_path, 
+        miniz_url,
+        "-O", zip_path
+    ])
+    
+    # 使用绝对路径解压文件
+    subprocess.check_call([
+        unzip_path, 
+        zip_path,
+        "-d", miniz_dir
+    ])
+
+
 def build_libtorch_npu():
     clean_generated_files()
     generate_bindings_code(BASE_DIR)
     if Path(BASE_DIR).joinpath("third_party/Tensorpipe/third_party/acl/libs").exists():
         build_stub(Path(BASE_DIR).joinpath("third_party/Tensorpipe"))
     build_stub(BASE_DIR)
+    download_miniz()
     run_cmake()
     copy_hpp()
     copy_lib()

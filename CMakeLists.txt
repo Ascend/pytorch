@@ -208,6 +208,7 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party/hccl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/acl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/nlohmann/include)
+include_directories(${PROJECT_SOURCE_DIR}/third_party/miniz-3.0.2)
 
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
