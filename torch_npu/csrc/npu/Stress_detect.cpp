@@ -50,10 +50,10 @@ void StressDetector::worker_thread()
                     attr.workspace = workspaceAddr;
                     attr.workspaceSize = workspaceSize;
                     ret = c10_npu::amlapi::AmlAicoreDetectOnlineFace(device_id, &attr);
-                    ASCEND_LOGI("Stress detect with AmlAicoreDetectOnline, result is %d.", ret);
+                    ASCEND_LOGI("Stress detect with AmlAicoreDetectOnline, device id is %d, result is %d.", device_id, ret);
                 } else {
                     ret = c10_npu::acl::AclStressDetect(device_id, workspaceAddr, workspaceSize);
-                    ASCEND_LOGI("Stress detect with StressDetect, result is %d.", ret);
+                    ASCEND_LOGI("Stress detect with StressDetect, device id is %d, result is %d.", device_id, ret);
                 }
             } else {
                 if (c10_npu::amlapi::IsExistAmlP2PDetectOnline()) {
@@ -61,16 +61,16 @@ void StressDetector::worker_thread()
                     attr.workspace = workspaceAddr;
                     attr.workspaceSize = workspaceSize;
                     ret = c10_npu::amlapi::AmlP2PDetectOnlineFace(device_id, localHcclComm, &attr);
-                    ASCEND_LOGI("Stress detect with AmlP2PDetectOnline, result is %d.", ret);
+                    ASCEND_LOGI("Stress detect with AmlP2PDetectOnline, device id is %d, result is %d.", device_id, ret);
                 } else {
-                    ASCEND_LOGW("Stress detect with AmlP2PDetectOnline failed, CANN version lower than 8.2.RC1 and currently does not support AmlP2PDetectOnline.");
-                    TORCH_NPU_WARN("Stress detect with AmlP2PDetectOnline failed, CANN version lower than 8.2.RC1 and currently does not support AmlP2PDetectOnline.");
+                    ASCEND_LOGW("Stress detect with AmlP2PDetectOnline failed, CANN version lower than 8.3.RC1 and currently does not support AmlP2PDetectOnline.");
+                    TORCH_NPU_WARN("Stress detect with AmlP2PDetectOnline failed, CANN version lower than 8.3.RC1 and currently does not support AmlP2PDetectOnline.");
                 }
             }
         } catch (std::exception &e) {
             ret = -1;
-            ASCEND_LOGW("Stress detect failed. type is %d, error:%s", stressMode, e.what());
-            TORCH_NPU_WARN("Stress detect failed. type is ", stressMode, ", error: ", e.what());
+            ASCEND_LOGW("Stress detect failed, device id is %d, type is %d, error:%s", device_id, stressMode, e.what());
+            TORCH_NPU_WARN("Stress detect failed, type is ", stressMode, ", error: ", e.what());
         }
 
         // Task complete, free memory
@@ -91,22 +91,23 @@ int StressDetector::transfer_result(int detectResult)
     switch (detectResult) {
         case 0:
             ret = kDetectSucceeded;
-            ASCEND_LOGI("Stress detect test case execution succeeded.");
+            ASCEND_LOGI("Stress detect test case execution succeeded, device id is %d.", device_id);
             break;
         case ACLNN_STRESS_BIT_FAIL:
         case ACLNN_STRESS_LOW_BIT_FAIL:
         case ACLNN_STRESS_HIGH_BIT_FAIL:
             ret = kDetectFailedWithHardwareFailure;
-            ASCEND_LOGW("Stress detect failed due to hardware malfunction, error code is %d.", detectResult);
-            TORCH_NPU_WARN("Stress detect failed due to hardware malfunction, error code is ", detectResult);
+            ASCEND_LOGW("Stress detect failed due to hardware malfunction, device id is %d, error code is %d.", device_id, detectResult);
+            TORCH_NPU_WARN("Stress detect failed due to hardware malfunction, device id is ", device_id, ", error code is ", detectResult);
             break;
         case ACLNN_CLEAR_DEVICE_STATE_FAIL:
+            ASCEND_LOGW("Stress detect error. Error code is 574007. Error message is Voltage recovery failed, device id is %d.", device_id);
             TORCH_CHECK(false, "Stress detect error. Error code is 574007. Error message is Voltage recovery failed.", PTA_ERROR(ErrCode::ACL));
             break;
         default:
             ret = kDetectFailed;
-            ASCEND_LOGW("Stress detect test case execution failed, error code is %d.", detectResult);
-            TORCH_NPU_WARN("Stress detect test case execution failed, error code is ", detectResult);
+            ASCEND_LOGW("Stress detect test case execution failed, device id is %d, error code is %d.", device_id, detectResult);
+            TORCH_NPU_WARN("Stress detect test case execution failed, device id is ", device_id, ", error code is ", detectResult);
             break;
     }
     return ret;
@@ -137,8 +138,8 @@ int StressDetector::perform_stress_detect(int deviceid, int mode, int64_t comm)
             c10_npu::NPUCachingAllocator::emptyCache();
             ret = c10_npu::acl::AclrtMallocAlign32(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
             if (ret != ACL_ERROR_NONE) {
-                ASCEND_LOGW("call AclrtMallocAlign32 failed, ERROR : %d. Skip StressDetect.", ret);
-                TORCH_NPU_WARN("call AclrtMallocAlign32 failed, skip StressDetect, error is ", ret);
+                ASCEND_LOGW("Stress detect failed, call AclrtMallocAlign32 failed, device id is %d, ERROR : %d. Skip StressDetect.", deviceid, ret);
+                TORCH_NPU_WARN("Stress detect failed, call AclrtMallocAlign32 failed, skip StressDetect, device id is ", deviceid, ", error is ", ret);
                 task_in_progress.store(false); // Task ends
                 return kDetectFailed;
             }

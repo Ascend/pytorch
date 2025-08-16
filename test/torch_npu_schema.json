@@ -1257,7 +1257,7 @@
     "signature": "(device_id)"
   },
   "torch_npu.npu.stress_detect": {
-    "signature": "(mode=0)"
+    "signature": "(detect_type='aic')"
   },
   "torch_npu.npu.seed": {
     "signature": "()"
@@ -1701,7 +1701,7 @@
     "signature": "(stream)"
   },
   "torch_npu.npu.utils.stress_detect": {
-    "signature": "(mode=0)"
+    "signature": "(detect_type='aic')"
   },
   "torch_npu.npu.utils.synchronize": {
     "signature": "(device=None)"
