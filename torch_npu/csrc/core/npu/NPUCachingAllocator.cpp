@@ -1382,7 +1382,7 @@ public:
                 // Make sure taskqueue is empty, then execute release_cached_blocks
                 c10_npu::npuSynchronizeDevice(true);
             }
-            c10_npu::NPUWorkspaceAllocator::emptyCache(device, true, true);
+            c10_npu::NPUWorkspaceAllocator::emptyCache(device, true);
             block_found = (release_cached_blocks(true, context) && alloc_block(params, true, context, lock));
         }
 
@@ -1738,7 +1738,7 @@ public:
         // Make sure event deque from taskqueue, then synchronize Event
         c10_npu::npuSynchronizeDevice(check_error);
         std::lock_guard<std::recursive_mutex> lock(mutex);
-        c10_npu::NPUWorkspaceAllocator::emptyCache(device, true, check_error);
+        c10_npu::NPUWorkspaceAllocator::emptyCache(device, check_error);
         release_cached_blocks(check_error, context);
     }
 

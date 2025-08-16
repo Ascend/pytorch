@@ -25,7 +25,7 @@ struct DeviceStats {
 c10::Allocator* get();
 void init();
 c10::DataPtr malloc_with_stream(size_t size, aclrtStream stream);
-void emptyCache(int device, bool need_empty_queue, bool check_error = true);
+void emptyCache(int device, bool check_error = true);
 void recordHistory(bool enabled, CreateContextFn context_recorder, RecordContext when);
 SnapshotInfo snapshot();
 DeviceStats getDeviceStats(int device);
