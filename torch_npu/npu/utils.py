@@ -374,11 +374,12 @@ def clear_npu_overflow_flag():
 hccl_detect_group = None
 
 
-def stress_detect(mode=0):
-    if mode not in [0, 1]:
-        warnings.warn("Detecct_type should be 0 or 1. For details, 0 as `Online aicore detect`, 1 as `Online p2p detect`.")
+def stress_detect(detect_type='aic'):
+    if detect_type not in ['aic', 'hccs']:
+        warnings.warn("Detecct_type should be `aic` or `hccs`. For details, aic as `Online aicore detect`, 1 as `Online p2p detect`.")
         return 1
     torch_npu.npu._lazy_init()
+    mode = 0 if detect_type == 'aic' else 1
     comm = 0
     if mode == 1:
         if not torch.distributed.is_initialized():
@@ -387,16 +388,22 @@ def stress_detect(mode=0):
         global hccl_detect_group
         rank = int(os.getenv('RANK', -1))
         local_world_size = int(os.getenv('LOCAL_WORLD_SIZE', -1))
-        if rank == -1 or local_world_size == -1:
-            warnings.warn("Environment variable 'RANK' or 'LOCAL_WORLD_SIZE' is not set.")
+        world_size = int(os.getenv('WORLD_SIZE', -1))
+        if rank == -1 or local_world_size == -1 or world_size == -1:
+            warnings.warn("Environment variable 'RANK', 'LOCAL_WORLD_SIZE' or 'WORLD_SIZE' is not set.")
             return 1
+        num_workers = world_size // local_world_size
         worker_index = rank // local_world_size
         local_rank = rank % local_world_size
         if hccl_detect_group is None:
-            local_ranks = []
-            for i in range(local_world_size):
-                local_ranks.append(local_world_size * worker_index + i)
-            hccl_detect_group = torch.distributed.new_group(ranks=local_ranks)
+            for worker_id in range(num_workers):
+                start_rank = worker_id * local_world_size
+                end_rank = start_rank + local_world_size
+                rank_list = list(range(start_rank, end_rank))
+                if worker_id == worker_index:
+                    hccl_detect_group = torch.distributed.new_group(ranks=rank_list)
+                else:
+                    other_group = torch.distributed.new_group(ranks=rank_list)
         try:
             comm = hccl_detect_group._get_backend(torch.device('npu')).get_hccl_comm(local_rank)
         except Exception as err:
