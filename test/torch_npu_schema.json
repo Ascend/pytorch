@@ -1230,7 +1230,7 @@
     "signature": "(device_id)"
   },
   "torch_npu.npu.stress_detect": {
-    "signature": "(mode=0)"
+    "signature": "(detect_type='aic')"
   },
   "torch_npu.npu.seed": {
     "signature": "()"
@@ -1680,7 +1680,7 @@
     "signature": "(device=None)"
   },
   "torch_npu.npu.utils.stress_detect": {
-    "signature": "(mode=0)"
+    "signature": "(detect_type='aic')"
   },
   "torch_npu.optim.NpuFusedAdadelta": {
     "signature": "(params, lr=1.0, rho=0.9, eps=1e-06, weight_decay=0)"
