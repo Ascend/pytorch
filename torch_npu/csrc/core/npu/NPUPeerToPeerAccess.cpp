@@ -13,12 +13,13 @@ NpuP2pCtrl::NpuP2pCtrl()
     num_devices_ = c10_npu::device_count();
 
     device_enabled_count_.clear();
-    device_enabled_count_.resize(num_devices_, 1);
+    device_enabled_count_.resize(num_devices_, 0);
 
     p2p_access_enabled_cache_.clear();
     p2p_access_enabled_cache_.resize(num_devices_ * num_devices_, P2pStatus::UNKONWN);
 
     for (const auto i : c10::irange(num_devices_)) {
+        // device self-connections are not counted
         p2p_access_enabled_cache_[i * num_devices_ + i] = P2pStatus::COPY_ALLOWED;
     }
 }
@@ -53,24 +54,36 @@ bool NpuP2pCtrl::get_p2p_access(int32_t source_dev, int32_t dest_dev, bool& flag
         return static_cast<bool>(cache_s2d);
     }
 
-    if (device_enabled_count_[source_dev] >= C10_P2P_ACCESS_MAX_NPUS ||
-        device_enabled_count_[dest_dev] >= C10_P2P_ACCESS_MAX_NPUS) {
-        // we enable P2P in groups of 8.
+    int32_t limited_device = -1;
+    // check whether the connection limit of the source or destination device has been reached.
+    if (device_enabled_count_[source_dev] >= C10_P2P_ACCESS_MAX_NPUS) {
+        limited_device = source_dev;
+    } else if (device_enabled_count_[dest_dev] >= C10_P2P_ACCESS_MAX_NPUS) {
+        limited_device = dest_dev;
+    }
+
+    if (limited_device != -1) {
         cache_s2d = P2pStatus::COPY_NOT_ALLOWED;
         cache_d2s = P2pStatus::COPY_NOT_ALLOWED;
+
         std::string warning_str {};
         for (auto i = 0; i < num_devices_; i++) {
-            if (p2p_access_enabled_cache_[source_dev * num_devices_ + i] == P2pStatus::COPY_ALLOWED) {
+            if (i == limited_device) {
+                continue;
+            }
+            if (p2p_access_enabled_cache_[limited_device * num_devices_ + i] == P2pStatus::COPY_ALLOWED) {
                 warning_str += std::to_string(i);
                 warning_str += ", ";
             }
         }
-        ASCEND_LOGW("The NPU device is %d, and try to copy and enable p2p with %d. ", source_dev, dest_dev);
-        ASCEND_LOGW(
-            "However the max number of npus in P2P group is 8. "
-            "Currently NPU device %d has already enable with 8 device, they are %s", source_dev, warning_str.c_str());
+        ASCEND_LOGE(
+            "Device %d has reached P2P connection limit %d. Current connections: [%s]. "
+            "Cannot enable P2P between devices (%d and %d). ",
+            limited_device, C10_P2P_ACCESS_MAX_NPUS, warning_str.c_str(), source_dev, dest_dev);
         return static_cast<bool>(cache_s2d);
     }
+    ASCEND_LOGW("The NPU device is %d, and try to copy and enable p2p with %d. ", source_dev, dest_dev);
+
     // The aclrtEnablePeerAccess capability is not equal to cuda,
     // And both sides need to be enabled to activate the p2p capability
     int32_t result_s2d = -1;
