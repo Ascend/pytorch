@@ -20,14 +20,6 @@ at::Tensor matmul_by_bmmV2(const at::Tensor& tensor1, const at::Tensor& tensor2)
   */
 void npu_fast_reshape_(at::Tensor& tensor);
 
-inline void* get_base_data_ptr(const at::Tensor &t)
-{
-    if (!t.is_view()) {
-        return t.data_ptr();
-    }
-    return t._base().data_ptr();
-}
-
 } // namespace native
 } // namespace at_npu
 
