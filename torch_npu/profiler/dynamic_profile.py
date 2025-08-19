@@ -92,10 +92,10 @@ class _DynamicProfile:
                 DynamicProfilerUtils.out_log("Stop Dynamic Profiler at {} step.".format(
                     self.cur_step), DynamicProfilerUtils.LoggerLevelEnum.INFO)
         elif self.prof is None and self.cfg_ctx is not None:
-            if self.cur_step > self.cfg_ctx.start_step():
+            if self.cur_step > self.cfg_ctx.start_step() and not self.cfg_ctx.start():
                 print_warn_msg(f"Dynamic Profiler config is not effective. The start_step={self.cfg_ctx.start_step()}, "
                                f"current_step={self.cur_step}")
-            if self.cur_step == self.cfg_ctx.start_step():
+            if self.cur_step == self.cfg_ctx.start_step() or self.cfg_ctx.start():
                 self.step_num = self.cfg_ctx.active() + self.cfg_ctx.warmup()
                 self.enable_prof()
                 self.cfg_ctx = None
