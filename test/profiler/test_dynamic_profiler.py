@@ -450,7 +450,7 @@ class TestDynamicProfiler(TestCase):
             PathManager.remove_path_safety(self.cfg_prof_dir)
         self.assertTrue(has_prof)
 
-    def test_dynamic_profiler_default(self):
+    def test_dynamic_profiler_default_start(self):
         cfg_json = copy.deepcopy(self.json_sample)
         cfg_json['prof_dir'] = self.default_prof_dir
         cfg_json['start_step'] = TestDynamicProfiler.start_step + 1
@@ -466,6 +466,24 @@ class TestDynamicProfiler(TestCase):
         has_prof = False
         if self.has_prof_dir(self.default_prof_dir):
             has_prof = True
+        if os.path.exists(self.default_prof_dir):
+            PathManager.remove_path_safety(self.default_prof_dir)
+        self.assertTrue(has_prof)
+
+    def test_dynamic_profiler_default_start_next_step(self):
+        cfg_json = copy.deepcopy(self.json_sample)
+        cfg_json['prof_dir'] = self.default_prof_dir
+        cfg_json['start_step'] = -1
+        with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
+            time.sleep(1)
+            json.dump(cfg_json, f, indent=4)
+        time.sleep(3)
+        dp.step()
+        TestDynamicProfiler.start_step += 1
+        self.model_train.train_one_step()
+        dp.step()
+        TestDynamicProfiler.start_step += 1
+        has_prof = self.has_prof_dir(self.default_prof_dir)
         if os.path.exists(self.default_prof_dir):
             PathManager.remove_path_safety(self.default_prof_dir)
         self.assertTrue(has_prof)
