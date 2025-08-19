@@ -7,6 +7,7 @@ from ._dynamic_profiler_utils import DynamicProfilerUtils
 class ConfigContext:
     DEFAULT_ACTIVE_NUM = 1
     DEFAULT_START_STEP = 0
+    INSTANT_START_STEP = -1
     DEFAULT_WARMUP = 0
     DEADLINE_PROF_DIR = "./"
     BOOL_MAP = {'true': True, 'false': False}
@@ -65,7 +66,7 @@ class ConfigContext:
             except ValueError:
                 self._start_step = self.DEFAULT_START_STEP
 
-        if not isinstance(self._start_step, int) or self._start_step < 0:
+        if not isinstance(self._start_step, int) or self._start_step < self.INSTANT_START_STEP:
             DynamicProfilerUtils.out_log("Start step is not valid, will be reset to {}.".format(
                 self.DEFAULT_START_STEP), DynamicProfilerUtils.LoggerLevelEnum.INFO)
             self._start_step = self.DEFAULT_START_STEP
@@ -347,6 +348,9 @@ class ConfigContext:
 
     def start_step(self) -> int:
         return self._start_step
+
+    def start(self) -> bool:
+        return self._start_step == self.INSTANT_START_STEP
 
     def experimental_config(self) -> _ExperimentalConfig:
         return self.experimental_config
