@@ -1613,7 +1613,20 @@ PyObject* THNPModule_aclnn_reselect_static_kernel(PyObject* self, PyObject* noar
     HANDLE_TH_ERRORS
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     TORCH_CHECK(ret == SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
-    c10_npu::opapi::ReselectStaticKernel();
+
+    static const auto task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
+    if (task_queue_enable == 2) {
+        auto acl_call = []()->int {
+            c10_npu::opapi::ReselectStaticKernel();
+            return 0;
+        };
+        at_npu::native::OpCommand::RunOpApiV2("reselect_static_kernel", acl_call);
+        NPUStatus ret = c10_npu::emptyAllNPUStream();
+        TORCH_CHECK(ret == SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
+    } else {
+        c10_npu::opapi::ReselectStaticKernel();
+    }
+
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
