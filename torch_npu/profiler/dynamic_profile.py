@@ -8,6 +8,7 @@ from .profiler import tensorboard_trace_handler, profile
 from .scheduler import Schedule as schedule
 
 from .analysis.prof_common_func._singleton import Singleton
+from .analysis.prof_common_func._constant import print_warn_msg
 from ..utils._path_manager import PathManager
 from .analysis.prof_common_func._utils import no_exception_func
 from .analysis.prof_common_func._file_manager import FileManager
@@ -90,10 +91,14 @@ class _DynamicProfile:
                 self.prof = None
                 DynamicProfilerUtils.out_log("Stop Dynamic Profiler at {} step.".format(
                     self.cur_step), DynamicProfilerUtils.LoggerLevelEnum.INFO)
-        elif self.prof is None and self.cfg_ctx is not None and self.cur_step == self.cfg_ctx.start_step():
-            self.step_num = self.cfg_ctx.active() + self.cfg_ctx.warmup()
-            self.enable_prof()
-            self.cfg_ctx = None
+        elif self.prof is None and self.cfg_ctx is not None:
+            if self.cur_step > self.cfg_ctx.start_step():
+                print_warn_msg(f"Dynamic Profiler config is not effective. The start_step={self.cfg_ctx.start_step()}, "
+                               f"current_step={self.cur_step}")
+            if self.cur_step == self.cfg_ctx.start_step():
+                self.step_num = self.cfg_ctx.active() + self.cfg_ctx.warmup()
+                self.enable_prof()
+                self.cfg_ctx = None
 
     def start(self, config_path: str):
         if self.prof:
