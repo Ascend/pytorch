@@ -74,7 +74,8 @@ class MemoryDbParser(BaseParser):
             pta_ge_record_list[MemoryRecordTableRow.TOTAL_ALLOCATED.value] = last_record_data[MemoryRecordTableRow.TOTAL_ALLOCATED.value] + cur_record[MemoryRecordTableRow.TOTAL_ALLOCATED.value]
             pta_ge_record_list[MemoryRecordTableRow.TOTAL_RESERVED.value] = last_record_data[MemoryRecordTableRow.TOTAL_RESERVED.value] + cur_record[MemoryRecordTableRow.TOTAL_RESERVED.value]
             pta_ge_record_list[MemoryRecordTableRow.TOTAL_ACTIVATE.value] = last_record_data[MemoryRecordTableRow.TOTAL_ACTIVATE.value] + cur_record[MemoryRecordTableRow.TOTAL_ACTIVATE.value]
-            pta_ge_record_list[MemoryRecordTableRow.STREAM_PTR.value] = cur_record[MemoryRecordTableRow.STREAM_PTR.value] if cur_record[MemoryRecordTableRow.STREAM_PTR.value] else last_record[MemoryRecordTableRow.STREAM_PTR.value]
+            pta_ge_record_list[MemoryRecordTableRow.STREAM_PTR.value] = cur_record[MemoryRecordTableRow.STREAM_PTR.value] if cur_record[MemoryRecordTableRow.STREAM_PTR.value] \
+                else last_record_data[MemoryRecordTableRow.STREAM_PTR.value]
         return [cur_record, pta_ge_record_list]
     
     def run(self, deps_data: dict):
