@@ -8,6 +8,7 @@ import time
 import struct
 from datetime import datetime
 
+from ..analysis.prof_common_func._constant import print_error_msg
 from ...utils._path_manager import PathManager
 from ...utils._error_code import ErrCode, prof_error
 from ..analysis.prof_common_func._file_manager import FileManager
@@ -106,6 +107,13 @@ class DynamicProfilerShareMemory:
                 self.config_path,
                 self.JSON_DATA,
                 indent=4)
+        else:
+            if not PathManager.check_path_is_readable(self.config_path):
+                print_error_msg(f"Dynamic profiler config '{self.config_path}' is not readable, "
+                                f"please check the permission, and execute chmod u+r {self.config_path}")
+            if not PathManager.check_path_is_writeable(self.config_path):
+                print_error_msg(f"Dynamic profiler config '{self.config_path}' is not writeable, "
+                                f"please check the permission, and execute chmod u+w {self.config_path}")
 
         file_stat = os.stat(self.config_path)
         self.cur_mtime = int(file_stat.st_mtime)

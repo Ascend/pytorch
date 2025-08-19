@@ -172,3 +172,11 @@ class PathManager:
         for name in path_split_list:
             if len(name) > cls.MAX_FILE_NAME_LENGTH:
                 raise RuntimeError("Length of input path exceeds the limit." + pta_error(ErrCode.PARAM))
+
+    @classmethod
+    def check_path_is_readable(cls, path: str):
+        return os.access(path, os.R_OK)
+
+    @classmethod
+    def check_path_is_writeable(cls, path: str):
+        return os.access(path, os.W_OK)
