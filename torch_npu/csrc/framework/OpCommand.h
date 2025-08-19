@@ -10,6 +10,8 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
 
+extern std::atomic<bool> g_used_aclop;
+
 namespace at_npu {
 namespace native {
 
