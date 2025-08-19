@@ -35,6 +35,8 @@ static std::unordered_map<at::ScalarType, std::vector<long>> integral_limits_map
     {at::ScalarType::Short, {std::numeric_limits<int16_t>::max(), std::numeric_limits<int16_t>::min()}}};
 } // namespace
 
+std::atomic<bool> g_used_aclop{false};
+
 namespace at_npu {
 namespace native {
 
@@ -126,6 +128,7 @@ void OpCommand::Run()
 {
     // Check for npu graph
     if (aclCmd->CheckCustomHandlerNull()) {
+        g_used_aclop = true;
         c10_npu::assertNotCapturingAclop(aclCmd->GetName());
     }
 
