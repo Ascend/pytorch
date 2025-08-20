@@ -23,13 +23,17 @@ __all__ = []
 class RelationParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
+        self._dequeue_data = []
 
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "RelationParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("RelationParser start.")
         try:
-            kernel_dict = FwkCANNRelationParser(self._profiler_path).get_kernel_dict()
+            self._dequeue_data = deps_data.get(Constant.TASK_QUEUE_PARSER, {}).get(Constant.DEQUEUE_DATA, [])
+            kernel_dict = FwkCANNRelationParser(self._profiler_path).get_kernel_dict(self._dequeue_data)
         except Exception as e:
             self.logger.error("Failed to get acl to npu flow dict, error: %s", str(e), exc_info=True)
             return Constant.FAIL, {}
+        self.logger.info("RelationParser finish.")
         return Constant.SUCCESS, kernel_dict

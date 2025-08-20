@@ -20,6 +20,8 @@ class StackViewParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self._torch_op_node = []
+        self._torch_op_data = []
+        self._dequeue_data = []
         self._root_node = None
         self._kernel_dict = {}
         self._metric = param_dict.get("metric")
@@ -27,12 +29,16 @@ class StackViewParser(BaseParser):
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "StackViewParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("StackViewParser start.")
         try:
             self._torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
+            self._torch_op_data = deps_data.get(Constant.TORCH_OP_PARSER, [])
+            self._dequeue_data = deps_data.get(Constant.TASK_QUEUE_PARSER, {}).get(Constant.DEQUEUE_DATA, [])
             self.generate_view()
         except Exception as e:
             self.logger.error("Failed to export stack, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("StackViewParser finish.")
         return Constant.SUCCESS, None
 
     def generate_view(self) -> None:
@@ -70,14 +76,14 @@ class StackViewParser(BaseParser):
 
     def _init_data(self):
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
-            self._torch_op_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(only_fwk=True)
+            self._torch_op_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(self._torch_op_data)
         if not self._torch_op_node:
             return
         self._root_node = self._torch_op_node[0]
         self._torch_op_node = self._torch_op_node[1:]
 
         if self._metric == Constant.METRIC_NPU_TIME:
-            self._kernel_dict = FwkCANNRelationParser(self._profiler_path).get_kernel_dict()
+            self._kernel_dict = FwkCANNRelationParser(self._profiler_path).get_kernel_dict(self._dequeue_data)
             if not FwkFileParser(self._profiler_path).has_task_queue_data():
                 for acl_ts in self._kernel_dict.keys():
                     TreeBuilder.update_tree_node_info(acl_ts, self._root_node)

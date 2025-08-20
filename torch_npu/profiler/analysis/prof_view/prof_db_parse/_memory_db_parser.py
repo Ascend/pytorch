@@ -79,6 +79,7 @@ class MemoryDbParser(BaseParser):
         return [cur_record, pta_ge_record_list]
     
     def run(self, deps_data: dict):
+        self.logger.info("MemoryDbParser start.")
         try:
             cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
             device_ids = ProfilerPathManager.get_device_id(cann_path)
@@ -87,11 +88,11 @@ class MemoryDbParser(BaseParser):
             self.set_start_string_id()
             self._pta_op_memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", {}).get(Constant.Db, [])
             self._pta_memory_bean_list = deps_data.get(Constant.MEMORY_PREPARE, {}).get("pta_record_list", [])
-            self.init_pta_memory_data()
             self.save_memory_data_to_db()
         except Exception as error:
             self.logger.error("Failed to generate memory_record table or op_memory table, error: %s", str(error), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("MemoryDbParser finish.")
         return Constant.SUCCESS, None
     
     def init_db_connect(self):
@@ -240,14 +241,6 @@ class MemoryDbParser(BaseParser):
             return
         TorchDb().create_table_with_headers(DbConstant.TABLE_MEMORY_RECORD, TableColumnsManager.TableColumns.get(DbConstant.TABLE_MEMORY_RECORD))
         TorchDb().insert_data_into_table(DbConstant.TABLE_MEMORY_RECORD, self._record_list)
-
-    def init_pta_memory_data(self):
-        if not ProfilerPathManager.get_cann_path(self._profiler_path):
-            torch_nop_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(only_fwk=True)
-            deps_data = {Constant.TREE_BUILD_PARSER: torch_nop_node}
-            _, pta_data = MemoryPrepareParser(Constant.MEMORY_PREPARE, self._param_dict).run(deps_data)
-            self._pta_op_memory_data = pta_data.get("memory_data", {}).get(Constant.Db, [])
-            self._pta_memory_bean_list = pta_data.get("pta_record_list", [])
 
     def save_strings_id(self):
         TorchDb().create_table_with_headers(DbConstant.TABLE_STRING_IDS, TableColumnsManager.TableColumns.get(DbConstant.TABLE_STRING_IDS))

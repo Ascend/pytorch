@@ -17,7 +17,6 @@ from ..prof_common_func._constant import Constant
 from ..prof_view.cann_parse._cann_analyze import CANNAnalyzeParser
 from ..prof_view.cann_parse._cann_export import CANNExportParser, CANNTimelineParser
 from ..prof_view._memory_prepare_parser import MemoryPrepareParser
-from ..prof_view.prepare_parse._fwk_pre_parser import TracePreParser, TreeBuildParser
 from ..prof_view._kernel_view_parser import KernelViewParser
 from ..prof_view._operator_view_parser import OperatorViewParser
 from ..prof_view.prepare_parse._relation_parser import RelationParser
@@ -28,7 +27,14 @@ from ..prof_view._memory_view_parser import MemoryViewParser
 from ..prof_view._integrate_parser import IntegrateParser
 from ..prof_view._communication_parser import CommunicationParser
 from ..prof_view._memory_timeline_parser import MemoryTimelineParser
-from ..prof_view.prof_db_parse._db_parser import DbParser
+from ..prof_view.prof_db_parse._db_parser import DbParser 
+from ..prof_view.prepare_parse._fwk_pre_parser import (
+    TracePreParser,
+    TreeBuildParser,
+    TaskQueueParser,
+    TorchOpParser,
+    DbPreParser
+)
 
 __all__ = []
 
@@ -37,6 +43,8 @@ class ParserConfig:
     LEVEL_NONE_CONFIG = {
         Constant.Text: {
             Constant.TENSORBOARD_TRACE_HANDLER: [
+                TaskQueueParser,
+                TorchOpParser,
                 TracePreParser,
                 TreeBuildParser,
                 CANNExportParser,
@@ -52,6 +60,9 @@ class ParserConfig:
         },
         Constant.Db: {
             Constant.TENSORBOARD_TRACE_HANDLER: [
+                TorchOpParser,
+                TaskQueueParser,
+                DbPreParser,
                 CANNExportParser,
                 CANNTimelineParser,
                 CANNAnalyzeParser,
@@ -65,6 +76,8 @@ class ParserConfig:
     COMMON_CONFIG = {
         Constant.Text: {
             Constant.TENSORBOARD_TRACE_HANDLER: [
+                TorchOpParser,
+                TaskQueueParser,
                 TracePreParser,
                 TreeBuildParser,
                 CANNExportParser,
@@ -80,13 +93,17 @@ class ParserConfig:
                 IntegrateParser,
                 CommunicationParser
             ],
-            Constant.EXPORT_CHROME_TRACE: [TracePreParser, TreeBuildParser, CANNExportParser, CANNTimelineParser,
-                                           TraceViewParser],
-            Constant.EXPORT_STACK: [TreeBuildParser, CANNExportParser, CANNTimelineParser, StackViewParser],
+            Constant.EXPORT_CHROME_TRACE: [TorchOpParser, TaskQueueParser, TracePreParser, TreeBuildParser, CANNExportParser,
+                                           CANNTimelineParser, TraceViewParser],
+            Constant.EXPORT_STACK: [TorchOpParser, TaskQueueParser, TreeBuildParser, CANNExportParser,
+                                    CANNTimelineParser, StackViewParser],
             Constant.EXPORT_MEMORY_TIMELINE: [MemoryTimelineParser]
         },
         Constant.Db: {
             Constant.TENSORBOARD_TRACE_HANDLER: [
+                TorchOpParser,
+                TaskQueueParser,
+                DbPreParser,
                 CANNExportParser,
                 CANNTimelineParser,
                 CANNAnalyzeParser,
@@ -99,18 +116,21 @@ class ParserConfig:
 
     ONLY_FWK_CONFIG = {
         Constant.Text: {
-            Constant.TENSORBOARD_TRACE_HANDLER: [OperatorViewParser, TraceViewParser, MemoryViewParser],
-            Constant.EXPORT_CHROME_TRACE: [TraceViewParser],
-            Constant.EXPORT_STACK: [StackViewParser],
+            Constant.TENSORBOARD_TRACE_HANDLER: [TorchOpParser, TaskQueueParser, MemoryPrepareParser, OperatorViewParser, TraceViewParser,
+                                                 MemoryViewParser],
+            Constant.EXPORT_CHROME_TRACE: [TorchOpParser, TaskQueueParser, TraceViewParser],
+            Constant.EXPORT_STACK: [TorchOpParser, TaskQueueParser, StackViewParser],
             Constant.EXPORT_MEMORY_TIMELINE: [MemoryTimelineParser]
         },
         Constant.Db: {
-            Constant.TENSORBOARD_TRACE_HANDLER: [CANNExportParser, DbParser]
+            Constant.TENSORBOARD_TRACE_HANDLER: [TorchOpParser, TaskQueueParser, DbPreParser, MemoryPrepareParser, DbParser]
         }
     }
 
     PARSER_NAME_MAP = {
         # text parser
+        TorchOpParser: Constant.TORCH_OP_PARSER,
+        TaskQueueParser: Constant.TASK_QUEUE_PARSER,
         TracePreParser: Constant.TRACE_PRE_PARSER,
         TreeBuildParser: Constant.TREE_BUILD_PARSER,
         CANNExportParser: Constant.CANN_EXPORT_PARSER,
@@ -129,5 +149,6 @@ class ParserConfig:
         MemoryTimelineParser: Constant.MEMORY_TIMELINE_PARSER,
 
         # db parser
+        DbPreParser: Constant.DB_PRE_PARSER,
         DbParser: Constant.DB_PARSER,
     }

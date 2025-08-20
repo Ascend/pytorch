@@ -1,153 +1,90 @@
-from enum import Enum
 from ...prof_common_func._db_manager import TorchDb
-from ...prof_common_func._id_manager import Str2IdManager, ConnectionIdManager, CallChainIdManager
-from ...prof_common_func._constant import Constant, DbConstant, TableColumnsManager
 from .._base_parser import BaseParser
 from ...prof_common_func._log import ProfilerLogger
-from ...prof_parse._fwk_file_parser import FwkFileParser
+from ...prof_common_func._id_manager import Str2IdManager, ConnectionIdManager, CallChainIdManager
+from ...prof_common_func._constant import (
+    Constant,
+    DbConstant,
+    TableColumnsManager,
+    ApiType,
+    TorchOpDataOri,
+    TaskQueueDataOri,
+    CannNodeLaunchApiOri
+)
 
 __all__ = []
-
-
-class ApiType(Enum):
-    TORCH_OP = 50001
-    TASK_QUEUE = 50002
-    PYTHON_TRACE = 50003
-    MSTX_OP = 50004
-
-
-class TorchOpDataOri(Enum):
-    START_NS = 0
-    END_NS = 1
-    GLOBAL_TID = 2
-    CONNECTION_ID = 3
-    NAME = 4
-    SEQUENCE_NUM = 5
-    FWD_THREAD_ID = 6
-    INPUT_DIMS = 7
-    INPUT_SHAPES = 8
-    CALL_STACK = 9
-
-
-class TaskQueueDataOri(Enum):
-    START_NS = 0
-    END_NS = 1
-    GLOBAL_TID = 2
-    CORRELATION_ID = 3
-    NAME = 4
-
-
-class PythonTraceApiDataOri(Enum):
-    START_NS = 0
-    END_NS = 1
-    GLOBAL_TID = 2
-    NAME = 3
-
-
-class CannNodeLaunchApiOri(Enum):
-    START_NS = 0
-    END_NS = 1
-    GLOBAL_TID = 2
-    CORRELATION_ID = 3
 
 
 class FwkApiDbParser(BaseParser):
 
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
-        self._max_cann_connection_id = 0
         self._fwk_apis = []
         ProfilerLogger.init(self._profiler_path, "FwkApiDbParser")
         self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        self.logger.info("FwkApiDbParser start.")
         try:
             self.init_db_connect()
             self.set_start_string_id()
-            self.get_max_cann_id()
-            fwk_api_data = FwkFileParser(self._profiler_path).get_fwk_api()
+            fwk_api_data = deps_data.get(Constant.DB_PRE_PARSER, {})
+            self.logger.info("FwkApiDbParser get fwk api data finish.")
             self.get_api_data_for_db(fwk_api_data)
+            self.logger.info("FwkApiDbParser get api data for db finish.")
             self.save_api_data_to_db()
+            self.logger.info("FwkApiDbParser save api data to db finish.")
         except Exception as error:
             self.logger.error("Failed to generate framework api table, error: %s", str(error), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("FwkApiDbParser finish.")
         return Constant.SUCCESS, None
 
     def get_api_data_for_db(self, fwk_api_data: dict):
         if not fwk_api_data:
             return
-        task_enqueues = fwk_api_data.get("task_enqueues", [])
-        task_dequeues = fwk_api_data.get("task_dequeues", [])
-        for enqueue in task_enqueues:
-            self._fwk_apis.append([enqueue[TaskQueueDataOri.START_NS.value],
-                                   enqueue[TaskQueueDataOri.END_NS.value],
-                                   enqueue[TaskQueueDataOri.GLOBAL_TID.value],
-                                   ConnectionIdManager().get_id_from_connection_ids(
-                                       [enqueue[TaskQueueDataOri.CORRELATION_ID.value] + self._max_cann_connection_id]),
-                                   Str2IdManager().get_id_from_str(enqueue[TaskQueueDataOri.NAME.value]),
-                                   None, None, None, None, None, ApiType.TASK_QUEUE.value])
-        for dequeue in task_dequeues:
-            self._fwk_apis.append([dequeue[TaskQueueDataOri.START_NS.value],
-                                   dequeue[TaskQueueDataOri.END_NS.value],
-                                   dequeue[TaskQueueDataOri.GLOBAL_TID.value],
-                                   ConnectionIdManager().get_id_from_connection_ids(
-                                       [dequeue[TaskQueueDataOri.CORRELATION_ID.value] + self._max_cann_connection_id]),
-                                   Str2IdManager().get_id_from_str(dequeue[TaskQueueDataOri.NAME.value]),
-                                   None, None, None, None, None, ApiType.TASK_QUEUE.value])
-        python_trace_apis = fwk_api_data.get("python_trace", [])
-        for python_trace_api in python_trace_apis:
-            self._fwk_apis.append([python_trace_api[PythonTraceApiDataOri.START_NS.value],
-                                   python_trace_api[PythonTraceApiDataOri.END_NS.value],
-                                   python_trace_api[PythonTraceApiDataOri.GLOBAL_TID.value],
-                                   None,
-                                   Str2IdManager().get_id_from_str(python_trace_api[PythonTraceApiDataOri.NAME.value]),
-                                   None, None, None, None, None, ApiType.PYTHON_TRACE.value])
-        torch_op_apis = fwk_api_data.get("torch_op", [])
-        if not torch_op_apis:
-            return
-        # update torch op api connection id if there is cann api
-        if self._max_cann_connection_id != 0:
-            for torch_op_api in torch_op_apis:
-                # update torch op api inner connection id, include fwd_bwd id
-                if torch_op_api[TorchOpDataOri.CONNECTION_ID.value]:
-                    torch_op_api[TorchOpDataOri.CONNECTION_ID.value] = [conn_id + self._max_cann_connection_id for conn_id in torch_op_api[TorchOpDataOri.CONNECTION_ID.value]]
+        task_enqueues = fwk_api_data.get(Constant.ENQUEUE_DATA, [])
+        task_dequeues = fwk_api_data.get(Constant.DEQUEUE_DATA, [])
+        torch_op_apis = fwk_api_data.get(Constant.TORCH_OP_DATA, [])
+        python_trace_apis = fwk_api_data.get(Constant.PYTHON_TRACE_DATA, [])
+        mstx_mark_apis = fwk_api_data.get(Constant.MSTX_OP_DATA, [])
+        self._fwk_apis = python_trace_apis + task_enqueues + task_dequeues
+
+        if TorchDb().judge_table_exist(DbConstant.TABLE_CANN_API):
             self.get_torch_op_connection_ids_with_cann_api(task_enqueues, task_dequeues, torch_op_apis)
+
+        # update connection id for torch op
+        connectionId_manager = ConnectionIdManager()
         for torch_op_api in torch_op_apis:
-            self._fwk_apis.append([torch_op_api[TorchOpDataOri.START_NS.value],
-                                   torch_op_api[TorchOpDataOri.END_NS.value],
-                                   torch_op_api[TorchOpDataOri.GLOBAL_TID.value],
-                                   None if not torch_op_api[TorchOpDataOri.CONNECTION_ID.value] else ConnectionIdManager().get_id_from_connection_ids(torch_op_api[TorchOpDataOri.CONNECTION_ID.value]),
-                                   Str2IdManager().get_id_from_str(torch_op_api[TorchOpDataOri.NAME.value]),
-                                   torch_op_api[TorchOpDataOri.SEQUENCE_NUM.value],
-                                   torch_op_api[TorchOpDataOri.FWD_THREAD_ID.value],
-                                   None if not torch_op_api[TorchOpDataOri.INPUT_DIMS.value] else Str2IdManager().get_id_from_str(torch_op_api[TorchOpDataOri.INPUT_DIMS.value]),
-                                   None if not torch_op_api[TorchOpDataOri.INPUT_SHAPES.value] else Str2IdManager().get_id_from_str(torch_op_api[TorchOpDataOri.INPUT_SHAPES.value]),
-                                   None if not torch_op_api[TorchOpDataOri.CALL_STACK.value] else CallChainIdManager().get_callchain_id_from_callstack(torch_op_api[TorchOpDataOri.CALL_STACK.value]),
-                                   ApiType.TORCH_OP.value])
-        mstx_mark_apis = fwk_api_data.get("mstx_op", [])
-        if not mstx_mark_apis:
-            return
-        self.get_mstx_mark_op_connection_ids_with_cann_api(task_enqueues, task_dequeues, mstx_mark_apis)
+            torch_op_api[TorchOpDataOri.CONNECTION_ID] = connectionId_manager.get_id_from_connection_ids(torch_op_api[TorchOpDataOri.CONNECTION_ID]) if torch_op_api[TorchOpDataOri.CONNECTION_ID] else None
+        self._fwk_apis.extend(torch_op_apis)
+
+        if TorchDb().judge_table_exist(DbConstant.TABLE_MSTX_EVENTS):
+            self.get_mstx_mark_op_connection_ids_with_cann_api(task_enqueues, task_dequeues, mstx_mark_apis)
+
+        # update connection id for mstx mark op
         for mstx_mark_api in mstx_mark_apis:
-            self._fwk_apis.append([mstx_mark_api[TorchOpDataOri.START_NS.value], mstx_mark_api[TorchOpDataOri.END_NS.value], mstx_mark_api[TorchOpDataOri.GLOBAL_TID.value],
-                                   None if not mstx_mark_api[TorchOpDataOri.CONNECTION_ID.value] else ConnectionIdManager().get_id_from_connection_ids(mstx_mark_api[TorchOpDataOri.CONNECTION_ID.value]),
-                                   Str2IdManager().get_id_from_str(mstx_mark_api[TorchOpDataOri.NAME.value]),
-                                   None, mstx_mark_api[TorchOpDataOri.FWD_THREAD_ID.value], None, None, None,
-                                   ApiType.MSTX_OP.value])
+            if mstx_mark_api[TorchOpDataOri.CONNECTION_ID]:
+                mstx_mark_api[TorchOpDataOri.CONNECTION_ID] = connectionId_manager.get_id_from_connection_ids(mstx_mark_api[TorchOpDataOri.CONNECTION_ID])
+        self._fwk_apis.extend(mstx_mark_apis)
 
     def get_mstx_mark_op_connection_ids_with_cann_api(self, task_enqueues: list, task_dequeues: list, mstx_mark_apis: list):
+        if not mstx_mark_apis:
+            return
         sql = "select startNs, endNs, globalTid, connectionId from {} order by startNs".format(
             DbConstant.TABLE_MSTX_EVENTS)
         cann_tx_apis = TorchDb().fetch_all_data(sql)
         if not cann_tx_apis:
             raise RuntimeWarning("Failed to get msprof_tx apis")
-        mstx_mark_apis.sort(key=lambda x: x[TorchOpDataOri.START_NS.value])
+        mstx_mark_apis.sort(key=lambda x: x[TorchOpDataOri.START_NS])
         mstx_op_len = len(mstx_mark_apis)
         if task_enqueues and task_dequeues:
             self.get_torch_op_connection_ids_with_task_queue(task_enqueues, task_dequeues, mstx_mark_apis, mstx_op_len,
                                                              cann_tx_apis)
 
     def get_torch_op_connection_ids_with_cann_api(self, task_enqueues: list, task_dequeues: list, torch_op_apis: list):
+        if not torch_op_apis:
+            return
         sql = "select id from {} where value = 'launch'".format(DbConstant.TABLE_STRING_IDS)
         node_launch_str_ids = TorchDb().fetch_one_data(sql)
         node_launch_str_id = 0
@@ -161,7 +98,7 @@ class FwkApiDbParser(BaseParser):
         node_launch_apis = TorchDb().fetch_all_data(sql)
         if not node_launch_apis:
             raise RuntimeWarning("Failed to get node launch apis")
-        torch_op_apis.sort(key=lambda x: x[TorchOpDataOri.START_NS.value])
+        torch_op_apis.sort(key=lambda x: x[TorchOpDataOri.START_NS])
         torch_op_len = len(torch_op_apis)
         if task_enqueues and task_dequeues:
             self.get_torch_op_connection_ids_with_task_queue(task_enqueues, task_dequeues, torch_op_apis, torch_op_len,
@@ -170,44 +107,43 @@ class FwkApiDbParser(BaseParser):
             self.get_torch_op_connection_ids_without_task_queue(torch_op_apis, torch_op_len, node_launch_apis)
 
     def get_torch_op_connection_ids_with_task_queue(self, task_enqueues: list, task_dequeues: list, torch_op_apis: list, torch_op_len: int, node_lauch_apis: list):
-        enqueue_corr_ids = {task_enqueue[TaskQueueDataOri.CORRELATION_ID.value] for task_enqueue in task_enqueues}
-        dequeue_corr_ids = {task_dequeue[TaskQueueDataOri.CORRELATION_ID.value] for task_dequeue in task_dequeues}
-        enqueue_list = []
-        for task_enqueue in task_enqueues:
-            if task_enqueue[TaskQueueDataOri.CORRELATION_ID.value] in dequeue_corr_ids:
-                enqueue_list.append(task_enqueue)
-        dequeue_list = []
-        for task_dequeue in task_dequeues:
-            if task_dequeue[TaskQueueDataOri.CORRELATION_ID.value] in enqueue_corr_ids:
-                dequeue_list.append(task_dequeue)
+        connection_id_manager = ConnectionIdManager()
+        enqueue_corr_ids = {connection_id_manager.get_connection_ids_from_id(task_enqueue[TaskQueueDataOri.CORRELATION_ID])[0] for task_enqueue in task_enqueues}
+        dequeue_corr_ids = {connection_id_manager.get_connection_ids_from_id(task_dequeue[TaskQueueDataOri.CORRELATION_ID])[0] for task_dequeue in task_dequeues}
+        matched_corr_ids = enqueue_corr_ids & dequeue_corr_ids
+        enqueue_list = [enqueue for enqueue in task_enqueues if connection_id_manager.get_connection_ids_from_id(enqueue[TaskQueueDataOri.CORRELATION_ID])[0] in matched_corr_ids]
+        dequeue_list = [dequeue for dequeue in task_dequeues if connection_id_manager.get_connection_ids_from_id(dequeue[TaskQueueDataOri.CORRELATION_ID])[0] in matched_corr_ids]
+
         last_dequeue_index = 0
         last_torch_op_index = 0
         dequeue_len = len(dequeue_list)
         for node_launch_api in node_lauch_apis:
             for idx in range(last_dequeue_index, dequeue_len):
-                if node_launch_api[CannNodeLaunchApiOri.START_NS.value] > dequeue_list[idx][TaskQueueDataOri.START_NS.value] and \
-                    node_launch_api[CannNodeLaunchApiOri.END_NS.value] < dequeue_list[idx][TaskQueueDataOri.END_NS.value]:
+                if node_launch_api[CannNodeLaunchApiOri.START_NS] > dequeue_list[idx][TaskQueueDataOri.START_NS] and \
+                    node_launch_api[CannNodeLaunchApiOri.END_NS] < dequeue_list[idx][TaskQueueDataOri.END_NS]:
                     last_dequeue_index = idx
                     enqeue = enqueue_list[idx]
                     last_torch_op_index = self.get_torch_op_connection_ids_with_enqueue(torch_op_apis,
                                                                                         torch_op_len,
                                                                                         enqeue,
                                                                                         last_torch_op_index,
-                                                                                        node_launch_api[CannNodeLaunchApiOri.CORRELATION_ID.value])
+                                                                                        node_launch_api[CannNodeLaunchApiOri.CORRELATION_ID])
+                    break
+                if dequeue_list[idx][TaskQueueDataOri.START_NS] > node_launch_api[CannNodeLaunchApiOri.END_NS]:
                     break
 
     def get_torch_op_connection_ids_with_enqueue(self, torch_op_apis: list, torch_op_len: int, enqeue: list, last_torch_op_index: int, connection_id: int) -> int:
         last_op_api = None
         for idx in range(last_torch_op_index, torch_op_len):
-            if enqeue[TaskQueueDataOri.START_NS.value] > torch_op_apis[idx][TorchOpDataOri.END_NS.value]:
+            if enqeue[TaskQueueDataOri.START_NS] > torch_op_apis[idx][TorchOpDataOri.END_NS]:
                 continue
-            if enqeue[TaskQueueDataOri.START_NS.value] > torch_op_apis[idx][TorchOpDataOri.START_NS.value] and enqeue[TaskQueueDataOri.END_NS.value] < torch_op_apis[idx][TorchOpDataOri.END_NS.value]:
+            if enqeue[TaskQueueDataOri.START_NS] > torch_op_apis[idx][TorchOpDataOri.START_NS] and enqeue[TaskQueueDataOri.END_NS] < torch_op_apis[idx][TorchOpDataOri.END_NS]:
                 last_op_api = torch_op_apis[idx]
                 last_torch_op_index = idx
             elif last_op_api:
                 break
         if last_op_api:
-            torch_op_apis[last_torch_op_index][TorchOpDataOri.CONNECTION_ID.value].append(connection_id)
+            torch_op_apis[last_torch_op_index][TorchOpDataOri.CONNECTION_ID].append(connection_id)
         return last_torch_op_index
 
     def get_torch_op_connection_ids_without_task_queue(self, torch_op_apis: list, torch_op_len: int, node_lauch_apis: list):
@@ -215,29 +151,21 @@ class FwkApiDbParser(BaseParser):
         last_op_index = 0
         for node_launch_api in node_lauch_apis:
             for idx in range(last_op_index, torch_op_len):
-                if torch_op_apis[idx][TorchOpDataOri.GLOBAL_TID.value] != node_launch_api[CannNodeLaunchApiOri.GLOBAL_TID.value]:
+                if torch_op_apis[idx][TorchOpDataOri.GLOBAL_TID] != node_launch_api[CannNodeLaunchApiOri.GLOBAL_TID]:
                     continue
-                if node_launch_api[CannNodeLaunchApiOri.START_NS.value] > torch_op_apis[idx][TorchOpDataOri.END_NS.value]:
+                if node_launch_api[CannNodeLaunchApiOri.START_NS] > torch_op_apis[idx][TorchOpDataOri.END_NS]:
                     continue
-                if node_launch_api[CannNodeLaunchApiOri.START_NS.value] > torch_op_apis[idx][TorchOpDataOri.START_NS.value] and \
-                    node_launch_api[CannNodeLaunchApiOri.END_NS.value] < torch_op_apis[idx][TorchOpDataOri.END_NS.value]:
+                if node_launch_api[CannNodeLaunchApiOri.START_NS] > torch_op_apis[idx][TorchOpDataOri.START_NS] and \
+                    node_launch_api[CannNodeLaunchApiOri.END_NS] < torch_op_apis[idx][TorchOpDataOri.END_NS]:
                     last_op_api = torch_op_apis[idx]
                     last_op_index = idx
                 elif last_op_api:
-                    torch_op_apis[last_op_index][TorchOpDataOri.CONNECTION_ID.value].append(node_launch_api[CannNodeLaunchApiOri.CORRELATION_ID.value])
+                    torch_op_apis[last_op_index][TorchOpDataOri.CONNECTION_ID].append(node_launch_api[CannNodeLaunchApiOri.CORRELATION_ID])
                     last_op_api = None
                     break
 
     def set_start_string_id(self):
         Str2IdManager().set_start_id(DbConstant.START_STRING_ID_FWK_API)
-
-    def get_max_cann_id(self):
-        if not TorchDb().judge_table_exist(DbConstant.TABLE_CANN_API):
-            return
-        sql = "select max(connectionId) from {}".format(DbConstant.TABLE_CANN_API)
-        connectionIds = TorchDb().fetch_one_data(sql)
-        if connectionIds and connectionIds[0]:
-            self._max_cann_connection_id = connectionIds[0] + 1
 
     def init_db_connect(self) -> None:
         if not TorchDb().create_connect_db():
@@ -285,10 +213,10 @@ class FwkApiDbParser(BaseParser):
             TorchDb().create_table_with_headers(DbConstant.TABLE_ENUM_API_TYPE,
                                                 TableColumnsManager.TableColumns.get(DbConstant.TABLE_ENUM_API_TYPE))
         api_types = [
-            (ApiType.TORCH_OP.value, 'op'),
-            (ApiType.TASK_QUEUE.value, 'queue'),
-            (ApiType.PYTHON_TRACE.value, 'trace'),
-            (ApiType.MSTX_OP.value, 'mstx')
+            (ApiType.TORCH_OP, 'op'),
+            (ApiType.TASK_QUEUE, 'queue'),
+            (ApiType.PYTHON_TRACE, 'trace'),
+            (ApiType.MSTX_OP, 'mstx')
         ]
         TorchDb().insert_data_into_table(DbConstant.TABLE_ENUM_API_TYPE, api_types)
 

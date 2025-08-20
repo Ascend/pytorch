@@ -31,12 +31,14 @@ class StepInfoDbParser(BaseParser):
         self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        self.logger.info("StepInfoDbParser start.")
         try:
             torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             step_range = self.get_step_range(torch_op_node[0] if torch_op_node else None)
         except Exception as error:
             self.logger.error("Failed to get step info from db, error: %s", str(error), exc_info=True)
             return Constant.FAIL, []
+        self.logger.info("StepInfoDbParser finish.")
         return Constant.SUCCESS, step_range
 
     def get_api_data_in_time_range(self, begin_ts, end_ts) -> list:
