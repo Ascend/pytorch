@@ -75,6 +75,7 @@ class MemoryViewParser(BaseParser):
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "MemoryViewParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("MemoryViewParser start.")
         try:
             self.memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", {}).get(Constant.Text, [])
             self.pta_record_list = deps_data.get(Constant.MEMORY_PREPARE, {}).get("pta_record_list", [])
@@ -85,10 +86,10 @@ class MemoryViewParser(BaseParser):
         except Exception as e:
             self.logger.error("Failed to generate operator_memory.csv or memory_record.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("MemoryViewParser finish.")
         return Constant.SUCCESS, None
 
     def generate_view(self) -> None:
-        self._init_pta_data()
         self._add_memory_from_cann()
         self._add_pta_ge_record_data()
         FileManager.create_csv_file(self._output_path, self.memory_data, self.OPERATOR_MEMORY, self.HEADERS_OPERATOR)
@@ -158,11 +159,3 @@ class MemoryViewParser(BaseParser):
         ge_op_memory_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_OPERATOR_MEMORY) \
             if Constant.NPU_ACTIVITIES in self._activities else set()
         self.memory_data.extend(self._get_data_from_file(ge_op_memory_file, GeOpMemoryBean))
-
-    def _init_pta_data(self):
-        if not ProfilerPathManager.get_cann_path(self._profiler_path):
-            torch_nop_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(only_fwk=True)
-            deps_data = {Constant.TREE_BUILD_PARSER: torch_nop_node}
-            _, pta_data = MemoryPrepareParser(Constant.MEMORY_PREPARE, self._param_dict).run(deps_data)
-            self.memory_data = pta_data.get("memory_data", {}).get(Constant.Text, [])
-            self.pta_record_list = pta_data.get("pta_record_list", [])

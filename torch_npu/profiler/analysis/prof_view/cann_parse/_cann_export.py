@@ -48,6 +48,7 @@ class CANNExportParser(BaseParser):
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "CANNExportParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("CANNExportParser start.")
         try:
             ProfilerConfig().load_info(self._profiler_path)
             if not os.path.isdir(self._cann_path):
@@ -75,6 +76,7 @@ class CANNExportParser(BaseParser):
             return Constant.FAIL, None
         end_time = datetime.utcnow()
         print_info_msg(f"CANN profiling data parsed in a total time of {end_time - start_time}")
+        self.logger.info("CANNExportParser finish.")
         return Constant.SUCCESS, None
 
     def _check_msprof_environment(self):
@@ -149,6 +151,9 @@ class CANNTimelineParser(BaseParser):
         self._cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
 
     def run(self, deps_data: dict):
+        ProfilerLogger.init(self._profiler_path, "CANNTimelineParser")
+        self.logger = ProfilerLogger.get_instance()
+        self.logger.info("CANNTimelineParser start.")
         if not os.path.isdir(self._cann_path):
             return Constant.SUCCESS, None
         ProfilerConfig().load_info(self._profiler_path)
@@ -158,6 +163,7 @@ class CANNTimelineParser(BaseParser):
                 if os.path.exists(output_path):
                     for file_name in os.listdir(output_path):
                         if file_name.endswith('.csv'):
+                            self.logger.info("CANNTimelineParser finish.")
                             return Constant.SUCCESS, None
                 try:
                     time.sleep(Constant.SLEEP_TIME)
@@ -168,6 +174,7 @@ class CANNTimelineParser(BaseParser):
             while True:
                 for file in os.listdir(self._cann_path):
                     if re.match(patten, file) and os.path.isfile(os.path.join(self._cann_path, file)):
+                        self.logger.info("CANNTimelineParser finish.")
                         return Constant.SUCCESS, None
                 try:
                     time.sleep(Constant.SLEEP_TIME)

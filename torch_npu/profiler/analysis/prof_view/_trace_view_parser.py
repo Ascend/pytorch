@@ -22,10 +22,13 @@ class TraceViewParser(BaseParser):
         super().__init__(name, param_dict)
         self._trace_file_path = os.path.join(self._output_path, self.TRACE_VIEW) if os.path.isdir(
             self._output_path) else self._output_path
-        self._temp_trace_file_path = os.path.join(self._output_path, Constant.TRACE_VIEW_TEMP) if os.path.isdir(
+        self._temp_trace_file_path = os.path.join(self._output_path, Constant.TRACE_VIEW) if os.path.isdir(
             self._output_path) else self._output_path
         self._trace_data = []
         self._torch_op_node = []
+        self._torch_op_data = []
+        self._enqueue_data = []
+        self._dequeue_data = []
         self._root_node = None
 
     @staticmethod
@@ -47,21 +50,28 @@ class TraceViewParser(BaseParser):
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "TraceViewParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("TraceViewParser start.")
         try:
             ProfilerConfig().load_info(self._profiler_path)
             torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             if torch_op_node:
                 self._root_node = torch_op_node[0]
                 self._torch_op_node = torch_op_node[1:]
+            self._torch_op_data = deps_data.get(Constant.TORCH_OP_PARSER, [])
+            task_queue_data = deps_data.get(Constant.TASK_QUEUE_PARSER, {})
+            self._enqueue_data = task_queue_data.get(Constant.ENQUEUE_DATA, [])
+            self._dequeue_data = task_queue_data.get(Constant.DEQUEUE_DATA, [])
             self.generate_view()
         except Exception as e:
             self.logger.error("Failed to generate trace_view.json, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("TraceViewParser finish.")
         return Constant.SUCCESS, None
 
     def generate_view(self) -> None:
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
-            self._trace_data = FwkFileParser(self._profiler_path).get_fwk_trace_data()
+            self._trace_data = FwkFileParser(self._profiler_path).get_fwk_trace_data(
+                self._torch_op_data, self._enqueue_data, self._dequeue_data)
         else:
             msprof_timeline_data = CANNFileParser(self._profiler_path).get_timeline_all_data()
             self._trace_data.extend(
@@ -86,8 +96,7 @@ class TraceViewParser(BaseParser):
                     flow_event_list.extend(
                         TraceEventManager.create_torch_to_npu_flow(matched_torch_op.event, kernel))
             return flow_event_list
-        dequeue_data_list = FwkFileParser(self._profiler_path).get_dequeue_data()
-        kernel_dict = FwkCANNRelationParser.combine_kernel_dict(acl_to_npu_dict, dequeue_data_list)
+        kernel_dict = FwkCANNRelationParser.combine_kernel_dict(acl_to_npu_dict, self._dequeue_data)
         for torch_op_node in self._torch_op_node:
             for corr_id in torch_op_node.corr_id_self:
                 kernel_list = kernel_dict.get(corr_id, [])

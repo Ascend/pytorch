@@ -63,12 +63,14 @@ class CommunicationParser(BaseParser):
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "CommunicationParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("CommunicationParser start.")
         try:
             self._init_step_list(deps_data)
             self.generate_view()
         except Exception as e:
             self.logger.error("Failed to generate communication.json or communication_matrix.json, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("CommunicationParser finish.")
         return Constant.SUCCESS, None
 
     def generate_view(self) -> None:

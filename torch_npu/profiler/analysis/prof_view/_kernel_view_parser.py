@@ -35,6 +35,7 @@ class KernelViewParser(BaseParser):
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "KernelViewParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("KernelViewParser start.")
         try:
             ProfilerConfig().load_info(self._profiler_path)
             self._init_step_range(deps_data)
@@ -42,6 +43,7 @@ class KernelViewParser(BaseParser):
         except Exception as e:
             self.logger.error("Failed to generate kernel_details.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("KernelViewParser finish.")
         return Constant.SUCCESS, None
 
     def generate_view(self) -> None:

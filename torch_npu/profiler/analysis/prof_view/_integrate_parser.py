@@ -30,12 +30,14 @@ class IntegrateParser(BaseParser):
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "IntegrateParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("IntegrateParser start.")
         try:
             ProfilerConfig().load_info(self._profiler_path)
             self.generate_view()
         except Exception as e:
             self.logger.error("Failed to generate data_preprocess.csv or l2_cache.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("IntegrateParser finish.")
         return Constant.SUCCESS, None
 
     def generate_view(self) -> None:
