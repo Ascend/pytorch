@@ -38,6 +38,7 @@ class CANNAnalyzeParser(BaseParser):
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "CANNAnalyzeParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("CANNAnalyzeParser start.")
         try:
             ProfilerConfig().load_info(self._profiler_path)
             if not os.path.isdir(self._cann_path):
@@ -63,4 +64,5 @@ class CANNAnalyzeParser(BaseParser):
             print_error_msg("Failed to analyze CANN Profiling data.")
             self.logger.error("Failed to analyze CANN Profiling data, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("CANNAnalyzeParser finish.")
         return Constant.SUCCESS, None

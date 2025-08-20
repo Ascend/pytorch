@@ -28,63 +28,78 @@ class MemoryEnum(Enum):
 
 class MemoryUseBean(CommonBean):
     CONSTANT_STRUCT = "<7q2b3B2Q"
+    CONSTANT_UNPACKER = struct.Struct(CONSTANT_STRUCT)
     NPU_ID = 20
     CPU_ID = 0
     INNER_ALLOCATOR = 0
 
     def __init__(self, data: dict):
         super().__init__(data)
-        self._constant_data = struct.unpack(self.CONSTANT_STRUCT, self._data.get(Constant.CONSTANT_BYTES))
+        self._constant_data = self.CONSTANT_UNPACKER.unpack(data.get(Constant.CONSTANT_BYTES))
+        self._ptr = self._constant_data[MemoryEnum.PTR.value]
+        self._stream_ptr = self._constant_data[MemoryEnum.STREAM_PTR.value]
+        profiler_config = ProfilerConfig()
+        self._time_ns = profiler_config.get_local_time(
+            profiler_config.get_timestamp_from_syscnt(self._constant_data[MemoryEnum.TIME_NS.value]))
+        self._alloc_size = self._constant_data[MemoryEnum.ALLOC_SIZE.value]
+        self._total_allocated = self._constant_data[MemoryEnum.TOTAL_ALLOCATED.value]
+        self._total_reserved = self._constant_data[MemoryEnum.TOTAL_RESERVED.value]
+        self._total_active = self._constant_data[MemoryEnum.TOTAL_ACTIVE.value]
+        self._device_type = self._constant_data[MemoryEnum.DEVICE_TYPE.value]
         self._device_index = -1
+        self._component_type = self._constant_data[MemoryEnum.COMPONENT_TYPE.value]
+        self._data_type = self._constant_data[MemoryEnum.DATA_TYPE.value]
+        self._allocator_type = self._constant_data[MemoryEnum.ALLOCATOR_TYPE.value]
+        self._thread_id = self._constant_data[MemoryEnum.THREAD_ID.value]
+        self._process_id = self._constant_data[MemoryEnum.PROCESS_ID.value]
 
     @property
     def ptr(self) -> int:
-        return int(self._constant_data[MemoryEnum.PTR.value])
+        return self._ptr
 
     @property
     def stream_ptr(self) -> int:
-        return int(self._constant_data[MemoryEnum.STREAM_PTR.value])
+        return self._stream_ptr
 
     @property
     def time_ns(self) -> int:
-        time_ns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[MemoryEnum.TIME_NS.value])
-        return ProfilerConfig().get_local_time(time_ns)
+        return self._time_ns
 
     @property
-    def alloc_size(self) -> int:
-        return int(self._constant_data[MemoryEnum.ALLOC_SIZE.value]) / Constant.B_TO_KB
+    def alloc_size(self) -> float:
+        return self._alloc_size / Constant.B_TO_KB
 
     @property
     def alloc_size_for_db(self) -> int:
-        return int(self._constant_data[MemoryEnum.ALLOC_SIZE.value])
+        return self._alloc_size
 
     @property
-    def total_allocated(self) -> int:
-        return int(self._constant_data[MemoryEnum.TOTAL_ALLOCATED.value]) / Constant.B_TO_MB
+    def total_allocated(self) -> float:
+        return self._total_allocated / Constant.B_TO_MB
 
     @property
     def total_allocated_for_db(self) -> int:
-        return int(self._constant_data[MemoryEnum.TOTAL_ALLOCATED.value])
+        return self._total_allocated
 
     @property
-    def total_reserved(self) -> int:
-        return int(self._constant_data[MemoryEnum.TOTAL_RESERVED.value]) / Constant.B_TO_MB
+    def total_reserved(self) -> float:
+        return self._total_reserved / Constant.B_TO_MB
 
     @property
     def total_reserved_for_db(self) -> int:
-        return int(self._constant_data[MemoryEnum.TOTAL_RESERVED.value])
+        return self._total_reserved
 
     @property
-    def total_active(self) -> int:
-        return int(self._constant_data[MemoryEnum.TOTAL_ACTIVE.value]) / Constant.B_TO_MB
+    def total_active(self) -> float:
+        return self._total_active / Constant.B_TO_MB
 
     @property
     def total_active_for_db(self) -> int:
-        return int(self._constant_data[MemoryEnum.TOTAL_ACTIVE.value])
+        return self._total_active
 
     @property
     def device_type(self) -> int:
-        return int(self._constant_data[MemoryEnum.DEVICE_TYPE.value])
+        return self._device_type
 
     @property
     def device_index(self) -> int:
@@ -97,23 +112,23 @@ class MemoryUseBean(CommonBean):
 
     @property
     def component_type(self) -> int:
-        return int(self._constant_data[MemoryEnum.COMPONENT_TYPE.value])
+        return self._component_type
 
     @property
     def data_type(self) -> int:
-        return int(self._constant_data[MemoryEnum.DATA_TYPE.value])
+        return self._data_type
     
     @property
     def allocator_type(self) -> int:
-        return int(self._constant_data[MemoryEnum.ALLOCATOR_TYPE.value])
+        return self._allocator_type
 
     @property
     def tid(self) -> int:
-        return int(self._constant_data[MemoryEnum.THREAD_ID.value])
+        return self._thread_id
 
     @property
     def pid(self) -> int:
-        return int(self._constant_data[MemoryEnum.PROCESS_ID.value])
+        return self._process_id
 
     def is_npu(self) -> bool:
         return self.device_type == self.NPU_ID

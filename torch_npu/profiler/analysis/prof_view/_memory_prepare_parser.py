@@ -39,9 +39,12 @@ class MemoryPrepareParser(BaseParser):
         super().__init__(name, param_dict)
         self.pta_record_list = []
         self.memory_data = dict()
+        self._torch_op_data = []
         self._torch_op_node = []
         self._incomplete_num = 0
         self._is_malloc_workspace_in_dequeue_enabled = False
+        self._enqueue_data = []
+        self._dequeue_data = []
         self._dequeue_record_dict = defaultdict(list)  # {(pid, tid): [dequeue_records]}
         self._enqueue_record_dict = {}  # {corrid: enqueue}
         self._dequeue_pids = set()
@@ -62,19 +65,26 @@ class MemoryPrepareParser(BaseParser):
         return left
 
     def run(self, deps_data: dict):
+        self.logger.info("MemoryPrepareParser start.")
         try:
             self._torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
+            self._torch_op_data = deps_data.get(Constant.TORCH_OP_PARSER, [])
+            task_queue_data = deps_data.get(Constant.TASK_QUEUE_PARSER, {})
+            self._enqueue_data = task_queue_data.get(Constant.ENQUEUE_DATA, [])
+            self._dequeue_data = task_queue_data.get(Constant.DEQUEUE_DATA, [])
             self.generate_view()
         except Exception as e:
             self.logger.error("Failed to generate pytorch memory data, error: %s", str(e), exc_info=True)
             return Constant.FAIL, {}
         if self._incomplete_num > 0:
             print_warn_msg(f"{self._incomplete_num} memory record(s) are incomplete.")
+        self.logger.info("MemoryPrepareParser finish.")
         return Constant.SUCCESS, {"pta_record_list": self.pta_record_list, "memory_data": self.memory_data}
 
     def generate_view(self) -> None:
         ProfilerConfig().load_info(self._profiler_path)
         self._init_torch_op()
+        self._init_queue_info()
         self._add_pta_memory_data()
 
     def _find_matched_torch_op_name(self, mem_start_ts: int, torch_ops: list) -> str:
@@ -88,35 +98,30 @@ class MemoryPrepareParser(BaseParser):
         return matched_torch_op.name
 
     def _init_queue_info(self):
-        enqueue_records = FwkFileParser(self._profiler_path).get_enqueue_data()
-        for enqueue_record in enqueue_records:
-            self._enqueue_record_dict[enqueue_record.corr_id] = enqueue_record
-        dequeue_records = FwkFileParser(self._profiler_path).get_dequeue_data()
-        for dequeue_record in dequeue_records:
-            self._dequeue_pids.add(dequeue_record.pid)
-            self._dequeue_tids.add(dequeue_record.tid)
-            key = (dequeue_record.pid, dequeue_record.tid)
-            self._dequeue_record_dict.setdefault(key, []).append(dequeue_record)
+        self._enqueue_record_dict = {record.corr_id: record for record in self._enqueue_data}
+        for record in self._dequeue_data:
+            self._dequeue_pids.add(record.pid)
+            self._dequeue_tids.add(record.tid)
+            self._dequeue_record_dict[(record.pid, record.tid)].append(record)
 
     def _add_pta_memory_data(self):
-        self._init_queue_info()
         pta_memory_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.MEMORY)
-        npu_memory_dict = {}
-        torch_op_dict = {}
-        pta_memory_data = sorted(pta_memory_data, key=lambda x: x.time_ns)
+        npu_memory_dict = defaultdict(list)
+        torch_op_dict = defaultdict(list)
+        pta_memory_data.sort(key=lambda x: x.time_ns)
         for record in pta_memory_data:
             if record.is_npu():
                 if record.is_inner_allocator():
-                    npu_memory_dict.setdefault(record.pid, []).append(record)
+                    npu_memory_dict[record.pid].append(record)
                 self.pta_record_list.append(record)
         for torch_op in self._torch_op_node:
-            torch_op_dict.setdefault(torch_op.pid, []).append(torch_op)
+            torch_op_dict[torch_op.pid].append(torch_op)
         for pid_key, memory_records in npu_memory_dict.items():
             torch_ops = torch_op_dict.get(pid_key, [])
             if not torch_ops:
                 warn(f"Lack of torch ops to connect memory record, whose process id is {pid_key}")
                 continue
-            torch_ops = sorted(torch_ops, key=lambda x: x.start_time)
+            torch_ops.sort(key=lambda x: x.start_time)
             memory_dict = defaultdict(list)
             for record in memory_records:
                 memory_dict[record.ptr].append(record)
@@ -239,7 +244,7 @@ class MemoryPrepareParser(BaseParser):
                                 active_duration_time, records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
                                 records[free_idx].total_allocated_for_db, records[free_idx].total_reserved_for_db, records[free_idx].total_active_for_db,
                                 records[0].stream_ptr, device_index if device_index != -1 else records[0].device_index]
-            ret_list.append(combine_data[:])
+            ret_list.append(combine_data)
         return ret_list
 
     def _complete_record_entry(self, ptr_records: list, torch_ops: list) -> list:
@@ -287,11 +292,11 @@ class MemoryPrepareParser(BaseParser):
                                 active_duration_time, records[0].total_allocated, records[0].total_reserved, records[0].total_active,
                                 records[free_idx].total_allocated, records[free_idx].total_reserved, records[free_idx].total_active,
                                 records[0].stream_ptr, device_tag or records[0].device_tag]
-            ret_list.append(combine_data[:])
+            ret_list.append(combine_data)
         return ret_list
 
     def _init_torch_op(self):
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
-            self._torch_op_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(only_fwk=True)
+            self._torch_op_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(self._torch_op_data)
         if self._torch_op_node:
             self._torch_op_node = self._torch_op_node[1:]

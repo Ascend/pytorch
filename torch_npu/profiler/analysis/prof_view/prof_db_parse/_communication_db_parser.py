@@ -77,6 +77,7 @@ class CommunicationDbParser(CommunicationParser):
         self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        self.logger.info("CommunicationDbParser start.")
         try:
             self._init_step_list(deps_data)
             self.generate_view()
@@ -84,6 +85,7 @@ class CommunicationDbParser(CommunicationParser):
             self.logger.error("Failed to generate communication table, error: %s", str(error), exc_info=True)
             DbManager.destroy_db_connect(self.cann_comm_db_conn, self.cann_comm_db_curs)
             return Constant.FAIL, None
+        self.logger.info("CommunicationDbParser finish.")
         return Constant.SUCCESS, None
 
     def _init_step_list(self, deps_data: dict):

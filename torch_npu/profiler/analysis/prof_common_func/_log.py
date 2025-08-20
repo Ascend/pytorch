@@ -23,7 +23,7 @@ class ProfilerLogger:
         BACKUP_COUNT: Number of backup files to keep
     """
 
-    LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(name)s:%(lineno)d] %(message)s"
+    LOG_FORMAT = "[%(asctime)s.%(msecs)03d] [%(levelname)s] [%(name)s:%(lineno)d] %(message)s"
     DATE_FORMAT = "%Y-%m-%d-%H:%M:%S"
     DEFAULT_LOGGER_NAME = "AscendProfiler"
     DEFAULT_LOG_LEVEL = logging.INFO

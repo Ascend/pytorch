@@ -51,6 +51,7 @@ class TraceStepTimeParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self.step_range = []
+        self.torch_op_data = []
 
     @classmethod
     def is_float_num(cls, num):
@@ -102,7 +103,7 @@ class TraceStepTimeParser(BaseParser):
             if cur_step[StepInfoIndex.ID.value] == step:
                 first_task_start_ts = cur_step[StepInfoIndex.FIRST_TASK_TS.value]
                 if step is None:
-                    first_fwk_op = FwkFileParser(self._profiler_path).get_first_fwk_op()
+                    first_fwk_op = FwkFileParser(self._profiler_path).get_first_fwk_op(self.torch_op_data)
                     return (first_task_start_ts - convert_ns2us_float(first_fwk_op.ts)) if first_fwk_op else 0
                 return first_task_start_ts - cur_step[StepInfoIndex.FWK_START_TS.value]
         return 0
@@ -165,12 +166,15 @@ class TraceStepTimeParser(BaseParser):
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "TraceStepTimeParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("TraceStepTimeParser start.")
         try:
             self._init_step_range(deps_data)
+            self.torch_op_data = deps_data.get(Constant.TORCH_OP_PARSER, [])
             self.generate_view()
         except Exception as e:
             self.logger.error("Failed to generate step_trace_time.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("TraceStepTimeParser finish.")
         return Constant.SUCCESS, None
 
     def generate_view(self) -> None:

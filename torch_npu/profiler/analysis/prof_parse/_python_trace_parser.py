@@ -1,7 +1,8 @@
 from collections import defaultdict
 from enum import Enum
-from ..prof_common_func._constant import contact_2num
+from ..prof_common_func._constant import contact_2num, ApiType
 from ..prof_common_func._trace_event_manager import TraceEventManager
+from ..prof_common_func._id_manager import Str2IdManager
 
 __all__ = []
 
@@ -145,8 +146,10 @@ class PythonTraceParser:
         if not trace_event_list:
             return []
         trace_api_data = [None] * len(trace_event_list)
+        str2id_manager = Str2IdManager()
         for i, event in enumerate(trace_event_list):
-            trace_api_data[i] = [event.ts, event.ts + event.dur, contact_2num(event.pid, event.tid), event.name]
+            trace_api_data[i] = [event.ts, event.ts + event.dur, contact_2num(event.pid, event.tid), None,
+                                 str2id_manager.get_id_from_str(event.name), None, None, None, None, None, ApiType.PYTHON_TRACE]
         return trace_api_data
 
     def get_pycall_data(self) -> list:

@@ -3,6 +3,7 @@ import pickle
 import select
 import time
 import multiprocessing
+from unittest.mock import patch
 
 from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.profiler.analysis.prof_common_func._task_manager import (
@@ -90,7 +91,8 @@ class TestTaskManager(TestCase):
         self.output = None
         self.text = None
 
-    def test_run_in_main_process(self):
+    @patch.object(ConcurrentTasksManager, 'log_task_execution_summary')
+    def test_run_in_main_process(self, mock_log_summary):
         manager = ConcurrentTasksManager()
         task_success = TaskSuccess([], ConcurrentMode.MAIN_PROCESS)
         task_fail = TaskFailed([], ConcurrentMode.MAIN_PROCESS)
@@ -104,7 +106,8 @@ class TestTaskManager(TestCase):
         self.assertEqual(TaskStatus.Failed, task_infos.get("task_fail").status)
         self.assertEqual(TaskStatus.Running, task_infos.get("task_exception").status)
 
-    def test_run_in_sub_process(self):
+    @patch.object(ConcurrentTasksManager, 'log_task_execution_summary')
+    def test_run_in_sub_process(self, mock_log_summary):
         manager = ConcurrentTasksManager()
         task_success = TaskSuccess([], ConcurrentMode.SUB_PROCESS)
         task_fail = TaskFailed([], ConcurrentMode.SUB_PROCESS)
@@ -118,7 +121,8 @@ class TestTaskManager(TestCase):
         self.assertEqual(TaskStatus.Failed, task_infos.get("task_fail").status)
         self.assertEqual(TaskStatus.Failed, task_infos.get("task_exception").status)
 
-    def test_run_in_sub_thread(self):
+    @patch.object(ConcurrentTasksManager, 'log_task_execution_summary')
+    def test_run_in_sub_thread(self, mock_log_summary):
         manager = ConcurrentTasksManager()
         task_success = TaskSuccess([], ConcurrentMode.PTHREAD)
         task_fail = TaskFailed([], ConcurrentMode.PTHREAD)
@@ -129,7 +133,8 @@ class TestTaskManager(TestCase):
         self.assertEqual(TaskStatus.Succeed, task_infos.get("task_success").status)
         self.assertEqual(TaskStatus.Failed, task_infos.get("task_fail").status)
 
-    def test_run_sub_process_deps(self):
+    @patch.object(ConcurrentTasksManager, 'log_task_execution_summary')
+    def test_run_sub_process_deps(self, mock_log_summary):
         manager = ConcurrentTasksManager()
         task_serial1 = TaskSerial1([], ConcurrentMode.SUB_PROCESS)
         task_serial2 = TaskSerial2(["task_serial1"], ConcurrentMode.SUB_PROCESS)

@@ -20,19 +20,23 @@ class OperatorViewParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self._torch_op_node = []
+        self._torch_op_data = []
         self._root_node = None
         self._kernel_dict = {}
 
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "OperatorViewParser")
         self.logger = ProfilerLogger.get_instance()
+        self.logger.info("OperatorViewParser start.")
         try:
             self._torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             self._kernel_dict = deps_data.get(Constant.RELATION_PARSER, {})
+            self._torch_op_data = deps_data.get(Constant.TORCH_OP_PARSER, [])
             self.generate_view()
         except Exception as e:
             self.logger.error("Failed to generate operator_details.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("OperatorViewParser finish.")
         return Constant.SUCCESS, None
 
     def generate_view(self) -> None:
@@ -70,7 +74,7 @@ class OperatorViewParser(BaseParser):
 
     def _init_torch_op(self):
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
-            self._torch_op_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(only_fwk=True)
+            self._torch_op_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(self._torch_op_data)
         if self._torch_op_node:
             self._root_node = self._torch_op_node[0]
             self._torch_op_node = self._torch_op_node[1:]
