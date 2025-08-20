@@ -126,6 +126,14 @@ class ProfilingParser:
                 unique_parser_set.add(parser)
                 parser_list.append(parser)
 
+        # when cann package support default export db, add db parser to parser list
+        if CannPackageManager.is_support_default_export_db():
+            for parser in parser_config.get(Constant.Db).get(self._analysis_type):
+                if parser in unique_parser_set:
+                    continue
+                unique_parser_set.add(parser)
+                parser_list.append(parser)
+
         manager = ConcurrentTasksManager(progress_bar="cursor")
         for parser in parser_list:
             manager.add_task(parser(ParserConfig.PARSER_NAME_MAP.get(parser), param_dict))

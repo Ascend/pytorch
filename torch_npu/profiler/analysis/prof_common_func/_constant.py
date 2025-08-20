@@ -21,6 +21,7 @@ class Constant(object):
     ASCEND_WORK_PATH = "ASCEND_WORK_PATH"
     PROFILING_WORK_PATH = "profiling_data"
     PROFILER_META_DATA = "profiler_metadata.json"
+    MINDSTUDIO_PROFILER_OUTPUT = "mindstudio_profiler_output"
 
     # file authority
     FILE_AUTHORITY = 0o640
