@@ -2174,6 +2174,12 @@
   "torch_npu.profiler.profile.step": {
     "signature": "(self)"
   },
+  "torch_npu.profiler.profile.enable_profiler_in_child_thread": {
+    "signature": "(record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False)"
+  },
+  "torch_npu.profiler.profile.disable_profiler_in_child_thread": {
+    "signature": "()"
+  },
   "torch_npu.profiler.schedule": {
     "signature": "(wait: int, active: int, warmup: int = 0, repeat: int = 0, skip_first: int = 0) -> None"
   },
@@ -2290,6 +2296,12 @@
   },
   "torch_npu.profiler.profiler.profile.step": {
     "signature": "(self)"
+  },
+  "torch_npu.profiler.profiler.profile.enable_profiler_in_child_thread": {
+    "signature": "(record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False)"
+  },
+  "torch_npu.profiler.profiler.profile.disable_profiler_in_child_thread": {
+    "signature": "()"
   },
   "torch_npu.profiler.profiler.supported_activities": {
     "signature": "()"

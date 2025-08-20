@@ -1,7 +1,7 @@
 import unittest
 import os
 import json
-
+import threading
 import torch
 
 import torch_npu
@@ -34,15 +34,22 @@ class TrainModel:
         self.criterion = torch.nn.MSELoss()
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.0001)
 
-    def train_one_step(self):
-        inputs = torch.rand(self.input_shape, requires_grad=True).to(self.device)
+    def train_one_step(self, device_id: int = 0, chiled_thread: bool = False):
+        device = self.device
+        if chiled_thread:
+            device = torch.device(f"npu:{device_id}")
+            torch.npu.set_device(device_id)
+            torch_npu.profiler.profile.enable_profiler_in_child_thread()
+        inputs = torch.rand(self.input_shape, requires_grad=True).to(device)
         inputs.register_hook(lambda grad: print("tersor backward hook"))
-        target = torch.rand(self.out_shape).reshape(self.out_shape[0], -1).to(self.device)
+        target = torch.rand(self.out_shape).reshape(self.out_shape[0], -1).to(device)
         output = self.model(inputs)
         loss = self.criterion(output, target)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        if chiled_thread:
+            torch_npu.profiler.profile.disable_profiler_in_child_thread()
 
 
 class TestNpuProfiler(TestCase):
@@ -203,6 +210,20 @@ class TestNpuProfiler(TestCase):
             del os.environ["TASK_QUEUE_ENABLE"]
         else:
             os.environ["TASK_QUEUE_ENABLE"] = original_value
+
+    def test_single_process_multiple_devices_with_child_thread(self):
+        worker_name = self.worker_name
+        with torch_npu.profiler.profile(
+                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+        ) as prof:
+            t = threading.Thread(target=self.model_train.train_one_step, args=(1, True))
+            t.start()
+            for _ in range(self.small_steps):
+                self.model_train.train_one_step()
+            t.join()
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
 
     def test_ascend_work_path(self):
         PathManager.remove_path_safety(self.results_work_path)
