@@ -31,6 +31,7 @@ const std::string EXIT_EVENT_DESC = "__torch_npu_profiler_python_tracer_exit";  
 const size_t EXIT_EVENT_HASH_ID = c10::get_hash(EXIT_EVENT_DESC);               // Special hash key for exit event
 const std::string MODULE_NAME_DELIMITER = "######";
 constexpr size_t TRACE_DUMP_THRESHOLD = 1024 * DEFAULT_BLOCK_SIZE;
+constexpr size_t STACK_MAX_DEPTH = 128;
 
 using TensorMetadata = torch_npu::toolkit::profiler::TensorMetadata;
 using ModuleParam = torch_npu::toolkit::profiler::ModuleParam;
@@ -217,7 +218,9 @@ private:
     static PythonTracer& singleton();
 
     void start(size_t max_threads = max_py_threads);
+    void startOne();
     void stop();
+    void stopOne();
     void clear();
     size_t genPyCallHashId(PyFrameObject* frame);
     void recordPyCall(TraceContext* ctx, PyFrameObject* frame);
@@ -301,7 +304,6 @@ void PythonTracer::start(size_t max_threads)
         thread_states.resize(max_threads);
     }
 
-    const size_t STACK_MAX_DEPTH = 128;
     // Register the tracer in each thread.
     for (const auto thread_state : thread_states) {
         PyThreadState_Swap(thread_state);
@@ -328,6 +330,34 @@ void PythonTracer::start(size_t max_threads)
         && (config.with_stack || config.with_modules)
         && config.profile_memory) {
         record_params_ = true;
+    }
+}
+
+void PythonTracer::startOne()
+{
+    if (!active_.load()) {
+        return;
+    }
+    GilAndRestoreThread gil;
+    auto thread_state = gil.initial_thread_state();
+    if (thread_state && thread_state->c_profilefunc == nullptr) {
+        PyThreadState_Swap(thread_state);
+        thread_local_results_.emplace_back(this);
+        auto* ctx = thread_local_results_.back().ctx_;
+
+        std::vector<THPFrameObjectPtr> current_stack;
+        auto frame = PyEval_GetFrame_NPU();
+        size_t depth = 0;  // Make sure we can't infinite loop.
+        while (frame != nullptr && depth <= STACK_MAX_DEPTH) {
+            current_stack.emplace_back(frame);
+            frame = PyFrame_GetBack(frame);
+            ++depth;
+        }
+        // record py call before proflier start
+        for (auto it = current_stack.rbegin(); it != current_stack.rend(); it++) {
+            start_py_call_info_[reinterpret_cast<uintptr_t>(ctx)].emplace_back(genPyCallHashId(*it));
+        }
+        PyEval_SetProfile(PythonTracer::pyProfileFn, (PyObject*)ctx);
     }
 }
 
@@ -358,6 +388,19 @@ void PythonTracer::stop()
     reportTraceData();
     reportHashData();
     reportParamData();
+}
+
+void PythonTracer::stopOne()
+{
+    if (!active_.load()) {
+        return;
+    }
+    GilAndRestoreThread gil;
+    auto thread_state = gil.initial_thread_state();
+    if (thread_state && thread_state->c_profilefunc == &PythonTracer::pyProfileFn) {
+        PyThreadState_Swap(thread_state);
+        PyEval_SetProfile(nullptr, nullptr);
+    }
 }
 
 void PythonTracer::clear()
@@ -591,24 +634,33 @@ int PythonTracer::pyProfileFn(
     PyObject* arg)
 {
     auto ctx = reinterpret_cast<TraceContext*>(obj);
-    auto thread_local_result = ctx->thread_local_result_;
+    if (ctx == nullptr) {
+        return 0;
+    }
+    if (ctx->thread_local_result_ == nullptr) {
+        return 0;
+    }
+    auto active_tracer = ctx->thread_local_result_->active_tracer_;
+    if (active_tracer == nullptr || !active_tracer->active_.load(std::memory_order_relaxed)) {
+        return 0;
+    }
     switch (what) {
         case PyTrace_CALL:
-            thread_local_result->active_tracer_->recordPyCall(ctx, frame);
+            active_tracer->recordPyCall(ctx, frame);
             break;
 
         case PyTrace_C_CALL:
-            thread_local_result->active_tracer_->recordCCall(ctx, frame, arg);
+            active_tracer->recordCCall(ctx, frame, arg);
             break;
 
         case PyTrace_EXCEPTION:
         case PyTrace_RETURN:
-            thread_local_result->active_tracer_->recordReturn(ctx, frame, TraceTag::kPy_Return);
+            active_tracer->recordReturn(ctx, frame, TraceTag::kPy_Return);
             break;
 
         case PyTrace_C_EXCEPTION:
         case PyTrace_C_RETURN:
-            thread_local_result->active_tracer_->recordReturn(ctx, frame, TraceTag::kC_Return);
+            active_tracer->recordReturn(ctx, frame, TraceTag::kC_Return);
             break;
 
         default:
@@ -621,7 +673,7 @@ void PythonTracer::call(Command c)
 {
     switch (c) {
         case Command::kStartOne:
-            PythonTracer::singleton().start(1);
+            PythonTracer::singleton().startOne();
             break;
 
         case Command::kStartAll:
@@ -630,6 +682,10 @@ void PythonTracer::call(Command c)
 
         case Command::kStop:
             PythonTracer::singleton().stop();
+            break;
+
+        case Command::kStopOne:
+            PythonTracer::singleton().stopOne();
             break;
 
         case Command::kClear:

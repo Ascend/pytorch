@@ -17,7 +17,7 @@
 namespace torch_npu {
 namespace profiler {
 namespace python_tracer {
-enum class Command { kStartOne = 0, kStartAll, kStop, kClear };
+enum class Command { kStartOne = 0, kStartAll, kStop, kStopOne, kClear };
 using CallFn = void (*)(Command);
 void registerFunctions(CallFn call);
 } // python_tracer
@@ -126,8 +126,12 @@ void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &a
 
 void warmupNpuProfiler(const NpuProfilerConfig &config, const std::set<NpuActivityType> &activities);
 
+void enableProfilerInChildThread(const NpuProfilerConfig &config);
+
 void startNpuProfiler(const NpuProfilerConfig &config, const std::set<NpuActivityType> &activities,
     const std::unordered_set<at::RecordScope> &scops = {});
+
+void disableProfilerInChildThread();
 
 void stopNpuProfiler();
 
