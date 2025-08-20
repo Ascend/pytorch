@@ -1,6 +1,7 @@
 import os
 import time
 from typing import Union
+from enum import Enum
 
 from torch_npu.utils._error_code import ErrCode, prof_error
 from torch_npu.utils import _should_print_warning
@@ -182,6 +183,9 @@ class Constant(object):
     FAIL = 1
 
     # parser name
+    TASK_QUEUE_PARSER = "task_queue"
+    TORCH_OP_PARSER = "torch_op"
+    DB_PRE_PARSER = "db_prepare"
     TRACE_PRE_PARSER = "trace_prepare"
     TREE_BUILD_PARSER = "build_tree"
     CANN_EXPORT_PARSER = "export"
@@ -208,13 +212,20 @@ class Constant(object):
     TRACE_STEP_TIME_DB_PARSER = "trace_step_time_db"
     GC_RECORD_DB_PARSER = "gc_record_db"
 
-    TRACE_VIEW_TEMP = "trace_view_temp.json"
+    TRACE_VIEW = "trace_view.json"
 
     # db data type
     SQL_TEXT_TYPE = "TEXT"
     SQL_INTEGER_TYPE = "INTEGER"
     SQL_NUMERIC_TYPE = "NUMERIC"
     SQL_REAL_TYPE = "REAL"
+
+    # data name
+    ENQUEUE_DATA = "enqueue_data"
+    DEQUEUE_DATA = "dequeue_data"
+    TORCH_OP_DATA = "torch_op_data"
+    PYTHON_TRACE_DATA = "python_trace_data"
+    MSTX_OP_DATA = "mstx_op_data"
 
 
 def print_info_msg(message: str):
@@ -284,6 +295,7 @@ def contact_2num(high_num: int, low_num: int) -> int:
 class DbConstant():
     # db invalid value
     DB_INVALID_VALUE = 4294967295
+    DB_INVALID_CONNECTION_ID = -1
 
     # db name
     DB_ASCEND_PYTORCH_PROFILER = "ascend_pytorch_profiler.db"
@@ -335,6 +347,9 @@ class DbConstant():
     # pytorch start string_id
     START_STRING_ID_FWK_API = 1 << 28
     START_STRING_ID_MEMORY = 2 << 28
+
+    # pytorch start connection id
+    START_CONNECTION_ID_FWK_API = 5 << 28
 
 
 class TableColumnsManager():
@@ -478,3 +493,45 @@ class TableColumnsManager():
             ("globalTid", Constant.SQL_INTEGER_TYPE)
         ]
     }
+
+
+class ApiType:
+    TORCH_OP = 50001
+    TASK_QUEUE = 50002
+    PYTHON_TRACE = 50003
+    MSTX_OP = 50004
+
+
+class TorchOpDataOri:
+    START_NS = 0
+    END_NS = 1
+    GLOBAL_TID = 2
+    CONNECTION_ID = 3
+    NAME = 4
+    SEQUENCE_NUM = 5
+    FWD_THREAD_ID = 6
+    INPUT_DIMS = 7
+    INPUT_SHAPES = 8
+    CALL_STACK = 9
+
+
+class TaskQueueDataOri:
+    START_NS = 0
+    END_NS = 1
+    GLOBAL_TID = 2
+    CORRELATION_ID = 3
+    NAME = 4
+
+
+class PythonTraceApiDataOri:
+    START_NS = 0
+    END_NS = 1
+    GLOBAL_TID = 2
+    NAME = 3
+
+
+class CannNodeLaunchApiOri:
+    START_NS = 0
+    END_NS = 1
+    GLOBAL_TID = 2
+    CORRELATION_ID = 3

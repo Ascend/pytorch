@@ -48,7 +48,7 @@ class FwkCANNRelationParser:
                     break
                 index += 1
 
-    def get_kernel_dict(self) -> dict:
+    def get_kernel_dict(self, dequeue_data: list) -> dict:
         acl_to_npu_dict = CANNFileParser(self._profiler_path).get_acl_to_npu_data()
         if not acl_to_npu_dict and ProfilerConfig().get_level() != Constant.LEVEL_NONE:
             error_msg = (
@@ -57,8 +57,7 @@ class FwkCANNRelationParser:
             )
             print_error_msg(error_msg)
             return acl_to_npu_dict
-        dequeue_data_list = FwkFileParser(self._profiler_path).get_dequeue_data()
-        return self.combine_kernel_dict(acl_to_npu_dict, dequeue_data_list)
+        return self.combine_kernel_dict(acl_to_npu_dict, dequeue_data)
 
     def get_step_range(self, root_node: TorchOpNode, kernel_dict: dict):
         if not kernel_dict:
