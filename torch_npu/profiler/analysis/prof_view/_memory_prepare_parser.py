@@ -27,6 +27,7 @@ from ..prof_common_func._constant import Constant, print_warn_msg
 from ..prof_common_func._constant import convert_ns2us_float, convert_ns2us_str
 from ..prof_common_func._log import ProfilerLogger
 from .._profiler_config import ProfilerConfig
+from ..prof_common_func._cann_package_manager import CannPackageManager
 
 __all__ = []
 TASK_QUEUE_ENABLE = 'TASK_QUEUE_ENABLE'
@@ -133,6 +134,8 @@ class MemoryPrepareParser(BaseParser):
             pid_mem_buf.sort(key=lambda x: x[0].time_ns)
             if Constant.Text in self._export_type:
                 self.memory_data.setdefault(Constant.Text, self._complete_record_entry(pid_mem_buf, torch_ops))
+                if CannPackageManager.is_support_default_export_db():
+                    self.memory_data.setdefault(Constant.Db, self._complete_record_entry_for_db(pid_mem_buf, torch_ops))
             if Constant.Db in self._export_type:
                 self.memory_data.setdefault(Constant.Db, self._complete_record_entry_for_db(pid_mem_buf, torch_ops))
 

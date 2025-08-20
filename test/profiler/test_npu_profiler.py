@@ -1,4 +1,4 @@
-import unittest
+import glob
 import os
 import json
 import threading
@@ -7,6 +7,7 @@ import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.utils._path_manager import PathManager
+from torch_npu.profiler.analysis.prof_common_func._cann_package_manager import CannPackageManager
 
 worker_id = 1
 
@@ -60,6 +61,7 @@ class TestNpuProfiler(TestCase):
     MEMORY_RECORD = "memory_record.csv"
     STACK_FILE_NAME = "profiler_stacks.log"
     METADATA_FILE_NAME = "profiler_metadata.json"
+    ANALYZE_DB = "analysis.db"
     results_path = "./results"
     results_work_path = "./work_result_path"
     model_train = TrainModel()
@@ -105,7 +107,14 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
-        # self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["async_npu"]))
+        if CannPackageManager.is_support_default_export_db():
+            self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.ANALYZE_DB))
+            output_path = self._get_tensorboard_output(self.results_path, worker_name)
+            # Find db file (could be with or without rank_id)
+            db_files = glob.glob(os.path.join(output_path, "*_pytorch_profiler*.db"))
+            self.assertEqual(1, len(db_files))
+            db_path = db_files[0]
+            self.assertEqual(True, os.path.exists(db_path))
 
     def test_activities_cpu(self):
         worker_name = self.worker_name
@@ -330,7 +339,6 @@ class TestNpuProfiler(TestCase):
     def test_export_db(self):
         from torch_npu.profiler.analysis.prof_common_func._constant import TableColumnsManager
         from torch_npu.profiler.analysis.prof_common_func._db_manager import TorchDb
-        import glob
 
         worker_name = self.worker_name
         prof = torch_npu.profiler.profile(
