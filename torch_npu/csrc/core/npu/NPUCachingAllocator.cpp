@@ -3379,6 +3379,16 @@ public:
 
     void eraseStream(const c10::DataPtr &ptr, c10_npu::NPUStream stream)
     {
+        eraseStreamImpl(ptr, stream, false);
+    }
+
+    void eraseStreamForce(const c10::DataPtr &ptr, c10_npu::NPUStream stream)
+    {
+        eraseStreamImpl(ptr, stream, true);
+    }
+
+    void eraseStreamImpl(const c10::DataPtr &ptr, c10_npu::NPUStream stream, bool bForce)
+    {
         if (!ptr.get()) {
             return;
         }
@@ -3398,7 +3408,7 @@ public:
             AT_ERROR("invalid device pointer: ", ptr.get());
         }
 
-        if (block->stream != c10_npu::getCurrentNPUStream(block->device).stream(false)) {
+        if (block->stream != c10_npu::getCurrentNPUStream(block->device).stream(false) && !bForce) {
             // If the Stream applying for tensor block different from
             // the stream of submiting event wait task in HCCL synchronize()
             // method, the recordSteam can not be erased.

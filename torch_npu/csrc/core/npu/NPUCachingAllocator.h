@@ -208,6 +208,10 @@ public:
     virtual void* getBaseAllocation(void* ptr, size_t* size) = 0;
     virtual void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
     virtual void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
+    virtual void eraseStreamForce(const c10::DataPtr& ptr, c10_npu::NPUStream stream)
+    {
+        eraseStream(ptr, stream);
+    }
     virtual DeviceStats getDeviceStats(int device) = 0;
     virtual void resetAccumulatedStats(int device) = 0;
     virtual void resetPeakStats(int device) = 0;
@@ -334,6 +338,11 @@ inline void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream)
 inline void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream)
 {
     return get()->eraseStream(ptr, stream);
+}
+
+inline void eraseStreamForce(const c10::DataPtr& ptr, c10_npu::NPUStream stream)
+{
+    return get()->eraseStreamForce(ptr, stream);
 }
 
 inline DeviceStats getDeviceStats(int device)
