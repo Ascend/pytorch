@@ -276,6 +276,9 @@ def _npu_shutdown():
     torch_npu._C._npu_shutdown(success)
     _except_handler.handle_exception()
     torch_npu.asd.asd.matmul_check._cleanup()
+    if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+        from torch_npu._inductor.npu_static_kernel import uninstall_static_kernel
+        uninstall_static_kernel()
 
 
 # register npu shutdown hook on exit

@@ -102,7 +102,7 @@ import torch_npu
 from torch_npu._C import (
     _npu_NPUAllocator_AllocatorState as AllocatorState,
     _set_cached_tensors_enabled as _set_cached_tensors_enabled)
-
+import torch_npu.npu.aclnn
 
 if TYPE_CHECKING:
     from torch._inductor.utils import InputType
@@ -614,7 +614,13 @@ class NPUWarmupNode:
         ), disable_conv_cache_emptying(), clear_cublas_manager(), _use_npu_memory_pool_manager(
             self.device_index, self.npu_graphs_pool, self.stream
         ), get_history_recording():
-            out = self.wrapped_function.model(new_inputs)
+            if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+                from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler
+                static_kernel_complier = StaticKernelCompiler()
+                with static_kernel_complier:
+                    out = self.wrapped_function.model(new_inputs)
+            else:
+                out = self.wrapped_function.model(new_inputs)
 
         # We need to know which outputs are allocated within the cudagraph pool
         # so that we can deallocate them at the beginning of the next cudagraph step,

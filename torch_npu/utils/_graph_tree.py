@@ -50,6 +50,7 @@ from torch._inductor.utils import (
     InputType,
 )
 from torch.multiprocessing.reductions import StorageWeakRef
+import torch_npu.npu.aclnn
 
 
 def npugraph_mark_step_begin():
@@ -163,8 +164,15 @@ def npugraphify_impl(
     stream = torch.npu.Stream()
     stream.wait_stream(torch.npu.current_stream())
     # copy static_inputs because it will be cleared in model
-    with torch.npu.stream(stream):
-        model(list(static_inputs))
+    if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+        from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler
+        static_kernel_complier = StaticKernelCompiler()
+        with static_kernel_complier:
+            with torch.npu.stream(stream):
+                model(list(static_inputs))
+    else:
+        with torch.npu.stream(stream):
+            model(list(static_inputs))
     stream.synchronize()
     torch.npu.current_stream().wait_stream(stream)
     torch.npu.synchronize()

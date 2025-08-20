@@ -560,6 +560,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.npu_fusion_attention_graph",
             "torch_npu._inductor.npu_triton_helpers",
             "torch_npu._inductor.npu_triton_heuristics",
+            "torch_npu._inductor.npu_static_kernel",
             "torch_npu._inductor.runtime",
             "torch_npu._inductor.utils",
             "torch_npu._inductor.codegen._sizevars",
