@@ -12,6 +12,7 @@
 #include "torch_npu/csrc/framework/interface/HcclInterface.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -22,6 +23,7 @@ namespace native {
 
 static bool deterministicaclnn_oldstatus = false;
 static bool aclop_deterministicaclnn_oldstatus = false;
+static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.dispatch");
 
 void OpAttrMaker::Set(aclopAttr *attr, const string &name, bool value)
 {
@@ -329,6 +331,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<ExecuteParas *>(in->paramVal);
     ASCEND_LOGD("Op %s Run.", cur_paras->opType);
+    logger->debug("ExecFunc: Op %s Run.", cur_paras->opType);
     aclError ret;
     // open the deterministicAlgorithms config
     SetDeterministic(false);
@@ -349,6 +352,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         if (ret != ACL_ERROR_NONE) {
             ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
         }
+        logger->debug("ExecFunc: Op %s Run with customHandler, ret = %d.", cur_paras->opType, ret);
         return ret;
     }
     bool reset_flag = false;
@@ -376,6 +380,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
                 ret = ret_temp;
             }
             ASCEND_LOGE("In aoe mode, AclGenGraphAndDumpForOp failed!");
+            logger->debug("ExecFunc: Op %s Run with AclGenGraphAndDumpForOp, ret = %d.", cur_paras->opType, ret);
             return ret;
         }
     }
@@ -404,6 +409,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         printErrorLog(cur_paras);
     }
 
+    logger->debug("ExecFunc: Op %s Run with aclopCompileAndExecute, ret = %d.", cur_paras->opType, ret);
     return ret;
 }
 
@@ -411,12 +417,14 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<ExecuteParasOpApi *>(in->paramVal);
     ASCEND_LOGD("Op %s Run.", cur_paras->opType);
+    logger->debug("ExecFuncOpApi: Op %s Run.", cur_paras->opType);
     aclError ret;
 
     ASCEND_LOGD("Exec Op %s with custom handle", cur_paras->opType);
 
     if (cur_paras->customHandler == nullptr) {
         ASCEND_LOGW("Custom hand is nullptr! name=%s", cur_paras->opType);
+        logger->info("ExecFuncOpApi: Op %s Run, custom hand is nullptr.", cur_paras->opType);
         return ACL_ERROR_NONE;
     }
 
@@ -435,12 +443,14 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
     if (ret != ACL_ERROR_NONE) {
         ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
     }
+    logger->debug("ExecFuncOpApi: Op %s Run, ret = %d.", cur_paras->opType, ret);
     return ret;
 }
 
 int MemcopyAsyncFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<c10_npu::queue::CopyParas *>(in->paramVal);
+    logger->debug("MemcopyAsyncFunc Run.");
     aclError ret =
         aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, stream);
     if (ret != ACL_ERROR_NONE) {
@@ -455,12 +465,14 @@ int MemcopyAsyncFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             cur_paras->srcLen,
             cur_paras->kind);
     }
+    logger->debug("MemcopyAsyncFunc Run, ret = %d.", ret);
     return ret;
 }
 
 int RecordEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
+    logger->debug("RecordEventFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
 
     aclError ret = aclrtRecordEvent(cur_paras->event, stream);
     if (ret != ACL_ERROR_NONE) {
@@ -476,12 +488,14 @@ int RecordEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         stream,
         cur_paras->event);
 
+    logger->debug("RecordEventFunc Run, stream = %p, event = %p, ret = %d.", stream, cur_paras->event, ret);
     return ret;
 }
 
 int WaitEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
+    logger->debug("WaitEventFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
     aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
     if (ret != ACL_ERROR_NONE) {
         auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
@@ -497,12 +511,14 @@ int WaitEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         "Event: aclrtStreamWaitEvent dequeue is successfully executed, stream=%p, event=%p",
         stream,
         cur_paras->event);
+    logger->debug("WaitEventFunc Run, stream = %p, event = %p, ret = %d.", stream, cur_paras->event, ret);
     return ret;
 }
 
 int LazyDestroyEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
+    logger->debug("LazyDestroyEventFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
     aclError ret = c10_npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
     if (ret != ACL_ERROR_NONE) {
         auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
@@ -512,6 +528,7 @@ int LazyDestroyEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         ASCEND_LOGE("LazyDestroy error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
     }
     ASCEND_LOGD("Event: LazyDestroyEventFunc dequeue is successfully executed, event=%p", cur_paras->event);
+    logger->debug("LazyDestroyEventFunc Run, stream = %p, event = %p, ret = %d.", stream, cur_paras->event, ret);
     return ret;
 }
 
