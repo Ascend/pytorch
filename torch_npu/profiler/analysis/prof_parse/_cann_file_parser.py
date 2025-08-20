@@ -43,7 +43,7 @@ class CANNFileParser:
     START_FLOW = "s"
     END_FLOW = "f"
     # msprof output folder name
-    MINDSTUDIO_PROFILER_OUTPUT = "mindstudio_profiler_output"
+    MINDSTUDIO_PROFILER_OUTPUT = Constant.MINDSTUDIO_PROFILER_OUTPUT
     ANALYZE = "analyze"
     HOST_TO_DEVICE = "HostToDevice"
     CANN_DATA_MATCH = {

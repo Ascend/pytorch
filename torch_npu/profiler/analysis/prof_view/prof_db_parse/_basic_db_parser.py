@@ -53,6 +53,18 @@ class BasicDbParser(BaseParser):
                     self.logger.warning("Invalid cann db file. file name is: %s", cann_file)
                     continue
                 return file_path
+        # when cann package support default export db, use mindstudio_profiler_output path to get db file
+        mindstudio_profiler_output_path = os.path.join(self._cann_path, Constant.MINDSTUDIO_PROFILER_OUTPUT)
+        if os.path.exists(mindstudio_profiler_output_path):
+            for file_name in os.listdir(mindstudio_profiler_output_path):
+                file_path = os.path.join(mindstudio_profiler_output_path, file_name)
+                if re.match(db_patten, file_name):
+                    try:
+                        FileManager.check_db_file_vaild(file_path)
+                    except RuntimeError:
+                        self.logger.warning("Invalid cann db file. file name is: %s", file_name)
+                        continue
+                    return file_path
         return ""
     
     def create_ascend_db(self):
