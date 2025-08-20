@@ -178,12 +178,15 @@ struct HostAllocator {
         return ACL_ERROR_NONE;
     }
 
-    aclError recordEvent(void *ptr, c10_npu::NPUStream stream)
+    aclError recordEvent(void *ptr, aclrtMemcpyKind kind, c10_npu::NPUStream stream)
     {
         std::lock_guard<std::mutex> lock(mutex);
 
         auto it = blocks.find(ptr);
         if (it == blocks.end()) {
+            if (c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() && kind == aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST) {
+                return ACL_ERROR_NONE;
+            }
             // Sync when host memory is allocated by malloc
             aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
             if (error != ACL_ERROR_NONE) {
@@ -318,9 +321,10 @@ static HostAllocator& getHostAllocator()
 
 aclError CachingHostAllocator_recordEvent(
     void *ptr,
+    aclrtMemcpyKind kind,
     c10_npu::NPUStream stream)
 {
-    return getHostAllocator().recordEvent(ptr, stream);
+    return getHostAllocator().recordEvent(ptr, kind, stream);
 }
 
 bool CachingHostAllocator_isPinned(void *ptr)

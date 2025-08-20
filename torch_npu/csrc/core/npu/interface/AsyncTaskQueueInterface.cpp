@@ -86,8 +86,13 @@ void AsyncCopyTask::LaunchCopyTask()
 #endif
     } else {
         c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
-        NPU_CHECK_ERROR(aclrtMemcpyAsync(copyParam_.dst, copyParam_.dstLen, copyParam_.src, copyParam_.srcLen,
-            copyParam_.kind, stream));
+        if (c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() && copyParam_.kind == aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST) {
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtMemcpyAsyncWithCondition(copyParam_.dst, copyParam_.dstLen, copyParam_.src, copyParam_.srcLen,
+                copyParam_.kind, stream));
+        } else {
+            NPU_CHECK_ERROR(aclrtMemcpyAsync(copyParam_.dst, copyParam_.dstLen, copyParam_.src, copyParam_.srcLen,
+                copyParam_.kind, stream));
+        }
     }
 }
 

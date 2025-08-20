@@ -94,6 +94,7 @@ LOAD_FUNCTION(aclrtGetDeviceResLimit)
 LOAD_FUNCTION(aclrtSetDeviceResLimit)
 LOAD_FUNCTION(aclrtResetDeviceResLimit)
 LOAD_FUNCTION(aclrtStreamGetId)
+LOAD_FUNCTION(aclrtMemcpyAsyncWithCondition)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1082,6 +1083,27 @@ aclError AclrtStreamGetId(aclrtStream stream, int32_t* stream_id)
     }
     TORCH_CHECK(func, "Failed to find function ", "aclrtStreamGetId", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stream, stream_id);
+}
+
+bool AclrtMemcpyAsyncWithConditionExist()
+{
+    const static bool isAclrtMemcpyAsyncWithConditionExist = []() -> bool {
+        auto func  = GET_FUNC(aclrtMemcpyAsyncWithCondition);
+        return func != nullptr;
+    }();
+    return isAclrtMemcpyAsyncWithConditionExist;
+}
+
+aclError AclrtMemcpyAsyncWithCondition(void *dst, size_t destMax, const void *src,
+                                       size_t count, aclrtMemcpyKind kind, aclrtStream stream)
+{
+    typedef aclError(*AclrtMemcpyAsyncWithConditionFunc)(void*, size_t, const void*, size_t, aclrtMemcpyKind, aclrtStream);
+    static AclrtMemcpyAsyncWithConditionFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemcpyAsyncWithConditionFunc)GET_FUNC(aclrtMemcpyAsyncWithCondition);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyAsyncWithCondition", PROF_ERROR(ErrCode::NOT_FOUND));
+    return func(dst, destMax, src, count, kind, stream);
 }
 
 } // namespace acl
