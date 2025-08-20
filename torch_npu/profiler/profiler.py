@@ -5,7 +5,13 @@ from typing import Optional, Iterable, Callable, Any, Union
 
 import torch.autograd.profiler as prof
 import torch_npu.npu
-from torch_npu._C._profiler import ProfilerActivity
+from torch_npu._C._profiler import (
+    _enable_profiler_in_child_thread,
+    _disable_profiler_in_child_thread,
+    _ExperimentalConfig as C_ExperimentalConfig,
+    ProfilerActivity,
+    NpuProfilerConfig
+)
 from torch_npu.utils._error_code import ErrCode, prof_error
 
 from .experimental_config import _ExperimentalConfig
@@ -285,6 +291,36 @@ class profile(_KinetoProfile):
         if self.record_steps:
             self.step_rec_fn = prof.record_function("ProfilerStep#" + str(self.step_num + self._step_num_offset))
             self.step_rec_fn.__enter__()
+
+    @classmethod
+    @no_exception_func()
+    def enable_profiler_in_child_thread(cls,
+            record_shapes: bool = False,
+            profile_memory: bool = False,
+            with_stack: bool = False,
+            with_flops: bool = False,
+            with_modules: bool = False):
+        params = {
+            'record_shapes': record_shapes,
+            'profile_memory': profile_memory,
+            'with_stack': with_stack,
+            'with_flops': with_flops,
+            'with_modules': with_modules
+        }
+        for param_name, param_value in params.items():
+            if not isinstance(param_value, bool):
+                print_warn_msg(f"{param_name} in enable_profiler_in_child_thread is not bool, reset it to False.")
+                params[param_name] = False
+        npu_prof_config = NpuProfilerConfig('', params['record_shapes'], params['profile_memory'], 
+                                            params['with_stack'], params['with_flops'], params['with_modules'], 
+                                            C_ExperimentalConfig())
+        _enable_profiler_in_child_thread(npu_prof_config)
+
+    @classmethod
+    @no_exception_func()
+    def disable_profiler_in_child_thread(cls):
+        torch_npu.npu.synchronize()
+        _disable_profiler_in_child_thread()
 
 
 @no_exception_func()
