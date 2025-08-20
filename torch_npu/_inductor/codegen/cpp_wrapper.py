@@ -664,10 +664,12 @@ class CppWrapperNpu(CppWrapperCpu):
         uint32_t ffts_len;
         ret = rtGetC2cCtrlAddr((uint64_t*)&ffts_addr, &ffts_len);
         if (ret != RT_ERROR_NONE) return ret;
+        void* sync_block_lock = NULL;
         void* workspace_addr = NULL;
 
         struct __attribute__((packed)) {{
             void* ffts_addr __attribute__((aligned(8)));
+            void* sync_block_lock __attribute__((aligned(8)));
             void* workspace_addr __attribute__((aligned(8)));
             {struct_def_body}
             int32_t grid_x __attribute__((aligned(4)));
@@ -675,6 +677,7 @@ class CppWrapperNpu(CppWrapperCpu):
             int32_t grid_z __attribute__((aligned(4)));
         }} kernel_args = {{
             static_cast<void*>(ffts_addr),
+            static_cast<void*>(sync_block_lock),
             static_cast<void*>(workspace_addr),
             {struct_arg_body}
             static_cast<int32_t>(grid_x),
