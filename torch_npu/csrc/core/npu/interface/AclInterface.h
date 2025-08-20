@@ -265,5 +265,10 @@ aclError AclrtSubscribeReport(uint64_t theadId, aclrtStream stream);
 
 aclError AclrtUnSubscribeReport(uint64_t theadId, aclrtStream stream);
 
+bool AclrtMemcpyAsyncWithConditionExist();
+
+aclError AclrtMemcpyAsyncWithCondition(void *dst, size_t destMax, const void *src,
+                                       size_t count, aclrtMemcpyKind kind, aclrtStream stream);
+
 } // namespace acl
 } // namespace c10_npu

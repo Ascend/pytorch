@@ -48,6 +48,8 @@ aclError aclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy pol
 aclError aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, aclrtMemcpyKind kind){return 0;}
 aclError aclrtMemcpyAsync(void *dst, size_t destMax, const void *src,
                           size_t count, aclrtMemcpyKind kind, aclrtStream stream){return 0;}
+aclError aclrtMemcpyAsyncWithCondition(void *dst, size_t destMax, const void *src,
+                                       size_t count, aclrtMemcpyKind kind, aclrtStream stream){return 0;}
 aclError aclrtMallocHost(void **hostPtr, size_t size){return 0;}
 aclError aclrtFreeHost(void *hostPtr){return 0;}
 aclError aclrtGetMemInfo(aclrtMemAttr attr, size_t *free, size_t *total){return 0;}
