@@ -941,6 +941,38 @@ ACL_FUNC_VISIBILITY aclError aclrtMemcpyAsync(void *dst,
 
 /**
  * @ingroup AscendCL
+ * @brief  Asynchronous memory replication between Host and Device
+ *
+ * @par Function
+ *  After calling this interface,
+ *  be sure to call the aclrtSynchronizeStream interface to ensure that
+ *  the task of memory replication has been completed
+ *
+ * @par Restriction
+ * @li For on-chip Device-to-Device memory copy,
+ *     both the source and destination addresses must be 64-byte aligned
+ *
+ * @param dst [IN]     destination address pointer
+ * @param destMax [IN] Max length of destination address memory
+ * @param src [IN]     source address pointer
+ * @param count [IN]   the number of byte to copy
+ * @param kind [IN]    memcpy type
+ * @param stream [IN]  asynchronized task stream
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see aclrtSynchronizeStream
+ */
+ACL_FUNC_VISIBILITY aclError aclrtMemcpyAsyncWithCondition(void *dst,
+                                                           size_t destMax,
+                                                           const void *src,
+                                                           size_t count,
+                                                           aclrtMemcpyKind kind,
+                                                           aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
  * @brief synchronous memory replication of two-dimensional matrix between host and device
  *
  * @param dst [IN]       destination address pointer

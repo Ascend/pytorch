@@ -11,7 +11,7 @@ namespace native {
 
 TORCH_NPU_API c10::Allocator* getCachingHostAllocator();
 
-TORCH_NPU_API aclError CachingHostAllocator_recordEvent(void* ptr, c10_npu::NPUStream stream);
+TORCH_NPU_API aclError CachingHostAllocator_recordEvent(void* ptr, aclrtMemcpyKind kind, c10_npu::NPUStream stream);
 
 TORCH_NPU_API bool CachingHostAllocator_isPinned(void* ptr);
 // Releases cached pinned memory allocations via npuHostFree
