@@ -11,6 +11,9 @@ from torch.backends import __allow_nonbracketed_mutation, ContextProp, PropModul
 import torch_npu._C
 from .backends import version
 
+# determine to use static aclnn kernel
+_use_static_aclnn_kernel = False
+
 
 def _set_allow_conv_hf32(_enabled: bool):
     r"""Set the device supports conv operation hf32.

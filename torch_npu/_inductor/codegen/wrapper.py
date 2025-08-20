@@ -17,6 +17,7 @@ from torch.utils._sympy.singleton_int import SingletonInt
 from torch._inductor.ir import GraphPartitionSignature
 
 from torch_npu._inductor import config as npu_config
+import torch_npu.npu.aclnn
 
 
 class NPUWrapperCodeGen(PythonWrapperCodegen):
@@ -50,6 +51,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
             import triton.language as tl
             from {triton_heuristics.__name__} import start_graph, end_graph
             import torch_npu
+            has_initialized = False
             """
         if config.triton.autotune_at_compile_time:
             self.kernel_autotune_calls.splice(import_str)
@@ -244,3 +246,28 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
             call_str = f"repro_run({', '.join(V.graph.graph_inputs.keys())})"
             output.writeline(f"fn = lambda: {call_str}")
             output.writeline("return fn()")
+
+    def write_prefix(self) -> None:
+        super().write_prefix()
+        if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+            with self.prefix.indent():
+                self.prefix.writeline('global has_initialized')
+                self.prefix.writeline('if not has_initialized:')
+            self.prefix.do_indent()
+            with self.prefix.indent():
+                self.prefix.writeline('from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler')
+                self.prefix.writeline('static_kernel_complier = StaticKernelCompiler()')
+                self.prefix.writeline('static_kernel_complier.__enter__()')
+                self.prefix.writeline('has_initialized = True')
+            self.prefix.do_unindent()
+
+    def generate_return(self, output_refs: list[str]) -> None:
+        if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+            self.wrapper_call.do_unindent()
+            with self.wrapper_call.indent():
+                self.wrapper_call.writeline('if not has_initialized:')
+            self.wrapper_call.do_indent()
+            with self.wrapper_call.indent():
+                self.wrapper_call.writeline('exc_info=(None, None, None)')
+                self.wrapper_call.writeline('static_kernel_complier.__exit__(*exc_info)')
+        super().generate_return(output_refs)
