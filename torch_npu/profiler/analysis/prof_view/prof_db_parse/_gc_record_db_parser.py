@@ -30,6 +30,7 @@ class GCRecordDbParser(BaseParser):
         self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        self.logger.info("GCRecordDbParser start.")
         try:
             self.init_db_connect()
             self._gc_record_data = FwkFileParser(self._profiler_path).get_gc_record_db_data()
@@ -37,6 +38,7 @@ class GCRecordDbParser(BaseParser):
         except Exception as error:
             self.logger.error("Failed to generate gc record table, error: %s", str(error), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("GCRecordDbParser finish.")
         return Constant.SUCCESS, None
 
     def init_db_connect(self) -> None:

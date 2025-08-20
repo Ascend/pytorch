@@ -46,9 +46,12 @@ class ConnectionIdManager:
         self._connecion_id_map[self._curr_id] = connection_ids
         self._curr_id += 1
         return res_id
-    
+
     def get_all_connection_ids(self) -> dict:
         return self._connecion_id_map
+
+    def get_connection_ids_from_id(self, source_id: int) -> list:
+        return self._connecion_id_map.get(source_id, [DbConstant.DB_INVALID_CONNECTION_ID])
 
 
 @Singleton

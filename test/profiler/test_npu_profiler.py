@@ -342,6 +342,42 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(True, self._has_view_result(result_dir, work_names[0], self.KERNEL_FILE_NAME))
         self.assertEqual(True, self._has_view_result(result_dir, work_names[0], self.OPERATOR_FILE_NAME))
 
+    def test_export_db(self):
+        from torch_npu.profiler.analysis.prof_common_func._constant import TableColumnsManager
+        from torch_npu.profiler.analysis.prof_common_func._db_manager import TorchDb
+        import glob
+
+        worker_name = self.worker_name
+        prof = torch_npu.profiler.profile(
+            profile_memory=True,
+            schedule=torch_npu.profiler.schedule(wait=0, warmup=0, active=1, repeat=1, skip_first=0),
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name),
+            experimental_config=torch_npu.profiler._ExperimentalConfig(export_type="db"))
+        prof.start()
+        for _ in range(self.small_steps):
+            self.model_train.train_one_step()
+            prof.step()
+        prof.stop()
+
+        output_path = self._get_tensorboard_output(self.results_path, worker_name)
+
+        # Find db file (could be with or without rank_id)
+        db_files = glob.glob(os.path.join(output_path, "*_pytorch_profiler*.db"))
+        self.assertEqual(1, len(db_files))
+        db_path = db_files[0]
+        self.assertEqual(True, os.path.exists(db_path))
+
+        TorchDb().init(db_path)
+        self.assertEqual(True, TorchDb().create_connect_db())
+
+        # Verify tables in TableColumns must exist
+        tables = ['CANN_API', 'STRING_IDS', 'CONNECTION_IDS', 'ENUM_API_TYPE', 'PYTORCH_API', 'MEMORY_RECORD', 'OP_MEMORY']
+
+        for table_name in tables:
+            self.assertEqual(True, TorchDb().judge_table_exist(table_name))
+
+        TorchDb().close()
+
     def _get_tensorboard_output(self, dir_name: str, worker_name: str) -> str:
         sub_dirs = os.listdir(os.path.realpath(dir_name))
         for sub_dir in sub_dirs:

@@ -27,49 +27,64 @@ class OpMarkBean:
         Constant.NAME: 1
     }
     CONSTANT_STRUCT = "<q4Q"
+    CONSTANT_UNPACKER = struct.Struct(CONSTANT_STRUCT)
 
     def __init__(self, data: dict):
         self._origin_data = data
-        self._constant_data = struct.unpack(self.CONSTANT_STRUCT, data.get(Constant.CONSTANT_BYTES))
-        self._ts = None
-        self._dur = None
-        self._pid = int(self._constant_data[OpMarkEnum.PROCESS_ID.value])
-        self._tid = int(self._constant_data[OpMarkEnum.THREAD_ID.value])
-        self._time_ns = ProfilerConfig().get_local_time(
-            ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[OpMarkEnum.TIME_NS.value]))
-        self._corr_id = int(self._constant_data[OpMarkEnum.CORRELATION_ID.value])
-        self._origin_name = self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.NAME), "")
-        self._category = _OpMarkCategoryEnum(int(self._constant_data[OpMarkEnum.CATEGORY.value]))
+        self._constant_data = self.CONSTANT_UNPACKER.unpack(data.get(Constant.CONSTANT_BYTES))
+        self._category = _OpMarkCategoryEnum(self._constant_data[OpMarkEnum.CATEGORY.value])
+        self._pid = None
+        self._tid = None
+        self._time_ns = None
+        self._corr_id = None
+        self._origin_name = None
+        self._name = None
+        self._args = None
 
     @property
     def pid(self) -> int:
+        if self._pid is None:
+            self._pid = self._constant_data[OpMarkEnum.PROCESS_ID.value]
         return self._pid
 
     @property
     def tid(self) -> int:
+        if self._tid is None:
+            self._tid = self._constant_data[OpMarkEnum.THREAD_ID.value]
         return self._tid
 
     @property
     def time_ns(self) -> int:
+        if self._time_ns is None:
+            self._init_time_ns()
         return self._time_ns
 
     @property
     def corr_id(self) -> int:
+        if self._corr_id is None:
+            self._corr_id = self._constant_data[OpMarkEnum.CORRELATION_ID.value]
         return self._corr_id
 
     @property
     def origin_name(self) -> str:
+        if self._origin_name is None:
+            self._origin_name = self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.NAME), "")
         return self._origin_name
 
     @property
     def name(self) -> str:
-        if self.is_dequeue_start or self.is_dequeue_end:
-            return "Dequeue@" + str(self._origin_data[self.TLV_TYPE_DICT.get(Constant.NAME)])
-        return "Enqueue"
+        if self._name is None:
+            if self.is_dequeue_start or self.is_dequeue_end:
+                self._name = "Dequeue@" + self.origin_name
+            else:
+                self._name = "Enqueue"
+        return self._name
 
     @property
     def args(self) -> dict:
-        return {"correlation_id": self.corr_id}
+        if self._args is None:
+            self._args = {"correlation_id": self.corr_id}
+        return self._args
 
     @property
     def is_enqueue_start(self) -> bool:
@@ -114,3 +129,9 @@ class OpMarkBean:
     @dur.setter
     def dur(self, dur: int):
         self._dur = dur
+
+    def _init_time_ns(self):
+        profiler_config = ProfilerConfig()
+        syscnt = self._constant_data[OpMarkEnum.TIME_NS.value]
+        self._time_ns = profiler_config.get_local_time(
+            profiler_config.get_timestamp_from_syscnt(syscnt))

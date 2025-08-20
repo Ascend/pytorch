@@ -37,6 +37,7 @@ class DbParser(BaseParser):
         self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        self.logger.info("DbParser start.")
         ProfilerConfig().load_info(self._profiler_path)
         torch_db_path = DbConstant.DB_ASCEND_PYTORCH_PROFILER
         if ProfilerConfig().rank_id != -1:
@@ -60,4 +61,5 @@ class DbParser(BaseParser):
         finally:
             TorchDb().close()
             AnalysisDb().close()
+        self.logger.info("DbParser finish.")
         return Constant.SUCCESS, ""

@@ -16,12 +16,11 @@ from collections import defaultdict
 from enum import Enum
 from .._base_parser import BaseParser
 from ...prof_common_func._constant import Constant, print_warn_msg
-from ...prof_common_func._constant import DbConstant, TableColumnsManager
+from ...prof_common_func._constant import DbConstant, TableColumnsManager, TorchOpDataOri
 from ...prof_common_func._db_manager import AnalysisDb, TorchDb
 from ...prof_common_func._constant import convert_ns2us_float
 from ...prof_common_func._log import ProfilerLogger
 from ...prof_common_func._time_range_calculator import CommunicationTimeRange, RangeCaculator
-from ...prof_parse._fwk_file_parser import FwkFileParser
 
 __all__ = []
 
@@ -38,6 +37,7 @@ class TraceStepTimeDbParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self.step_range = []
+        self.torch_op_data = []
         self.compute_task_info = defaultdict(list)
         self.communication_op_info = defaultdict(list)
         ProfilerLogger.init(self._profiler_path, "TraceStepTimeDbParser")
@@ -58,7 +58,7 @@ class TraceStepTimeDbParser(BaseParser):
         if not first_task_start_ts:
             return 0
         if step_info.get(Constant.STEP_ID) is None:
-            first_fwk_op = FwkFileParser(self._profiler_path).get_first_fwk_op()
+            first_fwk_op = min(self.torch_op_data, key=lambda op: op[TorchOpDataOri.START_NS]) if self.torch_op_data else None
             return (first_task_start_ts - first_fwk_op.ts) if first_fwk_op else 0
         return first_task_start_ts - step_info.get(Constant.FWK_START_TS, 0)
 
@@ -71,13 +71,16 @@ class TraceStepTimeDbParser(BaseParser):
         AnalysisDb().insert_data_into_table(DbConstant.TABLE_STEP_TRACE_TIME, step_trace_data)
 
     def run(self, deps_data: dict):
+        self.logger.info("TraceStepTimeDbParser start.")
         try:
+            self.torch_op_data = deps_data.get(Constant.DB_PRE_PARSER, {}).get("torch_op", [])
             self._init_step_range(deps_data)
             self._init_task_info_from_db()
             self.generate_view()
         except Exception as error:
             self.logger.error("Failed to generate step_trace_time table, error: %s", str(error), exc_info=True)
             return Constant.FAIL, None
+        self.logger.info("TraceStepTimeDbParser finish.")
         return Constant.SUCCESS, None
 
     def generate_view(self) -> None:
