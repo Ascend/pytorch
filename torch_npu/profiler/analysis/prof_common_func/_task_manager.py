@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 
 from torch_npu.utils._error_code import ErrCode, prof_error
 from ._constant import print_error_msg, Constant
+from ._log import ProfilerLogger
 
 __all__ = []
 
@@ -110,6 +111,9 @@ class TaskInfo:
         self.handler = None
         self.pipe = (-1, -1)
         self.recv_buffer = None
+        self.start_time = None
+        self.end_time = None
+        self.execution_time = None
 
 
 class ConcurrentTasksManager:
@@ -124,6 +128,7 @@ class ConcurrentTasksManager:
         self.epoll = None
         self.max_concurrent_num = max_concurrent_num
         self.progress_bar = progress_bar
+        self.logger = None
 
     def add_task(self, task):
         if not isinstance(task, ConcurrentTask):
@@ -154,6 +159,7 @@ class ConcurrentTasksManager:
             print_error_msg(f"An error occurred: {e}")
         finally:
             self.finalize()
+            self.log_task_execution_summary()
 
     def finalize(self):
         for task_info in self.task_infos.values():
@@ -185,6 +191,7 @@ class ConcurrentTasksManager:
 
     def __run_one_task(self, task_info):
         task_info.status = TaskStatus.Running
+        task_info.start_time = time.time()
         if (task_info.task.mode & ConcurrentMode.SUB_PROCESS) != 0:
             self.__run_in_subprocess(task_info)
         elif (task_info.task.mode & ConcurrentMode.PTHREAD) != 0:
@@ -259,6 +266,9 @@ class ConcurrentTasksManager:
 
     def __on_task_done(self, task_info, ret_code, output):
         """ be called when task.run is finish(listening thread receives ret_code) """
+        task_info.end_time = time.time()
+        task_info.execution_time = task_info.end_time - task_info.start_time
+
         if ret_code == 0:
             task_info.status = TaskStatus.Succeed
             if output is not None:
@@ -422,3 +432,53 @@ class ConcurrentTasksManager:
 
     def __del__(self):
         self.clear()
+
+    def __get_mode_string(self, mode):
+        modes = []
+        if mode & ConcurrentMode.MAIN_PROCESS:
+            modes.append("MAIN_PROCESS")
+        if mode & ConcurrentMode.SUB_PROCESS:
+            modes.append("SUB_PROCESS")
+        if mode & ConcurrentMode.PTHREAD:
+            modes.append("PTHREAD")
+        if mode & ConcurrentMode.NON_BLOCKING:
+            modes.append("NON_BLOCKING")
+        return "|".join(modes) if modes else "UNKNOWN"
+
+    def get_task_execution_summary(self):
+        summary = []
+        for task_name, task_info in self.task_infos.items():
+            if task_info.execution_time is not None:
+                mode_str = self.__get_mode_string(task_info.task.mode)
+                status_str = task_info.status.name
+                deps_names = [dep for dep in task_info.task.deps]
+                deps_str = ", ".join(deps_names) if deps_names else "None"
+
+                summary.append({
+                    'task_name': task_name,
+                    'mode': mode_str,
+                    'status': status_str,
+                    'execution_time': task_info.execution_time,
+                    'start_time': task_info.start_time,
+                    'end_time': task_info.end_time,
+                    'deps': deps_str
+                })
+
+        return summary
+
+    def log_task_execution_summary(self):
+        self.logger = ProfilerLogger.get_instance()
+        summary = self.get_task_execution_summary()
+
+        self.logger.info("=" * 60)
+        self.logger.info("Task execution completed")
+        self.logger.info("=" * 60)
+
+        for task in summary:
+            self.logger.info(
+                f"{task['task_name']:<25} | "
+                f"{task['mode']:<15} | "
+                f"{task['status']:<10} | "
+                f"{task['execution_time']:.3f}s | "
+                f"deps: {task['deps']}"
+            )

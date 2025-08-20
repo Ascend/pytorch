@@ -303,8 +303,8 @@ class _ProfilerEvent:
         self.children: List['_ProfilerEvent'] = []
         if isinstance(bean, TorchOpBean):
             self.tag = _EventType.TorchOp
-            self.tid = bean._tid
-            self.start_time_ns = bean._start_ns
+            self.tid = bean.tid
+            self.start_time_ns = bean.ts
             self.extra_fields = _ExtraFields_TorchOp(bean)
         elif isinstance(bean, MemoryUseBean):
             self.tag = _EventType.Allocation

@@ -24,6 +24,7 @@ class BasicDbParser(BaseParser):
         self.logger = ProfilerLogger.get_instance()
 
     def run(self, deps_data: dict):
+        self.logger.info("BasicDbParser start.")
         try:
             cann_db_path = self.get_cann_db_path()
             if cann_db_path:
@@ -36,6 +37,7 @@ class BasicDbParser(BaseParser):
         except Exception as error:
             self.logger.error("Failed to generate basic db file. Error: %s", str(error), exc_info=True)
             return Constant.FAIL, ""
+        self.logger.info("BasicDbParser finish.")
         return Constant.SUCCESS, ""
 
     def get_cann_db_path(self):

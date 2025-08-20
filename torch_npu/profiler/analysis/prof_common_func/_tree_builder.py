@@ -10,7 +10,7 @@ class TreeBuilder:
     @classmethod
     def build_tree(cls, event_list: list, enqueue_list: list) -> TorchOpNode:
         all_node_list = [None] * (len(event_list) + 1)
-        event_list.extend(enqueue_list)
+        event_list = event_list + enqueue_list
         event_list.sort(key=lambda x: x.ts)
         root_node = TorchOpNode()
         last_node = root_node
