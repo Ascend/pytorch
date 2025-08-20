@@ -97,6 +97,7 @@ LOAD_FUNCTION(aclrtStreamGetId)
 LOAD_FUNCTION(aclrtLaunchCallback)
 LOAD_FUNCTION(aclrtSubscribeReport)
 LOAD_FUNCTION(aclrtUnSubscribeReport)
+LOAD_FUNCTION(aclrtMemcpyAsyncWithCondition)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1120,6 +1121,27 @@ aclError AclrtUnSubscribeReport(uint64_t theadId, aclrtStream stream)
 
     TORCH_CHECK(func, "Failed to find function aclrtUnSubscribeReport", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(theadId, stream);
+}
+
+bool AclrtMemcpyAsyncWithConditionExist()
+{
+    const static bool isAclrtMemcpyAsyncWithConditionExist = []() -> bool {
+        auto func  = GET_FUNC(aclrtMemcpyAsyncWithCondition)
+        return func != nullptr;
+    }();
+    return isAclrtMemcpyAsyncWithConditionExist;
+}
+
+aclError AclrtMemcpyAsyncWithCondition(void *dst, size_t destMax, const void *src,
+                                       size_t count, aclrtMemcpyKind kind, aclrtStream stream)
+{
+    typedef aclError(*AclrtMemcpyAsyncWithConditionFunc)(void*, size_t, const void*, size_t, aclrtMemcpyKind, aclrtStream);
+    static AclrtMemcpyAsyncWithConditionFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemcpyAsyncWithConditionFunc)GET_FUNC(aclrtMemcpyAsyncWithCondition);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyAsyncWithCondition", PROF_ERROR(ErrCode::NOT_FOUND));
+    return func(dst, destMax, src, count, kind, stream);
 }
 
 } // namespace acl
