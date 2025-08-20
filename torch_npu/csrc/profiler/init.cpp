@@ -95,7 +95,9 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused)
         py::arg("config"),
         py::arg("activities"),
         py::arg("scopes") = std::unordered_set<at::RecordScope>());
+    m.def("_enable_profiler_in_child_thread", &enableProfilerInChildThread, py::arg("config"));
     m.def("_stop_profiler", stopNpuProfiler);
+    m.def("_disable_profiler_in_child_thread", disableProfilerInChildThread);
     m.def("_finalize_profiler", finalizeNpuProfiler);
     m.def("_get_freq", at_npu::native::getFreq);
     m.def("_get_syscnt_enable", at_npu::native::isSyscntEnable);
