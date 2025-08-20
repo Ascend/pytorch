@@ -376,7 +376,7 @@ hccl_detect_group = None
 
 def stress_detect(detect_type='aic'):
     if detect_type not in ['aic', 'hccs']:
-        warnings.warn("Detecct_type should be `aic` or `hccs`. For details, aic as `Online aicore detect`, 1 as `Online p2p detect`.")
+        warnings.warn("Detecct_type should be `aic` or `hccs`. For details, aic as `Online aicore detect`, hccs as `Online p2p detect`.")
         return 1
     torch_npu.npu._lazy_init()
     mode = 0 if detect_type == 'aic' else 1
