@@ -36,7 +36,7 @@ public:
     void long_critical(const char* format, ...);
 
 private:
-    void log(LoggingLevel level, const int log_buffer_size, const char* format, va_list args);
+    void log(LoggingLevel level, const std::string& levelStr, const int log_buffer_size, const char* format, va_list args);
 
     LoggingLevel allow_level_ = LoggingLevel::WARNING;
     std::string name_;
