@@ -192,3 +192,15 @@ class ProfilerPathManager:
             return False
         return True
 
+    @classmethod
+    def walk_with_depth(cls, path, max_depth=10, *args, **kwargs):
+        if not isinstance(path, str):
+            return
+        base_depth = path.count(os.sep)
+        if path.endswith(os.sep):
+            base_depth -= 1
+        for root, dirs, files in os.walk(path, *args, **kwargs):
+            if root.count(os.sep) - base_depth > max_depth:
+                dirs.clear()
+                continue
+            yield root, dirs, files
