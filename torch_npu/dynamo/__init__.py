@@ -10,6 +10,7 @@ from torch.library import Library, impl
 
 from torch_npu.utils._error_code import ErrCode, pta_error
 from torch_npu.utils.utils import _should_print_warning
+from .trace_rule import _patch_npu_trace_rules
 
 _global_npu_backend = None
 __all__ = []

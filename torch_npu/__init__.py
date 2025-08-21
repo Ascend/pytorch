@@ -90,6 +90,7 @@ from torch_npu.npu.utils import _erase_stream as erase_stream
 from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 from torch_npu.asd.asd import _asd_patch
 from torch_npu.asd.checksum import _matmul_checksum as matmul_checksum
+from torch_npu.dynamo import _patch_npu_trace_rules
 from torch_npu._C._distributed_c10d import ParallelStore
 from torch_npu.op_plugin.meta import _meta_registrations
 from torch_npu.version import __version__ as __version__
@@ -297,6 +298,9 @@ if 'TORCH_NPU_SANITIZER' in os.environ:
 
 # register npu device op overrides for inductor
 _inductor_register_device_op_overrides()
+
+# Support stream into Dynamo charts
+_patch_npu_trace_rules()
 
 if hasattr(sys, 'ps1'):
     os.environ["TASK_QUEUE_ENABLE"] = '0'
