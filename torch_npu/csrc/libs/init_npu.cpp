@@ -23,6 +23,15 @@ void init_npu(const c10::DeviceIndex device_index)
         C10_NPU_SHOW_ERR_MSG();
         return;
     }
+    if (!c10_npu::NpuSysCtrl::GetInstance().GetLazyInitFlag()) {
+        c10_npu::LazySetDevice(device_index);
+        c10_npu::NpuSysCtrl::SysStatus lazystatus =
+            c10_npu::NpuSysCtrl::GetInstance().LazyInitialize((int)device_index);
+        if (lazystatus != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+            C10_NPU_SHOW_ERR_MSG();
+            return;
+        }
+    }
 }
 
 

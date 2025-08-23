@@ -79,7 +79,7 @@ int MaybeExchangeDevice(int to_device);
 
 void SetTargetDevice();
 
-void LazySetDevice();
+void LazySetDevice(c10::DeviceIndex device);
 
 int GetLocalDevice();
 
