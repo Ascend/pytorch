@@ -275,8 +275,8 @@ int64_t sdpa_flop_count(const std::vector<int64_t> query_shape, const std::vecto
     TORCH_CHECK(d_q == _d2, "the dim of 3 is not equal between q and k");
 
     int64_t total_flops = safe_sum({
-        safe_multiply({b, h, s_q, d_q, s_k, 2}), // q: [b, h, s_q, d_q] @ k: [b, h, d_q, s_k] -> scores: [b, h, s_q, s_k]
-        safe_multiply({b, h, s_q, s_k, d_v, 2})  // scores: [b, h, s_q, s_k] @ v: [b, h, s_k, d_v] -> out: [b, h, s_q, d_v]
+        safe_multiply({b, h, s_q, d_q, s_k}), // q: [b, h, s_q, d_q] @ k: [b, h, d_q, s_k] -> scores: [b, h, s_q, s_k]
+        safe_multiply({b, h, s_q, s_k, d_v})  // scores: [b, h, s_q, s_k] @ v: [b, h, s_k, d_v] -> out: [b, h, s_q, d_v]
     });
 
     return total_flops;
@@ -329,10 +329,10 @@ int64_t sdpa_backward_flop_count(const std::vector<int64_t> query_shape, const s
     TORCH_CHECK(d_v == d_4, "the dim of 3 is not equal between v and grad");
 
     int64_t total_flops = safe_sum({
-        safe_multiply({b, h, s_q, d_v, s_k, 2}), // gradOut: [b, h, s_q, d_v] @ v: [b, h, d_v, s_k] -> gradScores: [b, h, s_q, s_k]
-        safe_multiply({b, h, s_k, s_q, d_v, 2}), // scores: [b, h, s_k, s_q] @ gradOut: [b, h, s_q, d_v] -> gradV: [b, h, s_k, d_v]
-        safe_multiply({b, h, s_q, s_k, d_q, 2}), // gradScores: [b, h, s_q, s_k] @ k: [b, h, s_k, d_q] -> gradQ: [b, h, s_q, d_q]
-        safe_multiply({b, h, d_q, s_q, s_k, 2})  // q: [b, h, d_q, s_q] @ gradScores: [b, h, s_q, s_k] -> gradK: [b, h, d_q, s_k]
+        safe_multiply({b, h, s_q, d_v, s_k}), // gradOut: [b, h, s_q, d_v] @ v: [b, h, d_v, s_k] -> gradScores: [b, h, s_q, s_k]
+        safe_multiply({b, h, s_k, s_q, d_v}), // scores: [b, h, s_k, s_q] @ gradOut: [b, h, s_q, d_v] -> gradV: [b, h, s_k, d_v]
+        safe_multiply({b, h, s_q, s_k, d_q}), // gradScores: [b, h, s_q, s_k] @ k: [b, h, s_k, d_q] -> gradQ: [b, h, s_q, d_q]
+        safe_multiply({b, h, d_q, s_q, s_k})  // q: [b, h, d_q, s_q] @ gradScores: [b, h, s_q, s_k] -> gradK: [b, h, d_q, s_k]
     });
 
     return total_flops;
