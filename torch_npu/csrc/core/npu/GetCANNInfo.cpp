@@ -138,7 +138,7 @@ std::string GetCANNVersion(const std::string& module)
     }
     auto find_module = packageNameMap.find(module);
     if (find_module == packageNameMap.end()) {
-        TORCH_NPU_WARN_ONCE("module " + module + "is invalid.");
+        TORCH_NPU_WARN_ONCE("module " + module + " is invalid.");
         CANNVersionCache[module] = "";
         return "";
     }
