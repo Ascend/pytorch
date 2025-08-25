@@ -620,9 +620,10 @@ PyObject* THNPModule_stopDevice_wrap(PyObject* self, PyObject* arg)
 {
     HANDLE_TH_ERRORS
     int device = THPUtils_unpackLong(arg);
+    ASCEND_LOGI("NPU stop device start, device is %d.", device);
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::STOP_EXIT);
     int ret = c10_npu::acl::AclrtDeviceTaskAbort(device);
-    ASCEND_LOGI("NPU stop device success, device is %d, ret is %d.", device, ret);
+    ASCEND_LOGI("NPU stop device end, device is %d, ret is %d.", device, ret);
     if (ret == 0) {
         return PyLong_FromLong(0);
     } else {
