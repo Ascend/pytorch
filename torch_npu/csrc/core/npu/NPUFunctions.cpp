@@ -58,8 +58,9 @@ aclError GetDevice(int32_t *device)
     if (err != ACL_ERROR_NONE) {
         CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
     }
-    // before call aclinit with defaultdevice
-    if (err == ACL_ERROR_RT_CONTEXT_NULL) {
+    if (err == ACL_ERROR_NONE) {
+        local_device = *device;
+    } else if (err == ACL_ERROR_RT_CONTEXT_NULL) {
         *device = 0;
         return ACL_ERROR_NONE;
     }
@@ -81,8 +82,9 @@ aclError GetDeviceWithoutSet(int32_t *device)
     if (err != ACL_ERROR_NONE) {
         CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
     }
-    // before call aclinit with defaultdevice
-    if (err == ACL_ERROR_RT_CONTEXT_NULL) {
+    if (err == ACL_ERROR_NONE) {
+        local_device = *device;
+    } else if (err == ACL_ERROR_RT_CONTEXT_NULL) {
         *device = -1;
         return ACL_ERROR_NONE;
     }
@@ -244,7 +246,18 @@ bool IsContextInitialized()
         return true;
     }
 
-    return false;
+    int32_t device = -1;
+    aclError err =  aclrtGetDevice(&device);
+    if (err == ACL_ERROR_NONE) {
+        return true;
+    } else {
+        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+        if (err == ACL_ERROR_RT_CONTEXT_NULL) {
+            return false;
+        }
+        NPU_CHECK_ERROR_WITHOUT_UCE(err);
+        return false;
+    }
 }
 
 int MaybeExchangeDevice(int to_device)
@@ -275,18 +288,10 @@ int GetLocalDevice()
     return local_device;
 }
 
-void LazySetDevice(c10::DeviceIndex device)
+void LazySetDevice()
 {
-    if (local_device != device) {
-        aclError err = aclrtSetDevice(device);
-        if (err == ACL_ERROR_NONE) {
-            local_device = device;
-            std::lock_guard<std::recursive_mutex> lock(mtx);
-            if (used_devices.find(local_device) == used_devices.end()) {
-                NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
-            }
-        }
-        NPU_CHECK_ERROR_WITHOUT_UCE(err);
+    if (local_device < 0) {
+        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(0));
     }
 }
 
