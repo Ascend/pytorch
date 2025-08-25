@@ -2300,7 +2300,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             }
             auto comm = HCCLComm::createGlobalHcclComm(rankTableFile.c_str(), rank, commConfig);
             if (comm == nullptr) {
-                ASCEND_LOGI("Create global hccl comm with ranktable failed.");
+                ASCEND_LOGI("Create global hccl comm with ranktable failed, switch to original interface.");
                 return false;
             }
             hcclComms[i] = comm;
@@ -2327,11 +2327,11 @@ bool ProcessGroupHCCL::createHCCLCommEx(
     try {
         globalHcclComm = global_->getHcclCommByDevices(devices);
     } catch (const std::exception& e) {
-        ASCEND_LOGI("create the global HCCL Communicator failed, the exception info is %s.", e.what());
+        ASCEND_LOGI("create the global HCCL Communicator failed, the exception info is %s, switch to original interface.", e.what());
         return false;
     }
     if (!globalHcclComm) {
-        ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, globalHcclComm is nullptr.");
+        ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, globalHcclComm is nullptr, switch to original interface.");
         return false;
     }
 
@@ -2371,7 +2371,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             subComm = HCCLComm::createSubHcclComm(globalHcclComm, numRanks, options_->global_ranks_in_group.data(), hcclid, rank, commConfig);
         }
         if (subComm == nullptr) {
-            ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, group id is %s, subCommId is %llu, devicesKey is %s.",
+            ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, group id is %s, subCommId is %llu, devicesKey is %s, switch to original interface.",
                 options_->group_id.c_str(), hcclid, devicesKey.c_str());
             return false;
         }
