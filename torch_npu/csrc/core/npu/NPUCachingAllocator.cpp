@@ -3495,7 +3495,7 @@ public:
         }
         int device = 0;
         NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
-        LazySetDevice(device);
+        LazySetDevice();
         void *devPtr = nullptr;
         void (*deleteFunc)(void *) = &local_raw_delete;
 

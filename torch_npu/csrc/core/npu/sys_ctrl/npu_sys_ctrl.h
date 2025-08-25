@@ -41,8 +41,6 @@ public:
     // Environment Initialize, return SysStatus
     SysStatus Initialize(int device_id = -1);
 
-    SysStatus LazyInitialize(int device_id = -1);
-
     // Change current device from pre_device to device
     SysStatus ExchangeDevice(int device);
 
@@ -57,9 +55,6 @@ public:
 
     // Get Init_flag
     C10_NPU_API bool GetInitFlag();
-
-    // Get lazyInit_flag
-    bool GetLazyInitFlag();
 
     int InitializedDeviceID()
     {
@@ -82,12 +77,10 @@ private:
 private:
     bool repeat_init_acl_flag_;
     bool init_flag_;
-    bool lazy_init_flag_;
     int device_id_;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
     std::vector<std::pair<option::OptionCallBack, std::string>> lazy_fn_;
     std::mutex init_mutex_;
-    std::mutex lazy_init_mutex_;
 };
 
 aclError SetCurrentDevice();

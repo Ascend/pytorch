@@ -95,7 +95,7 @@ std::string GetAclConfigJsonPath()
 
 namespace c10_npu {
 
-NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), lazy_init_flag_(false), device_id_(0)
+NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), device_id_(0)
 {}
 
 // Get NpuSysCtrl singleton instance
@@ -139,6 +139,15 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     c10_npu::NPUWorkspaceAllocator::init();
     ASCEND_LOGD("Npu workspace allocator initialize successfully");
     c10_npu::option::OptionsManager::IsOomSnapshotEnable();
+    // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
+
+    auto ret = aclrtGetDevice(&device_id_);
+    if (ret != ACL_ERROR_NONE) {
+        device_id_ = (device_id == -1) ? 0 : device_id;
+        NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
+    } else {
+        ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
+    }
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
         const char *aclConfigPath = "acl.json";
@@ -149,6 +158,12 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     auto soc_name = c10_npu::acl::AclGetSocName();
     // set global soc name
     c10_npu::SetSocVersion(soc_name);
+
+    if (c10_npu::IsSupportInfNan()) {
+        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+    } else {
+        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+    }
 
     auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
     if (acl_op_init_mode == 0) {
@@ -161,6 +176,9 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910_9391) {
         SetDefaultAllowInternalFromatDisable();
     }
+
+    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
 
     // lazy call for the setoption
     for (const auto &iter: lazy_fn_) {
@@ -176,40 +194,6 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
 
     init_flag_ = true;
     ASCEND_LOGD("Npu sys ctrl initialize successfully.");
-
-    return INIT_SUCC;
-}
-
-NpuSysCtrl::SysStatus NpuSysCtrl::LazyInitialize(int device_id)
-{
-    if (lazy_init_flag_) {
-        return INIT_SUCC;
-    }
-    std::lock_guard<std::mutex> lock(lazy_init_mutex_);
-    if (lazy_init_flag_) {
-        return INIT_SUCC;
-    }
-
-    // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
-    auto ret = aclrtGetDevice(&device_id_);
-    if (ret != ACL_ERROR_NONE) {
-        device_id_ = (device_id == -1) ? 0 : device_id;
-        NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
-    } else {
-        ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
-    }
-
-    if (c10_npu::IsSupportInfNan()) {
-        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
-    } else {
-        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
-    }
-
-    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
-
-    lazy_init_flag_ = true;
-    ASCEND_LOGD("Npu sys ctrl Lazyinitialize successfully.");
 
     return INIT_SUCC;
 }
@@ -278,11 +262,6 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Finalize()
 bool NpuSysCtrl::GetInitFlag()
 {
     return init_flag_;
-}
-
-bool NpuSysCtrl::GetLazyInitFlag()
-{
-    return lazy_init_flag_;
 }
 
 void NpuSysCtrl::RegisterLazyFn(const option::OptionCallBack &call_, const std::string &in)

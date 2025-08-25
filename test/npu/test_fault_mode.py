@@ -173,7 +173,7 @@ class TestMode(TestCase):
             message
         )
         self.assertIn(
-            "SetDevice",
+            "Initialize",
             message
         )
 
