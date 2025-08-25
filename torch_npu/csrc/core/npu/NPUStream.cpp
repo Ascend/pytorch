@@ -15,7 +15,6 @@
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
-#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #ifndef BUILD_LIBTORCH
@@ -232,8 +231,7 @@ static void initNPUStreamsOnce()
     c10::DeviceIndex device_index = current_device();
     // makesure on real devcie
     SetTargetDevice();
-    LazySetDevice(device_index);
-    c10_npu::NpuSysCtrl::GetInstance().LazyInitialize();
+    LazySetDevice();
     if (!initialize_flag[device_index]) {
         std::lock_guard<std::mutex> lock(mtx[device_index]);
         if (!initialize_flag[device_index]) {
