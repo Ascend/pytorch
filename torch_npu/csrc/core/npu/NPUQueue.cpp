@@ -446,6 +446,17 @@ bool Repository::ReadQueue()
         }
         ClearQueue();
         c10_npu::NPUEventManager::GetInstance().ClearUnrecordedCount();
+        if (GetStatus() == RepoStatus::STOP_EXIT) {
+            // The "stop_device" function will first set the "FORCE STOP" state, and then call the "devicetaskabort" interface.
+            // In a theoretical scenario, it is possible that before setting the FORCE STOP state,
+            // the dequeue thread had already got a task and was preparing to dispatch it.
+            // After calling the "devicetaskabort" interface, the task was finally ready to be dispatched.
+            // At this point, if the execution of this task fails, there will be an error state in the device,
+            // and it needs to be handled through the synchronization interface.
+            auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
+            ASCEND_LOGI("ReadQueue: SynchronizeDevice with FORCE STOP, device = %d, write_idx = %u, read_idx = %u, ret = %d, acl_ret = %d",
+                device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret, acl_ret);
+        }
         return false;
     }
 
@@ -459,6 +470,17 @@ bool Repository::ReadQueue()
 
     read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
 
+    if (GetStatus() == RepoStatus::STOP_EXIT) {
+        // The "stop_device" function will first set the "FORCE STOP" state, and then call the "devicetaskabort" interface.
+        // In a theoretical scenario, it is possible that before setting the FORCE STOP state,
+        // the dequeue thread had already got a task and was preparing to dispatch it.
+        // After calling the "devicetaskabort" interface, the task was finally ready to be dispatched.
+        // At this point, if the execution of this task fails, there will be an error state in the device,
+        // and it needs to be handled through the synchronization interface.
+        auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
+        ASCEND_LOGI("ReadQueue: SynchronizeDevice with FORCE STOP, device = %d, write_idx = %u, read_idx = %u, ret = %d, acl_ret = %d",
+            device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret, acl_ret);
+    }
     return true;
 }
 
