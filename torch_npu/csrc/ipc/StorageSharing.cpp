@@ -269,10 +269,7 @@ static PyObject* THNPStorage_newSharedNpu(PyObject* _unused, PyObject* args)
     base->set_resizable(false);
     base->set_received_cuda(true);
 
-    return THPStorage_NewWithStorage(
-        THPStorageClass,
-        std::move(base),
-        c10::impl::PyInterpreterStatus::TAGGED_BY_US);
+    return THPStorage_NewWithStorage(THPStorageClass, std::move(base));
     END_HANDLE_TH_ERRORS
 }
 

@@ -17,5 +17,5 @@ transformers==4.40.0
 pytest==8.1.1
 parameterized==0.9.0
 torch-scatter==2.1.2
-torchvision==0.24.0.dev20250702
+torchvision==0.24.0.dev20250801
 ml-dtypes==0.2.0

@@ -3,7 +3,6 @@ from typing import cast
 import torch
 from torch import distributed as dist
 from torch.distributed.distributed_c10d import _resolve_process_group
-from torch.distributed.fsdp._fully_shard._fsdp_collectives import allocate_memory
 from torch.distributed.fsdp._fully_shard._fsdp_common import compiled_autograd_enabled, TrainingState
 from torch.distributed.fsdp._fully_shard._fsdp_param import FSDPParam, ShardedState
 from torch.distributed.fsdp._fully_shard._fsdp_param_group import FSDPParamGroup, AllGatherState
@@ -87,22 +86,11 @@ def _patched_get_param_all_gather_inputs(
 
 def _patched_all_gather_copy_in(
     all_gather_inputs: list[torch.Tensor],
+    all_gather_output: torch.Tensor,
     inp_split_sizes: list[int],
     all_gather_input_numel: int,
-    world_size: int,
     rank: int,
-    dtype: torch.dtype,
-    device: torch.device,
-    group_name: str,
-    allocate_memory_from_process_group: bool,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    all_gather_output = allocate_memory(
-        all_gather_input_numel * world_size,
-        dtype=dtype,
-        device=device,
-        group=_resolve_process_group(group_name),
-        from_process_group=allocate_memory_from_process_group,
-    )
     all_gather_input = all_gather_output.narrow(
         0, all_gather_input_numel * rank, all_gather_input_numel
     )
