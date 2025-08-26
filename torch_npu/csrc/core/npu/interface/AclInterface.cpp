@@ -1127,6 +1127,9 @@ bool AclrtMemcpyAsyncWithConditionExist()
 {
     const static bool isAclrtMemcpyAsyncWithConditionExist = []() -> bool {
         auto func  = GET_FUNC(aclrtMemcpyAsyncWithCondition)
+        if (func != nullptr) {
+            ASCEND_LOGI("Successfully to find function aclrtMemcpyAsyncWithCondition");
+        }
         return func != nullptr;
     }();
     return isAclrtMemcpyAsyncWithConditionExist;
