@@ -24,6 +24,7 @@ from .utils import NPU_AUTOGRAD_FUNCTION
 GRADIENT_IMPLEMENTED_FOR_COMPLEX.update((
     "stft",
     "npu_dtype_cast",
+    "_npu_dtype_cast",
 ))
 
 NPU_NATIVEFUNCTIONS = {'npu_format_cast', '_npu_format_cast'}
