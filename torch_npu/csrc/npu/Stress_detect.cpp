@@ -49,19 +49,22 @@ void StressDetector::worker_thread()
                     attr.mode = AML_DETECT_RUN_MODE_ONLINE;
                     attr.workspace = workspaceAddr;
                     attr.workspaceSize = workspaceSize;
+                    ASCEND_LOGI("Stress detect with AmlAicoreDetectOnline start, device id is %d.", device_id);
                     ret = c10_npu::amlapi::AmlAicoreDetectOnlineFace(device_id, &attr);
-                    ASCEND_LOGI("Stress detect with AmlAicoreDetectOnline, device id is %d, result is %d.", device_id, ret);
+                    ASCEND_LOGI("Stress detect with AmlAicoreDetectOnline end, device id is %d, result is %d.", device_id, ret);
                 } else {
+                    ASCEND_LOGI("Stress detect with StressDetect start, device id is %d.", device_id);
                     ret = c10_npu::acl::AclStressDetect(device_id, workspaceAddr, workspaceSize);
-                    ASCEND_LOGI("Stress detect with StressDetect, device id is %d, result is %d.", device_id, ret);
+                    ASCEND_LOGI("Stress detect with StressDetect end, device id is %d, result is %d.", device_id, ret);
                 }
             } else {
                 if (c10_npu::amlapi::IsExistAmlP2PDetectOnline()) {
                     AmlP2PDetectAttr attr;
                     attr.workspace = workspaceAddr;
                     attr.workspaceSize = workspaceSize;
+                    ASCEND_LOGI("Stress detect with AmlP2PDetectOnline start, device id is %d.", device_id);
                     ret = c10_npu::amlapi::AmlP2PDetectOnlineFace(device_id, localHcclComm, &attr);
-                    ASCEND_LOGI("Stress detect with AmlP2PDetectOnline, device id is %d, result is %d.", device_id, ret);
+                    ASCEND_LOGI("Stress detect with AmlP2PDetectOnline end, device id is %d, result is %d.", device_id, ret);
                 } else {
                     ASCEND_LOGW("Stress detect with AmlP2PDetectOnline failed, CANN version lower than 8.3.RC1 and currently does not support AmlP2PDetectOnline.");
                     TORCH_NPU_WARN("Stress detect with AmlP2PDetectOnline failed, CANN version lower than 8.3.RC1 and currently does not support AmlP2PDetectOnline.");
