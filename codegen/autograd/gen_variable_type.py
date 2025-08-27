@@ -123,6 +123,7 @@ def gen_variable_type_func(
                 type_definition = re.sub(r'at::redispatch::(\w+)_outf', r'at_npu::redispatch::\1_out', type_definition)
             else:
                 type_definition = type_definition.replace('at::redispatch', 'at_npu::redispatch')
+            type_definition = type_definition.replace('_symint', '')
 
         wrapper_registration = gen_wrapper_registration(f, "Default")
         result[f"type_derived_method_definitions"] = [type_definition]
