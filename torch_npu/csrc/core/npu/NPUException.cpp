@@ -86,7 +86,8 @@ std::unordered_map<int, std::function<std::string(int)>> errCodeHandlerMap = {
     {ACL_ERROR_RT_DEVICE_MEM_ERROR, std::bind(&handleDeviceMemError, std::placeholders::_1)},
     {ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR, std::bind(&handleSuspectDeviceMemError, std::placeholders::_1)},
     {ACL_ERROR_RT_LINK_ERROR, std::bind(&handleLinkError, std::placeholders::_1)},
-    {ACL_ERROR_RT_COMM_OP_RETRY_FAIL, std::bind(&handleHcclOpRetryFailed, std::placeholders::_1)}
+    {ACL_ERROR_RT_COMM_OP_RETRY_FAIL, std::bind(&handleHcclOpRetryFailed, std::placeholders::_1)},
+    {ACL_ERROR_RT_SUSPECT_REMOTE_ERROR, std::bind(&handleSuspectRemoteError, std::placeholders::_1)}
 };
 
 MemUceInfo memUceInfo;
@@ -257,6 +258,12 @@ std::string handleHcclOpRetryFailed(int errorCode)
 {
     ASCEND_LOGE("getRepoStopFlag in Run, throw HCCL OP RETRY FAILED.");
     return "HCCL OP RETRY FAILED";
+}
+
+std::string handleSuspectRemoteError(int errorCode)
+{
+    ASCEND_LOGE("getRepoStopFlag in Run, throw SUSPECT REMOTE ERROR.");
+    return "SUSPECT REMOTE ERROR";
 }
 
 std::string handleDeviceError(int errorCode)
