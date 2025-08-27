@@ -28,6 +28,7 @@ enum RepoStatus {
   SUSPECT_MEM_EXIT = 8,
   HCCS_LINK_EXIT = 9,
   HCCL_OP_RETRY_EXIT = 10,
+  SUSPECT_REMOTE_EXIT = 11,
 };
 
 // c10::SmallVector max size
