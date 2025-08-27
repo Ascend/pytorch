@@ -97,6 +97,7 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 #define SUSPECT_DEVICE_MEM_ERROR "reason=[suspect device mem error]"
 #define HCCS_LINK_ERROR "reason=[link error]"
 #define HCCL_OP_RETRY_FAILED "reason=[hccl op retry failed]"
+#define SUSPECT_REMOTE_ERROR "reason=[suspect remote error]"
 
 inline const char* getErrorFunction(const char* msg)
 {
@@ -291,5 +292,7 @@ std::string handleLinkError(int errorCode);
 std::string handleHcclOpRetryFailed(int errorCode);
 
 std::string handleDeviceError(int errorCode);
+
+std::string handleSuspectRemoteError(int errorCode);
 
 } // namespace c10_npu
