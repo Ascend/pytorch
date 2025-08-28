@@ -42,7 +42,7 @@ from torch._inductor.runtime.triton_heuristics import (
     get_first_attr,
     collected_calls,
     _dump_launch_params,
-    builtins
+    builtins, _pop_config_kwargs
 )
 from triton.compiler import CompiledKernel
 
@@ -1181,6 +1181,31 @@ def persistent_reduction_npu_index(
         inductor_meta=inductor_meta,
         filename=filename,
         heuristic_type=HeuristicType.PERSISTENT_REDUCTION,
+    )
+
+
+def npu_user_autotune(
+        configs,
+        triton_meta,
+        filename=None,
+        inductor_meta=None,
+        custom_kernel=False
+):
+    if len(configs) == 0:
+        configs = [triton.Config({})]
+    else:
+        configs = [
+            triton.Config(c.get("kwargs", {}), **_pop_config_kwargs({**c}))
+            for c in configs
+        ]
+    return cached_autotune(
+        None,
+        configs,
+        triton_meta=triton_meta,
+        heuristic_type=HeuristicType.USER_AUTOTUNE,
+        filename=filename,
+        inductor_meta=inductor_meta,
+        custom_kernel=custom_kernel
     )
 
 

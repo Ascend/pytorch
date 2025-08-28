@@ -1,11 +1,15 @@
 import os
 import copy
 import hashlib
+from typing import List, Any
+
 import sympy
 
 import torch
 from torch._inductor import config
-from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg, SubgraphPythonWrapperCodegen
+from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg, SubgraphPythonWrapperCodegen, \
+    user_defined_kernel_grid_fn_code
+from torch._inductor.ir import IRNode
 from torch._inductor.runtime import triton_heuristics
 from torch._inductor.utils import (
     cache_on_self,
@@ -14,8 +18,9 @@ from torch._inductor.virtualized import V
 from torch._subclasses.fake_tensor import FakeTensor, FakeTensorMode
 from torch.utils._sympy.singleton_int import SingletonInt
 
-from torch_npu._inductor import config as npu_config
 import torch_npu.npu.aclnn
+from torch_npu._inductor import config as npu_config
+from torch_npu._inductor.codegen.triton_utils import define_user_defined_npu_triton_kernel
 
 
 class NPUWrapperCodeGen(PythonWrapperCodegen):
@@ -86,9 +91,61 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
         # it suffices as a type hint for the purposes of producing the correct code for this type.
         return SymbolicCallArg(expr, numel_expr)
 
-    # don't free anything
-    def make_buffer_free(self, buffer):
-        return ""
+
+    def define_user_defined_triton_kernel(
+            self,
+            kernel,
+            configs,
+            kwargs,
+            restore_value_args,
+            reset_to_zero_args,
+    ):
+        return define_user_defined_npu_triton_kernel(
+            self,
+            kernel,
+            configs,
+            kwargs,
+            restore_value_args,
+            reset_to_zero_args,
+        )
+
+
+    def generate_user_defined_triton_kernel(
+            self,
+            kernel_name: str,
+            raw_args: List[Any],
+            grid: List[Any],
+            configs,
+            triton_meta,
+            constexprs,
+    ):
+        grid_fn, code = user_defined_kernel_grid_fn_code(
+            kernel_name, configs, grid, wrapper=self
+        )
+        if not (config.triton.autotune_at_compile_time and V.graph.cpp_wrapper):
+            # When codegen the autotune block only, do no insert Triton kernel
+            # code into the main block
+            #
+            # Must happen after free symbols are already codegened
+            # Emit the grid wrapper function right before the call
+            for line in code.split("\n"):
+                self.writeline(line)
+
+        # Explicitly call the Python version of val_to_arg_str
+        args = [PythonWrapperCodegen.val_to_arg_str(self, v) for v in raw_args]
+        arg_types = [
+            arg.get_dtype() if isinstance(arg, IRNode) else type(arg)
+            for arg in raw_args
+        ]
+
+        # call self.generate_kernel_call here
+        self.generate_kernel_call(
+            kernel_name,
+            args,
+            grid_fn=grid_fn,
+            arg_types=arg_types,
+            raw_args=raw_args,
+        )
 
     # don't assert
     def codegen_input_size_asserts(self) -> None:

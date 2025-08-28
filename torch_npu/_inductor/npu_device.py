@@ -20,13 +20,13 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
                 """
 
     def device_guard(self, device_idx):
-        return f"torch.npu._DeviceGuard({device_idx})"
+        return f"torch.npu.utils.device({device_idx})"
 
     def cpp_aoti_device_guard(self):
-        raise NotImplementedError
+        return "AOTINpuGuard"
 
     def cpp_aoti_stream_guard(self):
-        return "AOTICudaStreamGuard"
+        return "AOTINpuStreamGuard"
 
     def kernel_driver(self):
         source_code = """

@@ -18,10 +18,11 @@ from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallAr
 from torch._inductor.ir import IRNode, TensorBox
 from torch._inductor.runtime.runtime_utils import dynamo_timed
 from torch._inductor.runtime.triton_heuristics import grid as default_grid_fn
-from torch._inductor.utils import DeferredLineBase
+from torch._inductor.utils import DeferredLineBase, cache_on_self
 from torch._inductor.virtualized import V
 from torch._inductor.utils import _align, ALIGN_BYTES
 
+from .triton_utils import write_npu_triton_header_once, define_user_defined_npu_triton_kernel
 from .. import config as npu_config
 from ..config import npu_block as NPU_ALIGN_BYTES
 
@@ -218,6 +219,7 @@ class CppWrapperNpu(CppWrapperCpu):
                 """
                 #include <torch_npu/csrc/inductor/aoti_runtime/interface.h>
                 #include <torch_npu/csrc/inductor/aoti_runtime/model.h>
+                #include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>
                 """
             )
             with open(
@@ -262,6 +264,7 @@ class CppWrapperNpu(CppWrapperCpu):
 
                 #include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>
                 #include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
+                #include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>
                 using namespace torch::aot_inductor;
                 """
             )
@@ -320,6 +323,10 @@ class CppWrapperNpu(CppWrapperCpu):
         self.header.splice("#include <experiment/runtime/runtime/rt.h>")
         if npu_config.aot_inductor.debug_kernel:
             self.header.splice("#include <torch/torch.h>")
+
+    @cache_on_self
+    def write_triton_header_once(self) -> None:
+        write_npu_triton_header_once(self)
 
     def write_get_raw_stream(self, device_idx: int, graph=None) -> str:
         name = f"stream{device_idx}"
@@ -395,6 +402,42 @@ class CppWrapperNpu(CppWrapperCpu):
                     )
                 self.prefix.writeline("\n")
             return super().generate(is_inference)
+
+    def prepare_npu_triton_kernel_call(self, device_index, call_args, arg_types):
+        new_call_args = call_args
+        new_arg_types = arg_types
+        if npu_config.inductor_static_mode:
+            new_call_args = []
+            new_arg_types = []
+            # in inductor_static_mode, remove all Integer constant args from call_args
+            if len(call_args) != len(arg_types):
+                raise RuntimeError("call_args length and arg_types length should be same")
+            for zip_arg in zip(call_args, arg_types):
+                if not isinstance(zip_arg[0], sympy.Integer) and not zip_arg[1] is sympy.Integer:
+                    new_call_args.append(zip_arg[0])
+                    new_arg_types.append(zip_arg[1])
+
+        device_index, new_call_args = super().prepare_triton_kernel_call(device_index, new_call_args)
+
+        return device_index, new_call_args, new_arg_types
+
+    def define_user_defined_triton_kernel(
+            self,
+            kernel,
+            configs,
+            kwargs,
+            restore_value_args,
+            reset_to_zero_args,
+    ):
+        return define_user_defined_npu_triton_kernel(
+            self,
+            kernel,
+            configs,
+            kwargs,
+            restore_value_args,
+            reset_to_zero_args,
+        )
+
 
     def generate_user_defined_triton_kernel(
             self,
@@ -763,8 +806,8 @@ class CppWrapperNpu(CppWrapperCpu):
         )
 
         if triton:
-            device_index, call_args = self.prepare_triton_kernel_call(
-                device_index, call_args
+            device_index, call_args, arg_types = self.prepare_npu_triton_kernel_call(
+                device_index, call_args, arg_types
             )
             _ = self.generate_load_kernel_once(kernel_name, device_index, V.graph)
 

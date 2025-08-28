@@ -18,11 +18,12 @@ from .codecache import patch_cache_base_get_system
 from .config import aggresive_autotune, num_vector_core, set_compile_threads
 from .config import log as npulog
 from .decomposition import _register_npu_inductor_decompositons
+from .graph import patch_count_bytes
 from .lowering import make_reduction, npu_make_fallback
 from .npu_choices import should_use_persistent_reduction
 from .npu_device import NewNPUDeviceOpOverrides
 from .runtime import _load_cached_autotuning
-from .utils import get_current_raw_stream
+from .utils import get_current_raw_stream, patch_device_need_guard
 
 set_compile_threads()
 
@@ -104,3 +105,5 @@ register_fa_pass()
 
 patch_cache_base_get_system()
 patch_triton_for_inductor()
+patch_count_bytes()
+patch_device_need_guard()

@@ -28,7 +28,7 @@ from torch._inductor.codegen.triton import (
     IndexingOptions,
     triton_reshape,
     TritonCSEVariable,
-    OpsHandler,
+    OpsHandler, triton_compute_type,
 )
 from torch._inductor.codegen.triton import (
     TritonKernel,
@@ -84,6 +84,22 @@ def flatten(nums):
         else:
             res.append(i)
     return res
+
+
+def gen_npu_triton_ext_imports():
+    imports = IndentedBuffer()
+    imports.splice(
+        """
+        from torch._inductor.runtime import triton_helpers
+        from torch_npu._inductor import npu_triton_heuristics
+        from torch_npu._inductor import npu_triton_helpers
+        from torch_npu._inductor.runtime import NPUDeviceProperties
+        from torch_npu._inductor.npu_triton_helpers import libdevice, math as tl_math
+        import torch
+        import torch_npu
+        """
+    )
+    return imports.getvalue()
 
 
 class NPUTritonKernelOverrides(TritonKernelOverrides):
@@ -439,21 +455,6 @@ class NPUIndexTritonKernel(TritonKernel):
         self.reduce_analysis = None
         self.load_store_indexing = None
 
-    def gen_triton_ext_imports(self):
-        imports = IndentedBuffer()
-        imports.splice(
-            """
-            from torch._inductor.runtime import triton_helpers
-            from torch_npu._inductor import npu_triton_heuristics
-            from torch_npu._inductor import npu_triton_helpers
-            from torch_npu._inductor.runtime import NPUDeviceProperties
-            from torch_npu._inductor.npu_triton_helpers import libdevice, math as tl_math
-            import torch
-            import torch_npu
-            """
-        )
-        return imports.getvalue()
-
     def patch_triton_hash(self):
         # remove this method once the original invocation is fixed
         import hashlib
@@ -540,6 +541,17 @@ class NPUIndexTritonKernel(TritonKernel):
                         break
         return dtype
 
+    @staticmethod
+    def inductor_meta_common():
+        inductor_meta = {
+            "traced_graph_hash": "TRACED_GRAPH_HASH",
+            "traced_graph_dir": "TRACED_GRAPH_DIR",
+            "store_cubin": config.triton.store_cubin,
+            "force_disable_caches": config.force_disable_caches,
+            "profile_bandwidth_with_do_bench_using_profiling": config.profile_bandwidth_with_do_bench_using_profiling,
+        }
+        return inductor_meta
+
     def create_inductor_meta(self):
         mutated_args = set()
         for mutation in self.mutations:
@@ -572,11 +584,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "numof_reduction_axis": self.numof_reduction_axis(),
             "split_axis_dtype": split_axis_dtype,
             "dual_reduction": self.numof_reduction_axis() > 1,
-            "traced_graph_hash": "TRACED_GRAPH_HASH",
-            "traced_graph_dir": "TRACED_GRAPH_DIR",
-            "store_cubin": config.triton.store_cubin,
-            "force_disable_caches": config.force_disable_caches,
-            "profile_bandwidth_with_do_bench_using_profiling": config.profile_bandwidth_with_do_bench_using_profiling,
+            **self.inductor_meta_common()
         }
         return inductor_meta
 
@@ -671,7 +679,7 @@ class NPUIndexTritonKernel(TritonKernel):
         if name is None:
             code.splice(gen_common_triton_imports())
             # Note: add extra imports for extensions
-            code.splice(self.gen_triton_ext_imports())
+            code.splice(gen_npu_triton_ext_imports())
 
             if config.benchmark_kernel:
                 code.splice(self.imports_for_benchmark_kernel())

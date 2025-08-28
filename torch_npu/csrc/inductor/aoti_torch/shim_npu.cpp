@@ -5,7 +5,7 @@
 #include <ATen/ops/empty_strided.h>
 
 #include <torch_npu/csrc/aten/common/from_blob.h>
-#include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim_npu.h>
 #include <torch_npu/csrc/inductor/aoti_torch/utils.h>
 #include <torch_npu/csrc/inductor/inductor_ops.h>
 
@@ -31,6 +31,41 @@ namespace {
         }
     }
 } // namespace
+
+#ifdef USE_NPU
+AOTITorchError aoti_torch_create_npu_guard(int32_t device_index, NPUGuardHandle* ret_guard)
+{
+    // todo: implement create npu guard logic
+    return AOTI_TORCH_SUCCESS;
+}
+
+AOTITorchError aoti_torch_delete_npu_guard(NPUGuardHandle guard)
+{
+    // todo: implement delete npu guard logic
+    return AOTI_TORCH_SUCCESS;
+}
+
+AOTITorchError aoti_torch_npu_guard_set_index(NPUGuardHandle guard, int32_t device_index)
+{
+    // todo: implement npu guard set index logic
+    return AOTI_TORCH_SUCCESS;
+}
+
+AOTITorchError aoti_torch_create_npu_stream_guard(
+    void* stream,
+    int32_t device_index,
+    NPUStreamGuardHandle* ret_guard)
+{
+    // todo: implement create npu stream guard logic
+    return AOTI_TORCH_SUCCESS;
+}
+
+AOTITorchError aoti_torch_delete_npu_stream_guard(NPUStreamGuardHandle guard)
+{
+    // todo: implement delete npu stream guard logic
+    return AOTI_TORCH_SUCCESS;
+}
+#endif // USE_NPU
 
 AOTITorchError aoti_torch_create_tensor_from_blob_npu(
     void* data,

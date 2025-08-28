@@ -4,22 +4,78 @@ from torch.utils._triton import has_triton_package
 import torch_npu
 
 
+@functools.lru_cache(None)
 def has_triton() -> bool:
-    # here has_triton only return False,
-    # when has_triton() is True, config.triton.autotune_at_compile_time is True,
-    # AOTI is not currently supported for autotune at compile stage
-    return False
+    if not has_triton_package():
+        return False
+
+    from torch._dynamo.device_interface import get_interface_for_device
+
+    def cuda_extra_check(device_interface):
+        return True
+
+    def cpu_extra_check(device_interface):
+        import triton.backends
+
+        return "cpu" in triton.backends.backends
+
+    def _return_true(device_interface):
+        return True
+
+    triton_supported_devices = {
+        "cuda": cuda_extra_check,
+        "xpu": _return_true,
+        "cpu": cpu_extra_check,
+        "npu": _return_true
+    }
+
+    def is_device_compatible_with_triton():
+        for device, extra_check in triton_supported_devices.items():
+            device_interface = get_interface_for_device(device)
+            if device_interface.is_available() and extra_check(device_interface):
+                return True
+        return False
+
+    return is_device_compatible_with_triton()
 
 
+@functools.lru_cache(None)
 def has_triton_tma():
-    # here has_triton_tma only return False,
-    # keep pace with no transfer_to_npu, will be fully implemented in future
+    if has_triton_package():
+        if (
+            torch_npu.npu.is_available()
+            and not torch.version.hip
+        ):
+            try:
+                from triton.tools.experimental_descriptor import (  # noqa: F401
+                    create_1d_tma_descriptor,
+                    create_2d_tma_descriptor,
+                )
+
+                return True
+            except ImportError:
+                pass
+
     return False
 
 
+@functools.lru_cache(None)
 def has_triton_tma_device():
-    # here has_triton_tma_device only return False,
-    # keep pace with no transfer_to_npu, will be fully implemented in future
+    if has_triton_package():
+        if (
+            torch_npu.npu.is_available()
+            and not torch.version.hip
+        ):
+            try:
+                from triton.language.extra.ascend.libdevice import (  # noqa: F401
+                    reciprocal,
+                    log1p,
+                )
+
+                return True
+            except ImportError:
+                pass
+
     return False
 
 
