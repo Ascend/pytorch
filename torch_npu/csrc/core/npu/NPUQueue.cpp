@@ -458,7 +458,7 @@ bool Repository::ReadQueue()
             // At this point, if the execution of this task fails, there will be an error state in the device,
             // and it needs to be handled through the synchronization interface.
             auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
-            ASCEND_LOGI("ReadQueue: SynchronizeDevice with FORCE STOP, device = %d, write_idx = %u, read_idx = %u, ret = %d, acl_ret = %d",
+            ASCEND_LOGI("ReadQueue: SynchronizeDevice with FORCE STOP, device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d, acl_ret = %d",
                 device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret, acl_ret);
         }
         return false;
@@ -482,7 +482,7 @@ bool Repository::ReadQueue()
         // At this point, if the execution of this task fails, there will be an error state in the device,
         // and it needs to be handled through the synchronization interface.
         auto acl_ret = c10_npu::acl::AclrtSynchronizeDeviceWithTimeout();
-        ASCEND_LOGI("ReadQueue: SynchronizeDevice with FORCE STOP, device = %d, write_idx = %u, read_idx = %u, ret = %d, acl_ret = %d",
+        ASCEND_LOGI("ReadQueue: SynchronizeDevice with FORCE STOP, device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d, acl_ret = %d",
             device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret, acl_ret);
     }
     return true;
