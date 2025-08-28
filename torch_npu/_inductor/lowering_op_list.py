@@ -81,7 +81,9 @@ GENERATE_LIST2 = [
     "foreach"
 ]
 
-FALLBACK_LIST = []
+FALLBACK_LIST = [
+    aten.gather,
+]
 
 # Delete these op in lowering list and then update lowering list with new lowering,
 # otherwise, it will not use npu overload lowering.
@@ -99,9 +101,5 @@ LOWERING_OVERLOAD_OP = [
     aten.var,
 
     aten.embedding,
-    aten.split,
-    aten.split_with_sizes,
-    aten.nll_loss_forward,
-    aten.gather,
     aten.cat,
 ]

@@ -126,8 +126,10 @@ def _register_npu_inductor_fallbacks():
                 if flag:
                     continue
                 else:
-                    make_fallback(op)
                     FALLBACK_LIST.append(op)
+    for op in FALLBACK_LIST:
+        make_fallback(op)
+
     # 把需要overload的op在lowering里删除
     for op in overload_op_set:
         if op in lowerings:
@@ -263,7 +265,3 @@ def _register_npu_inductor_fallbacks():
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
         return fallback_handler(aten.cat.default)(inputs, dim)
-
-    make_fallback(aten._log_softmax)
-    make_fallback(aten.gather)
-    make_fallback(aten.nll_loss_forward)
