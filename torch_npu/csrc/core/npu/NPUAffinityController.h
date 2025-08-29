@@ -26,6 +26,7 @@ void SetThreadAffinity(int core_start, int core_end);
 
 void SetMainThread();
 bool NeedMainThreadBind();
+bool SetThreadAffinityInInitialize();
 void StartMainThreadBind(c10::DeviceIndex device_id);
 
 } // namespace c10_npu
