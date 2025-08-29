@@ -18,6 +18,7 @@ static thread_local ThreadType local_thread = ThreadType::MAIN_THREAD;
 static pthread_t main_thread;
 static bool start_main_thread_bind = false;
 static std::mutex core_map_mutex;
+static bool lazy_bind = true;
 
 using ThreadCoreMap = std::unordered_map<ThreadType, CoreIdRange>;
 
@@ -86,6 +87,15 @@ void parseCPUAffinityConf(uint32_t &mode, std::vector<CoreIdRange> &ranges)
                 }
                 ranges[i] = getRange;
             }
+        }
+    }
+
+    std::regex pattern_for_lazy_bind("lazy_bind:(\\d)");
+    std::smatch match_for_lazy_bind;
+    if (std::regex_search(inputStr, match_for_lazy_bind, pattern_for_lazy_bind)) {
+        int lazy_bind_val = std::stoi(match_for_lazy_bind[1].str());
+        if (lazy_bind_val == 0) {
+            lazy_bind = false;
         }
     }
 
@@ -333,6 +343,14 @@ void SetMainThread()
 bool NeedMainThreadBind()
 {
     return start_main_thread_bind && (local_thread == ThreadType::MAIN_THREAD);
+}
+
+bool SetThreadAffinityInInitialize()
+{
+    if (needToSetThreadAffinity() && !lazy_bind) {
+        return true;
+    }
+    return false;
 }
 
 void StartMainThreadBind(c10::DeviceIndex device_id)
