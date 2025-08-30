@@ -2948,14 +2948,6 @@
     "signature": "() -> uint64_t",
     "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
   },
-  "torch_c_func: at_npu::NPUGeneratorImpl::capture_prologue": {
-    "signature": "(int64_t* offset_extragraph) -> void",
-    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
-  },
-  "torch_c_func: at_npu::NPUGeneratorImpl::capture_epilogue": {
-    "signature": "() -> uint64_t",
-    "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
-  },
   "torch_c_func: at_npu::NPUGeneratorImpl::philox_npu_state": {
     "signature": "(uint64_t increment) -> PhiloxNpuState",
     "file": "torch_npu/csrc/aten/NPUGeneratorImpl.h"
