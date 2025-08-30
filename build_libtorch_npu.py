@@ -269,7 +269,7 @@ def copy_cmake():
 
 def download_miniz():
     # 设置基础路径
-    miniz_url = "https://github.com/richgel999/miniz/releases/download/3.0.2/miniz-3.0.2.zip"
+    miniz_url = "https://gitee.com/mirrors/pytorch/raw/v2.6.0/third_party/miniz-3.0.2/miniz.h"
     miniz_dir = os.path.join(BASE_DIR, "third_party/miniz-3.0.2")
     
     if os.path.exists(miniz_dir):  # 检查目录是否存在
@@ -281,30 +281,17 @@ def download_miniz():
             raise RuntimeError(f"clean {miniz_dir} failed") from e
     
     os.makedirs(miniz_dir, exist_ok=True)  # 重建空目录
-    zip_path = os.path.join(miniz_dir, "miniz.zip")
 
     # 获取wget绝对路径
     wget_path = shutil.which("wget")
     if not wget_path:
         raise RuntimeError("wget not found, please install wget")
-    
-    # 获取unzip绝对路径
-    unzip_path = shutil.which("unzip")
-    if not unzip_path:
-        raise RuntimeError("unzip not found, please install unzip")
 
     # 使用绝对路径下载文件
     subprocess.check_call([
         wget_path, 
         miniz_url,
-        "-O", zip_path
-    ])
-    
-    # 使用绝对路径解压文件
-    subprocess.check_call([
-        unzip_path, 
-        zip_path,
-        "-d", miniz_dir
+        "-O", os.path.join(miniz_dir, "miniz.h")
     ])
 
 
