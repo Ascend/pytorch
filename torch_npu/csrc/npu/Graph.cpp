@@ -69,6 +69,16 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             "capture_end",
             torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::capture_end))
         .def(
+            "register_generator_state",
+            [](c10_npu::NPUGraph& self, py::handle raw_generator) {
+                auto generator = THPGenerator_Unwrap(raw_generator.ptr());
+                // We've unwrapped Python object to C++ object,
+                // so we could release GIL before calling into C++
+                py::gil_scoped_release release;
+                return self.register_generator_state(generator);
+            },
+            py::arg("generator"))
+        .def(
             "replay",
             torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::replay))
         .def(

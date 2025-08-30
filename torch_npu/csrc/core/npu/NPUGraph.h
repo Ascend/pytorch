@@ -8,8 +8,15 @@
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 
-namespace c10_npu {
+namespace at {
+    struct Generator;
+}
 
+namespace at_npu {
+    struct NPUGeneratorImpl;
+    struct NPUGeneratorState;
+}
+namespace c10_npu {
 // Standalone way to get a unique mempool id usable as a pool=... argument
 // to CUDAGraph::capture_begin
 TORCH_NPU_API MempoolId_t graph_pool_handle();
@@ -31,6 +38,8 @@ struct TORCH_NPU_API NPUGraph {
     static void dec_pending_event_queries();
     static int num_pending_event_queries();
 
+    void register_generator_state(c10::intrusive_ptr<at_npu::NPUGeneratorState> state);
+    void register_generator_state(const at::Generator& generator);
     void capture_begin(
         MempoolId_t pool = {0, 0},
         aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL);
@@ -75,6 +84,8 @@ protected:
     // not CUDA itself.  We can straightforwardly modify CUDAGraph to support multi-device
     // captures if needed.
     int capture_dev_;
+
+    ska::flat_hash_map<c10::intrusive_ptr<at_npu::NPUGeneratorState>, uint64_t> captured_generator_states_;
 };
 
 } // namespace c10_npu
