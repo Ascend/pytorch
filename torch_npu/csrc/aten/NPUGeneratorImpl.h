@@ -1,11 +1,18 @@
 #pragma once
 
+#include <limits>
+#include <memory>
+#include <unordered_set>
+
 #include <c10/core/GeneratorImpl.h>
 #include <ATen/core/Generator.h>
 #include <ATen/Tensor.h>
 #include <ATen/Context.h>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 
+namespace c10_npu {
+    struct NPUGraph;
+}
 
 namespace at_npu {
 /**
@@ -91,13 +98,13 @@ struct PhiloxNpuState {
     // Called if graph capture is not underway
     PhiloxNpuState(uint64_t seed, uint64_t offset)
     {
-        seed_ = seed;
+        seed_.val = seed;
         offset_.val = offset;
     }
     // Called if graph capture is underway
-    PhiloxNpuState(uint64_t seed, int64_t* offset_extragraph, uint32_t offset_intragraph)
+    PhiloxNpuState(at::Tensor* seed, at::Tensor* offset_extragraph, uint32_t offset_intragraph)
     {
-        seed_ = seed;
+        seed_.ptr = seed;
         offset_.ptr = offset_extragraph;
         offset_intragraph_ = offset_intragraph;
         captured_ = true;
@@ -108,18 +115,48 @@ struct PhiloxNpuState {
     // would have to be __device__, and we can't declare __device__ in ATen.
     union Payload {
         uint64_t val;
-        int64_t* ptr;
+        at::Tensor* ptr;
     };
 
-    uint64_t seed_;
-    Payload offset_;
+    Payload seed_{};
+    Payload offset_{};
     uint32_t offset_intragraph_{0};
     bool captured_ = false;
 };
 
+
+struct NPUGeneratorState : public c10::intrusive_ptr_target {
+    uint64_t seed_;
+    uint64_t philox_offset_per_thread_;
+    uint32_t offset_intragraph_;
+    bool capturing_{};
+    std::unordered_set<c10_npu::NPUGraph*> registered_graphs_;
+    at::Tensor seed_extragraph_{};
+    at::Tensor offset_extragraph_{};
+
+    NPUGeneratorState(
+        uint64_t seed = c10::default_rng_seed_val,
+        uint64_t philox_offset_per_thread = 0,
+        uint32_t offset_intragraph = 0)
+        : seed_(seed),
+        philox_offset_per_thread_(philox_offset_per_thread),
+        offset_intragraph_(offset_intragraph) {}
+
+    void increase(uint64_t increment);
+    void register_graph(c10_npu::NPUGraph* graph);
+    void unregister_graph(c10_npu::NPUGraph* graph);
+    void capture_prologue();
+    // capture_epilogue returns the wholegraph_increment
+    uint64_t capture_epilogue();
+    void replay_prologue(uint64_t wholegraph_increment);
+    c10::intrusive_ptr<NPUGeneratorState> clone();
+};
+
+
 struct TORCH_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
     // Constructors
     NPUGeneratorImpl(c10::DeviceIndex device_index = -1);
+    NPUGeneratorImpl(c10::DeviceIndex device_index, c10::intrusive_ptr<NPUGeneratorState> state);
     ~NPUGeneratorImpl() override = default;
 
     // NPUGeneratorImpl methods
@@ -133,10 +170,12 @@ struct TORCH_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
     c10::intrusive_ptr<c10::TensorImpl> get_state() const override;
     void set_philox_offset_per_thread(uint64_t offset);
     uint64_t philox_offset_per_thread() const;
-    void capture_prologue(int64_t* offset_extragraph);
-    uint64_t capture_epilogue();
     PhiloxNpuState philox_npu_state(uint64_t increment);
-
+    // For aclgraph
+    void graphsafe_set_state(const c10::intrusive_ptr<GeneratorImpl>& state) override;
+    c10::intrusive_ptr<c10::GeneratorImpl> graphsafe_get_state() const override;
+    void register_graph(c10_npu::NPUGraph* graph);
+    void unregister_graph(c10_npu::NPUGraph* graph);
     // Temporarily accommodates call sites that use philox_engine_inputs.
     // Allows incremental refactor of call sites to use philox_npu_state.
     std::pair<uint64_t, uint64_t> philox_engine_inputs(uint64_t increment);
@@ -144,17 +183,11 @@ struct TORCH_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
 
 private:
     NPUGeneratorImpl* clone_impl() const override;
-    uint64_t seed_ = c10::default_rng_seed_val;
-    uint64_t philox_offset_per_thread_ = 0;
-    int64_t* offset_extragraph_ = nullptr;
-    uint32_t offset_intragraph_ = 0;
-    bool graph_expects_this_gen_ = false;
+    c10::intrusive_ptr<NPUGeneratorState> state_;
 };
 
 namespace detail {
-TORCH_NPU_API const at::Generator& getDefaultNPUGenerator(
-    c10::DeviceIndex device_index = -1);
+TORCH_NPU_API const at::Generator& getDefaultNPUGenerator(c10::DeviceIndex device_index = -1);
 TORCH_NPU_API at::Generator createNPUGenerator(c10::DeviceIndex device_index = -1);
-
 } // namespace detail
 } // namespace at_npu
