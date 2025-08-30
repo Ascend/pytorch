@@ -7,11 +7,11 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 #define NPUStatus std::string
-#define SUCCESS "SUCCESS"
+#define NPU_STATUS_SUCCESS "SUCCESS"
 #define INTERNEL_ERROR "INTERNEL_ERROR"
 #define PARAM_ERROR "PARAM_ERROR"
 #define ALLOC_ERROR "ALLOC_ERROR"
-#define FAILED "FAILED"
+#define NPU_STATUS_FAILED "FAILED"
 
 #define ASCEND_LOGE(fmt, ...)                                                                           \
     do {                                                                                                \

@@ -191,7 +191,7 @@ NPUStatus CalcuOpUtil::AclrtMemcpyAsync(const std::pair<at::Tensor, int64_t> &ds
     NPU_CHECK_ERROR(
         c10_npu::queue::LaunchAsyncCopyTask(dst_ptr, dst_size, const_cast<void *>(src_ptr), src_size, kind));
 
-    return "SUCCESS";
+    return "NPU_STATUS_SUCCESS";
 }
 
 aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(const StorageAndOffsetMemSizePair &dst,

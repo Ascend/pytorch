@@ -107,7 +107,7 @@ float NPUEvent::elapsed_time(const NPUEvent& other) const
         "Both events must be recorded before calculating elapsed time.", PTA_ERROR(ErrCode::INTERNAL));
     float time_ms = 0;
     NPUStatus ret = c10_npu::emptyAllNPUStream();
-    if (ret != SUCCESS) {
+    if (ret != NPU_STATUS_SUCCESS) {
         ASCEND_LOGE("Failed to empty NPU task queue, ret: %s", ret.c_str());
     }
     NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(event_));
@@ -130,7 +130,7 @@ uint64_t NPUEvent::recorded_time() const
 {
     TORCH_CHECK(is_created_, "Event must be recorded before getting recorded timestamp.", PTA_ERROR(ErrCode::INTERNAL));
     NPUStatus ret = c10_npu::emptyAllNPUStream();
-    if (ret != SUCCESS) {
+    if (ret != NPU_STATUS_SUCCESS) {
         ASCEND_LOGE("Failed to empty NPU task queue, ret: %s", ret.c_str());
     }
     NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(event_));
@@ -151,7 +151,7 @@ void NPUEvent::synchronize() const
 {
     if (is_created_) {
         NPUStatus ret = c10_npu::emptyAllNPUStream();
-        if (ret != SUCCESS) {
+        if (ret != NPU_STATUS_SUCCESS) {
             ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
         }
         NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(event_));
