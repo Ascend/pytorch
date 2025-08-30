@@ -1,9 +1,10 @@
 #include "NPUGraphsUtils.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
 namespace c10_npu {
 CaptureStatus currentStreamCaptureStatusMayInitCtx()
 {
-    if (!c10_npu::acl::IsCaptureSupported()) {
+    if (!c10_npu::acl::IsCaptureSupported() || !c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
         return CaptureStatus::None;
     }
 

@@ -1,6 +1,7 @@
 #include "torch_npu/csrc/core/npu/NPUGraph.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
 #include <chrono>
 #include <cstddef>
@@ -111,6 +112,18 @@ NPUGraph::NPUGraph()
     : capture_stream_(c10_npu::getCurrentNPUStream()) {
 }
 
+void NPUGraph::register_generator_state(c10::intrusive_ptr<at_npu::NPUGeneratorState> state)
+{
+    captured_generator_states_[std::move(state)] = 0;
+}
+
+void NPUGraph::register_generator_state(const at::Generator& generator)
+{
+    c10::intrusive_ptr<at_npu::NPUGeneratorImpl> npu_gen =
+        c10::dynamic_intrusive_pointer_cast<at_npu::NPUGeneratorImpl>(generator.getIntrusivePtr());
+    npu_gen->register_graph(this);
+}
+
 void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode)
 {
     static const auto _task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
@@ -129,6 +142,14 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode)
                 "NPU graphs must be captured on a non-default stream. "
                 "(However, after capture, it's ok to replay them on the "
                 "default stream.)");
+
+    // default generator is always registered
+    auto* gen = at::get_generator_or_default<at_npu::NPUGeneratorImpl>(c10::nullopt, at_npu::detail::getDefaultNPUGenerator());
+    gen->register_graph(this);
+
+    for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
+        generator_state->capture_prologue();
+    }
 
     capture_stream_ = stream;
     capture_dev_ = c10_npu::current_device();
@@ -201,6 +222,10 @@ void NPUGraph::capture_end()
     // cudaGraphInstantiateWithFlags
     has_graph_exec_ = true;
 
+    for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
+        wholegraph_increments = generator_state->capture_epilogue();
+    }
+
     uint32_t num_graph_nodes = 0;
 }
 
@@ -210,6 +235,10 @@ void NPUGraph::replay()
                 "Called NPUGraph::replay without a preceding successful capture.");
 
     c10::OptionalDeviceGuard device_guard{capture_stream_.device()};
+
+    for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
+        generator_state->replay_prologue(wholegraph_increments);
+    }
 
     // model_ri_ may be replayed in any stream.
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIExecuteAsync(model_ri_, c10_npu::getCurrentNPUStream()));
@@ -271,6 +300,9 @@ MempoolId_t NPUGraph::pool()
 
 NPUGraph::~NPUGraph()
 {
+    for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
+        generator_state->unregister_graph(this);
+    }
     reset();
 }
 
