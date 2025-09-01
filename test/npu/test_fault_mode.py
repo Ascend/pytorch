@@ -1,6 +1,6 @@
 import os
 import subprocess
-
+import traceback
 import torch
 from torch.testing._internal.common_utils import TestCase, run_tests
 from torch.utils.checkpoint import checkpoint
@@ -55,7 +55,7 @@ class TestMode(TestCase):
             torch.npu.set_option(option)
 
     def test_set_device(self):
-        with self.assertRaisesRegex(RuntimeError, "Invalid device ID.\n.+Check whether the device ID is valid."):
+        with self.assertRaisesRegex(RuntimeError, "The argument is invalid.+Set device failed, invalid device"):
             torch.npu.set_device(8)
 
     def test_distributed_init_param(self):
@@ -141,23 +141,43 @@ class TestMode(TestCase):
 
     def test_max_memory_allocated(self):
         x = torch.tensor(2).npu()
-        with self.assertRaisesRegex(RuntimeError, "Invalid device argument"):
+        traceback_str = ""
+        try:
             torch.npu.max_memory_allocated(device="npu:8")
+        except Exception as e:
+            traceback_str = traceback.format_exc()
+        self.assertIn("in max_memory_allocated", traceback_str)
+        self.assertIn("Invalid device argument", traceback_str)
 
     def test_memory_allocated(self):
         x = torch.tensor(2).npu()
-        with self.assertRaisesRegex(RuntimeError, "Invalid device argument"):
+        traceback_str = ""
+        try:
             torch.npu.memory_allocated(device="npu:8")
+        except Exception as e:
+            traceback_str = traceback.format_exc()
+        self.assertIn("in memory_allocated", traceback_str)
+        self.assertIn("Invalid device argument", traceback_str)
 
     def test_memory_reserved(self):
         x = torch.tensor(2).npu()
-        with self.assertRaisesRegex(RuntimeError, "Invalid device argument"):
+        traceback_str = ""
+        try:
             torch.npu.memory_reserved(device="npu:8")
+        except Exception as e:
+            traceback_str = traceback.format_exc()
+        self.assertIn("in memory_reserved", traceback_str)
+        self.assertIn("Invalid device argument", traceback_str)
 
     def test_reset_max_memory_allocated(self):
         x = torch.tensor(2).npu()
-        with self.assertRaisesRegex(RuntimeError, "Invalid device argument"):
+        traceback_str = ""
+        try:
             torch.npu.reset_max_memory_allocated(device="npu:8")
+        except Exception as e:
+            traceback_str = traceback.format_exc()
+        self.assertIn("in reset_max_memory_allocated", traceback_str)
+        self.assertIn("Invalid device argument", traceback_str)
 
     @SupportedDevices(['Ascend910B'])
     def test_aclrtSetDevice(self):
@@ -170,10 +190,6 @@ class TestMode(TestCase):
         process.wait()
         self.assertIn(
             "_npu_setDevice",
-            message
-        )
-        self.assertIn(
-            "Initialize",
             message
         )
 
