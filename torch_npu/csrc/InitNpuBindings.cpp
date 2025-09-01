@@ -80,7 +80,6 @@ PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
     } catch (...) {
         ASCEND_LOGE("NPUSwappedMemoryAllocator::emptyCache failed");
     }
-    c10_npu::NPUCachingAllocator::clearIpcHandles();
 
     ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
     c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
