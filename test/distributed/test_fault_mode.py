@@ -145,7 +145,7 @@ class TestMode(TestCase):
         process.terminate()
         process.wait()
         self.assertIn(
-            "EI0002",
+            "The wait execution of the Notify register times out",
             message
         )
 
