@@ -2843,6 +2843,8 @@ private:
 
     void insert_events(Block *block)
     {
+        int pre_device = -1;
+        NPU_CHECK_ERROR(c10_npu::GetDevice(&pre_device));
         aclrtContext compiler_ctx = aclrtContext();
         aclError ret_ctx = aclrtGetCurrentContext(&compiler_ctx);
         NPU_CHECK_ERROR(aclrtSetCurrentContext(c10_npu::GetDeviceContext(block->device)));
@@ -2860,7 +2862,9 @@ private:
             npu_events[stream].emplace_back(std::move(event), block);
         }
         if (ret_ctx == ACL_ERROR_NONE) {
-            NPU_CHECK_ERROR(aclrtSetCurrentContext(compiler_ctx));
+            NPU_CHECK_ERROR(aclrtSetCurrentContext(compiler_ctx)); 
+            // Setting context will exchange device implicitly, so we need to reset the cached device here to ensure consistency.
+            NPU_CHECK_ERROR(c10_npu::SetDevice(pre_device));
         }
     }
 
