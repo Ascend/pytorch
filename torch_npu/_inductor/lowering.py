@@ -33,7 +33,7 @@ from torch._inductor.lowering import (
     add_layout_constraint
 )
 import torch_npu
-from torch_npu import npu_dtype_cast
+from torch_npu import npu_dtype_cast, _npu_dtype_cast
 from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
 
 
@@ -196,6 +196,10 @@ def _register_npu_inductor_fallbacks():
 
     @register_lowering(npu_dtype_cast, type_promotion_kind=None)
     def _convert_npu_type(x: TensorBox, dtype: torch.dtype):
+        return to_dtype(x, dtype, copy=True)
+
+    @register_lowering(_npu_dtype_cast, type_promotion_kind=None)
+    def _convert__npu_type(x: TensorBox, dtype: torch.dtype):
         return to_dtype(x, dtype, copy=True)
 
     def var_mean_sum_(x, axis, correction, keepdim, return_mean):

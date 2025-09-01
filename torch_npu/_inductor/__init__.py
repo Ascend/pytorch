@@ -21,6 +21,7 @@ from .npu_choices import should_use_persistent_reduction
 from .npu_device import NewNPUDeviceOpOverrides
 from .runtime import _load_cached_autotuning
 from .utils import get_current_raw_stream, patch_is_gpu, patch_has_triton
+from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
 
 set_compile_threads()
 
@@ -54,14 +55,16 @@ def patch_torch_for_aoti():
     from .utils import patch_is_same_tensor
     from .fx_passes.joint_graph import patch_constant_fold_uniform_value
     from .ir import patch_fallback_kernel_codegen
-    from .codecache import patch_aot_code_compiler_compile
+
     patch_codegen_with_cpp_wrapper()
     patch_get_cpp_torch_device_options()
     patch_device_to_aten()
     patch_is_same_tensor()
     patch_constant_fold_uniform_value()
     patch_fallback_kernel_codegen()
-    patch_aot_code_compiler_compile()    
+
+    patch_aot_code_compiler_compile()
+
 
 
 if os.environ.get("DISABLE_AOTI_PATCH", "0") != "1":
@@ -99,5 +102,9 @@ InductorChoices.should_use_persistent_reduction = should_use_persistent_reductio
 autotune_cache._load_cached_autotuning = _load_cached_autotuning
 
 register_fa_pass()
+patch_cache_base_get_system()
 patch_is_gpu()
 patch_has_triton()
+
+
+

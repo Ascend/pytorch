@@ -1,4 +1,5 @@
 import inspect
+import sys
 from typing import Dict, List
 
 import torch
@@ -19,7 +20,7 @@ from torch_npu.dynamo import _get_global_npu_backend
 
 class NPUTorchCtxManagerClassVariable(TorchCtxManagerClassVariable):
     def call_function(self, tx, args, kwargs):
-        return NPUAutocastModeVariable.create(self.value, args, kwargs)      
+        return NPUAutocastModeVariable.create(self.value, args, kwargs)
 
 
 class NPUAutocastModeVariable(AutocastModeVariable):
@@ -106,6 +107,62 @@ def TensorVariable_call_method(self, tx, name, args, kwargs):
         return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
 
 
+class _InductorNpuRegistry:
+    _disabled_register = False
+    _has_inited = False
+
+    @classmethod
+    def register_inductor_npu(cls):
+        if cls.has_initialized() or cls._disabled_register:
+            return
+        from torch_npu import _inductor
+        cls._has_inited = True
+
+    @classmethod
+    def disable_register(cls):
+        cls._disabled_register = True
+
+    @classmethod
+    def enable_register(cls):
+        cls._disabled_register = False
+
+    @classmethod
+    def has_initialized(cls):
+        if cls._has_inited:
+            return True
+        # Maybe initialized by call `import torch_npu._inductor` manually.
+        if 'torch_npu._inductor' in sys.modules:
+            cls._has_inited = True
+        return cls._has_inited
+
+
+def is_inductor_npu_initialized():
+    return _InductorNpuRegistry.has_initialized()
+
+
+def disable_register_inductor_npu():
+    _InductorNpuRegistry.disable_register()
+
+
+def enable_register_inductor_npu():
+    _InductorNpuRegistry.enable_register()
+
+
+def register_inductor_npu():
+    _InductorNpuRegistry.register_inductor_npu()
+
+
+def patch_inductor_wrapper():
+    from torch import _TorchCompileInductorWrapper
+    src_call = _TorchCompileInductorWrapper.__call__
+
+    def new_call(self, model_, inputs_):
+        register_inductor_npu()
+        return src_call(self, model_, inputs_)
+
+    _TorchCompileInductorWrapper.__call__ = new_call
+
+
 def patch_dynamo_optimize():
     src_optimize = optimize
 
@@ -137,4 +194,4 @@ def add_dynamo_methods():
     TensorVariable.call_method_raw = TensorVariable.call_method
     TensorVariable.call_method = TensorVariable_call_method
     patch_dynamo_optimize()
-
+    patch_inductor_wrapper()
