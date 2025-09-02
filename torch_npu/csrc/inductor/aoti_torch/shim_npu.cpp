@@ -32,7 +32,6 @@ namespace {
     }
 } // namespace
 
-#ifdef USE_NPU
 AOTITorchError aoti_torch_create_npu_guard(int32_t device_index, NPUGuardHandle* ret_guard)
 {
     // todo: implement create npu guard logic
@@ -65,7 +64,6 @@ AOTITorchError aoti_torch_delete_npu_stream_guard(NPUStreamGuardHandle guard)
     // todo: implement delete npu stream guard logic
     return AOTI_TORCH_SUCCESS;
 }
-#endif // USE_NPU
 
 AOTITorchError aoti_torch_create_tensor_from_blob_npu(
     void* data,

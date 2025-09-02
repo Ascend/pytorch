@@ -33,6 +33,8 @@ SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O2")
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
+option(USE_NPU "Use NPU" ON)
+
 # LTO&PGO optimization in compile option
 SET(IF_APPEND FALSE)
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
@@ -94,6 +96,10 @@ ELSE()
   message("Release build.")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
 ENDIF()
+
+if(USE_NPU)
+  string(APPEND CMAKE_CXX_FLAGS " -DUSE_NPU")
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-narrowing")
