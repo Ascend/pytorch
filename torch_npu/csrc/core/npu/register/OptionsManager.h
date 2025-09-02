@@ -134,6 +134,7 @@ public:
     static bool IsOomSnapshotEnable();
     static bool ShouldPrintWarning();
     static bool IsCompactErrorOutput();
+    static bool LazySetDevice();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

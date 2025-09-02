@@ -18,6 +18,8 @@
 
 namespace c10_npu {
 
+bool is_lazy_set_device();
+
 C10_NPU_API c10::DeviceIndex device_count() noexcept;
 
 C10_NPU_API c10::DeviceIndex device_count_ensure_non_zero();
@@ -79,7 +81,7 @@ int MaybeExchangeDevice(int to_device);
 
 void SetTargetDevice();
 
-void LazySetDevice();
+void LazySetDevice(c10::DeviceIndex device);
 
 int GetLocalDevice();
 

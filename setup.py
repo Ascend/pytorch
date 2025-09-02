@@ -421,7 +421,7 @@ def get_src_py_and_dst():
         recursive=True) + glob.glob(
         os.path.join(BASE_DIR, "torch_npu", '**/*.yaml'),
         recursive=True) + glob.glob(
-        os.path.join(BASE_DIR, "torch_npu", 'acl.json'),
+        os.path.join(BASE_DIR, "torch_npu", 'acl*.json'),
         recursive=True) + glob.glob(
         os.path.join(BASE_DIR, "torch_npu", 'contrib/apis_config.json'),
         recursive=True)

@@ -81,7 +81,12 @@ std::string GetAclConfigJsonPath()
         ASCEND_LOGW("Failed to get npu path!");
         return "";
     }
-    std::string json_path = npu_path.append("torch_npu/acl.json");
+    std::string json_path = "";
+    if (c10_npu::is_lazy_set_device()) {
+        json_path = npu_path.append("torch_npu/acl_default.json");
+    } else {
+        json_path = npu_path.append("torch_npu/acl.json");
+    }
     std::string json_path_str = torch_npu::toolkit::profiler::Utils::RealPath(json_path);
     if (json_path_str == "") {
         ASCEND_LOGW("this path:%s is not exist!", json_path.c_str());
@@ -95,7 +100,7 @@ std::string GetAclConfigJsonPath()
 
 namespace c10_npu {
 
-NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), device_id_(0)
+NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), lazy_init_flag_(false), device_id_(0)
 {}
 
 // Get NpuSysCtrl singleton instance
@@ -139,14 +144,20 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     c10_npu::NPUWorkspaceAllocator::init();
     ASCEND_LOGD("Npu workspace allocator initialize successfully");
     c10_npu::option::OptionsManager::IsOomSnapshotEnable();
-    // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
 
-    auto ret = aclrtGetDevice(&device_id_);
-    if (ret != ACL_ERROR_NONE) {
-        device_id_ = (device_id == -1) ? 0 : device_id;
-        NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
+    if (!c10_npu::is_lazy_set_device()) {
+        // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
+        auto ret = aclrtGetDevice(&device_id_);
+        if (ret != ACL_ERROR_NONE) {
+            device_id_ = (device_id == -1) ? 0 : device_id;
+            NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
+        } else {
+            ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
+        }
     } else {
-        ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
+        if (device_id >= 0) {
+            NPU_CHECK_ERROR(c10_npu::SetDevice(device_id));
+        }
     }
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
@@ -159,10 +170,12 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     // set global soc name
     c10_npu::SetSocVersion(soc_name);
 
-    if (c10_npu::IsSupportInfNan()) {
-        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
-    } else {
-        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+    if (!c10_npu::is_lazy_set_device()) {
+        if (c10_npu::IsSupportInfNan()) {
+            c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+        } else {
+            c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+        }
     }
 
     auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
@@ -177,8 +190,10 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
         SetDefaultAllowInternalFromatDisable();
     }
 
-    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
+    if (!c10_npu::is_lazy_set_device()) {
+        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
+    }
 
     // lazy call for the setoption
     for (const auto &iter: lazy_fn_) {
@@ -197,6 +212,38 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
 
     init_flag_ = true;
     ASCEND_LOGD("Npu sys ctrl initialize successfully.");
+
+    return INIT_SUCC;
+}
+
+NpuSysCtrl::SysStatus NpuSysCtrl::LazyInitialize(int device_id)
+{
+    if (!c10_npu::is_lazy_set_device()) {
+        return INIT_SUCC;
+    }
+
+    if (lazy_init_flag_) {
+        return INIT_SUCC;
+    }
+    std::lock_guard<std::mutex> lock(lazy_init_mutex_);
+    if (lazy_init_flag_) {
+        return INIT_SUCC;
+    }
+
+    // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
+    auto ret = aclrtGetDevice(&device_id_);
+
+    if (c10_npu::IsSupportInfNan()) {
+        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+    } else {
+        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+    }
+
+    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
+
+    lazy_init_flag_ = true;
+    ASCEND_LOGD("Npu sys ctrl Lazyinitialize successfully.");
 
     return INIT_SUCC;
 }
@@ -265,6 +312,11 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Finalize()
 bool NpuSysCtrl::GetInitFlag()
 {
     return init_flag_;
+}
+
+bool NpuSysCtrl::GetLazyInitFlag()
+{
+    return lazy_init_flag_;
 }
 
 void NpuSysCtrl::RegisterLazyFn(const option::OptionCallBack &call_, const std::string &in)
