@@ -75,6 +75,7 @@ class _LazyTorchair:
 
         try:
             from . import torchair
+            os.environ["LAZY_SET_DEVICE"] = "0"
         except Exception as e:
             # In cpython, default import loader will suppress error when
             # find module's __spec__. So here we need to record error and

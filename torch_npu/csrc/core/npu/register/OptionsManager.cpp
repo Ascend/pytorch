@@ -631,5 +631,14 @@ bool OptionsManager::IsCompactErrorOutput()
     return should_print;
 }
 
+bool OptionsManager::LazySetDevice()
+{
+    static bool lazy_set = []() -> bool {
+        int32_t env_val = OptionsManager::GetBoolTypeOption("LAZY_SET_DEVICE", 1);
+        return env_val != 0;
+    }();
+    return lazy_set;
+}
+
 } // namespace option
 } // namespace c10_npu
