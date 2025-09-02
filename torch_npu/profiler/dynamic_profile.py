@@ -80,10 +80,10 @@ class _DynamicProfile:
         elif self.cur_step - self.RECORD_TIME_STEP == 1:
             self._step_time = max(self._min_poll_interval, int(time.time() - self._step_record_time))
             self._dynamic_monitor.modify_step_time(self._step_time)
+        if self._step_mstx_range_id:
+            mstx.range_end(self._step_mstx_range_id)
+            self._step_mstx_range_id = mstx.range_start(f"step {self.cur_step}", current_stream())
         if self.prof:
-            if self._step_mstx_range_id:
-                mstx.range_end(self._step_mstx_range_id)
-                self._step_mstx_range_id = mstx.range_start(f"step {self.cur_step}", current_stream())
             self.prof.step()
             self.step_num -= 1
             if 0 == self.step_num:
@@ -99,6 +99,9 @@ class _DynamicProfile:
                 self.step_num = self.cfg_ctx.active() + self.cfg_ctx.warmup()
                 self.enable_prof()
                 self.cfg_ctx = None
+
+        if not self._step_mstx_range_id:
+            self._step_mstx_range_id = mstx.range_start(f"step {self.cur_step}", current_stream())
 
     def start(self, config_path: str):
         if self.prof:
@@ -134,6 +137,7 @@ class _DynamicProfile:
         self.step_num = self.cfg_ctx.active() + self.cfg_ctx.warmup()
         self.enable_prof()
         self.cfg_ctx = None
+        self._step_mstx_range_id = mstx.range_start(f"step {self.cur_step}", current_stream())
 
     def enable_prof(self):
         self.prof = profile(
@@ -150,7 +154,6 @@ class _DynamicProfile:
         )
         self.prof._set_step_num_offset_for_dynamic_prof(self.cur_step)
         self.prof.start()
-        self._step_mstx_range_id = mstx.range_start(f"step {self.cur_step}", current_stream())
         for key, value in self.cfg_ctx.meta_data().items():
             self.prof.add_metadata_json(str(key), json.dumps(value))
         DynamicProfilerUtils.out_log("Start Dynamic Profiler at {} step.".format(
