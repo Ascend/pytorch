@@ -43,7 +43,6 @@ from torch._inductor.ir import ExpandView, TensorBox
 from torch._inductor.ir import ExpandView, TensorBox
 from torch._inductor.ir import Reduction
 from torch._inductor.ir import Reduction
-from torch._inductor.lowering import sum_
 from torch._inductor.utils import ModularIndexing, FloorDiv
 from torch._inductor.utils import (
     decode_device,
@@ -2188,6 +2187,17 @@ def _register_npu_inductor_fallbacks():
     register_inplace(aten.__ixor__, aten.__xor__)
 
     ##########################################################################
+
+    @register_lowering([aten.sum, prims.sum])
+    def sum_(x, axis=None, keepdims=False, *, dtype=None):
+        if (
+            is_integer_dtype(x.get_dtype()) or is_boolean_dtype(x.get_dtype())
+        ) and dtype is None:
+            dtype = torch.int64
+
+        fn = make_reduction("sum", override_return_dtype=dtype)
+        return fn(x, axis, keepdims, dtype=dtype)
+
 
     @register_lowering(aten.mean)
     def mean(x, axis=None, keepdim=False, *, dtype=None):

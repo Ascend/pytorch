@@ -13,7 +13,7 @@ from torch_npu.utils._inductor import NPUDeviceOpOverrides
 from . import config as npu_config
 from . import codegen
 from .npu_fusion_attention_graph import register_fa_pass
-from .config import aggresive_autotune, num_vector_core, set_compile_threads
+from .config import aggresive_autotune, num_vector_core, set_compile_threads, disable_comprehensive_padding
 from .config import log as npulog
 from .decomposition import _register_npu_inductor_decompositons
 from .lowering import make_reduction, npu_make_fallback
@@ -24,6 +24,7 @@ from .utils import get_current_raw_stream, patch_is_gpu, patch_has_triton
 from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
 
 set_compile_threads()
+disable_comprehensive_padding()
 
 
 def _inductor_register_backend_for_device():

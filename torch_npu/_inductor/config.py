@@ -109,3 +109,7 @@ def set_compile_threads():
     def get_env_num_workers():
         return 1
     torch._inductor.select_algorithm.get_env_num_workers = get_env_num_workers
+
+
+def disable_comprehensive_padding():
+    torch._inductor.config.comprehensive_padding = False
