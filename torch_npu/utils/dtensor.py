@@ -24,6 +24,7 @@ def _register_ops_under_dtensor_rules():
         # custom ops
         npu.fast_gelu.default,
         npu.npu_dtype_cast.default,
+        npu._npu_dtype_cast.default,
         npu.npu_fast_gelu.default,
         npu.npu_layer_norm_eval.default,
         # backward point-wise ops
