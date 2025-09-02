@@ -18,6 +18,16 @@ static std::unordered_map<int8_t, aclrtContext> used_devices;
 std::recursive_mutex mtx;
 thread_local int targetDeviceIndex = -1;
 
+bool is_lazy_set_device()
+{
+    static bool is_lazy_set = []() {
+        bool lazy_val = c10_npu::option::OptionsManager::LazySetDevice();
+        ASCEND_LOGW("is_lazy_set_device %d", lazy_val);
+        return lazy_val;
+    }();
+    return is_lazy_set;
+}
+
 c10::DeviceIndex device_count() noexcept
 {
     // initialize number of devices only once
@@ -58,9 +68,13 @@ aclError GetDevice(int32_t *device)
     if (err != ACL_ERROR_NONE) {
         CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
     }
-    if (err == ACL_ERROR_NONE) {
-        local_device = *device;
-    } else if (err == ACL_ERROR_RT_CONTEXT_NULL) {
+    if (!is_lazy_set_device()) {
+        if (err == ACL_ERROR_NONE) {
+            local_device = *device;
+        }
+    }
+    // before call aclinit with defaultdevice
+    if (err == ACL_ERROR_RT_CONTEXT_NULL) {
         *device = 0;
         return ACL_ERROR_NONE;
     }
@@ -82,9 +96,13 @@ aclError GetDeviceWithoutSet(int32_t *device)
     if (err != ACL_ERROR_NONE) {
         CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
     }
-    if (err == ACL_ERROR_NONE) {
-        local_device = *device;
-    } else if (err == ACL_ERROR_RT_CONTEXT_NULL) {
+    if (!is_lazy_set_device()) {
+        if (err == ACL_ERROR_NONE) {
+            local_device = *device;
+        }
+    }
+    // before call aclinit with defaultdevice
+    if (err == ACL_ERROR_RT_CONTEXT_NULL) {
         *device = -1;
         return ACL_ERROR_NONE;
     }
@@ -246,8 +264,12 @@ bool IsContextInitialized()
         return true;
     }
 
+    if (is_lazy_set_device()) {
+        return false;
+    }
+
     int32_t device = -1;
-    aclError err =  aclrtGetDevice(&device);
+    aclError err = aclrtGetDevice(&device);
     if (err == ACL_ERROR_NONE) {
         return true;
     } else {
@@ -288,10 +310,18 @@ int GetLocalDevice()
     return local_device;
 }
 
-void LazySetDevice()
+void LazySetDevice(c10::DeviceIndex device)
 {
-    if (local_device < 0) {
-        NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(0));
+    if (local_device != device) {
+        aclError err = aclrtSetDevice(device);
+        if (err == ACL_ERROR_NONE) {
+            local_device = device;
+            std::lock_guard<std::recursive_mutex> lock(mtx);
+            if (used_devices.find(local_device) == used_devices.end()) {
+                NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
+            }
+        }
+        NPU_CHECK_ERROR_WITHOUT_UCE(err);
     }
 }
 
