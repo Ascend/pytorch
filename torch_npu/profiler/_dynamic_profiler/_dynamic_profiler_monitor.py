@@ -23,6 +23,7 @@ class DynamicProfilerMonitor:
         self.prof_cfg_context = None
         self._shared_loop_flag = multiprocessing.Value('b', True)
         self._step_time = multiprocessing.Value('i', DynamicProfilerUtils.POLL_INTERVAL)
+        self._profiler_status = multiprocessing.Value('i', DynamicProfilerUtils.DEFAULT_STATUS)
         self._config_path = None
         self._is_dyno = DynamicProfilerUtils.is_dyno_model()
         if not self._is_dyno:
@@ -76,6 +77,9 @@ class DynamicProfilerMonitor:
         DynamicProfilerUtils.out_log("Dynamic profiling monitor process poll interval time change to {}s".format(
             poll_interval_time), DynamicProfilerUtils.LoggerLevelEnum.INFO)
 
+    def update_profiler_status(self, status: int):
+        self._profiler_status.value = status
+
     def _monitor_process_params(self):
         shm = None if self._shm_obj.is_mmap else self._shm_obj
         mmap_path = self._shm_obj.shm_path if self._shm_obj.is_mmap else None
@@ -89,7 +93,8 @@ class DynamicProfilerMonitor:
             "mmap_path": mmap_path,
             "is_mmap": self._shm_obj.is_mmap,
             "rank_id": self._rank_id,
-            "dynamic_profiler_utils": DynamicProfilerUtils
+            "dynamic_profiler_utils": DynamicProfilerUtils,
+            "profiler_status": self._profiler_status
         }
         return params
 
@@ -186,6 +191,7 @@ def worker_dyno_func(params_dict):
     rank_id = params_dict.get("rank_id")
     max_size = params_dict.get("max_size")
     dynamic_profiler_utils = params_dict.get("dynamic_profiler_utils")
+    profiler_status = params_dict.get("profiler_status")
 
     py_dyno_monitor = PyDynamicMonitorProxySingleton().get_proxy()
     if not py_dyno_monitor:
@@ -197,6 +203,8 @@ def worker_dyno_func(params_dict):
     dynamic_profiler_utils.out_log("Init dynolog success !", dynamic_profiler_utils.LoggerLevelEnum.INFO)
     while loop_flag.value:
         time.sleep(poll_interval.value)
+        if hasattr(py_dyno_monitor, "update_profiler_status"):
+            py_dyno_monitor.update_profiler_status({"profiler_status": str(profiler_status.value)})
         res = py_dyno_monitor.poll_dyno()
         data = DynamicProfilerUtils.dyno_str_to_json(res)
         if data:
