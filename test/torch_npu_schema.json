@@ -2873,6 +2873,9 @@
   "torch_npu_public_env: INF_NAN_MODE_FORCE_DISABLE": {
     "mode": "std::unordered_map<int32_t, std::string> disableInfNanMode = {{0, \"enable\"}, {1, \"disable\"}}"
   },
+  "torch_npu_public_env: TORCH_HCCL_ZERO_COPY": {
+    "mode": "std::unordered_map<int32_t, std::string> hcclZeroCopyMode = {{0, \"close\"}, {1, \"open\"}}"
+  },
   "torch_c_func: torch_npu::init_npu(const c10::DeviceIndex device_index = 0)": {
     "signature": "(const c10::DeviceIndex device_index = 0) -> void",
     "file": "torch_npu/csrc/libs/init_npu.h"
@@ -3273,5 +3276,37 @@
   "torch_c_func: npu_dropout_gen_mask": {
     "signature": "(const at::Tensor &self, at::IntArrayRef size, double p, int64_t seed, int64_t offset, c10::optional<bool> parallel, c10::optional<bool> sync) -> at::Tensor",
     "file": "third_party/op-plugin/op_plugin/include/ops.h"
+  },
+  "torch_c_func: c10_npu::NPUStreamGuard::current_device": {
+    "signature": "() -> c10::Device",
+    "file": "torch_npu/csrc/core/npu/NPUGuard.h"
+  },
+  "torch_c_func: c10_npu::NPUStreamGuard::current_stream": {
+    "signature": "() -> c10_npu::NPUStream",
+    "file": "torch_npu/csrc/core/npu/NPUGuard.h"
+  },
+  "torch_c_func: c10_npu::NPUStreamGuard::NPUStreamGuard": {
+    "signature": "(c10::Stream stream)",
+    "file": "torch_npu/csrc/core/npu/NPUGuard.h"
+  },
+  "torch_c_func: c10_npu::NPUStreamGuard::original_device": {
+    "signature": "() -> c10::Device",
+    "file": "torch_npu/csrc/core/npu/NPUGuard.h"
+  },
+  "torch_c_func: c10_npu::NPUStreamGuard::original_stream": {
+    "signature": "() -> c10_npu::NPUStream",
+    "file": "torch_npu/csrc/core/npu/NPUGuard.h"
+  },
+  "torch_c_func: c10_npu::NPUStreamGuard::reset_stream": {
+    "signature": "(c10::Stream stream) -> void",
+    "file": "torch_npu/csrc/core/npu/NPUGuard.h"
+  },
+  "torch_c_func: stream_synchronize": {
+    "signature": "(aclrtStream stream) -> void",
+    "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
+  },
+  "torch_c_func: batch_isend_irecv": {
+    "signature": "(std::vector<std::string>& op_type, std::vector<at::Tensor>& tensors, std::vector<uint32_t> remote_rank_list) -> c10::intrusive_ptr<c10d::Work>",
+    "file": "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
   }
 }
