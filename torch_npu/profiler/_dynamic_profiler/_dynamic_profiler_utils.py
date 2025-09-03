@@ -44,6 +44,7 @@ class DynamicProfilerUtils:
     CFG_CONFIG_PATH = None
     CFG_BUFFER_SIZE = 1024 * 1024
     POLL_INTERVAL = 2
+    DEFAULT_STATUS = 0
 
     @classmethod
     def init_logger(cls, is_monitor_process: bool = False):
