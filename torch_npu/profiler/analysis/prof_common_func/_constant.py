@@ -104,6 +104,7 @@ class Constant(object):
     RANK_ID = "rank_id"
     COMMON_CONFIG = "common_config"
     ACTIVITIES = "activities"
+    CPU_ACTIVITIES = "ProfilerActivity.CPU"
     NPU_ACTIVITIES = "ProfilerActivity.NPU"
     EXPERIMENTAL_CONFIG = "experimental_config"
     PROFILER_LEVEL = '_profiler_level'

@@ -120,7 +120,7 @@ class ProfilingParser:
         parser_list = []
         unique_parser_set = set()
         for export_type in set(ProfilerConfig().export_type):
-            for parser in parser_config.get(export_type).get(self._analysis_type):
+            for parser in parser_config.get(export_type, {}).get(self._analysis_type, []):
                 if parser in unique_parser_set:
                     continue
                 unique_parser_set.add(parser)
@@ -128,7 +128,7 @@ class ProfilingParser:
 
         # when cann package support default export db, add db parser to parser list
         if CannPackageManager.is_support_default_export_db():
-            for parser in parser_config.get(Constant.Db).get(self._analysis_type):
+            for parser in parser_config.get(Constant.Db, {}).get(self._analysis_type, []):
                 if parser in unique_parser_set:
                     continue
                 unique_parser_set.add(parser)
