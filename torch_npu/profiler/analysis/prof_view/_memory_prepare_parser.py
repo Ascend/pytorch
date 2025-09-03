@@ -136,6 +136,7 @@ class MemoryPrepareParser(BaseParser):
                 self.memory_data.setdefault(Constant.Text, self._complete_record_entry(pid_mem_buf, torch_ops))
                 if CannPackageManager.is_support_default_export_db():
                     self.memory_data.setdefault(Constant.Db, self._complete_record_entry_for_db(pid_mem_buf, torch_ops))
+                    return
             if Constant.Db in self._export_type:
                 self.memory_data.setdefault(Constant.Db, self._complete_record_entry_for_db(pid_mem_buf, torch_ops))
 

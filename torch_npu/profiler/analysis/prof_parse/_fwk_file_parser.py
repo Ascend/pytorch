@@ -2,6 +2,7 @@ import os
 import re
 from collections import defaultdict
 
+from .._profiler_config import ProfilerConfig
 from ..prof_bean._torch_op_bean import TorchOpBean
 from ..prof_common_func._binary_decoder import BinaryDecoder
 from ..prof_common_func._constant import Constant, contact_2num, DbConstant
@@ -87,6 +88,8 @@ class FwkFileParser:
         return enqueue_data_list, dequeue_data_list
 
     def get_torch_op_tree_node(self, torch_op_data: list, enqueue_data: list = None) -> list:
+        if Constant.CPU_ACTIVITIES not in ProfilerConfig().activities:
+            return []
         if not torch_op_data:
             self.logger.error("Get torch op tree node failed, the torch op data is empty.")
             return []
@@ -96,6 +99,8 @@ class FwkFileParser:
         return result_data
 
     def get_fwk_trace_data(self, torch_op_data: list, enqueue_data_list: list, dequeue_data_list: list) -> list:
+        if Constant.CPU_ACTIVITIES not in ProfilerConfig().activities:
+            return []
         if torch_op_data:
             pid = torch_op_data[0].pid
         elif enqueue_data_list or dequeue_data_list:
@@ -194,6 +199,8 @@ class FwkFileParser:
                 start_connection_id += 1
 
     def get_fwk_api(self, torch_op_data: list, enqueue_data_list: list, dequeue_data_list: list) -> dict:
+        if Constant.CPU_ACTIVITIES not in ProfilerConfig().activities:
+            return []
         if torch_op_data:
             pid = torch_op_data[0].pid
         elif enqueue_data_list or dequeue_data_list:
