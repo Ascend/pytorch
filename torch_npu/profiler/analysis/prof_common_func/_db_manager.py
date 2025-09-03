@@ -192,6 +192,8 @@ class BasicDb:
     def close(self) -> None:
         self.db_path = None
         DbManager.destroy_db_connect(self.conn, self.curs)
+        self.conn = None
+        self.curs = None
 
     def judge_table_exist(self, table_name: str) -> bool:
         return DbManager.judge_table_exist(self.curs, table_name)
