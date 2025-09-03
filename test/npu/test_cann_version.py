@@ -11,16 +11,40 @@ class TestCANNversion(TestCase):
     def test_get_cann_version(self):
         version_env = get_cann_version_from_env()
         version = get_cann_version(module="CANN")
-        if not version_env.startswith("CANN") and version_env >= "8.1.RC1":
-            is_match = (re.match("([0-9]+).([0-9]+).RC([0-9]+)", version)
-                        or re.match("([0-9]+).([0-9]+).([0-9]+)", version)
-                        or re.match("([0-9]+).([0-9]+).T([0-9]+)", version)
-                        or re.match("([0-9]+).([0-9]+).RC([0-9]+).alpha([0-9]+)", version))
-            self.assertTrue(is_match, f"The env version is {version_env}. The format of cann version {version} is invalid.")
+        if not version_env.startswith("CANN"):
+            if version_env >= "8.1.RC1":
+                is_match = (re.match("([0-9]+)\.([0-9]+)\.RC([0-9]+)$", version)
+                            or re.match("([0-9]+)\.([0-9]+)\.([0-9]+)$", version)
+                            or re.match("([0-9]+)\.([0-9]+)\.T([0-9]+)$", version)
+                            or re.match("([0-9]+)\.([0-9]+)\.RC([0-9]+)\.alpha([0-9]+)$", version))
+                self.assertTrue(is_match, f"The env version is {version_env}. The format of cann version {version} is invalid.")
+            else:
+                self.assertTrue(version == "", "When verssion_env < '8.1.RC1', the result of get_cann_version is not right.")
         
         version = get_cann_version(module="CAN")
         self.assertTrue(version == "", "When module is invalid, the result of get_cann_version is not right.")
-
+    
+    def test_get_driver_version(self):
+        try:
+            version = get_cann_version(module="DRIVER")
+        except UnicodeDecodeError:
+            print("Failed to get driver version. Your driver version is too old, or the environment information about the driver may be incomplete.")
+            return
+        if re.match("([0-9]+)\.([0-9]+)\.RC([0-9]+)\.B([0-9]+)$", version, re.IGNORECASE):
+            version = re.sub(".B([0-9]+)", "", version, flags=re.IGNORECASE)
+        if re.match("([0-9]+)\.", version):
+            if version >= "25.":
+                is_match = (re.match("([0-9]+)\.([0-9]+)\.RC([0-9]+)$", version, re.IGNORECASE)
+                            or re.match("([0-9]+)\.([0-9]+)\.([0-9]+)$", version)
+                            or re.match("([0-9]+)\.([0-9]+)\.RC([0-9]+)\.([0-9]+)$", version, re.IGNORECASE)
+                            or re.match("([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)$", version)
+                            or re.match("([0-9]+)\.([0-9]+)\.T([0-9]+)$", version, re.IGNORECASE)
+                            or re.match("([0-9]+)\.([0-9]+)\.RC([0-9]+)\.beta([0-9]+)$", version, re.IGNORECASE)
+                            or re.match("([0-9]+)\.([0-9]+)\.RC([0-9]+)\.alpha([0-9]+)$", version, re.IGNORECASE)
+                            )
+                self.assertTrue(is_match, f"The format of driver version {version} is invalid.")
+            else:
+                self.assertTrue(version == "", "When verssion_env < '25.', the result of get_cann_version is not right.")
     def test_compare_cann_version(self):
         version_env = get_cann_version_from_env()
         if not version_env.startswith("CANN") and version_env >= "8.1.RC1":
