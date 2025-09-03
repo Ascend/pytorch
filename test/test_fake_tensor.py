@@ -1728,7 +1728,7 @@ class TestGroupedMatmul(TestCase):
             group_list = None
             split_item = 0
 
-            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item)
+            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item, group_type=-1)
             self.assertTrue(x[0].shape[0] == res[0].shape[0])
             self.assertTrue(x[1].shape[0] == res[1].shape[0])
             self.assertTrue(x[2].shape[0] == res[2].shape[0])
@@ -1752,7 +1752,7 @@ class TestGroupedMatmul(TestCase):
             group_list = [256, 1280, 1792]
             split_item = 1
 
-            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item)
+            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item, group_type=-1)
             self.assertTrue(group_list[0] == res[0].shape[0])
             self.assertTrue(group_list[1] - group_list[0] == res[1].shape[0])
             self.assertTrue(group_list[2] - group_list[1] == res[2].shape[0])
@@ -1778,7 +1778,7 @@ class TestGroupedMatmul(TestCase):
             group_list = None
             split_item = 2
 
-            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item)
+            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item, group_type=0)
             dim0 = 0
             for xi in x:
                 dim0 += xi.shape[0]
@@ -1801,7 +1801,7 @@ class TestGroupedMatmul(TestCase):
             group_list = [256, 1280, 1792]
             split_item = 3
 
-            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item)
+            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item, group_type=0)
             self.assertTrue(x[0].shape[0] == res[0].shape[0])
             self.assertTrue(w[0].shape[1] == res[0].shape[1])
 
@@ -1832,20 +1832,20 @@ class TestQuantMatmul(TestCase):
             expect_ret = torch.randint(-1, 1, (1, 1, 100), dtype=torch.int8).npu()
             scale = torch.randn(1, dtype=torch.float32).npu()
             offset = torch.randn(1, dtype=torch.float32).npu()
-            bias = torch.randint(-1, -1, (1, 1, 100), dtype=torch.int32).npu()
+            bias = torch.randint(-1, 1, (1, 1, 100), dtype=torch.int32).npu()
             res = torch_npu.npu_quant_matmul(x1, x2, scale, offset=offset, bias=bias)
             self.assertTrue(expect_ret.shape == res.shape)
             self.assertTrue(expect_ret.dtype == res.dtype)
 
             expect_ret_bf16 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.bfloat16).npu()
             scale_bf16 = torch.randn(1, dtype=torch.bfloat16).npu()
-            bias_bf16 = torch.randint(-1, -1, (1, 1, 100), dtype=torch.bfloat16).npu()
+            bias_bf16 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.bfloat16).npu()
             res_bf16 = torch_npu.npu_quant_matmul(x1, x2, scale_bf16, offset=None, bias=bias_bf16, output_dtype=torch.bfloat16)
             self.assertTrue(expect_ret_bf16.shape == res_bf16.shape)
             self.assertTrue(expect_ret_bf16.dtype == res_bf16.dtype)
 
             expect_ret_fp16 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.float16).npu()
-            bias_fp32 = torch.randint(-1, -1, (1, 1, 100), dtype=torch.float32).npu()
+            bias_fp32 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.float32).npu()
             pertoken_scale = torch.randn(1, dtype=torch.float32).npu()
             res_fp16 = torch_npu.npu_quant_matmul(x1, x2, scale, offset=None, pertoken_scale=pertoken_scale, 
                                                   bias=bias_fp32, output_dtype=torch.float16)
@@ -1853,7 +1853,7 @@ class TestQuantMatmul(TestCase):
             self.assertTrue(expect_ret_fp16.dtype == res_fp16.dtype)
 
             expect_ret_int32 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.int32).npu()
-            bias_int32 = torch.randint(-1, -1, (1, 1, 100), dtype=torch.int32).npu()
+            bias_int32 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.int32).npu()
             res_int32 = torch_npu.npu_quant_matmul(x1, x2, scale, offset=None, pertoken_scale=None,
                                                   bias=bias_int32, output_dtype=torch.int32)
             self.assertTrue(expect_ret_int32.shape == res_int32.shape)
@@ -1863,7 +1863,7 @@ class TestQuantMatmul(TestCase):
             x2 = torch.randint(-1, 1, (64, 5), dtype=torch.int32).npu()
             expect_ret = torch.randint(-1, 1, (16, 40), dtype=torch.float16).npu()
             scale = torch.randn(1, dtype=torch.float32).npu()
-            bias = torch.randint(-1, -1, (40,), dtype=torch.int32).npu()
+            bias = torch.randint(-1, 1, (40,), dtype=torch.int32).npu()
             res = torch_npu.npu_quant_matmul(x1, x2, scale, offset=None, bias=bias, output_dtype=torch.float16)
             self.assertTrue(expect_ret.shape == res.shape)
             self.assertTrue(expect_ret.dtype == res.dtype)
