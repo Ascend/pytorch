@@ -62,8 +62,8 @@ def is_not_compatibility_for_cpp_api(base_signature: str, file: str):
                 subs += line
             if ")" in line and "(" not in line and start_concat:
                 start_concat = False
-                subs = re.sub("(?<=\\()[ \n]+", "", subs)
-                subs = re.sub("(?<=,)[ \n]+", " ", subs)
+                subs = re.sub("(?<=\\()[ 	\n]+", "", subs)
+                subs = re.sub("(?<=,)[ 	\n]+", " ", subs)
                 line = subs
                 subs = ""
             if not start_concat:
