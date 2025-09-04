@@ -72,8 +72,6 @@ GENERATE_LIST = [
     aten.logical_not,
     aten.pow,
     aten.gelu,
-    aten.sin,
-    aten.cos,
     aten.tanh,
     aten.isnan,
     aten.bitwise_and,
