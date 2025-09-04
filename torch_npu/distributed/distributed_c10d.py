@@ -15,11 +15,13 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size, \
     _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend, \
     get_backend, GatherOptions, _update_default_pg, _world, _pg_map, ProcessGroup, default_pg_timeout, ReduceScatterOptions
+from torch._C._distributed_c10d import ProcessGroup
 
 from torch_npu.utils._error_code import ErrCode, dist_error
 
 
 logger = logging.getLogger("torch.distributed")
+origin_get_sequence_number_for_group = ProcessGroup._get_sequence_number_for_group
 
 
 def _batch_isend_irecv(p2p_op_list):
@@ -341,3 +343,11 @@ def _destructor_process_group():
     _world.pg_coalesce_state.clear()
     _world.pg_default_device.clear()
     _world.group_count = 0
+
+
+def _hccl_get_sequence_number_for_group(self):
+    backend = torch.distributed.get_backend_config(self)
+    if backend == "hccl" or backend == "npu:hccl":
+        return self._get_backend(torch.device("npu"))._get_sequence_number_for_group()
+    else:
+        return origin_get_sequence_number_for_group(self)
