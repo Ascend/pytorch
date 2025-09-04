@@ -794,7 +794,7 @@ void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds t
     if (!recorded_inputs_.empty()) {
         for (auto it = recorded_inputs_.begin(); it != recorded_inputs_.end(); ++it) {
             auto& storage = it->first;
-            c10_npu::NPUCachingAllocator::eraseStreamForce(storage.data_ptr(), it->second);
+            c10_npu::NPUCachingAllocator::eraseStream(storage.data_ptr(), it->second);
         }
         recorded_inputs_.clear();
     }
