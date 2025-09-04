@@ -102,12 +102,13 @@ struct PhiloxNpuState {
         offset_.val = offset;
     }
     // Called if graph capture is underway
-    PhiloxNpuState(at::Tensor* seed, at::Tensor* offset_extragraph, uint32_t offset_intragraph)
+    PhiloxNpuState(at::Tensor* seed, at::Tensor* offset_extragraph, uint32_t offset_intragraph, bool secondary_stream_capture_state = false)
     {
         seed_.ptr = seed;
         offset_.ptr = offset_extragraph;
         offset_intragraph_ = offset_intragraph;
         captured_ = true;
+        secondary_stream_capture_state_ = secondary_stream_capture_state;
     }
 
     // Public members, directly accessible by at::Npu::philox::unpack.
@@ -122,6 +123,7 @@ struct PhiloxNpuState {
     Payload offset_{};
     uint32_t offset_intragraph_{0};
     bool captured_ = false;
+    bool secondary_stream_capture_state_ = false;
 };
 
 
@@ -130,6 +132,7 @@ struct NPUGeneratorState : public c10::intrusive_ptr_target {
     uint64_t philox_offset_per_thread_;
     uint32_t offset_intragraph_;
     bool capturing_{};
+    bool secondary_stream_capture_state_{};
     std::unordered_set<c10_npu::NPUGraph*> registered_graphs_;
     at::Tensor seed_extragraph_{};
     at::Tensor offset_extragraph_{};
@@ -176,6 +179,7 @@ struct TORCH_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
     c10::intrusive_ptr<c10::GeneratorImpl> graphsafe_get_state() const override;
     void register_graph(c10_npu::NPUGraph* graph);
     void unregister_graph(c10_npu::NPUGraph* graph);
+    void set_secondary_stream_capture_state(bool secondary_stream_capture_state);
     // Temporarily accommodates call sites that use philox_engine_inputs.
     // Allows incremental refactor of call sites to use philox_npu_state.
     std::pair<uint64_t, uint64_t> philox_engine_inputs(uint64_t increment);

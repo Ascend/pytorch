@@ -146,6 +146,7 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode)
     // default generator is always registered
     auto* gen = at::get_generator_or_default<at_npu::NPUGeneratorImpl>(c10::nullopt, at_npu::detail::getDefaultNPUGenerator());
     gen->register_graph(this);
+    gen->set_secondary_stream_capture_state(false);
 
     for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
         generator_state->capture_prologue();
@@ -285,7 +286,7 @@ void NPUGraph::reset()
     if (has_graph_exec_) {
         // notifyCaptureDestroy may throw. How should we handle this?
         c10_npu::NPUCachingAllocator::releasePool(capture_dev_, mempool_id_);
-        NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIDestroy(model_ri_));
+        NPU_CHECK_WARN(c10_npu::acl::AclmdlRIDestroy(model_ri_));
         has_graph_exec_ = false;
     }
 }
