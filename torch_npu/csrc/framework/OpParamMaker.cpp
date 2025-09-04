@@ -451,19 +451,35 @@ int MemcopyAsyncFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<c10_npu::queue::CopyParas *>(in->paramVal);
     logger->debug("MemcopyAsyncFunc Run.");
-    aclError ret =
-        aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, stream);
+    aclError ret;
+    bool flag;
+    if (c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() && cur_paras->kind == aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST) {
+        flag = true;
+        ret = c10_npu::acl::AclrtMemcpyAsyncWithCondition(cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, stream);
+    } else {
+        flag = false;
+        ret = aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, stream);
+    }
     if (ret != ACL_ERROR_NONE) {
         auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         if (ret_temp != ACL_ERROR_NONE) {
             ret = ret_temp;
         }
-        ASCEND_LOGE(
-            "aclrtMemcpyAsync error! ret = %d, dstLen = %zu, srcLen = %zu, kind = %d",
-            ret,
-            cur_paras->dstLen,
-            cur_paras->srcLen,
-            cur_paras->kind);
+        if (flag) {
+            ASCEND_LOGE(
+                "aclrtMemcpyAsyncWithCondition error! ret = %d, dstLen = %zu, srcLen = %zu, kind = %d",
+                ret,
+                cur_paras->dstLen,
+                cur_paras->srcLen,
+                cur_paras->kind);
+        } else {
+            ASCEND_LOGE(
+                "aclrtMemcpyAsync error! ret = %d, dstLen = %zu, srcLen = %zu, kind = %d",
+                ret,
+                cur_paras->dstLen,
+                cur_paras->srcLen,
+                cur_paras->kind);
+        }
     }
     logger->debug("MemcopyAsyncFunc Run, ret = %d.", ret);
     return ret;
