@@ -5,6 +5,7 @@ from torch.testing._internal.common_distributed import MultiProcessTestCase
 from torch.testing._internal.common_utils import run_tests
 
 import torch_npu
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 
 class TestDevice(MultiProcessTestCase):
@@ -16,6 +17,7 @@ class TestDevice(MultiProcessTestCase):
     def world_size(self):
         return 1
     
+    @skipIfUnsupportMultiNPU(2)
     def test_event_create(self):
         a = torch.full((3, 4), float(0), device='npu:0')
         e = torch.npu.Event()
@@ -32,10 +34,11 @@ class TestDevice(MultiProcessTestCase):
         t.join()
         self.assertEqual(result[0], 1)
 
-
+    @skipIfUnsupportMultiNPU(2)
     def test_stream_create(self):
         s = torch_npu._C._npu_getCurrentStream(0)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_tensor(self):
         a = torch.full((3, 4), float(0), device='npu:0')
 
@@ -49,6 +52,7 @@ class TestDevice(MultiProcessTestCase):
         t.join()
         self.assertEqual(result[0], 1)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_storage(self):
         s = torch.npu.Stream()
 
