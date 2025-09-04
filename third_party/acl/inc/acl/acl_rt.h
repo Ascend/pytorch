@@ -941,10 +941,11 @@ ACL_FUNC_VISIBILITY aclError aclrtMemcpyAsync(void *dst,
 
 /**
  * @ingroup AscendCL
- * @brief  Asynchronous memory replication between Host and Device
+ * @brief  Asynchronous memory replication between Host and Device, would
+ *         be synchronous if memory is not allocated via calling acl or rts api.
  *
  * @par Function
- *  After calling this interface,
+ *  After calling this interface and memory is allocated via calling acl or rts api,
  *  be sure to call the aclrtSynchronizeStream interface to ensure that
  *  the task of memory replication has been completed
  *
