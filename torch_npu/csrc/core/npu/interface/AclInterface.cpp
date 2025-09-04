@@ -1127,11 +1127,14 @@ aclError AclrtUnSubscribeReport(uint64_t theadId, aclrtStream stream)
 bool AclrtMemcpyAsyncWithConditionExist()
 {
     const static bool isAclrtMemcpyAsyncWithConditionExist = []() -> bool {
-        auto func  = GET_FUNC(aclrtMemcpyAsyncWithCondition)
+        auto func = GET_FUNC(aclrtMemcpyAsyncWithCondition)
+        bool flag = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ? true : false;
         if (func != nullptr) {
             ASCEND_LOGI("Successfully to find function aclrtMemcpyAsyncWithCondition");
+        } else {
+            flag = false;
         }
-        return func != nullptr;
+        return flag;
     }();
     return isAclrtMemcpyAsyncWithConditionExist;
 }
