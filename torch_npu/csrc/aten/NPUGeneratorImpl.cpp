@@ -427,6 +427,11 @@ void NPUGeneratorImpl::unregister_graph(c10_npu::NPUGraph* graph)
     state_->unregister_graph(graph);
 }
 
+void NPUGeneratorImpl::set_secondary_stream_capture_state(bool secondary_stream_capture_state)
+{
+    state_->secondary_stream_capture_state_ = secondary_stream_capture_state;
+}
+
 /**
  * Gets the seed and philox offset value to be used in
  * curandStatePhilox4_32_10, in an opaque PhiloxNpuState that's safe
@@ -456,7 +461,8 @@ PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment)
         return PhiloxNpuState(
             &state_->seed_extragraph_,
             &state_->offset_extragraph_,
-            offset);
+            offset,
+            state_->secondary_stream_capture_state_);
     } else {
         uint64_t offset = state_->philox_offset_per_thread_;
         state_->increase(increment);
