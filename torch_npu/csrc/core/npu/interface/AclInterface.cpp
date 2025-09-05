@@ -1088,14 +1088,12 @@ aclError AclrtStreamGetId(aclrtStream stream, int32_t* stream_id)
 bool AclrtMemcpyAsyncWithConditionExist()
 {
     const static bool isAclrtMemcpyAsyncWithConditionExist = []() -> bool {
-        auto func = GET_FUNC(aclrtMemcpyAsyncWithCondition)
-        bool flag = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ? true : false;
+        auto func = GET_FUNC(aclrtMemcpyAsyncWithCondition);
         if (func != nullptr) {
             ASCEND_LOGI("Successfully to find function aclrtMemcpyAsyncWithCondition");
-        } else {
-            flag = false;
+            return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
         }
-        return flag;
+        return false;
     }();
     return isAclrtMemcpyAsyncWithConditionExist;
 }
