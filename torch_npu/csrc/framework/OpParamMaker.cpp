@@ -347,10 +347,13 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
                 ret = ACL_ERROR_INVALID_PARAM;
                 LOG(ERROR) << e.what();
             }
-            ASCEND_LOGE("Custom hand error:%s", e.what());
+            // Keep only 512 characters to avoid failure of copying and inability to print.
+            std::string errorMsg = std::string(e.what()).substr(0, 512);
+            ASCEND_LOGE("Custom hand error:%s", errorMsg.c_str());
+            logger->long_info("ExecFunc: Op %s Run, Custom hand error:%s.", cur_paras->opType, e.what());
         }
         if (ret != ACL_ERROR_NONE) {
-            ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
+            ASCEND_LOGE("Custom hand fail! name=%s, ret=%d", cur_paras->opType, ret);
         }
         logger->debug("ExecFunc: Op %s Run with customHandler, ret = %d.", cur_paras->opType, ret);
         return ret;
@@ -437,10 +440,13 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
             ret = ACL_ERROR_INVALID_PARAM;
             LOG(ERROR) << e.what();
         }
-        ASCEND_LOGE("Custom hand error:%s", e.what());
+        // Keep only 512 characters to avoid failure of copying and inability to print.
+        std::string errorMsg = std::string(e.what()).substr(0, 512);
+        ASCEND_LOGE("Custom hand error:%s", errorMsg.c_str());
+        logger->long_info("ExecFuncOpApi: Op %s Run, Custom hand error:%s.", cur_paras->opType, e.what());
     }
     if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
+        ASCEND_LOGE("Custom hand fail! name=%s, ret=%d", cur_paras->opType, ret);
     }
     logger->debug("ExecFuncOpApi: Op %s Run, ret = %d.", cur_paras->opType, ret);
     return ret;
