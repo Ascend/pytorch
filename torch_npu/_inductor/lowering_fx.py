@@ -43,7 +43,7 @@ from torch._inductor.ir import ExpandView, TensorBox
 from torch._inductor.ir import ExpandView, TensorBox
 from torch._inductor.ir import Reduction
 from torch._inductor.ir import Reduction
-from torch._inductor.lowering import sum_
+from torch._inductor.lowering import sum_, _validate_dim, get_promoted_dtype
 from torch._inductor.utils import ModularIndexing, FloorDiv
 from torch._inductor.utils import (
     decode_device,
@@ -2291,7 +2291,25 @@ def _register_npu_inductor_fallbacks():
 
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
-        return lowering.fallback_handler(aten.cat.default)(inputs, dim)
+        cpu_device = inputs[0].get_device().type == "cpu"
+        if cpu_device and all(
+            inp.get_dtype() in [torch.int8, torch.uint8] for inp in inputs
+        ):
+            for inp in inputs:
+                inp.realize()
+            if all(len(inp.get_size()) == 4 for inp in inputs):
+                inputs, _ = require_channels_last(aten.cat, *inputs)
+            return fallback_handler(aten.cat.deault)(inputs, dim)
+        if len(inputs) == 1:
+            return clone(inputs[0])
+        dim = _validate_dim(inputs[0], dim, 0)
+        dtype = get_promoted_dtype(
+            *inputs,
+            type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
+
+        )
+        inputs = [to_dtype(inp, dtype) for inp in inputs]
+        return TensorBox(ir.ConcatKernel.create(inputs, dim))
 
     lowering.make_fallback(aten._log_softmax)
     lowering.make_fallback(aten.gather)
