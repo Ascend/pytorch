@@ -111,9 +111,20 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
         with torch.npu.stream(self.update_stream):
             for graph_dispatch_record, update_input in zip(self.graph_dispatch_records, cpu_update_input):
                 graph_task_update_begin(self.update_stream, graph_dispatch_record.handle)
-                for key in update_input:
-                    graph_dispatch_record.kwargs[key] = update_input[key]
-                graph_dispatch_record.op_cache_entry(*graph_dispatch_record.args, **graph_dispatch_record.kwargs)
+                if graph_dispatch_record.op_cache_entry.__name__ in ["_npu_paged_attention.default", "_npu_paged_attention"]:
+                    args = list(graph_dispatch_record.args)
+                    # When parameters are passed through args, context_lens is the second to last parameter.
+                    if len(args) >= 2:
+                        args[-2] = update_input["context_lens"]
+                        graph_dispatch_record.op_cache_entry(*args)
+                    else:
+                        for key in update_input:
+                            graph_dispatch_record.kwargs[key] = update_input[key]
+                            graph_dispatch_record.op_cache_entry(*graph_dispatch_record.args, **graph_dispatch_record.kwargs)
+                elif graph_dispatch_record.op_cache_entry.__name__ in ["npu_fused_infer_attention_score", "npu_fused_infer_attention_score.out"]:
+                    for key in update_input:
+                        graph_dispatch_record.kwargs[key] = update_input[key]
+                    graph_dispatch_record.op_cache_entry(*graph_dispatch_record.args, **graph_dispatch_record.kwargs)
                 graph_task_update_end(self.update_stream)
                 graph_dispatch_record.event.record(self.update_stream)
 
@@ -170,6 +181,20 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
             self.graph_dispatch_records.append(
                 self._append_dispatch_record(event, handle, args, kwargs, func))
             return kwargs["out"]
+        elif func.__name__ in ["_npu_paged_attention.default", "_npu_paged_attention"]:
+            self.update_schema(str(func.__name__), str(func._schema))
+            stream = torch_npu.npu.current_stream()
+            event = torch.npu.ExternalEvent()
+            event.wait(stream)
+            event.reset(stream)
+            # begin graph task
+            graph_task_group_begin(stream)
+            func(*args, **kwargs)
+            handle = graph_task_group_end(stream)
+            # save state for update
+            self.graph_dispatch_records.append(
+                self._append_dispatch_record(event, handle, args, kwargs, func))
+            return None
         else:
             return func(*args, **kwargs)
 
