@@ -3199,7 +3199,7 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
 
     if (options_->hccl_config.find("hccl_world_rank_id") != options_->hccl_config.end()) {
         if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_world_rank_id"])) {
-            config.hcclOpExpansionMode = std::get<uint32_t>(options_->hccl_config["hccl_world_rank_id"]);
+            config.hcclWorldRankID = std::get<uint32_t>(options_->hccl_config["hccl_world_rank_id"]);
         } else {
             TORCH_CHECK(false, "Value type of hccl_world_rank_id should be int.", DIST_ERROR(ErrCode::TYPE));
         }
@@ -3207,7 +3207,7 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
 
     if (options_->hccl_config.find("hccl_job_id") != options_->hccl_config.end()) {
         if (std::holds_alternative<uint64_t>(options_->hccl_config["hccl_job_id"])) {
-            config.hcclOpExpansionMode = std::get<uint64_t>(options_->hccl_config["hccl_job_id"]);
+            config.hcclJobID = std::get<uint64_t>(options_->hccl_config["hccl_job_id"]);
         } else {
             TORCH_CHECK(false, "Value type of hccl_job_id should be int.", DIST_ERROR(ErrCode::TYPE));
         }
