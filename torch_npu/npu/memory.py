@@ -20,6 +20,7 @@ __all__ = [
     "caching_allocator_delete",
     "set_per_process_memory_fraction",
     "empty_cache",
+    "empty_virt_addr_cache",
     "memory_stats",
     "memory_stats_as_nested_dict",
     "reset_accumulated_memory_stats",
@@ -157,6 +158,14 @@ def empty_cache():
     """
     if is_initialized():
         torch_npu._C._npu_emptyCache()
+
+
+def empty_virt_addr_cache():
+    r"""Light-weight version of empty_cache(). It only unmaps virtual address,
+    and store the free physical handles for later malloc.
+    """
+    if is_initialized():
+        torch_npu._C._npu_emptyVirtAddrCache()
 
 
 def memory_stats(device=None):

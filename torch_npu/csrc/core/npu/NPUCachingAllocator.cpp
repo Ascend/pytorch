@@ -188,6 +188,8 @@ struct BlockPool {
     std::set<Block *, Comparison> unmapped;
     const bool is_small;
     PrivatePool *owner_PrivatePool;
+    // store unmapped handles
+    std::vector<aclrtDrvMemHandle> free_physical_handles_;
 
     BlockPool(bool small, PrivatePool *private_pool = nullptr)
         : blocks(BlockComparatorSize),
@@ -404,7 +406,7 @@ struct ExpandableSegment {
     // returns the actual range mapped, which may be
     // greater than requested if size is not aligned to segment_size_.
     // return size of 0 indicates OOM
-    SegmentRange map(SegmentRange range)
+    SegmentRange map(SegmentRange range, BlockPool *pool)
     {
         auto begin = segmentLeft(range.ptr);
         auto end = segmentRight(range.ptr + range.size);
@@ -418,6 +420,13 @@ struct ExpandableSegment {
         for (auto i : c10::irange(begin, end)) {
             TORCH_INTERNAL_ASSERT(!handles_.at(i), PTA_ERROR(ErrCode::INTERNAL));
             aclrtDrvMemHandle handle = nullptr;
+            if (!pool->free_physical_handles_.empty()) {
+                ASCEND_LOGD("Remap cached physical handles for block %zu", i);
+                handle = pool->free_physical_handles_.back();
+                pool->free_physical_handles_.pop_back();
+                handles_.at(i) = Handle{handle, std::nullopt};
+                continue;
+            }
             aclrtPhysicalMemProp prop = {};
             prop.handleType = ACL_MEM_HANDLE_TYPE_NONE;
             prop.allocationType = ACL_MEM_ALLOCATION_TYPE_PINNED;
@@ -425,6 +434,7 @@ struct ExpandableSegment {
             prop.location.type = ACL_MEM_LOCATION_TYPE_DEVICE;
             prop.location.id = static_cast<unsigned>(device_);
             prop.reserve = 0;
+            ASCEND_LOGD("Alloc memory from physical device for block %zu", i);
             auto status = c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
             if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
                 for (auto j : c10::irange(begin, i)) {
@@ -449,14 +459,14 @@ struct ExpandableSegment {
     // unmaps all the completely empty segment_size_ segments between
     // [begin, begin + size), returns the offset where the range begin,
     // and the actual size unmapped (multiple of segment_size_)
-    SegmentRange unmap(SegmentRange range)
+    SegmentRange unmap(SegmentRange range, BlockPool *pool)
     {
         auto begin = segmentRight(range.ptr);
         auto end = segmentLeft(range.ptr + range.size);
         if (begin >= end) {
             return SegmentRange{ range.ptr, 0 };
         }
-        unmapHandles(begin, end);
+        unmapHandles(begin, end, pool);
         return rangeFromHandles(begin, end);
     }
 
@@ -563,7 +573,7 @@ private:
         ASCEND_LOGD("NPUCachingAllocator mapAndSetAccess: segment_size=%zu", segment_size_);
     }
 
-    void unmapHandles(size_t begin, size_t end)
+    void unmapHandles(size_t begin, size_t end, BlockPool *pool = nullptr)
     {
         // note: unlike aclrtFree, MemUnmap and MemRelease do
         // not appear to synchronize in all cases, so we have to wait for the
@@ -595,7 +605,11 @@ private:
                     continue;
                 }
             }
-            NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h.handle));
+            if (!pool) {
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h.handle));
+            } else {
+                pool->free_physical_handles_.push_back(h.handle);
+            }
         }
         ASCEND_LOGD("NPUCachingAllocator unmap: segment_size=%zu", segment_size_);
         trimHandles();
@@ -1383,7 +1397,7 @@ public:
                 c10_npu::npuSynchronizeDevice(true);
             }
             c10_npu::NPUWorkspaceAllocator::emptyCache(device, true);
-            block_found = (release_cached_blocks(true, context) && alloc_block(params, true, context, lock));
+            block_found = (release_cached_blocks(true, context, true) && alloc_block(params, true, context, lock));
         }
 
         if (!block_found) {
@@ -1731,14 +1745,14 @@ public:
     }
 
     /* * returns cached blocks to the system allocator * */
-    void emptyCache(int device, bool check_error)
+    void emptyCache(int device, bool check_error, bool free_physical)
     {
         std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
         // Make sure event deque from taskqueue, then synchronize Event
         c10_npu::npuSynchronizeDevice(check_error);
         std::lock_guard<std::recursive_mutex> lock(mutex);
         c10_npu::NPUWorkspaceAllocator::emptyCache(device, check_error);
-        release_cached_blocks(check_error, context);
+        release_cached_blocks(check_error, context, free_physical);
     }
 
     void buildServerMemMapForHccl(std::shared_ptr<c10d_npu::HCCLComm> hcclComm)
@@ -2301,12 +2315,12 @@ private:
         return candidate;
     }
 
-    bool map_block(Block *to_map, size_t size, const std::shared_ptr<c10::GatheredContext> &ctx)
+    bool map_block(Block *to_map, size_t size, const std::shared_ptr<c10::GatheredContext> &ctx, BlockPool *map_pool)
     {
         TORCH_INTERNAL_ASSERT(!to_map->mapped && size <= to_map->size, PTA_ERROR(ErrCode::INTERNAL));
         TORCH_INTERNAL_ASSERT(!to_map->context_when_allocated); // unmapped blocks should not keep
                                                                 // history
-        auto mapped_range = to_map->expandable_segment_->map(SegmentRange{ to_map->ptr, size });
+        auto mapped_range = to_map->expandable_segment_->map(SegmentRange{ to_map->ptr, size }, map_pool);
         // failed to map the memory
         if (mapped_range.size == 0) {
             return false;
@@ -2357,7 +2371,7 @@ private:
         // unmapped -> free -> *
         // free -> unmapped -> *
 
-        if (!candidate->mapped && !map_block(candidate, std::min(candidate->size, size), ctx)) {
+        if (!candidate->mapped && !map_block(candidate, std::min(candidate->size, size), ctx, pool)) {
             return nullptr;
         }
         TORCH_INTERNAL_ASSERT(candidate->mapped, PTA_ERROR(ErrCode::INTERNAL));
@@ -2370,7 +2384,7 @@ private:
             if (C10_UNLIKELY(new_candidate == nullptr)) {
                 return nullptr;
             }
-            if (!map_block(new_candidate, std::min(remaining, candidate->next->size), ctx)) {
+            if (!map_block(new_candidate, std::min(remaining, candidate->next->size), ctx, pool)) {
                 return nullptr;
             }
             candidate = new_candidate;
@@ -2783,21 +2797,21 @@ private:
     }
 
     // npuSynchronizeDevice must be executed before this function can be called
-    bool release_cached_blocks(bool check_error, const std::shared_ptr<c10::GatheredContext> &context)
+    bool release_cached_blocks(bool check_error, const std::shared_ptr<c10::GatheredContext> &context, bool free_physical)
     {
         // First ensure that all blocks that can't currently be allocated due to
         // outstanding events are returned to the pool.
         synchronize_and_free_events(check_error, context);
 
         // Free all non-split cached blocks
-        release_blocks(large_blocks, context);
-        release_blocks(small_blocks, context);
+        release_blocks(large_blocks, context, free_physical);
+        release_blocks(small_blocks, context, free_physical);
 
         for (auto it = graph_pools_freeable.begin(); it != graph_pools_freeable.end();) {
             // See notifyCaptureDestroy for the strategy here.
             TORCH_INTERNAL_ASSERT(it->second->use_count == 0);
-            release_blocks(it->second->small_blocks, context);
-            release_blocks(it->second->large_blocks, context);
+            release_blocks(it->second->small_blocks, context, free_physical);
+            release_blocks(it->second->large_blocks, context, free_physical);
             if (it->second->npuMalloc_count == 0) {
                 auto erase_count = graph_pools.erase(it->first);
                 TORCH_INTERNAL_ASSERT(erase_count == 1);
@@ -2864,9 +2878,10 @@ private:
         block = nullptr;
     }
 
-    void unmap_block(Block *block, const std::shared_ptr<c10::GatheredContext> &context)
+    void unmap_block(Block *block, const std::shared_ptr<c10::GatheredContext> &context, bool free_physical)
     {
-        auto unmapped = block->expandable_segment_->unmap(SegmentRange{ block->ptr, block->size });
+        auto pool = free_physical ? nullptr : block->pool;
+        auto unmapped = block->expandable_segment_->unmap(SegmentRange{ block->ptr, block->size }, pool);
         if (unmapped.size == 0) {
             return;
         }
@@ -2915,7 +2930,7 @@ private:
             context ? context : block->context_when_segment_allocated);
     }
 
-    void release_blocks(BlockPool &pool, const std::shared_ptr<c10::GatheredContext> &context)
+    void release_blocks(BlockPool &pool, const std::shared_ptr<c10::GatheredContext> &context, bool free_physical)
     {
         std::vector<Block *> to_unmap;
         // Frees all non-split blocks
@@ -2933,9 +2948,17 @@ private:
             }
         }
         for (Block *block : to_unmap) {
-            unmap_block(block, context);
+            unmap_block(block, context, free_physical);
             if (!block->prev && !block->next) {
                 release_expandable_segment(block);
+            }
+        }
+        // free cached physical handles
+        if (free_physical) {
+            while (!pool.free_physical_handles_.empty()) {
+                aclrtDrvMemHandle handle = pool.free_physical_handles_.back();
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(handle));
+                pool.free_physical_handles_.pop_back();
             }
         }
     }
@@ -3298,7 +3321,7 @@ public:
         }
     }
 
-    void emptyCache(bool check_error) override
+    void emptyCacheImpl(bool check_error, bool free_physical) override
     {
         ASCEND_LOGD("Begin empty cache with check_error = %d", check_error);
         int32_t current_device = 0;
@@ -3314,7 +3337,7 @@ public:
             } else {
                 NPU_CHECK_WARN(c10_npu::SetDevice(device_idx));
             }
-            device_allocator[device_idx]->emptyCache(device_idx, check_error);
+            device_allocator[device_idx]->emptyCache(device_idx, check_error, free_physical);
         }
         if (check_error) {
             NPU_CHECK_ERROR(c10_npu::MaybeSetDevice(current_device));
@@ -3322,6 +3345,19 @@ public:
             NPU_CHECK_WARN(c10_npu::MaybeSetDevice(current_device));
         }
         ASCEND_LOGD("End empty cache with check_error = %d", check_error);
+    }
+
+    void emptyCache(bool check_error) override
+    {
+        emptyCacheImpl(check_error, true);
+    }
+
+    void emptyVirtAddrCache(bool check_error) override
+    {
+        if (!CachingAllocatorConfig::expandable_segments()) {
+            AT_ERROR("Unsupported config for empty_virt_addr_cache, please enable expandable_segments.");
+        }
+        emptyCacheImpl(check_error, false);
     }
 
     void clearIpcHandles() override
@@ -3708,7 +3744,7 @@ public:
 
     void FreeDeviceCachedMemory(int device) override
     {
-        device_allocator[device]->emptyCache(device, true);
+        device_allocator[device]->emptyCache(device, true, true);
     }
 
     std::string name() override
