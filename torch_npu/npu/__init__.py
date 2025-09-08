@@ -33,6 +33,7 @@ __all__ = [
     "caching_allocator_delete",
     "set_per_process_memory_fraction",
     "empty_cache",
+    "empty_virt_addr_cache",
     "memory_stats",
     "memory_stats_as_nested_dict",
     "reset_accumulated_memory_stats",
