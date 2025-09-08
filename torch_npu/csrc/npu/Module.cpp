@@ -1019,6 +1019,14 @@ PyObject* THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
     Py_RETURN_NONE;
 }
 
+PyObject* THNPModule_emptyVirtAddrCache(PyObject *_unused, PyObject *noargs)
+{
+    HANDLE_TH_ERRORS
+    c10_npu::NPUCachingAllocator::emptyVirtAddrCache();
+    END_HANDLE_TH_ERRORS
+    Py_RETURN_NONE;
+}
+
 PyObject* THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
 {
     HANDLE_TH_ERRORS
@@ -1894,6 +1902,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
     {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
+    {"_npu_emptyVirtAddrCache", (PyCFunction) THNPModule_emptyVirtAddrCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},
     {"_npu_resetAccumulatedMemoryStats", (PyCFunction) THNPModule_resetAccumulatedMemoryStats, METH_O, nullptr},
     {"_npu_resetPeakMemoryStats", (PyCFunction) THNPModule_resetPeakMemoryStats, METH_O,  nullptr},
