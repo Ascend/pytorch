@@ -202,7 +202,9 @@ public:
     virtual void init(int device_count) = 0;
     virtual bool initialized() = 0;
     virtual void setMemoryFraction(double fraction, int device) = 0;
+    virtual void emptyCacheImpl(bool check_error, bool free_physical) = 0;
     virtual void emptyCache(bool check_error) = 0;
+    virtual void emptyVirtAddrCache(bool check_error) = 0;
     virtual void clearIpcHandles() = 0;
     virtual void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) = 0;
     virtual void* getBaseAllocation(void* ptr, size_t* size) = 0;
@@ -306,9 +308,19 @@ inline void setMemoryFraction(double fraction, int device)
     return get()->setMemoryFraction(fraction, device);
 }
 
+inline void emptyCacheImpl(bool check_error = true, bool free_physical = true)
+{
+    return get()->emptyCacheImpl(check_error, free_physical);
+}
+
 C10_NPU_API inline void emptyCache(bool check_error = true)
 {
     return get()->emptyCache(check_error);
+}
+
+C10_NPU_API inline void emptyVirtAddrCache(bool check_error = true)
+{
+    return get()->emptyVirtAddrCache(check_error);
 }
 
 inline void clearIpcHandles()
