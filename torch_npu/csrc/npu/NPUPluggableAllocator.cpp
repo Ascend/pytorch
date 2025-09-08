@@ -182,11 +182,23 @@ void NPUPluggableAllocator::setMemoryFraction(double fraction, int device)
     }
 }
 
+void NPUPluggableAllocator::emptyCacheImpl(bool check_error, bool free_physical)
+{
+    TORCH_NPU_WARN("NPUPluggableAllocator does not yet support emptyCacheImpl. "
+                   "If you need it, please file an issue describing your use case.");
+}
+
 void NPUPluggableAllocator::emptyCache(bool check_error)
 {
     if (reset_fn_) {
         return reset_fn_(check_error);
     }
+}
+
+void NPUPluggableAllocator::emptyVirtAddrCache(bool check_error)
+{
+    TORCH_NPU_WARN("NPUPluggableAllocator does not yet support emptyVirtAddrCache. "
+                   "If you need it, please file an issue describing your use case.");
 }
 
 void NPUPluggableAllocator::clearIpcHandles()
