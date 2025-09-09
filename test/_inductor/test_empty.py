@@ -18,7 +18,7 @@ class TestEmpty(TestUtils):
         return x
 
     # case： change shapes
-    @parametrize('shape', [(8, 64, 128)])
+    @parametrize('shape', [(8, 64, 128), (16, 128, 256)])
     @parametrize('dim', [0])
     @parametrize('dtype', ['float32'])
     def test_cases_empty(self, shape, dim, dtype):
@@ -29,7 +29,7 @@ class TestEmpty(TestUtils):
 
         self.assertTrue(inductor_ret.numel() > 0)
 
-    @parametrize('shape', [(8, 64, 128)])
+    @parametrize('shape', [(8, 64, 128), (16, 128, 256)])
     @parametrize('dim', [0])
     @parametrize('dtype', ['float32'])
     def test_cases_empty_permuted(self, shape, dim, dtype):

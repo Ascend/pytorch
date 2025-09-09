@@ -19,7 +19,7 @@ class TestTransToNpu(TestUtils):
 
         std_result = self.op_add(input_element1, input_element2)
 
-        compiled_op_add = torch.compile(self.op_add, backend="inductor", dynamic=False)
+        compiled_op_add = torch.compile(self.op_add, backend="inductor")
         inductor_result1 = compiled_op_add(input_element1, input_element2)
         torch.testing.assert_close(std_result, inductor_result1, atol=1e-3, rtol=1e-3)
 

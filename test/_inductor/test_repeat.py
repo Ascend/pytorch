@@ -9,7 +9,7 @@ class TestRepeat(TestUtils):
         return input_element.repeat(dim)
 
     # case：change shapes
-    @parametrize('shape', [(16, 128, 64)])
+    @parametrize('shape', [(16, 128, 64), (32, 256, 128)])
     @parametrize('dim', [(1, 1, 2), (1, 2, 1), (2, 1, 1)])
     @parametrize('dtype', ['float32'])
     def test_reduction_cases_shapes(self, shape, dim, dtype):

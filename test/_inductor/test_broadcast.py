@@ -23,7 +23,7 @@ class TestBroadcast(TestUtils):
         a = self._generate_tensor(shape, dtype)
         b = self._generate_tensor(shape, dtype)
 
-        compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
+        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         for dim in [3, 2, 1, 0]:
             new_shape = list(copy.deepcopy(shape))
             new_shape.insert(dim, self.broadcast_size)

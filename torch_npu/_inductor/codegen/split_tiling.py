@@ -1,6 +1,6 @@
 from functools import reduce
 import sympy as sympy
-from torch._inductor.codegen.simd import (EnableReduction, DisableReduction)
+from torch._inductor.codegen.simd import EnableReduction, DisableReduction
 from torch._inductor.codegen.triton import TritonKernel
 from torch._inductor.loop_body import MemoryUsageType
 from torch._inductor.runtime.runtime_utils import next_power_of_2
@@ -16,7 +16,7 @@ from ..config import num_vector_core, log
 class SplitTiling:
     def __init__(self, kernel: TritonKernel):
         self.kernel = kernel
-        self.indexing = []  # load and store indexing  among all scheduler nodes 
+        self.indexing = []  # load and store indexing  among all scheduler nodes
         kernel.sorted_axis = [x for x in kernel.range_tree_nodes.values()]
         kernel.sorted_axis.sort(reverse=True, key=self.key)
         for i, dim in enumerate(kernel.sorted_axis):
@@ -61,9 +61,17 @@ class SplitTiling:
         else:
             return x.name
 
+    @staticmethod
+    def get_length_val(x):
+        length_expr = x.length
+        if not isinstance(length_expr, sympy.Integer):
+            return length_expr.subs(V.graph.sizevars.var_to_val)
+        else:
+            return length_expr
+
     @classmethod
     def total_split_numels(cls, axis_list):
-        numels = [x.length for x in axis_list]
+        numels = [cls.get_length_val(x) for x in axis_list]
         return reduce(lambda x, y: x * y, numels) if numels else 1
 
     # Split 原则1 ：先做维度合并，再切分 。通过维度合并降维降低split和tiling轴选择策略的复杂性 。
@@ -114,7 +122,7 @@ class SplitTiling:
         for i, x in enumerate(self.kernel.split_axis):
             x.split_order = i
 
-    # Tiling 原则1：load / store 中索引表达式的中的低维轴都要成为tiling 轴. 
+    # Tiling 原则1：load / store 中索引表达式的中的低维轴都要成为tiling 轴.
     # Tiling 原则2：对于规约算子，规约轴要成为tiling轴。
     # Tiling 原则3: 多维规约， 只有规约轴可以被选择为tiling轴
     # Tiling 原则4: tiling轴 要覆盖 total numel 的 80%
@@ -125,26 +133,51 @@ class SplitTiling:
 
         #  cover the biggest axis and not exceed 3 axis
         def meet_stop_condition():
-            total_numel = reduce(lambda x, y: x + y,
-                                 map(lambda x: x.length, self.kernel.sorted_axis)) if self.kernel.sorted_axis else 1
-            tiling_numel = reduce(lambda x, y: x + y,
-                                  map(lambda x: x.length, self.kernel.tiling_axis)) if self.kernel.tiling_axis else 1
+            total_numel = (
+                reduce(
+                    lambda x, y: x + y,
+                    map(lambda x: self.get_length_val(x), self.kernel.sorted_axis),
+                )
+                if self.kernel.sorted_axis
+                else 1
+            )
+            tiling_numel = (
+                reduce(
+                    lambda x, y: x + y,
+                    map(lambda x: self.get_length_val(x), self.kernel.tiling_axis),
+                )
+                if self.kernel.tiling_axis
+                else 1
+            )
             if self.kernel.numof_reduction_axis() > 1 and all(
-                    self.kernel.range_tree_nodes[var].is_tiling_axis for var in self.kernel.reduction_axis_list()):
+                self.kernel.range_tree_nodes[var].is_tiling_axis
+                for var in self.kernel.reduction_axis_list()
+            ):
                 return True
                 # currently, the maximum dim that triton-ascend support is 2
             max_transpose_dims = 2
-            if (self.possible_need_permute or tiling_numel / total_numel >= 0.8) and \
-                    len(self.kernel.tiling_axis) >= min(max_transpose_dims, len(self.kernel.sorted_axis)):
+            if (
+                self.possible_need_permute or tiling_numel / total_numel >= 0.8
+            ) and len(self.kernel.tiling_axis) >= min(
+                max_transpose_dims, len(self.kernel.sorted_axis)
+            ):
                 return True
             return False
 
         def select_tiling(low_dim=True, reduction=True):
             for axis in reversed(self.kernel.sorted_axis):
-                if low_dim and axis.sorted_order in self.kernel.low_dims and axis not in self.kernel.tiling_axis:
+                if (
+                    low_dim
+                    and axis.sorted_order in self.kernel.low_dims
+                    and axis not in self.kernel.tiling_axis
+                ):
                     axis.is_tiling_axis = True
                     self.kernel.tiling_axis.append(axis)
-                if reduction and axis.prefix == 'r' and axis not in self.kernel.tiling_axis:
+                if (
+                    reduction
+                    and axis.prefix == "r"
+                    and axis not in self.kernel.tiling_axis
+                ):
                     axis.is_tiling_axis = True
                     self.kernel.tiling_axis.append(axis)
                 if low_dim or reduction:
@@ -174,8 +207,11 @@ class SplitTiling:
 
     # the below logic doesn't work when there're two reduction axis, but only one need outer reduction
     def should_outer_reduce_me(self, x):
-        should_outer = self.kernel.is_higher_order_reduction(True) and SplitTiling.great_than(x.length,
-                                                                                              32768) and x.is_loop
+        should_outer = (
+            self.kernel.is_higher_order_reduction(True)
+            and SplitTiling.great_than(x.length, 32768)
+            and x.is_loop
+        )
         if should_outer:
             self.should_outer_reduce = True
             self.kernel.split_axis = x
@@ -185,8 +221,8 @@ class SplitTiling:
     def find_longest_dimension(self, check_in_tiling=False):
         longest = None
         for axis in self.kernel.sorted_axis:
-            if (longest is None or axis.length > longest.length) and \
-                    (not check_in_tiling or axis not in self.kernel.tiling_axis):
+            not_tiling = not check_in_tiling or axis not in self.kernel.tiling_axis
+            if (longest is None or axis.length > longest.length) and not_tiling:
                 longest = axis
         return longest
 
@@ -253,10 +289,14 @@ class SplitTiling:
     def convert(x, y):
         xnumel = x
         ynumel = y
-        if isinstance(xnumel, (sympy.Symbol, sympy.Expr)) and not isinstance(xnumel, sympy.Integer):
+        if isinstance(xnumel, (sympy.Symbol, sympy.Expr)) and not isinstance(
+            xnumel, sympy.Integer
+        ):
             xnumel = xnumel.subs(V.graph.sizevars.var_to_val)
 
-        if isinstance(ynumel, (sympy.Symbol, sympy.Expr)) and not isinstance(ynumel, sympy.Integer):
+        if isinstance(ynumel, (sympy.Symbol, sympy.Expr)) and not isinstance(
+            ynumel, sympy.Integer
+        ):
             ynumel = ynumel.subs(V.graph.sizevars.var_to_val)
 
         if isinstance(xnumel, sympy.Integer) and isinstance(ynumel, int):

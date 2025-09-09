@@ -10,7 +10,7 @@ class TestCat(TestUtils):
         return torch.cat([input_element, input_element], dim)
 
     # case：change shapes
-    @parametrize('shape', [(8, 16, 32, 64)])
+    @parametrize('shape', [(8, 16, 32, 64), (16, 32, 64, 128)])
     @parametrize('dim', [-1])
     @parametrize('dtype', ['bfloat16'])
     def test_reduction_cases_shapes(self, shape, dim, dtype):

@@ -15,7 +15,7 @@ class TestSum(TestUtils):
     def test_high_order_sum(self):
         npu_dropout_backward_9 = torch.randn((32768, 256), device='npu', dtype=torch.float32)
         ref = self.op_sum(npu_dropout_backward_9)
-        func = torch.compile(self.op_sum, backend="inductor", dynamic=False)
+        func = torch.compile(self.op_sum, backend="inductor")
         calc = func(npu_dropout_backward_9)
 
         self.assertEqual(ref, calc, atol=1e-3, rtol=1e-3)

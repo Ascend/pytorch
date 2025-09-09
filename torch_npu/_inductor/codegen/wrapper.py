@@ -7,8 +7,13 @@ import sympy
 
 import torch
 from torch._inductor import config
-from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg, SubgraphPythonWrapperCodegen, \
-    user_defined_kernel_grid_fn_code
+from torch._inductor.codegen.wrapper import (
+    PythonWrapperCodegen,
+    SymbolicCallArg,
+    SubgraphPythonWrapperCodegen,
+    user_defined_kernel_grid_fn_code,
+    pexpr,
+)
 from torch._inductor.ir import IRNode
 from torch._inductor.runtime import triton_heuristics
 from torch._inductor.utils import (
@@ -74,14 +79,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
     # generate numel expr for range_tree_node
     def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
         expr = f"{kernel_name}_{node.name}_numel"
-        if (expr, V.graph) not in self.kernel_numel_expr:
-            # declare expr once in each graph (scope)
-            self.kernel_numel_expr.add((expr, V.graph))
-            self.writeline(
-                f"{self.declare}{expr} = {self.expr_printer(numel_expr)}{self.ending}"
-            )
-        else:
-            self.writeline(f"{expr} = {self.expr_printer(numel_expr)}{self.ending}")
+        self.writeline(f"{expr} = {pexpr(numel_expr)}")
         # We can get symbolic expressions here, like s0*64
         # It is fine to have them here, but we need to handle them correctly as their own type
         # This is tricky to do, so we wrap in a custom type, distinct from scalars, but also from sympy*

@@ -14,20 +14,22 @@ class TestSumAdd(TestUtils):
     @parametrize('shape', [(9, 9, 31, 64)])
     @parametrize('dim', [3])
     @parametrize('dtype', ['float32'])
-    def test_reduction_cases_shapes(self, shape, dim, dtype):
-        a, b = [torch.randn(shape, requires_grad=False, dtype=torch.float32, device="npu") for _ in range(2)]
+    @parametrize('dynamic', [False, True])
+    def test_reduction_cases_shapes(self, shape, dim, dtype, dynamic):
+        a, b = [torch.randn(shape, requires_grad=False, dtype=eval('torch.' + dtype), device="npu") for _ in range(2)]
         r1 = self.foo(a, b, dim)
-        func = torch.compile(self.foo, backend="inductor", dynamic=False)
+        func = torch.compile(self.foo, backend="inductor", dynamic=dynamic)
         r = func(a, b, dim)
         self.assertEqual(r, r1, atol=1e-3, rtol=1e-3)
 
     @parametrize('shape', [(9, 10, 31, 63)])
     @parametrize('dim', [0, 1])
     @parametrize('dtype', ['float32'])
-    def test_reduction_cases_shapes1(self, shape, dim, dtype):
-        a, b = [torch.randn(shape, requires_grad=False, dtype=torch.float32, device="npu") for _ in range(2)]
+    @parametrize('dynamic', [False, True])
+    def test_reduction_cases_shapes1(self, shape, dim, dtype, dynamic):
+        a, b = [torch.randn(shape, requires_grad=False, dtype=eval('torch.' + dtype), device="npu") for _ in range(2)]
         r1 = self.foo(a, b, dim)
-        func = torch.compile(self.foo, backend="inductor", dynamic=False)
+        func = torch.compile(self.foo, backend="inductor", dynamic=dynamic)
         r = func(a, b, dim)
         self.assertEqual(r, r1, atol=1e-3, rtol=1e-3)
 

@@ -20,7 +20,7 @@ class TestArrange(TestUtils):
 
         std_arrange = self.op_calc(start, end, step)
 
-        compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
+        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_arrange = compiled_op_calc(start, end, step)
 
         self.assertEqual(std_arrange, inductor_arrange)

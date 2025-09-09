@@ -9,7 +9,7 @@ class TestRenorm(TestUtils):
         return torch.renorm(input_element, p=2, dim=dim, maxnorm=5)
 
     # case：change shapes
-    @parametrize('shape', [(32, 64)])
+    @parametrize('shape', [(32, 64), (64, 128)])
     @parametrize('dim', [-1])
     @parametrize('dtype', ['float32'])
     def test_reduction_cases_shapes(self, shape, dim, dtype):

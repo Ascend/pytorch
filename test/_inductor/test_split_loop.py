@@ -17,7 +17,7 @@ class TestSplitLoop(TestUtils):
 
         std_ = self.op_calc(a, b)
 
-        compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
+        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_ = compiled_op_calc(a, b)
         self.assertEqual(std_, inductor_, atol=1e-3, rtol=1e-3)
 
