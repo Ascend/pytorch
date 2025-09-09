@@ -860,6 +860,24 @@
   "torch_npu.npu.npu_config.get_device_limit": {
     "signature": "(device)"
   },
+  "torch_npu.npu.set_stream_limit": {
+    "signature": "(stream, cube_num=-1, vector_num=-1)"
+  },
+  "torch_npu.npu.npu_config.set_stream_limit": {
+    "signature": "(stream, cube_num=-1, vector_num=-1)"
+  },
+  "torch_npu.npu.reset_stream_limit": {
+    "signature": "(stream)"
+  },
+  "torch_npu.npu.npu_config.reset_stream_limit": {
+    "signature": "(stream)"
+  },
+  "torch_npu.npu.get_stream_limit": {
+    "signature": "(stream)"
+  },
+  "torch_npu.npu.npu_config.get_stream_limit": {
+    "signature": "(stream)"
+  },
   "torch_npu.profiler._ExperimentalConfig._check_host_sys_params": {
     "signature": "(self)"
   },

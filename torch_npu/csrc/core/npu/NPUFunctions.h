@@ -14,6 +14,7 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include <third_party/acl/inc/acl/acl.h>
 
 namespace c10_npu {
@@ -92,6 +93,18 @@ aclError SetDeviceResLimit(int32_t device, int32_t type, uint32_t value);
 C10_NPU_API uint32_t GetDeviceResLimit(int32_t deviceId, int32_t type);
 
 aclError ResetDeviceResLimit(int32_t deviceId);
+
+aclError SetStreamResLimit(NPUStream stream, int32_t type, uint32_t value);
+
+aclError ResetStreamResLimit(NPUStream stream);
+
+C10_NPU_API uint32_t GetStreamResLimit(NPUStream stream, int32_t type);
+
+aclError UseStreamResInCurrentThread(aclrtStream stream);
+
+aclError UnuseStreamResInCurrentThread();
+
+C10_NPU_API uint32_t GetResInCurrentThread(int32_t type);
 
 enum class SyncDebugMode { L_DISABLED = 0, L_WARN, L_ERROR };
 
