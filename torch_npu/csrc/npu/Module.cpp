@@ -1822,6 +1822,99 @@ static PyObject* THNPModule_reset_device_res_limit(PyObject* self, PyObject *arg
     END_HANDLE_TH_ERRORS
 }
 
+static PyObject* THNPModule_set_stream_res_limit(PyObject* self, PyObject *args, PyObject* kwargs)
+{
+    HANDLE_TH_ERRORS
+    int64_t stream_id = 0;
+    int64_t device_index = 0;
+    int64_t device_type = 0;
+    PyObject* type = nullptr;
+    PyObject* value = nullptr;
+
+    constexpr const char* kwlist[] = {
+        "stream_id", "device_index", "device_type", "type", "value", nullptr
+    };
+    if (!PyArg_ParseTupleAndKeywords(
+        args,
+        kwargs,
+        "LLLOO",
+        const_cast<char**>(kwlist),
+        &stream_id,
+        &device_index,
+        &device_type,
+        &type,
+        &value)) {
+        throw torch::TypeError("Pybind failed to parse parameters." +
+                               PTA_ERROR(ErrCode::TYPE));
+    }
+    auto stream = c10_npu::NPUStream::unpack3(
+        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+    int32_t type_ = THPUtils_unpackLong(type);
+    uint32_t value_ =  static_cast<uint32_t>(THPUtils_unpackUInt32(value));
+    c10_npu::SetStreamResLimit(stream, type_, value_);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+static PyObject* THNPModule_reset_stream_res_limit(PyObject* self, PyObject *args, PyObject* kwargs)
+{
+    HANDLE_TH_ERRORS
+    int64_t stream_id = 0;
+    int64_t device_index = 0;
+    int64_t device_type = 0;
+
+    constexpr const char* kwlist[] = {
+        "stream_id", "device_index", "device_type", nullptr
+    };
+    if (!PyArg_ParseTupleAndKeywords(
+        args,
+        kwargs,
+        "LLL",
+        const_cast<char**>(kwlist),
+        &stream_id,
+        &device_index,
+        &device_type)) {
+        throw torch::TypeError("Pybind failed to parse parameters." +
+                               PTA_ERROR(ErrCode::TYPE));
+    }
+    auto stream = c10_npu::NPUStream::unpack3(
+        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+    c10_npu::ResetStreamResLimit(stream);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+static PyObject* THNPModule_get_stream_res_limit(PyObject* self, PyObject *args, PyObject* kwargs)
+{
+    HANDLE_TH_ERRORS
+    int64_t stream_id = 0;
+    int64_t device_index = 0;
+    int64_t device_type = 0;
+    PyObject* type = nullptr;
+
+    constexpr const char* kwlist[] = {
+        "stream_id", "device_index", "device_type", "type", nullptr
+    };
+    if (!PyArg_ParseTupleAndKeywords(
+        args,
+        kwargs,
+        "LLLO",
+        const_cast<char**>(kwlist),
+        &stream_id,
+        &device_index,
+        &device_type,
+        &type)) {
+        throw torch::TypeError("Pybind failed to parse parameters." +
+                               PTA_ERROR(ErrCode::TYPE));
+    }
+    auto stream = c10_npu::NPUStream::unpack3(
+        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+    int32_t type_ = THPUtils_unpackLong(type);
+    uint32_t value = c10_npu::GetStreamResLimit(stream, type_);
+    return PyLong_FromUnsignedLong(value);
+    END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -1890,6 +1983,9 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_device_res_limit", (PyCFunction)THNPModule_get_device_res_limit, METH_VARARGS, nullptr},
     {"_npu_set_device_res_limit", (PyCFunction)THNPModule_set_device_res_limit, METH_VARARGS, nullptr},
     {"_npu_reset_device_res_limit", (PyCFunction)THNPModule_reset_device_res_limit, METH_O, nullptr},
+    {"_npu_set_stream_res_limit", (PyCFunction)THNPModule_set_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"_npu_reset_stream_res_limit", (PyCFunction)THNPModule_reset_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"_npu_get_stream_res_limit", (PyCFunction)THNPModule_get_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()

@@ -386,4 +386,50 @@ aclError ResetDeviceResLimit(int32_t device)
     return err;
 }
 
+aclError SetStreamResLimit(NPUStream npu_stream, int32_t type, uint32_t value)
+{
+    c10_npu::acl::aclrtDevResModelType restype = static_cast<c10_npu::acl::aclrtDevResModelType>(type);
+    aclError err = c10_npu::acl::AclrtSetStreamResLimit(npu_stream.stream(), restype, value);
+    enable_core_control.store(true, std::memory_order_relaxed);
+    NPU_CHECK_ERROR(err);
+    return err;
+}
+
+aclError ResetStreamResLimit(NPUStream npu_stream)
+{
+    aclError err = c10_npu::acl::AclrtResetStreamResLimit(npu_stream.stream());
+    NPU_CHECK_ERROR(err);
+    return err;
+}
+
+uint32_t GetStreamResLimit(NPUStream npu_stream, int32_t type)
+{
+    c10_npu::acl::aclrtDevResModelType restype = static_cast<c10_npu::acl::aclrtDevResModelType>(type);
+    uint32_t value;
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtGetStreamResLimit(npu_stream.stream(false), restype, &value));
+    return value;
+}
+
+aclError UseStreamResInCurrentThread(aclrtStream stream)
+{
+    aclError err = c10_npu::acl::AclrtUseStreamResInCurrentThread(stream);
+    NPU_CHECK_ERROR(err);
+    return err;
+}
+
+aclError UnuseStreamResInCurrentThread()
+{
+    aclError err = c10_npu::acl::AclrtUnuseStreamResInCurrentThread();
+    NPU_CHECK_ERROR(err);
+    return err;
+}
+
+uint32_t GetResInCurrentThread(int32_t type)
+{
+    c10_npu::acl::aclrtDevResModelType restype = static_cast<c10_npu::acl::aclrtDevResModelType>(type);
+    uint32_t value;
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtGetResInCurrentThread(restype, &value));
+    return value;
+}
+
 } // namespace c10_npu
