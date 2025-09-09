@@ -2544,7 +2544,7 @@
     "signature": "(obj: object, f, pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False, model: torch.nn.modules.module.Module = None) -> None"
   },
   "torch_npu.dynamo.torchair.ops.npu_record_tagged_stream": {
-    "signature": "(self: torch.Tensor, tagged_stream: str)"
+    "signature": "(input: torch.Tensor, tagged_stream: str)"
   },
   "torch_npu.npu_bounding_box_encode": {
     "signature": "(anchor_box, ground_truth_box, means0, means1, means2, means3, stds0, stds1, stds2, stds3)"
