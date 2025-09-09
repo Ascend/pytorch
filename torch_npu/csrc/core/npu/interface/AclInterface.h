@@ -270,5 +270,23 @@ bool AclrtMemcpyAsyncWithConditionExist();
 aclError AclrtMemcpyAsyncWithCondition(void *dst, size_t destMax, const void *src,
                                        size_t count, aclrtMemcpyKind kind, aclrtStream stream);
 
+aclError AclrtSetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t value);
+
+aclError AclrtResetStreamResLimit(aclrtStream stream);
+
+aclError AclrtGetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t* value);
+
+aclError AclrtUseStreamResInCurrentThread(aclrtStream stream);
+
+aclError AclrtUnuseStreamResInCurrentThread();
+
+aclError AclrtGetResInCurrentThread(aclrtDevResModelType type, uint32_t* value);
+
+/**
+ * This API is used to check whether aclrtGetResInCurrentThread exist
+ * Compatible CANN, delete in future
+*/
+bool IsExistGetResInCurrentThread();
+
 } // namespace acl
 } // namespace c10_npu

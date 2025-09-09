@@ -23,6 +23,9 @@
 #endif
 
 namespace c10_npu {
+
+std::atomic<bool> enable_core_control{false};
+
 namespace {
 struct LeakyStreamInternals {
     LeakyStreamInternals()
@@ -47,6 +50,7 @@ struct LeakyStreamInternals {
     bool is_data_preprocess_stream = false;
     bool is_repo_stop = false;
     bool is_sync_launch = false;
+    aclrtStream prev_stream = nullptr;
 };
 // Global stream state and constants
 static c10::DeviceIndex num_npus = -1;
@@ -74,6 +78,8 @@ static std::array<LeakyStreamInternals, kStreamsPerPool> npu_streams[C10_COMPILE
 static thread_local std::unique_ptr<LeakyStreamInternals* []> current_streams = nullptr;
 
 static std::array<LeakyStreamInternals, kSyncLaunchStreamsPerPool> sync_launch_streams[C10_COMPILE_TIME_MAX_NPUS];
+
+thread_local aclrtStream tls_prev_stream = nullptr;
 
 enum class StreamIdType : uint8_t {
     DEFAULT = 0x0,
@@ -671,5 +677,46 @@ bool StreamInitFlag(c10::DeviceIndex device_index)
 {
     ASCEND_LOGI("Device %d, Npu StreamInitFlag Check is %d", device_index, initialize_flag[device_index]);
     return initialize_flag[device_index];
+}
+
+aclrtStream getPrevStream()
+{
+    auto ptr = NPUStream_internals(getDefaultNPUStream());
+    AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
+    return ptr->prev_stream;
+}
+
+void setPrevStream(aclrtStream stream)
+{
+    auto ptr = NPUStream_internals(getDefaultNPUStream());
+    AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
+    ptr->prev_stream = stream;
+}
+
+bool check_enqueue_need_use(aclrtStream stream)
+{
+    if (!enable_core_control.load(std::memory_order_relaxed)) {
+        return false;
+    }
+
+    if (tls_prev_stream != stream) {
+        tls_prev_stream = stream;
+        return true;
+    }
+    return false;
+}
+
+bool check_dequeue_need_use(aclrtStream stream)
+{
+    if (!enable_core_control.load(std::memory_order_relaxed)) {
+        return false;
+    }
+
+    aclrtStream prev_stream = getPrevStream();
+    if (prev_stream != stream) {
+        setPrevStream(stream);
+        return true;
+    }
+    return false;
 }
 } // namespace c10_npu
