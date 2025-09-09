@@ -16,6 +16,8 @@
 
 namespace c10_npu {
 
+extern std::atomic<bool> enable_core_control;
+
 class C10_NPU_API NPUStream {
 public:
     enum Unchecked { UNCHECKED };
@@ -148,6 +150,10 @@ void recovery_all_npu_streams(c10::DeviceIndex device_index);
 NPUStream getNPUStreamFromSyncLaunchPool(c10::DeviceIndex device_index = -1);
 
 bool StreamInitFlag(c10::DeviceIndex device_index);
+
+C10_NPU_API bool check_enqueue_need_use(aclrtStream stream);
+
+C10_NPU_API bool check_dequeue_need_use(aclrtStream stream);
 } // namespace c10_npu
 
 namespace std {

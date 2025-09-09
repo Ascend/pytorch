@@ -12,7 +12,8 @@ from .utils import _get_device_index
 __all__ = ["set_option", "set_aoe", 
            "set_compile_mode", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
            "is_jit_compile_false", "finalize_dump", "init_dump", "set_dump",
-           "set_device_limit", "get_device_limit"]
+           "set_device_limit", "get_device_limit", "set_stream_limit",
+           "reset_stream_limit", "get_stream_limit"]
 
 _option_map = {"ACL_PRECISION_MODE": ["allow_fp32_to_fp16", "must_keep_origin_dtype"],
                "ACL_OP_SELECT_IMPL_MODE": ["high_performance", "high_precision"],
@@ -210,3 +211,51 @@ def get_device_limit(device):
     torch_npu.npu._lazy_init()
     return {"cube_core_num": torch_npu._C._npu_get_device_res_limit(device_id, 0), \
            "vector_core_num": torch_npu._C._npu_get_device_res_limit(device_id, 1)}
+
+
+def set_stream_limit(stream, cube_num=-1, vector_num=-1):
+    if stream is None:
+        raise AssertionError("stream cannot be None" + pta_error(ErrCode.PARAM))
+    if not isinstance(stream, torch_npu.npu.Stream):
+        raise AssertionError(f"stream should be torch_npu.npu.Stream, could not be {type(stream)}" + pta_error(ErrCode.TYPE))
+    torch_npu.npu._lazy_init()
+    if cube_num != -1:
+        torch_npu._C._npu_set_stream_res_limit(stream_id=stream.stream_id,
+                                               device_index=stream.device_index,
+                                               device_type=stream.device_type,
+                                               type=0,
+                                               value=cube_num)
+    if vector_num != -1:
+        torch_npu._C._npu_set_stream_res_limit(stream_id=stream.stream_id,
+                                               device_index=stream.device_index,
+                                               device_type=stream.device_type,
+                                               type=1,
+                                               value=vector_num)
+
+
+def reset_stream_limit(stream):
+    if stream is None:
+        raise AssertionError("stream cannot be None" + pta_error(ErrCode.PARAM))
+    if not isinstance(stream, torch_npu.npu.Stream):
+        raise AssertionError(f"stream should be torch_npu.npu.Stream, could not be {type(stream)}" + pta_error(ErrCode.TYPE))
+    torch_npu.npu._lazy_init()
+    torch_npu._C._npu_reset_stream_res_limit(stream_id=stream.stream_id,
+                                             device_index=stream.device_index,
+                                             device_type=stream.device_type)
+
+
+def get_stream_limit(stream):
+    if stream is None:
+        raise AssertionError("stream cannot be None" + pta_error(ErrCode.PARAM))
+    if not isinstance(stream, torch_npu.npu.Stream):
+        raise AssertionError(
+            f"stream should be torch_npu.npu.Stream, could not be {type(stream)}" + pta_error(ErrCode.TYPE))
+    torch_npu.npu._lazy_init()
+    return {"cube_core_num": torch_npu._C._npu_get_stream_res_limit(stream_id=stream.stream_id,
+                                                                    device_index=stream.device_index,
+                                                                    device_type=stream.device_type,
+                                                                    type=0), \
+           "vector_core_num": torch_npu._C._npu_get_stream_res_limit(stream_id=stream.stream_id,
+                                                                     device_index=stream.device_index,
+                                                                     device_type=stream.device_type,
+                                                                     type=1)}

@@ -100,6 +100,21 @@ class TorchNPUDeviceTestCase(TestCase):
         torch.npu.set_device_limit(torch.npu.current_device(), 12, 24)
         self.assertEqual(ans_dict, torch.npu.get_device_limit(torch.npu.current_device()))
 
+    @unittest.skip("CANN doesn't support now.")
+    def test_set_stream_res_limit(self):
+        ans_dict_1 = {'cube_core_num': 13, 'vector_core_num': 25}
+        ans_dict_2 = {'cube_core_num': 14, 'vector_core_num': 26}
+        ans_dict_3 = {'cube_core_num': 12, 'vector_core_num': 24}
+        torch.npu.set_device_limit(torch.npu.current_device(), 12, 24)
+        stream1 = torch.npu.current_stream()
+        stream2 = torch.npu.Stream()
+        torch.npu.set_stream_limit(stream1, 13, 25)
+        torch.npu.set_stream_limit(stream2, 14, 26)
+        self.assertEqual(ans_dict_1, torch.npu.get_stream_limit(stream1))
+        self.assertEqual(ans_dict_2, torch.npu.get_stream_limit(stream2))
+        torch.npu.reset_stream_limit(stream1)
+        self.assertEqual(ans_dict_3, torch.npu.get_stream_limit(stream1))
+
 class TorchNPUMemoryApiTestCase(TestCase):
     def test_npu_memory_stats(self):
         res = torch_npu.npu.memory_stats()
