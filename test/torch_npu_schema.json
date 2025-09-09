@@ -846,7 +846,7 @@
     "signature": "(*args, **kwargs)"
   },
   "torch_npu.dynamo.torchair.ops.npu_record_tagged_stream": {
-    "signature": "(self: torch.Tensor, tagged_stream: str)"
+    "signature": "(input: torch.Tensor, tagged_stream: str)"
   },
   "torch_npu.profiler.HostSystem": {
     "signature": "()"
