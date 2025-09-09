@@ -1610,6 +1610,64 @@ ACL_FUNC_VISIBILITY aclError aclrtSetDeviceResLimit(int32_t deviceId, aclrtDevRe
  */
 ACL_FUNC_VISIBILITY aclError aclrtResetDeviceResLimit(int32_t deviceId);
 
+/**
+ * @ingroup AscendCL
+ * @brief Set the value of the current stream's limited resources
+ * @param [in] stream    stream pointer
+ * @param [in] type      resource type
+ * @param [in] value     resource limit value
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtSetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t value);
+
+/**
+ * @ingroup AscendCL
+ * @brief Reset the value of the current stream's limited resources
+ * @param [in] stream    stream pointer
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtResetStreamResLimit(aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
+ * @brief Get the value of the current stream's limited resources
+ * @param [in] stream    stream pointer
+ * @param [in] type      resources type
+ * @param [out] value    resources limit value
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t* value);
+
+/**
+ * @ingroup AscendCL
+ * @brief Enable the usage of stream resources in the current thread
+ * @param [in] stream    stream pointer
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtUseStreamResInCurrentThread(aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
+ * @brief Disable the usage of stream resources in the current thread
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtUnuseStreamResInCurrentThread();
+
+/**
+ * @ingroup AscendCL
+ * @brief Get the resource limit value for the current thread
+ * @param [in] type      resources type
+ * @param [out] value    resources limit value
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetResInCurrentThread(aclrtDevResModelType type, uint32_t* value);
+
 #ifdef __cplusplus
 }
 #endif

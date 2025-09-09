@@ -95,6 +95,12 @@ LOAD_FUNCTION(aclrtSetDeviceResLimit)
 LOAD_FUNCTION(aclrtResetDeviceResLimit)
 LOAD_FUNCTION(aclrtStreamGetId)
 LOAD_FUNCTION(aclrtMemcpyAsyncWithCondition)
+LOAD_FUNCTION(aclrtSetStreamResLimit)
+LOAD_FUNCTION(aclrtResetStreamResLimit)
+LOAD_FUNCTION(aclrtGetStreamResLimit)
+LOAD_FUNCTION(aclrtUseStreamResInCurrentThread)
+LOAD_FUNCTION(aclrtUnuseStreamResInCurrentThread)
+LOAD_FUNCTION(aclrtGetResInCurrentThread)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1108,6 +1114,85 @@ aclError AclrtMemcpyAsyncWithCondition(void *dst, size_t destMax, const void *sr
     }
     TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyAsyncWithCondition", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(dst, destMax, src, count, kind, stream);
+}
+
+aclError AclrtSetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t value)
+{
+    typedef aclError (*AclrtSetStreamResLimit)(aclrtStream, aclrtDevResModelType, uint32_t);
+    static AclrtSetStreamResLimit func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtSetStreamResLimit) GET_FUNC(aclrtSetStreamResLimit);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtSetStreamResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, type, value);
+}
+
+aclError AclrtResetStreamResLimit(aclrtStream stream)
+{
+    typedef aclError (*AclrtResetStreamResLimit)(aclrtStream);
+    static AclrtResetStreamResLimit func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtResetStreamResLimit) GET_FUNC(aclrtResetStreamResLimit);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtResetStreamResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream);
+}
+
+aclError AclrtGetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t* value)
+{
+    typedef aclError (*AclrtGetStreamResLimit)(aclrtStream, aclrtDevResModelType, uint32_t*);
+    static AclrtGetStreamResLimit func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetStreamResLimit) GET_FUNC(aclrtGetStreamResLimit);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtGetStreamResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, type, value);
+}
+
+aclError AclrtUseStreamResInCurrentThread(aclrtStream stream)
+{
+    typedef aclError (*AclrtUseStreamResInCurrentThread)(aclrtStream);
+    static AclrtUseStreamResInCurrentThread func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtUseStreamResInCurrentThread) GET_FUNC(aclrtUseStreamResInCurrentThread);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtUseStreamResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream);
+}
+
+aclError AclrtUnuseStreamResInCurrentThread()
+{
+    typedef aclError (*AclrtUnuseStreamResInCurrentThread)();
+    static AclrtUnuseStreamResInCurrentThread func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtUnuseStreamResInCurrentThread) GET_FUNC(aclrtUnuseStreamResInCurrentThread);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtUnuseStreamResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func();
+}
+
+aclError AclrtGetResInCurrentThread(aclrtDevResModelType type, uint32_t* value)
+{
+    typedef aclError (*AclrtGetResInCurrentThread)(aclrtDevResModelType, uint32_t*);
+    static AclrtGetResInCurrentThread func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetResInCurrentThread) GET_FUNC(aclrtGetResInCurrentThread);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtGetResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(type, value);
+}
+
+bool IsExistGetResInCurrentThread()
+{
+    typedef aclError (*AclrtGetResInCurrentThread)(aclrtDevResModelType, uint32_t*);
+    static AclrtGetResInCurrentThread func = (AclrtGetResInCurrentThread) GET_FUNC(aclrtGetResInCurrentThread);
+    return func != nullptr;
 }
 
 } // namespace acl

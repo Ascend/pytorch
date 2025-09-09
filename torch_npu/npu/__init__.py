@@ -117,7 +117,10 @@ __all__ = [
     "graph_task_update_begin",
     "graph_task_update_end",
     "set_device_limit",
-    "get_device_limit"
+    "get_device_limit",
+    "set_stream_limit",
+    "reset_stream_limit",
+    "get_stream_limit"
 ]
 
 from typing import Tuple, Union, List, cast, Optional
