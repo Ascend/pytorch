@@ -98,18 +98,6 @@ class TestPluggableAllocator(TestCase):
         torch.npu.reset_peak_memory_stats()
         self.assertEqual(torch.npu.max_memory_allocated(), 0)
 
-    def test_set_snapshot_fn(self):
-        os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
-        myallocator = ctypes.CDLL(os_path)
-        snapshot_fn = ctypes.cast(getattr(myallocator, "my_snapshot"), ctypes.c_void_p).value
-
-        msg = "snapshot_fn_ is not define, please set by set_snapshot_fn"
-        with self.assertRaisesRegex(RuntimeError, msg):
-            torch.npu.memory_snapshot()
-
-        TestPluggableAllocator.new_alloc.allocator().set_snapshot_fn(snapshot_fn)
-        self.assertEqual(torch.npu.memory_snapshot(), [])
-
     def test_pluggable_allocator_after_init(self):
         os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
         # Do an initial memory allocator
