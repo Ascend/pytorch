@@ -94,6 +94,8 @@ LOAD_FUNCTION(aclrtGetDeviceResLimit)
 LOAD_FUNCTION(aclrtSetDeviceResLimit)
 LOAD_FUNCTION(aclrtResetDeviceResLimit)
 LOAD_FUNCTION(aclrtStreamGetId)
+LOAD_FUNCTION(aclrtMemcpyBatch)
+LOAD_FUNCTION(aclrtMemcpyBatchAsync)
 LOAD_FUNCTION(aclrtLaunchCallback)
 LOAD_FUNCTION(aclrtSubscribeReport)
 LOAD_FUNCTION(aclrtUnSubscribeReport)
@@ -1092,6 +1094,54 @@ aclError AclrtStreamGetId(aclrtStream stream, int32_t* stream_id)
     }
     TORCH_CHECK(func, "Failed to find function ", "aclrtStreamGetId", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stream, stream_id);
+}
+
+bool IsExistMemcpyBatch()
+{
+    typedef aclError(*AclrtMemcpyBatchFunc)(void **, size_t *, void **, size_t *,
+                                            size_t, aclrtMemcpyBatchAttr *, size_t *,
+                                            size_t, size_t *);
+    static AclrtMemcpyBatchFunc func = (AclrtMemcpyBatchFunc) GET_FUNC(aclrtMemcpyBatch);
+    return func != nullptr;
+}
+
+bool IsExistMemcpyBatchAsync()
+{
+    typedef aclError(*AclrtMemcpyBatchAsyncFunc)(void **, size_t *, void **, size_t *,
+                                                 size_t, aclrtMemcpyBatchAttr *, size_t *,
+                                                 size_t, size_t *);
+    static AclrtMemcpyBatchAsyncFunc func = (AclrtMemcpyBatchAsyncFunc) GET_FUNC(aclrtMemcpyBatchAsync);
+    return func != nullptr;
+}
+
+aclError AclrtMemcpyBatch(void **dsts, size_t *destMax, void **srcs, size_t *sizes,
+                          size_t numBatches, aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
+                          size_t numAttrs, size_t *failIndex)
+{
+    typedef aclError(*AclrtMemcpyBatchFunc)(void **, size_t *, void **, size_t *,
+                                            size_t, aclrtMemcpyBatchAttr *, size_t *,
+                                            size_t, size_t *);
+    static AclrtMemcpyBatchFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemcpyBatchFunc) GET_FUNC(aclrtMemcpyBatch);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyBatch", PROF_ERROR(ErrCode::NOT_FOUND));
+    return func(dsts, destMax, srcs, sizes, numBatches, attrs, attrsIndexes, numAttrs, failIndex);
+}
+
+aclError AclrtMemcpyBatchAsync(void **dsts, size_t *destMax, void **srcs, size_t *sizes,
+                               size_t numBatches, aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
+                               size_t numAttrs, size_t *failIndex, aclrtStream stream)
+{
+    typedef aclError(*AclrtMemcpyBatchAsyncFunc)(void **, size_t *, void **, size_t *,
+                                                 size_t, aclrtMemcpyBatchAttr *, size_t *,
+                                                 size_t, size_t *, aclrtStream);
+    static AclrtMemcpyBatchAsyncFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemcpyBatchAsyncFunc) GET_FUNC(aclrtMemcpyBatchAsync);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyBatchAsync", PROF_ERROR(ErrCode::NOT_FOUND));
+    return func(dsts, destMax, srcs, sizes, numBatches, attrs, attrsIndexes, numAttrs, failIndex, stream);
 }
 
 aclError AclrtLaunchCallback(aclrtCallback fn, void *userData, aclrtCallbackBlockType blockType, aclrtStream stream)
