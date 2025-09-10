@@ -719,4 +719,9 @@ bool check_dequeue_need_use(aclrtStream stream)
     }
     return false;
 }
+
+bool is_core_control_enabled()
+{
+    return enable_core_control.load(std::memory_order_relaxed);
+}
 } // namespace c10_npu
