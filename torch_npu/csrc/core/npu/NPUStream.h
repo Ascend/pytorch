@@ -154,6 +154,8 @@ bool StreamInitFlag(c10::DeviceIndex device_index);
 C10_NPU_API bool check_enqueue_need_use(aclrtStream stream);
 
 C10_NPU_API bool check_dequeue_need_use(aclrtStream stream);
+
+C10_NPU_API bool is_core_control_enabled();
 } // namespace c10_npu
 
 namespace std {
