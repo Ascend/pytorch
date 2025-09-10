@@ -151,6 +151,12 @@ typedef struct aclrtMemLocation {
     aclrtMemLocationType type;
 } aclrtMemLocation;
 
+typedef struct {
+    aclrtMemLocation dstLoc;
+    aclrtMemLocation srcLoc;
+    uint8_t rsv[16];
+} aclrtMemcpyBatchAttr;
+
 typedef struct aclrtMemUceInfo {
     void* addr;
     size_t len;
@@ -938,6 +944,54 @@ ACL_FUNC_VISIBILITY aclError aclrtMemcpyAsync(void *dst,
                                               size_t count,
                                               aclrtMemcpyKind kind,
                                               aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
+ * @brief Performs a batch of memory copies synchronous.
+ * @param [in] dsts         Array of destination pointers.
+ * @param [in] destMax      Array of sizes for memcpy operations.
+ * @param [in] srcs         Array of memcpy source pointers.
+ * @param [in] sizes        Array of sizes for src memcpy operations.
+ * @param [in] numBatches   Size of dsts, srcs and sizes arrays.
+ * @param [in] attrs        Array of memcpy attributes.
+ * @param [in] attrsIndexes Array of indices to specify which copies each entry in the attrs array applies to.
+ *                          The attributes specified in attrs[k] will be applied to copies starting from attrsIdxs[k]
+ *                          through attrsIdxs[k+1] - 1. Also attrs[numAttrs-1] will apply to copies starting from
+ *                          attrsIdxs[numAttrs-1] through count - 1.
+ * @param [in] numAttrs     Size of attrs and attrsIdxs arrays.
+ * @param [out] failIdx     Pointer to a location to return the index of the copy where a failure was encountered.
+ *                          The value will be SIZE_MAX if the error doesn't pertain to any specific copy.
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtMemcpyBatch(void **dsts, size_t *destMax, void **srcs, size_t *sizes,
+                                              size_t numBatches, aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
+                                              size_t numAttrs, size_t *failIdx);
+
+
+/**
+ * @ingroup AscendCL
+ * @brief Performs a batch of memory copies synchronous.
+ * @param [in] dsts         Array of destination pointers.
+ * @param [in] destMax      Array of sizes for memcpy operations.
+ * @param [in] srcs         Array of memcpy source pointers.
+ * @param [in] sizes        Array of sizes for src memcpy operations.
+ * @param [in] numBatches   Size of dsts, srcs and sizes arrays.
+ * @param [in] attrs        Array of memcpy attributes.
+ * @param [in] attrsIdxs    Array of indices to specify which copies each entry in the attrs array applies to.
+ *                          The attributes specified in attrs[k] will be applied to copies starting from attrsIdxs[k]
+ *                          through attrsIdxs[k+1] - 1. Also attrs[numAttrs-1] will apply to copies starting from
+ *                          attrsIdxs[numAttrs-1] through count - 1.
+ * @param [in] numAttrs     Size of attrs and attrsIdxs arrays.
+ * @param [out] failIdx     Pointer to a location to return the index of the copy where a failure was encountered.
+ *                          The value will be SIZE_MAX if the error doesn't pertain to any specific copy.
+ * @param [in] stream       stream handle
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtMemcpyBatchAsync(void **dsts, size_t *destMax, void **srcs, size_t *sizes,
+                                                   size_t numBatches, aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
+                                                   size_t numAttrs, size_t *failIndex, aclrtStream stream);
 
 /**
  * @ingroup AscendCL
