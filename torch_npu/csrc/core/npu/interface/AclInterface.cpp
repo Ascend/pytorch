@@ -1188,12 +1188,5 @@ aclError AclrtGetResInCurrentThread(aclrtDevResModelType type, uint32_t* value)
     return func(type, value);
 }
 
-bool IsExistGetResInCurrentThread()
-{
-    typedef aclError (*AclrtGetResInCurrentThread)(aclrtDevResModelType, uint32_t*);
-    static AclrtGetResInCurrentThread func = (AclrtGetResInCurrentThread) GET_FUNC(aclrtGetResInCurrentThread);
-    return func != nullptr;
-}
-
 } // namespace acl
 } // namespace c10

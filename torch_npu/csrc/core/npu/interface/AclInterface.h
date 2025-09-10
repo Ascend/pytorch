@@ -276,11 +276,5 @@ aclError AclrtUnuseStreamResInCurrentThread();
 
 aclError AclrtGetResInCurrentThread(aclrtDevResModelType type, uint32_t* value);
 
-/**
- * This API is used to check whether aclrtGetResInCurrentThread exist
- * Compatible CANN, delete in future
-*/
-bool IsExistGetResInCurrentThread();
-
 } // namespace acl
 } // namespace c10_npu
