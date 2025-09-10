@@ -257,6 +257,34 @@ class TestNpu(TestCase):
         self.assertEqual(src, dst)
         self.assertFalse(dst.is_pinned())
 
+    def test_foreach_copy_d2h(self):
+        cpu_tensors = []
+        npu_tensors = []
+        cpu_tensors.append(torch.zeros([2, 3]).pin_memory())
+        npu_tensors.append(torch.randn([2, 3]).npu() + 1)
+        torch._foreach_copy_(cpu_tensors, npu_tensors, non_blocking=True)
+        self.assertEqual(cpu_tensors, npu_tensors)
+        for i in range(len(cpu_tensors)):
+            self.assertEqual(cpu_tensors[i].npu(), npu_tensors[i])
+
+    def test_foreach_copy_h2d(self):
+        cpu_tensors = []
+        npu_tensors = []
+        cpu_tensors.append(torch.zeros([2, 3]).pin_memory())
+        npu_tensors.append(torch.randn([2, 3]).npu() + 1)
+        torch._foreach_copy_(npu_tensors, cpu_tensors, non_blocking=True)
+        for i in range(len(cpu_tensors)):
+            self.assertEqual(cpu_tensors[i].npu(), npu_tensors[i])
+
+    def test_foreach_copy_h2d_sync(self):
+        cpu_tensors = []
+        npu_tensors = []
+        cpu_tensors.append(torch.zeros([2, 3]).pin_memory())
+        npu_tensors.append(torch.randn([2, 3]).npu() + 1)
+        torch._foreach_copy_(npu_tensors, cpu_tensors, non_blocking=False)
+        for i in range(len(cpu_tensors)):
+            self.assertEqual(cpu_tensors[i].npu(), npu_tensors[i])
+
     def test_serialization_array_with_storage(self):
         x = torch.randn(5, 5).npu()
         y = torch.IntTensor(2, 5).fill_(0).npu()
