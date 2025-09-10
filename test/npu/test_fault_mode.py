@@ -55,8 +55,10 @@ class TestMode(TestCase):
             torch.npu.set_option(option)
 
     def test_set_device(self):
+        device_count = torch.npu.device_count()
+        invalid_num = device_count + 1
         with self.assertRaisesRegex(RuntimeError, "The argument is invalid.+Set device failed, invalid device"):
-            torch.npu.set_device(8)
+            torch.npu.set_device(invalid_num)
 
     def test_distributed_init_param(self):
         with self.assertRaisesRegex(ValueError, "Error initializing torch.distributed"):
@@ -141,9 +143,11 @@ class TestMode(TestCase):
 
     def test_max_memory_allocated(self):
         x = torch.tensor(2).npu()
+        device_count = torch.npu.device_count()
+        invalid_num = device_count + 1
         traceback_str = ""
         try:
-            torch.npu.max_memory_allocated(device="npu:8")
+            torch.npu.max_memory_allocated(device=f"npu:{invalid_num}")
         except Exception as e:
             traceback_str = traceback.format_exc()
         self.assertIn("in max_memory_allocated", traceback_str)
@@ -151,9 +155,11 @@ class TestMode(TestCase):
 
     def test_memory_allocated(self):
         x = torch.tensor(2).npu()
+        device_count = torch.npu.device_count()
+        invalid_num = device_count + 1
         traceback_str = ""
         try:
-            torch.npu.memory_allocated(device="npu:8")
+            torch.npu.memory_allocated(device=f"npu:{invalid_num}")
         except Exception as e:
             traceback_str = traceback.format_exc()
         self.assertIn("in memory_allocated", traceback_str)
@@ -161,9 +167,11 @@ class TestMode(TestCase):
 
     def test_memory_reserved(self):
         x = torch.tensor(2).npu()
+        device_count = torch.npu.device_count()
+        invalid_num = device_count + 1
         traceback_str = ""
         try:
-            torch.npu.memory_reserved(device="npu:8")
+            torch.npu.memory_reserved(device=f"npu:{invalid_num}")
         except Exception as e:
             traceback_str = traceback.format_exc()
         self.assertIn("in memory_reserved", traceback_str)
@@ -171,9 +179,11 @@ class TestMode(TestCase):
 
     def test_reset_max_memory_allocated(self):
         x = torch.tensor(2).npu()
+        device_count = torch.npu.device_count()
+        invalid_num = device_count + 1
         traceback_str = ""
         try:
-            torch.npu.reset_max_memory_allocated(device="npu:8")
+            torch.npu.reset_max_memory_allocated(device=f"npu:{invalid_num}")
         except Exception as e:
             traceback_str = traceback.format_exc()
         self.assertIn("in reset_max_memory_allocated", traceback_str)
