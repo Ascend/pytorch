@@ -259,6 +259,18 @@ aclError AclrtResetDeviceResLimit(int32_t deviceId);
 
 aclError AclrtStreamGetId(aclrtStream stream, int32_t* stream_id);
 
+aclError AclrtMemcpyBatchAsync(void **dsts, size_t *destMax, void **srcs, size_t *sizes,
+                               size_t numBatches, aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
+                               size_t numAttrs, size_t *failIndex, aclrtStream stream);
+
+aclError AclrtMemcpyBatch(void **dsts, size_t *destMax, void **srcs, size_t *sizes,
+                          size_t numBatches, aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
+                          size_t numAttrs, size_t *failIdx);
+
+bool IsExistMemcpyBatch();
+
+bool IsExistMemcpyBatchAsync();
+
 aclError AclrtLaunchCallback(aclrtCallback fn, void *userData, aclrtCallbackBlockType blockType, aclrtStream stream);
 
 aclError AclrtSubscribeReport(uint64_t theadId, aclrtStream stream);
