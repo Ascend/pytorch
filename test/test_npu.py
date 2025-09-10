@@ -299,6 +299,34 @@ class TestNpu(TestCase):
         q_copy[1].fill_(10)
         self.assertEqual(q_copy[3], torch_npu.npu.IntStorage(10).fill_(10))
 
+    def test_foreach_copy_d2h(self):
+        cpu_tensors = []
+        npu_tensors = []
+        cpu_tensors.append(torch.zeros([2, 3]).pin_memory())
+        npu_tensors.append(torch.randn([2, 3]).npu() + 1)
+        torch._foreach_copy_(cpu_tensors, npu_tensors, non_blocking=True)
+        self.assertEqual(cpu_tensors, npu_tensors)
+        for i in range(len(cpu_tensors)):
+            self.assertEqual(cpu_tensors[i].npu(), npu_tensors[i])
+
+    def test_foreach_copy_h2d(self):
+        cpu_tensors = []
+        npu_tensors = []
+        cpu_tensors.append(torch.zeros([2, 3]).pin_memory())
+        npu_tensors.append(torch.randn([2, 3]).npu() + 1)
+        torch._foreach_copy_(npu_tensors, cpu_tensors, non_blocking=True)
+        for i in range(len(cpu_tensors)):
+            self.assertEqual(cpu_tensors[i].npu(), npu_tensors[i])
+
+    def test_foreach_copy_h2d_sync(self):
+        cpu_tensors = []
+        npu_tensors = []
+        cpu_tensors.append(torch.zeros([2, 3]).pin_memory())
+        npu_tensors.append(torch.randn([2, 3]).npu() + 1)
+        torch._foreach_copy_(npu_tensors, cpu_tensors, non_blocking=False)
+        for i in range(len(cpu_tensors)):
+            self.assertEqual(cpu_tensors[i].npu(), npu_tensors[i])
+            
     @unittest.skipIf(TEST_NPUMALLOCASYNC or TEST_WITH_ROCM, "temporarily disabled for async")
     def test_cublas_workspace_explicit_allocation(self):
         a = torch.randn(7, 7, device='npu', requires_grad=False)
