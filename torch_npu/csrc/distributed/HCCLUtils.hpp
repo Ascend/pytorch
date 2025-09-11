@@ -24,9 +24,10 @@
                    << DIST_ERROR(ErrCode::HCCL) + ".\n";                     \
                 std::string err_msg = oss.str();                          \
                 ASCEND_LOGE("%s", err_msg.c_str());                       \
+                std::string errmsg(c10_npu::c10_npu_get_error_message());    \
                 TORCH_CHECK(                                                 \
                     false,                                                   \
-                    c10_npu::c10_npu_get_error_message());                   \
+                    errmsg.empty() ? err_msg : errmsg);                      \
             } else {                                                         \
             TORCH_CHECK(                                                     \
                 false,                                                       \
