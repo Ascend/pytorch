@@ -154,6 +154,9 @@ const char *c10_npu_get_error_message()
     if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {
         std::string log(errmsg);
         std::string errmsg_ = c10_npu::c10_npu_check_error_message(log);
+        if (errmsg_ == "") {
+            return errmsg;
+        }
         thread_local std::string processedErrMsg = "CANN error: " + errmsg_;
         c10_npu::setRepoErrMsg(processedErrMsg.c_str());
         return processedErrMsg.c_str();
