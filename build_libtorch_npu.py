@@ -8,6 +8,7 @@ import sys
 import traceback
 import platform
 from pathlib import Path
+import hashlib
 
 from sysconfig import get_paths
 from distutils.version import LooseVersion
@@ -267,6 +268,15 @@ def copy_cmake():
     copy_file(cmake_file, dst_path)
 
 
+def file_sha256(filename):
+    """calculate file sha256"""
+    with open(filename, "rb") as f:
+        sha256 = hashlib.sha256()
+        sha256.update(f.read())
+        hash_value = sha256.hexdigest()
+        return hash_value
+
+
 def download_miniz():
     # 设置基础路径
     miniz_url = "https://gitee.com/mirrors/pytorch/raw/v2.6.0/third_party/miniz-3.0.2/miniz.h"
@@ -291,9 +301,13 @@ def download_miniz():
     subprocess.check_call([
         wget_path, 
         miniz_url,
+        "--no-check-certificate",
         "-O", os.path.join(miniz_dir, "miniz.h")
     ])
-
+    miniz_hash256 = file_sha256(os.path.join(miniz_dir, "miniz.h"))
+    if miniz_hash256 != "f959f5dfb5c5d3ed0f55f3e7e455afbe1e924d64d74cd2dd374740b9d87abfd0":
+        raise RuntimeError("the sha256sum of miniz.h is not incorrect.")
+        
 
 def build_libtorch_npu():
     clean_generated_files()
