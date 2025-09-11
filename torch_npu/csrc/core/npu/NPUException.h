@@ -163,10 +163,11 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                     << "\n";                                                 \
                 std::string err_msg = oss.str();                          \
                 ASCEND_LOGE("%s", err_msg.c_str());                       \
+                std::string errmsg(c10_npu::c10_npu_get_error_message());        \
                 TORCH_CHECK(                                                     \
                     false,                                                       \
                     (device_error_msg.empty() ? "" : device_error_msg),        \
-                    c10_npu::c10_npu_get_error_message());                       \
+                    errmsg.empty() ? err_msg : errmsg);                       \
             } else if (error_code == ACL_ERROR_RT_DEVICE_TASK_ABORT) {       \
                 TORCH_CHECK(                                                 \
                 false,                                                       \
@@ -218,9 +219,10 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                       err_map.error_code_map[Error] : ".") + "\n";           \
                 std::string err_msg = oss.str();                          \
                 ASCEND_LOGE("%s", err_msg.c_str());                       \
+                std::string errmsg(c10_npu::c10_npu_get_error_message());    \
                 TORCH_CHECK(                                                 \
                     false,                                                   \
-                    c10_npu::c10_npu_get_error_message());                   \
+                    errmsg.empty() ? err_msg : errmsg);                      \
             } else {                                                         \
             TORCH_CHECK(                                                     \
                 false,                                                       \
