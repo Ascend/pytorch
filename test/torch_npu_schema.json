@@ -681,10 +681,10 @@
     "signature": "(self)"
   },
   "torch_npu.dynamo.torchair.ge.custom_op": {
-    "signature": "(op_type: str, *, inputs: Optional[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]]], outputs: Optional[List[Union[str, Tuple[str, int]]]], attrs: Optional[Dict[str, ForwardRef('_Attr')]] = None, node_name: Optional[str] = None)"
+    "signature": "(op_type: str, *args, inputs: Optional[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]]] = None, outputs: Optional[List[Union[str, Tuple[str, int]]]] = None, attrs: Optional[Dict[str, ForwardRef('_Attr')]] = None, node_name: Optional[str] = None)"
   },
   "torch_npu.dynamo.torchair.ge.ge_custom.custom_op": {
-    "signature": "(op_type: str, *, inputs: Optional[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]]], outputs: Optional[List[Union[str, Tuple[str, int]]]], attrs: Optional[Dict[str, ForwardRef('_Attr')]] = None, node_name: Optional[str] = None)"
+    "signature": "(op_type: str, *args, inputs: Optional[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]]] = None, outputs: Optional[List[Union[str, Tuple[str, int]]]] = None, attrs: Optional[Dict[str, ForwardRef('_Attr')]] = None, node_name: Optional[str] = None)"
   },
   "torch_npu.dynamo.torchair.inference.cache_compile": {
     "signature": "(func, *, config: Optional[torchair.configs.compiler_config.CompilerConfig] = None, dynamic: bool = True, cache_dir: Optional[str] = None, global_rank: Optional[int] = None, tp_rank: Optional[int] = None, pp_rank: Optional[int] = None, **kwargs) -> Callable"
