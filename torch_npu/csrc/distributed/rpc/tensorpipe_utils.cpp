@@ -80,6 +80,9 @@ public:
                                            tensorpipe_npu::Allocation &allocation) const override
     {
         at::DataPtr dataPtr = at::getCPUAllocator()->allocate(length);
+        if (length > 0) {
+            TORCH_CHECK(dataPtr, "Get dataPtr failed", PTA_ERROR(ErrCode::PARAM));
+        }
 
         tensorpipe_npu::CpuBuffer buffer;
         buffer.ptr = dataPtr.get();
