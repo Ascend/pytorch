@@ -8,6 +8,7 @@ from typing import Dict, Sequence, List, Iterable
 from typing import List, Union, Any
 from typing import Union, Iterable
 import sympy
+import torch
 from torch._dynamo.utils import counters
 from torch._dynamo.utils import counters
 from torch._inductor import scheduler, metrics
@@ -136,7 +137,7 @@ class NPUTritonScheduling(TritonScheduling):
                 if traced_graph is None:
                     log.warning(f"For nodes {nodes}, could not gen fx graph while dump-graph.")
                 else:
-                    traced_graph_hash = code_hash(traced_graph.print_readable(print_output=False))
+                    traced_graph_hash = code_hash(traced_graph.print_readable(print_output=False) + torch.__version__)
 
             kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash)
 

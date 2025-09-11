@@ -1,6 +1,7 @@
 import functools
 import itertools
 import os
+import math
 import textwrap
 from typing import (
     Any,
@@ -14,15 +15,10 @@ from typing import (
 )
 import sympy
 import torch._ops
-import torch._ops
 from sympy.core import Expr, Integer, Symbol
 from torch._inductor import ir
-from torch._inductor import ir
-from torch._inductor import lowering
 from torch._inductor import lowering
 from torch._inductor import scheduler
-from torch._inductor import scheduler
-from torch._inductor.decomposition import decompositions
 from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
 from torch._inductor.fx_passes.post_grad import view_to_reshape
 from torch._inductor.ir import (
@@ -39,18 +35,12 @@ from torch._inductor.ir import (
     validate_ir,
     View,
 )
-from torch._inductor.ir import ExpandView, TensorBox
-from torch._inductor.ir import ExpandView, TensorBox
-from torch._inductor.ir import Reduction
-from torch._inductor.ir import Reduction
-from torch._inductor.lowering import sum_, _validate_dim, get_promoted_dtype
+from torch._inductor.lowering import _validate_dim, get_promoted_dtype
 from torch._inductor.utils import ModularIndexing, FloorDiv
 from torch._inductor.utils import (
     decode_device,
     sympy_product,
 )
-from torch._inductor.utils import sympy_product
-from torch._inductor.utils import sympy_product
 from torch._inductor.virtualized import ops, V
 from torch._prims_common import (
     canonicalize_dims,
@@ -62,16 +52,6 @@ from torch._prims_common import (
     is_float_dtype,
     is_integer_dtype,
     Number,
-)
-from torch._prims_common import (
-    is_boolean_dtype,
-    is_integer_dtype,
-    get_computation_dtype,
-)
-from torch._prims_common import (
-    is_boolean_dtype,
-    is_integer_dtype,
-    get_computation_dtype,
 )
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch.utils._sympy.functions import (
@@ -1967,6 +1947,14 @@ def _register_npu_inductor_fallbacks():
         if is_integral:
             return truncdiv(a, b)
 
+        if (divisor := lowering.get_constant_value(b)) is not None:
+            # Replace divide by constant with multiply by reciprocal
+            if divisor.value == 0:
+                reciprocal = math.copysign(float("inf"), divisor.value)
+            else:
+                reciprocal = 1.0 / divisor.value
+            return mul(a, reciprocal)
+
         def fn(*args):
             return ops.truediv(*args)
 
@@ -2191,6 +2179,16 @@ def _register_npu_inductor_fallbacks():
     register_inplace(aten.__ixor__, aten.__xor__)
 
     ##########################################################################
+    @register_lowering([aten.sum, prims.sum])
+    def sum_(x, axis=None, keepdims=False, *, dtype=None):
+        if (
+            is_integer_dtype(x.get_dtype()) or is_boolean_dtype(x.get_dtype())
+        ) and dtype is None:
+            dtype = torch.int64
+
+        fn = make_reduction("sum", override_return_dtype=dtype)
+        return fn(x, axis, keepdims, dtype=dtype)
+
 
     @register_lowering(aten.mean)
     def mean(x, axis=None, keepdim=False, *, dtype=None):

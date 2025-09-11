@@ -7,6 +7,7 @@ from torch.testing._internal.common_utils import run_tests
 from testutils import TestUtils
 import torch_npu
 
+torch._inductor.config.fx_graph_cache = False
 os.environ["INDUCTOR_ASCEND_CHECK_ACCURACY"] = "1"
 
 
