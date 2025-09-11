@@ -60,6 +60,9 @@ public:
         // stream.
         c10_npu::NPUStreamGuard guard(stream);
         at::DataPtr dataPtr = c10_npu::NPUCachingAllocator::get()->allocate(length);
+        if (length > 0) {
+            TORCH_CHECK(dataPtr, "Get dataPtr failed", PTA_ERROR(ErrCode::PARAM));
+        }
 
         tensorpipe_npu::NPUBuffer buffer;
         buffer.ptr = dataPtr.get();

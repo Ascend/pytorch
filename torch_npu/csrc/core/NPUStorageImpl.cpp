@@ -31,6 +31,9 @@ c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
 {
     if (data_ptr == nullptr) {
         data_ptr = allocator->allocate(size_bytes.as_int_unchecked());
+        if (size_bytes.as_int_unchecked() > 0) {
+            TORCH_CHECK(data_ptr, "Get data_ptr failed", PTA_ERROR(ErrCode::PARAM));
+        }
     }
     // Correctly create NPUStorageImpl object.
     c10::intrusive_ptr<c10::StorageImpl> npu_storage_impl = c10::make_intrusive<NPUStorageImpl>(
