@@ -46,7 +46,8 @@ using std::vector;
                   << OPS_ERROR(ErrCode::INTERNAL);                                                 \
                 std::string err_msg=oss.str();                                                     \
                 ASCEND_LOGE("%s", err_msg.c_str());                                                \
-                TORCH_CHECK((expr) == 0, c10_npu::c10_npu_get_error_message());                    \
+                std::string errmsg(c10_npu::c10_npu_get_error_message());                          \
+                TORCH_CHECK((expr) == 0, errmsg.empty() ? err_msg : errmsg);                       \
             } else {                                                                               \
                 TORCH_CHECK((expr) == 0, __func__, ":", __FILE__, ":", __LINE__,                   \
                         " NPU error,NPU error code is:", expr, "\n",                               \
