@@ -1,6 +1,8 @@
-from typing import Tuple, Union, cast, List
+from typing import Any, Tuple, Union, cast, List, Dict
+import logging
 
 import torch
+import torch.nn as nn
 from torch import distributed as dist
 from torch._dynamo import tensor_version_op
 from torch._prims import _make_prim, RETURN_TYPE
@@ -10,9 +12,13 @@ from torch.distributed.fsdp._fully_shard._fsdp_collectives import AllGatherResul
 from torch.distributed.fsdp._fully_shard._fsdp_common import compiled_autograd_enabled, TrainingState
 from torch.distributed.fsdp._fully_shard._fsdp_param import FSDPParam, ShardedState
 from torch.distributed.fsdp._fully_shard._fsdp_param_group import FSDPParamGroup, AllGatherState
+from torch.distributed.utils import _to_kwargs
 from torch.profiler import record_function
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
+
+
+logger = logging.getLogger("torch.distributed.fsdp.fully_shard")
 
 
 def _patched_finalize_backward(self):
@@ -258,6 +264,36 @@ def _get_param_all_gather_inputs(
     return param_all_gather_inputs
 
 
+def _patched_root_pre_forward(
+        self, module: nn.Module, args: Tuple[Any, ...], kwargs: Dict[str, Any]
+) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
+    self._lazy_init()
+    if self._state_ctx.iter_forward_root is not None:
+        return args, kwargs
+    if not compiled_autograd_enabled():
+        logger.debug("FSDP::root_pre_forward")
+    self._state_ctx.iter_forward_root = self
+    with torch.profiler.record_function("FSDP::root_pre_forward"):
+        # Wait for optimizer before implicitly prefetched all-gathers
+        event = self._state_ctx.post_optim_event
+        if event is not None:
+            self._comm_ctx.all_gather_copy_in_stream.wait_event(event)
+            self._comm_ctx.all_gather_stream.wait_event(event)
+            self._state_ctx.post_optim_event = None
+        else:
+            current_stream = self._device_handle.current_stream()
+            self._comm_ctx.all_gather_copy_in_stream.wait_stream(current_stream)
+            self._comm_ctx.all_gather_stream.wait_stream(current_stream)
+        # add patch for supporting self._device.type="npu"
+        if self._device.type in ["cuda", "hpu", "npu"]:
+            with torch.profiler.record_function("FSDP::inputs_to_device"):
+                args_tuple, kwargs_tuple = _to_kwargs(
+                    args, kwargs, self._device, False
+                )  # same as DDP
+            args, kwargs = args_tuple[0], kwargs_tuple[0]
+    return args, kwargs
+
+
 def _apply_fsdp_patch():
     FSDPParamGroup.finalize_backward = _patched_finalize_backward
     FSDPParamGroup.wait_for_unshard = patched_wait_for_unshard
@@ -266,3 +302,4 @@ def _apply_fsdp_patch():
     _unsafe_preserve_version_counter.__init__ = _patched_unsafe_preserve_version_counter.__init__
     _unsafe_preserve_version_counter.__exit__ = _patched_unsafe_preserve_version_counter.__exit__
     torch.distributed.fsdp._fully_shard._fsdp_collectives._get_param_all_gather_inputs = _get_param_all_gather_inputs
+    torch.distributed.fsdp._fully_shard._fsdp_state.FSDPState._root_pre_forward = _patched_root_pre_forward
