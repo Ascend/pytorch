@@ -34,6 +34,9 @@ static void storage_resize_npu(
     }
 
     at::DataPtr new_data = storage.allocator()->allocate(size);
+    if (size > 0) {
+        TORCH_CHECK(new_data, "Get new_data failed", PTA_ERROR(ErrCode::PARAM));
+    }
     size_t itemsize = storage_desc.data_type_.itemsize();
     at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
     ptrdiff_t old_size = static_cast<ptrdiff_t>(storage.nbytes());
