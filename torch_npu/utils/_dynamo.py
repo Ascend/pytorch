@@ -172,6 +172,9 @@ def patch_inductor_wrapper():
     src_call = _TorchCompileInductorWrapper.__call__
     
     def new_call(self, model_, inputs_):
+        if self.config.get('max_autotune', False):
+            import os
+            os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
         if not is_inductor_npu_initialized():
             # For each model_, detect at most once.
             try:
