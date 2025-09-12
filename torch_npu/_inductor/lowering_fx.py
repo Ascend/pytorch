@@ -2286,7 +2286,16 @@ def _register_npu_inductor_fallbacks():
 
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
-        return lowering.fallback_handler(aten.cat.default)(inputs, dim)
+        if len(inputs) == 1:
+            return clone(inputs[0])
+        dim = _validate_dim(inputs[0], dim, 0)
+        dtype = lowering.get_promoted_dtype(
+            *inputs,
+            type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
+
+        )
+        inputs = [to_dtype(inp, dtype) for inp in inputs]
+        return TensorBox(ir.ConcatKernel.create(inputs, dim))
 
     lowering.make_fallback(aten._log_softmax)
     lowering.make_fallback(aten.gather)

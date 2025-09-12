@@ -76,3 +76,10 @@ def patch_has_triton():
     torch._inductor.scheduler.has_triton = has_triton
 
 
+def disable_foreach():
+    from torch._inductor.scheduler import Scheduler
+
+    def create_foreach_nodes(self):
+        return
+
+    Scheduler.create_foreach_nodes = create_foreach_nodes

@@ -5,12 +5,13 @@ from torch._inductor import lowering
 from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
 from torch._inductor.ir import ExpandView, TensorBox, ops_wrapper
 from torch._inductor.ir import Reduction
-from torch._inductor.lowering import sum_
+from torch._inductor.lowering import sum_, clone
 from torch._inductor.utils import sympy_product
 from torch._prims_common import (
     is_boolean_dtype,
     is_integer_dtype,
     get_computation_dtype,
+    ELEMENTWISE_TYPE_PROMOTION_KIND,
 )
 from torch._inductor.lowering import (
     lowerings,
@@ -30,7 +31,10 @@ from torch._inductor.lowering import (
     _make_reduction_inner,
     _validate_reduction_axis,
     add_needs_realized_inputs,
-    add_layout_constraint
+    add_layout_constraint,
+    require_channels_last,
+    _validate_dim,
+    get_promoted_dtype,
 )
 import torch_npu
 from torch_npu import npu_dtype_cast, _npu_dtype_cast
@@ -262,7 +266,16 @@ def _register_npu_inductor_fallbacks():
 
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
-        return fallback_handler(aten.cat.default)(inputs, dim)
+        if len(inputs) == 1:
+            return clone(inputs[0])
+        dim = _validate_dim(inputs[0], dim, 0)
+        dtype = get_promoted_dtype(
+            *inputs,
+            type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
+
+        )
+        inputs = [to_dtype(inp, dtype) for inp in inputs]
+        return TensorBox(ir.ConcatKernel.create(inputs, dim))
 
     make_fallback(aten._log_softmax)
     make_fallback(aten.gather)
