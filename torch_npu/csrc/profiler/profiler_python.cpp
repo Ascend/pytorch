@@ -216,6 +216,7 @@ public:
 private:
     PythonTracer();
     static PythonTracer& singleton();
+    static PythonTracer* get_singleton_in_child_thread();
 
     void start(size_t max_threads = max_py_threads);
     void startOne();
@@ -248,12 +249,25 @@ private:
     AppendOnlyList<TraceEvent> events_;
     std::unordered_map<uintptr_t, std::vector<StartPyCall>> start_py_call_info_;
     std::unordered_map<uintptr_t, uint64_t> ctx_tid_map_;
+    static std::atomic<bool> instance_created_;
 };
+
+std::atomic<bool> torch_npu::profiler::python_tracer::PythonTracer::instance_created_ = false;
 
 PythonTracer& PythonTracer::singleton()
 {
     static PythonTracer singleton_;
+    instance_created_ = true;
     return singleton_;
+}
+
+PythonTracer* PythonTracer::get_singleton_in_child_thread()
+{
+    if (instance_created_) {
+        return &singleton();
+    } else {
+        return nullptr;
+    }
 }
 
 PythonTracer::PythonTracer() : active_(false)
@@ -673,7 +687,9 @@ void PythonTracer::call(Command c)
 {
     switch (c) {
         case Command::kStartOne:
-            PythonTracer::singleton().startOne();
+            if (auto tracer = get_singleton_in_child_thread()) {
+                tracer->startOne();
+            }
             break;
 
         case Command::kStartAll:
@@ -685,7 +701,9 @@ void PythonTracer::call(Command c)
             break;
 
         case Command::kStopOne:
-            PythonTracer::singleton().stopOne();
+            if (auto tracer = get_singleton_in_child_thread()) {
+                tracer->stopOne();
+            }
             break;
 
         case Command::kClear:
