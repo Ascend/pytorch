@@ -135,7 +135,7 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
         return _GraphDispatchRecord(event=event, handle=handle, kwargs=kwargs_ref, args=tuple(args_ref), op_cache_entry=func)
 
     def __torch_dispatch__(self, func, types, args=(), kwargs=None):
-        if func.__name__ == "npu_fused_infer_attention_score":
+        if func.__name__ in ["npu_fused_infer_attention_score", "npu_fused_infer_attention_score.default"]:
             func_out = torch_npu.npu_fused_infer_attention_score.out
             self.update_schema(str(func_out.__name__), str(func_out._schema))
             stream = torch_npu.npu.current_stream()
