@@ -383,7 +383,7 @@ class TableColumnsManager():
         ],
         DbConstant.TABLE_ENUM_API_TYPE : [
             ("id", Constant.SQL_INTEGER_TYPE),
-            ("name", Constant.SQL_INTEGER_TYPE)
+            ("name", Constant.SQL_TEXT_TYPE)
         ],
         DbConstant.TABLE_PYTORCH_API : [
             ("startNs", Constant.SQL_TEXT_TYPE),
