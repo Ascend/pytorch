@@ -32,6 +32,18 @@ class TestNpuStream(TestCase):
                 self.assertTrue(current_stream.npu_stream == current_raw_stream)
                 self.assertTrue(current_stream.npu_stream == interface_raw_stream)
 
+    def test_priority(self):
+        s = torch.npu.Stream()
+        self.assertTrue((s.stream_id >> 5) == 3)
+        s = torch.npu.Stream(priority=0)
+        self.assertTrue((s.stream_id >> 5) == 3)
+        s = torch.npu.Stream(priority=1)
+        self.assertTrue((s.stream_id >> 5) == 3)
+        s = torch.npu.Stream(priority=-1)
+        self.assertTrue((s.stream_id >> 5) == 4)
+        s = torch.npu.Stream(priority=-2)
+        self.assertTrue((s.stream_id >> 5) == 4)
+
 
 if __name__ == "__main__":
     run_tests()
