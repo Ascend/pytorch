@@ -120,7 +120,8 @@ __all__ = [
     "get_device_limit",
     "set_stream_limit",
     "reset_stream_limit",
-    "get_stream_limit"
+    "get_stream_limit",
+    "ipc_collect"
 ]
 
 from typing import Tuple, Union, List, cast, Optional
@@ -139,7 +140,7 @@ from .utils import (synchronize, set_device, current_device, _get_device_index,
                     device, device_of, StreamContext, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
                     finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag,
-                    check_uce_in_memory, stress_detect, _get_uce_addr)
+                    check_uce_in_memory, stress_detect, _get_uce_addr, ipc_collect)
 from ._recovery import restart_device, stop_device
 from .streams import Stream, Event, SyncLaunchStream, ExternalEvent
 from .mstx import mstx
