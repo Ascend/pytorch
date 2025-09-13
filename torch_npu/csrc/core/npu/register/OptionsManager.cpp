@@ -14,6 +14,7 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/npu/memory_snapshot.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 
 namespace c10_npu {
 namespace option {
@@ -481,12 +482,26 @@ uint32_t OptionsManager::GetAclOpInitMode()
 {
     const static uint32_t acl_op_init_mode = []() -> uint32_t {
         char* buf_val = std::getenv("ACL_OP_INIT_MODE");
-        // Default 0
-        int64_t acl_op_init_mode = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 0;
+        // Default 1 for A2/A3; Default 0 for others
+        static bool default_value_acl_mode = ((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) &&
+            (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1)) ||
+            ((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910_9391));
+        int64_t acl_op_init_mode_;
+        if (default_value_acl_mode) {
+            acl_op_init_mode_ = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 1;
+        } else {
+            acl_op_init_mode_ = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 0;
+        }
+        
         std::unordered_map<int32_t, std::string> aclOpInitMode = getAclOpInitMode();
-        if (aclOpInitMode.find(acl_op_init_mode) == aclOpInitMode.end()) {
-            acl_op_init_mode = 0;
-            TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value 0.");
+        if (aclOpInitMode.find(acl_op_init_mode_) == aclOpInitMode.end()) {
+            if (default_value_acl_mode) {
+                acl_op_init_mode_ = 1;
+                TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value 1.");
+            } else {
+                acl_op_init_mode_ = 0;
+                TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value 0.");
+            }
         }
         return static_cast<uint32_t>(acl_op_init_mode);
     }();
