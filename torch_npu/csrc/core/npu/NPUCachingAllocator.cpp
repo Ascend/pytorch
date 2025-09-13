@@ -586,9 +586,7 @@ private:
         // cannot call c10::npu::stream_synchronize because
         // it might grab the GIL which can lead to a deadlock
         // Locking order must be GIL -> Allocator Lock
-        if (stream_) {
-            NPU_CHECK_ERROR(aclrtSynchronizeStream(*stream_));
-        } else {
+        {
             c10_npu::NPUGuard device_guard(device_);
             c10_npu::npuSynchronizeDevice(true);
         }
@@ -3394,15 +3392,6 @@ public:
         emptyCacheImpl(check_error, false);
     }
 
-    void clearIpcHandles() override
-    {
-        std::lock_guard<std::mutex> lock(ipcHandleMutex);
-        for (auto &handle : ipcHandles) {
-            NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(handle));
-        }
-        ipcHandles.clear();
-    }
-
     void *getBaseAllocation(void *ptr, size_t *outSize) override
     {
         Block *block = get_allocated_block(ptr);
@@ -3722,7 +3711,10 @@ public:
         void clear()
         {
             if (npu_ipc_ptr_) {
-                c10_npu::NPUGuard device_guard(device_);
+                {
+                    c10_npu::NPUGuard device_guard(device_);
+                    c10_npu::npuSynchronizeDevice(true);
+                }
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemClose(handle_s.c_str()));
                 npu_ipc_ptr_ = nullptr;
             }

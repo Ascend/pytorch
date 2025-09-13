@@ -47,6 +47,7 @@ static PyObject* THNPStorage_shareNpu(PyObject* self, PyObject* args)
     }
 
     at::DeviceGuard device_guard(storage.device());
+    c10_npu::LazySetDevice(storage.device().index());
     THPObjectPtr tuple(PyTuple_New(8));
     THPObjectPtr device(THPUtils_packInt32(storage.device().index()));
     THPObjectPtr _handle(Py_None);
@@ -193,6 +194,7 @@ static PyObject* THNPStorage_newSharedNpu(PyObject* _unused, PyObject* args)
     const auto device = c10::checked_convert<c10::DeviceIndex>(
         THPUtils_unpackLong(_device), "c10::DeviceIndex");
     c10_npu::NPUGuard device_guard(device);
+    c10_npu::LazySetDevice(device);
 
     if (PyObject_IsTrue(_event_sync_required)) {
         // TO BE DONE
