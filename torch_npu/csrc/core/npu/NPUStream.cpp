@@ -56,6 +56,7 @@ struct LeakyStreamInternals {
 static c10::DeviceIndex num_npus = -1;
 static constexpr int kStreamsPerPoolBits = 5;
 static constexpr int kStreamsPerPool = 1 << kStreamsPerPoolBits;
+static constexpr int kMaxStreamPriorities = 2;
 static constexpr int kSyncLaunchStreamsPerPool = 4;
 // Default streams init flags
 static bool initialize_flag[C10_COMPILE_TIME_MAX_NPUS] = {false};
@@ -70,11 +71,19 @@ static LeakyStreamInternals secondary_streams[C10_COMPILE_TIME_MAX_NPUS];
 static std::once_flag device_flags[C10_COMPILE_TIME_MAX_NPUS];
 // SyncLaunch streams pool init flags
 static std::once_flag device_sync_launch_flags[C10_COMPILE_TIME_MAX_NPUS];
-static std::atomic<uint32_t> npu_counters[C10_COMPILE_TIME_MAX_NPUS];
+static std::array<
+    std::array<std::atomic<uint32_t>, C10_COMPILE_TIME_MAX_NPUS>,
+    kMaxStreamPriorities>
+    npu_counters;
 static std::atomic<uint32_t> sync_stream_counters[C10_COMPILE_TIME_MAX_NPUS];
 // npu_streams is a stream pool, each device has a stream pool,
 // and 8 streams are created in each pool.
-static std::array<LeakyStreamInternals, kStreamsPerPool> npu_streams[C10_COMPILE_TIME_MAX_NPUS];
+static std::array<
+    std::array<
+        std::array<LeakyStreamInternals, kStreamsPerPool>,
+        C10_COMPILE_TIME_MAX_NPUS>,
+    kMaxStreamPriorities>
+    npu_streams;
 static thread_local std::unique_ptr<LeakyStreamInternals* []> current_streams = nullptr;
 
 static std::array<LeakyStreamInternals, kSyncLaunchStreamsPerPool> sync_launch_streams[C10_COMPILE_TIME_MAX_NPUS];
@@ -83,9 +92,10 @@ thread_local aclrtStream tls_prev_stream = nullptr;
 
 enum class StreamIdType : uint8_t {
     DEFAULT = 0x0,
-    HCCL = 0x1,
-    SECONDARY = 0x2,
-    SYNCLAUNCH = 0x3,
+    SECONDARY = 0x1,
+    SYNCLAUNCH = 0x2,
+    NORMAL = 0x3,
+    HIGH = 0x4,
 };
 
 std::ostream& operator<<(std::ostream& stream, StreamIdType s)
@@ -94,8 +104,11 @@ std::ostream& operator<<(std::ostream& stream, StreamIdType s)
         case StreamIdType::DEFAULT:
             stream << "DEFAULT";
             break;
-        case StreamIdType::HCCL:
-            stream << "HCCL";
+        case StreamIdType::NORMAL:
+            stream << "NORMAL";
+            break;
+        case StreamIdType::HIGH:
+            stream << "HIGH";
             break;
         case StreamIdType::SECONDARY:
             stream << "SECONDARY";
@@ -163,9 +176,11 @@ static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr)
     if (ptr == &default_streams[device_index]) {
         return makeStreamId(StreamIdType::DEFAULT, 0);
     }
-    if (pointer_within<LeakyStreamInternals>(ptr, npu_streams[device_index])) {
-        return makeStreamId(
-            StreamIdType::HCCL, ptr - npu_streams[device_index].data());
+    for (const auto p : c10::irange(kMaxStreamPriorities)) {
+        if (pointer_within<LeakyStreamInternals>(ptr, npu_streams[p][device_index])) {
+            return makeStreamId(StreamIdType(static_cast<uint8_t>(StreamIdType::NORMAL) + p),
+                                ptr - npu_streams[p][device_index].data());
+        }
     }
     if (pointer_within<LeakyStreamInternals>(ptr, sync_launch_streams[device_index])) {
         return makeStreamId(
@@ -202,7 +217,9 @@ static void initGlobalStreamState()
     }
     // Initializes default streams
     default_streams[device_id].device_index = device_id;
-    npu_counters[device_id] = 0;
+    for (const auto p : c10::irange(kMaxStreamPriorities)) {
+        npu_counters[p][device_id] = 0;
+    }
     auto& default_streamsi = default_streams[device_id];
     NPU_CHECK_ERROR(
         acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
@@ -223,12 +240,14 @@ static void initDeviceStreamState(c10::DeviceIndex device_index)
     NPUGuard device_guard{device_index};
     static int StreamsPerPool = GetStreamsPerPool();
     for (auto i = decltype(StreamsPerPool){0}; i < StreamsPerPool; ++i) {
-        auto& npu_streami = npu_streams[device_index][i];
+        for (const auto p : c10::irange(kMaxStreamPriorities)) {
+            auto& npu_streami = npu_streams[p][device_index][i];
 
-        npu_streami.device_index = device_index;
+            npu_streami.device_index = device_index;
 
-        NPU_CHECK_ERROR(
-            acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+            NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
+                &npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+        }
     }
 }
 
@@ -296,8 +315,9 @@ LeakyStreamInternals* NPUStream_internals(NPUStream s)
                 " Did you manufacture the StreamId yourself?  Don't do that; use the",
                 " official API like c10::cuda::getStreamFromPool() to get a new stream.", PTA_ERROR(ErrCode::PARAM));
             return &default_streams[device_index];
-        case StreamIdType::HCCL:
-            return &npu_streams[device_index][si];
+        case StreamIdType::NORMAL:
+        case StreamIdType::HIGH:
+            return &npu_streams[static_cast<uint8_t>(st) - static_cast<uint8_t>(StreamIdType::NORMAL)][device_index][si];
         case StreamIdType::SECONDARY:
             return &secondary_streams[device_index];
         case StreamIdType::SYNCLAUNCH:
@@ -357,7 +377,7 @@ aclrtStream NPUStream::stream() const
     return cur_ptr->stream;
 }
 
-NPUStream getNPUStreamFromPool(c10::DeviceIndex device_index)
+NPUStream getStreamFromPool(const int priority, c10::DeviceIndex device_index)
 {
     initNPUStreamsOnce();
     if (device_index == -1) {
@@ -368,30 +388,21 @@ NPUStream getNPUStreamFromPool(c10::DeviceIndex device_index)
     // Initializes the stream pools (once)
     std::call_once(
         device_flags[device_index], initDeviceStreamState, device_index);
+    auto pri_idx = std::clamp(-priority, 0, kMaxStreamPriorities - 1);
+    const auto idx = get_idx(npu_counters[pri_idx][device_index]);
+    return NPUStream_fromInternals(&npu_streams[pri_idx][device_index][idx]);
+}
 
-    const auto idx = get_idx(npu_counters[device_index]);
-    return NPUStream_fromInternals(&npu_streams[device_index][idx]);
+NPUStream getNPUStreamFromPool(c10::DeviceIndex device_index)
+{
+    return getStreamFromPool(0, device_index);
 }
 
 NPUStream getStreamFromPool(const bool isHighPriority, c10::DeviceIndex device_index)
 {
     initNPUStreamsOnce();
-    if (device_index == -1) {
-        device_index = current_device();
-    }
-    check_npu(device_index);
-
-    // Initializes the stream pools (once)
-    std::call_once(
-        device_flags[device_index], initDeviceStreamState, device_index);
-
-    if (isHighPriority) {
-        const auto idx = get_idx(npu_counters[device_index]);
-        return NPUStream_fromInternals(&npu_streams[device_index][idx]);
-    }
-
-    const auto idx = get_idx(npu_counters[device_index]);
-    return NPUStream_fromInternals(&npu_streams[device_index][idx]);
+    int priority = isHighPriority ? -kMaxStreamPriorities + 1 : 0;
+    return getStreamFromPool(priority, device_index);
 }
 
 NPUStream getDefaultNPUStream(c10::DeviceIndex device_index)
@@ -633,12 +644,14 @@ void recovery_all_npu_streams(c10::DeviceIndex device_index)
         acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
     static int StreamsPerPool = GetStreamsPerPool();
     for (auto i = decltype(StreamsPerPool){0}; i < StreamsPerPool; ++i) {
-        auto& npu_streami = npu_streams[device_index][i];
-        if (npu_streami.stream == nullptr) {
-            continue;
+        for (const auto p : c10::irange(kMaxStreamPriorities)) {
+            auto& npu_streami = npu_streams[p][device_index][i];
+            if (npu_streami.stream == nullptr) {
+                continue;
+            }
+            NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
+                &npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
         }
-        NPU_CHECK_ERROR(
-            acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
     }
 }
 
