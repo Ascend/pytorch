@@ -1932,8 +1932,13 @@ public:
             // available unmapped virtual address space. We shouldn't change it but
             // instead check it is correctly formed then skip over allocating it.
             if (i == segment_len - 1 && curr_block->expandable_segment_) {
-                TORCH_CHECK(curr_block->next == nullptr, PTA_ERROR(ErrCode::PTR));
-                TORCH_CHECK(!curr_block->mapped, PTA_ERROR(ErrCode::PTR));
+                // In case where expandable_segment is enabled, memory blocks will be merged when they are released.
+                // Therefore, when a small memory block is allocated first, followed by a larger memory block,
+                // and both are subsequently freed. If we attempt to restore the segment state by check point
+                // of the allocated small memory block, we will observe that the next memory block of the last block
+                // is not nullptr, and the last block is also a mapped block.
+                // This is reasonable because blocks are merged. Hence, we will remove those excessive validations.
+                // For more details, see https://github.com/pytorch/pytorch/issues/161356.
                 TORCH_CHECK(curr_block->allocated == false, PTA_ERROR(ErrCode::VALUE));
                 continue;
             }
@@ -1980,8 +1985,7 @@ public:
 
         for (size_t i = 0; i < segment_len; ++i, curr_block = curr_block->next) {
             if (i == segment_len - 1 && curr_block->expandable_segment_) {
-                TORCH_CHECK(curr_block->next == nullptr, PTA_ERROR(ErrCode::PTR));
-                TORCH_CHECK(!curr_block->mapped, PTA_ERROR(ErrCode::PTR));
+                // The same reason as above.
                 TORCH_CHECK(curr_block->allocated == false, PTA_ERROR(ErrCode::VALUE));
                 continue;
             }
@@ -1998,7 +2002,12 @@ public:
 
             TORCH_CHECK(curr_block->ptr == block_state.ptr, PTA_ERROR(ErrCode::PTR));
             TORCH_CHECK(curr_block->allocated == block_state.allocated, PTA_ERROR(ErrCode::VALUE));
-            TORCH_CHECK(curr_block->size == block_state.size, PTA_ERROR(ErrCode::VALUE));
+            if (!curr_block->expandable_segment_) {
+                // In case where expandable_segment is enabled, memory blocks will be merged when they are released.
+                // The size of curr_block may be greater than the size of block_state.
+                // Therefore the block size assertion is also excessive in expandable_segment.
+                TORCH_CHECK(curr_block->size == block_state.size, PTA_ERROR(ErrCode::VALUE));
+            }
         }
     }
     /**
