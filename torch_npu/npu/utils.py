@@ -17,7 +17,7 @@ __all__ = ["synchronize", "device_count", "can_device_access_peer", "set_device"
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
-           "check_uce_in_memory", "stress_detect", "get_cann_version"]
+           "check_uce_in_memory", "stress_detect", "get_cann_version", "ipc_collect"]
 
 
 def get_cann_version(module="CANN"):
@@ -56,6 +56,19 @@ def synchronize(device=None):
     torch_npu.npu._lazy_init()
     with torch_npu.npu.device(device):
         return torch_npu._C._npu_synchronize()
+
+
+def ipc_collect():
+    r"""Force collects NPU memory after it has been released by NPU IPC.
+
+    .. note::
+        Checks if any sent NPU tensors could be cleaned from the memory. Force
+        closes shared memory file used for reference counting if there is no
+        active counters. Useful when the producer process stopped actively sending
+        tensors and want to release unused memory.
+    """
+    torch_npu.npu._lazy_init()
+    return torch_npu._C._npu_ipc_collect()
 
 
 def device_count() -> int:
