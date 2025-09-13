@@ -69,6 +69,10 @@ static std::vector<std::string> TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC = {
 static std::vector<std::string> TORCH_HCCL_COORD_CHECK_MILSEC = {
     "TORCH_HCCL_COORD_CHECK_MILSEC"};
 
+// Control whether to always use high priority streams
+static std::vector<std::string> TORCH_HCCL_HIGH_PRIORITY = {
+    "TORCH_HCCL_HIGH_PRIORITY"};
+
 // A struct to hold the latest status of the process group.
 struct ProcessGroupStatus {
     // the sequential number of the last collective enqueued into workMetaList_

@@ -94,7 +94,10 @@ inline c10_npu::NPUStream getNPUStreamByCurrentType(c10::DeviceIndex device = -1
 {
     auto current_Stream = c10_npu::getCurrentNPUStream(device);
     if (!current_Stream.isSyncLaunchStream()) {
-        return c10_npu::getNPUStreamFromPool(device);
+        bool force_high = c10d::getCvarBool(TORCH_HCCL_HIGH_PRIORITY, false);
+        auto s = c10_npu::getStreamFromPool(force_high, device);
+        ASCEND_LOGD("Get stream, stream id: %zu", static_cast<size_t>(s.id()))
+        return s;
     }
     return c10_npu::getNPUStreamFromSyncLaunchPool(device);
 }
