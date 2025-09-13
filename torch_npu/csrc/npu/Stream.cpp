@@ -61,7 +61,7 @@ static PyObject *THNPStream_pynew(
         c10_npu::NPUStream::unpack3(
             stream_id, device_index, static_cast<c10::DeviceType>(device_type)) :
         (is_sync_launch ? c10_npu::getNPUStreamFromSyncLaunchPool() :
-        c10_npu::getNPUStreamFromPool());
+        c10_npu::getStreamFromPool(priority));
 
     THNPStream *self = (THNPStream *)ptr.get();
     self->stream_id = static_cast<int64_t>(stream.id());

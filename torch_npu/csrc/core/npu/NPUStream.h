@@ -114,6 +114,7 @@ public:
 private:
     c10::Stream stream_;
 };
+NPUStream getStreamFromPool(const int priority, c10::DeviceIndex device = -1);
 
 C10_NPU_API NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
 

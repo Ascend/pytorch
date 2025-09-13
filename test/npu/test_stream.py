@@ -17,6 +17,18 @@ class TestNpuStream(TestCase):
             stream_instance.add(current_stream)
         self.assertTrue(len(stream_instance) == device_number)
 
+    def test_priority(self):
+        s = torch.npu.Stream()
+        self.assertTrue((s.stream_id >> 5) == 3)
+        s = torch.npu.Stream(priority=0)
+        self.assertTrue((s.stream_id >> 5) == 3)
+        s = torch.npu.Stream(priority=1)
+        self.assertTrue((s.stream_id >> 5) == 3)
+        s = torch.npu.Stream(priority=-1)
+        self.assertTrue((s.stream_id >> 5) == 4)
+        s = torch.npu.Stream(priority=-2)
+        self.assertTrue((s.stream_id >> 5) == 4)
+
 
 if __name__ == "__main__":
     run_tests()
