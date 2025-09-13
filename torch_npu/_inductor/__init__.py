@@ -38,6 +38,7 @@ else:
     from .npu_device import NewNPUDeviceOpOverrides
     from .runtime import _load_cached_autotuning
     from .utils import get_current_raw_stream, patch_device_need_guard
+    from .shape_handling import NPUShapeHandling, patch_shape_handling
 
     set_compile_threads()
 
