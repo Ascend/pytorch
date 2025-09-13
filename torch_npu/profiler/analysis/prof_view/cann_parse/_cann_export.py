@@ -96,26 +96,32 @@ class CANNExportParser(BaseParser):
         return False
 
     def _check_msprof_path(self):
+        error_message = ""
         if not self.msprof_path:
-            raise RuntimeError("Export CANN Profiling data failed! 'msprof' command not found!"
-                               + prof_error(ErrCode.NOT_FOUND))
+            error_message += "Export CANN Profiling data failed! 'msprof' command not found!" \
+                             + prof_error(ErrCode.NOT_FOUND) + "\n"
         if not ProfilerPathManager.check_path_permission(self.msprof_path):
-            raise PermissionError(f"The '{self.msprof_path}' path and current owner have inconsistent permissions."
-                                  f"please execute 'chown -R {pwd.getpwuid(os.getuid()).pw_name} "
-                                  f"{os.path.normpath(os.path.join(self.msprof_path, '../../..'))}'"
-                                  + prof_error(ErrCode.PERMISSION))
+            error_message += f"The '{self.msprof_path}' path and current owner have inconsistent permissions." \
+                             f"please execute 'chown -R {pwd.getpwuid(os.getuid()).pw_name} " \
+                             f"{os.path.normpath(os.path.join(self.msprof_path, '../../..'))}'" \
+                             + prof_error(ErrCode.PERMISSION) + "\n"
         msprof_script_path = self._get_msprof_script_path(self._MSPROF_PY_PATH)
         if not msprof_script_path:
-            raise FileNotFoundError(
-                f"Failed to find msprof.py path in {self.msprof_path}. Please check the CANN environment."
-            )
+            error_message += f"Failed to find msprof.py path in {self.msprof_path}. Please check the CANN environment." \
+                             + prof_error(ErrCode.NOT_FOUND) + "\n"
         # The path "os.path.join(msprof_script_path, '../../../../../../..')"  represents the layer of "ascend-toolkit",
         # such as "xxx/ascend-toolkit"
         if not ProfilerPathManager.check_path_permission(msprof_script_path):
-            raise PermissionError(f"The '{msprof_script_path}' path and current owner have inconsistent permissions."
-                                  f"please execute 'chown -R {pwd.getpwuid(os.getuid()).pw_name} "
-                                  f"{os.path.normpath(os.path.join(msprof_script_path, '../../../../../../..'))}'"
-                                  + prof_error(ErrCode.PERMISSION))
+            error_message += f"The '{msprof_script_path}' path and current owner have inconsistent permissions." \
+                             f"please execute 'chown -R {pwd.getpwuid(os.getuid()).pw_name} " \
+                             f"{os.path.normpath(os.path.join(msprof_script_path, '../../../../../../..'))}'" \
+                             + prof_error(ErrCode.PERMISSION) + "\n"
+        if ProfilerPathManager.path_is_other_writable(msprof_script_path):
+            error_message += f"Path '{msprof_script_path}' permission allow others users to write. " \
+                             f"Please execute 'chmod -R 755 '{msprof_script_path}' '" \
+                             + prof_error(ErrCode.PERMISSION)
+        if error_message:
+            raise RuntimeError(error_message)
 
     def _get_msprof_script_path(self, script_path: str) -> str:
         msprof_path = os.path.realpath(self.msprof_path.strip())
