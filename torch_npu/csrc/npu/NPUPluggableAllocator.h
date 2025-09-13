@@ -62,7 +62,6 @@ struct NPUPluggableAllocator
     void emptyCacheImpl(bool check_error, bool free_physical) override;
     void emptyCache(bool check_error) override;
     void emptyVirtAddrCache(bool check_error) override;
-    void clearIpcHandles() override;
     void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) override;
     void* getBaseAllocation(void* ptr, size_t* size) override;
     void recordStream(const c10::DataPtr&, streamType stream) override;
