@@ -135,6 +135,8 @@ void OpCommand::Run()
     aclCmd->SetEnginePriority();
     const string &op_name = aclCmd->GetName();
     at_npu::aclops::LazyInitAclops();
+    auto val = c10_npu::option::GetOption("jitCompile");
+    NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val->c_str()));
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
 #endif
