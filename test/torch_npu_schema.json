@@ -1001,6 +1001,9 @@
   "torch_npu.npu.check_uce_in_memory": {
     "signature": "(device_id)"
   },
+  "torch_npu.npu.ipc_collect": {
+    "signature": "()"
+  },
   "torch_npu.npu.clear_npu_overflow_flag": {
     "signature": "()"
   },
@@ -1558,6 +1561,9 @@
   },
   "torch_npu.npu.streams.SyncLaunchStream.set_data_preprocess_stream": {
     "signature": "(self, is_data_preprocess_stream=False)"
+  },
+  "torch_npu.npu.utils.ipc_collect": {
+    "signature": "()"
   },
   "torch_npu.npu.utils.clear_npu_overflow_flag": {
     "signature": "()"
