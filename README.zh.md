@@ -26,7 +26,7 @@
 
 **Ascend Extension for PyTorch**的分支名称采用`{PyTorch版本}-{昇腾版本}`命名规则，前者为**Ascend Extension for PyTorch**匹配的PyTorch版本，后者为**Ascend Extension for PyTorch**版本号，详细匹配如下：
 
-| CANN版本                | 支持的PyTorch版本 | 支持的Extension版本   | Gitee分支           | 
+| CANN版本                | 支持的PyTorch版本 | 支持的Extension版本   | GitCode分支         | 
 |-----------------------|--------------|------------------|-------------------|
 | CANN 8.2.RC1          | 2.6.0        | 2.6.0            | v2.6.0-7.1.0      |
 |                       | 2.5.1        | 2.5.1.post1      | v2.5.1-7.1.0      |
@@ -35,7 +35,7 @@
 |                       | 2.4.0        | 2.4.0.post4      | v2.4.0-7.0.0      |
 |                       | 2.3.1        | 2.3.1.post6      | v2.3.1-7.0.0      |
 |                       | 2.1.0        | 2.1.0.post12     | v2.1.0-7.0.0      |
-| CANN 8.1.RC1.alpha002            | 2.6.0        | 2.6.0rc1      | v2.6.0      |
+| CANN 8.1.RC1.alpha002            | 2.6.0        | 2.6.0rc1      | v2.6.0            |
 | CANN 8.0.0            | 2.4.0        | 2.4.0.post2      | v2.4.0-6.0.0      |
 |                       | 2.3.1        | 2.3.1.post4      | v2.3.1-6.0.0      |
 |                       | 2.1.0        | 2.1.0.post10     | v2.1.0-6.0.0      |
@@ -144,7 +144,7 @@
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git -b v2.6.0 --depth 1
+   git clone https://gitcode.com/ascend/pytorch.git -b v2.6.0 --depth 1
    ```
 
 2. **构建镜像**
@@ -246,7 +246,7 @@ torch_npu的卸载只需执行命令：
 
 ## 建议与交流
 
-欢迎大家为社区做贡献。如果有任何疑问或建议，请提交[Gitee Issues](https://gitee.com/Ascend/pytorch/issues)，我们会尽快回复。感谢您的支持。
+欢迎大家为社区做贡献。如果有任何疑问或建议，请提交[GitCode Issues](https://gitcode.com/Ascend/pytorch/issues)，我们会尽快回复。感谢您的支持。
 
 ## 分支维护策略
 
