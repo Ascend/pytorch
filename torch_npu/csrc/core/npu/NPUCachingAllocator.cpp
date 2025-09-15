@@ -23,7 +23,6 @@
 #include "NPUBlockHandle.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
-#include "torch_npu/csrc/core/npu/NPUIPCPidManager.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #ifndef BUILD_LIBTORCH
@@ -363,10 +362,6 @@ However, it is possible to temporarily disable (expandable_segments:False) the
 bevhavior for allocator tensors that need to be used cross-process.
 */
 
-std::mutex ipcHandleMutex;
-ska::flat_hash_map<uint64_t, aclrtDrvMemHandle> ipcShareableHandle_to_handle;
-ska::flat_hash_set<aclrtDrvMemHandle> ipcHandles;
-
 struct ExpandableSegment {
     ExpandableSegment(
         int device,
@@ -490,10 +485,7 @@ struct ExpandableSegment {
             if (!handle.shareableHandle) {
                 uint64_t shareableHandle = 0;
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMemExportToShareableHandle(
-                    handle.handle, ACL_MEM_HANDLE_TYPE_NONE, 0, &shareableHandle));
-                int32_t* pids = nullptr;
-                int pid_num = torch_npu::ipc::getPids(&pids);
-                NPU_CHECK_ERROR(c10_npu::acl::AclrtMemSetPidToShareableHandle(shareableHandle, pids, pid_num));
+                    handle.handle, ACL_MEM_HANDLE_TYPE_NONE, ACL_RT_VMM_EXPORT_FLAG_DISABLE_PID_VALIDATION, &shareableHandle));
                 handle.shareableHandle = shareableHandle;
             }
             uint64_t shandle = *handle.shareableHandle;
@@ -506,7 +498,6 @@ struct ExpandableSegment {
         c10::DeviceIndex device,
         std::istream& buf)
     {
-        std::lock_guard<std::mutex> lock(ipcHandleMutex);
         ShareHeader header{};
         buf.read((char*)&header, sizeof(ShareHeader));
         auto segment = std::make_unique<ExpandableSegment>(
@@ -519,20 +510,11 @@ struct ExpandableSegment {
             uint64_t shareableHandle = 0;
             buf.read((char*)&shareableHandle, sizeof(uint64_t));
 
-            auto iter = ipcShareableHandle_to_handle.find(shareableHandle);
-            if (iter != ipcShareableHandle_to_handle.end()) {
-                aclrtDrvMemHandle handle = iter->second;
-                segment->handles_.emplace_back(Handle{handle, shareableHandle});
-                continue;
-            }
-
             int32_t deviceId = static_cast<int32_t>(device);
             aclrtDrvMemHandle handle;
             NPU_CHECK_ERROR(c10_npu::acl::AclrtMemImportFromShareableHandle(
                 shareableHandle, deviceId, &handle));
             segment->handles_.emplace_back(Handle{handle, shareableHandle});
-            ipcShareableHandle_to_handle.insert(iter, {shareableHandle, handle});
-            ipcHandles.insert(handle);
         }
         segment->mapAndSetAccess(0, header.num_handles);
         return segment;
@@ -600,13 +582,6 @@ private:
             Handle h = handles_.at(i).value();
             handles_.at(i) = std::nullopt;
             NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem((char *)ptr_ + segment_size_ * i, getHcclComm()));
-            if (C10_UNLIKELY(h.shareableHandle)) {
-                std::lock_guard<std::mutex> lock(ipcHandleMutex);
-                auto iter = ipcHandles.find(h.handle);
-                if (iter != ipcHandles.end()) {
-                    continue;
-                }
-            }
             if (!pool) {
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h.handle));
             } else {
@@ -1688,10 +1663,7 @@ public:
             auto it = ipc_handle_map.find(base_ptr);
             if (it == ipc_handle_map.end()) {
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemGetExportKey(
-                    base_ptr, base_size, handle.data, ACL_IPC_HANDLE_SIZE, 0));
-                int32_t* pids = nullptr;
-                size_t pid_num = torch_npu::ipc::getPids(&pids);
-                NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemSetImportPid(handle.data, pids, pid_num));
+                    base_ptr, base_size, handle.data, ACL_IPC_HANDLE_SIZE, ACL_RT_IPC_MEM_EXPORT_FLAG_DISABLE_PID_VALIDATION));
                 ipc_handle_map[base_ptr] = handle;
             } else {
                 handle = it->second;
@@ -3664,7 +3636,8 @@ public:
             if (type == SHAREABLE_NPU_MALLOC) {
                 handle_str handle_r;
                 ss.read(handle_r.data, ACL_IPC_HANDLE_SIZE);
-                NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemImportByKey(&npu_ipc_ptr_, handle_r.data, 0));
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemImportByKey(
+                    &npu_ipc_ptr_, handle_r.data, ACL_RT_IPC_MEM_IMPORT_FLAG_ENABLE_PEER_ACCESS));
                 handle_s.assign(handle_r.data, ACL_IPC_HANDLE_SIZE);
             } else if (type == SHAREABLE_NPU_EXPANDABLE_SEGMENT) {
                 expandable_segment_ =
