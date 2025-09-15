@@ -16,9 +16,8 @@
 
 <h2 id="入门.md">入门</h2>
 
--   在[Gitee](https://gitee.com/ascend/pytorch)上Fork存储库。
--   阅读[README.md](#https://gitee.com/ascend/pytorch/blob/master/README.zh.md)以获取项目信息和构建说明。
--   行为准则 [coc](https://gitee.com/ascend/community/blob/master/code-of-conduct_zh_cn.md)。
+-   在[GitCode](https://gitcode.com/ascend/pytorch)上Fork存储库。
+-   阅读[README.md](#https://gitcode.com/ascend/pytorch/blob/master/README.zh.md)以获取项目信息和构建说明。
 
 <h2 id="开发指导.md">开发指导</h2>
 
@@ -159,9 +158,9 @@
     如果要将代码下载到本地环境，git是很好的方法：
 
     ```
-    # For Gitee
-    git clone https://gitee.com/{insert_your_forked_repo}/pytorch.git
-    git remote add upstream https://gitee.com/pytorch/pytorch.git
+    # For GitCode
+    git clone https://gitcode.com/{insert_your_forked_repo}/pytorch.git
+    git remote add upstream https://gitcode.com/pytorch/pytorch.git
     ```
 
 3.  本地开发代码。
@@ -213,7 +212,7 @@
 
 <h2 id="提出PR.md">提出PR</h2>
 
--   在[Gitee](https://gitee.com/ascend/pytorch/issues)上提出您的想法作为_问题_。
+-   在[GitCode](https://gitcode.com/ascend/pytorch/issues)上提出您的想法作为_问题_。
 -   如果是需要大量设计细节的新功能，还应提交设计方案。
 -   在问题讨论和设计提案审查中达成共识后，完成分叉回购的开发并提交 PR（Pull Request）。
 -   在从批准者那里收到2+ LGTM（Looks Good To Me）之前，不允许任何PR 。请注意，审批人不允许在自己的 PR 上添加LGTM。

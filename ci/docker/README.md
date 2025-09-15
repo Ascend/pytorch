@@ -7,7 +7,7 @@ This folder hosts the `Dockerfile` to build docker images with various platforms
 **Clone torch-npu**
 
 ```Shell
-git clone https://gitee.com/ascend/pytorch.git --depth 1
+git clone https://gitcode.com/ascend/pytorch.git --depth 1
 ```
 
 **Build docker image**
