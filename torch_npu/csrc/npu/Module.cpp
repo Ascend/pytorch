@@ -28,7 +28,6 @@
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NPUPeerToPeerAccess.h"
-#include "torch_npu/csrc/core/npu/NPUIPCPidManager.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -1783,43 +1782,6 @@ static PyObject* THNPModule_is_gte_cann_version(PyObject* self, PyObject *args)
     END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPModule_add_ipc_pid(PyObject* self, PyObject *args)
-{
-    HANDLE_TH_ERRORS
-    int pid;
-    if (!PyArg_ParseTuple(args, "i", &pid)) {
-        throw torch::TypeError("Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
-    }
-    torch_npu::ipc::addPid(pid);
- 
-    Py_RETURN_NONE;
-    END_HANDLE_TH_ERRORS
-}
-
-static PyObject* THNPModule_get_ipc_pid(PyObject* self, PyObject *noargs)
-{
-    HANDLE_TH_ERRORS
-    int32_t pid;
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtDeviceGetBareTgid(&pid));
-    return THPUtils_packInt32(pid);
-    END_HANDLE_TH_ERRORS
-}
-
-static PyObject* THNPModule_add_p2p_access(PyObject* self, PyObject *args)
-{
-    HANDLE_TH_ERRORS
-    int src_dev;
-    int dst_dev;
-    if (!PyArg_ParseTuple(args, "ii", &src_dev, &dst_dev)) {
-        throw torch::TypeError("Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
-    }
-    bool warning_flag = false;
-    at_npu::native::NpuP2pCtrl::get_instance().get_p2p_access(src_dev, dst_dev, warning_flag);
- 
-    Py_RETURN_NONE;
-    END_HANDLE_TH_ERRORS
-}
-
 static PyObject* THNPModule_set_device_res_limit(PyObject* self, PyObject *args)
 {
     HANDLE_TH_ERRORS
@@ -2022,9 +1984,6 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_clear_fft_plan_cache", (PyCFunction)THNPModule_npu_clear_fft_plan_cache, METH_NOARGS, nullptr},
     {"_get_cann_version", (PyCFunction)THNPModule_get_cann_version, METH_O, nullptr},
     {"_is_gte_cann_version", (PyCFunction)THNPModule_is_gte_cann_version, METH_VARARGS, nullptr},
-    {"_add_ipc_pid", (PyCFunction)THNPModule_add_ipc_pid, METH_VARARGS, nullptr},
-    {"_get_ipc_pid", (PyCFunction)THNPModule_get_ipc_pid, METH_NOARGS, nullptr},
-    {"_add_p2p_access", (PyCFunction)THNPModule_add_p2p_access, METH_VARARGS, nullptr},
     {"_npu_get_device_res_limit", (PyCFunction)THNPModule_get_device_res_limit, METH_VARARGS, nullptr},
     {"_npu_set_device_res_limit", (PyCFunction)THNPModule_set_device_res_limit, METH_VARARGS, nullptr},
     {"_npu_reset_device_res_limit", (PyCFunction)THNPModule_reset_device_res_limit, METH_O, nullptr},
