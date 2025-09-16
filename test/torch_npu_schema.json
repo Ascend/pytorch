@@ -785,6 +785,9 @@
   "torch_npu.npu.utils.get_cann_version": {
     "signature": "(module='CANN')"
   },
+  "torch_npu.utils.get_cann_version": {
+    "signature": "(module='CANN')"
+  },
   "torch_npu.contrib.module.activations.Mish": {
     "signature": "()"
   },
