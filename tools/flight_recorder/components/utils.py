@@ -1,3 +1,10 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# Copyright (c) 2025-2025 Huawei Technologies Co., Ltd.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import argparse
 import math
 from typing import Any
@@ -120,9 +127,9 @@ def get_valid_write_path(path, check_user_stat=True, is_dir=False, warn_exists=T
 
 
 def format_frame(frame: dict[str, str]) -> str:
-    name = frame["name"]
-    filename = frame["filename"]
-    line = frame["line"]
+    name = frame.get("name", "unknown")
+    filename = frame.get("filename", "unknown_file")
+    line = frame.get("line", "unknown_line")
     return f"{name} at {filename}:{line}"
 
 
@@ -148,8 +155,14 @@ def check_size_alltoall(alltoall_cases: list[dict[str, Any]]) -> tuple[bool, int
     input_numel = 0
     output_numel = 0
     for e in alltoall_cases:
-        input_numel += math.prod(e["input_sizes"][0])
-        output_numel += math.prod(e["output_sizes"][0])
+        input_sizes = e.get("input_sizes", [])
+        output_sizes = e.get("output_sizes", [])
+        
+        if input_sizes and len(input_sizes) > 0:
+            input_numel += math.prod(input_sizes[0])
+        
+        if output_sizes and len(output_sizes) > 0:
+            output_numel += math.prod(output_sizes[0])
     return input_numel != output_numel, input_numel, output_numel
 
 
@@ -171,8 +184,8 @@ def check_current_entry_match(
             # step over ops from other PGs
             # only check match state when seq_id matches
             if (
-                pg_guids[(entry["process_group"][0], rank)] == pg_name
-                and entry["collective_seq_id"] == match_record.entry_state.collective_seq_id
+            pg_guids.get((entry.get("process_group", [None])[0], rank)) == pg_name
+            and entry.get("collective_seq_id") == match_record.entry_state.collective_seq_id
             ):
                 match_info = match_one_event(current_entry, entry, _memberships, pg_name)
                 if match_info.state in [MatchState.FULLY_MATCHED, MatchState.UNDECIDED] and mismatch[pg_name] == 0:
@@ -314,11 +327,13 @@ def just_print_entries(
                 row.append("")
             else:
                 entry = all_entries[rank].pop(0)
-                pg_name = _pg_guids[(entry["process_group"][0], rank)]
+                process_group = entry.get("process_group", [None, None])
+                pg_name = _pg_guids.get((process_group[0], rank))
+                
                 if (
                     args.pg_filters is None
-                    or entry["process_group"][1] in args.pg_filters
-                    or entry["process_group"][0] in args.pg_filters
+                    or process_group[1] in args.pg_filters
+                    or process_group[0] in args.pg_filters
                 ):
                     row.append(str(Op(entry, _memberships, pg_name)))
                 else:
@@ -331,9 +346,16 @@ def just_print_entries(
 
 
 def check_no_missing_dump_files(entries: dict[int, Any], memberships: list[Membership]) -> None:
-    all_ranks = {int(m.global_rank) for m in memberships}
+    try:
+        all_ranks = {int(m.global_rank) for m in memberships}
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Cannot extract rank from memberships. Invalid global_rank value encountered: {e}") from e
 
-    dumps_ranks = {int(key) for key in entries.keys()}
+    try:
+        dumps_ranks = {int(key) for key in entries.keys()}
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Cannot extract rank from entries keys. Invalid key value encountered: {e}") from e
+    
     missing_ranks = all_ranks - dumps_ranks
     if missing_ranks:
         raise ValueError(
@@ -392,10 +414,10 @@ def align_trace_from_beginning(
         # Rank 3: [0, 1, 2, 3, 4, 5, None]
         # Then we should start from collective 2 not 0 because any collective before,
         # we don't have complete records from all ranks so we need to ignore them.
-        first_record_id = entries[rank][0]["record_id"]
+        first_record_id = entries[rank][0].get("record_id", -1)
         maximum_starting_record_id = max(maximum_starting_record_id, first_record_id)
 
     for rank in entries:
-        entries[rank] = [entry for entry in entries[rank] if entry["record_id"] >= maximum_starting_record_id]
+        entries[rank] = [entry for entry in entries[rank] if entry.get("record_id", -1) >= maximum_starting_record_id]
 
     return entries

@@ -1,3 +1,10 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# Copyright (c) 2025-2025 Huawei Technologies Co., Ltd.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import math
 import os
 from enum import auto, Enum
@@ -173,16 +180,17 @@ class EntryState:
     """
 
     def __init__(self, entry: dict[str, Any], expected_ranks: set[int]) -> None:
-        self.pg_name = entry["process_group"][0]
-        self.desc = entry["process_group"][1]
-        self.pg_desc = f"{self.pg_name}:{self.desc}" if self.desc != "undefined" else self.pg_name
-        self.profiling_name = entry["profiling_name"]
-        self.collective_seq_id = entry["collective_seq_id"]
-        self.p2p_seq_id = entry["p2p_seq_id"]
-        self.record_id = entry["record_id"]
-        self.input_sizes = entry["input_sizes"]
-        self.output_sizes = entry["output_sizes"]
-        self.collective_state = entry["state"]
+        process_group = entry.get("process_group", (None, None))
+        self.pg_name = process_group[0] if process_group and len(process_group) > 0 else None
+        self.desc = process_group[1] if process_group and len(process_group) > 1 else None
+        self.pg_desc = f"{self.pg_name}:{self.desc}" if self.desc and self.desc != "undefined" else self.pg_name
+        self.profiling_name = entry.get("profiling_name")
+        self.collective_seq_id = entry.get("collective_seq_id", 0)
+        self.p2p_seq_id = entry.get("p2p_seq_id", 0)
+        self.record_id = entry.get("record_id")
+        self.input_sizes = entry.get("input_sizes", [])
+        self.output_sizes = entry.get("output_sizes", [])
+        self.collective_state = entry.get("state")
         self.collective_frames = entry.get("frames", [])
         self.expected_ranks = expected_ranks
         self.missing_ranks: set[int]
@@ -202,30 +210,31 @@ class EntryState:
             logger_msg,
             self.collective_seq_id,
         )
-        logger.info("internal record id: %s", self.record_id)
-        logger.info("group info: %s", self.pg_desc)
-        logger.info("collective: %s", self.profiling_name)
+        logger.info("internal record id: %r", self.record_id)
+        logger.info("group info: %r", self.pg_desc)
+        logger.info("collective: %r", self.profiling_name)
         if additional_info and "missing_ranks" in additional_info:
             missing_ranks = additional_info["missing_ranks"]
             self.missing_ranks = missing_ranks
-            logger.info("missing ranks: %s", missing_ranks)
+            logger.info("missing ranks: %r", missing_ranks)
         if additional_info and "total_numel" in additional_info:
             total_numel = additional_info["total_numel"]
-            self.input_numel = total_numel[0]
-            self.output_numel = total_numel[1]
-            logger.info("total input numel: %d", total_numel[0])
-            logger.info("total output numel: %d", total_numel[1])
-        logger.info("input sizes: %s", self.input_sizes)
-        logger.info("output sizes: %s", self.output_sizes)
-        logger.info("world size: %d", len(self.expected_ranks))
-        logger.info("expected ranks: %s", str(self.expected_ranks))
-        logger.info("collective state: %s", self.collective_state)
+            self.input_numel = total_numel[0] if len(total_numel) > 0 else 0
+            self.output_numel = total_numel[1] if len(total_numel) > 1 else 0
+            logger.info("total input numel: %r", total_numel[0])
+            logger.info("total output numel: %r", total_numel[1])
+        logger.info("input sizes: %r", self.input_sizes)
+        logger.info("output sizes: %r", self.output_sizes)
+        logger.info("world size: %r", len(self.expected_ranks))
+        logger.info("expected ranks: %r", str(self.expected_ranks))
+        logger.info("collective state: %r", self.collective_state)
         if additional_info and "errors" in additional_info:
             errors = additional_info["errors"]
             self.errors = errors
-            error_msg = ", ".join(f"Culprit rank {error[0]}; {str(error[1])}" for error in errors)
-            logger.info("error msg: %s", error_msg)
-        logger.info("collective stack trace: \n %s", frame_formatter(self.collective_frames))
+            if len(errors) > 2:
+                error_msg = ", ".join(f"Culprit rank {error[0]}; {str(error[1])}" for error in errors)
+                logger.info("Error message: %r", error_msg)
+        logger.info("collective stack trace: \n %r", frame_formatter(self.collective_frames))
 
     def to_collective(
         self,
@@ -258,24 +267,31 @@ class EntryState:
                 raise ValueError("all_entries cannot be None")
             mismatch_collectives = {}
             for rank, error in errors:
-                idx = idx_map[rank]
-                entry = all_entries[rank][idx]
-                desc = entry["process_group"][1]
-                pg_name = entry["process_group"][0]
+                idx = idx_map.get(rank)
+                if idx is None:
+                    continue
+                rank_entries = all_entries.get(rank, [])
+                if idx >= len(rank_entries):
+                    continue
+                entry = rank_entries[idx]
+                process_group = entry.get("process_group", (None, None))
+                pg_desc = process_group[1] if len(process_group) > 1 else None
+                pg_name = process_group[0] if len(process_group) > 0 else None
+
                 mismatch_collectives[rank] = Collective(
                     id=collective_id,
-                    group_id=entry["process_group"][0],
-                    record_id=entry["record_id"],
-                    pg_desc=f"{pg_name}:{desc}" if desc != "undefined" else pg_name,
+                    group_id=pg_name,  # 使用安全获取的pg_name
+                    record_id=entry.get("record_id"),
+                    pg_desc=pg_desc,
                     pass_check=False,
-                    collective_seq_id=entry["collective_seq_id"],
-                    p2p_seq_id=entry["p2p_seq_id"],
-                    collective_name=entry["profiling_name"],
-                    input_sizes=entry["input_sizes"],
-                    output_sizes=entry["output_sizes"],
+                    collective_seq_id=entry.get("collective_seq_id", 0),  # 默认值0
+                    p2p_seq_id=entry.get("p2p_seq_id", 0),  # 默认值0
+                    collective_name=entry.get("profiling_name"),
+                    input_sizes=entry.get("input_sizes", []),  # 默认空列表
+                    output_sizes=entry.get("output_sizes", []),  # 默认空列表
                     expected_ranks=self.expected_ranks,
-                    collective_state=entry["state"],
-                    collective_frames=entry.get("frames", []),
+                    collective_state=entry.get("state"),
+                    collective_frames=entry.get("frames", []),  # 默认空列表
                     type_of_mismatch=error,
                 )
             return Collective(
@@ -352,11 +368,28 @@ class Op:
         self.state = event.get("state")
         self.pg_name, self.pg_desc = event.get("process_group")
         if type == "send":
-            s, d = meta.split("->")
-            self._src, self._dst = int(s), int(d)
+            if meta is None:
+                raise ValueError("Missing meta for send operation")
+            parts_meta = meta.split("->")
+            if len(parts_meta) != 2:
+                raise ValueError(f"Invalid meta format for send operation: {meta}")
+            try:
+                s, d = parts_meta
+                self._src, self._dst = int(s), int(d)
+            except ValueError as e:
+                raise ValueError(f"Invalid integer in meta for send operation: {meta}") from e
+
         elif type == "recv":
-            d, s = meta.split("<-")
-            self._dst, self._src = int(d), int(s)
+            if meta is None:
+                raise ValueError("Missing meta for recv operation")
+            parts_meta = meta.split("<-")
+            if len(parts_meta) != 2:
+                raise ValueError(f"Invalid meta format for recv operation: {meta}")
+            try:
+                d, s = parts_meta
+                self._dst, self._src = int(d), int(s)
+            except ValueError as e:
+                raise ValueError(f"Invalid integer in meta for recv operation: {meta}") from e
         else:
             self._src, self._dst = -1, -1
         self._init_global_src_dst(memberships[pg_name])
