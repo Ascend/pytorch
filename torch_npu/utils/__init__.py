@@ -1,7 +1,8 @@
 __all__ = ["npu_combine_tensors", "get_part_combined_tensor", "is_combined_tensor_valid", "FlopsCounter",
-           "set_thread_affinity", "reset_thread_affinity", "save_async"]
+           "set_thread_affinity", "reset_thread_affinity", "save_async", "get_cann_version"]
 
 from torch_npu import _C
+from torch_npu.npu.utils import get_cann_version
 from ._module import _apply_module_patch
 from .tensor_methods import _add_tensor_methods
 from .storage import _add_storage_methods
