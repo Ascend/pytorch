@@ -6,7 +6,7 @@ import stat
 import mmap
 import time
 import struct
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..analysis.prof_common_func._constant import print_error_msg
 from ...utils._path_manager import PathManager
@@ -58,7 +58,7 @@ class DynamicProfilerShareMemory:
         self._path = path
         self.config_path = config_path
         self._rank_id = rank_id
-        self.shm_path = f"DynamicProfileNpuShm{datetime.utcnow().strftime('%Y%m%d%H')}"
+        self.shm_path = f"DynamicProfileNpuShm{datetime.now(tz=timezone.utc).astimezone().strftime('%Y%m%d%H')}"
         self._shm_buf_bytes_size = DynamicProfilerUtils.CFG_BUFFER_SIZE
         self._is_dyno = self._is_dyno = DynamicProfilerUtils.is_dyno_model()
         self.is_create_process = False
