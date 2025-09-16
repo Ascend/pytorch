@@ -39,7 +39,22 @@ void SetHF32DefaultValue()
 
     // When the flag of matmul is False, and the flag of conv is True,
     // the value of option "ACL_ALLOW_HF32" should be set to "10";
-    std::string allow_hf32 = "10";
+    static const std::string mm_hf32_option_name = "ALLOW_MATMUL_HF32";
+    auto mm_hf32_val = c10_npu::option::GetOption(mm_hf32_option_name);
+    // default value is False;
+    std::string mm_hf32 = "0";
+    if (mm_hf32_val.has_value() && (mm_hf32_val.value() == "enable")) {
+        mm_hf32 = "1";
+    }
+    static const std::string conv_hf32_option_name = "ALLOW_CONV_HF32";
+    auto conv_hf32_val = c10_npu::option::GetOption(conv_hf32_option_name);
+    // default value is True;
+    std::string conv_hf32 = "1";
+    if (conv_hf32_val.has_value() && (conv_hf32_val.value() == "disable")) {
+        conv_hf32 = "0";
+    }
+
+    std::string allow_hf32 = conv_hf32 + mm_hf32;
     auto ret = at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str());
     if (ret == ACL_SUCCESS) {
         ASCEND_LOGI("Set ACL option ACL_ALLOW_HF32 default value to %s.", allow_hf32.c_str());
