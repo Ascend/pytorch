@@ -182,8 +182,7 @@ class _call_once_class:
 
     def __call__(self, *args, **kwargs):
         if self.called:
-            raise RuntimeError(f"Function '{self.func.__name__}' has already been called, \
-                 You can only set this interface once.")
+            raise RuntimeError(f"Function '{self.func.__name__}' has already been called, You can only set this interface once.")
 
         self.called = True
         self.result = self.func(*args, **kwargs)
