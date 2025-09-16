@@ -19,7 +19,7 @@ import re
 import shutil
 import subprocess
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from torch_npu.utils._error_code import ErrCode, prof_error
 from .._base_parser import BaseParser
@@ -54,7 +54,7 @@ class CANNExportParser(BaseParser):
                 return Constant.SUCCESS, None
             self._check_msprof_environment()
             self._check_prof_data_size()
-            start_time = datetime.utcnow()
+            start_time = datetime.now(tz=timezone.utc).astimezone()
 
             if Constant.Db in self._export_type:
                 analyze_cmd_list = [self.msprof_path, "--export=on", "--type=db", f"--output={self._cann_path}"]
@@ -73,7 +73,7 @@ class CANNExportParser(BaseParser):
             print_error_msg(f"Failed to export CANN Profiling data. Error msg: {err}")
             self.logger.error("Failed to export CANN Profiling data, error: %s", str(err), exc_info=True)
             return Constant.FAIL, None
-        end_time = datetime.utcnow()
+        end_time = datetime.now(tz=timezone.utc).astimezone()
         print_info_msg(f"CANN profiling data parsed in a total time of {end_time - start_time}")
         self.logger.info("CANNExportParser finish.")
         return Constant.SUCCESS, None
