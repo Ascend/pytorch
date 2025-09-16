@@ -68,10 +68,8 @@ public:
 
     std::shared_ptr<c10::GatheredContext> maybeGatherContext(RecordContext level)
     {
-        if (record_context_ < level) {
-            return nullptr;
-        }
-        return context_recorder_.load()();
+        // Memory snapshots have deadlock issues in some scenarios, no longer capture python stacks.
+        return nullptr;
     }
     
     void* malloc(size_t size, aclrtStream stream)
