@@ -132,7 +132,7 @@ def worker_func(params_dict):
     mmap_path = params_dict.get("mmap_path")
     is_mmap = params_dict.get("is_mmap")
     dynamic_profiler_utils = params_dict.get("dynamic_profiler_utils")
-    dynamic_profiler_utils.init_logger(is_monitor_process=True)
+    dynamic_profiler_utils.init_logger(is_monitor_process=True, log_path=os.path.dirname(cfg_path))
     mmap_obj = None
     if is_mmap and mmap_path is not None:
         try:
