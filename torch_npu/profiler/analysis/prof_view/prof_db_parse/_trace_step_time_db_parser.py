@@ -73,7 +73,7 @@ class TraceStepTimeDbParser(BaseParser):
     def run(self, deps_data: dict):
         self.logger.info("TraceStepTimeDbParser start.")
         try:
-            self.torch_op_data = deps_data.get(Constant.DB_PRE_PARSER, {}).get("torch_op", [])
+            self.torch_op_data = deps_data.get(Constant.DB_PRE_PARSER, {}).get(Constant.TORCH_OP_DATA, [])
             self._init_step_range(deps_data)
             self._init_task_info_from_db()
             self.generate_view()

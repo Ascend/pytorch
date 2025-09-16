@@ -199,7 +199,7 @@ class FwkFileParser:
 
     def get_fwk_api(self, torch_op_data: list, enqueue_data_list: list, dequeue_data_list: list) -> dict:
         if Constant.CPU_ACTIVITIES not in ProfilerConfig().activities:
-            return []
+            return {}
         if torch_op_data:
             pid = torch_op_data[0].pid
         elif enqueue_data_list or dequeue_data_list:
