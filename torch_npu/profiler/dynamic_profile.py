@@ -175,7 +175,7 @@ def init(path: str):
             path), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
         return
     DynamicProfilerUtils.CFG_CONFIG_PATH = os.path.abspath(path)
-    DynamicProfilerUtils.init_logger()
+    DynamicProfilerUtils.init_logger(log_path=os.path.abspath(path))
     _DynamicProfile().init()
 
 

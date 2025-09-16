@@ -47,10 +47,9 @@ class DynamicProfilerUtils:
     DEFAULT_STATUS = 0
 
     @classmethod
-    def init_logger(cls, is_monitor_process: bool = False):
+    def init_logger(cls, is_monitor_process: bool = False, log_path: str = None):
         logger_ = cls.LOGGER_MONITOR if is_monitor_process else cls.LOGGER
-        path = cls.CFG_CONFIG_PATH
-        path = os.path.join(path, 'log')
+        path = os.path.join(log_path, 'log')
         if not os.path.exists(path):
             PathManager.make_dir_safety(path)
         worker_name = "{}".format(socket.gethostname())

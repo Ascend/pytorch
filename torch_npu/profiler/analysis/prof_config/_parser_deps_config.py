@@ -72,6 +72,8 @@ class ParserDepsConfig:
     ONLY_FWK_CONFIG = {
         Constant.TORCH_OP_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD, Constant.DEPS: []},
         Constant.TASK_QUEUE_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD, Constant.DEPS: []},
+        Constant.TREE_BUILD_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
+                                     Constant.DEPS: [Constant.TORCH_OP_PARSER, Constant.TASK_QUEUE_PARSER]},
         Constant.OPERATOR_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: [Constant.TORCH_OP_PARSER]},
         Constant.TRACE_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: [Constant.TASK_QUEUE_PARSER, Constant.TORCH_OP_PARSER]},
         Constant.MEMORY_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: [Constant.MEMORY_PREPARE]},
@@ -81,6 +83,8 @@ class ParserDepsConfig:
                                  Constant.DEPS: [Constant.TORCH_OP_PARSER, Constant.TASK_QUEUE_PARSER]},
         Constant.MEMORY_PREPARE: {Constant.MODE: ConcurrentMode.PTHREAD,
                                   Constant.DEPS: [Constant.TASK_QUEUE_PARSER, Constant.TORCH_OP_PARSER]},
-        Constant.DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD, Constant.DEPS: [Constant.DB_PRE_PARSER, Constant.MEMORY_PREPARE]},
+        Constant.DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
+                             Constant.DEPS: [Constant.DB_PRE_PARSER, Constant.MEMORY_PREPARE,
+                                             Constant.TREE_BUILD_PARSER]},
         Constant.MEMORY_TIMELINE_PARSER: {}
     }
