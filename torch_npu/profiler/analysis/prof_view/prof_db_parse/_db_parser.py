@@ -23,10 +23,10 @@ class DbParser(BaseParser):
         Constant.FWK_API_DB_PARSER: FwkApiDbParser,
         Constant.MEMORY_DB_PARSER: MemoryDbParser,
         Constant.GC_RECORD_DB_PARSER: GCRecordDbParser,
+        Constant.STEP_INFO_DB_PARSER: StepInfoDbParser,
     }
 
     ANALYSIS_DB_MAP = {
-        Constant.STEP_INFO_DB_PARSER: StepInfoDbParser,
         Constant.COMMUNICATION_DB_PARSER: CommunicationDbParser,
         Constant.TRACE_STEP_TIME_DB_PARSER: TraceStepTimeDbParser,
     }

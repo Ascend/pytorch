@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from .._base_parser import BaseParser
+from ..._profiler_config import ProfilerConfig
 from ...prof_bean._torch_op_node import TorchOpNode
 from ...prof_common_func._constant import DbConstant, Constant, TableColumnsManager, print_warn_msg
 from ...prof_common_func._db_manager import TorchDb
 from ...prof_common_func._log import ProfilerLogger
+from ...prof_common_func._path_manager import ProfilerPathManager
 
 __all__ = []
 
@@ -76,7 +78,11 @@ class StepInfoDbParser(BaseParser):
         if not TorchDb().create_connect_db():
             print_warn_msg(f"Failed to connect to db file: {TorchDb().get_db_path()}")
             return []
+        self.save_step_time(step_node_list)
         step_range = []
+        if not ProfilerPathManager.get_cann_path(self._profiler_path) or \
+            ProfilerConfig().get_level() == Constant.LEVEL_NONE:
+            return step_range
         if not step_node_list:
             start_time = 0
             end_time = float('inf')
@@ -112,7 +118,6 @@ class StepInfoDbParser(BaseParser):
                         Constant.FWK_START_TS: step_node.start_time
                     }
                 )
-        self.save_step_time(step_node_list)
         return step_range
 
     def save_step_time(self, step_node_list: list) -> None:
