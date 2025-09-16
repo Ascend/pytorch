@@ -73,7 +73,7 @@ class ProfilerLogger:
         formatter = logging.Formatter(fmt=cls.LOG_FORMAT, datefmt=cls.DATE_FORMAT)
 
         # Add rotating file handler
-        timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d%H%M%S")
+        timestamp = datetime.now(tz=timezone.utc).astimezone().strftime("%Y%m%d%H%M%S")
         log_file = os.path.join(
             log_dir,
             (
