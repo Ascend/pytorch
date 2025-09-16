@@ -1,6 +1,6 @@
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .prof_common_func._constant import Constant, print_info_msg, print_error_msg, print_warn_msg
 from .prof_common_func._cann_package_manager import CannPackageManager
@@ -22,7 +22,7 @@ class ProfilingParser:
         self._analysis_type = analysis_type
         self._output_path = output_path
         self._kwargs = kwargs
-        self._start_time = datetime.utcnow()
+        self._start_time = datetime.now(tz=timezone.utc).astimezone()
         if analysis_type == Constant.TENSORBOARD_TRACE_HANDLER:
             self._output_path = os.path.join(profiler_path, Constant.OUTPUT_DIR)
             PathManager.remove_path_safety(self._output_path)
@@ -99,7 +99,7 @@ class ProfilingParser:
             self.logger.error("Failed to parsing profiling data, error: %s", str(err), exc_info=True)
         if self._analysis_type == Constant.TENSORBOARD_TRACE_HANDLER:
             self.simplify_data(self._profiler_path, ProfilerConfig().data_simplification)
-        end_time = datetime.utcnow()
+        end_time = datetime.now(tz=timezone.utc).astimezone()
         print_info_msg(f"All profiling data parsed in a total time of {end_time - self._start_time}")
 
     def run_parser(self) -> list:

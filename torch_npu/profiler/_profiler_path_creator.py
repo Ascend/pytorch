@@ -1,7 +1,7 @@
 import os
 import socket
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..utils._path_manager import PathManager
 from .analysis.prof_common_func._constant import Constant
@@ -69,7 +69,8 @@ class ProfPathCreator:
             self._worker_name or socket.gethostname(),
             str(os.getpid())
         )
-        span_name = "{}_{}_ascend_pt".format(worker_name, datetime.utcnow().strftime("%Y%m%d%H%M%S%f")[:-3])
+        current_time = datetime.now(tz=timezone.utc).astimezone()
+        span_name = "{}_{}_ascend_pt".format(worker_name, current_time.strftime("%Y%m%d%H%M%S%f")[:-3])
         self._prof_path = os.path.join(dir_path, span_name)
         PathManager.check_input_directory_path(self._prof_path)
         PathManager.make_dir_safety(self._prof_path)
