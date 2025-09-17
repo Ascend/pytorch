@@ -59,7 +59,7 @@ class TraceStepTimeDbParser(BaseParser):
             return 0
         if step_info.get(Constant.STEP_ID) is None:
             first_fwk_op = min(self.torch_op_data, key=lambda op: op[TorchOpDataOri.START_NS]) if self.torch_op_data else None
-            return (first_task_start_ts - first_fwk_op.ts) if first_fwk_op else 0
+            return (first_task_start_ts - first_fwk_op[TorchOpDataOri.START_NS]) if first_fwk_op else 0
         return first_task_start_ts - step_info.get(Constant.FWK_START_TS, 0)
 
     def save_step_trace_db_data(self, step_trace_data):
