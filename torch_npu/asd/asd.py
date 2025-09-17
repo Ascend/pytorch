@@ -452,6 +452,11 @@ class _MatmulSilentCheck:
         if grad.dtype != torch.bfloat16 and grad.dtype != torch.float32:
             return
 
+        if self.statistic_value.is_inference() and not torch.is_inference_mode_enabled():
+            self.statistic_value = self.statistic_value.clone()
+        if self.statistic_cpu_value.is_inference() and not torch.is_inference_mode_enabled():
+            self.statistic_cpu_value = self.statistic_cpu_value.clone()
+
         if self.matmul_hook_enable >= 1:
             with torch.no_grad():
                 self.statistic_value.fill_(torch.pow(torch.norm(grad, float('inf')), 2).detach().float())
@@ -479,6 +484,8 @@ class _MatmulSilentCheck:
 
         while self.check_thread_running:
             self.lock.acquire()
+            if self.statistic_cpu_value.is_inference() and not torch.is_inference_mode_enabled():
+                self.statistic_cpu_value = self.statistic_cpu_value.clone()
             val = self.statistic_cpu_value[self.head_index].item()
             name = self.name_list[self.head_index]
             while val != -1 and name != "":
