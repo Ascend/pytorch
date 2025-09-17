@@ -481,6 +481,28 @@ def get_src_py_and_dst():
             os.path.relpath(src, os.path.join(BASE_DIR, "patch/include")))
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
+
+    aot_inductor_files = [
+        # Follow torch v2.6.0.
+        # These aoti_runtime/*.cpp don't compile to libtorch_npu,
+        # but act like header files when generate cppwrapper in aot-inductor.
+        "torch_npu/_inductor/codegen/aoti_runtime/*.cpp"
+    ]
+    glob_aoti_files = []
+    for regex_pattern in aot_inductor_files:
+        glob_aoti_files += glob.glob(
+            os.path.join(BASE_DIR, regex_pattern), recursive=True
+        )
+
+    for src in glob_aoti_files:
+        # Dst: torch_npu/_inductor/codegen/aoti_runtime/*.cpp
+        dst = os.path.join(
+            os.path.join(BASE_DIR, "build/packages/torch_npu/"),
+            os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")),
+        )
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        ret.append((src, dst))
+
     return ret
 
 

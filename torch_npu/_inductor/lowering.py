@@ -147,7 +147,6 @@ def _register_npu_inductor_fallbacks():
         make_reduction("argmin", override_return_dtype=torch.int64)
     )
 
-
     @register_lowering(aten.max, type_promotion_kind=None)
     def reduce_max(x, dim=None, keepdim=False):
         if dim is not None:

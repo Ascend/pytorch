@@ -88,29 +88,39 @@ def patch_aot_code_compiler_compile():
     # which could not be skipped, so here we try to create a new npu op_json,
     # and clear the content of default op_json.
     from torch._inductor.codecache import AotCodeCompiler
+
     AotCodeCompiler.src_compile = AotCodeCompiler.compile
 
     @classmethod
     def compile_npu(
         cls,
         graph: GraphLowering,
-        source_code: str,
+        wrapper_code: str,
+        kernel_code: str,
         serialized_extern_kernel_nodes: Optional[str],
+        *,
         device_type: str,
-        additional_files: List[str],
+        additional_files: list[str],
     ) -> Union[List[str], str]:
         result = cls.src_compile(
-            graph, source_code, serialized_extern_kernel_nodes,
-            device_type, additional_files
+            graph,
+            wrapper_code,
+            kernel_code,
+            serialized_extern_kernel_nodes,
+            device_type=device_type,
+            additional_files=additional_files,
         )
         generated_files = additional_files
         if not config.aot_inductor.package:
             return result
-        
+
         output_so = [r for r in result if r.endswith(".so")]
         if len(output_so) > 1:
-            raise RuntimeError(f"Could not generate npu op json, because there are"
-                               f"more than one so in generated files: {result}" + pta_error(ErrCode.INTERNAL))
+            raise RuntimeError(
+                f"Could not generate npu op json, because there are"
+                f"more than one so in generated files: {result}"
+                + pta_error(ErrCode.INTERNAL)
+            )
         output_so = output_so[0]
         key = os.path.basename(output_so)[0].replace(".", "_")
         dir_basename = os.path.splitext(output_so)[0]
@@ -120,11 +130,11 @@ def patch_aot_code_compiler_compile():
                 with open(extern_kernel_nodes_json, "w") as f:
                     f.write(serialized_extern_kernel_nodes)
                 generated_files.append(extern_kernel_nodes_json)
-            
+
             if serialized_extern_kernel_nodes:
                 source_json_file = dir_basename + ".json"
                 with open(source_json_file, "w") as f:
                     f.write(empty_json)
         return generated_files
+
     AotCodeCompiler.compile = compile_npu
-        

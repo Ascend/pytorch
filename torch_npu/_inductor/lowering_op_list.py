@@ -74,7 +74,7 @@ GENERATE_LIST = [
     aten.bitwise_and,
     aten.squeeze,
     aten.copy,
-    aten.reciprocal
+    aten.reciprocal,
 ]
 
 GENERATE_LIST2 = [

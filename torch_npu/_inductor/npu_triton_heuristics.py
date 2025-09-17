@@ -157,20 +157,29 @@ def do_bench_using_profiling_npu(fn, warmup=2, rep=10, grad_to_none=None, quanti
 @dataclasses.dataclass
 class GridNpu(GridExpr):
     numels: List[str] = None
+    mode: Literal["python", "cpp"] = "python"
 
     def generate(self, meta: dict[str, int]) -> None:
         numel_args = []
         split_axis = meta.get("split_axis", None)
         split_blocks = meta.get("split_blocks", None)
         if split_axis is None or split_blocks is None:
-            raise RuntimeError(f"Could not get split_axis or split_blocks from meta {meta}.")
+            raise RuntimeError(
+                f"Could not get split_axis or split_blocks from meta {meta}."
+            )
 
         def grid_fn(i):
             if i >= len(split_axis):
                 return "1"
             axis = split_axis[i]
             block = split_blocks[i]
-            return f"({self.numels[axis]} + {block} - 1) // {block}"
+            if block is None or block == 1:
+                return self.numels[axis]
+            if self.mode == "python":
+                return f"({self.numels[axis]} + {block} - 1) // {block}"
+            else:
+                return f"(({self.numels[axis]} + ({block} - 1)) / ({block}))"
+
         self.x_grid = grid_fn(0)
         self.y_grid = grid_fn(1)
         self.z_grid = grid_fn(2)
@@ -186,8 +195,10 @@ class GridExprNpu(GridExpr):
     ) -> GridExpr:
         grid_cls = globals()[inductor_meta["grid_type"]]
         if not issubclass(grid_cls, GridNpu):
-            raise AssertionError(f"grid_type in inductor_meta must be subclass of GridNpu"
-                                 f"but got {inductor_meta['grid_type']}")
+            raise AssertionError(
+                f"grid_type in inductor_meta must be subclass of GridNpu"
+                f"but got {inductor_meta['grid_type']}"
+            )
         grid = grid_cls(inductor_meta=inductor_meta, mode=mode, numels=numels)
         if isinstance(cfg, Config):
             cfg = config_to_dict(cfg)
@@ -586,6 +597,11 @@ class NPUCachingAutotuner(CachingAutotuner):
             "stream": input_stream,
             # User defined triton kernels will have arbitrary kwarg names
             "meta": input_launcher.config.kwargs,
+            "config": config_to_dict(input_launcher.config),
+            "inductor_meta": self.inductor_meta,
+            "triton_meta": self.triton_meta,
+            "def_args": input_launcher.def_args,
+            "call_args": input_launcher.call_args,
         }
         from torch._inductor.codecache import CudaKernelParamCache
 
