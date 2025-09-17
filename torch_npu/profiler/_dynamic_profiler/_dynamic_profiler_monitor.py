@@ -192,6 +192,7 @@ def worker_dyno_func(params_dict):
     max_size = params_dict.get("max_size")
     dynamic_profiler_utils = params_dict.get("dynamic_profiler_utils")
     profiler_status = params_dict.get("profiler_status")
+    last_status = profiler_status.value
 
     py_dyno_monitor = PyDynamicMonitorProxySingleton().get_proxy()
     if not py_dyno_monitor:
@@ -203,8 +204,9 @@ def worker_dyno_func(params_dict):
     dynamic_profiler_utils.out_log("Init dynolog success !", dynamic_profiler_utils.LoggerLevelEnum.INFO)
     while loop_flag.value:
         time.sleep(poll_interval.value)
-        if hasattr(py_dyno_monitor, "update_profiler_status"):
+        if hasattr(py_dyno_monitor, "update_profiler_status") and last_status != profiler_status.value:
             py_dyno_monitor.update_profiler_status({"profiler_status": str(profiler_status.value)})
+            last_status = profiler_status.value
         res = py_dyno_monitor.poll_dyno()
         data = DynamicProfilerUtils.dyno_str_to_json(res)
         if data:
