@@ -8,6 +8,7 @@ import math
 import torch
 from torch.nn.functional import layer_norm as origin_layernorm
 from torch.nn.functional import embedding as origin_embedding
+from torch.distributed.tensor import DTensor
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
@@ -452,9 +453,19 @@ class _MatmulSilentCheck:
         if grad.dtype != torch.bfloat16 and grad.dtype != torch.float32:
             return
 
+        if self.statistic_value.is_inference() and not torch.is_inference_mode_enabled():
+            self.statistic_value = self.statistic_value.clone()
+        if self.statistic_cpu_value.is_inference() and not torch.is_inference_mode_enabled():
+            self.statistic_cpu_value = self.statistic_cpu_value.clone()
+        if isinstance(self.statistic_value, DTensor):
+            self.statistic_value = self.statistic_value.to_local()
+
         if self.matmul_hook_enable >= 1:
             with torch.no_grad():
-                self.statistic_value.fill_(torch.pow(torch.norm(grad, float('inf')), 2).detach().float())
+                if isinstance(self.statistic_value, DTensor):
+                    self.statistic_value.fill_(torch.pow(torch.norm(grad, float('inf')), 2).detach().float().to_local())
+                else:
+                    self.statistic_value.fill_(torch.pow(torch.norm(grad, float('inf')), 2).detach().float())
 
                 #Asynchronously copy the value to host
                 self.lock.acquire()
@@ -479,6 +490,8 @@ class _MatmulSilentCheck:
 
         while self.check_thread_running:
             self.lock.acquire()
+            if self.statistic_cpu_value.is_inference() and not torch.is_inference_mode_enabled():
+                self.statistic_cpu_value = self.statistic_cpu_value.clone()
             val = self.statistic_cpu_value[self.head_index].item()
             name = self.name_list[self.head_index]
             while val != -1 and name != "":
