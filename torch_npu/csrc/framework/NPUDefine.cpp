@@ -12,7 +12,7 @@ void ExecuteParas::Release()
     }
     DestroyConstParams(constParams);
     NPUStatus ret = DestroyAclParams(paras);
-    if (ret != SUCCESS) {
+    if (ret != NPU_STATUS_SUCCESS) {
         ASCEND_LOGE("DestroyAclParams fail, ret: %s", ret.c_str());
     }
     hostMemory.clear();
@@ -92,7 +92,7 @@ void ExecuteParas::Release()
         params.input_data_buf = nullptr;
         params.output_desc = nullptr;
         params.output_data_buf = nullptr;
-        return SUCCESS;
+        return NPU_STATUS_SUCCESS;
     }
 
     void DestroyConstParams(CONST_PARAMS &params)

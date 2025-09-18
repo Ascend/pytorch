@@ -336,7 +336,7 @@ aclrtStream NPUStream::stream() const
     AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
     if (!this->isSyncLaunchStream() && ptr->repo->CheckInit()) {
         NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
-        if (ret != SUCCESS) {
+        if (ret != NPU_STATUS_SUCCESS) {
             ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
             return nullptr;
         }
@@ -434,12 +434,12 @@ NPUStatus emptyAllNPUStream(bool check_error)
         }
         if (default_streamsi.stream != nullptr && default_streamsi.repo->CheckInit()) {
             ret = default_streamsi.repo->MakeSureQueueEmpty(check_error);
-            if (ret != SUCCESS) {
+            if (ret != NPU_STATUS_SUCCESS) {
                 return ret;
             }
         }
     }
-    return SUCCESS;
+    return NPU_STATUS_SUCCESS;
 }
 
 std::string getRepoInfo()
@@ -486,7 +486,7 @@ bool npuSynchronizeDevice(bool check_error)
 {
     if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
         NPUStatus ret = c10_npu::emptyAllNPUStream(check_error);
-        if (ret != SUCCESS) {
+        if (ret != NPU_STATUS_SUCCESS) {
             ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
         }
     }
@@ -514,7 +514,7 @@ bool npuSynchronizeUsedDevices(bool check_error)
 {
     if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
         NPUStatus ret = c10_npu::emptyAllNPUStream(check_error);
-        if (ret != SUCCESS) {
+        if (ret != NPU_STATUS_SUCCESS) {
             ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
         }
     }
