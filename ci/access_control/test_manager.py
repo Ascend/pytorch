@@ -34,7 +34,7 @@ class TestMgr:
     def load(self, modify_files, world_size):
         with open(modify_files) as f:
             for line in f:
-                if world_size != 0 and "test/distributed/" in line:
+                if world_size != 0 and ("test/distributed/" in line or "test/_inductor/" in line):
                     continue
                 line = line.strip()
                 self.modify_files.append(line)
@@ -62,6 +62,9 @@ class TestMgr:
 
     def load_distributed_ut(self):
         self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/distributed').rglob('test_*.py')]
+
+    def load_inductor_ut(self):
+        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/_inductor').rglob('test_*.py')]
 
     def load_op_plugin_ut(self):
         version_path = get_test_torch_version_path()
