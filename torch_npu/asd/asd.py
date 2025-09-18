@@ -462,7 +462,7 @@ class _MatmulSilentCheck:
 
         if self.matmul_hook_enable >= 1:
             with torch.no_grad():
-                if isinstance(self.statistic_value, DTensor):
+                if isinstance(grad, DTensor):
                     self.statistic_value.fill_(torch.pow(torch.norm(grad, float('inf')), 2).detach().float().to_local())
                 else:
                     self.statistic_value.fill_(torch.pow(torch.norm(grad, float('inf')), 2).detach().float())
