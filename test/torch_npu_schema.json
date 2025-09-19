@@ -1310,6 +1310,15 @@
   "torch_npu.npu.synchronize": {
     "signature": "(device=None)"
   },
+  "torch_npu.npu.obfuscation_initialize": {
+    "signature": "(hidden_size, tp_rank, cmd, *, data_type=None, model_obf_seed_id=0, data_obf_seed_id=0, thread_num=4, obf_coefficient=1.0)"
+  },
+  "torch_npu.npu.obfuscation_finalize": {
+    "signature": "(fd_to_close)"
+  },
+  "torch_npu.npu.obfuscation_calculate": {
+    "signature": "(fd, x, param, *, obf_coefficient=1.0)"
+  },
   "torch_npu.npu.utilization": {
     "signature": "(device=None)"
   },
@@ -1711,6 +1720,15 @@
   },
   "torch_npu.npu.utils.synchronize": {
     "signature": "(device=None)"
+  },
+  "torch_npu.npu.utils.obfuscation_initialize": {
+    "signature": "(hidden_size, tp_rank, cmd, *, data_type=None, model_obf_seed_id=0, data_obf_seed_id=0, thread_num=4, obf_coefficient=1.0)"
+  },
+  "torch_npu.npu.utils.obfuscation_finalize": {
+    "signature": "(fd_to_close)"
+  },
+  "torch_npu.npu.utils.obfuscation_calculate": {
+    "signature": "(fd, x, param, *, obf_coefficient=1.0)"
   },
   "torch_npu.npu.utils.stress_detect": {
     "signature": "(detect_type='aic')"
