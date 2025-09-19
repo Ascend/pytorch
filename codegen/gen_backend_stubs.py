@@ -23,6 +23,7 @@ from collections import namedtuple, Counter, defaultdict
 from typing import List, Dict, Union, Sequence, Optional, Set, Callable
 import yaml
 
+import torchgen
 from torchgen.code_template import CodeTemplate
 from torchgen.gen import (parse_tags_yaml, FileManager, parse_native_yaml,
                           get_grouped_native_functions, error_check_native_functions)
@@ -47,6 +48,8 @@ from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, ge
                            DEVICE_NOCHECK_SET)
 from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch,
                                       gen_custom_functions_dispatch)
+
+torchgen.model.dispatch_keys.append(torchgen.model.DispatchKey.AutogradPrivateUse1)
 
 
 # Create backend_indices map for func retrieval with the key of each func we supported.
@@ -300,8 +303,7 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
                                             autograd_key, native_functions_map, cpp_namespace)
         opapi_autograd_idx = create_backend_index([op for op in supported_autograd if is_opapi(op)],
                                                   symint_set, autograd_key, native_functions_map, cpp_namespace)
-        if autograd_key in backend_indices:
-            raise KeyError("autograd_key should not be in backend_indices.")
+
         backend_indices[autograd_key] = autograd_idx
         backend_indices[str(autograd_key) + opapi_key] = opapi_autograd_idx
 
@@ -732,15 +734,15 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
                 register_dispatch_key_func=dest.RegisterDispatchKey,
             )
 
-        gen_quantize_register(fm, backend_indices["NPUQuantize"])
+        gen_quantize_register(fm, backend_indices=backend_indices["NPUQuantize"])
 
         pta_template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
         fm = FileManager(install_dir=output_dir, template_dir=pta_template_dir, dry_run=dry_run)
         
-        custom_functions = parse_custom_yaml(source_yaml, tags_yaml_path).native_functions
+        custom_functions, custom_backend_indices = parse_custom_yaml(source_yaml, tags_yaml_path)
         grouped_custom_functions = get_grouped_native_functions_optional_out(custom_functions)
         gen_functionalization(fm, selector, grouped_custom_functions)
-        gen_custom_trace(fm, custom_functions)
+        gen_custom_trace(fm, custom_functions, custom_backend_indices)
         gen_custom_functions_dispatch(fm, custom_functions)
 
         gen_foreach_register(fm,
