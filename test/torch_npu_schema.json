@@ -2345,6 +2345,9 @@
   "torch_npu.testing.common_utils.test_2args_broadcast": {
     "signature": "(fn)"
   },
+  "torch_npu.testing.common_utils.SkipIfNotGteCANNVersion": {
+    "signature": "(base_version, module='CANN')"
+  },
   "torch_npu.testing.decorator.Dtypes": {
     "signature": "(*args)"
   },
