@@ -78,10 +78,16 @@ def _check_if_enable_npu(test: unittest.TestCase):
         target_testname = target_test_parts[0]
         target_classname = target_test_parts[1][1:-1].split(".")[-1]
 
+        class_device_replace = target_classname
+        if "PRIVATEUSE1" in target_classname:
+            class_device_replace = target_classname.replace("PRIVATEUSE1", "NPU")
+        elif "NPU" in target_classname:
+            class_device_replace = target_classname.replace("NPU", "PRIVATEUSE1")
+
         # if test method name or its sanitized version exactly matches the disabled
         # test method name AND allow non-parametrized suite names to disable
         # parametrized ones (TestSuite disables TestSuiteCPU)
-        return classname.startswith(target_classname) \
+        return (classname.startswith(target_classname) or classname.startswith(class_device_replace)) \
                and (target_testname in (test._testMethodName, sanitized_testname))
 
     if any(matches_test(x) for x in slow_tests_dict.keys()):
