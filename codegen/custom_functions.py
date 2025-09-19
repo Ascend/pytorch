@@ -9,7 +9,7 @@ from torchgen.gen import (parse_tags_yaml, FileManager, cpp_string, error_check_
 from torchgen.model import (BackendIndex, DispatchKey, Variant,
                             NativeFunction, OperatorName, BackendMetadata, TensorOptionsArguments, OptionalType)
 from torchgen.utils import concatMap
-from torchgen.context import with_native_function, native_function_manager
+from torchgen.context import with_native_function, native_function_manager, with_native_function_and_index
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
 from torchgen.dest.register_dispatch_key import RegisterDispatchKey
@@ -63,7 +63,7 @@ def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
     error_check_native_functions(rs)
     # Default dict is to prevent the codegen from barfing when we have a dispatch key that has no kernels yet.
     indices: Dict[DispatchKey, BackendIndex] = defaultdict(lambda: BackendIndex(
-        dispatch_key=DispatchKey.Undefined, use_out_as_primary=True, external=False, index={}))
+        dispatch_key=DispatchKey.Undefined, use_out_as_primary=True, external=False, device_guard=False, index={}))
     for k, v in bs.items():
         # All structured in-tree operators are implemented in terms of their out operator.
         indices[k] = BackendIndex(dispatch_key=k,
@@ -239,8 +239,11 @@ def compute_register_symbol(f: NativeFunction):
         return [f'm.def({cpp_string(func_schema)});\n']
 
 
-@with_native_function
-def compute_register_impl(f: NativeFunction):
+@with_native_function_and_index
+def compute_register_impl(f: NativeFunction, backend_index):
+    if (backend_index is not None) and (backend_index.get_kernel(f) is None):
+        return []
+
     if f.has_composite_explicit_autograd_kernel:
         return []
     else:
@@ -248,7 +251,7 @@ def compute_register_impl(f: NativeFunction):
         return [f'm.impl("{f.func.name}", TORCH_FN(at_npu::native::{name}));\n']
 
 
-def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFunction]):
+def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFunction], custom_backend_indices):
 
     fm.write_with_template(f'CustomRegisterSchema.cpp', 'CustomRegisterSchema.cpp', lambda: {
         'custom_op_definitions': list(concatMap(
@@ -260,7 +263,11 @@ def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFun
             custom_trace_functions
         )),
         'custom_impl_registrations': list(concatMap(
-            lambda f: compute_register_impl(f),
+            lambda f: compute_register_impl(f, None),
+            custom_trace_functions
+        )),
+        'custom_autograd_impl_registrations': list(concatMap(
+            lambda f: compute_register_impl(f, custom_backend_indices[DispatchKey.AutogradPrivateUse1]),
             custom_trace_functions
         )),
     })
