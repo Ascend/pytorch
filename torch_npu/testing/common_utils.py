@@ -206,6 +206,23 @@ class SupportedDevices:
         return dep_fn
 
 
+class SkipIfNotGteCANNVersion:
+    def __init__(self, base_version, module="CANN"):
+        self.base_version = base_version
+        self.module = module
+    
+    def __call__(self, fn):
+        @wraps(fn)
+        def func(slf, *args, **kwargs):
+            current_version = torch_npu.utils.get_cann_version(module=self.module)
+            is_gte = torch_npu.npu.utils._is_gte_cann_version(self.base_version, module=self.module)
+            if not is_gte:
+                reason = f"Only run on {self.base_version} or greater, current cann version is {current_version}."
+                raise unittest.SkipTest(reason)
+            return fn(slf, *args, **kwargs)
+        return func
+
+
 PERF_TEST_ENABLE = (os.getenv('PERF_TEST_ENABLE', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
 PERF_BASELINE_FILE = os.path.realpath(
     os.getenv("PERF_BASELINE_FILE", default=os.path.join(os.getcwd(), "performance_baseline.json"))
