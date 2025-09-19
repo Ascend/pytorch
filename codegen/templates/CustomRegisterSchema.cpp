@@ -43,7 +43,7 @@ namespace {
 
 TORCH_LIBRARY(npu, m) {
 
-  ${custom_schema_registrations}
+    ${custom_schema_registrations}
 }
 
 } // anonymous namespace
@@ -52,7 +52,16 @@ namespace {
 
 TORCH_LIBRARY_IMPL(npu, PrivateUse1, m) {
 
-  ${custom_impl_registrations}
+    ${custom_impl_registrations}
+}
+
+} // anonymous namespace
+
+namespace {
+
+TORCH_LIBRARY_IMPL(npu, AutogradPrivateUse1, m) {
+
+    ${custom_autograd_impl_registrations}
 }
 
 } // anonymous namespace
