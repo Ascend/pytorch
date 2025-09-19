@@ -13,11 +13,25 @@ from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 from torch_npu.npu._backends import get_soc_version
 
 
-__all__ = ["synchronize", "set_device", "current_device", "device", "device_of", "StreamContext",
+__all__ = ["obfuscation_initialize", "obfuscation_finalize", "obfuscation_calculate",
+           "synchronize", "set_device", "current_device", "device", "device_of", "StreamContext",
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
            "check_uce_in_memory", "stress_detect", "get_cann_version", "ipc_collect"]
+
+
+def obfuscation_initialize(hidden_size, tp_rank, cmd, *, data_type=None, model_obf_seed_id=0, data_obf_seed_id=0, thread_num=4, obf_coefficient=1.0):
+    return torch_npu.obfuscation_initialize(hidden_size, tp_rank, cmd, data_type=data_type, model_obf_seed_id=model_obf_seed_id, 
+                                            data_obf_seed_id=data_obf_seed_id, thread_num=thread_num, obf_coefficient=obf_coefficient)
+
+
+def obfuscation_finalize(fd_to_close):
+    return torch_npu.obfuscation_finalize(fd_to_close)
+
+
+def obfuscation_calculate(fd, x, param, *, obf_coefficient=1.0):
+    return torch_npu.obfuscation_calculate(fd, x, param, obf_coefficient=obf_coefficient)
 
 
 def get_cann_version(module="CANN"):
