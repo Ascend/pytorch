@@ -261,6 +261,76 @@ class TestTransferToNpu(TestCase):
         self.assertIn('experimental_config', result)
         self.assertIs(result['experimental_config'], correct_config)
 
+    def test_torch_Event(self):
+        event = torch.Event(device='cuda:0', enable_timing=True)
+        self.assertEqual(str(event.device), 'npu')
+
+    def test_torch_get_device_module(self):
+        device_module1 = torch.get_device_module(device='cuda:0')
+        device_module2 = torch.get_device_module(device=torch.device('cuda:0'))
+        npu_device_module = torch.get_device_module(device='npu:0')
+        self.assertEqual(device_module1, npu_device_module)
+        self.assertEqual(device_module2, npu_device_module)
+
+    def test_torch_cuda_current_stream(self):
+        cur_stream = torch.cuda.current_stream(0)
+        cur_npu_stream = torch.npu.current_stream(0)
+        self.assertEqual(cur_stream, cur_npu_stream)
+        cur_stream = torch.cuda.current_stream(torch.device('cuda:0'))
+        cur_npu_stream = torch.npu.current_stream(torch.device('npu:0'))
+        self.assertEqual(cur_stream, cur_npu_stream)
+
+    def test_torch_cuda_utilization(self):
+        # 获取device利用率
+        use = torch.cuda.utilization(0)
+        use = torch.cuda.utilization(torch.device('cuda:0'))
+
+    def test_torch_cuda_set_per_process_memory_fraction(self):
+        torch.cuda.set_per_process_memory_fraction(0.5, device=0)
+        torch.cuda.set_per_process_memory_fraction(1.0, device=torch.device('cuda:0'))
+
+    def test_torch_cuda_caching_allocator_alloc(self):
+        size = 1024 * 1024
+        ptr1 = torch.cuda.caching_allocator_alloc(size, 0)
+        ptr2 = torch.cuda.caching_allocator_alloc(size, torch.device('cuda:0'))
+        torch.cuda.caching_allocator_delete(ptr1)
+        torch.cuda.caching_allocator_delete(ptr2)
+
+    def test_torch_cuda_memory(self):
+        device = torch.device('cuda:0')
+        a = torch.randn((1000, 1000), device=device)
+        torch.cuda.memory._record_memory_history(device=device)
+        snapshot = torch.cuda.memory._snapshot(device=device)
+
+    def test_torch_fft(self):
+        freq_fft = torch.fft.fftfreq(5, device=torch.device('cuda:0'))
+        self.assertEqual(str(freq_fft.device), 'npu:0')
+        freq_rfft = torch.fft.rfftfreq(5, device=torch.device('cuda:0'))
+        self.assertEqual(str(freq_rfft.device), 'npu:0')
+
+    def test_torch_autograd_profiler_util_Kernel(self):
+        kernel = torch.autograd.profiler_util.Kernel("model_inference", 'cuda', 11)
+        self.assertEqual(kernel.device, 'npu')
+
+    def test_torch_sparse_compressed_tensor(self):
+        # 定义压缩的索引
+        compressed_indices = torch.tensor([0, 3, 5], dtype=torch.int64)  # 表示行索引的压缩
+        plain_indices = torch.tensor([[0, 0], [1, 2], [2, 3]], dtype=torch.int64)  # 非压缩索引
+        values = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float32)  # 非零值
+
+        # 创建稀疏压缩矩阵
+        sparse_tensor = torch.sparse_compressed_tensor(
+            compressed_indices,
+            plain_indices,
+            values,
+            size=(3, 4),
+            dtype=torch.float32,
+            layout=torch.sparse_csr,
+            device=torch.device('cuda:0'),
+            requires_grad=True
+        )
+        self.assertEqual(str(sparse_tensor.device), 'npu:0')
+
 
 if __name__ == "__main__":
     run_tests()
