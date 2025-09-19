@@ -121,7 +121,10 @@ __all__ = [
     "set_stream_limit",
     "reset_stream_limit",
     "get_stream_limit",
-    "ipc_collect"
+    "ipc_collect",
+    "obfuscation_initialize",
+    "obfuscation_finalize",
+    "obfuscation_calculate"
 ]
 
 from typing import Tuple, Union, List, cast, Optional
@@ -136,7 +139,8 @@ from torch_npu.utils import _should_print_warning
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
-from .utils import (synchronize, set_device, current_device, _get_device_index,
+from .utils import (obfuscation_initialize, obfuscation_calculate, obfuscation_finalize, 
+                    synchronize, set_device, current_device, _get_device_index,
                     device, device_of, StreamContext, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
                     finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag,
