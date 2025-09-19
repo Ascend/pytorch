@@ -12,6 +12,8 @@ from torch.utils._device import _device_constructors
 from torch.utils._triton import has_triton
 from torch.nn.parameter import UninitializedTensorMixin
 from torch._utils import _get_device_module
+from torch.utils import cpp_extension
+from torch.autograd.profiler_util import Kernel
 import torch_npu
 
 try:
@@ -31,7 +33,8 @@ torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like'
                        'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
                        'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
                        '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-                       'empty_quantized', '_pin_memory', 'autocast', 'load', 'set_default_device']
+                       'empty_quantized', '_pin_memory', 'autocast', 'load', 'set_default_device', 'Event',
+                       'get_device_module', 'sparse_compressed_tensor']
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to',
                               'pin_memory']
 torch_module_fn_white_list = ['to', 'to_empty']
@@ -39,7 +42,8 @@ torch_cuda_fn_white_list = [
     'get_device_properties', 'get_device_name', 'get_device_capability', 'list_gpu_processes', 'set_device',
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached',
-    'reset_peak_memory_stats', 'default_stream'
+    'reset_peak_memory_stats', 'default_stream', 'can_device_access_peer', 'current_stream', 'utilization',
+    'set_per_process_memory_fraction', 'caching_allocator_alloc'
 ]
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type', 'map_location', 'device_id']
@@ -342,6 +346,25 @@ def _del_nccl_device_backend_map():
             del torch.distributed.Backend.default_device_backend_map['cuda']
 
 
+def _patch_nametuple(nametuple):
+    original__new__ = nametuple.__new__
+
+    def new_nametuple__new__(cls, *args, **kwargs):
+        if args:
+            args_new = list(args)
+            args = _replace_cuda_to_npu_in_list(args_new, False)
+        if kwargs:
+            for device_arg in device_kwargs_list:
+                device = kwargs.get(device_arg, None)
+                if device is not None:
+                    _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
+            device_ids = kwargs.get('device_ids', None)
+            if isinstance(device_ids, list):
+                device_ids = _replace_cuda_to_npu_in_list(device_ids, False)
+        return original__new__(cls, *args, **kwargs)
+    nametuple.__new__ = new_nametuple__new__
+
+
 def _init():
     _warning_fn('''
     *************************************************************************************************************
@@ -362,7 +385,13 @@ def _init():
     _device_wrapper(torch.cuda, torch_cuda_fn_white_list)
     torch.cuda.device.__init__ = _wrapper_cuda(torch.cuda.device.__init__)
 
+    # torch.cuda.memory.*
+    _device_wrapper(torch.npu.memory, ['_record_memory_history', '_snapshot'])
+    torch.cuda.memory._record_memory_history = torch.npu.memory._record_memory_history
+    torch.cuda.memory._snapshot = torch.npu.memory._snapshot
+
     # torch.profiler.*
+    _device_wrapper(torch_npu.profiler._KinetoProfile, ['export_memory_timeline'])
     _patch_profiler()
     torch.profiler.profile = _wrapper_profiler(torch.profiler.profile)
 
@@ -381,6 +410,9 @@ def _init():
     _device_wrapper(torch.nn.Module, torch_module_fn_white_list)
     torch.nn.Module.cuda = torch.nn.Module.npu
 
+    # torch.fft.*
+    _device_wrapper(torch.fft, ['fftfreq', 'rfftfreq'])
+
     # torch.distributed
     torch.distributed.init_process_group = _wrapper_hccl(torch.distributed.init_process_group)
     torch.distributed.is_nccl_available = torch.distributed.is_hccl_available
@@ -390,8 +422,14 @@ def _init():
     if hasattr(torch.distributed, 'init_device_mesh'):
         _del_nccl_device_backend_map()
         torch.distributed.device_mesh.init_device_mesh = _wrapper_cuda(torch.distributed.device_mesh.init_device_mesh)
-    torch.distributed.distributed_c10d._new_group_with_tag = _wrapper_hccl(torch.distributed.distributed_c10d._new_group_with_tag)
-    
+    torch.distributed.distributed_c10d._new_group_with_tag = _wrapper_hccl(
+        torch.distributed.distributed_c10d._new_group_with_tag)
+    torch.distributed.device_mesh.DeviceMesh = _wrapper_cuda(torch.distributed.device_mesh.DeviceMesh)
+
+    # torch.distributed.pipelining.*
+    if hasattr(torch.distributed, 'pipelining'):
+        _device_wrapper(torch.distributed.pipelining.stage, ['PipelineStage', 'build_stage'])
+
     # CUDAGraph
     torch.cuda.CUDAGraph = torch.npu.NPUGraph
 
@@ -413,6 +451,11 @@ def _init():
             _patch_OverlappingCpuLoader_init_)
 
     _replace_to_method_in_allowed_methods()
+
+    setattr(torch.utils, 'cpp_extension', cpp_extension)
+    _device_wrapper(torch.utils.cpp_extension, ['include_paths'])
+
+    _patch_nametuple(Kernel)
 
 
 _init()
