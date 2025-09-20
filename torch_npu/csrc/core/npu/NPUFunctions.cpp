@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
@@ -21,7 +22,9 @@ thread_local int targetDeviceIndex = -1;
 bool is_lazy_set_device()
 {
     static bool is_lazy_set = []() {
-        bool lazy_val = c10_npu::option::OptionsManager::LazySetDevice();
+        const std::string baseCannversion = "8.3.RC1";
+        const std::string baseCannModule = "CANN";
+        bool lazy_val = IsGteCANNVersion(baseCannversion, baseCannModule);
         ASCEND_LOGW("is_lazy_set_device %d", lazy_val);
         return lazy_val;
     }();
