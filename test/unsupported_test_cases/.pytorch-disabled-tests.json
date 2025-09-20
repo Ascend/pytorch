@@ -30547,6 +30547,7 @@
   "test_start1 (torch._dynamo.testing.DynamicShapesSubGraphTests)": ["", [""]],
   "test_start1_dynamic_shapes (torch._dynamo.testing.DynamicShapesSubGraphTests)": ["", [""]],
   "test_build_tuple_unpack (torch._dynamo.testing.DynamicShapesMiscTests)": ["", [""]],
+  "test_call_parent_non_class_methods_from_child_dynamic_shapes (torch._dynamo.testing.DynamicShapesMiscTests)": ["", [""]],
   "test_npu_stream_context_manager1 (__main__.CtxManagerTests)": ["", [""]],
   "test_npu_stream_context_manager2 (__main__.CtxManagerTests)": ["", [""]],
   "test_numpy_no_raise (__main__.MiscTests)": ["", [""]],
