@@ -12,6 +12,7 @@ import platform
 import time
 from pathlib import Path
 from typing import Union
+import hashlib
 
 import distutils.ccompiler
 import distutils.command.clean
@@ -24,7 +25,6 @@ from setuptools import setup, distutils, Extension
 from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 from wheel.bdist_wheel import bdist_wheel
-from build_libtorch_npu import file_sha256
 
 
 # Disable autoloading before running 'import torch' to avoid circular dependencies
@@ -104,6 +104,15 @@ def check_submodules():
             print(" --- Submodule initalization failed")
             print("Please run:\n\tgit submodule init && git submodule update")
             sys.exit(1)
+
+
+def file_sha256(filename):
+    """calculate file sha256"""
+    with open(filename, "rb") as f:
+        sha256 = hashlib.sha256()
+        sha256.update(f.read())
+        hash_value = sha256.hexdigest()
+        return hash_value
 
 
 def download_miniz():
