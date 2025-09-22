@@ -102,7 +102,6 @@ def _patch_import_stateless_graph(
     ftype, loc = self._graph_to_function_meta(g)
     # TODO: The FuncOp constructor requires a context-manager context.
     # Fix upstream and then unnest.
-    # See: https://github.com/nod-ai/SHARK-Turbine/issues/138
     with loc:
         func = func_dialect.FuncOp(
             func_name,
@@ -136,8 +135,7 @@ def _patch_sympy_expr_to_semi_affine_expr(
     However, for the most part, we don't need to support all of sympy.
     PyTorch only uses a subset of sympy for capturing and expressing
     symbolic shapes, and among what's supported, we expect the semi-affine
-    expressions (https://mlir.llvm.org/docs/Dialects/Affine/#semi-affine-maps)
-    to be sufficient.
+    expressions to be sufficient.
     """
 
     if isinstance(expr, sympy.Symbol):

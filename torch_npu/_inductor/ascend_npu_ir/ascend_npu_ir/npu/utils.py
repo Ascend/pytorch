@@ -367,7 +367,6 @@ def fx_graph_op_types(gm: torch.fx.GraphModule) -> List[str]:
             op_types.append(type_str.split('.')[1])
     return op_types
 
-# Borrowed from https://github.com/llvm/torch-mlir/blob/2b01f8b7f3cca87c3dc9c75edd91397803e9f6d4/projects/pt1/python/torch_mlir_e2e_test/configs/torchdynamo.py#L67
 def scalarize_tensor_ops_on_scalars(gm: torch.fx.GraphModule):
     # Modify gm.graph
     for node in gm.graph.nodes:

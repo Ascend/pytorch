@@ -438,8 +438,6 @@ add_needs_realized_inputs(
     ]
 )
 
-# TODO(jansel): ezyang says we won't need this in the future, try removing it
-# based on https://github.com/pytorch/pytorch/blob/9e3eb329df8f701/c10/core/ScalarType.h#L28
 DTYPE_ID_LOOKUP = {
     0: torch.uint8,
     1: torch.int8,
@@ -2610,8 +2608,6 @@ def constrain_to_fx_strides(fx_node, *args, **kwargs):
     return args, kwargs
 
 
-# TODO(jansel): we should implement decomps or lowerings for these
-# https://github.com/pytorch/torchdynamo/issues/327
 FALLBACK_ALLOW_LIST = {
     "torchvision::roi_align",
 }
@@ -2642,7 +2638,6 @@ def sdpa_constraint(fx_node, *args, **kwargs):
             # The 0 and 5th arguments for aten._scaled_dot_product_efficient_attention_backward.default
             # are for out and gradient_out. They have to be in
             # (3, 1, 2, 0) stride order. Otherwise the kernel will crash.
-            # Check https://github.com/pytorch/pytorch/issues/138772
             stride_order = (3, 1, 2, 0)
 
         if not meta_val.is_cuda:
@@ -2719,7 +2714,6 @@ make_fallback(aten._trilinear)
 # 3) Difficult
 # Scans
 # See the discussion at
-# https://dev-discuss.pytorch.org/t/pytorch-sparse-gnn-compiler-rfc/1644/19
 make_fallback(aten.segment_reduce.default)
 make_fallback(aten._segment_reduce_backward.default)
 
@@ -2776,7 +2770,6 @@ make_fallback(aten.mode)
 make_fallback(aten.median)
 make_fallback(aten.nanmedian)
 make_fallback(aten.randperm)
-# see: https://github.com/pytorch/pytorch/pull/121354
 make_fallback(aten.resize_)
 make_fallback(aten.resize_as_)
 
@@ -3284,7 +3277,6 @@ def tensor_constructor(fill_value):
         dtype = dtype or torch.get_default_dtype()
         if len(size) == 1 and isinstance(size[0], (list, tuple, torch.Size)):
             size = tuple(size[0])
-        # See https://github.com/pytorch/pytorch/issues/118102
         # All sizes at lowering time should be sympy.Symbol, not SymInt!
         for s in size:
             assert not isinstance(s, torch.SymInt)
@@ -3670,10 +3662,7 @@ def _unsafe_index(x, indices):
 # We cannot have this lowering as a decomposition as it introduces
 # mutation in the graph, which is bad for Aot Autograd. Aot Autograd runs dead
 # code elimination and common subexpression elimination optimizations, which
-# assume graphs to be side-effect free. More details at
-# https://github.com/pytorch/torchdynamo/issues/1235
-# and
-# https://github.com/pytorch/torchdynamo/issues/1863
+# assume graphs to be side-effect free
 @register_lowering(aten.index_put)
 def index_put(x, indices, values, accumulate=False):
     return index_put_(clone(x), indices, values, accumulate)
@@ -6008,7 +5997,6 @@ def div_mode(a, b, rounding_mode=None):
     both_boolean = is_boolean_type(a) and is_boolean_type(b)
 
     # floordiv and truncdiv need special handling for integer tensors on Triton,
-    # see the discussion at https://github.com/openai/triton/issues/605
     if rounding_mode == "floor":
         assert not both_boolean, "floordiv operands can not be boolean at the same time"
         return fallback_handler(aten.div.Tensor_mode)(a, b, rounding_mode=rounding_mode)
