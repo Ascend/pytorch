@@ -7,6 +7,7 @@ import torch_npu.utils._npu_trace as npu_trace
 import torch_npu.npu._stream_check as stream_check
 import torch_npu.npu._kernel_check as kernel_check
 from torch_npu.utils.utils import _print_warn_log
+from torch_npu.npu._stream_check import apply_sanitizer_patch
 
 
 class SanitizerMode:
@@ -110,6 +111,7 @@ class NPUSanitizer:
 
 
 def enable_npu_sanitizer():
+    apply_sanitizer_patch()
     npu_sanitizer.enable()
 
 
