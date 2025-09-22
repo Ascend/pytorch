@@ -9,6 +9,7 @@ import torch_npu.utils._npu_trace as npu_trace
 import torch_npu.npu._stream_check as stream_check
 import torch_npu.npu._kernel_check as kernel_check
 from torch_npu.utils.utils import _print_warn_log
+from torch_npu.npu._stream_check import apply_sanitizer_patch
 
 PTA_SUPPORT_DISPATCHMODE_VERSION = "2.3"
 
@@ -118,6 +119,7 @@ def enable_npu_sanitizer():
     if version.parse(current_pytorch_version) < version.parse(PTA_SUPPORT_DISPATCHMODE_VERSION):
         _print_warn_log(f"Current Pytorch's version {current_pytorch_version} doesn't support npu_sanitizer.")
     else:
+        apply_sanitizer_patch()
         npu_sanitizer.enable()
 
 

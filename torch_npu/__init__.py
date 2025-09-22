@@ -60,7 +60,6 @@ from torch_npu.utils import _cann_package_check, _add_intercept_methods
 from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.checkpoint.checkpoint import _apply_dcp_patch
-from torch_npu.npu._stream_check import apply_sanitizer_patch
 from torch_npu.npu._format import _apply_npu_format_patch
 from torch_npu.multiprocessing.reductions import _add_reductions_methods
 from torch_npu.npu.utils import _erase_stream as erase_stream
@@ -273,7 +272,6 @@ _register_ops_under_dtensor_rules()
 if 'TORCH_NPU_SANITIZER' in os.environ:
     import torch_npu.npu._sanitizer as csan
 
-    apply_sanitizer_patch()
     csan.enable_npu_sanitizer()
 
 if hasattr(sys, 'ps1'):
