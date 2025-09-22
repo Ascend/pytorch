@@ -22,15 +22,17 @@ def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, ba
         "please use newer torch to re-store the weight file."
     )
     se._warn_legacy_serialization(warn_massages, "oldfile")
+    device = storage._untyped_storage.device
+    storage = storage.cpu()
     tensor = torch.tensor([], dtype=storage.dtype, device=storage._untyped_storage.device)
     tensor.set_(storage, storage_offset, size, stride)
     tensor.requires_grad = requires_grad
     tensor._backward_hooks = backward_hooks
     if not se.RE_MAP_CPU:
         if isinstance(npu_storage_info, bool):
-            tensor = tensor.npu()
+            tensor = tensor.to(device)
         else:
-            tensor = torch_npu.npu_format_cast(tensor.npu(), npu_storage_info)
+            tensor = torch_npu.npu_format_cast(tensor.to(device), npu_storage_info)
     return tensor
 
 
@@ -53,7 +55,7 @@ def _reduce_ex(self, proto):
         backward_hooks: Dict[Any, Any] = OrderedDict()
         if self.device.type == "npu":
             npu_storage_format = torch_npu.get_npu_format(self)
-            tmp_tensor = self.cpu()
+            tmp_tensor = self
             arg_npu = (
                 tmp_tensor.storage() if has_torch_function_unary(tmp_tensor) else tmp_tensor._typed_storage(),
                 tmp_tensor.storage_offset(),

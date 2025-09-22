@@ -394,7 +394,6 @@ class TestNpuMultiNpu(TestCase):
         z = torch.cat([x, y], 0)
         self.assertEqual(z.get_device(), x.get_device())
 
-    @unittest.skip("skip now")
     def test_load_nonexistent_device(self):
         # Setup: create a serialized file object with a 'npu:9' restore location
         tensor = torch.randn(2, device='npu')
