@@ -75,7 +75,6 @@ from torch_npu.utils import _apply_module_patch, _add_tensor_methods, _add_colle
     add_optim_method, _inductor_register_device_op_overrides, \
     _apply_npu_show_warning, _apply_npugraph_tree_methods
 from torch_npu.utils._dynamo_device import _dynamo_register_interface_for_device
-from torch_npu.npu._stream_check import apply_sanitizer_patch
 from torch_npu.npu._format import _apply_npu_format_patch
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
@@ -172,7 +171,6 @@ def _apply_class_patches():
     _add_collect_env_methods()
     add_dynamo_methods()
     add_optim_method()
-    apply_sanitizer_patch()
     _apply_sharded_grad_scaler_patch()
     add_perf_dump_patch()
     _apply_distributed_methods_patch()
