@@ -157,6 +157,9 @@ def patch_inductor_wrapper():
     src_call = _TorchCompileInductorWrapper.__call__
 
     def new_call(self, model_, inputs_):
+        if self.config.get('max_autotune', False):
+            import os
+            os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
         register_inductor_npu()
         return src_call(self, model_, inputs_)
 
