@@ -239,7 +239,9 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         self.directions = ["None"] * len(tiling_axis)
         if len(tiling_axis) != len(rev_orders):
             raise RuntimeError(f"assert tiling len={len(tiling_axis)}, not equal to golden varlist len ={len(rev_orders)}")
+
         var_orders = list(reversed(rev_orders))
+
         index = var_orders.index(self.symbol())
         self.directions[index] = ":"
         return f"[{','.join(self.directions)}]"
@@ -1048,25 +1050,51 @@ class NPUIndexTritonKernel(TritonKernel):
 
         return None
 
-    # select the golden varlist, from to which to deduce permute, broadcast shape 
+    def parse_golden_from_load_store_index(self):
+        sybol_stride_map = {}
+        for node in self.node_schedule:
+            if node in (EnableReduction, DisableReduction):
+                continue
+            indexing_list = node._body.indexing
+            for index in indexing_list.values():
+                for var, stride in index.as_coefficients_dict().items():
+                    if var.is_Symbol and var not in sybol_stride_map:
+                        sybol_stride_map[var] = stride
+        sorted_items = sorted(sybol_stride_map.items(), key=lambda x: x[1], reverse=False)
+        sorted_keys = [key for key, _ in sorted_items]
+        return sorted_keys
+
+    def load_store_index_in_all_tiling_list(self):
+        res = False
+        for index in self.load_store_indexing:
+            index = index.subs(V.graph.sizevars.var_to_val)
+            analyze = IndexAnalysis(self, index)
+            res = res or self.all_tiling_in_var_list(analyze.var_list)
+        return res
+
+    def all_tiling_in_var_list(self, var_list):
+        return all([x in var_list for x in self.tiling_axis])
+
     def select_golden_varlist(self):
         longest = None
         maximum_length = 0
         self.golden_var_list = None
 
-        def all_tiling_in_var_list(var_list):
-            return all([x in var_list for x in self.tiling_axis])
 
         # all are load indexings, select the longest as gold
         for index in self.load_store_indexing:
             index = index.subs(V.graph.sizevars.var_to_val)
             analyze = IndexAnalysis(self, index)
-            if len(analyze.var_list) > maximum_length and all_tiling_in_var_list(analyze.var_list):
+            if len(analyze.var_list) > maximum_length and self.all_tiling_in_var_list(analyze.var_list):
+
                 longest = analyze.var_list
                 maximum_length = len(longest)
-        # this may cause problems
+
         if not longest:
-            self.golden_var_list = tuple([x.symbol() for x in self.tiling_axis]) if self.tiling_axis else []
+            if self.find_reduction_node is not None and self.load_store_index_in_all_tiling_list() is False:
+                self.golden_var_list = self.parse_golden_from_load_store_index()
+            else:
+                self.golden_var_list = tuple([x.symbol() for x in self.tiling_axis]) if self.tiling_axis else []
         else:
             self.golden_var_list = tuple([x for x in longest if x in self.tiling_axis]) if self.tiling_axis else []
         if self.golden_var_list is None:
@@ -1151,16 +1179,28 @@ class NPUIndexTritonKernel(TritonKernel):
         reduction_range_prefix = self.range_trees[-1].prefix
         if not self.reduce_analysis:
             self.reduce_analysis = ReductionAnalysis(self)
-        dense_size_str = self.dense_size_str()
 
-        if len(dense_size_str) > 2:
+        dense_size_str = self.dense_size_str()
+        axis_list = []
+        for index in self.load_store_indexing:
+            for axis in V.kernel.range_tree_nodes.keys():
+                if str(axis) in str(index) and (axis not in axis_list):
+                    axis_list.append(axis)
+
+        if len(axis_list) < len(self.dense_size_list()):
             value = self._map_tuple_or_scalar(
                 lambda v: self.cse.generate(
-                    self.compute, f"tl.reshape({v}, {dense_size_str})", dtype=v.dtype,
+                    self.compute, f"tl.broadcast_to({v}, {dense_size_str})", dtype=v.dtype,
                 ),
                 value,
-
             )
+        value = self._map_tuple_or_scalar(
+            lambda v: self.cse.generate(
+                self.compute, f"tl.reshape({v}, {dense_size_str})", dtype=v.dtype,
+            ),
+            value,
+
+        )
 
         dim: int
         root_op: str
@@ -1379,7 +1419,7 @@ class NPUIndexTritonKernel(TritonKernel):
         result_var.mask_vars = indexing.mask_vars  # type: ignore[assignment]
 
         if append_broadcast and append_broadcast != '[]':
-            line = f"tl.broadcast_to({result_var}, {append_broadcast})"
+            line = f"tl.reshape({result_var}, {append_broadcast})"
             result_var = self.cse.generate(load_buffer, line, dtype=dtype)
         # triton can handle broadcast
         elif index_analyze.need_permute:
