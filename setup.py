@@ -24,6 +24,8 @@ from setuptools import setup, distutils, Extension
 from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 from wheel.bdist_wheel import bdist_wheel
+from build_libtorch_npu import file_sha256
+
 
 # Disable autoloading before running 'import torch' to avoid circular dependencies
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
@@ -128,9 +130,13 @@ def download_miniz():
     subprocess.check_call([
         wget_path, 
         miniz_url,
+        "--no-check-certificate",
         "-O", os.path.join(miniz_dir, "miniz.h")
     ])
-
+    miniz_hash256 = file_sha256(os.path.join(miniz_dir, "miniz.h"))
+    if miniz_hash256 != "f959f5dfb5c5d3ed0f55f3e7e455afbe1e924d64d74cd2dd374740b9d87abfd0":
+        raise RuntimeError("the sha256sum of miniz.h is not incorrect.")
+    
 
 check_submodules()
 download_miniz()
