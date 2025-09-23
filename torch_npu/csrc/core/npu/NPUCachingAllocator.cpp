@@ -3630,9 +3630,11 @@ public:
         {
             if (npu_ipc_ptr_) {
                 return npu_ipc_ptr_;
-            } else {
+            }
+            if (expandable_segment_) {
                 return expandable_segment_->ptr();
             }
+            return nullptr;
         }
         c10::DeviceIndex device_;
         ExpandableSegment* expandable_segment_{nullptr};
