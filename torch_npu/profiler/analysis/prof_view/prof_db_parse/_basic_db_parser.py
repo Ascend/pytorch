@@ -72,18 +72,23 @@ class BasicDbParser(BaseParser):
             raise RuntimeError(f"Failed to connect to db file: {TorchDb().get_db_path()}")
 
     def save_rank_info_to_db(self):
-        if ProfilerConfig().rank_id == -1:
-            return
-        device_ids = ProfilerPathManager.get_device_id(self._cann_path)
-        device_id = None
-        if len(device_ids) != 1:
-            device_id = Constant.INVALID_VALUE
-        else:
-            device_id = device_ids[0]
+        # The method will automatically check if the table exists
         TorchDb().create_table_with_headers(DbConstant.TABLE_RANK_DEVICE_MAP,
                                             TableColumnsManager.TableColumns.get(DbConstant.TABLE_RANK_DEVICE_MAP))
-        TorchDb().insert_data_into_table(DbConstant.TABLE_RANK_DEVICE_MAP,
-                                         [[ProfilerConfig().rank_id, device_id]])
+        # Need to clear existing data written by msprof in the table first
+        TorchDb().clear_table_data(DbConstant.TABLE_RANK_DEVICE_MAP)
+        rank_id = ProfilerConfig().rank_id
+        device_ids = ProfilerPathManager.get_device_id(self._cann_path)
+        if not device_ids:
+            device_id = Constant.INVALID_VALUE
+            TorchDb().insert_data_into_table(DbConstant.TABLE_RANK_DEVICE_MAP,
+                                             [[rank_id, device_id]])
+        else:
+            rank_device_pairs = []
+            for device_id in device_ids:
+                rank_device_pairs.append([rank_id, device_id])
+            TorchDb().insert_data_into_table(DbConstant.TABLE_RANK_DEVICE_MAP,
+                                             rank_device_pairs)
     
     def save_host_info_to_db(self):
         if TorchDb().judge_table_exist(DbConstant.TABLE_HOST_INFO):
