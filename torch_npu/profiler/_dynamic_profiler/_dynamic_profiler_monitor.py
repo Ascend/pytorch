@@ -103,7 +103,8 @@ class DynamicProfilerMonitor:
         if self._shm_obj.is_create_process:
             process_params = self._monitor_process_params()
             # daemon need to be set to True, otherwise the process will not be killed when the main process exits.
-            self._process = multiprocessing.Process(
+            ctx = multiprocessing.get_context("fork")
+            self._process = ctx.Process(
                 target=worker_func if not self._is_dyno else worker_dyno_func, daemon=True,
                 args=(process_params, ))
             self._process.start()
