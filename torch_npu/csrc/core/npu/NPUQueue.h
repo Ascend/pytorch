@@ -81,7 +81,7 @@ public:
   virtual std::string GetPara() = 0;
   virtual void ClearQueue() = 0;
   virtual void SetQueueErrMsg(const char* errmsg) = 0;
-  virtual const char* GetQueueErrMsg() = 0;
+  virtual std::string GetQueueErrMsg() = 0;
 };
 
 class NPUQueueFactoryBase {
@@ -105,7 +105,7 @@ public:
   std::string GetPara() override;
   void ClearQueue() override;
   void SetQueueErrMsg(const char *errmsg) override;
-  const char* GetQueueErrMsg() override;
+  std::string GetQueueErrMsg() override;
 
 private:
   void ReleaseResource();
@@ -127,7 +127,7 @@ private:
   int efd_write;
   int efd_empty;
   c10::DeviceIndex device_idx;
-  const char *error_msg;
+  std::string error_msg;
 
 private:
   sring_idx read_idx;

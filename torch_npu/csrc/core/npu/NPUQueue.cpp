@@ -314,7 +314,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
         if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) {
             auto errmsg = GetQueueErrMsg();
             const char *memerror = "Failed to allocate memory";
-            if (strstr(errmsg, memerror) != nullptr) {
+            if (errmsg.find(memerror) != std::string::npos) {
                 c10_npu::option::oom_observer();
             }
         }
@@ -534,7 +534,7 @@ void Repository::Enqueue(void *cur_paras)
         if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) {
             auto errmsg = GetQueueErrMsg();
             const char *memerror = "Failed to allocate memory";
-            if (strstr(errmsg, memerror) != nullptr) {
+            if (errmsg.find(memerror) != std::string::npos) {
                 c10_npu::option::oom_observer();
             }
         }
@@ -742,10 +742,10 @@ void Repository::ClearQueue()
 
 void Repository::SetQueueErrMsg(const char *errmsg)
 {
-    error_msg = errmsg;
+    error_msg = std::string(errmsg);
 }
 
-const char *Repository::GetQueueErrMsg()
+std::string Repository::GetQueueErrMsg()
 {
     return error_msg;
 }
