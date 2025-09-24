@@ -7,6 +7,7 @@ import mmap
 import time
 import struct
 from datetime import datetime, timezone
+from multiprocessing import current_process
 
 from ..analysis.prof_common_func._constant import print_error_msg
 from ...utils._path_manager import PathManager
@@ -48,6 +49,14 @@ class DynamicProfilerShareMemory:
             "sys_interconnection": False
         }
     }
+    DISTRIBUTED_LAUNCHERS = ("torchrun", "torch_npu_run", "vllm")
+    DISTRIBUTED_MODULES = {
+        "torch.distributed.run",
+        "torch.distributed.launch",
+        "torch_npu.distributed.run",
+        "torch_npu.distributed.launch",
+        "vllm.entrypoints.openai.api_server"
+    }
 
     def __init__(
             self,
@@ -84,6 +93,32 @@ class DynamicProfilerShareMemory:
                 str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
             return None
 
+    def _is_worker_process(self):
+        if os.environ.get("RANK") is not None:  # torchrun会设置这个环境变量
+            return True
+        process = current_process()
+        if isinstance(process.name, str) and process.name.startswith("EngineCore"):  # vllm启动时实际业务进程的父进程
+            return False
+        cmdline_path = f"/proc/{os.getpid()}/cmdline"
+        max_size = 1024
+        try:
+            with open(cmdline_path, "rb") as f:
+                content = f.read(max_size).split(b'\x00')
+            args = [arg.decode("utf-8", errors="ignore") for arg in content if arg]
+            if len(args) < 2:
+                return False
+            if "python" not in args[0].lower():
+                return False
+            if args[1].endswith(self.DISTRIBUTED_LAUNCHERS):
+                return False  # torchrun等方式启动
+            if len(args) >= 3 and args[1] == "-m" and args[2] in self.DISTRIBUTED_MODULES:
+                return False  # -m 方式启动
+            return True
+        except Exception as ex:
+            DynamicProfilerUtils.out_log("Failed to read the cmdline of current process: {}".format(
+                str(ex)), DynamicProfilerUtils.LoggerLevelEnum.WARNING)
+            return False
+
     def _clean_shm_for_killed(self):
         if sys.version_info >= (3, 8):
             shm_path = os.path.join("/dev/shm", self.shm_path)
@@ -93,7 +128,7 @@ class DynamicProfilerShareMemory:
             return
         time_shm = os.stat(shm_path).st_ctime
         pid_time = self._get_pid_st_ctime(os.getpid())
-        eps = 60
+        eps = 900
         if pid_time and pid_time - time_shm > eps:
             raise RuntimeError(f"There may exist shared memory before this task. If you kill the last task, "
                                f"dynamic profiler will not be valid. Please remove: {shm_path}, and retry." +
@@ -119,6 +154,8 @@ class DynamicProfilerShareMemory:
         self.cur_mtime = int(file_stat.st_mtime)
 
     def _create_shm(self):
+        if not self._is_worker_process():
+            return
         if sys.version_info >= (3, 8):
             PathManager.check_input_directory_path(self.shm_path)
             self._create_shm_over_py38()
