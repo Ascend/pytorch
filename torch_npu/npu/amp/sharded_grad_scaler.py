@@ -311,12 +311,12 @@ class _ShardedGradScaler(GradScaler):
         """
         if found_inf.item() >= 1.0:
             self._scale *= self._backoff_factor  # type: ignore[arg-type]
-            self._growth_tracker = 0
+            self._growth_tracker.fill_(0)
         else:
             successful = self._growth_tracker + 1  # type: ignore[operator]
             if successful == self._growth_interval:  # type: ignore[arg-type]
                 self._scale *= self._growth_factor  # type: ignore[arg-type]
-                self._growth_tracker = 0
+                self._growth_tracker.fill_(0)
             else:
                 self._growth_tracker = successful
 
