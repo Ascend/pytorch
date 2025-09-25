@@ -1,5 +1,6 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/NPUSerialization.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "third_party/acl/inc/acl/acl_base.h"
@@ -39,6 +40,8 @@ void npu_info_deserialization(const at::Tensor &t, std::unordered_map<std::strin
 
     for (auto &m : map) {
         if (m.first.find("npu_format_") != std::string::npos) {
+            // npu_format_cast_ will run on current_device(not t.device()) and maybe core if no device guard
+            c10_npu::NPUGuard guard_(t.device());
             aclFormat format = str_to_aclFormat(m.first);
             // The format cast is an operator,
             // so special handling is required for scenarios
