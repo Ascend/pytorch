@@ -137,7 +137,7 @@ def func_in_class(obj, content, modname, elem, base_schema, failure_list):
     class_variables = [attribute for attribute in obj.__dict__.keys() if not attribute.startswith('__')
                        and callable(getattr(obj, attribute))]
     for variable in class_variables:
-        if variable in ["_backward_cls"]:
+        if variable in ["_backward_cls", "_new_member_"]:
             continue
         func = getattr(obj, variable)
         api_str = f"{modname}.{elem}.{variable}"
