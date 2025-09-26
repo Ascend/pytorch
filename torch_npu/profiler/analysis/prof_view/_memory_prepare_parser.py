@@ -32,6 +32,7 @@ from ..prof_common_func._cann_package_manager import CannPackageManager
 __all__ = []
 TASK_QUEUE_ENABLE = 'TASK_QUEUE_ENABLE'
 ATEN_OP_NAME_PREFIX = 'aten'
+NPU_OP_NAME_PREFIX = 'npu'
 
 
 class MemoryPrepareParser(BaseParser):
@@ -50,9 +51,9 @@ class MemoryPrepareParser(BaseParser):
         self._enqueue_record_dict = {}  # {corrid: enqueue}
         self._dequeue_pids = set()
         self._dequeue_tids = set()
-        self._torch_ops_index = {}
-        self._dequeue_record_index = {}
-        self._record_to_name = {}
+        self._torch_ops_index = {}  # {(tid, is_enqueue): index}
+        self._dequeue_record_index = {}  # {dequeue_record: index}
+        self._record_to_name = {}  # {record: torch_op.name}
         self.torch_ops_tid_dict = defaultdict(list)
         ProfilerLogger.init(self._profiler_path, "MemoryPrepareParser")
         self.logger = ProfilerLogger.get_instance()
@@ -81,13 +82,17 @@ class MemoryPrepareParser(BaseParser):
         self._add_pta_memory_data()
 
     def _find_matched_torch_op_name(self, mem_start_ts: int, tid: int) -> str:
-        matched_torch_op_idx = self._find_last_torch_op_before_timestamp(mem_start_ts, tid)
+        is_enqueue = False
+        matched_torch_op_idx = self._find_last_torch_op_before_timestamp(mem_start_ts, tid, is_enqueue)
+        if matched_torch_op_idx == -1:
+            warn("Can't find matched torch ops for a memory record!")
+            return ""
         torch_ops = self.torch_ops_tid_dict.get(tid, [])
         matched_torch_op = torch_ops[matched_torch_op_idx]
         while matched_torch_op.end_time < mem_start_ts:
             matched_torch_op = matched_torch_op.parent_node
             if not matched_torch_op or not matched_torch_op.event:
-                warn(f"Can't find matched torch ops for a memory record!")
+                warn("Can't find matched torch ops for a memory record!")
                 return ""
         return matched_torch_op.name
 
@@ -169,22 +174,25 @@ class MemoryPrepareParser(BaseParser):
                 break
         return self._dequeue_record_index[(record.pid, record.tid)] - 1
 
-    def _find_last_torch_op_before_timestamp(self, ts: int, tid: int):
+    def _find_last_torch_op_before_timestamp(self, ts: int, tid: int, is_enqueue: bool):
         torch_ops = self.torch_ops_tid_dict.get(tid, [])
-        if not self._torch_ops_index.get(tid):
-            self._torch_ops_index[tid] = 0
+        if not self._torch_ops_index.get((tid, is_enqueue)):
+            self._torch_ops_index[(tid, is_enqueue)] = 0
         torch_ops_num = len(torch_ops) - 1
-        while self._torch_ops_index[tid] <= torch_ops_num:
-            if torch_ops[self._torch_ops_index[tid]].start_time <= ts:
-                self._torch_ops_index[tid] += 1
+        while self._torch_ops_index[(tid, is_enqueue)] <= torch_ops_num:
+            if torch_ops[self._torch_ops_index[(tid, is_enqueue)]].start_time <= ts:
+                self._torch_ops_index[(tid, is_enqueue)] += 1
             else:
                 break
-        return self._torch_ops_index[tid] - 1
+        return self._torch_ops_index[(tid, is_enqueue)] - 1
 
     def _find_related_dequeue_record(self, record: MemoryUseBean) -> OpMarkBean:
         if not (record.pid in self._dequeue_pids and record.tid in self._dequeue_tids):
             return None
         index = self._find_last_dequeue_record_before_timestamp(record.time_ns, record)
+        if index == -1:
+            warn("Cannot find dequeue record matched memory record")
+            return None
         dequeue_records = self._dequeue_record_dict[(record.pid, record.tid)]
         if not (dequeue_records[index].ts <= record.time_ns < dequeue_records[index].ts +
                 dequeue_records[index].dur):
@@ -195,21 +203,28 @@ class MemoryPrepareParser(BaseParser):
     def _find_related_enqueue_record(self, dequeue_record: OpMarkBean) -> OpMarkBean:
         return self._enqueue_record_dict.get(dequeue_record.corr_id)
 
-    def _get_aten_op_name_by_enqueue_record(self, enqueue_record: OpMarkBean, torch_ops: list) -> str:
-        index = self._find_last_torch_op_before_timestamp(enqueue_record.time_ns, torch_ops)
-        while index >= 0 and (not torch_ops[index].name.startswith(ATEN_OP_NAME_PREFIX)):
-            index = index - 1
+    def _get_aten_op_name_by_enqueue_record(self, enqueue_record: OpMarkBean) -> str:
+        is_enqueue = True
+        index = self._find_last_torch_op_before_timestamp(enqueue_record.time_ns, enqueue_record.tid, is_enqueue)
         if index == -1:
             warn("Unable to find aten operator according to enqueue record.")
             return ""
-        return torch_ops[index].name
+        torch_ops = self.torch_ops_tid_dict.get(enqueue_record.tid, [])
+        matched_torch_op = torch_ops[index]
+        while index >= 0 and not (matched_torch_op.name.startswith(ATEN_OP_NAME_PREFIX) or
+                                  matched_torch_op.name.startswith(NPU_OP_NAME_PREFIX)):
+            matched_torch_op = matched_torch_op.parent_node
+            if not matched_torch_op or not matched_torch_op.event:
+                warn("Unable to find aten operator according to enqueue record.")
+                return ""
+        return matched_torch_op.name
 
-    def _find_real_op_name_of_record(self, dequeue_record: OpMarkBean, torch_ops: list) -> str:
+    def _find_real_op_name_of_record(self, dequeue_record: OpMarkBean) -> str:
         enqueue_record = self._find_related_enqueue_record(dequeue_record)
         if enqueue_record is None:
             warn("Unable to find enqueue record according to dequeue record.")
             return ""
-        return self._get_aten_op_name_by_enqueue_record(enqueue_record, torch_ops)
+        return self._get_aten_op_name_by_enqueue_record(enqueue_record)
 
     def _get_op_name_of_record(self, record: MemoryUseBean) -> str:
         op_name = self._record_to_name.get(record)
@@ -219,7 +234,7 @@ class MemoryPrepareParser(BaseParser):
         if dequeue_record is None:
             op_name = self._find_matched_torch_op_name(record.time_ns, record.tid)
         else:
-            op_name = self._find_real_op_name_of_record(dequeue_record, self.torch_ops_tid_dict.get(dequeue_record.tid, []))
+            op_name = self._find_real_op_name_of_record(dequeue_record)
         self._record_to_name[record] = op_name
         return op_name
 
