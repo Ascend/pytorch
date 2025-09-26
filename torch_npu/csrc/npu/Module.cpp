@@ -707,6 +707,7 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
     int device = THPUtils_unpackLong(arg);
     auto memUceInfo_ = c10_npu::get_mem_uce_info();
     if (memUceInfo_.retSize > 0) {
+        ASCEND_LOGI("exec AclrtMemUceRepair, device is %d, retSize is %d.", memUceInfo_.device, memUceInfo_.retSize);
         NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtMemUceRepair(memUceInfo_.device, memUceInfo_.info, memUceInfo_.retSize));
     }
 
