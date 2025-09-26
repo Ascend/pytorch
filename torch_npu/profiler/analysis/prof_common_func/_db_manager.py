@@ -132,6 +132,17 @@ class DbManager:
             index += cls.INSERT_SIZE
 
     @classmethod
+    def clear_table_data(cls, conn: sqlite3.Connection, cur: sqlite3.Cursor, table_name: str) -> None:
+        """
+        Clear all data from the specified table but keep the table structure and headers
+        """
+        if not table_name or not cls.judge_table_exist(cur, table_name):
+            return
+        sql = f"DELETE FROM {table_name}"
+        if not cls.execute_sql(conn, sql):
+            raise RuntimeError(f"Failed to clear data from table {table_name}")
+
+    @classmethod
     def fetch_all_data(cls, cur: sqlite3.Cursor, sql: str) -> list:
         """
         fetch 1000 num of data each time to get all data
@@ -203,6 +214,9 @@ class BasicDb:
 
     def insert_data_into_table(self, table_name: str, data: list) -> None:
         DbManager.insert_data_into_table(self.conn, table_name, data)
+
+    def clear_table_data(self, table_name: str) -> None:
+        DbManager.clear_table_data(self.conn, self.curs, table_name)
 
     def fetch_all_data(self, sql: str) -> list:
         return DbManager.fetch_all_data(self.curs, sql)
