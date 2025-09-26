@@ -509,7 +509,7 @@ uint32_t OptionsManager::GetAclOpInitMode()
                 TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value 0.");
             }
         }
-        return static_cast<uint32_t>(acl_op_init_mode);
+        return static_cast<uint32_t>(acl_op_init_mode_);
     }();
     return acl_op_init_mode;
 }
