@@ -167,6 +167,11 @@ void SetPrecisionMode()
     // "must_keep_origin_dtype").
     auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ? "must_keep_origin_dtype"
                                                                                         : "allow_fp32_to_fp16";
+    static const std::string precision_mode_ = "ACL_PRECISION_MODE";
+    auto precision_mode_val = c10_npu::option::GetOption(precision_mode_);
+    if (precision_mode_val.has_value()) {
+        precision_mode = precision_mode_val->c_str();
+    }
     NPU_CHECK_ERROR(at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, precision_mode));
 }
 
