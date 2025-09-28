@@ -203,9 +203,10 @@ def worker_dyno_func(params_dict):
         dynamic_profiler_utils.out_log("Init dynolog failed !", dynamic_profiler_utils.LoggerLevelEnum.WARNING)
         return
     dynamic_profiler_utils.out_log("Init dynolog success !", dynamic_profiler_utils.LoggerLevelEnum.INFO)
+    has_update_method = hasattr(py_dyno_monitor, "update_profiler_status")
     while loop_flag.value:
         time.sleep(poll_interval.value)
-        if hasattr(py_dyno_monitor, "update_profiler_status") and last_status != profiler_status.value:
+        if has_update_method and last_status != profiler_status.value:
             py_dyno_monitor.update_profiler_status({"profiler_status": str(profiler_status.value)})
             last_status = profiler_status.value
         res = py_dyno_monitor.poll_dyno()
@@ -228,4 +229,6 @@ def worker_dyno_func(params_dict):
         except Exception as ex:
             dynamic_profiler_utils.out_log("Dynamic profiler cfg bytes write failed, {} has occur!".format(str(ex)),
                                            dynamic_profiler_utils.LoggerLevelEnum.ERROR)
+    if has_update_method:
+        py_dyno_monitor.update_profiler_status({"profiler_status": "-1"})
     dynamic_profiler_utils.out_log("Dynolog profiler process done", dynamic_profiler_utils.LoggerLevelEnum.INFO)
