@@ -171,7 +171,26 @@ void record_mem_hbm_ecc_error()
 {
     MemUceInfo memUceInfo_;
     memUceInfo_.is_hbm_ecc_error = true;
-    ASCEND_LOGE("Log HBM MULTI BIT ECC ERROR, set is_hbm_ecc_error param is true");
+    int device = 0;
+    auto err = c10_npu::GetDevice(&device);
+    if (err != ACL_ERROR_NONE) {
+        ASCEND_LOGE("GetDevice failed when record_mem_hbm_ecc_error.");
+        return;
+    }
+    memUceInfo_.device = device;
+    ASCEND_LOGI("record_mem_hbm_ecc_error device is %d.", device);
+    err = c10_npu::acl::AclrtGetMemUceInfo(
+        device,
+        memUceInfo_.info,
+        sizeof(memUceInfo_.info) / sizeof(aclrtMemUceInfo),
+        &memUceInfo_.retSize
+    );
+    if (err != ACL_ERROR_NONE) {
+        ASCEND_LOGE("AclrtGetMemUceInfo failed when record_mem_hbm_ecc_error.");
+        return;
+    }
+    ASCEND_LOGE("Log HBM MULTI BIT ECC ERROR, set is_hbm_ecc_error param is true, device is %d, retSize is %d.",
+        memUceInfo_.device, memUceInfo_.retSize);
     set_mem_uce_info(memUceInfo_);
 }
 
