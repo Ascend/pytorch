@@ -135,21 +135,6 @@ def custom_matmul_backward_sharding(
     return acceptable_shardings
 
 
-@register_sharding(npu.npu_dtype_cast_backward.default)
-def custom_npu_dtype_cast_backward_sharding(
-    grad: DTensorSpec,
-    dtype: torch.dtype,
-):
-    max_dim_index = _get_max_shardable_dim(grad)
-    if not max_dim_index == -1:
-        strategy = ([Shard(max_dim_index)], [Shard(max_dim_index), None])
-    else:
-        strategy = ([Replicate()], [Replicate(), None])
-    acceptable_shardings = []
-    acceptable_shardings.append(strategy)
-    return acceptable_shardings
-
-
 @register_sharding(npu.npu_fusion_attention.default)
 # pylint:disable=huawei-too-many-arguments
 def custom_npu_fusion_attention_sharding(query, key, value, head_num, input_layout, pse=None, padding_mask=None,
