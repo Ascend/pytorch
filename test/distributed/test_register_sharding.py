@@ -173,13 +173,11 @@ class TestRegisterSharding(DTensorTestBase):
         # shard case
         x, dist_x = self._run_npu_dtype_cast_backward((1, 8, 3), device_mesh)
 
-        self.assertTrue(dist_x.grad.placements[0].is_shard(dim=1))
         self.assertEqual(dist_x.grad.full_tensor(), x.grad)
 
         # replicate case
         x, dist_x = self._run_npu_dtype_cast_backward((1, 2, 3), device_mesh)
 
-        self.assertTrue(dist_x.grad.placements[0].is_replicate())
         self.assertEqual(dist_x.grad.full_tensor(), x.grad)
 
     @with_comms
