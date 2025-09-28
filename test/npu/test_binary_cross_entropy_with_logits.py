@@ -102,6 +102,7 @@ class TestBinaryCrossEntropyWithLogits(TestCase):
             ((10, 64), (10, 64), (10, 64), "mean"),
             ((10, 64), (10, 64), (10, 64), "none")
         ]:
+            np.random.seed(42)
             input1 = self.generate_one_input(0, 10, shape, np.float16)
             target = torch.empty(shape, dtype=torch.float16).random_(2)
             input_32 = input1.type(torch.float32)
