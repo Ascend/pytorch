@@ -423,7 +423,7 @@ def _init():
     torch.distributed.device_mesh.init_device_mesh = _wrapper_cuda(torch.distributed.device_mesh.init_device_mesh)
     torch.distributed.distributed_c10d._new_group_with_tag = _wrapper_hccl(
         torch.distributed.distributed_c10d._new_group_with_tag)
-    torch.distributed.device_mesh.DeviceMesh = _wrapper_cuda(torch.distributed.device_mesh.DeviceMesh)
+    torch.distributed.device_mesh.DeviceMesh.__init__ = _wrapper_cuda(torch.distributed.device_mesh.DeviceMesh.__init__)
 
     # torch.distributed.pipelining.*
     if hasattr(torch.distributed, 'pipelining'):
