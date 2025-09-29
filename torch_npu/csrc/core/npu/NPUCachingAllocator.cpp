@@ -90,7 +90,6 @@ constexpr size_t kSmallSize = 1048576;                // largest "small" allocat
 constexpr size_t kSmallBuffer = 2097152;              // "small" allocations are packed in 2 MiB blocks
 constexpr size_t kLargeBuffer = 20971520;             // "large" allocations may be packed in 20 MiB blocks
 constexpr size_t kExtraLargeBuffer = 1073741824;      // "extra large" allocations may be packed in 1 GB blocks
-constexpr size_t kLargeBufferForHccl = 134217728;     // "large for hccl" allocations may be packed in 128 MiB blocks
 constexpr size_t kMinLargeAlloc = 10485760;           // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kRoundLarge = 2097152;               // round up large allocs to 2 MiB
 constexpr size_t kAlignRoundLarge = 16384;            // round up large allocs to 16 KB
@@ -2295,9 +2294,7 @@ private:
                 return c;
             }
         }
-        auto segment_size = pool->is_small ?
-            kSmallBuffer :
-            (c10_npu::option::OptionsManager::IsHcclZeroCopyEnable() ? kLargeBufferForHccl : kLargeBuffer);
+        auto segment_size = pool->is_small ? kSmallBuffer : kLargeBuffer;
         // 此处申请虚拟内存，segment_size是页大小，实际虚拟内存巨大
         if (IsMallocPage1GMem(pool->is_small)) {
             segment_size = kExtraLargeBuffer;
