@@ -153,17 +153,27 @@ def register_inductor_npu():
 
 
 def patch_inductor_wrapper():
+    from typing import Any, Optional
     from torch import _TorchCompileInductorWrapper
     src_call = _TorchCompileInductorWrapper.__call__
-
+    src_apply_options = _TorchCompileInductorWrapper.apply_options
+    
     def new_call(self, model_, inputs_):
         if self.config.get('max_autotune', False):
             import os
             os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
         register_inductor_npu()
         return src_call(self, model_, inputs_)
-
+    
+    def new_apply_options(self, options: Optional[Dict[str, Any]]):
+        if options is not None and options.get("enable_shape_handling", False):
+            if not is_inductor_npu_initialized():
+                register_inductor_npu()
+            torch_npu._inductor.patch_shape_handling()
+        src_apply_options(self, options)
+    
     _TorchCompileInductorWrapper.__call__ = new_call
+    _TorchCompileInductorWrapper.apply_options = new_apply_options
 
 
 def patch_dynamo_optimize():

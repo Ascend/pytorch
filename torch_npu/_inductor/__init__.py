@@ -38,6 +38,7 @@ else:
     from .runtime import _load_cached_autotuning
     from .utils import get_current_raw_stream, patch_is_gpu, patch_has_triton, disable_foreach
     from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
+    from .shape_handling import NPUShapeHandling, patch_shape_handling
 
     set_compile_threads()
     disable_comprehensive_padding()

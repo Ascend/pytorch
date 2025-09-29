@@ -11,6 +11,7 @@
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
+#include "torch_npu/csrc/inductor/aoti_package/shape_handling.h"
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/afd/Init.h"
 #include "torch_npu/csrc/profiler/init.h"
@@ -150,6 +151,7 @@ void THNPStream_init(PyObject *module);
 void THNPEvent_init(PyObject *module);
 void THNPGraph_init(PyObject *module);
 void THNPMemPool_init(PyObject* module);
+void THNPShapeHandling_init(PyObject* module);
 PyMethodDef* THNPModule_get_methods();
 
 static std::vector<PyMethodDef> methods;
@@ -191,6 +193,7 @@ PyObject* initModule()
     THNPEvent_init(module);
     THNPGraph_init(module);
     THNPMemPool_init(module);
+    THNPShapeHandling_init(module);
 
     RegisterNPUDeviceProperties(module);
     BindGetDeviceProperties(module);
