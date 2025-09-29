@@ -1005,7 +1005,7 @@ def to_dtype(x: TensorBox, dtype: torch.dtype, copy=False):
     def _to_dtype(x):
         return ops.to_dtype(x, dtype, src_dtype=src_dtype)
     register_fn_to_aten_fn(_to_dtype, aten.to.dtype)
-    return make_pointwise(_to_dtype, override_return_dtype=dtype)(x)
+    return make_pointwise(_to_dtype, override_return_dtype=dtype, dtype=dtype)(x)
 
 
 @register_lowering(torch._higher_order_ops._foreach_map, type_promotion_kind=None)

@@ -107,7 +107,8 @@ class NpuMlirCompiler:
                         ops_reorder=False,
                         tiling_size=None,
                         extra_command=None):
-        bisheng_ir_compile_path = f"bishengir-compile"
+        bisheng_install_path = os.getenv('BISHENG_INSTALL_PATH', '')
+        bisheng_ir_compile_path = os.path.join(bisheng_install_path, "bishengir-compile")
         command = [
             bisheng_ir_compile_path,
             "-enable-hfusion-compile=true",
@@ -194,7 +195,9 @@ class NpuMlirCompiler:
     def get_launch_dynamic(self, function, tiling_func, tiling_size):
         block_dim = anir_config.block_dim
         def kernel_call(*args, stream=None):
-            self.launch(block_dim, stream, function, tiling_func, tiling_size, None, None, None, *args)
+            arg_tiling_device = torch.empty((tiling_size // 8), device='npu', dtype=torch.int64)
+            self.launch(block_dim, stream, function, tiling_func, tiling_size, arg_tiling_device, None, None, None, *args)
+            del arg_tiling_device
         return kernel_call
     
     def get_launch(self, function):

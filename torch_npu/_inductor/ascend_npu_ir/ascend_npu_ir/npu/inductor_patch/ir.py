@@ -369,6 +369,7 @@ ir.PermuteView.create = _patch_permuteview_create
 def _patch_view_create(cls, x, new_size, traced_graph=None, node_name=None):
     assert isinstance(new_size, (tuple, list))
     old_size, new_size = cls.resolve_negative_size(x.get_size(), new_size)
+
     # Skip pointless views
     if V.graph.sizevars.statically_known_list_equals(old_size, new_size):
         return x
@@ -382,22 +383,24 @@ def _patch_view_create(cls, x, new_size, traced_graph=None, node_name=None):
 
     if 0 in new_size:
 
-        def fake_reindex(index):
+        def fake_reindex(index):  # type: ignore[no-untyped-def]
             return tuple([0] * len(old_size))
-        
-        r = cls(x, list(new_size), fake_reindex)
+
+        r = cls(data=x, size=list(new_size), reindex=fake_reindex)
         r._post_init_setattr("traced_graph", traced_graph)
         r._post_init_setattr("node_name", node_name)
         return r
-
     # TODO: a new class for FixedTransferLayout that output layout is constrained by input layout
     elif ir.is_contiguous_storage_and_layout(x) or unbacked_symbols_in_sizes:
         if unbacked_symbols_in_sizes and (not ir.is_contiguous_storage_and_layout(x)):
             # realize x; otherwise, the dynamic_reshape_indexer below will fail
             # due to the size_hint's inability to process unbacked SymInts
-            x = ir.ExternKernel.realize_input(x)
+            # Need to require contiguous here instead of realize, see:
+            x = ir.ExternKernel.require_exact_strides(
+                x, ir.FlexibleLayout.contiguous_strides(x.get_size())
+            )
 
-        storage, old_layout = ir.as_contiguous_storage_and_layout(x)
+        storage, old_layout = ir.as_storage_and_layout(x, want_contiguous=True)
         new_layout = ir.FixedLayout(
             old_layout.device,
             old_layout.dtype,
@@ -405,14 +408,12 @@ def _patch_view_create(cls, x, new_size, traced_graph=None, node_name=None):
             ir.FlexibleLayout.contiguous_strides(new_size),
             old_layout.offset,
         )
-        
         r = ir.ReinterpretView(data=storage, layout=new_layout)
         r._post_init_setattr("traced_graph", traced_graph)
         r._post_init_setattr("node_name", node_name)
         return r
 
     reindex = cls.dynamic_reshape_indexer(old_size, new_size)
-    
     r = cls(data=x, size=list(new_size), reindex=reindex)
     r._post_init_setattr("traced_graph", traced_graph)
     r._post_init_setattr("node_name", node_name)
