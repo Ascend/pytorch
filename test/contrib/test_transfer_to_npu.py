@@ -273,6 +273,11 @@ class TestTransferToNpu(TestCase):
     def test_torch_Event(self):
         event = torch.Event(device='cuda:0', enable_timing=True)
         self.assertEqual(str(event.device), 'npu')
+        self.assertEqual(isinstance(event, torch.Event), True)
+
+        event = torch.Event('cuda:0')
+        self.assertEqual(str(event.device), 'npu')
+        self.assertEqual(isinstance(event, torch.Event), True)
 
     def test_torch_get_device_module(self):
         device_module1 = torch.get_device_module(device='cuda:0')
