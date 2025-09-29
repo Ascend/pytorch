@@ -422,7 +422,8 @@ class MLIRProcessor:
         
         :param bisheng_install_path: Bisheng安装路径，默认从环境变量获取
         """
-        self.bisheng_torch_mlir_path = f"bishengir-opt"
+        bisheng_install_path = os.getenv('BISHENG_INSTALL_PATH', '')
+        self.bisheng_torch_mlir_path = os.path.join(bisheng_install_path, "bishengir-opt")
         
     def extract_function(self, module: ir.Module) -> func_dialect.FuncOp:
         """从MLIR模块中提取主函数并添加标记属性"""
@@ -458,7 +459,7 @@ class MLIRProcessor:
                 dim_start = type_str.find('[') + 1
                 dim_end = type_str.find(']', dim_start)
                 dim_str = type_str[dim_start:dim_end]
-                ranks.append(dim_str.count(',') + 1 if dim_str else 1)
+                ranks.append(dim_str.count(',') + 1 if dim_str else 0)
         
         num_outputs = len(func_type.results)
         return signature, num_outputs, ranks

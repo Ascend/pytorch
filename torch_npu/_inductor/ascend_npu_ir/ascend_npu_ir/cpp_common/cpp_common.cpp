@@ -150,8 +150,8 @@ static void prepare_tiling(void* args, void* tiling_func, int64_t tilingSize, vo
     args_cast[args_num - 4] = arg_tiling_device;
 }
 
-rtError_t common_launch_dyn(char* kernelName, void* func, void* tiling_func, int64_t tilingSize, uint32_t gridX,
-                           void* args, uint32_t argsSize, rtStream_t stream)
+rtError_t common_launch_dyn(char* kernelName, void* func, void* tiling_func, int64_t tilingSize,
+                            void* arg_tiling_device, uint32_t gridX, void* args, uint32_t argsSize, rtStream_t stream)
 {
     unsigned long int beginTime = 0;
     unsigned long int endTime = 0;
@@ -161,17 +161,12 @@ rtError_t common_launch_dyn(char* kernelName, void* func, void* tiling_func, int
 
     if (tilingSize != 0) {
         void *arg_tiling_host = nullptr;
-        void *arg_tiling_device = nullptr;
         aclError err = aclrtMallocHost((void **)&arg_tiling_host, tilingSize);
         if (err != ACL_ERROR_NONE) {
             printf("Failed to malloc arg_tiling_host, err: %d \n", err);
         }
-        // malloc device memory for device arg_tiling
-        err = aclrtMalloc((void **)&arg_tiling_device, tilingSize, ACL_MEM_MALLOC_HUGE_FIRST);
-        if (err != ACL_ERROR_NONE) {
-            printf("Failed to malloc arg_tiling_device, err: %d \n", err);
-        }
-        prepare_tiling(args, tiling_func, tilingSize, arg_tiling_host, arg_tiling_device, gridX, stream, argsSize);
+        void **args_cast = static_cast<void **>(args);
+        prepare_tiling(args_cast, tiling_func, tilingSize, arg_tiling_host, arg_tiling_device, gridX, stream, argsSize);
         typedef void (*mlir_func)(uint32_t, void*, void*, void*);
         mlir_func func_cast = (mlir_func)func;
         if (torch_npu::profiler::GetTraceLevel() != -1) {
