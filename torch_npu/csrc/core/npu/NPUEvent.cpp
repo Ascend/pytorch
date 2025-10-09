@@ -23,7 +23,7 @@ NPUEvent::~NPUEvent()
 {
     try {
         if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
-            NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
+            NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
             if (!c10_npu::acl::IsExistCreateEventExWithFlag()) {
                 c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent();
             }
@@ -56,7 +56,7 @@ bool NPUEvent::query() const
     }
     acl::aclrtEventRecordedStatus currStatus =
         acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-    NPU_CHECK_ERROR_WITHOUT_UCE(acl::AclQueryEventRecordedStatus(event_, &currStatus));
+    NPU_CHECK_ERROR(acl::AclQueryEventRecordedStatus(event_, &currStatus));
 
     if (currStatus == acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         return true;
@@ -111,9 +111,9 @@ float NPUEvent::elapsed_time(const NPUEvent& other) const
     if (ret != NPU_STATUS_SUCCESS) {
         ASCEND_LOGE("Failed to empty NPU task queue, ret: %s", ret.c_str());
     }
-    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(event_));
+    NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
     ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event_);
-    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(other.event_));
+    NPU_CHECK_ERROR(aclrtSynchronizeEvent(other.event_));
     ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, other.event=%p", other.event_);
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -123,7 +123,7 @@ float NPUEvent::elapsed_time(const NPUEvent& other) const
     }
 #endif
     // raise error if either event is recorded but not yet completed
-    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtEventElapsedTime(&time_ms, event_, other.event_));
+    NPU_CHECK_ERROR(aclrtEventElapsedTime(&time_ms, event_, other.event_));
     return time_ms;
 }
 
@@ -134,7 +134,7 @@ uint64_t NPUEvent::recorded_time() const
     if (ret != NPU_STATUS_SUCCESS) {
         ASCEND_LOGE("Failed to empty NPU task queue, ret: %s", ret.c_str());
     }
-    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(event_));
+    NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
     ASCEND_LOGI("Event: aclrtSynchronizeEvent executed successfully, event=%p", event_);
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -144,7 +144,7 @@ uint64_t NPUEvent::recorded_time() const
 #endif
     // raise error if either event is recorded but not yet completed
     uint64_t time_stamp = 0;
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtEventGetTimestamp(event_, &time_stamp));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtEventGetTimestamp(event_, &time_stamp));
     return time_stamp;
 }
 
@@ -155,7 +155,7 @@ void NPUEvent::synchronize() const
         if (ret != NPU_STATUS_SUCCESS) {
             ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
         }
-        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(event_));
+        NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
         ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event_);
 #ifndef BUILD_LIBTORCH
         const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -172,7 +172,7 @@ void NPUEvent::reset(const NPUStream& stream) const
         TORCH_CHECK(flags_ == ACL_EVENT_EXTERNAL,
                     "API reset() only support ACL_EVENT_EXTERNAL flag event.", PTA_ERROR(ErrCode::INTERNAL));
         NPUGuard guard(stream.device_index());
-        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtResetEvent(event_, stream.stream()));
+        NPU_CHECK_ERROR(aclrtResetEvent(event_, stream.stream()));
     }
 }
 
@@ -181,7 +181,7 @@ void NPUEvent::createEvent(c10::DeviceIndex device_index)
     device_index_ = device_index;
     NPUGuard guard(device_index_);
     LazySetDevice(device_index_);
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtCreateEventWithFlag(&event_, flags_));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(&event_, flags_));
     ASCEND_LOGI("Event: aclrtCreateEventWithFlag is successfully executed, event=%p", event_);
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
