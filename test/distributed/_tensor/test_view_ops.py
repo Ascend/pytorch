@@ -5,8 +5,8 @@ import torch
 import torch.distributed as dist
 from torch import rand, randn, Tensor
 from torch.distributed._tensor import DeviceMesh, distribute_tensor, Replicate, Shard
-from torch.distributed._tensor.debug import CommDebugMode
-from torch.distributed._tensor.ops._view_ops import (
+from torch.distributed.tensor.debug import CommDebugMode
+from torch.distributed.tensor._ops._view_ops import (
     Broadcast,
     dim_maps,
     Flatten,
@@ -18,14 +18,14 @@ from torch.distributed._tensor.ops._view_ops import (
 )
 from torch.distributed._tensor.placement_types import Placement
 from torch.testing._internal.common_utils import run_tests
-from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 from torch.utils import _pytree as pytree
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
-class TestViewOps(DTensorTestBase):
+class TestViewOps(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(4)
     def test_view_groups(self):
         self.assertEqual(

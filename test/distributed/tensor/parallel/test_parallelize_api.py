@@ -14,13 +14,13 @@ from torch.distributed.tensor.parallel.style import (
 )
 from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import (
-    DTensorTestBase,
     MLPModule,
     MLPStacked,
 )
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
 class DummyModule(torch.nn.Module):
@@ -31,7 +31,7 @@ class DummyModule(torch.nn.Module):
         return x
 
 
-class TensorParallelAPITests(DTensorTestBase):
+class TensorParallelAPITests(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 2

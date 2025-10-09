@@ -13,14 +13,13 @@ from torch.distributed.tensor._random import is_rng_supported_mesh, manual_seed
 
 from torch.distributed.distributed_c10d import broadcast_object_list
 
-from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
-
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 from torch_npu.testing.testcase import run_tests
 
 
-class DistTensorRandomInitTest(DTensorTestBase):
+class DistTensorRandomInitTest(NPUDTensorTestBase):
     def _run_init_op(self, init_op, *args, **kwargs):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
         shard_spec = [Shard(0)]
@@ -75,7 +74,7 @@ class DistTensorRandomInitTest(DTensorTestBase):
         self._run_init_op(torch.nn.init.uniform_, a=0, b=1.2)
 
 
-class DistTensorRandomOpTest(DTensorTestBase):
+class DistTensorRandomOpTest(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_rng_tracker_init(self):

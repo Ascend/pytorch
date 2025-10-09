@@ -13,7 +13,6 @@ import torch
 import torch.distributed as dist
 import torch_npu
 
-
 TestSkip = namedtuple('TestSkip', 'exit_code, message')
 TEST_SKIPS = {
     "multi-npu": TestSkip(75, "Need at least 2 ASCEND devices"),
@@ -34,7 +33,7 @@ def skipIfUnsupportMultiNPU(npu_number_needed):
     def skip_dec(func):
         def wrapper(self):
             if not torch.npu.is_available() or torch.npu.device_count() < npu_number_needed:
-                return unittest.SkipTest("Multi-NPU condition not satisfied")
+                raise unittest.SkipTest("Multi-NPU condition not satisfied")
             return func(self)
         return wrapper
     return skip_dec
@@ -44,18 +43,18 @@ def with_comms(func):
     if func is None:
         raise RuntimeError("Test function is None.")
 
+    def get_device_type(self):
+        if torch.npu.is_available() and torch.npu.device_count() >= self.world_size:
+            return "npu"
+        return "cpu"
+
     @wraps(func)  # pyre-ignore[6]
     def wrapper(
-        self, *args: Tuple[object], **kwargs: Dict[str, Any]  # type: ignore[misc]
+            self, *args: Tuple[object], **kwargs: Dict[str, Any]  # type: ignore[misc]
     ) -> None:
-        # if backend not specified, and npu available, then use hccl, else gloo
-        if torch.npu.is_available() and torch.npu.device_count() >= self.world_size:
-            self.device_type = "npu"
-        else:
-            self.device_type = "cpu"
 
         pg_backend = (
-            "hccl" if self.device_type == "npu" else "gloo"
+            "hccl" if get_device_type(self) == "npu" else "gloo"
         )
         if pg_backend == "hccl" and torch.npu.device_count() < self.world_size:
             raise RuntimeError(TEST_SKIPS[f"multi-npu-{self.world_size}"].message)

@@ -9,20 +9,17 @@ from torch.distributed.checkpoint.default_planner import (
     DefaultSavePlanner,
     DefaultLoadPlanner,
 )
-
-from torch.testing._internal.distributed._tensor.common_dtensor import (
-    DTensorTestBase,
-)
 from torch.testing._internal.distributed.checkpoint_utils import with_temp_dir
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 from torch_npu.testing.testcase import run_tests
 
 
-class FsdpOptimStateCheckpoint(DTensorTestBase):
-    @with_comms
+class FsdpOptimStateCheckpoint(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(4)
+    @with_comms
     @with_temp_dir
     def test_distributed_tensor_planner(self) -> None:
         CHECKPOINT_DIR = self.temp_dir

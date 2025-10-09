@@ -33,7 +33,6 @@ from torch.testing._internal.common_utils import (
     run_tests,
 )
 from torch.testing._internal.distributed._tensor.common_dtensor import (
-    DTensorTestBase,
     MLPModule,
     ModelArgs,
     skip_unless_torch_gpu,
@@ -42,6 +41,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
 c10d_functional = torch.ops.c10d_functional
@@ -58,7 +58,7 @@ class ExpCommCounts(NamedTuple):
     optim: Optional[dict] = None
 
 
-class DistTensorParallelExampleTest(DTensorTestBase):
+class DistTensorParallelExampleTest(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 2

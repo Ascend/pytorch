@@ -9,18 +9,15 @@ from torch.distributed.checkpoint.default_planner import (
     DefaultSavePlanner,
     DefaultLoadPlanner,
 )
-
-from torch.testing._internal.distributed._tensor.common_dtensor import (
-    DTensorTestBase,
-)
 from torch.testing._internal.distributed.checkpoint_utils import with_temp_dir
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 from torch_npu.testing.testcase import run_tests
 
 
-class FsdpModelStateCheckpoint(DTensorTestBase):
+class FsdpModelStateCheckpoint(NPUDTensorTestBase):
     def _test_fsdp_model_state(self, process_group) -> None:
         CHECKPOINT_DIR = self.temp_dir
 
@@ -65,8 +62,8 @@ class FsdpModelStateCheckpoint(DTensorTestBase):
                 self.assertEqual(model.weight, model_2.weight)
                 self.assertEqual(model.bias, model_2.bias)
 
-    @with_comms
     @skipIfUnsupportMultiNPU(4)
+    @with_comms
     @with_temp_dir
     def test_fsdp_model_state_no_resharding(self):
         self._test_fsdp_model_state(process_group=None)
@@ -86,8 +83,8 @@ class FsdpModelStateCheckpoint(DTensorTestBase):
 
         return my_fsdp
 
-    @with_comms
     @skipIfUnsupportMultiNPU(4)
+    @with_comms
     @with_temp_dir
     def test_fsdp_model_state_with_resharding(self):
         self._test_fsdp_model_state(process_group=self._create_new_dist_group())

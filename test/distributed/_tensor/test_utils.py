@@ -1,26 +1,25 @@
 import itertools
 import torch
 from torch.distributed._tensor import distribute_tensor
-from torch.distributed._tensor._utils import (
-    compute_local_shape,
+from torch.distributed.tensor._utils import (
     compute_local_shape_and_global_offset,
 )
 from torch.distributed._tensor.device_mesh import DeviceMesh
 from torch.distributed._tensor.placement_types import Replicate, Shard
 
 from torch.testing._internal.common_utils import run_tests
-from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
-class UtilTest(DTensorTestBase):
+class UtilTest(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 8
 
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(8)
     @with_comms
     def test_compute_local_shape_2d_uneven(self):
         # mesh: 4 * 2
@@ -31,7 +30,7 @@ class UtilTest(DTensorTestBase):
 
         # replicate, shard
         placements2 = [Replicate(), Shard(0)]
-        local_size2 = compute_local_shape(size, mesh, placements2)
+        local_size2, _ = compute_local_shape_and_global_offset(size, mesh, placements2)
         if rank_coordinates[1] < 1:
             self.assertEqual(local_size2, torch.Size([4, 7]))
         else:
@@ -39,7 +38,7 @@ class UtilTest(DTensorTestBase):
 
         # shard, shard
         placements3 = [Shard(0), Shard(1)]
-        local_size3 = compute_local_shape(size, mesh, placements3)
+        local_size3, _ = compute_local_shape_and_global_offset(size, mesh, placements3)
         # first dim
         if rank_coordinates[0] < 3:
             self.assertEqual(local_size3[0], 2)
@@ -51,7 +50,7 @@ class UtilTest(DTensorTestBase):
         else:
             self.assertEqual(local_size3[1], 3)
 
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(8)
     @with_comms
     def test_compute_local_shape_and_global_offset_1D(self):
         one_d_placements = [[Shard(0)], [Replicate()]]
@@ -77,7 +76,7 @@ class UtilTest(DTensorTestBase):
                 global_tensor[dim0_start:dim0_end],
             )
 
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(8)
     @with_comms
     def test_compute_local_shape_and_global_offset_2D(self):
         two_d_placements_options = [Shard(0), Shard(1), Replicate()]

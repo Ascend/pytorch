@@ -13,7 +13,7 @@ from torch.distributed._tensor import (
     DTensor,
     init_device_mesh,
 )
-from torch.distributed._tensor.placement_types import _Partial, Replicate, Shard
+from torch.distributed.tensor.placement_types import Partial, Replicate, Shard
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
     parallelize_module,
@@ -21,12 +21,10 @@ from torch.distributed.tensor.parallel import (
 )
 
 from torch.testing._internal.common_utils import run_tests
-from torch.testing._internal.distributed._tensor.common_dtensor import (
-    DTensorTestBase,
-)
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
 class DummyMLP(torch.nn.Module):
@@ -47,7 +45,7 @@ class DummyMLP(torch.nn.Module):
             self.net2.bias.fill_(1.2)
 
 
-class DTensorTest(DTensorTestBase):
+class DTensorTest(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_constructor(self):
@@ -177,7 +175,7 @@ class DTensorTest(DTensorTestBase):
         ddp_tensor = DTensor.from_local(local_tensor, device_mesh, replica_spec)
         self.assertEqual(ddp_tensor.size(), local_tensor.size())
 
-        partial_spec = [_Partial()]
+        partial_spec = [Partial()]
         partial_tensor = DTensor.from_local(local_tensor, device_mesh, partial_spec)
         self.assertEqual(partial_tensor.size(), local_tensor.size())
 
@@ -336,7 +334,7 @@ class DTensorTest(DTensorTestBase):
 
         sharded_dtensor = distribute_tensor(global_tensor, device_mesh, placements)
         local_out = sharded_dtensor.redistribute(placements=[Replicate()]).to_local(
-            grad_placements=[_Partial()]
+            grad_placements=[Partial()]
         )
         local_out.sum().backward()
 
@@ -363,7 +361,7 @@ class DTensorTest(DTensorTestBase):
         global_tensor = torch.ones(8, 3, requires_grad=True)
 
         sharded_dtensor = distribute_tensor(global_tensor, device_mesh, placements)
-        local_out = sharded_dtensor.full_tensor(grad_placements=[_Partial()])
+        local_out = sharded_dtensor.full_tensor(grad_placements=[Partial()])
         local_out.sum().backward()
 
         replica_grad = sharded_dtensor.grad.full_tensor()
@@ -522,7 +520,7 @@ class DTensorTest(DTensorTestBase):
         self.assertEqual(sharded_tensor, reloaded_st)
 
 
-class DTensorMeshTest(DTensorTestBase):
+class DTensorMeshTest(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 8
@@ -762,7 +760,7 @@ class DTensorMeshTest(DTensorTestBase):
         )
 
 
-class TestDTensorPlacementTypes(DTensorTestBase):
+class TestDTensorPlacementTypes(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 8
