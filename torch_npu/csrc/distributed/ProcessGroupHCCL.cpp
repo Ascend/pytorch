@@ -1255,6 +1255,19 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
 {
     LOG(INFO) << logPrefix() << "ProcessGroupHCCL destructor entered.";
 
+    if (windowMem_.has_value()) {
+        std::vector<at::Device> devices = {windowMem_->device()};
+        auto comm = getHcclCommByDevices(devices);
+        if (comm->getHcclComm() != nullptr) {
+            auto ret = hcclCommDeregister(comm->getHcclComm(), windowHandle_);
+            if (ret != HCCL_SUCCESS) {
+                ASCEND_LOGE("Call HcclCommDeregister failed.")
+            }
+        }
+        windowHandle_ = nullptr;
+        windowMem_ = c10::nullopt;
+    }
+
     if (options_->global_ranks_in_group.empty()) {
         global_ = nullptr;
     }
@@ -2562,6 +2575,28 @@ int64_t ProcessGroupHCCL::getStreamId(bool p2p, int peer)
         return -1;
     }
     return hcclStreams_[key][0].id();
+}
+
+void ProcessGroupHCCL::windowRegisterAndExchange(int64_t windowSize, std::vector<uint32_t>& peerRanks)
+{
+    TORCH_CHECK(windowSize > 0, "Window memory must be greater than 0.", DIST_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(!windowMem_, "Window memory cannnot be registered repeatedly.", DIST_ERROR(ErrCode::UNAVAIL));
+    TORCH_CHECK(!c10_npu::option::OptionsManager::IsHcclZeroCopyEnable(),
+                "Window memory register unsupport set HCCL_ZERO_COPY=1", DIST_ERROR(ErrCode::UNAVAIL));
+
+    auto options = at::TensorOptions(c10::DeviceType::PrivateUse1).dtype(at::kChar);
+    windowMem_ = at::empty({windowSize}, options);
+
+    std::vector<at::Device> devices = {windowMem_->device()};
+    auto comm = getHcclCommByDevices(devices);
+    HCCL_CHECK_ERROR(hcclCommRegister(comm->getHcclComm(), windowMem_->data_ptr(), windowSize, &windowHandle_, 0));
+    HCCL_CHECK_ERROR(hcclCommExchangeMem(comm->getHcclComm(), windowHandle_, peerRanks.data(), peerRanks.size()));
+}
+
+const at::Tensor& ProcessGroupHCCL::getWindowMem()
+{
+    TORCH_CHECK(windowMem_, "window memory must be registered before get.", DIST_ERROR(ErrCode::UNAVAIL))
+    return windowMem_.value();
 }
 
 namespace {

@@ -611,6 +611,10 @@ public:
 
     int64_t getStreamId(bool p2p, int peer);
 
+    void windowRegisterAndExchange(int64_t windowSize, std::vector<uint32_t>& peerRanks);
+
+    const at::Tensor& getWindowMem();
+
 protected:
     // Helper that broadcasts HCCL Master ID to all ranks through the store
     void broadcastMasterID(
@@ -1106,6 +1110,12 @@ private:
     WatchdogStatus watchdogStatus;
 
     static ProcessGroupHCCL* global_;
+
+    // window memory
+    void* windowHandle_ = nullptr;
+
+    c10::optional<at::Tensor> windowMem_;
+
 };
 
 // Dumps the HCCL comm traces and additional information about the Process

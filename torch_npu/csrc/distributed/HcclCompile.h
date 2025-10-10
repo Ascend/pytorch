@@ -27,6 +27,9 @@ LOAD_FUNCTION(HcclGetCommConfigCapability)
 LOAD_FUNCTION(HcclCommInitClusterInfoConfig)
 LOAD_FUNCTION(HcclCreateSubCommConfig)
 LOAD_FUNCTION(HcclCommWorkingDevNicSet)
+LOAD_FUNCTION(HcclCommRegister)
+LOAD_FUNCTION(HcclCommDeregister)
+LOAD_FUNCTION(HcclCommExchangeMem)
 
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
@@ -281,4 +284,41 @@ HcclResult hcclCommWorkingDevNicSet(HcclComm comm, uint32_t *ranks, bool *useBac
     auto ret = func(comm, ranks, useBackup, nRanks);
     return ret;
 }
+
+HcclResult hcclCommRegister(HcclComm comm, void *addr, uint64_t size, void **handle, uint32_t flag)
+{
+    using HcclCommRegisterFunc = HcclResult(*)(HcclComm, void *, uint64_t, void **, uint32_t);
+    static HcclCommRegisterFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommRegisterFunc)GET_FUNC(HcclCommRegister)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommRegister", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(comm, addr, size, handle, flag);
+    return ret;
+}
+
+HcclResult hcclCommDeregister(HcclComm comm, void *handle)
+{
+    using HcclCommDeregisterFunc = HcclResult(*)(HcclComm, void *);
+    static HcclCommDeregisterFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommDeregisterFunc)GET_FUNC(HcclCommDeregister)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommDeregister", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(comm, handle);
+    return ret;
+}
+
+HcclResult hcclCommExchangeMem(HcclComm comm, void *windowHandle, uint32_t *peerRanks, uint32_t peerRankNum)
+{
+    using HcclCommExchangeMemFunc = HcclResult(*)(HcclComm, void *, uint32_t *, uint32_t);
+    static HcclCommExchangeMemFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommExchangeMemFunc)GET_FUNC(HcclCommExchangeMem)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommExchangeMem", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(comm, windowHandle, peerRanks, peerRankNum);
+    return ret;
+}
+
 } // namespace c10d_npu
