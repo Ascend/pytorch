@@ -257,6 +257,32 @@ extern HcclResult HcclCommActivateCommMemory(HcclComm comm, void *virPtr, size_t
 */
 extern HcclResult HcclCommDeactivateCommMemory(HcclComm comm, void *virPtr);
 
+/**
+ * @brief Register memory for communicator
+ * @param comm A pointer identifying the communication resource
+ * @param addr The address of the window memory to register
+ * @param size The size in bytes of the window memory
+ * @param handle Pointer to store the handle identifying the registered memory
+ * @param flag Reserved parameters, default to 0
+*/
+extern HcclResult HcclCommRegister(HcclComm comm, void *addr, uint64_t size, void **handle, uint32_t flag);
+
+/**
+ * @brief Unregister memory for communicator
+ * @param comm A pointer identifying the communication resource
+ * @param handle The handle of memory registered by @ref HcclCommRegister()
+*/
+extern HcclResult HcclCommDeregister(HcclComm comm, void *handle);
+
+/**
+ * @brief Exchange user memory with peer ranks
+ * @param comm A pointer identifying the communication resource
+ * @param handle The handle of memory registered by @ref HcclCommRegister()
+ * @param peerRanks Array of destination ranks to exchange with
+ * @param peerRankNum Number of destination ranks in the peerRanks array
+*/
+extern HcclResult HcclCommExchangeMem(HcclComm comm, void *windowHandle, uint32_t *peerRanks, uint32_t peerRankNum);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
