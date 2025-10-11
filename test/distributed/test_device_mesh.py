@@ -16,6 +16,7 @@ from torch.distributed.distributed_c10d import (
     get_world_size,
     init_process_group,
     is_initialized,
+    new_group,
     ProcessGroup,
 )
 from torch.distributed.tensor._collective_utils import (
@@ -26,6 +27,7 @@ from torch.distributed.tensor._collective_utils import (
 from torch.distributed.tensor.placement_types import _Partial, Shard
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 from torch.testing._internal.distributed.fake_pg import FakeStore
+from torch.utils._typing_utils import not_none
 
 import torch_npu
 from torch_npu.testing.common_distributed import init_pg, skipIfUnsupportMultiNPU, TEST_SKIPS
@@ -174,7 +176,7 @@ class DeviceMeshTest(NPUDTensorTestBase):
             RuntimeError,
             "Optional kwarg `mesh_dim` needs to be specified when device_mesh.ndim > 1.",
         ):
-            local_rank = mesh_2d.get_local_rank()
+            mesh_2d.get_local_rank()
 
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -315,14 +317,18 @@ class DeviceMeshTestF(NPUDTensorTestBase):
         invalid_mesh = [[0, 1], [2, 3]]  # 2D mesh when we need 1D
         regex = r"Invalid mesh \[\[0, 1\], \[2, 3\]\] for ProcessGroup with ranks \[0, 1, 2, 3\]"
         with self.assertRaisesRegex(ValueError, regex):
-            DeviceMesh.from_group(global_pg, "npu", invalid_mesh)
+            DeviceMesh.from_group(
+                global_pg, "npu", invalid_mesh, mesh_dim_names=("dim0", "dim1")
+            )
 
         device_mesh = init_device_mesh(self.device_type, (2, 2))
         groups = device_mesh.get_all_groups()
         invalid_mesh = (0, 1, 2, 3)  # 1D mesh when we need 2D
         regex = r"Expects mesh with ndim equal to number of ProcessGroups but got mesh \[0, 1, 2, 3\] and 2 ProcessGroups"
         with self.assertRaisesRegex(ValueError, regex):
-            DeviceMesh.from_group(groups, self.device_type, invalid_mesh)
+            DeviceMesh.from_group(
+                groups, self.device_type, invalid_mesh, mesh_dim_names=("dim0", "dim1")
+            )
 
 
 class DeviceMeshTestNDim(NPUDTensorTestBase):
