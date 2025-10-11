@@ -135,7 +135,7 @@ class DeviceMeshTest(DTensorTestBase):
             RuntimeError,
             "Optional kwarg `mesh_dim` needs to be specified when device_mesh.ndim > 1.",
         ):
-            local_rank = mesh_2d.get_local_rank()
+            mesh_2d.get_local_rank()
 
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -276,14 +276,18 @@ class DeviceMeshTestF(DTensorTestBase):
         invalid_mesh = [[0, 1], [2, 3]]  # 2D mesh when we need 1D
         regex = r"Invalid mesh \[\[0, 1\], \[2, 3\]\] for ProcessGroup with ranks \[0, 1, 2, 3\]"
         with self.assertRaisesRegex(ValueError, regex):
-            DeviceMesh.from_group(global_pg, "npu", invalid_mesh)
+            DeviceMesh.from_group(
+                global_pg, "npu", invalid_mesh, mesh_dim_names=("dim0", "dim1")
+            )
 
         device_mesh = init_device_mesh(self.device_type, (2, 2))
         groups = device_mesh.get_all_groups()
         invalid_mesh = (0, 1, 2, 3)  # 1D mesh when we need 2D
         regex = r"Expects mesh with ndim equal to number of ProcessGroups but got mesh \[0, 1, 2, 3\] and 2 ProcessGroups"
         with self.assertRaisesRegex(ValueError, regex):
-            DeviceMesh.from_group(groups, self.device_type, invalid_mesh)
+            DeviceMesh.from_group(
+                groups, self.device_type, invalid_mesh, mesh_dim_names=("dim0", "dim1")
+            )
 
 
 class DeviceMeshTestNDim(DTensorTestBase):
