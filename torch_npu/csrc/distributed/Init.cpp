@@ -418,6 +418,10 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
         .def("_get_stream_id", &::c10d_npu::ProcessGroupHCCL::getStreamId,
              py::arg("p2p") = false,
              py::arg("peer") = -1)
+        .def("_window_register_and_exchange", &::c10d_npu::ProcessGroupHCCL::windowRegisterAndExchange,
+             py::arg("window_size"),
+             py::arg("peer_ranks"))
+        .def("_get_window_mem", &::c10d_npu::ProcessGroupHCCL::getWindowMem)
         .def_property_readonly("options", &::c10d_npu::ProcessGroupHCCL::getOptions)
         .def("batch_isend_irecv",
             [](::c10d_npu::ProcessGroupHCCL &pg, std::vector<std::string> &op_type,
