@@ -2,6 +2,7 @@
 #include <torch/csrc/utils/pybind.h>
 #include <torch/csrc/utils/pythoncapi_compat.h>
 
+#include "torch_npu/csrc/core/npu/npu_log.h"
 #include "combined_traceback.h"
 
 namespace py = pybind11;
@@ -165,6 +166,14 @@ void freeDeadCapturedTracebackFrames()
     to_free_frames.clear();
 }
 
-void installCapturedTracebackPython() { CapturedTraceback::addPythonUnwinder(new PythonTraceback()); }
+void installCapturedTracebackPython()
+{
+    CapturedTraceback::Python* unwinder = new(std::nothrow) PythonTraceback();
+    if (unwinder != nullptr) {
+        CapturedTraceback::addPythonUnwinder(unwinder);
+    } else {
+        ASCEND_LOGE("Failed to install CapturedTraceback unwinder");
+    }
+}
 
 } // namespace torch_npu
