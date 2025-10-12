@@ -1107,7 +1107,7 @@ private:
 
     std::unordered_map<c10d::OpType, std::pair<at::Tensor, at::Tensor>> silenceCheckCache_;
 
-    WatchdogStatus watchdogStatus;
+    WatchdogStatus watchdogStatus = WatchdogStatus::RUN;
 
     static ProcessGroupHCCL* global_;
 
