@@ -84,7 +84,7 @@ std::map<c10d::ReduceOp, std::string> unsupportedOp = {
 };
 
 bool nslb_is_end = false;
-bool uce_error_flag = false;
+std::string device_error_msg;
 bool force_stop_error_flag = false;
 const char* nslb_path = c10_npu::option::OptionsManager::GetNslbPath();
 bool status_save_enable = c10_npu::option::OptionsManager::CheckStatusSaveEnable();
@@ -499,6 +499,25 @@ std::ostream& operator<<(std::ostream& output, const ProcessGroupHCCL::WorkHCCL&
     return output << workInfo;
 }
 
+std::string get_device_error(const std::string& error_msg)
+{
+    static const std::vector<std::string> device_errors = {
+        "UCE ERROR",
+        "HBM MULTI BIT ECC ERROR",
+        "SUSPECT MEM ERROR",
+        "HCCS LINK ERROR",
+        "HCCL OP RETRY FAILED",
+        "SUSPECT REMOTE ERROR"
+    };
+
+    for (const auto& err : device_errors) {
+        if (error_msg.find(err) != std::string::npos) {
+            return err;
+        }
+    }
+    return "";
+}
+
 ProcessGroupHCCL::WorkHCCL::WorkHCCL(
     const std::vector<at::Device>& devices,
     int rank,
@@ -583,7 +602,7 @@ void ProcessGroupHCCL::WorkHCCL::checkAndSetException()
     if (exception_) {
         ASCEND_LOGE("[Rank %d], found async exception when checking for HCCL errors: %s", rank_,
             getExceptionMsgFromExceptionPtr(exception_).c_str());
-        LOG(INFO) << "[Rank " << rank_ << "]"
+        LOG(ERROR) << "[Rank " << rank_ << "]"
               << " found async exception when checking for HCCL errors: "
               << getExceptionMsgFromExceptionPtr(exception_);
     }
@@ -612,17 +631,22 @@ bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const
             }
         }
     } catch (const std::exception& e) {
-        if (std::string(e.what()).find("UCE ERROR") == std::string::npos) {
-            uce_error_flag = true;
+        std::string exceptionMsg = std::string(e.what());
+        std::string device_error = get_device_error(exceptionMsg);
+        if (!device_error.empty()) {
+            logger->error("Find %s when startedNPUExecutionInternal.", device_error.c_str());
+            device_error_msg = device_error;
             return false;
         }
 
-        if (std::string(e.what()).find("FORCE STOP") == std::string::npos) {
+        if (exceptionMsg.find("FORCE STOP") != std::string::npos) {
+            logger->error("Find FORCE STOP when startedNPUExecutionInternal.");
             force_stop_error_flag = true;
             return false;
         }
 
-        if (std::string(e.what()).find("driver shutting down") == std::string::npos) {
+        if (exceptionMsg.find("driver shutting down") == std::string::npos) {
+            logger->error("Find exception when startedNPUExecutionInternal, %s.", exceptionMsg.c_str());
             throw std::runtime_error(DIST_ERROR(ErrCode::INTERNAL));
         }
         LOG(INFO) << "[Rank " << rank_ << "] Event query failed with exception: " << e.what();
@@ -646,7 +670,22 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const
             }
         }
     } catch (const std::exception& e) {
-        if (std::string(e.what()).find("driver shutting down") == std::string::npos) {
+        std::string exceptionMsg = std::string(e.what());
+        std::string device_error = get_device_error(exceptionMsg);
+        if (!device_error.empty()) {
+            logger->error("Find %s when finishedNPUExecutionInternal.", device_error.c_str());
+            device_error_msg = device_error;
+            return false;
+        }
+
+        if (exceptionMsg.find("FORCE STOP") != std::string::npos) {
+            logger->error("Find FORCE STOP when finishedNPUExecutionInternal.");
+            force_stop_error_flag = true;
+            return false;
+        }
+
+        if (exceptionMsg.find("driver shutting down") == std::string::npos) {
+            logger->error("Find exception when finishedNPUExecutionInternal, %s.", exceptionMsg.c_str());
             throw std::runtime_error(DIST_ERROR(ErrCode::INTERNAL));
         }
         LOG(INFO) << "[Rank " << rank_ << "] Event query failed with exception: " << e.what();
@@ -1763,12 +1802,16 @@ void ProcessGroupHCCL::workCleanupLoop()
                     needSetDevice = false;
                 }
             } catch (const std::exception& e) {
-                if (std::string(e.what()).find("UCE ERROR") == std::string::npos) {
-                    uce_error_flag = true;
+                std::string exceptionMsg = std::string(e.what());
+                std::string device_error = get_device_error(exceptionMsg);
+                if (!device_error.empty()) {
+                    logger->error("Find %s when workCleanupLoop setDevice.", device_error_msg.c_str());
+                    device_error_msg = device_error;
                 }
 
-                if (std::string(e.what()).find("FORCE STOP") == std::string::npos) {
+                if (exceptionMsg.find("FORCE STOP") == std::string::npos) {
                     force_stop_error_flag = true;
+                    logger->error("Find FORCE STOP when workCleanupLoop setDevice.");
                 }
             }
             work.checkAndSetException();
@@ -2812,15 +2855,15 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
 
 void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> work)
 {
-    if (uce_error_flag) {
-        uce_error_flag = false;
-        ASCEND_LOGE("uce_error_flag is true when workEnqueue, throw UCE ERROR.");
+    if (!device_error_msg.empty()) {
+        logger->error("Find %s when workEnqueue, throw %s.", device_error_msg.c_str(), device_error_msg.c_str());
+        device_error_msg = "";
         throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
         return;
     }
     if (force_stop_error_flag) {
         force_stop_error_flag = false;
-        ASCEND_LOGE("force_stop_error_flag is true when workEnqueue, throw FORCE STOP.");
+        logger->error("force_stop_error_flag is true when workEnqueue, throw FORCE STOP.");
         throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
         return;
     }
@@ -2995,6 +3038,10 @@ bool ProcessGroupHCCL::setSwitchNicComm(int rankid, int nranks, std::vector<uint
 void ProcessGroupHCCL::setWatchdogStatus(int status)
 {
     watchdogStatus = WatchdogStatus(status);
+    if (watchdogStatus == WatchdogStatus::RUN) {
+        device_error_msg = "";
+        force_stop_error_flag = false;
+    }
 }
 
 
