@@ -68,7 +68,7 @@ static LeakyStreamInternals default_streams[C10_COMPILE_TIME_MAX_NPUS];
 // on the default stream and the secondary stream respectively.
 static LeakyStreamInternals secondary_streams[C10_COMPILE_TIME_MAX_NPUS];
 // npu streams pool init flags
-static std::once_flag device_flags[C10_COMPILE_TIME_MAX_NPUS];
+static std::once_flag device_priority_flags[C10_COMPILE_TIME_MAX_NPUS][kMaxStreamPriorities];
 // SyncLaunch streams pool init flags
 static std::once_flag device_sync_launch_flags[C10_COMPILE_TIME_MAX_NPUS];
 static std::array<
@@ -233,21 +233,19 @@ static void initGlobalStreamState()
         acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
 }
 
-static void initDeviceStreamState(c10::DeviceIndex device_index)
+static void initDeviceStreamState(c10::DeviceIndex device_index, int p)
 {
     // Switches to the requested device so streams are properly associated
     // with it.
     NPUGuard device_guard{device_index};
     static int StreamsPerPool = GetStreamsPerPool();
     for (auto i = decltype(StreamsPerPool){0}; i < StreamsPerPool; ++i) {
-        for (const auto p : c10::irange(kMaxStreamPriorities)) {
-            auto& npu_streami = npu_streams[p][device_index][i];
+        auto& npu_streami = npu_streams[p][device_index][i];
 
-            npu_streami.device_index = device_index;
+        npu_streami.device_index = device_index;
 
-            NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
-                &npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
-        }
+        NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
+            &npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
     }
 }
 
@@ -385,10 +383,10 @@ NPUStream getStreamFromPool(const int priority, c10::DeviceIndex device_index)
     }
     check_npu(device_index);
 
+    auto pri_idx = std::clamp(-priority, 0, kMaxStreamPriorities - 1);
     // Initializes the stream pools (once)
     std::call_once(
-        device_flags[device_index], initDeviceStreamState, device_index);
-    auto pri_idx = std::clamp(-priority, 0, kMaxStreamPriorities - 1);
+        device_priority_flags[device_index][pri_idx], initDeviceStreamState, device_index, pri_idx);
     const auto idx = get_idx(npu_counters[pri_idx][device_index]);
     return NPUStream_fromInternals(&npu_streams[pri_idx][device_index][idx]);
 }
