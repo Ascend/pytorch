@@ -139,9 +139,7 @@ class CommunicationDbParser(CommunicationParser):
         step_band_width_data = []
         step_matrix_data = []
         step_time_data = []
-        time_op_name_idx_map = {
-            "%s@%s" % (data[0], data[1]): {"band_idx": [], "matrix_idx": []} for data in time_data
-        }
+        time_op_name_idx_map = {"%s@%s" % (data[0], data[1]): {"band_idx": [], "matrix_idx": []} for data in time_data}
         for idx, data in enumerate(band_width_data):
             op_name = "%s@%s" % (
                 data[CommBandwidthTableRow.HCCL_OP_NAME.value], data[CommBandwidthTableRow.GROUP_NAME.value])
