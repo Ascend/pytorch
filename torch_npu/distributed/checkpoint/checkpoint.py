@@ -198,16 +198,12 @@ def _write_files_from_queue(
                     lambda x: planner.resolve_data(x),
                 )
 
-            tensor_w = [
-                wi for wi in write_items if wi.type != WriteItemType.BYTE_IO
-            ]
+            tensor_w = [wi for wi in write_items if wi.type != WriteItemType.BYTE_IO]
             for write_item in tensor_w:
                 loader.add(_item_size(write_item), write_item)
             loader.start_loading()
 
-            bytes_w = [
-                wi for wi in write_items if wi.type == WriteItemType.BYTE_IO
-            ]
+            bytes_w = [wi for wi in write_items if wi.type == WriteItemType.BYTE_IO]
             write_results = []
 
             with os.fdopen(os.open(file_name, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "wb") as stream:
