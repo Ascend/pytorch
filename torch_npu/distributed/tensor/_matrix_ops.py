@@ -12,9 +12,7 @@ npu = torch.ops.npu
 def _get_max_shardable_dim(tensor):
     shape = tensor.shape
     world_size = torch.distributed.get_world_size()
-    divisible_dims = [
-        (idx, dim) for idx, dim in enumerate(shape) if dim % world_size == 0
-    ]
+    divisible_dims = [(idx, dim) for idx, dim in enumerate(shape) if dim % world_size == 0]
     if divisible_dims:
         idx, _ = max(divisible_dims, key=lambda x: x[1])
         return idx
