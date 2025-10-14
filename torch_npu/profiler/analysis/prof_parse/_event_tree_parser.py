@@ -556,8 +556,11 @@ class EventTree:
         if not mem_bean_list:
             return
         
-        mem_events = [_ProfilerEvent(mem_bean) for mem_bean in mem_bean_list
-                        if mem_bean.data_type != _AllocEventType.BLOCK_FREE.value]
+        mem_events = [
+            _ProfilerEvent(mem_bean)
+            for mem_bean in mem_bean_list
+            if mem_bean.data_type != _AllocEventType.BLOCK_FREE.value
+        ]
         
         self.events.extend(mem_events)
     

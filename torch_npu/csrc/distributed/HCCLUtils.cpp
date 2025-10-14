@@ -262,7 +262,7 @@ void DebugInfoWriter::registerWriter(std::unique_ptr<DebugInfoWriter> writer)
 {
     TORCH_CHECK_WITH(
         DistBackendError,
-        hasWriterRegistered_.load() == false,
+        !hasWriterRegistered_.load(),
         "debugInfoWriter already registered");
     hasWriterRegistered_.store(true);
     writer_ = std::move(writer);
