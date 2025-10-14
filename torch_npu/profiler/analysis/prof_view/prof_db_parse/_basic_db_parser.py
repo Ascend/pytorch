@@ -117,9 +117,7 @@ class BasicDbParser(BaseParser):
         except json.JSONDecodeError as e:
             self.logger.warning("profiler_metadata.json parse failed, error is: %s", str(e))
             return
-        data = [
-            [str(key), json.dumps(value)] for key, value in profiler_metadata.items()
-        ]
+        data = [[str(key), json.dumps(value)] for key, value in profiler_metadata.items()]
         TorchDb().create_table_with_headers(DbConstant.TABLE_META_DATA,
                                             TableColumnsManager.TableColumns.get(DbConstant.TABLE_META_DATA))
         TorchDb().insert_data_into_table(DbConstant.TABLE_META_DATA, data)

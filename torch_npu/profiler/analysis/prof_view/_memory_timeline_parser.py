@@ -788,8 +788,11 @@ class MemoryProfile:
         snapshot = self._category_snapshot()
 
         candidate_parameters: Set[TensorKeyAndVersion] = set()
-        candidate_fwd_tensors: Set[TensorKeyAndVersion] = {i for i, category in snapshot.items()
-                                                           if category == Category.INPUT}
+        candidate_fwd_tensors: Set[TensorKeyAndVersion] = {
+            i
+            for i, category in snapshot.items()
+            if category == Category.INPUT
+        }
         for node in self._data_flow_graph.flow_nodes:
             inputs = {(key, version) for key, (_, version) in node.inputs.items()}
             inputs_and_outputs = inputs | set(node.outputs.items())
