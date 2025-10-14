@@ -13,6 +13,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/logging/LogContext.h"
+#include "torch_npu/csrc/framework/OpCommand.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -104,7 +105,8 @@ void OpCommandImpl::SetEnginePriority()
 
 inline void SetDeterministicOption(bool deterministicAlgorithmsStatus, bool isOpapi)
 {
-    if (!isOpapi && aclop_deterministicaclnn_oldstatus != deterministicAlgorithmsStatus) {
+    // Determine whether it is truly necessary to use this interface to set the deterministic calculation of the aclop operator.
+    if (!isOpapi && aclop_deterministicaclnn_oldstatus != deterministicAlgorithmsStatus && g_used_aclop) {
         NPU_CHECK_ERROR(
             AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicAlgorithmsStatus ? "1" : "0"));
         aclop_deterministicaclnn_oldstatus = deterministicAlgorithmsStatus;
