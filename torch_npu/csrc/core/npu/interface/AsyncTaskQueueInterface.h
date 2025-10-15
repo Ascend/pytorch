@@ -6,6 +6,7 @@
 
 namespace c10_npu {
 namespace queue {
+using PROC_FUNC = std::function<int()>;
 struct CopyParas {
     void *dst = nullptr;
     size_t dstLen = 0;
@@ -54,6 +55,10 @@ struct QueueParas {
 };
 
 aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
+
+aclError LaunchBatchAsyncCopyTask(void **dsts, size_t *dstLens, void **srcs, size_t *srcLens, size_t numBatches,
+                                  aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes, size_t numAttrs,
+                                  aclrtStream stream);
 
 aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
