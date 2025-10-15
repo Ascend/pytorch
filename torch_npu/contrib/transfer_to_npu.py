@@ -396,7 +396,9 @@ def _init():
 
     # torch.distributed.pipelining.*
     if hasattr(torch.distributed, 'pipelining'):
-        _device_wrapper(torch.distributed.pipelining.stage, ['PipelineStage', 'build_stage'])
+        torch.distributed.pipelining.stage.PipelineStage.__init__ = _wrapper_cuda(
+            torch.distributed.pipelining.stage.PipelineStage.__init__)
+        _device_wrapper(torch.distributed.pipelining.stage, ['build_stage'])
     
     # CUDAGraph
     torch.cuda.CUDAGraph = torch.npu.NPUGraph
