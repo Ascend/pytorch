@@ -46,11 +46,14 @@
 #include "torch_npu/csrc/core/npu/interface/OpInterface.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/ipc/NPUIPCTypes.h"
 #include "op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h"
 #include "torch_npu/csrc/aten/common/from_blob.h"
 #include "torch_npu/csrc/profiler/combined_traceback.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
+
+std::shared_ptr<npu_logging::Logger> loggerRecovery = npu_logging::logging().getLogger("torch_npu.recovery");
 
 struct NPUDeviceProp {
     std::string name;
@@ -635,10 +638,10 @@ PyObject* THNPModule_stopDevice_wrap(PyObject* self, PyObject* arg)
 {
     HANDLE_TH_ERRORS
     int device = THPUtils_unpackLong(arg);
-    ASCEND_LOGI("NPU stop device start, device is %d.", device);
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::STOP_EXIT);
+    loggerRecovery->info("NPU stop device start, device is %d.", device);
     int ret = c10_npu::acl::AclrtDeviceTaskAbort(device);
-    ASCEND_LOGI("NPU stop device end, device is %d, ret is %d.", device, ret);
+    loggerRecovery->info("NPU stop device end, device is %d, ret is %d.", device, ret);
     if (ret == 0) {
         return PyLong_FromLong(0);
     } else {
@@ -651,6 +654,7 @@ PyObject* THNPModule_check_uce_in_memory_wrap(PyObject* self, PyObject* arg)
 {
     HANDLE_TH_ERRORS
     int device = THPUtils_unpackLong(arg);
+    loggerRecovery->info("NPU check_uce_in_memory start, device is %d.", device);
     auto memUceInfo_ = c10_npu::get_mem_uce_info();
     if (memUceInfo_.is_hbm_ecc_error) {
         // HBM ECC error always return 3.
@@ -659,21 +663,25 @@ PyObject* THNPModule_check_uce_in_memory_wrap(PyObject* self, PyObject* arg)
     if (memUceInfo_.retSize == 0) {
         // UCE error size is 0, return 0.
         memUceInfo_.mem_type = 0;
+        loggerRecovery->info("NPU check_uce_in_memory end, device is %d, mem_type is 0.", device);
         return PyLong_FromLong(0);
     }
     if (!c10_npu::NPUCachingAllocator::checkUceInMemPool(device)) {
         // UCE error memory is not in PTA memory pool, return 1, can not recover from UCE error.
         memUceInfo_.mem_type = 1;
+        loggerRecovery->info("NPU check_uce_in_memory end, device is %d, mem_type is 1.", device);
         return PyLong_FromLong(1);
     } else {
         c10_npu::NPUCachingAllocator::emptyCache(false);
         if (!c10_npu::NPUCachingAllocator::checkUceInMemPool(device)) {
             // UCE error memory is temporary memory in PTA memory pool, return 2, perform step-level re-execution.
             memUceInfo_.mem_type = 2;
+            loggerRecovery->info("NPU check_uce_in_memory end, device is %d, mem_type is 2.", device);
             return PyLong_FromLong(2);
         } else {
             // UCE error memory is persistent memory in PTA memory pool, return 3, load the checkpoint (ckpt) from healthy device.
             memUceInfo_.mem_type = 3;
+            loggerRecovery->info("NPU check_uce_in_memory end, device is %d, mem_type is 3.", device);
             return PyLong_FromLong(3);
         }
     }
@@ -701,16 +709,18 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
 {
     HANDLE_TH_ERRORS
     int device = THPUtils_unpackLong(arg);
+    loggerRecovery->info("NPU restart device start, device is %d.", device);
     auto memUceInfo_ = c10_npu::get_mem_uce_info();
     if (memUceInfo_.retSize > 0) {
-        ASCEND_LOGI("exec AclrtMemUceRepair, device is %d, retSize is %d.", memUceInfo_.device, memUceInfo_.retSize);
+        loggerRecovery->info("exec AclrtMemUceRepair start, device is %d, retSize is %d.", memUceInfo_.device, memUceInfo_.retSize);
         NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtMemUceRepair(memUceInfo_.device, memUceInfo_.info, memUceInfo_.retSize));
+        loggerRecovery->info("exec AclrtMemUceRepair end, device is %d, retSize is %d.", memUceInfo_.device, memUceInfo_.retSize);
     }
 
     c10_npu::clear_mem_uce_info();
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::INIT);
     c10_npu::NPUCachingAllocator::cleanEvent();
-    ASCEND_LOGI("NPU restart device success, device is %d.", device);
+    loggerRecovery->info("NPU restart device end, device is %d.", device);
 
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
