@@ -634,13 +634,13 @@ bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const
         std::string exceptionMsg = std::string(e.what());
         std::string device_error = get_device_error(exceptionMsg);
         if (!device_error.empty()) {
-            logger->error("Find %s when startedNPUExecutionInternal.", device_error.c_str());
+            logger->info("Find %s when startedNPUExecutionInternal.", device_error.c_str());
             device_error_msg = device_error;
             return false;
         }
 
         if (exceptionMsg.find("FORCE STOP") != std::string::npos) {
-            logger->error("Find FORCE STOP when startedNPUExecutionInternal.");
+            logger->info("Find FORCE STOP when startedNPUExecutionInternal.");
             force_stop_error_flag = true;
             return false;
         }
@@ -673,13 +673,13 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const
         std::string exceptionMsg = std::string(e.what());
         std::string device_error = get_device_error(exceptionMsg);
         if (!device_error.empty()) {
-            logger->error("Find %s when finishedNPUExecutionInternal.", device_error.c_str());
+            logger->info("Find %s when finishedNPUExecutionInternal.", device_error.c_str());
             device_error_msg = device_error;
             return false;
         }
 
         if (exceptionMsg.find("FORCE STOP") != std::string::npos) {
-            logger->error("Find FORCE STOP when finishedNPUExecutionInternal.");
+            logger->info("Find FORCE STOP when finishedNPUExecutionInternal.");
             force_stop_error_flag = true;
             return false;
         }
@@ -1792,13 +1792,13 @@ void ProcessGroupHCCL::workCleanupLoop()
                 std::string exceptionMsg = std::string(e.what());
                 std::string device_error = get_device_error(exceptionMsg);
                 if (!device_error.empty()) {
-                    logger->error("Find %s when workCleanupLoop setDevice.", device_error_msg.c_str());
+                    logger->info("Find %s when workCleanupLoop setDevice.", device_error.c_str());
                     device_error_msg = device_error;
                 }
 
                 if (exceptionMsg.find("FORCE STOP") == std::string::npos) {
                     force_stop_error_flag = true;
-                    logger->error("Find FORCE STOP when workCleanupLoop setDevice.");
+                    logger->info("Find FORCE STOP when workCleanupLoop setDevice.");
                 }
             }
             work.checkAndSetException();
@@ -2819,8 +2819,9 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
 {
     if (!device_error_msg.empty()) {
         logger->error("Find %s when workEnqueue, throw %s.", device_error_msg.c_str(), device_error_msg.c_str());
+        std::string errorMsg = device_error_msg + " happened with workEnqueue.";
         device_error_msg = "";
-        throw std::runtime_error("UCE ERROR." + PTA_ERROR(ErrCode::ACL));
+        throw std::runtime_error(errorMsg + PTA_ERROR(ErrCode::ACL));
         return;
     }
     if (force_stop_error_flag) {
