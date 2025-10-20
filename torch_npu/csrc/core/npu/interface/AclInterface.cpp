@@ -6,6 +6,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
@@ -1144,6 +1145,10 @@ aclError AclrtMemcpyBatchAsync(void **dsts, size_t *destMax, void **srcs, size_t
 bool AclrtMemcpyAsyncWithConditionExist()
 {
     const static bool isAclrtMemcpyAsyncWithConditionExist = []() -> bool {
+        const std::string kMinDriverVersion = "25.0.RC1";
+        if (!IsGteDriverVersion(kMinDriverVersion)) {
+            return false;
+        }
         auto func = GET_FUNC(aclrtMemcpyAsyncWithCondition);
         if (func != nullptr) {
             ASCEND_LOGI("Successfully to find function aclrtMemcpyAsyncWithCondition");
