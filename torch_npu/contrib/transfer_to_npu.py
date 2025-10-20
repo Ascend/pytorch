@@ -30,7 +30,7 @@ torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like'
                        'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
                        'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
                        '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-                       'empty_quantized', '_pin_memory', 'autocast', 'load', 'set_default_device'
+                       'empty_quantized', '_pin_memory', 'load', 'set_default_device'
                        ]
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to',
                               'pin_memory']
@@ -371,6 +371,7 @@ def _init():
     _device_wrapper(torch, torch_fn_white_list)
     torch.UntypedStorage.__new__ = _wrapper_cuda(torch.UntypedStorage.__new__)
     torch.Generator = _GeneratorProxy
+    torch.amp.autocast_mode.autocast.__init__ = _wrapper_cuda(torch.amp.autocast_mode.autocast.__init__)
 
     # torch.Tensor.*
     _device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
