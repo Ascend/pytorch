@@ -137,10 +137,17 @@ class _NPUGroupNormSiluOP(torch.autograd.Function):
     @staticmethod
     def symbolic(g, self: Tensor, gamma: Optional[Tensor], beta: Optional[Tensor],
                  group: int, eps: float = 0.00001):
+        self_sizes = self.type().sizes()
+        self_dims = len(self_sizes)
+        if (self_dims < 2):
+            raise ValueError("self dim must be larger than 2, but got ", self_dims, pta_error(ErrCode.VALUE))
+
+        shape_c = self_sizes[1]
+        self_dtype = self.type().dtype()
         if gamma is None:
-            gamma = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+            gamma = g.op("Constant", value_t=torch.ones([shape_c], dtype=self_dtype))
         if beta is None:
-            beta = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+            beta = g.op("Constant", value_t=torch.zeros([shape_c], dtype=self_dtype))
         return g.op("npu::NPUGroupNormSilu", self, gamma, beta, group_i=group, eps_f=eps,
                     outputs=3)
 
@@ -660,8 +667,8 @@ class _NPURotaryMulOP(torch.autograd.Function):
         return torch.ops.npu.npu_rotary_mul(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, x: Tensor, r1: Tensor, r2: Tensor):
-        return g.op("npu::NPURotaryMul", x, r1, r2)
+    def symbolic(g, x: Tensor, r1: Tensor, r2: Tensor, rotary_mode: str = "half"):
+        return g.op("npu::NPURotaryMul", x, r1, r2, rotary_mode_s=rotary_mode)
 
 
 class _NPUPromptFlashAttentionOP(torch.autograd.Function):
@@ -935,16 +942,32 @@ class _NPUMoeFinalizeRoutingV2OP(torch.autograd.Function):
                  skip2: Optional[Tensor], bias: Optional[Tensor],
                  scales: Optional[Tensor], expanded_src_to_dst_row: Tensor, 
                  export_for_source_row: Optional[Tensor], drop_pad_mode: int = 0):
+        expanded_permuted_rows_sizes = expanded_permuted_rows.type().sizes()
+        expanded_permuted_rows_dims = len(expanded_permuted_rows_sizes)
+        if (expanded_permuted_rows_dims < 2):
+            raise ValueError("expanded_permuted_rows dim must be larger than 2, but got ", expanded_permuted_rows_dims,
+                              pta_error(ErrCode.VALUE))
+
+        rows_k, h, k = expanded_permuted_rows_sizes[0], expanded_permuted_rows_sizes[1], 1
+        if scales is not None:
+            scales_sizes = scales.type().sizes()
+            scales_dims = len(scales_sizes)
+            if (scales_dims < 2):
+                raise ValueError("scales dim must be larger than 2, but got ", scales_dims, pta_error(ErrCode.VALUE))
+            k = scales_sizes[1]
+
+        rows = rows_k // k
+        expanded_permuted_rows_dtype = expanded_permuted_rows.type().dtype()
         if skip1 is None:
-            skip1 = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+            skip1 = g.op("Constant", value_t=torch.zeros([rows, h], dtype=expanded_permuted_rows_dtype))
         if skip2 is None:
-            skip2 = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+            skip2 = g.op("Constant", value_t=torch.zeros([rows, h], dtype=expanded_permuted_rows_dtype))
         if bias is None:
-            bias = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+            bias = g.op("Constant", value_t=torch.zeros([1, h], dtype=expanded_permuted_rows_dtype))
         if scales is None:
-            scales = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+            scales = g.op("Constant", value_t=torch.ones([rows, k], dtype=expanded_permuted_rows_dtype))
         if export_for_source_row is None:
-            export_for_source_row = g.op("Constant", value_t=torch.tensor([]).to(torch.int32))
+            export_for_source_row = g.op("Constant", value_t=torch.zeros([rows, k], dtype=torch.int32))
         return g.op("npu::NPUMoeFinalizeRoutingV2", expanded_permuted_rows, expanded_src_to_dst_row, skip1, skip2, bias,
                  scales, export_for_source_row, drop_pad_mode_i=drop_pad_mode)
     
@@ -1066,8 +1089,8 @@ def _wrapper_npu_deep_norm(self, gx, beta, gamma, alpha=0.3, epsilon=1e-6):
     return _NPUDeepNormOP.apply(self, gx, beta, gamma, alpha, epsilon)
 
 
-def _wrapper_npu_group_norm_silu(x, gamma, beta, group, eps=0.00001):
-    return _NPUGroupNormSiluOP.apply(x, gamma, beta, group, eps)
+def _wrapper_npu_group_norm_silu(input, weight, bias, group, eps=0.00001):
+    return _NPUGroupNormSiluOP.apply(input, weight, bias, group, eps)
 
 
 def _wrapper_npu_ifmr(data, data_min, data_max, cumsum, min_percentile, max_percentile,
@@ -1216,8 +1239,8 @@ def _wrapper_npu_mish(self):
     return _NPUMishOP.apply(self)
 
 
-def _wrapper_npu_rotary_mul(x, r1, r2):
-    return _NPURotaryMulOP.apply(x, r1, r2)
+def _wrapper_npu_rotary_mul(input, r1, r2, rotary_mode="half"):
+    return _NPURotaryMulOP.apply(input, r1, r2, rotary_mode)
 
 
 def _wrapper_npu_prompt_flash_attention(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths,
