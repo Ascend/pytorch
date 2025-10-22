@@ -34,7 +34,7 @@ def _get_tests_dict():
             with open(filename) as fp0:
                 disabled_dict = json.load(fp0, object_hook=_filter_json)
                 return disabled_dict
-        warnings.warn("Attempted to load json file '%s' but it does not exist.", filename)
+        warnings.warn(f"Attempted to load json file {filename} but it does not exist.")
         return {}
 
     # import test files
