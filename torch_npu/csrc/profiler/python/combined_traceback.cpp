@@ -172,7 +172,7 @@ void installCapturedTracebackPython()
     if (unwinder != nullptr) {
         CapturedTraceback::addPythonUnwinder(unwinder);
     } else {
-        ASCEND_LOGE("Failed to install CapturedTraceback unwinder");
+        ASCEND_LOGW("Failed to install CapturedTraceback unwinder");
     }
 }
 
