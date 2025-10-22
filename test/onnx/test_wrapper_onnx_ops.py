@@ -1294,6 +1294,7 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
+    @unittest.skip("Skip unstable test case due to cann version.")
     @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_dynamic_quant_asymmetric(self):
         class Model(torch.nn.Module):
