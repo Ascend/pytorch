@@ -2739,7 +2739,7 @@
     "signature": "(self, rois, spatial_scale, pooled_height, pooled_width, sample_num, roi_end_mode)"
   },
   "torch_npu.npu_rotary_mul": {
-    "signature": "(x, r1, r2)"
+    "signature": "(input, r1, r2, rotary_mode='half')"
   },
   "torch_npu.npu_rotated_iou": {
     "signature": "(self, query_boxes, trans=False, mode=0, is_cross=True, v_threshold=0.0, e_threshold=0.0)"
@@ -2778,7 +2778,7 @@
     "signature": "(self, gt_bboxes, weight)"
   },
   "torch_npu.npu_group_norm_silu": {
-    "signature": "(x, gamma, beta, group, eps=1e-05)"
+    "signature": "(input, weight, bias, group, eps=1e-05)"
   },
   "torch_npu.erase_stream": {
     "signature": "(tensor, stream)"
