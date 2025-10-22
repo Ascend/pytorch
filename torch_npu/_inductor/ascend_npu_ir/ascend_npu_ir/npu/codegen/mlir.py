@@ -151,7 +151,7 @@ class NpuMlirKernel(Kernel):
         wrapper = V.graph.wrapper_code
         call_args = self.get_call_args()
         for call_arg in call_args:
-            if call_arg.startswith('_'):
+            if call_arg.startswith('_uwu_'):
                 expression = map_strings_to_operators(call_arg)
                 wrapper.writeline(f'{call_arg} = {expression}')
         if len(call_args) > 0:
@@ -205,7 +205,7 @@ class NpuTritonKernel(TritonKernel):
     def call_kernel(self, call_args, name: str):
         wrapper = V.graph.wrapper_code
         for call_arg in call_args:
-            if call_arg.startswith('_'):
+            if call_arg.startswith('_uwu_'):
                 expression = map_strings_to_operators(call_arg)
                 wrapper.writeline(f'{call_arg} = {expression}')
         if len(call_args) > 0:

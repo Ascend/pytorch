@@ -145,13 +145,12 @@ def map_operators_to_strings(expr_str: str):
     expr_str = expr_str.replace(' ', '')
     for op, string in operator_to_string.items():
         expr_str = expr_str.replace(op, string)
-    return '_' + expr_str
+    return '_uwu_' + expr_str
 
 def map_strings_to_operators(expr_str: str):
     for op, string in string_to_operator.items():
         expr_str = expr_str.replace(op, string)
-    return expr_str[1:]
-
+    return expr_str[5:]
 
 
 class TracedGraph:

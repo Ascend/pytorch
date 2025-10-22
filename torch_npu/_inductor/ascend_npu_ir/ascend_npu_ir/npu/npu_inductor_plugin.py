@@ -9,6 +9,7 @@ from torch.utils._ordered_set import OrderedSet
 import torch
 import torch.nn.functional as F
 from torch import Tensor
+from torch._dynamo.utils import set_current_node, UnsupportedFakeTensorException
 
 from torch.utils import  _triton
 _triton.has_triton = lambda: False
@@ -21,6 +22,7 @@ from typing import (
     Tuple,
     List
 )
+
 from torch._dynamo.utils import dynamo_timed
 from torch._inductor.async_compile import shutdown_compile_workers
 from torch._inductor.codegen.common import register_backend_for_device, register_device_op_overrides
@@ -134,19 +136,58 @@ def disable_implicit_decomposition():
                 op_override.py_kernels.pop(DispatchKey.Autograd)
             if DispatchKey.CompositeImplicitAutograd in op_override.py_kernels:
                 op_override.py_kernels.pop(DispatchKey.CompositeImplicitAutograd)
-                
 
-def wrap__dynamo_optimize(fn):
-    @functools.wraps(fn)
-    def npu__dynamo_optimize(*args, **kwargs):
-        from ..npu import inductor_patch
-        disable_implicit_decomposition()
-        return fn(*args, **kwargs)
-    return npu__dynamo_optimize
 
-from torch import _dynamo
-_dynamo.optimize = wrap__dynamo_optimize(_dynamo.optimize)
+def _patch_run_node(tracer, node, args, kwargs, nnmodule):
+    op = node.op
 
+    with set_current_node(node):
+
+        def make_error_message(e):
+            return f"Failed running {op} {node.target}(*{args}, **{kwargs}):\n" + str(e)
+
+        try:
+            if op == "call_function":
+                # patch start 
+                if 'npu.npu_fusion_attention' in str(node.target):
+                    if 'actual_seq_qlen' in kwargs:
+                        kwargs['actual_seq_qlen'] = list(kwargs['actual_seq_qlen'])
+                    if 'actual_seq_kvlen' in kwargs:
+                        kwargs['actual_seq_kvlen'] = list(kwargs['actual_seq_kvlen'])
+                # patch end
+                return node.target(*args, **kwargs)
+            elif op == "call_method":
+                return getattr(args[0], node.target)(*args[1:], **kwargs)
+            elif op == "call_module":
+                if nnmodule is None:
+                    raise RuntimeError(
+                        f"Module {node.target} not found in the current module"
+                    )
+                return nnmodule(*args, **kwargs)
+            elif op == "get_attr":
+                return tracer.output_graph.get_submodule(node.target)
+            elif op == "placeholder":
+                if "example_value" not in node.meta:
+                    raise RuntimeError(
+                        f"placeholder {node.target} has no example value"
+                    )
+                return node.meta["example_value"]
+
+        except (NotImplementedError, UnsupportedFakeTensorException) as e:
+            # NB: mimic how wrap_fake_exception does it
+            from torch._dynamo.exc import unimplemented
+
+            unimplemented(make_error_message(e), from_exc=e)
+        except Exception as e:
+            raise RuntimeError(make_error_message(e)).with_traceback(
+                e.__traceback__
+            ) from e
+
+    raise AssertionError(op)
+
+from ..npu import inductor_patch
+disable_implicit_decomposition()
+torch._dynamo.utils.run_node = _patch_run_node
 
 from torch._dynamo.backends import common 
 from torch._dynamo.backends.common import AotAutograd
