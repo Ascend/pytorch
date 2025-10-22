@@ -40,6 +40,7 @@ std::vector<Frame> symbolize(const std::vector<void*>& frames)
             if (demangled) {
                 frame.funcname = demangled;
                 free(demangled);
+                demangled = nullptr;
             } else {
                 frame.funcname = info.dli_sname ? info.dli_sname : "??";
             }
