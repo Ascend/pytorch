@@ -20,7 +20,10 @@
 | PyTorch2.4.0  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x        |
 | PyTorch2.5.1  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
 | PyTorch2.6.0  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
+| PyTorch2.7.1  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
+| PyTorch2.8.0  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
 | PyTorch2.9.0  | Python3.10.x, Python 3.11.x                                  |
+
 
 
 ### 昇腾辅助软件
@@ -30,6 +33,10 @@
 | CANN版本                | 支持的PyTorch版本 | 支持的Extension版本   | GitCode分支         | 
 |-----------------------|--------------|------------------|-------------------|
 | CANN 8.3.RC1.alpha003 | 2.9.0        | 2.9.0rc1         | v2.9.0            |
+| CANN 8.3.RC1          | 2.8.0        | 2.8.0            | v2.8.0-7.2.0      |
+|                       | 2.7.1        | 2.7.1            | v2.7.1-7.2.0      |
+|                       | 2.6.0        | 2.6.0.post3      | v2.6.0-7.2.0      |
+|                       | 2.1.0        | 2.1.0.post17     | v2.1.0-7.2.0      |
 | CANN 8.2.RC1          | 2.6.0        | 2.6.0            | v2.6.0-7.1.0      |
 |                       | 2.5.1        | 2.5.1.post1      | v2.5.1-7.1.0      |
 |                       | 2.1.0        | 2.1.0.post13     | v2.1.0-7.1.0      |
@@ -262,11 +269,13 @@ Ascend Extension for PyTorch版本分支的维护阶段如下：
 | **PyTorch版本** | **维护策略** | **当前状态** | **发布时间**   | **后续状态**             | **EOL日期** |
 |---------------|----------|----------|------------|----------------------|-----------|
 | 2.9.0         | 常规分支     | 开发       | 2025/10/15 | 预计2026/04/15起进入维护状态  | -         | 
+| 2.8.0         | 常规分支     | 开发       | 2025/10/15| 预计2026/03/15起进入维护状态  | -         | 
+| 2.7.1         | 长期分支     | 开发       |  2025/10/15| 预计2026/10/15起进入维护状态  | -         | 
 | 2.6.0         | 常规分支     | 开发       | 2025/07/25 | 预计2026/01/25起进入维护状态  | -         | 
-| 2.5.1         | 常规分支     | 开发       | 2024/11/08 | 预计2025/08/08起进入维护状态  | -         | 
-| 2.4.0         | 常规分支     | 维护       | 2024/10/15 | 预计2026/06/15起进入无维护状态 | -         | 
-| 2.3.1         | 常规分支     | 维护       | 2024/06/06 | 预计2026/06/07起进入无维护状态 |           |
-| 2.2.0         | 常规分支     | 维护       | 2024/04/01 | 预计2025/09/10起进入无维护状态 |           |
+| 2.5.1         | 常规分支     | 维护       | 2024/11/08 | 预计2026/08/08起进入无维护状态  | -         | 
+| 2.4.0         | 常规分支     | 维护       | 2024/10/15 | 预计2026/06/15起进入无维护状态  | -         | 
+| 2.3.1         | 常规分支     | 维护       | 2024/06/06 | 预计2026/06/07起进入无维护状态  |           |
+| 2.2.0         | 常规分支     | EOL       | 2024/04/01 |   |       2025/10/14    |
 | 2.1.0         | 长期支持     | 开发       | 2023/10/15 | 预计2025/09/15起进入维护状态  |           |
 | 2.0.1         | 常规分支     | EOL      | 2023/7/19  |                      | 2024/3/14 |
 | 1.11.0        | 长期支持     | 维护       | 2023/4/19  | 预计2025/09/10起进入无维护状态 |           |
@@ -283,11 +292,11 @@ Ascend Extension for PyTorch版本分支的维护阶段如下：
 
 | 文档名称                   | 文档链接                                                     |
 | -------------------------- | ------------------------------------------------------------ |
-| 软件安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/710/configandinstg/instg/insg_0001.html) |
-| 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/710/ptmoddevg/trainingmigrguide/PT_LMTMOG_0002.html) |
-| 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/710/ptmoddevg/Frameworkfeatures/featuresguide_00021.html) |
-| PyTorch原生接口清单          | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/710/apiref/PyTorchNativeapi/ptaoplist_000003.html) |
-| Ascend Extension for PyTorch自定义API参考          | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/710/apiref/torchnpuCustomsapi/context/%E6%A6%82%E8%BF%B0.md) |
+| 软件安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0001.html) |
+| 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/720/ptmoddevg/trainingmigrguide/PT_LMTMOG_0002.html) |
+| 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/720/ptmoddevg/Frameworkfeatures/featuresguide_00021.html) |
+| PyTorch原生接口清单          | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/720/apiref/PyTorchNativeapi/ptaoplist_000003.html) |
+| Ascend Extension for PyTorch自定义API参考          | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/720/apiref/torchnpuCustomsapi/context/%E6%A6%82%E8%BF%B0.md) |
 
 
 ## 许可证
