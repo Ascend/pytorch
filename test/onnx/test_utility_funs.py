@@ -1,11 +1,9 @@
 # Owner(s): ["module: onnx"]
 
 import copy
-import functools
 import io
 import re
 import warnings
-from typing import Callable
 
 import onnx
 import parameterized
@@ -22,11 +20,10 @@ from pytorch_test_common import (
     skipIfUnsupportedMinOpsetVersion,
 )
 from torch.onnx import _constants, OperatorExportTypes, TrainingMode, utils
-from torch.onnx._globals import GLOBALS
+from torch.onnx._internal.torchscript_exporter._globals import GLOBALS
 from torch.onnx.symbolic_helper import _unpack_list, parse_args
 from torch.testing._internal import common_utils
 from torch.testing._internal.common_utils import skipIfNoLapack
-from verify import verify
 from url import get_url
 import torch_npu
 import torch_npu.testing
@@ -89,86 +86,6 @@ class _BaseTestCase(pytorch_test_common.ExportTestCase):
         return graph, params_dict, torch_out
 
 
-@common_utils.instantiate_parametrized_tests
-class TestUnconvertibleOps(pytorch_test_common.ExportTestCase):
-    """Unit tests for the `unconvertible_ops` function."""
-
-    def setUp(self):
-        class EinsumModule(torch.nn.Module):
-            def forward(self, x):
-                return torch.einsum("ii", x)
-
-        self.einsum_module = EinsumModule()
-
-    def test_it_returns_graph_and_unconvertible_ops_at_lower_opset_version(self):
-        x = torch.randn(4, 4)
-
-        # Einsum is supported since opset 12. It should be unconvertible at opset 9.
-        graph, unconvertible_ops = utils.unconvertible_ops(
-            self.einsum_module, (x,), opset_version=9
-        )
-        nodes = graph.nodes()
-        self.assertEqual(next(nodes).kind(), "prim::Constant")
-        self.assertEqual(next(nodes).kind(), "prim::ListConstruct")
-        self.assertEqual(next(nodes).kind(), "prim::Constant")
-        self.assertEqual(next(nodes).kind(), "aten::einsum")
-        self.assertEqual(unconvertible_ops, ["aten::einsum"])
-
-    @common_utils.parametrize(
-        "jit_function",
-        [
-            common_utils.subtest(
-                functools.partial(torch.jit.trace, example_inputs=torch.randn(4, 4)),
-                name="traced",
-            ),
-            common_utils.subtest(torch.jit.script, name="scripted"),
-        ],
-    )
-    def test_it_returns_unconvertible_ops_at_lower_opset_version_for_jit_module(
-        self, jit_function: Callable
-    ):
-        module = jit_function(self.einsum_module)
-        x = torch.randn(4, 4)
-
-        # Einsum is supported since opset 12. It should be unconvertible at opset 9.
-        _, unconvertible_ops = utils.unconvertible_ops(module, (x,), opset_version=9)
-        self.assertEqual(unconvertible_ops, ["aten::einsum"])
-
-    @common_utils.parametrize(
-        "jit_function",
-        [
-            common_utils.subtest(lambda x: x, name="nn_module"),
-            common_utils.subtest(
-                functools.partial(torch.jit.trace, example_inputs=torch.randn(4, 4)),
-                name="traced",
-            ),
-            common_utils.subtest(torch.jit.script, name="scripted"),
-        ],
-    )
-    def test_it_returns_empty_list_when_all_ops_convertible(
-        self, jit_function: Callable
-    ):
-        module = jit_function(self.einsum_module)
-        x = torch.randn(4, 4)
-
-        # Einsum is supported since opset 12
-        _, unconvertible_ops = utils.unconvertible_ops(module, (x,), opset_version=12)
-        self.assertEqual(unconvertible_ops, [])
-
-    def test_it_returns_empty_list_when_model_contains_supported_inplace_ops(self):
-        class SkipConnectionModule(torch.nn.Module):
-            def forward(self, x):
-                out = x
-                out += x
-                out = torch.nn.functional.relu(out, inplace=True)
-                return out
-
-        module = SkipConnectionModule()
-        x = torch.randn(4, 4)
-        _, unconvertible_ops = utils.unconvertible_ops(module, (x,), opset_version=13)
-        self.assertEqual(unconvertible_ops, [])
-
-
 @parameterized.parameterized_class(
     [
         {"opset_version": opset}
@@ -194,7 +111,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(3, 4)
         f = io.BytesIO()
         try:
-            torch.onnx.export(MyModule(), x, f, opset_version=self.opset_version)
+            torch.onnx.export(MyModule(), x, f, opset_version=self.opset_version, dynamo=False)
         except ValueError:
             self.assertFalse(torch.onnx.is_in_onnx_export())
 
@@ -250,7 +167,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.ones(3, 2)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             TransposeModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
 
@@ -270,7 +187,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.ones(2, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             ReduceModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
 
@@ -288,7 +205,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.ones(2, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             NormModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
 
@@ -305,7 +222,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.ones(1, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             NarrowModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
 
@@ -324,7 +241,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.ones(1, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             SliceIndexExceedsDimModule(),
             (x,),
             input_names=["x"],
@@ -348,7 +265,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.ones(1, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             SliceNegativeIndexModule(),
             (x,),
             input_names=["x"],
@@ -372,7 +289,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.ones(1, 3)
         model = GatherModule()
         model(x)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             GatherModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
 
@@ -389,7 +306,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.ones(1, 2, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             UnsqueezeModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1, 2]}
         )
 
@@ -400,7 +317,7 @@ class TestUtilityFuns(_BaseTestCase):
 
     def test_constant_fold_unsqueeze_multi_axies(self):
         class PReluModel(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.prelu = torch.nn.PReLU()
 
@@ -411,7 +328,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.randn(2, 3, 4, 5, 8, 7)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             PReluModel(), x, input_names=["x"], dynamic_axes={"x": [0, 1, 2, 3, 4, 5]}
         )
 
@@ -429,7 +346,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.ones(2, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             SqueezeModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
         for node in graph.nodes():
@@ -446,7 +363,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.ones(2, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             SqueezeAxesModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
 
@@ -482,7 +399,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.ones(2, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             ConcatModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
 
@@ -493,7 +410,7 @@ class TestUtilityFuns(_BaseTestCase):
 
     def test_constant_fold_lstm(self):
         class GruNet(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.mygru = torch.nn.GRU(7, 3, 1, bidirectional=False)
 
@@ -504,7 +421,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         input_ = torch.randn(5, 3, 7)
         h0 = torch.randn(1, 3, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             GruNet(),
             (input_, h0),
             input_names=["input", "h0"],
@@ -524,7 +441,7 @@ class TestUtilityFuns(_BaseTestCase):
 
     def test_constant_fold_transpose_matmul(self):
         class MatMulNet(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.B = torch.nn.Parameter(torch.ones(5, 3))
 
@@ -534,7 +451,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         A = torch.randn(2, 3)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             MatMulNet(), (A,), input_names=["A"], dynamic_axes={"A": [0, 1]}
         )
 
@@ -548,7 +465,7 @@ class TestUtilityFuns(_BaseTestCase):
                 self,
             ):
                 super().__init__()
-                self.register_buffer("weight", torch.ones(5))
+                self.weight = torch.nn.Buffer(torch.ones(5))
 
             def forward(self, x):
                 b = self.weight.reshape(1, -1, 1, 1)
@@ -557,7 +474,7 @@ class TestUtilityFuns(_BaseTestCase):
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
         x = torch.randn(4, 5)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             ReshapeModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
 
@@ -571,7 +488,7 @@ class TestUtilityFuns(_BaseTestCase):
                 self,
             ):
                 super().__init__()
-                self.register_buffer("weight", torch.ones(5))
+                self.weight = torch.nn.Buffer(torch.ones(5))
 
             def forward(self, x):
                 div = self.weight.div(torch.tensor([1, 2, 3, 4, 5]))
@@ -580,7 +497,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(2, 5)
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             Module(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
 
@@ -594,7 +511,7 @@ class TestUtilityFuns(_BaseTestCase):
                 self,
             ):
                 super().__init__()
-                self.register_buffer("weight", torch.ones(5))
+                self.weight = torch.nn.Buffer(torch.ones(5))
 
             def forward(self, x):
                 mul = self.weight.mul(torch.tensor([1, 2, 3, 4, 5]))
@@ -603,7 +520,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(2, 5)
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             Module(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
 
@@ -617,7 +534,7 @@ class TestUtilityFuns(_BaseTestCase):
                 self,
             ):
                 super().__init__()
-                self.register_buffer("weight", torch.ones(5))
+                self.weight = torch.nn.Buffer(torch.ones(5))
 
             def forward(self, x):
                 add = self.weight + torch.tensor([1, 2, 3, 4, 5])
@@ -626,7 +543,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(2, 5)
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
-        graph, params_dict, _ = self._model_to_graph(
+        graph, params_dict, __ = self._model_to_graph(
             Module(),
             (x,),
             do_constant_folding=True,
@@ -648,7 +565,7 @@ class TestUtilityFuns(_BaseTestCase):
                 self,
             ):
                 super().__init__()
-                self.register_buffer("weight", torch.ones(5))
+                self.weight = torch.nn.Buffer(torch.ones(5))
 
             def forward(self, x):
                 sub = self.weight - torch.tensor([1, 2, 3, 4, 5])
@@ -657,7 +574,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(2, 5)
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
-        graph, params_dict, _ = self._model_to_graph(
+        graph, params_dict, __ = self._model_to_graph(
             Module(),
             (x,),
             do_constant_folding=True,
@@ -679,7 +596,7 @@ class TestUtilityFuns(_BaseTestCase):
                 self,
             ):
                 super().__init__()
-                self.register_buffer("weight", torch.ones(5))
+                self.weight = torch.nn.Buffer(torch.ones(5))
 
             def forward(self, x):
                 sqrt = torch.sqrt(self.weight)
@@ -688,7 +605,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(2, 5)
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             Module(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
         for node in graph.nodes():
@@ -697,9 +614,9 @@ class TestUtilityFuns(_BaseTestCase):
 
     def test_constant_fold_shape(self):
         class ShapeModule(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
-                self.register_buffer("weight", torch.ones(5))
+                self.weight = torch.nn.Buffer(torch.ones(5))
 
             def forward(self, x):
                 shape = self.weight.shape[0]
@@ -708,7 +625,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(2, 5)
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             ShapeModule(), (x,), input_names=["x"], dynamic_axes={"x": [0, 1]}
         )
         for node in graph.nodes():
@@ -721,7 +638,7 @@ class TestUtilityFuns(_BaseTestCase):
         model = torch.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
         x = torch.randn(1, 32, 224, 224)
         f = io.BytesIO()
-        torch.onnx.export(model, x, f)
+        torch.onnx.export(model, x, f, dynamo=False)
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
         self.assertEqual(len(onnx_model.graph.initializer), 0)
 
@@ -734,10 +651,10 @@ class TestUtilityFuns(_BaseTestCase):
 
         def is_model_stripped(f, verbose=None):
             if verbose is None:
-                torch.onnx.export(MyModule(), x, f, opset_version=self.opset_version)
+                torch.onnx.export(MyModule(), x, f, opset_version=self.opset_version, dynamo=False)
             else:
                 torch.onnx.export(
-                    MyModule(), x, f, verbose=verbose, opset_version=self.opset_version
+                    MyModule(), x, f, verbose=verbose, opset_version=self.opset_version, dynamo=False
                 )
             model = onnx.load(io.BytesIO(f.getvalue()))
             model_strip = copy.copy(model)
@@ -760,7 +677,7 @@ class TestUtilityFuns(_BaseTestCase):
             "exporter, please use 'attribute' module to "
             "unwrap model from torch.nn.DataParallel. Try ",
         ):
-            torch.onnx.export(model, x, f, opset_version=self.opset_version)
+            torch.onnx.export(model, x, f, opset_version=self.opset_version, dynamo=False)
 
     @skipIfUnsupportedMinOpsetVersion(11)
     def test_sequence_dim(self):
@@ -784,6 +701,7 @@ class TestUtilityFuns(_BaseTestCase):
             opset_version=self.opset_version,
             input_names=["x", "y"],
             dynamic_axes={"y": [1]},
+            dynamo=False,
         )
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
         loop_output_value_info_proto = onnx_model.graph.output[0]
@@ -795,7 +713,7 @@ class TestUtilityFuns(_BaseTestCase):
         # Case 2: no dynamic axes.
         f = io.BytesIO()
         y = torch.randn(2, 3)
-        torch.onnx.export(script_model, (x, y), f, opset_version=self.opset_version)
+        torch.onnx.export(script_model, (x, y), f, opset_version=self.opset_version, dynamo=False)
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
         loop_output_value_info_proto = onnx_model.graph.output[0]
         ref_value_info_proto = onnx.helper.make_tensor_sequence_value_info(
@@ -822,6 +740,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             opset_version=self.opset_version,
             training=torch.onnx.TrainingMode.TRAINING,
+            dynamo=False,
         )
         # verify that the model state is preserved
         self.assertEqual(model.training, old_state)
@@ -835,6 +754,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             opset_version=self.opset_version,
             training=torch.onnx.TrainingMode.EVAL,
+            dynamo=False,
         )
         # verify that the model state is preserved
         self.assertEqual(model.training, old_state)
@@ -848,7 +768,7 @@ class TestUtilityFuns(_BaseTestCase):
                     return x * x
 
         class Outer(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.inner = torch.jit.script(Inner())
 
@@ -862,7 +782,7 @@ class TestUtilityFuns(_BaseTestCase):
         # jit.freeze removes the training attribute in the module
         module = torch.jit.freeze(module)
 
-        torch.onnx.export(module, (x,), io.BytesIO(), opset_version=self.opset_version)
+        torch.onnx.export(module, (x,), io.BytesIO(), opset_version=self.opset_version, dynamo=False)
 
     @skipIfUnsupportedMinOpsetVersion(15)
     def test_local_function(self):
@@ -911,6 +831,7 @@ class TestUtilityFuns(_BaseTestCase):
                 torch.nn.Dropout,
                 torch.nn.LayerNorm,
             },
+            dynamo=False,
         )
 
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
@@ -945,6 +866,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             opset_version=self.opset_version,
             export_modules_as_functions={torch.nn.CELU},
+            dynamo=False,
         )
 
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
@@ -960,6 +882,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             opset_version=self.opset_version,
             export_modules_as_functions=set(),
+            dynamo=False,
         )
 
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
@@ -974,6 +897,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             opset_version=self.opset_version,
             export_modules_as_functions=True,
+            dynamo=False,
         )
 
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
@@ -1010,6 +934,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             opset_version=self.opset_version,
             export_modules_as_functions={NWithOverloads},
+            dynamo=False,
         )
 
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
@@ -1039,6 +964,7 @@ class TestUtilityFuns(_BaseTestCase):
             export_modules_as_functions=True,
             opset_version=self.opset_version,
             do_constant_folding=False,
+            dynamo=False,
         )
 
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
@@ -1071,6 +997,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             export_modules_as_functions=True,
             opset_version=self.opset_version,
+            dynamo=False,
         )
 
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
@@ -1136,11 +1063,12 @@ class TestUtilityFuns(_BaseTestCase):
             export_modules_as_functions=True,
             opset_version=self.opset_version,
             verbose=True,  # Allows the test case to print `Skipping module attribute 'freeze'`
+            dynamo=False,
         )
 
     def test_node_scope(self):
         class N(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.relu = torch.nn.ReLU()
 
@@ -1314,7 +1242,7 @@ class TestUtilityFuns(_BaseTestCase):
 
         x = torch.randn(2, 3, 4)
         GLOBALS.export_onnx_opset_version = self.opset_version
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             Module(),
             (x,),
             operator_export_type=OperatorExportTypes.ONNX_FALLTHROUGH,
@@ -1352,7 +1280,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(2, 3, 4, requires_grad=False)
         y = torch.randn(2, 3, 4, requires_grad=False)
         model = FooModel()
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             model,
             (x, y),
             operator_export_type=torch.onnx.OperatorExportTypes.ONNX_FALLTHROUGH,
@@ -1380,6 +1308,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             opset_version=self.opset_version,
             custom_opsets={"com.microsoft": 1},
+            dynamo=False,
         )
 
         graph = onnx.load(io.BytesIO(f.getvalue()))
@@ -1400,7 +1329,7 @@ class TestUtilityFuns(_BaseTestCase):
         model = torch.nn.GELU(approximate="none")
         x = torch.randn(3, 3)
         f = io.BytesIO()
-        torch.onnx.export(model, (x,), f, opset_version=self.opset_version)
+        torch.onnx.export(model, (x,), f, opset_version=self.opset_version, dynamo=False)
         graph = onnx.load(io.BytesIO(f.getvalue()))
 
         self.assertEqual(graph.graph.node[0].op_type, "Gelu")
@@ -1427,6 +1356,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             opset_version=self.opset_version,
             custom_opsets={"com.microsoft": 1},
+            dynamo=False,
         )
 
         graph = onnx.load(io.BytesIO(f.getvalue()))
@@ -1442,7 +1372,7 @@ class TestUtilityFuns(_BaseTestCase):
                 return torch.digamma(x)
 
         x = torch.randn(100, 128)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             Module(),
             (x,),
             operator_export_type=OperatorExportTypes.ONNX_FALLTHROUGH,
@@ -1468,7 +1398,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.tensor([2])
         model = PrimModule()
         model.eval()
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             model,
             (x,),
             operator_export_type=OperatorExportTypes.ONNX_FALLTHROUGH,
@@ -1569,7 +1499,7 @@ class TestUtilityFuns(_BaseTestCase):
 
     def test_unused_initializers(self):
         class Model(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.conv2 = torch.nn.ConvTranspose2d(
                     16, 33, (3, 5), stride=(2, 1), padding=(4, 2), dilation=(1, 1)
@@ -1583,7 +1513,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(20, 16, 50, 100)
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
-        _, params_dict, _ = self._model_to_graph(
+        _, params_dict, __ = self._model_to_graph(
             Model(),
             (x,),
             do_constant_folding=False,
@@ -1596,7 +1526,7 @@ class TestUtilityFuns(_BaseTestCase):
 
     def test_scripting_param(self):
         class MyModule(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.conv = torch.nn.Conv2d(
                     3, 16, kernel_size=1, stride=2, padding=3, bias=True
@@ -1612,7 +1542,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(10, 3, 128, 128)
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             model,
             (x,),
             do_constant_folding=True,
@@ -1632,7 +1562,7 @@ class TestUtilityFuns(_BaseTestCase):
 
     def test_fuse_conv_bn(self):
         class Fuse(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.conv = torch.nn.Conv2d(
                     3, 2, kernel_size=1, stride=2, padding=3, bias=True
@@ -1644,7 +1574,7 @@ class TestUtilityFuns(_BaseTestCase):
                 return self.bn(out)
 
         x = torch.randn(2, 3, 2, 2, requires_grad=True)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             Fuse(),
             (x,),
             training=TrainingMode.EVAL,
@@ -1660,7 +1590,7 @@ class TestUtilityFuns(_BaseTestCase):
     def test_fuse_resnet18(self):
         model = torchvision.models.resnet18(weights=None)
         x = torch.randn(2, 3, 224, 224, requires_grad=True)
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             model,
             (x,),
             training=TrainingMode.EVAL,
@@ -1685,7 +1615,7 @@ class TestUtilityFuns(_BaseTestCase):
         input_2 = torch.tensor([12])
         GLOBALS.export_onnx_opset_version = self.opset_version
         GLOBALS.operator_export_type = OperatorExportTypes.ONNX
-        graph, _, _ = self._model_to_graph(
+        graph, _, __ = self._model_to_graph(
             MyModule(),
             (input_1, input_2),
             do_constant_folding=True,
@@ -1704,7 +1634,7 @@ class TestUtilityFuns(_BaseTestCase):
 
     def test_onnx_value_name(self):
         class MyModule(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.in_weight = torch.nn.Parameter(torch.Tensor(3, 3))
                 self.in_bias = torch.nn.Parameter(torch.Tensor(3))
@@ -1730,6 +1660,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             opset_version=self.opset_version,
             keep_initializers_as_inputs=True,
+            dynamo=False,
         )
         graph = onnx.load(io.BytesIO(f.getvalue()))
         self.assertEqual(graph.graph.input[1].name, "in_weight")
@@ -1737,7 +1668,7 @@ class TestUtilityFuns(_BaseTestCase):
 
     def test_onnx_node_naming(self):
         class MainModule(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self._module_1 = torch.nn.Linear(10, 10)
                 self._module_2 = torch.nn.Linear(10, 10)
@@ -1762,13 +1693,13 @@ class TestUtilityFuns(_BaseTestCase):
         ]
         f = io.BytesIO()
 
-        torch.onnx.export(module, torch.ones(1, 10), f, output_names=["y"])
+        torch.onnx.export(module, torch.ones(1, 10), f, output_names=["y"], dynamo=False)
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
         for n in onnx_model.graph.node:
             self.assertIn(n.name, ref_node_names)
 
         torch.onnx.export(
-            torch.jit.script(module), torch.ones(1, 10), f, output_names=["y"]
+            torch.jit.script(module), torch.ones(1, 10), f, output_names=["y"], dynamo=False
         )
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
         for n in onnx_model.graph.node:
@@ -1776,7 +1707,7 @@ class TestUtilityFuns(_BaseTestCase):
 
     def _test_deduplicate_initializers(self, torchscript=False):
         class MyModule(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.layer1 = torch.nn.Linear(3, 3)
                 self.layer2 = torch.nn.Linear(3, 3)
@@ -1811,6 +1742,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             training=TrainingMode.TRAINING,
             opset_version=self.opset_version,
+            dynamo=False,
         )
         graph = onnx.load(io.BytesIO(f.getvalue()))
         self.assertSetEqual({i.name for i in graph.graph.initializer}, param_name_set)
@@ -1823,6 +1755,7 @@ class TestUtilityFuns(_BaseTestCase):
             f,
             training=TrainingMode.PRESERVE,
             opset_version=self.opset_version,
+            dynamo=False,
         )
         graph = onnx.load(io.BytesIO(f.getvalue()))
         self.assertSetEqual({i.name for i in graph.graph.initializer}, param_name_set)
@@ -1830,7 +1763,7 @@ class TestUtilityFuns(_BaseTestCase):
         # Test eval mode.
         model.eval()
         f = io.BytesIO()
-        torch.onnx.export(model, (x,), f, opset_version=self.opset_version)
+        torch.onnx.export(model, (x,), f, opset_version=self.opset_version, dynamo=False)
         graph = onnx.load(io.BytesIO(f.getvalue()))
         param_name_set.remove("param2")
         self.assertSetEqual({i.name for i in graph.graph.initializer}, param_name_set)
@@ -1844,7 +1777,7 @@ class TestUtilityFuns(_BaseTestCase):
     @skipIfNoNPU
     def test_deduplicate_initializers_diff_devices(self):
         class Model(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.w_cpu = torch.nn.Parameter(
                     torch.ones(3, device=torch.device("cpu"))
@@ -1859,7 +1792,7 @@ class TestUtilityFuns(_BaseTestCase):
         x = torch.randn(3, 3, device=torch.device("cpu"))
         y = torch.randn(3, 3, device=torch.device("npu"))
         f = io.BytesIO()
-        torch.onnx.export(Model(), (x, y), f, opset_version=self.opset_version)
+        torch.onnx.export(Model(), (x, y), f, opset_version=self.opset_version, dynamo=False)
         graph = onnx.load(io.BytesIO(f.getvalue()))
         self.assertSetEqual({i.name for i in graph.graph.initializer}, {"w_cpu"})
 
@@ -1874,7 +1807,7 @@ class TestUtilityFuns(_BaseTestCase):
                 out2 = self.fc1(input1)
                 return out1, out1, out2, out1, out2
 
-        N, D_in, H, D_out = 64, 784, 500, 10
+        N, D_in, D_out = 64, 784, 10
         pt_model = DuplicatedOutputNet(D_in, D_out)
 
         f = io.BytesIO()
@@ -1900,6 +1833,7 @@ class TestUtilityFuns(_BaseTestCase):
             dynamic_axes=dynamic_axes,
             verbose=True,
             keep_initializers_as_inputs=True,
+            dynamo=False,
         )
 
         graph = onnx.load(io.BytesIO(f.getvalue()))
@@ -1917,7 +1851,7 @@ class TestUtilityFuns(_BaseTestCase):
         # upsample scale is a constant, not a model parameter,
         # therefore should be ignored by shared weight deduplication.
         class Model(torch.nn.Module):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.upsample_1 = torch.nn.Upsample(scale_factor=2)
                 self.upsample_2 = torch.nn.Upsample(scale_factor=2)
@@ -1927,7 +1861,7 @@ class TestUtilityFuns(_BaseTestCase):
 
         f = io.BytesIO()
         x = torch.randn(1, 32, 224, 224)
-        torch.onnx.export(Model(), x, f)
+        torch.onnx.export(Model(), x, f, dynamo=False)
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
         # aten::upsample converts to onnx::resize
         resize_nodes = [n for n in onnx_model.graph.node if n.op_type == "Resize"]
@@ -1962,7 +1896,7 @@ class TestUtilityFuns(_BaseTestCase):
         self.assertExpectedRaisesInline(
             AssertionError,
             lambda: torch.onnx.export(
-                model, (x,), f, opset_version=_onnx_opset_version
+                model, (x,), f, opset_version=_onnx_opset_version, dynamo=False
             ),
             (
                 "A mismatch between the number of arguments (2) and their descriptors (1) was found at symbolic function "
