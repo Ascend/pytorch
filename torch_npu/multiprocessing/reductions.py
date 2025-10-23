@@ -11,6 +11,7 @@ from torch.multiprocessing.reductions import (
     fd_id,
     rebuild_tensor,
     storage_from_cache,
+    rebuild_meta_tensor,
 )
 
 import torch_npu
@@ -129,6 +130,19 @@ def _npu_reduce_tensor(tensor):
                 ref_counter_offset,
                 event_handle,
                 event_sync_required,
+            ),
+        )
+    elif storage._untyped_storage.device.type == "meta":
+        return (
+            rebuild_meta_tensor,
+            (
+                type(tensor),
+                tensor.size(),
+                tensor.stride(),
+                tensor.storage_offset(),
+                tensor.dtype,
+                tensor.untyped_storage().size(),
+                tensor.requires_grad,
             ),
         )
 
