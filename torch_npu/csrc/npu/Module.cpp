@@ -1359,6 +1359,15 @@ PyObject* THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject 
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npuCachingAllocator_set_allocator_settings(PyObject *_unused, PyObject *arg)
+{
+    HANDLE_TH_ERRORS
+    std::string settings = THPUtils_unpackString(arg);
+    c10_npu::NPUCachingAllocator::setAllocatorSettings(settings);
+    END_HANDLE_TH_ERRORS
+    Py_RETURN_NONE;
+}
+
 PyObject* THNPModule_getAllocatorBackend(PyObject *_unused, PyObject *noargs)
 {
     HANDLE_TH_ERRORS
@@ -1970,6 +1979,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_attach_out_of_memory_observer", THNPModule_attachOutOfMemoryObserver, METH_O, nullptr},
     {"_npu_npuCachingAllocator_raw_alloc", (PyCFunction)THNPModule_npuCachingAllocator_raw_alloc, METH_VARARGS, nullptr},
     {"_npu_npuCachingAllocator_raw_delete", (PyCFunction)THNPModule_npuCachingAllocator_raw_delete, METH_O, nullptr},
+    {"_npu_npuCachingAllocator_set_allocator_settings", (PyCFunction)THNPModule_npuCachingAllocator_set_allocator_settings, METH_O, nullptr},
     {"_npu_getAllocatorBackend", (PyCFunction)THNPModule_getAllocatorBackend, METH_NOARGS, nullptr},
     {"_npu_lock_mutex",   (PyCFunction)THNPModule_npuLockMutex,   METH_NOARGS,  nullptr},
     {"_npu_unlock_mutex", (PyCFunction)THNPModule_npuUnlockMutex, METH_NOARGS,  nullptr},
