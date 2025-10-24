@@ -890,7 +890,7 @@ public:
         return *s_instance;
     }
 
-    void parseArgs(const char *env);
+    void parseArgs(const char *env, std::set<std::string> supported_settings = {});
 
 private:
     size_t m_max_split_size;
@@ -1031,7 +1031,7 @@ size_t CachingAllocatorConfig::parsePageSize(const std::vector<std::string> &con
     return i + 2; // 返回最后处理的索引位置
 }
 
-void CachingAllocatorConfig::parseArgs(const char *env)
+void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> supported_settings)
 {
     // If empty, set the default values
     m_max_split_size = std::numeric_limits<size_t>::max();
@@ -1045,6 +1045,12 @@ void CachingAllocatorConfig::parseArgs(const char *env)
     lexArgs(env, config);
 
     for (size_t i = 0; i < config.size(); i++) {
+        // If supported_settings is not empty,
+        // check if the setting is supported by torch_npu.npu.memory._set_allocator_settings().
+        if (!supported_settings.empty() && supported_settings.count(config[i]) == 0) {
+            TORCH_CHECK(false, "torch_npu.npu.memory._set_allocator_settings() unsupported setting: ", config[i],
+                OPS_ERROR(ErrCode::VALUE));
+        }
         if (config[i].compare("max_split_size_mb") == 0) {
             i = parseMaxSplitSize(config, i);
         } else if (config[i].compare("garbage_collection_threshold") == 0) {
@@ -1087,6 +1093,16 @@ bool checkConfigExpandableSegments()
 bool isConfig1GPageSizeEnable()
 {
     return CachingAllocatorConfig::page_size_1g_enable();
+}
+
+void setAllocatorSettings(const std::string& settings)
+{
+    ASCEND_LOGI("setAllocatorSettings: %s.", settings.c_str());
+    // Empty NPU task queue before changing the allocator settings.
+    NPUStatus ret = c10_npu::emptyAllNPUStream();
+    TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
+    // Only support expandable_segments setting.
+    CachingAllocatorConfig::instance().parseArgs(settings.c_str(), {"expandable_segments"});
 }
 
 // To prevent the deadlock situation, temporarily release the lock.

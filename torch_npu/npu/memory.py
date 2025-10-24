@@ -586,6 +586,12 @@ def get_allocator_backend() -> str:
     return torch_npu._C._npu_getAllocatorBackend()
 
 
+def _set_allocator_settings(settings) -> None:
+    r"""Sets the allocator settings. Only support expandable_segments:True or False.
+    """
+    return torch_npu._C._npu_npuCachingAllocator_set_allocator_settings(settings)
+
+
 class _NPUAllocator:
     r"""Wrapper over internal NPU memory allocators."""
 

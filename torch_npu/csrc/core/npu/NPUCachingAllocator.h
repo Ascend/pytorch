@@ -474,6 +474,8 @@ bool checkConfigExpandableSegments();
 
 bool isConfig1GPageSizeEnable();
 
+C10_NPU_API void setAllocatorSettings(const std::string& settings);
+
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
 
