@@ -20,6 +20,7 @@
 #include <torch/csrc/profiler/python/combined_traceback.h>
 
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/common/SetNpu.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
@@ -540,6 +541,9 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             std::vector<int64_t> strides = t.strides().vec();
             auto options = t.options();
             auto new_tensor = at_npu::native::from_blob(data_ptr, sizes, strides, options);
+
+            auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(t)->npu_desc_;
+            torch_npu::NPUBridge::GetNpuStorageImpl(new_tensor)->npu_desc_ = dst_desc;
             return new_tensor;
         });
     m.def(

@@ -1,6 +1,7 @@
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu._C import _weak_ref_tensor
 
 
 class TestNPUFormat(TestCase):
@@ -43,6 +44,16 @@ class TestNPUFormat(TestCase):
         fmt1 = torch_npu.get_npu_format(x1)
         self.assertEqual(fmt1, torch_npu.Format.NCHW)
         self.assertEqual(fmt1, 0)
+
+    def test_get_npu_format_weak_ref(self):
+        """test get_npu_format"""
+        x1 = torch.ones(2, 2).npu()
+        torch_npu.npu_format_cast_(x1, torch_npu.Format.FRACTAL_NZ)
+
+        weak_x1 = _weak_ref_tensor(x1)
+        fmt1 = torch_npu.get_npu_format(weak_x1)
+        self.assertEqual(fmt1, torch_npu.Format.FRACTAL_NZ)
+        self.assertEqual(x1.data_ptr(), weak_x1.data_ptr())
 
 
 if __name__ == "__main__":
