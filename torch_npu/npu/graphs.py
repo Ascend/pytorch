@@ -98,7 +98,8 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
     def update_schema(cls, name, schame):
         if name in cls.tensor_schema_name:
             return
-        pattern = r'(?:Tensor\??\s*)(\w+)'
+        # match: Tensor q_nope, Tensor? mask=None, Tensor(a!) output
+        pattern = r'Tensor(?:\(a!\)|\?)?\s+(\w+)'
         cls.tensor_schema_name[name] = re.findall(pattern, schame)
     
     def update_capture_record(self, cpu_update_input):
@@ -111,27 +112,27 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
         with torch.npu.stream(self.update_stream):
             for graph_dispatch_record, update_input in zip(self.graph_dispatch_records, cpu_update_input):
                 graph_task_update_begin(self.update_stream, graph_dispatch_record.handle)
-                if graph_dispatch_record.op_cache_entry.__name__ in ["_npu_paged_attention.default", "_npu_paged_attention"]:
-                    args = list(graph_dispatch_record.args)
-                    # When parameters are passed through args, context_lens is the second to last parameter.
-                    if len(args) >= 2:
-                        args[-2] = update_input["context_lens"]
-                        graph_dispatch_record.op_cache_entry(*args)
-                    else:
-                        for key in update_input:
-                            graph_dispatch_record.kwargs[key] = update_input[key]
-                            graph_dispatch_record.op_cache_entry(*graph_dispatch_record.args, **graph_dispatch_record.kwargs)
-                elif graph_dispatch_record.op_cache_entry.__name__ in ["npu_fused_infer_attention_score", "npu_fused_infer_attention_score.out"]:
-                    for key in update_input:
+                for key in update_input:
+                    if key in graph_dispatch_record.kwargs:
                         graph_dispatch_record.kwargs[key] = update_input[key]
-                    graph_dispatch_record.op_cache_entry(*graph_dispatch_record.args, **graph_dispatch_record.kwargs)
+
+                # When parameters are passed through args, position is position of the updated parameter.
+                if graph_dispatch_record.op_cache_entry.__name__ in ["npu_fused_infer_attention_score", "npu_fused_infer_attention_score.out"]:
+                    position, key = 6, "actual_seq_lengths_kv"
+                elif graph_dispatch_record.op_cache_entry.__name__ == "_npu_paged_attention.default":
+                    position, key = 7, "context_lens"
+                elif graph_dispatch_record.op_cache_entry.__name__ == "npu_multi_head_latent_attention.out":
+                    position, key = 5, "context_lens"
+                if len(graph_dispatch_record.args) >= (position + 1):
+                    graph_dispatch_record.args[position] = update_input[key]
+                graph_dispatch_record.op_cache_entry(*graph_dispatch_record.args, **graph_dispatch_record.kwargs)
                 graph_task_update_end(self.update_stream)
                 graph_dispatch_record.event.record(self.update_stream)
 
     def _append_dispatch_record(self, event, handle, args, kwargs, func):
         args_ref = []
         for element in args:
-            if torch.is_tensor(element):
+            if torch.is_tensor(element) and "npu" in str(element.device):
                 args_ref.append(TensorWeakRef(element))
             else:
                 args_ref.append(deepcopy(element))
@@ -143,7 +144,7 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
                 kwargs_ref[key] = TensorWeakRef(vaule)
             else:
                 kwargs_ref[key] = deepcopy(vaule)
-        return _GraphDispatchRecord(event=event, handle=handle, kwargs=kwargs_ref, args=tuple(args_ref), op_cache_entry=func)
+        return _GraphDispatchRecord(event=event, handle=handle, kwargs=kwargs_ref, args=list(args_ref), op_cache_entry=func)
 
     def __torch_dispatch__(self, func, types, args=(), kwargs=None):
         if func.__name__ in ["npu_fused_infer_attention_score", "npu_fused_infer_attention_score.default"]:
@@ -181,7 +182,7 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
             self.graph_dispatch_records.append(
                 self._append_dispatch_record(event, handle, args, kwargs, func))
             return kwargs["out"]
-        elif func.__name__ in ["_npu_paged_attention.default", "_npu_paged_attention"]:
+        elif func.__name__ in ["_npu_paged_attention.default", "npu_multi_head_latent_attention.out"]:
             self.update_schema(str(func.__name__), str(func._schema))
             stream = torch_npu.npu.current_stream()
             event = torch.npu.ExternalEvent()
@@ -189,12 +190,12 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
             event.reset(stream)
             # begin graph task
             graph_task_group_begin(stream)
-            func(*args, **kwargs)
+            result = func(*args, **kwargs)
             handle = graph_task_group_end(stream)
             # save state for update
             self.graph_dispatch_records.append(
                 self._append_dispatch_record(event, handle, args, kwargs, func))
-            return None
+            return result
         else:
             return func(*args, **kwargs)
 
