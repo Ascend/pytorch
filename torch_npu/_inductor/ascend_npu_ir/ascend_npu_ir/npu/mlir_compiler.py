@@ -106,13 +106,14 @@ class NpuMlirCompiler:
                         auto_db=True,
                         ops_reorder=False,
                         tiling_size=None,
+                        block_dim=anir_config.block_dim,
                         extra_command=None):
         bisheng_ir_compile_path = f"bishengir-compile"
         command = [
             bisheng_ir_compile_path,
             "-enable-hfusion-compile=true",
             "--enable-bin-relocation=0",
-            f"-block-dim={anir_config.block_dim}",
+            f"-block-dim={block_dim}",
         ]
         if auto_db:
             command.append("--enable-auto-multi-buffer=true")
@@ -197,8 +198,7 @@ class NpuMlirCompiler:
             self.launch(block_dim, stream, function, tiling_func, tiling_size, None, None, None, *args)
         return kernel_call
     
-    def get_launch(self, function):
-        block_dim = anir_config.block_dim
+    def get_launch(self, function, block_dim):
         def kernel_call(*args, function, stream=None):
             self.launch(block_dim, stream, function, None, None, None, *args)
 
@@ -212,8 +212,10 @@ class NpuMlirCompiler:
                                                                                     cache_kernel_path)
             return self.get_launch_dynamic(function, tiling_func, tiling_size)
         else:
+            block_dim = int(cache_kernel_path.split(self.kernel_name)[1].split('_')[1])
+            logger.info(f"The block_dim of {self.kernel_name} is {block_dim}.")
             function = load_kernel_binary(self.kernel_name, cache_kernel_path)
-            return self.get_launch(function)
+            return self.get_launch(function, block_dim)
     
     def register_launcher(self, 
                           launcher, 
@@ -248,8 +250,8 @@ class NpuMlirCompiler:
 
         kernel_name = self.kernel_name
 
-        tiling_size, ops_reorder, auto_db = compile_args
-        tiling_str = f"_{tiling_size}_{ops_reorder}_{auto_db}"
+        block_dim, tiling_size, ops_reorder, auto_db = compile_args
+        tiling_str = f"_{block_dim}_{tiling_size}_{ops_reorder}_{auto_db}"
         tiling_kernel_name = kernel_name + tiling_str
         if self.dynamic:
             cache_kernel_path = self.cache.get_file(f"lib{tiling_kernel_name}.so")
@@ -266,7 +268,7 @@ class NpuMlirCompiler:
             logger.info("No cached kernel. Start to exec compile.")
             with tempfile.TemporaryDirectory() as tmpdir:
                 kernel_path = os.path.join(tmpdir, tiling_kernel_name)
-                self.bisheng_compile(named_op_mlir_path, kernel_path, tiling_size=tiling_size,
+                self.bisheng_compile(named_op_mlir_path, kernel_path, block_dim=block_dim, tiling_size=tiling_size,
                                     ops_reorder=ops_reorder, auto_db=auto_db,
                                     extra_command=anir_config.extra_command)
                 
@@ -332,11 +334,17 @@ class NpuMlirCompiler:
     def get_autotune_config(self):
         def get_tiling_range():
             return [i for i in range(-10, 20, 2)]
+            
+        def get_block_dim_range():
+            block_dim_list = [i for i in range(0, anir_config.block_dim + 2, 2)]
+            block_dim_list[0] = 1
+            return block_dim_list
         compile_args = []
         for ops_reorder in [True, False]:
             for auto_db in [True, False]:
                 for tiling_size in get_tiling_range():
-                    compile_args.append((tiling_size, ops_reorder, auto_db))
+                    for block_dim in get_block_dim_range():
+                        compile_args.append((block_dim, tiling_size, ops_reorder, auto_db))
         return compile_args
 
     def precompile(self, 
@@ -347,7 +355,7 @@ class NpuMlirCompiler:
         if anir_config.autotune:
             compile_args = self.get_autotune_config()
         else:
-            compile_args = [(None, True, True)]
+            compile_args = [(anir_config.block_dim, None, True, True)]
         for cargs in compile_args:
             try:
                 self.compile_mlir(device_info, cargs, logger_level=logger_level)
