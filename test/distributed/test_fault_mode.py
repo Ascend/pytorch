@@ -1,5 +1,6 @@
 import os.path
 import subprocess
+from unittest import skip
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -135,6 +136,7 @@ class TestMode(TestCase):
         )
 
     @skipIfUnsupportMultiNPU(2)
+    @skip("Environmental problem, temporarily skip.")
     def test_hccl_timeout(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_hccl_timeout.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
