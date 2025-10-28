@@ -18,6 +18,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
+#include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMInterface.h"
 #include "third_party/acl/inc/acl/acl_op_compiler.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
@@ -281,6 +282,12 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Finalize()
             c10_npu::NPUEventManager::GetInstance().ClearEvent();
             NPU_CHECK_WARN(c10_npu::DestroyUsedStreams());
             NPU_CHECK_WARN(c10_npu::ResetUsedDevices());
+#ifndef BUILD_LIBTORCH
+            if (c10d::symmetric_memory::Shmem_finalize_exist()) {
+                auto ret = c10d::symmetric_memory::Shmem_finalize();
+                ASCEND_LOGI("shmem_finalize emd, ret is %d", ret);
+            }
+#endif
             // Maintain a basic point of view, who applies for the resource, the resource is released by whom.
             // If aclInit is not a PTA call, then aclFinalize should not be a PTA call either.
             if (repeat_init_acl_flag_) {

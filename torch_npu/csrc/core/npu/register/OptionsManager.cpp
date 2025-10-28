@@ -652,5 +652,51 @@ bool OptionsManager::IsCompactErrorOutput()
     return should_print;
 }
 
+uint64_t OptionsManager::GetShmemSymmetricSize()
+{
+    static uint64_t symmetricSize = []() -> uint64_t {
+        static uint64_t defaultMemSize = 1024ULL * 1024 * 1024;
+
+        char *env_val = std::getenv("NPU_SHMEM_SYMMETRIC_SIZE");
+        if (env_val == nullptr) {
+            return defaultMemSize;
+        }
+
+        int scale = 0;
+        double p = -1.0;
+        char f = '\0';
+        char rest = '\0';
+        int n = sscanf(env_val, "%lf%c%c", &p, &f, &rest);
+        if (n == 2) { // 2 for xxx k/m/g/t
+            switch (f) {
+                case 'k':
+                case 'K':
+                    scale = 10; // 10 for KB
+                    break;
+                case 'm':
+                case 'M':
+                    scale = 20; // 20 for MB
+                    break;
+                case 'g':
+                case 'G':
+                    scale = 30; // 30 for GB
+                    break;
+                case 't':
+                case 'T':
+                    scale = 40; // 40 for TB
+                    break;
+                default:
+                    TORCH_CHECK(false, "NPU_SHMEM_SYMMETRIC_SIZE is invalid.", PTA_ERROR(ErrCode::VALUE));
+                    break;
+            }
+        } else if (n != 1) {
+            TORCH_CHECK(false, "NPU_SHMEM_SYMMETRIC_SIZE is invalid.", PTA_ERROR(ErrCode::VALUE));
+        }
+
+        return ceil(p * (1ULL << scale));
+    }();
+    return symmetricSize;
+}
+
 } // namespace option
 } // namespace c10_npu

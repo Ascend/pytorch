@@ -133,6 +133,7 @@ public:
     static bool IsOomSnapshotEnable();
     static bool ShouldPrintWarning();
     static bool IsCompactErrorOutput();
+    static uint64_t GetShmemSymmetricSize();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

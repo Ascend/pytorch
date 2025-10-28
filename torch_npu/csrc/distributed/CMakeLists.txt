@@ -1,4 +1,4 @@
-FILE(GLOB _DIST_SRCS *.cpp rpc/*.cpp)
+FILE(GLOB _DIST_SRCS *.cpp rpc/*.cpp symm_mem/*.cpp)
 
 LIST(APPEND DIST_SRCS ${_DIST_SRCS})
 
