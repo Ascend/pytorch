@@ -1,3 +1,10 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# Copyright (c) 2025-2025 Huawei Technologies Co., Ltd.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import argparse
 import ast
 import os
@@ -88,9 +95,12 @@ def build_groups_memberships(
     _memberships = {}
     _pg_guids = {}
     for global_rank in pg_config:
+        rank_config = pg_config.get(global_rank, {})
         for pg_uid in pg_config[global_rank]:
-            desc = pg_config[global_rank][pg_uid]["desc"]
-            ranks = ast.literal_eval(pg_config[global_rank][pg_uid]["ranks"])
+            pg_info = rank_config.get(pg_uid, {})
+            desc = pg_info.get("desc", "")
+            ranks_str = pg_info.get("ranks", "[]")
+            ranks = ast.literal_eval(ranks_str)
             # With the adoption of the split_group API, we can have multiple PGs with the same pg_guid (PG Name)
             # So we need to add the hash of all its ranks within the PG as well.
             # Also guid must be a string because `_process_group_name` returns a string.
@@ -186,20 +196,27 @@ def build_collectives(
         first_rank = next(rank_iter)
         other_ranks = list(rank_iter)
 
-        if len(all_entries[first_rank]) == 0:
+        if len(all_entries.get(first_rank, [])) == 0:
             all_entries.pop(first_rank)
             continue
 
         # lets match the first collective! we need to know which ranks are involved, and ensure that this same
         # collective is also the first one on those ranks within that group
-        entries = all_entries[first_rank]
-        current_entry = entries[0]
+        entries = all_entries.get(first_rank, [])
+        if not entries:
+            all_entries.pop(first_rank, None)
+            continue
 
-        desc = current_entry["process_group"][1] if current_entry["process_group"][1] else "default_pg"
+        current_entry = entries[0]
+        if not current_entry:
+            continue
+
+        process_group_info = current_entry.get("process_group", (None, None))
+        desc = process_group_info[1] if process_group_info and process_group_info[1] else "default_pg"
         # For db build and logs printing, we want to use the original pg_name, not the hash one.
-        original_pg_name = current_entry["process_group"][0]
-        pg_name = _pg_guids[(original_pg_name, first_rank)]
-        expected_ranks = set(_memberships[pg_name])
+        original_pg_name = process_group_info[0] if process_group_info else None
+        pg_name = _pg_guids.get((original_pg_name, first_rank)) if original_pg_name is not None else None
+        expected_ranks = set(_memberships.get(pg_name, [])) if pg_name is not None else set()
         entry_state = EntryState(current_entry, expected_ranks)
         match_record = MatchStateRecord(
             expected_ranks=expected_ranks,
@@ -267,10 +284,10 @@ def build_db(details: dict[str, dict[str, Any]], args: argparse.Namespace, versi
     pg_config = {}
     version_by_ranks = {}
     for rank, dump in details.items():
-        entries[rank] = dump["entries"]
-        version_by_ranks[rank] = dump["version"]
-        pg_config[rank] = dump["pg_config"]
-
+        entries[rank] = dump.get("entries", [])
+        version_by_ranks[rank] = dump.get("version", version)
+        pg_config[rank] = dump.get("pg_config", {})
+        
     # Ensure version is consistent across all ranks.
     check_version(version_by_ranks, version)
     entries = align_trace_from_beginning(entries)
