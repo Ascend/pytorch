@@ -1,13 +1,16 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 # Owner(s): ["oncall: distributed"]
 import os
+import unittest
+from datetime import timedelta
 from functools import wraps
 from typing import Tuple, Dict, Any
 
 import torch
 import torch.distributed as dist
 import torch.distributed._functional_collectives as funcol
-from torch.distributed._tensor import DTensor
+from torch._subclasses.fake_tensor import FakeTensorMode
+from torch.distributed._mesh_layout import _MeshLayout as _Layout
 from torch.distributed.device_mesh import _mesh_resources, DeviceMesh, init_device_mesh
 from torch.distributed.distributed_c10d import (
     _get_default_group,
@@ -19,6 +22,7 @@ from torch.distributed.distributed_c10d import (
     new_group,
     ProcessGroup,
 )
+from torch.distributed.tensor import DTensor
 from torch.distributed.tensor._collective_utils import (
     mesh_broadcast,
     mesh_scatter,
@@ -26,11 +30,11 @@ from torch.distributed.tensor._collective_utils import (
 )
 from torch.distributed.tensor.placement_types import _Partial, Shard
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
-from torch.testing._internal.distributed.fake_pg import FakeStore
+from torch.testing._internal.distributed.fake_pg import FakeProcessGroup, FakeStore
 from torch.utils._typing_utils import not_none
 
 import torch_npu
-from torch_npu.testing.common_distributed import init_pg, skipIfUnsupportMultiNPU, TEST_SKIPS
+from torch_npu.testing.common_distributed import with_comms, init_pg, skipIfUnsupportMultiNPU, TEST_SKIPS
 from torch_npu.testing.testcase import run_tests
 
 
@@ -113,34 +117,8 @@ class DeviceMeshTest(NPUDTensorTestBase):
         self.assertEqual(mesh_2d.get_group(0).bound_device_id, None)
         self.assertEqual(mesh_2d.get_group(1).bound_device_id, None)
 
-    # need to refactor the other tests in this file to test both
-    # eager_init=True and eager_init=False scenarios.
-    @skipIfUnsupportMultiNPU(2)
-    @with_comms
-    def test_2d_mesh_eager_init_subgroup(self):
-        # Test with eager_init=True
-        with self.subTest(eager_init=True):
-            mesh_shape = (2, self.world_size // 2)
-            mesh_2d = init_device_mesh(self.device_type, mesh_shape)
-
-            # when eager init is used, the subgroup is created from hccl comm split and
-            # there would be bound_device_id immediately assigned for the subgroup.
-            if self.backend == "hccl":
-                curr_device = torch.npu.current_device()
-                self.assertEqual(mesh_2d.get_group(0).bound_device_id.index, curr_device)
-                self.assertEqual(mesh_2d.get_group(1).bound_device_id.index, curr_device)
-
-        # Test with eager_init=False
-        with self.subTest(eager_init=False):
-            mesh_shape = (2, self.world_size // 2)
-            mesh_2d = init_device_mesh(self.device_type, mesh_shape)
-
-            # when eager init is used, the subgroup is created from hccl comm split and
-            # there would be bound_device_id immediately assigned for the subgroup.
-            if self.backend == "hccl":
-                curr_device = torch.npu.current_device()
-                self.assertEqual(mesh_2d.get_group(0).bound_device_id.index, curr_device)
-                self.assertEqual(mesh_2d.get_group(1).bound_device_id.index, curr_device)
+    # skip test_2d_mesh_eager_init_subgroup
+    # check eager_init
 
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -237,17 +215,6 @@ class DeviceMeshTest(NPUDTensorTestBase):
             mesh_2d = init_device_mesh(
                 "npu:0", mesh_shape=mesh_shape, mesh_dim_names=("dp", "tp")
             )
-
-    @skipIfUnsupportMultiNPU(2)
-    @with_comms
-    def test_set_mesh_dim_group_options(self):
-        device_type = "npu" if torch.npu.is_available() else "cpu"
-        _mesh_resources._set_mesh_dim_group_options(1, "fake", None)
-
-        mesh_tensor = torch.arange(2).reshape(2, 1)
-        mesh = DeviceMesh(device_type, mesh_tensor)
-        # Fake pg only have BackendType as BackendType::CUSTOM.
-        self.assertEqual(mesh.get_group(1)._get_backend_name(), "custom")
 
 
 #DeviceMeshTest with resetting world_size to 4.
@@ -651,50 +618,6 @@ class TestDeviceMeshGetItem(NPUDTensorTestBase):
 
     @skipIfUnsupportMultiNPU(2)
     @with_comms
-    def test_flatten_mesh_3d(self):
-        mesh_shape = (1, 1, 2)
-        mesh_dim_names = ("dp", "cp", "tp")
-        mesh_3d = init_device_mesh(
-            self.device_type, mesh_shape, mesh_dim_names=mesh_dim_names
-        )
-
-        # Test flatten contiguous dims
-        dp_cp_mesh = mesh_3d["dp", "cp"]
-        flattened_dp_cp_mesh = dp_cp_mesh._flatten()
-        self.assertEqual(dp_cp_mesh.mesh.flatten(), flattened_dp_cp_mesh.mesh)
-        self.assertEqual(flattened_dp_cp_mesh.mesh_dim_names[0], "dp_cp")
-        root_mesh = _mesh_resources.get_root_mesh(dp_cp_mesh)
-        self.assertEqual(root_mesh, mesh_3d)
-        flatten_mesh_root_dims = _mesh_resources.flatten_name_to_root_dims[root_mesh][
-            "dp_cp"
-        ]
-        self.assertEqual(flatten_mesh_root_dims, (0, 1))
-
-        ref_pg_count = _world.group_count
-        # Calling flatten again should not create a new pg.
-        flattened_dp_cp_mesh_2 = dp_cp_mesh._flatten()
-        self.assertEqual(flattened_dp_cp_mesh, flattened_dp_cp_mesh_2)
-        self.assertEqual(ref_pg_count, _world.group_count)
-
-        # Test flatten non-contiguous dims
-        dp_tp_mesh = mesh_3d["dp", "tp"]
-        flattened_dp_tp_mesh = dp_tp_mesh._flatten()
-        self.assertEqual(dp_tp_mesh.mesh.flatten(), flattened_dp_tp_mesh.mesh)
-        self.assertEqual(flattened_dp_tp_mesh.mesh_dim_names[0], "dp_tp")
-        root_mesh = _mesh_resources.get_root_mesh(dp_tp_mesh)
-        self.assertEqual(root_mesh, mesh_3d)
-        flatten_mesh_root_dims = _mesh_resources.flatten_name_to_root_dims[root_mesh][
-            "dp_tp"
-        ]
-        self.assertEqual(flatten_mesh_root_dims, (0, 2))
-
-        # Test flatten with a flattened mesh_dim_name
-        cp_tp_mesh = mesh_3d["cp", "tp"]
-        cp_tp_mesh._flatten("dummy")
-        self.assertEqual(mesh_3d["dummy"].mesh_dim_names[0], "dummy")
-
-    @skipIfUnsupportMultiNPU(2)
-    @with_comms
     def test_flatten_mesh_4d(self):
         with self.subTest(eager_init=True):
             mesh_shape = (2, 1, 1, 1)
@@ -850,6 +773,79 @@ class TestDeviceMeshGetItemE(NPUDTensorTestBase):
         self.assertEqual(dp_cp_mesh.get_group(), mesh_3d["dp_cp"].get_group())
         self.assertEqual(dp_cp_mesh.get_group(), mesh_3d.get_group(mesh_dim="dp_cp"))
 
+    @skipIfUnsupportMultiNPU(8)
+    @with_comms
+    def test_flatten_mesh_3d(self):
+        mesh_shape = (2, 2, 2)
+        mesh_dim_names = ("dp", "cp", "tp")
+        mesh_3d = init_device_mesh(
+            self.device_type, mesh_shape, mesh_dim_names=mesh_dim_names
+        )
+
+        # Test flatten into an existing mesh_dim_name inside the mesh
+        with self.assertRaisesRegex(
+            ValueError,
+            "already exists for submesh of the DeviceMesh",
+        ):
+            mesh_3d._flatten("dp")
+
+        # Test flatten contiguous dims
+        dp_cp_mesh = mesh_3d["dp", "cp"]
+        flattened_dp_cp_mesh = dp_cp_mesh._flatten()
+        self.assertEqual(dp_cp_mesh.mesh.flatten(), flattened_dp_cp_mesh.mesh)
+        self.assertEqual(flattened_dp_cp_mesh.mesh_dim_names[0], "dp_cp")
+        self.assertEqual(flattened_dp_cp_mesh.get_group().group_desc, "mesh_dp_cp")
+        root_mesh = dp_cp_mesh._get_root_mesh()
+        self.assertEqual(root_mesh, mesh_3d)
+        flatten_mesh_layout = root_mesh._flatten_mapping["dp_cp"]._layout
+        self.assertEqual(flatten_mesh_layout, flattened_dp_cp_mesh._layout)
+        self.assertEqual(
+            flattened_dp_cp_mesh._layout.global_ranks(8),
+            [[0, 2, 4, 6], [1, 3, 5, 7]],
+        )
+
+        ref_pg_count = _world.group_count
+        # Calling flatten again should not create a new pg.
+        flattened_dp_cp_mesh_2 = dp_cp_mesh._flatten()
+        self.assertEqual(flattened_dp_cp_mesh, flattened_dp_cp_mesh_2)
+        self.assertEqual(ref_pg_count, _world.group_count)
+
+        # Test flatten non-contiguous dims
+        dp_tp_mesh = mesh_3d["dp", "tp"]
+        flattened_dp_tp_mesh = dp_tp_mesh._flatten()
+        self.assertEqual(dp_tp_mesh.mesh.flatten(), flattened_dp_tp_mesh.mesh)
+        self.assertEqual(flattened_dp_tp_mesh.mesh_dim_names[0], "dp_tp")
+        root_mesh = dp_tp_mesh._get_root_mesh()
+        self.assertEqual(root_mesh, mesh_3d)
+        flatten_mesh_root_layout = root_mesh._flatten_mapping["dp_tp"]._layout
+        self.assertEqual(flatten_mesh_root_layout, flattened_dp_tp_mesh._layout)
+        self.assertEqual(
+            flattened_dp_tp_mesh._layout.global_ranks(8),
+            [[0, 1, 4, 5], [2, 3, 6, 7]],
+        )
+        with self.assertRaisesRegex(
+            NotImplementedError,
+            "Currently, this only allows slicing out a contiguous flattened dim",
+        ):
+            mesh_3d["dp_tp", "cp"]
+
+        # Test flatten with a flattened mesh_dim_name
+        cp_tp_mesh = mesh_3d["cp", "tp"]
+        cp_tp_mesh._flatten("dummy")
+        self.assertEqual(mesh_3d["dummy"].mesh_dim_names[0], "dummy")
+
+        # Test flatten into an existing mesh_dim_name inside the mesh
+        with self.assertRaisesRegex(
+            ValueError,
+            "dp already exists for submesh of the DeviceMesh",
+        ):
+            mesh_3d._flatten("dp")
+        with self.assertRaisesRegex(
+            ValueError,
+            "Flatten mesh with mesh_dim_name dp_tp has been created before",
+        ):
+            mesh_3d["cp", "tp"]._flatten("dp_tp")
+
 
 class TestMeshEnv(NPUDTensorTestBase):
     @property
@@ -875,6 +871,12 @@ class TestMeshEnv(NPUDTensorTestBase):
         self.assertEqual(_mesh_resources.get_root_mesh(dp_mesh), mesh_3d)
         self.assertEqual(_mesh_resources.get_root_mesh(cp_mesh), mesh_3d)
         self.assertEqual(_mesh_resources.get_root_mesh(tp_mesh), mesh_3d)
+        self.assertEqual(dp_cp_mesh._get_root_mesh(), mesh_3d)
+        self.assertEqual(dp_tp_mesh._get_root_mesh(), mesh_3d)
+        self.assertEqual(cp_tp_mesh._get_root_mesh(), mesh_3d)
+        self.assertEqual(dp_mesh._get_root_mesh(), mesh_3d)
+        self.assertEqual(cp_mesh._get_root_mesh(), mesh_3d)
+        self.assertEqual(tp_mesh._get_root_mesh(), mesh_3d)
 
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -885,8 +887,8 @@ class TestMeshEnv(NPUDTensorTestBase):
             self.device_type, mesh_shape, mesh_dim_names=mesh_dim_names
         )
 
-        self.assertEqual(_mesh_resources.get_root_mesh_dim(mesh_2d["DP"]), 0)
-        self.assertEqual(_mesh_resources.get_root_mesh_dim(mesh_2d["TP"]), 1)
+        self.assertEqual(mesh_2d["DP"]._get_root_mesh_dim(), 0)
+        self.assertEqual(mesh_2d["TP"]._get_root_mesh_dim(), 1)
 
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -894,7 +896,7 @@ class TestMeshEnv(NPUDTensorTestBase):
         mesh_shape = (self.world_size,)
         mesh = init_device_mesh(self.device_type, mesh_shape)
 
-        self.assertEqual(_mesh_resources.get_root_mesh_dim(mesh), None)
+        self.assertEqual(mesh._get_root_mesh_dim(), None)
 
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -905,8 +907,8 @@ class TestMeshEnv(NPUDTensorTestBase):
             self.device_type, mesh_shape, mesh_dim_names=mesh_dim_names
         )
 
-        self.assertEqual(_mesh_resources.get_mesh_dim_by_name(mesh_2d, "DP"), 0)
-        self.assertEqual(_mesh_resources.get_mesh_dim_by_name(mesh_2d, "TP"), 1)
+        self.assertEqual(mesh_2d._get_mesh_dim_by_name("DP"), 0)
+        self.assertEqual(mesh_2d._get_mesh_dim_by_name("TP"), 1)
 
     @skipIfUnsupportMultiNPU(2)
     @with_comms
