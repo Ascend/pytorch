@@ -15,6 +15,11 @@ TORCH_DECLARE_REGISTRY(PrivateUse1HooksRegistry, NPUHooksInterface, NPUHooksArgs
 
 C10_DEFINE_REGISTRY(PrivateUse1HooksRegistry, NPUHooksInterface, NPUHooksArgs)
 
+at::Device NPUHooksInterface::getDeviceFromPtr(void* data) const
+{
+    return {at::DeviceType::PrivateUse1, c10_npu::current_device()};
+}
+
 void NPUHooksInterface::init() const
 {
 #ifndef BUILD_LIBTORCH

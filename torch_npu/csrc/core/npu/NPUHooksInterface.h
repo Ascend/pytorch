@@ -12,6 +12,7 @@ struct TORCH_API NPUHooksInterface : public at::PrivateUse1HooksInterface {
         static auto device_gen = at_npu::detail::getDefaultNPUGenerator(device_index);
         return device_gen;
     }
+    at::Device getDeviceFromPtr(void* data) const override;
     void init() const override;
     at::Generator getNewGenerator(c10::DeviceIndex device_index = -1) const override;
     bool hasPrimaryContext(c10::DeviceIndex device_index) const override;
