@@ -1,6 +1,7 @@
 #include <torch/csrc/distributed/c10d/SymmetricMemory.hpp>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/distributed/symm_mem/NPUSymmetricMemoryUtils.hpp"
 #include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMInterface.h"
@@ -8,7 +9,6 @@
 
 namespace c10d::npushmem_extension {
 
-constexpr uint64_t local_mem_size = 1024UL * 1024UL * 1024UL;
 static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.symmetric_memory");
 using c10d::symmetric_memory::NPUStoreExchange;
 static NPUStoreExchange storeExchange = NPUStoreExchange("npushmem_ext");
@@ -39,10 +39,9 @@ void initialize_npushmem_with_store(
     logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, unique_id rank is %d, version %d, internal is %s.",
         rank, unique_ids[0].version, unique_ids[0].internal);
 
-    auto env_val = std::getenv("NPU_SHMEM_SYMMETRIC_SIZE");
-    int64_t init_size = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : local_mem_size;
+    int64_t init_size = c10_npu::option::OptionsManager::GetShmemSymmetricSize();
     shmem_init_attr_t* attributes;
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, start shmem_set_attr rank is %d, world_size is %d, size is %d.",
+    logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, start shmem_set_attr rank is %d, world_size is %d, size is %llu.",
         rank, world_size, init_size);
     status = c10d::symmetric_memory::Shmem_set_attr(rank, world_size, init_size, nullptr, &attributes);
     TORCH_CHECK(status == 0, "shmem_set_attr failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
