@@ -45,7 +45,7 @@ void initialize_npushmem_with_store(
         rank, world_size, init_size);
     status = c10d::symmetric_memory::Shmem_set_attr(rank, world_size, init_size, nullptr, &attributes);
     TORCH_CHECK(status == 0, "shmem_set_attr failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, end shmem_set_attr rank is %d, world_size is %d, size is %d.",
+    logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, end shmem_set_attr rank is %d, world_size is %d, size is %llu.",
         rank, world_size, init_size);
 
     status = c10d::symmetric_memory::Shmem_set_attr_uniqueid_args(rank, world_size, &unique_ids[0], attributes);

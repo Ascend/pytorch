@@ -78,6 +78,7 @@ from torch_npu.utils._dynamo_device import _dynamo_register_interface_for_device
 from torch_npu.npu._format import _apply_npu_format_patch
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
+import torch_npu.distributed._symmetric_memory
 import torch_npu.op_plugin
 from torch_npu.profiler._add_mstx_patch import _apply_mstx_patch
 from torch_npu.distributed.fsdp._add_fsdp_patch import _apply_fsdp_patch
@@ -195,6 +196,7 @@ def _apply_distributed_methods_patch():
     torch.distributed.launcher.api._get_addr_and_port = torch_npu.distributed.distributed_c10d._trigger__get_addr_and_port_decorator(torch.distributed.launcher.api._get_addr_and_port)
     torch._C._distributed_c10d.ProcessGroup._get_sequence_number_for_group = (
         torch_npu.distributed.distributed_c10d._hccl_get_sequence_number_for_group)
+    torch.distributed._symmetric_memory.enable_symm_mem_for_group = torch_npu.distributed._symmetric_memory._enable_symm_mem_for_group
 
 
 torch.serialization.add_safe_globals([torch_npu.npu._format.Format])
