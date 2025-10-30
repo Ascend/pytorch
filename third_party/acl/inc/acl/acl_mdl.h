@@ -1583,6 +1583,16 @@ ACL_FUNC_VISIBILITY aclError aclmdlRICaptureTaskUpdateBegin(aclrtStream stream, 
  */
 ACL_FUNC_VISIBILITY aclError aclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
 
+/**
+ * @ingroup AscendCL
+ * @brief dump the json content of the model
+ * @param modelRI [IN] model runtime instance
+ * @param path [IN] json file path
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path);
+
 #ifdef __cplusplus
 }
 #endif

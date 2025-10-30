@@ -104,4 +104,5 @@ aclError aclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {return 0;}
 aclError aclrtCreateEventExWithFlag(aclrtEvent *event, uint32_t flag) {return 0;}
 aclError aclrtResetEvent(aclrtEvent event, aclrtStream stream){return 0;}
 aclError aclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status) {return 0;};
+aclError aclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path) {return 0;};
 }
