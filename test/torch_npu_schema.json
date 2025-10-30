@@ -878,6 +878,9 @@
   "torch_npu.npu.graphs.NPUGraph.update": {
     "signature": "(self, cpu_update_input)"
   },
+  "torch_npu.npu.graphs.NPUGraph.debug_dump": {
+    "signature": "(self, debug_path)"
+  },
   "torch_npu.dynamo.torchair.ops.npu_tagged_event_wait": {
     "signature": "(event)"
   },
@@ -892,6 +895,9 @@
   },
   "torch_npu.npu.NPUGraph.update": {
     "signature": "(self, cpu_update_input)"
+  },
+  "torch_npu.npu.NPUGraph.debug_dump": {
+    "signature": "(self, debug_path)"
   },
   "torch_npu.utils.serialization.save_async": {
     "signature": "(obj: object, f, pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False, model: torch.nn.modules.module.Module = None) -> None"
