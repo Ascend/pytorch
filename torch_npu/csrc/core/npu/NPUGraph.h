@@ -39,7 +39,7 @@ struct TORCH_NPU_API NPUGraph {
     void reset();
     MempoolId_t pool();
     void enable_debug_mode();
-    void debug_dump();
+    void debug_dump(const std::string& debug_path);
 
 protected:
     aclmdlRI model_ri_ = nullptr;

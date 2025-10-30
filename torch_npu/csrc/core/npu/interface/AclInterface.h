@@ -234,6 +234,8 @@ aclError AclmdlRICaptureTaskUpdateBegin(aclrtStream stream, aclrtTaskGrp handle)
 
 aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
 
+aclError AclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path);
+
 aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *key, size_t len, uint64_t flag);
 
 aclError AclrtIpcMemSetImportPid(const char *key, int32_t *pid, size_t num);

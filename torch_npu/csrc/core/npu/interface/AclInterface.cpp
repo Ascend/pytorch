@@ -83,6 +83,7 @@ LOAD_FUNCTION(aclmdlRICaptureTaskGrpBegin)
 LOAD_FUNCTION(aclmdlRICaptureTaskGrpEnd)
 LOAD_FUNCTION(aclmdlRICaptureTaskUpdateBegin)
 LOAD_FUNCTION(aclmdlRICaptureTaskUpdateEnd)
+LOAD_FUNCTION(aclmdlRIDebugJsonPrint)
 LOAD_FUNCTION(aclrtIpcMemGetExportKey)
 LOAD_FUNCTION(aclrtIpcMemSetImportPid)
 LOAD_FUNCTION(aclrtIpcMemImportByKey)
@@ -948,6 +949,18 @@ aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream)
 
     TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskUpdateEnd", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(stream);
+}
+
+aclError AclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path)
+{
+    typedef aclError (*AclmdlRIDebugJsonPrint)(aclmdlRI, const char*);
+    static AclmdlRIDebugJsonPrint func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlRIDebugJsonPrint) GET_FUNC(aclmdlRIDebugJsonPrint);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlRIDebugJsonPrint", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(modelRI, path);
 }
 
 aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *key, size_t len, uint64_t flag)

@@ -4,10 +4,12 @@ from itertools import chain
 
 import torch
 
-os.environ["ASCEND_LAUNCH_BLOCKING"] = "0"
 import torch_npu
-from torch_npu.testing.common_utils import SupportedDevices
+from torch_npu.testing.common_utils import SupportedDevices, SkipIfNotGteCANNVersion
 from torch_npu.testing.testcase import TestCase, run_tests
+
+
+os.environ["ASCEND_LAUNCH_BLOCKING"] = "0"
 
 
 class TestAclgraphUpdate(TestCase):
@@ -164,6 +166,35 @@ class TestAclgraphUpdate(TestCase):
             event.record(update_stream)
 
         g.replay()
+
+    @SupportedDevices(['Ascend910B'])
+    @SkipIfNotGteCANNVersion(base_version='8.5.0')
+    def test_npugraph_debug_dump(self):
+        N, D_in, H, D_out = 640, 4096, 2048, 1024
+        model = torch.nn.Sequential(torch.nn.Linear(D_in, H),
+                                    torch.nn.Dropout(p=0.2),
+                                    torch.nn.Linear(H, D_out),
+                                    torch.nn.Dropout(p=0.1)).npu()
+        
+        static_input = torch.randn(N, D_in, device='npu')
+        s = torch.npu.Stream()
+        s.wait_stream(torch.npu.current_stream())
+        model.eval()
+        with torch.npu.stream(s):
+            for _ in range(3):
+                y_pred = model(static_input)
+        torch.npu.current_stream().wait_stream(s)
+        g = torch.npu.NPUGraph()
+        with torch.npu.graph(g):
+            static_y_pred = model(static_input)
+
+        file_path = os.path.join(os.getcwd(), "jsonPrint.json")
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            os.remove(file_path)
+
+        g.debug_dump(file_path)
+        self.assertTrue(os.path.getsize(file_path) > 0, "npugraph debug dump assert error")
+        os.remove(file_path)        
 
 if __name__ == "__main__":
     run_tests()
