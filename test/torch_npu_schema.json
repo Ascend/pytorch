@@ -2501,6 +2501,9 @@
   "torch_npu.npu.NPUGraph.update": {
     "signature": "(self, cpu_update_input)"
   },
+  "torch_npu.npu.NPUGraph.debug_dump": {
+    "signature": "(self, debug_path)"
+  },
   "torch_npu.profiler.profiler.profile._set_step_num_offset_for_dynamic_prof": {
     "signature": "(self, step: int)"
   },
@@ -2536,6 +2539,9 @@
   },
   "torch_npu.npu.graphs.NPUGraph.update": {
     "signature": "(self, cpu_update_input)"
+  },
+  "torch_npu.npu.graphs.NPUGraph.debug_dump": {
+    "signature": "(self, debug_path)"
   },
   "torch_npu.dynamo.torchair.ops.npu_tagged_event_record": {
     "signature": "(event)"

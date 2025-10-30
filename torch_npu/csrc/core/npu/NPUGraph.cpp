@@ -250,15 +250,13 @@ void NPUGraph::enable_debug_mode()
     _npu_graphs_debug = true;
 }
 
-void NPUGraph::debug_dump()
+void NPUGraph::debug_dump(const std::string& debug_path)
 {
-    if (_npu_graphs_debug) {
-        if (has_graph_exec_) {
-            TORCH_WARN("DEBUG: calling NPUGraph::debug_dump() for model id ", model_ri_);
-            NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIDebugPrint(model_ri_));
-        }
+    if (has_graph_exec_) {
+        TORCH_WARN("calling NPUGraph::debug_dump() for model id ", model_ri_);
+        NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIDebugJsonPrint(model_ri_, debug_path.c_str()));
     } else {
-        TORCH_WARN("NPU Graphs debug not enabled, set with NPUGraph::enable_debug_mode().");
+        TORCH_WARN("Called NPUGraph::debug_dump without a preceding successful capture.");
     }
 }
 
