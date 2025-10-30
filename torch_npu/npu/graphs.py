@@ -268,6 +268,14 @@ class NPUGraph(torch_npu._C._NPUGraph):
                 "Try to capture by setting auto_dispatch_capture=True during capture", pta_error(ErrCode.PARAM))
         self.graph_dispatch_mode.update_capture_record(cpu_update_input)
 
+    def debug_dump(self, debug_path):
+        r"""Calls a function to dump the graph in JSON format.
+
+        Arguments:
+            debug_path (required): Path to dump the graph to.
+        """        
+        return super().debug_dump(debug_path)           
+
 
 class graph:
     r"""Context-manager that captures NPU work into a :class:`torch.npu.NPUGraph` object for later replay.
