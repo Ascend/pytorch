@@ -213,6 +213,8 @@ aclError AclmdlRICaptureTaskUpdateBegin(aclrtStream stream, aclrtTaskGrp handle)
 
 aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
 
+aclError AclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path);
+
 /**
  * @ingroup AscendCL
  * @brief register host memory

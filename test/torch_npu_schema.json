@@ -638,8 +638,14 @@
   "torch_npu.npu.NPUGraph.update": {
     "signature": "(self, cpu_update_input)"
   },
+  "torch_npu.npu.NPUGraph.debug_dump": {
+    "signature": "(self, debug_path)"
+  },
   "torch_npu.npu.graphs.NPUGraph.update": {
     "signature": "(self, cpu_update_input)"
+  },
+  "torch_npu.npu.graphs.NPUGraph.debug_dump": {
+    "signature": "(self, debug_path)"
   },
   "torch_npu.dynamo.torchair.ops.npu_tagged_event_record": {
     "signature": "(event)"
