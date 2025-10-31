@@ -2315,14 +2315,22 @@ private:
         if (IsMallocPage1GMem(pool->is_small)) {
             segment_size = kExtraLargeBuffer;
         }
-        auto segment = new ExpandableSegment(device, stream, segment_size);
+        auto segment = new (std::nothrow) ExpandableSegment(device, stream, segment_size);
+        if (!segment) {
+            ASCEND_LOGE("Failed to allocate ExpandableSegment.");
+            return nullptr;
+        }
         if (hcclComm_) {
             segment->setHcclComm(hcclComm_);
         }
         expandable_segments_.emplace_back(segment);
 
         ExpandableSegment *es = expandable_segments_.back();
-        Block *candidate = new Block(device, stream, es->size(), pool, es->ptr());
+        Block *candidate = new (std::nothrow) Block(device, stream, es->size(), pool, es->ptr());
+        if (!candidate) {
+            ASCEND_LOGE("Failed to allocate Block.");
+            return nullptr;
+        }
         candidate->mapped = false;
         candidate->expandable_segment_ = es;
         pool->unmapped.insert(candidate);
