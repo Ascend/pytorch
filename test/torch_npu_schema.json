@@ -2840,6 +2840,12 @@
   "torch_npu.dynamo.torchair.scope.limit_core_num": {
     "signature": "(op_aicore_num: int, op_vectorcore_num: int)"
   },
+  "torch_npu.dynamo.torchair.scope.op_never_timeout": {
+    "signature": "(enable: bool = True)"
+  },
+  "torch_npu.dynamo.torchair.scope.profiler_trace": {
+    "signature": "(index: str, mode: str)"
+  },
   "torch_npu.distributed.run.parse_args": {
     "signature": "(args)"
   },
