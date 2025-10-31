@@ -74,7 +74,7 @@ class TestScheduleContext(TestCase):
                 {"schedule_mode": 1, "attention_window_size": 511},
                 "attention_window_size is not enough should fail",
             ),
-            ({"schedule_mode": 2}, "schedule_mode 2 is not supportted"),
+            ({"schedule_mode": 2}, "schedule_mode 2 is not supported"),
             (
                 {"attn_to_ffn_token_size": 1023},
                 "attn_to_ffn_token_size must be aligned by 512",
