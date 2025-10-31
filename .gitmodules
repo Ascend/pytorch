@@ -7,7 +7,7 @@
 	url = https://gitee.com/mirrors/googletest.git
 [submodule "third_party/torchair/torchair"]
 	path = third_party/torchair/torchair
-	url = https://gitee.com/ascend/torchair.git
+	url = https://gitcode.com/ascend/torchair.git
 [submodule "third_party/Tensorpipe"]
 	path = third_party/Tensorpipe
 	url = https://gitcode.com/ascend/Tensorpipe.git
