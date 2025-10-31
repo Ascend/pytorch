@@ -1,3 +1,4 @@
+#include <climits>
 #include <unordered_map>
 #include "torch_npu/csrc/core/npu/interface/DcmiInterface.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -47,10 +48,19 @@ c10_npu::CoreIdRange parseAffinityCPU(const std::string cpuString)
     if (pos != std::string::npos) {
         std::string start = cpuString.substr(0, pos);
         std::string end = cpuString.substr(pos + 1);
-        int startNum = stoi(start);
-        int endNum = stoi(end);
-        if (startNum < endNum) {
-            return c10_npu::CoreIdRange{startNum, endNum};
+
+        char* start_endptr = nullptr;
+        char* end_endptr = nullptr;
+
+        errno = 0;
+        long startNum = strtol(start.c_str(), &start_endptr, 10);
+        long endNum = strtol(end.c_str(), &end_endptr, 10);
+        if (start_endptr != start.c_str() && *start_endptr == '\0' &&
+            end_endptr != end.c_str() && *end_endptr == '\0' &&
+            startNum >= 0 && endNum >= 0 && startNum <= INT_MAX && endNum <= INT_MAX &&
+            errno != ERANGE &&
+            startNum < endNum) {
+            return c10_npu::CoreIdRange{static_cast<int>(startNum), static_cast<int>(endNum)};
         }
     }
     TORCH_CHECK(false, "affinity cpu " + cpuString + " is error ", PTA_ERROR(ErrCode::VALUE));
