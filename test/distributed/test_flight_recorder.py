@@ -939,7 +939,6 @@ class HCCLTraceTestDumpOnHcclTimeout(HCCLTraceTestBase):
             return None
 
     @parametrize("timing_enabled", [False])
-    @skipIf(True, "Environmental problem, temporarily skip.")
     def test_hccl_timeout_dumps(self, timing_enabled):
         if self.rank != self.MAIN_PROCESS_RANK:
             # dump on heartbeatmonitor thread
