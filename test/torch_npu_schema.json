@@ -2756,6 +2756,12 @@
   "torch_npu.dynamo.torchair.ops.npu_create_tagged_event": {
     "signature": "(tag: str)"
   },
+  "torch_npu.dynamo.torchair.ops.record": {
+  "signature": "()"
+  },
+  "torch_npu.dynamo.torchair.ops.wait": {
+  "signature": "(tensors: list)"
+  },    
   "torch_npu.dynamo.torchair.scope.super_kernel": {
     "signature": "(scope: str, options: str = '')"
   },
