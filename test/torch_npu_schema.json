@@ -926,6 +926,12 @@
   "torch_npu.dynamo.torchair.ops.npu_fused_infer_attention_score": {
     "signature": "(*args, **kwargs)"
   },
+  "torch_npu.dynamo.torchair.ops.record": {
+  "signature": "()"
+  },
+  "torch_npu.dynamo.torchair.ops.wait": {
+  "signature": "(tensors: list)"
+  },
   "torch_npu.npu.NPUGraph.pool": {
     "signature": "(self)"
   },
