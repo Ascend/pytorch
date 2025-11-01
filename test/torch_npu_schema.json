@@ -2582,6 +2582,12 @@
   "torch_npu.dynamo.torchair.ops.npu_record_tagged_stream": {
     "signature": "(input: torch.Tensor, tagged_stream: str)"
   },
+  "torch_npu.dynamo.torchair.ops.record": {
+  "signature": "()"
+  },
+  "torch_npu.dynamo.torchair.ops.wait": {
+  "signature": "(tensors: list)"
+  },  
   "torch_npu.npu_bounding_box_encode": {
     "signature": "(anchor_box, ground_truth_box, means0, means1, means2, means3, stds0, stds1, stds2, stds3)"
   },
