@@ -818,6 +818,12 @@
   "torch_npu.dynamo.torchair.ops.npu_tagged_event_record": {
     "signature": "(event)"
   },
+  "torch_npu.dynamo.torchair.ops.record": {
+  "signature": "()"
+  },
+  "torch_npu.dynamo.torchair.ops.wait": {
+  "signature": "(tensors: list)"
+  },    
   "torch_npu.profiler.experimental_config.HostSystem": {
     "signature": "()"
   },
