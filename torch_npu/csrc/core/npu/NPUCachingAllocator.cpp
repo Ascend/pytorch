@@ -95,6 +95,7 @@ constexpr size_t kRoundLarge = 2097152;               // round up large allocs t
 constexpr size_t kAlignRoundLarge = 16384;            // round up large allocs to 16 KB
 constexpr size_t kSmallPoolVirAddrSize = 2147483648;  // 2 GB
 constexpr size_t kLargePoolVirAddrSize = 10737418240; // 10 GB
+constexpr size_t kMB = 1024 * 1024;                   // 1 MB
 const std::string kMinCannVersion = "8.1.RC1";        // minimum cann version which supports 1g mem 8.1.RC1
 const std::string kMinDriverVersion = "25.0.RC1";     // minimum driver version which supports 1g mem 25.0.RC1
 const std::string kCannModule = "CANN";               // cann module name
@@ -879,6 +880,11 @@ public:
         return instance().m_page_size_1g;
     }
 
+    static size_t segment_size_mb()
+    {
+        return instance().m_segment_size_mb;
+    }
+
     static CachingAllocatorConfig &instance()
     {
         static CachingAllocatorConfig *s_instance = ([]() {
@@ -899,12 +905,14 @@ private:
     bool set_expandable_segments_flag = false;
     size_t m_base_addr_aligned_size = kAlignRoundLarge;
     bool m_page_size_1g = false; // 新增1G页配置标志
+    size_t m_segment_size_mb;
 
     CachingAllocatorConfig()
         : m_max_split_size(std::numeric_limits<size_t>::max()),
           m_garbage_collection_threshold(0),
           m_expandable_segments(false),
-          m_base_addr_aligned_size(kAlignRoundLarge)
+          m_base_addr_aligned_size(kAlignRoundLarge),
+          m_segment_size_mb(0)
     {}
 
     void lexArgs(const char *env, std::vector<std::string> &config);
@@ -914,6 +922,7 @@ private:
     size_t parseExpandableSegments(const std::vector<std::string> &config, size_t i);
     size_t parseAddrAlignSize(const std::vector<std::string> &config, size_t i);
     size_t parsePageSize(const std::vector<std::string> &config, size_t i);
+    size_t parseSegmentSizeMb(const std::vector<std::string> &config, size_t i);
 };
 
 void CachingAllocatorConfig::lexArgs(const char *env, std::vector<std::string> &config)
@@ -1031,6 +1040,18 @@ size_t CachingAllocatorConfig::parsePageSize(const std::vector<std::string> &con
     return i + 2; // 返回最后处理的索引位置
 }
 
+size_t CachingAllocatorConfig::parseSegmentSizeMb(const std::vector<std::string> &config, size_t i)
+{
+    consumeToken(config, ++i, ':');
+    if (++i < config.size()) {
+        size_t val = static_cast<size_t>(stoi(config[i]));
+        m_segment_size_mb = val * kMB;
+    } else {
+        TORCH_CHECK(false, "Error, expecting segment_size_mb value", OPS_ERROR(ErrCode::VALUE));
+    }
+    return i;
+}
+
 void CachingAllocatorConfig::parseArgs(const char *env)
 {
     // If empty, set the default values
@@ -1056,6 +1077,8 @@ void CachingAllocatorConfig::parseArgs(const char *env)
             i = parseAddrAlignSize(config, i);
         } else if (config[i] == "page_size") {
             i = parsePageSize(config, i);
+        } else if (config[i] == "segment_size_mb") {
+            i = parseSegmentSizeMb(config, i);
         } else {
             TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::PARAM));
         }
@@ -2294,7 +2317,9 @@ private:
                 return c;
             }
         }
-        auto segment_size = pool->is_small ? kSmallBuffer : kLargeBuffer;
+        auto custom_segment_size = CachingAllocatorConfig::segment_size_mb();
+        auto segment_size = pool->is_small ?
+                kSmallBuffer : (custom_segment_size > 0 ? custom_segment_size : kLargeBuffer);
         // 此处申请虚拟内存，segment_size是页大小，实际虚拟内存巨大
         if (IsMallocPage1GMem(pool->is_small)) {
             segment_size = kExtraLargeBuffer;
