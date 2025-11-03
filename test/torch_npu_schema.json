@@ -605,6 +605,18 @@
   "torch_npu.dynamo.torchair.CompilerConfig": {
     "signature": "()"
   },
+  "torch_npu.dynamo.torchair.CompilerConfig.as_dict": {
+    "signature": "(self)"
+  },  
+  "torch_npu.dynamo.torchair.CompilerConfig._get_func_code_md5": {
+    "signature": "(self, func)"
+  },    
+  "torch_npu.dynamo.torchair.configs.compiler_config.CompilerConfig.as_dict": {
+    "signature": "(self)"
+  },
+  "torch_npu.dynamo.torchair.configs.compiler_config.CompilerConfig._get_func_code_md5": {
+    "signature": "(self, func)"
+  },   
   "torch_npu.dynamo.torchair.dynamo_export": {
     "signature": "(*args, model: torch.nn.modules.module.Module, export_path: str = 'export_file', export_name: str = 'export', dynamic: bool = False, config=<torchair.configs.compiler_config.CompilerConfig object>, **kwargs)"
   },
