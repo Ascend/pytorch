@@ -63,22 +63,6 @@ if anir_config.online_acc_comp:
 
 aten = torch.ops.aten
 
-## Override original inductor device overrides in torch_npu
-from torch_npu.utils._inductor import NPUDeviceOpOverrides
-
-# Not good implementation, but no other way
-def get_current_raw_stream(device):
-    return torch.npu.current_stream(device).npu_stream
-
-class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
-    def import_get_raw_stream_as(self, name):
-        return f"from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import get_current_raw_stream as {name}"
-
-def _inductor_register_device_op_overrides():
-    register_device_op_overrides('npu', NewNPUDeviceOpOverrides())
-
-_inductor_register_device_op_overrides()
-
 ## Override original dynamo device interface in torch_npu
 from torch_npu.utils._dynamo_device import NpuInterface
 try:
