@@ -21,6 +21,8 @@ from .flops_count import _FlopsCounter as FlopsCounter
 from .affinity import _set_thread_affinity as set_thread_affinity
 from .affinity import _reset_thread_affinity as reset_thread_affinity
 from ._graph_tree import _apply_npugraph_tree_methods
+from .dlpack import _apply_dlpack_patch
+
 
 
 # init flopcount
