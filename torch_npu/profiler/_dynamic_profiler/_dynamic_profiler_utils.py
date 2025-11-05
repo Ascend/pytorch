@@ -21,6 +21,11 @@ class DynamicProfilerUtils:
         WARNING = 1
         ERROR = 2
 
+    class ProfilerStatus(Enum):
+        IDLE = 0
+        RUNNING = 1
+        READY = 2
+
     DYNAMIC_PROFILER_MODEL = DynamicProfilerConfigModel.CFG_CONFIG
     LOGGER = logging.getLogger("DynamicProfiler")
     LOGGER_MONITOR = logging.getLogger("DynamicProfilerMonitor")
