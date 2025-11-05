@@ -105,6 +105,7 @@ LOAD_FUNCTION(aclrtGetStreamResLimit)
 LOAD_FUNCTION(aclrtUseStreamResInCurrentThread)
 LOAD_FUNCTION(aclrtUnuseStreamResInCurrentThread)
 LOAD_FUNCTION(aclrtGetResInCurrentThread)
+LOAD_FUNCTION(aclrtSetOpExecuteTimeOutV2)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -388,15 +389,41 @@ aclError AclrtSetStreamOverflowSwitch(aclrtStream stream, uint32_t flag) {
 }
 
 aclError AclrtSetOpExecuteTimeOut(uint32_t timeout) {
+    typedef aclError (*AclrtSetOpExecuteTimeOutV2)(uint64_t, uint64_t *);
+    static AclrtSetOpExecuteTimeOutV2 funcV2 = nullptr;
+    if (funcV2 == nullptr) {
+        funcV2 = (AclrtSetOpExecuteTimeOutV2)GET_FUNC(aclrtSetOpExecuteTimeOutV2);
+    }
+
+    if (funcV2) {
+        uint64_t value = static_cast<uint64_t>(timeout) * 1000 * 1000;
+        uint64_t actualTimeout = 0;
+        auto ret = funcV2(value, &actualTimeout);
+        ASCEND_LOGI("AclrtSetOpExecuteTimeOutV2 set actual timeout: %zuus", static_cast<size_t>(actualTimeout));
+        return ret;
+    }
+
     typedef aclError (*AclrtSetOpExecuteTimeOut)(uint32_t);
     static AclrtSetOpExecuteTimeOut func = nullptr;
     if (func == nullptr) {
         func = (AclrtSetOpExecuteTimeOut)GET_FUNC(aclrtSetOpExecuteTimeOut);
     }
-    if (func == nullptr) {
-        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
-    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtSetOpExecuteTimeOut", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(timeout);
+}
+
+aclError AclrtSetOpExecuteTimeOutV2(uint64_t timeout)
+{
+    typedef aclError (*AclrtSetOpExecuteTimeOutV2)(uint64_t, uint64_t *);
+    static AclrtSetOpExecuteTimeOutV2 func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtSetOpExecuteTimeOutV2)GET_FUNC(aclrtSetOpExecuteTimeOutV2);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtSetOpExecuteTimeOutV2", PTA_ERROR(ErrCode::NOT_FOUND));
+    uint64_t actualTimeout = 0;
+    auto ret = func(timeout, &actualTimeout);
+    ASCEND_LOGI("AclrtSetOpExecuteTimeOutV2 set actual timeout: %zuus", static_cast<size_t>(actualTimeout));
+    return ret;
 }
 
 aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag) {

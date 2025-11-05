@@ -1732,6 +1732,16 @@ ACL_FUNC_VISIBILITY aclError aclrtUnuseStreamResInCurrentThread();
  */
 ACL_FUNC_VISIBILITY aclError aclrtGetResInCurrentThread(aclrtDevResModelType type, uint32_t* value);
 
+/**
+ * @ingroup AscendCL
+ * @brief Set the operation execution timeout for the current thread
+ * @param [in]  timeout        Desired operation timeout value (in microsecond)
+ * @param [out] actualTimeout  Pointer to a uint64_t variable to store the actual timeout value applied
+ * @retval ACL_SUCCESS The function is successfully executed
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtSetOpExecuteTimeOutV2(uint64_t timeout, uint64_t *actualTimeout);
+
 #ifdef __cplusplus
 }
 #endif
