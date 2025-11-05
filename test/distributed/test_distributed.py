@@ -19,6 +19,7 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.testing._internal import common_utils
 from torch.testing._internal.common_utils import TestCase, run_tests
 from torch._utils_internal import TEST_MASTER_ADDR as MASTER_ADDR
 from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
@@ -85,11 +86,6 @@ class BatchNormNet(nn.Module):
         x = torch.reshape(x, (-1, 40))
         x = self.fc2(x)
         return F.softmax(x, dim=1)
-
-
-DDP_NET = Net()
-BN_NET = BatchNormNet()
-ONLY_SBN_NET = nn.SyncBatchNorm(2, momentum=0.99)
 
 
 def get_timeout(test_id):
@@ -257,6 +253,7 @@ class MultiProcessTestCase(TestCase):
         self.rank = rank
         self.file_name = file_name
 
+        common_utils.set_rng_seed(0)
         # self.id() == e.g. '__main__.TestDistributed.test_get_rank'
         # We're retrieving a corresponding test and executing it.
         getattr(self, test_name)()
@@ -484,7 +481,7 @@ class _DistTestBase(object):
         # as baseline
 
         # cpu training setup
-        model = DDP_NET
+        model = Net()
 
         # single npu training setup
         model_npu = copy.deepcopy(model)
@@ -541,7 +538,7 @@ class _DistTestBase(object):
         # as baseline
 
         # cpu training setup
-        model = BN_NET
+        model = BatchNormNet()
 
         # single npu training setup
         model_npu = copy.deepcopy(model)
@@ -646,6 +643,7 @@ class _DistTestBase(object):
             self._test_DistributedDataParallel_SyncBatchNorm_2D_Input(bk)
 
     def _test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_Running_Value(self, bucket_view):
+        ONLY_SBN_NET = nn.SyncBatchNorm(2, momentum=0.99)
         group, group_id, rank = self._init_global_test()
         model = nn.parallel.DistributedDataParallel(ONLY_SBN_NET.npu(rank), device_ids=[rank],
                                                     gradient_as_bucket_view=bucket_view)
@@ -785,6 +783,7 @@ class TestDistBackend(MultiProcessTestCase, _DistTestBase):
         # immediately exiting due to a skip doesn't cause flakiness.
         self._barrier()
 
+        common_utils.set_rng_seed(0)
         # self.id() == e.g. '__main__.TestDistributed.test_get_rank'
         # We're retreiving a corresponding test and executing it.
         getattr(self, test_name)()
