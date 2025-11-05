@@ -10,6 +10,7 @@ import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
+from torch_npu.utils.collect_env import get_cann_version
 
 
 class TorchNPUDeviceTestCase(TestCase):
@@ -362,6 +363,27 @@ class TorchNPUApiTestCase(TestCase):
         test_script = f"import os; import torch; import torch_npu; torch.npu.device_count(); os.environ['{VISIBLE_DEVICES}']='32';print(torch_npu._C._npu_getDeviceCount())"
         rc = check_output([sys.executable, "-c", test_script]).decode("ascii").strip()
         self.assertEqual(rc, "0")
+
+    @unittest.skipIf(get_cann_version() <= "8.5.RC1", "CANN doesn't support now.")
+    def test_set_op_timeout_ms(self):
+        try:
+            torch_npu.npu.set_op_timeout_ms(1000)
+        except Exception as e:
+            self.fail(f"Unexpected exception raised for valid timeout: {e}")
+
+    def test_set_op_timeout_ms_invalid_arg(self):
+        try:
+            torch_npu.npu.set_op_timeout_ms(-1)
+            self.fail("Expected exception not raised for negative timeout value")
+        except Exception as e:
+            self.assertIn("can't convert negative value to unsigned int", str(e), f"{e}")
+        
+        try:
+            torch_npu.npu.set_op_timeout_ms(2**32)
+            self.fail("Expected exception not raised for large timeout value")
+        except Exception as e:
+            self.assertIn("Overflow when unpacking", str(e), f"{e}")
+
 
 if __name__ == "__main__":
     run_tests()

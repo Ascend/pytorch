@@ -1370,6 +1370,9 @@
   "torch_npu.npu.utilization": {
     "signature": "(device=None)"
   },
+  "torch_npu.npu.set_op_timeout_ms":{
+    "signature": "(timeout)"
+  },
   "torch_npu.npu.aclnn.backends.version": {
     "signature": "()"
   },
@@ -1774,6 +1777,9 @@
   },
   "torch_npu.npu.utils.obfuscation_finalize": {
     "signature": "(fd_to_close)"
+  },
+  "torch_npu.npu.utils.set_op_timeout_ms": {
+    "signature": "(timeout)"
   },
   "torch_npu.npu.utils.obfuscation_calculate": {
     "signature": "(fd, x, param, *, obf_coefficient=1.0)"

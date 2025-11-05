@@ -20,7 +20,7 @@ __all__ = ["obfuscation_initialize", "obfuscation_finalize", "obfuscation_calcul
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
-           "check_uce_in_memory", "stress_detect", "get_cann_version", "ipc_collect"]
+           "check_uce_in_memory", "stress_detect", "get_cann_version", "ipc_collect", "set_op_timeout_ms"]
 
 
 def obfuscation_initialize(hidden_size, tp_rank, cmd, *, data_type=None, model_obf_seed_id=0, data_obf_seed_id=0, thread_num=4, obf_coefficient=1.0):
@@ -621,3 +621,8 @@ def _erase_stream(tensor, stream):
                                 stream_id=stream.stream_id,
                                 device_index=stream.device_index,
                                 device_type=stream.device_type)
+
+
+def set_op_timeout_ms(timeout):
+    torch_npu.npu._lazy_init()
+    torch_npu._C._npu_set_op_timeout_ms(timeout)
