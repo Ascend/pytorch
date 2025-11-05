@@ -2032,11 +2032,26 @@ static PyObject* THNPModule_get_stream_res_limit(PyObject* self, PyObject *args,
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_setOpTimeoutMs(PyObject* self, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    uint32_t timeout_ms = THPUtils_unpackUInt32(arg);
+    NPUStatus ret = c10_npu::emptyAllNPUStream();
+    if (ret != NPU_STATUS_SUCCESS) {
+        ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+    }
+    uint64_t timeout_us = static_cast<uint64_t>(timeout_ms) * 1000;
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOutV2(timeout_us));
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
     {"_npu_synchronize", (PyCFunction)THNPModule_npuSynchronize, METH_NOARGS, nullptr},
     {"_npu_setDevice", (PyCFunction)THNPModule_setDevice_wrap, METH_O, nullptr},
+    {"_npu_set_op_timeout_ms", (PyCFunction)THNPModule_setOpTimeoutMs, METH_O, nullptr},
     {"_npu_getDevice", (PyCFunction)THNPModule_getDevice_wrap, METH_NOARGS, nullptr},
     {"_npu_getDeviceWithoutSet", (PyCFunction)THNPModule_getDeviceWithoutSet_wrap, METH_NOARGS, nullptr},
     {"_npu_maybeExchangeDevice", (PyCFunction)THNPModule_maybeExchangeDevice_wrap, METH_O, nullptr},
