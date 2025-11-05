@@ -2855,7 +2855,8 @@
     "ShortTensor",
     "BFloat16Tensor",
     "restart_device",
-    "stop_device"
+    "stop_device",
+    "set_op_timeout_ms"
   ],
   "torch_npu.profiler": [
     "ProfilerActivity",
