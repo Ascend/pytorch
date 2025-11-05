@@ -124,7 +124,8 @@ __all__ = [
     "ipc_collect",
     "obfuscation_initialize",
     "obfuscation_finalize",
-    "obfuscation_calculate"
+    "obfuscation_calculate",
+    "set_op_timeout_ms"
 ]
 
 from typing import Tuple, Union, List, cast, Optional
@@ -144,7 +145,7 @@ from .utils import (obfuscation_initialize, obfuscation_calculate, obfuscation_f
                     device, device_of, StreamContext, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
                     finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag,
-                    check_uce_in_memory, stress_detect, _get_uce_addr, ipc_collect)
+                    check_uce_in_memory, stress_detect, _get_uce_addr, ipc_collect, set_op_timeout_ms)
 from ._recovery import restart_device, stop_device
 from .streams import Stream, Event, SyncLaunchStream, ExternalEvent
 from .mstx import mstx

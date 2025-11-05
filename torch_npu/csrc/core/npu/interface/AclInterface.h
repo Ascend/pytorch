@@ -137,6 +137,8 @@ aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag);
 
 aclError AclrtSetOpExecuteTimeOut(uint32_t timeout);
 
+aclError AclrtSetOpExecuteTimeOutV2(uint64_t timeout);
+
 aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream);
 
 aclError AclrtDestroyStreamForce(aclrtStream stream);
