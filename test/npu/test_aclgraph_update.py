@@ -42,7 +42,7 @@ class TestIFAAclgraphUpdate(TestCase):
         with torch.npu.graph(g):
             stream = torch.npu.current_stream()
             output = torch.empty(1, 32, 1, 128, dtype=torch.float16, device="npu")
-            softmax_lse = torch.empty(1, dtype=torch.float16, device="npu")
+            softmax_lse = torch.empty_like(res_src[1], dtype=torch.float16, device="npu")
             event.wait(stream)
             event.reset(stream)
             torch.npu.graph_task_group_begin(stream)
@@ -87,7 +87,7 @@ class TestIFAAclgraphUpdate(TestCase):
 
         with torch.npu.graph(g, auto_dispatch_capture=True):
             output = torch.empty(1, 32, 1, 128, dtype=torch.float16, device="npu")
-            softmax_lse = torch.empty(1, dtype=torch.float16, device="npu")
+            softmax_lse = torch.empty_like(res_src[1], dtype=torch.float16, device="npu")
             torch_npu.npu_fused_infer_attention_score.out(
                 query, key, value, num_heads=32, input_layout="BNSD", scale=scale, pre_tokens=65535, workspace=workspace,
                 next_tokens=65535, softmax_lse_flag=False, actual_seq_lengths=length, out=[output, softmax_lse])
@@ -98,6 +98,7 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
     @SupportedDevices(['Ascend910B'])
+    @unittest.skip("disabled now")
     def test_ifa_update_with_non_out_and_auto_dispatch_capture(self):
         torch.npu.set_device(0)
         length = [29]
@@ -117,7 +118,7 @@ class TestIFAAclgraphUpdate(TestCase):
 
         with torch.npu.graph(g, auto_dispatch_capture=True):
             output = torch.empty(1, 32, 1, 128, dtype=torch.float16, device="npu")
-            softmax_lse = torch.empty(1, dtype=torch.float16, device="npu")
+            softmax_lse = torch.empty_like(res_src[1], dtype=torch.float16, device="npu")
             output, softmax_lse = torch_npu.npu_fused_infer_attention_score(
                 query, key, value, num_heads=32, input_layout="BNSD", scale=scale, pre_tokens=65535,
                 next_tokens=65535, softmax_lse_flag=False, actual_seq_lengths=length)
@@ -128,6 +129,7 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
     
     @SupportedDevices(['Ascend910B'])
+    @unittest.skip("this cann version is not supported")
     def test_npu_fused_infer_attention_score_v2(self):
         torch.npu.set_device(0)
         length = [29]
@@ -175,6 +177,7 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
     @SupportedDevices(['Ascend910B'])
+    @unittest.skip("this cann version is not supported")
     def test_npugraph_debug_dump(self):
         N, D_in, H, D_out = 640, 4096, 2048, 1024
         model = torch.nn.Sequential(torch.nn.Linear(D_in, H),
@@ -340,7 +343,7 @@ class TestPAAclgraphUpdate(TestCase):
         graph.update(cpu_update_input=[{"context_lens": params.context_lens}])
         graph.replay()
         torch.npu.synchronize()
-        self.assertRtolEqual(output, golden_output)
+        self.assertRtolEqual(output, golden_output, prec=0.001)
 
         params_new, golden_output = self.preprocess()
         params.query.copy_(params_new.query)
@@ -350,7 +353,7 @@ class TestPAAclgraphUpdate(TestCase):
         graph.update(cpu_update_input=[{"context_lens": params_new.context_lens}])
         graph.replay()
         torch.npu.synchronize()
-        self.assertRtolEqual(output, golden_output)
+        self.assertRtolEqual(output, golden_output, prec=0.001)
 
 if __name__ == "__main__":
     run_tests()

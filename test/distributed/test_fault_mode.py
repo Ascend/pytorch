@@ -79,7 +79,7 @@ class TestMode(TestCase):
     def test_diff_dtype(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_diff_dtype.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, text=True)
+                                   stderr=subprocess.PIPE, text=True, errors='ignore')
         message = process.stderr.read()
         process.stderr.close()
         process.stdout.close()
@@ -124,7 +124,7 @@ class TestMode(TestCase):
     def test_discontinuous_tensor(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_discontinuous_tensor.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, text=True)
+                                   stderr=subprocess.PIPE, text=True, errors='ignore')
         message = process.stderr.read()
         process.stderr.close()
         process.stdout.close()
