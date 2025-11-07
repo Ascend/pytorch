@@ -57,7 +57,7 @@ class CombinedFlattenXCopyToContiguous(TestCase):
             # case 1: flatten+strideslice ==> can be optimized as slice(contiguous with offset) + select
             with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.flatten()[2:100:10].contiguous()
-            self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape', 'contiguous_d_StridedSlice'], prof)
+            self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape', 'contiguous_d_AsStrided'], prof)
                              or check_operators_in_prof(['aclnnInplaceCopy'], prof),
                              True, message="Error operators called!")
             cpu_out1 = cpu_input.flatten()[2:100:10].contiguous()

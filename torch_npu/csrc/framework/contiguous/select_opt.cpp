@@ -47,7 +47,7 @@ private:
     // recover src tensor info: shape and stride
     c10::SmallVector<int64_t, MAX_DIM> temp_size;
     c10::SmallVector<int64_t, MAX_DIM> temp_stride;
-    for (size_t i = 0U; i <= select_size.size(); i++) {
+    for (size_t i = 0U; i < select_size.size(); i++) {
       if (base_size[i] != select_size[i] ||
           base_stride[i] != select_stride[i]) {
         temp_size.emplace_back(base_size[i]);
