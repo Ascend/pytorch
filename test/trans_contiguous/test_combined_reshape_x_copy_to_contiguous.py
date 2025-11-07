@@ -73,7 +73,7 @@ class CombinedReshapeXCopyToContiguous(TestCase):
                     .view(npu_input.size(0), npu_input.size(1) * npu_input.size(2), npu_input.size(3)) \
                     .select(2, 1) \
                     .contiguous()
-            self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_StridedSlice'], prof) or
+            self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_AsStrided'], prof) or
                              check_operators_in_prof(['aclnnInplaceCopy'], prof),
                              True, message="Error operators called!")
             cpu_out1 = cpu_input \

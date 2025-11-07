@@ -88,7 +88,7 @@ class CombinedSqueezeXCopyToContiguous(TestCase):
             # case 1: squeeze+select
             with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.squeeze().select(2, 1).contiguous()
-            self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_StridedSlice'], prof)
+            self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_AsStrided'], prof)
                              or check_operators_in_prof(['aclnnInplaceCopy'], prof),
                              True, message="Error operators called!")
             cpu_out1 = cpu_input.squeeze().select(2, 1).contiguous()
