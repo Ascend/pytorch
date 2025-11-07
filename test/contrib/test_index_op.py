@@ -37,6 +37,30 @@ class TestIndexOp(TestCase):
             npu_fast_output = self.npu_fast_index_op_exec(npu_input)
             self.assertRtolEqual(npu_slow_output.cpu(), npu_fast_output.cpu())
 
+    def test_nonzero_nonone_value(self):
+        x = torch.randn(2, 3)
+        condition = torch.tensor([[True, False, True], [False, True, False]])
+        value = 5.5
+        result = npu_fast_condition_index_put(x, condition, value)
+        expected = torch.where(condition, torch.zeros_like(x) + value, x)
+        self.assertRtolEqual(result.cpu(), expected.cpu())
+
+    def test_value_one_mask(self):
+        x = torch.randn(2, 3)
+        condition = torch.tensor([[True, False, True],
+                                  [False, True, False]])
+        value = 1.0
+        result = npu_fast_condition_index_put(x, condition, value)
+        expected = torch.where(condition, torch.ones_like(x), x)
+        self.assertRtolEqual(result.cpu(), expected.cpu())
+
+    def test_invalid_condition_dtype(self):
+        x = torch.randn(2, 3)
+        condition = torch.randint(0, 2, (2, 3), dtype=torch.int32)
+        value = 0.0
+        with self.assertRaises(TypeError):
+            npu_fast_condition_index_put(x, condition, value)
+
 
 if __name__ == "__main__":
     run_tests()

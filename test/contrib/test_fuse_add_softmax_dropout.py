@@ -32,6 +32,21 @@ class TestFuseAddSoftmaxDropout(TestCase):
 
         self.assertRtolEqual(npu_output.detach().cpu().numpy(), high_performance_output.detach().cpu().numpy())
 
+    def test_training_false_with_zero_dropout(self):
+        training = False
+        dropout = torch_npu.contrib.module.DropoutWithByteMask(0.0)
+        npu_input1 = torch.rand(96, 12, 384, 384).npu().half()
+        npu_input2 = torch.rand(96, 12, 384, 384).npu().half()
+        alpha = 64
+
+        output = fuse_add_softmax_dropout(training=training, dropout=dropout,
+                                          attn_mask=npu_input1, attn_scores=npu_input2,
+                                          attn_head_size=alpha, p=0.1)
+
+        self.assertEqual(output.shape, npu_input2.shape)
+        excepted = self.npu_fuse_add_softmax_dropout(dropout, npu_input1, npu_input2, alpha)
+        self.assertRtolEqual(excepted.detach().cpu().numpy(), output.detach().cpu().numpy())
+
 
 if __name__ == "__main__":
     run_tests()
