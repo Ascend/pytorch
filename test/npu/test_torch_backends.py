@@ -270,6 +270,26 @@ class TorchBackendsApiTestCase(TestCase):
         with self.assertRaises(AssertionError):
             npu_mode(ins1, ins2)
 
+    def test_sdp_kernel_all_disabled(self):
+        torch.npu.enable_flash_sdp(True)
+        torch.npu.enable_mem_efficient_sdp(True)
+        torch.npu.enable_math_sdp(True)
+
+        self.assertTrue(torch.npu.flash_sdp_enabled())
+        self.assertTrue(torch.npu.mem_efficient_sdp_enabled())
+        self.assertTrue(torch.npu.math_sdp_enabled())
+
+        with torch.npu.sdp_kernel(enable_flash=False,
+                                  enable_mem_efficient=False,
+                                  enable_math=False):
+            self.assertFalse(torch.npu.flash_sdp_enabled())
+            self.assertFalse(torch.npu.mem_efficient_sdp_enabled())
+            self.assertFalse(torch.npu.math_sdp_enabled())
+
+        self.assertTrue(torch.npu.flash_sdp_enabled())
+        self.assertTrue(torch.npu.mem_efficient_sdp_enabled())
+        self.assertTrue(torch.npu.math_sdp_enabled())
+
 
 if __name__ == "__main__":
     run_tests()

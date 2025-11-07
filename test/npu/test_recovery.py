@@ -3,6 +3,7 @@ import torch_npu
 
 from torch_npu.npu._recovery import check_npu_tensor_is_safe, mark_all_npu_tensor_unsafe, set_npu_tensor_unsafe_check_flag
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.npu._recovery import restart_device
 
 
 class TestNpu(TestCase):
@@ -35,6 +36,15 @@ class TestNpu(TestCase):
         # d2d copy can update the unsafe tag to safe
         tensor_b.copy_(tensor_a_new)
         self.assertTrue(check_npu_tensor_is_safe(tensor_b))
+
+    def test_restart_device_with_rebuild(self):
+        torch.npu.set_device(0)
+        restart_device(0, rebuild_all_resources=True)
+        self.assertTrue(True)
+
+    def test_check_npu_tensor_is_safe_invalid_type(self):
+        with self.assertRaises(RuntimeError):
+            check_npu_tensor_is_safe("invalid_tensor")
 
 
 if __name__ == '__main__':
