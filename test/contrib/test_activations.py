@@ -7,6 +7,8 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import Mish, SiLU
+from torch_npu.contrib.function.fused_attention import _check_compatibility_once
+from torch_npu.contrib.function.fused_attention import _is_format_matched
 
 
 class TestActivations(TestCase):
@@ -109,6 +111,41 @@ class TestActivations(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_inputgrad, npu_inputgrad)
+
+    def test_check_compatibility_once_invalid_hidden_states_shape(self):
+        hidden_states = torch_npu.npu_format_cast(torch.randn(30, 1024).npu(), 29)
+        attention_mask = torch_npu.npu_format_cast(torch.randn(2, 1, 8, 8).npu(), 29)
+        query_kernel = torch_npu.npu_format_cast(torch.randn(1024, 1024).npu(), 29)
+        key_kernel = torch_npu.npu_format_cast(torch.randn(1024, 1024).npu(), 29)
+        value_kernel = torch_npu.npu_format_cast(torch.randn(1024, 1024).npu(), 29)
+        query_bias = torch_npu.npu_format_cast(torch.randn(1024).npu(), 2)
+        key_bias = torch_npu.npu_format_cast(torch.randn(1024).npu(), 2)
+        value_bias = torch_npu.npu_format_cast(torch.randn(1024).npu(), 2)
+
+        with self.assertRaises(RuntimeError):
+            _check_compatibility_once(
+                hidden_states,
+                attention_mask,
+                query_kernel,
+                key_kernel,
+                value_kernel,
+                query_bias,
+                key_bias,
+                value_bias
+            )
+
+    def test_is_format_matched_invalid(self):
+        tensor1 = torch_npu.npu_format_cast(torch.randn(4, 4).npu(), 29)
+        tensor2 = torch_npu.npu_format_cast(torch.randn(4, 4).npu(), 29)
+        tensor3 = torch_npu.npu_format_cast(torch.randn(4, 4).npu(), 29)
+        tensor4 = torch_npu.npu_format_cast(torch.randn(4, 4).npu(), 29)
+        tensor5 = torch_npu.npu_format_cast(torch.randn(4, 4).npu(), 29)
+        tensor6 = torch_npu.npu_format_cast(torch.randn(4, 4).npu(), 2)
+        tensor7 = torch_npu.npu_format_cast(torch.randn(4, 4).npu(), 2)
+        tensor8 = torch_npu.npu_format_cast(torch.randn(4, 4).npu(), 29)
+
+        result = _is_format_matched([tensor1, tensor2, tensor3, tensor4, tensor5, tensor6, tensor7, tensor8])
+        self.assertFalse(result)
 
 
 if __name__ == "__main__":
