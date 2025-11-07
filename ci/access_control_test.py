@@ -44,7 +44,7 @@ def exec_ut(files):
 
     def enqueue_output(out, log_queue):
         for line in iter(out.readline, b''):
-            log_queue.put(line.decode('utf-8', 'ignore'))
+            log_queue.put(line.decode('utf-8', errors='ignore'))
         out.close()
         return
 

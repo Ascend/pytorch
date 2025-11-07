@@ -128,9 +128,10 @@ class SingleViewCopyToContiguous(TestCase):
             for dim in range(1, len(item[2])):
                 with torch.autograd.profiler.profile(use_device='npu') as prof:
                     npu_out = npu_input.select(dim, 1).contiguous()
-                self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice'], prof)
+                self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof)
+                                 or check_operators_in_prof(['contiguous_d_StridedSlice'], prof)
                                  or check_operators_in_prof(['aclnnInplaceCopy'], prof),
-                                 True, "contiguous_d_StridedSlice or aclnnInplaceCopy is not called!")
+                                 True, "contiguous_d_AsStrided or contiguous_d_StridedSlice or aclnnInplaceCopy is not called!")
                 cpu_out = cpu_input.select(dim, 1).contiguous()
                 self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())
 
