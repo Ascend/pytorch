@@ -56,7 +56,7 @@ class CombinedViewsCopyToContiguous(TestCase):
             # case 1: permute+select
             with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.permute(1, 3, 2, 0).select(1, 2).contiguous()
-            self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice', 'contiguous_d_Transpose'], prof)
+            self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof)
                              or check_operators_in_prof(['aclnnInplaceCopy'], prof),
                              True, message="Error operators called!")
             cpu_out1 = cpu_input.permute(1, 3, 2, 0).select(1, 2).contiguous()
@@ -175,7 +175,7 @@ class CombinedViewsCopyToContiguous(TestCase):
             # narrow at 0 dim and strideslice at last dim==> can be optimized as slice(contiguous)+select
             with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out3 = npu_input[2:4, :, :, ::2].contiguous()
-            self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape', 'contiguous_d_StridedSlice'], prof)
+            self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape', 'contiguous_d_AsStrided'], prof)
                              or check_operators_in_prof(['aclnnInplaceCopy'], prof),
                              True, message="Error operators called!")
             cpu_out3 = cpu_input[2:4, :, :, ::2].contiguous()
