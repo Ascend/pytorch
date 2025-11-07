@@ -96,6 +96,74 @@ class TestFileManager(TestCase):
         mock_stat.return_value.st_uid = 9999
         self.assertFalse(FileManager.check_file_owner(test_path))
 
+    def test_check_db_file_valid_invalid_size(self):
+        test_file_path = os.path.join(self.tmp_dir, "invalid_db.db")
+        with open(test_file_path, 'w') as fp:
+            fp.write("a" * 20)
+
+        with patch('torch_npu.profiler.analysis.prof_common_func._file_manager.Constant.MAX_FILE_SIZE', 10):
+            with self.assertRaises(RuntimeError):
+                FileManager.check_db_file_vaild(test_file_path)
+
+    def test_file_read_all_nonexistent_file(self):
+        test_file_path = os.path.join(self.tmp_dir, "nonexistent.log")
+        with patch('torch_npu.profiler.analysis.prof_common_func._file_manager.PathManager.check_directory_path_readable'):
+            result = FileManager.file_read_all(test_file_path)
+            self.assertEqual('', result)
+
+    def test_read_csv_file_empty_file(self):
+        test_file_path = os.path.join(self.tmp_dir, "empty.csv")
+        with open(test_file_path, 'w') as fp:
+            pass
+        result = FileManager.read_csv_file(test_file_path, GeMemoryRecordBean)
+        self.assertEqual([], result)
+
+    def test_create_csv_file_empty_data(self):
+        test_file = "empty_file.csv"
+        FileManager.create_csv_file(self.tmp_dir, [], test_file)
+        test_file_path = os.path.join(self.tmp_dir, test_file)
+        self.assertFalse(os.path.exists(test_file_path))
+
+    def test_read_json_file_exceeds_max_size(self):
+        test_file_path = os.path.join(self.tmp_dir, "large_file.json")
+        with open(test_file_path, 'w') as fp:
+            fp.write("a" * 10000)
+
+        with patch('torch_npu.profiler.analysis.prof_common_func._file_manager.Constant.MAX_FILE_SIZE', 10):
+            result = FileManager.read_json_file(test_file_path)
+            self.assertEqual({}, result)
+
+    def test_file_read_all_exceeds_max_size(self):
+        test_file_path = os.path.join(self.tmp_dir, "large_file.log")
+        with open(test_file_path, 'w') as fp:
+            fp.write("a" * 10000)
+
+        with patch('torch_npu.profiler.analysis.prof_common_func._file_manager.Constant.MAX_FILE_SIZE', 10):
+            result = FileManager.file_read_all(test_file_path)
+            self.assertEqual("", result)
+
+    def test_create_json_file_empty_data(self):
+        test_file = "empty_data.json"
+        FileManager.create_json_file(self.tmp_dir, [], test_file)
+        test_file_path = os.path.join(self.tmp_dir, test_file)
+        self.assertFalse(os.path.exists(test_file_path))
+
+    def test_read_csv_file_exceeds_max_size(self):
+        test_file_path = os.path.join(self.tmp_dir, "large_file.csv")
+        with open(test_file_path, 'w') as fp:
+            fp.write("A" * 1024 * 1024 * 2)
+
+        with patch('torch_npu.profiler.analysis.prof_common_func._file_manager.Constant.MAX_CSV_SIZE', 1024):
+            result = FileManager.read_csv_file(test_file_path, GeMemoryRecordBean)
+            self.assertEqual([], result)
+
+    def test_file_read_all_empty_file(self):
+        test_file_path = os.path.join(self.tmp_dir, "empty_file.log")
+        with os.fdopen(os.open(test_file_path,
+                               os.O_WRONLY | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), 'w') as fp:
+            pass
+        self.assertEqual("", FileManager.file_read_all(test_file_path))
+
 
 if __name__ == "__main__":
     run_tests()
