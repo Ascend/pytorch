@@ -75,6 +75,18 @@ class TestMultiClassNms(TestCase):
         self.assertRtolEqual(expect_det_bboxes, det_bboxes.cpu())
         self.assertRtolEqual(expect_det_labels, det_labels.cpu())
 
+    def test_npu_multiclass_nms_max_num_exceeds_boxes(self):
+        np.random.seed(111)
+        data1 = np.random.randn(5, 4)
+        boxes = torch.tensor(data1, dtype=torch.float32)
+        data2 = np.random.randn(5, 6)
+        scores = torch.tensor(data2, dtype=torch.float32)
+        boxes = boxes.npu().half()
+        scores = scores.npu().half()
+        det_bboxes, det_labels = npu_multiclass_nms(boxes, scores, score_thr=0.9, nms_thr=0.5, max_num=20)
+        self.assertEqual(det_bboxes.shape[0], 20)
+        self.assertEqual(det_labels.shape[0], 20)
+
 
 if __name__ == "__main__":
     run_tests()
