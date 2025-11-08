@@ -1,14 +1,13 @@
 import torch
 from torch.distributed._tensor import distribute_tensor, Replicate
 from torch.testing._internal.common_utils import run_tests
-from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
-class TestRegisterSharding(DTensorTestBase):
-
+class TestRegisterSharding(NPUDTensorTestBase):
     def _run_matmul(self, shape1, shape2, device_mesh):
         x = torch.rand(shape1, device=self.device_type)
         dist_x = distribute_tensor(x, device_mesh, [Replicate()])

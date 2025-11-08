@@ -1,15 +1,15 @@
 import torch
 from torch.distributed._tensor import DeviceMesh
-from torch.distributed._tensor.ops._einsum_strategy import (
+from torch.distributed.tensor._ops._einsum_strategy import (
     EinsumDims,
     gen_einsum_strategies,
 )
 
 from torch.testing._internal.common_utils import run_tests, TestCase
-from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
 class TestEinsumDims(TestCase):
@@ -76,7 +76,7 @@ class TestEinsumDims(TestCase):
         self.assertEqual(edims.rhs_out_only_dims, ["f"])
 
 
-class TestEinsumStrategies(DTensorTestBase):
+class TestEinsumStrategies(NPUDTensorTestBase):
     @property
     def world_size(self) -> int:
         return 4

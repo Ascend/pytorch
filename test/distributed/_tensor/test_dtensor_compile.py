@@ -30,7 +30,6 @@ from torch.testing._internal.common_utils import (
     run_tests,
 )
 from torch.testing._internal.distributed._tensor.common_dtensor import (
-    DTensorTestBase,
     MLPModule,
 )
 from torch.testing._internal.distributed.fake_pg import FakeStore
@@ -40,6 +39,7 @@ from torch._dynamo.backends.common import aot_autograd
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
 class SimpleModel(nn.Module):
@@ -70,7 +70,7 @@ aot_eager_graph = aot_autograd(
 )
 
 
-class TestDTensorCompile(DTensorTestBase):
+class TestDTensorCompile(NPUDTensorTestBase):
     @property
     def world_size(self) -> int:
         return 2
@@ -170,7 +170,7 @@ class TestDTensorCompile(DTensorTestBase):
         self.assertEqual(res, ref)
 
 
-class TestDTensorCompileE2E(DTensorTestBase):
+class TestDTensorCompileE2E(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 4

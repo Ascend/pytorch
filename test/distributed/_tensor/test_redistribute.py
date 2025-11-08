@@ -2,15 +2,15 @@ import itertools
 
 import torch
 from torch.distributed._tensor import DeviceMesh, distribute_tensor, DTensor
-from torch.distributed._tensor.placement_types import _Partial, Replicate, Shard
+from torch.distributed.tensor.placement_types import Partial, Replicate, Shard
 from torch.testing._internal.common_utils import run_tests
-from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
-class RedistributeTest(DTensorTestBase):
+class RedistributeTest(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_shard_to_replicate_forward_backward(self):
@@ -116,7 +116,7 @@ class RedistributeTest(DTensorTestBase):
         # backward should work as expected
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
         partial_local = torch.ones(12, 3, device=self.device_type, requires_grad=True)
-        partial_spec = [_Partial()]
+        partial_spec = [Partial()]
         replica_spec = [Replicate()]
         # test partial -> replicate, which trigger all_reduce
         partial_tensor = DTensor.from_local(partial_local, device_mesh, partial_spec)
@@ -139,11 +139,11 @@ class RedistributeTest(DTensorTestBase):
     def test_replicate_to_partial(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
         local_tensor = torch.randn(12, 3, device=self.device_type, requires_grad=True)
-        partial_spec = _Partial()
+        partial_spec = Partial()
         replica_spec = Replicate()
         # 1) test replicate -> partial forward
         replica_tensor = distribute_tensor(local_tensor, device_mesh, [replica_spec])
-        with self.assertRaisesRegex(RuntimeError, "Can not redistribute to _Partial"):
+        with self.assertRaisesRegex(RuntimeError, "Can not redistribute to Partial"):
             partial_tensor = replica_tensor.redistribute(device_mesh, [partial_spec])
 
         from torch.distributed._tensor.redistribute import Redistribute
@@ -179,7 +179,7 @@ class RedistributeTest(DTensorTestBase):
     @with_comms
     def test_partial_to_shard(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
-        partial_spec = [_Partial()]
+        partial_spec = [Partial()]
         my_rank = device_mesh.get_rank()
 
         input_sizes_and_shard_dim = [

@@ -25,19 +25,19 @@ from torch.distributed.tensor.parallel.style import (
 from torch.distributed.tensor.placement_types import _Partial
 from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import (
-    DTensorTestBase,
     RMSNormPython,
 )
 
 import torch_npu
 from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
 c10d_functional = torch.ops.c10d_functional
 
 
-class TensorParallelStyleTest(DTensorTestBase):
+class TensorParallelStyleTest(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 2

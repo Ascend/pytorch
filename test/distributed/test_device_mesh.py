@@ -25,12 +25,12 @@ from torch.distributed.tensor._collective_utils import (
     unpad_tensor,
 )
 from torch.distributed.tensor.placement_types import _Partial, Shard
-from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 from torch.testing._internal.distributed.fake_pg import FakeStore
 from torch.utils._typing_utils import not_none
 
 import torch_npu
-from torch_npu.testing.common_distributed import init_pg, skipIfUnsupportMultiNPU, TEST_SKIPS
+from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 from torch_npu.testing.testcase import run_tests
 
 
@@ -51,42 +51,6 @@ def _set_env_var(addr="localhost", port="29500", world_size=1, rank=0):
     os.environ["MASTER_PORT"] = port
     os.environ["WORLD_SIZE"] = f"{world_size}"
     os.environ["RANK"] = f"{rank}"
-
-
-def with_comms(func):
-    if func is None:
-        raise RuntimeError("Test function is None.")
-
-    def get_device_type(self):
-        if torch.npu.is_available() and torch.npu.device_count() >= self.world_size:
-            return "npu"
-        return "cpu"
-
-    @wraps(func)  # pyre-ignore[6]
-    def wrapper(
-        self, *args: Tuple[object], **kwargs: Dict[str, Any]  # type: ignore[misc]
-    ) -> None:
-
-        pg_backend = (
-            "hccl" if get_device_type(self) == "npu" else "gloo"
-        )
-        if pg_backend == "hccl" and torch.npu.device_count() < self.world_size:
-            raise RuntimeError(TEST_SKIPS[f"multi-npu-{self.world_size}"].message)
-
-        init_pg(backend=pg_backend, world_size=self.world_size, rank=self.rank, file_name=self.file_name)
-
-        torch.npu.manual_seed(0)
-        torch.npu.initial_seed()
-        func(self, *args, **kwargs)  # type: ignore[misc]
-        self.destroy_pg()
-
-    return wrapper
-
-
-class NPUDTensorTestBase(DTensorTestBase):
-    @property
-    def device_type(self):
-        return "npu"
 
 
 class DeviceMeshTest(NPUDTensorTestBase):

@@ -1,13 +1,13 @@
 import torch
 from torch.distributed._tensor import DeviceMesh, DTensor, Replicate, Shard, zeros
 from torch.testing._internal.common_utils import run_tests
-from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
-class DTensorInitOpsTest(DTensorTestBase):
+class DTensorInitOpsTest(NPUDTensorTestBase):
     def _run_init_op(self, init_op, *args, **kwargs):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
         shard_spec = [Shard(0)]
@@ -28,7 +28,7 @@ class DTensorInitOpsTest(DTensorTestBase):
         self._run_init_op(torch.nn.init.constant_, 2.4)
 
 
-class DTensorConstructorTest(DTensorTestBase):
+class DTensorConstructorTest(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 4

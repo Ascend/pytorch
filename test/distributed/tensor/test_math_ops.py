@@ -1,13 +1,13 @@
 import torch
 from torch.distributed._tensor import distribute_tensor, Replicate, Shard
-from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.testcase import run_tests
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
-class TestMathOps(DTensorTestBase):
+class TestMathOps(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_npu_rms_norm_forward(self):

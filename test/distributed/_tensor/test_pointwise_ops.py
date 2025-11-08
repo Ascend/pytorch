@@ -7,18 +7,18 @@ import torch.utils._pytree as pytree
 from torch import Tensor
 
 from torch.distributed._tensor import DeviceMesh, distribute_tensor, DTensor
-from torch.distributed._tensor.placement_types import (
-    _Partial,
+from torch.distributed.tensor.placement_types import (
+    Partial,
     Placement,
     Replicate,
     Shard,
 )
 from torch.distributed.distributed_c10d import ReduceOp
 from torch.testing._internal.common_utils import run_tests
-from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
 def no_op():
@@ -69,7 +69,7 @@ def deepcopy_convert_from_dtensor(val: Any) -> Any:
     return pytree.tree_map(f, [val])[0]
 
 
-class DistElementwiseOpsTest(DTensorTestBase):
+class DistElementwiseOpsTest(NPUDTensorTestBase):
     def _compare_pairwise_ops(
         self,
         *,
@@ -137,8 +137,8 @@ class DistElementwiseOpsTest(DTensorTestBase):
     @with_comms
     def test_partial_add(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
-        d_1 = DTensor.from_local(torch.rand(2, 2), device_mesh, [_Partial()])
-        d_2 = DTensor.from_local(torch.rand(2, 2), device_mesh, [_Partial()])
+        d_1 = DTensor.from_local(torch.rand(2, 2), device_mesh, [Partial()])
+        d_2 = DTensor.from_local(torch.rand(2, 2), device_mesh, [Partial()])
         d_3 = d_1 + d_2
         self.assertEqual(d_3._spec.placements[0].is_partial(), True)
 
@@ -218,7 +218,7 @@ class DistElementwiseOpsTest(DTensorTestBase):
         with self.assertRaisesRegex(RuntimeError, "supported"):
             self._run_sharded_elementwise_ops(
                 device_mesh=device_mesh,
-                placements=[_Partial(ReduceOp.SUM)],
+                placements=[Partial(ReduceOp.SUM)],
                 input_size=(8, 5),
                 op=torch.nn.functional.dropout,
             )
