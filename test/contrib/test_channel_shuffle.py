@@ -3,6 +3,8 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import ChannelShuffle
+from torch_npu.contrib.module.channel_shuffle import ChannelShuffle
+
 
 
 class TestChannelShuffle(TestCase):
@@ -98,6 +100,18 @@ class TestChannelShuffle(TestCase):
         self.assertRtolEqual(expedt_cpu_output1.numpy(), npu_output1.detach().cpu().numpy())
         self.assertRtolEqual(expedt_cpu_output2.numpy(), npu_output2.detach().cpu().numpy())
 
+        def test_channel_shuffle_group3_split_shuffle_false_inference(self):
+            x = torch.randn(2, 6, 3, 3)
+            conv = torch.nn.Conv2d(6, 6, 1)
+            x1 = conv(x)
+            x1 = x1.npu()
+
+            model = ChannelShuffle(6, groups=3, split_shuffle=False)
+            model.eval()
+            model = model.npu()
+            output = model(x1, x1)
+
+            self.assertEqual(output.shape, (2, 6, 3, 3))
 
 if __name__ == "__main__":
     run_tests()
