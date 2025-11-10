@@ -194,7 +194,7 @@ def patch_dynamo_optimize():
 
         if backend_name == 'npu':
             # Init torchair ahead of running model.
-            _get_global_npu_backend()
+            _get_global_npu_backend(backend_name)
         return src_optimize(*args, **kwargs)
     torch._dynamo.optimize = npu_optimize
 
