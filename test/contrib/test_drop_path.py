@@ -5,7 +5,6 @@ import math
 import numpy as np
 import torch
 import torch.nn as nn
-import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -95,6 +94,30 @@ class TestDropPath(TestCase):
             self.assertRtolEqual(base_result[index], fast_output)
             self.assertTrue(slow_time > fast_time)
 
+    def test_enable_droppath_ensemble(self):
+        class SimpleModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.drop_path = NpuDropPath(0.5).npu()
+                self.linear = nn.Linear(10, 10).npu()
+
+            def forward(self, x):
+                x = self.drop_path(x)
+                return self.linear(x)
+
+        model = SimpleModel()
+        NpuDropPath.enable_droppath_ensemble(model)
+        self.assertIsNotNone(NpuDropPath.droppath_stream)
+        self.assertTrue(hasattr(NpuDropPath, 'droppath_stream'))
+
+
+    def test_forward_drop_prob_zero(self):
+        x = torch.randn(4, 3, 5, 5, device='npu')
+        drop_path = NpuDropPath(0.0).npu()
+        drop_path.train()
+
+        result = drop_path(x)
+        self.assertTrue(torch.allclose(result, x))
 
 if __name__ == "__main__":
     seed = 35
