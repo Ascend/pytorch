@@ -14,5 +14,14 @@ class TestFusedColorJitter(TestCase):
         output = fcj(image)
         self.assertEqual(output is not None, True)
 
+    def test_zero_parameters(self):
+        image = Image.fromarray(torch.randint(0, 256, size=(224, 224, 3)).numpy().astype(np.uint8))
+        fcj = FusedColorJitter(0, 0, 0, 0)
+        output = fcj(image)
+        self.assertEqual(output is not None, True)
+
+        expected_repr = "FusedColorJitter(brightness=None, contrast=None, saturation=None, hue=None)"
+        self.assertEqual(repr(fcj), expected_repr)
+
 if __name__ == "__main__":
     run_tests()

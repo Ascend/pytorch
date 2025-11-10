@@ -9,6 +9,10 @@ from torch_npu.contrib.module import NpuFairseqDropout, NpuCachedDropout
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+import torch_npu
+from torch_npu.utils._error_code import ErrCode, ops_error
+from torch_npu.contrib.module._ensemble_dropout import NpuPreGenDropout, _PreGenDropoutTask
+
 
 class NpuMNIST(nn.Module):
 
@@ -39,6 +43,35 @@ class TestEnsembleDropout(unittest.TestCase):
         dropout = NpuCachedDropout(p=0.5)
         output = model(x, dropout)
 
+    def test_enable_dropout_ensemble(self):
+        model = NpuMNIST().to("npu")
+        NpuPreGenDropout.task_dict.clear()
+        NpuPreGenDropout.prob.clear()
+
+        dropout = NpuPreGenDropout(p=0.5)
+        NpuPreGenDropout.enable_dropout_ensemble(model)
+
+        self.assertIn(0.5, NpuPreGenDropout.task_dict)
+        self.assertIsNotNone(NpuPreGenDropout.dropout_stream)
+
+    def test_unregistered_probability(self):
+        NpuPreGenDropout.task_dict.clear()
+        dropout = NpuPreGenDropout(p=0.3)
+        x = torch.randn(2, 3, 4, 4).to("npu")
+        with self.assertRaises(RuntimeError):
+            dropout(x)
+
+    def test_invalid_input_type(self):
+        dropout = NpuPreGenDropout(p=0.5)
+        x = "invalid_input"
+        with self.assertRaises(RuntimeError):
+            dropout(x)
+
+    def test_dropout_p_zero(self):
+        dropout = NpuPreGenDropout(p=0)
+        x = torch.randn(2, 3, 4, 4).to("npu")
+        result = dropout(x)
+        self.assertTrue(torch.equal(x, result))
 
 if __name__ == "__main__":
     run_tests()

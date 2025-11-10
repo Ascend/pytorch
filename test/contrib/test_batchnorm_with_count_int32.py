@@ -8,6 +8,15 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.contrib.module import FastBatchNorm1d, FastBatchNorm2d, FastBatchNorm3d
 
+from torch_npu.contrib.module._batchnorm_with_int32_count import (
+    _NormBase,
+    _BatchNorm,
+    FastBatchNorm1d,
+    FastBatchNorm2d,
+    FastBatchNorm3d,
+    FastSyncBatchNorm
+)
+
 
 class TestBatchNormWithInt32Count(TestCase):
     def npu_slow_batchnorm1d_op_exec(self, num_features, input1):
@@ -184,6 +193,16 @@ class TestBatchNormWithInt32Count(TestCase):
             self.assertRtolEqual(slow_output, fast_output)
             self.assertTrue(slow_time > fast_time)
 
+    def test_batchnorm_forward_training(self):
+        batchnorm = _BatchNorm(num_features=5, track_running_stats=True)
+
+        def check_input_dim(x):
+            return None
+
+        batchnorm._check_input_dim = check_input_dim
+        input1 = torch.randn(2, 5)
+        output = batchnorm(input1)
+        self.assertEqual(output.shape, input1.shape)
 
 if __name__ == "__main__":
     run_tests()
