@@ -12,7 +12,7 @@ from torch_npu.utils._error_code import ErrCode, pta_error
 from torch_npu.utils.utils import _should_print_warning
 from .trace_rule import _patch_npu_trace_rules
 
-_global_npu_backend = None
+_global_npu_backend = {}
 __all__ = []
 
 
@@ -44,16 +44,16 @@ def _eager_npu_backend(gm, *args, **kwargs):
     return gm
 
 
-def _get_global_npu_backend():
+def _get_global_npu_backend(name, config=None):
     global _global_npu_backend
-    if _global_npu_backend is not None:
-        return _global_npu_backend
+    if name in _global_npu_backend.keys():
+        return _global_npu_backend[name]
     if 'torchair' not in sys.modules:
         raise AssertionError("Could not find module torchair. "
                              "Please check if torchair is removed from sys.modules." + pta_error(ErrCode.NOT_FOUND))
     import torchair
-    _global_npu_backend = torchair.get_npu_backend()
-    return _global_npu_backend
+    _global_npu_backend[name] = torchair.get_npu_backend(compiler_config=config)
+    return _global_npu_backend[name]
 
 
 class _LazyTorchair:
@@ -96,7 +96,7 @@ class _LazyTorchair:
             pid=os.getpid())
 
 
-def _get_default_backend():
+def _get_default_backend(name):
     if not os.path.exists(os.path.join(os.path.dirname(__file__), 'torchair')):
         if _should_print_warning():
             warnings.warn(
@@ -105,19 +105,31 @@ def _get_default_backend():
         return _eager_npu_backend
 
     def _lazy_exec(*args, **kwargs):
-        return _get_global_npu_backend()(*args, **kwargs)
+        return _get_global_npu_backend(name)(*args, **kwargs)
 
     sys.modules['torchair'] = _LazyTorchair()
     return _lazy_exec
 
 
-_global_backend = _get_default_backend()
+def _get_npugraph_ex_backend():
+    def _exec(*args, **kwargs):
+        import torchair
+        config = torchair.CompilerConfig()
+        config.mode = "reduce-overhead"
+        return _get_global_npu_backend("npugraph_ex", config)(*args, **kwargs)
+
+    return _exec
 
 
-def _register_npu_backend(backend):
-    if 'npu' in _BACKENDS.keys():
-        del _BACKENDS['npu']
-    _register_backend(backend, 'npu')
+_global_backend = _get_default_backend(name="npu")
+_global_npugraph_ex_backend = _get_npugraph_ex_backend()
+
+
+def _register_npu_backend(backend, name="npu"):
+    if name in _BACKENDS.keys():
+        del _BACKENDS[name]
+    _register_backend(backend, name)
 
 
 _register_npu_backend(_global_backend)
+_register_npu_backend(_global_npugraph_ex_backend, "npugraph_ex")
