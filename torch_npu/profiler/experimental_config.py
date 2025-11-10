@@ -160,6 +160,9 @@ class _ExperimentalConfig:
         if not isinstance(self._mstx, bool):
             print_warn_msg("Invalid parameter mstx, which must be of bool type, reset it to False.")
             self._mstx = False
+        if self._profiler_level == ProfilerLevel.Level_none and not self._mstx and not self._msprof_tx:
+            self._mstx = True
+            print_warn_msg("Parameter mstx or msprof_tx must be True if profiler_level is set to Level_none.")
         if self._data_simplification is not None and not isinstance(self._data_simplification, bool):
             print_warn_msg("Invalid parameter data_simplification, which must be of bool type, reset it to default.")
             self._data_simplification = True
