@@ -1,5 +1,6 @@
 import os
 import time
+import unittest
 import warnings
 import torch
 import torch.distributed as dist
@@ -9,11 +10,14 @@ from torch import multiprocessing as mp
 from torch import nn, Tensor
 from torch.distributed.nn.api.remote_module import RemoteModule
 from torch.distributed.rpc import WorkerInfo, PyRRef
+from torch._C import _get_privateuse1_backend_name
 
 import torch_npu
 from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.distributed.rpc.options import _to_device_map
+from torch_npu.distributed.rpc.options import _to_device
 
 
 class TestRpc(TestCase):
@@ -386,6 +390,59 @@ class TestRpc(TestCase):
     @skipIfUnsupportMultiNPU(2)
     def test_local_value_npu(self):
         self._test_multiprocess(TestRpc._test_local_value, [], self.world_size_2p)
+
+    def test_set_devices(self):
+        options = NPUTensorPipeRpcBackendOptions()
+        devices = ["npu:0", "npu:1"]
+        options.set_devices(devices)
+        self.assertEqual(len(options.devices), 2)
+        self.assertEqual(options.devices[0].type, _get_privateuse1_backend_name())
+        self.assertEqual(options.devices[1].type, _get_privateuse1_backend_name())
+
+    def test_set_device_map_conflicting(self):
+        options = NPUTensorPipeRpcBackendOptions()
+        device_map1 = {'npu:0': 'npu:1'}
+        options.set_device_map('worker1', device_map1)
+
+        device_map2 = {'npu:0': 'npu:2'}
+        with self.assertRaises(ValueError):
+            options.set_device_map('worker1', device_map2)
+
+    def test_set_device_map_valid(self):
+        options = NPUTensorPipeRpcBackendOptions()
+        device_map = {'npu:0': 'npu:1'}
+        options.set_device_map('worker1', device_map)
+        self.assertEqual(len(options.device_maps), 1)
+        self.assertIn('worker1', options.device_maps)
+        self.assertEqual(len(options.device_maps["worker1"]), 1)
+
+    def test_options_with_device_maps(self):
+        device_maps = {'worker1': {'npu:0': 'npu:1'}}
+        options = NPUTensorPipeRpcBackendOptions(device_maps=device_maps)
+        self.assertEqual(len(options.device_maps), 1)
+        self.assertIn('worker1', options.device_maps)
+        self.assertEqual(len(options.device_maps["worker1"]), 1)
+
+    def test_device_map_invalid_value(self):
+        device_map = {'npu:0': 'npu:1', 'npu:2': 'npu:1'}
+        with self.assertRaises(ValueError):
+            _to_device_map(device_map)
+
+    def test_device_map_effective(self):
+        device_map = {'npu:0': 'npu:1', 'npu:2': 'npu:3'}
+        result = _to_device_map(device_map)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[torch.device('npu:0')], torch.device('npu:1'))
+        self.assertEqual(result[torch.device('npu:2')], torch.device('npu:3'))
+
+    def test_to_device_invalid_device_type(self):
+        with self.assertRaises(ValueError):
+            _to_device('cpu:0')
+
+    def test_to_device_valid_npu_device(self):
+        device = _to_device('npu:0')
+        self.assertEqual(device.type, _get_privateuse1_backend_name())
+        self.assertEqual(device.index, 0)
 
 
 if __name__ == '__main__':

@@ -94,7 +94,7 @@ class TorchNPUDeviceTestCase(TestCase):
         torch_npu.npu.synchronize()
         after_free_memory, after_total_memory = torch_npu.npu.mem_get_info(0)
         self.assertEqual(before_total_memory, after_total_memory)
-    
+
     @unittest.skip("CANN doesn't support now.")
     def test_set_device_res_limit(self):
         ans_dict = {'cube_core_num': 12, 'vector_core_num': 24}
@@ -115,6 +115,7 @@ class TorchNPUDeviceTestCase(TestCase):
         self.assertEqual(ans_dict_2, torch.npu.get_stream_limit(stream2))
         torch.npu.reset_stream_limit(stream1)
         self.assertEqual(ans_dict_3, torch.npu.get_stream_limit(stream1))
+
 
 class TorchNPUMemoryApiTestCase(TestCase):
     def test_npu_memory_stats(self):
@@ -166,7 +167,8 @@ class TorchNPUSyncApiTestCase(TestCase):
     def test_set_sync_debug_mode(self):
         with self.assertRaisesRegex(RuntimeError, "invalid value of debug_mode, expected one of 0,1,2"):
             torch.npu.set_sync_debug_mode(-1)
-        with self.assertRaisesRegex(RuntimeError, "invalid value of debug_mode, expected one of `default`, `warn`, `error`"):
+        with self.assertRaisesRegex(RuntimeError,
+                                    "invalid value of debug_mode, expected one of `default`, `warn`, `error`"):
             torch.npu.set_sync_debug_mode("unexpected")
 
     def test_get_sync_debug_mode(self):
@@ -276,7 +278,7 @@ class TorchNPUApiTestCase(TestCase):
         end_event.record()
         res = start_event.elapsed_time(end_event)
         self.assertIsInstance(res, float)
-    
+
     def test_npu_event_recorded_time(self):
         event_1 = torch_npu.npu.Event(enable_timing=True)
         event_1.record()
@@ -344,7 +346,8 @@ class TorchNPUApiTestCase(TestCase):
 
     @skipIfUnsupportMultiNPU(2)
     def test_npu_device_count_with_visible_devices(self):
-        for var in ['', ',', ' ,', ', ', '0,', ',0', '0, ', '0, 1', '0 ,1', '0,1', '0,32,1', '0,32,0', '0,0', '0,1,1', 'npu0', '1,0']:
+        for var in ['', ',', ' ,', ', ', '0,', ',0', '0, ', '0, 1', '0 ,1', '0,1', '0,32,1', '0,32,0', '0,0', '0,1,1',
+                    'npu0', '1,0']:
             test_script = f"import os; import torch; import torch_npu; os.environ['ASCEND_RT_VISIBLE_DEVICES'] = '{var}'; \
             count1 = torch.npu.device_count(); count2 = torch_npu._C._npu_getDeviceCount(); print(count1 == count2)"
             rc = check_output([sys.executable, '-c', test_script]).decode("ascii").strip()
@@ -377,9 +380,9 @@ class TorchNPUApiTestCase(TestCase):
             self.fail("Expected exception not raised for negative timeout value")
         except Exception as e:
             self.assertIn("can't convert negative value to unsigned int", str(e), f"{e}")
-        
+
         try:
-            torch_npu.npu.set_op_timeout_ms(2**32)
+            torch_npu.npu.set_op_timeout_ms(2 ** 32)
             self.fail("Expected exception not raised for large timeout value")
         except Exception as e:
             self.assertIn("Overflow when unpacking", str(e), f"{e}")
