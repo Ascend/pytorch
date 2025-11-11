@@ -3,6 +3,8 @@ import stat
 import copy
 import json
 import time
+import unittest.mock as mock
+from unittest.mock import patch, MagicMock
 
 import torch
 from torch_npu.utils._path_manager import PathManager
@@ -12,6 +14,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.profiler._dynamic_profiler._dynamic_profiler_config_context import ConfigContext
 from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor_shm import DynamicProfilerShareMemory
 import torch_npu.profiler.dynamic_profile as dp
+from torch_npu.profiler._dynamic_profiler._dynamic_profiler_utils import DynamicProfilerUtils
 
 
 class SmallModel(torch.nn.Module):
@@ -559,6 +562,92 @@ class TestDynamicProfiler(TestCase):
                     if p.startswith("ASCEND"):
                         return True
         return False
+
+    def test_out_log_dyno_model(self):
+        original_model = DynamicProfilerUtils.DYNAMIC_PROFILER_MODEL
+        DynamicProfilerUtils.DYNAMIC_PROFILER_MODEL = DynamicProfilerUtils.DynamicProfilerConfigModel.DYNO_CONFIG
+        original_stdout_log = DynamicProfilerUtils.stdout_log
+        log_calls = []
+
+        def log_function(infos, level):
+            log_calls.append((infos, level))
+
+        DynamicProfilerUtils.stdout_log = log_function
+
+        try:
+            DynamicProfilerUtils.out_log("test information", DynamicProfilerUtils.LoggerLevelEnum.INFO)
+            DynamicProfilerUtils.out_log("test warning", DynamicProfilerUtils.LoggerLevelEnum.WARNING)
+            DynamicProfilerUtils.out_log("test error", DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+
+            self.assertEqual(len(log_calls), 3)
+            self.assertEqual(log_calls[0], ("test information", DynamicProfilerUtils.LoggerLevelEnum.INFO))
+            self.assertEqual(log_calls[1], ("test warning", DynamicProfilerUtils.LoggerLevelEnum.WARNING))
+            self.assertEqual(log_calls[2], ("test error", DynamicProfilerUtils.LoggerLevelEnum.ERROR))
+        finally:
+            DynamicProfilerUtils.DYNAMIC_PROFILER_MODEL = original_model
+            DynamicProfilerUtils.stdout_log = original_stdout_log
+
+    def test_clean_shm_for_killed_pid_time_none(self):
+        shm_instance = DynamicProfilerShareMemory(self.results_path, self.cfg_path, 0)
+        with mock.patch(
+                'torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor_shm.DynamicProfilerShareMemory._get_pid_st_ctime',
+                return_value=None):
+            try:
+                shm_instance._clean_shm_for_killed()
+            except Exception:
+                self.fail("_clean_shm_for_killed should not raise exception when pid_time is None")
+
+    def test_create_shm_over_py38_retry_failure(self):
+        from multiprocessing import shared_memory
+        with mock.patch('multiprocessing.resource_tracker.register', lambda *args, **kwargs: None):
+            with mock.patch.object(shared_memory.SharedMemory, '__init__', side_effect=FileNotFoundError("Test error")):
+                with self.assertRaises(RuntimeError):
+                    shm_instance = DynamicProfilerShareMemory(self.results_path, self.cfg_path, 0)
+                    shm_instance._create_shm_over_py38()
+
+    def test_get_pid_st_ctime_exception(self):
+        shm_instance = DynamicProfilerShareMemory(self.results_path, self.cfg_path, 0)
+        with mock.patch('os.open', side_effect=Exception("Test exception")):
+            result = shm_instance._get_pid_st_ctime(12345)
+            self.assertIsNone(result)
+
+    def test_call_dyno_monitor_with_proxy(self):
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
+
+        monitor = DynamicProfilerMonitor()
+        mock_proxy = MagicMock()
+        with patch('torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor.PyDynamic' \
+                   'MonitorProxySingleton') as mock_singleton:
+            mock_singleton_instance = MagicMock()
+            mock_singleton_instance.get_proxy.return_value = mock_proxy
+            mock_singleton.return_value = mock_singleton_instance
+            test_data = {'key': 'value', 'number': 123}
+            monitor._call_dyno_monitor(test_data)
+            mock_proxy.enable_dyno_npu_monitor.assert_called_once()
+
+    def test_clean_resource_with_process(self):
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
+        monitor = DynamicProfilerMonitor()
+        monitor._process = MagicMock()
+        with patch.object(monitor, '_shared_loop_flag') as mock_flag:
+            monitor.clean_resource()
+            mock_flag.value = False
+            monitor._process.join.assert_called_once()
+
+    def test_shm_to_prof_conf_context_read_time_exception(self):
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
+
+        monitor = DynamicProfilerMonitor()
+        with patch.object(monitor._shm_obj, 'read_bytes', side_effect=Exception("Read error")):
+            result = monitor.shm_to_prof_conf_context()
+            self.assertIsNone(result)
+
+    def test_shm_to_prof_conf_context_none_shm(self):
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
+        monitor = DynamicProfilerMonitor()
+        monitor._shm_obj = None
+        result = monitor.shm_to_prof_conf_context()
+        self.assertIsNone(result)
 
 
 if __name__ == "__main__":
