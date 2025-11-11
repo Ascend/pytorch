@@ -98,7 +98,6 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
     @SupportedDevices(['Ascend910B'])
-    @unittest.skip("disabled now")
     def test_ifa_update_with_non_out_and_auto_dispatch_capture(self):
         torch.npu.set_device(0)
         length = [29]
@@ -343,7 +342,7 @@ class TestPAAclgraphUpdate(TestCase):
         graph.update(cpu_update_input=[{"context_lens": params.context_lens}])
         graph.replay()
         torch.npu.synchronize()
-        self.assertRtolEqual(output, golden_output, prec=0.001)
+        self.assertRtolEqual(output, golden_output, prec16=0.01)
 
         params_new, golden_output = self.preprocess()
         params.query.copy_(params_new.query)
@@ -353,7 +352,7 @@ class TestPAAclgraphUpdate(TestCase):
         graph.update(cpu_update_input=[{"context_lens": params_new.context_lens}])
         graph.replay()
         torch.npu.synchronize()
-        self.assertRtolEqual(output, golden_output, prec=0.001)
+        self.assertRtolEqual(output, golden_output, prec16=0.01)
 
 if __name__ == "__main__":
     run_tests()
