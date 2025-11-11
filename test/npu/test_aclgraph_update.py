@@ -118,6 +118,7 @@ class TestAclgraphUpdate(TestCase):
         g.replay()
     
     @SupportedDevices(['Ascend910B'])
+    @unittest.skip("this cann version is not supported")
     def test_npu_fused_infer_attention_score_v2(self):
         torch.npu.set_device(0)
         length = [29]
