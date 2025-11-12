@@ -45,13 +45,18 @@ class TestFwkFileParser(TestCase):
     @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.ProfilerPathManager')
     @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.os.listdir')
     @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.os.path.isfile')
-    def test_get_fwk_trace_data_should_return_valid_list_when_given_torch_ops_and_taskqueue(self, mock_isfile, mock_listdir, mock_path_manager, mock_logger):
+    @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.ProfilerConfig')
+    def test_get_fwk_trace_data_should_return_valid_list_when_given_torch_ops_and_taskqueue(self,
+        mock_profiler_config, mock_isfile, mock_listdir, mock_path_manager, mock_logger):
         """Test basic trace data generation"""
         mock_path_manager.get_fwk_path.return_value = self.fwk_dir
         mock_listdir.return_value = []
         mock_isfile.return_value = True
         mock_logger.init.return_value = None
         mock_logger.get_instance.return_value = MagicMock()
+        mock_config_instance = MagicMock()
+        mock_config_instance.activities = [Constant.CPU_ACTIVITIES]
+        mock_profiler_config.return_value = mock_config_instance
 
         torch_op_data = [
             MockTorchOpBean(pid=12345, tid=1001, name="conv2d", ts=1000000, end_ns=2000000),
@@ -81,7 +86,9 @@ class TestFwkFileParser(TestCase):
     @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.ProfilerPathManager')
     @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.os.listdir')
     @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.os.path.isfile')
-    def test_get_fwk_api_should_return_valid_dict_when_given_torch_ops(self, mock_isfile, mock_listdir, mock_path_manager, mock_logger):
+    @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.ProfilerConfig')
+    def test_get_fwk_api_should_return_valid_dict_when_given_torch_ops(self,
+        mock_profiler_config, mock_isfile, mock_listdir, mock_path_manager, mock_logger):
         """Test basic API data generation"""
         # Setup mocks
         mock_path_manager.get_fwk_path.return_value = self.fwk_dir
@@ -89,6 +96,9 @@ class TestFwkFileParser(TestCase):
         mock_isfile.return_value = True
         mock_logger.init.return_value = None
         mock_logger.get_instance.return_value = MagicMock()
+        mock_config_instance = MagicMock()
+        mock_config_instance.activities = [Constant.CPU_ACTIVITIES]
+        mock_profiler_config.return_value = mock_config_instance
 
         torch_op_data = [
             MockTorchOpBean(pid=12345, tid=1001, name="conv2d", ts=1000000, end_ns=2000000,
@@ -128,7 +138,9 @@ class TestFwkFileParser(TestCase):
     @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.ProfilerPathManager')
     @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.os.listdir')
     @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.os.path.isfile')
-    def test_get_fwk_api_should_process_task_queue_data_when_given_enqueue_dequeue_ops(self, mock_isfile, mock_listdir, mock_path_manager, mock_logger):
+    @patch('torch_npu.profiler.analysis.prof_parse._fwk_file_parser.ProfilerConfig')
+    def test_get_fwk_api_should_process_task_queue_data_when_given_enqueue_dequeue_ops(self,
+        mock_profiler_config, mock_isfile, mock_listdir, mock_path_manager, mock_logger):
         """Test API data generation with task queue"""
         # Setup mocks
         mock_path_manager.get_fwk_path.return_value = self.fwk_dir
@@ -136,6 +148,9 @@ class TestFwkFileParser(TestCase):
         mock_isfile.return_value = True
         mock_logger.init.return_value = None
         mock_logger.get_instance.return_value = MagicMock()
+        mock_config_instance = MagicMock()
+        mock_config_instance.activities = [Constant.CPU_ACTIVITIES]
+        mock_profiler_config.return_value = mock_config_instance
 
         enqueue_data = [MockOpMarkBean(name="enqueue_op", ts=500000, dur=100000, corr_id=1)]
         dequeue_data = [MockOpMarkBean(name="dequeue_op", ts=1500000, dur=200000, corr_id=1)]
