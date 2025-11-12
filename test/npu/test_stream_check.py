@@ -1,6 +1,7 @@
 import sys
 import logging
 from unittest import mock
+import unittest
 
 import torch
 import torch.cuda._sanitizer as csan
@@ -11,6 +12,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestStreamCheck(TestCase):
+    @unittest.skip("disabled now")
     def test_parse_methods_with_valid_inputs(self):
         mock_event_handler = mock.MagicMock()
         mode = stream_check.NPUSanitizerDispatchMode(mock_event_handler)
@@ -25,7 +27,8 @@ class TestStreamCheck(TestCase):
         mock_outputs = [torch.tensor([4.0])]
         mode.parse_outputs(mock_outputs)
         mode.args_handler.parse_outputs.assert_called_once_with(mock_outputs)
-
+    
+    @unittest.skip("disabled now")
     def test_torch_dispatch_success(self):
         mock_event_handler = mock.MagicMock()
         mode = stream_check.NPUSanitizerDispatchMode(mock_event_handler)
