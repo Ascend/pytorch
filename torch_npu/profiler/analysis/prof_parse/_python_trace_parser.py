@@ -124,21 +124,22 @@ class ReplayFrame:
 
 class PythonTraceParser:
 
-    def __init__(self, torch_tids: set, hash_data: list, python_call_data: list, param_data: list = None):
-        self._torch_tids = torch_tids
+    def __init__(self, hash_data: list, python_call_data: list, param_data: list = None):
         self._hash_data = hash_data
         self._python_call_data = python_call_data
         self._param_data = param_data
         self._hash_map = {}
         self._param_map = {}
 
-    def get_python_trace_data(self) -> list:
+    def get_python_trace_data(self, tid_dict: dict) -> list:
         trace_event_list = self._gen_python_trace_event_data()
         if not trace_event_list:
             return []
         trace_data = [None] * len(trace_event_list)
         for i, event in enumerate(trace_event_list):
             trace_data[i] = TraceEventManager.create_x_event(event, "python_function")
+            if event.tid not in tid_dict:
+                tid_dict[event.tid] = False
         return trace_data
 
     def get_python_trace_api_data(self) -> list:
@@ -156,16 +157,15 @@ class PythonTraceParser:
         self._gen_param_map()
         return self._gen_python_trace_event_data()
 
-    def _group_tarce_data_by_tid(self):
+    def _group_trace_data_by_tid(self):
         trace_data_by_tid = defaultdict(lambda: [])
         for call_bean in self._python_call_data:
-            if call_bean.tid in self._torch_tids:
-                trace_data_by_tid[call_bean.tid].append(call_bean)
+            trace_data_by_tid[call_bean.tid].append(call_bean)
         return trace_data_by_tid
 
     def _gen_python_trace_event_data(self):
         self._gen_hash_map()
-        trace_event_by_tid = self._group_tarce_data_by_tid()
+        trace_event_by_tid = self._group_trace_data_by_tid()
         trace_event_list = []
         for thread_trace_event in trace_event_by_tid.values():
             trace_event_list.extend(self._replay_stack(thread_trace_event))
