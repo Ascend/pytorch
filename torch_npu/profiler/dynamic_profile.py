@@ -88,22 +88,31 @@ class _DynamicProfile:
             self.step_num -= 1
             if 0 == self.step_num:
                 self.prof.stop()
-                self._dynamic_monitor.update_profiler_status(DynamicProfilerUtils.ProfilerStatus.IDLE.value)
+                self._dynamic_monitor.update_profiler_status(DynamicProfilerUtils.ProfilerStatus.IDLE)
                 self.prof = None
                 DynamicProfilerUtils.out_log("Stop Dynamic Profiler at {} step.".format(
                     self.cur_step), DynamicProfilerUtils.LoggerLevelEnum.INFO)
         elif self.prof is None and self.cfg_ctx is not None:
+            step_num = self.cfg_ctx.active() + self.cfg_ctx.warmup()
             if self.cur_step > self.cfg_ctx.start_step() and not self.cfg_ctx.start():
                 print_warn_msg(f"Dynamic Profiler config is not effective. The start_step={self.cfg_ctx.start_step()}, "
                                f"current_step={self.cur_step}")
-                self._dynamic_monitor.update_profiler_status(DynamicProfilerUtils.ProfilerStatus.IDLE.value)
+                self._dynamic_monitor.update_profiler_status(DynamicProfilerUtils.ProfilerStatus.IDLE)
             elif self.cur_step == self.cfg_ctx.start_step() or self.cfg_ctx.start():
-                self.step_num = self.cfg_ctx.active() + self.cfg_ctx.warmup()
+                self.step_num = step_num
+                self._dynamic_monitor.update_step_info(self.cur_step, DynamicProfilerUtils.START_STEP)
+                self._dynamic_monitor.update_step_info(self.cur_step + step_num,
+                                                       DynamicProfilerUtils.STOP_STEP)
+                self._dynamic_monitor.update_profiler_status(DynamicProfilerUtils.ProfilerStatus.RUNNING)
                 self.enable_prof()
-                self._dynamic_monitor.update_profiler_status(DynamicProfilerUtils.ProfilerStatus.RUNNING.value)
                 self.cfg_ctx = None
-            elif self.cur_step < self.cfg_ctx.start_step() and not self.cfg_ctx.start():
-                self._dynamic_monitor.update_profiler_status(DynamicProfilerUtils.ProfilerStatus.READY.value)
+            elif self.cur_step < self.cfg_ctx.start_step():
+                self._dynamic_monitor.update_step_info(self.cfg_ctx.start_step(), DynamicProfilerUtils.START_STEP)
+                self._dynamic_monitor.update_step_info(self.cfg_ctx.start_step() + step_num,
+                                                       DynamicProfilerUtils.STOP_STEP)
+                self._dynamic_monitor.update_profiler_status(DynamicProfilerUtils.ProfilerStatus.READY)
+        self._dynamic_monitor.update_step_info(self.cur_step, DynamicProfilerUtils.CURRENT_STEP)
+        self._dynamic_monitor.report_profiler_status()
 
         if not self._step_mstx_range_id:
             self._step_mstx_range_id = mstx.range_start(f"step {self.cur_step}", current_stream())
