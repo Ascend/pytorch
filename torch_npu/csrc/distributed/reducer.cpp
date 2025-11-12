@@ -293,7 +293,8 @@ bool Reducer::ddp_graph_static()
 void Reducer::initialize_local_used_map()
 {
     const auto variable_count = params_.size();
-    at::TensorOptions options = options.dtype(at::kInt);
+    at::TensorOptions options;
+    options = options.dtype(at::kInt);
 
     // Deliberately don't pin the memory even if local_used_map_dev_ will
     // be cuda. See Note [local_used_map_ -> local_used_map_dev copying]
@@ -1592,7 +1593,8 @@ void Reducer::sync_bucket_indices(
         total_size += static_cast<int64_t>(bucket_size);
     }
 
-    at::TensorOptions options = options.dtype(at::kInt);
+    at::TensorOptions options;
+    options = options.dtype(at::kInt);
     options = options.device(params_[0].device());
 
     // Group indices and num_bucket together into indices_tensor
@@ -2098,7 +2100,8 @@ void verify_params_across_processes(
     for (const auto& t : params) {
         i += static_cast<size_t>(2 * t.dim());
     }
-    at::TensorOptions options = options.dtype(at::kLong);
+    at::TensorOptions options;
+    options = options.dtype(at::kLong);
     auto metadata = at::empty({static_cast<long>(i)}, options);
 
     // Technically, process 0 is the broadcast source, so only process 0 needs
