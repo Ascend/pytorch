@@ -185,6 +185,8 @@ class MultiProcessTestCase(TestCase):
             else:
                 try:
                     fn()
+                except unittest.SkipTest:
+                    sys.exit(TEST_SKIPS["multi-npu"].exit_code)
                 except Exception as e:
                     logging.error('Caught exception: \n%sexiting process with exit code: %s',
                                   traceback.format_exc(), MultiProcessTestCase.TEST_ERROR_EXIT_CODE)
