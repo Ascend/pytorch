@@ -14,7 +14,7 @@ import torch_npu
 
 TestSkip = namedtuple('TestSkip', 'exit_code, message')
 TEST_SKIPS = {
-    "multi-npu": TestSkip(75, "Need at least 2 ASCEND devices"),
+    "multi-npu": TestSkip(75, "Multi-NPU condition not satisfied"),
     "multi-npu-1": TestSkip(75, "Need at least 1 ASCEND devices"),
     "multi-npu-2": TestSkip(75, "Need at least 2 ASCEND devices"),
     "multi-npu-3": TestSkip(75, "Need at least 3 ASCEND devices"),
@@ -32,7 +32,7 @@ def skipIfUnsupportMultiNPU(npu_number_needed):
     def skip_dec(func):
         def wrapper(self):
             if not torch.npu.is_available() or torch.npu.device_count() < npu_number_needed:
-                return unittest.SkipTest("Multi-NPU condition not satisfied")
+                raise unittest.SkipTest(f"Multi-NPU {npu_number_needed} condition not satisfied")
             return func(self)
         return wrapper
     return skip_dec
