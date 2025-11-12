@@ -91,13 +91,15 @@ class FwkApiDbParser(BaseParser):
         if node_launch_str_ids and node_launch_str_ids[0]:
             node_launch_str_id = node_launch_str_ids[0]
         else:
-            raise RuntimeWarning("Failed to find node launch str id")
+            self.logger.error("Failed to find node launch str id")
+            return
         sql = "select startNs, endNs, globalTid, connectionId from {} " \
               "where name = {} and type = 10000 order by startNs" \
             .format(DbConstant.TABLE_CANN_API, node_launch_str_id)  # 10000 : node level
         node_launch_apis = TorchDb().fetch_all_data(sql)
         if not node_launch_apis:
-            raise RuntimeWarning("Failed to get node launch apis")
+            self.logger.error("Failed to get node launch apis")
+            return
         torch_op_apis.sort(key=lambda x: x[TorchOpDataOri.START_NS])
         torch_op_len = len(torch_op_apis)
         if task_enqueues and task_dequeues:
