@@ -22,6 +22,7 @@ class DynamicProfilerUtils:
         ERROR = 2
 
     class ProfilerStatus(Enum):
+        UNINITIALIZED = -1
         IDLE = 0
         RUNNING = 1
         READY = 2
@@ -49,7 +50,13 @@ class DynamicProfilerUtils:
     CFG_CONFIG_PATH = None
     CFG_BUFFER_SIZE = 1024 * 1024
     POLL_INTERVAL = 2
-    DEFAULT_STATUS = 0
+
+    # 状态上报信息
+    PROFILER_STATUS = "profiler_status"
+    CURRENT_STEP = "current_step"
+    START_STEP = "start_step"
+    STOP_STEP = "stop_step"
+    REPORT_INTERVAL = 1.0
 
     @classmethod
     def init_logger(cls, is_monitor_process: bool = False, log_path: str = None):
