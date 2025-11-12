@@ -17,7 +17,12 @@ C10_DEFINE_REGISTRY(PrivateUse1HooksRegistry, NPUHooksInterface, NPUHooksArgs)
 
 at::Device NPUHooksInterface::getDeviceFromPtr(void* data) const
 {
-    return {at::DeviceType::PrivateUse1, c10_npu::current_device()};
+    aclrtPtrAttributes attributes;
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtPointerGetAttributes(data, &attributes));
+    TORCH_CHECK(attributes.location.type != ACL_MEM_LOCATION_TYPE_HOST,
+                "The specified pointer resides on host memory and is not registered with any NPU device.",
+                PTA_ERROR(ErrCode::PTR));
+    return {at::DeviceType::PrivateUse1, attributes.location.id};
 }
 
 void NPUHooksInterface::init() const
