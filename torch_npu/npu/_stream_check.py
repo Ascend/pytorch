@@ -1,5 +1,6 @@
 import sys
 import logging
+import re
 
 import torch
 import torch.cuda._sanitizer as csan
@@ -8,6 +9,10 @@ import torch_npu
 
 
 logger = logging.getLogger(__name__)
+
+# Note that this is only factories that take Tensor as input as they are
+# the ones we care about.
+FACTORY_FUNCTION_REGEX = re.compile("(new_.*|.*_like)")
 
 
 class NPUSanitizerDispatchMode(TorchDispatchMode):
@@ -28,14 +33,16 @@ class NPUSanitizerDispatchMode(TorchDispatchMode):
     def __torch_dispatch__(self, func, types, args=(), kwargs=None):
         kwargs = {} if kwargs is None else kwargs
 
+        is_factory = bool(FACTORY_FUNCTION_REGEX.match(func._schema.name))
+
         self.args_handler = csan.ArgumentHandler()
         aten_api = func.__name__.split(".")[0]
         self.enable_autograd(aten_api)
-        self.parse_inputs(func._schema, args, kwargs)
+        self.parse_inputs(func._schema, args, kwargs, is_factory=is_factory)
         # execute operator
         outputs = func(*args, **kwargs)
 
-        self.parse_outputs(outputs)
+        self.parse_outputs(func._schema, outputs, is_factory=is_factory)
 
         npu_stream = 0
         try:
@@ -50,11 +57,11 @@ class NPUSanitizerDispatchMode(TorchDispatchMode):
 
         return outputs
 
-    def parse_inputs(self, schema, args, kwargs):
-        self.args_handler.parse_inputs(schema, args, kwargs)
+    def parse_inputs(self, schema, args, kwargs, is_factory=False):
+        self.args_handler.parse_inputs(schema, args, kwargs, is_factory=is_factory)
 
-    def parse_outputs(self, outputs):
-        self.args_handler.parse_outputs(outputs)
+    def parse_outputs(self, schema, outputs, is_factory=False):
+        self.args_handler.parse_outputs(schema, outputs, is_factory=is_factory)
 
     def check_errors(self, func, npu_stream):
         errors = self.event_handler._handle_kernel_launch(
