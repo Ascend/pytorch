@@ -160,6 +160,12 @@ typedef struct aclrtMemLocation {
     aclrtMemLocationType type;
 } aclrtMemLocation;
 
+typedef struct aclrtPtrAttributes {
+    aclrtMemLocation location;
+    uint32_t pageSize;
+    uint32_t rsv[4];
+} aclrtPtrAttributes;
+
 typedef struct aclrtMemUceInfo {
     void* addr;
     size_t len;
@@ -807,6 +813,19 @@ ACL_FUNC_VISIBILITY aclError aclrtMallocAlign32(void **devPtr,
 ACL_FUNC_VISIBILITY aclError aclrtMallocCached(void **devPtr,
                                                size_t size,
                                                aclrtMemMallocPolicy policy);
+
+/**
+ * @ingroup AscendCL
+ * @brief get memory attribute, host or device
+ *
+ * @param ptr [IN]         memory pointer
+ * @param attributes [OUT] a buffer to store attributes
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtPointerGetAttributes(const void *ptr,
+                                                       aclrtPtrAttributes *attributes);
 
 /**
  * @ingroup AscendCL

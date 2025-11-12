@@ -106,6 +106,7 @@ LOAD_FUNCTION(aclrtUseStreamResInCurrentThread)
 LOAD_FUNCTION(aclrtUnuseStreamResInCurrentThread)
 LOAD_FUNCTION(aclrtGetResInCurrentThread)
 LOAD_FUNCTION(aclrtSetOpExecuteTimeOutV2)
+LOAD_FUNCTION(aclrtPointerGetAttributes)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1281,6 +1282,18 @@ aclError AclrtGetResInCurrentThread(aclrtDevResModelType type, uint32_t* value)
 
     TORCH_CHECK(func, "Failed to find function aclrtGetResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(type, value);
+}
+
+aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attributes)
+{
+    using AclrtPointerGetAttributes = aclError (*)(const void*, aclrtPtrAttributes*);
+    static AclrtPointerGetAttributes func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtPointerGetAttributes) GET_FUNC(aclrtPointerGetAttributes);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtPointerGetAttributes", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(ptr, attributes);
 }
 
 } // namespace acl
