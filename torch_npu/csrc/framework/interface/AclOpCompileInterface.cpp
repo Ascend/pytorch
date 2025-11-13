@@ -165,5 +165,28 @@ aclError AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value)
     return ret;
 }
 
+#undef LOAD_OPBASE_FUNCTION
+#define LOAD_OPBASE_FUNCTION(funcName) \
+  REGISTER_FUNCTION(libnnopbase, funcName)
+
+#undef GET_OPBASE_FUNC
+#define GET_OPBASE_FUNC(funcName) \
+  GET_FUNCTION(libnnopbase, funcName)
+
+REGISTER_LIBRARY(libnnopbase)
+LOAD_OPBASE_FUNCTION(aclDestroyAclOpExecutor)
+
+aclError AclDestroyAclOpExecutor(aclOpExecutor *executor)
+{
+    typedef aclError (*aclDestroyAclOpExecutorFunc)(aclOpExecutor *executor);
+    static aclDestroyAclOpExecutorFunc func = nullptr;
+    if (func == nullptr) {
+        func = (aclDestroyAclOpExecutorFunc)GET_OPBASE_FUNC(aclDestroyAclOpExecutor);
+    }
+    TORCH_CHECK(func, "Failed to find function  ", "aclDestroyAclOpExecutor", OPS_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(executor);
+    return ret;
+}
+
   } // namespace native
 } // namespace at_npu
