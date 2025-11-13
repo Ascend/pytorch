@@ -40,6 +40,7 @@ extern "C" {
 #define ACL_RT_VMM_EXPORT_FLAG_DISABLE_PID_VALIDATION       0x1UL
 
 #define MAX_MEM_UCE_INFO_ARRAY_SIZE 128
+#define MAX_MODULE_NUM 128
 
 constexpr int32_t DEVICE_UTILIZATION_NOT_SUPPORT = -1;
 
@@ -177,6 +178,13 @@ typedef struct {
     aclrtMemLocation srcLoc;
     uint8_t rsv[16];
 } aclrtMemcpyBatchAttr;
+
+typedef struct aclrtMemUsageInfo {
+    char name[32];
+    uint64_t curMemSize;
+    uint64_t memPeakSize;
+    size_t reserved[8];
+} aclrtMemUsageInfo;
 
 typedef enum aclrtMemAllocationType {
     ACL_MEM_ALLOCATION_TYPE_PINNED = 0,
@@ -1620,6 +1628,18 @@ ACL_FUNC_VISIBILITY aclError aclrtCmoAsync(void *src, size_t size, aclrtCmoType 
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo *memUceInfoArray, size_t arraySize, size_t *retSize);
+
+/**
+ * @ingroup AscendCL
+ * @brief get the mem usage info
+ * @param [in] deviceId
+ * @param [in/out] memUsageInfo
+ * @param [in] inputNum
+ * @param [out] outputNum
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetMemUsageInfo(uint32_t deviceId, aclrtMemUsageInfo *memUsageInfo, size_t inputNum, size_t *outputNum);
 
 /**
  * @ingroup AscendCL

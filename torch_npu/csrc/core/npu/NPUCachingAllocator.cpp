@@ -7,6 +7,7 @@
 #include <regex>
 #include <set>
 #include <vector>
+#include <fstream>
 
 #include <c10/core/Allocator.h>
 #include <c10/util/flat_hash_map.h>
@@ -101,6 +102,7 @@ constexpr size_t k512MB = 512;                        // 512 MB for segmemt_size
 const std::string kMinCannVersion = "8.1.RC1";        // minimum cann version which supports 1g mem 8.1.RC1
 const std::string kMinDriverVersion = "25.0.RC1";     // minimum driver version which supports 1g mem 25.0.RC1
 const std::string kCannModule = "CANN";               // cann module name
+constexpr int kPrecision = 4;                         // precision of the memory usage information
 
 static char SHAREABLE_HANDLE_VERSION = 1;
 enum ShareableHandleType : char {
@@ -1131,6 +1133,45 @@ void setAllocatorSettings(const std::string& settings)
     TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
     // Only support expandable_segments setting.
     CachingAllocatorConfig::instance().parseArgs(settings.c_str(), {"expandable_segments"});
+}
+
+bool saveDevMemUsageInfo(const int& device)
+{
+    aclrtMemUsageInfo memUsageInfo[MAX_MODULE_NUM] = {0};
+    size_t moduleCount = 0;
+    size_t* moduleCountPtr = &moduleCount;
+
+    // Get the memory usage information
+    aclError ret = c10_npu::acl::AclrtGetMemUsageInfo(device, memUsageInfo, MAX_MODULE_NUM, moduleCountPtr);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("AclrtGetMemUsageInfo failed, ret:%d", ret);
+        return false;
+    }
+
+    // Save the memory usage information to csv file
+    std::time_t current_time = std::time(nullptr);
+    std::tm *local_time = std::localtime(&current_time);
+    std::ostringstream file_name_stream;
+    file_name_stream << "device_" << device << "_memUsageInfo_" << std::put_time(local_time, "%Y%m%d%H%M%S") << ".csv";
+
+    auto dumppath = c10_npu::option::OptionsManager::GetOomSnapshotDumpPath();
+    auto savefilepath = c10::str(dumppath, "/", file_name_stream.str());
+
+    std::ofstream csv_file(savefilepath);
+    if (!csv_file.is_open()) {
+        ASCEND_LOGE("Failed to open file: %s", savefilepath.c_str());
+        return false;
+    }
+
+    csv_file << "moduleName,curMemSize(MB),memPeakSize(MB)\n" << std::fixed << std::setprecision(kPrecision);
+    for (size_t i = 0; i < moduleCount; ++i) {
+        csv_file << memUsageInfo[i].name << "," << static_cast<double>(memUsageInfo[i].curMemSize) / kMB << ","
+                 << static_cast<double>(memUsageInfo[i].memPeakSize) / kMB << "\n";
+    }
+    csv_file.close();
+
+    ASCEND_LOGI("Device memory usage information saved to file: %s", savefilepath.c_str());
+    return true;
 }
 
 // To prevent the deadlock situation, temporarily release the lock.

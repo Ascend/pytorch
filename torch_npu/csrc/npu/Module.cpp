@@ -1317,6 +1317,20 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_saveDevMemUsageInfo(PyObject *_unused, PyObject *arg)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(THPUtils_checkLong(arg), "invalid argument to save device mem usage info.", PTA_ERROR(ErrCode::PARAM));
+    const int device = (int) THPUtils_unpackLong(arg);
+    bool ret = c10_npu::NPUCachingAllocator::saveDevMemUsageInfo(device);
+    if (ret) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_attachOutOfMemoryObserver(PyObject* _unused, PyObject* observer)
 {
     HANDLE_TH_ERRORS
@@ -2060,6 +2074,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_resetAccumulatedMemoryStats", (PyCFunction) THNPModule_resetAccumulatedMemoryStats, METH_O, nullptr},
     {"_npu_resetPeakMemoryStats", (PyCFunction) THNPModule_resetPeakMemoryStats, METH_O,  nullptr},
     {"_npu_memorySnapshot", (PyCFunction) THNPModule_memorySnapshot, METH_NOARGS, nullptr},
+    {"_npu_saveDevMemUsageInfo", (PyCFunction) THNPModule_saveDevMemUsageInfo, METH_O, nullptr},
     {"_npu_attach_out_of_memory_observer", THNPModule_attachOutOfMemoryObserver, METH_O, nullptr},
     {"_npu_npuCachingAllocator_raw_alloc", (PyCFunction)THNPModule_npuCachingAllocator_raw_alloc, METH_VARARGS, nullptr},
     {"_npu_npuCachingAllocator_raw_delete", (PyCFunction)THNPModule_npuCachingAllocator_raw_delete, METH_O, nullptr},

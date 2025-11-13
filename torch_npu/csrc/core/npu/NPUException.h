@@ -131,7 +131,6 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
             PTA_ERROR(ErrCode::ACL));                                        \
     }                                                                        \
 
-
 #define NPU_CHECK_ERROR_CHECK_UCE(err_code, check_uce, ...)                  \
     do {                                                                     \
         int error_code = err_code;                                           \
@@ -182,6 +181,12 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                 ", error code is ", error_code,                              \
                 PTA_ERROR(ErrCode::ACL));                                    \
             } else {                                                         \
+                if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) { \
+                    std::string errmsg(c10_npu::c10_npu_get_error_message()); \
+                    if (c10_npu::isCannOOM(errmsg)) {                         \
+                        c10_npu::option::oom_observer();                      \
+                    }                                                         \
+                }                                                             \
                 TORCH_CHECK(                                                 \
                 false,                                                       \
                 __func__,                                                    \
@@ -297,5 +302,7 @@ std::string handleHcclOpRetryFailed(int errorCode);
 std::string handleDeviceError(int errorCode);
 
 std::string handleSuspectRemoteError(int errorCode);
+
+bool isCannOOM(const std::string &errMsg);
 
 } // namespace c10_npu
