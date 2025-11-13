@@ -476,6 +476,8 @@ bool isConfig1GPageSizeEnable();
 
 C10_NPU_API void setAllocatorSettings(const std::string& settings);
 
+C10_NPU_API bool saveDevMemUsageInfo(const int& device);
+
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
 

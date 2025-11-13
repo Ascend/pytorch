@@ -29,6 +29,12 @@
                     false,                                                   \
                     errmsg.empty() ? err_msg : errmsg);                      \
             } else {                                                         \
+                if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) { \
+                    std::string errmsg(c10_npu::c10_npu_get_error_message()); \
+                    if (c10_npu::isCannOOM(errmsg)) {                         \
+                        c10_npu::option::oom_observer();                      \
+                    }                                                         \
+                }                                                             \
             TORCH_CHECK(                                                     \
                 false,                                                       \
                 __func__,                                                    \

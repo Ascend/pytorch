@@ -301,4 +301,15 @@ std::string handleDeviceError(int errorCode)
     return "";
 }
 
+bool isCannOOM(const std::string &errMsg)
+{
+    const char *oom_error_msg = "Failed to allocate memory";
+    const char *oom_error_code = "EL0004";
+    // Use OR matching for keyword and error code to be compatible with different CANN versions
+    if (errMsg.find(oom_error_code) != std::string::npos || errMsg.find(oom_error_msg) != std::string::npos) {
+        return true;
+    }
+    return false;
+}
+
 } // namespace c10_npu
