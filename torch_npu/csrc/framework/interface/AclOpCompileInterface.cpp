@@ -1,6 +1,7 @@
 #include <c10/util/Optional.h>
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -31,7 +32,7 @@ namespace at_npu
 aclError AclSetCompileopt(aclCompileOpt opt, const char *value)
 {
     bool ge_init_disable = c10_npu::option::OptionsManager::CheckGeInitDisable();
-    if (ge_init_disable) {
+    if (ge_init_disable || c10_npu::IsAclnnOnly()) {
         return ACL_ERROR_NONE;
     }
     typedef aclError (*aclSetCompileoptFunc)(aclCompileOpt opt, const char *value);

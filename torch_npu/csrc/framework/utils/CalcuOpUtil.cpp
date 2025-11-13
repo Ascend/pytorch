@@ -52,8 +52,8 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
     _(at::ScalarType::Bits4x2, ACL_DT_UNDEFINED)                                                                       \
     _(at::ScalarType::Bits8, ACL_DT_UNDEFINED)                                                                         \
     _(at::ScalarType::Bits16, ACL_DT_UNDEFINED)                                                                        \
-    _(at::ScalarType::Float8_e5m2, ACL_DT_UNDEFINED)                                                                    \
-    _(at::ScalarType::Float8_e4m3fn, ACL_DT_UNDEFINED)                                                                \
+    _(at::ScalarType::Float8_e5m2, ACL_FLOAT8_E5M2)                                                                    \
+    _(at::ScalarType::Float8_e4m3fn, ACL_FLOAT8_E4M3FN)                                                                \
     _(at::ScalarType::Float8_e5m2fnuz, ACL_DT_UNDEFINED)                                                               \
     _(at::ScalarType::Float8_e4m3fnuz, ACL_DT_UNDEFINED)                                                               \
     _(at::ScalarType::UInt16, ACL_UINT16)                                                                              \
@@ -113,7 +113,15 @@ static std::unordered_map<const aclDataType, const at::ScalarType>
                                    {ACL_BF16, at::ScalarType::BFloat16},
                                    {ACL_INT4, at::ScalarType::Undefined},
                                    {ACL_UINT1, at::ScalarType::Undefined},
-                                   {ACL_COMPLEX32, at::ScalarType::ComplexHalf}};
+                                   {ACL_COMPLEX32, at::ScalarType::ComplexHalf},
+                                   {ACL_HIFLOAT8, at::ScalarType::Byte},
+                                   {ACL_FLOAT8_E5M2, at::ScalarType::Float8_e5m2},
+                                   {ACL_FLOAT8_E4M3FN, at::ScalarType::Float8_e4m3fn},
+                                   {ACL_FLOAT8_E8M0, at::ScalarType::Byte},
+                                   {ACL_FLOAT6_E3M2, at::ScalarType::Byte},
+                                   {ACL_FLOAT6_E2M3, at::ScalarType::Byte},
+                                   {ACL_FLOAT4_E2M1, at::ScalarType::Byte},
+                                   {ACL_FLOAT4_E1M2, at::ScalarType::Byte}};
 
 aclError AclrtMemcpyAsyncParamCheck(
     void *dst, size_t destMax, const void *src, size_t count, aclrtMemcpyKind kind, aclrtStream stream)
@@ -133,7 +141,15 @@ namespace at_npu {
 namespace native {
 aclDataType CalcuOpUtil::ConvertToAclDataType(const at::ScalarType &data_type)
 {
-    auto acl_dtype = kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(data_type)];
+    int64_t dtype_index = static_cast<int64_t>(data_type);
+    TORCH_CHECK(dtype_index >= 0 && dtype_index < static_cast<int64_t>(at::ScalarType::NumOptions) + 1,
+                "data_type enum value (",
+                dtype_index,
+                ") is out of range: [0, ",
+                static_cast<int64_t>(at::ScalarType::NumOptions),
+                "]",
+                OPS_ERROR(ErrCode::VALUE))
+    auto acl_dtype = kATenScalarTypeToAclDataTypeTable[dtype_index];
     TORCH_CHECK(acl_dtype != ACL_DT_UNDEFINED,
                 std::string(c10::toString(data_type)) + " has not been supported",
                 OPS_ERROR(ErrCode::NOT_SUPPORT))
@@ -142,7 +158,15 @@ aclDataType CalcuOpUtil::ConvertToAclDataType(const at::ScalarType &data_type)
 
 aclDataType CalcuOpUtil::ConvertToAclDataType(const at::ScalarType &data_type, const std::string &realDataType)
 {
-    auto acl_dtype = kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(data_type)];
+    int64_t dtype_index = static_cast<int64_t>(data_type);
+    TORCH_CHECK(dtype_index >= 0 && dtype_index < static_cast<int64_t>(at::ScalarType::NumOptions) + 1,
+                "data_type enum value (",
+                dtype_index,
+                ") is out of range: [0, ",
+                static_cast<int64_t>(at::ScalarType::NumOptions),
+                "]",
+                OPS_ERROR(ErrCode::VALUE))
+    auto acl_dtype = kATenScalarTypeToAclDataTypeTable[dtype_index];
     TORCH_CHECK(acl_dtype != ACL_DT_UNDEFINED,
                 std::string(c10::toString(data_type)) + " has not been supported",
                 OPS_ERROR(ErrCode::NOT_SUPPORT))
