@@ -4228,8 +4228,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
 constexpr int64_t ADDRESS_ALIGNMENT_BYTE = 512;
 at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors) const
 {
+    static bool no_need_padding = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910_95;
     at::Tensor inter_tensors = at::reshape(tensors, {1, tensors.numel()});
-    if (tensors.element_size() == 0) {
+    if (tensors.element_size() == 0 || no_need_padding) {
         return inter_tensors;
     }
 
@@ -5512,14 +5513,26 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
     std::vector<at::Tensor> output_results;
     std::vector<at::Tensor> input_tensors_flattened;
     std::vector<at::Tensor> output_tensors_flattened;
-
-    for (size_t i = 0; i < input_tensors.size(); i++) {
-        input_split_sizes.push_back(input_tensors[i].numel());
-        input_tensors_flattened.push_back(at::reshape(input_tensors[i], {input_tensors[i].numel(), 1}));
-    }
-    for (size_t i = 0; i < output_tensors.size(); i++) {
-        output_split_sizes.push_back(output_tensors[i].numel());
-        output_tensors_flattened.push_back(at::reshape(output_tensors[i], {output_tensors[i].numel(), 1}));
+    bool view_as_byte = false;
+    if (input_tensors[0].dtype() == at::ScalarType::Float8_e5m2 || input_tensors[0].dtype() == at::ScalarType::Float8_e4m3fn) {
+        view_as_byte = true;
+        for (size_t i = 0; i < input_tensors.size(); i++) {
+            input_split_sizes.push_back(input_tensors[i].numel());
+            input_tensors_flattened.push_back(at::reshape(input_tensors[i], {input_tensors[i].numel(), 1}).view(at::ScalarType::Byte));
+        }
+        for (size_t i = 0; i < output_tensors.size(); i++) {
+            output_split_sizes.push_back(output_tensors[i].numel());
+            output_tensors_flattened.push_back(at::reshape(output_tensors[i], {output_tensors[i].numel(), 1}).view(at::ScalarType::Byte));
+        }
+    } else {
+        for (size_t i = 0; i < input_tensors.size(); i++) {
+            input_split_sizes.push_back(input_tensors[i].numel());
+            input_tensors_flattened.push_back(at::reshape(input_tensors[i], {input_tensors[i].numel(), 1}));
+        }
+        for (size_t i = 0; i < output_tensors.size(); i++) {
+            output_split_sizes.push_back(output_tensors[i].numel());
+            output_tensors_flattened.push_back(at::reshape(output_tensors[i], {output_tensors[i].numel(), 1}));
+        }
     }
 
     int ranks = getSize();
@@ -5606,6 +5619,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                     work->recorded_outputs_.push_back(
                         std::make_pair(output_tensors_[0].storage().getWeakStorageImpl(), hcclStreams[0]));
                 }
+            }
+            if (view_as_byte) {
+                out_tensors[0] = out_tensors[0].view(input_tensors[0].scalar_type());
             }
             if (!at_npu::native::FormatHelper::IsBaseFormatType(out_tensors[0])) {
                 out_tensors[0].copy_(output_tensors_[0], true);
