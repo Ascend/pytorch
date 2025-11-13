@@ -62,6 +62,7 @@ LOAD_FUNCTION(aclGetCannAttributeList)
 LOAD_FUNCTION(aclGetCannAttribute)
 LOAD_FUNCTION(aclGetDeviceCapability)
 LOAD_FUNCTION(aclrtGetMemUceInfo)
+LOAD_FUNCTION(aclrtGetMemUsageInfo)
 LOAD_FUNCTION(aclrtDeviceTaskAbort)
 LOAD_FUNCTION(aclrtMemUceRepair)
 LOAD_FUNCTION(aclrtCmoAsync)
@@ -723,6 +724,20 @@ aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, s
         return ACL_ERROR_NONE;
     }
     return func(deviceId, memUceInfoArray, arraySize);
+}
+
+aclError AclrtGetMemUsageInfo(uint32_t deviceId, aclrtMemUsageInfo *memUsageInfo, size_t inputNum, size_t *outputNum)
+{
+    typedef aclError (*AclrtGetMemUsageInfo)(uint32_t, aclrtMemUsageInfo*, size_t, size_t *);
+    static AclrtGetMemUsageInfo func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetMemUsageInfo) GET_FUNC(aclrtGetMemUsageInfo);
+    }
+    if (func == nullptr) {
+        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtGetMemUsageInfo");
+        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+    }
+    return func(deviceId, memUsageInfo, inputNum, outputNum);
 }
 
 aclError AclrtCmoAsync(void* src, size_t size, aclrtCmoType cmoType, aclrtStream stream)

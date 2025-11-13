@@ -175,6 +175,8 @@ aclError AclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int
 
 aclError AclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize, size_t *retSize);
 
+aclError AclrtGetMemUsageInfo(uint32_t deviceId, aclrtMemUsageInfo *memUsageInfo, size_t inputNum, size_t *outputNum);
+
 aclError AclrtDeviceTaskAbort(int32_t deviceId);
 
 aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize);
