@@ -62,7 +62,7 @@ private:
     static void DqueueCompileExcuteBs(c10_npu::queue::QueueParas *para, uint32_t category);
 };
 
-const std::string AclDateTypeToString(aclDataType descDType);
+const std::string AclDataTypeToString(aclDataType descDType);
 const std::string AclFormatToString(aclFormat descFormat);
 
 } // namespace native
