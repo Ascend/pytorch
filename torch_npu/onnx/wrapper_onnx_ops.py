@@ -1377,7 +1377,8 @@ def _wrapper_npu_moe_compute_expert_tokens(sorted_experts, num_experts=1):
 def _wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2, bias,
                                       scales, expanded_src_to_dst_row, export_for_source_row, drop_pad_mode=0):
     if skip1 is not None and bias is not None and scales is not None and \
-             export_for_source_row is not None and drop_pad_mode == 0:
+             export_for_source_row is not None and drop_pad_mode == 0 and \
+             "Ascend910_95" not in torch_npu.npu.get_device_name():
         return _NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2, bias,
                                           scales, expanded_src_to_dst_row, export_for_source_row)
     return _NPUMoeFinalizeRoutingV2OP.apply(expanded_permuted_rows, skip1, skip2, bias,

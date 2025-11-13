@@ -4,6 +4,7 @@ import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import SupportedDevices
 
 device = 'npu:0'
 torch.npu.set_device(device)
@@ -382,6 +383,23 @@ class TestViewOps(TestCase):
         self.assertEqual(tensor.view(-1, 5).size(), target)
         self.assertEqual(tensor.view(3, -1).size(), target)
 
+
+class TestTensorDtype(TestCase):
+    @SupportedDevices(['Ascend910_95'])
+    def test_fp8(self):
+        tensor1 = torch.randn([2, 2], dtype=torch.float32).npu()
+        tensor2 = torch.randn([2, 2], dtype=torch.float32).npu()
+        tensor_f8e5m2 = tensor1.to(torch.float8_e5m2)
+        tensor_f8e4m3fn = tensor2.to(torch.float8_e4m3fn)
+        self.assertEqual(tensor_f8e5m2.dtype, torch.float8_e5m2)
+        self.assertEqual(tensor_f8e4m3fn.dtype, torch.float8_e4m3fn)
+
+    @SupportedDevices(['Ascend910_95'])
+    def test_hif8(self):
+        tensor = torch.randn([2, 2], dtype=torch.float16).npu()
+        hif8_tensor = torch_npu.HiFloat8Tensor.to_hifloat8(tensor)
+        self.assertEqual(hif8_tensor.dtype, torch.float16)
+        self.assertEqual(hif8_tensor._data.dtype, torch.uint8)
 
 if __name__ == "__main__":
     run_tests()

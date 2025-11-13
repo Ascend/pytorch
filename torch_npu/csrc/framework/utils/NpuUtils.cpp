@@ -338,9 +338,9 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, si
 }
 #endif
 
-const std::string AclDateTypeToString(aclDataType descDType)
+const std::string AclDataTypeToString(aclDataType descDType)
 {
-    std::map<const aclDataType, const std::string> ACL_TYPE_TO_STRING_TYPE_MAP = {
+    static std::map<const aclDataType, const std::string> ACL_TYPE_TO_STRING_TYPE_MAP = {
         {ACL_DT_UNDEFINED, "ACL_DT_UNDEFINED"},
         {ACL_FLOAT, "ACL_FLOAT"},
         {ACL_FLOAT16, "ACL_FLOAT16"},
@@ -355,10 +355,20 @@ const std::string AclDateTypeToString(aclDataType descDType)
         {ACL_DOUBLE, "ACL_DOUBLE"},
         {ACL_BOOL, "ACL_BOOL"},
         {ACL_STRING, "ACL_STRING"},
-        {ACL_COMPLEX32, "ACL_COMPLEX32"},
         {ACL_COMPLEX64, "ACL_COMPLEX64"},
         {ACL_COMPLEX128, "ACL_COMPLEX128"},
-        {ACL_BF16, "ACL_BF16"}};
+        {ACL_BF16, "ACL_BF16"},
+        {ACL_INT4, "ACL_INT4"},
+        {ACL_UINT1, "ACL_UINT1"},
+        {ACL_COMPLEX32, "ACL_COMPLEX32"},
+        {ACL_HIFLOAT8, "ACL_HIFLOAT8"},
+        {ACL_FLOAT8_E5M2, "ACL_FLOAT8_E5M2"},
+        {ACL_FLOAT8_E4M3FN, "ACL_FLOAT8_E4M3FN"},
+        {ACL_FLOAT8_E8M0, "ACL_FLOAT8_E8M0"},
+        {ACL_FLOAT6_E3M2, "ACL_FLOAT6_E3M2"},
+        {ACL_FLOAT6_E2M3, "ACL_FLOAT6_E2M3"},
+        {ACL_FLOAT4_E2M1, "ACL_FLOAT4_E2M1"},
+        {ACL_FLOAT4_E1M2, "ACL_FLOAT4_E1M2"}};
 
     const auto iter = ACL_TYPE_TO_STRING_TYPE_MAP.find(descDType);
     return iter != ACL_TYPE_TO_STRING_TYPE_MAP.end() ? iter->second

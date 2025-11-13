@@ -313,7 +313,7 @@ void printErrorLog(ExecuteParas *cur_paras)
         ASCEND_LOGE(
             "InputDesc[%d]: DescType = %s, DescFormat = %s, DescShape = %s",
             i,
-            (AclDateTypeToString(dataType)).c_str(),
+            (AclDataTypeToString(dataType)).c_str(),
             (AclFormatToString(descformat)).c_str(),
             descShape.c_str());
     }
