@@ -79,6 +79,8 @@ std::map<at::ScalarType, HcclDataType> kScalarTypeToHcclDataType = {
     {at::kDouble, HCCL_DATA_TYPE_FP64},
     {at::kBool, HCCL_DATA_TYPE_UINT8},
     {at::kBFloat16, HCCL_DATA_TYPE_BFP16},
+    {at::ScalarType::Float8_e4m3fn, HCCL_DATA_TYPE_FP8E4M3},
+    {at::ScalarType::Float8_e5m2, HCCL_DATA_TYPE_FP8E5M2},
 };
 
 std::map<HcclDataType, std::string> kHcclDataTypeToStringMap = {
@@ -91,6 +93,8 @@ std::map<HcclDataType, std::string> kHcclDataTypeToStringMap = {
     {HCCL_DATA_TYPE_FP32, "at::kFloat"},
     {HCCL_DATA_TYPE_FP64, "at::kDouble"},
     {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
+    {HCCL_DATA_TYPE_FP8E4M3, "at::ScalarType::Float8_e4m3fn"},
+    {HCCL_DATA_TYPE_FP8E5M2, "at::ScalarType::Float8_e5m2"},
 };
 
 // Helper function that gets the data type and issues error if not supported

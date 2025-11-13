@@ -2798,6 +2798,57 @@
   "torch_npu.multiprocessing.reductions.rebuild_npu_tensor": {
     "signature": "(tensor_cls, tensor_size, tensor_stride, tensor_offset, storage_cls, dtype, storage_device, storage_handle, storage_size_bytes, storage_offset_bytes, requires_grad, ref_counter_handle, ref_counter_offset, event_handle, event_sync_required)"
   },
+  "torch_npu.HiFloat8Tensor": {
+    "signature": "(*, data: 'torch.Tensor', dtype: 'torch.dtype' = torch.float32)"
+  },
+  "torch_npu.HiFloat8Tensor.half": {
+    "signature": "(self) -> 'torch.Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor.reshape": {
+    "signature": "(self, *shape: 'Tuple[int]') -> '_HiFloat8Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor.from_hifloat8": {
+    "signature": "(self, dtype: 'Optional[torch.dtype]' = None) -> 'torch.Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor.bfloat16": {
+    "signature": "(self) -> 'torch.Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor.contiguous": {
+    "signature": "(self, *, memory_format: 'torch.memory_format' = torch.contiguous_format) -> '_HiFloat8Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor.make_like": {
+    "signature": "(tensor: '_HiFloat8Tensor', *, data: 'torch.Tensor', **kwargs) -> '_HiFloat8Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor._make_in_reduce_ex": {
+    "signature": "(data: 'torch.Tensor', dtype: 'torch.dtype') -> '_HiFloat8Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor.to_hifloat8": {
+    "signature": "(tensor: 'torch.Tensor')"
+  },
+  "torch_npu.HiFloat8Tensor.float": {
+    "signature": "(self) -> 'torch.Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor._set_data": {
+    "signature": "(self, tensor: 'torch.Tensor') -> 'None'"
+  },
+  "torch_npu.HiFloat8Tensor.clone": {
+    "signature": "(self) -> '_HiFloat8Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor._get_data": {
+    "signature": "(self) -> '_HiFloat8Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor.cpu": {
+    "signature": "(self) -> 'torch.Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor.transpose": {
+    "signature": "(self, dim0, dim1)"
+  },
+  "torch_npu.HiFloat8Tensor.view": {
+    "signature": "(self, *shape: 'Tuple[int]') -> '_HiFloat8Tensor'"
+  },
+  "torch_npu.HiFloat8Tensor.to_dtype": {
+    "signature": "(self, dtype: 'torch.dtype') -> '_HiFloat8Tensor'"
+  },
   "func: unsafe_empty_with_format": {
     "signature": "(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor"
   },
