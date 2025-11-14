@@ -17,6 +17,8 @@ import glob
 import os
 import json
 import threading
+from unittest import mock
+from unittest.mock import MagicMock
 import torch
 
 import torch_npu
@@ -411,6 +413,76 @@ class TestNpuProfiler(TestCase):
             all_data = file.read()
             return all(all_data.find(keyword) != -1 for keyword in keywords)
         return False
+
+    def test_create_connect_db_sqlite_error_connection(self):
+        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager, EmptyClass
+        import sqlite3
+        invalid_db_path = "/invalid/path/to/db.db"
+
+        with mock.patch('os.path.exists', return_value=False):
+            with mock.patch('sqlite3.connect') as mock_connect:
+                mock_connect.side_effect = sqlite3.Error('Database connection error')
+                conn, curs = DbManager.create_connect_db(invalid_db_path)
+                self.assertIsInstance(conn, EmptyClass)
+                self.assertIsInstance(curs, EmptyClass)
+
+    def test_fetch_all_data_max_row_count_warning(self):
+        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
+        import sqlite3
+
+        mock_curs = mock.MagicMock()
+        mock_curs.fetchmany.side_effect = [
+            [(1, 2), (3, 4)] * 10000,
+            []
+        ]
+
+        mock_curs.execute.return_value = None
+        original_max = DbManager.MAX_ROW_COUNT
+        DbManager.MAX_ROW_COUNT = 10000
+
+        try:
+            result = DbManager.fetch_all_data(mock_curs, "SELECT * FROM test")
+            self.assertEqual(len(result), 20000)
+        finally:
+            DbManager.MAX_ROW_COUNT = original_max
+
+    def test_insert_data_into_table_empty_data(self):
+        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
+        import sqlite3
+
+        mock_conn = mock.MagicMock()
+        DbManager.insert_data_into_table(mock_conn, "test_table", [])
+        mock_conn.cursor.assert_not_called()
+
+    def test_fetch_all_data_error_handling(self):
+        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
+        import sqlite3
+
+        mock_curs = MagicMock()
+        mock_curs.execute.side_effect = sqlite3.Error("Mock error")
+        result = DbManager.fetch_all_data(mock_curs, "SELECT * FROM test")
+        self.assertEqual(result, [])
+
+    def test_execute_sql_error_handling(self):
+        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
+        import sqlite3
+
+        mock_conn = MagicMock()
+        mock_conn.cursor().execute.side_effect = sqlite3.Error("Mock error")
+
+        result = DbManager.execute_sql(mock_conn, "SELECT * FROM test")
+        self.assertFalse(result)
+
+    def test_destroy_db_connect_none_params(self):
+        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
+        import sqlite3
+
+        DbManager.destroy_db_connect(None, None)
+        mock_conn = MagicMock()
+        DbManager.destroy_db_connect(mock_conn, None)
+        mock_curs = MagicMock()
+        DbManager.destroy_db_connect(None, mock_curs)
+        self.assertTrue(True)
 
 
 if __name__ == "__main__":
