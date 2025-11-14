@@ -68,15 +68,6 @@
   "torch_npu.contrib.MultiheadAttention.multi_attn": {
     "signature": "(self, query, key, value, key_padding_mask, bsz, tgt_len)"
   },
-  "torch_npu.contrib.MultiheadAttention._append_prev_key_padding_mask": {
-    "signature": "(key_padding_mask: Optional[torch.Tensor], prev_key_padding_mask: Optional[torch.Tensor], batch_size: int, src_len: int, static_kv: bool) -> Optional[torch.Tensor]"
-  },
-  "torch_npu.contrib.MultiheadAttention._get_input_buffer": {
-    "signature": "(self, incremental_state: Optional[Dict[str, Dict[str, Optional[torch.Tensor]]]]) -> Dict[str, Optional[torch.Tensor]]"
-  },
-  "torch_npu.contrib.MultiheadAttention._set_input_buffer": {
-    "signature": "(self, incremental_state: Dict[str, Dict[str, Optional[torch.Tensor]]], buffer: Dict[str, Optional[torch.Tensor]])"
-  },
   "torch_npu.contrib.MultiheadAttention.apply_sparse_mask": {
     "signature": "(self, attn_weights, tgt_len: int, src_len: int, bsz: int)"
   },
@@ -320,15 +311,6 @@
   "torch_npu.contrib.module.MultiheadAttention.multi_attn": {
     "signature": "(self, query, key, value, key_padding_mask, bsz, tgt_len)"
   },
-  "torch_npu.contrib.module.MultiheadAttention._append_prev_key_padding_mask": {
-    "signature": "(key_padding_mask: Optional[torch.Tensor], prev_key_padding_mask: Optional[torch.Tensor], batch_size: int, src_len: int, static_kv: bool) -> Optional[torch.Tensor]"
-  },
-  "torch_npu.contrib.module.MultiheadAttention._get_input_buffer": {
-    "signature": "(self, incremental_state: Optional[Dict[str, Dict[str, Optional[torch.Tensor]]]]) -> Dict[str, Optional[torch.Tensor]]"
-  },
-  "torch_npu.contrib.module.MultiheadAttention._set_input_buffer": {
-    "signature": "(self, incremental_state: Dict[str, Dict[str, Optional[torch.Tensor]]], buffer: Dict[str, Optional[torch.Tensor]])"
-  },
   "torch_npu.contrib.module.MultiheadAttention.apply_sparse_mask": {
     "signature": "(self, attn_weights, tgt_len: int, src_len: int, bsz: int)"
   },
@@ -530,15 +512,6 @@
   "torch_npu.contrib.module.multihead_attention.MultiheadAttention.multi_attn": {
     "signature": "(self, query, key, value, key_padding_mask, bsz, tgt_len)"
   },
-  "torch_npu.contrib.module.multihead_attention.MultiheadAttention._append_prev_key_padding_mask": {
-    "signature": "(key_padding_mask: Optional[torch.Tensor], prev_key_padding_mask: Optional[torch.Tensor], batch_size: int, src_len: int, static_kv: bool) -> Optional[torch.Tensor]"
-  },
-  "torch_npu.contrib.module.multihead_attention.MultiheadAttention._get_input_buffer": {
-    "signature": "(self, incremental_state: Optional[Dict[str, Dict[str, Optional[torch.Tensor]]]]) -> Dict[str, Optional[torch.Tensor]]"
-  },
-  "torch_npu.contrib.module.multihead_attention.MultiheadAttention._set_input_buffer": {
-    "signature": "(self, incremental_state: Dict[str, Dict[str, Optional[torch.Tensor]]], buffer: Dict[str, Optional[torch.Tensor]])"
-  },
   "torch_npu.contrib.module.multihead_attention.MultiheadAttention.apply_sparse_mask": {
     "signature": "(self, attn_weights, tgt_len: int, src_len: int, bsz: int)"
   },
@@ -602,17 +575,11 @@
   "torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices": {
     "signature": "(self, devices: List[Union[int, str, torch.device]])"
   },
-  "torch_npu.profiler.profile._set_step_num_offset_for_dynamic_prof": {
-    "signature": "(self, step: int)"
-  },
   "torch_npu.profiler.experimental_config.HostSystem": {
     "signature": "()"
   },
   "torch_npu.utils.save_async": {
     "signature": "(obj: object, f, pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False, model: torch.nn.modules.module.Module = None) -> None"
-  },
-  "torch_npu.profiler.profiler.profile._set_step_num_offset_for_dynamic_prof": {
-    "signature": "(self, step: int)"
   },
   "torch_npu.dynamo.torchair.ops.npu_fused_infer_attention_score": {
     "signature": "(*args, **kwargs)"
@@ -620,14 +587,8 @@
   "torch_npu.dynamo.torchair.ops.npu_fused_infer_attention_score_v2": {
     "signature": "(*args, **kwargs)"
   },
-  "torch_npu.profiler._ExperimentalConfig._check_host_sys_params": {
-    "signature": "(self)"
-  },
   "torch_npu.profiler.HostSystem": {
     "signature": "()"
-  },
-  "torch_npu.profiler.experimental_config._ExperimentalConfig._check_host_sys_params": {
-    "signature": "(self)"
   },
   "torch_npu.dynamo.torchair.ops.npu_tagged_event_wait": {
     "signature": "(event)"
@@ -697,12 +658,6 @@
   },
   "torch_npu.dynamo.torchair.ge.Format": {
     "signature": "(value, names=None, *, module=None, qualname=None, type=None, start=1)"
-  },
-  "torch_npu.dynamo.torchair.ge.Format._generate_next_value_": {
-    "signature": "(name, start, count, last_values)"
-  },
-  "torch_npu.dynamo.torchair.ge.Format._member_type_": {
-    "signature": "()"
   },
   "torch_npu.dynamo.torchair.ge.Tensor": {
     "signature": "()"
@@ -791,9 +746,6 @@
   "torch_npu.npu.graphs.NPUGraph": {
     "signature": "()"
   },
-  "torch_npu.profiler.experimental_config._ExperimentalConfig._conver_export_type_to_list": {
-    "signature": "(self, export_type: Union[str, list]) -> list"
-  },
   "torch_npu.npu.utils.get_cann_version": {
     "signature": "(module='CANN')"
   },
@@ -844,9 +796,6 @@
   },
   "torch_npu.npu.MemPoolContext": {
     "signature": "(pool: torch_npu.npu.memory.MemPool)"
-  },
-  "torch_npu.profiler._ExperimentalConfig._conver_export_type_to_list": {
-    "signature": "(self, export_type: Union[str, list]) -> list"
   },
   "torch_npu.npu.memory.MemPool": {
     "signature": "(allocator: Optional[torch_npu._C._npu_NPUAllocator] = None)"
@@ -1307,23 +1256,11 @@
   "torch_npu.npu.amp.GradScaler": {
     "signature": "(init_scale=65536.0, growth_factor=2.0, backoff_factor=0.5, growth_interval=2000, dynamic=True, enabled=True)"
   },
-  "torch_npu.npu.amp.GradScaler._lazy_init_scale_growth_tracker": {
-    "signature": "(self, dev)"
-  },
-  "torch_npu.npu.amp.GradScaler._lazy_init_dist_flag_and_dist_overflow_count": {
-    "signature": "(self)"
-  },
   "torch_npu.npu.amp.GradScaler.scale": {
     "signature": "(self, outputs)"
   },
-  "torch_npu.npu.amp.GradScaler._unscale_grads_": {
-    "signature": "(self, optimizer, inv_scale, found_inf, allow_fp16)"
-  },
   "torch_npu.npu.amp.GradScaler.unscale_": {
     "signature": "(self, optimizer)"
-  },
-  "torch_npu.npu.amp.GradScaler._maybe_opt_step": {
-    "signature": "(self, optimizer, optimizer_state, *args, **kwargs)"
   },
   "torch_npu.npu.amp.GradScaler.step": {
     "signature": "(self, optimizer, *args, **kwargs)"
@@ -1342,12 +1279,6 @@
   },
   "torch_npu.npu.amp.GradScaler.clear_npu_overflow_flag": {
     "signature": "()"
-  },
-  "torch_npu.npu.amp.GradScaler._sync_dist_overflow_count": {
-    "signature": "(self)"
-  },
-  "torch_npu.npu.amp.GradScaler._npu_update_scale": {
-    "signature": "(self)"
   },
   "torch_npu.npu.amp.autocast": {
     "signature": "(enabled: bool = True, dtype: torch.dtype = torch.float16, cache_enabled: bool = True)"
@@ -1373,23 +1304,11 @@
   "torch_npu.npu.amp.grad_scaler.GradScaler": {
     "signature": "(init_scale=65536.0, growth_factor=2.0, backoff_factor=0.5, growth_interval=2000, dynamic=True, enabled=True)"
   },
-  "torch_npu.npu.amp.grad_scaler.GradScaler._lazy_init_scale_growth_tracker": {
-    "signature": "(self, dev)"
-  },
-  "torch_npu.npu.amp.grad_scaler.GradScaler._lazy_init_dist_flag_and_dist_overflow_count": {
-    "signature": "(self)"
-  },
   "torch_npu.npu.amp.grad_scaler.GradScaler.scale": {
     "signature": "(self, outputs)"
   },
-  "torch_npu.npu.amp.grad_scaler.GradScaler._unscale_grads_": {
-    "signature": "(self, optimizer, inv_scale, found_inf, allow_fp16)"
-  },
   "torch_npu.npu.amp.grad_scaler.GradScaler.unscale_": {
     "signature": "(self, optimizer)"
-  },
-  "torch_npu.npu.amp.grad_scaler.GradScaler._maybe_opt_step": {
-    "signature": "(self, optimizer, optimizer_state, *args, **kwargs)"
   },
   "torch_npu.npu.amp.grad_scaler.GradScaler.step": {
     "signature": "(self, optimizer, *args, **kwargs)"
@@ -1408,12 +1327,6 @@
   },
   "torch_npu.npu.amp.grad_scaler.GradScaler.clear_npu_overflow_flag": {
     "signature": "()"
-  },
-  "torch_npu.npu.amp.grad_scaler.GradScaler._sync_dist_overflow_count": {
-    "signature": "(self)"
-  },
-  "torch_npu.npu.amp.grad_scaler.GradScaler._npu_update_scale": {
-    "signature": "(self)"
   },
   "torch_npu.npu.autocast_utils.get_amp_supported_dtype": {
     "signature": "()"
@@ -1718,65 +1631,11 @@
   "torch_npu.optim.NpuFusedAdadelta": {
     "signature": "(params, lr=1.0, rho=0.9, eps=1e-06, weight_decay=0)"
   },
-  "torch_npu.optim.NpuFusedAdadelta._init_param_state": {
-    "signature": "(self, p)"
-  },
-  "torch_npu.optim.NpuFusedAdadelta._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedAdadelta._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedAdadelta._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.NpuFusedAdam": {
     "signature": "(params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)"
   },
-  "torch_npu.optim.NpuFusedAdam._init_param_state": {
-    "signature": "(self, p, amsgrad)"
-  },
-  "torch_npu.optim.NpuFusedAdam._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedAdam._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedAdam._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.NpuFusedAdamP": {
     "signature": "(params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, delta=0.1, wd_ratio=0.1, nesterov=False)"
-  },
-  "torch_npu.optim.NpuFusedAdamP._channel_view": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.optim.NpuFusedAdamP._layer_view": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.optim.NpuFusedAdamP._cosine_similarity": {
-    "signature": "(self, x, y, eps, view_func)"
-  },
-  "torch_npu.optim.NpuFusedAdamP._projection": {
-    "signature": "(self, p, grad, perturb, delta, wd_ratio, eps)"
-  },
-  "torch_npu.optim.NpuFusedAdamP._init_param_state": {
-    "signature": "(self, p)"
-  },
-  "torch_npu.optim.NpuFusedAdamP._combine_middle_vars": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedAdamP._combine_middle_vars_by_group": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedAdamP._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedAdamP._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedAdamP._group_step": {
-    "signature": "(self, group_index)"
   },
   "torch_npu.optim.NpuFusedAdamP.step": {
     "signature": "(self, closure=None)"
@@ -1784,56 +1643,11 @@
   "torch_npu.optim.NpuFusedAdamW": {
     "signature": "(params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)"
   },
-  "torch_npu.optim.NpuFusedAdamW._init_param_state": {
-    "signature": "(self, p, amsgrad)"
-  },
-  "torch_npu.optim.NpuFusedAdamW._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedAdamW._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedAdamW._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.NpuFusedBertAdam": {
     "signature": "(params, lr=<required parameter>, warmup=-1, t_total=-1, schedule='warmup_linear', b1=0.9, b2=0.999, e=1e-06, weight_decay=0.01, max_grad_norm=1.0)"
   },
-  "torch_npu.optim.NpuFusedBertAdam._init_param_state": {
-    "signature": "(self, p)"
-  },
-  "torch_npu.optim.NpuFusedBertAdam._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedBertAdam._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedBertAdam._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.NpuFusedLamb": {
     "signature": "(params, lr=0.001, betas=(0.9, 0.999), eps=1e-06, weight_decay=0, adam=False, use_global_grad_norm=False)"
-  },
-  "torch_npu.optim.NpuFusedLamb._init_param_state": {
-    "signature": "(self, p)"
-  },
-  "torch_npu.optim.NpuFusedLamb._combine_middle_vars": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedLamb._combine_middle_vars_by_group": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedLamb._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedLamb._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedLamb._get_global_grad_norm": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedLamb._group_step": {
-    "signature": "(self, group_index)"
   },
   "torch_npu.optim.NpuFusedLamb.step": {
     "signature": "(self, closure=None)"
@@ -1841,37 +1655,16 @@
   "torch_npu.optim.NpuFusedOptimizerBase": {
     "signature": "(params, default)"
   },
-  "torch_npu.optim.NpuFusedOptimizerBase._maybe_init_combined_params_and_grads": {
-    "signature": "(self)"
-  },
   "torch_npu.optim.NpuFusedOptimizerBase.step": {
     "signature": "(self, closure=None)"
   },
   "torch_npu.optim.NpuFusedOptimizerBase.zero_grad": {
     "signature": "(self, set_to_none=False)"
   },
-  "torch_npu.optim.NpuFusedOptimizerBase._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedOptimizerBase._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.NpuFusedOptimizerBase.get_combined_params": {
     "signature": "(self)"
   },
   "torch_npu.optim.NpuFusedOptimizerBase.get_combined_grads": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedOptimizerBase._clip_grad_norm_fused_": {
-    "signature": "(self, combined_grads, combined_grads_masks, max_norm, norm_type)"
-  },
-  "torch_npu.optim.NpuFusedOptimizerBase._combine_grads_mask": {
-    "signature": "(self, list_of_params)"
-  },
-  "torch_npu.optim.NpuFusedOptimizerBase._maybe_init_combined_grads_masks": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedOptimizerBase._get_combined_grad_masks": {
     "signature": "(self)"
   },
   "torch_npu.optim.NpuFusedOptimizerBase.clip_grad_norm_fused_": {
@@ -1880,47 +1673,11 @@
   "torch_npu.optim.NpuFusedRMSprop": {
     "signature": "(params, lr=0.01, alpha=0.99, eps=1e-08, weight_decay=0, momentum=0, centered=False)"
   },
-  "torch_npu.optim.NpuFusedRMSprop._init_param_state": {
-    "signature": "(self, p, momentum, centered)"
-  },
-  "torch_npu.optim.NpuFusedRMSprop._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedRMSprop._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedRMSprop._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.NpuFusedRMSpropTF": {
     "signature": "(params, lr=0.01, alpha=0.9, eps=1e-10, weight_decay=0, momentum=0.0, centered=False, decoupled_decay=False, lr_in_momentum=True)"
   },
-  "torch_npu.optim.NpuFusedRMSpropTF._init_param_state": {
-    "signature": "(self, p, momentum, centered)"
-  },
-  "torch_npu.optim.NpuFusedRMSpropTF._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedRMSpropTF._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedRMSpropTF._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.NpuFusedSGD": {
     "signature": "(params, lr=<required parameter>, momentum=0.0, dampening=0.0, weight_decay=0.0, nesterov=False)"
-  },
-  "torch_npu.optim.NpuFusedSGD._init_param_state": {
-    "signature": "(self, p, weight_decay)"
-  },
-  "torch_npu.optim.NpuFusedSGD._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.NpuFusedSGD._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.NpuFusedSGD._group_step": {
-    "signature": "(self, group_index)"
   },
   "torch_npu.optim.NpuFusedSGD.step": {
     "signature": "(self, closure=None)"
@@ -1928,65 +1685,11 @@
   "torch_npu.optim.npu_fused_adadelta.NpuFusedAdadelta": {
     "signature": "(params, lr=1.0, rho=0.9, eps=1e-06, weight_decay=0)"
   },
-  "torch_npu.optim.npu_fused_adadelta.NpuFusedAdadelta._init_param_state": {
-    "signature": "(self, p)"
-  },
-  "torch_npu.optim.npu_fused_adadelta.NpuFusedAdadelta._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_adadelta.NpuFusedAdadelta._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_adadelta.NpuFusedAdadelta._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.npu_fused_adam.NpuFusedAdam": {
     "signature": "(params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)"
   },
-  "torch_npu.optim.npu_fused_adam.NpuFusedAdam._init_param_state": {
-    "signature": "(self, p, amsgrad)"
-  },
-  "torch_npu.optim.npu_fused_adam.NpuFusedAdam._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_adam.NpuFusedAdam._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_adam.NpuFusedAdam._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP": {
     "signature": "(params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, delta=0.1, wd_ratio=0.1, nesterov=False)"
-  },
-  "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP._channel_view": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP._layer_view": {
-    "signature": "(self, x)"
-  },
-  "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP._cosine_similarity": {
-    "signature": "(self, x, y, eps, view_func)"
-  },
-  "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP._projection": {
-    "signature": "(self, p, grad, perturb, delta, wd_ratio, eps)"
-  },
-  "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP._init_param_state": {
-    "signature": "(self, p)"
-  },
-  "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP._combine_middle_vars": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP._combine_middle_vars_by_group": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP._group_step": {
-    "signature": "(self, group_index)"
   },
   "torch_npu.optim.npu_fused_adamp.NpuFusedAdamP.step": {
     "signature": "(self, closure=None)"
@@ -1994,56 +1697,11 @@
   "torch_npu.optim.npu_fused_adamw.NpuFusedAdamW": {
     "signature": "(params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)"
   },
-  "torch_npu.optim.npu_fused_adamw.NpuFusedAdamW._init_param_state": {
-    "signature": "(self, p, amsgrad)"
-  },
-  "torch_npu.optim.npu_fused_adamw.NpuFusedAdamW._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_adamw.NpuFusedAdamW._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_adamw.NpuFusedAdamW._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.npu_fused_bert_adam.NpuFusedBertAdam": {
     "signature": "(params, lr=<required parameter>, warmup=-1, t_total=-1, schedule='warmup_linear', b1=0.9, b2=0.999, e=1e-06, weight_decay=0.01, max_grad_norm=1.0)"
   },
-  "torch_npu.optim.npu_fused_bert_adam.NpuFusedBertAdam._init_param_state": {
-    "signature": "(self, p)"
-  },
-  "torch_npu.optim.npu_fused_bert_adam.NpuFusedBertAdam._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_bert_adam.NpuFusedBertAdam._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_bert_adam.NpuFusedBertAdam._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.npu_fused_lamb.NpuFusedLamb": {
     "signature": "(params, lr=0.001, betas=(0.9, 0.999), eps=1e-06, weight_decay=0, adam=False, use_global_grad_norm=False)"
-  },
-  "torch_npu.optim.npu_fused_lamb.NpuFusedLamb._init_param_state": {
-    "signature": "(self, p)"
-  },
-  "torch_npu.optim.npu_fused_lamb.NpuFusedLamb._combine_middle_vars": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_lamb.NpuFusedLamb._combine_middle_vars_by_group": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_lamb.NpuFusedLamb._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_lamb.NpuFusedLamb._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_lamb.NpuFusedLamb._get_global_grad_norm": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_lamb.NpuFusedLamb._group_step": {
-    "signature": "(self, group_index)"
   },
   "torch_npu.optim.npu_fused_lamb.NpuFusedLamb.step": {
     "signature": "(self, closure=None)"
@@ -2051,37 +1709,16 @@
   "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase": {
     "signature": "(params, default)"
   },
-  "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase._maybe_init_combined_params_and_grads": {
-    "signature": "(self)"
-  },
   "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase.step": {
     "signature": "(self, closure=None)"
   },
   "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase.zero_grad": {
     "signature": "(self, set_to_none=False)"
   },
-  "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase.get_combined_params": {
     "signature": "(self)"
   },
   "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase.get_combined_grads": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase._clip_grad_norm_fused_": {
-    "signature": "(self, combined_grads, combined_grads_masks, max_norm, norm_type)"
-  },
-  "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase._combine_grads_mask": {
-    "signature": "(self, list_of_params)"
-  },
-  "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase._maybe_init_combined_grads_masks": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase._get_combined_grad_masks": {
     "signature": "(self)"
   },
   "torch_npu.optim.npu_fused_optim_base.NpuFusedOptimizerBase.clip_grad_norm_fused_": {
@@ -2090,47 +1727,11 @@
   "torch_npu.optim.npu_fused_rmsprop.NpuFusedRMSprop": {
     "signature": "(params, lr=0.01, alpha=0.99, eps=1e-08, weight_decay=0, momentum=0, centered=False)"
   },
-  "torch_npu.optim.npu_fused_rmsprop.NpuFusedRMSprop._init_param_state": {
-    "signature": "(self, p, momentum, centered)"
-  },
-  "torch_npu.optim.npu_fused_rmsprop.NpuFusedRMSprop._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_rmsprop.NpuFusedRMSprop._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_rmsprop.NpuFusedRMSprop._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.npu_fused_rmsprop_tf.NpuFusedRMSpropTF": {
     "signature": "(params, lr=0.01, alpha=0.9, eps=1e-10, weight_decay=0, momentum=0.0, centered=False, decoupled_decay=False, lr_in_momentum=True)"
   },
-  "torch_npu.optim.npu_fused_rmsprop_tf.NpuFusedRMSpropTF._init_param_state": {
-    "signature": "(self, p, momentum, centered)"
-  },
-  "torch_npu.optim.npu_fused_rmsprop_tf.NpuFusedRMSpropTF._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_rmsprop_tf.NpuFusedRMSpropTF._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_rmsprop_tf.NpuFusedRMSpropTF._group_step": {
-    "signature": "(self, group_index)"
-  },
   "torch_npu.optim.npu_fused_sgd.NpuFusedSGD": {
     "signature": "(params, lr=<required parameter>, momentum=0.0, dampening=0.0, weight_decay=0.0, nesterov=False)"
-  },
-  "torch_npu.optim.npu_fused_sgd.NpuFusedSGD._init_param_state": {
-    "signature": "(self, p, weight_decay)"
-  },
-  "torch_npu.optim.npu_fused_sgd.NpuFusedSGD._combine_group_param_states": {
-    "signature": "(self, group_index)"
-  },
-  "torch_npu.optim.npu_fused_sgd.NpuFusedSGD._maybe_init_combined_states": {
-    "signature": "(self)"
-  },
-  "torch_npu.optim.npu_fused_sgd.NpuFusedSGD._group_step": {
-    "signature": "(self, group_index)"
   },
   "torch_npu.optim.npu_fused_sgd.NpuFusedSGD.step": {
     "signature": "(self, closure=None)"
@@ -2144,23 +1745,11 @@
   "torch_npu.profiler.ProfilerAction": {
     "signature": "(value, names=None, *, module=None, qualname=None, type=None, start=1)"
   },
-  "torch_npu.profiler.ProfilerAction._generate_next_value_": {
-    "signature": "(name, start, count, last_values)"
-  },
-  "torch_npu.profiler.ProfilerAction._member_type_": {
-    "signature": "()"
-  },
   "torch_npu.profiler.ProfilerLevel": {
     "signature": "()"
   },
   "torch_npu.profiler._ExperimentalConfig": {
     "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
-  },
-  "torch_npu.profiler._ExperimentalConfig._check_params": {
-    "signature": "(self)"
-  },
-  "torch_npu.profiler._ExperimentalConfig._check_mstx_domain_params": {
-    "signature": "(self)"
   },
   "torch_npu.profiler.profile": {
     "signature": "(*, activities: Optional[Iterable[torch_npu._C._profiler.ProfilerActivity]] = None, schedule: Optional[Callable[[int], torch_npu.profiler.scheduler.ProfilerAction]] = None, on_trace_ready: Optional[Callable[..., Any]] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Optional[torch_npu.profiler.experimental_config._ExperimentalConfig] = None, use_cuda: Optional[bool] = None)"
@@ -2182,9 +1771,6 @@
   },
   "torch_npu.profiler.schedule": {
     "signature": "(wait: int, active: int, warmup: int = 0, repeat: int = 0, skip_first: int = 0) -> None"
-  },
-  "torch_npu.profiler.schedule._check_params": {
-    "signature": "(self)"
   },
   "torch_npu.profiler.supported_activities": {
     "signature": "()"
@@ -2221,12 +1807,6 @@
   },
   "torch_npu.profiler.experimental_config._ExperimentalConfig": {
     "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
-  },
-  "torch_npu.profiler.experimental_config._ExperimentalConfig._check_params": {
-    "signature": "(self)"
-  },
-  "torch_npu.profiler.experimental_config._ExperimentalConfig._check_mstx_domain_params": {
-    "signature": "(self)"
   },
   "torch_npu.profiler.experimental_config.supported_ai_core_metrics": {
     "signature": "()"
@@ -2270,29 +1850,11 @@
   "torch_npu.profiler.scheduler.ProfilerAction": {
     "signature": "(value, names=None, *, module=None, qualname=None, type=None, start=1)"
   },
-  "torch_npu.profiler.scheduler.ProfilerAction._generate_next_value_": {
-    "signature": "(name, start, count, last_values)"
-  },
-  "torch_npu.profiler.scheduler.ProfilerAction._member_type_": {
-    "signature": "()"
-  },
   "torch_npu.profiler.scheduler.Schedule": {
     "signature": "(wait: int, active: int, warmup: int = 0, repeat: int = 0, skip_first: int = 0) -> None"
   },
-  "torch_npu.profiler.scheduler.Schedule._check_params": {
-    "signature": "(self)"
-  },
   "torch_npu.testing.common_distributed.TestSkip": {
     "signature": "(exit_code, message)"
-  },
-  "torch_npu.testing.common_distributed.TestSkip._make": {
-    "signature": "(iterable)"
-  },
-  "torch_npu.testing.common_distributed.TestSkip._replace": {
-    "signature": "(self, /, **kwds)"
-  },
-  "torch_npu.testing.common_distributed.TestSkip._asdict": {
-    "signature": "(self)"
   },
   "torch_npu.testing.common_distributed.init_pg": {
     "signature": "(backend: str = 'hccl', world_size=1, rank=0, file_name='file://') -> None"
@@ -2411,18 +1973,6 @@
   "torch_npu.testing.testcase.TestCase.assertRtolEqual": {
     "signature": "(self, x, y, prec=0.0001, prec16=0.001, auto_trans_dtype=False, message=None)"
   },
-  "torch_npu.testing.testcase.TestCase._assert_tensor_equal": {
-    "signature": "(self, a, b, message, exact_dtype, allow_inf, prec)"
-  },
-  "torch_npu.testing.testcase.TestCase._assertNumberEqual": {
-    "signature": "(self, x, y, prec=None, message='', allow_inf=False, exact_dtype=None)"
-  },
-  "torch_npu.testing.testcase.TestCase._assertBoolEqual": {
-    "signature": "(self, x, y, prec=None, message='', allow_inf=False, exact_dtype=None)"
-  },
-  "torch_npu.testing.testcase.TestCase._assertTensorsEqual": {
-    "signature": "(self, x, y, prec=None, message='', allow_inf=False, exact_dtype=None)"
-  },
   "torch_npu.testing.testcase.TestCase.assertEqual": {
     "signature": "(self, x, y, prec=None, message='', allow_inf=False, exact_dtype=None)"
   },
@@ -2447,9 +1997,6 @@
   "torch_npu.testing.testcase.TestCase.maybeWarnsRegex": {
     "signature": "(self, category, regex='')"
   },
-  "torch_npu.testing.testcase.TestCase._reset_warning_registry": {
-    "signature": "(self)"
-  },
   "torch_npu.testing.testcase.TestCase.assertExpectedStripMangled": {
     "signature": "(self, s, subname=None)"
   },
@@ -2470,15 +2017,6 @@
   },
   "torch_npu.utils.collect_env.SystemEnv": {
     "signature": "(torch_version, torch_npu_version, is_debug_build, gcc_version, clang_version, cmake_version, os, libc_version, python_version, python_platform, pip_version, pip_packages, conda_packages, caching_allocator_config, is_xnnpack_available, cpu_info, cann_version)"
-  },
-  "torch_npu.utils.collect_env.SystemEnv._make": {
-    "signature": "(iterable)"
-  },
-  "torch_npu.utils.collect_env.SystemEnv._replace": {
-    "signature": "(self, /, **kwds)"
-  },
-  "torch_npu.utils.collect_env.SystemEnv._asdict": {
-    "signature": "(self)"
   },
   "torch_npu.utils.collect_env.check_directory_path_readable": {
     "signature": "(path)"
@@ -2819,22 +2357,13 @@
   "torch_npu.HiFloat8Tensor.make_like": {
     "signature": "(tensor: '_HiFloat8Tensor', *, data: 'torch.Tensor', **kwargs) -> '_HiFloat8Tensor'"
   },
-  "torch_npu.HiFloat8Tensor._make_in_reduce_ex": {
-    "signature": "(data: 'torch.Tensor', dtype: 'torch.dtype') -> '_HiFloat8Tensor'"
-  },
   "torch_npu.HiFloat8Tensor.to_hifloat8": {
     "signature": "(tensor: 'torch.Tensor')"
   },
   "torch_npu.HiFloat8Tensor.float": {
     "signature": "(self) -> 'torch.Tensor'"
   },
-  "torch_npu.HiFloat8Tensor._set_data": {
-    "signature": "(self, tensor: 'torch.Tensor') -> 'None'"
-  },
   "torch_npu.HiFloat8Tensor.clone": {
-    "signature": "(self) -> '_HiFloat8Tensor'"
-  },
-  "torch_npu.HiFloat8Tensor._get_data": {
     "signature": "(self) -> '_HiFloat8Tensor'"
   },
   "torch_npu.HiFloat8Tensor.cpu": {
