@@ -31,6 +31,8 @@
   "test_deprecation_transforms_transform_jacrev_npu (__main__.TestComposabilityPRIVATEUSE1)": ["", [""]],
   "test_deprecation_vmap_npu (__main__.TestComposabilityPRIVATEUSE1)": ["", [""]],
   "test_grad_grad_sum_npu (__main__.TestHigherOrderOperatorInteractionPRIVATEUSE1)": ["", [""]],
+  "test_Conv2d_size_1_kernel_npu (__main__.TestConvolutionNNDeviceTypePRIVATEUSE1)": ["", ["A2"]],
+  "test_conv2d_same_padding_backward_npu_float32 (__main__.TestConvolutionNNDeviceTypePRIVATEUSE1)": ["", ["A2"]],
   "test_grad_sum_npu (__main__.TestHigherOrderOperatorInteractionPRIVATEUSE1)": ["", [""]],
   "test_no_grad_inside_grad_npu (__main__.TestHigherOrderOperatorInteractionPRIVATEUSE1)": ["", [""]],
   "test_no_grad_outside_grad_npu (__main__.TestHigherOrderOperatorInteractionPRIVATEUSE1)": ["", [""]],
