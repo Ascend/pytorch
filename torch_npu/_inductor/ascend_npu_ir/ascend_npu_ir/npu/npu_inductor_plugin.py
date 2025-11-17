@@ -4,6 +4,7 @@ from collections import Counter
 import functools
 import itertools
 import shutil
+import os
 from torch.utils._ordered_set import OrderedSet
 
 import torch
@@ -26,12 +27,15 @@ from torch._inductor.async_compile import shutdown_compile_workers
 from torch._inductor.codegen.common import register_backend_for_device, register_device_op_overrides
 from torch._inductor.virtualized import V
 from torch._inductor import decomposition as inductor_decomp
+
+from ..npu.codegen.akg import AkgScheduling
 from ..npu.codegen.mlir import NpuMlirScheduling
 from ..npu.codegen.wrapper import NpuMlirWrapperCodeGen
 from ..npu.npu_lowering import _register_npu_inductor_fallbacks
 from ..npu.utils import (
     npu_optimize_fx_graph,
-    run_once
+    run_once,
+    logger,
 )
 
 from .. import config as anir_config
@@ -65,6 +69,16 @@ aten = torch.ops.aten
 
 ## Override original dynamo device interface in torch_npu
 from torch_npu.utils._dynamo_device import NpuInterface
+if os.getenv('TORCHINDUCTOR_USE_AKG', '0') == '1':
+    try:
+        import akg
+        register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
+    except:
+        logger.warning(f"akg not found, fallback to torch-mlir for compilation.")
+        register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
+else:
+    register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
+
 try:
     from torch_npu.npu import device_count
 except:
@@ -83,8 +97,6 @@ class NewNpuInterface(NpuInterface):
         return torch.npu.get_device_name(device)
 
 register_interface_for_device("npu", NewNpuInterface)
-
-register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
 
 # recover from torch_npu._inductor patches to source code
 def src_call(self, model_, inputs_):

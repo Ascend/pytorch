@@ -34,6 +34,7 @@ from torch._inductor.codecache import (
     )
 
 from .npu.mlir_compiler import NpuMlirCompiler
+from .npu.codegen.akg import AkgCompiler
 from . import config as anir_config
 from .npu.utils import logger
 
@@ -266,6 +267,13 @@ class CustomAsyncCompile(AsyncCompile):
                 logger.info(f"fallback to fx graph call")
                 return _load_fx_graph(kernel_name, source_code=source_code, extra_env=extra_env, kernel_meta=kernel_meta)
                 return kernel
+
+    def akg_auto_fallback(
+        self, kernel_name: str, source_code: str, kernel_meta: Dict[str, Any]) -> Callable:
+        _compile_start()
+        kernel = AkgCompiler(kernel_meta=kernel_meta)
+        kernel.compile(source_code)
+        return kernel
 
     def import_fx(
         self, module_name: str, kernel_meta: Dict[str, Any]) -> Callable:

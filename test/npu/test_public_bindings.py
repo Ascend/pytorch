@@ -605,6 +605,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.cpp_wrapper",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.mlir",
+            "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.akg",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.wrapper",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.fake_tensor",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.ir",
