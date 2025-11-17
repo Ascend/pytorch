@@ -1139,10 +1139,9 @@ bool saveDevMemUsageInfo(const int& device)
 {
     aclrtMemUsageInfo memUsageInfo[MAX_MODULE_NUM] = {0};
     size_t moduleCount = 0;
-    size_t* moduleCountPtr = &moduleCount;
 
     // Get the memory usage information
-    aclError ret = c10_npu::acl::AclrtGetMemUsageInfo(device, memUsageInfo, MAX_MODULE_NUM, moduleCountPtr);
+    aclError ret = c10_npu::acl::AclrtGetMemUsageInfo(device, memUsageInfo, MAX_MODULE_NUM, &moduleCount);
     if (ret != ACL_ERROR_NONE) {
         ASCEND_LOGE("AclrtGetMemUsageInfo failed, ret:%d", ret);
         return false;
@@ -1164,9 +1163,14 @@ bool saveDevMemUsageInfo(const int& device)
     }
 
     csv_file << "moduleName,curMemSize(MB),memPeakSize(MB)\n" << std::fixed << std::setprecision(kPrecision);
-    for (size_t i = 0; i < moduleCount; ++i) {
+
+    // moduleCount is unreliable, so limit i to MAX_MODULE_NUM
+    for (size_t i = 0; i < moduleCount && i < MAX_MODULE_NUM; ++i) {
         csv_file << memUsageInfo[i].name << "," << static_cast<double>(memUsageInfo[i].curMemSize) / kMB << ","
                  << static_cast<double>(memUsageInfo[i].memPeakSize) / kMB << "\n";
+    }
+    if (moduleCount > MAX_MODULE_NUM) {
+        ASCEND_LOGW("The number of modules exceeds the maximum limit: %zu > %zu", moduleCount, MAX_MODULE_NUM);
     }
     csv_file.close();
 
