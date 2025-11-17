@@ -59,6 +59,13 @@ Tensor toNonOptPrimal(const c10::optional<Tensor>& t)
     return (t.has_value() && t->defined()) ? t->_fw_primal(/* level */ 0) : Tensor();
 }
 
+void update_wrapped_number(Tensor& input, Tensor& output)
+{
+    if (input.unsafeGetTensorImpl()->is_wrapped_number()) {
+        output.unsafeGetTensorImpl()->set_wrapped_number(true);
+    }
+}
+
 void copy_range(variable_list& out, IndexRange range, const Tensor& t)
 {
     AT_ASSERT(range.second <= out.size(), OPS_ERROR(ErrCode::PARAM));

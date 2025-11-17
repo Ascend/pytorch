@@ -478,6 +478,7 @@ class TestPublicBindings(TestCase):
             "torch.testing._internal.distributed.rpc_utils",
             "torch.utils.tensorboard._caffe2_graph",
             "torch._inductor.codegen.cuda.cuda_template",
+            "torch._inductor.codegen.cutedsl._cutedsl_utils",
             "torch._inductor.codegen.cuda.gemm_template",
             "torch._inductor.runtime.triton_helpers",
             "torch.ao.pruning._experimental.data_sparsifier.lightning.callbacks.data_sparsity",
