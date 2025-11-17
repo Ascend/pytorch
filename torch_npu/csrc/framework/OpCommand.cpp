@@ -163,7 +163,9 @@ void OpCommand::Run()
 #endif
         aclCmd->Run(sync, sync_index, outputTensor);
         if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
-            Sync();
+            if (c10_npu::currentStreamCaptureStatusMayInitCtx() != c10_npu::CaptureStatus::Active) {
+                Sync();
+            }
         }
 #ifndef BUILD_LIBTORCH
         if (C10_UNLIKELY(trigger)) {
@@ -207,7 +209,9 @@ void OpCommand::RunOpApi(const string &op_name, PROC_FUNC func, bool sync)
 #endif
         OpCommandImpl::RunOpApi(op_name, func);
         if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
-            NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+            if (c10_npu::currentStreamCaptureStatusMayInitCtx() != c10_npu::CaptureStatus::Active) {
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+            }
         }
 #ifndef BUILD_LIBTORCH
         if (C10_UNLIKELY(trigger)) {
@@ -248,7 +252,9 @@ void OpCommand::RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool sy
 #endif
         OpCommandImpl::RunOpApi(op_name, func);
         if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
-            NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+            if (c10_npu::currentStreamCaptureStatusMayInitCtx() != c10_npu::CaptureStatus::Active) {
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+            }
         }
 #ifndef BUILD_LIBTORCH
         if (C10_UNLIKELY(trigger)) {
