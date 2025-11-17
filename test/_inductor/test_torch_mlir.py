@@ -1,0 +1,32 @@
+import torch
+from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
+from testutils import TestUtils
+import torch_npu
+
+os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
+os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
+from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import logger
+
+class TestAdd(TestUtils):
+    def op_calc(self, first_element, second_element):
+        result = first_element + second_element
+        return result
+
+    @parametrize('shape', TestUtils._pointwise_demo_shapes)
+    @parametrize('dtype', ['float32', 'int64'])
+    def test_pointwise_cases(self, shape, dtype):
+        first_element = self._generate_tensor(shape, dtype)
+        second_element = self._generate_tensor(shape, dtype)
+
+        std_sum = self.op_calc(first_element, second_element)
+
+        compiled_op_calc = torch.compile(self.op_calc)
+        inductor_sum = compiled_op_calc(first_element, second_element)
+
+        self.assertEqual(std_sum, inductor_sum)
+
+
+instantiate_parametrized_tests(TestAdd)
+
+if __name__ == "__main__":
+    run_tests()
