@@ -1092,6 +1092,15 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
             i = parsePageSize(config, i);
         } else if (config[i] == "segment_size_mb") {
             i = parseSegmentSizeMb(config, i);
+        } else if (config[i] == "pinned_reserve_segment_size_mb") {
+            // note : this is handled in NPUAllocatorConfig.h (cuda)
+            consumeToken(config, ++i, ':');
+            if (++i < config.size()) {
+                (void)stoi(config[i]);
+                // we just skip this here
+            } else {
+                TORCH_CHECK(false, "Error, expecting host reserve_segment_size_mb value", OPS_ERROR(ErrCode::VALUE));
+            }
         } else {
             TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::PARAM));
         }

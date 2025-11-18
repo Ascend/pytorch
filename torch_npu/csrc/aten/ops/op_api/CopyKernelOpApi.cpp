@@ -27,7 +27,6 @@
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
 
-
 namespace at_npu {
 namespace native {
 
@@ -44,8 +43,10 @@ void copy_between_host_and_device_opapi(at::Tensor& dst, const at::Tensor& src, 
         auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
         NPU_CHECK_ERROR(ret);
         ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
-        void* ptr = torch_npu::utils::is_npu(dst) ? src.storage().mutable_data() : dst.storage().mutable_data();
-        NPU_CHECK_ERROR(CachingHostAllocator_recordEvent(ptr, kind, stream), "aclrtSynchronizeStreamWithTimeout");
+        if (!c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() || (kind != aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST)) {
+            auto& storage = torch_npu::utils::is_npu(dst) ? src.storage() : dst.storage();
+            NPU_CHECK_ERROR(CachingHostAllocator_recordEvent(storage.mutable_data(), storage.data_ptr().get_context(), stream), "aclrtSynchronizeStreamWithTimeout");
+        }
     } else {
         aclError error = aclrtSynchronizeStream(stream);
         auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
