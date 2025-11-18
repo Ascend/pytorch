@@ -2417,7 +2417,13 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             uint32_t peer = static_cast<uint32_t>(getP2pPeer());
             uint32_t lowRank = rank_ < peer ? rank_ : peer;
             uint32_t highRank = rank_ < peer ? peer : rank_;
-            std::vector<uint32_t> p2pRanks = {lowRank, highRank};
+            std::vector<uint32_t> p2pRanks;
+            if (options_->global_ranks_in_group.empty()) {
+                p2pRanks = {lowRank, highRank};
+            } else {
+                TORCH_CHECK(highRank < options_->global_ranks_in_group.size(), "p2p rank id must be smaller than group size", DIST_ERROR(ErrCode::PARAM));
+                p2pRanks = {options_->global_ranks_in_group[lowRank], options_->global_ranks_in_group[highRank]};
+            }
             hcclid = (std::hash<string>{}(devicesKey));
             std::string p2pName = "group" + options_->group_id + "_p2p_" + std::to_string(lowRank) + "_" + std::to_string(highRank);
             if (strlen(commConfig->hcclCommName) > 0) {
