@@ -1,13 +1,21 @@
 import torch
-from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
+from torch.testing._internal.common_utils import (
+    run_tests,
+    parametrize,
+    instantiate_parametrized_tests,
+)
+from unittest import skip
 from testutils import TestUtils
 import torch_npu
 
-os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
-os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import logger
 
+@skip("request torch-mlir")
 class TestAdd(TestUtils):
+    import os
+
+    os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
+    os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
+
     def op_calc(self, first_element, second_element):
         result = first_element + second_element
         return result

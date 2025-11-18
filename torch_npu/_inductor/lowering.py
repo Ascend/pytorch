@@ -7,6 +7,7 @@ from torch._inductor.ir import ExpandView, TensorBox, ops_wrapper
 from torch._inductor.ir import Reduction
 from torch._inductor.lowering import sum_, clone
 from torch._inductor.utils import sympy_product
+from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch._prims_common import (
     is_boolean_dtype,
     is_integer_dtype,
@@ -279,3 +280,23 @@ def _register_npu_inductor_fallbacks():
     make_fallback(aten._log_softmax)
     make_fallback(aten.gather)
     make_fallback(aten.nll_loss_forward)
+    
+    @register_lowering(triton_kernel_wrapper_mutation)
+    def triton_kernel_wrap_(
+        *,
+        kernel_idx,
+        constant_args_idx,
+        grid,
+        tma_descriptor_metadata,
+        kwargs,
+    ):
+        from torch._higher_order_ops.triton_kernel_wrap import kernel_side_table
+
+        constant_args = kernel_side_table.get_constant_args(constant_args_idx)
+        ir.UserDefinedTritonKernel(
+            kernel_idx=kernel_idx,
+            grid=grid,
+            tma_descriptor_metadata=tma_descriptor_metadata,
+            kernel_args={**kwargs, **constant_args},
+        )
+        return {key: val for key, val in kwargs.items() if isinstance(val, TensorBox)}
