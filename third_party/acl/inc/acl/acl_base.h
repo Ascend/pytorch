@@ -196,6 +196,9 @@ typedef enum {
     ACL_FORMAT_NCL = 47,
     ACL_FORMAT_FRACTAL_NZ_C0_16 = 50,
     ACL_FORMAT_FRACTAL_NZ_C0_32 = 51,
+    ACL_FORMAT_FRACTAL_NZ_C0_2 = 52,
+    ACL_FORMAT_FRACTAL_NZ_C0_4 = 53,
+    ACL_FORMAT_FRACTAL_NZ_C0_8 = 54,
 } aclFormat;
 
 typedef enum {
