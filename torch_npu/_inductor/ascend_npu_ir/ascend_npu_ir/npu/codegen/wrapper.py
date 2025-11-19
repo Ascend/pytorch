@@ -68,6 +68,7 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 import math
                 import random
                 import os
+                os.environ["TORCHINDUCTOR_MAX_AUTOTUNE"] = '1'
                 import tempfile
                 from math import inf, nan
                 from torch._inductor.hooks import run_intermediate_hooks
@@ -81,6 +82,7 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 from torch.utils._sympy.functions import FloatTrueDiv
                 from torch.utils._sympy.functions import IntTrueDiv
 
+                has_initialized = False
                 aten = torch.ops.aten
                 inductor_ops = torch.ops.inductor
                 assert_size_stride = torch._C._dynamo.guards.assert_size_stride
@@ -169,3 +171,28 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
             )
         else:
             self.writeline(self.wrap_kernel_call(kernel_name, call_args))
+
+    def write_prefix(self) -> None:
+        super().write_prefix()
+        if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+            with self.prefix.indent():
+                self.prefix.writeline('global has_initialized')
+                self.prefix.writeline('if not has_initialized:')
+            self.prefix.do_indent()
+            with self.prefix.indent():
+                self.prefix.writeline('from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler')
+                self.prefix.writeline('static_kernel_complier = StaticKernelCompiler()')
+                self.prefix.writeline('static_kernel_complier.__enter__()')
+                self.prefix.writeline('has_initialized = True')
+            self.prefix.do_unindent()
+
+    def generate_return(self, output_refs: list[str]) -> None:
+        if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+            self.wrapper_call.do_unindent()
+            with self.wrapper_call.indent():
+                self.wrapper_call.writeline('if not has_initialized:')
+            self.wrapper_call.do_indent()
+            with self.wrapper_call.indent():
+                self.wrapper_call.writeline('exc_info=(None, None, None)')
+                self.wrapper_call.writeline('static_kernel_complier.__exit__(*exc_info)')
+        super().generate_return(output_refs)

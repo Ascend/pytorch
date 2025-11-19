@@ -6,7 +6,11 @@ import datetime
 from pathlib import Path
 
 import torch_npu
-from .config import log
+
+if os.getenv('TORCHINDUCTOR_MAX_AUTOTUNE', '0') == '1':
+    from .ascend_npu_ir.ascend_npu_ir.npu.utils import logger as log
+else:
+    from .config import log
 
 _uninstall_path = None
 

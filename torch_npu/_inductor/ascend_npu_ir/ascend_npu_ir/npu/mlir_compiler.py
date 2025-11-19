@@ -194,10 +194,10 @@ class NpuMlirCompiler:
     
     def get_launch_dynamic(self, function, tiling_func, tiling_size):
         block_dim = anir_config.block_dim
+        arg_tiling_device = torch.empty((tiling_size // 8), device='npu', dtype=torch.int64)
+        arg_tiling_host = torch.empty((tiling_size // 8), dtype=torch.int64)
         def kernel_call(*args, stream=None):
-            arg_tiling_device = torch.empty((tiling_size // 8), device='npu', dtype=torch.int64)
-            self.launch(block_dim, stream, function, tiling_func, tiling_size, arg_tiling_device, None, None, None, *args)
-            del arg_tiling_device
+            self.launch(block_dim, stream, function, tiling_func, tiling_size, arg_tiling_host, arg_tiling_device, None, None, None, *args)
         return kernel_call
     
     def get_launch(self, function):

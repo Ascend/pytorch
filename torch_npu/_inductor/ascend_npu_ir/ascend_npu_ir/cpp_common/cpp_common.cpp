@@ -127,8 +127,8 @@ static void prepare_tiling(void* args, void* tiling_func, int64_t tilingSize, vo
     uint32_t args_num = argsSize / sizeof(void *);
     void **args_cast = static_cast<void **>(args);
     
-    args_cast[args_num - 5] = arg_tiling_host; // MEM_CACHE.arg_tiling_host.get(); // 5: TilingMemrefAlignedOffset
-    args_cast[args_num - 4] = arg_tiling_host; //MEM_CACHE.arg_tiling_host.get(); // 4: TilingMemrefAllocatedOffset
+    args_cast[args_num - 5] = arg_tiling_host; // 5: TilingMemrefAlignedOffset
+    args_cast[args_num - 4] = arg_tiling_host; // 4: TilingMemrefAllocatedOffset
 
     // tiling_func to update args
     typedef int64_t (*mlir_tiling_func)(void*);
@@ -150,7 +150,7 @@ static void prepare_tiling(void* args, void* tiling_func, int64_t tilingSize, vo
     args_cast[args_num - 4] = arg_tiling_device;
 }
 
-rtError_t common_launch_dyn(char* kernelName, void* func, void* tiling_func, int64_t tilingSize,
+rtError_t common_launch_dyn(char* kernelName, void* func, void* tiling_func, int64_t tilingSize, void* arg_tiling_host,
                             void* arg_tiling_device, uint32_t gridX, void* args, uint32_t argsSize, rtStream_t stream)
 {
     unsigned long int beginTime = 0;
@@ -160,11 +160,6 @@ rtError_t common_launch_dyn(char* kernelName, void* func, void* tiling_func, int
     size_t length = strlen(kernelName);
 
     if (tilingSize != 0) {
-        void *arg_tiling_host = nullptr;
-        aclError err = aclrtMallocHost((void **)&arg_tiling_host, tilingSize);
-        if (err != ACL_ERROR_NONE) {
-            printf("Failed to malloc arg_tiling_host, err: %d \n", err);
-        }
         void **args_cast = static_cast<void **>(args);
         prepare_tiling(args_cast, tiling_func, tilingSize, arg_tiling_host, arg_tiling_device, gridX, stream, argsSize);
         typedef void (*mlir_func)(uint32_t, void*, void*, void*);
