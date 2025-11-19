@@ -21,6 +21,11 @@ class Format(IntEnum):
     FRACTAL_Z_3D = 33
     NC = 35
     NCL = 47
+    FRACTAL_NZ_C0_16 = 50
+    FRACTAL_NZ_C0_32 = 51
+    FRACTAL_NZ_C0_2 = 52
+    FRACTAL_NZ_C0_4 = 53
+    FRACTAL_NZ_C0_8 = 54
 
     def __str__(self):
         return self.name
