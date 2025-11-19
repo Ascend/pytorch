@@ -95,7 +95,14 @@ c10::DeviceIndex NPUGuardImpl::deviceCount() const noexcept
 // Event-related functions
 void NPUGuardImpl::createEvent(aclrtEvent *acl_event, const c10::EventFlag flag) const
 {
-    auto flag_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
+    auto flag_ = ACL_EVENT_DEFAULT;
+    if (c10_npu::acl::IsExistCreateEventExWithFlag()) {
+        // BACKEND_DEFAULT is a enable-timing flag
+        flag_ = (flag == c10::EventFlag::BACKEND_DEFAULT) ? (ACL_EVENT_TIME_LINE | ACL_EVENT_SYNC) : ACL_EVENT_SYNC;
+    } else {
+        flag_ = (flag == c10::EventFlag::BACKEND_DEFAULT) ? ACL_EVENT_TIME_LINE : ACL_EVENT_DEFAULT;
+    }
+    ASCEND_LOGI("Event: Mapped ACL event flag = 0x%x", flag_);
     NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtCreateEventWithFlag(acl_event, flag_));
     ASCEND_LOGI("Event: aclrtCreateEventWithFlag is successfully executed, event=%p", *acl_event);
 #ifndef BUILD_LIBTORCH
@@ -132,15 +139,7 @@ void NPUGuardImpl::record(void **event, const c10::Stream &stream, const c10::De
 
     // Creates the event (lazily)
     if (!npu_event) {
-        auto flag_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
-        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, flag_));
-        ASCEND_LOGI("Event: aclrtCreateEventWithFlag is successfully executed, event=%p", npu_event);
-#ifndef BUILD_LIBTORCH
-        const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
-        if (C10_UNLIKELY(trigger)) {
-            trigger->traceNpuEventCreation(reinterpret_cast<uintptr_t>(npu_event));
-        }
-#endif
+        createEvent(&npu_event, flag);
     }
     NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchRecordEventTask(npu_event, npu_stream));
     ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed, stream=%p, event=%p", npu_stream.stream(false),
@@ -183,6 +182,19 @@ bool NPUGuardImpl::queryEvent(void *event) const
     return (status == acl::ACL_EVENT_RECORDED_STATUS_COMPLETE);
 }
 
+// Stream-related functions
+bool NPUGuardImpl::queryStream(const c10::Stream& stream) const
+{
+    NPUStream npu_stream{stream};
+    return npu_stream.query();
+}
+
+void NPUGuardImpl::synchronizeStream(const c10::Stream& stream) const
+{
+    NPUStream npu_stream{stream};
+    npu_stream.synchronize();
+}
+
 void NPUGuardImpl::synchronizeEvent(void* event) const
 {
     if (!event) {
@@ -218,6 +230,37 @@ void NPUGuardImpl::recordDataPtrOnStream(const c10::DataPtr &data_ptr, const c10
 {
     NPUStream npu_stream{stream};
     c10_npu::NPUCachingAllocator::recordStream(data_ptr, npu_stream);
+}
+
+double NPUGuardImpl::elapsedTime(void *event1, void *event2, c10::DeviceIndex device_index) const
+{
+    TORCH_CHECK(
+        event1 && event2,
+        "Both events must be recorded before calculating elapsed time.");
+    int orig_device = -1;
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&orig_device));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(device_index));
+
+    NPUStatus ret = c10_npu::emptyAllNPUStream();
+    if (ret != NPU_STATUS_SUCCESS) {
+        ASCEND_LOGE("Failed to empty NPU task queue, ret: %s", ret.c_str());
+    }
+    NPU_CHECK_ERROR(aclrtSynchronizeEvent(event1));
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event1=%p", event1);
+    NPU_CHECK_ERROR(aclrtSynchronizeEvent(event2));
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event2=%p", event2);
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(event1));
+        trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(event2));
+    }
+#endif
+    float time_ms = 0;
+    // raise error if either event is recorded but not yet completed
+    NPU_CHECK_ERROR(aclrtEventElapsedTime(&time_ms, event1, event2));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(orig_device));
+    return static_cast<double>(time_ms);
 }
 
 C10_REGISTER_GUARD_IMPL(PrivateUse1, NPUGuardImpl);
