@@ -1,12 +1,11 @@
+from unittest import skip
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
 import torch_npu
 
-os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
-os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import logger
 
+@skip("request torch-mlir")
 class TestAdd(TestUtils):
     def op_calc(self, first_element, second_element):
         result = first_element + second_element
@@ -15,6 +14,11 @@ class TestAdd(TestUtils):
     @parametrize('shape', TestUtils._pointwise_demo_shapes)
     @parametrize('dtype', ['float32', 'int64'])
     def test_pointwise_cases(self, shape, dtype):
+        import os
+
+        os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
+        os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
+        
         first_element = self._generate_tensor(shape, dtype)
         second_element = self._generate_tensor(shape, dtype)
 
