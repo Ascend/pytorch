@@ -98,6 +98,7 @@ class _DynamicProfile:
                 print_warn_msg(f"Dynamic Profiler config is not effective. The start_step={self.cfg_ctx.start_step()}, "
                                f"current_step={self.cur_step}")
                 self._dynamic_monitor.update_profiler_status(DynamicProfilerUtils.ProfilerStatus.IDLE)
+                self.cfg_ctx = None
             elif self.cur_step == self.cfg_ctx.start_step() or self.cfg_ctx.start():
                 self.step_num = step_num
                 self._dynamic_monitor.update_step_info(self.cur_step, DynamicProfilerUtils.START_STEP)
