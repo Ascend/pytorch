@@ -100,6 +100,18 @@ class TestAccelerator(TestCase):
         ):
             event1.elapsed_time(event2)
 
+    def test_event_elapsed_time(self):
+        start_event = torch.Event(enable_timing=True)
+        end_event = torch.Event(enable_timing=True)
+        start_event.record()
+        x = torch.randn(1000, 1000, device='npu')
+        y = torch.randn(1000, 1000, device='npu')
+        z = torch.matmul(x, y)
+        end_event.record()
+        torch.npu.synchronize()
+        ms = start_event.elapsed_time(end_event)
+        self.assertGreater(ms, 0)
+
 
 if __name__ == "__main__":
     run_tests()
