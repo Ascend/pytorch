@@ -24,23 +24,27 @@ class HcomAllReduceTest(TestCase):
 
     @classmethod
     # pylint:disable=huawei-too-many-arguments
-    def _test_all_reduce(cls, rank, input1, world_size, init_pg, c2p, reduce_op=dist.ReduceOp.SUM):
+    def _test_all_reduce(cls, rank, input1, world_size, init_pg, c2p, reduce_op=dist.ReduceOp.SUM, done_event=None):
         dist_group = init_pg(rank, world_size)
         dst = 0
         input1 = input1.npu()
         dist_group.all_reduce(input1, reduce_op)
         c2p.put((rank, dst, input1.cpu()))
 
+        if done_event is not None:
+            done_event.wait()
+
     # pylint:disable=huawei-too-many-arguments
     def _test_multiprocess(self, f, init_pg, expected, input1, world_size, reduce_op=dist.ReduceOp.SUM):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
+        done_event = ctx.Event()
 
         ps = []
         for i in range(world_size):
             p = ctx.Process(
                 target=f,
-                args=(i, input1.cpu(), world_size, init_pg, c2p, reduce_op))
+                args=(i, input1.cpu(), world_size, init_pg, c2p, reduce_op, done_event))
             p.start()
             ps.append(p)
 
@@ -50,7 +54,7 @@ class HcomAllReduceTest(TestCase):
                 self.assertEqual(output, expected,
                                  "rank {} world_size {} dtype {} shape {} Expect receive tensor {} but got {}.".format(
                                      rank, world_size, expected.dtype, expected.shape, expected, output))
-
+        done_event.set()
         for p in ps:
             p.join()
 
