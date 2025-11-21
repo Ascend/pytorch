@@ -8,6 +8,7 @@
 #include "torch_npu/csrc/core/npu/NPUSwappedMemoryAllocator.h"
 
 size_t kAlignSize = 4096; // The first address must be aligned to page_size
+size_t mAlignSize = 2097152; // The first address of AclrtHostRegister must be aligned to 2M due to the current driver version's constraints
 
 struct HostPtr {
     void* ptr;
@@ -21,7 +22,7 @@ bool initialized = false;
 void* mallocHostMemory(size_t size)
 {
     void* ptr = nullptr;
-    NPU_CHECK_ERROR(aclrtMallocHost(static_cast<void**>(&ptr), size + kAlignSize));
+    NPU_CHECK_ERROR(aclrtMallocHost(static_cast<void**>(&ptr), size + mAlignSize));
     return ptr;
 }
 
@@ -29,13 +30,18 @@ void* mallocHostMemory(size_t size)
 void* registerSvmMem(void* ptr, size_t size)
 {
     void *svmPtr = nullptr;
+    // RTS will change ACL_HOST_REGISTER_MAPPED to HOST_SVM_MAP_DEV when the first address is aligned to 2M on A3
     aclrtHostRegisterType regType = ACL_HOST_REGISTER_MAPPED;
-    uintptr_t aligned_ptr = (reinterpret_cast<uintptr_t>(ptr) + kAlignSize - 1) / kAlignSize * kAlignSize;
+    uintptr_t aligned_ptr = (reinterpret_cast<uintptr_t>(ptr) + mAlignSize - 1) / mAlignSize * mAlignSize;
     void* alignedPtr = reinterpret_cast<void*>(aligned_ptr);
     if (c10_npu::acl::AclrtHostRegister(alignedPtr, size, regType, &svmPtr) != ACL_ERROR_NONE) {
         NPU_CHECK_ERROR(aclrtFreeHost(ptr));
         TORCH_CHECK(false, "AclrtHostRegister failed.", PTA_ERROR(ErrCode::ACL));
     }
+    if (alignedPtr != svmPtr) {
+        ASCEND_LOGW("The svmPtr(0x%llx) is not equel to alignedPtr(0x%llx), then the memory pointed by svmPtr can not be printed directly on host ", svmPtr, alignedPtr)
+    }
+
     HostPtr hostPtr;
     hostPtr.ptr = ptr;
     hostPtr.alignedPtr = alignedPtr;
