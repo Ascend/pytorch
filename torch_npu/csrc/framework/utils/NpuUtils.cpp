@@ -248,7 +248,7 @@ at::Tensor NpuUtils::format_contiguous_add_copy_optimize(const at::Tensor &src)
 
 bool NpuUtils::IsOomError(aclError ret, int index)
 {
-    if (ret == ACL_ERROR_GE_DEVICE_MEMORY_ALLOCATION_FAILED) {
+    if (ret == ACL_ERROR_GE_EXEC_LOAD_MODEL_PARTITION_FAILED) {
         int deviceId = 0;
         // free devcie cached memory when return value of the first op execution is
         // oom
