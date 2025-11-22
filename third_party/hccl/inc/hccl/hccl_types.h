@@ -1,9 +1,13 @@
-/**
- * @file hccl_types.h
- * @brief HCCL data type definition 
- * 
+/*
+ * Copyright (c) 2024 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
- 
+
 #ifndef HCCL_TYPES_H_
 #define HCCL_TYPES_H_
 
@@ -12,17 +16,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
-
-const uint32_t HCCL_COMM_CONFIG_INFO_BYTES = 24;
-const uint32_t HCCL_COMM_CONFIG_MAGIC_WORD = 0xf0f0f0f0;
-const uint32_t HCCL_COMM_CONFIG_VERSION = 6;
-const uint32_t HCCL_COMM_DEFAULT_BUFFSIZE = 200;                // 200MB buffer size
-const uint32_t HCCL_COMM_DEFAULT_DETERMINISTIC = 0;             // Disable deterministic calculations
-const uint32_t COMM_NAME_MAX_LENGTH = 128;
-const uint32_t UDI_MAX_LENGTH = 128;
-const uint32_t HCCL_COMM_TRAFFIC_CLASS_CONFIG_NOT_SET = 0xffffffff;
-const uint32_t HCCL_COMM_SERVICE_LEVEL_CONFIG_NOT_SET = 0xffffffff;
-const uint32_t HCCL_COMM_DEFAULT_OP_EXPANSION_MODE = 0;
 
 /**
  * @brief HCCL functions return value definition
@@ -50,6 +43,8 @@ typedef enum {
     HCCL_E_NETWORK = 19,            /**< call network api fail */
     HCCL_E_AGAIN = 20,              /**< try again */
     HCCL_E_REMOTE = 21,             /**< error cqe */
+    HCCL_E_SUSPENDING = 22,         /**< error communicator suspending */
+    HCCL_E_OPRETRY_FAIL = 23,       /**< retry constraint */
     HCCL_E_RESERVED                 /**< reserved */
 } HcclResult;
 
@@ -66,7 +61,7 @@ typedef enum {
     HCCL_REDUCE_PROD = 1,   /**< prod */
     HCCL_REDUCE_MAX = 2,    /**< max */
     HCCL_REDUCE_MIN = 3,    /**< min */
-    HCCL_REDUCE_RESERVED    /**< reserved */
+    HCCL_REDUCE_RESERVED = 255 /**< reserved */
 } HcclReduceOp;
 
 /**
@@ -78,22 +73,36 @@ typedef enum {
     HCCL_DATA_TYPE_INT32 = 2,   /**< int32 */
     HCCL_DATA_TYPE_FP16 = 3,    /**< fp16 */
     HCCL_DATA_TYPE_FP32 = 4,    /**< fp32 */
-    HCCL_DATA_TYPE_INT64 = 5,   /**< int64 */
-    HCCL_DATA_TYPE_UINT64 = 6,  /**< uint64 */
-    HCCL_DATA_TYPE_UINT8 = 7,   /**< uint8 */
-    HCCL_DATA_TYPE_UINT16 = 8,  /**< uint16 */
-    HCCL_DATA_TYPE_UINT32 = 9,  /**< uint32 */
-    HCCL_DATA_TYPE_FP64 = 10,   /**< fp64 */
-    HCCL_DATA_TYPE_BFP16 = 11,  /**< bfp16 */
+    HCCL_DATA_TYPE_INT64 = 5,    /**< int64 */
+    HCCL_DATA_TYPE_UINT64 = 6,    /**< uint64 */
+    HCCL_DATA_TYPE_UINT8 = 7,    /**< uint8 */
+    HCCL_DATA_TYPE_UINT16 = 8,   /**< uint16 */
+    HCCL_DATA_TYPE_UINT32 = 9,   /**< uint32 */
+    HCCL_DATA_TYPE_FP64 = 10,    /**< fp64 */
+    HCCL_DATA_TYPE_BFP16 = 11,    /**< bfp16 */
     HCCL_DATA_TYPE_INT128 = 12,   /**< int128 */
     HCCL_DATA_TYPE_HIF8 = 14,     /**< hif8 */
     HCCL_DATA_TYPE_FP8E4M3 = 15,  /**< fp8e4m3 */
     HCCL_DATA_TYPE_FP8E5M2 = 16,  /**< fp8e5m2 */
+    HCCL_DATA_TYPE_FP8E8M0 = 17,  /**< fp8e8m0 */
     HCCL_DATA_TYPE_RESERVED = 255 /**< reserved */
 } HcclDataType;
 
-const uint32_t HCCL_ROOT_INFO_BYTES =  4108; // 4108: root info length
+typedef enum {
+    HCCL_DETERMINISTIC = 0,     /**< 0: non-deterministic, 1: deterministic */
+#ifndef OPEN_BUILD_PROJECT
+    HCCL_ACCELERATOR,           /**< 0: default, 1: CCU, 2: AIV, 3: AICPU_TS, 4: HOSTCPU_TS, 5: AICPU */
+#endif
+    HCCL_CONFIG_RESERVED
+} HcclConfig;
 
+union HcclConfigValue {
+    int32_t value;
+};
+
+const uint32_t HCCL_ROOT_INFO_BYTES =  4108; // 4108: root info length
+const uint32_t COMM_NAME_MAX_LENGTH = 128; // group name max length
+const uint32_t UDI_MAX_LENGTH = 128; // UDI max length
 /**
  * @brief HCCL root info
  */
@@ -101,13 +110,41 @@ typedef struct HcclRootInfoDef {
     char internal[HCCL_ROOT_INFO_BYTES];
 } HcclRootInfo;
 
-/**
- * @brief HCCL set config type
- */
+const uint32_t HCCL_COMM_CONFIG_INFO_BYTES = 24;
+const uint32_t HCCL_COMM_CONFIG_MAGIC_WORD = 0xf0f0f0f0;
+const uint32_t HCCL_COMM_CONFIG_VERSION = 6;
+const uint32_t HCCL_COMM_DEFAULT_BUFFSIZE = 200;
+const uint32_t HCCL_COMM_BUFFSIZE_CONFIG_NOT_SET = 0xffffffff;
+const uint32_t HCCL_COMM_DEFAULT_DETERMINISTIC = 0;
+const uint32_t HCCL_COMM_DETERMINISTIC_CONFIG_NOT_SET = 0xffffffff;
+const uint32_t HCCL_COMM_DEFAULT_OP_EXPANSION_MODE = 0;
+// 0xffffffff表示用户未配置TC或SL
+const uint32_t HCCL_COMM_TRAFFIC_CLASS_CONFIG_NOT_SET = 0xffffffff;
+const uint32_t HCCL_COMM_SERVICE_LEVEL_CONFIG_NOT_SET = 0xffffffff;
+
+typedef struct HcclCommConfigDef {
+    char reserved[HCCL_COMM_CONFIG_INFO_BYTES];
+    uint32_t hcclBufferSize;
+    uint32_t hcclDeterministic;
+    char hcclCommName[COMM_NAME_MAX_LENGTH];
+    char hcclUdi[UDI_MAX_LENGTH];
+    uint32_t hcclOpExpansionMode;   // 0:默认值  1:host  2:aicpu  3:aiv
+    uint32_t hcclRdmaTrafficClass;
+    uint32_t hcclRdmaServiceLevel;
+    uint32_t hcclWorldRankID;
+    uint64_t hcclJobID;
+} HcclCommConfig;
+
 typedef enum {
-    HCCL_DETERMINISTIC = 0,
-    HCCL_CONFIG_RESERVED
-} HcclConfig;
+    HCCL_COMM_CONFIG_BUFFER_SIZE = 0,
+    HCCL_COMM_CONFIG_DETERMINISTIC = 1,
+    HCCL_COMM_CONFIG_COMM_NAME = 2,
+    HCCL_COMM_CONFIG_OP_EXPANSION_MODE = 3,
+    HCCL_COMM_CONFIG_SUPPORT_INIT_BY_ENV = 4,
+    HCCL_COMM_CONFIG_WORLD_RANKID = 5,
+    HCCL_COMM_CONFIG_JOBID = 6,
+    HCCL_COMM_CONFIG_RESERVED
+} HcclCommConfigCapability;
 
 typedef enum {
     HCCL_SEND = 0,
@@ -123,30 +160,34 @@ typedef struct HcclSendRecvItemDef {
     uint32_t remoteRank;
 } HcclSendRecvItem;
 
-union  HcclConfigValue {
-    int32_t value;
-};
-
-typedef struct HcclCommConfigDef {
-    char reserved[HCCL_COMM_CONFIG_INFO_BYTES];
-    uint32_t hcclBufferSize;
-    uint32_t hcclDeterministic;
-    char hcclCommName[COMM_NAME_MAX_LENGTH];
-    char hcclUdi[UDI_MAX_LENGTH];
-    uint32_t hcclOpExpansionMode;
-    uint32_t hcclRdmaTrafficClass;
-    uint32_t hcclRdmaServiceLevel;
-    uint32_t hcclWorldRankID;
-    uint64_t hcclJobID;
-} HcclCommConfig;
-
 typedef enum {
-    HCCL_COMM_CONFIG_BUFFER_SIZE = 0,
-    HCCL_COMM_CONFIG_DETERMINISTIC = 1,
-    HCCL_COMM_CONFIG_COMM_NAME = 2,
-    HCCL_COMM_CONFIG_OP_EXPANSION_MODE = 3,
-    HCCL_COMM_CONFIG_RESERVED,
-} HcclCommConfigCapability;
+    HCCL_CMD_INVALID = 0,
+    HCCL_CMD_BROADCAST = 1,
+    HCCL_CMD_ALLREDUCE,
+    HCCL_CMD_REDUCE,
+    HCCL_CMD_SEND,
+    HCCL_CMD_RECEIVE,
+    HCCL_CMD_ALLGATHER,
+    HCCL_CMD_REDUCE_SCATTER,
+    HCCL_CMD_ALLTOALLV,
+    HCCL_CMD_ALLTOALLVC,
+    HCCL_CMD_ALLTOALL,
+    HCCL_CMD_GATHER,
+    HCCL_CMD_SCATTER,
+    HCCL_CMD_BATCH_SEND_RECV,
+    HCCL_CMD_BATCH_PUT,
+    HCCL_CMD_BATCH_GET,
+    HCCL_CMD_ALLGATHER_V,
+    HCCL_CMD_REDUCE_SCATTER_V,
+    HCCL_CMD_BATCH_WRITE,
+    HCCL_CMD_HALF_ALLTOALLV,
+    HCCL_CMD_ALL,
+    HCCL_CMD_FINALIZE = 100,
+    HCCL_CMD_INTER_GROUP_SYNC,
+    HCCL_CMD_INIT,
+    HCCL_CMD_BARRIER,
+    HCCL_CMD_MAX
+} HcclCMDType;
 #ifdef __cplusplus
 }
 #endif // __cplusplus
