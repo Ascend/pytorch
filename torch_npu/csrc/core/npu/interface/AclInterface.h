@@ -32,11 +32,11 @@ enum aclrtStreamStatus {
 };
 using aclrtStreamStatus = enum aclrtStreamStatus;
 
-enum aclrtDevResModelType {
+enum aclrtDevResLimitType {
     ACL_RT_DEV_RES_CUBE_CORE = 0,
     ACL_RT_DEV_RES_VECTOR_CORE = 1,
 };
-using aclrtDevResModelType = enum aclrtDevResModelType;
+using aclrtDevResLimitType = enum aclrtDevResLimitType;
 
 /**
   aclprofStepInfo is provide by acl, it used to be store dispatch op info.
@@ -257,9 +257,9 @@ aclError AclrtMemImportFromShareableHandle(uint64_t shareableHandle, int32_t dev
 
 aclError AclrtDeviceGetBareTgid(int32_t *pid);
 
-aclError AclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t* value);
+aclError AclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResLimitType type, uint32_t* value);
 
-aclError AclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t value);
+aclError AclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResLimitType type, uint32_t value);
 
 aclError AclrtResetDeviceResLimit(int32_t deviceId);
 
@@ -288,17 +288,17 @@ bool AclrtMemcpyAsyncWithConditionExist();
 aclError AclrtMemcpyAsyncWithCondition(void *dst, size_t destMax, const void *src,
                                        size_t count, aclrtMemcpyKind kind, aclrtStream stream);
 
-aclError AclrtSetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t value);
+aclError AclrtSetStreamResLimit(aclrtStream stream, aclrtDevResLimitType type, uint32_t value);
 
 aclError AclrtResetStreamResLimit(aclrtStream stream);
 
-aclError AclrtGetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t* value);
+aclError AclrtGetStreamResLimit(aclrtStream stream, aclrtDevResLimitType type, uint32_t* value);
 
 aclError AclrtUseStreamResInCurrentThread(aclrtStream stream);
 
-aclError AclrtUnuseStreamResInCurrentThread();
+aclError AclrtUnuseStreamResInCurrentThread(aclrtStream stream);
 
-aclError AclrtGetResInCurrentThread(aclrtDevResModelType type, uint32_t* value);
+aclError AclrtGetResInCurrentThread(aclrtDevResLimitType type, uint32_t* value);
 
 aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attributes);
 

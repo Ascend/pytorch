@@ -1,7 +1,7 @@
 /**
 * @file acl_prof.h
 *
-* Copyright (C) Huawei Technologies Co., Ltd. 2019-2021. All Rights Reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2019-2020. All rights reserved.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,18 +23,19 @@
 extern "C" {
 #endif
 
-#define ACL_PROF_ACL_API                0x0001ULL
-#define ACL_PROF_TASK_TIME              0x0002ULL
-#define ACL_PROF_AICORE_METRICS         0x0004ULL
-#define ACL_PROF_AICPU                  0x0008ULL
-#define ACL_PROF_L2CACHE                0x0010ULL
-#define ACL_PROF_HCCL_TRACE             0x0020ULL
-#define ACL_PROF_TRAINING_TRACE         0x0040ULL
-#define ACL_PROF_MSPROFTX               0x0080ULL
-#define ACL_PROF_RUNTIME_API            0x0100ULL
-#define ACL_PROF_TASK_TIME_L0           0x0800ULL
-#define ACL_PROF_TASK_MEMORY            0x1000ULL
-#define ACL_PROF_OP_ATTR                0x4000ULL
+#define ACL_PROF_ACL_API                0x00000001ULL
+#define ACL_PROF_TASK_TIME              0x00000002ULL
+#define ACL_PROF_AICORE_METRICS         0x00000004ULL
+#define ACL_PROF_AICPU                  0x00000008ULL
+#define ACL_PROF_L2CACHE                0x00000010ULL
+#define ACL_PROF_HCCL_TRACE             0x00000020ULL
+#define ACL_PROF_TRAINING_TRACE         0x00000040ULL
+#define ACL_PROF_MSPROFTX               0x00000080ULL
+#define ACL_PROF_RUNTIME_API            0x00000100ULL
+#define ACL_PROF_TASK_TIME_L0           0x00000800ULL
+#define ACL_PROF_TASK_MEMORY            0x00001000ULL
+#define ACL_PROF_OP_ATTR                0x00004000ULL
+
 /**
  * @deprecated please use aclprofGetOpTypeLen and aclprofGetOpTNameLen instead
  */
@@ -49,6 +50,7 @@ typedef enum {
     ACL_AICORE_RESOURCE_CONFLICT_RATIO = 4,
     ACL_AICORE_MEMORY_UB = 5,
     ACL_AICORE_L2_CACHE = 6,
+    ACL_AICORE_PIPE_EXECUTE_UTILIZATION = 7,
     ACL_AICORE_MEMORY_ACCESS = 8,
     ACL_AICORE_NONE = 0xFF
 } aclprofAicoreMetrics;
@@ -58,6 +60,20 @@ typedef enum {
     ACL_STEP_END = 1   // step  end
 } aclprofStepTag;
 
+typedef enum {
+    ACL_PROF_ARGS_MIN = 0,
+    ACL_PROF_STORAGE_LIMIT,
+    ACL_PROF_AIV_METRICS,
+    ACL_PROF_SYS_HARDWARE_MEM_FREQ,
+    ACL_PROF_LLC_MODE,
+    ACL_PROF_SYS_IO_FREQ,
+    ACL_PROF_SYS_INTERCONNECTION_FREQ,
+    ACL_PROF_DVPP_FREQ,
+    ACL_PROF_HOST_SYS,
+    ACL_PROF_HOST_SYS_USAGE,
+    ACL_PROF_HOST_SYS_USAGE_FREQ,
+    ACL_PROF_ARGS_MAX
+} aclprofConfigType;
 
 typedef struct aclprofConfig aclprofConfig;
 typedef struct aclprofStopConfig aclprofStopConfig;
@@ -78,6 +94,21 @@ typedef struct aclprofStepInfo aclprofStepInfo;
  * @see aclprofFinalize
  */
 MSVP_PROF_API aclError aclprofInit(const char *profilerResultPath, size_t length);
+
+/**
+ * @ingroup AscendCL
+ * @brief set config value
+ *
+ * @param  configType [IN]  config type
+ * @param  val [IN]  pointer to config
+ * @param  valLen [IN]  length of config
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see aclprofSetConfig
+ */
+MSVP_PROF_API aclError aclprofSetConfig(aclprofConfigType configType, const char *config, size_t configLength);
 
 /**
  * @ingroup AscendCL
@@ -118,7 +149,7 @@ MSVP_PROF_API aclError aclprofStart(const aclprofConfig *profilerConfig);
  * @see aclprofDestroyConfig
  */
 MSVP_PROF_API aclprofConfig *aclprofCreateConfig(uint32_t *deviceIdList, uint32_t deviceNums,
-    aclprofAicoreMetrics aicoreMetrics, aclprofAicoreEvents *aicoreEvents, uint64_t dataTypeConfig);
+    aclprofAicoreMetrics aicoreMetrics, const aclprofAicoreEvents *aicoreEvents, uint64_t dataTypeConfig);
 
 /**
  * @ingroup AscendCL
@@ -173,17 +204,6 @@ MSVP_PROF_API aclError aclprofModelSubscribe(uint32_t modelId,
  * @see aclprofModelSubscribe
  */
 MSVP_PROF_API aclError aclprofModelUnSubscribe(uint32_t modelId);
-
-/**
- * @ingroup AscendCL
- * @brief Record markEx timestamp
- *
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- *
- */
-MSVP_PROF_API aclError aclprofMarkEx(const char *msg, size_t msgLen, aclrtStream stream);
 
 /**
  * @ingroup AscendCL
@@ -452,6 +472,16 @@ MSVP_PROF_API aclError aclprofSetStampTraceMessage(void *stamp, const char *msg,
 * @retval OtherValues Failure
 */
 MSVP_PROF_API aclError aclprofMark(void *stamp);
+
+/**
+* @ingroup AscendCL
+* @brief Record markEx timestamp
+*
+* @retval ACL_SUCCESS The function is successfully executed.
+* @retval OtherValues Failure
+*/
+MSVP_PROF_API aclError aclprofMarkEx(const char *msg, size_t msgLen, aclrtStream stream);
+
 #ifdef __cplusplus
 }
 #endif

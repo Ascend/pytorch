@@ -49,6 +49,9 @@ typedef void *aclrtStream;
 typedef void *aclrtEvent;
 typedef void *aclrtContext;
 typedef void *aclrtNotify;
+typedef void *aclrtLabel;
+typedef void *aclrtLabelList;
+typedef void *aclrtMbuf;
 typedef int aclError;
 typedef uint16_t aclFloat16;
 typedef struct aclDataBuffer aclDataBuffer;
@@ -109,7 +112,6 @@ static const int ACL_ERROR_PROF_ALREADY_RUN = 100042;
 static const int ACL_ERROR_PROF_NOT_RUN = 100043;
 static const int ACL_ERROR_DUMP_ALREADY_RUN = 100044;
 static const int ACL_ERROR_DUMP_NOT_RUN = 100045;
-static const int ACL_ERROR_RT_DEVICE_TASK_ABORT = 107022;
 static const int ACL_ERROR_PROF_REPEAT_SUBSCRIBE = 148046;
 static const int ACL_ERROR_PROF_API_CONFLICT = 148047;
 static const int ACL_ERROR_INVALID_MAX_OPQUEUE_NUM_CONFIG = 148048;
@@ -136,12 +138,6 @@ static const int ACL_ERROR_GE_FAILURE = 500002;
 static const int ACL_ERROR_RT_FAILURE = 500003;
 static const int ACL_ERROR_DRV_FAILURE = 500004;
 static const int ACL_ERROR_PROFILING_FAILURE = 500005;
-static const int ACL_ERROR_RT_DEVICE_MEM_ERROR = 507053;
-static const int ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR = 507054;
-static const int ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR = 507055;
-static const int ACL_ERROR_RT_LINK_ERROR = 507056;
-static const int ACL_ERROR_RT_SUSPECT_REMOTE_ERROR = 507057;
-static const int ACL_ERROR_RT_COMM_OP_RETRY_FAIL = 507904;
 
 #define ACL_TENSOR_SHAPE_RANGE_NUM 2
 #define ACL_TENSOR_VALUE_RANGE_NUM 2

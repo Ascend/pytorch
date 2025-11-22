@@ -1,7 +1,7 @@
 #ifndef __TORCH_NPU_MSPROFILERINTERFACE__
 #define __TORCH_NPU_MSPROFILERINTERFACE__
 
-#include <third_party/acl/inc/acl/acl_msprof.h>
+#include <third_party/acl/inc/acl/acl_prof.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
