@@ -1,7 +1,7 @@
 /**
 * @file acl_rt.h
 *
-* Copyright (C) Huawei Technologies Co., Ltd. 2019-2020. All Rights Reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2019-2020. All rights reserved.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,28 +19,49 @@
 extern "C" {
 #endif
 
-#define ACL_EVENT_SYNC                    0x00000001u
-#define ACL_EVENT_CAPTURE_STREAM_PROGRESS 0x00000002u
-#define ACL_EVENT_TIME_LINE               0x00000008u
-#define ACL_EVENT_EXTERNAL                0x00000020u
+// Current version is 1.15.0
+#define ACL_MAJOR_VERSION              1
+#define ACL_MINOR_VERSION              15
+#define ACL_PATCH_VERSION              0
+#define ACL_EVENT_SYNC                    0x00000001U
+#define ACL_EVENT_CAPTURE_STREAM_PROGRESS 0x00000002U
+#define ACL_EVENT_TIME_LINE               0x00000008U
+#define ACL_EVENT_EXTERNAL                0x00000020U
 
-#define ACL_STREAM_FAST_LAUNCH 0x00000001u
-#define ACL_STREAM_FAST_SYNC   0x00000002u
+// for create stream
+#define ACL_STREAM_FAST_LAUNCH  0x00000001U
+#define ACL_STREAM_FAST_SYNC    0x00000002U
+#define ACL_STREAM_PERSISTENT   0x00000004U
+#define ACL_STREAM_HUGE         0x00000008U
+#define ACL_STREAM_CPU_SCHEDULE 0x00000010U
 
-#define ACL_CONTINUE_ON_FAILURE 0x00000000u
-#define ACL_STOP_ON_FAILURE     0x00000001u
+#define ACL_STREAM_WAIT_VALUE_GEQ 0x00000000U
+#define ACL_STREAM_WAIT_VALUE_EQ  0x00000001U
+#define ACL_STREAM_WAIT_VALUE_AND 0x00000002U
+#define ACL_STREAM_WAIT_VALUE_NOR 0x00000003U
 
-#define ACL_RT_IPC_MEM_EXPORT_FLAG_DEFAULT                  0x0UL
-#define ACL_RT_IPC_MEM_EXPORT_FLAG_DISABLE_PID_VALIDATION   0x1UL
+#define ACL_CONTINUE_ON_FAILURE 0x00000000U
+#define ACL_STOP_ON_FAILURE     0x00000001U
 
-#define ACL_RT_IPC_MEM_IMPORT_FLAG_DEFAULT                  0x0UL
-#define ACL_RT_IPC_MEM_IMPORT_FLAG_ENABLE_PEER_ACCESS       0x1UL
+// for device get capability
+#define ACL_DEV_FEATURE_SUPPORT     0x00000001
+#define ACL_DEV_FEATURE_NOT_SUPPORT 0x00000000
 
-#define ACL_RT_VMM_EXPORT_FLAG_DEFAULT                      0x0UL
-#define ACL_RT_VMM_EXPORT_FLAG_DISABLE_PID_VALIDATION       0x1UL
+#define ACL_RT_NOTIFY_EXPORT_FLAG_DEFAULT                0x0UL
+#define ACL_RT_NOTIFY_EXPORT_FLAG_DISABLE_PID_VALIDATION 0x02UL
 
-#define MAX_MEM_UCE_INFO_ARRAY_SIZE 128
 #define MAX_MODULE_NUM 128
+#define ACL_RT_NOTIFY_IMPORT_FLAG_DEFAULT            0x0UL
+#define ACL_RT_NOTIFY_IMPORT_FLAG_ENABLE_PEER_ACCESS 0x02UL
+
+#define ACL_RT_IPC_MEM_EXPORT_FLAG_DEFAULT                0x0UL
+#define ACL_RT_IPC_MEM_EXPORT_FLAG_DISABLE_PID_VALIDATION 0x1UL
+
+#define ACL_RT_IPC_MEM_IMPORT_FLAG_DEFAULT            0x0UL
+#define ACL_RT_IPC_MEM_IMPORT_FLAG_ENABLE_PEER_ACCESS 0x1UL
+
+#define ACL_RT_VMM_EXPORT_FLAG_DEFAULT                0x0UL
+#define ACL_RT_VMM_EXPORT_FLAG_DISABLE_PID_VALIDATION 0x1UL
 
 constexpr int32_t DEVICE_UTILIZATION_NOT_SUPPORT = -1;
 
@@ -69,7 +90,7 @@ typedef enum aclrtEventRecordedStatus {
 typedef enum aclrtEventWaitStatus {
     ACL_EVENT_WAIT_STATUS_COMPLETE  = 0,
     ACL_EVENT_WAIT_STATUS_NOT_READY = 1,
-    ACL_EVENT_WAIT_STATUS_RESERVED  = 0xffff,
+    ACL_EVENT_WAIT_STATUS_RESERVED  = 0xFFFF,
 } aclrtEventWaitStatus;
 
 typedef enum aclrtStreamStatus {
@@ -88,6 +109,10 @@ typedef enum aclrtMemcpyKind {
     ACL_MEMCPY_HOST_TO_DEVICE,
     ACL_MEMCPY_DEVICE_TO_HOST,
     ACL_MEMCPY_DEVICE_TO_DEVICE,
+    ACL_MEMCPY_DEFAULT,
+    ACL_MEMCPY_HOST_TO_BUF_TO_DEVICE,
+    ACL_MEMCPY_INNER_DEVICE_TO_DEVICE,
+    ACL_MEMCPY_INTER_DEVICE_TO_DEVICE,
 } aclrtMemcpyKind;
 
 typedef enum aclrtMemMallocPolicy {
@@ -101,11 +126,34 @@ typedef enum aclrtMemMallocPolicy {
     ACL_MEM_MALLOC_HUGE1G_ONLY_P2P,
     ACL_MEM_TYPE_LOW_BAND_WIDTH   = 0x0100,
     ACL_MEM_TYPE_HIGH_BAND_WIDTH  = 0x1000,
+    ACL_MEM_ACCESS_USER_SPACE_READONLY = 0x100000,
 } aclrtMemMallocPolicy;
 
-typedef enum aclrtHostRegisterType {
-    ACL_HOST_REGISTER_MAPPED = 0U,
+typedef enum {
+    ACL_HOST_REGISTER_MAPPED = 0,
 } aclrtHostRegisterType;
+
+typedef enum {
+    ACL_RT_MEM_ATTR_RSV = 0,
+    ACL_RT_MEM_ATTR_MODULE_ID,
+    ACL_RT_MEM_ATTR_DEVICE_ID,
+} aclrtMallocAttrType;
+
+typedef union {
+    uint16_t moduleId;
+    uint32_t deviceId;
+    uint8_t rsv[8];
+} aclrtMallocAttrValue;
+
+typedef struct {
+    aclrtMallocAttrType attr;
+    aclrtMallocAttrValue value;
+} aclrtMallocAttribute;
+
+typedef struct {
+    aclrtMallocAttribute* attrs;
+    size_t numAttrs;
+} aclrtMallocConfig;
 
 typedef enum aclrtMemAttr {
     ACL_DDR_MEM,
@@ -137,6 +185,20 @@ typedef enum aclrtFloatOverflowMode {
     ACL_RT_OVERFLOW_MODE_UNDEF,
 } aclrtFloatOverflowMode;
 
+typedef enum {
+    ACL_RT_STREAM_WORK_ADDR_PTR = 0, /**< pointer to model work addr */
+    ACL_RT_STREAM_WORK_SIZE, /**< pointer to model work size */
+    ACL_RT_STREAM_FLAG,
+    ACL_RT_STREAM_PRIORITY,
+} aclrtStreamConfigAttr;
+
+typedef struct aclrtStreamConfigHandle {
+    void* workptr;
+    size_t workSize;
+    size_t flag;
+    uint32_t priority;
+} aclrtStreamConfigHandle;
+
 typedef struct aclrtUtilizationExtendInfo aclrtUtilizationExtendInfo;
 
 typedef struct aclrtUtilizationInfo {
@@ -167,18 +229,6 @@ typedef struct aclrtPtrAttributes {
     uint32_t rsv[4];
 } aclrtPtrAttributes;
 
-typedef struct aclrtMemUceInfo {
-    void* addr;
-    size_t len;
-    size_t reserved[14];
-} aclrtMemUceInfo;
-
-typedef struct {
-    aclrtMemLocation dstLoc;
-    aclrtMemLocation srcLoc;
-    uint8_t rsv[16];
-} aclrtMemcpyBatchAttr;
-
 typedef struct aclrtMemUsageInfo {
     char name[32];
     uint64_t curMemSize;
@@ -202,24 +252,209 @@ typedef struct aclrtPhysicalMemProp {
     uint64_t reserve;
 } aclrtPhysicalMemProp;
 
-typedef enum aclrtCmoType {
-    ACL_RT_CMO_TYPE_PREFETCH = 0,
-} aclrtCmoType;
-
-typedef enum aclrtLastErrLevel {
-    ACL_RT_THREAD_LEVEL = 0,
-} aclrtLastErrLevel;
-
-typedef enum {
-    ACL_RT_DEV_RES_CUBE_CORE = 0,
-    ACL_RT_DEV_RES_VECTOR_CORE,
-} aclrtDevResModelType;
+typedef enum aclrtMemGranularityOptions {
+    ACL_RT_MEM_ALLOC_GRANULARITY_MINIMUM,
+    ACL_RT_MEM_ALLOC_GRANULARITY_RECOMMENDED,
+    ACL_RT_MEM_ALLOC_GRANULARITY_UNDEF = 0xFFFF,
+} aclrtMemGranularityOptions;
 
 typedef void* aclrtDrvMemHandle;
 
 typedef void (*aclrtCallback)(void *userData);
 
 typedef void (*aclrtExceptionInfoCallback)(aclrtExceptionInfo *exceptionInfo);
+
+typedef enum aclrtDeviceStatus {
+    ACL_RT_DEVICE_STATUS_NORMAL = 0,
+    ACL_RT_DEVICE_STATUS_ABNORMAL,
+    ACL_RT_DEVICE_STATUS_END = 0xFFFF,
+} aclrtDeviceStatus;
+
+typedef void* aclrtBinary;
+typedef void* aclrtBinHandle;
+typedef void* aclrtFuncHandle;
+typedef void* aclrtArgsHandle;
+typedef void* aclrtParamHandle;
+
+#define MAX_MEM_UCE_INFO_ARRAY_SIZE 128
+#define UCE_INFO_RESERVED_SIZE 14
+
+typedef struct aclrtMemUceInfo {
+    void* addr;
+    size_t len;
+    size_t reserved[UCE_INFO_RESERVED_SIZE];
+} aclrtMemUceInfo;
+
+typedef enum aclrtCmoType {
+    ACL_RT_CMO_TYPE_PREFETCH = 0,
+    ACL_RT_CMO_TYPE_WRITEBACK,
+    ACL_RT_CMO_TYPE_INVALID,
+    ACL_RT_CMO_TYPE_FLUSH,
+} aclrtCmoType;
+
+typedef enum aclrtLastErrLevel {
+    ACL_RT_THREAD_LEVEL = 0,
+} aclrtLastErrLevel;
+
+#define ACL_RT_BINARY_MAGIC_ELF_AICORE      0x43554245U
+#define ACL_RT_BINARY_MAGIC_ELF_VECTOR_CORE 0x41415246U
+#define ACL_RT_BINARY_MAGIC_ELF_CUBE_CORE   0x41494343U
+
+typedef enum aclrtBinaryLoadOptionType {
+    ACL_RT_BINARY_LOAD_OPT_LAZY_LOAD = 1,
+    ACL_RT_BINARY_LOAD_OPT_LAZY_MAGIC = 2,
+    ACL_RT_BINARY_LOAD_OPT_MAGIC = 2,
+    ACL_RT_BINARY_LOAD_OPT_CPU_KERNEL_MODE = 3,
+} aclrtBinaryLoadOptionType;
+
+typedef union aclrtBinaryLoadOptionValue {
+    uint32_t isLazyLoad;
+    uint32_t magic;
+    int32_t cpuKernelMode;
+    uint32_t rsv[4];
+} aclrtBinaryLoadOptionValue;
+
+typedef struct {
+    aclrtBinaryLoadOptionType type;
+    aclrtBinaryLoadOptionValue value;
+} aclrtBinaryLoadOption;
+
+typedef struct aclrtBinaryLoadOptions {
+    aclrtBinaryLoadOption *options;
+    size_t numOpt;
+} aclrtBinaryLoadOptions;
+
+typedef enum {
+    ACL_RT_ENGINE_TYPE_AIC = 0,
+    ACL_RT_ENGINE_TYPE_AIV,
+} aclrtEngineType;
+
+typedef enum aclrtLaunchKernelAttrId {
+    ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE = 1,
+    ACL_RT_LAUNCH_KERNEL_ATTR_ENGINE_TYPE = 3,
+    ACL_RT_LAUNCH_KERNEL_ATTR_BLOCKDIM_OFFSET,
+    ACL_RT_LAUNCH_KERNEL_ATTR_BLOCK_TASK_PREFETCH,
+    ACL_RT_LAUNCH_KERNEL_ATTR_DATA_DUMP,
+    ACL_RT_LAUNCH_KERNEL_ATTR_TIMEOUT,
+} aclrtLaunchKernelAttrId;
+
+typedef union aclrtLaunchKernelAttrValue {
+    uint8_t schemMode;
+    uint32_t localMemorySize;
+    aclrtEngineType engineType;
+    uint32_t blockDimOffset;
+    uint8_t isBlockTaskPrefetch;
+    uint8_t isDataDump;
+    uint16_t timeout;
+    uint32_t rsv[4];
+} aclrtLaunchKernelAttrValue;
+
+typedef struct aclrtLaunchKernelAttr {
+    aclrtLaunchKernelAttrId id;
+    aclrtLaunchKernelAttrValue value;
+} aclrtLaunchKernelAttr;
+
+typedef struct aclrtLaunchKernelCfg {
+    aclrtLaunchKernelAttr *attrs;
+    size_t numAttrs;
+} aclrtLaunchKernelCfg;
+
+typedef enum {
+    ACL_STREAM_ATTR_FAILURE_MODE         = 1,
+    ACL_STREAM_ATTR_FLOAT_OVERFLOW_CHECK = 2,
+    ACL_STREAM_ATTR_USER_CUSTOM_TAG      = 3,
+} aclrtStreamAttr;
+
+typedef union {
+    uint64_t failureMode;
+    uint32_t overflowSwitch;
+    uint32_t userCustomTag;
+    uint32_t reserve[4];
+} aclrtStreamAttrValue;
+
+typedef enum {
+    ACL_DEV_ATTR_AICPU_CORE_NUM  = 1,    // aicpu number
+    ACL_DEV_ATTR_AICORE_CORE_NUM = 101,  // aicore number
+    ACL_DEV_ATTR_VECTOR_CORE_NUM = 201,  // vector core number
+} aclrtDevAttr;
+
+typedef enum {
+    ACL_FEATURE_TSCPU_TASK_UPDATE_SUPPORT_AIC_AIV = 1,
+    ACL_FEATURE_SYSTEM_MEMQ_EVENT_CROSS_DEV       = 21,
+} aclrtDevFeatureType;
+
+typedef enum {
+    ACL_RT_MEMCPY_SDMA_AUTOMATIC_SUM   = 10,
+    ACL_RT_MEMCPY_SDMA_AUTOMATIC_MAX   = 11,
+    ACL_RT_MEMCPY_SDMA_AUTOMATIC_MIN   = 12,
+    ACL_RT_MEMCPY_SDMA_AUTOMATIC_EQUAL = 13,
+} aclrtReduceKind;
+
+typedef enum {
+    ACL_RT_DEV_RES_CUBE_CORE = 0,
+    ACL_RT_DEV_RES_VECTOR_CORE,
+} aclrtDevResLimitType;
+
+typedef enum {
+    ACL_RT_EQUAL = 0,
+    ACL_RT_NOT_EQUAL,
+    ACL_RT_GREATER,
+    ACL_RT_GREATER_OR_EQUAL,
+    ACL_RT_LESS,
+    ACL_RT_LESS_OR_EQUAL
+} aclrtCondition;
+
+typedef enum {
+    ACL_RT_SWITCH_INT32 = 0,
+    ACL_RT_SWITCH_INT64 = 1,
+} aclrtCompareDataType;
+
+typedef struct {
+    aclrtCmoType cmoType;
+    uint32_t barrierId;
+} aclrtBarrierCmoInfo;
+
+#define ACL_RT_CMO_MAX_BARRIER_NUM 6U
+
+typedef struct {
+    size_t barrierNum;
+    aclrtBarrierCmoInfo cmoInfo[ACL_RT_CMO_MAX_BARRIER_NUM];
+} aclrtBarrierTaskInfo;
+
+#define ACL_RT_DEVS_TOPOLOGY_HCCS     0x01ULL
+#define ACL_RT_DEVS_TOPOLOGY_PIX      0x02ULL
+#define ACL_RT_DEVS_TOPOLOGY_PIB      0x04ULL
+#define ACL_RT_DEVS_TOPOLOGY_PHB      0x08ULL
+#define ACL_RT_DEVS_TOPOLOGY_SYS      0x10ULL
+#define ACL_RT_DEVS_TOPOLOGY_SIO      0x20ULL
+#define ACL_RT_DEVS_TOPOLOGY_HCCS_SW  0x40ULL
+
+typedef struct {
+    aclrtMemLocation dstLoc;
+    aclrtMemLocation srcLoc;
+    uint8_t rsv[16];
+} aclrtMemcpyBatchAttr;
+
+/**
+ * @ingroup AscendCL
+ * @brief peek at last error by level
+ *
+ * @param level [IN] error level
+ *
+ * @retval Runtime error code
+ */
+ACL_FUNC_VISIBILITY aclError aclrtPeekAtLastError(aclrtLastErrLevel level);
+
+/**
+ * @ingroup AscendCL
+ * @brief get last error by level
+ *
+ * @param level [IN] error level
+ *
+ * @retval Runtime error code
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetLastError(aclrtLastErrLevel level);
+
 
 /**
  * @ingroup AscendCL
@@ -444,6 +679,17 @@ ACL_FUNC_VISIBILITY aclError aclrtSetCurrentContext(aclrtContext context);
  * @see aclrtSetCurrentContext
  */
 ACL_FUNC_VISIBILITY aclError aclrtGetCurrentContext(aclrtContext *context);
+
+/**
+ * @ingroup AscendCL
+ * @brief get system param option value in current context
+ *
+ * @param opt[IN] system option
+ * @param value[OUT] value of system option
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+*/
+ACL_FUNC_VISIBILITY aclError aclrtCtxGetSysParamOpt(aclSysParamOpt opt, int64_t *value);
 
 /**
  * @ingroup AscendCL
@@ -681,16 +927,16 @@ ACL_FUNC_VISIBILITY aclError aclrtRecordEvent(aclrtEvent event, aclrtStream stre
  */
 ACL_FUNC_VISIBILITY aclError aclrtResetEvent(aclrtEvent event, aclrtStream stream);
 
-/**
-* @ingroup AscendCL
-* @brief Queries an event's status
-*
-* @param  event [IN]    event to query
-* @param  status [OUT]  event status
-*
-* @retval ACL_SUCCESS The function is successfully executed.
-* @retval OtherValues Failure
-*/
+ /**
+ * @ingroup AscendCL
+ * @brief Queries an event's status
+ *
+ * @param  event [IN]    event to query
+ * @param  status [OUT]  event status
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
 ACL_DEPRECATED_MESSAGE("aclrtQueryEvent is deprecated, use aclrtQueryEventStatus instead")
 ACL_FUNC_VISIBILITY aclError aclrtQueryEvent(aclrtEvent event, aclrtEventStatus *status);
 
@@ -1065,6 +1311,54 @@ ACL_FUNC_VISIBILITY aclError aclrtMemcpyAsyncWithCondition(void *dst,
 
 /**
  * @ingroup AscendCL
+ * @brief Performs a batch of memory copies synchronous.
+ * @param [in] dsts         Array of destination pointers.
+ * @param [in] destMax      Array of sizes for memcpy operations.
+ * @param [in] srcs         Array of memcpy source pointers.
+ * @param [in] sizes        Array of sizes for src memcpy operations.
+ * @param [in] numBatches   Size of dsts, srcs and sizes arrays.
+ * @param [in] attrs        Array of memcpy attributes.
+ * @param [in] attrsIndexes Array of indices to specify which copies each entry in the attrs array applies to.
+ *                          The attributes specified in attrs[k] will be applied to copies starting from attrsIdxs[k]
+ *                          through attrsIdxs[k+1] - 1. Also attrs[numAttrs-1] will apply to copies starting from
+ *                          attrsIdxs[numAttrs-1] through count - 1.
+ * @param [in] numAttrs     Size of attrs and attrsIdxs arrays.
+ * @param [out] failIdx     Pointer to a location to return the index of the copy where a failure was encountered.
+ *                          The value will be SIZE_MAX if the error doesn't pertain to any specific copy.
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtMemcpyBatch(void **dsts, size_t *destMax, void **srcs, size_t *sizes,
+                                              size_t numBatches, aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
+                                              size_t numAttrs, size_t *failIdx);
+
+
+/**
+ * @ingroup AscendCL
+ * @brief Performs a batch of memory copies synchronous.
+ * @param [in] dsts         Array of destination pointers.
+ * @param [in] destMax      Array of sizes for memcpy operations.
+ * @param [in] srcs         Array of memcpy source pointers.
+ * @param [in] sizes        Array of sizes for src memcpy operations.
+ * @param [in] numBatches   Size of dsts, srcs and sizes arrays.
+ * @param [in] attrs        Array of memcpy attributes.
+ * @param [in] attrsIdxs    Array of indices to specify which copies each entry in the attrs array applies to.
+ *                          The attributes specified in attrs[k] will be applied to copies starting from attrsIdxs[k]
+ *                          through attrsIdxs[k+1] - 1. Also attrs[numAttrs-1] will apply to copies starting from
+ *                          attrsIdxs[numAttrs-1] through count - 1.
+ * @param [in] numAttrs     Size of attrs and attrsIdxs arrays.
+ * @param [out] failIdx     Pointer to a location to return the index of the copy where a failure was encountered.
+ *                          The value will be SIZE_MAX if the error doesn't pertain to any specific copy.
+ * @param [in] stream       stream handle
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtMemcpyBatchAsync(void **dsts, size_t *destMax, void **srcs, size_t *sizes,
+                                                   size_t numBatches, aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
+                                                   size_t numAttrs, size_t *failIndex, aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
  * @brief synchronous memory replication of two-dimensional matrix between host and device
  *
  * @param dst [IN]       destination address pointer
@@ -1260,7 +1554,7 @@ ACL_FUNC_VISIBILITY aclError aclrtCreateStream(aclrtStream *stream);
  * Can create fast streams through the aclrtCreateStreamWithConfig interface
  *
  * @param  stream [OUT]   the created stream
- * @param  priority [IN]   the priority of stream, reserved param, must be 0
+ * @param  priority [IN]   the priority of stream, value range:0~7
  * @param  flag [IN]   indicate the function for stream
  *
  * @retval ACL_SUCCESS The function is successfully executed.
@@ -1319,22 +1613,21 @@ ACL_FUNC_VISIBILITY aclError aclrtSynchronizeStream(aclrtStream stream);
 
 /**
  * @ingroup AscendCL
- * @brief block the host until all tasks. Support timeout setting by users.
+ * @brief block the host until all tasks
  * in the specified stream have completed
  *
  * @param  stream [IN]   the stream to wait
- * @param  timeout [IN]   timeout threshold. allow users to set through environment variable.
- *                       default setting is -1.
+ * @param  timeout [IN]  timeout value,the unit is milliseconds
+ * -1 means waiting indefinitely, 0 means check whether synchronization is complete immediately
  *
- * @retval ACL_SUCCESS   function is successfully executed.
+ * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtSynchronizeStreamWithTimeout(aclrtStream stream, int32_t timeout);
 
 /**
  * @ingroup AscendCL
- * @brief block the host until all tasks
- * in the specified stream have completed
+ * @brief Query a stream for completion status.
  *
  * @param  stream [IN]   the stream to query
  * @param  status [OUT]  stream status
@@ -1519,19 +1812,9 @@ ACL_FUNC_VISIBILITY aclError aclrtSetOpWaitTimeout(uint32_t timeout);
 
 /**
  * @ingroup AscendCL
- * @brief set saturation mode
- * @param mode [IN]   target saturation mode
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- */
-ACL_FUNC_VISIBILITY aclError aclrtSetDeviceSatMode(aclrtFloatOverflowMode mode);
-
-/**
- * @ingroup AscendCL
  * @brief Set the timeout interval for op executing
  *
- * @param timeout [IN]   op execute timeout
+ * @param timeout [IN]   op execute timeout, the unit is seconds
  *
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
@@ -1571,6 +1854,16 @@ ACL_FUNC_VISIBILITY aclError aclrtGetStreamOverflowSwitch(aclrtStream stream, ui
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo);
+
+/**
+ * @ingroup AscendCL
+ * @brief set saturation mode
+ * @param mode [IN]   target saturation mode
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtSetDeviceSatMode(aclrtFloatOverflowMode mode);
 
 /**
  * @ingroup AscendCL
@@ -1617,7 +1910,7 @@ ACL_FUNC_VISIBILITY aclError aclrtResetOverflowStatus(aclrtStream stream);
 */
 ACL_FUNC_VISIBILITY aclError aclrtCmoAsync(void *src, size_t size, aclrtCmoType cmoType, aclrtStream stream);
 
-/**
+/**`
  * @ingroup AscendCL
  * @brief get the mem uce info
  * @param [in] deviceId
@@ -1627,9 +1920,10 @@ ACL_FUNC_VISIBILITY aclError aclrtCmoAsync(void *src, size_t size, aclrtCmoType 
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo *memUceInfoArray, size_t arraySize, size_t *retSize);
+ACL_FUNC_VISIBILITY aclError aclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo *memUceInfoArray,
+                                                size_t arraySize, size_t *retSize);
 
-/**
+/**`
  * @ingroup AscendCL
  * @brief get the mem usage info
  * @param [in] deviceId
@@ -1651,7 +1945,7 @@ ACL_FUNC_VISIBILITY aclError aclrtGetMemUsageInfo(uint32_t deviceId, aclrtMemUsa
  */
 ACL_FUNC_VISIBILITY aclError aclrtDeviceTaskAbort(int32_t deviceId, uint32_t timeout);
 
-/**
+/**`
  * @ingroup AscendCL
  * @brief repair the mem uce
  * @param [in] deviceId
@@ -1662,25 +1956,14 @@ ACL_FUNC_VISIBILITY aclError aclrtDeviceTaskAbort(int32_t deviceId, uint32_t tim
  */
 ACL_FUNC_VISIBILITY aclError aclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo *memUceInfoArray, size_t arraySize);
 
-/**
+/**`
  * @ingroup AscendCL
- * @brief peek at last error by level
- *
- * @param level [IN] error level
- *
- * @retval Runtime error code
+ * @brief abort unexecuted tasks and pause executing tasks on the stream
+ * @param [in] stream  stream to be aborted, cannot be null
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclrtPeekAtLastError(aclrtLastErrLevel level);
-
-/**
- * @ingroup AscendCL
- * @brief get last error by level
- *
- * @param level [IN] error level
- *
- * @retval Runtime error code
- */
-ACL_FUNC_VISIBILITY aclError aclrtGetLastError(aclrtLastErrLevel level);
+ACL_FUNC_VISIBILITY aclError aclrtStreamAbort(aclrtStream stream);
 
 /**
  * @ingroup AscendCL
@@ -1691,7 +1974,7 @@ ACL_FUNC_VISIBILITY aclError aclrtGetLastError(aclrtLastErrLevel level);
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t* value);
+ACL_FUNC_VISIBILITY aclError aclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResLimitType type, uint32_t *value);
 
 /**
  * @ingroup AscendCL
@@ -1702,7 +1985,7 @@ ACL_FUNC_VISIBILITY aclError aclrtGetDeviceResLimit(int32_t deviceId, aclrtDevRe
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t value);
+ACL_FUNC_VISIBILITY aclError aclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResLimitType type, uint32_t value);
 
 /**
  * @ingroup AscendCL
@@ -1715,19 +1998,19 @@ ACL_FUNC_VISIBILITY aclError aclrtResetDeviceResLimit(int32_t deviceId);
 
 /**
  * @ingroup AscendCL
- * @brief Set the value of the current stream's limited resources
- * @param [in] stream    stream pointer
- * @param [in] type      resource type
- * @param [in] value     resource limit value
+ * @brief Get the value of the limited resources of the specified stream
+ * @param [in] stream   the stream handle
+ * @param [in] type     resource type
+ * @param [out] value   resource limit value
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclrtSetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t value);
+ACL_FUNC_VISIBILITY aclError aclrtGetStreamResLimit(aclrtStream stream, aclrtDevResLimitType type, uint32_t *value);
 
 /**
  * @ingroup AscendCL
- * @brief Reset the value of the current stream's limited resources
- * @param [in] stream    stream pointer
+ * @brief Reset the value of the limited resources of the specified stream
+ * @param [in] stream   the stream handle
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
@@ -1735,19 +2018,8 @@ ACL_FUNC_VISIBILITY aclError aclrtResetStreamResLimit(aclrtStream stream);
 
 /**
  * @ingroup AscendCL
- * @brief Get the value of the current stream's limited resources
- * @param [in] stream    stream pointer
- * @param [in] type      resources type
- * @param [out] value    resources limit value
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- */
-ACL_FUNC_VISIBILITY aclError aclrtGetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t* value);
-
-/**
- * @ingroup AscendCL
- * @brief Enable the usage of stream resources in the current thread
- * @param [in] stream    stream pointer
+ * @brief Use stream resource in current thread
+ * @param stream [in]  stream to use
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
@@ -1755,21 +2027,22 @@ ACL_FUNC_VISIBILITY aclError aclrtUseStreamResInCurrentThread(aclrtStream stream
 
 /**
  * @ingroup AscendCL
- * @brief Disable the usage of stream resources in the current thread
+ * @brief Not use stream resource in current thread
+ * @param stream [in]  stream to not use
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclrtUnuseStreamResInCurrentThread();
+ACL_FUNC_VISIBILITY aclError aclrtUnuseStreamResInCurrentThread(aclrtStream stream);
 
 /**
  * @ingroup AscendCL
- * @brief Get the resource limit value for the current thread
- * @param [in] type      resources type
- * @param [out] value    resources limit value
+ * @brief Get the value of the limited resources of the current thread
+ * @param type [in]   resource type
+ * @param value [out] resource limit value
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclrtGetResInCurrentThread(aclrtDevResModelType type, uint32_t* value);
+ACL_FUNC_VISIBILITY aclError aclrtGetResInCurrentThread(aclrtDevResLimitType type, uint32_t *value);
 
 /**
  * @ingroup AscendCL

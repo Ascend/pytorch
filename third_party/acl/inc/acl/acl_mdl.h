@@ -44,6 +44,10 @@ extern "C" {
 #define ACL_WORKSPACE_MEM_OPTIMIZE_DEFAULT 0
 #define ACL_WORKSPACE_MEM_OPTIMIZE_INPUTOUTPUT 1
 
+// for model stream
+#define ACL_MODEL_STREAM_FLAG_HEAD    0x00000000U // first stream
+#define ACL_MODEL_STREAM_FLAG_DEFAULT 0x7FFFFFFFU
+
 typedef struct aclmdlDataset aclmdlDataset;
 typedef struct aclmdlDesc aclmdlDesc;
 typedef struct aclmdlAIPP aclmdlAIPP;
@@ -692,6 +696,50 @@ ACL_FUNC_VISIBILITY aclError aclmdlUnload(uint32_t modelId);
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclmdlRIDestroy(aclmdlRI modelRI);
+
+/**
+ * @ingroup AscendCL
+ * @brief Execute model asynchronous inference until the inference result is returned
+ *
+ * @param  modelId [IN]   ID of the model to perform inference
+ * @param  input [IN]     Input data for model inference
+ * @param  output [OUT]   Output data for model inference
+ * @param  stream [IN]   stream
+ * @param  handle [IN]   config of model execute
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY  aclError aclmdlExecuteAsyncV2(uint32_t modelId, const aclmdlDataset *input, aclmdlDataset *output,
+                                                   aclrtStream stream, const aclmdlExecConfigHandle *handle);
+/**
+ * @ingroup AscendCL
+ * @brief Execute model asynchronous inference until the inference result is returned
+ *
+ * @param  modelId [IN]   ID of the model to perform inference
+ * @param  input [IN]     Input data for model inference
+ * @param  output [OUT]   Output data for model inference
+ * @param  stream [IN]    stream
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see aclmdlLoadFromFile | aclmdlLoadFromMem | aclmdlLoadFromFileWithMem |
+ * aclmdlLoadFromMemWithMem
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlExecuteAsync(uint32_t modelId, const aclmdlDataset *input,
+                                                aclmdlDataset *output, aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
+ * @brief unload model with model id
+ *
+ * @param  modelId [IN]   model id to be unloaded
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlUnload(uint32_t modelId);
 
 /**
  * @ingroup AscendCL
@@ -1504,6 +1552,16 @@ ACL_FUNC_VISIBILITY aclError aclmdlSetExecConfigOpt(aclmdlExecConfigHandle *hand
  * @retval Failure return NULL
  */
 ACL_FUNC_VISIBILITY const char *aclmdlGetTensorRealName(const aclmdlDesc *modelDesc, const char *name);
+
+/**
+ * @ingroup AscendCL
+ * @brief recover all hccl tasks on target device
+ *
+ * @param  deviceId [IN]  the device id
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_INVALID_FILE Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclRecoverAllHcclTasks(int32_t deviceId);
 
 /**
  * @ingroup AscendCL
