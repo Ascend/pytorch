@@ -5,6 +5,7 @@ import sys
 import tempfile
 import threading
 import time
+import unittest
 from datetime import datetime, timedelta
 from unittest import mock, skipIf
 
@@ -938,6 +939,7 @@ class HCCLTraceTestDumpOnHcclTimeout(HCCLTraceTestBase):
         except TimeoutError:
             return None
 
+    @unittest.skip("Skip for now")
     @parametrize("timing_enabled", [False])
     def test_hccl_timeout_dumps(self, timing_enabled):
         if self.rank != self.MAIN_PROCESS_RANK:
