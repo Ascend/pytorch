@@ -19,10 +19,6 @@
 extern "C" {
 #endif
 
-// Current version is 1.12.0
-#define ACL_MAJOR_VERSION              1
-#define ACL_MINOR_VERSION              12
-#define ACL_PATCH_VERSION              0
 #define ACL_PKG_VERSION_MAX_SIZE       128
 #define ACL_PKG_VERSION_PARTS_MAX_SIZE 64
 #define ACL_IPC_HANDLE_SIZE            65
@@ -32,7 +28,11 @@ extern "C" {
  * @brief acl initialize
  *
  * @par Restriction
- * The aclInit interface can be called only once in a process
+ * This interface can be called multiple times in a process, the reference count will
+ * increase by 1 each time when aclInit is called multiple times.
+ * The aclFinalizeReference interface should be called the same number of times as aclInit,
+ * or you can call aclFinalize to release all resources regardless of the reference count and reset it to 0.
+ *
  * @param configPath [IN]    the config path,it can be NULL
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
@@ -44,8 +44,10 @@ ACL_FUNC_VISIBILITY aclError aclInit(const char *configPath);
  * @brief acl finalize
  *
  * @par Restriction
- * Need to call aclFinalize before the process exits.
- * After calling aclFinalize,the services cannot continue to be used normally.
+ * This interface should be called before the process exits.
+ * After calling aclFinalize, all allocated resources are released,
+ * the internal reference count is reset to 0, and ACL services can no longer be used.
+ *
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
@@ -65,6 +67,22 @@ ACL_FUNC_VISIBILITY aclError aclrtGetVersion(int32_t *majorVersion, int32_t *min
 
 /**
  * @ingroup AscendCL
+ * @brief acl finalize reference
+ *
+ * @par Restriction
+ * This interface decrements the internal reference count each time it is called.
+ * Resources are only released when the reference count reaches 0.
+ * To get the current reference count, pass a valid pointer to refCount.
+ * To ignore the reference count, pass nullptr instead.
+ *
+ * @param refCount [IN/OUT] Pointer to receive current reference count after calling aclFinalizeReference; can be nullptr.
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclFinalizeReference(uint64_t *refCount);
+
+/**
+ * @ingroup AscendCL
  * @brief get recent error message
  *
  * @retval null for failed
@@ -76,7 +94,7 @@ ACL_FUNC_VISIBILITY const char *aclGetRecentErrMsg();
  * @ingroup AscendCL
  * @brief enum for CANN package name
  */
-typedef enum aclCANNPackageName_ {
+typedef enum aclCANNPackageName {
     ACL_PKG_NAME_CANN,
     ACL_PKG_NAME_RUNTIME,
     ACL_PKG_NAME_COMPILER,
@@ -91,7 +109,7 @@ typedef enum aclCANNPackageName_ {
  * @ingroup AscendCL
  * @brief struct for storaging CANN package version
  */
-typedef struct aclCANNPackageVersion_ {
+typedef struct aclCANNPackageVersion {
     char version[ACL_PKG_VERSION_MAX_SIZE];
     char majorVersion[ACL_PKG_VERSION_PARTS_MAX_SIZE];
     char minorVersion[ACL_PKG_VERSION_PARTS_MAX_SIZE];

@@ -1,5 +1,14 @@
-#ifndef INC_EXTERNAL_GRAPH_NODE_H_
-#define INC_EXTERNAL_GRAPH_NODE_H_
+/* Copyright (c) 2024 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ * ===================================================================================================================*/
+
+#ifndef INC_EXTERNAL_GRAPH_GNODE_H_
+#define INC_EXTERNAL_GRAPH_GNODE_H_
 
 #include <vector>
 #include <cstdint>
@@ -46,6 +55,10 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY GNode {
 
   graphStatus GetOutputIndexByName(const AscendString &name, int32_t &index);
 
+  graphStatus GetDynamicInputIndexesByName(const AscendString &name, std::vector<int32_t> &indexes);
+
+  graphStatus GetDynamicOutputIndexesByName(const AscendString &name, std::vector<int32_t> &indexes);
+
   size_t GetInputsSize() const;
 
   size_t GetOutputsSize() const;
@@ -61,14 +74,14 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY GNode {
   graphStatus GetAttr(const AscendString &name, int64_t &attr_value) const;
   graphStatus GetAttr(const AscendString &name, int32_t &attr_value) const;
   graphStatus GetAttr(const AscendString &name, uint32_t &attr_value) const;
-  graphStatus GetAttr(const AscendString &name, float &attr_value) const;
+  graphStatus GetAttr(const AscendString &name, float32_t &attr_value) const;
   graphStatus GetAttr(const AscendString &name, AscendString &attr_value) const;
   graphStatus GetAttr(const AscendString &name, bool &attr_value) const;
   graphStatus GetAttr(const AscendString &name, Tensor &attr_value) const;
   graphStatus GetAttr(const AscendString &name, std::vector<int64_t> &attr_value) const;
   graphStatus GetAttr(const AscendString &name, std::vector<int32_t> &attr_value) const;
   graphStatus GetAttr(const AscendString &name, std::vector<uint32_t> &attr_value) const;
-  graphStatus GetAttr(const AscendString &name, std::vector<float> &attr_value) const;
+  graphStatus GetAttr(const AscendString &name, std::vector<float32_t> &attr_value) const;
   graphStatus GetAttr(const AscendString &name, std::vector<AscendString> &attr_values) const;
   graphStatus GetAttr(const AscendString &name, std::vector<bool> &attr_value) const;
   graphStatus GetAttr(const AscendString &name, std::vector<Tensor> &attr_value) const;
@@ -81,14 +94,14 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY GNode {
   graphStatus SetAttr(const AscendString &name, int64_t &attr_value) const;
   graphStatus SetAttr(const AscendString &name, int32_t &attr_value) const;
   graphStatus SetAttr(const AscendString &name, uint32_t &attr_value) const;
-  graphStatus SetAttr(const AscendString &name, float &attr_value) const;
+  graphStatus SetAttr(const AscendString &name, float32_t &attr_value) const;
   graphStatus SetAttr(const AscendString &name, AscendString &attr_value) const;
   graphStatus SetAttr(const AscendString &name, bool &attr_value) const;
   graphStatus SetAttr(const AscendString &name, Tensor &attr_value) const;
   graphStatus SetAttr(const AscendString &name, std::vector<int64_t> &attr_value) const;
   graphStatus SetAttr(const AscendString &name, std::vector<int32_t> &attr_value) const;
   graphStatus SetAttr(const AscendString &name, std::vector<uint32_t> &attr_value) const;
-  graphStatus SetAttr(const AscendString &name, std::vector<float> &attr_value) const;
+  graphStatus SetAttr(const AscendString &name, std::vector<float32_t> &attr_value) const;
   graphStatus SetAttr(const AscendString &name, std::vector<AscendString> &attr_values) const;
   graphStatus SetAttr(const AscendString &name, std::vector<bool> &attr_value) const;
   graphStatus SetAttr(const AscendString &name, std::vector<Tensor> &attr_value) const;
@@ -98,16 +111,21 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY GNode {
   graphStatus SetAttr(const AscendString &name, ge::DataType &attr_value) const;
   graphStatus SetAttr(const AscendString &name, AttrValue &attr_value) const;
 
+  // 添加AttrValue类型的输入输出属性支持
+  graphStatus GetOutputAttr(const AscendString &name, uint32_t output_index, AttrValue &attr_value) const;
+  graphStatus SetOutputAttr(const AscendString &name, uint32_t output_index, const AttrValue &attr_value);
+  graphStatus GetInputAttr(const AscendString &name, uint32_t input_index, AttrValue &attr_value) const;
+  graphStatus SetInputAttr(const AscendString &name, uint32_t input_index, const AttrValue &attr_value);
+
   bool HasAttr(const AscendString &name);
 
   graphStatus GetSubgraph(uint32_t index, GraphPtr &graph) const;
 
   graphStatus GetALLSubgraphs(std::vector<GraphPtr> &graph_list) const;
-
  private:
-   std::shared_ptr<NodeImpl> impl_;
-   friend class NodeAdapter;
+  std::shared_ptr<NodeImpl> impl_;
+  friend class NodeAdapter;
 };
 }  // namespace ge
 
-#endif  // INC_EXTERNAL_GRAPH_NODE_H_
+#endif  // INC_EXTERNAL_GRAPH_GNODE_H_
