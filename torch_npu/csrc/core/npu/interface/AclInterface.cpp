@@ -1106,9 +1106,9 @@ aclError AclrtDeviceGetBareTgid(int32_t *pid)
     return func(pid);
 }
 
-aclError AclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t* value)
+aclError AclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResLimitType type, uint32_t* value)
 {
-    typedef aclError (*AclrtGetDeviceResLimit)(int32_t, aclrtDevResModelType, uint32_t*);
+    typedef aclError (*AclrtGetDeviceResLimit)(int32_t, aclrtDevResLimitType, uint32_t*);
     static AclrtGetDeviceResLimit func = nullptr;
     if (func == nullptr) {
         func = (AclrtGetDeviceResLimit) GET_FUNC(aclrtGetDeviceResLimit);
@@ -1118,9 +1118,9 @@ aclError AclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uin
     return func(deviceId, type, value);
 }
 
-aclError AclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResModelType type, uint32_t value)
+aclError AclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResLimitType type, uint32_t value)
 {
-    typedef aclError (*AclrtSetDeviceResLimit)(int32_t, aclrtDevResModelType, uint32_t);
+    typedef aclError (*AclrtSetDeviceResLimit)(int32_t, aclrtDevResLimitType, uint32_t);
     static AclrtSetDeviceResLimit func = nullptr;
     if (func == nullptr) {
         func = (AclrtSetDeviceResLimit) GET_FUNC(aclrtSetDeviceResLimit);
@@ -1266,9 +1266,9 @@ aclError AclrtMemcpyAsyncWithCondition(void *dst, size_t destMax, const void *sr
     return func(dst, destMax, src, count, kind, stream);
 }
 
-aclError AclrtSetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t value)
+aclError AclrtSetStreamResLimit(aclrtStream stream, aclrtDevResLimitType type, uint32_t value)
 {
-    typedef aclError (*AclrtSetStreamResLimit)(aclrtStream, aclrtDevResModelType, uint32_t);
+    typedef aclError (*AclrtSetStreamResLimit)(aclrtStream, aclrtDevResLimitType, uint32_t);
     static AclrtSetStreamResLimit func = nullptr;
     if (func == nullptr) {
         func = (AclrtSetStreamResLimit) GET_FUNC(aclrtSetStreamResLimit);
@@ -1290,9 +1290,9 @@ aclError AclrtResetStreamResLimit(aclrtStream stream)
     return func(stream);
 }
 
-aclError AclrtGetStreamResLimit(aclrtStream stream, aclrtDevResModelType type, uint32_t* value)
+aclError AclrtGetStreamResLimit(aclrtStream stream, aclrtDevResLimitType type, uint32_t* value)
 {
-    typedef aclError (*AclrtGetStreamResLimit)(aclrtStream, aclrtDevResModelType, uint32_t*);
+    typedef aclError (*AclrtGetStreamResLimit)(aclrtStream, aclrtDevResLimitType, uint32_t*);
     static AclrtGetStreamResLimit func = nullptr;
     if (func == nullptr) {
         func = (AclrtGetStreamResLimit) GET_FUNC(aclrtGetStreamResLimit);
@@ -1314,21 +1314,21 @@ aclError AclrtUseStreamResInCurrentThread(aclrtStream stream)
     return func(stream);
 }
 
-aclError AclrtUnuseStreamResInCurrentThread()
+aclError AclrtUnuseStreamResInCurrentThread(aclrtStream stream)
 {
-    typedef aclError (*AclrtUnuseStreamResInCurrentThread)();
+    typedef aclError (*AclrtUnuseStreamResInCurrentThread)(aclrtStream);
     static AclrtUnuseStreamResInCurrentThread func = nullptr;
     if (func == nullptr) {
         func = (AclrtUnuseStreamResInCurrentThread) GET_FUNC(aclrtUnuseStreamResInCurrentThread);
     }
 
     TORCH_CHECK(func, "Failed to find function aclrtUnuseStreamResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func();
+    return func(stream);
 }
 
-aclError AclrtGetResInCurrentThread(aclrtDevResModelType type, uint32_t* value)
+aclError AclrtGetResInCurrentThread(aclrtDevResLimitType type, uint32_t* value)
 {
-    typedef aclError (*AclrtGetResInCurrentThread)(aclrtDevResModelType, uint32_t*);
+    typedef aclError (*AclrtGetResInCurrentThread)(aclrtDevResLimitType, uint32_t*);
     static AclrtGetResInCurrentThread func = nullptr;
     if (func == nullptr) {
         func = (AclrtGetResInCurrentThread) GET_FUNC(aclrtGetResInCurrentThread);

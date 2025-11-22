@@ -35,7 +35,7 @@ TensorDesc::TensorDesc(const TensorDesc& desc) {}
 TensorDesc::TensorDesc(TensorDesc&& desc) {}
 TensorDesc::TensorDesc(Shape shape, Format format, DataType dt) {}
 void TensorDesc::SetConstData(
-    const std::shared_ptr<void> const_data_buffer,
+    std::unique_ptr<uint8_t[]> const_data_buffer,
     const size_t& const_data_len) {}
 Shape::Shape(const std::vector<int64_t>& dims) {}
 
