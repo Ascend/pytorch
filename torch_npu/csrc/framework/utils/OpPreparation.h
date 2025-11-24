@@ -92,6 +92,7 @@ public:
     static void CheckMemory(const std::initializer_list<at::Tensor> &inputs,
                             const std::initializer_list<at::Tensor> &outputs);
     static bool IsCPUScalar(const at::Tensor &tensor);
+    static int GetAclDataTypeItemSize(aclDataType acl_type);
 }; // namespace OpPreparation
 
 } // namespace native
