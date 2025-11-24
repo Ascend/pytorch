@@ -52,18 +52,6 @@
 
 #define ENABLE_HCCL_ERROR_CHECKING
 
-// Macro to throw on a non-successful HCCL return value.
-#define C10D_HCCL_CHECK(cmd)                                                        \
-    do {                                                                            \
-        HcclResult result = cmd;                                                    \
-        if (result != HCCL_SUCCESS) {                                               \
-            std::string err = "HCCL error in: " + std::string(__FILE__) + ":" +     \
-            std::to_string(__LINE__) + ", " +                                       \
-            "\n" + getHcclErrorDetailStr(result);                                   \
-            TORCH_CHECK(false, err, DIST_ERROR(ErrCode::HCCL));                     \
-        }                                                                           \
-    } while (0)
-
 namespace c10d_npu {
 extern HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError);
 extern HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclCommConfig* config, HcclComm *comm);
@@ -71,12 +59,6 @@ extern HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_
 extern HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *rankIds, uint64_t subCommId, uint32_t subCommRankId,
     HcclCommConfig* config, HcclComm *subComm);
 extern HcclResult hcclCommWorkingDevNicSet(HcclComm comm, uint32_t *ranks, bool *useBackup, uint32_t nRanks);
-
-// Provides additional detail into HCCL error codes based on when these are
-// thrown in the HCCL codebase.
-std::string getHcclErrorDetailStr(
-    HcclResult error,
-    c10::optional<std::string> processGroupFailureReason = c10::nullopt);
 
 HcclDataType getHcclDataType(at::ScalarType type);
 
