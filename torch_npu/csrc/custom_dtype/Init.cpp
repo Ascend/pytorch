@@ -120,6 +120,9 @@ static PyMethodDef NPUCustomDtypeMethods[] = { // NOLINT
 
 const std::string CustomDataTypeToString(int64_t dType)
 {
+    if (!IsCustomDType(dType)) {
+        return c10::toString(static_cast<at::ScalarType>(dType));
+    }
     const std::map<const DType, const std::string>
         TYPE_TO_STRING_MAP = {
             {DType::FLOAT, "torch_npu.float32"},
