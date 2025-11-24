@@ -8,26 +8,6 @@
 
 
 namespace c10d_npu {
-std::string getHcclErrorDetailStr(HcclResult error, c10::optional<std::string> processGroupFailureReason)
-{
-    // Prioritize failure reason provided by PG HCCL first, as it can abort
-    // communicators when it encounters collective timeouts, etc.
-    if (processGroupFailureReason != c10::nullopt) {
-        return *processGroupFailureReason;
-    }
-    std::string interpret;
-
-    switch (error) {
-        case HCCL_E_REMOTE:
-            interpret =
-                "HCCL_E_REMOTE: A call failed possibly due to a network error or a remote process exiting prematurely.";
-            break;
-        default:
-            interpret = "Unknown HCCL error!";
-    }
-    return interpret;
-}
-
 bool isFileExists(const std::string& path)
 {
     std::filesystem::path filePath(path);
@@ -224,7 +204,10 @@ HcclResult HCCLComm::checkForHcclError()
         return hcclAsyncErr_;
     }
     if (hcclComm_ != nullptr) {
-        C10D_HCCL_CHECK(hcclGetCommAsyncError(hcclComm_, &hcclAsyncErr_));
+        HcclResult result = hcclGetCommAsyncError(hcclComm_, &hcclAsyncErr_);
+        if (result != HCCL_SUCCESS) {
+            TORCH_CHECK(false, "Failed to get HCCL error code: ", std::to_string(result), DIST_ERROR(ErrCode::HCCL));
+        }
     }
     return hcclAsyncErr_;
 #else
