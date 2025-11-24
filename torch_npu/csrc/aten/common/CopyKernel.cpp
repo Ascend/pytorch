@@ -1,4 +1,5 @@
 #include <ATen/ATen.h>
+#include <ATen/core/CachingHostAllocator.h>
 
 #include "op_plugin/OpInterface.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -98,8 +99,12 @@ void copy_between_host_and_device(
         auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
         NPU_CHECK_ERROR(ret);
         ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
-        void* ptr = torch_npu::utils::is_npu(dst) ? src.storage().mutable_data() : dst.storage().mutable_data();
-        NPU_CHECK_ERROR(CachingHostAllocator_recordEvent(ptr, kind, stream), "aclrtSynchronizeStreamWithTimeout");
+        auto& storage = torch_npu::utils::is_npu(dst) ? src.storage() : dst.storage();
+        if (!at_npu::native::ptr_exist(storage.mutable_data()) && (!c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() || (kind != aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST))) {
+            // Sync when host memory is allocated by malloc
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream), "ACL stream synchronize failed.");
+        }
+        at::getHostAllocator(at::kPrivateUse1)->record_event(storage.mutable_data(), storage.data_ptr().get_context(), stream);
     } else {
         aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
         auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
