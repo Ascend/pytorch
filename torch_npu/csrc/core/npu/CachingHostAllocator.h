@@ -1,3 +1,5 @@
+#pragma once
+
 #include <c10/core/Allocator.h>
 #include <c10/util/SmallVector.h>
 
@@ -5,19 +7,44 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include <third_party/acl/inc/acl/acl.h>
+#include <third_party/acl/inc/acl/acl_rt.h>
 
-namespace at_npu {
-namespace native {
+#include <c10/core/DeviceGuard.h>
+#include <ATen/DeviceGuard.h>
+#include <ATen/Utils.h>
 
-TORCH_NPU_API c10::Allocator* getCachingHostAllocator();
+#include <ATen/core/CachingHostAllocator.h>
+#include <c10/util/Deprecated.h>
 
-TORCH_NPU_API aclError CachingHostAllocator_recordEvent(void* ptr, aclrtMemcpyKind kind, c10_npu::NPUStream stream);
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
-TORCH_NPU_API bool CachingHostAllocator_isPinned(void* ptr);
+namespace at_npu::native {
+
+bool ptr_exist(void* ptr);
+
+inline TORCH_NPU_API c10::Allocator* getCachingHostAllocator() {
+    return at::getHostAllocator(at::kPrivateUse1);
+}
+
+inline TORCH_NPU_API aclError CachingHostAllocator_recordEvent(void* ptr, void* ctx, c10_npu::NPUStream stream) {
+    return at::getHostAllocator(at::kPrivateUse1)->record_event(ptr, ctx, stream.unwrap());
+}
+
 // Releases cached pinned memory allocations via npuHostFree
-TORCH_NPU_API void CachingHostAllocator_emptyCache();
+inline TORCH_NPU_API void CachingHostAllocator_emptyCache() {
+    return at::getHostAllocator(at::kPrivateUse1)->empty_cache();
+}
+
+inline TORCH_NPU_API bool CachingHostAllocator_isPinned(void* ptr) {
+    return at_npu::native::ptr_exist(ptr);
+}
+
+inline at::DataPtr HostAlloc(size_t size)
+{
+    return at::getHostAllocator(at::kPrivateUse1)->allocate(size);
+}
 
 c10::Allocator* getPinnedMemoryAllocator();
 
-} // namespace native
-} // namespace at_npu
+} // namespace at_npu::native
