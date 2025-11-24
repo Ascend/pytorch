@@ -13,6 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <ATen/core/CachingHostAllocator.h>
 
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUPeerToPeerAccess.h"
@@ -43,10 +44,12 @@ void copy_between_host_and_device_opapi(at::Tensor& dst, const at::Tensor& src, 
         auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
         NPU_CHECK_ERROR(ret);
         ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
-        if (!c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() || (kind != aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST)) {
-            auto& storage = torch_npu::utils::is_npu(dst) ? src.storage() : dst.storage();
-            NPU_CHECK_ERROR(CachingHostAllocator_recordEvent(storage.mutable_data(), storage.data_ptr().get_context(), stream), "aclrtSynchronizeStreamWithTimeout");
+        auto& storage = torch_npu::utils::is_npu(dst) ? src.storage() : dst.storage();
+        if (!at_npu::native::ptr_exist(storage.mutable_data()) && (!c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() || (kind != aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST))) {
+            // Sync when host memory is allocated by malloc
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream), "ACL stream synchronize failed.");
         }
+        at::getHostAllocator(at::kPrivateUse1)->record_event(storage.mutable_data(), storage.data_ptr().get_context(), stream);
     } else {
         aclError error = aclrtSynchronizeStream(stream);
         auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(

@@ -27,21 +27,8 @@ inline TORCH_NPU_API c10::Allocator* getCachingHostAllocator() {
     return at::getHostAllocator(at::kPrivateUse1);
 }
 
-inline TORCH_NPU_API aclError CachingHostAllocator_recordEvent(void* ptr, void* ctx, c10_npu::NPUStream stream) {
-    // Sync when host memory is allocated by malloc
-    if (!at_npu::native::ptr_exist(ptr)) {
-        aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
-            if (error != ACL_ERROR_NONE) {
-                CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(error);
-                C10_NPU_SHOW_ERR_MSG();
-                AT_ERROR("ACL stream synchronize failed.");
-                return error;
-            }
-        return ACL_ERROR_NONE;
-    }
-    // use the result for further check
-    bool result = at::getHostAllocator(at::kPrivateUse1)->record_event(ptr, ctx, stream.unwrap());
-    return ACL_ERROR_NONE;
+inline TORCH_NPU_API bool CachingHostAllocator_recordEvent(void* ptr, void* ctx, c10_npu::NPUStream stream) {
+    return at::getHostAllocator(at::kPrivateUse1)->record_event(ptr, ctx, stream.unwrap());
 }
 
 // Releases cached pinned memory allocations via npuHostFree
