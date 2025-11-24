@@ -1975,8 +1975,8 @@ std::exception_ptr ProcessGroupHCCL::checkForHCCLErrorsInternal(
     for (const auto& hcclComm : hcclComms) {
         HcclResult hcclAsyncErr = hcclComm->checkForHcclError();
         if (hcclAsyncErr != HCCL_SUCCESS) {
-            return std::make_exception_ptr(std::runtime_error(
-                "HCCL error: " + getHcclErrorDetailStr(hcclAsyncErr)));
+            auto errmsg = c10_npu::c10_npu_get_error_message();
+            return std::make_exception_ptr(std::runtime_error(errmsg ? errmsg : ""));
         }
     }
     return nullptr;
