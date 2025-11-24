@@ -1,3 +1,7 @@
+#include <ATen/DeviceGuard.h>
+#include <c10/core/thread_pool.h>
+#include <future>
+
 #include <c10/core/DeviceGuard.h>
 #include <c10/util/llvmMathExtras.h>
 #include "torch_npu/csrc/core/npu/npu_log.h"
@@ -24,38 +28,39 @@
 #include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 
-namespace at_npu {
-namespace native {
+#include <ATen/core/CachingHostAllocator.h>
+#include <c10/util/flat_hash_map.h>
 
-namespace {
-struct BlockSize {
-    size_t size; // allocation size
-    void *ptr;   // host memory pointer
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
-    explicit BlockSize(size_t size, void *ptr = nullptr) : size(size), ptr(ptr) {}
-};
+using Block = at::HostBlock<c10_npu::NPUStream>;
 
-struct Block : public BlockSize {
-    bool allocated;  // true if the block is currently allocated
-    int event_count; // number of outstanding npu events
-    std::unordered_set<c10_npu::NPUStream> streams;
-    Block(size_t size, void *ptr, bool allocated)
-        : BlockSize(size, ptr), allocated(allocated), event_count(0), streams() {}
-};
+namespace at_npu::native {
+
+void innerInitNPU()
+{
+    // check whether we need std::call_once here
+    C10_LOG_API_USAGE_ONCE("aten.init.npu");
+    c10_npu::NpuSysCtrl::SysStatus status =
+        c10_npu::NpuSysCtrl::GetInstance().Initialize();
+    if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+        ASCEND_LOGE("Npu init fail.");
+    }
+}
 
 class EventPool {
 public:
     using Event = std::unique_ptr<
         c10_npu::NPUEvent,
-        std::function<void(c10_npu::NPUEvent *)>>;
+        std::function<void(c10_npu::NPUEvent*)>>;
     EventPool() : pools_(c10_npu::device_count()) {}
 
     Event get(at::DeviceIndex device)
     {
         TORCH_INTERNAL_ASSERT(0 <= device, PTA_ERROR(ErrCode::PARAM));
         TORCH_INTERNAL_ASSERT(device < static_cast<at::DeviceIndex>(pools_.size()), PTA_ERROR(ErrCode::PARAM));
-        auto &pool = pools_[device];
-        auto destructor = [&pool](c10_npu::NPUEvent *event) {
+        auto& pool = pools_[device];
+        auto destructor = [&pool](c10_npu::NPUEvent* event) {
             std::lock_guard<std::mutex> g(pool.mutex_);
             pool.event_pool_.push_back(std::unique_ptr<c10_npu::NPUEvent>(event));
         };
@@ -64,7 +69,7 @@ public:
         {
             std::lock_guard<std::mutex> g(pool.mutex_);
             if (!pool.event_pool_.empty()) {
-                auto *event = pool.event_pool_.back().release();
+                auto* event = pool.event_pool_.back().release();
                 pool.event_pool_.pop_back();
                 return Event(event, destructor);
             }
@@ -78,7 +83,7 @@ public:
 
     void empty_cache()
     {
-        for (auto &pool : pools_) {
+        for (auto& pool : pools_) {
             std::lock_guard<std::mutex> g(pool.mutex_);
             pool.event_pool_.clear();
         }
@@ -92,307 +97,122 @@ private:
     std::vector<PerDevicePool> pools_;
 };
 
-static bool BlockComparator(const BlockSize &a, const BlockSize &b)
-{
-    // sort by size, break ties with pointer
-    if (a.size != b.size) {
-        return a.size < b.size;
-    }
-    return reinterpret_cast<uintptr_t>(a.ptr) < reinterpret_cast<uintptr_t>(b.ptr);
-}
-
-struct HostAllocator {
-    using Comparison = bool (*)(const BlockSize &, const BlockSize &);
-
-    HostAllocator() : available(BlockComparator) {}
-
-    aclError malloc(void **ptr, size_t size)
+struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<c10_npu::NPUStream, EventPool::Event> {
+public:
+    bool ptr_check(void* ptr)
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::mutex> g(npu_ptrs_mutex_);
+        return npu_ptrs_.find(ptr) != npu_ptrs_.end();
+    }
 
-        // process outstanding npu events which may have occurred
-        aclError err = processEvents();
-        if (err != ACL_ERROR_NONE) {
-            return err;
-        }
-
-        // search for the smallest block which can hold this allocation
-        BlockSize search_key(size);
-        auto it = available.lower_bound(search_key);
-        if (it != available.end()) {
-            Block &block = blocks.at(it->ptr);
-            AT_ASSERT(!block.allocated && block.event_count == 0, PTA_ERROR(ErrCode::PARAM));
-            block.allocated = true;
-            *ptr = block.ptr;
-            available.erase(it);
-            return ACL_ERROR_NONE;
-        }
-
-        *ptr = nullptr;
-        // for pin_memory in dataloader, it should be set device first when new a thread
+private:
+    void allocate_host_memory(size_t size, void** ptr) override
+    {
+        // alloc needs set device first when using dataloader with pin_memory=True
         if (c10_npu::GetLocalDevice() < 0) {
             c10_npu::SetCurrentDevice();
         }
 
-        // Round up the allocation to the nearest power of two to improve reuse.
-        size_t roundSize = c10::llvm::PowerOf2Ceil(size);
-        // allocate a new block if no cached allocation is found
-        err = aclrtMallocHost(ptr, roundSize);
+        auto start = std::chrono::steady_clock::now();
+        aclError err = aclrtMallocHost(ptr, size);
         if (err != ACL_ERROR_NONE) {
             CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
-            return err;
         }
+        if (*ptr != nullptr) { // we add the segment pointer here when initialization, but it does not matter
+            std::lock_guard<std::mutex> g(npu_ptrs_mutex_);
+            npu_ptrs_.insert(*ptr);
+        }
+        auto end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-        blocks.insert({*ptr, Block(roundSize, *ptr, true)});
-        return ACL_ERROR_NONE;
+        {
+            std::lock_guard<std::mutex> g(stats_.timing_mutex_);
+            stats_.host_alloc_time.increase(duration.count());
+        }
     }
 
-    aclError free(void *ptr)
+    void free_block(Block* block) override
     {
-        std::lock_guard<std::mutex> lock(mutex);
-        if (!ptr) {
-            return ACL_ERROR_NONE;
-        }
-
-        auto it = blocks.find(ptr);
-        AT_ASSERT(it != blocks.end(), PTA_ERROR(ErrCode::VALUE));
-
-        Block &block = it->second;
-        AT_ASSERT(block.allocated, PTA_ERROR(ErrCode::VALUE));
-
-        // free (on valid memory) shouldn't fail, so mark unallocated before
-        // we process the streams.
-        block.allocated = false;
-
-        // insert npu events for each stream on which this block was used. This
-        aclError err = insertEvents(block);
+        auto start = std::chrono::steady_clock::now();
+        void* ptr = block->ptr_;
+        aclError err = aclrtFreeHost(block->ptr_);
         if (err != ACL_ERROR_NONE) {
             CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
-            return err;
         }
-
-        if (block.event_count == 0) {
-            // the block can be re-used if there are no outstanding npu events
-            available.insert(block);
+        if (ptr != nullptr) {
+            std::lock_guard<std::mutex> g(npu_ptrs_mutex_);
+            npu_ptrs_.erase(block->ptr_);
         }
-        return ACL_ERROR_NONE;
-    }
-
-    aclError recordEvent(void *ptr, aclrtMemcpyKind kind, c10_npu::NPUStream stream)
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-
-        auto it = blocks.find(ptr);
-        if (it == blocks.end()) {
-            if (c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() && kind == aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST) {
-                return ACL_ERROR_NONE;
-            }
-            // Sync when host memory is allocated by malloc
-            aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
-            if (error != ACL_ERROR_NONE) {
-                CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(error);
-                C10_NPU_SHOW_ERR_MSG();
-                AT_ERROR("ACL stream synchronize failed.");
-                return error;
-            }
-            return ACL_ERROR_NONE;
-        }
-
-        Block &block = it->second;
-        AT_ASSERT(block.allocated, PTA_ERROR(ErrCode::VALUE));
-
-        block.streams.insert(stream);
-        return ACL_ERROR_NONE;
-    }
-
-    bool isPinndPtr(void *ptr)
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        return blocks.find(ptr) != blocks.end();
-    }
-
-    aclError processEvents()
-    {
-        // Process outstanding npuEvents. Events that are completed are removed
-        // from the queue, and the 'event_count' for the corresponding allocation
-        // is decremented. Stops at the first event which has not been completed.
-        // Since events on different devices or streams may occur out of order,
-        // the processing of some events may be delayed.
-        while (!npu_events.empty()) {
-            auto &e = npu_events.front();
-            EventPool::Event event = std::move(e.first);
-            if (!event->query()) {
-                e.first = std::move(event);
-                break;
-            }
-
-            Block &block = blocks.at(e.second);
-            block.event_count--;
-            if (block.event_count == 0 && !block.allocated) {
-                available.insert(block);
-            }
-            npu_events.pop_front();
-        }
-        return ACL_ERROR_NONE;
-    }
-
-    void emptyCache()
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-
-        // process outstanding npu events which may have occurred
-        processEvents();
-
-        // Release cached events from the event pool.
-        event_pool_.empty_cache();
-
-        // clear list of available blocks
-        available.clear();
-
-        // free and erase non-allocated blocks
-        for (auto it = blocks.begin(); it != blocks.end();) {
-            Block &block = it->second;
-            if (aclrtFreeHost(block.ptr) != ACL_ERROR_NONE) {
-                ASCEND_LOGE("free host pin failed!");
-            }
-            if (!block.allocated) {
-                it = blocks.erase(it);
-            } else {
-                block.streams.clear();
-                ++it;
-            }
+        auto end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        {
+            std::lock_guard<std::mutex> g(stats_.timing_mutex_);
+            stats_.host_free_time.increase(duration.count());
         }
     }
 
-    aclError insertEvents(Block &block)
+    void record_stream(std::optional<std::vector<EventPool::Event>>& events, c10_npu::NPUStream stream) override
     {
-        aclError err = ACL_ERROR_NONE;
+        auto event = create_event_internal(stream.device_index());
+        event->record(stream);
+        events->push_back(std::move(event));
+    }
 
-        int prev_device = 0;
-        err = c10_npu::GetDevice(&prev_device);
-        if (err != ACL_ERROR_NONE) {
-            return err;
-        }
+    bool query_event(EventPool::Event& event) override
+    {
+        return event->query();
+    }
 
-        std::unordered_set<c10_npu::NPUStream> streams(std::move(block.streams));
-        for (auto it = streams.begin(); it != streams.end(); ++it) {
-            err = c10_npu::SetDevice(it->device_index());
-            if (err != ACL_ERROR_NONE) {
-                C10_NPU_SHOW_ERR_MSG();
-                break;
-            }
-
-            EventPool::Event event = event_pool_.get(it->device_index());
-            event->record(*it);
-            ASCEND_LOGI("Event: record HostAllocator is successfully executed, event=%p", event.get());
-
-            block.event_count++;
-            npu_events.emplace_back(std::move(event), block.ptr);
-        }
-
-        c10_npu::SetDevice(prev_device);
-
-        return err;
+    EventPool::Event create_event_internal(at::DeviceIndex idx)
+    {
+        static auto* event_pool = new EventPool();
+        return event_pool->get(idx);
     }
 
 private:
-    EventPool event_pool_;
-
-    // lock around all operations
-    std::mutex mutex;
-
-    // blocks by pointer
-    std::unordered_map<void *, Block> blocks;
-
-    // pointers that are ready to be allocated (event_count=0)
-    std::set<BlockSize, Comparison> available;
-
-    // outstanding ACL events
-    std::deque<std::pair<EventPool::Event, void *>> npu_events;
+    std::mutex npu_ptrs_mutex_;
+    ska::flat_hash_set<void*> npu_ptrs_;
 };
-} // namespace
 
-static HostAllocator& getHostAllocator()
-{
-    // Construct allocator inside a function to prevent initialization when import
-    static HostAllocator allocator;
-    return allocator;
-}
+// Note : we do not use the macro DECLARE_HOST_ALLOCATOR here, because we need to access caching_host_allocator with ptr_exist function
+void raw_local_deleter(void* ptr);
 
-aclError CachingHostAllocator_recordEvent(
-    void *ptr,
-    aclrtMemcpyKind kind,
-    c10_npu::NPUStream stream)
-{
-    return getHostAllocator().recordEvent(ptr, kind, stream);
-}
+struct NPUCachingHostAllocator final : public at::CachingHostAllocatorInterface<NPUCachingHostAllocatorImpl, raw_local_deleter> {};
 
-bool CachingHostAllocator_isPinned(void *ptr)
-{
-    return getHostAllocator().isPinndPtr(ptr);
-}
+static NPUCachingHostAllocator caching_host_allocator;
 
-void CachingHostAllocator_emptyCache()
-{
-    getHostAllocator().emptyCache();
-}
-
-static void CachingHostDeleter(void *ptr)
+void raw_local_deleter(void* ptr)
 {
 #ifndef BUILD_LIBTORCH
     // check the current thread have hold GIL Lock.
     if (PyGILState_Check()) {
         // the current thread should not hold GIL.
         Py_BEGIN_ALLOW_THREADS
-        getHostAllocator().free(ptr);
+        caching_host_allocator.free(ptr);
         Py_END_ALLOW_THREADS
     } else {
-        getHostAllocator().free(ptr);
+        caching_host_allocator.free(ptr);
     }
 #else
-    getHostAllocator().free(ptr);
+    caching_host_allocator.free(ptr);
 #endif
 }
+// END of DECLARE_HOST_ALLOCATOR
 
-struct CachingHostAllocator final : public at::Allocator {
-    at::DataPtr allocate(size_t size) override
-    {
-        AT_ASSERT(size >= 0, PTA_ERROR(ErrCode::VALUE));
-        void *ptr = nullptr;
-        if (size > 0) {
-            if (getHostAllocator().malloc(&ptr, size) != ACL_ERROR_NONE) {
-                ASCEND_LOGE("allocate host pinned memory fail");
-            }
-        }
-        return {ptr, ptr, &CachingHostDeleter, at::DeviceType::CPU};
-    }
-    at::DeleterFnPtr raw_deleter() const override
-    {
-        return &CachingHostDeleter;
-    }
-    // Note [COW/lazy_clone is not supported yet]
-    void copy_data(void* dest, const void* src, std::size_t count) const
-    {
-        TORCH_CHECK_NOT_IMPLEMENTED(false, "Not implemented for THNPUCachingHostAllocator", PTA_ERROR(ErrCode::NOT_SUPPORT));
-    }
-};
+REGISTER_HOST_ALLOCATOR(
+    at::kPrivateUse1,
+    &caching_host_allocator
+)
 
-static CachingHostAllocator caching_host_allocator;
-at::Allocator *getCachingHostAllocator()
+bool ptr_exist(void* ptr)
 {
-    return &caching_host_allocator;
+    return caching_host_allocator.impl_->ptr_check(ptr);
 }
 
-c10::Allocator *getPinnedMemoryAllocator()
+c10::Allocator* getPinnedMemoryAllocator()
 {
-    C10_LOG_API_USAGE_ONCE("aten.init.npu");
-    c10_npu::NpuSysCtrl::SysStatus status =
-        c10_npu::NpuSysCtrl::GetInstance().Initialize();
-    if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
-        ASCEND_LOGE("Npu init fail.");
-    }
-    return getCachingHostAllocator();
+    innerInitNPU();
+    return at::getHostAllocator(at::kPrivateUse1);
 }
 
-} // namespace native
-} // namespace at_npu
+} // namespace at_npu::native
