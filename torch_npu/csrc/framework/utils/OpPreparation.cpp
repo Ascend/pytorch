@@ -521,5 +521,41 @@ bool OpPreparation::IsCPUScalar(const at::Tensor &tensor)
     return false;
 }
 
+int OpPreparation::GetAclDataTypeItemSize(aclDataType acl_type)
+{
+    switch (acl_type) {
+        case ACL_INT8:
+        case ACL_UINT8:
+        case ACL_BOOL:
+        case ACL_HIFLOAT8:
+        case ACL_FLOAT8_E5M2:
+        case ACL_FLOAT8_E4M3FN:
+        case ACL_FLOAT8_E8M0:
+        case ACL_FLOAT4_E2M1:
+        case ACL_FLOAT4_E1M2:
+            return 1;
+        case ACL_FLOAT16:
+        case ACL_INT16:
+        case ACL_UINT16:
+        case ACL_BF16:
+            return 2;
+        case ACL_FLOAT:
+        case ACL_INT32:
+        case ACL_UINT32:
+        case ACL_COMPLEX32:
+            return 4;
+        case ACL_INT64:
+        case ACL_UINT64:
+        case ACL_DOUBLE:
+        case ACL_COMPLEX64:
+            return 8;
+        case ACL_COMPLEX128:
+            return 16;
+        default:
+            TORCH_CHECK(false,
+                "Unsupported acl_type:", acl_type, PTA_ERROR(ErrCode::NOT_SUPPORT));
+    }
+}
+
 } // namespace native
 } // namespace at_npu
