@@ -17,7 +17,6 @@ namespace native {
 using tensor_list = std::vector<at::Tensor>;
 using GetFormatFunc = int (*)(const aclTensor *, const int, const int, int64_t **, uint64_t *, int *);
 
-// For future aclnnNpuFormatCast functionality, retain redundant code.
 std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuFormatCast(const at::Tensor& src,
     int64_t acl_format, c10::optional<int64_t> customize_dtype)
 {
@@ -110,7 +109,6 @@ at::Tensor create_tensor_with_format_and_shape(c10::IntArrayRef baseSizes,
     return tensor;
 }
 
-// For future aclnnNpuFormatCast functionality, retain redundant code.
 at::Tensor format_cast_impl_out_npu_aclnn(const at::Tensor& src,
     int64_t acl_format, c10::IntArrayRef storageSizes)
 {
@@ -162,6 +160,13 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(at::Tensor& self, const at::Ten
     auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
     if (src_desc.npu_format_ == dst_desc.npu_format_) {
         self.copy_(src);
+        return self;
+    }
+
+    auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, dst_desc.npu_format_, customize_dtype);
+    if (useAclnn == true) {
+        at::Tensor dst = format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape);
+        self.set_(dst.storage(), dst.storage_offset(), dst.sizes(), dst.strides());
         return self;
     }
 
@@ -218,6 +223,13 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(
         return self;
     }
 
+    auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, acl_format, customize_dtype);
+    if (useAclnn == true) {
+        at::Tensor dst = format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape);
+        self.set_(dst.storage(), dst.storage_offset(), dst.sizes(), dst.strides());
+        return self;
+    }
+
     at::Tensor dst = OpPreparation::ApplyTensorWithFormat(
         src_desc.base_sizes_, self.options(), acl_format);
 
@@ -250,7 +262,11 @@ at::Tensor NPUNativeFunctions::_npu_format_cast(const at::Tensor& self, int64_t 
         FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
         return self;
     }
-    return npu_format_cast_impl(self, acl_format);
+    auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, acl_format, c10::nullopt);
+    if (useAclnn == false) {
+        return npu_format_cast_impl(self, acl_format);
+    }
+    return format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape);
 }
 
 at::Tensor NPUNativeFunctions::_npu_format_cast(const at::Tensor& self, int64_t acl_format,
@@ -266,7 +282,11 @@ at::Tensor NPUNativeFunctions::_npu_format_cast(const at::Tensor& self, int64_t 
         FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
         return self;
     }
-    return npu_format_cast_impl(self, acl_format);
+    auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, acl_format, customize_dtype);
+    if (useAclnn == false) {
+        return npu_format_cast_impl(self, acl_format);
+    }
+    return format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape);
 }
 
 at::Tensor NPUNativeFunctions::npu_format_cast(const at::Tensor& self, int64_t acl_format,
