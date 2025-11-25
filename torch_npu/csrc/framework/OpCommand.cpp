@@ -267,6 +267,49 @@ void OpCommand::RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool sy
     }
 }
 
+void OpCommand::RunOpApiV3(const string &op_name, const PROC_FUNC &func, bool sync, c10_npu::NPUStream *task_stream)
+{
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+#endif
+    auto stream = c10_npu::getCurrentNPUStream();
+    if (!stream.isSyncLaunchStream() && c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
+        RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
+#ifndef BUILD_LIBTORCH
+        at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
+#endif
+        ExecuteParasOpApiV2 execParams;
+        execParams.opName = const_cast<std::string*>(&op_name);
+        execParams.customHandler = const_cast<PROC_FUNC*>(&func);
+
+        c10_npu::queue::QueueParas params(c10_npu::queue::EXECUTE_OPAPI_V2, sizeof(ExecuteParasOpApiV2), &execParams);
+        c10_npu::enCurrentNPUStream(&params, -1, task_stream);
+#ifndef BUILD_LIBTORCH
+        at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
+#endif
+    } else {
+#ifndef BUILD_LIBTORCH
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuAclStartExecution(op_name);
+        }
+#endif
+        OpCommandImpl::RunOpApi(op_name, func);
+        if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
+            if (c10_npu::currentStreamCaptureStatusMayInitCtx() != c10_npu::CaptureStatus::Active) {
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+            }
+        }
+#ifndef BUILD_LIBTORCH
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuAclFinishExecution(op_name);
+        }
+#endif
+    }
+    if (sync) {
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+    }
+}
+
 OpCommand& OpCommand::Sync(c10::SmallVector<int64_t, N> &index)
 {
     sync_index = index;

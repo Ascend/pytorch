@@ -75,6 +75,8 @@ public:
     {
         auto context = maybeGatherContext(RecordContext::STATE);
 
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+
         size_t alloc_size = size + 32;
 
         auto it = blocks.find(stream);
@@ -194,6 +196,7 @@ public:
 
     void free()
     {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
         update_stat(stats.allocated_bytes, -allocated_size);
 #ifndef BUILD_LIBTORCH
         if (this->last_block && this->last_block->data_ptr && this->last_stream) {
@@ -223,6 +226,7 @@ public:
     {
         ASCEND_LOGD("NPUWorkspaceAllocator begin empty cache with check_error = %d", check_error);
 
+        std::lock_guard<std::recursive_mutex> lock(mutex);
         for (const auto& block_pair : blocks) {
             if (block_pair.second->data_ptr != nullptr) {
                 ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block_pair.second->size);
@@ -265,6 +269,7 @@ public:
 
     void record_history(bool enabled, CreateContextFn context_recorder, RecordContext when)
     {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
         TORCH_CHECK(when == RecordContext::NEVER || context_recorder, PTA_ERROR(ErrCode::INTERNAL));
         record_flag = enabled;
         context_recorder_.store(record_flag ? context_recorder : nullptr);
@@ -273,6 +278,7 @@ public:
 
     std::vector<TraceEntry> get_trace()
     {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
         std::vector<TraceEntry> alloc_trace;
 #ifndef BUILD_LIBTORCH
         if (!record_flag) {
@@ -303,6 +309,7 @@ public:
 
     std::vector<SegmentInfo> get_segm()
     {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
         std::vector<SegmentInfo> result;
 #ifndef BUILD_LIBTORCH
         for (const auto& block_pair : blocks) {
@@ -359,11 +366,13 @@ public:
 
     DeviceStats getStats()
     {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
         return stats;
     }
 
     void *getStreamPtr(aclrtStream stream)
     {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
         auto it = blocks.find(stream);
         if (it == blocks.end()) {
             return nullptr;
@@ -373,6 +382,8 @@ public:
     }
 
 private:
+    // lock around all operations
+    mutable std::recursive_mutex mutex;
     ska::flat_hash_map<aclrtStream, WorkspaceBlock*> blocks;
     bool record_flag = false;
     std::atomic<CreateContextFn> context_recorder_;

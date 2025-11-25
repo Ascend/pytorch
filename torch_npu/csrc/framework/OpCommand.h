@@ -127,6 +127,7 @@ public:
 
     static void RunOpApi(const string &op_name, PROC_FUNC func, bool sync = false);
     static void RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool sync = false);
+    static void RunOpApiV3(const string &op_name, const PROC_FUNC &func, bool sync = false, c10_npu::NPUStream *task_stream = nullptr);
 
 private:
     OpCommand& AddTensorInput(at::Tensor &tensor,
