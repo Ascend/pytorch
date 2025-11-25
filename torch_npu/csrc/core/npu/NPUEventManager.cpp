@@ -37,16 +37,22 @@ aclError NPUEventManager::QueryAndDestroyEvent()
     std::lock_guard<std::mutex> guard(event_queue_mutex_);
     while (!npu_events_.empty()) {
         aclrtEvent event = npu_events_.front();
-        acl::aclrtEventRecordedStatus recordStatus = acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-        NPU_CHECK_ERROR(acl::AclQueryEventRecordedStatus(event, &recordStatus));
-        if (recordStatus != acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
-            break;
-        } else {
-            acl::aclrtEventWaitStatus waitStatus = acl::ACL_EVENT_WAIT_STATUS_RESERVED;
-            // if the event usage is unknown, ensure the event id not destroyed in advance.
-            NPU_CHECK_ERROR(acl::AclQueryEventWaitStatus(event, &waitStatus));
-            if (waitStatus != acl::ACL_EVENT_WAIT_STATUS_COMPLETE) {
+        if (c10_npu::option::OptionsManager::GetPerStreamQueue()) {
+            if (!c10_npu::NPUEventManager::GetInstance().IsEventRecorded(event) || !c10_npu::NPUEventManager::GetInstance().IsEventWaited(event)) {
                 break;
+            }
+        } else {
+            acl::aclrtEventRecordedStatus recordStatus = acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
+            NPU_CHECK_ERROR(acl::AclQueryEventRecordedStatus(event, &recordStatus));
+            if (recordStatus != acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
+                break;
+            } else {
+                acl::aclrtEventWaitStatus waitStatus = acl::ACL_EVENT_WAIT_STATUS_RESERVED;
+                // if the event usage is unknown, ensure the event id not destroyed in advance.
+                NPU_CHECK_ERROR(acl::AclQueryEventWaitStatus(event, &waitStatus));
+                if (waitStatus != acl::ACL_EVENT_WAIT_STATUS_COMPLETE) {
+                    break;
+                }
             }
         }
         {
@@ -60,7 +66,7 @@ aclError NPUEventManager::QueryAndDestroyEvent()
 
 aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event)
 {
-    if (c10_npu::acl::IsExistCreateEventExWithFlag()) {
+    if (c10_npu::acl::IsExistCreateEventExWithFlag() && !c10_npu::option::OptionsManager::GetPerStreamQueue()) {
         int err = aclrtDestroyEvent(npu_event);
         if (err == ACL_ERROR_NONE) {
             ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", npu_event);
@@ -136,6 +142,46 @@ bool NPUEventManager::IsEventRecorded(aclrtEvent event)
 
     auto it = event_unrecorded_count_.find(event);
     return it == event_unrecorded_count_.end();
+}
+
+void NPUEventManager::IncreaseUnwaitedCount(aclrtEvent event)
+{
+    std::lock_guard<std::mutex> guard(event_unwaited_count_mutex_);
+
+    auto it = event_unwaited_count_.find(event);
+    if (it != event_unwaited_count_.end()) {
+        it->second++;
+        ASCEND_LOGD("Event: unwaited count increase, now=%d.", it->second);
+    } else {
+        event_unwaited_count_.insert(std::pair<aclrtEvent, int>(event, 1));
+        ASCEND_LOGD("Event: unwaited count increase, now=%d.", 1);
+    }
+}
+
+void NPUEventManager::DecreaseUnwaitedCount(aclrtEvent event)
+{
+    std::lock_guard<std::mutex> guard(event_unwaited_count_mutex_);
+
+    auto it = event_unwaited_count_.find(event);
+    TORCH_CHECK(
+        it != event_unwaited_count_.end(),
+        "Event: event wait must enqueue before dequeue, event=",
+        (void *) event, PTA_ERROR(ErrCode::INTERNAL));
+    if (it->second == 1) {
+        event_unwaited_count_.erase(event);
+        ASCEND_LOGD("Event: unwaited count decrease, now=%d.", 0);
+    } else {
+        it->second--;
+        ASCEND_LOGD("Event: unwaited count decrease, now=%d.", it->second);
+    }
+}
+
+bool NPUEventManager::IsEventWaited(aclrtEvent event)
+{
+    std::lock_guard<std::mutex> guard(event_unwaited_count_mutex_);
+
+    auto it = event_unwaited_count_.find(event);
+    return it == event_unwaited_count_.end();
 }
 
 void NPUEventManager::ClearUnrecordedCount()
