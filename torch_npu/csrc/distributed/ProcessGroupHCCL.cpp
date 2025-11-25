@@ -834,10 +834,13 @@ void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds t
     }
 
     if (!recorded_inputs_.empty()) {
-        for (auto it = recorded_inputs_.begin(); it != recorded_inputs_.end(); ++it) {
-            auto storage = it->first.lock();
+        auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+        for (auto i = 0; i < recorded_inputs_.size(); ++i) {
+            auto storage = recorded_inputs_[i].first.lock();
             if (storage) {
-                c10_npu::NPUCachingAllocator::eraseStream(storage->data_ptr(), it->second);
+                c10_npu::NPUCachingAllocator::eraseStream(storage->data_ptr(), recorded_inputs_[i].second);
+            } else if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                c10_npu::NPUCachingAllocator::eraseStreamWithBlockPtr(recorded_block_ptr_for_inputs_[i], recorded_inputs_[i].second, static_cast<void*>(this));
             }
         }
     }
@@ -3427,12 +3430,19 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         // operations where `inputs' and `outputs' are not the same.
         //
         // See [Sync Streams].
-        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+        auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+        if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
             work->stashed_for_allocator_safety_.push_back(inputs[i]);
         } else {
             c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
-            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
                 work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
+                if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                    auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputs[i].storage().data_ptr());
+                    work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                    c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                }
             }
         }
     }
@@ -3599,12 +3609,19 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
         // operations where `inputs' and `outputs' are not the same.
         //
         // See [Sync Streams].
-        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+        auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+        if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
             work->stashed_for_allocator_safety_.push_back(inputs[i]);
         } else {
             c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
-            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
                 work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
+                if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                    auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputs[i].storage().data_ptr());
+                    work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                    c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                }
             }
         }
     }
@@ -3783,12 +3800,19 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
         // prevent being freed before the collective finishes.
         //
         // See [Sync Streams].
-        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+        auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+        if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
             work->stashed_for_allocator_safety_.push_back(tensors[i]);
         } else {
             c10_npu::NPUCachingAllocator::recordStream(tensors[i].storage().data_ptr(), hcclStream);
-            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
                 work->recorded_inputs_.push_back(std::make_pair(tensors[i].storage().getWeakStorageImpl(), hcclStream));
+                if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                    auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(tensors[i].storage().data_ptr());
+                    work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                    c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                }
             }
         }
     }
@@ -4811,17 +4835,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
             work->lazyDestroy(inputFlattened);
             // Copy the input tensors to the flattened inputs.
+            auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
             for (const auto i : c10::irange(inputTensors.size())) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                 for (const auto j : c10::irange(inputTensors[0].size())) {
                     // See [Sync Streams].
-                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                    if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
                         work->stashed_for_allocator_safety_.push_back(inputTensors[i][j]);
                     } else {
                         c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
-                        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                        if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                            multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
                             work->recorded_inputs_.push_back(
                                 std::make_pair(inputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                                auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputTensors[i][j].storage().data_ptr());
+                                work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                                c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                            }
                         }
                     }
                     inputFlattened[i][j].copy_(inputTensors[i][j], true);
@@ -5181,17 +5212,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
             work->lazyDestroy(inputFlattened);
             // Copy the input tensors to the flattened inputs.
+            auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
             for (const auto i : c10::irange(inputTensors.size())) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                 for (const auto j : c10::irange(inputTensors[0].size())) {
                     // See [Sync Streams].
-                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                    if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
                         work->stashed_for_allocator_safety_.push_back(inputTensors[i][j]);
                     } else {
                         c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
-                        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                        if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                            multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
                             work->recorded_inputs_.push_back(
                                 std::make_pair(inputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                                auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputTensors[i][j].storage().data_ptr());
+                                work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                                c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                            }
                         }
                     }
                     inputFlattened[i][j].copy_(inputTensors[i][j], true);
