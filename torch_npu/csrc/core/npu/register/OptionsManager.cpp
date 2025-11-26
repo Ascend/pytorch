@@ -554,6 +554,20 @@ uint32_t OptionsManager::GetTaskQueueEnable()
     return task_queue_enable;
 }
 
+uint32_t OptionsManager::GetPerStreamQueue()
+{
+    if (CheckBlockingEnable() || GetTaskQueueEnable() == 0) {
+        return 0;
+    }
+
+    const static uint32_t per_stream_queue = []() -> uint32_t {
+        char* env_val = std::getenv("PER_STREAM_QUEUE");
+        int64_t per_stream_queue = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
+        return static_cast<uint32_t>(per_stream_queue);
+    }();
+    return per_stream_queue;
+}
+
 bool OptionsManager::CheckForceUncached()
 {
     const static bool force_uncached = []() -> bool {

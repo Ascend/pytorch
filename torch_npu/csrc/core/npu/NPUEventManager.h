@@ -21,6 +21,9 @@ public:
     void IncreaseUnrecordedCount(aclrtEvent event);
     void DecreaseUnrecordedCount(aclrtEvent event);
     bool IsEventRecorded(aclrtEvent event);
+    void IncreaseUnwaitedCount(aclrtEvent event);
+    void DecreaseUnwaitedCount(aclrtEvent event);
+    bool IsEventWaited(aclrtEvent event);
     void ClearUnrecordedCount();
     ~NPUEventManager() {}
 
@@ -35,6 +38,8 @@ private:
 
     std::mutex event_unrecorded_count_mutex_;
     ska::flat_hash_map<aclrtEvent, int> event_unrecorded_count_;
+    std::mutex event_unwaited_count_mutex_;
+    ska::flat_hash_map<aclrtEvent, int> event_unwaited_count_;
 };
 
 } // namespace c10_npu

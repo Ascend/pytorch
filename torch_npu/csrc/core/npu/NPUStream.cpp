@@ -61,6 +61,8 @@ static constexpr int kSyncLaunchStreamsPerPool = 4;
 // Default streams init flags
 static bool initialize_flag[C10_COMPILE_TIME_MAX_NPUS] = {false};
 std::mutex mtx[C10_COMPILE_TIME_MAX_NPUS];
+// initrepo mutex
+std::mutex init_repo_mutex_;
 // The stream that delivers the compute task.
 static LeakyStreamInternals default_streams[C10_COMPILE_TIME_MAX_NPUS];
 // In a specific scenario, the two operators have no value dependence
@@ -361,13 +363,26 @@ void NPUStream::synchronize() const
 
 aclrtStream NPUStream::stream() const
 {
-    auto ptr = NPUStream_internals(getDefaultNPUStream());
-    AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
-    if (!this->isSyncLaunchStream() && ptr->repo->CheckInit()) {
-        NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
-        if (ret != NPU_STATUS_SUCCESS) {
-            ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
-            return nullptr;
+    if (c10_npu::option::OptionsManager::GetPerStreamQueue()) {
+        auto cur_ptr = NPUStream_internals(*this);
+        AT_ASSERT(cur_ptr, PTA_ERROR(ErrCode::PTR));
+        if (!this->isSyncLaunchStream() && cur_ptr->repo->CheckInit()) {
+            NPUStatus ret = cur_ptr->repo->MakeSureQueueEmpty();
+            if (ret != NPU_STATUS_SUCCESS) {
+                ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+                return nullptr;
+            }
+        }
+        return cur_ptr->stream;
+    } else {
+        auto ptr = NPUStream_internals(getDefaultNPUStream());
+        AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
+        if (!this->isSyncLaunchStream() && ptr->repo->CheckInit()) {
+            NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
+            if (ret != NPU_STATUS_SUCCESS) {
+                ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+                return nullptr;
+            }
         }
     }
     auto cur_ptr = NPUStream_internals(*this);
@@ -458,6 +473,41 @@ NPUStatus emptyAllNPUStream(bool check_error)
             }
         }
     }
+
+    if (c10_npu::option::OptionsManager::GetPerStreamQueue()) {
+        for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
+            auto& secondary_streamsi = secondary_streams[i];
+            if (secondary_streamsi.stream == nullptr) {
+                continue;
+            }
+            if (secondary_streamsi.stream != nullptr && secondary_streamsi.repo->CheckInit()) {
+                ret = secondary_streamsi.repo->MakeSureQueueEmpty(check_error);
+                if (ret != NPU_STATUS_SUCCESS) {
+                    return ret;
+                }
+            }
+        }
+
+        static int StreamsPerPool = GetStreamsPerPool();
+        for (auto device_index = decltype(num_npus){0}; device_index < num_npus; ++device_index) {
+            for (auto i = decltype(StreamsPerPool){0}; i < StreamsPerPool; ++i) {
+                for (const auto p : c10::irange(kMaxStreamPriorities)) {
+                    auto& npu_streami = npu_streams[p][device_index][i];
+
+                    if (npu_streami.stream == nullptr) {
+                        continue;
+                    }
+                    if (npu_streami.stream != nullptr && npu_streami.repo->CheckInit()) {
+                        ret = npu_streami.repo->MakeSureQueueEmpty(check_error);
+                        if (ret != NPU_STATUS_SUCCESS) {
+                            return ret;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     return NPU_STATUS_SUCCESS;
 }
 
@@ -547,7 +597,7 @@ bool npuSynchronizeUsedDevices(bool check_error)
     return acl_ret == ACL_ERROR_NONE;
 }
 
-void enCurrentNPUStream(void* cur_paras, c10::DeviceIndex device_index)
+void enCurrentNPUStream(void* cur_paras, c10::DeviceIndex device_index, NPUStream *task_stream)
 {
     initNPUStreamsOnce();
     if (device_index == -1) {
@@ -557,10 +607,31 @@ void enCurrentNPUStream(void* cur_paras, c10::DeviceIndex device_index)
     c10_npu::queue::QueueParas* queueParam = static_cast<c10_npu::queue::QueueParas* >(cur_paras);
     queueParam->correlation_id = c10_npu::queue::QueueParas::g_correlation_id++;
     queueParam->paramStream = current_streams[device_index]->stream;
-    default_streams[device_index].repo->Enqueue(cur_paras);
-    if (default_streams[device_index].repo->GetStatus() == RepoStatus::INIT) {
-        default_streams[device_index].repo->MakeSureQueueEmpty();
-        default_streams[device_index].repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
+    if (c10_npu::option::OptionsManager::GetPerStreamQueue()) {
+        LeakyStreamInternals* ptr = current_streams[device_index];
+        if (task_stream != nullptr) {
+            ptr = NPUStream_internals(*task_stream);
+        }
+        // To prevent all taskqueue threads from being created during stream initialization,
+        // we initialize the taskqueue when enqueueing
+        // each stream init repo once
+        if (!ptr->repo->CheckInit()) {
+            std::lock_guard<std::mutex> lock(init_repo_mutex_);
+            if (!ptr->repo->CheckInit()) {
+                ptr->repo->InitRepo(device_index);
+            }
+        }
+        ptr->repo->Enqueue(cur_paras);
+        if (ptr->repo->GetStatus() == RepoStatus::INIT) {
+            ptr->repo->MakeSureQueueEmpty();
+            ptr->repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
+        }
+    } else {
+        default_streams[device_index].repo->Enqueue(cur_paras);
+        if (default_streams[device_index].repo->GetStatus() == RepoStatus::INIT) {
+            default_streams[device_index].repo->MakeSureQueueEmpty();
+            default_streams[device_index].repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
+        }
     }
 }
 
