@@ -60,8 +60,11 @@ ReuseMode OptionsManager::GetMultiStreamMemoryReuse()
             case 2:
                 mode = AVOID_RECORD_STREAM;
                 break;
+            case 3:
+                mode = ERASE_RECORD_STREAM_WITH_OPTIMIZE;
+                break;
             default:
-                TORCH_CHECK(false, "MULTI_STREAM_MEMORY_REUSE should be 0, 1 or 2", PTA_ERROR(ErrCode::VALUE));
+                TORCH_CHECK(false, "MULTI_STREAM_MEMORY_REUSE should be 0, 1, 2 or 3", PTA_ERROR(ErrCode::VALUE));
         }
         return mode;
     }();

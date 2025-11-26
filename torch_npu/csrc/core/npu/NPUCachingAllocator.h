@@ -209,6 +209,9 @@ public:
     virtual void* getBaseAllocation(void* ptr, size_t* size) = 0;
     virtual void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
     virtual void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
+    virtual void eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr) = 0;
+    virtual void* getBlockPtr(const c10::DataPtr& ptr) = 0;
+    virtual void recordHcclWorkForBlock(void* block_ptr, void* work_ptr) = 0;
     virtual DeviceStats getDeviceStats(int device) = 0;
     virtual void resetAccumulatedStats(int device) = 0;
     virtual void resetPeakStats(int device) = 0;
@@ -340,6 +343,21 @@ inline void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream)
 inline void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream)
 {
     return get()->eraseStream(ptr, stream);
+}
+
+inline void eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr)
+{
+    return get()->eraseStreamWithBlockPtr(block_ptr, stream, work_ptr);
+}
+
+inline void* getBlockPtr(const c10::DataPtr& ptr)
+{
+    return get()->getBlockPtr(ptr);
+}
+
+inline void recordHcclWorkForBlock(void* block_ptr, void* work_ptr)
+{
+    return get()->recordHcclWorkForBlock(block_ptr, work_ptr);
 }
 
 inline DeviceStats getDeviceStats(int device)
