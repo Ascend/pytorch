@@ -232,6 +232,7 @@ void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream)
         {
             c10_npu::NPUStreamGuard guard(npuStream);
             QueueParas params(WAIT_EVENT, sizeof(EventParas), &eventParam_);
+            c10_npu::NPUEventManager::GetInstance().IncreaseUnwaitedCount(eventParam_.event);
             c10_npu::enCurrentNPUStream(&params);
             prof_correlation_id = params.correlation_id;
         }
