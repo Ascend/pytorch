@@ -531,6 +531,7 @@ int WaitEventFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
             ret,
             cur_paras->eventAllocatorType);
     }
+    c10_npu::NPUEventManager::GetInstance().DecreaseUnwaitedCount(cur_paras->event);
     ASCEND_LOGI(
         "Event: aclrtStreamWaitEvent dequeue is successfully executed, stream=%p, event=%p",
         stream,
