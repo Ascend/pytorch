@@ -158,6 +158,8 @@ class ProfilerPathManager:
 
     @classmethod
     def get_realpath(cls, path: str) -> str:
+        if not path:
+            raise RuntimeError("Input path is empty, please check. " + "ErrorType: {}".format(ErrCode.UNAVAIL.msg))
         path = os.path.expanduser(path)
         if os.path.islink(path):
             msg = f"Invalid input path is a soft chain: {path}" + prof_error(ErrCode.UNAVAIL)
