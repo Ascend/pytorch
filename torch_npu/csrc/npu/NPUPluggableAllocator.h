@@ -66,6 +66,9 @@ struct NPUPluggableAllocator
     void* getBaseAllocation(void* ptr, size_t* size) override;
     void recordStream(const c10::DataPtr&, streamType stream) override;
     void eraseStream(const c10::DataPtr&, streamType stream) override;
+    void eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr) override;
+    void* getBlockPtr(const c10::DataPtr& ptr) override;
+    void recordHcclWorkForBlock(void* block_ptr, void* work_ptr) override;
     c10_npu::NPUCachingAllocator::DeviceStats getDeviceStats(
         int device) override;
     void resetAccumulatedStats(int device) override;
