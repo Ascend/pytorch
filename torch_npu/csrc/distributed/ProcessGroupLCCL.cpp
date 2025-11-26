@@ -309,7 +309,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupLCCL::allreduce(std::vector<at::Tenso
                                                                lcclReduceOp, comm, stream.stream(false));
                 return lccl_result;
             };
-            at_npu::native::OpCommand::RunOpApiV2("LcclAllreduce", lccl_call);
+            at_npu::native::OpCommand::RunOpApiV3("LcclAllreduce", lccl_call, false, &stream);
             return 0;
         },
         c10d::OpType::ALLREDUCE);
@@ -341,7 +341,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupLCCL::allgather(std::vector<std::vect
                                                                    stream.stream(false));
                     return lccl_result;
                 };
-                at_npu::native::OpCommand::RunOpApiV2("LcclAllgather", lccl_call);
+                at_npu::native::OpCommand::RunOpApiV3("LcclAllgather", lccl_call, false, &stream);
                 return 0;
             },
             [&](std::vector<c10_npu::NPUStream> &, c10::intrusive_ptr<ProcessGroupLCCL::WorkLCCL> &) {
@@ -385,7 +385,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupLCCL::broadcast(std::vector<at::Tenso
                     at_npu::lccl::LcclBroadcast(inputDataPtr, numel, lcclType, root, comm, stream.stream(false));
                 return lccl_result;
             };
-            at_npu::native::OpCommand::RunOpApiV2("LcclBroadcast", lccl_call);
+            at_npu::native::OpCommand::RunOpApiV3("LcclBroadcast", lccl_call, false, &stream);
             return 0;
         },
         c10d::OpType::BROADCAST);
@@ -418,7 +418,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupLCCL::reduce_scatter(std::vector<at::
                                                                        lcclReduceOp, comm, stream.stream(false));
                     return lccl_result;
                 };
-                at_npu::native::OpCommand::RunOpApiV2("LcclReduceScatter", lccl_call);
+                at_npu::native::OpCommand::RunOpApiV3("LcclReduceScatter", lccl_call, false, &stream);
                 return 0;
             },
             [&](std::vector<c10_npu::NPUStream> &lcclStreams, c10::intrusive_ptr<ProcessGroupLCCL::WorkLCCL> &work) {
