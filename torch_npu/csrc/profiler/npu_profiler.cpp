@@ -371,6 +371,10 @@ void disableProfilerInChildThread()
 
 void stopNpuProfiler()
 {
+    if (!torch::autograd::profiler::profilerEnabled()) {
+        ASCEND_LOGE("Can't stop Ascend Pytorch Profiler when it's not started.");
+        return;
+    }
     auto state = c10::ThreadLocalDebugInfo::_pop(c10::DebugInfoKind::PROFILER_STATE);
     auto state_ptr = static_cast<NpuProfilerThreadLocalState *>(state.get());
     if (state_ptr == nullptr) {
