@@ -6,6 +6,7 @@ from torch.nn.common_types import _size_2_t
 from torch.nn.parameter import Parameter
 from torch.nn.modules.utils import _pair
 import torch_npu
+from torch_npu.utils._error_code import ErrCode, ops_error
 
 __all__ = ['QuantConv2d']
 
@@ -17,8 +18,9 @@ class QuantConv2d(nn.Module):
     Args:
         in_channels (int): Number of channels in the input image
         out_channels (int): Number of channels produced by the convolution
-        kernel_size (int or tuple): Size of the convolving kernel
-        output_dtype (str): Dtype of the output
+        kernel_size (int or tuple): Size of the convolution kernel
+        output_dtype (int): Dtype of the output
+            support torch.float16, torch.bfloat16, torch.float32, torch_npu.hifloat8
         stride (int or tuple, optional): Stride of the convolution. Default: 1
         padding (int or tuple, optional): Padding added to all four sides of
             the input. Default: 0
@@ -31,6 +33,10 @@ class QuantConv2d(nn.Module):
             Default: ``False``
         offset_x (int, optional): Actual padding value. Default: 0
         round_mode (str, optional): Requant calculation parameter. Default: "rint"
+        input_dtype (int, optional): Dtype of the fmap. 
+            Only need to be set torch_npu.hifloat8 when the the dtype of input is hifloat8. Default: None
+        weight_dtype (int, optional): Dtype of the weight. 
+            Only need to be set torch_npu.hifloat8 when the the dtype of weight is hifloat8. Default: None
     Shape:
         - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
         - Output: :math:`(N, C_{out}, H_{out}, W_{out})`, where
@@ -78,13 +84,13 @@ class QuantConv2d(nn.Module):
     in_channels: int
     out_channels: int
     k_size: int
-    output_dtype: str
+    output_dtype: int
 
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
                  kernel_size: _size_2_t,
-                 output_dtype: torch.dtype,
+                 output_dtype: int,
                  stride: _size_2_t = 1,
                  padding: _size_2_t = 0,
                  dilation: _size_2_t = 1,
@@ -93,6 +99,8 @@ class QuantConv2d(nn.Module):
                  offset: bool = False,
                  offset_x: int = 0,
                  round_mode: str = "rint",
+                 input_dtype: int = None,
+                 weight_dtype: int = None,
                  device=None,
                  dtype=None) -> None:
         super(QuantConv2d, self).__init__()
@@ -105,17 +113,19 @@ class QuantConv2d(nn.Module):
         self.groups = groups
         self.offset_x = offset_x
         self.round_mode = round_mode
+        self.input_dtype = input_dtype
+        self.weight_dtype = weight_dtype
         self.output_dtype = output_dtype
-
         self.weight = \
-            Parameter(torch.empty((self.out_channels, self.in_channels, *self.kernel_size), dtype=torch.int8), False)
+            Parameter(torch.empty((self.out_channels, self.in_channels // self.groups, *self.kernel_size)), False)
+
         self.scale = Parameter(torch.empty(self.out_channels, dtype=torch.int64), False)
         if bias:
-            self.bias = Parameter(torch.empty(self.out_channels, dtype=torch.int32), False)
+            self.bias = Parameter(torch.empty(self.out_channels), False)
         else:
             self.register_parameter('bias', None)
         if offset:
-            self.offset = Parameter(torch.empty(out_channels, dtype=torch.float32), False)
+            raise ValueError("offset must be False" + ops_error(ErrCode.VALUE))
         else:
             self.register_parameter('offset', None)
 
@@ -124,5 +134,5 @@ class QuantConv2d(nn.Module):
         if self.scale.dtype == torch.float32:
             scale_ = torch_npu.npu_trans_quant_param(self.scale)
         return torch_npu.npu_quant_conv2d(quant_conv2d_input, self.weight, scale_, self.stride, self.padding,
-                                          self.dilation, self.groups, self.offset_x, self.round_mode,
-                                          self.output_dtype, self.bias, self.offset)
+                                          self.dilation, self.groups, self.offset_x, self.round_mode, self.output_dtype,
+                                          self.bias, self.offset, self.input_dtype, self.weight_dtype)
