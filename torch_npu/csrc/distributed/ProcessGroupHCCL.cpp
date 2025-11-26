@@ -1768,6 +1768,32 @@ const std::vector<uint32_t>& ProcessGroupHCCL::groupRanks() const
     return options_->global_ranks_in_group;
 }
 
+void ProcessGroupHCCL::checkHcclComms()
+{
+    std::lock_guard<std::mutex> maplock(mutex_);
+    for (const auto & [name, hcclComms] : devHCCLCommMap_) {
+        auto exception_ptr = checkForHCCLErrors(hcclComms);
+        if (exception_ptr) {
+            auto exceptionMsg = c10::str(
+                "[Rank",
+                rank_,
+                "] checkHcclComms found HcclComms vector ",
+                name,
+                " got ERROR via HcclGetCommAsyncError : ");
+            ASCEND_LOGE("[Rank %d] checkHcclComms found HcclComms vector %s got ERROR via HcclGetCommAsyncError : %s",
+                rank_, name, getExceptionMsgFromExceptionPtr(exception_ptr).c_str());
+            LOG(ERROR) << exceptionMsg << getExceptionMsgFromExceptionPtr(exception_ptr).c_str();
+            C10_LOG_API_USAGE_ONCE("ProcessGroupHCCL.handleException");
+            
+            if (SHOULD_TEAR_DOWN(asyncErrorHandling_)) {
+                ASCEND_LOGE("To avoid data inconsistency, we are taking the entire process down.");
+                LOG(ERROR) << "To avoid data inconsistency, we are taking the entire process down.";
+                std::rethrow_exception(exception_ptr);
+            }
+        }
+    }
+}
+
 void ProcessGroupHCCL::workCleanupLoop()
 {
     bool needSetDevice = true;
@@ -1792,6 +1818,8 @@ void ProcessGroupHCCL::workCleanupLoop()
         if (watchdogStatus == WatchdogStatus::STOP) {
             continue;
         }
+
+        checkHcclComms();
 
         for (auto it = workMetaList_.begin(); it != workMetaList_.end();
              /* no increment */) {
