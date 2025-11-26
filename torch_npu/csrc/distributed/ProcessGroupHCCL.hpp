@@ -1059,6 +1059,9 @@ private:
     // appropriate exception_ptr (nullptr if no errors).
     static std::exception_ptr checkForHCCLErrorsInternal(const std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
+    // Checks for HCCLL errors via devHCCLCommMap_ instead of WorkHCCL
+    void checkHcclComms();
+
     // Function that runs as part of a separate thread and checks for errors on
     // HCCL communicators. We need a separate thread to check for HCCL errors
     // since we can't rely on the user calling certain methods like wait(),
