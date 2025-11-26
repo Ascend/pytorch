@@ -10,6 +10,8 @@
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
+#include <chrono>
+#include <thread>
 
 
 namespace c10_npu {
@@ -24,7 +26,7 @@ NPUEvent::~NPUEvent()
     try {
         if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
             NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
-            if (!c10_npu::acl::IsExistCreateEventExWithFlag()) {
+            if (!c10_npu::acl::IsExistCreateEventExWithFlag() || c10_npu::option::OptionsManager::GetPerStreamQueue()) {
                 c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent();
             }
         }
@@ -96,6 +98,11 @@ void NPUEvent::block(const NPUStream& stream)
         createEvent(stream.device_index());
     }
     if (is_created_) {
+        // If multiple task queues are dequeued, it is necessary to ensure that the record is dequeued before wait
+        while (c10_npu::option::OptionsManager::GetPerStreamQueue() &&
+            !c10_npu::NPUEventManager::GetInstance().IsEventRecorded(event_)) {
+            std::this_thread::sleep_for(std::chrono::microseconds(10)); // 10 us
+        }
         NPUGuard guard(stream.device_index());
         c10_npu::queue::LaunchWaitEventTask(event_, stream);
     }
