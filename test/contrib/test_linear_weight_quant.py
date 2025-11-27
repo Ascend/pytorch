@@ -5,6 +5,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.contrib.module import LinearWeightQuant
+from torch_npu.testing.common_utils import SupportedDevices
 
 DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
@@ -18,13 +19,16 @@ def f32_2_s9(array):
 class TestLinearWeightQuant(TestCase):
     def cpu_linear_weight_quant(self, weight_cpu, x_cpu, antiquant_scale_cpu, antiquant_offset_cpu):
         x_cpu = x_cpu.to(torch.float32)
-        antiquant_weight = (weight_cpu + antiquant_offset_cpu) * antiquant_scale_cpu
+        if antiquant_offset_cpu is not None:
+            weight_cpu = weight_cpu + antiquant_offset_cpu
+        antiquant_weight = weight_cpu * antiquant_scale_cpu
         antiquant_weight = antiquant_weight.to(torch.float32)
         cpu_out = torch.matmul(x_cpu, antiquant_weight).numpy()
         cpu_out = cpu_out.astype("float16")
         return cpu_out
 
-    def npu_linear_weight_quant(self, in_features, out_features, antiquant_scale, weight, x, antiquant_offset=None):
+    def npu_linear_weight_quant(self, in_features, out_features, antiquant_scale, weight, x, antiquant_offset=None, 
+                                weight_dtype=None):
         model = LinearWeightQuant(in_features,
                                   out_features,
                                   bias=False,
@@ -33,7 +37,8 @@ class TestLinearWeightQuant(TestCase):
                                   antiquant_offset=True,
                                   quant_scale=False,
                                   quant_offset=False,
-                                  antiquant_group_size=0
+                                  antiquant_group_size=0,
+                                  weight_dtype=weight_dtype
                                   )
         model = model.npu()
         model.weight.data = weight
@@ -67,5 +72,21 @@ class TestLinearWeightQuant(TestCase):
         npu_out = npu_out.cpu()
         self.assertRtolEqual(cpu_out, npu_out.numpy(), 0.01)
 
+    @SupportedDevices(['Ascend910_95'])
+    def test_npu_linear_weight_quant_weight_dtype_hif8(self):
+        m = 2
+        k = 64
+        n = 128
+        x_npu = torch.randn((m, k), dtype=torch.float16).npu()
+        weight_npu = torch.randint(0, 255, (k, n), dtype=torch.int8).npu()
+        antiquant_scale_npu = torch.randn((n), dtype=torch.float16).npu()
+        npu_out = self.npu_linear_weight_quant(k, n, antiquant_scale_npu, weight_npu, x_npu, None,
+                                               weight_dtype=torch_npu.hifloat8)
+
+        supported_output = torch_npu.npu_weight_quant_batchmatmul(x_npu, weight_npu, antiquant_scale_npu, None, None,
+                                                                  None, None, 0, weight_dtype=torch_npu.hifloat8)
+        npu_out = npu_out.cpu()
+        self.assertRtolEqual(supported_output, npu_out.numpy(), 0.01)
+        
 if __name__ == "__main__":
     run_tests()
