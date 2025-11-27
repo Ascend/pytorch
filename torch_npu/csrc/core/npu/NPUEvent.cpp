@@ -158,9 +158,11 @@ uint64_t NPUEvent::recorded_time() const
 void NPUEvent::synchronize() const
 {
     if (is_created_) {
-        NPUStatus ret = c10_npu::emptyAllNPUStream();
-        if (ret != NPU_STATUS_SUCCESS) {
-            ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+        bool task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
+        if (task_queue_enable) {
+            NPUEventManager& mgr = c10_npu::NPUEventManager::GetInstance();
+            while (!(mgr.IsEventRecorded(event_) || c10_npu::IsTaskQueueEmpty())) {
+            }
         }
         NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
         ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event_);
