@@ -234,25 +234,6 @@ void NPUPluggableAllocator::eraseStream(
     }
 }
 
-void NPUPluggableAllocator::eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr)
-{
-    TORCH_NPU_WARN("NPUPluggableAllocator does not yet support eraseStreamWithBlockPtr. "
-                  "If you need it, please file an issue describing your use case.");
-}
-
-void* NPUPluggableAllocator::getBlockPtr(const c10::DataPtr& ptr)
-{
-    TORCH_NPU_WARN("NPUPluggableAllocator does not yet support getBlockPtr. "
-                  "If you need it, please file an issue describing your use case.");
-    return nullptr;
-}
-
-void NPUPluggableAllocator::recordHcclWorkForBlock(void* block_ptr, void* work_ptr)
-{
-    TORCH_NPU_WARN("NPUPluggableAllocator does not yet support recordHcclWorkForBlock. "
-                  "If you need it, please file an issue describing your use case.");
-}
-
 c10_npu::NPUCachingAllocator::DeviceStats NPUPluggableAllocator::getDeviceStats(int device)
 {
     if (get_device_stats_fn_) {

@@ -366,7 +366,6 @@ public:
 
         // save inputs for tensor free when WorkHCCL::wait
         std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_inputs_;
-        std::vector<void*> recorded_block_ptr_for_inputs_;
         std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_outputs_;
 
         std::vector<at::Tensor> lazy_destroy_tensors_;
