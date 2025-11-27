@@ -230,7 +230,6 @@ struct Block {
                             // garbage collection
     ExpandableSegment *expandable_segment_{ nullptr };
     bool is_safe{ true };
-    void* hccl_work_ptr{ nullptr };
     std::shared_ptr<c10::GatheredContext> context_when_allocated;
     // only set for the first block in the segment (when prev == null)
     // this records the frame information when aclMalloc was called
@@ -2651,7 +2650,6 @@ private:
             block->device, context ? context : block->context_when_allocated);
 
         block->context_when_allocated = nullptr;
-        block->hccl_work_ptr = nullptr;
         size_t original_block_size = block->size;
         auto orig_block_ptr = block->ptr;
         size_t requested_size = block->requested_size;
@@ -3683,44 +3681,6 @@ public:
         }
 
         device_allocator[block->device]->eraseStream(block, stream);
-    }
-
-    void eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr) override
-    {
-        Block* block = static_cast<Block*>(block_ptr);
-        if (!block) {
-            AT_ERROR("invalid block pointer");
-        }
-
-        if (!work_ptr) {
-            AT_ERROR("invalid hccl work pointer");
-        }
-
-        if (block->stream != c10_npu::getCurrentNPUStream(block->device).stream(false) || block->hccl_work_ptr != work_ptr) {
-            // If the Stream applying for tensor block different from
-            // the stream of submiting event wait task in HCCL synchronize()
-            // method, the recordSteam can not be erased.
-            // New tensor creation may use the block before HCCL op is complete.
-            return;
-        }
-
-        device_allocator[block->device]->eraseStream(block, stream);
-    }
-
-    void* getBlockPtr(const c10::DataPtr& ptr) override
-    {
-        if (!ptr.get()) {
-            return nullptr;
-        }
-        Block* block = get_allocated_block(ptr.get());
-        return static_cast<void*>(block);
-    }
-
-    void recordHcclWorkForBlock(void* block_ptr, void* work_ptr) override
-    {
-        Block* block = static_cast<Block*>(block_ptr);
-        block->hccl_work_ptr = work_ptr;
-        return;
     }
 
     SnapshotInfo snapshot() override
