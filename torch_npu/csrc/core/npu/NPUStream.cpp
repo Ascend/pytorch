@@ -806,4 +806,11 @@ bool is_core_control_enabled()
 {
     return enable_core_control.load(std::memory_order_relaxed);
 }
+
+bool IsTaskQueueEmpty()
+{
+    auto ptr = NPUStream_internals(getDefaultNPUStream());
+    TORCH_CHECK(ptr, PTA_ERROR(ErrCode::PTR));
+    return ptr->repo->IsEmptyRepo();
+}
 } // namespace c10_npu
