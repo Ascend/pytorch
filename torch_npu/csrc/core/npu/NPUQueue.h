@@ -82,6 +82,7 @@ public:
   virtual void ClearQueue() = 0;
   virtual void SetQueueErrMsg(const char* errmsg) = 0;
   virtual std::string GetQueueErrMsg() = 0;
+  virtual bool IsEmptyRepo() = 0;
 };
 
 class NPUQueueFactoryBase {
@@ -106,6 +107,7 @@ public:
   void ClearQueue() override;
   void SetQueueErrMsg(const char *errmsg) override;
   std::string GetQueueErrMsg() override;
+  bool IsEmptyRepo() override { return IsEmptyQueue(); }
 
 private:
   void ReleaseResource();
