@@ -31,6 +31,7 @@ class LinearWeightQuant(nn.Module):
         quant_offset: weight quant batchmatmul calculation parameter
         bias: the learnable bias of the module of shape
         antiquant_group_size: size of group in antiquant calculation
+        weight_dtype: dtype of weight
 
     Examples::
         >>> x = torch.randn((16, 32), dtype=torch.float16).npu()
@@ -64,6 +65,7 @@ class LinearWeightQuant(nn.Module):
         quant_offset: bool = False,
         antiquant_group_size: int = 0,
         inner_precise: int = 0,
+        weight_dtype=None
     ) -> None:
         super(LinearWeightQuant, self).__init__()
         self.weight = Parameter(torch.empty((out_features, in_features), device=device), False)
@@ -91,6 +93,7 @@ class LinearWeightQuant(nn.Module):
 
         self.antiquant_group_size = antiquant_group_size
         self.inner_precise = inner_precise
+        self.weight_dtype = weight_dtype
 
     def forward(self, x: Tensor) -> Tensor:
         antiquant_scale = self.antiquant_scale
@@ -102,4 +105,5 @@ class LinearWeightQuant(nn.Module):
                 antiquant_offset = self.antiquant_offset.transpose(-1, -2)
         return torch_npu.npu_weight_quant_batchmatmul(x, self.weight.transpose(-1, -2), antiquant_scale,
                                                       antiquant_offset, self.quant_scale, self.quant_offset,
-                                                      self.bias, self.antiquant_group_size, self.inner_precise)
+                                                      self.bias, self.antiquant_group_size, self.inner_precise,
+                                                      weight_dtype=self.weight_dtype)
