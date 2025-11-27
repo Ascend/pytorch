@@ -14,7 +14,6 @@ enum ReuseMode {
     CLOSE = 0,
     ERASE_RECORD_STREAM = 1,
     AVOID_RECORD_STREAM = 2,
-    ERASE_RECORD_STREAM_WITH_OPTIMIZE = 3,
 };
 
 enum SilenceCheckMode {
