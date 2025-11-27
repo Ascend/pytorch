@@ -13,6 +13,7 @@
 #include <c10/util/flat_hash_map.h>
 #include <c10/util/irange.h>
 #include <c10/util/UniqueVoidPtr.h>
+#include <c10/util/llvmMathExtras.h>
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -22,6 +23,7 @@
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "NPUBlockHandle.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
@@ -99,6 +101,9 @@ constexpr size_t kLargePoolVirAddrSize = 10737418240; // 10 GB
 constexpr size_t kMB = 1024 * 1024;                   // 1 MB
 constexpr size_t k20MB = 20;                          // 20 MB for segmemt_size
 constexpr size_t k512MB = 512;                        // 512 MB for segmemt_size
+constexpr size_t kRoundUpPowerOfTwoStart = 1ULL << 20; // 1 MB
+constexpr size_t kRoundUpPowerOfTwoEnd = 1ULL << 36;   // 64 GB
+constexpr size_t kRoundUpPowerOfTwoIntervals = 16;
 const std::string kMinCannVersion = "8.1.RC1";        // minimum cann version which supports 1g mem 8.1.RC1
 const std::string kMinDriverVersion = "25.0.RC1";     // minimum driver version which supports 1g mem 25.0.RC1
 const std::string kCannModule = "CANN";               // cann module name
@@ -890,6 +895,8 @@ public:
         return instance().m_segment_size_mb;
     }
 
+    static size_t roundup_power2_divisions(size_t size);
+
     static CachingAllocatorConfig &instance()
     {
         static CachingAllocatorConfig *s_instance = ([]() {
@@ -911,13 +918,15 @@ private:
     size_t m_base_addr_aligned_size = kAlignRoundLarge;
     bool m_page_size_1g = false; // 新增1G页配置标志
     size_t m_segment_size_mb;
+    std::vector<size_t> m_roundup_power2_divisions;
 
     CachingAllocatorConfig()
         : m_max_split_size(std::numeric_limits<size_t>::max()),
           m_garbage_collection_threshold(0),
           m_expandable_segments(false),
           m_base_addr_aligned_size(kAlignRoundLarge),
-          m_segment_size_mb(0)
+          m_segment_size_mb(0),
+          m_roundup_power2_divisions(kRoundUpPowerOfTwoIntervals, 0)
     {}
 
     void lexArgs(const char *env, std::vector<std::string> &config);
@@ -928,6 +937,7 @@ private:
     size_t parseAddrAlignSize(const std::vector<std::string> &config, size_t i);
     size_t parsePageSize(const std::vector<std::string> &config, size_t i);
     size_t parseSegmentSizeMb(const std::vector<std::string> &config, size_t i);
+    size_t parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i);
 };
 
 void CachingAllocatorConfig::lexArgs(const char *env, std::vector<std::string> &config)
@@ -1060,11 +1070,101 @@ size_t CachingAllocatorConfig::parseSegmentSizeMb(const std::vector<std::string>
     return i;
 }
 
+size_t CachingAllocatorConfig::parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i)
+{
+    consumeToken(config, ++i, ':');
+    TORCH_CHECK(i + 1 < config.size(), "Error, expecting roundup_power2_divisions value",
+        OPS_ERROR(ErrCode::VALUE));
+    if (config[++i] == "[") {
+        bool first_value = true;
+        size_t last_index = 0;
+        // NOLINTNEXTLINE(bugprone-inc-dec-in-conditions)
+        while (++i < config.size()) {
+            if (config[i] == "]") {
+                break;
+            }
+
+            size_t value_index = i;
+            consumeToken(config, ++i, ':');
+            TORCH_CHECK(++i < config.size(), "Expected a value for roundup_power2_divisions entry",
+                OPS_ERROR(ErrCode::VALUE));
+            size_t value = static_cast<size_t>(stoull(config[i]));
+            TORCH_CHECK(value == 0 || c10::llvm::isPowerOf2_64(value),
+                "For roundups, the divisions has to be power of 2 or 0 to disable roundup ",
+                OPS_ERROR(ErrCode::VALUE));
+            if (config[value_index] == ">") {
+                std::fill(
+                    m_roundup_power2_divisions.begin() +
+                        static_cast<std::vector<size_t>::difference_type>(last_index + 1),
+                    m_roundup_power2_divisions.end(),
+                    value);
+            } else {
+                size_t boundary = static_cast<size_t>(stoull(config[value_index]));
+                TORCH_CHECK(c10::llvm::isPowerOf2_64(boundary),
+                    "For roundups, the intervals have to be power of 2 ",
+                    OPS_ERROR(ErrCode::VALUE));
+                size_t index = 63 - c10::llvm::countLeadingZeros(boundary);
+                index = std::clamp(index, size_t{0}, m_roundup_power2_divisions.size() - 1);
+
+                if (first_value) {
+                    std::fill(
+                        m_roundup_power2_divisions.begin(),
+                        m_roundup_power2_divisions.begin() +
+                            static_cast<std::vector<size_t>::difference_type>(index),
+                        value);
+                    first_value = false;
+                }
+                m_roundup_power2_divisions[index] = value;
+                last_index = index;
+            }
+
+            if (i + 1 < config.size() && config[i + 1] != "]") {
+                consumeToken(config, ++i, ',');
+            }
+        }
+        TORCH_INTERNAL_ASSERT(
+            i < config.size(),
+            "Expected closing bracket ']' while parsing roundup_power2_divisions");
+    } else {
+        size_t value = static_cast<size_t>(stoull(config[i]));
+        TORCH_CHECK(value == 0 || c10::llvm::isPowerOf2_64(value),
+            "For roundups, the divisions has to be power of 2 or 0 to disable roundup ",
+            OPS_ERROR(ErrCode::VALUE));
+        std::fill(
+            m_roundup_power2_divisions.begin(),
+            m_roundup_power2_divisions.end(),
+            value);
+    }
+    return i;
+}
+
+size_t CachingAllocatorConfig::roundup_power2_divisions(size_t size)
+{
+    if (size == 0 || instance().m_roundup_power2_divisions.empty()) {
+        return 0;
+    }
+
+    size_t log_size = 63 - c10::llvm::countLeadingZeros(size);
+
+    // Our intervals start at 1MB and end at 64GB
+    const size_t interval_start = 63 - c10::llvm::countLeadingZeros(kRoundUpPowerOfTwoStart);
+    const size_t interval_end = 63 - c10::llvm::countLeadingZeros(kRoundUpPowerOfTwoEnd);
+
+    TORCH_INTERNAL_ASSERT(
+        interval_end - interval_start == kRoundUpPowerOfTwoIntervals,
+        "kRoundUpPowerOfTwoIntervals mismatch");
+
+    size_t index = (log_size > interval_start) ? (log_size - interval_start) : 0ul;
+    index = std::min(index, kRoundUpPowerOfTwoIntervals - 1);
+    return instance().m_roundup_power2_divisions[index];
+}
+
 void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> supported_settings)
 {
     // If empty, set the default values
     m_max_split_size = std::numeric_limits<size_t>::max();
     m_garbage_collection_threshold = 0;
+    m_roundup_power2_divisions.assign(kRoundUpPowerOfTwoIntervals, 0);
 
     if (env == nullptr) {
         return;
@@ -1102,6 +1202,8 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
             } else {
                 TORCH_CHECK(false, "Error, expecting host reserve_segment_size_mb value", OPS_ERROR(ErrCode::VALUE));
             }
+        } else if (config[i] == "roundup_power2_divisions") {
+            i = parseRoundUpPower2Divisions(config, i);
         } else {
             TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::PARAM));
         }
@@ -2253,13 +2355,61 @@ public:
         return result;
     }
 
+    static bool should_apply_legacy_round_padding()
+    {
+        static bool should_pad = []() -> bool {
+            const auto &soc_version = c10_npu::GetSocVersion();
+            const bool disable_padding =
+                (soc_version >= c10_npu::SocVersion::Ascend910B1 &&
+                 soc_version <= c10_npu::SocVersion::Ascend910B4_1) ||
+                (soc_version >= c10_npu::SocVersion::Ascend910_9391);
+            return !disable_padding;
+        }();
+        return should_pad;
+    }
+
+    // This function takes the size and number of divisions argument and rounds
+    // up the size argument for the nearest power-of-2 division.
+    // For example, if we need to round-up 1200 and number of divisions is 4,
+    // the size 1200 lies between 1024 and 2048 and if we do 4 divisions between
+    // them, the values are 1024, 1280, 1536, and 1792. So the function will
+    // return 1280 as the nearest ceiling of power-2 division.
+    static size_t roundup_power2_next_division(size_t size, size_t divisions)
+    {
+        if (c10::llvm::isPowerOf2_64(size)) {
+            return size;
+        }
+
+        constexpr size_t kMinDivisions = 2;
+        TORCH_CHECK(divisions >= kMinDivisions, "Only 2 or more divisions are supported");
+
+        // divide the space between these 2's power into equal divisions
+        // If division is zero, return the power-of-2 ceiling.
+        size_t power2_floor = c10::llvm::PowerOf2Floor(size);
+        size_t power2_division = power2_floor >> (63 - c10::llvm::countLeadingZeros(divisions));
+        if (C10_UNLIKELY(power2_division == 0)) {
+            return (power2_floor << 1);
+        }
+        size_t round_size_floor = size & (~(power2_division - 1));
+        return (round_size_floor == size) ? size : round_size_floor + power2_division;
+    }
+
     static size_t round_size(size_t size)
     {
-        size = size + 32;
+        constexpr size_t kPadSize = 32;
+        if (should_apply_legacy_round_padding()) {
+            size += kPadSize;
+        }
+
         if (size < kMinBlockSize) {
             return kMinBlockSize;
         } else {
-            return kMinBlockSize * ((size + kMinBlockSize - 1) / kMinBlockSize);
+            auto divisions = CachingAllocatorConfig::roundup_power2_divisions(size);
+            if (divisions > 1 && size > (kMinBlockSize * divisions)) {
+                return roundup_power2_next_division(size, divisions);
+            } else {
+                return kMinBlockSize * ((size + kMinBlockSize - 1) / kMinBlockSize);
+            }
         }
     }
 
