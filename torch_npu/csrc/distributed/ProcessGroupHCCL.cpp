@@ -1781,7 +1781,7 @@ void ProcessGroupHCCL::checkHcclComms()
                 name,
                 " got ERROR via HcclGetCommAsyncError : ");
             ASCEND_LOGE("[Rank %d] checkHcclComms found HcclComms vector %s got ERROR via HcclGetCommAsyncError : %s",
-                rank_, name, getExceptionMsgFromExceptionPtr(exception_ptr).c_str());
+                rank_, name.c_str(), getExceptionMsgFromExceptionPtr(exception_ptr).c_str());
             LOG(ERROR) << exceptionMsg << getExceptionMsgFromExceptionPtr(exception_ptr).c_str();
             C10_LOG_API_USAGE_ONCE("ProcessGroupHCCL.handleException");
             
