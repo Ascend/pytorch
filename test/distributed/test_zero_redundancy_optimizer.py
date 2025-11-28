@@ -1153,7 +1153,7 @@ class TestZeroRedundancyOptimizerDistributed(TestZeroRedundancyOptimizer):
         "parameters_as_bucket_view",
         [False, True],
     )
-    @skipIfUnsupportMultiNPU(2)
+    @skipIfUnsupportMultiNPU(4)
     def test_zero_model_parallel(
         self,
         parameters_as_bucket_view: bool,
