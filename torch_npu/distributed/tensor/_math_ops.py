@@ -12,6 +12,7 @@ from torch.distributed.tensor._op_schema import (
 from torch.distributed.tensor._ops.utils import (
     generate_redistribute_costs,
     register_op_strategy,
+    normalize_dim
 )
 from torch.distributed.tensor._ops._math_ops import (
     _replicate_dims_start_at,
@@ -304,3 +305,73 @@ def npu_rotary_mul_backward_strategy(grad, x, r1, r2, rotary_mode='half'):
         acceptable_shardings.append(sharding_strategy)
 
     return acceptable_shardings
+
+
+@register_sharding(npu.npu_gather_backward.default)
+def custom_npu_gather_backward_strategy(grad, input_shape, dim, index, sparse_grad=False):
+    dim = normalize_dim(dim, len(input_shape))
+    index_shape = index.shape
+    grad_shape = grad.shape
+
+    acceptable_sharding = []
+
+    replicate_strategy = ([Replicate()], [Replicate(), None, None, Replicate(), None])
+    acceptable_sharding.append(replicate_strategy)
+
+    if len(input_shape) == len(index_shape) == len(grad_shape):
+        for d in range(index.ndim):
+            if d != dim and input_shape[d] == index_shape[d] == grad_shape[d]:
+                sharding_strategy = (
+                    [Shard(d)],    # output(grad_input)
+                    [Shard(d),    # grad
+                     None,    # input
+                     None,    # dim
+                     Shard(d),    # index
+                     None]    # sparse_grad
+                )
+                acceptable_sharding.append(sharding_strategy)
+
+    return acceptable_sharding
+
+
+@register_sharding(npu.npu_swiglu.default)
+def custom_npu_swiglu_strategy(x, dim=-1):
+    dim = normalize_dim(dim, x.ndim)
+
+    acceptable_sharding = []
+
+    replicate_strategy = ([Replicate()], [Replicate(), None])
+    acceptable_sharding.append(replicate_strategy)
+
+    for i in range(x.ndim):
+        if i != dim:
+            sharding_strategy = (
+                [Shard(i)],
+                [Shard(i), None]
+            )
+            acceptable_sharding.append(sharding_strategy)
+
+    return acceptable_sharding
+
+
+@register_sharding(npu.npu_swiglu_backward.default)
+def custom_npu_swiglu_backward_strategy(grad, x, dim=-1):
+    dim = normalize_dim(dim, x.ndim)
+
+    acceptable_sharding = []
+
+    replicate_strategy = (
+        [Replicate(), None],
+        [Replicate(), Replicate(), None]
+    )
+    acceptable_sharding.append(replicate_strategy)
+
+    for i in range(x.ndim):
+        if i != dim:
+            sharding_strategy = (
+                [Shard(i), None],
+                [Shard(i), Shard(i), None]
+            )
+            acceptable_sharding.append(sharding_strategy)
+
+    return acceptable_sharding
