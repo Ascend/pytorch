@@ -15,6 +15,7 @@ from torch_npu.profiler._dynamic_profiler._dynamic_profiler_config_context impor
 from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor_shm import DynamicProfilerShareMemory
 import torch_npu.profiler.dynamic_profile as dp
 from torch_npu.profiler._dynamic_profiler._dynamic_profiler_utils import DynamicProfilerUtils
+from torch_npu.profiler.dynamic_profile import _DynamicProfile
 
 
 class SmallModel(torch.nn.Module):
@@ -648,6 +649,25 @@ class TestDynamicProfiler(TestCase):
         monitor._shm_obj = None
         result = monitor.shm_to_prof_conf_context()
         self.assertIsNone(result)
+
+    def test_start_while_profiler_active(self):
+        dp.start()
+        dp.start()
+        self.assertIsNotNone(_DynamicProfile().prof)
+
+
+    def test_init_repeated_warning(self):
+        dp.init(self.results_path)
+        dp.init(self.results_path)
+        self.assertTrue(_DynamicProfile().repeat_init)
+
+    def test_step_time_calculation(self):
+        dynamic_prof = _DynamicProfile()
+        dynamic_prof.RECORD_TIME_STEP = 2
+        dynamic_prof.cur_step = 1
+        dynamic_prof._step_record_time = time.time()
+        dynamic_prof.step()
+        self.assertIsNotNone(dynamic_prof._step_time)
 
 
 if __name__ == "__main__":
