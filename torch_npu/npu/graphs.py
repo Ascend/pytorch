@@ -95,6 +95,10 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
             self.update_stream = torch_npu.npu.Stream()
 
     @classmethod
+    def is_infra_mode(cls):
+        return True
+
+    @classmethod
     def update_schema(cls, name, schame):
         if name in cls.tensor_schema_name:
             return
