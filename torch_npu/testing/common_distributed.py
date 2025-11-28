@@ -31,10 +31,11 @@ TEST_SKIPS = {
 
 def skipIfUnsupportMultiNPU(npu_number_needed):
     def skip_dec(func):
-        def wrapper(self):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
             if not torch.npu.is_available() or torch.npu.device_count() < npu_number_needed:
                 raise unittest.SkipTest(f"Multi-NPU {npu_number_needed} condition not satisfied")
-            return func(self)
+            return func(self, *args, **kwargs)
         return wrapper
     return skip_dec
 
