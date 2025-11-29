@@ -2381,7 +2381,8 @@ public:
         }
 
         constexpr size_t kMinDivisions = 2;
-        TORCH_CHECK(divisions >= kMinDivisions, "Only 2 or more divisions are supported");
+        TORCH_CHECK(divisions >= kMinDivisions,
+            "Only 2 or more divisions are supported", PTA_ERROR(ErrCode::NOT_SUPPORT));
 
         // divide the space between these 2's power into equal divisions
         // If division is zero, return the power-of-2 ceiling.
