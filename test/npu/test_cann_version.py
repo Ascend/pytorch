@@ -16,7 +16,9 @@ class TestCANNversion(TestCase):
                 is_match = (re.match("([0-9]+)\.([0-9]+)\.RC([0-9]+)$", version)
                             or re.match("([0-9]+)\.([0-9]+)\.([0-9]+)$", version)
                             or re.match("([0-9]+)\.([0-9]+)\.T([0-9]+)$", version)
-                            or re.match("([0-9]+)\.([0-9]+)\.RC([0-9]+)\.alpha([0-9]+)$", version))
+                            or re.match("([0-9]+)\.([0-9]+)\.RC([0-9]+)\.alpha([0-9]+)$", version)
+                            or re.match("([0-9]+)\.([0-9]+)\.([0-9]+)-alpha.([0-9]+)$", version)
+                            or re.match("([0-9]+)\.([0-9]+)\.([0-9]+)\.alpha([0-9]+)$", version))
                 self.assertTrue(is_match, f"The env version is {version_env}. The format of cann version {version} is invalid.")
             else:
                 self.assertTrue(version == "", "When verssion_env < '8.1.RC1', the result of get_cann_version is not right.")
