@@ -161,7 +161,7 @@ void NPUEvent::synchronize() const
         bool task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
         if (task_queue_enable) {
             NPUEventManager& mgr = c10_npu::NPUEventManager::GetInstance();
-            while (!(mgr.IsEventRecorded(event_) || c10_npu::IsTaskQueueEmpty())) {
+            while (!mgr.IsEventRecorded(event_)) {
             }
         }
         NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
