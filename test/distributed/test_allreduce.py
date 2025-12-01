@@ -34,6 +34,34 @@ class HcomAllReduceTest(TestCase):
         if done_event is not None:
             done_event.wait()
 
+    @classmethod
+    # pylint:disable=huawei-too-many-arguments
+    def _test_all_reduce_with_internal_format_and_offset(cls, rank, input1, world_size, init_pg, reduce_op=dist.ReduceOp.SUM):
+        dist_group = init_pg(rank, world_size)
+        dst = 0
+        first_dim = input1.shape[0]
+        other_dims = input1.shape[1:]
+        input2 = torch_npu.npu_format_cast(input1.repeat(2, *[1 for i in other_dims]).npu(), 29)
+        test_case = TestCase()
+        error_expect = "For a tensor of internal format, it's storage_offset must be 0"
+        with test_case.assertRaisesRegex(RuntimeError, error_expect):
+            dist_group.all_reduce(input2[first_dim:], reduce_op)
+
+
+    def _test_multiprocess_with_error(self, f, init_pg, input1, world_size, reduce_op=dist.ReduceOp.SUM):
+        ctx = mp.get_context('spawn')
+        ps = []
+        for i in range(world_size):
+            p = ctx.Process(
+                target=f,
+                args=(i, input1.cpu(), world_size, init_pg, reduce_op))
+            p.start()
+            ps.append(p)
+
+        for p in ps:
+            p.join()
+            self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
+
     # pylint:disable=huawei-too-many-arguments
     def _test_multiprocess(self, f, init_pg, expected, input1, world_size, reduce_op=dist.ReduceOp.SUM):
         ctx = mp.get_context('spawn')
@@ -125,6 +153,18 @@ class HcomAllReduceTest(TestCase):
                 self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
                                         HcomAllReduceTest._init_dist_hccl, expected, input1, world_size,
                                         dist.ReduceOp.AVG)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_dist_all_reduce_with_internal_format_and_offset(self):
+        print("in case")
+        ranks = [2]
+        shape_format = [[np.float32, 2, [16, 16]]]
+        for world_size in ranks:
+            for shape in shape_format:
+                exp_input, input1 = create_common_tensor(shape, 0, 10)
+                self._test_multiprocess_with_error(HcomAllReduceTest._test_all_reduce_with_internal_format_and_offset,
+                                                   HcomAllReduceTest._init_dist_hccl, input1, world_size,
+                                                   dist.ReduceOp.AVG)
 
 
 if __name__ == '__main__':
