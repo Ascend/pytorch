@@ -40,6 +40,7 @@ class _DynamicProfile:
         self._step_record_time = None
         self._step_time = 0
         self._min_poll_interval = 1
+        self._max_poll_interval = 50
         self._step_mstx_range_id = 0
 
     def init(self):
@@ -78,7 +79,8 @@ class _DynamicProfile:
         if self.cur_step == self.RECORD_TIME_STEP:
             self._step_record_time = time.time()
         elif self.cur_step - self.RECORD_TIME_STEP == 1:
-            self._step_time = max(self._min_poll_interval, int(time.time() - self._step_record_time))
+            self._step_time = min(self._max_poll_interval,
+                max(self._min_poll_interval, int(time.time() - self._step_record_time)))
             self._dynamic_monitor.modify_step_time(self._step_time)
         if self._step_mstx_range_id:
             mstx.range_end(self._step_mstx_range_id)
