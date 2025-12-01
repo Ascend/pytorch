@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <cstring>
 #include <unistd.h>
 #include <unordered_map>
 #include <regex>
