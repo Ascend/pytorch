@@ -49,6 +49,21 @@ class HcclAllGatherTestBase(TestCase):
         for p in ps:
             p.join()
 
+    def _test_multiprocess_with_error(self, f, init_pg, input1, world_size):
+        ctx = mp.get_context('spawn')
+        ps = []
+
+        for i in range(world_size):
+            p = ctx.Process(
+                target=f,
+                args=(i, input1.cpu(), world_size, init_pg))
+            p.start()
+            ps.append(p)
+
+        for p in ps:
+            p.join()
+            self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
+
     def _test_multiprocess_with_inputlist(self, f, init_pg, cpu_expected, inputlist, world_size):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
@@ -103,6 +118,32 @@ class HcclAllGatherTest(HcclAllGatherTestBase):
         p2c.get()
 
     @classmethod
+    def _test_all_gather_with_input_internal_format_and_offset(cls, rank, input1, world_size, init_pg):
+        pg = init_pg(rank, world_size)
+        first_dim = input1.shape[0]
+        other_dims = input1.shape[1:]
+        input1 = input1.repeat(2, *[1 for i in other_dims]).npu()
+        input1 = torch_npu.npu_format_cast(input1, 29)[first_dim:]
+        gather_tensor = [torch.empty_like(input1) for _ in range(world_size)]
+        test_case = TestCase()
+        error_expect = "For a tensor of internal format, it's storage_offset must be 0"
+        with test_case.assertRaisesRegex(RuntimeError, error_expect):
+            pg.all_gather(gather_tensor, input1)
+
+    @classmethod
+    def _test_all_gather_with_output_internal_format_and_offset(cls, rank, input1, world_size, init_pg):
+        pg = init_pg(rank, world_size)
+        first_dim = input1.shape[0]
+        other_dims = input1.shape[1:]
+        input1 = input1.npu()
+        gather_tensor = [torch.empty(2 * first_dim, *other_dims).npu().to(input1.dtype) for _ in range(world_size)]
+        gather_tensor = [torch_npu.npu_format_cast(i, 29)[first_dim:] for i in gather_tensor]
+        test_case = TestCase()
+        error_expect = "For a tensor of internal format, it's storage_offset must be 0"
+        with test_case.assertRaisesRegex(RuntimeError, error_expect):
+            pg.all_gather(gather_tensor, input1)
+
+    @classmethod
     def _test_all_gather_different_shape(cls, rank, input1, gather_tensor, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input1 = input1.npu()
@@ -152,6 +193,25 @@ class HcclAllGatherTest(HcclAllGatherTestBase):
             self._test_multiprocess_with_inputlist(HcclAllGatherTest._test_all_gather_different_shape,
                                                    HcclAllGatherTest._init_dist_hccl, cpu_excepted_result, npu_excepted_result, world_size)
 
+    @skipIfUnsupportMultiNPU(2)
+    def test_all_gather_with_input_internal_format_and_offset(self):
+        ranks = [2]
+        shape_format = [[np.float32, 2, [16, 16]]]
+        for world_size in ranks:
+            for shape in shape_format:
+                _, input1 = create_common_tensor(shape, -10, 10)
+                self._test_multiprocess_with_error(HcclAllGatherTest._test_all_gather_with_input_internal_format_and_offset,
+                                                   HcclAllGatherTest._init_dist_hccl, input1, world_size)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_all_gather_with_output_internal_format_and_offset(self):
+        ranks = [2]
+        shape_format = [[np.float32, 2, [31, 31]]]
+        for world_size in ranks:
+            for shape in shape_format:
+                _, input1 = create_common_tensor(shape, -10, 10)
+                self._test_multiprocess_with_error(HcclAllGatherTest._test_all_gather_with_output_internal_format_and_offset,
+                                                   HcclAllGatherTest._init_dist_hccl, input1, world_size)
 
 if __name__ == '__main__':
     run_tests()

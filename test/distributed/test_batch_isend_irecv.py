@@ -44,6 +44,27 @@ class HcomBatchIsendIrecvTest(TestCase):
         c2p.put([[i for i in expected_tensors], [i.cpu() for i in recv_tensors]])
         p2c.get()
 
+    @classmethod
+    def _test_batch_isend_irecv_with_internal_format_and_offset(cls, rank, world_size, init_pg):
+        _ = init_pg(rank, world_size)
+        recv_tensors = [None for _ in range(world_size)]
+        p2p_op_list = []
+        for src in range(0, world_size):
+            send_tensor = torch.empty(rank + 1 + world_size, rank + 1, rank + 1, dtype=torch.float).fill_(src).npu(rank)
+            send_tensor = torch_npu.npu_format_cast(send_tensor, 29)[world_size:]
+            recv_tensor = torch.empty(src + 1 + world_size, src + 1, src + 1, dtype=torch.float).fill_(-1).npu(rank)
+            recv_tensors[src] = torch_npu.npu_format_cast(recv_tensor, 29)[world_size:]
+            recv_op = dist.P2POp(dist.irecv, recv_tensors[src], src)
+            p2p_op_list.append(recv_op)
+            send_op = dist.P2POp(dist.isend, send_tensor, src)
+            p2p_op_list.append(send_op)
+        test_case = TestCase()
+        error_expect = "For a tensor of internal format, it's storage_offset must be 0"
+        with test_case.assertRaisesRegex(RuntimeError, error_expect):
+            reqs = dist.batch_isend_irecv(p2p_op_list)
+            for req in reqs:
+                req.wait()
+
 
     def _test_multiprocess(self, f, init_pg, world_size):
         ctx = mp.get_context('spawn')
@@ -64,9 +85,20 @@ class HcomBatchIsendIrecvTest(TestCase):
         for _ in range(world_size):
             p2c.put(0)
 
+        for p in ps:
+            p.join()
+
+    def _test_multiprocess_with_error(self, f, init_pg, world_size):
+        ctx = mp.get_context('spawn')
+        ps = []
+        for i in range(world_size):
+            p = ctx.Process(target=f, args=(i, world_size, init_pg))
+            p.start()
+            ps.append(p)
 
         for p in ps:
             p.join()
+            self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
 
     @skipIfUnsupportMultiNPU(2)
     def test_dist_batch_isend_irecv(self):
@@ -74,6 +106,13 @@ class HcomBatchIsendIrecvTest(TestCase):
         for world_size in ranks:
             self._test_multiprocess(HcomBatchIsendIrecvTest._test_batch_isend_irecv,
                                     HcomBatchIsendIrecvTest._init_dist_hccl, world_size)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_dist_batch_isend_irecv_with_internal_format_and_offset(self):
+        ranks = [2]
+        for world_size in ranks:
+            self._test_multiprocess_with_error(HcomBatchIsendIrecvTest._test_batch_isend_irecv_with_internal_format_and_offset,
+                                               HcomBatchIsendIrecvTest._init_dist_hccl, world_size)
 
 
 if __name__ == '__main__':
