@@ -9,7 +9,8 @@
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "third_party/acl/inc/acl/acl.h"
 
-
+struct aclrtMemUsageInfo;
+struct aclOpExecutor;
 namespace c10_npu {
 namespace acl {
 enum aclrtEventWaitStatus {
