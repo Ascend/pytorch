@@ -42,6 +42,9 @@ std::vector<Tensor> not_implemented_list(const char* name, const char* reason = 
 
 TORCH_API at::Tensor maybe_multiply(const at::Tensor& t, const at::Scalar& s);
 
+at::Tensor cholesky_backward(const at::Tensor& grad, bool upper, const at::Tensor& L);
+at::Tensor cholesky_jvp(const at::Tensor& input_tangent, const at::Tensor& L, bool upper);
+
 } // namespace details
 } // namespace generated
 } // namespace autograd
