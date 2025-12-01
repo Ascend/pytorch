@@ -62,6 +62,28 @@ class HcclAlltoAllTest(TestCase):
         c2p.put((rank, [tensor.cpu() for tensor in output_list], cout))
         p2c.get()
 
+    @classmethod
+    def _test_alltoall_2p_size_with_input_internal_format_and_offset(cls, rank, world_size, init_pg):
+        pg = init_pg(rank, world_size)
+        input_list = [(torch.zeros(rank + 1 + world_size, rank + 1) + rank).float().npu() for i in range(2)]
+        input_list = [torch_npu.npu_format_cast(i, 29)[world_size:] for i in input_list]
+        output_list = [torch.empty(i + 1, i + 1).float().npu() for i in range(2)]
+        test_case = TestCase()
+        error_expect = "For a tensor of internal format, it's storage_offset must be 0"
+        with test_case.assertRaisesRegex(RuntimeError, error_expect):
+            pg.all_to_all(output_list, input_list)
+
+    @classmethod
+    def _test_alltoall_2p_size_with_output_internal_format_and_offset(cls, rank, world_size, init_pg):
+        pg = init_pg(rank, world_size)
+        input_list = [(torch.zeros(rank + 1, rank + 1) + rank).float().npu() for i in range(2)]
+        output_list = [torch.empty(i + 1 + world_size, i + 1).float().npu() for i in range(2)]
+        output_list = [torch_npu.npu_format_cast(i, 29)[world_size:] for i in output_list]
+        test_case = TestCase()
+        error_expect = "For a tensor of internal format, it's storage_offset must be 0"
+        with test_case.assertRaisesRegex(RuntimeError, error_expect):
+            pg.all_to_all(output_list, input_list)
+
     def _test_multiprocess_2p(self, f, init_pg):
         ws = self.world_size_2p
         # file store will delete the test file on destruction
@@ -101,6 +123,22 @@ class HcclAlltoAllTest(TestCase):
         for p in ps:
             p.join(2)
 
+    def _test_multiprocess_2p_with_error(self, f, init_pg):
+        ws = self.world_size_2p
+        # file store will delete the test file on destruction
+        ctx = mp.get_context('spawn')
+        ps = []
+        for i in range(ws):
+            p = ctx.Process(
+                target=f,
+                args=(i, ws, init_pg))
+            p.start()
+            ps.append(p)
+
+        for p in ps:
+            p.join()
+            self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
+
     @skipIfUnsupportMultiNPU(2)
     def test_alltoall_2p_dist(self):
         self._test_multiprocess_2p(
@@ -118,6 +156,19 @@ class HcclAlltoAllTest(TestCase):
         self._test_multiprocess_2p(
             HcclAlltoAllTest._test_alltoall_2p_size_nd,
             HcclAlltoAllTest._init_dist_hccl)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_alltoall_2p_size_dist_with_input_internal_format_and_offset(self):
+        self._test_multiprocess_2p_with_error(
+            HcclAlltoAllTest._test_alltoall_2p_size_with_input_internal_format_and_offset,
+            HcclAlltoAllTest._init_dist_hccl)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_alltoall_2p_size_dist_with_output_internal_format_and_offset(self):
+        self._test_multiprocess_2p_with_error(
+            HcclAlltoAllTest._test_alltoall_2p_size_with_output_internal_format_and_offset,
+            HcclAlltoAllTest._init_dist_hccl)
+
 
     @classmethod
     def _test_alltoall_4p(cls, rank, world_size, init_pg, c2p, p2c):
