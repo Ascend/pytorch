@@ -30,6 +30,8 @@ int64_t VersionToNum(std::string versionStr)
     int64_t RCVersion = -51;
     int64_t TVersion = -1;
     int64_t alphaVersion = 0;
+    int64_t weight = 0;
+    int64_t prerelease = 0;
     if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+)"))) {
         major = stoll(results[kVersionIndex1]);
         minor = stoll(results[kVersionIndex2]);
@@ -47,8 +49,15 @@ int64_t VersionToNum(std::string versionStr)
         minor = stoll(results[kVersionIndex2]);
         RCVersion = stoll(results[kVersionIndex3]);
         alphaVersion = stoll(results[kVersionIndex4]);
+    } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).([0-9]+)-alpha.([0-9]+)")) || 
+               std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).([0-9]+).alpha([0-9]+)"))) {
+        major = stoll(results[kVersionIndex1]);
+        minor = stoll(results[kVersionIndex2]);
+        release = stoll(results[kVersionIndex3]);
+        weight = 300;
+        prerelease = stoll(results[kVersionIndex4]);
     } else {
-        TORCH_NPU_WARN_ONCE("Version: " + versionStr + " is invalid.");
+        TORCH_NPU_WARN_ONCE("Version: " + versionStr + " is invalid or not supported yet.");
         return 0;
     }
 
@@ -56,7 +65,8 @@ int64_t VersionToNum(std::string versionStr)
                  ((minor + 1) * 1000000) +
                  ((release + 1) * 10000) +
                  ((RCVersion + 1) * 100 + 5000) +
-                 ((TVersion + 1) * 100) - (100 - alphaVersion);
+                 ((TVersion + 1) * 100) - (100 - alphaVersion) -
+                 weight + prerelease;
     return num;
 }
 
