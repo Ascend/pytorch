@@ -120,6 +120,38 @@ Tensor maybe_multiply(const Tensor& t, const Scalar& s)
     }
 }
 
+Tensor cholesky_jvp(const Tensor& dA, const Tensor& L, bool upper)
+{
+    constexpr int64_t kDiagonalOffsetZero = 0;          // 对角线偏移量（主对角线）
+    constexpr int64_t kMatrixDimMinusTwo = -2;          // 矩阵倒数第二维（行维度）
+    constexpr int64_t kMatrixDimMinusOne = -1;          // 矩阵最后一维（列维度）
+    constexpr double kDiagonalScalingFactor = 0.5;      // 对角线元素缩放系数（1/2）
+    at::NoTF32Guard disable_tf32;
+    auto L_ = upper ? L.mH() : L;
+    auto dL = at::linalg_solve_triangular(L_, dA, false, true);
+    dL = at::linalg_solve_triangular(L_.mH(), dL, true, false);
+    dL = dL.tril() - dL.diagonal(kDiagonalOffsetZero, kMatrixDimMinusTwo, kMatrixDimMinusOne)
+                     .mul(kDiagonalScalingFactor)
+                     .diag_embed();
+    dL = L_.matmul(dL);
+    return upper ? dL.mH() : std::move(dL);
+}
+
+Tensor cholesky_backward(const Tensor& gL, bool upper, const Tensor& L)
+{
+    constexpr double kSymmetrizeScalingFactor = 0.5;  // 对称化权重系数（1/2）
+    constexpr int64_t kSubdiagonalOffset = -1;        // 次对角线偏移量（表示严格下三角部分）
+    at::NoTF32Guard disable_tf32;
+    auto L_ = upper ? L.mH() : L;
+    auto gL_ = upper ? gL.mH() : gL;
+
+    auto gA = L_.mH().matmul(gL_).tril();
+    gA = kSymmetrizeScalingFactor * (gA + gA.tril(kSubdiagonalOffset).mH());
+    gA = at::linalg_solve_triangular(L_.mH(), gA, true, true);
+    gA = at::linalg_solve_triangular(L_, gA, false, false);
+    return gA;
+}
+
 } // namespace details
 } // namespace generated
 } // namespace autograd
