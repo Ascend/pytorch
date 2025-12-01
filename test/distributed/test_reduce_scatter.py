@@ -47,6 +47,20 @@ class HcclReduceScatterTestBase(TestCase):
         for p in ps:
             p.join()
 
+    def _test_multiprocess_with_error(self, fn, init_pg, input1, world_size):
+        ctx = mp.get_context('spawn')
+
+        ps = []
+        for i in range(world_size):
+            p = ctx.Process(target=fn, args=(i, input1, world_size, init_pg))
+            p.start()
+            ps.append(p)
+
+        for p in ps:
+            p.join()
+            self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
+
+
     def _construct_excepted_result(self, inputs, world_size, op=dist.all_gather, reduce_op=dist.ReduceOp.SUM):
         if op not in [dist.reduce_scatter, dist._reduce_scatter_base, dist.reduce_scatter_tensor, torch_npu.distributed.reduce_scatter_tensor_uneven]:
             raise ValueError("Unsupported op `{}`" % (str(op)))
@@ -67,6 +81,36 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
         c2p.put((rank, output.cpu()))
         pg.barrier()
         p2c.get()
+
+    @classmethod
+    # pylint:disable=huawei-too-many-arguments
+    def _test_reduce_scatter_with_input_internal_format_and_offset(cls, rank, input_list, world_size, init_pg):
+        pg = init_pg(rank, world_size)
+        input_list_npu = []
+        for inp in input_list:
+            first_dim = inp.shape[0]
+            other_dims = inp.shape[1:]
+            inp = torch_npu.npu_format_cast(inp.repeat(2, *[1 for i in other_dims]).npu(), 29)[first_dim:]
+            input_list_npu.append(inp)
+        output = torch.empty_like(input_list_npu[rank])
+        test_case = TestCase()
+        error_expect = "For a tensor of internal format, it's storage_offset must be 0"
+        with test_case.assertRaisesRegex(RuntimeError, error_expect):
+            pg.reduce_scatter(output, input_list_npu)
+
+    @classmethod
+    # pylint:disable=huawei-too-many-arguments
+    def _test_reduce_scatter_with_output_internal_format_and_offset(cls, rank, input_list, world_size, init_pg):
+        pg = init_pg(rank, world_size)
+        input_list_npu = [input.npu() for input in input_list]
+        output = torch.empty_like(input_list_npu[rank])
+        first_dim = output.shape[0]
+        other_dims = output.shape[1:]
+        output = torch_npu.npu_format_cast(output.repeat(2, *[1 for i in other_dims]), 29)[first_dim:]
+        test_case = TestCase()
+        error_expect = "For a tensor of internal format, it's storage_offset must be 0"
+        with test_case.assertRaisesRegex(RuntimeError, error_expect):
+            pg.reduce_scatter(output, input_list_npu)
 
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter(self):
@@ -131,6 +175,34 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter, dist.ReduceOp.AVG)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
                                         HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size, dist.ReduceOp.AVG)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_with_input_internal_format_and_offset(self):
+        ranks = [2]
+        shape_format = [[np.float32, 2, [31, 31]]]
+
+        for world_size in ranks:
+            for shape in shape_format:
+                input_list = []
+                for _ in range(world_size):
+                    _, input1 = create_common_tensor(shape, -10, 10)
+                    input_list.append(input1.cpu())
+                self._test_multiprocess_with_error(HcclReduceScatterTest._test_reduce_scatter_with_input_internal_format_and_offset,
+                                                   HcclReduceScatterTest._init_dist_hccl, input_list, world_size)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_with_output_internal_format_and_offset(self):
+        ranks = [2]
+        shape_format = [[np.float32, 2, [31, 31]]]
+
+        for world_size in ranks:
+            for shape in shape_format:
+                input_list = []
+                for _ in range(world_size):
+                    _, input1 = create_common_tensor(shape, -10, 10)
+                    input_list.append(input1.cpu())
+                self._test_multiprocess_with_error(HcclReduceScatterTest._test_reduce_scatter_with_output_internal_format_and_offset,
+                                                   HcclReduceScatterTest._init_dist_hccl, input_list, world_size)
 
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_with_different_shape_avg(self):
