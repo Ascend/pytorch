@@ -1,4 +1,5 @@
 import torch
+from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch_npu import npu_dtype_cast, _npu_dtype_cast
 
 aten = torch.ops.aten
@@ -75,6 +76,7 @@ GENERATE_LIST = [
     aten.squeeze,
     aten.copy,
     aten.reciprocal,
+    triton_kernel_wrapper_mutation,
 ]
 
 GENERATE_LIST2 = [
