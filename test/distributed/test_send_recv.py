@@ -47,6 +47,25 @@ class HcclSendRecvDistTest(TestCase):
             c2p.put((src, res.cpu()))
 
     @classmethod
+    def _test_send_recv_dist_with_internal_format_and_offset(cls, rank, shared_tensors, world_size, init_pg):
+        pg = init_pg(rank, world_size)
+        first_dim = shared_tensors.shape[0]
+        other_dims = shared_tensors.shape[1:]
+        res = torch.ones_like(shared_tensors).repeat(2, *other_dims).to(f"npu:{rank}")
+        res = torch_npu.npu_format_cast(res, 29)[first_dim:]
+        xs = shared_tensors.repeat(2, *other_dims).to(f"npu:{rank}")
+        xs = torch_npu.npu_format_cast(xs, 29)[first_dim:]
+        dst = 0
+        src = 1
+        test_case = TestCase()
+        error_expect = "For a tensor of internal format, it's storage_offset must be 0"
+        with test_case.assertRaisesRegex(RuntimeError, error_expect):
+            if src == rank:
+                pg.send(xs, dst)
+            else:
+                pg.recv(res, src)
+
+    @classmethod
     def _test_send_recv_dist_with_p2p(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -177,11 +196,35 @@ class HcclSendRecvDistTest(TestCase):
         for p in ps:
             p.join(2)
 
+    def _test_multiprocess_with_error(self, f, shared_tensors, init_pg, ws=0):
+        if not ws:
+            ws = self.world_size
+        # file store will delete the test file on destruction
+        ctx = mp.get_context('spawn')
+        ps = []
+        for i in range(ws):
+            p = ctx.Process(
+                target=f,
+                args=(i, shared_tensors, ws, init_pg))
+            p.start()
+            ps.append(p)
+
+        for p in ps:
+            p.join()
+            self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
+
     @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_dist(self):
         self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_dist,
             torch.randn(2, 2),
+            HcclSendRecvDistTest._init_dist_hccl)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_send_recv_hccl_dist_with_internal_format_and_offset(self):
+        self._test_multiprocess_with_error(
+            HcclSendRecvDistTest._test_send_recv_dist_with_internal_format_and_offset,
+            torch.randn(31, 31),
             HcclSendRecvDistTest._init_dist_hccl)
         
     @skipIfUnsupportMultiNPU(4)
