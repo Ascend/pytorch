@@ -115,17 +115,13 @@ int64_t physical_numel(const at::Tensor& self)
 // use tensor numel when the format is ACL_FORMAT_ND or ACL_FORMAT_NCHW
 uint64_t getNumelForHCCL(const at::Tensor& self)
 {
-    aclFormat format = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
-    if (!at_npu::native::FormatHelper::IsBaseFormatType(format)) {
+    if (!at_npu::native::FormatHelper::IsBaseFormatType(self)) {
         if (self.storage().data_ptr().get() != self.data_ptr()) {
-            TORCH_NPU_WARN_ONCE(
-                "The storage data_ptr is different from tensor data_ptr."
-                "Maybe this tensor is not suitable for HCCL.");
+            TORCH_CHECK(false, "For a tensor of internal format, it's storage_offset must be 0", DIST_ERROR(ErrCode::NOT_SUPPORT));
         }
         return physical_numel(self);
-    } else {
-        return self.numel();
     }
+    return self.numel();
 }
 
 HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input)
@@ -2670,6 +2666,9 @@ void check_npu_tensors_different_devices(const std::vector<at::Tensor>& tensors)
         if (!t.is_contiguous(t.suggest_memory_format())) {
             TORCH_CHECK(false, "Tensors must be contiguous", DIST_ERROR(ErrCode::TYPE));
         }
+        if (!at_npu::native::FormatHelper::IsBaseFormatType(t) && (t.storage().data_ptr().get() != t.data_ptr())) {
+            TORCH_CHECK(false, "For a tensor of internal format, it's storage_offset must be 0", DIST_ERROR(ErrCode::NOT_SUPPORT));
+        }
         const auto inserted = usedDevices.insert(t.get_device()).second;
         if (!inserted) {
             TORCH_CHECK(false, "Tensors must be on distinct NPU devices", DIST_ERROR(ErrCode::TYPE));
@@ -2705,6 +2704,9 @@ void check_npu_tensors_same_device(const std::vector<at::Tensor>& tensors)
             t.get_device() == first.get_device(),
             "Tensors must be on same NPU device",
             DIST_ERROR(ErrCode::TYPE));
+        if (!at_npu::native::FormatHelper::IsBaseFormatType(t) && (t.storage().data_ptr().get() != t.data_ptr())) {
+            TORCH_CHECK(false, "For a tensor of internal format, it's storage_offset must be 0", DIST_ERROR(ErrCode::NOT_SUPPORT));
+        }
     }
 }
 
@@ -2716,6 +2718,9 @@ void check_npu_single_tensor(const at::Tensor& tensor)
     }
     if (!tensor.is_contiguous(tensor.suggest_memory_format())) {
         TORCH_CHECK(false, "Tensors must be contiguous", DIST_ERROR(ErrCode::TYPE));
+    }
+    if (!at_npu::native::FormatHelper::IsBaseFormatType(tensor) && (tensor.storage().data_ptr().get() != tensor.data_ptr())) {
+            TORCH_CHECK(false, "For a tensor of internal format, it's storage_offset must be 0", DIST_ERROR(ErrCode::NOT_SUPPORT));
     }
 }
 
@@ -4222,6 +4227,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
     at::Tensor& inputTensor,
     const c10d::ReduceOptions& opts)
 {
+    check_npu_single_tensor(outputTensor);
     if (outputTensor.numel() != inputTensor.numel()) {
         TORCH_CHECK(false, "output tensor must have the same numel as input tensor", DIST_ERROR(ErrCode::PARAM));
     }
@@ -4477,6 +4483,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
     std::vector<at::Tensor>& inputTensors,
     const c10d::AllgatherOptions& opts)
 {
+    check_npu_tensors_same_device(outputTensors.back());
     check_npu_tensors_different_devices(inputTensors);
 
     if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
@@ -4824,6 +4831,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
     const c10d::ReduceScatterOptions& opts)
 {
     check_npu_tensors_different_devices(outputTensors);
+    check_npu_tensors_same_device(inputTensors.back());
 
     if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
         at_npu::native::OpHook::GetInstance().PreHook("reduce_scatter", outputTensors, inputTensors);
@@ -5019,6 +5027,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
     at::Tensor& inputTensor,
     const c10d::ReduceScatterOptions& opts)
 {
+    check_npu_single_tensor(inputTensor);
     if (inputTensor.dtype() != outputTensor.dtype()) {
         TORCH_CHECK(false, "input tensor must be the same type as the output tensor.", DIST_ERROR(ErrCode::TYPE));
     }
@@ -5078,6 +5087,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
     std::vector<at::Tensor>& inputTensors,
     const c10d::ReduceScatterOptions& opts)
 {
+    check_npu_tensors_same_device(outputTensors);
+    check_npu_tensors_same_device(inputTensors);
     std::string functionName = __FUNCTION__;
     return collectiveCoalesced(
         inputTensors,
