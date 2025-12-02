@@ -363,12 +363,14 @@ typedef enum {
     ACL_STREAM_ATTR_FAILURE_MODE         = 1,
     ACL_STREAM_ATTR_FLOAT_OVERFLOW_CHECK = 2,
     ACL_STREAM_ATTR_USER_CUSTOM_TAG      = 3,
+    ACL_STREAM_ATTR_CACHE_OP_IFNO        = 4,
 } aclrtStreamAttr;
 
 typedef union {
     uint64_t failureMode;
     uint32_t overflowSwitch;
     uint32_t userCustomTag;
+    uint32_t cacheOpInfoSwitch;
     uint32_t reserve[4];
 } aclrtStreamAttrValue;
 
@@ -2052,6 +2054,20 @@ ACL_FUNC_VISIBILITY aclError aclrtGetResInCurrentThread(aclrtDevResLimitType typ
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtSetOpExecuteTimeOutV2(uint64_t timeout, uint64_t *actualTimeout);
+
+/**
+ * @ingroup AscendCL
+ * @brief set stream attribute
+ * @param [in] stream       stream handle
+ * @param [in] stmAttrType  stream attribute type, which value can be:
+ *                             ACL_STREAM_ATTR_FAILURE_MODE, ACL_STREAM_ATTR_FLOAT_OVERFLOW_CHECK
+ *                             or ACL_STREAM_ATTR_USER_CUSTOM_TAG
+ * @param [in] value        stream attribute value
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType,
+    aclrtStreamAttrValue *value);
 
 #ifdef __cplusplus
 }
