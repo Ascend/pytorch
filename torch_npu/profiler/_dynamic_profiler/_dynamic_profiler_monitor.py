@@ -244,4 +244,12 @@ def worker_dyno_func(params_dict):
         except Exception as ex:
             dynamic_profiler_utils.out_log("Dynamic profiler cfg bytes write failed, {} has occur!".format(str(ex)),
                                            dynamic_profiler_utils.LoggerLevelEnum.ERROR)
+    if hasattr(py_dyno_monitor, "update_profiler_status"):
+        profiler_status = {
+            DynamicProfilerUtils.PROFILER_STATUS: str(DynamicProfilerUtils.ProfilerStatus.UNINITIALIZED.value),
+            DynamicProfilerUtils.CURRENT_STEP: "-1",
+            DynamicProfilerUtils.START_STEP: "-1",
+            DynamicProfilerUtils.STOP_STEP: "-1",
+        }
+        py_dyno_monitor.update_profiler_status(profiler_status)
     dynamic_profiler_utils.out_log("Dynolog profiler process done", dynamic_profiler_utils.LoggerLevelEnum.INFO)
