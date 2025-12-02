@@ -2,6 +2,8 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+#include "torch_npu/csrc/core/npu/register/OptionRegister.h"
+#include "third_party/acl/inc/acl/error_codes/rt_error_codes.h"
 
 #include <chrono>
 #include <cstddef>
@@ -15,6 +17,26 @@ namespace c10_npu {
 
 static bool _npu_graphs_debug = false;
 constexpr int kSynchronizeBusyWaitMillis = 10;
+
+namespace {
+void apply_cache_op_info(aclrtStream stream, bool enabled)
+{
+    static const std::string need_report_shape_name = "ACLGRAPH_REPORT_SHAPE";
+    auto need_report_shape = c10_npu::option::GetOption(need_report_shape_name);
+    if (!need_report_shape.has_value() || need_report_shape.value() != "disable") {
+        aclrtStreamAttrValue val;
+        val.cacheOpInfoSwitch = static_cast<uint32_t>(enabled ? 1u : 0u);
+        int32_t ret = c10_npu::acl::AclrtSetStreamAttribute(stream, aclrtStreamAttr::ACL_STREAM_ATTR_CACHE_OP_IFNO,
+            &val);
+        if (ret == ACL_ERROR_RT_PARAM_INVALID) {
+            ASCEND_LOGW("AclrtSetStreamAttribute: the provided parameters are invalid. "
+                        "This may be caused by an incompatible CANN version; please consider upgrading CANN.");
+        } else {
+            TORCH_CHECK(ret == ACL_RT_SUCCESS, "AclrtSetStreamAttribute failed with error code: ", ret);
+        }
+    }
+}
+}
 
 MempoolId_t graph_pool_handle()
 {
@@ -127,6 +149,8 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode)
                 "(However, after capture, it's ok to replay them on the "
                 "default stream.)");
 
+    apply_cache_op_info(stream, true);
+
     // default generator is always registered
     auto* gen = at::get_generator_or_default<at_npu::NPUGeneratorImpl>(c10::nullopt, at_npu::detail::getDefaultNPUGenerator());
     gen->register_graph(this);
@@ -188,6 +212,8 @@ void NPUGraph::capture_end()
 
     TORCH_CHECK(stream == capture_stream_,
                 "Capture must end on the same stream it began on.");
+
+    apply_cache_op_info(stream, false);
 
     aclmdlRI model_ri;
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureEnd(capture_stream_, &model_ri));
