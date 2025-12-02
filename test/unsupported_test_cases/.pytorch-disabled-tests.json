@@ -16,6 +16,8 @@
   "test_nn_module_tests (__main__.TestComplexity)": ["", [""]],
   "test_not_import_sympy (main.TestImports)": ["", [""]],
   "test_no_warning_on_import (main.TestImports)": ["", [""]],
+  "test_Conv2d_size_1_kernel_npu (__main__.TestConvolutionNNDeviceTypePRIVATEUSE1)": ["", ["A2"]],
+  "test_conv2d_same_padding_backward_npu_float32 (__main__.TestConvolutionNNDeviceTypePRIVATEUSE1)": ["", ["A2"]],
   "test_output_match_nn_functional_batch_norm_cpu_float32 (__main__.TestOnnxModelOutputConsistency_opset18CPU)": ["", [""]],
   "test_dispatch_overload_fall_back_default_raise_diagnostic_warning (__main__.TestFxToOnnx)": ["", [""]],
   "test_fake_autocast_index_add_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
