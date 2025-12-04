@@ -5,6 +5,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.utils._path_manager import PathManager
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class SmallModel(torch.nn.Module):
@@ -21,6 +22,7 @@ class SmallModel(torch.nn.Module):
         return input_1.reshape(input_1.shape[0], -1)
 
 
+@SupportedDevices(['Ascend910A'])
 class TestAoe(TestCase):
     results_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], "graphs")
 
