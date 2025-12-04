@@ -3465,7 +3465,19 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         // See [Sync Streams].
         auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
         if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
-            work->stashed_for_allocator_safety_.push_back(inputs[i]);
+            // AVOID_RECORD_STREAM note:
+            // batch_isend_irecv should be ok with avoidRecordStreams,
+            // However, for batch_isend_irecv, I don't think the API requires the user
+            // to wait() on the returned handle, so ProcessGroupHCCL can't know
+            // when it's safe to release the input back to the allocator,
+            // and the present call has no way to know it's not an batch_isend_irecv.
+            // Therefore, we warn and fall back to the typical recordStream logic:
+            if (opType == c10d::OpType::UNKNOWN) {
+                c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
+                work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
+            } else {
+                work->stashed_for_allocator_safety_.push_back(inputs[i]);
+            }
         } else {
             c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
             if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
@@ -3714,6 +3726,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
     PreProcess pre,
     PostProcess post)
 {
+    // AVOID_RECORD_STREAM note:
+    // send, recv, and irecv should be ok with avoidRecordStreams,
+    // However, for isend, I don't think the API requires the user
+    // to wait() on the returned handle, so ProcessGroupHCCL can't know
+    // when it's safe to release the input back to the allocator,
+    // and the present call has no way to know it's not an isend.
+    // Therefore, we warn and fall back to the typical recordStream logic:
+    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+        TORCH_NPU_WARN_ONCE("MULTI_STREAM_MEMORY_REUSE=2 has no effect for point-to-point collectives.");
+    }
     c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
     const auto devices = getDeviceList(tensors);
     int p2pRank = 0;
@@ -3834,18 +3856,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
         //
         // See [Sync Streams].
         auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
-        if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
-            work->stashed_for_allocator_safety_.push_back(tensors[i]);
-        } else {
-            c10_npu::NPUCachingAllocator::recordStream(tensors[i].storage().data_ptr(), hcclStream);
-            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
-                multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
-                work->recorded_inputs_.push_back(std::make_pair(tensors[i].storage().getWeakStorageImpl(), hcclStream));
-                if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
-                    auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(tensors[i].storage().data_ptr());
-                    work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
-                    c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
-                }
+        c10_npu::NPUCachingAllocator::recordStream(tensors[i].storage().data_ptr(), hcclStream);
+        if (multi_stream_memory_reuse_mode != c10_npu::option::CLOSE) {
+            work->recorded_inputs_.push_back(std::make_pair(tensors[i].storage().getWeakStorageImpl(), hcclStream));
+            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(tensors[i].storage().data_ptr());
+                work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
             }
         }
     }
@@ -5322,9 +5339,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
         tensors_,
         [&](at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched, int src_rank) {
             RECORD_FUNCTION("HcclRecv", std::vector<c10::IValue>({output}));
-            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
-                c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
-            }
+            c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclType = getHcclDataType(output.scalar_type());
@@ -5345,16 +5360,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
             for (size_t i = 0; i < tensors_.size(); ++i) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
-                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() ==
-                    c10_npu::option::AVOID_RECORD_STREAM) {
-                    work->stashed_for_allocator_safety_.push_back(tensors_[i]);
-                } else {
-                    c10_npu::NPUCachingAllocator::recordStream(tensors_[i].storage().data_ptr(), hcclStreams[i]);
-                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() ==
-                        c10_npu::option::ERASE_RECORD_STREAM) {
-                        work->recorded_outputs_.push_back(
-                            std::make_pair(tensors_[i].storage().getWeakStorageImpl(), hcclStreams[i]));
-                    }
+                c10_npu::NPUCachingAllocator::recordStream(tensors_[i].storage().data_ptr(), hcclStreams[i]);
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::CLOSE) {
+                    work->recorded_outputs_.push_back(
+                        std::make_pair(tensors_[i].storage().getWeakStorageImpl(), hcclStreams[i]));
                 }
                 if (!at_npu::native::FormatHelper::IsBaseFormatType(tensors[i])) {
                     tensors[i].copy_(tensors_[i], true);

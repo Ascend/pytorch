@@ -32,7 +32,7 @@ class HcomAllReduceTest(TestCase):
         c2p.put((rank, dst, input1.cpu()))
 
         if done_event is not None:
-            done_event.wait()
+            done_event.wait(timeout=5)
 
     @classmethod
     # pylint:disable=huawei-too-many-arguments
