@@ -37,6 +37,7 @@ class HcomAllReduceTest(TestCase):
     @classmethod
     # pylint:disable=huawei-too-many-arguments
     def _test_all_reduce_with_internal_format_and_offset(cls, rank, input1, world_size, init_pg, reduce_op=dist.ReduceOp.SUM):
+        torch_npu.npu.config.allow_internal_format = True
         dist_group = init_pg(rank, world_size)
         dst = 0
         first_dim = input1.shape[0]
