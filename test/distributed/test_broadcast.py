@@ -25,6 +25,7 @@ class HcclBroadcastTest(TestCase):
 
     @classmethod
     def _test_broadcast_with_internal_format_and_offset(cls, rank, input1, world_size, init_pg):
+        torch_npu.npu.config.allow_internal_format = True
         pg = init_pg(rank, world_size)
         first_dim = input1.shape[0]
         other_dims = input1.shape[1:]

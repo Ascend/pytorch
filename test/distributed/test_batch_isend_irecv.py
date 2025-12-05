@@ -46,6 +46,7 @@ class HcomBatchIsendIrecvTest(TestCase):
 
     @classmethod
     def _test_batch_isend_irecv_with_internal_format_and_offset(cls, rank, world_size, init_pg):
+        torch_npu.npu.config.allow_internal_format = True
         _ = init_pg(rank, world_size)
         recv_tensors = [None for _ in range(world_size)]
         p2p_op_list = []

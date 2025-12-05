@@ -48,6 +48,7 @@ class HcclSendRecvDistTest(TestCase):
 
     @classmethod
     def _test_send_recv_dist_with_internal_format_and_offset(cls, rank, shared_tensors, world_size, init_pg):
+        torch_npu.npu.config.allow_internal_format = True
         pg = init_pg(rank, world_size)
         first_dim = shared_tensors.shape[0]
         other_dims = shared_tensors.shape[1:]
