@@ -85,6 +85,7 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
     @classmethod
     # pylint:disable=huawei-too-many-arguments
     def _test_reduce_scatter_with_input_internal_format_and_offset(cls, rank, input_list, world_size, init_pg):
+        torch_npu.npu.config.allow_internal_format = True
         pg = init_pg(rank, world_size)
         input_list_npu = []
         for inp in input_list:
@@ -101,6 +102,7 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
     @classmethod
     # pylint:disable=huawei-too-many-arguments
     def _test_reduce_scatter_with_output_internal_format_and_offset(cls, rank, input_list, world_size, init_pg):
+        torch_npu.npu.config.allow_internal_format = True
         pg = init_pg(rank, world_size)
         input_list_npu = [input.npu() for input in input_list]
         output = torch.empty_like(input_list_npu[rank])
