@@ -21,6 +21,7 @@
   "test_fake_autocast_index_add_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_no_mutate_global_logging_on_import_path_torch (main.TestImports)": ["", [""]],
   "test_no_mutate_global_logging_on_import_path_functorch (main.TestImports)": ["", [""]],
+  "test_NPU_vitals_NPU_only_npu (__main__.TestVitalSignsNpuPRIVATEUSE1)": ["", [""]],
   "test_lazy_imports_are_lazy (main.TestImports)": ["", [""]],
   "test_deprecation_transforms_transform_functionalize_npu (__main__.TestComposabilityPRIVATEUSE1)": ["", [""]],
   "test_deprecation_transforms_transform_grad_and_value_npu (__main__.TestComposabilityPRIVATEUSE1)": ["", [""]],
