@@ -64,6 +64,7 @@ class HcclAlltoAllTest(TestCase):
 
     @classmethod
     def _test_alltoall_2p_size_with_input_internal_format_and_offset(cls, rank, world_size, init_pg):
+        torch_npu.npu.config.allow_internal_format = True
         pg = init_pg(rank, world_size)
         input_list = [(torch.zeros(rank + 1 + world_size, rank + 1) + rank).float().npu() for i in range(2)]
         input_list = [torch_npu.npu_format_cast(i, 29)[world_size:] for i in input_list]
@@ -75,6 +76,7 @@ class HcclAlltoAllTest(TestCase):
 
     @classmethod
     def _test_alltoall_2p_size_with_output_internal_format_and_offset(cls, rank, world_size, init_pg):
+        torch_npu.npu.config.allow_internal_format = True
         pg = init_pg(rank, world_size)
         input_list = [(torch.zeros(rank + 1, rank + 1) + rank).float().npu() for i in range(2)]
         output_list = [torch.empty(i + 1 + world_size, i + 1).float().npu() for i in range(2)]
