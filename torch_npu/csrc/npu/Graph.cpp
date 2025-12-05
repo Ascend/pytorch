@@ -1,16 +1,53 @@
-#include <torch/csrc/python_headers.h>
-
-#include <pybind11/chrono.h>
-
-#include <torch/csrc/jit/python/pybind_utils.h>
-#include <torch/csrc/utils/pybind.h>
+#include <thread>
+#include <vector>
 
 #include "torch_npu/csrc/core/npu/NPUGraph.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/npu/Stream.h"
+#include "torch_npu/csrc/npu/Graph.h"
 
 template <typename T>
 using shared_ptr_class_ = py::class_<T, std::shared_ptr<T>>;
+static std::map<c10_npu::NPUStream, std::vector<PyFuncStruct *>> callbacks = {};
+constexpr int processReportTimeout = 100;
+static ThreadArgs* threadArgs = nullptr;
+static uint64_t threadId = -1;
+
+void *process_callback(void *arg)
+{
+    ThreadArgs* args = static_cast<ThreadArgs *>(arg);
+    auto ret = aclrtSetCurrentContext(args->context);
+    while (!args->exitFlag) {
+        (void)aclrtProcessReport(processReportTimeout);
+    }
+    delete args;
+    args = nullptr;
+    return nullptr;
+}
+
+void LaunchCallFunc(void *userData)
+{
+    PyGILState_STATE state = PyGILState_Ensure();
+    if (userData == nullptr) {
+        return;
+    }
+    auto data = (PyFuncStruct *)(userData);
+    PyObject *argslist = Py_BuildValue("(O)", data->pyFuncArgs);
+    if (argslist == nullptr) {
+        return;
+    }
+    PyObject *result = PyObject_CallObject(data->pyFunc, argslist);
+    if (result == nullptr) {
+        return;
+    }
+    if (argslist != nullptr) {
+        Py_XDECREF(argslist);
+    }
+    if (result != nullptr) {
+        Py_XDECREF(result);
+    }
+    PyGILState_Release(state);
+}
 
 void TORCH_NPU_API THNPGraph_init(PyObject* module) {
     // Pybind11 patch notes say "py::module_" is more up-to-date syntax,
@@ -36,6 +73,42 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
         .def("_graph_task_update_end", [](py::object py_stream) {
             auto stream = (*py_stream).ptr();
             c10_npu::graph_task_update_end(THNPUtils_PyObject_to_NPUStream(stream));
+        })
+        .def("_launch_host_func", [](py::object py_stream, py::object py_func, py::object py_data) {
+            auto func = (*py_func).ptr();
+            auto userDataList = (*py_data).ptr();
+            auto stream = THNPUtils_PyObject_to_NPUStream((*py_stream).ptr());
+            PyFuncStruct *data = new(std::nothrow) PyFuncStruct(func, userDataList);
+            c10_npu::launch_callback(stream, LaunchCallFunc, data);
+            callbacks[stream].emplace_back(data);
+        })
+        .def("_subscribe_report", [](py::object py_stream) {
+            auto stream = (*py_stream).ptr();
+            aclrtContext context = aclrtContext();
+            NPU_CHECK_ERROR(aclrtGetCurrentContext(&context));
+            if ((threadArgs == nullptr) || (threadId == -1)) {
+                threadArgs = new ThreadArgs(context, false);
+                pthread_create(&threadId, nullptr, process_callback, threadArgs);
+            }
+            c10_npu::subscribe_report(threadId, THNPUtils_PyObject_to_NPUStream(stream));
+        })
+        .def("_unsubscribe_report", [](py::object py_stream) {
+            auto stream = THNPUtils_PyObject_to_NPUStream((*py_stream).ptr());
+            c10_npu::unsubscribe_report(threadId, stream);
+            auto it = callbacks.find(stream);
+            if (it != callbacks.end()) {
+                std::vector<PyFuncStruct *>& funcs = it->second;
+                for (PyFuncStruct* func : funcs) {
+                    delete func;
+                    func = nullptr;
+                }
+                funcs.clear();
+                callbacks.erase(it);
+            }
+            if (callbacks.empty()) {
+                threadArgs->exitFlag = true;
+                threadId = -1;
+            }
         });
 
     shared_ptr_class_<c10_npu::NPUGraph>(torch_N_m, "_NPUGraph")
