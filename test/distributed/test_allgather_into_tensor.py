@@ -31,6 +31,7 @@ class HcclAllGatherIntoTensorTest(HcclAllGatherTestBase):
 
     @classmethod
     def _test_all_gather_into_tensor_with_input_internal_format_and_offset(cls, rank, input1, world_size, init_pg):
+        torch_npu.npu.config.allow_internal_format = True
         pg = init_pg(rank, world_size)
         input1 = input1.npu()
         first_dim = input1.shape[0]
@@ -46,6 +47,7 @@ class HcclAllGatherIntoTensorTest(HcclAllGatherTestBase):
 
     @classmethod
     def _test_all_gather_into_tensor_with_output_internal_format_and_offset(cls, rank, input1, world_size, init_pg):
+        torch_npu.npu.config.allow_internal_format = True
         pg = init_pg(rank, world_size)
         input1 = input1.npu()
         shape = list(input1.size())
