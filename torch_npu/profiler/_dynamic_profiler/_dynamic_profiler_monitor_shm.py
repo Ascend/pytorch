@@ -96,9 +96,6 @@ class DynamicProfilerShareMemory:
     def _is_worker_process(self):
         if os.environ.get("RANK") is not None:  # torchrun会设置这个环境变量
             return True
-        process = current_process()
-        if isinstance(process.name, str) and process.name.startswith("EngineCore"):  # vllm启动时实际业务进程的父进程
-            return False
         cmdline_path = f"/proc/{os.getpid()}/cmdline"
         max_size = 1024
         try:
