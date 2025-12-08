@@ -861,6 +861,16 @@ struct MempoolIdHash {
         return mempool_id.first != 0 ? mempool_id.first : mempool_id.second;
     }
 };
+
+bool isDigit(std::string str)
+{
+    if (str.empty()) {
+        return false;
+    }
+    return std::all_of(str.begin(), str.end(), [](unsigned char c) {
+        return std::isdigit(c);
+    });
+}
 } // namespace
 
 class CachingAllocatorConfig {
@@ -971,6 +981,7 @@ size_t CachingAllocatorConfig::parseMaxSplitSize(const std::vector<std::string> 
 {
     consumeToken(config, ++i, ':');
     if (++i < config.size()) {
+        TORCH_CHECK(isDigit(config[i]), "CachingAllocator option max_split_size_mb is invalid.");
         size_t val1 = static_cast<size_t>(stoi(config[i]));
         TORCH_CHECK(val1 > kLargeBuffer / (1024 * 1024),
             "CachingAllocator option max_split_size_mb too small, must be > ", kLargeBuffer / (1024 * 1024),
@@ -1026,6 +1037,7 @@ size_t CachingAllocatorConfig::parseAddrAlignSize(const std::vector<std::string>
 {
     consumeToken(config, ++i, ':');
     if (++i < config.size()) {
+        TORCH_CHECK(isDigit(config[i]), "CachingAllocator option base_addr_aligned_kb is invalid.");
         size_t val = static_cast<size_t>(stoi(config[i]));
         TORCH_CHECK(config[i].length() == std::to_string(val).length(),
             "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
@@ -1059,6 +1071,7 @@ size_t CachingAllocatorConfig::parseSegmentSizeMb(const std::vector<std::string>
 {
     consumeToken(config, ++i, ':');
     if (++i < config.size()) {
+        TORCH_CHECK(isDigit(config[i]), "CachingAllocator option segment_size_mb is invalid.");
         size_t val = static_cast<size_t>(stoi(config[i]));
         TORCH_CHECK(val >= k20MB && val <= k512MB,
                     "CachingAllocator option segment_size_mb error, must be [20, 512], dtype is int",
