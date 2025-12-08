@@ -1,0 +1,10 @@
+# 特征值检测
+
+-   **[NPU\_ASD\_ENABLE](NPU_ASD_ENABLE.md)**  
+
+-   **[NPU\_ASD\_UPPER\_THRESH](NPU_ASD_UPPER_THRESH.md)**  
+
+-   **[NPU\_ASD\_SIGMA\_THRESH](NPU_ASD_SIGMA_THRESH.md)**  
+
+-   **[NPU\_ASD\_CONFIG](NPU_ASD_CONFIG.md)**  
+
