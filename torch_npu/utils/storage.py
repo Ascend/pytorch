@@ -30,9 +30,11 @@ def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, ba
 
 def _cpu(self):
     """Returns a CPU copy of this storage if it's not already on the CPU"""
-    if self.device.type != 'cpu':
+    if self.device.type == 'npu':
         fake_tensor = torch_npu._C._tensor_construct_from_storage(self)
         return fake_tensor.cpu().untyped_storage()
+    elif self.device.type != "cpu":
+        return torch.UntypedStorage(self.size()).copy_(self, False)
     else:
         return self
 
