@@ -377,6 +377,15 @@ def _patch_nametuple(nametuple):
                 device_ids = _replace_cuda_to_npu_in_list(device_ids, False)
         return original__new__(cls, *args, **kwargs)
     nametuple.__new__ = new_nametuple__new__
+    
+    
+def _compose_wrappers(*wrappers):
+
+    def compose(f):
+        for wrapper in wrappers:
+            f = wrapper(f)
+        return f
+    return compose
 
 
 def _init():
@@ -430,7 +439,8 @@ def _init():
     _device_wrapper(torch.fft, ['fftfreq', 'rfftfreq'])
 
     # torch.distributed
-    torch.distributed.init_process_group = _wrapper_hccl(torch.distributed.init_process_group)
+    torch.distributed.init_process_group = _compose_wrappers(_wrapper_cuda, _wrapper_hccl)(
+        torch.distributed.init_process_group)
     torch.distributed.is_nccl_available = torch.distributed.is_hccl_available
     torch.distributed.ProcessGroup._get_backend = _wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
     torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__ = \
