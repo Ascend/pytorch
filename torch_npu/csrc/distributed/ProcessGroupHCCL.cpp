@@ -1032,7 +1032,6 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     asyncErrorHandling_ =
         static_cast<ErrorHandlingMode>(c10_npu::option::OptionsManager::CheckUseHcclAsyncErrorHandleEnable());
     desyncDebug_ = static_cast<bool>(c10_npu::option::OptionsManager::CheckUseDesyncDebugEnable());
-
     if (blockingWait_) {
         if (asyncErrorHandling_ != NoHandling || desyncDebug_) {
         LOG(INFO) << "[Rank " << rank_ << "] HCCL_BLOCKING_WAIT and "
@@ -1041,6 +1040,8 @@ ProcessGroupHCCL::ProcessGroupHCCL(
                     << "Only HCCL_BLOCKING_WAIT is being used in this process.";
         asyncErrorHandling_ = NoHandling;
         desyncDebug_ = false;
+        LOG(INFO) << logPrefix()
+        << "HCCL_BLOCKING_WAIT is enabled, NO watchdog thread is created.";
         }
     } else {
         if (desyncDebug_ && asyncErrorHandling_ == NoHandling) {
@@ -1051,6 +1052,10 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         asyncErrorHandling_ = TearDown;
         }
     }
+
+    // Initialize the heartbeat monitor/watchdog instance. This has to be done
+    // before the corresponding thread is launched to avoid the error.
+    watchdog_ = std::make_unique<Watchdog>(this);
 
 #ifdef ENABLE_HCCL_ERROR_CHECKING
     if (asyncErrorHandling_ == TearDown) {
@@ -1074,7 +1079,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
             }
         }
     }
-    hcclCommWatchdogThread_ = std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this);
+    watchdog_->start();
 #endif
 
     if (options_->global_ranks_in_group.empty()) {
@@ -1214,11 +1219,11 @@ void ProcessGroupHCCL::shutdown(c10::optional<std::string> reason)
     // communicators and signal the threads to exit. Joining on the threads could
     // potentially block and hence avoid it in this method.
     terminateProcessGroup_.store(true);
-    workMetaListCV_.notify_one();
 
     // We need to wait for abort to finish before we can safely shut down
     // heartbeat monitoring thread.
     terminateHeartbeatMonitorThread_.store(true);
+    watchdog_->notify();
     monitorWakeUpCV_.notify_one();
 }
 
@@ -1280,10 +1285,7 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
     LOG(INFO) << logPrefix() << "ProcessGroupHCCL destructor entered.";
 
 #ifdef ENABLE_HCCL_ERROR_CHECKING
-    if (hcclCommWatchdogThread_.joinable()) {
-        hcclCommWatchdogThread_.join();
-        LOG(INFO) << logPrefix() << "ProcessGroupHCCL watchdog thread joined.";
-    }
+    watchdog_->join();
     if (hcclHeartbeatMonitorThread_.joinable()) {
         hcclHeartbeatMonitorThread_.join();
         LOG(INFO) << logPrefix()
@@ -1666,16 +1668,43 @@ void ProcessGroupHCCL::heartbeatMonitor()
     }
 }
 
-void ProcessGroupHCCL::hcclCommWatchdog()
+ProcessGroupHCCL::Watchdog::Watchdog(ProcessGroupHCCL *pg)
+{
+    pg_ = pg;
+    rank_ = pg_->getRank();
+    desyncDebug_ = static_cast<bool>(c10_npu::option::OptionsManager::CheckUseDesyncDebugEnable());
+}
+
+void ProcessGroupHCCL::Watchdog::notify()
+{
+    pg_->workMetaListCV_.notify_one();
+}
+
+void ProcessGroupHCCL::Watchdog::start()
+{
+    TORCH_CHECK(
+        !hcclCommWatchdogThread_.joinable(), "Watchdog thread already started");
+    hcclCommWatchdogThread_ = std::thread(&ProcessGroupHCCL::Watchdog::run, this);
+}
+
+void ProcessGroupHCCL::Watchdog::join()
+{
+    if (hcclCommWatchdogThread_.joinable()) {
+        hcclCommWatchdogThread_.join();
+        LOG(INFO) << pg_->logPrefix() << "ProcessGroupHCCL watchdog thread joined.";
+    }
+}
+
+void ProcessGroupHCCL::Watchdog::run()
 {
     c10_npu::SetThreadType(c10_npu::ThreadType::WATCHDOG_THREAD);
     try {
-        VLOG(2) << "[Rank " << rank_ << "] HCCL watchdog thread started!";
-        if (monitorThreadEnabled_.load()) {
-            hcclHeartbeatMonitorThread_ = std::thread(&ProcessGroupHCCL::heartbeatMonitor, this);
+        LOG(INFO) << "[Rank " << rank_ << "] HCCL watchdog thread started!";
+        if (ProcessGroupHCCL::monitorThreadEnabled_.load()) {
+            pg_->hcclHeartbeatMonitorThread_ = std::thread(&ProcessGroupHCCL::heartbeatMonitor, pg_);
         }
-        workCleanupLoop();
-        VLOG(2) << "[Rank " << rank_
+        runLoop();
+        LOG(INFO) << "[Rank " << rank_
                 << "] HCCL watchdog thread terminated normally";
     } catch (std::exception& e) {
         // Append error message reported from workCleanupLoop
@@ -1686,10 +1715,10 @@ void ProcessGroupHCCL::hcclCommWatchdog()
             e.what());
         LOG(ERROR) << exitMsg;
         if (status_save_enable) {
-            if (exceptionMessage_.empty()) {
-                exceptionMessage_ = e.what();
+            if (ProcessGroupHCCL::exceptionMessage_.empty()) {
+                ProcessGroupHCCL::exceptionMessage_ = e.what();
             }
-            recordHcclStatus(status_save_path, true, true);
+            pg_->recordHcclStatus(status_save_path, true, true);
         }
         watchDogException_ = std::make_exception_ptr(std::runtime_error(exitMsg));
         std::rethrow_exception(watchDogException_);
@@ -1700,11 +1729,60 @@ void ProcessGroupHCCL::hcclCommWatchdog()
             "] HCCL watchdog thread terminated with exception: unknown");
         LOG(ERROR) << exitMsg;
         if (status_save_enable) {
-            recordHcclStatus(status_save_path, true);
+            pg_->recordHcclStatus(status_save_path, true);
         }
         watchDogException_ = std::make_exception_ptr(std::runtime_error(exitMsg));
         std::rethrow_exception(watchDogException_);
     }
+}
+
+int ProcessGroupHCCL::Watchdog::getSignalSrcRank(
+    c10::intrusive_ptr<c10d::Store>& store,
+    const std::string& signal)
+{
+    // This function is 'non blocking'. We first 'check' if the key exists in the
+    // store, then read/get the value only if the key exists.
+    int srcRank = -1;
+    bool signalExists = false;
+    try {
+        signalExists = store->check({signal});
+    } catch (const std::exception& e) {
+        LOG(WARNING) << pg_->logPrefix() << "Failed to check the signal " << signal
+                    << " on TCPStore, " << e.what();
+    }
+    if (!signalExists) {
+        return srcRank;
+    }
+
+    // key exists, now read and parse the value (source rank)
+    std::vector<uint8_t> vec;
+    try {
+        vec = store->get(std::string(signal));
+    } catch (const std::exception& e) {
+        LOG(ERROR) << pg_->logPrefix() << "Failed to get source rank of the signal "
+                << signal << " from TCPStore." << e.what();
+    }
+    TORCH_CHECK_WITH(
+        DistBackendError,
+        vec.size() == sizeof(int),
+        "Invalid size for the timeout rank ID");
+    std::memcpy(&srcRank, vec.data(), vec.size());
+    return srcRank;
+}
+
+void ProcessGroupHCCL::Watchdog::checkAndSetRemoteError()
+{
+    ;
+    // check with workcleanloop from HCCL vs runloop from hccl
+    // The propagatePgError_ variable is needed to check if we want to
+    // start this method on hccl, which is set by the environment variable
+    // TORCH_NCCL_PROPAGATE_ERROR. However, currently we do not
+    // check remote errors in pg via TCPStore.
+}
+
+void ProcessGroupHCCL::Watchdog::setDesyncDebug(bool desyncDebug)
+{
+    desyncDebug_ = desyncDebug;
 }
 
 void ProcessGroupHCCL::logWorkStart(WorkHCCL& work)
@@ -1790,34 +1868,36 @@ void ProcessGroupHCCL::checkHcclComms()
     }
 }
 
-void ProcessGroupHCCL::workCleanupLoop()
+void ProcessGroupHCCL::Watchdog::runLoop()
 {
     bool needSetDevice = true;
     std::list<ProcessGroupHCCL::WorkHCCL> completedWorkList;
     auto lastrecordtime = std::chrono::steady_clock::now();
     auto timenow = std::chrono::steady_clock::now();
     bool recordflag = false;
+    int kThousandMillis = 1000;
     
-    while (!terminateProcessGroup_.load()) {
+    while (!pg_->terminateProcessGroup_.load()) {
         if (status_save_enable) {
             checkAndMakePath(status_save_path.c_str(), "Open shared directory failed. Please check whether input path is valid.");
             timenow = std::chrono::steady_clock::now();
-            recordflag = (std::chrono::duration_cast<std::chrono::milliseconds>(timenow - lastrecordtime).count() > (c10_npu::option::OptionsManager::GetStatusSaveInterval() * 1000));
+            recordflag = (std::chrono::duration_cast<std::chrono::milliseconds>(timenow - lastrecordtime).count() > (c10_npu::option::OptionsManager::GetStatusSaveInterval() * kThousandMillis));
         }
 
         {
-        std::unique_lock<std::mutex> lock(workMetaListMutex_);
+        std::unique_lock<std::mutex> lock(pg_->workMetaListMutex_);
         // We busy-poll the work vector every kWatchdogThreadSleepMillis
         // milliseconds as long as the atomic is True.
-        workMetaListCV_.wait_for(lock, std::chrono::milliseconds(kWatchdogThreadSleepMillis),
-                                 [&]() -> bool { return terminateProcessGroup_.load(); });
-        if (watchdogStatus == WatchdogStatus::STOP) {
+        pg_->workMetaListCV_.wait_for(lock, std::chrono::milliseconds(kWatchdogThreadSleepMillis),
+            [&]() -> bool { return pg_->terminateProcessGroup_.load(); });
+
+        if (pg_->watchdogStatus == WatchdogStatus::STOP) {
             continue;
         }
 
-        checkHcclComms();
+        pg_->checkHcclComms();
 
-        for (auto it = workMetaList_.begin(); it != workMetaList_.end();
+        for (auto it = pg_->workMetaList_.begin(); it != pg_->workMetaList_.end();
              /* no increment */) {
             auto& work = *it;
             try {
@@ -1825,39 +1905,44 @@ void ProcessGroupHCCL::workCleanupLoop()
                     c10::DeviceIndex device = static_cast<int>(work.devices_[0].index());
                     c10_npu::SetThreadAffinity(device);
                     NPU_CHECK_ERROR(c10_npu::SetDevice(device));
-                    deviceId_ = static_cast<int>(work.devices_[0].index());
+                    ProcessGroupHCCL::deviceId_ = static_cast<int>(work.devices_[0].index());
                     needSetDevice = false;
                 }
             } catch (const std::exception& e) {
                 std::string exceptionMsg = std::string(e.what());
                 std::string device_error = get_device_error(exceptionMsg);
                 if (!device_error.empty()) {
-                    logger->info("Find %s when workCleanupLoop setDevice.", device_error.c_str());
+                    logger->info("Find %s when runloop setDevice.", device_error.c_str());
                     device_error_msg = device_error;
                 }
 
                 if (exceptionMsg.find("FORCE STOP") == std::string::npos) {
                     force_stop_error_flag = true;
-                    logger->info("Find FORCE STOP when workCleanupLoop setDevice.");
+                    logger->info("Find FORCE STOP when runloop setDevice.");
                 }
             }
-            work.checkAndSetException();
+            
+            // check NCCL errors first
+            if (!pg_->terminateProcessGroup_.load()) {
+                work.checkAndSetException();
+            }
+
             work.checkDispatch();
             bool exec_timeout = work.checkExec();
-            if (dumpOnException_ && exec_timeout) {
+            if (pg_->dumpOnException_ && exec_timeout) {
                 try {
-                    auto rank = globalRank();
+                    auto rank = pg_->globalRank();
                     auto vec = std::vector<uint8_t>(
                         reinterpret_cast<uint8_t *>(&rank),
                         reinterpret_cast<uint8_t *>(&rank) + sizeof(rank));
-                    globalStore_->set(std::string(EXCEPTION_DUMP), vec);
-                    if (!shouldDump_.load()) {
-                        LOG(ERROR) << logPrefix()
+                    pg_->globalStore_->set(std::string(EXCEPTION_DUMP), vec);
+                    if (!ProcessGroupHCCL::shouldDump_.load()) {
+                        LOG(ERROR) << pg_->logPrefix()
                             << "First watchdog exec timeout to set the dump signal.";
                     }
-                    shouldDump_.store(true);
+                    ProcessGroupHCCL::shouldDump_.store(true);
                 } catch (const std::exception &e) {
-                    LOG(ERROR) << logPrefix()
+                    LOG(ERROR) << pg_->logPrefix()
                                << "Failed to set exec timeout dump signal in tcpstore. "
                                << "Error: " << e.what();
                 }
@@ -1868,25 +1953,22 @@ void ProcessGroupHCCL::workCleanupLoop()
             if (work.exception()) {
                 // try to dump flight records if exception happens.
                 // Flight recorder behavior should be independent of desync Debug
-                if (dumpOnException_) {
+                if (pg_->dumpOnException_) {
                     try {
-                        auto rank = globalRank();
+                        auto rank = pg_->globalRank();
                         auto vec = std::vector<uint8_t>(
                             reinterpret_cast<uint8_t *>(&rank),
                             reinterpret_cast<uint8_t *>(&rank) + sizeof(rank));
-                        globalStore_->set(std::string(EXCEPTION_DUMP), vec);
-                        if (!shouldDump_.load()) {
-                            LOG(ERROR) << logPrefix()
+                        pg_->globalStore_->set(std::string(EXCEPTION_DUMP), vec);
+                        if (!ProcessGroupHCCL::shouldDump_.load()) {
+                            LOG(ERROR) << pg_->logPrefix()
                                        << "First watchdog to set the dump signal.";
                         }
-                        // signal the monitor thread to start dumping
-                        shouldDump_.store(true);
-                        // This sleep is used to give time for dumping before throwing
-                        // exception
+                        ProcessGroupHCCL::shouldDump_.store(true);
                         std::this_thread::sleep_for(
-                            std::chrono::seconds(heartbeatTimeoutInSec_));
+                            std::chrono::seconds(pg_->heartbeatTimeoutInSec_));
                     } catch (const std::exception &e) {
-                        LOG(ERROR) << logPrefix()
+                        LOG(ERROR) << pg_->logPrefix()
                                    << "Failed to set dump signal in tcpstore. "
                                    << "Error: " << e.what();
                     }
@@ -1895,7 +1977,7 @@ void ProcessGroupHCCL::workCleanupLoop()
                 // Report desync state in case of timeout
                 if (desyncDebug_ && timedOut) {
                     try {
-                        auto desyncMsg = retrieveDesyncReport(store_, "HCCL", rank_, size_);
+                        auto desyncMsg = retrieveDesyncReport(pg_->store_, "HCCL", pg_->getRank(), pg_->getSize());
                         LOG(ERROR) << desyncMsg;
                     } catch (const std::exception& e) {
                         LOG(ERROR) << "Failed to retrieve HCCL_DESYNC_DEBUG report. "
@@ -1906,28 +1988,28 @@ void ProcessGroupHCCL::workCleanupLoop()
                     }
                 }
                 // Throw exception
-                work.handleException(asyncErrorHandling_);
+                work.handleException(pg_->asyncErrorHandling_);
             }
 
             // Work status logging for desync debug
-            if (desyncDebug_) {
+            if (pg_->desyncDebug_) {
                 if (work.isStarted()) {
-                    logWorkStart(work);
+                    pg_->logWorkStart(work);
                 }
                 if (work.isCompleted()) {
-                    logWorkEnd(work);
+                    pg_->logWorkEnd(work);
                 }
             }
 
             // a work could be started but not completed, so we should not update
             // lastStartedSeq and lastStartedOpName if the work state is checked
             // multiple times after the start
-            if (monitorThreadEnabled_.load() && pgStatus_->lastStartedSeq < static_cast<int64_t>(work.seq_) &&
+            if (ProcessGroupHCCL::monitorThreadEnabled_.load() && pg_->pgStatus_->lastStartedSeq < static_cast<int64_t>(work.seq_) &&
                 work.isStarted()) {
-                pgStatus_->lastStartedSeq = static_cast<int64_t>(work.seq_);
-                pgStatus_->lastStartedWorkName = opTypeToString(work.opType_);
-                pgStatus_->lastStartedNumelIn = work.numelIn_;
-                pgStatus_->lastStartedNumelOut = work.numelOut_;
+                pg_->pgStatus_->lastStartedSeq = static_cast<int64_t>(work.seq_);
+                pg_->pgStatus_->lastStartedWorkName = opTypeToString(work.opType_);
+                pg_->pgStatus_->lastStartedNumelIn = work.numelIn_;
+                pg_->pgStatus_->lastStartedNumelOut = work.numelOut_;
             }
 
             // Clean up completed work
@@ -1938,18 +2020,18 @@ void ProcessGroupHCCL::workCleanupLoop()
                 }
 
                 if (status_save_enable) {
-                    is_refreshed = refreshStatusInfo(work, "end"); // Update Statusinfo，but not write into the map
+                    pg_->is_refreshed = pg_->refreshStatusInfo(work, "end"); // Update Statusinfo，but not write into the map
                 }
-                pgStatus_->lastCompletedSeq = static_cast<int64_t>(work.seq_);
-                pgStatus_->lastCompletedWorkName = opTypeToString(work.opType_);
-                pgStatus_->lastCompletedNumelIn = work.numelIn_;
-                pgStatus_->lastCompletedNumelOut = work.numelOut_;
+                pg_->pgStatus_->lastCompletedSeq = static_cast<int64_t>(work.seq_);
+                pg_->pgStatus_->lastCompletedWorkName = opTypeToString(work.opType_);
+                pg_->pgStatus_->lastCompletedNumelIn = work.numelIn_;
+                pg_->pgStatus_->lastCompletedNumelOut = work.numelOut_;
                 HCCLTraceBuffer::get()->retire_id(work.trace_id_, true);
-                it = workMetaList_.erase(it);
+                it = pg_->workMetaList_.erase(it);
                 c10_npu::NPUGraph::dec_pending_event_queries();
             } else {
                 if (status_save_enable && work.isStarted()) {
-                    is_refreshed = refreshStatusInfo(work, "start"); // Update Statusinfo，but not write into the map
+                    pg_->is_refreshed = pg_->refreshStatusInfo(work, "start"); // Update Statusinfo，but not write into the map
                 }
                 // Increment the iterator if the current WorkHCCL object is not
                 // completed.
@@ -1958,29 +2040,29 @@ void ProcessGroupHCCL::workCleanupLoop()
 
             // Increment heartbeat after each work processed,
             // in case processing is slowed down (but not hung) by cuda api contention
-            heartbeat_++;
+            pg_->heartbeat_++;
         }
         }
 
-        if (status_save_enable && is_refreshed) {
-            updateStatusOutput();
+        if (status_save_enable && pg_->is_refreshed) {
+            pg_->updateStatusOutput();
         }
 
-        if (recordflag && recordHcclStatus(status_save_path)) {
+        if (recordflag && pg_->recordHcclStatus(status_save_path)) {
             lastrecordtime = std::chrono::steady_clock::now();
         }
     }
 
     if (status_save_enable) {
-        recordHcclStatus(status_save_path);
+        pg_->recordHcclStatus(status_save_path);
     }
 
-    if (terminateProcessGroup_.load()) {
+    if (pg_->terminateProcessGroup_.load()) {
         if (status_save_enable) {
-            recordHcclStatus(status_save_path, true);
+            pg_->recordHcclStatus(status_save_path, true);
         }
-        std::unique_lock<std::mutex> lock(workMetaListMutex_);
-        workMetaList_.clear();
+        std::unique_lock<std::mutex> lock(pg_->workMetaListMutex_);
+        pg_->workMetaList_.clear();
     }
 }
 
