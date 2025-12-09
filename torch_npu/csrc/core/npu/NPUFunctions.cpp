@@ -46,6 +46,15 @@ c10::DeviceIndex device_count() noexcept
     return static_cast<c10::DeviceIndex>(dev_count);
 }
 
+bool hasPrimaryContext(c10::DeviceIndex device_index)
+{
+    TORCH_CHECK(device_index >= 0 && device_index < device_count(),
+        "hasPrimaryContext expects a valid device index, but got device_index=", device_index, PTA_ERROR(ErrCode::VALUE));
+    int32_t ctx_is_active = 0;
+    NPU_CHECK_ERROR_WITHOUT_UCE(acl::AclrtGetPrimaryCtxState(device_index, nullptr, &ctx_is_active));
+    return ctx_is_active == 1;
+}
+
 c10::DeviceIndex device_count_ensure_non_zero()
 {
     unsigned int count = 0;
@@ -138,9 +147,9 @@ aclError SetDevice(c10::DeviceIndex device)
 aclError MaybeSetDevice(c10::DeviceIndex device)
 {
     if (isDeviceCtxActive(device)) {
-        ASCEND_LOGI("MaybeSetDevice: NPU device %d has not been initialized! We will set targetDeviceIndex.", device);
         NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(device));
     } else {
+        ASCEND_LOGI("MaybeSetDevice: NPU device %d has not been initialized! We will set targetDeviceIndex.", device);
         targetDeviceIndex = device;
     }
     return ACL_ERROR_NONE;
@@ -223,11 +232,15 @@ aclrtContext GetDeviceContext(int32_t device)
 
 bool isDeviceCtxActive(int32_t device)
 {
-    std::lock_guard<std::recursive_mutex> lock(mtx);
-    if (used_devices.find(device) == used_devices.end()) {
-        return false;
+    if (acl::IsExistAclrtGetPrimaryCtxState()) {
+        return hasPrimaryContext(device);
+    } else {
+        std::lock_guard<std::recursive_mutex> lock(mtx);
+        if (used_devices.find(device) == used_devices.end()) {
+            return false;
+        }
+        return used_devices[device] != nullptr;
     }
-    return used_devices[device] != nullptr;
 }
 
 c10::DeviceIndex current_device()
@@ -269,9 +282,9 @@ int MaybeExchangeDevice(int to_device)
         return cur_device;
     }
     if (isDeviceCtxActive(to_device)) {
-        ASCEND_LOGI("NPU device %d has not been initialized! We will set targetDeviceIndex.", to_device);
         NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(to_device));
     } else {
+        ASCEND_LOGI("NPU device %d has not been initialized! We will set targetDeviceIndex.", to_device);
         targetDeviceIndex = to_device;
     }
     return cur_device;

@@ -176,6 +176,8 @@ C10_NPU_API inline ModelState& model_state()
 
 bool IsContextInitialized();
 
+bool hasPrimaryContext(c10::DeviceIndex device_index);
+
 C10_NPU_API void stream_synchronize(aclrtStream stream);
 
 } // namespace c10_npu
