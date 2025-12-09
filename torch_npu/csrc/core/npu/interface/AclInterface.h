@@ -282,6 +282,8 @@ aclError AclrtMemcpyBatch(void **dsts, size_t *destMax, void **srcs, size_t *siz
 
 bool IsExistMemcpyBatch();
 
+bool IsExistRtGetStreamId();
+
 bool IsExistMemcpyBatchAsync();
 
 bool AclrtMemcpyAsyncWithConditionExist();
