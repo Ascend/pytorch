@@ -400,6 +400,77 @@ public:
         std::string group_id;
     };
 
+    // Class that runs as a side thread to check whether the HCCL collective
+    // is timed out or errors on the cached HCCL communicators.
+    class Watchdog {
+    public:
+        Watchdog(ProcessGroupHCCL* pg);
+        virtual ~Watchdog() = default;
+
+        // Start the watchdog thread.
+        void start();
+
+        // Join the watchdog thread.
+        void join();
+
+        // Function that runs as part of a separate thread and checks for errors on
+        // HCCL communicators. We need a separate thread to check for HCCL errors
+        // since we can't rely on the user calling certain methods like wait(),
+        // isCompleted() etc. to detect and remediate errors. In addition to this,
+        // we need a mechanism to safely abort and remove HCCL communicators from
+        // our cache. This can be done cleanly by having a thread for the
+        // ProcessGroupHCCL class. Attempting to modify the communicator cache from
+        // the WorkHCCL class might run into issues with object lifetime since the
+        // ProcessGroupHCCL object might get destroyed before the WorkHCCL object.
+        void run();
+
+        // Watchdog's inside loop.
+        // Takes care of cleaning up completed work, and aborting upon failure or
+        // timeout.
+        void runLoop();
+
+        // Notify the loop inside watchdog.
+        void notify();
+
+        void checkAndSetRemoteError();
+
+        // A helper function to get the src rank of a signal from the Store. This is
+        // nonblocking function returning -1 if the signal is not available yet.
+        int getSignalSrcRank(
+            c10::intrusive_ptr<c10d::Store>& store,
+            const std::string& signal);
+
+        uint64_t getHeartbt() const;
+
+        void setDesyncDebug(bool desyncDebug);
+
+    private:
+        std::thread hcclCommWatchdogThread_;
+
+        // We need to keep a reference to the PG instance so that we can access
+        // the member functions of the PG instance. We store a raw pointer on
+        // purpose because the watchdog thread now still lives within the
+        // lifetime of the PG instance.
+        ProcessGroupHCCL* pg_;
+
+        // cached rank for logging inside Watchdog
+        int rank_ = -1;
+
+        std::exception_ptr watchDogException_ = nullptr;
+
+        // Condition Variable for watchdog thread sleep
+        std::condition_variable workMetaListCV_;
+
+        // Heartbeat of watchdog thread.
+        std::atomic_uint64_t heartbeat_{};
+
+        // Whether or not to propagate detected errors to all ranks in the same PG
+        // through TCPStore. Check for the variable propagatePgError_
+
+        // Whether or not to enable timeout root cause analysis.
+        bool desyncDebug_;
+    };
+
     // If you wish to create multiple process groups, each with a potentially
     // different rank and size, you can do so by passing a new store instance
     // to each one. If you have only a single store object, you can
@@ -687,7 +758,9 @@ protected:
     // so that when we get stuck in some HCCL/CANN calls,
     // we can dump the debugging information and abort the process.
     virtual void heartbeatMonitor();
-
+    
+    // Instance of the watchdog thread.
+    std::unique_ptr<Watchdog> watchdog_;
     // Function that directly trigger std::abort so that the whole process
     // gets terminated.
     virtual void terminateProcess(std::string errMsg);
@@ -790,9 +863,6 @@ protected:
     // If the monitor thread finds there is no heartbeat, it will dump debug info
     // and then kill the watchdog thread to avoid hang.
     std::thread hcclHeartbeatMonitorThread_;
-
-    // Watchdog thread which looks for errors on the cached HCCL communicators.
-    std::thread hcclCommWatchdogThread_;
 
     // Whether or not we should terminate the watchdog and workCleanup threads.
     std::atomic<bool> terminateProcessGroup_;
