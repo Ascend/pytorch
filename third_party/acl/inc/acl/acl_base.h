@@ -58,7 +58,6 @@ typedef void *aclrtAllocator;
 typedef void *aclrtAllocatorBlock;
 typedef void *aclrtAllocatorAddr;
 typedef void *aclrtTaskGrp;
-typedef struct aclOpExecutor aclOpExecutor;
 
 static const int ACL_ERROR_NONE = 0;
 static const int ACL_SUCCESS = 0;
@@ -733,7 +732,6 @@ ACL_FUNC_VISIBILITY aclError aclGetCannAttribute(aclCannAttr cannAttr, int32_t *
  */
 ACL_FUNC_VISIBILITY aclError aclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int64_t *value);
 
-ACL_FUNC_VISIBILITY aclError AclDestroyAclOpExecutor(aclOpExecutor *executor);
 #ifdef __cplusplus
 }
 #endif
