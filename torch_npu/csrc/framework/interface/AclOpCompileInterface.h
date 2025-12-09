@@ -3,6 +3,8 @@
 #include <c10/util/Optional.h>
 #include "third_party/acl/inc/acl/acl_op_compiler.h"
 
+typedef struct aclOpExecutor aclOpExecutor;
+
 namespace at_npu {
 namespace native {
 
