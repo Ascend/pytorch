@@ -4,6 +4,7 @@
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "third_party/acl/inc/acl/error_codes/rt_error_codes.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
 #include <chrono>
 #include <cstddef>
@@ -310,7 +311,9 @@ void NPUGraph::reset()
     if (has_graph_exec_) {
         // notifyCaptureDestroy may throw. How should we handle this?
         c10_npu::NPUCachingAllocator::releasePool(capture_dev_, mempool_id_);
-        NPU_CHECK_WARN(c10_npu::acl::AclmdlRIDestroy(model_ri_));
+        if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+            NPU_CHECK_WARN(c10_npu::acl::AclmdlRIDestroy(model_ri_));
+        }
         has_graph_exec_ = false;
     }
 }
