@@ -413,9 +413,16 @@ void reportMemoryDataToNpuProfiler(const MemoryUsage& data)
     if (!ProfilerMgr::GetInstance()->ReportMemEnable().load()) {
         return;
     }
-    int32_t stream_id;
-    if (c10_npu::acl::AclrtStreamGetId(data.stream, &stream_id) != ACL_ERROR_NONE) {
-        stream_id = -1;
+    int64_t stream_id = 0;
+    if (c10_npu::acl::IsExistRtGetStreamId()) {
+        int32_t stream_ptr = 0;
+        if (c10_npu::acl::AclrtStreamGetId(data.stream, &stream_ptr) != ACL_ERROR_NONE) {
+            stream_id = -1;
+        } else {
+            stream_id = stream_ptr;
+        }
+    } else {
+        stream_id = reinterpret_cast<int64_t>(data.stream);
     }
     ProfilerMgr::GetInstance()->UploadWithLock(std::make_unique<torch_npu::toolkit::profiler::MemoryData>(
         data.ptr,
