@@ -233,6 +233,10 @@ at::Tensor empty_like_npu(
         } else {
             auto npu_format =
                 torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
+            // self为faketensor时候获取到的format是随机值，赋值为 ND 格式
+            if ((typeid(*self.storage().unsafeGetStorageImpl()) != typeid(torch_npu::NPUStorageImpl))) {
+                npu_format = ACL_FORMAT_ND;
+            }
             result = OpPreparation::ApplyTensorWithFormat(self.sizes(), options, npu_format);
         }
     }
