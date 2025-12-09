@@ -1,3 +1,4 @@
+import os
 import json
 from unittest.mock import patch, mock_open
 
@@ -358,6 +359,33 @@ class TestTransferToNpu(TestCase):
 
     def test_torch_utils_cpp_extension_include_paths(self):
         torch.utils.cpp_extension.include_paths(device_type='cuda')
+        
+    def test_init_process_group(self):
+        MASTER_ADDR = "127.0.0.1"
+        MASTER_PORT = "29500"
+        WORLD_SIZE = 1
+        RANK = 0
+
+        os.environ['MASTER_ADDR'] = MASTER_ADDR
+        os.environ['MASTER_PORT'] = MASTER_PORT
+        os.environ['RANK'] = str(RANK)
+        os.environ['WORLD_SIZE'] = str(WORLD_SIZE)
+        
+        try:
+
+            torch.distributed.init_process_group(
+                backend='nccl',
+                init_method=f"tcp://{MASTER_ADDR}:{MASTER_PORT}",
+                world_size=WORLD_SIZE,
+                rank=RANK,
+                device_id=torch.device(f"cuda:{RANK}")
+            )
+            self.assertEqual(torch.distributed.get_backend(), 'hccl')
+            torch.distributed.barrier()
+        
+        finally:
+            if torch.distributed.is_initialized():
+                torch.distributed.destroy_process_group()
 
 
 if __name__ == "__main__":
