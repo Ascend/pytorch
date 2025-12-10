@@ -1162,6 +1162,13 @@ bool IsExistMemcpyBatch()
     return func != nullptr;
 }
 
+bool IsExistRtGetStreamId()
+{
+    typedef aclError(*AclrtStreamGetIdFunc)(aclrtStream, int32_t*);
+    static AclrtStreamGetIdFunc func = (AclrtStreamGetIdFunc) GET_FUNC(aclrtStreamGetId);
+    return func != nullptr;
+}
+
 bool IsExistMemcpyBatchAsync()
 {
     typedef aclError(*AclrtMemcpyBatchAsyncFunc)(void **, size_t *, void **, size_t *,
