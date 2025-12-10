@@ -35,6 +35,7 @@
 -   segment\_size\_mb:<value\>，虚拟内存特性下，设置物理内存的申请粒度。
 
     取值范围20\~512，设置值需为整数，单位MB，不配置时默认为20。仅在expandable\_segments设置为true的时候生效，改配置项只作用于缓存分配器的大块内存池。与page\_size同时配置时，page\_size优先生效。
+    增大segment\_size\_mb可以减少内存申请及内存映射接口的调用次数，从而提升内存申请效率，但也可能带来更多的内存碎片。因此，在内存使用极限的场景下，请谨慎调大此值。
 
 -   roundup\_power2\_divisions:<value\> 或 roundup\_power2\_divisions:\[<size1\>:<value1\>,<size2\>:<value2\>,...\]，将请求的分配大小向上舍入到最近的2的幂次分段，从而更高效地复用内存块。
 
