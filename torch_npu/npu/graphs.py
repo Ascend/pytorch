@@ -13,8 +13,8 @@ import torch
 import torch_npu._C
 from torch_npu._C import _weak_ref_tensor as TensorWeakRef
 from torch_npu.utils._error_code import ErrCode, pta_error
+from torch_npu._compiler._config import force_npugraph_gc
 from .utils import _dummy_type
-
 
 if not hasattr(torch_npu._C, "_NPUStreamBase"):
     # Define dummy base classes
@@ -336,9 +336,9 @@ class graph:
         self.npu_graph.auto_dispatch_capture = auto_dispatch_capture
 
     def __enter__(self):
-        # Free as much memory as we can for the graph
         torch.npu.synchronize()
-        gc.collect()
+        if force_npugraph_gc:
+            gc.collect()
         torch.npu.empty_cache()
 
         # Stackoverflow seems comfortable with this pattern
