@@ -1,6 +1,6 @@
 # coredump问题定位
 
-当应用程序运行过程中发生异常，即屏幕中显示了“Segmentation fault“字样，则代表出现了coredump。如果屏幕中没有显示“Segmentation fault“，没有Python堆栈，plog日志中也没有ERROR级别的日志，且有进程收到11号信号，则也是属于出现了coredump。
+当应用程序运行过程中发生异常，即屏幕中显示了“Segmentation fault”字样，则代表出现了coredump。如果屏幕中没有显示“Segmentation fault”，没有Python堆栈，plog日志中也没有ERROR级别的日志，且有进程收到11号信号，则也是属于出现了coredump。
 
 ## 获取core文件
 
@@ -66,5 +66,5 @@ gdb命令行调试主要针对coredump场景，执行目录下会生成coredump�
     根据回显中的函数堆栈找到出错的位置。
 
     **图 1**  查看堆栈  
-    ![](figures/viewing_stack.png "查看堆栈")
+    ![](../figures/viewing_stack.png "查看堆栈")
 

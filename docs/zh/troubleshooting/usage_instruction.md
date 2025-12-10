@@ -34,11 +34,11 @@
 
 
 **图 1**  各字段释义<a id="各字段释义"></a>  
-![](figures/description_each_field.png)
+![](../figures/description_each_field.png)
 
 **图 2**  字段2含义<a id="字段2含义"></a>  
-![](figures/meaning_field_2.png)
+![](../figures/meaning_field_2.png)
 
 **图 3**  字段3含义<a id="字段3含义"></a>  
-![](figures/meaning_field_3.png)
+![](../figures/meaning_field_3.png)
 

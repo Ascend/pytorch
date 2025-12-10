@@ -5,7 +5,7 @@
 **故障处理总体流程主要包括以下过程：收集故障信息、分析故障原因、故障排除**。具体实施过程如[图1](#故障处理流程图)所示。
 
 **图 1**  故障处理流程<a id="故障处理流程图"></a>  
-![](figures/troubleshooting_process.png "故障处理流程")
+![](../figures/troubleshooting_process.png)
 
 -   参考“错误码”处理
 

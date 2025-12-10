@@ -2,7 +2,7 @@
 
 ## 问题现象
 
-关键词"Cannot find bin of op ..."
+关键词"**Cannot find bin of op ...**"
 
 ```ColdFusion
 Traceback (most recent call last):

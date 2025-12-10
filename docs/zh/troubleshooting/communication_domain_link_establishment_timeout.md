@@ -2,9 +2,9 @@
 
 ## 问题现象
 
-关键词"Socket Timeout"
+关键词"**Socket Timeout**"
 
-![](figures/socket_timeout.png)
+![](../figures/socket_timeout.png)
 
 ## 故障根因
 

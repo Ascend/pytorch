@@ -9,10 +9,10 @@
 
 ## Python调用栈和异常信息
 
-Python报错时，会将当时的堆栈打印在屏幕上，用户可通过搜索关键字“Traceback“查看Python应用程序的堆栈。如果存在多个堆栈信息时，优先查看第一个Traceback，如[图1](#fig192891624113314)所示。
+Python报错时，会将当时的堆栈打印在屏幕上，用户可通过搜索关键字"Traceback"查看Python应用程序的堆栈。如果存在多个堆栈信息时，优先查看第一个Traceback，如[图1](#fig192891624113314)所示。
 
 **图 1**  查看Python应用程序的堆栈信息<a id="fig192891624113314"></a>  
-![](figures/viewing_tack_information_python_applications.png "查看Python应用程序的堆栈信息")
+![](../figures/viewing_tack_information_python_applications.png "查看Python应用程序的堆栈信息")
 
 如上回显信息示例中，用户可以看到最后的调用栈在torch\_npu的`set_autocast_enabled`接口上，一般情况下您可以到[昇腾社区](https://gitcode.com/Ascend/pytorch/issues)提交issue获取帮助。
 
@@ -37,7 +37,7 @@ E10035: \[PID:  _xxxxxx_\]  _时间戳_  The \[--dynamic\_batch\_size\], \[--dyn
 如[图2](#CANN软件错误码回显示例)所示，既有Python调用栈错误，又有torch\_npu错误码（ERR00100）以及CANN软件错误码（EZ3002）。用户可以从如下示例中看到CANN软件错误码在最前端，因此主要关注其报错信息。从报错信息中可以看到存在不支持的算子，一般情况下您可以获取日志后单击[Link](https://www.hiascend.com/support)联系技术支持。
 
 **图 2**  CANN软件错误码回显示例<a id="CANN软件错误码回显示例"></a>  
-![](figures/CANN_software_error_code.png "CANN软件错误码回显示例")
+![](../figures/CANN_software_error_code.png "CANN软件错误码回显示例")
 
 ## 原生框架报错信息
 
