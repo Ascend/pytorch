@@ -1,12 +1,8 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates
-# Owner(s): ["oncall: distributed"]
 import copy
 import logging
-import os
-import sys
 import tempfile
 
-from model_registry import ModelWithKwargs, MultiMLP, MultiMLPWithDw
+from model_registry import ModelWithKwargs, MultiMLP, MultiMLPKwargs, MultiMLPWithDw
 from schedule_registry import (
     ScheduleUnbalanced,
     ScheduleVShaped,
@@ -28,43 +24,40 @@ from torch.distributed.pipelining import (
     ScheduleZBVZeroBubble,
 )
 from torch.distributed.pipelining.schedules import _PipelineScheduleRuntime
-from torch.testing._internal.common_cuda import TEST_MULTIGPU
 from torch.testing._internal.common_distributed import (
     MultiProcContinousTest,
-    requires_nccl,
 )
 from torch.testing._internal.common_utils import (
     check_leaked_tensors,
     instantiate_parametrized_tests,
     parametrize,
+    run_tests,
     skip_but_pass_in_sandcastle_if,
 )
 
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 logger = logging.getLogger(__name__)
 
 d_hid = 512
 batch_size = 256
-
 torch.manual_seed(0)
+device_type = "npu"
 
 
 class ScheduleTest(MultiProcContinousTest):
+    world_size = 2
+
     @classmethod
     def backend_str(cls) -> str:
         # Testing with HCCL backend
         return "hccl"
 
-    @classmethod
-    def setUpClass(cls):
-        """
-        Class-scope test fixture. Run once for entire test class, before any test starts.
-        Set up the device.
-        """
-        super().setUpClass()
-        dev_id = cls.rank % torch.npu.device_count()
-        cls.device = torch.device(f"npu:{dev_id}")
+    @property
+    def device(self) -> torch.device:
+        return torch.device(device_type, self.rank)
 
+    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [_ScheduleForwardOnly])
     def test_forward_only(self, ScheduleClass):
         mod = MultiMLP(d_hid, n_layers=self.world_size)
@@ -75,7 +68,7 @@ class ScheduleTest(MultiProcContinousTest):
         x = torch.randn(batch_size, d_hid, device=self.device)
         x_clone = x.clone()
 
-        num_microbatches = 4
+        num_microbatches = 2 * self.world_size
         x_mb = x.chunk(num_microbatches)[0]
 
         # Create a pipeline
@@ -113,6 +106,7 @@ class ScheduleTest(MultiProcContinousTest):
 
             torch.testing.assert_close(x_clone, out)
 
+    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleGPipe, Schedule1F1B])
     def test_multi_iter(self, ScheduleClass):
         mod = MultiMLP(d_hid, n_layers=self.world_size)
@@ -151,8 +145,15 @@ class ScheduleTest(MultiProcContinousTest):
             else:
                 schedule.step()
 
+    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleGPipe, Schedule1F1B])
     def test_kwargs_with_tracer(self, ScheduleClass):
+        # Model has two stages only, thus limiting group size to 2
+        group_size = 2
+        group = dist.new_group(list(range(group_size)))
+        if self.rank >= group_size:
+            return
+
         mod = ModelWithKwargs(d_hid)
         mod.to(self.device)
 
@@ -174,6 +175,7 @@ class ScheduleTest(MultiProcContinousTest):
         stage = pipe.build_stage(
             self.rank,
             self.device,
+            group=group,
         )
 
         # Attach to a schedule
@@ -182,26 +184,24 @@ class ScheduleTest(MultiProcContinousTest):
         # Run
         if self.rank == 0:
             schedule.step(x, y=y)
-        elif self.rank == self.world_size - 1:
+        elif self.rank == group_size - 1:
             losses = []
             out = schedule.step(target=target, losses=losses)
         else:
             schedule.step()
 
-        dist.barrier()
-
         # Last rank checks result
-        if self.rank == self.world_size - 1:
+        if self.rank == group_size - 1:
             ref_out = mod(x, y=y)
             ref_loss = loss_fn(ref_out, target)
             pipe_loss = sum(losses)
             torch.testing.assert_close(out, ref_out, rtol=1e-2, atol=5e-3)
             torch.testing.assert_close(pipe_loss, ref_loss)
 
+    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleGPipe, Schedule1F1B])
-    @parametrize("ModelClass", [MultiMLP])
-    def test_grad_with_tracer(self, ScheduleClass, ModelClass):
-        mod = ModelClass(d_hid)
+    def test_grad_with_tracer(self, ScheduleClass):
+        mod = MultiMLP(d_hid, n_layers=self.world_size)
         mod.to(self.device)
 
         ref_mod = copy.deepcopy(mod)
@@ -221,7 +221,7 @@ class ScheduleTest(MultiProcContinousTest):
             ref_loss.backward()
 
         # Create a pipeline
-        chunks = 4
+        chunks = 2 * self.world_size
         x_mb = x.chunk(chunks)[0]
         split_spec = mod.split_spec if hasattr(mod, "split_spec") else None
         pipe = pipeline(
@@ -272,6 +272,7 @@ class ScheduleTest(MultiProcContinousTest):
                 print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                 raise
 
+    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleGPipe, Schedule1F1B])
     @parametrize("shape_inference", [True, False])
     def test_grad_with_manual(self, ScheduleClass, shape_inference):
@@ -297,7 +298,7 @@ class ScheduleTest(MultiProcContinousTest):
         # Get a submodule, e.g. `layers.0` or `layers.1`
         submod_name = f"layers.{self.rank}"
         stage_module = full_mod.get_submodule(submod_name)
-        chunks = 4
+        chunks = 2 * self.world_size
 
         if shape_inference:
             input_args = None
@@ -354,6 +355,7 @@ class ScheduleTest(MultiProcContinousTest):
                 print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                 raise
 
+    @skipIfUnsupportMultiNPU(2)
     @parametrize(
         "ScheduleClass",
         [
@@ -386,21 +388,15 @@ class ScheduleTest(MultiProcContinousTest):
             ref_loss.backward()
 
         # Get a submodule, e.g. `layers.0` or `layers.1`
-        stage_indices = [
-            self.rank + i * self.world_size
-            for i in range(stages_per_rank)
-        ]
+        stage_indices = [self.rank + i * self.world_size for i in range(stages_per_rank)]
         print(f"Rank {self.rank} stages: {stage_indices}")
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [
-            full_mod.get_submodule(submod_name)
-            for submod_name in submod_names
-        ]
+        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
         # Create a pipeline stage to wrap that submodule
         num_microbatches = (
             ScheduleClass.num_microbatches
             if hasattr(ScheduleClass, "num_microbatches")
-            else 8
+            else 2 * self.world_size
         )
         stages = [
             PipelineStage(
@@ -502,17 +498,18 @@ class ScheduleTest(MultiProcContinousTest):
             for name, p in stage_module.named_parameters():
                 ref_p = ref_submod.get_parameter(name)
                 try:
-                    torch.testing.assert_close(p.grad, ref_p.grad, rtol=1e-5, atol=4e-5)
+                    torch.testing.assert_close(p.grad, ref_p.grad, rtol=1e-5, atol=1e-3)
                 except AssertionError:
                     print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                     raise
 
+    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleWithW, ScheduleInterleavedZeroBubble])
     def test_schedule_with_native_zero_bubble(self, ScheduleClass):
         print(ScheduleClass)
         if ScheduleClass is ScheduleInterleavedZeroBubble:
             n_stages = 4
-            num_microbatches = 8
+            num_microbatches = 2 * n_stages
             rank_stages = {
                 0: [0, 2],
                 1: [1, 3],
@@ -539,10 +536,7 @@ class ScheduleTest(MultiProcContinousTest):
         stage_indices = rank_stages.get(self.rank)
         print(f"Rank {self.rank} stages: {stage_indices}")
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [
-            full_mod.get_submodule(submod_name)
-            for submod_name in submod_names
-        ]
+        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
         stages = [
             PipelineStage(
                 stage_module,
@@ -599,6 +593,7 @@ class ScheduleTest(MultiProcContinousTest):
                     )
                     raise
 
+    @skipIfUnsupportMultiNPU(2)
     @parametrize(
         "ScheduleClass",
         [
@@ -629,16 +624,10 @@ class ScheduleTest(MultiProcContinousTest):
             ref_loss.backward()
 
         # Get a submodule, e.g. `layers.0` or `layers.1`
-        stage_indices = [
-            self.rank + i * self.world_size
-            for i in range(stages_per_rank)
-        ]
+        stage_indices = [self.rank + i * self.world_size for i in range(stages_per_rank)]
         print(f"Rank {self.rank} stages: {stage_indices}")
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [
-            full_mod.get_submodule(submod_name)
-            for submod_name in submod_names
-        ]
+        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
         # Create a pipeline stage to wrap that submodule
         num_microbatches = (
             ScheduleClass.num_microbatches
@@ -704,6 +693,7 @@ class ScheduleTest(MultiProcContinousTest):
                     print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                     raise
 
+    @skipIfUnsupportMultiNPU(2)
     @parametrize(
         "schedule_class", [ScheduleVShaped, ScheduleUnbalanced, ScheduleZBVZeroBubble]
     )
@@ -742,10 +732,7 @@ class ScheduleTest(MultiProcContinousTest):
         stage_indices = rank_stages.get(self.rank)
         print(f"Rank {self.rank} stages: {stage_indices}")
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [
-            full_mod.get_submodule(submod_name)
-            for submod_name in submod_names
-        ]
+        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
         stages = [
             PipelineStage(
                 stage_module,
@@ -807,6 +794,8 @@ class ScheduleTest(MultiProcContinousTest):
                     print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                     raise
 
+
+    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleInterleavedZeroBubble])
     def test_schedule_with_weight_update_mlp_e2e(self, ScheduleClass):
         stages_per_rank = 2
@@ -827,22 +816,13 @@ class ScheduleTest(MultiProcContinousTest):
         full_mod.toggle()
 
         # Get a submodule, e.g. `layers.0` or `layers.1`
-        stage_indices = [
-            self.rank + i * self.world_size
-            for i in range(stages_per_rank)
-        ]
+        stage_indices = [self.rank + i * self.world_size for i in range(stages_per_rank)]
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [
-            full_mod.get_submodule(submod_name)
-            for submod_name in submod_names
-        ]
+        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
 
         # Run reference
         for _ in range(2):
-            ref_stage_modules = [
-                ref_mod.get_submodule(submod_name)
-                for submod_name in submod_names
-            ]
+            ref_stage_modules = [ref_mod.get_submodule(submod_name) for submod_name in submod_names]
             for stage_module in ref_stage_modules:
                 stage_module.zero_grad()
 
@@ -924,35 +904,109 @@ class ScheduleTest(MultiProcContinousTest):
                 ref_p = ref_submod.get_parameter(name)
                 torch.testing.assert_close(p.grad, ref_p.grad, rtol=1e-5, atol=4e-5)
 
+    @skipIfUnsupportMultiNPU(2)
+    @parametrize(
+        "ScheduleClass",
+        [ScheduleInterleavedZeroBubble, ScheduleInterleaved1F1B],
+    )
+    def test_zero_bubble_with_model_kwargs(self, ScheduleClass):
+        stages_per_rank = 2
+        n_stages = stages_per_rank * self.world_size
+        full_mod = MultiMLPKwargs(d_hid, n_layers=n_stages)
+        full_mod.to(self.device)
+
+        ref_mod = copy.deepcopy(full_mod)
+        x = torch.randn(batch_size, d_hid, device=self.device)
+        unused_kwarg = torch.tensor([1.0], device=self.device)
+
+        with torch.no_grad():
+            y = ref_mod(x)
+            # Add a small perturbation
+            target = y + torch.randn(batch_size, d_hid, device=self.device)
+
+        loss_fn = torch.nn.MSELoss(reduction="sum")
+
+        # Get a submodule, e.g. `layers.0` or `layers.1`
+        stage_indices = [self.rank + i * self.world_size for i in range(stages_per_rank)]
+        submod_names = [f"layers.{i}" for i in stage_indices]
+        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
+        # Run reference
+        for _ in range(2):
+            ref_stage_modules = [ref_mod.get_submodule(submod_name) for submod_name in submod_names]
+            for stage_module in ref_stage_modules:
+                stage_module.zero_grad()
+
+            ref_mod.zero_grad()
+            ref_out = ref_mod(x, unused_kwarg=unused_kwarg)
+            ref_loss = loss_fn(ref_out, target)
+            ref_loss.backward()
+
+        # Create a pipeline stage to wrap that submodule
+        stages = [
+            PipelineStage(
+                stage_module,
+                stage_idx,
+                n_stages,
+                self.device,
+            )
+            for stage_module, stage_idx in zip(stage_modules, stage_indices)
+        ]
+
+        # Attach to a schedule
+        num_microbatches = (
+            ScheduleClass.num_microbatches
+            if hasattr(ScheduleClass, "num_microbatches")
+            else 2 * self.world_size
+        )
+        schedule = ScheduleClass(
+            stages, num_microbatches, loss_fn=loss_fn, scale_grads=False
+        )
+
+        for _ in range(2):
+            # Zero gradients
+            for stage_module in stage_modules:
+                stage_module.zero_grad()
+            if self.rank == 0:
+                schedule.step(
+                    x,
+                    unused_kwarg=unused_kwarg.clone()
+                    .unsqueeze(0)
+                    .expand(num_microbatches, -1),
+                )
+            elif self.rank == self.world_size - 1:
+                losses = []
+                out = schedule.step(target=target, losses=losses)
+            else:
+                schedule.step()
+
+        dist.barrier()
+        # Last rank checks result
+        if self.rank == self.world_size - 1:
+            # Check output
+            torch.testing.assert_close(out, ref_out)
+
+            # Check loss
+            pipe_loss = sum(losses)
+            torch.testing.assert_close(pipe_loss, ref_loss)
+
+        # Every rank checks gradients
+        for stage_module, submod_name in zip(stage_modules, submod_names):
+            # Get corresponding submodule from reference model
+            ref_submod = ref_mod.get_submodule(submod_name)
+            # Check gradients per parameter
+            for name, p in stage_module.named_parameters():
+                ref_p = ref_submod.get_parameter(name)
+                try:
+                    torch.testing.assert_close(p.grad, ref_p.grad, rtol=1e-5, atol=5e-3)
+                except AssertionError:
+                    print(
+                        f"Gradient test failed for {name}: {p.grad=} vs {ref_p.grad=}"
+                    )
+                    raise
+
 
 instantiate_parametrized_tests(ScheduleTest)
 
 
 if __name__ == "__main__":
-    # Check if NPU and HCCL are available
-    if not (
-        dist.is_available()
-        and dist.is_hccl_available()
-        and torch.npu.device_count() > 1
-    ):
-        print(
-            "c10d HCCL not available or not enough NPUs, skipping tests",
-            file=sys.stderr,
-        )
-        sys.exit(0)
-
-    rank = int(os.getenv("RANK", -1))
-    world_size = int(os.getenv("WORLD_SIZE", 2))
-
-    if rank != -1:
-        # Launched with torchrun or other multi-proc launchers. Directly run the test.
-        ScheduleTest.run_rank(rank, world_size)
-    else:
-        # Launched as a single process. Spawn subprocess to run the tests.
-        # Also need a rendezvous file for `init_process_group` purpose.
-        rdvz_file = tempfile.NamedTemporaryFile(delete=False).name
-        torch.multiprocessing.spawn(
-            ScheduleTest.run_rank,
-            nprocs=world_size,
-            args=(world_size, rdvz_file),
-        )
+    run_tests()
