@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2024 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2024-2025 Huawei Technologies Co., Ltd. All Rights Reserved.
  * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -440,6 +440,8 @@ inline void HcclCommConfigInit(HcclCommConfig *config)
     config->hcclRdmaServiceLevel = HCCL_COMM_SERVICE_LEVEL_CONFIG_NOT_SET;
     config->hcclWorldRankID = 0;
     config->hcclJobID = 0;
+    config->aclGraphZeroCopyEnable = 0;
+    config->hcclBufferName[0] = '\0';
 }
 
 /**

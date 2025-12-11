@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2024 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2024-2025 Huawei Technologies Co., Ltd. All Rights Reserved.
  * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -45,6 +45,7 @@ typedef enum {
     HCCL_E_REMOTE = 21,             /**< error cqe */
     HCCL_E_SUSPENDING = 22,         /**< error communicator suspending */
     HCCL_E_OPRETRY_FAIL = 23,       /**< retry constraint */
+    HCCL_E_OOM = 24,                /**< out of memory */
     HCCL_E_RESERVED                 /**< reserved */
 } HcclResult;
 
@@ -101,6 +102,7 @@ union HcclConfigValue {
 };
 
 const uint32_t HCCL_ROOT_INFO_BYTES =  4108; // 4108: root info length
+const uint32_t BUFFER_NAME_MAX_LENGTH = 128; // cclbuffer name max length
 const uint32_t COMM_NAME_MAX_LENGTH = 128; // group name max length
 const uint32_t UDI_MAX_LENGTH = 128; // UDI max length
 /**
@@ -112,7 +114,7 @@ typedef struct HcclRootInfoDef {
 
 const uint32_t HCCL_COMM_CONFIG_INFO_BYTES = 24;
 const uint32_t HCCL_COMM_CONFIG_MAGIC_WORD = 0xf0f0f0f0;
-const uint32_t HCCL_COMM_CONFIG_VERSION = 6;
+const uint32_t HCCL_COMM_CONFIG_VERSION = 8;
 const uint32_t HCCL_COMM_DEFAULT_BUFFSIZE = 200;
 const uint32_t HCCL_COMM_BUFFSIZE_CONFIG_NOT_SET = 0xffffffff;
 const uint32_t HCCL_COMM_DEFAULT_DETERMINISTIC = 0;
@@ -133,6 +135,8 @@ typedef struct HcclCommConfigDef {
     uint32_t hcclRdmaServiceLevel;
     uint32_t hcclWorldRankID;
     uint64_t hcclJobID;
+    uint8_t aclGraphZeroCopyEnable; // 只有Reduce类算子(单算子和AclGraph下算法选择不一致)受此配置影响 0:默认值，关闭aclgraph零拷贝(结果与单算子一致优先) 1:开启aclgraph零拷贝(性能优先)
+    char hcclBufferName[BUFFER_NAME_MAX_LENGTH];
 } HcclCommConfig;
 
 typedef enum {
@@ -143,6 +147,8 @@ typedef enum {
     HCCL_COMM_CONFIG_SUPPORT_INIT_BY_ENV = 4,
     HCCL_COMM_CONFIG_WORLD_RANKID = 5,
     HCCL_COMM_CONFIG_JOBID = 6,
+    HCCL_COMM_CONFIG_ACLGRAPH_ZEROCOPY_ENABLE = 7,
+    HCCL_COMM_CONFIG_BUFFER_NAME = 8,
     HCCL_COMM_CONFIG_RESERVED
 } HcclCommConfigCapability;
 
@@ -180,7 +186,7 @@ typedef enum {
     HCCL_CMD_ALLGATHER_V,
     HCCL_CMD_REDUCE_SCATTER_V,
     HCCL_CMD_BATCH_WRITE,
-    HCCL_CMD_HALF_ALLTOALLV,
+    HCCL_CMD_HALF_ALLTOALLV = 20,
     HCCL_CMD_ALL,
     HCCL_CMD_FINALIZE = 100,
     HCCL_CMD_INTER_GROUP_SYNC,

@@ -6,8 +6,10 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 
 #include <ATen/ATen.h>
+#include <c10/core/Device.h>
 #include <c10/util/Optional.h>
 #include "third_party/hccl/inc/hccl/hccl.h"
 #include "third_party/hccl/inc/hccl/hccl_types.h"
@@ -69,6 +71,10 @@ bool isFileExists(const std::string& path);
 bool checkFilePathReadable(const std::string& file);
 
 bool isSupportHcclCommName();
+
+c10::optional<c10_npu::NPUStream> getHcclStreamByBufferName(const std::string &name, c10::DeviceIndex device_index);
+
+bool setHcclStreamByBufferName(const std::string &name, c10::DeviceIndex device_index, c10_npu::NPUStream steam);
 
 // RAII wrapper for HCCL communicator
 class C10_NPU_API HCCLComm {
