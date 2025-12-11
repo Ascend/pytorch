@@ -303,9 +303,5 @@ aclError AclrtUnuseStreamResInCurrentThread(aclrtStream stream);
 
 aclError AclrtGetResInCurrentThread(aclrtDevResLimitType type, uint32_t* value);
 
-bool IsExistAclrtGetPrimaryCtxState();
-
-aclError AclrtGetPrimaryCtxState(int32_t deviceId, uint32_t* flags, int32_t* activate);
-
 } // namespace acl
 } // namespace c10_npu
