@@ -306,9 +306,5 @@ aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attribut
 
 aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType, aclrtStreamAttrValue *value);
 
-bool IsExistAclrtGetPrimaryCtxState();
-
-aclError AclrtGetPrimaryCtxState(int32_t deviceId, uint32_t* flags, int32_t* activate);
-
 } // namespace acl
 } // namespace c10_npu
