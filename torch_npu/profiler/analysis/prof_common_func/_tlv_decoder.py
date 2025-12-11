@@ -9,6 +9,7 @@ __all__ = []
 class TLVDecoder:
     T_LEN = 2
     L_LEN = 4
+    undecodable_msg_count = 0
 
     @classmethod
     def decode(cls, all_bytes: bytes, class_bean: any, constant_struct_size: int) -> list:
@@ -22,6 +23,11 @@ class TLVDecoder:
             tlv_fields = cls.tlv_list_decode(record[constant_struct_size:], is_field=True)
             tlv_fields[Constant.CONSTANT_BYTES] = constant_bytes
             result_data.append(class_bean(tlv_fields))
+        if cls.undecodable_msg_count > 0:
+            warn_msg = ("The collected data can't be decode by bytes.decode, "
+                        "find {} items of undecoded tlv data").format(cls.undecodable_msg_count)
+            warn(warn_msg)
+            cls.undecodable_msg_count = 0
         return result_data
 
     @classmethod
@@ -49,7 +55,7 @@ class TLVDecoder:
                 try:
                     result_data[type_id] = bytes.decode(value)
                 except UnicodeDecodeError:
-                    warn(f"The collected data can't decode by bytes.decode: {value}")
+                    cls.undecodable_msg_count += 1
                     result_data[type_id] = 'N/A'
             else:
                 result_data.append(value)
