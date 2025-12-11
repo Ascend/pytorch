@@ -1171,6 +1171,8 @@ private:
 
     HcclCommConfig createHcclCommConfigWithOptions();
 
+    c10_npu::NPUStream getHcclNPUStream(const at::Device &device);
+
     static std::string getMstxHcclMsg(const std::string &opName,
                                       uint64_t dataCnt,
                                       HcclDataType hcclType,

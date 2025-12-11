@@ -2372,6 +2372,26 @@ void ProcessGroupHCCL::setNSLBCommConfig(HcclCommConfig** commConfig)
     }
 }
 
+c10_npu::NPUStream ProcessGroupHCCL::getHcclNPUStream(const at::Device &device)
+{
+    auto it = options_->hccl_config.find("hccl_buffer_name");
+    if (it == options_->hccl_config.end()) {
+        return getNPUStreamByCurrentType(device.index());
+    }
+    auto bufferName = std::get<std::string>(it->second);
+
+    auto stream = getHcclStreamByBufferName(bufferName, device.index());
+    if (stream) {
+        ASCEND_LOGD("HCCL use the same steam with bufferName = %s, device_index = %d, stream id = %lu", bufferName.c_str(), device.index(), stream->id());
+        return stream.value();
+    }
+
+    auto newStream = getNPUStreamByCurrentType(device.index());
+    auto result = setHcclStreamByBufferName(bufferName, device.index(), newStream);
+    ASCEND_LOGD("HCCL use alloc new stream with bufferName = %s, device_index = %d, stream id = %lu. result = %d", bufferName.c_str(), device.index(), newStream.id(), result);
+    return newStream;
+}
+
 void ProcessGroupHCCL::createHCCLCommOrigin(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices,
@@ -2427,7 +2447,7 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
         }
 
         // Creates the HCCL streams
-        streamVal.push_back(getNPUStreamByCurrentType(devices[i].index()));
+        streamVal.push_back(getHcclNPUStream(devices[i]));
     }
     auto endTime = std::chrono::steady_clock::now();
     auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -2477,7 +2497,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             }
             hcclComms[i] = comm;
             // Creates the HCCL streams
-            streamVal.push_back(getNPUStreamByCurrentType(devices[i].index()));
+            streamVal.push_back(getHcclNPUStream(devices[i]));
         }
         auto endTime = std::chrono::steady_clock::now();
         auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -2558,7 +2578,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             hcclComms[i]->p2pPeer = getP2pPeer();
         }
         // Creates the HCCL streams
-        streamVal.push_back(getNPUStreamByCurrentType(devices[i].index()));
+        streamVal.push_back(getHcclNPUStream(devices[i]));
     }
     auto subEndTime = std::chrono::steady_clock::now();
     auto subTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(subEndTime - subStartTime);
@@ -3425,6 +3445,21 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
             config.hcclJobID = std::get<uint64_t>(options_->hccl_config["hccl_job_id"]);
         } else {
             TORCH_CHECK(false, "Value type of hccl_job_id should be int.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
+    if (options_->hccl_config.find("hccl_buffer_name") != options_->hccl_config.end()) {
+        if (std::holds_alternative<std::string>(options_->hccl_config["hccl_buffer_name"])) {
+            auto bufferName = std::get<std::string>(options_->hccl_config["hccl_buffer_name"]);
+            uint32_t length = bufferName.length();
+            if (length >= BUFFER_NAME_MAX_LENGTH) {
+                length = BUFFER_NAME_MAX_LENGTH - 1;
+                TORCH_NPU_WARN("The length of hccl_buffer_name has exceeded the limit BUFFER_NAME_MAX_LENGTH(128) which will be truncated to BUFFER_NAME_MAX_LENGTH - 1.");
+            }
+            strncpy(config.hcclBufferName, bufferName.c_str(), length);
+            config.hcclBufferName[length] = '\0';
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_buffer_name should be string.", DIST_ERROR(ErrCode::TYPE));
         }
     }
 
