@@ -15,8 +15,8 @@ git clone https://gitcode.com/ascend/pytorch.git -b v2.7.1-7.3.0 --recursive
 cd pytorch/third_party/op-plugin
 ```
 
--   _2.7.1_为PyTorch版本，用户需根据实际情况指定PyTorch版本。
--   7.3.0为Ascend Extension for PyTorch软件版本。
+-   *2.7.1*为PyTorch版本，用户需根据实际情况指定PyTorch版本。
+-   *7.3.0*为Ascend Extension for PyTorch软件版本。
 
 ## 适配原则
 

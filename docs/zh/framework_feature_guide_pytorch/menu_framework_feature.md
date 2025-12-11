@@ -11,7 +11,7 @@
 
 -   [通信性能优化](./communication_performance_optimization.md)
     -   [torch\_npu\_run](torch_npu_run.md)
-    -   [ranktable建链](./ranktable%20link%20setup.md)
+    -   [ranktable建链](./ranktable_link_setup.md)
 
 -   [计算性能优化](./computing_performance_optimization.md)
     -   [自动绑核](./automatic_core_binding.md)
@@ -27,11 +27,11 @@
     -   [PyTorch编译模式（torch.compile）](./pytorch_compilation_mode.md)
 
 -   [自定义算子适配开发](./custom_operator_adaptation.md)
-    -   [基于OpPlugin算子适配开发](./opplugin%20operator%20adaptation.md)
+    -   [基于OpPlugin算子适配开发](./opplugin_operator_adaptation.md)
         -   [适配开发](./adaptation_description_opplugin.md)
         -   [调用样例](./sample_call_opplugin.md)
 
-    -   [基于C++ extensions算子适配开发](./c++_extensions_operator_adaptation.md)
+    -   [基于C++ extensions算子适配开发](./c_extensions_operator_adaptation.md)
         -   [适配说明](./adaptation_description_extension.md)
         -   [单算子API调用适配](./single_operator_adaptation.md)
             -   [适配开发](./adaptation_description_singl.md)

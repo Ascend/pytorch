@@ -30,7 +30,7 @@ export PER_STREAM_QUEUE=1
 
 ## 约束说明
 
--   该特性依赖taskqueue，当TASK\_QUEUE\_ENABLE配置为“1“/“2“时，此此特性才能生效。
+-   该特性依赖taskqueue，当TASK\_QUEUE\_ENABLE配置为"1"/"2"时，此此特性才能生效。
 -   该特性不支持快恢场景。
 -   开启此特性时，非默认流的taskqueue的oom不会立即触发内存快照。
 -   开启此特性时，多流情况下会有多个taskqueue，对应多个线程，可能存在资源抢占，影响性能。
