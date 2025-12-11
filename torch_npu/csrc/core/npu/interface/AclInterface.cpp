@@ -112,7 +112,6 @@ LOAD_FUNCTION(aclrtGetResInCurrentThread)
 LOAD_FUNCTION(aclrtSetOpExecuteTimeOutV2)
 LOAD_FUNCTION(aclrtPointerGetAttributes)
 LOAD_FUNCTION(aclrtSetStreamAttribute)
-LOAD_FUNCTION(aclrtGetPrimaryCtxState)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1369,25 +1368,6 @@ aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType
 
     TORCH_CHECK(func, "Failed to find function aclrtSetStreamAttribute", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(stream, stmAttrType, value);
-}
-
-bool IsExistAclrtGetPrimaryCtxState()
-{
-    typedef aclError (*AclrtGetPrimaryCtxState)(int32_t, uint32_t*, int32_t*);
-    static AclrtGetPrimaryCtxState func = (AclrtGetPrimaryCtxState) GET_FUNC(aclrtGetPrimaryCtxState);
-    return func != nullptr;
-}
-
-aclError AclrtGetPrimaryCtxState(int32_t deviceId, uint32_t* flags, int32_t* activate)
-{
-    typedef aclError (*AclrtGetPrimaryCtxState)(int32_t, uint32_t*, int32_t*);
-    static AclrtGetPrimaryCtxState func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetPrimaryCtxState) GET_FUNC(aclrtGetPrimaryCtxState);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtGetPrimaryCtxState", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, flags, activate);
 }
 
 } // namespace acl
