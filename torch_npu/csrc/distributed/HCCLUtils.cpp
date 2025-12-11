@@ -254,4 +254,42 @@ void DebugInfoWriter::registerWriter(std::unique_ptr<DebugInfoWriter> writer)
 
 std::unique_ptr<DebugInfoWriter> DebugInfoWriter::writer_ = nullptr;
 std::atomic<bool> DebugInfoWriter::hasWriterRegistered_(false);
+
+struct HcclBufferNameKey {
+    c10::DeviceIndex device_index;
+    std::string name;
+    bool operator<(const HcclBufferNameKey& other) const
+    {
+        if (device_index != other.device_index) {
+            return device_index < other.device_index;
+        }
+        return name < other.name; // sort by name if device_index is the same
+    }
+};
+
+struct HcclBufferNameStreamMap {
+    std::map<HcclBufferNameKey, c10_npu::NPUStream> map;
+    std::mutex mutex;
+} g_BufferNameStreamMap = {};
+
+c10::optional<c10_npu::NPUStream> getHcclStreamByBufferName(const std::string &name, c10::DeviceIndex device_index)
+{
+    std::unique_lock<std::mutex> lock(g_BufferNameStreamMap.mutex);
+    auto &map = g_BufferNameStreamMap.map;
+    auto it = map.find({device_index, name});
+    if (it == map.end()) {
+        return {};
+    }
+    return it->second;
+}
+
+bool setHcclStreamByBufferName(const std::string &name, c10::DeviceIndex device_index, c10_npu::NPUStream steam)
+{
+    HcclBufferNameKey key = {device_index, name};
+    std::unique_lock<std::mutex> lock(g_BufferNameStreamMap.mutex);
+    auto &map = g_BufferNameStreamMap.map;
+    auto pair = map.insert({key, steam});
+    return pair.second;
+}
+
 } // namespace c10d_npu
