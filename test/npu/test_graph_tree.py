@@ -364,6 +364,30 @@ class TestNPUGraphNode:
         ) as mock_construct:
             outputs = basic_npu_graph_node.reconstruct_outputs()
             assert len(outputs) == 1
+        
+    def test_reconstruct_outputs_with_format(self, basic_npu_graph_node):
+        # Setup mock metadata and storage info
+        basic_npu_graph_node.outputs_metadata = [
+            {
+                "nbytes": 4,
+                "data_ptr": 1234,
+                "size": (1,),
+                "stride": (1,),
+                "dtype": torch.float32,
+                "device": "npu",
+                "npu_format": 29,
+                "storage_offset": 0,
+            }
+        ]
+        basic_npu_graph_node.output_weakrefs = [MagicMock()]
+        basic_npu_graph_node.output_storage_alias = [UnaliasedStorage]
+        basic_npu_graph_node.cached_tensor_outputs = [MagicMock()]
+
+        with patch(
+            "torch_npu._C._construct_NPU_Tensor_From_Storage_And_Metadata"
+        ) as mock_construct:
+            outputs = basic_npu_graph_node.reconstruct_outputs()
+            assert len(outputs) == 1
 
     def test_aliased_output_reconstruction(self, basic_npu_graph_node):
         basic_npu_graph_node.outputs_metadata = [
