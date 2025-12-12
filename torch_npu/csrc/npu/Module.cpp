@@ -494,11 +494,18 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             constexpr c10::DispatchKeySet npu_dks(c10::DispatchKey::PrivateUse1);
             at::Tensor tensor = at::detail::make_tensor_base<c10::TensorImpl>(
                 std::move(s), npu_dks, meta);
-
-            at_npu::native::StorageDescHelper::SetDesc(
-                tensor,
-                metadata["size"].cast<std::vector<int64_t>>(),
-                metadata["stride"].cast<std::vector<int64_t>>());
+            if (metadata.contains("npu_format")) {
+                at_npu::native::StorageDescHelper::SetDesc(
+                    tensor,
+                    metadata["size"].cast<std::vector<int64_t>>(),
+                    metadata["stride"].cast<std::vector<int64_t>>(),
+                    static_cast<aclFormat>(metadata["npu_format"].cast<int64_t>()));
+            } else {
+                at_npu::native::StorageDescHelper::SetDesc(
+                    tensor,
+                    metadata["size"].cast<std::vector<int64_t>>(),
+                    metadata["stride"].cast<std::vector<int64_t>>());
+            }
             tensor.unsafeGetTensorImpl()->set_sizes_and_strides(
                 metadata["size"].cast<std::vector<int64_t>>(),
                 metadata["stride"].cast<std::vector<int64_t>>());
