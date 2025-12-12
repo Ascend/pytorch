@@ -1185,6 +1185,10 @@ aclError AclrtMemcpyBatchAsync(void **dsts, size_t *destMax, void **srcs, size_t
 bool AclrtMemcpyAsyncWithConditionExist()
 {
     const static bool isAclrtMemcpyAsyncWithConditionExist = []() -> bool {
+        std::string currentCANNVersion = GetCANNVersion("CANN");
+        if (currentCANNVersion == "") {
+            return false;
+        }
         const std::string kMinDriverVersion = "25.0.RC1";
         if (!IsGteDriverVersion(kMinDriverVersion)) {
             return false;
