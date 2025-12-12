@@ -66,6 +66,7 @@ NPUSHMEMSymmetricMemory::NPUSHMEMSymmetricMemory(
     TORCH_INTERNAL_ASSERT(!rank_to_global_rank_.empty());
     for (int r = 0; r < world_size_; ++r) {
         auto buffer = Shmem_ptr(allocation->ptr, rank_to_global_rank_[r]);
+        TORCH_CHECK(buffer != nullptr, "shmem_ptr return nullptr with ptr ", allocation->ptr, DIST_ERROR(ErrCode::MEMORY));
         buffers_.push_back(buffer);
         logger->debug("[rank %d] NPUSHMEMSymmetricMemory shmem_ptr, r is %d, rank_to_global_rank is %d, ptr is %p, shmem_ptr is %p.",
             rank_, r, rank_to_global_rank_[r], allocation->ptr, buffer);
@@ -194,6 +195,7 @@ void* NPUSHMEMSymmetricMemoryAllocator::alloc(
     npushmem_extension::initialize_npushmem_with_store(store, rank, world_size);
 
     auto ptr = Shmem_malloc(size);
+    TORCH_CHECK(ptr != nullptr, "shmem_malloc return nullptr with size ", size, DIST_ERROR(ErrCode::MEMORY));
     auto allocation =
         std::make_shared<NPUSHMEMAllocation>(ptr, size, device_idx);
     // to be done: thread safety
