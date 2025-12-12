@@ -1246,6 +1246,10 @@ aclError AclrtUnSubscribeReport(uint64_t theadId, aclrtStream stream)
 bool AclrtMemcpyAsyncWithConditionExist()
 {
     const static bool isAclrtMemcpyAsyncWithConditionExist = []() -> bool {
+        std::string currentCANNVersion = GetCANNVersion("CANN");
+        if (currentCANNVersion == "") {
+            return false;
+        }
         const std::string kMinDriverVersion = "25.0.RC1";
         if (!IsGteDriverVersion(kMinDriverVersion)) {
             return false;
