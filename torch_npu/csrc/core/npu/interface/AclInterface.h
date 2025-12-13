@@ -303,5 +303,7 @@ aclError AclrtUnuseStreamResInCurrentThread(aclrtStream stream);
 
 aclError AclrtGetResInCurrentThread(aclrtDevResLimitType type, uint32_t* value);
 
+aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType, aclrtStreamAttrValue *value);
+
 } // namespace acl
 } // namespace c10_npu
