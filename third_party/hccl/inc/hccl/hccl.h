@@ -441,6 +441,10 @@ inline void HcclCommConfigInit(HcclCommConfig *config)
     config->hcclWorldRankID = 0;
     config->hcclJobID = 0;
     config->aclGraphZeroCopyEnable = 0;
+    config->hcclExecTimeOut = HCCL_COMM_EXECTIMEOUT_CONFIG_NOT_SET;
+    config->hcclAlgo[0] = '\0';
+    config->hcclRetryEnable[0] = '\0';
+    config->hcclRetryParams[0] = '\0';
     config->hcclBufferName[0] = '\0';
 }
 
