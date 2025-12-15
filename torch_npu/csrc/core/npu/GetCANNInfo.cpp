@@ -277,10 +277,10 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
     static std::string baseVersion = "8.1.RC1";
     static std::string unsupportedModule = "DRIVER";
     if (module.compare(unsupportedModule) == 0) {
-        TORCH_CHECK(false, "When the module is DRIVER, this function is not supported.", PTA_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(false, "When the module is DRIVER, IsGteCANNVersion is not supported.", PTA_ERROR(ErrCode::VALUE));
     }
     if (version.compare(baseVersion) < 0) {
-        TORCH_CHECK(false, "When the version " + version + " is less than \"8.1.RC1\", this function is not supported.", PTA_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(false, "When the version " + version + " is less than \"8.1.RC1\", GetCANNVersion is not supported.", PTA_ERROR(ErrCode::VALUE));
     }
     std::string currentVersion = GetCANNVersion(module);
     int64_t current_num = VersionToNum(currentVersion);
@@ -301,8 +301,8 @@ bool IsGteDriverVersion(const std::string driverVersion)
     int64_t currentCannNum = VersionToNum(currentCANNVersion);
     int64_t boundaryCannNum = VersionToNum(baseCANNVersion);
     if (currentCannNum < boundaryCannNum) {
-        TORCH_CHECK(false, "When the cann version is less than \"8.1.RC1\", this function is not supported.",
-                    PTA_ERROR(ErrCode::VALUE));
+        TORCH_NPU_WARN_ONCE("When the cann version is less than \"8.1.RC1\", GetCANNVersion is not supported.");
+        return false;
     }
     // check driver version
     std::string currentDriverVersion = GetCANNVersion("DRIVER");
