@@ -46,7 +46,7 @@ there are(is) 1 abnormal device(s):
 </tr>
 <tr id="row19915122652114"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.5.1"><p id="p1791515262213">故障自处理模式</p>
 </th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.5.1 "><p id="p14790124723516">根据报错提示，检查脚本并修改</p>
+<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.5.1 "><p id="p14790124723516">根据错误码EI0002，参考<span id="ph124555416557">“<a href="https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/hccl/hcclug/hcclug_000031.html" target="_blank" rel="noopener noreferrer">执行通信操作超时（EI0002）</a>”章节中的指导</span>进行故障处理</p>
 </td>
 </tr>
 <tr id="row1356182417228"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.6.1"><p id="p175662413229">系统处理建议</p>

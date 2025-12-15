@@ -48,7 +48,7 @@ File "/home/HwHiAiUser/anaconda3/envs/PyTorch-2.1.0/lib/python3.9/site-packages/
 </tr>
 <tr id="row19915122652114"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.5.1"><p id="p1791515262213">故障自处理模式</p>
 </th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.5.1 "><p id="p1560422614445">依据提示查看plog日志，根据plog日志中记录的错误原因进行解决</p>
+<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.5.1 "><p id="p1560422614445">参考CANN文档<span id="ph124555416557">中“<a href="https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/troubleshooting/troubleshooting_0062.html" target="_blank" rel="noopener noreferrer">问题定位思路</a>”章节中的指导</span>进行故障处理</p>
 </td>
 </tr>
 <tr id="row1356182417228"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.6.1"><p id="p175662413229">系统处理建议</p>
