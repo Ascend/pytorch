@@ -2,7 +2,7 @@
 
 ## 问题现象
 
-关键词“EI0002“
+关键词“**EI0002**”
 
 ```ColdFusion
 [W compiler_depend.ts:487] Warning: NPU warning, error code is 507048[Error]: 

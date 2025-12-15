@@ -3,8 +3,7 @@
 -   如果您想体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch 训练模型迁移调优指南](https://www.hiascend.com/document/detail/zh/Pytorch/720/ptmoddevg/trainingmigrguide/PT_LMTMOG_0002.html)》文档阅读了解。
 -   如果您想体验大模型训练更丰富的功能，请参见[表1](#模型迁移指导)阅读了解。
 
-    <a id="模型迁移指导"></a>
-    **表 1**  模型迁移指导  
+    **表 1**  模型迁移指导<a id="模型迁移指导"></a>    
 
     |大模型|组件|迁移指导|
     |--|--|--|

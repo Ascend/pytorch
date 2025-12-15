@@ -1,6 +1,6 @@
 # coredump问题定位
 
-当应用程序运行过程中发生异常，即屏幕中显示了“Segmentation fault“字样，则代表出现了coredump。如果屏幕中没有显示“Segmentation fault“，没有Python堆栈，plog日志中也没有ERROR级别的日志，且有进程收到11号信号，则也是属于出现了coredump。
+当应用程序运行过程中发生异常，即屏幕中显示了“Segmentation fault”字样，则代表出现了coredump。如果屏幕中没有显示“Segmentation fault”，没有Python堆栈，plog日志中也没有ERROR级别的日志，且有进程收到11号信号，则也是属于出现了coredump。
 
 ## 获取core文件
 
@@ -34,7 +34,7 @@
 
     运行模型脚本，若模型报错、进程崩溃，即可生成coredump文件。
 
-> [!NOTE]  
+> [!NOTE]
 > -   默认情况下，未开启core文件配置，不会生成coredump文件。
 > -   如果为容器场景，请确保coredump文件产生的路径挂载在容器外，容器销毁后该文件仍然存在。
 

@@ -9,10 +9,10 @@
 
 ## Python调用栈和异常信息
 
-Python报错时，会将当时的堆栈打印在屏幕上，用户可通过搜索关键字“Traceback“查看Python应用程序的堆栈。如果存在多个堆栈信息时，优先查看第一个Traceback，如[图1](#fig192891624113314)所示。
+Python报错时，会将当时的堆栈打印在屏幕上，用户可通过搜索关键字“Traceback”查看Python应用程序的堆栈。如果存在多个堆栈信息时，优先查看第一个Traceback，如[图1](#查看Python应用程序的堆栈信息)所示。
 
-**图 1**  查看Python应用程序的堆栈信息<a id="fig192891624113314"></a>  
-![](figures/viewing_tack_information_python_applications.png "查看Python应用程序的堆栈信息")
+**图 1**  查看Python应用程序的堆栈信息<a id="查看Python应用程序的堆栈信息"></a>  
+![](figures/viewing_tack_information_python_applications.png)
 
 如上回显信息示例中，用户可以看到最后的调用栈在torch\_npu的`set_autocast_enabled`接口上，一般情况下您可以到[昇腾社区](https://gitcode.com/Ascend/pytorch/issues)提交issue获取帮助。
 

@@ -2,7 +2,7 @@
 
 以下步骤请在**root**用户下执行。
 
-1.  在服务器任意目录下（如“/home“），执行如下命令获取cmake软件包。
+1.  在服务器任意目录下（如“/home”），执行如下命令获取cmake软件包。
 
     ```
     wget https://cmake.org/files/v3.18/cmake-3.18.0.tar.gz

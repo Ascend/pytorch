@@ -51,7 +51,7 @@
         error: Cannot verify integrity of possibly corrupted file gmp-6.1.0.tar.bz2
         ```
 
-        表示可能因网络原因gmp包没有下载完全，可执行**rm -rf gmp-6.1.0.tar.bz2**命令删除gmp包，再执行如下命令在“gcc-11.2.0/“文件夹下手动下载依赖包：
+        表示可能因网络原因gmp包没有下载完全，可执行**rm -rf gmp-6.1.0.tar.bz2**命令删除gmp包，再执行如下命令在“gcc-11.2.0/”文件夹下手动下载依赖包：
 
         ```
         wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
@@ -77,7 +77,7 @@
 
         > [!NOTE]  
         > -   编译耗时1小时左右，请用户耐心等待。
-        > -   其中“--prefix“参数用于指定gcc11.2.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/gcc11.2.0“。
+        > -   其中“--prefix”参数用于指定gcc11.2.0安装路径，用户可自行配置，但注意不要配置为“/usr/local”及“/usr”，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/gcc11.2.0”。
 
 5.  配置环境变量（请在实际需要时再进行配置）。
 

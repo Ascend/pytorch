@@ -31,7 +31,7 @@ libtorch\_npu是torch\_npu插件的C++版本，包含运行torch\_npu插件所�
 
 ## libtorch推理测试
 
-以Ascend Extension for PyTorch源码仓v2.7.1-7.3.0分支下“pytorch/examples/libtorch\_resnet“模型为例，介绍libtorch推理的快速使用。
+以Ascend Extension for PyTorch源码仓v2.7.1-7.3.0分支下“pytorch/examples/libtorch\_resnet”模型为例，介绍libtorch推理的快速使用。
 
 1.  需提前安装torch、torch\_npu、torchvision、hypothesis、expecttest以及packaging。
     -   torch与torch\_npu、torchvision安装请参见[安装PyTorch](installing_PyTorch.md)以及[安装torchvision](installing_torchvision.md)。

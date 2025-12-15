@@ -20,7 +20,7 @@
 -   Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
 -   Ascend Extension for PyTorch支持安装abi1版本的安装包，具体请参见[方式三：二进制软件包安装（abi1版本）](installation_via_binary_package_abi1.md)。
 
-    > [!NOTE]  
+    > [!NOTE]
     > -   PyTorch 2.7.1及以上版本的whl包默认使用CXX11\_ABI=1，无需修改。
     > -   PyTorch 2.6.0可自行选择CXX11\_ABI=1或CXX11\_ABI=0。
 
