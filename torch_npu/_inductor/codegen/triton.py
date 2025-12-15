@@ -807,7 +807,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 val = int(simplified_tree_numel)
             else:
                 continue
-            val = next_power_of_2(val)
+
             code.writeline(f"{node.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
 
     def lowest_axis_variable(self):
