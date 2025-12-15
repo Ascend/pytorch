@@ -1,4 +1,9 @@
 #include <iostream>
+#include <string>
+#include <vector>
+#include <cstdint>
+#include <algorithm>
+#include <sstream>
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -11,6 +16,18 @@ constexpr size_t kVersionIndex2 = 2;
 constexpr size_t kVersionIndex3 = 3;
 constexpr size_t kVersionIndex4 = 4;
 
+constexpr size_t tokenNum3 = 3;
+constexpr size_t tokenNum4 = 4;
+
+constexpr size_t index0 = 0;
+constexpr size_t index1 = 1;
+constexpr size_t index2 = 2;
+constexpr size_t index3 = 3;
+
+constexpr size_t validLength1 = 1;
+constexpr size_t validLength2 = 2;
+constexpr size_t validLength5 = 5;
+
 std::unordered_map<std::string, aclCANNPackageName> packageNameMap = {
     {"CANN", ACL_PKG_NAME_CANN},
     {"RUNTIME", ACL_PKG_NAME_RUNTIME},
@@ -22,43 +39,133 @@ std::unordered_map<std::string, aclCANNPackageName> packageNameMap = {
     {"DRIVER", ACL_PKG_NAME_DRIVER}
 };
 
+std::vector<std::string> SplitVersionStr(const std::string& str)
+{
+    std::vector<std::string> tokens;
+    std::string token;
+    for (char c : str) {
+        if (c == '.') {
+            tokens.push_back(token);
+            token.clear();
+        } else {
+            token += c;
+        }
+    }
+    tokens.push_back(token);
+
+    return tokens;
+}
+
+bool isDigits(const std::string& s)
+{
+    if (s.empty()) {
+        return false;
+    }
+    for (char c : s) {
+        if (!std::isdigit(static_cast<unsigned char>(c))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int64_t ExtractNumFromStr(const std::string& str)
+{
+    if (!isDigits(str)) {
+        return -1;
+    }
+    try {
+        return std::stoll(str);
+    } catch (...) {
+        return -1;
+    }
+}
+
+bool StartsWith(const std::string& str, const std::string& prefix)
+{
+    return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
+}
+
+
 int64_t VersionToNum(std::string versionStr)
 {
-    std::smatch results;
     int64_t major = -1;
     int64_t minor = -1;
     int64_t release = -1;
-    int64_t RCVersion = -51;
+    int64_t RCVersion = -51;  // Ensure that when there is no matching format, the calculation result of the corresponding item is 0.
     int64_t TVersion = -1;
     int64_t alphaVersion = 0;
     int64_t weight = 0;
     int64_t prerelease = 0;
-    if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+)"))) {
-        major = stoll(results[kVersionIndex1]);
-        minor = stoll(results[kVersionIndex2]);
-        RCVersion = stoll(results[kVersionIndex3]);
-    } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).([0-9]+)"))) {
-        major = stoll(results[kVersionIndex1]);
-        minor = stoll(results[kVersionIndex2]);
-        release = stoll(results[kVersionIndex3]);
-    } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).T([0-9]+)"))) {
-        major = stoll(results[kVersionIndex1]);
-        minor = stoll(results[kVersionIndex2]);
-        TVersion = stoll(results[kVersionIndex3]);
-    } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+).alpha([0-9]+)"))) {
-        major = stoll(results[kVersionIndex1]);
-        minor = stoll(results[kVersionIndex2]);
-        RCVersion = stoll(results[kVersionIndex3]);
-        alphaVersion = stoll(results[kVersionIndex4]);
-    } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).([0-9]+)-alpha.([0-9]+)")) || 
-               std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).([0-9]+).alpha([0-9]+)"))) {
-        major = stoll(results[kVersionIndex1]);
-        minor = stoll(results[kVersionIndex2]);
-        release = stoll(results[kVersionIndex3]);
-        weight = 300;
-        prerelease = stoll(results[kVersionIndex4]);
-    } else {
-        TORCH_NPU_WARN_ONCE("Version: " + versionStr + " is invalid or not supported yet.");
+
+    std::vector<std::string> tokens = SplitVersionStr(versionStr);
+
+    if (tokens.size() < tokenNum3) {
+        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        return 0;
+    }
+
+    major = ExtractNumFromStr(tokens[index0]);
+    minor = ExtractNumFromStr(tokens[index1]);
+    if (major == -1 || minor == -1) {
+        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        return 0;
+    }
+
+    bool parsed = false;
+    if (tokens.size() == tokenNum3) {
+        if (StartsWith(tokens[index2], "RC") && tokens[index2].length() > validLength2) {   // ([0-9]+).([0-9]+).RC([0-9]+)
+            std::string rcNumStr = tokens[index2].substr(2);
+            RCVersion = ExtractNumFromStr(rcNumStr);
+            if (RCVersion != -1) {
+                parsed = true;
+            } else {
+                RCVersion = -51;
+            }
+        }
+        if (!parsed && StartsWith(tokens[index2], "T") && tokens[index2].length() > validLength1) {  // ([0-9]+).([0-9]+).T([0-9]+)
+            std::string tNumStr = tokens[index2].substr(1);
+            TVersion = ExtractNumFromStr(tNumStr);
+            if (TVersion != -1) {
+                parsed = true;
+            }
+        }
+        if (!parsed && isDigits(tokens[index2])) {  // ([0-9]+).([0-9]+).([0-9]+)
+            release = ExtractNumFromStr(tokens[index2]);
+            if (release != -1) {
+                parsed = true;
+            }
+        }
+    }
+
+    if (!parsed && tokens.size() == tokenNum4) {
+        if (StartsWith(tokens[index2], "RC") && tokens[index2].length() > validLength2 && StartsWith(tokens[index3], "alpha") && tokens[index3].length() > validLength5) {  // ([0-9]+).([0-9]+).RC([0-9]+).alpha([0-9]+)
+            std::string rcNumStr = tokens[index2].substr(2);
+            RCVersion = ExtractNumFromStr(rcNumStr);
+            std::string alphaNumStr = tokens[index3].substr(5);
+            alphaVersion = ExtractNumFromStr(alphaNumStr);
+            if (RCVersion != -1 && alphaVersion != -1) {
+                parsed = true;
+            } else {
+                RCVersion = -51;
+                alphaVersion = 0;
+            }
+        }
+        if (!parsed && isDigits(tokens[index2]) && StartsWith(tokens[index3], "alpha") && tokens[index3].length() > validLength5) {  // ([0-9]+).([0-9]+).([0-9]+).alpha([0-9]+)
+            release = ExtractNumFromStr(tokens[index2]);
+            weight = 300;
+            std::string preNumStr = tokens[index3].substr(5);
+            prerelease = ExtractNumFromStr(preNumStr);
+            if (release != -1 && prerelease != -1) {
+                parsed = true;
+            } else {
+                prerelease = 0;
+            }
+        }
+    }
+
+    if (!parsed) {
+        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
         return 0;
     }
 
