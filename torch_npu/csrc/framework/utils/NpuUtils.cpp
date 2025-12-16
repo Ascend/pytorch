@@ -257,7 +257,9 @@ bool NpuUtils::IsOomError(aclError ret, int index)
             c10_npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
             return true;
         }
-        AT_ERROR("NPU out of memory. device id: ", deviceId);
+        auto retmsg = std::string("NPU out of memory. device id: ") + std::to_string(deviceId);
+        ASCEND_LOGE("%s", retmsg.c_str());
+        TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
     }
     return false;
 }

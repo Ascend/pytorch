@@ -181,29 +181,23 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                 ", error code is ", error_code,                              \
                 PTA_ERROR(ErrCode::ACL));                                    \
             } else {                                                         \
-                if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) { \
-                    std::string errmsg(c10_npu::c10_npu_get_error_message()); \
-                    if (c10_npu::isCannOOM(errmsg)) {                         \
-                        c10_npu::option::oom_observer();                      \
-                    }                                                         \
-                }                                                             \
-                TORCH_CHECK(                                                 \
-                false,                                                       \
-                __func__,                                                    \
-                ":",                                                         \
-                __FILE__,                                                    \
-                ":",                                                         \
-                __LINE__,                                                    \
-                " NPU function error: ", (device_error_msg.empty() ?         \
-                getErrorFunction(#err_code, ##__VA_ARGS__) : device_error_msg),    \
-                ", error code is ", error_code,                              \
-                PTA_ERROR(ErrCode::ACL),                                     \
-                (err_map.error_code_map.find(error_code) !=                  \
-                err_map.error_code_map.end() ?                               \
-                "\n[Error]: " + err_map.error_code_map[error_code] : "."),   \
-                "\n", c10_npu::c10_npu_get_error_message());                 \
-            }                                                                 \
-        }                                                                    \
+                auto retmsg = std::string(__func__) + ":" + __FILE__ + ":" + std::to_string(__LINE__) +          \
+                    " NPU function error: " +                                                                    \
+                    (device_error_msg.empty() ? getErrorFunction(#err_code, ##__VA_ARGS__) : device_error_msg) + \
+                    ", error code is " + std::to_string(error_code) + PTA_ERROR(ErrCode::ACL) +                  \
+                    (err_map.error_code_map.find(error_code) != err_map.error_code_map.end() ?                   \
+                        "\n[Error]: " + err_map.error_code_map[error_code] : ".") + "\n" +                       \
+                    c10_npu::c10_npu_get_error_message();                                                        \
+                if (c10_npu::isCannOOM(retmsg)) {                                 \
+                    if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) { \
+                        c10_npu::option::oom_observer();                          \
+                    }                                                             \
+                    ASCEND_LOGE("%s", retmsg.c_str());                            \
+                    TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());    \
+                }                                                                 \
+                TORCH_CHECK(false, retmsg);                                       \
+            }                                                                     \
+        }                                                                         \
     } while (0)
 
 #define NPU_CHECK_ERROR_WITHOUT_UCE(err_code, ...) NPU_CHECK_ERROR_CHECK_UCE(err_code, false, ##__VA_ARGS__)
