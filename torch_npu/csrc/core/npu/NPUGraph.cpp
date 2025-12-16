@@ -27,8 +27,7 @@ void apply_cache_op_info(aclrtStream stream, bool enabled)
     int32_t ret = c10_npu::acl::AclrtSetStreamAttribute(stream, aclrtStreamAttr::ACL_STREAM_ATTR_CACHE_OP_IFNO,
         &val);
     if (ret == ACL_ERROR_RT_PARAM_INVALID) {
-        ASCEND_LOGW("AclrtSetStreamAttribute: the provided parameters are invalid. "
-                    "This may be caused by an incompatible CANN version; please consider upgrading CANN.");
+        ASCEND_LOGW("Report shape function is disabled due to incompatible CANN version.");
     } else {
         TORCH_CHECK(ret == ACL_RT_SUCCESS, "AclrtSetStreamAttribute failed with error code: ", ret);
     }
