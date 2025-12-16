@@ -138,6 +138,7 @@ NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
     int64_t cube_core_num;
     int64_t vector_core_num;
     int64_t L2_cache_size;
+    aclrtUuid uuid;
 
     device_name = c10_npu::acl::AclrtGetSocName();
     if (device_name == nullptr) {
@@ -157,6 +158,15 @@ NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
 
     NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_L2_SIZE, &L2_cache_size));
     prop.L2_cache_size = L2_cache_size;
+
+    if (c10_npu::acl::IsExistDeviceGetUuid()) {
+        aclError err = c10_npu::acl::AclrtDeviceGetUuid(deviceid, &uuid);
+        if (err == ACL_ERROR_NONE) {
+            prop.uuid = uuid.bytes;
+        } else if (err != ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+            NPU_CHECK_ERROR_WITHOUT_UCE(err);
+        }
+    }
 
     return &prop;
 }
