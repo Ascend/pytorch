@@ -50,7 +50,8 @@ struct TORCH_NPU_API NPUGraph {
     void register_generator_state(const at::Generator& generator);
     void capture_begin(
         MempoolId_t pool = {0, 0},
-        aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL);
+        aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL,
+		bool report_shape = true);
     void capture_end();
     void replay();
     void reset();
