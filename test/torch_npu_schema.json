@@ -2499,7 +2499,7 @@
     "mode": "std::unordered_map<int32_t, std::string> launchBlockingMode = {{0, \"disable\"}, {1, \"enable\"}}"
   },
   "torch_npu_public_env: HCCL_ASYNC_ERROR_HANDLING": {
-    "mode": "std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {{0, \"close\"}, {1, \"open\"}}"
+    "mode": "std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {{0, \"NoHandling\"}, {1, \"TearDown\"}, {2, \"CleanUpOnly\"}, {3, \"SkipCleanUp\"}}"
   },
   "torch_npu_public_env: HCCL_DESYNC_DEBUG": {
     "mode": "std::unordered_map<int32_t, std::string> desyncDebugMode = {{0, \"close\"}, {1, \"open\"}}"
