@@ -210,7 +210,7 @@ uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable()
         (asyncErrorHandling_val != nullptr) ? strtol(asyncErrorHandling_val, nullptr, 10) : 1;
     std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = getAsyncErrorHandlingMode();
     if (asyncErrorHandlingMode.find(asyncErrorHandlingFlag) == asyncErrorHandlingMode.end()) {
-        TORCH_CHECK(false, "HCCL_ASYNC_ERROR_HANDLING should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(false, "HCCL_ASYNC_ERROR_HANDLING should be 0,1,2,3.", PTA_ERROR(ErrCode::VALUE));
     }
     return static_cast<uint32_t>(asyncErrorHandlingFlag);
 }

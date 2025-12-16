@@ -56,7 +56,7 @@ static std::unordered_map<int32_t, std::string> getLaunchBlockingMode()
 
 static std::unordered_map<int32_t, std::string> getAsyncErrorHandlingMode()
 {
-    std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {{0, "close"}, {1, "open"}};
+    std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {{0, "NoHandling"}, {1, "TearDown"}, {2, "CleanUpOnly"}, {3, "SkipCleanUp"}};
     return asyncErrorHandlingMode;
 }
 
