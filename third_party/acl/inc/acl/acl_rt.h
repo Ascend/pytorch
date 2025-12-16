@@ -216,6 +216,7 @@ typedef struct rtExceptionInfo aclrtExceptionInfo;
 typedef enum aclrtMemLocationType {
     ACL_MEM_LOCATION_TYPE_HOST = 0, /**< reserved enum, current version not support */
     ACL_MEM_LOCATION_TYPE_DEVICE,
+    ACL_MEM_LOCATION_TYPE_UNREGISTERED,
 } aclrtMemLocationType;
 
 typedef struct aclrtMemLocation {
@@ -1067,6 +1068,19 @@ ACL_FUNC_VISIBILITY aclError aclrtMallocAlign32(void **devPtr,
 ACL_FUNC_VISIBILITY aclError aclrtMallocCached(void **devPtr,
                                                size_t size,
                                                aclrtMemMallocPolicy policy);
+
+/**
+ * @ingroup AscendCL
+ * @brief get memory attribute, host or device
+ *
+ * @param ptr [IN]         memory pointer
+ * @param attributes [OUT] a buffer to store attributes
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtPointerGetAttributes(const void *ptr,
+                                                       aclrtPtrAttributes *attributes);
 
 /**
  * @ingroup AscendCL

@@ -99,7 +99,8 @@ void copy_between_host_and_device(
         NPU_CHECK_ERROR(ret);
         ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
         void* ptr = torch_npu::utils::is_npu(dst) ? src.storage().mutable_data() : dst.storage().mutable_data();
-        NPU_CHECK_ERROR(CachingHostAllocator_recordEvent(ptr, kind, stream), "aclrtSynchronizeStreamWithTimeout");
+        void* currentPtr = torch_npu::utils::is_npu(dst) ? src.data_ptr() : dst.data_ptr();
+        process_non_blocking_copy(ptr, currentPtr, stream, kind);
     } else {
         aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
         auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
