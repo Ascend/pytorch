@@ -1070,6 +1070,62 @@ at::Allocator* getCachingHostAllocator()
     return &getNPUCachingHostAllocator();
 }
 
+// the host memory is not allocated by malloc
+aclError process_unregistered_mem_location_type(c10_npu::NPUStream stream, aclrtMemcpyKind kind)
+{
+    if (c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() && kind == aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST) {
+        ASCEND_LOGD("The copy of the d2h kind does not need to be converted to synchronous");
+        return ACL_ERROR_NONE;
+    }
+
+    // Sync when host memory is allocated by malloc
+    ASCEND_LOGD("The copy of the kind needs to be converted to synchronous");
+    aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
+    if (error != ACL_ERROR_NONE) {
+        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(error);
+        C10_NPU_SHOW_ERR_MSG();
+        AT_ERROR("ACL stream synchronize failed.");
+        return error;
+    }
+
+    return ACL_ERROR_NONE;
+}
+
+// the host memory is allocated by aclrtMallocHost or malloc and register
+void process_host_mem_location_type(const c10::Storage& storage, c10_npu::NPUStream stream)
+{
+    ASCEND_LOGD("The memory is registered.");
+    if (at_npu::native::ptr_exist(storage.mutable_data())) {
+        ASCEND_LOGD("The ptr is allocated by torch_npu, then need to record stream.");
+        CachingHostAllocator_recordEvent(storage.mutable_data(), storage.data_ptr().get_context(), stream);
+    }
+}
+
+// process non_blocking copy between host and device
+void process_non_blocking_copy(const c10::Storage& storage, void *currentPtr, c10_npu::NPUStream stream, aclrtMemcpyKind kind)
+{
+    if (c10_npu::acl::AclrtPointerGetAttributesExist()) {
+        aclrtPtrAttributes attributes;
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtPointerGetAttributes(currentPtr, &attributes), "aclrtPointerGetAttributes");
+        ASCEND_LOGD("The ptr is %p, and currentPtr is %p", storage.mutable_data(), currentPtr);
+        aclrtMemLocationType ptrType = attributes.location.type;
+        ASCEND_LOGD("The aclrtMemType of currentPtr(%p) is %d", currentPtr, ptrType);
+        if (ptrType == ACL_MEM_LOCATION_TYPE_HOST) {
+            process_host_mem_location_type(storage, stream);
+        } else {
+            NPU_CHECK_ERROR(process_unregistered_mem_location_type(stream, kind), "aclrtSynchronizeStreamWithTimeout");
+        }
+    } else {
+        ASCEND_LOGD("The AclrtPointerGetAttributes func does not exist.")
+        if (at_npu::native::ptr_exist(storage.mutable_data())) {
+            ASCEND_LOGD("The ptr is allocated by torch_npu, then need to record stream.");
+            CachingHostAllocator_recordEvent(storage.mutable_data(), storage.data_ptr().get_context(), stream);
+        } else {
+            NPU_CHECK_ERROR(process_unregistered_mem_location_type(stream, kind), "aclrtSynchronizeStreamWithTimeout");
+        }
+    }
+}
+
 c10::Allocator* getPinnedMemoryAllocator()
 {
     innerInitNPU();
