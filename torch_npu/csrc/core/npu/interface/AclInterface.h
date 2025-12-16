@@ -9,7 +9,9 @@
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "third_party/acl/inc/acl/acl.h"
 
-
+struct aclrtMemUsageInfo;
+struct aclOpExecutor;
+struct aclrtUuid;
 namespace c10_npu {
 namespace acl {
 enum aclrtEventWaitStatus {
@@ -307,6 +309,10 @@ aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attribut
 bool AclrtPointerGetAttributesExist();
 
 aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType, aclrtStreamAttrValue *value);
+
+bool IsExistDeviceGetUuid();
+
+aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uuid);
 
 } // namespace acl
 } // namespace c10_npu
