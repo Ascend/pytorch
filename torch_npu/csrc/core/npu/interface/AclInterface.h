@@ -305,6 +305,8 @@ aclError AclrtGetResInCurrentThread(aclrtDevResLimitType type, uint32_t* value);
 
 aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attributes);
 
+bool AclrtPointerGetAttributesExist();
+
 aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType, aclrtStreamAttrValue *value);
 
 } // namespace acl

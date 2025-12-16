@@ -100,11 +100,8 @@ void copy_between_host_and_device(
         NPU_CHECK_ERROR(ret);
         ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
         auto& storage = torch_npu::utils::is_npu(dst) ? src.storage() : dst.storage();
-        if (!at_npu::native::ptr_exist(storage.mutable_data()) && (!c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() || (kind != aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST))) {
-            // Sync when host memory is allocated by malloc
-            NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream), "ACL stream synchronize failed.");
-        }
-        at::getHostAllocator(at::kPrivateUse1)->record_event(storage.mutable_data(), storage.data_ptr().get_context(), stream);
+        void* currentPtr = torch_npu::utils::is_npu(dst) ? src.data_ptr() : dst.data_ptr();
+        process_non_blocking_copy(storage, currentPtr, stream, kind);
     } else {
         aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
         auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
