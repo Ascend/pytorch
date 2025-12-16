@@ -596,6 +596,13 @@ class TestNpu(TestCase):
         x_like = torch.empty_like(x)
         res = x_like + 1
 
+    def test_function_torch_empty_like_in_fake_tensor_mode(self):
+        with torch._subclasses.fake_tensor.FakeTensorMode():
+            x = torch.rand(3, 3).npu()
+            with torch.utils._mode_utils.no_dispatch():
+                x_like = torch.empty_like(x)
+        self.assertEqual(torch_npu.get_npu_format(x_like), 2)
+
     def test_function_torch_empty_strided(self):
         x = torch.empty_strided((2, 3), (1, 2), dtype=torch.int8, device='npu')
 

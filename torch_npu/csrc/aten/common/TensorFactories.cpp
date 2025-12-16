@@ -231,8 +231,11 @@ at::Tensor empty_like_npu(
             result = at::empty(
                 self.sizes(), options.memory_format(memory_format), c10::nullopt);
         } else {
-            auto npu_format =
-                torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
+            auto npu_format = ACL_FORMAT_ND;
+            // 判断是否为非NPU存储的faketensor：若为faketensor，保持ND格式；否则获取真实NPU格式
+            if (typeid(*self.storage().unsafeGetStorageImpl()) == typeid(torch_npu::NPUStorageImpl)) {
+                npu_format = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
+            }
             result = OpPreparation::ApplyTensorWithFormat(self.sizes(), options, npu_format);
         }
     }
