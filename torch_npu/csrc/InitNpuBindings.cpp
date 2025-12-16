@@ -68,6 +68,7 @@ PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
     torch_npu::data_parallel::ReleaseHcclCommList();
     ASCEND_LOGI("NPU shutdown ReleaseHcclCommList success.");
 
+    c10_npu::NpuSysCtrl::GetInstance().HostFinalize();
     at_npu::native::CachingHostAllocator_emptyCache();
     try {
         ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
