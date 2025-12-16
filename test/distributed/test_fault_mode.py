@@ -146,7 +146,11 @@ class TestMode(TestCase):
         process.terminate()
         process.wait()
         self.assertIn(
-            "The wait execution of the Notify register times out",
+            "wait for compute device to finish failed",
+            message
+        )
+        self.assertIn(
+            "times out",
             message
         )
 
