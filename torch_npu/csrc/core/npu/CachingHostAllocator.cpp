@@ -150,6 +150,9 @@ private:
 
     void record_stream(std::optional<std::vector<EventPool::Event>>& events, c10_npu::NPUStream stream) override
     {
+        if (c10_npu::NpuSysCtrl::GetInstance().GetHostFinalize()) {
+            return;
+        }
         auto event = create_event_internal(stream.device_index());
         event->record(stream);
         events->push_back(std::move(event));

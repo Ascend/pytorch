@@ -101,7 +101,7 @@ std::string GetAclConfigJsonPath()
 
 namespace c10_npu {
 
-NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), lazy_init_flag_(false), device_id_(0) {}
+NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), lazy_init_flag_(false), host_finalize_flag_(false), device_id_(0) {}
 
 // Get NpuSysCtrl singleton instance
 NpuSysCtrl &NpuSysCtrl::GetInstance()
@@ -323,6 +323,16 @@ bool NpuSysCtrl::GetInitFlag()
 bool NpuSysCtrl::GetLazyInitFlag()
 {
     return lazy_init_flag_;
+}
+
+void NpuSysCtrl::HostFinalize()
+{
+    host_finalize_flag_ = true;
+}
+
+bool NpuSysCtrl::GetHostFinalize()
+{
+    return host_finalize_flag_;
 }
 
 int NpuSysCtrl::InitializedDeviceID()
