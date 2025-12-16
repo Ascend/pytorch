@@ -218,7 +218,7 @@
 |torch.nn.MSELoss|是|支持fp16，fp32|
 |torch.nn.CrossEntropyLoss|是|支持fp16，fp32|
 |torch.nn.CTCLoss|是|支持fp32<br>不支持log_probs 2D输入|
-|torch.nn.NLLLoss|是|支持fp16，fp32|
+|torch.nn.NLLLoss|是|支持fp16，fp32<br>target每一维的维度应该大于等于0且小于input的类别数|
 |torch.nn.PoissonNLLLoss|是|支持bf16，fp16，fp32，int64|
 |torch.nn.GaussianNLLLoss|是|支持bf16，fp16，fp32，int16，int32，int64|
 |torch.nn.KLDivLoss|是|支持bf16，fp16，fp32<br>当前log_target参数仅支持False|
