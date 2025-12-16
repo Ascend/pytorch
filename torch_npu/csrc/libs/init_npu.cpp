@@ -60,6 +60,7 @@ void finalize_npu()
             TORCH_CHECK(false, "NPU SynchronizeDevice failed err=:%s", e.what(), PTA_ERROR(ErrCode::ACL));
         }
 
+        c10_npu::NpuSysCtrl::GetInstance().HostFinalize();
         at_npu::native::CachingHostAllocator_emptyCache();
         try {
             c10_npu::NPUCachingAllocator::emptyCache();
