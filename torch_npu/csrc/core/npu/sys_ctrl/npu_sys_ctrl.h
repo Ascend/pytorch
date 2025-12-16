@@ -62,6 +62,10 @@ public:
     // Get lazyInit_flag
     bool GetLazyInitFlag();
 
+    C10_NPU_API void HostFinalize();
+
+    bool GetHostFinalize();
+
     int InitializedDeviceID();
 
     void RegisterLazyFn(const option::OptionCallBack &call_, const std::string &in);
@@ -77,6 +81,7 @@ private:
     bool repeat_init_acl_flag_;
     bool init_flag_;
     bool lazy_init_flag_;
+    bool host_finalize_flag_; // during shutdown, we need to tell hostallocator empty_cache to avoid stream lifetime issues, mutex not needed
     int device_id_;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
     std::vector<std::pair<option::OptionCallBack, std::string>> lazy_fn_;
