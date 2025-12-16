@@ -16,6 +16,9 @@ _global_npu_backend = {}
 __all__ = []
 
 
+NPUGRAPH_EX_BACKEND = "npugraph_ex"
+
+
 class _TorchairImportError(Exception):
     def __init__(self):
         super().__init__(self)
@@ -46,7 +49,7 @@ def _eager_npu_backend(gm, *args, **kwargs):
 
 def _get_global_npu_backend(name, config=None):
     global _global_npu_backend
-    if name in _global_npu_backend.keys():
+    if name != NPUGRAPH_EX_BACKEND and name in _global_npu_backend.keys():
         return _global_npu_backend[name]
     if 'torchair' not in sys.modules:
         raise AssertionError("Could not find module torchair. "
@@ -116,12 +119,13 @@ def _get_npugraph_ex_backend():
         import torchair
         config = torchair.CompilerConfig()
         config.mode = "reduce-overhead"
-        return _get_global_npu_backend("npugraph_ex", config)(*args, **kwargs)
+        return _get_global_npu_backend(NPUGRAPH_EX_BACKEND, config)(*args, **kwargs)
 
     return _exec
 
+
 _global_backend = _get_default_backend(name="npu")
-_global_npugraph_ex_backend = _get_npugraph_ex_backend()
+_npugraph_ex_backend = _get_npugraph_ex_backend()
 
 
 def _register_npu_backend(backend, name="npu"):
@@ -131,4 +135,4 @@ def _register_npu_backend(backend, name="npu"):
 
 
 _register_npu_backend(_global_backend)
-_register_npu_backend(_global_npugraph_ex_backend, "npugraph_ex")
+_register_npu_backend(_npugraph_ex_backend, NPUGRAPH_EX_BACKEND)
