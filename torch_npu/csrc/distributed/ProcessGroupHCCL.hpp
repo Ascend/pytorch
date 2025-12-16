@@ -232,7 +232,7 @@ public:
         ~WorkHCCL() override;
 
         // Checks if the HCCL kernel has started to execute.
-        bool isStarted();
+        bool isStarted(ErrorHandlingMode errorHandling);
 
         std::shared_ptr<bool> is_dispatched = std::make_shared<bool>(false);
         bool is_reported = false;
@@ -344,7 +344,7 @@ public:
 
         // Just checks whether NPU execution has started, without modifying
         // exception_ptr.
-        bool startedNPUExecutionInternal() const;
+        bool startedNPUExecutionInternal(ErrorHandlingMode errorHandling) const;
 
         // Just checks whether NPU execution has completed, without modifying
         // exception_ptr.
@@ -375,6 +375,8 @@ public:
         // unique id used to tell the trace buffer that this
         // work has completed
         c10::optional<uint64_t> trace_id_;
+        
+        mutable std::once_flag print_flag;
 
         friend class ProcessGroupHCCL;
     };
