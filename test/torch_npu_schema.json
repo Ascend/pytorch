@@ -2345,6 +2345,42 @@
   "torch_npu.dynamo.torchair.scope.op_never_timeout": {
     "signature": "(enable: bool = True)"
   },
+  "torch_npu.npu.npugraph_ex.experimental.inference.use_internal_format_weight": {
+    "signature": "(model: torch.nn.modules.module.Module)"
+  },
+  "torch_npu.npu.npugraph_ex.inference.cache_compile": {
+    "signature": "(func, *, dynamic: bool = True, cache_dir=None, global_rank=None, tp_rank=None, pp_rank=None, **kwargs)"
+  },
+  "torch_npu.npu.npugraph_ex.inference.readable_cache": {
+    "signature": "(cache_bin, print_output=True, file=None)"
+  },
+  "torch_npu.npu.npugraph_ex.ops.npu_create_tagged_event": {
+    "signature": "(tag: str)"
+  },
+  "torch_npu.npu.npugraph_ex.ops.npu_record_tagged_stream": {
+    "signature": "(input: torch.Tensor, tagged_stream: str)"
+  },
+  "torch_npu.npu.npugraph_ex.ops.npu_tagged_event_record": {
+    "signature": "(event)"
+  },
+  "torch_npu.npu.npugraph_ex.ops.npu_print": {
+    "signature": "(*args, summarize_size=3, tensor_detail=False)"
+  },
+  "torch_npu.npu.npugraph_ex.ops.npu_tagged_event_wait": {
+    "signature": "(event)"
+  },
+  "torch_npu.npu.npugraph_ex.ops.wait": {
+    "signature": "(tensors: list)"
+  },
+  "torch_npu.npu.npugraph_ex.scope.npu_stream_switch": {
+    "signature": "(stream_tag: str)"
+  },
+  "torch_npu.npu.npugraph_ex.scope.npu_wait_tensor": {
+    "signature": "(self: torch.Tensor, dependency: torch.Tensor)"
+  },
+  "torch_npu.npu.npugraph_ex.scope.limit_core_num": {
+    "signature": "(op_aicore_num: int, op_vectorcore_num: int)"
+  },
   "torch_npu.distributed.run.parse_args": {
     "signature": "(args)"
   },
