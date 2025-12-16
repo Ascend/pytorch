@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <fstream>
+#include <string>
 
 #include <torch/csrc/distributed/c10d/Utils.hpp>
 
@@ -197,7 +198,11 @@ HcclResult HCCLComm::checkForHcclError()
     if (hcclComm_ != nullptr) {
         HcclResult result = hcclGetCommAsyncError(hcclComm_, &hcclAsyncErr_);
         if (result != HCCL_SUCCESS) {
-            TORCH_CHECK(false, "Failed to get HCCL error code: ", std::to_string(result), DIST_ERROR(ErrCode::HCCL));
+            std::string temp_str = std::string("Failed to get HCCL error code: ") + std::to_string(result);
+            const char* errmsg = temp_str.c_str();
+            ASCEND_LOGE(errmsg);
+            LOG(ERROR) << c10::str(errmsg);
+            return result; // return this error result instead of hcclAsyncErr_
         }
     }
     return hcclAsyncErr_;
