@@ -311,6 +311,28 @@ class TestTensor(TestCase):
             self.assertTrue(empty_tensor.isnan().all())
             self.assertTrue(empty_strided_tensor.isnan().all())
 
+    def test_print_new_tensor_types(self, device="npu"):
+        shape = (2, 3)
+        dtype_factories = {}
+
+        def _uint_factory(target_dtype):
+            def _factory():
+                return torch.randint(low=0, high=1000, size=shape, dtype=target_dtype).npu()
+            return _factory
+
+        dtype_factories[torch.uint16] = _uint_factory(torch.uint16)
+        dtype_factories[torch.uint32] = _uint_factory(torch.uint32)
+        dtype_factories[torch.uint64] = _uint_factory(torch.uint64)
+
+        for dtype, factory in dtype_factories.items():
+            tensor = factory()
+            scalar = torch.tensor(1, dtype=dtype, device=device)
+
+            tensor_repr = repr(tensor)
+            scalar_repr = repr(scalar)
+
+            self.assertIsInstance(tensor_repr, str)
+            self.assertIsInstance(scalar_repr, str)
 
 if __name__ == '__main__':
     run_tests()
