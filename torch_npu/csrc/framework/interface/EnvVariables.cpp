@@ -202,8 +202,6 @@ REGISTER_OPTION_HOOK(ACL_OP_DEBUG_OPTION, [](const std::string &val) {
     ASCEND_LOGD("Set ACL option ACL_OP_DEBUG_OPTION.");
 })
 
-REGISTER_OPTION(ACLGRAPH_REPORT_SHAPE)
-
 } // namespace env
 } // namespace native
 } // namespace at_npu
