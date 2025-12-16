@@ -7,7 +7,7 @@
     -   [自定义内存分配器](./custom_memory_allocator.md)
     -   [多流内存复用](./multistream_memory_reuse.md)
     -   [内存共享（IPC）](./memory_sharing_ipc.md)
-    -   [Stream级TaskQueue并行下发](./stream_taskqueue_parallel_delivery.md)
+
 
 -   [通信性能优化](./communication_performance_optimization.md)
     -   [torch\_npu\_run](torch_npu_run.md)
@@ -15,6 +15,7 @@
 
 -   [计算性能优化](./computing_performance_optimization.md)
     -   [自动绑核](./automatic_core_binding.md)
+    -   [Stream级TaskQueue并行下发](./stream_taskqueue_parallel_delivery.md)
 
 -   [辅助报错定位](./assisted_error_locating.md)
     -   [特征值检测](./feature_value_detection.md)
