@@ -158,6 +158,7 @@ from .autocast_utils import *  # noqa: F403
 from .backends import *  # noqa: F403
 from ._backends import *  # noqa: F403
 from .deterministic import enable_deterministic_with_backward, disable_deterministic_with_backward # noqa: F403
+from . import npugraph_ex
 
 from .graphs import (
     NPUGraph,
