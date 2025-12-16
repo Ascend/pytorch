@@ -41,6 +41,10 @@ __all__ = [
     "MemPool",
     "MemPoolContext",
     "use_mem_pool",
+    "empty_pin_memory_cache",
+    "pin_memory_stats",
+    "pin_memory_allocated",
+    "pin_memory_reserved",
 ]
 
 if not hasattr(torch_npu._C, "_npu_NPUAllocator"):
@@ -157,6 +161,59 @@ def empty_cache():
     """
     if is_initialized():
         torch_npu._C._npu_emptyCache()
+
+
+def empty_pin_memory_cache():
+    r"""
+    Releases all unoccupied cached memory currently held by the caching
+    allocator so that those can be used in other NPU application.
+    """
+    torch_npu._C._npu_emptyPinMemoryCache()
+
+
+def pin_memory_reserved():
+    r"""
+    Returns the current pin memory managed by the caching allocator in bytes.
+    """
+    return pin_memory_stats().get('reserved_bytes.current', 0)
+
+
+def pin_memory_allocated():
+    r"""
+    Returns the current pin memory occupied by tensors in bytes.
+    """
+    return pin_memory_stats().get('allocated_bytes.current', 0)
+
+
+def pin_memory_stats():
+    """Returns a dictionary of pin memory allocator statistics.
+    The return value of this function is a dictionary of statistics, each of
+    which is a non-negative integer.
+    Core statistics:
+    - ``"allocated_bytes.{current,peak}"``:
+      amount of allocated memory.
+    - ``"reserved_bytes.{current,peak}"``:
+      amount of reserved memory.
+    For these core statistics, values are broken down as follows.
+    Pool type:
+    - ``current``: current value of this metric.
+    - ``peak``: maximum value of this metric.
+    """
+    result = []
+
+    def _recurse_add_to_result(prefix, obj):
+        if isinstance(obj, dict):
+            if len(prefix) > 0:
+                prefix += "."
+            for k, v in obj.items():
+                _recurse_add_to_result(prefix + k, v)
+        else:
+            result.append((prefix, obj))
+
+    stats = torch_npu._C._npu_pinMemoryStats()
+    _recurse_add_to_result("", stats)
+    result.sort()
+    return collections.OrderedDict(result)
 
 
 def empty_virt_addr_cache():

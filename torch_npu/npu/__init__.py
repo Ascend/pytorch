@@ -125,7 +125,11 @@ __all__ = [
     "obfuscation_initialize",
     "obfuscation_finalize",
     "obfuscation_calculate",
-    "set_op_timeout_ms"
+    "set_op_timeout_ms",
+    "empty_pin_memory_cache",
+    "pin_memory_stats",
+    "pin_memory_allocated",
+    "pin_memory_reserved"
 ]
 
 from typing import Tuple, Union, List, cast, Optional
