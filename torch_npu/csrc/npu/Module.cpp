@@ -27,6 +27,7 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
@@ -1045,6 +1046,34 @@ PyObject* THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
     c10_npu::NPUCachingAllocator::emptyCache();
     END_HANDLE_TH_ERRORS
     Py_RETURN_NONE;
+}
+
+PyObject* THNPModule_npu_emptyPinMemoryCache(PyObject *_unused, PyObject *noargs)
+{
+    HANDLE_TH_ERRORS
+    at_npu::native::CachingHostAllocator_emptyCache();
+    END_HANDLE_TH_ERRORS
+    Py_RETURN_NONE;
+}
+
+PyObject* THNPModule_npu_pinMemoryStats(PyObject *_unused, PyObject *noargs)
+{
+    HANDLE_TH_ERRORS
+
+    const auto statToDict = [](const c10::CachingAllocator::Stat& stat) {
+        py::dict dict;
+        dict["current"] = stat.current;
+        dict["peak"] = stat.peak;
+        return dict;
+    };
+
+    const at::HostStats stats = at_npu::native::CachingHostAllocator_getStats();
+    py::dict result;
+    result["allocated_bytes"] = statToDict(stats.active_bytes);
+    result["reserved_bytes"] = statToDict(stats.allocated_bytes);
+
+    return result.release().ptr();
+    END_HANDLE_TH_ERRORS
 }
 
 PyObject* THNPModule_npu_ipc_collect(PyObject *_unused, PyObject *noargs)
@@ -2076,6 +2105,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
     {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
+    {"_npu_emptyPinMemoryCache", (PyCFunction) THNPModule_npu_emptyPinMemoryCache, METH_NOARGS, nullptr},
+    {"_npu_pinMemoryStats", (PyCFunction) THNPModule_npu_pinMemoryStats, METH_NOARGS, nullptr},
     {"_npu_ipc_collect", (PyCFunction) THNPModule_npu_ipc_collect, METH_NOARGS, nullptr},
     {"_npu_emptyVirtAddrCache", (PyCFunction) THNPModule_emptyVirtAddrCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},
