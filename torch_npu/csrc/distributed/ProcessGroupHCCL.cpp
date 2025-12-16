@@ -571,10 +571,10 @@ bool ProcessGroupHCCL::WorkHCCL::isCompleted()
     return exception() || finishedNPUExecutionInternal();
 }
 
-bool ProcessGroupHCCL::WorkHCCL::isStarted()
+bool ProcessGroupHCCL::WorkHCCL::isStarted(ErrorHandlingMode errorHandling)
 {
     checkAndSetException();
-    return exception() || startedNPUExecutionInternal();
+    return exception() || startedNPUExecutionInternal(errorHandling);
 }
 
 bool ProcessGroupHCCL::WorkHCCL::isSuccess() const
@@ -617,7 +617,7 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecution()
     return finishedNPUExecutionInternal();
 }
 
-bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const
+bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal(ErrorHandlingMode errorHandling) const
 {
     try {
         for (const auto i : c10::irange(devices_.size())) {
@@ -642,8 +642,14 @@ bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const
         }
 
         if (exceptionMsg.find("driver shutting down") == std::string::npos) {
-            logger->error("Find exception when startedNPUExecutionInternal, %s.", exceptionMsg.c_str());
-            throw std::runtime_error(DIST_ERROR(ErrCode::INTERNAL));
+            std::call_once(print_flag, [&exceptionMsg]() {
+                logger->error("Find exception when startedNPUExecutionInternal, %s.", exceptionMsg.c_str());
+                ASCEND_LOGE("Find exception when startedNPUExecutionInternal, %s.", exceptionMsg.c_str());
+                LOG(ERROR) << "Find exception when startedNPUExecutionInternal, " << exceptionMsg.c_str();
+            });
+            if (SHOULD_TEAR_DOWN(errorHandling)) {
+                throw std::runtime_error(DIST_ERROR(ErrCode::INTERNAL));
+            }
         }
         LOG(INFO) << "[Rank " << rank_ << "] Event query failed with exception: " << e.what();
     }
@@ -1766,6 +1772,9 @@ const std::vector<uint32_t>& ProcessGroupHCCL::groupRanks() const
 
 void ProcessGroupHCCL::checkHcclComms()
 {
+    if (asyncErrorHandling_ == NoHandling) {
+        return;
+    }
     std::lock_guard<std::mutex> maplock(mutex_);
     for (const auto & [name, hcclComms] : devHCCLCommMap_) {
         auto exception_ptr = checkForHCCLErrors(hcclComms);
@@ -1911,7 +1920,7 @@ void ProcessGroupHCCL::workCleanupLoop()
 
             // Work status logging for desync debug
             if (desyncDebug_) {
-                if (work.isStarted()) {
+                if (work.isStarted(asyncErrorHandling_)) {
                     logWorkStart(work);
                 }
                 if (work.isCompleted()) {
@@ -1923,7 +1932,7 @@ void ProcessGroupHCCL::workCleanupLoop()
             // lastStartedSeq and lastStartedOpName if the work state is checked
             // multiple times after the start
             if (monitorThreadEnabled_.load() && pgStatus_->lastStartedSeq < static_cast<int64_t>(work.seq_) &&
-                work.isStarted()) {
+                work.isStarted(asyncErrorHandling_)) {
                 pgStatus_->lastStartedSeq = static_cast<int64_t>(work.seq_);
                 pgStatus_->lastStartedWorkName = opTypeToString(work.opType_);
                 pgStatus_->lastStartedNumelIn = work.numelIn_;
@@ -1948,7 +1957,7 @@ void ProcessGroupHCCL::workCleanupLoop()
                 it = workMetaList_.erase(it);
                 c10_npu::NPUGraph::dec_pending_event_queries();
             } else {
-                if (status_save_enable && work.isStarted()) {
+                if (status_save_enable && work.isStarted(asyncErrorHandling_)) {
                     is_refreshed = refreshStatusInfo(work, "start"); // Update Statusinfo，but not write into the map
                 }
                 // Increment the iterator if the current WorkHCCL object is not
@@ -3087,13 +3096,11 @@ void ProcessGroupHCCL::setWatchdogStatus(int status)
     }
 }
 
-
 void ProcessGroupHCCL::clearWorkMetaList()
 {
     std::unique_lock<std::mutex> lock(workMetaListMutex_);
     workMetaList_.clear();
 }
-
 
 void ProcessGroupHCCL::setHcclCommName(const std::string& hccl_comm_name)
 {
