@@ -1,4 +1,6 @@
 from typing import Any, cast
+from dataclasses import dataclass
+from functools import wraps
 import logging
 
 import torch
@@ -8,6 +10,8 @@ from torch.distributed.fsdp._fully_shard._fsdp_common import compiled_autograd_e
 from torch.distributed.fsdp._fully_shard._fsdp_param import FSDPParam, ShardedState
 from torch.distributed.fsdp._fully_shard._fsdp_param_group import FSDPParamGroup, AllGatherState
 from torch.distributed.utils import _to_kwargs
+from torch.distributed.distributed_c10d import ReduceOp
+
 
 import torch_npu
 
@@ -119,7 +123,35 @@ def _patched_root_pre_forward(
     return args, kwargs
 
 
+@dataclass
+class WrapReduceOPPreMul:
+    """
+    warp a ReduceOp.PREMUL for collective communication since ReduceOp.PREMUL is not supported on hccl
+    """
+    supplement: float = None
+    op: ReduceOp = ReduceOp.SUM
+
+
+def _patched_make_nccl_premul_sum(factor: float) -> WrapReduceOPPreMul:
+    return WrapReduceOPPreMul(float(factor), ReduceOp.SUM)
+
+
+def _wrap_reduce_scatter_tensor_to_support_premul(func):
+
+    @wraps(func)
+    def wrapper(output, input, op=dist.ReduceOp.SUM, group=None, async_op=False):
+        real_op = op
+        if isinstance(op, WrapReduceOPPreMul):
+            if op.supplement is not None and input is not None:
+                input.mul_(op.supplement)
+            real_op = op.op
+        return func(output, input, real_op, group, async_op)
+    return wrapper
+
+
 def _apply_fsdp_patch():
     FSDPParamGroup.finalize_backward = _patched_finalize_backward
     torch.distributed.fsdp._fully_shard._fsdp_collectives._get_param_all_gather_inputs = _get_param_all_gather_inputs
     torch.distributed.fsdp._fully_shard._fsdp_state.FSDPState._root_pre_forward = _patched_root_pre_forward
+    torch.distributed._make_nccl_premul_sum = _patched_make_nccl_premul_sum
+    torch.distributed.reduce_scatter_tensor = _wrap_reduce_scatter_tensor_to_support_premul(torch.distributed.reduce_scatter_tensor)
