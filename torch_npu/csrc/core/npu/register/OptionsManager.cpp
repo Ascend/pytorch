@@ -16,11 +16,23 @@
 #include "torch_npu/csrc/npu/memory_snapshot.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 
 namespace c10_npu {
 namespace option {
 
 using namespace std;
+
+static std::shared_ptr<npu_logging::Logger> loggerEnv = npu_logging::logging().getLogger("torch_npu.env");
+
+char* get_and_log_env(const char* env_str)
+{
+    char* env_val = std::getenv(env_str);
+    if (env_val != nullptr) {
+        loggerEnv->info("get env %s = %s", env_str, env_val);
+    }
+    return env_val;
+}
 
 bool OptionsManager::IsHcclZeroCopyEnable()
 {
@@ -47,7 +59,7 @@ bool OptionsManager::IsResumeModeEnable()
 ReuseMode OptionsManager::GetMultiStreamMemoryReuse()
 {
     const static ReuseMode reuseMode = []() -> ReuseMode {
-        char *env_val = std::getenv("MULTI_STREAM_MEMORY_REUSE");
+        char *env_val = get_and_log_env("MULTI_STREAM_MEMORY_REUSE");
         int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
         ReuseMode mode = ERASE_RECORD_STREAM;
         switch (envFlag) {
@@ -139,21 +151,21 @@ bool OptionsManager::CheckAclDumpDateEnable()
 
 int OptionsManager::GetBoolTypeOption(const char* env_str, int defaultVal)
 {
-    char* env_val = std::getenv(env_str);
+    char* env_val = get_and_log_env(env_str);
     int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : defaultVal;
     return (envFlag != 0) ? 1 : 0;
 }
 
 uint32_t OptionsManager::GetHCCLConnectTimeout()
 {
-    char* env_val = std::getenv("HCCL_CONNECT_TIMEOUT");
+    char* env_val = get_and_log_env("HCCL_CONNECT_TIMEOUT");
     int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
     return static_cast<uint32_t>(envFlag);
 }
 
 int32_t OptionsManager::GetHCCLExecTimeout()
 {
-    char* env_val = std::getenv("HCCL_EXEC_TIMEOUT");
+    char* env_val = get_and_log_env("HCCL_EXEC_TIMEOUT");
     int64_t envFlag;
     if (env_val != nullptr) {
         envFlag = strtol(env_val, nullptr, 10);
@@ -169,7 +181,7 @@ int32_t OptionsManager::GetHCCLExecTimeout()
 
 int32_t OptionsManager::GetHCCLEventTimeout()
 {
-    char* env_val = std::getenv("HCCL_EVENT_TIMEOUT");
+    char* env_val = get_and_log_env("HCCL_EVENT_TIMEOUT");
     int64_t envFlag;
     if (env_val != nullptr) {
         envFlag = strtol(env_val, nullptr, 10);
@@ -185,14 +197,14 @@ int32_t OptionsManager::GetHCCLEventTimeout()
 
 int32_t OptionsManager::GetACLExecTimeout()
 {
-    char* env_val = std::getenv("ACL_STREAM_TIMEOUT");
+    char* env_val = get_and_log_env("ACL_STREAM_TIMEOUT");
     int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : -1;
     return static_cast<int32_t>(envFlag);
 }
 
 int32_t OptionsManager::GetACLDeviceSyncTimeout()
 {
-    char* env_val = std::getenv("ACL_DEVICE_SYNC_TIMEOUT");
+    char* env_val = get_and_log_env("ACL_DEVICE_SYNC_TIMEOUT");
     int64_t timeout = -1;
     if (env_val != nullptr) {
         int64_t envFlag = strtol(env_val, nullptr, 10);
@@ -205,7 +217,7 @@ int32_t OptionsManager::GetACLDeviceSyncTimeout()
 
 uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable()
 {
-    char* asyncErrorHandling_val = std::getenv("HCCL_ASYNC_ERROR_HANDLING");
+    char* asyncErrorHandling_val = get_and_log_env("HCCL_ASYNC_ERROR_HANDLING");
     int64_t asyncErrorHandlingFlag =
         (asyncErrorHandling_val != nullptr) ? strtol(asyncErrorHandling_val, nullptr, 10) : 1;
     std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = getAsyncErrorHandlingMode();
@@ -217,7 +229,7 @@ uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable()
 
 uint32_t OptionsManager::CheckUseDesyncDebugEnable()
 {
-    char* desyncDebug_val = std::getenv("HCCL_DESYNC_DEBUG");
+    char* desyncDebug_val = get_and_log_env("HCCL_DESYNC_DEBUG");
     int64_t desyncDebugFlag = (desyncDebug_val != nullptr) ? strtol(desyncDebug_val, nullptr, 10) : 0;
     std::unordered_map<int32_t, std::string> desyncDebugMode = getDesyncDebugMode();
     if (desyncDebugMode.find(desyncDebugFlag) == desyncDebugMode.end()) {
@@ -229,7 +241,7 @@ uint32_t OptionsManager::CheckUseDesyncDebugEnable()
 bool OptionsManager::isACLGlobalLogOn(aclLogLevel level)
 {
     const static int getACLGlobalLogLevel = []() -> int {
-        char* env_val = std::getenv("ASCEND_GLOBAL_LOG_LEVEL");
+        char* env_val = get_and_log_env("ASCEND_GLOBAL_LOG_LEVEL");
         int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : ACL_ERROR;
         std::unordered_map<int32_t, std::string> logLevelMode = getLogLevelMode();
         if (logLevelMode.find(envFlag) == logLevelMode.end()) {
@@ -242,14 +254,14 @@ bool OptionsManager::isACLGlobalLogOn(aclLogLevel level)
 
 int64_t OptionsManager::GetRankId()
 {
-    char* rankId_val = std::getenv("RANK");
+    char* rankId_val = get_and_log_env("RANK");
     int64_t rankId = (rankId_val != nullptr) ? strtol(rankId_val, nullptr, 10) : -1;
     return rankId;
 }
 
 char *OptionsManager::GetNslbPath()
 {
-    return std::getenv("NSLB_CP");
+    return get_and_log_env("NSLB_CP");
 }
 
 bool OptionsManager::CheckStatusSaveEnable()
@@ -263,7 +275,7 @@ bool OptionsManager::CheckStatusSaveEnable()
 
 std::string OptionsManager::GetStatusSavePath() noexcept
 {
-    char* status_save_val = std::getenv("TORCH_HCCL_STATUS_SAVE_PATH");
+    char* status_save_val = get_and_log_env("TORCH_HCCL_STATUS_SAVE_PATH");
     std::string status_save_path = (status_save_val != nullptr) ? std::string(status_save_val) : "/tmp";
     return status_save_path;
 }
@@ -271,7 +283,7 @@ std::string OptionsManager::GetStatusSavePath() noexcept
 uint32_t OptionsManager::GetStatusSaveInterval()
 {
     const static uint32_t status_save_interval = []() -> uint32_t {
-        char* env_val = std::getenv("TORCH_HCCL_STATUS_SAVE_INTERVAL");
+        char* env_val = get_and_log_env("TORCH_HCCL_STATUS_SAVE_INTERVAL");
         int64_t envFlag = 2;
         if (env_val != nullptr) {
             envFlag = strtol(env_val, nullptr, 10);
@@ -288,7 +300,7 @@ uint32_t OptionsManager::GetStatusSaveInterval()
 uint32_t OptionsManager::GetNslbCntVal()
 {
     const static uint32_t nslb_val = []() -> uint32_t {
-        char* nslb_num = std::getenv("NSLB_MAX_RECORD_NUM");
+        char* nslb_num = get_and_log_env("NSLB_MAX_RECORD_NUM");
         int64_t nslb_val = (nslb_num != nullptr) ? strtol(nslb_num, nullptr, 10) : 1000;
         return static_cast<uint32_t>(nslb_val);
     }();
@@ -341,7 +353,7 @@ std::unordered_map<std::string, std::string> OptionsManager::ParsePerfConfig(con
 
 bool OptionsManager::CheckPerfDumpEnable()
 {
-    char* perf_dump_config = std::getenv("PERF_DUMP_CONFIG");
+    char* perf_dump_config = get_and_log_env("PERF_DUMP_CONFIG");
     if (perf_dump_config != nullptr) {
         std::unordered_map<std::string, std::string> config_dict = ParsePerfConfig(perf_dump_config);
         auto it = config_dict.find("enable");
@@ -354,7 +366,7 @@ bool OptionsManager::CheckPerfDumpEnable()
 
 std::string OptionsManager::GetPerfDumpPath()
 {
-    char* perf_dump_path = std::getenv("PERF_DUMP_PATH");
+    char* perf_dump_path = get_and_log_env("PERF_DUMP_PATH");
     if (perf_dump_path != nullptr) {
         return std::string(perf_dump_path);
     } else {
@@ -364,7 +376,7 @@ std::string OptionsManager::GetPerfDumpPath()
 
 std::string OptionsManager::GetRankTableFilePath()
 {
-    char* rank_table_file = std::getenv("RANK_TABLE_FILE");
+    char* rank_table_file = get_and_log_env("RANK_TABLE_FILE");
     if (rank_table_file != nullptr) {
         return std::string(rank_table_file);
     } else {
@@ -375,7 +387,7 @@ std::string OptionsManager::GetRankTableFilePath()
 uint32_t OptionsManager::GetSilenceCheckFlag()
 {
     const static uint32_t silence_check_flag = []() -> uint32_t {
-        char* silence_check_flag_str = std::getenv("NPU_ASD_ENABLE");
+        char* silence_check_flag_str = get_and_log_env("NPU_ASD_ENABLE");
         int64_t silence_check_flag = (silence_check_flag_str != nullptr) ? strtol(silence_check_flag_str, nullptr, 10) : 0;
         SilenceCheckMode mode = CHECK_CLOSE;
         switch (silence_check_flag) {
@@ -421,7 +433,7 @@ std::vector<std::string> OptionsManager::Split(const std::string& input, char de
 std::pair<double, double> OptionsManager::GetSilenceThresh(const std::string& env_str,
     std::pair<double, double> defaultThresh)
 {
-    char* upper_thresh_ptr = std::getenv(env_str.c_str());
+    char* upper_thresh_ptr = get_and_log_env(env_str.c_str());
     std::string upper_thresh_str = (upper_thresh_ptr != nullptr) ? std::string(upper_thresh_ptr) : "";
     std::vector<std::string> split_result = Split(upper_thresh_str, ',');
     if (split_result.size() != 2) {
@@ -461,7 +473,7 @@ std::pair<double, double> OptionsManager::GetSilenceSigmaThresh()
 uint32_t OptionsManager::GetHcclBufferSize()
 {
     const static uint32_t hccl_buf_size = []() -> uint32_t {
-        char* buf_val = std::getenv("HCCL_BUFFSIZE");
+        char* buf_val = get_and_log_env("HCCL_BUFFSIZE");
         // Default 200M
         int64_t buf_size = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 200;
         TORCH_CHECK(buf_size > 0, "HCCL_BUFFSIZE should be positive.", PTA_ERROR(ErrCode::VALUE));
@@ -473,7 +485,7 @@ uint32_t OptionsManager::GetHcclBufferSize()
 uint32_t OptionsManager::GetP2PBufferSize()
 {
     const static uint32_t buf_size = []() -> uint32_t {
-        char* buf_val = std::getenv("P2P_HCCL_BUFFSIZE");
+        char* buf_val = get_and_log_env("P2P_HCCL_BUFFSIZE");
         // Default 0M
         int64_t buf_size_ = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 20;
         TORCH_CHECK(buf_size_ >= 0, "P2P_HCCL_BUFFSIZE cannot be negative.", PTA_ERROR(ErrCode::VALUE));
@@ -485,7 +497,7 @@ uint32_t OptionsManager::GetP2PBufferSize()
 uint32_t OptionsManager::GetAclOpInitMode()
 {
     const static uint32_t acl_op_init_mode = []() -> uint32_t {
-        char* buf_val = std::getenv("ACL_OP_INIT_MODE");
+        char* buf_val = get_and_log_env("ACL_OP_INIT_MODE");
         // Default 1 for A2/A3; Default 0 for others
         static bool default_value_acl_mode = ((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) &&
             (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1)) ||
@@ -520,7 +532,7 @@ uint32_t OptionsManager::GetAclOpInitMode()
 uint32_t OptionsManager::GetStreamsPerDevice()
 {
     const static uint32_t streams_per_device = []() -> uint32_t {
-        char* buf_val = std::getenv("STREAMS_PER_DEVICE");
+        char* buf_val = get_and_log_env("STREAMS_PER_DEVICE");
         // Default 32
         int64_t streams_per_device = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 32;
         if (streams_per_device != 8 && streams_per_device != 32) {
@@ -534,7 +546,7 @@ uint32_t OptionsManager::GetStreamsPerDevice()
 
 char* OptionsManager::GetCpuAffinityConf()
 {
-    return std::getenv("CPU_AFFINITY_CONF");
+    return get_and_log_env("CPU_AFFINITY_CONF");
 }
 
 uint32_t OptionsManager::GetTaskQueueEnable()
@@ -543,7 +555,7 @@ uint32_t OptionsManager::GetTaskQueueEnable()
         return 0;
     }
     const static uint32_t task_queue_enable = []() -> uint32_t {
-        char* env_val = std::getenv("TASK_QUEUE_ENABLE");
+        char* env_val = get_and_log_env("TASK_QUEUE_ENABLE");
         int64_t task_queue_enable = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
         std::unordered_map<int32_t, std::string> taskQueueEnableMode = getTaskQueueEnableMode();
         if (taskQueueEnableMode.find(task_queue_enable) == taskQueueEnableMode.end()) {
@@ -561,7 +573,7 @@ uint32_t OptionsManager::GetPerStreamQueue()
     }
 
     const static uint32_t per_stream_queue = []() -> uint32_t {
-        char* env_val = std::getenv("PER_STREAM_QUEUE");
+        char* env_val = get_and_log_env("PER_STREAM_QUEUE");
         int64_t per_stream_queue = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
         return static_cast<uint32_t>(per_stream_queue);
     }();
@@ -583,7 +595,7 @@ bool OptionsManager::CheckForceUncached()
 
 std::string OptionsManager::GetOomSnapshotDumpPath()
 {
-    char* sanpshot_dump_path = std::getenv("OOM_SNAPSHOT_PATH");
+    char* sanpshot_dump_path = get_and_log_env("OOM_SNAPSHOT_PATH");
     std::string dump_path = "./";
     if (sanpshot_dump_path != nullptr) {
         dump_path = std::string(sanpshot_dump_path);
@@ -598,7 +610,7 @@ std::string OptionsManager::GetOomSnapshotDumpPath()
 bool OptionsManager::ShouldPrintWarning()
 {
     static bool should_print = []() {
-        char* disabled_warning = std::getenv("TORCH_NPU_DISABLED_WARNING");
+        char* disabled_warning = get_and_log_env("TORCH_NPU_DISABLED_WARNING");
         if (disabled_warning != nullptr && strtol(disabled_warning, nullptr, 10) == 1) {
             return false;
         }
@@ -637,7 +649,7 @@ void oom_observer(int64_t device, int64_t allocated, int64_t device_total, int64
 bool OptionsManager::IsOomSnapshotEnable()
 {
     static bool isFirstCall = true;
-    char *env_val = std::getenv("OOM_SNAPSHOT_ENABLE");
+    char *env_val = get_and_log_env("OOM_SNAPSHOT_ENABLE");
     int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
 #ifndef BUILD_LIBTORCH
     if (isFirstCall) {

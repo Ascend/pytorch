@@ -89,6 +89,7 @@ bool force_stop_error_flag = false;
 const char* nslb_path = c10_npu::option::OptionsManager::GetNslbPath();
 bool status_save_enable = c10_npu::option::OptionsManager::CheckStatusSaveEnable();
 std::string status_save_path = c10_npu::option::OptionsManager::GetStatusSavePath();
+std::shared_ptr<npu_logging::Logger> loggerEnv = npu_logging::logging().getLogger("torch_npu.env");
 
 inline c10_npu::NPUStream getNPUStreamByCurrentType(c10::DeviceIndex device = -1)
 {
@@ -268,6 +269,7 @@ bool getDeterministicState()
         // The env variable has a higher priority.
         const char* envValue = std::getenv("HCCL_DETERMINISTIC");
         if (envValue != nullptr) {
+            loggerEnv->info("get env HCCL_DETERMINISTIC = %s", envValue);
             std::string valueStr(envValue);
             std::transform(valueStr.begin(), valueStr.end(), valueStr.begin(), ::tolower);
             if (valueStr == "true") {
