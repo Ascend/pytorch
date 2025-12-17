@@ -83,15 +83,17 @@ struct NPUDeviceMem {
 
 namespace {
 c10::DeviceIndex num_npus = -1;
-c10::once_flag init_flag;
 std::deque<c10::once_flag> device_flags;
 std::vector<NPUDeviceProp> device_properties;
 
 void initNPUContextVectors()
 {
-    num_npus = c10_npu::device_count();
-    device_flags.resize(num_npus);
-    device_properties.resize(num_npus);
+    static bool init_flag [[maybe_unused]] = []() {
+        num_npus = c10_npu::device_count();
+        device_flags.resize(num_npus);
+        device_properties.resize(num_npus);
+        return true;
+    }();
 }
 } // anonymous namespace
 
@@ -220,7 +222,13 @@ void initDeviceProperty(int64_t deviceid)
 
 NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
 {
-    c10::call_once(init_flag, initNPUContextVectors);
+    initNPUContextVectors();
+    if (deviceid == -1) {
+        deviceid = c10_npu::current_device();
+    }
+    TORCH_CHECK(deviceid >= 0 && deviceid < num_npus,
+        "device=", static_cast<int>(deviceid), ", num_npus=", static_cast<int>(num_npus),
+        PTA_ERROR(ErrCode::PARAM));
     c10::call_once(device_flags[deviceid], initDeviceProperty, deviceid);
     return &device_properties[deviceid];
 }
