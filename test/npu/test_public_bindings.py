@@ -586,6 +586,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.ir",
             "torch_npu._inductor.graph",
             "torch_npu._inductor.lowering_op_list",
+            "torch_npu.npu.npugraph_ex.inference._cache_compiler",
         }
 
         # No new entries should be added to this list.
