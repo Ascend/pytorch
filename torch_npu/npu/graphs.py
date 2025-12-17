@@ -237,7 +237,7 @@ class NPUGraph(torch_npu._C._NPUGraph):
                 actions in the current thread, and "relaxed" will not error on these actions. Do NOT change this setting
                 unless you're familiar with `aclmdlRICaptureMode`_
         """  # noqa: B950
-        super().capture_begin(pool=pool, capture_error_mode=capture_error_mode)
+        super().capture_begin(pool=pool, capture_error_mode=capture_error_mode, report_shape=True)
 
     def capture_end(self):
         r"""End NPU graph capture on the current stream.

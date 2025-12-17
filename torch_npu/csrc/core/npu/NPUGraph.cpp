@@ -3,6 +3,8 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/core/npu/register/OptionRegister.h"
+#include "third_party/acl/inc/acl/error_codes/rt_error_codes.h"
 
 #include <chrono>
 #include <cstddef>
@@ -16,6 +18,21 @@ namespace c10_npu {
 
 static bool _npu_graphs_debug = false;
 constexpr int kSynchronizeBusyWaitMillis = 10;
+
+namespace {
+void apply_cache_op_info(aclrtStream stream, bool enabled)
+{
+    aclrtStreamAttrValue val;
+    val.cacheOpInfoSwitch = static_cast<uint32_t>(enabled ? 1u : 0u);
+    int32_t ret = c10_npu::acl::AclrtSetStreamAttribute(stream, aclrtStreamAttr::ACL_STREAM_ATTR_CACHE_OP_IFNO,
+        &val);
+    if (ret == ACL_ERROR_RT_PARAM_INVALID) {
+        ASCEND_LOGW("Report shape function is disabled due to incompatible CANN version.");
+    } else {
+        TORCH_CHECK(ret == ACL_RT_SUCCESS, "AclrtSetStreamAttribute failed with error code: ", ret);
+    }
+}
+}
 
 MempoolId_t graph_pool_handle()
 {
@@ -125,7 +142,7 @@ void NPUGraph::register_generator_state(const at::Generator& generator)
     npu_gen->register_graph(this);
 }
 
-void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode)
+void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode, bool report_shape)
 {
     static const auto _task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
     TORCH_CHECK(_task_queue_enable != 2,
@@ -143,6 +160,8 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode)
                 "NPU graphs must be captured on a non-default stream. "
                 "(However, after capture, it's ok to replay them on the "
                 "default stream.)");
+
+    apply_cache_op_info(stream, report_shape);
 
     // default generator is always registered
     auto* gen = at::get_generator_or_default<at_npu::NPUGeneratorImpl>(c10::nullopt, at_npu::detail::getDefaultNPUGenerator());
@@ -205,6 +224,8 @@ void NPUGraph::capture_end()
 
     TORCH_CHECK(stream == capture_stream_,
                 "Capture must end on the same stream it began on.");
+
+    apply_cache_op_info(stream, false);
 
     aclmdlRI model_ri;
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureEnd(capture_stream_, &model_ri));

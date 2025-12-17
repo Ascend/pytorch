@@ -117,7 +117,8 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             "capture_begin",
             [](c10_npu::NPUGraph& self,
                std::optional<c10_npu::MempoolId_t> pool_opt,
-               std::string capture_error_mode) {
+               std::string capture_error_mode,
+			   bool report_shape) {
                 aclmdlRICaptureMode capture_mode;
                 c10_npu::MempoolId_t pool = pool_opt.has_value()
                     ? pool_opt.value() : c10_npu::MempoolId_t{0, 0};
@@ -133,10 +134,11 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                         "Unknown capture error mode. Expected `global`, `thread_local`, or `relaxed`, got ",
                         capture_error_mode);
                 }
-                return self.capture_begin(pool, capture_mode);
+                return self.capture_begin(pool, capture_mode, report_shape);
             },
             py::arg("pool"),
             py::arg("capture_error_mode"),
+            py::arg("report_shape"),
             py::call_guard<py::gil_scoped_release>())
         .def(
             "capture_end",
