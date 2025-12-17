@@ -25,6 +25,15 @@ bool ptr_exist(void* ptr);
 
 TORCH_NPU_API c10::Allocator* getCachingHostAllocator();
 
+// the host memory is not allocated by malloc
+aclError process_unregistered_mem_location_type(c10_npu::NPUStream stream, aclrtMemcpyKind kind);
+
+// the host memory is allocated by aclrtMallocHost or malloc and register
+void process_host_mem_location_type(const c10::Storage& storage, c10_npu::NPUStream stream);
+
+// process non_blocking copy between host and device
+void process_non_blocking_copy(const c10::Storage& storage, void *currentPtr, c10_npu::NPUStream stream, aclrtMemcpyKind kind);
+
 TORCH_NPU_API bool CachingHostAllocator_recordEvent(void* ptr, void* ctx, c10_npu::NPUStream stream);
 
 // Releases cached pinned memory allocations via npuHostFree
