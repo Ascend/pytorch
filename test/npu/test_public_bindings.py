@@ -611,6 +611,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.ir",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.scheduler",
+            "torch_npu.npu.npugraph_ex.inference._cache_compiler",
         }
 
         # No new entries should be added to this list.
