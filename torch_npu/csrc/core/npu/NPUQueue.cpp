@@ -307,15 +307,14 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
         error_msg = "Inner error happened with CAN_EXIT status, detail: " + repo_error;
     }
 
+    auto errmsg = GetQueueErrMsg();
+    bool cannOOM = isCannOOM(errmsg);
     if (current_status == RepoStatus::ERROR_EXIT) {
         // Avoid repeatedly throwing exceptions
         SetStatus(CAN_EXIT);
 
-        if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) {
-            auto errmsg = GetQueueErrMsg();
-            if (isCannOOM(errmsg)) {
-                c10_npu::option::oom_observer();
-            }
+        if (c10_npu::option::OptionsManager::IsOomSnapshotEnable() && cannOOM) {
+            c10_npu::option::oom_observer();
         }
 
         runtime_error = "The Inner error is reported as above. "
@@ -342,7 +341,12 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
         ASCEND_LOGE("%s", error_msg.c_str());
     }
     if (check_error && !runtime_error.empty()) {
-        throw std::runtime_error(runtime_error);
+        if (cannOOM) {
+            ASCEND_LOGE("%s", runtime_error.c_str());
+            TORCH_CHECK_WITH(OutOfMemoryError, false, runtime_error.c_str());
+        } else {
+            throw std::runtime_error(runtime_error);
+        }
     }
     logger->debug("MakeSureQueueEmpty: clearing successful, device = %d, write_idx = %u, read_idx = %u, status = %d",
         device_idx, write_idx.idx, read_idx.idx, GetStatus());
@@ -530,14 +534,7 @@ void Repository::Enqueue(void *cur_paras)
         // Avoid repeatedly throwing exceptions
         SetStatus(CAN_EXIT);
 
-        if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) {
-            auto errmsg = GetQueueErrMsg();
-            if (isCannOOM(errmsg)) {
-                c10_npu::option::oom_observer();
-            }
-        }
-
-        throw std::runtime_error("The Inner error is reported as above. "
+        auto retmsg = std::string("The Inner error is reported as above. "
             "The process exits for this inner error, and " +
             repo_error + ".\n" +
             "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
@@ -547,6 +544,16 @@ void Repository::Enqueue(void *cur_paras)
             "resulting in performance degradation. "
             "Please unset ASCEND_LAUNCH_BLOCKING in time after debugging." +
             PTA_ERROR(ErrCode::ACL) + ".\n" + acl_error);
+
+        auto errmsg = GetQueueErrMsg();
+        if (isCannOOM(errmsg)) {
+            if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) {
+                c10_npu::option::oom_observer();
+            }
+            ASCEND_LOGE("%s", retmsg.c_str());
+            TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
+        }
+        throw std::runtime_error(retmsg);
     }
 
     if (current_status != RUN && current_status != INIT) {
