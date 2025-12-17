@@ -31,25 +31,20 @@
                     false,                                                   \
                     errmsg.empty() ? err_msg : errmsg);                      \
             } else {                                                         \
-                if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) { \
-                    std::string errmsg(c10_npu::c10_npu_get_error_message()); \
-                    if (c10_npu::isCannOOM(errmsg)) {                         \
-                        c10_npu::option::oom_observer();                      \
-                    }                                                         \
-                }                                                             \
-            TORCH_CHECK(                                                     \
-                false,                                                       \
-                __func__,                                                    \
-                ":",                                                         \
-                __FILE__,                                                    \
-                ":",                                                         \
-                __LINE__,                                                    \
-                " HCCL function error: ", getErrorFunction(#err_code, ##__VA_ARGS__),   \
-                ", error code is ", Error,                                   \
-                DIST_ERROR(ErrCode::HCCL) + ".\n" +                          \
-                c10_npu::c10_npu_get_error_message());                               \
-        }                                                                    \
-    }                                                                       \
+                auto retmsg = std::string(__func__) + ":" + __FILE__ + ":" + std::to_string(__LINE__) +    \
+                    " HCCL function error: " + getErrorFunction(#err_code, ##__VA_ARGS__) +                \
+                    ", error code is " + std::to_string(Error) + " " + DIST_ERROR(ErrCode::HCCL) + ".\n" + \
+                    c10_npu::c10_npu_get_error_message();                                                  \
+                if (c10_npu::isCannOOM(retmsg)) {                                 \
+                    if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) { \
+                        c10_npu::option::oom_observer();                          \
+                    }                                                             \
+                    ASCEND_LOGE("%s", retmsg.c_str());                            \
+                    TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());    \
+                }                                                                 \
+                TORCH_CHECK(false, retmsg);                                       \
+            }                                                                     \
+        }                                                                         \
     } while (0)
 
 #define ENABLE_HCCL_ERROR_CHECKING

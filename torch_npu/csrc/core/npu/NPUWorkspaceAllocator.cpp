@@ -455,16 +455,14 @@ public:
             size_t device_total;
             NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
 
-            TORCH_CHECK(false,
-                "NPU out of memory. NPUWorkspaceAllocator tried to allocate ",
-                format_size(size),
-                "(NPU ", device, "; ",
-                format_size(device_total),
-                " total capacity; ",
-                format_size(device_free),
-                " free). If you want to reduce memory usage, ",
+            auto retmsg = std::string("NPU out of memory. NPUWorkspaceAllocator tried to allocate ") +
+                format_size(size) + "(NPU " + std::to_string(device) + "; " +
+                format_size(device_total) + " total capacity; " +
+                format_size(device_free) + " free). If you want to reduce memory usage, " +
                 "take a try to set the environment variable TASK_QUEUE_ENABLE=1.\n" +
-                PTA_ERROR(ErrCode::MEMORY));
+                PTA_ERROR(ErrCode::MEMORY);
+            ASCEND_LOGE("%s", retmsg.c_str());
+            TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
         }
 
         if ((*new_ptr) != src_ptr) {
