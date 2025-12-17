@@ -65,6 +65,7 @@ import torch_npu.optim
 import torch_npu.dynamo
 import torch_npu._C
 import torch_npu._logging
+from torch_npu.utils import patch_getenv
 import torch_npu._afd
 from torch_npu import profiler
 from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
