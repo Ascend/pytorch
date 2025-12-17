@@ -26,6 +26,7 @@ constexpr size_t index3 = 3;
 
 constexpr size_t validLength1 = 1;
 constexpr size_t validLength2 = 2;
+constexpr size_t validLength4 = 4;
 constexpr size_t validLength5 = 5;
 
 std::unordered_map<std::string, aclCANNPackageName> packageNameMap = {
@@ -191,47 +192,95 @@ int64_t DriverVersionToNum(std::string versionStr)
     int64_t alphaVersion = 0;
     // driver version check only supports pattern listed here:
     // pattern is major.minor.release.patch. release:num or RC+num or T+num, patch: num or alpha+num or beta+num.
-    std::regex re_rc("([0-9]+).([0-9]+).RC([0-9]+)", std::regex::icase);
-    std::regex re_num("([0-9]+).([0-9]+).([0-9]+)");
-    std::regex re_rc_num("([0-9]+).([0-9]+).RC([0-9]+).([0-9]+)", std::regex::icase);
-    std::regex re_num_num("([0-9]+).([0-9]+).([0-9]+).([0-9]+)");
-    std::regex re_t("([0-9]+).([0-9]+).T([0-9]+)", std::regex::icase);
-    std::regex re_rc_beta("([0-9]+).([0-9]+).RC([0-9]+).beta([0-9]+)", std::regex::icase);
-    std::regex re_rc_alpha("([0-9]+).([0-9]+).RC([0-9]+).alpha([0-9]+)", std::regex::icase);
-    if (std::regex_match(versionStr, results, re_rc)) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        RCVersion = stoi(results[kVersionIndex3]);
-    } else if (std::regex_match(versionStr, results, re_rc_num)) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        RCVersion = stoi(results[kVersionIndex3]);
-        patch = stoi(results[kVersionIndex4]);
-    } else if (std::regex_match(versionStr, results, re_num)) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        release = stoi(results[kVersionIndex3]);
-    } else if (std::regex_match(versionStr, results, re_num_num)) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        release = stoi(results[kVersionIndex3]);
-        patch = stoi(results[kVersionIndex4]);
-    } else if (std::regex_match(versionStr, results, re_t)) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        TVersion = stoi(results[kVersionIndex3]);
-    } else if (std::regex_match(versionStr, results, re_rc_beta)) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        RCVersion = stoi(results[kVersionIndex3]);
-        bVersion = stoi(results[kVersionIndex4]);
-    } else if (std::regex_match(versionStr, results, re_rc_alpha)) {
-        major = stoi(results[kVersionIndex1]);
-        minor = stoi(results[kVersionIndex2]);
-        RCVersion = stoi(results[kVersionIndex3]);
-        alphaVersion = stoi(results[kVersionIndex4]);
-    } else {
-        TORCH_NPU_WARN_ONCE("Driver Version: " + versionStr + " is invalid or not supported yet.");
+    std::vector<std::string> tokens = SplitVersionStr(versionStr);
+
+    if (tokens.size() < tokenNum3) {
+        TORCH_NPU_WARN_ONCE("Driver Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        return 0;
+    }
+
+    major = ExtractNumFromStr(tokens[index0]);
+    minor = ExtractNumFromStr(tokens[index1]);
+    if (major == -1 || minor == -1) {
+        TORCH_NPU_WARN_ONCE("Driver Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        return 0;
+    }
+
+    bool parsed = false;
+    if (tokens.size() == tokenNum3) {
+        if (StartsWith(tokens[index2], "RC") && tokens[index2].length() > validLength2) {   // ([0-9]+).([0-9]+).RC([0-9]+)
+            std::string rcNumStr = tokens[index2].substr(2);
+            RCVersion = ExtractNumFromStr(rcNumStr);
+            if (RCVersion != -1) {
+                parsed = true;
+            } else {
+                RCVersion = -51;
+            }
+        }
+        if (!parsed && StartsWith(tokens[index2], "T") && tokens[index2].length() > validLength1) {  // ([0-9]+).([0-9]+).T([0-9]+)
+            std::string tNumStr = tokens[index2].substr(1);
+            TVersion = ExtractNumFromStr(tNumStr);
+            if (TVersion != -1) {
+                parsed = true;
+            }
+        }
+        if (!parsed && isDigits(tokens[index2])) {  // ([0-9]+).([0-9]+).([0-9]+)
+            release = ExtractNumFromStr(tokens[index2]);
+            if (release != -1) {
+                parsed = true;
+            }
+        }
+    }
+
+    if (!parsed && tokens.size() == tokenNum4) {
+        if (isDigits(tokens[index2]) && isDigits(tokens[index3])) {  // ([0-9]+).([0-9]+).([0-9]+).([0-9]+)
+            release = ExtractNumFromStr(tokens[index2]);
+            patch = ExtractNumFromStr(tokens[index3]);
+            if (release != -1 && patch != -1) {
+                parsed = true;
+            } else {
+                patch = 0;
+            }
+        }
+        if (!parsed && StartsWith(tokens[index2], "RC") && tokens[index2].length() > validLength2 && isDigits(tokens[index3])) {  // ([0-9]+).([0-9]+).RC([0-9]+).([0-9]+)
+            std::string rcNumStr = tokens[index2].substr(2);
+            RCVersion = ExtractNumFromStr(rcNumStr);
+            patch = ExtractNumFromStr(tokens[index3]);
+            if (RCVersion != -1 && patch != -1) {
+                parsed = true;
+            } else {
+                RCVersion = -51;
+                patch = 0;
+            }
+        }
+        if (!parsed && StartsWith(tokens[index2], "RC") && tokens[index2].length() > validLength2 && StartsWith(tokens[index3], "alpha") && tokens[index3].length() > validLength5) {  // ([0-9]+).([0-9]+).RC([0-9]+).alpha([0-9]+)
+            std::string rcNumStra = tokens[index2].substr(2);
+            RCVersion = ExtractNumFromStr(rcNumStra);
+            std::string alphaNumStr = tokens[index3].substr(5);
+            alphaVersion = ExtractNumFromStr(alphaNumStr);
+            if (RCVersion != -1 && alphaVersion != -1) {
+                parsed = true;
+            } else {
+                RCVersion = -51;
+                alphaVersion = 0;
+            }
+        }
+        if (!parsed && StartsWith(tokens[index2], "RC") && tokens[index2].length() > validLength2 && StartsWith(tokens[index3], "beta") && tokens[index3].length() > validLength4) {  // ([0-9]+).([0-9]+).RC([0-9]+).beta([0-9]+)
+            std::string rcNumStrb = tokens[index2].substr(2);
+            RCVersion = ExtractNumFromStr(rcNumStrb);
+            std::string betaNumStr = tokens[index3].substr(4);
+            bVersion = ExtractNumFromStr(betaNumStr);
+            if (RCVersion != -1 && bVersion != -1) {
+                parsed = true;
+            } else {
+                RCVersion = -51;
+                bVersion = 1;
+            }
+        }
+    }
+
+    if (!parsed) {
+        TORCH_NPU_WARN_ONCE("Driver Version: \"" + versionStr + "\" is invalid or not supported yet.");
         return 0;
     }
 
