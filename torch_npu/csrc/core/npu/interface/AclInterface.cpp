@@ -111,6 +111,7 @@ LOAD_FUNCTION(aclrtUnuseStreamResInCurrentThread)
 LOAD_FUNCTION(aclrtGetResInCurrentThread)
 LOAD_FUNCTION(aclrtSetOpExecuteTimeOutV2)
 LOAD_FUNCTION(aclrtSetStreamAttribute)
+LOAD_FUNCTION(aclrtPointerGetAttributes)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1357,5 +1358,25 @@ aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType
     return func(stream, stmAttrType, value);
 }
 
+aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attributes)
+{
+    using AclrtPointerGetAttributes = aclError (*)(const void*, aclrtPtrAttributes*);
+    static AclrtPointerGetAttributes func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtPointerGetAttributes) GET_FUNC(aclrtPointerGetAttributes);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtPointerGetAttributes", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(ptr, attributes);
+}
+
+bool AclrtPointerGetAttributesExist()
+{
+    const static bool isAclrtPointerGetAttributesExist = []() -> bool {
+        auto func = GET_FUNC(aclrtPointerGetAttributes)
+        return func != nullptr;
+    }();
+    return isAclrtPointerGetAttributesExist;
+}
 } // namespace acl
 } // namespace c10
