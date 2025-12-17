@@ -3,6 +3,7 @@
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 
 namespace at_npu {
 namespace native {
@@ -32,19 +33,24 @@ LOAD_FUNCTION(mstxMemRegionsUnregister)
 // save python range id with cann mstx range id.
 // when mstx.range_end(id) is called, we can check if this id is invalid
 static std::unordered_map<int, mstxRangeId> g_rangeIdMap;
+static std::shared_ptr<npu_logging::Logger> loggerEnv = npu_logging::logging().getLogger("torch_npu.env");
 
 static std::mutex g_mutex;
 
 static bool IsSupportMstxFuncImpl()
 {
-    bool isSupport = false;
-    char* path = std::getenv("ASCEND_HOME_PATH");
-    if (path != nullptr) {
-        std::string soPath = std::string(path) + "/lib64/libms_tools_ext.so";
-        soPath = torch_npu::toolkit::profiler::Utils::RealPath(soPath);
-        isSupport = !soPath.empty();
-    }
-    return isSupport;
+    static auto checkSupport = []() -> bool {
+        char* path = std::getenv("ASCEND_HOME_PATH");
+        if (path != nullptr) {
+            loggerEnv->info("get env ASCEND_HOME_PATH = %s", path);
+            std::string soPath = std::string(path) + "/lib64/libms_tools_ext.so";
+            soPath = torch_npu::toolkit::profiler::Utils::RealPath(soPath);
+            return !soPath.empty();
+        }
+        return false;
+    };
+
+    return checkSupport();
 }
 
 static bool IsSupportMstxDomainFuncImpl()
