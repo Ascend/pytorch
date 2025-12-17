@@ -770,6 +770,11 @@ class TestNpu(TestCase):
         with self.assertRaisesRegex(RuntimeError, "ERR01007 OPS feature not supported"):
             x.contiguous(memory_format=torch.channels_last_3d)
 
+    def test_uuid(self):
+        uuid = torch.npu.get_device_properties(0).uuid
+        self.assertEqual(len(str(uuid)), 36)
+        self.assertEqual(len(uuid.bytes), 16)
+
 
 if __name__ == '__main__':
     run_tests()
