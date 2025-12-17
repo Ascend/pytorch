@@ -54,6 +54,7 @@
 #include "torch_npu/csrc/profiler/combined_traceback.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
+#include "third_party/fmt/include/fmt/format.h"
 
 std::shared_ptr<npu_logging::Logger> loggerRecovery = npu_logging::logging().getLogger("torch_npu.recovery");
 
@@ -72,17 +73,67 @@ struct NPUDeviceProp {
     std::optional<int> warp_size;
     std::optional<int> regs_per_multiprocessor;
     std::optional<std::string> gcnArchName;
-    std::optional<std::string> uuid;
+    aclrtUuid uuid = {0}; // Initialize to 0
 };
 
 struct NPUDeviceMem {
     size_t totalGlobalMem = 0;
     size_t freeMem = 0;
 };
-NPUDeviceProp prop;
+
+namespace {
+c10::DeviceIndex num_npus = -1;
+c10::once_flag init_flag;
+std::deque<c10::once_flag> device_flags;
+std::vector<NPUDeviceProp> device_properties;
+
+void initNPUContextVectors()
+{
+    num_npus = c10_npu::device_count();
+    device_flags.resize(num_npus);
+    device_properties.resize(num_npus);
+}
+} // anonymous namespace
+
+std::string uuid_to_string(const char* uuid_bytes)
+{
+    // UUIDs store as char[16].
+    // For string representation, the code here expands this to
+    // 8-4-4-4-12 hex format, so each byte becomes 2 hex characters.
+    return fmt::format(
+        "{:02x}{:02x}{:02x}{:02x}-"
+        "{:02x}{:02x}-"
+        "{:02x}{:02x}-"
+        "{:02x}{:02x}-"
+        "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+        (uint8_t)uuid_bytes[0], // 0
+        (uint8_t)uuid_bytes[1], // 1
+        (uint8_t)uuid_bytes[2], // 2
+        (uint8_t)uuid_bytes[3], // 3
+        (uint8_t)uuid_bytes[4], // 4
+        (uint8_t)uuid_bytes[5], // 5
+        (uint8_t)uuid_bytes[6], // 6
+        (uint8_t)uuid_bytes[7], // 7
+        (uint8_t)uuid_bytes[8], // 8
+        (uint8_t)uuid_bytes[9], // 9
+        (uint8_t)uuid_bytes[10], // 10
+        (uint8_t)uuid_bytes[11], // 11
+        (uint8_t)uuid_bytes[12], // 12
+        (uint8_t)uuid_bytes[13], // 13
+        (uint8_t)uuid_bytes[14], // 14
+        (uint8_t)uuid_bytes[15]); // 15
+}
+
 void RegisterNPUDeviceProperties(PyObject* module)
 {
     auto m = py::handle(module).cast<py::module>();
+    py::class_<aclrtUuid>(m, "_CUuuid")
+        .def_property_readonly("bytes", [](const aclrtUuid& uuid) {
+            return std::vector<uint8_t>(uuid.bytes, uuid.bytes + 16); // 16
+        })
+        .def("__str__", [](const aclrtUuid& uuid) {
+            return uuid_to_string(uuid.bytes);
+        });
     py::class_<NPUDeviceProp>(m, "_NPUDeviceProperties")
         .def_readonly("name", &NPUDeviceProp::name)
         .def_readonly("total_memory", &NPUDeviceProp::totalGlobalMem)
@@ -103,7 +154,8 @@ void RegisterNPUDeviceProperties(PyObject* module)
             std::ostringstream stream;
             stream << "_NPUDeviceProperties(name='" << prop.name << "', total_memory="
                 << prop.totalGlobalMem / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB, cube_core_num="
-                << prop.cube_core_num << ", vector_core_num=" << prop.vector_core_num << ", L2_cache_size="
+                << prop.cube_core_num << ", vector_core_num=" << prop.vector_core_num
+                << ", uuid=" << uuid_to_string(prop.uuid.bytes) << ", L2_cache_size="
                 << prop.L2_cache_size / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB)";
             return stream.str();
         });
@@ -127,7 +179,7 @@ std::string GetDeviceName()
     return std::string(device_name);
 }
 
-NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
+void initDeviceProperty(int64_t deviceid)
 {
     const char* device_name;
     size_t device_free;
@@ -135,27 +187,42 @@ NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
     int64_t cube_core_num;
     int64_t vector_core_num;
     int64_t L2_cache_size;
+    aclrtUuid uuid;
 
     device_name = c10_npu::acl::AclrtGetSocName();
     if (device_name == nullptr) {
-        prop.name = " ";
+        device_properties[deviceid].name = " ";
         ASCEND_LOGE("NPU get device name fail.");
     } else {
-        prop.name = std::string(device_name);
+        device_properties[deviceid].name = std::string(device_name);
     }
     NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
-    prop.totalGlobalMem = device_total;
+    device_properties[deviceid].totalGlobalMem = device_total;
 
     NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_AI_CORE_NUM, &cube_core_num));
-    prop.cube_core_num = cube_core_num;
+    device_properties[deviceid].cube_core_num = cube_core_num;
 
     NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_VECTOR_CORE_NUM, &vector_core_num));
-    prop.vector_core_num = vector_core_num;
+    device_properties[deviceid].vector_core_num = vector_core_num;
 
     NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_L2_SIZE, &L2_cache_size));
-    prop.L2_cache_size = L2_cache_size;
+    device_properties[deviceid].L2_cache_size = L2_cache_size;
 
-    return &prop;
+    if (c10_npu::acl::IsExistDeviceGetUuid()) {
+        aclError err = c10_npu::acl::AclrtDeviceGetUuid(deviceid, &uuid);
+        if (err == ACL_ERROR_NONE) {
+            device_properties[deviceid].uuid = uuid;
+        } else if (err != ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+            NPU_CHECK_ERROR_WITHOUT_UCE(err);
+        }
+    }
+}
+
+NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
+{
+    c10::call_once(init_flag, initNPUContextVectors);
+    c10::call_once(device_flags[deviceid], initDeviceProperty, deviceid);
+    return &device_properties[deviceid];
 }
 
 void BindGetDeviceProperties(PyObject* module)
