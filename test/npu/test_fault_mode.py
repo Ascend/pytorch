@@ -287,7 +287,7 @@ class TestMode(TestCase):
         )
 
     def test_aclrtMallocAlign32(self):
-        with self.assertRaisesRegex(RuntimeError, "NPU out of memory. Tried to allocate"):
+        with self.assertRaisesRegex(torch.OutOfMemoryError, "NPU out of memory. Tried to allocate"):
             x = torch.randn(2000, 2000, 200, 20, device="npu:0")
             y = torch.randn(2000, 2000, 200, 20, device="npu:0")
 

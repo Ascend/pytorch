@@ -1631,15 +1631,18 @@ public:
                 // Note that at this point free_cached_blocks has already returned all
                 // possible "cached" memory to the driver. The only remaining "cached"
                 // memory is split from a larger block that is partially in-use.
-                AT_ERROR("NPU out of memory. Tried to allocate ", format_size(alloc_size), " (NPU ", device, "; ",
-                    format_size(device_total), " total capacity; ",
-                    format_size(stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
-                    " already allocated; ",
-                    format_size(stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
-                    " current active; ", format_size(device_free), " free; ", allowed_info,
-                    format_size(stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
-                    " reserved in total by PyTorch)",
-                    " If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.");
+                auto retmsg = std::string("NPU out of memory. Tried to allocate ") + format_size(alloc_size) +
+                    " (NPU " + std::to_string(device) + "; " + format_size(device_total) + " total capacity; " +
+                    format_size(stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current) +
+                    " already allocated; " +
+                    format_size(stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current) +
+                    " current active; " + format_size(device_free) + " free; " + allowed_info +
+                    format_size(stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current) +
+                    " reserved in total by PyTorch)." +
+                    "If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.";
+
+                ASCEND_LOGE("%s", retmsg.c_str());
+                TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
             } else {
                 NPU_CHECK_ERROR(params.err);
             }
@@ -3819,8 +3822,11 @@ public:
     {
         constexpr size_t one_exa_bytes = 1152921504606846976ULL;
         if (size >= one_exa_bytes) {
-            AT_ERROR("NPU out of memory. Tried to allocate more than 1EB memory.");
+            auto retmsg = std::string("NPU out of memory. Tried to allocate more than 1EB memory.");
+            ASCEND_LOGE("%s", retmsg.c_str());
+            TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
         }
+        
         int device = 0;
         NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
         LazySetDevice(device);
@@ -3847,7 +3853,9 @@ public:
     {
         constexpr size_t one_exa_bytes = 1152921504606846976ULL;
         if (C10_UNLIKELY(size >= one_exa_bytes)) {
-            AT_ERROR("NPU out of memory. Tried to allocate more than 1EB memory.");
+            auto retmsg = std::string("NPU out of memory. Tried to allocate more than 1EB memory.");
+            ASCEND_LOGE("%s", retmsg.c_str());
+            TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
         }
         int device = 0;
         NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
