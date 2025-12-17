@@ -74,6 +74,7 @@ from torch_npu.utils._dynamo_device import NpuInterface
 if os.getenv('TORCHINDUCTOR_USE_AKG', '0') == '1':
     try:
         import akg
+        import torch_mlir
         register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
     except:
         logger.warning(f"akg not found, fallback to torch-mlir for compilation.")
