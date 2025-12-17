@@ -1358,6 +1358,15 @@ aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attribut
     return func(ptr, attributes);
 }
 
+bool AclrtPointerGetAttributesExist()
+{
+    const static bool isAclrtPointerGetAttributesExist = []() -> bool {
+        auto func = GET_FUNC(aclrtPointerGetAttributes)
+        return func != nullptr;
+    }();
+    return isAclrtPointerGetAttributesExist;
+}
+
 aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType, aclrtStreamAttrValue *value)
 {
     typedef aclError (*AclrtSetStreamAttribute)(aclrtStream, aclrtStreamAttr, aclrtStreamAttrValue*);
