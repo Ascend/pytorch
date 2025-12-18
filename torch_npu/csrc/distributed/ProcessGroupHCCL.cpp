@@ -3457,6 +3457,68 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
         }
     }
 
+    if (options_->hccl_config.find("hccl_exec_timeout") != options_->hccl_config.end()) {
+        if (std::holds_alternative<int32_t>(options_->hccl_config["hccl_exec_timeout"])) {
+            config.hcclExecTimeOut = std::get<int32_t>(options_->hccl_config["hccl_exec_timeout"]);
+            if (config.hcclExecTimeOut < 0) {
+                TORCH_NPU_WARN_ONCE("Value type of hccl_exec_timeout less than 0.");
+            }
+        } else if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_exec_timeout"])) {
+            uint32_t value = std::get<uint32_t>(options_->hccl_config["hccl_exec_timeout"]);
+            if (value > INT32_MAX) {
+                TORCH_CHECK(false, "Value type of hccl_exec_timeout exceeds INT32_MAX(2147483647).", DIST_ERROR(ErrCode::TYPE));
+            }
+            config.hcclExecTimeOut = static_cast<int32_t>(value);
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_exec_timeout should be int.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
+    if (options_->hccl_config.find("hccl_algo") != options_->hccl_config.end()) {
+        if (std::holds_alternative<std::string>(options_->hccl_config["hccl_algo"])) {
+            auto hcclAlgo = std::get<std::string>(options_->hccl_config["hccl_algo"]);
+            uint32_t length = hcclAlgo.length();
+            if (length >= HCCL_COMM_ALGO_MAX_LENGTH) {
+                length = HCCL_COMM_ALGO_MAX_LENGTH - 1;
+                TORCH_NPU_WARN("The length of hccl_algo has exceeded the limit HCCL_COMM_ALGO_MAX_LENGTH(1600) which will be truncated to HCCL_COMM_ALGO_MAX_LENGTH - 1.");
+            }
+            strncpy(config.hcclAlgo, hcclAlgo.c_str(), length);
+            config.hcclAlgo[length] = '\0';
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_algo should be string.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
+    if (options_->hccl_config.find("hccl_retry_enable") != options_->hccl_config.end()) {
+        if (std::holds_alternative<std::string>(options_->hccl_config["hccl_retry_enable"])) {
+            auto hcclRetryEnable = std::get<std::string>(options_->hccl_config["hccl_retry_enable"]);
+            uint32_t length = hcclRetryEnable.length();
+            if (length >= HCCL_COMM_RETRY_ENABLE_MAX_LENGTH) {
+                length = HCCL_COMM_RETRY_ENABLE_MAX_LENGTH - 1;
+                TORCH_NPU_WARN("The length of hccl_retry_enable has exceeded the limit HCCL_COMM_RETRY_ENABLE_MAX_LENGTH(50) which will be truncated to HCCL_COMM_RETRY_ENABLE_MAX_LENGTH - 1.");
+            }
+            strncpy(config.hcclRetryEnable, hcclRetryEnable.c_str(), length);
+            config.hcclRetryEnable[length] = '\0';
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_retry_enable should be string.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
+    if (options_->hccl_config.find("hccl_retry_params") != options_->hccl_config.end()) {
+        if (std::holds_alternative<std::string>(options_->hccl_config["hccl_retry_params"])) {
+            auto hcclRetryParams = std::get<std::string>(options_->hccl_config["hccl_retry_params"]);
+            uint32_t length = hcclRetryParams.length();
+            if (length >= HCCL_COMM_RETRY_PARAMS_MAX_LENGTH) {
+                length = HCCL_COMM_RETRY_PARAMS_MAX_LENGTH - 1;
+                TORCH_NPU_WARN("The length of hccl_retry_params has exceeded the limit HCCL_COMM_RETRY_PARAMS_MAX_LENGTH(128) which will be truncated to HCCL_COMM_RETRY_PARAMS_MAX_LENGTH - 1.");
+            }
+            strncpy(config.hcclRetryParams, hcclRetryParams.c_str(), length);
+            config.hcclRetryParams[length] = '\0';
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_retry_params should be string.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
     if (options_->hccl_config.find("hccl_buffer_name") != options_->hccl_config.end()) {
         if (std::holds_alternative<std::string>(options_->hccl_config["hccl_buffer_name"])) {
             auto bufferName = std::get<std::string>(options_->hccl_config["hccl_buffer_name"]);
