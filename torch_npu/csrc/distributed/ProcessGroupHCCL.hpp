@@ -391,7 +391,7 @@ public:
             return c10::make_intrusive<Options>(_is_high_priority_stream);
         }
 
-        std::unordered_map<std::string, std::variant<uint32_t, uint64_t, std::string>> hccl_config;
+        std::unordered_map<std::string, std::variant<uint32_t, uint64_t, int32_t, std::string>> hccl_config;
 
         std::chrono::milliseconds opTimeout;
         // Schedule HCCL operations on high priority CUDA streams
