@@ -11,6 +11,7 @@
 
 typedef struct aclrtMemUsageInfo aclrtMemUsageInfo;
 typedef struct aclOpExecutor aclOpExecutor;
+struct aclrtUuid;
 namespace c10_npu {
 namespace acl {
 enum aclrtEventWaitStatus {
@@ -308,5 +309,10 @@ aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType
 aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attributes);
 
 bool AclrtPointerGetAttributesExist();
+
+bool IsExistDeviceGetUuid();
+
+aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uuid);
+
 } // namespace acl
 } // namespace c10_npu

@@ -271,6 +271,10 @@ typedef enum aclrtDeviceStatus {
     ACL_RT_DEVICE_STATUS_END = 0xFFFF,
 } aclrtDeviceStatus;
 
+typedef struct aclrtUuid {
+    char bytes[16];
+} aclrtUuid;
+
 typedef void* aclrtBinary;
 typedef void* aclrtBinHandle;
 typedef void* aclrtFuncHandle;
@@ -2069,6 +2073,17 @@ ACL_FUNC_VISIBILITY aclError aclrtSetOpExecuteTimeOutV2(uint64_t timeout, uint64
  */
 ACL_FUNC_VISIBILITY aclError aclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType,
     aclrtStreamAttrValue *value);
+
+/**
+ * @ingroup AscendCL
+ * @brief get uuid of device by device id
+ * @param [in] deviceId        device id
+ * @param [out] uuid           16-byte Universally Unique Identifier for
+ *                             globally unique identification of an NPU device.
+ * @retval ACL_SUCCESS The function is successfully executed
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uuid);
 
 #ifdef __cplusplus
 }

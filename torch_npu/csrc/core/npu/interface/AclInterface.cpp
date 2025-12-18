@@ -112,6 +112,7 @@ LOAD_FUNCTION(aclrtGetResInCurrentThread)
 LOAD_FUNCTION(aclrtSetOpExecuteTimeOutV2)
 LOAD_FUNCTION(aclrtSetStreamAttribute)
 LOAD_FUNCTION(aclrtPointerGetAttributes)
+LOAD_FUNCTION(aclrtDeviceGetUuid)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1378,5 +1379,25 @@ bool AclrtPointerGetAttributesExist()
     }();
     return isAclrtPointerGetAttributesExist;
 }
+
+bool IsExistDeviceGetUuid()
+{
+    typedef aclError (*AclrtDeviceGetUuid)(int32_t, aclrtUuid*);
+    static AclrtDeviceGetUuid func = (AclrtDeviceGetUuid)GET_FUNC(aclrtDeviceGetUuid);
+    return func != nullptr;
+}
+
+aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid* uuid)
+{
+    typedef aclError (*AclrtDeviceGetUuid)(int32_t, aclrtUuid*);
+    static AclrtDeviceGetUuid func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtDeviceGetUuid)GET_FUNC(aclrtDeviceGetUuid);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtDeviceGetUuid", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(deviceId, uuid);
+}
+
 } // namespace acl
 } // namespace c10
