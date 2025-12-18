@@ -63,11 +63,20 @@
         ```
         <install_path>/firmware/script/uninstall.sh
         ```
+        若出现如下关键回显信息，则表示固件卸载成功。
 
+        ```ColdFusion
+        Firmware package uninstalled successfully! 
+        ```
     -   卸载驱动
 
         ```
         <install_path>/driver/script/uninstall.sh
+        ```
+        若出现如下关键回显信息，则表示驱动卸载成功。
+        
+         ```ColdFusion
+        Driver package uninstalled successfully!
         ```
 
     > [!NOTE]  

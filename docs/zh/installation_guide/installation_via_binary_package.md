@@ -43,8 +43,13 @@
 |2.9.0|7.3.0|Python 3.12|X86_64|8.5.0|Pip|<copy># 下载软件包<br>wget https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl<br>wget https://gitcode.com/Ascend/pytorch/releases/download/v7.3.0-pytorch2.9.0/torch_npu-2.9.0-cp312-cp312-manylinux_2_28_x86_64.whl<br># 安装命令<br>pip3 install torch-2.9.0+cpu-cp312-cp312-manylinux_2_28_x86_64.whl<br>pip3 install torch_npu-2.9.0-cp312-cp312-manylinux_2_28_x86_64.whl</copy>|
 
 > [!NOTE]
+> -   出现“找不到google或protobuf，或者protobuf版本过高”报错时，需执行如下命令：
+>       ```
+>       pip3 install protobuf==3.20
+>       ```
 > -   更多PyTorch版本可单击[Link](https://download.pytorch.org/whl/torch/)进行查询。
 > -   更多torch\_npu插件版本可单击[Link](https://gitcode.com/Ascend/pytorch/releases)查询。
+
 
 ## 安装后验证
 

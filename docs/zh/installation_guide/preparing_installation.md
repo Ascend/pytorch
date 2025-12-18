@@ -15,7 +15,7 @@
 
     以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
 
--   容器场景下源码编译安装torch\_npu插件，涉及从外部网络获取社区提供基础镜像、Python三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
+-   容器场景下源码编译安装torch\_npu插件，涉及从外部网络获取社区提供基础镜像、Python第三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
 -   根据不同类型的操作系统安装所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
 -   Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
 -   Ascend Extension for PyTorch支持安装abi1版本的安装包，具体请参见[方式三：二进制软件包安装（abi1版本）](installation_via_binary_package_abi1.md)。
@@ -43,5 +43,5 @@
 
 > [!NOTICE]  
 > 建议使用非root用户安装运行torch\_npu，且建议对安装程序的目录文件做好权限管控：文件夹权限设置为750，文件权限设置为640。可以通过设置umask控制安装后文件的权限，如设置umask为0027。
-> 更多安全相关内容请参见《安全声明》中各组件关于“文件权限控制”的说明。
+> 更多安全相关内容请参见《[安全声明](../security_statement/security_statement.md)》中各组件关于“文件权限控制”的说明。
 

@@ -14,7 +14,7 @@ Ascend Extension for PyTorch整体架构如下所示。
 ![](figures/architecture_torch_npu.png "Ascend-Extension-for-PyTorch整体架构")
 
 -   Ascend Extension for PyTorch（即torch\_npu插件）：昇腾PyTorch适配插件，继承开源PyTorch特性，针对昇腾AI处理器系列进行深度优化，支持用户基于PyTorch框架实现模型训练和调优。
--   PyTorch原生库/三方库适配：适配支持PyTorch原生库及主流三方库，补齐生态能力，提高昇腾平台易用性。
+-   PyTorch原生库/第三方库适配：适配支持PyTorch原生库及主流第三方库，补齐生态能力，提高昇腾平台易用性。
 
 ## 关键功能特性
 

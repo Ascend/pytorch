@@ -13,7 +13,7 @@ libtorch\_npu是torch\_npu插件的C++版本，包含运行torch\_npu插件所�
     git submodule update --init --recursive
     ```
 
-    以v2.7.1-7.3.0为例，拉取对应Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“相关产品版本配套说明”章节下载Ascend Extension for PyTorch其他版本的分支代码。
+    以v2.7.1-7.3.0为例，拉取对应Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/related_product_version_compatibility_notes.md)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
 
 3.  执行编译生成libtorch\_npu安装包。
 
@@ -59,7 +59,7 @@ libtorch\_npu是torch\_npu插件的C++版本，包含运行torch\_npu插件所�
 
 3.  为了使模型在NPU设备上初始化和运行，用户需在C++代码中将GPU接口修改为适配NPU的接口。当前脚本中已完成对应修改，用户可参见以下内容对实际开发的脚本进行修改。已完成NPU适配的模型代码文件请参见“pytorch/examples/libtorch\_resnet/**libtorch\_resnet.cpp**”。
 
-    代码示例如下，引入torch\_npu头文件并设置初始化Device，在NPU使用结束时需要调用torch\_npu::finalize\_npu\(\)释放资源，否则可能会有报错提示。
+    代码示例如下，引入torch\_npu头文件并设置初始化的Device，在NPU使用结束时需要调用torch\_npu::finalize\_npu\(\)释放资源，否则可能会有报错提示。
 
     ```Cpp
     // 使用libtorch_npu相关接口，需引用libtorch_npu的头文件
@@ -69,10 +69,10 @@ libtorch\_npu是torch\_npu插件的C++版本，包含运行torch\_npu插件所�
     torch_npu::init_npu("npu:0");
     
     // 通过传NPU字符串构造NPU设备
-    at::Device("npu:0")
+    auto device = at::Device("npu:0");
     
     // 使用NPU设备结束需进行反初始化
-    torch_npu::finalize_npu()
+    torch_npu::finalize_npu();
     ```
 
     **表 1**  C++接口说明

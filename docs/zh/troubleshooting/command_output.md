@@ -12,11 +12,11 @@
 Python报错时，会将当时的堆栈打印在屏幕上，用户可通过搜索关键字“Traceback”查看Python应用程序的堆栈。如果存在多个堆栈信息时，优先查看第一个Traceback，如[图1](#查看Python应用程序的堆栈信息)所示。
 
 **图 1**  查看Python应用程序的堆栈信息<a id="查看Python应用程序的堆栈信息"></a>  
-![](figures/viewing_tack_information_python_applications.png)
+![](figures/viewing_stack_information_python_applications.png)
 
 如上回显信息示例中，用户可以看到最后的调用栈在torch\_npu的`set_autocast_enabled`接口上，一般情况下您可以到[昇腾社区](https://gitcode.com/Ascend/pytorch/issues)提交issue获取帮助。
 
-若最后的调用栈在原生torch上，则可以顺着堆栈向上找与昇腾相关的堆栈，若整个堆栈没有昇腾相关的堆栈，则排查下模型训练脚本本身是否有问题。
+若最后的调用栈在原生torch上，则可以顺着堆栈向上找与昇腾相关的堆栈，若整个堆栈没有昇腾相关的堆栈，则排查模型训练脚本本身是否有问题。
 
 ## torch\_npu错误码
 

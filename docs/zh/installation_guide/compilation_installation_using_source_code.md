@@ -19,7 +19,7 @@
         git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-7.3.0 --depth 1  
         ```
 
-        以v2.7.1-7.3.0为例，下载对应的Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“相关产品版本配套说明”章节下载Ascend Extension for PyTorch其他版本的分支代码。
+        以v2.7.1-7.3.0为例，下载对应的Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/related_product_version_compatibility_notes.md)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
 
     2.  构建镜像。
 
@@ -109,7 +109,7 @@
             cd pytorch
             ```
 
-            请参见《版本说明》中的“相关产品版本配套说明”章节下载Ascend Extension for PyTorch其他版本的分支代码。
+            请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/related_product_version_compatibility_notes.md)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
 
         2.  编译生成二进制安装包。
 

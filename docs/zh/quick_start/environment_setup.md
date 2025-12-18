@@ -8,5 +8,5 @@
     -   操作系统：选择可用的操作系统（兼容性请参考[兼容性查询助手](https://www.hiascend.com/hardware/compatibility)）
     -   业务场景：选择“训练&推理&开发调试”
 
--   安装PyTorch框架及torch\_npu插件请参见《[Ascend Extension for PyTorch 软件安装指南](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0001.html)》。
+-   安装PyTorch框架及torch\_npu插件请参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》。
 
