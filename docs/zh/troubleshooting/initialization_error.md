@@ -21,7 +21,7 @@ File "/home/HwHiAiUser/anaconda3/envs/PyTorch-2.1.0/lib/python3.9/site-packages/
 
 关键过程：初始化过程中报错。
 
-根本原因分析：初始化时调用底层接口中间出现报错。
+根本原因分析：初始化时调用底层接口的过程中出现报错。
 
 ## 处理方法
 
@@ -38,7 +38,7 @@ File "/home/HwHiAiUser/anaconda3/envs/PyTorch-2.1.0/lib/python3.9/site-packages/
 </tr>
 <tr id="row1082711617201"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.3.1"><p id="p1782741619205">故障解释/可能原因</p>
 </th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.3.1 "><p id="p435810129442">初始化时调用底层接口中间出现报错</p>
+<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.3.1 "><p id="p435810129442">初始化时调用底层接口的过程中出现报错</p>
 </td>
 </tr>
 <tr id="row1474663022115"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.4.1"><p id="p774617303213">故障影响</p>
@@ -48,7 +48,7 @@ File "/home/HwHiAiUser/anaconda3/envs/PyTorch-2.1.0/lib/python3.9/site-packages/
 </tr>
 <tr id="row19915122652114"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.5.1"><p id="p1791515262213">故障自处理模式</p>
 </th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.5.1 "><p id="p1560422614445">参考CANN文档<span id="ph124555416557">中“<a href="https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/troubleshooting/troubleshooting_0062.html" target="_blank" rel="noopener noreferrer">问题定位思路</a>”章节中的指导</span>进行故障处理</p>
+<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.5.1 "><p id="p1560422614445">参考《CANN 故障处理》<span id="ph124555416557">中的“<a href="https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/troubleshooting/troubleshooting_0062.html" target="_blank" rel="noopener noreferrer">进程中断问题定位思路</a>”章节</span>进行故障处理</p>
 </td>
 </tr>
 <tr id="row1356182417228"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.6.1"><p id="p175662413229">系统处理建议</p>

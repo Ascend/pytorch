@@ -2,7 +2,7 @@
 
 ## 问题现象
 
-回显信息中存在关键字“**Address already in use**”，类似如下屏显信息：
+回显信息中存在关键字“**Address already in use**”，类似如下打印信息：
 
 ```ColdFusion
 torch.distributed.run: [WARNING] *****************************************
@@ -45,7 +45,7 @@ RuntimeError: The server socket has failed to listen on any local network addres
 
 关键过程：刚启动分布式任务时，就报该错误。
 
-根本原因分析：拉起的分布式任务中断后有残留进程，或者环境中存在同样端口号的进程，导致该端口号被占用。
+根本原因分析：运行的分布式任务中断后有残留进程，或者环境中存在同样端口号的进程，导致该端口号被占用。
 
 ## 处理方法
 
@@ -67,13 +67,13 @@ RuntimeError: The server socket has failed to listen on any local network addres
 </tr>
 <tr id="row1474663022115"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.4.1"><p id="p774617303213">故障影响</p>
 </th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.4.1 "><p id="p15426111163718">端口号被占用，不能正常通信，分布式任务失败。</p>
+<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.4.1 "><p id="p15426111163718">端口号被占用，导致无法正常通信，进而使分布式任务失败。</p>
 </td>
 </tr>
 <tr id="row19915122652114"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.5.1"><p id="p1791515262213">故障自处理模式</p>
 </th>
 <td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.5.1 "><p id="p142311119376">查看分布式代码所有的端口号，并修改为其他端口号。</p>
-<p id="p16491955122416">查看并修改脚本中os.environ['MASTER_PORT']设置的端口号，例如：</p>
+<p id="p16491955122416">查看并修改脚本中os.environ['MASTER_PORT']配置的端口号，例如：</p>
 <div class="p" id="p97898531692">修改前<pre class="screen" id="screen9561924153017">os.environ['MASTER_PORT'] =<em id="i18442204115219"> '</em><em id="i1794513189101"><strong id="b1662431622710">29500</strong></em><em id="i7442154152118">'</em></pre>
 </div>
 <div class="p" id="p7671021193018">修改后<pre class="screen" id="screen7154153663015">os.environ['MASTER_PORT'] =<em id="i1164634520212"> '<strong id="b7714182014276">29580</strong>'</em></pre>

@@ -1,6 +1,6 @@
 # coredump问题定位
 
-当应用程序运行过程中发生异常，即屏幕中显示了“Segmentation fault”字样，则代表出现了coredump。如果屏幕中没有显示“Segmentation fault”，没有Python堆栈，plog日志中也没有ERROR级别的日志，且有进程收到11号信号，则也是属于出现了coredump。
+当应用程序运行过程中发生异常，即屏幕中显示了“Segmentation fault”字样，则表示出现了coredump。如果屏幕中没有显示“Segmentation fault”，没有Python堆栈，plog日志中也没有ERROR级别的日志，且有进程收到11号信号，则也是属于出现了coredump。
 
 ## 获取core文件
 
@@ -14,7 +14,7 @@
 
     如果为unlimited，则表示生成coredump文件的大小设置为无限制，此时如果进程崩溃就会生成coredump文件。
 
-    如果为0，即使发生了异常，也不会保存coredump文件，需要执行如下命令进行配置：
+    如果为0，发生异常时不会保存coredump文件，需要执行如下命令进行配置：
 
     ```
     ulimit -c unlimited

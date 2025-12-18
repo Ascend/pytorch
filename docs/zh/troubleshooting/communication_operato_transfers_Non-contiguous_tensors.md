@@ -2,7 +2,7 @@
 
 ## 问题现象
 
-回显信息中存在关键字“**RuntimeError: Tensors must be contiguous**”，类似如下屏显信息：
+回显信息中存在关键字“**RuntimeError: Tensors must be contiguous**”，类似如下打印信息：
 
 ```ColdFusion
 Traceback (most recent call last):

@@ -2,7 +2,7 @@
 
 ## 问题现象
 
-回显信息中存在关键字“**one of the variables needed for gradient computation has been modified by an inplace operation**”，类似如下屏显信息：
+回显信息中存在关键字“**one of the variables needed for gradient computation has been modified by an inplace operation**”，类似如下打印信息：
 
 ```ColdFusion
 ERROR: test_autograd_backward (__main__.TestMode)
@@ -25,7 +25,7 @@ RuntimeError: one of the variables needed for gradient computation has been modi
 
 ## 处理方法
 
-根据日志信息找到报错的代码行，将原地操作改为非原地操作。比如：将x += 2改为y = x + 2。
+根据日志信息找到报错的代码行，将原地操作改为非原地操作。例如：将x += 2改为y = x + 2。
 
 
 <table><tbody><tr id="row133331920165614"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.1.1"><p id="p83339201562">Error Code</p>
