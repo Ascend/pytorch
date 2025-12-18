@@ -38,9 +38,9 @@
 |Tensor.addbmm|是|支持fp16，fp32|
 |Tensor.addbmm_|是|支持fp16，fp32|
 |Tensor.addcdiv|是|支持fp16，fp32，int64<br>int64类型不支持三个tensor同时广播|
-|Tensor.addcdiv_|是|<term>Atlas A2 训练系列产品/Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64<br>int64类型不支持三个tensor同时广播|
+|Tensor.addcdiv_|是|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64<br>int64类型不支持三个tensor同时广播|
 |Tensor.addcmul|是|支持fp16，fp32，int64<br>int64类型不支持三个tensor同时广播|
-|Tensor.addcmul_|是|<term>Atlas A2 训练系列产品/Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64，uint8，int8，int32，int64<br>int64类型不支持三个tensor同时广播|
+|Tensor.addcmul_|是|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64，uint8，int8，int32，int64<br>int64类型不支持三个tensor同时广播|
 |Tensor.addmm|是|支持bf16，fp16，fp32|
 |Tensor.addmm_|是|支持fp16，fp32|
 |Tensor.sspaddmm|否|-|

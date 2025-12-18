@@ -96,7 +96,7 @@
 |torch.nn.Conv2d|是|支持bf16，fp16，fp32<br><term>Atlas A2 训练系列产品</term>默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不使能内部格式，避免在线编译|
 |torch.nn.Conv3d|是|支持bf16，fp16，fp32|
 |torch.nn.ConvTranspose1d|是|支持fp32|
-|torch.nn.ConvTranspose2d|是|支持fp16，fp32<br><term>Atlas 训练系列产品/Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入|
+|torch.nn.ConvTranspose2d|是|支持fp16，fp32<br><term>Atlas 训练系列产品</term>/<term>Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入|
 |torch.nn.ConvTranspose3d|否|-|
 |torch.nn.LazyConv1d|是|支持fp16，fp32|
 |torch.nn.LazyConv1d.cls_to_become|是|-|

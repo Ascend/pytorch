@@ -30,7 +30,7 @@
 |torch.backends.mps.is_built|-|是|-|
 |torch.backends.mkl.is_available|-|是|-|
 |torch.backends.mkl.verbose|-|是|-|
-|torch.backends.mkldnn.is_available|-|Atlas <term>训练系列产品</term>：是<br><term>Atlas A2 训练系列产品</term>：是<br><term>Atlas A3 训练系列产品</term>：否|-|
+|torch.backends.mkldnn.is_available|-|<term>Atlas 训练系列产品</term>：是<br><term>Atlas A2 训练系列产品</term>：是<br><term>Atlas A3 训练系列产品</term>：否|-|
 |torch.backends.mkldnn.verbose|-|是|-|
 |torch.backends.openmp.is_available|-|是|支持fp32|
 |torch.backends.opt_einsum.is_available|-|是|支持fp32|
