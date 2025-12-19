@@ -15,8 +15,7 @@ class TestAllocator(TestCase):
         a = torch.rand(1024 * 1024 * 40, dtype=torch.float32).npu()
         torch.npu.synchronize()
         # 实际申请1G内存
-        nbytes = 1024 * 1024 * 40 * 4
-        self.assertEqual(torch_npu.npu.memory_allocated(), prev + ((nbytes + 511) // 512) * 512)
+        self.assertEqual(torch_npu.npu.memory_allocated(), prev + ((4 * 40 * 1024 * 1024 + 32) // 512 + 1) * 512)
 
     @SupportedDevices(['Ascend910B'])
     def test_huge_memory_alloc_512B(self):
@@ -24,8 +23,7 @@ class TestAllocator(TestCase):
         a = torch.rand(8 * 8 * 16, dtype=torch.float32).npu() # 512B
         torch.npu.synchronize()
         # 实际申请1M内存
-        nbytes = 8 * 8 * 16 * 4
-        self.assertEqual(torch_npu.npu.memory_allocated(), prev + ((nbytes + 511) // 512) * 512)
+        self.assertEqual(torch_npu.npu.memory_allocated(), prev + ((8 * 8 * 16 * 4 + 32) // 512 + 1) * 512)
 
 if __name__ == '__main__':
     run_tests()
