@@ -57,6 +57,7 @@ __all__ = [
     "Stream",
     "Event",
     "set_option",
+    "CubeMathType",
     "set_aoe",
     "set_compile_mode",
     "set_mm_bmm_format_nd",
@@ -180,6 +181,7 @@ config = npu_config._npuConfig()
 
 matmul = npu_config._allowHF32Matmul()
 conv = npu_config._allowHF32Conv()
+CubeMathType = npu_config._CubeMathType
 
 default_generators: Tuple[torch._C.Generator] = ()  # type: ignore[assignment]
 
