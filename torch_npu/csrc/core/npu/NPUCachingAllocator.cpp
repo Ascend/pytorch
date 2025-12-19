@@ -1988,19 +1988,6 @@ public:
         return result;
     }
 
-    static bool should_apply_legacy_round_padding()
-    {
-        static bool should_pad = []() -> bool {
-            const auto &soc_version = c10_npu::GetSocVersion();
-            const bool disable_padding =
-                (soc_version >= c10_npu::SocVersion::Ascend910B1 &&
-                 soc_version <= c10_npu::SocVersion::Ascend910B4_1) ||
-                (soc_version >= c10_npu::SocVersion::Ascend910_9391);
-            return !disable_padding;
-        }();
-        return should_pad;
-    }
-
     // This function takes the size and number of divisions argument and rounds
     // up the size argument for the nearest power-of-2 division.
     // For example, if we need to round-up 1200 and number of divisions is 4,
@@ -2031,9 +2018,7 @@ public:
     static size_t round_size(size_t size)
     {
         constexpr size_t kPadSize = 32;
-        if (should_apply_legacy_round_padding()) {
-            size += kPadSize;
-        }
+        size += kPadSize;
 
         if (size < kMinBlockSize) {
             return kMinBlockSize;
