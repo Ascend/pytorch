@@ -379,6 +379,7 @@ at::Tensor &OpPreparation::CastBackToOriFormat(at::Tensor &tensor)
     return tensor;
 }
 
+int8_t OpPreparation::get_cube_math_type() { return CalcuOpUtil::GetCubeMathType(); }
 int8_t OpPreparation::get_cube_math_type(bool allowHf32) { return CalcuOpUtil::GetCubeMathType(allowHf32); }
 
 inline at::Tensor apply_tensor_use_empty(c10::IntArrayRef sizes, const c10::TensorOptions &options)
