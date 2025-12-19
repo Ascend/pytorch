@@ -1,7 +1,10 @@
 import os
+import sys
+import platform
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import torch
+import torch._inductor.cpp_builder as cpp_builder
 from torch.utils.cpp_extension import _HERE, _TORCH_PATH, TORCH_LIB_PATH
 
 from torch_npu.utils.cpp_extension import PYTORCH_NPU_INSTALL_PATH
@@ -116,5 +119,56 @@ def get_cpp_torch_device_options(
     )
 
 
+def _get_optimization_cflags(
+    cpp_compiler: str, min_optimize: bool = False
+) -> tuple[list[str], list[str]]:
+    from torch._inductor.cpp_builder import _get_ffast_math_flags, _is_gcc, _is_clang, _get_inductor_debug_symbol_cflags
+    from torch._inductor import config
+    from torch._inductor.utils import _IS_WINDOWS
+    cflags: list[str] = []
+    ldflags: list[str] = []
+
+    b_debug_build = (
+        config.aot_inductor.debug_compile
+        or os.environ.get("TORCHINDUCTOR_DEBUG_SYMBOL", "0") == "1" 
+    )
+    wrapper_opt_level = config.aot_inductor.compile_wrapper_opt_level
+
+    if b_debug_build:
+        cflags, ldflags = _get_inductor_debug_symbol_cflags()
+        if _IS_WINDOWS:
+            cflags += ["Od", "Ob0", "Oy-"]
+        else: 
+            cflags.append("O0")
+    else:
+        if _IS_WINDOWS:
+            cflags = ["O1" if min_optimize else "O2"]
+        else:
+            cflags = [wrapper_opt_level if min_optimize else "O3", "DNDEBUG"]
+            
+    cflags += _get_ffast_math_flags()
+
+    if _IS_WINDOWS: 
+        pass
+    else:     
+        if sys.platform != "darwin":
+            # on macos, unknown argument: '-fno-tree-loop-vectorize' 
+            if _is_gcc(cpp_compiler):
+                cflags.append("fno-tree-loop-vectorize")
+            # -march=native is unrecognized option on M1 
+            if not config.is_fbcode(): 
+                if platform.machine() == "ppc64le":
+                    cflags.append("mcpu=native")
+
+        if config.aot_inductor.enable_lto and _is_clang(cpp_compiler): 
+            cflags.append("flto=thin")
+
+    return cflags, ldflags
+
+
 def patch_get_cpp_torch_device_options():
     torch._inductor.cpp_builder.get_cpp_torch_device_options = get_cpp_torch_device_options
+
+
+def patch_get_optimization_cflags():
+    cpp_builder._get_optimization_cflags = _get_optimization_cflags

@@ -2,7 +2,6 @@ import os
 
 import torch
 from torch._dynamo.device_interface import register_interface_for_device, get_interface_for_device
-from torch._inductor import cpp_builder
 from torch._inductor import lowering as inductor_lowering
 from torch._inductor.choices import InductorChoices
 from torch._inductor.codegen.common import register_backend_for_device, register_device_op_overrides
@@ -23,6 +22,7 @@ from .npu_device import NewNPUDeviceOpOverrides
 from .runtime import _load_cached_autotuning
 from .utils import get_current_raw_stream, patch_is_gpu, patch_has_triton, disable_foreach
 from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
+from .cpp_builder import patch_get_optimization_cflags
 
 set_compile_threads()
 disable_comprehensive_padding()
@@ -68,36 +68,6 @@ def patch_torch_for_aoti():
     patch_aot_code_compiler_compile()
 
 
-def patch_get_optimization_cflags(
-    cpp_compiler: str, min_optimize: bool = False
-) -> list[str]: 
-    if _IS_WINDOWS: 
-        return ["O1" if min_optimize else "O2"]
-    else: 
-        wrapper_opt_level = config.aot_inductor.compile_wrapper_opt_level
-        cflags = (
-            ["O0", "g"]
-            if config.aot_inductor.debug_compile
-            else [wrapper_opt_level if min_optimize else "O3", "DNDEBUG"] 
-        )
-        cflags += _get_ffast_math_flags()
-        cflags.append("fno-finite-math-only")
-        if not config.cpp.enable_unsafe_math_opt_flag:
-            cflags.append("fno-unsafe-math-optimizations")
-        cflags.append(f"ffp-contract={config.cpp.enable_floating_point_contract_flag}") 
-        
-        if sys.platform != "darwin":
-            # on macos, unknown argument: '-fno-tree-loop-vectorize' 
-            if _is_gcc(cpp_compiler):
-                cflags.append("fno-tree-loop-vectorize")
-            # -march=native is unrecognized option on M1 
-            if not config.is_fbcode(): 
-                if platform.machine() == "ppc64le":
-                    cflags.append("mcpu=native")
-
-        return cflags
-
-
 if os.environ.get("DISABLE_AOTI_PATCH", "0") != "1":
     patch_torch_for_aoti()
 
@@ -131,11 +101,10 @@ if (aggresive_autotune):
 
 InductorChoices.should_use_persistent_reduction = should_use_persistent_reduction
 autotune_cache._load_cached_autotuning = _load_cached_autotuning
-cpp_builder._get_optimization_cflags = patch_get_optimization_cflags
 
 register_fa_pass()
 patch_cache_base_get_system()
 patch_is_gpu()
 patch_has_triton()
 disable_foreach()
-
+patch_get_optimization_cflags()
