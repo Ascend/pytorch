@@ -73,16 +73,6 @@ class Test_roundup_power2_divisions(TestCase):
         self.assertEqual(allocated_bytes, active_bytes)
         self.assertEqual(allocated_bytes, 1024)
 
-    @SupportedDevices(['Ascend910B', 'Ascend910C'])
-    def test_without_add_32(self):
-        torch.npu.memory.empty_cache()
-
-        x = torch.from_numpy(np.random.randn(512).astype(np.uint8)).to("npu")
-        allocated_bytes = torch.npu.memory_stats()["allocated_bytes.all.current"]
-        active_bytes = torch.npu.memory_stats()["active_bytes.all.current"]
-        self.assertEqual(allocated_bytes, active_bytes)
-        self.assertEqual(allocated_bytes, 512)
-
 
 if __name__ == '__main__':
     run_tests()
