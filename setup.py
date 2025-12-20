@@ -736,7 +736,7 @@ setup(
                 include_dirs=include_directories,
                 extra_compile_args=extra_compile_args + ['-fstack-protector-all'] + ['-D__FILENAME__=\"InitNpuBindings.cpp\"'],
                 library_dirs=["lib"],
-                extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib'],
+                extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib', '-Wl,-Bsymbolic-functions'],
                 define_macros=[('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'), ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0')]
             ),
     ],
