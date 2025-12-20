@@ -242,6 +242,10 @@ aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterType type,
  */
 aclError AclrtHostUnregister(void *ptr);
 
+aclError AclrtMallocHostWithCfg(void **ptr, uint64_t size, aclrtMallocConfig *cfg);
+
+bool AclrtMallocHostWithCfgExist();
+
 aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *key, size_t len, uint64_t flag);
 
 aclError AclrtIpcMemSetImportPid(const char *key, int32_t *pid, size_t num);
