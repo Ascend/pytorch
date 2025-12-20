@@ -22,6 +22,7 @@
 
 namespace {
 constexpr float EPSILON = 1e-6;
+static const string CUBE_MATH_TYPE = "CUBE_MATH_TYPE";
 
 // check all at::ScalarType is not negative
 #define ENUM_PAIR_FUNC(_1, n) static_assert(static_cast<int64_t>(at::ScalarType::n) >= 0, #n " is negative");
@@ -316,10 +317,32 @@ using aclCubeMathType = enum : int8_t {
     ALLOW_FP32_DOWN_PRECISION = 1,
     USE_FP16 = 2,
     USE_HF32 = 3,
+    FORCE_GRP_ACC_FOR_FP32 = 4,
 };
 
 static std::unordered_map<uint8_t, aclCubeMathType> ACL_CUBE_MATH_TYPE_MAP = {
     {0b00, KEEP_DTYPE}, {0b01, USE_FP16}, {0b10, USE_HF32}, {0b11, ALLOW_FP32_DOWN_PRECISION}};
+
+static std::unordered_map<uint8_t, aclCubeMathType> ACL_CUBE_MATH_TYPE_MAP_PASSTHROUGH = {
+    {0b00, KEEP_DTYPE},
+    {0b01, ALLOW_FP32_DOWN_PRECISION},
+    {0b10, USE_FP16},
+    {0b11, USE_HF32},
+    {0b100, FORCE_GRP_ACC_FOR_FP32}
+};
+
+int8_t CalcuOpUtil::GetCubeMathType()
+{
+    auto option_key = c10_npu::option::GetOption(CUBE_MATH_TYPE);
+    if (option_key.has_value() && !option_key.value().empty()) {
+        uint8_t cube_math_type = static_cast<uint8_t>(std::stoi(option_key.value().c_str()));
+        auto iter = ACL_CUBE_MATH_TYPE_MAP_PASSTHROUGH.find(cube_math_type);
+        if (iter != ACL_CUBE_MATH_TYPE_MAP_PASSTHROUGH.end()) {
+        return iter->second;
+        }
+    }
+    return -1;
+}
 
 int8_t CalcuOpUtil::GetCubeMathType(bool allowHf32)
 {

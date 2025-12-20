@@ -26,6 +26,7 @@ NOT_IMPORT_LIST = [
     "torch_npu.npu.LongTensor",
     "torch_npu.npu.ShortTensor",
     "torch_npu.npu.BFloat16Tensor",
+    "torch_npu.npu.CubeMathType",
     "torch_npu.distributed._verify_params_across_processes",
     "torch_npu.dynamo.torchair.ge.attr.Bool",
     "torch_npu.dynamo.torchair.ge.attr.DataType",
