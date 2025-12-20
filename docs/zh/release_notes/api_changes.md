@@ -9,13 +9,76 @@
 
 **表 1** Ascend Extension for PyTorch接口变更汇总
 
-|变更版本|类名/API原型|类/API类别|变更类别|变更说明|
-|--|--|--|--|--|
-|v2.7.1|||||
-|v2.6.0|变更同v2.7.1版本|
-|v2.8.0|变更同v2.7.1版本|
-|v2.9.0|变更同v2.7.1版本|
-
+<table>
+  <tr>
+    <th>变更版本</th>
+    <th>类名/API原型</th>
+    <th>类/API类别</th>
+    <th>变更类别</th>
+    <th>变更说明</th>
+  </tr>
+  <tr>
+    <th rowspan="8">v2.7.1</th>
+    <th>torch_npu.npu_grouped_matmul_swiglu_quant_v2</th>
+    <th>自定义接口</th>
+    <th>新增</th>
+    <th>新增接口</th>
+  </tr>
+  <tr>
+    <th>torch_npu.npu_gelu_mul</th>
+    <th>自定义接口</th>
+    <th>新增</th>
+    <th>新增接口</th>
+  </tr>
+  <tr>
+    <th>torch_npu.npu_sim_exponential_</th>
+    <th>自定义接口</th>
+    <th>新增</th>
+    <th>新增接口</th>
+  </tr>
+  <tr>
+    <th>torch_npu.npu_lightning_indexer</th>
+    <th>自定义接口</th>
+    <th>新增</th>
+    <th>新增接口</th>
+  </tr>
+  <tr>
+    <th>torch_npu.npu_lightning_indexer_grad</th>
+    <th>自定义接口</th>
+    <th>新增</th>
+    <th>新增接口</th>
+  </tr>
+  <tr>
+    <th>torch_npu.npu_sparse_flash_attention</th>
+    <th>自定义接口</th>
+    <th>新增</th>
+    <th>新增接口</th>
+  </tr>
+  <tr>
+    <th>torch_npu.npu_sparse_flash_attention_grad</th>
+    <th>自定义接口</th>
+    <th>新增</th>
+    <th>新增接口</th>
+  </tr>
+  <tr>
+    <th>torch_npu.npu_sparse_lightning_indexer_grad_kl_loss</th>
+    <th>自定义接口</th>
+    <th>新增</th>
+    <th>新增接口</th>
+  </tr>
+  <tr>
+    <th>v2.6.0</th>
+    <th colspan="4">变更同v2.7.1版本</th>
+  </tr>
+  <tr>
+    <th>v2.8.0</th>
+    <th colspan="4">变更同v2.7.1版本</th>
+  </tr>
+  <tr>
+    <th>v2.9.0</th>
+    <th colspan="4">变更同v2.7.1版本</th>
+  </tr>
+</table>
 
 > [!NOTE]  
 > Ascend Extension for PyTorch新增部分API支持及特性支持，具体可参考《Ascend Extension for PyTorch 自定义API参考》或《PyTorch 原生API支持度》。
