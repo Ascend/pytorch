@@ -1,4 +1,15 @@
+"""
+this file is used to enhance the npu frontend API by set_option or other.
+"""
+
+__all__ = ["set_option", "set_aoe",
+           "set_compile_mode", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
+           "is_jit_compile_false", "finalize_dump", "init_dump", "set_dump",
+           "set_device_limit", "get_device_limit", "set_stream_limit",
+           "reset_stream_limit", "get_stream_limit"]
+
 from logging import exception
+from enum import IntEnum, unique
 import inspect
 import os
 import warnings
@@ -7,14 +18,6 @@ import torch_npu._C
 from torch_npu.utils._path_manager import PathManager
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
 from .utils import _get_device_index
-
-# this file is used to enhance the npu frontend API by set_option or other.
-
-__all__ = ["set_option", "set_aoe", 
-           "set_compile_mode", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
-           "is_jit_compile_false", "finalize_dump", "init_dump", "set_dump",
-           "set_device_limit", "get_device_limit", "set_stream_limit",
-           "reset_stream_limit", "get_stream_limit"]
 
 _option_map = {"ACL_PRECISION_MODE": ["allow_fp32_to_fp16", "must_keep_origin_dtype"],
                "ACL_OP_SELECT_IMPL_MODE": ["high_performance", "high_precision"],
@@ -27,6 +30,15 @@ _option_map = {"ACL_PRECISION_MODE": ["allow_fp32_to_fp16", "must_keep_origin_dt
                "ACL_OP_DEBUG_OPTION": None}
 
 _deprecated_option_set = {"ACL_OP_SELECT_IMPL_MODE", "ACL_OPTYPELIST_FOR_IMPLMODE"}
+
+
+@unique
+class _CubeMathType(IntEnum):
+    KEEP_DTYPE = 0
+    ALLOW_FP32_DOWN_PRECISION = 1
+    USE_FP16 = 2
+    USE_HF32 = 3
+    FORCE_GRP_ACC_FOR_FP32 = 4
 
 
 def _check_compile_option(name, value) -> bool:
@@ -59,7 +71,7 @@ def set_option(option):
             raise ValueError(f"value of {option_name} should be in %s "
                              % (_option_map[option_name]) + f"but got {option_value}" +
                              pta_error(ErrCode.PARAM))
-        
+
         if option_name in _deprecated_option_set:
             warnings.warn(f"{option_name} will be deprecated in future version. The accuracy or performance "
                           f"may not be the optimal when configuring this option. We do not recommend setting it.")
@@ -151,12 +163,21 @@ class _allowHF32Matmul:
         if name == "allow_hf32":
             option = {"ALLOW_MATMUL_HF32": "enable" if value else "disable"}
             torch_npu._C._npu_setOption(option)
+        elif name == "cube_math_type":
+            if(not isinstance(value, _CubeMathType)):
+                raise TypeError(f"value should be one of Enum CubeMathType when setting cube_math_type, but got {type(value)}")
+            torch_npu._C._npu_setOption({"CUBE_MATH_TYPE": str(value.value)})
 
     @classmethod
     def __getattr__(cls, name):
         if name == "allow_hf32":
             hf32_value = torch_npu._C._npu_getOption("ALLOW_MATMUL_HF32")
             return hf32_value is not None and hf32_value.decode() == "enable"
+        elif name == "cube_math_type":
+            cube_math_type_value = torch_npu._C._npu_getOption("CUBE_MATH_TYPE")
+            if cube_math_type_value is not None and len(cube_math_type_value) > 0:
+                return _CubeMathType(int(cube_math_type_value))
+            # if cube_math_type is not None:
         return None
 
 
