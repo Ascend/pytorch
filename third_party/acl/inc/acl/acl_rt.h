@@ -137,11 +137,13 @@ typedef enum {
     ACL_RT_MEM_ATTR_RSV = 0,
     ACL_RT_MEM_ATTR_MODULE_ID,
     ACL_RT_MEM_ATTR_DEVICE_ID,
+    ACL_RT_MEM_ATTR_VA_FLAG,
 } aclrtMallocAttrType;
 
 typedef union {
     uint16_t moduleId;
     uint32_t deviceId;
+    uint32_t vaFlag;
     uint8_t rsv[8];
 } aclrtMallocAttrValue;
 
@@ -1147,6 +1149,21 @@ ACL_FUNC_VISIBILITY aclError aclrtFree(void *devPtr);
  * @see aclrtFreeHost
  */
 ACL_FUNC_VISIBILITY aclError aclrtMallocHost(void **hostPtr, size_t size);
+
+/**
+ * @ingroup AscendCL
+ * @brief allocate host memory with config
+ *
+ * @param  ptr [OUT]    pointer to allocated memory
+ * @param  size [IN]    alloc memory size
+ * @param  cfg [IN]     memory alloc config
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtMallocHostWithCfg(void **ptr,
+                                                    uint64_t size,
+                                                    aclrtMallocConfig *cfg);
 
 /**
  * @ingroup AscendCL
