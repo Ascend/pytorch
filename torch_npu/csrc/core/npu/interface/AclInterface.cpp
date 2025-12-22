@@ -114,6 +114,8 @@ LOAD_FUNCTION(aclrtPointerGetAttributes)
 LOAD_FUNCTION(aclrtSetStreamAttribute)
 LOAD_FUNCTION(aclrtDeviceGetUuid)
 LOAD_FUNCTION(aclrtMallocHostWithCfg)
+LOAD_FUNCTION(aclrtValueWait)
+LOAD_FUNCTION(aclrtValueWrite)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -232,6 +234,37 @@ bool IsExistCreateEventExWithFlag()
     return func != nullptr;
 }
 
+bool IsExistValueWaitAndWrite()
+{
+    typedef aclError(*AclrtValueWaitFunc)(void*, uint64_t, uint32_t, aclrtStream);
+    static AclrtValueWaitFunc funcWait = (AclrtValueWaitFunc)GET_FUNC(aclrtValueWait);
+    typedef aclError(*AclrtValueWriteFunc)(void*, uint64_t, uint32_t, aclrtStream);
+    static AclrtValueWriteFunc funcwrite = (AclrtValueWriteFunc)GET_FUNC(aclrtValueWrite);
+    return funcWait != nullptr && funcwrite != nullptr;
+}
+
+aclError AclrtValueWait(void* event, aclrtStream stream)
+{
+    typedef aclError(*AclrtValueWaitFunc)(void*, uint64_t, uint32_t, aclrtStream);
+    static AclrtValueWaitFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtValueWaitFunc)GET_FUNC(aclrtValueWait);
+    }
+    TORCH_CHECK(func, "Failed to find function aclrtValueWait", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(event, 1, ACL_VALUE_WAIT_EQ, stream);
+}
+
+aclError AclrtValueWrite(void* event, uint64_t value, aclrtStream stream)
+{
+    typedef aclError(*AclrtValueWriteFunc)(void*, uint64_t, uint32_t, aclrtStream);
+    static AclrtValueWriteFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtValueWriteFunc)GET_FUNC(aclrtValueWrite);
+    }
+    TORCH_CHECK(func, "Failed to find function aclrtValueWrite", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(event, value, 0, stream);
+}
+
 aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag)
 {
     typedef aclError(*AclrtCreateEventWithFlagFunc)(aclrtEvent*, uint32_t);
@@ -247,7 +280,12 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag)
     }
     static AclrtCreateEventWithFlagFunc func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventWithFlag);
     TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag", PROF_ERROR(ErrCode::NOT_FOUND));
-    if ((flag == ACL_EVENT_EXTERNAL) || (func_ex == nullptr)) {
+    if (flag == ACL_EVENT_EXTERNAL && IsExistValueWaitAndWrite()) {
+        ASCEND_LOGI("External Event: Create the external event via AclrtMallocAlign32");
+        const uint32_t eventMemSize = 32;
+        return AclrtMallocAlign32(event, eventMemSize, ACL_MEM_MALLOC_NORMAL_ONLY);
+    }
+    if (func_ex == nullptr) {
         return func(event, flag);
     }
     return func_ex(event, flag);

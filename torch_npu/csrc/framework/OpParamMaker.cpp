@@ -622,6 +622,63 @@ void DeleteFunc(void *ptr)
     ptr = nullptr;
 }
 
+int ValueWriteFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
+{
+    auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
+    logger->debug("ValueWriteFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
+
+    aclError ret = aclrtValueWrite(cur_paras->event, 1, 0, stream);
+    if (ret != ACL_ERROR_NONE) {
+        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
+        if (ret_temp != ACL_ERROR_NONE) {
+            ret = ret_temp;
+        }
+        ASCEND_LOGE("ValueWriteFunc error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
+    }
+    c10_npu::NPUEventManager::GetInstance().DecreaseUnrecordedCount(cur_paras->event);
+    ASCEND_LOGI(
+        "External Event: ValueWriteFunc dequeue is successfully executed, stream=%p, event=%p",
+        stream,
+        cur_paras->event);
+
+    logger->debug("ValueWriteFunc Run, stream = %p, event = %p, ret = %d.", stream, cur_paras->event, ret);
+    return ret;
+}
+
+int ValueWaitResetFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
+{
+    auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
+    logger->debug("ValueWaitResetFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
+    aclError ret = aclrtValueWait(cur_paras->event, 1, ACL_VALUE_WAIT_EQ, stream);
+    if (ret != ACL_ERROR_NONE) {
+        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
+        if (ret_temp != ACL_ERROR_NONE) {
+            ret = ret_temp;
+        }
+        ASCEND_LOGE(
+            "aclrtValueWait error! ret = %d, eventAllocatorType = %d",
+            ret,
+            cur_paras->eventAllocatorType);
+    }
+
+    logger->debug("ValueResetFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
+    ret = aclrtValueWrite(cur_paras->event, 0, 0, stream);
+    if (ret != ACL_ERROR_NONE) {
+        auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
+        if (ret_temp != ACL_ERROR_NONE) {
+            ret = ret_temp;
+        }
+        ASCEND_LOGE("aclrtValueWrite error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
+    }
+
+    ASCEND_LOGI(
+        "External Event: aclrtValueWait and aclrtValueWrite dequeue is successfully executed, stream=%p, event=%p",
+        stream,
+        cur_paras->event);
+    logger->debug("ValueWaitResetFunc Run, stream = %p, event = %p, ret = %d.", stream, cur_paras->event, ret);
+    return ret;
+}
+
 using Func = int (*)(c10_npu::queue::QueueParas *, aclrtStream);
 using AsyncFuncMap = std::map<c10_npu::queue::QueueParamType, Func>;
 AsyncFuncMap funcMap = {
@@ -631,6 +688,8 @@ AsyncFuncMap funcMap = {
     {c10_npu::queue::RECORD_EVENT, RecordEventFunc},
     {c10_npu::queue::WAIT_EVENT, WaitEventFunc},
     {c10_npu::queue::LAZY_DESTROY_EVENT, LazyDestroyEventFunc},
+    {c10_npu::queue::WRITE_VALUE, ValueWriteFunc},
+    {c10_npu::queue::WAIT_VALUE, ValueWaitResetFunc},
 };
 
 int AsncExecFunc(void *data)

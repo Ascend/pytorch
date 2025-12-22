@@ -93,6 +93,11 @@ aclError AclrtSetOpWaitTimeout(uint32_t timeout);
 bool IsExistCreateEventExWithFlag();
 
 /**
+ * This API is used to check whether aclrtValueWait and aclrtValueWrite exist
+*/
+bool IsExistValueWaitAndWrite();
+
+/**
  * @ingroup AscendCL
  * @brief create event instance
  *
@@ -317,6 +322,10 @@ aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType
 bool IsExistDeviceGetUuid();
 
 aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uuid);
+
+aclError AclrtValueWait(void* event, aclrtStream stream);
+
+aclError AclrtValueWrite(void* event, uint64_t value, aclrtStream stream);
 
 } // namespace acl
 } // namespace c10_npu

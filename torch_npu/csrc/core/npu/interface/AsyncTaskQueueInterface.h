@@ -42,6 +42,8 @@ enum QueueParamType {
     RESET_EVENT = 6,
     EXECUTE_OPAPI = 7,
     EXECUTE_OPAPI_V2 = 8,
+    WRITE_VALUE = 9,
+    WAIT_VALUE = 10,
 };
 
 struct QueueParas {
@@ -60,9 +62,9 @@ aclError LaunchBatchAsyncCopyTask(void **dsts, size_t *dstLens, void **srcs, siz
                                   aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes, size_t numAttrs,
                                   aclrtStream stream);
 
-aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
+aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream, unsigned int flags);
 
-aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
+aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream, unsigned int flags);
 
 aclError LaunchLazyDestroyEventTask(aclrtEvent event, c10::DeviceIndex device_index);
 
