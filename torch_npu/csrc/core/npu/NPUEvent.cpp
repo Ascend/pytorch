@@ -24,6 +24,9 @@ NPUEvent::NPUEvent()
 NPUEvent::~NPUEvent()
 {
     try {
+        if (flags_ == ACL_EVENT_EXTERNAL && c10_npu::acl::IsExistValueWaitAndWrite()) {
+            return;
+        }
         if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
             NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
             if (!c10_npu::acl::IsExistCreateEventExWithFlag() || c10_npu::option::OptionsManager::GetPerStreamQueue()) {
@@ -88,7 +91,11 @@ void NPUEvent::record(const NPUStream& stream)
         " does not match recording stream's device ", stream.device_index(), ".",
         PTA_ERROR(ErrCode::PARAM));
     NPUGuard guard(device_index_);
-    c10_npu::queue::LaunchRecordEventTask(event_, stream);
+    c10_npu::queue::LaunchRecordEventTask(event_, stream, flags_);
+    if (flags_ == ACL_EVENT_EXTERNAL && c10_npu::acl::IsExistValueWaitAndWrite()) {
+        ASCEND_LOGI("External Event: The record is ready to be executed via value write");
+        is_waited_ = false;
+    }
     was_recorded_ = true;
 }
 
@@ -104,7 +111,14 @@ void NPUEvent::block(const NPUStream& stream)
             std::this_thread::sleep_for(std::chrono::microseconds(10)); // 10 us
         }
         NPUGuard guard(stream.device_index());
-        c10_npu::queue::LaunchWaitEventTask(event_, stream);
+        c10_npu::queue::LaunchWaitEventTask(event_, stream, flags_);
+        if (flags_ == ACL_EVENT_EXTERNAL && c10_npu::acl::IsExistValueWaitAndWrite()) {
+            ASCEND_LOGI("External Event: The block is ready to be executed via value wait");
+            TORCH_CHECK(!is_waited_,
+                "External event: A single record operation cannot be associated with multiple wait operations.",
+                PTA_ERROR(ErrCode::INTERNAL));
+            is_waited_ = true;
+        }
     }
 }
 
@@ -177,7 +191,7 @@ void NPUEvent::synchronize() const
 
 void NPUEvent::reset(const NPUStream& stream) const
 {
-    if (is_created_) {
+    if (!c10_npu::acl::IsExistValueWaitAndWrite() && is_created_) {
         TORCH_CHECK(flags_ == ACL_EVENT_EXTERNAL,
                     "API reset() only support ACL_EVENT_EXTERNAL flag event.", PTA_ERROR(ErrCode::INTERNAL));
         NPUGuard guard(stream.device_index());

@@ -101,6 +101,18 @@ struct PyCallbackTrigger {
         static PyCallbackTrigger trigger = PyCallbackTrigger(mode);
         return &trigger;
     }
+    void traceNpuExternalEventWrite(uintptr_t event, uintptr_t stream) const
+    {
+        if (sanitizer_mode == SanitizerMode::STREAM) {
+            CONCRETE_TRACE_NPU("traceNpuExternalEventWriteCallbacks", event, stream);
+        }
+    }
+    void traceNpuExternalEventWait(uintptr_t event, uintptr_t stream) const
+    {
+        if (sanitizer_mode == SanitizerMode::STREAM) {
+            CONCRETE_TRACE_NPU("traceNpuExternalEventWaitCallbacks", event, stream);
+        }
+    }
 };
 
 PyCallbackTrigger* getPyCallbackTrigger(const int mode);
