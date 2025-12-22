@@ -1,7 +1,10 @@
 import os
+import sys
+import platform
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import torch
+import torch._inductor.cpp_builder as cpp_builder
 from torch.utils.cpp_extension import _HERE, _TORCH_PATH, TORCH_LIB_PATH
 
 from torch_npu.utils.cpp_extension import PYTORCH_NPU_INSTALL_PATH
@@ -116,5 +119,39 @@ def get_cpp_torch_device_options(
     )
 
 
+def _get_optimization_cflags(
+    cpp_compiler: str, min_optimize: bool = False
+) -> list[str]: 
+    if _IS_WINDOWS: 
+        return ["O1" if min_optimize else "O2"]
+    else: 
+        wrapper_opt_level = config.aot_inductor.compile_wrapper_opt_level
+        cflags = (
+            ["O0", "g"]
+            if config.aot_inductor.debug_compile
+            else [wrapper_opt_level if min_optimize else "O3", "DNDEBUG"] 
+        )
+        cflags += _get_ffast_math_flags()
+        cflags.append("fno-finite-math-only")
+        if not config.cpp.enable_unsafe_math_opt_flag:
+            cflags.append("fno-unsafe-math-optimizations")
+        cflags.append(f"ffp-contract={config.cpp.enable_floating_point_contract_flag}") 
+        
+        if sys.platform != "darwin":
+            # on macos, unknown argument: '-fno-tree-loop-vectorize' 
+            if _is_gcc(cpp_compiler):
+                cflags.append("fno-tree-loop-vectorize")
+            # -march=native is unrecognized option on M1 
+            if not config.is_fbcode(): 
+                if platform.machine() == "ppc64le":
+                    cflags.append("mcpu=native")
+
+        return cflags
+
+
 def patch_get_cpp_torch_device_options():
     torch._inductor.cpp_builder.get_cpp_torch_device_options = get_cpp_torch_device_options
+
+
+def patch_get_optimization_cflags():
+    cpp_builder._get_optimization_cflags = _get_optimization_cflags
