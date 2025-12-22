@@ -63,6 +63,8 @@ extern "C" {
 #define ACL_RT_VMM_EXPORT_FLAG_DEFAULT                0x0UL
 #define ACL_RT_VMM_EXPORT_FLAG_DISABLE_PID_VALIDATION 0x1UL
 
+#define ACL_VALUE_WAIT_EQ                0x1
+
 constexpr int32_t DEVICE_UTILIZATION_NOT_SUPPORT = -1;
 
 typedef enum aclrtRunMode {
@@ -2079,6 +2081,33 @@ ACL_FUNC_VISIBILITY aclError aclrtSetOpExecuteTimeOutV2(uint64_t timeout, uint64
 
 /**
  * @ingroup AscendCL
+ * @brief Write data to the specified memory. Asynchronous Interface.
+ *
+ * @param devAddr [IN]  Memory address on the Device side.
+ * @param value [IN]   The data to be written into the memory.
+ * @param flag [IN]   Reserved parameter, currently fixed to 0.
+ * @param stream [IN]   stream handle
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtValueWrite(void* devAddr, uint64_t value, uint32_t flag, aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
+ * @brief Unblock after the data in the specified memory meets certain conditions. Asynchronous Interface.
+ *
+ * @param devAddr [IN]  Memory address on the Device side.
+ * @param value [IN]   The value to be compared with the data in the memory.
+ * @param flag [IN]    comparison logic.
+ * @param stream [IN]  stream handle
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtValueWait(void* devAddr, uint64_t value, uint32_t flag, aclrtStream stream);
+
+/**
  * @brief set stream attribute
  * @param [in] stream       stream handle
  * @param [in] stmAttrType  stream attribute type, which value can be:
