@@ -64,6 +64,14 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
     @SupportedDevices(['Ascend910B'])
+    def test_update_stream_globally_unique(self):
+        torch.npu.set_device(0)
+
+        g1 = torch.npu.NPUGraph()
+        g2 = torch.npu.NPUGraph()
+        self.assertEqual(g1.graph_dispatch_mode.update_stream, g2.graph_dispatch_mode.update_stream)
+
+    @SupportedDevices(['Ascend910B'])
     def test_ifa_update_with_auto_dispatch_capture(self):
         torch.npu.set_device(0)
         length = [29]
