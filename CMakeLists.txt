@@ -295,6 +295,8 @@ if(${COMPILER_SUPPORTS_HIDDEN_VISIBILITY})
   target_compile_options(${PLUGIN_NAME} PRIVATE "-fvisibility=hidden")
 endif()
 
+target_link_options(${PLUGIN_NAME} PRIVATE "-Wl,-Bsymbolic-functions")
+
 if (DEFINED BUILD_TORCHAIR)
   add_subdirectory(${TORCHNPU_THIRD_PARTY_ROOT}/torchair)
   add_dependencies(${PLUGIN_NAME} copy_torchair_pyfiles)
