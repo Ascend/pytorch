@@ -351,6 +351,6 @@
 |torch.sym_max|是|支持fp32|
 |torch.sym_min|是|支持fp32|
 |torch.sym_not|是|支持fp32|
-|torch.compile|是|backend可支持npugraphs，整体功能对与backend="cudagraphs"一致
+|torch.compile|是|backend可支持npugraphs，整体功能与backend="cudagraphs"一致
 
 
