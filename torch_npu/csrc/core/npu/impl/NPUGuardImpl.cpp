@@ -141,7 +141,7 @@ void NPUGuardImpl::record(void **event, const c10::Stream &stream, const c10::De
     if (!npu_event) {
         createEvent(&npu_event, flag);
     }
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchRecordEventTask(npu_event, npu_stream));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchRecordEventTask(npu_event, npu_stream, 0));
     ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed, stream=%p, event=%p", npu_stream.stream(false),
                 npu_event);
     // Makes the void* point to the (possibly just allocated) NPU event
@@ -160,7 +160,7 @@ void NPUGuardImpl::block(void *event, const c10::Stream &stream) const
     NPUStream npu_stream{stream};
     const auto orig_device = getDevice();
     setDevice(stream.device());
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchWaitEventTask(npu_event, npu_stream));
+    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchWaitEventTask(npu_event, npu_stream, 0));
     ASCEND_LOGI("Event: aclrtStreamWaitEvent is successfully executed, stream=%p, event=%p",
                 npu_stream.stream(false), npu_event);
     setDevice(orig_device);

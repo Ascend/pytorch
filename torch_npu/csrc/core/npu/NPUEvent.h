@@ -59,6 +59,7 @@ private:
     bool was_recorded_ = false;
     c10::DeviceIndex device_index_ = -1;
     aclrtEvent event_ = nullptr;
+    bool is_waited_ = false;
 
     void createEvent(c10::DeviceIndex device_index);
     void moveHelper(NPUEvent&& other);
