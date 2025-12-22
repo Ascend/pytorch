@@ -329,6 +329,8 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, si
             {c10_npu::queue::WAIT_EVENT, &DqueueEvent},
             {c10_npu::queue::LAZY_DESTROY_EVENT, &DqueueEvent},
             {c10_npu::queue::RESET_EVENT, &DqueueEvent},
+            {c10_npu::queue::WRITE_VALUE, &DqueueEvent},
+            {c10_npu::queue::WAIT_VALUE, &DqueueEvent},
         };
         void *cur_addr =
             (uint8_t *)data + (sizeof(c10_npu::queue::QueueParas) + at_npu::native::MAX_PARAS_BYTE_SIZE) * offset;
