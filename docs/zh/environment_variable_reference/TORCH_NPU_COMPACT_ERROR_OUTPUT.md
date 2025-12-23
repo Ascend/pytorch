@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可精简打印错误信息，开启后会将CANN内部调用栈、Ascend Extension for PyTorch错误码等自定义报错信息转移到plog中，仅保留有效的错误说明，提高异常信息的可读性。
+通过此环境变量可精简打印错误信息，开启后会将CANN内部调用栈、Ascend Extension for PyTorch错误码等自定义报错信息转移到plog中，仅保留有效的错误说明，提高异常信息的可读性。plog的详细信息请参考[plog日志信息](../troubleshooting/plog_log.md)。
 
 -   配置为0时：正常进行ERROR打印。
 -   配置为1时：启用精简ERROR打印。

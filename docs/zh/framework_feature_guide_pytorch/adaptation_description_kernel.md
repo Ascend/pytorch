@@ -102,7 +102,7 @@
         ```
 
 3.  运行自定义算子。
-    1.  设置编译的AI处理器型号，将CmakeLists.txt内的SOC\_VERSION修改为所需产品型号。对应代码位置如下：
+    1.  设置编译的AI处理器型号，将CMakeLists.txt内的SOC\_VERSION修改为所需产品型号。对应代码位置如下：
 
         ```
         set(SOC_VERSION "Ascendxxxyy" CACHE STRING "system on chip type")

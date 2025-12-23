@@ -286,7 +286,7 @@ PyTorch官方提供的native\_functions.yaml文件定义了PyTorch Native Functi
                 if (!npu_utils::check_match(&result)) { 
                     // 若result非连续，创建连续tensor(contig_tensor)，接收ACLOP算子(abs)的输出。再将contig_tensor拷贝到原始输出result。
                     at::Tensor contiguous_result = npu_utils::format_contiguous(result); 
-                    abs_out_nocheck(contigTensor, self); 
+                    abs_out_nocheck(contiguous_result, self); 
                     npu_utils::format_fresh_view(result, contiguous_result); 
                 } else { 
                     // 若result连续，直接调用ACLOP算子。
@@ -362,16 +362,16 @@ PyTorch的算子自动反向微分依赖于算子的前反向绑定，即前向�
 
     所有版本的算子前反向绑定都在同一个derivatives.yaml里面，通过version字段来区分版本。
 
-## symint算子适配
+## SymInt算子适配
 
 > [!NOTE]  
->-  symint类型算子需参考此部分进行适配。
+>-  SymInt类型算子需参考此部分进行适配。
 >-  以下yaml配置和适配文件为已有配置和文件，此处仅为示例，用户需根据实际场景更改。
 
-symint为PyTorch在2.0及以上版本新增的数据类型，yaml配置中对应添加了symint字段。配置在symint字段下的函数表示底层函数实现支持了symint类型入参。对于底层不支持symint的函数，则无需在symint字段配置。部分情况需要在symint字段配置时，用户需进行如下操作进行算子适配:
+SymInt为PyTorch在2.0及以上版本新增的数据类型，yaml配置中对应添加了SymInt字段。配置在SymInt字段下的函数表示底层函数实现支持了SymInt类型入参。对于底层不支持SymInt的函数，则无需在SymInt字段配置。部分情况需要在SymInt字段配置时，用户需进行如下操作进行算子适配:
 
--   算子在配置yaml中除了在official或custom下声明函数外，还需要同时在symint下配置该算子。
--   算子名称在原有名称上添加\_symint后缀，如配置支持入参为symint类型的zeros算子，其yaml配置为：
+-   算子在配置yaml中除了在official或custom下声明函数外，还需要同时在SymInt下配置该算子。
+-   算子名称在原有名称上添加\_symint后缀，如配置支持入参为SymInt类型的zeros算子，其yaml配置为：
 
     ```yaml
     # 官方算子
@@ -384,7 +384,7 @@ symint为PyTorch在2.0及以上版本新增的数据类型，yaml配置中对应
        acl_op: v2.1, v2.2, v2.3, v2.4, v2.5, v2.6, v2.7, v2.8, v2.9, v2.10
     ```
 
-    其算子实现如下，其中算子名称为zeros\_symint，且入参中第一个参数的类型为symint相关的类型c10::SymIntArrayRef，同时由于symint特性只在PyTorch2.0以上支持，symint相关适配代码需要根据实际版本支持情况添加版本编译宏VERSION\_BETWEEN来控制编译：
+    其算子实现如下，其中算子名称为zeros\_symint，且入参中第一个参数的类型为SymInt相关的类型c10::SymIntArrayRef，同时由于SymInt特性只在PyTorch2.0以上支持，SymInt相关适配代码需要根据实际版本支持情况添加版本编译宏VERSION\_BETWEEN来控制编译：
 
     ```cpp
     #include "op_plugin/AclOpsInterface.h"
@@ -448,7 +448,7 @@ YAML配置有以下两种方式，可根据实际情况进行选择。每个结�
           size: broadcast_ops_npu_output_size(arg0, arg1)
         ```
 
-    -   dtype：配置输出tensor的dtype大小，如果大小和schema中的某个参数相同，可以配置成输入参数的名字。也可配置成自定义inferdtype函数，inferdtype函数需在KernelNpuOutputDtype.h中实现。对于out类接口，如果输出dtype不需要check，可省略此字段。配置方式主要包含以下几种：
+    -   dtype：配置输出tensor的dtype类型，如果类型和schema中的某个参数相同，可以配置成输入参数的名字。也可配置成自定义inferdtype函数，inferdtype函数需在KernelNpuOutputDtype.h中实现。对于out类接口，如果输出dtype不需要check，可省略此字段。配置方式主要包含以下几种：
 
         ```yaml
         Aten IR定义：

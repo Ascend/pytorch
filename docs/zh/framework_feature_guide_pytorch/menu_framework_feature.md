@@ -35,7 +35,7 @@
     -   [基于C++ extensions算子适配开发](./c_extensions_operator_adaptation.md)
         -   [适配说明](./adaptation_description_extension.md)
         -   [单算子API调用适配](./single_operator_adaptation.md)
-            -   [适配开发](./adaptation_description_singl.md)
+            -   [适配开发](./adaptation_description_single.md)
             -   [调用样例](./sample_call_single.md)
 
         -   [kernel直调算子适配](./kernel_launch_operator_adaptation.md)

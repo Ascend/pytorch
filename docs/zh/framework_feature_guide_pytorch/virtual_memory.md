@@ -2,7 +2,7 @@
 
 ## 简介
 
-虚拟内存管理机制主要是将地址和内存的概念分离。通过配置环境变量PYTORCH\_NPU\_ALLOC\_CONF或修改torch.npu.memory.\_set\_allcator\_settings接口“expandable\_segments“属性值，使PyTorch管理虚拟内存和物理内存的映射，并允许多次申请使用连续内存，通过构建可扩展的内存段，动态调整内存块的大小，可以减少内存碎片的产生。对于有较多内存碎片的模型，可以降低设备内存占用率。
+虚拟内存管理机制主要是将地址和内存的概念分离。通过配置环境变量PYTORCH\_NPU\_ALLOC\_CONF或修改torch.npu.memory.\_set\_allocator\_settings接口“expandable\_segments“属性值，使PyTorch管理虚拟内存和物理内存的映射，并允许多次申请使用连续内存，通过构建可扩展的内存段，动态调整内存块的大小，可以减少内存碎片的产生。对于有较多内存碎片的模型，可以降低设备内存占用率。
 
 如[图1](#虚拟地址与物理内存映射)所示，通过底层提供的接口，可以率先预留大块的虚拟地址空间作为一个内存块。用户不断申请内存时，可以得到在连续地址上的内存块，分别与不同地址的物理内存映射，释放内存时，连续地址的内存块可以合并成为一个内存块。
 
@@ -18,7 +18,7 @@
 可选择如下任一方式：
 
 -   设置环境变量PYTORCH\_NPU\_ALLOC\_CONF=expandable\_segments:<value\>，此环境变量使用详情请参考《环境变量参考》中的“PYTORCH\_NPU\_ALLOC\_CONF”章节。
--   修改torch.npu.memory.\_set\_allcator\_settings（“expandable\_segments: <value\>”）接口中的“expandable\_segments“属性值。
+-   修改torch.npu.memory.\_set\_allocator\_settings（“expandable\_segments: <value\>”）接口中的“expandable\_segments“属性值。
 
     value可以取值为True或False。默认为False。
 
@@ -42,25 +42,25 @@
     export PYTORCH_NPU_ALLOC_CONF=expandable_segments:False
     ```
 
--   torch.npu.memory.\_set\_allcator\_settings使用样例如下所示。
+-   torch.npu.memory.\_set\_allocator\_settings使用样例如下所示。
 
     开启虚拟内存机制：
 
     ```Python
-    torch.npu.memory._set_allcator_settings("expandable_segments:True")
+    torch.npu.memory._set_allocator_settings("expandable_segments:True")
     ```
 
     关闭虚拟内存机制：
 
     ```Python
-    torch.npu.memory._set_allcator_settings("expandable_segments:False")
+    torch.npu.memory._set_allocator_settings("expandable_segments:False")
     ```
 
 ## 约束说明
 
 expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
 
-torch.npu.memory.\_set\_allcator\_settings仅支持在PyTorch2.6.0及以上版本使用。
+torch.npu.memory.\_set\_allocator\_settings仅支持在PyTorch2.6.0及以上版本使用。
 
-torch.npu.memory.\_set\_allcator\_settings当前仅支持修改expandable\_segments属性。
+torch.npu.memory.\_set\_allocator\_settings当前仅支持修改expandable\_segments属性。
 

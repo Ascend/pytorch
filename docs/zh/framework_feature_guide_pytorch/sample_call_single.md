@@ -12,7 +12,7 @@
     cd samples/operator/ascendc/0_introduction/1_add_frameworklaunch/CppExtensionInvocation
     ```
 
-3.  完成算子适配，具体可参考[适配开发](./adaptation_description_singl.md)章节。
+3.  完成算子适配，具体可参考[适配开发](./adaptation_description_single.md)章节。
 4.  执行如下命令编译并安装wheel包。
 
     ```Python

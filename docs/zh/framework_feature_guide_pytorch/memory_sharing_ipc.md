@@ -72,9 +72,9 @@ IPC（Inter-Process Communication），表示进程间通信，进程间可以�
         print(func)
     list_args = list(args)
     # 修改目标设备为卡1，从而实现跨卡访问
-        list_args[6] = 1
-        tensor = func(*list_args)
-        print(f"接收方收到 tensor = {tensor}")
+    list_args[6] = 1
+    tensor = func(*list_args)
+    print(f"接收方收到 tensor = {tensor}")
      
      
     if __name__ == '__main__':

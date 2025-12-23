@@ -41,8 +41,8 @@
         }
         ```
 
-    2.  在add\_custom.cpp完成自定义算子前反向适配以及绑定，主要用于创建输出内存，调用底层算子进行计算，获取返回结果并输出，为[1.a](#li92751732161014)中注册的接口提供了具体实现。
-        1.  完成NPU设备的前反向代码实现以及前反向绑定，具体示例如下：
+    2.  在add\_custom.cpp完成自定义算子前向和反向的适配以及绑定，主要用于创建输出内存，调用底层算子进行计算，获取返回结果并输出，为[1.a](#li92751732161014)中注册的接口提供了具体实现。
+        1.  完成NPU设备的前向和反向代码实现以及绑定，具体示例如下：
 
             ```cpp
             // add_custom.cpp
@@ -65,7 +65,7 @@
                 at::Tensor result = grad; // 创建输出内存
                 return {result, result};
             }
-            // 通过继承torch::autograd::Function类实现前反向绑定
+            // 通过继承torch::autograd::Function类实现前向和反向绑定
             class AddCustomFunction : public torch::autograd::Function<AddCustomFunction> {
                 public:
                     static at::Tensor forward(AutogradContext *ctx, at::Tensor self, at::Tensor other) {
@@ -89,7 +89,7 @@
             at::Tensor add_custom_autograd(const at::Tensor& self, const at::Tensor& other) {
                 return AddCustomFunction::apply(self, other);
             }
-            // 为NPU设备注册前反向实现
+            // 为NPU设备注册前向和反向实现
             // NPU设备在pytorch 2.1及以上版本使用的设备名称是PrivateUse1，在2.1以下版本用的是XLA，如果是2.1以下版本PrivateUse1需要改成XLA
             TORCH_LIBRARY_IMPL(myops, PrivateUse1, m) {
                 m.impl("add_custom", &add_custom_impl_npu);
@@ -102,7 +102,7 @@
             }
             ```
 
-        2.  仅注册的自定义算子需要入图使用时，为Meta设备注册并完成前反向实现，具体示例如下：<a id="li118541236103118"></a>
+        2.  仅注册的自定义算子需要入图使用时，为Meta设备注册并完成前向和反向实现，具体示例如下：<a id="li118541236103118"></a>
 
             ```cpp
             // add_custom.cpp
@@ -116,7 +116,7 @@
                 auto result = at::empty_like(self);
                 return std::make_tuple(result, result);
             }
-            // 为Meta设备注册前反向实现
+            // 为Meta设备注册前向和反向实现
             TORCH_LIBRARY_IMPL(myops, Meta, m) {
                 m.impl("add_custom", &add_custom_impl_meta);
                 m.impl("add_custom_backward", &add_custom_backward_impl_meta);
@@ -124,7 +124,7 @@
             ```
 
     3.  <a id="li19878192404815"></a>
-        完成前反向适配以及绑定以后，在function.h正反向接口头文件中声明c++自动求导接口（例如：add\_customn\_autograd），并在registration.cpp自定义算子Aten IR注册文件中将C++自动求导的接口（例如：add\_custom\_autograd）通过pybind绑定一个python接口（例如：add\_custom），以便在python代码里调用。  
+        完成前向和反向适配以及绑定以后，在function.h正反向接口头文件中声明c++自动求导接口（例如：add\_custom\_autograd），并在registration.cpp自定义算子Aten IR注册文件中将C++自动求导的接口（例如：add\_custom\_autograd）通过pybind绑定一个python接口（例如：add\_custom），以便在python代码里调用。  
 
         function.h正反向接口头文件：
 
