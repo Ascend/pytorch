@@ -113,6 +113,7 @@ LOAD_FUNCTION(aclrtSetOpExecuteTimeOutV2)
 LOAD_FUNCTION(aclrtSetStreamAttribute)
 LOAD_FUNCTION(aclrtPointerGetAttributes)
 LOAD_FUNCTION(aclrtDeviceGetUuid)
+LOAD_FUNCTION(aclrtMallocHostWithCfg)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1009,6 +1010,40 @@ aclError AclrtHostUnregister(void *ptr)
 
     TORCH_CHECK(func, "Failed to find function aclrtHostUnregister", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(ptr);
+}
+
+aclError AclrtMallocHostWithCfg(void **ptr, uint64_t size, aclrtMallocConfig *cfg)
+{
+    typedef aclError (*AclrtMallocHostWithCfg)(void **, uint64_t, aclrtMallocConfig *);
+    static AclrtMallocHostWithCfg func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMallocHostWithCfg) GET_FUNC(aclrtMallocHostWithCfg);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtMallocHostWithCfg", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(ptr, size, cfg);
+}
+
+bool AclrtMallocHostWithCfgExist()
+{
+    const static bool isAclrtMallocHostWithCfgExist = []() -> bool {
+        std::string currentCANNVersion = GetCANNVersion("CANN");
+        if (currentCANNVersion == "") {
+            return false;
+        }
+        // determine the runtime version
+        const std::string kMinRuntimeVersion = "8.5.0";
+        if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
+            return false;
+        }
+        auto func = GET_FUNC(aclrtMallocHostWithCfg);
+        if (func != nullptr) {
+            ASCEND_LOGI("Successfully to find function aclrtMallocHostWithCfg");
+            return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
+        }
+        return false;
+    }();
+    return isAclrtMallocHostWithCfgExist;
 }
 
 aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *key, size_t len, uint64_t flag)
