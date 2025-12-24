@@ -33,7 +33,7 @@
     "signature": "(self, linear_quant_input: torch.Tensor) -> torch.Tensor"
   },
   "torch_npu.contrib.LinearWeightQuant": {
-    "signature": "(in_features, out_features, bias: bool = True, device=None, dtype=None, antiquant_offset: bool = False, quant_scale: bool = False, quant_offset: bool = False, antiquant_group_size: int = 0) -> None"
+    "signature": "(in_features, out_features, bias: bool = True, device=None, dtype=None, antiquant_offset: bool = False, quant_scale: bool = False, quant_offset: bool = False, antiquant_group_size: int = 0, inner_precise: int = 0, weight_dtype=None) -> None"
   },
   "torch_npu.contrib.LinearWeightQuant.forward": {
     "signature": "(self, x: torch.Tensor) -> torch.Tensor"
@@ -276,7 +276,7 @@
     "signature": "(self, linear_quant_input: torch.Tensor) -> torch.Tensor"
   },
   "torch_npu.contrib.module.LinearWeightQuant": {
-    "signature": "(in_features, out_features, bias: bool = True, device=None, dtype=None, antiquant_offset: bool = False, quant_scale: bool = False, quant_offset: bool = False, antiquant_group_size: int = 0) -> None"
+    "signature": "(in_features, out_features, bias: bool = True, device=None, dtype=None, antiquant_offset: bool = False, quant_scale: bool = False, quant_offset: bool = False, antiquant_group_size: int = 0, inner_precise: int = 0, weight_dtype=None) -> None"
   },
   "torch_npu.contrib.module.LinearWeightQuant.forward": {
     "signature": "(self, x: torch.Tensor) -> torch.Tensor"
@@ -483,7 +483,7 @@
     "signature": "(self, linear_quant_input: torch.Tensor) -> torch.Tensor"
   },
   "torch_npu.contrib.module.linear_weight_quant.LinearWeightQuant": {
-    "signature": "(in_features, out_features, bias: bool = True, device=None, dtype=None, antiquant_offset: bool = False, quant_scale: bool = False, quant_offset: bool = False, antiquant_group_size: int = 0) -> None"
+    "signature": "(in_features, out_features, bias: bool = True, device=None, dtype=None, antiquant_offset: bool = False, quant_scale: bool = False, quant_offset: bool = False, antiquant_group_size: int = 0, inner_precise: int = 0, weight_dtype=None) -> None"
   },
   "torch_npu.contrib.module.linear_weight_quant.LinearWeightQuant.forward": {
     "signature": "(self, x: torch.Tensor) -> torch.Tensor"
@@ -594,7 +594,7 @@
     "signature": "(*, compiler_config: torchair.configs.compiler_config.CompilerConfig = None, custom_decompositions: Dict = {})"
   },
   "torch_npu.dynamo.torchair.ops.npu_print": {
-    "signature": "(*args, summarize_size=3)"
+    "signature": "(*args, summarize_size=3, tensor_detail=False)"
   },
   "torch_npu.dynamo.torchair.patch_for_hcom": {
     "signature": "()"
@@ -720,7 +720,7 @@
     "signature": "()"
   },
   "torch_npu.npu.graphs.graph": {
-    "signature": "(npu_graph, pool=None, stream=None, capture_error_mode: str = 'global')"
+    "signature": "(npu_graph, pool=None, stream=None, auto_dispatch_capture=False, capture_error_mode: str = 'global')"
   },
   "torch_npu.npu.graphs.graph_task_update_end": {
     "signature": "(stream)"
@@ -903,7 +903,7 @@
     "signature": "(self, pool=None, capture_error_mode='global')"
   },
   "torch_npu.npu.graph": {
-    "signature": "(npu_graph, pool=None, stream=None, capture_error_mode: str = 'global')"
+    "signature": "(npu_graph, pool=None, stream=None, auto_dispatch_capture=False, capture_error_mode: str = 'global')"
   },
   "torch_npu.npu.Event.recorded_time": {
     "signature": "(self)"
@@ -1815,7 +1815,7 @@
     "signature": "()"
   },
   "torch_npu.profiler._ExperimentalConfig": {
-    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
+    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, mstx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
   },
   "torch_npu.profiler.profile": {
     "signature": "(*, activities: Optional[Iterable[torch_npu._C._profiler.ProfilerActivity]] = None, schedule: Optional[Callable[[int], torch_npu.profiler.scheduler.ProfilerAction]] = None, on_trace_ready: Optional[Callable[..., Any]] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Optional[torch_npu.profiler.experimental_config._ExperimentalConfig] = None, use_cuda: Optional[bool] = None)"
@@ -1851,7 +1851,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.tensorboard_trace_handler": {
-    "signature": "(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True)"
+    "signature": "(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True, async_mode: bool = False)"
   },
   "torch_npu.profiler.dynamic_profile.init": {
     "signature": "(path: str)"
@@ -1872,7 +1872,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.experimental_config._ExperimentalConfig": {
-    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
+    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, mstx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
   },
   "torch_npu.profiler.experimental_config.supported_ai_core_metrics": {
     "signature": "()"
@@ -1908,7 +1908,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.profiler.tensorboard_trace_handler": {
-    "signature": "(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True)"
+    "signature": "(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True, async_mode: bool = False)"
   },
   "torch_npu.profiler.profiler_interface.supported_activities": {
     "signature": "()"
@@ -2178,7 +2178,7 @@
     "signature": "(self, x1, alpha, prob, dim)"
   },
   "torch_npu.npu_dynamic_quant": {
-    "signature": "(input_dummy, smooth_scales=None)"
+    "signature": "(input_dummy, smooth_scales=None, group_index=None, dst_type=torch.int8)"
   },
   "torch_npu.npu_dynamic_quant_asymmetric": {
     "signature": "(input_dummy, smooth_scales=None, group_index=None, dst_type=torch.int8)"
