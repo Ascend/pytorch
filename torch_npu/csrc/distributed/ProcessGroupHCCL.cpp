@@ -3544,7 +3544,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     Fn fn,
     PreProcess pre,
     PostProcess post,
-    c10d::OpType opType)
+    c10d::OpType opType,
+    bool asyncOp)
 {
     c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
 
@@ -3558,10 +3559,23 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     HcclCommConfig config = createHcclCommConfigWithOptions();
     std::vector<std::shared_ptr<HCCLComm>> hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
 
-    // Used many times below, so we stash the unordered_map lookup
-    auto& hcclStreams = hcclStreams_[key];
-    // First let HCCL streams wait for input tensors allocation streams
-    syncStreams(devices, hcclEvents_[key], hcclStreams);
+    // Choose streams based on asyncOp flag:
+    // - If asyncOp=true: use pre-allocated HCCL streams from hcclStreams_[key]
+    // - If asyncOp=false: use the current stream for each device
+    std::vector<c10_npu::NPUStream> hcclStreams;
+    if (asyncOp) {
+        // Use pre-allocated streams for async operations
+        hcclStreams = hcclStreams_[key];
+        syncStreams(devices, hcclEvents_[key], hcclStreams);
+    } else {
+        // For synchronous operations, get the current stream for each device
+        hcclStreams.reserve(devices.size());
+        for (const auto& device : devices) {
+            hcclStreams.push_back(c10_npu::getCurrentNPUStream(device.index()));
+        }
+        // For sync operations, we skip syncStreams since we're using the current stream directly
+    }
+
     // Work itself will create the events on all NPUs of tensors
     auto work = initWork(devices, rank_, opType, "", inputs, outputs, true);
     // Store references to outputs to be used by WorkHCCL::result and operator<<.
@@ -3639,46 +3653,49 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         }
     }
 
-    for (const auto i : c10::irange(inputs.size())) {
-        npuGuard.set_index(devices[i].index());
-        c10_npu::NPUStream& hcclStream = hcclStreams[i];
+    if (asyncOp) {
+        for (const auto i : c10::irange(inputs.size())) {
+            npuGuard.set_index(devices[i].index());
+            c10_npu::NPUStream& hcclStream = hcclStreams[i];
 
-        // Both `inputs' and `outputs' are created on a worker stream and used in
-        // different hcclStreams.  Hence, both must record the hcclStream to
-        // prevent being freed before the collective finishes.
-        //
-        // We only record `inputs' here, and leave recording `outputs' to `fn' for
-        // operations where `inputs' and `outputs' are not the same.
-        //
-        // See [Sync Streams].
-        auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
-        if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
-            // AVOID_RECORD_STREAM note:
-            // batch_isend_irecv should be ok with avoidRecordStreams,
-            // However, for batch_isend_irecv, I don't think the API requires the user
-            // to wait() on the returned handle, so ProcessGroupHCCL can't know
-            // when it's safe to release the input back to the allocator,
-            // and the present call has no way to know it's not an batch_isend_irecv.
-            // Therefore, we warn and fall back to the typical recordStream logic:
-            if (opType == c10d::OpType::UNKNOWN) {
-                c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
-                work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
+            // Both `inputs' and `outputs' are created on a worker stream and used in
+            // different hcclStreams.  Hence, both must record the hcclStream to
+            // prevent being freed before the collective finishes.
+            //
+            // We only record `inputs' here, and leave recording `outputs' to `fn' for
+            // operations where `inputs' and `outputs' are not the same.
+            //
+            // See [Sync Streams].
+            auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+            if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
+                // AVOID_RECORD_STREAM note:
+                // batch_isend_irecv should be ok with avoidRecordStreams,
+                // However, for batch_isend_irecv, I don't think the API requires the user
+                // to wait() on the returned handle, so ProcessGroupHCCL can't know
+                // when it's safe to release the input back to the allocator,
+                // and the present call has no way to know it's not an batch_isend_irecv.
+                // Therefore, we warn and fall back to the typical recordStream logic:
+                if (opType == c10d::OpType::UNKNOWN) {
+                    c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
+                    work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
+                } else {
+                    work->stashed_for_allocator_safety_.push_back(inputs[i]);
+                }
             } else {
-                work->stashed_for_allocator_safety_.push_back(inputs[i]);
-            }
-        } else {
-            c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
-            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
-                multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
-                work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
-                if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
-                    auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputs[i].storage().data_ptr());
-                    work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
-                    c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
+                if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                    multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                    work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
+                    if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                        auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputs[i].storage().data_ptr());
+                        work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                        c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                    }
                 }
             }
         }
     }
+
     {
         for (const auto i : c10::irange(inputs.size())) {
             npuGuard.set_index(devices[i].index());
@@ -3687,11 +3704,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
             c10_npu::NPUStream& hcclStream = hcclStreams[i];
             hcclUs startut = std::chrono::steady_clock::now();
             HCCL_CHECK_ERROR(fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream, work->is_dispatched), opTypeToString(opType).c_str());
-            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
-                work->recorded_outputs_.push_back(
-                    std::make_pair(outputs[i].storage().getWeakStorageImpl(), hcclStream));
-            } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                work->stashed_for_allocator_safety_.push_back(outputs[i]);
+            if (asyncOp) {
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                    work->recorded_outputs_.push_back(
+                        std::make_pair(outputs[i].storage().getWeakStorageImpl(), hcclStream));
+                } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                    work->stashed_for_allocator_safety_.push_back(outputs[i]);
+                }
             }
         }
     }
@@ -3705,7 +3724,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     }
 
     for (size_t i = 0; i < inputs.size(); ++i) {
-        c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+        c10_npu::NPUStream& hcclStream = hcclStreams[i];
         (*(work->hcclEndEvents_))[i].record(hcclStream);
         ASCEND_LOGI("Event: record hccl work is successfully executed, event=%p", (*(work->hcclEndEvents_))[i].event());
         work->hcclComms_[i] = hcclComms[i];
@@ -3740,7 +3759,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     Fn fn,
     PreProcess pre,
     PostProcess post,
-    c10d::OpType opType)
+    c10d::OpType opType,
+    bool asyncOp)
 {
     c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
     // Bump collective counter
@@ -3752,10 +3772,23 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     HcclCommConfig config = createHcclCommConfigWithOptions();
     std::vector<std::shared_ptr<HCCLComm>> hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
 
-    // Used many times below, so we stash the unordered_map lookup
-    auto& hcclStreams = hcclStreams_[key];
-    // First let HCCL streams wait for input tensors allocation streams
-    syncStreams(devices, hcclEvents_[key], hcclStreams);
+    // Choose streams based on asyncOp flag:
+    // - If asyncOp=true: use pre-allocated HCCL streams from hcclStreams_[key]
+    // - If asyncOp=false: use the current stream for each device
+    std::vector<c10_npu::NPUStream> hcclStreams;
+    if (asyncOp) {
+        // Use pre-allocated streams for async operations
+        hcclStreams = hcclStreams_[key];
+        syncStreams(devices, hcclEvents_[key], hcclStreams);
+    } else {
+        // For synchronous operations, get the current stream for each device
+        hcclStreams.reserve(devices.size());
+        for (const auto& device : devices) {
+            hcclStreams.push_back(c10_npu::getCurrentNPUStream(device.index()));
+        }
+        // For sync operations, we skip syncStreams since we're using the current stream directly
+    }
+
     // Work itself will create the events on all NPUs of tensors
     auto work = initWork(devices, rank_, opType);
     // Store references to outputs to be used by WorkHCCL::result and operator<<.
@@ -3830,30 +3863,32 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
         }
     }
 
-    for (const auto i : c10::irange(inputs.size())) {
-        npuGuard.set_index(devices[0].index());
-        c10_npu::NPUStream& hcclStream = hcclStreams[0];
+    if (asyncOp) {
+        for (const auto i : c10::irange(inputs.size())) {
+            npuGuard.set_index(devices[0].index());
+            c10_npu::NPUStream& hcclStream = hcclStreams[0];
 
-        // Both `inputs' and `outputs' are created on a worker stream and used in
-        // different hcclStreams.  Hence, both must record the hcclStream to
-        // prevent being freed before the collective finishes.
-        //
-        // We only record `inputs' here, and leave recording `outputs' to `fn' for
-        // operations where `inputs' and `outputs' are not the same.
-        //
-        // See [Sync Streams].
-        auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
-        if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
-            work->stashed_for_allocator_safety_.push_back(inputs[i]);
-        } else {
-            c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
-            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
-                multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
-                work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
-                if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
-                    auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputs[i].storage().data_ptr());
-                    work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
-                    c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+            // Both `inputs' and `outputs' are created on a worker stream and used in
+            // different hcclStreams.  Hence, both must record the hcclStream to
+            // prevent being freed before the collective finishes.
+            //
+            // We only record `inputs' here, and leave recording `outputs' to `fn' for
+            // operations where `inputs' and `outputs' are not the same.
+            //
+            // See [Sync Streams].
+            auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+            if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
+                work->stashed_for_allocator_safety_.push_back(inputs[i]);
+            } else {
+                c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
+                if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                    multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                    work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
+                    if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                        auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputs[i].storage().data_ptr());
+                        work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                        c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                    }
                 }
             }
         }
@@ -3866,11 +3901,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
             c10_npu::NPUStream& hcclStream = hcclStreams[0];
             hcclUs startut = std::chrono::steady_clock::now();
             HCCL_CHECK_ERROR(fn(inputs[i], outputs[i], hcclComms[0]->getHcclComm(), hcclStream, work->is_dispatched), opTypeToString(opType).c_str());
-            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
-                work->recorded_outputs_.push_back(
-                    std::make_pair(outputs[i].storage().getWeakStorageImpl(), hcclStream));
-            } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                work->stashed_for_allocator_safety_.push_back(outputs[i]);
+            if (asyncOp) {
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                    work->recorded_outputs_.push_back(
+                        std::make_pair(outputs[i].storage().getWeakStorageImpl(), hcclStream));
+                } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                    work->stashed_for_allocator_safety_.push_back(outputs[i]);
+                }
             }
         }
     }
@@ -3883,7 +3920,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
         work->future_->markCompleted(at::IValue(*work->outputs_));
     }
 
-    c10_npu::NPUStream& hcclStream = hcclStreams_[key][0];
+    c10_npu::NPUStream& hcclStream = hcclStreams[0];
     (*(work->hcclEndEvents_))[0].record(hcclStream);
     ASCEND_LOGI("Event: record hccl work is successfully executed, event=%p", (*(work->hcclEndEvents_))[0].event());
     work->hcclComms_[0] = hcclComms[0];
@@ -4105,7 +4142,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& inputs,
     std::vector<at::Tensor>& outputs,
     Fn fn,
-    c10d::OpType opType)
+    c10d::OpType opType,
+    bool asyncOp)
 {
     return collective(
         inputs,
@@ -4113,7 +4151,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         fn,
         [](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
-        opType);
+        opType,
+        asyncOp);
 }
 
 template <typename Fn>
@@ -4189,7 +4228,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
                 tensors[0].copy_(tensors_cp[0]);
             }
         },
-        c10d::OpType::ALLREDUCE);
+        c10d::OpType::ALLREDUCE,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
@@ -4306,7 +4346,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
-        c10d::OpType::BROADCAST);
+        c10d::OpType::BROADCAST,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
@@ -4364,7 +4405,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
                 }
             }
         },
-        c10d::OpType::ALLREDUCE);
+        c10d::OpType::ALLREDUCE,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
@@ -4424,7 +4466,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
                 tensors[0].copy_(tensors_cp[0]);
             }
         },
-        c10d::OpType::REDUCE);
+        c10d::OpType::REDUCE,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
@@ -4488,7 +4531,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
                 outputTensor.copy_(outputTensors[0]);
             }
         },
-        c10d::OpType::REDUCE);
+        c10d::OpType::REDUCE,
+        opts.asyncOp);
 }
 
 constexpr int64_t ADDRESS_ALIGNMENT_BYTE = 512;
@@ -4604,7 +4648,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
                 }
             }
         },
-        c10d::OpType::REDUCE_SCATTER);
+        c10d::OpType::REDUCE_SCATTER,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
@@ -4680,7 +4725,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
-        c10d::OpType::ALLGATHER);
+        c10d::OpType::ALLGATHER,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
@@ -4767,7 +4813,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     }
                 }
             },
-            c10d::OpType::ALLGATHER);
+            c10d::OpType::ALLGATHER,
+            opts.asyncOp);
     } else if (hcclAllGatherVExist() && !has_empty_tensor(outputTensors.back())) {
         std::vector<at::Tensor> lastOutputTensors = outputTensors.back();
         std::vector<uint64_t> outputCounts;
@@ -4852,7 +4899,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     }
                 }
             },
-            c10d::OpType::ALLGATHER);
+            c10d::OpType::ALLGATHER,
+            opts.asyncOp);
     } else {
         TORCH_NPU_WARN_ONCE("The current allgather operator has a defect in handling different tensor shape, \
         the work event forces a wait operation, and the allgather wait on the python side would be fake");
@@ -4934,7 +4982,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_into_tensor_coalesced
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
-        c10d::OpType::ALLGATHER);
+        c10d::OpType::ALLGATHER,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
@@ -4976,7 +5025,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
-        c10d::OpType::ALLGATHER);
+        c10d::OpType::ALLGATHER,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
@@ -5027,7 +5077,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
-        c10d::OpType::ALLGATHER);
+        c10d::OpType::ALLGATHER,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
@@ -5108,7 +5159,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 }
             }
         },
-        c10d::OpType::REDUCE_SCATTER);
+        c10d::OpType::REDUCE_SCATTER,
+        opts.asyncOp);
     } else if (hcclReduceScatterVExist()) {
         std::vector<uint64_t> inputCounts;
         std::vector<uint64_t> inputSpl;
@@ -5198,7 +5250,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                     }
                 }
             },
-            c10d::OpType::REDUCE_SCATTER);
+            c10d::OpType::REDUCE_SCATTER,
+            opts.asyncOp);
     } else {
         TORCH_NPU_WARN_ONCE("The current reduce_scatter operator has a defect in handling different tensor shape,",
             "the work event forces a wait operation in c++ side, and the reduce_scatter wait on the python side would be fake");
@@ -5284,7 +5337,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
                 }
             }
         },
-        c10d::OpType::REDUCE_SCATTER);
+        c10d::OpType::REDUCE_SCATTER,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced(
@@ -5331,7 +5385,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
                 }
             }
         },
-        c10d::OpType::REDUCE_SCATTER);
+        c10d::OpType::REDUCE_SCATTER,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::barrier(const c10d::BarrierOptions& opts)
@@ -5481,7 +5536,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
             }
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
-        c10d::OpType::SCATTER);
+        c10d::OpType::SCATTER,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& tensors, int dstRank, int tag)
@@ -5658,7 +5714,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                     }
                 }
             },
-            c10d::OpType::ALLTOALL_BASE);
+            c10d::OpType::ALLTOALL_BASE,
+            opts.asyncOp);
     } else {
         uint64_t index = static_cast<uint64_t>(outputTensor.size(0) / ranks);
         if (outputSplitSizes.empty()) {
@@ -5759,7 +5816,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                     }
                 }
             },
-            c10d::OpType::ALLTOALL);
+            c10d::OpType::ALLTOALL,
+            opts.asyncOp);
     }
 }
 
@@ -5903,7 +5961,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                 output_tensors[i].copy_(at::reshape(output_results[i], output_tensors[i].sizes()), true);
             }
         },
-        c10d::OpType::ALLTOALL);
+        c10d::OpType::ALLTOALL,
+        opts.asyncOp);
 }
 
 } // namespace c10d_npu

@@ -36,7 +36,7 @@ class HcclSharedBufferTest(TestCase):
         #使用共享buffer进行通信，检查最终精度。
         pg = init_pg(rank, world_size, seq)
         input1 = input1.npu()
-        pg.all_reduce(input1, op=dist.ReduceOp.SUM)
+        pg.all_reduce(input1, op=dist.ReduceOp.SUM, async_op=True)
 
 
         ranks = range(world_size)
@@ -45,7 +45,7 @@ class HcclSharedBufferTest(TestCase):
         options.hccl_config = hccl_config
 
         pg2 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg2, op=dist.ReduceOp.AVG)
+        dist.all_reduce(input1, group=pg2, op=dist.ReduceOp.AVG, async_op=True)
 
         pg = None
         pg2 = None
@@ -134,36 +134,36 @@ class HcclSharedBufferTest(TestCase):
         hccl_config1 = {"hccl_buffer_name": "shared0"} # 创建一个共享buffer
         options.hccl_config = hccl_config1
         dist.init_process_group(backend='hccl', world_size=world_size, rank=rank, pg_options=options)
-        dist.all_reduce(input1)
+        dist.all_reduce(input1, async_op=True)
 
         hccl_config2 = {"hccl_buffer_name": "shared2"} # 注释1：只在创建pg的时候指定参数。后续修改不影响创建的名字,当前pg保持创建时的名字。
         options.hccl_config = hccl_config2
-        dist.all_reduce(input1)
+        dist.all_reduce(input1, async_op=True)
 
         ranks = range(world_size)
         hccl_config3 = {"hccl_buffer_name": "shared0"}
         options.hccl_config = hccl_config3
 
         pg = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg)
+        dist.all_reduce(input1, group=pg, async_op=True)
 
         hccl_config4 = {"hccl_buffer_name": "shared4"} # 同注释1。
         options.hccl_config = hccl_config4
-        dist.all_reduce(input1, group=pg)
+        dist.all_reduce(input1, group=pg, async_op=True)
 
         hccl_config5 = {"hccl_buffer_name": "shared5"}
         options.hccl_config = hccl_config5
         pg2 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg2)
+        dist.all_reduce(input1, group=pg2, async_op=True)
 
         hccl_config6 = {"hccl_buffer_name": "shared6"} # 同注释1。
         options.hccl_config = hccl_config6
-        dist.all_reduce(input1, group=pg2)
+        dist.all_reduce(input1, group=pg2, async_op=True)
 
         hccl_config20 = {}
         options.hccl_config = hccl_config20
         pg20 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg20)
+        dist.all_reduce(input1, group=pg20, async_op=True)
 
         output = input1
         output.fill_(0)
@@ -209,14 +209,14 @@ class HcclSharedBufferTest(TestCase):
         options.hccl_config = hccl_config1
         options.global_ranks_in_group = ranks
         pg1 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg1)
+        dist.all_reduce(input1, group=pg1, async_op=True)
 
-        dist.all_reduce(input1)
+        dist.all_reduce(input1, async_op=True)
 
         hccl_config2 = {"hccl_buffer_name": "sharedBuffer"}
         options.hccl_config = hccl_config2
         pg2 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg2)
+        dist.all_reduce(input1, group=pg2, async_op=True)
 
         torch_npu.npu.synchronize()
         del pg1
@@ -225,7 +225,7 @@ class HcclSharedBufferTest(TestCase):
         hccl_config3 = {"hccl_buffer_name": "subSharedBuffer"} # 
         options.hccl_config = hccl_config3
         pg3 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg3)
+        dist.all_reduce(input1, group=pg3, async_op=True)
         pg3 = None
 
         output = input1
@@ -307,7 +307,7 @@ class HcclSharedBufferTest(TestCase):
         options.hccl_config = hccl_config1
         options.global_ranks_in_group = ranks
         pg1 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg1)
+        dist.all_reduce(input1, group=pg1, async_op=True)
 
         # get pg1 mem info
         _, _, mem_after = cls.get_memory_info()
@@ -320,7 +320,7 @@ class HcclSharedBufferTest(TestCase):
         hccl_config2 = {"hccl_buffer_name": "subSharedBuffer"}
         options.hccl_config = hccl_config2
         pg2 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg2)
+        dist.all_reduce(input1, group=pg2, async_op=True)
 
         # get pg2 mem info
         _, _, mem_after = cls.get_memory_info()
@@ -332,7 +332,7 @@ class HcclSharedBufferTest(TestCase):
         hccl_config3 = {"hccl_buffer_name": "subSharedBuffer_2"}
         options.hccl_config = hccl_config3
         pg3 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg3)
+        dist.all_reduce(input1, group=pg3, async_op=True)
 
         # get pg3 mem info
         _, _, mem_after = cls.get_memory_info()
@@ -386,7 +386,7 @@ class HcclSharedBufferTest(TestCase):
         options.hccl_config = hccl_config1
         options.global_ranks_in_group = ranks
         pg1 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg1)
+        dist.all_reduce(input1, group=pg1, async_op=True)
 
         # get pg1 mem info
         _, _, mem_after = cls.get_memory_info()
@@ -399,7 +399,7 @@ class HcclSharedBufferTest(TestCase):
         hccl_config2 = {"hccl_buffer_name": "subSharedBuffer"}
         options.hccl_config = hccl_config2
         pg2 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg2)
+        dist.all_reduce(input1, group=pg2, async_op=True)
 
         # get pg2 mem info
         _, _, mem_after = cls.get_memory_info()
@@ -417,7 +417,7 @@ class HcclSharedBufferTest(TestCase):
         hccl_config3 = {"hccl_buffer_name": "subSharedBuffer2"}
         options.hccl_config = hccl_config3
         pg3 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
-        dist.all_reduce(input1, group=pg3)
+        dist.all_reduce(input1, group=pg3, async_op=True)
 
         # get pg3 mem info
         _, _, mem_after = cls.get_memory_info()
