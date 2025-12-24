@@ -116,9 +116,29 @@ else:
     InductorChoices.should_use_persistent_reduction = should_use_persistent_reduction
     autotune_cache._load_cached_autotuning = _load_cached_autotuning
 
+
+    def patch_device_override_func():
+        def get_device_op_overrides_patch(device_name: str):
+            def register_cpu_backend():
+                from torch._inductor.codegen import cpu_device_op_overrides
+
+                return
+
+            backend_factory = {"cpu": register_cpu_backend}
+
+            if device_name not in torch._inductor.codegen.common.device_op_overrides_dict:
+                if device_name not in backend_factory:
+                    raise ValueError("backend not found: ", device_name)
+                backend_factory[device_name]()
+
+            return torch._inductor.codegen.common.device_op_overrides_dict[device_name]
+
+        torch._inductor.graph.get_device_op_overrides = get_device_op_overrides_patch
+
     register_fa_pass()
 
     patch_cache_base_get_system()
     patch_triton_for_inductor()
     patch_count_bytes()
     patch_device_need_guard()
+    patch_device_override_func()
