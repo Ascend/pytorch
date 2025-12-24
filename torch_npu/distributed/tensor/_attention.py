@@ -15,6 +15,12 @@ from torch.distributed.tensor._redistribute import redistribute_local_tensor
 
 import torch_npu
 
+from ._common import (
+    get_redistributed_local_args,
+    get_redistributed_local_kwargs,
+    get_empty_local_results
+)
+
 npu = torch.ops.npu
 
 
@@ -256,12 +262,10 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
     return strategies
 
 
-def _infer_target_kwargs_spec(op_schema: OpSchema, output_sharding: OutputSharding) -> Dict[str, DTensorSpec]:
-    # in ShardingPropagator.propagate, only the redistribution of args is considered:
-    # 1. if args do not need redistribute, output_sharding.redistribute_schema is None
-    # 2. if args need redistribute, kwargs_schema in output_sharding.redistribute_schema is still from the source input
-    #    schema rather than the selected strategy
-    # therefore we need infer the correct kwargs spec from output spec here
+def _infer_npu_fusion_attention_grad_kwargs_spec(
+    op_schema: OpSchema,
+    output_sharding: OutputSharding
+) -> Dict[str, DTensorSpec]:
     input_layout = op_schema.args_schema[5]
     batch_dim = input_layout.index('B') if 'B' in input_layout else None
     dp_shard = Shard(batch_dim) if batch_dim is not None else None
@@ -318,27 +322,6 @@ def _infer_target_kwargs_spec(op_schema: OpSchema, output_sharding: OutputShardi
     return kwargs_spec
 
 
-def _redistribute_local_kwargs(op_info: OpInfo):
-    src_kwargs_spec = op_info.schema.kwargs_schema
-    target_kwargs_spec = _infer_target_kwargs_spec(op_info.schema, op_info.output_sharding)
-    new_local_kwargs = {}
-    for key, target_spec in target_kwargs_spec.items():
-        local_tensor = op_info.local_kwargs[key]
-        if isinstance(target_spec, DTensorSpec):
-            src_spec = src_kwargs_spec[key]
-            if src_spec.placements != target_spec.placements:
-                resharded_local_tensor = redistribute_local_tensor(
-                    local_tensor, src_spec, target_spec
-                )
-                new_local_kwargs[key] = resharded_local_tensor
-            else:
-                new_local_kwargs[key] = local_tensor
-        else:
-            new_local_kwargs[key] = local_tensor
-
-    op_info.local_kwargs = new_local_kwargs
-
-
 def _npu_fusion_attention_handler(
         op_call: torch._ops.OpOverload,
         args: Tuple[object, ...],
@@ -389,20 +372,8 @@ def _npu_fusion_attention_handler(
     participating = mesh.get_coordinate() is not None
     if participating:
         # computation that happens in the current rank of the mesh, normal case
-        if output_sharding.needs_redistribute:
-            DTensor._op_dispatcher.redistribute_local_args(
-                op_info,
-                output_sharding.redistribute_schema,
-                output_sharding.use_val_from_redistribute_schema,
-            )
-        local_args = (
-                pytree.tree_unflatten(
-                    cast(list[object], op_info.local_args), op_info.args_tree_spec
-                )
-                if op_info.args_tree_spec
-                else op_info.local_args
-            )
-
+        local_args = get_redistributed_local_args(op_info, output_sharding)
+        local_kwargs = op_info.local_kwargs
         if op_call == npu.npu_fusion_attention.default:
             # if sharding head_dim in qkv, need recalculate head_num in local args
             input_layout = op_info.local_args[4]
@@ -414,12 +385,13 @@ def _npu_fusion_attention_handler(
                 local_args = tuple(local_args)
 
             # run local op computation with potentially modified args/kwargs
-            local_args = cast(tuple[object, ...], local_args)
             local_results = torch_npu.npu_fusion_attention(
-                *local_args, **op_info.local_kwargs
+                *local_args, **local_kwargs
             )
         elif op_call == npu.npu_fusion_attention_grad.default:
-            _redistribute_local_kwargs(op_info)
+            local_kwargs = get_redistributed_local_kwargs(
+                _infer_npu_fusion_attention_grad_kwargs_spec, op_info, output_sharding
+            )
             # if sharding head_dim in qkv, need recalculate head_num in local args
             input_layout = op_info.local_args[5]
             if 'N' in input_layout:
@@ -428,9 +400,8 @@ def _npu_fusion_attention_handler(
                 local_query = local_args[0]
                 local_args[4] = local_query.size(head_dim)
                 local_args = tuple(local_args)
-            local_args = cast(tuple[object, ...], local_args)
             local_results = torch_npu.npu_fusion_attention_grad(
-                *local_args, **op_info.local_kwargs
+                *local_args, **local_kwargs
             )
         else:
             raise NotImplementedError(
