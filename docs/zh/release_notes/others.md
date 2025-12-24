@@ -37,7 +37,7 @@
 
 <table><tbody><tr id="row098217197105"><th class="firstcol" valign="top" width="14.469999999999999%" id="mcps1.1.3.1.1"><p id="p109824198109">问题描述</p>
 </th>
-<td class="cellrowborder" valign="top" width="85.53%" headers="mcps1.1.3.1.1 "><p id="p9982131912103"><strong id="b59839199105">现象</strong>：部分API的某些dtype不支持（API具体支持的dtype信息可参考<span id="ph1521732894415">《Ascend Extension for PyTorch 自定义API参考》</span>或<span id="ph2608172172913">《PyTorch 原生API支持度》</span>）</p>
+<td class="cellrowborder" valign="top" width="85.53%" headers="mcps1.1.3.1.1 "><p id="p9982131912103"><strong id="b59839199105">现象</strong>：部分API的某些dtype不支持（API具体支持的dtype信息可参考<span id="ph1521732894415"><a href="https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/overview.md">《Ascend Extension for PyTorch 自定义API参考》</a></span>或<span id="ph2608172172913"><a href="https://gitcode.com/Ascend/pytorch/blob/v2.9.0-7.3.0/docs/zh/native_apis/overview.md">《PyTorch 原生API支持度》</a></span>）</p>
 <p id="p15983141916104"><strong id="b1598312196108">影响</strong>：API使用不支持的dtype会报错</p>
 </td>
 </tr>

@@ -24,8 +24,8 @@
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2"><p id="p1546325972413"><a name="p1546325972413"></a><a name="p1546325972413"></a>通用能力，与社区同步发布</p></td>
     </tr>
     <tr id="row59931050204815">
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1"><p id="p946355922419"><a name="p946355922419"></a><a name="p946355922419"></a>新增支持python 3.12</p></td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2"><p id="p19462105942416"><a name="p19462105942416"></a><a name="p19462105942416"></a>通用能力，支持3.12版本的python</p></td>
+      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1"><p id="p946355922419"><a name="p946355922419"></a><a name="p946355922419"></a>新增支持Python 3.12</p></td>
+      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2"><p id="p19462105942416"><a name="p19462105942416"></a><a name="p19462105942416"></a>通用能力，支持3.12版本的Python</p></td>
     </tr>
     <tr id="row4100180125011">
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1"><p id="p6462259132418"><a name="p6462259132418"></a><a name="p6462259132418"></a>新增支持symmetric memory接入shmem</p></td>

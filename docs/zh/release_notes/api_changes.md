@@ -86,5 +86,5 @@
 </table>
 
 > [!NOTE]  
-> Ascend Extension for PyTorch新增部分API支持及特性支持，具体可参考《Ascend Extension for PyTorch 自定义API参考》或《PyTorch 原生API支持度》。
+> Ascend Extension for PyTorch新增部分API支持及特性支持，具体可参考《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/overview.md)》或《[PyTorch 原生API支持度](https://gitcode.com/Ascend/pytorch/blob/v2.9.0-7.3.0/docs/zh/native_apis/overview.md)》。
 
