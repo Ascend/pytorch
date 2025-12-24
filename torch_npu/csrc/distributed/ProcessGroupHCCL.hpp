@@ -1059,7 +1059,8 @@ private:
         std::vector<at::Tensor>& input,
         std::vector<at::Tensor>& output,
         Fn fn,
-        c10d::OpType opType);
+        c10d::OpType opType,
+        bool asyncOp = false);
     
     template <typename Fn, typename PreProcess, typename PostProcess>
     c10::intrusive_ptr<c10d::Work> collective(
@@ -1068,7 +1069,8 @@ private:
         Fn fn,
         PreProcess pre,
         PostProcess post,
-        c10d::OpType opType);
+        c10d::OpType opType,
+        bool asyncOp = false);
 
     template <typename Fn, typename PreProcess, typename PostProcess>
     c10::intrusive_ptr<c10d::Work> collectiveCoalesced(
@@ -1077,7 +1079,8 @@ private:
         Fn fn,
         PreProcess pre,
         PostProcess post,
-        c10d::OpType opType);
+        c10d::OpType opType,
+        bool asyncOp = false);
 
     std::vector<std::shared_ptr<HCCLComm>>& createHCCLComm(
         const std::string& devicesKey,
