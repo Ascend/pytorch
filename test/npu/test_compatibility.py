@@ -101,6 +101,11 @@ def is_not_compatibility(base_str, new_str, api_str=None):
     # case: delete/different default value/different parameter name/different parameter dtype
     if base_diff_params:
         return True
+    
+    # case: add params
+    new_diff_params = set(new_params) - set(base_params)
+    if new_diff_params:
+        return True
 
     # case: position parameters
     base_arr = [elem for elem in base_params if "=" not in elem]
