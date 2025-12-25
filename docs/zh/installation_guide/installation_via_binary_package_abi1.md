@@ -38,7 +38,7 @@ pip3 install torch-2.6.0+cpu.cxx11.abi-cp39-cp39-linux_x86_64.whl
 1.  下载abi1版本安装包。
 
     ```
-    wget https://gitcode.com/Ascend/pytorch/releases/download/v7.3.0-pytorch2.6.0/torch_npu-2.6.0.post4_cxx11.abi_x86_64.zip
+    wget https://gitcode.com/Ascend/pytorch/releases/download/v7.3.0-pytorch2.6.0/torch_npu-2.6.0.post5_cxx11.abi_x86_64.zip
     ```
 
     以v2.6.0-7.3.0为例，下载对应的Ascend Extension for PyTorch安装包，其他分支请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/related_product_version_compatibility_notes.md)”章节。
@@ -46,14 +46,14 @@ pip3 install torch-2.6.0+cpu.cxx11.abi-cp39-cp39-linux_x86_64.whl
 2.  解压缩安装包。
 
     ```
-    unzip -o torch_npu-2.6.0.post4_cxx11.abi_x86_64.zip
+    unzip -o torch_npu-2.6.0.post5_cxx11.abi_x86_64.zip
     ```
 
 3.  安装abi1版本torch\_npu插件。
 
     ```
     # 选择对应Python版本的安装包，如Python 3.9
-    pip3 install torch_npu-2.6.0.post4+cxx11.abi-cp39-cp39-manylinux_2_28_x86_64.whl
+    pip3 install torch_npu-2.6.0.post5+cxx11.abi-cp39-cp39-manylinux_2_28_x86_64.whl
     ```
 
 > [!NOTE]  

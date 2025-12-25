@@ -52,7 +52,7 @@
     5.  在运行环境中安装生成的torch\_npu插件包，如果使用非root用户进行安装，需要在命令后加`--user`。
 
         ```
-        pip3 install --upgrade dist/torch_npu-2.7.1.post1-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.7.1.post2-cp310-cp310-linux_aarch64.whl
         ```
 
         请用户根据实际情况更改命令中的torch\_npu包名。
@@ -122,7 +122,7 @@
     3.  安装pytorch/dist目录下生成的插件torch\_npu包，如果使用非root用户安装，需要在命令后加`--user`。
 
         ```
-        pip3 install --upgrade dist/torch_npu-2.7.1.post1-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.7.1.post2-cp310-cp310-linux_aarch64.whl
         ```
 
         请用户根据实际情况更改命令中的torch\_npu包名。
