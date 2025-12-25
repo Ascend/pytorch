@@ -186,8 +186,8 @@ class CANNFileParser:
             communication_data = self._json_dict_load(FileManager.file_read_all(sub_file, "rt"))
         return communication_data
 
-    def get_acl_to_npu_data(self):
-        return self.combine_acl_to_npu(self.get_timeline_all_data())
+    def get_acl_to_npu_data(self, timeline_data):
+        return self.combine_acl_to_npu(timeline_data)
 
     def get_file_list_by_type(self, file_type: CANNDataEnum) -> set:
         return self._file_dict.get(file_type, set())

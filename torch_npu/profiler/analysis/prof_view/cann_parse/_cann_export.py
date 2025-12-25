@@ -25,6 +25,7 @@ from torch_npu.utils._error_code import ErrCode, prof_error
 from ...prof_common_func._constant import Constant, print_warn_msg, print_error_msg, print_info_msg
 from ...prof_common_func._path_manager import ProfilerPathManager
 from ...prof_common_func._file_manager import FileManager
+from ...prof_parse._cann_file_parser import CANNFileParser
 from .._base_parser import BaseParser
 from ..._profiler_config import ProfilerConfig
 from ...prof_common_func._log import ProfilerLogger
@@ -170,7 +171,9 @@ class CANNTimelineParser(BaseParser):
                     for file_name in os.listdir(output_path):
                         if file_name.endswith('.csv'):
                             self.logger.info("CANNTimelineParser finish.")
-                            return Constant.SUCCESS, None
+                            msprof_timeline_data = CANNFileParser(self._profiler_path).get_timeline_all_data()
+                            self.logger.info("Read timeline data finish.")
+                            return Constant.SUCCESS, msprof_timeline_data
                 try:
                     time.sleep(Constant.SLEEP_TIME)
                 except InterruptedError:
