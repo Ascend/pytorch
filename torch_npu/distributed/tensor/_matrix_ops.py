@@ -1,9 +1,16 @@
-from typing import List
+from typing import Dict, List, Tuple
 
 import torch
-from torch.distributed._tensor import Partial, Replicate, Shard
 from torch.distributed._tensor.experimental import register_sharding
-from torch.distributed._tensor.placement_types import DTensorSpec
+from torch.distributed.tensor._dtensor_spec import DTensorSpec, TensorMeta
+from torch.distributed.tensor import DTensor, Partial, Replicate, Shard
+from torch.distributed.tensor._op_schema import OpSchema, OutputSharding
+
+from ._common import (
+    get_redistributed_local_args,
+    get_redistributed_local_kwargs,
+    get_empty_local_results
+)
 
 aten = torch.ops.aten
 npu = torch.ops.npu
@@ -131,3 +138,222 @@ def custom_matmul_backward_sharding(
 
     acceptable_shardings.append(strategy)
     return acceptable_shardings
+
+
+@register_sharding(npu.npu_all_gather_base_mm.default)
+def npu_all_gather_base_mm_strategy(x1, x2, hcom, world_size, bias=None, x1_scale=None, x2_scale=None, gather_index=0,
+                                    gather_output=True, comm_turn=0, output_dtype=None, comm_mode=None):
+    # npu_all_gather_base_mm(Tensor input, Tensor x2, str hcom, int world_size, *, Tensor? bias=None,
+    #                        Tensor? x1_scale=None, Tensor? x2_scale=None, int gather_index=0, bool gather_output=True,
+    #                        int comm_turn=0, ScalarType? output_dtype=None, str? comm_mode=None) -> (Tensor, Tensor)
+    # op only support gather_index=0(i.e. allgather x1) now
+    if gather_index != 0:
+        raise NotImplementedError(f"npu_all_gather_base_mm only support gather_index=0 now, but got {gather_index}.")
+
+    # formula: output = allgather(x1)@x2 + bias
+    # for all gather, x1: S(0) -> R
+    # for mm, when x1 is R, possible strategies are (R, R) -> R and (R, S(1)) -> S(1)
+    # therefore, strategies of all_gather_base_mm are:
+    # 1. (S(0), R) -> R, R
+    # 2. (S(0), S(1)) -> S(1), R
+    strategies = []
+    sharding_strategy_S0R = (
+        [
+            Replicate(), # output
+            Replicate()  # gather_out
+        ],
+        [
+            Shard(0),    # x1
+            Replicate(), # x2
+            None,        # hcom
+            None,        # world_size
+            None if bias is None else Replicate(),     # bias, global shape(n * world_size,)
+            None if x1_scale is None else Shard(0),    # x1_scale follow x1, global shape(m * world_size, 1)
+            None if x2_scale is None else Replicate(), # x2_scale follow x2, global shape(1, n * world_size)
+            None, None, None, None, None # gather_index, gather_output, comm_turn, output_dtype, comm_mode
+        ]
+    )
+    strategies.append(sharding_strategy_S0R)
+
+    sharding_strategy_S0S1 = (
+        [
+            Shard(1),   # output
+            Replicate() # gather_out
+        ],
+        [
+            Shard(0), # x1
+            Shard(1), # x2
+            None,     # hcom
+            None,     # world_size
+            None if bias is None else Shard(0),     # bias, global shape(n * world_size,)
+            None if x1_scale is None else Shard(0), # x1_scale follow x1, global shape(m * world_size, 1)
+            None if x2_scale is None else Shard(1), # x2_scale follow x2, global shape(1, n * world_size)
+            None, None, None, None, None # gather_index, gather_output, comm_turn, output_dtype, comm_mode
+        ]
+    )
+    strategies.append(sharding_strategy_S0S1)
+
+    return strategies
+
+
+def _infer_npu_all_gather_base_mm_kwargs(
+    op_schema: OpSchema,
+    output_sharding: OutputSharding
+) -> Dict[str, DTensorSpec]:
+    output_spec = output_sharding.output_spec[0]
+    kwargs_spec = {}
+    for key, spec in op_schema.kwargs_schema.items():
+        if not isinstance(spec, DTensorSpec):
+            kwargs_spec[key] = spec
+            continue
+
+        target_placement = []
+        for placement in output_spec.placements:
+            if placement == Replicate():
+                if key == 'x1_scale':
+                    target_placement.append(Shard(0))
+                else: # bias, x2_scale
+                    target_placement.append(Replicate())
+            elif placement == Shard(1):
+                if key == 'x2_scale':
+                    target_placement.append(Shard(1))
+                else: # bias, x1_scale
+                    target_placement.append(Shard(0))
+            else:
+                raise ValueError(
+                    f"Unexpected output placement {placement} for npu_all_gather_base_mm."
+                )
+        kwargs_spec[key] = DTensorSpec(mesh=spec.mesh, placements=target_placement, tensor_meta=spec.tensor_meta)
+
+    return kwargs_spec
+
+
+@register_sharding(npu.npu_mm_reduce_scatter_base.default)
+def npu_mm_reduce_scatter_base_strategy(x1, x2, hcom, world_size, reduce_op='sum', bias=None, x1_scale=None,
+                                        x2_scale=None, comm_turn=0, output_dtype=None, comm_mode=None):
+    # npu_mm_reduce_scatter_base(Tensor self, Tensor x2, str hcom, int world_size, *, str reduce_op='sum',
+    #                            Tensor? bias=None, Tensor? x1_scale=None, Tensor? x2_scale=None, int comm_turn=0,
+    #                            ScalarType? output_dtype=None, str? comm_mode=None) -> Tensor
+    # op only support reduce_op='sum' now
+    if reduce_op != 'sum':
+        raise NotImplementedError(f"npu_mm_reduce_scatter_base only support reduce_op='sum' now, but got {reduce_op}.")
+
+    # formula: output = reducescatter(x1@x2 + bias)
+    # for reduce_scatter, local_output: P -> S(0)
+    # for mm, when output is P, possible strategies is (S(1), S(0)) -> P
+    # therefore, strategy of mm_reduce_scatter_base is: (S(1), S(0)) -> S(0)
+    strategies = []
+    sharding_strategy_S1S0 = (
+        [
+            Shard(0)  # output
+        ],
+        [
+            Shard(1), # x1
+            Shard(0), # x2
+            None,     # hcom
+            None,     # world_size
+            None,     # reduce_op
+            None if bias is None else Shard(0),     # bias, global shape(n * world_size,)
+            None if x1_scale is None else Shard(1), # x1_scale follow x1, global shape(m, world_size)
+            None if x2_scale is None else Shard(0), # x2_scale follow x2, global shape(world_size, n)
+            None, None, None # comm_turn, output_dtype, comm_mode
+        ]
+    )
+    strategies.append(sharding_strategy_S1S0)
+
+    return strategies
+
+
+def _infer_npu_mm_reduce_scatter_base_kwargs(
+    op_schema: OpSchema,
+    output_sharding: OutputSharding
+) -> Dict[str, DTensorSpec]:
+    output_spec = output_sharding.output_spec
+    kwargs_spec = {}
+    for key, spec in op_schema.kwargs_schema.items():
+        if not isinstance(spec, DTensorSpec):
+            kwargs_spec[key] = spec
+            continue
+
+        target_placement = []
+        for placement in output_spec.placements:
+            if placement == Shard(0):
+                if key == 'x1_scale':
+                    target_placement.append(Shard(1))
+                else: # bias, x2_scale
+                    target_placement.append(Shard(0))
+            else:
+                raise ValueError(
+                    f"Unexpected output placement {placement} for npu_mm_reduce_scatter_base."
+                )
+        kwargs_spec[key] = DTensorSpec(mesh=spec.mesh, placements=target_placement, tensor_meta=spec.tensor_meta)
+
+    return kwargs_spec
+
+
+def npu_comm_mm_fusion_handler(
+        op_call: torch._ops.OpOverload,
+        args: Tuple[object, ...],
+        kwargs: Dict[str, object],
+) -> object:
+    # extract local tensor and sharding infos to a OpInfo
+    op_info = DTensor._op_dispatcher.unwrap_to_op_info(op_call, args, kwargs)
+
+    # sharding propagation
+    DTensor._op_dispatcher.sharding_propagator.propagate(op_info)
+    output_sharding = op_info.output_sharding
+
+    # For all_gather_base_mm, output shape = (local_x1.shape[0] * world_size,local_x2.shape[1]),
+    # but in ShardingPropagator.propagate, output meta is calculated based on dtensor input meta.
+    # Since possible target input placement is Shard, i,e local input shape = meta shape / world_size,
+    # we need correct output meta by dividing world_size here. For mm_reduce_scatter_base, similar process.
+    def get_output_meta(tensor_meta, dim, world_size):
+        if world_size == 0:
+            return tensor_meta
+        new_shape = list(tensor_meta.shape)
+        if op_call == npu.npu_all_gather_base_mm.default:
+            new_shape[dim] = new_shape[dim] // world_size
+        elif op_call == npu.npu_mm_reduce_scatter_base.default:
+            new_shape[dim] = new_shape[dim] * world_size
+        return TensorMeta(shape=torch.Size(new_shape), stride=tensor_meta.stride, dtype=tensor_meta.dtype)
+
+    if op_call == npu.npu_all_gather_base_mm.default:
+        world_size = args[3]
+        for spec in output_sharding.output_spec: # output, gather_out
+            spec.tensor_meta = get_output_meta(spec.tensor_meta, 0, world_size)
+    elif op_call == npu.npu_mm_reduce_scatter_base.default:
+        world_size = args[3]
+        spec = output_sharding.output_spec
+        spec.tensor_meta = get_output_meta(spec.tensor_meta, 0, world_size)
+
+    mesh = op_info.compute_mesh
+    participating = mesh.get_coordinate() is not None
+    if participating:
+        # computation that happens in the current rank of the mesh, normal case
+        local_args = get_redistributed_local_args(op_info, output_sharding)
+        local_kwargs = op_info.local_kwargs
+        if op_call == npu.npu_all_gather_base_mm.default:
+            local_kwargs = get_redistributed_local_kwargs(
+                _infer_npu_all_gather_base_mm_kwargs, op_info, output_sharding
+            )
+        elif op_call == npu.npu_mm_reduce_scatter_base.default:
+            local_kwargs = get_redistributed_local_kwargs(
+                _infer_npu_mm_reduce_scatter_base_kwargs, op_info, output_sharding
+            )
+
+        local_results = op_call(*local_args, **local_kwargs)
+    else:
+        # For a non-participating device (happens on rank that does not belong to the device mesh),
+        # return empty tensor(s) with correct dtype.
+        local_results = get_empty_local_results(op_info, output_sharding)
+
+    return DTensor._op_dispatcher.wrap(local_results, output_sharding.output_spec)
+
+
+customized_ops = {
+    npu.npu_all_gather_base_mm.default: npu_comm_mm_fusion_handler,
+    npu.npu_mm_reduce_scatter_base.default: npu_comm_mm_fusion_handler
+}
+
+old_handlers = DTensor._op_dispatcher._custom_op_handlers
+DTensor._op_dispatcher._custom_op_handlers = {**old_handlers, **customized_ops}
