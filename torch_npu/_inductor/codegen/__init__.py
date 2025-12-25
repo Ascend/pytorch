@@ -12,7 +12,7 @@ from torch_npu._inductor.codegen._sizevars import simplify
 from torch_npu._inductor.codegen.ir import (num_splits, loopbody__call__, transform_dims_in_indexing,
                                             substituted_dims_in_indexing)
 from torch_npu._inductor.codegen.scheduling import create_tiling
-from torch_npu._inductor.codegen.triton import group_fn, select_index_dtype
+from torch_npu._inductor.codegen.triton import select_index_dtype
 from torch_npu._inductor.codegen.triton import is_compatible
 
 from ..config import log as npulog
@@ -25,7 +25,6 @@ setattr(LoopBody, 'substituted_dims_in_indexing', substituted_dims_in_indexing)
 LoopBody.__call__ = loopbody__call__
 # need to enable this to speedup attn_cp_test
 # triton scheduling
-TritonScheduling.group_fn = group_fn
 TritonScheduling.select_index_dtype = select_index_dtype
 TritonScheduling.create_tiling = create_tiling
 # triton kernel

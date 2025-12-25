@@ -168,19 +168,6 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         return var
 
 
-def group_fn(self, sizes):
-    groups = list()
-    for s in sizes:
-        if not s:
-            groups.append(1)
-        elif isinstance(s, list):
-            group = flatten(s)
-            groups.append(NumelList(tuple(group)) if isinstance(group, list) else group)
-        else:
-            groups.append(s)
-    return tuple(groups)
-
-
 @staticmethod
 def select_index_dtype(node_schedule, numel, reduction_numel):
     return "tl.int32"
