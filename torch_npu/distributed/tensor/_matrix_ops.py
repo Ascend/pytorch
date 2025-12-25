@@ -1,10 +1,25 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, cast
 
 import torch
 from torch.distributed._tensor.experimental import register_sharding
 from torch.distributed.tensor._dtensor_spec import DTensorSpec, TensorMeta
 from torch.distributed.tensor import DTensor, Partial, Replicate, Shard
-from torch.distributed.tensor._op_schema import OpSchema, OutputSharding
+from torch.distributed.tensor._ops.utils import register_op_strategy
+
+from torch.distributed.tensor._op_schema import (
+    OpInfo,
+    OpSchema,
+    OpStrategy,
+    OpSpec,
+    OutputSharding
+)
+
+import torch_npu
+
+try:
+    from torch.utils import _cxx_pytree as pytree
+except ImportError:
+    from torch.utils import _pytree as pytree
 
 from ._common import (
     get_redistributed_local_args,
@@ -25,6 +40,18 @@ def _get_max_shardable_dim(tensor):
         return idx
     else:
         return -1
+    
+
+def _handle_tensor_list_in_kwargs(kwargs: Dict[str, object], op_info: OpInfo) -> None:
+    for key, value in kwargs.items():
+        if isinstance(value, list) and len(value) > 0 and isinstance(value[0], DTensor):
+            new_schema = []
+            new_local_tensors = []
+            for dtensor in value:
+                new_schema.append(dtensor._spec)
+                new_local_tensors.append(dtensor._local_tensor)
+            op_info.schema.kwargs_schema[key] = new_schema
+            op_info.local_kwargs[key] = new_local_tensors
 
 
 @register_sharding(aten.matmul.default)
@@ -350,7 +377,108 @@ def npu_comm_mm_fusion_handler(
     return DTensor._op_dispatcher.wrap(local_results, output_sharding.output_spec)
 
 
+@register_op_strategy(
+    [npu.npu_apply_adam_w.default, npu.npu_apply_adam_w.out]
+)
+def npu_apply_adam_w_strategy(op_schema: OpSchema) -> OpStrategy:
+    # npu_apply_adam_w(
+    #   Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar weight_decay, Scalar beta1, Scalar beta2,
+    #   Scalar epsilon, Tensor grad, Tensor? max_grad_norm, bool? amsgrad, bool? maximize
+    # ) -> (Tensor, Tensor, Tensor)
+    grad_arg_index = 7
+    max_gard_norm_arg_index = 8
+    grad_strategy: OpStrategy = op_schema.args_schema[grad_arg_index]
+    if "out" in op_schema.kwargs_schema.keys():
+        grad_spec: DTensorSpec = op_schema.kwargs_schema["out"].children[0].strategies[0].output_spec
+    else:
+        grad_spec: DTensorSpec = grad_strategy.strategies[0].output_spec
+    input_target_specs = []
+    for i, spec in enumerate(op_schema.args_schema):
+        if i == grad_arg_index:
+            input_target_specs.append(grad_spec)
+        # max_grad_norm follows grad's placements
+        elif i == max_gard_norm_arg_index and spec is not None:
+            input_target_specs.append(
+                DTensorSpec(
+                    mesh=grad_spec.mesh,
+                    placements=grad_spec.placements,
+                    tensor_meta=spec.tensor_meta,
+                )
+            )
+        # only need to provide specs for tensor args (schema is converted to OpStrategy by ShardingPropagator)
+        # propagate_op_sharding_non_cached will process non-tensor args
+        elif isinstance(spec, OpStrategy):
+            input_target_specs.append(spec.strategies[0].output_spec)
+
+    output_spec = []
+    for k, values in op_schema.kwargs_schema.items():
+        if k == 'out':
+            for v in values.children:
+                output_spec.append(v.strategies[0].output_spec)
+    output_strategy = OpStrategy([
+        OpSpec(output_specs=tuple(output_spec), input_specs=input_target_specs)
+    ])
+
+    return output_strategy
+
+
+def _npu_apply_adam_w_handler(
+        op_call: torch._ops.OpOverload,
+        args: Tuple[object, ...],
+        kwargs: Dict[str, object],
+) -> object:
+    # extract local tensor and sharding infos to a OpInfo
+    op_info = DTensor._op_dispatcher.unwrap_to_op_info(op_call, args, kwargs)
+    # since upwrap_to_op_info does not handle List[DTensor] in kwargs, we need to post-process it here
+    _handle_tensor_list_in_kwargs(kwargs, op_info)
+
+    # sharding propagation
+    DTensor._op_dispatcher.sharding_propagator.propagate(op_info)
+    output_sharding = op_info.output_sharding
+
+    mesh = op_info.compute_mesh
+    participating = mesh.get_coordinate() is not None
+    if participating:
+        # computation that happens in the current rank of the mesh, normal case
+        if output_sharding.needs_redistribute:
+            DTensor._op_dispatcher.redistribute_local_args(
+                op_info,
+                output_sharding.redistribute_schema,
+                output_sharding.use_val_from_redistribute_schema,
+            )
+        local_args = (
+                pytree.tree_unflatten(
+                    cast(list[object], op_info.local_args), op_info.args_tree_spec
+                )
+                if op_info.args_tree_spec
+                else op_info.local_args
+            )
+
+        local_results = torch_npu.npu_apply_adam_w(*local_args, **op_info.local_kwargs)
+
+    if op_info.schema.is_out_variant_op():
+        output_specs = (
+            (output_sharding.output_spec,)
+            if not isinstance(output_sharding.output_spec, tuple)
+            else output_sharding.output_spec
+        )
+        out_dts = []
+        spec_idx = 0
+        for argument in op_call._schema.arguments:
+            if argument.name == 'out':
+                for value in kwargs[argument.name]:
+                    out_dt = cast(DTensor, value)
+                    out_dt._spec = cast(DTensorSpec, output_specs[spec_idx])
+                    out_dts.append(out_dt)
+                    spec_idx += 1
+        
+        return tuple(out_dts) if len(out_dts) > 1 else out_dts[0]
+    else:
+        return DTensor._op_dispatcher.wrap(local_results, output_sharding.output_spec)
+
+
 customized_ops = {
+    npu.npu_apply_adam_w.out: _npu_apply_adam_w_handler,
     npu.npu_all_gather_base_mm.default: npu_comm_mm_fusion_handler,
     npu.npu_mm_reduce_scatter_base.default: npu_comm_mm_fusion_handler
 }
