@@ -104,6 +104,10 @@ def is_not_compatibility(base_str, new_str, api_str=None):
     
     # case: add params
     new_diff_params = set(new_params) - set(base_params)
+    # special case
+    if api_str == "torch_npu.profiler.profiler.analyse" and new_diff_params:
+        delete_special = [elem for elem in new_diff_params if "max_process_number" not in elem]
+        new_diff_params = delete_special
     if new_diff_params:
         return True
 
