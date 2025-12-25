@@ -93,8 +93,8 @@ class ParserConfig:
                 IntegrateParser,
                 CommunicationParser
             ],
-            Constant.EXPORT_CHROME_TRACE: [TorchOpParser, TaskQueueParser, TracePreParser, TreeBuildParser,
-                                           CANNExportParser, CANNTimelineParser, TraceViewParser],
+            Constant.EXPORT_CHROME_TRACE: [TorchOpParser, TaskQueueParser, CANNExportParser, CANNTimelineParser,
+                                           TracePreParser, TreeBuildParser, RelationParser, TraceViewParser],
             Constant.EXPORT_STACK: [TorchOpParser, TaskQueueParser, TreeBuildParser, CANNExportParser,
                                     CANNTimelineParser, StackViewParser],
             Constant.EXPORT_MEMORY_TIMELINE: [MemoryTimelineParser]
@@ -116,9 +116,9 @@ class ParserConfig:
 
     ONLY_FWK_CONFIG = {
         Constant.Text: {
-            Constant.TENSORBOARD_TRACE_HANDLER: [TorchOpParser, TaskQueueParser, MemoryPrepareParser,
-                                                 OperatorViewParser, TraceViewParser, MemoryViewParser],
-            Constant.EXPORT_CHROME_TRACE: [TorchOpParser, TaskQueueParser, TraceViewParser],
+            Constant.TENSORBOARD_TRACE_HANDLER: [TorchOpParser, TaskQueueParser, TracePreParser, MemoryPrepareParser,
+                                                 OperatorViewParser, MemoryViewParser, TraceViewParser],
+            Constant.EXPORT_CHROME_TRACE: [TorchOpParser, TaskQueueParser, TracePreParser, TraceViewParser],
             Constant.EXPORT_STACK: [TorchOpParser, TaskQueueParser, StackViewParser],
             Constant.EXPORT_MEMORY_TIMELINE: [MemoryTimelineParser]
         },
