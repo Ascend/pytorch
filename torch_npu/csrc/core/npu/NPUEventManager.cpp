@@ -30,6 +30,7 @@ void NPUEventManager::run(aclrtEvent event)
         return;
     }
     ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", event);
+    RemoveIpcEvent(event);
 }
 
 aclError NPUEventManager::QueryAndDestroyEvent()
@@ -37,7 +38,7 @@ aclError NPUEventManager::QueryAndDestroyEvent()
     std::lock_guard<std::mutex> guard(event_queue_mutex_);
     while (!npu_events_.empty()) {
         aclrtEvent event = npu_events_.front();
-        if (c10_npu::option::OptionsManager::GetPerStreamQueue()) {
+        if (c10_npu::option::OptionsManager::GetPerStreamQueue() || IsIpcEvent(event)) {
             if (!c10_npu::NPUEventManager::GetInstance().IsEventRecorded(event) || !c10_npu::NPUEventManager::GetInstance().IsEventWaited(event)) {
                 break;
             }
@@ -66,7 +67,7 @@ aclError NPUEventManager::QueryAndDestroyEvent()
 
 aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event)
 {
-    if (c10_npu::acl::IsExistCreateEventExWithFlag() && !c10_npu::option::OptionsManager::GetPerStreamQueue()) {
+    if (c10_npu::acl::IsExistCreateEventExWithFlag() && !c10_npu::option::OptionsManager::GetPerStreamQueue() && !IsIpcEvent(npu_event)) {
         int err = aclrtDestroyEvent(npu_event);
         if (err == ACL_ERROR_NONE) {
             ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", npu_event);
@@ -103,6 +104,8 @@ void NPUEventManager::ClearEvent()
         }
         npu_events_.pop_front();
     }
+
+    ipc_events_.clear();
 }
 void NPUEventManager::IncreaseUnrecordedCount(aclrtEvent event)
 {
@@ -190,4 +193,26 @@ void NPUEventManager::ClearUnrecordedCount()
     event_unrecorded_count_.clear();
 }
 
+void NPUEventManager::AddIpcEvent(aclrtEvent event)
+{
+    std::lock_guard<std::mutex> guard(ipc_event_mutex_);
+    auto ret = ipc_events_.insert(event);
+    TORCH_CHECK(ret.second,
+        "Event: insert ipc event failed, event=", (void *) event, PTA_ERROR(ErrCode::INTERNAL));
+}
+
+void NPUEventManager::RemoveIpcEvent(aclrtEvent event)
+{
+    std::lock_guard<std::mutex> guard(ipc_event_mutex_);
+    auto it = ipc_events_.find(event);
+    if (it != ipc_events_.end()) {
+        ipc_events_.erase(it);
+    }
+}
+
+bool NPUEventManager::IsIpcEvent(aclrtEvent event)
+{
+    std::lock_guard<std::mutex> guard(ipc_event_mutex_);
+    return ipc_events_.find(event) != ipc_events_.end();
+}
 }  // namespace c10_npu

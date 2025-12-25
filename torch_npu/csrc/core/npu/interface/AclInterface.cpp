@@ -27,6 +27,8 @@ LOAD_FUNCTION(aclrtCreateEventWithFlag)
 LOAD_FUNCTION(aclrtCreateEventExWithFlag)
 LOAD_FUNCTION(aclrtQueryEventWaitStatus)
 LOAD_FUNCTION(aclrtQueryEventStatus)
+LOAD_FUNCTION(aclrtIpcGetEventHandle)
+LOAD_FUNCTION(aclrtIpcOpenEventHandle)
 LOAD_FUNCTION(aclprofCreateStepInfo)
 LOAD_FUNCTION(aclprofGetStepTimestamp)
 LOAD_FUNCTION(aclprofDestroyStepInfo)
@@ -324,6 +326,61 @@ bool IsExistQueryEventRecordedStatus()
     } else {
         return false;
     }
+}
+
+aclError AclIpcGetEventHandle(aclrtEvent event, aclrtIpcEventHandle *handle)
+{
+    typedef aclError (*aclIpcGetEventHandle)(aclrtEvent event, aclrtIpcEventHandle *handle);
+    static aclIpcGetEventHandle func = nullptr;
+    if (func == nullptr) {
+        func = (aclIpcGetEventHandle)GET_FUNC(aclrtIpcGetEventHandle);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtIpcGetEventHandle", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(event, handle);
+}
+
+aclError AclIpcOpenEventHandle(aclrtIpcEventHandle handle, aclrtEvent *event)
+{
+    typedef aclError (*aclIpcOpenEventHandle)(aclrtIpcEventHandle handle, aclrtEvent *event);
+    static aclIpcOpenEventHandle func = nullptr;
+    if (func == nullptr) {
+        func = (aclIpcOpenEventHandle)GET_FUNC(aclrtIpcOpenEventHandle);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtIpcOpenEventHandle", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(handle, event);
+}
+
+bool IsSupportIpcEvent()
+{
+    const static bool is_support = []() -> bool {
+        if (!IsExistCreateEventExWithFlag()) {
+            ASCEND_LOGD("IsSupportIpcEvent return false because aclrtCreateEventExWithFlag does not exist.");
+            return false;
+        }
+
+        auto func = GET_FUNC(aclrtIpcGetEventHandle);
+        if (func == nullptr) {
+            ASCEND_LOGD("IsSupportIpcEvent return false because aclrtIpcGetEventHandle does not exist.");
+            return false;
+        }
+
+        c10::DeviceIndex device_index = c10_npu::current_device();
+        c10_npu::LazySetDevice(device_index);
+
+        aclrtEvent npu_event = nullptr;
+        auto ret = c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, ACL_EVENT_IPC);
+        if (ret == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+            ASCEND_LOGD("IsSupportIpcEvent return false because create event with flag ACL_EVENT_IPC failed.");
+            return false;
+        }
+        NPU_CHECK_ERROR(ret);
+        NPU_CHECK_ERROR(aclrtDestroyEvent(npu_event));
+
+        ASCEND_LOGD("IsSupportIpcEvent return true.");
+        return true;
+    }();
+
+    return is_support;
 }
 
 aclError AclProfilingInit(const char *profilerResultPath, size_t length) {

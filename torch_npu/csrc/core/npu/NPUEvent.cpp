@@ -21,6 +21,25 @@ NPUEvent::NPUEvent()
     flags_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
 }
 
+NPUEvent::NPUEvent(
+    c10::DeviceIndex device_index, const aclrtIpcEventHandle* handle) : device_index_(device_index)
+{
+    NPUGuard guard(device_index_);
+    LazySetDevice(device_index_);
+    NPU_CHECK_ERROR(acl::AclIpcOpenEventHandle(*handle, &event_));
+    c10_npu::NPUEventManager::GetInstance().AddIpcEvent(event_);
+    flags_ = ACL_EVENT_IPC;
+    is_created_ = true;
+
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuEventOpenHandle(reinterpret_cast<uintptr_t>(handle),
+            reinterpret_cast<uintptr_t>(event_));
+    }
+#endif
+}
+
 NPUEvent::~NPUEvent()
 {
     try {
@@ -29,7 +48,9 @@ NPUEvent::~NPUEvent()
         }
         if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
             NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
-            if (!c10_npu::acl::IsExistCreateEventExWithFlag() || c10_npu::option::OptionsManager::GetPerStreamQueue()) {
+            if (!c10_npu::acl::IsExistCreateEventExWithFlag() ||
+                c10_npu::option::OptionsManager::GetPerStreamQueue() ||
+                flags_ == ACL_EVENT_IPC) {
                 c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent();
             }
         }
@@ -105,8 +126,9 @@ void NPUEvent::block(const NPUStream& stream)
         createEvent(stream.device_index());
     }
     if (is_created_) {
-        // If multiple task queues are dequeued, it is necessary to ensure that the record is dequeued before wait
-        while (c10_npu::option::OptionsManager::GetPerStreamQueue() &&
+        // If using multiple task queues or using IPC events across devices in a single process,
+        // it is necessary to ensure that the enqueued record is dequeued before wait.
+        while ((c10_npu::option::OptionsManager::GetPerStreamQueue() || flags_ == ACL_EVENT_IPC) &&
             !c10_npu::NPUEventManager::GetInstance().IsEventRecorded(event_)) {
             std::this_thread::sleep_for(std::chrono::microseconds(10)); // 10 us
         }
@@ -199,6 +221,31 @@ void NPUEvent::reset(const NPUStream& stream) const
     }
 }
 
+// Note: AclIpcGetEventHandle must be called on the same device as the event
+void NPUEvent::ipc_handle(aclrtIpcEventHandle* handle)
+{
+    if (!is_created_) {
+        // this NPUEvent object was initially constructed from flags but event_
+        // is not created yet.
+        createEvent(getCurrentNPUStream().device_index());
+    }
+
+    // If using Event across processes, make sure that the enqueued record is dequeued before the wait of other processes.
+    while (c10_npu::option::OptionsManager::GetTaskQueueEnable() != 0 && !c10_npu::NPUEventManager::GetInstance().IsEventRecorded(event_)) {
+        std::this_thread::sleep_for(std::chrono::microseconds(10)); // 10 us
+    }
+
+    NPUGuard guard(device_index_);
+    NPU_CHECK_ERROR(acl::AclIpcGetEventHandle(event_, handle));
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuEventGetHandle(reinterpret_cast<uintptr_t>(event_),
+            reinterpret_cast<uintptr_t>(handle));
+    }
+#endif
+}
+
 void NPUEvent::createEvent(c10::DeviceIndex device_index)
 {
     device_index_ = device_index;
@@ -212,12 +259,15 @@ void NPUEvent::createEvent(c10::DeviceIndex device_index)
         trigger->traceNpuEventCreation(reinterpret_cast<uintptr_t>(event_));
     }
 #endif
+    if (flags_ == ACL_EVENT_IPC) {
+        c10_npu::NPUEventManager::GetInstance().AddIpcEvent(event_);
+    }
     is_created_ = true;
 }
 
 void NPUEvent::moveHelper(NPUEvent&& other)
 {
-    flags_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
+    std::swap(flags_, other.flags_);
     std::swap(is_created_, other.is_created_);
     std::swap(was_recorded_, other.was_recorded_);
     std::swap(device_index_, other.device_index_);

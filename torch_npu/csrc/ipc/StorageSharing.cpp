@@ -12,9 +12,11 @@
 
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 
 #include "torch_npu/csrc/ipc/NPUIPCTypes.h"
@@ -76,15 +78,15 @@ static PyObject* THNPStorage_shareNpu(PyObject* self, PyObject* args)
         _ref_counter = PyBytes_FromString((sent_data->handle()).c_str());
         _ref_counter_offset = THPUtils_packUInt64(sent_data->offset());
 
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-        aclrtNotify ipc_event_handle;
+        aclrtIpcEventHandle ipc_event_handle{};
 
         if (sent_data->event_sync_required_) {
-            // NPU does not suppurt event_sync in IPC now.
+            sent_data->event_.ipc_handle(&ipc_event_handle);
         }
 
         _event_handle = PyBytes_FromStringAndSize(
-            (char*)&ipc_event_handle, sizeof(aclrtNotify));
+            reinterpret_cast<const char*>(&ipc_event_handle), ACL_IPC_EVENT_HANDLE_SIZE);
+
         _event_sync_required = PyBool_FromLong(sent_data->event_sync_required_);
     }
 
@@ -148,13 +150,13 @@ static PyObject* THNPStorage_releaseIPCCounter(PyObject* _unused, PyObject* args
     END_HANDLE_TH_ERRORS
 }
 
-static std::string THNPStorage_bytesAsHandleString(PyObject* handle)
+static std::string THNPStorage_bytesAsHandleString(PyObject* handle, ssize_t expected_size)
 {
     HANDLE_TH_ERRORS
     char* buffer = nullptr;
     Py_ssize_t handle_size = 0;
     if (PyBytes_AsStringAndSize(handle, &buffer, &handle_size) == -1) {
-        TORCH_CHECK(handle_size == ACL_IPC_HANDLE_SIZE, "incorrect handle", PTA_ERROR(ErrCode::PARAM));
+        TORCH_CHECK(handle_size == expected_size, "incorrect handle", PTA_ERROR(ErrCode::PARAM));
     }
     return std::string(buffer, handle_size);
     END_HANDLE_TH_ERRORS_RET("")
@@ -197,10 +199,20 @@ static PyObject* THNPStorage_newSharedNpu(PyObject* _unused, PyObject* args)
     c10_npu::LazySetDevice(device);
 
     if (PyObject_IsTrue(_event_sync_required)) {
-        // TO BE DONE
+        // Ensure that producer prepared all tensor's data
+        std::string s_ipc_event_handle =
+            THNPStorage_bytesAsHandleString(_event_handle, ACL_IPC_EVENT_HANDLE_SIZE);
+        if (s_ipc_event_handle.empty()) {
+            return nullptr;
+        }
+
+        auto ipc_event_handle = reinterpret_cast<const aclrtIpcEventHandle*>(
+            s_ipc_event_handle.c_str());
+        c10_npu::NPUEvent npu_event(device, ipc_event_handle);
+        npu_event.block(c10_npu::getCurrentNPUStream(device));
     }
 
-    std::string s_handle = THNPStorage_bytesAsHandleString(_handle);
+    std::string s_handle = THNPStorage_bytesAsHandleString(_handle, ACL_IPC_HANDLE_SIZE);
     if (s_handle.empty()) {
         return nullptr;
     }
