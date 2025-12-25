@@ -857,6 +857,9 @@
   "torch_npu.npu.Event": {
     "signature": "(enable_timing=False, blocking=False, interprocess=False)"
   },
+  "torch_npu.npu.Event.from_ipc_handle": {
+    "signature": "(device, handle)"
+  },
   "torch_npu.npu.Event.record": {
     "signature": "(self, stream=None)"
   },
@@ -870,6 +873,9 @@
     "signature": "(self, end_event)"
   },
   "torch_npu.npu.Event.synchronize": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu.Event.ipc_handle": {
     "signature": "(self)"
   },
   "torch_npu.npu.ExternalEvent": {
@@ -1475,6 +1481,9 @@
   "torch_npu.npu.streams.Event": {
     "signature": "(enable_timing=False, blocking=False, interprocess=False)"
   },
+  "torch_npu.npu.streams.Event.from_ipc_handle": {
+    "signature": "(device, handle)"
+  },
   "torch_npu.npu.streams.Event.record": {
     "signature": "(self, stream=None)"
   },
@@ -1488,6 +1497,9 @@
     "signature": "(self, end_event)"
   },
   "torch_npu.npu.streams.Event.synchronize": {
+    "signature": "(self)"
+  },
+  "torch_npu.npu.streams.Event.ipc_handle": {
     "signature": "(self)"
   },
   "torch_npu.npu.streams.Stream": {
@@ -2390,6 +2402,9 @@
   "torch_npu.distributed.all_gather_into_tensor_uneven": {
     "signature": "(output, input, output_split_sizes=None, group=None, async_op=False)"
   },
+  "torch_npu.multiprocessing.reductions.rebuild_npu_event": {
+    "signature": "(device, handle)"
+  },
   "torch_npu.multiprocessing.reductions.rebuild_npu_tensor": {
     "signature": "(tensor_cls, tensor_size, tensor_stride, tensor_offset, storage_cls, dtype, storage_device, storage_handle, storage_size_bytes, storage_offset_bytes, requires_grad, ref_counter_handle, ref_counter_offset, event_handle, event_sync_required)"
   },
@@ -2551,6 +2566,10 @@
     "signature": "(unsigned int flags)",
     "file": "torch_npu/csrc/core/npu/NPUEvent.h"
   },
+  "torch_c_func: c10_npu::NPUEvent::NPUEvent(c10::DeviceIndex device_index, const aclrtIpcEventHandle* handle)": {
+    "signature": "(c10::DeviceIndex device_index, const aclrtIpcEventHandle* handle)",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
   "torch_c_func: c10_npu::NPUEvent::~NPUEvent()": {
     "signature": "()",
     "file": "torch_npu/csrc/core/npu/NPUEvent.h"
@@ -2605,6 +2624,10 @@
   },
   "torch_c_func: c10_npu::NPUEvent::synchronize": {
     "signature": "() -> void",
+    "file": "torch_npu/csrc/core/npu/NPUEvent.h"
+  },
+  "torch_c_func: c10_npu::NPUEvent::ipc_handle": {
+    "signature": "(aclrtIpcEventHandle* handle) -> void",
     "file": "torch_npu/csrc/core/npu/NPUEvent.h"
   },
   "torch_c_func: at_npu::NPUGeneratorImpl::NPUGeneratorImpl": {

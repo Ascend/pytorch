@@ -12,6 +12,7 @@
 struct aclrtMemUsageInfo;
 struct aclOpExecutor;
 struct aclrtUuid;
+struct aclrtIpcEventHandle;
 namespace c10_npu {
 namespace acl {
 enum aclrtEventWaitStatus {
@@ -122,6 +123,12 @@ bool IsExistQueryEventRecordedStatus();
   This API is used to query recorded status of event task
   */
 aclError AclQueryEventRecordedStatus(aclrtEvent event, aclrtEventRecordedStatus *status);
+
+aclError AclIpcGetEventHandle(aclrtEvent event, aclrtIpcEventHandle *handle);
+
+aclError AclIpcOpenEventHandle(aclrtIpcEventHandle handle, aclrtEvent *event);
+
+bool IsSupportIpcEvent();
 
 aclError AclProfilingInit(const char *profilerResultPath, size_t length);
 aclError AclProfilingStart(const aclprofConfig *profilerConfig);
