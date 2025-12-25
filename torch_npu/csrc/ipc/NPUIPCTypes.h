@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUEvent.h"
 
 namespace torch_npu {
 namespace ipc {
@@ -23,7 +24,7 @@ struct NpuIPCSentData final {
     uint64_t offset_;
     uint64_t* counter_ptr_;     // Reference counter shared memory block
     at::DataPtr original_ptr_;  // Original mem allocation
-    char* event_;               // Sync event
+    c10_npu::NPUEvent event_;   // Sync event
     bool event_sync_required_;
     at::Device device_;
 
@@ -57,7 +58,7 @@ namespace {
 
 inline constexpr int64_t NPU_IPC_REF_COUNTER_FILE_SIZE = 10000;
 inline constexpr int64_t NPU_IPC_WARN_AFTER_X_BLOCKS_IN_LIMBO = 1000;
-inline constexpr int64_t NPU_IPC_MAXIMUM_EVENTS_TO_USE = 0;
+inline constexpr int64_t NPU_IPC_MAXIMUM_EVENTS_TO_USE = 1000;
 
 // All to be deleted data blocks with non zero reference counter goes there
 struct NpuIPCSentDataLimbo final {

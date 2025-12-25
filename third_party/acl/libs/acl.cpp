@@ -47,6 +47,8 @@ aclError aclrtRecordEvent(aclrtEvent event, aclrtStream stream){return 0;}
 aclError aclrtStreamWaitEvent(aclrtStream stream, aclrtEvent event){return 0;}
 aclError aclrtSynchronizeEvent(aclrtEvent event){return 0;}
 aclError aclrtEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end){return 0;}
+aclError aclrtIpcGetEventHandle(aclrtEvent event, aclrtIpcEventHandle *handle){return 0;}
+aclError aclrtIpcOpenEventHandle(aclrtIpcEventHandle handle, aclrtEvent *event){return 0;}
 
 // memory相关操作
 aclError aclrtMalloc(void **devPtr, size_t size, aclrtMemMallocPolicy policy){return 0;}
