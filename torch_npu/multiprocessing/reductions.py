@@ -1,4 +1,4 @@
-__all__ = ["rebuild_npu_tensor"]
+__all__ = ["rebuild_npu_event", "rebuild_npu_tensor"]
 
 import multiprocessing
 import torch
@@ -15,6 +15,15 @@ from torch.multiprocessing.reductions import (
 )
 
 import torch_npu
+
+
+def rebuild_npu_event(device, handle):
+    return torch.npu.Event.from_ipc_handle(device, handle)
+
+
+def _npu_reduce_event(event):
+    handle = event.ipc_handle()
+    return (rebuild_npu_event, (event.device, handle))
 
 
 def rebuild_npu_tensor(
@@ -186,6 +195,9 @@ def _npu_reduce_storage(storage):
 
 
 def _add_reductions_methods():
+    multiprocessing.reduction.register(torch.npu.Event, _npu_reduce_event)
+
+    torch.multiprocessing.reductions.reduce_event = _npu_reduce_event
     torch.multiprocessing.reductions.reduce_tensor = _npu_reduce_tensor
     torch.multiprocessing.reductions.reduce_storage = _npu_reduce_storage
 

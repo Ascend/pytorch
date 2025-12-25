@@ -2,8 +2,10 @@
 #include <ATen/core/CachingHostAllocator.h>
 
 #include "op_plugin/OpInterface.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include "torch_npu/csrc/core/npu/NPUPeerToPeerAccess.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -260,31 +262,63 @@ bool can_use_memcpy(at::Tensor& dst, const at::Tensor& src)
 
 void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking)
 {
-    c10_npu::NPUGuard guard(src.device());
+    c10::Device src_device = src.device();
+    c10::Device dst_device = self.device();
+
+    c10_npu::NPUGuard guard(src_device);
+
     // p2p enable and synchronize self stream
-    auto self_device_idx = self.device().index();
-    auto src_device_idx = src.device().index();
-    if (self_device_idx != src_device_idx) {
+    auto dst_device_idx = dst_device.index();
+    auto src_device_idx = src_device.index();
+    c10_npu::NPUStream src_stream = c10_npu::getCurrentNPUStream(src_device_idx);
+    if (dst_device_idx != src_device_idx) {
         bool warning_flag = false;
-        NpuP2pCtrl::get_instance().get_p2p_access(src_device_idx, self_device_idx, warning_flag);
+        NpuP2pCtrl::get_instance().get_p2p_access(src_device_idx, dst_device_idx, warning_flag);
         // In the same 'os', tensor can copy even if the enable fails
         if (warning_flag) {
-            ASCEND_LOGW("p2p enable from %d to %d is fails", src_device_idx, self_device_idx);
+            ASCEND_LOGW("p2p enable from %d to %d is fails", src_device_idx, dst_device_idx);
         }
-        guard.set_device(self.device());
-        c10_npu::NPUStream dst_stream = c10_npu::getCurrentNPUStream(self_device_idx);
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(dst_stream));
-        guard.set_device(src.device());
+
+        // This is a cross-device copy on the src current stream and dst current
+        // stream. We perform a two-way barrier between both devices' streams
+        // before the copy. This ensures that any write-after-write and
+        // write-after-read dependencies on the destination side are handled, so
+        // that no one is operating on the dst memory when we perform the copy.
+        // src waits on dst barrier (src already waits on src)
+        if (c10_npu::acl::IsSupportIpcEvent()) {
+            c10_npu::NPUEvent dst_ready(ACL_EVENT_IPC);
+            guard.set_device(dst_device);
+            dst_ready.record(c10_npu::getCurrentNPUStream(dst_device_idx));
+            guard.set_device(src_device);
+            dst_ready.block(src_stream);
+        } else {
+            guard.set_device(dst_device);
+            c10_npu::NPUStream dst_stream = c10_npu::getCurrentNPUStream(dst_device_idx);
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(dst_stream));
+            guard.set_device(src_device);
+        }
     }
+
     if (self.dtype() != src.dtype()) {
         custom_ops::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
         return;
     }
     copy_d2d_dtype(self, src, non_blocking);
+
     // synchronize src stream for different devices copy
-    if (self_device_idx != src_device_idx) {
-        c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(copy_stream));
+    if (dst_device_idx != src_device_idx) {
+        // dst waits on src barrier (dst already waits on dst). We cannot
+        // operate on dst's copy until the copy is complete.
+
+        // Still on src_device, record stream event
+        if (c10_npu::acl::IsSupportIpcEvent()) {
+            c10_npu::NPUEvent src_ready(ACL_EVENT_IPC);
+            src_ready.record(src_stream);
+            guard.set_device(dst_device);
+            src_ready.block(c10_npu::getCurrentNPUStream(dst_device_idx));
+        } else {
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(src_stream));
+        }
     }
 }
 

@@ -585,6 +585,7 @@
     "Union",
     "check_serializing_named_tensor",
     "register_after_fork",
+    "reduce_event",
     "reduce_tensor",
     "reduce_storage"
   ],
