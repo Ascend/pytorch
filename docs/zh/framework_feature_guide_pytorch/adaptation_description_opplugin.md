@@ -5,9 +5,15 @@ OpPlugin是Ascend Extension for PyTorch的算子插件，为使用PyTorch框架�
 
 ## 什么是算子适配
 
-算子适配是指针对特定硬件平台(此处为华为Ascend昇腾芯片及配套运行环境)，对AI框架(如PyTorch)中的算子进行兼容性改造与性能优化的技术过程。算子作为深度学习任务的最小计算单元(如卷积、矩阵乘法、激活函数等)，其原生实现往往面向通用硬件(CPU/GPU/NPU)，算子适配通过接口标准化、计算逻辑重构、底层硬件能力调用等手段，使算子能够适配目标硬件的架构特性，同时确保计算语义一致性与功能完整性。
+算子适配是针对华为Ascend昇腾芯片及配套运行环境这一特定硬件平台，对AI框架PyTorch中的原生Aten IR算子进行兼容性改造与性能优化的核心技术过程。
 
-从技术本质来看，算子适配是连接上层AI框架算子与底层硬件计算资源的桥梁，核心是解决“语义兼容”与“能力映射”两大问题——既保证算子在目标平台的计算结果与原生平台一致，又实现底层硬件计算单元(如Ascend AI Core)的高效调用。
+算子作为深度学习任务的最小计算单元（如卷积、矩阵乘法、激活函数、加法等），其原生实现多面向CPU、GPU等通用硬件，并未针对昇腾NPU的架构特性（如AI Core并行计算单元、异构存储、专用加速指令集）做针对性优化。算子适配通过接口标准化、计算逻辑重构、底层硬件能力调用等手段，既保证算子在昇腾平台的计算语义、输入输出结果与PyTorch原生平台保持一致，又能充分释放昇腾硬件的计算潜能，最终实现PyTorch算子在昇腾NPU上的高效、稳定运行。
+
+从技术本质来看，算子适配是连接上层PyTorch框架算子与底层昇腾硬件计算资源的“桥梁”，核心解决两大核心问题：一是语义兼容，消除跨平台接口差异、数据格式不兼容等问题，确保算子功能可执行；二是能力映射，将PyTorch框架的计算请求转化为昇腾硬件可识别的执行指令，最大化硬件利用率。
+
+> [!NOTE]  
+> Aten IR（Aten Intermediate Representation，Aten中间表示）是PyTorch深度学习框架底层的核心中间表示形式，是连接PyTorch上层用户接口与底层硬件执行逻辑的关键载体。<br>
+> Aten IR由PyTorch官方定义，封装了算子的核心语义信息（名称、入参/返回值类型、计算逻辑描述），屏蔽了上层API的语法差异和底层硬件的实现细节，是PyTorch框架内算子分发、编译优化、跨硬件适配的统一“语言”。Aten IR接口说明，请参考[pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)。
 
 
 ## 为什么要做算子适配
@@ -29,12 +35,12 @@ OpPlugin是Ascend Extension for PyTorch的算子插件，为使用PyTorch框架�
 1、环境准备：安装配套软件、PyTorch 框架，拉取 torch_npu 源码并进入 OpPlugin 目录。
 2、算子分析：参考 PyTorch 原生 Aten IR 定义，明确算子名称、入参 / 返回值、语义等信息。
 3、选择适配方式：优先 aclnn 算子（存于 op_plugin/ops/opapi），兼容需求可选 aclop 算子（存于 op_plugin/ops/aclops）。
-4、yaml 配置：在 op_plugin_functions.yaml 中声明算子版本、schema、适配方式；需前反向绑定或支持 symint 的算子，分别在 derivatives.yaml、symint 字段补充配置。
+4、yaml 配置：在 op_plugin_functions.yaml 中声明算子版本、schema(算子描述规范)、适配方式；需前反向绑定或支持 symint 的算子，分别在 derivatives.yaml、symint 字段补充配置。
 5、代码实现：按对应适配方式创建 cpp 文件，实现算子接口及变体，不同版本用编译宏区分。
 6、辅助适配：补充接口文档、对外配置、meta 注册，编写单元测试。
 7、编译验证：编译安装 torch_npu 包，测试算子功能与性能。
 
-> [!NOTE] 
+> [!NOTE]  
 > 图模式算子开发请参考《PyTorch 图模式使用指南\(TorchAir\)》中的“[自定义算子插件化入图](https://www.hiascend.com/document/detail/zh/Pytorch/720/modthirdparty/torchairuseguide/torchair_00047.html)”章节。
 
 
@@ -59,10 +65,9 @@ cd pytorch/third_party/op-plugin
 
 ## 适配原则
 
--   OpPlugin对外接口与PyTorch原生Aten IR保持一致。原生Aten IR(Aten Intermediate Representation)是PyTorch 深度学习框架底层的核心中间表示形式，是连接PyTorch上层用户接口与底层硬件执行逻辑的关键数据结构与计算描述载体。OpPlugin通过“接口兼容、语义等价、数据格式一致”的适配层设计，确保上层PyTorch模型代码无需任何修改，即可无缝调用适配后的Ascend平台算子。
-    Aten IR接口说明，请参考[pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)。
+-   OpPlugin对外接口与PyTorch原生Aten IR保持一致。OpPlugin通过“接口兼容、语义等价、数据格式一致”的适配层设计，确保上层PyTorch模型代码无需任何修改，即可无缝调用适配后的Ascend平台算子。
 -   相同算子不同版本使用op\_plugin\_functions.yaml统一维护对外接口，不同版本的适配代码都在一个文件中，通过编译宏VERSION\_BETWEEN来区分不同版本。
--   相同算子不同适配方式放置于不同的文件夹中，使用不同的命名空间。当前仅支持opapi适配(aclnn等)和aclop适配(通过GE注册的算子)方式。
+-   相同算子不同适配方式放置于不同的文件夹中，使用不同的命名空间。当前仅支持opapi适配(通过aclnn直接调用)和aclop适配(通过GE注册调用)方式。
 -   接口适配规则，非必要不使用NPUNativeFunction::命名空间中的接口。原生算子使用at::xx调用，自定义算子使用custom\_ops::xx调用，调用其他适配接口使用OpPlugin内部的接口，比如aclnn使用op\_api::xx，aclop算子使用acl\_op::xx。
 
 
@@ -70,21 +75,33 @@ cd pytorch/third_party/op-plugin
 
 ```
 ├── op_plugin
-│   ├── config                        # 算子适配配置文件目录
-│   │   ├── derivatives.yaml          # 算子前反向绑定配置文件
-│   │   └── op_plugin_functions.yaml  # 算子对外接口配置文件
-│   ├── ops                           # 算子适配代码实现文件目录
-│   │   ├── aclops                    # aclop算子
+│   ├── config                                 # 算子适配配置文件目录
+│   │   ├── derivatives.yaml                   # 算子前反向绑定配置文件
+│   │   └── op_plugin_functions.yaml           # 算子对外接口配置文件
+│   ├── ops                                    # 算子适配代码实现文件目录
+│   │   ├── aclops                             # aclop算子适配目录
 │   │   │   ├── AbsKernelNpu.cpp
 │   │   │   └── ...
-│   │   └── opapi                     # aclnn算子
+│   │   └── opapi                              # aclnn算子适配目录
 │   │       ├── AbsKernelNpuOpApi.cpp
 │   │       └── ...
-│   ├── OpInterface.h         	      # 编译自动生成op_plugin对外接口的头文件，用于框架侧调用算子
-│   ├── OpInterface.cpp               # 编译自动生成op_plugin对外接口路由实现，内部实现不同类型算子分支选择代码
-│   ├── AclOpsInterface.h             # 编译自动生成aclop算子插件适配所对应头文件 
-│   ├── OpApiInterface.h              # 编译自动生成aclnn算子插件适配所对应头文件
-│   ├── ...    
+|   ├── python
+|   │   └── meta
+|   │       └── _meta_registrations.py         # 算子meta实现注册文件
+│   ├── OpInterface.h         	               # 编译自动生成op_plugin对外接口的头文件，用于框架侧调用算子
+│   ├── OpInterface.cpp                        # 编译自动生成op_plugin对外接口路由实现，内部实现不同类型算子分支选择代码
+│   ├── AclOpsInterface.h                      # 编译自动生成aclop算子插件适配所对应头文件 
+│   ├── OpApiInterface.h                       # 编译自动生成aclnn算子插件适配所对应头文件
+│   └── ...
+├── codegen
+│   └── templates
+│       └── _op_plugin_docs.py                 # 算子对外接口文档
+├── test
+│   ├── allowlist_for_publicAPI.json           # 对外公开接口白名单
+│   ├── core_tests
+│   |   └── torch_npu_OpApi_schema_all.json    # 算子接口schema配置文件
+|   └── test_custom_ops                        # 算子开发者测试目录
+│       └── ...
 ```
 
 
@@ -110,52 +127,52 @@ OpPlugin采用和原生PyTorch类似的逻辑在yaml中声明算子的各类信�
 
 ### yaml算子配置规则
 
-    ```yaml
-    # op_plugin_functions.yaml
-    all_version: [v1.11, v2.0, v2.1, v2.2, v2.3, v2.4, v2.5, v2.6, v2.7, v2.8, v2.9, v2.10]
+```yaml
+# op_plugin_functions.yaml
+all_version: [v2.1, v2.2, v2.3, v2.4, v2.5, v2.6, v2.7, v2.8, v2.9, v2.10]
 
-    # 原生算子
-    official:
-      - func: abs(Tensor self) -> Tensor
-        acl_op: all_version
-        op_api: all_version
-        gen_opapi:
-          structured_inherit: abs.out
+# 原生算子
+official:
+  - func: abs(Tensor self) -> Tensor
+    acl_op: all_version
+    op_api: all_version
+    gen_opapi:
+      structured_inherit: abs.out
 
-    # 自定义算子
-    custom:
-      - func: my_abs(Tensor self) -> Tensor
-        acl_op: all_version
-        op_api: all_version
-        exposed: all_version
+# 自定义算子
+custom:
+  - func: my_abs(Tensor self) -> Tensor
+    acl_op: all_version
+    op_api: all_version
+    exposed: all_version
 
-    # 入参带有symint的算子
-    symint:
-      - func: zeros(SymInt[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
-        acl_op: [v2.1, newest]
-    ```
+# 入参带有symint的算子
+symint:
+  - func: zeros(SymInt[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
+    acl_op: [v2.1, newest]
+```
 
-    参数说明：
+参数说明：
+-   all\_version：表示当前PyTorch支持的所有版本，版本列表会根据torch_npu演进调整，具体以代码为准。可通过[]设置算子支持的版本范围，例如[v2.1, newest]代表该算子支持从v2.1到最新版本。
+-   official和custom：分别表示该字段下的算子为PyTorch原生和自定义算子；symint字段表明该算子支持symint类型的入参，该种算子请参考[symint算子适配](#symint算子适配)。
+-   func：表示定义算子的schema(算子描述规范)，其内容完全遵循PyTorch原生Aten IR算子schema的定义规则，通过“算子名称+入参列表+返回参数”的结构化形式，完整描述算子的调用接口与语义约束。具体规则可参考原生定义([LINK](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme))。
+-   acl\_op：表示在该版本支持acl\_op调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
+-   op\_api：表示在该版本支持op\_api调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
+-   gen\_opapi：对于支持op\_api调用的算子，如果适配代码简单，可以直接调用底层算子，不需要额外的适配，则可以考虑用结构化适配的方式自动生成适配代码，详见章节[结构化适配介绍(可选)](#结构化适配介绍可选)。
+-   exposed：表示商用算子支持的版本，一般只用设置正向算子接口。
+-   internal_format_opapi：表示支持昇腾亲和格式NZ下分发到op_api算子调用；当前对于入参为昇腾亲和格式默认分发到acl_op调用，除非显示新增internal_format_opapi字段加入白名单。
 
-    -   all\_version表示当前PyTorch支持的所有版本，可通过[]设置算子支持的版本范围，例如[v2.1, newest]代表该算子支持从v2.1到最新版本。
-    -   official和custom分别表示该字段下的算子为PyTorch原生和自定义算子；symint字段表明该算子支持symint类型的入参，该种算子请参考[symint算子适配](#symint算子适配)。
-    -   func字段的核心作用是定义算子的 schema(算子描述规范)，其内容完全遵循PyTorch原生Aten IR算子schema的定义规则，通过“算子名称+入参列表+返回参数”的结构化形式，完整描述算子的调用接口与语义约束。具体规则可参考原生定义([LINK](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme))。
-    -   acl\_op字段后面填版本名称，表示在该版本支持acl\_op调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
-    -   op\_api字段后面填版本名称，表示在该版本支持op\_api调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
-    -   gen\_opapi对于支持op\_api调用的算子，如果适配代码简单，可以直接调用底层算子，不需要额外的适配，则可以考虑用结构化适配的方式自动生成适配代码，详见章节[结构化适配介绍(可选)](#结构化适配介绍可选)。
-    -   exposed字段后面填商用算子版本，一般只用设置正向算子接口 。
 
-
-    > [!NOTE]  
-    >如果存在某个算子适配有两个版本不一致，则需要两个都加上，如std.correction在PyTorch1.11.0版本和PyTorch2.1.0及以上版本的入参名称不同，则需要分开写成两个，通过version区分。
-    >```yaml
-    >  - func: std.correction(Tensor self, int[1]? dim, *, int? correction, bool keepdim=False) -> Tensor
-    >    acl_op: v1.11
-    >    op_api: v1.11
-    >  - func: std.correction(Tensor self, int[1]? dim=None, *, Scalar? correction=None, bool keepdim=False) -> Tensor
-    >    acl_op: [v2.1, newest]
-    >    op_api: [v2.1, newest]
-    >```
+> [!NOTE]  
+> 如果存在某个算子适配有两个版本不一致，则需要两个都加上，如std.correction在PyTorch1.11.0版本和PyTorch2.1.0及以上版本的入参名称不同，则需要分开写成两个，通过version区分。<br>
+>```yaml
+>  - func: std.correction(Tensor self, int[1]? dim, *, int? correction, bool keepdim=False) -> Tensor
+>    acl_op: v1.11
+>    op_api: v1.11
+>  - func: std.correction(Tensor self, int[1]? dim=None, *, Scalar? correction=None, bool keepdim=False) -> Tensor
+>    acl_op: [v2.1, newest]
+>    op_api: [v2.1, newest]
+>```
 
 
 ### 自动前反向绑定算子配置
@@ -163,26 +180,46 @@ OpPlugin采用和原生PyTorch类似的逻辑在yaml中声明算子的各类信�
 > [!NOTE]  
 > 仅适用于需要进行前反向绑定的算子。
 
-PyTorch的算子自动反向微分依赖于算子的前反向绑定，即前向函数和反向函数的绑定。对于原生的算子，官方已有前反向绑定逻辑，插件侧有对应前向算子和反向算子配置即可。对于自定义算子，则需要在插件侧配置前反向自动绑定。具体操作包括：
+在神经网络中，前向函数用于计算输出和损失，反向函数用于计算梯度，这两个函数是互相关联的。Pytorch在执行算子操作时，不仅会执行前向计算，还会保存反向函数中的必要信息，因此需要执行算子的前反向绑定，即前向函数和反向函数的绑定。
+对于原生的算子，官方已有前反向绑定逻辑，插件侧有对应前向算子和反向算子配置即可。对于自定义算子，则需要在插件侧配置前反向自动绑定。具体操作包括：
 1. 适配前向和反向算子：与[算子适配开发](#算子适配开发)中一致，分别适配前向算子和反向算子，并在op\_plugin\_functions.yaml中配置前向和反向算子。
-2. 配置前反向绑定，将前向和反向算子进行绑定：OpPlugin与原生PyTorch一致，通过op\_plugin/config/derivatives.yaml配置算子的前反向绑定关系，同时相比原生新增了version字段用于表示支持的版本，如下所示：
+2. 配置前反向绑定，将前向和反向算子进行绑定：OpPlugin与原生PyTorch一致，通过op\_plugin/config/derivatives.yaml配置算子的前反向绑定关系，同时相比原生新增了version字段用于表示支持的版本。
 
-    ```yaml
-    # derivatives.yaml
-    - name: l1_loss(Tensor self, Tensor target, int reduction=Mean) -> Tensor
-      self: l1_loss_backward(grad, self, target, reduction)
-      target: l1_loss_backward(grad, self, target, reduction) * -1
-      version: [v2.1, newest]
-    ```
+```yaml
+# derivatives.yaml
+all_version: [v2.1, v2.2, v2.3, v2.4, v2.5, v2.6, v2.7, v2.8, v2.9, v2.10]
+backward:
+- name: l1_loss(Tensor self, Tensor target, int reduction=Mean) -> Tensor
+  self: l1_loss_backward(grad, self, target, reduction)
+  target: l1_loss_backward(grad, self, target, reduction) * -1
+  version: [v2.1, newest]
 
-> [!NOTE]
+- name: npu_add_layer_norm(Tensor x1, Tensor x2, Tensor gamma, Tensor beta, float epsilon=1e-05, bool additional_output=False) -> (Tensor, Tensor, Tensor, Tensor)
+  output_differentiability: [true, false, false, true]
+  x1, x2, gamma, beta: npu_add_layer_norm_backward(grads[0], x1, x2, result2, result1, gamma, grads[1])
+  version: [v2.1, newest]
+
+- name: gather(Tensor self, int dim, Tensor index, *, bool sparse_grad=False) -> Tensor
+  self: npu_gather_backward(grad, self.sym_sizes(), dim, index, sparse_grad)
+  index: non_differentiable
+  result: auto_linear
+  version: all_version
+```
+
+参数说明：
+-   name：需要前反向绑定的算子接口，同op\_plugin\_functions.yaml中函数声明。
+-   self和其他输入参数：定义入参的梯度计算方法，对于简单的可以直接用数据公式说明，对于复杂的通过底层实现的反向函数声明。
+-   output_differentiability：定义输出是否可微，可以通过列表的方式定义多个输出是否可微
+-   result：算子接口的返回结果result
+
+> [!NOTE]  
 > 所有版本的算子前反向绑定都在同一个derivatives.yaml里面，通过version字段来区分版本。
 
 
 ### symint算子配置
 
 > [!NOTE]  
-> symint类型算子需参考此部分进行适配。
+> symint类型算子需参考此部分进行适配。<br>
 > 以下yaml配置和适配文件为已有配置和文件，此处仅为示例，用户需根据实际场景更改。
 
 symint为PyTorch在v2.0及以上版本新增的数据类型，op\_plugin/config/op\_plugin\_functions.yaml配置中对应添加了symint类型。配置在symint字段下的函数表示底层函数实现支持了symint类型入参。对于底层不支持symint的函数，则无需在symint字段配置。当需要在symint字段配置时，用户进行如下操作进行算子适配:
@@ -194,11 +231,11 @@ symint为PyTorch在v2.0及以上版本新增的数据类型，op\_plugin/config/
     # 官方算子
     official:
      - func: zeros(SymInt[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
-       acl_op: v2.1, v2.2, v2.3, v2.4, v2.5, v2.6, v2.7, v2.8, v2.9, v2.10
+       acl_op: all_version
     
     symint:
      - func: zeros(SymInt[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
-       acl_op: v2.1, v2.2, v2.3, v2.4, v2.5, v2.6, v2.7, v2.8, v2.9, v2.10
+       acl_op: all_version
     ```
 
 3. 算子实现在同算子文件下，新增算子名称为zeros\_symint，且入参中第一个参数的类型为symint相关的类型c10::SymIntArrayRef。由于symint特性只在PyTorch2.0以上支持，symint相关适配代码需要根据实际版本支持情况添加版本编译宏VERSION\_BETWEEN来控制编译。
@@ -369,37 +406,36 @@ YAML配置有以下两种方式，可根据实际情况进行选择。每个结�
   -   size：配置输出tensor的shape大小，如果大小和schema中的某个参数相同，可以配置成输入参数的名字。也可配置成自定义infershape函数，infershape函数需在KernelNpuOutputSize.h中实现。对于out类接口，如果输出shape不变，可省略此字段。配置方式主要包含以下几种：
 
       ```yaml
-      - func: func_name(ArgType arg0[=default], ArgType arg1[=default], ...) -> Return
-      Aten IR定义：
+      # Aten IR定义：
       - func: func_name(ArgType arg0, ArgType arg1, ...) -> Return
-      方式一：和输入参数相同
+      # 方式一：和输入参数相同
         size: arg0
 
-      方式二：枚举每个维度的值
+      # 方式二：枚举每个维度的值
         size: '{4, arg0.size(0), arg0.size(1), arg1.size(0)}'
 
-      方式三：条件表达式
+      # 方式三：条件表达式
         size: 'arg1 == 1? arg0.sizes(): at::ArrayRef<int64_t>()'
 
-      方式四：在KernelNpuOutputSize.h中自定义infershape函数, 例如broadcast_ops_npu_output_size
+      # 方式四：在KernelNpuOutputSize.h中自定义infershape函数, 例如broadcast_ops_npu_output_size
         size: broadcast_ops_npu_output_size(arg0, arg1)
       ```
 
   -   dtype：配置输出tensor的dtype大小，如果大小和schema中的某个参数相同，可以配置成输入参数的名字。也可配置成自定义inferdtype函数，inferdtype函数需在KernelNpuOutputDtype.h中实现。对于out类接口，如果输出dtype不需要check，可省略此字段。配置方式主要包含以下几种：
 
       ```yaml
-      Aten IR定义：
+      # Aten IR定义：
       - func: func_name(ArgType arg0, ArgType arg1, ...) -> Return
-      方式一：和输入参数相同
+      # 方式一：和输入参数相同
         dtype: arg0
 
-      方式二：配置成已知的dtype类型
+      # 方式二：配置成已知的dtype类型
         dtype: at::kFloat
 
-      方式三：条件表达式
+      # 方式三：条件表达式
         dtype: 'isIntegralType(arg0.scalar_type(), true) ? at::kFloat : arg0.scalar_type()'
 
-      方式四：在KernelNpuOutputDtype.h中自定义inferdtype函数。
+      # 方式四：在KernelNpuOutputDtype.h中自定义inferdtype函数。
         dtype: inferdtype(arg0, arg1)
       ```
 
@@ -408,10 +444,10 @@ YAML配置有以下两种方式，可根据实际情况进行选择。每个结�
 
       ```yaml
       - func: abs.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
-        方式一：
+        # 方式一：
         exec: aclnnAbs, self, out
 
-        方式二：
+        # 方式二：
         exec: aclnnAbs
       ```
 
@@ -552,40 +588,69 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
 
 ## 算子辅助适配
 
-1. 算子接口说明文档：在op-plugin仓op\-plugin/codegen/templates/\_op\_plugin\_docs.py文件补充新增接口的说明文档，一般只用设置正向，具体示例如下：
-    ```python
-    _add_torch_npu_docstr(
-        "npu_transpose",
-        """
-    torch_npu.npu_transpose(self, perm, require_contiguous=True) -> Tensor
-    功能描述
-    返回原始张量视图，其维度已permute，结果连续。支持FakeTensor模式。
+> [!NOTE]  
+> 以下npu_transpose的辅助适配仅为示例，用户需根据实际场景更改。
 
-    参数说明
-    self (Tensor) - 输入张量。
-    perm (ListInt) - 对应维度排列。
-    require_contiguous(Bool，默认值为True) - 用户是否需要对输入Tensor做转连续。设置为False时，表示不对输入Tensor做转连续。用户明确输入Tensor为连续Tensor或转置Tensor时，才能设置为True。
-    示例
-    >>> x = torch.randn(2, 3, 5).npu()
-    >>> x.shape
-    torch.Size([2, 3, 5])
-    >>> x1 = torch_npu.npu_transpose(x, (2, 0, 1))
-    >>> x1.shape
-    torch.Size([5, 2, 3])
-    """
-    )
-    ```
+### 算子接口说明文档
 
-2. 算子接口对外公开配置
+在codegen/templates/\_op\_plugin\_docs.py文件补充新增接口的说明文档，一般只用设置正向，具体示例如下：
+
+  ```python
+  _add_torch_npu_docstr(
+      "npu_transpose",
+      """
+  torch_npu.npu_transpose(self, perm, require_contiguous=True) -> Tensor
+
+  功能描述
+  返回原始张量视图，其维度已permute，结果连续。支持FakeTensor模式。
+
+  参数说明
+  self (Tensor) - 输入张量。
+  perm (ListInt) - 对应维度排列。
+  require_contiguous(Bool，默认值为True) - 用户是否需要对输入Tensor做转连续。设置为False时，表示不对输入Tensor做转连续。用户明确输入Tensor为连续Tensor或转置Tensor时，才能设置为True。
+
+  示例
+  >>> x = torch.randn(2, 3, 5).npu()
+  >>> x.shape
+  torch.Size([2, 3, 5])
+  >>> x1 = torch_npu.npu_transpose(x, (2, 0, 1))
+  >>> x1.shape
+  torch.Size([5, 2, 3])
+  """
+  )
+  ```
+
+
+### 算子接口对外公开配置
 
 对外公开接口需在以下文件中新增接口配置：
-  - op-plugin/test/allowlist\_for_publicAPI.json
-  - op-plugin/test/core_tests/torch\_npu_OpApi\_schema\_all.json
-    以"op-api:"开头的表示Python接口，以"func:"开头的接口表示C++接口
+  - test/allowlist\_for\_publicAPI.json
+    ```json
+    {
+    "torch_npu": 
+      {
+        "all_version": ["npu_transpose"]
+      }
+    }
+    ```
 
-3. 算子接口meta实现
+  - test/core\_tests/torch\_npu\_OpApi\_schema\_all.json
+  以"op-api:"开头的表示Python接口，以"func:"开头的接口表示C++接口
+    ```json
+    {
+      "op_api: torch_npu.npu_transpose(*args, **kwargs)": {
+        "version": ["all_version"]
+      },
+      "func: npu_transpose(Tensor self, int[] perm, bool require_contiguous=True) -> Tensor": {
+        "version": ["all_version"]
+      }
+    }
+    ```
 
-在fx、compile等功能使用时，需注册算子接口的meta实现，使得走faketensor时可以正常执行。目前算子的meta实现，统一注册在文件op_plugin/python/meta/\_meta\_registrations.py。
+
+### 算子接口meta实现
+
+在fx、compile等功能使用时，需注册算子接口的meta实现，使得走faketensor时可以正常执行。目前算子的meta实现，统一注册在文件op\_plugin/python/meta/\_meta\_registrations.py。
   ```python
   @impl(m, "npu_transpose")
   def npu_transpose_meta(self, perm, require_contiguous=True):
@@ -593,49 +658,49 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
       return torch.empty_like(output, dtype=self.dtype)
   ```
 
-4. 算子接口开发者测试
+### 算子接口开发者测试
 
 开发者测试（UT）通过功能正确性验证、边界条件覆盖等，确保算子实现预期，降低联调成本，同时作为长期维护的质量基线，保障算子适配全生命周期的稳定性，自定义算子适配test目录为test/test\_custom\_ops。
 以npu_transpose为例，需要实现以下用例：
 
-    ```python
-    import torch
-    import numpy as np
-    import torch_npu
+  ```python
+  import torch
+  import numpy as np
+  import torch_npu
 
-    from torch_npu.testing.testcase import TestCase, run_tests
-    from torch_npu.testing.common_utils import create_common_tensor
-
-
-    class TestTransepose(TestCase):
-        def test_transepose(self):
-            def cpu_op_exec(input1, perm):
-                output = input1.permute(perm)
-                output = output.numpy()
-                return output
-
-            def npu_op_exec(input1, perm):
-                output = torch_npu.npu_transpose(input1, perm)
-                output = output.to("cpu")
-                output = output.numpy()
-                return output
-
-            shape_format = [
-                [[np.float32, 0, (5, 3, 6, 4)], [1, 0, 2, 3]],
-                [[np.float16, 0, (5, 3, 6, 4)], [0, 3, 2, 1]],
-            ]
-
-            for item in shape_format:
-                cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
-                cpu_output = cpu_op_exec(cpu_input1, item[1])
-                npu_output = npu_op_exec(npu_input1, item[1])
-
-                self.assertRtolEqual(cpu_output, npu_output)
+  from torch_npu.testing.testcase import TestCase, run_tests
+  from torch_npu.testing.common_utils import create_common_tensor
 
 
-    if __name__ == "__main__":
-        run_tests()
-    ```
+  class TestTransepose(TestCase):
+      def test_transepose(self):
+          def cpu_op_exec(input1, perm):
+              output = input1.permute(perm)
+              output = output.numpy()
+              return output
+
+          def npu_op_exec(input1, perm):
+              output = torch_npu.npu_transpose(input1, perm)
+              output = output.to("cpu")
+              output = output.numpy()
+              return output
+
+          shape_format = [
+              [[np.float32, 0, (5, 3, 6, 4)], [1, 0, 2, 3]],
+              [[np.float16, 0, (5, 3, 6, 4)], [0, 3, 2, 1]],
+          ]
+
+          for item in shape_format:
+              cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
+              cpu_output = cpu_op_exec(cpu_input1, item[1])
+              npu_output = npu_op_exec(npu_input1, item[1])
+
+              self.assertRtolEqual(cpu_output, npu_output)
+
+
+  if __name__ == "__main__":
+      run_tests()
+  ```
 
 
 ## 算子编译执行
@@ -646,7 +711,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
 # 附录
 
 ## PyTorch scheme规则
-官方schema指导：https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/native/README.md
+官方schema(算子描述规范)指导：https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/native/README.md
 
 由于PTA 2.1版本使用官方的torchgen进行代码生成，因此要遵循官方的一些生成规范，未满足schema规范的算子会在编译时报错。当前有涉及到的有：
 
