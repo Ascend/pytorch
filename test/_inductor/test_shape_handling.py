@@ -16,6 +16,7 @@ import torch_npu
 import torch_npu._inductor
 import torch_npu.testing
 from torch_npu.testing.common_utils import get_cycles_per_ms
+from torch_npu._inductor.shape_handling import unified_copy
 
 
 class TestShapeHandling(TestCase):
@@ -107,8 +108,51 @@ class TestShapeHandling(TestCase):
         # 验证越界维度触发异常
         with self.assertRaises(RuntimeError):
             shape_handling.transform([input_tensor])  # 有效维度应为0或1
- 
+
+
+class TestUnifiedCopy(TestCase):
+    def test_none_and_simple_types(self):
+        """Test unified_copy with None, list, dict, and tuple."""
+        # None
+        self.assertIsNone(unified_copy(None))
+
+        # list
+        lst = [1, 2, 3]
+        copied_lst = unified_copy(lst)
+        self.assertEqual(lst, copied_lst)
+        self.assertIsNot(lst, copied_lst)
+
+        # dict
+        d = {"a": 1, "b": [2, 3]}
+        copied_d = unified_copy(d)
+        self.assertEqual(d, copied_d)
+        self.assertIsNot(d, copied_d)
+
+        # tuple
+        t = (1, [2, 3])
+        copied_t = unified_copy(t)
+        self.assertEqual(t, copied_t)
+        self.assertIsInstance(copied_t, tuple)
+
+    def test_nested_structure_with_tensor(self):
+        """Test nested structure containing NPU tensor."""
+        original = {
+            "data": [torch.tensor([1.0, 2.0]), 42],
+            "meta": {"shape": (2,)}
+        }
+        copied = unified_copy(original)
+
+        # 结构和值一致
+        self.assertEqual(original["meta"], copied["meta"])
+        self.assertTrue(torch.equal(original["data"][0], copied["data"][0]))
+        self.assertEqual(original["data"][1], copied["data"][1])
+
+        # 验证独立副本
+        original["data"][0][0] = 888.0
+        self.assertNotEqual(copied["data"][0][0].item(), 888.0)
+
 instantiate_parametrized_tests(TestShapeHandling)
+instantiate_parametrized_tests(TestUnifiedCopy)
  
 if __name__ == '__main__':
     run_tests()

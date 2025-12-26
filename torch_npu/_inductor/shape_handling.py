@@ -2,6 +2,8 @@ __all__ = ["NPUShapeHandling"]
 
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import copy
+
 import torch
 import torch_npu._C
 
@@ -204,6 +206,43 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         return re_outputs[0]
 
 
+def unified_copy(data: Any) -> Any:
+    """
+    对输入数据进行安全且统一的深拷贝。
+    支持PyTorch Tensor、字典、列表等常见数据类型。
+    
+    Args:
+        data: 输入数据，可以是Tensor、dict、list等
+        
+    Returns:
+        数据的独立副本
+    """
+    if data is None:
+        return None
+    
+    # 处理PyTorch Tensor
+    if isinstance(data, torch.Tensor):
+        return data.clone().detach()
+    
+    # 处理字典类型
+    elif isinstance(data, dict):
+        return {key: unified_copy(value) for key, value in data.items()}
+    
+    # 处理列表类型
+    elif isinstance(data, list):
+        return [unified_copy(item) for item in data]
+    
+    # 处理元组类型
+    elif isinstance(data, tuple):
+        return tuple(unified_copy(item) for item in data)
+
+    else:
+        try:
+            return copy.deepcopy(data)
+        except (TypeError, ValueError):
+            return data
+
+
 def patch_dynamo_context():
     import contextlib
     import inspect
@@ -301,7 +340,7 @@ def patch_dynamo_context():
                 kwargs_is_split = len(kwargs) != 0 and len(new_kwargs) > 1
                 zipped_params = zip(new_args, new_kwargs)
                 res = [
-                    src_fn(*arg, **kwargs).clone() if args_is_split or kwargs_is_split
+                    unified_copy(src_fn(*arg, **kwargs)) if args_is_split or kwargs_is_split
                     else src_fn(*arg, **kwargs)
                     for arg, kwargs in zipped_params
                 ]
