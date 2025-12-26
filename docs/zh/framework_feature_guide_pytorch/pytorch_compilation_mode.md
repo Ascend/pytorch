@@ -144,4 +144,5 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
 1.  优化器（optimizer）通常不入图，优化器的step\(\)包含Python侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
 2.  torch.compile\(backend="npugraphs"\)必须固定输入形状（捕获后无法修改 batch\_size、序列长度等）。torch.compile\(backend="inductor"\)支持动态形状，但会触发重新编译（增加开销），建议尽量固定形状。
 3.  使用NPUGraph（aclgraph）时需要判断算子在replay时是否需要更新，如需更新，启用update机制。
+4.  仅算子全部为NN算子时，方可使用NPUGraph（aclgraph）。
 
