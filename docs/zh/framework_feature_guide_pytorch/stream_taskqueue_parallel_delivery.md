@@ -17,10 +17,10 @@
 
 通过PER\_STREAM\_QUEUE环境变量可配置是否开启一个stream一个task\_queue算子下发队列。
 
--   配置为“0“时，关闭一个stream一个task\_queue算子下发队列。
--   配置为“1“时，开启一个stream一个task\_queue算子下发队列。
+-   配置为“0”时，关闭一个stream一个task\_queue算子下发队列。
+-   配置为“1”时，开启一个stream一个task\_queue算子下发队列。
 
-此环境变量默认配置为“0“。
+此环境变量默认配置为“0”。
 
 ## 使用样例
 
