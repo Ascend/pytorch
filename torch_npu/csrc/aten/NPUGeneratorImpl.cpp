@@ -158,13 +158,9 @@ void NPUGeneratorState::register_graph(c10_npu::NPUGraph* graph)
  */
 void NPUGeneratorState::unregister_graph(c10_npu::NPUGraph* graph)
 {
-    // Ensures that the RNG state is not currently being captured.
-    c10_npu::assertNotCapturing(
-        "Cannot unregister the state during capturing stage.");
     // Verify the graph was previously registered.
-    TORCH_CHECK(
-        registered_graphs_.find(graph) != registered_graphs_.end(),
-        "The graph should be registered to the state");
+    TORCH_CHECK(registered_graphs_.find(graph) != registered_graphs_.end(),
+                "The graph should be registered to the state");
 
     // Remove the graph from the set of registered graphs.
     registered_graphs_.erase(graph);
