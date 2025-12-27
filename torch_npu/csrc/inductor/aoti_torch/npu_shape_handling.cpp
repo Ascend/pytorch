@@ -6,7 +6,9 @@ namespace F = torch::nn::functional;
 
 namespace torch::aot_inductor {
 NPUShapeHandling::NPUShapeHandling(std::vector<int> &sizes)
-    : m_sizes(sizes)
+    : m_sizes(sizes),
+      // 默认策略对象
+      m_strategy(std::make_unique<DefaultShapeOp>())
 {
     TORCH_CHECK(sizes.size() > 0, "The size list cannot be empty.");
     TORCH_CHECK(sizes.size() <= MAX_SHAPE_GEARS, "The maximum number of supported gear is 64.");
@@ -20,7 +22,9 @@ NPUShapeHandling::NPUShapeHandling(std::vector<int> &sizes)
 }
 
 NPUShapeHandling::NPUShapeHandling(int min_size, int max_size, ShapePolicy policy)
-    : m_min_size(min_size), m_max_size(max_size), m_policy(policy)
+    : m_min_size(min_size), m_max_size(max_size), m_policy(policy),
+      // 默认策略对象
+      m_strategy(std::make_unique<DefaultShapeOp>())
 {
     TORCH_CHECK(m_min_size <= m_max_size, "The min_size cannot be greater than the max_size.");
     TORCH_CHECK(m_min_size >= MIN_SHAPE_SIZE, "The minimum gear is 1.");
@@ -35,41 +39,47 @@ NPUShapeHandling::NPUShapeHandling(int min_size, int max_size, ShapePolicy polic
     m_max_size = m_sizes.back();
 }
 
-int NPUShapeHandling::FindClosestSize(int target_size)
+int ShapeOpStrategy::FindClosestSize(int target_size, const std::vector<int> &sizes, int min_size, int max_size)
 {
-    if (m_min_size >= target_size) {
-        return m_min_size;
+    if (min_size >= target_size) {
+        return min_size;
     }
 
-    if (m_max_size < target_size) {
+    if (max_size < target_size) {
         return -1;
     }
 
     int left = 0;
-    int right = m_sizes.size() - 1;
+    int right = sizes.size() - 1;
     while (left <= right) {
         int mid = left + (right - left) / 2;
-        if (m_sizes[mid] < target_size) {
+        if (sizes[mid] < target_size) {
             left = mid + 1;
-        } else if (m_sizes[mid] > target_size) {
+        } else if (sizes[mid] > target_size) {
             right = mid - 1;
         } else {
             return target_size;
         }
     }
 
-    return m_sizes[left];
+    return sizes[left];
 }
 
-uint64_t NPUShapeHandling::PackOpInfo(int op, int index, int ori_size, int dim)
+uint64_t ShapeOpStrategy::PackOpInfo(int op, int index, int ori_size, int dim)
 {
     /*
-     * Using a 64-bit integer to represent a specific transformation operation
-     * op: padding or split
-     * index: the position of the tensor being operated on in the current step within the list
-     * ori_size: the size of the specified dimension before the operation
-     * dim: the dimension being operated on
-     * The composition is: dim(highest 28 bits) | ori_size(next 16 bits) | index(next 16 bits) | op(lowest 4 bits)
+     ◦ Using a 64-bit integer to represent a specific transformation operation
+
+     ◦ op: padding or split
+
+     ◦ index: the position of the tensor being operated on in the current step within the list
+
+     ◦ ori_size: the size of the specified dimension before the operation
+
+     ◦ dim: the dimension being operated on
+
+     ◦ The composition is: dim(highest 28 bits) | ori_size(next 16 bits) | index(next 16 bits) | op(lowest 4 bits)
+
      */
     uint64_t operation = 0;
     operation |= static_cast<uint64_t>(op) & 0x0F;
@@ -79,7 +89,7 @@ uint64_t NPUShapeHandling::PackOpInfo(int op, int index, int ori_size, int dim)
     return operation;
 }
 
-void NPUShapeHandling::GenerateExpectedRes(std::vector<at::Tensor> &inputs, std::vector<int> &indexs,
+void DefaultShapeOp::GenerateExpectedRes(std::vector<at::Tensor> &inputs, std::vector<int> &indexs,
     std::vector<std::vector<at::Tensor>> &mid_results, std::vector<std::vector<at::Tensor>> &outputs)
 {
     size_t num_splits = mid_results.front().size();
@@ -97,7 +107,7 @@ void NPUShapeHandling::GenerateExpectedRes(std::vector<at::Tensor> &inputs, std:
     }
 }
 
-void NPUShapeHandling::TransformValidate(std::vector<at::Tensor> &inputs, std::vector<int> &indexs, int dim)
+void DefaultShapeOp::TransformValidate(std::vector<at::Tensor> &inputs, std::vector<int> &indexs, int dim)
 {
     TORCH_CHECK(indexs.size() > 0, "At least on tensor needs to be transformed.");
 
@@ -118,19 +128,20 @@ void NPUShapeHandling::TransformValidate(std::vector<at::Tensor> &inputs, std::v
     }
 }
 
-void NPUShapeHandling::Transform(std::vector<at::Tensor> &inputs, std::vector<int> &indexs,
-    std::vector<std::vector<at::Tensor>> &outputs, int dim, double value)
+void DefaultShapeOp::Transform(const std::vector<int> &sizes, int min_size, int max_size,
+    std::vector<at::Tensor> &inputs, std::vector<int> &indexs, std::vector<std::vector<at::Tensor>> &outputs, int dim,
+    double value)
 {
     TransformValidate(inputs, indexs, dim);
     std::vector<std::vector<at::Tensor>> mid_results;
     bool first_operation = true;
     int ori_dim_size = inputs[indexs.front()].size(dim);
-    if (ori_dim_size > m_max_size) {
+    if (ori_dim_size > max_size) {
         // split first
         CleanRecords();
         first_operation = false;
         for (int i = 0; i < indexs.size(); i++) {
-            mid_results.push_back(torch::split(inputs[i], m_max_size, dim));
+            mid_results.push_back(torch::split(inputs[i], max_size, dim));
         }
         uint64_t ops = PackOpInfo(1, 0, ori_dim_size, dim);
         m_records.push_back(ops);
@@ -147,19 +158,19 @@ void NPUShapeHandling::Transform(std::vector<at::Tensor> &inputs, std::vector<in
 
     int last_tensor_index = mid_results[0].size() - 1;
     int last_tensor_size = mid_results[0][last_tensor_index].size(dim);
-    int padding_size = FindClosestSize(last_tensor_size);
+    int padding_size = FindClosestSize(last_tensor_size, sizes, min_size, max_size);
     if (padding_size != last_tensor_size) {
         // pad here
         if (first_operation) {
             CleanRecords();
         }
-        
+
         for (int i = 0; i < mid_results.size(); i++) {
             int total_dims = mid_results[i][last_tensor_index].dim();
             std::vector<int64_t> padding(total_dims * PADDING_VALUES_PER_DIM, 0);
             padding[padding.size() - 1 - dim * PADDING_VALUES_PER_DIM] = padding_size - last_tensor_size;
-            mid_results[i][last_tensor_index] = F::pad(mid_results[i][last_tensor_index],
-                F::PadFuncOptions(padding).mode(torch::kConstant).value(value));
+            mid_results[i][last_tensor_index] = F::pad(
+                mid_results[i][last_tensor_index], F::PadFuncOptions(padding).mode(torch::kConstant).value(value));
         }
 
         uint64_t ops = PackOpInfo(0, last_tensor_index, last_tensor_size, dim);
@@ -183,7 +194,7 @@ static std::vector<std::vector<at::Tensor>> Transpose2dVector(const std::vector<
     return dst;
 }
 
-void NPUShapeHandling::RecoverValidate(std::vector<std::vector<at::Tensor>> &inputs)
+void DefaultShapeOp::RecoverValidate(std::vector<std::vector<at::Tensor>> &inputs)
 {
     if (m_records.empty()) {
         TORCH_CHECK(inputs.size() == 1, "No transformation record found");
@@ -191,10 +202,13 @@ void NPUShapeHandling::RecoverValidate(std::vector<std::vector<at::Tensor>> &inp
 }
 
 /*
-* input: {{res1_1, res2_1...resn_1}, {res1_2, res2_2...resn_2}...{res1_m, res2_m...resn_m}}
-* output: {res1, res2...resn}
+• input: {{res1_1, res2_1...resn_1}, {res1_2, res2_2...resn_2}...{res1_m, res2_m...resn_m}}
+
+• output: {res1, res2...resn}
+
 */
-void NPUShapeHandling::Recover(std::vector<std::vector<at::Tensor>> &inputs, std::vector<at::Tensor> &outputs)
+void DefaultShapeOp::Recover(const std::vector<int> &sizes, int min_size, int max_size,
+    std::vector<std::vector<at::Tensor>> &inputs, std::vector<at::Tensor> &outputs)
 {
     if (inputs.empty() || inputs.front().empty()) {
         return;
@@ -240,4 +254,4 @@ void NPUShapeHandling::Recover(std::vector<std::vector<at::Tensor>> &inputs, std
     }
     return;
 }
-}
+}  // namespace torch::aot_inductor

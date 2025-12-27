@@ -109,6 +109,39 @@ class TestShapeHandling(TestCase):
         with self.assertRaises(RuntimeError):
             shape_handling.transform([input_tensor])  # 有效维度应为0或1
 
+    def test_register_custom_strategy(self):
+        """测试注册自定义策略"""
+        # 创建自定义策略类
+        class CustomShapeOp(torch_npu._C._ShapeOpStrategy):
+            def __init__(self):
+                super().__init__()
+                self.transform_called = False
+                self.recover_called = False
+
+            def Transform(self, sizes, min_size, max_size, inputs, indexs, outputs, dim=0, value=0.0):
+                self.transform_called = True
+                # 简单实现：直接复制输入到输出
+                if inputs:
+                    outputs.append([tensor.clone() for tensor in inputs])
+
+            def Recover(self, sizes, min_size, max_size, inputs, outputs):
+                self.recover_called = True
+                # 简单实现：直接复制第一个组的第一个张量
+                if inputs and inputs[0]:
+                    outputs.append(inputs[0][0].clone())
+
+        shape_handling = torch_npu._inductor.NPUShapeHandling(sizes=[32])
+        custom_strategy = CustomShapeOp()
+
+        # 注册自定义策略
+        shape_handling.register_strategy(custom_strategy)
+
+        # 验证自定义策略被调用
+        input_tensor = torch.randn(32, 128)
+        outputs = shape_handling.transform([input_tensor], [0])
+
+        self.assertTrue(custom_strategy.transform_called)
+
 
 class TestUnifiedCopy(TestCase):
     def test_none_and_simple_types(self):
@@ -150,6 +183,7 @@ class TestUnifiedCopy(TestCase):
         # 验证独立副本
         original["data"][0][0] = 888.0
         self.assertNotEqual(copied["data"][0][0].item(), 888.0)
+
 
 instantiate_parametrized_tests(TestShapeHandling)
 instantiate_parametrized_tests(TestUnifiedCopy)
