@@ -516,6 +516,48 @@ std::string get_device_error(const std::string& error_msg)
     return "";
 }
 
+/* Implementation of TensorShelf class */
+
+void TensorShelf::stash(std::vector<at::Tensor>& tensors)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    tVector_.insert(tVector_.end(), tensors.begin(), tensors.end());
+}
+
+void TensorShelf::stash(TensorShelf& other)
+{
+    std::vector<at::Tensor>& otherVec = other.get();
+    this->stash(otherVec);
+}
+
+void TensorShelf::stash(const at::Tensor& tensor)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    tVector_.push_back(tensor);
+}
+
+void TensorShelf::unstash()
+{
+    this->clear();
+}
+
+bool TensorShelf::empty()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return tVector_.empty();
+}
+
+void TensorShelf::clear()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    tVector_.clear();
+}
+
+std::vector<at::Tensor>& TensorShelf::get()
+{
+    return tVector_;
+}
+
 ProcessGroupHCCL::WorkHCCL::WorkHCCL(
     const std::vector<at::Device>& devices,
     int rank,
@@ -540,6 +582,7 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(
 
     hcclEndEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
     hcclComms_.resize(devices.size());
+    stashed_for_allocator_safety_ = std::make_shared<TensorShelf>();
 }
 
 ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
@@ -557,6 +600,11 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
     numelIn_(w.numelIn_),
     numelOut_(w.numelOut_),
     store_(w.store_),
+    // Note: the `work` returned to user and the `work` enqueued to watchdog
+    // share the pointer to the tensor stash.  At least one of them should
+    // clean the tensor stash, the earlier the better, i.e. user calling
+    // `work.wait` than watchdog detecting work completion.
+    stashed_for_allocator_safety_(w.stashed_for_allocator_safety_),
     is_dispatched(w.is_dispatched),
     is_reported(w.is_reported),
     is_dumped(w.is_dumped),
@@ -860,7 +908,7 @@ void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds t
     if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
         lazy_destroy_tensors_.clear();
     } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-        stashed_for_allocator_safety_.clear();
+        stashed_for_allocator_safety_->unstash();
     }
 
     // In case of blocking, wait for the operation to complete.
@@ -2029,7 +2077,12 @@ void ProcessGroupHCCL::Watchdog::runLoop()
                     ASCEND_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(work.opType_).c_str(), work.seq_);
                     work.is_reported = false;
                 }
-
+                if (!work.stashed_for_allocator_safety_->empty()) {
+                    std::lock_guard<std::mutex> lock(pg_->shelvesMutex_);
+                    // We are just pushing back a shared_ptr here, so the cost should be
+                    // minimal
+                    pg_->shelvesToUnstash_.push_back(work.stashed_for_allocator_safety_);
+                }
                 if (status_save_enable) {
                     pg_->is_refreshed = pg_->refreshStatusInfo(work, "end"); // Update Statusinfo，but not write into the map
                 }
@@ -3026,6 +3079,17 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
     if (watchdogStatus == WatchdogStatus::STOP) {
         return;
     }
+
+    // We clean up the TensorShelf's in case user hasn't called `work.wait()`.
+    // This has nothing to do with new work enqueue. We are just using a place
+    // that would be triggered by a next user call.
+    {
+        std::lock_guard<std::mutex> lock(shelvesMutex_);
+        for (auto& shelf : shelvesToUnstash_) {
+            shelf->unstash();
+        }
+        shelvesToUnstash_.clear();
+    }
     if (!terminateProcessGroup_.load()) {
         std::lock_guard<std::mutex> lock(workMetaListMutex_);
         // Avoid view tensors to be processed in cleanup thread.
@@ -3679,7 +3743,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
                     c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
                     work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
                 } else {
-                    work->stashed_for_allocator_safety_.push_back(inputs[i]);
+                    work->stashed_for_allocator_safety_->stash(inputs[i]);
                 }
             } else {
                 c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
@@ -3709,7 +3773,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
                     work->recorded_outputs_.push_back(
                         std::make_pair(outputs[i].storage().getWeakStorageImpl(), hcclStream));
                 } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                    work->stashed_for_allocator_safety_.push_back(outputs[i]);
+                    work->stashed_for_allocator_safety_->stash(outputs[i]);
                 }
             }
         }
@@ -3878,7 +3942,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
             // See [Sync Streams].
             auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
             if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
-                work->stashed_for_allocator_safety_.push_back(inputs[i]);
+                work->stashed_for_allocator_safety_->stash(inputs[i]);
             } else {
                 c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
                 if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
@@ -3906,7 +3970,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
                     work->recorded_outputs_.push_back(
                         std::make_pair(outputs[i].storage().getWeakStorageImpl(), hcclStream));
                 } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                    work->stashed_for_allocator_safety_.push_back(outputs[i]);
+                    work->stashed_for_allocator_safety_->stash(outputs[i]);
                 }
             }
         }
@@ -4797,7 +4861,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     for (const auto j : c10::irange(outputTensors[0].size())) {
                         // See [Sync Streams].
                         if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                            work->stashed_for_allocator_safety_.push_back(outputTensors[i][j]);
+                            work->stashed_for_allocator_safety_->stash(outputTensors[i][j]);
                         } else {
                             c10_npu::NPUCachingAllocator::recordStream(
                                 outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
@@ -4883,7 +4947,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     for (const auto j : c10::irange(outputTensors[0].size())) {
                         // See [Sync Streams].
                         if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                            work->stashed_for_allocator_safety_.push_back(outputTensors[i][j]);
+                            work->stashed_for_allocator_safety_->stash(outputTensors[i][j]);
                         } else {
                             c10_npu::NPUCachingAllocator::recordStream(
                                 outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
@@ -5133,7 +5197,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 for (const auto j : c10::irange(inputTensors[0].size())) {
                     // See [Sync Streams].
                     if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
-                        work->stashed_for_allocator_safety_.push_back(inputTensors[i][j]);
+                        work->stashed_for_allocator_safety_->stash(inputTensors[i][j]);
                     } else {
                         c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
                         if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
@@ -5230,7 +5294,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 for (const auto i : c10::irange(outputTensors.size())) {
                     c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                     if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                        work->stashed_for_allocator_safety_.push_back(outputTensors[i]);
+                        work->stashed_for_allocator_safety_->stash(outputTensors[i]);
                     } else {
                         c10_npu::NPUCachingAllocator::recordStream(
                             outputTensors[i].storage().data_ptr(), hcclStreams[i]);
@@ -5517,7 +5581,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 for (const auto j : c10::irange(inputTensors[0].size())) {
                     // See [Sync Streams].
                     if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
-                        work->stashed_for_allocator_safety_.push_back(inputTensors[i][j]);
+                        work->stashed_for_allocator_safety_->stash(inputTensors[i][j]);
                     } else {
                         c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
                         if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
@@ -5701,7 +5765,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                 for (size_t i = 0; i < outputTensors_.size(); ++i) {
                     c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                     if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                        work->stashed_for_allocator_safety_.push_back(outputTensors_[i]);
+                        work->stashed_for_allocator_safety_->stash(outputTensors_[i]);
                     } else {
                         c10_npu::NPUCachingAllocator::recordStream(outputTensors_[i].storage().data_ptr(), hcclStreams[i]);
                         if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
@@ -5803,7 +5867,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                 for (size_t i = 0; i < outputTensors_.size(); ++i) {
                     c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                     if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                        work->stashed_for_allocator_safety_.push_back(outputTensors_[i]);
+                        work->stashed_for_allocator_safety_->stash(outputTensors_[i]);
                     } else {
                         c10_npu::NPUCachingAllocator::recordStream(outputTensors_[i].storage().data_ptr(), hcclStreams[i]);
                         if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
@@ -5942,7 +6006,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
             work->lazyDestroy(output_tensors_);
             c10_npu::NPUStreamGuard guard(hcclStreams[0]);
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                work->stashed_for_allocator_safety_.push_back(output_tensors_[0]);
+                work->stashed_for_allocator_safety_->stash(output_tensors_[0]);
             } else {
                 c10_npu::NPUCachingAllocator::recordStream(output_tensors_[0].storage().data_ptr(), hcclStreams[0]);
                 if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
