@@ -149,6 +149,36 @@ private:
     int fd_ = -1;
 };
 
+// A shelf for stashing tensors between op call and `work.wait()`.
+// Used in case of async ops.
+class TensorShelf {
+public:
+    // Stash tensors so that CachingAllocator cannot recycle them prematurely.
+    void stash(std::vector<at::Tensor>& tensors);
+    // Stash tensors from another shelf.
+    void stash(TensorShelf& other);
+    // Stash a single tensor.
+    void stash(const at::Tensor& tensor);
+    // Unstage the stashed tensors so that CachingAllocator can recycle them.
+    // Same as `clear()`.
+    void unstash();
+    // Whether shelf is empty.
+    bool empty();
+    // Clear the shelf.
+    void clear();
+
+protected:
+    // Get the inner tensor vector. Use with caution as it is not protected by
+    // mutex.
+    std::vector<at::Tensor>& get();
+
+private:
+    std::vector<at::Tensor> tVector_;
+    // Need a mutex to protect `tVector_` because it can be potentially accessed
+    // from both main thread and watchdog thread.
+    std::mutex mutex_;
+};
+
 // NoHandling: do not handle asynchronous HCCL errors
 // TearDown: tear down process upon error, see `WorkHCCL::handleException`
 // CleanUpOnly: just clean up collectives and abort communicators without
@@ -332,6 +362,15 @@ public:
         std::ostream& output,
         const WorkHCCL& workHCCL);
 
+        // AVOID_RECORD_STREAMS implementation helper.
+        // Stores references to participating non-output tensors (ie inputs,
+        // flattened intermediates).
+        // We'll clear this list in synchronizeInternal, just after user-facing
+        // stream(s) are synced with the hccl work stream(s).
+        // For in-place collectives, some refs stashed here may alias outputs_,
+        // but that doesn't do any harm.
+        std::shared_ptr<TensorShelf> stashed_for_allocator_safety_;
+
     private:
         // Helper function for synchronize
         void synchronizeInternal(std::chrono::milliseconds timeout);
@@ -371,7 +410,6 @@ public:
 
         std::vector<at::Tensor> lazy_destroy_tensors_;
 		
-        std::vector<at::Tensor> stashed_for_allocator_safety_;
         // unique id used to tell the trace buffer that this
         // work has completed
         c10::optional<uint64_t> trace_id_;
@@ -946,6 +984,15 @@ protected:
     // is that different group can have different ranks and we need ensure that
     // each group has its own uniform process group ID for all its ranks.
     static std::unordered_map<std::string, ssize_t> processGroupCounterMap_;
+
+    // Some ops may have completed, but user still hasn't called `work.wait()`.
+    // When watchdog detects this, it transfers the TensorShelf from `work` to
+    // this `shelves` structure. Next time we execute ProcessGroupNCCL's methods
+    // on main thread, we clear the `shelves` in one shot. This is mainly because
+    // watchdog (a side thread) unstashing the shelf directly seems to cause some
+    // problem.
+    std::vector<std::shared_ptr<TensorShelf>> shelvesToUnstash_;
+    std::mutex shelvesMutex_;
 
     // Whether or not wait() and synchronize() are blocking operations that wait
     // for the operation to complete.
