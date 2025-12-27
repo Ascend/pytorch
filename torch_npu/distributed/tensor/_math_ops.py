@@ -374,3 +374,116 @@ def custom_npu_swiglu_backward_strategy(grad, x, dim=-1):
             acceptable_sharding.append(sharding_strategy)
 
     return acceptable_sharding
+
+
+@register_sharding(npu.npu_conv2d.default)
+def custom_npu_conv2d_strategy(x, weight, bias, stride, padding, dilation, groups):
+    acceptable_shardings = []
+
+    # all replicate strategy
+    replicate_strategy = (
+        [
+            Replicate() # output
+        ],
+        [
+            Replicate(),                           # x
+            Replicate(),                           # weight
+            None if bias is None else Replicate(), # bias
+            None, None, None, None                 # others
+        ]
+    )
+    acceptable_shardings.append(replicate_strategy)
+    
+    # x layout: (N, Ci, Hi, Wi)
+    # weight layout: (Co, Ci/groups, Hk, Wk)
+    # bias layout: (Co)
+    # output layout: (N, Co, Ho, Wo)
+    # dp sharding strategy
+    N_sharding_strategy = (
+        [Shard(0)],
+        [Shard(0), Replicate(), None if bias is None else Replicate(), None, None, None, None]
+    )
+    acceptable_shardings.append(N_sharding_strategy)
+
+    # tp sharding strategy when groups == 1
+    if groups == 1:
+        Co_sharding_strategy = (
+            [Shard(1)],
+            [Replicate(), Shard(0), None if bias is None else Shard(0), None, None, None, None]
+        )
+        acceptable_shardings.append(Co_sharding_strategy)
+
+    return acceptable_shardings
+
+
+@register_sharding(npu.npu_conv2d_backward.default)
+def custom_npu_conv2d_backward_strategy(x, grad_output, weight, stride, padding, dilation, groups, output_mask):
+    grad_output_placement = grad_output.placements[0]
+    acceptable_shardings = []
+
+    # all replicate strategy
+    replicate_strategy = (
+        [
+            Replicate(),                            # grad_x
+            Replicate(),                            # grad_weight
+            Replicate() if output_mask[2] else None # grad_bias
+        ],
+        [
+            Replicate(),                            # x
+            Replicate(),                            # grad_output
+            Replicate(),                            # weight
+            None, None, None, None, None            # others
+        ]
+    )
+    acceptable_shardings.append(replicate_strategy)
+
+    # Sharding by batch dimension (N-dimensional, 0-dimensional) - Input/output is sharded by N, with weights fully replicated.
+    if (isinstance(grad_output_placement, Shard) and grad_output_placement.dim == 0):
+        N_sharding_strategy = (
+            [Shard(0), Partial(), Partial() if output_mask[2] else None],
+            [Shard(0), Shard(0), Replicate(), None, None, None, None, None]
+        )
+        acceptable_shardings.append(N_sharding_strategy)
+
+    # Sharding by output channel dimension (1D) - Weights/output are sharded by C_out, and inputs are fully replicated.
+    if (isinstance(grad_output_placement, Shard) and grad_output_placement.dim == 1) and (groups == 1):
+        Co_sharding_strategy = (
+            [Partial(), Shard(0), Shard(0) if output_mask[2] else None],
+            [Replicate(), Shard(1), Shard(0), None, None, None, None, None]
+        )
+        acceptable_shardings.append(Co_sharding_strategy)
+
+    return acceptable_shardings
+
+
+@register_sharding(npu.npu_grouped_matmul_add_.default)
+def custom_grouped_matmul_add__strategy(y, x, weight, group_list, transpose_x=True, transpose_weight=False, group_type=2):
+    acceptable_shardings = []
+    y_placement = y.placements[0]
+
+    if (isinstance(y_placement, Shard) and y_placement.dim == 0):
+        raise ValueError(
+            "The 0th dimension of the output matrix cannot be split."
+        )
+    # all replicate strategy
+    replicate_strategy = (
+        [
+            Replicate()  # y
+        ],
+        [
+            Replicate(), # y
+            Replicate(), # x
+            Replicate(), # weight
+            Replicate(), # group_list
+            None, None, None
+        ]
+    )
+    acceptable_shardings.append(replicate_strategy)
+
+    D_shard_strategy = (
+        [Shard(1)], # y
+        [Shard(1), Replicate(), Shard(1), Replicate(), None, None, None] # y, x, weight, group_list
+    )
+    acceptable_shardings.append(D_shard_strategy)
+
+    return acceptable_shardings
