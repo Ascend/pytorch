@@ -138,9 +138,9 @@ aclError SetDevice(c10::DeviceIndex device)
 aclError MaybeSetDevice(c10::DeviceIndex device)
 {
     if (isDeviceCtxActive(device)) {
-        ASCEND_LOGI("MaybeSetDevice: NPU device %d has not been initialized! We will set targetDeviceIndex.", device);
         NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(device));
     } else {
+        ASCEND_LOGI("MaybeSetDevice: NPU device %d has not been initialized! We will set targetDeviceIndex.", device);
         targetDeviceIndex = device;
     }
     return ACL_ERROR_NONE;
@@ -293,9 +293,9 @@ int MaybeExchangeDevice(int to_device)
         return cur_device;
     }
     if (isDeviceCtxActive(to_device)) {
-        ASCEND_LOGI("NPU device %d has not been initialized! We will set targetDeviceIndex.", to_device);
         NPU_CHECK_ERROR_WITHOUT_UCE(SetDevice(to_device));
     } else {
+        ASCEND_LOGI("NPU device %d has not been initialized! We will set targetDeviceIndex.", to_device);
         targetDeviceIndex = to_device;
     }
     return cur_device;
