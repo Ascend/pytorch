@@ -1,9 +1,10 @@
+import numpy as np
 import torch
-from torch.distributed._tensor import distribute_tensor, Replicate
+from torch.distributed._tensor import distribute_tensor, Replicate, Shard
 from torch.testing._internal.common_utils import run_tests
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms
+from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 
@@ -245,6 +246,707 @@ class TestRegisterSharding(NPUDTensorTestBase):
             self.assertEqual(dist_dpse.full_tensor(), dpse)
         else:
             self.assertEqual(dist_dpse, dpse)
+    
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_replicate(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(3, 3, 224, 224, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(64, 3, 3, 3, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Shard(0)])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Replicate()])
+
+        bias = torch.randn(64, device="npu", requires_grad=True)
+        d_bias = distribute_tensor(bias, mesh, [Replicate()])
+
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+
+        output_dtensor = torch_npu.npu_conv2d(input_dtensor, weight_dtensor, d_bias, stride, padding, dilation, groups)
+        output_tensor = torch_npu.npu_conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+
+        self.assertEqual(output_dtensor.full_tensor(), output_tensor)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_weight_shard0(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(3, 3, 224, 224, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(64, 3, 3, 3, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Replicate()])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Shard(0)])
+
+        bias = torch.randn(64, device="npu", requires_grad=True)
+        d_bias = distribute_tensor(bias, mesh, [Shard(0)])
+
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+
+        output_dtensor = torch_npu.npu_conv2d(input_dtensor, weight_dtensor, d_bias, stride, padding, dilation, groups)
+        output_tensor = torch_npu.npu_conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+
+        self.assertEqual(output_dtensor.full_tensor(), output_tensor)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_input_shard1(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(8, 4, 224, 224, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(64, 4, 3, 3, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Shard(1)])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Shard(1)])
+
+        bias = torch.randn(64, device="npu", requires_grad=True)
+        d_bias = distribute_tensor(bias, mesh, [Replicate()])
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+
+        output_dtensor = torch_npu.npu_conv2d(input_dtensor, weight_dtensor, d_bias, stride, padding, dilation, groups)
+        output_tensor = torch_npu.npu_conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+
+        self.assertEqual(output_dtensor.full_tensor(), output_tensor)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_bias_is_None_replicate(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(4, 3, 28, 28, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(4, 3, 4, 4, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Replicate()])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Replicate()])
+
+        bias = None
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+
+        output_tensor = torch_npu.npu_conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+        output_dtensor = torch_npu.npu_conv2d(input_dtensor, weight_dtensor, bias, stride, padding, dilation, groups)
+        self.assertEqual(output_dtensor.full_tensor(), output_tensor)
+    
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_bias_is_None_input_shard0(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(4, 3, 28, 28, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(4, 3, 4, 4, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Shard(0)])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Replicate()])
+
+        bias = None
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+
+        output_tensor = torch_npu.npu_conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+        output_dtensor = torch_npu.npu_conv2d(input_dtensor, weight_dtensor, bias, stride, padding, dilation, groups)
+        self.assertEqual(output_dtensor.full_tensor(), output_tensor)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_bias_is_None_weight_shard0(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(4, 3, 28, 28, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(4, 3, 4, 4, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Replicate()])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Shard(0)])
+
+        bias = None
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+
+        output_tensor = torch_npu.npu_conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+        output_dtensor = torch_npu.npu_conv2d(input_dtensor, weight_dtensor, bias, stride, padding, dilation, groups)
+        self.assertEqual(output_dtensor.full_tensor(), output_tensor)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_backward_replicate(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(4, 3, 28, 28, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(4, 3, 4, 4, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Replicate()])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Replicate()])
+
+        bias = torch.randn(4, device="npu", requires_grad=True)
+        d_bias = distribute_tensor(bias, mesh, [Replicate()])
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+        output_mask = [True, True, True]
+
+        output_tensor = torch.nn.functional.conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+        grad_output = torch.ones_like(output_tensor, device="npu")
+        grad_output_dtensor = distribute_tensor(grad_output, mesh, [Replicate()])
+
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        self.assertEqual(input_dgrad.full_tensor(), input_grad)
+        self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
+        self.assertEqual(bias_dgrad.full_tensor(), bias_grad)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_backward_bias_is_None_replicate(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(4, 3, 28, 28, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(4, 3, 4, 4, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Replicate()])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Replicate()])
+
+        bias = None
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+        output_mask = [True, True, False]
+
+        output_tensor = torch.nn.functional.conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+        grad_output = torch.ones_like(output_tensor, device="npu")
+        grad_output_dtensor = distribute_tensor(grad_output, mesh, [Replicate()])
+
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        self.assertEqual(input_dgrad.full_tensor(), input_grad)
+        self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
+  
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_backward_input_shard0(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(4, 3, 28, 28, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(4, 3, 4, 4, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Shard(0)])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Replicate()])
+
+        bias = torch.randn(4, device="npu", requires_grad=True)
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+        output_mask = [True, True, True]
+
+        output_tensor = torch.nn.functional.conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+        grad_output = torch.ones_like(output_tensor, device="npu")
+        grad_output_dtensor = distribute_tensor(grad_output, mesh, [Shard(0)])
+
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        self.assertEqual(input_dgrad.full_tensor(), input_grad)
+        self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
+        self.assertEqual(bias_dgrad.full_tensor(), bias_grad)
+  
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_backward_bias_is_None_input_shard0(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(4, 3, 28, 28, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(4, 3, 3, 3, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Shard(0)])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Replicate()])
+
+        bias = None
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+        output_mask = [True, True, False]
+
+        output_tensor = torch.nn.functional.conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+        grad_output = torch.ones_like(output_tensor, device="npu")
+        grad_output_dtensor = distribute_tensor(grad_output, mesh, [Shard(0)])
+
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        self.assertEqual(input_dgrad.full_tensor(), input_grad)
+        self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
+    
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_backward_weight_shard0(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(4, 3, 28, 28, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(4, 3, 4, 4, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Replicate()])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Shard(0)])
+
+        bias = torch.randn(4, device="npu", requires_grad=True)
+
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+        output_mask = [True, True, True]
+
+        output_tensor = torch.nn.functional.conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+        grad_output = torch.ones_like(output_tensor, device="npu")
+        grad_output_dtensor = distribute_tensor(grad_output, mesh, [Shard(1)])
+
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        self.assertEqual(input_dgrad.full_tensor(), input_grad)
+        self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
+        self.assertEqual(bias_dgrad.full_tensor(), bias_grad)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_conv2d_backward_bias_is_None_weight_shard0(self):
+        mesh = self.build_device_mesh()
+
+        input_tensor = torch.randn(4, 3, 28, 28, device="npu", requires_grad=True)
+        weight_tensor = torch.randn(4, 3, 4, 4, device="npu", requires_grad=True)
+
+        input_dtensor = distribute_tensor(input_tensor, mesh, [Replicate()])
+        weight_dtensor = distribute_tensor(weight_tensor, mesh, [Shard(0)])
+
+        bias = None
+        stride = (1, 1)
+        padding = (1, 1)
+        dilation = (1, 1)
+        groups = 1
+        output_mask = [True, True, False]
+
+        output_tensor = torch.nn.functional.conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
+        grad_output = torch.ones_like(output_tensor, device="npu")
+        grad_output_dtensor = distribute_tensor(grad_output, mesh, [Shard(1)])
+
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        self.assertEqual(input_dgrad.full_tensor(), input_grad)
+        self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
+   
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_grouped_matmul_add__replicate(self):
+        mesh = self.build_device_mesh()
+
+        x = torch.randn(8, 8, dtype=torch.float16, device="npu")
+        weight = torch.randn(8, 4, dtype=torch.float16, device="npu")
+        y = torch.randn(32, 4, dtype=torch.float, device="npu")
+        group_list = torch.tensor([2, 4, 6, 8]).to(torch.int64).npu()
+        x_dtensor = distribute_tensor(x, mesh, [Replicate()])
+        weight_dtensor = distribute_tensor(weight, mesh, [Replicate()])
+        y_dtensor = distribute_tensor(y, mesh, [Replicate()])
+        group_list_dtensor = distribute_tensor(group_list, mesh, [Replicate()])
+        transpose_x = True
+        transpose_weight = False
+        group_type = 1
+
+        torch_npu.npu_grouped_matmul_add_(y, x, weight, group_list, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
+        torch_npu.npu_grouped_matmul_add_(y_dtensor, x_dtensor, weight_dtensor, group_list_dtensor, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
+        self.assertEqual(y_dtensor.full_tensor(), y)
+    
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_grouped_matmul_add__shard_D_weight(self):
+        mesh = self.build_device_mesh()
+
+        x = torch.randn(8, 8, dtype=torch.float16, device="npu")
+        weight = torch.randn(8, 4, dtype=torch.float16, device="npu")
+        y = torch.randn(32, 4, dtype=torch.float, device="npu")
+        group_list = torch.tensor([2, 4, 6, 8]).to(torch.int64).npu()
+        x_dtensor = distribute_tensor(x, mesh, [Shard(1)])
+        weight_dtensor = distribute_tensor(weight, mesh, [Shard(1)])
+        y_dtensor = distribute_tensor(y, mesh, [Shard(1)])
+        group_list_dtensor = distribute_tensor(group_list, mesh, [Replicate()])
+        transpose_x = True
+        transpose_weight = False
+        group_type = 1
+
+        torch_npu.npu_grouped_matmul_add_(y, x, weight, group_list, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
+        torch_npu.npu_grouped_matmul_add_(y_dtensor, x_dtensor, weight_dtensor, group_list_dtensor, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
+        self.assertEqual(y_dtensor.full_tensor(), y)
+   
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_grouped_matmul_add__shard_D_x(self):
+        mesh = self.build_device_mesh()
+
+        x = torch.randn(8, 8, dtype=torch.float16, device="npu")
+        weight = torch.randn(8, 4, dtype=torch.float16, device="npu")
+        y = torch.randn(32, 4, dtype=torch.float, device="npu")
+        group_list = torch.tensor([2, 4, 6, 8]).to(torch.int64).npu()
+        x_dtensor = distribute_tensor(x, mesh, [Shard(0)])
+        weight_dtensor = distribute_tensor(weight, mesh, [Shard(1)])
+        y_dtensor = distribute_tensor(y, mesh, [Shard(0)])
+        group_list_dtensor = distribute_tensor(group_list, mesh, [Replicate()])
+        transpose_x = True
+        transpose_weight = False
+        group_type = 1
+
+        with self.assertRaises(RuntimeError) as cm:
+            torch_npu.npu_grouped_matmul_add_(y_dtensor, x_dtensor, weight_dtensor, group_list_dtensor, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
+
+        err = cm.exception
+        self.assertIn("Sharding propagation failed for Op", str(err))
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_apply_adam_w_replicate(self):
+        mesh = self.build_device_mesh()
+
+        amsgrad = False
+        maximize = True
+        scalar_shape = [1]
+        input_size = (21130, 512)
+
+        var_npu = torch.randn(input_size, device="npu")
+        m_npu = torch.randn(input_size, device="npu")
+        v_npu = torch.randn(input_size, device="npu")
+        grad_npu = torch.randn(input_size, device="npu")
+
+        var_npu_dtensor = distribute_tensor(var_npu, mesh, [Replicate()])
+        m_npu_dtensor = distribute_tensor(m_npu, mesh, [Replicate()])
+        v_npu_dtensor = distribute_tensor(v_npu, mesh, [Replicate()])
+        grad_npu_dtensor = distribute_tensor(grad_npu, mesh, [Replicate()])
+        
+        np.random.seed(42)
+
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
+        max_grad_norm = None
+        
+        var_ret_npu, m_ret_npu, v_ret_npu = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu, m_npu, v_npu),
+        )
+
+        var_ret_npu_dtensor, m_ret_npu_dtensor, v_ret_npu_dtensor = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu_dtensor,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu_dtensor, m_npu_dtensor, v_npu_dtensor),
+        )
+
+        self.assertEqual(var_ret_npu_dtensor.full_tensor(), var_ret_npu)
+        self.assertEqual(m_ret_npu_dtensor.full_tensor(), m_ret_npu)
+        self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_apply_adam_w_shard00(self):
+        mesh = self.build_device_mesh()
+
+        amsgrad = False
+        maximize = True
+        scalar_shape = [1]
+        input_size = (21130, 512)
+
+        var_npu = torch.randn(input_size, device="npu")
+        m_npu = torch.randn(input_size, device="npu")
+        v_npu = torch.randn(input_size, device="npu")
+        grad_npu = torch.randn(input_size, device="npu")
+
+        var_npu_dtensor = distribute_tensor(var_npu, mesh, [Shard(0)])
+        m_npu_dtensor = distribute_tensor(m_npu, mesh, [Shard(0)])
+        v_npu_dtensor = distribute_tensor(v_npu, mesh, [Shard(0)])
+        grad_npu_dtensor = distribute_tensor(grad_npu, mesh, [Shard(0)])
+        
+        np.random.seed(42)
+
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
+        max_grad_norm = None
+        
+        var_ret_npu, m_ret_npu, v_ret_npu = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu, m_npu, v_npu),
+        )
+
+        var_ret_npu_dtensor, m_ret_npu_dtensor, v_ret_npu_dtensor = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu_dtensor,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu_dtensor, m_npu_dtensor, v_npu_dtensor),
+        )
+
+        self.assertEqual(var_ret_npu_dtensor.full_tensor(), var_ret_npu)
+        self.assertEqual(m_ret_npu_dtensor.full_tensor(), m_ret_npu)
+        self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_apply_adam_w_shard01(self):
+        mesh = self.build_device_mesh()
+
+        amsgrad = False
+        maximize = True
+        scalar_shape = [1]
+        input_size = (21130, 512)
+
+        var_npu = torch.randn(input_size, device="npu")
+        m_npu = torch.randn(input_size, device="npu")
+        v_npu = torch.randn(input_size, device="npu")
+        grad_npu = torch.randn(input_size, device="npu")
+
+        var_npu_dtensor = distribute_tensor(var_npu, mesh, [Shard(0)])
+        m_npu_dtensor = distribute_tensor(m_npu, mesh, [Shard(0)])
+        v_npu_dtensor = distribute_tensor(v_npu, mesh, [Shard(0)])
+        grad_npu_dtensor = distribute_tensor(grad_npu, mesh, [Shard(1)])
+        
+        np.random.seed(42)
+
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
+        max_grad_norm = None
+        
+        var_ret_npu, m_ret_npu, v_ret_npu = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu, m_npu, v_npu),
+        )
+
+        var_ret_npu_dtensor, m_ret_npu_dtensor, v_ret_npu_dtensor = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu_dtensor,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu_dtensor, m_npu_dtensor, v_npu_dtensor),
+        )
+
+        self.assertEqual(var_ret_npu_dtensor.full_tensor(), var_ret_npu)
+        self.assertEqual(m_ret_npu_dtensor.full_tensor(), m_ret_npu)
+        self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_apply_adam_w_shard10(self):
+        mesh = self.build_device_mesh()
+
+        amsgrad = False
+        maximize = True
+        scalar_shape = [1]
+        input_size = (21130, 512)
+
+        var_npu = torch.randn(input_size, device="npu")
+        m_npu = torch.randn(input_size, device="npu")
+        v_npu = torch.randn(input_size, device="npu")
+        grad_npu = torch.randn(input_size, device="npu")
+
+        var_npu_dtensor = distribute_tensor(var_npu, mesh, [Shard(1)])
+        m_npu_dtensor = distribute_tensor(m_npu, mesh, [Shard(1)])
+        v_npu_dtensor = distribute_tensor(v_npu, mesh, [Shard(1)])
+        grad_npu_dtensor = distribute_tensor(grad_npu, mesh, [Shard(0)])
+        
+        np.random.seed(42)
+
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
+        max_grad_norm = None
+        
+        var_ret_npu, m_ret_npu, v_ret_npu = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu, m_npu, v_npu),
+        )
+
+        var_ret_npu_dtensor, m_ret_npu_dtensor, v_ret_npu_dtensor = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu_dtensor,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu_dtensor, m_npu_dtensor, v_npu_dtensor),
+        )
+
+        self.assertEqual(var_ret_npu_dtensor.full_tensor(), var_ret_npu)
+        self.assertEqual(m_ret_npu_dtensor.full_tensor(), m_ret_npu)
+        self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_torch_npu_npu_apply_adam_w_shard11(self):
+        mesh = self.build_device_mesh()
+
+        amsgrad = False
+        maximize = True
+        scalar_shape = [1]
+        input_size = (21130, 512)
+
+        var_npu = torch.randn(input_size, device="npu")
+        m_npu = torch.randn(input_size, device="npu")
+        v_npu = torch.randn(input_size, device="npu")
+        grad_npu = torch.randn(input_size, device="npu")
+
+        var_npu_dtensor = distribute_tensor(var_npu, mesh, [Shard(1)])
+        m_npu_dtensor = distribute_tensor(m_npu, mesh, [Shard(1)])
+        v_npu_dtensor = distribute_tensor(v_npu, mesh, [Shard(1)])
+        grad_npu_dtensor = distribute_tensor(grad_npu, mesh, [Shard(1)])
+        
+        np.random.seed(42)
+
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
+        max_grad_norm = None
+        
+        var_ret_npu, m_ret_npu, v_ret_npu = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu, m_npu, v_npu),
+        )
+
+        var_ret_npu_dtensor, m_ret_npu_dtensor, v_ret_npu_dtensor = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu_dtensor,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu_dtensor, m_npu_dtensor, v_npu_dtensor),
+        )
+
+        self.assertEqual(var_ret_npu_dtensor.full_tensor(), var_ret_npu)
+        self.assertEqual(m_ret_npu_dtensor.full_tensor(), m_ret_npu)
+        self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
 
 
 if __name__ == "__main__":
