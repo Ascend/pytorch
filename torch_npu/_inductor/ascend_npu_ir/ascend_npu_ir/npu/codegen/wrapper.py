@@ -1,10 +1,10 @@
-import sympy
+from typing import List, Optional, Tuple, Union, Callable, Dict
 import functools
-import torch
+
+import sympy
+
 from torch._inductor.virtualized import V
 from torch._inductor import config, ir
-
-from typing import List, Optional, Tuple, Union, Callable, Dict
 from torch._inductor.codegen.wrapper import (
     PythonWrapperCodegen, 
     pexpr, 
@@ -12,10 +12,9 @@ from torch._inductor.codegen.wrapper import (
     SubgraphPythonWrapperCodegen,
     counters,
 )
+import torch_npu
+
 from ... import codecache
-from torch._inductor.codegen.common import (
-    IndentedBuffer,
-)
 
 class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
     def __init__(self):

@@ -3,13 +3,14 @@ import importlib
 import inspect
 import pkgutil
 
-
 __all__ = list(module for _, module, _ in pkgutil.iter_modules([os.path.dirname(__file__)]))
+
+from torch._inductor import graph
 
 from . import ir
 from . import lowering as npu_lowering
 from torch._inductor import lowering
-import sys
+from .scheduler import _patch_scheduler
 
 def get_functions_from_module(module):
     functions = {}
@@ -36,5 +37,6 @@ lowering.foreach_ops = npu_lowering.foreach_ops
 lowering.inplace_foreach_ops = npu_lowering.inplace_foreach_ops
 lowering.inplaceable_foreach_ops = npu_lowering.inplaceable_foreach_ops
 
-from torch._inductor import graph
 importlib.reload(graph)
+
+_patch_scheduler()

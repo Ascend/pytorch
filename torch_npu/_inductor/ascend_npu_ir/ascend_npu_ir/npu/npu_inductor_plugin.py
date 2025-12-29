@@ -5,18 +5,6 @@ import functools
 import itertools
 import shutil
 import os
-from torch.utils._ordered_set import OrderedSet
-
-import torch
-import torch.nn.functional as F
-from torch import Tensor
-
-from torch._dynamo.utils import set_current_node, UnsupportedFakeTensorException
-
-from torch.utils import  _triton
-_triton.has_triton = lambda: False
-_triton.has_triton_package = lambda: False
-
 from typing import (
     Set,
     Dict,
@@ -24,11 +12,45 @@ from typing import (
     Tuple,
     List
 )
+
+import torch
+import torch.nn.functional as F
+from torch.utils._ordered_set import OrderedSet
+from torch import _TorchCompileInductorWrapper
+from torch import Tensor
+from torch._dynamo.utils import set_current_node, UnsupportedFakeTensorException
+from torch._dynamo import config as dynamo_config
 from torch._dynamo.utils import dynamo_timed
+from torch._dynamo.device_interface import register_interface_for_device
+from torch._dynamo.backends import common 
+from torch._dynamo.backends.common import AotAutograd
+from torch._inductor import config
 from torch._inductor.async_compile import shutdown_compile_workers
 from torch._inductor.codegen.common import register_backend_for_device, register_device_op_overrides
 from torch._inductor.virtualized import V
 from torch._inductor import decomposition as inductor_decomp
+from torch._inductor import scheduler
+from torch._inductor.scheduler import (
+    Dep,
+    WeakDep,
+    Scheduler, 
+    SchedulerNode, 
+    SchedulerBuffer,
+    FusedSchedulerNode,
+    BaseSchedulerNode,
+    ForeachKernelSchedulerNode,
+    ExternKernelSchedulerNode,
+    NopKernelSchedulerNode,
+    WhyNoFuse,
+    MemoryDep
+    )
+from torch._decomp import decomposition_table
+from torch.utils import _triton
+from torch_npu.utils._dynamo_device import NpuInterface
+try:
+    from torch_npu.npu import device_count
+except:
+    from torch_npu.npu.utils import device_count
 
 from ..npu.codegen.akg import AkgScheduling
 from ..npu.codegen.mlir import NpuMlirScheduling
@@ -39,15 +61,12 @@ from ..npu.utils import (
     run_once,
     logger,
 )
-
 from .. import config as anir_config
-
-from torch._decomp import (
-    decomposition_table,
-)
-
 from . import npu_patch_deprecated, torch_mlir_patch
 from .npu_meta import npu_patch_meta
+
+_triton.has_triton = lambda: False
+_triton.has_triton_package = lambda: False
 
 # Fix Error: Exit earlier than child process.
 atexit.register(shutdown_compile_workers)
@@ -55,10 +74,8 @@ atexit.register(shutdown_compile_workers)
 # new npu meta registration.
 npu_patch_meta()
 
-from torch._dynamo import config as dynamo_config
 dynamo_config.fake_tensor_cache_enabled = False
 
-from torch._inductor import config
 config.layout_optimization = False
 config.size_asserts = False
 config.fallback_random = True
@@ -70,7 +87,6 @@ if anir_config.online_acc_comp:
 aten = torch.ops.aten
 
 ## Override original dynamo device interface in torch_npu
-from torch_npu.utils._dynamo_device import NpuInterface
 if os.getenv('TORCHINDUCTOR_USE_AKG', '0') == '1':
     try:
         import akg
@@ -82,11 +98,6 @@ if os.getenv('TORCHINDUCTOR_USE_AKG', '0') == '1':
 else:
     register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
 
-try:
-    from torch_npu.npu import device_count
-except:
-    from torch_npu.npu.utils import device_count
-from torch._dynamo.device_interface import register_interface_for_device
 
 class NewNpuInterface(NpuInterface):
 
@@ -106,8 +117,6 @@ def src_call(self, model_, inputs_):
     from torch._inductor.compile_fx import compile_fx
 
     return compile_fx(model_, inputs_, config_patches=self.config)
-
-from torch import _TorchCompileInductorWrapper
 
 _TorchCompileInductorWrapper.__call__ = src_call
 
@@ -133,7 +142,7 @@ def disable_implicit_decomposition():
                 op_override.py_kernels.pop(DispatchKey.Autograd)
             if DispatchKey.CompositeImplicitAutograd in op_override.py_kernels:
                 op_override.py_kernels.pop(DispatchKey.CompositeImplicitAutograd)
-                
+
 
 def _patch_run_node(tracer, node, args, kwargs, nnmodule):
     op = node.op
@@ -183,17 +192,12 @@ def _patch_run_node(tracer, node, args, kwargs, nnmodule):
     raise AssertionError(op)
 
 
-def _register_npu_inductor_fallbacks():
+def _register_npu_inductor_fallbacks_operation():
     from ..npu import inductor_patch
 
-
-_register_npu_inductor_fallbacks()
+_register_npu_inductor_fallbacks_operation()
 disable_implicit_decomposition()
 torch._dynamo.utils.run_node = _patch_run_node
-
-
-from torch._dynamo.backends import common 
-from torch._dynamo.backends.common import AotAutograd
 
 def wrap_compiler(fn):
     @functools.wraps(fn)
@@ -218,21 +222,6 @@ def wrap_aot_autograd(fn):
 AotAutograd.__call__ = wrap_aot_autograd(AotAutograd.__call__)
 
 # recompute last usage for inductor scheduler 
-from torch._inductor import scheduler
-from torch._inductor.scheduler import (
-    Dep,
-    WeakDep,
-    Scheduler, 
-    SchedulerNode, 
-    SchedulerBuffer,
-    FusedSchedulerNode,
-    BaseSchedulerNode,
-    ForeachKernelSchedulerNode,
-    ExternKernelSchedulerNode,
-    NopKernelSchedulerNode,
-    WhyNoFuse,
-    MemoryDep
-    )
 
 def used_or_aliased_buffer_names(node) -> Set[str]:
     used_names: OrderedSet[str] = OrderedSet()

@@ -3,7 +3,8 @@ import sympy
 import collections
 from typing import (
     Union,
-    Optional
+    Optional,
+    Sequence,
 )
 
 from torch._inductor import ir
@@ -18,7 +19,6 @@ from torch._inductor.scheduler import (
     MultiOutput,
     MultiOutputLayout,
     OrderedSet,
-    Sequence,
     get_dtype_size,
     sympy_product,
     V,
