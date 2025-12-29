@@ -1,5 +1,6 @@
 #include <ATen/record_function.h>
 #include <string>
+#include <chrono>
 
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -13,6 +14,7 @@
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
@@ -39,6 +41,8 @@ std::atomic<bool> g_used_aclop{false};
 
 namespace at_npu {
 namespace native {
+
+static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.dispatch.time");
 
 OpCommand::OpCommand()
 {
@@ -240,7 +244,17 @@ void OpCommand::RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool sy
         execParams.customHandler = const_cast<PROC_FUNC*>(&func);
 
         c10_npu::queue::QueueParas params(c10_npu::queue::EXECUTE_OPAPI_V2, sizeof(ExecuteParasOpApiV2), &execParams);
+        
+        auto start = std::chrono::steady_clock::now();
+
         c10_npu::enCurrentNPUStream(&params);
+        
+        auto end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        if (logger != nullptr) {
+            logger->info("enQueue duration is (ns): %d", duration);
+        }
+
 #ifndef BUILD_LIBTORCH
         at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
 #endif
