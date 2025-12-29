@@ -35,6 +35,7 @@ def _logging_patch():
 def _add_logging_module():
     torch._logging._internal.register_log("memory", "torch_npu.memory")
     torch._logging._internal.register_log("dispatch", "torch_npu.dispatch")
+    torch._logging._internal.register_log("dispatch_time", "torch_npu.dispatch.time")
     torch._logging._internal.register_log("silent", "torch_npu.silent_check")
     torch._logging._internal.register_log("recovery", "torch_npu.recovery")
     torch._logging._internal.register_log("op_plugin", "torch_npu.op_plugin")
