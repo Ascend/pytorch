@@ -283,9 +283,6 @@ uint64_t NPUGeneratorImpl::get_offset() const
  */
 uint64_t NPUGeneratorImpl::current_seed() const
 {
-    c10_npu::assertNotCapturing("Cannot call NPUGeneratorImpl::current_seed while in capture mode");
-    // Debatable if current_seed() should be allowed in captured regions.
-    // Conservatively disallow it for now.
     return state_->seed_;
 }
 
