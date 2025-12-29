@@ -34,7 +34,7 @@ import torch_npu
                                   'constants': {}, 'mix_mode': 'aiv'},
     inductor_meta={'autotune_hints': set(), 'kernel_name': 'triton_unk_fused_add_0', 'mutated_arg_names': [], 
                    'backend_hash': 'bc71dba4086164e7ac2b0779fa861dbf7467f0265d4a57b8f48cf6dda02b150f', 'split_axis': [0], 
-                   'tiling_axis': [0, 1], 'axis_names': ['y0', 'x1'], 'low_dims': {1}, 'numof_reduction_axis': 0, 
+                   'tiling_axis': [0, 1], 'no_loop_axis': [1], 'axis_names': ['y0', 'x1'], 'low_dims': {1}, 'numof_reduction_axis': 0, 
                    'split_axis_dtype': torch.float16, 'dual_reduction': False, 'traced_graph_hash': 'TRACED_GRAPH_HASH', 
                    'traced_graph_dir': 'TRACED_GRAPH_DIR'},
     min_elem_per_thread=0

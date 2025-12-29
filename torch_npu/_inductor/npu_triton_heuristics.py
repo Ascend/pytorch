@@ -1102,12 +1102,13 @@ def triton_config_npu_index(
     configs = []
     split_axis = inductor_meta["split_axis"]
     tiling_axis = inductor_meta["tiling_axis"]
+    no_loop_axis = inductor_meta.get("no_loop_axis", [])
     low_dims = inductor_meta["low_dims"]
     split_axis_dtype = inductor_meta["split_axis_dtype"]
     axis_names = inductor_meta["axis_names"]
     dual_reduction = inductor_meta["dual_reduction"]
 
-    tile_generator = TileGenerator(size_hints, axis_names, tiling_axis, split_axis, low_dims,
+    tile_generator = TileGenerator(size_hints, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims,
                                    persistent_reduction=persistent_reduction, configs=configs,
                                    dtype=split_axis_dtype, dual_reduction=dual_reduction)
 

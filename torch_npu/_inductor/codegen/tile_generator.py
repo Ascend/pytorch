@@ -5,14 +5,14 @@ import sys
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.runtime.triton_heuristics import Config
 
-from .triton_utils import byte_per_numel
+from .triton_utils import get_byte_per_numel
 from .. import config
 
 
 # generate tiling configs
 class TileGenerator:
 
-    def __init__(self, numels, axis_names, tiling_axis, split_axis, low_dims, persistent_reduction,
+    def __init__(self, numels, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims, persistent_reduction,
                  configs, dtype, dual_reduction=False):
         self.numels = numels.copy()
 
@@ -21,10 +21,11 @@ class TileGenerator:
         self.sub_blocks = self.blocks.copy()
         self.axis_name = axis_names
         self.tiling_axis = tiling_axis
+        self.no_loop_axis = no_loop_axis
         self.split_axis = split_axis
         self.low_dims = low_dims
         self.configs = configs
-        self.dtype_bytes = self.get_byte_per_numel(dtype)
+        self.dtype_bytes = get_byte_per_numel(dtype)
         self.stop_numel = 1024 // self.dtype_bytes
         self.block_name = {}
         self.sub_block_name = {}
@@ -59,12 +60,6 @@ class TileGenerator:
             return numel
         aligned = ((numel + min_numel - 1) // min_numel) * min_numel
         return aligned
-
-    @classmethod
-    def get_byte_per_numel(cls, dtype):
-        if dtype is None:
-            return 1
-        return byte_per_numel[dtype]
 
     def valid_tile_numel(self, total_numel):
         byte_num = self.dtype_bytes
@@ -189,6 +184,9 @@ class TileGenerator:
             for axis in self.low_dims:
                 if self.axis_name[axis][0] == "r" and self.persistent_reduction:
                     continue
+                if axis in self.no_loop_axis:
+                    continue
+
                 numel = self.sub_blocks[axis]
                 if numel == 1:
                     continue
@@ -233,6 +231,9 @@ class TileGenerator:
             for axis in tiling_not_low_dims:
                 if self.axis_name[axis][0] == "r" and self.persistent_reduction:
                     continue
+                if axis in self.no_loop_axis:
+                    continue
+
                 if self.descend_one_axis(axis):
                     return True
             total = self.calculate_total_numel()

@@ -1,5 +1,6 @@
 from functools import reduce
 import sympy as sympy
+import torch
 from torch._inductor.codegen.simd import (EnableReduction, DisableReduction)
 from torch._inductor.codegen.triton import TritonKernel
 from torch._inductor.loop_body import MemoryUsageType
@@ -8,7 +9,7 @@ from torch._inductor.utils import ModularIndexing, sympy_subs
 from torch._inductor.virtualized import V
 
 from .kernel_analysis import IndexAnalysis
-from .triton_utils import get_aligned_numel
+from .triton_utils import get_byte_per_numel
 from ..config import num_vector_core, log
 
 
@@ -60,6 +61,14 @@ class SplitTiling:
             return x.name[0] + "0" + x.name[1:]
         else:
             return x.name
+
+    @staticmethod
+    def get_length_val(x):
+        length_expr = x.length
+        if not isinstance(length_expr, sympy.Integer):
+            return length_expr.subs(V.graph.sizevars.var_to_val)
+        else:
+            return length_expr
 
     @classmethod
     def total_split_numels(cls, axis_list):
@@ -168,9 +177,52 @@ class SplitTiling:
         for i, x in enumerate(self.kernel.tiling_axis):
             x.tiling_order = i
 
+    # no_loop_axis 原则1：优先从low_dims tiling轴中选择
+    # no_loop_axis 原则2：low_dims 轴仍未超过阈值，从tiling轴中选择其他轴
+    # no_loop_axis 原则3：所有轴的所占空间预估小于等于4k时，无需loop
+    # no_loop_axis 原则4：对于存在动态shape的轴，不做该优化
+    def select_no_loop_axis(self):
+        low_dims = [self.kernel.sorted_axis[dim] for dim in self.kernel.low_dims]
+        sorted_low_dims = sorted(low_dims, key=lambda x: self.get_length_val(x))
+        total_numels = 1
+        axis_dtype = torch.float32
+        if self.kernel.split_axis:
+            axis_dtype = self.kernel.get_axis_dtype(self.kernel.split_axis[0])
+        dtype_byte = get_byte_per_numel(axis_dtype)
+
+        def stop_loop(axis, current_numels):
+            is_reduce_or_split_axis = (axis.prefix == 'r' or axis.is_split_axis)
+            if (is_reduce_or_split_axis or
+                not axis.is_tiling_axis or
+                axis.is_no_loop_axis):
+                return False, current_numels
+            if not isinstance(axis.length, sympy.Integer):
+                return True, current_numels
+            current_numels *= self.get_length_val(axis)
+            over_flow = current_numels * dtype_byte > 4 * 1024
+            if not over_flow:
+                axis.is_no_loop_axis = True
+            return over_flow, current_numels
+
+        if self.kernel.persistent_reduction:
+            for axis in self.kernel.sorted_axis:
+                if axis.prefix == 'r':
+                    total_numels *= self.get_length_val(axis)
+
+        for axis in sorted_low_dims:
+            overflow, total_numels = stop_loop(axis, total_numels)
+            if overflow:
+                return
+
+        for axis in reversed(self.kernel.sorted_axis):
+            overflow, total_numels = stop_loop(axis, total_numels)
+            if overflow:
+                return
+
     def select_split_tiling_axis(self):
         self.select_split_axis()
         self.select_tiling_axis()
+        self.select_no_loop_axis()
 
     # the below logic doesn't work when there're two reduction axis, but only one need outer reduction
     def should_outer_reduce_me(self, x):

@@ -202,11 +202,12 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         # don't use functools.lru_cache(None), so that previous indexing_code produdec by previous index,
         # could be overwritten
         self.codegen = self._codegen
+        self.is_no_loop_axis = False
 
     # axis mask
     def _codegen_mask(self):
 
-        if self.is_tiling_axis:
+        if self.is_tiling_axis and not self.is_no_loop_axis:
             BLOCK_NAME = f"{self.name.upper()}BLOCK"
             upper = f"min({BLOCK_NAME}+{self.symbol()}_offset, {self.name}_numel)" if self.is_split_axis else f"{self.name}_numel"
             line = f"{self.name}_mask = {self.name} < {upper}"
@@ -283,7 +284,9 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
             else:
                 index = f"(loop_{self.name} * {BLOCK_NAME_SUB}) + base_{self.name}"
         else:
-            if self.is_split_axis:
+            if self.is_no_loop_axis:
+                index = f"base_{self.name}"
+            elif self.is_split_axis:
                 offset = f"{self.symbol()}_offset"
                 index = f"{offset} + (loop_{self.name} * {BLOCK_NAME_SUB}) + base_{self.name}"
             else:
@@ -306,7 +309,9 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         if self.is_split_axis:
             lines.append(f"{self.symbol()}_offset = tl.program_id({self.split_order}) * {BLOCK_NAME}")
 
-        if self.is_tiling_axis:
+        if self.is_no_loop_axis:
+            lines.append(f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB})")
+        elif self.is_tiling_axis:
             lines.append(f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB})")
             block = f"{BLOCK_NAME}" if self.is_split_axis else f"{self.symbol()}_numel"
             lines.append(f"loops_{self.name} = ({block} + {BLOCK_NAME_SUB} - 1) // {BLOCK_NAME_SUB}")
@@ -588,6 +593,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 mutated_args.add(self.args.output_buffers[mutation])
         mutated_args = sorted(mutated_args)
         tiling_axis = [x.sorted_order for x in self.tiling_axis]
+        no_loop_axis = [x.sorted_order for x in self.tiling_axis if x.is_no_loop_axis]
         split_axis = [x.sorted_order for x in self.split_axis]
         axis_names = [x.name for x in self.sorted_axis]
         split_axis_dtype = self.get_axis_dtype(self.split_axis[0]) if self.split_axis else None
@@ -601,6 +607,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "backend_hash": self.patch_triton_hash(),  # torch.utils._triton.triton_hash_with_backend(),
             "split_axis": split_axis,
             "tiling_axis": tiling_axis,
+            "no_loop_axis": no_loop_axis,
             "axis_names": axis_names,
             "low_dims": self.low_dims,
             "numof_reduction_axis": self.numof_reduction_axis(),
@@ -666,6 +673,8 @@ class NPUIndexTritonKernel(TritonKernel):
 
         for axis in self.tiling_axis:
             if axis.name[0] == 'r' and self.persistent_reduction:
+                continue
+            if axis.is_no_loop_axis:
                 continue
             argdefs.append(ArgName(f"{axis.name.upper()}BLOCK_SUB", is_constexpr=True))
 
@@ -807,8 +816,17 @@ class NPUIndexTritonKernel(TritonKernel):
                 val = int(simplified_tree_numel)
             else:
                 continue
-
             code.writeline(f"{node.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
+        
+        for axis in self.sorted_axis:
+            if axis.is_no_loop_axis:
+                simplified_tree_numel = V.graph.sizevars.simplify(axis.length)
+                if isinstance(simplified_tree_numel, (sympy.Integer, int)):
+                    val = int(simplified_tree_numel)
+                else:
+                    continue
+                code.writeline(f"{axis.name}_numel = {val}")
+                code.writeline(f"{axis.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
 
     def lowest_axis_variable(self):
         if len(self.tiling_axis) == 0:
@@ -908,9 +926,10 @@ class NPUIndexTritonKernel(TritonKernel):
             # tiling axis and last tiling
             if range_val.is_tiling_axis and last_tiling:
                 do_indent = False
-                need_axis_loop = self.find_axis_in_load_store(range_val)
-                if not need_axis_loop:
+                have_load_store = self.find_axis_in_load_store(range_val)
+                if not have_load_store:
                     indexing_code = None
+                need_axis_loop = have_load_store and (not range_val.is_no_loop_axis)
                 if (range_val.prefix != 'r' or not self.persistent_reduction) and need_axis_loop:
                     self.body.splice(self.prefix)
                     self.body.writeline(f"for loop_{range_val.name} in range(loops_{range_val.name}):")
@@ -925,7 +944,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 if len(self.loads._lines) == 0 and len(self.stores._lines) == 0:
                     do_indent = False
                     indexing_code = None
-                if self.numof_reduction_axis() <= 1:
+                if self.numof_reduction_axis() <= 1 and not range_val.is_no_loop_axis:
                     do_indent = True
                     self.body.writeline(f"for loop_{range_val.name} in range(loops_{range_val.name}):")
                 loop_body(index, indexing_code, is_last_axis, do_indent=do_indent)
@@ -1148,9 +1167,29 @@ class NPUIndexTritonKernel(TritonKernel):
         return self.reduce_analysis.reduced_dim
 
     def filter_masks(self, mask_vars):
+        mask_vars_copy = mask_vars.copy()
+        masked_axis_name = []
         for node in self.sorted_axis:
-            if not (node.is_tiling_axis):
-                mask_vars.discard(f"{node.name}_mask")
+            is_persistent_reduction_axis = self.persistent_reduction and node.is_reduction
+            if ((not node.is_tiling_axis) or
+                is_persistent_reduction_axis or
+                node.is_no_loop_axis):
+                continue
+
+            masked_axis_name.append(node.name)
+
+        # Be careful when remove mask from load store
+        # 1. Current only leave axis mask from sorted axis
+        # 2. If z0 is permute, maybe have z0_mask, z0_1_mask
+        # 3. xmask, x0_mask: if axis is x, will not remove x0_mask, can't just use startswith
+        for mask_var in mask_vars_copy:
+            valid_mask_var = False
+            for axis_name in masked_axis_name:
+                if mask_var == f"{axis_name}mask" or mask_var.startswith(f"{axis_name}_"):
+                    valid_mask_var = True
+
+            if not valid_mask_var:
+                mask_vars.discard(mask_var)
 
     def numof_reduction_axis(self):
         root = self.range_trees[-1]

@@ -19,6 +19,12 @@ byte_per_numel = {
 }
 
 
+def get_byte_per_numel(dtype):
+    if dtype is None:
+        return 1
+    return byte_per_numel[dtype]
+
+
 def get_aligned_numel(dtype):
     if dtype in byte_per_numel:
         return 32 // byte_per_numel[dtype]
