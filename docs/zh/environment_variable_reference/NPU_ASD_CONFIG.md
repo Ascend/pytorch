@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可控制是否开启Ascend Extension for PyTorch的特征值检测功能。特征值检测功能具体参见《PyTorch 框架特性指南》中的“特征值检测”章节。
+通过此环境变量可控制是否开启Ascend Extension for PyTorch的特征值检测功能。特征值检测功能具体参见《PyTorch 框架特性指南》中的“[特征值检测](https://www.hiascend.com/document/detail/zh/Pytorch/720/ptmoddevg/Frameworkfeatures/featuresguide_00013.html)”章节。
 
 该环境变量支持以下可选参数：
 

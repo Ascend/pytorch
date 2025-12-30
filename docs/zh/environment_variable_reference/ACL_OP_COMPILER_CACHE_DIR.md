@@ -19,7 +19,7 @@ export ACL_OP_COMPILER_CACHE_DIR=/home/cache
 -   该环境变量仅在单算子模式下可以使用，图模式不支持该环境变量。
 -   该环境变量需要与ACL\_OP\_COMPILER\_CACHE\_MODE配合使用。
 -   如果同时设置了环境变量和torch\_npu\_option，则以代码中的torch\_npu\_option方式为优先。
--   如果设置了ACL\_OP\_DEBUG\_LEVEL编译选项，则只有编译选项值为0或3才会启用编译缓存功能，其它取值禁用编译缓存功能。ACL\_OP\_DEBUG\_LEVEL编译选项具体可参考《CANN  应用开发接口》的“aclCompileOpt”章节。
+-   如果设置了ACL\_OP\_DEBUG\_LEVEL编译选项，则只有编译选项值为0或3才会启用编译缓存功能，其它取值禁用编译缓存功能。ACL\_OP\_DEBUG\_LEVEL编译选项具体可参考《CANN  应用开发接口》的“[aclCompileOpt](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/API/appdevgapi/aclcppdevg_03_1371.html)”章节。
 
 ## 支持的型号
 

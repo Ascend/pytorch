@@ -10,7 +10,7 @@ PyTorch训练场景用于设置是否通过msMonitor nputrace方式开启dynamic
 export KINETO_USE_DAEMON=1
 ```
 
-详细使用方式请参见《CANN 性能调优工具用户指南》中的“dynamic\_profile动态采集”章节。
+详细使用方式请参见《CANN 性能调优工具用户指南》中的“[dynamic\_profile动态采集](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/devaids/Profiling/atlasprofiling_16_0033.html#ZH-CN_TOPIC_0000002480014417__section17272160135118)”章节。
 
 ## 使用约束
 
