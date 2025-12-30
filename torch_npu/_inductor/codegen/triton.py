@@ -504,13 +504,10 @@ class NPUIndexTritonKernel(TritonKernel):
         pass
 
     def initialize_range_tree(self, pid_cache):
-        self.total_numels = 0
         for k, x in self.numels.items():
             if not isinstance(x, sympy.Integer):
                 x = x.subs(V.graph.sizevars.var_to_val)
                 self.numels[k] = x
-            if x > 1:
-                self.total_numels += 1
 
         no_r_dim = not self.inside_reduction or self.numels["r"] == 1
         prefixes = "wvtzyxr"
