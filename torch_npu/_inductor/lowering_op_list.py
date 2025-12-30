@@ -78,7 +78,8 @@ GENERATE_LIST = [
     aten.squeeze,
     aten.copy,
     aten.copy_,
-    aten.reciprocal
+    aten.reciprocal,
+    aten._assert_scalar,
 ]
 
 GENERATE_LIST2 = [
