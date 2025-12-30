@@ -165,8 +165,17 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
             event.reset(stream)
             # apply tensor
             workspace = torch_npu._npu_fused_infer_attention_score_get_max_workspace(*args, **kwargs)
-            output = torch.empty_like(args[0])
-            softmax_lse = torch.empty(1, dtype=args[0].dtype, device=args[0].device)
+            out_args = [args[0], args[2]]
+            out_kwargs_keys = [
+                'input_layout', 
+                'quant_scale2',
+                'block_table',
+                'num_heads',
+                'num_key_value_heads',
+                'softmax_lse_flag',
+                'query_rope']
+            out_kwargs = {key: kwargs[key] for key in out_kwargs_keys if key in kwargs}
+            output, softmax_lse = torch_npu._npu_fused_infer_attention_score_infer_output(*out_args, **out_kwargs)
             kwargs["workspace"] = workspace
             kwargs["out"] = [output, softmax_lse]
             # begin graph task
