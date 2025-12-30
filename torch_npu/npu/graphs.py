@@ -126,6 +126,8 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
                 # When parameters are passed through args, position is position of the updated parameter.
                 if graph_dispatch_record.op_cache_entry.__name__ in ["npu_fused_infer_attention_score", "npu_fused_infer_attention_score.out"]:
                     position, key = 6, "actual_seq_lengths_kv"
+                elif graph_dispatch_record.op_cache_entry.__name__ in ["npu_fused_infer_attention_score_v2", "npu_fused_infer_attention_score_v2.out"]:
+                    position, key = 8, "actual_seq_kvlen"
                 elif graph_dispatch_record.op_cache_entry.__name__ == "_npu_paged_attention.default":
                     position, key = 7, "context_lens"
                 elif graph_dispatch_record.op_cache_entry.__name__ == "npu_multi_head_latent_attention.out":
@@ -178,7 +180,37 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
             self.graph_dispatch_records.append(
                 self._append_dispatch_record(event, handle, args, kwargs, func_out))
             return kwargs["out"]
-        elif func.__name__ == "npu_fused_infer_attention_score.out":
+        elif func.__name__ in ["npu_fused_infer_attention_score_v2", "npu_fused_infer_attention_score_v2.default"]:
+            func_out = torch_npu.npu_fused_infer_attention_score_v2.out
+            self.update_schema(str(func_out.__name__), str(func_out._schema))
+            stream = torch_npu.npu.current_stream()
+            event = torch.npu.ExternalEvent()
+            event.wait(stream)
+            event.reset(stream)
+            # apply tensor
+            workspace = torch_npu._npu_fused_infer_attention_score_v2_get_max_workspace(*args, **kwargs)
+            out_args = [args[0], args[2]]
+            out_kwargs_keys = [
+                'input_layout',
+                'quant_scale_out',
+                'block_table',
+                'num_query_heads',
+                'num_key_value_heads',
+                'return_softmax_lse',
+                'query_rope']
+            out_kwargs = {key: kwargs[key] for key in out_kwargs_keys if key in kwargs}
+            output, softmax_lse = torch_npu._npu_fused_infer_attention_score_v2_infer_output(*out_args, **out_kwargs)
+            kwargs["workspace"] = workspace
+            kwargs["out"] = [output, softmax_lse]
+            # begin graph task
+            graph_task_group_begin(stream)
+            func_out(*args, **kwargs)
+            handle = graph_task_group_end(stream)
+            # save state for update
+            self.graph_dispatch_records.append(
+                self._append_dispatch_record(event, handle, args, kwargs, func_out))
+            return kwargs["out"]
+        elif func.__name__ in ["npu_fused_infer_attention_score.out", "npu_fused_infer_attention_score_v2.out"]:
             self.update_schema(str(func.__name__), str(func._schema))
             stream = torch_npu.npu.current_stream()
             event = torch.npu.ExternalEvent()
