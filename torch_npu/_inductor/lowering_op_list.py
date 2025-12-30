@@ -76,6 +76,7 @@ GENERATE_LIST = [
     aten.squeeze,
     aten.copy,
     aten.reciprocal,
+    aten._assert_scalar,
     triton_kernel_wrapper_mutation,
 ]
 
