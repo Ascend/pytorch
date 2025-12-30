@@ -14,7 +14,7 @@
 
 -   garbage\_collection\_threshold:<value\>，垃圾回收阈值。
 
-    主动回收未使用的NPU内存块。在设置value阈值（例如0.8）后，如果NPU内存容量使用超过阈值（即分配给NPU应用程序的总内存的80%），缓存分配器将开始回收NPU内存块，优先释放最先申请和长时间未复用的内存块，避免释放积极复用的内存块。其中<value\>取值范围为\(0.0,1.0\)，默认值为0.0。垃圾回收阈值需与内存因子配合使用，内存因子可参考《Ascend Extension for PyTorch 自定义API参考》的“torch\_npu.npu.set\_per\_process\_memory\_fraction”。
+    主动回收未使用的NPU内存块。在设置value阈值（例如0.8）后，如果NPU内存容量使用超过阈值（即分配给NPU应用程序的总内存的80%），缓存分配器将开始回收NPU内存块，优先释放最先申请和长时间未复用的内存块，避免释放积极复用的内存块。其中<value\>取值范围为\(0.0,1.0\)。默认不开启该功能。垃圾回收阈值需与内存因子配合使用，内存因子可参考《Ascend Extension for PyTorch 自定义API参考》的“torch\_npu.npu.set\_per\_process\_memory\_fraction”。
 
 -   expandable\_segments:<value\>，使能内存池扩展段功能，即虚拟内存特性。
 
