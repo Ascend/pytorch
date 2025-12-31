@@ -61,8 +61,8 @@
     <tr>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch_npu.npu_fusion_attention</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2">自定义接口</td>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3">参数变更</td>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">新增可选入参sink</td>
+      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3">修改</td>
+      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">参数变更，新增可选入参sink</td>
     </tr>
     <tr>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch_npu.npu_mla_prolog_v3</td>
