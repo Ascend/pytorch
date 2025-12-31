@@ -102,6 +102,7 @@ LOAD_FUNCTION(aclrtStreamGetId)
 LOAD_FUNCTION(aclrtMemcpyBatch)
 LOAD_FUNCTION(aclrtMemcpyBatchAsync)
 LOAD_FUNCTION(aclrtLaunchCallback)
+LOAD_FUNCTION(aclrtLaunchHostFunc)
 LOAD_FUNCTION(aclrtSubscribeReport)
 LOAD_FUNCTION(aclrtUnSubscribeReport)
 LOAD_FUNCTION(aclrtMemcpyAsyncWithCondition)
@@ -1350,6 +1351,18 @@ aclError AclrtLaunchCallback(aclrtCallback fn, void *userData, aclrtCallbackBloc
 
     TORCH_CHECK(func, "Failed to find function aclrtLaunchCallback", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(fn, userData, blockType, stream);
+}
+
+aclError AclrtLaunchHostFunc(aclrtStream stream, aclrtHostFunc func, void *args)
+{
+    typedef aclError (*AclrtLaunchHostFunc)(aclrtStream, aclrtHostFunc, void *);
+    static AclrtLaunchHostFunc funcptr = nullptr;
+    if (funcptr == nullptr) {
+        funcptr = (AclrtLaunchHostFunc) GET_FUNC(aclrtLaunchHostFunc);
+    }
+
+    TORCH_CHECK(funcptr, "Failed to find function aclrtLaunchHostFunc", PTA_ERROR(ErrCode::NOT_FOUND));
+    return funcptr(stream, func, args);
 }
 
 aclError AclrtSubscribeReport(uint64_t threadId, aclrtStream stream)
