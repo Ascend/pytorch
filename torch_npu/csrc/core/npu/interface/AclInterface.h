@@ -9,6 +9,7 @@
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "third_party/acl/inc/acl/acl.h"
 
+using aclrtHostFunc = void (*)(void *args);
 struct aclrtMemUsageInfo;
 struct aclOpExecutor;
 struct aclrtUuid;
@@ -284,6 +285,8 @@ aclError AclrtResetDeviceResLimit(int32_t deviceId);
 aclError AclrtStreamGetId(aclrtStream stream, int32_t* stream_id);
 
 aclError AclrtLaunchCallback(aclrtCallback fn, void *userData, aclrtCallbackBlockType blockType, aclrtStream stream);
+
+aclError AclrtLaunchHostFunc(aclrtStream stream, aclrtHostFunc func, void *args);
 
 aclError AclrtSubscribeReport(uint64_t theadId, aclrtStream stream);
 

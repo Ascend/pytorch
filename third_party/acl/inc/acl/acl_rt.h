@@ -270,6 +270,8 @@ typedef void* aclrtDrvMemHandle;
 
 typedef void (*aclrtCallback)(void *userData);
 
+typedef void (*aclrtHostFunc)(void *args);
+
 typedef void (*aclrtExceptionInfoCallback)(aclrtExceptionInfo *exceptionInfo);
 
 typedef enum aclrtDeviceStatus {
@@ -2163,6 +2165,24 @@ ACL_FUNC_VISIBILITY aclError aclrtValueWrite(void* devAddr, uint64_t value, uint
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtValueWait(void* devAddr, uint64_t value, uint32_t flag, aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
+ * @brief Add a callback function to be executed on the host
+ *        to the task queue of the Stream
+ *        Difference between this api and "aclrtLaunchCallback" is that
+ *        thread will be created and registered inside this interface
+ *        automatically, while "aclrtLaunchCallback" need manual registration.
+ *        For details please refer to official API document
+ * @param [in] stream   the stream to launch callback func
+ * @param [in] func     callback func to launch
+ *                      The function prototype of the callback function is:
+ *                      typedef void (*aclrtHostFunc)(void *args);
+ * @param [in] args     args for callback func
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtLaunchHostFunc(aclrtStream stream, aclrtHostFunc func, void *args);
 
 #ifdef __cplusplus
 }
