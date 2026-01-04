@@ -51,14 +51,24 @@ def get_redistributed_local_kwargs(
     src_kwargs_spec = op_info.schema.kwargs_schema
     target_kwargs_spec = kwargs_spec_infer_func(op_info.schema, output_sharding)
     new_local_kwargs = {}
-    for key, target_spec in target_kwargs_spec.items():
-        local_tensor = op_info.local_kwargs[key]
-        src_spec = src_kwargs_spec[key]
+
+    def _redistribute(local_value, src_spec, target_spec):
         if isinstance(target_spec, DTensorSpec) and src_spec.placements != target_spec.placements:
-            resharded_local_tensor = redistribute_local_tensor(local_tensor, src_spec, target_spec)
-            new_local_kwargs[key] = resharded_local_tensor
+            return redistribute_local_tensor(local_value, src_spec, target_spec)
         else:
-            new_local_kwargs[key] = local_tensor
+            return local_value
+
+    schema_info = op_info.schema.schema_info
+    for key, target_spec in target_kwargs_spec.items():
+        local_value = op_info.local_kwargs[key]
+        src_spec = src_kwargs_spec[key]
+        if isinstance(target_spec, (list, tuple)) and schema_info is not None and schema_info.needs_pytree:
+            new_local_kwargs[key] = [
+                _redistribute(val, src, dst)
+                for val, src, dst in zip(local_value, src_spec, target_spec)
+            ]
+        else:
+            new_local_kwargs[key] = _redistribute(local_value, src_spec, target_spec)
 
     return new_local_kwargs
 
