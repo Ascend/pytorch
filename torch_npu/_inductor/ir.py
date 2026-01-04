@@ -1,6 +1,26 @@
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Literal,
+    Optional,
+    overload,
+    TYPE_CHECKING,
+    TypeVar,
+    Union,
+)
+
+from collections.abc import Sequence
 import torch
+from torch._inductor.ir import (NopKernel, SliceView, IRNode, StorageBox, FlexibleLayout, FixedLayout, NonOwningLayout, Pointwise, TensorBox, ComputedBuffer, View, log, Layout, Scatter)
 from torch._inductor.virtualized import ops, OpsValue, V
-from torch._inductor.ir import log, Layout
+from torch._inductor.utils import ir_dataclass
+from torch._inductor import lowering
+from sympy import Expr, Integer, Symbol
+from typing_extensions import Never
+
+from torch.utils._sympy.functions import Identity
+from torch_npu._inductor import config
 
 
 def patch_fallback_kernel_codegen():
@@ -56,3 +76,58 @@ def patch_fallback_kernel_codegen():
     
     from torch._inductor.ir import FallbackKernel
     FallbackKernel.codegen = codegen_npu
+
+
+@ir_dataclass
+class IndexputTemplate(Scatter):
+    boundary: Optional[int] = None
+
+    def store_output(
+        self,
+        output_name: Optional[str],
+        indexer: Callable[[Sequence[Expr]], Never],
+        store_vars: Sequence[Expr],
+    ) -> None:
+        loader = self.make_loader()
+        if output_name is None:
+            output_name = "unnamed"
+        output_indexer = self.output_indexer(store_vars)
+        indirect_indexer = None
+        for var in output_indexer:
+            if str(var).startswith("indirect"):
+                indirect_indexer = var
+                break
+
+        return ops.indexput_template(
+            output_name,
+            indexer(output_indexer),
+            loader(store_vars),
+            indirect_indexer,
+            self.boundary
+        )
+
+
+class ScatterTemplate(Scatter):
+    def store_output(
+        self,
+        output_name: Optional[str],
+        indexer: Callable[[Sequence[Expr]], Never],
+        store_vars: Sequence[Expr],
+    ) -> None:
+        loader = self.make_loader()
+        if output_name is None:
+            output_name = "unnamed"
+        output_indexer, boundary = self.output_indexer(store_vars)
+        indirect_indexer = None
+        for var in output_indexer:
+            if str(var).startswith("indirect"):
+                indirect_indexer = var
+                break
+
+        return ops.scatter_template(
+            output_name,
+            indexer(output_indexer),
+            loader(store_vars),
+            indirect_indexer,
+            int(boundary),
+        )

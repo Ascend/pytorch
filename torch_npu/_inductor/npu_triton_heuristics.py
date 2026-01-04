@@ -498,6 +498,8 @@ class NPUCachingAutotuner(CachingAutotuner):
             and not self.inductor_meta.get("is_hip", False)
         )
 
+        compile_meta['compile_mode'] = cfg_kwargs.get('compile_mode')
+
         # device type will be "hip" rather than "cuda" here
         compile_meta["device_type"] = self.device_props.type
         compile_meta["cc"] = self.device_props.cc
@@ -523,7 +525,8 @@ class NPUCachingAutotuner(CachingAutotuner):
         options = {
             "num_warps": compile_meta["num_warps"],
             "num_stages": compile_meta["num_stages"],
-            "debug": compile_meta["debug"]
+            "debug": compile_meta["debug"],
+            "compile_mode": compile_meta['compile_mode'],
         }
         compile_kwargs = {
             "target": target,
@@ -1107,6 +1110,7 @@ def triton_config_npu_index(
     split_axis_dtype = inductor_meta["split_axis_dtype"]
     axis_names = inductor_meta["axis_names"]
     dual_reduction = inductor_meta["dual_reduction"]
+    npu_kernel_type = inductor_meta.get("npu_kernel_type", "simd")
 
     tile_generator = TileGenerator(size_hints, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims,
                                    persistent_reduction=persistent_reduction, configs=configs,
@@ -1131,6 +1135,18 @@ def triton_config_npu_index(
             split_blocks[i] = cfg.kwargs[block_name]
         cfg.kwargs["split_axis"] = tuple(split_axis)
         cfg.kwargs["split_blocks"] = tuple(split_blocks)
+
+    def add_new_simt_configs(origin_cfg, cfg_num_warps, simt_configs, compile_mode):
+        new_cfg = copy.deepcopy(origin_cfg)
+        new_cfg.num_warps = cfg_num_warps
+        new_cfg.kwargs["compile_mode"] = compile_mode
+        simt_configs.append(new_cfg)
+
+    if npu_kernel_type == "simt":
+        simt_configs = []
+        for cfg in configs:
+            add_new_simt_configs(cfg, 1, simt_configs, "unstructured_in_simt")
+        configs = simt_configs
 
     return configs
 

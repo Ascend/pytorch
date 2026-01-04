@@ -468,6 +468,7 @@ class NPUIndexTritonKernel(TritonKernel):
         self.golden_var_list = None
         self.reduce_analysis = None
         self.load_store_indexing = None
+        self.npu_kernel_type = 'simd'
 
     def _get_grid_type(self) -> type[triton_heuristics.GridExpr]:
         return npu_triton_heuristics.GridNpu
@@ -615,6 +616,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "store_cubin": config.triton.store_cubin,
             "force_disable_caches": config.force_disable_caches,
             "profile_bandwidth_with_do_bench_using_profiling": config.profile_bandwidth_with_do_bench_using_profiling,
+            "npu_kernel_type": self.npu_kernel_type
         }
         return inductor_meta
 
@@ -1094,6 +1096,96 @@ class NPUIndexTritonKernel(TritonKernel):
                 return reduction
 
         return None
+
+    def find_indirect_axis(self, indirect_var):
+        indirect_key = sympy_index_symbol(indirect_var)
+        for node in self.node_schedule:
+            if node in (EnableReduction, DisableReduction):
+                continue
+            if indirect_key in node._body.indirect_replacements:
+                return node._body.indirect_replacements[indirect_key]
+
+        return None
+
+    def get_template_shape_offset(self, analyzer):
+        tiling_offset = []
+        axis_shape = []
+        reshape_list = []
+        reshape_type = None
+
+        # analyzer.all_var_list have no tiling axis
+        # self.golden_var_list may have broadcast axis
+        # eg: analyzer.all_var_list: [z0, y1], golden_var_list[z0, y1, x2], insert x2
+        total_var_list = list(reversed(analyzer.all_var_list))
+        prev_var = None
+        for var in reversed(self.golden_var_list):
+            if var not in total_var_list:
+                insert_pos = 0
+                if prev_var:
+                    insert_pos = total_var_list.index(prev_var) + 1
+                total_var_list.insert(insert_pos, var)
+                reshape_type = 'broadcast_to'
+            prev_var = var
+
+        for axis_key in total_var_list:
+            axis = self.range_tree_nodes[axis_key]
+            BLOCK_NAME = f"{axis.name.upper()}BLOCK"
+            BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
+            axis_offset = "0"
+            axis_numel = str(axis_key) + "_numel"
+            if axis.is_tiling_axis:
+                if axis.is_split_axis:
+                    offset = f"{axis.name}_offset"
+                    axis_offset = f"{offset} + (loop_{axis.name} * {BLOCK_NAME_SUB})"
+                    axis_numel = f"min({BLOCK_NAME} + {offset}, {axis_numel})"
+                else:
+                    axis_persistent_reduction = axis.name[0] == 'r' and self.persistent_reduction
+                    if (not axis.is_no_loop_axis) and (not axis_persistent_reduction):
+                        axis_offset = f"(loop_{axis.name} * {BLOCK_NAME_SUB})"
+                reshape_list.append(BLOCK_NAME_SUB)
+            else:
+                axis_offset = f"{axis.name}"
+                if not reshape_type:
+                    reshape_type = 'reshape'
+                reshape_list.append("1")
+            axis_shape.append(axis_numel)
+            tiling_offset.append(axis_offset)
+
+        return axis_shape, tiling_offset, reshape_type, reshape_list
+    
+    def get_template_offset(self, analyzer):
+        axis_start_offset = []
+        axis_end_offset = []
+        reshape_list = []
+        need_reshape = False
+        for axis_key in reversed(analyzer.all_var_list):
+            axis = self.range_tree_nodes[axis_key]
+            BLOCK_NAME = f"{axis.name.upper()}BLOCK"
+            BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
+            start_offset = "0"
+            end_offset = f"{axis.name}_numel"
+            if axis.is_tiling_axis:
+                if axis.is_split_axis:
+                    offset = f"{axis.name}_offset"
+                    start_offset = f"{offset} + (loop_{axis.name} * {BLOCK_NAME_SUB})"
+                    end_offset = f"min({BLOCK_NAME} + {offset}, {axis.name}_numel)"
+                else:
+                    axis_persistent_reduction = axis.name[0] == 'r' and self.persistent_reduction
+                    if (not axis.is_no_loop_axis) and (not axis_persistent_reduction):
+                        start_offset = f"(loop_{axis.name} * {BLOCK_NAME_SUB})"
+                reshape_list.append(BLOCK_NAME_SUB)
+            else:
+                start_offset = f"{axis.name}"
+                end_offset = f"{axis.name} + 1"
+                need_reshape = True
+                reshape_list.append("1")
+            axis_start_offset.append(start_offset)
+            axis_end_offset.append(end_offset)
+
+        if need_reshape:
+            return axis_start_offset, axis_end_offset, reshape_list
+
+        return axis_start_offset, axis_end_offset, None
 
     # select the golden varlist, from to which to deduce permute, broadcast shape 
     def select_golden_varlist(self):
@@ -1976,6 +2068,177 @@ class NPUIndexTritonKernel(TritonKernel):
                     sorter,
                     sorter_indices,
                 )
+
+            @staticmethod
+            def index_select(src_name: str, weight_index: CSEVariable, indirect_var, set_indirect, bound) -> CSEVariable:
+                def fallback_index_select_sotre(name, weight_index, indirect_var, bound):
+                    new_indirect_var = V.ops.indirect_indexing(indirect_var, bound)
+                    new_index = sympy_subs(weight_index, {sympy_index_symbol(new_indirect_var.name): sympy_index_symbol(indirect_var.name)})
+                    return V.ops.load(name, new_index)
+
+                indirect_indexing = self.is_indirect_indexing(weight_index)
+                # Fallback to tl.load
+                if not indirect_indexing:
+                    return fallback_index_select_sotre(src_name, weight_index, indirect_var, bound)
+                
+                var = self.args.input(src_name)
+                dtype = V.graph.get_dtype(src_name)
+                key_index = self.find_indirect_axis(set_indirect)
+                if not (key_index):
+                    return fallback_index_select_sotre(src_name, weight_index, indirect_var, bound)
+
+                var_list = [str(var) for var in reversed(self.golden_var_list)]
+                tiling_offset = []
+                numels_axis_var = []
+                for axis_key in reversed(self.golden_var_list):
+                    axis = self.range_tree_nodes[axis_key]
+                    BLOCK_NAME = f"{axis.name.upper()}BLOCK"
+                    BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
+                    axis_offset = "0"
+                    if axis.is_split_axis:
+                        offset = f"{axis.name}_offset"
+                        axis_offset = f"{offset} + (loop_{axis.name} * {BLOCK_NAME_SUB})"
+                    else:
+                        axis_persistent_reduction = axis.name[0] == 'r' and self.persistent_reduction
+                        if (not axis.is_no_loop_axis) and (not axis_persistent_reduction):
+                            axis_offset = f"(loop_{axis.name} * {BLOCK_NAME_SUB})"
+                    tiling_offset.append(axis_offset)
+
+                    if axis.is_split_axis:
+                        axis_range = f"min({BLOCK_NAME}+{axis.name}_offset, {axis.name}_numel)"
+                    else:
+                        axis_range = f"{axis.name}_numel"
+                    numels_axis_var.append(axis_range)
+
+                tile_size = var_list[-1].upper() + "BLOCK_SUB"
+                tiling_offset_val = ", ".join(tiling_offset)
+                numels_val = ", ".join(numels_axis_var)
+                if len(var_list) > 1:
+                    index_shape = ",".join([var.upper() + "BLOCK_SUB" for var in var_list[0:-1]])
+                    line = f"tl.reshape({indirect_var}, [{index_shape}])"
+                    indirect_var = self.cse.generate(self.compute, line, dtype=indirect_var.dtype)
+                line = f"tl.index_select({var}, {indirect_var}, {bound}, {tile_size}, ({tiling_offset_val}, ), ({numels_val}, ))"
+
+                return self.cse.generate(self.compute,
+                                        line,
+                                        dtype=dtype)
+
+
+            @staticmethod
+            def gather_template(src_name: str, gather_index: CSEVariable, indirect_var: CSEVariable, set_indirect: str, index_boundary: int):
+                var = self.args.input(src_name)
+                dtype = V.graph.get_dtype(src_name)
+                indice_index = self.find_indirect_axis(set_indirect)
+                if not (indice_index):
+                    raise RuntimeError(f"assert indirect indice_index is not None")
+
+                indice_index_analyzer = IndexAnalysis(self, indice_index)
+                indirect_output_analyzer = IndexAnalysis(self, gather_index)
+                indirect_output_vars = tuple(reversed(indirect_output_analyzer.all_var_list))
+                indirect_dim = next(
+                    (dim for dim, var in enumerate(indirect_output_vars) if symbol_is_type(var, SymT.TMP)), None)
+                if indirect_dim is None:
+                    raise RuntimeError(f"indirect_dim is None in {gather_index}")
+                src_stride = tuple(reversed(indirect_output_analyzer.all_stride_list))
+
+                axis_shape, tiling_offset, reshape_type, reshape_list = self.get_template_shape_offset(indice_index_analyzer)
+                axis_shape_val = ", ".join(axis_shape)
+                tiling_offset_val = ", ".join(tiling_offset)
+
+                if reshape_type:
+                    before_gather_shape = ",".join(reshape_list)
+                    line = f"tl.{reshape_type}({indirect_var}, ({before_gather_shape}))"
+                    reshape_var = self.cse.generate(self.compute,
+                                                    line,
+                                                    dtype=dtype)
+                    line = f"libdevice.gather_out_to_ub({var}, {reshape_var}, {index_boundary}, {indirect_dim}, {src_stride}, ({axis_shape_val},), ({tiling_offset_val},))"
+                    gather_var = self.cse.generate(self.compute,
+                                                   line,
+                                                   dtype=dtype)
+                    after_gather_shape = ",".join([var for var in reshape_list if var != "1"])
+                    line = f"tl.reshape({gather_var}, ({after_gather_shape}))"
+                else:
+                    line = f"libdevice.gather_out_to_ub({var}, {indirect_var}, {index_boundary}, {indirect_dim}, {src_stride}, ({axis_shape_val},), ({tiling_offset_val},))"
+                return self.cse.generate(self.compute,
+                                         line,
+                                         dtype=dtype)
+
+
+            @staticmethod
+            def indexput_template(name: str, output_index: CSEVariable, store_var: CSEVariable, set_indirect: str, boundary: int):
+                indirect_indexing = self.is_indirect_indexing(output_index)
+                # Fallback to tl.store
+                if not indirect_indexing:
+                    return self.store(name, output_index, store_var, None)
+                var_ptr = self.args.output(name)
+                dtype = V.graph.get_dtype(name)
+
+                indirect_axis = self.find_indirect_axis(set_indirect)
+                if not (indirect_axis):
+                    raise RuntimeError(f"assert indirect indirect_axis is not None")
+
+                indirect_output_analyzer = IndexAnalysis(self, output_index)
+                indirect_output_vars = tuple(reversed(indirect_output_analyzer.all_var_list))
+                indirect_dim, indirect_var = next(((dim, var) for dim, var in enumerate(indirect_output_vars) if symbol_is_type(var, SymT.TMP)), None)
+                if indirect_dim is None:
+                    raise RuntimeError(f"indirect_dim is None in {output_index}")
+
+                output_codegen_index = sympy_subs(output_index, {sympy_index_symbol(indirect_var.name): indirect_axis})
+                output_index_analyzer = IndexAnalysis(self, output_codegen_index)
+
+                dst_stride = tuple(reversed(indirect_output_analyzer.all_stride_list))
+                start_offset, end_offset, reshape_list = self.get_template_offset(output_index_analyzer)
+                start_offset_val = ", ".join(start_offset)
+                end_offset_val = ", ".join(end_offset)
+
+                if reshape_list:
+                    before_indexput_shape = ",".join(reshape_list)
+                    line = f"tl.reshape({store_var}, ({before_indexput_shape}))"
+                    store_var = self.cse.generate(self.compute,
+                                        line,
+                                        dtype=dtype)
+
+                line = f"libdevice.index_put({var_ptr}, {indirect_var}, {store_var}, {indirect_dim}, {boundary}, ({end_offset_val},), ({start_offset_val},), {dst_stride})"
+                return self.cse.generate(self.compute,
+                                        line,
+                                        dtype=dtype)
+
+
+            @staticmethod
+            def scatter_template(name: str, output_index: CSEVariable, store_var: CSEVariable, set_indirect: str, boundary: int):
+                var = self.args.output(name)
+                dtype = V.graph.get_dtype(name)
+
+                indice_index = self.find_indirect_axis(set_indirect)
+                if not (indice_index):
+                    raise RuntimeError(f"assert indirect indice_index is not None")
+
+                indice_index_analyzer = IndexAnalysis(self, indice_index)
+                indirect_output_analyzer = IndexAnalysis(self, output_index)
+                indirect_output_vars = tuple(reversed(indirect_output_analyzer.all_var_list))
+                indirect_dim, indirect_var = next(((dim, var) for dim, var in enumerate(indirect_output_vars) if symbol_is_type(var, SymT.TMP)), None)
+                if indirect_dim is None:
+                    raise RuntimeError(f"indirect_dim is None in {output_index}")
+                dst_stride = tuple(reversed(indirect_output_analyzer.all_stride_list))
+
+                axis_shape, tiling_offset, reshape_type, reshape_list = self.get_template_shape_offset(indice_index_analyzer)
+                tiling_offset_val = ", ".join(tiling_offset)
+                axis_shape_val = ", ".join(axis_shape)
+
+                if reshape_type:
+                    before_scatter_shape = ",".join(reshape_list)
+                    line = f"tl.{reshape_type}({indirect_var}, ({before_scatter_shape}))"
+                    indirect_var = self.cse.generate(self.compute,
+                                        line,
+                                        dtype=dtype)
+                    line = f"tl.reshape({store_var}, ({before_scatter_shape}))"
+                    store_var = self.cse.generate(self.compute,
+                                        line,
+                                        dtype=dtype)
+                line = f"libdevice.scatter_ub_to_out({var}, {store_var}, {indirect_var}, {boundary}, {indirect_dim}, {dst_stride}, ({axis_shape_val}, ), ({tiling_offset_val}, ))"
+                return self.cse.generate(self.compute,
+                                        line,
+                                        dtype=dtype)
 
         # Use mypy to check protocol implemented correctly
         def _typecheck_CSEProxy(h: CSEProxy) -> OpsHandler[CSEVariable]:

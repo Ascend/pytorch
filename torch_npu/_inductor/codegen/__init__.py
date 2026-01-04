@@ -8,9 +8,17 @@ from torch._inductor.codegen.simd import SIMDKernel
 from torch._inductor.codegen.triton import TritonKernel
 from torch._inductor.codegen.triton import TritonScheduling
 from torch._inductor.ir import Reduction, LoopBody
+from torch._inductor.loop_body import CaptureIndexing
 from torch_npu._inductor.codegen._sizevars import simplify
 from torch_npu._inductor.codegen.ir import (num_splits, loopbody__call__, transform_dims_in_indexing,
-                                            substituted_dims_in_indexing)
+                                            substituted_dims_in_indexing, generate_indirect_replacements,
+                                            substitube_indirect_index,
+                                            loop_body_block_index_select, simplify_indexing_index_select,
+                                            loop_body_block_gather_template,
+                                            simplify_indexing_gather_template, loop_body_block_indexput_template,
+                                            simplify_indexing_indexput_template,
+                                            loop_body_block_scatter_template,
+                                            simplify_indexing_scatter_template)
 from torch_npu._inductor.codegen.scheduling import create_tiling
 from torch_npu._inductor.codegen.triton import group_fn, select_index_dtype
 from torch_npu._inductor.codegen.triton import is_compatible
@@ -21,6 +29,8 @@ from ..config import log as npulog
 Reduction.num_splits = num_splits
 setattr(LoopBody, 'transform_dims_in_indexing', transform_dims_in_indexing)
 setattr(LoopBody, 'substituted_dims_in_indexing', substituted_dims_in_indexing)
+setattr(LoopBody, 'generate_indirect_replacements', generate_indirect_replacements)
+setattr(LoopBody, 'substitube_indirect_index', substitube_indirect_index)
 
 LoopBody.__call__ = loopbody__call__
 # need to enable this to speedup attn_cp_test
@@ -33,3 +43,12 @@ setattr(SIMDKernel, 'is_compatible', is_compatible)
 
 # util
 sizevars.SizeVarAllocator.simplify = simplify
+
+setattr(CaptureIndexing, 'index_select', loop_body_block_index_select)
+setattr(sizevars.SimplifyIndexing, 'index_select', simplify_indexing_index_select)
+setattr(CaptureIndexing, 'gather_template', loop_body_block_gather_template)
+setattr(sizevars.SimplifyIndexing, 'gather_template', simplify_indexing_gather_template)
+setattr(CaptureIndexing, 'indexput_template', loop_body_block_indexput_template)
+setattr(sizevars.SimplifyIndexing, 'indexput_template', simplify_indexing_indexput_template)
+setattr(CaptureIndexing, 'scatter_template', loop_body_block_scatter_template)
+setattr(sizevars.SimplifyIndexing, 'scatter_template', simplify_indexing_scatter_template)

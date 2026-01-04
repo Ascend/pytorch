@@ -3,16 +3,16 @@ import torch._ops
 from torch._inductor import ir
 from torch._inductor import lowering
 from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
-from torch._inductor.ir import ExpandView, TensorBox, ops_wrapper
-from torch._inductor.ir import Reduction
-from torch._inductor.lowering import sum_, clone
+from torch._inductor.ir import ExpandView, TensorBox, ops_wrapper, StorageBox, View
+from torch._inductor.ir import Reduction, Pointwise
+from torch._inductor.lowering import sum_
 from torch._inductor.utils import sympy_product
-from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch._prims_common import (
     is_boolean_dtype,
     is_integer_dtype,
     get_computation_dtype,
     ELEMENTWISE_TYPE_PROMOTION_KIND,
+    Number
 )
 from torch._inductor.lowering import (
     lowerings,
@@ -36,9 +36,16 @@ from torch._inductor.lowering import (
     require_channels_last,
     _validate_dim,
     get_promoted_dtype,
+    add,
+    rsqrt,
+    mul
 )
-import torch_npu
+from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
+from torch._inductor.lowering import (unsqueeze, index_put_as_masked_fill, index_put_fallback, needs_fallback_due_to_atomic_add_limitations, view, check_and_broadcast_indices, index_output_size_and_inner_fn, expand, clone, new_empty, scatter_fallback, full_like)
+from torch._inductor.virtualized import V, ops
+
 from torch_npu import npu_dtype_cast, _npu_dtype_cast
+from .ir import IndexputTemplate, ScatterTemplate
 from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
 
 
@@ -206,6 +213,425 @@ def _register_npu_inductor_fallbacks():
     def _convert__npu_type(x: TensorBox, dtype: torch.dtype):
         return to_dtype(x, dtype, copy=True)
 
+    def lowering_index_select(weight, dim, indices):
+        assert isinstance(weight, TensorBox)
+        assert isinstance(indices, TensorBox)
+        assert "int" in str(indices.get_dtype())
+        indices_loader = indices.make_loader()
+        indices_ndim = len(indices.get_size())
+        weight_size = weight.get_size()
+        new_size = [*indices.get_size(), *weight_size[1:]]
+
+        def fn(idx):
+            assert len(idx) == len(new_size), f"{idx} != {new_size}"
+            var_index = indices_loader(idx[:indices_ndim])
+            set_indirect = ops.indirect_indexing(var_index, weight_size[0])
+            weight_idx = [set_indirect] + [*idx[indices_ndim:]]
+            index_loader = weight.data.make_indexer()
+            loader_name = weight.data.get_name()
+            return ops.index_select(loader_name, index_loader(weight_idx), var_index, set_indirect, int(weight_size[0]))
+
+        return Pointwise.create(
+            device=weight.get_device(),
+            dtype=weight.get_dtype(),
+            inner_fn=fn,
+            ranges=new_size,
+        )
+
+    @register_lowering(aten.embedding, type_promotion_kind=None)
+    def embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, sparse=False):
+        node = V.current_node
+        if node.meta.get("skip_lowering", False):
+            return fallback_handler(aten.embedding.default)(weight, indices, padding_idx=padding_idx, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse)
+
+        def invalid_embedding_input(x):
+            x_size = x.get_size()
+            if 1 in x_size:
+                return True
+            return False
+
+        if invalid_embedding_input(weight) or invalid_embedding_input(indices):
+            return lowering.embedding(weight, indices)
+        return lowering_index_select(weight, 0, indices)
+
+    @register_lowering(aten.gather, type_promotion_kind=None)
+    def gather(x, dim, index, sparse_grad=False):
+        # sparse_grad doesn't affect forward computation,
+        # and backward tracing is taken care of by AOT Autograd
+        assert isinstance(x, TensorBox)
+        if index.get_numel() == 0:
+            # Empty index case. Return an empty array with the same shape
+            return new_empty(x, index.get_size())
+
+        assert index.get_dtype() == torch.int64
+        size = x.get_size()
+        offset = len(size) == 0
+        dim = _validate_dim(x, dim, offset)
+
+        if offset:
+            x = expand(x, [1])
+            size = [1]
+
+        template_x_dtypes = [torch.float32, torch.float16, torch.bfloat16]
+        if x.get_dtype() not in template_x_dtypes:
+            return lowering.gather(x, dim, index, sparse_grad)
+
+        index_loader = index.make_loader()
+        loader_name = x.data.get_name()
+        x_loader = x.data.make_indexer()
+        index_boundary = size[dim]
+
+        def fn(idx):
+            idx = list(idx)
+            index_value = index_loader(idx)
+            gather_idx = ops.indirect_indexing(index_value, size[dim])
+            if len(idx) == 0:
+                idx = [gather_idx]
+            else:
+                idx[dim] = gather_idx
+            
+            return ops.gather_template(loader_name, x_loader(idx), index_value, gather_idx, int(index_boundary))
+
+        return Pointwise.create(
+            device=x.get_device(),
+            dtype=x.get_dtype(),
+            inner_fn=fn,
+            ranges=index.get_size(),
+        )
+
+    
+    def index_put_impl_(self, indices, values, accumulate, check, may_realize=False):
+        if may_realize:
+
+            def try_get_name(x):
+                if isinstance(x, ir.TensorBox):
+                    x = x.data
+                if isinstance(x, ir.BaseView):
+                    x = x.unwrap_view()
+                if isinstance(x, ir.StorageBox):
+                    x = x.data
+                return x.get_name() if isinstance(x, ir.Buffer) else None
+
+            def indice_slice_from_randperm(indice):
+                # For this specific pattern, indices is unique as coming from torch.randperm.
+                # However, as the content of the indices is unknown, we have to check this specific pattern.
+                if isinstance(indice, TensorBox) and isinstance(indice.data, ir.BaseView):
+                    indice = indice.data.unwrap_view()
+                    return (
+                        isinstance(indice, ir.StorageBox)
+                        and isinstance(indice.data, ir.ExternKernel)
+                        and getattr(indice.data, "fx_node", None)
+                        and indice.data.fx_node.target == torch.ops.aten.randperm.default
+                    )
+                return False
+
+            if try_get_name(self) in values.get_read_names() and not all(
+                indice_slice_from_randperm(indice) for indice in indices
+            ):
+                # When self and values have memory overlapping, indices may
+                # contain duplicate values, potentially causing incorrect results since
+                # the load of `values` might contain modified value from the store of `self`.
+                # To address this, store values in a temporary buffer in such cases.
+                values.realize()
+
+        # Dispatch to masked fill for single boolean index with single value
+        if (
+            values.get_numel() == 1
+            and len(indices) == 1
+            and indices[0].get_dtype() in (torch.bool, torch.uint8)
+        ):
+            mask = indices[0]
+            for _ in range(len(mask.get_size()), len(self.get_size())):
+                mask = unsqueeze(mask, -1)
+            return index_put_as_masked_fill(self, [mask], values, accumulate)
+
+        # Fallback in torch deterministic mode
+        if torch.are_deterministic_algorithms_enabled():
+            return index_put_fallback(self, indices, values, accumulate)
+
+        # Fallback if there is a boolean index
+        for index in indices:
+            if index is not None and index.get_dtype() in (torch.bool, torch.uint8):
+                return index_put_fallback(self, indices, values, accumulate)
+
+        x_size = self.get_size()
+        x_ndim = len(x_size)
+
+        if accumulate and needs_fallback_due_to_atomic_add_limitations(self.get_dtype()):
+            # self is an scalar Tensor
+            if x_ndim == 0:
+                self = view(self, [1])
+            self = index_put_fallback(self, indices, values, accumulate)
+            if x_ndim == 0:
+                self = view(self, [])
+            return self
+
+        values = to_dtype(values, self.get_dtype())
+
+        try:
+            # Note that code will only get here when dtype is uint32
+            indices, tensor_indices = check_and_broadcast_indices(
+                indices, self.get_device()
+            )
+        except NotImplementedError:
+            return index_put_fallback(self, indices, values, accumulate)
+
+        indices_loaders = [i.make_loader() if i is not None else None for i in indices]
+
+        assert isinstance(self, TensorBox)
+        self.realize()
+
+        # self is an scalar Tensor
+        if x_ndim == 0:
+            self = view(self, [1])
+
+        # We can use the first one since they are all required to be the same size
+        tensor_size = list(indices[tensor_indices[0]].get_size())
+        indexed_size = [x_size[i] for i in range(len(indices))]
+
+        expected_vals_size, inner_fn = index_output_size_and_inner_fn(
+            x_size,
+            indices,
+            tensor_indices,
+            tensor_size,
+            indices_loaders,
+            indexed_size,
+            None,
+            check=check,
+        )
+
+        values = expand(values, expected_vals_size)
+        # all guards are set above during broadcast_tensors and expand
+
+        def should_use_template():
+            if accumulate:
+                return False
+
+            # indices have same dim with self, last dim is indice
+            if len(indices_loaders) == x_ndim and indices_loaders[-1] is not None:
+                return False
+            # self dims is 1 or self 1 in size or indice is 1
+            if x_ndim == 1 or 1 in x_size or tensor_size[0] == 1:
+                return False
+            valid_indices = [indice for indice in indices if indice]
+            if len(valid_indices) != 1:
+                return False
+            if not isinstance(valid_indices[0].data.data, ir.InputBuffer):
+                return False
+
+            return True
+
+        if should_use_template():
+            valid_index = next(i for i, indice in enumerate(indices_loaders) if indice)
+            boundary = int(x_size[valid_index])
+            scatter = IndexputTemplate(
+                device=self.get_device(),
+                dtype=self.get_dtype(),
+                inner_fn=values.make_loader(), # load values
+                ranges=expected_vals_size,  # iter_ranges,
+                output_indexer=inner_fn, # store values
+                scatter_mode=None,
+                boundary=boundary
+            )
+        else:
+            scatter = ir.Scatter(
+                device=self.get_device(),
+                dtype=self.get_dtype(),
+                inner_fn=values.make_loader(), # load values
+                ranges=expected_vals_size,  # iter_ranges,
+                output_indexer=inner_fn, # store values
+                scatter_mode="atomic_add" if accumulate else None,
+            )
+        buffer = ir.ComputedBuffer(
+            name=None,
+            layout=ir.MutationLayoutSHOULDREMOVE(self),
+            data=scatter,
+        )
+        buffer.name = V.graph.register_buffer(buffer)
+        V.graph.register_operation(buffer)
+
+        if x_ndim == 0:
+            self = view(self, [])
+        return self
+    
+    # All the indexing decompositions are written in terms of index, index_put, and index_put_
+    # We cannot have this lowering as a decomposition as it introduces
+    # mutation in the graph, which is bad for Aot Autograd. Aot Autograd runs dead
+    # code elimination and common subexpression elimination optimizations, which
+    # assume graphs to be side-effect free. More details at
+    @register_lowering(aten.index_put)
+    def index_put(x, indices, values, accumulate=False):
+        return index_put_impl_(
+            clone(x), indices, values, accumulate, check=True, may_realize=False
+        )
+
+
+    @register_lowering(aten._unsafe_index_put)
+    def _unsafe_index_put(x, indices, values, accumulate=False):
+        return index_put_impl_(
+            clone(x), indices, values, accumulate, check=False, may_realize=False
+        )
+
+    @register_lowering(aten.index_put_, type_promotion_kind=None)
+    def index_put_(self, indices, values, accumulate=False):
+        return index_put_impl_(
+            self, indices, values, accumulate, check=True, may_realize=True
+        )
+
+
+    @register_lowering(aten.scatter_reduce_, type_promotion_kind=None)
+    def scatter_reduce_(self, dim: int, index, src, reduce, *, include_self: bool = True):
+        assert reduce in (None, "sum", "prod", "mean", "amax", "amin")
+        assert (
+            len(aten.scatter_reduce_.overloads()) == 1
+            and "two" in aten.scatter_reduce_.overloads()
+        ), "aten.scatter_reduce_.two is not the unique overload of aten.scatter_reduce_"
+
+        if isinstance(src, Number):
+            src = full_like(self, src)
+
+        fallback_result = scatter_fallback(
+            aten.scatter_reduce_.two,
+            self,
+            dim,
+            index,
+            src,
+            reduce=reduce,
+            include_self=include_self,
+        )
+
+        if fallback_result:
+            return fallback_result
+
+        assert isinstance(self, TensorBox)
+        assert "int" in str(index.get_dtype())
+
+        ndim = len(self.get_size())
+        if ndim == 0:
+            self = view(self, [1])
+
+        if isinstance(src, TensorBox) and len(src.get_size()) == 0:
+            src = view(src, [1])
+
+        if isinstance(index, TensorBox) and len(index.get_size()) == 0:
+            index = view(index, [1])
+
+        if index.get_numel() == 0:
+            return self
+
+        dim = _validate_dim(self, dim)
+
+        self.realize()
+        index_loader = index.make_loader()
+        src_loader = src.make_loader() if isinstance(src, TensorBox) else None
+
+        def output_indexer(idx):
+            # self is captured from the end of the function, so it may have 0 dim
+            shape = self.get_size()
+            ndim = len(shape)
+            indirect_idx = list(idx)
+            indirect_idx[dim] = ops.indirect_indexing(
+                index_loader(idx), 1 if ndim == 0 else shape[dim], wrap_neg=False
+            )
+            return indirect_idx
+
+        def template_output_indexer(idx):
+            # self is captured from the end of the function, so it may have 0 dim
+            shape = self.get_size()
+            ndim = len(shape)
+            indirect_idx = list(idx)
+            indirect_idx[dim] = ops.indirect_indexing(
+                index_loader(idx), 1 if ndim == 0 else shape[dim], wrap_neg=False
+            )
+            return indirect_idx, shape[dim]
+
+        def fn(idx):
+            if src_loader:
+                return src_loader(idx)
+            else:
+                # src is a scalar
+                return ops.constant(src, self.get_dtype())
+
+        def backend_reduce_str(reduce):
+            if reduce == "sum":
+                return "atomic_add"
+            else:
+                assert reduce is None
+                return None
+
+        if not include_self:
+            # zero out the corresponding elements first
+            zero_out = ir.Scatter(
+                device=self.get_device(),
+                dtype=self.get_dtype(),
+                inner_fn=lambda index: ops.constant(0, self.get_dtype()),
+                ranges=index.get_size(),
+                output_indexer=output_indexer,
+                scatter_mode=None,
+            )
+            buffer = ir.ComputedBuffer(
+                name=None,
+                layout=ir.MutationLayoutSHOULDREMOVE(self),
+                data=zero_out,
+            )
+            buffer.name = V.graph.register_buffer(buffer)
+            V.graph.register_operation(buffer)
+
+        if not reduce:
+            scatter = ScatterTemplate(
+                device=self.get_device(),
+                dtype=self.get_dtype(),
+                inner_fn=fn,
+                ranges=index.get_size(),
+                output_indexer=template_output_indexer,
+                scatter_mode=backend_reduce_str(reduce),
+            )
+        else:
+            scatter = ir.Scatter(
+                device=self.get_device(),
+                dtype=self.get_dtype(),
+                inner_fn=fn,
+                ranges=index.get_size(),
+                output_indexer=output_indexer,
+                scatter_mode=backend_reduce_str(reduce),
+            )
+        buffer = ir.ComputedBuffer(
+            name=None,
+            layout=ir.MutationLayoutSHOULDREMOVE(self),
+            data=scatter,
+        )
+        buffer.name = V.graph.register_buffer(buffer)
+        V.graph.register_operation(buffer)
+
+        if ndim == 0:
+            self = view(self, [])
+        return self
+
+    @register_lowering(aten.scatter_reduce, type_promotion_kind=None)
+    def scatter_reduce(x, dim: int, index, src, reduction_type, **kwargs):
+        return scatter_reduce_(clone(x), dim, index, src, reduction_type, **kwargs)
+
+    @register_lowering(aten.scatter_, type_promotion_kind=None)
+    def scatter_(self, dim: int, index, src, *, reduce=None):
+        assert reduce in (None, "add", "multiply")
+        if reduce is None:
+            op_overload = getattr(aten.scatter_, V.graph.current_node.target._overloadname)  # type: ignore[union-attr]
+            fallback_result = scatter_fallback(
+                op_overload, self, dim, index, src, reduce=reduce
+            )
+            if fallback_result is not None:
+                return fallback_result
+
+        if reduce == "add":
+            reduce = "sum"
+        elif reduce == "multiply":
+            reduce = "prod"
+        return scatter_reduce_(self, dim, index, src, reduce)
+
+    @register_lowering(aten.scatter, type_promotion_kind=None)
+    def scatter(x, dim: int, index, src, **kwargs):
+        return scatter_(clone(x), dim, index, src, **kwargs)
+
     def var_mean_sum_(x, axis, correction, keepdim, return_mean):
         if correction is None:
             correction = 1
@@ -259,11 +685,6 @@ def _register_npu_inductor_fallbacks():
             x, axis=axis, correction=correction, keepdim=keepdim, return_mean=False
         )
 
-    @register_lowering(aten.embedding, type_promotion_kind=None)
-    def embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, sparse=False):
-        return fallback_handler(aten.embedding.default)(weight, indices, padding_idx=-1, scale_grad_by_freq=False,
-                                                        sparse=False)
-
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
         if len(inputs) == 1:
@@ -278,7 +699,6 @@ def _register_npu_inductor_fallbacks():
         return TensorBox(ir.ConcatKernel.create(inputs, dim))
 
     make_fallback(aten._log_softmax)
-    make_fallback(aten.gather)
     make_fallback(aten.nll_loss_forward)
     
     @register_lowering(triton_kernel_wrapper_mutation)

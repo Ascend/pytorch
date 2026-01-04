@@ -1,6 +1,7 @@
 import torch
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch_npu import npu_dtype_cast, _npu_dtype_cast
+from torch_npu._inductor.config import arch_support_simt
 
 aten = torch.ops.aten
 tr_c10d = torch.ops.tr_c10d
@@ -101,10 +102,38 @@ LOWERING_OVERLOAD_OP = [
     aten.var_mean,
     aten.var,
 
-    aten.embedding,
     aten.split,
     aten.split_with_sizes,
     aten.nll_loss_forward,
-    aten.gather,
     aten.cat,
 ]
+
+INDIRECT_MEM_GENERATE_OPERATIONS = [
+    aten.embedding,
+    aten.gather,
+    aten.index,
+    aten._unsafe_index,
+    aten.index_put_,
+    aten.index_put,
+    aten._unsafe_index_put,
+    aten.scatter,
+    aten.scatter_,
+    aten.scatter_reduce,
+    aten.scatter_reduce_,
+]
+
+INDIRECT_MEM_OVERLOAD_OPERATIONS = [
+    aten.embedding,
+    aten.gather,
+    aten.index_put_,
+    aten.index_put,
+    aten._unsafe_index_put,
+    aten.scatter,
+    aten.scatter_,
+    aten.scatter_reduce,
+    aten.scatter_reduce_,
+]
+
+if arch_support_simt:
+    GENERATE_LIST += INDIRECT_MEM_GENERATE_OPERATIONS
+    LOWERING_OVERLOAD_OP += INDIRECT_MEM_OVERLOAD_OPERATIONS

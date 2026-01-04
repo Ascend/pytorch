@@ -280,7 +280,8 @@ class SplitTiling:
                     names.append(name)
             for key, index in node._body.indexing.items():
                 if key in names and index not in self.indexing:
-                    self.indexing.append(index)
+                    indirect_index = node._body.substitube_indirect_index(index)
+                    self.indexing.append(indirect_index if indirect_index else index)
 
         if self.kernel.inside_reduction:
             construct_low_dim()
@@ -297,7 +298,8 @@ class SplitTiling:
                 names.append(write.index_name)
             for key, index in node._body.indexing.items():
                 if key in names and index not in self.indexing:
-                    self.indexing.append(index)
+                    indirect_index = node._body.substitube_indirect_index(index)
+                    self.indexing.append(indirect_index if indirect_index else index)
 
         construct_low_dim()
 

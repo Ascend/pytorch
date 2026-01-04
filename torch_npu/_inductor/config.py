@@ -75,6 +75,10 @@ acc_comp_tol = {
 if ("Ascend910B" in target.arch):
     num_vector_core = num_cube_core * 2
 
+arch_support_simt = False
+if "Ascend910_95" in target.arch:
+    arch_support_simt = os.environ.get('TRITON_EMBEDDING_FUSION', False)
+
 log_level_env = os.getenv('INDUCTOR_ASCEND_LOG_LEVEL', 'WARNING').upper()
 log_level_mapping = {
     'DEBUG': logging.DEBUG,
