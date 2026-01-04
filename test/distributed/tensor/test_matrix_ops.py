@@ -2,12 +2,17 @@ import itertools
 
 import torch
 from torch.distributed._tensor import distribute_tensor, Replicate, Shard
-from torch.testing._internal.common_utils import DeterministicGuard
+from torch.testing._internal.common_utils import (
+    DeterministicGuard,
+    instantiate_parametrized_tests,
+    parametrize
+)
 
 import torch_npu
 from torch_npu.testing.testcase import run_tests
 from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestAllGatherBaseMmOp(NPUDTensorTestBase):
@@ -32,6 +37,7 @@ class TestAllGatherBaseMmOp(NPUDTensorTestBase):
 
         return x1, x2, output, gather_out
 
+    @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_npu_all_gather_base_mm(self):
@@ -102,6 +108,7 @@ class TestMmReduceScatterBaseOp(NPUDTensorTestBase):
             output += output_
         return x1, x2, output
 
+    @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_npu_mm_reduce_scatter_base(self):
@@ -143,6 +150,7 @@ class TestMmReduceScatterBaseOp(NPUDTensorTestBase):
             for comb in placement_combs:
                 test_placement_comb([comb[0]], [comb[1]])
 
+    @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_npu_mm_reduce_scatter_base_bias(self):
@@ -188,6 +196,7 @@ class TestMmReduceScatterBaseOp(NPUDTensorTestBase):
                 bias_placement = Replicate() if comb[1] == Replicate() else Shard(0)
                 test_placement_comb([comb[0]], [comb[1]], [bias_placement])
 
+    @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_npu_mm_reduce_scatter_base_quant(self):
@@ -240,6 +249,239 @@ class TestMmReduceScatterBaseOp(NPUDTensorTestBase):
             placement_combs = itertools.product(placement, placement)
             for comb in placement_combs:
                 test_placement_comb([comb[0]], [comb[1]], [comb[0]], [comb[1]])
+
+
+class TestGroupedMatMulOp(NPUDTensorTestBase):
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    @parametrize("x_ndim", [2, 3])
+    @parametrize("with_bias", [True, False])
+    def test_npu_grouped_matmul_xNwNyN(self, x_ndim, with_bias):
+        mesh = self.build_device_mesh()
+
+        x_shapes = [(16, 16), (64, 16), (32, 64)] if x_ndim == 2 else [(7, 16, 16), (8, 64, 16), (9, 32, 64)]
+        x = [torch.randn(shape, dtype=torch.float32, device="npu") for shape in x_shapes]
+        weight_shapes = [(16, 16), (16, 64), (64, 8)]
+        weight, bias = [], []
+        for shape in weight_shapes:
+            weight.append(torch.randn(shape, dtype=torch.float32, device="npu"))
+            if with_bias:
+                bias.append(torch.randn(shape[1], dtype=torch.float32, device="npu"))
+        group_list = None
+        split_item = 0
+        group_type = -1
+
+        y = torch_npu.npu_grouped_matmul(
+            x, weight, bias=bias, group_list=group_list, split_item=split_item, group_type=group_type
+        )
+
+        def test_placement_comb(x_placements, weight_placements, bias_placements):
+            dist_x = [distribute_tensor(x_i, mesh, x_placements) for x_i in x]
+            dist_weight = [distribute_tensor(weight_i, mesh, weight_placements) for weight_i in weight]
+            dist_bias = [distribute_tensor(bias_i, mesh, bias_placements) for bias_i in bias]
+            dist_y = torch_npu.npu_grouped_matmul(
+                dist_x, dist_weight, bias=dist_bias, group_list=group_list,
+                split_item=split_item, group_type=group_type
+            )
+            for dist_y_i, y_i in zip(dist_y, y):
+                self.assertEqual(dist_y_i.full_tensor(), y_i)
+
+        placement = [Shard(0), Shard(1), Replicate()]
+        placement_combs = itertools.product(placement, placement, [Shard(0), Replicate()])
+        for comb in placement_combs:
+            test_placement_comb([comb[0]], [comb[1]], [comb[2]])
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    @parametrize("with_bias", [True, False])
+    def test_npu_grouped_matmul_x1w1y1(self, with_bias):
+        mesh = self.build_device_mesh()
+
+        x = [torch.randn(112, 64, dtype=torch.float32, device="npu")]
+        weight = [torch.randn(4, 64, 16, dtype=torch.float32, device="npu")]
+        bias = [torch.randn(4, 16, dtype=torch.float32, device="npu")] if with_bias else None
+        group_list = torch.tensor([16, 48, 64, 112], device="npu")
+        split_item = 3
+        group_type = 0
+
+        y = torch_npu.npu_grouped_matmul(
+            x, weight, bias=bias, group_list=group_list, split_item=split_item, group_type=group_type
+        )
+
+        def test_placement_comb(x_placements, weight_placements, bias_placements, group_list_placements):
+            dist_x = [distribute_tensor(x_i, mesh, x_placements) for x_i in x]
+            dist_weight = [distribute_tensor(weight_i, mesh, weight_placements) for weight_i in weight]
+            dist_bias = [distribute_tensor(bias_i, mesh, bias_placements) for bias_i in bias] if bias else None
+            dist_group_list = distribute_tensor(group_list, mesh, group_list_placements)
+            dist_y = torch_npu.npu_grouped_matmul(
+                dist_x, dist_weight, bias=dist_bias, group_list=dist_group_list,
+                split_item=split_item, group_type=group_type
+            )
+            for dist_y_i, y_i in zip(dist_y, y):
+                self.assertEqual(dist_y_i.full_tensor(), y_i)
+
+        placement = [Shard(0), Shard(1), Replicate()]
+        placement_combs = itertools.product(placement, placement, [Shard(0), Replicate()])
+        for comb in placement_combs:
+            test_placement_comb([comb[0]], [comb[1]], [comb[2]], [comb[2]])
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    @parametrize("with_bias", [True, False])
+    def test_npu_grouped_matmul_xNwNy1(self, with_bias):
+        mesh = self.build_device_mesh()
+
+        x_shapes = [(16, 16), (64, 16), (32, 64)]
+        x = [torch.randn(shape, dtype=torch.float32, device="npu") for shape in x_shapes]
+        weight_shapes = [(16, 16), (16, 16), (64, 16)]
+        weight, bias = [], []
+        for shape in weight_shapes:
+            weight.append(torch.randn(shape, dtype=torch.float32, device="npu"))
+            if with_bias:
+                bias.append(torch.randn(shape[1], dtype=torch.float32, device="npu"))
+        group_list = None
+        split_item = 2
+        group_type = 0
+
+        y = torch_npu.npu_grouped_matmul(
+            x, weight, bias=bias, group_list=group_list, split_item=split_item, group_type=group_type
+        )
+
+        def test_placement_comb(x_placements, weight_placements, bias_placements):
+            dist_x = [distribute_tensor(x_i, mesh, x_placements) for x_i in x]
+            dist_weight = [distribute_tensor(weight_i, mesh, weight_placements) for weight_i in weight]
+            dist_bias = [distribute_tensor(bias_i, mesh, bias_placements) for bias_i in bias]
+            dist_y = torch_npu.npu_grouped_matmul(
+                dist_x, dist_weight, bias=dist_bias, group_list=group_list,
+                split_item=split_item, group_type=group_type
+            )
+            for dist_y_i, y_i in zip(dist_y, y):
+                self.assertEqual(dist_y_i.full_tensor(), y_i)
+
+        placement = [Shard(0), Shard(1), Replicate()]
+        placement_combs = itertools.product(placement, placement, [Shard(0), Replicate()])
+        for comb in placement_combs:
+            test_placement_comb([comb[0]], [comb[1]], [comb[2]])
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    @parametrize("with_bias", [True, False])
+    @parametrize("group_type", [None, 0])
+    def test_npu_grouped_matmul_x1wNy1(self, with_bias, group_type):
+        mesh = self.build_device_mesh()
+
+        x = [torch.randn(8, 8, dtype=torch.float16, device="npu")]
+        weight = [torch.randn(8, 4, dtype=torch.float16, device="npu") for _ in range(2)]
+        bias = [torch.randn(4, dtype=torch.float16, device="npu") for _ in range(2)] if with_bias else None
+        group_list = [4, 8]
+        if group_type is not None:
+            group_list = torch.tensor(group_list).npu()
+        split_item = 3
+
+        y = torch_npu.npu_grouped_matmul(
+            x, weight, bias=bias, group_list=group_list, split_item=split_item, group_type=group_type
+        )
+
+        def test_placement_comb(x_placements, weight_placements, bias_placements, group_list_placements):
+            dist_x = [distribute_tensor(x_i, mesh, x_placements) for x_i in x]
+            dist_weight = [distribute_tensor(weight_i, mesh, weight_placements) for weight_i in weight]
+            dist_bias = [distribute_tensor(bias_i, mesh, bias_placements) for bias_i in bias] if bias else None
+            if group_type is not None:
+                dist_group_list = distribute_tensor(group_list, mesh, group_list_placements)
+                dist_y = torch_npu.npu_grouped_matmul(
+                    dist_x, dist_weight, bias=dist_bias, group_list=dist_group_list,
+                    split_item=split_item, group_type=group_type
+                )
+            else:
+                dist_y = torch_npu.npu_grouped_matmul(
+                    dist_x, dist_weight, bias=dist_bias, group_list=group_list,
+                    split_item=split_item
+                )
+            for dist_y_i, y_i in zip(dist_y, y):
+                self.assertEqual(dist_y_i.full_tensor(), y_i, atol=0.001, rtol=0.02)
+
+        placement = [Shard(0), Shard(1), Replicate()]
+        placement_combs = itertools.product(placement, placement, [Shard(0), Replicate()])
+        for comb in placement_combs:
+            test_placement_comb([comb[0]], [comb[1]], [comb[2]], [comb[2]])
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    @parametrize("with_bias", [True, False])
+    def test_npu_grouped_matmul_x1wNyN(self, with_bias):
+        mesh = self.build_device_mesh()
+
+        x = [torch.randn(16, 8, dtype=torch.float16, device="npu")]
+        weight_shapes = [(8, 4), (8, 4)]
+        weight, bias = [], []
+        for shape in weight_shapes:
+            weight.append(torch.randn(shape, dtype=torch.float16, device="npu"))
+            if with_bias:
+                bias.append(torch.randn(shape[1], dtype=torch.float16, device="npu"))
+        group_list = [8, 16]
+        split_item = 1
+
+        y = torch_npu.npu_grouped_matmul(x, weight, bias=bias, group_list=group_list, split_item=split_item)
+
+        def test_placement_comb(x_placements, weight_placements, bias_placements):
+            dist_x = [distribute_tensor(x_i, mesh, x_placements) for x_i in x]
+            dist_weight = [distribute_tensor(weight_i, mesh, weight_placements) for weight_i in weight]
+            dist_bias = [distribute_tensor(bias_i, mesh, bias_placements) for bias_i in bias]
+            dist_y = torch_npu.npu_grouped_matmul(
+                dist_x, dist_weight, bias=dist_bias, group_list=group_list, split_item=split_item
+            )
+            for dist_y_i, y_i in zip(dist_y, y):
+                self.assertEqual(dist_y_i.full_tensor(), y_i, atol=0.001, rtol=0.02)
+
+        placement = [Shard(0), Shard(1), Replicate()]
+        placement_combs = itertools.product(placement, placement, [Shard(0), Replicate()])
+        for comb in placement_combs:
+            test_placement_comb([comb[0]], [comb[1]], [comb[2]])
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_npu_grouped_matmul_quant(self):
+        mesh = self.build_device_mesh()
+
+        x = [torch.randint(1, 5, size=(112, 64), dtype=torch.int8, device="npu")]
+        weight = [torch.randint(1, 5, size=(64, 16), dtype=torch.int8, device="npu") for _ in range(3)]
+        bias = [torch.randint(1, 5, size=(16,), dtype=torch.int32, device="npu") for _ in range(3)]
+        scale = [torch.randn(16, dtype=torch.float32, device="npu") for _ in range(3)]
+        group_list = torch.tensor([32, 80, 112], device="npu")
+        split_item = 3
+        group_type = 0
+
+        y = torch_npu.npu_grouped_matmul(
+            x, weight, bias=bias, scale=scale, group_list=group_list, split_item=split_item, group_type=group_type,
+            output_dtype=torch.float16
+        )
+
+        def test_placement_comb(x_placements, weight_placements, bias_placements, group_list_placements):
+            dist_x = [distribute_tensor(x_i, mesh, x_placements) for x_i in x]
+            dist_weight = [distribute_tensor(weight_i, mesh, weight_placements) for weight_i in weight]
+            dist_bias = [distribute_tensor(bias_i, mesh, bias_placements) for bias_i in bias]
+            dist_scale = [distribute_tensor(scale_i, mesh, bias_placements) for scale_i in scale]
+            dist_group_list = distribute_tensor(group_list, mesh, group_list_placements)
+            dist_y = torch_npu.npu_grouped_matmul(
+                dist_x, dist_weight, bias=dist_bias, scale=dist_scale, group_list=dist_group_list,
+                split_item=split_item, group_type=group_type, output_dtype=torch.float16
+            )
+            for dist_y_i, y_i in zip(dist_y, y):
+                self.assertEqual(dist_y_i.full_tensor(), y_i)
+
+        placement = [Shard(0), Shard(1), Replicate()]
+        placement_combs = itertools.product(placement, placement, [Shard(0), Replicate()])
+        for comb in placement_combs:
+            test_placement_comb([comb[0]], [comb[1]], [comb[2]], [comb[2]])
+
+
+instantiate_parametrized_tests(TestGroupedMatMulOp)
 
 
 if __name__ == "__main__":
