@@ -121,7 +121,7 @@ def npu_fusion_attention_forward(query, key, value, head_num, input_layout, pse=
     S1 = query.size(2)
     S2 = key.size(2)
 
-    if input_layout == "BSH":
+    if input_layout == "BSH" or input_layout == "BSND":
         B = query.size(0)
         S1 = query.size(1)
         S2 = key.size(1)
