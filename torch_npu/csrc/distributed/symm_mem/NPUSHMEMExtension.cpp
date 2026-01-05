@@ -25,32 +25,57 @@ void initialize_npushmem_with_store(
 
     logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, rank is %d, world_size is %d.", rank, world_size);
 
-    uint32_t status = c10d::symmetric_memory::Shmem_set_conf_store_tls(false, nullptr, 0);
+    uint32_t status = c10d::symmetric_memory::Aclshmemx_set_conf_store_tls(false, nullptr, 0);
     TORCH_CHECK(status == 0, "shmem_set_conf_store_tls failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
 
-    shmem_uniqueid_t unique_id;
-    if (rank == 0) {
-        status = c10d::symmetric_memory::Shmem_get_uniqueid(&unique_id);
-        TORCH_CHECK(status == 0, "shmem_get_uniqueid failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
-        logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, Shmem_get_uniqueid rank is %d, version %d, internal is %s.",
-            rank, unique_id.version, unique_id.internal);
-    }
-    auto unique_ids = storeExchange.all_gather(store, rank, world_size, unique_id);
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, unique_id rank is %d, version %d, internal is %s.",
-        rank, unique_ids[0].version, unique_ids[0].internal);
-
     int64_t init_size = c10_npu::option::OptionsManager::GetShmemSymmetricSize();
-    shmem_init_attr_t* attributes;
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, start shmem_set_attr rank is %d, world_size is %d, size is %llu.",
-        rank, world_size, init_size);
-    status = c10d::symmetric_memory::Shmem_set_attr(rank, world_size, init_size, nullptr, &attributes);
-    TORCH_CHECK(status == 0, "shmem_set_attr failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, end shmem_set_attr rank is %d, world_size is %d, size is %llu.",
-        rank, world_size, init_size);
+    if (c10d::symmetric_memory::Aclshmemx_get_uniqueid_exist()) {
+        // gitcode version
+        aclshmemx_uniqueid_t unique_id;
+        if (rank == 0) {
+            status = c10d::symmetric_memory::Aclshmemx_get_uniqueid(&unique_id);
+            TORCH_CHECK(status == 0, "aclshmemx_get_uniqueid failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
+            logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, aclshmemx_get_uniqueid rank is %d, version %d, internal is %s.",
+                rank, unique_id.version, unique_id.internal);
+        }
+        auto unique_ids = storeExchange.all_gather(store, rank, world_size, unique_id);
+        logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, unique_id rank is %d, version %d, internal is %s.",
+            rank, unique_ids[0].version, unique_ids[0].internal);
 
-    status = c10d::symmetric_memory::Shmem_set_attr_uniqueid_args(rank, world_size, &unique_ids[0], attributes);
-    TORCH_CHECK(status == 0, "Shmem_set_attr_uniqueid_args failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store success, rank is %d, world_size is %d.", rank, world_size);
+        aclshmemx_init_attr_t attr;
+        logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, start aclshmemx_set_attr_uniqueid_args rank is %d, world_size is %d, size is %llu.",
+            rank, world_size, init_size);
+
+        status = c10d::symmetric_memory::Aclshmemx_set_attr_uniqueid_args(rank, world_size, init_size, &unique_ids[0], &attr);
+        TORCH_CHECK(status == 0, "aclshmemx_set_attr_uniqueid_args failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
+
+        status = c10d::symmetric_memory::Aclshmemx_init_attr(ACLSHMEMX_INIT_WITH_DEFAULT, &attr);
+        TORCH_CHECK(status == 0, "aclshmemx_init_attr failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
+        logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store success, rank is %d, world_size is %d.", rank, world_size);
+    } else {
+        shmem_uniqueid_t unique_id;
+        if (rank == 0) {
+            status = c10d::symmetric_memory::Shmemx_get_uniqueid(&unique_id);
+            TORCH_CHECK(status == 0, "shmem_get_uniqueid failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
+            logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, Shmem_get_uniqueid rank is %d, version %d, internal is %s.",
+                rank, unique_id.version, unique_id.internal);
+        }
+        auto unique_ids = storeExchange.all_gather(store, rank, world_size, unique_id);
+        logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, unique_id rank is %d, version %d, internal is %s.",
+            rank, unique_ids[0].version, unique_ids[0].internal);
+
+        shmem_init_attr_t* attributes;
+        logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, start shmem_set_attr rank is %d, world_size is %d, size is %llu.",
+            rank, world_size, init_size);
+        status = c10d::symmetric_memory::Shmem_set_attr(rank, world_size, init_size, nullptr, &attributes);
+        TORCH_CHECK(status == 0, "shmem_set_attr failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
+        logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store, end shmem_set_attr rank is %d, world_size is %d, size is %llu.",
+            rank, world_size, init_size);
+
+        status = c10d::symmetric_memory::Shmem_set_attr_uniqueid_args(rank, world_size, &unique_ids[0], attributes);
+        TORCH_CHECK(status == 0, "shmem_set_attr_uniqueid_args failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
+        logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store success, rank is %d, world_size is %d.", rank, world_size);
+    }
     is_initialized = true;
 }
 
