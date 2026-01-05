@@ -487,3 +487,4 @@ def _apply_fsdp_patch():
     torch.distributed.fsdp._fully_shard._fsdp_collectives._get_param_all_gather_inputs = _get_param_all_gather_inputs
     torch.distributed.fsdp._fully_shard._fsdp_state.FSDPState._root_pre_forward = _patched_root_pre_forward
     torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_reduce = _patched_foreach_reduce
+    torch.distributed.fsdp._fully_shard._fsdp_param_group.foreach_reduce = _patched_foreach_reduce
