@@ -316,5 +316,5 @@ def _apply_fsdp_patch():
     torch.distributed.fsdp._fully_shard._fsdp_collectives._get_param_all_gather_inputs \
         = _patched_get_param_all_gather_inputs
     torch.ops.fsdp.all_gather_copy_in = _patched_all_gather_copy_in
-    torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_reduce \
-        = _patched_foreach_reduce
+    torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_reduce = _patched_foreach_reduce
+    torch.distributed.fsdp._fully_shard._fsdp_param_group.foreach_reduce = _patched_foreach_reduce
