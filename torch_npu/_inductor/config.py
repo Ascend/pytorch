@@ -98,6 +98,10 @@ aggresive_autotune = os.getenv("INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE", '0').lower
 inductor_static_mode = os.environ.get('INDUCTOR_STATIC_MODE', '0').lower() in ('1', 'yes', 'true')
 profile_path = "./profile_result/"
 
+max_precompiled_thread_num = os.cpu_count() // 2 # default precompile max thread num is half of the cpu count
+if "TORCHNPU_PRECOMPILE_THREADS" in os.environ:
+    max_precompiled_thread_num = int(os.environ["TORCHNPU_PRECOMPILE_THREADS"])
+
 
 def set_compile_threads():
     if "TORCHINDUCTOR_COMPILE_THREADS" in os.environ:

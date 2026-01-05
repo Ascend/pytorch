@@ -15,6 +15,8 @@ import shutil
 import hashlib
 import csv
 import uuid
+import threading
+from queue import Queue
 from itertools import count
 from typing import Any, Callable, Literal, Optional, TYPE_CHECKING, Union, List
 from contextlib import contextmanager
@@ -1349,3 +1351,81 @@ def benchmark_all_configs(self, *args, input_grid, **kwargs):
                 k.shared,
             )
     return timings
+
+
+def precompile_parallel(
+    self,
+    warm_cache_only=False,
+    reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
+):
+    config_len = len(self.configs)
+    compile_results = [None for _ in range(config_len)]
+    exc_results = [None for _ in range(config_len)]
+    exc_stack_results = ["" for _ in range(config_len)]
+    task_queue = Queue()
+    
+    
+    for i, c in enumerate(self.configs):
+        task_queue.put((i, c))
+
+    def worker():
+        while not task_queue.empty():
+            try:
+                i, c = task_queue.get_nowait()
+                compile_results[i] = self._precompile_config(c)
+            except Exception as e:
+                import traceback
+                exc_stack_results[i] = traceback.format_exc()
+                exc_results[i] = e
+                continue
+            finally:
+                task_queue.task_done()
+
+    if warm_cache_only:
+        self._precompile_worker()
+        return
+    with self.lock:
+        thread_num = min(config_len, npu_config.max_precompiled_thread_num)
+        threads = []
+        if self.compile_results:
+            for result in self.compile_results:
+                TritonBundler.put(
+                    triton_hash_to_path_key(result.kernel.hash),
+                    self.triton_meta.get("device", 0),
+                )
+            return
+        if self.launchers:
+            raise AssertionError("Before _precompile_worker, launchers must bt empty")
+
+        if not self.configs:
+            raise NoTritonConfigsError("No triton configs are available")
+
+        if reload_kernel is not None:
+            self._reload_kernel = reload_kernel
+
+        for _ in range(thread_num):
+            t = threading.Thread(target=worker)
+            t.start()
+            threads.append(t)
+        # Helper function for reloading a kernel generated in a worker
+        # in the parent class. Normally we don't need to reload the kernel
+        # in the parent process, but in certain cases (coordesc tuning, dynamic_scale_rblock),
+        # we need to actually run compilation on the parent process
+        task_queue.join()
+
+        for t in threads:
+            t.join()
+
+        compile_results = [result for result in compile_results if result]
+        exc_results = [result for result in exc_results if result]
+        exc_stack_results = [result for result in exc_stack_results if result]
+        if len(compile_results) == 0:
+            exc = exc_results[-1]
+            exc_stack = exc_stack_results[-1]
+            raise NoTritonConfigsError(
+                f"No valid triton configs. {type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
+            )
+
+        self.compile_results = compile_results
+        self.configs = None
+        self._make_launchers()

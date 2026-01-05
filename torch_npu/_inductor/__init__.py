@@ -29,7 +29,10 @@ else:
     from . import config as npu_config
     from . import codegen
     from .npu_fusion_attention_graph import register_fa_pass
-    from .config import aggresive_autotune, num_vector_core, set_compile_threads, disable_comprehensive_padding
+    from .config import (
+        aggresive_autotune, num_vector_core, set_compile_threads, 
+        disable_comprehensive_padding, max_precompiled_thread_num
+    )
     from .config import log as npulog
     from .decomposition import _register_npu_inductor_decompositons
     from .lowering import make_reduction, npu_make_fallback
@@ -115,11 +118,19 @@ else:
         CachingAutotuner.benchmark_all_configs = benchmark_all_configs
 
 
+    def _replace_precompile():
+        from .npu_triton_heuristics import precompile_parallel, NPUCachingAutotuner
+        NPUCachingAutotuner.precompile = precompile_parallel
+
+
     if (aggresive_autotune):
         _replace_benchmark_all_configs()
         import os
 
         os.environ["TRITON_BENCH_METHOD"] = "npu"
+
+    if (max_precompiled_thread_num > 1):
+        _replace_precompile()
 
     InductorChoices.should_use_persistent_reduction = should_use_persistent_reduction
     autotune_cache._load_cached_autotuning = _load_cached_autotuning
