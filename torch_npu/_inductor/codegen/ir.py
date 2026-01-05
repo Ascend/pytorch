@@ -331,3 +331,15 @@ def loop_body_block_scatter_template(self, name, index, value, indirect_var, bou
 
 def simplify_indexing_scatter_template(self, name, index, value, indirect_var, boundary):
     return self._inner.scatter_template(name, self._simplify(index), value, str(indirect_var), boundary)
+
+
+def loop_body_block_cat_store(self, dst, src, size, store_offset_index, output_buffer_index):
+    store_offset_index = self._simplify(store_offset_index)
+    store_offset_index = self._add_index(store_offset_index, MemoryUsageType.STORE, buffer_name=dst)
+    output_buffer_index = self._simplify(output_buffer_index)
+    output_buffer_index = self._add_index(output_buffer_index, MemoryUsageType.STORE, buffer_name=dst)
+    return self._inner.cat_store(dst, src, size, store_offset_index, output_buffer_index)
+
+
+def simplify_indexing_cat_store(self, dst, src, size, store_offset_index, output_buffer_index):
+    return self._inner.cat_store(dst, src, size, self._simplify(store_offset_index), self._simplify(output_buffer_index))

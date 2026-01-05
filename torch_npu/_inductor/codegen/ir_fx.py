@@ -1,22 +1,30 @@
 import traceback
 import typing
+from collections.abc import Sequence
 from typing import (
     Any,
     Callable,
-    List,
-    Optional,
     Union
 )
 from typing import Optional
 from unittest.mock import patch
+
 import sympy
 import torch
 from sympy import Expr
 from torch._inductor import config
 from torch._inductor import ir
-from torch._inductor.virtualized import ops, V
+from torch._inductor import lowering
+from torch._inductor.ir import (NopKernel, SliceView, IRNode, StorageBox, FlexibleLayout, FixedLayout, NonOwningLayout,
+                                Pointwise, TensorBox, ComputedBuffer, View, log, Layout)
+from torch._inductor.virtualized import ops, OpsValue, V
 from torch.utils._ordered_set import OrderedSet
+from torch.utils._sympy.functions import Identity
 
+import torch_npu
+from torch_npu._inductor import ir as npu_ir
+from torch_npu._inductor.codegen.triton_utils import get_byte_per_numel
+from torch_npu._inductor import config as npu_config
 from ..lowering_fx import (
     fetch_graphs,
     merge_traced_graphs,
@@ -650,6 +658,136 @@ def _patch_concatkernel_realize_into(cls, src, dst):
     return cls.realize_into(pw, dst)
 
 
+@classmethod
+def _patch__npu_concatkernel_create(cls, inputs, dim, is_reindex):
+    new_size = list(inputs[0].get_size())
+    offsets_start = [0]
+    offsets_end = [new_size[dim]]
+
+    for i in range(1, len(inputs)):
+        input_size = inputs[i].get_size()
+        offsets_start.append(new_size[dim])
+        new_size[dim] = new_size[dim] + input_size[dim]
+        offsets_end.append(new_size[dim])
+
+    output_stride: Sequence[int] = FlexibleLayout.contiguous_strides(new_size)
+
+    concat_kernel = npu_ir.ConcatKernel(
+        name=None,
+        layout=FixedLayout(
+            device=inputs[0].get_device(),
+            dtype=inputs[0].get_dtype(),
+            size=new_size,
+            stride=output_stride,
+        ),
+        inputs=[],
+    )
+    kernel = StorageBox(concat_kernel)
+
+    if is_reindex:
+        for i, inp in enumerate(inputs):
+            input_buffer = cls.single_realize_into(inp, SliceView.create(
+                kernel, dim, offsets_start[i], offsets_end[i], clamp=False))
+            concat_kernel.inputs.append(input_buffer)
+    else:
+        max_numel_in_per_kernel = config.max_cat_size_in_per_kernel // get_byte_per_numel(inputs[0].get_dtype())
+        input_sub = []
+        prev = 0
+        for i, inp in enumerate(inputs):
+            input_sub.append(inp)
+            if i == len(inputs) - 1 or offsets_end[i + 1] - offsets_start[prev] > max_numel_in_per_kernel:
+                input_buffer = cls.realize_into(input_sub, SliceView.create(
+                    kernel, dim, offsets_start[prev], offsets_end[i], clamp=False
+                ), dim)
+                concat_kernel.inputs.append(input_buffer)
+                input_sub = []
+                prev = i + 1
+
+    concat_kernel.name = V.graph.register_buffer(concat_kernel)
+    concat_kernel.inputs = cls.unwrap_storage(concat_kernel.inputs)
+    V.graph.register_operation(concat_kernel)
+
+    cat_inputs = [ir.TensorBox(ir.StorageBox(inp)) for inp in concat_kernel.inputs]
+    input_graphs = fetch_graphs([cat_inputs])
+    node_name = f'cat_{next(node_id)}'
+    new_graph = merge_traced_graphs(input_graphs, torch.ops.aten.cat, node_name, dim=dim)
+
+    concat_kernel._post_init_setattr("traced_graph", new_graph)
+    concat_kernel._post_init_setattr("node_name", node_name)
+
+    return kernel
+
+
+@classmethod
+def _patch_npu_concatkernel_realize_into(cls, inputs: Sequence[IRNode], dst: IRNode, dim) -> IRNode:
+    if len(inputs) == 1:
+        return cls.single_realize_into(inputs[0], dst)
+
+    inputs_ranges = [0]
+    prev_end = 0
+    for inp in inputs:
+        inputs_ranges.append((prev_end + inp.get_size()[dim]))
+        prev_end = inputs_ranges[-1]
+
+    output_size = list(inputs[0].get_size())
+    output_size[dim] = inputs_ranges[-1]
+
+    def inner_fn_insert_slice(idx):
+        idx_load = list(idx)
+        output = ops.index_expr(output_size[dim], torch.float32)
+        for i, inp in enumerate(inputs):
+            output = ops.cat_insert_slice(output, inp.make_loader()(idx_load), int(inputs_ranges[i]),
+                                          int(inp.get_size()[dim]), int(output_size[dim]))
+        return output
+
+    def inner_fn_store(idx):
+        idx_load = list(idx)
+        output = ops.index_expr(output_size[dim], torch.float32)
+        for i, inp in enumerate(inputs):
+            idx_output = list(idx)
+            idx_output[dim] = Identity(idx_output[dim] + inputs_ranges[i])
+            output = ops.cat_store(dst.get_name(), inp.make_loader()(idx_load), int(inp.get_size()[dim]),
+                                   dst.make_indexer()(idx_output), dst.make_indexer()(idx_load))
+        return output
+
+    input_graphs = fetch_graphs([inputs])
+    node_name = f'cat_{next(node_id)}'
+    new_graph = merge_traced_graphs(input_graphs, torch.ops.aten.cat, node_name, dim=dim)
+
+    input_strides = [inp.get_stride()[dim - 1] == output_size[dim] for inp in inputs if inp.maybe_get_stride() is not None]
+    is_split_inputs = input_strides and all(input_strides)
+    if npu_config.use_store_in_cat or is_split_inputs:
+        pw = npu_ir.ConcatOutputKernel.create(
+            device=inputs[0].get_device(),
+            dtype=inputs[0].get_dtype(),
+            inner_fn=inner_fn_store,
+            ranges=output_size,
+            traced_graph=new_graph,
+            node_name=node_name
+        )
+    else:
+        pw = Pointwise.create(
+            device=inputs[0].get_device(),
+            dtype=inputs[0].get_dtype(),
+            inner_fn=inner_fn_insert_slice,
+            ranges=output_size,
+            traced_graph=new_graph,
+            node_name=node_name
+        )
+
+    pw.realize()
+    pw.data.data.layout = NonOwningLayout(dst)
+    return pw.data.data
+
+
+@classmethod
+def _patch_npu_concatkernel_single_realize_into(cls, src, dst):
+    pw = clone(src, memory_format=torch.contiguous_format)
+    pw.realize()
+    pw.data.data.layout = NonOwningLayout(dst)
+    return pw.data.data
+
+
 def _patch_externkernel_copy_input(x):
     traced_graph = x.get_traced_graph()
     node_name = x.get_name()
@@ -851,6 +989,10 @@ def _patch_npu_inductor_ir():
     ir.ConcatKernel.create = _patch_concatkernel_create
     ir.ConcatKernel.get_traced_graph = _patch_concatkernel_get_traced_graph
     ir.ConcatKernel.realize_into = _patch_concatkernel_realize_into
+    npu_ir.ConcatKernel.create = _patch__npu_concatkernel_create
+    npu_ir.ConcatKernel.get_traced_graph = _patch_concatkernel_get_traced_graph
+    npu_ir.ConcatKernel.realize_into = _patch_npu_concatkernel_realize_into
+    npu_ir.ConcatKernel.single_realize_into = _patch_npu_concatkernel_single_realize_into
     ir.ExternKernel.copy_input = _patch_externkernel_copy_input
     ir.ExternKernel.convert_to_reinterpret_view = _patch_externkernel_convert_to_reinterpret_view
     ir.DeviceCopy.create = _patch_devicecopy_create

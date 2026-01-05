@@ -79,6 +79,12 @@ arch_support_simt = False
 if "Ascend910_95" in target.arch:
     arch_support_simt = os.environ.get('TRITON_EMBEDDING_FUSION', False)
 
+use_store_in_cat = os.environ.get("USE_STORE_IN_CAT", False)
+max_cat_size_in_per_kernel = 4 * 1024
+lowering_cat_with_concat_kernel = False
+if ("Ascend910_95" in target.arch):
+    lowering_cat_with_concat_kernel = True
+
 log_level_env = os.getenv('INDUCTOR_ASCEND_LOG_LEVEL', 'WARNING').upper()
 log_level_mapping = {
     'DEBUG': logging.DEBUG,

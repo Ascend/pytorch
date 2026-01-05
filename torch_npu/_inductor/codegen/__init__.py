@@ -18,7 +18,8 @@ from torch_npu._inductor.codegen.ir import (num_splits, loopbody__call__, transf
                                             simplify_indexing_gather_template, loop_body_block_indexput_template,
                                             simplify_indexing_indexput_template,
                                             loop_body_block_scatter_template,
-                                            simplify_indexing_scatter_template)
+                                            simplify_indexing_scatter_template,
+                                            simplify_indexing_cat_store, loop_body_block_cat_store)
 from torch_npu._inductor.codegen.scheduling import create_tiling
 from torch_npu._inductor.codegen.triton import group_fn, select_index_dtype
 from torch_npu._inductor.codegen.triton import is_compatible
@@ -52,3 +53,5 @@ setattr(CaptureIndexing, 'indexput_template', loop_body_block_indexput_template)
 setattr(sizevars.SimplifyIndexing, 'indexput_template', simplify_indexing_indexput_template)
 setattr(CaptureIndexing, 'scatter_template', loop_body_block_scatter_template)
 setattr(sizevars.SimplifyIndexing, 'scatter_template', simplify_indexing_scatter_template)
+setattr(CaptureIndexing, 'cat_store', loop_body_block_cat_store)
+setattr(sizevars.SimplifyIndexing, 'cat_store', simplify_indexing_cat_store)

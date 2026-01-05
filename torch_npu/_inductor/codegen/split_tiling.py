@@ -79,6 +79,7 @@ class SplitTiling:
     # Split 原则2 : 切分轴尽量选择高维度的轴, 这样load/store 能够有比较好的线性度 ,
     # Split 原则3 : 规约轴和低维轴不应选为切分轴 。但如果高维规约类融合算子，而且高维尺寸非常大（ >= 64KB），其他维度不足以支持切分，可以考虑对规约轴切分。
     # Split 原则4 ：切分轴的总numel 要超过 aicore总数。切分轴的数量最好不要超过3个(triton 最多支持三维发射）， 因此 如果一点要超， 需要维度合并。
+    # Split 原则5 ：Kernel如果包含cat算子，尾轴不做切分。
     def select_split_axis(self):
         self.kernel.split_axis.clear()
 
@@ -97,6 +98,8 @@ class SplitTiling:
                 if not_low_dims and axis.sorted_order in self.kernel.low_dims:
                     continue
                 if axis in self.kernel.split_axis:
+                    continue
+                if axis == self.kernel.sorted_axis[-1] and self.kernel.contains_cat_node():
                     continue
                 axis.is_split_axis = True
                 return axis

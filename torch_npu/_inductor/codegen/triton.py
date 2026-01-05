@@ -1081,6 +1081,22 @@ class NPUIndexTritonKernel(TritonKernel):
         if not self.inside_reduction:
             self.outside_loop_vars.add(value)
 
+    def contains_cat_node(self):
+        node = self.current_node
+        if node is not None and isinstance(node, SchedulerNode):
+            cat_node = node.node.data
+            if cat_node is not None and hasattr(cat_node, "inner_fn_str") and "ops.cat" in cat_node.inner_fn_str():
+                return True
+
+        for node in self.node_schedule:
+            if node in (EnableReduction, DisableReduction):
+                continue
+            cat_node = node.node.data
+            if cat_node is not None and hasattr(cat_node, "inner_fn_str") and "ops.cat" in cat_node.inner_fn_str():
+                return True
+
+        return False
+
     def find_reduction_node(self):
         node = self.current_node
         if node is not None and isinstance(node, SchedulerNode):
@@ -2068,6 +2084,93 @@ class NPUIndexTritonKernel(TritonKernel):
                     sorter,
                     sorter_indices,
                 )
+
+            @staticmethod
+            def cat_insert_slice(dst: CSEVariable, src: CSEVariable, offset, size, output_size) -> CSEVariable:
+                insert_offsets = ["0"] * len(self.tiling_axis)
+                insert_offsets[-1] = str(offset)
+                insert_sizes = [f"{axis.name.upper()}BLOCK_SUB" for axis in self.golden_var_list[::-1]]
+                insert_sizes[-1] = str(size)
+                output_sizes = [f"{axis.name.upper()}BLOCK_SUB" for axis in self.golden_var_list[::-1]]
+                strides = ["1"] * len(self.tiling_axis)
+
+                from torch._inductor.utils import triton_type
+
+                for index, line in enumerate(self.compute._lines):
+                    if line == f"{dst} = {output_size}.0":
+                        # load bf16时会在load语句后加.to(float32)，这里需要做个dtype转换
+                        if src.dtype == torch.bfloat16:
+                            dtype = triton_type(torch.float32)
+                        else:
+                            dtype = triton_type(src.dtype)
+                        self.compute._lines[index] = f"{dst} = tl.zeros(({', '.join(output_sizes)}, ), dtype={dtype})"
+                        break
+
+                axis_name = self.golden_var_list[::-1][-1].name
+                for index, line in enumerate(self.loads._lines):
+                    if "_index_" not in line:
+                        new_line = line.replace(axis_name, f"{axis_name}_index_{size}", 1)
+                        new_line = new_line.replace(f"{axis_name}_mask", f"{axis_name}_index_mask_{size}", 1)
+                        self.loads._lines[index] = new_line
+
+                for index, line in enumerate(self.compute._lines):
+                    if "_index_" not in line and 'tl.zeros' not in line:
+                        new_line = line.replace(axis_name, f"{axis_name}_index_{size}", 1)
+                        new_line = new_line.replace(f"{axis_name}_mask", f"{axis_name}_index_mask_{size}", 1)
+                        new_line = new_line.replace(f"{axis_name.upper()}BLOCK_SUB", f"{size}", 1)
+                        self.compute._lines[index] = new_line
+
+                suffix = ["None"] * len(self.tiling_axis)
+                suffix[-1] = ":"
+                line = f"{axis_name}_index_{size}= tl.arange(0, {size})[{','.join(suffix)}]"
+                if line not in self.body._lines:
+                    self.body.writeline(line)
+                    mask_line = f"{axis_name}_index_mask_{size}= {axis_name}_index_{size} < {size}"
+                    self.body.writeline(mask_line)
+                    numel_line = f"{axis_name}_index_{size}_numel = {size}"
+                    self.body.writeline(numel_line)
+
+                code = f"tl.broadcast_to({src}, [{', '.join(insert_sizes)}])"
+                src = self.cse.generate(self.compute, code, dtype=src.dtype)
+
+                insert_slice = f"tl.insert_slice({dst}, {src}, [{', '.join(insert_offsets)}], " \
+                               f"[{', '.join(insert_sizes)}], [{', '.join(strides)}])"
+                return self.cse.generate(self.compute, insert_slice, dtype=src.dtype)
+
+
+            @staticmethod
+            def cat_store(dst: CSEVariable, src: CSEVariable, size, store_offset_index, output_buffer_index) -> CSEVariable:
+                axis = self.range_tree_nodes[self.golden_var_list[::-1][-1]]
+                axis_name = axis.name
+                line = f"{axis_name}_index_mask_{size} = {axis_name} < {size}"
+                if line not in self.indexing_code._lines:
+                    self.indexing_code.writeline(line)
+
+                def contains_axis_name(line, axis_name):
+                    words = re.findall(r'\b\w+\b', line)
+                    return any(var for var in words if var == axis_name)
+
+                for index, line in enumerate(self.loads._lines):
+                    if "_index_mask_" not in line and contains_axis_name(line, axis_name):
+                        new_line = f"{line[:-1]} & {axis_name}_index_mask_{size})"
+                        new_line = new_line.replace("None & ", "")
+                        self.loads._lines[index] = new_line
+
+                for index, line in enumerate(self.compute._lines):
+                    if "load" in line and "_index_mask_" not in line and contains_axis_name(line, axis_name):
+                        new_line = f"{line[:-1]} & {axis_name}_index_mask_{size})"
+                        new_line = new_line.replace("None & ", "")
+                        self.compute._lines[index] = new_line
+
+                indexing = self.indexing(store_offset_index, block_ptr=True)
+                if "None" in indexing.mask_str:
+                    mask = f"{axis_name}_index_mask_{size}"
+                else:
+                    mask = f"{axis_name}_index_mask_{size} & {indexing.mask_str}"
+                code = f"tl.store({self.args.output(dst)} + {indexing.index_str}, {src}, {mask})"
+                code = code.replace(f"{axis_name}_mask &", "", 1)
+                self.stores.writeline(code)
+                return src
 
             @staticmethod
             def index_select(src_name: str, weight_index: CSEVariable, indirect_var, set_indirect, bound) -> CSEVariable:

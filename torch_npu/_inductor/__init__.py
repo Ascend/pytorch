@@ -167,4 +167,23 @@ else:
     patch_device_override_func()
 
 
+    def add_additional_op():
+        from torch._prims_common import ELEMENTWISE_TYPE_PROMOTION_KIND
+        from torch._inductor.ops_handler import OpsHandler
+        from torch._inductor.utils import register_op_dtype_propagation_rules
+
+        def cat_insert_slice(self, dst, src, offset, size, output_size):
+            return self._default("cat_insert_slice", (dst, src, offset, size, output_size), {})
+
+        OpsHandler.cat_insert_slice = cat_insert_slice
+        register_op_dtype_propagation_rules("cat_insert_slice", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None)
+
+        def cat_store(self, dst, src, size, store_offset_index, output_buffer_index):
+            return self._default("cat_store", (dst, src, size, store_offset_index, output_buffer_index), {})
+
+        OpsHandler.cat_store = cat_store
+        register_op_dtype_propagation_rules("cat_store", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None)
+
+
+    add_additional_op()
 

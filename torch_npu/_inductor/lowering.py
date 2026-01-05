@@ -254,6 +254,40 @@ def _register_npu_inductor_fallbacks():
             return lowering.embedding(weight, indices)
         return lowering_index_select(weight, 0, indices)
 
+    @register_lowering(aten.cat)
+    def cat(inputs, dim=0):
+        if len(inputs) == 1:
+            return clone(inputs[0])
+
+        from torch_npu._inductor import ir as npu_ir
+        from torch_npu._inductor.config import lowering_cat_with_concat_kernel
+        if lowering_cat_with_concat_kernel:
+            def is_reindex_view(x) -> bool:
+                if isinstance(x, (TensorBox, ir.StorageBox)):
+                    return is_reindex_view(x.data)
+                if isinstance(x, ir.View) and "ModularIndexing" in x.reindex_str():
+                    return True
+                return False
+
+            for inp in inputs:
+                if is_reindex_view(inp):
+                    return TensorBox(npu_ir.ConcatKernel.create(inputs, dim, True))
+
+            input_dims = len(inputs[0].get_size())
+            if input_dims > 1 and (dim == -1 or dim == input_dims - 1):
+                return TensorBox(npu_ir.ConcatKernel.create(inputs, dim, False))
+            else:
+                return fallback_handler(aten.cat.default)(inputs, dim)
+        else:
+            dim = _validate_dim(inputs[0], dim, 0)
+            dtype = get_promoted_dtype(
+                *inputs,
+                type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
+
+            )
+            inputs = [to_dtype(inp, dtype) for inp in inputs]
+            return TensorBox(ir.ConcatKernel.create(inputs, dim))
+
     @register_lowering(aten.gather, type_promotion_kind=None)
     def gather(x, dim, index, sparse_grad=False):
         # sparse_grad doesn't affect forward computation,

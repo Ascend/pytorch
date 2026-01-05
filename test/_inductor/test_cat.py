@@ -34,6 +34,30 @@ class TestCat(TestUtils):
         inductor_cat = compiled_op_calc(input_element, dim)
         self.assertEqual(std_cat, inductor_cat, atol=1e-4, rtol=1e-4, equal_nan=True)
 
+    @parametrize('shape', [(64, 1)])
+    @parametrize('dim', [-1])
+    @parametrize('dtype', ['float32'])
+    def test_cat_last_dim_is_one(self, shape, dim, dtype):
+        input_element = self._generate_tensor(shape, dtype)
+        std_cat = self.op_calc(input_element, dim)
+        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
+        inductor_cat = compiled_op_calc(input_element, dim)
+        self.assertEqual(std_cat, inductor_cat, atol=1e-4, rtol=1e-4, equal_nan=True)
+
+    def op_calc_contains_expand(self, input_element, dim):
+        expand_element = input_element.expand(-1, 10)
+        return torch.cat([expand_element, expand_element], dim)
+
+    @parametrize('shape', [(64, 1)])
+    @parametrize('dim', [-1])
+    @parametrize('dtype', ['float32'])
+    def test_expand_cases(self, shape, dim, dtype):
+        input_element = self._generate_tensor(shape, dtype)
+        std_cat = self.op_calc(input_element, dim)
+        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
+        inductor_cat = compiled_op_calc(input_element, dim)
+        self.assertEqual(std_cat, inductor_cat, atol=1e-4, rtol=1e-4, equal_nan=True)
+
     class PatternModel(torch.nn.Module):
         def __init__(self, dim):
             super().__init__()
