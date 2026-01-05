@@ -458,6 +458,11 @@ class NPUTritonScheduling(TritonScheduling):
             # ReductionAnalysis depends on kernel.load_store_indexing 
             if kernel.inside_reduction:
                 kernel.reduce_analysis = ReductionAnalysis(kernel)
+                # pure_simt_kernel, high dim reduction don't use persitent reduction
+                if kernel.is_pure_simt_kernel() and kernel.reduction_dim() != len(kernel.golden_var_list) - 1:
+                    kernel.persistent_reduction = False
+            # no_loop_axis depends on persistent reduction
+            split_tiling.select_no_loop_axis()
 
     def additional_nodes_to_be_subs(self, kernel, node_to_be_substituted):
         for node in kernel.range_tree_nodes.values():

@@ -5,7 +5,7 @@ import sys
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.runtime.triton_heuristics import Config
 
-from .triton_utils import get_byte_per_numel
+from .triton_utils import get_byte_per_numel, NPUKernelType
 from .. import config
 
 
@@ -13,7 +13,7 @@ from .. import config
 class TileGenerator:
 
     def __init__(self, numels, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims, persistent_reduction,
-                 configs, dtype, dual_reduction=False):
+                 configs, dtype, npu_kernel_type=NPUKernelType.SIMD, input_ptr_num=0, dual_reduction=False):
         self.numels = numels.copy()
 
         self.blocks = [x for x in self.numels]
@@ -40,6 +40,7 @@ class TileGenerator:
                 self.block_name[axis] = f"{name.upper()}BLOCK"
             if axis in self.tiling_axis:
                 self.sub_block_name[axis] = f"{name.upper()}BLOCK_SUB"
+        self.npu_kernel_type = npu_kernel_type
 
     def calcu_last_split_blocks(self, axis):
         splits = 1
@@ -91,7 +92,12 @@ class TileGenerator:
         for axis in self.split_axis:
             cfg[self.block_name[axis]] = blocks[axis]
         for axis in self.tiling_axis:
-            tiling_numel = self.aligned_numel(self.sub_blocks[axis])
+            if self.npu_kernel_type == NPUKernelType.SIMT_ONLY:
+                tiling_numel = next_power_of_2(self.sub_blocks[axis])
+                while tiling_numel > blocks[axis]:
+                    tiling_numel = tiling_numel // 2
+            else:
+                tiling_numel = min(self.aligned_numel(self.sub_blocks[axis]), blocks[axis])
             cfg[self.sub_block_name[axis]] = tiling_numel
 
     def find_config(self, cfg):

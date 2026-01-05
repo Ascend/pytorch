@@ -31,7 +31,8 @@ from torch._inductor.runtime.benchmarking import benchmarker
 from torch._inductor.runtime.runtime_utils import (
     create_bandwidth_info_str,
     get_num_bytes,
-
+    next_power_of_2,
+    
 )
 from torch._inductor.utils import triton_version_uses_attrs_dict
 from torch.utils._ordered_set import OrderedSet
@@ -71,9 +72,9 @@ from torch_npu.utils._error_code import ErrCode, pta_error
 from .codegen.split_tiling import SplitTiling
 from .utils import get_current_raw_stream
 from .codegen.tile_generator import TileGenerator
-from .codegen.triton_utils import get_aligned_numel
+from .codegen.triton_utils import get_aligned_numel, get_byte_per_numel, NPUKernelType
 from .config import aggresive_autotune
-from .config import log
+from .config import log, inductor_indirect_memory_simt_template
 from . import config as npu_config
 
 kernel_idx = count()
@@ -509,13 +510,23 @@ class NPUCachingAutotuner(CachingAutotuner):
         if not ASTSource:
             raise RuntimeError("Installed triton version too old, please upgrade")
 
-        compile_args = (
-            ASTSource(
-                self.fn,
-                compile_meta["signature"],
-                compile_meta["constants"],
-            ),
-        )
+        if compile_meta.get("configs", None):
+            compile_args = (
+                ASTSource(
+                    self.fn,
+                    compile_meta["signature"],
+                    compile_meta["constants"],
+                    compile_meta["configs"][0],
+                ),
+            )
+        else:
+            compile_args = (
+                ASTSource(
+                    self.fn,
+                    compile_meta["signature"],
+                    compile_meta["constants"],
+                ),
+            )
 
         cc_warp_size = 32
         target = GPUTarget(
@@ -1112,11 +1123,15 @@ def triton_config_npu_index(
     split_axis_dtype = inductor_meta["split_axis_dtype"]
     axis_names = inductor_meta["axis_names"]
     dual_reduction = inductor_meta["dual_reduction"]
-    npu_kernel_type = inductor_meta.get("npu_kernel_type", "simd")
+    input_signature = triton_meta["signature"]
+    input_ptr_num = len(list(filter(lambda k: 'ptr' in k, input_signature))) if triton_meta is not None else 0
+    npu_kernel_type = NPUKernelType(inductor_meta.get("npu_kernel_type", "simd"))
 
     tile_generator = TileGenerator(size_hints, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims,
                                    persistent_reduction=persistent_reduction, configs=configs,
-                                   dtype=split_axis_dtype, dual_reduction=dual_reduction)
+                                   dtype=split_axis_dtype, 
+                                   npu_kernel_type=npu_kernel_type,
+                                   input_ptr_num=input_ptr_num, dual_reduction=dual_reduction)
 
     tile_generator.descend_split_tiling()
 
@@ -1137,6 +1152,24 @@ def triton_config_npu_index(
             split_blocks[i] = cfg.kwargs[block_name]
         cfg.kwargs["split_axis"] = tuple(split_axis)
         cfg.kwargs["split_blocks"] = tuple(split_blocks)
+        
+    def is_available_config(cfg: Config):
+        numel_sum = 1
+        for key, value in cfg.kwargs.items():
+            if not key.endswith('SUB'):
+                continue
+            if key.startswith('R') and persistent_reduction:
+                new_key = 'r' + key[1]
+                position = axis_names.index(new_key)
+                value = next_power_of_2(size_hints[position])
+            numel_sum = numel_sum * value
+
+        data_bytes = get_byte_per_numel(split_axis_dtype)
+
+        if numel_sum * data_bytes > 8 * 1024:
+            return False
+        else:
+            return True
 
     def add_new_simt_configs(origin_cfg, cfg_num_warps, simt_configs, compile_mode):
         new_cfg = copy.deepcopy(origin_cfg)
@@ -1144,8 +1177,18 @@ def triton_config_npu_index(
         new_cfg.kwargs["compile_mode"] = compile_mode
         simt_configs.append(new_cfg)
 
-    if npu_kernel_type == "simt":
-        simt_configs = []
+    simt_configs = []
+    if npu_kernel_type == NPUKernelType.SIMT_ONLY:
+        for simd_cfg in configs:
+            if not is_available_config(simd_cfg):
+                continue
+            add_new_simt_configs(simd_cfg, 8, simt_configs, "simt_only")
+            add_new_simt_configs(simd_cfg, 16, simt_configs, "simt_only")
+            add_new_simt_configs(simd_cfg, 32, simt_configs, "simt_only")
+            add_new_simt_configs(simd_cfg, 64, simt_configs, "simt_only")
+        configs = simt_configs
+
+    if npu_kernel_type == NPUKernelType.SIMT_TEMPLATE:
         for cfg in configs:
             add_new_simt_configs(cfg, 1, simt_configs, "unstructured_in_simt")
         configs = simt_configs
@@ -1163,7 +1206,8 @@ def pointwise_npu_index(
 ):
     inductor_meta = {} if inductor_meta is None else inductor_meta
     triton_config_with_settings = functools.partial(
-        triton_config_npu_index
+        triton_config_npu_index,
+        triton_meta=triton_meta
     )
     return cached_autotune(
         size_hints,
@@ -1188,7 +1232,8 @@ def reduction_npu_index(
     if triton_meta is None:
         raise RuntimeError("assert triton_meta is not None")
 
-    contiguous_config = triton_config_npu_index(size_hints, inductor_meta=inductor_meta, reduction=True)
+    contiguous_config = triton_config_npu_index(size_hints, inductor_meta=inductor_meta, 
+                                                triton_meta=triton_meta, reduction=True)
     return cached_autotune(
         size_hints,
         [
@@ -1211,7 +1256,7 @@ def persistent_reduction_npu_index(
     inductor_meta = {} if inductor_meta is None else inductor_meta
     inductor_meta["reduction_hint"] = reduction_hint
     configs = triton_config_npu_index(size_hints, inductor_meta=inductor_meta, reduction=True,
-                                      persistent_reduction=True)
+                                      triton_meta=triton_meta, persistent_reduction=True)
 
     return cached_autotune(
         size_hints,

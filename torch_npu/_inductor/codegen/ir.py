@@ -10,9 +10,8 @@ from torch._inductor.virtualized import V
 from torch._inductor.loop_body import MemoryUsageType
 from torch.utils._sympy.value_ranges import IntInfinity, ValueRanges
 from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
-from .triton_utils import get_indirect_var, get_indirect_mem_var
-
-from ..config import log
+from .triton_utils import get_indirect_var, get_indirect_mem_var, NPUKernelType
+from ..config import log, inductor_indirect_memory_simt_template
 
 
 # NPU doesn't need to support ReductionHint.OUTER, and persistent reduction
@@ -269,7 +268,10 @@ def generate_indirect_replacements(self):
         if indirect_var is None:
             continue
         indirect_var_symbol = sympy_index_symbol(indirect_var)
-        V.kernel.npu_kernel_type = "simt_template"
+        if inductor_indirect_memory_simt_template:
+            V.kernel.npu_kernel_type = NPUKernelType.SIMT_TEMPLATE
+        else:
+            V.kernel.npu_kernel_type = NPUKernelType.SIMT_ONLY
         indirect_node_map[indirect_var] = node
 
         load_index = get_indirect_inex(self, node, node_map)

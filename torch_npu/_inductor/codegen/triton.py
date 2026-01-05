@@ -78,6 +78,7 @@ from .. import config as inductor_npu_config
 
 from .kernel_analysis import IndexAnalysis, ReductionAnalysis
 from .npu_kernel_features import NumelList
+from .triton_utils import NPUKernelType
 from ..runtime import NPUDeviceProperties
 from .. import npu_triton_heuristics
 
@@ -206,8 +207,10 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
 
     # axis mask
     def _codegen_mask(self):
-
-        if self.is_tiling_axis and not self.is_no_loop_axis:
+        codegen_mask = self.is_tiling_axis and not self.is_no_loop_axis
+        if V.kernel.is_pure_simt_kernel():
+            codegen_mask = self.is_tiling_axis
+        if codegen_mask:
             BLOCK_NAME = f"{self.name.upper()}BLOCK"
             upper = f"min({BLOCK_NAME}+{self.symbol()}_offset, {self.name}_numel)" if self.is_split_axis else f"{self.name}_numel"
             line = f"{self.name}_mask = {self.name} < {upper}"
@@ -230,7 +233,9 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         self.directions = ["None"] * len(tiling_axis)
         if len(tiling_axis) != len(rev_orders):
             raise RuntimeError(f"assert tiling len={len(tiling_axis)}, not equal to golden varlist len ={len(rev_orders)}")
+        
         var_orders = list(reversed(rev_orders))
+        
         index = var_orders.index(self.symbol())
         self.directions[index] = ":"
         return f"[{','.join(self.directions)}]"
@@ -468,7 +473,7 @@ class NPUIndexTritonKernel(TritonKernel):
         self.golden_var_list = None
         self.reduce_analysis = None
         self.load_store_indexing = None
-        self.npu_kernel_type = 'simd'
+        self.npu_kernel_type = NPUKernelType.SIMD
 
     def _get_grid_type(self) -> type[triton_heuristics.GridExpr]:
         return npu_triton_heuristics.GridNpu
@@ -616,7 +621,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "store_cubin": config.triton.store_cubin,
             "force_disable_caches": config.force_disable_caches,
             "profile_bandwidth_with_do_bench_using_profiling": config.profile_bandwidth_with_do_bench_using_profiling,
-            "npu_kernel_type": self.npu_kernel_type
+            "npu_kernel_type": str(self.npu_kernel_type)
         }
         return inductor_meta
 
@@ -735,7 +740,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 ),
             "constants": {},
             # special config for NPU, specify compile target
-            "mix_mode": "aiv",
+            "mix_mode": "aiv"
         }
 
         inductor_meta = self.create_inductor_meta()
@@ -744,8 +749,10 @@ class NPUIndexTritonKernel(TritonKernel):
             num_gb = self.estimate_kernel_num_bytes() / 1e9
             inductor_meta["kernel_num_gb"] = num_gb
 
-        self.triton_meta = triton_meta
         self.gen_numel_args(signature, triton_meta_signature, argdefs)
+        if self.is_pure_simt_kernel():
+            triton_meta["configs"] = [config_of(signature)]
+        self.triton_meta = triton_meta
 
         # add in tiling args
         self.add_autotune_args(argdefs)
@@ -815,6 +822,8 @@ class NPUIndexTritonKernel(TritonKernel):
                 val = int(simplified_tree_numel)
             else:
                 continue
+            if self.is_pure_simt_kernel():
+                val = next_power_of_2(val)
             code.writeline(f"{node.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
         
         for axis in self.sorted_axis:
@@ -825,7 +834,10 @@ class NPUIndexTritonKernel(TritonKernel):
                 else:
                     continue
                 code.writeline(f"{axis.name}_numel = {val}")
-                code.writeline(f"{axis.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
+                if self.is_pure_simt_kernel():
+                    code.writeline(f"{axis.name.upper()}BLOCK_SUB: tl.constexpr = {next_power_of_2(val)}")
+                else:
+                    code.writeline(f"{axis.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
 
     def lowest_axis_variable(self):
         if len(self.tiling_axis) == 0:
@@ -1203,25 +1215,49 @@ class NPUIndexTritonKernel(TritonKernel):
 
         return axis_start_offset, axis_end_offset, None
 
-    # select the golden varlist, from to which to deduce permute, broadcast shape 
+    def parse_golden_from_load_store_index(self):
+        sybol_stride_map = {}
+        for node in self.node_schedule:
+            if node in (EnableReduction, DisableReduction):
+                continue
+            indexing_list = node._body.indexing
+            for index in indexing_list.values():
+                for var, stride in index.as_coefficients_dict().items():
+                    if var.is_Symbol and var not in sybol_stride_map:
+                        sybol_stride_map[var] = stride
+        sorted_items = sorted(sybol_stride_map.items(), key=lambda x: x[1], reverse=False)
+        sorted_keys = [key for key, _ in sorted_items]
+        return sorted_keys
+
+    def load_store_index_in_all_tiling_list(self):
+        res = False
+        for index in self.load_store_indexing:
+            index = index.subs(V.graph.sizevars.var_to_val)
+            analyze = IndexAnalysis(self, index)
+            res = res or self.all_tiling_in_var_list(analyze.var_list)
+        return res
+
+    def all_tiling_in_var_list(self, var_list):
+        return all([x in var_list for x in self.tiling_axis])
+
     def select_golden_varlist(self):
         longest = None
         maximum_length = 0
         self.golden_var_list = None
 
-        def all_tiling_in_var_list(var_list):
-            return all([x in var_list for x in self.tiling_axis])
-
         # all are load indexings, select the longest as gold
         for index in self.load_store_indexing:
             index = index.subs(V.graph.sizevars.var_to_val)
             analyze = IndexAnalysis(self, index)
-            if len(analyze.var_list) > maximum_length and all_tiling_in_var_list(analyze.var_list):
+            if len(analyze.var_list) > maximum_length and self.all_tiling_in_var_list(analyze.var_list):
                 longest = analyze.var_list
                 maximum_length = len(longest)
-        # this may cause problems
+
         if not longest:
-            self.golden_var_list = tuple([x.symbol() for x in self.tiling_axis]) if self.tiling_axis else []
+            if self.find_reduction_node is not None and self.load_store_index_in_all_tiling_list() is False:
+                self.golden_var_list = self.parse_golden_from_load_store_index()
+            else:
+                self.golden_var_list = tuple([x.symbol() for x in self.tiling_axis]) if self.tiling_axis else []
         else:
             self.golden_var_list = tuple([x for x in longest if x in self.tiling_axis]) if self.tiling_axis else []
         if self.golden_var_list is None:
@@ -1270,16 +1306,23 @@ class NPUIndexTritonKernel(TritonKernel):
         if not self.reduce_analysis:
             self.reduce_analysis = ReductionAnalysis(self)
         return self.reduce_analysis.reduced_dim
+    
+    def is_pure_simt_kernel(self):
+        return self.npu_kernel_type == NPUKernelType.SIMT_ONLY
 
     def filter_masks(self, mask_vars):
         mask_vars_copy = mask_vars.copy()
         masked_axis_name = []
         for node in self.sorted_axis:
             is_persistent_reduction_axis = self.persistent_reduction and node.is_reduction
-            if ((not node.is_tiling_axis) or
-                is_persistent_reduction_axis or
-                node.is_no_loop_axis):
-                continue
+            if self.is_pure_simt_kernel():
+                if not node.is_tiling_axis:
+                    continue
+            else:
+                if ((not node.is_tiling_axis) or
+                    is_persistent_reduction_axis or
+                    node.is_no_loop_axis):
+                    continue
 
             masked_axis_name.append(node.name)
 
@@ -1326,8 +1369,21 @@ class NPUIndexTritonKernel(TritonKernel):
         reduction_range_prefix = self.range_trees[-1].prefix
         if not self.reduce_analysis:
             self.reduce_analysis = ReductionAnalysis(self)
-        dense_size_str = self.dense_size_str()
 
+        dense_size_str = self.dense_size_str()
+        axis_list = []
+        for index in self.load_store_indexing:
+            for axis in V.kernel.range_tree_nodes.keys():
+                if str(axis) in str(index) and (axis not in axis_list):
+                    axis_list.append(axis)
+
+        if len(axis_list) < len(self.dense_size_list()):
+            value = self._map_tuple_or_scalar(
+                lambda v: self.cse.generate(
+                    self.compute, f"tl.broadcast_to({v}, {dense_size_str})", dtype=v.dtype,
+                ),
+                value,
+            )
         if len(dense_size_str) > 2:
             value = self._map_tuple_or_scalar(
                 lambda v: self.cse.generate(
@@ -1554,7 +1610,7 @@ class NPUIndexTritonKernel(TritonKernel):
         result_var.mask_vars = indexing.mask_vars  # type: ignore[assignment]
 
         if append_broadcast and append_broadcast != '[]':
-            line = f"tl.broadcast_to({result_var}, {append_broadcast})"
+            line = f"tl.reshape({result_var}, {append_broadcast})"
             result_var = self.cse.generate(load_buffer, line, dtype=dtype)
         # triton can handle broadcast
         elif index_analyze.need_permute:

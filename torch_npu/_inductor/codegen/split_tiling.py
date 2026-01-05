@@ -225,7 +225,6 @@ class SplitTiling:
     def select_split_tiling_axis(self):
         self.select_split_axis()
         self.select_tiling_axis()
-        self.select_no_loop_axis()
 
     # the below logic doesn't work when there're two reduction axis, but only one need outer reduction
     def should_outer_reduce_me(self, x):

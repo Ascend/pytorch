@@ -47,6 +47,7 @@ from torch._inductor.virtualized import V, ops
 from torch_npu import npu_dtype_cast, _npu_dtype_cast
 from .ir import IndexputTemplate, ScatterTemplate
 from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
+from .config import inductor_indirect_memory_simt_template
 
 
 def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False):
@@ -243,6 +244,9 @@ def _register_npu_inductor_fallbacks():
         node = V.current_node
         if node.meta.get("skip_lowering", False):
             return fallback_handler(aten.embedding.default)(weight, indices, padding_idx=padding_idx, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse)
+
+        if not inductor_indirect_memory_simt_template:
+            return lowering.embedding(weight, indices)
 
         def invalid_embedding_input(x):
             x_size = x.get_size()
@@ -721,6 +725,8 @@ def _register_npu_inductor_fallbacks():
 
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
+        if not inductor_indirect_memory_simt_template:
+            return lowering.cat(inputs, dim)
         if len(inputs) == 1:
             return clone(inputs[0])
         dim = _validate_dim(inputs[0], dim, 0)

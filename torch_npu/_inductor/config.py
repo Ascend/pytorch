@@ -54,6 +54,12 @@ check_accuracy = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY", False)
 auto_fallback = os.environ.get("INDUCTOR_ASCEND_AUTO_FALLBACK", True)
 fallback_warning = os.environ.get("INDUCTOR_ASCEND_FALLBACK_WARNING", False)
 
+# while INDUCTOR_ASCEND_INDIRECT_MEMORY_SIMT_TEMPLATE = 0, use simd and simt_only
+inductor_indirect_memory_simt_template = os.environ.get("INDUCTOR_ASCEND_INDIRECT_MEMORY_SIMT_TEMPLATE", "1") == "1"
+
+# use indirect mem options on a5
+inductor_support_simt = os.environ.get('TRITON_EMBEDDING_FUSION', False)
+
 # Trace fx graph when lowering and dump.
 dump_fx_graph = os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH", False) \
                 or check_accuracy \

@@ -1,3 +1,5 @@
+from enum import Enum
+
 import re
 
 import torch
@@ -19,6 +21,15 @@ byte_per_numel = {
     torch.complex64: 8,  # torch.complex64
     torch.complex128: 16  # torch.complex128
 }
+
+
+class NPUKernelType(Enum):
+    SIMD = "simd"
+    SIMT_ONLY = "simt_only"
+    SIMT_TEMPLATE = "simt_template"
+
+    def __str__(self):
+        return self.value
 
 
 def get_byte_per_numel(dtype):
