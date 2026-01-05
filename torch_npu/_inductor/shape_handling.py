@@ -11,58 +11,213 @@ import torch_npu._C
 class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
     r"""Wrapper around a NPU shape handling configuration.
     Args:
-        min_size: Minimum size of shape handling (default: 1).
-        max_size: Maximum size of shape handling (default: 256).
-        policy: Policy type for shape handling generation (e.g., "TIMES") (default: "TIMES").
-        sizes: Predefined list of sizes (optional). If provided, overrides min_size/max_size.
-        dim: Dimension to change shape.
-        value: Real value for padding.
+        configs: List of configuration dictionaries that define shape handling rules.
         transform_pre_fn: Pre-processing function to convert inputs to tensor lists for transformation (optional).
         transform_post_fn: Post-processing function to convert tensor lists to structured outputs for transformation (optional).
         recover_pre_fn: Pre-processing function to convert inputs to tensor lists for recovery (optional).
         recover_post_fn: Post-processing function tp convert tensor lists to structured outputs for recovery (optional).
+    
+    Each config dictionary in configs supports the following keys:
+        - type (str):
+            Logical dimension type. Supported values:
+            "BATCHSIZE" | "SEQLEN"
+        - dimensions (int or List[int]):
+            For BATCHSIZE: all affected tensors must share the same batch dimensions, if a list is provided, only the
+                           first element is used.
+            For SEQLEN: if an int or a single-element list is provided, the value is automatically applied to all affected tensors;
+                        if a list is provided, it specifies the sequence dimension position for each affected tensor respectively,
+                        allowing different tensors to have the sequence dimension at different positions.
+        - indices (List[int]):
+            Indices of tensors that this rule applies to. Empty list means "apply to all tensors".
+        - value (float):
+            Padding value used when increasing size to reach the next gear.
+        - gears (List[int]):
+            Explicit list of allowed sizes(gears). If non-empty, overrides min_size/max_size/policy.
+        - min_size (int):
+            Minimum allowed size for this dimension (inclusive). Default: 1.
+        - max_size (int):
+            Maximun allowed size for this dimension (inclusive). Default: 1024.
+        - policy (str):
+            Gear generation strategy. Supported values:
+            "TIMES" | "CUSTOM"
+    
+    If no configs are provided at construction, a default configuration handling batch size on dimension 0 is created.
     """
     def __init__(
         self,
-        min_size: int = 1,
-        max_size: int = 256,
-        policy: str = "TIMES",
-        dim: int = 0,
-        value: float = 0.0,
-        sizes: Optional[List[int]] = None,
-        indexs: Optional[List[int]] = None,
+        configs: List[Dict[str, Any]] = None,
         transform_pre_fn: Optional[Callable[..., List[torch.Tensor]]] = None,
         transform_post_fn: Optional[Callable[[List[List[torch.Tensor]]], Tuple[List[Tuple], List[Dict]]]] = None,
         recover_pre_fn: Optional[Callable[[List[Any]], List[List[torch.Tensor]]]] = None,
         recover_post_fn: Optional[Callable[[List[torch.Tensor]], torch.Tensor]] = None,
     ) -> None:
-        self.dim = dim
-        self.value = value
-        self.indexs = indexs
+        super().__init__()
+        self.delay_init = False
+        self.shape_type_map = {
+            "BATCHSIZE": torch_npu._C.ShapeType.BATCHSIZE,
+            "SEQLEN": torch_npu._C.ShapeType.SEQLEN
+        }
+
+        self.policy_map = {
+            "TIMES": torch_npu._C.ShapePolicy.TIMES,
+            "CUSTOM": torch_npu._C.ShapePolicy.CUSTOM
+        }
+        
         # Register processing functions
         self.transform_pre_fn = transform_pre_fn
         self.transform_post_fn = transform_post_fn
         self.recover_pre_fn = recover_pre_fn
         self.recover_post_fn = recover_post_fn
+        if configs and len(configs) > 0:
+            self._validate_configs(configs)
+            self.configs = configs
+            self._initialize_from_configs(configs)
+        else:
+            self.delay_init = True
+            self.configs = [{
+                "type": "BATCHSIZE",
+                "dimensions": [0],
+                "indices": [],
+                "value": 0.0,
+                "gears": [],
+                "min_size": 1,
+                "max_size": 1024,
+                "policy": "TIMES"
+            }]
 
-        # Initialize base class based on sizes parameter
-        if sizes is not None:
-            return super().__init__(sizes)
-        return super().__init__(min_size, max_size, policy)
+    def _validate_configs(self, configs: List[Dict[str, Any]]) -> None:
+        if not configs or len(configs) == 0:
+            return
+        if len(configs) > 2:
+            raise ValueError("NPUShapeHandling currently supports only two dimensions.")
+        
+        required_fields = ["type"]
+        int_list_fields = ["dimensions", "indices", "gears"]
+        int_fields = ["min_size", "max_size"]
+        for i, config in enumerate(configs):
+            for field in required_fields:
+                if field not in config:
+                    raise ValueError(f"Config {i} missing required field: {field}.")
 
-    def transform(self,
-                  tensors: List[torch.Tensor],
-                  indexs: Optional[List[int]] = None
-    ) -> List[List[torch.Tensor]]:
-        if indexs is not None and len(indexs) > 0:
-            return super().transform(tensors, indexs, self.dim, self.value)
+            if not isinstance(config["type"], str):
+                raise ValueError(f"Config {i} {field} must be a str, got {type(config['type'])}.")
+            if config["type"] not in self.shape_type_map:
+                raise ValueError(
+                    f"Invalid 'type' in config[{i}]: {config['type']}. "
+                    f"Must be one of: {', '.join(repr(k) for k in self.shape_type_map.keys())}."
+                )
+            
+            for field in int_list_fields:
+                if field not in config:
+                    continue
+                
+                if field == "dimensions":
+                    if isinstance(config[field], int):
+                        config[field] = [config[field]]
+                    if config["type"] == "BATCHSIZE" and len(config[field]) > 1:
+                        warning.warn("For BATCHSIZE, only the first element of 'dimensions' is used")
+                        config[field] = config[field][0]
+
+                if not isinstance(config[field], (list, tuple)):
+                    raise ValueError(f"Config {i} {field} must be a list, got {type(config[field])}.")
+                
+                for item in config[field]:
+                    if not isinstance(item, int):
+                        raise ValueError(f"Config {i} {field} must contain integers, got {type(item)}.")
+            
+            for field in int_fields:
+                if field not in config:
+                    continue
+                if not isinstance(config[field], int):
+                    raise ValueError(f"Config {i} {field} must be an integer, got {type(config[field])}.")
+            
+            if "value" in config and not isinstance(config["value"], (int, float)):
+                raise ValueError(f"Config {i} 'value' must be a number, got {type(config['value'])}.")
+            
+            if "policy" in config:
+                if not isinstance(config["policy"], str):
+                    raise ValueError(f"Config {i} 'policy' must be a str, got {type(config['policy'])}.")
+                if config["policy"] not in self.policy_map:
+                    raise ValueError(
+                        f"Invalid 'policy' in config[{i}]: {config['policy']}. "
+                        f"Must be one of: {', '.join(repr(k) for k in self.policy_map.keys())}."
+                    )
+                
+        if len(configs) == 2 and configs[0]["type"] == configs[1]["type"]:
+            raise ValueError("Cannot initialize the same type repeatedly.")
+
+    def _initialize_from_configs(self, configs: List[Dict[str, Any]]) -> None:
+        for config in configs:
+            shape_type = self.shape_type_map.get(config.get("type"))
+            indices = config.get("indices", [])
+            value = config.get("value", 0.0)
+            gears = config.get("gears", [])
+
+            dimensions = config.get("dimensions", [])
+            if shape_type == torch_npu._C.ShapeType.BATCHSIZE:
+                if not dimensions:
+                    # Empty list
+                    dimensions = [0]
+            elif shape_type == torch_npu._C.ShapeType.SEQLEN and len(indices) != 0:
+                if len(dimensions) == 1:
+                    dimensions = [dimensions[0] for _ in range(len(indices))]
+                if not dimensions:
+                    dimensions = [1 for _ in range(len(indices))]
+                
+            
+            if len(dimensions) == 0 or len(indices) == 0:
+                self.delay_init = True
+                continue
+
+            if len(gears) > 0:
+                self.initialize(shape_type, gears, dimensions, indices, value)
+            else:
+                min_size = config.get("min_size", 1)
+                max_size = config.get("max_size", 1024)
+                policy = self.policy_map.get(config.get("policy", "TIMES"))
+                self.initialize(shape_type, min_size, max_size, policy, dimensions, indices, value)
+
+    def _construct_indices(self, tensors: List[torch.Tensor], dimensions, dimension_type):
+        if dimension_type == "BATCHSIZE":
+            if not dimensions:
+                dimensions = [0]
+            dimensions = [dimensions[0] for _ in range(len(tensors))]
         
-        if self.indexs is not None and len(self.indexs) > 0:
-            return super().transform(tensors, self.indexs, self.dim, self.value)
+        if dimension_type == "SEQLEN":
+            if not dimensions:
+                dimensions = [1]
+            if len(dimensions) == 1:
+                dimensions = [dimensions[0] for _ in range(len(tensors))]
         
-        indexs = [i for i in range(len(tensors))]
-        return super().transform(tensors, indexs, self.dim, self.value)
-    
+        index = 0
+        indices = []
+        for dimension, tensor in zip(dimensions, tensors):
+            if tensor.ndim > dimension:
+                indices.append(index)
+            index += 1
+        
+        return indices
+        
+
+    def delay_initialize(self, tensors: List[torch.Tensor]):
+        delay_init_configs = []
+        for config in self.configs:
+            init_flag = False
+            if "indices" not in config or len(config["indices"]) == 0:
+                init_flag = True
+                config["indices"] = self._construct_indices(tensors, config.get("dimensions", []), config["type"])
+            
+            if init_flag:
+                delay_init_configs.append(config)
+        if len(delay_init_configs) > 0:
+            self._initialize_from_configs(delay_init_configs)
+        self.delay_init = False
+
+    def transform(self, tensors: List[torch.Tensor]) -> List[List[torch.Tensor]]:
+        if self.delay_init:
+            self.delay_initialize(tensors)
+        return super().transform(tensors)
+
     def recover(self, tensor_groups: List[List[torch.Tensor]]) -> List[torch.Tensor]:
         return super().recover(tensor_groups)
 
@@ -75,7 +230,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         if self.transform_pre_fn:
             inputs = self.transform_pre_fn(*args, **kwargs)
         else:
-            inputs, args_output, args_trans_indices, kwargs_output, kwargs_trans_keys = self._transform_preprocess_inputs(args, kwargs)
+            inputs, args_output, args_trans_indices, kwargs_output, kwargs_trans_keys = self._transform_pre_fn(args, kwargs)
         
         # 执行核心转换操作
         trans_outputs = self.transform(tensors=inputs)
@@ -84,7 +239,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         if self.transform_post_fn:
             outputs = self.transform_post_fn(trans_outputs)
         else:
-            outputs = self._transform_postprocess_outputs(
+            outputs = self._transform_post_fn(
                 trans_outputs, 
                 args_output, 
                 args_trans_indices, 
@@ -94,7 +249,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         
         return outputs
 
-    def _transform_preprocess_inputs(
+    def _transform_pre_fn(
         self, 
         args: Tuple[Any], 
         kwargs: Dict[str, Any]
@@ -123,7 +278,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         
         return inputs, args_output, args_trans_indices, kwargs_output, kwargs_trans_keys
 
-    def _transform_postprocess_outputs(
+    def _transform_post_fn(
         self,
         trans_outputs: List[List[torch.Tensor]],
         args_output: List[Any],
@@ -170,17 +325,17 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
             Processed outputs after recovery and postprocessing.
         """
         # 预处理：使用自定义函数或默认方法
-        inputs = self.recover_pre_fn(groups) if self.recover_pre_fn else self._recover_preprocess_inputs(groups)
+        inputs = self.recover_pre_fn(groups) if self.recover_pre_fn else self._recover_pre_fn(groups)
         
         # 执行恢复操作
         re_outputs = self.recover(tensor_groups=inputs)
         
         # 后处理：使用自定义函数或默认方法
-        outputs = self.recover_post_fn(re_outputs) if self.recover_post_fn else self._recover_postprocess_outputs(re_outputs)
+        outputs = self.recover_post_fn(re_outputs) if self.recover_post_fn else self._recover_post_fn(re_outputs)
         
         return outputs
 
-    def _recover_preprocess_inputs(self, groups: List[Any]) -> List[List[torch.Tensor]]:
+    def _recover_pre_fn(self, groups: List[Any]) -> List[List[torch.Tensor]]:
         """
         Convert input groups into a list of tensor lists.
         
@@ -201,7 +356,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
                 raise TypeError(f"Input must be torch.Tensor or list of tensors, got {type(group)}")
         return processed
 
-    def _recover_postprocess_outputs(self, re_outputs: List[torch.Tensor]) -> torch.Tensor:
+    def _recover_post_fn(self, re_outputs: List[torch.Tensor]) -> torch.Tensor:
         """Convert list of output tensors into a tuple."""
         return re_outputs[0]
 
@@ -309,19 +464,13 @@ def patch_dynamo_context():
             re_post_fn = None
             function_dict = compiler_config.get("shape_handling_dict")
             if function_dict is not None:
-                trans_pre_fn = function_dict['trans_pre_fn']
-                trans_post_fn = function_dict['trans_post_fn']
-                re_pre_fn = function_dict['re_pre_fn']
-                re_post_fn = function_dict['re_post_fn']
-
+                trans_pre_fn = function_dict.get("trans_pre_fn", None)
+                trans_post_fn = function_dict.get("trans_post_fn", None)
+                re_pre_fn = function_dict.get("re_pre_fn", None)
+                re_post_fn = function_dict.get("re_post_fn", None)
+            
             self.shape_handling = NPUShapeHandling(
-                min_size=compiler_config.get("shape_handling_min_size", 1),
-                max_size=compiler_config.get("shape_handling_max_size", 256),
-                policy=compiler_config.get("shape_handling_policy", "TIMES"),
-                sizes=compiler_config.get("shape_handling_sizes"),
-                indexs=compiler_config.get("shape_handling_indexs"),
-                dim=compiler_config.get("shape_handling_dim"),
-                value=compiler_config.get("shape_handling_value"),
+                configs=compiler_config.get("shape_handling_configs"),
                 transform_pre_fn=trans_pre_fn,
                 transform_post_fn=trans_post_fn,
                 recover_pre_fn=re_pre_fn,
@@ -364,37 +513,13 @@ def patch_inductor_get_config_copy():
             return ori_dict
         
         ori_dict["enable_shape_handling"] = False
-        ori_dict["shape_handling_min_size"] = 1
-        ori_dict["shape_handling_max_size"] = 256
-        ori_dict["shape_handling_policy"] = "TIMES"
-        ori_dict["shape_handling_sizes"] = None
-        ori_dict["shape_handling_indexs"] = None
-        ori_dict["shape_handling_dim"] = 0
-        ori_dict["shape_handling_value"] = 0
+        ori_dict["shape_handling_configs"] = None
         ori_dict["shape_handling_dict"] = None
         self._config["enable_shape_handling"] = _ConfigEntry(
             Config(default=False, value_type=bool)
         )
-        self._config["shape_handling_min_size"] = _ConfigEntry(
-            Config(default=1, value_type=int)
-        )
-        self._config["shape_handling_max_size"] = _ConfigEntry(
-            Config(default=256, value_type=int)
-        )
-        self._config["shape_handling_policy"] = _ConfigEntry(
-            Config(default="TIMES", value_type=str)
-        )
-        self._config["shape_handling_sizes"] = _ConfigEntry(
+        self._config["shape_handling_configs"] = _ConfigEntry(
             Config(default=None, value_type=list)
-        )
-        self._config["shape_handling_indexs"] = _ConfigEntry(
-            Config(default=None, value_type=list)
-        )
-        self._config["shape_handling_dim"] = _ConfigEntry(
-            Config(default=0, value_type=int)
-        )
-        self._config["shape_handling_value"] = _ConfigEntry(
-            Config(default=0.0, value_type=float)
         )
         self._config["shape_handling_dict"] = _ConfigEntry(
             Config(default=None, value_type=dict)

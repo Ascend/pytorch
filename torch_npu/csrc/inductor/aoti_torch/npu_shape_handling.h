@@ -9,65 +9,94 @@
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch::aot_inductor {
-#define MIN_SHAPE_SIZE 1
-#define MAX_SHAPE_SIZE 8192
-#define DEFAULT_MIN_SIZE 1
-#define DEFAULT_MAX_SIZE 1024
-#define MAX_SHAPE_GEARS 64
-#define DEFAULT_SHAPE_TIMES 2
+#define MAX_GEARS_NUM 64
+#define COMMON_MIN_SIZE 1
+
+#define MIN_BS_GEAR 1
+#define MAX_BS_GEAR 8192
+
+#define MIN_SEQ_GEAR 1
+#define MAX_SEQ_GEAR 1310720
+
 #define INDEX_SHIFT_AMOUNT 4
 #define SIZE_SHIFT_AMOUNT 20
-#define DIM_SHIFT_AMOUNT 36
+#define DIM_SHIFT_AMOUNT 56
+#define OP_MASK 0xF
+#define INDEX_MASK 0xFFFF
+#define SIZE_MASK 0xFFFFFFFFF
+#define DIM_MASK 0xFF
+
+#define POLICY_TIMES_FACTOR 2
+
 #define PADDING_VALUES_PER_DIM 2
 
-enum class ShapePolicy { TIMES, CONSTANT };
-
-enum class OpType { PAD = 0, SPLIT };
-
-// ------------------------------ 1. 策略基类：定义统一接口 ------------------------------
-// 所有Transform/Recover的实现都需继承此类，确保接口一致
-class ShapeOpStrategy {
-public:
-    ShapeOpStrategy()
-    {}
-    // 析构函数设为虚函数，确保子类析构被调用
-    virtual ~ShapeOpStrategy() = default;
-
-    // 纯虚接口：与原NPUShapeHandling的Transform参数完全一致
-    virtual void Transform(
-        // 传入NPUShapeHandling的核心配置，供策略使用
-        const std::vector<int> &sizes, int min_size, int max_size,
-        // 原Transform的输入输出参数
-        std::vector<at::Tensor> &inputs, std::vector<int> &indexs, std::vector<std::vector<at::Tensor>> &outputs,
-        int dim = 0, double value = 0.0) = 0;
-
-    // 纯虚接口：与原NPUShapeHandling的Recover参数完全一致
-    virtual void Recover(
-        // 传入NPUShapeHandling的核心配置
-        const std::vector<int> &sizes, int min_size, int max_size,
-        // 原Recover的输入输出参数
-        std::vector<std::vector<at::Tensor>> &inputs, std::vector<at::Tensor> &outputs) = 0;
-
-    // 辅助函数：封装FindClosestSize（所有策略共用，避免重复实现）
-    int FindClosestSize(int target_size, const std::vector<int> &sizes, int min_size, int max_size);
-
-    // 辅助函数：封装PackOpInfo（所有策略共用）
-    uint64_t PackOpInfo(int op, int index, int ori_size, int dim);
+enum class ShapePolicy {
+    TIMES,
+    CUSTOM
 };
 
-class DefaultShapeOp : public ShapeOpStrategy {
-public:
-    void Transform(const std::vector<int> &sizes, int min_size, int max_size, std::vector<at::Tensor> &inputs,
-        std::vector<int> &indexs, std::vector<std::vector<at::Tensor>> &outputs, int dim, double value) override;
+enum class ShapeType {
+    BATCHSIZE = 0,
+    SEQLEN
+};
 
-    void Recover(const std::vector<int> &sizes, int min_size, int max_size,
-        std::vector<std::vector<at::Tensor>> &inputs, std::vector<at::Tensor> &outputs) override;
+class ShapeOpStrategyBase {
+public:
+    ShapeOpStrategyBase() = default;
+    virtual ~ShapeOpStrategyBase() = default;
+
+    int64_t FindClosestGear(int64_t cur_size,
+        const std::vector<int64_t> &gears, int64_t min_gear, int64_t max_gear);
+
+    uint64_t EncodeTransformStep(int op, int index, int64_t original_size, int dimension);
+
+    void DecodeTransformStep(uint64_t operation, int& op, int& index, int64_t& original_size, int& dimension);
+
+    std::vector<int> m_indices;
+    double m_value;
+    int64_t m_min_gear;
+    int64_t m_max_gear;
+    std::vector<int64_t> m_gears;
+};
+
+class BSShapeOpStrategy : public ShapeOpStrategyBase {
+public:
+    BSShapeOpStrategy() = default;
+    virtual ~BSShapeOpStrategy() = default;
+
+    void InitializeCore(std::vector<int64_t>& gears, int dimension, std::vector<int>& indices, double value = 0.0);
+
+    virtual void Transform(std::vector<at::Tensor> &inputs, std::vector<std::vector<at::Tensor>> &outputs) = 0;
+
+    virtual void Recover(std::vector<std::vector<at::Tensor>> &inputs, std::vector<at::Tensor> &outputs) = 0;
+
+    int m_dimension;
+};
+
+class SeqShapeOpStrategy : public ShapeOpStrategyBase {
+public:
+    SeqShapeOpStrategy() = default;
+    virtual ~SeqShapeOpStrategy() = default;
+
+    void InitializeCore(std::vector<int64_t>& gears, std::vector<int>& dimensions,
+        std::vector<int>& indices, double value = 0.0);
+
+    virtual void Transform(std::vector<at::Tensor> &inputs, std::vector<at::Tensor> &outputs) = 0;
+
+    std::vector<int> m_dimensions;
+};
+
+class DefaultBSShapeOp : public BSShapeOpStrategy {
+public:
+    void Transform(std::vector<at::Tensor> &inputs, std::vector<std::vector<at::Tensor>> &outputs) override;
+
+    void Recover(std::vector<std::vector<at::Tensor>> &inputs, std::vector<at::Tensor> &outputs) override;
 
 private:
-    void GenerateExpectedRes(std::vector<at::Tensor> &inputs, std::vector<int> &indexs,
-        std::vector<std::vector<at::Tensor>> &mid_results, std::vector<std::vector<at::Tensor>> &outputs);
+    void GenerateExpectedRes(std::vector<at::Tensor> &inputs, std::vector<std::vector<at::Tensor>> &mid_results,
+        std::vector<std::vector<at::Tensor>> &outputs);
 
-    void TransformValidate(std::vector<at::Tensor> &inputs, std::vector<int> &indexs, int dim);
+    void TransformValidate(std::vector<at::Tensor> &inputs);
 
     void RecoverValidate(std::vector<std::vector<at::Tensor>> &inputs);
 
@@ -76,56 +105,51 @@ private:
         m_records.clear();
     }
 
-    std::vector<uint64_t> m_records;  // 操作记录，供策略读写
+    std::vector<uint64_t> m_records;
+};
+
+class DefaultSeqShapeOp : public SeqShapeOpStrategy {
+public:
+    void Transform(std::vector<at::Tensor> &inputs, std::vector<at::Tensor> &outputs) override;
+
+private:
+    void TransformValidate(std::vector<at::Tensor> &inputs);
 };
 
 class NPUShapeHandling {
 public:
-    // 原构造函数：初始化配置，默认使用DefaultShapeOp策略
-    NPUShapeHandling(std::vector<int> &sizes);
-
-    NPUShapeHandling(int min_size, int max_size, ShapePolicy policy);
+    NPUShapeHandling()
+        : m_bs_strategy(std::make_unique<DefaultBSShapeOp>()),
+        m_seq_strategy(std::make_unique<DefaultSeqShapeOp>()),
+        initialized(false),
+        handle_batchsize(false),
+        handle_sequence(false)
+    {}
 
     ~NPUShapeHandling() = default;
 
-    // ------------------------------ 关键：策略注册接口 ------------------------------
-    // 外部通过此接口注入自定义策略，替换默认实现
-    void RegisterShapeOpStrategy(std::shared_ptr<ShapeOpStrategy> custom_strategy)
-    {
-        if (!custom_strategy) {
-            throw std::invalid_argument("Custom strategy cannot be null");
-        }
-        m_strategy = std::move(custom_strategy);  // 转移所有权，替换策略
-    }
+    // Strategy Register
+    void RegisterBatchSizeStrategy(std::shared_ptr<BSShapeOpStrategy> custom_strategy);
+    void RegisterSequenceStrategy(std::shared_ptr<SeqShapeOpStrategy> custom_strategy);
 
-    // ------------------------------ 委托执行：无具体实现，全部交给策略 ------------------------------
-    void Transform(std::vector<at::Tensor> &inputs, std::vector<int> &indexs,
-        std::vector<std::vector<at::Tensor>> &outputs, int dim = 0, double value = 0.0)
-    {
-        // 委托给当前策略的Transform
-        m_strategy->Transform(m_sizes, m_min_size, m_max_size, inputs, indexs, outputs, dim, value);
-    }
+    void Initialize(ShapeType type, std::vector<int64_t> &gears, std::vector<int>& dimensions,
+        std::vector<int>& indices, double value = 0.0);
 
-    void Recover(std::vector<std::vector<at::Tensor>> &inputs, std::vector<at::Tensor> &outputs)
-    {
-        // 委托给当前策略的Recover
-        m_strategy->Recover(m_sizes, m_min_size, m_max_size, inputs, outputs);
-    }
+    void Initialize(ShapeType type, int64_t min_size, int64_t max_size, ShapePolicy policy,
+        std::vector<int>& dimensions, std::vector<int>& indices, double value = 0.0);
 
-    // 原public辅助函数：保留，供外部或策略调用
-    int FindClosestSize(int target_size)
-    {
-        return m_strategy->FindClosestSize(target_size, m_sizes, m_min_size, m_max_size);
-    }
+    void Transform(std::vector<at::Tensor> &inputs, std::vector<std::vector<at::Tensor>> &outputs);
+
+    void Recover(std::vector<std::vector<at::Tensor>> &inputs, std::vector<at::Tensor> &outputs);
 
 private:
-    // 原成员变量：保留配置信息
-    ShapePolicy m_policy;
-    std::vector<int> m_sizes;
-    int m_min_size;
-    int m_max_size;
+    void GenerateGears(int64_t min_size, int64_t max_size, ShapePolicy policy, std::vector<int64_t>& gears);
 
-    // 新增：策略对象指针（智能指针自动管理内存）
-    std::shared_ptr<ShapeOpStrategy> m_strategy;
+    bool initialized;
+    bool handle_batchsize;
+    bool handle_sequence;
+    ShapePolicy m_policy;
+    std::shared_ptr<BSShapeOpStrategy> m_bs_strategy;
+    std::shared_ptr<SeqShapeOpStrategy> m_seq_strategy;
 };
 }  // namespace torch::aot_inductor

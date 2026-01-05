@@ -23,55 +23,127 @@ class TestShapeHandling(TestCase):
     def test_init_no_input(self):
         shape_handling = torch_npu._inductor.NPUShapeHandling()
         self.assertNotEqual(shape_handling, None)
- 
-    def test_init_with_sizes(self):
-        """测试使用sizes列表初始化"""
-        sizes = [16, 32, 64]
- 
-        shape_handling = torch_npu._inductor.NPUShapeHandling(sizes=sizes)
+    
+    def test_init_with_empty_conifg(self):
+        configs = []
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
+        self.assertNotEqual(shape_handling, None)
+    
+    def test_init_with_gears(self):
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "gears": [16, 32, 64]
+            },
+            {
+                "type": "SEQLEN",
+                "gears": [16, 32, 64]
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
         self.assertNotEqual(shape_handling, None)
  
     def test_init_with_policy(self):
-        min_size = 2
-        max_size = 8
-        policy = "TIMES"
-        shape_handling = torch_npu._inductor.NPUShapeHandling(min_size, max_size, policy)
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "min_size": 2,
+                "max_size": 8,
+                "policy": "TIMES"
+            },
+            {
+                "type": "SEQLEN",
+                "min_size": 2,
+                "max_size": 8,
+                "policy": "TIMES"
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
         self.assertNotEqual(shape_handling, None)
  
     def test_transform_no_operation(self):
-        """测试无需变换的情况"""
-        shape_handling = torch_npu._inductor.NPUShapeHandling(sizes=[32], dim=0)
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "gears": [32],
+                "dimensions": 0
+            },
+            {
+                "type": "SEQLEN",
+                "gears": [128],
+                "dimensions": [1]
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
         input_tensor = torch.randn(32, 128)
         outputs = shape_handling.transform([input_tensor])
-        # 验证输出与输入一致
         self.assertEqual(outputs[0][0].shape, input_tensor.shape)
  
     def test_transform_padding(self):
-        """测试填充操作"""
-        # 使用min_size和max_size初始化，生成2^n序列：16,32,64
-        shape_handling = torch_npu._inductor.NPUShapeHandling(min_size=16, max_size=64, policy="TIMES", dim=0)
-        input_tensor = torch.randn(48, 128)  # 48不在序列中，会填充到64
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "min_size": 16,
+                "max_size": 256,
+                "policy": "TIMES",
+                "dimensions": 0
+            },
+            {
+                "type": "SEQLEN",
+                "min_size": 16,
+                "max_size": 256,
+                "policy": "TIMES",
+                "dimensions": [1]
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
+        input_tensor = torch.randn(48, 96)
         outputs = shape_handling.transform([input_tensor])
-        # 验证填充到最近的2^n尺寸64
         self.assertEqual(outputs[0][0].shape, (64, 128))
     
-    def test_transform_padding_with_index(self):
-        """测试填充操作"""
-        # 使用min_size和max_size初始化，生成2^n序列：16,32,64
-        indexs = [0]
-        shape_handling = torch_npu._inductor.NPUShapeHandling(min_size=16, max_size=64, policy="TIMES", indexs=indexs)
-        input_tensor1 = torch.randn(48, 128)  # 48不在序列中，会填充到64
-        input_tensor2 = torch.randn(48, 128)  # 48不在序列中，会填充到64
+    def test_transform_padding_with_indices(self):
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "min_size": 16,
+                "max_size": 256,
+                "policy": "TIMES",
+                "dimensions": 0,
+                "indices": [0]
+            },
+            {
+                "type": "SEQLEN",
+                "min_size": 16,
+                "max_size": 256,
+                "policy": "TIMES",
+                "dimensions": [1],
+                "indices": [0]
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
+        input_tensor1 = torch.randn(48, 96)
+        input_tensor2 = torch.randn(48, 96) 
         outputs = shape_handling.transform([input_tensor1, input_tensor2])
-        # 验证填充到最近的2^n尺寸64
         self.assertEqual(outputs[0][0].shape, (64, 128))
-        self.assertEqual(outputs[0][1].shape, (48, 128))
+        self.assertEqual(outputs[0][1].shape, (48, 96))
  
     def test_transform_split(self):
         """测试分割操作"""
         # 设置max_size为128，那么超过128的会被分割
-        shape_handling = torch_npu._inductor.NPUShapeHandling(min_size=64, max_size=128, dim=0)
-        input_tensor = torch.randn(200, 128)  # 超过max_size
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "gears": [64, 128],
+                "dimensions": 0
+            },
+            {
+                "type": "SEQLEN",
+                "gears": [64, 128],
+                "dimensions": [1]
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
+        input_tensor = torch.randn(200, 96)  # 超过max_size
         outputs = shape_handling.transform([input_tensor])
         # 验证分割结果：分割为两个组，第一段128，第二段72，再填充为128
         self.assertEqual(len(outputs), 2)  # 分割为两个组
@@ -80,7 +152,25 @@ class TestShapeHandling(TestCase):
  
     def test_recover_padding(self):
         """测试恢复填充的张量"""
-        shape_handling = torch_npu._inductor.NPUShapeHandling(min_size=16, max_size=64, dim=0)
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "min_size": 16,
+                "max_size": 256,
+                "policy": "TIMES",
+                "dimensions": 0,
+                "indices": [0]
+            },
+            {
+                "type": "SEQLEN",
+                "min_size": 16,
+                "max_size": 256,
+                "policy": "TIMES",
+                "dimensions": [1],
+                "indices": [0]
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
         orig_tensor = torch.randn(48, 128)
         padded_group = shape_handling.transform([orig_tensor])
         # 执行恢复
@@ -92,7 +182,25 @@ class TestShapeHandling(TestCase):
  
     def test_recover_split(self):
         """测试恢复分割的张量组"""
-        shape_handling = torch_npu._inductor.NPUShapeHandling(min_size=64, max_size=128, dim=0)
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "min_size": 16,
+                "max_size": 128,
+                "policy": "TIMES",
+                "dimensions": 0,
+                "indices": [0]
+            },
+            {
+                "type": "SEQLEN",
+                "min_size": 16,
+                "max_size": 256,
+                "policy": "TIMES",
+                "dimensions": [1],
+                "indices": [0]
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
         orig_tensor = torch.randn(200, 128)
         split_groups = shape_handling.transform([orig_tensor])
         # 执行恢复
@@ -103,7 +211,17 @@ class TestShapeHandling(TestCase):
  
     def test_invalid_dim(self):
         """测试无效维度异常"""
-        shape_handling = torch_npu._inductor.NPUShapeHandling(dim=3)
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "min_size": 16,
+                "max_size": 128,
+                "policy": "TIMES",
+                "dimensions": 3,
+                "indices": [0]
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
         input_tensor = torch.randn(32, 128)
         # 验证越界维度触发异常
         with self.assertRaises(RuntimeError):
@@ -112,35 +230,68 @@ class TestShapeHandling(TestCase):
     def test_register_custom_strategy(self):
         """测试注册自定义策略"""
         # 创建自定义策略类
-        class CustomShapeOp(torch_npu._C._ShapeOpStrategy):
+        class CustomBsShapeOp(torch_npu._C._BSShapeOpStrategy):
             def __init__(self):
                 super().__init__()
                 self.transform_called = False
                 self.recover_called = False
 
-            def Transform(self, sizes, min_size, max_size, inputs, indexs, outputs, dim=0, value=0.0):
+            def Transform(self, inputs, outputs):
                 self.transform_called = True
                 # 简单实现：直接复制输入到输出
                 if inputs:
                     outputs.append([tensor.clone() for tensor in inputs])
 
-            def Recover(self, sizes, min_size, max_size, inputs, outputs):
+            def Recover(self, inputs, outputs):
                 self.recover_called = True
                 # 简单实现：直接复制第一个组的第一个张量
                 if inputs and inputs[0]:
                     outputs.append(inputs[0][0].clone())
+        
+        class CustomSeqShapeOp(torch_npu._C._SeqShapeOpStrategy):
+            def __init__(self):
+                super().__init__()
+                self.transform_called = False
+                self.recover_called = False
 
-        shape_handling = torch_npu._inductor.NPUShapeHandling(sizes=[32])
-        custom_strategy = CustomShapeOp()
+            def Transform(self, inputs, outputs):
+                self.transform_called = True
+                # 简单实现：直接复制输入到输出
+                if inputs:
+                    outputs.append([tensor.clone() for tensor in inputs])
+        
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "min_size": 16,
+                "max_size": 128,
+                "policy": "TIMES",
+                "dimensions": 0,
+                "indices": [0]
+            },
+            {
+                "type": "SEQLEN",
+                "min_size": 16,
+                "max_size": 256,
+                "policy": "TIMES",
+                "dimensions": [1],
+                "indices": [0]
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
+        custom_bs_strategy = CustomBsShapeOp()
+        custom_seq_strategy = CustomSeqShapeOp()
 
         # 注册自定义策略
-        shape_handling.register_strategy(custom_strategy)
+        shape_handling.register_batch_size_strategy(custom_bs_strategy)
+        shape_handling.register_sequence_strategy(custom_seq_strategy)
 
         # 验证自定义策略被调用
         input_tensor = torch.randn(32, 128)
-        outputs = shape_handling.transform([input_tensor], [0])
+        shape_handling.transform([input_tensor])
 
-        self.assertTrue(custom_strategy.transform_called)
+        self.assertTrue(custom_bs_strategy.transform_called)
+        self.assertTrue(custom_seq_strategy.transform_called)
 
 
 class TestUnifiedCopy(TestCase):
