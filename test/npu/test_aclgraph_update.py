@@ -1,6 +1,7 @@
 import unittest
 from dataclasses import dataclass
 from itertools import chain
+import math
 import os
 
 import random
@@ -244,6 +245,61 @@ class TestIFAAclgraphUpdate(TestCase):
         g.replay()
         self.assertEqual(output.cpu(), res_src[0].cpu())
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
+
+    @SupportedDevices(['Ascend910B'])
+    def test_fia_out_4in1_with_graph(self, device="npu"):
+        q = torch.randn(1, 8, 164, 128, dtype=torch.float16).npu()
+        k = torch.randn(1, 8, 1024, 128, dtype=torch.float16).npu()
+        v = torch.randn(1, 8, 1024, 128, dtype=torch.float16).npu()
+        scale = 1 / math.sqrt(128.0)
+        actseqlen = [164]
+        actseqlenkv = [1024]
+
+        output = torch.empty(1, 8, 164, 128, dtype=torch.float16, device="npu")
+        softmax_lse = torch.empty(1, dtype=torch.float16, device="npu")
+        torch_npu.npu_fused_infer_attention_score.out(
+            q, k, v,
+            actual_seq_lengths=actseqlen, actual_seq_lengths_kv=actseqlenkv,
+            num_heads=8, input_layout="BNSD", scale=scale, pre_tokens=65535, next_tokens=65535,
+            out=[output, softmax_lse])
+
+        g = torch.npu.NPUGraph()
+        event = torch.npu.ExternalEvent()
+        update_stream = torch.npu.Stream()
+        handle = None
+        output1 = None
+        softmax_lse1 = None
+        output2 = None
+        softmax_lse2 = None
+
+        with torch.npu.graph(g):
+            stream = torch.npu.current_stream()
+            output1 = torch.empty(1, 8, 164, 128, dtype=torch.float16, device="npu")
+            softmax_lse1 = torch.empty(1, dtype=torch.float16, device="npu")
+            event.wait(stream)
+            event.reset(stream)
+            torch.npu.graph_task_group_begin(stream)
+            torch_npu.npu_fused_infer_attention_score.out(
+                q, k, v,
+                actual_seq_lengths=actseqlen, actual_seq_lengths_kv=actseqlenkv,
+                num_heads=8, input_layout="BNSD", scale=scale, pre_tokens=65535, next_tokens=65535,
+                out=[output1, softmax_lse1])
+            handle = torch.npu.graph_task_group_end(stream)
+
+        with torch.npu.stream(update_stream):
+            output2, softmax_lse2 = torch_npu._C._npu_fused_infer_attention_score_out_graph(
+                update_stream, handle, event,
+                q, k, v,
+                actual_seq_lengths=actseqlen, actual_seq_lengths_kv=actseqlenkv,
+                num_heads=8, input_layout="BNSD", scale=scale, pre_tokens=65535, next_tokens=65535,
+                out=[output1, softmax_lse1])
+
+        g.replay()
+
+        self.assertTrue(torch.allclose(output, output1, 1e-4, 1e-4))
+        self.assertTrue(torch.allclose(softmax_lse, softmax_lse1, 1e-4, 1e-4))
+        self.assertTrue(torch.allclose(output, output2, 1e-4, 1e-4))
+        self.assertTrue(torch.allclose(softmax_lse, softmax_lse2, 1e-4, 1e-4))
 
     @SupportedDevices(['Ascend910B'])
     @unittest.skip("this cann version is not supported")

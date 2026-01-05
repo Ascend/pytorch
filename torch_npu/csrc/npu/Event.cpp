@@ -289,3 +289,11 @@ void THNPEvent_init(PyObject *module)
         throw python_error();
     }
 }
+
+c10_npu::NPUEvent* THNPUtils_PyObject_to_NPUEvent(PyObject* py_event)
+{
+    TORCH_CHECK(py_event != nullptr, "Expected py_event is a non-null PyObject pointer.", PTA_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(PyObject_IsInstance(py_event, THNPEventClass), "Need torch_npu.npu.Event argument type.", PTA_ERROR(ErrCode::PARAM));
+    THNPEvent* th_event = reinterpret_cast<THNPEvent *>(py_event);
+    return &th_event->npu_event;
+}
