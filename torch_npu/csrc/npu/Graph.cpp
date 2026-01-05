@@ -1,10 +1,13 @@
 #include <thread>
 #include <vector>
 
+#include "torch_npu/csrc/npu/Graph.h"
+
+#include "op_plugin/OpApiInterface.h"
 #include "torch_npu/csrc/core/npu/NPUGraph.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
+#include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/npu/Stream.h"
-#include "torch_npu/csrc/npu/Graph.h"
 
 template <typename T>
 using shared_ptr_class_ = py::class_<T, std::shared_ptr<T>>;
@@ -109,6 +112,141 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                 threadArgs->exitFlag = true;
                 threadId = -1;
             }
+        })
+        .def("_npu_fused_infer_attention_score_out_graph", [](
+            py::object py_stream,
+            c10_npu::NPUTaskGroupHandle handle,
+            py::object py_event,
+            py::args args,
+            py::kwargs kwargs
+            ) -> std::tuple<at::Tensor &, at::Tensor &> {
+                // 1. 定义parser
+                static torch::PythonArgParser parser({
+                    "npu_fused_infer_attention_score("
+                    "Tensor query, Tensor key, Tensor value, *, "
+                    "Tensor? pse_shift=None, "
+                    "Tensor? atten_mask=None, "
+                    "SymIntArrayRef actual_seq_lengths=None, "
+                    "SymIntArrayRef actual_seq_lengths_kv=None, "
+                    "Tensor? dequant_scale1=None, "
+                    "Tensor? quant_scale1=None, "
+                    "Tensor? dequant_scale2=None, "
+                    "Tensor? quant_scale2=None, " // 10
+                    "Tensor? quant_offset2=None, "
+                    "Tensor? antiquant_scale=None, "
+                    "Tensor? antiquant_offset=None, "
+                    "Tensor? key_antiquant_scale=None, "
+                    "Tensor? key_antiquant_offset=None, "
+                    "Tensor? value_antiquant_scale=None, "
+                    "Tensor? value_antiquant_offset=None, "
+                    "Tensor? block_table=None, "
+                    "Tensor? query_padding_size=None, "
+                    "Tensor? kv_padding_size=None, " // 20
+                    "Tensor? key_shared_prefix=None, "
+                    "Tensor? value_shared_prefix=None, "
+                    "SymIntArrayRef actual_shared_prefix_len=None, "
+                    "Tensor? query_rope=None, "
+                    "Tensor? key_rope=None, "
+                    "Tensor? key_rope_antiquant_scale=None, "
+                    "int64_t num_heads=1, "
+                    "double scale=1.0, "
+                    "int64_t pre_tokens=2147483647, "
+                    "int64_t next_tokens=2147483647, " // 30
+                    "std::string input_layout=\"BSH\", "
+                    "int64_t num_key_value_heads=0, "
+                    "int64_t sparse_mode=0, "
+                    "int64_t inner_precise=0, "
+                    "int64_t block_size=0, "
+                    "int64_t antiquant_mode=0, "
+                    "int64_t key_antiquant_mode=0, "
+                    "int64_t value_antiquant_mode=0, "
+                    "bool softmax_lse_flag=False, "
+                    "Tensor? workspace=None, " // 40
+                    "TensorList out)"
+                });
+
+                // 2. 转换为原生 PyObject*
+                PyObject* args_ptr = args.ptr();
+                PyObject* kwargs_ptr = kwargs.ptr();
+
+                // 3. 解析参数
+                torch::ParsedArgs<42> parsed;
+                torch::PythonArgs py_args = parser.parse(args_ptr, kwargs_ptr, parsed);
+
+                // 4. 必选参数
+                at::Tensor query = py_args.tensor(0);
+                at::Tensor key = py_args.tensor(1);
+                at::Tensor value = py_args.tensor(2);
+
+                // 5. 可选参数
+                c10::optional<at::Tensor> pse_shift = py_args.optionalTensor(3);
+                c10::optional<at::Tensor> atten_mask = py_args.optionalTensor(4);
+                c10::OptionalArray<c10::SymInt> actual_seq_lengths = py_args.symintlistOptional(5);
+                c10::OptionalArray<c10::SymInt> actual_seq_lengths_kv = py_args.symintlistOptional(6);
+                c10::optional<at::Tensor> dequant_scale1 = py_args.optionalTensor(7);
+                c10::optional<at::Tensor> quant_scale1 = py_args.optionalTensor(8);
+                c10::optional<at::Tensor> dequant_scale2 = py_args.optionalTensor(9);
+                c10::optional<at::Tensor> quant_scale2 = py_args.optionalTensor(10);
+                c10::optional<at::Tensor> quant_offset2 = py_args.optionalTensor(11);
+                c10::optional<at::Tensor> antiquant_scale = py_args.optionalTensor(12);
+                c10::optional<at::Tensor> antiquant_offset = py_args.optionalTensor(13);
+                c10::optional<at::Tensor> key_antiquant_scale = py_args.optionalTensor(14);
+                c10::optional<at::Tensor> key_antiquant_offset = py_args.optionalTensor(15);
+                c10::optional<at::Tensor> value_antiquant_scale = py_args.optionalTensor(16);
+                c10::optional<at::Tensor> value_antiquant_offset = py_args.optionalTensor(17);
+                c10::optional<at::Tensor> block_table = py_args.optionalTensor(18);
+                c10::optional<at::Tensor> query_padding_size = py_args.optionalTensor(19);
+                c10::optional<at::Tensor> kv_padding_size = py_args.optionalTensor(20);
+                c10::optional<at::Tensor> key_shared_prefix = py_args.optionalTensor(21);
+                c10::optional<at::Tensor> value_shared_prefix = py_args.optionalTensor(22);
+                c10::OptionalArray<c10::SymInt> actual_shared_prefix_len = py_args.symintlistOptional(23);
+                c10::optional<at::Tensor> query_rope = py_args.optionalTensor(24);
+                c10::optional<at::Tensor> key_rope = py_args.optionalTensor(25);
+                c10::optional<at::Tensor> key_rope_antiquant_scale = py_args.optionalTensor(26);
+                int64_t num_heads = py_args.toInt64(27);
+                double scale = py_args.toDouble(28);
+                int64_t pre_tokens = py_args.toInt64(29);
+                int64_t next_tokens = py_args.toInt64(30);
+                std::string input_layout = py_args.string(31);
+                int64_t num_key_value_heads = py_args.toInt64(32);
+                int64_t sparse_mode = py_args.toInt64(33);
+                int64_t inner_precise = py_args.toInt64(34);
+                int64_t block_size = py_args.toInt64(35);
+                int64_t antiquant_mode = py_args.toInt64(36);
+                int64_t key_antiquant_mode = py_args.toInt64(37);
+                int64_t value_antiquant_mode = py_args.toInt64(38);
+                bool softmax_lse_flag = py_args.toBool(39);
+                c10::optional<at::Tensor> workspace = py_args.optionalTensor(40);
+                std::vector<at::Tensor> out = py_args.tensorlist(41);
+                TORCH_CHECK(out.size() == 2,
+                    "out must have 2 tensors (attention_out, softmax_lse), but got ",
+                    out.size(), PTA_ERROR(ErrCode::PARAM));
+                at::Tensor attention_out = out[0];
+                at::Tensor softmax_lse = out[1];
+
+                auto stream = THNPUtils_PyObject_to_NPUStream((*py_stream).ptr());
+                auto event_ptr = THNPUtils_PyObject_to_NPUEvent((*py_event).ptr());
+                pybind11::gil_scoped_release no_gil;
+
+                c10_npu::graph_task_update_begin(stream, handle);
+
+                auto fia_result = op_api::npu_fused_infer_attention_score_out_symint(
+                    query, key, value,
+                    pse_shift, atten_mask, actual_seq_lengths, actual_seq_lengths_kv,
+                    dequant_scale1, quant_scale1, dequant_scale2, quant_scale2, quant_offset2,
+                    antiquant_scale, antiquant_offset, key_antiquant_scale, key_antiquant_offset,
+                    value_antiquant_scale, value_antiquant_offset, block_table,
+                    query_padding_size, kv_padding_size, key_shared_prefix, value_shared_prefix,
+                    actual_shared_prefix_len, query_rope, key_rope, key_rope_antiquant_scale,
+                    num_heads, scale, pre_tokens, next_tokens, input_layout,
+                    num_key_value_heads, sparse_mode, inner_precise, block_size,
+                    antiquant_mode, key_antiquant_mode, value_antiquant_mode,
+                    softmax_lse_flag, workspace, attention_out, softmax_lse
+                );
+
+                c10_npu::graph_task_update_end(stream);
+                event_ptr->record(stream);
+                return fia_result;
         });
 
     shared_ptr_class_<c10_npu::NPUGraph>(torch_N_m, "_NPUGraph")
