@@ -19,4 +19,6 @@ inline bool THNPEvent_Check(PyObject* obj)
     return THNPEventClass && PyObject_IsInstance(obj, THNPEventClass);
 }
 
+c10_npu::NPUEvent* THNPUtils_PyObject_to_NPUEvent(PyObject* py_event);
+
 #endif // THNP_EVENT_INC
