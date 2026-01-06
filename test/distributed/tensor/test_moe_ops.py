@@ -7,10 +7,20 @@ from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTe
 import torch_npu
 from torch_npu.testing.testcase import run_tests
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestMoeOps(DTensorTestBase):
-    @skipIfUnsupportMultiNPU(4)
+    @property
+    def world_size(self):
+        device_count = torch.npu.device_count()
+        device_num = 4
+        if device_count > 1:
+            device_num = min(device_num, device_count)
+        return device_num
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_moe_token_permute_forward(self):
         device_mesh = self.build_device_mesh()
@@ -35,7 +45,8 @@ class TestMoeOps(DTensorTestBase):
         for comb in placement_combs:
             test_placement_comb([comb[0]], [comb[1]])
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_moe_token_permute_backward(self):
         device_mesh = self.build_device_mesh()
@@ -67,7 +78,8 @@ class TestMoeOps(DTensorTestBase):
         for comb in placement_combs:
             test_placement_comb([comb[0]], [comb[1]])
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_moe_token_permute_clip(self):
         device_mesh = self.build_device_mesh()
@@ -95,7 +107,8 @@ class TestMoeOps(DTensorTestBase):
         self.assertEqual(dist_sorted_indices.full_tensor(), sorted_indices)
         self.assertEqual(dist_tokens.grad.full_tensor(), tokens.grad)
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_moe_token_unpermute_forward(self):
         device_mesh = self.build_device_mesh()
@@ -120,7 +133,8 @@ class TestMoeOps(DTensorTestBase):
         for comb in placement_combs:
             test_placement_comb([comb[0]], [comb[1]])
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_moe_token_unpermute_backward(self):
         device_mesh = self.build_device_mesh()
@@ -157,7 +171,8 @@ class TestMoeOps(DTensorTestBase):
         for comb in placement_combs:
             test_placement_comb([comb[0]], [comb[1]])
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_moe_token_permute_unpermute(self):
         device_mesh = self.build_device_mesh()

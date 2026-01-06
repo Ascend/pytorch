@@ -11,6 +11,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTe
 import torch_npu
 from torch_npu.testing.testcase import run_tests
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 def get_shape_from_layout(batch: int, num_head: int, seq_length: int, dimension: int, layout: str):
@@ -32,7 +33,16 @@ def get_shape_from_layout(batch: int, num_head: int, seq_length: int, dimension:
 
 
 class TestMathOps(DTensorTestBase):
-    @skipIfUnsupportMultiNPU(4)
+    @property
+    def world_size(self):
+        device_count = torch.npu.device_count()
+        device_num = 4
+        if device_count > 1:
+            device_num = min(device_num, device_count)
+        return device_num
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_rms_norm_forward(self):
         device_mesh = self.build_device_mesh()
@@ -50,7 +60,8 @@ class TestMathOps(DTensorTestBase):
         self.assertEqual(dist_y.full_tensor(), y)
         self.assertEqual(dist_gamma.full_tensor(), gamma)
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_rms_norm_backward(self):
         device_mesh = self.build_device_mesh()
@@ -85,7 +96,8 @@ class TestMathOps(DTensorTestBase):
         self.assertEqual(dist_dx.full_tensor(), dx)
         self.assertEqual(dist_dw.full_tensor(), dw)
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_add_rms_norm_forward(self):
         device_mesh = self.build_device_mesh()
@@ -110,7 +122,8 @@ class TestMathOps(DTensorTestBase):
         for comb in placement_combs:
             test_placement_comb([comb[0]], [comb[1]])
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     @parametrize(
         "rotary_mode,input_layout,sin_cos_layout",
@@ -158,7 +171,8 @@ class TestMathOps(DTensorTestBase):
             else:
                 test_placement_comb([placement], [placement], [placement])
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     @parametrize(
         "rotary_mode,input_layout,sin_cos_layout",

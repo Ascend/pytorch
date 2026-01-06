@@ -1,6 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 
-from typing import Optional
+from typing import Optional, cast
 
 import torch
 from torch.distributed.tensor._dtensor_spec import DTensorSpec
@@ -8,21 +8,26 @@ from torch.distributed.tensor._op_schema import (
     OpSchema,
     OpStrategy,
     PlacementStrategy,
+    PlacementList,
+    RuntimeSchemaInfo,
 )
 from torch.distributed.tensor._ops.utils import (
     generate_redistribute_costs,
     register_op_strategy,
-    normalize_dim
+    normalize_dim,
+    expand_to_full_mesh_op_strategy,
 )
 from torch.distributed.tensor._ops._math_ops import (
     _replicate_dims_start_at,
     _infer_reduce_dims_map,
-    map_placements_after_reduction)
+    map_placements_after_reduction,
+)
 from torch.distributed.tensor._utils import normalize_to_torch_size
 from torch.distributed.tensor import Partial, Replicate, Shard
 from torch.distributed.tensor.experimental import register_sharding
 
 npu = torch.ops.npu
+aten = torch.ops.aten
 
 
 @register_op_strategy(npu.npu_rms_norm.default)
@@ -234,7 +239,7 @@ def npu_add_rms_norm_strategy(op_schema: OpSchema) -> OpStrategy:
         output_target_spec = (y_target_spec, rstd_target_spec, x_target_spec)
 
         output_strategy.strategies.append(
-            OpSpec(
+            PlacementStrategy(
                 output_specs=output_target_spec,
                 input_specs=op_args_target_specs,
                 redistribute_cost=redistribute_costs,
@@ -394,7 +399,7 @@ def custom_npu_conv2d_strategy(x, weight, bias, stride, padding, dilation, group
         ]
     )
     acceptable_shardings.append(replicate_strategy)
-    
+
     # x layout: (N, Ci, Hi, Wi)
     # weight layout: (Co, Ci/groups, Hk, Wk)
     # bias layout: (Co)
@@ -486,5 +491,199 @@ def custom_grouped_matmul_add__strategy(y, x, weight, group_list, transpose_x=Tr
         [Shard(1), Replicate(), Shard(1), Replicate(), None, None, None] # y, x, weight, group_list
     )
     acceptable_shardings.append(D_shard_strategy)
+
+    return acceptable_shardings
+
+
+def is_tensor_evenly_shardable(shape, spec):
+    """Check if the shape is evenly shardable according to the spec."""
+    # verify parameter validity
+    if not isinstance(spec, DTensorSpec):
+        raise TypeError(
+            f"Expected 'spec' to be DTensorSpec instance, got {type(spec).__name__} instead."
+        )
+    if len(shape) == 0:
+        raise ValueError("'shape' must have at least 1 dimension (empty shape is invalid).")
+    if len(spec.placements) == 0:
+        raise ValueError("'spec.placements' cannot be empty (must have at least one placement).")
+
+    # number of shards in each tensor dimension
+    shards_map = [1] * len(shape)
+    for i, placement in enumerate(spec.placements):
+        if placement.is_shard():
+            shard_dim = cast(Shard, placement).dim
+            shards_map[shard_dim] *= spec.mesh.size(i)
+
+    for i, dim_size in enumerate(shape):
+        if shards_map[i] > 1 and (dim_size % shards_map[i] != 0):
+            return False
+
+    return True
+
+
+@register_op_strategy(npu.npu_cross_entropy_loss.default, schema_info=RuntimeSchemaInfo(3))
+def custom_cross_entropy_loss_sharding(op_schema: OpSchema):
+    single_mesh_dim_strategies = []
+
+    args_schema = op_schema.args_schema
+
+    input_strategy = args_schema[0] if len(args_schema) > 0 else None
+    target_strategy = args_schema[1] if len(args_schema) > 1 else None
+    weight_strategy = args_schema[2] if len(args_schema) > 2 else None
+    reduction = args_schema[3] if len(args_schema) > 3 else 'mean'
+
+    mesh = input_strategy.mesh
+
+    all_replicate: PlacementList = [
+        Replicate(), # loss
+        Replicate(), # log_prob
+        Replicate(), # zloss
+        Replicate(), # lse_for_zloss
+        Replicate(), # x
+        Replicate()  # target
+    ]
+    if weight_strategy is not None:
+        all_replicate.append(Replicate()) # weight
+    single_mesh_dim_strategies.append(all_replicate)
+
+    if reduction == 'none':
+        N_replicate_strategy = [Shard(0), Shard(0), Replicate(), Replicate(), Shard(0), Shard(0)]
+        if weight_strategy is not None:
+            N_replicate_strategy.append(Replicate())
+        single_mesh_dim_strategies.append(N_replicate_strategy)
+    elif reduction == 'mean':
+        target_shape = target_strategy.strategies[0].output_spec.shape
+        target_spec = target_strategy.strategies[0].output_spec
+        if weight_strategy is None and is_tensor_evenly_shardable(target_shape, target_spec):
+            N_replicate_strategy = [Partial("avg"), Shard(0), Replicate(), Replicate(), Shard(0), Shard(0)]
+            single_mesh_dim_strategies.append(N_replicate_strategy)
+    else:
+        N_replicate_strategy = [Partial("sum"), Shard(0), Replicate(), Replicate(), Shard(0), Shard(0)]
+        if weight_strategy is not None:
+            N_replicate_strategy.append(Replicate())
+        single_mesh_dim_strategies.append(N_replicate_strategy)
+
+    return expand_to_full_mesh_op_strategy(
+        mesh, op_schema, single_mesh_dim_strategies, input_index=4
+    )
+
+
+@register_op_strategy(npu.npu_cross_entropy_loss_backward.default, schema_info=RuntimeSchemaInfo(6))
+def custom_cross_entropy_loss_backward_strategy(op_schema: OpSchema):
+    single_mesh_dim_strategies = []
+    args_schema = op_schema.args_schema
+    grad_loss_strategy = args_schema[0] if len(args_schema) > 0 else None
+    weight_strategy = args_schema[3] if len(args_schema) > 3 else None
+    lse_for_zloss_strategy = args_schema[5] if len(args_schema) > 5 else None
+    reduction = args_schema[6] if len(args_schema) > 6 else 'mean'
+
+    mesh = grad_loss_strategy.mesh
+
+    all_replicate: PlacementList = [
+        Replicate(),
+        Replicate(),
+        Replicate(),
+        Replicate()
+    ]
+    if weight_strategy is not None:
+        all_replicate.append(Replicate())
+    if lse_for_zloss_strategy is not None:
+        all_replicate.append(Replicate())
+    single_mesh_dim_strategies.append(all_replicate)
+
+    if reduction == 'none':
+        N_replicate_strategy = [Shard(0), Shard(0), Shard(0), Shard(0)]
+        if weight_strategy is not None:
+            N_replicate_strategy.append(Replicate())
+        if lse_for_zloss_strategy is not None:
+            N_replicate_strategy.append(Replicate())
+        single_mesh_dim_strategies.append(N_replicate_strategy)
+    elif reduction == 'sum':
+        N_replicate_strategy = [Shard(0), Replicate(), Shard(0), Shard(0)]
+        if weight_strategy is not None:
+            N_replicate_strategy.append(Replicate())
+        if lse_for_zloss_strategy is not None:
+            N_replicate_strategy.append(Replicate())
+        single_mesh_dim_strategies.append(N_replicate_strategy)
+
+    return expand_to_full_mesh_op_strategy(
+        mesh, op_schema, single_mesh_dim_strategies, input_index=1
+    )
+
+
+@register_sharding(aten.repeat_interleave.self_int)
+def custom_npu_repeat_interleave_self_int_strategy(x, repeat, dim=None, output_size=None):
+    acceptable_shardings = []
+
+    # all replicate strategy
+    replicate_strategy = (
+        [
+            Replicate()      # output
+        ],
+        [
+            Replicate(),     # x
+            None, None, None # others
+        ]
+    )
+    acceptable_shardings.append(replicate_strategy)
+
+    if not is_tensor_evenly_shardable(x.shape, x):
+        if dim is not None:
+            for i in range(x.ndim):
+                if i != dim:
+                    sharding_strategy = (
+                        [Shard(i)],
+                        [Shard(i), None, None, None]
+                    )
+                acceptable_shardings.append(sharding_strategy)
+    else:
+        if dim is None:
+            sharding_strategy = (
+                [Shard(0)],
+                [Shard(0), None, None, None]
+            )
+            acceptable_shardings.append(sharding_strategy)
+        else:
+            for i in range(x.ndim):
+                sharding_strategy = (
+                    [Shard(i)],
+                    [Shard(i), None, None, None]
+                )
+                acceptable_shardings.append(sharding_strategy)
+
+    return acceptable_shardings
+
+
+@register_sharding(npu.repeat_interleave_backward_int.default)
+def custom_npu_repeat_interleave_backward_int_strategy(grad, x, repeats, dim=None):
+    acceptable_shardings = []
+
+    # all replicate strategy
+    replicate_strategy = (
+        [
+            Replicate()      # grad_x
+        ],
+        [
+            Replicate(),     # grad
+            Replicate(),     # x
+            None, None       # others
+        ]
+    )
+    acceptable_shardings.append(replicate_strategy)
+
+    if dim is not None and is_tensor_evenly_shardable(x.shape, x):
+        for i in range(x.ndim):
+            grad_placement = grad.placements[0]
+            if (isinstance(grad_placement, Shard)
+                and dim == grad_placement.dim
+                and not is_tensor_evenly_shardable(grad.shape, grad)
+            ):
+                continue
+            else:
+                sharding_strategy = (
+                    [Shard(i)],
+                    [Shard(i), Shard(i), None, None]
+                )
+                acceptable_shardings.append(sharding_strategy)
 
     return acceptable_shardings
