@@ -31,6 +31,9 @@ LOAD_FUNCTION(HcclCommRegister)
 LOAD_FUNCTION(HcclCommDeregister)
 LOAD_FUNCTION(HcclCommExchangeMem)
 
+REGISTER_LIBRARY(libhcomm)
+REGISTER_FUNCTION(libhcomm, HcclGroupStart)
+REGISTER_FUNCTION(libhcomm, HcclGroupEnd)
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
@@ -321,4 +324,27 @@ HcclResult hcclCommExchangeMem(HcclComm comm, void *windowHandle, uint32_t *peer
     return ret;
 }
 
+HcclResult hcclGroupStart()
+{
+    using hcclGroupStartFunc = HcclResult(*)();
+    static hcclGroupStartFunc func = nullptr;
+    if (func == nullptr) {
+        func = (hcclGroupStartFunc)GET_FUNCTION(libhcomm, HcclGroupStart)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclGroupStart", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func();
+    return ret;
+}
+
+HcclResult hcclGroupEnd()
+{
+    using hcclGroupEndFunc = HcclResult(*)();
+    static hcclGroupEndFunc func = nullptr;
+    if (func == nullptr) {
+        func = (hcclGroupEndFunc)GET_FUNCTION(libhcomm, HcclGroupEnd)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclGroupEnd", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func();
+    return ret;
+}
 } // namespace c10d_npu

@@ -552,6 +552,19 @@ public:
     {
         return std::string(HCCL_BACKEND_NAME);
     }
+    
+    bool supportsCoalescing() const override
+    {
+        return true;
+    }
+
+    void startCoalescing() override;
+
+    c10::intrusive_ptr<c10d::Work> endCoalescing() override;
+
+    // For specifying a composite optype, such as ALLGATHER and REDUCE_SCATTER
+    c10::intrusive_ptr<c10d::Work> endCoalescing(c10d::OpType optype);
+
     c10::intrusive_ptr<c10d::Work> broadcast(
         std::vector<at::Tensor>& tensors,
         const c10d::BroadcastOptions& opts = c10d::BroadcastOptions()) override;
@@ -651,6 +664,10 @@ public:
         std::vector<at::Tensor>& tensors,
         int srcRank,
         int tag) override;
+
+    void groupStart();
+
+    void groupEnd();
 
     c10::intrusive_ptr<c10d::Work> recvAnysource(
         std::vector<at::Tensor>& tensors,
@@ -964,6 +981,14 @@ protected:
 
     // Device Indexes used for all collectives in this group
     std::set<int> usedDeviceIdxs_;
+
+    int coalescing_state_ = 0;
+
+    at::Device coalescedDevice_ = at::Device("npu");
+
+    std::shared_ptr<HCCLComm> coalescedComm_ = nullptr;
+
+    TensorShelf coalescedTensors_;
 
     // map from the key: "group name + pg counter (ID)" to the
     // HCCL Master ID count. This needs to be group and pg specific
