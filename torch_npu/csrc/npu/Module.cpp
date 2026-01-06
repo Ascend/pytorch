@@ -56,6 +56,7 @@
 #include "torch_npu/csrc/aten/common/from_blob.h"
 #include "torch_npu/csrc/profiler/combined_traceback.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
+#include "torch_npu/csrc/framework/interface/AclInterface.h"
 #include "third_party/fmt/include/fmt/format.h"
 
 std::shared_ptr<npu_logging::Logger> loggerRecovery = npu_logging::logging().getLogger("torch_npu.recovery");
@@ -1983,6 +1984,25 @@ static PyObject* THNPModule_reset_device_res_limit(PyObject* self, PyObject *arg
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_aclop_start_dump(PyObject* self, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    uint32_t dump_type = 0x00000001U;
+    std::string dump_path = THPUtils_unpackString(args);
+    at_npu::native::AclopStartDumpArgs(dump_type, dump_path.c_str());
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_aclop_stop_dump(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    uint32_t dump_type = 0x00000001U;
+    at_npu::native::AclopStopDumpArgs(dump_type);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
 static void DLPack_Capsule_Destructor(PyObject* data)
 {
     if (C10_LIKELY(!PyCapsule_IsValid(data, "dltensor"))) {
@@ -2225,6 +2245,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_device_res_limit", (PyCFunction)THNPModule_get_device_res_limit, METH_VARARGS, nullptr},
     {"_npu_set_device_res_limit", (PyCFunction)THNPModule_set_device_res_limit, METH_VARARGS, nullptr},
     {"_npu_reset_device_res_limit", (PyCFunction)THNPModule_reset_device_res_limit, METH_O, nullptr},
+    {"_aclop_start_dump", (PyCFunction)THNPModule_aclop_start_dump, METH_O, nullptr},
+    {"_aclop_stop_dump", (PyCFunction)THNPModule_aclop_stop_dump, METH_NOARGS, nullptr},
     {"_npu_set_stream_res_limit", (PyCFunction)THNPModule_set_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_reset_stream_res_limit", (PyCFunction)THNPModule_reset_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_get_stream_res_limit", (PyCFunction)THNPModule_get_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
