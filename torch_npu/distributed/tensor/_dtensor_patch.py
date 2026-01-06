@@ -1,3 +1,5 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates
+
 import itertools
 from typing import Callable, Optional
 
@@ -8,6 +10,7 @@ from torch.distributed.tensor._op_schema import (
     OpSpec,
     OpStrategy,
     PlacementList,
+    TupleStrategy
 )
 from torch.distributed.tensor._ops.utils import (
     generate_redistribute_costs,
@@ -16,9 +19,9 @@ from torch.distributed.tensor._ops.utils import (
 from torch.distributed.tensor.device_mesh import DeviceMesh
 
 try:
-    from torch.utils._cxx_pytree import tree_leaves
+    from torch.utils._cxx_pytree import register_pytree_node, tree_leaves
 except ImportError:
-    from torch.utils._pytree import tree_leaves
+    from torch.utils._pytree import register_pytree_node, tree_leaves
 
 
 def _patched_kwargs_strategy(self) -> tuple[OpStrategy, ...]:
@@ -108,6 +111,18 @@ def _patched_expand_to_full_mesh_op_strategy(
     return OpStrategy(all_strategies)
 
 
+def _patched_register_tuple_strategy():
+    try:
+        register_pytree_node(
+            TupleStrategy,
+            lambda node: (node.childs, None),
+            lambda childs, _: TupleStrategy(tuple(childs)),
+        )
+    except ValueError:
+        # already registered TupleStrategy, skip
+        pass
+
+
 def _apply_dtensor_patch():
     # adding kwarg inputs handling in register sharding for previous pytorch version
     # See pytorch/pytorch/pull/168249
@@ -115,6 +130,11 @@ def _apply_dtensor_patch():
         if not hasattr(OpSchema, "kwargs_strategy"):
             OpSchema.kwargs_strategy = property(_patched_kwargs_strategy)
         torch.distributed.tensor._ops.utils.expand_to_full_mesh_op_strategy = _patched_expand_to_full_mesh_op_strategy
+
+    # register TupleStrategy pytree node to support flattening tensor lists for previous pytorch version
+    # See pytorch/pytorch/pull/158046
+    if torch.__version__ < "2.9":
+        _patched_register_tuple_strategy()
 
 
 _apply_dtensor_patch()
