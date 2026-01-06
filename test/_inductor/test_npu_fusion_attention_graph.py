@@ -1,5 +1,4 @@
 import functools
-from unittest import skip
 import sympy
 import torch
 import torch.nn.functional as F
@@ -11,7 +10,6 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestNpuFusionAttentionGraph(TestCase):
-    @skip("skip for core dump")
     def test_npu_graph_attention_function(self):
         query = torch.randn(2, 4, 8, 16, device='npu', requires_grad=True)
         key = torch.randn(2, 4, 8, 16, device='npu')
