@@ -191,7 +191,7 @@ def transform_dims_in_indexing(self, indices):
 
 
 # select tiling axis, recover missing dimensions,
-def loopbody__call__(self, *indices):
+def loopbody__call__(self, *indices, allow_same_symbol_in_index=False):
     if self.indexing is None:
         generate_body_indexing(self, indices)
     result = self.root_block()
