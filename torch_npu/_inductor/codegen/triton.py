@@ -30,6 +30,8 @@ from torch._inductor.codegen.triton import (
     IndexingOptions,
     triton_reshape,
     TritonCSEVariable,
+    low_precision_fp_var,
+    get_dtype_handler,
 )
 from torch._inductor.ops_handler import OpsHandler
 from torch._inductor.codegen.triton import (
@@ -58,7 +60,7 @@ from torch._inductor.utils import (
     upcast_compute_type,
     sympy_product
 )
-from torch._inductor.utils import sympy_index_symbol, generate_assert
+from torch._inductor.utils import sympy_index_symbol, generate_assert, triton_dtype
 from torch._inductor.utils import sympy_subs
 from torch._inductor.virtualized import (
     V,
@@ -167,6 +169,17 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         var.mask_vars = indexing.mask_vars
         return var
 
+
+@staticmethod
+def truediv(x, y):
+    out = f"({x} / {y})"
+    if low_precision_fp_var(x) or low_precision_fp_var(y):
+        out_dtype = get_dtype_handler().truediv(x, y)
+        if out_dtype in (torch.float16, torch.float32):
+            out = f"{out}.to({triton_type(out_dtype)})"
+
+    return out
+    
 
 @staticmethod
 def select_index_dtype(node_schedule, numel, reduction_numel):
