@@ -1,18 +1,20 @@
 import torch
 from torch.distributed._tensor import distribute_tensor, Replicate, Shard
-from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 
 import torch_npu
 from torch_npu.testing.testcase import run_tests
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestRegisterSharding(NPUDTensorTestBase):
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_npu_npu_swiglu(self):
         mesh = self.build_device_mesh()
-        
+
         input_tensor = torch.randn(1024, 1024, device="npu", requires_grad=True)
         grad_tensor = torch.randn(1024, 512, device="npu")
         dim = -1
@@ -26,8 +28,9 @@ class TestRegisterSharding(NPUDTensorTestBase):
         output.backward(grad_dtensor)
         self.assertEqual(output.full_tensor(), out_tensor)
         self.assertEqual(input_dtensor.grad.full_tensor(), input_tensor.grad)
-    
-    @skipIfUnsupportMultiNPU(4)
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_npu_npu_swiglu_shard0(self):
         mesh = self.build_device_mesh()
@@ -46,14 +49,15 @@ class TestRegisterSharding(NPUDTensorTestBase):
         self.assertEqual(output.full_tensor(), out_tensor)
         self.assertEqual(input_dtensor.grad.full_tensor(), input_tensor.grad)
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_npu_npu_swiglu_shard1(self):
         mesh = self.build_device_mesh()
 
         input_tensor = torch.randn(1024, 1024, device="npu", requires_grad=True)
         grad_tensor = torch.randn(1024, 512, device="npu")
-        dim = -1  
+        dim = -1
         out_tensor = torch_npu.npu_swiglu(input_tensor, dim)
         out_tensor.backward(grad_tensor)
 
@@ -64,8 +68,9 @@ class TestRegisterSharding(NPUDTensorTestBase):
         output.backward(grad_dtensor)
         self.assertEqual(output.full_tensor(), out_tensor)
         self.assertEqual(input_dtensor.grad.full_tensor(), input_tensor.grad)
-    
-    @skipIfUnsupportMultiNPU(4)
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_gather(self):
         mesh = self.build_device_mesh()
@@ -88,8 +93,9 @@ class TestRegisterSharding(NPUDTensorTestBase):
         out.backward(grad)
         self.assertEqual(out.full_tensor(), out_tensor)
         self.assertEqual(x.grad.full_tensor(), input_tensor.grad)
-    
-    @skipIfUnsupportMultiNPU(4)
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_gather_shard0(self):
         mesh = self.build_device_mesh()
@@ -105,15 +111,16 @@ class TestRegisterSharding(NPUDTensorTestBase):
 
         x = distribute_tensor(input_tensor, mesh, [Shard(0)])
         index = distribute_tensor(index_tensor, mesh, [Shard(0)])
-        
+
         out = torch.gather(input=x, dim=dim, index=index)
         grad = distribute_tensor(grad_tensor, mesh, out.placements)
 
         out.backward(grad)
         self.assertEqual(out.full_tensor(), out_tensor)
         self.assertEqual(x.grad.full_tensor(), input_tensor.grad)
-    
-    @skipIfUnsupportMultiNPU(4)
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_gather_shard1(self):
         mesh = self.build_device_mesh()
@@ -129,7 +136,7 @@ class TestRegisterSharding(NPUDTensorTestBase):
 
         x = distribute_tensor(input_tensor, mesh, [Shard(1)])
         index = distribute_tensor(index_tensor, mesh, [Shard(1)])
-        
+
         out = torch.gather(input=x, dim=dim, index=index)
         grad = distribute_tensor(grad_tensor, mesh, out.placements)
 
