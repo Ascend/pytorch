@@ -504,6 +504,16 @@ extern HcclResult HcclCommDeactivateCommMemory(HcclComm comm, void *virPtr);
  */
 extern HcclResult HcclCommWorkingDevNicSet(HcclComm comm, uint32_t *ranks, bool *useBackup, uint32_t nRanks);
 
+/**
+ * @brief Group Start
+ */
+extern HcclResult HcclGroupStart();
+
+/**
+ * @brief Group End
+ */
+extern HcclResult HcclGroupEnd();
+
 #ifndef OPEN_BUILD_PROJECT
 /**
  * @brief Comm accelerator set/get

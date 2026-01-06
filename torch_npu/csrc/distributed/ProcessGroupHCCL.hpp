@@ -149,6 +149,36 @@ private:
     int fd_ = -1;
 };
 
+// A shelf for stashing tensors between op call and `work.wait()`.
+// Used in case of async ops.
+class TensorShelf {
+public:
+    // Stash tensors so that CachingAllocator cannot recycle them prematurely.
+    void stash(std::vector<at::Tensor>& tensors);
+    // Stash tensors from another shelf.
+    void stash(TensorShelf& other);
+    // Stash a single tensor.
+    void stash(const at::Tensor& tensor);
+    // Unstage the stashed tensors so that CachingAllocator can recycle them.
+    // Same as `clear()`.
+    void unstash();
+    // Whether shelf is empty.
+    bool empty();
+    // Clear the shelf.
+    void clear();
+
+protected:
+    // Get the inner tensor vector. Use with caution as it is not protected by
+    // mutex.
+    std::vector<at::Tensor>& get();
+
+private:
+    std::vector<at::Tensor> tVector_;
+    // Need a mutex to protect `tVector_` because it can be potentially accessed
+    // from both main thread and watchdog thread.
+    std::mutex mutex_;
+};
+
 // NoHandling: do not handle asynchronous HCCL errors
 // TearDown: tear down process upon error, see `WorkHCCL::handleException`
 // CleanUpOnly: just clean up collectives and abort communicators without
@@ -514,6 +544,14 @@ public:
     {
         return std::string(HCCL_BACKEND_NAME);
     }
+    
+    void startCoalescing() override;
+
+    c10::intrusive_ptr<c10d::Work> endCoalescing() override;
+
+    // For specifying a composite optype, such as ALLGATHER and REDUCE_SCATTER
+    c10::intrusive_ptr<c10d::Work> endCoalescing(c10d::OpType optype);
+
     c10::intrusive_ptr<c10d::Work> broadcast(
         std::vector<at::Tensor>& tensors,
         const c10d::BroadcastOptions& opts = c10d::BroadcastOptions()) override;
@@ -613,6 +651,10 @@ public:
         std::vector<at::Tensor>& tensors,
         int srcRank,
         int tag) override;
+
+    void groupStart();
+
+    void groupEnd();
 
     c10::intrusive_ptr<c10d::Work> recvAnysource(
         std::vector<at::Tensor>& tensors,
@@ -926,6 +968,14 @@ protected:
 
     // Device Indexes used for all collectives in this group
     std::set<int> usedDeviceIdxs_;
+
+    int coalescing_state_ = 0;
+
+    at::Device coalescedDevice_ = at::Device("npu");
+
+    std::shared_ptr<HCCLComm> coalescedComm_ = nullptr;
+
+    TensorShelf coalescedTensors_;
 
     // map from the key: "group name + pg counter (ID)" to the
     // HCCL Master ID count. This needs to be group and pg specific
