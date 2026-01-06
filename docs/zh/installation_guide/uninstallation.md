@@ -25,25 +25,33 @@
 
 ## 卸载CANN软件
 
-如果用户只卸载CANN软件包（如Toolkit），则卸载没有先后顺序，如果还要卸载驱动和固件，则需要卸载其他软件包以后再卸载驱动和固件。操作步骤如下：
+如果用户只卸载CANN软件包（如Toolkit），则卸载没有先后顺序，如果还要卸载驱动和固件，则需要卸载其他软件包以后再卸载驱动和固件。进入卸载脚本所在路径，执行卸载命令。
 
-1.  进入软件的卸载脚本所在路径，一般放置在“script”目录下（“script”所在路径请以实际为准）。
-
+-  Toolkit
     ```
-    cd <path>/ascend-toolkit/<version>/{arch}-linux/script
-    ```
-
-    其中 _<path\>_ 为软件包的安装路径，_<version\>_ 为软件包版本，\{arch\}-linux为CPU架构，请用户根据实际情况替换。
-
-2.  执行 **./uninstall.sh** 命令运行脚本，完成卸载。
-
-    卸载完成后，若打印如下信息，则说明软件卸载成功：
-
-    ```
-    [INFO] xxx uninstall success
+    cd /<path>/cann-<version>/{arch}-linux/script
+    ./uninstall.sh
     ```
 
-    _xxx_ 表示卸载的实际软件包名。
+-  ops
+    ```
+    cd /<path>/cann-<version>/{arch}-linux/script
+    ./ops_uninstall.sh
+    ```
+-  NNAL
+    ```
+    cd /<path>/nnal/
+    ./nnal_uninstall.sh
+    ```
+其中 _<path\>_ 为软件包的安装路径，_<version\>_ 为软件包版本，\{arch\}-linux为CPU架构，请用户根据实际情况替换。
+
+卸载完成后，若显示如下信息，则说明软件卸载成功：
+
+```
+[INFO] xxx uninstall success
+```
+
+_xxx_ 表示卸载的实际软件包名。
 
 ## 卸载驱动固件
 

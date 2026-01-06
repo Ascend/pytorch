@@ -1,4 +1,18 @@
-# 模型迁移训练
+# 快速入门
+
+## 环境准备
+
+本快速入门以在Atlas 800T A2 训练服务器上运行为例。
+
+-   驱动和固件、CANN软件安装请参考《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/softwareinst/instg/instg_0000.html)》（商用版）或《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/83RC1/softwareinst/instg/instg_0000.html)》（社区版）：
+    -   安装方式：选择“在物理机上安装”
+    -   安装类型：选择“离线安装”
+    -   操作系统：选择可用的操作系统（兼容性请参考[兼容性查询助手](https://www.hiascend.com/hardware/compatibility)）
+    -   业务场景：选择“训练&推理&开发调试”
+
+-   安装PyTorch框架及torch\_npu插件请参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》。
+
+## 模型迁移训练
 
 本节提供了一个简单的模型迁移样例，采用了最简单的自动迁移方法，帮助用户快速体验GPU模型脚本迁移到昇腾NPU上的流程。基于CNN模型识别手写数字的脚本，对在GPU上训练的该脚本代码进行修改，使其可以迁移到昇腾NPU上进行训练。
 
@@ -153,3 +167,16 @@
 
     ![](figures/illustration.png)
 
+## 进阶开发
+
+-   如果您想体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch 训练模型迁移调优指南](https://www.hiascend.com/document/detail/zh/Pytorch/720/ptmoddevg/trainingmigrguide/PT_LMTMOG_0002.html)》文档阅读了解。
+-   如果您想体验大模型训练更丰富的功能，请参见[表1](#模型迁移指导)了解。
+
+    **表 1**  模型迁移指导<a id="模型迁移指导"></a>    
+
+    |大模型|组件|迁移指导|
+    |--|--|--|
+    |Megatron-LM分布式大模型|MindSpeed Core亲和加速模块|请参见《[分布式训练加速库迁移指南](https://gitcode.com/Ascend/MindSpeed/blob/2.3.0_core_r0.12.1/docs/user-guide/model-migration.md)》。|
+    |Megatron-LM大语言模型|MindSpeed LLM套件|请参见《[MindSpeed LLM用户使用手册](https://gitcode.com/Ascend/MindSpeed-LLM/wiki/Home.md)》中的“MindSpeed LLM迁移指南（PyTorch框架）”章节。|
+    |Megatron-LM多模态模型|MindSpeed MM套件|请参见《[MindSpeed MM迁移调优指南](https://gitcode.com/Ascend/MindSpeed-MM/blob/2.3.0/docs/user-guide/model-migration.md)》。|
+    |大语言模型或多模态模型|MindSpeed RL套件|请参见《[MindSpeed RL使用指南](https://gitcode.com/Ascend/MindSpeed-RL/tree/2.3.0/docs/solutions)》。|

@@ -13,7 +13,7 @@ libtorch\_npu是torch\_npu插件的C++版本，包含运行torch\_npu插件所�
     git submodule update --init --recursive
     ```
 
-    以v2.7.1-7.3.0为例，拉取对应Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/related_product_version_compatibility_notes.md)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
+    以v2.7.1-7.3.0为例，拉取对应Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
 
 3.  执行编译生成libtorch\_npu安装包。
 
