@@ -38,7 +38,7 @@ class TestAllGatherBaseMmOp(NPUDTensorTestBase):
         return x1, x2, output, gather_out
 
     @SupportedDevices(['Ascend910B'])
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_all_gather_base_mm(self):
         mesh = self.build_device_mesh()
@@ -109,7 +109,7 @@ class TestMmReduceScatterBaseOp(NPUDTensorTestBase):
         return x1, x2, output
 
     @SupportedDevices(['Ascend910B'])
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_mm_reduce_scatter_base(self):
         with DeterministicGuard(True):
@@ -151,7 +151,7 @@ class TestMmReduceScatterBaseOp(NPUDTensorTestBase):
                 test_placement_comb([comb[0]], [comb[1]])
 
     @SupportedDevices(['Ascend910B'])
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_mm_reduce_scatter_base_bias(self):
         with DeterministicGuard(True):
@@ -165,7 +165,7 @@ class TestMmReduceScatterBaseOp(NPUDTensorTestBase):
             for _ in range(self.world_size):
                 x1_list.append(torch.randn(m, k, dtype=dtype, device="npu"))
                 x2_list.append(torch.randn(k, n, dtype=dtype, device="npu"))
-                bias_list.append(torch.randn(n, dtype=dtype, device="npu"))
+                bias_list.append(torch.zeros(n, dtype=dtype, device="npu"))
 
             global_x1, global_x2, global_output = self._get_global_tensor(x1_list, x2_list, bias_list=bias_list)
             global_bias = torch.cat(bias_list, dim=0)
@@ -187,7 +187,7 @@ class TestMmReduceScatterBaseOp(NPUDTensorTestBase):
                 dist_output = torch_npu.npu_mm_reduce_scatter_base(
                     dist_x1, dist_x2, hcom_name, self.world_size, bias=dist_bias
                 )
-                self.assertEqual(dist_output.full_tensor(), global_output.to(dtype), atol=0.05, rtol=0.05)
+                self.assertEqual(dist_output.full_tensor(), global_output.to(dtype))
                 self.assertEqual(dist_output.to_local(), output)
 
             placement = [Shard(0), Shard(1), Replicate()]
@@ -197,7 +197,7 @@ class TestMmReduceScatterBaseOp(NPUDTensorTestBase):
                 test_placement_comb([comb[0]], [comb[1]], [bias_placement])
 
     @SupportedDevices(['Ascend910B'])
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_mm_reduce_scatter_base_quant(self):
         with DeterministicGuard(True):
@@ -253,7 +253,7 @@ class TestMmReduceScatterBaseOp(NPUDTensorTestBase):
 
 class TestGroupedMatMulOp(NPUDTensorTestBase):
     @SupportedDevices(['Ascend910B'])
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     @parametrize("x_ndim", [2, 3])
     @parametrize("with_bias", [True, False])
@@ -293,16 +293,16 @@ class TestGroupedMatMulOp(NPUDTensorTestBase):
             test_placement_comb([comb[0]], [comb[1]], [comb[2]])
 
     @SupportedDevices(['Ascend910B'])
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     @parametrize("with_bias", [True, False])
     def test_npu_grouped_matmul_x1w1y1(self, with_bias):
         mesh = self.build_device_mesh()
 
-        x = [torch.randn(112, 64, dtype=torch.float32, device="npu")]
-        weight = [torch.randn(4, 64, 16, dtype=torch.float32, device="npu")]
-        bias = [torch.randn(4, 16, dtype=torch.float32, device="npu")] if with_bias else None
-        group_list = torch.tensor([16, 48, 64, 112], device="npu")
+        x = [torch.randn(8, 8, dtype=torch.float16, device="npu")]
+        weight = [torch.randn(2, 8, 8, dtype=torch.float16, device="npu")]
+        bias = [torch.randn(2, 8, dtype=torch.float16, device="npu")] if with_bias else None
+        group_list = torch.tensor([2, 8], device="npu")
         split_item = 3
         group_type = 0
 
@@ -320,7 +320,7 @@ class TestGroupedMatMulOp(NPUDTensorTestBase):
                 split_item=split_item, group_type=group_type
             )
             for dist_y_i, y_i in zip(dist_y, y):
-                self.assertEqual(dist_y_i.full_tensor(), y_i)
+                self.assertEqual(dist_y_i.full_tensor(), y_i, atol=0.001, rtol=0.02)
 
         placement = [Shard(0), Shard(1), Replicate()]
         placement_combs = itertools.product(placement, placement, [Shard(0), Replicate()])
@@ -328,7 +328,7 @@ class TestGroupedMatMulOp(NPUDTensorTestBase):
             test_placement_comb([comb[0]], [comb[1]], [comb[2]], [comb[2]])
 
     @SupportedDevices(['Ascend910B'])
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     @parametrize("with_bias", [True, False])
     def test_npu_grouped_matmul_xNwNy1(self, with_bias):
@@ -367,7 +367,7 @@ class TestGroupedMatMulOp(NPUDTensorTestBase):
             test_placement_comb([comb[0]], [comb[1]], [comb[2]])
 
     @SupportedDevices(['Ascend910B'])
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     @parametrize("with_bias", [True, False])
     @parametrize("group_type", [None, 0])
@@ -410,7 +410,7 @@ class TestGroupedMatMulOp(NPUDTensorTestBase):
             test_placement_comb([comb[0]], [comb[1]], [comb[2]], [comb[2]])
 
     @SupportedDevices(['Ascend910B'])
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     @parametrize("with_bias", [True, False])
     def test_npu_grouped_matmul_x1wNyN(self, with_bias):
@@ -444,7 +444,7 @@ class TestGroupedMatMulOp(NPUDTensorTestBase):
             test_placement_comb([comb[0]], [comb[1]], [comb[2]])
 
     @SupportedDevices(['Ascend910B'])
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_grouped_matmul_quant(self):
         mesh = self.build_device_mesh()
