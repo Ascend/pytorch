@@ -109,4 +109,6 @@ hcclResult_t HcclBatchSendRecv(HcclSendRecvItemDef* sendRecvInfo, u32 itemNum, h
 hcclResult_t HcclCommInitAll(u32 ndev, s32 *devices, hcclComm_t *comms);
 hcclResult_t HcclCommResume(hcclComm_t comm);
 hcclResult_t HcclCommWorkingDevNicSet(HcclComm comm, u32 *ranks, bool *useBackup, u32 nRanks);
+hcclResult_t HcclGroupStart();
+hcclResult_t HcclGroupEnd();
 }
