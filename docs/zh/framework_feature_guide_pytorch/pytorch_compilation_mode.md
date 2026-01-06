@@ -2,7 +2,7 @@
 
 ## 简介
 
-torch.compile\(\)是PyTorch 2.0+推出的核心优化接口，通过"动态图捕获+静态图优化+高效代码生成"的方式显著加速模型训练和推理任务。Ascend Extension for PyTorch在2.6.0以上版本已支持该特性，为用户提供两种常用的backend配置选项，分别是torch.compile\(backend="inductor"\)和torch.compile\(backend="npugraphs"\)。
+torch.compile\(\)是PyTorch 2.0+推出的核心优化接口，通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务。Ascend Extension for PyTorch在2.6.0以上版本已支持该特性，为用户提供两种常用的backend配置选项，分别是torch.compile\(backend="inductor"\)和torch.compile\(backend="npugraphs"\)。
 
 torch.compile\(\)包含如下核心组件：
 
@@ -20,7 +20,7 @@ torch.compile\(\)包含如下核心组件：
 
 Inductor后端：通过torch.compile(backend="inductor")使能，以降低Python开销和kernel启动开销为核心，通过Dynamo+Inductor协同，在不改变模型逻辑的前提下，自动进行算子融合和生成，提升训练或推理的吞吐量，尤其适合迭代次数多、单步计算量中等的场景。
 
-NPUGraph后端：通过torch.compile(backend="npugraphs")使能，利用NPUGraphs技术，彻底消除NPU任务的启动开销和CPU至NPU同步开销，适合eager模式存在host bound且kernel调用频繁但输入形状固定的场景，整体功能与backend="cudagraphs"一致。
+NPUGraph后端：通过torch.compile(backend="npugraphs")使能，利用NPUGraphs技术，消除NPU任务的启动开销和CPU至NPU同步开销，适合eager模式存在host bound且kernel调用频繁但输入形状固定的场景，整体功能与backend="cudagraphs"一致。
 
 ## 使用指导
 

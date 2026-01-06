@@ -408,7 +408,7 @@
 |Tensor.t|是|支持fp16，fp32，int64|
 |Tensor.t_|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.tensor_split|是|仅CPU支持|
-|Tensor.tile|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>若入参dims的长度小于Tensor.shape的长度，则会在dims前自动补全1，使其长度与 Tensor.shape对齐。补全后的dims，需要满足如下限制：<br>- 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作(即dims中大于1的元素个数 ≤ 4)，例如：不支持Tensor.tile([2, 3, 4, 5, 6]) ，支持Tensor.tile([2, 3, 1, 5, 6])<br>- 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作(即dims中大于1的元素个数 ≤ 3)，例如：不支持Tensor.tile([1, 3, 4, 5, 6]) ，支持Tensor.tile([1, 3, 1, 5, 6])<br>- 若执行反向计算，Tensor的维度数与入参dims中大于1的元素个数之和不得超过8|
+|Tensor.tile|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>若入参dims的长度小于Tensor.shape的长度，则会在dims前自动补全1，使其长度与 Tensor.shape对齐。补全后的dims，需要满足如下限制：<br>- 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即dims中大于1的元素个数 ≤ 4），例如：不支持Tensor.tile([2, 3, 4, 5, 6]) ，支持Tensor.tile([2, 3, 1, 5, 6])<br>- 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即dims中大于1的元素个数 ≤ 3），例如：不支持Tensor.tile([1, 3, 4, 5, 6]) ，支持Tensor.tile([1, 3, 1, 5, 6])<br>- 若执行反向计算，Tensor的维度数与入参dims中大于1的元素个数之和不得超过8|
 |Tensor.to|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>当前NPU设备仅支持设置memory_format为torch.contiguous_format或torch.preserve_format<br><term>Atlas 推理系列产品</term>不支持跨NPU拷贝|
 |to|是|-|
 |Tensor.to_mkldnn|否|-|

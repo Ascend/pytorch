@@ -22,7 +22,7 @@ Ascend Extension for PyTorch插件是基于昇腾的深度学习适配框架，�
 |辅助报错定位|[特征值检测](feature_value_detection.md)|基于通信流做静默数据错误的特征值检测，识别精度问题。|
 |辅助报错定位|[WatchDog](watchdog.md)|在不影响大模型训练性能和精度的前提下，能快速稳定发现错误。|
 |参数配置|[通过pg_options配置HCCL通信域参数](setting_HCCL_communicator_parameter.md)|可以针对不同的通信域配置不同的HCCL配置。|
-|PyTorch图模式|[PyTorch编译模式（torch.compile）](pytorch_compilation_mode.md)|Ascend Extension for PyTorch在2.6.0以上版本已支持torch.compile()，通过"动态图捕获+静态图优化+高效代码生成"的方式显著加速模型训练和推理任务。|
+|PyTorch图模式|[PyTorch编译模式（torch.compile）](pytorch_compilation_mode.md)|Ascend Extension for PyTorch在2.6.0以上版本已支持torch.compile()，通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务。|
 |算子适配|[自定义算子适配开发](custom_operator_adaptation.md)|基于OpPlugin插件或C++ extensions的方式编写并调用自定义算子。|
 
 

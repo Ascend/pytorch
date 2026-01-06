@@ -23,7 +23,7 @@ cd pytorch/third_party/op-plugin
 -   OpPlugin对外接口与torch原生Aten IR保持一致。Aten IR接口说明，请参考[pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)。
 -   不同的torch版本使用op\_plugin\_functions.yaml维护本身的对外接口，配置规则可参见[算子适配开发](#算子适配开发)。
 -   不同适配方式的算子放置于不同的文件夹中，使用不同的命名空间，当前仅有opapi适配算子（aclnn等）和aclop适配算子（通过GE注册的算子）。
--   非必要不使用NPUNativeFunction::命名空间中的接口。自定义算子使用custom\_ops::xx调用，原生算子使用at::xx调用，调用其他适配接口使用OpPlugin内部的接口，比如aclnn使用op\_api::xx，aclop算子使用acl\_op::xx。
+-   除非必要，否则不应使用NPUNativeFunction::命名空间中的接口。自定义算子使用custom\_ops::xx调用，原生算子使用at::xx调用，调用其他适配接口使用OpPlugin内部的接口，比如aclnn使用op\_api::xx，aclop算子使用acl\_op::xx。
 -   当前只支持aclnn算子和aclop算子。
 
 ## 适配文件结构
@@ -66,7 +66,7 @@ PyTorch官方提供的native\_functions.yaml文件定义了PyTorch Native Functi
 
 1.  算子yaml配置。
 
-    OpPlugin采用和原生PyTorch类似的逻辑在yaml中声明算子的各类信息，通过在yaml中配置算子，自动生成算子声明和注册代码。算子的Aten IR定义位于op\_plugin/config/op\_plugin\_functions.yaml文件中，所有版本的定义都在这个文件里面，通过配置不同版本来区分。
+    OpPlugin采用和原生PyTorch类似的逻辑在yaml中声明算子的各类信息，通过在yaml中配置算子，自动生成算子声明和注册代码。算子的ATen IR定义位于op\_plugin/config/op\_plugin\_functions.yaml文件中，所有版本的定义都在这个文件里面，通过配置不同版本来区分。
 
     yaml中算子配置规则如下面所示：
 

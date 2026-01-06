@@ -1,6 +1,6 @@
 # 适配开发
 
-支持Ascend C实现自定义算子Kernel，并集成在PyTorch框架，通过PyTorch的API实现算子调用。
+支持Ascend C实现自定义算子Kernel，并将其集成在PyTorch框架，最终通过PyTorch的API实现算子调用。
 
 ## 前提条件
 

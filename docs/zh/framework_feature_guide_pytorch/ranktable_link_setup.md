@@ -2,7 +2,7 @@
 
 ## 简介
 
-支持以ranktable文件配置方式建立通信域，来加速通信域建立时间，并做到建链时间几乎和集群规模无关，从而解决大集群下建立通信域的性能瓶颈。
+支持以ranktable文件配置方式建立通信域，来加速通信域建立时间，并做到建链时间显著减少与集群规模的依赖，从而解决大集群下建立通信域的性能瓶颈。
 
 **图 1**  通过ranktable建立通信域的流程图  
 ![](figures/flowchart_for_creating_a_communicator_using_a_ranktable_file.png)

@@ -2,7 +2,7 @@
 
 ## 简介
 
-支持训练过程中内存溢出（OOM）时生成设备内存快照，并通过交互式查看器（[memory\_viz](https://pytorch.org/memory_viz)）进行可视化分析。快照能够记录分配的NPU内存在任意时间点的状态，并且可以选择性地记录该快照分配情况的历史记录。该特性基于社区内存快照特性（[LINK](https://pytorch.org/docs/2.1/torch_cuda_memory.html#understanding-cuda-memory-usage)）开发，支持社区内存快照的使用方式。内存快照效果图如下所示：
+支持训练过程中内存溢出（OOM）时生成设备内存快照，并通过交互式查看器（[memory\_viz](https://pytorch.org/memory_viz)）进行可视化分析。快照能够记录分配的NPU内存在任意时间点的状态，并且可以选择性地记录该快照分配情况的历史记录。该特性基于社区内存快照特性（[understanding-cuda-memory-usage](https://pytorch.org/docs/2.1/torch_cuda_memory.html#understanding-cuda-memory-usage)）开发，支持社区内存快照的使用方式。内存快照效果图如下所示：
 
 **图 1**  内存占用状态示意图  
 ![](figures/memory_usage.png)
