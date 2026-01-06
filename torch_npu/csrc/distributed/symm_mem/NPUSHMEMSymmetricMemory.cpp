@@ -23,7 +23,7 @@ NPUSHMEMAllocation::~NPUSHMEMAllocation()
     auto device = c10::Device(at::DeviceType::PrivateUse1, device_idx);
     at::DeviceGuard device_guard(device);
     logger->debug("~NPUSHMEMAllocation, start Shmem_free, ptr is %p.", ptr);
-    Shmem_free(ptr);  // shmem_free has no return value
+    Aclshmem_free(ptr);  // shmem_free has no return value
     logger->debug("~NPUSHMEMAllocation, end Shmem_free, ptr is %p.", ptr);
 }
 
@@ -65,7 +65,7 @@ NPUSHMEMSymmetricMemory::NPUSHMEMSymmetricMemory(
     }
     TORCH_INTERNAL_ASSERT(!rank_to_global_rank_.empty());
     for (int r = 0; r < world_size_; ++r) {
-        auto buffer = Shmem_ptr(allocation->ptr, rank_to_global_rank_[r]);
+        auto buffer = Aclshmem_ptr(allocation->ptr, rank_to_global_rank_[r]);
         TORCH_CHECK(buffer != nullptr, "shmem_ptr return nullptr with ptr ", allocation->ptr, DIST_ERROR(ErrCode::MEMORY));
         buffers_.push_back(buffer);
         logger->debug("[rank %d] NPUSHMEMSymmetricMemory shmem_ptr, r is %d, rank_to_global_rank is %d, ptr is %p, shmem_ptr is %p.",
@@ -194,7 +194,7 @@ void* NPUSHMEMSymmetricMemoryAllocator::alloc(
     int world_size = group_info.world_size;
     npushmem_extension::initialize_npushmem_with_store(store, rank, world_size);
 
-    auto ptr = Shmem_malloc(size);
+    auto ptr = Aclshmem_malloc(size);
     TORCH_CHECK(ptr != nullptr, "shmem_malloc return nullptr with size ", size, DIST_ERROR(ErrCode::MEMORY));
     auto allocation =
         std::make_shared<NPUSHMEMAllocation>(ptr, size, device_idx);
