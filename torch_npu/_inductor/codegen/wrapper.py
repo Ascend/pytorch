@@ -249,6 +249,25 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
 
     def write_prefix(self) -> None:
         super().write_prefix()
+        if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+            with self.prefix.indent():
+                self.prefix.writeline('global has_initialized')
+                self.prefix.writeline('if not has_initialized:')
+            self.prefix.do_indent()
+            with self.prefix.indent():
+                self.prefix.writeline('from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler')
+                self.prefix.writeline('static_kernel_compiler = StaticKernelCompiler()')
+                self.prefix.writeline('static_kernel_compiler.__enter__()')
+                self.prefix.writeline('has_initialized = True')
+            self.prefix.do_indent()
 
     def generate_return(self, output_refs: list[str]) -> None:
+        if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+            self.wrapper_call.do_unindent()
+            with self.wrapper_call.indent():
+                self.wrapper_call.writeline('if not has_initialized:')
+            self.wrapper_call.do_indent()
+            with self.wrapper_call.indent():
+                self.wrapper_call.writeline('exc_info=(None, None, None)')
+                self.wrapper_call.writeline('static_kernel_compiler.__exit__(*exc_info)')
         super().generate_return(output_refs)
