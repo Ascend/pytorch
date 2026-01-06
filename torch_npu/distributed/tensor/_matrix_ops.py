@@ -2,10 +2,12 @@ from typing import cast, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.distributed._tensor.experimental import register_sharding
+from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.tensor._dtensor_spec import DTensorSpec, TensorMeta
 from torch.distributed.tensor._ops.utils import register_op_strategy, expand_to_full_mesh_op_strategy
 from torch.distributed.tensor import DTensor, Partial, Replicate, Shard
 from torch.distributed.tensor._op_schema import (
+    _is_out_variant_op,
     OpInfo,
     OpSchema,
     OpStrategy,
@@ -53,8 +55,6 @@ def _handle_tensor_list_in_kwargs(kwargs: Dict[str, object], op_info: OpInfo) ->
                 new_local_tensors.append(dtensor._local_tensor)
             op_info.schema.kwargs_schema[key] = tuple(new_schema) # list is not hashable for cache
             op_info.local_kwargs[key] = new_local_tensors
-
-    op_info.schema._recompute_comparison_key()
 
 
 @register_sharding(aten.matmul.default)
@@ -186,7 +186,7 @@ def custom_matmul_backward_sharding(
         needs_pytree=True
     )
 )
-def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
+def npu_grouped_matmul_strategy(mesh: DeviceMesh, op_schema: OpSchema) -> OpStrategy:
     # npu_grouped_matmul(Tensor[] x, Tensor[] weight, *, Tensor[]? bias=None, Tensor[]? scale=None,
     #                    Tensor[]? offset=None, Tensor[]? antiquant_scale=None, Tensor[]? antiquant_offset=None,
     #                    Tensor[]? per_token_scale=None, Tensor? group_list=None, Tensor[]? activation_input=None,
@@ -194,12 +194,14 @@ def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
     #                    int? split_item=0, int? group_type=None, int? group_list_type=0, int? act_type=0,
     #                    int[]? tuning_config=None, int? output_dtype=None, int? x_dtype=None, int? weight_dtype=None,
     #                    int? scale_dtype=None, int? per_token_scale_dtype=None) -> Tensor[]
+    if op_schema.schema_info is None:
+        op_schema.schema_info = RuntimeSchemaInfo(needs_pytree=True) # to flatten tensor list in arguments
     x_src_strategy: TupleStrategy = op_schema.args_schema[0]
-    x_num = len(x_src_strategy.children)
+    x_num = len(x_src_strategy.childs)
     weight_src_strategy: TupleStrategy = op_schema.args_schema[1]
-    weight_num = len(weight_src_strategy.children)
+    weight_num = len(weight_src_strategy.childs)
     bias_src_strategy: Optional[Union[TupleStrategy, list]] = op_schema.kwargs_schema.get("bias", [])
-    bias_num = len(bias_src_strategy.children) if isinstance(bias_src_strategy, TupleStrategy) else len(bias_src_strategy)
+    bias_num = len(bias_src_strategy.childs) if isinstance(bias_src_strategy, TupleStrategy) else len(bias_src_strategy)
     group_list_num = 1 if (
         op_schema.op == npu.npu_grouped_matmul.default and
         op_schema.kwargs_schema.get("group_list", None) is not None
@@ -219,9 +221,9 @@ def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
     ]
     for key in unsupported_arguments:
         schema = op_schema.kwargs_schema.get(key, None)
-        if schema is not None and isinstance(schema, TupleStrategy) and len(schema.children) > 0:
+        if schema is not None and isinstance(schema, TupleStrategy) and len(schema.childs) > 0:
             full_mesh_strategies = expand_to_full_mesh_op_strategy(
-                op_schema.get_mesh_from_args(), op_schema, strategies, input_index=y_num
+                mesh, op_schema, strategies, input_index=y_num
             )
             if y_num == 1:
                 for strategy in full_mesh_strategies.strategies:
@@ -249,7 +251,7 @@ def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
         pair_strategies = []
         # x: 2-6D, weight: 2D, weight: 1D (equals to weight.shape[1])
         # shard x
-        x_ndim = x_src_strategy.children[0].ndim
+        x_ndim = x_src_strategy.childs[0].ndim
         for i in range(x_ndim - 1):
             pair_strategies.append([Shard(i), Shard(i), Replicate(), Replicate()]) # y, x, weight, bias
         # shard weight
@@ -290,7 +292,7 @@ def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
         n_shard_strategy.extend([Replicate()] * group_list_num)
         strategies.append(n_shard_strategy)
 
-    full_mesh_strategies = expand_to_full_mesh_op_strategy(op_schema.get_mesh_from_args(), op_schema, strategies,
+    full_mesh_strategies = expand_to_full_mesh_op_strategy(mesh, op_schema, strategies,
                                                            input_index=y_num)
     # output meta of npu_grouped_matmul is list, need convert output_spec here
     if y_num == 1:
@@ -342,11 +344,19 @@ def _npu_grouped_matmul_handler(
     # since upwrap_to_op_info does not process List[DTensor] in kwargs, we need to handle it here
     _handle_tensor_list_in_kwargs(kwargs, op_info)
 
+    # return type of npu_grouped_matmul is tensor list, which caused output_spec to be None after propagation, and
+    # v2.9.0 fixed it. We set return_type_tensor to True to avoid patching the entire propagate_op_sharding_non_cached
+    # function in previous versions.
+    def _return_type_tensor():
+        return True
+
+    op_info.schema.return_type_tensor = _return_type_tensor
+
     # sharding propagation
     DTensor._op_dispatcher.sharding_propagator.propagate(op_info)
     output_sharding = op_info.output_sharding
 
-    mesh = op_info.compute_mesh
+    mesh = op_info.mesh
     participating = mesh.get_coordinate() is not None
     if participating:
         # computation that happens in the current rank of the mesh, normal case
@@ -547,7 +557,7 @@ def npu_comm_mm_fusion_handler(
         spec = output_sharding.output_spec
         spec.tensor_meta = get_output_meta(spec.tensor_meta, 0, world_size)
 
-    mesh = op_info.compute_mesh
+    mesh = op_info.mesh
     participating = mesh.get_coordinate() is not None
     if participating:
         # computation that happens in the current rank of the mesh, normal case
@@ -574,7 +584,7 @@ def npu_comm_mm_fusion_handler(
 @register_op_strategy(
     [npu.npu_apply_adam_w.default, npu.npu_apply_adam_w.out]
 )
-def npu_apply_adam_w_strategy(op_schema: OpSchema) -> OpStrategy:
+def npu_apply_adam_w_strategy(mesh: DeviceMesh, op_schema: OpSchema) -> OpStrategy:
     # npu_apply_adam_w(
     #   Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar weight_decay, Scalar beta1, Scalar beta2,
     #   Scalar epsilon, Tensor grad, Tensor? max_grad_norm, bool? amsgrad, bool? maximize
@@ -583,7 +593,7 @@ def npu_apply_adam_w_strategy(op_schema: OpSchema) -> OpStrategy:
     max_gard_norm_arg_index = 8
     grad_strategy: OpStrategy = op_schema.args_schema[grad_arg_index]
     if "out" in op_schema.kwargs_schema.keys():
-        grad_spec: DTensorSpec = op_schema.kwargs_schema["out"].children[0].strategies[0].output_spec
+        grad_spec: DTensorSpec = op_schema.kwargs_schema["out"].childs[0].strategies[0].output_spec
     else:
         grad_spec: DTensorSpec = grad_strategy.strategies[0].output_spec
     input_target_specs = []
@@ -607,7 +617,7 @@ def npu_apply_adam_w_strategy(op_schema: OpSchema) -> OpStrategy:
     output_spec = []
     for k, values in op_schema.kwargs_schema.items():
         if k == 'out':
-            for v in values.children:
+            for v in values.childs:
                 output_spec.append(v.strategies[0].output_spec)
     output_strategy = OpStrategy([
         PlacementStrategy(output_specs=tuple(output_spec), input_specs=input_target_specs)
@@ -630,15 +640,14 @@ def _npu_apply_adam_w_handler(
     DTensor._op_dispatcher.sharding_propagator.propagate(op_info)
     output_sharding = op_info.output_sharding
 
-    mesh = op_info.compute_mesh
+    mesh = op_info.mesh
     participating = mesh.get_coordinate() is not None
     if participating:
         # computation that happens in the current rank of the mesh, normal case
         if output_sharding.needs_redistribute:
             DTensor._op_dispatcher.redistribute_local_args(
                 op_info,
-                output_sharding.redistribute_schema,
-                output_sharding.use_val_from_redistribute_schema,
+                output_sharding.redistribute_schema
             )
         local_args = (
                 pytree.tree_unflatten(
@@ -650,7 +659,7 @@ def _npu_apply_adam_w_handler(
 
         local_results = torch_npu.npu_apply_adam_w(*local_args, **op_info.local_kwargs)
 
-    if op_info.schema.is_out_variant_op():
+    if _is_out_variant_op(op_call):
         output_specs = (
             (output_sharding.output_spec,)
             if not isinstance(output_sharding.output_spec, tuple)

@@ -168,9 +168,8 @@ def npu_rms_norm_backward_strategy(mesh: DeviceMesh, op_schema: OpSchema) -> OpS
 
 
 @register_op_strategy(npu.npu_add_rms_norm.default)
-def npu_add_rms_norm_strategy(op_schema: OpSchema) -> OpStrategy:
+def npu_add_rms_norm_strategy(mesh: DeviceMesh, op_schema: OpSchema) -> OpStrategy:
     # func: npu_add_rms_norm(Tensor x1, Tensor x2, Tensor gamma, float epsilon=1e-06) -> (Tensor, Tensor, Tensor)
-    mesh = op_schema.get_mesh_from_args(validate=False)
     expected_args_len = 3
     (
         x1_strategy,
@@ -238,7 +237,7 @@ def npu_add_rms_norm_strategy(op_schema: OpSchema) -> OpStrategy:
         output_target_spec = (y_target_spec, rstd_target_spec, x_target_spec)
 
         output_strategy.strategies.append(
-            OpSpec(
+            PlacementStrategy(
                 output_specs=output_target_spec,
                 input_specs=op_args_target_specs,
                 redistribute_cost=redistribute_costs,
@@ -398,7 +397,7 @@ def custom_npu_conv2d_strategy(x, weight, bias, stride, padding, dilation, group
         ]
     )
     acceptable_shardings.append(replicate_strategy)
-    
+
     # x layout: (N, Ci, Hi, Wi)
     # weight layout: (Co, Ci/groups, Hk, Wk)
     # bias layout: (Co)
@@ -505,7 +504,7 @@ def is_tensor_evenly_shardable(shape, spec):
         raise ValueError("'shape' must have at least 1 dimension (empty shape is invalid).")
     if len(spec.placements) == 0:
         raise ValueError("'spec.placements' cannot be empty (must have at least one placement).")
-    
+
     shards_map = [1] * len(shape)
     for i, placement in enumerate(spec.placements):
         if placement.is_shard():
@@ -520,18 +519,16 @@ def is_tensor_evenly_shardable(shape, spec):
 
 
 @register_op_strategy(npu.npu_cross_entropy_loss.default, schema_info=RuntimeSchemaInfo(3))
-def custom_cross_entropy_loss_sharding(op_schema: OpSchema):
+def custom_cross_entropy_loss_sharding(mesh: DeviceMesh, op_schema: OpSchema):
     single_mesh_dim_strategies = []
 
     args_schema = op_schema.args_schema
-    
+
     input_strategy = args_schema[0] if len(args_schema) > 0 else None
     target_strategy = args_schema[1] if len(args_schema) > 1 else None
     weight_strategy = args_schema[2] if len(args_schema) > 2 else None
     reduction = args_schema[3] if len(args_schema) > 3 else 'mean'
 
-    mesh = input_strategy.mesh
-    
     all_replicate: PlacementList = [
         Replicate(), # loss
         Replicate(), # log_prob
@@ -567,15 +564,13 @@ def custom_cross_entropy_loss_sharding(op_schema: OpSchema):
 
 
 @register_op_strategy(npu.npu_cross_entropy_loss_backward.default, schema_info=RuntimeSchemaInfo(6))
-def custom_cross_entropy_loss_backward_strategy(op_schema: OpSchema):
+def custom_cross_entropy_loss_backward_strategy(mesh: DeviceMesh, op_schema: OpSchema):
     single_mesh_dim_strategies = []
     args_schema = op_schema.args_schema
     grad_loss_strategy = args_schema[0] if len(args_schema) > 0 else None
     weight_strategy = args_schema[3] if len(args_schema) > 3 else None
     lse_for_zloss_strategy = args_schema[5] if len(args_schema) > 5 else None
     reduction = args_schema[6] if len(args_schema) > 6 else 'mean'
-
-    mesh = grad_loss_strategy.mesh
 
     all_replicate: PlacementList = [
         Replicate(),

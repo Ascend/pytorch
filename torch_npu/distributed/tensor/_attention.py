@@ -30,13 +30,13 @@ def npu_fusion_attention_strategy(query, key, value, head_num, input_layout, pse
                                   atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647,
                                   next_tockens=2147483647, inner_precise=0, prefix=None, actual_seq_qlen=None,
                                   actual_seq_kvlen=None, sparse_mode=0, gen_mask_parallel=True, sync=False,
-                                  softmax_layout=""):
+                                  softmax_layout="", sink=None):
     # func: npu_fusion_attention(Tensor query, Tensor key, Tensor value, int head_num, str input_layout,
     #                            Tensor? pse=None, Tensor? padding_mask=None, Tensor? atten_mask=None, float scale=1.,
     #                            float keep_prob=1., int pre_tockens=2147483647, int next_tockens=2147483647,
     #                            int inner_precise=0, int[]? prefix=None, int[]? actual_seq_qlen=None,
     #                            int[]? actual_seq_kvlen=None, int sparse_mode=0, bool gen_mask_parallel=True,
-    #                            bool sync=False, str softmax_layout="")
+    #                            bool sync=False, str softmax_layout="", Tensor? sink=None)
     #                           -> (Tensor, Tensor, Tensor, Tensor, int, int, int)
     strategies = []
 
@@ -58,14 +58,15 @@ def npu_fusion_attention_strategy(query, key, value, head_num, input_layout, pse
             None if pse is None else Replicate(),          # pse
             None if padding_mask is None else Replicate(), # padding_mask
             None if atten_mask is None else Replicate(),   # atten_mask
-            None, None, None, None, None, None, None, None, None, None, None, None # others
+            None, None, None, None, None, None, None, None, None, None, None, None, # others
+            None if sink is None else Replicate() # sink
         ]
     )
     strategies.append(replicate_strategy)
 
     # only support sharding for sdpa currently, in which pse and padding_mask are not used
     # keep_prob < 1.0 may effect different results under sharding
-    unused_args_in_sdpa = [pse, padding_mask, prefix, actual_seq_qlen, actual_seq_kvlen]
+    unused_args_in_sdpa = [pse, padding_mask, prefix, actual_seq_qlen, actual_seq_kvlen, sink]
     if not all(arg is None for arg in unused_args_in_sdpa) or keep_prob < 1.0:
         return strategies
 
@@ -97,7 +98,8 @@ def npu_fusion_attention_strategy(query, key, value, head_num, input_layout, pse
                 None,                # pse
                 None,                # padding_mask
                 atten_mask_sharding, # atten_mask
-                None, None, None, None, None, None, None, None, None, None, None, None # others
+                None, None, None, None, None, None, None, None, None, None, None, None, # others
+                None # sink
             ]
         )
         strategies.append(dp_sharding_strategy)
@@ -128,7 +130,8 @@ def npu_fusion_attention_strategy(query, key, value, head_num, input_layout, pse
                 None,                # pse
                 None,                # padding_mask
                 atten_mask_sharding, # atten_mask
-                None, None, None, None, None, None, None, None, None, None, None, None # others
+                None, None, None, None, None, None, None, None, None, None, None, None, # others
+                None # sink
             ]
         )
         strategies.append(tp_sharding_strategy)
@@ -142,7 +145,7 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
                                        attention_in=None, scale_value=1., keep_prob=1., pre_tockens=2147483647,
                                        next_tockens=2147483647, inner_precise=0, seed=0, offset=0, numels=0,
                                        prefix=None, actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0,
-                                       gen_mask_parallel=True, sync=False, softmax_layout=""):
+                                       gen_mask_parallel=True, sync=False, softmax_layout="", sink=None):
     # npu_fusion_attention_grad(Tensor query, Tensor key, Tensor value, Tensor dy, int head_num, str input_layout, *,
     #                           Tensor? pse=None, Tensor? padding_mask=None, Tensor? atten_mask=None,
     #                           Tensor? softmax_max=None, Tensor? softmax_sum=None, Tensor? softmax_in=None,
@@ -150,8 +153,8 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
     #                           int pre_tockens=2147483647, int next_tockens=2147483647, int inner_precise=0,
     #                           int seed=0, int offset=0, int numels=0, int[]? prefix=None,
     #                           int[]? actual_seq_qlen=None, int[]? actual_seq_kvlen=None, int sparse_mode=0,
-    #                           bool gen_mask_parallel=True, bool sync=False, str softmax_layout="")
-    #                          -> (Tensor, Tensor, Tensor, Tensor)
+    #                           bool gen_mask_parallel=True, bool sync=False, str softmax_layout="", Tensor? sink=None)
+    #                          -> (Tensor, Tensor, Tensor, Tensor, Tensor)
     strategies = []
 
     # all replicate strategy
@@ -160,7 +163,8 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
             Replicate(), # grad_query
             Replicate(), # grad_key
             Replicate(), # grad_value
-            Replicate()  # grad_pse(reserve, unused now)
+            Replicate(), # grad_pse(reserve, unused now)
+            Replicate()  # grad_sink
         ],
         [
             Replicate(), # query
@@ -176,14 +180,15 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
             None if softmax_sum is None else Replicate(),  # softmax_sum
             None if softmax_in is None else Replicate(),   # softmax_in(reserve, unused now)
             None if attention_in is None else Replicate(), # attention_in
-            None, None, None, None, None, None, None, None, None, None, None, None, None, None, None # others
+            None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, # others
+            None if sink is None else Replicate() # sink
         ]
     )
     strategies.append(replicate_strategy)
 
     # only support sharding for sdpa currently, in which pse and padding_mask are not used
     # keep_prob < 1.0 may effect different results under sharding
-    unused_args_in_sdpa = [pse, padding_mask, prefix, actual_seq_qlen, actual_seq_kvlen]
+    unused_args_in_sdpa = [pse, padding_mask, prefix, actual_seq_qlen, actual_seq_kvlen, sink]
     if not all(arg is None for arg in unused_args_in_sdpa) or keep_prob < 1.0:
         return strategies
 
@@ -203,7 +208,8 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
                 Shard(batch_dim), # grad_query
                 Shard(batch_dim), # grad_key
                 Shard(batch_dim), # grad_value
-                Replicate()       # grad_pse(reserve, unused now)
+                Replicate(),      # grad_pse(reserve, unused now)
+                Replicate()       # grad_sink(unsupported now)
             ],
             [
                 Shard(batch_dim),    # query
@@ -219,7 +225,8 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
                 Shard(0) if softmax_sum is not None else None,          # softmax_sum layout: BNS8
                 None if softmax_in is None else Replicate(),            # softmax_in(reserve, unused now)
                 Shard(batch_dim) if attention_in is not None else None, # attention_in
-                None, None, None, None, None, None, None, None, None, None, None, None, None, None, None # others
+                None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, # others
+                None # sink
             ]
         )
         strategies.append(dp_sharding_strategy)
@@ -238,7 +245,8 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
                 Shard(head_dim), # grad_query
                 Shard(head_dim), # grad_key
                 Shard(head_dim), # grad_value
-                Replicate()      # grad_pse(reserve, unused now)
+                Replicate(),     # grad_pse(reserve, unused now)
+                Replicate()      # grad_sink(unsupported now)
             ],
             [
                 Shard(head_dim),     # query
@@ -254,7 +262,8 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
                 Shard(1) if softmax_sum is not None else None,         # softmax_sum layout: BNS8
                 None if softmax_in is None else Replicate(),           # softmax_in(reserve, unused now)
                 Shard(head_dim) if attention_in is not None else None, # attention_in
-                None, None, None, None, None, None, None, None, None, None, None, None, None, None, None # others
+                None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, # others
+                None # sink
             ]
         )
         strategies.append(tp_sharding_strategy)
@@ -368,7 +377,7 @@ def _npu_fusion_attention_handler(
     DTensor._op_dispatcher.sharding_propagator.propagate(op_info)
     output_sharding = op_info.output_sharding
 
-    mesh = op_info.compute_mesh
+    mesh = op_info.mesh
     participating = mesh.get_coordinate() is not None
     if participating:
         # computation that happens in the current rank of the mesh, normal case
