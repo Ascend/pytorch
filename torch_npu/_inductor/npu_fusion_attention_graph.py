@@ -13,9 +13,9 @@ npu_lib = Library("npu_graph", "IMPL", "PrivateUse1")
 meta_lib = Library("npu_graph", "IMPL", "Meta")
 
 npu_def.define(
-    "npu_fa(Tensor query, Tensor key, Tensor value, int head_num, str input_layout, Tensor? pse=None, Tensor? padding_mask=None, Tensor? atten_mask=None, float scale=1., float keep_prob=1., int pre_tockens=2147483647, int next_tockens=2147483647, int inner_precise=0, int[]? prefix=None, int[]? actual_seq_qlen=None, int[]? actual_seq_kvlen=None, int sparse_mode=0, bool gen_mask_parallel=True, bool sync=False) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)")
+    "npu_fa(Tensor query, Tensor key, Tensor value, int head_num, str input_layout, Tensor? pse=None, Tensor? padding_mask=None, Tensor? atten_mask=None, float scale=1., float keep_prob=1., int pre_tockens=2147483647, int next_tockens=2147483647, int inner_precise=0, int[]? prefix=None, int[]? actual_seq_qlen=None, int[]? actual_seq_kvlen=None, int sparse_mode=0, bool gen_mask_parallel=True, bool sync=False, str softmax_layout=\"\", Tensor? sink=None) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)")
 npu_def.define(
-    "npu_fa_backward(Tensor query, Tensor key, Tensor value, Tensor dy, int head_num, str input_layout, *, Tensor? pse=None, Tensor? padding_mask=None, Tensor? atten_mask=None, Tensor? softmax_max=None, Tensor? softmax_sum=None, Tensor? softmax_in=None, Tensor? attention_in=None, float scale_value=1., float keep_prob=1., int pre_tockens=2147483647, int next_tockens=2147483647, int inner_precise=0, Tensor? seed=None, Tensor? offset=None, Tensor? numels=None, int[]? prefix=None, int[]? actual_seq_qlen=None, int[]? actual_seq_kvlen=None, int sparse_mode=0, bool gen_mask_parallel=True, bool sync=False) -> (Tensor, Tensor, Tensor, Tensor)")
+    "npu_fa_backward(Tensor query, Tensor key, Tensor value, Tensor dy, int head_num, str input_layout, *, Tensor? pse=None, Tensor? padding_mask=None, Tensor? atten_mask=None, Tensor? softmax_max=None, Tensor? softmax_sum=None, Tensor? softmax_in=None, Tensor? attention_in=None, float scale_value=1., float keep_prob=1., int pre_tockens=2147483647, int next_tockens=2147483647, int inner_precise=0, Tensor? seed=None, Tensor? offset=None, Tensor? numels=None, int[]? prefix=None, int[]? actual_seq_qlen=None, int[]? actual_seq_kvlen=None, int sparse_mode=0, bool gen_mask_parallel=True, bool sync=False, str softmax_layout=\"\", Tensor? sink=None) -> (Tensor, Tensor, Tensor, Tensor, Tensor)")
 
 
 @impl(npu_lib, "npu_fa")
@@ -47,7 +47,7 @@ def npu_fa_backward(*args, **kwargs):
 def npu_fa(query, key, value, head_num, input_layout, pse=None, padding_mask=None,
            atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647,
            inner_precise=0, prefix=None, actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0,
-           gen_mask_parallel=True, sync=False):
+           gen_mask_parallel=True, sync=False, softmax_layout="", sink=None):
     B = query.size(0)
     N = head_num
     S1 = query.size(2)
@@ -81,12 +81,14 @@ def npu_fa_backward(query, key, value, dy, head_num, input_layout, *, pse=None, 
                     softmax_max=None, softmax_sum=None, softmax_in=None, attention_in=None, scale_value=1.0,
                     keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647, inner_precise=0, seed=0, offset=0,
                     numels=0, prefix=None, actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0,
-                    gen_mask_parallel=True, sync=False):
+                    gen_mask_parallel=True, sync=False, softmax_layout="", sink=None):
     dq = torch.empty_like(query, dtype=query.dtype, device='meta').contiguous()
     dk = torch.empty_like(key, dtype=query.dtype, device='meta').contiguous()
     dv = torch.empty_like(value, dtype=query.dtype, device='meta').contiguous()
     dpse = torch.empty([0], dtype=query.dtype, device='meta').contiguous()
-    return (torch.empty_like(dq), torch.empty_like(dk), torch.empty_like(dv), torch.empty_like(dpse) if pse else None)
+    dsink = torch.empty([], device='meta') if sink is None else torch.empty_like(sink, dtype=sink.dtype, device='meta').contiguous()
+    return (torch.empty_like(dq), torch.empty_like(dk), torch.empty_like(dv),
+            torch.empty_like(dpse) if pse else None, dsink)
 
 
 class NpuGraphAttentionFunction(Function):
@@ -127,7 +129,7 @@ class NpuGraphAttentionFunction(Function):
         query, key, value, pse, padding_mask, atten_mask, result1, result2, result3, result0, result4, result5, result6 = ctx.saved_tensors
         # 反向传播逻辑
         # 这里假设有一个实现反向传播的函数 `npu_fusion_attention_backward`
-        grad_query, grad_key, grad_value, grad_pse = torch.ops.npu_graph.npu_fa_backward(
+        grad_query, grad_key, grad_value, grad_pse, grad_sink = torch.ops.npu_graph.npu_fa_backward(
             query, key, value, grad_result0, ctx.head_num, ctx.input_layout, pse=pse, padding_mask=padding_mask,
             atten_mask=atten_mask, softmax_max=result1, softmax_sum=result2, softmax_in=result3, attention_in=result0,
             scale_value=ctx.scale, keep_prob=ctx.keep_prob, pre_tockens=ctx.pre_tockens, next_tockens=ctx.next_tockens,
