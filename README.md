@@ -10,7 +10,7 @@ Ascend is a full-stack AI computing infrastructure for industry applications and
 
 ### From Binary
 
-Provide users with wheel package to quickly install **torch_npu**. Before installing **torch_npu**, complete the installation of **CANN** according to [Ascend Auxiliary Software](#ascend-auxiliary-software). To obtain the **CANN** installation package, refer to the [CANN Installation](https://www.hiascend.com/en/software/cann/community).
+Provide users with wheel package to quickly install **torch_npu**. Before installing **torch_npu**, complete the installation of **CANN** according to [Ascend Auxiliary Software](#ascend-auxiliary-software). To obtain the **CANN** installation package, refer to the [CANN Installation](https://www.hiascend.com/cann).
 
 1. **Install PyTorch**
 
@@ -152,14 +152,14 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 
 | CANN Version          | Supported PyTorch Version | Supported Extension Version | Github Branch     |
 |-----------------------|---------------------------|-----------------------------|-------------------|
-| CANN 8.3.RC1.alpha003 | 2.9.0                     | 2.9.0rc1                    | v2.9.0            |
-| CANN 8.3.RC1          | 2.8.0         | 2.8.0            | v2.8.0-7.2.0      |
-|                       | 2.7.1        | 2.7.1      | v2.7.1-7.2.0      |
-|                       | 2.6.0        | 2.6.0.post3      | v2.6.0-7.2.0      |
-|                       | 2.1.0        | 2.1.0.post17     | v2.1.0-7.2.0      |
-| CANN 8.2.RC1          | 2.6.0         | 2.6.0            | v2.6.0-7.1.0      |
-|                       | 2.5.1        | 2.5.1.post1      | v2.5.1-7.1.0      |
-|                       | 2.1.0        | 2.1.0.post13     | v2.1.0-7.1.0      |
+| CANN 8.5.0            | 2.9.0                     | 2.9.0                       | v2.9.0-7.3.0      |
+|                       | 2.8.0                     | 2.8.0.post2                 | v2.8.0-7.3.0      |
+|                       | 2.7.1                     | 2.7.1.post2                 | v2.7.1-7.3.0      |
+|                       | 2.6.0                     | 2.6.0.post5                 | v2.6.0-7.3.0      |
+| CANN 8.3.RC1          | 2.8.0                     | 2.8.0                       | v2.8.0-7.2.0      |
+|                       | 2.7.1                     | 2.7.1                       | v2.7.1-7.2.0      |
+|                       | 2.6.0                     | 2.6.0.post3                 | v2.6.0-7.2.0      |
+|                       | 2.1.0                     | 2.1.0.post17                | v2.1.0-7.2.0      |
 | CANN 8.2.RC1          | 2.6.0                     | 2.6.0                       | v2.6.0-7.1.0      |
 |                       | 2.5.1                     | 2.5.1.post1                 | v2.5.1-7.1.0      |
 |                       | 2.1.0                     | 2.1.0.post13                | v2.1.0-7.1.0      |
@@ -254,17 +254,17 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 | **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
 |-------------|--------------------------|-------------|-----------------|-------------------------------------------------------------------|--------------|
-| 2.9.0       | Regular Release          | Development | 2025/10/15      | Expected to enter maintenance status from April 15, 2026          | -            |
+| 2.9.0         | Regular Release        | Development       | 2025/10/15 | Expected to enter maintenance status from March 15, 2026  | -         | 
 | 2.8.0         | Regular Release        | Development       | 2025/10/15 | Expected to enter maintenance status from March 15, 2026  | -         | 
-| 2.7.1       | Long Term Support          | Development | 2025/10/15      | Expected to enter maintenance status from September 15, 2026           |              |
+| 2.7.1       | Long Term Support          | Development | 2025/10/15      | Expected to enter maintenance status from October 15, 2026           |              |
 | 2.6.0         | Regular Release        | Development       | 2025/07/25 | Expected to enter maintenance status from January 15, 2026  | -         | 
 | 2.5.1       | Regular Release          | Maintained | 2024/11/08      | Expected to enter maintenance  free status from August 8, 2026           |              |
 | 2.4.0       | Regular Release          | Maintained | 2024/10/15      | Expected to enter maintenance free status from June 15, 2026           |              |
 | 2.3.1       | Regular Release          | Maintained | 2024/06/06      | Expected to enter maintenance free status from June 7, 2026            |              |
-| 2.2.0       | Regular Release          | Maintained  | 2024/04/01      | Expected to enter maintenance free status from September 10, 2025 |              |
-| 2.1.0       | Long Term Support        | Development | 2023/10/15      | Expected to enter maintenance status from September 15, 2025      |              |
+| 2.2.0       | Regular Release          | EOL         | 2024/04/01      |                                                                   | 2025/10/14    |
+| 2.1.0       | Long Term Support        | Maintained  | 2023/10/15      | Expected to enter maintenance free status from December 30, 2026   |              |
 | 2.0.1       | Regular Release          | EOL         | 2023/7/19       |                                                                   | 2024/3/14    |
-| 1.11.0      | Long Term Support        | Maintained  | 2023/4/19       | Expected to enter maintenance free status from September 10, 2025 |              |
+| 1.11.0      | Long Term Support        | EOL         | 2023/4/19       |                                                                   | 2025/10/25   |
 | 1.8.1       | Long Term Support        | EOL         | 2022/4/10       |                                                                   | 2023/4/10    |
 | 1.5.0       | Long Term Support        | EOL         | 2021/7/29       |                                                                   | 2022/7/29    |
 
