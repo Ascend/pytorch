@@ -239,7 +239,7 @@ def npu_add_rms_norm_strategy(op_schema: OpSchema) -> OpStrategy:
         output_target_spec = (y_target_spec, rstd_target_spec, x_target_spec)
 
         output_strategy.strategies.append(
-            OpSpec(
+            PlacementStrategy(
                 output_specs=output_target_spec,
                 input_specs=op_args_target_specs,
                 redistribute_cost=redistribute_costs,
@@ -399,7 +399,7 @@ def custom_npu_conv2d_strategy(x, weight, bias, stride, padding, dilation, group
         ]
     )
     acceptable_shardings.append(replicate_strategy)
-    
+
     # x layout: (N, Ci, Hi, Wi)
     # weight layout: (Co, Ci/groups, Hk, Wk)
     # bias layout: (Co)
@@ -526,14 +526,14 @@ def custom_cross_entropy_loss_sharding(op_schema: OpSchema):
     single_mesh_dim_strategies = []
 
     args_schema = op_schema.args_schema
-    
+
     input_strategy = args_schema[0] if len(args_schema) > 0 else None
     target_strategy = args_schema[1] if len(args_schema) > 1 else None
     weight_strategy = args_schema[2] if len(args_schema) > 2 else None
     reduction = args_schema[3] if len(args_schema) > 3 else 'mean'
 
     mesh = input_strategy.mesh
-    
+
     all_replicate: PlacementList = [
         Replicate(), # loss
         Replicate(), # log_prob

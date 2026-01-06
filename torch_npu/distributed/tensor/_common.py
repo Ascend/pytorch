@@ -24,8 +24,7 @@ def get_redistributed_local_args(
     if output_sharding.needs_redistribute:
         DTensor._op_dispatcher.redistribute_local_args(
             op_info,
-            output_sharding.redistribute_schema,
-            output_sharding.use_val_from_redistribute_schema,
+            output_sharding.redistribute_schema
         )
     local_args = (
         pytree.tree_unflatten(

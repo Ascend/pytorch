@@ -10,6 +10,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTe
 import torch_npu
 from torch_npu.testing.testcase import run_tests
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 def get_atten_mask(shape, sparse_mode=0, pre_tokens=65536, next_tokens=65536):
@@ -27,7 +28,16 @@ def get_atten_mask(shape, sparse_mode=0, pre_tokens=65536, next_tokens=65536):
 
 
 class TestAttentionOps(DTensorTestBase):
-    @skipIfUnsupportMultiNPU(4)
+    @property
+    def world_size(self):
+        device_count = torch.npu.device_count()
+        device_num = 4
+        if device_count > 1:
+            device_num = min(device_num, device_count)
+        return device_num
+    
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     @parametrize(
         "sparse_mode,pre_tokens,next_tokens",
@@ -79,7 +89,8 @@ class TestAttentionOps(DTensorTestBase):
             else:
                 test_placement_comb([placement], [placement], [placement], [placement])
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     @parametrize(
         "sparse_mode,pre_tokens,next_tokens",
@@ -138,7 +149,8 @@ class TestAttentionOps(DTensorTestBase):
             else:
                 test_placement_comb([placement], [placement], [placement], [placement])
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_fusion_attention_bsnd(self):
         device_mesh = self.build_device_mesh()
@@ -174,7 +186,8 @@ class TestAttentionOps(DTensorTestBase):
         for placement in placements:
             test_placement_comb([placement], [placement], [placement])
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_fusion_attention_bsh(self):
         device_mesh = self.build_device_mesh()
@@ -210,7 +223,8 @@ class TestAttentionOps(DTensorTestBase):
         for placement in placements:
             test_placement_comb([placement], [placement], [placement])
 
-    @skipIfUnsupportMultiNPU(4)
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_npu_fusion_attention_tnd(self):
         device_mesh = self.build_device_mesh()
