@@ -283,8 +283,8 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Finalize()
             NPU_CHECK_WARN(c10_npu::DestroyUsedStreams());
             NPU_CHECK_WARN(c10_npu::ResetUsedDevices());
 #ifndef BUILD_LIBTORCH
-            if (c10d::symmetric_memory::Shmem_finalize_exist()) {
-                auto ret = c10d::symmetric_memory::Shmem_finalize();
+            if (c10d::symmetric_memory::Aclshmem_finalize_exist()) {
+                auto ret = c10d::symmetric_memory::Aclshmem_finalize();
                 ASCEND_LOGI("shmem_finalize emd, ret is %d", ret);
             }
 #endif
