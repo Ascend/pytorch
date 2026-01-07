@@ -184,6 +184,11 @@ public:
         return getStats();
     }
 
+    bool pinned_use_background_threads() override
+    {
+        return c10_npu::NPUCachingAllocator::CachingAllocatorConfig::pinned_use_background_threads();
+    }
+
 private:
     void allocate_host_memory(size_t size, void** ptr) override
     {
