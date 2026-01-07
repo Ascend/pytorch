@@ -60,7 +60,7 @@ from torch._inductor.utils import (
     upcast_compute_type,
     sympy_product
 )
-from torch._inductor.utils import sympy_index_symbol, generate_assert, triton_dtype
+from torch._inductor.utils import sympy_index_symbol, generate_assert
 from torch._inductor.utils import sympy_subs
 from torch._inductor.virtualized import (
     V,
@@ -172,6 +172,7 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
 
 @staticmethod
 def truediv(x, y):
+    from torch._inductor.codegen.triton import triton_type
     out = f"({x} / {y})"
     if low_precision_fp_var(x) or low_precision_fp_var(y):
         out_dtype = get_dtype_handler().truediv(x, y)
