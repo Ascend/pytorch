@@ -58,6 +58,7 @@ else:
 
 
     def _inductor_register_device_op_overrides():
+        from torch._inductor.codegen import cpu_device_op_overrides
         register_device_op_overrides('npu', NewNPUDeviceOpOverrides())
 
 
@@ -86,13 +87,6 @@ else:
 
         patch_aot_code_compiler_compile()
 
-        if os.environ.get("PRE_GRAPH_OPTIMIZER") == "1":
-            from .fx_passes.graph_match_pass import pre_grad_custom_pass_fuc
-            pre_grad_custom_pass_fuc()
-        if os.environ.get("POST_GRAD_GRAPH_OPTIMIZER") == "1":
-            from .fx_passes.graph_match_pass import post_grad_custom_pass_fuc
-            post_grad_custom_pass_fuc()
-
     if os.environ.get("DISABLE_AOTI_PATCH", "0") != "1":
         patch_torch_for_aoti()
 
@@ -109,6 +103,16 @@ else:
 
     _register_npu_inductor_fallbacks()
     _register_npu_inductor_decompositons()
+
+    if os.environ.get("PRE_GRAPH_OPTIMIZER") == "1":
+        from .fx_passes.pre_graph import pre_grad_custom_pass_fuc
+
+        pre_grad_custom_pass_fuc()
+
+    if os.environ.get("POST_GRAD_GRAPH_OPTIMIZER") == "1":
+        from .fx_passes.graph_match_pass import post_grad_custom_pass_fuc
+
+        post_grad_custom_pass_fuc()
 
 
     # register fx_pass should be put behind of _register_npu_inductor_decompositons

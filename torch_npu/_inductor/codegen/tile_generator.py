@@ -31,6 +31,8 @@ class TileGenerator:
         self.sub_block_name = {}
         self.persistent_reduction = persistent_reduction
         self.dual_reduction = dual_reduction
+        self.input_ptr_num = 3 if input_ptr_num == 0 else min(input_ptr_num, 3)
+        self.max_numel_threshold = 256 // self.input_ptr_num * 1024
         for axis, name in enumerate(self.axis_name):
             if axis not in tiling_axis and axis not in split_axis:
                 self.blocks[axis] = 1
@@ -64,7 +66,7 @@ class TileGenerator:
 
     def valid_tile_numel(self, total_numel):
         byte_num = self.dtype_bytes
-        max_numel = 16384 * 4 // byte_num
+        max_numel = self.max_numel_threshold // byte_num
         return total_numel <= max_numel
 
     def calculate_config_numel(self, cfg):
