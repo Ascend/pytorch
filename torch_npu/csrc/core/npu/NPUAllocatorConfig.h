@@ -4,117 +4,127 @@
 #include <set>
 
 namespace c10_npu {
-    namespace NPUCachingAllocator {
-        constexpr size_t kAlignRoundLarge = 16384;            // round up large allocs to 16 KB
-        constexpr size_t kSmallBuffer = 2097152;              // "small" allocations are packed in 2 MiB blocks
-        constexpr size_t kLargeBuffer = 20971520;             // "large" allocations may be packed in 20 MiB blocks
-        constexpr size_t kMB = 1024 * 1024;                   // 1 MB
-        constexpr size_t k20MB = 20;                          // 20 MB for segmemt_size
-        constexpr size_t k512MB = 512;                        // 512 MB for segmemt_size
-        constexpr size_t kRoundUpPowerOfTwoStart = 1ULL << 20; // 1 MB
-        constexpr size_t kRoundUpPowerOfTwoEnd = 1ULL << 36;   // 64 GB
-        constexpr size_t kRoundUpPowerOfTwoIntervals = 16;
+namespace NPUCachingAllocator {
+constexpr size_t kAlignRoundLarge = 16384;            // round up large allocs to 16 KB
+constexpr size_t kSmallBuffer = 2097152;              // "small" allocations are packed in 2 MiB blocks
+constexpr size_t kLargeBuffer = 20971520;             // "large" allocations may be packed in 20 MiB blocks
+constexpr size_t kMB = 1024 * 1024;                   // 1 MB
+constexpr size_t k20MB = 20;                          // 20 MB for segmemt_size
+constexpr size_t k512MB = 512;                        // 512 MB for segmemt_size
+constexpr size_t kRoundUpPowerOfTwoStart = 1ULL << 20; // 1 MB
+constexpr size_t kRoundUpPowerOfTwoEnd = 1ULL << 36;   // 64 GB
+constexpr size_t kRoundUpPowerOfTwoIntervals = 16;
 
-        class CachingAllocatorConfig {
-        public:
-            static size_t max_split_size()
-            {
-                return instance().m_max_split_size;
-            }
+class CachingAllocatorConfig {
+public:
+    static size_t max_split_size()
+    {
+        return instance().m_max_split_size;
+    }
 
-            static double garbage_collection_threshold()
-            {
-                return instance().m_garbage_collection_threshold;
-            }
+    static double garbage_collection_threshold()
+    {
+        return instance().m_garbage_collection_threshold;
+    }
 
-            static bool expandable_segments()
-            {
-                return instance().m_expandable_segments;
-            }
+    static bool expandable_segments()
+    {
+        return instance().m_expandable_segments;
+    }
 
-            static bool pin_memory_expandable_segments()
-            {
-                return instance().m_pin_memory_expandable_segments;
-            }
+    static bool pin_memory_expandable_segments()
+    {
+        return instance().m_pin_memory_expandable_segments;
+    }
 
-            static size_t base_addr_aligned_size()
-            {
-                return instance().m_base_addr_aligned_size;
-            }
+    static size_t base_addr_aligned_size()
+    {
+        return instance().m_base_addr_aligned_size;
+    }
 
-            static bool page_size_1g_enable()
-            {
-                return instance().m_page_size_1g;
-            }
+    static bool page_size_1g_enable()
+    {
+        return instance().m_page_size_1g;
+    }
 
-            static size_t segment_size_mb()
-            {
-                return instance().m_segment_size_mb;
-            }
+    static size_t segment_size_mb()
+    {
+        return instance().m_segment_size_mb;
+    }
 
-            static size_t roundup_power2_divisions(size_t size);
+    static size_t roundup_power2_divisions(size_t size);
 
-            static CachingAllocatorConfig &instance()
-            {
-                static CachingAllocatorConfig *s_instance = ([]() {
-                    auto inst = new CachingAllocatorConfig();
-                    const char *env = getenv("PYTORCH_NPU_ALLOC_CONF");
-                    inst->parseArgs(env);
-                    return inst;
-                })();
-                return *s_instance;
-            }
+    static size_t pinned_use_background_threads()
+    {
+        return instance().m_pinned_use_background_threads;
+    }
 
-            void parseArgs(const char *env, std::set<std::string> supported_settings = {});
+    static CachingAllocatorConfig &instance()
+    {
+        static CachingAllocatorConfig *s_instance = ([]() {
+            auto inst = new CachingAllocatorConfig();
+            const char *env = getenv("PYTORCH_NPU_ALLOC_CONF");
+            inst->parseArgs(env);
+            return inst;
+        })();
+        return *s_instance;
+    }
 
-        private:
-            size_t m_max_split_size;
+    void parseArgs(const char *env, std::set<std::string> supported_settings = {});
 
-            double m_garbage_collection_threshold;
+private:
+    size_t m_max_split_size;
 
-            bool m_expandable_segments;
+    double m_garbage_collection_threshold;
 
-            bool m_pin_memory_expandable_segments;
+    bool m_expandable_segments;
 
-            bool set_expandable_segments_flag = false;
+    bool m_pin_memory_expandable_segments;
 
-            size_t m_base_addr_aligned_size = kAlignRoundLarge;
+    bool set_expandable_segments_flag = false;
 
-            bool m_page_size_1g = false; // 新增1G页配置标志
+    size_t m_base_addr_aligned_size = kAlignRoundLarge;
 
-            size_t m_segment_size_mb;
+    bool m_page_size_1g = false; // 新增1G页配置标志
 
-            std::vector<size_t> m_roundup_power2_divisions;
+    size_t m_segment_size_mb;
 
-            CachingAllocatorConfig()
-                : m_max_split_size(std::numeric_limits<size_t>::max()),
-                  m_garbage_collection_threshold(0),
-                  m_expandable_segments(false),
-                  m_pin_memory_expandable_segments(false),
-                  m_base_addr_aligned_size(kAlignRoundLarge),
-                  m_segment_size_mb(0),
-                  m_roundup_power2_divisions(kRoundUpPowerOfTwoIntervals, 0)
-            {}
+    std::vector<size_t> m_roundup_power2_divisions;
 
-            void lexArgs(const char *env, std::vector<std::string> &config);
+    std::atomic<bool> m_pinned_use_background_threads; // A flag to enable background thread for processing events.
 
-            void consumeToken(const std::vector<std::string> &config, size_t i, const char c);
+    CachingAllocatorConfig()
+        : m_max_split_size(std::numeric_limits<size_t>::max()),
+          m_garbage_collection_threshold(0),
+          m_expandable_segments(false),
+          m_pin_memory_expandable_segments(false),
+          m_base_addr_aligned_size(kAlignRoundLarge),
+          m_segment_size_mb(0),
+          m_roundup_power2_divisions(kRoundUpPowerOfTwoIntervals, 0),
+          m_pinned_use_background_threads(false)
+    {}
 
-            size_t parseMaxSplitSize(const std::vector<std::string> &config, size_t i);
+    void lexArgs(const char *env, std::vector<std::string> &config);
 
-            size_t parseGarbageCollectionThreshold(const std::vector<std::string> &config, size_t i);
+    void consumeToken(const std::vector<std::string> &config, size_t i, const char c);
 
-            size_t parseExpandableSegments(const std::vector<std::string> &config, size_t i);
+    size_t parseMaxSplitSize(const std::vector<std::string> &config, size_t i);
 
-            size_t parsePinMemoryExpandableSegments(const std::vector<std::string> &config, size_t i);
+    size_t parseGarbageCollectionThreshold(const std::vector<std::string> &config, size_t i);
 
-            size_t parseAddrAlignSize(const std::vector<std::string> &config, size_t i);
+    size_t parseExpandableSegments(const std::vector<std::string> &config, size_t i);
 
-            size_t parsePageSize(const std::vector<std::string> &config, size_t i);
+    size_t parsePinMemoryExpandableSegments(const std::vector<std::string> &config, size_t i);
 
-            size_t parseSegmentSizeMb(const std::vector<std::string> &config, size_t i);
+    size_t parseAddrAlignSize(const std::vector<std::string> &config, size_t i);
 
-            size_t parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i);
-        };
-    } // namespace NPUCachingAllocator
+    size_t parsePageSize(const std::vector<std::string> &config, size_t i);
+
+    size_t parseSegmentSizeMb(const std::vector<std::string> &config, size_t i);
+
+    size_t parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i);
+
+    size_t parsePinnedUseBackgroundThreads(const std::vector<std::string> &config, size_t i);
+};
+} // namespace NPUCachingAllocator
 } // namespace c10_npu
