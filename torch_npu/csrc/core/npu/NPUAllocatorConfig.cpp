@@ -271,6 +271,19 @@ size_t CachingAllocatorConfig::roundup_power2_divisions(size_t size)
     return instance().m_roundup_power2_divisions[index];
 }
 
+size_t CachingAllocatorConfig::parsePinnedUseBackgroundThreads(const std::vector<std::string> &config, size_t i)
+{
+    consumeToken(config, ++i, ':');
+    if (++i < config.size()) {
+        TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
+            "Expected a single True/False argument for pinned_use_background_threads", PTA_ERROR(ErrCode::PARAM));
+        m_pinned_use_background_threads = (config[i] == "True");
+    } else {
+        TORCH_CHECK(false, "Error, expecting pinned_use_background_threads value", PTA_ERROR(ErrCode::PARAM));
+    }
+    return i;
+}
+
 void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> supported_settings)
 {
     // If empty, set the default values
@@ -309,6 +322,8 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
             i = parseSegmentSizeMb(config, i);
         } else if (config[i] == "roundup_power2_divisions") {
             i = parseRoundUpPower2Divisions(config, i);
+        } else if (config[i] == "pinned_use_background_threads") {
+            i = parsePinnedUseBackgroundThreads(config, i);
         } else {
             TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::PARAM));
         }
