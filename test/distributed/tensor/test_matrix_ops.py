@@ -1,4 +1,5 @@
 import itertools
+import numpy as np
 
 import torch
 from torch.distributed._tensor import distribute_tensor, Replicate, Shard
@@ -503,6 +504,338 @@ class TestGroupedMatMulOp(DTensorTestBase):
         placement_combs = itertools.product(placement, placement, [Shard(0), Replicate()])
         for comb in placement_combs:
             test_placement_comb([comb[0]], [comb[1]], [comb[2]], [comb[2]])
+
+
+class TestApplyAdamW(DTensorTestBase):
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_torch_npu_npu_apply_adam_w_replicate(self):
+        mesh = self.build_device_mesh()
+
+        amsgrad = False
+        maximize = True
+        scalar_shape = [1]
+        input_size = (21130, 512)
+
+        var_npu = torch.randn(input_size, device="npu")
+        m_npu = torch.randn(input_size, device="npu")
+        v_npu = torch.randn(input_size, device="npu")
+        grad_npu = torch.randn(input_size, device="npu")
+
+        var_npu_dtensor = distribute_tensor(var_npu, mesh, [Replicate()])
+        m_npu_dtensor = distribute_tensor(m_npu, mesh, [Replicate()])
+        v_npu_dtensor = distribute_tensor(v_npu, mesh, [Replicate()])
+        grad_npu_dtensor = distribute_tensor(grad_npu, mesh, [Replicate()])
+        
+        np.random.seed(42)
+
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
+        max_grad_norm = None
+        
+        var_ret_npu, m_ret_npu, v_ret_npu = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu, m_npu, v_npu),
+        )
+
+        var_ret_npu_dtensor, m_ret_npu_dtensor, v_ret_npu_dtensor = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu_dtensor,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu_dtensor, m_npu_dtensor, v_npu_dtensor),
+        )
+
+        self.assertEqual(var_ret_npu_dtensor.full_tensor(), var_ret_npu)
+        self.assertEqual(m_ret_npu_dtensor.full_tensor(), m_ret_npu)
+        self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_torch_npu_npu_apply_adam_w_shard00(self):
+        mesh = self.build_device_mesh()
+
+        amsgrad = False
+        maximize = True
+        scalar_shape = [1]
+        input_size = (21130, 512)
+
+        var_npu = torch.randn(input_size, device="npu")
+        m_npu = torch.randn(input_size, device="npu")
+        v_npu = torch.randn(input_size, device="npu")
+        grad_npu = torch.randn(input_size, device="npu")
+
+        var_npu_dtensor = distribute_tensor(var_npu, mesh, [Shard(0)])
+        m_npu_dtensor = distribute_tensor(m_npu, mesh, [Shard(0)])
+        v_npu_dtensor = distribute_tensor(v_npu, mesh, [Shard(0)])
+        grad_npu_dtensor = distribute_tensor(grad_npu, mesh, [Shard(0)])
+        
+        np.random.seed(42)
+
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
+        max_grad_norm = None
+        
+        var_ret_npu, m_ret_npu, v_ret_npu = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu, m_npu, v_npu),
+        )
+
+        var_ret_npu_dtensor, m_ret_npu_dtensor, v_ret_npu_dtensor = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu_dtensor,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu_dtensor, m_npu_dtensor, v_npu_dtensor),
+        )
+
+        self.assertEqual(var_ret_npu_dtensor.full_tensor(), var_ret_npu)
+        self.assertEqual(m_ret_npu_dtensor.full_tensor(), m_ret_npu)
+        self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_torch_npu_npu_apply_adam_w_shard01(self):
+        mesh = self.build_device_mesh()
+
+        amsgrad = False
+        maximize = True
+        scalar_shape = [1]
+        input_size = (21130, 512)
+
+        var_npu = torch.randn(input_size, device="npu")
+        m_npu = torch.randn(input_size, device="npu")
+        v_npu = torch.randn(input_size, device="npu")
+        grad_npu = torch.randn(input_size, device="npu")
+
+        var_npu_dtensor = distribute_tensor(var_npu, mesh, [Shard(0)])
+        m_npu_dtensor = distribute_tensor(m_npu, mesh, [Shard(0)])
+        v_npu_dtensor = distribute_tensor(v_npu, mesh, [Shard(0)])
+        grad_npu_dtensor = distribute_tensor(grad_npu, mesh, [Shard(1)])
+        
+        np.random.seed(42)
+
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
+        max_grad_norm = None
+        
+        var_ret_npu, m_ret_npu, v_ret_npu = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu, m_npu, v_npu),
+        )
+
+        var_ret_npu_dtensor, m_ret_npu_dtensor, v_ret_npu_dtensor = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu_dtensor,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu_dtensor, m_npu_dtensor, v_npu_dtensor),
+        )
+
+        self.assertEqual(var_ret_npu_dtensor.full_tensor(), var_ret_npu)
+        self.assertEqual(m_ret_npu_dtensor.full_tensor(), m_ret_npu)
+        self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_torch_npu_npu_apply_adam_w_shard10(self):
+        mesh = self.build_device_mesh()
+
+        amsgrad = False
+        maximize = True
+        scalar_shape = [1]
+        input_size = (21130, 512)
+
+        var_npu = torch.randn(input_size, device="npu")
+        m_npu = torch.randn(input_size, device="npu")
+        v_npu = torch.randn(input_size, device="npu")
+        grad_npu = torch.randn(input_size, device="npu")
+
+        var_npu_dtensor = distribute_tensor(var_npu, mesh, [Shard(1)])
+        m_npu_dtensor = distribute_tensor(m_npu, mesh, [Shard(1)])
+        v_npu_dtensor = distribute_tensor(v_npu, mesh, [Shard(1)])
+        grad_npu_dtensor = distribute_tensor(grad_npu, mesh, [Shard(0)])
+        
+        np.random.seed(42)
+
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
+        max_grad_norm = None
+        
+        var_ret_npu, m_ret_npu, v_ret_npu = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu, m_npu, v_npu),
+        )
+
+        var_ret_npu_dtensor, m_ret_npu_dtensor, v_ret_npu_dtensor = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu_dtensor,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu_dtensor, m_npu_dtensor, v_npu_dtensor),
+        )
+
+        self.assertEqual(var_ret_npu_dtensor.full_tensor(), var_ret_npu)
+        self.assertEqual(m_ret_npu_dtensor.full_tensor(), m_ret_npu)
+        self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_torch_npu_npu_apply_adam_w_shard11(self):
+        mesh = self.build_device_mesh()
+
+        amsgrad = False
+        maximize = True
+        scalar_shape = [1]
+        input_size = (21130, 512)
+
+        var_npu = torch.randn(input_size, device="npu")
+        m_npu = torch.randn(input_size, device="npu")
+        v_npu = torch.randn(input_size, device="npu")
+        grad_npu = torch.randn(input_size, device="npu")
+
+        var_npu_dtensor = distribute_tensor(var_npu, mesh, [Shard(1)])
+        m_npu_dtensor = distribute_tensor(m_npu, mesh, [Shard(1)])
+        v_npu_dtensor = distribute_tensor(v_npu, mesh, [Shard(1)])
+        grad_npu_dtensor = distribute_tensor(grad_npu, mesh, [Shard(1)])
+        
+        np.random.seed(42)
+
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
+        max_grad_norm = None
+        
+        var_ret_npu, m_ret_npu, v_ret_npu = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu, m_npu, v_npu),
+        )
+
+        var_ret_npu_dtensor, m_ret_npu_dtensor, v_ret_npu_dtensor = torch_npu.npu_apply_adam_w(
+            beta1_power[0],
+            beta2_power[0],
+            lr[0],
+            weight_decay[0],
+            beta1[0],
+            beta2[0],
+            eps[0],
+            grad_npu_dtensor,
+            max_grad_norm,
+            amsgrad,
+            maximize,
+            out=(var_npu_dtensor, m_npu_dtensor, v_npu_dtensor),
+        )
+
+        self.assertEqual(var_ret_npu_dtensor.full_tensor(), var_ret_npu)
+        self.assertEqual(m_ret_npu_dtensor.full_tensor(), m_ret_npu)
+        self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
 
 
 instantiate_parametrized_tests(TestGroupedMatMulOp)
