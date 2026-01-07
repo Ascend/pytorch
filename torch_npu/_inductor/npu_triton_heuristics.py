@@ -1139,6 +1139,8 @@ def triton_config_npu_index(
         cfg = {}
         for x in split_axis:
             cfg[f"{axis_names[x].upper()}BLOCK"] = size_hints[x]
+        for x in tiling_axis:
+            cfg[f"{axis_names[x].upper()}BLOCK_SUB"] = size_hints[x]
         if not cfg:
             cfg["dummy"] = 1
         tmp = Config(cfg, num_warps=num_warps, num_stages=num_stages)

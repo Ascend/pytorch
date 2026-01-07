@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 import torch
 from torch._inductor import config
 from triton.runtime.driver import driver
+from torch_npu.npu._backends import get_soc_version
 
 enable_npu_indexing = True
 
@@ -78,7 +79,7 @@ acc_comp_tol = {
     "default": {'rtol': 1.3e-6, 'atol': 1e-5},
 }
 
-if ("Ascend910B" in target.arch):
+if 220 <= get_soc_version() < 240 or get_soc_version() >= 250:
     num_vector_core = num_cube_core * 2
 
 arch_support_simt = False

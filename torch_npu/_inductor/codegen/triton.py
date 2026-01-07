@@ -865,6 +865,8 @@ class NPUIndexTritonKernel(TritonKernel):
             if line.find('tl.load') >= 0 and self.is_isolated_symbol(line, range_val):
                 return True
         for line in self.post_loop_store._lines:
+            if isinstance(line, DeferredLine):
+                line = line.line
             if line.find('tl.store') >= 0 and self.is_isolated_symbol(line, range_val):
                 return True
         for line in self.stores._lines:

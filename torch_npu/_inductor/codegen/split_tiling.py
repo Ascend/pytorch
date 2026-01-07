@@ -287,7 +287,6 @@ class SplitTiling:
 
         if self.kernel.inside_reduction:
             construct_low_dim()
-            return
 
         # for non-reduction, write index should be considered
         for node in self.kernel.node_schedule:

@@ -40,14 +40,17 @@ from torch._inductor.lowering import (
     rsqrt,
     mul
 )
+
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch._inductor.lowering import (unsqueeze, index_put_as_masked_fill, index_put_fallback, needs_fallback_due_to_atomic_add_limitations, view, check_and_broadcast_indices, index_output_size_and_inner_fn, expand, clone, new_empty, scatter_fallback, full_like)
 from torch._inductor.virtualized import V, ops
-
+from torch_npu.npu._backends import get_soc_version
 from torch_npu import npu_dtype_cast, _npu_dtype_cast
+from torch_npu.npu._backends import get_soc_version
+from torch_npu._inductor import ir as npu_ir
 from .ir import IndexputTemplate, ScatterTemplate
 from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
-from .config import inductor_indirect_memory_simt_template
+from .config import inductor_indirect_memory_simt_template, lowering_cat_with_concat_kernel
 
 
 def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False):
@@ -110,6 +113,7 @@ lowering.make_reduction = make_reduction
 aten = torch.ops.aten
 tr_c10d = torch.ops.tr_c10d
 prims = torch.ops.prims
+npu = torch.ops.npu
 
 
 def _init_set(input_list, output_set):
@@ -206,11 +210,11 @@ def _register_npu_inductor_fallbacks():
             return to_dtype(x, dtype, copy=True)
         return fallback_cumsum(x, dim=axis, dtype=dtype)
 
-    @register_lowering(npu_dtype_cast, type_promotion_kind=None)
+    @register_lowering(npu.npu_dtype_cast, type_promotion_kind=None)
     def _convert_npu_type(x: TensorBox, dtype: torch.dtype):
         return to_dtype(x, dtype, copy=True)
 
-    @register_lowering(_npu_dtype_cast, type_promotion_kind=None)
+    @register_lowering(npu._npu_dtype_cast, type_promotion_kind=None)
     def _convert__npu_type(x: TensorBox, dtype: torch.dtype):
         return to_dtype(x, dtype, copy=True)
 
@@ -263,8 +267,6 @@ def _register_npu_inductor_fallbacks():
         if len(inputs) == 1:
             return clone(inputs[0])
 
-        from torch_npu._inductor import ir as npu_ir
-        from torch_npu._inductor.config import lowering_cat_with_concat_kernel
         if lowering_cat_with_concat_kernel:
             def is_reindex_view(x) -> bool:
                 if isinstance(x, (TensorBox, ir.StorageBox)):
@@ -737,6 +739,63 @@ def _register_npu_inductor_fallbacks():
         )
         inputs = [to_dtype(inp, dtype) for inp in inputs]
         return TensorBox(ir.ConcatKernel.create(inputs, dim))
+
+    @register_lowering(aten.native_layer_norm)
+    def native_layer_norm(
+        x,
+        normalized_shape,
+        weight=None,
+        bias=None,
+        eps=1e-5
+    ):
+        # Performance consideration: fallback for bfloat16 and float16
+        if get_soc_version() >= 250 and \
+            (x.dtype == torch.bfloat16 or x.dtype == torch.float16):
+            return fallback_handler(aten.native_layer_norm.default)(x, normalized_shape, weight, bias, eps)
+        # Validate input
+        if not isinstance(normalized_shape, (list, tuple)):
+            normalized_shape = (normalized_shape,)
+        
+        normalized_ndim = len(normalized_shape)
+        input_shape = x.get_size()
+        
+        # Calculate reduction dimension indices
+        reduce_dims = list(range(len(input_shape) - normalized_ndim, len(input_shape)))
+        
+        # Compute mean and variance
+        var, mean = var_mean_helper_(
+            x=x,
+            axis=reduce_dims,
+            correction=0,  # Layer normalization uses 0 correction (population variance)
+            keepdim=True,  # Keep dimensions for broadcasting
+            return_mean=True
+        )
+        
+        # Calculate normalized result (x - mean) / sqrt(var + eps)
+        x_normalized = sub(x, mean)
+        
+        # Add eps to variance
+        eps_tensor = ir.IndexingConstant(index=eps, dtype=var.get_dtype(), device=var.get_device())
+        eps_tensor = ExpandView.create(eps_tensor, var.get_size())
+        var_eps = add(var, eps_tensor)
+        
+        # Calculate reciprocal of sqrt(var + eps)
+        inv_std = rsqrt(var_eps)  # 1 / sqrt(var + eps)
+        
+        # Normalization
+        normalized = mul(x_normalized, inv_std)
+        
+        # Apply optional affine transformation (gamma * normalized + beta)
+        if weight is not None:
+            # weight will be broadcast automatically, mul function in lowering supports broadcasting
+            normalized = mul(normalized, weight)
+        
+        if bias is not None:
+            # add will be broadcast automatically
+            normalized = add(normalized, bias)
+        
+        # native_layer_norm returns three values: output, mean, reciprocal of standard deviation
+        return normalized, mean, inv_std
 
     make_fallback(aten._log_softmax)
     make_fallback(aten.nll_loss_forward)

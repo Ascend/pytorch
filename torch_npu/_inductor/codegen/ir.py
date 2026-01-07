@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Any, Optional, cast
 import os
 import itertools
 import sympy
@@ -189,8 +189,68 @@ def generate_body_indexing(body, indices):
     body.generate_indirect_replacements()
 
 
+def remove_zero_terms_impl(expr, var_ranges):
+    shape_env = V.graph.sizevars.shape_env
+    var_to_range = dict(shape_env.var_to_range)
+    var_to_range.update(
+        {
+            k: ValueRanges(
+                0, max(0, v - 1) if not has_free_symbols([v]) else IntInfinity()
+            )
+            for k, v in var_ranges.items()
+        }
+    )
+    for var in expr.free_symbols:
+        if var not in var_to_range:
+            var_to_range[var] = ValueRanges(0, IntInfinity())
+
+    var_to_range_tuple = cast(
+        tuple[tuple[sympy.Symbol, ValueRanges[sympy.Expr]]],
+        tuple(var_to_range.items()),
+    )
+
+    axioms = []
+    for var, upper_bound in var_ranges.items():
+        axioms.append(0 <= var)
+        axioms.append(var < upper_bound)
+    axioms = tuple(axioms) + shape_env.get_axioms()
+
+    def statically_known(expr):
+        evaluated = shape_env._maybe_evaluate_static(
+            expr,
+            axioms=axioms,
+            var_to_range=var_to_range_tuple,
+        )
+        return bool(evaluated)
+
+    def _remove_zero_terms(base, divisor):
+        if statically_known(base < divisor):
+            return sympy.Integer(0)
+        return FloorDiv(base, divisor)
+    
+    replacements = {}
+    for sub_expr in expr.atoms(FloorDiv):
+        base, divisor = sub_expr.args
+        if statically_known(base < divisor):
+            replacements[sub_expr] = sympy.Integer(0)
+    
+    if replacements:
+        expr = expr.xreplace(replacements)
+    
+    return expr
+
+
+# Eliminate terms such as 2560(((320p1 + p2)//2560)) when (320*p1 + p2)//2560 is constantly zero
+def remove_zero_terms(indexing, var_ranges):
+    for key, expr in indexing.items():
+        if expr.has(FloorDiv):
+            new_expr = remove_zero_terms_impl(expr, var_ranges)
+            indexing[key] = new_expr
+
+
 def transform_dims_in_indexing(self, indices):
     if self.indexing is None:
+        remove_zero_terms(self.indexing_exprs, self.var_ranges)
         generate_body_indexing(self, indices)
 
     if V.kernel is not None and isinstance(V.kernel, NPUIndexTritonKernel):

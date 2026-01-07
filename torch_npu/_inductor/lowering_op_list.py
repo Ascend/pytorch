@@ -1,14 +1,16 @@
 import torch
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
-from torch_npu import npu_dtype_cast, _npu_dtype_cast
 from torch_npu._inductor.config import arch_support_simt
 from .config import inductor_indirect_memory_simt_template, inductor_support_simt
 
 aten = torch.ops.aten
 tr_c10d = torch.ops.tr_c10d
 prims = torch.ops.prims
+npu = torch.ops.npu
 
 GENERATE_LIST = [
+    aten.copy_,
+    prims.device_put,
     prims.iota,
     aten.full,
     aten.mul,
@@ -58,8 +60,8 @@ GENERATE_LIST = [
     aten.clamp,
     aten.clamp_max,
     aten.mean,
-    npu_dtype_cast,
-    _npu_dtype_cast,
+    npu.npu_dtype_cast,
+    npu._npu_dtype_cast,
     aten.select_scatter,
     aten.slice_scatter,
     prims.broadcast_in_dim,
@@ -80,6 +82,7 @@ GENERATE_LIST = [
     aten.reciprocal,
     aten._assert_scalar,
     triton_kernel_wrapper_mutation,
+    aten.native_layer_norm,
 ]
 
 GENERATE_LIST2 = [
