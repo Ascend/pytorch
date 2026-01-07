@@ -3,7 +3,8 @@ from typing import cast, Dict, List, Optional, Tuple, Union
 import torch
 from torch.distributed._tensor.experimental import register_sharding
 from torch.distributed.tensor._dtensor_spec import DTensorSpec, TensorMeta
-from torch.distributed.tensor._ops.utils import register_op_strategy, expand_to_full_mesh_op_strategy
+from torch.distributed.tensor._ops.registration import register_op_strategy
+from torch.distributed.tensor._ops.utils import expand_to_full_mesh_op_strategy
 from torch.distributed.tensor import DTensor, Partial, Replicate, Shard
 from torch.distributed.tensor._op_schema import (
     OpInfo,

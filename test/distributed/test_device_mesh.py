@@ -316,7 +316,9 @@ class DeviceMeshTestNDim(NPUDTensorTestBase):
         ep_mesh_2 = DeviceMesh(self.device_type, mesh_group_2)
         ep_mesh = ep_mesh_1 if self.rank < self.world_size // 2 else ep_mesh_2
         # ep_mesh is considered different from mesh_2d["TP"]
-        self.assertEqual(mesh_2d["TP"]._flatten_mesh_list, ep_mesh._flatten_mesh_list)
+        self.assertEqual(
+            mesh_2d["TP"].mesh.flatten().tolist(), ep_mesh.mesh.flatten().tolist()
+        )
         self.assertEqual(mesh_2d["TP"].mesh.shape, ep_mesh.mesh.shape)
         self.assertEqual(mesh_2d["TP"].device_type, ep_mesh.device_type)
         self.assertNotEqual(mesh_2d["TP"].mesh_dim_names, ep_mesh.mesh_dim_names)
@@ -330,7 +332,7 @@ class DeviceMeshTestNDim(NPUDTensorTestBase):
             another_mesh_1 if self.rank < self.world_size // 2 else another_mesh_2
         )
         # another_mesh is considered the same as ep_mesh
-        self.assertEqual(ep_mesh._flatten_mesh_list, another_mesh._flatten_mesh_list)
+        self.assertEqual(ep_mesh._flatten_rank_map, another_mesh._flatten_rank_map)
         self.assertEqual(ep_mesh.mesh.shape, another_mesh.mesh.shape)
         self.assertEqual(ep_mesh.device_type, another_mesh.device_type)
         self.assertEqual(ep_mesh.mesh_dim_names, another_mesh.mesh_dim_names)

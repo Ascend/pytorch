@@ -11,9 +11,9 @@ from torch.distributed.tensor._op_schema import (
     PlacementList,
     RuntimeSchemaInfo,
 )
+from torch.distributed.tensor._ops.registration import register_op_strategy
 from torch.distributed.tensor._ops.utils import (
     generate_redistribute_costs,
-    register_op_strategy,
     normalize_dim,
     expand_to_full_mesh_op_strategy,
 )

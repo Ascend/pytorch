@@ -1752,6 +1752,9 @@
     "closing",
     "get_logger"
   ],
+  "torch.distributed.flight_recorder.components.builder": [
+    "tabulate"
+  ],
   "torch.distributed.fsdp.sharded_grad_scaler": [
     "Any",
     "Dict",

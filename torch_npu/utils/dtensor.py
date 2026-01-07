@@ -1,6 +1,7 @@
 import torch
 from torch.distributed.tensor._ops._common_rules import pointwise_rule
-from torch.distributed.tensor._ops.utils import register_prop_rule, normalize_dims
+from torch.distributed.tensor._ops.registration import register_prop_rule
+from torch.distributed.tensor._ops.utils import normalize_dims
 from torch.distributed.tensor._ops._matrix_ops import bmm_strategy
 from torch.distributed.tensor._ops._view_ops import (
     register_op_strategy_map,

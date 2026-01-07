@@ -4,4 +4,4 @@ pyyaml
 setuptools
 auditwheel
 
-torch==2.10.0.dev20251110
+torch==2.10.0.dev20251124
