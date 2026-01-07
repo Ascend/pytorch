@@ -207,6 +207,8 @@ aclError AclmdlRIExecuteAsync(aclmdlRI modelRI, aclrtStream stream);
 
 aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version);
 
+aclError AclsysGetVersionStr(char *pkgName, char *versionStr);
+
 aclError AclmdlRIDestroy(aclmdlRI modelRI);
 
 bool IsCaptureSupported();

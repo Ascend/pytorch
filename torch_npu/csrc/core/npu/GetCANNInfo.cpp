@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <sstream>
+#include <unordered_set>
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -18,11 +19,13 @@ constexpr size_t kVersionIndex4 = 4;
 
 constexpr size_t tokenNum3 = 3;
 constexpr size_t tokenNum4 = 4;
+constexpr size_t tokenNum5 = 5;
 
 constexpr size_t index0 = 0;
 constexpr size_t index1 = 1;
 constexpr size_t index2 = 2;
 constexpr size_t index3 = 3;
+constexpr size_t index4 = 4;
 
 constexpr size_t validLength1 = 1;
 constexpr size_t validLength2 = 2;
@@ -40,12 +43,43 @@ std::unordered_map<std::string, aclCANNPackageName> packageNameMap = {
     {"DRIVER", ACL_PKG_NAME_DRIVER}
 };
 
+const std::unordered_set<std::string> pkgNameV2Map = {
+    "acl_extend",
+    "aoe",
+    "asc-devkit",
+    "ascendnpu-ir",
+    "asc-tools",
+    "bisheng-compiler",
+    "dflow-executor",
+    "dvpp",
+    "ge-compiler",
+    "ge-executor",
+    "graph_autofusion",
+    "hccl",
+    "hcomm",
+    "hixl",
+    "metadef",
+    "ncs",
+    "oam_tools",
+    "opbase",
+    "ops_cv",
+    "ops_legacy",
+    "ops_math",
+    "ops_nn",
+    "ops_transformer",
+    "pto_isa",
+    "pyACL",
+    "runtime",
+    "tbe-tik",
+    "test-ops"
+};
+
 std::vector<std::string> SplitVersionStr(const std::string& str)
 {
     std::vector<std::string> tokens;
     std::string token;
     for (char c : str) {
-        if (c == '.') {
+        if (c == '.' || c == '-') {
             tokens.push_back(token);
             token.clear();
         } else {
@@ -179,6 +213,106 @@ int64_t VersionToNum(std::string versionStr)
     return num;
 }
 
+int64_t VersionV2ToNum(std::string versionStr) {
+    int64_t major = 0;
+    int64_t minor = 0;
+    int64_t patch = 0;
+    int64_t weight = 0;
+    int64_t prerelease = 0;
+
+    std::vector<std::string> tokens = SplitVersionStr(versionStr);
+
+    if (tokens.size() < tokenNum3) {
+        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        return 0;
+    }
+
+    major = ExtractNumFromStr(tokens[index0]);
+    minor = ExtractNumFromStr(tokens[index1]);
+    patch = ExtractNumFromStr(tokens[index2]);
+    if (major == -1 || minor == -1 || patch == -1) {
+        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        return 0;
+    }
+    bool parsed = false;
+
+    if (tokens.size() == tokenNum3) {   // ([0-9]+).([0-9]+).([0-9]+)
+        parsed = true;
+    }
+
+    if (!parsed && tokens.size() == tokenNum4) {  // ([0-9]+).([0-9]+).([0-9]+)-alpha, ([0-9]+).([0-9]+).([0-9]+)-beta, ([0-9]+).([0-9]+).([0-9]+)-rc, 
+                                                   // ([0-9]+).([0-9]+).([0-9]+).alpha([0-9]+),  ([0-9]+).([0-9]+).([0-9]+).beta([0-9]+), ([0-9]+).([0-9]+).([0-9]+).rc([0-9]+)
+        parsed = true;
+        if (tokens[index3] == "alpha") {
+            weight = 300;   // weight for alpha
+        } else if (tokens[index3] == "beta") {
+            weight = 200;   // weight for beta
+        } else if (tokens[index3] == "rc") {
+            weight = 100;   // weight for rc
+        } else if (StartsWith(tokens[index3], "alpha") && tokens[index3].length() > validLength5) {
+            weight = 300;
+            std::string preNumStr = tokens[index3].substr(5);
+            prerelease = ExtractNumFromStr(preNumStr);
+            if (prerelease == -1) {
+                parsed = false;
+                weight = 0;
+            }
+        } else if (StartsWith(tokens[index3], "beta") && tokens[index3].length() > validLength4) {
+            weight = 200;
+            std::string preNumStr = tokens[index3].substr(4);
+            prerelease = ExtractNumFromStr(preNumStr);
+            if (prerelease == -1) {
+                parsed = false;
+                weight = 0;
+            }
+        } else if (StartsWith(tokens[index3], "rc") && tokens[index3].length() > validLength2) {
+            weight = 100;
+            std::string preNumStr = tokens[index3].substr(2);
+            prerelease = ExtractNumFromStr(preNumStr);
+            if (prerelease == -1) {
+                parsed = false;
+                weight = 0;
+            }
+        } else {
+            parsed = false;
+        }
+    }
+
+    if (!parsed && tokens.size() == tokenNum5) {
+        parsed = true;
+        if (isDigits(tokens[index4])) {
+            prerelease = ExtractNumFromStr(tokens[index4]);
+            if (prerelease == -1) {
+                parsed = false;
+                prerelease = 0;
+            } else {
+                if (tokens[index3] == "alpha") {
+                    weight = 300;
+                } else if (tokens[index3] == "beta") {
+                    weight = 200;
+                } else if (tokens[index3] == "rc") {
+                    weight = 100;
+                } else {
+                    parsed = false;
+                    prerelease = 0;
+                }
+            }
+        } else {
+            parsed = false;
+        }
+    }
+
+    if (!parsed) {
+        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        return 0;
+    }
+
+    int64_t num = major * 10000000 + minor * 100000 + patch * 1000 - weight + prerelease;
+
+    return num;
+
+}
+
 int64_t DriverVersionToNum(std::string versionStr)
 {
     std::smatch results;
@@ -303,21 +437,38 @@ std::string GetCANNVersion(const std::string& module)
         return it->second;
     }
     auto find_module = packageNameMap.find(module);
-    if (find_module == packageNameMap.end()) {
+    auto find_module_v2 = pkgNameV2Map.find(module);
+    if (find_module == packageNameMap.end() && find_module_v2 == pkgNameV2Map.end()) {
         TORCH_NPU_WARN_ONCE("module " + module + " is invalid.");
         CANNVersionCache[module] = "";
         return "";
     }
-    aclCANNPackageName name = find_module->second;
-    aclCANNPackageVersion version;
-    aclError ret = c10_npu::acl::AclsysGetCANNVersion(name, &version);
-    if (ret == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
-        TORCH_NPU_WARN_ONCE("Failed to find function aclsysGetCANNVersion");
-        CANNVersionCache[module] = "";
-        return "";
+    std::string module_version = "";
+    if (find_module != packageNameMap.end()) {
+        aclCANNPackageVersion version;
+        aclCANNPackageName name = find_module->second;
+        aclError ret = c10_npu::acl::AclsysGetCANNVersion(name, &version);
+        if (ret == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+            TORCH_NPU_WARN_ONCE("Failed to find function aclsysGetCANNVersion.");
+            CANNVersionCache[module] = "";
+            return "";
+        }
+        module_version = version.version;
+        CANNVersionCache[module] = module_version;
     }
-    std::string module_version = version.version;
-    CANNVersionCache[module] = module_version;
+    
+    if (find_module_v2 != pkgNameV2Map.end()) {
+        char versionStr[ACL_PKG_VERSION_MAX_SIZE] = {0};
+        aclError retV2 = c10_npu::acl::AclsysGetVersionStr(const_cast<char*>(module.c_str()), versionStr);
+        if (retV2 == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+            TORCH_NPU_WARN_ONCE("Failed to find function aclsysGetVersionStr.");
+            CANNVersionCache[module] = "";
+            return "";
+        }
+        module_version = versionStr;
+        CANNVersionCache[module] = module_version;
+    }
+    
     return module_version;
 }
 
@@ -326,14 +477,55 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
     static std::string baseVersion = "8.1.RC1";
     static std::string unsupportedModule = "DRIVER";
     if (module.compare(unsupportedModule) == 0) {
-        TORCH_CHECK(false, "When the module is DRIVER, IsGteCANNVersion is not supported.", PTA_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(false, "When the module is DRIVER, IsGteCANNVersion is not supported. ", PTA_ERROR(ErrCode::VALUE));
     }
     if (version.compare(baseVersion) < 0) {
-        TORCH_CHECK(false, "When the version " + version + " is less than \"8.1.RC1\", GetCANNVersion is not supported.", PTA_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(false, "When the version " + version + " is less than \"8.1.RC1\", GetCANNVersion is not supported. ", PTA_ERROR(ErrCode::VALUE));
     }
     std::string currentVersion = GetCANNVersion(module);
-    int64_t current_num = VersionToNum(currentVersion);
-    int64_t boundary_num = VersionToNum(version);
+    std::vector<std::string> tokens1 = SplitVersionStr(currentVersion);
+    std::vector<std::string> tokens2 = SplitVersionStr(version);
+
+    int64_t current_num = 0;
+    int64_t boundary_num = 0;
+    bool isInvalid = false;
+    if (tokens1.size() > 2 && tokens2.size() > 2) {
+        if (isDigits(tokens1[index0]) && isDigits(tokens1[index1]) && isDigits(tokens2[index0]) && isDigits(tokens2[index1])) {
+            int64_t major1 = ExtractNumFromStr(tokens1[index0]);
+            int64_t minor1 = ExtractNumFromStr(tokens1[index1]);
+            int64_t major2 = ExtractNumFromStr(tokens2[index0]);
+            int64_t minor2 = ExtractNumFromStr(tokens2[index1]);
+            if (major1 == 8 && minor1 < 5 && major2 == 8 && minor2 < 5) {
+                current_num = VersionToNum(currentVersion);
+                boundary_num = VersionToNum(version);
+            } else if (major1 >= 8 && minor1 >= 5 && major2 >= 8 && minor2 >= 5) {
+                current_num = VersionV2ToNum(currentVersion);
+                boundary_num = VersionV2ToNum(version);
+            } else {
+                if (major1 < major2) {
+                    return false;
+                } else if (major1 > major2) {
+                    return true;
+                } else {
+                    if (minor1 < minor2) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }
+            }
+        } else {
+            isInvalid = true;
+        }
+    } else {
+        isInvalid = true;
+    }
+
+    if (isInvalid) {
+        TORCH_NPU_WARN_ONCE("The version: \"" + currentVersion + "\" is invalid or not supported yet.");
+        return false;
+    }
+
     if (current_num >= boundary_num) {
         return true;
     } else {
