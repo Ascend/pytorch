@@ -192,7 +192,7 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
             #include <sys/syscall.h>
             #include <torch_npu/csrc/framework/OpCommand.h>
             #include <torch_npu/csrc/core/npu/NPUStream.h>
-            #include "experiment/runtime/runtime/rt.h"
+            #include "runtime/runtime/rt.h"
         """
 
     def cpp_stream_type(self):
