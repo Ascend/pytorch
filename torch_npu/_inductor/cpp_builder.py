@@ -44,6 +44,8 @@ def include_paths(npu: bool = False) -> List[str]:
         ASCEND_HOME = get_ascend_home()
         paths.extend([
             os.path.join(ASCEND_HOME, "include"),
+            os.path.join(ASCEND_HOME, "pkg_inc"),
+            os.path.join(ASCEND_HOME, "pkg_inc/profiling"),
             os.path.join(ASCEND_HOME, "include/experiment"),
             os.path.join(ASCEND_HOME, "include/experiment/msprof"),
         ])
