@@ -12,7 +12,7 @@
 |torch.nn.Module|是|支持fp32|
 |torch.nn.Module.add_module|是|支持fp32|
 |torch.nn.Module.apply|是|支持fp32|
-|torch.nn.Module.bfloat16|是|支持bf16|
+|torch.nn.Module.bfloat16|是|-|
 |torch.nn.Module.buffers|是|-|
 |torch.nn.Module.children|是|支持fp32|
 |torch.nn.Module.compile|是|-|
@@ -27,7 +27,7 @@
 |torch.nn.Module.get_extra_state|是|-|
 |torch.nn.Module.get_parameter|是|支持fp32|
 |torch.nn.Module.get_submodule|是|支持fp32|
-|torch.nn.Module.half|是|支持fp16|
+|torch.nn.Module.half|是|支持fp16，fp32|
 |torch.nn.Module.ipu|否|-|
 |torch.nn.Module.load_state_dict|是|支持fp32|
 |torch.nn.Module.modules|是|支持fp32|
@@ -186,7 +186,7 @@
 |torch.nn.LazyInstanceNorm3d.cls_to_become|是|-|
 |torch.nn.LayerNorm|是|支持bf16，fp16，fp32|
 |torch.nn.RNNBase|否|-|
-|torch.nn.RNNBase.flatten_parameters|是|-|
+|torch.nn.RNNBase.flatten_parameters|否|-|
 |torch.nn.RNN|否|-|
 |torch.nn.LSTM|是|支持fp32<br>不支持proj_size参数<br>不支持dropout参数<br>入参input不支持2维|
 |torch.nn.GRU|否|-|
@@ -195,6 +195,7 @@
 |torch.nn.GRUCell|是|支持fp16，fp32|
 |torch.nn.Transformer|是|支持fp16，fp32|
 |torch.nn.Transformer.forward|否|-|
+|torch.nn.TransformerEncoder|否|-|
 |torch.nn.TransformerEncoder.forward|否|-|
 |torch.nn.TransformerDecoder|否|-|
 |torch.nn.TransformerDecoder.forward|否|-|
