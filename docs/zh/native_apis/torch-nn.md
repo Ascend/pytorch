@@ -12,7 +12,7 @@
 |torch.nn.Module|是|支持fp32|
 |torch.nn.Module.add_module|是|支持fp32|
 |torch.nn.Module.apply|是|支持fp32|
-|torch.nn.Module.bfloat16|是|支持int64|
+|torch.nn.Module.bfloat16|是|支持bf16|
 |torch.nn.Module.buffers|是|-|
 |torch.nn.Module.children|是|支持fp32|
 |torch.nn.Module.compile|是|-|
@@ -21,13 +21,13 @@
 |torch.nn.Module.double|是|-|
 |torch.nn.Module.eval|是|支持fp32，int64|
 |torch.nn.Module.extra_repr|是|支持fp32|
-|torch.nn.Module.float|是|支持fp16，fp32，int64|
+|torch.nn.Module.float|是|支持fp16，fp32|
 |torch.nn.Module.forward|是|支持fp32|
 |torch.nn.Module.get_buffer|是|-|
 |torch.nn.Module.get_extra_state|是|-|
 |torch.nn.Module.get_parameter|是|支持fp32|
 |torch.nn.Module.get_submodule|是|支持fp32|
-|torch.nn.Module.half|是|支持fp16，fp32，int64|
+|torch.nn.Module.half|是|支持fp16|
 |torch.nn.Module.ipu|否|-|
 |torch.nn.Module.load_state_dict|是|支持fp32|
 |torch.nn.Module.modules|是|支持fp32|
