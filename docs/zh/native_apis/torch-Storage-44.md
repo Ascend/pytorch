@@ -118,7 +118,7 @@
 |torch.ComplexFloatStorage|是|-|
 |torch.ComplexFloatStorage.dtype|是|-|
 |torch.QUInt8Storage|否|-|
-|torch.QUInt8Storage.dtype|是|支持uint8|
+|torch.QUInt8Storage.dtype|否|-|
 |torch.QInt8Storage|否|-|
 |torch.QInt8Storage.dtype|是|支持int8|
 |torch.QInt32Storage|否|-|

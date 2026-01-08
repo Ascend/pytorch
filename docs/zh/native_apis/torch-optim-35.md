@@ -67,6 +67,8 @@
 |torch.optim.SparseAdam.register_state_dict_pre_hook|是|-|
 |torch.optim.SparseAdam.register_step_post_hook|是|-|
 |torch.optim.SparseAdam.register_step_pre_hook|是|-|
+|torch.optim.SparseAdam.step|-|-|
+|torch.optim.SparseAdam.zero_grad|-|-|
 |torch.optim.Adamax|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
 |torch.optim.Adamax.add_param_group|是|支持fp16，fp32|
 |torch.optim.Adamax.load_state_dict|是|支持fp16，fp32|
