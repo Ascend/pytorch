@@ -80,6 +80,7 @@ LOAD_FUNCTION(aclmdlRIDebugPrint)
 LOAD_FUNCTION(aclmdlRIExecuteAsync)
 LOAD_FUNCTION(aclmdlRIDestroy)
 LOAD_FUNCTION(aclsysGetCANNVersion)
+LOAD_FUNCTION(aclsysGetVersionStr)
 LOAD_FUNCTION(aclmdlRICaptureTaskGrpBegin)
 LOAD_FUNCTION(aclmdlRICaptureTaskGrpEnd)
 LOAD_FUNCTION(aclmdlRICaptureTaskUpdateBegin)
@@ -994,6 +995,18 @@ aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *ve
 
     return func(name, version);
 }
+
+aclError AclsysGetVersionStr(char *pkgName, char *versionStr)
+{
+    using aclsysGetVersionStrFunc = aclError(*)(char *, char *);
+    static aclsysGetVersionStrFunc func = nullptr;
+    func = (aclsysGetVersionStrFunc)GET_FUNC(aclsysGetVersionStr);
+    if (func == nullptr) {
+        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+    }
+    return func(pkgName, versionStr);
+}
+
 
 aclError AclmdlRIDestroy(aclmdlRI modelRI)
 {
