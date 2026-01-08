@@ -18,8 +18,8 @@ def should_use_persistent_reduction(
     if not config.triton.persistent_reductions:
         return False
     threshold = {
-        ReductionHint.INNER: 1024,
-        ReductionHint.DEFAULT: 1024
+        ReductionHint.INNER: 4096,
+        ReductionHint.DEFAULT: 4096
     }.get(features.get_reduction_hint(), 64)
     if cooperative_reduction:
         # The RSPLIT of cooperative reductions means each thread block is operating on fewer elements

@@ -1363,7 +1363,10 @@ class NPUIndexTritonKernel(TritonKernel):
     ) -> Union[CSEVariable, Tuple[CSEVariable, ...]]:
         if not self.inside_reduction:
             raise RuntimeError("assert self.inside_reduction")
-        masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}
+        if self.persistent_reduction and self.numof_reduction_axis() == 1:
+            masks = {f"{node.symbol()}_mask" for node in self.sorted_axis if node.name[0] != "r"}
+        else:
+            masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}
         self.filter_masks(masks)
         masks = sorted(masks)
         if self._load_mask:
@@ -1386,7 +1389,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 ),
                 value,
             )
-        if len(dense_size_str) > 2:
+        if len(dense_size_str) > 2 and (not self.persistent_reduction or self.numof_reduction_axis() != 1):
             value = self._map_tuple_or_scalar(
                 lambda v: self.cse.generate(
                     self.compute, f"tl.reshape({v}, {dense_size_str})", dtype=v.dtype,
@@ -1435,20 +1438,7 @@ class NPUIndexTritonKernel(TritonKernel):
             return TritonKernelOverrides.where(cond, tval, fval)
 
         if self.persistent_reduction:
-            default = ir.Reduction.default_value(reduction_type, src_dtype)
-            default = self._map_tuple_or_scalar(constant_repr, default)
-
-            def _mask_value(value, default):
-                return self.cse.generate(self.compute, where_cond(value, default), dtype=value.dtype)
-
-            #  masked_value doesn't work dual reduction
-            if self.numof_reduction_axis() == 1:
-                if isinstance(value, tuple):
-                    masked_value = [_mask_value(v, d) for v, d in zip(value, default)]
-                else:
-                    masked_value = _mask_value(value, default)
-            else:
-                masked_value = value
+            masked_value = value
 
             if reduction_type in {"argmax", "argmin", "max", "min"}:
                 reduce_axis = get_reduction_axis()
