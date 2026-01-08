@@ -304,21 +304,24 @@ def _npu_save(
                 storage_dtype = obj.dtype
                 storage_type_str = obj._pickle_storage_type()
                 storage_type = getattr(torch, storage_type_str)
-                if storage.device.type != "cpu":
+                is_fake = hasattr(obj, "_fake_device") and obj._fake_device is not None
+                is_meta = (str(storage.device) == "meta")
+                if storage.device.type == "cpu" or is_fake or is_meta:
+                    storage_numel = obj._size()
+                else:
                     storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
                     storage_numel = storage_tensor.size().numel() * storage_tensor.element_size() // obj._element_size()
-                else:
-                    storage_numel = obj._size()
 
             else:
                 storage = obj
                 storage_dtype = torch.uint8
                 storage_type = normalize_storage_type(type(obj))
-                if storage.device.type != "cpu":
+                is_meta = (str(storage.device) == "meta")
+                if storage.device.type == "cpu" or is_meta or storage.data_ptr() == 0:
+                    storage_numel = storage.nbytes()
+                else:
                     storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
                     storage_numel = storage_tensor.size().numel() * storage_tensor.element_size()
-                else:
-                    storage_numel = storage.nbytes()
 
             # If storage is allocated, ensure that any other saved storages
             # pointing to the same data all have the same dtype. If storage is
@@ -377,41 +380,43 @@ def _npu_save(
     for key in serialized_storages.keys():
         name = f"data/{key}"
         storage = serialized_storages[key]
+        global _serialization_tls
+        if _serialization_tls.skip_data:
+            num_bytes = storage.nbytes() if hasattr(storage, "nbytes") else 0
+            zip_file.write_record_metadata(name, num_bytes)
+            continue
         if storage.device.type != "cpu":
             storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
             num_bytes = storage_tensor.size().numel() * storage_tensor.element_size()
         else:
             num_bytes = storage.nbytes()
-        global _serialization_tls
-        if _serialization_tls.skip_data:
-            zip_file.write_record_metadata(name, num_bytes)
-        else:
-            # given that we copy things around anyway, we might use storage.cpu()
-            # this means to that to get tensors serialized, you need to implement
-            # .cpu() on the underlying Storage
-            if storage.device.type != "cpu":
-                from torch.utils.serialization import config
 
-                if (
-                    config.save.use_pinned_memory_for_d2h
-                    and (
-                        acc := torch.accelerator.current_accelerator(
-                            check_available=True
-                        )
+        # given that we copy things around anyway, we might use storage.cpu()
+        # this means to that to get tensors serialized, you need to implement
+        # .cpu() on the underlying Storage
+        if storage.device.type != "cpu":
+            from torch.utils.serialization import config
+
+            if (
+                config.save.use_pinned_memory_for_d2h
+                and (
+                    acc := torch.accelerator.current_accelerator(
+                        check_available=True
                     )
-                    is not None
-                    and acc.type == storage.device.type
-                ):
-                    new_storage = torch.empty(
-                        num_bytes, dtype=torch.uint8, device="cpu", pin_memory=True
-                    ).untyped_storage()
-                    new_storage.copy_(storage)
-                    torch.accelerator.current_stream(storage.device.index).synchronize()
-                    storage = new_storage
-                else:
-                    storage = storage.cpu()
-            # Now that it is on the CPU we can directly copy it into the zip file
-            zip_file.write_record(name, storage, num_bytes)
+                )
+                is not None
+                and acc.type == storage.device.type
+            ):
+                new_storage = torch.empty(
+                    num_bytes, dtype=torch.uint8, device="cpu", pin_memory=True
+                ).untyped_storage()
+                new_storage.copy_(storage)
+                torch.accelerator.current_stream(storage.device.index).synchronize()
+                storage = new_storage
+            else:
+                storage = storage.cpu()
+        # Now that it is on the CPU we can directly copy it into the zip file
+        zip_file.write_record(name, storage, num_bytes)
 
 
 def save(
