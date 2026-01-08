@@ -18,7 +18,7 @@
 |torch.nn.functional.avg_pool3d|否|-|
 |torch.nn.functional.max_pool1d|否|-|
 |torch.nn.functional.max_pool3d|是|dilation的值目前在NPU上仅支持设置为1或(1,1,1)<br>return_indices为true时，返回的argmax的数据类型为int32|
-|torch.nn.functional.max_unpool1d|是|支持fp16，fp32，fp64，uint8，int8，int32，int64<br>jit_compile=False即二进制模式时，output_size的乘积需要大于等于input的H，W的乘积|
+|torch.nn.functional.max_unpool1d|是|支持fp16，fp32，fp64，uint8，int8，int32，int64|
 |torch.nn.functional.max_unpool2d|是|支持fp16，fp32，fp64，uint8，int8，int32，int64<br>jit_compile=False即二进制模式时，output_size的乘积需要大于等于input的H，W的乘积|
 |torch.nn.functional.max_unpool3d|否|-|
 |torch.nn.functional.lp_pool1d|是|支持fp16，fp32|
