@@ -1094,16 +1094,19 @@
   "torch_npu.npu.empty_virt_addr_cache": {
     "signature": "()"
   },
-  "torch_npu.npu.empty_pin_memory_cache": {
+  "torch_npu.npu.host_empty_cache": {
     "signature": "()"
   },
-  "torch_npu.npu.pin_memory_stats": {
+  "torch_npu.npu.host_memory_stats": {
     "signature": "()"
   },
-  "torch_npu.npu.pin_memory_allocated": {
+  "torch_npu.npu.host_memory_stats_as_nested_dict": {
     "signature": "()"
   },
-  "torch_npu.npu.pin_memory_reserved": {
+  "torch_npu.npu.reset_accumulated_host_memory_stats": {
+    "signature": "()"
+  },
+  "torch_npu.npu.reset_peak_host_memory_stats": {
     "signature": "()"
   },
   "torch_npu.npu.enable_deterministic_with_backward": {
@@ -1427,16 +1430,19 @@
   "torch_npu.npu.memory.empty_virt_addr_cache": {
     "signature": "()"
   },
-  "torch_npu.npu.memory.empty_pin_memory_cache": {
+  "torch_npu.npu.memory.host_empty_cache": {
     "signature": "()"
   },
-  "torch_npu.npu.memory.pin_memory_stats": {
+  "torch_npu.npu.memory.host_memory_stats": {
     "signature": "()"
   },
-  "torch_npu.npu.memory.pin_memory_allocated": {
+  "torch_npu.npu.memory.host_memory_stats_as_nested_dict": {
     "signature": "()"
   },
-  "torch_npu.npu.memory.pin_memory_reserved": {
+  "torch_npu.npu.memory.reset_accumulated_host_memory_stats": {
+    "signature": "()"
+  },
+  "torch_npu.npu.memory.reset_peak_host_memory_stats": {
     "signature": "()"
   },
   "torch_npu.npu.memory.get_allocator_backend": {

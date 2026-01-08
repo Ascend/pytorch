@@ -41,12 +41,6 @@ constexpr size_t kMinBlockSize = 512;                 // all sizes are rounded t
 constexpr size_t segmentSize = 20971520;              // segment size 20M
 constexpr size_t deviceTotalSize = 68719476736;       // 64 GB
 
-void update_stat(c10::CachingAllocator::Stat &stat, int64_t amount)
-{
-    stat.current += amount;
-    stat.peak = std::max(stat.current, stat.peak);
-}
-
 struct ExpandableBlock;
 using Comparison = bool (*)(const ExpandableBlock *, const ExpandableBlock *);
 static bool BlockComparatorSize(const ExpandableBlock *a, const ExpandableBlock *b);
@@ -187,6 +181,16 @@ public:
     bool pinned_use_background_threads() override
     {
         return c10_npu::NPUCachingAllocator::CachingAllocatorConfig::pinned_use_background_threads();
+    }
+
+    virtual void resetHostAccumulatedStats()
+    {
+        resetAccumulatedStats();
+    }
+
+    virtual void resetHostPeakStats()
+    {
+        resetPeakStats();
     }
 
 private:
@@ -485,7 +489,7 @@ public:
             if (params.err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
                 AT_ERROR("Malloc pin memory failed, host out of memory, Rried to allocate size: ", orig_size,
                     ", total_allocated_memory: ", stats.allocated_bytes.current, ", total_reserved_memory: ", stats.reserved_bytes.current,
-                    ". You might be able to retry after freeing up memory using torch_npu.npu.empty_pin_memory_cache().");
+                    ". You might be able to retry after freeing up memory using torch_npu.npu.host_empty_cache().");
             }
             return {nullptr, nullptr};
         }
@@ -526,6 +530,26 @@ public:
         return stats;
     }
 
+    void resetHostAccumulatedStats() override
+    {
+        std::lock_guard<std::mutex> lock(stats_mutex_);
+        stats.allocated_bytes.reset_accumulated();
+        stats.reserved_bytes.reset_accumulated();
+
+        stats.host_alloc_time.reset_accumulated();
+        stats.host_free_time.reset_accumulated();
+    }
+
+    void resetHostPeakStats() override
+    {
+        std::lock_guard<std::mutex> lock(stats_mutex_);
+        stats.allocated_bytes.reset_peak();
+        stats.reserved_bytes.reset_peak();
+
+        stats.host_alloc_time.reset_peak();
+        stats.host_free_time.reset_peak();
+    }
+
     bool record_event(void* ptr, void* ctx, c10::Stream s) override
     {
         c10_npu::NPUStream stream = c10_npu::NPUStream(s);
@@ -562,6 +586,8 @@ private:
     BlockPool blocks_pool;
 
     std::mutex mutex;
+
+    std::mutex stats_mutex_;
 
     // allocated or in use by a stream
     ska::flat_hash_map<void *, ExpandableBlock *> ptr_to_block_;
@@ -649,7 +675,15 @@ private:
 
     void unmap_block(ExpandableBlock *block)
     {
+        auto start = std::chrono::steady_clock::now();
         auto unmapped = block->expandable_segment_->unmap(SegmentRange{ block->ptr_, block->size_ });
+        auto end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        // Update the statistics on the time spent on AclrtUnmapMem/AclrtFreePhysical
+        {
+            std::lock_guard<std::mutex> lock(stats_mutex_);
+            stats.host_free_time.increase(duration.count());
+        }
         if (unmapped.size == 0) {
             return;
         }
@@ -676,8 +710,10 @@ private:
         block->ptr_ = unmapped.ptr;
         block->size_ = unmapped.size;
         block->mapped = false;
-        update_stat(stats.reserved_bytes, -static_cast<std::int64_t>(unmapped.size));
-
+        {
+            std::lock_guard<std::mutex> lock(stats_mutex_);
+            stats.reserved_bytes.decrease(unmapped.size);
+        }
         try_merge_blocks(block, block->prev, *block->pool);
         try_merge_blocks(block, block->next, *block->pool);
         block->pool->unmapped.insert(block);
@@ -734,7 +770,10 @@ private:
     {
         AT_ASSERT(!block->allocated_ && block->event_count_ == 0, PTA_ERROR(ErrCode::VALUE));
 
-        update_stat(stats.allocated_bytes, -static_cast<std::int64_t>(block->size_));
+        {
+            std::lock_guard<std::mutex> lock(stats_mutex_);
+            stats.allocated_bytes.decrease(block->size_);
+        }
         auto &pool = *block->pool;
         const std::array<ExpandableBlock *, 2> merge_candidates = { block->prev, block->next };
         for (ExpandableBlock *merge_candidate : merge_candidates) {
@@ -928,7 +967,10 @@ private:
 
         try_merge_blocks(to_map, to_map->prev, pool);
         try_merge_blocks(to_map, to_map->next, pool);
-        update_stat(stats.reserved_bytes, static_cast<std::int64_t>(mapped_range.size));
+        {
+            std::lock_guard<std::mutex> lock(stats_mutex_);
+            stats.reserved_bytes.increase(mapped_range.size);
+        }
         pool.blocks.insert(to_map);
         return true;
     }
@@ -941,6 +983,7 @@ private:
         // unmapped -> free -> *
         // free -> unmapped -> *
 
+        auto start = std::chrono::steady_clock::now();
         if (!candidate->mapped && !map_block(candidate, std::min(candidate->size_, size), pool)) {
             return nullptr;
         }
@@ -960,6 +1003,13 @@ private:
             candidate = new_candidate;
         }
         pool->blocks.erase(candidate);
+        auto end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        // Update the statistics on the time spent on AclrtMallocPhysical/AclrtMapMem
+        {
+            std::lock_guard<std::mutex> lock(stats_mutex_);
+            stats.host_alloc_time.increase(duration.count());
+        }
         return candidate;
     }
 
@@ -993,7 +1043,10 @@ private:
         block->allocated_ = true;
         block->requested_size = orig_size;
         ptr_to_block_[block->ptr_] = block;
-        update_stat(stats.allocated_bytes, static_cast<std::int64_t>(block->size_));
+        {
+            std::lock_guard<std::mutex> lock(stats_mutex_);
+            stats.allocated_bytes.increase(block->size_);
+        }
         return block;
     }
 
@@ -1049,6 +1102,21 @@ struct NPUCachingHostAllocator final
         impl_->empty_cache();
     }
 
+    at::HostStats get_stats() override
+    {
+        return impl_->getHostStats();
+    }
+
+    void reset_accumulated_stats() override
+    {
+        impl_->resetHostAccumulatedStats();
+    }
+
+    void reset_peak_stats() override
+    {
+        impl_->resetHostPeakStats();
+    }
+
     void setAllocator()
     {
         std::call_once(init_config, [this] {
@@ -1096,11 +1164,6 @@ REGISTER_HOST_ALLOCATOR(
 bool ptr_exist(void* ptr)
 {
     return getNPUCachingHostAllocator().impl_->ptr_check(ptr);
-}
-
-at::HostStats CachingHostAllocator_getStats()
-{
-    return getNPUCachingHostAllocator().impl_->getHostStats();
 }
 
 // the host memory is not allocated by malloc
