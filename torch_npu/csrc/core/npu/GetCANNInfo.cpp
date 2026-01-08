@@ -84,7 +84,19 @@ int64_t ExtractNumFromStr(const std::string& str)
 
 bool StartsWith(const std::string& str, const std::string& prefix)
 {
-    return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
+    // Return false if the string length is less than the prefix length
+    if (str.size() < prefix.size()) {
+        return false;
+    }
+
+    // Compare character by character, converting to lowercase before comparison
+    for (size_t i = 0; i < prefix.size(); ++i) {
+        if (std::tolower(static_cast<unsigned char>(str[i])) != std::tolower(static_cast<unsigned char>(prefix[i]))) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 
