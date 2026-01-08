@@ -9,7 +9,7 @@
 namespace c10_npu {
 namespace NPUCachingAllocator {
 const std::string pinMemoryExpandableMinCannVersion = "8.5.0";
-const std::string pinMemoryExpandableMinDriverVersion = "25.4.0";
+const std::string pinMemoryExpandableMinDriverVersion = "25.5.0";
 const std::string cannModule = "CANN";
 
 bool isDigit(std::string str)
