@@ -267,7 +267,7 @@ class CustomAsyncCompile(AsyncCompile):
             if len(kernel.launchers) == 0:
                 logger.info(f"fallback to fx graph call")
                 return _load_fx_graph(kernel_name, source_code=source_code, extra_env=extra_env, kernel_meta=kernel_meta)
-                return kernel
+            return kernel
 
     def akg_auto_fallback(
         self, kernel_name: str, source_code: str, kernel_meta: Dict[str, Any]) -> Callable:
