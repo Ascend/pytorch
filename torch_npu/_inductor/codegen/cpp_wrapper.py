@@ -320,7 +320,7 @@ class CppWrapperNpu(CppWrapperCpu):
             maybe_hipify_code_wrapper(self.device_codegen.kernel_driver())
         )
         self.header.splice("#include <torch_npu/csrc/framework/OpCommand.h>")
-        self.header.splice("#include <experiment/runtime/runtime/rt.h>")
+        self.header.splice("#include <runtime/runtime/rt.h>")
         if npu_config.aot_inductor.debug_kernel:
             self.header.splice("#include <torch/torch.h>")
 
