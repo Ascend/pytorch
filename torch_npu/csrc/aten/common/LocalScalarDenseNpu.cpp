@@ -14,6 +14,7 @@ namespace native {
 c10::Scalar NPUNativeFunctions::_local_scalar_dense(const at::Tensor& self)
 {
     c10::Scalar r;
+    TORCH_CHECK(self.numel() > 0, "_local_scalar_dense(): Empty tensor not supported");
     AT_DISPATCH_V2(
         self.scalar_type(), "_local_scalar_dense_npu", AT_WRAP([&] {
             scalar_t value = 0;
