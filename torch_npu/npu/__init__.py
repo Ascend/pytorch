@@ -127,10 +127,11 @@ __all__ = [
     "obfuscation_finalize",
     "obfuscation_calculate",
     "set_op_timeout_ms",
-    "empty_pin_memory_cache",
-    "pin_memory_stats",
-    "pin_memory_allocated",
-    "pin_memory_reserved"
+    "host_empty_cache",
+    "host_memory_stats",
+    "host_memory_stats_as_nested_dict",
+    "reset_accumulated_host_memory_stats",
+    "reset_peak_host_memory_stats"
 ]
 
 from typing import Tuple, Union, List, cast, Optional

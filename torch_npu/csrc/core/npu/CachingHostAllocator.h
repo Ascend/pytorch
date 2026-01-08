@@ -54,8 +54,6 @@ inline at::DataPtr HostAlloc(size_t size)
     return at::getHostAllocator(at::kPrivateUse1)->allocate(size);
 }
 
-TORCH_NPU_API at::HostStats CachingHostAllocator_getStats();
-
 c10::Allocator* getPinnedMemoryAllocator();
 
 } // namespace at_npu::native
