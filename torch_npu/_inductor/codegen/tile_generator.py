@@ -1,6 +1,7 @@
 import copy
 import functools
 import math
+import os
 import sys
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.runtime.triton_heuristics import Config
@@ -31,6 +32,10 @@ class TileGenerator:
         self.sub_block_name = {}
         self.persistent_reduction = persistent_reduction
         self.dual_reduction = dual_reduction
+
+        self.max_total_numel = functools.reduce(lambda x, y: x * y, self.blocks) if self.blocks else 1
+        self.tiny_kernel = self.max_total_numel < 128 * 1024
+        self.stop_numel = min(1024 // self.dtype_bytes, self.max_total_numel // (config.num_vector_core * 2))
         self.input_ptr_num = 3 if input_ptr_num == 0 else min(input_ptr_num, 3)
         self.max_numel_threshold = 256 // self.input_ptr_num * 1024
         for axis, name in enumerate(self.axis_name):
@@ -42,7 +47,11 @@ class TileGenerator:
                 self.block_name[axis] = f"{name.upper()}BLOCK"
             if axis in self.tiling_axis:
                 self.sub_block_name[axis] = f"{name.upper()}BLOCK_SUB"
+
+        self.program_threshold = config.num_vector_core // 8 if self.tiny_kernel else config.num_vector_core // 2
+        self.program_threshold = 0 if self.max_total_numel < 128 else self.program_threshold
         self.npu_kernel_type = npu_kernel_type
+
 
     def calcu_last_split_blocks(self, axis):
         splits = 1
@@ -112,8 +121,19 @@ class TileGenerator:
         newcfg = {}
         self.fill_config(newcfg, candi_block)
         total_numel = self.calculate_config_numel(newcfg)
-        if self.valid_tile_numel(total_numel) and not self.find_config(newcfg):
+        stop_numel_threshold = 0 if len(self.configs) < 10 or self.tiny_kernel else self.stop_numel + 100
+        if self.valid_tile_numel(total_numel) and not self.find_config(newcfg) and total_numel >= stop_numel_threshold:
             self.configs.append(Config(newcfg, num_warps=1, num_stages=1))
+            return True
+        return False
+
+    def desecnd_all_low_dims_with_all_blocks(self):
+        restore_sub_blocks = {}
+        for x in self.low_dims:
+            restore_sub_blocks[x] = self.sub_blocks[x]
+        self.descend_all_low_dims()
+        for x in self.low_dims:
+            self.sub_blocks[x] = restore_sub_blocks[x]
 
     def descend_one_axis(self, axis, is_split=False):
         def calc_total_programs():
@@ -131,14 +151,15 @@ class TileGenerator:
         slow_decend_split = False
 
         while True:
-            total_numel = self.stop_numel + 100
             for candi_block in self.candidate_blocks:
-                self.add_to_configs(candi_block)
+                if self.add_to_configs(candi_block):
+                    self.desecnd_all_low_dims_with_all_blocks()
 
             # tile numel reached threshold
             total_numel = self.calculate_total_numel()
             if total_numel <= self.stop_numel:
-                self.add_to_configs(self.blocks)
+                if self.add_to_configs(self.blocks):
+                    self.desecnd_all_low_dims_with_all_blocks()
                 reached_stop_numel = True
                 break
 
@@ -158,10 +179,12 @@ class TileGenerator:
                         self.blocks[axis] = last_blocks
                         self.candidate_blocks.append(tuple(self.blocks))
                     break
-                if total_programs > config.num_vector_core // 2 or self.dual_reduction:
+                if total_programs > self.program_threshold or self.dual_reduction:
                     if len(self.candidate_blocks) > 2:
                         self.candidate_blocks.pop(0)
                     self.candidate_blocks.append(tuple(self.blocks))
+                    if self.tiny_kernel:
+                        self.add_to_configs(list(tuple(self.blocks)))
                     slow_decend_split = (total_programs > config.num_vector_core // 2)
 
                 if not slow_decend_split:
@@ -172,7 +195,7 @@ class TileGenerator:
                     self.blocks[axis] = numel - step
                     self.sub_blocks[axis] = self.blocks[axis]
                 total_programs = calc_total_programs()
-                if self.blocks[axis] == 1 and (total_programs > config.num_vector_core // 2 or self.dual_reduction):
+                if self.blocks[axis] == 1 and (total_programs > self.program_threshold or self.dual_reduction):
                     self.candidate_blocks.append(tuple(self.blocks))
             else:
                 if numel >= 32:
@@ -222,6 +245,15 @@ class TileGenerator:
 
         return total_numel < self.stop_numel
 
+    def add_multibuffer(self):
+        new_cfg = []
+        for self_config in self.configs:
+            self_config.kwargs['multibuffer'] = False
+            config_copied = copy.deepcopy(self_config)
+            config_copied.kwargs['multibuffer'] = True
+            new_cfg.append(config_copied)
+        self.configs.extend(new_cfg)
+
     def descend_split_tiling(self):
 
         tiling_not_low_dims = [x for x in self.tiling_axis if x not in self.low_dims]
@@ -260,3 +292,4 @@ class TileGenerator:
                 # descend low dims, need to descend all axis at the same time
             self.descend_all_low_dims()
             break
+        self.add_multibuffer()

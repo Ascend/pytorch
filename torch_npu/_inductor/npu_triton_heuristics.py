@@ -539,6 +539,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             "num_warps": compile_meta["num_warps"],
             "num_stages": compile_meta["num_stages"],
             "debug": compile_meta["debug"],
+            "multibuffer": cfg_kwargs.get('multibuffer', False),
             "compile_mode": compile_meta['compile_mode'],
         }
         compile_kwargs = {
@@ -1284,10 +1285,14 @@ def foreach(triton_meta, num_warps, filename=None, inductor_meta=None):
     )
 
 
-@dynamo_timed
-def benchmark_all_configs(self, *args, input_grid, **kwargs):
-    print(f"candidate launcher count = {len(self.launchers)}")
+def benchmark_all_configs(self, *args, **kwargs):
+    with dynamo_timed("benchmark_all_configs"):
+        return self._benchmark_all_configs(*args, **kwargs)
 
+
+def _benchmark_all_configs(self, *args, **kwargs):
+    log.info(f"candidate launcher count = {len(self.launchers)}")
+    
     tilling_kernel_list = []
 
     def kernel_call(launcher):
@@ -1300,7 +1305,6 @@ def benchmark_all_configs(self, *args, input_grid, **kwargs):
             launcher(
                 *cloned_args,
                 **cloned_kwargs,
-                grid=input_grid,
                 stream=stream,
             )
 
@@ -1310,9 +1314,8 @@ def benchmark_all_configs(self, *args, input_grid, **kwargs):
         if not self.custom_kernel and launcher.n_spills > config.triton.spill_threshold:
             return float("inf")
 
-        stream = self.gpu_device.get_raw_stream(  # type: ignore[call-arg]
-            self.gpu_device.current_device()
-        )
+        device_interface = self.get_device_interface()
+        stream = device_interface.get_raw_stream(device_interface.current_device())
         tilling_kernel_list.append(kernel_call(launcher))
 
     def do_batch_benchmark(tilling_kernel_list):
@@ -1323,8 +1326,8 @@ def benchmark_all_configs(self, *args, input_grid, **kwargs):
 
         stream = torch.npu.current_stream()
         experimental_config = torch_npu.profiler._ExperimentalConfig(
-            aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization,
-            profiler_level=torch_npu.profiler.ProfilerLevel.Level1,
+            aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone,
+            profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
             l2_cache=False,
             data_simplification=False
         )
@@ -1332,16 +1335,20 @@ def benchmark_all_configs(self, *args, input_grid, **kwargs):
         random_uuid = uuid.uuid4().hex
         md5_hash = hashlib.md5(random_uuid.encode()).hexdigest()
 
-        from torch_npu._inductor.config import profile_path
-
-        torch_path = profile_path + md5_hash
-        rep = 1
+        tiling_length = len(tilling_kernel_list)
+        autotune_path = os.path.join(os.getcwd(), "profile_result", f"triton_{md5_hash}")
+        WAIT = 1
+        WARMUP = 1
+        ACTIVE = 10
+        REPEAT = 1
+        SKIP_FIRST = 1
+        TOTAL_STEP = (WAIT + WARMUP + ACTIVE + SKIP_FIRST) * REPEAT
         with torch_npu.profiler.profile(
                 activities=[
                     torch_npu.profiler.ProfilerActivity.NPU
                 ],
-                schedule=torch_npu.profiler.schedule(wait=0, warmup=1, active=rep, repeat=1, skip_first=1),
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(torch_path),
+                schedule=torch_npu.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT, skip_first=SKIP_FIRST),
+                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(autotune_path),
                 record_shapes=False,
                 profile_memory=False,
                 with_stack=False,
@@ -1349,25 +1356,30 @@ def benchmark_all_configs(self, *args, input_grid, **kwargs):
                 with_modules=False,
                 experimental_config=experimental_config) as prof:
             stream.synchronize()
-            for _ in range(rep + 3):
+            for _ in range(TOTAL_STEP):
                 for fn in tilling_kernel_list:
                     fn()
+                torch.npu.synchronize()
                 prof.step()
             stream.synchronize()
 
         import pandas as pd
-        for root, _, files in os.walk(torch_path):
+        for root, _, files in os.walk(autotune_path):
             for file in files:
                 if file != 'kernel_details.csv':
                     continue
                 target_file = os.path.join(root, file)
                 df = pd.read_csv(target_file)
                 triton_rows = df[df['Name'].str.startswith('triton', na=False)]
-                ret = triton_rows['Duration(us)'].astype(float).tolist()
-                delete_file(torch_path)
-                return ret
+                time_cost = [0] * tiling_length
+                for tiling_index in range(tiling_length):
+                    for active_index in range(ACTIVE):
+                        time_cost[tiling_index] += triton_rows.iloc[tiling_index + tiling_length * active_index]['Duration(us)']
+                time_cost = list(map(lambda x: x / ACTIVE, time_cost))
+                delete_file(autotune_path)
+                return time_cost
 
-        delete_file(torch_path)
+        delete_file(autotune_path)
         return []
 
     try:

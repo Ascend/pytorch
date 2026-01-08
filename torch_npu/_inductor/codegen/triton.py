@@ -1413,7 +1413,10 @@ class NPUIndexTritonKernel(TritonKernel):
             )
 
         def get_reduction_axis():
-            return list(self.range_tree_nodes.values())[-1]
+            reduce_dim = self.reduction_dim()
+            axis_key = self.golden_var_list[::-1][reduce_dim]
+            reduced_axis = self.range_tree_nodes[axis_key]
+            return reduced_axis
 
         cache_key = (src_dtype, reduction_type, value)
         if cache_key in self.cse.reduction_cache:
@@ -1496,7 +1499,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 self.compute.splice(
                     f"""\
                 {accumulator}_next, {accumulator_index}_next = triton_helpers.{root_op}imum_with_index(
-                    {accumulator}, {accumulator_index}, {value}, {reduction_range_prefix}index
+                    {accumulator}, {accumulator_index}, {value}, {get_reduction_axis().name}
                 )
                 {accumulator} = {where_cond(f'{accumulator}_next', accumulator)}
                 {accumulator_index} = {where_cond(f'{accumulator_index}_next', accumulator_index)}

@@ -107,7 +107,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-aggresive_autotune = os.getenv("INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE", '0').lower() in ('1', 'true')
+aggresive_autotune = os.getenv("INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE", '1').lower() in ('1', 'true')
 inductor_static_mode = os.environ.get('INDUCTOR_STATIC_MODE', '0').lower() in ('1', 'yes', 'true')
 profile_path = "./profile_result/"
 

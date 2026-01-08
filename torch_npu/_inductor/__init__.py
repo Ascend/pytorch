@@ -117,8 +117,9 @@ else:
 
     # register fx_pass should be put behind of _register_npu_inductor_decompositons
     def _replace_benchmark_all_configs():
-        from torch._inductor.triton_heuristics import CachingAutotuner
-        from .npu_triton_heuristics import benchmark_all_configs
+        from torch._inductor.runtime.triton_heuristics import CachingAutotuner
+        from .npu_triton_heuristics import benchmark_all_configs, _benchmark_all_configs
+        CachingAutotuner._benchmark_all_configs = _benchmark_all_configs
         CachingAutotuner.benchmark_all_configs = benchmark_all_configs
 
 
