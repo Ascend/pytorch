@@ -13,10 +13,10 @@
 |torch.Tag.name|是|-|
 |torch.is_tensor|是|-|
 |torch.is_storage|是|-|
-|torch.is_complex|是|支持fp32|
+|torch.is_complex|是|支持complex64，complex128|
 |torch.is_conj|是|-|
-|torch.is_floating_point|是|支持fp32|
-|torch.is_nonzero|是|支持fp32|
+|torch.is_floating_point|是|-|
+|torch.is_nonzero|是|-|
 |torch.set_default_dtype|是|-|
 |torch.get_default_dtype|是|-|
 |torch.set_default_device|是|-|

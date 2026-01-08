@@ -6,7 +6,7 @@
 |API名称|NPU形式名称|是否支持|限制与说明|
 |--|--|--|--|
 |torch.backends.cpu.get_cpu_capability|-|是|-|
-|torch.backends.cuda.is_built|-|是|支持fp32|
+|torch.backends.cuda.is_built|-|是|-|
 |torch.backends.cuda.matmul.allow_tf32|-|是|支持fp32|
 |torch.backends.cuda.cufft_plan_cache|torch.npu.backends.fft_plan_cache|是|-|
 |torch.backends.cuda.cufft_plan_cache.size|torch.npu.backends.fft_plan_cache.size|是|-|
