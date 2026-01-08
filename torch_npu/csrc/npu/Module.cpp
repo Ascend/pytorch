@@ -1124,7 +1124,7 @@ PyObject* THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
     Py_RETURN_NONE;
 }
 
-PyObject* THNPModule_npu_emptyPinMemoryCache(PyObject *_unused, PyObject *noargs)
+PyObject* THNPModule_npu_hostEmptyCache(PyObject *_unused, PyObject *noargs)
 {
     HANDLE_TH_ERRORS
     at_npu::native::CachingHostAllocator_emptyCache();
@@ -1132,25 +1132,67 @@ PyObject* THNPModule_npu_emptyPinMemoryCache(PyObject *_unused, PyObject *noargs
     Py_RETURN_NONE;
 }
 
-PyObject* THNPModule_npu_pinMemoryStats(PyObject *_unused, PyObject *noargs)
+PyObject* THNPModule_npu_hostMemoryStats(PyObject *_unused, PyObject *noargs)
 {
     HANDLE_TH_ERRORS
 
-    const auto statToDict = [](const c10::CachingAllocator::Stat& stat) {
+    using at::HostStats;
+    using c10::CachingAllocator::DurationStat;
+    using c10::CachingAllocator::Stat;
+    using c10::CachingAllocator::StatArray;
+    using c10::CachingAllocator::StatType;
+
+    const auto statToDict = [](const Stat& stat) {
         py::dict dict;
+
         dict["current"] = stat.current;
         dict["peak"] = stat.peak;
+        dict["allocated"] = stat.allocated;
+        dict["freed"] = stat.freed;
         return dict;
     };
 
-    const at::HostStats stats = at_npu::native::CachingHostAllocator_getStats();
+    const auto durationStatToDict = [](const DurationStat& stat) {
+        py::dict dict;
+
+        dict["total"] = stat.total;
+        dict["max"] = stat.max;
+        dict["min"] = stat.min;
+        dict["count"] = stat.count;
+        dict["avg"] = stat.count == 0 ? 0 : stat.total / stat.count;
+        return dict;
+    };
+
+    const HostStats stats = at_npu::native::CachingHostAllocator_getStats();
 
     py::dict result;
+    result["num_host_alloc"] = stats.num_host_alloc;
+    result["num_host_free"] = stats.num_host_free;
+    result["allocation"] = statToDict(stats.allocation);
+    result["segment"] = statToDict(stats.segment);
     result["allocated_bytes"] = statToDict(stats.allocated_bytes);
     result["reserved_bytes"] = statToDict(stats.reserved_bytes);
+    result["host_alloc_time"] = durationStatToDict(stats.host_alloc_time);
+    result["host_free_time"] = durationStatToDict(stats.host_free_time);
 
     return result.release().ptr();
     END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_resetAccumulatedHostMemoryStats(PyObject* _unused, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    at_npu::native::CachingHostAllocator_resetAccumulatedStats();
+    END_HANDLE_TH_ERRORS
+    Py_RETURN_NONE;
+}
+
+PyObject* THNPModule_npu_resetPeakHostMemoryStats(PyObject* _unused, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    at_npu::native::CachingHostAllocator_resetPeakStats();
+    END_HANDLE_TH_ERRORS
+    Py_RETURN_NONE;
 }
 
 PyObject* THNPModule_npu_ipc_collect(PyObject *_unused, PyObject *noargs)
@@ -2200,8 +2242,10 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
     {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
-    {"_npu_emptyPinMemoryCache", (PyCFunction) THNPModule_npu_emptyPinMemoryCache, METH_NOARGS, nullptr},
-    {"_npu_pinMemoryStats", (PyCFunction) THNPModule_npu_pinMemoryStats, METH_NOARGS, nullptr},
+    {"_npu_hostEmptyCache", (PyCFunction) THNPModule_npu_hostEmptyCache, METH_NOARGS, nullptr},
+    {"_npu_hostMemoryStats", (PyCFunction) THNPModule_npu_hostMemoryStats, METH_NOARGS, nullptr},
+    {"_npu_resetAccumulatedHostMemoryStats", (PyCFunction) THNPModule_npu_resetAccumulatedHostMemoryStats, METH_NOARGS, nullptr},
+    {"_npu_resetPeakHostMemoryStats", (PyCFunction) THNPModule_npu_resetPeakHostMemoryStats, METH_NOARGS, nullptr},
     {"_npu_ipc_collect", (PyCFunction) THNPModule_npu_ipc_collect, METH_NOARGS, nullptr},
     {"_npu_emptyVirtAddrCache", (PyCFunction) THNPModule_emptyVirtAddrCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},
