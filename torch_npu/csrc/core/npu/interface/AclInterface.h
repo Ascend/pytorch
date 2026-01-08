@@ -204,6 +204,8 @@ aclError AclrtPeekAtLastError(aclrtLastErrLevel flag);
 
 aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version);
 
+aclError AclsysGetVersionStr(char *pkgName, char *versionStr);
+
 aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize);
 
 aclError AclrtSynchronizeDeviceWithTimeout(void);
