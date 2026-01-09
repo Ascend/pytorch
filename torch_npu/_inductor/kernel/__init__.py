@@ -1,0 +1,3 @@
+from .mm import _register_npu_inductor_mm, _register_npu_inductor_addmm
+from .bmm import _register_npu_inductor_bmm
+from .mm_grouped import _register_npu_inductor_grouped_mm

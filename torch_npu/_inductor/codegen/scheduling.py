@@ -6,9 +6,9 @@ import os
 from typing import Dict, Sequence, List, Iterable, Any, Union
 import sympy
 import torch
-from torch._dynamo.utils import counters
+from torch._dynamo.utils import counters, preserve_rng_state
 from torch._inductor import scheduler, metrics
-from torch._inductor.codecache import code_hash
+from torch._inductor.codecache import code_hash, PyCodeCache
 from torch._inductor.codegen.multi_kernel import MultiKernel
 from torch._inductor.codegen.simd import DisableReduction, EnableReduction, SIMDKernelFeatures, SIMDKernel
 from torch._inductor.codegen.simd import schedule_log, scheduler, WhyNoFuse, TritonTemplateBuffer
@@ -24,6 +24,7 @@ from torch._inductor.codegen.triton import (
     get_path,
     IndentedBuffer
 )
+from torch._inductor.runtime.benchmarking import benchmarker
 from torch._inductor.utils import sympy_index_symbol, ModularIndexing, FloorDiv, sympy_product
 from torch._inductor.virtualized import V
 from torch.fx.immutable_collections import immutable_dict
@@ -262,6 +263,113 @@ class NPUTritonScheduling(TritonScheduling):
                 metrics.log_kernel_metadata(kernel_name, kernel_path, src_code)
 
         return kernel_name, src_code
+
+    def benchmark_fused_nodes(self, nodes):
+        with preserve_rng_state(), torch.npu.device(
+            V.graph.get_current_device_or_throw()
+        ):
+            src_code = self.generate_kernel_code_from_nodes(
+                nodes, benchmark_kernel=True
+            )
+            mod = PyCodeCache.load(src_code)
+
+            def cache_file_path():
+                assert mod.__file__ is not None
+                return os.path.splitext(mod.__file__)[0] + ".kernel_perf"
+
+            def load_cache():
+                path = cache_file_path()
+                if os.path.exists(path):
+                    with open(path) as fd:
+                        return float(fd.read())
+                return None
+
+            def store_cache():
+                path = cache_file_path()
+                with open(path, "w") as fd:
+                    fd.write(str(ms))
+
+            log.debug(
+                "kernel src code for %s written to: %s",
+                {n.get_name() for n in nodes},
+                mod.__file__,
+            )
+            ms = load_cache()
+            if ms is not None:
+                return ms, mod.__file__
+
+            args = mod.get_args()
+            call = mod.call
+            wrapped_jit_function = mod.triton_
+
+            # call once to trigger the compilation
+            try:
+                call(wrapped_jit_function.clone_args(*args)[0])
+            except Exception as e:
+                log.debug(
+                    "Exception (%s) in compiling fused nodes %s",
+                    e,
+                    {n.get_name() for n in nodes},
+                )
+                ms = float("inf")
+                store_cache()
+                return ms, mod.__file__
+
+            launchers = wrapped_jit_function.launchers
+            assert len(launchers) == 1
+            if launchers[0].n_spills > 0:
+                # skip benchmarking the kernel if there are register spills
+                ms = float("inf")
+            else:
+                # We have to clone the inplace updated arguments to avoid earlier calls
+                # generating out of range indices for later calls.
+                ms = benchmarker.benchmark_gpu(
+                    lambda: call(wrapped_jit_function.clone_args(*args)[0])
+                )
+
+                # overhead of cloning args gives bias for fusing the kernel
+                # in the case of mutating/in-placeable second fusion
+                # the input values between benchmarking
+                if len(wrapped_jit_function.mutated_arg_names) > 0:
+                    ms = ms - benchmarker.benchmark_gpu(
+                        lambda: wrapped_jit_function.clone_args(*args)
+                    )
+
+            log.debug(
+                "The fused kernel for %s took %.3f ms to run",
+                {n.get_name() for n in nodes},
+                ms,
+            )
+            store_cache()
+            return ms, mod.__file__
+
+    def generate_kernel_code_from_nodes(self, nodes, benchmark_kernel=False):
+        if not nodes[0].is_template():
+            _, (numel, rnumel) = max(nodes, key=lambda x: int(x.is_reduction())).group
+            node_schedule = self.generate_node_schedule(nodes, numel, rnumel)
+            tiling = self.select_tiling(node_schedule, numel, rnumel)
+            kernel = self.kernel_type(
+                tiling,
+                features=NPUKernelFeatures(node_schedule, numel, rnumel),
+            )
+            setattr(kernel, "node_schedule", node_schedule)
+            self.decide_codegen_dims_in_kernel(node_schedule, kernel)
+            self.codegen_node_schedule_with_kernel(node_schedule, kernel)
+            with config.patch(
+                "benchmark_kernel", benchmark_kernel
+            ), V.set_kernel_handler(kernel):
+                src_code = kernel.codegen_kernel()
+        else:
+            template_node = nodes[0]
+            epilogue_nodes = nodes[1:]
+
+            with config.patch("benchmark_kernel", benchmark_kernel):
+                src_code = self.codegen_template(
+                    template_node, epilogue_nodes, only_gen_src_code=True
+                )
+
+        src_code = src_code.replace(str(Placeholder.KERNEL_NAME), "triton_")
+        return src_code
 
     def codegen_node(
             self, node: Union[scheduler.FusedSchedulerNode, scheduler.SchedulerNode]

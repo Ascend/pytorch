@@ -83,6 +83,10 @@ GENERATE_LIST = [
     aten._assert_scalar,
     triton_kernel_wrapper_mutation,
     aten.native_layer_norm,
+    aten.mm,
+    aten.bmm,
+    aten.addmm,
+    npu.npu_grouped_matmul,
 ]
 
 GENERATE_LIST2 = [
@@ -107,6 +111,9 @@ LOWERING_OVERLOAD_OP = [
     aten.var,
 
     aten.cat,
+    aten.mm,
+    aten.bmm,
+    aten.addmm,
 ]
 
 INDIRECT_MEM_GENERATE_LIST = [

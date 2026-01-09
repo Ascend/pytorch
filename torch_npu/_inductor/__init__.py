@@ -1,6 +1,6 @@
 import os
 
-if os.getenv('TORCHINDUCTOR_MAX_AUTOTUNE', '0') == '1':
+if os.getenv('TORCHINDUCTOR_MLIR_BACKEND', '0') == '1':
     try:
         import torch_mlir
         from torch_mlir import ir
@@ -41,17 +41,28 @@ else:
     from .runtime import _load_cached_autotuning
     from .utils import get_current_raw_stream, patch_is_gpu, patch_has_triton, disable_foreach
     from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
+    from .scheduler import patch_scheduler
     from .shape_handling import NPUShapeHandling, patch_shape_handling
+    from .async_compile import patch_async_compile
+    from .autotune_process import patch_tuning_process, patch_tuning_process_pool
+    from .select_algorithm import patch_algorithm_selector
+    from .fx_passes import patch_pattern_mm_plus_mm
+    from .kernel import (
+        _register_npu_inductor_mm,
+        _register_npu_inductor_addmm,
+        _register_npu_inductor_bmm,
+        _register_npu_inductor_grouped_mm,
+    )
 
     set_compile_threads()
     disable_comprehensive_padding()
 
 
     def _inductor_register_backend_for_device():
-        from .codegen.scheduling import NPUTritonScheduling
+        from .codegen.npu_combined_scheduling import NPUCombinedScheduling
         from .codegen.wrapper import NPUWrapperCodeGen
         from .codegen.cpp_wrapper import CppWrapperNpu
-        register_backend_for_device('npu', NPUTritonScheduling, NPUWrapperCodeGen, CppWrapperNpu)
+        register_backend_for_device('npu', NPUCombinedScheduling, NPUWrapperCodeGen, CppWrapperNpu)
 
 
     _inductor_register_backend_for_device()
@@ -87,6 +98,13 @@ else:
 
         patch_aot_code_compiler_compile()
 
+        if os.environ.get("PRE_GRAPH_OPTIMIZER") == "1": 
+            from .fx_passes.graph_match_pass import pre_grad_custom_pass_fuc 
+            pre_grad_custom_pass_fuc() 
+        if os.environ.get("POST_GRAD_GRAPH_OPTIMIZER") == "1": 
+            from .fx_passes.graph_match_pass import post_grad_custom_pass_fuc 
+            post_grad_custom_pass_fuc()
+
     if os.environ.get("DISABLE_AOTI_PATCH", "0") != "1":
         patch_torch_for_aoti()
 
@@ -103,16 +121,16 @@ else:
 
     _register_npu_inductor_fallbacks()
     _register_npu_inductor_decompositons()
-
-    if os.environ.get("PRE_GRAPH_OPTIMIZER") == "1":
-        from .fx_passes.pre_graph import pre_grad_custom_pass_fuc
-
-        pre_grad_custom_pass_fuc()
-
-    if os.environ.get("POST_GRAD_GRAPH_OPTIMIZER") == "1":
-        from .fx_passes.graph_match_pass import post_grad_custom_pass_fuc
-
-        post_grad_custom_pass_fuc()
+    _register_npu_inductor_mm()
+    _register_npu_inductor_addmm()
+    _register_npu_inductor_bmm()
+    _register_npu_inductor_grouped_mm()
+    patch_pattern_mm_plus_mm()
+    patch_algorithm_selector()
+    patch_tuning_process()
+    patch_tuning_process_pool()
+    patch_async_compile()
+    patch_scheduler()
 
 
     # register fx_pass should be put behind of _register_npu_inductor_decompositons

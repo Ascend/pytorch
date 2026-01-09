@@ -6,6 +6,8 @@ from torch._inductor import config
 from triton.runtime.driver import driver
 from torch_npu.npu._backends import get_soc_version
 
+from .utils import classproperty
+
 enable_npu_indexing = True
 
 config.triton.unique_kernel_names = True
@@ -48,6 +50,52 @@ class aot_inductor:
     # Path that to be used for dump tensor args before and after triton kernel in output_code.py
     # when debug_kernel_in_run is set.
     dump_path_py = os.environ.get("AOTI_DUMP_PATH_PY", "aoti_dump_py")
+
+
+class catlass:
+    # Whether to enable debug info, e.g., line number
+    enable_debug_info: bool = False
+
+    @classproperty
+    def catlass_dir(self) -> str:
+        return os.environ.get(
+            "TORCHINDUCTOR_NPU_CATLASS_DIR",
+            os.path.abspath(
+                os.path.join(os.path.dirname(torch.__file__), "../third_party/catlass")
+            ),
+        )
+
+    # Configures the maximum number of CATLASS configs to profile in max_autotune.
+    # By default it's None, so that all CATLASS configs are tuned.
+    # This is mainly used to reduce test time in CI.
+    catlass_max_profiling_configs: Optional[int] = None
+
+    catlass_backend_min_gemm_size: int = 1
+
+    # Wheter to ignore GEMM template for standard matmul
+    catlass_ignore_gemm_in_standard_mm: bool = True
+
+    catlass_epilogue_fusion_enable = (
+        os.environ.get("CATLASS_EPILOGUE_FUSION", "0") == "1"
+    )
+
+    # Note: Experimental function
+    catlass_evg_fusion_enable = (
+        os.environ.get("CATLASS_EVG_FUSION", "0") == "1"
+    )
+
+    catlass_bench_use_profiling: bool = (
+        os.environ.get("TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING", "0") == "1"
+    )
+
+    # Note: This fuction is not implemented yet.
+    # enable generation of inline standalone runner in CATLASS CPP generated code
+    # which allows to compile the generated code into a standalone executable.
+    generate_test_runner: bool = (
+        os.environ.get("INDUCTOR_NPU_BACKEND_GENERATE_TEST_RUNNER_CODE", "0") == "1"
+    )
+
+    catlass_enabled_ops: str = os.environ.get("TORCHINDUCTOR_CATLASS_ENABLED_OPS", "mm,addmm,bmm")
 
 
 traced_fx_graph_cache = os.environ.get("INDUCTOR_ASCEND_FX_GRAPH_CACHE", None)
