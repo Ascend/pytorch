@@ -148,14 +148,14 @@ int64_t VersionToNum(std::string versionStr)
     std::vector<std::string> tokens = SplitVersionStr(versionStr);
 
     if (tokens.size() < tokenNum3) {
-        ASCEND_LOGW("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
     major = ExtractNumFromStr(tokens[index0]);
     minor = ExtractNumFromStr(tokens[index1]);
     if (major == -1 || minor == -1) {
-        ASCEND_LOGW("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -212,7 +212,7 @@ int64_t VersionToNum(std::string versionStr)
     }
 
     if (!parsed) {
-        ASCEND_LOGW("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -235,7 +235,7 @@ int64_t VersionV2ToNum(std::string versionStr) {
     std::vector<std::string> tokens = SplitVersionStr(versionStr);
 
     if (tokens.size() < tokenNum3) {
-        ASCEND_LOGW("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -243,7 +243,7 @@ int64_t VersionV2ToNum(std::string versionStr) {
     minor = ExtractNumFromStr(tokens[index1]);
     patch = ExtractNumFromStr(tokens[index2]);
     if (major == -1 || minor == -1 || patch == -1) {
-        ASCEND_LOGW("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
     bool parsed = false;
@@ -315,7 +315,7 @@ int64_t VersionV2ToNum(std::string versionStr) {
     }
 
     if (!parsed) {
-        ASCEND_LOGW("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -341,14 +341,14 @@ int64_t DriverVersionToNum(std::string versionStr)
     std::vector<std::string> tokens = SplitVersionStr(versionStr);
 
     if (tokens.size() < tokenNum3) {
-        ASCEND_LOGW("Driver Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Driver Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
     major = ExtractNumFromStr(tokens[index0]);
     minor = ExtractNumFromStr(tokens[index1]);
     if (major == -1 || minor == -1) {
-        ASCEND_LOGW("Driver Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Driver Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -426,7 +426,7 @@ int64_t DriverVersionToNum(std::string versionStr)
     }
 
     if (!parsed) {
-        ASCEND_LOGW("Driver Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Driver Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -451,7 +451,7 @@ std::string GetCANNVersion(const std::string& module)
     auto find_module = packageNameMap.find(module);
     auto find_module_v2 = pkgNameV2Map.find(module);
     if (find_module == packageNameMap.end() && find_module_v2 == pkgNameV2Map.end()) {
-        ASCEND_LOGW("module " + module + " is invalid.");
+        ASCEND_LOGW("module %s is invalid.", module.c_str());
         CANNVersionCache[module] = "";
         return "";
     }
@@ -534,7 +534,7 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
     }
 
     if (isInvalid) {
-        ASCEND_LOGW("The version: \"" + currentVersion + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("The version: %s is invalid or not supported yet.", currentVersion.c_str());
         return false;
     }
 
