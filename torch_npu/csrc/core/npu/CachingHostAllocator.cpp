@@ -384,11 +384,6 @@ c10::Allocator *getPinnedMemoryAllocator()
 // the host memory is not allocated by malloc
 aclError process_unregistered_mem_location_type(c10_npu::NPUStream stream, aclrtMemcpyKind kind)
 {
-    if (c10_npu::acl::AclrtMemcpyAsyncWithConditionExist() && kind == aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST) {
-        ASCEND_LOGD("The copy of the d2h kind does not need to be converted to synchronous");
-        return ACL_ERROR_NONE;
-    }
-
     // Sync when host memory is allocated by malloc
     ASCEND_LOGD("The copy of the kind needs to be converted to synchronous");
     aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
