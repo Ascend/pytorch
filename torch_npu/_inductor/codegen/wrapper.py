@@ -84,10 +84,6 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
         # it suffices as a type hint for the purposes of producing the correct code for this type.
         return SymbolicCallArg(expr, numel_expr)
 
-    # don't free anything
-    def make_buffer_free(self, buffer):
-        return ""
-
     # don't assert
     def codegen_input_size_asserts(self) -> None:
         pass

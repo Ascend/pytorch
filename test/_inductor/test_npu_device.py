@@ -73,7 +73,7 @@ class TestNpuDevice(TestCase):
     def test_import_get_raw_stream_as(self):
         overrides = NewNPUDeviceOpOverrides()
         result = overrides.import_get_raw_stream_as("test_name")
-        excepted = "from torch_npu._inductor import get_current_raw_stream as test_name"
+        excepted = "from torch_npu._C import _npu_getCurrentRawStream as test_name"
         self.assertEqual(result, excepted)
 
 

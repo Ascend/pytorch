@@ -10,12 +10,12 @@ math = tl.math
 
 @triton.jit
 def maximum(a, b):
-    return tl.maximum(a, b)
+    return tl.maximum(a, b, tl.PropagateNan.ALL)
 
 
 @triton.jit
 def minimum(a, b):
-    return tl.minimum(a, b)
+    return tl.minimum(a, b, tl.PropagateNan.ALL)
 
 
 triton_helpers.maximum = maximum

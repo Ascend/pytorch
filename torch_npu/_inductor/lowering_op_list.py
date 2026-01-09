@@ -9,7 +9,6 @@ prims = torch.ops.prims
 npu = torch.ops.npu
 
 GENERATE_LIST = [
-    aten.copy_,
     prims.device_put,
     prims.iota,
     aten.full,
@@ -79,6 +78,7 @@ GENERATE_LIST = [
     aten.bitwise_and,
     aten.squeeze,
     aten.copy,
+    aten.copy_,
     aten.reciprocal,
     aten._assert_scalar,
     triton_kernel_wrapper_mutation,
@@ -106,9 +106,6 @@ LOWERING_OVERLOAD_OP = [
     aten.var_mean,
     aten.var,
 
-    aten.split,
-    aten.split_with_sizes,
-    aten.nll_loss_forward,
     aten.cat,
 ]
 

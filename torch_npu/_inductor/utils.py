@@ -32,13 +32,7 @@ def patch_is_same_tensor():
 
 def patch_is_gpu():
     from torch._inductor.utils import GPU_TYPES
-
     GPU_TYPES.append('npu')
-
-    def _return_false(device_interface):
-        return False
-
-    torch._inductor.scheduler.device_need_guard = _return_false
 
 
 def patch_has_triton():

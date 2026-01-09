@@ -564,7 +564,7 @@ def run():
         rtol = acc_comp_tol['rtol']
         atol = acc_comp_tol['atol']
         try:
-            torch.testing.assert_close(actual, expected, rtol=rtol, atol=atol, equal_nan=False)
+            torch.testing.assert_close(actual, expected, rtol=rtol, atol=atol, equal_nan=True)
         except Exception as e:
             print(e)
 

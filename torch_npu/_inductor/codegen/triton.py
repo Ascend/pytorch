@@ -273,19 +273,13 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
     def writeline(self, line):
         self.indexing_code.writeline(line)
 
-    def is_1d_persisent_reduction(self):
-        return len(V.kernel.tiling_axis) == 1 and V.kernel.persistent_reduction
-
     def codegen_index(self, direction):
         BLOCK_NAME = f"{self.name.upper()}BLOCK"
         BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
         index = None
         if self.prefix == 'r':
             if V.kernel.persistent_reduction:
-                if self.is_1d_persisent_reduction():
-                    index = f"tl.arange(0, {BLOCK_NAME_SUB})"
-                else:
-                    index = f"base_{self.name}"
+                index = f"base_{self.name}"
             else:
                 index = f"(loop_{self.name} * {BLOCK_NAME_SUB}) + base_{self.name}"
         else:
@@ -307,9 +301,6 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         lines = []
         BLOCK_NAME = f"{self.name.upper()}BLOCK"
         BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
-
-        if self.is_1d_persisent_reduction():
-            return
 
         if self.is_split_axis:
             lines.append(f"{self.symbol()}_offset = tl.program_id({self.split_order}) * {BLOCK_NAME}")

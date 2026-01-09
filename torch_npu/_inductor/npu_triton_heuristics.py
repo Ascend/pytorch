@@ -822,7 +822,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 atol = acc_comp_tol['atol']
 
                 matches = torch.isclose(
-                    actual, expected, rtol=rtol, atol=atol, equal_nan=False
+                    actual, expected, rtol=rtol, atol=atol, equal_nan=True
                 )
                 if not matches.all():
                     abs_diff = torch.abs(actual - expected)
@@ -856,6 +856,13 @@ class NPUCachingAutotuner(CachingAutotuner):
         torch.npu.synchronize()
         torch.save(dump_args, f"{dump_path}/{idx}_{fn_name}_after.pt")
         return result
+
+    @functools.lru_cache(None)
+    def is_run_debug(self):
+        return (npu_config.dump_fx_graph
+                or npu_config.check_accuracy
+                or npu_config.force_fallback_kernel_id
+                or npu_config.aot_inductor.debug_kernel_in_run)
 
     def maybe_run_debug(self, *args, grid_, stream, launcher, **kwargs):
         kernel_name = self.get_fn_name()
@@ -908,6 +915,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 self.precompile_time_taken_ns = time.time_ns() - start_time
             if len(self.launchers) > 1:
                 self.autotune_to_one_config(*args, **kwargs)
+            log.debug(f"best config of kernel: {self.inductor_meta.get('kernel_name', '')}: {self.launchers[0].config}")
 
         if not getattr(
                 self.launchers[0].config, "found_by_coordesc", False
@@ -925,11 +933,12 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.dump_launch_params:
             _dump_launch_params(args, kwargs, launcher, self.fn.__name__)
 
-        _, grid = self._interpret_args_grid(args, launcher.config)
-        debug_mode = self.maybe_run_debug(*args, grid_=grid, stream=stream, launcher=launcher, **kwargs)
-        if debug_mode:
-            log.info(f"Kernel {self.get_fn_name()} goes into {debug_mode} and return.")
-            return
+        if self.is_run_debug():
+            _, grid = self._interpret_args_grid(args, launcher.config)
+            debug_mode = self.maybe_run_debug(*args, grid_=grid, stream=stream, launcher=launcher, **kwargs)
+            if debug_mode:
+                log.info(f"Kernel {self.get_fn_name()} goes into {debug_mode} and return.")
+                return
 
         # it is faster than entering and exiting a context manager, even if the context
         # manager is a nullcontext.

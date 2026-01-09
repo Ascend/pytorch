@@ -8,7 +8,7 @@ from . import config as npu_config
 ## Override original inductor device overrides in torch_npu
 class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
     def import_get_raw_stream_as(self, name):
-        return f"from torch_npu._inductor import get_current_raw_stream as {name}"
+        return f"from torch_npu._C import _npu_getCurrentRawStream as {name}"
 
     def set_device(self, device_idx):
         return f"torch.npu.set_device({device_idx})"

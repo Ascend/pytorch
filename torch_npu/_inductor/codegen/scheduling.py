@@ -398,13 +398,15 @@ class NPUTritonScheduling(TritonScheduling):
                     config.triton.tiling_prevents_reduction_fusion
                     and not node1.is_template()
                 ):
+                    valid_tiling_group = set()
+                    valid_tiling_group.add((*numel1, 1) if isinstance(numel1, NumelList) else (numel1, 1))
+                    valid_tiling_group.add((*numel2, *rnumel2, 1)
+                        if isinstance(numel2, NumelList) and isinstance(rnumel2, NumelList) else (numel2, rnumel2, 1))
+                    valid_tiling_group.add(numel1)
+
                     is_reduction_tiling_valid = tuple(
                         self.select_tiling(node1.get_nodes(), numel1).values()
-                    ) in (
-                        (numel1, 1),
-                        (numel2, rnumel2, 1),
-                        numel1,
-                    )
+                    ) in valid_tiling_group
                     if not is_reduction_tiling_valid:
                         why("invalid tiling for reduction")
                     return is_reduction_tiling_valid

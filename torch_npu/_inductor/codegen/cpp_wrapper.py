@@ -26,6 +26,7 @@ from torch._inductor.utils import _align, ALIGN_BYTES
 
 from .. import config as npu_config
 from ..config import npu_block as NPU_ALIGN_BYTES
+from ..npu_triton_heuristics import GridExprNpu
 
 if TYPE_CHECKING:
     from torch._inductor.graph import GraphLowering
@@ -34,7 +35,6 @@ if TYPE_CHECKING:
 def checkIfTrue(value, msg):
     if not value:
         raise RuntimeError(msg)
-    return True
 
 
 _cpp_string_literal_escapes = {
@@ -146,7 +146,6 @@ class DeferredNpuTritonCallWrapper:
         inductor_meta: dict[str, Any],
         params: dict[str, Any],
     ):
-        from ..npu_triton_heuristics import GridExprNpu
 
         numels = [arg for arg in params["call_args"] if "_numel" in arg]
         grid = GridExprNpu.from_meta_and_set_numel(
