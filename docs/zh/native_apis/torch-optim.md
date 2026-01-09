@@ -35,7 +35,7 @@
 |torch.optim.Adagrad.state_dict|是|-|
 |torch.optim.Adagrad.step|是|-|
 |torch.optim.Adagrad.zero_grad|是|-|
-|torch.optim.Adam|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False<br>可能回退至CPU执行|
+|torch.optim.Adam|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False<br>在某些情况下可能回退至CPU执行|
 |torch.optim.Adam.add_param_group|是|-|
 |torch.optim.Adam.load_state_dict|是|-|
 |torch.optim.Adam.register_load_state_dict_post_hook|是|-|
