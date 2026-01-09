@@ -1522,6 +1522,10 @@ aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attribut
 bool AclrtPointerGetAttributesExist()
 {
     const static bool isAclrtPointerGetAttributesExist = []() -> bool {
+        const std::string kMinRuntimeVersion = "8.5.0";
+        if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
+            return false;
+        }
         auto func = GET_FUNC(aclrtPointerGetAttributes)
         return func != nullptr;
     }();
