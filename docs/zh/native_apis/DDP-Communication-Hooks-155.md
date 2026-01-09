@@ -21,7 +21,5 @@
 |torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.powerSGD_hook|是|-|
 |torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.batched_powerSGD_hook|是|-|
 |torch.distributed.algorithms.ddp_comm_hooks.debugging_hooks.noop_hook|是|支持fp32|
-|__getstate__|否|-|
-|__setstate__|否|-|
 
 
