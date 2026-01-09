@@ -16,7 +16,7 @@
 |torch.fx.GraphModule.graph|否|-|
 |torch.fx.GraphModule.print_readable|是|-|
 |torch.fx.GraphModule.recompile|是|-|
-|torch.fx.GraphModule.to_folder|是|支持fp32，int32|
+|torch.fx.GraphModule.to_folder|是|支持fp32|
 |torch.fx.Graph|是|-|
 |torch.fx.Graph.__init__|是|-|
 |torch.fx.Graph.call_function|是|-|
