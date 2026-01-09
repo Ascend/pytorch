@@ -148,14 +148,14 @@ int64_t VersionToNum(std::string versionStr)
     std::vector<std::string> tokens = SplitVersionStr(versionStr);
 
     if (tokens.size() < tokenNum3) {
-        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
     major = ExtractNumFromStr(tokens[index0]);
     minor = ExtractNumFromStr(tokens[index1]);
     if (major == -1 || minor == -1) {
-        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -212,7 +212,7 @@ int64_t VersionToNum(std::string versionStr)
     }
 
     if (!parsed) {
-        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -235,7 +235,7 @@ int64_t VersionV2ToNum(std::string versionStr) {
     std::vector<std::string> tokens = SplitVersionStr(versionStr);
 
     if (tokens.size() < tokenNum3) {
-        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -243,7 +243,7 @@ int64_t VersionV2ToNum(std::string versionStr) {
     minor = ExtractNumFromStr(tokens[index1]);
     patch = ExtractNumFromStr(tokens[index2]);
     if (major == -1 || minor == -1 || patch == -1) {
-        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
     bool parsed = false;
@@ -315,7 +315,7 @@ int64_t VersionV2ToNum(std::string versionStr) {
     }
 
     if (!parsed) {
-        TORCH_NPU_WARN_ONCE("Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -341,14 +341,14 @@ int64_t DriverVersionToNum(std::string versionStr)
     std::vector<std::string> tokens = SplitVersionStr(versionStr);
 
     if (tokens.size() < tokenNum3) {
-        TORCH_NPU_WARN_ONCE("Driver Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Driver Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
     major = ExtractNumFromStr(tokens[index0]);
     minor = ExtractNumFromStr(tokens[index1]);
     if (major == -1 || minor == -1) {
-        TORCH_NPU_WARN_ONCE("Driver Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Driver Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -426,7 +426,7 @@ int64_t DriverVersionToNum(std::string versionStr)
     }
 
     if (!parsed) {
-        TORCH_NPU_WARN_ONCE("Driver Version: \"" + versionStr + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("Driver Version: %s is invalid or not supported yet.", versionStr.c_str());
         return 0;
     }
 
@@ -451,7 +451,7 @@ std::string GetCANNVersion(const std::string& module)
     auto find_module = packageNameMap.find(module);
     auto find_module_v2 = pkgNameV2Map.find(module);
     if (find_module == packageNameMap.end() && find_module_v2 == pkgNameV2Map.end()) {
-        TORCH_NPU_WARN_ONCE("module " + module + " is invalid.");
+        ASCEND_LOGW("module %s is invalid.", module.c_str());
         CANNVersionCache[module] = "";
         return "";
     }
@@ -461,7 +461,7 @@ std::string GetCANNVersion(const std::string& module)
         aclCANNPackageName name = find_module->second;
         aclError ret = c10_npu::acl::AclsysGetCANNVersion(name, &version);
         if (ret == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
-            TORCH_NPU_WARN_ONCE("Failed to find function aclsysGetCANNVersion.");
+            ASCEND_LOGW("Failed to find function aclsysGetCANNVersion.");
             CANNVersionCache[module] = "";
             return "";
         }
@@ -473,7 +473,7 @@ std::string GetCANNVersion(const std::string& module)
         char versionStr[ACL_PKG_VERSION_MAX_SIZE] = {0};
         aclError retV2 = c10_npu::acl::AclsysGetVersionStr(const_cast<char*>(module.c_str()), versionStr);
         if (retV2 == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
-            TORCH_NPU_WARN_ONCE("Failed to find function aclsysGetVersionStr.");
+            ASCEND_LOGW("Failed to find function aclsysGetVersionStr.");
             CANNVersionCache[module] = "";
             return "";
         }
@@ -534,7 +534,7 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
     }
 
     if (isInvalid) {
-        TORCH_NPU_WARN_ONCE("The version: \"" + currentVersion + "\" is invalid or not supported yet.");
+        ASCEND_LOGW("The version: %s is invalid or not supported yet.", currentVersion.c_str());
         return false;
     }
 
@@ -554,7 +554,7 @@ bool IsGteDriverVersion(const std::string driverVersion)
     int64_t currentCannNum = VersionToNum(currentCANNVersion);
     int64_t boundaryCannNum = VersionToNum(baseCANNVersion);
     if (currentCannNum < boundaryCannNum) {
-        TORCH_NPU_WARN_ONCE("When the cann version is less than \"8.1.RC1\", GetCANNVersion is not supported.");
+        ASCEND_LOGW("When the cann version is less than \"8.1.RC1\", GetCANNVersion is not supported.");
         return false;
     }
     // check driver version
