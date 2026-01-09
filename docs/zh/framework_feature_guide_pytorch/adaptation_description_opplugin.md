@@ -20,7 +20,7 @@ cd pytorch/third_party/op-plugin
 
 ## 适配原则
 
--   OpPlugin对外接口与torch原生Aten IR保持一致。Aten IR接口说明，请参考[pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)。
+-   OpPlugin对外接口与torch原生Aten IR保持一致。ATen IR接口说明，请参考[pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)。
 -   不同的torch版本使用op\_plugin\_functions.yaml维护本身的对外接口，配置规则可参见[算子适配开发](#算子适配开发)。
 -   不同适配方式的算子放置于不同的文件夹中，使用不同的命名空间，当前仅有opapi适配算子（aclnn等）和aclop适配算子（通过GE注册的算子）。
 -   除非必要，否则不应使用NPUNativeFunction::命名空间中的接口。自定义算子使用custom\_ops::xx调用，原生算子使用at::xx调用，调用其他适配接口使用OpPlugin内部的接口，比如aclnn使用op\_api::xx，aclop算子使用acl\_op::xx。
@@ -101,7 +101,7 @@ PyTorch官方提供的native\_functions.yaml文件定义了PyTorch Native Functi
     -   gen\_opapi对于支持op\_api调用的算子，如果适配代码简单，可以直接调用底层算子，不需要额外的适配，则可以考虑用结构化适配的方式自动生成适配代码，详见章节[结构化适配介绍（可选）](#结构化适配介绍可选)。
 
         > [!NOTE]  
-        >如果存在某个Aten IR有两个版本不一致，则需要两个都加上，如std.correction在PyTorch1.11.0版本和PyTorch2.1.0及以上版本的入参名称不同，则需要分开写成两个，通过version区分。
+        >如果存在某个ATen IR有两个版本不一致，则需要两个都加上，如std.correction在PyTorch1.11.0版本和PyTorch2.1.0及以上版本的入参名称不同，则需要分开写成两个，通过version区分。
         >```yaml
         >  - func: std.correction(Tensor self, int[1]? dim, *, int? correction, bool keepdim=False) -> Tensor
         >    acl_op: v1.11

@@ -336,7 +336,7 @@
 |torch.result_type|是|支持fp32|
 |torch.can_cast|是|-|
 |torch.promote_types|是|-|
-|torch.use_deterministic_algorithms|是|同时设置HCCL_DETTERMINISTIC和torch.use_deterministic_algorithms时，若HCCL_DETTERMINISTIC开启确定性则hccl接口启用确定性，否则hccl确定性由torch.use_deterministic_algorithms接口控制|
+|torch.use_deterministic_algorithms|是|同时设置HCCL_DETERMINISTIC和torch.use_deterministic_algorithms时，若HCCL_DETERMINISTIC开启确定性则hccl接口启用确定性，否则hccl确定性由torch.use_deterministic_algorithms接口控制|
 |torch.are_deterministic_algorithms_enabled|是|-|
 |torch.is_deterministic_algorithms_warn_only_enabled|否|-|
 |torch.set_deterministic_debug_mode|是|-|

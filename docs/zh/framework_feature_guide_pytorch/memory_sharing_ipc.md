@@ -22,7 +22,7 @@ IPC（Inter-Process Communication），表示进程间通信，进程间可以�
 
 -   通过multiprocessing.Queue对NPU Tensor进行IPC共享，样例脚本如下：
 
-    ```py
+    ```python
     import torch
     import torch_npu
     import torch.multiprocessing as mp
@@ -58,7 +58,7 @@ IPC（Inter-Process Communication），表示进程间通信，进程间可以�
 
 -   先通过torch.multiprocessing.reductions.reduce\_tensor对NPU Tensor进行reduce化，然后再进行IPC共享，样例脚本如下：
 
-    ```py
+    ```python
     import torch
     import torch_npu
     import torch.multiprocessing as mp
@@ -70,11 +70,11 @@ IPC（Inter-Process Communication），表示进程间通信，进程间可以�
         shared_handles = tensor_queue.get()
         func, args = shared_handles
         print(func)
-    list_args = list(args)
-    # 修改目标设备为卡1，从而实现跨卡访问
-    list_args[6] = 1
-    tensor = func(*list_args)
-    print(f"接收方收到 tensor = {tensor}")
+        list_args = list(args)
+        # 修改目标设备为卡1，从而实现跨卡访问
+        list_args[6] = 1
+        tensor = func(*list_args)
+        print(f"接收方收到 tensor = {tensor}")
      
      
     if __name__ == '__main__':

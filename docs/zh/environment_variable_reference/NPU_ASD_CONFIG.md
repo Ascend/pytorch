@@ -25,7 +25,7 @@ export NPU_ASD_CONFIG=enable:true,with_checksum:true,cooldown:5,strikes_num:3,st
 ## 使用约束
 
 -   此环境变量不支持在PyTorch图模式（TorchAir）场景下使用。
--   特征值检测需要计算激活值梯度的统计值，会产生额外的显存占用，最多可能存在1.5G的额外显存消耗，用户显存紧张的情况下可能导致OOM（Out of Memory，内存不足）。
+-   特征值检测需要计算激活值梯度的统计值，会产生额外的显存占用，可能存在1.5G的额外显存消耗，用户显存不足的情况下可能导致OOM（Out of Memory，内存不足）。
 -   此环境变量适用于Ascend Extension for PyTorch 7.1.0及之后版本。Ascend Extension for PyTorch 7.0.0及之前，可使用[NPU\_ASD\_ENABLE](NPU_ASD_ENABLE.md)开启特征值检测，具体操作可参考Ascend Extension for PyTorch对应版本资料。
 -   当前仅能识别数据类型为**BF16**或**FP32**的模型训练过程中出现的梯度异常。
 -   checksum联动仅支持**BF16**的数据类型。

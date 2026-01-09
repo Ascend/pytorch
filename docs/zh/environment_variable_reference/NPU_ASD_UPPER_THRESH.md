@@ -17,7 +17,7 @@
 >     -   若跳变幅度超过NPU\_ASD\_SIGMA\_THRESH触发告警，则需根据\(val-pre\_val\)和\(max-min\)的比值调大阈值NPU\_ASD\_SIGMA\_THRESH（推荐为\(val-pre\_val\)/\(max-min\)\*2 ）。
 > 
 >     相关影响：调大阈值会导致检出率有所减低，但误检率也会降低。
-> -   需要调小阈值场景：若频繁出现loss spike/grad norm spike影响训练，重新拉起依然有spike，但无告警，则按照一定比例（如10）逐渐调小阈值。  
+> -   需要调小阈值场景：若频繁出现loss spike/grad norm spike影响训练，重新启动依然有spike，但无告警，则按照一定比例（如10）逐渐调小阈值。  
 >     相关影响：调小阈值能够提高检出率，但也容易引发误检。
 
 ## 配置示例

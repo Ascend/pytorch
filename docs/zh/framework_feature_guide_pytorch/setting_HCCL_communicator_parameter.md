@@ -2,7 +2,7 @@
 
 ## 简介
 
-本特性可以针对不同的通信域配置不同的HCCL配置。通过pg\_options添加hccl\_config配置，将HCCL配置参数从Python层透过Ascend Extension for PyTorch传递到HCCL供使用。
+本特性可以针对不同的通信域配置不同的HCCL配置。通过pg\_options添加hccl\_config配置，将HCCL配置参数从Python层通过Ascend Extension for PyTorch传递到HCCL供使用。
 
 目前支持的通信域参数配置如下：
 
