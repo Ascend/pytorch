@@ -20,12 +20,9 @@
 | PyTorch2.4.0  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x        |
 | PyTorch2.5.1  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
 | PyTorch2.6.0  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
-<<<<<<< HEAD
-=======
 | PyTorch2.7.1  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
 | PyTorch2.8.0  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
 
->>>>>>> 5c556d33d (update readme)
 
 
 ### 昇腾辅助软件
@@ -158,7 +155,7 @@
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitcode.com/ascend/pytorch.git -b v2.6.0-7.2.0 --depth 1
+   git clone https://gitcode.com/ascend/pytorch.git -b v2.6.0-7.3.0 --depth 1
    ```
 
 2. **构建镜像**
