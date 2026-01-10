@@ -154,7 +154,7 @@
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitcode.com/ascend/pytorch.git -b v2.7.1-7.2.0 --depth 1
+   git clone https://gitcode.com/ascend/pytorch.git -b v2.7.1-7.3.0 --depth 1
 
    ```
 
