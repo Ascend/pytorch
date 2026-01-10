@@ -60,7 +60,7 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 1. **Clone torch-npu**
 
    ```
-   git clone https://gitcode.com/Ascend/pytorch.git -b v2.9.0 --depth 1
+   git clone https://gitcode.com/Ascend/pytorch.git -b v2.9.0-7.3.0 --depth 1
    ```
 
 2. **Build Docker Image**
