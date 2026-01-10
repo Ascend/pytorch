@@ -250,9 +250,12 @@ NPUGeneratorImpl::NPUGeneratorImpl(c10::DeviceIndex device_index, c10::intrusive
  */
 void NPUGeneratorImpl::set_current_seed(uint64_t seed)
 {
-    c10_npu::assertNotCapturing("Cannot call NPUGeneratorImpl::set_current_seed while in capture mode");
-    state_->seed_ = seed;
-    state_->philox_offset_per_thread_ = 0;
+    if (C10_LIKELY(c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
+        state_->seed_ = seed;
+        state_->philox_offset_per_thread_ = 0;
+    } else {
+        TORCH_CHECK(state_->seed_ == seed, "NPUGeneratorImpl::set_current_seed cann be called during stream capture only if new seed is the same as the original seed.");
+    }
 }
 
 /**
@@ -336,7 +339,6 @@ c10::intrusive_ptr<c10::TensorImpl> NPUGeneratorImpl::get_state() const
  */
 void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state)
 {
-    c10_npu::assertNotCapturing("Please ensure to utilize the NPUGeneratorImpl::set_state_index method during capturing.");
     static const size_t seed_size = sizeof(uint64_t);
     static const size_t offset_size = sizeof(int64_t);
     static const size_t total_size = seed_size + offset_size;
