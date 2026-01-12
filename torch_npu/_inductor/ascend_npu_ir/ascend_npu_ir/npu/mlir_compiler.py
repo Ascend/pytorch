@@ -1,5 +1,5 @@
 import os
-os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
+os.environ['TORCHINDUCTOR_MLIR_BACKEND'] = '1'
 import sys
 import functools
 from typing import Callable, Dict, Any, Union, List, Tuple, Iterator

@@ -511,7 +511,7 @@ def patch_inductor_get_config_copy():
             return ori_dict
         if "enable_shape_handling" in ori_dict:
             return ori_dict
-        
+
         ori_dict["enable_shape_handling"] = False
         ori_dict["shape_handling_configs"] = None
         ori_dict["shape_handling_dict"] = None

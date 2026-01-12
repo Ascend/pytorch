@@ -43,8 +43,7 @@ class NPUAutocastModeVariable(AutocastModeVariable):
             else:
                 target_values.append(arg)
 
-        var = AutocastModeVariable(
-            target_values, initial_values=None, **kwargs)
+        var = AutocastModeVariable(target_values, initial_values=None, **kwargs)
         return var
 
 
@@ -97,7 +96,7 @@ def TensorVariable_call_method(self, tx, name, args, kwargs):
     ):
         tensortype = next(k for k, v in tensortype_to_dtype.items() if self.dtype in v)
         constant_result = ConstantVariable.create(f"torch.npu.{tensortype.__name__}")
-        
+
         if len(args) == 1:
             return constant_result.getitem_const(args[0])
         elif args:
@@ -116,6 +115,7 @@ class _InductorNpuRegistry:
         if cls.has_initialized() or cls._disabled_register:
             return
         from torch_npu import _inductor
+
         cls._has_inited = True
 
     @classmethod
@@ -155,25 +155,61 @@ def register_inductor_npu():
 def patch_inductor_wrapper():
     from typing import Any, Optional
     from torch import _TorchCompileInductorWrapper
+    from torch.utils._config_module import Config, ConfigModule, _ConfigEntry
+
     src_call = _TorchCompileInductorWrapper.__call__
     src_apply_options = _TorchCompileInductorWrapper.apply_options
-    
-    def new_call(self, model_, inputs_):
-        if self.config.get('max_autotune', False):
-            import os
-            os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
-        register_inductor_npu()
+    src_init = _TorchCompileInductorWrapper.__init__
+    src_get_config_copy = ConfigModule.get_config_copy
+
+    def new_call(self, model_, inputs_):	 
+        register_inductor_npu() 
         return src_call(self, model_, inputs_)
-    
+     
     def new_apply_options(self, options: Optional[Dict[str, Any]]):
         if options is not None and options.get("enable_shape_handling", False):
             if not is_inductor_npu_initialized():
                 register_inductor_npu()
             torch_npu._inductor.patch_shape_handling()
         src_apply_options(self, options)
+
+    def new_get_config_copy(self) -> Dict[str, Any]:
+        ori_dict = src_get_config_copy(self)
+        if "mlir_backend" not in ori_dict:
+            ori_dict["mlir_backend"] = False
+            self._config["mlir_backend"] = _ConfigEntry(
+                    Config(default=False, value_type=bool)
+            )
+        return ori_dict
     
+    def new_init(self, mode, options, dynamic):
+        src_init(self, mode, options, dynamic)
+        if self.config.get("mlir_backend", False):
+            import os	 
+            os.environ['TORCHINDUCTOR_MLIR_BACKEND'] = '1'
+            try:
+                import torch_mlir
+                from torch_mlir import ir
+            except ImportError as e:
+                raise ImportError("torch_mlir is not installed, install it first.") from e
+            from torch_npu._inductor.ascend_npu_ir.build_ext import (
+                build_ascend_npu_ir_ext,
+                set_torch_npu_library_path,
+            )
+
+            _has_inited = False
+            if not _has_inited:
+                _has_inited = True
+                build_ascend_npu_ir_ext()
+            set_torch_npu_library_path()
+            from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu import (
+                npu_inductor_plugin,
+            )
+
     _TorchCompileInductorWrapper.__call__ = new_call
     _TorchCompileInductorWrapper.apply_options = new_apply_options
+    _TorchCompileInductorWrapper.__init__ = new_init
+    ConfigModule.get_config_copy = new_get_config_copy
 
 
 def patch_dynamo_optimize():
@@ -196,6 +232,7 @@ def patch_dynamo_optimize():
             # Init torchair ahead of running model.
             _get_global_npu_backend(backend_name)
         return src_optimize(*args, **kwargs)
+
     torch._dynamo.optimize = npu_optimize
 
 

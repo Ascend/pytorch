@@ -14,7 +14,7 @@ import torch_npu
 class TestAdd(TestUtils):
     import os
 
-    os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
+    os.environ['TORCHINDUCTOR_MLIR_BACKEND'] = '1'
     os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
 
     def op_calc(self, first_element, second_element):
