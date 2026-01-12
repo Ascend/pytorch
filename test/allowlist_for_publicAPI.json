@@ -2181,7 +2181,8 @@
     "Tuple",
     "compatibility",
     "legalize_graph",
-    "lift_subgraph_as_module"
+    "lift_subgraph_as_module",
+    "stable_topological_sort"
   ],
   "torch.fx.tensor_type": [
     "Var",

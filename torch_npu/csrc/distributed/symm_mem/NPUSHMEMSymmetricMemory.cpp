@@ -10,7 +10,6 @@ namespace symmetric_memory {
 
 /* Start of NPUSHMEMSymmetricMemory implementation */
 
-constexpr size_t npu_signal_pad_size = 2048;
 static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.symmetric_memory");
 static NPUStoreExchange storeExchange = NPUStoreExchange("NPUSHMEMSymmetricMemory");
 
@@ -108,11 +107,6 @@ void** NPUSHMEMSymmetricMemory::get_signal_pad_ptrs_dev()
 size_t NPUSHMEMSymmetricMemory::get_buffer_size()
 {
     return buffer_size_;
-}
-
-size_t NPUSHMEMSymmetricMemory::get_signal_pad_size()
-{
-    return npu_signal_pad_size;
 }
 
 bool NPUSHMEMSymmetricMemory::has_multicast_support()
