@@ -614,6 +614,15 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.ir",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.scheduler",
+            "torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass",
+            "torch_npu._inductor.fx_passes.ascend_custom_passes.register_custom_pass",
+            "torch_npu._inductor.fx_passes.graph_match_pass",
+            "torch_npu._inductor.fx_passes.utils.check_mode",
+            "torch_npu._inductor.fx_passes.utils.check_op_util",
+            "torch_npu._inductor.fx_passes.utils.fx_check_utils",
+            "torch_npu._inductor.fx_passes.utils.fx_pass_level",
+            "torch_npu._inductor.fx_passes.utils.get_binary_fold_result",
+            "torch_npu._inductor.fx_passes.ascend_custom_passes",
         }
 
         # No new entries should be added to this list.
