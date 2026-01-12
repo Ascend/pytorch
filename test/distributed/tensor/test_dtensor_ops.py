@@ -6,7 +6,7 @@ from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMult
 
 
 class TestDTensorOps(NPUDTensorTestBase):
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_nn_functional_one_hot(self):
         """Test torch.nn.functional.one_hot with DTensor on NPU"""
