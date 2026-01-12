@@ -232,6 +232,14 @@ class TestMathOps(DTensorTestBase):
 
 
 class TestConv2d(DTensorTestBase):
+    @property
+    def world_size(self):
+        device_count = torch.npu.device_count()
+        device_num = 4
+        if device_count > 1:
+            device_num = min(device_num, device_count)
+        return device_num
+    
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -557,6 +565,14 @@ class TestConv2d(DTensorTestBase):
 
 
 class TestGroupedMatmulAdd(DTensorTestBase):
+    @property
+    def world_size(self):
+        device_count = torch.npu.device_count()
+        device_num = 4
+        if device_count > 1:
+            device_num = min(device_num, device_count)
+        return device_num
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -603,6 +619,14 @@ class TestGroupedMatmulAdd(DTensorTestBase):
 
 
 class TestCrossEntropyLoss(DTensorTestBase):
+    @property
+    def world_size(self):
+        device_count = torch.npu.device_count()
+        device_num = 4
+        if device_count > 1:
+            device_num = min(device_num, device_count)
+        return device_num
+
     def generate_data_cross_entropy_loss(self, N, C, input_strategy, target_strategy, weight_strategy=None):
         mesh = self.build_device_mesh()
 
@@ -729,6 +753,14 @@ class TestCrossEntropyLoss(DTensorTestBase):
 
 
 class TestRepeatInterleaveSelfInt(DTensorTestBase):
+    @property
+    def world_size(self):
+        device_count = torch.npu.device_count()
+        device_num = 4
+        if device_count > 1:
+            device_num = min(device_num, device_count)
+        return device_num
+
     def generate_data_repeat_interleave_self_int(self, size, repeats_value, input_strategy):
         mesh = self.build_device_mesh()
 
