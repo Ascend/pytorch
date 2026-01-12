@@ -27,7 +27,7 @@ class MyShardedModel(torch.nn.Module):
         if spec is not None:
             self.sharded_param = torch.nn.Parameter(
                 sharded_tensor.rand(
-                    spec, 20, 10, requires_grad=True, process_group=group
+                    spec, 10, 10, requires_grad=True, process_group=group
                 )
             )
         else:
@@ -59,8 +59,6 @@ class MyShardedLinear(torch.nn.Module):
             placements=[
                 "rank:0/npu:0",
                 "rank:1/npu:1",
-                "rank:2/npu:2",
-                "rank:3/npu:3",
             ],
         )
 
@@ -69,8 +67,6 @@ class MyShardedLinear(torch.nn.Module):
             placements=[
                 "rank:0/npu:0",
                 "rank:1/npu:1",
-                "rank:2/npu:2",
-                "rank:3/npu:3",
             ],
         )
 
@@ -80,10 +76,16 @@ class MyShardedLinear(torch.nn.Module):
     def forward(self, inp):
         return self.linear2(self.gelu(self.linear1(inp)))
 
+Test_GPU_NUM = 2
+
 
 class TestShardedOptimizer(ShardedTensorTestBase):
+    @property
+    def world_size(self):
+        return Test_GPU_NUM
+
     @with_comms(init_rpc=False)
-    @skip_if_lt_x_gpu(4)
+    @skip_if_lt_x_gpu(2)
     @requires_nccl()
     def test_sharded_optim(self):
         rowwise_spec = ChunkShardingSpec(
@@ -91,8 +93,6 @@ class TestShardedOptimizer(ShardedTensorTestBase):
             placements=[
                 "rank:0/npu:0",
                 "rank:1/npu:1",
-                "rank:2/npu:2",
-                "rank:3/npu:3",
             ],
         )
         local_model = MyShardedModel().npu()
@@ -142,7 +142,7 @@ class TestShardedOptimizer(ShardedTensorTestBase):
                 self.assertEqual(new_val, local_model.param)
 
     @with_comms(init_rpc=False)
-    @skip_if_lt_x_gpu(4)
+    @skip_if_lt_x_gpu(2)
     @requires_nccl()
     def test_named_params_with_sharded_tensor(self):
         rowwise_spec = ChunkShardingSpec(
@@ -150,8 +150,6 @@ class TestShardedOptimizer(ShardedTensorTestBase):
             placements=[
                 "rank:0/npu:0",
                 "rank:1/npu:1",
-                "rank:2/npu:2",
-                "rank:3/npu:3",
             ],
         )
         sharded_model = MyShardedModel(spec=rowwise_spec).npu()

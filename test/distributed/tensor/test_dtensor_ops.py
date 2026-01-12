@@ -3,10 +3,11 @@ from torch.distributed._tensor import distribute_tensor, Replicate
 from torch_npu.testing.testcase import run_tests
 from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestDTensorOps(NPUDTensorTestBase):
-    @skipIfUnsupportMultiNPU(4)
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_nn_functional_one_hot(self):
         """Test torch.nn.functional.one_hot with DTensor on NPU"""

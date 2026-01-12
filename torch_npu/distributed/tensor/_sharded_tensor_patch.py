@@ -51,10 +51,6 @@ def _patched_sharded_tensor_npu(
             "`torch.preserve_format` is supported!"
         )
 
-    # Validate and process target device - only NPU device without index is allowed
-    if device is not None:
-        device = torch.device(device) if isinstance(device, str) else device
-        raise ValueError("Only device without device id (e.g. 'npu') is expected for ShardedTensor!")
 
     current_device = torch.device(torch.npu.current_device())
     # returns a copy of ShardedTensor on NPU current device
