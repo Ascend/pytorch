@@ -65,7 +65,7 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 import math
                 import random
                 import os
-                os.environ["TORCHINDUCTOR_MAX_AUTOTUNE"] = '1'
+                os.environ["TORCHINDUCTOR_MLIR_BACKEND"] = '1'
                 import tempfile
                 from math import inf, nan
                 from torch._inductor.hooks import run_intermediate_hooks
