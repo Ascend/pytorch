@@ -6,7 +6,7 @@
 |API名称|是否支持|限制与说明|
 |--|--|--|
 |torch.Tensor|是|-|
-|Tensor.T|是|支持fp16，fp32，int64|
+|Tensor.T|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.H|是|-|
 |Tensor.mT|是|-|
 |Tensor.mH|是|-|
@@ -37,7 +37,7 @@
 |Tensor.add_|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.addbmm|是|支持fp16，fp32|
 |Tensor.addbmm_|是|支持fp16，fp32|
-|Tensor.addcdiv|是|支持fp16，fp32，int64<br>int64类型不支持三个tensor同时广播|
+|Tensor.addcdiv|是|支持bf16，fp16，fp32，int64<br>int64类型不支持三个tensor同时广播|
 |Tensor.addcdiv_|是|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64<br>int64类型不支持三个tensor同时广播|
 |Tensor.addcmul|是|支持fp16，fp32，int64<br>int64类型不支持三个tensor同时广播|
 |Tensor.addcmul_|是|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64，uint8，int8，int32，int64<br>int64类型不支持三个tensor同时广播|
@@ -63,7 +63,7 @@
 |Tensor.asin_|是|支持fp16，fp32|
 |Tensor.arcsin|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.arcsin_|是|支持fp16，fp32|
-|Tensor.as_strided|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.as_strided|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.atan|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.atan_|是|支持fp16，fp32|
 |Tensor.arctan|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
@@ -78,7 +78,7 @@
 |Tensor.baddbmm|是|支持fp16，fp32|
 |Tensor.baddbmm_|是|支持fp16，fp32|
 |Tensor.bernoulli|是|支持fp16，fp32<br>可能回退至CPU执行|
-|Tensor.bernoulli_|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
+|Tensor.bernoulli_|是|可能回退至CPU执行|
 |Tensor.bfloat16|是|支持fp16，fp32|
 |Tensor.bincount|是|支持uint8，int8，int16，int32，int64<br>weights维度需与input维度一致|
 |Tensor.bitwise_not|是|支持uint8，int8，int16，int32，int64，bool|
@@ -96,15 +96,15 @@
 |Tensor.ceil|是|支持fp16，fp32|
 |Tensor.ceil_|是|支持fp16，fp32|
 |Tensor.char|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.chunk|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.chunk|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.clamp|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
-|Tensor.clamp_|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>可能回退至CPU执行|
-|Tensor.clip|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
+|Tensor.clamp_|是|可能回退至CPU执行|
+|Tensor.clip|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |Tensor.clip_|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |Tensor.clone|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.contiguous|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.copy_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>int16不支持5维以上|
-|Tensor.conj|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|Tensor.conj|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.resolve_conj|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.resolve_neg|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.copysign|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
@@ -137,7 +137,7 @@
 |Tensor.diag|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
 |Tensor.diag_embed|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.diagflat|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
-|Tensor.diagonal|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.diagonal|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.diagonal_scatter|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.fill_diagonal_|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |Tensor.diff|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -154,31 +154,32 @@
 |Tensor.element_size|是|支持fp32|
 |Tensor.eq|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.eq_|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.equal|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|Tensor.equal|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |Tensor.erf|是|支持fp16，fp32，int64，bool|
 |Tensor.erf_|是|支持fp16，fp32|
 |Tensor.erfc|是|支持fp16，fp32，int64，bool|
 |Tensor.erfc_|是|支持fp16，fp32|
 |Tensor.erfinv|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|Tensor.erfinv_|是|支持fp16，fp32|
+|Tensor.erfinv_|是|支持bf16，fp16，fp32|
 |Tensor.exp|是|支持bf16，fp16，fp32，fp64，int64，bool|
 |Tensor.exp_|是|支持bf16，fp16，fp32，complex64，complex128|
 |Tensor.expm1|是|支持fp16，fp32，int64，bool|
 |Tensor.expm1_|是|支持fp16，fp32|
-|Tensor.expand|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.expand_as|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.expand|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.expand_as|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.exponential_|是|支持bf16，fp16，fp32，fp64|
 |Tensor.fix|是|支持fp16，fp32|
 |Tensor.fix_|是|支持fp16，fp32|
 |Tensor.fill_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.flatten|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|Tensor.flatten|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.flip|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.fliplr|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.flipud|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.float|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.float|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.float_power|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex128|
 |Tensor.float_power_|是|支持double|
-|Tensor.floor|是|支持fp16，fp32|
-|Tensor.floor_|是|支持bf16，fp16，fp32|
+|Tensor.floor|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
+|Tensor.floor_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |Tensor.floor_divide|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |Tensor.floor_divide_|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |Tensor.fmod|是|支持fp16，fp32，uint8，int8，int32，int64|
@@ -219,13 +220,13 @@
 |Tensor.int_repr|否|-|
 |Tensor.isclose|是|支持fp16，fp32，uint8，int32，int64，bool|
 |Tensor.isfinite|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|Tensor.isinf|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.isinf|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.isposinf|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.isneginf|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|Tensor.isnan|是|支持fp32|
+|Tensor.isnan|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.is_contiguous|是|支持fp32|
-|Tensor.is_complex|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.is_conj|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.is_complex|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.is_conj|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.is_floating_point|是|支持fp32|
 |Tensor.is_inference|是|支持fp32|
 |Tensor.is_leaf|是|-|
@@ -251,7 +252,7 @@
 |Tensor.log10_|是|支持bf16，fp16，fp32，fp64，complex64，complex128|
 |Tensor.log1p|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.log1p_|是|支持fp16，fp32|
-|Tensor.log2|是|支持bf16，fp16，fp32，int64，bool|
+|Tensor.log2|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.log2_|是|支持fp16，fp32，complex64，complex128|
 |Tensor.logaddexp|是|支持fp16，fp32，int16，int32，int64，bool|
 |Tensor.logaddexp2|是|支持fp16，fp32|
@@ -274,8 +275,8 @@
 |Tensor.as_subclass|是|-|
 |Tensor.map_|是|仅CPU支持|
 |Tensor.masked_scatter_|是|支持fp32，int64，bool|
-|Tensor.masked_scatter|是|支持fp32，bool|
-|Tensor.masked_fill_|是|支持bf16，fp16，fp32，int32，int64，bool|
+|Tensor.masked_scatter|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|Tensor.masked_fill_|是|支持bf16，fp16，fp32，int8，int32，int64，bool|
 |Tensor.masked_fill|是|支持bf16，fp16，fp32，int8，int32，int64，bool|
 |Tensor.masked_select|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |Tensor.matmul|是|支持bf16，fp16，fp32<br>支持Named Tensor|
@@ -299,7 +300,7 @@
 |Tensor.multiply_|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.multinomial|是|支持fp16，fp32|
 |Tensor.nansum|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|Tensor.narrow|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.narrow|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.narrow_copy|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.ndimension|是|支持fp32|
 |Tensor.nan_to_num|是|-|
@@ -314,12 +315,12 @@
 |Tensor.negative_|是|支持fp16，fp32，int8，int32，int64，complex64，complex128|
 |Tensor.nelement|是|支持fp32|
 |Tensor.nonzero|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>不支持nan场景|
-|Tensor.norm|是|支持fp16，fp32|
+|Tensor.norm|是|支持bf16，fp16，fp32，fp64|
 |Tensor.normal_|是|支持bf16，fp16，fp32<br>可能回退至CPU执行|
 |Tensor.numel|是|支持fp32|
 |Tensor.numpy|是|支持fp32|
 |Tensor.outer|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|Tensor.permute|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.permute|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.positive|是|支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128|
 |Tensor.pow|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |Tensor.pow_|是|支持bf16，fp16，fp32，fp64，int64|
@@ -329,7 +330,7 @@
 |Tensor.quantile|是|-|
 |Tensor.rad2deg|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.random_|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|Tensor.ravel|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.ravel|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.reciprocal|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.reciprocal_|是|支持fp16，fp32，complex64，complex128|
 |Tensor.record_stream|是|支持fp32|
@@ -341,7 +342,7 @@
 |Tensor.repeat_interleave|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool<br>输入张量在重复后得到输出，输出中元素个数需小于$2^{22}$|
 |Tensor.requires_grad|是|-|
 |Tensor.requires_grad_|是|支持fp32|
-|Tensor.reshape|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.reshape|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.reshape_as|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.resize_|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>memory_format仅支持torch.contiguous_format和torch.preserve_format|
 |Tensor.resize_as_|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>memory_format仅支持torch.contiguous_format和torch.preserve_format|
@@ -354,17 +355,17 @@
 |Tensor.rsqrt|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.rsqrt_|是|支持fp16，fp32，complex64，complex128|
 |Tensor.scatter|是|支持fp16，fp32，fp64，int8，int16，int32，int64，bool|
-|Tensor.scatter_|是|支持fp16，fp32，int16，int32，bool<br>tensor、index、src参数不能为空且不能为scalar<br>可能回退至CPU执行|
-|Tensor.scatter_add_|是|支持fp32|
+|Tensor.scatter_|是|tensor、index、src参数不能为空且不能为scalar<br>可能回退至CPU执行|
+|Tensor.scatter_add_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |Tensor.scatter_add|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.scatter_reduce|是|支持fp32，int64<br>可能回退至CPU执行|
-|Tensor.select|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.select|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.select_scatter|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
 |Tensor.set_|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.share_memory_|否|-|
 |Tensor.short|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.sigmoid|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.sigmoid_|是|支持bf16，fp16，fp32，complex64，complex128|
+|Tensor.sigmoid_|是|支持bf16，fp16，fp32，fp64，complex64，complex128|
 |Tensor.sign|是|支持bf16，fp16，fp32，fp64，int32，int64，bool|
 |Tensor.sign_|是|支持fp16，fp32，int32，int64，bool|
 |Tensor.sgn|是|支持fp16，fp32，int32，int64，bool，complex64，complex128|
@@ -383,12 +384,12 @@
 |Tensor.slice_scatter|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.softmax||支持fp16，fp16，fp32，fp64|
 |Tensor.sort|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
-|Tensor.split|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.split|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.sparse_mask|否|-|
 |Tensor.sparse_dim|是|-|
 |Tensor.sqrt|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |Tensor.sqrt_|是|支持bf16，fp16，fp32，fp64，complex64，complex128|
-|Tensor.square|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex128|
+|Tensor.square|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.square_|是|支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128|
 |Tensor.squeeze|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.squeeze_|是|支持fp32|
@@ -399,24 +400,24 @@
 |Tensor.storage_type|是|支持fp32|
 |Tensor.stride|是|支持fp32|
 |Tensor.sub|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
-|Tensor.sub_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
+|Tensor.sub_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128|
 |Tensor.subtract_|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |Tensor.sum|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |Tensor.sum_to_size|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.swapaxes|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.swapaxes|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.swapdims|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.t|是|支持fp16，fp32，int64|
-|Tensor.t_|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.t|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128|
+|Tensor.t_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64|
 |Tensor.tensor_split|是|仅CPU支持|
-|Tensor.tile|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>若入参dims的长度小于Tensor.shape的长度，则会在dims前自动补全1，使其长度与 Tensor.shape对齐。补全后的dims，需要满足如下限制：<br>- 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即dims中大于1的元素个数 ≤ 4），例如：不支持Tensor.tile([2, 3, 4, 5, 6]) ，支持Tensor.tile([2, 3, 1, 5, 6])<br>- 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即dims中大于1的元素个数 ≤ 3），例如：不支持Tensor.tile([1, 3, 4, 5, 6]) ，支持Tensor.tile([1, 3, 1, 5, 6])<br>- 若执行反向计算，Tensor的维度数与入参dims中大于1的元素个数之和不得超过8|
-|Tensor.to|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>当前NPU设备仅支持设置memory_format为torch.contiguous_format或torch.preserve_format<br><term>Atlas 推理系列产品</term>不支持跨NPU拷贝|
+|Tensor.tile|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>若入参dims的长度小于Tensor.shape的长度，则会在dims前自动补全1，使其长度与 Tensor.shape对齐。补全后的dims，需要满足如下限制：<br>- 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即dims中大于1的元素个数 ≤ 4），例如：不支持Tensor.tile([2, 3, 4, 5, 6]) ，支持Tensor.tile([2, 3, 1, 5, 6])<br>- 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即dims中大于1的元素个数 ≤ 3），例如：不支持Tensor.tile([1, 3, 4, 5, 6]) ，支持Tensor.tile([1, 3, 1, 5, 6])<br>- 若执行反向计算，Tensor的维度数与入参dims中大于1的元素个数之和不得超过8|
+|Tensor.to|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>当前NPU设备仅支持设置memory_format为torch.contiguous_format或torch.preserve_format<br><term>Atlas 推理系列产品</term>不支持跨NPU拷贝|
 |to|是|-|
 |Tensor.to_mkldnn|否|-|
 |Tensor.take|是|支持fp16，fp32，int16，int32，bool|
 |Tensor.take_along_dim|是|支持fp16，fp32，int16，int32，int64，bool|
 |Tensor.tan|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128取值范围[-65504,65504]|
 |Tensor.tan_|是|支持fp16，fp32，complex64，complex128|
-|Tensor.tanh|是|支持fp16，fp32，uint8，int8，int16， int32，int64，bool|
+|Tensor.tanh|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |Tensor.tanh_|是|支持fp16，fp32|
 |Tensor.atanh|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.atanh_|是|支持fp16，fp32，complex64，complex128|
@@ -431,8 +432,8 @@
 |Tensor.to_sparse_csc|否|-|
 |Tensor.to_sparse_bsr|否|-|
 |Tensor.to_sparse_bsc|否|-|
-|Tensor.transpose|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.transpose_|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.transpose|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.transpose_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.tril|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |Tensor.tril_|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.triu|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -442,8 +443,8 @@
 |Tensor.trunc|是|支持fp16，fp32|
 |Tensor.trunc_|是|支持fp16，fp32|
 |Tensor.type|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.type_as|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.unbind|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.type_as|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.unbind|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.unflatten|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.unfold|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.uniform_|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64<br>遵循PyTorch社区规范，不再支持对bool类型数据进行处理。针对存量bool类型数据可以通过如下方案进行替换：如果需要输出全True，可以采用Tensor.bernoulli_(p=1.0)。如果需要输出均匀分布的bool类型，则采用Tensor.bernoulli_(p=0.5)|
@@ -455,11 +456,10 @@
 |Tensor.var|是|支持bf16，fp16，fp32<br>correction不大于int32的范围|
 |Tensor.view|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |view|是|-|
-|Tensor.view_as|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|Tensor.view_as|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.vsplit|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.where|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |Tensor.xlogy|是|支持fp16，fp32|
 |Tensor.xlogy_|是|支持fp16，fp32|
 |Tensor.zero_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-
 
