@@ -197,7 +197,7 @@ class CustomAsyncCompile(AsyncCompile):
         assert get_compile_threads() > 1
         # Wrapper around ProcessPoolExecutor forks in a new process we control
         log.info("Creating subprocess pool with %d workers", get_compile_threads())
-        os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
+        os.environ['TORCHINDUCTOR_MLIR_BACKEND'] = '1'
         pool = SubprocPool(get_compile_threads())
 
         # Set an attribute we can check to see if the pool is ready.
