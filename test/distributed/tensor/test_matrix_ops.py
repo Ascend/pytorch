@@ -507,6 +507,14 @@ class TestGroupedMatMulOp(DTensorTestBase):
 
 
 class TestApplyAdamW(DTensorTestBase):
+    @property
+    def world_size(self):
+        device_count = torch.npu.device_count()
+        device_num = 4
+        if device_count > 1:
+            device_num = min(device_num, device_count)
+        return device_num
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
