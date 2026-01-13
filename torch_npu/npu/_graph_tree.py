@@ -1230,6 +1230,7 @@ class NPUGraphNode:
         for item in inputs:
             if isinstance(item, torch.Tensor) and item.dtype == torch.int32 and item.device.type == "cpu":
                 cpu_tensor = item.clone()
+            del item
 
         with preserve_rng_state(), torch.npu.device(
             self.device
