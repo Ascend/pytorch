@@ -1057,7 +1057,9 @@ class NPUGraphNode:
 
     def run(self, new_inputs: List[InputType]) -> OutputType:
         self.check_static_inputs_are_stable(new_inputs)
-
+        for item in new_inputs:
+            if isinstance(item, torch.Tensor) and item.dtype == torch.int32 and item.device.type == "cpu":
+                self.graph.update(cpu_update_input=[{"context_lens": item}, {"actual_seq_lengths_kv": item}])
         self._copy_inputs_and_remove_from_src(self.reconstructed_inputs, new_inputs)
 
         self.run_graph()
@@ -1195,7 +1197,7 @@ class NPUGraphNode:
                 _inp = inputs[i]
                 if isinstance(
                     _inp, torch.Tensor
-                ) and not self._is_npu_graph_recorded_tensor(_inp):
+                ) and not self._is_npu_graph_recorded_tensor(_inp) and _inp.device.type != "cpu":
                     yield _inp
 
         # see: output_is_alias_of_persistent_static_inputs above
@@ -1219,10 +1221,16 @@ class NPUGraphNode:
             memory += [
                 StorageWeakRefWrapper(elem)
                 for i, elem in enumerate(inputs)
-                if _check_elem(i, elem)
+                if _check_elem(i, elem) and elem.device.type != "cpu"
             ]
 
             check_memory_pool(self.device, self.npu_graphs_pool, memory)
+
+        cpu_tensor = None
+        for item in inputs:
+            if isinstance(item, torch.Tensor) and item.dtype == torch.int32 and item.device.type == "cpu":
+                cpu_tensor = item.clone()
+            del item
 
         with preserve_rng_state(), torch.npu.device(
             self.device
@@ -1231,8 +1239,13 @@ class NPUGraphNode:
             stream=self.stream,
             pool=self.npu_graphs_pool,
             capture_error_mode="thread_local",
+            auto_dispatch_capture=True,
         ), get_history_recording():
             static_outputs = model(inputs)
+
+        if cpu_tensor is not None:
+            self.graph.update(cpu_update_input=[{"context_lens": cpu_tensor}, 
+                                                {"actual_seq_lengths_kv": cpu_tensor}])
 
         # running model should reclaim memory
         if not len(inputs) == 0:

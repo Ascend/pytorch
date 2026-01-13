@@ -112,3 +112,21 @@ def patch_codegen_with_cpp_wrapper():
             return self.codegen()
     from torch._inductor.graph import GraphLowering
     GraphLowering.codegen_with_cpp_wrapper = npu_codegen_with_cpp_wrapper
+
+
+def patch_count_bytes():
+    def count_bytes(self):
+        total_bytes = 0
+        node_counts = []
+        node_runtimes = []
+        for node in self.scheduler.nodes:
+            try:
+                num_bytes = node.get_read_write_buffers_sizes()
+            except AssertionError:
+                num_bytes = 0
+            total_bytes += num_bytes
+            node_counts.append((node, num_bytes // 4))
+            node_runtimes.append((node, node.get_estimated_runtime()))
+
+        return total_bytes, node_counts, node_runtimes
+    torch._inductor.graph.GraphLowering.count_bytes = count_bytes

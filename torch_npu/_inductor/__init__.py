@@ -36,6 +36,7 @@ else:
     )
     from .config import log as npulog
     from .decomposition import _register_npu_inductor_decompositons
+    from .graph import patch_count_bytes
     from .lowering import make_reduction, npu_make_fallback
     from .npu_choices import should_use_persistent_reduction
     from .npu_device import NewNPUDeviceOpOverrides
@@ -185,6 +186,7 @@ else:
 
     register_fa_pass()
     patch_cache_base_get_system()
+    patch_count_bytes()
     patch_is_gpu()
     patch_has_triton()
     disable_foreach()
