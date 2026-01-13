@@ -118,7 +118,7 @@ def _get_npugraph_ex_backend():
     def _exec(*args, **kwargs):
         import torchair
         config = torchair.CompilerConfig()
-        config.mode = "reduce-overhead"
+        config.mode = NPUGRAPH_EX_BACKEND
         return _get_global_npu_backend(NPUGRAPH_EX_BACKEND, config)(*args, **kwargs)
 
     return _exec
