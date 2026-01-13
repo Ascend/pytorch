@@ -2,7 +2,7 @@
 
 ## 简介
 
-OpPlugin是Ascend Extension for PyTorch的算子插件，为使用PyTorch框架的开发者提供便捷的NPU算子库调用能力。OpPlugin算子插件的编译与使用均依赖昇腾Ascend Extension for PyTorch。在编译OpPlugin之前，请参见《[CANN 软件安装指南](hiascend.com/document/detail/zh/canncommercial/83RC1/softwareinst/instg/instg_0000.html)》（商用版）或《[CANN 软件安装指南](hiascend.com/document/detail/zh/CANNCommunityEdition/83RC1/softwareinst/instg/instg_0000.html)》（社区版）完成CANN软件的安装，参见《[Ascend Extension for PyTorch 软件安装指南](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0001.html)》完成PyTorch框架的安装。本文档提供单算子适配开发指导，主要包括适配原则、适配文件结构和算子适配开发三部分内容。图模式算子开发请参考《PyTorch 图模式使用指南\(TorchAir\)》中的“[自定义算子插件化入图](https://www.hiascend.com/document/detail/zh/Pytorch/720/modthirdparty/torchairuseguide/torchair_00047.html)”章节。
+OpPlugin是Ascend Extension for PyTorch的算子插件，为使用PyTorch框架的开发者提供便捷的NPU算子库调用能力。OpPlugin算子插件的编译与使用均依赖昇腾Ascend Extension for PyTorch。在编译OpPlugin之前，请参见《[CANN 软件安装指南](hiascend.com/document/detail/zh/canncommercial/83RC1/softwareinst/instg/instg_0000.html)》（商用版）或《[CANN 软件安装指南](hiascend.com/document/detail/zh/CANNCommunityEdition/83RC1/softwareinst/instg/instg_0000.html)》（社区版）完成CANN软件的安装，参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》完成PyTorch框架的安装。本文档提供单算子适配开发指导，主要包括适配原则、适配文件结构和算子适配开发三部分内容。图模式算子开发请参考《PyTorch 图模式使用指南(TorchAir)》中的“[自定义算子插件化入图](https://www.hiascend.com/document/detail/zh/Pytorch/720/modthirdparty/torchairuseguide/torchair_00047.html)”章节。
 
 ## 前提条件
 

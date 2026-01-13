@@ -21,6 +21,6 @@ RuntimeError: _copy_from_and_resize now only support copy with same size!
 
 ## 解决措施
 
-如果只是触发告警无报错，在不考虑改善性能的情况下可不处理；其他情况，请改用torch其他可替换并支持的接口，具体可参考《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/overview.md)》或《[PyTorch 原生API支持度](https://gitcode.com/Ascend/pytorch/blob/v2.9.0-7.3.0/docs/zh/native_apis/overview.md)》。
+如果只是触发告警无报错，在不考虑改善性能的情况下可不处理；其他情况，请改用torch其他可替换并支持的接口，具体可参考《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/overview.md)》或《[PyTorch 原生API支持度](../native_apis/pytorch_2-9-0/overview.md)》。
 
 

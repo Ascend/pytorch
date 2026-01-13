@@ -235,7 +235,7 @@ Ascend Extension for PyTorch代码分支名称采用 **\{PyTorch版本\}-\{昇�
 </table>
 
 > [!NOTE]  
-> Ascend Extension for PyTorch新增部分API支持及特性支持，具体可参考《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/overview.md)》或《[PyTorch 原生API支持度](https://gitcode.com/Ascend/pytorch/blob/v2.9.0-7.3.0/docs/zh/native_apis/overview.md)》。
+> Ascend Extension for PyTorch新增部分API支持及特性支持，具体可参考《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/overview.md)》或《[PyTorch 原生API支持度](../native_apis/pytorch_2-9-0/overview.md)》。
 
 
 ### 已解决问题
@@ -275,7 +275,7 @@ Ascend Extension for PyTorch代码分支名称采用 **\{PyTorch版本\}-\{昇�
 
 <table><tbody><tr id="row098217197105"><th class="firstcol" valign="top" width="14.469999999999999%" id="mcps1.1.3.1.1"><p id="p109824198109">问题描述</p>
 </th>
-<td class="cellrowborder" valign="top" width="85.53%" headers="mcps1.1.3.1.1 "><p id="p9982131912103"><strong id="b59839199105">现象</strong>：部分API的某些dtype不支持（API具体支持的dtype信息可参考《<span id="ph1521732894415"><a href="https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/overview.md">Ascend Extension for PyTorch 自定义API参考</a></span>》或《<span id="ph2608172172913"><a href="https://gitcode.com/Ascend/pytorch/blob/v2.9.0-7.3.0/docs/zh/native_apis/overview.md">PyTorch 原生API支持度</a></span>》）</p>
+<td class="cellrowborder" valign="top" width="85.53%" headers="mcps1.1.3.1.1 "><p id="p9982131912103"><strong id="b59839199105">现象</strong>：部分API的某些dtype不支持（API具体支持的dtype信息可参考《<span id="ph1521732894415"><a href="https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/overview.md">Ascend Extension for PyTorch 自定义API参考</a></span>》或《<span id="ph2608172172913"><a href="../native_apis/pytorch_2-9-0/overview.md">PyTorch 原生API支持度</a></span>》）</p>
 <p id="p15983141916104"><strong id="b1598312196108">影响</strong>：API使用不支持的dtype会报错</p>
 </td>
 </tr>
@@ -327,7 +327,7 @@ Ascend Extension for PyTorch代码分支名称采用 **\{PyTorch版本\}-\{昇�
 |《[PyTorch 框架特性指南](../framework_feature_guide_pytorch/overview.md)》|基于Ascend Extension for PyTorch提供昇腾AI处理器的超强算力，从内存优化、报错定位、高性能计算等方面打造一系列独有特性。|- 新增“Stream级TaskQueue并行下发”特性。<br>- 新增“PyTorch编译模式（torch.compile）”特性。|
 |《PyTorch 图模式使用指南(TorchAir)》|作为昇腾Ascend Extension for PyTorch的图模式能力扩展库，提供昇腾设备亲和的torch.compile图模式后端，实现PyTorch网络在昇腾NPU上的图模式推理加速和优化。|- 增强基础功能，包括完整Debug信息Dump、自定义FX Pass等。<br>- 增强aclgraph功能，包括支持Stream级控、内存复用、FX pass配置等。<br>- 增强GE功能，包括算子不超时配置等。|
 |《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/overview.md)》|提供Ascend Extension for PyTorch自定义API的函数原型、功能说明、参数说明与调用示例等。|- 新增适配PyTorch 2.9.0。<br>- 具体接口变更请参考[接口变更说明](api_changes.md)。|
-|《[PyTorch 原生API支持度](https://gitcode.com/Ascend/pytorch/blob/v2.9.0-7.3.0/docs/zh/native_apis/overview.md)》|提供PyTorch 2.9.0/2.8.0/2.7.1/2.6.0版本原生API在昇腾设备上的支持情况。|新增PyTorch 2.9.0原生API支持清单。|
+|《[PyTorch 原生API支持度](../native_apis/pytorch_2-9-0/overview.md)》|提供PyTorch 2.9.0/2.8.0/2.7.1/2.6.0版本原生API在昇腾设备上的支持情况。|新增PyTorch 2.9.0原生API支持清单。|
 |《套件与三方库支持清单》|介绍昇腾设备支持的模型套件与加速库、昇腾已原生支持的第三方库和昇腾自研插件。|新增原生支持的第三方库ms-swift。|
 |《[环境变量参考](../environment_variable_reference/env_variable_list.md)》|在Ascend Extension for PyTorch训练和在线推理过程中可使用的环境变量。|- 新增“PER_STREAM_QUEUE”。<br>- 新增“MULTI_STREAM_MEMORY_REUSE”。|
 

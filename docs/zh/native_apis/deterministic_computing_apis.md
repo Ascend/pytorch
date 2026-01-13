@@ -39,7 +39,7 @@
         print(torch.are_deterministic_algorithms_enabled())
         ```
 
-    执行训练时，打印此接口的返回值为True时，表示当前已开启确定性计算开关，返回False则表示未开启。
+    执行训练时，当接口返回值为True时，表示当前已开启确定性计算开关，返回值为False则表示未开启。
 
 ## API支持清单
 
