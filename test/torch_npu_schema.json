@@ -575,105 +575,6 @@
   "torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices": {
     "signature": "(self, devices: List[Union[int, str, torch.device]])"
   },
-  "torch_npu.dynamo.torchair.CompilerConfig": {
-    "signature": "()"
-  },
-  "torch_npu.dynamo.torchair.CompilerConfig.as_dict": {
-    "signature": "(self)"
-  },
-  "torch_npu.dynamo.torchair.configs.compiler_config.CompilerConfig.as_dict": {
-    "signature": "(self)"
-  },
-  "torch_npu.dynamo.torchair.dynamo_export": {
-    "signature": "(*args, model: torch.nn.modules.module.Module, export_path: str = 'export_file', export_name: str = 'export', dynamic: bool = False, config=<torchair.configs.compiler_config.CompilerConfig object>, **kwargs)"
-  },
-  "torch_npu.dynamo.torchair.get_compiler": {
-    "signature": "(compiler_config: torchair.configs.compiler_config.CompilerConfig = None)"
-  },
-  "torch_npu.dynamo.torchair.get_npu_backend": {
-    "signature": "(*, compiler_config: torchair.configs.compiler_config.CompilerConfig = None, custom_decompositions: Dict = {})"
-  },
-  "torch_npu.dynamo.torchair.ops.npu_print": {
-    "signature": "(*args, summarize_size=3, tensor_detail=False)"
-  },
-  "torch_npu.dynamo.torchair.patch_for_hcom": {
-    "signature": "()"
-  },
-  "torch_npu.dynamo.torchair.register_fx_node_ge_converter": {
-    "signature": "(aten_op)"
-  },
-  "torch_npu.dynamo.torchair.use_internal_format_weight": {
-    "signature": "(model: torch.nn.modules.module.Module)"
-  },
-  "torch_npu.dynamo.torchair.configs.compiler_config.CompilerConfig": {
-    "signature": "()"
-  },
-  "torch_npu.dynamo.torchair.experimental.inference.use_internal_format_weight": {
-    "signature": "(model: torch.nn.modules.module.Module)"
-  },
-  "torch_npu.dynamo.torchair.ge.Cast": {
-    "signature": "(x: torchair.ge.TensorBase, *, dst_type: int, dependencies=[], node_name=None)"
-  },
-  "torch_npu.dynamo.torchair.ge.Const": {
-    "signature": "(v, dtype: int = None, node_name=None, readable=True)"
-  },
-  "torch_npu.dynamo.torchair.ge.DataType": {
-    "signature": "()"
-  },
-  "torch_npu.dynamo.torchair.ge.Format": {
-    "signature": "(value, names=None, *, module=None, qualname=None, type=None, start=1)"
-  },
-  "torch_npu.dynamo.torchair.ge.Tensor": {
-    "signature": "()"
-  },
-  "torch_npu.dynamo.torchair.ge.Tensor.index": {
-    "signature": "(self)"
-  },
-  "torch_npu.dynamo.torchair.ge.Tensor.dtype": {
-    "signature": "(self)"
-  },
-  "torch_npu.dynamo.torchair.ge.Tensor.rank": {
-    "signature": "(self)"
-  },
-  "torch_npu.dynamo.torchair.ge.TensorSpec": {
-    "signature": "()"
-  },
-  "torch_npu.dynamo.torchair.ge.TensorSpec.dtype": {
-    "signature": "(self)"
-  },
-  "torch_npu.dynamo.torchair.ge.TensorSpec.rank": {
-    "signature": "(self)"
-  },
-  "torch_npu.dynamo.torchair.ge.TensorSpec.size": {
-    "signature": "(self)"
-  },
-  "torch_npu.dynamo.torchair.ge.custom_op": {
-    "signature": "(op_type: str, *args, inputs: Optional[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]]] = None, outputs: Optional[List[Union[str, Tuple[str, int]]]] = None, attrs: Optional[Dict[str, ForwardRef('_Attr')]] = None, node_name: Optional[str] = None)"
-  },
-  "torch_npu.dynamo.torchair.ge.ge_custom.custom_op": {
-    "signature": "(op_type: str, *args, inputs: Optional[Dict[str, Union[ForwardRef('Tensor'), List[ForwardRef('Tensor')], NoneType]]] = None, outputs: Optional[List[Union[str, Tuple[str, int]]]] = None, attrs: Optional[Dict[str, ForwardRef('_Attr')]] = None, node_name: Optional[str] = None)"
-  },
-  "torch_npu.dynamo.torchair.inference.cache_compile": {
-    "signature": "(func, *, config: Optional[torchair.configs.compiler_config.CompilerConfig] = None, dynamic: bool = True, cache_dir: Optional[str] = None, global_rank: Optional[int] = None, tp_rank: Optional[int] = None, pp_rank: Optional[int] = None, **kwargs) -> Callable"
-  },
-  "torch_npu.dynamo.torchair.inference.readable_cache": {
-    "signature": "(cache_bin, print_output=True, file=None)"
-  },
-  "torch_npu.dynamo.torchair.inference.set_dim_gears": {
-    "signature": "(t: torch.Tensor, dim_gears: Dict[int, List[int]])"
-  },
-  "torch_npu.dynamo.torchair.llm_datadist.create_npu_tensors": {
-    "signature": "(shape: List[int], dtype: torch.dtype, addresses: List[int]) -> List[torch.Tensor]"
-  },
-  "torch_npu.dynamo.torchair.npu_export.dynamo_export": {
-    "signature": "(*args, model: torch.nn.modules.module.Module, export_path: str = 'export_file', export_name: str = 'export', dynamic: bool = False, config=<torchair.configs.compiler_config.CompilerConfig object>, **kwargs)"
-  },
-  "torch_npu.dynamo.torchair.npu_fx_compiler.get_compiler": {
-    "signature": "(compiler_config: torchair.configs.compiler_config.CompilerConfig = None)"
-  },
-  "torch_npu.dynamo.torchair.npu_fx_compiler.get_npu_backend": {
-    "signature": "(*, compiler_config: torchair.configs.compiler_config.CompilerConfig = None, custom_decompositions: Dict = {})"
-  },
   "torch_npu.jit.optimize": {
     "signature": "(jit_mod)"
   },
@@ -2111,23 +2012,11 @@
   "torch_npu.profiler.experimental_config.HostSystem": {
     "signature": "()"
   },
-  "torch_npu.dynamo.torchair.ops.npu_fused_infer_attention_score": {
-    "signature": "(*args, **kwargs)"
-  },
-  "torch_npu.dynamo.torchair.ops.npu_fused_infer_attention_score_v2": {
-    "signature": "(*args, **kwargs)"
-  },
   "torch_npu.npu.npu_config.set_device_limit": {
     "signature": "(*args, **kwargs)"
   },
-  "torch_npu.dynamo.torchair.ops.npu_tagged_event_wait": {
-    "signature": "(event)"
-  },
   "torch_npu.npu.npu_config.get_device_limit": {
     "signature": "(device)"
-  },
-  "torch_npu.dynamo.torchair.ops.npu_create_tagged_event": {
-    "signature": "(tag: str)"
   },
   "torch_npu.utils.save_async": {
     "signature": "(obj: object, f, pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False, model: torch.nn.modules.module.Module = None) -> None"
@@ -2137,9 +2026,6 @@
   },
   "torch_npu.npu.graphs.NPUGraph.debug_dump": {
     "signature": "(self, debug_path)"
-  },
-  "torch_npu.dynamo.torchair.ops.npu_tagged_event_record": {
-    "signature": "(event)"
   },
   "torch_npu.npu.get_device_limit": {
     "signature": "(device)"
@@ -2170,15 +2056,6 @@
   },
   "torch_npu.utils.serialization.save_async": {
     "signature": "(obj: object, f, pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False, model: torch.nn.modules.module.Module = None) -> None"
-  },
-  "torch_npu.dynamo.torchair.ops.npu_record_tagged_stream": {
-    "signature": "(input: torch.Tensor, tagged_stream: str)"
-  },
-  "torch_npu.dynamo.torchair.ops.record": {
-    "signature": "()"
-  },
-  "torch_npu.dynamo.torchair.ops.wait": {
-    "signature": "(tensors: list)"
   },
   "torch_npu.npu_bounding_box_encode": {
     "signature": "(anchor_box, ground_truth_box, means0, means1, means2, means3, stds0, stds1, stds2, stds3)"
@@ -2347,21 +2224,6 @@
   },
   "torch_npu.utils.reset_thread_affinity": {
     "signature": "()"
-  },
-  "torch_npu.dynamo.torchair.scope.npu_stream_switch": {
-    "signature": "(stream_tag: str, stream_priority: int = 0)"
-  },
-  "torch_npu.dynamo.torchair.scope.npu_wait_tensor": {
-    "signature": "(self: torch.Tensor, dependency: torch.Tensor)"
-  },
-  "torch_npu.dynamo.torchair.scope.super_kernel": {
-    "signature": "(scope: str, options: str = '')"
-  },
-  "torch_npu.dynamo.torchair.scope.limit_core_num": {
-    "signature": "(op_aicore_num: int, op_vectorcore_num: int)"
-  },
-  "torch_npu.dynamo.torchair.scope.op_never_timeout": {
-    "signature": "(enable: bool = True)"
   },
   "torch_npu.npu.npugraph_ex.experimental.inference.use_internal_format_weight": {
     "signature": "(model: torch.nn.modules.module.Module)"
