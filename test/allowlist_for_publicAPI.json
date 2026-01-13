@@ -2869,13 +2869,6 @@
   "torch_npu.profiler.experimental_config": [
     "_ExperimentalConfig"
   ],
-  "torch_npu.dynamo.torchair": [
-    "CompilerConfig",
-    "dynamo_export",
-    "get_compiler",
-    "get_npu_backend",
-    "use_internal_format_weight"
-  ],
   "torch_npu.utils": [
     "get_cann_version"
   ],
