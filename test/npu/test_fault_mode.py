@@ -57,7 +57,7 @@ class TestMode(TestCase):
     def test_set_device(self):
         device_count = torch.npu.device_count()
         invalid_num = device_count + 1
-        with self.assertRaisesRegex(RuntimeError, "The argument is invalid.+Set device failed, invalid device"):
+        with self.assertRaisesRegex(RuntimeError, "Invalid device ID[\s\S]+Check whether the device ID is valid"):
             torch.npu.set_device(invalid_num)
 
     def test_distributed_init_param(self):
