@@ -2,8 +2,39 @@ import operator
 import torch
 import torch.fx
 from .register_custom_pass import register_custom_pass
-from ..utils.check_op_util import is_zero_like, check_op_by_targets, is_one_like, try_match, is_cast_node, normalize_dtype, get_node_dtype, get_cast_dtype, check_cat_op, get_input_node, get_input_kw_node, check_support_op, _get_tensor_meta, check_view, check_act_op, check_squeeze_op, check_unsqueeze_op, check_where_op
-from ..utils.get_binary_fold_result import get_binary_fold_result, get_node_meta, get_node_shape, get_node_unique_id, has_storage_or_layout, _get_fold_result, _fold_slice, _fold_slice_scatter, get_slice_dim, get_pad_dim_and_size
+from ..utils.check_op_util import (
+    is_zero_like, 
+    check_op_by_targets, 
+    is_one_like, 
+    try_match, 
+    is_cast_node, 
+    normalize_dtype, 
+    get_node_dtype, 
+    get_cast_dtype, 
+    check_cat_op, 
+    get_input_node, 
+    get_input_kw_node, 
+    check_support_op, 
+    _get_tensor_meta, 
+    check_view, 
+    check_act_op, 
+    check_squeeze_op, 
+    check_unsqueeze_op, 
+    check_where_op,
+    check_embedding_op,
+)
+from ..utils.get_binary_fold_result import (
+    get_binary_fold_result, 
+    get_node_meta, 
+    get_node_shape, 
+    get_node_unique_id, 
+    has_storage_or_layout, 
+    _get_fold_result, 
+    _fold_slice, 
+    _fold_slice_scatter, 
+    get_slice_dim, 
+    get_pad_dim_and_size,
+)
 from ..utils.fx_pass_level import PassType
 from ...config import log
 
@@ -640,10 +671,42 @@ def fold_redundant_ops(graph: torch.fx.Graph):
         if not any_removed:
             break
     eliminate_dead_code(graph, changed, fold_redundant_ops.__name__)
+    
+    
+@register_custom_pass(PassType.POST)     
+def embedding_indice_i64_to_i32_pass(graph: torch.fx.Graph) -> None:
+    changed = False
+    for node in graph.nodes:
+        if not check_embedding_op(node):
+            continue
+        
+        indices_node = None
+        args_id = -1
+        if node.args[0].meta.get('tensor_meta') and node.args[0].meta.get('tensor_meta').dtype == torch.int64:
+            indices_node = node.args[0]
+            args_id = 0
+        elif node.args[1].meta.get('tensor_meta') and node.args[1].meta.get('tensor_meta').dtype == torch.int64:
+            indices_node = node.args[1]
+            args_id = 1
+        
+        if indices_node is not None:
+            with graph.inserting_before(node):
+                new_indices = graph.call_function(
+                    torch.ops.npu._npu_dtype_cast.default,
+                    args=(indices_node,),
+                    kwargs={"dtype": torch.int32}
+                )
+                
+                new_args = list(node.args)
+                new_args[args_id] = new_indices
+                node.args = tuple(new_args)
+                
+            changed = True
+    eliminate_dead_code(graph, changed, embedding_indice_i64_to_i32_pass.__name__)
 
 
 def eliminate_dead_code(graph, changed, fn_name):
     if changed:
         graph.lint()
         graph.eliminate_dead_code()
-        log.info(f"{fn_name} pass works")
+        log.info(f"[inductor_fx_pas] {fn_name} works")

@@ -160,6 +160,18 @@ def check_div_op(node: fx.Node) -> bool:
     return check_op(node, torch.ops.aten.div.Tensor)
 
 
+def check_embedding_op(node: fx.Node) -> bool:
+    if node.op != "call_function":
+        return False
+    
+    embedding_targets = {
+        torch.nn.functional.embedding, 
+        torch.ops.aten.embedding.default, 
+        torch.embedding, 
+    }
+    return node.target in embedding_targets
+
+
 def check_op_by_targets(node: fx.Node, targets) -> bool:
     for target in targets:
         result = check_op(node, target)
