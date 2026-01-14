@@ -1183,10 +1183,11 @@ def triton_config_npu_index(
         else:
             return True
 
-    def add_new_simt_configs(origin_cfg, cfg_num_warps, simt_configs, compile_mode):
+    def add_simt_configs(origin_cfg, cfg_num_warps, simt_configs, compile_mode=None):
         new_cfg = copy.deepcopy(origin_cfg)
         new_cfg.num_warps = cfg_num_warps
-        new_cfg.kwargs["compile_mode"] = compile_mode
+        if compile_mode:
+            new_cfg.kwargs["compile_mode"] = compile_mode
         simt_configs.append(new_cfg)
 
     simt_configs = []
@@ -1194,15 +1195,20 @@ def triton_config_npu_index(
         for simd_cfg in configs:
             if not is_available_config(simd_cfg):
                 continue
-            add_new_simt_configs(simd_cfg, 8, simt_configs, "simt_only")
-            add_new_simt_configs(simd_cfg, 16, simt_configs, "simt_only")
-            add_new_simt_configs(simd_cfg, 32, simt_configs, "simt_only")
-            add_new_simt_configs(simd_cfg, 64, simt_configs, "simt_only")
+            # only simt
+            add_simt_configs(simd_cfg, 8, simt_configs, "simt_only")
+            add_simt_configs(simd_cfg, 16, simt_configs, "simt_only")
+            add_simt_configs(simd_cfg, 32, simt_configs, "simt_only")
+            add_simt_configs(simd_cfg, 64, simt_configs, "simt_only")
+            # simt template + simd
+            add_simt_configs(simd_cfg, 1, simt_configs, "unstructured_in_simt")
+            # simd 
+            add_simt_configs(simd_cfg, 1, simt_configs)
         configs = simt_configs
 
     if npu_kernel_type == NPUKernelType.SIMT_TEMPLATE:
         for cfg in configs:
-            add_new_simt_configs(cfg, 1, simt_configs, "unstructured_in_simt")
+            add_simt_configs(cfg, 1, simt_configs, "unstructured_in_simt")
         configs = simt_configs
 
     return configs

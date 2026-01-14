@@ -1216,7 +1216,8 @@ class NPUIndexTritonKernel(TritonKernel):
             indexing_list = node._body.indexing
             for index in indexing_list.values():
                 for var, stride in index.as_coefficients_dict().items():
-                    if var.is_Symbol and var not in sybol_stride_map:
+                    if var.is_Symbol and var not in sybol_stride_map \
+                        and not free_symbol_is_type(var, SymT.INDIRECT):
                         sybol_stride_map[var] = stride
         sorted_items = sorted(sybol_stride_map.items(), key=lambda x: x[1], reverse=False)
         sorted_keys = [key for key, _ in sorted_items]
@@ -2216,21 +2217,44 @@ class NPUIndexTritonKernel(TritonKernel):
 
             @staticmethod
             def index_select(src_name: str, weight_index: CSEVariable, indirect_var, set_indirect, bound) -> CSEVariable:
-                def fallback_index_select_sotre(name, weight_index, indirect_var, bound):
-                    new_indirect_var = V.ops.indirect_indexing(indirect_var, bound)
-                    new_index = sympy_subs(weight_index, {sympy_index_symbol(new_indirect_var.name): sympy_index_symbol(indirect_var.name)})
-                    return V.ops.load(name, new_index)
+                inductor_npu_config.log.debug(f"index_select: {src_name}, {weight_index}, {indirect_var}, {set_indirect}, {bound}")
 
-                indirect_indexing = self.is_indirect_indexing(weight_index)
-                # Fallback to tl.load
-                if not indirect_indexing:
-                    return fallback_index_select_sotre(src_name, weight_index, indirect_var, bound)
+                def fallback_index_select_load(reason):
+                    new_indirect_var = V.ops.indirect_indexing(indirect_var, bound)
+                    new_index = sympy_subs(weight_index, {sympy_index_symbol(indirect_var.name): sympy_index_symbol(new_indirect_var.name)})
+                    return V.ops.load(src_name, new_index)
+
+                def is_correct_weight_index():
+                    if not self.is_indirect_indexing(weight_index):
+                        return False
+                    embedding_axis = None
+                    for key, coeff in weight_index.as_coefficients_dict().items():
+                        if isinstance(key, sympy.Integer):
+                            continue
+                        if isinstance(coeff, sympy.Integer) and int(coeff) == 1:
+                            embedding_axis = key
+                            break
+                    if not embedding_axis or embedding_axis not in self.golden_var_list:
+                        return False
+                    if self.golden_var_list.index(embedding_axis) != 0:
+                        return False
+                    return True
+
+                current_node = V.interpreter.current_node
+                if current_node and current_node.meta.get("multi_indirect_index", False):
+                    log_info = "ir is multi_indirect_index"
+                    return fallback_index_select_load(log_info)
+
+                if not is_correct_weight_index():
+                    log_info = f"{str(weight_index)} not invalid"
+                    return fallback_index_select_load(log_info)
                 
                 var = self.args.input(src_name)
                 dtype = V.graph.get_dtype(src_name)
                 key_index = self.find_indirect_axis(set_indirect)
-                if not (key_index):
-                    return fallback_index_select_sotre(src_name, weight_index, indirect_var, bound)
+                if key_index is None:
+                    log_info = f"{str(set_indirect)} can't find indexing"
+                    return fallback_index_select_load(log_info)
 
                 var_list = [str(var) for var in reversed(self.golden_var_list)]
                 tiling_offset = []
@@ -2255,6 +2279,10 @@ class NPUIndexTritonKernel(TritonKernel):
                         axis_range = f"{axis.name}_numel"
                     numels_axis_var.append(axis_range)
 
+                if isinstance(key_index, (sympy.Integer, int)):
+                    tiling_offset = ["0"] + tiling_offset
+                    numels_axis_var = ["1"] + numels_axis_var
+
                 tile_size = var_list[-1].upper() + "BLOCK_SUB"
                 tiling_offset_val = ", ".join(tiling_offset)
                 numels_val = ", ".join(numels_axis_var)
@@ -2264,9 +2292,17 @@ class NPUIndexTritonKernel(TritonKernel):
                     indirect_var = self.cse.generate(self.compute, line, dtype=indirect_var.dtype)
                 line = f"tl.index_select({var}, {indirect_var}, {bound}, {tile_size}, ({tiling_offset_val}, ), ({numels_val}, ))"
 
-                return self.cse.generate(self.compute,
+                index_select_var = self.cse.generate(self.compute,
                                         line,
                                         dtype=dtype)
+
+                if isinstance(key_index, (sympy.Integer, int)):
+                    line = f"tl.reshape({index_select_var}, ({tile_size}, ))"
+                    index_select_var = self.cse.generate(self.compute,
+                                            line,
+                                            dtype=dtype)
+
+                return index_select_var
 
 
             @staticmethod

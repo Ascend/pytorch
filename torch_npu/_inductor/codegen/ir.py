@@ -323,6 +323,10 @@ def generate_indirect_replacements(self):
             if indirect_var in indirect_node_map:
                 indirect_node = indirect_node_map[indirect_var]
                 indirect_node.meta['indirect_template'] = True
+            indirect_var_symbol = sympy_index_symbol(indirect_var)
+            origin_index = self.indirect_replacements.get(indirect_var_symbol, "")
+            if 'indirect' in str(origin_index):
+                node.meta['multi_indirect_index'] = True
             continue
         indirect_var = get_indirect_var(node.name)
         if indirect_var is None:
@@ -338,8 +342,8 @@ def generate_indirect_replacements(self):
         if load_index is None:
             continue
 
-        orig_index = self.indexing[load_index]
-        self.indirect_replacements[indirect_var_symbol] = orig_index
+        origin_index = self.indexing[load_index]
+        self.indirect_replacements[indirect_var_symbol] = origin_index
 
 
 # select tiling axis, recover missing dimensions,

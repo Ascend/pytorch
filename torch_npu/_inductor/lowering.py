@@ -225,15 +225,19 @@ def _register_npu_inductor_fallbacks():
         indices_loader = indices.make_loader()
         indices_ndim = len(indices.get_size())
         weight_size = weight.get_size()
+        weight_loader = weight.make_loader()
         new_size = [*indices.get_size(), *weight_size[1:]]
 
         def fn(idx):
             assert len(idx) == len(new_size), f"{idx} != {new_size}"
             var_index = indices_loader(idx[:indices_ndim])
+            is_indirect_idx = any(['tmp' in str(var) or 'indirect' in str(var) for var in idx])
             set_indirect = ops.indirect_indexing(var_index, weight_size[0])
             weight_idx = [set_indirect] + [*idx[indices_ndim:]]
             index_loader = weight.data.make_indexer()
             loader_name = weight.data.get_name()
+            if is_indirect_idx:
+                return weight_loader(weight_idx)
             return ops.index_select(loader_name, index_loader(weight_idx), var_index, set_indirect, int(weight_size[0]))
 
         return Pointwise.create(
@@ -258,7 +262,7 @@ def _register_npu_inductor_fallbacks():
                 return True
             return False
 
-        if invalid_embedding_input(weight) or invalid_embedding_input(indices):
+        if invalid_embedding_input(weight):
             return lowering.embedding(weight, indices)
         return lowering_index_select(weight, 0, indices)
 
@@ -617,7 +621,15 @@ def _register_npu_inductor_fallbacks():
             buffer.name = V.graph.register_buffer(buffer)
             V.graph.register_operation(buffer)
 
-        if not reduce:
+        def should_use_template():
+            if reduce:
+                return False
+            if 1 in index.get_size() or 1 in self.get_size() or 1 in src.get_size():
+                return False          
+
+            return True
+
+        if should_use_template():
             scatter = ScatterTemplate(
                 device=self.get_device(),
                 dtype=self.get_dtype(),
