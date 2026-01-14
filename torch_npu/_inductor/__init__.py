@@ -144,8 +144,9 @@ else:
 
 
     def _replace_precompile():
-        from .npu_triton_heuristics import precompile_parallel, NPUCachingAutotuner
+        from .npu_triton_heuristics import precompile_parallel, NPUCachingAutotuner, _precompile_worker_parallel
         NPUCachingAutotuner.precompile = precompile_parallel
+        NPUCachingAutotuner._precompile_worker_parallel = _precompile_worker_parallel
 
 
     if (aggresive_autotune):

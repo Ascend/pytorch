@@ -651,6 +651,8 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.fx_passes.utils.fx_pass_level",
             "torch_npu._inductor.fx_passes.utils.get_binary_fold_result",
             "torch_npu._inductor.fx_passes.ascend_custom_passes",
+            "torch_npu._inductor.fasta_autotune",
+            "torch_npu._inductor.profiler",
         }
 
         # No new entries should be added to this list.

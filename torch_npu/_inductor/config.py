@@ -159,6 +159,18 @@ aggresive_autotune = os.getenv("INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE", '1').lower
 inductor_static_mode = os.environ.get('INDUCTOR_STATIC_MODE', '0').lower() in ('1', 'yes', 'true')
 profile_path = "./profile_result/"
 
+fasta_autotune = os.environ.get('FASTAUTOTUNE', "0") == "1"
+fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")
+if fasta_autotune:
+    os.environ["ENABLE_PRINT_UB_BITS"] = "1"
+
+    if torch._inductor.config.compile_threads != 1:
+        log.warning(f"fasta is not temporarily compatible with multi-process compile, "
+                    f"fasta_autotune set TORCHINDUCTOR_COMPILE_THREADS "
+                    f"from {torch._inductor.config.compile_threads} to 1.")
+        os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
+        torch._inductor.config.compile_threads = 1
+
 max_precompiled_thread_num = os.cpu_count() // 2 # default precompile max thread num is half of the cpu count
 if "TORCHNPU_PRECOMPILE_THREADS" in os.environ:
     max_precompiled_thread_num = int(os.environ["TORCHNPU_PRECOMPILE_THREADS"])
