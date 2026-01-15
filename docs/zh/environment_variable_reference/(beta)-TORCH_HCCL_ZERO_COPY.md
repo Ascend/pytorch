@@ -27,7 +27,7 @@ export TORCH_HCCL_ZERO_COPY=1
     ```
 
 -   此环境变量不支持在PyTorch图模式（TorchAir）场景下使用。
--   其他约束请参见《CANN  HCCL API（C）》中“零拷贝功能 \> [使用前必读](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/API/hcclapiref/hcclcpp_07_0053.html)”章节。
+-   其他约束请参见《CANN  HCCL API（C）》中“零拷贝功能 \> [使用前必读](https://www.hiascend.com/document/detail/zh/canncommercial/850/API/hcclapiref/hcclcpp_07_0053.html)”章节。
 
 ## 支持的型号
 

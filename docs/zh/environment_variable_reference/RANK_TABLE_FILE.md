@@ -24,7 +24,7 @@ export RANK_TABLE_FILE=/home/ranktable.json
 > -   配置的文件路径不存在时，会通过默认的协商流程进行集合通信域建链。
 > -   配置的文件路径存在，但配置信息有误时，不会通过默认的协商流程进行集合通信域建链，而是在实际通信时会进行相应的报错。
 > -   配置的文件路径不能为软链接，且存在读取权限。
-> -   配置的文件需要为json格式，具体可参考《HCCL集合通信库用户指南》中的“[ranktable文件配置资源信息](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/hccl/hcclug/hcclug_000014.html)”章节。
+> -   配置的文件需要为json格式，具体可参考《[HCCL集合通信库用户指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/commlib/hcclug/hcclug_000001.html)》中对应的“rank table配置资源信息”章节。
 
 关闭ranktable文件方式建链示例：
 

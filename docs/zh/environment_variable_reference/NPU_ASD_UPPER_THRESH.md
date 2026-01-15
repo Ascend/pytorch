@@ -6,7 +6,6 @@
 
 其中第一个元素控制一级阈值，特征值绝对值超过一级阈值时，会终止训练并上报告警；第二个元素控制二级阈值，特征值绝对值超过二级阈值且`ASCEND_GLOBAL_LOG_LEVEL`设置为“0”、“1”或“2”时，会打印Warning级别日志预警。减小阈值可以检出波动更小的异常数据，增加检出率，增大阈值与之相反。
 
-特征值检测功能具体参见《PyTorch 训练模型迁移调优指南》的“[特征值检测](https://www.hiascend.com/document/detail/zh/Pytorch/720/ptmoddevg/trainingmigrguide/PT_LMTMOG_0024.html)”章节。
 
 默认阈值为1000000,10000。
 

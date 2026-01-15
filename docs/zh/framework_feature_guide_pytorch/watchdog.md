@@ -26,7 +26,7 @@ HCCL\_ASYNC\_ERROR\_HANDLING取值情况：
 
 当PyTorch版本为1.11.0时，默认值为0；当PyTorch版本大于等于2.1.0时，默认值为1。
 
-此环境变量使用详情请参考《环境变量参考》中的“[HCCL\_ASYNC\_ERROR\_HANDLING](https://www.hiascend.com/document/detail/zh/Pytorch/720/comref/Envvariables/Envir_018.html)”章节。
+此环境变量使用详情请参考《环境变量参考》中的“[HCCL\_ASYNC\_ERROR\_HANDLING](../environment_variable_reference/HCCL_ASYNC_ERROR_HANDLING.md)”章节。
 
 ## 使用样例
 
@@ -39,5 +39,5 @@ export HCCL_ASYNC_ERROR_HANDLING=1
 ## 约束说明
 
 -   此环境变量仅适用于基于PyTorch框架构建的神经网络的场景，且使用HCCL作为通信后端。
--   通过此环境变量开启异步错误处理时，为了更好地明确HCCL超时原因，建议new\_group和init\_process\_group传参的timeout时间大于HCCL\_CONNECT\_TIMEOUT和HCCL\_EXEC\_TIMEOUT环境变量配置的时间，HCCL\_CONNECT\_TIMEOUT具体参考《CANN 环境变量参考》中的“[HCCL\_CONNECT\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/envvar/envref_07_0077.html)”章节，HCCL\_EXEC\_TIMEOUT具体请参考《CANN 环境变量参考》中的“[HCCL\_EXEC\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/envvar/envref_07_0078.html)”章节。
+-   通过此环境变量开启异步错误处理时，为了更好地明确HCCL超时原因，建议new\_group和init\_process\_group传参的timeout时间大于HCCL\_CONNECT\_TIMEOUT和HCCL\_EXEC\_TIMEOUT环境变量配置的时间，HCCL\_CONNECT\_TIMEOUT具体参考《CANN 环境变量参考》中的“[HCCL\_CONNECT\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/envvar/envref_07_0077.html)”章节，HCCL\_EXEC\_TIMEOUT具体请参考《CANN 环境变量参考》中的“[HCCL\_EXEC\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/envvar/envref_07_0078.html)”章节。
 

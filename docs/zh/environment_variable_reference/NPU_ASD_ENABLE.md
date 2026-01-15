@@ -4,8 +4,6 @@
 
 通过此环境变量可控制是否开启Ascend Extension for PyTorch的特征值检测功能。
 
-特征值检测功能具体参见《PyTorch 训练模型迁移调优指南》的“[特征值检测](https://www.hiascend.com/document/detail/zh/Pytorch/720/ptmoddevg/trainingmigrguide/PT_LMTMOG_0024.html)”章节。
-
 -   未设置或者设置为“0”时，表示关闭特征值检测。此环境变量默认值为“0”。
 -   设置为“1”时，表示开启特征值检测，只打印异常日志，不告警。
 -   设置为“2”时，表示开启特征值检测，并告警。

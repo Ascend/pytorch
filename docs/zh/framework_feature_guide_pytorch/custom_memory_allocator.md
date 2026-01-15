@@ -23,7 +23,7 @@ torch_npu.npu.NPUPluggableAllocator(path_to_so_file, alloc_fn_name, free_fn_name
 -   alloc\_fn\_name：\(str\)内存申请函数名（与C/C++文件中函数名一致）。
 -   free\_fn\_name：\(str\)内存释放函数名（与C/C++文件中函数名一致）。
 
-此接口详情请参考《API参考》中的“[torch.npu.npu.NPUPluggableAllocator](https://www.hiascend.com/document/detail/zh/Pytorch/720/apiref/torchnpuCustomsapi/context/torch-npu-npu-NPUPluggableAllocator.md)”章节。
+此接口详情请参考《API参考》中的“[torch.npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/torch-npu-npu-NPUPluggableAllocator.md)”章节。
 
 ## 使用样例
 

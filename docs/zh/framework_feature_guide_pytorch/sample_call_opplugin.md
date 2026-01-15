@@ -2,7 +2,7 @@
 
 完成了PyTorch框架的适配插件开发后，即可实现从PyTorch框架调用Ascend C自定义算子。下文以自定义Add算子为例，介绍PyTorch 2.7.1框架下，注册算子开发过程以及算子适配开发过程。
 
-1.  安装指定的gcc和cmake版本，具体可参见《Ascend Extension for PyTorch 软件安装指南》中的“[（可选）安装扩展模块](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0008.html)”章节。
+1.  安装指定的gcc和cmake版本，具体可参见《Ascend Extension for PyTorch 软件安装指南》中的“[参考信息](../installation_guide/references.md)”章节。
 2.  完成自定义算子工程创建、算子开发及编译部署流程，具体可参考[Samples](https://gitee.com/ascend/samples/tree/master/operator/ascendc/0_introduction/1_add_frameworklaunch)。
 3.  进行Ascend Extension for PyTorch自定义算子配置。
     1.  拉取torch\_npu仓代码，并进入仓库根目录。
@@ -124,7 +124,7 @@
         }  // namespace op_api
         ```
 
-5.  编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0005.html)”章节的“方式一（推荐）：容器场景”。
+5.  编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
 
 上述开发过程完成后，您可以调用如下的脚本test\_ops\_custom.py，测试torch\_npu.npu\_add\_custom\(\)的功能，测试脚本如下：
 

@@ -23,7 +23,7 @@ export P2P_HCCL_BUFFSIZE=20
 -   每个通信域额外占用“2\*P2P\_HCCL\_BUFFSIZE”大小的内存，分别用于收发内存。
 -   该资源按通信域粒度管理，每个通信域独占一组“2\*P2P\_HCCL\_BUFFSIZE”大小的内存。
 -   Ascend Extension for PyTorch 7.1.0版本此环境变量已默认配置为20MB，若升级后出现oom，可在模型侧将此环境变量配置为0。
--   若之前未对P2P创建独立通信域，配置该环境变量后，会对P2P独立创建通信域，若模型侧存在send和recv下发间隔时间长的场景，会出现超时的可能，需要将HCCL\_CONNECT\_TIMEOUT的时间配置得更长，建议配置值为600s，具体配置值需依据模型脚本实际情况，HCCL\_CONNECT\_TIMEOUT具体可参考《CANN 环境变量参考》中的“[HCCL\_CONNECT\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/envvar/envref_07_0077.html)”章节。
+-   若之前未对P2P创建独立通信域，配置该环境变量后，会对P2P独立创建通信域，若模型侧存在send和recv下发间隔时间长的场景，会出现超时的可能，需要将HCCL\_CONNECT\_TIMEOUT的时间配置得更长，建议配置值为600s，具体配置值需依据模型脚本实际情况，HCCL\_CONNECT\_TIMEOUT具体可参考《CANN 环境变量参考》中的“[HCCL\_CONNECT\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/envvar/envref_07_0077.html)”章节。
 
 ## 支持的型号
 

@@ -14,7 +14,7 @@
 **图 2**  内存分配器状态历史记录示意图  
 ![](figures/memory_allocator_status_history.png)
 
-另外，在保存内存快照的同时，基于性能分析工具msProf当前已有的内存profiling能力，同步保存CANN各组件的内存使用情况。msProf工具相关内容，可参考《CANN 算子开发工具用户指南》中的“[算子调优（msProf）](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/devaids/optool/atlasopdev_16_0082.html)”章节。
+另外，在保存内存快照的同时，基于性能分析工具msProf当前已有的内存profiling能力，同步保存CANN各组件的内存使用情况。msProf工具相关内容，可参考《CANN 算子开发工具用户指南》中的“[算子调优（msProf）](https://www.hiascend.com/document/detail/zh/canncommercial/850/devaids/optool/atlasopdev_16_0082.html)”章节。
 
 通过环境变量OOM\_SNAPSHOT\_ENABLE和OOM\_SNAPSHOT\_PATH，来控制内存快照的记录情况。当配合TASK\_QUEUE\_ENABLE=2使用时，还可以查看taskqueue多级流水申请的workspace内存使用情况。
 
@@ -34,9 +34,9 @@
 
     -   配置时，内存数据保存至指定路径。
 
-此环境变量使用详情请参考《环境变量参考》中的“OOM\_SNAPSHOT\_ENABLE”章节和《环境变量参考》中的“OOM\_SNAPSHOT\_PATH”章节。
+此环境变量使用详情请参考《环境变量参考》中的“[OOM\_SNAPSHOT\_ENABLE](../environment_variable_reference/OOM_SNAPSHOT_ENABLE.md)”章节和《环境变量参考》中的“[OOM\_SNAPSHOT\_PATH](../environment_variable_reference/OOM_SNAPSHOT_PATH.md)”章节。
 
-内存快照的使用方法和案例还可参考社区的相关说明[LINK](https://pytorch.org/docs/2.1/torch_cuda_memory.html#understanding-cuda-memory-usage)。社区内存快照的API具体用法请参考[LINK](https://pytorch.org/docs/2.1/torch_cuda_memory.html#snapshot-api-reference)。
+内存快照的使用方法和案例还可参考社区的相关说明[LINK](https://pytorch.org/docs/2.7/torch_cuda_memory.html#understanding-cuda-memory-usage)。社区内存快照的API具体用法请参考[LINK](https://pytorch.org/docs/2.7/torch_cuda_memory.html#snapshot-api-reference)。
 
 > [!NOTE]  
 >在使用社区的API接口时，需要将API名称中的cuda转换为NPU形式才能使用：torch.cuda.\*\*\*转换为torch\_npu.npu.\*\*\*。

@@ -2,11 +2,11 @@
 
 ## 简介
 
-OpPlugin是Ascend Extension for PyTorch的算子插件，为使用PyTorch框架的开发者提供便捷的NPU算子库调用能力。OpPlugin算子插件的编译与使用均依赖昇腾Ascend Extension for PyTorch。在编译OpPlugin之前，请参见《[CANN 软件安装指南](hiascend.com/document/detail/zh/canncommercial/83RC1/softwareinst/instg/instg_0000.html)》（商用版）或《[CANN 软件安装指南](hiascend.com/document/detail/zh/CANNCommunityEdition/83RC1/softwareinst/instg/instg_0000.html)》（社区版）完成CANN软件的安装，参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》完成PyTorch框架的安装。本文档提供单算子适配开发指导，主要包括适配原则、适配文件结构和算子适配开发三部分内容。图模式算子开发请参考《PyTorch 图模式使用指南(TorchAir)》中的“[自定义算子插件化入图](https://www.hiascend.com/document/detail/zh/Pytorch/720/modthirdparty/torchairuseguide/torchair_00047.html)”章节。
+OpPlugin是Ascend Extension for PyTorch的算子插件，为使用PyTorch框架的开发者提供便捷的NPU算子库调用能力。OpPlugin算子插件的编译与使用均依赖昇腾Ascend Extension for PyTorch。在编译OpPlugin之前，请参见《[CANN 软件安装指南](hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html)》（商用版）或《[CANN 软件安装指南](hiascend.com/document/detail/zh/CANNCommunityEdition/850/softwareinst/instg/instg_0000.html)》（社区版）完成CANN软件的安装，参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》完成PyTorch框架的安装。本文档提供单算子适配开发指导，主要包括适配原则、适配文件结构和算子适配开发三部分内容。图模式算子开发请参考《PyTorch 图模式使用指南(TorchAir)》中的“[自定义算子入图](https://www.hiascend.com/document/detail/zh/Pytorch/730/modthirdparty/torchairuseguide/torchair_00055.html)”章节。
 
 ## 前提条件
 
-已安装gcc和cmake，具体可参见《Ascend Extension for PyTorch 软件安装指南》中的“[（可选）安装扩展模块](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0008.html)”章节。
+已安装gcc和cmake，具体可参见《Ascend Extension for PyTorch 软件安装指南》中的“[参考信息](../installation_guide/references.md)”章节。
 
 如果用户使用快速安装方式安装torch\_npu插件，适配前需执行如下命令拉取torch\_npu仓对应分支的代码并进入OpPlugin目录。
 
@@ -496,5 +496,5 @@ YAML配置有以下两种方式，可根据实际情况进行选择。每个结�
 
 ## 后续处理
 
-算子适配完成后，需编译torch\_npu包，推荐使用容器场景进行编译，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0005.html)”章节的“方式一（推荐）：容器场景”。
+算子适配完成后，需编译torch\_npu包，推荐使用容器场景进行编译，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
 

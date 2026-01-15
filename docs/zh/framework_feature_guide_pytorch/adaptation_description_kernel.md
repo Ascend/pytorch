@@ -4,7 +4,7 @@
 
 ## 前提条件
 
-完成CANN软件的安装具体请参见《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/softwareinst/instg/instg_0000.html?Mode=PmIns&InstallType=local&OS=openEuler&Software=cannToolKit)》（商用版）或《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/83RC1/softwareinst/instg/instg_0000.html?Mode=PmIns&InstallType=local&OS=openEuler&Software=cannToolKit)》（社区版），完成PyTorch框架的安装具体请参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》。
+完成CANN软件的安装具体请参见《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html)》（商用版）或《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850/softwareinst/instg/instg_0000.html)》（社区版），完成PyTorch框架的安装具体请参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》。
 
 ## 适配文件结构
 
@@ -28,7 +28,7 @@
 > 以下流程以add\_custom kernel算子适配为例进行说明。
 
 1.  kernel算子实现。
-    1.  在./cpp\_extension/csrc/kernel目录下完成kernel算子实现，具体可参考《[CANN Ascend C算子开发指南](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/opdevg/Ascendcopdevg/atlas_ascendc_10_0001.html)》。
+    1.  在./cpp\_extension/csrc/kernel目录下完成kernel算子实现，具体可参考《[CANN Ascend C算子开发指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/opdevg/Ascendcopdevg/atlas_ascendc_10_0002.html)》。
     2.  在CMakeLists.txt中配置对应kernel的编译选项。
 
         > [!NOTE]  

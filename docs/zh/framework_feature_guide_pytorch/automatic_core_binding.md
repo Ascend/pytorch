@@ -43,7 +43,7 @@ host下发任务慢或卡间业务耗时波动大的场景下，推荐使用该�
 >-   绑核需要注意虚拟机与物理机的拓扑结构是否一致。默认情况下，npu0或device 0对应的核组是NUMA0；但是Docker等虚拟机环境可能会改变映射关系，推荐根据映射关系自定义绑核范围。
 >-   绑核前会检测绑核区间，如果绑核区间内存在CPU核非亲和，就会判定为线程已有亲和性，则不触发该环境变量对应的绑核。
 >-   绑核对于不同模型优化程度不同，部分业务场景可能会有额外线程，线程抢占反而导致性能劣化。
->-   对于用户自定义线程，因为子线程继承主线程的亲和性，推荐在拉起子线程的位置前后，通过调用torch\_npu.utils.set\_thread\_affinity和torch\_npu.utils.reset\_thread\_affinity来管理子线程的CPU亲和性，具体可参考《Ascend Extension for PyTorch 自定义 API参考》中的“[torch\_npu.utils.set\_thread\_affinity](https://www.hiascend.com/document/detail/zh/Pytorch/720/apiref/torchnpuCustomsapi/context/torch_npu-utils.set_thread_affinity.md)”章节和《Ascend Extension for PyTorch 自定义 API参考》中的“[torch\_npu.utils.reset\_thread\_affinity](https://www.hiascend.com/document/detail/zh/Pytorch/720/apiref/torchnpuCustomsapi/context/torch_npu-utils.reset_thread_affinity.md)”章节。
+>-   对于用户自定义线程，因为子线程继承主线程的亲和性，推荐在拉起子线程的位置前后，通过调用torch\_npu.utils.set\_thread\_affinity和torch\_npu.utils.reset\_thread\_affinity来管理子线程的CPU亲和性，具体可参考《Ascend Extension for PyTorch 自定义 API参考》中的“[torch\_npu.utils.set\_thread\_affinity](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/torch_npu-utils.set_thread_affinity.md)”章节和《Ascend Extension for PyTorch 自定义 API参考》中的“[torch\_npu.utils.reset\_thread\_affinity](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/torch_npu-utils.reset_thread_affinity.md)”章节。
 >-   亲和性绑核区间可以通过命令**npu-smi info -t topo**查看。
 
 ## 使用样例
