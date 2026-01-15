@@ -191,7 +191,7 @@
 |torch.nn.LSTM|是|支持fp32<br>不支持proj_size参数<br>不支持dropout参数<br>入参input不支持2维|
 |torch.nn.GRU|否|-|
 |torch.nn.RNNCell|否|-|
-|torch.nn.LSTMCell|是|接口暂不支持jit_compile=False，需要在该模式下使用时请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](example_of_adding_a_binary_blocklist.md)|
+|torch.nn.LSTMCell|是|接口暂不支持jit_compile=False，需要在该模式下使用时请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../example_of_adding_a_binary_blocklist.md)|
 |torch.nn.GRUCell|是|支持fp16，fp32|
 |torch.nn.Transformer|是|支持fp16，fp32|
 |torch.nn.Transformer.forward|否|-|

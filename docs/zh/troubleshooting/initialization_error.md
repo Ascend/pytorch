@@ -23,4 +23,4 @@ File "/home/HwHiAiUser/anaconda3/envs/PyTorch-2.1.0/lib/python3.9/site-packages/
 
 ## 解决措施
 
-参考《CANN 故障处理》中的“[进程中断问题定位思路](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/troubleshooting/troubleshooting_0062.html)”章节进行故障处理。
+参考《CANN 故障处理》中的“[进程中断问题定位思路](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/troubleshooting/troubleshooting_0062.html)”章节进行故障处理。

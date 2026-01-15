@@ -25,7 +25,13 @@
 
 ## 卸载CANN软件
 
-如果用户只卸载CANN软件包（如Toolkit），则卸载没有先后顺序，如果还要卸载驱动和固件，则需要卸载其他软件包以后再卸载驱动和固件。进入卸载脚本所在路径，执行卸载命令。
+通过 _xxx_.run格式离线安装CANN软件后，可参考以下方式进行卸载。
+
+> [!NOTICE]  
+> - ops跟随Toolkit安装后，卸载Toolkit时，会自动卸载ops。
+> - 如果用户只卸载CANN软件包（如Toolkit），则卸载没有先后顺序，如果还要卸载驱动和固件，则需要卸载其他软件包以后再卸载驱动和固件。
+
+进入卸载脚本所在路径，执行卸载命令。
 
 -  Toolkit
     ```
@@ -33,7 +39,7 @@
     ./uninstall.sh
     ```
 
--  ops
+-  单独卸载ops
     ```
     cd /<path>/cann-<version>/{arch}-linux/script
     ./ops_uninstall.sh

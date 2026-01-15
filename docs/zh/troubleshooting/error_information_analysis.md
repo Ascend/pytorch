@@ -23,7 +23,7 @@
     EZ3002: 2024-11-05-22:31:29.035.909 Optype [%s] of Ops kernel [%s] is unsupported. Reason: %s.
     ```
 
-    “EZ3002”即为CANN软件错误码，用户可以参考《CANN 故障处理》中的“[错误码参考](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/troubleshooting/troubleshooting_0225.html)”章节，根据对应错误码信息进行故障分析，如仍不明确问题来源，可进一步查看其他回显信息。
+    “EZ3002”即为CANN软件错误码，用户可以参考《CANN 故障处理》中的“[错误码参考](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/troubleshooting/troubleshooting_0225.html)”章节，根据对应错误码信息进行故障分析，如仍不明确问题来源，可进一步查看其他回显信息。
 
 2.  查看Python调用栈和异常信息。
 
