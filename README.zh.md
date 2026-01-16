@@ -24,7 +24,7 @@
 | PyTorch2.6.0  | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x      |
 | PyTorch2.7.1  | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x      |
 | PyTorch2.8.0  | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x      |
-| PyTorch2.9.0  | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x      |
+| PyTorch2.9.0  | Python3.10.x, Python 3.11.x, Python 3.12.x      |
 
 
 
