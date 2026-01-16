@@ -4,8 +4,6 @@ Ascend Extension for PyTorch插件是基于昇腾的深度学习适配框架，�
 
 项目源码地址请参见[Link](https://gitcode.com/Ascend/pytorch)。
 
-昇腾为基于昇腾处理器和软件的行业应用及服务提供全栈AI计算基础设施。您可以通过访问[昇腾社区](https://www.hiascend.com/zh/)，了解关于昇腾的更多信息。
-
 ## 总体架构
 
 Ascend Extension for PyTorch整体架构如下所示。
