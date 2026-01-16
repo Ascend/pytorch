@@ -93,12 +93,20 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 #define PROF_ERROR(error) formatErrorCode(SubModule::PROF, error)
 
 #define DEVICE_TASK_ABORT "reason=[device task abort]"
+#define DEVICE_TASK_ABORT_V2 "reason=device task abort"
 #define DEVICE_MEM_ERROR "reason=[device mem error]"
+#define DEVICE_MEM_ERROR_V2 "reason=device mem error"
 #define DEVICE_HBM_ECC_ERROR "reason=[hbm Multi-bit ECC error]"
+#define DEVICE_HBM_ECC_ERROR_V2 "reason=hbm Multi-bit ECC error"
 #define SUSPECT_DEVICE_MEM_ERROR "reason=[suspect device mem error]"
+#define SUSPECT_DEVICE_MEM_ERROR_V2 "reason=suspect device mem error"
 #define HCCS_LINK_ERROR "reason=[link error]"
+#define HCCS_LINK_ERROR_V2 "reason=link error"
+#define HCCS_LINK_ERROR_V3 "reason=device network link error"
 #define HCCL_OP_RETRY_FAILED "reason=[hccl op retry failed]"
+#define HCCL_OP_RETRY_FAILED_V2 "reason=hccl op retry failed"
 #define SUSPECT_REMOTE_ERROR "reason=[suspect remote error]"
+#define SUSPECT_REMOTE_ERROR_V2 "reason=suspect remote error"
 
 inline const char* getErrorFunction(const char* msg)
 {
