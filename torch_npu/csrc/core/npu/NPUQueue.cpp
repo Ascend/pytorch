@@ -381,24 +381,37 @@ void Repository::CheckDeviceError(int ret, std::string& err_msg)
     if (ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
         acl_error = c10_npu::c10_npu_get_error_message();
     }
-    if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR || acl_error.find(DEVICE_HBM_ECC_ERROR) != std::string::npos) {
+    if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR ||
+        acl_error.find(DEVICE_MEM_ERROR) != std::string::npos ||
+        acl_error.find(DEVICE_MEM_ERROR_V2) != std::string::npos) {
         if (checkUceErrAndRepair(false, err_msg)) {
             ASCEND_LOGE("UCE ERROR happened, set task queue status to UCE_EXIT");
             SetStatus(UCE_EXIT);
         }
-    } else if (ret == ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR || acl_error.find(DEVICE_HBM_ECC_ERROR) != std::string::npos) {
+    } else if (ret == ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR ||
+               acl_error.find(DEVICE_HBM_ECC_ERROR) != std::string::npos ||
+               acl_error.find(DEVICE_HBM_ECC_ERROR_V2) != std::string::npos) {
         record_mem_hbm_ecc_error();
         SetStatus(HBM_ECC_EXIT);
-    } else if (ret == ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR || acl_error.find(SUSPECT_DEVICE_MEM_ERROR) != std::string::npos) {
+    } else if (ret == ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR ||
+               acl_error.find(SUSPECT_DEVICE_MEM_ERROR) != std::string::npos ||
+               acl_error.find(SUSPECT_DEVICE_MEM_ERROR_V2) != std::string::npos) {
         ASCEND_LOGE("SUSPECT MEM ERROR happened, set task queue status to SUSPECT_MEM_EXIT");
         SetStatus(SUSPECT_MEM_EXIT);
-    } else if (ret == ACL_ERROR_RT_LINK_ERROR || acl_error.find(HCCS_LINK_ERROR) != std::string::npos) {
+    } else if (ret == ACL_ERROR_RT_LINK_ERROR ||
+               acl_error.find(HCCS_LINK_ERROR) != std::string::npos ||
+               acl_error.find(HCCS_LINK_ERROR_V2) != std::string::npos ||
+               acl_error.find(HCCS_LINK_ERROR_V3) != std::string::npos) {
         ASCEND_LOGE("HCCS LINK ERROR happened, set task queue status to HCCS_LINK_EXIT");
         SetStatus(HCCS_LINK_EXIT);
-    } else if (ret == ACL_ERROR_RT_COMM_OP_RETRY_FAIL || acl_error.find(HCCL_OP_RETRY_FAILED) != std::string::npos) {
+    } else if (ret == ACL_ERROR_RT_COMM_OP_RETRY_FAIL ||
+               acl_error.find(HCCL_OP_RETRY_FAILED) != std::string::npos ||
+               acl_error.find(HCCL_OP_RETRY_FAILED_V2) != std::string::npos) {
         ASCEND_LOGE("HCCL OP RETRY FAILED happened, set task queue status to HCCL_OP_RETRY_EXIT");
         SetStatus(HCCL_OP_RETRY_EXIT);
-    } else if (ret == ACL_ERROR_RT_SUSPECT_REMOTE_ERROR || acl_error.find(SUSPECT_REMOTE_ERROR) != std::string::npos) {
+    } else if (ret == ACL_ERROR_RT_SUSPECT_REMOTE_ERROR ||
+               acl_error.find(SUSPECT_REMOTE_ERROR) != std::string::npos ||
+               acl_error.find(SUSPECT_REMOTE_ERROR_V2) != std::string::npos) {
         ASCEND_LOGE("SUSPECT REMOTE ERROR happened, set task queue status to SUSPECT_REMOTE_EXIT");
         SetStatus(SUSPECT_REMOTE_EXIT);
     } else if (GetStatus() != STOP_EXIT) {

@@ -342,8 +342,13 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         try {
             ret = cur_paras->customHandler();
         } catch (std::exception &e) {
-            if (ContainsAny(std::string(e.what()), {DEVICE_TASK_ABORT, DEVICE_MEM_ERROR, DEVICE_HBM_ECC_ERROR,
-                SUSPECT_DEVICE_MEM_ERROR, HCCS_LINK_ERROR, HCCL_OP_RETRY_FAILED, SUSPECT_REMOTE_ERROR})) {
+            if (ContainsAny(std::string(e.what()), {DEVICE_TASK_ABORT, DEVICE_TASK_ABORT_V2,
+                                                    DEVICE_MEM_ERROR, DEVICE_MEM_ERROR_V2,
+                                                    DEVICE_HBM_ECC_ERROR, DEVICE_HBM_ECC_ERROR_V2,
+                                                    SUSPECT_DEVICE_MEM_ERROR, SUSPECT_DEVICE_MEM_ERROR_V2,
+                                                    HCCS_LINK_ERROR, HCCS_LINK_ERROR_V2, HCCS_LINK_ERROR_V3,
+                                                    HCCL_OP_RETRY_FAILED, HCCL_OP_RETRY_FAILED_V2,
+                                                    SUSPECT_REMOTE_ERROR, SUSPECT_REMOTE_ERROR_V2})) {
                 ret = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
             } else {
                 ret = ACL_ERROR_INVALID_PARAM;
@@ -435,8 +440,13 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas *in, aclrtStream stream)
     try {
         ret = cur_paras->customHandler();
     } catch (std::exception &e) {
-        if (ContainsAny(std::string(e.what()), {DEVICE_TASK_ABORT, DEVICE_MEM_ERROR, DEVICE_HBM_ECC_ERROR,
-            SUSPECT_DEVICE_MEM_ERROR, HCCS_LINK_ERROR, HCCL_OP_RETRY_FAILED, SUSPECT_REMOTE_ERROR})) {
+        if (ContainsAny(std::string(e.what()), {DEVICE_TASK_ABORT, DEVICE_TASK_ABORT_V2,
+                                                DEVICE_MEM_ERROR, DEVICE_MEM_ERROR_V2,
+                                                DEVICE_HBM_ECC_ERROR, DEVICE_HBM_ECC_ERROR_V2,
+                                                SUSPECT_DEVICE_MEM_ERROR, SUSPECT_DEVICE_MEM_ERROR_V2,
+                                                HCCS_LINK_ERROR, HCCS_LINK_ERROR_V2, HCCS_LINK_ERROR_V3,
+                                                HCCL_OP_RETRY_FAILED, HCCL_OP_RETRY_FAILED_V2,
+                                                SUSPECT_REMOTE_ERROR, SUSPECT_REMOTE_ERROR_V2})) {
             ret = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         } else {
             ret = ACL_ERROR_INVALID_PARAM;
