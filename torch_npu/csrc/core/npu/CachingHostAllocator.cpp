@@ -219,9 +219,17 @@ struct HostAllocator {
         // Since events on different devices or streams may occur out of order,
         // the processing of some events may be delayed.
         while (!npu_events.empty()) {
+            bool isEventCompleted = true;
             auto &e = npu_events.front();
             EventPool::Event event = std::move(e.first);
-            if (!event->query()) {
+            try {
+                isEventCompleted = event->query();
+            } catch (...) {
+                ASCEND_LOGE("processEvents() query event failed!");
+                // event query failed, pop the event
+                isEventCompleted = true;
+            }
+            if (!isEventCompleted) {
                 e.first = std::move(event);
                 break;
             }
