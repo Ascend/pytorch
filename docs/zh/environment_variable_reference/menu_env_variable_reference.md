@@ -27,7 +27,7 @@
     -   [HCCL\_EVENT\_TIMEOUT](HCCL_EVENT_TIMEOUT.md)
     -   [P2P\_HCCL\_BUFFSIZE](P2P_HCCL_BUFFSIZE.md)
     -   [RANK\_TABLE\_FILE](RANK_TABLE_FILE.md)
-    -   [\(beta\) TORCH\_HCCL\_ZERO\_COPY]((beta)-TORCH_HCCL_ZERO_COPY.md)
+    -   [\(beta\) TORCH\_HCCL\_ZERO\_COPY](（beta）TORCH_HCCL_ZERO_COPY.md)
 
 -   [告警信息打印](alarm_message_printing.md)
     -   [TORCH\_NPU\_DISABLED\_WARNING](TORCH_NPU_DISABLED_WARNING.md)

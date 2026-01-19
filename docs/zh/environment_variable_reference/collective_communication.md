@@ -10,5 +10,5 @@
 
 -   **[RANK\_TABLE\_FILE](RANK_TABLE_FILE.md)**  
 
--   **[\(beta\) TORCH\_HCCL\_ZERO\_COPY]((beta)-TORCH_HCCL_ZERO_COPY.md)**  
+-   **[\(beta\) TORCH\_HCCL\_ZERO\_COPY](（beta）TORCH_HCCL_ZERO_COPY.md)**  
 

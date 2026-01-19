@@ -25,7 +25,7 @@
 |集合通信|[HCCL_EVENT_TIMEOUT](HCCL_EVENT_TIMEOUT.md)|当使用HCCL作为通信后端时，通过此环境变量可设置等待Event完成的超时时间。|
 |集合通信|[P2P_HCCL_BUFFSIZE](P2P_HCCL_BUFFSIZE.md)|通过此环境变量可配置是否开启点对点通信（`torch.distributed.isend`、`torch.distributed.irecv`和`torch.distributed.batch_isend_irecv`）使用独立通信域功能。|
 |集合通信|[RANK_TABLE_FILE](RANK_TABLE_FILE.md)|通过此环境变量可配置是否通过RANK_TABLE_FILE进行集合通信域建链。|
-|集合通信|[(beta) TORCH_HCCL_ZERO_COPY]((beta)-TORCH_HCCL_ZERO_COPY.md)|训练或在线推理场景下，可通过此环境变量开启集合通信片内零拷贝功能，减少通信算子在通信过程中片内拷贝次数，提升集合通信效率，降低通信耗时。同时在计算通信并行场景下，降低通信过程中对显存带宽的抢占。|
+|集合通信|[(beta) TORCH_HCCL_ZERO_COPY](（beta）TORCH_HCCL_ZERO_COPY.md)|训练或在线推理场景下，可通过此环境变量开启集合通信片内零拷贝功能，减少通信算子在通信过程中片内拷贝次数，提升集合通信效率，降低通信耗时。同时在计算通信并行场景下，降低通信过程中对显存带宽的抢占。|
 |告警信息打印|[TORCH_NPU_DISABLED_WARNING](TORCH_NPU_DISABLED_WARNING.md)|通过此环境变量可配置是否打印Ascend Extension for PyTorch的告警信息。|
 |告警信息打印|[TORCH_NPU_COMPACT_ERROR_OUTPUT](TORCH_NPU_COMPACT_ERROR_OUTPUT.md)|通过此环境变量可精简打印错误信息，开启后会将CANN内部调用栈、Ascend Extension for PyTorch错误码等自定义报错信息转移到plog中，仅保留有效的错误说明，提高异常信息的可读性。|
 |同步超时|[ACL_DEVICE_SYNC_TIMEOUT](ACL_DEVICE_SYNC_TIMEOUT.md)|通过此环境变量可配置设备同步的超时时间。|
