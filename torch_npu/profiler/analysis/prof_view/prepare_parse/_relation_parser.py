@@ -15,7 +15,6 @@
 from ...prof_common_func._constant import Constant
 from ...prof_common_func._log import ProfilerLogger
 from ...prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
-from ...prof_parse._cann_file_parser import CANNFileParser
 from .._base_parser import BaseParser
 
 __all__ = []
@@ -32,9 +31,7 @@ class RelationParser(BaseParser):
         self.logger.info("RelationParser start.")
         try:
             self._dequeue_data = deps_data.get(Constant.TASK_QUEUE_PARSER, {}).get(Constant.DEQUEUE_DATA, [])
-            timeline_data = deps_data.get(Constant.CANN_TIMELINE_PARSER, [])
-            acl_to_npu_dict = CANNFileParser(self._profiler_path).get_acl_to_npu_data(timeline_data)
-            kernel_dict = FwkCANNRelationParser(self._profiler_path).get_kernel_dict(self._dequeue_data, acl_to_npu_dict)
+            kernel_dict = FwkCANNRelationParser(self._profiler_path).get_kernel_dict(self._dequeue_data)
         except Exception as e:
             self.logger.error("Failed to get acl to npu flow dict, error: %s", str(e), exc_info=True)
             return Constant.FAIL, {}
