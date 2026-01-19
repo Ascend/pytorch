@@ -133,6 +133,8 @@ INDIRECT_MEM_GENERATE_LIST = [
 INDIRECT_MEM_OVERLOAD_LIST = [
     aten.embedding,
     aten.gather,
+    aten.index,
+    aten._unsafe_index,
     aten.index_put_,
     aten.index_put,
     aten._unsafe_index_put,

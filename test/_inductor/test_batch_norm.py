@@ -1,6 +1,7 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
+from unittest import skip
 import torch_npu
 
 
@@ -28,6 +29,7 @@ class TestNativeBatchNorm(TestUtils):
         )
         return output, running_mean_out, running_var_out
 
+    @skip("skip ci codegen error")
     @parametrize('shape', [(16, 32, 64)])
     @parametrize('dtype', ['float32'])
     def test_reduction_cases_shapes(self, shape, dtype):

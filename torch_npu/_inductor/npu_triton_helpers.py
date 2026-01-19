@@ -1,10 +1,10 @@
 import triton
 import triton.language as tl
 
-import triton.language.extra.ascend.libdevice as libdevice
 from torch._inductor.runtime import triton_helpers
 
-libdevice = tl.extra.ascend.libdevice
+libdevice = tl.extra.cann.libdevice
+extension = tl.extra.cann.extension
 math = tl.math
 
 

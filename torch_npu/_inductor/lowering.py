@@ -218,31 +218,35 @@ def _register_npu_inductor_fallbacks():
     def _convert__npu_type(x: TensorBox, dtype: torch.dtype):
         return to_dtype(x, dtype, copy=True)
 
-    def lowering_index_select(weight, dim, indices):
-        assert isinstance(weight, TensorBox)
+    def lowering_index_select(x, select_dim, indices, index_select_type):
+        assert isinstance(x, TensorBox)
         assert isinstance(indices, TensorBox)
         assert "int" in str(indices.get_dtype())
+        weight_loader = x.make_loader()
         indices_loader = indices.make_loader()
         indices_ndim = len(indices.get_size())
-        weight_size = weight.get_size()
-        weight_loader = weight.make_loader()
-        new_size = [*indices.get_size(), *weight_size[1:]]
+        x_size = x.get_size()
+        new_size = [*x_size[:select_dim], *indices.get_size(), *x_size[select_dim + 1:]]
 
         def fn(idx):
             assert len(idx) == len(new_size), f"{idx} != {new_size}"
-            var_index = indices_loader(idx[:indices_ndim])
             is_indirect_idx = any(['tmp' in str(var) or 'indirect' in str(var) for var in idx])
-            set_indirect = ops.indirect_indexing(var_index, weight_size[0])
-            weight_idx = [set_indirect] + [*idx[indices_ndim:]]
-            index_loader = weight.data.make_indexer()
-            loader_name = weight.data.get_name()
+
+            var_index = indices_loader(idx[select_dim:select_dim + indices_ndim])
+            set_indirect = ops.indirect_indexing(var_index, x_size[select_dim])
+            x_idx = [*idx[:select_dim]] + [set_indirect] + [*idx[select_dim + indices_ndim:]]
             if is_indirect_idx:
-                return weight_loader(weight_idx)
-            return ops.index_select(loader_name, index_loader(weight_idx), var_index, set_indirect, int(weight_size[0]))
+                return weight_loader(x_idx)
+            try:
+                index_loader = x.data.make_indexer()
+                loader_name = x.data.get_name()
+                return ops.index_select(loader_name, index_loader(x_idx), var_index, set_indirect, int(x_size[select_dim]), index_select_type)
+            except Exception as e:
+                return weight_loader(x_idx)
 
         return Pointwise.create(
-            device=weight.get_device(),
-            dtype=weight.get_dtype(),
+            device=x.get_device(),
+            dtype=x.get_dtype(),
             inner_fn=fn,
             ranges=new_size,
         )
@@ -264,7 +268,7 @@ def _register_npu_inductor_fallbacks():
 
         if invalid_embedding_input(weight):
             return lowering.embedding(weight, indices)
-        return lowering_index_select(weight, 0, indices)
+        return lowering_index_select(weight, 0, indices, 'embedding')
 
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
@@ -736,6 +740,30 @@ def _register_npu_inductor_fallbacks():
         return var_mean_helper_(
             x, axis=axis, correction=correction, keepdim=keepdim, return_mean=False
         )
+
+    @register_lowering(aten.index, type_promotion_kind=None)
+    def index(x, indices):
+        # check whether is high dim index_select
+        def should_use_template():
+            x_size = x.get_size()
+            valid_indices = [indice for indice in indices if indice]
+            # x only one dim | 1 in data size
+            if len(x_size) == 1 or 1 in x_size:
+                return False
+
+            if len(valid_indices) != 1:
+                return False
+            select_dim = indices.index(valid_indices[0])
+            if select_dim == len(indices) - 1:
+                return False
+            return True
+
+        if should_use_template():
+            valid_indices = [indice for indice in indices if indice]
+            select_dim = indices.index(valid_indices[0])
+            return lowering_index_select(x, select_dim, valid_indices[0], 'index_select')
+
+        return lowering.index(x, indices)
 
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):

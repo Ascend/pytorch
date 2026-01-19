@@ -279,14 +279,24 @@ def get_load_index_from_subblock(loop_body, subblock):
     node_map = {}
     for node in subblock.graph.nodes:
         node_map[node.name] = node
-        load_index = get_indirect_inex(loop_body, node, node_map)
+        load_index = get_indirect_index(loop_body, node, node_map)
         if load_index:
             return load_index
     
     return None
 
 
-def get_indirect_inex(loop_body, find_node, node_map):
+def analyze_all_index(all_indexs):
+    if not all_indexs:
+        return None
+
+    if not all(all_indexs[0] == index for index in all_indexs):
+        return None
+    return all_indexs[0]
+
+
+def get_indirect_index(loop_body, find_node, node_map):
+    all_indexs = []
     for node in find_node.args:
         if not isinstance(node, torch.fx.node.Node):
             continue
@@ -298,11 +308,11 @@ def get_indirect_inex(loop_body, find_node, node_map):
                 raise RuntimeError(f"can't find {node.name} in loopbody")
             load_index = get_load_index_from_subblock(loop_body, loop_body.subblocks[node.name])
         else:
-            load_index = get_indirect_inex(loop_body, node, node_map)
+            load_index = get_indirect_index(loop_body, node, node_map)
         if load_index:
-            return load_index
+            all_indexs.append(load_index)
 
-    return None
+    return analyze_all_index(all_indexs)
 
 
 def generate_indirect_replacements(self):
@@ -338,7 +348,7 @@ def generate_indirect_replacements(self):
             V.kernel.npu_kernel_type = NPUKernelType.SIMT_ONLY
         indirect_node_map[indirect_var] = node
 
-        load_index = get_indirect_inex(self, node, node_map)
+        load_index = get_indirect_index(self, node, node_map)
         if load_index is None:
             continue
 
@@ -355,14 +365,14 @@ def loopbody__call__(self, *indices):
     return result
 
 
-def loop_body_block_index_select(self, name: str, index: sympy.Expr, indirect_var, set_indirect, bound):
+def loop_body_block_index_select(self, name: str, index: sympy.Expr, indirect_var, set_indirect, bound, index_select_type):
     index = self._simplify(index)
     index = self._add_index(index, MemoryUsageType.LOAD, buffer_name=name)
-    return self._inner.index_select(name, index, indirect_var, str(set_indirect), bound)
+    return self._inner.index_select(name, index, indirect_var, str(set_indirect), bound, index_select_type)
 
 
-def simplify_indexing_index_select(self, name: str, index: sympy.Expr, indirect_var, set_indirect, bound):
-    return self._inner.index_select(name, self._simplify(index), indirect_var, str(set_indirect), bound)
+def simplify_indexing_index_select(self, name: str, index: sympy.Expr, indirect_var, set_indirect, bound, index_select_type):
+    return self._inner.index_select(name, self._simplify(index), indirect_var, str(set_indirect), bound, index_select_type)
 
 
 def loop_body_block_gather_template(self, name: str, index: sympy.Expr, indirect_var, set_indirect, index_boundary):

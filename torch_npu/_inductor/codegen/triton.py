@@ -30,6 +30,7 @@ from torch._inductor.codegen.triton import (
     IndexingOptions,
     triton_reshape,
     TritonCSEVariable,
+    triton_compute_type
 )
 from torch._inductor.ops_handler import OpsHandler
 from torch._inductor.codegen.triton import (
@@ -477,7 +478,7 @@ class NPUIndexTritonKernel(TritonKernel):
             from torch_npu._inductor import npu_triton_heuristics
             from torch_npu._inductor import npu_triton_helpers
             from torch_npu._inductor.runtime import NPUDeviceProperties
-            from torch_npu._inductor.npu_triton_helpers import libdevice, math as tl_math
+            from torch_npu._inductor.npu_triton_helpers import libdevice, extension, math as tl_math
             import torch
             import torch_npu
             """
@@ -1178,8 +1179,12 @@ class NPUIndexTritonKernel(TritonKernel):
         axis_start_offset = []
         axis_end_offset = []
         reshape_list = []
-        need_reshape = False
+        reshape_type = ""
+
         for axis_key in reversed(analyzer.all_var_list):
+            if symbol_is_type(axis_key, SymT.TMP):
+                axis_start_offset.append('0')
+                continue
             axis = self.range_tree_nodes[axis_key]
             BLOCK_NAME = f"{axis.name.upper()}BLOCK"
             BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
@@ -1197,16 +1202,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 reshape_list.append(BLOCK_NAME_SUB)
             else:
                 start_offset = f"{axis.name}"
-                end_offset = f"{axis.name} + 1"
-                need_reshape = True
+                end_offset = f"{axis.name}_numel"
                 reshape_list.append("1")
+                reshape_type = "reshape"
             axis_start_offset.append(start_offset)
             axis_end_offset.append(end_offset)
 
-        if need_reshape:
-            return axis_start_offset, axis_end_offset, reshape_list
-
-        return axis_start_offset, axis_end_offset, None
+        return axis_start_offset, axis_end_offset, reshape_type, reshape_list
 
     def parse_golden_from_load_store_index(self):
         sybol_stride_map = {}
@@ -1326,8 +1328,9 @@ class NPUIndexTritonKernel(TritonKernel):
         # 3. xmask, x0_mask: if axis is x, will not remove x0_mask, can't just use startswith
         for mask_var in mask_vars_copy:
             valid_mask_var = False
+            mask_var_str = str(mask_var)
             for axis_name in masked_axis_name:
-                if mask_var == f"{axis_name}mask" or mask_var.startswith(f"{axis_name}_"):
+                if mask_var_str == f"{axis_name}mask" or mask_var_str.startswith(f"{axis_name}_"):
                     valid_mask_var = True
 
             if not valid_mask_var:
@@ -1987,6 +1990,11 @@ class NPUIndexTritonKernel(TritonKernel):
                     raise RuntimeError("assert isinstance(size, sympy.Expr), size")
                 # Skip CSE since this doesn't return an expression
 
+                current_node = V.interpreter.current_node
+                if current_node and current_node.meta.get("indirect_template", False):
+                    sympy_var = sympy_index_symbol(str(var))
+                    return sympy_var
+
                 if var.bounds.lower < 0:  # type: ignore[operator]
                     if wrap_neg:
                         stm = ops.add(var, ops.index_expr(size, torch.long))
@@ -2176,7 +2184,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 code = f"tl.broadcast_to({src}, [{', '.join(insert_sizes)}])"
                 src = self.cse.generate(self.compute, code, dtype=src.dtype)
 
-                insert_slice = f"tl.insert_slice({dst}, {src}, [{', '.join(insert_offsets)}], " \
+                insert_slice = f"extension.insert_slice({dst}, {src}, [{', '.join(insert_offsets)}], " \
                                f"[{', '.join(insert_sizes)}], [{', '.join(strides)}])"
                 return self.cse.generate(self.compute, insert_slice, dtype=src.dtype)
 
@@ -2216,10 +2224,11 @@ class NPUIndexTritonKernel(TritonKernel):
                 return src
 
             @staticmethod
-            def index_select(src_name: str, weight_index: CSEVariable, indirect_var, set_indirect, bound) -> CSEVariable:
-                inductor_npu_config.log.debug(f"index_select: {src_name}, {weight_index}, {indirect_var}, {set_indirect}, {bound}")
+            def index_select(src_name: str, weight_index: CSEVariable, indirect_var, set_indirect, bound, index_select_type) -> CSEVariable:
+                inductor_npu_config.log.debug(f"index_select: {src_name}, {weight_index}, {indirect_var}, {set_indirect}, {bound}, {index_select_type}")
 
                 def fallback_index_select_load(reason):
+                    inductor_npu_config.log.info(f"fallback index_select to tl.load reason: {reason}, bound: {bound}")
                     new_indirect_var = V.ops.indirect_indexing(indirect_var, bound)
                     new_index = sympy_subs(weight_index, {sympy_index_symbol(indirect_var.name): sympy_index_symbol(new_indirect_var.name)})
                     return V.ops.load(src_name, new_index)
@@ -2227,6 +2236,8 @@ class NPUIndexTritonKernel(TritonKernel):
                 def is_correct_weight_index():
                     if not self.is_indirect_indexing(weight_index):
                         return False
+                    if index_select_type != 'embedding':
+                        return True
                     embedding_axis = None
                     for key, coeff in weight_index.as_coefficients_dict().items():
                         if isinstance(key, sympy.Integer):
@@ -2238,6 +2249,13 @@ class NPUIndexTritonKernel(TritonKernel):
                         return False
                     if self.golden_var_list.index(embedding_axis) != 0:
                         return False
+
+                    return True
+
+                def check_output_index(output_index_analyzer):
+                    for var in output_index_analyzer.all_var_list:
+                        if not var.is_Atom:
+                            return False
                     return True
 
                 current_node = V.interpreter.current_node
@@ -2245,62 +2263,85 @@ class NPUIndexTritonKernel(TritonKernel):
                     log_info = "ir is multi_indirect_index"
                     return fallback_index_select_load(log_info)
 
+                # Fallback to tl.load
                 if not is_correct_weight_index():
                     log_info = f"{str(weight_index)} not invalid"
                     return fallback_index_select_load(log_info)
                 
                 var = self.args.input(src_name)
                 dtype = V.graph.get_dtype(src_name)
-                key_index = self.find_indirect_axis(set_indirect)
-                if key_index is None:
+
+                indice_index = self.find_indirect_axis(set_indirect)
+                if indice_index is None:
                     log_info = f"{str(set_indirect)} can't find indexing"
                     return fallback_index_select_load(log_info)
 
-                var_list = [str(var) for var in reversed(self.golden_var_list)]
-                tiling_offset = []
-                numels_axis_var = []
+                indirect_output_analyzer = IndexAnalysis(self, weight_index)
+                indirect_output_vars = tuple(reversed(indirect_output_analyzer.all_var_list))
+                gather_dim = next(
+                    (dim for dim, var in enumerate(indirect_output_vars) if symbol_is_type(var, SymT.TMP)), None)
+                if gather_dim is None:
+                    log_info = f"gather_dim is None, weight_index: {weight_index}"
+                    return fallback_index_select_load(log_info)
+
+                src_stride = tuple(reversed(indirect_output_analyzer.all_stride_list))
+                if src_stride[-1] != 1:
+                    log_info = f"src_stride: {src_stride} not fit"
+                    return fallback_index_select_load(log_info)
+                output_index = sympy_subs(weight_index, {sympy_index_symbol(indirect_var.name): indice_index})
+                output_index_analyzer = IndexAnalysis(self, output_index)
+                indice_analyzer = IndexAnalysis(self, indice_index)
+                output_index_analyzer.analyze_index()
+                indice_analyzer.analyze_index()
+
+                if not check_output_index(output_index_analyzer):
+                    log_info = f"check_output_index: {output_index} not fit"
+                    return fallback_index_select_load(log_info)
+
+                start_offsets, _, _, _ = self.get_template_offset(indirect_output_analyzer)
+                _, end_offsets, _, value_shapes = self.get_template_offset(output_index_analyzer)
+                _, _, _, indice_shape = self.get_template_offset(indice_analyzer)
+                if isinstance(indice_index, (sympy.Integer, int)):
+                    indice_shape = ["1"]
+                    end_offsets.insert(gather_dim, "1")
+                    value_shapes.insert(gather_dim, "1")
+
+                if len(start_offsets) != len(src_stride):
+                    log_info = f"src_stride: {src_stride}, starts_offset: {start_offsets} don't fit"
+                    return fallback_index_select_load(log_info)
+
+                if len(end_offsets) != len(indice_shape) + len(start_offsets) - 1:
+                    log_info = f"end_offsets: {end_offsets}, starts_offset: {start_offsets}, value_shapes: {indice_shape} don't fit"
+                    return fallback_index_select_load(log_info)
+
+                start_offset_val = ", ".join(start_offsets)
+                end_offset_val = ", ".join(end_offsets)
+                shape_val = ",".join(value_shapes)
+                indice_shape = ", ".join(indice_shape)
+                indirect_var = self.cse.generate(self.compute,
+                                        f"tl.reshape({indirect_var}, ({indice_shape}, ))",
+                                        dtype=dtype)
+                triton_type = triton_compute_type(dtype)
+                out_var = self.cse.generate(self.compute,
+                                        f"tl.full(({shape_val}, ), 0, dtype={triton_type})",
+                                        dtype=dtype)
+                line = f"extension.custom(\"__builtin_index_select\", {var}, {indirect_var}, dim={gather_dim}, bound={bound}, end_offset=({end_offset_val}, ), start_offset=({start_offset_val}, ), src_stride={src_stride}, out={out_var})"
+                index_select_var = self.cse.generate(self.compute,
+                                        line,
+                                        dtype=dtype)
+                # output shape is golden var list
+                output_shapes = []
                 for axis_key in reversed(self.golden_var_list):
                     axis = self.range_tree_nodes[axis_key]
-                    BLOCK_NAME = f"{axis.name.upper()}BLOCK"
-                    BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
-                    axis_offset = "0"
-                    if axis.is_split_axis:
-                        offset = f"{axis.name}_offset"
-                        axis_offset = f"{offset} + (loop_{axis.name} * {BLOCK_NAME_SUB})"
-                    else:
-                        axis_persistent_reduction = axis.name[0] == 'r' and self.persistent_reduction
-                        if (not axis.is_no_loop_axis) and (not axis_persistent_reduction):
-                            axis_offset = f"(loop_{axis.name} * {BLOCK_NAME_SUB})"
-                    tiling_offset.append(axis_offset)
+                    BLOCK_NAME_SUB = f"{axis.name.upper()}BLOCK_SUB"
+                    output_shapes.append(BLOCK_NAME_SUB)
+                output_shapes_vals = ", ".join(output_shapes)
 
-                    if axis.is_split_axis:
-                        axis_range = f"min({BLOCK_NAME}+{axis.name}_offset, {axis.name}_numel)"
-                    else:
-                        axis_range = f"{axis.name}_numel"
-                    numels_axis_var.append(axis_range)
-
-                if isinstance(key_index, (sympy.Integer, int)):
-                    tiling_offset = ["0"] + tiling_offset
-                    numels_axis_var = ["1"] + numels_axis_var
-
-                tile_size = var_list[-1].upper() + "BLOCK_SUB"
-                tiling_offset_val = ", ".join(tiling_offset)
-                numels_val = ", ".join(numels_axis_var)
-                if len(var_list) > 1:
-                    index_shape = ",".join([var.upper() + "BLOCK_SUB" for var in var_list[0:-1]])
-                    line = f"tl.reshape({indirect_var}, [{index_shape}])"
-                    indirect_var = self.cse.generate(self.compute, line, dtype=indirect_var.dtype)
-                line = f"tl.index_select({var}, {indirect_var}, {bound}, {tile_size}, ({tiling_offset_val}, ), ({numels_val}, ))"
+                line = f"tl.reshape({index_select_var}, ({output_shapes_vals}, ))"
 
                 index_select_var = self.cse.generate(self.compute,
                                         line,
                                         dtype=dtype)
-
-                if isinstance(key_index, (sympy.Integer, int)):
-                    line = f"tl.reshape({index_select_var}, ({tile_size}, ))"
-                    index_select_var = self.cse.generate(self.compute,
-                                            line,
-                                            dtype=dtype)
 
                 return index_select_var
 
@@ -2332,14 +2373,14 @@ class NPUIndexTritonKernel(TritonKernel):
                     reshape_var = self.cse.generate(self.compute,
                                                     line,
                                                     dtype=dtype)
-                    line = f"libdevice.gather_out_to_ub({var}, {reshape_var}, {index_boundary}, {indirect_dim}, {src_stride}, ({axis_shape_val},), ({tiling_offset_val},))"
+                    line = f"extension.gather_out_to_ub({var}, {reshape_var}, {index_boundary}, {indirect_dim}, {src_stride}, ({axis_shape_val},), ({tiling_offset_val},))"
                     gather_var = self.cse.generate(self.compute,
                                                    line,
                                                    dtype=dtype)
                     after_gather_shape = ",".join([var for var in reshape_list if var != "1"])
                     line = f"tl.reshape({gather_var}, ({after_gather_shape}))"
                 else:
-                    line = f"libdevice.gather_out_to_ub({var}, {indirect_var}, {index_boundary}, {indirect_dim}, {src_stride}, ({axis_shape_val},), ({tiling_offset_val},))"
+                    line = f"extension.gather_out_to_ub({var}, {indirect_var}, {index_boundary}, {indirect_dim}, {src_stride}, ({axis_shape_val},), ({tiling_offset_val},))"
                 return self.cse.generate(self.compute,
                                          line,
                                          dtype=dtype)
@@ -2368,18 +2409,18 @@ class NPUIndexTritonKernel(TritonKernel):
                 output_index_analyzer = IndexAnalysis(self, output_codegen_index)
 
                 dst_stride = tuple(reversed(indirect_output_analyzer.all_stride_list))
-                start_offset, end_offset, reshape_list = self.get_template_offset(output_index_analyzer)
+                start_offset, end_offset, reshape_type, reshape_list = self.get_template_offset(output_index_analyzer)
                 start_offset_val = ", ".join(start_offset)
                 end_offset_val = ", ".join(end_offset)
 
-                if reshape_list:
+                if reshape_type:
                     before_indexput_shape = ",".join(reshape_list)
                     line = f"tl.reshape({store_var}, ({before_indexput_shape}))"
                     store_var = self.cse.generate(self.compute,
                                         line,
                                         dtype=dtype)
 
-                line = f"libdevice.index_put({var_ptr}, {indirect_var}, {store_var}, {indirect_dim}, {boundary}, ({end_offset_val},), ({start_offset_val},), {dst_stride})"
+                line = f"extension.index_put({var_ptr}, {indirect_var}, {store_var}, {indirect_dim}, {boundary}, ({end_offset_val},), ({start_offset_val},), {dst_stride})"
                 return self.cse.generate(self.compute,
                                         line,
                                         dtype=dtype)
@@ -2416,7 +2457,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     store_var = self.cse.generate(self.compute,
                                         line,
                                         dtype=dtype)
-                line = f"libdevice.scatter_ub_to_out({var}, {store_var}, {indirect_var}, {boundary}, {indirect_dim}, {dst_stride}, ({axis_shape_val}, ), ({tiling_offset_val}, ))"
+                line = f"extension.scatter_ub_to_out({var}, {store_var}, {indirect_var}, {boundary}, {indirect_dim}, {dst_stride}, ({axis_shape_val}, ), ({tiling_offset_val}, ))"
                 return self.cse.generate(self.compute,
                                         line,
                                         dtype=dtype)

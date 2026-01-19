@@ -211,6 +211,30 @@ else:
         OpsHandler.cat_store = cat_store
         register_op_dtype_propagation_rules("cat_store", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None)
 
+        def index_select(self, name, index, indirect_var, set_indirect, bound, index_select_type):
+            return self._default("index_select", (name, index, indirect_var, set_indirect, bound, index_select_type), {})
+
+        OpsHandler.index_select = index_select
+        register_op_dtype_propagation_rules("index_select", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None)
+
+        def gather_template(self, name, index, indirect_var, set_indirect, index_boundary):
+            return self._default("gather_template", (name, index, indirect_var, set_indirect, index_boundary), {})
+
+        OpsHandler.gather_template = gather_template
+        register_op_dtype_propagation_rules("gather_template", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None)
+
+        def indexput_template(self, name, index, value, indirect_var, boundary):
+            return self._default("indexput_template", (name, index, value, indirect_var, boundary), {})
+
+        OpsHandler.indexput_template = indexput_template
+        register_op_dtype_propagation_rules("indexput_template", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None)
+
+        def scatter_template(self, name, index, value, indirect_var, boundary):
+            return self._default("scatter_template", (name, index, value, indirect_var, boundary), {})
+
+        OpsHandler.scatter_template = scatter_template
+        register_op_dtype_propagation_rules("scatter_template", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None)
+
 
     add_additional_op()
 
