@@ -244,7 +244,15 @@ private:
 
     bool query_event(EventPool::Event& event) override
     {
-        return event->query();
+        bool isEventCompleted = true;
+        try {
+            isEventCompleted = event->query();
+        } catch (...) {
+            ASCEND_LOGE("query_event() failed!");
+            // event query failed, pop the event
+            isEventCompleted = true;
+        }
+        return isEventCompleted;
     }
 
     EventPool::Event create_event_internal(at::DeviceIndex idx)
@@ -796,7 +804,15 @@ private:
                 return;
             }
             auto& event = processed->first;
-            if (!event->query()) {
+            bool isEventCompleted = true;
+            try {
+                isEventCompleted = event->query();
+            } catch (...) {
+                ASCEND_LOGE("process_events() query event failed!");
+                // event query failed, pop the event
+                isEventCompleted = true;
+            }
+            if (!isEventCompleted) {
                 {
                     std::lock_guard<std::mutex> g(events_mutex_);
                     events_.push_back(std::move(*processed));
@@ -826,7 +842,15 @@ private:
 
     bool query_event(EventPool::Event& event) override
     {
-        return event->query();
+        bool isEventCompleted = true;
+        try {
+            isEventCompleted = event->query();
+        } catch (...) {
+            ASCEND_LOGE("query_event() failed!");
+            // event query failed, pop the event
+            isEventCompleted = true;
+        }
+        return isEventCompleted;
     }
 
     static size_t round_size(size_t size)
