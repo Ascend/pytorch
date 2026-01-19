@@ -5,6 +5,7 @@ from .._profiler_config import ProfilerConfig
 from ..prof_bean._torch_op_node import TorchOpNode
 from ..prof_common_func._constant import Constant, print_error_msg
 from ..prof_common_func._log import ProfilerLogger
+from ..prof_parse._cann_file_parser import CANNFileParser
 
 __all__ = []
 
@@ -47,7 +48,8 @@ class FwkCANNRelationParser:
                     break
                 index += 1
 
-    def get_kernel_dict(self, dequeue_data: list, acl_to_npu_dict: dict) -> dict:
+    def get_kernel_dict(self, dequeue_data: list) -> dict:
+        acl_to_npu_dict = CANNFileParser(self._profiler_path).get_acl_to_npu_data()
         if not acl_to_npu_dict and ProfilerConfig().get_level() != Constant.LEVEL_NONE:
             error_msg = (
                 f"Failed to get acl to npu flow events. "
