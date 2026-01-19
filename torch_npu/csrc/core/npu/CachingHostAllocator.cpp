@@ -160,7 +160,15 @@ private:
 
     bool query_event(EventPool::Event& event) override
     {
-        return event->query();
+        bool isEventCompleted = true;
+        try {
+            isEventCompleted = event->query();
+        } catch (...) {
+            ASCEND_LOGE("query_event() failed!");
+            // event query failed, pop the event
+            isEventCompleted = true;
+        }
+        return isEventCompleted;
     }
 
     EventPool::Event create_event_internal(at::DeviceIndex idx)
