@@ -10,19 +10,20 @@ import sys
 import traceback
 import platform
 import time
+import sysconfig
+from sysconfig import get_paths
 from pathlib import Path
 from typing import Union
 
 import distutils.ccompiler
 import distutils.command.clean
-from sysconfig import get_paths
 from distutils.version import LooseVersion
 from distutils.command.build_py import build_py
-from setuptools.command.build_ext import build_ext
-from setuptools.command.install import install
-from setuptools import setup, distutils, Extension
+from setuptools import setup, distutils, Extension, find_packages
 from setuptools.command.build_clib import build_clib
+from setuptools.command.build_ext import build_ext
 from setuptools.command.egg_info import egg_info
+from setuptools.command.install import install
 from wheel.bdist_wheel import bdist_wheel
 
 # Disable autoloading before running 'import torch' to avoid circular dependencies
@@ -243,6 +244,104 @@ def patchelf_dynamic_library():
         subprocess.check_call(["patchelf", "--remove-needed", "libgomp.so.1", library_file], cwd=BASE_DIR)  # Compliant
 
 
+def check_pybind11_setup_helpers_import():
+    try:
+        from pybind11.setup_helpers import Pybind11Extension
+        build_Pybind11 = Pybind11Extension(
+            "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir._C",
+            sources=[
+                os.path.join(
+                    BASE_DIR,
+                    "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/extension.cpp"
+                )
+            ],
+            include_dirs=[
+                os.path.join(
+                    BASE_DIR,
+                    "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/include"
+                ),
+                os.path.join(os.getenv("ASCEND_HOME_PATH", ""), "include"),
+            ],
+            library_dirs=[
+                os.path.join(os.getenv("ASCEND_HOME_PATH", ""), "lib64"),
+                os.path.join(_anir_pkg_build_dir(), "lib"),
+            ],
+            libraries=["runtime", "cpp_common"],
+            extra_compile_args=["-std=c++17"],
+            extra_link_args=[
+                "-Wl,-rpath,$ORIGIN/lib",
+                # Ascend Toolkit system lib
+                f"-Wl,-rpath,{os.path.join(os.getenv('ASCEND_HOME_PATH', ''), 'lib64')}",
+            ],
+        )
+        return build_Pybind11
+    except ImportError:
+        return False
+    except Exception:
+        return False
+
+
+def ascend_home_exists() -> bool:
+    ascend_home = os.getenv("ASCEND_HOME_PATH", "")
+    return bool(ascend_home) and os.path.exists(ascend_home)
+
+
+def _anir_pkg_build_dir() -> str:
+    return os.path.join(
+        BASE_DIR, "build/packages/torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir"
+    )
+
+
+def _python_include_dir() -> str:
+    scheme = sysconfig.get_default_scheme()
+    if scheme == "posix_local":
+        scheme = "posix_prefix"
+    return sysconfig.get_paths(scheme=scheme)["include"]
+
+
+def build_anir_libcpp_common():
+    ascend_home = os.getenv("ASCEND_HOME_PATH", "")
+    src_path = os.path.join(
+        BASE_DIR,
+        "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/cpp_common/cpp_common.cpp"
+    )
+
+    out_dir = os.path.join(_anir_pkg_build_dir(), "lib")
+    os.makedirs(out_dir, exist_ok=True)
+    so_path = os.path.join(out_dir, "libcpp_common.so")
+
+    if os.path.exists(so_path):
+        return
+
+    import torch
+    torch_dir = os.path.dirname(os.path.realpath(torch.__file__))
+
+    cmd = [
+        which(os.environ.get("CXX", "")) or which(os.environ.get("CC", "")) or which("g++") or which("clang++"),
+        src_path,
+        f"-I{BASE_DIR}",
+        f"-I{_python_include_dir()}",
+        f"-I{os.path.join(BASE_DIR, 'torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/include')}",
+        f"-I{ascend_home}/include",
+        f"-L{ascend_home}/lib64",
+        f"-I{os.path.join(torch_dir, 'include')}",
+        "-lruntime",
+        "-lascendcl",
+        "-lprofapi",
+        "-std=c++17",
+        f"-D_GLIBCXX_USE_CXX11_ABI={int(torch._C._GLIBCXX_USE_CXX11_ABI)}",
+        "-fPIC",
+        "-shared",
+        "-o",
+        so_path,
+    ]
+
+    if cmd[0] is None:
+        raise RuntimeError("Failed to find C++ compiler (set CXX/CC or install g++/clang++)")
+
+    subprocess.check_call(cmd)
+
+
 def CppExtension(name, sources, *args, **kwargs):
     r'''
     Creates a :class:`setuptools.Extension` for C++.
@@ -382,10 +481,16 @@ class Build(build_ext, object):
 
     def run(self):
         self.run_command('build_clib')
+        self.run_command('build_py')
+        # compile libcpp_common.so to build/packages/torch_npu/_inductor/...
+        if ascend_home_exists() and pybind11_ext:
+            build_anir_libcpp_common()
+        # proceed with the normal build_ext process
         self.build_lib = os.path.relpath(os.path.join(BASE_DIR, "build/packages"))
-        self.build_temp = os.path.relpath(os.path.join(BASE_DIR, "build"))
+        self.build_temp = os.path.relpath(os.path.join(BASE_DIR, "build/temp"))
         self.library_dirs.append(
-            os.path.relpath(os.path.join(BASE_DIR, "build/packages/torch_npu/lib")))
+            os.path.relpath(os.path.join(BASE_DIR, "build/packages/torch_npu/lib"))
+        )
         super(Build, self).run()
 
 
@@ -409,12 +514,12 @@ def add_ops_python_files(ret_list):
     opplugin_path = os.path.join(BASE_DIR, 'third_party/op-plugin/op_plugin/python')
 
     if os.path.exists(opplugin_path):
-        ops_python_files = glob.glob(os.path.join(opplugin_path, '**/*.py'), recursive=True)  
+        ops_python_files = glob.glob(os.path.join(opplugin_path, '**/*.py'), recursive=True)
         for src in ops_python_files:
             dst = os.path.join(
                 os.path.join(BASE_DIR, "build/packages/torch_npu/op_plugin"),
                 os.path.relpath(src, opplugin_path))
-            os.makedirs(os.path.dirname(dst), exist_ok=True) 
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
             ret_list.append((src, dst))
     return
 
@@ -502,7 +607,7 @@ def get_src_py_and_dst():
         )
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
-        
+
     anir_files = [
         "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/*.cpp",
         "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/include/*.h",
@@ -632,7 +737,7 @@ manylinux_tags = [
     "manylinux_2_31_aarch64",
     "manylinux_2_34_x86_64",
     "manylinux_2_34_aarch64",
-    "manylinux_2_35_x86_64"
+    "manylinux_2_35_x86_64",
     "manylinux_2_35_aarch64",
 ]
 is_manylinux = os.environ.get("AUDITWHEEL_PLAT", None) in manylinux_tags
@@ -664,6 +769,23 @@ classifiers = [
 
 requirements = ['torch==2.9.0+cpu' if platform.machine() == 'x86_64' else 'torch==2.9.0']
 
+ext_modules = [CppExtension(
+            'torch_npu._C',
+            sources=["torch_npu/csrc/InitNpuBindings.cpp"],
+            libraries=["torch_npu"],
+            include_dirs=include_directories,
+            extra_compile_args=extra_compile_args + ['-fstack-protector-all'] + [
+                '-D__FILENAME__=\"InitNpuBindings.cpp\"'],
+            library_dirs=["lib"],
+            extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib', '-Wl,-Bsymbolic-functions'],
+            define_macros=[('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'),
+                           ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0')]
+        )]
+
+pybind11_ext = check_pybind11_setup_helpers_import()
+if ascend_home_exists() and pybind11_ext:
+    ext_modules.append(pybind11_ext)
+
 setup(
     name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
     version=VERSION,
@@ -672,27 +794,19 @@ setup(
     long_description_content_type="text/markdown",
     license="BSD License",
     classifiers=classifiers,
-    packages=["torch_npu"],
+    packages=find_packages(where=os.path.relpath(os.path.join(BASE_DIR, "build/packages"))),
     libraries=[('torch_npu', {'sources': list()})],
     package_dir={'': os.path.relpath(os.path.join(BASE_DIR, "build/packages"))},
-    ext_modules=[
-            CppExtension(
-                'torch_npu._C',
-                sources=["torch_npu/csrc/InitNpuBindings.cpp"],
-                libraries=["torch_npu"],
-                include_dirs=include_directories,
-                extra_compile_args=extra_compile_args + ['-fstack-protector-all'] + ['-D__FILENAME__=\"InitNpuBindings.cpp\"'],
-                library_dirs=["lib"],
-                extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib', '-Wl,-Bsymbolic-functions'],
-                define_macros=[('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'), ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0')]
-            ),
-    ],
+    ext_modules=ext_modules,
     install_requires=requirements,
     extras_require={
     },
     package_data={
         'torch_npu': [
-            '*.so', 'lib/*.so*',
+            '*.so',
+            'lib/*.so*',
+            '_inductor/ascend_npu_ir/ascend_npu_ir/*.so*',
+            '_inductor/ascend_npu_ir/ascend_npu_ir/lib/*.so*',
         ],
     },
     cmdclass={

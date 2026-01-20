@@ -1,15 +1,14 @@
-__all__ = list(
-    module for _, module, _ in pkgutil.iter_modules([os.path.dirname(__file__)])
-)
-
 import os
+import sys
 import importlib
 import inspect
 import pkgutil
+
+__all__ = list(module for _, module, _ in pkgutil.iter_modules([os.path.dirname(__file__)]))
+
 from . import ir
 from . import lowering as npu_lowering
 from torch._inductor import lowering
-import sys
 
 
 def get_functions_from_module(module):
