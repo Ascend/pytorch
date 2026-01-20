@@ -262,8 +262,22 @@ def _wrapper_profiler(fn):
     return decorated
 
 
-def _jit_script(obj, optimize=None, _frames_up=0, _rcb=None, example_inputs=None):
-    return obj
+_real_jit_script = torch.jit.script
+_warned_jit_fallback = False
+
+
+def _jit_script(obj, *args, **kwargs):
+    global _warned_jit_fallback
+    try:
+        return _real_jit_script(obj, *args, **kwargs)
+    except Exception:
+        if not _warned_jit_fallback:
+            _warned_jit_fallback = True    
+            warnings.warn(
+                "torch.jit.script failed, return function (warn only once)",
+                RuntimeWarning,
+            )
+        return obj
 
 
 def _jit_script_method(fn):
