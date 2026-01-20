@@ -75,6 +75,8 @@ from torch.utils._sympy.value_ranges import bound_sympy, ValueRanges
 from torch._inductor.bounds import ValueRangeAnalysis
 from torch._inductor.runtime import triton_heuristics
 
+from torch_npu.npu._backends import get_soc_version
+
 from .. import config as inductor_npu_config
 
 from .kernel_analysis import IndexAnalysis, ReductionAnalysis
@@ -303,13 +305,17 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         BLOCK_NAME = f"{self.name.upper()}BLOCK"
         BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
 
+        dtype_cast_str = ""
+        if V.kernel.index_dtype == "tl.int64" and get_soc_version >= 250:
+            dtype_cast_str = ".to(tl.int64)"
+
         if self.is_split_axis:
-            lines.append(f"{self.symbol()}_offset = tl.program_id({self.split_order}) * {BLOCK_NAME}")
+            lines.append(f"{self.symbol()}_offset = tl.program_id({self.split_order}){dtype_cast_str} * {BLOCK_NAME}")
 
         if self.is_no_loop_axis:
-            lines.append(f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB})")
+            lines.append(f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB}){dtype_cast_str}")
         elif self.is_tiling_axis:
-            lines.append(f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB})")
+            lines.append(f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB}){dtype_cast_str}")
             block = f"{BLOCK_NAME}" if self.is_split_axis else f"{self.symbol()}_numel"
             lines.append(f"loops_{self.name} = ({block} + {BLOCK_NAME_SUB} - 1) // {BLOCK_NAME_SUB}")
 
@@ -1732,7 +1738,10 @@ class NPUIndexTritonKernel(TritonKernel):
         if isinstance(index, sympy.Integer):
             expand_str = f"{copy_shape}.shape" if copy_shape else self.dense_size_str()
             if (index != 0):
-                index_str = f"tl.full({expand_str}, {index_str}, tl.int32)"
+                if get_soc_version >= 250:
+                    index_str = f"tl.full({expand_str}, {index_str}, {V.kernel.index_dtype})"
+                else:
+                    index_str = f"tl.full({expand_str}, {index_str}, tl.int32)"
             else:
                 index_str = f"tl.arange(0,1)"
             return IndexingOptions(index_str, OrderedSet(), expand_str, has_rindex, index)
