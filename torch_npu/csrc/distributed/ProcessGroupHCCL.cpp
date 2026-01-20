@@ -1905,25 +1905,40 @@ void ProcessGroupHCCL::checkHcclComms()
         return;
     }
     std::lock_guard<std::mutex> maplock(mutex_);
+    std::unordered_set<std::string> currentLoopErrors;
     for (const auto & [name, hcclComms] : devHCCLCommMap_) {
         auto exception_ptr = checkForHCCLErrors(hcclComms);
         if (exception_ptr) {
-            auto exceptionMsg = c10::str(
-                "[Rank",
-                rank_,
-                "] checkHcclComms found HcclComms vector ",
-                name,
-                " got ERROR via HcclGetCommAsyncError : ");
-            ASCEND_LOGE("[Rank %d] checkHcclComms found HcclComms vector %s got ERROR via HcclGetCommAsyncError : %s",
-                rank_, name.c_str(), getExceptionMsgFromExceptionPtr(exception_ptr).c_str());
-            LOG(ERROR) << exceptionMsg << getExceptionMsgFromExceptionPtr(exception_ptr).c_str();
-            C10_LOG_API_USAGE_ONCE("ProcessGroupHCCL.handleException");
-            
-            if (SHOULD_TEAR_DOWN(asyncErrorHandling_)) {
-                ASCEND_LOGE("To avoid data inconsistency, we are taking the entire process down.");
-                LOG(ERROR) << "To avoid data inconsistency, we are taking the entire process down.";
-                std::rethrow_exception(exception_ptr);
+            currentLoopErrors.insert(name);
+
+            if (reportedErrorComms_.find(name) == reportedErrorComms_.end()) {
+                auto exceptionMsg = c10::str(
+                    "[Rank",
+                    rank_,
+                    "] checkHcclComms found HcclComms vector ",
+                    name,
+                    " got ERROR via HcclGetCommAsyncError : ");
+                ASCEND_LOGE("[Rank %d] checkHcclComms found HcclComms vector %s got ERROR via HcclGetCommAsyncError : %s",
+                    rank_, name.c_str(), getExceptionMsgFromExceptionPtr(exception_ptr).c_str());
+                LOG(ERROR) << exceptionMsg << getExceptionMsgFromExceptionPtr(exception_ptr).c_str();
+                C10_LOG_API_USAGE_ONCE("ProcessGroupHCCL.handleException");
+
+                reportedErrorComms_.insert(name);
+                if (SHOULD_TEAR_DOWN(asyncErrorHandling_)) {
+                    ASCEND_LOGE("To avoid data inconsistency, we are taking the entire process down.");
+                    LOG(ERROR) << "To avoid data inconsistency, we are taking the entire process down.";
+                    std::rethrow_exception(exception_ptr);
+                }
             }
+        }
+    }
+    for (auto it = reportedErrorComms_.begin(); it != reportedErrorComms_.end();) {
+        if (currentLoopErrors.find(*it) == currentLoopErrors.end()) {
+            ASCEND_LOGI("[Rank %d] HcclComms vector %s error status cleared/recovered.", rank_, it->c_str());
+            LOG(INFO) << "[Rank " << rank_ << "] HcclComms vector " << it->c_str() << "error status cleared/recovered.";
+            it = reportedErrorComms_.erase(it);
+        } else {
+            ++it;
         }
     }
 }
