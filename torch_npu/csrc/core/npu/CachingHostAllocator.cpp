@@ -247,15 +247,15 @@ struct HostAllocator {
         // free and erase non-allocated blocks
         for (auto it = blocks.begin(); it != blocks.end();) {
             Block &block = it->second;
-            if (aclrtFreeHost(block.ptr) != ACL_ERROR_NONE) {
-                ASCEND_LOGE("free host pin failed!");
-            }
-            if (!block.allocated) {
-                it = blocks.erase(it);
-            } else {
-                block.streams.clear();
+            if (block.allocated || block.event_count != 0) {
                 ++it;
+                continue;
             }
+            aclError err = aclrtFreeHost(block.ptr);
+            if (err != ACL_ERROR_NONE) {
+                CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+            }
+            it = blocks.erase(it);
         }
     }
 

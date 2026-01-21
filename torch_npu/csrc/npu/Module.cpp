@@ -25,6 +25,7 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
@@ -1112,6 +1113,14 @@ PyObject* THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
     Py_RETURN_NONE;
 }
 
+PyObject* THNPModule_npu_hostEmptyCache(PyObject *_unused, PyObject *noargs)
+{
+    HANDLE_TH_ERRORS
+    at_npu::native::CachingHostAllocator_emptyCache();
+    END_HANDLE_TH_ERRORS
+    Py_RETURN_NONE;
+}
+
 PyObject* THNPModule_npu_ipc_collect(PyObject *_unused, PyObject *noargs)
 {
     HANDLE_TH_ERRORS
@@ -2097,6 +2106,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
     {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
+    {"_npu_hostEmptyCache", (PyCFunction) THNPModule_npu_hostEmptyCache, METH_NOARGS, nullptr},
     {"_npu_ipc_collect", (PyCFunction) THNPModule_npu_ipc_collect, METH_NOARGS, nullptr},
     {"_npu_emptyVirtAddrCache", (PyCFunction) THNPModule_emptyVirtAddrCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},

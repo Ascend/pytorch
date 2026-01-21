@@ -941,6 +941,9 @@
   "torch_npu.npu.empty_virt_addr_cache": {
     "signature": "()"
   },
+  "torch_npu.npu.host_empty_cache": {
+    "signature": "()"
+  },
   "torch_npu.npu.enable_deterministic_with_backward": {
     "signature": "(tensor: torch.Tensor)"
   },
@@ -1260,6 +1263,9 @@
     "signature": "()"
   },
   "torch_npu.npu.memory.empty_virt_addr_cache": {
+    "signature": "()"
+  },
+  "torch_npu.npu.memory.host_empty_cache": {
     "signature": "()"
   },
   "torch_npu.npu.memory.get_allocator_backend": {
