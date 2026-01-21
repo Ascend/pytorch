@@ -88,7 +88,8 @@ class ProfilingParser:
     def analyse_profiling_data(self):
         ProfilerLogger.init(self._profiler_path, "ProfilingParser")
         self.logger = ProfilerLogger.get_instance()
-        print_info_msg(f"Start parsing profiling data: {self._profiler_path}")
+        print_info_msg(f"Start parsing profiling data in "
+                       f"{'async' if self._kwargs.get('async_mode') else 'sync'} mode at: {self._profiler_path}")
         ProfilerConfig().load_info(self._profiler_path)
         self.update_export_type()
         self.delete_previous_cann_db_files()
