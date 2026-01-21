@@ -21,3 +21,6 @@
 	path = third_party/torch-mlir
 	url = https://gitee.com/mirrors_llvm/torch-mlir.git
 	update = none
+[submodule "third_party/dvm/dvm"]
+	path = third_party/dvm/dvm
+	url = https://gitcode.com/mindspore/dvm.git

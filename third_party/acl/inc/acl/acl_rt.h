@@ -2183,6 +2183,57 @@ ACL_FUNC_VISIBILITY aclError aclrtValueWait(void* devAddr, uint64_t value, uint3
  */
 ACL_FUNC_VISIBILITY aclError aclrtLaunchHostFunc(aclrtStream stream, aclrtHostFunc func, void *args);
 
+/**
+ * @ingroup AscendCL
+ * @brief Get the pid for the current process on the physical device
+ * @param [out] pid value of pid
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtDeviceGetBareTgid(int32_t *pid);
+
+/**
+ * @ingroup AscendCL
+ * @brief share the handle that created by the process itself to other process
+ * @param [in] handle   mem handle created by aclrtMallocPhysical
+ * @param [in] handleType  reserved param, must be MEM_HANDLE_TYPE_NONE
+ * @param [in] flags  reserved param, must be 0
+ * @param [out] shareableHandle  shareable Handle
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtMemExportToShareableHandle(aclrtDrvMemHandle handle,
+    aclrtMemHandleType handleType, uint64_t flags,
+    uint64_t *shareableHandle);
+
+/**
+* @ingroup AscendCL
+* @brief import a mem allocation from a shareable Handle
+* @param [in] shareableHandle  shareable Handle
+* @param [in] deviceId  used to generate the handle in the specified Device Id
+* @param [out] handle handle in the process
+*
+* @retval ACL_SUCCESS The function is successfully executed.
+* @retval OtherValues Failure
+*/
+ACL_FUNC_VISIBILITY aclError aclrtMemImportFromShareableHandle(uint64_t shareableHandle,
+      int32_t deviceId, aclrtDrvMemHandle *handle);
+
+/**
+* @ingroup AscendCL
+* @brief set the process whitelist, only the process configured in the whitelist can use this shareableHandle
+* @param [in] shareableHandle  shareable Handle
+* @param [in] deviceId  used to generate the handle in the specified Device Id
+* @param [out] handle handle in the process
+*
+* @retval ACL_SUCCESS The function is successfully executed.
+* @retval OtherValues Failure
+*/
+ACL_FUNC_VISIBILITY aclError aclrtMemSetPidToShareableHandle(uint64_t shareableHandle,
+    int32_t *pid, size_t pidNum);
+
 #ifdef __cplusplus
 }
 #endif
