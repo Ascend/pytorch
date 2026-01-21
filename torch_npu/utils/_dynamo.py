@@ -1,3 +1,4 @@
+import os
 import inspect
 import sys
 from typing import Dict, List
@@ -115,7 +116,10 @@ class _InductorNpuRegistry:
     def register_inductor_npu(cls):
         if cls.has_initialized() or cls._disabled_register:
             return
-        from torch_npu import _inductor
+        if os.getenv('TORCHINDUCTOR_MAX_AUTOTUNE', '0') == '1':
+            from torch_npu._inductor import _lazy_init
+        else:
+            from torch_npu import _inductor
         cls._has_inited = True
 
     @classmethod
@@ -131,8 +135,12 @@ class _InductorNpuRegistry:
         if cls._has_inited:
             return True
         # Maybe initialized by call `import torch_npu._inductor` manually.
-        if 'torch_npu._inductor' in sys.modules:
-            cls._has_inited = True
+        if os.getenv('TORCHINDUCTOR_MAX_AUTOTUNE', '0') == '1':
+            if 'torch_npu._inductor._lazy_init' in sys.modules:
+                cls._has_inited = True
+        else:
+            if 'torch_npu._inductor' in sys.modules:
+                cls._has_inited = True
         return cls._has_inited
 
 
@@ -160,7 +168,6 @@ def patch_inductor_wrapper():
     
     def new_call(self, model_, inputs_):
         if self.config.get('max_autotune', False):
-            import os
             os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
         register_inductor_npu()
         return src_call(self, model_, inputs_)

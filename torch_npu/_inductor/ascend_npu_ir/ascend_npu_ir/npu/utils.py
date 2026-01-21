@@ -164,7 +164,7 @@ async_compile = CustomAsyncCompile()
 
 """
         kernel_wrapper = """
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import get_current_raw_stream as get_raw_stream
+from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.npu_stream import get_current_raw_stream as get_raw_stream
 
 async_compile.wait(globals())
 del async_compile

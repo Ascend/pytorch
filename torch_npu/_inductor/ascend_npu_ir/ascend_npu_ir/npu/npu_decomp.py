@@ -192,12 +192,29 @@ def gelu_backward(grad: Tensor, self: Tensor, approximate: str = "none"):
 
     return grad * (left_derivative + right_derivative)
 
+
+def native_dropout(tensor_input, p, train):
+    if train and p != 0:
+        return torch.ops.npu._npu_dropout(tensor_input, p)
+    return (tensor_input, torch.ones_like(tensor_input, dtype=torch.bool))
+
+
+def native_dropout_backward(grad_output, mask, scale):
+    p = 1 if scale == 0 else (1 - 1 / scale)
+    r = torch.ops.npu.npu_dropout_backward(grad_output, mask, p)
+    return r
+
+
 inductor_decomp.register_decomposition(torch.ops.aten.convolution_backward)(npu_convolution_backward)
 inductor_decomp.register_decomposition(torch.ops.aten._softmax_backward_data.default)(npu__softmax_backward_data)
 inductor_decomp.register_decomposition(torch.ops.aten.gelu.default)(gelu)
 inductor_decomp.register_decomposition(torch.ops.aten.gelu_backward.default)(gelu_backward)
-# inductor_decomp.register_decomposition(torch.ops.npu.npu_rms_norm.default)(npu_rms_norm)
-# inductor_decomp.register_decomposition(torch.ops.npu.npu_rms_norm_backward.default)(npu_rms_norm_backward)
+inductor_decomp.register_decomposition(torch.ops.npu.npu_rms_norm.default)(npu_rms_norm)
+inductor_decomp.register_decomposition(torch.ops.npu.npu_rms_norm_backward.default)(npu_rms_norm_backward)
+inductor_decomp.register_decomposition(torch.ops.aten.native_dropout.default)(native_dropout)
+inductor_decomp.register_decomposition(torch.ops.aten.native_dropout_backward.default)(native_dropout_backward)
+
+
 # inductor_decomp.register_decomposition(torch.ops.npu.npu_swiglu.default)(npu_swiglu)
 # inductor_decomp.register_decomposition(torch.ops.npu.npu_swiglu_backward.default)(npu_swiglu_backward)
 # inductor_decomp.register_decomposition(torch.ops.npu.npu_rotary_mul.default)(npu_rotary_mul)

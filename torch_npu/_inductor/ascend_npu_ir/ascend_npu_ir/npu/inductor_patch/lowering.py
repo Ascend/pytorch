@@ -1483,12 +1483,45 @@ def repeat(x, repeats):
     )
 
 
+def need_fallback_to_reshape(input_sizes, output_sizes):
+    def count_symbol(sizes):
+        free_symbols = []
+        for s in sizes:
+            if s == -1:
+                free_symbols.append(s)
+                continue
+            if isinstance(s, sympy.Expr) and not isinstance(s, sympy.Number):
+                free_symbols.append(s)
+        return free_symbols
+
+    input_symbols = count_symbol(input_sizes)
+    output_symbols = count_symbol(output_sizes)
+
+    if len(input_symbols) == 0:
+        return False
+    
+    if len(input_symbols) != len(output_symbols):
+        return True
+    
+    for in_s, out_s in zip(input_symbols, output_symbols):
+        if out_s == -1:
+            continue
+        if not V.graph.sizevars.evaluate_expr(sympy.Eq(in_s, out_s)):
+            return True
+
+    return False
+
+
 @register_lowering(aten._unsafe_view, type_promotion_kind=None)
 @register_lowering(aten.view, type_promotion_kind=None)
 @register_lowering(aten.reshape, type_promotion_kind=None)
 def view(x, sizes):
     assert isinstance(x, TensorBox)
     assert isinstance(sizes, (list, tuple))
+
+    if need_fallback_to_reshape(x.get_size(), sizes):
+        return fallback_handler(aten.reshape.default)(x, sizes)
+
     input_graphs = fetch_graphs([x.data, sizes])
     node_name = f'view_{next(node_id)}'
     new_graph = merge_traced_graphs(input_graphs, aten.reshape, node_name)
@@ -1499,6 +1532,9 @@ def view(x, sizes):
 def permute(x, dims):
     assert isinstance(x, TensorBox)
     assert isinstance(dims, (list, tuple))
+    # fallback permute when dims > 2.
+    if len(dims) > 2:
+        return fallback_handler(aten.permute.default)(x, dims)
     input_graphs = fetch_graphs([x.data, dims])
     node_name = f'permute_{next(node_id)}'
     new_graph = merge_traced_graphs(input_graphs, aten.permute, node_name)

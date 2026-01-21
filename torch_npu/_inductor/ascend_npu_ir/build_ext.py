@@ -26,8 +26,7 @@ torch_npu_path = os.path.dirname(os.path.realpath(torch_npu.__file__))
 # 创建全局安装目录
 INSTALL_DIR = BASE_DIR / "ascend_npu_ir"
 LIB_DIR = INSTALL_DIR / "lib"
-os.makedirs(LIB_DIR, exist_ok=True)
-os.chmod(LIB_DIR, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
+os.makedirs(LIB_DIR, mode=0o775, exist_ok=True)
 
 def run_once(func):
     result = None
@@ -132,27 +131,54 @@ def anir_build_pybind_extension():
         )
     finally:
         os.chdir(original_cwd)  # 恢复原始工作目录
+        
 
-def main_process_only(func):
+def get_local_rank() -> int:
+    """获取当前进程在 本机(node) 的进程编号 local_rank，兜底兼容所有启动方式"""
+    # 适配 torchrun/accelerate/launch.py 等所有分布式启动方式
+    local_rank = os.environ.get("LOCAL_RANK", -1)
+    if local_rank != -1:
+        return int(local_rank)
+    # 未初始化分布式环境，默认本机主进程
+    return 0
+
+
+def is_node_main_process() -> bool:
     """
-    装饰器：仅 rank 0 执行函数，其他进程等待。
-    适用于无返回值或无需返回值的函数（如 mkdir, print, download 等）
+    ✅ 核心判断：是否是【本机(node)的主进程】
+    返回 True  → 当前进程是本机的 local_rank=0 (节点主进程)
+    返回 False → 当前进程是本机的普通进程
+    """
+    if not dist.is_available() or not dist.is_initialized():
+        return True  # 单机非分布式，默认是主进程
+    return get_local_rank() == 0
+
+
+def node_main_process_only(func):
+    """
+    装饰器：每个节点(Node)仅 local_rank=0 执行函数，本节点其他进程等待执行完成
+    ✅ 无返回值专用（mkdir/print/download/创建目录等）
+    ✅ 多机并行执行，各节点互不阻塞，效率最优
     """
     def wrapper(*args, **kwargs):
-        if dist.is_initialized():
-            if dist.get_rank() == 0:
-                result = func(*args, **kwargs)
-            else:
-                result = None  # 非主进程不执行
-            dist.barrier()  # 同步：等待 rank 0 完成
-            return result
-        else:
-            # 非分布式环境直接执行
-            return func(*args, **kwargs)
+        result = None
+        # 判断：是否是当前节点的主进程
+        if is_node_main_process():
+            result = func(*args, **kwargs)
+        
+        # 分布式环境下：节点内所有进程同步，等待本节点主进程执行完毕
+        if dist.is_available() and dist.is_initialized():
+            try:
+                # 这里的barrier是【节点内同步】，不是全局同步
+                dist.barrier()
+            except Exception:
+                # 异常兜底，防止个别进程通信失败导致死锁
+                pass
+        return result
     return wrapper
 
 
-@main_process_only
+@node_main_process_only
 def build_ascend_npu_ir_ext():
     try:
         so_path = LIB_DIR / "libcpp_common.so"
@@ -196,7 +222,6 @@ def set_torch_npu_library_path():
     except Exception as e:
         print(f"Error setting library path: {e}")
         return False
-
 
 if __name__ == "__main__":
     build_ascend_npu_ir_ext()

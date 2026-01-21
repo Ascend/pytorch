@@ -129,6 +129,7 @@ REDUCTION_OPS = [
 ]
 
 # fall back to aten exclude GENERATE_LIST, all aten IR except 
+# partially support ops: [aten.split, aten.split_with_sizes, prims.iota, aten.cat, aten.constant_pad_nd, aten.slice_scatter,]
 GENERATE_LIST = [
     aten.mul,
     aten.add,
@@ -163,21 +164,17 @@ GENERATE_LIST = [
     aten.mean,
     aten.full,
     aten.slice,
-    aten.split,
-    aten.split_with_sizes,
+
     aten.reciprocal,
     aten.select,
-    # prims.iota,
+    
     aten.relu,
     aten.copy_,
     aten.where,
     aten.log,
     aten.scalar_tensor,
     aten.permute,
-    aten.cat,
-    aten.constant_pad_nd,
     aten.amax,
-    aten.slice_scatter,
     aten.sqrt,
     aten.copy,
     aten.clamp_min,
@@ -186,6 +183,8 @@ GENERATE_LIST = [
     aten.tanh,
     aten.unbind,
     aten.lift_fresh_copy,
+    aten._local_scalar_dense,
+    aten.alias
 ]
 
 
@@ -252,4 +251,6 @@ decomps_to_exclude_npu = [
     aten.reflection_pad2d,
     aten.grid_sampler_2d,
     aten.grid_sampler_2d_backward,
+    aten.native_dropout,
+    aten.native_dropout_backward,
 ]

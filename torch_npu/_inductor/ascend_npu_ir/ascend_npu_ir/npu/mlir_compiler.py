@@ -61,8 +61,6 @@ class NpuMlirCompiler:
         self.mlir_processed = False
         self.fx_graph_launcher = None
         self.mlir_text = None
-        self.non_contiguous_inputs = None
-        self.non_contiguous_outputs = None
         self.autotuned = False
         self.autotune = autotune
 
@@ -96,7 +94,7 @@ class NpuMlirCompiler:
         Model = getattr(module, traced_graph_hash)
         if Model is None:
             raise RuntimeError('Cannot find valid graph module!')
-        model = Model()
+        model = Model().to(f"npu:{device_index}")
         module_call = fx_graph_call(model, num_outputs)
         self.register_launcher(module_call, kernel_path=self.kernel_name + "_fx_fallback", is_fallback_kernel=True)
 
@@ -194,10 +192,9 @@ class NpuMlirCompiler:
     
     def get_launch_dynamic(self, function, tiling_func, tiling_size):
         block_dim = anir_config.block_dim
+        arg_tiling_device = torch.empty((tiling_size // 8), device='npu', dtype=torch.int64)
         def kernel_call(*args, stream=None):
-            arg_tiling_device = torch.empty((tiling_size // 8), device='npu', dtype=torch.int64)
             self.launch(block_dim, stream, function, tiling_func, tiling_size, arg_tiling_device, None, None, None, *args)
-            del arg_tiling_device
         return kernel_call
     
     def get_launch(self, function):
@@ -233,9 +230,6 @@ class NpuMlirCompiler:
         self.fx_graph_launcher = launcher
         if kernel_path.endswith('_fx_fallback'):
             if auto_fallback:
-                if anir_config.fallback_warning:
-                    print(f"This kernel {self.kernel_name} has been fallback to the eager fx graph mode, ", \
-                    "which will lead to a significant decrease in performance.", flush=True)
                 if anir_config.fallback_dump and not disable_dump:
                     self.fx_subgraph_dump('fallback')
         logger.info(f"register launcher {launcher} {kernel_path} success")
@@ -565,33 +559,23 @@ class NpuMlirCompiler:
         launcher_fx = self.launchers[-1]
         fx_output = launcher_fx(*args, **kwargs)
         return fx_output
-
-    def make_inputs_contiguous(self, args):
-        args = list(args)
-        for idx in self.non_contiguous_indices['inputs']:
-            args[idx] = args[idx].contiguous()
-        return tuple(args)
         
     def run(self, *args, **kwargs):
         args = list(args)
         
-        if self.non_contiguous_inputs is None:
-            self.non_contiguous_inputs = []
-            if self.num_call_functions > 0:
-                for idx, arg in enumerate(args[:-self.num_outputs]):
-                    if isinstance(arg, torch.Tensor) and not arg.is_contiguous():
-                        args[idx] = args[idx].contiguous()
-                        self.non_contiguous_inputs.append(idx)
-        else:
-            for idx in self.non_contiguous_inputs:
-                args[idx] = args[idx].contiguous()
+        non_contiguous_inputs = []
+        if self.num_call_functions > 0:
+            for idx, arg in enumerate(args[:-self.num_outputs]):
+                if isinstance(arg, torch.Tensor) and not arg.is_contiguous():
+                    args[idx] = args[idx].contiguous()
+                    non_contiguous_inputs.append(idx)
 
         contiguous_outputs = []
         
-        if self.non_contiguous_outputs is None:
-            self.non_contiguous_outputs = []
-            original_outputs = []
-            num_inputs = len(args) - self.num_outputs
+        non_contiguous_outputs = []
+        original_outputs = []
+        num_inputs = len(args) - self.num_outputs
+        if self.num_call_functions > 0:
             for idx, arg in enumerate(args[num_inputs:]):
                 if isinstance(arg, torch.Tensor) and not arg.is_contiguous():
                     contiguous_output = torch.empty(
@@ -601,18 +585,8 @@ class NpuMlirCompiler:
                     arg_idx = idx - self.num_outputs
                     original_outputs.append(arg)
                     args[arg_idx] = contiguous_output
-                    self.non_contiguous_outputs.append(arg_idx)
+                    non_contiguous_outputs.append(arg_idx)
                     contiguous_outputs.append(contiguous_output)
-        else:
-            original_outputs = []
-            for idx in self.non_contiguous_outputs:
-                contiguous_output = torch.empty(
-                    args[idx].shape, 
-                    dtype=args[idx].dtype, 
-                    device=args[idx].device)
-                original_outputs.append(args[idx])
-                args[idx] = contiguous_output
-                contiguous_outputs.append(contiguous_output)
     
         if not self.autotuned:
             if len(self.launchers) > 1:
@@ -629,12 +603,15 @@ class NpuMlirCompiler:
         (launcher,) = self.launchers
         (is_fallback_kernel, ) = self.is_fallback_kernels
 
-        if anir_config.fx_subgraph_dump_path and \
-            anir_config.online_acc_comp and \
-            not is_fallback_kernel:
+        need_acc_comp_dump = anir_config.fx_subgraph_dump_path \
+                   and anir_config.online_acc_comp \
+                   and self.num_call_functions > 1 \
+                   and not is_fallback_kernel
+
+        if need_acc_comp_dump:
             output = self.acc_compare_and_dump(*args, **kwargs)
-            if self.non_contiguous_outputs:
-                for i, idx in enumerate(self.non_contiguous_outputs):
+            if non_contiguous_outputs:
+                for i, idx in enumerate(non_contiguous_outputs):
                     original_outputs[i].copy_(args[idx])
             return output
 
@@ -649,8 +626,8 @@ class NpuMlirCompiler:
 
         output = launcher(*args, **kwargs)
 
-        if self.non_contiguous_outputs:
-            for i, idx in enumerate(self.non_contiguous_outputs):
+        if non_contiguous_outputs:
+            for i, idx in enumerate(non_contiguous_outputs):
                 original_outputs[i].copy_(args[idx])
 
         del contiguous_outputs

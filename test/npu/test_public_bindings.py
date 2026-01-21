@@ -551,6 +551,7 @@ class TestPublicBindings(TestCase):
             "torch_npu.dynamo.torchair._ge_concrete_graph.ge_converter.custom.npu_dequant_bias",
             "torch_npu.op_plugin.atb._atb_meta_registrations",
             "torch_npu._inductor",
+            "torch_npu._inductor._lazy_init",
             "torch_npu._inductor.codegen",
             "torch_npu._inductor.config",
             "torch_npu._inductor.decomposition",

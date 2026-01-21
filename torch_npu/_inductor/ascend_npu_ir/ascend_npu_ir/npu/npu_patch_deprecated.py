@@ -10,6 +10,7 @@ from torch.distributed.distributed_c10d import (
     _world,
     timedelta,
 )
+from torch._inductor import compile_fx
 from torch.library import Library, impl
 from ..npu.utils import get_anir_mode
 
@@ -35,6 +36,7 @@ def _patch_get_system() -> Dict[str, Any]:
     ).hexdigest()
 
     return system
+
 
 def _patch_add_ephemeral_timeout_for_all_pgs(timeout: timedelta) -> None:
     """
@@ -69,3 +71,22 @@ if get_anir_mode() == 'O0':
         # use with some caution: this is only really valid to run in the context of proxy tensor tracing
         return NotImplemented
     
+
+# disable some passes
+def _empty_recursive_pre_grad_passes(gm, example_inputs):
+    return gm
+
+
+# disable some passes
+def _empty_recursive_joint_graph_passes(gm):
+    return gm
+
+
+# disable some passes
+def _empty_recursive_post_grad_passes(gm, is_inference: bool = False):
+    return gm
+
+
+compile_fx._recursive_pre_grad_passes = _empty_recursive_pre_grad_passes
+compile_fx._recursive_joint_graph_passes = _empty_recursive_joint_graph_passes
+compile_fx._recursive_post_grad_passes = _empty_recursive_post_grad_passes

@@ -70,7 +70,7 @@ def _patch_pointwise_constant_to_device(self, device, traced_graph=None, node_na
     loader = self.make_loader()
     loader = patch.object(ir.ConstantBuffer, "override_device", device)(loader)
 
-    r = ir.Pointwise(device, self.dtype, loader, self.ranges)
+    r = ir.Pointwise(device=device, dtype=self.dtype, inner_fn=loader, ranges=self.ranges)
     r._post_init_setattr("traced_graph", traced_graph)
     r._post_init_setattr("node_name", node_name)
     return r
@@ -229,7 +229,7 @@ def _patch_baseview_realize(self):
         buffer = try_get_buffer(self)
         if not buffer:
             return r
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut)):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -253,7 +253,7 @@ def _patch_baseview_realize_hint(self):
         buffer = try_get_buffer(self)
         if not buffer:
             return r
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut)):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -277,7 +277,7 @@ def _patch_mark_reuse(self, users):
         buffer = try_get_buffer(self)
         if not buffer:
             return r
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut)):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -620,7 +620,10 @@ def _patch_devicecopy_create(cls, x, device, non_blocking, traced_graph=None, no
         and all(r in V.graph.constants for r in x.get_read_names())
         and not config.aot_inductor.use_runtime_constant_folding
     ):
-        return x.constant_to_device(device)
+        r = x.constant_to_device(device)
+        r._post_init_setattr("traced_graph", traced_graph)
+        r._post_init_setattr("node_name", node_name)
+        return r
 
     V.graph.add_device_info(device)
     V.graph.add_device_info(x.get_device())

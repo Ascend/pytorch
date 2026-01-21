@@ -1,18 +1,7 @@
 import os
 
 if os.getenv('TORCHINDUCTOR_MAX_AUTOTUNE', '0') == '1':
-    try:
-        import torch_mlir
-        from torch_mlir import ir
-    except:
-        raise ImportError("torch_mlir is not installed, install it first.")
-    from .ascend_npu_ir.build_ext import build_ascend_npu_ir_ext, set_torch_npu_library_path
-    _has_inited = False
-    if not _has_inited:
-        _has_inited = True
-        build_ascend_npu_ir_ext()
-    set_torch_npu_library_path()
-    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+    pass
 else:
     import os
 
@@ -149,6 +138,3 @@ else:
     patch_has_triton()
     disable_foreach()
     patch_device_override_func()
-
-
-

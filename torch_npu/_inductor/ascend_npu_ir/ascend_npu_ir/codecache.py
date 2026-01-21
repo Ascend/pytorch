@@ -37,6 +37,22 @@ from .npu.mlir_compiler import NpuMlirCompiler
 from . import config as anir_config
 from .npu.utils import logger
 
+vllm_available = False
+
+try:
+    from transformers.utils.import_utils import _is_package_available
+
+    def is_vllm_available() -> bool:
+        _vllm_available, _vllm_version = _is_package_available("vllm", return_version=True)
+        return _vllm_available
+    
+    if is_vllm_available():
+        vllm_available = True
+except Exception as vllm_excep:
+    logger.debug(f"Failed to check vllm availability: {vllm_excep}")
+    pass
+
+
 class CompiledKernel:
     def __init__(self, kernel_call):
         self.kernel_call = kernel_call
@@ -118,19 +134,20 @@ class MulitprocessCompileFuture(CodeCacheFuture):
         for future in self.futures:
             try:
                 future.result()
-            except Exception as e:
-                logger.warning(f"Error detected when multiprocess compile, error message: {e}")
-                errors.append(e)
+            except Exception as mp_excep:
+                logger.warning(f"{mp_excep}")
+                errors.append(mp_excep)
 
         if len(errors) < len(self.futures):
             kernel = self.kernel = _load_kernel(self.kernel_name, self.source_code, 
                                                 no_more_compile=True, suppress_error=True,
                                                 kernel_meta=self.kernel_meta, extra_env=self.extra_env)
         elif self.kernel_meta.get('num_outputs', 0): # All compiles fail and auto fallback
-            print("==========================Kernel compiled failed!=======================================")
-            print(f'kernel name: {self.kernel_name}')
-            print(f'{self.source_code}')
-            print("========================================================================================")
+            if anir_config.fallback_warning:
+                print("==========================Kernel compiled failed!=======================================")
+                print(f'kernel name: {self.kernel_name}')
+                print(f'{self.source_code}')
+                print("========================================================================================")
             kernel = self.kernel = _load_fx_graph(
                 self.kernel_name, source_code=self.source_code, extra_env=self.extra_env, kernel_meta=self.kernel_meta)
         else:
@@ -172,10 +189,11 @@ class NPUTritonFuture(CodeCacheFuture):
         if self.kernel_meta.get('num_outputs'):
             try:
                 self.future.result()
-                kernel = self.kernel = _load_kernel(self.kernel_name, self.source_code, no_more_compile=True, kernel_meta=self.kernel_meta, extra_env=self.extra_env)
-            except Exception as e:
-                kernel = self.kernel = _load_fx_graph(
-                    self.kernel_name, source_code=self.source_code, extra_env=self.extra_env, kernel_meta=self.kernel_meta)
+                kernel = self.kernel = _load_kernel(self.kernel_name, self.source_code, no_more_compile=True, \
+                                                    kernel_meta=self.kernel_meta, extra_env=self.extra_env)
+            except Exception as cp_excep:
+                kernel = self.kernel = _load_fx_graph(self.kernel_name, source_code=self.source_code, \
+                                                      extra_env=self.extra_env, kernel_meta=self.kernel_meta)
         else:
             self.future.result()
             kernel = self.kernel = _load_kernel(self.kernel_name, self.source_code, no_more_compile=True, kernel_meta=self.kernel_meta, extra_env=self.extra_env)
@@ -232,6 +250,10 @@ class CustomAsyncCompile(AsyncCompile):
         env_vars = ["TORCHINDUCTOR_CACHE_DIR", "TRITON_CACHE_DIR"]
         extra_env = {v: os.environ[v] for v in env_vars if v in os.environ}
 
+        if config.compile_threads == 1 and vllm_available:
+            logger.warning(f"Warning: Inductor compile threads is changed to 1 by vllm, change to 32 processes compile!", flush=True)
+            config.compile_threads = 32
+
         if config.compile_threads > 1:
             if anir_config.multiprocess_compile:
                 device_info = (device, device.index)
@@ -265,7 +287,7 @@ class CustomAsyncCompile(AsyncCompile):
             if len(kernel.launchers) == 0:
                 logger.info(f"fallback to fx graph call")
                 return _load_fx_graph(kernel_name, source_code=source_code, extra_env=extra_env, kernel_meta=kernel_meta)
-                return kernel
+            return kernel
 
     def import_fx(
         self, module_name: str, kernel_meta: Dict[str, Any]) -> Callable:

@@ -297,7 +297,7 @@ class NpuMlirScheduling(SIMDScheduling):
             
             num_call_functions = get_num_call_functions(mlir_kernel._gm)
 
-            if num_call_functions <= 1 or kernel_name in anir_config.force_fallback_kernel_names:
+            if not anir_config.online_acc_comp and (num_call_functions <= 1 or kernel_name in anir_config.force_fallback_kernel_names):
                 mode = "complete_fallback"
             
             kernel_info = {}
