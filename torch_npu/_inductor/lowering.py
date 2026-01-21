@@ -834,9 +834,6 @@ def _register_npu_inductor_fallbacks():
         
         # native_layer_norm returns three values: output, mean, reciprocal of standard deviation
         return normalized, mean, inv_std
-
-    make_fallback(aten._log_softmax)
-    make_fallback(aten.nll_loss_forward)
     
     @register_lowering(triton_kernel_wrapper_mutation)
     def triton_kernel_wrap_(

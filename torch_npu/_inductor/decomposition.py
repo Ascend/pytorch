@@ -7,7 +7,6 @@ from .lowering import _init_set
 aten = torch.ops.aten
 
 DECOMPOSITION_OVERLOAD_OP = [
-    aten._log_softmax,
     aten.nll_loss_forward,
     # aten.gelu_backward,
     # aten.gelu,

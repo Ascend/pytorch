@@ -923,8 +923,6 @@ class NPUIndexTritonKernel(TritonKernel):
             numof_tilings = len(self.tiling_axis)
             last_tiling = range_val.is_tiling_axis and numof_tilings >= 1 and range_val.tiling_order == len(
                 self.tiling_axis) - 1
-            next_is_dual_reduction_tiling = index == len(
-                self.sorted_axis) - numof_tilings - 1 and self.numof_reduction_axis()
 
             is_last_axis = index == len(self.sorted_axis) - 1
             indexing_code = getattr(range_val, "indexing_code")
@@ -955,7 +953,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 if len(self.loads._lines) == 0 and len(self.stores._lines) == 0:
                     do_indent = False
                     indexing_code = None
-                if self.numof_reduction_axis() <= 1 and not range_val.is_no_loop_axis:
+                if not range_val.is_no_loop_axis:
                     do_indent = True
                     self.body.writeline(f"for loop_{range_val.name} in range(loops_{range_val.name}):")
                 loop_body(index, indexing_code, is_last_axis, do_indent=do_indent)
@@ -1431,7 +1429,7 @@ class NPUIndexTritonKernel(TritonKernel):
         torch_acc_type = upcast_acc_dtype(src_dtype)
         result_var: Any = self.cse.newvar(dtype=torch_acc_type)
         result_var.mask_vars = {var for var in masks if var[0] != "r"}
-        cond = " & ".join(masks)
+        cond = f"({' & '.join(masks)}).reshape({dense_size_str})"
 
         def where_cond(tval, fval):
             if not cond:

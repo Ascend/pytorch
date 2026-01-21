@@ -242,9 +242,7 @@ class ReductionAnalysis:
         return self.kernel.reduction_axis_list()
 
     def analyze_reduction_dim(self):
-
         if self.numof_reduction_axis() > 1:
-            self.kernel.persistent_reduction = True
             self.reduced_dim = 0
             return 0
 
@@ -258,45 +256,4 @@ class ReductionAnalysis:
             if x.name[0] == 'r':
                 dim = i
                 break
-        return dim
-
-    def analyze_reduction_dim1(self):
-        if self.numof_reduction_axis() > 1:
-            self.kernel.persistent_reduction = True
-            self.reduced_dim = 0
-            return 0
-        reduction = self.reduction
-        # kept = [0,1,3], reduced = [2]
-        for i, x in enumerate(reduction.reduced_idx):
-            if reduction.reduction_ranges[i] <= 1:
-                continue
-            reduced_idx = x
-            break
-            # the index (in reduction.ranges) of low_dims
-        low_dims = [i for i, x in enumerate(reduction.kept_idx) if x > reduced_idx]
-        if not low_dims:
-            return len(self.kernel.tiling_axis) - 1
-        elif len(low_dims) == len(reduction.kept_idx):
-            return 0
-        # reduction dim when low_dims are not meraged
-        dim = len(reduction.kept_idx) - len(low_dims)
-
-        tiling_axis = self.kernel.tiling_axis[:-1]
-        merged = 1
-        j = len(tiling_axis) - 1
-        # remove all low_dims from tiling_axis
-        # all axis before ahead of j are high-orders
-        # then following is reduced dim 
-        ranges = [x for x in reduction.ranges if x > 1]
-        for i in reversed(low_dims):
-            len_axis = tiling_axis[j].length
-            len_reduction = ranges[i] * merged
-            if len_reduction < len_axis:
-                merged = merged * len_reduction
-            elif len_reduction == len_axis:
-                j = j - 1
-                merged = 1
-            else:
-                raise RuntimeError(f"assert should not reach here low_dims({i})={len_reduction}, axis[{j}]=len)")
-        dim = j + 1
         return dim
