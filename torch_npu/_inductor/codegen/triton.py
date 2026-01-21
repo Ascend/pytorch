@@ -306,7 +306,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
 
         dtype_cast_str = ""
-        if V.kernel.index_dtype == "tl.int64" and get_soc_version >= 250:
+        if V.kernel.index_dtype == "tl.int64" and get_soc_version() >= 250:
             dtype_cast_str = ".to(tl.int64)"
 
         if self.is_split_axis:
@@ -1738,7 +1738,7 @@ class NPUIndexTritonKernel(TritonKernel):
         if isinstance(index, sympy.Integer):
             expand_str = f"{copy_shape}.shape" if copy_shape else self.dense_size_str()
             if (index != 0):
-                if get_soc_version >= 250:
+                if get_soc_version() >= 250:
                     index_str = f"tl.full({expand_str}, {index_str}, {V.kernel.index_dtype})"
                 else:
                     index_str = f"tl.full({expand_str}, {index_str}, tl.int32)"
