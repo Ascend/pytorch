@@ -198,11 +198,9 @@ def _register_npu_inductor_fallbacks():
 
     @register_lowering(aten.cumsum)
     def cumsum(x, axis=None, dtype=None):
-        if (
-                is_integer_dtype(x.get_dtype()) or is_boolean_dtype(x.get_dtype())
-        ) and dtype is None:
+        if (is_integer_dtype(x.get_dtype()) or is_boolean_dtype(x.get_dtype())) and dtype is None:
             # torch.int64->torch.int32
-            dtype = torch.int32
+            dtype = torch.int64 if get_soc_version() >= 250 else torch.int32
         if len(x.get_size()) == 0:
             if axis not in [0, -1]:
                 raise ValueError("axis must be 0 or -1")
