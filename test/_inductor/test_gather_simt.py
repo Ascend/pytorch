@@ -1,7 +1,7 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
-from torch_npu._inductor.config import arch_support_simt
+from torch_npu._inductor.config import inductor_indirect_memory_mode
 from torch_npu._inductor.npu_triton_heuristics import do_bench_using_profiling_npu
 
 
@@ -67,5 +67,5 @@ class TestAtenGatherSimt(TestUtils):
 instantiate_parametrized_tests(TestAtenGatherSimt)
 
 if __name__ == "__main__":
-    if arch_support_simt:
+    if inductor_indirect_memory_mode:
         run_tests()

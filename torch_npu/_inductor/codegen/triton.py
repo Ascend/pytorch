@@ -57,7 +57,7 @@ from torch._inductor.utils import (
     Placeholder,
     get_bounds_index_expr,
     upcast_compute_type,
-    sympy_product
+    sympy_product,
 )
 from torch._inductor.utils import sympy_index_symbol, generate_assert
 from torch._inductor.utils import sympy_subs
@@ -211,7 +211,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
     # axis mask
     def _codegen_mask(self):
         codegen_mask = self.is_tiling_axis and not self.is_no_loop_axis
-        if V.kernel.is_pure_simt_kernel():
+        if V.kernel.is_unified_simt_kernel():
             codegen_mask = self.is_tiling_axis
         if codegen_mask:
             BLOCK_NAME = f"{self.name.upper()}BLOCK"
@@ -748,7 +748,7 @@ class NPUIndexTritonKernel(TritonKernel):
             inductor_meta["kernel_num_gb"] = num_gb
 
         self.gen_numel_args(signature, triton_meta_signature, argdefs)
-        if self.is_pure_simt_kernel():
+        if self.is_unified_simt_kernel():
             triton_meta["configs"] = [config_of(signature)]
         self.triton_meta = triton_meta
 
@@ -820,7 +820,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 val = int(simplified_tree_numel)
             else:
                 continue
-            if self.is_pure_simt_kernel():
+            if self.is_unified_simt_kernel():
                 val = next_power_of_2(val)
             code.writeline(f"{node.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
         
@@ -832,7 +832,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 else:
                     continue
                 code.writeline(f"{axis.name}_numel = {val}")
-                if self.is_pure_simt_kernel():
+                if self.is_unified_simt_kernel():
                     code.writeline(f"{axis.name.upper()}BLOCK_SUB: tl.constexpr = {next_power_of_2(val)}")
                 else:
                     code.writeline(f"{axis.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
@@ -1307,15 +1307,15 @@ class NPUIndexTritonKernel(TritonKernel):
             self.reduce_analysis = ReductionAnalysis(self)
         return self.reduce_analysis.reduced_dim
     
-    def is_pure_simt_kernel(self):
-        return self.npu_kernel_type == NPUKernelType.SIMT_ONLY
+    def is_unified_simt_kernel(self):
+        return self.npu_kernel_type == NPUKernelType.SIMT_ONLY or self.npu_kernel_type == NPUKernelType.SIMD_SIMT_MIX
 
     def filter_masks(self, mask_vars):
         mask_vars_copy = mask_vars.copy()
         masked_axis_name = []
         for node in self.sorted_axis:
             is_persistent_reduction_axis = self.persistent_reduction and node.is_reduction
-            if self.is_pure_simt_kernel():
+            if self.is_unified_simt_kernel():
                 if not node.is_tiling_axis:
                     continue
             else:
@@ -2234,6 +2234,8 @@ class NPUIndexTritonKernel(TritonKernel):
             def index_select(src_name: str, weight_index: CSEVariable, indirect_var, set_indirect, bound, index_select_type) -> CSEVariable:
                 inductor_npu_config.log.debug(f"index_select: {src_name}, {weight_index}, {indirect_var}, {set_indirect}, {bound}, {index_select_type}")
 
+                from torch._inductor.utils import triton_type
+
                 def fallback_index_select_load(reason):
                     inductor_npu_config.log.info(f"fallback index_select to tl.load reason: {reason}, bound: {bound}")
                     new_indirect_var = V.ops.indirect_indexing(indirect_var, bound)
@@ -2328,9 +2330,9 @@ class NPUIndexTritonKernel(TritonKernel):
                 indirect_var = self.cse.generate(self.compute,
                                         f"tl.reshape({indirect_var}, ({indice_shape}, ))",
                                         dtype=dtype)
-                triton_type = triton_compute_type(dtype)
+                out_triton_type = triton_type(dtype)
                 out_var = self.cse.generate(self.compute,
-                                        f"tl.full(({shape_val}, ), 0, dtype={triton_type})",
+                                        f"tl.full(({shape_val}, ), 0, dtype={out_triton_type})",
                                         dtype=dtype)
                 line = f"extension.custom(\"__builtin_index_select\", {var}, {indirect_var}, dim={gather_dim}, bound={bound}, end_offset=({end_offset_val}, ), start_offset=({start_offset_val}, ), src_stride={src_stride}, out={out_var})"
                 index_select_var = self.cse.generate(self.compute,

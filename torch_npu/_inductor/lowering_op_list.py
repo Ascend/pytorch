@@ -1,7 +1,6 @@
 import torch
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
-from torch_npu._inductor.config import arch_support_simt
-from .config import inductor_indirect_memory_simt_template, inductor_support_simt
+from .config import inductor_indirect_memory_mode
 
 aten = torch.ops.aten
 tr_c10d = torch.ops.tr_c10d
@@ -144,9 +143,7 @@ INDIRECT_MEM_OVERLOAD_LIST = [
     aten.scatter_reduce_,
 ]
 
-if inductor_support_simt:
+if inductor_indirect_memory_mode:
     GENERATE_LIST += INDIRECT_MEM_GENERATE_LIST
-    if not inductor_indirect_memory_simt_template:
-        LOWERING_OVERLOAD_OP.append(aten.embedding)
-    else:
+    if inductor_indirect_memory_mode == "simt_template":
         LOWERING_OVERLOAD_OP += INDIRECT_MEM_OVERLOAD_LIST

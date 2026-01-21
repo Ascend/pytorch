@@ -1,7 +1,7 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
-from torch_npu._inductor.config import arch_support_simt
+from torch_npu._inductor.config import inductor_indirect_memory_mode
 from torch_npu._inductor.npu_triton_heuristics import do_bench_using_profiling_npu
 
 # table_shape, index_shape
@@ -80,7 +80,7 @@ class TestAtenEmbeddingSimt(TestUtils):
         embedding_triton = torch.compile(self.embedding, backend="inductor", dynamic=False)
 
         def eager_fn():
-            return self.gather(embedding_table, index)
+            return self.embedding(embedding_table, index)
         
         def inductor_fn():
             return embedding_triton(embedding_table, index)
@@ -97,5 +97,5 @@ class TestAtenEmbeddingSimt(TestUtils):
 instantiate_parametrized_tests(TestAtenEmbeddingSimt)
 
 if __name__ == "__main__":
-    if arch_support_simt:
+    if inductor_indirect_memory_mode:
         run_tests()

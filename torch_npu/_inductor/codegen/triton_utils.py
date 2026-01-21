@@ -27,9 +27,15 @@ class NPUKernelType(Enum):
     SIMD = "simd"
     SIMT_ONLY = "simt_only"
     SIMT_TEMPLATE = "simt_template"
+    SIMD_SIMT_MIX = "simd_simt_mix"
 
     def __str__(self):
         return self.value
+
+    def compile_mode(self):
+        if self == NPUKernelType.SIMT_TEMPLATE:
+            return "unstructured_in_simt"
+        return str(self)
 
 
 def get_byte_per_numel(dtype):

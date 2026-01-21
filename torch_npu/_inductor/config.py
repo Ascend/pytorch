@@ -103,12 +103,6 @@ check_accuracy = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY", False)
 auto_fallback = os.environ.get("INDUCTOR_ASCEND_AUTO_FALLBACK", True)
 fallback_warning = os.environ.get("INDUCTOR_ASCEND_FALLBACK_WARNING", False)
 
-# while INDUCTOR_ASCEND_INDIRECT_MEMORY_SIMT_TEMPLATE = 0, use simd and simt_only
-inductor_indirect_memory_simt_template = os.environ.get("INDUCTOR_ASCEND_INDIRECT_MEMORY_SIMT_TEMPLATE", "1") == "1"
-
-# use indirect mem options on a5
-inductor_support_simt = os.environ.get('TRITON_EMBEDDING_FUSION', False)
-
 # Trace fx graph when lowering and dump.
 dump_fx_graph = os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH", False) \
                 or check_accuracy \
@@ -130,14 +124,25 @@ acc_comp_tol = {
 if 220 <= get_soc_version() < 240 or get_soc_version() >= 250:
     num_vector_core = num_cube_core * 2
 
-arch_support_simt = False
-if "Ascend910_95" in target.arch:
-    arch_support_simt = os.environ.get('TRITON_EMBEDDING_FUSION', False)
-
 use_store_in_cat = os.environ.get("USE_STORE_IN_CAT", False)
 max_cat_size_in_per_kernel = 4 * 1024
+inductor_indirect_memory_mode = None
+if get_soc_version() >= 250:
+    # A5 INDUCTOR_INDIRECT_MEMORY_MODE: simt_template, simt_only, simd_simt_mix
+    inductor_indirect_memory_mode = os.environ.get("INDUCTOR_INDIRECT_MEMORY_MODE", "simd_simt_mix")
+    if inductor_indirect_memory_mode not in [None, "simt_template", "simt_only", "simd_simt_mix"]:
+        inductor_indirect_memory_mode = "simd_simt_mix"
+    # if mode in "simt_only", "simd_simt_mix", should use load store cat
+    if inductor_indirect_memory_mode not in ["simt_only", "simd_simt_mix"]:
+        use_store_in_cat = True
+        # simt only or simd_simt_mix only need small size for concat
+        max_cat_size_in_per_kernel = 2 * 1024
+
+# simt default stacksize is 256 * 32 Byte
+simt_default_warp_stacksize = 256 * 32
+
 lowering_cat_with_concat_kernel = False
-if ("Ascend910_95" in target.arch):
+if get_soc_version() >= 250:
     lowering_cat_with_concat_kernel = True
 
 log_level_env = os.getenv('INDUCTOR_ASCEND_LOG_LEVEL', 'WARNING').upper()

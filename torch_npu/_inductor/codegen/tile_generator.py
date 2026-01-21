@@ -14,7 +14,7 @@ from .. import config
 class TileGenerator:
 
     def __init__(self, numels, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims, persistent_reduction,
-                 configs, dtype, npu_kernel_type=NPUKernelType.SIMD, input_ptr_num=0, dual_reduction=False):
+                  dtype, npu_kernel_type=NPUKernelType.SIMD, input_ptr_num=0, dual_reduction=False):
         self.numels = numels.copy()
 
         self.blocks = [x for x in self.numels]
@@ -25,9 +25,8 @@ class TileGenerator:
         self.no_loop_axis = no_loop_axis
         self.split_axis = split_axis
         self.low_dims = low_dims
-        self.configs = configs
+        self.configs = []
         self.dtype_bytes = get_byte_per_numel(dtype)
-        self.stop_numel = 1024 // self.dtype_bytes
         self.block_name = {}
         self.sub_block_name = {}
         self.persistent_reduction = persistent_reduction
@@ -52,6 +51,15 @@ class TileGenerator:
         self.program_threshold = 0 if self.max_total_numel < 128 else self.program_threshold
         self.npu_kernel_type = npu_kernel_type
 
+    def reset_configs(self):
+        self.config = []
+        self.blocks = [x for x in self.numels]
+        self.candidate_blocks = []
+        self.sub_blocks = self.blocks.copy()
+        for axis, _ in enumerate(self.axis_name):
+            if axis not in self.tiling_axis and axis not in self.split_axis:
+                self.blocks[axis] = 1
+                self.sub_blocks[axis] = 1
 
     def calcu_last_split_blocks(self, axis):
         splits = 1
@@ -110,6 +118,7 @@ class TileGenerator:
             else:
                 tiling_numel = min(self.aligned_numel(self.sub_blocks[axis]), blocks[axis])
             cfg[self.sub_block_name[axis]] = tiling_numel
+        cfg["compile_mode"] = self.npu_kernel_type.compile_mode()
 
     def find_config(self, cfg):
         for config_var in self.configs:
@@ -122,10 +131,18 @@ class TileGenerator:
         self.fill_config(newcfg, candi_block)
         total_numel = self.calculate_config_numel(newcfg)
         stop_numel_threshold = 0 if len(self.configs) < 10 or self.tiny_kernel else self.stop_numel + 100
-        if self.valid_tile_numel(total_numel) and not self.find_config(newcfg) and total_numel >= stop_numel_threshold:
-            self.configs.append(Config(newcfg, num_warps=1, num_stages=1))
-            return True
-        return False
+        if not self.valid_tile_numel(total_numel):
+            return False
+        if self.find_config(newcfg):
+            return False
+        if total_numel < stop_numel_threshold:
+            return False
+
+        # This is tmp check for simt overflow, and will be removed latter
+        if self.npu_kernel_type == NPUKernelType.SIMT_ONLY and total_numel * self.dtype_bytes > 8 * 1024:
+            return False
+        self.configs.append(Config(newcfg, num_warps=1, num_stages=1))
+        return True
 
     def desecnd_all_low_dims_with_all_blocks(self):
         restore_sub_blocks = {}
@@ -245,7 +262,7 @@ class TileGenerator:
 
         return total_numel < self.stop_numel
 
-    def add_multibuffer(self):
+    def tune_multibuffer(self):
         new_cfg = []
         for self_config in self.configs:
             self_config.kwargs['multibuffer'] = False
@@ -254,8 +271,26 @@ class TileGenerator:
             new_cfg.append(config_copied)
         self.configs.extend(new_cfg)
 
-    def descend_split_tiling(self):
+    def tune_simt_num_warps(self, tune_num_warps_list=None):
+        num_warps_list = num_warps_list if tune_num_warps_list else [4, 8, 16, 32]
+        configs_without_num_warps = copy.deepcopy(self.configs)
+        for self_config in configs_without_num_warps:
+            for cfg_num_warps in num_warps_list:
+                new_cfg = copy.deepcopy(self_config)
+                new_cfg.num_warps = cfg_num_warps
+                self.configs.append(new_cfg)
 
+    def add_extra_options(self):
+        if self.npu_kernel_type != NPUKernelType.SIMT_ONLY:
+            self.tune_multibuffer()
+        if self.npu_kernel_type == NPUKernelType.SIMT_ONLY:
+            self.tune_simt_num_warps()
+    
+    def set_kernel_type(self, npu_kernel_type):
+        self.npu_kernel_type = npu_kernel_type
+
+    def descend_split_tiling(self):
+        self.reset_configs()
         tiling_not_low_dims = [x for x in self.tiling_axis if x not in self.low_dims]
 
         def descend_split_axis():
@@ -292,4 +327,6 @@ class TileGenerator:
                 # descend low dims, need to descend all axis at the same time
             self.descend_all_low_dims()
             break
-        self.add_multibuffer()
+        self.add_extra_options()
+
+        return self.configs

@@ -563,6 +563,10 @@ class NPUCachingAutotuner(CachingAutotuner):
             "multibuffer": cfg_kwargs.get('multibuffer', False),
             "compile_mode": compile_meta['compile_mode'],
         }
+        # pure simt stack overflow check
+        if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
+            options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
+
         compile_kwargs = {
             "target": target,
             "options": options,
@@ -1205,14 +1209,22 @@ def triton_config_npu_index(
                                             dtype=split_axis_dtype,
                                             npu_kernel_type=npu_kernel_type,
                                             input_ptr_num=input_ptr_num, dual_reduction=dual_reduction)
+        tile_generator.descend_split_tiling()
     else:
         tile_generator = TileGenerator(size_hints, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims,
-                                       persistent_reduction=persistent_reduction, configs=configs,
+                                       persistent_reduction=persistent_reduction, 
                                        dtype=split_axis_dtype,
                                        npu_kernel_type=npu_kernel_type,
                                        input_ptr_num=input_ptr_num, dual_reduction=dual_reduction)
-
-    tile_generator.descend_split_tiling()
+        if npu_kernel_type == NPUKernelType.SIMD_SIMT_MIX:
+            tile_generator.set_kernel_type(NPUKernelType.SIMT_ONLY)
+            configs.extend(tile_generator.descend_split_tiling())
+            tile_generator.set_kernel_type(NPUKernelType.SIMT_TEMPLATE)
+            configs.extend(tile_generator.descend_split_tiling())
+            tile_generator.set_kernel_type(NPUKernelType.SIMD)
+            configs.extend(tile_generator.descend_split_tiling())
+        else:
+            configs = tile_generator.descend_split_tiling()
 
     if not configs:
         cfg = {}
@@ -1233,52 +1245,6 @@ def triton_config_npu_index(
             split_blocks[i] = cfg.kwargs[block_name]
         cfg.kwargs["split_axis"] = tuple(split_axis)
         cfg.kwargs["split_blocks"] = tuple(split_blocks)
-
-    def is_available_config(cfg: Config):
-        numel_sum = 1
-        for key, value in cfg.kwargs.items():
-            if not key.endswith('SUB'):
-                continue
-            if key.startswith('R') and persistent_reduction:
-                new_key = 'r' + key[1]
-                position = axis_names.index(new_key)
-                value = next_power_of_2(size_hints[position])
-            numel_sum = numel_sum * value
-
-        data_bytes = get_byte_per_numel(split_axis_dtype)
-
-        if numel_sum * data_bytes > 8 * 1024:
-            return False
-        else:
-            return True
-
-    def add_simt_configs(origin_cfg, cfg_num_warps, simt_configs, compile_mode=None):
-        new_cfg = copy.deepcopy(origin_cfg)
-        new_cfg.num_warps = cfg_num_warps
-        if compile_mode:
-            new_cfg.kwargs["compile_mode"] = compile_mode
-        simt_configs.append(new_cfg)
-
-    simt_configs = []
-    if npu_kernel_type == NPUKernelType.SIMT_ONLY:
-        for simd_cfg in configs:
-            if not is_available_config(simd_cfg):
-                continue
-            # only simt
-            add_simt_configs(simd_cfg, 8, simt_configs, "simt_only")
-            add_simt_configs(simd_cfg, 16, simt_configs, "simt_only")
-            add_simt_configs(simd_cfg, 32, simt_configs, "simt_only")
-            add_simt_configs(simd_cfg, 64, simt_configs, "simt_only")
-            # simt template + simd
-            add_simt_configs(simd_cfg, 1, simt_configs, "unstructured_in_simt")
-            # simd 
-            add_simt_configs(simd_cfg, 1, simt_configs)
-        configs = simt_configs
-
-    if npu_kernel_type == NPUKernelType.SIMT_TEMPLATE:
-        for cfg in configs:
-            add_simt_configs(cfg, 1, simt_configs, "unstructured_in_simt")
-        configs = simt_configs
 
     return configs
 

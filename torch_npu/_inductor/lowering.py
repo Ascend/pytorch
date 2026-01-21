@@ -48,9 +48,10 @@ from torch_npu.npu._backends import get_soc_version
 from torch_npu import npu_dtype_cast, _npu_dtype_cast
 from torch_npu.npu._backends import get_soc_version
 from torch_npu._inductor import ir as npu_ir
+from torch_npu._inductor.codegen.triton_utils import NPUKernelType
 from .ir import IndexputTemplate, ScatterTemplate
 from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
-from .config import inductor_indirect_memory_simt_template, lowering_cat_with_concat_kernel
+from .config import inductor_indirect_memory_mode, lowering_cat_with_concat_kernel
 
 
 def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False):
@@ -255,7 +256,7 @@ def _register_npu_inductor_fallbacks():
         if node.meta.get("skip_lowering", False):
             return fallback_handler(aten.embedding.default)(weight, indices, padding_idx=padding_idx, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse)
 
-        if not inductor_indirect_memory_simt_template:
+        if inductor_indirect_memory_mode != str(NPUKernelType.SIMT_TEMPLATE):
             return lowering.embedding(weight, indices)
 
         def invalid_embedding_input(x):
@@ -752,7 +753,7 @@ def _register_npu_inductor_fallbacks():
             if len(valid_indices) != 1:
                 return False
             select_dim = indices.index(valid_indices[0])
-            if select_dim == len(indices) - 1:
+            if select_dim == len(x_size) - 1:
                 return False
             return True
 
@@ -765,8 +766,6 @@ def _register_npu_inductor_fallbacks():
 
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
-        if not inductor_indirect_memory_simt_template:
-            return lowering.cat(inputs, dim)
         if len(inputs) == 1:
             return clone(inputs[0])
         dim = _validate_dim(inputs[0], dim, 0)

@@ -569,7 +569,7 @@ class NPUTritonScheduling(TritonScheduling):
             if kernel.inside_reduction:
                 kernel.reduce_analysis = ReductionAnalysis(kernel)
                 # pure_simt_kernel, high dim reduction don't use persitent reduction
-                if kernel.is_pure_simt_kernel() and kernel.reduction_dim() != len(kernel.golden_var_list) - 1:
+                if kernel.is_unified_simt_kernel() and kernel.reduction_dim() != len(kernel.golden_var_list) - 1:
                     kernel.persistent_reduction = False
             # no_loop_axis depends on persistent reduction
             split_tiling.select_no_loop_axis()
