@@ -17,7 +17,7 @@
 
 可选择如下任一方式：
 
--   设置环境变量PYTORCH\_NPU\_ALLOC\_CONF=expandable\_segments:<value\>，此环境变量使用详情请参考《环境变量参考》中的“PYTORCH\_NPU\_ALLOC\_CONF”章节。
+-   设置环境变量PYTORCH\_NPU\_ALLOC\_CONF=expandable\_segments:<value\>，此环境变量使用详情请参考《环境变量参考》中的“[PYTORCH\_NPU\_ALLOC\_CONF](../environment_variable_reference/PYTORCH_NPU_ALLOC_CONF.md)”章节。
 -   修改torch.npu.memory.\_set\_allocator\_settings（“expandable\_segments: <value\>”）接口中的“expandable\_segments“属性值。
 
     value可以取值为True或False。默认为False。

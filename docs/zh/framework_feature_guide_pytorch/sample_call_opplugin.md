@@ -2,9 +2,9 @@
 
 完成了PyTorch框架的适配插件开发后，即可实现从PyTorch框架调用Ascend C自定义算子。下文以自定义npu\_add\_custom算子为例，介绍PyTorch 2.7.1框架下，算子适配开发过程。
 
-1.  配套软件安装：请参见《[Ascend Extension for PyTorch 安装前准备](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0002.html)》完成配套软件安装和环境变量配置。
-2.  PyTorch安装：请参见《[Ascend Extension for PyTorch 软件安装指南](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0001.html)》完成PyTorch框架的安装。
-3.  进行Ascend Extension for PyTorch自定义算子配置。在框架算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库接口](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/83RC1alpha003/API/aolapi/operatorlist_00001.html)。
+1.  配套软件安装：请参见《[Ascend Extension for PyTorch 安装前准备](../installation_guide/preparing_installation.md)》完成配套软件安装和环境变量配置。
+2.  PyTorch安装：请参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/preparing_PyTorch.md)》完成PyTorch框架的安装。
+3.  进行Ascend Extension for PyTorch自定义算子配置。在框架算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库接口](https://www.hiascend.com/document/detail/zh/canncommercial/850/API/aolapi/operatorlist_00001.html)。
     > [!NOTE]  
     > 自定义算子工程创建、算子开发及编译部署流程，具体可参考[Samples](https://gitee.com/ascend/samples/tree/master/operator/ascendc/0_introduction/1_add_frameworklaunch)。<br>
     > 本示例对应cann算子为aclnnAdd，具体可参考[CANN 算子库接口]中[NN算子接口](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/83RC1alpha003/API/aolapi/context/aclnnAdd&aclnnInplaceAdd.md)。
@@ -234,7 +234,7 @@
       run_tests()
   ```
 
-6.  编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0005.html)”章节的“方式一（推荐）：容器场景”。
+6.  编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
 
 
 上述开发过程完成后，您可以调用开发者测试脚本，验证基本功能是否正常。

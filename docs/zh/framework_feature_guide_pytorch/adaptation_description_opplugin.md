@@ -41,16 +41,16 @@ OpPlugin是Ascend Extension for PyTorch的算子插件，为使用PyTorch框架�
 7、编译验证：编译安装 torch_npu 包，测试算子功能与性能。
 
 > [!NOTE]  
-> 图模式算子开发请参考《PyTorch 图模式使用指南\(TorchAir\)》中的“[自定义算子插件化入图](https://www.hiascend.com/document/detail/zh/Pytorch/720/modthirdparty/torchairuseguide/torchair_00047.html)”章节。
+> 图模式算子开发请参考《PyTorch 图模式使用指南\(TorchAir\)》中的“[自定义算子入图](https://www.hiascend.com/document/detail/zh/Pytorch/730/modthirdparty/torchairuseguide/torchair_00055.html)”章节。
 
 
 # 算子适配总体思路
 
 ## 前提条件
 
-1、配套软件安装：请参见《[Ascend Extension for PyTorch 安装前准备](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0002.html)》完成配套软件安装和环境变量配置
+1、配套软件安装：请参见《[Ascend Extension for PyTorch 安装前准备](../installation_guide/preparing_installation.md)》完成配套软件安装和环境变量配置
 
-2、PyTorch安装：请参见《[Ascend Extension for PyTorch 软件安装指南](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0001.html)》完成PyTorch框架的安装
+2、PyTorch安装：请参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/preparing_PyTorch.md)》完成PyTorch框架的安装
 
 3、torch_npu源码下载：如果用户使用快速安装方式安装torch\_npu插件，适配前需执行如下命令拉取torch\_npu仓对应分支的代码并进入OpPlugin目录。
 
@@ -705,7 +705,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
 
 ## 算子编译执行
 
-算子适配完成后，需编译torch\_npu包，推荐使用容器场景进行编译安装，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0005.html)”章节的“方式一(推荐)：容器场景”。torch\_npu安装完成后即可进行新增算子接口的测试验证。
+算子适配完成后，需编译torch\_npu包，推荐使用容器场景进行编译安装，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一(推荐)：容器场景”。torch\_npu安装完成后即可进行新增算子接口的测试验证。
 
 
 # 附录

@@ -44,7 +44,7 @@
 -   upper\_thresh2：正整数，最小值为3，默认值为100。二级阈值，特征值超过二级阈值会被认为是一次疑似异常，不会更新到历史均值中。默认检测阈值无需配置，若需要修改阈值可通过此环境变量修改。
 -   grad\_sample\_interval：正整数，最小值为1，默认值为3。梯度检测的间隔数，标记每多少个梯度中检测一个。配置越小检出率越高，但性能相对会劣化更严重，可能会超过2%。
 
-此环境变量使用详情可参考《环境变量参考》中的“[NPU\_ASD\_CONFIG](https://www.hiascend.com/document/detail/zh/Pytorch/720/comref/Envvariables/Envir_036.html)”章节。
+此环境变量使用详情可参考《环境变量参考》中的“[NPU\_ASD\_CONFIG](../environment_variable_reference/NPU_ASD_CONFIG.md)”章节。
 
 ## 使用样例
 
