@@ -288,9 +288,12 @@ class ConfigContext:
         if not self.is_rank:
             return True
         if self._rank_id in self._rank_set:
-            self._analyse = False
-            DynamicProfilerUtils.out_log("Rank {} is in rank_list {}, profiler data analyse will be closed !".format(
-                self._rank_id, self._rank_set), DynamicProfilerUtils.LoggerLevelEnum.INFO)
+            if not self._async_mode:
+                self._analyse = False
+                DynamicProfilerUtils.out_log("Rank {} is in rank_list {} and async_mode is false, "
+                                             "profiler data analyse will be closed !".format(self._rank_id,
+                                                                                             self._rank_set),
+                                             DynamicProfilerUtils.LoggerLevelEnum.INFO)
             return True
         DynamicProfilerUtils.out_log("Rank {} not in valid rank_list {}!".format(self._rank_id, self._rank_set),
                                      DynamicProfilerUtils.LoggerLevelEnum.WARNING)
