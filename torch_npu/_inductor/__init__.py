@@ -1,6 +1,6 @@
 import os
 
-if os.getenv('TORCHINDUCTOR_MLIR_BACKEND', '0') == '1':
+if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
     try:
         import torch_mlir
         from torch_mlir import ir
