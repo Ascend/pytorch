@@ -143,7 +143,7 @@
 3. **安装torch_npu**
 
    ```bash
-   pip3 install torch-npu==2.7.1
+   pip3 install torch-npu==2.7.1.post2
    ```
    如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
@@ -207,9 +207,10 @@
 运行以下命令初始化**CANN**环境变量。
 
 ```Shell
-# Default path, change it if needed.
-source /usr/local/Ascend/ascend-toolkit/set_env.sh
+source /usr/local/Ascend/cann/set_env.sh
 ```
+以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
+CANN 8.5.0以下版本，脚本默认路径为/usr/local/Ascend/ascend-toolkit/set_env.sh。
 
 #### 快速验证
 
