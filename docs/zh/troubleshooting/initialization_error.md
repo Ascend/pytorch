@@ -1,6 +1,6 @@
 # 初始化报错
 
-## 问题现象
+## 问题现象描述
 
 关键词"**at\_npu::native::AclSetCompileopt**"
 
@@ -17,45 +17,10 @@ File "/home/HwHiAiUser/anaconda3/envs/PyTorch-2.1.0/lib/python3.9/site-packages/
  Rectify the fault based on the error information in the ascend log.
 ```
 
-## 故障根因
+## 原因分析
 
-关键过程：初始化过程中报错。
+初始化时调用底层接口的过程中出现报错，并打印错误码“ERR00100”。
 
-根本原因分析：初始化时调用底层接口的过程中出现报错。
+## 解决措施
 
-## 处理方法
-
-
-<table><tbody><tr id="row133331920165614"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.1.1"><p id="p83339201562">Error Code</p>
-</th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.1.1 "><p id="p19428111123714">ERR00100</p>
-</td>
-</tr>
-<tr id="row58261416152019"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.2.1"><p id="p78261916142014">故障事件名称</p>
-</th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.2.1 "><p id="p12416104333517">初始化失败</p>
-</td>
-</tr>
-<tr id="row1082711617201"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.3.1"><p id="p1782741619205">故障解释/可能原因</p>
-</th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.3.1 "><p id="p435810129442">初始化时调用底层接口的过程中出现报错</p>
-</td>
-</tr>
-<tr id="row1474663022115"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.4.1"><p id="p774617303213">故障影响</p>
-</th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.4.1 "><p id="p35447463353">脚本报错退出</p>
-</td>
-</tr>
-<tr id="row19915122652114"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.5.1"><p id="p1791515262213">故障自处理模式</p>
-</th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.5.1 "><p id="p1560422614445">参考《CANN 故障处理》<span id="ph124555416557">中的“<a href="https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/troubleshooting/troubleshooting_0062.html" target="_blank" rel="noopener noreferrer">进程中断问题定位思路</a>”章节</span>进行故障处理</p>
-</td>
-</tr>
-<tr id="row1356182417228"><th class="firstcol" valign="top" width="17.66%" id="mcps1.1.3.6.1"><p id="p175662413229">系统处理建议</p>
-</th>
-<td class="cellrowborder" valign="top" width="82.34%" headers="mcps1.1.3.6.1 "><p id="p164198119376">无需操作</p>
-</td>
-</tr>
-</tbody>
-</table>
-
+参考《CANN 故障处理》中的“[进程中断问题定位思路](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/troubleshooting/troubleshooting_0062.html)”章节进行故障处理。

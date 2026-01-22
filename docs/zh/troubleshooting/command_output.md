@@ -9,7 +9,7 @@
 
 ## Python调用栈和异常信息
 
-Python报错时，会将当时的堆栈打印在屏幕上，用户可通过搜索关键字"Traceback"查看Python应用程序的堆栈。如果存在多个堆栈信息时，优先查看第一个Traceback，如[图1](#查看Python应用程序的堆栈信息)所示。
+Python报错时，会将当时的堆栈打印在屏幕上，用户可通过搜索关键字“Traceback”查看Python应用程序的堆栈。如果存在多个堆栈信息时，优先查看第一个Traceback，如[图1](#查看Python应用程序的堆栈信息)所示。
 
 **图 1**  查看Python应用程序的堆栈信息<a id="查看Python应用程序的堆栈信息"></a>  
 ![](../figures/viewing_stack_information_python_applications.png)
@@ -28,7 +28,7 @@ Python报错时，会将当时的堆栈打印在屏幕上，用户可通过搜�
 
 ## CANN软件错误码
 
-由于场景不同、用例不同、发生故障的原因不同，造成打印的错误码信息有区别，因此，示例中以\[%s\]变量形式替代实际的打印日志，\[%s\]替代的实际日志以屏幕打印为准。CANN软件错误码相关详细介绍可参见《CANN 故障处理》的“[错误码参考](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/troubleshooting/troubleshooting_0225.html)”章节。
+由于场景不同、用例不同、发生故障的原因不同，造成打印的错误码信息有区别，因此，示例中以\[%s\]变量形式替代实际的打印日志，\[%s\]替代的实际日志以屏幕打印为准。CANN软件错误码相关详细介绍可参见《CANN 故障处理》的“[错误码参考](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/troubleshooting/troubleshooting_0225.html)”章节。
 
 例如，E10035错误码在手册中的表示形式为：
 

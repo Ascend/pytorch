@@ -4,4 +4,5 @@
 
 > [!NOTE]
 > - 定位报错的主要原则：关注第一条报错信息。  
-> - CANN软件相关报错的详细介绍请参见《[CANN 故障处理](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/troubleshooting/troubleshooting_0001.html)》。
+> - CANN软件相关报错的详细介绍请参见《[CANN 故障处理](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/troubleshooting/troubleshooting_0001.html)》。
+

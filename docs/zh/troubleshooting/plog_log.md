@@ -10,7 +10,7 @@
 **图 2**  获取plog日志  
 ![](../figures/obtaining_plog_logs.png)
 
-如[图3](#plog日志示例_HCCL)所示，用户可以从中查看日志级别（例如“ERROR“）和产生日志的模块名称（例如“HCCL“）。
+如[图3](#plog日志示例_HCCL)所示，用户可以从中查看日志级别（例如“ERROR”）和产生日志的模块名称（例如“HCCL”）。
 
 **图 3**  plog日志示例（HCCL）<a id="plog日志示例_HCCL"></a>  
 ![](../figures/plog_log_HCCL.png)
@@ -19,5 +19,5 @@
 ![](../figures/plog_log_OOM.png)
 
 > [!NOTE]  
-> 更多日志详细介绍可参见《[CANN 日志参考](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/maintenref/logreference/logreference_0001.html)》。
+> 更多日志详细介绍可参见《[CANN 日志参考](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/logreference/logreference_0001.html)》。
 
