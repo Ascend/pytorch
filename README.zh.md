@@ -9,6 +9,8 @@
 
 ## 版本说明
 
+更多版本相关信息可参考[版本说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/release_notes/release_notes.md)。
+
 ### PyTorch与Python版本配套表
 
 | PyTorch版本     | Python版本                                                     |
@@ -19,10 +21,10 @@
 | PyTorch2.3.1  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x        |
 | PyTorch2.4.0  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x        |
 | PyTorch2.5.1  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
-| PyTorch2.6.0  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
-| PyTorch2.7.1  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
-| PyTorch2.8.0  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
-| PyTorch2.9.0  | Python3.10.x, Python 3.11.x                                  |
+| PyTorch2.6.0  | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x      |
+| PyTorch2.7.1  | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x      |
+| PyTorch2.8.0  | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x      |
+| PyTorch2.9.0  | Python3.10.x, Python 3.11.x, Python 3.12.x                   |
 
 
 
@@ -90,13 +92,13 @@
 
 ## 快速入门
 
-基于CNN模型识别手写数字的脚本，对在GPU上训练的该脚本代码进行修改，使其可以迁移到昇腾NPU上进行训练。具体操作请参见[Ascend Extension for PyTorch 快速入门](https://www.hiascend.com/document/detail/zh/Pytorch/710/fastexperience/fastexperience_0001.html)。
+基于CNN模型识别手写数字的脚本，对在GPU上训练的该脚本代码进行修改，使其可以迁移到昇腾NPU上进行训练。具体操作请参见[Ascend Extension for PyTorch 快速入门](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/quick_start/quick_start.md)。
 
 ## 环境部署
 
 ### 使用二进制文件进行安装
 
-我们为用户提供可以快速安装**torch_npu**的whl安装包。在安装**torch_npu**之前，您需要先安装**CANN**软件。[昇腾辅助软件](#昇腾辅助软件)中有更多关于CANN的版本信息。请参考[CANN安装指南](https://www.hiascend.com/cann)获取**CANN**安装包。
+我们为用户提供可以快速安装**torch_npu**的whl安装包。在安装**torch_npu**之前，您需要先安装**CANN**软件。[昇腾辅助软件](#昇腾辅助软件)中有更多关于CANN的版本信息。请参考[CANN软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html)获取**CANN**安装包。
 
 1. **安装PyTorch**
 
@@ -116,12 +118,14 @@
 
    若使用pip命令安装失败，请使用下载链接或进入[PyTorch官方网站](https://pytorch.org/)进行查询下载对应版本。
 
-   | 架构      | Python版本   | 下载链接                                                                                                                                                                          |
-   |---------|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+   | 架构      | Python版本   | 下载链接   |
+   |---------|------------|---------------------------------------------------------------------------------------------------------------------|
    | x86     | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl#sha256=bd2a257e670ede9fc01c6d76dccdc473040913b8e9328169bf177dbdc38e2484)  |
    | x86     | Python3.11 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=add3e93ecc1eeaa6853f6a973ce60ffb3cb14ed2e80f5055e139b09385dce0a7)  |
-   | aarch64 | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=b224792ea567b52c7f1ce1d789567f6920e06fd3b339fa1e1b05948845f783ad) |
+   | x86     | Python3.12 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl#sha256=28f6eb31b08180a5c5e98d5bc14eef6909c9f5a1dbff9632c3e02a8773449349)  |
+   | aarch64 | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=b224792ea567b52c7f1ce1d789567f6920e06fd3b339fa1e1b05948845f783ad)  |
    | aarch64 | Python3.11 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=add3e93ecc1eeaa6853f6a973ce60ffb3cb14ed2e80f5055e139b09385dce0a7)  |
+   | aarch64 | Python3.12 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl#sha256=3a651434ae1248b0568c12b5f9e3acc8942eb28378d9d04a79302938b68c6f24)  |
 
 2. **安装torch_npu依赖**
 
@@ -135,7 +139,7 @@
 3. **安装torch_npu**
 
    ```bash
-   pip3 install torch-npu==2.9.0rc1
+   pip3 install torch-npu==2.9.0
    ```
    如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
@@ -198,9 +202,10 @@
 运行以下命令初始化**CANN**环境变量。
 
 ```Shell
-# Default path, change it if needed.
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
 ```
+以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
+CANN 8.5.0以下版本，脚本默认路径为/usr/local/Ascend/ascend-toolkit/set_env.sh。
 
 #### 快速验证
 
@@ -218,7 +223,7 @@ print(z)
 ```
 
 ## 卸载
-Pytorch框架训练环境的卸载可以参考[昇腾官方文档](https://www.hiascend.com/document/detail/zh/ModelZoo/pytorchframework/ptes/ptes_00032.html)。
+Pytorch框架训练环境的卸载可以参考[卸载](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/installation_guide/uninstallation.md)。
 
 torch_npu的卸载只需执行命令：
 
@@ -238,18 +243,20 @@ torch_npu的卸载只需执行命令：
 | Atlas 训练系列产品     | Atlas 800 训练服务器（型号：9000） |
 |                       | Atlas 800 训练服务器（型号：9010） |
 |                       | Atlas 900 PoD（型号：9000）       |
+|                       | Atlas 900T PoD Lite              |
 |                       | Atlas 300T 训练卡（型号：9000）    |
 |                       | Atlas 300T Pro 训练卡（型号：9000）|
 | Atlas A2 训练系列产品  | Atlas 800T A2 训练服务器          |
 |                       | Atlas 900 A2 PoD 集群基础单元     |
 |                       | Atlas 200T A2 Box16 异构子框      |
-| Atlas A3 训练系列产品  | Atlas 800T A3 训练服务器          |
+| Atlas A3 训练系列产品  | Atlas 800T A3 超节点服务器        |
 |                       | Atlas 900 A3 SuperPoD 超节点     |
+|                       | A200T A3 Box8 超节点服务器       |
 
 昇腾推理设备包含以下型号，都可作为大模型的推理环境。
 | 产品系列               | 产品型号                         |
 |-----------------------|----------------------------------|
-| Atlas 800I A2推理产品  | Atlas 800I A2 推理服务器          |
+| Atlas A2 推理系列产品  | Atlas 800I A2 推理服务器          |
 
 ## 建议与交流
 
@@ -295,11 +302,14 @@ Ascend Extension for PyTorch版本分支的维护阶段如下：
 
 | 文档名称                   | 文档链接                                                     |
 | -------------------------- | ------------------------------------------------------------ |
-| 软件安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0001.html) |
-| 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/720/ptmoddevg/trainingmigrguide/PT_LMTMOG_0002.html) |
-| 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/720/ptmoddevg/Frameworkfeatures/featuresguide_00021.html) |
-| PyTorch原生接口清单          | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/720/apiref/PyTorchNativeapi/ptaoplist_000003.html) |
-| Ascend Extension for PyTorch自定义API参考          | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/720/apiref/torchnpuCustomsapi/context/%E6%A6%82%E8%BF%B0.md) |
+| 软件安装指南           | [参考链接](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/installation_guide/menu_installation_guide.md) |
+| 网络模型迁移和训练      | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/730/ptmoddevg/trainingmigrguide/PT_LMTMOG_0002.html) |
+| 框架特性指南          | [参考链接](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/framework_feature_guide_pytorch/menu_framework_feature.md) |
+| 自定义算子适配开发           | [参考链接](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/framework_feature_guide_pytorch/custom_operator_adaptation.md) |
+| PyTorch原生接口清单          | [参考链接](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/native_apis/menu_pt_native_apis.md) |
+| Ascend Extension for PyTorch自定义API参考      | [参考链接](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/menu_Pytorch_API.md) |
+| 环境变量参考          | [参考链接](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/environment_variable_reference/menu_env_variable_reference.md) |
+| 故障处理          | [参考链接](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/troubleshooting/menu_troubleshooting.md) |
 
 
 ## 许可证
