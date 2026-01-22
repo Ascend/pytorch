@@ -5959,6 +5959,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
     std::vector<at::Tensor>& input_tensors,
     const c10d::AllToAllOptions& opts)
 {
+    TORCH_CHECK(output_tensors.size() == size_,
+        "the size of output_tensors and worldsize must equal", DIST_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(output_tensors.size() == input_tensors.size(),
+        "the size of input_tensors and output_tensors must equal", DIST_ERROR(ErrCode::PARAM));
+
     auto device = output_tensors[0].device();
     for (const auto r : c10::irange(output_tensors.size())) {
         check_npu_single_tensor(output_tensors[r]);
