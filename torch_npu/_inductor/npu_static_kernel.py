@@ -7,7 +7,7 @@ from pathlib import Path
 
 import torch_npu
 
-if os.getenv('TORCHINDUCTOR_MLIR_BACKEND', '0') == '1':
+if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
     from .ascend_npu_ir.ascend_npu_ir.npu.utils import logger as log
 else:
     from .config import log

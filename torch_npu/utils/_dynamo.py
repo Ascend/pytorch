@@ -153,7 +153,7 @@ def register_inductor_npu():
 
 
 def patch_inductor_wrapper():
-    from typing import Any, Optional
+    from typing import Any, Optional, Literal
     from torch import _TorchCompileInductorWrapper
     from torch.utils._config_module import Config, ConfigModule, _ConfigEntry
 
@@ -175,18 +175,19 @@ def patch_inductor_wrapper():
 
     def new_get_config_copy(self) -> Dict[str, Any]:
         ori_dict = src_get_config_copy(self)
-        if "mlir_backend" not in ori_dict:
-            ori_dict["mlir_backend"] = False
-            self._config["mlir_backend"] = _ConfigEntry(
-                    Config(default=False, value_type=bool)
+        NpuBackendType = Literal["default", "mlir", "dvm"]
+        if "npu_backend" not in ori_dict:
+            ori_dict["npu_backend"] = "default"
+            self._config["npu_backend"] = _ConfigEntry(
+                    Config(default="default", value_type=NpuBackendType)
             )
         return ori_dict
     
     def new_init(self, mode, options, dynamic):
         src_init(self, mode, options, dynamic)
-        if self.config.get("mlir_backend", False):
+        if self.config.get("npu_backend") == "mlir" or torch._inductor.config.npu_backend == "mlir":
             import os	 
-            os.environ['TORCHINDUCTOR_MLIR_BACKEND'] = '1'
+            os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
             try:
                 import torch_mlir
                 from torch_mlir import ir
@@ -210,6 +211,7 @@ def patch_inductor_wrapper():
     _TorchCompileInductorWrapper.apply_options = new_apply_options
     _TorchCompileInductorWrapper.__init__ = new_init
     ConfigModule.get_config_copy = new_get_config_copy
+    torch._inductor.config.get_config_copy()
 
 
 def patch_dynamo_optimize():
