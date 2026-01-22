@@ -51,7 +51,7 @@ If the installation fails, use the download link or visit the [PyTorch official 
 3. **Install torch-npu**
 
 ```
-pip3 install torch-npu==2.10.0rc1
+pip3 install torch-npu==2.10.0rc2
 ```
 
 ### From Source
@@ -153,7 +153,7 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 
 | CANN Version          | Supported PyTorch Version | Supported Extension Version | Github Branch     |
 |-----------------------|---------------------------|-----------------------------|-------------------|
-| CANN 8.5.0            | 2.10.0                    | 2.10.0rc1                   | v2.10.0           |
+| CANN 8.5.0            | 2.10.0                    | 2.10.0rc2                   | v2.10.0           |
 |                       | 2.9.0                     | 2.9.0                       | v2.9.0-7.3.0      |
 |                       | 2.8.0                     | 2.8.0.post2                 | v2.8.0-7.3.0      |
 |                       | 2.7.1                     | 2.7.1.post2                 | v2.7.1-7.3.0      |
