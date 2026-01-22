@@ -79,7 +79,7 @@ class HcomCoalescedManagerTest(TestCase):
         return expected
 
     @skipIfUnsupportMultiNPU(2)
-    @SkipIfNotGteCANNVersion("8.5.0")
+    @SkipIfNotGteCANNVersion("9.0.0")
     def test_all_reduce_coalesced_manager_hccl(self):
         ranks = [2]
         shape_format = [[np.float32, 2, [2, 3, 16]]]
