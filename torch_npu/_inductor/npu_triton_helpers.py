@@ -1,16 +1,17 @@
 import triton
 import triton.language as tl
 
-try:
-    import triton.language.extra.cann.libdevice as libdevice
-except ImportError:
-    import triton.language.extra.ascend.libdevice as libdevice
 from torch._inductor.runtime import triton_helpers
 
+from .config import logging
+
 try:
+    extension = tl.extra.cann.extension
     libdevice = tl.extra.cann.libdevice
-except AttributeError:
+except Exception as e:
+    logging.debug(f"import tl.extra.cann.extension or tl.extra.cann.libdevice error: {e}")
     libdevice = tl.extra.ascend.libdevice
+
 math = tl.math
 
 
