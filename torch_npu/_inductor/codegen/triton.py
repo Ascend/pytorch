@@ -1577,11 +1577,6 @@ class NPUIndexTritonKernel(TritonKernel):
                 mask_str = indexing.mask_str
                 line = f"tl.load({var} + ({index_str}), {mask_str}{ep}{other})"
 
-            dtype = V.graph.get_dtype(name)
-            if dtype in (torch.bfloat16,):
-                line += ".to(tl.float32)"
-            if dtype == torch.bool and torch.version.hip is None:
-                line += ".to(tl.int1)"
         if has_tmpmask:
             # Masked loads must come after the mask is computed
             load_buffer = self.compute
