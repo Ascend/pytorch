@@ -1,0 +1,8 @@
+# 性能优化
+
+-   **[CPU\_AFFINITY\_CONF](CPU_AFFINITY_CONF.md)**  
+
+-   **[PROF\_CONFIG\_PATH](PROF_CONFIG_PATH.md)**  
+
+-   **[KINETO\_USE\_DAEMON](KINETO_USE_DAEMON.md)**  
+
