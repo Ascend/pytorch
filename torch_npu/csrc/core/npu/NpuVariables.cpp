@@ -37,7 +37,8 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend910_9381", SocVersion::Ascend910_9381},
     {"Ascend910_9382", SocVersion::Ascend910_9382},
     {"Ascend910_9372", SocVersion::Ascend910_9372},
-    {"Ascend910_9362", SocVersion::Ascend910_9362}};
+    {"Ascend910_9362", SocVersion::Ascend910_9362}
+};
 
 void SetSocVersion(const char* const socVersion)
 {
@@ -48,13 +49,14 @@ void SetSocVersion(const char* const socVersion)
 
     SocVersion curSocVersion = SocVersion::UnsupportedSocVersion;
     std::string inputVersion = socVersion;
-    std::string ascend95Version = "Ascend910_95";
-
+    std::string ascend91095 = "Ascend910_95";
+    std::string ascend950 = "Ascend950";
     auto const& iter = socVersionMap.find(socVersion);
     if (iter != socVersionMap.end()) {
         curSocVersion = iter->second;
-    } else if ((inputVersion.compare(0, ascend95Version.size(), ascend95Version) == 0)) {
-        curSocVersion = SocVersion::Ascend910_95;
+    } else if ((inputVersion.compare(0, ascend91095.size(), ascend91095) == 0 ||
+                inputVersion.compare(0, ascend950.size(), ascend950) == 0)) {
+        curSocVersion = SocVersion::Ascend950;
     } else {
         std::string unsupported_soc(socVersion);
         std::replace(std::begin(unsupported_soc), std::end(unsupported_soc), '_', ' ');
