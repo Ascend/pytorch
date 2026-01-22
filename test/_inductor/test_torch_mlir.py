@@ -16,7 +16,7 @@ class TestAdd(TestUtils):
     def test_pointwise_cases(self, shape, dtype):
         import os
 
-        os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
+        os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
         os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
         
         first_element = self._generate_tensor(shape, dtype)
