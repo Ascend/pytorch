@@ -385,7 +385,7 @@ class TestViewOps(TestCase):
 
 
 class TestTensorDtype(TestCase):
-    @SupportedDevices(['Ascend910_95'])
+    @SupportedDevices(['Ascend910_95', 'Ascend950'])
     def test_fp8(self):
         tensor1 = torch.randn([2, 2], dtype=torch.float32).npu()
         tensor2 = torch.randn([2, 2], dtype=torch.float32).npu()
@@ -394,7 +394,7 @@ class TestTensorDtype(TestCase):
         self.assertEqual(tensor_f8e5m2.dtype, torch.float8_e5m2)
         self.assertEqual(tensor_f8e4m3fn.dtype, torch.float8_e4m3fn)
 
-    @SupportedDevices(['Ascend910_95'])
+    @SupportedDevices(['Ascend910_95', 'Ascend950'])
     def test_hif8(self):
         tensor = torch.randn([2, 2], dtype=torch.float16).npu()
         hif8_tensor = torch_npu.HiFloat8Tensor.to_hifloat8(tensor)

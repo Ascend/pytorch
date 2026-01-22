@@ -72,7 +72,8 @@ class TestLinearWeightQuant(TestCase):
         npu_out = npu_out.cpu()
         self.assertRtolEqual(cpu_out, npu_out.numpy(), 0.01)
 
-    @SupportedDevices(['Ascend910_95'])
+
+    @SupportedDevices(['Ascend910_95', 'Ascend950'])
     def test_npu_linear_weight_quant_weight_dtype_hif8(self):
         m = 2
         k = 64
