@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import functools
+import logging
 from typing import List, Optional
 
 import torch
 import torch_npu
+
+log = logging.getLogger("torch._inductor")
 
 
 # Not good implementation, but no other way
@@ -131,6 +134,8 @@ def use_catlass_template(op_name: str, layout: Layout, m: int, n: int, k: int) -
     from torch._inductor.utils import _use_autotune_backend, use_max_autotune
 
     from .config import catlass as catlass_config
+    from .codegen.catlass.catlass_utils import try_import_catlass
+
     enabled_ops = catlass_config.catlass_enabled_ops.upper()
     if enabled_ops == "ALL":
         pass
@@ -151,5 +156,14 @@ def use_catlass_template(op_name: str, layout: Layout, m: int, n: int, k: int) -
         and use_max_autotune()
         and _use_autotune_backend("CATLASS")
     )
+
+    if res:
+        if not try_import_catlass():
+            log.warning(
+                "Failed to import CATLASS lib. Please check whether "
+                "_inductor.config.catlass.catlass_dir is set correctly. "
+                "Skipping CATLASS backend for now"
+            )
+            return False
 
     return res

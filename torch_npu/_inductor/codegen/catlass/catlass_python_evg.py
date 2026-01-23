@@ -13,7 +13,6 @@ from torch._inductor.ops_handler import DefaultHandler, WrapperHandler
 from torch._inductor.scheduler import BaseSchedulerNode
 from torch._inductor.utils import DelayReplaceLine, IndentedBuffer, OrderedSet
 from torch._inductor.virtualized import OpsValue, V
-from .catlass_utils import torch_dtype_to_catlass_type
 
 
 _ACCUMULATOR_ARG_NAME = "accum"
@@ -43,13 +42,17 @@ class CatlassEVGOpsMixIn:
         src_dtype: Optional[torch.dtype] = None,
         use_compute_types: bool = False,
     ) -> str:
-        dst_dtype = torch_dtype_to_catlass_type(dtype).value
-        src_dtype = torch_dtype_to_catlass_type(src_dtype).value
+        from catlass_cppgen.common.data_type import DataType
+
+        dst_dtype = DataType.from_dtype(dtype).value
+        src_dtype = DataType.from_dtype(src_dtype).value
         return CatlassEVGOpsMixIn._prefix_tri_op("cast", x, dst_dtype, src_dtype)
 
     @staticmethod
     def constant(value: Any, dtype: Any) -> str:
-        element = torch_dtype_to_catlass_type(dtype).value
+        from catlass_cppgen.common.data_type import DataType
+        
+        element = DataType.from_dtype(dtype).value
         return CatlassEVGOpsMixIn._prefix_bin_op("constant", value, element)
 
     @staticmethod

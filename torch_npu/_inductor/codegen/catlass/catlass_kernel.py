@@ -21,7 +21,7 @@ from torch._inductor.virtualized import ops, V
 from ...autotune_process import CATLASSBenchmarkRequest
 
 if TYPE_CHECKING:
-    from .catlass_template import ArgInfo, CATLASSTemplate
+    from .catlass_template import CATLASSTemplate
 
 
 log = logging.getLogger("torch._inductor")
@@ -365,13 +365,6 @@ class CATLASSTemplateKernel(Kernel):
             return "void"
         return _DTYPE_TO_CPP.get(node.get_layout().dtype)
 
-    def catlass_dtype(self, node: IRNode, default_dtype="void") -> Optional[str]:
-        # Helper method, called into from CATLASSGemmTemplate
-        if node is None:
-            return default_dtype
-        from .catlass_template import CATLASSTemplate
-
-        return CATLASSTemplate._DTYPE_TO_CATLASS[node.get_layout().dtype]
 
     def max_valid_index(self, node: IRNode, default=-1):
         # Helper method, called into from CATLASSGemmTemplate
@@ -517,7 +510,7 @@ class CATLASSTemplateCaller(ChoiceCaller):
         assert self.bmreq is not None
         return self.bmreq.benchmark(
             *args, output_tensor=out
-        )  # @TODO: Hack for ensuring that Catlass Kernel is preferred
+        )
 
     def __str__(self) -> str:
         return f"CATLASSTemplateCaller(source_file={self.bmreq.source_file})"
@@ -539,14 +532,7 @@ class CATLASSTemplateCaller(ChoiceCaller):
             op: Any = self.info_kwargs["op"]
             return {
                 "backend": "NPU",
-                "op_type": type(op).__name__,
-                "op_conf_name": str(op.configuration_name()),
-                "op_arch": str(op.arch_typename()),
-                "tile_shape": str(op.tile_description.procedural_name()),
-                "dispatch_policy": str(op.dispatch_policy_typename()),
-                "swizzling": str(op.swizzle_typename()),
-                "element_accumulator": str(op.accumulator_type()),
-                "op_name": str(op.procedural_name()),
+                "op_type": op.get_kernel_name(),
             }
         else:
             return {"backend": "NPU", "op_type": "unknown"}

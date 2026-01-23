@@ -1,153 +1,18 @@
 import math
 import warnings
 
+from catlass_cppgen.catlass.arch.arch import Arch
+from catlass_cppgen.catlass.gemm_coord import GemmShape
+from catlass_cppgen.catlass.gemm.dispatch_policy import MmadMultiBatch
 from torch_npu._inductor import config
-from .library import *
 
 
 def _generate_tile_desc(Block_M, Block_N, Block_K_l1, Block_K_l0):
-    return TileDescription(
-        [Block_M, Block_N, Block_K_l1], [Block_M, Block_N, Block_K_l0]
-    )
+    return [GemmShape(Block_M, Block_N, Block_K_l1), GemmShape(Block_M, Block_N, Block_K_l0)]
 
 
-def _is_support_tile_autotune(op_kind):
-    return op_kind not in [
-        # A2 specific template
-        GemmKind.MatmulBias,
-        GemmKind.Gemm,
-        # k-split template
-        GemmKind.StreamkMatmulTla,
-        GemmKind.MultiCoreSplitkMatmulTla,
-        GemmKind.TailMultiCoreSplitkMatmulTla,
-        GemmKind.GroupedMatmulSliceMTla,
-    ]
-
-
-_a2_default_tile_descs = {
-    "default": {
-        2: [
-            _generate_tile_desc(256, 128, 256, 64),
-            _generate_tile_desc(128, 256, 256, 64),
-        ],
-        4: [
-            _generate_tile_desc(128, 128, 256, 64),
-            _generate_tile_desc(128, 128, 128, 64),
-            _generate_tile_desc(256, 64, 64, 32),
-        ],
-    },
-    # MatmulBias occupy more L1 cache
-    GemmKind.MatmulBias: {
-        4: [
-            _generate_tile_desc(112, 128, 256, 64),
-        ],
-        2: [
-            _generate_tile_desc(256, 128, 256, 64),
-            _generate_tile_desc(128, 256, 256, 64),
-        ],
-    },
-    GemmKind.Gemm: {
-        4: [
-            _generate_tile_desc(128, 128, 128, 64),
-        ],
-        2: [
-            _generate_tile_desc(256, 128, 128, 64),
-            _generate_tile_desc(128, 256, 128, 64),
-            _generate_tile_desc(128, 128, 128, 64),
-        ],
-    },
-}
-
-_a5_default_tile_descs = {
-    "default": {
-        2: [
-            _generate_tile_desc(256, 256, 128, 32),
-            _generate_tile_desc(128, 256, 256, 64),
-        ],
-        4: [
-            _generate_tile_desc(128, 128, 256, 64),
-            _generate_tile_desc(256, 64, 64, 32),
-        ],
-    },
-    # For k-split template, we do not use TileAutotune
-    GemmKind.StreamkMatmulTla: {
-        4: [
-            _generate_tile_desc(256, 256, 128, 32),
-        ],
-        2: [
-            _generate_tile_desc(256, 256, 128, 32),
-        ],
-    },
-    GemmKind.MultiCoreSplitkMatmulTla: {
-        4: [
-            _generate_tile_desc(256, 256, 128, 32),
-        ],
-        2: [
-            _generate_tile_desc(256, 256, 128, 32),
-        ],
-    },
-    GemmKind.TailMultiCoreSplitkMatmulTla: {
-        4: [
-            _generate_tile_desc(256, 256, 128, 32),
-        ],
-        2: [
-            _generate_tile_desc(256, 256, 128, 32),
-        ],
-    },
-    GemmKind.GroupedMatmulSliceMTla: {
-        2: [
-            _generate_tile_desc(256, 256, 256, 64),
-        ],
-    }
-}
-
-_default_block_swizzles = {
-    "default": [
-        BlockSwizzle.GemmIdentityBlockSwizzle_30,
-        BlockSwizzle.GemmIdentityBlockSwizzle_31,
-    ],
-    GemmKind.OptimizedMatmul: [
-        BlockSwizzle.GemmIdentityBlockSwizzle_30,
-    ],
-    GemmKind.StreamkMatmulTla: [
-        BlockSwizzle.StreamkGemmIdentityBlockSwizzle_30,
-        BlockSwizzle.StreamkGemmIdentityBlockSwizzle_31,
-    ],
-    GemmKind.MultiCoreSplitkMatmulTla: [
-        BlockSwizzle.SplitkGemmIdentityBlockSwizzle_30,
-        BlockSwizzle.SplitkGemmIdentityBlockSwizzle_31,
-    ],
-    GemmKind.TailMultiCoreSplitkMatmulTla: [
-        BlockSwizzle.TailSplitkGemmIdentityBlockSwizzle_30,
-        BlockSwizzle.TailSplitkGemmIdentityBlockSwizzle_31,
-    ],
-}
-
-
-def _gemm_template_heuristics(gemm_kinds, shape_desc, core_num, dtype):
-    if len(gemm_kinds) < 2:
-        return gemm_kinds
-
-    M, N, K, _ = shape_desc
-    _threshold1 = 4096
-    _threshold2 = 2048
-    _default_ksplit_tile = (256, 256, 128, 32)
-    res = []
-    if K > _threshold2:
-        # prefer k-split template
-        num_task = math.ceil(M / _default_ksplit_tile[0]) * math.ceil(
-            N / _default_ksplit_tile[1]
-        )
-        if num_task <= (0.5 * core_num):
-            res.append(GemmKind.MultiCoreSplitkMatmulTla)
-        elif num_task <= (0.9 * core_num) or (num_task % core_num) <= (0.9 * core_num):
-            res.append(GemmKind.StreamkMatmulTla)
-        if num_task > core_num and num_task < (1.5 * core_num):
-            res.append(GemmKind.TailMultiCoreSplitkMatmulTla)
-    if K < _threshold1:
-        res.append(GemmKind.BasicMatmulTla)
-
-    return res
+def _is_support_tile_autotune(kernel):
+    return kernel.slice_axis != "K" and "GroupedMatmul" not in kernel.gen_kernel_name()
 
 
 def may_adjust_l1_tileshape(dtype_size, l1_m, l1_n, l1_k, l1_stages=2, l1_size=1 << 19):
@@ -173,24 +38,9 @@ class Config:
 class TileAutotune:
 
     _supported_archs = [
-        ArchType.A2,
-        ArchType.A5,
+        Arch.AtlasA2,
+        Arch.AtlasA5,
     ]
-
-    _l1_l0_stages = {
-        DispatchPolicyType.MmadPreloadAsyncWithCallback_12221EUnitFlagEShuffleK: (
-            2,
-            2,
-            2,
-            1,
-        ),
-        DispatchPolicyType.MmadPreloadAsyncWithCallback_12221EUnitFlagDShuffleK: (
-            2,
-            2,
-            2,
-            1,
-        ),
-    }
 
     def __init__(self, arch_type):
         self.arch_type = arch_type
@@ -208,14 +58,14 @@ class TileAutotune:
                 f"Unknown arch type to get specific tile size: {arch_type}."
                 f"Will use the default tile size to generate tile configs."
             )
-            arch_type = ArchType.A2
+            arch_type = Arch.AtlasA2
 
-        if arch_type == ArchType.A2:
+        if arch_type == Arch.AtlasA2:
             self.L1Size = 512 * 1024
             self.L0CSize = 128 * 1024
             self.L0ASize = 64 * 1024
             self.L0BSize = 64 * 1024
-        if arch_type == ArchType.A5:
+        if arch_type == Arch.AtlasA5:
             self.L1Size = 512 * 1024
             self.L0CSize = 256 * 1024
             self.L0ASize = 64 * 1024
@@ -225,7 +75,13 @@ class TileAutotune:
     def floor_power_of_2(n):
         if n <= 1:
             return n
-        return 1 << (n.bit_length() - 1)
+        try:
+            return 1 << (n.bit_length() - 1)
+        except AttributeError:
+            import sympy
+            
+            exp = sympy.floor(sympy.log(n, 2))
+            return 2 ** exp
 
     @staticmethod
     def align_down(n, alignment=16):
@@ -333,7 +189,7 @@ class TileAutotune:
             return a * b <= self.aicCoreNum and tile_config[2] >= K
 
         filter_funcs = {
-            DispatchPolicyType.MmadMultiBatch: filter_mmad_multi_batch,
+            MmadMultiBatch: filter_mmad_multi_batch,
         }
         if dispatch_policy not in filter_funcs:
             return configs
@@ -341,11 +197,11 @@ class TileAutotune:
         filter_func = filter_funcs[dispatch_policy]
         return [cfg for cfg in configs if filter_func(cfg)]
 
-    def gen_tile_configs(self, op_kind, dispatch_policy, dtype_size, shape_desc):
-        if dispatch_policy in self._l1_l0_stages:
-            self.L1Stages, self.L0AStages, self.L0BStages, self.L0CStages = (
-                self._l1_l0_stages[dispatch_policy]
-            )
+    def gen_tile_configs(self, dispatch_policy, dtype_size, shape_desc):
+        self.L1Stages = dispatch_policy.l1a_stages
+        self.L0AStages = dispatch_policy.l0a_stages
+        self.L0BStages = dispatch_policy.l0b_stages
+        self.L0CStages = dispatch_policy.l0c_stages
 
         L1Size = self.L1Size // self.L1Stages
         L0CSize = self.L0CSize // self.L0CStages
@@ -381,7 +237,7 @@ class TileAutotune:
                 else:
                     BLOCK_M, BLOCK_N = BLOCK_max_mn, BLOCK_min_mn
 
-                if dispatch_policy == DispatchPolicyType.MmadMultiBatch:
+                if isinstance(dispatch_policy, MmadMultiBatch):
                     # this policy need l1_k == l0_k
                     configs.add((BLOCK_M, BLOCK_N, SUB_BLOCK_K, SUB_BLOCK_K))
                 else:
@@ -401,7 +257,7 @@ class TileAutotune:
         ):
             add_block_sizes_to_configs(BLOCK_min_mn)
 
-        if dispatch_policy != DispatchPolicyType.MmadMultiBatch:
+        if not isinstance(dispatch_policy, MmadMultiBatch):
             # Tile heuristics to decrease the number of tile configs
             configs = self.tile_heuristics(shape_desc, configs)
 
@@ -414,98 +270,89 @@ class TileAutotune:
 class GemmAutotune:
     def __init__(self, arch_type):
         self.arch_type = arch_type
-        self.tile_autotune = (TileAutotune(arch_type))
-        if self.arch_type == ArchType.A2:
-            self._default_tile_descs = _a2_default_tile_descs
-        elif self.arch_type == ArchType.A5:
-            self._default_tile_descs = _a5_default_tile_descs
-        else:
-            # use A2's tiling as default tiling
-            self._default_tile_descs = _a2_default_tile_descs
+        self.tile_autotune = TileAutotune(arch_type)
         self.caches = {}
 
-    def gen_configs(self, op_kind, dispatch_policy, dtype, shape_desc):
-        dtype_size = DataTypeSize[dtype] // 8
+    def gen_configs(self, kernel, dispatch_policy, dtype, shape_desc):
+        dtype_size = dtype.data_size()
+        op_kind = type(kernel)
 
         key = (op_kind, dtype_size, dispatch_policy, shape_desc)
         if key in self.caches:
             return self.caches[key]
 
         tile_cfgs = self._get_tile_configs(
-            op_kind, dispatch_policy, dtype_size, shape_desc
+            kernel, dispatch_policy, dtype_size, shape_desc
         )
-        blk_swizzle_cfgs = self._get_swizzle_configs(op_kind, shape_desc, True)
 
-        cfgs = []
-        for tile_desc in tile_cfgs:
-            for blk_swizzle in blk_swizzle_cfgs:
-                cfgs.append(Config(tile_desc, blk_swizzle))
+        self.caches[key] = tile_cfgs
+        return tile_cfgs
 
-        self.caches[key] = cfgs
-        return cfgs
 
+    def set_l1_tile(self, tile, new_l1_tile):
+        # 1st element of tile is l1_tile, 2nd element of tile is l0_tile
+        tile[0].m = new_l1_tile[0]
+        tile[0].n = new_l1_tile[1]
+        tile[0].k = new_l1_tile[2]
+        # the new l1k may be less than l0k
+        if tile[1].k > tile[0].k:
+            tile[1].k = tile[0].k
+
+    
     def may_adjust_l1_tile_for_bias(self, dtype_size, tile):
         # default l1 stages & size
         l1_stages = 2
         l1_size = 1 << 19  # 512k
-        l1_stages = self.tile_autotune.L1Stages
-        l1_size = self.tile_autotune.L1Size
+        if self.tile_autotune:
+            l1_stages = self.tile_autotune.L1Stages
+            l1_size = self.tile_autotune.L1Size
 
+        l1_tile = tile[0]
         new_l1_tile = may_adjust_l1_tileshape(
-            dtype_size, *tuple(tile.l1_tile_shape), l1_stages=l1_stages, l1_size=l1_size
+            dtype_size, l1_tile.m, l1_tile.n, l1_tile.k, l1_stages=l1_stages, l1_size=l1_size
         )
-        tile.set_l1_tile(new_l1_tile)
+        self.set_l1_tile(tile, new_l1_tile)
 
-    def _get_tile_configs(self, op_kind, dispatch_policy, dtype_size, shape_desc):
+    def _get_tile_configs(self, kernel, dispatch_policy, dtype_size, shape_desc):
         if (
-            shape_desc is not None
-            and _is_support_tile_autotune(op_kind)
+            self.tile_autotune is not None
+            and shape_desc is not None
+            and _is_support_tile_autotune(kernel)
         ):
             res = self.tile_autotune.gen_tile_configs(
-                op_kind, dispatch_policy, dtype_size, shape_desc
+                dispatch_policy, dtype_size, shape_desc
             )
         else:
-            res = self._default_tile_descs.get(
-                op_kind, self._default_tile_descs["default"]
-            )[dtype_size]
+            res = []
         # may adjust l1 tile if has bias
-        # bias_type 0: no bias; 1: (n,) bias; 2: (m, n) bias
-        if shape_desc[-1] == 1:
+        if shape_desc[-1]:
             for tile_desc in res:
                 self.may_adjust_l1_tile_for_bias(dtype_size, tile_desc)
         return res
-
-    def _get_swizzle_configs(self, op_kind, shape_desc, use_heuristics=True):
-        if use_heuristics:
-            M, N, _, _ = shape_desc
-            swizzles = _default_block_swizzles.get(
-                op_kind, _default_block_swizzles["default"]
-            )
-            if M > N or len(swizzles) < 2:
-                return swizzles[::2]
-            else:
-                return swizzles[1::2]
-
-        return _default_block_swizzles.get(op_kind, _default_block_swizzles["default"])
 
 
 def get_gemm_autotune(arch_type=None):
     if not hasattr(get_gemm_autotune, "instance"):
         if arch_type is None:
-            arch_type = ArchType.A2
+            arch_type = Arch.AtlasA2
         get_gemm_autotune.instance = GemmAutotune(arch_type)
     return get_gemm_autotune.instance
 
 
-def generate_configs(arch_type, op_kind, dispatch_policy, data_type, shape_desc):
+def generate_configs(arch_type, kernel):
     autotune = get_gemm_autotune(arch_type)
-    return autotune.gen_configs(op_kind, dispatch_policy, data_type, shape_desc)
+    dispatch_policy = kernel.get_dispatch_policy()[0] # currently using the first default policy, may expand in future.
+    data_type = kernel.element_A
+    shape_desc = (kernel.M, kernel.N, kernel.K, kernel.layout_Bias)
+    return autotune.gen_configs(kernel, dispatch_policy, data_type, shape_desc)
 
 
 # Fragile, we suppose this func is called after generate_configs
 # since bias can be fused in scheduling, we cannot know it in advance
 def may_adjust_l1_tile_for_bias(op, arch_type=None):
+    from catlass_cppgen.common.data_type import DataType
+
     autotune = get_gemm_autotune(arch_type)
-    element = op.C.element if op.C.element != DataType.void else op.A.element
-    dtype_size = DataTypeSize[element] // 8
-    autotune.may_adjust_l1_tile_for_bias(dtype_size, op.tile_description)
+    element = op.element_Bias if op.element_Bias != DataType.UNDEFINED else op.element_A
+    dtype_size = op.element_A.data_size()
+    autotune.may_adjust_l1_tile_for_bias(dtype_size, [op.l1_tile_shape, op.l0_tile_shape])

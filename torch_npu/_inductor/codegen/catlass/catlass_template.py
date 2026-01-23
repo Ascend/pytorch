@@ -24,12 +24,6 @@ from ...autotune_process import CATLASSBenchmarkRequest
 log = logging.getLogger("torch._inductor")
 
 
-@dataclass(frozen=True)
-class ArgInfo:
-    name: str
-    ty: str
-
-
 class CATLASSTemplate(KernelTemplate):
     """
     CATLASSTemplate is a class that provides a template for generating CATLASS Templates. Used as a baseclass for the
@@ -52,11 +46,11 @@ class CATLASSTemplate(KernelTemplate):
         self.layout = layout
 
     @staticmethod
-    def is_mixed_template(op: "GemmOperation") -> bool:
+    def is_mixed_template(op: "GemmKernelBase") -> bool:
         return False
 
     @staticmethod
-    def epilogue_fusion_type(op: "GemmOperation") -> int:
+    def epilogue_fusion_type(op: "GemmKernelBase") -> int:
         return 0
 
     def generate(  # type: ignore[override]
@@ -172,11 +166,6 @@ class CATLASSTemplate(KernelTemplate):
                 #include <acl/acl.h>
                 #include <runtime/rt_ffts.h>
                 #include <tiling/platform/platform_ascendc.h>
-
-                #include "catlass/catlass.hpp"
-                #include "catlass/arch/arch.hpp"
-                #include "catlass/layout/layout.hpp"
-                #include "catlass/status.hpp"
             """
         )
         return res
@@ -231,23 +220,13 @@ class CATLASSTemplate(KernelTemplate):
         )
         return res
 
-    _DTYPE_TO_CATLASS = {
-        torch.float32: "float",
-        torch.float64: "double",
-        torch.float16: "half",
-        torch.int32: "int32_t",
-        torch.int16: "int16_t",
-        torch.int8: "int8_t",
-        torch.uint8: "uint8_t",
-        torch.bool: "bool",
-        torch.bfloat16: "bfloat16_t",
-    }
 
     def catlass_type_cast(self, node: IRNode, ptr: str) -> str:
         if node is None:
             return ptr
         else:
             return f"(uint8_t*)({ptr})"
+    
 
     def render(self, **kwargs) -> str:
         raise NotImplementedError
