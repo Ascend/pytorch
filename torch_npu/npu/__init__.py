@@ -139,6 +139,7 @@ from multiprocessing.util import register_after_fork as _register_after_fork
 import traceback
 import threading
 import os
+import re
 import torch
 from torch.storage import _LegacyStorage, _warn_typed_storage_removal
 from torch._utils import classproperty
@@ -487,11 +488,51 @@ def mem_get_info(device=None):
 
 
 def get_device_capability(device=None):
-    r"""Query the minor and major data of device. Cann does not
-    have a corresponding concept and is not supported. By default, it returns None
+    r"""Query the minor and major data of device.
+
+    This function can be configured via the TORCH_NPU_DEVICE_CAPABILITY environment variable. 
+    The format should be "major.minor", e.g., "9.0" or "8.0".
+
+    .. note::
+        The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+
+    Args:
+        device (torch.device or int, optional): The device parameter has no practical meaning.
+
+    Returns:
+        tuple(int, int): the device capability of the device. Returns the tuple(major, minor) configured via 
+        TORCH_NPU_DEVICE_CAPABILITY, or None if TORCH_NPU_DEVICE_CAPABILITY not configured.
+
+    Example:
+        >>> print(torch_npu.npu.get_device_capability())
+        None
+        >>> os.environ['TORCH_NPU_DEVICE_CAPABILITY'] = '8.0'
+        >>> print(torch_npu.npu.get_device_capability())
+        (8, 0)
+        >>> print(torch_npu.npu.get_device_capability(0))
+        (8, 0)
     """
-    warnings.warn("torch.npu.get_device_capability isn't implemented!")
-    return None
+    capability_env = os.getenv("TORCH_NPU_DEVICE_CAPABILITY")
+    warning_str = "The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device."
+    if not capability_env:
+        warnings.warn(f"You cann set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+        return None
+
+    # Validate the format of the environment variable, expected format is 'major.minor' where major and minor are non-negative integers (e.g., '8.0')
+    pattern = r'^(\d+)\.(\d+)$'
+    match = re.match(pattern, capability_env)
+    if not match:
+        warnings.warn(
+            f"torch.npu.get_device_capability can't parse TORCH_NPU_DEVICE_CAPABILITY environment variable: {capability_env}. "
+            "Expected format is 'major.minor' where major and minor are non-negative integers (e.g., '8.0')."
+        )
+        return None
+    
+    warnings.warn(warning_str)
+    major_str, minor_str = match.groups()
+    major = int(major_str)
+    minor = int(minor_str)
+    return (major, minor)
 
 
 def utilization(device=None):
