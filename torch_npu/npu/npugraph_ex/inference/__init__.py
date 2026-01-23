@@ -6,7 +6,7 @@ def cache_compile(func, *, dynamic: bool = True, cache_dir=None, global_rank=Non
     from torchair.configs import npugraphex_config
 
     compile_config = torchair.CompilerConfig()
-    compile_config.mode = "reduce-overhead"
+    compile_config.mode = "npugraph_ex"
     npugraphex_config._process_kwargs_options(compile_config, kwargs)
     return torchair.inference.cache_compile(func, config=compile_config, dynamic=dynamic, cache_dir=cache_dir,
                                             global_rank=global_rank, tp_rank=tp_rank, pp_rank=pp_rank, **kwargs)
