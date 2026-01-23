@@ -4,6 +4,7 @@ import collections
 import multiprocessing
 import threading
 import sys
+import os
 from subprocess import check_output
 
 import torch
@@ -87,6 +88,29 @@ class TorchNPUDeviceTestCase(TestCase):
         device = torch_npu.npu.device("npu")
         res = torch_npu.npu.get_device_capability(device)
         self.assertEqual(res, None)
+
+    def test_npu_get_device_capability_env_var(self):
+        old_value = os.environ.get("TORCH_NPU_DEVICE_CAPABILITY")
+        try:
+            os.environ["TORCH_NPU_DEVICE_CAPABILITY"] = "9.0"
+            res = torch_npu.npu.get_device_capability()
+            self.assertEqual(res, (9, 0))
+            
+            os.environ["TORCH_NPU_DEVICE_CAPABILITY"] = "8.0"
+            res = torch_npu.npu.get_device_capability(0)
+            self.assertEqual(res, (8, 0))
+            device = torch_npu.npu.device("npu")
+            res = torch_npu.npu.get_device_capability(device)
+            self.assertEqual(res, (8, 0))
+            
+            os.environ["TORCH_NPU_DEVICE_CAPABILITY"] = "8.a"
+            res = torch_npu.npu.get_device_capability()
+            self.assertEqual(res, None)
+        finally:
+            if old_value is None:
+                os.environ.pop("TORCH_NPU_DEVICE_CAPABILITY", None)
+            else:
+                os.environ["TORCH_NPU_DEVICE_CAPABILITY"] = old_value
 
     def test_npu_mem_get_info(self):
         before_free_memory, before_total_memory = torch_npu.npu.mem_get_info(0)
