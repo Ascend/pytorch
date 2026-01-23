@@ -508,11 +508,6 @@ class NPUIndexTritonKernel(TritonKernel):
         pass
 
     def initialize_range_tree(self, pid_cache):
-        for k, x in self.numels.items():
-            if not isinstance(x, sympy.Integer):
-                x = x.subs(V.graph.sizevars.var_to_val)
-                self.numels[k] = x
-
         no_r_dim = not self.inside_reduction or self.numels["r"] == 1
         prefixes = "wvtzyxr"
         active_prefixes = prefixes[-len(self.numels):]
@@ -902,7 +897,7 @@ class NPUIndexTritonKernel(TritonKernel):
 
         def codegen_range(index):
             def is_1d_reduction():
-                return self.numels["r"] > 1 and len(self.numels) == 1
+                return V.graph.sizevars.statically_known_gt(self.numels["r"], 1) and len(self.numels) == 1
 
             def loop_body(index, indexing_code, is_last_axis, do_indent=True):
                 if do_indent:
@@ -1787,7 +1782,7 @@ class NPUIndexTritonKernel(TritonKernel):
         def add_range(i, expr):
             expr = sv.simplify(expr)
             if not sv.statically_known_multiple_of(remaining[i], expr):
-                raise CantSplit()
+                raise CantSplit
             # guard on the last item out
             remaining[i] = FloorDiv(remaining[i], expr)
             new_ranges[i].append(expr)
@@ -1816,17 +1811,21 @@ class NPUIndexTritonKernel(TritonKernel):
             # Two checks:
             # 1. remaining sizes to be merged
             # 2. remained_size is already divided to 1
-            while (group < len(remaining) and remaining[group] > 1) and (remained_size > 1):
+            while (
+                group < len(remaining)
+                and sv.statically_known_gt(remaining[group], 1)
+                and sv.statically_known_gt(remained_size, 1)
+            ):
                 group_size = remaining[group]
                 # size should be divisible by group_size
                 if not sv.statically_known_multiple_of(remained_size, group_size):
-                    raise CantSplit()
+                    raise CantSplit
                 index_list.append(add_range(group, group_size))
                 remained_size = FloorDiv(remained_size, group_size)
                 stride_list.append(remained_size)
                 group = group + 1
             if remained_size != 1:
-                raise CantSplit()
+                raise CantSplit
             return_getters.append(make_combined(stride_list, index_list))
 
         return_getters_groups = []
@@ -1836,22 +1835,21 @@ class NPUIndexTritonKernel(TritonKernel):
             return_getters = []
             for size in length_group:
                 if sv.statically_known_equals(size, 1):  # type: ignore[arg-type]
-                    return_getters.append(lambda _: sympy.Integer(0))
+                    return_getters.append(lambda _: sympy.S.Zero)
                     continue
 
                 while (
-                        current_group < len(remaining)
-                        and size_hints(remaining[current_group]) == 1
+                    current_group < len(remaining)
+                    and sv.statically_known_equals(remaining[current_group], 1)
                 ):
                     # scroll to next group with remaining elements
                     current_group += 1
-                size_hint = sv.size_hint(size)
-                if size_hint > size_hints(remaining[current_group]):
+                if sv.statically_known_gt(size, remaining[current_group]):
                     # add multiple ranges (two or more) to the list, as well as the getter funcs
-                    add_multiple_range(size_hint, return_getters)
+                    add_multiple_range(size, return_getters)
                 else:
                     return_getters.append(
-                        operator.itemgetter(add_range(current_group, size_hint))
+                        operator.itemgetter(add_range(current_group, size))
                     )
             return_getters_groups.append(return_getters)
 
