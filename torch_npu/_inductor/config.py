@@ -162,7 +162,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-aggresive_autotune = os.getenv("INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE", '1').lower() in ('1', 'true')
+aggresive_autotune = os.getenv("INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE", '0').lower() in ('1', 'true')
 inductor_static_mode = os.environ.get('INDUCTOR_STATIC_MODE', '0').lower() in ('1', 'yes', 'true')
 profile_path = "./profile_result/"
 
@@ -188,15 +188,6 @@ def set_compile_threads():
         torchinductor_compile_threads = int(os.environ["TORCHINDUCTOR_COMPILE_THREADS"])
         if torchinductor_compile_threads == 1:
             return
-        log.warning(f"TORCHINDUCTOR_COMPILE_THREADS is set to {torchinductor_compile_threads}, "
-                    "but currently only support 1. It will be modified to 1.")
-
-    os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
-    torch._inductor.config.compile_threads = 1
-
-    def get_env_num_workers():
-        return 1
-    torch._inductor.select_algorithm.get_env_num_workers = get_env_num_workers
 
 
 def disable_comprehensive_padding():

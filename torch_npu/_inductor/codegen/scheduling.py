@@ -210,6 +210,8 @@ class NPUTritonScheduling(TritonScheduling):
                 if config.triton.descriptive_names
                 else ""
             )
+            if len(fused_name) > 35:
+                fused_name = fused_name[0:35]
             kernel_category = get_kernel_category_by_source_code(src_code)[:3]
             kernel_name = "_".join(
                 ["triton", kernel_category, fused_name, wrapper.next_kernel_suffix()]

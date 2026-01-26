@@ -1397,8 +1397,8 @@ class NPUIndexTritonKernel(TritonKernel):
 
         def final_reduction(value):
             module = "tl"  # use tl
-            if reduction_type in {"max", "min"}:
-                return self.reduction_resize(f"{module}.{reduction_type}({value}, {dim})", dim)
+            if reduction_type in {"max"}:
+                return self.reduction_resize(f"{module}.{reduction_type}({value}, {dim}, propagate_nan=True)", dim)
             return self.reduction_resize(f"{module}.{reduction_type}({value}, {dim})", dim)
 
         def final_argreduce(buffer, result_var, value, index):

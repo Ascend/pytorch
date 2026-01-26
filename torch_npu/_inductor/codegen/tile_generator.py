@@ -34,9 +34,9 @@ class TileGenerator:
 
         self.max_total_numel = functools.reduce(lambda x, y: x * y, self.blocks) if self.blocks else 1
         self.tiny_kernel = self.max_total_numel < 128 * 1024
-        self.stop_numel = min(1024 // self.dtype_bytes, self.max_total_numel // (config.num_vector_core * 2))
         self.input_ptr_num = 3 if input_ptr_num == 0 else min(input_ptr_num, 3)
-        self.max_numel_threshold = 256 // self.input_ptr_num * 1024
+        self.max_numel_threshold = 256 // self.input_ptr_num * 1024 // self.dtype_bytes
+        self.stop_numel = min(self.max_numel_threshold, self.max_total_numel // (config.num_vector_core * self.dtype_bytes)) // 8
         for axis, name in enumerate(self.axis_name):
             if axis not in tiling_axis and axis not in split_axis:
                 self.blocks[axis] = 1
@@ -50,6 +50,14 @@ class TileGenerator:
         self.program_threshold = config.num_vector_core // 8 if self.tiny_kernel else config.num_vector_core // 2
         self.program_threshold = 0 if self.max_total_numel < 128 else self.program_threshold
         self.npu_kernel_type = npu_kernel_type
+        self.real_tiling_axis = []
+        for tiling_axis in self.tiling_axis:
+            if tiling_axis in self.no_loop_axis:
+                continue
+            if self.axis_name[tiling_axis][0] == "r" and self.persistent_reduction:
+                continue
+            self.real_tiling_axis.append(tiling_axis)   
+        self.split_axis_num = len(self.split_axis)
 
     def reset_configs(self):
         self.config = []
@@ -60,6 +68,14 @@ class TileGenerator:
             if axis not in self.tiling_axis and axis not in self.split_axis:
                 self.blocks[axis] = 1
                 self.sub_blocks[axis] = 1
+        self.real_tiling_axis = []
+        for tiling_axis in self.tiling_axis:
+            if tiling_axis in self.no_loop_axis:
+                continue
+            if self.axis_name[tiling_axis][0] == "r" and self.persistent_reduction:
+                continue
+            self.real_tiling_axis.append(tiling_axis)   
+        self.split_axis_num = len(self.split_axis)
 
     def calcu_last_split_blocks(self, axis):
         splits = 1
@@ -82,14 +98,18 @@ class TileGenerator:
         return aligned
 
     def valid_tile_numel(self, total_numel):
-        byte_num = self.dtype_bytes
-        max_numel = self.max_numel_threshold // byte_num
+        max_numel = self.max_numel_threshold
         return total_numel <= max_numel
 
     def calculate_config_numel(self, cfg):
         total_numel = 1
-        for axis in self.tiling_axis:
-            total_numel = total_numel * cfg[self.sub_block_name[axis]]
+        for i, sub_block in enumerate(self.sub_blocks):
+            sub_block_name = self.sub_block_name.get(i, "")
+            config_sub_block = cfg.get(sub_block_name, None)
+            if config_sub_block is None:
+                total_numel = total_numel * sub_block
+            else:
+                total_numel = total_numel * config_sub_block
         return total_numel
 
     def calculate_total_numel(self):
@@ -97,8 +117,8 @@ class TileGenerator:
 
         def calculate_total_numel_candi(blocks):
             total_numel = 1
-            for axis in self.tiling_axis:
-                total_numel = total_numel * self.sub_blocks[axis]
+            for axis in self.sub_blocks:
+                total_numel = total_numel * axis
             return total_numel
 
         for candi_blocks in self.candidate_blocks:
@@ -152,7 +172,61 @@ class TileGenerator:
         for x in self.low_dims:
             self.sub_blocks[x] = restore_sub_blocks[x]
 
-    def descend_one_axis(self, axis, is_split=False):
+    def descend_tiling_axis(self, axis):
+        def calc_total_programs():
+            grids = []
+            for axis in self.split_axis:
+                numel = self.numels[axis]
+                block_size = self.blocks[axis]
+                programs = (numel + block_size - 1) // block_size
+                grids.append(programs)
+
+            total_programs = functools.reduce(lambda x, y: x * y, grids) if grids else 1
+            return total_programs
+
+        reached_stop_numel = False
+
+        while True:
+            if axis in self.real_tiling_axis:
+                do_tiling_axis_index = self.real_tiling_axis.index(axis)
+                if do_tiling_axis_index + 1 < len(self.real_tiling_axis):
+                    tmp_block = copy.deepcopy(self.blocks)
+                    tmp_sub_block = copy.deepcopy(self.sub_blocks)
+                    self.descend_tiling_axis(self.real_tiling_axis[do_tiling_axis_index + 1])
+                    self.blocks = tmp_block
+                    self.sub_blocks = tmp_sub_block
+
+            for candi_block in self.candidate_blocks:
+                if self.add_to_configs(candi_block):
+                    self.desecnd_all_low_dims_with_all_blocks()
+
+            if not self.candidate_blocks:
+                if self.add_to_configs(self.blocks):
+                    self.desecnd_all_low_dims_with_all_blocks()
+
+            # tile numel reached threshold
+            total_numel = self.calculate_total_numel()
+            if total_numel <= self.stop_numel:
+                if self.add_to_configs(self.blocks):
+                    self.desecnd_all_low_dims_with_all_blocks()
+                reached_stop_numel = True
+                break
+
+            numel = self.sub_blocks[axis]
+            if numel == 1:
+                if self.add_to_configs(self.blocks):
+                    self.desecnd_all_low_dims_with_all_blocks()
+                break
+
+            if numel >= 32:
+                self.sub_blocks[axis] = next_power_of_2(numel // 2)
+
+            else:  # numel < 32 :
+                numel = self.sub_blocks[axis]
+                self.sub_blocks[axis] = numel - 1
+        return reached_stop_numel
+
+    def descend_split_axis_inner(self, axis_index):
         def calc_total_programs():
             grids = []
             for axis in self.split_axis:
@@ -166,8 +240,15 @@ class TileGenerator:
 
         reached_stop_numel = False
         slow_decend_split = False
-
+        axis = self.split_axis[axis_index]
         while True:
+            if axis_index + 1 < self.split_axis_num and not slow_decend_split:
+                tmp_block = copy.deepcopy(self.blocks)
+                tmp_sub_block = copy.deepcopy(self.sub_blocks)
+                self.descend_split_axis_inner(axis_index + 1)
+                self.blocks = tmp_block
+                self.sub_blocks = tmp_sub_block
+
             for candi_block in self.candidate_blocks:
                 if self.add_to_configs(candi_block):
                     self.desecnd_all_low_dims_with_all_blocks()
@@ -180,46 +261,48 @@ class TileGenerator:
                 reached_stop_numel = True
                 break
 
-            numel = self.blocks[axis] if is_split else self.sub_blocks[axis]
+            numel = self.blocks[axis]
             if numel == 1:
-                self.add_to_configs(self.blocks)
+                if self.add_to_configs(self.blocks):
+                    self.desecnd_all_low_dims_with_all_blocks()
                 break
 
-            if is_split:
-                if self.persistent_reduction and self.axis_name[axis][0] == "r":
-                    reached_stop_numel = True
-                    break
-                total_programs = calc_total_programs()
-                if total_programs > config.num_vector_core:
-                    last_blocks = self.calcu_last_split_blocks(axis)
-                    if last_blocks != self.blocks[axis]:
-                        self.blocks[axis] = last_blocks
-                        self.candidate_blocks.append(tuple(self.blocks))
-                    break
-                if total_programs > self.program_threshold or self.dual_reduction:
-                    if len(self.candidate_blocks) > 2:
-                        self.candidate_blocks.pop(0)
+            if self.persistent_reduction and self.axis_name[axis][0] == "r":
+                reached_stop_numel = True
+                break
+            total_programs = calc_total_programs()
+            if total_programs > config.num_vector_core:
+                last_blocks = self.calcu_last_split_blocks(axis)
+                if last_blocks != self.blocks[axis]:
+                    self.blocks[axis] = last_blocks
+                if tuple(self.blocks) not in self.candidate_blocks:
                     self.candidate_blocks.append(tuple(self.blocks))
-                    if self.tiny_kernel:
-                        self.add_to_configs(list(tuple(self.blocks)))
-                    slow_decend_split = (total_programs > config.num_vector_core // 2)
+                    self.add_to_configs(self.candidate_blocks[-1])
+                break
 
-                if not slow_decend_split:
-                    self.blocks[axis] = numel // 2
-                    self.sub_blocks[axis] = self.blocks[axis]
-                else:
-                    step = numel // 4 if numel // 4 > 1 else 1
-                    self.blocks[axis] = numel - step
-                    self.sub_blocks[axis] = self.blocks[axis]
-                total_programs = calc_total_programs()
-                if self.blocks[axis] == 1 and (total_programs > self.program_threshold or self.dual_reduction):
+            if total_programs > self.program_threshold or self.dual_reduction:
+                if len(self.candidate_blocks) > 2:
+                    self.candidate_blocks.pop(0)
+                if tuple(self.blocks) not in self.candidate_blocks:
                     self.candidate_blocks.append(tuple(self.blocks))
+                if self.tiny_kernel:
+                    self.add_to_configs(list(tuple(self.blocks)))
+                slow_decend_split = (total_programs > config.num_vector_core // 2)
+
+            if not slow_decend_split:
+                self.blocks[axis] = numel // 2
+                self.sub_blocks[axis] = self.blocks[axis]
+
             else:
-                if numel >= 32:
-                    self.sub_blocks[axis] = next_power_of_2(numel // 2)
-                else:  # numel >4 and numel < 128 :
-                    numel = self.sub_blocks[axis]
-                    self.sub_blocks[axis] = numel - 1
+                step = numel // 4 if numel // 4 > 1 else 1
+                self.blocks[axis] = numel - step
+                self.sub_blocks[axis] = self.blocks[axis]
+
+            total_programs = calc_total_programs()
+            if self.blocks[axis] == 1 and (total_programs > self.program_threshold or self.dual_reduction) and tuple(
+                    self.blocks) not in self.candidate_blocks:
+                self.candidate_blocks.append(tuple(self.blocks))
+
         return reached_stop_numel
 
 
@@ -295,8 +378,8 @@ class TileGenerator:
 
         def descend_split_axis():
 
-            for axis in self.split_axis:
-                if self.descend_one_axis(axis, is_split=True):
+            for axis_index in range(len(self.split_axis)):
+                if self.descend_split_axis_inner(axis_index):
                     return True
 
             total = self.calculate_total_numel()
@@ -309,11 +392,10 @@ class TileGenerator:
                 if axis in self.no_loop_axis:
                     continue
 
-                if self.descend_one_axis(axis):
+                if self.descend_tiling_axis(axis):
                     return True
             total = self.calculate_total_numel()
             return total <= self.stop_numel
-
 
         while True:
             # descend split axis
@@ -328,5 +410,4 @@ class TileGenerator:
             self.descend_all_low_dims()
             break
         self.add_extra_options()
-
         return self.configs

@@ -102,7 +102,7 @@ compile_thread_pool = CompileThreadPool()
 
 
 @contextmanager
-def create_profiler(torch_path):
+def create_profiler(torch_path, wait=0, warmup=1, active=1, repeat=1, skip_first=1):
     experimental_config = torch_npu.profiler._ExperimentalConfig(
         aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone,
         profiler_level=torch_npu.profiler.ProfilerLevel.Level0, )
@@ -112,7 +112,7 @@ def create_profiler(torch_path):
             record_shapes=False,
             profile_memory=False,
             with_stack=False,
-            schedule=torch_npu.profiler.schedule(wait=0, warmup=1, active=1, repeat=1, skip_first=1),
+            schedule=torch_npu.profiler.schedule(wait=wait, warmup=warmup, active=active, repeat=repeat, skip_first=skip_first),
             on_trace_ready=simple_trace_handler(profile_path),
             experimental_config=experimental_config) as prof:
         yield prof
@@ -209,6 +209,15 @@ class GridNpu(GridExpr):
         self.z_grid = grid_fn(2)
 
 
+def is_namedtuple_isinstance(obj):
+    return (
+        isinstance(obj, tuple) and 
+        hasattr(obj, '_fields') and 
+        hasattr(obj, '_asdict') and 
+        callable(getattr(obj, '_asdict'))
+    )
+
+
 class GridExprNpu(GridExpr):
     @staticmethod
     def from_meta_and_set_numel(
@@ -281,7 +290,8 @@ class TritonCompileResultNpu(TritonCompileResult):
         binary_shared = (
             binary.shared if hasattr(binary, "shared") else binary.metadata.shared
         )
-
+        if is_namedtuple_isinstance(binary.packed_metadata):
+            binary.packed_metadata = binary.packed_metadata._asdict()
         scope = {
             "grid_meta": cfg.kwargs,
             "bin": binary,
@@ -456,6 +466,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
     ):
         if warm_cache_only:
+            self.kernel_name = self.get_fn_name()
             self._precompile_worker()
             return
         with self.lock:
@@ -494,7 +505,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 exc = e
         if len(compile_results) == 0:
             raise NoTritonConfigsError(
-                f"No valid triton configs. {type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
+                f"No valid triton configs. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
             )
         self.compile_results = compile_results
         self.configs = None
@@ -777,6 +788,8 @@ class NPUCachingAutotuner(CachingAutotuner):
             self.fn_name = self.fn.fn.__name__
         except AttributeError:
             self.fn_name = "unknown"
+            if hasattr(self, 'kernel_name'):
+                self.fn_name = self.kernel_name
         return self.fn_name
 
     def fallback_to_fx(self, *args, launcher, stream, **kwargs):
@@ -1375,12 +1388,6 @@ def _benchmark_all_configs(self, *args, **kwargs):
                 shutil.rmtree(base_path)
 
         stream = torch.npu.current_stream()
-        experimental_config = torch_npu.profiler._ExperimentalConfig(
-            aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone,
-            profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
-            l2_cache=False,
-            data_simplification=False
-        )
 
         random_uuid = uuid.uuid4().hex
         md5_hash = hashlib.md5(random_uuid.encode()).hexdigest()
@@ -1393,18 +1400,7 @@ def _benchmark_all_configs(self, *args, **kwargs):
         REPEAT = 1
         SKIP_FIRST = 1
         TOTAL_STEP = (WAIT + WARMUP + ACTIVE + SKIP_FIRST) * REPEAT
-        with torch_npu.profiler.profile(
-                activities=[
-                    torch_npu.profiler.ProfilerActivity.NPU
-                ],
-                schedule=torch_npu.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT, skip_first=SKIP_FIRST),
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(autotune_path),
-                record_shapes=False,
-                profile_memory=False,
-                with_stack=False,
-                with_flops=False,
-                with_modules=False,
-                experimental_config=experimental_config) as prof:
+        with create_profiler(autotune_path, WAIT, WARMUP, ACTIVE, REPEAT, SKIP_FIRST) as prof:
             stream.synchronize()
             for _ in range(TOTAL_STEP):
                 for fn in tilling_kernel_list:
@@ -1537,6 +1533,7 @@ def precompile_parallel(
             return
 
     if warm_cache_only:
+        self.kernel_name = self.get_fn_name()
         self._precompile_worker_parallel()
         return
 
