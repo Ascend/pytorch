@@ -13,7 +13,7 @@ from torchgen.context import with_native_function, native_function_manager, meth
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
 from torchgen.dest.register_dispatch_key import RegisterDispatchKey
-from codegen.utils import (enable_opplugin, is_op_valid, field_tag, get_opplugin_wrap_name, parse_npu_yaml,
+from torchnpugen.utils import (enable_opplugin, is_op_valid, field_tag, get_opplugin_wrap_name, parse_npu_yaml,
                            gen_op_hook_post_code)
 
 
