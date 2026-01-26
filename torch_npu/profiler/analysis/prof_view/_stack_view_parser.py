@@ -10,7 +10,6 @@ from ..prof_common_func._tree_builder import TreeBuilder
 from ..prof_common_func._file_manager import FileManager
 from ..prof_common_func._log import ProfilerLogger
 from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
-from ..prof_parse._cann_file_parser import CANNFileParser
 from ..prof_parse._fwk_file_parser import FwkFileParser
 from ....utils._path_manager import PathManager
 
@@ -84,9 +83,7 @@ class StackViewParser(BaseParser):
         self._torch_op_node = self._torch_op_node[1:]
 
         if self._metric == Constant.METRIC_NPU_TIME:
-            msprof_timeline_data = CANNFileParser(self._profiler_path).get_timeline_all_data()
-            acl_to_npu_dict = CANNFileParser(self._profiler_path).get_acl_to_npu_data(msprof_timeline_data)
-            self._kernel_dict = FwkCANNRelationParser(self._profiler_path).get_kernel_dict(self._dequeue_data, acl_to_npu_dict)
+            self._kernel_dict = FwkCANNRelationParser(self._profiler_path).get_kernel_dict(self._dequeue_data)
             if not FwkFileParser(self._profiler_path).has_task_queue_data():
                 for acl_ts in self._kernel_dict.keys():
                     TreeBuilder.update_tree_node_info(acl_ts, self._root_node)
