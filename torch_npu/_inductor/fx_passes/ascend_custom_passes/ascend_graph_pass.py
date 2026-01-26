@@ -1,4 +1,5 @@
 import operator
+import math
 import torch
 import torch.fx
 from .register_custom_pass import register_custom_pass
@@ -21,7 +22,6 @@ from ..utils.check_op_util import (
     check_squeeze_op, 
     check_unsqueeze_op, 
     check_where_op,
-    check_embedding_op,
 )
 from ..utils.get_binary_fold_result import (
     get_binary_fold_result, 
@@ -671,38 +671,63 @@ def fold_redundant_ops(graph: torch.fx.Graph):
         if not any_removed:
             break
     eliminate_dead_code(graph, changed, fold_redundant_ops.__name__)
-    
-    
-@register_custom_pass(PassType.POST)     
-def embedding_indice_i64_to_i32_pass(graph: torch.fx.Graph) -> None:
+
+
+@register_custom_pass(PassType.PRE)
+def dtype_optimal_pass(graph: torch.fx.Graph) -> None:
+    int32_min, int32_max = -2**31, 2**31 - 1
+    cast_dtype_limit = [torch.float32, torch.int32, torch.bool, torch.int16, torch.int8]
     changed = False
-    for node in graph.nodes:
-        if not check_embedding_op(node):
-            continue
-        
-        indices_node = None
-        args_id = -1
-        if node.args[0].meta.get('tensor_meta') and node.args[0].meta.get('tensor_meta').dtype == torch.int64:
-            indices_node = node.args[0]
-            args_id = 0
-        elif node.args[1].meta.get('tensor_meta') and node.args[1].meta.get('tensor_meta').dtype == torch.int64:
-            indices_node = node.args[1]
-            args_id = 1
-        
-        if indices_node is not None:
-            with graph.inserting_before(node):
-                new_indices = graph.call_function(
-                    torch.ops.npu._npu_dtype_cast.default,
-                    args=(indices_node,),
-                    kwargs={"dtype": torch.int32}
-                )
-                
-                new_args = list(node.args)
-                new_args[args_id] = new_indices
-                node.args = tuple(new_args)
-                
-            changed = True
-    eliminate_dead_code(graph, changed, embedding_indice_i64_to_i32_pass.__name__)
+    for node in list(graph.nodes):  # 使用list避免修改时迭代问题
+        if node.op == 'call_function' and node.target == torch.arange \
+            and node.kwargs.get('dtype', None) == torch.int64:
+            # 步骤1: 动态提取 start/end/step (处理不同 args 长度)
+            args_len = len(node.args)
+            start = 0
+            end = None
+            step = 1
+            if args_len == 1:
+                end = node.args[0]  # arange(end)
+            elif args_len == 2:
+                start = node.args[0]
+                end = node.args[1]  # arange(start, end)
+            elif args_len >= 3:
+                start = node.args[0]
+                end = node.args[1]
+                step = node.args[2]  # arange(start, end, step)
+            # 合并 kwargs 覆盖 (e.g., 用户指定 kwargs['start'])
+            start = node.kwargs.get('start', start)
+            end = node.kwargs.get('end', end)
+            step = node.kwargs.get('step', step)
+            # 如果 end 为 None，假设无限或跳过 (罕见，但安全)
+            if end is None:
+                continue
+            # 静态范围检查 (所有参数是常量)
+            if all(isinstance(p, (int, float)) for p in [start, step, end]):
+                if step == 0:
+                    continue
+                # 如果 step 非整数且 dtype 是 int，警告 (arange 会自动转为 float)
+                if not isinstance(step, int):
+                    continue
+                # 计算序列长度和 min/max 值
+                num_elements = math.ceil((end - start) / step) if step > 0 else math.ceil((start - end) / -step)
+                seq_min = min(start, start + (num_elements - 1) * step)
+                seq_max = max(start, start + (num_elements - 1) * step)
+                if seq_min > int32_min and seq_max < int32_max:
+                    node.kwargs = {**node.kwargs, 'dtype': torch.int32}
+                    changed = True
+        if node.op == 'call_method':
+            input_node = node.args[0]
+            input_fake = input_node.meta.get('example_value', None) if hasattr(input_node, 'meta') else None
+            input_dtype = input_fake.dtype if input_fake is not None else None
+            target_dtype = node.args[1] if len(node.args) > 1 else node.kwargs.get('dtype', None)
+            if input_dtype in cast_dtype_limit and node.target == 'to' and target_dtype == torch.int64:
+                if len(node.args) > 1:
+                    node.args = (node.args[0], torch.int32)  # 更新 positional dtype
+                else:
+                    node.kwargs = {**node.kwargs, 'dtype': torch.int32}  # 更新 kwargs dtype
+                changed = True
+    eliminate_dead_code(graph, changed, dtype_optimal_pass.__name__)
 
 
 def eliminate_dead_code(graph, changed, fn_name):
