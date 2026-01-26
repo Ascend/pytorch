@@ -6,6 +6,7 @@ from ..prof_common_func._constant import Constant
 from ..prof_common_func._file_manager import FileManager
 from ..prof_common_func._constant import convert_ns2us_float
 from ..prof_common_func._log import ProfilerLogger
+from ..prof_parse._cann_file_parser import CANNFileParser
 from ..prof_parse._fwk_cann_relation_parser import FwkCANNRelationParser
 from ..prof_parse._fwk_file_parser import FwkFileParser
 
@@ -169,14 +170,15 @@ class TraceStepTimeParser(BaseParser):
         try:
             self._init_step_range(deps_data)
             self.torch_op_data = deps_data.get(Constant.TORCH_OP_PARSER, [])
-            self.generate_view(deps_data.get(Constant.CANN_TIMELINE_PARSER, []))
+            self.generate_view()
         except Exception as e:
             self.logger.error("Failed to generate step_trace_time.csv, error: %s", str(e), exc_info=True)
             return Constant.FAIL, None
         self.logger.info("TraceStepTimeParser finish.")
         return Constant.SUCCESS, None
 
-    def generate_view(self, trace_data) -> None:
+    def generate_view(self) -> None:
+        trace_data = CANNFileParser(self._profiler_path).get_timeline_all_data()
         self.create_step_file(self._output_path, trace_data, self.STEP_TRACE)
 
     def _init_step_range(self, deps_data: dict):

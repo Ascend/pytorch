@@ -77,7 +77,7 @@ class TestFileManager(TestCase):
         data2 = {"Height":180, "Addr":"China"}
         output_path = os.path.join(self.tmp_dir, test_file)
         FileManager.create_prepare_trace_json_by_path(output_path, data1)
-        FileManager.append_trace_json_by_path(output_path, data2)
+        FileManager.append_trace_json_by_path(output_path, data2, output_path)
         with open(output_path, 'r') as fp:
             read_data = json.load(fp)
         expect = {**data1, **data2}
