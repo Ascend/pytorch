@@ -9,8 +9,8 @@ import yaml
 from torchgen.code_template import CodeTemplate
 from torchgen.gen import FileManager
 
-from codegen.autograd.utils import VERSION_PART
-from codegen.utils import PathManager
+from torchnpugen.autograd.utils import VERSION_PART
+from torchnpugen.utils import PathManager
 
 project_path = Path(os.path.dirname(__file__)).parent
 op_plugin_info_path = os.path.realpath(os.path.join(
@@ -96,7 +96,7 @@ def gen_ops_info(summary_dict):
     skip_template = CodeTemplate(
         """\n'${op_name}': [${decorators}]"""
     )
-    fm = FileManager(os.path.join("torch_npu", "testing"), os.path.join("codegen", "templates"), False)
+    fm = FileManager(os.path.join("torch_npu", "testing"), os.path.join("torchnpugen", "templates"), False)
 
     fm.write_with_template(f"_npu_testing_utils.py", "npu_testing_utils.py", lambda:{
         "skip_detail": [skip_template.substitute(op_name=op, decorators=doc) for op, doc in skip_list.items()]

@@ -9,8 +9,8 @@ from torchgen.api.autograd import (
 )
 from torchgen.packaged.autograd.load_derivatives import load_derivatives
 
-from codegen.utils import get_torchgen_dir, CUSTOM_YAML_NAME, PathManager
-from codegen.gen_backend_stubs import parse_native_and_custom_yaml
+from torchnpugen.utils import get_torchgen_dir, CUSTOM_YAML_NAME, PathManager
+from torchnpugen.gen_backend_stubs import parse_native_and_custom_yaml
 
 
 AUTOGRAD_BLACK_LIST = {'npu_format_cast.Tensor', 'npu_format_cast_', 'npu_format_cast_.acl_format'}
