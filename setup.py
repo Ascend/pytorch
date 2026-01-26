@@ -30,7 +30,7 @@ from wheel.bdist_wheel import bdist_wheel
 # Disable autoloading before running 'import torch' to avoid circular dependencies
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
 
-from codegen.utils import PathManager
+from torchnpugen.utils import PathManager
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
