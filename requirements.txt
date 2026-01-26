@@ -5,3 +5,4 @@ setuptools
 auditwheel
 
 torch==2.6.0
+-r triton_version.txt

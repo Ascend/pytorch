@@ -185,6 +185,15 @@ def generate_torch_npu_version():
 generate_torch_npu_version()
 
 
+def read_triton_ascend_req():
+    path = os.path.join(BASE_DIR, "triton_version.txt")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return None
+
+
 def which(thefile):
     path = os.environ.get("PATH", os.defpath).split(os.pathsep)
     for d in path:
@@ -823,6 +832,9 @@ classifiers = [
 requirements = ['torch==2.6.0+cpu' if platform.machine() == 'x86_64' else 'torch==2.6.0']
 if USE_CXX11_ABI:
     requirements = ['torch==2.6.0+cpu.cxx11.abi'] if platform.machine() == 'x86_64' else ['torch==2.6.0']
+triton_ascend_req = read_triton_ascend_req()
+if triton_ascend_req is not None:
+    requirements.append(triton_ascend_req)
 
 ext_modules = [CppExtension(
             'torch_npu._C',

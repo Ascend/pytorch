@@ -140,9 +140,24 @@
 3. **安装torch_npu**
 
    ```bash
-   pip3 install torch-npu==2.6.0.post3
+   pip3 install torch-npu==2.6.0.post6
    ```
    如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
+
+4. **无网环境安装torch_npu（可选）**
+
+   默认情况下，使用 `pip install torch_npu` 安装时，pip 会执行依赖解析（dependency resolution），并自动安装 `torch_npu` 所需的依赖包（例如 `torch`、`triton-ascend` 等）。这可以确保在联网环境下开箱即用。
+
+   但在以下场景中，自动依赖安装可能无法进行或并非必要：
+
+   - 无网络/受限网络环境：pip 无法从软件源下载依赖，安装会失败；
+   - 仅需安装 `torch_npu` 本体：希望先完成本体部署，后续再由离线仓库/统一流程补齐依赖。
+
+   此时，可以使用 `--no-deps` 参数安装 `torch_npu` 本体，跳过依赖解析与自动安装流程，从而避免在离线环境中尝试下载 `triton-ascend` 等依赖：
+
+   ```bash
+   pip3 install torch_npu-<version>-<pyver>-<platform>.whl --no-deps
+   ```
 
 ### 使用源代码进行安装
 

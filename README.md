@@ -50,9 +50,25 @@ If the installation fails, use the download link or visit the [PyTorch official 
 
 3. **Install torch-npu**
 
+```bash
+pip3 install torch-npu==2.6.0.post6
 ```
-pip3 install torch-npu==2.6.0.post3
+
+4. **Installing torch_npu in an Offline Environment (Optional)**
+
+By default, when installing with `pip install torch_npu`, pip performs dependency resolution and automatically installs the required packages for `torch_npu` (such as `torch`, `triton-ascend`, etc.). This ensures an out-of-the-box experience in online environments.
+
+However, in the following scenarios, automatic dependency installation might be unavailable or unnecessary:
+
+- No network/restricted network environment: Pip cannot download dependencies from the software repository, causing the installation to fail.
+- Installing only the `torch_npu` package itself: You might want to deploy the main package first and have dependencies fulfilled later via an offline repository or a unified process.
+
+In such cases, you can use the `--no-deps` parameter to install the `torch_npu` package itself, bypassing dependency resolution and automatic installation process. This avoids attempts to download dependencies like `triton-ascend` in offline environments:
+
+```bash
+pip3 install torch_npu-<version>-<pyver>-<platform>.whl --no-deps
 ```
+
 
 ### From Source
 
