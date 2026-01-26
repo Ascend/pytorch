@@ -2,10 +2,10 @@
 To run this file by hand from the root of the PyTorch
 repository, run:
 
-python -m codegen.autograd.gen_autograd \
+python -m torchnpugen.autograd.gen_autograd \
        --npu_native_function_dir="./torch_npu/csrc/aten/npu_native_functions.yaml" \
        --out_dir=$OUTPUT_DIR \
-       --autograd_dir="./codegen/autograd/"
+       --autograd_dir="./torchnpugen/autograd/"
 
 Where $OUTPUT_DIR is where you would like the files to be
 generated.  In the full build system, OUTPUT_DIR is
@@ -24,7 +24,7 @@ import os
 from torchgen.packaged.autograd.gen_inplace_or_view_type import gen_inplace_or_view_type
 from torchgen.packaged.autograd.gen_autograd_functions import gen_autograd_functions_lib
 
-from codegen.utils import get_torchgen_dir, gen_custom_yaml_path
+from torchnpugen.utils import get_torchgen_dir, gen_custom_yaml_path
 from .gen_variable_type import (
     gen_variable_type, gen_variable_type_head
 )
