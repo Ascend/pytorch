@@ -198,7 +198,7 @@ def filt_compositeimplicitautograd_api(native_yaml_path, npu_supported):
     with open(native_yaml_path, 'r') as f:
         es = yaml.safe_load(f)
 
-    from codegen.autograd.utils import TORCH_AUTOGRAD_FUNCTION
+    from torchnpugen.autograd.utils import TORCH_AUTOGRAD_FUNCTION
     supported_autograd = []
     for e in es:
         api_name = e['func'].split('(')[0]

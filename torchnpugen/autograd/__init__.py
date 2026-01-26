@@ -20,8 +20,8 @@ from torchgen.model import (
     TensorOptionsArguments
 )
 from torchgen.api.types import Binding
-from codegen.gen_backend_stubs import parse_native_and_custom_yaml
-from codegen.utils import CUSTOM_YAML_NAME
+from torchnpugen.gen_backend_stubs import parse_native_and_custom_yaml
+from torchnpugen.utils import CUSTOM_YAML_NAME
 
 
 def parse_native_and_custom_yaml_(*args, **kwargs):
