@@ -1,3 +1,4 @@
+import collections
 import functools
 import itertools
 import os
@@ -36,6 +37,17 @@ from torch._inductor.ir import (
     validate_ir,
     View,
 )
+from torch._inductor.scheduler import (
+    Dep,
+    WeakDep,
+    Scheduler,
+    SchedulerNode,
+    SchedulerBuffer,
+    FusedSchedulerNode,
+    BaseSchedulerNode,
+    ExternKernelSchedulerNode,
+    NopKernelSchedulerNode,
+    )
 from torch._inductor.utils import ModularIndexing, FloorDiv
 from torch._inductor.utils import (
     decode_device,
@@ -54,6 +66,7 @@ from torch._prims_common import (
     Number,
 )
 from torch.fx.experimental.proxy_tensor import make_fx
+from torch.utils._ordered_set import OrderedSet
 from torch.utils._sympy.functions import (
     FloorDiv,
     Identity,
@@ -119,6 +132,94 @@ operator_to_string = {
     ')': 'r',
     '.': 'p',
 }
+
+
+def npu_compute_ancestors(self) -> None:
+    """
+    Populate each node.ancestors
+    """
+    # note self.nodes is topologically sorted
+    name_to_ancestors: Dict[str, OrderedSet[str]] = {}
+    for node in self.nodes:
+        ancestors: OrderedSet[str] = OrderedSet()
+        for dep in node.unmet_dependencies:
+            if dep.name not in self.name_to_buf:
+                continue
+            dep_node_name = self.name_to_buf[dep.name].defining_op.get_name()
+            ancestors.add(dep_node_name)
+            ancestors |= name_to_ancestors[dep_node_name]
+        name_to_ancestors[node.get_name()] = ancestors
+        node.ancestors = ancestors
+
+    for order, node in enumerate(self.nodes):
+        node.min_order = order
+        node.max_order = order
+
+
+def _npu_prune_redundant_deps(
+    node: BaseSchedulerNode,
+    name_to_fused_node: Dict[str, BaseSchedulerNode],
+    name_to_buf: Dict[str, SchedulerBuffer],
+) -> None:
+    """
+    Prunes weakdeps intended for mutation ordering
+    on an upstream fused node if after fusion there is another dependency
+    on the fused upstream node, making the weakdep redundant
+
+    In essence this enforces an ordering on fusions. As fusions occur, weakdeps will
+    be incrementally removed, enabling other fusions, ensuring they are fused in order.
+    """
+    name_to_dep_count: collections.Counter[str] = collections.Counter()
+
+    for dep in node.unmet_dependencies:
+        if not isinstance(dep, WeakDep) and dep.name in name_to_buf:
+            op = name_to_buf[dep.name].defining_op
+            name_to_dep_count[name_to_fused_node[op.get_name()].get_name()] += 1
+
+    def should_prune(dep: Dep) -> bool:
+        if isinstance(dep, WeakDep) and dep.name in name_to_buf:
+            op_name = name_to_buf[dep.name].defining_op.get_name()
+            is_redundant = name_to_dep_count[name_to_fused_node[op_name].get_name()] > 0
+            # These can occur because fused nodes always gather deps from their snodes
+            # If B has a weakdep on A
+            # B gets fused with C, then any time BC is fused, the weakdep will reappear
+            is_self_dep = name_to_fused_node[op_name] == node
+            return is_redundant or is_self_dep
+        else:
+            return False
+
+    deps_to_prune = OrderedSet(
+        dep for dep in node.unmet_dependencies if should_prune(dep)
+    )
+
+    if deps_to_prune:
+        node.unmet_dependencies = node.unmet_dependencies - deps_to_prune
+        node.set_read_writes(node.read_writes.remove_reads(deps_to_prune))
+
+
+def _npu_get_unmet_dep_nodes(self, snode: BaseSchedulerNode) -> List[BaseSchedulerNode]:
+    unmet_deps = set()
+    if isinstance(
+        snode,
+        (
+            SchedulerNode,
+            ExternKernelSchedulerNode,
+            NopKernelSchedulerNode,
+            FusedSchedulerNode,
+        ),
+    ):
+        for dep in snode.unmet_dependencies:
+            unmet_deps.add(dep.name)
+    else:
+        raise RuntimeError(
+            f"get_unmet_dep_nodes is not implemented for {type(snode)}."
+        )
+    unmet_dep_ops = (self.name_to_buf[dep].defining_op for dep in unmet_deps if dep in self.name_to_buf)
+    return list({self.name_to_fused_node[n.get_name()] for n in unmet_dep_ops})
+
+Scheduler.compute_ancestors = npu_compute_ancestors
+scheduler._prune_redundant_deps = _npu_prune_redundant_deps
+Scheduler._get_unmet_dep_nodes = _npu_get_unmet_dep_nodes
 
 string_to_operator = {v: k for k, v in operator_to_string.items()}
 
@@ -208,7 +309,7 @@ def process_ir_constant(inp: ExpandView) -> Union[TracedGraph, int, float]:
 
 
 def fetch_graphs(inputs: Optional[List[TensorBox]]):
-    if isinstance(inputs, (TensorBox, ir.StorageBox, ir.View, sympy.Symbol, ir.Constant)):
+    if isinstance(inputs, (TensorBox, ir.StorageBox, ir.View, sympy.Symbol, ir.Constant, ir.ReinterpretView)):
         inputs = [inputs]
     input_graphs = []
     for inp in inputs:
@@ -1114,7 +1215,7 @@ def _register_npu_inductor_fallbacks():
         for d, s in enumerate(x.get_size()):
             if not (
                     d in dims
-                    and V.graph.sizevars.evaluate_expr(sympy.Eq(s, 1, size_oblivious=True))
+                    and V.graph.sizevars.evaluate_expr(sympy.Eq(s, 1), size_oblivious=True)
             ):
                 new_shape.append(s)
 
@@ -1214,6 +1315,23 @@ def _register_npu_inductor_fallbacks():
     def expand_as(x, y):
         return expand(x, y.get_size())
 
+    def to_device(x: TensorBox, device: torch.device, *, copy=False, non_blocking=False):
+        device = decode_device(device)
+        if x.get_device() == device:
+            return clone(x) if copy else x
+        input_graphs = fetch_graphs([x, device])
+        node_name = f'device_put_{next(node_id)}'
+        new_graph = merge_traced_graphs(input_graphs, prims.device_put, node_name, non_blocking=non_blocking)
+        out_data = ir.DeviceCopy.create(x, device, non_blocking)
+        out_data._post_init_setattr("traced_graph", new_graph)
+        out_data._post_init_setattr("node_name", node_name)
+        out = TensorBox.create(out_data)
+        return out
+
+    @register_lowering(prims.device_put, type_promotion_kind=None)
+    def _device_put(x: TensorBox, device: torch.device, non_blocking=False):
+        return to_device(x, device, copy=True, non_blocking=non_blocking)
+    
     @register_lowering(aten.repeat)
     def repeat(x, repeats):
         input_graphs = fetch_graphs([x, repeats])
@@ -1310,38 +1428,6 @@ def _register_npu_inductor_fallbacks():
     def select(x, dim, idx):
         idx = View.handle_negative_index(idx, x.get_size()[dim])
         return squeeze(slice_(x, dim, idx, idx + 1), dim)
-
-    @register_lowering(aten.split, type_promotion_kind=None)
-    def split(x, sizes, dim=0):
-        dim = _validate_dim(x, dim, 0)
-        sizes_ = sizes
-
-        # If sizes is an integer (or a SymInt), we turn it into a list of sizes
-        # by computing what the actual size of each chunk should be.
-        if not isinstance(sizes, (list, tuple)):
-            x_size = x.get_size()[dim]
-            chunks = V.graph.sizevars.evaluate_static_shape(
-                FloorDiv(x_size + sizes - 1, sizes)
-            )
-            sizes_ = [sizes] * chunks
-            # The last chunk might have a smaller size than the rest.
-            sizes_[-1] = x_size - (chunks - 1) * sizes
-
-        # From this point, we assume that the sum of the sizes of all chunks
-        # equals the size of the base tensor.
-        result = []
-        start = 0
-        for size in sizes_:
-            end = start + size
-            # No need for clamping here, since we compute the exact
-            # start and end values.
-            result.append(slice_(x, dim, start, end, clamp=False))
-            start = end
-        return result
-
-    @register_lowering(aten.split_with_sizes, type_promotion_kind=None)
-    def split_with_sizes(x, sizes, dim=0):
-        return split(x, sizes, dim)
 
     @register_lowering(aten.unbind, type_promotion_kind=None)
     def unbind(x, dim=0):
@@ -2177,6 +2263,35 @@ def _register_npu_inductor_fallbacks():
 
     ##########################################################################
 
+    reduce_amax = register_lowering(aten.amax)(make_reduction("max"))
+    reduce_amin = register_lowering(aten.amin)(make_reduction("min"))
+    reduce_argmax = register_lowering(aten.argmax)(
+        make_reduction("argmax", override_return_dtype=torch.int64)
+    )
+    reduce_argmin = register_lowering(aten.argmin)(
+        make_reduction("argmin", override_return_dtype=torch.int64)
+    )
+
+    @register_lowering(aten.max, type_promotion_kind=None)
+    def reduce_max(x, dim=None, keepdim=False):
+        if dim is not None:
+            return (
+                reduce_amax(x, axis=dim, keepdims=keepdim),
+                reduce_argmax(x, axis=dim, keepdims=keepdim),
+            )
+
+        return reduce_amax(x, axis=None, keepdims=keepdim)
+
+    @register_lowering(aten.min, type_promotion_kind=None)
+    def reduce_min(x, dim=None, keepdim=False):
+        if dim is not None:
+            return (
+                reduce_amin(x, axis=dim, keepdims=keepdim),
+                reduce_argmin(x, axis=dim, keepdims=keepdim),
+            )
+
+        return reduce_amin(x, axis=None, keepdims=keepdim)
+
     @register_lowering([aten.sum, prims.sum])
     def sum_(x, axis=None, keepdims=False, *, dtype=None):
         if (
@@ -2279,11 +2394,83 @@ def _register_npu_inductor_fallbacks():
             x, axis=axis, correction=correction, keepdim=keepdim, return_mean=False
         )
 
+    def inductor_embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, sparse=False):
+        if sparse:
+            raise ValueError("Sparse tensors are not supported.")
+        if not isinstance(weight, TensorBox):
+            raise TypeError(f"Expected weight to be a TensorBox, got {type(weight)}.")
+        if not isinstance(indices, TensorBox):
+            raise TypeError(f"Expected indices to be a TensorBox, got {type(indices)}.")
+        if "int" not in str(indices.get_dtype()):
+            raise TypeError(f"indices must have integer dtype, got {indices.get_dtype()}.")
+
+        weight_loader = weight.make_loader()
+        indices_loader = indices.make_loader()
+        indices_ndim = len(indices.get_size())
+        weight_size = weight.get_size()
+        new_size = [*indices.get_size(), *weight_size[1:]]
+
+        def fn(idx):
+            if len(idx) != len(new_size):
+                raise ValueError(f"Length mismatch: len(idx)={len(idx)} != len(new_size)={len(new_size)} ({idx} != {new_size})")
+            var_index = indices_loader(idx[:indices_ndim])
+            weight_idx = [ops.indirect_indexing(var_index, weight_size[0])] + [
+                *idx[indices_ndim:]
+            ]
+            return weight_loader(weight_idx)
+        
+        input_graphs = fetch_graphs([weight, indices])
+        node_name = f'embedding_{next(node_id)}'
+        new_graph = merge_traced_graphs(input_graphs, torch.ops.aten.embedding.default, node_name, padding_idx=padding_idx, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse)
+
+        return Pointwise.create(
+            device=weight.get_device(),
+            dtype=weight.get_dtype(),
+            inner_fn=fn,
+            ranges=new_size,
+            traced_graph=new_graph,
+            node_name=node_name
+        )
+
+    def lowering_index_select(weight, dim, indices, traced_graph, node_name):
+        if not isinstance(weight, TensorBox):
+            raise TypeError(f"Expected weight to be a TensorBox, got {type(weight)}.")
+        if not isinstance(indices, TensorBox):
+            raise TypeError(f"Expected indices to be a TensorBox, got {type(indices)}.")
+        if "int" not in str(indices.get_dtype()):
+            raise TypeError(f"indices must have integer dtype, got {indices.get_dtype()}.")
+        indices_loader = indices.make_loader()
+        indices_ndim = len(indices.get_size())
+        weight_size = weight.get_size()
+        new_size = [*indices.get_size(), *weight_size[1:]]
+
+        def fn(idx):
+            if len(idx) != len(new_size):
+                raise ValueError(f"Length mismatch: len(idx)={len(idx)} != len(new_size)={len(new_size)} ({idx} != {new_size})")
+            var_index = indices_loader(idx[:indices_ndim])
+            set_indirect = ops.indirect_indexing(var_index, weight_size[0])
+            weight_idx = [set_indirect] + [*idx[indices_ndim:]]
+            index_loader = weight.data.make_indexer()
+            loader_name = weight.data.get_name()
+            return ops.index_select(loader_name, index_loader(weight_idx), var_index, set_indirect, int(weight_size[0]))
+        return Pointwise.create(
+            device=weight.get_device(),
+            dtype=weight.get_dtype(),
+            inner_fn=fn,
+            ranges=new_size,
+            traced_graph=traced_graph,
+            node_name=node_name
+        )
+
     @register_lowering(aten.embedding, type_promotion_kind=None)
     def embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, sparse=False):
-        return lowering.fallback_handler(aten.embedding.default)(weight, indices, padding_idx=-1,
-                                                                 scale_grad_by_freq=False,
-                                                                 sparse=False)
+        node = V.current_node
+        if node.meta.get("skip_lowering", False):
+            return lowering.fallback_handler(aten.embedding.default)(weight, indices, padding_idx=padding_idx, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse)
+        input_graphs = fetch_graphs([weight, indices])
+        node_name = f'embedding_{next(node_id)}'
+        new_graph = merge_traced_graphs(input_graphs, torch.ops.aten.embedding.default, node_name, padding_idx=padding_idx, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse)
+        return lowering_index_select(weight, 0, indices, new_graph, node_name)
 
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
@@ -2319,8 +2506,47 @@ def _register_npu_inductor_fallbacks():
             inputs = [to_dtype(inp, dtype) for inp in inputs]
             return TensorBox(ir.ConcatKernel.create(inputs, dim))
 
+    @register_lowering(aten.native_layer_norm)
+    def native_layer_norm(
+        x,
+        normalized_shape, 
+        weight=None,
+        bias=None,
+        eps=1e-5
+    ):
+        if x.dtype == torch.bfloat16 or x.dtype == torch.float16:
+            return lowering.fallback_handler(aten.native_layer_norm.default)(x, normalized_shape, weight, bias, eps)
+        if not isinstance(normalized_shape, (list, tuple)):
+            normalized_shape = (normalized_shape,)
+        
+        normalized_ndim = len(normalized_shape)
+        input_shape = x.get_size()
+        
+        reduce_dims = list(range(len(input_shape) - normalized_ndim, len(input_shape)))
+        
+        var, mean = var_mean_helper_(
+            x=x,
+            axis=reduce_dims,
+            correction=0,
+            keepdim=True,
+            return_mean=True
+        )
+        
+        x_normalized = sub(x, mean)
+        eps_tensor = ir.IndexingConstant(index=eps, dtype=var.get_dtype(), device=var.get_device())
+        eps_tensor = ExpandView.create(eps_tensor, var.get_size())
+        var_eps = add(var, eps_tensor)
+        inv_std = rsqrt(var_eps)
+        normalized = mul(x_normalized, inv_std)
+        
+        if weight is not None:
+            normalized = mul(normalized, weight)
+        if bias is not None:
+            normalized = add(normalized, bias)
+        
+        return normalized, mean, inv_std
+
     lowering.make_fallback(aten._log_softmax)
-    lowering.make_fallback(aten.gather)
     lowering.make_fallback(aten.nll_loss_forward)
     
     @register_lowering(triton_kernel_wrapper_mutation)

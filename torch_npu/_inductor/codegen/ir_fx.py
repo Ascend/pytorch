@@ -65,7 +65,7 @@ def _patch_pointwise_constant_to_device(self, device, traced_graph=None, node_na
     loader = self.make_loader()
     loader = patch.object(ir.ConstantBuffer, "override_device", device)(loader)
 
-    r = ir.Pointwise(device, self.dtype, loader, self.ranges)
+    r = ir.Pointwise(device=device, dtype=self.dtype, inner_fn=loader, ranges=self.ranges)
     r._post_init_setattr("traced_graph", traced_graph)
     r._post_init_setattr("node_name", node_name)
     return r
@@ -141,7 +141,9 @@ def _patch_reduction_create(
                 return inner_fn(index, reduction_index)
 
         return ir.Pointwise.create(
-            device=device, dtype=dst_dtype, inner_fn=fn, ranges=ranges
+            device=device, dtype=dst_dtype, inner_fn=fn, ranges=ranges,
+            traced_graph=traced_graph,
+            node_name=node_name
         )
 
     if (
@@ -190,7 +192,7 @@ def _patch_reduction_create(
             raise RuntimeError("assert new_ranges cannot be None")
         if new_reduction_ranges is None:
             raise RuntimeError("assert new_reduction_ranges cannot be None")
-        return cls.create_multilayer_existing_ranges(
+        r = cls.create_multilayer_existing_ranges(
             device,
             dst_dtype,
             src_dtype,
@@ -202,9 +204,12 @@ def _patch_reduction_create(
             reduction_type,
             reduction_hint,
         )
+        r._post_init_setattr("traced_graph", traced_graph)
+        r._post_init_setattr("node_name", node_name)
+        return r
     elif split > 1:
         # triton doesn't support reduce to single element well, so break it up
-        return cls.create_multilayer(
+        r = cls.create_multilayer(
             device,
             dst_dtype,
             src_dtype,
@@ -215,6 +220,9 @@ def _patch_reduction_create(
             split,
             reduction_hint,
         )
+        r._post_init_setattr("traced_graph", traced_graph)
+        r._post_init_setattr("node_name", node_name)
+        return r
 
     r = ir.Reduction(
         device=device,
@@ -266,17 +274,21 @@ def has_buffer(inp):
     return has_buffer(inp.data)
 
 
-def get_buffer(inp):
+def try_get_buffer(inp):
+    if not hasattr(inp, 'data'):
+        return False
     if isinstance(inp.data, ir.Buffer):
         return inp.data
-    return get_buffer(inp.data)
+    return try_get_buffer(inp.data)
 
 
 def _patch_baseview_realize(self):
     if hasattr(self, 'traced_graph') and self.traced_graph is not None:
         r = self.data.realize()
-        buffer = get_buffer(self)
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        buffer = try_get_buffer(self)
+        if not buffer:
+            return r
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, npu_ir.ConcatKernel, ir.ExternKernelOut, ir.MultiTemplateBuffer)):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -298,10 +310,10 @@ def _patch_baseview_realize(self):
 def _patch_baseview_realize_hint(self):
     if hasattr(self, 'traced_graph') and self.traced_graph is not None:
         r = self.data.realize_hint()
-        if not has_buffer(self):
+        buffer = try_get_buffer(self)
+        if not buffer:
             return r
-        buffer = get_buffer(self)
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, npu_ir.ConcatKernel, ir.ExternKernelOut)):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -321,28 +333,26 @@ def _patch_baseview_realize_hint(self):
 
 
 def _patch_mark_reuse(self, users):
-    if isinstance(self.data, ir.StorageBox):
-        if self.data.should_realize_on_reuse(users):
-            if hasattr(self, 'traced_graph') and self.traced_graph is not None:
-                r = self.data.realize()
-                buffer = get_buffer(self)
-                if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
-                    return r
-                traced_graph = buffer.data.get_traced_graph()
-                buf_name = buffer.get_name()
-                new_traced_graph, placeholder = subtract_graph(self.traced_graph, traced_graph, node_name=buf_name)
-                if placeholder is not None:
-                    placeholder.name = buf_name
-                    device = buffer.get_device()
-                    dtype = buffer.get_dtype()
-                    size = buffer.get_size()
-                    stride = buffer.get_stride()
-                    fake_input = create_fake_input(size, stride, device, dtype)
-                    placeholder.meta['val'] = fake_input
-                self._post_init_setattr("traced_graph", new_traced_graph)
-                return r
-            else:
-                return self.data.realize()
+    if hasattr(self, 'traced_graph') and self.traced_graph is not None:
+        r = self.data.mark_reuse(users)
+        buffer = try_get_buffer(self)
+        if not buffer:
+            return r
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, npu_ir.ConcatKernel, ir.ExternKernelOut)):
+            return r
+        traced_graph = buffer.data.get_traced_graph()
+        buf_name = buffer.get_name()
+        new_traced_graph, placeholder = subtract_graph(self.traced_graph, traced_graph, node_name=buf_name)
+        if placeholder is not None:
+            placeholder.name = buf_name
+            device = buffer.get_device()
+            dtype = buffer.get_dtype()
+            size = buffer.get_size()
+            stride = buffer.get_stride()
+            fake_input = create_fake_input(size, stride, device, dtype)
+            placeholder.meta['val'] = fake_input
+        self._post_init_setattr("traced_graph", new_traced_graph)
+        return r
     else:
         return self.data.mark_reuse(users)
 
@@ -431,7 +441,7 @@ def _patch_view_create(cls, x, new_size, traced_graph=None, node_name=None):
         def fake_reindex(index):
             return tuple([0] * len(old_size))
 
-        r = cls(x, list(new_size), fake_reindex)
+        r = cls(data=x, size=list(new_size), reindex=fake_reindex)
         r._post_init_setattr("traced_graph", traced_graph)
         r._post_init_setattr("node_name", node_name)
         return r
@@ -690,7 +700,7 @@ def _patch__npu_concatkernel_create(cls, inputs, dim, is_reindex):
                 kernel, dim, offsets_start[i], offsets_end[i], clamp=False))
             concat_kernel.inputs.append(input_buffer)
     else:
-        max_numel_in_per_kernel = config.max_cat_size_in_per_kernel // get_byte_per_numel(inputs[0].get_dtype())
+        max_numel_in_per_kernel = npu_config.max_cat_size_in_per_kernel // get_byte_per_numel(inputs[0].get_dtype())
         input_sub = []
         prev = 0
         for i, inp in enumerate(inputs):
