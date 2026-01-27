@@ -14,7 +14,7 @@
 **图 2**  内存分配器状态历史记录示意图  
 ![](../figures/memory_allocator_status_history.png)
 
-另外，在保存内存快照的同时，基于性能分析工具msProf当前已有的内存profiling能力，同步保存CANN各组件的内存使用情况。msProf工具相关内容，可参考《CANN 算子开发工具用户指南》中的“[算子调优（msProf）](https://www.hiascend.com/document/detail/zh/canncommercial/850/devaids/optool/atlasopdev_16_0082.html)”章节。
+另外，在保存内存快照的同时，内存溢出（OOM）时各组件当前实时占用的内存（curMemSize）和运行过程中的最大占用内存（memPeakSize）都被保存到OOM\_SNAPSHOT\_PATH路径下的csv文件中，用户可以将csv文件下载后用excel等工具查看。
 
 通过环境变量OOM\_SNAPSHOT\_ENABLE和OOM\_SNAPSHOT\_PATH，来控制内存快照的记录情况。当配合TASK\_QUEUE\_ENABLE=2使用时，还可以查看taskqueue多级流水申请的workspace内存使用情况。
 
@@ -50,5 +50,6 @@ export OOM_SNAPSHOT_PATH="/home/usr/"
 
 ## 约束说明
 
-Ascend Extension for PyTorch  6.0.0及以上版本支持该功能。
+-   Ascend Extension for PyTorch 6.0.0及以上版本支持该功能。
+-   内存溢出（OOM）时保存内存快照csv文件特性，仅在Ascend HDK 25.5.0及以上版本和CANN商发8.5.0及以上版本上支持。
 

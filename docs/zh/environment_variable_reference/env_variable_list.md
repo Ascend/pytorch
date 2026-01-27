@@ -37,5 +37,4 @@
 |性能优化|[PROF_CONFIG_PATH](PROF_CONFIG_PATH.md)|PyTorch训练场景Ascend PyTorch Profiler接口的dynamic_profile采集功能profiler_config.json配置文件路径环境变量。|
 |性能优化|[KINETO_USE_DAEMON](KINETO_USE_DAEMON.md)|PyTorch训练场景用于设置是否通过msMonitor nputrace方式开启dynamic_profile采集功能。|
 |设备管理|[STREAMS_PER_DEVICE](STREAMS_PER_DEVICE.md)|通过此环境变量可配置stream pool的最大流数。|
-
-
+|设备管理|[TORCH_NPU_DEVICE_CAPABILITY](TORCH_NPU_DEVICE_CAPABILITY.md)|通过此环境变量可配置`torch_npu.npu.get_device_capability()`的返回值。|

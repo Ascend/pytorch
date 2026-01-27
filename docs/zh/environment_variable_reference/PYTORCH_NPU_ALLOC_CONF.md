@@ -46,6 +46,10 @@
     -   **单一值**：为每个内存设置相同的分段数量，例如配置为“4“。
     -   **键值对数组**：为每个2的幂区间单独设置分段数量。例如配置为“\[256:1,512:2,1024:4,\>:8\]“时，表示为256MB以下的所有分配设置1个分段，256MB到512MB之间的分配设置2个分段，512MB到1GB之间的分配设置4个分段，以及更大的分配设置8个分段。
 
+-   pinned\_use\_background\_threads:<value\>，是否启用后台线程来处理events。
+
+    默认值为False，不启用后台线程。当设置为True时，启用后台线程，在后台线程执行查询和处理events操作，减少主线程的阻塞时间。
+
 > [!NOTE]  
 > 用户使用Ascend Extension for PyTorch 6.0.RC3及之后版本配套的驱动（Ascend HDK 24.1.RC3及之后），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用Ascend Extension for PyTorch 6.0.RC3之前版本配套的驱动（Ascend HDK 24.1.RC3之前版本），开启虚拟内存特性时，不能使用单进程多卡特性。
 
@@ -88,6 +92,12 @@ export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,segment_size_mb:40
     ```
     export PYTORCH_NPU_ALLOC_CONF="roundup_power2_divisions:[256:1,512:2,1024:4,>:8]"
     ```
+
+示例六：
+
+```
+export PYTORCH_NPU_ALLOC_CONF=pinned_use_background_threads:True
+```
 
 ## 使用约束
 
