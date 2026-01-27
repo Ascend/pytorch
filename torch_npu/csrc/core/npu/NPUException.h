@@ -7,6 +7,7 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include <cstring>
 #include <string>
 #include <unistd.h>
 #include <unordered_map>
