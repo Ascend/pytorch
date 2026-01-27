@@ -217,7 +217,8 @@ def npu_fusion_attention(
     sparse_mode: int = 0,
     gen_mask_parallel: bool = True, 
     sync: bool = False,
-    softmax_layout: str = "",
+    softmax_layout: str = "", 
+    sink: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     prefix = prefix.tolist() if prefix is not None else prefix
     actual_seq_qlen = actual_seq_qlen.tolist() if actual_seq_qlen is not None else actual_seq_qlen
@@ -242,7 +243,8 @@ def npu_fusion_attention(
         sparse_mode=sparse_mode,
         gen_mask_parallel=gen_mask_parallel, 
         sync=sync,
-        softmax_layout=softmax_layout
+        softmax_layout=softmax_layout,
+        sink=sink
     )
 
     seed = torch.tensor([seed], dtype=torch.int64)
@@ -275,7 +277,8 @@ def npu_fusion_attention_fake(
     sparse_mode: int = 0,
     gen_mask_parallel: bool = True, 
     sync: bool = False,
-    softmax_layout: str = ""
+    softmax_layout: str = "",
+    sink: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     B = query.size(0)
     S1 = query.size(2)
@@ -344,8 +347,9 @@ def npu_fusion_attention_grad(
     sparse_mode: int = 0,
     gen_mask_parallel: bool = True, 
     sync: bool = False,
-    softmax_layout: str = ""
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    softmax_layout: str = "",
+    sink: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     prefix = prefix.tolist() if prefix is not None else prefix
     actual_seq_qlen = actual_seq_qlen.tolist() if actual_seq_qlen is not None else actual_seq_qlen
     actual_seq_kvlen = actual_seq_kvlen.tolist() if actual_seq_kvlen is not None else actual_seq_kvlen
@@ -354,7 +358,7 @@ def npu_fusion_attention_grad(
     offset = offset.item()
     numels = numels.item()
 
-    dq, dk, dv, dpse = torch.ops.npu.npu_fusion_attention_grad(
+    dq, dk, dv, dpse, dsink = torch.ops.npu.npu_fusion_attention_grad(
         query, key, value, dy, head_num, input_layout, pse=pse, padding_mask=padding_mask, atten_mask=atten_mask,
         softmax_max=softmax_max, softmax_sum=softmax_sum, softmax_in=softmax_in, attention_in=attention_in, scale_value=scale_value,
         keep_prob=keep_prob, pre_tockens=pre_tockens, next_tockens=next_tockens, inner_precise=inner_precise, seed=seed, offset=offset,
@@ -362,7 +366,7 @@ def npu_fusion_attention_grad(
         gen_mask_parallel=gen_mask_parallel, sync=sync, softmax_layout=softmax_layout
     )
 
-    return dq, dk, dv, dpse if pse else None
+    return dq, dk, dv, dpse if pse else None, dsink if sink else None
 
 
 def npu_fusion_attention_grad_fake(
@@ -394,13 +398,15 @@ def npu_fusion_attention_grad_fake(
     sparse_mode: int = 0,
     gen_mask_parallel: bool = True, 
     sync: bool = False,
-    softmax_layout: str = ""
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    softmax_layout: str = "",
+    sink: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     dq = torch.empty_like(query, dtype=query.dtype, device=query.device).contiguous()
     dk = torch.empty_like(key, dtype=query.dtype, device=query.device).contiguous()
     dv = torch.empty_like(value, dtype=query.dtype, device=query.device).contiguous()
     dpse = torch.empty([0], dtype=query.dtype, device=query.device).contiguous()
-    return dq, dk, dv, dpse if pse else None
+    dsink = torch.empty_like(sink) if sink is not None else None
+    return dq, dk, dv, dpse if pse else None, dsink
 
 direct_register_custom_op(
     op_name="npu_fusion_attention_grad",
@@ -417,16 +423,16 @@ class InductorNpuAttentionFunction(torch.autograd.Function):
     def forward(ctx, query, key, value, head_num, input_layout, pse=None, padding_mask=None, atten_mask=None, scale=1.0,
                 keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647, inner_precise=0, prefix=None,
                 actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0, gen_mask_parallel=True, sync=False, 
-                softmax_layout=""):
+                softmax_layout="", sink=None):
         attention_score, softmax_max, softmax_sum, softmax_out, seed, offset, numels = torch.ops.inductor_npu.npu_fusion_attention(
             query, key, value, head_num, input_layout, pse=pse, padding_mask=padding_mask, atten_mask=atten_mask,
             scale=scale, keep_prob=keep_prob, pre_tockens=pre_tockens, next_tockens=next_tockens,
             inner_precise=inner_precise, prefix=prefix, actual_seq_qlen=actual_seq_qlen,
             actual_seq_kvlen=actual_seq_kvlen, sparse_mode=sparse_mode, gen_mask_parallel=gen_mask_parallel, sync=sync,
-            softmax_layout=softmax_layout
+            softmax_layout=softmax_layout, sink=sink
         )
         ctx.save_for_backward(query, key, value, pse, padding_mask, atten_mask, actual_seq_qlen, actual_seq_kvlen,\
-                              softmax_max, softmax_sum, softmax_out, attention_score, seed, offset, numels)
+                              softmax_max, softmax_sum, softmax_out, attention_score, seed, offset, numels, sink)
         ctx.head_num = head_num
         ctx.input_layout = input_layout
         ctx.scale = scale
@@ -448,27 +454,27 @@ class InductorNpuAttentionFunction(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_attention_score, grad_softmax_max, grad_softmax_sum, grad_softmax_out, grad_seed, grad_offset, grad_numels):
         query, key, value, pse, padding_mask, atten_mask, actual_seq_qlen, actual_seq_kvlen, \
-            softmax_max, softmax_sum, softmax_out, attention_score, seed, offset, numels = ctx.saved_tensors
-        grad_query, grad_key, grad_value, grad_pse = torch.ops.inductor_npu.npu_fusion_attention_grad(
+            softmax_max, softmax_sum, softmax_out, attention_score, seed, offset, numels, sink = ctx.saved_tensors
+        grad_query, grad_key, grad_value, grad_pse, grad_sink = torch.ops.inductor_npu.npu_fusion_attention_grad(
             query, key, value, grad_attention_score, ctx.head_num, ctx.input_layout, pse=pse, padding_mask=padding_mask,
             atten_mask=atten_mask, softmax_max=softmax_max, softmax_sum=softmax_sum, softmax_in=softmax_out, attention_in=attention_score,
             scale_value=ctx.scale, keep_prob=ctx.keep_prob, pre_tockens=ctx.pre_tockens, next_tockens=ctx.next_tockens,
             inner_precise=ctx.inner_precise, seed=seed, offset=offset, numels=numels, prefix=None,
             actual_seq_qlen=actual_seq_qlen, actual_seq_kvlen=actual_seq_kvlen, sparse_mode=ctx.sparse_mode,
-            gen_mask_parallel=ctx.gen_mask_parallel, sync=ctx.sync, softmax_layout=ctx.softmax_layout
+            gen_mask_parallel=ctx.gen_mask_parallel, sync=ctx.sync, softmax_layout=ctx.softmax_layout, sink=sink
         )
-        return (grad_query, grad_key, grad_value, None, None, grad_pse, ) + (None, ) * 14
+        return (grad_query, grad_key, grad_value, None, None, grad_pse, ) + (None, ) * 14 + (grad_sink, )
     
 
 def inductor_npu_fusion_attention(query, key, value, head_num, input_layout, pse=None, padding_mask=None,
                                atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647,
                                next_tockens=2147483647,
                                inner_precise=0, prefix=None, actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0,
-                               gen_mask_parallel=True, sync=False, softmax_layout=""):
+                               gen_mask_parallel=True, sync=False, softmax_layout="", sink=None):
     return InductorNpuAttentionFunction.apply(query, key, value, head_num, input_layout, pse, padding_mask,
                                            atten_mask, scale, keep_prob, pre_tockens, next_tockens,
                                            inner_precise, prefix, actual_seq_qlen, actual_seq_kvlen, sparse_mode,
-                                           gen_mask_parallel, sync, softmax_layout)
+                                           gen_mask_parallel, sync, softmax_layout, sink)
 
 
 def apply_inductor_npu_attention_patch():
