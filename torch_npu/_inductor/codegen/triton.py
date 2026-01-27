@@ -1529,9 +1529,10 @@ class NPUIndexTritonKernel(TritonKernel):
             return result_var
 
         index_analyze = IndexAnalysis(self, index)
-        index_analyze.analyze_index()
+        nddma_switch = inductor_npu_config.nddma_switch
+        index_analyze.analyze_index(nddma=nddma_switch)
         indirect_indexing = self.is_indirect_indexing(index)
-        indexing = self.indexing(index, block_ptr=True)
+        indexing = self.indexing(index, nddma=nddma_switch, block_ptr=True)
         has_rindex = indexing.has_rindex()
         has_tmpmask = indexing.has_tmpmask()
         is_coalesced = any(
@@ -1614,7 +1615,8 @@ class NPUIndexTritonKernel(TritonKernel):
             self,
             index: sympy.Expr,
             index_analyze,
-            is_index_expr=False
+            is_index_expr=False,
+            nddma=False
     ):
         index = sympy_subs(index, V.graph.sizevars.precomputed_replacements)
         # if simple replacements didn't get rid of floor/ceil, try full subs
@@ -1640,13 +1642,15 @@ class NPUIndexTritonKernel(TritonKernel):
         )
 
         # to generate range.var_directions for permuted axis
-        index_analyze.analyze_index()
+        index_analyze.analyze_index(nddma)
         return self.codegen_indexing(simp_index)
 
     def replace_index_vars(self, index, index_analyze):
 
         new_index = index
-        if index_analyze.var_replacements:
+        if index_analyze.nddma_var_replacements:
+            new_index = sympy_subs(index, index_analyze.nddma_var_replacements)
+        elif not index_analyze.processed_nddma and index_analyze.var_replacements:
             new_index = sympy_subs(index, index_analyze.var_replacements)
         return new_index
 
@@ -1668,6 +1672,7 @@ class NPUIndexTritonKernel(TritonKernel):
             copy_shape=None,
             dense_indexing=False,
             override_mask=None,
+            nddma=False,
             block_ptr=False,
             index_analyze=None,
             is_index_expr=False
@@ -1677,9 +1682,9 @@ class NPUIndexTritonKernel(TritonKernel):
         """
         if not index_analyze:
             index_analyze = IndexAnalysis(self, index, is_index_expr=is_index_expr)
-        index_analyze.analyze_index()
+        index_analyze.analyze_index(nddma)
 
-        index = self.prepare_indexing(index, index_analyze, is_index_expr)
+        index = self.prepare_indexing(index, index_analyze, is_index_expr, nddma=nddma)
         index_vars = index.free_symbols
         has_rindex = False
         index = sympy_subs(index, V.graph.sizevars.precomputed_replacements)

@@ -161,14 +161,7 @@ class SplitTiling:
                 for var in self.kernel.reduction_axis_list()
             ):
                 return True
-            # currently, the maximum dim that triton-ascend support is 2
-            max_transpose_dims = 2
-            if (
-                self.possible_need_permute or tiling_numel / total_numel >= 0.8
-            ) and len(self.kernel.tiling_axis) >= min(
-                max_transpose_dims, len(self.kernel.sorted_axis)
-            ):
-                return True
+
             return False
 
         def select_tiling(low_dim=True, reduction=True):

@@ -16,7 +16,10 @@ class IndexAnalysis:
         self.broadcast_sizes = []  # [RBLOCK, XBLOCK_SUB]
         self.permute_shape = []  # [0,2,1,3]
         self.var_replacements = {}  # r2 ->r2_0, etc
+        self.nddma_var_replacements = {}
         self.var_directions = {}  # r2_0 -> [None,:,None]
+        self.nddma_var_directions = {}
+        self.processed_nddma = False
         self.similar = None  # (r,x,z,y)
         self.need_permute = False
         self.need_broadcast = False
@@ -122,7 +125,7 @@ class IndexAnalysis:
             index = similar.index(x)
             self.reshape_sizes[index] = f"{x.name.upper()}BLOCK_SUB"
 
-    def analyze_var_direction(self):
+    def analyze_var_direction(self, nddma=False):
         if self.var_list == self.gold:
             return
         var_list = self.var_list if len(self.var_list) == len(self.gold) else self.similar
@@ -130,27 +133,52 @@ class IndexAnalysis:
             return
         if not var_list:
             return
+
         var_list = list(reversed(var_list))
         gold = list(tuple(reversed(self.gold)))
         if len(var_list) != len(gold):
             raise RuntimeError("assert var_list and gold must have same length")
+
         var_list = [x for x in var_list if x in self.kernel.tiling_axis]
         gold = [x for x in gold if x in self.kernel.tiling_axis]
+
+        processed_nddma = False
+
         for i, x in enumerate(gold):
             index = var_list.index(x)
-            if (index == i):
+            if index == i:
                 continue
-            new_var = sympy_index_symbol(f"{x}") if self.is_index_expr else sympy_index_symbol(f"{x}_{index}")
-            if new_var in self.var_replacements:
-                continue
-            direction = ["None"] * len(gold)
-            direction[index] = ":"
-            direction_str = f"[{','.join(direction)}]"
-            self.var_replacements[x] = new_var
-            self.var_directions[new_var] = direction_str
-            self.kernel.range_tree_nodes[x].var_directions[new_var] = direction_str
 
-    def analyze_index(self):
+            direction = ["None"] * len(gold)
+            use_nddma = nddma and self.need_permute
+            target_idx = self.permute_shape.index(index) if use_nddma else index
+            direction[target_idx] = ":"
+            direction_str = f"[{','.join(direction)}]"
+
+            if use_nddma:
+                processed_nddma = True
+                if target_idx == i:
+                    continue
+                var_name = f"{x}" if self.is_index_expr else f"{x}_{target_idx}_nd"
+                var_obj = sympy_index_symbol(var_name)
+                if var_obj in self.nddma_var_replacements:
+                    continue
+                self.nddma_var_replacements[x] = var_obj
+                self.nddma_var_directions[var_obj] = direction_str
+            else:
+                var_name = f"{x}" if self.is_index_expr else f"{x}_{index}"
+                var_obj = sympy_index_symbol(var_name)
+                if var_obj in self.var_replacements:
+                    continue
+                self.var_replacements[x] = var_obj
+                self.var_directions[var_obj] = direction_str
+            self.kernel.range_tree_nodes[x].var_directions[var_obj] = direction_str
+
+        if processed_nddma:
+            self.processed_nddma = True
+            self.need_permute = False
+
+    def analyze_index(self, nddma=False):
         if isinstance(self.index, sympy.Integer):
             return
         if not self.kernel.golden_var_list:
@@ -176,7 +204,7 @@ class IndexAnalysis:
             pass
 
         # 4 analyze var direction
-        self.analyze_var_direction()
+        self.analyze_var_direction(nddma)
 
     def generate_statement(self):
         statement = ""

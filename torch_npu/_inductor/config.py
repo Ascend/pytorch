@@ -26,6 +26,9 @@ prop = driver.active.utils.get_device_properties(device)
 num_cube_core = prop["num_aicore"]
 num_vector_core = prop["num_aicore"]
 
+Ascend910B1 = 220
+Ascend310B1 = 240
+Ascend910_9391 = 250
 # unit byte 
 npu_block = 32
 
@@ -123,13 +126,13 @@ acc_comp_tol = {
     "default": {'rtol': 1.3e-6, 'atol': 1e-5},
 }
 
-if 220 <= get_soc_version() < 240 or get_soc_version() >= 250:
+if Ascend910B1 <= get_soc_version() < Ascend310B1 or get_soc_version() >= Ascend910_9391:
     num_vector_core = num_cube_core * 2
 
 use_store_in_cat = os.environ.get("USE_STORE_IN_CAT", False)
 max_cat_size_in_per_kernel = 4 * 1024
 inductor_indirect_memory_mode = None
-if get_soc_version() >= 250:
+if get_soc_version() >= Ascend910_9391:
     # A5 INDUCTOR_INDIRECT_MEMORY_MODE: simt_template, simt_only, simd_simt_mix
     inductor_indirect_memory_mode = os.environ.get("INDUCTOR_INDIRECT_MEMORY_MODE", "simd_simt_mix")
     if inductor_indirect_memory_mode not in [None, "simt_template", "simt_only", "simd_simt_mix"]:
@@ -143,8 +146,12 @@ if get_soc_version() >= 250:
 # simt default stacksize is 256 * 32 Byte
 simt_default_warp_stacksize = 256 * 32
 
+# nddma switch
+default_nddma_switch = '1' if get_soc_version() >= Ascend910_9391 else '0'
+nddma_switch = os.getenv("TORCHINDUCTOR_NDDMA", default_nddma_switch) == '1'
+
 lowering_cat_with_concat_kernel = False
-if get_soc_version() >= 250:
+if get_soc_version() >= Ascend910_9391:
     lowering_cat_with_concat_kernel = True
 
 log_level_env = os.getenv('INDUCTOR_ASCEND_LOG_LEVEL', 'WARNING').upper()
