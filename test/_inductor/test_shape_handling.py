@@ -19,6 +19,42 @@ from torch_npu.testing.common_utils import get_cycles_per_ms
 from torch_npu._inductor.shape_handling import unified_copy
 
 
+if not torch.npu.is_available():
+    raise unittest.SkipTest("NPU is not available")
+
+device = "npu"
+
+
+def model_fn(A, B):  
+    return A + B
+
+shape_options = {
+    "enable_shape_handling": True,
+    "shape_handling_configs": [
+        {
+            "type": "BATCHSIZE", # 处理的维度类型(Required)
+            "dimensions": 0,      # 该维度在tensor中的下标(BATCHSIZE默认为0)(Optional)
+            # "indices": [0, 1],   # 需要处理的tensor下标(默认为所有tensor)(Optional)
+            "value": 0.0,        # padding时填充的值, 默认为0.0(Optional)
+            "gears": [],         # 自定义档位信息(Optional)
+            "min_size": 1,       # 该维度的最小大小(档位), 默认为1(Optional)           
+            "max_size": 1024,    # 该维度的最大大小(档位), 默认为1024(Optional)
+            "policy": "TIMES",   # 依据min_size, max_size自动生成gears的策略, 默认为TIMES, 表示生成范围内2的整数幂档位(Optional) 
+        },
+        {
+            "type": "SEQLEN",          # 处理的维度类型(Required)
+            "dimensions": [1, 1],      # 该维度在tensor中的下标, 与indices一一对应, 也可以接收dimension表示所有tensor使用相同的dimension index, 优先接收dimension(SEQLEN默认为1)(Optional)
+            # "indices": [0, 1],         # 需要处理的tensor下标(默认为所有tensor)(Optional)
+            "value": 0.0,              # padding时填充的值, 默认为0.0(Optional)
+            "gears": [],               # 自定义档位信息(Optional)
+            "min_size": 1,             # 该维度的最小大小(档位), 默认为1(Optional)           
+            "max_size": 1024,          # 该维度的最大大小(档位), 默认为1024(Optional)
+            "policy": "TIMES",         # 依据min_size, max_size自动生成gears的策略, 默认为TIMES, 表示生成范围内2的整数幂档位(Optional) 
+        }
+    ]
+}
+
+
 class TestShapeHandling(TestCase):
     def test_init_no_input(self):
         shape_handling = torch_npu._inductor.NPUShapeHandling()
@@ -294,6 +330,136 @@ class TestShapeHandling(TestCase):
         self.assertTrue(custom_seq_strategy.transform_called)
 
 
+    
+class TestDynamicShapeCompile(TestCase):
+    def test_npu_dynamic_shape_reuse_with_no_bucket(self):
+    
+        compiled_fn = torch.compile(
+            model_fn, 
+            backend='inductor', 
+            dynamic=False,
+        )
+
+        # 运行不同形状，验证是否只触发 4 次编译
+        test_shapes = [(3, 20), (4, 20), (5, 20), (6, 20)]
+        
+
+        if hasattr(torch._inductor.metrics.generated_kernel_count, 'reset'):
+            torch._inductor.metrics.generated_kernel_count.reset()
+        else:
+            torch._inductor.metrics.generated_kernel_count = 0
+
+        for shape in test_shapes:
+            A = torch.randn(shape, device=device)
+            B = torch.randn(shape, device=device)
+            out = compiled_fn(A, B)
+            self.assertTrue(torch.allclose(out, A + B))
+
+
+        compile_count = torch._inductor.metrics.generated_kernel_count
+
+        # 获取 Inductor 编译的总次数（生成的 kernel 数量相关）
+        print(f"\n[结果] Inductor 编译次数 (generated_kernel_count): {compile_count}")
+
+        # 如果动态形状分档不生效，编译次数应为 4
+        self.assertEqual(compile_count, 4)
+
+    def test_npu_dynamic_shape_reuse_with_bucket(self):
+    
+        compiled_fn = torch.compile(
+            model_fn, 
+            backend='inductor', 
+            dynamic=False,
+            options=shape_options
+        )
+
+        # 运行不同形状，验证是否只触发 2 次编译
+        test_shapes = [(3, 32), (4, 32), (5, 32), (6, 32)]
+        if hasattr(torch._inductor.metrics.generated_kernel_count, 'reset'):
+            torch._inductor.metrics.generated_kernel_count.reset()
+        else:
+            torch._inductor.metrics.generated_kernel_count = 0
+
+        for shape in test_shapes:
+            A = torch.randn(shape, device=device)
+            B = torch.randn(shape, device=device)
+            out = compiled_fn(A, B)
+            self.assertTrue(torch.allclose(out, A + B))
+        
+
+        compile_count = torch._inductor.metrics.generated_kernel_count
+  
+        # 获取 Inductor 编译的总次数（生成的 kernel 数量相关）
+        print(f"\n[结果] Inductor 编译次数 (generated_kernel_count): {compile_count}")
+
+        # 如果动态形状分档生效，编译次数应为 2
+        self.assertEqual(compile_count, 2)
+
+    def test_npu_dynamic_shape_reuse_with_symbolic_shape(self):
+    
+        compiled_fn = torch.compile(
+            model_fn, 
+            backend='inductor', 
+            dynamic=True,
+        )
+
+        # 运行不同形状，验证是否只触发 1 次编译
+        test_shapes = [(3, 32), (4, 32), (5, 32), (6, 32)]
+        
+        if hasattr(torch._inductor.metrics.generated_kernel_count, 'reset'):
+            torch._inductor.metrics.generated_kernel_count.reset()
+        else:
+            torch._inductor.metrics.generated_kernel_count = 0
+
+        for shape in test_shapes:
+            A = torch.randn(shape, device=device)
+            B = torch.randn(shape, device=device)
+            out = compiled_fn(A, B)
+            self.assertTrue(torch.allclose(out, A + B))
+
+        compile_count = torch._inductor.metrics.generated_kernel_count
+
+
+
+        # 获取 Inductor 编译的总次数（生成的 kernel 数量相关）
+        print(f"\n[结果] Inductor 编译次数 (generated_kernel_count): {compile_count}")
+
+        # 如果动态形状符号化生效，编译次数应为 1
+        self.assertEqual(compile_count, 1)
+    
+    def test_npu_dynamic_shape_reuse_with_symbolic_shape_and_bucket(self):
+    
+        compiled_fn = torch.compile(
+            model_fn, 
+            backend='inductor', 
+            dynamic=True,
+            options=shape_options
+        )
+
+        # 运行不同形状，验证是否只触发 1 次编译
+        test_shapes = [(3, 32), (4, 32), (5, 32), (6, 32)]
+        
+        if hasattr(torch._inductor.metrics.generated_kernel_count, 'reset'):
+            torch._inductor.metrics.generated_kernel_count.reset()
+        else:
+            torch._inductor.metrics.generated_kernel_count = 0
+
+        for shape in test_shapes:
+            A = torch.randn(shape, device=device)
+            B = torch.randn(shape, device=device)
+            out = compiled_fn(A, B)
+            self.assertTrue(torch.allclose(out, A + B))
+
+        compile_count = torch._inductor.metrics.generated_kernel_count
+
+    
+        # 获取 Inductor 编译的总次数（生成的 kernel 数量相关）
+        print(f"\n[结果] Inductor 编译次数 (generated_kernel_count): {compile_count}")
+
+        # 如果动态形状符号化生效，编译次数应为 1
+        self.assertEqual(compile_count, 1)
+
+
 class TestUnifiedCopy(TestCase):
     def test_none_and_simple_types(self):
         """Test unified_copy with None, list, dict, and tuple."""
@@ -338,6 +504,7 @@ class TestUnifiedCopy(TestCase):
 
 instantiate_parametrized_tests(TestShapeHandling)
 instantiate_parametrized_tests(TestUnifiedCopy)
+instantiate_parametrized_tests(TestDynamicShapeCompile)
  
 if __name__ == '__main__':
     run_tests()
