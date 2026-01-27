@@ -127,7 +127,9 @@ __all__ = [
     "obfuscation_finalize",
     "obfuscation_calculate",
     "set_op_timeout_ms",
-    "host_empty_cache"
+    "host_empty_cache",
+    "use_consistent_algorithms",
+    "are_consistent_algorithms_enable"
 ]
 
 from typing import Tuple, Union, List, cast, Optional
@@ -561,6 +563,16 @@ def _lazy_new(cls, *args, **kwargs):
 def _comm_switch_nic(ranks, useBackup):
     torch_npu.npu.synchronize()
     return torch_npu.distributed.distributed_c10d._comm_switch_nic(ranks, useBackup)
+
+
+def use_consistent_algorithms(is_enable):
+    option = {"STRONG_CONSISTENCY": "enable" if is_enable else "disable"}
+    torch_npu._C._npu_setOption(option)
+
+
+def are_consistent_algorithms_enable():
+    consistency_value = torch_npu._C._npu_getOption("STRONG_CONSISTENCY")
+    return consistency_value is not None and consistency_value.decode() == "enable"
 
 
 class _NPUBase:

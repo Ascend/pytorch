@@ -1154,6 +1154,12 @@
   "torch_npu.npu.set_op_timeout_ms":{
     "signature": "(timeout)"
   },
+  "torch_npu.npu.use_consistent_algorithms": {
+    "signature": "(is_enable)"
+  },
+  "torch_npu.npu.are_consistent_algorithms_enable": {
+    "signature": "()"
+  },
   "torch_npu.npu.aclnn.backends.version": {
     "signature": "()"
   },
