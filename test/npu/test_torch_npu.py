@@ -350,6 +350,7 @@ class TorchNPUApiTestCase(TestCase):
             rc = check_output([sys.executable, '-c', test_script]).decode("ascii").strip()
             self.assertEqual(rc, "True")
 
+    @unittest.skip("CANN rts bug")
     def test_npu_lazy_init(self):
         """ Validate that no NPU calls are made during `import torch_npu` call or `torch.npu.device_count()` call"""
         VISIBLE_DEVICES = "ASCEND_RT_VISIBLE_DEVICES"
