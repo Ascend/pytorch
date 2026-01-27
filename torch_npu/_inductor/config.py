@@ -138,10 +138,10 @@ if get_soc_version() >= Ascend910_9391:
     if inductor_indirect_memory_mode not in [None, "simt_template", "simt_only", "simd_simt_mix"]:
         inductor_indirect_memory_mode = "simd_simt_mix"
     # if mode in "simt_only", "simd_simt_mix", should use load store cat
-    if inductor_indirect_memory_mode not in ["simt_only", "simd_simt_mix"]:
+    if inductor_indirect_memory_mode in ["simt_only", "simd_simt_mix"]:
         use_store_in_cat = True
         # simt only or simd_simt_mix only need small size for concat
-        max_cat_size_in_per_kernel = 2 * 1024
+        max_cat_size_in_per_kernel = 1024
 
 # simt default stacksize is 256 * 32 Byte
 simt_default_warp_stacksize = 256 * 32

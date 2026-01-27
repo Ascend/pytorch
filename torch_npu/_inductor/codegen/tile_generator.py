@@ -355,8 +355,9 @@ class TileGenerator:
         self.configs.extend(new_cfg)
 
     def tune_simt_num_warps(self, tune_num_warps_list=None):
-        num_warps_list = num_warps_list if tune_num_warps_list else [4, 8, 16, 32]
+        num_warps_list = num_warps_list if tune_num_warps_list else [8, 16, 32, 64]
         configs_without_num_warps = copy.deepcopy(self.configs)
+        self.configs = []
         for self_config in configs_without_num_warps:
             for cfg_num_warps in num_warps_list:
                 new_cfg = copy.deepcopy(self_config)
