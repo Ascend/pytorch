@@ -116,7 +116,7 @@ class _InductorNpuRegistry:
     def register_inductor_npu(cls):
         if cls.has_initialized() or cls._disabled_register:
             return
-        if os.getenv('TORCHINDUCTOR_MAX_AUTOTUNE', '0') == '1':
+        if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
             from torch_npu._inductor import _lazy_init
         else:
             from torch_npu import _inductor
@@ -135,7 +135,7 @@ class _InductorNpuRegistry:
         if cls._has_inited:
             return True
         # Maybe initialized by call `import torch_npu._inductor` manually.
-        if os.getenv('TORCHINDUCTOR_MAX_AUTOTUNE', '0') == '1':
+        if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
             if 'torch_npu._inductor._lazy_init' in sys.modules:
                 cls._has_inited = True
         else:
@@ -161,14 +161,17 @@ def register_inductor_npu():
 
 
 def patch_inductor_wrapper():
-    from typing import Any, Optional
+    from typing import Any, Optional, Literal
     from torch import _TorchCompileInductorWrapper
+    from torch.utils._config_module import Config, ConfigModule, _ConfigEntry
     src_call = _TorchCompileInductorWrapper.__call__
     src_apply_options = _TorchCompileInductorWrapper.apply_options
+    src_init = _TorchCompileInductorWrapper.__init__
+    src_get_config_copy = ConfigModule.get_config_copy
     
     def new_call(self, model_, inputs_):
         if self.config.get('max_autotune', False):
-            os.environ['TORCHINDUCTOR_MAX_AUTOTUNE'] = '1'
+            os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
         register_inductor_npu()
         return src_call(self, model_, inputs_)
     
@@ -178,9 +181,45 @@ def patch_inductor_wrapper():
                 register_inductor_npu()
             torch_npu._inductor.patch_shape_handling()
         src_apply_options(self, options)
+
+    def new_get_config_copy(self) -> Dict[str, Any]:
+        ori_dict = src_get_config_copy(self)
+        NpuBackendType = Literal["default", "mlir", "dvm"]
+        if "npu_backend" not in ori_dict:
+            ori_dict["npu_backend"] = "default"
+            self._config["npu_backend"] = _ConfigEntry(
+                    Config(default="default", value_type=NpuBackendType)
+            )
+        return ori_dict
+    
+    def new_init(self, mode, options, dynamic):
+        src_init(self, mode, options, dynamic)
+        if self.config.get("npu_backend") == "mlir" or torch._inductor.config.npu_backend == "mlir": 
+            os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
+            try:
+                import torch_mlir
+                from torch_mlir import ir
+            except ImportError as e:
+                raise ImportError("torch_mlir is not installed, install it first.") from e
+            from torch_npu._inductor.ascend_npu_ir.build_ext import (
+                build_ascend_npu_ir_ext,
+                set_torch_npu_library_path,
+            )
+
+            _has_inited = False
+            if not _has_inited:
+                _has_inited = True
+                build_ascend_npu_ir_ext()
+            set_torch_npu_library_path()
+            from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu import (
+                npu_inductor_plugin,
+            )
     
     _TorchCompileInductorWrapper.__call__ = new_call
     _TorchCompileInductorWrapper.apply_options = new_apply_options
+    _TorchCompileInductorWrapper.__init__ = new_init
+    ConfigModule.get_config_copy = new_get_config_copy
+    torch._inductor.config.get_config_copy()
 
 
 def patch_dynamo_optimize():

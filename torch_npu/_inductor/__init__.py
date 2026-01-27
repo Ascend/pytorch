@@ -1,6 +1,6 @@
 import os
 
-if os.getenv('TORCHINDUCTOR_MAX_AUTOTUNE', '0') == '1':
+if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
     pass
 else:
     import os
