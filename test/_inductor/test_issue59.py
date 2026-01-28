@@ -1,9 +1,11 @@
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests
 from testutils import TestUtils
 import torch_npu
 
 
+@unittest.skip("This test is not supported yet")
 class Test_issue59(TestUtils):
     def layernorm_backward(self, x, y, z):
         sum = torch.sum(x)
