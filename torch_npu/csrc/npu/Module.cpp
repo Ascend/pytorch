@@ -960,6 +960,24 @@ PyObject* THNPModule_getCurrentStream_raw(
     END_HANDLE_TH_ERRORS
 }
 
+// Note: The torch_npu._C._npu_getCurrentRawStreamNoWait(device) interface does NOT clear the task queue.
+// If tasks are dispatched using both the returned aclrtStream and torch_npu's task queue,
+// it may cause ordering issues due to lack of synchronization between the two dispatch paths.
+// Users must ensure to use only one of these dispatch methods exclusively.
+// If mixed usage is unavoidable, ensure there are no data dependencies between tasks
+// and that performance is not sensitive to potential execution reordering.
+PyObject* THNPModule_getCurrentRawStreamNoWait_wrap(
+    PyObject* /* unused */, PyObject* device_index)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(
+        THPUtils_checkLong(device_index), "invalid argument to getCurrentStream", PTA_ERROR(ErrCode::PARAM));
+    int64_t device = THPUtils_unpackLong(device_index);
+    return PyLong_FromVoidPtr(
+        c10_npu::getCurrentNPUStreamNoWait(device));
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_getDefaultStream_wrap(PyObject *self /* unused */, PyObject *device_index)
 {
     HANDLE_TH_ERRORS
@@ -2228,6 +2246,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getDeviceUtilizationRate", (PyCFunction)THNPModule_getDeviceUtilizationRate_wrap, METH_O, nullptr},
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getCurrentRawStream", (PyCFunction)THNPModule_getCurrentStream_raw, METH_O, nullptr},
+    {"_npu_getCurrentRawStreamNoWait", (PyCFunction)THNPModule_getCurrentRawStreamNoWait_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_eraseStream", (PyCFunction)THNPModule_npu_eraseStream_wrap, METH_VARARGS | METH_KEYWORDS, nullptr},
