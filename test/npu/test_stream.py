@@ -18,7 +18,7 @@ class TestNpuStream(TestCase):
         self.assertTrue(len(stream_instance) == device_number)
 
     def test_get_current_stream_interface(self):
-        from torch_npu._C import _npu_getCurrentRawStream
+        from torch_npu._C import _npu_getCurrentRawStream, _npu_getCurrentRawStreamNoWait
         from torch._dynamo.device_interface import get_interface_for_device
 
         device_number = torch.npu.device_count()
@@ -28,8 +28,10 @@ class TestNpuStream(TestCase):
             with torch.npu.stream(stream):
                 current_stream = torch.npu.current_stream()
                 current_raw_stream = _npu_getCurrentRawStream(i)
+                current_raw_stream_no_wait = _npu_getCurrentRawStreamNoWait(i)
                 interface_raw_stream = get_interface_for_device('npu').get_raw_stream(i)
                 self.assertTrue(current_stream.npu_stream == current_raw_stream)
+                self.assertTrue(current_stream.npu_stream == current_raw_stream_no_wait)
                 self.assertTrue(current_stream.npu_stream == interface_raw_stream)
 
     def test_priority(self):
