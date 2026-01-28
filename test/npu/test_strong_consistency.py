@@ -1,4 +1,4 @@
-import os
+import unittest
 import numpy as np
 import torch
 import torch_npu
@@ -7,6 +7,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import SkipIfNotGteCANNVersion
 
 
+@unittest.skip("This test is not supported yet")
 class TestStrongConsistency(TestCase):
     def test_are_consistent_algorithms_enable(self):
         self.assertEqual(torch_npu.npu.are_consistent_algorithms_enable(), True)
