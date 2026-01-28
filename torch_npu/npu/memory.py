@@ -41,6 +41,11 @@ __all__ = [
     "MemPool",
     "MemPoolContext",
     "use_mem_pool",
+    "host_empty_cache",
+    "host_memory_stats",
+    "host_memory_stats_as_nested_dict",
+    "reset_accumulated_host_memory_stats",
+    "reset_peak_host_memory_stats"
 ]
 
 if not hasattr(torch_npu._C, "_npu_NPUAllocator"):
@@ -157,6 +162,91 @@ def empty_cache():
     """
     if is_initialized():
         torch_npu._C._npu_emptyCache()
+
+
+def host_empty_cache():
+    r"""
+    Releases all unoccupied cached memory currently held by the caching
+    allocator so that those can be used in other NPU application.
+    """
+    torch_npu._C._npu_hostEmptyCache()
+
+
+def host_memory_stats():
+    r"""Return a dictionary of pinned (host) allocator statistics.
+
+    Core statistics (host pinned allocator):
+
+    - ``"allocation.{current,peak,allocated,freed}"``:
+      pinned blocks owned by the allocator (active + cached). Grows when a new
+      block is created via NPU and shrinks when cached blocks are returned.
+    - ``"reserved_bytes.{current,peak,allocated,freed}"``:
+      bytes of pinned blocks owned by the allocator (active + cached), using
+      the rounded block size requested from NPU.
+    - ``"segment.{current,peak,allocated,freed}"``:
+      blocks currently checked out to callers (increments on handout, decrements
+      when the block becomes reusable after stream deps finish).
+    - ``"allocated_bytes.{current,peak,allocated,freed}"``:
+      bytes corresponding to active blocks.
+
+    Metric type:
+
+    - ``current``: current value.
+    - ``peak``: maximum value.
+    - ``allocated``: historical total increase.
+    - ``freed``: historical total decrease.
+
+    Event/timing counters:
+
+    - ``"num_host_alloc"`` / ``"num_host_free"``: blocks created to grow the
+      pool / cached blocks returned to NPU (matches allocations allocated/freed).
+    - ``"host_alloc_time.{total,max,min,count,avg}"``: time in host alloc calls
+      when growing the pool (microseconds).
+    - ``"host_free_time.{total,max,min,count,avg}"``: time in host free calls
+      when cached blocks are returned (microseconds).
+
+    Block sizes are rounded up to the next power of two before calling NPU, so
+    byte stats reflect the rounded size. Peak values are aggregated per bucket
+    and are a best-effort approximation of the true peak.
+    """
+    result = []
+
+    def _recurse_add_to_result(prefix, obj):
+        if isinstance(obj, dict):
+            if len(prefix) > 0:
+                prefix += "."
+            for k, v in obj.items():
+                _recurse_add_to_result(prefix + k, v)
+        else:
+            result.append((prefix, obj))
+
+    stats = host_memory_stats_as_nested_dict()
+    _recurse_add_to_result("", stats)
+    result.sort()
+    return collections.OrderedDict(result)
+
+
+def host_memory_stats_as_nested_dict():
+    r"""Return the result of :func:`~torch_npu.npu.host_memory_stats` as a nested dictionary."""
+    return torch_npu._C._npu_hostMemoryStats()
+
+
+def reset_accumulated_host_memory_stats():
+    r"""Reset the "accumulated" (historical) stats tracked by the host memory allocator.
+
+    See :func:`~torch_npu.npu.host_memory_stats` for details. Accumulated stats correspond to
+    the `"allocated"` and `"freed"` keys in each individual stat dict.
+    """
+    return torch_npu._C._npu_resetAccumulatedHostMemoryStats()
+
+
+def reset_peak_host_memory_stats():
+    r"""Reset the "peak" stats tracked by the host memory allocator.
+
+    See :func:`~torch_npu.npu.host_memory_stats` for details. Peak stats correspond to the
+    `"peak"` key in each individual stat dict.
+    """
+    return torch_npu._C._npu_resetPeakHostMemoryStats()
 
 
 def empty_virt_addr_cache():
