@@ -1379,7 +1379,15 @@ def _benchmark_all_configs(self, *args, **kwargs):
 
         device_interface = self.get_device_interface()
         stream = device_interface.get_raw_stream(device_interface.current_device())
-        tilling_kernel_list.append(kernel_call(launcher))
+        kernel_call_fn = kernel_call(launcher)
+        tilling_kernel_list.append(kernel_call_fn)
+        
+        # Make sure single tiling run success
+        try:
+            kernel_call_fn()
+            torch.npu.synchronize()
+        except Exception as e:
+            raise RuntimeError(f"Run [{self.fn.__name__}] \n tiling [{launcher.config}] \n") from e
 
     def do_batch_benchmark(tilling_kernel_list):
 

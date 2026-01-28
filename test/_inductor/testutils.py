@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 import os
+import csv
 import time
 import numpy as np
 import torch
@@ -34,3 +35,42 @@ class TestUtils(TestCase):
             return torch.randint(low=0, high=2, size=shape, device=torch.device("npu")).bool()
         else:
             raise ValueError('Invalid parameter \"dtype\" is found : {}'.format(dtype))
+
+
+class BenchmarkTestUtils(TestCase):
+
+    # Disable cache, make sure benchmark correct
+    force_disable_caches_config = False
+    recompile_limit = 8
+
+    @classmethod
+    def setUpClass(cls):
+        cls.force_disable_caches_config = torch._inductor.config.force_disable_caches
+        cls.recompile_limit_config = torch._dynamo.config.recompile_limit
+        torch._inductor.config.force_disable_caches = True
+        torch._dynamo.config.recompile_limit = 4096
+        file_exist = os.path.exists(cls.profiling_file_path)
+        if file_exist:
+            os.remove(cls.profiling_file_path)
+
+    @classmethod
+    def tearDownClass(cls):
+        torch._inductor.config.force_disable_caches = cls.force_disable_caches_config
+        torch._dynamo.config.recompile_limit = cls.recompile_limit_config
+
+    @staticmethod
+    def write_performance_info(profiling_file_path, perf_info):
+        if not profiling_file_path:
+            return
+
+        file_exist = os.path.exists(profiling_file_path)
+        fieldnames = list(perf_info.keys())
+
+        with open(profiling_file_path, 'a', newline='') as csvfile:            
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            if not file_exist or os.path.getsize(profiling_file_path) == 0:
+                writer.writeheader()
+
+            writer.writerow(perf_info)
+
