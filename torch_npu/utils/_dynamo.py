@@ -19,6 +19,8 @@ import torch_npu
 from torch_npu.dynamo import _get_global_npu_backend
 from torch_npu.utils._triton import patch_triton_for_dynamo
 
+use_jit_script = False
+
 
 class NPUTorchCtxManagerClassVariable(TorchCtxManagerClassVariable):
     def call_function(self, tx, args, kwargs):
