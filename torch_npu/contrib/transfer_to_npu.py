@@ -15,6 +15,7 @@ from torch._utils import _get_device_module
 from torch.utils import cpp_extension
 from torch.autograd.profiler_util import Kernel
 import torch_npu
+from torch_npu.utils import _dynamo
 
 try:
     from packaging.version import Version as Version
@@ -268,15 +269,15 @@ _warned_jit_fallback = False
 
 def _jit_script(obj, *args, **kwargs):
     global _warned_jit_fallback
-    try:
-        return _real_jit_script(obj, *args, **kwargs)
-    except Exception:
+    if _dynamo.use_jit_script:
         if not _warned_jit_fallback:
             _warned_jit_fallback = True    
             warnings.warn(
-                "torch.jit.script failed, return function (warn only once)",
+                "using torch.jit.script successfully",
                 RuntimeWarning,
             )
+        return _real_jit_script(obj, *args, **kwargs)
+    else:
         return obj
 
 
