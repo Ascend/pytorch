@@ -1007,6 +1007,8 @@ class NPUIndexTritonKernel(TritonKernel):
     # for creat constant tensor, if have two axis, constant=tl.full([1,1]) else  tl.full([1])
     def triton_tensor_ndim(self):
         if self.numof_reduction_axis() > 1:
+            if self.is_contiguous_reduction():
+                return len(self.tiling_axis) - self.numof_reduction_axis() + 1
             return 1
 
         return len(self.tiling_axis)
@@ -1264,6 +1266,8 @@ class NPUIndexTritonKernel(TritonKernel):
         if self.inside_reduction:
             if not self.reduce_analysis:
                 self.reduce_analysis = ReductionAnalysis(self)
+            if self.is_contiguous_reduction():
+                return self.reduce_analysis.dense_post_reduction_list()
             return self.reduce_analysis.dense_size_list()
 
         if not self.golden_var_list:
@@ -1277,6 +1281,26 @@ class NPUIndexTritonKernel(TritonKernel):
             axis = self.range_tree_nodes[var]
             sizes[i] = f"{axis.name.upper()}BLOCK_SUB"
         return sizes
+
+    def is_contiguous_reduction(self):
+        def is_continugous_axis(axis_list):
+            axis_set = set(axis_list)
+            return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
+
+        if self.numof_reduction_axis() > 1:
+            reduction_dim_list = [] 
+
+            if not self.golden_var_list:
+                self.select_golden_varlist()
+
+            if self.golden_var_list is None:
+                raise RuntimeError("assert self.kernel.golden_var_list is not None")
+
+            for i, x in enumerate(reversed(self.golden_var_list)):
+                if x.name[0] == 'r':
+                    reduction_dim_list.append(i)
+            return is_continugous_axis(reduction_dim_list)
+        return False
 
     def dense_size_str(self):
         if self.inside_reduction:
@@ -1293,6 +1317,10 @@ class NPUIndexTritonKernel(TritonKernel):
             return f"triton_helpers.promote_to_tensor({value})"
         dense_list = self.dense_size_list()
         dense_list[dim] = "1"
+        if self.is_contiguous_reduction():
+            residual_shape_length = len(self.golden_var_list) - len(dense_list)
+            for i in range(residual_shape_length):
+                dense_list.insert(dim + i + 1, "1")
         expand_str = ", ".join(dense_list)
         return f"{value}.reshape({expand_str})"
 
@@ -1435,18 +1463,19 @@ class NPUIndexTritonKernel(TritonKernel):
             masked_value = value
 
             if reduction_type in {"argmax", "argmin", "max", "min"}:
-                reduce_axis = get_reduction_axis()
-                broadcast_string: str
-                reshape_str = self.reduce_analysis.get_reduce_dim_reshape(reduce_axis)
-                broadcast_string = f"tl.broadcast_to({reduce_axis.symbol()}.reshape({reshape_str}), {masked_value}.shape)"
-                accumulator_index = str(
-                    self.cse.generate(
-                        self.compute,
-                        broadcast_string,
-                        dtype=torch.int64
-                    )
-                )
+                
                 if reduction_type == "argmax" or reduction_type == "argmin":
+                    reduce_axis = get_reduction_axis()
+                    broadcast_string: str
+                    reshape_str = self.reduce_analysis.get_reduce_dim_reshape(reduce_axis)
+                    broadcast_string = f"tl.broadcast_to({reduce_axis.symbol()}.reshape({reshape_str}), {masked_value}.shape)"
+                    accumulator_index = str(
+                        self.cse.generate(
+                            self.compute,
+                            broadcast_string,
+                            dtype=torch.int64
+                        )
+                    )
                     root_op = {"argmax": "max", "argmin": "min"}[reduction_type]
                     final_argreduce(
                         self.compute, result_var, masked_value, accumulator_index

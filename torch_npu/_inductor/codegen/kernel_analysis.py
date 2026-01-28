@@ -224,9 +224,9 @@ class ReductionAnalysis:
         self.kernel = kernel
         self.reduction = None
         self.reduced_dim = None
+        self.contiguous_reduction = self.kernel.is_contiguous_reduction()
         if self.numof_reduction_axis() > 1:
-            self.kernel.persistent_reduction = True
-            self.reduced_dim = 0
+            self.reduced_dim = self.analyze_reduction_dim()
             return
 
         reduction = self.kernel.find_reduction_node()
@@ -257,9 +257,26 @@ class ReductionAnalysis:
         sizes = list(reversed(sizes))
         return sizes
 
+    def dense_reduction_list(self) -> List[str]:
+        reduction_sizes = [f"{x.name.upper()}BLOCK_SUB" for x in self.kernel.reduction_axis_list()]
+        reduction_sizes = list(reversed(reduction_sizes))
+        return reduction_sizes
+
+    def dense_post_reduction_list(self) -> List[str]:
+        reduction_list_str = f"{' * '.join(self.dense_reduction_list())}"
+        no_reduction_list = []
+        # ensure order
+        for dense_size in self.dense_size_list():
+            if dense_size not in self.dense_reduction_list():
+                no_reduction_list.append(dense_size)
+        no_reduction_list.append(reduction_list_str)
+        return no_reduction_list
+
     def dense_size_str(self):
         sizes = self.dense_size_list()
         if self.numof_reduction_axis() > 1:
+            if self.contiguous_reduction:
+                return f"[{', '.join(self.dense_post_reduction_list())}]"
             return f"[{'* '.join(sizes)}]"
         return f"[{', '.join(sizes)}]"
 
@@ -271,8 +288,9 @@ class ReductionAnalysis:
 
     def analyze_reduction_dim(self):
         if self.numof_reduction_axis() > 1:
-            self.reduced_dim = 0
-            return 0
+            if not self.contiguous_reduction:
+                self.reduced_dim = 0
+                return 0
 
         if not self.kernel.golden_var_list:
             self.kernel.select_golden_varlist()

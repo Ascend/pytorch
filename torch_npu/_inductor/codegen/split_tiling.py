@@ -26,6 +26,7 @@ class SplitTiling:
         self.find_lowest_dimension()
         self.should_outer_reduce = False
         self.possible_need_permute = self.find_possible_permutes()
+        self.contiguous_reduction = self.is_contiguous_reduction()
 
     def find_possible_permutes(self):
         if len(self.kernel.low_dims) <= 1:
@@ -49,6 +50,20 @@ class SplitTiling:
                     continue
                 if var_list != other:
                     return True
+        return False
+
+    def is_contiguous_reduction(self):
+        def is_continugous_axis(axis_list):
+            axis_set = set(axis_list)
+            return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
+
+        if self.kernel.numof_reduction_axis() > 1:
+            golden_var_list = self.kernel.parse_golden_from_load_store_index()
+            reduction_dim_list = [] 
+            for i, x in enumerate(reversed(golden_var_list)):
+                if x.name[0] == 'r':
+                    reduction_dim_list.append(i)
+            return is_continugous_axis(reduction_dim_list)
         return False
 
     @classmethod
@@ -156,12 +171,16 @@ class SplitTiling:
                 if self.kernel.tiling_axis
                 else 1
             )
-            if self.kernel.numof_reduction_axis() > 1 and all(
-                self.kernel.range_tree_nodes[var].is_tiling_axis
-                for var in self.kernel.reduction_axis_list()
-            ):
-                return True
 
+            # currently, the maximum dim that triton-ascend support is 2
+            def can_stop():
+                return self.kernel.numof_reduction_axis() > 1 and all(
+                    self.kernel.range_tree_nodes[var].is_tiling_axis
+                    for var in self.kernel.reduction_axis_list()
+                ) and not self.contiguous_reduction
+                    
+            if can_stop():
+                return True
             return False
 
         def select_tiling(low_dim=True, reduction=True):
