@@ -607,10 +607,10 @@
   },
   "torch_npu.dynamo.torchair.CompilerConfig.as_dict": {
     "signature": "(self)"
-  },    
+  },
   "torch_npu.dynamo.torchair.configs.compiler_config.CompilerConfig.as_dict": {
     "signature": "(self)"
-  },    
+  },
   "torch_npu.dynamo.torchair.dynamo_export": {
     "signature": "(*args, model: torch.nn.modules.module.Module, export_path: str = 'export_file', export_name: str = 'export', dynamic: bool = False, config=<torchair.configs.compiler_config.CompilerConfig object>, **kwargs)"
   },
@@ -1049,6 +1049,21 @@
   "torch_npu.npu.empty_virt_addr_cache": {
     "signature": "()"
   },
+  "torch_npu.npu.host_empty_cache": {
+    "signature": "()"
+  },
+  "torch_npu.npu.host_memory_stats": {
+    "signature": "()"
+  },
+  "torch_npu.npu.host_memory_stats_as_nested_dict": {
+    "signature": "()"
+  },
+  "torch_npu.npu.reset_accumulated_host_memory_stats": {
+    "signature": "()"
+  },
+  "torch_npu.npu.reset_peak_host_memory_stats": {
+    "signature": "()"
+  },
   "torch_npu.npu.enable_deterministic_with_backward": {
     "signature": "(tensor: torch.Tensor)"
   },
@@ -1250,7 +1265,7 @@
   "torch_npu.npu.utilization": {
     "signature": "(device=None)"
   },
-  "torch_npu.npu.set_op_timeout_ms":{
+  "torch_npu.npu.set_op_timeout_ms": {
     "signature": "(timeout)"
   },
   "torch_npu.npu.aclnn.backends.version": {
@@ -1404,6 +1419,21 @@
     "signature": "()"
   },
   "torch_npu.npu.memory.empty_virt_addr_cache": {
+    "signature": "()"
+  },
+  "torch_npu.npu.memory.host_empty_cache": {
+    "signature": "()"
+  },
+  "torch_npu.npu.memory.host_memory_stats": {
+    "signature": "()"
+  },
+  "torch_npu.npu.memory.host_memory_stats_as_nested_dict": {
+    "signature": "()"
+  },
+  "torch_npu.npu.memory.reset_accumulated_host_memory_stats": {
+    "signature": "()"
+  },
+  "torch_npu.npu.memory.reset_peak_host_memory_stats": {
     "signature": "()"
   },
   "torch_npu.npu.memory.get_allocator_backend": {
@@ -2595,11 +2625,11 @@
     "signature": "(input: torch.Tensor, tagged_stream: str)"
   },
   "torch_npu.dynamo.torchair.ops.record": {
-  "signature": "()"
+    "signature": "()"
   },
   "torch_npu.dynamo.torchair.ops.wait": {
-  "signature": "(tensors: list)"
-  },  
+    "signature": "(tensors: list)"
+  },
   "torch_npu.npu_bounding_box_encode": {
     "signature": "(anchor_box, ground_truth_box, means0, means1, means2, means3, stds0, stds1, stds2, stds3)"
   },
