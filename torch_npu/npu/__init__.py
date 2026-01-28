@@ -126,7 +126,8 @@ __all__ = [
     "obfuscation_initialize",
     "obfuscation_finalize",
     "obfuscation_calculate",
-    "set_op_timeout_ms"
+    "set_op_timeout_ms",
+    "host_empty_cache"
 ]
 
 from typing import Tuple, Union, List, cast, Optional

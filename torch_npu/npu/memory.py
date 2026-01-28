@@ -41,6 +41,7 @@ __all__ = [
     "MemPool",
     "MemPoolContext",
     "use_mem_pool",
+    "host_empty_cache"
 ]
 
 if not hasattr(torch_npu._C, "_npu_NPUAllocator"):
@@ -157,6 +158,14 @@ def empty_cache():
     """
     if is_initialized():
         torch_npu._C._npu_emptyCache()
+
+
+def host_empty_cache():
+    r"""
+    Releases all unoccupied cached memory currently held by the caching
+    allocator so that those can be used in other NPU application.
+    """
+    torch_npu._C._npu_hostEmptyCache()
 
 
 def empty_virt_addr_cache():
