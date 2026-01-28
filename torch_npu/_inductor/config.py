@@ -133,8 +133,10 @@ use_store_in_cat = os.environ.get("USE_STORE_IN_CAT", False)
 max_cat_size_in_per_kernel = 4 * 1024
 inductor_indirect_memory_mode = None
 if get_soc_version() >= Ascend910_9391:
-    # A5 INDUCTOR_INDIRECT_MEMORY_MODE: simt_template, simt_only, simd_simt_mix
+    # A5 INDUCTOR_INDIRECT_MEMORY_MODE: fallback, simt_template, simt_only, simd_simt_mix
     inductor_indirect_memory_mode = os.environ.get("INDUCTOR_INDIRECT_MEMORY_MODE", "simd_simt_mix")
+    if inductor_indirect_memory_mode == "fallback":
+        inductor_indirect_memory_mode = None
     if inductor_indirect_memory_mode not in [None, "simt_template", "simt_only", "simd_simt_mix"]:
         inductor_indirect_memory_mode = "simd_simt_mix"
     # if mode in "simt_only", "simd_simt_mix", should use load store cat
