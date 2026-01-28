@@ -6,7 +6,7 @@
 from torch._inductor import sizevars
 from torch._inductor.codegen.simd import SIMDKernel
 from torch._inductor.codegen.triton import TritonKernel
-from torch._inductor.codegen.triton import TritonScheduling
+from torch._inductor.codegen.triton import TritonScheduling, Scheduler
 from torch._inductor.ir import Reduction, LoopBody
 from torch._inductor.loop_body import CaptureIndexing
 from torch_npu._inductor.codegen._sizevars import simplify
@@ -20,9 +20,10 @@ from torch_npu._inductor.codegen.ir import (num_splits, loopbody__call__, transf
                                             loop_body_block_scatter_template,
                                             simplify_indexing_scatter_template,
                                             simplify_indexing_cat_store, loop_body_block_cat_store)
-from torch_npu._inductor.codegen.scheduling import create_tiling
+from torch_npu._inductor.codegen.scheduling import create_tiling, are_long_distant_nodes
 from torch_npu._inductor.codegen.triton import group_fn, select_index_dtype
 from torch_npu._inductor.codegen.triton import is_compatible
+from torch_npu.npu._backends import get_soc_version
 
 from ..config import log as npulog
 
@@ -39,6 +40,8 @@ LoopBody.__call__ = loopbody__call__
 TritonScheduling.group_fn = group_fn
 TritonScheduling.select_index_dtype = select_index_dtype
 TritonScheduling.create_tiling = create_tiling
+if get_soc_version() >= 250:
+    Scheduler.are_long_distant_nodes = are_long_distant_nodes
 # triton kernel
 setattr(SIMDKernel, 'is_compatible', is_compatible)
 
