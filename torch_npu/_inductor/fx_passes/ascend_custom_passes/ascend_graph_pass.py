@@ -745,6 +745,60 @@ def dtype_optimal_pass(graph: torch.fx.Graph) -> None:
     eliminate_dead_code(graph, changed, dtype_optimal_pass.__name__)
 
 
+# for struction reason, inductor-ascend can not fully support all dual reduction case
+# we add this graph pass to prevent dual reduction like x.sum()
+# eg.
+# x shape is [1, 1024, 2048]
+# x.sum() -> x.sum(dim=2).sum(dim=1).sum(dim=0)
+# todo: remove num_split patch and then remove this custom pass
+@register_custom_pass(PassType.POST)
+def unfold_dual_reduction_pass(graph: torch.fx.Graph) -> None:
+    aten = torch.ops.aten
+    changed = False
+    # todo: add all reduction operator into reduction_operator_mapping
+    reduction_operator_mapping = {
+        "sum": aten.sum.dim_IntList,
+    }
+
+    def is_reduction(node):
+        return (
+            node.op == "call_function"
+            and hasattr(node.target, "_opname")
+            and node.target._opname in reduction_operator_mapping
+        )
+
+    candidates = [node for node in graph.nodes if is_reduction(node)]
+    for reduce in candidates:
+        input_tensor = get_input_node(reduce, 0)
+        shape = get_node_shape(input_tensor)
+        if shape is None:
+            continue
+        dims = get_input_kw_node(reduce, "dim") or list(range(len(shape)))
+        # only for dual reduction
+        if not isinstance(dims, list) or len(dims) == 1:
+            continue
+        keep_dim = get_input_kw_node(reduce, "keepdim") or False
+        dtype = get_input_kw_node(reduce, "dtype") or None
+        # unfold reduction operator from low axis to high axis
+        unfold_dims = [[dim] for dim in sorted(dims, reverse=True)]
+        with graph.inserting_before(reduce):
+            iter_input = input_tensor
+            for unfold_dim in unfold_dims:
+                reduce_op = reduction_operator_mapping[reduce.target._opname]
+                unfolded_reduce = graph.call_function(
+                    reduce_op, args=(
+                        iter_input, unfold_dim, keep_dim
+                    ), kwargs={"dtype": dtype}
+                )
+                unfolded_reduce.meta["val"] = reduce_op(input_tensor.meta["val"], unfold_dim, keep_dim, dtype=dtype)
+                iter_input = unfolded_reduce
+            reduce.replace_all_uses_with(unfolded_reduce)
+            graph.erase_node(reduce)
+            changed = True
+
+        eliminate_dead_code(graph, changed, unfold_dual_reduction_pass.__name__)
+
+
 def eliminate_dead_code(graph, changed, fn_name):
     if changed:
         graph.lint()
