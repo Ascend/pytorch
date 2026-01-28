@@ -174,6 +174,7 @@ def _gen_ops_cached(arch: str, op_tensors=None, is_group_mm=False) -> List[Any]:
                 k.tune(tiling[0], tiling[1], is_hf32=use_hf32)
                 ops.append(k)
         else:
+            kernel.tune(is_hf32=use_hf32)
             ops.append(kernel)
 
     if arch is None:
