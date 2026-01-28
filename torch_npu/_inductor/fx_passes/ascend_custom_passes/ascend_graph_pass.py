@@ -34,6 +34,7 @@ from ..utils.get_binary_fold_result import (
     _fold_slice_scatter, 
     get_slice_dim, 
     get_pad_dim_and_size,
+    propagate_fake_tensor,
 )
 from ..utils.fx_pass_level import PassType
 from ...config import log
@@ -218,6 +219,7 @@ def fold_cast(graph: torch.fx.Graph) -> None:
         if src_input_dtype == cur_cast_dtype:
             with graph.inserting_before(src_cast):
                 src_cast.replace_all_uses_with(src_input)
+                propagate_fake_tensor(src_input, src_cast, lambda x: x)
             graph.erase_node(src_cast)
             changed = True
     eliminate_dead_code(graph, changed, fold_cast.__name__)
@@ -266,6 +268,7 @@ def fold_cat(graph: torch.fx.Graph) -> None:
                         args=(cat_input, cat_axis),
                         name=node.name + "_1",
                     )
+                    propagate_fake_tensor(concat_node, cat_input, lambda fake: concat_node.target(fake, cat_axis))
                 node.replace_all_uses_with(concat_node)
                 graph.erase_node(node)
                 changed = True
@@ -307,6 +310,7 @@ def fold_clone(graph: torch.fx.Graph) -> None:
         )
         if org_memoryformat == target_memoryformat:
             clone.replace_all_uses_with(inp)
+            propagate_fake_tensor(inp, clone, lambda x: x)
             graph.erase_node(clone)
             changed = True
     eliminate_dead_code(graph, changed, fold_clone.__name__)
@@ -324,6 +328,7 @@ def fold_detach(graph: torch.fx.Graph) -> None:
     for detach in candidates:
         inp = detach.args[0]
         detach.replace_all_uses_with(inp)
+        propagate_fake_tensor(inp, detach, lambda x: x)
         graph.erase_node(detach)
         changed = True
     eliminate_dead_code(graph, changed, fold_detach.__name__)
@@ -356,6 +361,7 @@ def fold_expand(graph: torch.fx.Graph) -> None:
         org_shape = list(input_tensor.shape)
         if _same_shape(org_shape, target_shape):
             expand.replace_all_uses_with(inp)
+            propagate_fake_tensor(inp, expand, lambda x: x)
             graph.erase_node(expand)
             changed = True
     eliminate_dead_code(graph, changed, fold_expand.__name__)
@@ -403,12 +409,14 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
                     args=(node.args[0],),
                     name=user.name + "_replacement",
                 )
+                propagate_fake_tensor(new_act, node.args[0], lambda fake: user.target(fake))
                 new_act_view = graph.create_node(
                     op="call_function",
                     target=node.target,
                     args=(new_act, node.args[1]),
                     name=node.name + "_replacement",
                 )
+                propagate_fake_tensor(new_act_view, new_act, lambda fake: node.target(fake, node.args[1]))
             user.replace_all_uses_with(new_act_view)
             graph.erase_node(user)
             changed = True
@@ -436,12 +444,14 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
                             args=(node.args[0], other_node),
                             name=user.name + "_replacement",
                         )
+                        propagate_fake_tensor(new_add, node.args[0], lambda fake: user.target(fake, other_node.meta['val']))
                         new_add_view = graph.create_node(
                             op="call_function",
                             target=node.target,
                             args=(new_add, node.args[1]),
                             name=node.name + "_replacement",
                         )
+                        propagate_fake_tensor(new_add_view, new_add, lambda fake: node.target(fake, node.args[1]))
                     user.replace_all_uses_with(new_add_view)
                     graph.erase_node(user)
                     changed = True
@@ -482,6 +492,7 @@ def fold_squeeze(graph: torch.fx.Graph) -> None:
                 changed = True
             elif len(prev.args) == 1:
                 node.replace_all_uses_with(prev)
+                propagate_fake_tensor(prev, node, lambda x: x)
                 graph.erase_node(node)
                 changed = True
         # case2: squeeze → unsqueeze
@@ -491,6 +502,7 @@ def fold_squeeze(graph: torch.fx.Graph) -> None:
                 changed = True
             elif match(prev.args[1], node.args[1]):
                 node.replace_all_uses_with(prev.args[0])
+                propagate_fake_tensor(prev.args[0], node, lambda x: x)
                 changed = True
     eliminate_dead_code(graph, changed, fold_squeeze.__name__)
 
@@ -550,6 +562,7 @@ def fold_to_copy(graph: torch.fx.Graph) -> None:
     for _to_copy in candidates:
         if _useless_to_copy(_to_copy):
             _to_copy.replace_all_uses_with(_to_copy.args[0])
+            propagate_fake_tensor(_to_copy.args[0], _to_copy, lambda x: x)
             graph.erase_node(_to_copy)
             changed = True
     eliminate_dead_code(graph, changed, fold_to_copy.__name__)
@@ -592,6 +605,7 @@ def view_fold_pass(graph) -> None:
             if inp_shape is not None:
                 if target_shape == list(inp_shape):
                     view.replace_all_uses_with(inp)
+                    propagate_fake_tensor(inp, view, lambda x: x)
                     graph.erase_node(view)
                     changed = True
     eliminate_dead_code(graph, changed, view_fold_pass.__name__)
@@ -657,6 +671,7 @@ def fold_redundant_ops(graph: torch.fx.Graph):
                 if in_meta.dtype != squeeze_out_meta.dtype:
                     continue
                 squeeze_node.replace_all_uses_with(first_arg)
+                propagate_fake_tensor(first_arg, squeeze_node, lambda x: x)
                 graph.erase_node(squeeze_node)
                 if not list(view_node.users):
                     graph.erase_node(view_node)

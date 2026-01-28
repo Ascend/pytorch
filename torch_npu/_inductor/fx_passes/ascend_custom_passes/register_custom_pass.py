@@ -9,7 +9,7 @@ ASCEND_CUSTOME_PASS_REGISTER = {
 }
 
 
-def register_custom_pass(pass_type: int = PassType.PRE, fx_pass_level: int = FxPassLevel.LEVEL1):
+def register_custom_pass(pass_type: PassType = PassType.PRE, fx_pass_level: FxPassLevel = FxPassLevel.LEVEL1):
     def decorator(fn: Callable) -> Callable:
 
         log.debug(f"Registering function {fn.__name__} from module {fn.__module__} with pass_type={pass_type}, fx_pass_level={fx_pass_level}")

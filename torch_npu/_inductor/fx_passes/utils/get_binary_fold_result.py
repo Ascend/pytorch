@@ -78,7 +78,7 @@ def get_binary_fold_result(
         if type(inp) in scalar_tup:
             if any(isinstance(s, torch.SymInt) for s in val_meta.shape):
                 return None
-            return graph.call_function(
+            new_node = graph.call_function(
                 torch.ops.aten.full.default,
                 args=(val_meta.shape, inp),
                 kwargs={
@@ -86,6 +86,7 @@ def get_binary_fold_result(
                     "device": target_meta.device
                 }
             )
+            propagate_fake_tensor(new_node, inp, lambda fake: fake.full(val_meta.shape))
         else:
             if node_meta.shape == val_meta.shape:
                 expand = inp
@@ -99,6 +100,7 @@ def get_binary_fold_result(
                         val_meta.shape
                     )
                 )
+                propagate_fake_tensor(expand, inp, lambda fake: fake.expand(val_meta.shape))
             if node_meta.dtype != val_meta.dtype:
                 copy = graph.call_function(
                     torch.ops.prims.convert_element_type.default,
@@ -107,11 +109,13 @@ def get_binary_fold_result(
                         "dtype": val_meta.dtype
                     }
                 )
+                propagate_fake_tensor(copy, expand, lambda fake: fake.to(dtype=val_meta.dtype))
             else:
                 copy = graph.call_function(
                     torch.ops.aten.clone.default,
                     args=(expand,),
                 )
+                propagate_fake_tensor(copy, expand, lambda fake: fake.clone())
             return copy
     return None
 
@@ -131,8 +135,35 @@ def _get_fold_result(graph: torch.fx.Graph, src, dims: List[int], keep_dim: bool
                 dims,
             ),
         )
+        propagate_fake_tensor(view, src, lambda fake: fake.squeeze(*dims))
         return view
-    
+
+
+def propagate_fake_tensor(node, input_node, simulate_fn):
+    if 'val' in node.meta:
+        return
+
+    if isinstance(input_node, (list, tuple)):
+        fake_inputs = []
+
+        for inp in input_node:
+            if 'val' in inp.meta:
+                fake_inputs.append(inp.meta['val'])
+        if len(fake_inputs) == 0:
+            return
+        fake_out = simulate_fn(fake_inputs)
+        if fake_out is None:
+            return
+        node.meta['val'] = fake_out
+        return
+    if 'val' in input_node.meta:
+        fake_in = input_node.meta['val']
+        fake_out = simulate_fn(fake_in)
+        if fake_out is None:
+            return
+        node.meta['val'] = fake_out
+        return
+
 
 def _fold_slice(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
     if len(node.args) < 4:
@@ -167,6 +198,7 @@ def _fold_slice(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
 
     if is_full_slice:
         node.replace_all_uses_with(src_node)
+        propagate_fake_tensor(src_node, node, lambda x: x)
         graph.erase_node(node)
         return True
     return False
@@ -195,6 +227,7 @@ def _fold_slice_scatter(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
         return False
 
     node.replace_all_uses_with(view_node)
+    propagate_fake_tensor(view_node, node, lambda x: x)
     graph.erase_node(node)
     return True
 
