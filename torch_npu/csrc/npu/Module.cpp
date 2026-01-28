@@ -27,6 +27,7 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
@@ -1122,6 +1123,77 @@ PyObject* THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
     Py_RETURN_NONE;
 }
 
+PyObject* THNPModule_npu_hostEmptyCache(PyObject *_unused, PyObject *noargs)
+{
+    HANDLE_TH_ERRORS
+    at::getHostAllocator(at::kPrivateUse1)->empty_cache();
+    END_HANDLE_TH_ERRORS
+    Py_RETURN_NONE;
+}
+
+PyObject* THNPModule_npu_hostMemoryStats(PyObject *_unused, PyObject *noargs)
+{
+    HANDLE_TH_ERRORS
+
+    using at::HostStats;
+    using c10::CachingAllocator::DurationStat;
+    using c10::CachingAllocator::Stat;
+    using c10::CachingAllocator::StatArray;
+    using c10::CachingAllocator::StatType;
+
+    const auto statToDict = [](const Stat& stat) {
+        py::dict dict;
+
+        dict["current"] = stat.current;
+        dict["peak"] = stat.peak;
+        dict["allocated"] = stat.allocated;
+        dict["freed"] = stat.freed;
+        return dict;
+    };
+
+    const auto durationStatToDict = [](const DurationStat& stat) {
+        py::dict dict;
+
+        dict["total"] = stat.total;
+        dict["max"] = stat.max;
+        dict["min"] = stat.min;
+        dict["count"] = stat.count;
+        dict["avg"] = stat.count == 0 ? 0 : stat.total / stat.count;
+        return dict;
+    };
+
+    const HostStats stats = at::getHostAllocator(at::kPrivateUse1)->get_stats();
+
+    py::dict result;
+    result["num_host_alloc"] = stats.num_host_alloc;
+    result["num_host_free"] = stats.num_host_free;
+    result["allocation"] = statToDict(stats.allocation);
+    result["segment"] = statToDict(stats.segment);
+    result["allocated_bytes"] = statToDict(stats.allocated_bytes);
+    result["reserved_bytes"] = statToDict(stats.reserved_bytes);
+    result["host_alloc_time"] = durationStatToDict(stats.host_alloc_time);
+    result["host_free_time"] = durationStatToDict(stats.host_free_time);
+
+    return result.release().ptr();
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_resetAccumulatedHostMemoryStats(PyObject* _unused, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    at::getHostAllocator(at::kPrivateUse1)->reset_accumulated_stats();
+    END_HANDLE_TH_ERRORS
+    Py_RETURN_NONE;
+}
+
+PyObject* THNPModule_npu_resetPeakHostMemoryStats(PyObject* _unused, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    at::getHostAllocator(at::kPrivateUse1)->reset_peak_stats();
+    END_HANDLE_TH_ERRORS
+    Py_RETURN_NONE;
+}
+
 PyObject* THNPModule_npu_ipc_collect(PyObject *_unused, PyObject *noargs)
 {
     HANDLE_TH_ERRORS
@@ -2151,6 +2223,10 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
     {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
+    {"_npu_hostEmptyCache", (PyCFunction) THNPModule_npu_hostEmptyCache, METH_NOARGS, nullptr},
+    {"_npu_hostMemoryStats", (PyCFunction) THNPModule_npu_hostMemoryStats, METH_NOARGS, nullptr},
+    {"_npu_resetAccumulatedHostMemoryStats", (PyCFunction) THNPModule_npu_resetAccumulatedHostMemoryStats, METH_NOARGS, nullptr},
+    {"_npu_resetPeakHostMemoryStats", (PyCFunction) THNPModule_npu_resetPeakHostMemoryStats, METH_NOARGS, nullptr},
     {"_npu_ipc_collect", (PyCFunction) THNPModule_npu_ipc_collect, METH_NOARGS, nullptr},
     {"_npu_emptyVirtAddrCache", (PyCFunction) THNPModule_emptyVirtAddrCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},
