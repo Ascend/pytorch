@@ -25,8 +25,6 @@
 #include "torch_npu/csrc/framework/LazyInitAclops.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
-#include "torch_npu/csrc/framework/interface/EnvVariables.h"
-#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #ifdef SUCCESS
 #undef SUCCESS
 #endif
@@ -48,24 +46,6 @@ void SetDefaultAllowInternalFromatDisable()
 
     c10_npu::option::SetOption("ALLOW_INTERNAL_FORMAT", "disable");
     ASCEND_LOGI("Set ALLOW_INTERNAL_FORMAT default value disable.");
-}
-
-void SetStrongConsistency()
-{
-    const static bool isStrongConsistencyExist = []() {
-        const std::string kMinRuntimeVersion = "8.5.0";
-        if (IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
-            return true;
-        }
-        return false;
-    }();
-    if (isStrongConsistencyExist) {
-        if (at_npu::native::env::CheckStrongConsistency()) {
-            NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, 1));
-        } else {
-            NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, 0));
-        }
-    }
 }
 
 #ifndef BUILD_LIBTORCH
@@ -212,7 +192,6 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
 
     if (!c10_npu::is_lazy_set_device()) {
         NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
-        SetStrongConsistency();
         NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
     }
 
@@ -261,7 +240,6 @@ NpuSysCtrl::SysStatus NpuSysCtrl::LazyInitialize(int device_id)
     }
 
     NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
-    SetStrongConsistency();
     NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
 
     lazy_init_flag_ = true;
