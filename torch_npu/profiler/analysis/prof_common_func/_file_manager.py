@@ -202,3 +202,19 @@ class FileManager:
     @classmethod
     def check_file_readable(cls, path) -> bool:
         return os.access(path, os.R_OK)
+
+    @classmethod
+    def create_empty_file(cls, output_path: str, file_name: str):
+        """
+        Create a file with an empty content specified in the file name
+        """
+        file_path = os.path.join(output_path, file_name)
+        PathManager.make_dir_safety(output_path)
+        PathManager.check_directory_path_writeable(output_path)
+        PathManager.create_file_safety(file_path)
+
+        try:
+            with open(file_path, "w"):
+                pass
+        except Exception as err:
+            raise RuntimeError(f"Can't create file: {file_name}" + prof_error(ErrCode.SYSCALL)) from err
