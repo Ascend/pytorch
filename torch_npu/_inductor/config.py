@@ -134,7 +134,11 @@ max_cat_size_in_per_kernel = 4 * 1024
 inductor_indirect_memory_mode = None
 if get_soc_version() >= Ascend910_9391:
     # A5 INDUCTOR_INDIRECT_MEMORY_MODE: fallback, simt_template, simt_only, simd_simt_mix
-    inductor_indirect_memory_mode = os.environ.get("INDUCTOR_INDIRECT_MEMORY_MODE", "simd_simt_mix")
+    inductor_indirect_memory_mode = os.environ.get("INDUCTOR_INDIRECT_MEMORY_MODE", None)
+    if os.environ.get("TRITON_EMBEDDING_FUSION", None):
+        inductor_indirect_memory_mode = "simt_template"
+    if os.environ.get("INDUCTOR_ASCEND_INDIRECT_MEMORY_SIMT_TEMPLATE", None) == "0":
+        inductor_indirect_memory_mode = "simt_only"
     if inductor_indirect_memory_mode == "fallback":
         inductor_indirect_memory_mode = None
     if inductor_indirect_memory_mode not in [None, "simt_template", "simt_only", "simd_simt_mix"]:
