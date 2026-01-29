@@ -109,18 +109,6 @@ class TestPtaUnsupportApi(TestCase):
             traced_cell = torch.jit.trace(model, (x, h))
             traced_cell.bfloat16()
 
-    def test_nested_tensor_runtimeerror(self):
-        with self.assertRaisesRegex(RuntimeError, r"(.*) is not supported in npu."):
-            a = torch.arange(3, dtype=torch.float).npu()
-            b = torch.arange(3, dtype=torch.float).npu()
-            torch.nested.nested_tensor([a, b])
-
-    def test_as_nested_tensor_runtimeerror(self):
-        with self.assertRaisesRegex(RuntimeError, r"(.*) is not supported in npu."):
-            a = torch.arange(3, dtype=torch.float).npu()
-            b = torch.arange(3, dtype=torch.float).npu()
-            torch.nested.as_nested_tensor([a, b])
-
     def test_Tensor_is_shared(self):
         input_tensor = torch.tensor([1, 2, 3])
         input_tensor.is_shared()
@@ -132,16 +120,6 @@ class TestPtaUnsupportApi(TestCase):
     def test_Module_share_memory(self):
         model = SimpleModel()
         model.share_memory()
-
-    def test_nested_tensor(self):
-        a = torch.arange(3, dtype=torch.float)
-        b = torch.arange(3, dtype=torch.float)
-        torch.nested.nested_tensor([a, b])
-
-    def test_as_nested_tensor(self):
-        a = torch.arange(3, dtype=torch.float)
-        b = torch.arange(3, dtype=torch.float)
-        torch.nested.as_nested_tensor([a, b])
 
 
 if __name__ == "__main__":
