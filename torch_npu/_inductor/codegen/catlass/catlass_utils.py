@@ -103,7 +103,7 @@ def try_import_catlass() -> bool:
 def _normalize_npu_arch(arch: str) -> str:
     if "910B" in arch or arch.startswith("Ascend910_93"):
         return "910B"
-    elif arch.startswith("Ascend910_95"):
+    elif arch.startswith("Ascend910_95") or arch.startswith("Ascend950"):
         return "910D"
     else:
         raise NotImplementedError(f"Unsupported npu arch: {arch}")
