@@ -1716,7 +1716,7 @@
     "signature": "()"
   },
   "torch_npu.profiler._ExperimentalConfig": {
-    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, mstx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
+    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_PIPE_UTILIZATION', l2_cache: bool = False, msprof_tx: bool = False, mstx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
   },
   "torch_npu.profiler.profile": {
     "signature": "(*, activities: Optional[Iterable[torch_npu._C._profiler.ProfilerActivity]] = None, schedule: Optional[Callable[[int], torch_npu.profiler.scheduler.ProfilerAction]] = None, on_trace_ready: Optional[Callable[..., Any]] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Optional[torch_npu.profiler.experimental_config._ExperimentalConfig] = None, use_cuda: Optional[bool] = None)"
@@ -1773,7 +1773,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.experimental_config._ExperimentalConfig": {
-    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_NONE', l2_cache: bool = False, msprof_tx: bool = False, mstx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
+    "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_PIPE_UTILIZATION', l2_cache: bool = False, msprof_tx: bool = False, mstx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = None, host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
   },
   "torch_npu.profiler.experimental_config.supported_ai_core_metrics": {
     "signature": "()"
