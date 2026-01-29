@@ -1,4 +1,3 @@
-from unittest import skip
 import torch
 from torch.testing._internal.common_utils import run_tests
 from testutils import TestUtils
@@ -20,7 +19,6 @@ class Test_issue59(TestUtils):
         mean_2 = rsqrt / torch.numel(rsqrt)
         return mul, add, mean_2
 
-    @skip("skip ci error")
     def test_issue59(self):
         device = 'npu'
         x = torch.randn((1, 1024), device=device, dtype=torch.float32)

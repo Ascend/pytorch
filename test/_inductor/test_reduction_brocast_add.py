@@ -1,11 +1,9 @@
-import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
 import torch_npu
 
 
-@unittest.skip("This test is not supported yet")
 class TestSumAdd(TestUtils):
     def foo(self, a, b, dim, shape):
         y = a + b

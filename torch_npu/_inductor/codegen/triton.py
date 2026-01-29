@@ -1185,7 +1185,10 @@ class NPUIndexTritonKernel(TritonKernel):
     ) -> Union[CSEVariable, Tuple[CSEVariable, ...]]:
         if not self.inside_reduction:
             raise RuntimeError("assert self.inside_reduction")
-        masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}
+        if self.persistent_reduction and self.numof_reduction_axis() == 1:
+            masks = {f"{node.symbol()}_mask" for node in self.sorted_axis if node.name[0] != "r"}
+        else:
+            masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}
         self.filter_masks(masks)
         masks = sorted(masks)
         if self._load_mask:
