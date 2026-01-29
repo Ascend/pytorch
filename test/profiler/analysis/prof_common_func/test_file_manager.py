@@ -164,6 +164,16 @@ class TestFileManager(TestCase):
             pass
         self.assertEqual("", FileManager.file_read_all(test_file_path))
 
+    def test_should_create_empty_file_when_file_name_exist(self):
+        parser_done_file = "parser.done"
+        parser_done_path = os.path.join(self.tmp_dir, parser_done_file)
+
+        FileManager.create_empty_file(self.tmp_dir, parser_done_file)
+
+        self.assertTrue(os.path.exists(parser_done_path))
+        with open(parser_done_path, 'r') as f:
+            content = f.read()
+        self.assertEqual(content, "")
 
 if __name__ == "__main__":
     run_tests()

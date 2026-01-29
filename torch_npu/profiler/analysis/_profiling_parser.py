@@ -7,6 +7,7 @@ from .prof_common_func._cann_package_manager import CannPackageManager
 from .prof_common_func._path_manager import ProfilerPathManager
 from .prof_common_func._task_manager import ConcurrentTasksManager
 from .prof_common_func._log import ProfilerLogger
+from .prof_common_func._file_manager import FileManager
 from .prof_common_func._utils import no_exception_func
 from .prof_config._parser_config import ParserConfig
 from .prof_parse._cann_file_parser import CANNFileParser
@@ -101,7 +102,11 @@ class ProfilingParser:
         if self._analysis_type == Constant.TENSORBOARD_TRACE_HANDLER:
             self.simplify_data(self._profiler_path, ProfilerConfig().data_simplification)
         end_time = datetime.now(tz=timezone.utc).astimezone()
+        self.generate_parser_done_file()
         print_info_msg(f"All profiling data parsed in a total time of {end_time - self._start_time}")
+
+    def generate_parser_done_file(self):
+        FileManager.create_empty_file(self._output_path, "analyse.done")
 
     def run_parser(self) -> list:
         param_dict = {"profiler_path": self._profiler_path, "output_path": self._output_path}
