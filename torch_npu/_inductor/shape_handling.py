@@ -1,9 +1,9 @@
 __all__ = ["NPUShapeHandling"]
 
 from typing import Any, Callable, Dict, List, Optional, Tuple
-
 import copy
 
+from torch.utils._pytree import tree_flatten, tree_unflatten, TreeSpec
 import torch
 import torch_npu._C
 
@@ -198,7 +198,6 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         
         return indices
         
-
     def delay_initialize(self, tensors: List[torch.Tensor]):
         delay_init_configs = []
         for config in self.configs:
@@ -230,7 +229,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         if self.transform_pre_fn:
             inputs = self.transform_pre_fn(*args, **kwargs)
         else:
-            inputs, args_output, args_trans_indices, kwargs_output, kwargs_trans_keys = self._transform_pre_fn(args, kwargs)
+            inputs, indices, leaves, spec = self._process_inputs(args, kwargs)
         
         # 执行核心转换操作
         trans_outputs = self.transform(tensors=inputs)
@@ -239,77 +238,66 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         if self.transform_post_fn:
             outputs = self.transform_post_fn(trans_outputs)
         else:
-            outputs = self._transform_post_fn(
-                trans_outputs, 
-                args_output, 
-                args_trans_indices, 
-                kwargs_output, 
-                kwargs_trans_keys
-            )
+            outputs = self._recover_inputs(trans_outputs, indices, leaves, spec)
         
         return outputs
 
-    def _transform_pre_fn(
-        self, 
-        args: Tuple[Any], 
-        kwargs: Dict[str, Any]
-    ) -> Tuple[List[torch.Tensor], List[Any], List[int], Dict[str, Any], List[str]]:
-        """预处理输入参数，分离张量与非张量数据"""
-        # 初始化中间数据结构
-        inputs = []
-        args_output = list(args)
-        args_trans_indices = []
-        kwargs_output = dict(kwargs)
-        kwargs_trans_keys = []
-        
-        # 分离位置参数中的张量
-        for i, arg in enumerate(args):
-            if isinstance(arg, torch.Tensor):
-                inputs.append(arg)
-                args_trans_indices.append(i)
-                args_output[i] = None  # 标记待替换位置
-        
-        # 分离关键字参数中的张量
-        for k, v in kwargs.items():
-            if isinstance(v, torch.Tensor):
-                inputs.append(v)
-                kwargs_trans_keys.append(k)
-                kwargs_output[k] = None  # 标记待替换位置
-        
-        return inputs, args_output, args_trans_indices, kwargs_output, kwargs_trans_keys
-
-    def _transform_post_fn(
+    def flatten_to_tensors(self, structure: Any) -> Tuple[List[torch.Tensor], List[int], List[Any], TreeSpec]:
+        leaves, spec = tree_flatten(structure)
+        indexed_tensors = [(i, leaf) for i, leaf in enumerate(leaves) if isinstance(leaf, torch.Tensor)]
+        indices = []
+        tensors = []
+        if indexed_tensors is not None and len(indexed_tensors) > 0:
+            indices, tensors = zip(*indexed_tensors)
+        return tensors, indices, leaves, spec
+    
+    def unflatten_from_tensors(
         self,
-        trans_outputs: List[List[torch.Tensor]],
-        args_output: List[Any],
-        args_trans_indices: List[int],
-        kwargs_output: Dict[str, Any],
-        kwargs_trans_keys: List[str]
+        tensors: List[torch.Tensor],
+        indices: List[int],
+        leaves: List[Any],
+        spec: TreeSpec
+    ) -> Any:
+        for idx, tensor in zip(indices, tensors):
+            leaves[idx] = tensor
+        return tree_unflatten(leaves, spec)
+
+    def _process_inputs(self, args: Tuple, kwargs: dict) -> List[torch.Tensor]:
+        return self.flatten_to_tensors((args, kwargs))
+    
+    def _recover_inputs(
+        self,
+        transform_res: List[List[torch.Tensor]],
+        indices: List[int],
+        leaves: List[Any],
+        spec: TreeSpec
     ) -> Tuple[List[Tuple], List[Dict]]:
-        """重组转换后的张量到原始参数结构"""
-        new_args_list = []
-        new_kwargs_list = []
-        num_args_tensors = len(args_trans_indices)
-        
-        for tensor_group in trans_outputs:
-            # 复制参数模板（浅拷贝避免修改原始模板）
-            new_args = args_output.copy()
-            new_kwargs = kwargs_output.copy()
-            
-            # 填充位置参数
-            for idx, tensor_idx in enumerate(args_trans_indices):
-                if idx < len(tensor_group):
-                    new_args[tensor_idx] = tensor_group[idx]
-            
-            # 填充关键字参数
-            for idx, key in enumerate(kwargs_trans_keys, start=num_args_tensors):
-                if idx < len(tensor_group):
-                    new_kwargs[key] = tensor_group[idx]
-            
-            new_args_list.append(tuple(new_args))
-            new_kwargs_list.append(new_kwargs)
-        
-        return new_args_list, new_kwargs_list
+        res = []
+        for processd_tensors in transform_res:
+            res.append(self.unflatten_from_tensors(processd_tensors, indices, list(leaves), spec))
+        return zip(*res)
+    
+    def _process_outputs(
+        self,
+        outputs_list: List[Any]
+    ) -> Tuple[List[List[torch.Tensor]], List[int], List[Any], TreeSpec]:
+        tensors_list = []
+        leaves = []
+        indices = []
+        spec = None
+        for output in outputs_list:
+            tensors, indices, leaves, spec = self.flatten_to_tensors(output)
+            tensors_list.append(tensors)
+        return tensors_list, indices, leaves, spec
+
+    def _recover_outputs(
+        self,
+        recover_res: List[torch.Tensor],
+        indices: List[int],
+        leaves: List[Any],
+        spec: TreeSpec
+    ) -> Any:
+        return self.unflatten_from_tensors(recover_res, indices, leaves, spec)
 
     def recover_hook(
         self,
@@ -325,40 +313,21 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
             Processed outputs after recovery and postprocessing.
         """
         # 预处理：使用自定义函数或默认方法
-        inputs = self.recover_pre_fn(groups) if self.recover_pre_fn else self._recover_pre_fn(groups)
+        if self.recover_pre_fn:
+            inputs = self.recover_pre_fn(groups)
+        else:
+            inputs, indices, leaves, spec = self._process_outputs(groups)
         
         # 执行恢复操作
         re_outputs = self.recover(tensor_groups=inputs)
         
         # 后处理：使用自定义函数或默认方法
-        outputs = self.recover_post_fn(re_outputs) if self.recover_post_fn else self._recover_post_fn(re_outputs)
+        if self.recover_post_fn:
+            outputs = self.recover_post_fn(re_outputs)
+        else:
+            outputs = self._recover_outputs(re_outputs, indices, leaves, spec)
         
         return outputs
-
-    def _recover_pre_fn(self, groups: List[Any]) -> List[List[torch.Tensor]]:
-        """
-        Convert input groups into a list of tensor lists.
-        
-        Args:
-            groups: Input data, each element should be a tensor or tensor list.
-        
-        Returns:
-            Nested list of tensors.
-        
-        Raises:
-            TypeError: If any element is neither a tensor nor a tensor list.
-        """
-        processed = []
-        for group in groups:
-            if isinstance(group, torch.Tensor):
-                processed.append([group])
-            else:
-                raise TypeError(f"Input must be torch.Tensor or list of tensors, got {type(group)}")
-        return processed
-
-    def _recover_post_fn(self, re_outputs: List[torch.Tensor]) -> torch.Tensor:
-        """Convert list of output tensors into a tuple."""
-        return re_outputs[0]
 
 
 def unified_copy(data: Any) -> Any:
