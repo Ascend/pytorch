@@ -986,6 +986,12 @@
   "torch_npu.npu.reset_peak_host_memory_stats": {
     "signature": "()"
   },
+  "torch_npu.npu.use_consistent_algorithms": {
+    "signature": "(is_enable)"
+  },
+  "torch_npu.npu.are_consistent_algorithms_enable": {
+    "signature": "()"
+  },
   "torch_npu.npu.enable_deterministic_with_backward": {
     "signature": "(tensor: torch.Tensor)"
   },

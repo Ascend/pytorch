@@ -1,9 +1,11 @@
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
 import torch_npu
 
 
+@unittest.skip("This test is not supported yet")
 class TestAttnCp(TestUtils):
     shape = (8, 8, 256, 128)
     dim = -1

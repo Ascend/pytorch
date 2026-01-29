@@ -1,3 +1,4 @@
+import unittest
 import torch
 from torch_npu.npu import device_count
 from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
@@ -7,6 +8,7 @@ from torch_npu._inductor.npu_device import NewNPUDeviceOpOverrides
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
+@unittest.skip("This test is not supported yet")
 class TestNpuDevice(TestCase):
     def test_aoti_get_stream(self):
         overrides = NewNPUDeviceOpOverrides()

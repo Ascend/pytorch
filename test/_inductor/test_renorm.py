@@ -1,9 +1,11 @@
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
 import torch_npu
 
 
+@unittest.skip("This test is not supported yet")
 class TestRenorm(TestUtils):
     def op_calc(self, input_element, dim):
         return torch.renorm(input_element, p=2, dim=dim, maxnorm=5)

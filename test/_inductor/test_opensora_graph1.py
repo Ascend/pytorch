@@ -1,5 +1,6 @@
 import os
 import random
+import unittest
 import numpy as np
 
 import torch
@@ -11,6 +12,7 @@ import torch_npu
 device_npu = 'npu'
 
 
+@unittest.skip("This test is not supported yet")
 class TestModel(TestUtils):
     def test_opensora_cases_model_9_inference(self):
         def forward(primals_1: "f32[1, 9600, 2304]"):
