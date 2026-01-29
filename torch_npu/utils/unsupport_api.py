@@ -16,8 +16,3 @@ unsupported_nn_api = {
     "register_parameter": torch.jit.ScriptModule,
     "register_module": torch.jit.ScriptModule
 }
-
-unsupported_nested_api = {
-    "nested_tensor": torch.nested,
-    "as_nested_tensor": torch.nested
-}
