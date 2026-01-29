@@ -503,6 +503,62 @@ def get_src_py_and_dst():
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
 
+
+    def add_torch_npu_codegen(codegen_src_dir, codegen_dst_dir, exclude_root_init=None):
+        """
+        复制codegen目录下的文件到目标路径
+        :param codegen_src_dir: 源codegen目录
+        :param codegen_dst_dir: 目标目录
+        :param exclude_root_init: 需要排除根目录__init__.py的源目录(仅过滤该目录下的__init__.py)
+        """
+        # 匹配需要复制的文件类型
+        codegen_files = glob.glob(
+            os.path.join(codegen_src_dir, '**/*.py'), recursive=True
+        ) + glob.glob(
+            os.path.join(codegen_src_dir, '**/*.yaml'), recursive=True
+        ) + glob.glob(
+            os.path.join(codegen_src_dir, '**/*.json'), recursive=True
+        ) + glob.glob(
+            os.path.join(codegen_src_dir, '**/*.cpp'), recursive=True
+        ) + glob.glob(
+            os.path.join(codegen_src_dir, '**/*.h'), recursive=True
+        )
+
+        # 按原目录结构复制到目标路径
+        for src in codegen_files:
+            # 仅过滤指定目录下的根级__init__.py
+            if (exclude_root_init is not None and 
+                os.path.basename(src) == '__init__.py' and 
+                os.path.dirname(src) == exclude_root_init):
+                continue  # 跳过op-plugin/codegen根目录的__init__.py
+            
+            # 计算目标路径（保留原目录层级）
+            dst = os.path.join(
+                codegen_dst_dir,
+                os.path.relpath(src, codegen_src_dir)  # 保留torchnpugen内部的目录层级
+            )
+            print(os.path.relpath(src, codegen_src_dir))
+            # 确保目标目录存在
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            # 加入文件复制列表
+            ret.append((src, dst))
+
+    # 新增：提前创建 torchnpugen 根目录
+    torchnpugen_root = os.path.join(BASE_DIR, "build/packages/torchnpugen")
+    os.makedirs(torchnpugen_root, exist_ok=True)
+    # 将codegen复制到package路径
+    codegen_src_dir = os.path.join(BASE_DIR, "torchnpugen")
+    codegen_dst_dir = os.path.join(BASE_DIR, "build/packages/torchnpugen")
+    # 复制torch_npu的torchnpugen
+    add_torch_npu_codegen(codegen_src_dir, codegen_dst_dir)
+    # 复制op-plugin的torchnpugen（仅过滤其根目录的__init__.py）
+    op_plugin_codegen_src = os.path.join(BASE_DIR, "third_party/op-plugin/torchnpugen")
+    add_torch_npu_codegen(
+        op_plugin_codegen_src,
+        codegen_dst_dir,
+        exclude_root_init=op_plugin_codegen_src  # 指定要过滤根目录__init__.py的源目录
+    )
+
     return ret
 
 
@@ -654,7 +710,7 @@ setup(
     long_description_content_type="text/markdown",
     license="BSD License",
     classifiers=classifiers,
-    packages=["torch_npu"],
+    packages=["torch_npu", "torchnpugen"],
     libraries=[('torch_npu', {'sources': list()})],
     package_dir={'': os.path.relpath(os.path.join(BASE_DIR, "build/packages"))},
     ext_modules=[
@@ -674,6 +730,13 @@ setup(
     package_data={
         'torch_npu': [
             '*.so', 'lib/*.so*',
+        ],
+        'torchnpugen': [
+            '*.py', '**/*.py',
+            '*.yaml', '**/*.yaml',
+            '*.json', '**/*.json',
+            '*.cpp', '**/*.cpp',
+            '*.h', '**/*.h',
         ],
     },
     cmdclass={
