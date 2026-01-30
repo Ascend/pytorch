@@ -5,6 +5,7 @@
 #include <random>
 #include <string>
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/ipc/NPUIPCTypes.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
@@ -167,15 +168,31 @@ NpuIPCSentData::NpuIPCSentData(
         counter_ptr_(counter_ptr),
         device_(device)
 {
-    if (npu_ipc_global_entities.sync_events_used_.load() <
-        NPU_IPC_MAXIMUM_EVENTS_TO_USE) {
-        // NPU does not suppurt event_sync in IPC now.
-        event_ = nullptr;
-        event_sync_required_ = false;
+    // NPU have the unofficial limit on the number of recorded blocking
+    // interprocess events, to prevent using of all events, we are switching to
+    // StreamSync before limit reached.
+    //
+    //  ```python
+    //  import torch
+    //  a = [ torch.npu.Event(
+    //      enable_timing=False, blocking=True, interprocess=True) for i in
+    //      range(30000) ]
+    //  [i.record() for i in a]
+    //  ```
+    //
+    if (c10_npu::acl::IsSupportIpcEvent() &&
+        npu_ipc_global_entities.sync_events_used_.load() < NPU_IPC_MAXIMUM_EVENTS_TO_USE) {
+        // More efficient would be to create event inside of main thread (at
+        // the moment of the queue.put). The reason this is more efficient is
+        // because the main thread may have queued extra work on the stream, which
+        // this event will consequently wait for (uselessly).
+        npu_ipc_global_entities.sync_events_used_++;
+        event_ = c10_npu::NPUEvent(ACL_EVENT_IPC);
+        event_.record(c10_npu::getCurrentNPUStream(device.index()));
+        event_sync_required_ = true;
     } else {
         auto stream = c10_npu::getCurrentNPUStream(device.index());
         c10_npu::stream_synchronize(stream);
-        event_ = nullptr;
         event_sync_required_ = false;
     }
 }
@@ -183,12 +200,6 @@ NpuIPCSentData::NpuIPCSentData(
 NpuIPCSentData::~NpuIPCSentData()
 {
     ReturnRefCounter(handle_, offset_);
-    try {
-        if (event_sync_required_) {
-            // NPU does not suppurt event_sync in IPC now.
-        }
-    } catch (...) { /* No throw */
-    }
 }
 
 uint64_t NpuIPCSentData::counter_value()

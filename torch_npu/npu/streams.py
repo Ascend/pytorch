@@ -135,6 +135,11 @@ class Event(torch_npu._C._NPUEventBase):
         return super(Event, cls).__new__(cls, enable_timing=enable_timing, blocking=blocking,
                                          interprocess=interprocess, graph_external=False)
 
+    @classmethod
+    def from_ipc_handle(cls, device, handle):
+        r"""Reconstruct an event from an IPC handle on the given device."""
+        return super().from_ipc_handle(device, handle)
+
     def record(self, stream=None):
         r"""Records the event in a given stream.
 
@@ -185,6 +190,13 @@ class Event(torch_npu._C._NPUEventBase):
             `NPU Event documentation`_ for more info.
         """
         super(Event, self).synchronize()
+
+    def ipc_handle(self):
+        r"""Return an IPC handle of this event.
+
+        If not recorded yet, the event will use the current device.
+        """
+        return super().ipc_handle()
 
     @property
     def _as_parameter_(self):
