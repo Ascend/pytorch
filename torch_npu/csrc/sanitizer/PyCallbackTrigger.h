@@ -60,6 +60,18 @@ struct PyCallbackTrigger {
             CONCRETE_TRACE_NPU("NPUEventWaitCallbacks", event, stream);
         }
     }
+    void traceNpuEventGetHandle(uintptr_t event, uintptr_t handle) const
+    {
+        if (sanitizer_mode == SanitizerMode::STREAM) {
+            CONCRETE_TRACE_NPU("NPUEventGetHandleCallbacks", event, handle);
+        }
+    }
+    void traceNpuEventOpenHandle(uintptr_t handle, uintptr_t event) const
+    {
+        if (sanitizer_mode == SanitizerMode::STREAM) {
+            CONCRETE_TRACE_NPU("NPUEventOpenHandleCallbacks", handle, event);
+        }
+    }
     void traceNpuMemoryAllocation(uintptr_t ptr) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
