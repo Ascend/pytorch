@@ -116,5 +116,47 @@ class TestDTensorCustomOps(DTensorTestBase):
             self.assertEqual(dist_res.to_local().shape, local_result.shape)
 
 
+    def exec_dropout_backward(self, p, train):
+        x = torch.randn(12, 5).npu()
+        x.requires_grad = True
+        output = torch.nn.functional.dropout(x, p=p, training=train).sum.backward()
+        x_grad = x.grad
+        device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
+        x_dtensor = distribute_tensor(npu_input, device_mesh, [Shard(0)])
+        x_dtensor.requires_grad = True
+        dist_res = torch.nn.functional.dropout(x, p=p, training=train).sum.backward()
+        x_grad_dtensor = x_dtensor.grad.redistribute(device_mesh, [Replicate()])
+        self.assertEqual(x_grad_dtensor.to_local().shape, x_grad.shape)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_dtensor_dropout_backward(self):
+        p_list = [0, 0.2, 0.5, 0.7, 1]
+        train_list = [True, False]
+        for p in p_list:
+            for train in train_list:
+                self.exec_dropout_backward(p, train)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_dtensor_npu_transpose(self):
+        npu_input = torch.randn(5, 3, 6, 4).npu()
+        perm = [1, 0, 2, 3]
+        local_result = torch_npu.npu_transpose(npu_input, perm)
+
+        device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
+        shard0_spec = Shard(0)
+        shard1_spec = Shard(1)
+        replica_spec = Replicate()
+
+        placement_specs = [shard0_spec, shard1_spec, replica_spec]
+        for spec in placement_specs:
+            dt_input = distribute_tensor(npu_input, device_mesh, [spec])
+            dist_res: DTensor = cast(DTensor, torch_npu.npu_transpose(dt_input, perm)).redistribute(
+                device_mesh, [replica_spec]
+            )
+            self.assertEqual(dist_res.to_local().shape, local_result.shape)
+
+
 if __name__ == '__main__':
     run_tests()
