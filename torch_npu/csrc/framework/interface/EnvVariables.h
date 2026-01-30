@@ -16,6 +16,7 @@ bool CheckOpHookEnable();
 bool CheckMmBmmNDDisable();
 bool CheckForbidInternalFormat();
 bool CheckStrongConsistency();
+bool CheckCompatibleImpl();
 bool IsAllowFP32ToFP16();
 bool IsAllowConvHF32();
 bool IsAllowMatmulHF32();
