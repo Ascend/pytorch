@@ -50,6 +50,11 @@
 
     默认值为False，不启用后台线程。当设置为True时，启用后台线程，在后台线程执行查询和处理events操作，减少主线程的阻塞时间。
 
+-   pin\_memory\_expandable\_segments:<value\>，使能pin_memory内存池扩展段功能，即虚拟内存特性。
+
+    默认为False。如果设置为True，此设置将指示pin_memory缓存分配器内存池物理内存申请粒度为20MB（不可配置），创建的内存块后续可以扩展，以便能更好地处理内存使用中频繁变更内存大小的情况，同时pin_memory内存块计数相关统计指标不参与统计（默认值：0）。如果设置为False，关闭pin_memory内存池扩展段功能，使用原有的内存申请方式。
+
+
 > [!NOTE]  
 > 用户使用Ascend Extension for PyTorch 6.0.RC3及之后版本配套的驱动（Ascend HDK 24.1.RC3及之后），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用Ascend Extension for PyTorch 6.0.RC3之前版本配套的驱动（Ascend HDK 24.1.RC3之前版本），开启虚拟内存特性时，不能使用单进程多卡特性。
 
@@ -99,6 +104,13 @@ export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,segment_size_mb:40
 export PYTORCH_NPU_ALLOC_CONF=pinned_use_background_threads:True
 ```
 
+
+示例七：
+
+```
+export PYTORCH_NPU_ALLOC_CONF=pin_memory_expandable_segments:True
+```
+
 ## 使用约束
 
 -   expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
@@ -113,6 +125,7 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_use_background_threads:True
         -   若未配置page\_size，内存申请粒度为2MB。
 
     -   当申请内存小于等于1MB时：配置page\_size也不生效，内存申请粒度为2MB。
+-   pin_memory_expandable_segments特性要求最低Ascend Extension for PyTorch 7.3.0之后版本、Ascend HDK 25.5.0及以上版本、CANN商发8.5.0及以上版本使用。
 
 ## 支持的型号
 

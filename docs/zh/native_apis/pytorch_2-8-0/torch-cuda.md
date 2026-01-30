@@ -81,5 +81,8 @@
 |torch.cuda.CUDAPluggableAllocator|torch_npu.npu.NPUPluggableAllocator|是|该接口涉及高危操作，使用请参考《Ascend Extension for PyTorch 自定义 API参考》中的“[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/torch-npu-npu-NPUPluggableAllocator.md)”章节。|
 |torch.cuda.change_current_allocator|torch_npu.npu.change_current_allocator|是|该接口涉及高危操作，使用请参考《Ascend Extension for PyTorch 自定义 API参考》中的“[torch_npu.npu.change_current_allocator](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/torch-npu-npu-change_current_allocator.md)”章节。|
 |torch.cuda._sanitizer.enable_cuda_sanitizer|torch_npu.npu._sanitizer.enable_npu_sanitizer|是|-|
-
+|torch.cuda.reset_accumulated_host_memory_stats| torch_npu.npu.reset_accumulated_host_memory_stats |是|-|
+|torch.cuda.reset_peak_host_memory_stats| torch_npu.npu.reset_peak_host_memory_stats          |是|-|
+|torch.cuda.host_memory_stats_as_nested_dict| torch_npu.npu.host_memory_stats_as_nested_dict             |是|-|
+|torch.cuda.host_memory_stats| torch_npu.npu.host_memory_stats             |是|-|
 
