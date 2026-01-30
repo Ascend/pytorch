@@ -71,10 +71,22 @@ class ProcessGroupHCCLTest(TestCase):
     @classmethod
     def _test_broadcast_process(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
+        dtype_name = None
+        if isinstance(shared_tensors, tuple):
+            shared_tensors, dtype_name = shared_tensors
         pg = init_pg(rank, world_size)
         xs = [shared_tensors[rank].to(f"npu:{rank}")]
+        if dtype_name is not None:
+            dtype = getattr(torch, dtype_name, getattr(torch_npu, dtype_name, None))
+            xs[0] = xs[0].to(dtype)
         pg.broadcast(xs).wait()
-        c2p.put((rank, torch.zeros(2, 2), xs[0].to("cpu")))
+        if dtype_name is not None:
+            expected = shared_tensors[0].to(torch.float32)
+            result = xs[0].to(torch.float32).cpu()
+        else:
+            expected = shared_tensors[0]
+            result = xs[0].to("cpu")
+        c2p.put((rank, expected, result))
         p2c.get()
 
     def test_shared_broadcast_hccl(self):
@@ -103,12 +115,24 @@ class ProcessGroupHCCLTest(TestCase):
     @classmethod
     def _test_allgather_process(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
+        dtype_name = None
+        if isinstance(shared_tensors, tuple):
+            shared_tensors, dtype_name = shared_tensors
         pg = init_pg(rank, world_size)
         xs = [shared_tensors[rank].to(f"npu:{rank}")]
+        if dtype_name is not None:
+            dtype = getattr(torch, dtype_name, getattr(torch_npu, dtype_name, None))
+            xs[0] = xs[0].to(dtype)
         ys = [[torch.zeros_like(xs[0]) for i in range(world_size)]]
         pg.allgather(ys, xs).wait()
         for i in range(world_size):
-            c2p.put((rank, torch.ones(2, 2) * i, ys[0][i].to("cpu")))
+            if dtype_name is not None:
+                expected = shared_tensors[i].to(torch.float32)
+                result = ys[0][i].to(torch.float32).cpu()
+            else:
+                expected = shared_tensors[i]
+                result = ys[0][i].to("cpu")
+            c2p.put((rank, expected, result))
 
         p2c.get()
 
@@ -118,6 +142,31 @@ class ProcessGroupHCCLTest(TestCase):
             [torch.ones(2, 2) * i for i in range(self.world_size)],
             ProcessGroupHCCLTest._init_pg_hccl,
             self.world_size)
+
+    def test_shared_broadcast_hccl_uint_dtypes(self):
+        base = torch.tensor([1, 2, 4, 8], dtype=torch.float16).reshape(2, 2)
+        shared_tensors = [base * (2 ** (i * 4)) for i in range(self.world_size)]
+        for dtype_name in ["uint16", "uint32", "uint64"]:
+            dtype = getattr(torch, dtype_name, getattr(torch_npu, dtype_name, None))
+            self.assertIsNotNone(dtype, f"{dtype_name} not available")
+            self._test_multiprocess(
+                ProcessGroupHCCLTest._test_broadcast_process,
+                (shared_tensors, dtype_name),
+                ProcessGroupHCCLTest._init_pg_hccl,
+                1)
+
+
+    def test_shared_allgather_hccl_uint_dtypes(self):
+        base = torch.tensor([1, 2, 4, 8], dtype=torch.float16).reshape(2, 2)
+        shared_tensors = [base * (2 ** (i * 4)) for i in range(self.world_size)]
+        for dtype_name in ["uint16", "uint32", "uint64"]:
+            dtype = getattr(torch, dtype_name, getattr(torch_npu, dtype_name, None))
+            self.assertIsNotNone(dtype, f"{dtype_name} not available")
+            self._test_multiprocess(
+                ProcessGroupHCCLTest._test_allgather_process,
+                (shared_tensors, dtype_name),
+                ProcessGroupHCCLTest._init_pg_hccl,
+                self.world_size)
 
 
 class ComputeBucketAssignmentTest(TestCase):
