@@ -6,7 +6,7 @@ from functools import wraps
 import torch
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
-from .unsupport_api import unsupported_Tensor_api, unsupported_nn_api, unsupported_nested_api
+from .unsupport_api import unsupported_Tensor_api, unsupported_nn_api
 from .collect_env import get_cann_version
 
 
@@ -93,10 +93,6 @@ def _is_module_parameters_supported(*args, **kwargs):
     return any(p.device is not None and p.device.type == "npu" for p in module_parameters)
 
 
-def _is_nested_tensor_npu_supported(*args, **kwargs):
-    return any(torch.is_tensor(t) and t.is_npu for t in args[0])
-
-
 def _apply_wrap_func_to_modules(wrap_func, unsupported_modules):
     for attr_name, parent_module in unsupported_modules.items():
         setattr(parent_module, attr_name, wrap_func(getattr(parent_module, attr_name)))
@@ -106,4 +102,3 @@ def _apply_wrap_func_to_modules(wrap_func, unsupported_modules):
 def _add_intercept_methods():
     _apply_wrap_func_to_modules(_create_wrap_func(_is_tensor_npu_supported), unsupported_Tensor_api)
     _apply_wrap_func_to_modules(_create_wrap_func(_is_module_parameters_supported), unsupported_nn_api)
-    _apply_wrap_func_to_modules(_create_wrap_func(_is_nested_tensor_npu_supported), unsupported_nested_api)
