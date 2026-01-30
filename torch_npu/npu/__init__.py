@@ -127,7 +127,9 @@ __all__ = [
     "obfuscation_finalize",
     "obfuscation_calculate",
     "set_op_timeout_ms",
-    "host_empty_cache"
+    "host_empty_cache",
+    "use_compatible_impl",
+    "are_compatible_impl_enable"
 ]
 
 from typing import Tuple, Union, List, cast, Optional
@@ -520,6 +522,16 @@ def _lazy_new(cls, *args, **kwargs):
 def _comm_switch_nic(ranks, useBackup):
     torch_npu.npu.synchronize()
     return torch_npu.distributed.distributed_c10d._comm_switch_nic(ranks, useBackup)
+
+
+def use_compatible_impl(is_enable):
+    option = {"COMPATIBLE_IMPL": "enable" if is_enable else "disable"}
+    torch_npu._C._npu_setOption(option)
+
+
+def are_compatible_impl_enable():
+    compatible_value = torch_npu._C._npu_getOption("COMPATIBLE_IMPL")
+    return compatible_value is not None and compatible_value.decode() == "enable"
 
 
 class _NPUBase:

@@ -23,7 +23,7 @@
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/LazyInitAclops.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
-#include  "torch_npu/csrc/toolkit/profiler/common/utils.h"
+#include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #ifdef SUCCESS
 #undef SUCCESS
 #endif
