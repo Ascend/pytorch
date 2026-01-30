@@ -27,6 +27,7 @@ extern "C" {
 #define ACL_EVENT_CAPTURE_STREAM_PROGRESS 0x00000002U
 #define ACL_EVENT_TIME_LINE               0x00000008U
 #define ACL_EVENT_EXTERNAL                0x00000020U
+#define ACL_EVENT_IPC                     0x00000040U
 
 // for create stream
 #define ACL_STREAM_FAST_LAUNCH  0x00000001U
@@ -62,6 +63,8 @@ extern "C" {
 
 #define ACL_RT_VMM_EXPORT_FLAG_DEFAULT                0x0UL
 #define ACL_RT_VMM_EXPORT_FLAG_DISABLE_PID_VALIDATION 0x1UL
+
+#define ACL_IPC_EVENT_HANDLE_SIZE                     64U
 
 constexpr int32_t DEVICE_UTILIZATION_NOT_SUPPORT = -1;
 
@@ -443,6 +446,10 @@ typedef struct {
     aclrtMemLocation srcLoc;
     uint8_t rsv[16];
 } aclrtMemcpyBatchAttr;
+
+typedef struct aclrtIpcEventHandle {
+    char reserved[ACL_IPC_EVENT_HANDLE_SIZE];
+} aclrtIpcEventHandle;
 
 /**
  * @ingroup AscendCL
@@ -972,6 +979,30 @@ ACL_FUNC_VISIBILITY aclError aclrtQueryEventStatus(aclrtEvent event, aclrtEventR
 * @retval OtherValues Failure
 */
 ACL_FUNC_VISIBILITY aclError aclrtQueryEventWaitStatus(aclrtEvent event, aclrtEventWaitStatus *status);
+
+/**
+ * @ingroup AscendCL
+ * @brief get an interprocess handle for a previously allocated event.
+ *
+ * @param [in]  event  event allocated with ACL_EVENT_IPC flags
+ * @param [out] handle handle for interprocess
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtIpcGetEventHandle(aclrtEvent event, aclrtIpcEventHandle *handle);
+
+/**
+ * @ingroup AscendCL
+ * @brief opens an interprocess event handle for user in the current process.
+ *
+ * @param [in]  handle  interprocess handle to open
+ * @param [out] event   returns the imported event
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtIpcOpenEventHandle(aclrtIpcEventHandle handle, aclrtEvent *event);
 
 /**
  * @ingroup AscendCL

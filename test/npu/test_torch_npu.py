@@ -266,7 +266,8 @@ class TorchNPUApiTestCase(TestCase):
         self.assertEqual(s.query(), False)
 
     def test_npu_event(self):
-        res = torch_npu.npu.Event(enable_timing=True, blocking=True, interprocess=True)
+        # The old CANN and HDK do not support IPC events, so the interprocess=True parameter is not specified here.
+        res = torch_npu.npu.Event(enable_timing=True, blocking=True)
         self.assertIsInstance(res, torch_npu.npu.Event)
 
     def test_npu_event_elapsed_time(self):

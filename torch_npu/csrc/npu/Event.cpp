@@ -27,6 +27,18 @@ static PyObject* THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *k
         return nullptr;
     }
 
+    TORCH_CHECK(
+        !interprocess || c10_npu::acl::IsSupportIpcEvent(),
+        "Parameter interprocess is not supported, please upgrade the HDK(driver) or CANN package.",
+        PTA_ERROR(ErrCode::NOT_SUPPORT));
+
+    // Runtime requires that the ACL_EVENT_IPC cannot be used together with other flags.
+    // If this restriction is removed in the future, this check can be removed.
+    TORCH_CHECK(
+        !interprocess || (!enable_timing && !external),
+        "Parameter interprocess cannot be specified together with other parameters.",
+        PTA_ERROR(ErrCode::NOT_SUPPORT));
+
     THPObjectPtr ptr(type->tp_alloc(type, 0));
     if (!ptr) {
         return nullptr;
@@ -40,12 +52,66 @@ static PyObject* THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *k
     } else {
         flags = enable_timing ? ACL_EVENT_TIME_LINE : ACL_EVENT_DEFAULT;
     }
+    if (interprocess) {
+        flags = ACL_EVENT_IPC;
+    }
     if (external) {
         flags = ACL_EVENT_EXTERNAL;
     }
     new (&self->npu_event) c10_npu::NPUEvent(flags);
 
     return (PyObject *)ptr.release();
+    END_HANDLE_TH_ERRORS
+}
+
+static PyObject* THNPEvent_from_ipc_handle(
+    PyObject* _type,
+    PyObject* args,
+    PyObject* kwargs)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(
+        c10_npu::acl::IsSupportIpcEvent(),
+        "The from_ipc_handle method is not supported, please upgrade the HDK(driver) or CANN package.",
+        PTA_ERROR(ErrCode::NOT_SUPPORT));
+
+    auto type = (PyTypeObject*)_type;
+
+    static torch::PythonArgParser parser({
+        "from_ipc_handle(Device device, std::string ipc_handle)",
+    });
+    constexpr int kArgCount = 2;
+    torch::ParsedArgs<kArgCount> parsed_args;
+    auto r = parser.parse(args, kwargs, parsed_args);
+
+    at::Device device = r.device(0);
+    std::string handle_string = r.string(1);
+
+    TORCH_CHECK(
+        handle_string.size() == sizeof(aclrtIpcEventHandle),
+        "aclrtIpcEventHandle expects byte-like object of size ",
+        sizeof(aclrtIpcEventHandle),
+        ", but got ",
+        handle_string.size(),
+        PTA_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(
+        device.type() == c10::DeviceType::PrivateUse1,
+        "Event can only be created on "
+        "PrivateUse1 devices, but got device type ",
+        device.type(),
+        PTA_ERROR(ErrCode::PARAM))
+
+    THPObjectPtr ptr(type->tp_alloc(type, 0));
+    if (!ptr) {
+        return nullptr;
+    }
+    THNPEvent* self = (THNPEvent*)ptr.get();
+
+    aclrtIpcEventHandle handle{};
+    std::memcpy(&handle, handle_string.c_str(), handle_string.size());
+    new (&self->npu_event) c10_npu::NPUEvent(device.index(), &handle);
+
+    return (PyObject*)ptr.release();
     END_HANDLE_TH_ERRORS
 }
 
@@ -139,6 +205,16 @@ static PyObject* THNPEvent_reset(THNPEvent *self, THNPStream *stream)
     END_HANDLE_TH_ERRORS
 }
 
+static PyObject* THNPEvent_ipc_handle(PyObject* _self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    auto self = (THNPEvent*)_self;
+    aclrtIpcEventHandle handle{};
+    self->npu_event.ipc_handle(&handle);
+    return PyBytes_FromStringAndSize((const char*)&handle, sizeof(handle));
+    END_HANDLE_TH_ERRORS
+}
+
 static struct PyGetSetDef THNPEvent_properties[] = {
     {"device", (getter)THNPEvent_get_device, nullptr, nullptr, nullptr},
     {"npu_event", (getter)THNPEvent_get_npu_event, nullptr, nullptr, nullptr},
@@ -146,6 +222,10 @@ static struct PyGetSetDef THNPEvent_properties[] = {
 };
 
 static PyMethodDef THNPEvent_methods[] = {
+    {(char*)"from_ipc_handle",
+     (PyCFunction)THNPEvent_from_ipc_handle,
+     METH_CLASS | METH_VARARGS | METH_KEYWORDS,
+     nullptr},
     {(char*)"record", (PyCFunction)THNPEvent_record, METH_O, nullptr},
     {(char*)"wait", (PyCFunction)THNPEvent_wait, METH_O, nullptr},
     {(char*)"query", (PyCFunction)THNPEvent_query, METH_NOARGS, nullptr},
@@ -153,6 +233,7 @@ static PyMethodDef THNPEvent_methods[] = {
     {(char*)"recorded_time", (PyCFunction)THNPEvent_recorded_time, METH_NOARGS, nullptr},
     {(char*)"synchronize", (PyCFunction)THNPEvent_synchronize, METH_NOARGS, nullptr},
     {(char*)"reset", (PyCFunction)THNPEvent_reset, METH_O, nullptr},
+    {(char*)"ipc_handle", THNPEvent_ipc_handle, METH_NOARGS, nullptr},
     {nullptr}
 };
 
