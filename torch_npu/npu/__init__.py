@@ -133,7 +133,9 @@ __all__ = [
     "reset_accumulated_host_memory_stats",
     "reset_peak_host_memory_stats",
     "use_consistent_algorithms",
-    "are_consistent_algorithms_enable"
+    "are_consistent_algorithms_enable",
+    "use_compatible_impl",
+    "are_compatible_impl_enable"
 ]
 
 from typing import Tuple, Union, List, cast, Optional
@@ -577,6 +579,16 @@ def use_consistent_algorithms(is_enable):
 def are_consistent_algorithms_enable():
     consistency_value = torch_npu._C._npu_getOption("STRONG_CONSISTENCY")
     return consistency_value is not None and consistency_value.decode() == "enable"
+
+
+def use_compatible_impl(is_enable):
+    option = {"COMPATIBLE_IMPL": "enable" if is_enable else "disable"}
+    torch_npu._C._npu_setOption(option)
+
+
+def are_compatible_impl_enable():
+    compatible_value = torch_npu._C._npu_getOption("COMPATIBLE_IMPL")
+    return compatible_value is not None and compatible_value.decode() == "enable"
 
 
 class _NPUBase:
