@@ -2358,6 +2358,8 @@ class NPUIndexTritonKernel(TritonKernel):
                                         f"tl.reshape({indirect_var}, ({indice_shape}, ))",
                                         dtype=dtype)
                 out_triton_type = triton_type(dtype)
+                if self.contains_cat_node() and index_select_type == "embedding":
+                    shape_val = ",".join(value_shapes[:-1] + [str(src_stride[0])])
                 out_var = self.cse.generate(self.compute,
                                         f"tl.full(({shape_val}, ), 0, dtype={out_triton_type})",
                                         dtype=dtype)
@@ -2372,6 +2374,8 @@ class NPUIndexTritonKernel(TritonKernel):
                     BLOCK_NAME_SUB = f"{axis.name.upper()}BLOCK_SUB"
                     output_shapes.append(BLOCK_NAME_SUB)
                 output_shapes_vals = ", ".join(output_shapes)
+                if self.contains_cat_node() and index_select_type == "embedding":
+                    output_shapes_vals = ",".join(output_shapes[:-1] + [str(src_stride[0])])
 
                 line = f"tl.reshape({index_select_var}, ({output_shapes_vals}, ))"
 

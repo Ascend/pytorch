@@ -86,8 +86,8 @@ def are_long_distant_nodes(
         abs(node1.min_order - node2.max_order),
         abs(node2.min_order - node1.max_order),
     )
-    # GPU default score is 64, A5 use 35 to avoiding runtime errors in large kernels.
-    return proximity_score > 35
+    # GPU default score is 64, A5 use 20 to avoiding runtime errors in large kernels.
+    return proximity_score > 20
 
 
 @classmethod
