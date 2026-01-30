@@ -168,6 +168,9 @@ REGISTER_OPTION_BOOL_FUNCTION(CheckForbidInternalFormat, ALLOW_INTERNAL_FORMAT, 
 REGISTER_OPTION(STRONG_CONSISTENCY)
 REGISTER_OPTION_BOOL_FUNCTION(CheckStrongConsistency, STRONG_CONSISTENCY, "disable", "enable")
 
+REGISTER_OPTION(COMPATIBLE_IMPL)
+REGISTER_OPTION_BOOL_FUNCTION(CheckCompatibleImpl, COMPATIBLE_IMPL, "disable", "enable")
+
 REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string &val) {
   static const std::string mm_hf32_option_name = "ALLOW_MATMUL_HF32";
   auto mm_hf32_val = c10_npu::option::GetOption(mm_hf32_option_name);
