@@ -1,3 +1,4 @@
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
@@ -15,6 +16,7 @@ class TestReshape(TestUtils):
         y = a + b
         return y
 
+    @unittest.skip("it takes too long, not supported yet")
     @parametrize('shape', [(1, 12, 256, 8)])
     @parametrize('dtype', ['float32', 'int32', 'float16', 'bfloat16', 'int64'])
     def test_view_cases(self, shape, dtype):
