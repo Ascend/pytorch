@@ -97,15 +97,12 @@ else:
         patch_is_same_tensor()
         patch_constant_fold_uniform_value()
         patch_fallback_kernel_codegen()
-
         patch_aot_code_compiler_compile()
 
-        if os.environ.get("PRE_GRAPH_OPTIMIZER") == "1": 
-            from .fx_passes.graph_match_pass import pre_grad_custom_pass_fuc 
-            pre_grad_custom_pass_fuc() 
-        if os.environ.get("POST_GRAD_GRAPH_OPTIMIZER") == "1": 
-            from .fx_passes.graph_match_pass import post_grad_custom_pass_fuc 
-            post_grad_custom_pass_fuc()
+        from .fx_passes.graph_match_pass import pre_grad_custom_pass_fuc 
+        pre_grad_custom_pass_fuc() 
+        from .fx_passes.graph_match_pass import post_grad_custom_pass_fuc 
+        post_grad_custom_pass_fuc()
 
     if os.environ.get("DISABLE_AOTI_PATCH", "0") != "1":
         patch_torch_for_aoti()
