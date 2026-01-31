@@ -294,6 +294,8 @@ class GemmAutotune:
         tile[0].m = new_l1_tile[0]
         tile[0].n = new_l1_tile[1]
         tile[0].k = new_l1_tile[2]
+        tile[1].m = new_l1_tile[0]
+        tile[1].n = new_l1_tile[1]
         # the new l1k may be less than l0k
         if tile[1].k > tile[0].k:
             tile[1].k = tile[0].k

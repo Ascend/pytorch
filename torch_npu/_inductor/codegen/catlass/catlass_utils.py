@@ -125,12 +125,33 @@ def _catlass_tensor_from_node(node):
 
     if not node:
         return None
-    try:
-        shape = tuple(node.data.get_size())
-        stride = tuple(node.data.get_stride())
-    except AttributeError:
-        shape = tuple(node.get_size())
-        stride = tuple(node.get_stride())
+    shape = tuple(node.get_layout().size)
+    stride = tuple(node.get_layout().stride)
+    element = DataType.from_dtype(node.get_dtype())
+    return OpTensor.from_shape_stride(
+        shape=shape,
+        stride=stride,
+        dtype=element,
+    )
+
+
+def _catlass_tensor_from_node_for_bias(node):
+    from catlass_cppgen.common.op_tensor import OpTensor
+    from catlass_cppgen.common.data_type import DataType
+
+    # bias node is different to A B input tensors. Even (n,) bias, the shape of this bias at this step,
+    # should already be the broadcasted shape (m, n); the difference between the (n,) bias and (m, n) bias
+    # is the stride. (n,) bias stride should be (0, 1), but (m, n) bias stride should not contain any zero. 
+
+    if len(node.get_size()) == 1 and len(node.get_stride()) == 1:   
+        shape = tuple(node.get_layout().size)
+        stride = tuple(node.get_layout().stride)
+    elif node.get_stride()[0] == 0:
+        shape = (node.get_layout().size[1],)
+        stride = (node.get_layout().stride[1],)
+    else:
+        shape = tuple(node.get_layout().size)
+        stride = tuple(node.get_layout().stride)
     element = DataType.from_dtype(node.get_dtype())
     return OpTensor.from_shape_stride(
         shape=shape,

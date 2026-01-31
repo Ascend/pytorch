@@ -122,7 +122,7 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
         beta: float,
         input_reorder: Optional[List[int]] = None,
     ) -> None:
-        from .catlass_utils import _catlass_tensor_from_node
+        from .catlass_utils import _catlass_tensor_from_node, _catlass_tensor_from_node_for_bias
 
         super().__init__("catlass_gemm", input_nodes, layout, input_reorder)
         self.alpha = alpha
@@ -153,7 +153,13 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
         self.shape_desc = self.shape_desc + (self.bias_shape,)
         if self.is_group_mm:
             self.input_nodes = [node for node in self.input_nodes if node]
-        self.op_tensors = [_catlass_tensor_from_node(node) for node in self.input_nodes]
+            self.op_tensors = [_catlass_tensor_from_node(node) for node in self.input_nodes]
+        elif self.bias_shape != BiasShape.NO_BIAS:
+            self.op_tensors = [_catlass_tensor_from_node(node) for node in self.input_nodes[:2]]
+            self.op_tensors.append(_catlass_tensor_from_node_for_bias(self.input_nodes[2]))
+        else:
+            self.op_tensors = [_catlass_tensor_from_node(node) for node in self.input_nodes]
+
 
     @staticmethod
     def get_shape_desc(input_nodes) -> Tuple[int, int, int]:
@@ -375,7 +381,8 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
         """
         import catlass_cppgen.catlass.layout as catlass_lib_layout
 
-        if len(torch_layout.stride) == 1:
+        # bias stride could be (0, 1), which indicates (n,) bias 
+        if len(torch_layout.stride) == 1 or torch_layout.stride[0] == 0:
             return catlass_lib_layout.VectorLayout
 
         if V.graph.sizevars.statically_known_equals(torch_layout.stride[-1], 1):
@@ -471,16 +478,17 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
         # Fuse the epilogue nodes on-fly or using Catlass Epilogue Visitor Graph (EVG)
         is_evg_fusion = False
         if epilogue_nodes:
+            op = copy.deepcopy(op)
             try:
                 (relu_enabled, bias_buffer, output_buffer) = self._try_fast_fusion(
                     epilogue_nodes, Y.get_name()
                 )
 
                 from .catlass_library.gemm_autotune import may_adjust_l1_tile_for_bias
-                from .catlass_utils import _catlass_tensor_from_node
+                from .catlass_utils import _catlass_tensor_from_node_for_bias
 
                 if bias_buffer:
-                    bias_tensor = _catlass_tensor_from_node(bias_buffer)
+                    bias_tensor = _catlass_tensor_from_node_for_bias(bias_buffer)
                     op.element_Bias = bias_tensor.dtype
                     op.layout_Bias = bias_tensor.layout
                     # Add bias for fusion may exceed L1 tile
@@ -625,10 +633,7 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
                 (op.layout_A, op.layout_B, op.layout_Bias, op.layout_C),
             ):
             if buf is not None:
-                try:
-                    result = CATLASSGemmTemplate.layout_match(buf.data.get_layout(), op_layout)
-                except AttributeError:
-                    result = CATLASSGemmTemplate.layout_match(buf.get_layout(), op_layout)
+                result = CATLASSGemmTemplate.layout_match(buf.get_layout(), op_layout)
                 match_list.append(result)
         all_match = all(match_list)
         if all_match:

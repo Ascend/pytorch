@@ -84,11 +84,6 @@ class catlass:
         os.environ.get("CATLASS_EPILOGUE_FUSION", "0") == "1"
     )
 
-    # Note: Experimental function
-    catlass_evg_fusion_enable = (
-        os.environ.get("CATLASS_EVG_FUSION", "0") == "1"
-    )
-
     catlass_bench_use_profiling: bool = (
         os.environ.get("TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING", "0") == "1"
     )

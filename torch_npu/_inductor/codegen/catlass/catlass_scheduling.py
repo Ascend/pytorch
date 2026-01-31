@@ -321,11 +321,6 @@ class CATLASSScheduling(BaseScheduling):
                 catlass_template_buffer.get_name(),
             )
         except NotImplementedError as e:
-            # This means current epilogue nodes must go EVG
-            if not catlass_config.catlass_evg_fusion_enable:
-                why("CATLASS epilogue visitor graph (EVG) fusion is not enabled")
-                return False
-
             # so we need to check again if current gemm kind supports EVG
             if catlass_template_buffer.epilogue_fusion_type != 2:
                 why("Current CATLASS Gemm Template does not support EVG fusion")
