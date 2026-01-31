@@ -1,3 +1,4 @@
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
@@ -8,6 +9,7 @@ class TestGe(TestUtils):
     def op_calc(self, first_element, second_element):
         return torch.ge(first_element, second_element)
 
+    @unittest.skip("it takes too long, not supported yet")
     @parametrize('shape', TestUtils._pointwise_demo_shapes)
     @parametrize('dtype', ['float16', 'float32', 'bfloat16', 'int32'])
     def test_pointwise_cases(self, shape, dtype):

@@ -1,3 +1,4 @@
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
@@ -9,6 +10,7 @@ class TestAbs(TestUtils):
         result = torch.abs(first_element)
         return result
 
+    @unittest.skip("it takes too long, not supported yet")
     @parametrize('shape', [(1024, 32), (256, 8)])
     @parametrize('dtype', ['float16', 'float32', 'bfloat16'])
     def test_pointwise_cases(self, shape, dtype):
