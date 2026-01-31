@@ -355,6 +355,8 @@ def fold_expand(graph: torch.fx.Graph) -> None:
     for expand in candidates:
         inp = expand.args[0]
         target_shape = expand.args[1]
+        if not isinstance(target_shape, list):
+            continue
         input_tensor = get_node_meta(inp)
         if input_tensor is None:
             continue
@@ -427,8 +429,10 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
                 other_node = user.args[0]
             if isinstance(other_node, float) or isinstance(other_node, int):
                 other_shape = []
+                other_val = other_node
             else:
                 other_shape = get_node_shape(other_node)
+                other_val = get_node_meta(other_node)
             result_shape = get_node_shape(user)
             view_shape = get_node_shape(node)
             orig_shape = get_node_shape(node.args[0])
@@ -444,7 +448,7 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
                             args=(node.args[0], other_node),
                             name=user.name + "_replacement",
                         )
-                        propagate_fake_tensor(new_add, node.args[0], lambda fake: user.target(fake, other_node.meta['val']))
+                        propagate_fake_tensor(new_add, node.args[0], lambda fake: user.target(fake, other_val))
                         new_add_view = graph.create_node(
                             op="call_function",
                             target=node.target,
