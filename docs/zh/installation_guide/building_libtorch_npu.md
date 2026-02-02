@@ -16,6 +16,12 @@ libtorch\_npu是torch\_npu插件的C++版本，包含运行torch\_npu插件所�
     以v2.7.1-7.3.0为例，拉取对应Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
 
 3.  执行编译生成libtorch\_npu安装包。
+    > [!NOTE]  
+    > 当前libtorch\_npu默认使用CXX11\_ABI=0，支持配置为CXX11\_ABI=1，命令如下：
+    >   ```
+    >   export _GLIBCXX_USE_CXX11_ABI=1
+    >   ```
+    > 用户可根据实际情况选择ABI版本，要求与PyTorch框架的ABI保持一致。
 
     ```
     python3 build_libtorch_npu.py
