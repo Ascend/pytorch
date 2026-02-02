@@ -594,10 +594,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             if binary is None:
                 raise Exception("Triton compilation failed") from e
 
-            # 该错误是表示编译通过，但ub数据取不到
-            log.warning(e)
-            log.warning("The current Triton or compiler version does not support the feature of printing UB usage. "
-                        "Please upgrade!")
+            # mistake is metadata no required_ub_bits, but binary work.
             return TritonCompileResultNpu(binary, cfg, compile_meta, self.inductor_meta)
 
         except Exception:

@@ -177,7 +177,9 @@ profile_path = "./profile_result/"
 fasta_autotune = os.environ.get('FASTAUTOTUNE', "0") == "1"
 fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")
 if fasta_autotune:
-    os.environ["ENABLE_PRINT_UB_BITS"] = "1"
+    if os.environ.get("ENABLE_PRINT_UB_BITS", "0") == "0":
+        log.warning("Please set ENABLE_PRINT_UB_BITS to 1. Fasta autotune need to know real ub usage.")
+        os.environ["ENABLE_PRINT_UB_BITS"] = "1"
 
     if torch._inductor.config.compile_threads != 1:
         log.warning(f"fasta is not temporarily compatible with multi-process compile, "
