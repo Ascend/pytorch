@@ -491,6 +491,10 @@ def mem_get_info(device=None):
     return device_prop.free_memory, device_prop.total_memory
 
 
+_cached_device_capability = None
+_cached_device_capability_env = None
+
+
 def get_device_capability(device=None):
     r"""Query the minor and major data of device.
 
@@ -516,11 +520,17 @@ def get_device_capability(device=None):
         >>> print(torch_npu.npu.get_device_capability(0))
         (8, 0)
     """
+    global _cached_device_capability, _cached_device_capability_env
+
     capability_env = os.getenv("TORCH_NPU_DEVICE_CAPABILITY")
     warning_str = "The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device."
     if not capability_env:
-        warnings.warn(f"You cann set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+        warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
         return None
+
+    # Fast path: reuse cached result if the environment variable has not changed
+    if _cached_device_capability_env == capability_env and _cached_device_capability is not None:
+        return _cached_device_capability
 
     # Validate the format of the environment variable, expected format is 'major.minor' where major and minor are non-negative integers (e.g., '8.0')
     pattern = r'^(\d+)\.(\d+)$'
@@ -531,12 +541,14 @@ def get_device_capability(device=None):
             "Expected format is 'major.minor' where major and minor are non-negative integers (e.g., '8.0')."
         )
         return None
-    
+
     warnings.warn(warning_str)
     major_str, minor_str = match.groups()
     major = int(major_str)
     minor = int(minor_str)
-    return (major, minor)
+    _cached_device_capability = (major, minor)
+    _cached_device_capability_env = capability_env
+    return _cached_device_capability
 
 
 def utilization(device=None):
