@@ -210,10 +210,15 @@ struct HostAllocator {
             auto &e = npu_events.front();
             EventPool::Event event = std::move(e.first);
             try {
+                // Query the completion status of the NPU event here. In some runtime scenarios (for example, HBM error),
+                // querying the event may throw an exception. In this case, we need to pop the event from the event queue to
+                // avoid coredump.
                 isEventCompleted = event->query();
+            } catch (const std::exception& e) {
+                ASCEND_LOGE("query_event() failed, runtime error: %s", e.what());
+                isEventCompleted = true;
             } catch (...) {
-                ASCEND_LOGE("processEvents() query event failed!");
-                // event query failed, pop the event
+                ASCEND_LOGE("query_event() failed with unknown error!");
                 isEventCompleted = true;
             }
             if (!isEventCompleted) {

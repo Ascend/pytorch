@@ -1899,11 +1899,12 @@ void ProcessGroupHCCL::checkHcclComms()
         return;
     }
     std::lock_guard<std::mutex> maplock(mutex_);
-    std::unordered_set<std::string> currentLoopErrors;
+    // checkErrors will be released after checkHcclComms() done
+    std::unordered_set<std::string> checkErrors;
     for (const auto & [name, hcclComms] : devHCCLCommMap_) {
         auto exception_ptr = checkForHCCLErrors(hcclComms);
         if (exception_ptr) {
-            currentLoopErrors.insert(name);
+            checkErrors.insert(name);
 
             if (reportedErrorComms_.find(name) == reportedErrorComms_.end()) {
                 auto exceptionMsg = c10::str(
@@ -1927,7 +1928,7 @@ void ProcessGroupHCCL::checkHcclComms()
         }
     }
     for (auto it = reportedErrorComms_.begin(); it != reportedErrorComms_.end();) {
-        if (currentLoopErrors.find(*it) == currentLoopErrors.end()) {
+        if (checkErrors.find(*it) == checkErrors.end()) {
             ASCEND_LOGI("[Rank %d] HcclComms vector %s error status cleared/recovered.", rank_, it->c_str());
             LOG(INFO) << "[Rank " << rank_ << "] HcclComms vector " << it->c_str() << "error status cleared/recovered.";
             it = reportedErrorComms_.erase(it);
