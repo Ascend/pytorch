@@ -181,8 +181,8 @@ if fasta_autotune:
         log.warning("Please set ENABLE_PRINT_UB_BITS to 1. Fasta autotune need to know real ub usage.")
         os.environ["ENABLE_PRINT_UB_BITS"] = "1"
 
-    if torch._inductor.config.compile_threads != 1:
-        log.warning(f"fasta is not temporarily compatible with multi-process compile, "
+    if fasta_autotune_method == "SampleStack" and torch._inductor.config.compile_threads != 1:
+        log.warning(f"fasta SampleStack method is not temporarily compatible with multi-process compile, "
                     f"fasta_autotune set TORCHINDUCTOR_COMPILE_THREADS "
                     f"from {torch._inductor.config.compile_threads} to 1.")
         os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"

@@ -76,8 +76,7 @@ class FastASetting:
         self.kernel_no_fastA = []
 
         if self.fast_a_on:
-            fast_a_log_message(content='fastA autotuner with tile_gen online, set ENABLE_PRINT_UB_BITS=1, '
-                                       'set TORCHINDUCTOR_COMPILE_THREADS=1',
+            fast_a_log_message(content='fastA autotuner with tile_gen online, set ENABLE_PRINT_UB_BITS=1',
                                tag='setting', level='info')
             if self.use_tile_exp:
                 fast_a_log_message(content='use tiling generation expert: {}'.format(self.use_tile_exp), tag='setting')
@@ -213,14 +212,15 @@ class TileConfig:
 
 class FastATileGenerator(TileGenerator):
     def __init__(self, numels, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims, persistent_reduction,
-                 configs, dtype, npu_kernel_type="simd", input_ptr_num=0, dual_reduction=False):
+                 dtype, npu_kernel_type="simd", input_ptr_num=0, dual_reduction=False):
         super().__init__(numels, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims, persistent_reduction,
-                 configs, dtype, npu_kernel_type, input_ptr_num, dual_reduction)
+                 dtype, npu_kernel_type, input_ptr_num, dual_reduction)
 
         self.expert_configs = None
         self.aligned_numel_num = None
         self.num_vector_core = None
         self.max_ub_size_numel = None
+        self.configs = []
 
     def add_multibuffer(self):
         """
@@ -486,6 +486,7 @@ class FastATileGenerator(TileGenerator):
                                          core_num=cfg.vector_core_num)
             temp_config.circle_num = cfg.cal_circle_num()
             self.configs.append(temp_config)
+        return self.configs
 
 
 class NPUFastABucket:
@@ -889,6 +890,16 @@ class NPUFastAutotuner(NPUCachingAutotuner):
         fast_a_log_message(content='total configs num is {}'.format(len(self.origin_configs)), tag='autotuner')
         fast_a_log_message(content='expert configs num is {}'.format(len(self.expert_configs)), tag='autotuner')
 
+        self.use_origin_autotuner = False
+        if len(self.origin_configs) <= 1 or len(self.configs) == 1:
+            self.use_origin_autotuner = True
+        if FASTA_SETTING.is_in_kernel_black_list(self.get_fn_name()):
+            self.use_origin_autotuner = True
+
+        if FASTA_SETTING.autotune_method == "Expert":
+            self.skip_precompile = False
+            self._precompile_for_expert()
+
     def _config_separation(self, configs):
         self.expert_configs = []
         if FASTA_SETTING.autotune_method != "Expert":
@@ -947,14 +958,13 @@ class NPUFastAutotuner(NPUCachingAutotuner):
                         this_pv.config.circle_num,
                         this_pv.config.from_expert), tag="autotuner")
 
-    def autotuner(self, *args, stream, benchmark_run=False, **kwargs):
-        use_origin_autotuner = False
-        if len(self.origin_configs) <= 1 or len(self.configs) == 1:
-            use_origin_autotuner = True
-        if FASTA_SETTING.is_in_kernel_black_list(self.get_fn_name()):
-            use_origin_autotuner = True
+    def _precompile_for_expert(self):
+        fast_a_log_message(content='enter precompile for expert')
+        self.bucket_dict = self._make_bucket_and_filter_with_binary()
+        self._expert_configs_precompile()
 
-        if use_origin_autotuner:
+    def autotuner(self, *args, stream, benchmark_run=False, **kwargs):
+        if self.use_origin_autotuner:
             self.configs = self.expert_configs
             self.skip_precompile = False
             super().autotuner(*args, stream=stream, benchmark_run=benchmark_run, **kwargs)
@@ -1206,18 +1216,18 @@ class NPUFastAutotuner(NPUCachingAutotuner):
     def _update_value_record(self, bucket):
         if bucket.state == 'end':
             if bucket.best_config_profile_value:
-                self.record_core_best_value[bucket.vector_core_num] = bucket.best_config_profile_value.profiler_time
+                self.record_core_best_value[bucket.core_num] = bucket.best_config_profile_value.profiler_time
                 if self.best_value_from_core < 0:
-                    self.best_value_from_core = bucket.vector_core_num
+                    self.best_value_from_core = bucket.core_num
                     self.best_profiling_ub_usage = bucket.best_config_profile_value.config.ub_usage
                 elif bucket.best_config_profile_value.profiler_time < self.record_core_best_value[
                     self.best_value_from_core]:
-                    self.best_value_from_core = bucket.vector_core_num
+                    self.best_value_from_core = bucket.core_num
                     self.best_profiling_ub_usage = bucket.best_config_profile_value.config.ub_usage
                 self.print_profile_value(bucket.best_config_profile_value, full_info=True)
             else:
-                if bucket.vector_core_num in self.record_core_best_value.keys():
-                    del self.record_core_best_value[bucket.vector_core_num]
+                if bucket.core_num in self.record_core_best_value.keys():
+                    del self.record_core_best_value[bucket.core_num]
 
     def dynamic_generate_config_parallel(self):
         if self.expert_configs_profiling:
@@ -1266,9 +1276,8 @@ class NPUFastAutotuner(NPUCachingAutotuner):
 
         self.expert_method_choose_core_num_list = this_core_num_list[:FASTA_SETTING.expert_min_bucket_num]
 
-    def _use_expert_configs(self, *args, **kwargs):
+    def _expert_configs_precompile(self):
         need_compile_configs = copy.deepcopy(self.expert_configs)
-        best_profile = None
 
         core_num_list = sorted(list(self.bucket_dict.keys()), reverse=True)
 
@@ -1285,16 +1294,12 @@ class NPUFastAutotuner(NPUCachingAutotuner):
         self.configs = need_compile_configs
         self.add_mutibuffer_config()
         self.profiling_config_num += len(self.configs)
-        ans = self.precompile()
-        if ans == "NoneCompileResults":
-            fast_a_log_message(content='noneCompileResults', tag='precompile', level='warning')
-            return None
-        best_profile = self.profiling_and_get_best_config(args, best_profile, kwargs)
-        return best_profile
+        self.precompile()
 
-    def profiling_and_get_best_config(self, args, best_profile, kwargs):
+    def profiling_and_get_best_config(self, *args, **kwargs):
         timings = self.benchmark_all_configs_with_std(*args, **kwargs)
         profile_values = self.make_profile_values(timings)
+        best_profile = None
         best_profile = self.find_best_launcher(profile_values, best_profile)
         self.clear_last_record()
         self.get_result_config_num += len(profile_values)
@@ -1304,13 +1309,10 @@ class NPUFastAutotuner(NPUCachingAutotuner):
 
     def auto_tune_by_fasta_parallel(self, *args, **kwargs):
         fast_a_log_message(content=f"======= enter fast autotuner kernel name: {self.get_fn_name()} =====")
-        autotune_start_time = time.time()
-        self.bucket_dict = self._make_bucket_and_filter_with_binary()
-        fast_a_log_message(content="make bucket and filter use {} s".format(time.time() - autotune_start_time),
-                           tag='autotuner')
         if FASTA_SETTING.autotune_method == 'Expert':
-            best_profile = self._use_expert_configs(*args, **kwargs)
+            best_profile = self.profiling_and_get_best_config(*args, **kwargs)
         elif FASTA_SETTING.autotune_method == "SampleStack":
+            self.bucket_dict = self._make_bucket_and_filter_with_binary()
             best_profile = self._sample_stack(*args, **kwargs)
         else:
             fast_a_log_message(content=f"fast autotuner method{FASTA_SETTING.autotune_method} is err", tag='error')

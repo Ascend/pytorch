@@ -1215,11 +1215,11 @@ def triton_config_npu_index(
     if npu_config.fasta_autotune:
         from .fasta_autotune import FastATileGenerator
         tile_generator = FastATileGenerator(size_hints, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims,
-                                            persistent_reduction=persistent_reduction, configs=configs,
+                                            persistent_reduction=persistent_reduction,
                                             dtype=split_axis_dtype,
                                             npu_kernel_type=npu_kernel_type,
                                             input_ptr_num=input_ptr_num, dual_reduction=dual_reduction)
-        tile_generator.descend_split_tiling()
+        configs = tile_generator.descend_split_tiling()
     else:
         tile_generator = TileGenerator(size_hints, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims,
                                        persistent_reduction=persistent_reduction, 
