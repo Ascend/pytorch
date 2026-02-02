@@ -116,6 +116,8 @@ class _InductorNpuRegistry:
     def register_inductor_npu(cls):
         if cls.has_initialized() or cls._disabled_register:
             return
+        from torch._inductor.async_compile import AsyncCompile
+        AsyncCompile.warm_pool()
         if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
             from torch_npu._inductor import _lazy_init
         else:
