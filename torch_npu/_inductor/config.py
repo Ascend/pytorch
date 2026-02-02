@@ -13,6 +13,8 @@ config.allow_buffer_reuse = False
 # inductor debug switch
 config.trace.enabled = True
 
+config.fallback_random = True
+
 # npu hardware params from trion
 target = driver.active.get_current_target()
 device = driver.active.get_current_device()
