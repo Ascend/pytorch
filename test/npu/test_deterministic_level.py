@@ -9,8 +9,8 @@ from torch_npu.testing.common_utils import SkipIfNotGteCANNVersion
 
 @unittest.skip("This test is not supported yet")
 class TestCompatibleImpl(TestCase):
-    def test_are_compatible_impl_enable(self):
-        self.assertEqual(torch_npu.npu.are_compatible_impl_enable(), True)
+    def test__get_deterministic_level(self):
+        self.assertEqual(torch_npu.npu._get_deterministic_level(), 2)
 
     @SkipIfNotGteCANNVersion("9.0.0")
     def test_npu_matmul(self):
@@ -27,5 +27,5 @@ class TestCompatibleImpl(TestCase):
 
 
 if __name__ == "__main__":
-    torch_npu.npu.use_compatible_impl(True)
+    torch_npu.npu.set_deterministic_level(2)
     run_tests()
