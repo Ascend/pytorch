@@ -315,6 +315,41 @@ def get_indirect_index(loop_body, find_node, node_map):
     return analyze_all_index(all_indexs)
 
 
+def define_npu_kernel_type(loop_body):
+    '''
+        For indirect load + sum pattern: simt_only is faster
+    '''
+    if inductor_indirect_memory_mode != str(NPUKernelType.SIMD_SIMT_MIX):
+        return NPUKernelType(inductor_indirect_memory_mode)
+
+    node_map = {}
+    for node in loop_body.root_block.graph.nodes:
+        node_map[node.name] = node
+        if 'reduction' == node.name:
+            reduction_type_pos = 3 # 3 is reduction_type_pos
+            reduction_index_pos = 4 # 4 is reduction_index_pos
+            reduction_type = node.args[reduction_type_pos]
+            if reduction_type != 'sum':
+                continue
+            reduction_index = str(node.args[reduction_index_pos])
+            if 'load' not in reduction_index:
+                continue
+            if reduction_index not in node_map:
+                continue
+            load_node = node_map[reduction_index]
+            load_index_pos = 2 # 2 is load index position
+            if load_node.args[load_index_pos].name not in node_map:
+                continue
+            get_load_index = node_map[load_node.args[load_index_pos].name]
+            load_index = get_load_index.args[0]
+            if load_index not in loop_body.indexing:
+                continue
+            if 'indirect' in str(loop_body.indexing[load_index]):
+                return NPUKernelType.SIMT_ONLY
+
+    return NPUKernelType(inductor_indirect_memory_mode)
+
+
 def generate_indirect_replacements(self):
     '''
     ir:
@@ -343,7 +378,7 @@ def generate_indirect_replacements(self):
             continue
         indirect_var_symbol = sympy_index_symbol(indirect_var)
         if inductor_indirect_memory_mode:
-            V.kernel.npu_kernel_type = NPUKernelType(inductor_indirect_memory_mode)
+            V.kernel.npu_kernel_type = define_npu_kernel_type(self)
         indirect_node_map[indirect_var] = node
 
         load_index = get_indirect_index(self, node, node_map)

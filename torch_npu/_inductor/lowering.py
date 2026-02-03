@@ -259,15 +259,17 @@ def _register_npu_inductor_fallbacks():
         if inductor_indirect_memory_mode != str(NPUKernelType.SIMT_TEMPLATE):
             return lowering.embedding(weight, indices)
 
-        def invalid_embedding_input(x):
-            x_size = x.get_size()
-            if 1 in x_size:
-                return True
-            return False
+        def should_use_template():
+            weight_size = weight.get_size()
+            if 1 in weight_size:
+                return False
+            if isinstance(weight, TensorBox) and isinstance(weight.data, ir.BaseView):
+                return False
+            return True
 
-        if invalid_embedding_input(weight):
-            return lowering.embedding(weight, indices)
-        return lowering_index_select(weight, 0, indices, 'embedding')
+        if should_use_template():
+            return lowering_index_select(weight, 0, indices, 'embedding')
+        return lowering.embedding(weight, indices)
 
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
@@ -319,8 +321,19 @@ def _register_npu_inductor_fallbacks():
             x = expand(x, [1])
             size = [1]
 
-        template_x_dtypes = [torch.float32, torch.float16, torch.bfloat16]
-        if x.get_dtype() not in template_x_dtypes:
+        def should_use_template():
+            template_x_dtypes = [torch.float32, torch.float16, torch.bfloat16]
+            if x.get_dtype() not in template_x_dtypes:
+                return False
+            if 1 in x.get_size() or 1 in index.get_size():
+                return False
+            if isinstance(x, TensorBox) and isinstance(x.data, ir.BaseView):
+                return False
+            if isinstance(index, TensorBox) and isinstance(index.data, ir.BaseView):
+                return False
+
+            return True
+        if not should_use_template():
             return lowering.gather(x, dim, index, sparse_grad)
 
         index_loader = index.make_loader()
@@ -463,7 +476,11 @@ def _register_npu_inductor_fallbacks():
             valid_indices = [indice for indice in indices if indice]
             if len(valid_indices) != 1:
                 return False
-            if not isinstance(valid_indices[0].data.data, ir.InputBuffer):
+            if isinstance(self, TensorBox) and isinstance(self.data, ir.BaseView):
+                return False
+            if isinstance(valid_indices[0], TensorBox) and isinstance(valid_indices[0].data, ir.BaseView):
+                return False
+            if isinstance(values, TensorBox) and isinstance(values.data, ir.BaseView):
                 return False
 
             return True
@@ -628,7 +645,13 @@ def _register_npu_inductor_fallbacks():
             if reduce:
                 return False
             if 1 in index.get_size() or 1 in self.get_size() or 1 in src.get_size():
-                return False          
+                return False
+            if isinstance(index, TensorBox) and isinstance(index.data, ir.BaseView):
+                return False
+            if isinstance(self, TensorBox) and isinstance(self.data, ir.BaseView):
+                return False
+            if isinstance(src, TensorBox) and isinstance(src.data, ir.BaseView):
+                return False
 
             return True
 
@@ -754,6 +777,10 @@ def _register_npu_inductor_fallbacks():
                 return False
             select_dim = indices.index(valid_indices[0])
             if select_dim == len(x_size) - 1:
+                return False
+            if isinstance(x, TensorBox) and isinstance(x.data, ir.BaseView):
+                return False
+            if isinstance(valid_indices[0], TensorBox) and isinstance(valid_indices[0].data, ir.BaseView):
                 return False
             return True
 

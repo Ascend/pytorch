@@ -1,4 +1,5 @@
 import gc
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import BenchmarkTestUtils
@@ -81,6 +82,58 @@ class TestAtenIndexSelectSimt(BenchmarkTestUtils):
         table_shape, index_shape, dims, table_dtype, index_dtype, enable_profiling = param_info
         for dim in dims:
             self.do_single_test(dim, param_info)
+
+    @parametrize('param_info', IndexSelectParamInfoBenchmark)
+    def test_aten_index_select_benchmark(self, param_info):
+        table_shape, index_shape, dims, table_dtype, index_dtype, enable_profiling = param_info
+        for dim in dims:
+            self.do_single_test(dim, param_info)
+
+    def test_index_select_unsqueeze_expand(self):
+
+        def index_select_view(table, dim, indice):
+            indice = indice.expand(1, 128)
+            indice = indice.reshape(128, )
+            table = table.unsqueeze(-1)
+            table = table.expand(32, 64, 16)
+            table = table.permute((1, 0, 2))
+            return torch.index_select(table, dim, indice)
+
+        table_shape = (64, 32, 16)
+        index_shape = (128, )
+        table_dtype, index_dtype = torch.float32, torch.int64
+        dim = 1
+        indice = torch.randint(0, table_shape[dim], size=(1, ), dtype=index_dtype, device='npu')
+        table = torch.randn((32, 64), requires_grad=False, dtype=table_dtype, device='npu')
+        index_select_triton = torch.compile(index_select_view, backend="inductor", dynamic=False)
+
+        r = index_select_view(table, dim, indice)
+        r1 = index_select_triton(table, dim, indice)
+        self.assertEqual(r, r1)
+
+    def test_index_select_unsqueeze_expand_pointwise(self):
+
+        def index_select_view(table, dim, indice, table2):
+            indice = indice.expand(1, 128)
+            indice = indice.reshape(128, )
+            table = table.unsqueeze(-1)
+            table = table.expand(32, 64, 16)
+            table = table.permute((1, 0, 2))
+            table = table2 + table
+            return torch.index_select(table, dim, indice)
+
+        table_shape = (64, 32, 16)
+        index_shape = (128, )
+        table_dtype, index_dtype = torch.float32, torch.int64
+        dim = 1
+        indice = torch.randint(0, table_shape[dim], size=(1, ), dtype=index_dtype, device='npu')
+        table = torch.randn((32, 64), requires_grad=False, dtype=table_dtype, device='npu')
+        table2 = torch.randn(table_shape, requires_grad=False, dtype=table_dtype, device='npu')
+        index_select_triton = torch.compile(index_select_view, backend="inductor", dynamic=False)
+
+        r = index_select_view(table, dim, indice, table2)
+        r1 = index_select_triton(table, dim, indice, table2)
+        self.assertEqual(r, r1)
 
 instantiate_parametrized_tests(TestAtenIndexSelectSimt)
 

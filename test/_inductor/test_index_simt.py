@@ -1,3 +1,4 @@
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import BenchmarkTestUtils
@@ -56,9 +57,8 @@ class TestAtenIndexSimt(BenchmarkTestUtils):
 
     def index(self, table, index):
         return torch.ops.aten.index(table, index)
-
-    @parametrize('para_info', IndexParamInfo)
-    def test_aten_index(self, para_info):
+    
+    def do_test_aten_index_single(self, para_info):
         [table_shape, indice_shape, table_dtype, indice_dtype, enable_profiling] = para_info
         indices = []
         for bound in table_shape:
@@ -88,6 +88,14 @@ class TestAtenIndexSimt(BenchmarkTestUtils):
                 "eager_time": f"{eager_time:.2f}",
                 "inductor_time": f"{inductor_time:.2f}"
             })
+
+    @parametrize('para_info', IndexParamInfo)
+    def test_aten_index(self, para_info):
+        self.do_test_aten_index_single(para_info)
+
+    @parametrize('para_info', IndexSelectParamInfoBenchmark)
+    def test_aten_index_benchmark(self, para_info):
+        self.do_test_aten_index_single(para_info)
 
 instantiate_parametrized_tests(TestAtenIndexSimt)
 
