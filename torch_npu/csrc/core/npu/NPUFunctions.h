@@ -106,6 +106,10 @@ aclError UnuseStreamResInCurrentThread();
 
 C10_NPU_API uint32_t GetResInCurrentThread(int32_t type);
 
+void SetDeterministicLevel(uint32_t level);
+
+uint32_t GetDeterministicLevel();
+
 enum class SyncDebugMode { L_DISABLED = 0, L_WARN, L_ERROR };
 
 // it's used to store npu synchronization state
