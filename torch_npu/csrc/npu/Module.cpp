@@ -2088,6 +2088,23 @@ PyObject* THNPModule_setOpTimeoutMs(PyObject* self, PyObject* arg)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_set_deterministic_level(PyObject* self, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    uint32_t level = THPUtils_unpackUInt32(arg);
+    c10_npu::SetDeterministicLevel(level);
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_get_deterministic_level(PyObject* self, PyObject*  noargs)
+{
+    HANDLE_TH_ERRORS
+    uint32_t level = c10_npu::GetDeterministicLevel();
+    return THPUtils_packUInt32(level);
+    END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -2164,6 +2181,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_set_stream_res_limit", (PyCFunction)THNPModule_set_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_reset_stream_res_limit", (PyCFunction)THNPModule_reset_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_get_stream_res_limit", (PyCFunction)THNPModule_get_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"_npu_set_deterministic_level", (PyCFunction)THNPModule_set_deterministic_level, METH_O, nullptr},
+    {"_npu_get_deterministic_level", (PyCFunction)THNPModule_get_deterministic_level, METH_NOARGS, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()

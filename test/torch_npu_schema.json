@@ -1106,10 +1106,13 @@
   "torch_npu.npu.host_empty_cache": {
     "signature": "()"
   },
+  "torch_npu.npu.set_deterministic_level": {
+    "signature": "(level)"
+  },
   "torch_npu.npu.use_compatible_impl": {
     "signature": "(is_enable)"
   },
-  "torch_npu.npu.are_compatible_impl_enable": {
+  "torch_npu.npu.are_compatible_impl_enabled": {
     "signature": "()"
   },
   "torch_npu.npu.enable_deterministic_with_backward": {

@@ -128,8 +128,9 @@ __all__ = [
     "obfuscation_calculate",
     "set_op_timeout_ms",
     "host_empty_cache",
+    "set_deterministic_level",
     "use_compatible_impl",
-    "are_compatible_impl_enable"
+    "are_compatible_impl_enabled"
 ]
 
 from typing import Tuple, Union, List, cast, Optional
@@ -524,12 +525,42 @@ def _comm_switch_nic(ranks, useBackup):
     return torch_npu.distributed.distributed_c10d._comm_switch_nic(ranks, useBackup)
 
 
+def set_deterministic_level(level):
+    warnings.warn("After using 'torch_npu.npu.set_deterministic_level', "
+                  "please do not use 'torch.use_deterministic_algorithms' anymore, "
+                  "as it may cause unknown errors.")
+    if level == 0 and torch.are_deterministic_algorithms_enabled():
+        warnings.warn("The current configuration value of 'torch_npu.npu.set_deterministic_level' "
+                      "conflicts with 'torch.use_deterministic_algorithms'. "
+                      "'torch.use_deterministic_algorithms' has been configured to 'False'")
+        torch.use_deterministic_algorithms(False)
+    elif level >= 1 and not torch.are_deterministic_algorithms_enabled():
+        warnings.warn("The current configuration value of 'torch_npu.npu.set_deterministic_level' "
+                      "conflicts with 'torch.use_deterministic_algorithms'. "
+                      "'torch.use_deterministic_algorithms' has been configured to 'True'")
+        torch.use_deterministic_algorithms(True)
+    torch_npu._C._npu_set_deterministic_level(level)
+
+
+def _get_deterministic_level():
+    level = torch_npu._C._npu_get_deterministic_level()
+    if level == 0 and torch.are_deterministic_algorithms_enabled():
+        level = 1
+        torch_npu.npu.set_deterministic_level(level)
+        return level
+    if level >= 1 and not torch.are_deterministic_algorithms_enabled():
+        level = 0     
+        torch_npu.npu.set_deterministic_level(level)
+        return level
+    return level
+
+
 def use_compatible_impl(is_enable):
     option = {"COMPATIBLE_IMPL": "enable" if is_enable else "disable"}
     torch_npu._C._npu_setOption(option)
 
 
-def are_compatible_impl_enable():
+def are_compatible_impl_enabled():
     compatible_value = torch_npu._C._npu_getOption("COMPATIBLE_IMPL")
     return compatible_value is not None and compatible_value.decode() == "enable"
 
