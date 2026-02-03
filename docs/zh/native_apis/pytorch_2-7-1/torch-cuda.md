@@ -48,6 +48,8 @@
 |torch.cuda.Stream.wait_stream|torch_npu.npu.Stream.wait_stream|是|-|
 |torch.cuda.Event|torch_npu.npu.Event|是|-|
 |torch.cuda.Event.elapsed_time|torch_npu.npu.Event.elapsed_time|是|-|
+|torch.cuda.Event.from_ipc_handle|torch_npu.npu.Event.from_ipc_handle|是|-|
+|torch.cuda.Event.ipc_handle|torch_npu.npu.Event.ipc_handle|是|-|
 |torch.cuda.Event.query|torch_npu.npu.Event.query|是|-|
 |torch.cuda.Event.wait|torch_npu.npu.Event.wait|是|-|
 |torch.cuda.is_current_stream_capturing|torch.npu.is_current_stream_capturing|是|-|
