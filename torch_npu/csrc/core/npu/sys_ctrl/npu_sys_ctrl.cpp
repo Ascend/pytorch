@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/framework/LazyInitAclops.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #ifdef SUCCESS
 #undef SUCCESS
 #endif
@@ -45,6 +46,36 @@ void SetDefaultAllowInternalFromatDisable()
 
     c10_npu::option::SetOption("ALLOW_INTERNAL_FORMAT", "disable");
     ASCEND_LOGI("Set ALLOW_INTERNAL_FORMAT default value disable.");
+}
+
+void SetDeterministicFromLevel()
+{
+    const static bool isAclStrongConsistencyExist = []() {
+        const std::string kMinRuntimeVersion = "8.5.0";
+        if (IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
+            return true;
+        }
+        return false;
+    }();
+    if (!isAclStrongConsistencyExist) {
+        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+        return;
+    }
+
+    uint32_t level = c10_npu::GetDeterministicLevel();
+    if (level == 1) {
+        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 1));
+        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, 0));
+        return;
+    } else if (level == 2) {
+        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 1));
+        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, 1));
+        return;
+    } else if (level != 0) {
+        ASCEND_LOGW("'torch_npu.npu.set_deterministic_level' currently only supports configuring 0/1/2; Other configurations will default to 0.");
+    }
+    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, 0));
 }
 
 #ifndef BUILD_LIBTORCH
@@ -190,7 +221,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     }
 
     if (!c10_npu::is_lazy_set_device()) {
-        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+        SetDeterministicFromLevel();
         NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
     }
 
@@ -238,7 +269,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::LazyInitialize(int device_id)
         c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
     }
 
-    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+    SetDeterministicFromLevel();
     NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
 
     lazy_init_flag_ = true;

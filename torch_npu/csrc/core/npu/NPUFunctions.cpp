@@ -18,6 +18,7 @@ static thread_local int local_device = -1;
 static std::unordered_map<int8_t, aclrtContext> used_devices;
 std::recursive_mutex mtx;
 thread_local int targetDeviceIndex = -1;
+static uint32_t deterministic_level = 0;
 
 bool is_lazy_set_device()
 {
@@ -435,4 +436,13 @@ uint32_t GetResInCurrentThread(int32_t type)
     return value;
 }
 
+void SetDeterministicLevel(uint32_t level)
+{
+    deterministic_level = level;
+}
+
+uint32_t GetDeterministicLevel()
+{
+    return deterministic_level;
+}
 } // namespace c10_npu
