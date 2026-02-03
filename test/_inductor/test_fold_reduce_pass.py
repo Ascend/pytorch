@@ -24,10 +24,9 @@ class TestFoldReducePass(TestUtils):
     @parametrize('dtype', ['float32'])
     def test_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
-        
         std_result = self.op_calc(t1)
-
-        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
         

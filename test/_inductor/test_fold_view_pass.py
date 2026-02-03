@@ -31,8 +31,8 @@ class TestFoldViewPass(TestUtils):
         t1 = torch.randn(1, 3, 1, 5)
         t2 = torch.randn(128, 64)
         std_result = self.op_calc(t1, t2)
-
-        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1, t2)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
         

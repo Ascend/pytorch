@@ -38,8 +38,8 @@ class TestFoldSlicePass(TestUtils):
         t2 = torch.tensor([[9, 9, 9], [8, 8, 8]])
         t3 = torch.randn(4, 16, 32, 64)
         std_result = self.op_calc(base, view, t1, t2, t3)
-
-        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
         inductor_result = compiled_op_calc(base, view, t1, t2, t3)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
         
