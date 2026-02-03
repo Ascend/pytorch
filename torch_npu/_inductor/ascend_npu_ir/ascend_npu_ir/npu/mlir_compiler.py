@@ -391,10 +391,36 @@ class NpuMlirCompiler:
 
         return cloned_args
 
+    def accuracy_pass(self, fx_outputs, *args):
+        num_inputs = len(args) - self.num_outputs
+        for _, (actual, expected) in enumerate(zip(args[num_inputs:], fx_outputs)):
+            if actual.dtype != expected.dtype:
+                expected = expected.to(actual.dtype)
+            acc_comp_tol = anir_config.acc_comp_tol.get(actual.dtype, anir_config.acc_comp_tol['default'])
+            rtol = acc_comp_tol['rtol']
+            atol = acc_comp_tol['atol']
+            matches = torch.allclose(
+                actual, expected, rtol=rtol, atol=atol, equal_nan=True
+            )
+            if not matches:
+                return False
+
+        return True
+
     def benchmark_all_configs(self, *args, **kwargs):
         timings = []
         args_new = ()
         args = list(args)
+
+        launcher_fx = self.launchers[-1]
+        fx_outputs = [clone_preserve_strides(arg).to(torch.float32) if arg.dtype == torch.bfloat16 \
+                      else clone_preserve_strides(arg) for arg in args[-self.num_outputs:]]
+        fx_inputs = [clone_preserve_strides(arg) if isinstance(arg, torch.Tensor) else arg for arg in args[:-self.num_outputs]]
+        fx_inputs = [inp.float() if isinstance(inp, torch.Tensor) and inp.dtype == torch.bfloat16 else inp for inp in fx_inputs]
+        
+        fx_args = fx_inputs + fx_outputs
+        launcher_fx(*fx_args, **kwargs)
+
         if self.dynamic:
             for idx, arg in enumerate(args):
                 if not torch.is_tensor(arg):
@@ -425,19 +451,22 @@ class NpuMlirCompiler:
             if self.kernel_paths[idx] in anir_config.force_fallback_kernel_paths:
                 print(f"Skip kernel: {self.kernel_paths[idx]}", flush=True)
                 continue
+            if self.is_fallback_kernels[idx] and not anir_config.autotune_fx_fallback:
+                continue
             try:
                 logger.info(f"start to eval kernel {self.kernel_paths[idx]}")
                 times = self.bench(idx, launcher, *transformed_args, **kwargs)
-                timings.append([times, idx])
+                if self.accuracy_pass(fx_outputs, *transformed_args):
+                    timings.append([times, idx])
                 logger.info(f"eval over")
             except Exception as e:
                 print(e)
                 continue
+        if not timings:
+            timings.append([float(1.0), len(self.launchers) - 1])
         return timings
     
     def autotune_to_one_config(self, *args, **kwargs):
-        if anir_config.autotune_fx_fallback:
-            self.register_fx_fallback(self.kernel_meta)
         if any([isinstance(arg, torch.Tensor) and not arg.is_contiguous() for arg in args]):
             print(f'Non contiguous args exists! Kernel name is {self.kernel_name}')
         timings = self.benchmark_all_configs(*args, **kwargs)
@@ -615,13 +644,9 @@ class NpuMlirCompiler:
                 contiguous_outputs.append(contiguous_output)
     
         if not self.autotuned:
-            if len(self.launchers) > 1:
+            if self.autotune:
+                self.register_fx_fallback(self.kernel_meta)
                 self.autotune_to_one_config(*args, **kwargs)
-            elif self.autotune:
-                if self.kernel_paths[0].endswith('_fx_fallback'):
-                    self.cache.put(self.traced_graph_hash, "best_kernel", binary=False)
-                else:
-                    self.cache.put(self.kernel_paths[0].split('/')[-1], "best_kernel", binary=False)
             else:
                 pass
             self.autotuned = True
