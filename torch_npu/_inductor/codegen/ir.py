@@ -1,31 +1,69 @@
 from typing import List, Tuple, Dict, Any, Optional, cast
 import os
 import itertools
+from math import gcd
 import sympy
+from sympy import Integer
 import torch
-from torch._inductor.ir import (ReductionHint, IRNode, ModularIndexing, FloorDiv)
+from torch._inductor.ir import (ReductionHint, IRNode, ModularIndexing, FloorDiv, sympy_product)
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import sympy_subs, sympy_index_symbol, has_free_symbols
 from torch._inductor.virtualized import V
 from torch._inductor.loop_body import MemoryUsageType
+from torch._inductor.codegen.common import BackendFeature
+from torch._inductor import config
 from torch.utils._sympy.value_ranges import IntInfinity, ValueRanges
 from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
 from .triton_utils import get_indirect_var, get_indirect_mem_var, NPUKernelType
 from ..config import log, inductor_indirect_memory_mode
 
 
-# NPU doesn't need to support ReductionHint.OUTER, and persistent reduction
+def reduction_split_factor(reduction_ranges):
+    ranges = [num for num in reduction_ranges if num > 1]
+    if len(ranges) == 0:
+        return 1
+    return min(ranges)
+
+
 def num_splits(
-        device,
-        dst_dtype,
-        src_dtype,
-        inner_fn,
-        ranges,
-        reduction_ranges,
-        reduction_type,
-        reduction_numel,
-        input_node: Optional[IRNode] = None,
+    device,
+    dst_dtype,
+    src_dtype,
+    inner_fn,
+    ranges,
+    reduction_ranges,
+    reduction_type,
+    reduction_numel,
+    input_node=None,
 ):
+    def _is_static(x: object) -> bool:
+        return isinstance(x, (int, Integer))
+
+    reduction_numel_hint = V.graph.sizevars.symbolic_hint(reduction_numel)
+    numel_hint = V.graph.sizevars.symbolic_hint(sympy_product(ranges))
+    if not (_is_static(reduction_numel_hint) and _is_static(numel_hint)):
+        # We don't support unbacked symints
+        return ReductionHint.DEFAULT, 1
+
+    should_split = reduction_type == "scan" or (
+        not V.graph.has_feature(device, BackendFeature.REDUCE_TO_SINGLE_ELEMENT)
+        and reduction_type
+        not in (
+            "argmax",
+            "argmin",
+        )
+        and config.split_reductions
+    )
+
+    if should_split:
+        inner_reduction_splits = reduction_split_factor
+    else:
+        def inner_reduction_splits(reduction_ranges):
+            return 1
+
+    if numel_hint == 1:
+        split = inner_reduction_splits(reduction_ranges)
+        return ReductionHint.INNER, split
     return ReductionHint.DEFAULT, 1
 
 
@@ -248,10 +286,599 @@ def remove_zero_terms(indexing, var_ranges):
             indexing[key] = new_expr
 
 
+def analyze_expression(expr, range_tree_nodes):
+    """
+    Analyze the entire expression, identify all FloorDiv and ModularIndexing expressions
+    and determine if they can be split
+    
+    Parameters:
+        expr: sympy expression
+        range_tree_nodes: dictionary mapping symbols to range nodes
+        
+    Returns:
+        Dict: analysis result dictionary
+    """
+    result = {
+        "original_expr": str(expr),
+        "floordiv_expressions": [],
+        "modular_expressions": [],
+        "can_split_all": True,
+        "split_details": {}
+    }
+    
+    # Recursively collect all FloorDiv and ModularIndexing expressions
+    def collect_expressions(sub_expr, path=""):
+        """Recursively collect FloorDiv and ModularIndexing expressions"""
+        nonlocal result
+        
+        # If it's a FloorDiv expression
+        if isinstance(sub_expr, FloorDiv):
+            analysis = analyze_floordiv_expression(sub_expr, range_tree_nodes)
+            analysis["path"] = path
+            result["floordiv_expressions"].append(analysis)
+            
+            # Update the can_split_all flag
+            if not analysis.get("can_split", True):
+                result["can_split_all"] = False
+        
+        # If it's a ModularIndexing expression
+        elif isinstance(sub_expr, ModularIndexing):
+            analysis = analyze_modular_expression(sub_expr, range_tree_nodes)
+            analysis["path"] = path
+            result["modular_expressions"].append(analysis)
+            
+            # Check if it can be split
+            if not analysis.get("can_split", True):
+                result["can_split_all"] = False
+        
+        # Recursively process sub-expressions
+        if hasattr(sub_expr, 'args'):
+            for i, arg in enumerate(sub_expr.args):
+                collect_expressions(arg, f"{path}.args[{i}]")
+    
+    # Start collection
+    collect_expressions(expr, "")
+    return result
+
+
+def calculate_max_remainder(coeff, length, divisor_or_mod):
+    """
+    Calculate the maximum remainder for term coeff * symbol, where symbol ∈ [0, length-1]
+    
+    Parameters:
+        coeff: coefficient
+        length: symbol's value range length (symbol ∈ [0, length-1])
+        divisor_or_mod: divisor or modulus
+        
+    Returns:
+        maximum remainder value
+    """
+    # Try to convert coefficient and divisor/modulus to integers
+    coeff_int = int(coeff) if isinstance(coeff, sympy.Integer) else None
+    divisor_int = int(divisor_or_mod) if isinstance(divisor_or_mod, sympy.Integer) else None
+    
+    # If not integers, use conservative estimate
+    if coeff_int is None or divisor_int is None:
+        return min(divisor_or_mod - 1, coeff * (length - 1))
+    
+    # If coefficient is 0, remainder is always 0
+    if coeff_int == 0:
+        return 0
+    
+    # Calculate greatest common divisor
+    g = gcd(coeff_int, divisor_int)
+    
+    # If length-1 is large enough, can reach maximum remainder divisor_int - g
+    # The remainder period is divisor_int/g
+    period = divisor_int // g
+    
+    # If symbol's value range covers the entire period, then maximum remainder is divisor_int - g
+    if length - 1 >= period - 1:
+        return divisor_int - g
+    else:
+        # Cannot reach maximum remainder, need to calculate the maximum remainder within the range [0, length-1]
+        max_k = length - 1
+        
+        # Remainder sequence: 0, coeff, 2*coeff, ... mod divisor_int
+        # We need to find k ∈ [0, max_k] such that (coeff_int * k) % divisor_int is maximized
+        
+        # Calculate maximum possible value
+        max_possible = coeff_int * max_k
+        
+        if max_possible < divisor_int:
+            # If maximum possible value is less than divisor, then maximum remainder is the maximum possible value
+            return max_possible
+        else:
+            # Calculate max_possible % divisor_int
+            remainder = max_possible % divisor_int
+            
+            # Find the largest multiple of g that does not exceed remainder
+            # Because all remainders are multiples of g
+            max_remainder = remainder // g * g
+            start_k = max(0, max_k - period + 1)
+            best_remainder = max_remainder
+            
+            for k in range(start_k, max_k + 1):
+                r = (coeff_int * k) % divisor_int
+                if r > best_remainder:
+                    best_remainder = r
+            
+            return best_remainder
+
+
+def analyze_floordiv_expression(expr, range_tree_nodes: Dict) -> Dict:
+    result = {
+        "expression": str(expr),
+        "type": "FloorDiv",
+        "can_split": False,
+        "reason": "",
+        "details": {},
+        "split_form": ""
+    }
+    
+    if not isinstance(expr, FloorDiv):
+        result["reason"] = "not FloorDiv expression"
+        return result
+    
+    arg, divisor = expr.args[0], expr.args[1]
+    free_symbols = arg.free_symbols
+    num_symbols = len(free_symbols)
+    
+    result["details"]["divisor"] = divisor
+    result["details"]["expr"] = arg
+    result["details"]["num_symbols"] = num_symbols
+    result["details"]["symbols"] = list(free_symbols)
+    
+    # Multi-dimensional memory access expressions (≥2 dimensions) require splitting;
+    # unary(single-dimension) expressions do not.
+    if num_symbols < 2:
+        result["can_split"] = True
+        result["reason"] = f"num_symbols {num_symbols} < 2, no need split"
+        return result
+    
+    if not isinstance(arg, sympy.Add):
+        result["reason"] = f"expr {arg} not sympy.Add expression, can not split"
+        return result
+    
+    add_terms = arg.args
+    max_remainder_sum = 0
+    term_details = []
+    
+    for term in add_terms:
+        term_info = {
+            "term": term,
+            "coeff": 1,
+            "symbol": None,
+            "length": None,
+            "max_value": None,
+            "max_remainder": None
+        }
+        term_details.append(term_info)
+
+        coeff = 1
+        symbol = None
+        
+        if isinstance(term, sympy.Symbol):
+            symbol = term
+        elif isinstance(term, sympy.Mul):
+            constant_factors = []
+            for factor in term.args:
+                if isinstance(factor, sympy.Symbol):
+                    symbol = factor
+                elif factor.is_number:
+                    constant_factors.append(factor)
+            
+            if constant_factors:
+                coeff = 1
+                for cf in constant_factors:
+                    coeff *= cf
+        
+        term_info["coeff"] = coeff
+        term_info["symbol"] = symbol
+        
+        if symbol is None:
+            result["reason"] = f"term {term} with no symbol"
+            result["details"]["term_details"] = term_details
+            return result
+        
+        if symbol not in range_tree_nodes:
+            result["reason"] = f"symbol {symbol} not in range_tree_nodes"
+            result["details"]["term_details"] = term_details
+            return result
+        
+        length = range_tree_nodes[symbol].length
+        term_info["length"] = length
+        
+        max_term_value = coeff * (length - 1)
+        term_info["max_value"] = max_term_value
+        
+        max_remainder = calculate_max_remainder(coeff, length, divisor)
+        term_info["max_remainder"] = max_remainder
+        
+        max_remainder_sum += max_remainder
+    
+    result["details"]["term_details"] = term_details
+    result["details"]["max_remainder_sum"] = max_remainder_sum
+    
+    if max_remainder_sum < divisor:
+        result["can_split"] = True
+        result["reason"] = f"expr can split, max_remainder_sum {max_remainder_sum} < divisor {divisor}"
+        
+        split_terms = []
+        for term in add_terms:
+            split_terms.append(f"({term} // {divisor})")
+        
+        result["split_form"] = " + ".join(split_terms)
+    else:
+        result["reason"] = f"expr can not split, max_remainder_sum {max_remainder_sum} >= divisor {divisor}"
+    
+    return result
+
+
+def analyze_modular_expression(expr, range_tree_nodes: Dict) -> Dict:
+    """
+    Analyze a single ModularIndexing expression
+    
+    Parameters:
+        expr: ModularIndexing expression
+        range_tree_nodes: dictionary mapping symbols to range nodes
+        
+    Returns:
+        Dict: analysis result dictionary
+    """
+    result = {
+        "expression": str(expr),
+        "type": "ModularIndexing",
+        "can_split": False,
+        "reason": "",
+        "details": {},
+        "split_form": ""
+    }
+    
+    # Check number of arguments
+    args = expr.args
+    if len(args) != 3:
+        result["reason"] = f"ModularIndexing must have 3 args, but {len(args)} found"
+        return result
+    
+    expr_to_mod, lower, upper = args
+    
+    # Check free symbols in expr_to_mod
+    free_symbols = expr_to_mod.free_symbols
+    num_symbols = len(free_symbols)
+    
+    result["details"]["expr_to_mod"] = expr_to_mod
+    result["details"]["lower"] = lower
+    result["details"]["upper"] = upper
+    result["details"]["num_symbols"] = num_symbols
+    result["details"]["symbols"] = list(free_symbols)
+    
+    if num_symbols < 2:
+        result["can_split"] = True
+        result["reason"] = f"num_symbols {num_symbols} < 2, no need split"
+        return result
+    
+    # Check if expr_to_mod is an addition
+    if not isinstance(expr_to_mod, sympy.Add):
+        result["can_split"] = True
+        result["reason"] = f"expr {expr_to_mod} not sympy.Add expression, no need split"
+        return result
+    
+    # For ModularIndexing, the split condition is:
+    # (expr1 % mod) + (expr2 % mod) < mod
+    # where mod = upper - lower + 1
+    
+    mod = upper - lower + 1
+    
+    # Calculate the maximum sum of remainders
+    add_terms = expr_to_mod.args
+    max_remainder_sum = 0
+    term_details = []
+    
+    for term in add_terms:
+        term_info = {
+            "term": term,
+            "coeff": 1,
+            "symbol": None,
+            "length": None,
+            "max_value": None,
+            "max_remainder": None,
+            "gcd_val": None,
+            "period": None
+        }
+        term_details.append(term_info)
+
+        # Extract coefficient and symbol
+        coeff = 1
+        symbol = None
+        
+        if isinstance(term, sympy.Symbol):
+            symbol = term
+        elif isinstance(term, sympy.Mul):
+            constant_factors = []
+            for factor in term.args:
+                if isinstance(factor, sympy.Symbol):
+                    symbol = factor
+                elif factor.is_number:
+                    constant_factors.append(factor)
+            
+            if constant_factors:
+                coeff = 1
+                for cf in constant_factors:
+                    coeff *= cf
+        
+        term_info["coeff"] = coeff
+        term_info["symbol"] = symbol
+        
+        if symbol is None:
+            result["reason"] = f"term {term} with no symbol"
+            result["details"]["term_details"] = term_details
+            return result
+        
+        # Get symbol's length
+        if symbol not in range_tree_nodes:
+            result["reason"] = f"symbol {symbol} not in range_tree_nodes"
+            result["details"]["term_details"] = term_details
+            return result
+        
+        node = range_tree_nodes[symbol]
+        length = node.length
+        term_info["length"] = length
+        
+        # Calculate maximum possible value
+        max_term_value = coeff * (length - 1)
+        term_info["max_value"] = max_term_value
+        
+        if coeff is not None and mod is not None:
+            gcd_val = gcd(coeff, mod)
+            term_info["gcd_val"] = gcd_val
+            
+            # Remainder period
+            period = mod // gcd_val
+            term_info["period"] = period
+        
+        max_remainder = calculate_max_remainder(coeff, length, mod)
+        term_info["max_remainder"] = max_remainder
+        
+        max_remainder_sum += max_remainder
+    
+    result["details"]["term_details"] = term_details
+    result["details"]["max_remainder_sum"] = max_remainder_sum
+    result["details"]["mod"] = mod
+    
+    # Determine if it can be split
+    if max_remainder_sum < mod:
+        result["can_split"] = True
+        result["reason"] = f"expr can split, max_remainder_sum {max_remainder_sum} < mod {mod}"
+        
+        # Generate the split expression form
+        split_terms = []
+        for term in add_terms:
+            split_terms.append(f"ModularIndexing({term}, {lower}, {upper})")
+        
+        result["split_form"] = " + ".join(split_terms)
+    else:
+        result["reason"] = f"expr can not split, max_remainder_sum {max_remainder_sum} >= mod {mod}"
+    
+    return result
+
+
+def extract_modular_indexing_coefficient(expr):
+    """
+    Extract coefficient from ModularIndexing expression
+    
+    Convert ModularIndexing(k*x, lower, upper) to k * ModularIndexing(x, lower, upper/k)
+    Condition: k is a constant and can divide (upper - lower + 1)
+    """
+    if not isinstance(expr, ModularIndexing):
+        return expr
+    
+    args = expr.args
+    if len(args) != 3:
+        return expr
+    
+    expr_to_mod, lower, upper = args
+    
+    # Check if expr_to_mod is a multiplication expression
+    if isinstance(expr_to_mod, sympy.Mul):
+        # Find constant coefficient
+        coefficient = 1
+        other_factors = []
+        
+        for factor in expr_to_mod.args:
+            # Check if it's an integer constant
+            if isinstance(factor, sympy.Integer) and factor.is_constant():
+                coefficient = coefficient * factor
+            else:
+                other_factors.append(factor)
+        
+        # If a constant coefficient greater than 1 is found
+        if coefficient != 1:
+            # Calculate modulus range
+            mod_range = upper - lower + 1
+            
+            # Check if coefficient can divide modulus range
+            if mod_range % coefficient == 0:
+                # Construct new ModularIndexing arguments
+                if other_factors:
+                    if len(other_factors) == 1:
+                        new_expr = other_factors[0]
+                    else:
+                        new_expr = sympy.Mul(*other_factors)
+                else:
+                    # If no other factors, use 1
+                    new_expr = sympy.Integer(1)
+                
+                # Calculate new upper bound
+                new_upper = lower + mod_range // coefficient - 1
+                
+                # Create new ModularIndexing
+                new_mod = ModularIndexing(new_expr, lower, new_upper)
+                
+                # Return coefficient multiplied by new ModularIndexing
+                return coefficient * new_mod
+    
+    return expr
+
+
+def eliminate_zero_term(term):
+    expr, divisor = term.args
+    if not isinstance(expr, sympy.Symbol):
+        return term
+    if (expr in V.kernel.range_tree_nodes):
+        numel = V.kernel.range_tree_nodes[expr].length
+    else:
+        numel = V.kernel.range_tree_nodes_removed[expr].length
+    
+    length = term.eval(numel, divisor)
+    if length == 0:
+        return sympy.Integer(0)
+    return term
+
+
+def eliminate_modular(term):
+    """
+    Eliminate unnecessary ModularIndexing expressions
+    
+    When ModularIndexing(expr, lower, upper) has the same range as the entire range,
+    it can be simplified to expr itself.
+    
+    Parameters:
+        term: ModularIndexing expression
+        
+    Returns:
+        Simplified expression or original expression
+    """
+    # If not a ModularIndexing expression, return directly
+    if not isinstance(term, sympy.Function) or term.func.__name__ != 'ModularIndexing':
+        return term
+    
+    # Get arguments
+    expr, lower, upper = term.args
+    
+    # Get symbol's length information
+    def get_symbol_length(symbol: sympy.Symbol) -> Optional[int]:
+        """Get symbol's length (from range tree)"""
+        if symbol in V.kernel.range_tree_nodes:
+            return V.kernel.range_tree_nodes[symbol].length
+        elif symbol in V.kernel.range_tree_nodes_removed:
+            return V.kernel.range_tree_nodes_removed[symbol].length
+        return None
+    
+    # Handle symbol expression
+    if isinstance(expr, sympy.Symbol):
+        numel = get_symbol_length(expr)
+        if numel is not None:
+            length = term.eval(numel, lower, upper)
+            if length == numel:
+                return expr
+    
+    # Handle multiplication expression
+    elif isinstance(expr, sympy.Mul):
+        # Try to extract coefficient and variable
+        coeff = 1
+        var = None
+        
+        for arg in expr.args:
+            if isinstance(arg, sympy.Symbol):
+                var = arg
+            elif arg.is_number:
+                coeff *= arg
+            else:
+                # Contains complex cases with non-symbols and non-numbers, not supported yet
+                return term
+        
+        if var is not None:
+            numel = get_symbol_length(var)
+            if numel is not None:
+                length = term.eval(numel, lower, upper)
+                if length == numel:
+                    return expr  # Return entire multiplication expression
+    
+    # Unsupported cases, return original expression
+    return term
+
+
+def split_expression(expr):
+    """
+    Split expression according to specified logic:
+    1. If it's an Add/Mul expression, split into multiple args, recursively process each arg
+    2. If it's a // expression (floor division), split it
+    3. If it's a ModularIndexing expression, split it
+    """
+    # 1. If it's an Add expression
+    if isinstance(expr, sympy.Add):
+        # Recursively process each argument, then reconstruct Add
+        new_args = [split_expression(arg) for arg in expr.args]
+        return sympy.Add(*new_args)
+
+    # 2. If it's a Mul expression
+    elif isinstance(expr, sympy.Mul):
+        # Recursively process each argument, then reconstruct Mul
+        new_args = [split_expression(arg) for arg in expr.args]
+        return sympy.Mul(*new_args)
+
+    # 3. If it's a floor division expression
+    elif isinstance(expr, FloorDiv):
+        # Get floor arguments
+        arg = expr.args[0]
+        divisor = expr.args[1]
+        
+        # Check if arg is Add
+        if isinstance(arg, sympy.Add):
+            # Assume denominator is 1: floor(a+b) -> floor(a) + floor(b)
+            split_terms = []
+            for term in arg.args:
+                new_term = FloorDiv(term, divisor)
+                new_term = eliminate_zero_term(new_term)
+                split_terms.append(new_term)
+            return sympy.Add(*split_terms)
+        
+        # Cannot split, return original expression
+        return expr
+    
+    # 4. If it's a ModularIndexing expression
+    elif isinstance(expr, ModularIndexing):
+        args = expr.args
+        expr_to_mod, lower, upper = args
+
+        # If first argument is Add, split it
+        if isinstance(expr_to_mod, sympy.Add):
+            # Split: ModularIndexing(a+b, lower, upper) -> 
+            # ModularIndexing(a, lower, upper) + ModularIndexing(b, lower, upper)
+            split_terms = []
+            for term in expr_to_mod.args:
+                new_mod = ModularIndexing(term, lower, upper)
+                # ModularIndexing(16*z0, 1, 128) -> 16*ModularIndexing(z0, 1, 8)
+                new_mod = eliminate_modular(new_mod)
+                new_mod = extract_modular_indexing_coefficient(new_mod)
+                split_terms.append(new_mod)
+            return sympy.Add(*split_terms)
+        else:
+            new_mod = ModularIndexing(expr_to_mod, lower, upper)
+            new_mod = eliminate_modular(new_mod)
+            new_mod = extract_modular_indexing_coefficient(new_mod)
+            return new_mod
+
+    # 5. Other types of expressions, return directly
+    else:
+        return expr
+
+
 def transform_dims_in_indexing(self, indices):
     if self.indexing is None:
         remove_zero_terms(self.indexing_exprs, self.var_ranges)
         generate_body_indexing(self, indices)
+    
+    log.debug(f"[Linear] ori indexing:{self.indexing}\nV.kernel.range_tree_nodes:{V.kernel.range_tree_nodes}")
+    for key, index_expr in self.indexing.items():
+        analyse_res = analyze_expression(index_expr, V.kernel.range_tree_nodes)
+        log.debug(f"[Linear] linear analyse res:{analyse_res}")
+        if not analyse_res["can_split_all"]:
+            raise ValueError(f"Can not split expression:{self.indexing}"\
+                             f"\nrange_tree_nodes:{V.kernel.range_tree_nodes}"\
+                             f"\nanalyse_res:{analyse_res}")
+        self.indexing[key] = split_expression(index_expr)
 
     if V.kernel is not None and isinstance(V.kernel, NPUIndexTritonKernel):
         rebuild_flattened_dims(self.indexing)
