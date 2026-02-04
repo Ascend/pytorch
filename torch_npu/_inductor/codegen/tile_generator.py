@@ -31,11 +31,13 @@ class TileGenerator:
         self.sub_block_name = {}
         self.persistent_reduction = persistent_reduction
         self.dual_reduction = dual_reduction
-
+        self.npu_kernel_type = npu_kernel_type
         self.max_total_numel = functools.reduce(lambda x, y: x * y, self.blocks) if self.blocks else 1
         self.tiny_kernel = self.max_total_numel < 128 * 1024
         self.input_ptr_num = 3 if input_ptr_num == 0 else min(input_ptr_num, 3)
-        self.max_numel_threshold = 256 // self.input_ptr_num * 1024 // self.dtype_bytes
+
+        local_mem_size = 128 * 1024 if self.npu_kernel_type == NPUKernelType.SIMT_ONLY else config.ub_size
+        self.max_numel_threshold = local_mem_size // self.input_ptr_num // self.dtype_bytes
         self.stop_numel = min(self.max_numel_threshold, self.max_total_numel // (config.num_vector_core * self.dtype_bytes)) // 8
         for axis, name in enumerate(self.axis_name):
             if axis not in tiling_axis and axis not in split_axis:
@@ -47,7 +49,7 @@ class TileGenerator:
             if axis in self.tiling_axis:
                 self.sub_block_name[axis] = f"{name.upper()}BLOCK_SUB"
 
-        self.program_threshold = config.num_vector_core // 8 if self.tiny_kernel else config.num_vector_core // 2
+        self.program_threshold = config.num_vector_core // 8 if self.tiny_kernel and self.npu_kernel_type == NPUKernelType.SIMD else config.num_vector_core // 2
         self.program_threshold = 0 if self.max_total_numel < 128 else self.program_threshold
         self.npu_kernel_type = npu_kernel_type
         self.real_tiling_axis = []
@@ -139,6 +141,31 @@ class TileGenerator:
                 tiling_numel = min(self.aligned_numel(self.sub_blocks[axis]), blocks[axis])
             cfg[self.sub_block_name[axis]] = tiling_numel
         cfg["compile_mode"] = self.npu_kernel_type.compile_mode()
+        cfg["remain_programs"] = self.cal_cfg_remain_programs(cfg)
+        cfg["using_programs"] = self.calc_cfg_programs(cfg)
+
+    def cal_cfg_remain_programs(self, cfg):
+        remain_programs = 0
+        for i, block in enumerate(self.blocks):
+            block_name = self.block_name.get(i, "")
+            config_block = cfg.get(block_name, None)
+            if config_block is None:
+                remain_programs += self.numels[i] % block
+            else:
+                remain_programs += self.numels[i] % config_block
+        return remain_programs
+
+    def calc_cfg_programs(self, cfg):
+        grids = []
+        for i, _ in enumerate(self.blocks):
+            block_name = self.block_name.get(i, "")
+            config_block = cfg.get(block_name, None)
+            if config_block is None:
+                grids.append(1)
+            else:
+                grids.append((self.numels[i] + config_block - 1) // config_block)
+        total_programs = functools.reduce(lambda x, y: x * y, grids) if grids else 1
+        return total_programs
 
     def find_config(self, cfg):
         for config_var in self.configs:
@@ -289,7 +316,7 @@ class TileGenerator:
                     self.add_to_configs(list(tuple(self.blocks)))
                 slow_decend_split = (total_programs > config.num_vector_core // 2)
 
-            if not slow_decend_split:
+            if not slow_decend_split or self.npu_kernel_type == NPUKernelType.SIMT_ONLY:
                 self.blocks[axis] = numel // 2
                 self.sub_blocks[axis] = self.blocks[axis]
 
@@ -301,7 +328,13 @@ class TileGenerator:
             total_programs = calc_total_programs()
             if self.blocks[axis] == 1 and (total_programs > self.program_threshold or self.dual_reduction) and tuple(
                     self.blocks) not in self.candidate_blocks:
+                if total_programs > config.num_vector_core:
+                    last_blocks = self.calcu_last_split_blocks(axis)
+                    if last_blocks != self.blocks[axis]:
+                        self.blocks[axis] = last_blocks
                 self.candidate_blocks.append(tuple(self.blocks))
+                self.add_to_configs(self.candidate_blocks[-1])
+                break
 
         return reached_stop_numel
 
@@ -411,4 +444,13 @@ class TileGenerator:
             self.descend_all_low_dims()
             break
         self.add_extra_options()
+        if self.npu_kernel_type == NPUKernelType.SIMT_ONLY:
+            self.configs.sort(key=lambda x: x.kwargs['remain_programs'], reverse=False)
+            if self.configs[0].kwargs['remain_programs'] == 0:
+                split_index = len(self.configs)
+                for i, conf in enumerate(self.configs):
+                    if conf.kwargs['remain_programs'] != 0:
+                        split_index = i
+                        break
+                self.configs = self.configs[:split_index]
         return self.configs

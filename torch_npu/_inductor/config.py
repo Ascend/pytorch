@@ -121,6 +121,10 @@ acc_comp_tol = {
     "default": {'rtol': 1.3e-6, 'atol': 1e-5},
 }
 
+ub_size = 192 * 1024
+if get_soc_version() >= Ascend910_9391:
+    ub_size = 256 * 1024
+
 if Ascend910B1 <= get_soc_version() < Ascend310B1 or get_soc_version() >= Ascend910_9391:
     num_vector_core = num_cube_core * 2
 

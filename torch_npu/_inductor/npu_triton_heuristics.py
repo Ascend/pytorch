@@ -496,6 +496,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         compile_results = []
         exc = None
         exc_stack = ""
+        compile_start_time = time.perf_counter()
         for c in self.configs:
             try:
                 compile_results.append(self._precompile_config(c))
@@ -507,6 +508,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             raise NoTritonConfigsError(
                 f"No valid triton configs. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
             )
+        log.info(f"kernel: {self.get_fn_name()} compile cost time: {time.perf_counter() - compile_start_time}s")
         self.compile_results = compile_results
         self.configs = None
 
@@ -582,7 +584,9 @@ class NPUCachingAutotuner(CachingAutotuner):
             "target": target,
             "options": options,
         }
-
+        start_time = 0
+        if log.isEnabledFor(logging.DEBUG):
+            start_time = time.perf_counter()
         try:
             binary = None
             binary = triton.compile(*compile_args, **compile_kwargs)
@@ -591,6 +595,7 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         except AttributeError as e:
             # 该错误表示编译无法通过（一些情况下也会被这个Exception捕获）
+            log.debug(f"config: {cfg_kwargs} compile failed, cost time: {time.perf_counter() - start_time}s")
             if binary is None:
                 raise Exception("Triton compilation failed") from e
 
@@ -604,6 +609,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 self.fn.src,
                 compile_meta,
             )
+            log.debug(f"config: {cfg_kwargs} compile failed, cost time: {time.perf_counter() - start_time}s")
             import traceback
             ts = traceback.format_exc()
             match = re.search(r"ub overflow.*?requires (\d+) bits", ts)
@@ -611,6 +617,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 required_ub_bits = int(match.group(1))
                 cfg.real_ub_size = required_ub_bits
             raise
+        log.debug(f"config: {cfg_kwargs} compile success, cost time: {time.perf_counter() - start_time}s")
         return TritonCompileResultNpu(binary, cfg, compile_meta, self.inductor_meta)
 
     def _make_launchers(self):
@@ -681,6 +688,59 @@ class NPUCachingAutotuner(CachingAutotuner):
         CudaKernelParamCache.set(key, params, binary, bin_type='cubin')  # CudaKernelParam
 
         self.cuda_kernel_saved = True
+
+    def _precompile_worker_parallel(self):
+        if self.compile_results:
+            for result in self.compile_results:
+                TritonBundler.put(
+                    triton_hash_to_path_key(result.kernel.hash),
+                    self.triton_meta.get("device", 0),
+                )
+            return
+
+        if self.launchers:
+            raise AssertionError("Before _precompile_worker, launchers must bt empty")
+
+        if not self.configs:
+            raise NoTritonConfigsError("No triton configs are available")
+
+        config_len = len(self.configs)
+        compile_exc_results = [None for _ in range(config_len)]
+        compile_exc_stack_results = ["" for _ in range(config_len)]
+
+        def worker(i, kernel_config):
+            try:
+                return self._precompile_config(kernel_config)
+            except Exception as e:
+                import traceback
+                compile_exc_stack_results[i] = traceback.format_exc()
+                compile_exc_results[i] = e
+                return None
+
+        tasks = []
+        for i, c in enumerate(self.configs):
+            task_handler = compile_thread_pool.submit(worker, i, c)
+            tasks.append(task_handler)
+
+        from torch._dynamo.device_interface import DeviceGuard
+        device_interface = self.get_device_interface()
+        # load binary to the correct device
+        compile_results = []
+        with DeviceGuard(device_interface, self.triton_meta["device"]):
+            # need to initialize context
+            device_interface.synchronize(device_interface.current_device())
+            for future in as_completed(tasks):
+                compiled_kernel = future.result()
+                if compiled_kernel is None:
+                    continue
+                compile_results.append(compiled_kernel)
+
+        if len(compile_results) == 0:
+            raise NoTritonConfigsError(
+                f"No valid triton configs. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
+            )
+        self.compile_results = compile_results
+        self.configs = None
 
     # bench method is called by torch, grid can not be modified
     def bench(self, launcher, *args, with_profiler=False, **kwargs):
@@ -962,9 +1022,9 @@ class NPUCachingAutotuner(CachingAutotuner):
                 *args,
                 **kwargs,
             )
-
+        autotune_start_time = time.perf_counter()
         self.autotuner(*args, stream=stream, benchmark_run=benchmark_run, **kwargs)
-
+        log.info(f"{self.get_fn_name()} benchmark elapsed time {time.perf_counter() - autotune_start_time}s")
         if not getattr(
                 self.launchers[0].config, "found_by_coordesc", False
         ) and self.inductor_meta.get("coordinate_descent_tuning", False):
@@ -1351,7 +1411,7 @@ def benchmark_all_configs(self, *args, **kwargs):
 
 
 def _benchmark_all_configs(self, *args, **kwargs):
-    log.info(f"candidate launcher count = {len(self.launchers)}")
+    log.info(f"{self.get_fn_name()} candidate launcher count = {len(self.launchers)}")
     
     tilling_kernel_list = []
 
@@ -1474,65 +1534,12 @@ def _benchmark_all_configs(self, *args, **kwargs):
     return timings
 
 
-def _precompile_worker_parallel(self):
-    if self.compile_results:
-        for result in self.compile_results:
-            TritonBundler.put(
-                triton_hash_to_path_key(result.kernel.hash),
-                self.triton_meta.get("device", 0),
-            )
-        return
-
-    if self.launchers:
-        raise AssertionError("Before _precompile_worker, launchers must bt empty")
-
-    if not self.configs:
-        raise NoTritonConfigsError("No triton configs are available")
-
-    config_len = len(self.configs)
-    compile_exc_results = [None for _ in range(config_len)]
-    compile_exc_stack_results = ["" for _ in range(config_len)]
-
-    def worker(i, kernel_config):
-        try:
-            return self._precompile_config(kernel_config)
-        except Exception as e:
-            import traceback
-            compile_exc_stack_results[i] = traceback.format_exc()
-            compile_exc_results[i] = e
-            return None
-
-    tasks = []
-    for i, c in enumerate(self.configs):
-        task_handler = compile_thread_pool.submit(worker, i, c)
-        tasks.append(task_handler)
-
-    from torch._dynamo.device_interface import DeviceGuard
-    device_interface = self.get_device_interface()
-    # load binary to the correct device
-    compile_results = []
-    with DeviceGuard(device_interface, self.triton_meta["device"]):
-        # need to initialize context
-        device_interface.synchronize(device_interface.current_device())
-        for future in as_completed(tasks):
-            compiled_kernel = future.result()
-            if compiled_kernel is None:
-                continue
-            compile_results.append(compiled_kernel)
-
-    if len(compile_results) == 0:
-        raise NoTritonConfigsError(
-            f"No valid triton configs. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
-        )
-    self.compile_results = compile_results
-    self.configs = None
-
-
 def precompile_parallel(
         self,
         warm_cache_only=False,
         reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
 ):
+    start_time = time.perf_counter()
     if hasattr(self, "skip_precompile"):
         if self.skip_precompile:
             return
@@ -1540,6 +1547,7 @@ def precompile_parallel(
     if warm_cache_only:
         self.kernel_name = self.get_fn_name()
         self._precompile_worker_parallel()
+        log.info(f"kernel: {self.get_fn_name()} precompile elapsed time: {time.perf_counter() - start_time}s")
         return
 
     if self.compile_results:
@@ -1551,66 +1559,6 @@ def precompile_parallel(
         self._make_launchers()
         return
 
-    if self.launchers:
-        raise AssertionError("Before _precompile_worker, launchers must bt empty")
-    if not self.configs:
-        raise NoTritonConfigsError("No triton configs are available")
-    if reload_kernel is not None:
-        self._reload_kernel = reload_kernel
-
-    config_len = len(self.configs)
-    compile_results = []
-    compile_exc_results = [None for _ in range(config_len)]
-    compile_exc_stack_results = ["" for _ in range(config_len)]
-
-    def worker(i, kernel_config):
-        try:
-            return self._precompile_config(kernel_config)
-        except Exception as e:
-            import traceback
-            compile_exc_stack_results[i] = traceback.format_exc()
-            compile_exc_results[i] = e
-            return None
-
-    tasks = []
-    for i, c in enumerate(self.configs):
-        task_handler = compile_thread_pool.submit(worker, i, c)
-        tasks.append(task_handler)
-
-    launchers = []
-    launcher_exc = None
-    launcher_exc_stack = ""
-    from torch._dynamo.device_interface import DeviceGuard
-    device_interface = self.get_device_interface()
-    # load binary to the correct device
-    with DeviceGuard(device_interface, self.triton_meta["device"]):
-        # need to initialize context
-        device_interface.synchronize(device_interface.current_device())
-        for future in as_completed(tasks):
-            compiled_kernel = future.result()
-            if compiled_kernel is None:
-                continue
-            compile_results.append(compiled_kernel)
-            try:
-                launcher = compiled_kernel.make_launcher()
-                launchers.append(launcher)
-            except Exception as e:
-                import traceback
-                launcher_exc_stack = traceback.format_exc()
-                launcher_exc = e
-
-    if len(launchers) == 0:
-        if launcher_exc is not None:
-            final_exc = launcher_exc
-            final_exc_stack = launcher_exc_stack
-        else:
-            compile_exc_results = [result for result in compile_exc_results if result]
-            compile_exc_stack_results = [result for result in compile_exc_stack_results if result]
-            final_exc = compile_exc_results[-1]
-            final_exc_stack = compile_exc_stack_results[-1]
-        raise NoTritonConfigsError(
-            f"No valid triton configs. {type(final_exc).__name__}: {final_exc} \nStack trace:{final_exc_stack}"
-        )
-    self.compile_results = compile_results
-    self.configs = None
-    self.launchers = launchers
+    self._precompile_worker_parallel()
+    self._make_launchers()
+    log.info(f"kernel: {self.get_fn_name()} precompile elapsed time: {time.perf_counter() - start_time}s")

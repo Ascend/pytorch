@@ -141,16 +141,12 @@ else:
 
 
     def _replace_precompile():
-        from .npu_triton_heuristics import precompile_parallel, NPUCachingAutotuner, _precompile_worker_parallel
+        from .npu_triton_heuristics import precompile_parallel, NPUCachingAutotuner
         NPUCachingAutotuner.precompile = precompile_parallel
-        NPUCachingAutotuner._precompile_worker_parallel = _precompile_worker_parallel
 
 
     if (aggresive_autotune):
         _replace_benchmark_all_configs()
-        import os
-
-        os.environ["TRITON_BENCH_METHOD"] = "npu"
 
     if (max_precompiled_thread_num > 1):
         _replace_precompile()
