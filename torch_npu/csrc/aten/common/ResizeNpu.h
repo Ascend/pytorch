@@ -144,7 +144,7 @@ inline at::TensorImpl* resize_impl_npu_(
         storage_size = self->numel();
     }
     maybe_resize_storage_npu(self, storage_size, size);
-
+    
     return self;
 }
 
