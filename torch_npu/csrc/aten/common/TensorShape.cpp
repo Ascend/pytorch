@@ -146,11 +146,17 @@ const at::Tensor& NPUNativeFunctions::as_strided__symint(
     c10::SymIntArrayRef stride,
     c10::optional<c10::SymInt> storage_offset_)
 {
-    if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(self, c10::asIntArrayRefUnchecked(size)) &&
-        !FormatHelper::IsOpInputBaseFormat(self)) {
-        TORCH_CHECK(false, "Current tensor is running as_strided__symint while internal format is not allowed."
-            " You can try torch.npu.config.allow_internal_format = False to avoid the problem.",
-            PTA_ERROR(ErrCode::NOT_SUPPORT))
+    auto ks = self.key_set();
+    bool is_fake_or_meta = ks.has_all(c10::DispatchKeySet(c10::BackendComponent::MetaBit)) ||
+                           ks.has_all(c10::DispatchKeySet(c10::DispatchKey::Python)) ||
+                           self.is_meta();
+    if (!is_fake_or_meta) {
+        if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(self, c10::asIntArrayRefUnchecked(size)) &&
+            !FormatHelper::IsOpInputBaseFormat(self)) {
+            TORCH_CHECK(false, "Current tensor is running as_strided__symint while internal format is not allowed."
+                " You can try torch.npu.config.allow_internal_format = False to avoid the problem.",
+                PTA_ERROR(ErrCode::NOT_SUPPORT))
+        }
     }
     auto storage_offset = storage_offset_.value_or(self.sym_storage_offset());
     at::native::setStrided(self, size, stride, std::move(storage_offset));
