@@ -2234,11 +2234,11 @@
   "torch_npu.npu.npugraph_ex.ops.npu_tagged_event_record": {
     "signature": "(event)"
   },
-  "torch_npu.npu.npugraph_ex.ops.npu_print": {
-    "signature": "(*args, summarize_size=3, tensor_detail=False)"
-  },
   "torch_npu.npu.npugraph_ex.ops.npu_tagged_event_wait": {
     "signature": "(event)"
+  },
+  "torch_npu.npu.npugraph_ex.ops.record": {
+    "signature": ""
   },
   "torch_npu.npu.npugraph_ex.ops.wait": {
     "signature": "(tensors: list)"
@@ -2251,6 +2251,12 @@
   },
   "torch_npu.npu.npugraph_ex.scope.limit_core_num": {
     "signature": "(op_aicore_num: int, op_vectorcore_num: int)"
+  },
+  "torch_npu.npu.npugraph_ex.compile_fx": {
+    "signature": "(options: dict = None)"
+  },
+  "torch_npu.npu.npugraph_ex.register_replacement": {
+    "signature": "(search_fn, replace_fn, example_inputs, trace_fn=<function fwd_only>, extra_check=<function _return_true>, search_fn_pattern=None)"
   },
   "torch_npu.distributed.run.parse_args": {
     "signature": "(args)"
