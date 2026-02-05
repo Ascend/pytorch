@@ -190,6 +190,8 @@ def patch_inductor_wrapper():
         if self.config.get("npu_backend") == "mlir" or torch._inductor.config.npu_backend == "mlir":
             import os	 
             os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
+            device_id = torch_npu.npu.current_device()
+            torch_npu._C._recovery_all_npu_stream(device_id)
             try:
                 import torch_mlir
                 from torch_mlir import ir
