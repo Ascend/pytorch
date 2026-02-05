@@ -9,7 +9,7 @@ class TestArgmax(TestUtils):
         return torch.argmax(a, dim)
 
     def test_argmax(self):
-        shape = (512, 64)
+        shape = (256, 128)
         dim = -1
         a = torch.randn(shape, requires_grad=False, dtype=torch.float32, device='npu')
 
