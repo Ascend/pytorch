@@ -183,11 +183,11 @@ def _patch_run_node(tracer, node, args, kwargs, nnmodule):
     raise AssertionError(op)
 
 
-def _register_npu_inductor_fallbacks():
+def _register_npu_inductor_fallbacks_operation():
     from ..npu import inductor_patch
 
 
-_register_npu_inductor_fallbacks()
+_register_npu_inductor_fallbacks_operation()
 disable_implicit_decomposition()
 torch._dynamo.utils.run_node = _patch_run_node
 
