@@ -469,34 +469,5 @@ def patch_dynamo_context():
     _TorchDynamoContext.__init__ = new_init
 
 
-def patch_inductor_get_config_copy():
-    from torch.utils._config_module import Config, ConfigModule, _ConfigEntry
-
-    src_get_config_copy = ConfigModule.get_config_copy
-
-    def new_get_config_copy(self) -> Dict[str, Any]:
-        ori_dict = src_get_config_copy(self)
-        if "triton.cudagraphs" not in ori_dict:
-            return ori_dict
-        if "enable_shape_handling" in ori_dict:
-            return ori_dict
-
-        ori_dict["enable_shape_handling"] = False
-        ori_dict["shape_handling_configs"] = None
-        ori_dict["shape_handling_dict"] = None
-        self._config["enable_shape_handling"] = _ConfigEntry(
-            Config(default=False, value_type=bool)
-        )
-        self._config["shape_handling_configs"] = _ConfigEntry(
-            Config(default=None, value_type=list)
-        )
-        self._config["shape_handling_dict"] = _ConfigEntry(
-            Config(default=None, value_type=dict)
-        )
-        return ori_dict
-    ConfigModule.get_config_copy = new_get_config_copy
-
-
 def patch_shape_handling():
     patch_dynamo_context()
-    patch_inductor_get_config_copy()

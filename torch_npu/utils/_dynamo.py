@@ -183,6 +183,24 @@ def patch_inductor_wrapper():
             self._config["npu_backend"] = _ConfigEntry(
                     Config(default="default", value_type=NpuBackendType)
             )
+            
+        if "enable_shape_handling" not in ori_dict:
+            ori_dict["enable_shape_handling"] = False
+            self._config["enable_shape_handling"] = _ConfigEntry(
+                Config(default=False, value_type=bool)
+            )
+
+        if "shape_handling_configs" not in ori_dict:    
+            ori_dict["shape_handling_configs"] = None
+            self._config["shape_handling_configs"] = _ConfigEntry(
+                Config(default=None, value_type=list)
+            )
+
+        if "shape_handling_dict" not in ori_dict:
+            ori_dict["shape_handling_dict"] = None
+            self._config["shape_handling_dict"] = _ConfigEntry(
+                Config(default=None, value_type=dict)
+            )
         return ori_dict
     
     def new_init(self, mode, options, dynamic):

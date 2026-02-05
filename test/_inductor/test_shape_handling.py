@@ -18,6 +18,7 @@ import torch_npu.testing
 from torch_npu.testing.common_utils import get_cycles_per_ms
 from torch_npu._inductor.shape_handling import unified_copy
 
+torch._dynamo.config.cache_size_limit = 128
 
 if not torch.npu.is_available():
     raise unittest.SkipTest("NPU is not available")
@@ -458,6 +459,89 @@ class TestDynamicShapeCompile(TestCase):
 
         # 如果动态形状符号化生效，编译次数应为 1
         self.assertEqual(compile_count, 1)
+    
+    def test_npu_invalid_shape_options_key_error(self):
+
+        # 构造一个非法的配置：最小尺寸大于最大尺寸
+        invalid_shape_options = {
+            "enable_shape_handling": True,
+            "shape_handling_configs": [
+                {
+                    "type": "BATCHSIZE",
+                    "min_size": 1024,   # 错误：min > max
+                    "max_size": 1,
+                    "policy": "TIMES",
+                }
+            ]
+        }
+
+        # 尝试编译，预期抛出 ValueError 或相关配置错误
+        # 注意：有些错误可能在编译阶段 (compile) 触发，有些可能在首次运行 (call) 时触发
+        try:
+            compiled_fn = torch.compile(
+                model_fn, 
+                backend='inductor', 
+                dynamic=False,
+                options=invalid_shape_options
+            )
+            
+            # 准备输入数据触发编译
+            A = torch.randn((2, 32), device=device)
+            B = torch.randn((2, 32), device=device)
+            
+            with self.assertRaises((ValueError, RuntimeError, TypeError)) as cm:
+                compiled_fn(A, B)
+            
+            print(f"\n[成功捕获异常]: {cm.exception}")
+            
+        except Exception as e:
+            # 如果在 torch.compile 阶段就直接崩溃，也算捕获成功
+            print(f"\n[编译阶段直接报错]: {e}")
+            self.assertIsInstance(e, (ValueError, RuntimeError, TypeError))
+
+    def test_npu_malformed_option_type(self):
+        
+        # 构造格式完全错误的 options
+        malformed_options = {
+            "shape_handling_configs": "this should be a list, not a string"
+        }
+
+        with self.assertRaises(Exception):
+            compiled_fn = torch.compile(model_fn, options=malformed_options)
+            compiled_fn(torch.randn(2, device="npu"), torch.randn(2, device="npu"))
+
+    def test_npu_shape_options_with_handling_disabled(self):
+        # enable_shape_handling 设置为False, 同时保留主流的配置选项，测试是否会存在选项异常报错
+    
+
+        shape_options_off = {
+            "enable_shape_handling": False,
+            "shape_handling_configs": [
+                {
+                    "type": "BATCHSIZE",
+                    "min_size": 1,
+                    "max_size": 1024,
+                    "policy": "TIMES",
+                }
+            ]
+        }
+
+        # 尝试编译，预期可正确处理此类配置，则通过测试
+        try:
+            compiled_fn = torch.compile(
+                model_fn, 
+                backend='inductor', 
+                dynamic=False,
+                options=shape_options_off
+            )
+            
+            # 准备输入数据触发编译
+            A = torch.randn((2, 32), device=device)
+            B = torch.randn((2, 32), device=device)
+            compiled_fn(A, B)
+
+        except Exception as e:
+            self.fail(f"torch.compile raised {type(e).__name__} unexpectedly: {e}")
 
 
 class TestUnifiedCopy(TestCase):
