@@ -35,6 +35,7 @@ acc_comp_tol = {
     torch.bfloat16: {'rtol': 1.6e-2, 'atol': 1e-5},
     "default": {'rtol': 1.3e-6, 'atol': 1e-5},
 }
+tune_error_time = 99999.9
 
 autotune = os.environ.get("AUTOTUNE", "1") == "1"
 multiprocess_compile = autotune and os.environ.get("DISABLE_MP_COMPILE", "0") == "0"
