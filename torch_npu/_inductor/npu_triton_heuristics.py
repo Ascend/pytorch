@@ -1316,6 +1316,9 @@ def triton_config_npu_index(
         cfg.kwargs["split_axis"] = tuple(split_axis)
         cfg.kwargs["split_blocks"] = tuple(split_blocks)
 
+    logging.debug("[%s], generate candidate tiling count: [%s]",
+                inductor_meta["kernel_name"],
+                len(configs))
     return configs
 
 
@@ -1522,14 +1525,13 @@ def _benchmark_all_configs(self, *args, **kwargs):
         self.coordesc_tuner.cache_benchmark_result(k.config, v)
 
     if log.isEnabledFor(logging.DEBUG):
-        for k, v in timings.items():
+        sorted_timings = sorted(timings.items(), key=lambda x: x[1])
+        for [k, v] in sorted_timings:
             log.debug(
-                "%s: %f, nreg %d, nspill %d, #shared-mem %s",
+                "[%s] [%s] benchmark time: [%f]",
+                self.fn.__name__,
                 k.config,
                 v,
-                k.n_regs,
-                k.n_spills,
-                k.shared,
             )
     return timings
 

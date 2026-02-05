@@ -25,32 +25,8 @@ class SplitTiling:
 
         self.find_lowest_dimension()
         self.should_outer_reduce = False
-        self.possible_need_permute = self.find_possible_permutes()
         self.contiguous_reduction = self.is_contiguous_reduction()
 
-    def find_possible_permutes(self):
-        if len(self.kernel.low_dims) <= 1:
-            return False
-        var_lists = []
-        low_dims = [self.kernel.sorted_axis[x].symbol() for x in self.kernel.low_dims]
-        for index in self.indexing:
-            var_stride = [
-                (key, coeff)
-                for key, coeff in index.as_coefficients_dict().items()
-                if not isinstance(key, sympy.Integer)
-            ]
-            var_stride.sort(key=lambda x: x[1])
-            var_list = tuple([x[0] for x in var_stride if x[0] in low_dims])
-            var_lists.append(var_list)
-        for i, var_list in enumerate(var_lists):
-            if len(var_list) < len(low_dims):
-                continue
-            for j, other in enumerate(var_lists):
-                if i == j or len(other) < len(low_dims):
-                    continue
-                if var_list != other:
-                    return True
-        return False
 
     def is_contiguous_reduction(self):
         def is_continugous_axis(axis_list):
@@ -293,6 +269,8 @@ class SplitTiling:
 
     def find_lowest_dimension(self):
         def construct_low_dim():
+            low_dims = set()
+            high_dims = set()
             for index in self.indexing:
                 coefficients_dict = index.as_coefficients_dict()
                 for key, value in coefficients_dict.items():
@@ -302,9 +280,19 @@ class SplitTiling:
                     if key not in self.kernel.range_tree_nodes:
                         continue
 
+                    axis = self.kernel.range_tree_nodes[key]
                     if value == sympy.Integer(1):
-                        axis = self.kernel.range_tree_nodes[key]
-                        self.kernel.low_dims.add(axis.sorted_order)
+                        low_dims.add(axis.sorted_order)
+                    else:
+                        high_dims.add(axis.sorted_order)
+            # Only add stride = 1 axis to low_dims in all indexing
+            # eg: index0 = y0
+            #     index1 = x0 + 128*y0
+            #     x0 is valid low_dims
+            self.kernel.low_dims = low_dims - high_dims
+            if not self.kernel.low_dims:
+                log.warning(f"{self.indexing} low_dims is null, {low_dims}, {high_dims}")
+                self.kernel.low_dims = low_dims
 
         # all read index should be considered
         buf_names = [

@@ -25,7 +25,7 @@ from torch_npu._inductor.codegen.triton import group_fn, select_index_dtype
 from torch_npu._inductor.codegen.triton import is_compatible
 from torch_npu.npu._backends import get_soc_version
 
-from ..config import log as npulog
+from ..config import log as npulog, Ascend910_9391
 
 
 Reduction.num_splits = num_splits
@@ -40,7 +40,7 @@ LoopBody.__call__ = loopbody__call__
 TritonScheduling.group_fn = group_fn
 TritonScheduling.select_index_dtype = select_index_dtype
 TritonScheduling.create_tiling = create_tiling
-if get_soc_version() >= 250:
+if get_soc_version() >= Ascend910_9391:
     Scheduler.are_long_distant_nodes = are_long_distant_nodes
 # triton kernel
 setattr(SIMDKernel, 'is_compatible', is_compatible)
