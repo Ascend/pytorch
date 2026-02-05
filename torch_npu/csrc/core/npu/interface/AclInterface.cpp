@@ -1,4 +1,5 @@
 #include "AclInterface.h"
+#include <unistd.h>
 #include <dlfcn.h>
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
@@ -355,6 +356,13 @@ aclError AclIpcOpenEventHandle(aclrtIpcEventHandle handle, aclrtEvent *event)
 bool IsSupportIpcEvent()
 {
     const static bool is_support = []() -> bool {
+        constexpr long supported_page_size = 4096;
+        long size = sysconf(_SC_PAGE_SIZE);
+        if (size != supported_page_size) {
+            ASCEND_LOGD("IsSupportIpcEvent return false because page size %ld is not supported.", size);
+            return false;
+        }
+
         if (!IsExistCreateEventExWithFlag()) {
             ASCEND_LOGD("IsSupportIpcEvent return false because aclrtCreateEventExWithFlag does not exist.");
             return false;
