@@ -25,6 +25,15 @@ struct C10_NPU_API NPUGuardImpl final : public c10::impl::DeviceGuardImplInterfa
     }
     c10::Device exchangeDevice(c10::Device d) const override;
     c10::Device getDevice() const override;
+    std::optional<c10::Device> uncheckedGetDevice() const noexcept {
+        int32_t device = -1;
+        const auto err = c10_npu::GetDevice(&device);
+        NPU_CHECK_WARN(err);
+        if (err != ACL_ERROR_NONE) {
+            return std::nullopt;
+        }
+        return c10::Device(c10::DeviceType::PrivateUse1, device);
+    }
     void setDevice(c10::Device d) const override;
     void uncheckedSetDevice(c10::Device d) const noexcept override;
 

@@ -1,4 +1,6 @@
 #pragma GCC visibility push(default)
+#include <chrono>
+#include <thread>
 #include <torch/csrc/jit/serialization/pickler.h>
 #include "torch_npu/csrc/core/npu/impl/NPUGuardImpl.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
@@ -9,6 +11,7 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/NPUSerialization.h"
 #include "torch_npu/csrc/core/npu/NPUHooksInterface.h"
+#include "torch_npu/csrc/core/npu/NPUEventManager.h"
 
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
@@ -120,6 +123,9 @@ void NPUGuardImpl::destroyEvent(void *event, const c10::DeviceIndex device_index
     }
     auto acl_event = static_cast<aclrtEvent>(event);
     NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchLazyDestroyEventTask(acl_event, device_index));
+    if (!c10_npu::acl::IsExistCreateEventExWithFlag() || c10_npu::option::OptionsManager::GetPerStreamQueue()) {
+        c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent();
+    }
     ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", acl_event);
 }
 
@@ -158,6 +164,11 @@ void NPUGuardImpl::block(void *event, const c10::Stream &stream) const
     }
     aclrtEvent npu_event = static_cast<aclrtEvent>(event);
     NPUStream npu_stream{stream};
+    // If using multiple task queues, it is necessary to ensure that the enqueued record is dequeued before wait.
+    c10_npu::NPUEventManager &mgr = c10_npu::NPUEventManager::GetInstance();
+    while (c10_npu::option::OptionsManager::GetPerStreamQueue() && !mgr.IsEventRecorded(npu_event)) {
+        std::this_thread::sleep_for(std::chrono::microseconds(10)); // 10 us
+    }
     const auto orig_device = getDevice();
     setDevice(stream.device());
     NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchWaitEventTask(npu_event, npu_stream, 0));
@@ -202,11 +213,12 @@ void NPUGuardImpl::synchronizeEvent(void* event) const
     }
 
     aclrtEvent npu_event = static_cast<aclrtEvent>(event);
-
-    NPUStatus ret = c10_npu::emptyAllNPUStream();
-    if (ret != NPU_STATUS_SUCCESS) {
-        ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+    if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
+        c10_npu::NPUEventManager &mgr = c10_npu::NPUEventManager::GetInstance();
+        while (!mgr.IsEventRecorded(npu_event)) {
+        }
     }
+
     NPU_CHECK_ERROR_WITHOUT_UCE(aclrtSynchronizeEvent(npu_event));
     ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", npu_event);
 #ifndef BUILD_LIBTORCH
