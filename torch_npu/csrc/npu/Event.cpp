@@ -280,6 +280,9 @@ PyTypeObject THNPEventType = {
 
 void THNPEvent_init(PyObject *module)
 {
+    TORCH_CHECK(THPEventClass, "THPEvent has not been initialized yet.");
+    Py_INCREF(THPEventClass);
+    THNPEventType.tp_base = THPEventClass;
     THNPEventClass = (PyObject*)&THNPEventType;
     if (PyType_Ready(&THNPEventType) < 0) {
         throw python_error();

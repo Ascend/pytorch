@@ -1,12 +1,12 @@
 #ifndef THNP_EVENT_INC
 #define THNP_EVENT_INC
 
+#include <torch/csrc/Event.h>
 #include <torch/csrc/python_headers.h>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 
-struct THNPEvent {
-    PyObject_HEAD
+struct THNPEvent : public THPEvent {
     c10_npu::NPUEvent npu_event;
 };
 
