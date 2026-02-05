@@ -7,7 +7,7 @@ import torch_npu
 
 __all__ = []
 
-torch_c_binding_in_graph_functions_npu = dict.fromkeys(
+torch_non_c_binding_in_graph_functions_npu = dict.fromkeys(
     [
         "torch.npu.current_stream",
         "torch.npu.default_stream",
@@ -26,6 +26,37 @@ torch_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch.npu.memory._set_allocator_settings",
         "torch.npu.memory.empty_cache",
         "torch.npu.mem_get_info",
+        "torch.npu.memory.reset_accumulated_memory_stats",
+        "torch.npu.memory.reset_max_memory_allocated",
+        "torch.npu.memory.reset_max_memory_cached",
+        "torch.npu.memory.reset_peak_memory_stats",
+        "torch.npu.memory.set_per_process_memory_fraction",
+        "torch.npu.random.manual_seed_all",
+        "torch.npu.random.manual_seed",
+        "torch.npu.random.seed_all",
+        "torch.npu.random.seed",
+        "torch.npu.set_sync_debug_mode",
+        "torch.npu._set_rng_state_offset",
+    ],
+    TorchInGraphFunctionVariable,
+)
+
+torch_c_binding_in_graph_functions_npu = dict.fromkeys(
+    [
+        "torch_npu._C._npu_changeCurrentAllocator",
+        "torch_npu._C._npu_npuCachingAllocator_set_allocator_settings",
+        "torch_npu._C._npu_emptyCache",
+        "torch_npu._C._npu_getAllocator",
+        "torch_npu._C._npu_getCheckpointState",
+        "torch_npu._C._npu_getCurrentStream",
+        "torch_npu._C._npu_getDefaultStream",
+        "torch_npu._C._npu_init",
+        "torch_npu._C._npu_ipc_collect",
+        "torch_npu._C._npu_resetPeakMemoryStats",
+        "torch_npu._C._npu_set_sync_debug_mode",
+        "torch_npu._C._npu_setDevice",
+        "torch_npu._C._npu_setMemoryFraction",
+        "torch_npu._C._npu_synchronize",
     ],
     TorchInGraphFunctionVariable,
 )
@@ -46,6 +77,7 @@ skip_functions_npu = dict.fromkeys(
 
 def _patch_npu_trace_rules():
     torch._dynamo.trace_rules.clear_lru_cache()
+    torch._dynamo.trace_rules.torch_name_rule_map.append(torch_non_c_binding_in_graph_functions_npu)
     torch._dynamo.trace_rules.torch_name_rule_map.append(torch_c_binding_in_graph_functions_npu)
     torch._dynamo.trace_rules.torch_name_rule_map.append(skip_functions_npu)
     torch_module.constant_fold_functions[torch.npu.current_device] = True
