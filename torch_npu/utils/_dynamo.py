@@ -188,6 +188,24 @@ def patch_dynamo_optimize():
     torch._dynamo.optimize = npu_optimize
 
 
+def patch_base_schedulernode():
+    from torch._inductor.scheduler import BaseSchedulerNode
+    from torch._inductor.scheduler import ExternKernelSchedulerNode 
+
+    original_get_read_write_buffer_accesses = BaseSchedulerNode.get_read_write_buffer_accesses
+
+    def new_get_read_write_buffer_accesses(
+        self_instance, include_reads: bool, include_writes: bool
+    ) -> dict[str, int]:
+        if isinstance(self_instance, ExternKernelSchedulerNode):
+            return {}
+        return original_get_read_write_buffer_accesses(
+            self_instance, include_reads, include_writes
+        )
+
+    BaseSchedulerNode.get_read_write_buffer_accesses = new_get_read_write_buffer_accesses
+
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
@@ -197,4 +215,5 @@ def add_dynamo_methods():
     TensorVariable.call_method = TensorVariable_call_method
     patch_dynamo_optimize()
     patch_inductor_wrapper()
+    patch_base_schedulernode()
 
