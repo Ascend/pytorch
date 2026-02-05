@@ -11,7 +11,7 @@ class TestAssertScalar(TestUtils):
         torch.ops.aten._assert_scalar(condition, "batch size must be positive")
         return x * 2
 
-    @parametrize('shape', [(1024, 32), (8, 16, 256)])
+    @parametrize('shape', [(512, 64), (4, 32, 128)])
     @parametrize('dtype', ['float32', 'float16'])
     def test_assert_scalar_pass(self, shape, dtype):
         input_element = self._generate_tensor(shape, dtype, floatPOSIFLAG=1)
