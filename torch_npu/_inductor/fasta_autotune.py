@@ -27,7 +27,7 @@ from .codegen.tile_generator import TileGenerator
 from .config import log
 from .npu_triton_heuristics import NPUCachingAutotuner
 from . import config as npu_config
-from .codegen.triton_utils import get_byte_per_numel
+from .codegen.triton_utils import get_byte_per_numel, NPUKernelType
 from .profiler import simple_trace_handler
 
 
@@ -212,7 +212,7 @@ class TileConfig:
 
 class FastATileGenerator(TileGenerator):
     def __init__(self, numels, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims, persistent_reduction,
-                 dtype, npu_kernel_type="simd", input_ptr_num=0, dual_reduction=False):
+                 dtype, npu_kernel_type=NPUKernelType.SIMD, input_ptr_num=0, dual_reduction=False):
         super().__init__(numels, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims, persistent_reduction,
                  dtype, npu_kernel_type, input_ptr_num, dual_reduction)
 
@@ -345,7 +345,8 @@ class FastATileGenerator(TileGenerator):
                 r_axis.append(axis)
             else:
                 not_r_axis.append(axis)
-        if len(r_axis) > 0 and self.numels[r_axis[0]] % self.aligned_numel_num == 0:
+        if (len(r_axis) > 0 and self.numels[r_axis[0]] % self.aligned_numel_num == 0)\
+                or len(not_r_axis) == 0:
             aligned_axis.append(r_axis[0])
         else:
             aligned_axis.append(max(not_r_axis))
@@ -415,6 +416,13 @@ class FastATileGenerator(TileGenerator):
                                              ub_usage=self.calculate_config_numel(cfg.kwargs) / self.max_ub_size_numel,
                                              core_num=self.calc_total_programs_by_config(cfg.kwargs))
                 self.configs.append(temp_config)
+
+        # fasta do not support simt/simt_mix/simt_template
+        if self.npu_kernel_type != NPUKernelType.SIMD:
+            return self.configs
+
+        if len(self.axis_name) == 0:
+            return self.configs
 
         if FASTA_SETTING.autotune_method == "Expert":
             block_and_sub_list = self.get_block_and_sub_list_ceil_divide(start_core_num=self.num_vector_core,
@@ -846,7 +854,10 @@ class NPUFastAutotuner(NPUCachingAutotuner):
         self._reload_kernel = None
         self.origin_configs = []
         self.expert_configs = []
+        self.use_origin_autotuner = False
+        self.autotune_start_time = time.perf_counter()
         if len(configs) == 1:
+            self.use_origin_autotuner = True
             return
 
         self.skip_precompile = True
@@ -890,11 +901,17 @@ class NPUFastAutotuner(NPUCachingAutotuner):
         fast_a_log_message(content='total configs num is {}'.format(len(self.origin_configs)), tag='autotuner')
         fast_a_log_message(content='expert configs num is {}'.format(len(self.expert_configs)), tag='autotuner')
 
-        self.use_origin_autotuner = False
         if len(self.origin_configs) <= 1 or len(self.configs) == 1:
             self.use_origin_autotuner = True
         if FASTA_SETTING.is_in_kernel_black_list(self.get_fn_name()):
             self.use_origin_autotuner = True
+        #  fasta is not support simt/simt_mix autotune
+        if NPUKernelType(inductor_meta.get("npu_kernel_type", "simd")) != NPUKernelType.SIMD:
+            self.use_origin_autotuner = True
+
+        if self.use_origin_autotuner:
+            self.configs = self.expert_configs
+            return
 
         if FASTA_SETTING.autotune_method == "Expert":
             self.skip_precompile = False
@@ -974,10 +991,9 @@ class NPUFastAutotuner(NPUCachingAutotuner):
             self.launchers = [self.best_launcher]
             return
 
-        start_time = time.time_ns()
         self.skip_precompile = False
         best_launcher = self.auto_tune_by_fasta_parallel(*args, **kwargs)
-        best_launcher_time = time.time_ns() - start_time
+        best_launcher_time = time.perf_counter() - self.autotune_start_time
 
         if best_launcher is None:
             super().autotuner(*args, stream=stream, benchmark_run=benchmark_run, **kwargs)
@@ -987,8 +1003,8 @@ class NPUFastAutotuner(NPUCachingAutotuner):
         self.launchers = [self.best_launcher]
 
         if self.save_cache_hook:
-            self.save_cache_hook(self.launchers[0].config, best_launcher_time)
-        fast_a_log_message(content=f'autotuner use time {best_launcher_time / 10e9} s', tag='autotuner')
+            self.save_cache_hook(self.launchers[0].config, best_launcher_time * 1e9)
+        fast_a_log_message(content=f'autotuner time {best_launcher_time} s', tag='autotuner')
 
     def _filter_unable_compile_config_precompile(self, need_compile_configs):
 
@@ -1576,16 +1592,6 @@ class NPUFastAutotuner(NPUCachingAutotuner):
         for k, v in timing_infos.items():
             self.coordesc_tuner.cache_benchmark_result(k.config, v[0])
 
-        if log.isEnabledFor(logging.DEBUG):
-            for k, v in timing_infos.items():
-                log.debug(
-                    "%s: %f, nreg %d, nspill %d, #shared-mem %s",
-                    k.config,
-                    v,
-                    k.n_regs,
-                    k.n_spills,
-                    k.shared,
-                )
         return timing_infos
 
     def bench_event(self, launcher, *args, **kwargs):
