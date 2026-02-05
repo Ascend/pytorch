@@ -13,6 +13,7 @@ from functools import wraps
 # Disable autoloading before running 'import torch' to avoid circular dependencies
 ORG_AUTOLOAD = os.getenv("TORCH_DEVICE_BACKEND_AUTOLOAD", "1")
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
+os.environ["TORCH_WARM_POOL"] = "0"
 
 import torch
 from torch.distributed.fsdp import sharded_grad_scaler

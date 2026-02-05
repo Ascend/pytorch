@@ -1,5 +1,10 @@
 
 import os
+ORG_AUTOLOAD = os.getenv("TORCH_DEVICE_BACKEND_AUTOLOAD", "1")
+os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
+from torch._inductor.async_compile import AsyncCompile
+AsyncCompile.warm_pool()
+os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 
 if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
     try:
