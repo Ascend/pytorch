@@ -113,7 +113,7 @@ def cat_slice_cat_fold_pass(graph: torch.fx.Graph) -> None:
         for slice_node in cat2_inputs:
             graph.erase_node(slice_node)
         changed = True
-    eliminate_dead_code(graph, changed, cat_slice_cat_fold_pass.__name__)
+    eliminate_dead_code(graph, changed, cat_slice_cat_fold_pass.__name__, False)
 
 
 @register_custom_pass(PassType.PRE)
@@ -166,7 +166,7 @@ def pad_slice_fold(graph: torch.fx.Graph) -> None:
                 user.args = args
             graph.erase_node(node)  # 删除 pad 节点
             changed = True
-    eliminate_dead_code(graph, changed, pad_slice_fold.__name__)
+    eliminate_dead_code(graph, changed, pad_slice_fold.__name__, False)
 
 
 @register_custom_pass(PassType.POST)
@@ -746,7 +746,7 @@ def dtype_optimal_pass(graph: torch.fx.Graph) -> None:
                 else:
                     node.kwargs = {**node.kwargs, 'dtype': torch.int32}  # 更新 kwargs dtype
                 changed = True
-    eliminate_dead_code(graph, changed, dtype_optimal_pass.__name__)
+    eliminate_dead_code(graph, changed, dtype_optimal_pass.__name__, False)
 
 
 # for struction reason, inductor-ascend can not fully support all dual reduction case
@@ -803,8 +803,9 @@ def unfold_dual_reduction_pass(graph: torch.fx.Graph) -> None:
         eliminate_dead_code(graph, changed, unfold_dual_reduction_pass.__name__)
 
 
-def eliminate_dead_code(graph, changed, fn_name):
+def eliminate_dead_code(graph, changed, fn_name, POST=True):
     if changed:
-        graph.lint()
-        graph.eliminate_dead_code()
-        log.info(f"[inductor_fx_pas] {fn_name} works")
+        if POST:
+            graph.lint()
+            graph.eliminate_dead_code()
+        log.info(f"[inductor_fx] {fn_name} works")
