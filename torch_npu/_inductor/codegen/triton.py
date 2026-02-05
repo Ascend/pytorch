@@ -1335,8 +1335,16 @@ class NPUIndexTritonKernel(TritonKernel):
 
     def filter_masks(self, mask_vars):
         mask_vars_copy = mask_vars.copy()
+        # This function is only allowed to remove *axis* masks that are known
+        # to be redundant/invalid for current kernel shape lowering.
+        #
+        # It must NOT drop "semantic" masks (e.g. tmp masks guarding padded
+        # loads/stores, indirect indexing validity masks, etc.), otherwise we
+        # can generate incorrect tl.load/tl.store.
         masked_axis_name = []
+        all_axis_name = []
         for node in self.sorted_axis:
+            all_axis_name.append(node.name)
             is_persistent_reduction_axis = self.persistent_reduction and node.is_reduction
             if self.is_unified_simt_kernel():
                 if not node.is_tiling_axis:
@@ -1350,17 +1358,22 @@ class NPUIndexTritonKernel(TritonKernel):
             masked_axis_name.append(node.name)
 
         # Be careful when remove mask from load store
-        # 1. Current only leave axis mask from sorted axis
+        # 1. Only filter axis masks; keep non-axis masks (e.g. tmp masks).
         # 2. If z0 is permute, maybe have z0_mask, z0_1_mask
         # 3. xmask, x0_mask: if axis is x, will not remove x0_mask, can't just use startswith
         for mask_var in mask_vars_copy:
-            valid_mask_var = False
             mask_var_str = str(mask_var)
-            for axis_name in masked_axis_name:
-                if mask_var_str == f"{axis_name}mask" or mask_var_str.startswith(f"{axis_name}_"):
-                    valid_mask_var = True
+            matched_axis = None
 
-            if not valid_mask_var:
+            for axis_name in all_axis_name:
+                if mask_var_str == f"{axis_name}mask" or mask_var_str.startswith(f"{axis_name}_"):
+                    matched_axis = axis_name
+                    break
+
+            if matched_axis is None:
+                continue
+
+            if matched_axis not in masked_axis_name:
                 mask_vars.discard(mask_var)
 
     def numof_reduction_axis(self):
@@ -1573,7 +1586,10 @@ class NPUIndexTritonKernel(TritonKernel):
                 and V.graph.get_dtype(name) != torch.bool
                 and indexing.has_mask()
         ):
-            other = ", other=0.0"
+            if self._load_other is not None:
+                other = f", other={constant_repr(self._load_other)}"
+            else:
+                other = ", other=0.0"
         else:
             other = ""
 
