@@ -31,7 +31,13 @@ class TestDevice(MultiProcessTestCase):
         t.start()
         t.join()
         self.assertEqual(result[0], 1)
-
+    
+    def test_event_isinstance(self):
+        npu_event = torch.npu.Event()
+        self.assertIsInstance(npu_event, torch.npu.Event)
+        self.assertIsInstance(npu_event, torch.Event)
+        # Check whether torch_npu.npu.Event is a subclass of torch.Event
+        self.assertTrue(issubclass(torch_npu.npu.Event, torch.Event))
 
     def test_stream_create(self):
         s = torch_npu._C._npu_getCurrentStream(0)
