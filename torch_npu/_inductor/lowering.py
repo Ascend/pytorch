@@ -25,7 +25,6 @@ from torch._inductor.lowering import (
     square,
     sub,
     fallback_handler,
-    is_boolean_type,
     logical_and,
     make_pointwise,
     _make_reduction_inner,
