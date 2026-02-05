@@ -369,12 +369,15 @@ class NpuMlirCompiler:
         try:
             return do_bench(kernel_call, warmup=1, rep=5, fast_flush=True)
         except Exception as e:
-            print(f"RUNTIME ERROR: eval kernel fail, kernel path: {self.kernel_paths[idx]}, ",
-                f"try to add {self.kernel_paths[idx]} to anir_config.force_fallback_kernel_paths", flush=True)
-            print(e, flush=True)
+            log_dir = os.getenv("TORCHINDUCTOR_CACHE_DIR")
+            log_file = os.path.join(log_dir, 'tune_error.log')
+            with open(log_file, 'a') as f:
+                f.write(f"RUNTIME ERROR: eval kernel fail, kernel path: {self.kernel_paths[idx]}, "
+                        f"try to add {self.kernel_paths[idx]} to anir_config.force_fallback_kernel_paths")
+                f.write(f"{e}\n\n")
             if anir_config.runtime_error_dump:
                 self.fx_subgraph_dump('runtime_error')
-            exit(0)
+            return anir_config.tune_error_time
 
     def clone_args(self, *args, **kwargs) -> Tuple[List[Any], Dict[str, Any]]:
         # [Note: clone mutated buffers]
@@ -444,7 +447,10 @@ class NpuMlirCompiler:
         timings.sort()
         logger.info(f"autotune over, timings: {timings}")
         if timings[0][0] > 99999:
-            raise RuntimeError("All config exec failed.")
+            self.launchers.clear()
+            self.is_fallback_kernels.clear()
+            self.register_fx_fallback(self.kernel_meta)
+            return
         idx = timings[0][1]
         logger.info(f"autotune benchmark over, using kernel {self.kernel_paths[idx]}")
         self.kernel_paths = [self.kernel_paths[idx]]
