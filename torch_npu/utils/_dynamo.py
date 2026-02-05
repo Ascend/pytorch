@@ -249,6 +249,20 @@ def patch_base_schedulernode():
     BaseSchedulerNode.get_read_write_buffer_accesses = new_get_read_write_buffer_accesses
 
 
+def patch_user_defined_class_variable():
+    import functools
+    original_method = UserDefinedClassVariable._in_graph_classes
+    
+    @staticmethod
+    @functools.lru_cache(None)
+    def patched_in_graph_classes():
+        result = original_method()
+        if hasattr(torch, "npu") and hasattr(torch.npu, "Event"):
+            result.add(torch.npu.Event)  
+        return result
+    UserDefinedClassVariable._in_graph_classes = patched_in_graph_classes
+
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
@@ -259,4 +273,5 @@ def add_dynamo_methods():
     patch_dynamo_optimize()
     patch_inductor_wrapper()
     patch_base_schedulernode()
+    patch_user_defined_class_variable()
 
