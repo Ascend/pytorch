@@ -137,6 +137,7 @@ void OpCommand::Run()
         at_npu::aclops::LazyInitAclops();
         auto val = c10_npu::option::GetOption("jitCompile");
         NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val->c_str()));
+        at_npu::aclops::LazyAclopSet::SetCompileopt();
         c10_npu::assertNotCapturingAclop(aclCmd->GetName());
     }
 

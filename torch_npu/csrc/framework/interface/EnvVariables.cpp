@@ -9,6 +9,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
+#include "torch_npu/csrc/framework/LazyInitAclops.h"
 namespace at_npu {
 namespace native {
 namespace env {
@@ -88,26 +89,26 @@ bool CheckJitDisable()
 }
 
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_LEVEL, [](const std::string &val) {
-  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str()));
 })
 REGISTER_OPTION_HOOK(ACL_DEBUG_DIR, [](const std::string &val) {
-  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_DEBUG_DIR, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_DEBUG_DIR, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_MODE, [](const std::string &val) {
-  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_MODE, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_MODE, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string &val) {
-  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_AICORE_NUM, [](const std::string &val) {
-  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_AICORE_NUM, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_AICORE_NUM, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_PRECISION_MODE, [](const std::string &val) {
-  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str()));
 })
 
 bool IsAllowFP32ToFP16()
@@ -132,11 +133,11 @@ bool IsAllowFP32ToFP16()
 }
 
 REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string &val) {
-  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_OPTYPELIST_FOR_IMPLMODE, [](const std::string &val) {
-  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OPTYPELIST_FOR_IMPLMODE, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OPTYPELIST_FOR_IMPLMODE, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string &val) {
@@ -181,7 +182,7 @@ REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string &val) {
 
   std::string conv_hf32 = (val == "enable") ? "1" : "0";
   std::string allow_hf32 = conv_hf32 + mm_hf32;
-  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str()));
   ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
 })
 REGISTER_OPTION_BOOL_FUNCTION_ALL_CASE(IsAllowConvHF32, ALLOW_CONV_HF32, "enable", "disable", "enable")
@@ -197,13 +198,13 @@ REGISTER_OPTION_HOOK(ALLOW_MATMUL_HF32, [](const std::string &val) {
 
   std::string mm_hf32 = (val == "enable") ? "1" : "0";
   std::string allow_hf32 = conv_hf32 + mm_hf32;
-  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str()));
   ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
 })
 REGISTER_OPTION_BOOL_FUNCTION(IsAllowMatmulHF32, ALLOW_MATMUL_HF32, "disable", "enable")
 
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_OPTION, [](const std::string &val) {
-    NPU_CHECK_ERROR(at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_OPTION, val.c_str()));
+    NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_OPTION, val.c_str()));
     NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_ENABLE_DEBUG_KERNEL, 1));
     ASCEND_LOGD("Set ACL option ACL_OP_DEBUG_OPTION.");
 })
