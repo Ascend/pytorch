@@ -250,6 +250,19 @@ aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterType type,
 
 /**
  * @ingroup AscendCL
+ * @brief register an existing host memory range
+ *
+ * @param ptr [IN]     host pointer to memory to page-lock
+ * @param size [IN]    size in bytes of the address range to page-lock in bytes
+ * @param flag [IN]    flag for allocation request
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+aclError AclrtHostRegisterV2(void *ptr, uint64_t size, uint32_t flag);
+
+/**
+ * @ingroup AscendCL
  * @brief unregister host memory
  * @param ptr [IN]     memory pointer
  * @retval ACL_SUCCESS The function is successfully executed.

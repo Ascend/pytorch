@@ -64,6 +64,9 @@ extern "C" {
 #define ACL_RT_VMM_EXPORT_FLAG_DEFAULT                0x0UL
 #define ACL_RT_VMM_EXPORT_FLAG_DISABLE_PID_VALIDATION 0x1UL
 
+#define ACL_HOST_REG_MAPPED 0x2UL
+#define ACL_HOST_REG_PINNED 0X10000000UL
+
 #define ACL_VALUE_WAIT_EQ                0x1
 
 #define ACL_IPC_EVENT_HANDLE_SIZE        64U
@@ -1124,6 +1127,19 @@ ACL_FUNC_VISIBILITY aclError aclrtMallocCached(void **devPtr,
  */
 ACL_FUNC_VISIBILITY aclError aclrtPointerGetAttributes(const void *ptr,
                                                        aclrtPtrAttributes *attributes);
+
+/**
+      * @ingroup AscendCL
+      * @brief register an existing host memory range
+      *
+      * @param ptr [IN]     host pointer to memory to page-lock
+      * @param size [IN]    size in bytes of the address range to page-lock in bytes
+      * @param flag [IN]    flag for allocation request
+      *
+      * @retval ACL_SUCCESS The function is successfully executed.
+      * @retval OtherValues Failure
+      */
+ACL_FUNC_VISIBILITY aclError aclrtHostRegisterV2(void *ptr, uint64_t size, uint32_t flag);
 
 /**
  * @ingroup AscendCL
