@@ -36,6 +36,11 @@ namespace c10_npu {
                 return instance().m_pin_memory_expandable_segments;
             }
 
+            static bool pinned_mem_register()
+            {
+                return instance().m_pinned_mem_register;
+            }
+
             static size_t base_addr_aligned_size()
             {
                 return instance().m_base_addr_aligned_size;
@@ -75,6 +80,8 @@ namespace c10_npu {
 
             bool m_pin_memory_expandable_segments;
 
+            bool m_pinned_mem_register;
+
             bool set_expandable_segments_flag = false;
 
             size_t m_base_addr_aligned_size = kAlignRoundLarge;
@@ -90,6 +97,7 @@ namespace c10_npu {
                   m_garbage_collection_threshold(0),
                   m_expandable_segments(false),
                   m_pin_memory_expandable_segments(false),
+                  m_pinned_mem_register(false),
                   m_base_addr_aligned_size(kAlignRoundLarge),
                   m_segment_size_mb(0),
                   m_roundup_power2_divisions(kRoundUpPowerOfTwoIntervals, 0)
@@ -106,6 +114,8 @@ namespace c10_npu {
             size_t parseExpandableSegments(const std::vector<std::string> &config, size_t i);
 
             size_t parsePinMemoryExpandableSegments(const std::vector<std::string> &config, size_t i);
+
+            size_t parsePinnedMemRegister(const std::vector<std::string> &config, size_t i);
 
             size_t parseAddrAlignSize(const std::vector<std::string> &config, size_t i);
 

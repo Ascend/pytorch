@@ -40,6 +40,17 @@ TORCH_NPU_API bool CachingHostAllocator_recordEvent(void* ptr, void* ctx, c10_np
 TORCH_NPU_API void CachingHostAllocator_emptyCache();
 
 inline TORCH_NPU_API bool CachingHostAllocator_isPinned(void* ptr) {
+    if (c10_npu::acl::AclrtPointerGetAttributesExist()) {
+        if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+            return false;
+        }
+        if (c10_npu::GetLocalDevice() < 0) {
+            c10_npu::SetCurrentDevice();
+        }
+        aclrtPtrAttributes attributes;
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtPointerGetAttributes(ptr, &attributes), "aclrtPointerGetAttributes");
+        return ACL_MEM_LOCATION_TYPE_HOST == attributes.location.type;
+    }
     return at_npu::native::ptr_exist(ptr);
 }
 

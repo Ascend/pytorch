@@ -194,14 +194,50 @@ private:
             c10_npu::SetCurrentDevice();
         }
 
+        bool host_registered = false;
         auto start = std::chrono::steady_clock::now();
-        aclError err = aclrtMallocHost(ptr, size);
-        if (err != ACL_ERROR_NONE) {
-            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+        static bool va_feature_support = true;
+        if (c10_npu::acl::AclrtMallocHostWithCfgExist() && va_feature_support) {
+            aclrtMallocAttrValue attrValue;
+            attrValue.vaFlag = 1;
+
+            aclrtMallocAttribute attributes[1];
+            attributes[0].attr = ACL_RT_MEM_ATTR_VA_FLAG;
+            attributes[0].value = attrValue;
+
+            aclrtMallocConfig cfg;
+            cfg.numAttrs = 1;
+            cfg.attrs = attributes;
+
+            aclError mallocError = c10_npu::acl::AclrtMallocHostWithCfg(ptr, size, &cfg);
+            bool pinned_mem_register = c10_npu::NPUCachingAllocator::CachingAllocatorConfig::pinned_mem_register();
+            // if feature not support, then fall back to the old logic
+            if (ACL_ERROR_RT_FEATURE_NOT_SUPPORT == mallocError) {
+                va_feature_support = false;
+                if (pinned_mem_register) {
+                    TORCH_NPU_WARN_ONCE("The pinned_mem_register configuration does not take effect, the current driver version does not support this feature."
+                    "To use this feature, you need to upgrade to version 25.5.0 or higher");
+                }
+                NPU_CHECK_ERROR(aclrtMallocHost(ptr, size), "aclrtMallocHost");
+            } else {
+                NPU_CHECK_ERROR(mallocError, "aclrtMallocHostWithCfg");
+                if (pinned_mem_register) {
+                    NPU_CHECK_ERROR(c10_npu::acl::AclrtHostRegisterV2(*ptr, size, ACL_HOST_REG_MAPPED), "aclrtHostRegister failed.");
+                    host_registered = true;
+                }
+            }
+        } else {
+            aclError err = aclrtMallocHost(ptr, size);
+            if (err != ACL_ERROR_NONE) {
+                CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+            }
         }
+
         if (*ptr != nullptr) { // we add the segment pointer here when initialization, but it does not matter
             std::lock_guard<std::mutex> g(npu_ptrs_mutex_);
             npu_ptrs_.insert(*ptr);
+            TORCH_INTERNAL_ASSERT_DEBUG_ONLY(use_host_register.count(*ptr) == 0);
+            use_host_register[*ptr] = host_registered;
         }
         auto end = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
@@ -216,12 +252,22 @@ private:
     {
         auto start = std::chrono::steady_clock::now();
         void* ptr = block->ptr_;
+        bool use_register = false;
+        {
+            std::lock_guard<std::mutex> g(npu_ptrs_mutex_);
+            TORCH_INTERNAL_ASSERT_DEBUG_ONLY(use_host_register.count(ptr) == 1);
+            use_register = use_host_register[ptr];
+        }
+        if (use_register) {
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtHostUnregister(ptr), "aclrtHostUnregister");
+        }
         aclError err = aclrtFreeHost(block->ptr_);
         if (err != ACL_ERROR_NONE) {
             CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
         }
         if (ptr != nullptr) {
             std::lock_guard<std::mutex> g(npu_ptrs_mutex_);
+            use_host_register.erase(ptr);
             npu_ptrs_.erase(block->ptr_);
         }
         auto end = std::chrono::steady_clock::now();
@@ -269,6 +315,7 @@ private:
 private:
     std::mutex npu_ptrs_mutex_;
     ska::flat_hash_set<void*> npu_ptrs_;
+    ska::flat_hash_map<void*, bool> use_host_register;
 };
 
 
