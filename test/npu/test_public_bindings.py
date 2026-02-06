@@ -612,7 +612,6 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.shape_handling",
             "torch_npu._inductor.scheduler",
             "torch_npu._inductor.select_algorithm",
-            "torch_npu._inductor.ascend_npu_ir.build_ext",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.build_info",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.cache",

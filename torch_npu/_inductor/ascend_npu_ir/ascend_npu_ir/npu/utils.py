@@ -30,6 +30,7 @@ from torch.fx.graph_module import (
     _addindent,
     warnings
 )
+import torch_npu
 
 try:
     from torch_mlir import ir
@@ -100,15 +101,22 @@ def _build_npu_ext(obj_name: str, src_path, src_dir) -> str:
 
     cc_cmd += [f"-I{py_include_dir}"]
 
-    anir_path = str(Path(os.path.realpath(__file__)).parent.parent)
-    lib_dir = os.path.join(anir_path, 'lib')
+    torch_npu_root = Path(torch_npu.__file__).resolve().parent
+    cpp_common_dir = (
+        torch_npu_root / "include" / "torch_npu" / "csrc" / "inductor" / "mlir"
+    )
+    torch_npu_dir = torch_npu_root / "include"
+    torch_npu_lib_dir = torch_npu_root / "lib"
     cc_cmd += [
-        f"-I{os.path.join(anir_path, '_C/include')}",
-        f"-I{os.path.join(anir_path, 'cpp_common')}",
-        f"-L{lib_dir}",
-        "-lcpp_common", f"-Wl,-rpath,{lib_dir}",
-        "-std=c++17", f"-D_GLIBCXX_USE_CXX11_ABI={ABI_TAG}", "-shared"
-        ]
+        f"-I{torch_npu_dir}",
+        f"-I{cpp_common_dir}",
+        f"-L{torch_npu_lib_dir}",
+        "-ltorch_npu",
+        f"-Wl,-rpath",
+        "-std=c++17",
+        f"-D_GLIBCXX_USE_CXX11_ABI={ABI_TAG}",
+        "-shared",
+    ]
     cc_cmd += ["-fPIC", "-o", so_path]
     ret = subprocess.check_call(cc_cmd)
 
