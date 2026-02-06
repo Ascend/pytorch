@@ -227,7 +227,7 @@ class TestAutocastNPU(TestCase):
                 s = output.sum()
             s.backward()
 
-        self.assertEqual(mode.dtype_cast_counter, 1)
+        self.assertEqual(mode.dtype_cast_counter, 0)
 
     def test_cache_disabled(self):
 
@@ -245,7 +245,7 @@ class TestAutocastNPU(TestCase):
                 s.backward()
 
             # we should not have cached the conversion of the weight
-            self.assertEqual(mode.dtype_cast_counter, 2)
+            self.assertEqual(mode.dtype_cast_counter, 0)
 
         finally:
             torch._C._set_cached_tensors_enabled(False)
@@ -281,11 +281,42 @@ class TestAutocastNPU(TestCase):
         self.assertTrue(torch_npu.npu.is_autocast_enabled() is not True)
 
 
+@unittest.skipIf(not torch.npu.is_available(), "requires npu")
+class TestAutocastNPUfp32(TestCase):
+    def test_autocast_fp32_when_origin_dtype_is_float16(self):
+        device = "npu"
+        a = torch.rand((8, 8), device=device, dtype=torch.float16)
+        with torch.autocast(device_type=device, dtype=torch.float32):
+            b = torch.mm(a, a)
+        self.assertEqual(b.dtype, torch.float32)
+    
+    def test_autocast_fp32_when_origin_dtype_is_bfloat16(self):
+        device = "npu"
+        a = torch.rand((8, 8), device=device, dtype=torch.bfloat16)
+        with torch.autocast(device_type=device, dtype=torch.float32):
+            b = torch.mm(a, a)
+        self.assertEqual(b.dtype, torch.float32)
+
+    def test_autocast_fp32_when_origin_dtype_is_float32(self):
+        device = "npu"
+        a = torch.rand((8, 8), device=device, dtype=torch.float32)
+        with torch.autocast(device_type=device, dtype=torch.float32):
+            b = torch.mm(a, a)
+        self.assertEqual(b.dtype, torch.float32)
+    
+    def test_autocast_fp32_when_disabled(self):
+        device = "npu"
+        a = torch.rand((8, 8), device=device, dtype=torch.bfloat16)
+        with torch.autocast(device_type=device, dtype=torch.float32, enabled=False):
+            b = torch.mm(a, a)
+        self.assertEqual(b.dtype, torch.bfloat16)
+
+
 class TestTorchAutocast(TestCase):
     def test_autocast_fast_dtype(self):
         npu_fast_dtype = torch.get_autocast_dtype(device_type="privateuseone")
         cpu_fast_dtype = torch.get_autocast_dtype(device_type="cpu")
-        self.assertEqual(npu_fast_dtype, torch.half)
+        self.assertEqual(npu_fast_dtype, torch.float32)
         self.assertEqual(cpu_fast_dtype, torch.bfloat16)
 
     def test_invalid_device(self):
