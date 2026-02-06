@@ -73,6 +73,11 @@ public:
             return instance().m_pin_memory_expandable_segments;
     }
 
+    static bool pinned_mem_register()
+    {
+        return instance().m_pinned_mem_register;
+    }
+
     static size_t base_addr_aligned_size()
     {
         return instance().m_base_addr_aligned_size;
@@ -113,6 +118,7 @@ private:
     double m_garbage_collection_threshold;
     bool m_expandable_segments;
     bool m_pin_memory_expandable_segments;
+    bool m_pinned_mem_register;
     bool set_expandable_segments_flag = false;
     size_t m_base_addr_aligned_size = kAlignRoundLarge;
     bool m_page_size_1g = false; // 新增1G页配置标志
@@ -125,6 +131,7 @@ private:
           m_garbage_collection_threshold(0),
           m_expandable_segments(false),
           m_pin_memory_expandable_segments(false),
+          m_pinned_mem_register(false),
           m_base_addr_aligned_size(kAlignRoundLarge),
           m_segment_size_mb(0),
           m_roundup_power2_divisions(kRoundUpPowerOfTwoIntervals, 0),
@@ -137,6 +144,7 @@ private:
     size_t parseGarbageCollectionThreshold(const std::vector<std::string> &config, size_t i);
     size_t parseExpandableSegments(const std::vector<std::string> &config, size_t i);
     size_t parsePinMemoryExpandableSegments(const std::vector<std::string> &config, size_t i);
+    size_t parsePinnedMemRegister(const std::vector<std::string> &config, size_t i);
     size_t parseAddrAlignSize(const std::vector<std::string> &config, size_t i);
     size_t parsePageSize(const std::vector<std::string> &config, size_t i);
     size_t parseSegmentSizeMb(const std::vector<std::string> &config, size_t i);
