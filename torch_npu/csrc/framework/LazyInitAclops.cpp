@@ -20,6 +20,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <mutex>
+#include <vector>
+#include <string>
 #define GetCurrentDirPath getcwd
 #define Mkdir(path, mode) mkdir(path, mode)
 #else
@@ -28,7 +31,52 @@
 namespace at_npu {
 namespace aclops {
 
+std::mutex LazyAclopSet::lazy_set_mutex_;
+bool LazyAclopSet::acl_op_call_ = false;
+std::vector<std::pair<aclCompileOpt, std::string>> LazyAclopSet::lazy_acl_opt_;
 std::atomic<bool> encounteredAclops(false);
+
+aclError LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt opt, const char *value)
+{
+    static auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
+    ASCEND_LOGI("[LazyAclops] LazyAclSetCompileopt called, acl_op_init_mode=%d", acl_op_init_mode)
+    if (acl_op_init_mode == 0) {
+        return at_npu::native::AclSetCompileopt(opt, value);
+    } else {
+        if (value == nullptr) {
+            return ACL_ERROR_INVALID_PARAM;
+        }
+        std::lock_guard<std::mutex> lock(lazy_set_mutex_);
+        if (acl_op_call_) {
+            return at_npu::native::AclSetCompileopt(opt, value);
+        }
+        lazy_acl_opt_.emplace_back(std::make_pair(opt, std::string(value)));
+        ASCEND_LOGI("Cache ACL compile %d with value %s", static_cast<int>(opt), value)
+        return ACL_ERROR_NONE;
+    }
+}
+
+void LazyAclopSet::SetCompileopt()
+{
+    static auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
+    ASCEND_LOGI("[LazyAclops] SetCompileopt called, acl_op_init_mode=%d", acl_op_init_mode)
+    if (acl_op_init_mode == 0) {
+        return;
+    } else {
+        std::lock_guard<std::mutex> lock(lazy_set_mutex_);
+        if (!acl_op_call_) {
+            for (const auto &iter: lazy_acl_opt_) {
+                aclError ret = at_npu::native::AclSetCompileopt(iter.first, iter.second.c_str());
+                TORCH_CHECK(ret == ACL_SUCCESS,
+                    "Failed to set compile opt ", static_cast<int>(iter.first),
+                    " with value '", iter.second, "'");
+            }
+            ASCEND_LOGI("Apply %zu cached ACL compile options", lazy_acl_opt_.size())
+            lazy_acl_opt_.clear();
+            acl_op_call_ = true;
+        }
+    }
+}
 
 void SetHF32DefaultValue()
 {
