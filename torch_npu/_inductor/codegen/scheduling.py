@@ -432,6 +432,9 @@ class NPUTritonScheduling(TritonScheduling):
         ):
             return scheduler.ForeachKernelSchedulerNode.can_fuse(node1, node2)
 
+        if isinstance(node1, scheduler.SchedulerNode) and hasattr(node1, "_body") and node1._body.has_op("cat_store"):
+            return False
+
         _, (numel1, rnumel1) = node1.group
         _, (numel2, rnumel2) = node2.group
         why = WhyNoFuse(node1, node2)

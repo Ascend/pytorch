@@ -232,8 +232,6 @@ class ReductionAnalysis:
         reduction = self.kernel.find_reduction_node()
         if reduction is None or not isinstance(reduction, ir.Reduction):
             raise RuntimeError("failed to get one reduction node")
-        if not hasattr(reduction, "reduced_idx"):
-            raise RuntimeError("reduction node doesn't have attr reduced_idx")
         self.reduction = reduction
         self.reduced_dim = self.analyze_reduction_dim()
 
