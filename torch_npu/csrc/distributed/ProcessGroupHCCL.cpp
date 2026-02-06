@@ -3501,6 +3501,13 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
             TORCH_CHECK(false, "Value type of qos_service_level should be int.", DIST_ERROR(ErrCode::TYPE));
         }
     }
+    if (options_->hccl_config.find("hccl_sdma_qos") != options_->hccl_config.end()) {
+        if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_sdma_qos"])) {
+            config.hcclQos = std::get<uint32_t>(options_->hccl_config["hccl_sdma_qos"]);
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_sdma_qos should be int.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
 
     if (options_->hccl_config.find("hccl_op_expansion_mode") != options_->hccl_config.end()) {
         if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_op_expansion_mode"])) {

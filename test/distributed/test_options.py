@@ -169,6 +169,11 @@ class OptionsTest(TestCase):
         cls._test_options_wrong_type(rank, {"qos_traffic_class": "123"}, "Value type of qos_traffic_class should be int.", world_size, input1)
 
     @classmethod
+    def _test_options_hccl_sdma_qos_wrong_types(cls, rank, ranks, world_size, input1):
+        cls._test_options_wrong_type(rank, {"hccl_sdma_qos": "123"}, "Value type of hccl_sdma_qos should be int.",
+                                     world_size, input1)
+
+    @classmethod
     def _test_options_qos_service_level_wrong_types(cls, rank, ranks, world_size, input1):
         cls._test_options_wrong_type(rank, {"qos_service_level": "123"}, "Value type of qos_service_level should be int.", world_size, input1)
    
@@ -276,6 +281,15 @@ class OptionsTest(TestCase):
         for world_size in ranks:
             exp_input, input1 = create_common_tensor(shape, -10, 10)
             self._test_multiprocess(OptionsTest._test_options_qos_service_level_wrong_types,
+                                    input1, world_size)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_options_hccl_sdma_qos_wrong_type(self):
+        ranks = [2]
+        shape = [np.int32, 0, [2, 3, 16]]
+        for world_size in ranks:
+            exp_input, input1 = create_common_tensor(shape, -10, 10)
+            self._test_multiprocess(OptionsTest._test_options_hccl_sdma_qos_wrong_types,
                                     input1, world_size)
 
     @skipIfUnsupportMultiNPU(2)
