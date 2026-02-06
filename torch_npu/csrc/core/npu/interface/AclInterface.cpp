@@ -88,6 +88,7 @@ LOAD_FUNCTION(aclmdlRICaptureTaskUpdateBegin)
 LOAD_FUNCTION(aclmdlRICaptureTaskUpdateEnd)
 LOAD_FUNCTION(aclmdlRIDebugJsonPrint)
 LOAD_FUNCTION(aclrtHostRegister)
+LOAD_FUNCTION(aclrtHostRegisterV2)
 LOAD_FUNCTION(aclrtHostUnregister)
 LOAD_FUNCTION(aclrtIpcMemGetExportKey)
 LOAD_FUNCTION(aclrtIpcMemSetImportPid)
@@ -1115,6 +1116,18 @@ aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterType type,
 
     TORCH_CHECK(func, "Failed to find function aclrtHostRegister", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(ptr, size, type, devPtr);
+}
+
+aclError AclrtHostRegisterV2(void *ptr, uint64_t size, uint32_t flag)
+{
+    typedef aclError (*AclrtHostRegisterV2)(void *ptr, uint64_t size, uint32_t flag);
+    static AclrtHostRegisterV2 func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtHostRegisterV2) GET_FUNC(aclrtHostRegisterV2);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtHostRegisterV2", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(ptr, size, flag);
 }
 
 aclError AclrtHostUnregister(void *ptr)

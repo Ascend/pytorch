@@ -7,6 +7,7 @@
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -137,12 +138,47 @@ struct HostAllocator {
         // Round up the allocation to the nearest power of two to improve reuse.
         size_t roundSize = c10::llvm::PowerOf2Ceil(size);
         // allocate a new block if no cached allocation is found
-        err = aclrtMallocHost(ptr, roundSize);
-        if (err != ACL_ERROR_NONE) {
-            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
-            return err;
+        bool host_registered = false;
+        static bool va_feature_support = true;
+        if (c10_npu::acl::AclrtMallocHostWithCfgExist() && va_feature_support) {
+            aclrtMallocAttrValue attrValue;
+            attrValue.vaFlag = 1;
+
+            aclrtMallocAttribute attributes[1];
+            attributes[0].attr = ACL_RT_MEM_ATTR_VA_FLAG;
+            attributes[0].value = attrValue;
+
+            aclrtMallocConfig cfg;
+            cfg.numAttrs = 1;
+            cfg.attrs = attributes;
+
+            aclError mallocError = c10_npu::acl::AclrtMallocHostWithCfg(ptr, roundSize, &cfg);
+            bool pinned_mem_register = c10_npu::NPUCachingAllocator::CachingAllocatorConfig::pinned_mem_register();
+            // if feature not support, then fall back to the old logic
+            if (ACL_ERROR_RT_FEATURE_NOT_SUPPORT == mallocError) {
+                va_feature_support = false;
+                if (pinned_mem_register) {
+                    TORCH_NPU_WARN_ONCE("The pinned_mem_register configuration does not take effect, the current driver version does not support this feature."
+                    "To use this feature, you need to upgrade to version 25.5.0 or higher");
+                }
+                NPU_CHECK_ERROR(aclrtMallocHost(ptr, roundSize), "aclrtMallocHost");
+            } else {
+                NPU_CHECK_ERROR(mallocError, "aclrtMallocHostWithCfg");
+                if (pinned_mem_register) {
+                    NPU_CHECK_ERROR(c10_npu::acl::AclrtHostRegisterV2(*ptr, roundSize, ACL_HOST_REG_MAPPED), "aclrtHostRegister failed.");
+                    host_registered = true;
+                }
+            }
+        } else {
+            aclError err = aclrtMallocHost(ptr, roundSize);
+            if (err != ACL_ERROR_NONE) {
+                CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+                return err;
+            }
         }
 
+        TORCH_INTERNAL_ASSERT_DEBUG_ONLY(use_host_register.count(*ptr) == 0);
+        use_host_register[*ptr] = host_registered;
         blocks.insert({*ptr, Block(roundSize, *ptr, true)});
         return ACL_ERROR_NONE;
     }
@@ -256,10 +292,19 @@ struct HostAllocator {
                 ++it;
                 continue;
             }
-            aclError err = aclrtFreeHost(block.ptr);
+
+            void* ptr = block.ptr;
+            TORCH_INTERNAL_ASSERT_DEBUG_ONLY(use_host_register.count(ptr) == 1);
+            bool use_register = use_host_register[ptr];
+            if (use_register) {
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtHostUnregister(ptr), "aclrtHostUnregister");
+            }
+
+            aclError err = aclrtFreeHost(ptr);
             if (err != ACL_ERROR_NONE) {
                 CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
             }
+            use_host_register.erase(ptr);
             it = blocks.erase(it);
         }
     }
@@ -309,6 +354,8 @@ private:
 
     // outstanding ACL events
     std::deque<std::pair<EventPool::Event, void *>> npu_events;
+
+    ska::flat_hash_map<void*, bool> use_host_register;
 };
 } // namespace
 
@@ -329,6 +376,17 @@ aclError CachingHostAllocator_recordEvent(
 
 bool CachingHostAllocator_isPinned(void *ptr)
 {
+    if (c10_npu::acl::AclrtPointerGetAttributesExist()) {
+        if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+            return false;
+        }
+        if (c10_npu::GetLocalDevice() < 0) {
+            c10_npu::SetCurrentDevice();
+        }
+        aclrtPtrAttributes attributes;
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtPointerGetAttributes(ptr, &attributes), "aclrtPointerGetAttributes");
+        return ACL_MEM_LOCATION_TYPE_HOST == attributes.location.type;
+    }
     return getHostAllocator().isPinndPtr(ptr);
 }
 
@@ -360,9 +418,7 @@ struct CachingHostAllocator final : public at::Allocator {
         AT_ASSERT(size >= 0, PTA_ERROR(ErrCode::VALUE));
         void *ptr = nullptr;
         if (size > 0) {
-            if (getHostAllocator().malloc(&ptr, size) != ACL_ERROR_NONE) {
-                ASCEND_LOGE("allocate host pinned memory fail");
-            }
+            NPU_CHECK_ERROR(getHostAllocator().malloc(&ptr, size), "allocate host pinned memory fail");
         }
         return {ptr, ptr, &CachingHostDeleter, at::DeviceType::CPU};
     }
@@ -387,7 +443,7 @@ c10::Allocator *getPinnedMemoryAllocator()
 {
     C10_LOG_API_USAGE_ONCE("aten.init.npu");
     c10_npu::NpuSysCtrl::SysStatus status =
-        c10_npu::NpuSysCtrl::GetInstance().Initialize();
+            c10_npu::NpuSysCtrl::GetInstance().Initialize();
     if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
         ASCEND_LOGE("Npu init fail.");
     }
@@ -414,7 +470,7 @@ aclError process_unregistered_mem_location_type(c10_npu::NPUStream stream, aclrt
 void process_host_mem_location_type(c10_npu::NPUStream stream, aclrtMemcpyKind kind, void* ptr)
 {
     ASCEND_LOGD("The memory is registered.");
-    if (CachingHostAllocator_isPinned(ptr)) {
+    if (getHostAllocator().isPinndPtr(ptr)) {
         ASCEND_LOGD("The ptr is allocated by torch_npu, then need to record stream.");
         NPU_CHECK_ERROR(CachingHostAllocator_recordEvent(ptr, kind, stream), "stream record failed.");
     }
@@ -436,7 +492,7 @@ void process_non_blocking_copy(void* ptr, void* currentPtr, c10_npu::NPUStream s
         }
     } else {
         ASCEND_LOGD("The AclrtPointerGetAttributes func does not exist.")
-        if (CachingHostAllocator_isPinned(ptr)) {
+        if (getHostAllocator().isPinndPtr(ptr)) {
             ASCEND_LOGD("The ptr is allocated by torch_npu, then need to record stream.");
             NPU_CHECK_ERROR(CachingHostAllocator_recordEvent(ptr, kind, stream), "stream record failed.");
         } else {
