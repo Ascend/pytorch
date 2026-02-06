@@ -132,6 +132,19 @@ size_t CachingAllocatorConfig::parsePinMemoryExpandableSegments(const std::vecto
     return i;
 }
 
+size_t CachingAllocatorConfig::parsePinnedMemRegister(const std::vector<std::string> &config, size_t i)
+{
+    consumeToken(config, ++i, ':');
+    if (++i < config.size()) {
+        TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
+                    "Expected a single True/False argument for pinned_mem_register", OPS_ERROR(ErrCode::PARAM));
+        m_pinned_mem_register = (config[i] == "True");
+    } else {
+        TORCH_CHECK(false, "Error, expecting m_pinned_mem_register value", OPS_ERROR(ErrCode::VALUE));
+    }
+    return i;
+}
+
 size_t CachingAllocatorConfig::parseAddrAlignSize(const std::vector<std::string> &config, size_t i)
 {
     consumeToken(config, ++i, ':');
@@ -314,6 +327,8 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
             i = parseExpandableSegments(config, i);
         } else if (config[i] == "pin_memory_expandable_segments") {
             i = parsePinMemoryExpandableSegments(config, i);
+        } else if (config[i] == "pinned_mem_register") {
+            i = parsePinnedMemRegister(config, i);
         } else if (config[i] == "base_addr_aligned_kb") {
             i = parseAddrAlignSize(config, i);
         } else if (config[i] == "page_size") {
@@ -343,6 +358,20 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
             m_expandable_segments = false;
             TORCH_NPU_WARN_ONCE("`max_split_size_mb` or `garbage_collection_threshold` is enabled, and the "
                 "`expandable_segments` is changed to `False` by default.");
+        }
+    }
+
+    if (m_pinned_mem_register) {
+        if (!c10_npu::acl::AclrtMallocHostWithCfgExist()) {
+            TORCH_NPU_WARN_ONCE("pinned_mem_register setting failure, the current cann version does not support this feature, now change to `False`."
+                "To use this feature, you need to upgrade to version 8.5.0 or higher");
+            m_pinned_mem_register = false;
+        }
+
+        if (m_pinned_mem_register && m_pin_memory_expandable_segments) {
+            m_pinned_mem_register = false;
+            TORCH_NPU_WARN_ONCE("pinned_mem_register setting failure, this feature is not supported when pin_memory_expandable_segments is set to `True`,"
+                " now change to `False`.");
         }
     }
 }
