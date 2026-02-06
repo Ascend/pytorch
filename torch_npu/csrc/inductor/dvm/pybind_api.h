@@ -23,58 +23,19 @@
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "third_party/dvm/dvm/include/dvm.h"
+#include "third_party/dvm/dvm/include/dvm_py.h"
+
 
 namespace dvm {
-class NDObjectPy {
+class TorchKernelPy : public KernelPy {
 public:
-    explicit NDObjectPy(NDObject* obj) : obj_(obj) {}
-    NDObject* Get() const { return obj_; }
+    TorchKernelPy(const KernelType& kernel_type, uint32_t flags);
+    ~TorchKernelPy();
 
-private:
-    NDObject* obj_;
-};
-
-struct NDSymInt {
-    explicit NDSymInt(int32_t data) { data_ = data; }
-    ScalarRef data_;
-};
-
-struct NDSymFloat {
-    explicit NDSymFloat(float data) { data_ = data; }
-    ScalarRef data_;
-};
-
-using NDOpPyPtr = std::shared_ptr<NDObjectPy>;
-using NDSymIntPtr = std::shared_ptr<NDSymInt>;
-using NDSymFloatPtr = std::shared_ptr<NDSymFloat>;
-
-class KernelPy {
-public:
-    KernelPy(const KernelType& kernel_type, uint32_t flags);
-    ~KernelPy();
-
-    virtual py::object Load(at::IntArrayRef shape, at::ScalarType dtype);
-    virtual py::object ViewLoad(at::IntArrayRef shape, at::IntArrayRef stride, at::ScalarType dtype);
-    py::object Store(py::object obj, py::object dtype);
-    void SetStoreInplace(py::object store);
-    template <UnaryOpType op_type> py::object Unary(py::object input);
-    template <BinaryOpType op_type> py::object Binary(py::object lhs, py::object rhs);
-    py::object Broadcast(py::object input, py::object shape);
-    py::object BroadcastScalar(py::object scalar, py::object shape, at::ScalarType dtype);
-    py::object Reshape(py::object input, py::object shape);
-    py::object Cast(py::object input, at::ScalarType dtype);
-    template <ReduceOpType op_type> py::object Reduce(py::object input, py::object dims, bool keepdims);
-    py::object Select(py::object cond, py::object lhs, py::object rhs);
-    py::object ElementAny(py::object input);
-    py::object Copy(py::object input);
-    py::object OneHot(py::object indices, int depth, int axis, c10::Scalar on_value, c10::Scalar off_value,
-                      at::ScalarType dtype);
-    py::object MatMul(py::object lhs, py::object rhs, bool trans_a, bool trans_b, py::object bias);
-    py::object GroupedMatMul(py::object lhs, py::object rhs, bool trans_a, bool trans_b, py::object bias,
-                             py::object group_list, int64_t group_type, int64_t group_list_type);
-    void ParallelNext();
-    void SpecNext();
-    at::ScalarType GetDtype(py::object op);
+    py::object Load(py::object shape, DataTypePy type) override;
+    py::object ViewLoad(py::object shape, py::object stride, int64_t offset, DataTypePy type) override;
+    py::object Store(py::object obj, DataTypePy type) override;
+    IntArrayRef* GetShapeRef(py::object shape) override;
 
     void SetKernelInfo(const std::string& op_name, const std::string& op_fullname,
                        const std::vector<bool>& contiguity_flags)
@@ -88,8 +49,6 @@ public:
     int Launch(void** addr, aclrtStream stream);
     virtual void Setup();
     virtual py::object Call(py::args args);
-    std::string DisAssemble();
-    std::string DumpGraph();
 
     static void SetDeterm(bool enable);
     static void SetTuning(bool enable);
@@ -109,7 +68,6 @@ public:
     };
 
 protected:
-    Kernel kernel_;
     std::vector<RelocEntry> relocs_;
 
     std::vector<ShapeWithRef*> shapes_;
@@ -138,12 +96,12 @@ protected:
     at::Tensor ws_;
     aclrtStream stream_;
 };
-class DynKernelPy : public KernelPy {
+class DynKernelPy : public TorchKernelPy {
 public:
-    DynKernelPy(const KernelType& kernel_type, uint32_t flags) : KernelPy(kernel_type, flags) {}
+    DynKernelPy(const KernelType& kernel_type, uint32_t flags) : TorchKernelPy(kernel_type, flags) {}
     ~DynKernelPy();
-    py::object Load(at::IntArrayRef shape, at::ScalarType dtype) override;
-    py::object ViewLoad(at::IntArrayRef shape, at::IntArrayRef stride, at::ScalarType dtype) override;
+    py::object Load(py::object shape, DataTypePy type) override;
+    py::object ViewLoad(py::object shape, py::object stride, int64_t offset, DataTypePy type) override;
     struct LoadShapeRef {
         ShapeRef shape;
         ShapeRef stride;
@@ -152,32 +110,32 @@ public:
     void Setup() override;
     py::object Call(py::args args) override;
     ShapeRef* SymIntArraytoShapeRef(py::object shape) override;
+    void UpdateSymShapeData();
 
-    py::object MakeNDSymInt() { return py::cast(sym_input_.emplace_back(std::make_shared<NDSymInt>(-1))); }
-    py::object MakeNDSymFloat() { return py::cast(sym_float_input_.emplace_back(std::make_shared<NDSymFloat>(0.0f))); }
+    py::object MakeScalar(DataTypePy type = DataTypePy(kDataTypeEnd))
+    {
+        auto scalar = std::make_shared<ScalarRefPy>(type);
+        sym_scalar_input_.emplace_back(scalar);
+        return py::cast(scalar);
+    }
 
     struct DynamicInfo {
         std::vector<void*> addr;
-        std::vector<int32_t> symint;
-        std::vector<float> symfloat;
+        std::vector<ScalarRef> scalars;
         std::vector<std::vector<int64_t> > shape;
         std::vector<std::vector<int64_t> > strides;
     };
 
 protected:
     std::vector<LoadShapeRef*> dyn_load_shapes_;
-    std::vector<NDSymIntPtr> sym_input_;
-    std::vector<NDSymFloatPtr> sym_float_input_;
-    std::vector<NDSymIntPtr> const_input_;
-    std::vector<std::vector<NDSymIntPtr> > sym_shape_;
+    std::vector<ScalarRefPyPtr> sym_scalar_input_;
+    std::vector<ScalarRefPyPtr> const_input_;
+    std::vector<std::vector<ScalarRefPyPtr> > sym_shape_;
 };
 
-class GraphSplitKernelPy : public KernelPy, public GraphSplitBase {
+class GraphSplitKernelPy : public TorchKernelPy, public GraphSplitBase {
 public:
-    GraphSplitKernelPy()
-        : KernelPy(KernelType::kSplit, static_cast<uint32_t>(KernelFlag::kUnifyWS))
-    {
-    }
+    GraphSplitKernelPy() : TorchKernelPy(KernelType::kSplit, static_cast<uint32_t>(KernelFlag::kUnifyWS)) {}
     void Setup() override;
     py::object Call(py::args inputs) override;
 };
@@ -185,9 +143,7 @@ public:
 class DynGraphSplitKernelPy : public DynKernelPy, public GraphSplitBase {
 public:
     DynGraphSplitKernelPy()
-        : DynKernelPy(
-              KernelType::kSplit,
-              static_cast<uint32_t>(KernelFlag::kUnifyWS | KernelFlag::kDynamic))
+        : DynKernelPy(KernelType::kSplit, static_cast<uint32_t>(KernelFlag::kUnifyWS | KernelFlag::kDynamic))
     {
     }
     void Setup() override;

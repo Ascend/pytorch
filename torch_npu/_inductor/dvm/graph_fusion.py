@@ -7,7 +7,6 @@ from torch.library import custom_op
 from torch.utils._pytree import tree_map
 from torch._inductor import config as inductor_config
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen
-from torch._inductor.virtualized import V
 from torch._subclasses import FakeTensor
 
 from torch.fx.passes.infra.partitioner import CapabilityBasedPartitioner

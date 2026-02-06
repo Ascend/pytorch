@@ -2,19 +2,10 @@ import torch
 import torch.utils._pytree as pytree
 from torch.fx.node import Argument, Target
 from torch._inductor.utils import IndentedBuffer
-from torch._subclasses import FakeTensor
-from .op_emitter import DVM_OP_REGISTRY
+from .op_emitter import DVM_OP_REGISTRY, load, store, view_load
 from .fx_pass import annotate_mm_transpose_flags
 
 aten = torch.ops.aten
-
-DVM_SUPPORT_TYPE = [
-    torch.bfloat16,
-    torch.float16,
-    torch.bool,
-    torch.float32,
-    torch.int32,
-]
 
 
 def is_fx_dynamic(graph):
@@ -51,7 +42,8 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         self.spec_nodes = set()
         if self.ktype == "vector" and self.need_spec():
             self.ktype = "spec"
-        self.code.splice(f'\n"""\n{self.gm.print_readable(print_output=False)}\n"""')
+        self.code.splice(
+            f'\n"""\n{self.gm.print_readable(print_output=False)}\n"""')
         decorator = (
             f"{chr(64)}dvm.kernel(ktype={self.ktype!r}, dyn_shape={self.is_dynamic})"
         )
@@ -93,10 +85,10 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         val = meta["val"]
         if isinstance(val, torch.SymInt):
             self.cont_flag_input.append(True)
-            return "k.intref()"
-        elif isinstance(val, torch.SymFloat):
+            return "k.scalar(dvm.int64)"
+        if isinstance(val, torch.SymFloat):
             self.cont_flag_input.append(True)
-            return "k.floatref()"
+            return "k.scalar(dvm.float32)"
 
         is_contiguous = val.is_contiguous()
         shape, stride, dtype = val.shape, val.stride(), val.dtype
@@ -109,26 +101,26 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         if self.is_mix_kernel:
             if meta.get("trans", False):
                 self.cont_flag_input.append(True)
-                shape[-1], shape[-2] = shape[-2], shape[-1]
-                return f"k.load({shape}, {dtype})"
+                shape = val.mT.shape
+                return load(shape, dtype)
             else:
                 self.cont_flag_input.append(is_contiguous)
-                return f"k.load({shape}, {dtype})"
+                return load(shape, dtype)
         else:
             if is_contiguous:
                 self.cont_flag_input.append(True)
-                return f"k.load({shape}, {dtype})"
+                return load(shape, dtype)
             else:
                 if is_symbolic or not self.use_view:
                     self.cont_flag_input.append(False)
-                    return f"k.load({shape}, {dtype})"
+                    return load(shape, dtype)
                 else:
                     if stride[-1] == 1 and shape[-1] != 1:
                         self.cont_flag_input.append(True)
-                        return f"k.view_load({shape}, {stride}, {dtype})"
+                        return view_load(shape, stride, 0, dtype)
                     else:
                         self.cont_flag_input.append(False)
-                        return f"k.load({shape}, {dtype})"
+                        return load(shape, dtype)
 
     def call_function(
         self, target: "Target", args: tuple[Argument, ...], kwargs: dict[str, Argument]
@@ -139,7 +131,8 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         meta = self.current_node.meta
 
         if target in (aten.mm.default, aten.bmm.default):
-            args = (*args, meta.get("trans_a", False), meta.get("trans_b", False))
+            args = (*args, meta.get("trans_a", False),
+                    meta.get("trans_b", False))
 
         elif target is aten.addmm.default:
             args = (
@@ -148,6 +141,7 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
                 meta.get("trans_b", False),
                 meta.get("use_bias", False),
             )
+
         return func(*args, **kwargs)
 
     def output(
@@ -157,7 +151,7 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
 
         def codegen(out, node):
             if isinstance(node, torch.fx.Node):
-                return f"k.store({out}, {node.meta['val'].dtype})"
+                return store(out, node.meta["val"].dtype)
             return ""
 
         return pytree.tree_map(codegen, outs, self.current_node.args[0])

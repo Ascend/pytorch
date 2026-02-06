@@ -13,10 +13,6 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import (
     to_folder,
     get_num_call_functions,
 )
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.wrapper import (
-    NpuMlirWrapperCodeGen,
-)
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import codecache
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.mlir import (
     NpuMlirKernel,
     NpuMlirScheduling,
@@ -24,8 +20,8 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.mlir import (
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch import (
     lowering as npu_lowering,
 )
-from .graph_build import DvmCodegenInterpreter, DVM_SUPPORT_TYPE
-from .op_emitter import DVM_OP_REGISTRY, common_rule
+from .graph_build import DvmCodegenInterpreter
+from .op_emitter import DVM_OP_REGISTRY, common_rule, DVM_SUPPORT_TYPE
 from .decomp import patch_decomp
 from .fx_test import generate_dvm_fx_case
 
@@ -163,6 +159,7 @@ def _define_dvm_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
                     module_name=traced_graph_hash,
                 )
         else:
+            wrapper.add_import_once("from torch_npu._inductor import dvm")
             if dump_fx_test:
                 generate_dvm_fx_case(mlir_kernel._gm, fusion_type="mlir")
             out_indices = mlir_kernel.non_contiguous_indices.get("outputs")
@@ -197,45 +194,6 @@ def _define_dvm_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
     return kernel_name
 
 
-def _write_dvm_header(self) -> None:
-    self.header.splice(
-        f"""
-            from ctypes import c_void_p, c_long
-            import torch
-            import torch_npu
-            import math
-            import random
-            import os
-            os.environ["TORCHINDUCTOR_MAX_AUTOTUNE"] = '1'
-            import tempfile
-            from math import inf, nan
-            from torch._inductor.hooks import run_intermediate_hooks
-            from torch._inductor.utils import maybe_profile
-            from torch._inductor.codegen.memory_planning import _align as align
-
-            from torch import device, empty_strided
-            from {codecache.__name__} import CustomAsyncCompile
-            from torch._inductor.select_algorithm import extern_kernels
-            from torch._inductor.codegen.multi_kernel import MultiKernelCall
-            from torch.utils._sympy.functions import FloatTrueDiv
-            from torch.utils._sympy.functions import IntTrueDiv
-            from torch_npu._inductor import dvm
-
-
-            has_initialized = False
-            aten = torch.ops.aten
-            inductor_ops = torch.ops.inductor
-            assert_size_stride = torch._C._dynamo.guards.assert_size_stride
-            empty_strided_cpu = torch._C._dynamo.guards._empty_strided_cpu
-            empty_strided_cuda = torch._C._dynamo.guards._empty_strided_cuda
-            alloc_from_pool = torch.ops.inductor._alloc_from_pool
-            reinterpret_tensor = torch._C._dynamo.guards._reinterpret_tensor
-            async_compile = CustomAsyncCompile()
-
-        """
-    )
-
-
 def _dvm_can_fuse_vertical(self, node1, node2):
     _, (numel1, rnumel1) = node1.group
     _, (numel2, rnumel2) = node2.group
@@ -266,15 +224,17 @@ def _dvm_can_fuse_horizontal(self, node1, node2):
 
 
 def _patch_lowering_type_checks():
+
     def _fallback_node_due_to_unsupported_type(
         node: torch.fx.Node, allow_cpu_inputs=True
     ):
-        for meta in pytree.tree_leaves(node.meta["val"]):
-            if not isinstance(meta, torch._subclasses.FakeTensor):
-                continue
+        if "val" in node.meta:
+            for meta in pytree.tree_leaves(node.meta["val"]):
+                if not isinstance(meta, torch._subclasses.FakeTensor):
+                    continue
 
-            if meta.is_cpu:
-                return True
+                if meta.is_cpu:
+                    return True
 
         if node.target in DVM_OP_REGISTRY:
             _, rule = DVM_OP_REGISTRY.get(node.target)
@@ -341,7 +301,7 @@ def _patch_sum_lowering():
             r = to_dtype(r, out_dtype)
 
         return r
-
+    anir_config.disable_any_pbr = False
     ops = get_overloads([aten.sum, prims.sum])
     npu_lowering.register_lowering(ops)(sum_)
 
@@ -357,7 +317,6 @@ class DvmMlirFusionPatch:
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_sum_lowering()
-        NpuMlirWrapperCodeGen.write_header = _write_dvm_header
         NpuMlirKernel.codegen_kernel = _codegen_dvm_kernel
         NpuMlirScheduling.can_fuse_horizontal = _dvm_can_fuse_horizontal
         NpuMlirScheduling.can_fuse_vertical = _dvm_can_fuse_vertical

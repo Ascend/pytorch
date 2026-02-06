@@ -27,7 +27,7 @@ class TestModule(torch.nn.Module):
 
 @skip("request torch-mlir")
 class TestDvmByMlir(TestCase):
-    os.environ["TORCHINDUCTOR_MLIR_BACKEND"] = "1"
+    os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
 
     @parametrize("dtype", [torch.float16, torch.float32, torch.bfloat16])
     @parametrize("is_dynamic", [True, False])

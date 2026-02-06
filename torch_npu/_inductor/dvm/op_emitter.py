@@ -22,6 +22,25 @@ DVM_SUPPORT_FLOAT_TYPE = [
     torch.float32,
 ]
 
+DVM_DTYPE_MAP = {
+    torch.bfloat16: "dvm.bfloat16",
+    torch.float16: "dvm.float16",
+    torch.float32: "dvm.float32",
+    torch.int32: "dvm.int32",
+    torch.int64: "dvm.int64",
+    torch.bool: "dvm.bool_",
+}
+
+
+def to_dvm_dtype(dtype):
+    if dtype is None:
+        return None
+    if isinstance(dtype, torch.dtype):
+        if dtype not in DVM_DTYPE_MAP:
+            raise NotImplementedError(f"Unsupported dtype for DVM: {dtype}")
+        return DVM_DTYPE_MAP[dtype]
+    return dtype
+
 
 def _check_dtype(inputs, supported_dtypes):
     for inp in inputs:
@@ -121,7 +140,9 @@ def register_dvm_op(*ops, rule=common_rule):
     return decorator
 
 
-def to_shape(shape):
+def format_shape(shape):
+    if isinstance(shape, (int, torch.SymInt)):
+        shape = [shape]
     return "[" + ", ".join(map(str, shape)) + "]"
 
 
@@ -178,6 +199,16 @@ def maximum(x, y):
 @register_dvm_op(aten.minimum.default)
 def minimum(x, y):
     return f"k.minimum({x}, {y})"
+
+
+@register_dvm_op(aten.clamp_min.default)
+def clamp_min(x, min_value):
+    return maximum(x, min_value)
+
+
+@register_dvm_op(aten.clamp_max.default)
+def clamp_max(x, max_value):
+    return minimum(x, max_value)
 
 
 @register_dvm_op(aten.logical_and.default)
@@ -269,12 +300,14 @@ def trunc(x):
     rule=cast_rule,
 )
 def cast(x, dtype):
+    dtype = to_dvm_dtype(dtype)
     return f"k.cast({x}, {dtype})"
 
 
 @register_dvm_op(aten.expand.default)
 def broadcast(x, shape):
-    return f"k.broadcast({x}, {to_shape(shape)})"
+    shape = format_shape(shape)
+    return f"k.broadcast({x}, {shape})"
 
 
 @register_dvm_op(aten.where.default, aten.where.self, rule=where_rule)
@@ -283,29 +316,33 @@ def select(x, y, z):
 
 
 @register_dvm_op(aten.sum.dim_IntList, aten.sum.default)
-def reduce_sum(x, dim=None, keepdim=False, dtype=torch.float32):
+def reduce_sum(x, dim=None, keepdim=False, dtype=None):
     if dim is None:
         dim = []
-    return f"k.sum({x}, {to_shape(dim)}, {keepdim})"
+    dim = format_shape(dim)
+    return f"k.sum({x}, {dim}, {keepdim})"
 
 
 @register_dvm_op(aten.amax.default)
 def reduce_max(x, dim=None, keepdim=False):
     if dim is None:
         dim = []
-    return f"k.max({x}, {to_shape(dim)}, {keepdim})"
+    dim = format_shape(dim)
+    return f"k.max({x}, {dim}, {keepdim})"
 
 
 @register_dvm_op(aten.amin.default)
 def reduce_min(x, dim=None, keepdim=False):
     if dim is None:
         dim = []
-    return f"k.min({x}, {to_shape(dim)}, {keepdim})"
+    dim = format_shape(dim)
+    return f"k.min({x}, {dim}, {keepdim})"
 
 
 @register_dvm_op(aten.view.default, aten.reshape.default)
 def reshape(x, shape):
-    return f"k.reshape({x}, {to_shape(shape)})"
+    shape = format_shape(shape)
+    return f"k.reshape({x}, {shape})"
 
 
 @register_dvm_op(aten.neg.default)
@@ -322,15 +359,20 @@ def copy(x):
     return f"k.copy({x})"
 
 
+@register_dvm_op(aten.clone.default)
+def clone(x, memory_format=None):
+    return copy(x)
+
+
 @register_dvm_op(aten.full.default, rule=full_rule)
 def full(
     size,
     fill_value,
     **kwargs,
 ):
-    return (
-        f"k.broadcast_scalar({fill_value}, {to_shape(size)}, {kwargs.get('dtype')})"
-    )
+    size = format_shape(size)
+    dtype = to_dvm_dtype(kwargs.get("dtype"))
+    return f"k.full({fill_value}, {size}, {dtype})"
 
 
 @register_dvm_op(aten.mm.default, aten.bmm.default, rule=mm_rule)
@@ -352,3 +394,20 @@ def addmm(z, x, y, trans_a, trans_b, use_bias, beta=1, alpha=1):
     if alpha != 1:
         mm = mul(mm, alpha)
     return add(mm, z)
+
+
+def load(shape, dtype):
+    dtype = to_dvm_dtype(dtype)
+    return f"k.load({shape}, {dtype})"
+
+
+def view_load(shape, stride, offset, dtype):
+    dtype = to_dvm_dtype(dtype)
+    return f"k.view_load({shape}, {stride}, {offset}, {dtype})"
+
+
+def store(x, dtype=None):
+    if dtype is None:
+        return f"k.store({x})"
+    dtype = to_dvm_dtype(dtype)
+    return f"k.store({x}, {dtype})"

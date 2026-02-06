@@ -28,6 +28,7 @@ void TORCH_NPU_API THDVM_init(PyObject* module)
     using namespace dvm;
     auto torch_C_m = py::handle(module).cast<py::module>();
     auto dvm_m = torch_C_m.def_submodule("dvm", "DVM bindings");
+    RegDvmPy(dvm_m);
     pybind11::enum_<KernelType>(dvm_m, "KernelType")
         .value("kVector", KernelType::kVector)
         .value("kCube", KernelType::kCube)
@@ -36,81 +37,24 @@ void TORCH_NPU_API THDVM_init(PyObject* module)
         .value("kSplit", KernelType::kSplit)
         .value("kEager", KernelType::kEager)
         .export_values();
+
     pybind11::enum_<KernelFlag>(dvm_m, "KernelFlag")
         .value("kDynamic", KernelFlag::kDynamic)
         .value("kUnifyWS", KernelFlag::kUnifyWS)
         .value("kSpeculate", KernelFlag::kSpeculate)
         .export_values();
 
-    shared_ptr_class_<NDObjectPy>(dvm_m, "NDObject");
-    shared_ptr_class_<NDSymInt>(dvm_m, "NDSymInt");
-    shared_ptr_class_<NDSymFloat>(dvm_m, "NDSymFloat");
-
-    shared_ptr_class_<KernelPy>(dvm_m, "Kernel")
+    pybind11::class_<TorchKernelPy, KernelPy, std::shared_ptr<TorchKernelPy> >(dvm_m, "TorchKernel")
         .def(py::init<const KernelType&, uint32_t>())
-        .def("set_kernel_info", &KernelPy::SetKernelInfo, "set_kernel_info")
-        .def("get_dtype", &KernelPy::GetDtype, "get dtype")
-        .def("load", &KernelPy::Load, "load array")
-        .def("view_load", &KernelPy::ViewLoad, "load array")
-        .def("store", &KernelPy::Store, "store array", py::arg("input"), py::arg("dtype") = py::none())
-        .def("set_store_inplace", &KernelPy::SetStoreInplace, "store inplace")
-        .def("sqrt", &KernelPy::Unary<UnaryOpType::kSqrt>, "emit sqrt")
-        .def("abs", &KernelPy::Unary<UnaryOpType::kAbs>, "emit abs")
-        .def("log", &KernelPy::Unary<UnaryOpType::kLog>, "emit log")
-        .def("exp", &KernelPy::Unary<UnaryOpType::kExp>, "emit exp")
-        .def("reciprocal", &KernelPy::Unary<UnaryOpType::kReciprocal>, "emit reciprocal")
-        .def("isfinite", &KernelPy::Unary<UnaryOpType::kIsFinite>, "emit isfinite")
-        .def("logical_not", &KernelPy::Unary<UnaryOpType::kLogicalNot>, "emit logical_not")
-        .def("round", &KernelPy::Unary<UnaryOpType::kRound>, "emit round")
-        .def("floor", &KernelPy::Unary<UnaryOpType::kFloor>, "emit floor")
-        .def("ceil", &KernelPy::Unary<UnaryOpType::kCeil>, "emit ceil")
-        .def("trunc", &KernelPy::Unary<UnaryOpType::kTrunc>, "emit trunc")
-        .def("cast", &KernelPy::Cast, "emit cast op")
-        .def("element_any", &KernelPy::ElementAny, "emit element_any op")
-        .def("equal", &KernelPy::Binary<BinaryOpType::kEqual>, "emit equal")
-        .def("not_equal", &KernelPy::Binary<BinaryOpType::kNotEqual>, "emit not_equal")
-        .def("greater", &KernelPy::Binary<BinaryOpType::kGreater>, "emit greater")
-        .def("greater_equal", &KernelPy::Binary<BinaryOpType::kGreaterEqual>, "emit greater_equal")
-        .def("less", &KernelPy::Binary<BinaryOpType::kLess>, "emit less")
-        .def("less_equal", &KernelPy::Binary<BinaryOpType::kLessEqual>, "emit less_equal")
-        .def("add", &KernelPy::Binary<BinaryOpType::kAdd>, "emit add")
-        .def("sub", &KernelPy::Binary<BinaryOpType::kSub>, "emit sub")
-        .def("mul", &KernelPy::Binary<BinaryOpType::kMul>, "emit mul")
-        .def("div", &KernelPy::Binary<BinaryOpType::kDiv>, "emit div")
-        .def("pow", &KernelPy::Binary<BinaryOpType::kPow>, "emit pow")
-        .def("maximum", &KernelPy::Binary<BinaryOpType::kMaximum>, "emit maximum")
-        .def("minimum", &KernelPy::Binary<BinaryOpType::kMinimum>, "emit minimum")
-        .def("logical_and", &KernelPy::Binary<BinaryOpType::kLogicalAnd>, "emit logical_and")
-        .def("logical_or", &KernelPy::Binary<BinaryOpType::kLogicalOr>, "emit logical_or")
-        .def("select", &KernelPy::Select, "emit select op")
-        .def("broadcast", &KernelPy::Broadcast, "emit broadcast op")
-        .def("broadcast_scalar", &KernelPy::BroadcastScalar, "emit broadcast op")
-        .def("reshape", &KernelPy::Reshape, "emit reshape op")
-        .def("copy", &KernelPy::Copy, "emit copy op")
-        .def("sum", &KernelPy::Reduce<ReduceOpType::kSum>, "emit sum")
-        .def("max", &KernelPy::Reduce<ReduceOpType::kMax>, "emit max")
-        .def("min", &KernelPy::Reduce<ReduceOpType::kMin>, "emit min")
-        .def("one_hot", &KernelPy::OneHot, "emit onehot op")
-        .def("matmul", &KernelPy::MatMul, "emit matmul op", py::arg("lhs"), py::arg("rhs"), py::arg("trans_a"),
-             py::arg("trans_b"), py::arg("bias") = py::none())
-        .def("gmm", &KernelPy::GroupedMatMul, "emit grouped_matmul op", py::arg("lhs"), py::arg("rhs"),
-             py::arg("trans_a"), py::arg("trans_b"), py::arg("bias"), py::arg("group_list"), py::arg("group_type"),
-             py::arg("group_list_type") = 0)
-        .def("p_next", &KernelPy::ParallelNext, "parallel next")
-        .def("spec_next", &KernelPy::SpecNext, "spec next")
-        .def("das", &KernelPy::DisAssemble, "disassemble code")
-        .def("dump", &KernelPy::DumpGraph, "dump graph")
-        .def("setup", &KernelPy::Setup, "setup")
-        .def("__call__", &KernelPy::Call, "run kernel")
-        .def_static("set_deterministic", &KernelPy::SetDeterm, "set deterministic")
-        .def_static("set_online_tuning", &KernelPy::SetTuning, "set online tuning");
+        .def("set_kernel_info", &TorchKernelPy::SetKernelInfo, "set_kernel_info")
+        .def("setup", &TorchKernelPy::Setup, "setup")
+        .def("__call__", &TorchKernelPy::Call, "run kernel");
 
-    pybind11::class_<DynKernelPy, KernelPy, std::shared_ptr<DynKernelPy> >(dvm_m, "DynKernel")
+    pybind11::class_<DynKernelPy, TorchKernelPy, std::shared_ptr<DynKernelPy> >(dvm_m, "DynKernel")
         .def(py::init<const KernelType&, uint32_t>())
-        .def("intref", &DynKernelPy::MakeNDSymInt, "setup")
-        .def("floatref", &DynKernelPy::MakeNDSymFloat, "setup");
+        .def("scalar", &DynKernelPy::MakeScalar, "setup", py::arg("dtype") = DataTypePy(kDataTypeEnd));
 
-    pybind11::class_<GraphSplitKernelPy, KernelPy, std::shared_ptr<GraphSplitKernelPy> >(dvm_m, "GraphSplitKernel")
+    pybind11::class_<GraphSplitKernelPy, TorchKernelPy, std::shared_ptr<GraphSplitKernelPy> >(dvm_m, "GraphSplitKernel")
         .def(py::init<>());
 
     pybind11::class_<DynGraphSplitKernelPy, DynKernelPy, std::shared_ptr<DynGraphSplitKernelPy> >(dvm_m,
@@ -120,26 +64,6 @@ void TORCH_NPU_API THDVM_init(PyObject* module)
 
 namespace dvm {
 namespace {
-DType TorchDtype2DvmDType(at::ScalarType dtype)
-{
-    switch (dtype) {
-        case at::ScalarType::Float:
-            return DType::kFloat32;
-        case at::ScalarType::Half:
-            return DType::kFloat16;
-        case at::ScalarType::BFloat16:
-            return DType::kBFloat16;
-        case at::ScalarType::Int:
-            return DType::kInt32;
-        case at::ScalarType::Long:
-            return DType::kInt64;
-        case at::ScalarType::Bool:
-            return DType::kBool;
-        default:
-            return DType::kFloat32;
-    }
-}
-
 at::ScalarType DvmDType2TorchDtype(DType dtype)
 {
     switch (dtype) {
@@ -162,19 +86,16 @@ at::ScalarType DvmDType2TorchDtype(DType dtype)
 
 } // namespace
 
-KernelPy::KernelPy(const KernelType& kernel_type, uint32_t flags)
-{
-    kernel_.Reset(kernel_type, flags);
-}
+TorchKernelPy::TorchKernelPy(const KernelType& kernel_type, uint32_t flags) { kernel_.Reset(kernel_type, flags); }
 
-KernelPy::~KernelPy()
+TorchKernelPy::~TorchKernelPy()
 {
     for (auto ref : shapes_) {
         delete ref;
     }
 }
 
-void KernelPy::SetDeterm(bool enable)
+void TorchKernelPy::SetDeterm(bool enable)
 {
     auto& conf = Config::Instance();
     if (enable) {
@@ -184,7 +105,7 @@ void KernelPy::SetDeterm(bool enable)
     }
 }
 
-void KernelPy::SetTuning(bool enable)
+void TorchKernelPy::SetTuning(bool enable)
 {
     auto& conf = Config::Instance();
     if (enable) {
@@ -201,13 +122,9 @@ DynKernelPy::~DynKernelPy()
     }
 }
 
-at::ScalarType KernelPy::GetDtype(py::object op)
-{
-    auto obj = op.cast<NDOpPyPtr>()->Get();
-    return DvmDType2TorchDtype(kernel_.GetDType(obj));
-}
+IntArrayRef* TorchKernelPy::GetShapeRef(py::object shape) { return SymIntArraytoShapeRef(shape); }
 
-ShapeRef* KernelPy::SymIntArraytoShapeRef(py::object shape)
+ShapeRef* TorchKernelPy::SymIntArraytoShapeRef(py::object shape)
 {
     auto shape_array = shape.cast<py::sequence>();
     auto& ref = shapes_.emplace_back(new ShapeWithRef(shape_array.size()));
@@ -217,7 +134,7 @@ ShapeRef* KernelPy::SymIntArraytoShapeRef(py::object shape)
     return ref;
 }
 
-ShapeRef* KernelPy::SymIntArraytoShapeRef(at::IntArrayRef shape_array)
+ShapeRef* TorchKernelPy::SymIntArraytoShapeRef(at::IntArrayRef shape_array)
 {
     auto& ref = shapes_.emplace_back(new ShapeWithRef(shape_array.size()));
     for (size_t i = 0; i < ref->size; ++i) {
@@ -238,221 +155,62 @@ DynKernelPy::LoadShapeRef* DynKernelPy::GetDynLoadShapeRef(size_t dim_size)
     return ref;
 }
 
-template <UnaryOpType op_type> py::object KernelPy::Unary(py::object input)
-{
-    auto in_obj = input.cast<NDOpPyPtr>()->Get();
-    auto op = kernel_.Unary(op_type, in_obj);
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-py::object KernelPy::Cast(py::object input, at::ScalarType dtype)
-{
-    auto in_obj = input.cast<NDOpPyPtr>()->Get();
-    auto op = kernel_.Cast(in_obj, TorchDtype2DvmDType(dtype));
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-py::object KernelPy::Select(py::object cond, py::object lhs, py::object rhs)
-{
-    auto input1 = lhs.cast<NDOpPyPtr>()->Get();
-    auto input2 = rhs.cast<NDOpPyPtr>()->Get();
-    auto input0 = cond.cast<NDOpPyPtr>()->Get();
-    auto op = kernel_.Select(input0, input1, input2);
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-template <ReduceOpType op_type> py::object KernelPy::Reduce(py::object input, py::object dims, bool keepdims)
-{
-    auto in_obj = input.cast<NDOpPyPtr>()->Get();
-    auto dims_ref = SymIntArraytoShapeRef(dims);
-    auto op = kernel_.Reduce(op_type, in_obj, dims_ref, keepdims);
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-template <BinaryOpType op_type> py::object KernelPy::Binary(py::object lhs, py::object rhs)
-{
-    NDObject* op;
-    if (py::isinstance<py::int_>(lhs)) {
-        op = kernel_.Binary(op_type, lhs.cast<int>(), rhs.cast<NDOpPyPtr>()->Get());
-    } else if (py::isinstance<py::float_>(lhs)) {
-        op = kernel_.Binary(op_type, lhs.cast<float>(), rhs.cast<NDOpPyPtr>()->Get());
-    } else if (py::isinstance<py::int_>(rhs)) {
-        op = kernel_.Binary(op_type, lhs.cast<NDOpPyPtr>()->Get(), rhs.cast<int>());
-    } else if (py::isinstance<py::float_>(rhs)) {
-        op = kernel_.Binary(op_type, lhs.cast<NDOpPyPtr>()->Get(), rhs.cast<float>());
-    } else if (py::isinstance<NDSymInt>(lhs)) {
-        op = kernel_.Binary(op_type, &(lhs.cast<NDSymIntPtr>()->data_), rhs.cast<NDOpPyPtr>()->Get());
-    } else if (py::isinstance<NDSymFloat>(lhs)) {
-        op = kernel_.Binary(op_type, &(lhs.cast<NDSymFloatPtr>()->data_), rhs.cast<NDOpPyPtr>()->Get());
-    } else if (py::isinstance<NDSymInt>(rhs)) {
-        op = kernel_.Binary(op_type, lhs.cast<NDOpPyPtr>()->Get(), &(rhs.cast<NDSymIntPtr>()->data_));
-    } else if (py::isinstance<NDSymFloat>(rhs)) {
-        op = kernel_.Binary(op_type, lhs.cast<NDOpPyPtr>()->Get(), &(rhs.cast<NDSymFloatPtr>()->data_));
-    } else {
-        auto input1 = lhs.cast<NDOpPyPtr>()->Get();
-        auto input2 = rhs.cast<NDOpPyPtr>()->Get();
-        op = kernel_.Binary(op_type, input1, input2);
-    }
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-py::object KernelPy::Broadcast(py::object input, py::object shape)
-{
-    auto shape_ref = SymIntArraytoShapeRef(shape);
-    auto in_obj = input.cast<NDOpPyPtr>()->Get();
-    auto op = kernel_.Broadcast(in_obj, shape_ref);
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-py::object KernelPy::BroadcastScalar(py::object scalar, py::object shape, at::ScalarType dtype)
-{
-    auto shape_ref = SymIntArraytoShapeRef(shape);
-    auto type_id = TorchDtype2DvmDType(dtype);
-    NDObject* op;
-    if (py::isinstance<py::int_>(scalar)) {
-        op = kernel_.Broadcast(scalar.cast<int>(), shape_ref, type_id);
-    } else if (py::isinstance<py::float_>(scalar)) {
-        op = kernel_.Broadcast(scalar.cast<float>(), shape_ref, type_id);
-    } else if (py::isinstance<NDSymInt>(scalar)) {
-        op = kernel_.Broadcast(&(scalar.cast<NDSymIntPtr>()->data_), shape_ref, type_id);
-    } else {
-        op = kernel_.Broadcast(&(scalar.cast<NDSymFloatPtr>()->data_), shape_ref, type_id);
-    }
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-py::object KernelPy::Reshape(py::object input, py::object shape)
-{
-    auto in_obj = input.cast<NDOpPyPtr>()->Get();
-    auto shape_ref = SymIntArraytoShapeRef(shape);
-    auto op = kernel_.Reshape(in_obj, shape_ref);
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-py::object KernelPy::Copy(py::object input)
-{
-    auto in_obj = input.cast<NDOpPyPtr>()->Get();
-    auto op = kernel_.Copy(in_obj);
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-py::object KernelPy::OneHot(py::object indices, int depth, int axis, c10::Scalar on_value, c10::Scalar off_value,
-                            at::ScalarType dtype)
-{
-    auto indices_obj = indices.cast<NDOpPyPtr>()->Get();
-    auto depth_ref = new ShapeWithRef(1);
-    depth_ref->shape_data[0] = depth;
-    shapes_.push_back(depth_ref);
-    auto type_id = TorchDtype2DvmDType(dtype);
-    NDObject* op;
-    if (on_value.isIntegral(true)) {
-        op = kernel_.OneHot(indices_obj, depth_ref, axis, on_value.toInt(), off_value.toInt());
-    } else {
-        op = kernel_.OneHot(indices_obj, depth_ref, axis, on_value.toFloat(), off_value.toFloat());
-    }
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-py::object KernelPy::Load(at::IntArrayRef shape, at::ScalarType dtype)
+py::object TorchKernelPy::Load(py::object shape, DataTypePy type)
 {
     ShapeRef* shape_ref = SymIntArraytoShapeRef(shape);
-    auto op = kernel_.Load(nullptr, shape_ref, TorchDtype2DvmDType(dtype));
+    auto op = kernel_.Load(nullptr, shape_ref, type);
     loads_.emplace_back(op);
-    return py::cast(std::make_shared<NDObjectPy>(op));
+    return ObjToPy(op);
 }
 
-py::object KernelPy::ViewLoad(at::IntArrayRef shape, at::IntArrayRef stride, at::ScalarType dtype)
+py::object TorchKernelPy::ViewLoad(py::object shape, py::object stride, int64_t offset, DataTypePy type)
 {
     ShapeRef* shape_ref = SymIntArraytoShapeRef(shape);
     ShapeRef* stride_ref = SymIntArraytoShapeRef(stride);
-    const int64_t* offset_ptr = nullptr;
-    auto op = kernel_.Load(nullptr, shape_ref, stride_ref, offset_ptr, TorchDtype2DvmDType(dtype));
+    auto op = kernel_.Load(nullptr, shape_ref, stride_ref, nullptr, type);
     loads_.emplace_back(op);
-    return py::cast(std::make_shared<NDObjectPy>(op));
+    return ObjToPy(op);
 }
 
-py::object DynKernelPy::Load(at::IntArrayRef shape, at::ScalarType dtype)
+py::object DynKernelPy::Load(py::object shape, DataTypePy type)
 {
-    auto ref = GetDynLoadShapeRef(shape.size());
+    auto shape_seq = shape.cast<py::sequence>();
+    auto ref = GetDynLoadShapeRef(shape_seq.size());
     ShapeRef* shape_ref = &ref->shape;
-    auto op = kernel_.Load(nullptr, shape_ref, TorchDtype2DvmDType(dtype));
+    auto op = kernel_.Load(nullptr, shape_ref, type);
     loads_.emplace_back(op);
-    return py::cast(std::make_shared<NDObjectPy>(op));
+    return ObjToPy(op);
 }
 
-py::object DynKernelPy::ViewLoad(at::IntArrayRef shape, at::IntArrayRef stride, at::ScalarType dtype)
+py::object DynKernelPy::ViewLoad(py::object shape, py::object stride, int64_t offset, DataTypePy type)
 {
-    auto ref = GetDynLoadShapeRef(shape.size());
+    auto shape_seq = shape.cast<py::sequence>();
+    auto ref = GetDynLoadShapeRef(shape_seq.size());
     ref->stride = ref->shape;
     ShapeRef* shape_ref = &ref->shape;
     ShapeRef* stride_ref = &ref->stride;
-    const int64_t* offset_ptr = nullptr;
-    auto op = kernel_.Load(nullptr, shape_ref, stride_ref, offset_ptr, TorchDtype2DvmDType(dtype));
+    auto op = kernel_.Load(nullptr, shape_ref, stride_ref, nullptr, type);
     loads_.emplace_back(op);
-    return py::cast(std::make_shared<NDObjectPy>(op));
+    return ObjToPy(op);
 }
 
-py::object KernelPy::Store(py::object obj, py::object dtype)
+py::object TorchKernelPy::Store(py::object obj, DataTypePy type)
 {
-    auto in_obj = obj.cast<NDOpPyPtr>()->Get();
-    if (!dtype.is_none()) {
-        auto store_type = TorchDtype2DvmDType(dtype.cast<at::ScalarType>());
-        if (store_type != kernel_.GetDType(in_obj)) {
-            in_obj = kernel_.Cast(in_obj, store_type);
-        }
+    auto in_obj = PyToObj(obj);
+    if (type != kDataTypeEnd) {
+        in_obj = kernel_.Cast(in_obj, type);
     }
     auto op = kernel_.Store(nullptr, in_obj);
-    return py::cast(std::make_shared<NDObjectPy>(stores_.emplace_back(op)));
+    return ObjToPy(stores_.emplace_back(op));
 }
 
-void KernelPy::SetStoreInplace(py::object obj)
-{
-    auto store = obj.cast<NDOpPyPtr>()->Get();
-    kernel_.SetStoreInplace(store);
-}
-
-py::object KernelPy::ElementAny(py::object input)
-{
-    auto in_obj = input.cast<NDOpPyPtr>()->Get();
-    auto op = kernel_.ElemAny(in_obj);
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-py::object KernelPy::MatMul(py::object lhs, py::object rhs, bool trans_a, bool trans_b, py::object bias)
-{
-    auto lhs_obj = lhs.cast<NDOpPyPtr>()->Get();
-    auto rhs_obj = rhs.cast<NDOpPyPtr>()->Get();
-    auto op =
-        kernel_.MatMul(lhs_obj, rhs_obj, trans_a, trans_b, bias.is_none() ? nullptr : bias.cast<NDOpPyPtr>()->Get());
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-py::object KernelPy::GroupedMatMul(py::object lhs, py::object rhs, bool trans_a, bool trans_b, py::object bias,
-                                   py::object group_list, int64_t group_type, int64_t group_list_type)
-{
-    auto lhs_obj = lhs.cast<NDOpPyPtr>()->Get();
-    auto rhs_obj = rhs.cast<NDOpPyPtr>()->Get();
-    NDObject* bias_obj = bias.is_none() ? nullptr : bias.cast<NDOpPyPtr>()->Get();
-    NDObject* group_list_obj = group_list.is_none() ? nullptr : group_list.cast<NDOpPyPtr>()->Get();
-    auto op = kernel_.GroupedMatMul(lhs_obj, rhs_obj, trans_a, trans_b, bias_obj, group_list_obj, GroupType(group_type),
-                                    (GroupListType)group_list_type);
-    return py::cast(std::make_shared<NDObjectPy>(op));
-}
-
-void KernelPy::ParallelNext() { kernel_.ParallelNext(); }
-void KernelPy::SpecNext() { kernel_.SpecNext(); }
-
-void KernelPy::Setup()
+void TorchKernelPy::Setup()
 {
     SetupRelocs();
     ws_size_ = kernel_.CodeGen();
 }
 
-std::string KernelPy::DisAssemble() { return kernel_.Das(); }
-
-std::string KernelPy::DumpGraph() { return kernel_.Dump(); }
-
-void KernelPy::SetupRelocs()
+void TorchKernelPy::SetupRelocs()
 {
     relocs_.clear();
     relocs_.reserve(loads_.size() + stores_.size());
@@ -464,11 +222,12 @@ void KernelPy::SetupRelocs()
     }
 }
 
-py::object KernelPy::Call(py::args args)
+py::object TorchKernelPy::Call(py::args args)
 {
     const auto num_inputs = loads_.size();
     const auto num_outputs = stores_.size();
-    TORCH_CHECK(args.size() == num_inputs + num_outputs);
+    TORCH_CHECK(args.size() == num_inputs + num_outputs, "DVM kernel call expects ", num_inputs + num_outputs,
+                " tensors, got ", args.size());
     std::vector<at::Tensor> tensor_list;
     std::vector<std::pair<at::Tensor, at::Tensor> > out_refs;
     auto addr = std::make_shared<std::vector<void*> >();
@@ -481,7 +240,7 @@ py::object KernelPy::Call(py::args args)
             if (i < num_inputs) {
                 tensor = tensor.contiguous();
             } else {
-                TORCH_CHECK(!tensor.is_contiguous());
+                TORCH_CHECK(!tensor.is_contiguous(), "Expected non-contiguous output tensor at index ", i);
                 tensor = out_refs.emplace_back(tensor, at::empty_like(tensor)).second;
             }
         }
@@ -500,7 +259,7 @@ py::object KernelPy::Call(py::args args)
     return py::none();
 }
 
-py::object KernelPy::CreateOutputs(const at::TensorOptions& options, void** addr)
+py::object TorchKernelPy::CreateOutputs(const at::TensorOptions& options, void** addr)
 {
     auto create_output = [this, options](NDObject* store) -> at::Tensor {
         auto shape_ref = kernel_.GetShape(store);
@@ -529,10 +288,7 @@ void GraphSplitKernelPy::Setup()
     kernel_.Infer();
 }
 
-void DynGraphSplitKernelPy::Setup()
-{
-    SetupRelocs();
-}
+void DynGraphSplitKernelPy::Setup() { SetupRelocs(); }
 
 int GraphSplitBase::Launch(Kernel& kernel, void** addr, aclrtStream stream, std::vector<RelocEntry>& relocs)
 {
@@ -548,7 +304,8 @@ int GraphSplitBase::Launch(Kernel& kernel, void** addr, aclrtStream stream, std:
 
 py::object GraphSplitKernelPy::Call(py::args inputs)
 {
-    TORCH_CHECK(inputs.size() == loads_.size());
+    TORCH_CHECK(inputs.size() == loads_.size(), "GraphSplitKernel expects ", loads_.size(), " inputs, got ",
+                inputs.size());
     auto addr = std::make_shared<std::vector<void*> >();
     addr->resize(relocs_.size());
     for (size_t i = 0; i < inputs.size(); i++) {
@@ -575,8 +332,7 @@ py::object DynGraphSplitKernelPy::Call(py::args inputs)
     addr->resize(relocs_.size());
     at::TensorOptions options;
     size_t input_index = 0;
-    size_t sym_int_index = 0;
-    size_t sym_float_index = 0;
+    size_t sym_scalar_index = 0;
     for (size_t i = 0; i < inputs.size(); i++) {
         if (THPVariable_Check(inputs[i].ptr())) {
             auto tensor = inputs[i].cast<at::Tensor>();
@@ -588,17 +344,19 @@ py::object DynGraphSplitKernelPy::Call(py::args inputs)
             ref->shape.data = tensor.sizes().data();
             options = tensor.options();
         } else if (py::isinstance<c10::SymFloat>(inputs[i])) {
-            sym_float_input_[sym_float_index++]->data_ =
+            sym_scalar_input_[sym_scalar_index++]->data_ =
                 static_cast<float>(inputs[i].cast<c10::SymFloat>().expect_float());
+        } else if (py::isinstance<c10::SymInt>(inputs[i])) {
+            sym_scalar_input_[sym_scalar_index++]->data_ = inputs[i].cast<c10::SymInt>().expect_int();
+        } else if (py::isinstance<py::float_>(inputs[i])) {
+            sym_scalar_input_[sym_scalar_index++]->data_ = inputs[i].cast<float>();
+        } else if (py::isinstance<py::int_>(inputs[i])) {
+            sym_scalar_input_[sym_scalar_index++]->data_ = inputs[i].cast<int64_t>();
         } else {
-            sym_input_[sym_int_index++]->data_ = static_cast<int32_t>(inputs[i].cast<c10::SymInt>().expect_int());
+            TORCH_CHECK(false, "Unsupported dynamic input type for DynGraphSplitKernel.");
         }
     }
-    for (size_t i = 0; i < sym_shape_.size(); i++) {
-        for (size_t j = 0; j < shapes_[i]->size; j++) {
-            shapes_[i]->shape_data[j] = static_cast<int64_t>(sym_shape_[i][j]->data_.i32);
-        }
-    }
+    UpdateSymShapeData();
     kernel_.Infer();
     auto ret = CreateOutputs(options, addr->data() + loads_.size());
     auto stream = c10_npu::getCurrentNPUStream().stream(false);
@@ -611,7 +369,7 @@ py::object DynGraphSplitKernelPy::Call(py::args inputs)
     return ret;
 }
 
-int KernelPy::Launch(void** addr, aclrtStream stream)
+int TorchKernelPy::Launch(void** addr, aclrtStream stream)
 {
     void* workspace_ptr = nullptr;
     at::Tensor workspace_tensor;
@@ -633,36 +391,41 @@ ShapeRef* DynKernelPy::SymIntArraytoShapeRef(py::object shape)
     for (size_t i = 0; i < ref->size; ++i) {
         ref->shape_data[i] = -1;
         if (py::isinstance<py::int_>(shape_array[i])) {
-            auto sym_ptr = const_input_.emplace_back(
-                std::make_shared<NDSymInt>(static_cast<int32_t>(shape_array[i].cast<int64_t>())));
+            auto sym_ptr = const_input_.emplace_back(std::make_shared<ScalarRefPy>());
+            sym_ptr->data_ = shape_array[i].cast<int64_t>();
             sym_shape.emplace_back(sym_ptr);
         } else {
-            sym_shape.emplace_back(shape_array[i].cast<NDSymIntPtr>());
+            sym_shape.emplace_back(shape_array[i].cast<ScalarRefPyPtr>());
         }
     }
     return ref;
 }
 
-void DynKernelPy::Setup()
+void DynKernelPy::UpdateSymShapeData()
 {
-    SetupRelocs();
+    for (size_t i = 0; i < sym_shape_.size(); i++) {
+        for (size_t j = 0; j < shapes_[i]->size; j++) {
+            shapes_[i]->shape_data[j] = sym_shape_[i][j]->data_.i64;
+        }
+    }
 }
+
+void DynKernelPy::Setup() { SetupRelocs(); }
 
 py::object DynKernelPy::Call(py::args args)
 {
     const auto num_inputs = loads_.size();
     const auto num_outputs = stores_.size();
-    const auto num_sym = sym_input_.size() + sym_float_input_.size();
-    const auto num_sym_float = sym_float_input_.size();
-    TORCH_CHECK(args.size() == num_inputs + num_outputs + num_sym);
+    const auto num_sym = sym_scalar_input_.size();
+    TORCH_CHECK(args.size() == num_inputs + num_outputs + num_sym, "DynKernel expects ",
+                num_inputs + num_outputs + num_sym, " args, got ", args.size());
     std::vector<at::Tensor> tensor_list;
     std::vector<std::pair<at::Tensor, at::Tensor> > out_refs;
 
     auto info = std::make_shared<DynamicInfo>();
     info->shape.reserve(num_inputs);
     info->strides.reserve(num_inputs);
-    info->symint.reserve(sym_input_.size());
-    info->symfloat.reserve(num_sym_float);
+    info->scalars.reserve(num_sym);
     info->addr.reserve(num_inputs + num_outputs);
     tensor_list.reserve(num_inputs + num_outputs);
     out_refs.reserve(num_outputs);
@@ -673,7 +436,7 @@ py::object DynKernelPy::Call(py::args args)
                 if (i < num_inputs + num_sym) {
                     tensor = tensor.contiguous();
                 } else {
-                    TORCH_CHECK(!tensor.is_contiguous());
+                    TORCH_CHECK(!tensor.is_contiguous(), "Expected non-contiguous output tensor at index ", i);
                     tensor = out_refs.emplace_back(tensor, at::empty_like(tensor)).second;
                 }
             }
@@ -684,9 +447,15 @@ py::object DynKernelPy::Call(py::args args)
             tensor_list.emplace_back(tensor);
             info->addr.emplace_back(tensor.data_ptr());
         } else if (py::isinstance<c10::SymFloat>(args[i])) {
-            info->symfloat.emplace_back(static_cast<float>(args[i].cast<c10::SymFloat>().expect_float()));
+            info->scalars.emplace_back(static_cast<float>(args[i].cast<c10::SymFloat>().expect_float()));
+        } else if (py::isinstance<c10::SymInt>(args[i])) {
+            info->scalars.emplace_back(args[i].cast<c10::SymInt>().expect_int());
+        } else if (py::isinstance<py::float_>(args[i])) {
+            info->scalars.emplace_back(args[i].cast<float>());
+        } else if (py::isinstance<py::int_>(args[i])) {
+            info->scalars.emplace_back(args[i].cast<int64_t>());
         } else {
-            info->symint.emplace_back(static_cast<int32_t>(args[i].cast<c10::SymInt>().expect_int()));
+            TORCH_CHECK(false, "Unsupported dynamic input type for DynKernel.");
         }
     }
 
@@ -700,17 +469,16 @@ py::object DynKernelPy::Call(py::args args)
             }
             ref->shape.data = info->shape[i].data();
         }
-        for (size_t i = 0; i < sym_input_.size(); i++) {
-            sym_input_[i]->data_ = info->symint[i];
-        }
-        for (size_t i = 0; i < sym_float_input_.size(); i++) {
-            sym_float_input_[i]->data_ = info->symfloat[i];
-        }
-        for (size_t i = 0; i < sym_shape_.size(); i++) {
-            for (size_t j = 0; j < shapes_[i]->size; j++) {
-                shapes_[i]->shape_data[j] = static_cast<int64_t>(sym_shape_[i][j]->data_.i32);
+        for (size_t i = 0; i < sym_scalar_input_.size(); i++) {
+            TORCH_CHECK(sym_scalar_input_[i]->data_.type == info->scalars[i].type, "Scalar type mismatch at index ", i,
+                        ": expected ", sym_scalar_input_[i]->data_.type, ", got ", info->scalars[i].type);
+            if (sym_scalar_input_[i]->data_.type == kInt64) {
+                sym_scalar_input_[i]->data_ = info->scalars[i].i64;
+            } else {
+                sym_scalar_input_[i]->data_ = info->scalars[i].f32;
             }
         }
+        UpdateSymShapeData();
         ws_size_ = kernel_.CodeGen();
         return Launch(info->addr.data(), stream);
     };
