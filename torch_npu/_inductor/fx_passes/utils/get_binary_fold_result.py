@@ -169,7 +169,9 @@ def _fold_slice(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
     if len(node.args) < 4:
         return False
     src_node, dim, start, end = node.args[0], node.args[1], node.args[2], node.args[3]
-    if not isinstance(start, int) or start != 0:
+    if not isinstance(dim, int) or not isinstance(start, int) or not isinstance(end, int):
+        return False
+    if start != 0:
         return False
 
     if end is not None and end != MAX_INT64:
@@ -209,7 +211,7 @@ def _fold_slice_scatter(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
         return False
     base_node, view_node, dim, start, end = node.args[:5]
 
-    if not isinstance(dim, int) or not isinstance(start, int):
+    if not isinstance(dim, int) or not isinstance(start, int) or not isinstance(end, int):
         return False
     base_shape = get_node_shape(base_node)
     view_shape = get_node_shape(view_node)

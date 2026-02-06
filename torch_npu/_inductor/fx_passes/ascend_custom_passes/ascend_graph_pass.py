@@ -605,6 +605,8 @@ def view_fold_pass(graph) -> None:
             changed = True
         else:
             target_shape = view.args[1]
+            if not isinstance(target_shape, list):
+                continue
             inp_shape = get_node_shape(inp)
             if inp_shape is not None:
                 if target_shape == list(inp_shape):
