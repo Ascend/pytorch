@@ -200,6 +200,24 @@ def patch_user_defined_class_variable():
     UserDefinedClassVariable._in_graph_classes = patched_in_graph_classes
 
 
+def patch_base_schedulernode():
+    from torch._inductor.scheduler import BaseSchedulerNode
+    from torch._inductor.scheduler import ExternKernelSchedulerNode 
+
+    original_get_read_write_buffer_accesses = BaseSchedulerNode.get_read_write_buffer_accesses
+
+    def new_get_read_write_buffer_accesses(
+        self_instance, include_reads: bool, include_writes: bool
+    ) -> dict[str, int]:
+        if isinstance(self_instance, ExternKernelSchedulerNode):
+            return {}
+        return original_get_read_write_buffer_accesses(
+            self_instance, include_reads, include_writes
+        )
+
+    BaseSchedulerNode.get_read_write_buffer_accesses = new_get_read_write_buffer_accesses
+
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
@@ -210,4 +228,5 @@ def add_dynamo_methods():
     patch_dynamo_optimize()
     patch_inductor_wrapper()
     patch_user_defined_class_variable()
+    patch_base_schedulernode()
 
