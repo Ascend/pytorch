@@ -2274,7 +2274,7 @@
  	"signature": "(options: dict = None)"
   },
   "torch_npu.npu.npugraph_ex.register_replacement": {
-    "signature": "(search_fn, replace_fn, example_inputs, trace_fn=<function fwd_only>, extra_check=<function _return_true>, search_fn_pattern=None)"
+    "signature": "(search_fn, replace_fn, example_inputs, trace_fn=<function fwd_only>, extra_check=<function _return_true>, search_fn_pattern=None, scalar_workaround=None, skip_duplicates=False)"
   },
   "torch_npu.distributed.run.parse_args": {
     "signature": "(args)"

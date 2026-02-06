@@ -28,8 +28,10 @@ def _return_true(match: Match):
 
 
 def register_replacement(search_fn, replace_fn, example_inputs, trace_fn=fwd_only, extra_check=_return_true,
-                         search_fn_pattern=None):
+                         search_fn_pattern=None, scalar_workaround=None, skip_duplicates=False):
     import torchair
     return torchair.patterns.pattern_pass_manager.register_replacement(search_fn, replace_fn, example_inputs,
                                                                        trace_fn=trace_fn, extra_check=extra_check,
-                                                                       search_fn_pattern=search_fn_pattern)
+                                                                       search_fn_pattern=search_fn_pattern,
+                                                                       scalar_workaround=scalar_workaround, 
+                                                                       skip_duplicates=skip_duplicates)
