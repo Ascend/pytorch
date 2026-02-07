@@ -39,6 +39,11 @@ torch_non_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch.npu.random.seed",
         "torch.npu.set_sync_debug_mode",
         "torch.npu._set_rng_state_offset",
+        "torch.npu._get_generator",
+        "torch.npu._memory_viz._frames_fmt",
+        "torch.npu._memory_viz._frame_fmt",
+        "torch.npu.amp.autocast_mode.custom_bwd",
+        "torch.npu.amp.autocast_mode.custom_fwd",
     ],
     TorchInGraphFunctionVariable,
 )
@@ -65,15 +70,10 @@ torch_c_binding_in_graph_functions_npu = dict.fromkeys(
     TorchInGraphFunctionVariable,
 )
 
+
 skip_functions_npu = dict.fromkeys(
     [
         "torch.npu.set_device",
-        "torch.npu._get_generator",
-        "torch.npu._memory_viz._frames_fmt",
-        "torch.npu._memory_viz._frame_fmt",
-        "torch.npu.amp.autocast_mode.custom_bwd",
-        "torch.npu.amp.autocast_mode.custom_fwd",
-        
     ],
     SkipFunctionVariable
 )
