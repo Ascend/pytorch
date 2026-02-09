@@ -174,9 +174,6 @@ def _fold_slice(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
     if start != 0:
         return False
 
-    if end is not None and end != MAX_INT64:
-        return False
-
     src_shape = get_node_shape(src_node)
     if src_shape is None:
         return False
