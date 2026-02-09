@@ -112,10 +112,7 @@ else:
 
         _patch_npu_inductor_ir()
 
-    if npu_config.dump_fx_graph:
-        from .lowering_fx import _register_npu_inductor_fallbacks
-    else:
-        from .lowering import _register_npu_inductor_fallbacks
+    from .lowering import _register_npu_inductor_fallbacks
 
     _register_npu_inductor_fallbacks()
     _register_npu_inductor_decompositons()

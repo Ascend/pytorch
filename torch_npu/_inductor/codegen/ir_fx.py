@@ -25,7 +25,7 @@ import torch_npu
 from torch_npu._inductor import ir as npu_ir
 from torch_npu._inductor.codegen.triton_utils import get_byte_per_numel
 from torch_npu._inductor import config as npu_config
-from ..lowering_fx import (
+from ..lowering import (
     fetch_graphs,
     merge_traced_graphs,
     node_id,

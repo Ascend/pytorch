@@ -22,10 +22,10 @@ from torch._inductor.lowering import (
     to_dtype,
     fallback_cumsum,
     _validate_reduction_axis,
-    div,
-    squeeze,
-    square,
-    sub,
+    div as div_pt,
+    squeeze as squeeze_pt,
+    square as square_pt,
+    sub as sub_pt,
     fallback_handler,
     is_boolean_type,
     make_pointwise,
@@ -34,26 +34,41 @@ from torch._inductor.lowering import (
     add_needs_realized_inputs,
     add_layout_constraint,
     require_channels_last,
-    _validate_dim,
+    _validate_dim as _validate_dim_pt,
     get_promoted_dtype,
-    add,
-    rsqrt,
-    mul
+    add as add_pt,
+    rsqrt as rsqrt_pt,
+    mul as mul_pt
 )
 
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
-from torch._inductor.lowering import (unsqueeze, index_put_as_masked_fill, index_put_fallback, needs_fallback_due_to_atomic_add_limitations, view, check_and_broadcast_indices, index_output_size_and_inner_fn, expand, clone, new_empty, scatter_fallback, full_like)
+from torch._inductor.lowering import (unsqueeze as unsqueeze_pt, index_put_as_masked_fill, index_put_fallback, needs_fallback_due_to_atomic_add_limitations, view as view_pt, check_and_broadcast_indices, index_output_size_and_inner_fn, expand as expand_pt, clone, new_empty, scatter_fallback, full_like as full_like_pt)
 from torch._inductor.virtualized import V, ops
-from torch_npu.npu._backends import get_soc_version
-from torch_npu import npu_dtype_cast, _npu_dtype_cast
-from torch_npu.npu._backends import get_soc_version
-from torch_npu._inductor import ir as npu_ir
-from torch_npu._inductor.codegen.triton_utils import NPUKernelType
+from torch._inductor import scheduler
+from torch._inductor.scheduler import Scheduler
+from ..npu._backends import get_soc_version
+from .. import npu_dtype_cast, _npu_dtype_cast
+from . import ir as npu_ir
+from .codegen.triton_utils import NPUKernelType
 from .ir import IndexputTemplate, ScatterTemplate
 from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, LOWERING_OVERLOAD_OP
 from .config import inductor_indirect_memory_mode, lowering_cat_with_concat_kernel, log, Ascend910_9391
 
 from .lowering_fallback_list import FALLBACK_LIST
+
+from . import config as npu_config
+from .lowering_fx import (
+    fetch_graphs,
+    merge_traced_graphs,
+    node_id,
+    create_fake_input,
+    subtract_graph,
+    create_fx_from_snodes_by_traced_graph,
+    create_compile_kwargs,
+    generate_fx_graph_code,
+    dump_fx_graph_code,
+    snodes_to_fx,
+    )
 
 
 def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False):
@@ -79,6 +94,23 @@ def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=Fal
 
 make_fallback = npu_make_fallback
 
+if npu_config.dump_fx_graph:
+    from .lowering_fx import (
+        _make_reduction_inner,
+        reduction_type_to_aten_fn,
+        npu_compute_ancestors,
+        _npu_prune_redundant_deps,
+        _npu_get_unmet_dep_nodes,
+        clone,
+        to_dtype
+    )
+
+    LOWERING_OVERLOAD_OP = list(set(GENERATE_LIST) | set(LOWERING_OVERLOAD_OP))
+
+    Scheduler.compute_ancestors = npu_compute_ancestors
+    scheduler._prune_redundant_deps = _npu_prune_redundant_deps
+    Scheduler._get_unmet_dep_nodes = _npu_get_unmet_dep_nodes
+
 
 def make_reduction(reduction_type: str, override_return_dtype=None):
     def inner(x, axis=None, keepdims=False, *, dtype=None):
@@ -89,7 +121,20 @@ def make_reduction(reduction_type: str, override_return_dtype=None):
             dtype=dtype,
             override_return_dtype=override_return_dtype,
         )
-        result = Reduction.create(reduction_type=reduction_type, input_node=x, **kwargs)
+        if npu_config.dump_fx_graph:
+            node_name = f'reduction_{next(node_id)}'
+            input_graphs = fetch_graphs([x, axis if axis is not None else list(range(len(x.get_size())))])
+            new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type],
+                                            node_name, keepdim=keepdims)
+            result = Reduction.create(reduction_type=reduction_type,
+                                    input_node=x,
+                                    node_name=node_name,
+                                    traced_graph=new_graph,
+                                    **kwargs)
+        else:
+            result = Reduction.create(reduction_type=reduction_type,
+                                        input_node=x,
+                                        **kwargs)
         if isinstance(
                 result.data.data, Reduction
         ):  # Only realize if reduction isn't unrolled
@@ -166,6 +211,12 @@ def _register_npu_inductor_fallbacks():
         if op in lowerings:
             del lowerings[op]
 
+    if npu_config.dump_fx_graph:
+        from .lowering_fx import _register_npu_inductor_fallbacks_fx
+        (squeeze, expand, view, unsqueeze, _validate_dim, full_like, mul, div, rsqrt, add, square, sub) = _register_npu_inductor_fallbacks_fx(make_reduction)
+    else:
+        (squeeze, expand, view, unsqueeze, _validate_dim, full_like, mul, div, rsqrt, add, square, sub) = (squeeze_pt, expand_pt, view_pt, unsqueeze_pt, _validate_dim_pt, full_like_pt, mul_pt, div_pt, rsqrt_pt, add_pt, square_pt, sub_pt)
+
     # register the reductions useing custom make_reduction
     reduce_amax = register_lowering(aten.amax)(make_reduction("max"))
     reduce_amin = register_lowering(aten.amin)(make_reduction("min"))
@@ -232,7 +283,7 @@ def _register_npu_inductor_fallbacks():
     def _convert__npu_type(x: TensorBox, dtype: torch.dtype):
         return to_dtype(x, dtype, copy=True)
 
-    def lowering_index_select(x, select_dim, indices, index_select_type):
+    def lowering_index_select(x, select_dim, indices, index_select_type, traced_graph, node_name):
         assert isinstance(x, TensorBox)
         assert isinstance(indices, TensorBox)
         assert "int" in str(indices.get_dtype())
@@ -263,6 +314,8 @@ def _register_npu_inductor_fallbacks():
             dtype=x.get_dtype(),
             inner_fn=fn,
             ranges=new_size,
+            traced_graph=traced_graph,
+            node_name=node_name
         )
 
     @register_lowering(aten.embedding, type_promotion_kind=None)
@@ -270,6 +323,14 @@ def _register_npu_inductor_fallbacks():
         node = V.current_node
         if node.meta.get("skip_lowering", False):
             return fallback_handler(aten.embedding.default)(weight, indices, padding_idx=padding_idx, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse)
+
+        if npu_config.dump_fx_graph:
+            input_graphs = fetch_graphs([weight, indices])
+            node_name = f'embedding_{next(node_id)}'
+            new_graph = merge_traced_graphs(input_graphs, torch.ops.aten.embedding.default, node_name, padding_idx=padding_idx, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse)
+        else:
+            new_graph = None
+            node_name = None
 
         if inductor_indirect_memory_mode != str(NPUKernelType.SIMT_TEMPLATE):
             return lowering.embedding(weight, indices)
@@ -283,7 +344,7 @@ def _register_npu_inductor_fallbacks():
             return True
 
         if should_use_template():
-            return lowering_index_select(weight, 0, indices, 'embedding')
+            return lowering_index_select(weight, 0, indices, 'embedding', new_graph, node_name)
         return lowering.embedding(weight, indices)
 
     @register_lowering(aten.cat)
