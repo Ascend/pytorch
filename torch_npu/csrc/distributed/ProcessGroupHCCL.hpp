@@ -1246,6 +1246,10 @@ private:
 
     c10::optional<at::Tensor> windowMem_;
 
+    uint32_t cached_aic_num;
+    
+    uint32_t cached_aiv_num;
+
 };
 
 // Dumps the HCCL comm traces and additional information about the Process
