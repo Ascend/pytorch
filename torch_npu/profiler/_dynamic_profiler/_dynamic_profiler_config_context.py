@@ -44,7 +44,7 @@ class ConfigContext:
         self._parse_prof_dir(json_data)
         self._meta_data = json_data.get('metadata', {})
         self._parse_analysis(json_data)
-        self._async_mode = json_data.get('async_mode', False)
+        self._parse_async_mode(json_data)
         self._parse_report_shape(json_data)
         self._parse_profiler_memory(json_data)
         self._parse_with_flops(json_data)
@@ -188,6 +188,16 @@ class ConfigContext:
         else:
             self._analyse = json_data.get("PROFILE_ANALYSE", 'false')
             self._analyse = self.BOOL_MAP.get(self._analyse.lower(), False)
+
+    def _parse_async_mode(self, json_data: dict):
+        if not self._is_dyno:
+            self._async_mode = json_data.get('async_mode', False)
+        else:
+            self._async_mode = json_data.get("PROFILE_ASYNC_MODE", 'false')
+            self._async_mode = self.BOOL_MAP.get(self._async_mode.lower(), False)
+        if not self._analyse and self._async_mode:
+            DynamicProfilerUtils.out_log("When analyse is False, async_mode will not take effect!",
+                                         DynamicProfilerUtils.LoggerLevelEnum.WARNING)
 
     def _parse_dyno_exp_cfg(self, json_data: dict):
         profiler_level = json_data.get('PROFILE_PROFILER_LEVEL', 'Level0')
