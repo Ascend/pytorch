@@ -67,6 +67,7 @@ import torch_npu.dynamo
 import torch_npu._C
 import torch_npu._logging
 from torch_npu.utils import patch_getenv
+from torch_npu.utils.utils import _is_interactive_command_line
 import torch_npu._afd
 from torch_npu import profiler
 from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
@@ -315,7 +316,7 @@ _inductor_register_device_op_overrides()
 # Support stream into Dynamo charts
 _patch_npu_trace_rules()
 
-if hasattr(sys, 'ps1'):
+if _is_interactive_command_line():
     os.environ["TASK_QUEUE_ENABLE"] = '0'
     warnings.warn("On the interactive interface, the value of TASK_QUEUE_ENABLE is set to 0 by default. \
                      Do not set it to 1 to prevent some unknown errors")
