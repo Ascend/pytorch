@@ -244,104 +244,6 @@ def patchelf_dynamic_library():
         subprocess.check_call(["patchelf", "--remove-needed", "libgomp.so.1", library_file], cwd=BASE_DIR)  # Compliant
 
 
-def check_pybind11_setup_helpers_import():
-    try:
-        from pybind11.setup_helpers import Pybind11Extension
-        build_Pybind11 = Pybind11Extension(
-            "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir._C",
-            sources=[
-                os.path.join(
-                    BASE_DIR,
-                    "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/extension.cpp"
-                )
-            ],
-            include_dirs=[
-                os.path.join(
-                    BASE_DIR,
-                    "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/include"
-                ),
-                os.path.join(os.getenv("ASCEND_HOME_PATH", ""), "include"),
-            ],
-            library_dirs=[
-                os.path.join(os.getenv("ASCEND_HOME_PATH", ""), "lib64"),
-                os.path.join(_anir_pkg_build_dir(), "lib"),
-            ],
-            libraries=["runtime", "cpp_common"],
-            extra_compile_args=["-std=c++17"],
-            extra_link_args=[
-                "-Wl,-rpath,$ORIGIN/lib",
-                # Ascend Toolkit system lib
-                f"-Wl,-rpath,{os.path.join(os.getenv('ASCEND_HOME_PATH', ''), 'lib64')}",
-            ],
-        )
-        return build_Pybind11
-    except ImportError:
-        return False
-    except Exception:
-        return False
-
-
-def ascend_home_exists() -> bool:
-    ascend_home = os.getenv("ASCEND_HOME_PATH", "")
-    return bool(ascend_home) and os.path.exists(ascend_home)
-
-
-def _anir_pkg_build_dir() -> str:
-    return os.path.join(
-        BASE_DIR, "build/packages/torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir"
-    )
-
-
-def _python_include_dir() -> str:
-    scheme = sysconfig.get_default_scheme()
-    if scheme == "posix_local":
-        scheme = "posix_prefix"
-    return sysconfig.get_paths(scheme=scheme)["include"]
-
-
-def build_anir_libcpp_common():
-    ascend_home = os.getenv("ASCEND_HOME_PATH", "")
-    src_path = os.path.join(
-        BASE_DIR,
-        "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/cpp_common/cpp_common.cpp"
-    )
-
-    out_dir = os.path.join(_anir_pkg_build_dir(), "lib")
-    os.makedirs(out_dir, exist_ok=True)
-    so_path = os.path.join(out_dir, "libcpp_common.so")
-
-    if os.path.exists(so_path):
-        return
-
-    import torch
-    torch_dir = os.path.dirname(os.path.realpath(torch.__file__))
-
-    cmd = [
-        which(os.environ.get("CXX", "")) or which(os.environ.get("CC", "")) or which("g++") or which("clang++"),
-        src_path,
-        f"-I{BASE_DIR}",
-        f"-I{_python_include_dir()}",
-        f"-I{os.path.join(BASE_DIR, 'torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/include')}",
-        f"-I{ascend_home}/include",
-        f"-L{ascend_home}/lib64",
-        f"-I{os.path.join(torch_dir, 'include')}",
-        "-lruntime",
-        "-lascendcl",
-        "-lprofapi",
-        "-std=c++17",
-        f"-D_GLIBCXX_USE_CXX11_ABI={int(torch._C._GLIBCXX_USE_CXX11_ABI)}",
-        "-fPIC",
-        "-shared",
-        "-o",
-        so_path,
-    ]
-
-    if cmd[0] is None:
-        raise RuntimeError("Failed to find C++ compiler (set CXX/CC or install g++/clang++)")
-
-    subprocess.check_call(cmd)
-
-
 def CppExtension(name, sources, *args, **kwargs):
     r'''
     Creates a :class:`setuptools.Extension` for C++.
@@ -482,9 +384,6 @@ class Build(build_ext, object):
     def run(self):
         self.run_command('build_clib')
         self.run_command('build_py')
-        # compile libcpp_common.so to build/packages/torch_npu/_inductor/...
-        if ascend_home_exists() and pybind11_ext:
-            build_anir_libcpp_common()
         # proceed with the normal build_ext process
         self.build_lib = os.path.relpath(os.path.join(BASE_DIR, "build/packages"))
         self.build_temp = os.path.relpath(os.path.join(BASE_DIR, "build/temp"))
@@ -608,22 +507,6 @@ def get_src_py_and_dst():
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
 
-    anir_files = [
-        "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/*.cpp",
-        "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/include/*.h",
-        "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/cpp_common/*",
-    ]
-    glob_anir_files = []
-    for regex_pattern in anir_files:
-        glob_anir_files += glob.glob(os.path.join(BASE_DIR, regex_pattern), recursive=True)
-
-    for src in glob_anir_files:
-        # Dst: torch_npu/_inductor/codegen/aoti_runtime/*.cpp
-        dst = os.path.join(
-            os.path.join(BASE_DIR, "build/packages/torch_npu/"),
-            os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")))
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        ret.append((src, dst))
 
     def add_torch_npu_codegen(codegen_src_dir, codegen_dst_dir, exclude_root_init=None):
         """
@@ -837,10 +720,6 @@ ext_modules = [CppExtension(
                            ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0')]
         )]
 
-pybind11_ext = check_pybind11_setup_helpers_import()
-if ascend_home_exists() and pybind11_ext:
-    ext_modules.append(pybind11_ext)
-
 setup(
     name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
     version=VERSION,
@@ -860,8 +739,6 @@ setup(
         'torch_npu': [
             '*.so',
             'lib/*.so*',
-            '_inductor/ascend_npu_ir/ascend_npu_ir/*.so*',
-            '_inductor/ascend_npu_ir/ascend_npu_ir/lib/*.so*',
         ],
         'torchnpugen': [
             '*.py', '**/*.py',

@@ -1,83 +1,36 @@
-#include "cpp_common.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/inductor/mlir/cpp_common.h"
 
+#include <dlfcn.h>
+#include <memory>
 #include <string.h>
 #include <sys/syscall.h>
 #include <torch_npu/csrc/framework/OpCommand.h>
 #include <torch_npu/csrc/profiler/profiler_mgr.h>
-#include <dlfcn.h>
-#include <memory>
 
-extern "C" {
-#pragma pack(1)
-typedef struct ApiDef {
-    unsigned short int magicNumber;
-    unsigned short int level;
-    unsigned int type;
-    unsigned int threadId;
-    unsigned int reserve;
-    unsigned long int beginTime;
-    unsigned long int endTime;
-    unsigned long int itemId;
-}MsprofApi;
+#include "third_party/acl/inc/experiment/msprof/toolchain/prof_api.h"
+#include "third_party/acl/inc/experiment/msprof/toolchain/prof_common.h"
 
-typedef struct NodeBasicInfo {
-    unsigned long int opName;
-    unsigned int taskType;
-    unsigned long int opType;
-    unsigned int blockDim;
-    unsigned int opFlag;
-}MsprofNodeBasicInfo;
-
-typedef struct CompactInfo {
-    unsigned short int magicNumber;
-    unsigned short int level;
-    unsigned int type;
-    unsigned int threadId;
-    unsigned int dataLen;
-    unsigned long int timeStamp;
-    union {
-        unsigned char info[40];
-        MsprofNodeBasicInfo nodeBasicInfo;
-    } data;
-}MsprofCompactInfo;
-
-extern int MsprofReportApi(unsigned int agingFlag, const MsprofApi *api);
-extern int MsprofReportCompactInfo(unsigned int  agingFlag, const void* data, unsigned int length);
-extern unsigned long int  MsprofGetHashId(char *hashInfo, size_t length);
-extern unsigned long int  MsprofSysCycleTime();
-
-extern aclError aclrtMallocHost(void **hostPtr, size_t size);
-extern aclError aclrtMalloc(void **devPtr, size_t size, aclrtMemMallocPolicy policy);
-extern aclError aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, aclrtMemcpyKind kind);
-
-extern aclError aclrtFreeHost(void *hostPtr);
-extern aclError aclrtFree(void *devPtr);
-
-typedef struct TilingMem {
+struct TilingMem {
     std::unique_ptr<void, decltype(&aclrtFreeHost)> arg_tiling_host;
     std::unique_ptr<void, decltype(&aclrtFree)> arg_tiling_device;
-    TilingMem()
-        : arg_tiling_host(nullptr, aclrtFreeHost), 
-          arg_tiling_device(nullptr, aclrtFree) 
-    {}
-}TilingMemInfo;
+    TilingMem() : arg_tiling_host(nullptr, aclrtFreeHost), arg_tiling_device(nullptr, aclrtFree) {}
+};
+using TilingMemInfo = TilingMem;
 
 TilingMemInfo MEM_CACHE;
 
-typedef struct WorkspaceMem {
+struct WorkspaceMem {
     std::unique_ptr<void, decltype(&aclrtFreeHost)> arg_workspace_host;
     std::unique_ptr<void, decltype(&aclrtFree)> arg_workspace_device;
-    WorkspaceMem()
-        : arg_workspace_host(nullptr, aclrtFreeHost), 
-          arg_workspace_device(nullptr, aclrtFree) 
-    {}
-}WorkspaceMemInfo;
+    WorkspaceMem() : arg_workspace_host(nullptr, aclrtFreeHost), arg_workspace_device(nullptr, aclrtFree) {}
+};
+using WorkspaceMemInfo = WorkspaceMem;
 
 WorkspaceMemInfo MEM_WORK_CACHE;
-}
 
-rtError_t common_launch(char* kernelName, const void* func, uint32_t gridX,
-                        void* args, uint32_t argsSize, rtStream_t stream)
+rtError_t TORCH_NPU_API common_launch(char* kernelName, const void* func, uint32_t gridX, void* args, uint32_t argsSize,
+                                      rtStream_t stream)
 {
     unsigned long int beginTime = 0;
     unsigned long int endTime = 0;
@@ -121,12 +74,12 @@ rtError_t common_launch(char* kernelName, const void* func, uint32_t gridX,
     return ret;
 }
 
-static void prepare_tiling(void* args, void* tiling_func, int64_t tilingSize, void* arg_tiling_host, 
+static void prepare_tiling(void* args, void* tiling_func, int64_t tilingSize, void* arg_tiling_host,
                            void* arg_tiling_device, uint32_t gridX, rtStream_t stream, uint32_t argsSize)
 {
-    uint32_t args_num = argsSize / sizeof(void *);
-    void **args_cast = static_cast<void **>(args);
-    
+    uint32_t args_num = argsSize / sizeof(void*);
+    void** args_cast = static_cast<void**>(args);
+
     args_cast[args_num - 5] = arg_tiling_host; // 5: TilingMemrefAlignedOffset
     args_cast[args_num - 4] = arg_tiling_host; // 4: TilingMemrefAllocatedOffset
 
@@ -137,21 +90,21 @@ static void prepare_tiling(void* args, void* tiling_func, int64_t tilingSize, vo
     // update args with tiling_key from tiling_func
 
     func_tiling_pre(args);
-    
+
     // copy host arg_tiling to device arg_tiling, and also replace corresponding place in args
-    aclError err = aclrtMemcpy(arg_tiling_device, tilingSize, arg_tiling_host,
-                tilingSize, ACL_MEMCPY_HOST_TO_DEVICE);
+    aclError err = aclrtMemcpy(arg_tiling_device, tilingSize, arg_tiling_host, tilingSize, ACL_MEMCPY_HOST_TO_DEVICE);
     if (err != ACL_ERROR_NONE) {
         printf("aclrtMemcpy Failed, err: %d \n", err);
         return;
     }
-    
+
     args_cast[args_num - 5] = arg_tiling_device;
     args_cast[args_num - 4] = arg_tiling_device;
 }
 
-rtError_t common_launch_dyn(char* kernelName, void* func, void* tiling_func, int64_t tilingSize, void* arg_tiling_host,
-                            void* arg_tiling_device, uint32_t gridX, void* args, uint32_t argsSize, rtStream_t stream)
+rtError_t TORCH_NPU_API common_launch_dyn(char* kernelName, void* func, void* tiling_func, int64_t tilingSize,
+                                          void* arg_tiling_host, void* arg_tiling_device, uint32_t gridX, void* args,
+                                          uint32_t argsSize, rtStream_t stream)
 {
     unsigned long int beginTime = 0;
     unsigned long int endTime = 0;
@@ -160,7 +113,7 @@ rtError_t common_launch_dyn(char* kernelName, void* func, void* tiling_func, int
     size_t length = strlen(kernelName);
 
     if (tilingSize != 0) {
-        void **args_cast = static_cast<void **>(args);
+        void** args_cast = static_cast<void**>(args);
         prepare_tiling(args_cast, tiling_func, tilingSize, arg_tiling_host, arg_tiling_device, gridX, stream, argsSize);
         typedef void (*mlir_func)(uint32_t, void*, void*, void*);
         mlir_func func_cast = (mlir_func)func;
@@ -168,8 +121,7 @@ rtError_t common_launch_dyn(char* kernelName, void* func, void* tiling_func, int
             beginTime = MsprofSysCycleTime();
         }
         func_cast(gridX, nullptr, stream, args);
-    }
-    else {
+    } else {
         typedef void (*mlir_func)(uint32_t, void*, void*, void*);
         mlir_func func_cast = (mlir_func)func;
         if (torch_npu::profiler::GetTraceLevel() != -1) {
@@ -210,10 +162,9 @@ rtError_t common_launch_dyn(char* kernelName, void* func, void* tiling_func, int
     return RT_ERROR_NONE;
 }
 
-void opcommand_call(const char *name, std::function<int()> launch_call)
+void TORCH_NPU_API opcommand_call(const char* name, std::function<int()> launch_call)
 {
     at_npu::native::OpCommand cmd;
-    cmd.Name(name)
-        .SetCustomHandler(launch_call)
-        .Run();
+    cmd.Name(name).SetCustomHandler(launch_call).Run();
 }
+#endif // BUILD_LIBTORCH
