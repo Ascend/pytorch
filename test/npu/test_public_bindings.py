@@ -585,7 +585,6 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.graph",
             "torch_npu._inductor.lowering_op_list",
             "torch_npu._inductor.shape_handling",
-            "torch_npu._inductor.ascend_npu_ir.build_ext",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.build_info",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.cache",
