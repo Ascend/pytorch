@@ -92,7 +92,6 @@ GENERATE_LIST2 = [
     "foreach"
 ]
 
-FALLBACK_LIST = []
 
 # Delete these op in lowering list and then update lowering list with new lowering,
 # otherwise, it will not use npu overload lowering.

@@ -1,3 +1,4 @@
+import os
 import sympy
 import torch._ops
 from torch._inductor import ir
@@ -26,7 +27,7 @@ from torch._inductor.lowering import (
     square,
     sub,
     fallback_handler,
-    logical_and,
+    is_boolean_type,
     make_pointwise,
     _make_reduction_inner,
     _validate_reduction_axis,
@@ -49,8 +50,10 @@ from torch_npu.npu._backends import get_soc_version
 from torch_npu._inductor import ir as npu_ir
 from torch_npu._inductor.codegen.triton_utils import NPUKernelType
 from .ir import IndexputTemplate, ScatterTemplate
-from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
-from .config import inductor_indirect_memory_mode, lowering_cat_with_concat_kernel
+from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, LOWERING_OVERLOAD_OP
+from .config import inductor_indirect_memory_mode, lowering_cat_with_concat_kernel, log, Ascend910_9391
+
+from .lowering_fallback_list import FALLBACK_LIST
 
 
 def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False):
@@ -126,26 +129,39 @@ def _init_set(input_list, output_set):
 
 
 def _register_npu_inductor_fallbacks():
-    gen_set = set()
-    _init_set(GENERATE_LIST, gen_set)
+    enable_fallback_list = os.environ.get('ENABLE_FALLBACK_LIST', '1').lower() in ('1', 'true', 'yes')
+    if get_soc_version() >= Ascend910_9391 and enable_fallback_list:
+        for op in lowering.lowerings:
+            if op in FALLBACK_LIST and op not in decompositions \
+                and isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+                make_fallback(op)
+        log.info(f"[npu|inductor|lowering|fallback] with FALLBACK_LIST, len(lowerings): {len(lowerings)}, "
+                 f"len(FALLBACK_LIST): {len(FALLBACK_LIST)}, make_fallback finished.")
+    else:
+        gen_set = set()
+        _init_set(GENERATE_LIST, gen_set)
+        # 把不在白名单的op fallback
+        fallback_list = set()
+        for op in lowerings:
+            if op not in decompositions and op not in gen_set:
+                if isinstance(op, torch._ops.OpOverloadPacket) or \
+                        isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+                    flag = False
+                    for gens in GENERATE_LIST2:
+                        if str(op).find(gens) != -1:
+                            flag = True
+                    if flag:
+                        continue
+                    else:
+                        make_fallback(op)
+                        fallback_list.add(str(op))
+        log.info(f"[npu|inductor|lowering|fallback] with GENERATE_LIST, len(lowerings): {len(lowerings)}, "
+                 f"len(fallback_list): {len(fallback_list)}, make_fallback finished.")
+            
+    # 把需要overload的op在lowering里删除
     overload_op_set = set()
     _init_set(LOWERING_OVERLOAD_OP, overload_op_set)
 
-    # 把不在白名单的op fallback
-    for op in lowerings:
-        if op not in decompositions and op not in gen_set:
-            if isinstance(op, torch._ops.OpOverloadPacket) or \
-                    isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
-                flag = False
-                for gens in GENERATE_LIST2:
-                    if str(op).find(gens) != -1:
-                        flag = True
-                if flag:
-                    continue
-                else:
-                    make_fallback(op)
-                    FALLBACK_LIST.append(op)
-    # 把需要overload的op在lowering里删除
     for op in overload_op_set:
         if op in lowerings:
             del lowerings[op]
