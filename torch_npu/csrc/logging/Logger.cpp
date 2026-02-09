@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sys/syscall.h>
 #include "torch_npu/csrc/logging/Logger.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
@@ -60,6 +61,9 @@ void Logger::log(LoggingLevel level, const std::string& levelStr, const int log_
     oss << "[" << getpid() << "] [" << timeBuffer << ":" << std::setfill('0') << std::setw(3) << nowMs << "] "
         << name_ << ": [" << levelStr << "] [" << syscall(SYS_gettid) << "] " << buffer << std::endl;
     std::string s = oss.str();
+    if (!npu_logging::should_log(s)) {
+        return;
+    }
     std::cerr.write(s.c_str(), s.size());
     std::cerr.flush();
 

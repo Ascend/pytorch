@@ -1,11 +1,64 @@
 #include "torch_npu/csrc/logging/LogContext.h"
+#include <cstdlib>
+#include <sstream>
 
 namespace npu_logging {
 
 LogContext &LogContext::GetInstance()
 {
     static LogContext instance;
+    instance.parseFilterFromEnv();
     return instance;
+}
+
+void LogContext::parseFilterFromEnv()
+{
+    const char* env = std::getenv("TORCH_NPU_LOGS_FILTER");
+    if (!env) {
+        return;
+    }
+
+    is_filter_set_ = true;
+
+    std::string s(env);
+    std::stringstream ss(s);
+    std::string item;
+
+    while (std::getline(ss, item, ',')) {
+        if (item.empty()) continue;
+        item = item.substr(item.find_first_not_of(" \t"),
+            item.find_last_not_of(" \t") - item.find_first_not_of(" \t") + 1);
+        if (item.empty()) continue;
+        if (item[0] == '+') {
+            has_whitelist_ = true;
+            whitelist_.insert(item.substr(1));
+        } else if (item[0] == '-') {
+            blacklist_.insert(item.substr(1));
+        }
+    }
+}
+
+bool LogContext::shouldLog(const std::string& log_content) const
+{
+    if (!is_filter_set_) {
+        return true;
+    }
+
+    for (const auto& keyword : blacklist_) {
+        if (log_content.find(keyword) != std::string::npos) {
+            return false;
+        }
+    }
+
+    if (!has_whitelist_) return true;
+
+    for (const auto& keyword : whitelist_) {
+        if (log_content.find(keyword) != std::string::npos) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // Locked from the Outside
