@@ -105,11 +105,11 @@ class TileGenerator:
 
     def calculate_config_numel(self, cfg):
         total_numel = 1
-        for i, sub_block in enumerate(self.sub_blocks):
+        for i, _ in enumerate(self.sub_blocks):
             sub_block_name = self.sub_block_name.get(i, "")
             config_sub_block = cfg.get(sub_block_name, None)
             if config_sub_block is None:
-                total_numel = total_numel * sub_block
+                total_numel = total_numel * 1
             else:
                 total_numel = total_numel * config_sub_block
         return total_numel
