@@ -3,6 +3,7 @@ import sys
 import re
 import time
 from enum import Enum
+from torch_npu.utils.utils import _is_interactive_command_line
 
 
 class _SubModuleID(Enum):
@@ -57,18 +58,19 @@ def _format_error_msg(submodule, error_code):
             return rank
         except Exception:
             return -1
+
     error_msg = ""
-    if not get_env_compact_error_output():
+    if not get_env_compact_error_output() and not _is_interactive_command_line():
         error_msg += "\n[ERROR] {time} (PID:{pid}, Device:{device}, RankID:{rank}) {error_code} {submodule_name} {error_code_msg}"
 
     return error_msg.format(
-            time=time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()),
-            pid=os.getpid(),
-            device=get_device_id(),
-            rank=get_rank_id(),
-            error_code="ERR{:0>2d}{:0>3d}".format(submodule.value, error_code.code,),
-            submodule_name=submodule.name,
-            error_code_msg=error_code.msg)
+        time=time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()),
+        pid=os.getpid(),
+        device=get_device_id(),
+        rank=get_rank_id(),
+        error_code="ERR{:0>2d}{:0>3d}".format(submodule.value, error_code.code, ),
+        submodule_name=submodule.name,
+        error_code_msg=error_code.msg)
 
 
 def pta_error(error: ErrCode) -> str:
@@ -107,7 +109,7 @@ class _NPUExceptionHandler(object):
         if self.exception and re.search(exception_pattern, self.exception):
             return True
         return False
-    
+
     def set_force_stop_exception(self, flag):
         self.force_stop_flag = flag
 
