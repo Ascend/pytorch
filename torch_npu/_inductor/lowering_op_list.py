@@ -12,6 +12,8 @@ GENERATE_LIST = [
     prims.iota,
     aten.full,
     aten.mul,
+    aten.cos,
+    aten.sin,
     aten.add,
     aten.sub,
     aten.div,
