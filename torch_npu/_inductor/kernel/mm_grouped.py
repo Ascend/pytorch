@@ -72,8 +72,6 @@ def grouped_mm_args(
     mat1: List[TensorBox],
     mat2: List[TensorBox],
     offs: Optional[TensorBox],
-    layout=None,
-    output_dtype=None,
 ):
     mat1, mat2 = realize_inputs(mat1[0], mat2[0])
     if offs is not None:
@@ -81,84 +79,32 @@ def grouped_mm_args(
     mat1_size = mat1.get_size()
     mat2_size = mat2.get_size()
 
-    m1dim, m2dim = len(mat1_size), len(mat2_size)
+    from torch._inductor.ir import FixedLayout
 
-    assert m1dim == 2 or m1dim == 3
-    assert m2dim == 2 or m2dim == 3
+    out_dtype = mat1.get_dtype()
+    out_size = [mat1_size[0], mat2_size[-1]]
+    out_stride = [out_size[-1], 1]
 
-    if layout is None:
-        from torch._inductor.ir import FixedLayout
-
-        out_dtype = mat1.get_dtype()
-        alignment = 16 // out_dtype.itemsize
-
-        if m1dim == 2:
-            if m2dim == 2:
-                assert offs is not None
-                out_size = [offs.get_size()[0], mat1_size[0], mat2_size[1]]
-            else:
-                out_size = [mat1_size[0], mat2_size[-1]]
-        else:
-            if m2dim == 2:
-                out_size = [mat1_size[1], mat2_size[1]]
-            else:
-                out_size = [mat1_size[0], mat1_size[1], mat2_size[-1]]
-        size_padded = (out_size[-1] + alignment - 1) // alignment * alignment
-        if len(out_size) == 2:
-            out_stride = [size_padded, 1]
-        else:
-            out_stride = [out_size[1] * size_padded, size_padded, 1]
-
-        layout = FixedLayout(
-            mat1.get_device(),
-            out_dtype,
-            out_size,
-            out_stride,
-        )
-    else:
-        assert out_dtype is None, "out_dtype is ignored if layout is specified."
+    layout = FixedLayout(
+        mat1.get_device(),
+        out_dtype,
+        out_size,
+        out_stride,
+    )
 
     return (mat1_size, mat2_size, layout, mat1, mat2, offs)
 
 
 def create_offsets(x, m1_size, m2_size, offs_size):
-    m1_is_2d = len(m1_size) == 2
-    m2_is_2d = len(m2_size) == 2
-    if m1_is_2d:
-        if m2_is_2d:
-            k = V.graph.sizevars.size_hint(m1_size[1])
-            noffs = V.graph.sizevars.size_hint(offs_size[0])
-            step = k / noffs
+    m = V.graph.sizevars.size_hint(m1_size[0])
+    noffs = V.graph.sizevars.size_hint(offs_size[0])
+    step = m / noffs
 
-            # Note: NPU cannot support linspace with int64, in case x.dtype = torch.int64, we implemented as following
-            result = torch.linspace(
-                step, k, noffs, dtype=torch.int32, device=x.get_device()
-            )
-            return result.to(x.get_dtype())
-
-        else:
-            m = V.graph.sizevars.size_hint(m1_size[0])
-            noffs = V.graph.sizevars.size_hint(offs_size[0])
-            step = m / noffs
-
-            # Note: NPU cannot support linspace with int64, in case x.dtype = torch.int64, we implemented as following
-            result = torch.linspace(
-                step, m, noffs, dtype=torch.int32, device=x.get_device()
-            )
-            return result.to(x.get_dtype())
-    else:
-        if m2_is_2d:
-            n = V.graph.sizevars.size_hint(m2_size[0])
-            noffs = V.graph.sizevars.size_hint(offs_size[0])
-            step = n / noffs
-
-            # Note: NPU cannot support linspace with int64, in case x.dtype = torch.int64, we implemented as following
-            result = torch.linspace(
-                step, n, noffs, dtype=torch.int32, device=x.get_device()
-            )
-            return result.to(x.get_dtype())
-        else:
-            return None
+    # Note: NPU cannot support linspace with int64, in case x.dtype = torch.int64, we implemented as following
+    result = torch.linspace(
+        step, m, noffs, dtype=torch.int32, device=x.get_device()
+    )
+    return result.to(x.get_dtype())
 
 
 def check_catlass_support(
@@ -255,7 +201,7 @@ def _tuned_grouped_mm_common(
 
 
     m1_size, m2_size, layout, mat_a, mat_b, offs = grouped_mm_args(
-        mat_a, mat_b, group_list, layout=None, output_dtype=output_dtype
+        mat_a, mat_b, group_list
     )
 
     counters["aten_mm_info"][operator_name] += 1
