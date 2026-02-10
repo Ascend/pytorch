@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import warnings
 from warnings import _showwarnmsg_impl
@@ -49,3 +50,26 @@ def _apply_npu_show_warning():
         _showwarnmsg_impl(msg)
 
     warnings.showwarning = npu_show_warning
+
+
+def _is_interactive_command_line():
+    # check whether it is standard python interactive environment
+    if hasattr(sys, 'ps1'):
+        return True
+
+    # check whether it is IPython or Jupyter environment
+    try:
+        __IPYTHON__  # noqa: F821
+        return True
+    except NameError:
+        pass
+
+    # check whether it is Python REPL mode
+    if sys.flags.interactive:
+        return True
+
+    # check whether it is notebook mode
+    if 'ipykernel' in sys.modules:
+        return True
+
+    return False
