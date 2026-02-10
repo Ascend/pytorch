@@ -24,7 +24,8 @@ def get_functions_from_module(module):
 npu_functions = get_functions_from_module(npu_lowering)
 functions = get_functions_from_module(lowering)
 for name, _ in functions.items():
-    setattr(lowering, name, npu_functions[name])
+    if name in npu_functions:
+        setattr(lowering, name, npu_functions[name])
 
 extra_lowerings = set(lowering.lowerings.keys()) - set(npu_lowering.lowerings.keys())
 npu_lowering.lowerings.update({k: lowering.lowerings[k] for k in extra_lowerings})
