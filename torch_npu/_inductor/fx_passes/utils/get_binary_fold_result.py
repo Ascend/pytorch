@@ -34,6 +34,8 @@ def get_node_shape(node: torch.fx.Node):
             shape = example_value.size()
     elif 'tensor_meta' in node.meta:
         shape = node.meta['tensor_meta'].shape
+    if any(isinstance(s, torch.SymInt) for s in shape):
+        return None
     return shape
 
 
@@ -71,6 +73,9 @@ def get_binary_fold_result(
     if isinstance(inp, fx.Node):
         val_meta = get_val_meta_info(target_meta)
         node_meta = get_node_meta(inp)
+        node_meta_shape = get_node_shape(inp)
+        if node_meta_shape is None:
+            return None
         if val_meta is None:
             return None
         if node_meta is None:
@@ -88,7 +93,7 @@ def get_binary_fold_result(
             )
             propagate_fake_tensor(new_node, inp, lambda fake: fake.full(val_meta.shape))
         else:
-            if node_meta.shape == val_meta.shape:
+            if node_meta_shape == val_meta.shape:
                 expand = inp
             else:
                 if any(isinstance(s, torch.SymInt) for s in val_meta.shape):
@@ -169,11 +174,12 @@ def _fold_slice(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
     if len(node.args) < 4:
         return False
     src_node, dim, start, end = node.args[0], node.args[1], node.args[2], node.args[3]
-    if not isinstance(dim, int) or not isinstance(start, int) or not isinstance(end, int):
+    if not isinstance(dim, int) or not isinstance(start, int):
         return False
     if start != 0:
         return False
-
+    if end is not None and not isinstance(end, int):
+        return False
     src_shape = get_node_shape(src_node)
     if src_shape is None:
         return False

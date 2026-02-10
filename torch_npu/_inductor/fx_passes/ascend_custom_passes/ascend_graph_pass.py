@@ -357,10 +357,10 @@ def fold_expand(graph: torch.fx.Graph) -> None:
         target_shape = expand.args[1]
         if not isinstance(target_shape, list):
             continue
-        input_tensor = get_node_meta(inp)
-        if input_tensor is None:
+        inp_shape = get_node_shape(inp)
+        if inp_shape is None:
             continue
-        org_shape = list(input_tensor.shape)
+        org_shape = list(inp_shape)
         if _same_shape(org_shape, target_shape):
             expand.replace_all_uses_with(inp)
             propagate_fake_tensor(inp, expand, lambda x: x)
@@ -427,7 +427,7 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
                 other_node = user.args[1]
             else:
                 other_node = user.args[0]
-            if isinstance(other_node, float) or isinstance(other_node, int):
+            if isinstance(other_node, (float, int, bool)):
                 other_shape = []
                 other_val = other_node
             else:
@@ -442,19 +442,28 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
                     len(other_shape) == 0 or orig_shape[-no_broadcast_dims:] == view_shape[-no_broadcast_dims:]
                 ):
                     with graph.inserting_before(user):
+                        new_args = list(user.args)
+                        for x, arg in enumerate(new_args):
+                            if arg is node:
+                                new_args[x] = node.args[0]
+                                view_index = x
                         new_add = graph.create_node(
                             op="call_function",
                             target=user.target,
-                            args=(node.args[0], other_node),
+                            args=tuple(new_args),
                             name=user.name + "_replacement",
                         )
-                        propagate_fake_tensor(new_add, node.args[0], lambda fake: user.target(fake, other_val))
+                        if view_index == 0:
+                            propagate_fake_tensor(new_add, node.args[0], lambda fake: user.target(fake, other_val))
+                        else:
+                            propagate_fake_tensor(new_add, node.args[0], lambda fake: user.target(other_val, fake))
                         new_add_view = graph.create_node(
                             op="call_function",
                             target=node.target,
                             args=(new_add, node.args[1]),
                             name=node.name + "_replacement",
                         )
+
                         propagate_fake_tensor(new_add_view, new_add, lambda fake: node.target(fake, node.args[1]))
                     user.replace_all_uses_with(new_add_view)
                     graph.erase_node(user)
@@ -669,10 +678,14 @@ def fold_redundant_ops(graph: torch.fx.Graph):
                 if squeeze_node.args[0] is not view_node:
                     continue
                 in_meta = _get_tensor_meta(first_arg)
-                squeeze_out_meta = _get_tensor_meta(squeeze_node)  
+                squeeze_out_meta = _get_tensor_meta(squeeze_node)
+                in_shape = get_node_shape(first_arg)
+                squeeze_out_shape = get_node_shape(squeeze_node)  
                 if in_meta is None or squeeze_out_meta is None:
                     continue
-                if tuple(in_meta.shape) != tuple(squeeze_out_meta.shape):
+                if in_shape is None or squeeze_out_shape is None:
+                    continue
+                if in_shape != squeeze_out_shape:
                     continue
                 if in_meta.dtype != squeeze_out_meta.dtype:
                     continue
