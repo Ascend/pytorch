@@ -308,15 +308,22 @@ def _register_npu_inductor_fallbacks():
                 return ops.index_select(loader_name, index_loader(x_idx), var_index, set_indirect, int(x_size[select_dim]), index_select_type)
             except Exception as e:
                 return weight_loader(x_idx)
-
-        return Pointwise.create(
-            device=x.get_device(),
-            dtype=x.get_dtype(),
-            inner_fn=fn,
-            ranges=new_size,
-            traced_graph=traced_graph,
-            node_name=node_name
-        )
+        if npu_config.dump_fx_graph:
+            return Pointwise.create(
+                device=x.get_device(),
+                dtype=x.get_dtype(),
+                inner_fn=fn,
+                ranges=new_size,
+                traced_graph=traced_graph,
+                node_name=node_name
+            )
+        else:
+            return Pointwise.create(
+                device=x.get_device(),
+                dtype=x.get_dtype(),
+                inner_fn=fn,
+                ranges=new_size,
+            )
 
     @register_lowering(aten.embedding, type_promotion_kind=None)
     def embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, sparse=False):
