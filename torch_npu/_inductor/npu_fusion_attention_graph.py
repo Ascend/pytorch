@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Function
 from torch.library import Library, impl
+from torch._inductor.pattern_matcher import init_once_fakemode
 import torch_npu
 
 npu_def = Library("npu_graph", "DEF")
@@ -156,6 +157,7 @@ def npu_fusion_attention_graph(query, key, value, head_num, input_layout, pse=No
 torch_npu.npu_fusion_attention_graph = npu_fusion_attention_graph
 
 
+@init_once_fakemode
 def register_fa_pass():
     TOKEN_MAX = 2147483647
     from torch._inductor.pattern_matcher import register_replacement, fwd_only, joint_fwd_bwd
