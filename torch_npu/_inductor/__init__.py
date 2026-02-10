@@ -6,7 +6,12 @@ AsyncCompile.warm_pool()
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 
 if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
-    pass
+    try:
+        import torch_mlir
+        from torch_mlir import ir
+    except:
+        raise ImportError("torch_mlir is not installed, install it first.")
+    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
 else:
     import os
 
