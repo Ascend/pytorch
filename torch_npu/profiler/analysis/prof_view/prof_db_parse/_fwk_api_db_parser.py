@@ -132,6 +132,7 @@ class FwkApiDbParser(BaseParser):
                                                                                         node_launch_api[CannNodeLaunchApiOri.CORRELATION_ID])
                     break
                 if dequeue_list[idx][TaskQueueDataOri.START_NS] > node_launch_api[CannNodeLaunchApiOri.END_NS]:
+                    last_dequeue_index = idx
                     break
 
     def get_torch_op_connection_ids_with_enqueue(self, torch_op_apis: list, torch_op_len: int, enqeue: list, last_torch_op_index: int, connection_id: int) -> int:
@@ -143,6 +144,9 @@ class FwkApiDbParser(BaseParser):
                 last_op_api = torch_op_apis[idx]
                 last_torch_op_index = idx
             elif last_op_api:
+                break
+            if enqeue[TaskQueueDataOri.END_NS] < torch_op_apis[idx][TorchOpDataOri.START_NS]:
+                last_torch_op_index = idx
                 break
         if last_op_api:
             torch_op_apis[last_torch_op_index][TorchOpDataOri.CONNECTION_ID].append(connection_id)
@@ -164,6 +168,9 @@ class FwkApiDbParser(BaseParser):
                 elif last_op_api:
                     torch_op_apis[last_op_index][TorchOpDataOri.CONNECTION_ID].append(node_launch_api[CannNodeLaunchApiOri.CORRELATION_ID])
                     last_op_api = None
+                    break
+                if node_launch_api[CannNodeLaunchApiOri.END_NS] < torch_op_apis[idx][TorchOpDataOri.START_NS]:
+                    last_op_index = idx
                     break
 
     def set_start_string_id(self):
