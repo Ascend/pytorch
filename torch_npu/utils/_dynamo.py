@@ -206,6 +206,17 @@ def patch_base_schedulernode():
     BaseSchedulerNode.get_read_write_buffer_accesses = new_get_read_write_buffer_accesses
 
 
+def patch_builtin_variable():
+    origin_call_id = torch._dynamo.variables.builtin.BuiltinVariable.call_id
+
+    def _wrap_call_id(self, tx, *args):
+        if torch._dynamo.variables.builtin.istype(args[0], torch._dynamo.variables.streams.EventVariable):
+            return torch._dynamo.variables.ConstantVariable.create(id(args[0].value))
+        return origin_call_id(self, tx, *args)
+
+    torch._dynamo.variables.builtin.BuiltinVariable.call_id = _wrap_call_id
+
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
@@ -216,4 +227,5 @@ def add_dynamo_methods():
     patch_dynamo_optimize()
     patch_inductor_wrapper()
     patch_base_schedulernode()
+    patch_builtin_variable()
 
