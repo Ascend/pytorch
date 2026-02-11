@@ -5,8 +5,10 @@ import os
 import sys
 from typing import Any, List, Optional
 
+import sympy
 import torch
 from torch._inductor.runtime.runtime_utils import cache_dir
+from torch._inductor.virtualized import V
 from torch_npu.npu import matmul
 
 from ... import config as npu_config
@@ -113,10 +115,23 @@ def _normalize_npu_arch_to_atlas(arch: str) -> str:
     from catlass_cppgen.catlass.arch.arch import Arch
     if "910B" in arch or arch.startswith("Ascend910_93"):
         return Arch.AtlasA2
-    elif arch.startswith("Ascend910_95"):
+    elif arch.startswith("Ascend910_95") or arch.startswith("Ascend950"):
         return Arch.AtlasA5
     else:
         raise NotImplementedError(f"Unsupported npu arch: {arch}")
+
+
+def _trans_sympy_to_int(input_tuple):
+    output = []
+    for x in input_tuple:
+        if isinstance(x, (int, sympy.Integer)):
+            output.append(int(x))
+        elif isinstance(x, (sympy.Symbol, sympy.Expr)):
+            x = x.subs(V.graph.sizevars.var_to_val)
+            output.append(int(x))
+        else:
+            raise ValueError(f"Unknown shape dim type: {type(x)}, value: {x}")
+    return tuple(output)
 
 
 def _catlass_tensor_from_node(node):
@@ -125,8 +140,8 @@ def _catlass_tensor_from_node(node):
 
     if not node:
         return None
-    shape = tuple(node.get_layout().size)
-    stride = tuple(node.get_layout().stride)
+    shape = _trans_sympy_to_int(tuple(node.get_layout().size))
+    stride = _trans_sympy_to_int(tuple(node.get_layout().stride))
     element = DataType.from_dtype(node.get_dtype())
     return OpTensor.from_shape_stride(
         shape=shape,
@@ -152,6 +167,8 @@ def _catlass_tensor_from_node_for_bias(node):
     else:
         shape = tuple(node.get_layout().size)
         stride = tuple(node.get_layout().stride)
+    shape = _trans_sympy_to_int(shape)
+    stride = _trans_sympy_to_int(stride)
     element = DataType.from_dtype(node.get_dtype())
     return OpTensor.from_shape_stride(
         shape=shape,

@@ -52,6 +52,8 @@ PT_EXPORT {{kernel_call_signature}} {
     {% if template.is_group_mm %}
     uint8_t* deviceGroupList = (uint8_t*) offsets;
     {% endif %}
+
+    {{op.gen_input_template()}}
     
     {{evg_ptr}}
 

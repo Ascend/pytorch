@@ -251,7 +251,7 @@ def _bisheng_compiler() -> Optional[str]:
     if os.path.exists(os.getenv("ASCEND_HOME_PATH")):
         return os.path.realpath(
             os.path.join(
-                os.getenv("ASCEND_HOME_PATH", ""), "compiler/ccec_compiler/bin/bisheng"
+                os.getenv("ASCEND_HOME_PATH", ""), "tools/ccec_compiler/bin/bisheng"
             )
         )
     return "bisheng"
