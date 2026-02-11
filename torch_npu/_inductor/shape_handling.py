@@ -470,4 +470,7 @@ def patch_dynamo_context():
 
 
 def patch_shape_handling():
+    if getattr(patch_shape_handling, "_is_patched", False):
+        return
     patch_dynamo_context()
+    patch_shape_handling._is_patched = True
