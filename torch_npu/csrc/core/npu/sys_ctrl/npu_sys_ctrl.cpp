@@ -72,7 +72,7 @@ void SetDeterministicFromLevel()
         NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, 1));
         return;
     } else if (level != 0) {
-        ASCEND_LOGW("'torch_npu.npu.set_deterministic_level' currently only supports configuring 0/1/2; Other configurations will default to 0.");
+        TORCH_CHECK(false, "'torch_npu.npu.set_deterministic_level' currently only supports configuring 0/1/2 !", PTA_ERROR(ErrCode::VALUE));
     }
     NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
     NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, 0));
