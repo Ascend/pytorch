@@ -1241,7 +1241,8 @@ bool AclrtMallocHostWithCfgExist()
         auto func = GET_FUNC(aclrtMallocHostWithCfg);
         if (func != nullptr) {
             ASCEND_LOGI("Successfully to find function aclrtMallocHostWithCfg");
-            return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
+            return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 &&
+                c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910_95;
         }
         return false;
     }();
