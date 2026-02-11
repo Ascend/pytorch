@@ -1098,9 +1098,9 @@ ProcessGroupHCCL::ProcessGroupHCCL(
                 NPU_CHECK_ERROR(c10_npu::GetDevice(&device_id));
                 if (device_id != local_rank) {
                     ASCEND_LOGW("Device is %d, set device %d by rank config.", device_id, local_rank);
-                    NPU_CHECK_ERROR(c10_npu::SetDevice(local_rank));
                     device_id = local_rank;
                 }
+                NPU_CHECK_ERROR(c10_npu::SetDevice(device_id));
                 std::vector<std::shared_ptr<HCCLComm>> hcclComms(1);
                 createHCCLCommForZeroCopy(hcclComms, envMap);
                 c10_npu::NPUCachingAllocator::buildServerMemMapForHccl(device_id, hcclComms[0]);
