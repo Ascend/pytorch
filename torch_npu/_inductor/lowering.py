@@ -963,3 +963,10 @@ def _register_npu_inductor_fallbacks():
             kernel_args={**kwargs, **constant_args},
         )
         return {key: val for key, val in kwargs.items() if isinstance(val, TensorBox)}
+
+    @register_lowering(aten.slice_scatter, type_promotion_kind=None)
+    def slice_scatter(x, src, dim=0, start=None, end=None, step=1):
+        # Don't support nested mask subblock in npu
+        if "ops.masked" in str(src):
+            src.realize()
+        return lowering.slice_scatter(x, src, dim, start, end, step)

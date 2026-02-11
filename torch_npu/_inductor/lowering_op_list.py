@@ -114,6 +114,7 @@ LOWERING_OVERLOAD_OP = [
     aten.mm,
     aten.bmm,
     aten.addmm,
+    aten.slice_scatter
 ]
 
 INDIRECT_MEM_GENERATE_LIST = [

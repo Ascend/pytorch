@@ -48,7 +48,7 @@ from torch._inductor.codegen.triton import (
     get_kernel_category_by_source_code,
     get_fused_kernel_name
 )
-from torch._inductor.codegen.triton_utils import config_of, signature_of, signature_to_meta
+from torch._inductor.codegen.triton_utils import config_of, signature_of, signature_to_meta, should_unwrap_unspec_arg
 from torch._inductor.dtype_propagation import DtypePropagationOpsHandler
 from torch._inductor.runtime.hints import ReductionHint
 from torch._inductor.runtime.runtime_utils import next_power_of_2
@@ -125,6 +125,59 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
     @staticmethod
     def ceil(x):
         return f"tl_math.ceil({x})"
+
+    @staticmethod
+    def masked(mask, body, other):
+        if mask is not None and torch.version.hip is not None:
+            mask = V.kernel.cse.generate(
+                V.kernel.compute,
+                f"{mask}.to(tl.int1)",
+                dtype=torch.bool,
+            )
+
+        nodes = body.graph.find_nodes(op="output")
+
+        need_where = False
+        # If we have a tl.load with a masking operator and no other value
+        # we can add the mask here and the other value to the tl.load
+        # operator to save the branching cost.
+        for node in nodes:
+            for arg in node.args:
+                if arg.target != "load" or should_unwrap_unspec_arg(arg.args[1]):
+                    need_where = True
+                    break
+
+        value = None if need_where else other
+
+        current_subblock = None
+        for block_name, body_var in body.body.subblocks.items():
+            if body_var == body:
+                current_subblock = block_name
+                break
+
+        before_subblock = V.kernel.current_subblock
+        V.kernel.current_subblock = current_subblock
+        with V.kernel.mask_loads(mask, value=value) as new_mask:
+            result = body()
+        V.kernel.current_subblock = before_subblock
+
+        if need_where:
+            # Remove once CSEVariables track the dtype
+            if result.bounds.is_bool:
+                other = bool(other)
+            # Take dtype from result to prevent accidental promotion
+            other = V.kernel.cse.generate(
+                V.kernel.compute,
+                f"tl.full({result}.shape, {constant_repr(other)}, {result}.dtype)",
+                bounds=ValueRanges.wrap(other),
+                dtype=result.dtype,
+            )
+            ret = ops.where(new_mask, result, other)
+        else:
+            ret = result
+
+        ret.mask_vars.discard(new_mask)
+        return ret
 
     @classmethod
     def index_expr(cls, expr, dtype):
@@ -472,6 +525,7 @@ class NPUIndexTritonKernel(TritonKernel):
         self.reduce_analysis = None
         self.load_store_indexing = None
         self.npu_kernel_type = NPUKernelType.SIMD
+        self.current_subblock = None
 
     def _get_grid_type(self) -> type[triton_heuristics.GridExpr]:
         return npu_triton_heuristics.GridNpu
@@ -1333,8 +1387,9 @@ class NPUIndexTritonKernel(TritonKernel):
     def is_unified_simt_kernel(self):
         return self.npu_kernel_type == NPUKernelType.SIMT_ONLY or self.npu_kernel_type == NPUKernelType.SIMD_SIMT_MIX
 
-    def filter_masks(self, mask_vars):
-        mask_vars_copy = mask_vars.copy()
+    def filter_masks(self, mask_vars, index_vars=None):
+        variable_mask_vars = set(mask_var for mask_var in mask_vars if isinstance(mask_var, TritonCSEVariable))
+        normal_mask_vars = mask_vars.copy() - variable_mask_vars
         # This function is only allowed to remove *axis* masks that are known
         # to be redundant/invalid for current kernel shape lowering.
         #
@@ -1343,6 +1398,7 @@ class NPUIndexTritonKernel(TritonKernel):
         # can generate incorrect tl.load/tl.store.
         masked_axis_name = []
         all_axis_name = []
+        subblock_axis = set()
         for node in self.sorted_axis:
             all_axis_name.append(node.name)
             is_persistent_reduction_axis = self.persistent_reduction and node.is_reduction
@@ -1355,13 +1411,32 @@ class NPUIndexTritonKernel(TritonKernel):
                     node.is_no_loop_axis):
                     continue
 
+            # Assume schedule node will not fusion having masked_subblock
+            subblock_name = V.kernel.current_subblock
+            if subblock_name:
+                for schedule_node in V.kernel.node_schedule:
+                    subblock_axis = schedule_node._body.masked_indexing.get(subblock_name, {})
+                    if subblock_axis:
+                        break
+                if node.name in subblock_axis:
+                    continue
+
             masked_axis_name.append(node.name)
+
+        save_variable_mask = True
+        if index_vars:
+            save_variable_mask = subblock_axis.issubset({str(var) for var in index_vars})
+        for mask_var in variable_mask_vars:
+            if save_variable_mask:
+                continue
+            mask_vars.discard(mask_var)
 
         # Be careful when remove mask from load store
         # 1. Only filter axis masks; keep non-axis masks (e.g. tmp masks).
         # 2. If z0 is permute, maybe have z0_mask, z0_1_mask
         # 3. xmask, x0_mask: if axis is x, will not remove x0_mask, can't just use startswith
-        for mask_var in mask_vars_copy:
+        for mask_var in normal_mask_vars:
+            valid_mask_var = False
             mask_var_str = str(mask_var)
             matched_axis = None
 
@@ -1788,7 +1863,7 @@ class NPUIndexTritonKernel(TritonKernel):
             mask_vars = {override_mask}
         if self._load_mask:
             mask_vars.add(self._load_mask)
-        self.filter_masks(mask_vars)
+        self.filter_masks(mask_vars, index_vars)
         return IndexingOptions(index_str, mask_vars, expand_str, has_rindex, index)  # type: ignore[arg-type]
 
     def codegen_indexing(self, expr: sympy.Expr):

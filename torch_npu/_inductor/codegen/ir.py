@@ -226,6 +226,9 @@ def generate_body_indexing(body, indices):
     setattr(body, 'indirect_replacements', {})
     body.generate_indirect_replacements()
 
+    setattr(body, 'masked_indexing', {})
+    body.generate_masked_indexing()
+
 
 def remove_zero_terms_impl(expr, var_ranges):
     shape_env = V.graph.sizevars.shape_env
@@ -1004,6 +1007,54 @@ def define_npu_kernel_type(loop_body):
                         return NPUKernelType.SIMT_ONLY
 
     return NPUKernelType(inductor_indirect_memory_mode)
+
+
+def get_masked_index(loop_body, find_node, node_map):
+    all_load_indexs = set()
+    for node in find_node.args:
+        if not isinstance(node, torch.fx.node.Node):
+            continue
+        if node.name not in node_map:
+            continue
+        node = node_map[node.name]
+        if 'get_index' in node.name:
+            return {node.args[0]}
+        if 'masked_subblock' in node.name:
+            continue
+        else:
+            load_index = get_masked_index(loop_body, node, node_map)
+        if load_index:
+            all_load_indexs = all_load_indexs.union(load_index)
+
+    return all_load_indexs
+
+
+def generate_masked_indexing(self):
+    masked_index_ids = {}
+
+    def add_masked_indexing_from_graph(graph):
+        node_map = {}
+        for node in graph.nodes:
+            node_map[node.name] = node
+            if 'masked_subblock' in node.name:
+                masked_indexs = get_masked_index(self, node.args[0], node_map)
+                masked_index_ids[node.name] = masked_indexs
+
+    add_masked_indexing_from_graph(self.root_block.graph)
+    for subblock in self.subblocks.values():
+        add_masked_indexing_from_graph(subblock.graph)
+
+    for subblock_name in self.subblocks:
+        if subblock_name in masked_index_ids:
+            # change indexid to real index
+            index_vars = set()
+            for index_id in masked_index_ids[subblock_name]:
+                coefficients_dict = self.indexing[index_id].as_coefficients_dict()
+                for key, _ in coefficients_dict.items():
+                    if not key.free_symbols:
+                        continue
+                    index_vars = index_vars.union(key.free_symbols)
+            self.masked_indexing[subblock_name] = set(str(var) for var in index_vars)
 
 
 def generate_indirect_replacements(self):

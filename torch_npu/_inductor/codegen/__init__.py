@@ -11,7 +11,7 @@ from torch._inductor.ir import Reduction, LoopBody
 from torch._inductor.loop_body import CaptureIndexing
 from torch_npu._inductor.codegen._sizevars import simplify
 from torch_npu._inductor.codegen.ir import (num_splits, loopbody__call__, transform_dims_in_indexing,
-                                            substituted_dims_in_indexing, generate_indirect_replacements,
+                                            substituted_dims_in_indexing, generate_indirect_replacements, generate_masked_indexing,
                                             substitube_indirect_index,
                                             loop_body_block_index_select, simplify_indexing_index_select,
                                             loop_body_block_gather_template,
@@ -32,6 +32,7 @@ Reduction.num_splits = num_splits
 setattr(LoopBody, 'transform_dims_in_indexing', transform_dims_in_indexing)
 setattr(LoopBody, 'substituted_dims_in_indexing', substituted_dims_in_indexing)
 setattr(LoopBody, 'generate_indirect_replacements', generate_indirect_replacements)
+setattr(LoopBody, 'generate_masked_indexing', generate_masked_indexing)
 setattr(LoopBody, 'substitube_indirect_index', substitube_indirect_index)
 
 LoopBody.__call__ = loopbody__call__
