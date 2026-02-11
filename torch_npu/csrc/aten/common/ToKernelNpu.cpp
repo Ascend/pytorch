@@ -24,42 +24,6 @@ static inline c10::Device ensure_has_index(c10::Device device)
     return impl->getDevice();
 }
 
-static inline at::Tensor to_impl_npu(
-    const at::Tensor& self,
-    const c10::TensorOptions& options,
-    bool non_blocking,
-    bool copy)
-{
-    auto memory_format = options.memory_format_opt().value_or(
-        c10::MemoryFormat::Contiguous); // Here cpu's default value is Preserve
-    if (self.dtype() == options.dtype() &&
-        self.layout() == options.layout() &&
-        self.device() == options.device() && !copy &&
-        (memory_format == c10::MemoryFormat::Preserve || self.suggest_memory_format() == memory_format)) {
-        return self;
-    }
-
-    bool pin_out = non_blocking && torch_npu::utils::is_npu(self) && options.device().is_cpu() &&
-                    (options.layout() == c10::kStrided);
-
-    if (memory_format == c10::MemoryFormat::Preserve) {
-        if (self.is_non_overlapping_and_dense()) {
-            // Copy all strides
-            auto r = at::empty_strided(
-                self.sizes(), self.strides(), options.memory_format(c10::nullopt).pinned_memory(pin_out));
-            r.copy_(self, non_blocking);
-            return r;
-        } else {
-            memory_format = self.suggest_memory_format();
-        }
-    }
-    // See Note [Explicit nullopt c10::MemoryFormat argument]
-    auto r = at::empty(
-        self.sizes(), options.memory_format(memory_format).pinned_memory(pin_out), c10::nullopt);
-    r.copy_(self, non_blocking);
-    return r;
-}
-
 at::Tensor NPUNativeFunctions::_to_copy(
     const at::Tensor& self,
     c10::optional<at::ScalarType> dtype,
@@ -69,6 +33,18 @@ at::Tensor NPUNativeFunctions::_to_copy(
     bool non_blocking,
     c10::optional<c10::MemoryFormat> optional_memory_format)
 {
+    if (dtype.has_value() && !layout.has_value() && !device.has_value()) {
+        if (self.dtype() == dtype) {
+            return self;
+        }
+        if (dtype == at::ScalarType::Double) {
+            TORCH_NPU_WARN_ONCE(
+                "Device do not support double dtype now, "
+                "dtype cast replace with float.");
+        }
+        dtype = (dtype == at::ScalarType::Double) ? at::ScalarType::Float : dtype;
+    }
+
     c10::TensorOptions options_ = c10::TensorOptions()
         .dtype(dtype)
         .layout(layout)
@@ -131,54 +107,6 @@ at::Tensor NPUNativeFunctions::_to_copy(
         self.sizes(), options.memory_format(memory_format).pinned_memory(pin_out), c10::nullopt);
     r.copy_(self, non_blocking);
     return r;
-}
-
-at::Tensor NPUNativeFunctions::to(
-    const at::Tensor& self,
-    c10::Device device,
-    at::ScalarType dtype,
-    bool non_blocking,
-    bool copy,
-    c10::optional<c10::MemoryFormat> optional_memory_format)
-{
-    device = ensure_has_index(device);
-    return to_impl_npu(
-        self,
-        self.options().device(device).dtype(dtype).memory_format(
-            optional_memory_format),
-        non_blocking,
-        copy);
-}
-
-at::Tensor NPUNativeFunctions::to(
-    const at::Tensor& self,
-    at::ScalarType dtype,
-    bool non_blocking,
-    bool copy,
-    c10::optional<c10::MemoryFormat> optional_memory_format)
-{
-    if (self.dtype() == dtype) {
-        return self;
-    }
-    if (dtype == at::ScalarType::Double) {
-        TORCH_NPU_WARN_ONCE(
-            "Device do not support double dtype now, "
-            "dtype cast replace with float.");
-    }
-    dtype = (dtype == at::ScalarType::Double) ? at::ScalarType::Float : dtype;
-    return custom_ops::_npu_dtype_cast(self, dtype);
-}
-
-at::Tensor NPUNativeFunctions::to(
-    const at::Tensor& self,
-    const at::Tensor& other,
-    bool non_blocking,
-    bool copy,
-    c10::optional<c10::MemoryFormat> optional_memory_format)
-{
-    auto options = other.options();
-    return to_impl_npu(
-        self, options.memory_format(optional_memory_format), non_blocking, copy);
 }
 
 } // namespace native
