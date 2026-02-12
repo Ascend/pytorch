@@ -52,12 +52,12 @@ Ascend Extension for PyTorch代码分支名称采用 **\{PyTorch版本\}-\{昇�
 
 **表 2**  组件间配套表
 
-|Ascend Extension for PyTorch版本|Ascend Extension for PyTorch代码分支名称|Ascend Extension for PyTorch安装包版本|openMind|DrivingSDK|
-|--|--|--|--|--|
-|7.3.0|v2.6.0-7.3.0|2.6.0.post5|1.2.0|7.3.0|
-|7.3.0|v2.7.1-7.3.0|2.7.1.post2|1.2.0|7.3.0|
-|7.3.0|v2.8.0-7.3.0|2.8.0.post2|1.2.0|7.3.0|
-|7.3.0|v2.9.0-7.3.0|2.9.0|1.2.0|7.3.0|
+|Ascend Extension for PyTorch版本|Ascend Extension for PyTorch代码分支名称|Ascend Extension for PyTorch安装包版本|DrivingSDK|
+|--|--|--|--|
+|7.3.0|v2.6.0-7.3.0|2.6.0.post5|7.3.0|
+|7.3.0|v2.7.1-7.3.0|2.7.1.post2|7.3.0|
+|7.3.0|v2.8.0-7.3.0|2.8.0.post2|7.3.0|
+|7.3.0|v2.9.0-7.3.0|2.9.0|7.3.0|
 
 ## 版本兼容性说明
 

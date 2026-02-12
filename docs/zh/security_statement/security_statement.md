@@ -14,6 +14,5 @@
 |Driving SDK|请参考《[安全声明](https://gitcode.com/Ascend/DrivingSDK/blob/branch_v7.3.0/SECURITYNOTE.md)》。|
 |TorchAir|请参考《[安全声明](https://gitcode.com/Ascend/torchair/blob/7.3.0/SECURITY_README.md)》。|
 |Ascend Extension for TensorPipe|请参考《[安全声明](https://gitcode.com/Ascend/Tensorpipe/blob/master/SECURITYNOTE.md)》。|
-|openMind|请参考《[安全声明](https://gitcode.com/Ascend/openmind/blob/master/security_statement.md)》。|
 
 
