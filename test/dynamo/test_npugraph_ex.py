@@ -45,9 +45,18 @@ class TestNpuGraphEx(TestCase):
             compiler = torch.npu.npugraph_ex.compile_fx()
             return aot_module_simplified(gm, example_inputs, fw_compiler=compiler)
 
-        compiled_model = torch.compile(Model().npu(), backend=my_backend, fullgraph=True, dynamic=False)
+        def my_backend_with_options(gm: torch.fx.GraphModule, example_inputs):
+            options = {"clone_input": False}
+            compiler = torch.npu.npugraph_ex.compile_fx(options=options)
+            return aot_module_simplified(gm, example_inputs, fw_compiler=compiler)
+
+        model = Model().npu()
+        compiled_model = torch.compile(model, backend=my_backend, fullgraph=True, dynamic=False)
         x = torch.ones(1, dtype=torch.int32, device="npu")
         y = torch.ones(1, dtype=torch.int32, device="npu")
+        z = compiled_model(x, y)
+        self.assertEqual(z.item(), 2)
+        compiled_model = torch.compile(model, backend=my_backend_with_options, fullgraph=True, dynamic=False)
         z = compiled_model(x, y)
         self.assertEqual(z.item(), 2)
 
