@@ -19,8 +19,8 @@ def compile_fx(options: dict = None):
 
     compiler_config = torchair.CompilerConfig()
     compiler_config.mode = "npugraph_ex"
-    npugraphex_config._process_kwargs_options(compiler_config, {options: options})
-    return torchair.get_compiler(npugraphex_config)
+    npugraphex_config._process_kwargs_options(compiler_config, {"options": {} if options is None else options})
+    return torchair.get_compiler(compiler_config)
 
 
 def _return_true(match: Match):
