@@ -423,6 +423,7 @@ def get_num_call_functions(graph):
             break
     return num_call_functions
 
+
 class MLIRProcessor:
     def __init__(self, bisheng_install_path: str = None):
         """
@@ -433,7 +434,7 @@ class MLIRProcessor:
         bisheng_install_path = os.getenv('BISHENG_INSTALL_PATH', '')
         self.bisheng_torch_mlir_path = os.path.join(bisheng_install_path, "bishengir-opt")
         
-    def extract_function(self, module: ir.Module) -> func_dialect.FuncOp:
+    def extract_function(self, module: Any) -> Any:
         """从MLIR模块中提取主函数并添加标记属性"""
         with module.context:
             for func in module.body.operations:
@@ -442,14 +443,14 @@ class MLIRProcessor:
                     return func
         raise ValueError("No valid FuncOp found in module")
     
-    def rebuild_mlir_module(self, module_str: str) -> ir.Module:
+    def rebuild_mlir_module(self, module_str: str) -> Any:
         """从字符串重新构建MLIR模块"""
         with ir.Context() as ctx:
             ctx.allow_unregistered_dialects = True
             torch_mlir.dialects.torch.register_dialect(ctx)
             return ir.Module.parse(module_str)
     
-    def get_signature(self, func: func_dialect.FuncOp) -> tuple:
+    def get_signature(self, func: Any) -> tuple:
         """获取函数的签名信息：类型签名、输出数量和张量维度"""
         func_type = func.type
         signature = {}
@@ -473,7 +474,7 @@ class MLIRProcessor:
         return signature, num_outputs, ranks
     
     def process_mlir(self, 
-                    module: Union[str, ir.Module], 
+                    module: Union[str, Any], 
                     get_sig: bool = True, 
                     dynamic: bool = False) -> tuple:
         """
@@ -505,7 +506,7 @@ class MLIRProcessor:
         return func_str, kernel_info
     
     def get_named_op_str(self,
-                        module: Union[str, ir.Module],
+                        module: Union[str, Any],
                         kernel_name: str,
                         dynamic: bool = False) -> Dict[str, Any]:
         """

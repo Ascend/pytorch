@@ -13,6 +13,11 @@ if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
     except:
         raise ImportError("torch_mlir is not installed, install it first.")
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+    from .ascend_npu_ir.ascend_npu_ir.npu import torch_mlir_patch
+    
+elif os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'dvm':
+    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+    from .dvm import mlir_fusion
 else:
     import os
 

@@ -25,8 +25,6 @@ from .. import config as anir_config
 from ..cache import get_cache_manager
 from .codegen.cpp_wrapper import cpp_launcher
 
-os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
-
 
 reinterpret_tensor = torch.ops.inductor._reinterpret_tensor
 global_cache = set()

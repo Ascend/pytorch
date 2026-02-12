@@ -67,7 +67,7 @@ def generate_dvm_fx_case(
             f"    out = compiled({fwd_args})",
         ]
     else:
-        fusion_env = 'os.environ["TORCHINDUCTOR_MLIR_BACKEND"] = "1"'
+        fusion_env = 'os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"'
         fusion_imports = "from torch_npu._inductor.dvm import mlir_fusion"
         compile_lines = [
             "compiled = torch.compile(model, backend=\"inductor\", dynamic=False)",
