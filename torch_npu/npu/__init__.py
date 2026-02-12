@@ -482,7 +482,7 @@ def get_device_properties(device_name=None):
 def mem_get_info(device=None):
     if device is None:
         device = torch_npu.npu.current_device()
-    device_id = _get_device_index(device)
+    device_id = _get_device_index(device, optional=True)
     if device_id < 0 or device_id >= device_count():
         raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
