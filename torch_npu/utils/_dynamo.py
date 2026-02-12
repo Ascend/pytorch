@@ -209,7 +209,7 @@ def patch_inductor_wrapper():
     
     def new_init(self, mode, options, dynamic):
         src_init(self, mode, options, dynamic)
-        if options["npu_backend"] == "mlir" or torch._inductor.config.npu_backend == "mlir":
+        if (isinstance(options, dict) and options.get("npu_backend") == "mlir") or torch._inductor.config.npu_backend == "mlir":
             import os	 
             os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
             try:
