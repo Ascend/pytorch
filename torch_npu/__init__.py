@@ -17,7 +17,6 @@ os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
 import torch
 from torch.distributed.fsdp import sharded_grad_scaler
 from torch.utils.checkpoint import DefaultDeviceType
-import torch_npu
 
 acc = torch._C._get_accelerator()
 if acc.type != "cpu":
