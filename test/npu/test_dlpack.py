@@ -14,7 +14,9 @@ class TestDLPack(TestCase):
         # Create original tensor
         if dtype == torch.bool:
             original = torch.randint(0, 2, (2, 3, 4), dtype=dtype, device=device)
-        elif dtype in [torch.int8, torch.int16, torch.int32, torch.int64, torch.uint8]:
+        elif dtype == torch.uint8:
+            original = torch.randint(0, 10, (2, 3, 4), dtype=dtype, device=device)
+        elif dtype in [torch.int8, torch.int16, torch.int32, torch.int64]:
             original = torch.randint(-10, 10, (2, 3, 4), dtype=dtype, device=device)
         else:
             original = torch.randn(2, 3, 4, dtype=dtype, device=device)
