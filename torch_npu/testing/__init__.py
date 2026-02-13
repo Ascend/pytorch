@@ -3,6 +3,7 @@ import os
 import re
 import unittest
 import warnings
+from functools import lru_cache
 import torch
 from torch.testing._internal import common_utils, common_device_type
 from torch.testing._internal.opinfo.core import OpInfo
@@ -14,6 +15,54 @@ import torch_npu
 from torch_npu.testing._npu_testing_utils import update_skip_list, get_decorators
 
 __all__ = []
+
+
+@lru_cache(maxsize=1)
+def _load_npu_opinfo_dtypes():
+    try:
+        from .npu_opinfo_dtypes import NPU_OPINFO_DTYPES
+        return dict(NPU_OPINFO_DTYPES)
+    except ModuleNotFoundError as e:
+        # Only downgrade when the config module itself is missing.
+        # Other failures (syntax errors, import-time errors, bad data, etc.)
+        # should be surfaced in tests instead of being silently ignored.
+        warnings.warn(f"npu_opinfo_dtypes config module not found: {e}")
+        return {}
+
+
+def _dtype_from_name(name):
+    try:
+        dtype = getattr(torch, name)
+    except AttributeError:
+        return None
+    return dtype if isinstance(dtype, torch.dtype) else None
+
+
+def _merge_dtypes(dtypes, extra):
+    if not extra:
+        return dtypes
+    if isinstance(dtypes, set):
+        dtypes = set(dtypes)
+        dtypes.update(extra)
+        return dtypes
+    if isinstance(dtypes, tuple):
+        dtypes = list(dtypes)
+        for dtype in extra:
+            if dtype not in dtypes:
+                dtypes.append(dtype)
+        return tuple(dtypes)
+    if isinstance(dtypes, list):
+        dtypes = list(dtypes)
+        for dtype in extra:
+            if dtype not in dtypes:
+                dtypes.append(dtype)
+        return dtypes
+    try:
+        dtypes = set(dtypes)
+        dtypes.update(extra)
+        return dtypes
+    except TypeError:
+        return set(extra)
 
 
 def _get_tests_dict():
@@ -121,7 +170,21 @@ def _check_if_enable_npu(test: unittest.TestCase):
 
 
 def _supported_dtypes(self, device_type):
-    return self.dtypes
+    dtypes = self.dtypes
+    if device_type in ("privateuse1", "npu"):
+        cfg = _load_npu_opinfo_dtypes()
+        op_cfg = cfg.get(self.name, {})
+        forward_cfg = op_cfg.get("forward", {})
+        extra_names = forward_cfg.get("extra", [])
+        extra = []
+        for name in extra_names:
+            dtype = _dtype_from_name(name)
+            if dtype is None:
+                warnings.warn(f"Unknown dtype '{name}' for op {self.name}")
+                continue
+            extra.append(dtype)
+        dtypes = _merge_dtypes(dtypes, extra)
+    return dtypes
 
 
 def _supported_backward_dtypes(self, device_type):
