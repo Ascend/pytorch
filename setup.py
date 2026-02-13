@@ -502,6 +502,24 @@ def get_src_py_and_dst():
         )
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
+        
+    anir_files = [
+        "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/*.cpp",
+        "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/_C/include/*.h",
+        "torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/cpp_common/*",
+    ]
+    glob_anir_files = []
+    for regex_pattern in anir_files:
+        glob_anir_files += glob.glob(os.path.join(BASE_DIR, regex_pattern), recursive=True)
+
+    for src in glob_anir_files:
+        # Dst: torch_npu/_inductor/codegen/aoti_runtime/*.cpp
+        dst = os.path.join(
+            os.path.join(BASE_DIR, "build/packages/torch_npu/"),
+            os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")))
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        ret.append((src, dst))
+    
 
     return ret
 

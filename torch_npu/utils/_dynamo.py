@@ -196,14 +196,6 @@ def patch_inductor_wrapper():
         src_init(self, mode, options, dynamic)
         if self.config.get("npu_backend") == "mlir" or torch._inductor.config.npu_backend == "mlir": 
             os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
-            try:
-                import torch_mlir
-                from torch_mlir import ir
-            except ImportError as e:
-                raise ImportError("torch_mlir is not installed, install it first.") from e
-            from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu import (
-                npu_inductor_plugin,
-            )
     
     _TorchCompileInductorWrapper.__call__ = new_call
     _TorchCompileInductorWrapper.apply_options = new_apply_options
