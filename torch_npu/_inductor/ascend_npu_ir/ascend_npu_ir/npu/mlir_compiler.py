@@ -1,4 +1,5 @@
 import os
+os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
 import sys
 import functools
 from typing import Callable, Dict, Any, Union, List, Tuple, Iterator
@@ -10,10 +11,8 @@ import shutil
 
 import torch
 import torch_npu
-from torch_npu._C.mlir import load_kernel_binary
 from torch._inductor.compile_fx import clone_preserve_strides
 from torch._inductor.runtime.cache_dir_utils import triton_cache_dir
-
 
 from .utils import (
     _build_npu_ext,
@@ -23,9 +22,8 @@ from .utils import (
 )
 from .. import config as anir_config
 from ..cache import get_cache_manager
+from .._C import load_kernel_binary
 from .codegen.cpp_wrapper import cpp_launcher
-
-os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
 
 
 reinterpret_tensor = torch.ops.inductor._reinterpret_tensor
