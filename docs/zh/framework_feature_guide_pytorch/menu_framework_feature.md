@@ -29,8 +29,14 @@
 
 -   [自定义算子适配开发](./custom_operator_adaptation.md)
     -   [基于OpPlugin算子适配开发](./opplugin_operator_adaptation.md)
-        -   [适配开发](./adaptation_description_opplugin.md)
+        -   [概述](./adaptation_overview_opplugin.md)
+        -   [算子适配流程](./adaptation_flow_opplugin.md)
+        -   [opplugin算子适配]()
+            -   [适配前准备](./adaptation_preparation_opplugin.md)
+            -   [适配开发](./adaptation_development_opplugin.md)
+            -   [编译验证](./adaptation_compile_opplugin.md)                                    
         -   [调用样例](./sample_call_opplugin.md)
+        -   [常见参考](./reference.md)    
 
     -   [基于C++ extensions算子适配开发](./c_extensions_operator_adaptation.md)
         -   [适配说明](./adaptation_description_extension.md)
