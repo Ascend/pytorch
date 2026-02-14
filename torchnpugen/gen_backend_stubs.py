@@ -756,7 +756,16 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
         gen_custom_ops_patch(fm, custom_functions)
 
         filt_exposed_list = filt_exposed_api(source_yaml)
-        exposed_path = pathlib.Path(__file__).parents[1].joinpath('torch_npu/utils/exposed_api.py')
+        
+        env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
+        env_aclnn_extension_path = os.getenv('ACLNN_EXTENSION_PATH')
+        # if apply aclnn extension
+        if env_aclnn_extension_switch and os.path.exists(env_aclnn_extension_path):
+            exposed_path = pathlib.Path(os.path.join(env_aclnn_extension_path, 'utils/exposed_api.py'))
+        # original code logic
+        else:
+            exposed_path = pathlib.Path(__file__).parents[1].joinpath('torch_npu/utils/exposed_api.py')
+            
         PathManager.remove_path_safety(exposed_path)
         with os.fdopen(os.open(exposed_path, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), 'w') as f:
             f.write(f'public_npu_functions = {filt_exposed_list}')

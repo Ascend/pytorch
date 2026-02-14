@@ -24,6 +24,7 @@ import os
 from torchgen.packaged.autograd.gen_inplace_or_view_type import gen_inplace_or_view_type
 from torchgen.packaged.autograd.gen_autograd_functions import gen_autograd_functions_lib
 
+import torchnpugen
 from torchnpugen.utils import get_torchgen_dir, gen_custom_yaml_path
 from .gen_variable_type import (
     gen_variable_type, gen_variable_type_head
@@ -44,7 +45,16 @@ def gen_autograd(
     differentiability_infos, native_funcs, funcs_with_diff_infos =\
         parse_derivatives(native_functions_path, tags_path, autograd_dir, npu_native_functions_path)
     npu_funcs_with_diff_infos, _, _ = filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)
-    template_path = os.path.join(autograd_dir, 'templates')
+
+    env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
+    if env_aclnn_extension_switch:
+        # if apply aclnn extension
+        torchnpugen_root = os.path.dirname(torchnpugen.__file__)
+        template_path = os.path.join(torchnpugen_root, "autograd", "templates")
+    else:
+        # original code logic
+        template_path = os.path.join(autograd_dir, 'templates')
+
     torch_template_path = os.path.join(get_torchgen_dir(), 'packaged/autograd/templates')
 
     # Generate VariableType.cpp
