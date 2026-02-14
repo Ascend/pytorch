@@ -51,6 +51,26 @@ class aot_inductor:
     dump_path_py = os.environ.get("AOTI_DUMP_PATH_PY", "aoti_dump_py")
 
 
+class _npugraph_trees:
+    def __init__(self):
+        # skip cpu node check, eg: npu_fusion_attention_v3
+        self._disable_cpu_input_check = False
+
+    @property
+    def disable_cpu_input_check(self):
+        return self._disable_cpu_input_check
+
+    @disable_cpu_input_check.setter
+    def disable_cpu_input_check(self, value):
+        self._disable_cpu_input_check = bool(value)
+        # When disable_cpu_input_check is True, set slow_path_cudagraph_asserts to True to skip the CPU check. 
+        if value:
+            torch._inductor.config.triton.slow_path_cudagraph_asserts = False
+
+
+npugraph_trees = _npugraph_trees()
+
+
 traced_fx_graph_cache = os.environ.get("INDUCTOR_ASCEND_FX_GRAPH_CACHE", None)
 check_accuracy = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY", False)
 auto_fallback = os.environ.get("INDUCTOR_ASCEND_AUTO_FALLBACK", True)
