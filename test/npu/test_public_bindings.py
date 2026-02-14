@@ -605,6 +605,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.kernel.mm_grouped",
             "torch_npu._inductor.tools",
             "torch_npu._inductor.tools.aten_op_tool",
+            "torch_npu._inductor.tools.fallback_list_tool",
             "torch_npu._inductor.codecache",
             "torch_npu._inductor.cpp_builder",
             "torch_npu._inductor.fx_passes.joint_graph",

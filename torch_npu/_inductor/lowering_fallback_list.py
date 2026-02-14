@@ -44,8 +44,10 @@ prims = torch.ops.prims
 
 
 # total： 1109
-# aten.log1p:6,aten.sin:7,aten.cos:7
-# 1109 - （6 + 7 + 7） = 1089
+# exclude：
+# aten.log1p: 6, aten.sin: 7, aten.cos: 7
+# indirect_mem: 11, lowering_override: 6
+# mkl: 12, onednn: 10
 FALLBACK_LIST = [
     _c10d_functional.all_gather_into_tensor,
     _c10d_functional.all_gather_into_tensor.default,
@@ -214,10 +216,10 @@ FALLBACK_LIST = [
     aten._to_sparse.sparse_dim_out,
     aten._trilinear.default,
     aten._trilinear.out,
-    aten._unsafe_index,
+    # aten._unsafe_index,                                       # indirect_mem
     aten._unsafe_index.Tensor,
     aten._unsafe_index.Tensor_hacked_twin,
-    aten._unsafe_index_put,
+    # aten._unsafe_index_put,                                   # indirect_mem
     aten._unsafe_index_put.hacked_twin,
     aten._unsafe_masked_index,
     aten._unsafe_masked_index.default,
@@ -257,7 +259,7 @@ FALLBACK_LIST = [
     aten.addbmm.out,
     aten.alias,
     aten.alias.default,
-    aten.amin,
+    # aten.amin,                                    # lowering_override
     aten.angle.Scalar,
     aten.angle.complex,
     aten.angle.float,
@@ -382,7 +384,7 @@ FALLBACK_LIST = [
     aten.bucketize.Scalar_out,
     aten.bucketize.Tensor,
     aten.bucketize.Tensor_out,
-    aten.cat,
+    # aten.cat,                                     # lowering_override
     aten.cat.names_out,
     aten.cat.out,
     aten.cholesky_inverse.default,
@@ -431,8 +433,8 @@ FALLBACK_LIST = [
     aten.cumprod.default,
     aten.cumprod.dimname_out,
     aten.cumprod.out,
-    aten.cumsum,
-    aten.cumsum.default,
+    # aten.cumsum,                                      # lowering_override
+    # aten.cumsum.default,                              # lowering_override
     aten.cumsum.dimname_out,
     aten.cumsum.out,
     aten.detach,
@@ -448,7 +450,7 @@ FALLBACK_LIST = [
     aten.digamma.out,
     aten.div_.Tensor,
     aten.div_.Tensor_mode,
-    aten.embedding,
+    # aten.embedding,                                   # indirect_mem
     aten.embedding.default,
     aten.embedding.out,
     aten.empty,
@@ -506,7 +508,7 @@ FALLBACK_LIST = [
     aten.frexp.Tensor_out,
     aten.frexp.default,
     aten.full_like,
-    aten.gather,
+    # aten.gather,                                  # indirect_mem
     aten.gather.default,
     aten.gather.dimname_out,
     aten.gather.out,
@@ -530,7 +532,7 @@ FALLBACK_LIST = [
     aten.igamma.out,
     aten.igammac.default,
     aten.igammac.out,
-    aten.index,
+    # aten.index,                                   # indirect_mem         
     aten.index.Tensor,
     aten.index.Tensor_hacked_twin,
     aten.index.Tensor_out,
@@ -540,11 +542,11 @@ FALLBACK_LIST = [
     aten.index.list_int,
     aten.index.list_str,
     aten.index.str,
-    aten.index_put,
+    # aten.index_put,                               # indirect_mem 
     aten.index_put.default,
     aten.index_put.hacked_twin,
     aten.index_put.out,
-    aten.index_put_,
+    # aten.index_put_,                              # indirect_mem 
     aten.index_put_.default,
     aten.index_put_.hacked_twin,
     aten.isinf,
@@ -724,7 +726,7 @@ FALLBACK_LIST = [
     aten.resize_.default,
     aten.resize_as_.default,
     aten.round.default,
-    aten.scatter,
+    # aten.scatter,                                 # indirect_mem 
     aten.scatter.reduce,
     aten.scatter.reduce_out,
     aten.scatter.src,
@@ -733,7 +735,7 @@ FALLBACK_LIST = [
     aten.scatter.value_out,
     aten.scatter.value_reduce,
     aten.scatter.value_reduce_out,
-    aten.scatter_,
+    # aten.scatter_,                                # indirect_mem 
     aten.scatter_.reduce,
     aten.scatter_.src,
     aten.scatter_.value,
@@ -743,10 +745,10 @@ FALLBACK_LIST = [
     aten.scatter_add.out,
     aten.scatter_add_,
     aten.scatter_add_.default,
-    aten.scatter_reduce,
+    # aten.scatter_reduce,                          # indirect_mem
     aten.scatter_reduce.two,
     aten.scatter_reduce.two_out,
-    aten.scatter_reduce_,
+    # aten.scatter_reduce_,                         # indirect_mem
     aten.scatter_reduce_.two, 
     aten.searchsorted.Tensor,
     aten.segment_reduce.default,
@@ -947,19 +949,19 @@ FALLBACK_LIST = [
     aten.unsqueeze_,
     aten.unsqueeze_.default,
     aten.upsample_bicubic2d_backward.default,
-    aten.upsample_bicubic2d_backward.grad_input,                                                                                                                                                                                                                                                                                                                                                                                                             
-    aten.upsample_linear1d_backward.default,
+    aten.upsample_bicubic2d_backward.grad_input, 
+    aten.upsample_linear1d_backward.default, 
     aten.upsample_linear1d_backward.grad_input,
     aten.upsample_nearest2d_backward.default,
     aten.upsample_trilinear3d_backward.default,
     aten.upsample_trilinear3d_backward.grad_input,
-    aten.var,
+    # aten.var,                                     # lowering_override
     aten.var.correction,
     aten.var.correction_names_out,
     aten.var.correction_out,
     aten.var.names_out,
     aten.var.out,
-    aten.var_mean,
+    # aten.var_mean,                                # lowering_override
     aten.var_mean.correction,
     aten.var_mean.correction_out,
     aten.view,

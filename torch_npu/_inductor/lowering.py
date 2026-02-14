@@ -174,7 +174,7 @@ def _init_set(input_list, output_set):
 
 
 def _register_npu_inductor_fallbacks():
-    enable_fallback_list = os.environ.get('ENABLE_FALLBACK_LIST', '0').lower() in ('1', 'true', 'yes')
+    enable_fallback_list = os.environ.get('ENABLE_FALLBACK_LIST', '1').lower() in ('1', 'true', 'yes')
     if get_soc_version() >= Ascend910_9391 and enable_fallback_list:
         for op in lowering.lowerings:
             if op in FALLBACK_LIST and op not in decompositions \

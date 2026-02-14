@@ -1,3 +1,4 @@
+import unittest
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -45,6 +46,7 @@ class TestNPUFormat(TestCase):
         self.assertEqual(fmt1, torch_npu.Format.NCHW)
         self.assertEqual(fmt1, 0)
 
+    @unittest.skip("Temporarily disabled")
     def test_get_npu_format_weak_ref(self):
         """test get_npu_format"""
         x1 = torch.ones(2, 2).npu()

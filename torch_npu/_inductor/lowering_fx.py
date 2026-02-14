@@ -73,7 +73,6 @@ from torch.utils._sympy.functions import (
     ModularIndexing,
 )
 from .config import log
-from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, LOWERING_OVERLOAD_OP
 
 aten = torch.ops.aten
 tr_c10d = torch.ops.tr_c10d
