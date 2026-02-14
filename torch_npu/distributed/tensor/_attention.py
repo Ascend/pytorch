@@ -271,6 +271,267 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
     return strategies
 
 
+@register_sharding(npu.npu_fusion_attention_v3.default)
+# pylint:disable=huawei-too-many-arguments
+def npu_fusion_attention_v3_strategy(query, key, value, head_num, input_layout, pse=None, padding_mask=None,
+                                  atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647,
+                                  next_tockens=2147483647, inner_precise=0, prefix=None, actual_seq_qlen=None,
+                                  actual_seq_kvlen=None, sparse_mode=0, gen_mask_parallel=True, sync=False,
+                                  softmax_layout="", sink=None):
+    strategies = []
+
+    # all replicate strategy
+    replicate_strategy = (
+        [
+            Replicate(),     # attention_out
+            Replicate(),     # softmax_max
+            Replicate(),     # softmax_sum
+            Replicate(),     # softmax_out(reserve, unused now)
+            Replicate(),     # seed
+            Replicate()      # offset
+        ],
+        [
+            Replicate(), # query
+            Replicate(), # key
+            Replicate(), # value
+            None,        # head_num
+            None,        # input_layout
+            None if pse is None else Replicate(),          # pse
+            None if padding_mask is None else Replicate(), # padding_mask
+            None if atten_mask is None else Replicate(),   # atten_mask
+            None, None, None, None, None, None, # others
+            None if actual_seq_qlen is None else Replicate(),    # actual_seq_qlen
+            None if actual_seq_kvlen is None else Replicate(),   # actual_seq_kvlen
+            None, None, None, None, # others
+            None if sink is None else Replicate() # sink
+        ]
+    )
+    strategies.append(replicate_strategy)
+
+    # only support sharding for sdpa currently, in which pse and padding_mask are not used
+    # keep_prob < 1.0 may effect different results under sharding
+    unused_args_in_sdpa = [pse, padding_mask, prefix, actual_seq_qlen, actual_seq_kvlen, sink]
+    if not all(arg is None for arg in unused_args_in_sdpa) or keep_prob < 1.0:
+        return strategies
+
+    # input layout: BSH, SBH, BSND, BNSD, TND
+    # atten_mask layout: BNSS, B1SS, 11SS, SS
+    # dp sharding strategy
+    if 'B' in input_layout:
+        batch_dim = input_layout.index('B')
+        atten_mask_sharding = None
+        if atten_mask is not None:
+            if atten_mask.ndim == 4 and atten_mask.shape[0] != 1: # BNSS, B1SS
+                atten_mask_sharding = Shard(0)
+            else: # 11SS, SS
+                atten_mask_sharding = Replicate()
+        dp_sharding_strategy = (
+            [
+                Shard(batch_dim), # attention_out
+                Shard(0),         # softmax_max layout: BNS8
+                Shard(0),         # softmax_sum layout: BNS8
+                Replicate(),      # softmax_out(reserve, unused now)
+                Replicate(),      # seed
+                Replicate()       # offset
+            ],
+            [
+                Shard(batch_dim),    # query
+                Shard(batch_dim),    # key
+                Shard(batch_dim),    # value
+                None,                # head_num
+                None,                # input_layout
+                None,                # pse
+                None,                # padding_mask
+                atten_mask_sharding, # atten_mask
+                None, None, None, None, None, None, # others
+                None if actual_seq_qlen is None else Replicate(),    # actual_seq_qlen
+                None if actual_seq_kvlen is None else Replicate(),   # actual_seq_kvlen
+                None, None, None, None, # others
+                None # sink
+            ]
+        )
+        strategies.append(dp_sharding_strategy)
+
+    # add tp sharding strategy
+    if 'N' in input_layout:
+        head_dim = input_layout.index('N')
+        atten_mask_sharding = None
+        if atten_mask is not None:
+            if atten_mask.ndim == 4 and atten_mask.shape[1] != 1: # BNSS
+                atten_mask_sharding = Shard(1)
+            else:
+                atten_mask_sharding = Replicate() # B1SS, 11SS, SS
+        tp_sharding_strategy = (
+            [
+                Shard(head_dim), # attention_out
+                Shard(1),        # softmax_max layout: BNS8
+                Shard(1),        # softmax_sum layout: BNS8
+                Replicate(),     # softmax_out(reserve, unused now)
+                Replicate(),     # seed
+                Replicate()      # offset
+            ],
+            [
+                Shard(head_dim),     # query
+                Shard(head_dim),     # key
+                Shard(head_dim),     # value
+                None,                # head_num
+                None,                # input_layout
+                None,                # pse
+                None,                # padding_mask
+                atten_mask_sharding, # atten_mask
+                None, None, None, None, None, None, # others
+                None if actual_seq_qlen is None else Replicate(),    # actual_seq_qlen
+                None if actual_seq_kvlen is None else Replicate(),   # actual_seq_kvlen
+                None, None, None, None, # others
+                None # sink
+            ]
+        )
+        strategies.append(tp_sharding_strategy)
+
+    return strategies
+
+
+@register_sharding(npu.npu_fusion_attention_grad_v3.default)
+def npu_fusion_attention_grad_v3_strategy(query, key, value, dy, head_num, input_layout, pse=None, padding_mask=None,
+                                       atten_mask=None, softmax_max=None, softmax_sum=None, softmax_in=None,
+                                       attention_in=None, scale_value=1., keep_prob=1., pre_tockens=2147483647,
+                                       next_tockens=2147483647, inner_precise=0, seed=None, offset=None,
+                                       prefix=None, actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0,
+                                       gen_mask_parallel=True, sync=False, softmax_layout="", sink=None):
+    strategies = []
+
+    # all replicate strategy
+    replicate_strategy = (
+        [
+            Replicate(), # grad_query
+            Replicate(), # grad_key
+            Replicate(), # grad_value
+            Replicate(), # grad_pse(reserve, unused now)
+            Replicate()  # grad_sink
+        ],
+        [
+            Replicate(), # query
+            Replicate(), # key
+            Replicate(), # value
+            Replicate(), # dy
+            None,        # head_num
+            None,        # input_layout
+            None if pse is None else Replicate(),          # pse
+            None if padding_mask is None else Replicate(), # padding_mask
+            None if atten_mask is None else Replicate(),   # atten_mask
+            None if softmax_max is None else Replicate(),  # softmax_max
+            None if softmax_sum is None else Replicate(),  # softmax_sum
+            None if softmax_in is None else Replicate(),   # softmax_in(reserve, unused now)
+            None if attention_in is None else Replicate(), # attention_in
+            None, None, None, None, None, # others
+            None if seed is None else Replicate(),        # seed
+            None if offset is None else Replicate(),      # offset
+            None, 
+            None if actual_seq_qlen is None else Replicate(),  # actual_seq_qlen
+            None if actual_seq_kvlen is None else Replicate(), # actual_seq_kvlen
+            None, None, None, None, # others
+            None if sink is None else Replicate() # sink
+        ]
+    )
+    strategies.append(replicate_strategy)
+
+    # only support sharding for sdpa currently, in which pse and padding_mask are not used
+    # keep_prob < 1.0 may effect different results under sharding
+    unused_args_in_sdpa = [pse, padding_mask, prefix, actual_seq_qlen, actual_seq_kvlen, sink]
+    if not all(arg is None for arg in unused_args_in_sdpa) or keep_prob < 1.0:
+        return strategies
+
+    # input layout: BSH, SBH, BSND, BNSD, TND
+    # atten_mask layout: BNSS, B1SS, 11SS, SS
+    # dp sharding strategy
+    if 'B' in input_layout:
+        batch_dim = input_layout.index('B')
+        atten_mask_sharding = None
+        if atten_mask is not None:
+            if atten_mask.ndim == 4 and atten_mask.shape[0] != 1: # BNSS, B1SS
+                atten_mask_sharding = Shard(0)
+            else: # 11SS, SS
+                atten_mask_sharding = Replicate()
+        dp_sharding_strategy = (
+            [
+                Shard(batch_dim), # grad_query
+                Shard(batch_dim), # grad_key
+                Shard(batch_dim), # grad_value
+                Replicate(),      # grad_pse(reserve, unused now)
+                Replicate()       # grad_sink(unsupported now)
+            ],
+            [
+                Shard(batch_dim),    # query
+                Shard(batch_dim),    # key
+                Shard(batch_dim),    # value
+                Shard(batch_dim),    # dy
+                None,                # head_num
+                None,                # input_layout
+                None,                # pse
+                None,                # padding_mask
+                atten_mask_sharding, # atten_mask
+                Shard(0) if softmax_max is not None else None,          # softmax_max layout: BNS8
+                Shard(0) if softmax_sum is not None else None,          # softmax_sum layout: BNS8
+                None if softmax_in is None else Replicate(),            # softmax_in(reserve, unused now)
+                Shard(batch_dim) if attention_in is not None else None, # attention_in
+                None, None, None, None, None, # others
+                None if seed is None else Replicate(),        # seed
+                None if offset is None else Replicate(),      # offset
+                None, 
+                None if actual_seq_qlen is None else Replicate(),  # actual_seq_qlen
+                None if actual_seq_kvlen is None else Replicate(), # actual_seq_kvlen
+                None, None, None, None, # others
+                None # sink
+            ]
+        )
+        strategies.append(dp_sharding_strategy)
+
+    # add tp sharding strategy
+    if 'N' in input_layout:
+        head_dim = input_layout.index('N')
+        atten_mask_sharding = None
+        if atten_mask is not None:
+            if atten_mask.ndim == 4 and atten_mask.shape[1] != 1: # BNSS
+                atten_mask_sharding = Shard(1)
+            else:
+                atten_mask_sharding = Replicate() # B1SS, 11SS, SS
+        tp_sharding_strategy = (
+            [
+                Shard(head_dim), # grad_query
+                Shard(head_dim), # grad_key
+                Shard(head_dim), # grad_value
+                Replicate(),     # grad_pse(reserve, unused now)
+                Replicate()      # grad_sink(unsupported now)
+            ],
+            [
+                Shard(head_dim),     # query
+                Shard(head_dim),     # key
+                Shard(head_dim),     # value
+                Shard(head_dim),     # dy
+                None,                # head_num
+                None,                # input_layout
+                None,                # pse
+                None,                # padding_mask
+                atten_mask_sharding, # atten_mask
+                Shard(1) if softmax_max is not None else None,         # softmax_max layout: BNS8
+                Shard(1) if softmax_sum is not None else None,         # softmax_sum layout: BNS8
+                None if softmax_in is None else Replicate(),           # softmax_in(reserve, unused now)
+                Shard(head_dim) if attention_in is not None else None, # attention_in
+                None, None, None, None, None, # others
+                None if seed is None else Replicate(),        # seed
+                None if offset is None else Replicate(),      # offset
+                None, 
+                None if actual_seq_qlen is None else Replicate(),  # actual_seq_qlen
+                None if actual_seq_kvlen is None else Replicate(), # actual_seq_kvlen
+                None, None, None, None, # others
+                None # sink
+            ]
+        )
+        strategies.append(tp_sharding_strategy)
+
+    return strategies
+
+
 def _infer_npu_fusion_attention_grad_kwargs_spec(
     op_schema: OpSchema,
     output_sharding: OutputSharding
@@ -383,7 +644,7 @@ def _npu_fusion_attention_handler(
         # computation that happens in the current rank of the mesh, normal case
         local_args = get_redistributed_local_args(op_info, output_sharding)
         local_kwargs = op_info.local_kwargs
-        if op_call == npu.npu_fusion_attention.default:
+        if op_call == npu.npu_fusion_attention.default or op_call == npu.npu_fusion_attention_v3.default:
             # if sharding head_dim in qkv, need recalculate head_num in local args
             input_layout = op_info.local_args[4]
             if 'N' in input_layout:
@@ -394,10 +655,15 @@ def _npu_fusion_attention_handler(
                 local_args = tuple(local_args)
 
             # run local op computation with potentially modified args/kwargs
-            local_results = torch_npu.npu_fusion_attention(
-                *local_args, **local_kwargs
-            )
-        elif op_call == npu.npu_fusion_attention_grad.default:
+            if op_call == npu.npu_fusion_attention.default:
+                local_results = torch_npu.npu_fusion_attention(
+                    *local_args, **local_kwargs
+                )
+            else:
+                local_results = torch_npu.npu_fusion_attention_v3(
+                    *local_args, **local_kwargs
+                )
+        elif op_call == npu.npu_fusion_attention_grad.default or op_call == npu.npu_fusion_attention_grad_v3.default:
             local_kwargs = get_redistributed_local_kwargs(
                 _infer_npu_fusion_attention_grad_kwargs_spec, op_info, output_sharding
             )
@@ -409,9 +675,14 @@ def _npu_fusion_attention_handler(
                 local_query = local_args[0]
                 local_args[4] = local_query.size(head_dim)
                 local_args = tuple(local_args)
-            local_results = torch_npu.npu_fusion_attention_grad(
-                *local_args, **local_kwargs
-            )
+            if op_call == npu.npu_fusion_attention_grad.default:
+                local_results = torch_npu.npu_fusion_attention_grad(
+                    *local_args, **local_kwargs
+                )
+            else:
+                local_results = torch_npu.npu_fusion_attention_grad_v3(
+                    *local_args, **local_kwargs
+                )
         else:
             raise NotImplementedError(
                 "_npu_fusion_attention_handler only supports npu_fusion_attention and npu_fusion_attention_grad now."
@@ -443,6 +714,8 @@ def _npu_fusion_attention_handler(
 customized_ops = {
     npu.npu_fusion_attention.default: _npu_fusion_attention_handler,
     npu.npu_fusion_attention_grad.default: _npu_fusion_attention_handler,
+    npu.npu_fusion_attention_v3.default: _npu_fusion_attention_handler,
+    npu.npu_fusion_attention_grad_v3.default: _npu_fusion_attention_handler,
 }
 
 old_handlers = DTensor._op_dispatcher._custom_op_handlers

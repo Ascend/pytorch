@@ -1,4 +1,5 @@
 import functools
+import logging
 from collections import defaultdict
 from typing import (
     Any,
@@ -53,6 +54,9 @@ from torch.multiprocessing.reductions import StorageWeakRef
 import torch_npu.npu.aclnn
 
 
+log = logging.getLogger("torch_npu.aclgraph")
+
+
 def npugraph_mark_step_begin():
     from torch_npu.npu._graph_tree import mark_step_begin
     mark_step_begin()
@@ -61,10 +65,15 @@ def npugraph_mark_step_begin():
 def check_multiple_devices_or_any_cpu_nodes(
     device_node_mapping: Dict[torch.device, torch.fx.Node]
 ) -> Optional[str]:
+    from torch_npu._inductor import config as npu_config
+    if npu_config.npugraph_trees.disable_cpu_input_check:
+        device_node_mapping.pop(torch.device("cpu"), None)
+
     cpu_node = device_node_mapping.get(torch.device("cpu"))
     if cpu_node:
         msg = f"cpu device ({cpu_node.name})"
         stack_trace = _get_use_stack_trace(cpu_node)
+        log.info(f"skip with cpu node, msg is {msg}, stack_trace is {stack_trace}")
         if stack_trace:
             return format_default_skip_message(f"{msg}. Found from : \n {stack_trace}")
         return format_default_skip_message(msg)
@@ -251,7 +260,11 @@ def check_for_skip(aot_model: torch.fx.GraphModule, num_fixed) -> Optional[str]:
 
 
 def get_device_index(gm) -> int:
-    device = next(iter(get_device_node_mapping(gm)))
+    device_node_mapping = get_device_node_mapping(gm)
+    from torch_npu._inductor import config as npu_config
+    if npu_config.npugraph_trees.disable_cpu_input_check:
+        device_node_mapping.pop(torch.device("cpu"), None)
+    device = next(iter(device_node_mapping))
     if not (device.type == "npu"):
         raise RuntimeError("check device.type == npu fail", )
     return device.index
