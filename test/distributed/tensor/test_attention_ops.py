@@ -262,6 +262,193 @@ class TestAttentionOps(NPUDTensorTestBase):
         for placement in placements:
             test_placement_comb([placement], [placement], [placement])
 
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    @parametrize(
+        "sparse_mode,pre_tokens,next_tokens",
+        [
+            (0, 128, 128),
+            (1, 65536, 65536),
+            (2, 65536, 0),
+            (3, 65536, 0),
+            (4, 128, 128)
+        ]
+    )
+    def test_npu_fusion_attention_forward_bnsd(self, sparse_mode, pre_tokens, next_tokens):
+        device_mesh = self.build_device_mesh()
+
+        B, N, S, D = 4, 8, 32, 32
+        shape = (B, N, S, D)
+        query = torch.randn(shape, dtype=torch.float32, device="npu")
+        key = torch.randn(shape, dtype=torch.float32, device="npu")
+        value = torch.randn(shape, dtype=torch.float32, device="npu")
+
+        scale = 0.08838
+
+        atten_mask = get_atten_mask(shape, sparse_mode, pre_tokens, next_tokens)
+        result = torch_npu.npu_fusion_attention(
+            query, key, value, head_num=N, input_layout="BNSD", scale=scale, sparse_mode=sparse_mode,
+            atten_mask=atten_mask, pre_tockens=pre_tokens, next_tockens=next_tokens
+        )
+
+        def test_placement_comb(query_placements, key_placements, value_placements, atten_mask_placements):
+            dist_query = distribute_tensor(query, device_mesh, query_placements)
+            dist_key = distribute_tensor(key, device_mesh, key_placements)
+            dist_value = distribute_tensor(value, device_mesh, value_placements)
+            dist_atten_mask = distribute_tensor(
+                atten_mask, device_mesh, atten_mask_placements
+            ) if atten_mask is not None else None
+            dist_result = torch_npu.npu_fusion_attention(
+                dist_query, dist_key, dist_value, head_num=N, input_layout="BNSD", scale=scale,
+                sparse_mode=sparse_mode, atten_mask=dist_atten_mask,
+                pre_tockens=pre_tokens, next_tockens=next_tokens
+            )
+            self.assertEqual(dist_result[0].full_tensor(), result[0])
+            self.assertEqual(dist_result[1].full_tensor(), result[1])
+            self.assertEqual(dist_result[2].full_tensor(), result[2])
+
+        placements = [Shard(0), Shard(1), Shard(2), Shard(3), Replicate()]
+        for placement in placements:
+            if atten_mask is None or (isinstance(placement, Shard) and atten_mask.ndim <= placement.dim):
+                test_placement_comb([placement], [placement], [placement], [Replicate()])
+            else:
+                test_placement_comb([placement], [placement], [placement], [placement])
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    @parametrize(
+        "sparse_mode,pre_tokens,next_tokens",
+        [
+            (0, 128, 128),
+            (1, 65536, 65536),
+            (2, 65536, 0),
+            (3, 65536, 0),
+            (4, 128, 128)
+        ]
+    )
+    def test_npu_fusion_attention_backward_bnsd(self, sparse_mode, pre_tokens, next_tokens):
+        device_mesh = self.build_device_mesh()
+
+        B, N, S, D = 4, 8, 32, 32
+        shape = (B, N, S, D)
+        query = torch.randn(shape, dtype=torch.float32, device="npu", requires_grad=True)
+        key = torch.randn(shape, dtype=torch.float32, device="npu", requires_grad=True)
+        value = torch.randn(shape, dtype=torch.float32, device="npu", requires_grad=True)
+
+        scale = 0.08838
+
+        atten_mask = get_atten_mask(shape, sparse_mode, pre_tokens, next_tokens)
+        result = torch_npu.npu_fusion_attention(
+            query, key, value, head_num=N, input_layout="BNSD", scale=scale, sparse_mode=sparse_mode,
+            atten_mask=atten_mask, pre_tockens=pre_tokens, next_tockens=next_tokens
+        )
+        gard_y = torch.ones_like(result[0])
+        result[0].backward(gard_y)
+
+        def test_placement_comb(query_placements, key_placements, value_placements, atten_mask_placements):
+            dist_query = distribute_tensor(query, device_mesh, query_placements)
+            dist_key = distribute_tensor(key, device_mesh, key_placements)
+            dist_value = distribute_tensor(value, device_mesh, value_placements)
+            dist_atten_mask = distribute_tensor(
+                atten_mask, device_mesh, atten_mask_placements
+            ) if atten_mask is not None else None
+            dist_result = torch_npu.npu_fusion_attention(
+                dist_query, dist_key, dist_value, head_num=N, input_layout="BNSD", scale=scale,
+                sparse_mode=sparse_mode, atten_mask=dist_atten_mask,
+                pre_tockens=pre_tokens, next_tockens=next_tokens
+            )
+            dist_grad_y = distribute_tensor(gard_y, device_mesh, dist_result[0].placements)
+            dist_result[0].backward(dist_grad_y)
+            self.assertEqual(dist_result[0].full_tensor(), result[0])
+            self.assertEqual(dist_result[1].full_tensor(), result[1])
+            self.assertEqual(dist_result[2].full_tensor(), result[2])
+            self.assertEqual(dist_query.grad.full_tensor(), query.grad)
+            self.assertEqual(dist_key.grad.full_tensor(), key.grad)
+            self.assertEqual(dist_value.grad.full_tensor(), value.grad)
+
+        placements = [Shard(0), Shard(1), Shard(2), Shard(3), Replicate()]
+        for placement in placements:
+            if atten_mask is None or (isinstance(placement, Shard) and atten_mask.ndim <= placement.dim):
+                test_placement_comb([placement], [placement], [placement], [Replicate()])
+            else:
+                test_placement_comb([placement], [placement], [placement], [placement])
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_npu_fusion_attention_bsnd(self):
+        device_mesh = self.build_device_mesh()
+
+        B, N, S, D = 4, 8, 32, 32
+        shape = (B, S, N, D)
+        query = torch.randn(shape, dtype=torch.float32, device="npu", requires_grad=True)
+        key = torch.randn(shape, dtype=torch.float32, device="npu", requires_grad=True)
+        value = torch.randn(shape, dtype=torch.float32, device="npu", requires_grad=True)
+        scale = 0.08838
+
+        result = torch_npu.npu_fusion_attention(query, key, value, head_num=N, input_layout="BSND", scale=scale)
+        gard_y = torch.ones_like(result[0])
+        result[0].backward(gard_y)
+
+        def test_placement_comb(query_placements, key_placements, value_placements):
+            dist_query = distribute_tensor(query, device_mesh, query_placements)
+            dist_key = distribute_tensor(key, device_mesh, key_placements)
+            dist_value = distribute_tensor(value, device_mesh, value_placements)
+            dist_result = torch_npu.npu_fusion_attention(
+                dist_query, dist_key, dist_value, head_num=N, input_layout="BSND", scale=scale
+            )
+            dist_grad_y = distribute_tensor(gard_y, device_mesh, dist_result[0].placements)
+            dist_result[0].backward(dist_grad_y)
+            self.assertEqual(dist_result[0].full_tensor(), result[0])
+            self.assertEqual(dist_result[1].full_tensor(), result[1])
+            self.assertEqual(dist_result[2].full_tensor(), result[2])
+            self.assertEqual(dist_query.grad.full_tensor(), query.grad)
+            self.assertEqual(dist_key.grad.full_tensor(), key.grad)
+            self.assertEqual(dist_value.grad.full_tensor(), value.grad)
+
+        placements = [Shard(0), Shard(1), Shard(2), Shard(3), Replicate()]
+        for placement in placements:
+            test_placement_comb([placement], [placement], [placement])
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_npu_fusion_attention_bsh(self):
+        device_mesh = self.build_device_mesh()
+
+        B, N, S, D = 4, 8, 32, 32
+        shape = (B, S, N * D)
+        query = torch.randn(shape, dtype=torch.float32, device="npu", requires_grad=True)
+        key = torch.randn(shape, dtype=torch.float32, device="npu", requires_grad=True)
+        value = torch.randn(shape, dtype=torch.float32, device="npu", requires_grad=True)
+        scale = 0.08838
+
+        result = torch_npu.npu_fusion_attention(query, key, value, head_num=N, input_layout="BSH", scale=scale)
+        gard_y = torch.ones_like(result[0])
+        result[0].backward(gard_y)
+
+        def test_placement_comb(query_placements, key_placements, value_placements):
+            dist_query = distribute_tensor(query, device_mesh, query_placements)
+            dist_key = distribute_tensor(key, device_mesh, key_placements)
+            dist_value = distribute_tensor(value, device_mesh, value_placements)
+            dist_result = torch_npu.npu_fusion_attention(
+                dist_query, dist_key, dist_value, head_num=N, input_layout="BSH", scale=scale
+            )
+            dist_grad_y = distribute_tensor(gard_y, device_mesh, dist_result[0].placements)
+            dist_result[0].backward(dist_grad_y)
+            self.assertEqual(dist_result[0].full_tensor(), result[0])
+            self.assertEqual(dist_result[1].full_tensor(), result[1])
+            self.assertEqual(dist_result[2].full_tensor(), result[2])
+            self.assertEqual(dist_query.grad.full_tensor(), query.grad)
+            self.assertEqual(dist_key.grad.full_tensor(), key.grad)
+            self.assertEqual(dist_value.grad.full_tensor(), value.grad)
+
+        placements = [Shard(0), Shard(1), Shard(2), Replicate()]
+        for placement in placements:
+            test_placement_comb([placement], [placement], [placement])
+
 
 instantiate_parametrized_tests(TestAttentionOps)
 
