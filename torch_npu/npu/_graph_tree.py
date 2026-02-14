@@ -46,6 +46,7 @@ import threading
 import traceback
 import warnings
 import weakref
+import logging
 from collections import defaultdict
 from enum import auto, Enum
 from typing import (
@@ -113,7 +114,7 @@ StorageWeakRefPointer = int
 StorageDataPtr = int
 NBytes = int
 S = TypeVar("S", bound="StorageWeakRefWrapper")
-log = torch._logging.getArtifactLogger(__name__, "cudagraphs")
+log = logging.getLogger("torch_npu.aclgraph")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1282,7 +1283,8 @@ class NPUGraphNode:
         self.static_output_tensors = [None for _ in range(len(outputs))]
 
         for index_, out_ in enumerate(outputs):
-            if out_ is None or not isinstance(out_, torch.Tensor):
+            from torch_npu._inductor import config as npu_config
+            if out_ is None or not isinstance(out_, torch.Tensor) or (npu_config.npugraph_trees.disable_cpu_input_check and out_.is_cpu):
                 self.output_storage_alias.append(UnaliasedStorage)
                 continue
 
@@ -2196,11 +2198,7 @@ class NPUGraphTreeManager:
         if isinstance(self.current_node, NPUWarmupNode):
             raise RuntimeError("self.current_node is NPUWarmupNode object")
         graph_id = self.new_graph_id()
-        log.debug(
-            "Recording function %d of graph recording id %d",
-            function_id.id,
-            graph_id.id,
-        )
+        log.debug(f"Recording function {function_id.id} of graph recording id {graph_id.id}")
         torch.npu.synchronize()
         node = NPUGraphNode(
             self.ids_to_funcs[function_id],
@@ -2228,6 +2226,7 @@ class NPUGraphTreeManager:
         self.current_node = node
         self.path_state = ExecutionState.EXECUTION
         self.update_generation()
+        log.debug(f"execute graph, id is {self.current_node.id}")
         return node.run(new_inputs)
 
     def run_eager(
@@ -2237,12 +2236,9 @@ class NPUGraphTreeManager:
         # we will deallocate it
         already_warm = function_id in self.warmed_up_functions
         if not already_warm:
-            log.debug("Running warmup of function %d", function_id.id)
+            log.debug(f"Running warmup of function {function_id}")
         else:
-            log.debug(
-                "Running eager of function %d because ancestor needed to warm up",
-                function_id.id,
-            )
+            log.debug(f"Running eager of function {function_id} because ancestor needed to warm up")
         self.warmed_up_functions.add(function_id)
         node = NPUWarmupNode(
             self.ids_to_funcs[function_id],

@@ -40,3 +40,4 @@ def _add_logging_module():
     torch._logging._internal.register_log("recovery", "torch_npu.recovery")
     torch._logging._internal.register_log("op_plugin", "torch_npu.op_plugin")
     torch._logging._internal.register_log("env", "torch_npu.env")
+    torch._logging._internal.register_log("aclgraph", "torch_npu.aclgraph")
