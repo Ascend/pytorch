@@ -8,6 +8,7 @@ from torch._inductor.codegen.simd import SIMDKernel
 from torch._inductor.codegen.triton import TritonKernel
 from torch._inductor.codegen.triton import TritonScheduling
 from torch._inductor.codegen.triton import TritonOverrides
+from torch._inductor.codegen.triton import TritonCSEVariable
 from torch._inductor.ir import Reduction, LoopBody
 from torch_npu._inductor.codegen._sizevars import simplify
 from torch_npu._inductor.codegen.ir import (num_splits, loopbody__call__, transform_dims_in_indexing,
@@ -17,7 +18,7 @@ from torch_npu._inductor.codegen.triton import select_index_dtype
 from torch_npu._inductor.codegen.triton import is_compatible
 
 from ..config import log as npulog
-from .triton import truediv
+from .triton import truediv, patch_TritonCSEVariable__init__
 
 
 Reduction.num_splits = num_splits
@@ -30,6 +31,7 @@ LoopBody.__call__ = loopbody__call__
 TritonScheduling.select_index_dtype = select_index_dtype
 TritonScheduling.create_tiling = create_tiling
 TritonOverrides.truediv = truediv
+TritonCSEVariable.__init__ = patch_TritonCSEVariable__init__
 # triton kernel
 setattr(SIMDKernel, 'is_compatible', is_compatible)
 

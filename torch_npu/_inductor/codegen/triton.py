@@ -17,6 +17,7 @@ from typing import (
 import sympy
 import torch
 from torch._inductor import config, ir
+from torch._inductor.shape_propagation import BlockShapeType
 from torch.utils._ordered_set import OrderedSet
 from torch._inductor.codegen.common import (
     IndentedBuffer,
@@ -180,6 +181,18 @@ def truediv(x, y):
             out = f"{out}.to({triton_type(out_dtype)})"
 
     return out
+
+
+def patch_TritonCSEVariable__init__(
+    self,
+    name: str,
+    bounds: ValueRanges[Any],
+    dtype: torch.dtype,
+    shape: BlockShapeType = None,
+) -> None:
+    super(TritonCSEVariable, self).__init__(name, bounds, dtype, shape=shape)
+    self.mask_vars: OrderedSet[str] = OrderedSet()
+    assert dtype is not None, "TritonCSEVariable must have dtype"
     
 
 @staticmethod
