@@ -1,3 +1,4 @@
+import os
 import re
 from typing import List, Dict
 
@@ -25,7 +26,18 @@ from torchnpugen.utils import CUSTOM_YAML_NAME
 
 
 def parse_native_and_custom_yaml_(*args, **kwargs):
-    return parse_native_and_custom_yaml(*args, **kwargs, custom_path=f'./torch_npu/csrc/aten/{CUSTOM_YAML_NAME}')
+
+    ## if aclnn extension for customers is used:
+    env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
+    env_aclnn_extension_path = os.getenv('ACLNN_EXTENSION_PATH')
+    if env_aclnn_extension_switch and os.path.exists(env_aclnn_extension_path):
+        # if apply aclnn extension
+        custom_path = env_aclnn_extension_path
+    else:
+        # original code logic
+        custom_path = './torch_npu/csrc/aten/'
+
+    return parse_native_and_custom_yaml(*args, **kwargs, custom_path=f'{custom_path}/{CUSTOM_YAML_NAME}')
 
 
 def gen_inplace_or_view_type_env_for_npu(
