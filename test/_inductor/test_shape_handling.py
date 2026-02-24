@@ -543,6 +543,28 @@ class TestDynamicShapeCompile(TestCase):
         except Exception as e:
             self.fail(f"torch.compile raised {type(e).__name__} unexpectedly: {e}")
 
+    def test_npu_shape_handling_whit_mutil_compile(self):
+        # 多次编译同一个函数，验证 shape handling 是否正常工作
+        # 1. 首次编译触发 shape handling
+        # 2. 后续编译复用已有的 shape handling 逻辑
+        try:
+            compiled_fn = torch.compile(
+                model_fn, 
+                backend='inductor', 
+                dynamic=False, 
+                options=shape_options
+            )
+            # 第一次spilt
+            compiled_fn(torch.randn((1025, 32), device=device), torch.randn((1025, 32), device=device))
+
+            # 第二次spilt
+            compiled_fn(torch.randn((2048, 32), device=device), torch.randn((2048, 32), device=device))
+
+            # 第三次spilt
+            compiled_fn(torch.randn((10240, 32), device=device), torch.randn((10240, 32), device=device))
+        except Exception as e:
+            self.fail(f"torch.compile raised {type(e).__name__} unexpectedly: ")
+
 
 class TestUnifiedCopy(TestCase):
     def test_none_and_simple_types(self):
