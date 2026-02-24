@@ -622,8 +622,17 @@ def add_header_to_template_file():
 
 def enable_opplugin() -> bool:
     # enable op_plugin, if path of third_party/op-plugin is valid.
-    base_dir = os.path.dirname(os.path.realpath(__file__))
-    op_plugin_path = os.path.join(base_dir, '../third_party/op-plugin/op_plugin')
+    
+    env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
+    env_aclnn_extension_path = os.getenv('ACLNN_EXTENSION_PATH')
+    # if apply aclnn extension
+    if env_aclnn_extension_switch and os.path.exists(env_aclnn_extension_path):
+        op_plugin_path = os.path.join(env_aclnn_extension_path, 'op_plugin')
+    # original code logic
+    else:
+        base_dir = os.path.dirname(os.path.realpath(__file__))
+        op_plugin_path = os.path.join(base_dir, '../third_party/op-plugin/op_plugin')
+    
     return os.path.exists(op_plugin_path)
 
 
