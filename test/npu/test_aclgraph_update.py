@@ -43,7 +43,7 @@ class TestIFAAclgraphUpdate(TestCase):
         with torch.npu.graph(g):
             stream = torch.npu.current_stream()
             output = torch.empty(1, 32, 1, 128, dtype=torch.float16, device="npu")
-            softmax_lse = torch.empty(1, dtype=torch.float16, device="npu")
+            softmax_lse = torch.empty_like(res_src[1], dtype=torch.float16, device="npu")
             event.wait(stream)
             event.reset(stream)
             torch.npu.graph_task_group_begin(stream)
@@ -96,7 +96,7 @@ class TestIFAAclgraphUpdate(TestCase):
 
         with torch.npu.graph(g, auto_dispatch_capture=True):
             output = torch.empty(1, 32, 1, 128, dtype=torch.float16, device="npu")
-            softmax_lse = torch.empty(1, dtype=torch.float16, device="npu")
+            softmax_lse = torch.empty_like(res_src[1], dtype=torch.float16, device="npu")
             torch_npu.npu_fused_infer_attention_score.out(
                 query, key, value, num_heads=32, input_layout="BNSD", scale=scale, pre_tokens=65535, workspace=workspace,
                 next_tokens=65535, softmax_lse_flag=False, actual_seq_lengths=length, out=[output, softmax_lse])
@@ -126,7 +126,7 @@ class TestIFAAclgraphUpdate(TestCase):
 
         with torch.npu.graph(g, auto_dispatch_capture=True):
             output = torch.empty(1, 32, 1, 128, dtype=torch.float16, device="npu")
-            softmax_lse = torch.empty(1, dtype=torch.float16, device="npu")
+            softmax_lse = torch.empty_like(res_src[1], dtype=torch.float16, device="npu")
             output, softmax_lse = torch_npu.npu_fused_infer_attention_score(
                 query, key, value, num_heads=32, input_layout="BNSD", scale=scale, pre_tokens=65535,
                 next_tokens=65535, softmax_lse_flag=False, actual_seq_lengths=length)
@@ -224,7 +224,7 @@ class TestIFAAclgraphUpdate(TestCase):
         with torch.npu.graph(g):
             stream = torch.npu.current_stream()
             output = torch.empty(1, 32, 1, 128, dtype=torch.float16, device="npu")
-            softmax_lse = torch.empty(1, dtype=torch.float16, device="npu")
+            softmax_lse = torch.empty_like(res_src[1], dtype=torch.float16, device="npu")
             event.wait(stream)
             event.reset(stream)
             torch.npu.graph_task_group_begin(stream)
