@@ -6331,6 +6331,7 @@ def pow_recursive(x, y, dtype):
 
 
 @make_pointwise
+@register_to_aten(aten_fn=aten.pow)
 def pow_native(a, b):
     return ops.pow(a, b)
 
