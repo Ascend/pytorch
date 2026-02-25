@@ -17,6 +17,8 @@ from torch import _TorchCompileWrapper
 import torch_npu
 from torch_npu.dynamo import _get_global_npu_backend
 
+use_jit_script = False
+
 
 class NPUTorchCtxManagerClassVariable(TorchCtxManagerClassVariable):
     def call_function(self, tx, args, kwargs):
