@@ -1,9 +1,12 @@
+from unittest import skip
 import torch
 import torch_npu
+from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu._C import _weak_ref_tensor
 
 
+@SupportedDevices(['Ascend910B'])
 class TestNPUFormat(TestCase):
     
     def test_enum_values(self):
