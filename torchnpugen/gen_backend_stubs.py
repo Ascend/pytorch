@@ -761,7 +761,7 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
         env_aclnn_extension_path = os.getenv('ACLNN_EXTENSION_PATH')
         # if apply aclnn extension
         if env_aclnn_extension_switch and os.path.exists(env_aclnn_extension_path):
-            exposed_path = pathlib.Path(os.path.join(env_aclnn_extension_path, 'utils/exposed_api.py'))
+            exposed_path = pathlib.Path(os.path.join(env_aclnn_extension_path, 'torch_npu/utils/exposed_api.py'))
         # original code logic
         else:
             exposed_path = pathlib.Path(__file__).parents[1].joinpath('torch_npu/utils/exposed_api.py')
