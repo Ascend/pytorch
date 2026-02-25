@@ -320,6 +320,13 @@ if _is_interactive_command_line():
     warnings.warn("On the interactive interface, the value of TASK_QUEUE_ENABLE is set to 0 by default. \
                      Do not set it to 1 to prevent some unknown errors")
 
+# Enable transfer_to_npu via environment variable
+_transfer_to_npu_env = os.getenv("TORCH_TRANSFER_TO_NPU", "0")
+if _transfer_to_npu_env == "1":
+    from torch_npu.contrib import transfer_to_npu
+elif _transfer_to_npu_env != "0":
+    raise ValueError(f"Invalid value for TORCH_TRANSFER_TO_NPU: {_transfer_to_npu_env}. Only '0' or '1' is supported.")
+
 
 # This function is an entrypoint called by PyTorch
 # when running 'import torch'. There is no need to do anything.
