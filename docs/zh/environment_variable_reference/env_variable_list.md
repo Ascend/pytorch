@@ -38,3 +38,4 @@
 |性能优化|[KINETO_USE_DAEMON](KINETO_USE_DAEMON.md)|PyTorch训练场景用于设置是否通过msMonitor nputrace方式开启dynamic_profile采集功能。|
 |设备管理|[STREAMS_PER_DEVICE](STREAMS_PER_DEVICE.md)|通过此环境变量可配置stream pool的最大流数。|
 |设备管理|[TORCH_NPU_DEVICE_CAPABILITY](TORCH_NPU_DEVICE_CAPABILITY.md)|通过此环境变量可配置`torch_npu.npu.get_device_capability()`的返回值。|
+|设备管理|[TORCH_TRANSFER_TO_NPU](TORCH_TRANSFER_TO_NPU.md)|通过此环境变量可配置是否自动启用transfer_to_npu功能，将PyTorch的CUDA相关API自动替换为NPU对应API。|
