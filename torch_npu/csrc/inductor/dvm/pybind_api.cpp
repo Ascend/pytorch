@@ -29,29 +29,16 @@ void TORCH_NPU_API THDVM_init(PyObject* module)
     auto torch_C_m = py::handle(module).cast<py::module>();
     auto dvm_m = torch_C_m.def_submodule("dvm", "DVM bindings");
     RegDvmPy(dvm_m);
-    pybind11::enum_<KernelType>(dvm_m, "KernelType")
-        .value("kVector", KernelType::kVector)
-        .value("kCube", KernelType::kCube)
-        .value("kMix", KernelType::kMix)
-        .value("kParallel", KernelType::kParallel)
-        .value("kSplit", KernelType::kSplit)
-        .value("kEager", KernelType::kEager)
-        .export_values();
-
-    pybind11::enum_<KernelFlag>(dvm_m, "KernelFlag")
-        .value("kDynamic", KernelFlag::kDynamic)
-        .value("kUnifyWS", KernelFlag::kUnifyWS)
-        .value("kSpeculate", KernelFlag::kSpeculate)
-        .export_values();
 
     pybind11::class_<TorchKernelPy, KernelPy, std::shared_ptr<TorchKernelPy> >(dvm_m, "TorchKernel")
-        .def(py::init<const KernelType&, uint32_t>())
+        .def(py::init<int, uint32_t>())
         .def("set_kernel_info", &TorchKernelPy::SetKernelInfo, "set_kernel_info")
         .def("setup", &TorchKernelPy::Setup, "setup")
-        .def("__call__", &TorchKernelPy::Call, "run kernel");
+        .def("run", &TorchKernelPy::Run, "run kernel")
+        .def("__call__", &TorchKernelPy::Call, "call kernel");
 
     pybind11::class_<DynKernelPy, TorchKernelPy, std::shared_ptr<DynKernelPy> >(dvm_m, "DynKernel")
-        .def(py::init<const KernelType&, uint32_t>())
+        .def(py::init<int, uint32_t>())
         .def("scalar", &DynKernelPy::MakeScalar, "setup", py::arg("dtype") = DataTypePy(kDataTypeEnd));
 
     pybind11::class_<GraphSplitKernelPy, TorchKernelPy, std::shared_ptr<GraphSplitKernelPy> >(dvm_m, "GraphSplitKernel")
@@ -86,7 +73,11 @@ at::ScalarType DvmDType2TorchDtype(DType dtype)
 
 } // namespace
 
-TorchKernelPy::TorchKernelPy(const KernelType& kernel_type, uint32_t flags) { kernel_.Reset(kernel_type, flags); }
+TorchKernelPy::TorchKernelPy(int kernel_type, uint32_t flags)
+    : ws_size_(0), kernel_type_(kernel_type), kernel_flags_(flags)
+{
+    kernel_.Reset(static_cast<KernelType>(kernel_type), flags);
+}
 
 TorchKernelPy::~TorchKernelPy()
 {
@@ -163,11 +154,11 @@ py::object TorchKernelPy::Load(py::object shape, DataTypePy type)
     return ObjToPy(op);
 }
 
-py::object TorchKernelPy::ViewLoad(py::object shape, py::object stride, int64_t offset, DataTypePy type)
+py::object TorchKernelPy::ViewLoad(py::object shape, py::object stride, DataTypePy type)
 {
     ShapeRef* shape_ref = SymIntArraytoShapeRef(shape);
     ShapeRef* stride_ref = SymIntArraytoShapeRef(stride);
-    auto op = kernel_.Load(nullptr, shape_ref, stride_ref, nullptr, type);
+    auto op = kernel_.Load(nullptr, shape_ref, stride_ref, type);
     loads_.emplace_back(op);
     return ObjToPy(op);
 }
@@ -182,14 +173,14 @@ py::object DynKernelPy::Load(py::object shape, DataTypePy type)
     return ObjToPy(op);
 }
 
-py::object DynKernelPy::ViewLoad(py::object shape, py::object stride, int64_t offset, DataTypePy type)
+py::object DynKernelPy::ViewLoad(py::object shape, py::object stride, DataTypePy type)
 {
     auto shape_seq = shape.cast<py::sequence>();
     auto ref = GetDynLoadShapeRef(shape_seq.size());
     ref->stride = ref->shape;
     ShapeRef* shape_ref = &ref->shape;
     ShapeRef* stride_ref = &ref->stride;
-    auto op = kernel_.Load(nullptr, shape_ref, stride_ref, nullptr, type);
+    auto op = kernel_.Load(nullptr, shape_ref, stride_ref, type);
     loads_.emplace_back(op);
     return ObjToPy(op);
 }
@@ -222,11 +213,30 @@ void TorchKernelPy::SetupRelocs()
     }
 }
 
-py::object TorchKernelPy::Call(py::args args)
+TorchKernelPy::ParsedCallInputs TorchKernelPy::ParseTensorCallInputs(py::args inputs,
+                                                                     std::vector<at::Tensor>& tensor_refs) const
+{
+    TORCH_CHECK(inputs.size() == loads_.size(), "Call expects ", loads_.size(), " input tensors, got ", inputs.size());
+
+    auto addr = std::make_shared<std::vector<void*> >();
+    addr->resize(relocs_.size());
+    tensor_refs.reserve(loads_.size());
+    at::TensorOptions options;
+
+    for (size_t i = 0; i < loads_.size(); ++i) {
+        auto tensor = inputs[i].cast<at::Tensor>();
+        (*addr)[i] = tensor.data_ptr();
+        options = tensor.options();
+        tensor_refs.emplace_back(tensor);
+    }
+    return {addr, options};
+}
+
+py::object TorchKernelPy::Run(py::args args)
 {
     const auto num_inputs = loads_.size();
     const auto num_outputs = stores_.size();
-    TORCH_CHECK(args.size() == num_inputs + num_outputs, "DVM kernel call expects ", num_inputs + num_outputs,
+    TORCH_CHECK(args.size() == num_inputs + num_outputs, "DVM kernel run expects ", num_inputs + num_outputs,
                 " tensors, got ", args.size());
     std::vector<at::Tensor> tensor_list;
     std::vector<std::pair<at::Tensor, at::Tensor> > out_refs;
@@ -236,7 +246,7 @@ py::object TorchKernelPy::Call(py::args args)
     addr->resize(num_inputs + num_outputs);
     for (size_t i = 0; i < args.size(); i++) {
         auto tensor = args[i].cast<at::Tensor>();
-        if (!contiguity_flags_[i]) {
+        if (!contiguity_flags_.empty() && !contiguity_flags_[i]) {
             if (i < num_inputs) {
                 tensor = tensor.contiguous();
             } else {
@@ -257,6 +267,19 @@ py::object TorchKernelPy::Call(py::args args)
         ori_tensor.copy_(cur_tensor);
     }
     return py::none();
+}
+
+py::object TorchKernelPy::Call(py::args args)
+{
+    const auto num_inputs = loads_.size();
+    const auto num_outputs = stores_.size();
+    std::vector<at::Tensor> tensor_list;
+    auto parsed = ParseTensorCallInputs(args, tensor_list);
+    auto ret = CreateOutputs(parsed.options, parsed.addr->data() + num_inputs);
+    aclrtStream stream = c10_npu::getCurrentNPUStream().stream(false);
+    auto dvm_call = [this, addr = parsed.addr, stream]() { return Launch(addr->data(), stream); };
+    at_npu::native::OpCommand::RunOpApiV2(op_name_, dvm_call);
+    return ret;
 }
 
 py::object TorchKernelPy::CreateOutputs(const at::TensorOptions& options, void** addr)
@@ -288,7 +311,14 @@ void GraphSplitKernelPy::Setup()
     kernel_.Infer();
 }
 
-void DynGraphSplitKernelPy::Setup() { SetupRelocs(); }
+std::unique_ptr<DynKernelPy> DynGraphSplitKernelPy::CloneExecutor() const
+{
+    auto executor = std::make_unique<DynGraphSplitKernelPy>();
+    CloneExecutorStateTo(*executor);
+    return executor;
+}
+
+void DynGraphSplitKernelPy::Setup() { DynKernelPy::Setup(); }
 
 int GraphSplitBase::Launch(Kernel& kernel, void** addr, aclrtStream stream, std::vector<RelocEntry>& relocs)
 {
@@ -302,67 +332,42 @@ int GraphSplitBase::Launch(Kernel& kernel, void** addr, aclrtStream stream, std:
     return ret;
 }
 
+py::object GraphSplitKernelPy::Run(py::args)
+{
+    TORCH_CHECK(false, "GraphSplitKernel::Run is unsupported. Use Call/__call__ to create outputs internally.");
+}
+
 py::object GraphSplitKernelPy::Call(py::args inputs)
 {
-    TORCH_CHECK(inputs.size() == loads_.size(), "GraphSplitKernel expects ", loads_.size(), " inputs, got ",
-                inputs.size());
-    auto addr = std::make_shared<std::vector<void*> >();
-    addr->resize(relocs_.size());
-    for (size_t i = 0; i < inputs.size(); i++) {
-        auto tensor = inputs[i].cast<at::Tensor>();
-        (*addr)[i] = tensor.data_ptr();
-    }
-    auto options = inputs[0].cast<at::Tensor>().options();
-    auto ret = CreateOutputs(options, addr->data() + loads_.size());
+    std::vector<at::Tensor> tensor_list;
+    auto parsed = ParseTensorCallInputs(inputs, tensor_list);
+    auto ret = CreateOutputs(parsed.options, parsed.addr->data() + loads_.size());
     auto stream = c10_npu::getCurrentNPUStream().stream(false);
-    auto launch_call = [this, stream, addr]() -> int {
+    auto launch_call = [this, stream, addr = parsed.addr]() -> int {
         return GraphSplitBase::Launch(kernel_, addr->data(), stream, relocs_);
     };
     at_npu::native::OpCommand::RunOpApiV2(op_name_, launch_call);
     return ret;
 }
 
+py::object DynGraphSplitKernelPy::Run(py::args)
+{
+    TORCH_CHECK(false, "DynGraphSplitKernel::Run is unsupported. Use Call/__call__ to create outputs internally.");
+}
+
 py::object DynGraphSplitKernelPy::Call(py::args inputs)
 {
-    while (entry_cnt_ != exit_cnt_) {
-        sleep(0);
-    }
-    entry_cnt_++;
-    auto addr = std::make_shared<std::vector<void*> >();
-    addr->resize(relocs_.size());
-    at::TensorOptions options;
-    size_t input_index = 0;
-    size_t sym_scalar_index = 0;
-    for (size_t i = 0; i < inputs.size(); i++) {
-        if (THPVariable_Check(inputs[i].ptr())) {
-            auto tensor = inputs[i].cast<at::Tensor>();
-            (*addr)[input_index] = tensor.data_ptr();
-            auto ref = dyn_load_shapes_[input_index++];
-            if (ref->stride.data) {
-                ref->stride.data = tensor.strides().data();
-            }
-            ref->shape.data = tensor.sizes().data();
-            options = tensor.options();
-        } else if (py::isinstance<c10::SymFloat>(inputs[i])) {
-            sym_scalar_input_[sym_scalar_index++]->data_ =
-                static_cast<float>(inputs[i].cast<c10::SymFloat>().expect_float());
-        } else if (py::isinstance<c10::SymInt>(inputs[i])) {
-            sym_scalar_input_[sym_scalar_index++]->data_ = inputs[i].cast<c10::SymInt>().expect_int();
-        } else if (py::isinstance<py::float_>(inputs[i])) {
-            sym_scalar_input_[sym_scalar_index++]->data_ = inputs[i].cast<float>();
-        } else if (py::isinstance<py::int_>(inputs[i])) {
-            sym_scalar_input_[sym_scalar_index++]->data_ = inputs[i].cast<int64_t>();
-        } else {
-            TORCH_CHECK(false, "Unsupported dynamic input type for DynGraphSplitKernel.");
-        }
-    }
-    UpdateSymShapeData();
-    kernel_.Infer();
-    auto ret = CreateOutputs(options, addr->data() + loads_.size());
+    auto* executor = static_cast<DynGraphSplitKernelPy*>(AcquireExecutor());
+    std::vector<at::Tensor> tensor_list;
+    auto parsed = executor->ParseDynCallInputs(inputs, tensor_list);
+
+    executor->UpdateSymShapeData();
+    executor->kernel_.Infer();
+    auto ret = executor->CreateOutputs(parsed.options, parsed.addr->data() + executor->loads_.size());
     auto stream = c10_npu::getCurrentNPUStream().stream(false);
-    auto launch_call = [this, stream, addr]() -> int {
-        auto ret = GraphSplitBase::Launch(kernel_, addr->data(), stream, relocs_);
-        exit_cnt_++;
+    auto launch_call = [this, executor, stream, addr = parsed.addr]() -> int {
+        int ret = executor->GraphSplitBase::Launch(executor->kernel_, addr->data(), stream, executor->relocs_);
+        ReleaseExecutor(executor);
         return ret;
     };
     at_npu::native::OpCommand::RunOpApiV2(op_name_, launch_call);
@@ -410,9 +415,140 @@ void DynKernelPy::UpdateSymShapeData()
     }
 }
 
-void DynKernelPy::Setup() { SetupRelocs(); }
+std::unique_ptr<DynKernelPy> DynKernelPy::CloneExecutor() const
+{
+    auto executor = std::make_unique<DynKernelPy>(kernel_type_, kernel_flags_);
+    CloneExecutorStateTo(*executor);
+    return executor;
+}
 
-py::object DynKernelPy::Call(py::args args)
+void DynKernelPy::CloneExecutorStateTo(DynKernelPy& executor) const
+{
+    SplitCloneHelper helper;
+    std::unordered_map<ScalarRef*, ScalarRefPyPtr> scalar_to_owner;
+
+    executor.ws_size_ = ws_size_;
+    executor.op_name_ = op_name_;
+    executor.op_fullname_ = op_fullname_;
+    executor.contiguity_flags_ = contiguity_flags_;
+    executor.kernel_.SetNameHint(executor.op_name_.c_str(), executor.op_fullname_.c_str());
+
+    executor.shapes_.reserve(shapes_.size());
+    for (auto ref : shapes_) {
+        auto clone_ref = new ShapeWithRef(ref->size);
+        for (size_t i = 0; i < ref->size; ++i) {
+            clone_ref->shape_data[i] = ref->shape_data[i];
+        }
+        executor.shapes_.push_back(clone_ref);
+        helper.ref_map_[ref] = clone_ref;
+    }
+
+    executor.dyn_load_shapes_.reserve(dyn_load_shapes_.size());
+    for (auto ref : dyn_load_shapes_) {
+        auto clone_ref = new LoadShapeRef();
+        clone_ref->shape = ref->shape;
+        clone_ref->stride = ref->stride;
+        executor.dyn_load_shapes_.push_back(clone_ref);
+        helper.ref_map_[&ref->shape] = &clone_ref->shape;
+        helper.ref_map_[&ref->stride] = &clone_ref->stride;
+    }
+
+    auto clone_scalar = [&helper, &scalar_to_owner](const ScalarRefPyPtr& src, std::vector<ScalarRefPyPtr>& dst) {
+        auto clone = std::make_shared<ScalarRefPy>();
+        clone->data_ = src->data_;
+        helper.ref_map_[&src->data_] = &clone->data_;
+        scalar_to_owner[&clone->data_] = clone;
+        dst.push_back(clone);
+    };
+    for (const auto& scalar : const_input_) {
+        clone_scalar(scalar, executor.const_input_);
+    }
+    for (const auto& scalar : sym_scalar_input_) {
+        clone_scalar(scalar, executor.sym_scalar_input_);
+    }
+
+    executor.kernel_.Clone(kernel_, helper);
+    executor.loads_.reserve(loads_.size());
+    for (auto op : loads_) {
+        executor.loads_.push_back(helper.GetClone(op));
+    }
+    executor.stores_.reserve(stores_.size());
+    for (auto op : stores_) {
+        executor.stores_.push_back(helper.GetClone(op));
+    }
+
+    executor.sym_shape_.reserve(sym_shape_.size());
+    for (const auto& shape_scalars : sym_shape_) {
+        auto& clone_shape_scalars = executor.sym_shape_.emplace_back();
+        clone_shape_scalars.reserve(shape_scalars.size());
+        for (const auto& scalar : shape_scalars) {
+            auto it = helper.ref_map_.find(&scalar->data_);
+            TORCH_CHECK(it != helper.ref_map_.end(), "Failed to clone symbolic shape scalar reference.");
+            auto clone_scalar_ref = static_cast<ScalarRef*>(it->second);
+            auto owner_it = scalar_to_owner.find(clone_scalar_ref);
+            TORCH_CHECK(owner_it != scalar_to_owner.end(), "Failed to remap cloned symbolic shape scalar.");
+            clone_shape_scalars.push_back(owner_it->second);
+        }
+    }
+
+    executor.SetupRelocs();
+}
+
+TorchKernelPy::ParsedCallInputs DynKernelPy::ParseDynCallInputs(py::args inputs,
+                                                                std::vector<at::Tensor>& tensor_refs) const
+{
+    TORCH_CHECK(inputs.size() == dyn_load_shapes_.size() + sym_scalar_input_.size(), "Dynamic call expects ",
+                dyn_load_shapes_.size() + sym_scalar_input_.size(), " args, got ", inputs.size());
+
+    auto addr = std::make_shared<std::vector<void*> >();
+    addr->resize(relocs_.size());
+    tensor_refs.reserve(dyn_load_shapes_.size());
+    at::TensorOptions options;
+
+    size_t input_index = 0;
+    size_t sym_scalar_index = 0;
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        if (THPVariable_Check(inputs[i].ptr())) {
+            auto tensor = inputs[i].cast<at::Tensor>();
+            (*addr)[input_index] = tensor.data_ptr();
+            auto ref = dyn_load_shapes_[input_index++];
+            if (ref->stride.data) {
+                ref->stride.data = tensor.strides().data();
+            }
+            ref->shape.data = tensor.sizes().data();
+            options = tensor.options();
+            tensor_refs.emplace_back(tensor);
+        } else if (py::isinstance<c10::SymFloat>(inputs[i])) {
+            sym_scalar_input_[sym_scalar_index++]->data_ =
+                static_cast<float>(inputs[i].cast<c10::SymFloat>().expect_float());
+        } else if (py::isinstance<c10::SymInt>(inputs[i])) {
+            sym_scalar_input_[sym_scalar_index++]->data_ = inputs[i].cast<c10::SymInt>().expect_int();
+        } else if (py::isinstance<py::float_>(inputs[i])) {
+            sym_scalar_input_[sym_scalar_index++]->data_ = inputs[i].cast<float>();
+        } else if (py::isinstance<py::int_>(inputs[i])) {
+            sym_scalar_input_[sym_scalar_index++]->data_ = inputs[i].cast<int64_t>();
+        } else {
+            const char* py_type = inputs[i].ptr() ? Py_TYPE(inputs[i].ptr())->tp_name : "<null>";
+            TORCH_CHECK(
+                false, "Unsupported dynamic input type at arg[", i,
+                "]. Expected one of: Tensor, c10::SymFloat, c10::SymInt, float, int. Got Python type: ", py_type);
+        }
+    }
+
+    TORCH_CHECK(input_index == dyn_load_shapes_.size(), "Dynamic call expects ", dyn_load_shapes_.size(),
+                " tensor inputs, got ", input_index);
+    TORCH_CHECK(sym_scalar_index == sym_scalar_input_.size(), "Dynamic call expects ", sym_scalar_input_.size(),
+                " scalar inputs, got ", sym_scalar_index);
+    return {addr, options};
+}
+
+void DynKernelPy::Setup()
+{
+    SetupRelocs();
+    dyn_executors_.push_back(this);
+}
+
+py::object DynKernelPy::Run(py::args args)
 {
     const auto num_inputs = loads_.size();
     const auto num_outputs = stores_.size();
@@ -432,7 +568,7 @@ py::object DynKernelPy::Call(py::args args)
     for (size_t i = 0; i < args.size(); i++) {
         if (THPVariable_Check(args[i].ptr())) {
             auto tensor = args[i].cast<at::Tensor>();
-            if (!contiguity_flags_[i]) {
+            if (!contiguity_flags_.empty() && !contiguity_flags_[i]) {
                 if (i < num_inputs + num_sym) {
                     tensor = tensor.contiguous();
                 } else {
@@ -470,9 +606,7 @@ py::object DynKernelPy::Call(py::args args)
             ref->shape.data = info->shape[i].data();
         }
         for (size_t i = 0; i < sym_scalar_input_.size(); i++) {
-            TORCH_CHECK(sym_scalar_input_[i]->data_.type == info->scalars[i].type, "Scalar type mismatch at index ", i,
-                        ": expected ", sym_scalar_input_[i]->data_.type, ", got ", info->scalars[i].type);
-            if (sym_scalar_input_[i]->data_.type == kInt64) {
+            if (info->scalars[i].type == kInt64) {
                 sym_scalar_input_[i]->data_ = info->scalars[i].i64;
             } else {
                 sym_scalar_input_[i]->data_ = info->scalars[i].f32;
@@ -489,6 +623,26 @@ py::object DynKernelPy::Call(py::args args)
         ori_tensor.copy_(cur_tensor);
     }
     return py::none();
+}
+
+py::object DynKernelPy::Call(py::args args)
+{
+    auto* executor = AcquireExecutor();
+    const auto num_inputs = executor->loads_.size();
+    std::vector<at::Tensor> tensor_list;
+    auto parsed = executor->ParseDynCallInputs(args, tensor_list);
+
+    executor->UpdateSymShapeData();
+    executor->ws_size_ = executor->kernel_.CodeGen();
+    auto ret = executor->CreateOutputs(parsed.options, parsed.addr->data() + num_inputs);
+    aclrtStream stream = c10_npu::getCurrentNPUStream().stream(false);
+    auto dvm_call = [this, executor, addr = parsed.addr, stream]() {
+        int ret = executor->Launch(addr->data(), stream);
+        ReleaseExecutor(executor);
+        return ret;
+    };
+    at_npu::native::OpCommand::RunOpApiV2(executor->op_name_, dvm_call);
+    return ret;
 }
 } // namespace dvm
 #endif // BUILD_LIBTORCH

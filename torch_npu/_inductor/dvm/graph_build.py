@@ -117,7 +117,7 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
                 else:
                     if stride[-1] == 1 and shape[-1] != 1:
                         self.cont_flag_input.append(True)
-                        return view_load(shape, stride, 0, dtype)
+                        return view_load(shape, stride, dtype)
                     else:
                         self.cont_flag_input.append(False)
                         return load(shape, dtype)

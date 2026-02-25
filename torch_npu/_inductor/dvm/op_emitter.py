@@ -61,8 +61,7 @@ def _check_dtype(inputs, supported_dtypes):
 
 def common_rule(node: torch.fx.Node):
     return _check_dtype(
-        pytree.arg_tree_leaves(
-            *node.args, **node.kwargs), DVM_SUPPORT_FLOAT_TYPE
+        pytree.arg_tree_leaves(*node.args, **node.kwargs), DVM_SUPPORT_FLOAT_TYPE
     ) and _check_dtype([node], supported_dtypes=DVM_SUPPORT_TYPE)
 
 
@@ -292,6 +291,7 @@ def trunc(x):
 
 
 @register_dvm_op(
+    aten._to_copy.default,
     prims.convert_element_type.default,
     torch.ops.npu.npu_dtype_cast.default,
     torch.ops.npu.npu_dtype_cast_backward.default,
@@ -401,9 +401,9 @@ def load(shape, dtype):
     return f"k.load({shape}, {dtype})"
 
 
-def view_load(shape, stride, offset, dtype):
+def view_load(shape, stride, dtype):
     dtype = to_dvm_dtype(dtype)
-    return f"k.view_load({shape}, {stride}, {offset}, {dtype})"
+    return f"k.view_load({shape}, {stride}, {dtype})"
 
 
 def store(x, dtype=None):

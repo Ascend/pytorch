@@ -5,8 +5,6 @@ import torch
 import torch_npu
 from torch_npu._C.dvm import (
     NDObject,
-    KernelType,
-    KernelFlag,
     DataType,
     DynKernel,
     GraphSplitKernel,
@@ -23,21 +21,18 @@ bfloat16 = DataType.bfloat16
 float32 = DataType.float32
 int32 = DataType.int32
 int64 = DataType.int64
-_FLAG_DYNAMIC = KernelFlag.kDynamic.value
-_FLAG_UNIFY_WS = KernelFlag.kUnifyWS.value
-_FLAG_SPECULATE = KernelFlag.kSpeculate.value
 
 KERNEL_FACTORY = {
-    ("mix", True): partial(DynKernel, KernelType.kMix, _FLAG_DYNAMIC),
-    ("mix", False): partial(Kernel, KernelType.kMix, 0),
+    ("mix", True): partial(DynKernel, Kernel.K_MIX, Kernel.F_DYN),
+    ("mix", False): partial(Kernel, Kernel.K_MIX, 0),
     ("split", True): DynGraphSplitKernel,
     ("split", False): GraphSplitKernel,
     ("spec", True): partial(
-        DynKernel, KernelType.kVector, _FLAG_DYNAMIC | _FLAG_SPECULATE
+        DynKernel, Kernel.K_VEC, Kernel.F_DYN | Kernel.F_SPEC
     ),
-    ("spec", False): partial(Kernel, KernelType.kVector, _FLAG_SPECULATE),
-    ("vector", True): partial(DynKernel, KernelType.kVector, _FLAG_DYNAMIC),
-    ("vector", False): partial(Kernel, KernelType.kVector, 0),
+    ("spec", False): partial(Kernel, Kernel.K_VEC, Kernel.F_SPEC),
+    ("vector", True): partial(DynKernel, Kernel.K_VEC, Kernel.F_DYN),
+    ("vector", False): partial(Kernel, Kernel.K_VEC, 0),
 }
 
 
@@ -117,7 +112,7 @@ def kernel(
             return outputs
 
         def run(*args, **kwargs):
-            kobj(*args)
+            kobj.run(*args)
             if debug_mode:
                 _post_run(args)
 

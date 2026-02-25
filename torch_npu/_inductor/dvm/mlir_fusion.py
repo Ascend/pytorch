@@ -28,6 +28,7 @@ from .fx_test import generate_dvm_fx_case
 
 dump_fx_test = False
 uncont_policy = "fuse"
+disable_post_reduce_fusion = False
 aten = torch.ops.aten
 prims = torch.ops.prims
 quantized = torch.ops.quantized
@@ -284,9 +285,9 @@ def _patch_sum_lowering():
         return aten_fn
 
     def sum_(x, axis=None, keepdims=False, *, dtype=None):
-        if axis and axis[-1] < 0:
+        if axis and any(ax < 0 for ax in axis):
             offset = len(x.get_size())
-            axis = [ax + offset for ax in axis]
+            axis = [ax + offset if ax < 0 else ax for ax in axis]
         if (
             is_integer_dtype(x.get_dtype()) or is_boolean_dtype(x.get_dtype())
         ) and dtype is None:
@@ -318,10 +319,10 @@ class DvmMlirFusionPatch:
         _patch_lowering_type_checks()
         _patch_sum_lowering()
         NpuMlirKernel.codegen_kernel = _codegen_dvm_kernel
-        NpuMlirScheduling.can_fuse_horizontal = _dvm_can_fuse_horizontal
-        NpuMlirScheduling.can_fuse_vertical = _dvm_can_fuse_vertical
         NpuMlirScheduling.define_kernel = _define_dvm_kernel
+        if disable_post_reduce_fusion:
+            NpuMlirScheduling.can_fuse_horizontal = _dvm_can_fuse_horizontal
+            NpuMlirScheduling.can_fuse_vertical = _dvm_can_fuse_vertical
         DvmMlirFusionPatch._enabled = True
-
 
 DvmMlirFusionPatch.enable()

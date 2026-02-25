@@ -24,3 +24,4 @@
 [submodule "third_party/dvm/dvm"]
 	path = third_party/dvm/dvm
 	url = https://gitcode.com/mindspore/dvm.git
+	branch = r2.9
