@@ -2,7 +2,7 @@ __all__ = ["NPUShapeHandling"]
 
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import copy
-
+import logging
 from torch.utils._pytree import tree_flatten, tree_unflatten, TreeSpec
 import torch
 import torch_npu._C
@@ -220,25 +220,51 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
     def recover(self, tensor_groups: List[List[torch.Tensor]]) -> List[torch.Tensor]:
         return super().recover(tensor_groups)
 
+    def get_shape_safe(self, item):
+        """递归获取 shape 的辅助函数"""
+        if isinstance(item, torch.Tensor):
+            return list(item.shape)
+        elif isinstance(item, (list, tuple)):
+            # 如果是列表，递归处理内部元素，并标注这是个容器
+            return [self.get_shape_safe(i) for i in item]
+        else:
+            return type(item)
+
+
     def transform_hook(
         self,
         *args: Any,
         **kwargs: Any
     ) -> Tuple[List[Tuple], List[Dict]]:
+        # 获取 logger
+        logger = logging.getLogger(__name__)
         # 预处理阶段优化：统一使用预定义函数或默认逻辑
         if self.transform_pre_fn:
             inputs = self.transform_pre_fn(*args, **kwargs)
         else:
             inputs, indices, leaves, spec = self._process_inputs(args, kwargs)
         
+        # 提取转换前的形状 (inputs 通常是 Tensor 列表)
+        if logger.isEnabledFor(logging.INFO):
+            pre_shapes = [self.get_shape_safe(t) for t in inputs]
+            logger.info(f"[Transform] Starting. Input tensors: {len(inputs)}, Shapes: {pre_shapes}")
+
         # 执行核心转换操作
         trans_outputs = self.transform(tensors=inputs)
+
+        # 提取转换后的形状
+        if logger.isEnabledFor(logging.INFO):
+            post_shapes = [self.get_shape_safe(t) for t in trans_outputs]
+            logger.info(f"> Post-transform content: {post_shapes}")
         
         # 后处理阶段优化：避免嵌套循环
         if self.transform_post_fn:
             outputs = self.transform_post_fn(trans_outputs)
         else:
             outputs = self._recover_inputs(trans_outputs, indices, leaves, spec)
+            
+        if not outputs:
+            logger.error(f"CRITICAL: _recover_inputs returned NULL")
         
         return outputs
 
