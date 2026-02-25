@@ -215,25 +215,49 @@ public:
         return folded_constants;
     }
 
-    void load_constants()
+    void update_constants_from_blob(const uint8_t* weight_blob_ptr)
+    {
+#if defined(USE_MMAP_EXTERNAL)
+        user_managed_mmap = const_cast<uint8_t*>(weight_blob_ptr);
+        load_constants(true);
+#endif
+    }
+
+    void load_constants(bool force = false)
     {
         size_t num_constants = this->num_constants();
         size_t num_folded_constants = this->num_folded_constants();
         constants_map_->reserve(num_constants);
 
         std::vector<size_t> constants_internal_offset(num_constants - num_folded_constants);
+        std::vector<size_t> secondary_cpu_constants_internal_offset(num_constants - num_folded_constants);
         size_t blob_size = 0;
-        compute_constant_blob(blob_size, constants_internal_offset);
-#if defined(USE_NPU)
-        constant_blob_ = RAII_npuMalloc(blob_size);
-#else
-        constant_blob_ = RAII_cpuMalloc(blob_size);
-#endif
-        if (!include_weights) {
+        size_t secondary_cpu_blob_size = 0;
+        compute_constant_blob(blob_size, constants_internal_offset, secondary_cpu_blob_size,
+                              secondary_cpu_constants_internal_offset);
+
+        if (!force && !include_weights) {
             return;
         }
 
+        // Allocate main blob
+        if (blob_size > 0) {
+#if defined(USE_NPU)
+            constant_blob_ = RAII_npuMalloc(blob_size);
+#else
+            constant_blob_ = RAII_cpuMalloc(blob_size);
+#endif
+        }
+
+        // Allocate secondary blob on CPU
+        if (secondary_cpu_blob_size > 0) {
+            secondary_cpu_constant_blob_ = RAII_cpuMalloc(secondary_cpu_blob_size);
+        }
+
         size_t bytes_read = 0;
+        size_t main_blob_idx = 0;
+        size_t secondary_cpu_blob_idx = 0;
+
         for (size_t i = 0; i < num_constants; i++) {
             bool from_folded = this->constant_from_folded(i);
             if (from_folded) {
@@ -241,9 +265,42 @@ public:
             }
             std::string name = this->constant_name(i);
             size_t data_size = this->constant_data_size(i);
-            uint8_t* internal_ptr = (data_size != 0) ? constant_ptr(constants_internal_offset[i], bytes_read, data_size,
-                                                                    false)
-                                                     : nullptr;
+            int32_t const_device_type = this->constant_device_type(i);
+            bool device_type_matches = const_device_type == device_type_;
+
+            // Mixed-device constants are only supported when the secondary device is
+            // CPU. If a constant was compiled for a non-CPU device but we're loading
+            // on a different device, we cannot safely create the tensor.
+            AOTI_RUNTIME_CHECK(device_type_matches || const_device_type == aoti_torch_device_type_cpu(),
+                               "Mixed-device constants are only supported when the secondary "
+                               "device is CPU. Constant '" +
+                                   name +
+                                   "' was compiled for a non-CPU device. "
+                                   "Hint: This can happen if you compiled on GPU but are loading "
+                                   "on CPU, which is not supported. In AOTI, you must compile and "
+                                   "load on the same device type.");
+
+            uint8_t* internal_ptr = nullptr;
+            if (data_size != 0) {
+                if (device_type_matches) {
+                    internal_ptr = constant_ptr(constants_internal_offset[main_blob_idx], bytes_read, data_size,
+                                                false);
+                } else {
+                    auto* secondary_cpu_constants_ptr = static_cast<uint8_t*>(secondary_cpu_constant_blob_.get());
+                    internal_ptr =
+                        secondary_cpu_constants_ptr + secondary_cpu_constants_internal_offset[secondary_cpu_blob_idx];
+                    memcpy(internal_ptr, _get_constants_start() + bytes_read, data_size);
+                }
+            }
+
+            // Always increment blob indices to stay in sync with
+            // compute_constant_blob(), even for zero-size constants.
+            if (device_type_matches) {
+                main_blob_idx++;
+            } else {
+                secondary_cpu_blob_idx++;
+            }
+
             bytes_read += data_size;
 
             // Create at::Tensor from copied memory.
@@ -258,8 +315,9 @@ public:
 
             AtenTensorHandle tensor_handle = nullptr;
             AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob_npu_v2(
-                internal_ptr, ndim, size, stride, offset, dtype, device_type_, device_idx_, &tensor_handle, layout,
-                opaque_metadata_ptr, opaque_metadata_size));
+                internal_ptr, ndim, size, stride, offset, dtype, const_device_type,
+                device_type_matches ? device_idx_ : 0, &tensor_handle, layout, opaque_metadata_ptr,
+                opaque_metadata_size));
             constants_map_->emplace(std::move(name), tensor_handle);
         }
         if (constants_map_) {
@@ -290,11 +348,16 @@ public:
         return internal_ptr;
     }
 
-    void compute_constant_blob(size_t& blob_size, std::vector<size_t>& constants_internal_offset)
+    void compute_constant_blob(size_t& blob_size, std::vector<size_t>& constants_internal_offset,
+                               size_t& secondary_cpu_blob_size,
+                               std::vector<size_t>& secondary_cpu_constants_internal_offset)
     {
         size_t num_constants = this->num_constants();
         blob_size = 0;
-        size_t curr_idx = 0;
+        secondary_cpu_blob_size = 0;
+        size_t main_idx = 0;
+        size_t secondary_idx = 0;
+
         for (size_t i = 0; i < num_constants; i++) {
             if (this->constant_from_folded(i)) {
                 continue;
@@ -303,8 +366,14 @@ public:
             if (data_size % AOTI_CONST_ALIGNMENT) {
                 data_size = AOTI_CONST_ALIGNMENT + (data_size / AOTI_CONST_ALIGNMENT) * AOTI_CONST_ALIGNMENT;
             }
-            constants_internal_offset[curr_idx++] = blob_size;
-            blob_size += data_size;
+
+            if (this->constant_device_type(i) == device_type_) {
+                constants_internal_offset[main_idx++] = blob_size;
+                blob_size += data_size;
+            } else {
+                secondary_cpu_constants_internal_offset[secondary_idx++] = secondary_cpu_blob_size;
+                secondary_cpu_blob_size += data_size;
+            }
         }
     }
 
@@ -356,9 +425,21 @@ public:
 
     int32_t constant_type(int64_t idx) const { return constants_info_.at(idx).type; }
 
+    int32_t constant_device_type(int64_t idx) const { return constants_info_.at(idx).device_type; }
+
     const char* get_in_spec() const { return in_spec_.c_str(); }
 
     const char* get_out_spec() const { return out_spec_.c_str(); }
+
+    uint64_t constant_blob_size() const
+    {
+#if defined(USE_MMAP_SELF) || defined(USE_MMAP_EXTERNAL)
+        const uint64_t weights_size = reinterpret_cast<const uint64_t*>(_binary_constants_bin_start)[0];
+        return weights_size;
+#else
+        throw std::runtime_error{"constant blob size is only available for mmap'd weights"};
+#endif
+    }
 
     void update_constants_array_from_map()
     {
@@ -396,25 +477,6 @@ public:
         constants_ = std::move(constants_array);
     }
 
-    uint64_t constant_blob_size() const
-    {
-#if defined(USE_MMAP_SELF) || defined(USE_MMAP_EXTERNAL)
-        const uint64_t weights_size = reinterpret_cast<const uint64_t*>(_binary_constants_bin_start)[0];
-        return weights_size;
-#else
-    throw std::runtime_error{
-        "constant blob size is only available for mmap'd weights"};
-#endif
-    }
-
-    void update_constants_from_blob(const uint8_t* weight_blob_ptr)
-    {
-#if defined(USE_MMAP_EXTERNAL)
-    user_managed_mmap = const_cast<uint8_t*>(weight_blob_ptr);
-    load_constants(true);
-#endif
-    }
-
     /// Returns true if the model is complete.
     bool is_finished()
     {
@@ -441,6 +503,15 @@ public:
 protected:
     uint8_t* _get_constants_start()
     {
+#if defined(USE_MMAP_EXTERNAL)
+        if (!user_managed_mmap) {
+            throw std::runtime_error{
+                "Constants are not mmap'd. Use AOTInductorModelUpdateConstantsBlob to initialize the constants first."};
+        }
+        // Mapped memory for weights
+        return user_managed_mmap;
+#endif
+
 #ifndef USE_MMAP_SELF
         // NOLINTNEXTLINE(*const-cast*)
         return const_cast<uint8_t*>(_binary_constants_bin_start);
@@ -467,6 +538,7 @@ protected:
         return self_mmap;
 #endif
     }
+
     struct ParamInfo {
         const char* name = nullptr;
     };
@@ -476,6 +548,7 @@ protected:
         std::vector<int64_t> shape;
         std::vector<int64_t> stride;
         int32_t dtype{};
+        int32_t device_type{};
         int64_t offset{};
         size_t data_size{};
         int32_t layout{};
@@ -497,6 +570,8 @@ protected:
 
     // Holds the blob storage for constants' at::Tensor.
     RAIIDataPtr constant_blob_;
+    // For mixed-device models, secondary_cpu_constant_blob_ holds CPU constants
+    RAIIDataPtr secondary_cpu_constant_blob_;
 
 #ifdef USE_MMAP_SELF
     uint8_t* self_mmap = NULL;
@@ -532,36 +607,36 @@ public:
 class AOTInductorModel : public AOTInductorModelBase<AOTInductorModel> {
 public:
     AOTInductorModel(std::shared_ptr<ConstantMap> constants_map,
-        std::shared_ptr<std::vector<ConstantHandle>> constants_array, const std::string &device_str,
-        std::optional<std::string> cubin_dir);
+                     std::shared_ptr<std::vector<ConstantHandle> > constants_array, const std::string& device_str,
+                     std::optional<std::string> cubin_dir);
 
-    std::unordered_map<std::string, AtenTensorHandle> const_run_impl(
-        DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor, bool initialization = false);
+    std::unordered_map<std::string, AtenTensorHandle>
+    const_run_impl(DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor, bool initialization = false);
 
-    void _const_run_impl(
-        std::vector<AtenTensorHandle> &output_handles, DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor);
+    void _const_run_impl(std::vector<AtenTensorHandle>& output_handles, DeviceStreamType stream,
+                         AOTIProxyExecutorHandle proxy_executor);
 
-    void run_impl(AtenTensorHandle *input_handles,  // array of input AtenTensorHandle; handles
+    void run_impl(AtenTensorHandle* input_handles,  // array of input AtenTensorHandle; handles
                                                     // are stolen; the array itself is borrowed
-        AtenTensorHandle *output_handles,           // array for writing output AtenTensorHandle; handles
+                  AtenTensorHandle* output_handles, // array for writing output AtenTensorHandle; handles
                                                     // will be stolen by the caller; the array itself is
                                                     // borrowed
-        DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor);
+                  DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor);
 
     template <typename Inputs, typename Outputs>
-    Outputs run_impl_minimal_arrayref_interface(
-        const Inputs &inputs, DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor);
+    Outputs run_impl_minimal_arrayref_interface(const Inputs& inputs, DeviceStreamType stream,
+                                                AOTIProxyExecutorHandle proxy_executor);
 
     static std::unique_ptr<AOTInductorModel> Create(std::shared_ptr<ConstantMap> constants_map,
-        std::shared_ptr<std::vector<ConstantHandle>> constants_array, const std::string &device_str,
-        std::optional<std::string> cubin_dir)
+                                                    std::shared_ptr<std::vector<ConstantHandle> > constants_array,
+                                                    const std::string& device_str, std::optional<std::string> cubin_dir)
     {
-        return std::make_unique<AOTInductorModel>(
-            std::move(constants_map), std::move(constants_array), device_str, std::move(cubin_dir));
+        return std::make_unique<AOTInductorModel>(std::move(constants_map), std::move(constants_array), device_str,
+                                                  std::move(cubin_dir));
     }
 
 private:
     std::unique_ptr<AOTInductorModelKernelsBase> kernels_;
 };
 
-}  // namespace torch::aot_inductor
+} // namespace torch::aot_inductor
