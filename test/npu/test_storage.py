@@ -324,6 +324,7 @@ class TestStorage(TestCase):
             self.assertIsInstance(getattr(y.npu(), dtype)(), getattr(torch.npu, dtype.title() + "Storage"))
             self.assertIsInstance(getattr(y.float().cpu(), dtype)(), getattr(torch, dtype.title() + "Storage"))
 
+    @SupportedDevices(['Ascend910B'])
     def test_deepcopy(self):
         x = torch.tensor([1])
         y = copy.deepcopy(x)
