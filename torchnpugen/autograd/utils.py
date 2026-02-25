@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import List, Dict
 import yaml
@@ -28,9 +29,24 @@ def parse_derivatives(
     autograd_dir: str,
     npu_native_functions_path: str
 ):
-    derivatives_path = str(Path(autograd_dir).parents[1].joinpath(
-        f'third_party/op-plugin/op_plugin/config/v{VERSION_PART[0]}r{VERSION_PART[1]}/derivatives.yaml'
-         ))
+    
+    ## aclnn extension for customers:
+    env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
+    env_derivatives_path = os.getenv('PYTORCH_CUSTOM_DERIVATIVES_PATH')
+    if env_aclnn_extension_switch and os.path.exists(env_derivatives_path):
+        # if apply aclnn extension
+        derivatives_path = env_derivatives_path
+    elif env_aclnn_extension_switch and not os.path.exists(env_derivatives_path):
+        # if apply aclnn extension but path not exists
+        error_msg = f"ERROR: 环境变量PYTORCH_CUSTOM_DERIVATIVES_PATH指定的路径不存在\n指定路径：{env_derivatives_path}"
+        print(error_msg, file=sys.stderr)
+        raise FileNotFoundError(error_msg)
+    else:
+        # original code logic
+        derivatives_path = str(Path(autograd_dir).parents[1].joinpath(
+            f'third_party/op-plugin/op_plugin/config/v{VERSION_PART[0]}r{VERSION_PART[1]}/derivatives.yaml'
+            ))    
+
     differentiability_infos, _ = load_derivatives(
         derivatives_path, native_functions_path, tags_path)
     native_funcs = parse_native_and_custom_yaml(native_functions_path,
