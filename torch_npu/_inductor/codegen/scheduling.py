@@ -224,6 +224,57 @@ class NPUTritonScheduling(TritonScheduling):
 
         self.scheduler.free_buffers()
 
+    def codegen_template(self, template_node, epilogue_nodes, only_gen_src_code=False):
+        _, (numel, rnumel) = template_node.group
+        assert rnumel == 1
+        kernel, render = template_node.node.make_kernel_render(template_node.node)
+        with kernel:
+            if not only_gen_src_code:
+                for node in [template_node, *epilogue_nodes]:
+                    node.mark_run()
+            partial_code = render()
+            with kernel.set_subgraph_body("<STORE_OUTPUT>"):
+                for node in epilogue_nodes:
+                    node.codegen(kernel.split_and_set_ranges(node.get_ranges()))
+
+        if not isinstance(partial_code, str):
+            partial_code.finalize_hook("<DEF_KERNEL>")
+            partial_code.finalize_hook("<ARGDEFS>", strict=False)
+        # finalize must be called after adding epilogue above
+        with V.set_kernel_handler(kernel):
+            with kernel.set_subgraph_body("<STORE_OUTPUT>"):
+                if isinstance(partial_code, str):
+                    src_code = partial_code
+                else:
+                    partial_code.finalize_hook("<STORE_OUTPUT>")
+                    src_code = partial_code.code
+            node_schedule = [template_node, *epilogue_nodes]
+
+            if config.benchmark_kernel:
+                num_gb = kernel.estimate_kernel_num_bytes() / 1e9
+                grid_args = V.graph.sizevars.size_hints(kernel.call_sizes)
+                assert kernel.meta is not None, "meta is None"
+                grid = kernel.grid_fn(*grid_args, kernel.meta)
+
+                src_code = (
+                    f"{kernel.imports_for_benchmark_kernel()}\n"
+                    f"{src_code}\n"
+                    f"{kernel.codegen_kernel_benchmark(num_gb, grid).getvalue()}"
+                )
+
+            if only_gen_src_code:
+                return src_code
+            traced_graph_hash = None
+            kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash)
+
+        self.codegen_comment(node_schedule)
+        kernel.call_kernel(kernel_name, template_node.node)
+
+        V.graph.removed_buffers |= kernel.removed_buffers
+        V.graph.inplaced_to_remove |= kernel.inplaced_to_remove
+        self.scheduler.free_buffers()
+        return None
+
     def define_kernel(self, src_code, node_schedule, kernel, traced_graph_hash: str):
         wrapper = V.graph.wrapper_code
         if (src_code, traced_graph_hash) in wrapper.src_to_kernel:

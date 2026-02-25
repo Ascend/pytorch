@@ -58,7 +58,11 @@ else:
         _register_npu_inductor_addmm,
         _register_npu_inductor_bmm,
         _register_npu_inductor_grouped_mm,
+        _register_npu_inductor_flex_attention,
+        _validate_device,
     )
+    from torch.nn.attention import flex_attention
+    flex_attention._validate_device = _validate_device
 
     set_compile_threads()
     disable_comprehensive_padding()
@@ -125,6 +129,7 @@ else:
     _register_npu_inductor_addmm()
     _register_npu_inductor_bmm()
     _register_npu_inductor_grouped_mm()
+    _register_npu_inductor_flex_attention()
     patch_pattern_mm_plus_mm()
     patch_algorithm_selector()
     patch_tuning_process()

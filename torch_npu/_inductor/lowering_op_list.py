@@ -88,6 +88,8 @@ GENERATE_LIST = [
     aten.bmm,
     aten.addmm,
     npu.npu_grouped_matmul,
+    torch.ops.higher_order.flex_attention,
+    torch.ops.higher_order.flex_attention_backward,
 ]
 
 GENERATE_LIST2 = [
@@ -114,6 +116,9 @@ LOWERING_OVERLOAD_OP = [
     aten.mm,
     aten.bmm,
     aten.addmm,
+    aten.slice_scatter,
+    torch.ops.higher_order.flex_attention,
+    torch.ops.higher_order.flex_attention_backward,
 ]
 
 INDIRECT_MEM_GENERATE_LIST = [

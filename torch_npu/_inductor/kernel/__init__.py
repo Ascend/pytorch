@@ -1,3 +1,4 @@
 from .mm import _register_npu_inductor_mm, _register_npu_inductor_addmm
 from .bmm import _register_npu_inductor_bmm
 from .mm_grouped import _register_npu_inductor_grouped_mm
+from .flex_attention import _register_npu_inductor_flex_attention, _validate_device

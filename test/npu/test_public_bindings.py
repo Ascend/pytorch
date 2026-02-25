@@ -664,6 +664,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.fx_passes.ascend_custom_passes",
             "torch_npu._inductor.fasta_autotune",
             "torch_npu._inductor.profiler",
+            "torch_npu._inductor.kernel.flex_attention",
         }
 
         # No new entries should be added to this list.
