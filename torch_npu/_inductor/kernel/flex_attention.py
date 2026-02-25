@@ -51,7 +51,6 @@ from torch._inductor.kernel.flex_attention import (
     next_power_of_two,
     construct_strides,
     create_placeholder,
-    _use_flex_decoding,
     set_head_dim_values,
     create_indices_fake,
     flex_attention_grid,
@@ -65,6 +64,17 @@ from torch._inductor.kernel.flex_attention import (
 
 aten = torch.ops.aten
 Expr = sympy.Expr
+
+
+def _use_flex_decoding(query, kernel_options):
+    force_flex = kernel_options.get("FORCE_USE_FLEX_ATTENTION", False)
+    short_query_length = V.graph.sizevars.evaluate_expr(
+        sympy.Lt(query.get_size()[-2], 128)
+    )
+    non_zero_length = V.graph.sizevars.evaluate_expr(sympy.Gt(query.get_size()[-2], 0))
+    static_batch = isinstance(query.get_size()[0], (int, sympy.Integer))
+    static_num_heads = isinstance(query.get_size()[1], (int, sympy.Integer))
+    return not force_flex and short_query_length and static_batch and static_num_heads
 
 
 def _validate_device(query, key, value):
