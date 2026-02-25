@@ -818,6 +818,25 @@ def unfold_dual_reduction_pass(graph: torch.fx.Graph) -> None:
         eliminate_dead_code(graph, changed, unfold_dual_reduction_pass.__name__)
 
 
+@register_custom_pass(PassType.PRE)
+def fusion_attention_v3_pass(graph: torch.fx.Graph) -> None:
+    changed = False
+    for node in list(graph.nodes):  # 使用list避免迭代时修改图结构
+        if node.op == 'call_function' and node.target == torch.ops.npu.npu_fusion_attention.default:
+            # 创建新节点调用v3版本
+            with graph.inserting_before(node):
+                new_node = graph.call_function(
+                    torch.ops.npu.npu_fusion_attention_v3.default,
+                    args=node.args,
+                    kwargs=node.kwargs
+                )
+                new_node.meta.update(node.meta)
+            node.replace_all_uses_with(new_node)
+            graph.erase_node(node)
+            changed = True
+    eliminate_dead_code(graph, changed, fusion_attention_v3_pass.__name__, False)
+
+
 def eliminate_dead_code(graph, changed, fn_name, POST=True):
     if changed:
         if POST:

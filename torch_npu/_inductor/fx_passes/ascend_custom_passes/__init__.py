@@ -17,7 +17,12 @@ def run_register_pre_custom_passes(gm):
             for fn in ASCEND_CUSTOME_PASS_REGISTER[PassType.PRE][level]:
                 fn(gm)
 
-        log.debug(f"after pre_grad graph optimizer pass, graph is: {gm}")
+    for level in sorted(FxPassLevel):
+        for fn in ASCEND_CUSTOME_PASS_REGISTER[PassType.PRE][level]:
+            if fn.__name__ == "fusion_attention_v3_pass":
+                fn(gm)
+
+    log.debug(f"after pre_grad graph optimizer pass, graph is: {gm}")
         
 
 def run_register_post_custom_passes(gm):
