@@ -401,6 +401,9 @@ def add_ops_files(base_dir, file_list):
     plugin_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin/include')
     if os.path.exists(plugin_path):
         file_list.append('third_party/op-plugin/op_plugin/include/*.h')
+    plugin_utils_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin/utils')
+    if os.path.exists(plugin_utils_path):
+        file_list.append('third_party/op-plugin/op_plugin/utils/*.h')
     return
 
 
