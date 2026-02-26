@@ -444,7 +444,10 @@ class TileGenerator:
             self.descend_all_low_dims()
             break
         self.add_extra_options()
-        if self.npu_kernel_type == NPUKernelType.SIMT_ONLY:
+        # do config filter for simt kernel, if there're configs with 0 remain programs others can be dropped because:
+        # 1. for simt kernel, numels do not need to too detailed tiling
+        # 2. for kernel, loop with no mask which means numel can be divisible by tiling blocksub is preferrable
+        if self.npu_kernel_type == NPUKernelType.SIMT_ONLY and len(self.configs) > 0:
             self.configs.sort(key=lambda x: x.kwargs['remain_programs'], reverse=False)
             if self.configs[0].kwargs['remain_programs'] == 0:
                 split_index = len(self.configs)
