@@ -402,6 +402,10 @@ def gen_dispatcher_registrations(
 ):
     backend_index = backend_indices[backend_dispatch_key]
     ns_helper = NamespaceHelper(namespace_str="at")
+    
+    # 获取环境变量
+    env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
+    
     native_func_header = """\
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
@@ -413,8 +417,16 @@ def gen_dispatcher_registrations(
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
-#include "torch_npu/csrc/framework/FormatHelper.h"
-#include "torch_npu/csrc/framework/utils/ForceAclnnList.h"
+"""
+    
+    # 根据环境变量决定是否包含FormatHelper.h
+    if env_aclnn_extension_switch:
+        native_func_header += ""
+    else:
+        native_func_header += """#include "torch_npu/csrc/framework/FormatHelper.h"
+"""
+    
+    native_func_header += """#include "torch_npu/csrc/framework/utils/ForceAclnnList.h"
 #include "torch_npu/csrc/framework/OpHook.h"
 #include "op_plugin/OpInterface.h"
 """
