@@ -116,7 +116,6 @@ LOWERING_OVERLOAD_OP = [
     aten.mm,
     aten.bmm,
     aten.addmm,
-    aten.slice_scatter,
     torch.ops.higher_order.flex_attention,
     torch.ops.higher_order.flex_attention_backward,
 ]
