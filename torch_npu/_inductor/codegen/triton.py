@@ -155,11 +155,12 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
                 current_subblock = block_name
                 break
 
-        before_subblock = V.kernel.current_subblock
-        V.kernel.current_subblock = current_subblock
+        before_subblock_axis = V.kernel.current_subblock_axis
+        current_subblock_axis = body.body.masked_indexing.get(current_subblock, {})
+        V.kernel.current_subblock_axis = before_subblock_axis | current_subblock_axis
         with V.kernel.mask_loads(mask, value=value) as new_mask:
             result = body()
-        V.kernel.current_subblock = before_subblock
+        V.kernel.current_subblock_axis = before_subblock_axis
 
         if need_where:
             # Remove once CSEVariables track the dtype
@@ -525,7 +526,7 @@ class NPUIndexTritonKernel(TritonKernel):
         self.reduce_analysis = None
         self.load_store_indexing = None
         self.npu_kernel_type = NPUKernelType.SIMD
-        self.current_subblock = None
+        self.current_subblock_axis = set()
 
     def _get_grid_type(self) -> type[triton_heuristics.GridExpr]:
         return npu_triton_heuristics.GridNpu
@@ -1397,7 +1398,11 @@ class NPUIndexTritonKernel(TritonKernel):
         # loads/stores, indirect indexing validity masks, etc.), otherwise we
         # can generate incorrect tl.load/tl.store.
         masked_axis_name = []
-        subblock_axis = set()
+        subblock_axis = V.kernel.current_subblock_axis
+        save_variable_mask = True
+        if index_vars and subblock_axis:
+            save_variable_mask = subblock_axis.issubset({str(var) for var in index_vars})
+
         for node in self.sorted_axis:
             is_persistent_reduction_axis = self.persistent_reduction and node.is_reduction
             if self.is_unified_simt_kernel():
@@ -1409,21 +1414,11 @@ class NPUIndexTritonKernel(TritonKernel):
                     node.is_no_loop_axis):
                     continue
 
-            # Assume schedule node will not fusion having masked_subblock
-            subblock_name = V.kernel.current_subblock
-            if subblock_name:
-                for schedule_node in V.kernel.node_schedule:
-                    subblock_axis = schedule_node._body.masked_indexing.get(subblock_name, {})
-                    if subblock_axis:
-                        break
-                if node.name in subblock_axis:
-                    continue
+            if save_variable_mask and node.name in subblock_axis:
+                continue
 
             masked_axis_name.append(node.name)
 
-        save_variable_mask = True
-        if index_vars:
-            save_variable_mask = subblock_axis.issubset({str(var) for var in index_vars})
         for mask_var in variable_mask_vars:
             if save_variable_mask:
                 continue
