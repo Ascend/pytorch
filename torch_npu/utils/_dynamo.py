@@ -211,7 +211,7 @@ def patch_inductor_wrapper():
     
     def new_init(self, mode, options, dynamic):
         src_init(self, mode, options, dynamic)
-        if self.config.get("npu_backend") == "mlir" or torch._inductor.config.npu_backend == "mlir":
+        if (isinstance(options, dict) and options.get("npu_backend") == "mlir") or torch._inductor.config.npu_backend == "mlir":
             import os	 
             os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
             try:
@@ -352,5 +352,4 @@ def add_dynamo_methods():
     patch_user_defined_class_variable()
     patch_record_stream()
     patch_variable_builder()
-    patch_builtin_variable()    
-
+    patch_builtin_variable()   

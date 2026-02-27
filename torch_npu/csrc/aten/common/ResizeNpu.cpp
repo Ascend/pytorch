@@ -44,9 +44,15 @@ const at::Tensor& NPUNativeFunctions::resize_(
     }
     // because of resize _impl_npu_ only support at base format, so
     // no need to reflush NpuStorageDesc here.
-    at::Tensor temp_self = self;
-    if (!FormatHelper::IsBaseFormatType(self)) {
-        NPUNativeFunctions::npu_format_cast_(temp_self, FormatHelper::GetBaseFormat(self));
+    auto ks = self.key_set();
+    bool is_fake_or_meta = ks.has_all(c10::DispatchKeySet(c10::BackendComponent::MetaBit)) ||
+                           ks.has_all(c10::DispatchKeySet(c10::DispatchKey::Python)) ||
+                           self.is_meta();
+    if (!is_fake_or_meta) {
+        at::Tensor temp_self = self;
+        if (!FormatHelper::IsBaseFormatType(self)) {
+            NPUNativeFunctions::npu_format_cast_(temp_self, FormatHelper::GetBaseFormat(self));
+        }
     }
     auto* self_ = self.unsafeGetTensorImpl();
     resize_impl_npu_(self_, size, c10::nullopt);
