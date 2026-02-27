@@ -32,6 +32,7 @@
 -   [告警信息打印](alarm_message_printing.md)
     -   [TORCH\_NPU\_DISABLED\_WARNING](TORCH_NPU_DISABLED_WARNING.md)
     -   [TORCH\_NPU\_COMPACT\_ERROR\_OUTPUT](TORCH_NPU_COMPACT_ERROR_OUTPUT.md)
+    -   [TORCH\_NPU\_LOGS](TORCH_NPU_LOGS.md)
 
 -   [同步超时](synchronization_timeout.md)
     -   [ACL\_DEVICE\_SYNC\_TIMEOUT](ACL_DEVICE_SYNC_TIMEOUT.md)
