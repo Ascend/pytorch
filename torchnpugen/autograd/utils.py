@@ -16,11 +16,14 @@ from torchnpugen.gen_backend_stubs import parse_native_and_custom_yaml
 
 AUTOGRAD_BLACK_LIST = {'npu_format_cast.Tensor', 'npu_format_cast_', 'npu_format_cast_.acl_format'}
 
-torch_npu_root = Path(__file__).parent.parent.parent
-PathManager.check_directory_path_readable(torch_npu_root / "version.txt")
-with open(torch_npu_root / "version.txt") as version_f:
-    version = version_f.read().strip()
-VERSION_PART = version.split('.')
+## aclnn extension for customers:
+env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
+if not env_aclnn_extension_switch:
+    torch_npu_root = Path(__file__).parent.parent.parent
+    PathManager.check_directory_path_readable(torch_npu_root / "version.txt")
+    with open(torch_npu_root / "version.txt") as version_f:
+        version = version_f.read().strip()
+    VERSION_PART = version.split('.')
 
 
 def parse_derivatives(
@@ -29,9 +32,7 @@ def parse_derivatives(
     autograd_dir: str,
     npu_native_functions_path: str
 ):
-    
-    ## aclnn extension for customers:
-    env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
+
     env_derivatives_path = os.getenv('PYTORCH_CUSTOM_DERIVATIVES_PATH')
     if env_aclnn_extension_switch and os.path.exists(env_derivatives_path):
         # if apply aclnn extension
