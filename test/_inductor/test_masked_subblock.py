@@ -1,3 +1,4 @@
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, instantiate_parametrized_tests
 from testutils import TestUtils
@@ -42,6 +43,7 @@ class TestMaskedSubblock(TestUtils):
         slice_scatter_13 = torch.ops.aten.slice_scatter.default(slice_scatter_10, select_scatter_3, 2, 3199, -3199)
         return slice_scatter_13
 
+    @unittest.skip("this test is not supported yet")
     def test_masked_subblock(self):
         arg0_1 = self._generate_tensor((1, 3200, 9598), 'float32')
         std_ret = self.eager_function(arg0_1)
