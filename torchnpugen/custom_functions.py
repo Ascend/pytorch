@@ -1,3 +1,4 @@
+import os
 import re
 import itertools
 from collections import namedtuple, defaultdict
@@ -254,12 +255,14 @@ def compute_register_impl(f: NativeFunction, backend_index):
 
 
 def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFunction], custom_backend_indices):
-
+    env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
+    library_decl = [f'TORCH_LIBRARY_FRAGMENT'] if env_aclnn_extension_switch else [f'TORCH_LIBRARY']
     fm.write_with_template(f'CustomRegisterSchema.cpp', 'CustomRegisterSchema.cpp', lambda: {
         'custom_op_definitions': list(concatMap(
             lambda f: compute_op_definition(f),
             custom_trace_functions
         )),
+        'custom_library': library_decl,
         'custom_schema_registrations': list(mapMaybe(
             RegisterCustomSchema(),
             custom_trace_functions

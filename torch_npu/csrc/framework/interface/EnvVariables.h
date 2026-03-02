@@ -1,6 +1,8 @@
 #ifndef __PLUGIN_NATIVE_NPU_INTERFACE_ENVVARIABLES__
 #define __PLUGIN_NATIVE_NPU_INTERFACE_ENVVARIABLES__
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+
 namespace at_npu {
 namespace native {
 namespace env {
@@ -12,7 +14,7 @@ bool AutoTuneEnabled();
 bool CheckBmmV2Enable();
 bool CheckJitDisable();
 bool CheckProfilingEnable();
-bool CheckOpHookEnable();
+TORCH_NPU_API bool CheckOpHookEnable();
 bool CheckMmBmmNDDisable();
 bool CheckForbidInternalFormat();
 bool CheckStrongConsistency();

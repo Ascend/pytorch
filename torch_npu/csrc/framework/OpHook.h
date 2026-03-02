@@ -20,7 +20,7 @@ using EndFn = void (*)();
 using PreFn = void (*)(const at::Tensor& at_tensor);
 using PostFn = void (*)(const at::Tensor& at_tensor);
 
-class OpHook {
+class TORCH_NPU_API OpHook {
 public:
     static OpHook& GetInstance();
     ~OpHook();
