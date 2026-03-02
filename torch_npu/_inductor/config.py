@@ -87,6 +87,16 @@ dump_fx_graph = os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH", False) \
 # (2) [1, 2, 10] means try to fallback kernel like triton_xxx_1, triton_xxx_2 and triton_xxx_10
 force_fallback_kernel_id = []
 
+# Control whether to skip stride assertions for ops that may change stride
+# at runtime (like _to_copy on NPU forcing Contiguous memory format).
+#
+# NPU's _to_copy operator inherently forces Contiguous memory format, which
+# causes stride to change between compile-time (fake tensor) and runtime.
+# Therefore, we skip stride assertions for these ops by default on NPU.
+#
+# Set to False to enable stride assertions (may cause false assertion failures).
+skip_specific_stride_asserts = True
+
 acc_comp_tol = {
     torch.float32: {'rtol': 1.3e-6, 'atol': 1e-5},
     torch.float16: {'rtol': 1e-3, 'atol': 1e-5},

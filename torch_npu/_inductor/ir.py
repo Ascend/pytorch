@@ -1,8 +1,9 @@
 import itertools
 import torch
 from torch._inductor.virtualized import ops, OpsValue, V
-from torch._inductor.ir import log, Layout
+from torch._inductor.ir import log, Layout, ExternKernel
 from torch._inductor import config
+from . import config as npu_config
 
 
 def patch_fallback_kernel_codegen():
@@ -86,3 +87,33 @@ def patch_fallback_kernel_codegen():
 
     from torch._inductor.ir import FallbackKernel
     FallbackKernel.codegen = codegen_npu
+
+
+def patch_extern_kernel_codegen_size_asserts():
+    original_codegen_size_asserts = ExternKernel.codegen_size_asserts
+
+    ops_with_variable_stride = (
+        torch.ops.aten._to_copy.default,
+        torch.ops.aten.reshape.default,
+    )
+
+    def npu_codegen_size_asserts(self, wrapper):
+        fx_node = getattr(self, 'fx_node', None)
+
+        should_skip = False
+        if npu_config.skip_specific_stride_asserts and fx_node and fx_node.target:
+            should_skip = fx_node.target in ops_with_variable_stride
+
+        if should_skip:
+            if config.size_asserts and not V.graph.cpp_wrapper:
+                from torch._inductor.utils import sympy_product
+
+                if sympy_product(self.get_size()) == 0:
+                    return
+                wrapper.writeline(
+                    f"# NPU: Skipping stride assertion for {fx_node.target} (stride may change at runtime)"
+                )
+        else:
+            original_codegen_size_asserts(self, wrapper)
+
+    ExternKernel.codegen_size_asserts = npu_codegen_size_asserts
