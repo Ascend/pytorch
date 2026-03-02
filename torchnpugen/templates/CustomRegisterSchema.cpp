@@ -41,7 +41,7 @@ ${custom_op_definitions}
 
 namespace {
 
-TORCH_LIBRARY(npu, m) {
+${custom_library}(npu, m) {
 
     ${custom_schema_registrations}
 }
