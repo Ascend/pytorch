@@ -37,13 +37,16 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
 
     if (c10_npu::IsAclnnOnly()) {
         if (aclnnNpuFormatCastExist) {
-            auto api_ret = GetFormat(ConvertType(src), acl_format, customizeAcltype, &dstStorageShape,
+            auto acl_src = ConvertType(src);
+            auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape,
                 &dstShapeSize, &dstFormat);
+            Release(acl_src);
             NPU_CHECK_ERROR(api_ret, "aclnnNpuFormatCastCalculateSizeAndFormat");
             for (uint64_t i = 0; i < dstShapeSize; i++) {
                 outputShape.push_back(dstStorageShape[i]);
             }
             delete[] dstStorageShape;
+            dstStorageShape = nullptr;
             return std::make_tuple(true, dstFormat, outputShape);
         }
         TORCH_CHECK(false,
@@ -52,8 +55,10 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
     }
     if (at_npu::native::env::CheckJitDisable()) {
         if (aclnnNpuFormatCastExist) {
-            auto api_ret = GetFormat(ConvertType(src), acl_format, customizeAcltype, &dstStorageShape,
+            auto acl_src = ConvertType(src);
+            auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape,
                 &dstShapeSize, &dstFormat);
+            Release(acl_src);
             if (api_ret != 0) {
                 if (customize_dtype.has_value()) {
                     NPU_CHECK_ERROR(api_ret, "aclnnNpuFormatCastCalculateSizeAndFormat");
@@ -64,6 +69,7 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
                 outputShape.push_back(dstStorageShape[i]);
             }
             delete[] dstStorageShape;
+            dstStorageShape = nullptr;
             return std::make_tuple(true, dstFormat, outputShape);
         } else {
             if (C10_UNLIKELY(customize_dtype.has_value())) {
