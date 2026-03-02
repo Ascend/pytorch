@@ -10,6 +10,7 @@
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/framework/LazyInitAclops.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 namespace at_npu {
 namespace native {
 namespace env {
