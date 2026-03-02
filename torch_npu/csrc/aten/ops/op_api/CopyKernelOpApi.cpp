@@ -186,7 +186,7 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
             auto imag_tensor = at::imag(self).neg();
             EXEC_NPU_CMD(aclnnComplex, real_tensor, imag_tensor, self);
         }
-        if (src.is_neg()) {
+        if (self.is_neg() != src.is_neg()) {
             self.neg_();
         }
     } else {
