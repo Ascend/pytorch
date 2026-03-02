@@ -16,7 +16,7 @@ std::unordered_map<std::string, c10::IValue> saveExtraArgs(const at::RecordFunct
 
 uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::string, c10::IValue> &extra_args);
 
-class NPURecordFunction {
+class TORCH_NPU_API NPURecordFunction {
 public:
     NPURecordFunction(bool enable_ = false) : enable(enable_)
     {
