@@ -727,7 +727,7 @@ public:
     // instead of relying on ProcessGroupHCCL destructor.
     bool abort(c10::optional<std::string> abortReason = c10::nullopt);
 
-    void shutdown(c10::optional<std::string> reason = c10::nullopt);
+    void shutdown() override;
 
     void deleteTCPStoreKey();
 
