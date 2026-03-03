@@ -83,6 +83,25 @@ class HcclReduceScatterBaseTest(HcclReduceScatterTestBase):
                 self._test_multiprocess(HcclReduceScatterBaseTest._test_reduce_scatter_base,
                                         HcclReduceScatterBaseTest._init_dist_hccl, expected, input_list, world_size, dist.ReduceOp.AVG)
 
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_base_pre_mul(self):
+        ranks = [2]
+        dtype_list = [np.int32, np.int8]
+        shape_format = [[i, 2, [4, 9]] for i in dtype_list]
+        for world_size in ranks:
+            for shape in shape_format:
+                if shape[0] == np.int8:
+                    shape[1] = 0
+                input_list = []
+                for _ in range(world_size):
+                    _, input1 = create_common_tensor(shape, -10, 10)
+                    input_list.append(input1.cpu())
+                expected = self._construct_excepted_result(input_list, world_size, dist._reduce_scatter_base, dist.ReduceOp.SUM)
+                expected = [i * 2 for i in expected]
+                reduce_op = torch_npu.distributed._make_hccl_premul_sum(2.0)
+                self._test_multiprocess(HcclReduceScatterBaseTest._test_reduce_scatter_base,
+                                        HcclReduceScatterBaseTest._init_dist_hccl, expected, input_list, world_size, reduce_op)
+
 
 if __name__ == '__main__':
     run_tests()

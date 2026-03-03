@@ -125,6 +125,22 @@ class HcclReduceTest(TestCase):
                 self._test_multiprocess(HcclReduceTest._test_reduce,
                                         HcclReduceTest._init_dist_hccl, expected, input1, world_size, dist.ReduceOp.AVG)
 
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_dist_pre_mul(self):
+        ranks = [2]
+        dtype_list = [np.int32, np.int8]
+        shape_format = [[i, 2, [4, 9]] for i in dtype_list]
+        for world_size in ranks:
+            for shape in shape_format:
+                if shape[0] == np.int8:
+                    shape[1] = 0
+                exp_input, input1 = create_common_tensor(shape, -10, 10)
+                expected = self._construct_excepted_result(exp_input, world_size, shape[0], dist.ReduceOp.SUM)
+                expected = expected * 2
+                reduce_op = torch_npu.distributed._make_hccl_premul_sum(2.0)
+                self._test_multiprocess(HcclReduceTest._test_reduce,
+                                        HcclReduceTest._init_dist_hccl, expected, input1, world_size, reduce_op)
+
 
 if __name__ == '__main__':
     run_tests()
