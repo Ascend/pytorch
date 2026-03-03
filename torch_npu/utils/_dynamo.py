@@ -217,6 +217,19 @@ def patch_builtin_variable():
     torch._dynamo.variables.builtin.BuiltinVariable.call_id = _wrap_call_id
 
 
+def patch_event_variable_python_type():
+    """
+    Add the 'python_type' method to the EventVariable class.
+    """
+    def python_type(self):
+        return type(self.value)
+
+    if "python_type" not in torch._dynamo.variables.streams.EventVariable.__dict__:
+        torch._dynamo.variables.streams.EventVariable.python_type = (
+            python_type
+        )
+
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
@@ -227,5 +240,6 @@ def add_dynamo_methods():
     patch_dynamo_optimize()
     patch_inductor_wrapper()
     patch_base_schedulernode()
+    patch_event_variable_python_type()
     patch_builtin_variable()
 
