@@ -2,6 +2,8 @@
 
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "third_party/acl/inc/acl/acl.h"
 #include <cstdint>
 #include <utility>
@@ -70,5 +72,30 @@ private:
 
     void createEvent(c10::DeviceIndex device_index);
     void moveHelper(NPUEvent&& other);
+};
+
+// EventPool - Thread-safe pool of NPU events to avoid expensive AclrtCreateEventWithFlag
+// calls. AclrtCreateEventWithFlag when concurrently invoked from multiple threads can be
+// very expensive (especially on certain device/driver combinations).
+using NPUEventPtr =
+    std::unique_ptr<NPUEvent, std::function<void(NPUEvent*)>>;
+
+class EventPool {
+public:
+    EventPool(unsigned int flags) : flags_(flags), pools_(c10_npu::device_count()) {}
+    NPUEventPtr get(const c10::DeviceIndex device);
+    void empty_cache();
+
+private:
+    // Cache line size for alignment to avoid false sharing
+    static constexpr size_t kCacheLineSize = 64;
+
+    struct PerDevicePool {
+        alignas(kCacheLineSize) std::mutex mutex_;
+        std::vector<std::unique_ptr<NPUEvent>> event_pool_;
+    };
+
+    unsigned int flags_;
+    std::vector<PerDevicePool> pools_;
 };
 } // namespace c10_npu
