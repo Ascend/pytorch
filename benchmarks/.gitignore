@@ -1,0 +1,49 @@
+# Benchmark output files (CSV results)
+*.csv
+
+# Profiler outputs
+*.json
+profile/
+prof_output/
+profiler_info.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Torch/Inductor cache
+traced_graph_cache/
+
+# NPU/CUDA Profiler outputs
+npu_profile/
+cuda_profile/
+profiling/
+
+# fusion config
+fusion_switch.cfg
+
+# Temporary files
+*.tmp
+*.log
+*.out
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# External torchbenchmark dependency (cloned from GitHub)
+# These directories are created by following the instructions in README.md:
+#   git clone https://github.com/pytorch/benchmark.git --depth=1
+# The leading slash ensures we only ignore these directories in benchmarks/
+# and not in other locations.
+/benchmark/
+/torchbenchmark/
