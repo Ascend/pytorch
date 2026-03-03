@@ -31648,5 +31648,6 @@
   "test_weights_only_error_unsafe_global_False (__main__.TestSerialization)": ["", [""]],
   "test_use_pinned_memory_for_d2h (__main__.TestSerialization)": ["", [""]],
   "test_fake_autocast_fft_fftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
-  "test_fake_autocast_fft_ifftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]]
+  "test_fake_autocast_fft_ifftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
+  "test_index_put_accumulate_large_tensor (__main__.TestIndexing)": ["", ["910A"]]
 }
