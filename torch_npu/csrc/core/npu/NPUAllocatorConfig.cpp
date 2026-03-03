@@ -197,6 +197,19 @@ size_t CachingAllocatorConfig::parseAddrAlignSize(const std::vector<std::string>
     return i;
 }
 
+size_t CachingAllocatorConfig::parseMultiStreamLazyReclaim(const std::vector<std::string> &config, size_t i)
+{
+    consumeToken(config, ++i, ':');
+    if (++i < config.size()) {
+        TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
+            "Expected a single True/False argument for multi_stream_lazy_reclaim", PTA_ERROR(ErrCode::PARAM));
+        m_multi_stream_lazy_reclaim = (config[i] == "True");
+    } else {
+        TORCH_CHECK(false, "Error, expecting multi_stream_lazy_reclaim value", PTA_ERROR(ErrCode::PARAM));
+    }
+    return i;
+}
+
 size_t CachingAllocatorConfig::parsePageSize(const std::vector<std::string> &config, size_t i)
 {
     TORCH_CHECK(i + 2 < config.size(), "page_size requires format 'page_size:1g'", OPS_ERROR(ErrCode::VALUE));
@@ -379,6 +392,8 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
             i = parseRoundUpPower2Divisions(config, i);
         } else if (config[i] == "pinned_use_background_threads") {
             i = parsePinnedUseBackgroundThreads(config, i);
+        } else if (config[i] == "multi_stream_lazy_reclaim") {
+            i = parseMultiStreamLazyReclaim(config, i);
         } else {
             TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::PARAM));
         }
