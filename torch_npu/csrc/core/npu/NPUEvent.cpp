@@ -274,4 +274,46 @@ void NPUEvent::moveHelper(NPUEvent&& other)
     std::swap(event_, other.event_);
 }
 
+NPUEventPtr EventPool::get(const c10::DeviceIndex device)
+{
+    // If the device is invalid, return a default event and no pooling
+    if (device < 0 || device >= (c10::DeviceIndex)pools_.size()) {
+        auto deleter = [](NPUEvent* event) {
+            delete event;
+        };
+        return NPUEventPtr(
+            std::make_unique<NPUEvent>(flags_).release(), deleter);
+    }
+
+    auto& pool = pools_[device];
+
+    // Create a destructor that returns the event to the appropriate device pool
+    auto destructor = [&pool](NPUEvent* event) noexcept {
+        if (event != nullptr) {
+            std::lock_guard<std::mutex> lock(pool.mutex_);
+            pool.event_pool_.emplace_back(event);
+        }
+    };
+
+    {
+        std::lock_guard<std::mutex> lock(pool.mutex_);
+        if (!pool.event_pool_.empty()) {
+            auto event = std::move(pool.event_pool_.back());
+            pool.event_pool_.pop_back();
+            return NPUEventPtr(event.release(), destructor);
+        }
+    }
+
+    return NPUEventPtr(
+        std::make_unique<NPUEvent>(flags_).release(),
+        destructor);
+}
+
+void EventPool::empty_cache()
+{
+    for (auto& pool : pools_) {
+        std::lock_guard<std::mutex> lock(pool.mutex_);
+        pool.event_pool_.clear();
+    }
+}
 } // namespace c10_npu

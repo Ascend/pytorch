@@ -21,6 +21,24 @@ namespace at_npu {
 namespace native {
 
 namespace {
+c10_npu::NPUEventPtr getEventFromPool(const at::DeviceIndex device_idx)
+{
+    // CUDA uses regular events, but NPU's regular events do not support cross-device operations,
+    // so IPC events are used here. The CUDA implementation creates 8 events for each device
+    // when the EventPool is first used. However, creating NPU IPC events is expensive
+    // (approximately 300 microseconds), so following CUDA's approach would result in
+    // significant overhead during the first use of EventPool. Additionally, if the current
+    // process involves fewer devices, creating events for all devices would introduce
+    // unnecessary overhead. Therefore, this EventPool creates events on-demand rather than
+    // pre-creating many events in advance.
+    static auto* event_pool = []() {
+        auto* pool = new c10_npu::EventPool(ACL_EVENT_IPC);
+        return pool;
+    }();
+
+    return event_pool->get(device_idx);
+}
+
 // NOTE: helper function of copy, the input parameter is not checked, The caller
 // needs to ensure that the parameters are correct.
 
@@ -285,11 +303,11 @@ void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking)
         // that no one is operating on the dst memory when we perform the copy.
         // src waits on dst barrier (src already waits on src)
         if (c10_npu::acl::IsSupportIpcEvent()) {
-            c10_npu::NPUEvent dst_ready(ACL_EVENT_IPC);
+            auto dst_ready = getEventFromPool(dst_device.index());
             guard.set_device(dst_device);
-            dst_ready.record(c10_npu::getCurrentNPUStream(dst_device_idx));
+            dst_ready->record(c10_npu::getCurrentNPUStream(dst_device_idx));
             guard.set_device(src_device);
-            dst_ready.block(src_stream);
+            dst_ready->block(src_stream);
         } else {
             guard.set_device(dst_device);
             c10_npu::NPUStream dst_stream = c10_npu::getCurrentNPUStream(dst_device_idx);
@@ -311,10 +329,10 @@ void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking)
 
         // Still on src_device, record stream event
         if (c10_npu::acl::IsSupportIpcEvent()) {
-            c10_npu::NPUEvent src_ready(ACL_EVENT_IPC);
-            src_ready.record(src_stream);
+            auto src_ready = getEventFromPool(src_device.index());
+            src_ready->record(src_stream);
             guard.set_device(dst_device);
-            src_ready.block(c10_npu::getCurrentNPUStream(dst_device_idx));
+            src_ready->block(c10_npu::getCurrentNPUStream(dst_device_idx));
         } else {
             NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(src_stream));
         }
