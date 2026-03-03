@@ -39,6 +39,8 @@ from torch._higher_order_ops.flex_attention import (
     flex_attention_backward,
 )
 
+from .config import inductor_indirect_memory_mode
+
 aten = torch.ops.aten
 prims = torch.ops.prims
 
@@ -217,7 +219,7 @@ FALLBACK_LIST = [
     aten._trilinear.default,
     aten._trilinear.out,
     # aten._unsafe_index,                                       # indirect_mem
-    aten._unsafe_index.Tensor,
+    # aten._unsafe_index.Tensor,
     aten._unsafe_index.Tensor_hacked_twin,
     # aten._unsafe_index_put,                                   # indirect_mem
     aten._unsafe_index_put.hacked_twin,
@@ -450,9 +452,9 @@ FALLBACK_LIST = [
     aten.digamma.out,
     aten.div_.Tensor,
     aten.div_.Tensor_mode,
-    # aten.embedding,                                   # indirect_mem
-    # aten.embedding.default,
-    aten.embedding.out,
+    # aten.embedding,                                    # indirect_mem
+    # aten.embedding.default,                            # indirect_mem
+    # aten.embedding.out,                                # indirect_mem
     aten.empty,
     aten.empty.memory_format,
     aten.empty.names,
@@ -509,9 +511,9 @@ FALLBACK_LIST = [
     aten.frexp.default,
     aten.full_like,
     # aten.gather,                                  # indirect_mem
-    # aten.gather.default,
-    aten.gather.dimname_out,
-    aten.gather.out,
+    # aten.gather.default,                          # indirect_mem
+    # aten.gather.dimname_out,                      # indirect_mem
+    # aten.gather.out,                              # indirect_mem
     aten.gcd.default,
     aten.geqrf.a,
     aten.geqrf.default,
@@ -533,7 +535,7 @@ FALLBACK_LIST = [
     aten.igammac.default,
     aten.igammac.out,
     # aten.index,                                   # indirect_mem         
-    # aten.index.Tensor,
+    # aten.index.Tensor,                            # indirect_mem
     aten.index.Tensor_hacked_twin,
     aten.index.Tensor_out,
     aten.index.list_Tensor,
@@ -543,11 +545,11 @@ FALLBACK_LIST = [
     aten.index.list_str,
     aten.index.str,
     # aten.index_put,                               # indirect_mem 
-    # aten.index_put.default,
+    # aten.index_put.default,                       # indirect_mem
     aten.index_put.hacked_twin,
-    aten.index_put.out,
+    # aten.index_put.out,                           # indirect_mem
     # aten.index_put_,                              # indirect_mem 
-    # aten.index_put_.default,
+    # aten.index_put_.default,                      # indirect_mem
     aten.index_put_.hacked_twin,
     aten.isinf,
     aten.isinf.complex,
@@ -729,7 +731,7 @@ FALLBACK_LIST = [
     # aten.scatter,                                 # indirect_mem 
     aten.scatter.reduce,
     aten.scatter.reduce_out,
-    # aten.scatter.src,
+    # aten.scatter.src,                             # indirect_mem
     aten.scatter.src_out,
     aten.scatter.value,
     aten.scatter.value_out,
@@ -737,7 +739,7 @@ FALLBACK_LIST = [
     aten.scatter.value_reduce_out,
     # aten.scatter_,                                # indirect_mem 
     aten.scatter_.reduce,
-    # aten.scatter_.src,
+    # aten.scatter_.src,                            # indirect_mem
     aten.scatter_.value,
     aten.scatter_.value_reduce,
     aten.scatter_add,
@@ -1159,3 +1161,31 @@ FALLBACK_LIST = [
     while_loop,
     with_effects,
 ]
+
+INDIRECT_MEM_FALLBACK_LIST = [
+    aten.embedding,
+    aten.embedding.default,
+    aten.embedding.out,
+    aten.gather,
+    aten.gather.default,
+    aten.gather.dimname_out,
+    aten.gather.out,
+    aten.index,
+    aten.index.Tensor,
+    aten._unsafe_index,
+    aten._unsafe_index.Tensor,
+    aten.index_put,
+    aten.index_put.default,
+    aten.index_put_,
+    aten.index_put_.default,
+    aten._unsafe_index_put,
+    aten.scatter,
+    aten.scatter.src,
+    aten.scatter_,
+    aten.scatter_.src,
+    aten.scatter_reduce,
+    aten.scatter_reduce_,
+]
+
+if not inductor_indirect_memory_mode:
+    FALLBACK_LIST += INDIRECT_MEM_FALLBACK_LIST
