@@ -185,7 +185,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                     input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor, dist.ReduceOp.SUM)
                 expected = [i * 2 for i in expected]
-                reduce_op = torch.distributed._make_nccl_premul_sum(2.0)
+                reduce_op = torch_npu.distributed._make_hccl_premul_sum(2.0)
                 self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor,
                                         HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list, world_size, reduce_op)
 

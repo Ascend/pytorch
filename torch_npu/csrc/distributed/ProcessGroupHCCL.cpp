@@ -128,7 +128,7 @@ uint64_t getNumelForHCCL(const at::Tensor& self)
 
 HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input)
 {
-    if (reduceOp == c10d::ReduceOp::AVG) {
+    if (reduceOp == c10d::ReduceOp::AVG || reduceOp == c10d::ReduceOp::PREMUL_SUM) {
         // HCCL does not support ReduceOp::AVG yet
         // PTA supports it by summing first, then dividing
         return HCCL_REDUCE_SUM;
@@ -4364,6 +4364,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
                 tensors_cp[0] = at_npu::native::custom_ops::_npu_dtype_cast(tensors[0], at::kInt);
             }
+            if (opts.reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                const auto* preMulSupplement =
+                    reinterpret_cast<c10d::NCCLPreMulSumSupplement*>(
+                        opts.reduceOp.supplement_.get());
+                auto scale_factor = preMulSupplement->double_factor;
+                for (auto& tensor : tensors_cp) {
+                    tensor.mul_(scale_factor);
+                }
+            }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
@@ -4548,6 +4558,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
                     tensors_cp[i] = at_npu::native::custom_ops::_npu_dtype_cast(tensors[i], at::kInt);
                 }
             }
+            if (opts.reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                const auto* preMulSupplement =
+                    reinterpret_cast<c10d::NCCLPreMulSumSupplement*>(
+                        opts.reduceOp.supplement_.get());
+                auto scale_factor = preMulSupplement->double_factor;
+                for (auto& tensor : tensors_cp) {
+                    tensor.mul_(scale_factor);
+                }
+            }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
@@ -4613,6 +4633,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
             if (tensors[0].scalar_type() == at::kBool || tensors[0].scalar_type() == at::kByte) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
                 tensors_cp[0] = at_npu::native::custom_ops::_npu_dtype_cast(tensors[0], at::kInt);
+            }
+            if (opts.reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                const auto* preMulSupplement =
+                    reinterpret_cast<c10d::NCCLPreMulSumSupplement*>(
+                        opts.reduceOp.supplement_.get());
+                auto scale_factor = preMulSupplement->double_factor;
+                for (auto& tensor : tensors_cp) {
+                    tensor.mul_(scale_factor);
+                }
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
@@ -4681,6 +4711,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
             if (outputTensors[0].scalar_type() == at::kBool || outputTensors[0].scalar_type() == at::kByte) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
                 outputTensors[0] = at_npu::native::custom_ops::_npu_dtype_cast(outputTensors[0], at::kInt);
+            }
+            if (opts.reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                const auto* preMulSupplement =
+                    reinterpret_cast<c10d::NCCLPreMulSumSupplement*>(
+                        opts.reduceOp.supplement_.get());
+                auto scale_factor = preMulSupplement->double_factor;
+                for (auto& tensor : inputTensors) {
+                    tensor.mul_(scale_factor);
+                }
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
@@ -4807,7 +4847,18 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
 
             return HCCL_SUCCESS;
         },
-        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                const auto* preMulSupplement =
+                    reinterpret_cast<c10d::NCCLPreMulSumSupplement*>(
+                        opts.reduceOp.supplement_.get());
+                auto scale_factor = preMulSupplement->double_factor;
+                for (auto& tensor : inputTensors_) {
+                    tensor.mul_(scale_factor);
+                }
+            }
+        },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
@@ -5337,6 +5388,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                         }
                     }
                     inputFlattened[i][j].copy_(inputTensors[i][j], true);
+                    if (opts.reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+                        const auto* preMulSupplement =
+                            reinterpret_cast<c10d::NCCLPreMulSumSupplement*>(
+                                opts.reduceOp.supplement_.get());
+                        auto scale_factor = preMulSupplement->double_factor;
+                        inputFlattened[i][j].mul_(scale_factor);
+                    }
                 }
             }
         },
@@ -5414,7 +5472,18 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
 
                 return HCCL_SUCCESS;
             },
-            [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+            [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+                if (opts.reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+                    c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                    const auto* preMulSupplement =
+                        reinterpret_cast<c10d::NCCLPreMulSumSupplement*>(
+                            opts.reduceOp.supplement_.get());
+                    auto scale_factor = preMulSupplement->double_factor;
+                    for (auto& tensor : inputFlattened) {
+                        tensor.mul_(scale_factor);
+                    }
+                }
+            },
             [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
                 work->lazyDestroy(inputFlattened);
                 work->lazyDestroy(outputFlattened);
@@ -5523,7 +5592,18 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
 
             return HCCL_SUCCESS;
         },
-        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                const auto* preMulSupplement =
+                    reinterpret_cast<c10d::NCCLPreMulSumSupplement*>(
+                        opts.reduceOp.supplement_.get());
+                auto scale_factor = preMulSupplement->double_factor;
+                for (auto& tensor : inputs) {
+                    tensor.mul_(scale_factor);
+                }
+            }
+        },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
@@ -5574,7 +5654,18 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
 
             return HCCL_SUCCESS;
         },
-        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (opts.reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                const auto* preMulSupplement =
+                    reinterpret_cast<c10d::NCCLPreMulSumSupplement*>(
+                        opts.reduceOp.supplement_.get());
+                auto scale_factor = preMulSupplement->double_factor;
+                for (auto& tensor : inputTensors) {
+                    tensor.mul_(scale_factor);
+                }
+            }
+        },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
