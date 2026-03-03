@@ -101,6 +101,7 @@ const std::string kMinCannVersion = "8.1.RC1";        // minimum cann version wh
 const std::string kMinDriverVersion = "25.0.RC1";     // minimum driver version which supports 1g mem 25.0.RC1
 const std::string kCannModule = "CANN";               // cann module name
 constexpr int kPrecision = 4;                         // precision of the memory usage information
+constexpr size_t kLazyQuerySize = 512;                // lazy query event size
 
 static char SHAREABLE_HANDLE_VERSION = 1;
 enum ShareableHandleType : char {
@@ -1170,7 +1171,7 @@ public:
             NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
         }
 
-        if (C10_LIKELY(captures_underway.empty())) {
+        if (!CachingAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty())) {
             // Processes end-of-life events for outstanding allocations used on
             // multiple streams (checks if their NPU-side uses are complete and
             // recycles their memory if so)
@@ -1199,6 +1200,20 @@ public:
             get_free_block(params) ||
             // Trigger callbacks and retry search
             (trigger_free_memory_callbacks(params) && get_free_block(params));
+        
+        if (CachingAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty())) {
+             // Lazy process events and free memory
+             size_t sum = 0;
+             for (auto it = npu_events.begin(); it != npu_events.end(); ++it) {
+                 sum += it->second.size();
+             }
+             if (!block_found || sum > kLazyQuerySize) {
+                 process_events(context);
+             }
+             if (!block_found) {
+                 block_found = get_free_block(params);
+             }
+         }
         // Can't reuse an existing block; try to get a new one.
         if (!block_found) {
             // Do garbage collection if the flag is set.
