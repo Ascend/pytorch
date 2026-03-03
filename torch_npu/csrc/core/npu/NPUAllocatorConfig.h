@@ -51,6 +51,10 @@ public:
     {
         return instance().m_page_size_1g;
     }
+    static bool multi_stream_lazy_reclaim()
+    {
+        return instance().m_multi_stream_lazy_reclaim;
+    }
 
     static size_t segment_size_mb()
     {
@@ -99,6 +103,7 @@ private:
     std::vector<size_t> m_roundup_power2_divisions;
 
     std::atomic<bool> m_pinned_use_background_threads; // A flag to enable background thread for processing events.
+    bool m_multi_stream_lazy_reclaim = false;
 
     CachingAllocatorConfig()
         : m_max_split_size(std::numeric_limits<size_t>::max()),
@@ -135,6 +140,7 @@ private:
     size_t parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i);
 
     size_t parsePinnedUseBackgroundThreads(const std::vector<std::string> &config, size_t i);
+    size_t parseMultiStreamLazyReclaim(const std::vector<std::string> &config, size_t i);
 };
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
