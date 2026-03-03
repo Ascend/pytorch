@@ -55,7 +55,7 @@ def patch_torch_for_aoti():
     from .codegen.cpp_utils import patch_device_to_aten
     from .utils import patch_is_same_tensor
     from .fx_passes.joint_graph import patch_constant_fold_uniform_value
-    from .ir import patch_fallback_kernel_codegen
+    from .ir import patch_fallback_kernel_codegen, patch_extern_kernel_codegen_size_asserts
 
     patch_codegen_with_cpp_wrapper()
     patch_get_cpp_torch_device_options()
@@ -63,6 +63,7 @@ def patch_torch_for_aoti():
     patch_is_same_tensor()
     patch_constant_fold_uniform_value()
     patch_fallback_kernel_codegen()
+    patch_extern_kernel_codegen_size_asserts()
 
     patch_aot_code_compiler_compile()
 
