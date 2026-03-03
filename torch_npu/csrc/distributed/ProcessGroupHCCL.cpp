@@ -1264,18 +1264,59 @@ void ProcessGroupHCCL::waitForFutureOrTimeout(
     }
 }
 
-void ProcessGroupHCCL::shutdown(c10::optional<std::string> reason)
+void ProcessGroupHCCL::shutdown()
 {
-    // Don't join threads here since the purpose of this method is to abort all
-    // communicators and signal the threads to exit. Joining on the threads could
-    // potentially block and hence avoid it in this method.
-    terminateProcessGroup_.store(true);
+    LOG(INFO) << logPrefix() << "Starting to destroy process group, flushing operations.";
+    
+    if (terminateProcessGroup_.exchange(true)) {
+        return;
+    }
+    // Synchronize device to wait for all HCCL operations to complete
+    c10_npu::npuSynchronizeDevice();
 
-    // We need to wait for abort to finish before we can safely shut down
-    // heartbeat monitoring thread.
+    if (windowMem_.has_value()) {
+        std::vector<at::Device> devices = {windowMem_->device()};
+        auto comm = getHcclCommByDevices(devices);
+        if (comm && comm->getHcclComm() != nullptr) {
+            auto ret = hcclCommDeregister(comm->getHcclComm(), windowHandle_);
+            if (ret != HCCL_SUCCESS) {
+                ASCEND_LOGE("Call HcclCommDeregister failed.");
+            }
+        }
+        windowHandle_ = nullptr;
+        windowMem_ = c10::nullopt;
+    }
+
     terminateHeartbeatMonitorThread_.store(true);
     watchdog_->notify();
     monitorWakeUpCV_.notify_one();
+
+#ifdef ENABLE_HCCL_ERROR_CHECKING
+    watchdog_->join();
+    LOG(INFO) << logPrefix() << "Watchdog thread joined.";
+
+    if (hcclHeartbeatMonitorThread_.joinable()) {
+        hcclHeartbeatMonitorThread_.join();
+        LOG(INFO) << logPrefix() << "Heartbeat monitor thread joined.";
+    }
+#endif
+
+    LOG(INFO) << logPrefix() << "Watchdog joined, destroying HCCL communicators.";
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        for (auto& it : devHCCLCommMap_) {
+            auto& hcclComms = it.second;
+            for (const auto& hcclComm : hcclComms) {
+                hcclComm->destroyHcclComm();
+            }
+        }
+        devHCCLCommMap_.clear();
+        devHCCLCommNameMap_.clear();
+        p2pSendRecvKeys_.clear();
+        hcclCommCounter_ = 0;
+    }
+
+    LOG(INFO) << logPrefix() << "Destroy complete.";
 }
 
 void ProcessGroupHCCL::deleteTCPStoreKey()
@@ -1310,52 +1351,32 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
 {
     LOG(INFO) << logPrefix() << "ProcessGroupHCCL destructor entered.";
 
-    if (windowMem_.has_value()) {
-        std::vector<at::Device> devices = {windowMem_->device()};
-        auto comm = getHcclCommByDevices(devices);
-        if (comm->getHcclComm() != nullptr) {
-            auto ret = hcclCommDeregister(comm->getHcclComm(), windowHandle_);
-            if (ret != HCCL_SUCCESS) {
-                ASCEND_LOGE("Call HcclCommDeregister failed.")
-            }
-        }
-        windowHandle_ = nullptr;
-        windowMem_ = c10::nullopt;
-    }
-
     if (options_->global_ranks_in_group.empty()) {
         global_ = nullptr;
     }
 
     if (!terminateProcessGroup_.load()) {
-        // If user haven't explicitly destroy/shutdown process group, destructor
-        // needs to do so
+        // User did not explicitly call destroy_process_group
+        // Use shutdown for complete cleanup
         shutdown();
     }
 
-    LOG(INFO) << logPrefix() << "ProcessGroupHCCL destructor entered.";
+    terminateProcessGroup_.store(true);
+    watchdog_->notify();
+
+    terminateHeartbeatMonitorThread_.store(true);
+    monitorWakeUpCV_.notify_one();
 
 #ifdef ENABLE_HCCL_ERROR_CHECKING
     watchdog_->join();
     if (hcclHeartbeatMonitorThread_.joinable()) {
         hcclHeartbeatMonitorThread_.join();
         LOG(INFO) << logPrefix()
-                  << "ProcessGroupHCCL heart beat monitor thread joined.";
+                  << "Heartbeat monitor thread joined in destructor.";
     }
 #endif
-    {
-        // Destropy all HCCL Communicators on Process Group Destruction
-        std::lock_guard<std::mutex> lock(mutex_);
-        for (auto& it : devHCCLCommMap_) {
-            auto& hcclComms = it.second;
 
-            for (const auto& hcclComm : hcclComms) {
-                hcclComm->destroyHcclComm();
-            }
-        }
-        devHCCLCommMap_.clear();
-        p2pSendRecvKeys_.clear();
-    }
+    LOG(INFO) << logPrefix() << "ProcessGroupHCCL destructor completed.";
     ASCEND_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
     logger->info("process group destroyed, group id is %s.", options_->group_id.c_str());
 }
