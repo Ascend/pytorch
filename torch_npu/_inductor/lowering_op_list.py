@@ -78,6 +78,7 @@ GENERATE_LIST = [
     aten.reciprocal,
     aten._assert_scalar,
     triton_kernel_wrapper_mutation,
+    torch.ops.higher_order.invoke_subgraph
 ]
 
 GENERATE_LIST2 = [
