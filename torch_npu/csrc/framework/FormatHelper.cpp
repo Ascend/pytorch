@@ -12,12 +12,14 @@ namespace {
 
 constexpr int BLOCKSIZE = 16;
 constexpr int BLOCKBYTES = 32;
+constexpr int NZ_C0_16_LASTSIZE = 16;
 
 // base format is ND/NCHW
 FormatShape InferShapeLessTo4(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShape4To5(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShape5To4(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeNDToNZ(c10::IntArrayRef dims, size_t itemsize);
+FormatShape InferShapeNDToNZC016(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeNDToZ(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeofNCHW(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeofND(c10::IntArrayRef dims, size_t itemsize);
@@ -53,7 +55,7 @@ std::unordered_map<aclFormat, FormatHelper::FormatInfo> FormatHelper::Initialize
          (FormatInfo){ACL_FORMAT_NDC1HWC0, ACL_FORMAT_NCDHW, InferShapeOfNDC1HWC0, "NDC1HWC0", true}},
         {ACL_FRACTAL_Z_3D, (FormatInfo){ACL_FRACTAL_Z_3D, ACL_FORMAT_NCDHW, InferShapeOfFZ3D, "FRACTAL_Z_3D", true}},
         {ACL_FORMAT_FRACTAL_NZ_C0_16,
-            (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_16, ACL_FORMAT_ND, nullptr, "FRACTAL_NZ_C0_16", true}},
+            (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_16, ACL_FORMAT_ND, InferShapeNDToNZC016, "FRACTAL_NZ_C0_16", true}},
         {ACL_FORMAT_FRACTAL_NZ_C0_32,
             (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_32, ACL_FORMAT_ND, nullptr, "FRACTAL_NZ_C0_32", true}},
         {ACL_FORMAT_FRACTAL_NZ_C0_2,
@@ -295,6 +297,39 @@ FormatShape InferShapeNDToNZ(c10::IntArrayRef dims, size_t itemsize)
     // float32 will cast to float16
     auto itemsize_ = (itemsize > 2) ? 2 : itemsize;
     auto lastSize = BLOCKBYTES / itemsize_;
+    res.emplace_back((dim[i + 1] + lastSize - 1) / lastSize);
+    res.emplace_back((dim[i] + BLOCKSIZE - 1) / BLOCKSIZE);
+    res.emplace_back(BLOCKSIZE);
+    res.emplace_back(lastSize);
+
+    return res;
+}
+
+FormatShape InferShapeNDToNZC016(c10::IntArrayRef dims, size_t itemsize)
+{
+    FormatShape res;
+    // sum(keepdim = false) may make tensor dim = 0
+    FormatShape dim;
+    for (size_t i = 0; i < dims.size(); i++) {
+        dim.emplace_back(dims[i]);
+    }
+
+    // this action will move to GuessStorageSizeWhenConvertFormat
+    if (dim.size() == 0) {
+        dim.emplace_back(1);
+    }
+    if (dim.size() == 1) {
+        dim.emplace_back(1);
+    }
+
+    size_t i = 0;
+    for (; i < dim.size() - 2; i++) {
+        res.emplace_back(dim[i]);
+    }
+
+    AT_ASSERT(itemsize != 0, "dtype itemsize should not be 0", OPS_ERROR(ErrCode::PARAM));
+
+    auto lastSize = NZ_C0_16_LASTSIZE;
     res.emplace_back((dim[i + 1] + lastSize - 1) / lastSize);
     res.emplace_back((dim[i] + BLOCKSIZE - 1) / BLOCKSIZE);
     res.emplace_back(BLOCKSIZE);
