@@ -2276,6 +2276,24 @@
   "torch_npu.npu.npugraph_ex.register_replacement": {
     "signature": "(search_fn, replace_fn, example_inputs, trace_fn=<function fwd_only>, extra_check=<function _return_true>, search_fn_pattern=None, scalar_workaround=None, skip_duplicates=False)"
   },
+  "torch_npu.npu.register_npu_graph_handler": {
+    "signature": "(op_names)"
+  },
+  "torch_npu.npu.NpuGraphOpHandler": {
+    "signature": "()"
+  },
+  "torch_npu.npu.NpuGraphOpHandler.prepare_capture": {
+    "signature": "(func, args, kwargs)"
+  },
+  "torch_npu.npu.NpuGraphOpHandler.postprocess_result": {
+    "signature": "(result, kwargs)"
+  },
+  "torch_npu.npu.NpuGraphOpHandler.update_args": {
+    "signature": "(dispatch_record, update_input)"
+  },
+  "torch_npu.npu.NpuGraphOpHandler.record_wrap_kwarg": {
+    "signature": "(key, value, tensor_param_names)"
+  },
   "torch_npu.distributed.run.parse_args": {
     "signature": "(args)"
   },
