@@ -62,17 +62,6 @@ void Logger::log(LoggingLevel level, const std::string& levelStr, const int log_
     std::string s = oss.str();
     std::cerr.write(s.c_str(), s.size());
     std::cerr.flush();
-
-    // plog
-    if (level == LoggingLevel::DEBUG) {
-        ASCEND_LOGD("[%s] %s", name_.c_str(), buffer);
-    } else if (level == LoggingLevel::INFO) {
-        ASCEND_LOGI("[%s] %s", name_.c_str(), buffer);
-    } else if (level == LoggingLevel::WARNING) {
-        ASCEND_LOGW("[%s] %s", name_.c_str(), buffer);
-    } else {
-        ASCEND_LOGE("[%s] %s", name_.c_str(), buffer);
-    }
 }
 
 void Logger::debug(const char* format, ...)
