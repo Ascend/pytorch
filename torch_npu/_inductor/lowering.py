@@ -1,3 +1,4 @@
+import os
 import sympy
 import torch._ops
 from torch._inductor import ir
@@ -111,31 +112,7 @@ def _init_set(input_list, output_set):
                 output_set.add(other_fn)
 
 
-def _register_npu_inductor_fallbacks():
-    gen_set = set()
-    _init_set(GENERATE_LIST, gen_set)
-    overload_op_set = set()
-    _init_set(LOWERING_OVERLOAD_OP, overload_op_set)
-
-    # 把不在白名单的op fallback
-    for op in lowerings:
-        if op not in decompositions and op not in gen_set:
-            if isinstance(op, torch._ops.OpOverloadPacket) or \
-                    isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
-                flag = False
-                for gens in GENERATE_LIST2:
-                    if str(op).find(gens) != -1:
-                        flag = True
-                if flag:
-                    continue
-                else:
-                    make_fallback(op)
-                    FALLBACK_LIST.append(op)
-    # 把需要overload的op在lowering里删除
-    for op in overload_op_set:
-        if op in lowerings:
-            del lowerings[op]
-
+def _register_npu_custom_lowerings():
     # register the reductions useing custom make_reduction
     reduce_amax = register_lowering(aten.amax)(make_reduction("max"))
     reduce_amin = register_lowering(aten.amin)(make_reduction("min"))
@@ -278,3 +255,66 @@ def _register_npu_inductor_fallbacks():
     make_fallback(aten._log_softmax)
     make_fallback(aten.gather)
     make_fallback(aten.nll_loss_forward)
+
+
+def _fallback_ops_with_meta():
+    """
+    Fallback all ops that have a Meta implementation but are not yet in lowerings
+    """
+    for op_name in torch._C._dispatch_get_all_op_names():
+        if not (torch._C._dispatch_has_kernel_for_dispatch_key(op_name, "Meta") or
+                torch._C._dispatch_has_kernel_for_dispatch_key(op_name, "CompositeImplicitAutograd")):
+            continue
+        try:
+            namespace, name_with_overload = op_name.split("::", 1)
+            name, overload = name_with_overload.split(".", 1) if "." in name_with_overload else (name_with_overload, "default")
+            op_overload = getattr(getattr(getattr(torch.ops, namespace, None), name, None), overload, None)
+        except (ValueError, AttributeError) as e:
+            continue
+        
+        if op_overload is None or not isinstance(op_overload, torch._ops.OpOverload):
+            continue
+        if op_overload is lowerings or op_overload in decompositions:
+            continue
+        make_fallback(op_overload)
+        FALLBACK_LIST.append(op_overload)
+
+
+def _register_npu_inductor_fallbacks():
+    gen_set = set()
+    _init_set(GENERATE_LIST, gen_set)
+    overload_op_set = set()
+    _init_set(LOWERING_OVERLOAD_OP, overload_op_set)
+
+    if os.environ.get("NPU_INDUCTOR_FALLBACK_ALL", "0") == "1":
+        ops_to_fallback = list(filter(
+            lambda op: op not in decompositions and
+                       isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)) and
+                       not isinstance(op, torch._higher_order_ops.triton_kernel_wrap.TritonKernelWrapperMutation),
+            lowerings
+        ))
+        for op in ops_to_fallback:
+            make_fallback(op)
+            FALLBACK_LIST.append(op)
+        _fallback_ops_with_meta()
+    else:
+        # 把不在白名单的op fallback
+        for op in lowerings:
+            if op not in decompositions and op not in gen_set:
+                if isinstance(op, torch._ops.OpOverloadPacket) or \
+                        isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+                    flag = False
+                    for gens in GENERATE_LIST2:
+                        if str(op).find(gens) != -1:
+                            flag = True
+                    if flag:
+                        continue
+                    else:
+                        make_fallback(op)
+                        FALLBACK_LIST.append(op)
+        # 把需要overload的op在lowering里删除
+        for op in overload_op_set:
+            if op in lowerings:
+                del lowerings[op]
+
+        _register_npu_custom_lowerings()
