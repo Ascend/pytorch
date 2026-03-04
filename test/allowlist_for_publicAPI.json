@@ -2856,7 +2856,9 @@
     "BFloat16Tensor",
     "restart_device",
     "stop_device",
-    "set_op_timeout_ms"
+    "set_op_timeout_ms",
+    "NpuGraphOpHandler",
+    "register_npu_graph_handler"
   ],
   "torch_npu.profiler": [
     "ProfilerActivity",

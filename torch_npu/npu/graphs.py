@@ -1,8 +1,17 @@
-__all__ = ["is_current_stream_capturing", "graph_pool_handle", "graph_task_group_begin",
-           "graph_task_group_end", "graph_task_update_begin", "graph_task_update_end",
-           "NPUGraph", "graph", "make_graphed_callables"]
+__all__ = [
+    "is_current_stream_capturing",
+    "graph_pool_handle",
+    "graph_task_group_begin",
+    "graph_task_group_end",
+    "graph_task_update_begin",
+    "graph_task_update_end",
+    "NPUGraph",
+    "graph",
+    "make_graphed_callables",
+]
 
 import gc
+import logging
 import re
 import typing
 from copy import deepcopy
@@ -12,9 +21,11 @@ from typing import List, Dict, Any, Optional, Tuple
 import torch
 import torch_npu._C
 from torch_npu._C import _weak_ref_tensor as TensorWeakRef
+from torch_npu.npu._npugraph_handlers.npugraph_handler import _NPU_GRAPH_OP_HANDLERS
 from torch_npu.utils._error_code import ErrCode, pta_error
 from torch_npu._compiler._config import force_npugraph_gc
 from .utils import _dummy_type
+
 
 if not hasattr(torch_npu._C, "_NPUStreamBase"):
     # Define dummy base classes
@@ -77,7 +88,7 @@ def graph_task_update_end(stream):
 
 @dataclass
 class _GraphDispatchRecord:
-    """存储单次操作的完整记录"""
+    """Record of a single dispatched operator call during graph capture."""
     event: Any = None
     handle: Any = None
     kwargs: Dict[str, Any] = field(default_factory=dict)
@@ -86,6 +97,14 @@ class _GraphDispatchRecord:
 
 
 class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
+    """Template-method skeleton for NPU Graph capture and update.
+
+    The skeleton keeps the common stream / event / task-group orchestration
+    and delegates operator-specific logic to
+    :class:`~torch_npu.npu.NpuGraphOpHandler` classes
+    looked up in ``_NPU_GRAPH_OP_HANDLERS``.
+    """
+
     tensor_schema_name = {}
     update_stream = None
 
@@ -102,153 +121,145 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
         return True
 
     @classmethod
-    def update_schema(cls, name, schame):
+    def update_schema(cls, name, schema):
         if name in cls.tensor_schema_name:
             return
         # match: Tensor q_nope, Tensor? mask=None, Tensor(a!) output
         pattern = r'Tensor(?:\(a!\)|\?)?\s+(\w+)'
-        cls.tensor_schema_name[name] = re.findall(pattern, schame)
-    
-    def update_capture_record(self, cpu_update_input):
-        if len(cpu_update_input) == 1:
-            new_list = [cpu_update_input[0].copy() for _ in range(len(self.graph_dispatch_records))]
-            cpu_update_input = new_list 
-        if len(self.graph_dispatch_records) != len(self.graph_dispatch_records):
-            raise RuntimeError(f"Currently, there are {len(self.graph_dispatch_records)} operators that need to be updated by capture, "
-                f"and there are only {len(self.graph_dispatch_records)} elements in the incoming cpu_update_input list", pta_error(ErrCode.PARAM))
-        with torch.npu.stream(self.update_stream):
-            for graph_dispatch_record, update_input in zip(self.graph_dispatch_records, cpu_update_input):
-                graph_task_update_begin(self.update_stream, graph_dispatch_record.handle)
-                for key in update_input:
-                    if key in graph_dispatch_record.kwargs:
-                        graph_dispatch_record.kwargs[key] = update_input[key]
+        cls.tensor_schema_name[name] = re.findall(pattern, schema)
 
-                # When parameters are passed through args, position is position of the updated parameter.
-                if graph_dispatch_record.op_cache_entry.__name__ in ["npu_fused_infer_attention_score", "npu_fused_infer_attention_score.out"]:
-                    position, key = 6, "actual_seq_lengths_kv"
-                elif graph_dispatch_record.op_cache_entry.__name__ in ["npu_fused_infer_attention_score_v2", "npu_fused_infer_attention_score_v2.out"]:
-                    position, key = 8, "actual_seq_kvlen"
-                elif graph_dispatch_record.op_cache_entry.__name__ == "_npu_paged_attention.default":
-                    position, key = 7, "context_lens"
-                elif graph_dispatch_record.op_cache_entry.__name__ == "npu_multi_head_latent_attention.out":
-                    position, key = 5, "context_lens"
-                if len(graph_dispatch_record.args) >= (position + 1):
-                    graph_dispatch_record.args[position] = update_input[key]
-                graph_dispatch_record.op_cache_entry(*graph_dispatch_record.args, **graph_dispatch_record.kwargs)
-                graph_task_update_end(self.update_stream)
-                graph_dispatch_record.event.record(self.update_stream)
+    # -----------------------------------------------------------------
+    #  Capture skeleton
+    # -----------------------------------------------------------------
 
-    def _append_dispatch_record(self, event, handle, args, kwargs, func):
+    def __torch_dispatch__(self, func, types, args=(), kwargs=None):
+        # Registry stores class objects; call via cls.method()
+        handler_cls = _NPU_GRAPH_OP_HANDLERS.get(func.__name__)
+
+        if handler_cls:
+            # 1) Common: obtain stream and event
+            stream = torch_npu.npu.current_stream()
+            event = torch.npu.ExternalEvent()
+            event.wait(stream)
+            event.reset(stream)
+
+            # 2) Operator-specific: preprocessing (workspace, output pre-alloc, func swap)
+            actual_func, args, kwargs = handler_cls.prepare_capture(
+                func, args, kwargs
+            )
+
+            # 3) Common: parse operator schema
+            self.update_schema(
+                str(actual_func.__name__), str(actual_func._schema)
+            )
+
+            # 4) Common: record graph task group
+            graph_task_group_begin(stream)
+            result = actual_func(*args, **kwargs)
+            handle = graph_task_group_end(stream)
+
+            # 5) Common: create dispatch record (delegate kwarg conversion to handler)
+            self.graph_dispatch_records.append(
+                self._append_dispatch_record(
+                    event, handle, args, kwargs, actual_func, handler_cls
+                )
+            )
+
+            # 6) Operator-specific: post-process return value
+            return handler_cls.postprocess_result(result, kwargs)
+
+        return func(*args, **kwargs)
+
+    def _append_dispatch_record(
+        self, event, handle, args, kwargs, func, handler_cls
+    ):
+        """Create a dispatch record, converting args / kwargs to weak-refs or deep copies.
+
+        ``handler_cls`` is a required parameter (class object) guaranteed by
+        the capture skeleton.
+        """
         args_ref = []
         for element in args:
             if torch.is_tensor(element) and "npu" in str(element.device):
                 args_ref.append(TensorWeakRef(element))
             else:
                 args_ref.append(deepcopy(element))
-        kwargs_ref = {}
-        for key, vaule in kwargs.items():
-            if key == "out":
-                kwargs_ref[key] = [TensorWeakRef(vaule[0]), TensorWeakRef(vaule[1])]
-            elif key in self.tensor_schema_name[str(func.__name__)]:
-                kwargs_ref[key] = TensorWeakRef(vaule)
-            else:
-                kwargs_ref[key] = deepcopy(vaule)
-        return _GraphDispatchRecord(event=event, handle=handle, kwargs=kwargs_ref, args=list(args_ref), op_cache_entry=func)
 
-    def __torch_dispatch__(self, func, types, args=(), kwargs=None):
-        if func.__name__ in ["npu_fused_infer_attention_score", "npu_fused_infer_attention_score.default"]:
-            func_out = torch_npu.npu_fused_infer_attention_score.out
-            self.update_schema(str(func_out.__name__), str(func_out._schema))
-            stream = torch_npu.npu.current_stream()
-            event = torch.npu.ExternalEvent()
-            event.wait(stream)
-            event.reset(stream)
-            # apply tensor
-            workspace = torch_npu._npu_fused_infer_attention_score_get_max_workspace(*args, **kwargs)
-            out_args = [args[0], args[2]]
-            out_kwargs_keys = [
-                'input_layout', 
-                'quant_scale2',
-                'block_table',
-                'num_heads',
-                'num_key_value_heads',
-                'softmax_lse_flag',
-                'query_rope']
-            out_kwargs = {key: kwargs[key] for key in out_kwargs_keys if key in kwargs}
-            output, softmax_lse = torch_npu._npu_fused_infer_attention_score_infer_output(*out_args, **out_kwargs)
-            kwargs["workspace"] = workspace
-            kwargs["out"] = [output, softmax_lse]
-            # begin graph task
-            graph_task_group_begin(stream)
-            func_out(*args, **kwargs)
-            handle = graph_task_group_end(stream)
-            # save state for update
-            self.graph_dispatch_records.append(
-                self._append_dispatch_record(event, handle, args, kwargs, func_out))
-            return kwargs["out"]
-        elif func.__name__ in ["npu_fused_infer_attention_score_v2", "npu_fused_infer_attention_score_v2.default"]:
-            func_out = torch_npu.npu_fused_infer_attention_score_v2.out
-            self.update_schema(str(func_out.__name__), str(func_out._schema))
-            stream = torch_npu.npu.current_stream()
-            event = torch.npu.ExternalEvent()
-            event.wait(stream)
-            event.reset(stream)
-            # apply tensor
-            workspace = torch_npu._npu_fused_infer_attention_score_v2_get_max_workspace(*args, **kwargs)
-            out_args = [args[0], args[2]]
-            out_kwargs_keys = [
-                'query_dtype',
-                'value_dtype',
-                'input_layout',
-                'quant_scale_out',
-                'block_table',
-                'num_query_heads',
-                'num_key_value_heads',
-                'return_softmax_lse',
-                'query_rope',
-                'out_dtype']
-            out_kwargs = {key: kwargs[key] for key in out_kwargs_keys if key in kwargs}
-            output, softmax_lse = torch_npu._npu_fused_infer_attention_score_v2_infer_output(*out_args, **out_kwargs)
-            kwargs["workspace"] = workspace
-            kwargs["out"] = [output, softmax_lse]
-            # begin graph task
-            graph_task_group_begin(stream)
-            func_out(*args, **kwargs)
-            handle = graph_task_group_end(stream)
-            # save state for update
-            self.graph_dispatch_records.append(
-                self._append_dispatch_record(event, handle, args, kwargs, func_out))
-            return kwargs["out"]
-        elif func.__name__ in ["npu_fused_infer_attention_score.out", "npu_fused_infer_attention_score_v2.out"]:
-            self.update_schema(str(func.__name__), str(func._schema))
-            stream = torch_npu.npu.current_stream()
-            event = torch.npu.ExternalEvent()
-            event.wait(stream)
-            event.reset(stream)
-            # begin graph task
-            graph_task_group_begin(stream)
-            func(*args, **kwargs)
-            handle = graph_task_group_end(stream)
-            # save state for update
-            self.graph_dispatch_records.append(
-                self._append_dispatch_record(event, handle, args, kwargs, func))
-            return kwargs["out"]
-        elif func.__name__ in ["_npu_paged_attention.default", "npu_multi_head_latent_attention.out"]:
-            self.update_schema(str(func.__name__), str(func._schema))
-            stream = torch_npu.npu.current_stream()
-            event = torch.npu.ExternalEvent()
-            event.wait(stream)
-            event.reset(stream)
-            # begin graph task
-            graph_task_group_begin(stream)
-            result = func(*args, **kwargs)
-            handle = graph_task_group_end(stream)
-            # save state for update
-            self.graph_dispatch_records.append(
-                self._append_dispatch_record(event, handle, args, kwargs, func))
-            return result
-        else:
-            return func(*args, **kwargs)
+        tensor_param_names = self.tensor_schema_name.get(
+            str(func.__name__), []
+        )
+        kwargs_ref = {}
+        for key, value in kwargs.items():
+            kwargs_ref[key] = handler_cls.record_wrap_kwarg(
+                key, value, tensor_param_names
+            )
+
+        return _GraphDispatchRecord(
+            event=event,
+            handle=handle,
+            kwargs=kwargs_ref,
+            args=list(args_ref),
+            op_cache_entry=func,
+        )
+
+    # -----------------------------------------------------------------
+    #  Update skeleton
+    # -----------------------------------------------------------------
+
+    def update_capture_record(self, cpu_update_input):
+        if len(cpu_update_input) == 1:
+            new_list = [
+                cpu_update_input[0].copy()
+                for _ in range(len(self.graph_dispatch_records))
+            ]
+            cpu_update_input = new_list
+
+        # BUG FIX: original code compared len(self.graph_dispatch_records)
+        # with itself -- always True.  Corrected to compare with
+        # cpu_update_input.
+        if len(cpu_update_input) != len(self.graph_dispatch_records):
+            raise RuntimeError(
+                f"Currently, there are {len(self.graph_dispatch_records)} "
+                f"operators that need to be updated by capture, and there "
+                f"are only {len(cpu_update_input)} elements in the incoming "
+                f"cpu_update_input list",
+                pta_error(ErrCode.PARAM),
+            )
+
+        with torch.npu.stream(self.update_stream):
+            for record, update_input in zip(
+                self.graph_dispatch_records, cpu_update_input
+            ):
+                graph_task_update_begin(self.update_stream, record.handle)
+
+                # 7) Common: update matching kwargs (direct assignment,
+                #    consistent with original implementation).
+                #    Capture-phase uses TensorWeakRef/deepcopy to avoid
+                #    strong references; update is a short "assign -> replay"
+                #    flow where direct assignment suffices.
+                for key in update_input:
+                    if key in record.kwargs:
+                        record.kwargs[key] = update_input[key]
+
+                # 8) Operator-specific: update args by index.
+                #    Defensive assert -- unregistered ops go through
+                #    passthrough in capture and never produce a dispatch
+                #    record, so handler_cls must not be None here.
+                handler_cls = _NPU_GRAPH_OP_HANDLERS.get(
+                    record.op_cache_entry.__name__
+                )
+                if handler_cls is None:
+                    raise RuntimeError(
+                        f"No handler for recorded op: {record.op_cache_entry.__name__}. "
+                        f"This indicates the handler was unregistered between capture and update.",
+                        pta_error(ErrCode.PARAM),
+                    )
+                handler_cls.update_args(record, update_input)
+
+                # 9) Common: replay the operator
+                record.op_cache_entry(*record.args, **record.kwargs)
+                graph_task_update_end(self.update_stream)
+                record.event.record(self.update_stream)
 
 
 # Python shim helps Sphinx process docstrings more reliably.
@@ -261,7 +272,7 @@ class NPUGraph(torch_npu._C._NPUGraph):
 
     def __new__(cls):
         return super().__new__(cls)
-    
+
     def __init__(self):
         self.graph_dispatch_mode = _GraphDispatchMode()
         self.auto_dispatch_capture = False
@@ -315,8 +326,11 @@ class NPUGraph(torch_npu._C._NPUGraph):
 
     def update(self, cpu_update_input):
         if not self.auto_dispatch_capture:
-            raise RuntimeError("The current graph configuration does not support update,"
-                "Try to capture by setting auto_dispatch_capture=True during capture", pta_error(ErrCode.PARAM))
+            raise RuntimeError(
+                "The current graph configuration does not support update,"
+                "Try to capture by setting auto_dispatch_capture=True during capture",
+                pta_error(ErrCode.PARAM),
+            )
         self.graph_dispatch_mode.update_capture_record(cpu_update_input)
 
     def debug_dump(self, debug_path):
@@ -324,8 +338,8 @@ class NPUGraph(torch_npu._C._NPUGraph):
 
         Arguments:
             debug_path (required): Path to dump the graph to.
-        """        
-        return super().debug_dump(debug_path)  
+        """
+        return super().debug_dump(debug_path)
 
 
 class graph:
