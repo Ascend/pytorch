@@ -98,7 +98,7 @@ inline c10_npu::NPUStream getNPUStreamByCurrentType(c10::DeviceIndex device = -1
     if (!current_Stream.isSyncLaunchStream()) {
         bool force_high = c10d::getCvarBool(TORCH_HCCL_HIGH_PRIORITY, false);
         auto s = c10_npu::getStreamFromPool(force_high, device);
-        ASCEND_LOGD("Get stream, stream id: %zu", static_cast<size_t>(s.id()))
+        TORCH_NPU_HCCL_LOGD("Get stream, stream id: %zu", static_cast<size_t>(s.id()))
         return s;
     }
     return c10_npu::getNPUStreamFromSyncLaunchPool(device);
@@ -247,7 +247,7 @@ void syncStreams(
         c10_npu::NPUEvent& hcclEvent = hcclEvents[i];
         hcclEvent.record(c10_npu::getCurrentNPUStream(devices[i].index()));
         hcclEvent.block(hcclStream);
-        ASCEND_LOGI("Event: record and block hccl group is successfully executed, event=%p", hcclEvent.event());
+        TORCH_NPU_HCCL_LOGI("Event: record and block hccl group is successfully executed, event=%p", hcclEvent.event());
     }
 }
 
@@ -427,7 +427,6 @@ std::unordered_map<std::string, ProcessGroupHCCL::StatusStruct> ProcessGroupHCCL
 int ProcessGroupHCCL::deviceId_ = -1;
 int ProcessGroupHCCL::numRanks_ = -1;
 std::string ProcessGroupHCCL::exceptionMessage_ = "";
-std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch.distributed");
 std::atomic<bool> ProcessGroupHCCL::shouldDump_(false);
 std::atomic<bool> ProcessGroupHCCL::monitorThreadEnabled_(false);
 
@@ -647,11 +646,8 @@ void ProcessGroupHCCL::WorkHCCL::checkAndSetException()
     std::unique_lock<std::mutex> lock(mutex_);
     exception_ = exception_ptr;
     if (exception_) {
-        ASCEND_LOGE("[Rank %d], found async exception when checking for HCCL errors: %s", rank_,
+        TORCH_NPU_HCCL_LOGE("[Rank %d], found async exception when checking for HCCL errors: %s", rank_,
             getExceptionMsgFromExceptionPtr(exception_).c_str());
-        LOG(ERROR) << "[Rank " << rank_ << "]"
-              << " found async exception when checking for HCCL errors: "
-              << getExceptionMsgFromExceptionPtr(exception_);
     }
 }
 
@@ -681,22 +677,20 @@ bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal(ErrorHandlingMode e
         std::string exceptionMsg = std::string(e.what());
         std::string device_error = get_device_error(exceptionMsg);
         if (!device_error.empty()) {
-            logger->info("Find %s when startedNPUExecutionInternal.", device_error.c_str());
+            TORCH_NPU_HCCL_LOGI("Find %s when startedNPUExecutionInternal.", device_error.c_str());
             device_error_msg = device_error;
             return false;
         }
 
         if (exceptionMsg.find("FORCE STOP") != std::string::npos) {
-            logger->info("Find FORCE STOP when startedNPUExecutionInternal.");
+            TORCH_NPU_HCCL_LOGI("Find FORCE STOP when startedNPUExecutionInternal.");
             force_stop_error_flag = true;
             return false;
         }
 
         if (exceptionMsg.find("driver shutting down") == std::string::npos) {
             std::call_once(print_flag, [&exceptionMsg]() {
-                logger->error("Find exception when startedNPUExecutionInternal, %s.", exceptionMsg.c_str());
-                ASCEND_LOGE("Find exception when startedNPUExecutionInternal, %s.", exceptionMsg.c_str());
-                LOG(ERROR) << "Find exception when startedNPUExecutionInternal, " << exceptionMsg.c_str();
+                TORCH_NPU_HCCL_LOGE("Find exception when startedNPUExecutionInternal, %s.", exceptionMsg.c_str());
             });
             if (SHOULD_TEAR_DOWN(errorHandling)) {
                 throw std::runtime_error(DIST_ERROR(ErrCode::INTERNAL));
@@ -726,19 +720,19 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const
         std::string exceptionMsg = std::string(e.what());
         std::string device_error = get_device_error(exceptionMsg);
         if (!device_error.empty()) {
-            logger->info("Find %s when finishedNPUExecutionInternal.", device_error.c_str());
+            TORCH_NPU_HCCL_LOGI("Find %s when finishedNPUExecutionInternal.", device_error.c_str());
             device_error_msg = device_error;
             return false;
         }
 
         if (exceptionMsg.find("FORCE STOP") != std::string::npos) {
-            logger->info("Find FORCE STOP when finishedNPUExecutionInternal.");
+            TORCH_NPU_HCCL_LOGI("Find FORCE STOP when finishedNPUExecutionInternal.");
             force_stop_error_flag = true;
             return false;
         }
 
         if (exceptionMsg.find("driver shutting down") == std::string::npos) {
-            logger->error("Find exception when finishedNPUExecutionInternal, %s.", exceptionMsg.c_str());
+            TORCH_NPU_HCCL_LOGE("Find exception when finishedNPUExecutionInternal, %s.", exceptionMsg.c_str());
             throw std::runtime_error(DIST_ERROR(ErrCode::INTERNAL));
         }
         LOG(INFO) << "[Rank " << rank_ << "] Event query failed with exception: " << e.what();
@@ -791,7 +785,7 @@ std::chrono::milliseconds GetDispatchTimeout() noexcept
             dispatchTimeout_ = static_cast<uint32_t>(hccl_exec_timeout) - dispatchoffset;
         };
     };
-    ASCEND_LOGI("set dispatchTimeout_ %u s.", dispatchTimeout_);
+    TORCH_NPU_HCCL_LOGI("set dispatchTimeout_ %u s.", dispatchTimeout_);
     return std::chrono::milliseconds(dispatchTimeout_ * 1000U);
 }
 
@@ -804,11 +798,11 @@ void ProcessGroupHCCL::WorkHCCL::checkDispatch()
         auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTimepoint - workStartTime_);
         if (timeElapsed > dispatchTimeout_) {
             std::string repo_info = c10_npu::getRepoInfo();
-            ASCEND_LOGE("Process group work %s, seq_num %u dispatch timeout. %s", opTypeToString(opType_).c_str(), seq_, repo_info.c_str());
+            TORCH_NPU_HCCL_LOGE("Process group work %s, seq_num %u dispatch timeout. %s", opTypeToString(opType_).c_str(), seq_, repo_info.c_str());
             is_reported = true;
         }
     } else if (*is_dispatched && is_reported) {
-        ASCEND_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(opType_).c_str(), seq_);
+        TORCH_NPU_HCCL_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(opType_).c_str(), seq_);
         is_reported = false;
     }
 }
@@ -878,7 +872,7 @@ void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds t
         auto currentStream = c10_npu::getCurrentNPUStream(devices_[i].index());
         // Block the current stream on the HCCL stream
         (*hcclEndEvents_)[i].block(currentStream);
-        ASCEND_LOGI("Event: block hccl work is successfully executed, event=%p", (*hcclEndEvents_)[i].event());
+        TORCH_NPU_HCCL_LOGI("Event: block hccl work is successfully executed, event=%p", (*hcclEndEvents_)[i].event());
         // If we use the work to do barrier, we should block here
         if (!barrierTensors_.empty()) {
             c10_npu::NPUGuard npuGuard(devices_[i]);
@@ -916,8 +910,7 @@ void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds t
     if (blockingWait_) {
         // Wait for the operation to complete.
         while (!isCompleted()) {
-            bool timedOut = checkTimeout(
-                timeout == kNoTimeout ? c10::nullopt : c10::make_optional(timeout));
+            bool timedOut = checkTimeout(timeout == kNoTimeout ? c10::nullopt : c10::make_optional(timeout));
             // Explicitly abort hcclComms here before throwing this timed out
             // exception to users.
             // If throwing timed out excepiton without aborting hccl communicators
@@ -953,7 +946,7 @@ void ProcessGroupHCCL::WorkHCCL::lazyDestroy(std::vector<at::Tensor> tensors)
         (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::ERASE_RECORD_STREAM)) {
         return;
     }
-
+    TORCH_NPU_HCCL_LOGD("Lazy destroy tensors, tensors size: %zu", tensors.size());
     for (const auto i : c10::irange(tensors.size())) {
         lazy_destroy_tensors_.push_back(tensors[i]);
     }
@@ -1030,7 +1023,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
             }
         }
     }
-    ASCEND_LOGI("Set op wait timeout to %u.", kOpWaitTimeout);
+    TORCH_NPU_HCCL_LOGI("Set op wait timeout to %u.", kOpWaitTimeout);
     NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
     const char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
 
@@ -1142,18 +1135,18 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     if (options_->global_ranks_in_group.empty()) {
         global_ = this;
         if (c10_npu::option::OptionsManager::IsHcclZeroCopyEnable() && c10_npu::NPUCachingAllocator::checkConfigExpandableSegments()) {
-            ASCEND_LOGI("Set the HCCL_ZERO_COPY environment variable in ExpandableSegments. Try to enable the HCCL_ZERO_COPY feature.");
+            TORCH_NPU_HCCL_LOGI("Set the HCCL_ZERO_COPY environment variable in ExpandableSegments. Try to enable the HCCL_ZERO_COPY feature.");
             std::unordered_map<std::string, std::string> envMap = checkEnvVarOrLogWarning();
             if (envMap["enable"] == "true") {
                 auto local_rank = std::stoi(envMap["local_rank"]);
                 if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-                    ASCEND_LOGW("Device is not initialized, init device %d by rank config.", local_rank);
+                    TORCH_NPU_HCCL_LOGW("Device is not initialized, init device %d by rank config.", local_rank);
                     c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Initialize(local_rank);
                 }
                 int32_t device_id = -1;
                 NPU_CHECK_ERROR(c10_npu::GetDevice(&device_id));
                 if (device_id != local_rank) {
-                    ASCEND_LOGW("Device is %d, set device %d by rank config.", device_id, local_rank);
+                    TORCH_NPU_HCCL_LOGW("Device is %d, set device %d by rank config.", device_id, local_rank);
                     device_id = local_rank;
                 }
                 NPU_CHECK_ERROR(c10_npu::SetDevice(device_id));
@@ -1161,15 +1154,14 @@ ProcessGroupHCCL::ProcessGroupHCCL(
                 createHCCLCommForZeroCopy(hcclComms, envMap);
                 c10_npu::NPUCachingAllocator::buildServerMemMapForHccl(device_id, hcclComms[0]);
             } else {
-                ASCEND_LOGI("Because the environment variables are not fully configured, the HCCL_ZERO_COPY feature cannot be enabled.");
+                TORCH_NPU_HCCL_LOGI("Because the environment variables are not fully configured, the HCCL_ZERO_COPY feature cannot be enabled.");
             }
         } else {
-            ASCEND_LOGI("The IsHcclZeroCopyEnable function return %d, the checkConfigExpandableSegments function return %d.",
+            TORCH_NPU_HCCL_LOGI("The IsHcclZeroCopyEnable function return %d, the checkConfigExpandableSegments function return %d.",
                 c10_npu::option::OptionsManager::IsHcclZeroCopyEnable(), c10_npu::NPUCachingAllocator::checkConfigExpandableSegments());
         }
     }
-    ASCEND_LOGI("process group created, group id is %s.", options_->group_id.c_str());
-    logger->info("process group created, group id is %s.", options_->group_id.c_str());
+    TORCH_NPU_HCCL_LOGI("process group created, group id is %s.", options_->group_id.c_str());
 }
 
 void ProcessGroupHCCL::setSequenceNumberForGroup() {}
@@ -1286,7 +1278,7 @@ void ProcessGroupHCCL::shutdown()
         if (comm && comm->getHcclComm() != nullptr) {
             auto ret = hcclCommDeregister(comm->getHcclComm(), windowHandle_);
             if (ret != HCCL_SUCCESS) {
-                ASCEND_LOGE("Call HcclCommDeregister failed.");
+                TORCH_NPU_HCCL_LOGE("Call HcclCommDeregister failed.");
             }
         }
         windowHandle_ = nullptr;
@@ -1331,13 +1323,17 @@ void ProcessGroupHCCL::deleteTCPStoreKey()
         // all processes in a group may be killed, so delete key 0 as a last resort
         store_->deleteKey("0");
         for (const auto &key : TCPStoreKeyList_) {
+            TORCH_NPU_HCCL_LOGD("Delete TCP store key: %s", key.c_str());
             store_->deleteKey(key);
         }
     } catch(...) {
         // different ranks may delete at the same time, which could cause exception
+        TORCH_NPU_HCCL_LOGE("Delete TCP store key failed.");
         TCPStoreKeyList_.clear();
         return;
     }
+
+    TORCH_NPU_HCCL_LOGI("Delete TCP store key success.");
     
     TCPStoreKeyList_.clear();
 }
@@ -1383,8 +1379,7 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
 #endif
 
     LOG(INFO) << logPrefix() << "ProcessGroupHCCL destructor completed.";
-    ASCEND_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
-    logger->info("process group destroyed, group id is %s.", options_->group_id.c_str());
+    TORCH_NPU_HCCL_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
 }
 
 std::future<bool> ProcessGroupHCCL::launchAsyncPythonTracebackDump()
@@ -1763,6 +1758,7 @@ void ProcessGroupHCCL::Watchdog::start()
     TORCH_CHECK(
         !hcclCommWatchdogThread_.joinable(), "Watchdog thread already started");
     hcclCommWatchdogThread_ = std::thread(&ProcessGroupHCCL::Watchdog::run, this);
+    TORCH_NPU_HCCL_LOGI("Watchdog thread started.");
 }
 
 void ProcessGroupHCCL::Watchdog::join()
@@ -1782,8 +1778,7 @@ void ProcessGroupHCCL::Watchdog::run()
             pg_->hcclHeartbeatMonitorThread_ = std::thread(&ProcessGroupHCCL::heartbeatMonitor, pg_);
         }
         runLoop();
-        LOG(INFO) << "[Rank " << rank_
-                << "] HCCL watchdog thread terminated normally";
+        LOG(INFO) << "[Rank " << rank_ << "] HCCL watchdog thread terminated normally";
     } catch (std::exception& e) {
         // Append error message reported from workCleanupLoop
         const auto exitMsg = c10::str(
@@ -1940,14 +1935,14 @@ void ProcessGroupHCCL::checkHcclComms()
                     "] checkHcclComms found HcclComms vector ",
                     name,
                     " got ERROR via HcclGetCommAsyncError : ");
-                ASCEND_LOGE("[Rank %d] checkHcclComms found HcclComms vector %s got ERROR via HcclGetCommAsyncError : %s",
+                TORCH_NPU_HCCL_LOGE("[Rank %d] checkHcclComms found HcclComms vector %s got ERROR via HcclGetCommAsyncError : %s",
                     rank_, name.c_str(), getExceptionMsgFromExceptionPtr(exception_ptr).c_str());
                 LOG(ERROR) << exceptionMsg << getExceptionMsgFromExceptionPtr(exception_ptr).c_str();
                 C10_LOG_API_USAGE_ONCE("ProcessGroupHCCL.handleException");
 
                 reportedErrorComms_.insert(name);
                 if (SHOULD_TEAR_DOWN(asyncErrorHandling_)) {
-                    ASCEND_LOGE("To avoid data inconsistency, we are taking the entire process down.");
+                    TORCH_NPU_HCCL_LOGE("To avoid data inconsistency, we are taking the entire process down.");
                     LOG(ERROR) << "To avoid data inconsistency, we are taking the entire process down.";
                     std::rethrow_exception(exception_ptr);
                 }
@@ -1956,8 +1951,7 @@ void ProcessGroupHCCL::checkHcclComms()
     }
     for (auto it = reportedErrorComms_.begin(); it != reportedErrorComms_.end();) {
         if (checkErrors.find(*it) == checkErrors.end()) {
-            ASCEND_LOGI("[Rank %d] HcclComms vector %s error status cleared/recovered.", rank_, it->c_str());
-            LOG(INFO) << "[Rank " << rank_ << "] HcclComms vector " << it->c_str() << "error status cleared/recovered.";
+            TORCH_NPU_HCCL_LOGI("[Rank %d] HcclComms vector %s error status cleared/recovered.", rank_, it->c_str());
             it = reportedErrorComms_.erase(it);
         } else {
             ++it;
@@ -2009,13 +2003,13 @@ void ProcessGroupHCCL::Watchdog::runLoop()
                 std::string exceptionMsg = std::string(e.what());
                 std::string device_error = get_device_error(exceptionMsg);
                 if (!device_error.empty()) {
-                    logger->info("Find %s when runloop setDevice.", device_error.c_str());
+                    TORCH_NPU_HCCL_LOGI("Find %s when runloop setDevice.", device_error.c_str());
                     device_error_msg = device_error;
                 }
 
                 if (exceptionMsg.find("FORCE STOP") == std::string::npos) {
                     force_stop_error_flag = true;
-                    logger->info("Find FORCE STOP when runloop setDevice.");
+                    TORCH_NPU_HCCL_LOGI("Find FORCE STOP when runloop setDevice.");
                 }
             }
             
@@ -2112,7 +2106,7 @@ void ProcessGroupHCCL::Watchdog::runLoop()
             // Clean up completed work
             if (work.isCompleted()) {
                 if (*(work.is_dispatched) && work.is_reported) {
-                    ASCEND_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(work.opType_).c_str(), work.seq_);
+                    TORCH_NPU_HCCL_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(work.opType_).c_str(), work.seq_);
                     work.is_reported = false;
                 }
                 if (!work.stashed_for_allocator_safety_->empty()) {
@@ -2266,6 +2260,7 @@ void ProcessGroupHCCL::broadcastMasterID(
 void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataVol, const int currRank,
     std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
 {
+    TORCH_NPU_HCCL_LOGD("Record data volume for HCCL op %s, data volume %s, current rank %d.", opName.c_str(), dataVol.c_str(), currRank);
     std::ofstream outfile;
     std::stringstream fileName;
     std::string commName = getHcclCommNameWithoutInit(hcclComms);
@@ -2329,6 +2324,7 @@ void ProcessGroupHCCL::updateStatusOutput()
 
 bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool error)
 {
+    TORCH_NPU_HCCL_LOGI("Record HCCL status, path %s, end %d, error %d.", path.c_str(), end, error);
     std::unique_lock<std::mutex> lock(StatusMapmutex_);
     if (!options_->global_ranks_in_group.empty() && !error) {
         return true;
@@ -2346,7 +2342,7 @@ bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool e
         static auto master_addr = getenv("MASTER_ADDR");
         if (master_addr == nullptr) {
             master_addr = "127.0.0.1";
-            ASCEND_LOGW("Unable to fetch master IP addr, environment variable is null, it will use 127.0.0.1");
+            TORCH_NPU_HCCL_LOGW("Unable to fetch master IP addr, environment variable is null, it will use 127.0.0.1");
         }
         int global_rank = rank_;
         if (!options_->global_ranks_in_group.empty()) {
@@ -2390,6 +2386,7 @@ bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool e
 
 void ProcessGroupHCCL::recordComm(std::string filename, std::string opName, const int currRank, std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
 {
+    TORCH_NPU_HCCL_LOGD("Record HCCL comm, filename %s, opName %s, currRank %d.", filename.c_str(), opName.c_str(), currRank);
     std::ofstream outfile;
     std::string commName = getHcclCommNameWithoutInit(hcclComms);
     if (isFileExists(filename)) {
@@ -2454,7 +2451,7 @@ void ProcessGroupHCCL::setNSLBCommConfig(HcclCommConfig** commConfig)
 {
     const char* envPtr = std::getenv("RANK");
     if (envPtr == nullptr) {
-        ASCEND_LOGI("Failed to get env info for NSLB-DP.");
+        TORCH_NPU_HCCL_LOGI("Failed to get env info for NSLB-DP.");
         return;
     }
     uint32_t worldRankID = std::stoi(std::string(envPtr));
@@ -2484,13 +2481,13 @@ c10_npu::NPUStream ProcessGroupHCCL::getHcclNPUStream(const at::Device &device)
 
     auto stream = getHcclStreamByBufferName(bufferName, device.index());
     if (stream) {
-        ASCEND_LOGD("HCCL use the same steam with bufferName = %s, device_index = %d, stream id = %lu", bufferName.c_str(), device.index(), stream->id());
+        TORCH_NPU_HCCL_LOGD("HCCL use the same steam with bufferName = %s, device_index = %d, stream id = %lu", bufferName.c_str(), device.index(), stream->id());
         return stream.value();
     }
 
     auto newStream = getNPUStreamByCurrentType(device.index());
     auto result = setHcclStreamByBufferName(bufferName, device.index(), newStream);
-    ASCEND_LOGD("HCCL use alloc new stream with bufferName = %s, device_index = %d, stream id = %lu. result = %d", bufferName.c_str(), device.index(), newStream.id(), result);
+    TORCH_NPU_HCCL_LOGD("HCCL use alloc new stream with bufferName = %s, device_index = %d, stream id = %lu. result = %d", bufferName.c_str(), device.index(), newStream.id(), result);
     return newStream;
 }
 
@@ -2553,7 +2550,7 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
     }
     auto endTime = std::chrono::steady_clock::now();
     auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-    logger->info("Create hccl comm by hcclCommInitRootInfoConfig success, group id is %s, commType is %d, use %d ms.",
+    TORCH_NPU_HCCL_LOGI("Create hccl comm by hcclCommInitRootInfoConfig success, group id is %s, commType is %d, use %d ms.",
         options_->group_id.c_str(), static_cast<int>(commType), timeElapsed.count());
 }
 
@@ -2567,8 +2564,12 @@ bool ProcessGroupHCCL::createHCCLCommEx(
     int p2pRank)
 {
     std::string rankTableFile = c10_npu::option::OptionsManager::GetRankTableFilePath();
-    if (rankTableFile.empty() || !checkFilePathReadable(rankTableFile)) {
-        ASCEND_LOGI("The rank_table_file is not available, switch to original interface.");
+    if (rankTableFile.empty()) {
+        TORCH_NPU_HCCL_LOGW("The env var RANK_TABLE_FILE is empty, switch to original interface.");
+        return false;
+    }
+    if (!checkFilePathReadable(rankTableFile)) {
+        TORCH_NPU_HCCL_LOGW("The rank_table_file %s is not readable, switch to original interface.", rankTableFile.c_str());
         return false;
     }
     if (c10_npu::option::OptionsManager::GetHCCLConnectTimeout() < 300) {
@@ -2576,7 +2577,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             "It is recommended to set the timeout duration of HCCL_CONNECT_TIMEOUT to 300 seconds or more.");
     }
     if (!hcclCommInitClusterInfoConfigExist()) {
-        ASCEND_LOGI("The hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
+        TORCH_NPU_HCCL_LOGW("The hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
         return false;
     }
     c10_npu::OptionalNPUGuard npuGuard;
@@ -2594,7 +2595,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             }
             auto comm = HCCLComm::createGlobalHcclComm(rankTableFile.c_str(), rank, commConfig);
             if (comm == nullptr) {
-                ASCEND_LOGI("Create global hccl comm with ranktable failed, switch to original interface.");
+                TORCH_NPU_HCCL_LOGI("Create global hccl comm with ranktable failed, switch to original interface.");
                 return false;
             }
             hcclComms[i] = comm;
@@ -2603,29 +2604,28 @@ bool ProcessGroupHCCL::createHCCLCommEx(
         }
         auto endTime = std::chrono::steady_clock::now();
         auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-        ASCEND_LOGI("Create global hccl comm with ranktable success, take %d milliseconds", timeElapsed.count());
-        logger->info("Create global hccl comm with ranktable success, take %d milliseconds", timeElapsed.count());
+        TORCH_NPU_HCCL_LOGI("Create global hccl comm with ranktable success, take %d milliseconds", timeElapsed.count());
         return true;
     }
 
     // sub process group
     if (!hcclCreateSubCommConfigExist()) {
-        ASCEND_LOGI("The hcclCreateSubCommConfig is not exist, switch to original interface.");
+        TORCH_NPU_HCCL_LOGI("The hcclCreateSubCommConfig is not exist, switch to original interface.");
         return false;
     }
     if (global_ == nullptr) {
-        ASCEND_LOGI("The global process group is not exist, switch to original interface.");
+        TORCH_NPU_HCCL_LOGI("The global process group is not exist, switch to original interface.");
         return false;
     }
     std::shared_ptr<HCCLComm> globalHcclComm = nullptr;
     try {
         globalHcclComm = global_->getHcclCommByDevices(devices);
     } catch (const std::exception& e) {
-        ASCEND_LOGI("create the global HCCL Communicator failed, the exception info is %s, switch to original interface.", e.what());
+        TORCH_NPU_HCCL_LOGI("create the global HCCL Communicator failed, the exception info is %s, switch to original interface.", e.what());
         return false;
     }
     if (!globalHcclComm) {
-        ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, globalHcclComm is nullptr, switch to original interface.");
+        TORCH_NPU_HCCL_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, globalHcclComm is nullptr, switch to original interface.");
         return false;
     }
 
@@ -2671,7 +2671,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             subComm = HCCLComm::createSubHcclComm(globalHcclComm, numRanks, options_->global_ranks_in_group.data(), hcclid, rank, commConfig);
         }
         if (subComm == nullptr) {
-            ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, group id is %s, subCommId is %llu, devicesKey is %s, switch to original interface.",
+            TORCH_NPU_HCCL_LOGI("Create sub hccl comm by hcclCreateSubCommConfig failed, group id is %s, subCommId is %llu, devicesKey is %s, switch to original interface.",
                 options_->group_id.c_str(), hcclid, devicesKey.c_str());
             return false;
         }
@@ -2684,9 +2684,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
     }
     auto subEndTime = std::chrono::steady_clock::now();
     auto subTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(subEndTime - subStartTime);
-    ASCEND_LOGI("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, devicesKey is %s, use %d ms.",
-        options_->group_id.c_str(), hcclid, devicesKey.c_str(), subTimeElapsed.count());
-    logger->info("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, devicesKey is %s, use %d ms.",
+    TORCH_NPU_HCCL_LOGI("Create sub hccl comm by hcclCreateSubCommConfig success, group id is %s, subCommId is %llu, devicesKey is %s, use %d ms.",
         options_->group_id.c_str(), hcclid, devicesKey.c_str(), subTimeElapsed.count());
     return true;
 }
@@ -2695,7 +2693,7 @@ void ProcessGroupHCCL::createHCCLCommForZeroCopy(
     std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
     std::unordered_map<std::string, std::string> &envMap)
 {
-    ASCEND_LOGI("Rank %s create process group  HCCL communicator for hccl zero copy", envMap["global_rank"].c_str());
+    TORCH_NPU_HCCL_LOGI("Rank %s create process group  HCCL communicator for hccl zero copy", envMap["global_rank"].c_str());
     std::string localRootRank = "0";
     HcclRootInfo hcclID;
 
@@ -2757,6 +2755,8 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     hcclComms.resize(devices.size());
     std::vector<c10_npu::NPUStream> streamVal;
     streamVal.reserve(devices.size());
+
+    TORCH_NPU_HCCL_LOGI("Create HCCL comm, devicesKey %s, commType %d, p2pRank %d.", devicesKey.c_str(), commType, p2pRank);
 
     // comms have not been initiated yet, but run HcclGroupEnd before, so end it first
     for (const auto i : c10::irange(hcclActiveGroupCounter_)) {
@@ -3112,7 +3112,7 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
 void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> work)
 {
     if (!device_error_msg.empty()) {
-        logger->error("Find %s when workEnqueue, throw %s.", device_error_msg.c_str(), device_error_msg.c_str());
+        TORCH_NPU_HCCL_LOGE("Find %s when workEnqueue, throw %s.", device_error_msg.c_str(), device_error_msg.c_str());
         std::string errorMsg = device_error_msg + " happened with workEnqueue.";
         device_error_msg = "";
         throw std::runtime_error(errorMsg + PTA_ERROR(ErrCode::ACL));
@@ -3120,7 +3120,7 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
     }
     if (force_stop_error_flag) {
         force_stop_error_flag = false;
-        logger->error("force_stop_error_flag is true when workEnqueue, throw FORCE STOP.");
+        TORCH_NPU_HCCL_LOGE("force_stop_error_flag is true when workEnqueue, throw FORCE STOP.");
         throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
         return;
     }
@@ -3184,6 +3184,7 @@ int64_t ProcessGroupHCCL::getHcclComm(int rankid)
 
 void ProcessGroupHCCL::resumeHcclComm(int device_id)
 {
+    TORCH_NPU_HCCL_LOGI("resumeHcclComm, device_id %d.", device_id);
     at::Device device = at::Device(c10::DeviceType::PrivateUse1, device_id);
     std::vector<at::Device> devices = {device};
     auto key = getKeyFromDevices(devices);
@@ -3212,7 +3213,7 @@ void ProcessGroupHCCL::resumeHcclComm(int device_id)
             }
         }
     }
-    ASCEND_LOGI("resumeHcclComm success, group id is %s.", options_->group_id.c_str());
+    TORCH_NPU_HCCL_LOGI("resumeHcclComm success, group id is %s.", options_->group_id.c_str());
 }
 
 bool ProcessGroupHCCL::setCommWorkingDevNic(
@@ -3269,7 +3270,7 @@ bool ProcessGroupHCCL::setCommWorkingDevNic(
     }
     auto ret = hcclCommWorkingDevNicSet(sendComm, sendRanksArr, useBackupArr, sendnRank);
     if (ret != HCCL_SUCCESS) {
-        ASCEND_LOGI("Fail to hcclCommWorkingDevNicSet");
+        TORCH_NPU_HCCL_LOGI("Fail to hcclCommWorkingDevNicSet, ret is %d.", ret);
         return false;
     }
     return true;
@@ -3278,7 +3279,7 @@ bool ProcessGroupHCCL::setCommWorkingDevNic(
 bool ProcessGroupHCCL::setSwitchNicComm(int rankid, int nranks, std::vector<uint32_t>& ranks, std::vector<bool>& useBackup)
 {
     if (!hcclCommWorkingDevNicSetExist()) {
-        ASCEND_LOGI("The hcclCommWorkingDevNicSet does not exist. Skip it.");
+        TORCH_NPU_HCCL_LOGI("The hcclCommWorkingDevNicSet does not exist. Skip it.");
         return true;
     }
     at::Device device = getDeviceForRank(rankid);
@@ -3299,7 +3300,7 @@ bool ProcessGroupHCCL::setSwitchNicComm(int rankid, int nranks, std::vector<uint
             return true;
         }
     }
-    ASCEND_LOGI("Succeed to hcclCommWorkingDevNicSet");
+    TORCH_NPU_HCCL_LOGI("Succeed to hcclCommWorkingDevNicSet");
     return true;
 }
 
@@ -3324,6 +3325,7 @@ void ProcessGroupHCCL::setHcclCommName(const std::string& hccl_comm_name)
     TORCH_CHECK(nameSize > 0 && nameSize < COMM_NAME_MAX_LENGTH,
                 "The length of the name must be between 1 and ", COMM_NAME_MAX_LENGTH - 1, ", Invalid hcclCommName:",
                 hccl_comm_name, DIST_ERROR(ErrCode::VALUE));
+    TORCH_NPU_HCCL_LOGI("Set HCCL comm name, hccl_comm_name %s, size %d.", hccl_comm_name.c_str(), nameSize);
     c10::DeviceIndex indexFromCurDevice = c10_npu::current_device();
     at::Device device = at::Device(c10::DeviceType::PrivateUse1, indexFromCurDevice);
     std::vector <at::Device> devices = {device};
@@ -3338,6 +3340,7 @@ void ProcessGroupHCCL::setHcclCommName(const std::string& hccl_comm_name)
 
 std::string ProcessGroupHCCL::getHcclCommName(int rankid, bool init_comm)
 {
+    TORCH_NPU_HCCL_LOGI("Get HCCL comm name, rankid %d, init_comm %d.", rankid, init_comm);
     TORCH_CHECK(rankid >= 0, "Invalid rank ", rankid, DIST_ERROR(ErrCode::VALUE));
     auto numNPUs = c10_npu::device_count();
     TORCH_CHECK(numNPUs > 0, "Invalid device number", numNPUs, DIST_ERROR(ErrCode::VALUE));
@@ -3847,7 +3850,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     for (size_t i = 0; i < inputs.size(); ++i) {
         c10_npu::NPUStream& hcclStream = hcclStreams[i];
         (*(work->hcclEndEvents_))[i].record(hcclStream);
-        ASCEND_LOGI("Event: record hccl work is successfully executed, event=%p", (*(work->hcclEndEvents_))[i].event());
+        TORCH_NPU_HCCL_LOGI("Event: record hccl work is successfully executed, event=%p", (*(work->hcclEndEvents_))[i].event());
         work->hcclComms_[i] = hcclComms[i];
     }
     work->blockingWait_ = blockingWait_;
@@ -4069,7 +4072,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
 
     c10_npu::NPUStream& hcclStream = hcclStreams[0];
     (*(work->hcclEndEvents_))[0].record(hcclStream);
-    ASCEND_LOGI("Event: record hccl work is successfully executed, event=%p", (*(work->hcclEndEvents_))[0].event());
+    TORCH_NPU_HCCL_LOGI("Event: record hccl work is successfully executed, event=%p", (*(work->hcclEndEvents_))[0].event());
     work->hcclComms_[0] = hcclComms[0];
 
     work->blockingWait_ = blockingWait_;
