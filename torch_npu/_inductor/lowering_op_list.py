@@ -80,6 +80,7 @@ GENERATE_LIST = [
     aten.copy_,
     aten.reciprocal,
     aten._assert_scalar,
+    torch.ops.higher_order.invoke_subgraph
 ]
 
 GENERATE_LIST2 = [
