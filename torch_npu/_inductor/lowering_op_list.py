@@ -90,6 +90,7 @@ GENERATE_LIST = [
     npu.npu_grouped_matmul,
     torch.ops.higher_order.flex_attention,
     torch.ops.higher_order.flex_attention_backward,
+    torch.ops.higher_order.invoke_subgraph
 ]
 
 GENERATE_LIST2 = [
