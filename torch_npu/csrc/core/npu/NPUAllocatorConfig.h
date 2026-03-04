@@ -50,6 +50,10 @@ namespace c10_npu {
             {
                 return instance().m_page_size_1g;
             }
+            static bool multi_stream_lazy_reclaim()
+            {
+                return instance().m_multi_stream_lazy_reclaim;
+            }
 
             static size_t segment_size_mb()
             {
@@ -88,6 +92,8 @@ namespace c10_npu {
 
             bool m_page_size_1g = false; // 新增1G页配置标志
 
+            bool m_multi_stream_lazy_reclaim = false;
+
             size_t m_segment_size_mb;
 
             std::vector<size_t> m_roundup_power2_divisions;
@@ -124,6 +130,8 @@ namespace c10_npu {
             size_t parseSegmentSizeMb(const std::vector<std::string> &config, size_t i);
 
             size_t parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i);
+
+            size_t parseMultiStreamLazyReclaim(const std::vector<std::string> &config, size_t i);
         };
     } // namespace NPUCachingAllocator
 } // namespace c10_npu

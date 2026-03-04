@@ -263,6 +263,19 @@ namespace c10_npu {
             return i;
         }
 
+        size_t CachingAllocatorConfig::parseMultiStreamLazyReclaim(const std::vector<std::string> &config, size_t i)
+        {
+            consumeToken(config, ++i, ':');
+            if (++i < config.size()) {
+                TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
+                    "Expected a single True/False argument for multi_stream_lazy_reclaim", PTA_ERROR(ErrCode::PARAM));
+                m_multi_stream_lazy_reclaim = (config[i] == "True");
+            } else {
+                TORCH_CHECK(false, "Error, expecting multi_stream_lazy_reclaim value", PTA_ERROR(ErrCode::PARAM));
+            }
+            return i;
+        }
+
         size_t CachingAllocatorConfig::roundup_power2_divisions(size_t size)
         {
             if (size == 0 || instance().m_roundup_power2_divisions.empty()) {
@@ -323,6 +336,8 @@ namespace c10_npu {
                     i = parseSegmentSizeMb(config, i);
                 } else if (config[i] == "roundup_power2_divisions") {
                     i = parseRoundUpPower2Divisions(config, i);
+                } else if (config[i] == "multi_stream_lazy_reclaim") {
+                    i = parseMultiStreamLazyReclaim(config, i);
                 } else {
                     TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], OPS_ERROR(ErrCode::PARAM));
                 }

@@ -46,6 +46,10 @@
     -   **单一值**：为每个内存设置相同的分段数量，例如配置为“4“。
     -   **键值对数组**：为每个2的幂区间单独设置分段数量。例如配置为“\[256:1,512:2,1024:4,\>:8\]“时，表示为256MB以下的所有分配设置1个分段，256MB到512MB之间的分配设置2个分段，512MB到1GB之间的分配设置4个分段，以及更大的分配设置8个分段。
 
+-   multi\_stream\_lazy\_reclaim:<value\>，多流场景下，内存申请时延迟查询Events。
+
+    默认值为False，即每次内存申请时都执行Events查询。当设置为True时，每次内存申请优先使用空闲内存块，当Events数量超过阈值512或者找不到可用内存块时，才触发Events查询。通过减少Events查询次数，降低CPU资源占用，提升Host侧性能。该配置仅影响Events状态查询的频率，不改变内存释放的条件，也不改变内存峰值，内存块仍需等待所有相关Events完成后才会被释放。
+
 -   pinned\_use\_background\_threads:<value\>，是否启用后台线程来处理events。
 
     默认值为False，不启用后台线程。当设置为True时，启用后台线程，在后台线程执行查询和处理events操作，减少主线程的阻塞时间。
@@ -105,20 +109,26 @@ export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,segment_size_mb:40
 示例六：
 
 ```
+export PYTORCH_NPU_ALLOC_CONF=multi_stream_lazy_reclaim:True
+```
+
+示例七：
+
+```
 export PYTORCH_NPU_ALLOC_CONF=pinned_use_background_threads:True
 ```
 
 
-示例七：
+示例八：
 
 ```
 export PYTORCH_NPU_ALLOC_CONF=pin_memory_expandable_segments:True
 ```
 
 
-示例八：
+示例九：
 
-```bash
+```
 export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
 ```
 
@@ -140,6 +150,9 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
 -   pinned_mem_register使用注意事项如下：
     -   特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商发8.5.0及以上版本使用。
     -   与pin_memory_expandable_segments特性不支持同时配置。
+-   multi_stream_lazy_reclaim使用注意事项：
+    -   特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。
+    -   该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
 
 ## 支持的型号
 
