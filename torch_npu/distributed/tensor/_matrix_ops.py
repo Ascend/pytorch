@@ -32,17 +32,6 @@ aten = torch.ops.aten
 npu = torch.ops.npu
 
 
-def _get_max_shardable_dim(tensor):
-    shape = tensor.shape
-    world_size = torch.distributed.get_world_size()
-    divisible_dims = [(idx, dim) for idx, dim in enumerate(shape) if dim % world_size == 0]
-    if divisible_dims:
-        idx, _ = max(divisible_dims, key=lambda x: x[1])
-        return idx
-    else:
-        return -1
-
-
 def _handle_tensor_list_in_kwargs(kwargs: Dict[str, object], op_info: OpInfo) -> None:
     for key, value in kwargs.items():
         if isinstance(value, list) and all(isinstance(e, DTensor) for e in value):
@@ -56,115 +45,211 @@ def _handle_tensor_list_in_kwargs(kwargs: Dict[str, object], op_info: OpInfo) ->
 
 
 @register_sharding(aten.matmul.default)
-def custom_matmul_sharding(
+def custom_matmul_strategy(
     tensor1: DTensorSpec,
     tensor2: DTensorSpec,
 ):
     shape1 = tensor1.shape
     shape2 = tensor2.shape
 
-    max_dim1_index = _get_max_shardable_dim(tensor1)
-    max_dim2_index = _get_max_shardable_dim(tensor2)
-
     acceptable_shardings = []
 
-    if max_dim1_index == -1 and max_dim2_index == -1:
-        strategy = ([Replicate()], [Replicate(), Replicate()])
-        acceptable_shardings.append(strategy)
-        return acceptable_shardings
-    elif max_dim1_index == -1:
-        max_dim1_size = 0
-        max_dim2_size = shape2[max_dim2_index]
-    elif max_dim2_index == -1:
-        max_dim1_size = shape1[max_dim1_index]
-        max_dim2_size = 0
-    else:
-        max_dim1_size = shape1[max_dim1_index]
-        max_dim2_size = shape2[max_dim2_index]
-
-    max_size_in_1 = max_dim1_size >= max_dim2_size
-    max_size_in_2 = max_dim1_size < max_dim2_size
+    replicate_strategy = ([Replicate()], [Replicate(), Replicate()])
+    acceptable_shardings.append(replicate_strategy)
 
     if len(shape1) == 1 and len(shape2) == 1:  # n@n=1
-        strategy = ([Replicate()], [Replicate(), Replicate()])
+        return acceptable_shardings
     elif len(shape1) == 1:  # n@...nm=...m
-        if max_size_in_1:
-            strategy = ([Partial()], [Shard(max_dim1_index), Shard(len(shape2) - 2)])
-        elif max_dim2_index == len(shape2) - 1:
+        # Shard the first len(tensor2)-2 dims of tensor2
+        for i in range(len(shape2) - 2):
+            if shape2[i] % tensor2.mesh.size(0) == 0:
+                strategy_1 = ([Shard(i)], [Replicate(), Shard(i)])
+                acceptable_shardings.append(strategy_1)
+        # Shard tensor1 and tensor2
+        if shape1[0] % tensor1.mesh.size(0) == 0:
+            strategy_2 = ([Partial()], [Shard(0), Shard(len(shape2) - 2)])
+            acceptable_shardings.append(strategy_2)
+        # Shard the last dim of tensor2
+        if shape2[len(shape2) - 1] % tensor2.mesh.size(0) == 0:
             output_shape = shape2[:-2] + (shape2[-1],)
-            strategy = (
+            strategy_3 = (
                 [Shard(len(output_shape) - 1)],
-                [Replicate(), Shard(max_dim2_index)],
+                [Replicate(), Shard(len(shape2) - 1)],
             )
-        else:
-            strategy = ([Shard(max_dim2_index)], [Replicate(), Shard(max_dim2_index)])
+            acceptable_shardings.append(strategy_3)
     elif len(shape2) == 1:  # ...nm@m=...n
-        if max_size_in_1 and not max_dim1_index == len(shape1) - 1:
-            strategy = ([Shard(max_dim1_index)], [Shard(max_dim1_index), Replicate()])
-        else:
-            strategy = ([Partial()], [Shard(max_dim1_index), Shard(0)])
-    else:  # ...nm@...mk=...nk(braodcast)
+        # Shard the first len(tensor1)-1 dims of tensor1
+        for i in range(len(shape1) - 1):
+            if shape1[i] % tensor1.mesh.size(0) == 0:
+                strategy_1 = ([Shard(i)], [Shard(i), Replicate()])
+                acceptable_shardings.append(strategy_1)
+        # Shard tensor1 and tensor2
+        if shape2[0] % tensor2.mesh.size(0) == 0:
+            strategy_2 = ([Partial()], [Shard(len(shape1) - 1), Shard(0)])
+            acceptable_shardings.append(strategy_2)
+    else:  # ...nm@...mk=...nk(broadcast)
         output_shape = torch.broadcast_shapes(shape1[:-2], shape2[:-2]) + (
             shape1[-2],
             shape2[-1],
         )
-        if max_size_in_1 and not max_dim1_index == len(shape1) - 1:
-            strategy = (
-                [Shard(len(output_shape) - (len(shape1) - max_dim1_index))],
-                [Shard(max_dim1_index), Replicate()],
-            )
-        elif max_size_in_2 and not max_dim1_index == len(shape2) - 2:
-            strategy = (
-                [Shard(len(output_shape) - (len(shape2) - max_dim2_index))],
-                [Replicate(), Shard(max_dim2_index)],
-            )
-        else:
-            strategy = ([Partial()], [Shard(len(shape1) - 1), Shard(len(shape2) - 2)])
-    acceptable_shardings.append(strategy)
+        len1, len2 = len(shape1), len(shape2)
+        diff = abs(len1 - len2)
+        is_shape1_longer = len1 > len2
+
+        for i in range(min(len1, len2) - 3, -1, -1):  
+            shape1_shardable = shape1[i + diff] % tensor1.mesh.size(0) == 0 if is_shape1_longer else shape1[i] % tensor1.mesh.size(0) == 0
+            shape2_shardable = shape2[i] % tensor2.mesh.size(0) == 0 if is_shape1_longer else shape2[i + diff] % tensor2.mesh.size(0) == 0
+
+            if shape1_shardable and shape2_shardable:
+                strategy_batch = ([Shard(i + diff)], [Shard(i + diff), Shard(i)]) if is_shape1_longer \
+                    else ([Shard(i + diff)], [Shard(i), Shard(i + diff)])
+                acceptable_shardings.append(strategy_batch)
+
+        for i in range(diff - 1, -1, -1):
+            if is_shape1_longer and shape1[i] % tensor1.mesh.size(0) == 0:
+                strategy_batch = ([Shard(i)], [Shard(i), Replicate()])
+                acceptable_shardings.append(strategy_batch)
+            elif not is_shape1_longer and shape2[i] % tensor2.mesh.size(0) == 0:
+                strategy_batch = ([Shard(i)], [Replicate(), Shard(i)])
+                acceptable_shardings.append(strategy_batch)
+        # Shard tensor1
+        if shape1[len(shape1) - 2] % tensor1.mesh.size(0) == 0:
+            strategy_tensor1 = ([Shard(len(output_shape) - 2)], [Shard(len(shape1) - 2), Replicate()])
+            acceptable_shardings.append(strategy_tensor1)
+        # Shard tensor2
+        if shape2[len(shape2) - 1] % tensor2.mesh.size(0) == 0:
+            strategy_tensor2 = ([Shard(len(output_shape) - 1)], [Replicate(), Shard(len(shape2) - 1)])
+            acceptable_shardings.append(strategy_tensor2)
+        # Shard tensor1 and tensor2
+        if shape1[len(shape1) - 1] % tensor1.mesh.size(0) == 0:
+            strategy_3 = ([Partial()], [Shard(len(shape1) - 1), Shard(len(shape2) - 2)])
+            acceptable_shardings.append(strategy_3)
+
     return acceptable_shardings
 
 
 @register_sharding(aten.matmul_backward.default)
-def custom_matmul_backward_sharding(
+def custom_matmul_backward_strategy(
     grad: DTensorSpec,
-    self: DTensorSpec,
-    other: DTensorSpec,
+    tensor1: DTensorSpec,
+    tensor2: DTensorSpec,
     mask: List[bool],
 ):
-    acceptable_shardings = []
     grad_dim = len(grad.shape)
-    self_dim = len(self.shape)
-    other_dim = len(other.shape)
-    if self_dim == 1 and other_dim == 1:
-        strategy = (
-            [Replicate(), Replicate()],
-            [Replicate(), Replicate(), Replicate(), None],
-        )
-    elif (
-        other_dim == 1
-        and self_dim >= 2
-        and self.shape[-2] % torch.distributed.get_world_size() == 0
-    ):
-        strategy = (
-            [Shard(self_dim - 2), Partial()],
-            [Shard(grad_dim - 1), Shard(self_dim - 2), Replicate(), None],
-        )
-    elif (
-        self_dim >= 1
-        and other_dim >= 2
-        and self.shape[-1] % torch.distributed.get_world_size() == 0
-    ):
-        strategy = (
-            [Shard(self_dim - 1), Shard(other_dim - 2)],
-            [Replicate(), Shard(self_dim - 1), Shard(other_dim - 2), None],
-        )
-    else:
-        strategy = (
-            [Replicate(), Replicate()],
-            [Replicate(), Replicate(), Replicate(), None],
-        )
+    tensor1_dim = len(tensor1.shape)
+    tensor2_dim = len(tensor2.shape)
 
-    acceptable_shardings.append(strategy)
+    acceptable_shardings = []
+
+    replicate_strategy = (
+        [Replicate(), Replicate()], 
+        [Replicate(), Replicate(), Replicate(), None]
+    )
+    acceptable_shardings.append(replicate_strategy)
+
+    if tensor1_dim == 1 and tensor2_dim == 1:  # n@n=1
+        return acceptable_shardings
+    elif tensor1_dim >= 2 and (tensor2_dim == 1 or tensor2_dim == 2):
+        if tensor2.shape[0] % tensor2.mesh.size(0) == 0:
+            strategy_1 = (
+                [Shard(tensor1_dim - 1), Shard(0)], 
+                [Replicate(), Shard(tensor1_dim - 1), Shard(0), None]
+            )
+            acceptable_shardings.append(strategy_1)
+        for i in range(tensor1_dim - 1):
+            if tensor1.shape[i] % tensor1.mesh.size(0) == 0:
+                strategy_2 = (
+                    [Shard(i), Partial()], 
+                    [Shard(i), Shard(i), Replicate(), None]
+                )
+                acceptable_shardings.append(strategy_2)
+        if tensor2_dim == 2 and tensor2.shape[1] % tensor2.mesh.size(0) == 0:
+            strategy_3 = (
+                [Partial(), Shard(1)], 
+                [Shard(grad_dim - 1), Replicate(), Shard(1), None]
+            )
+            acceptable_shardings.append(strategy_3)
+        return acceptable_shardings
+    elif tensor2_dim >= 2 and (tensor1_dim == 1 or tensor1_dim == 2):
+        is_special = tensor2_dim == 2 and tensor1_dim == 1
+        if tensor1.shape[-1] % tensor1.mesh.size(0) == 0:
+            strategy_1 = (
+                [Shard(tensor1_dim if is_special else tensor1_dim - 1), Shard(tensor2_dim - 2)], 
+                [Replicate(), Shard(tensor1_dim - 1), Shard(tensor2_dim - 2), None]
+            )
+            acceptable_shardings.append(strategy_1)
+        if tensor2.shape[-1] % tensor2.mesh.size(0) == 0:
+            strategy_2 = (
+                [Partial(), Shard(tensor2_dim - 1)], 
+                [Shard(grad_dim - 1), Replicate(), Shard(tensor2_dim - 1), None]
+            )
+            acceptable_shardings.append(strategy_2)
+        for i in range(tensor2_dim - 2):
+            if tensor2.shape[i] % tensor2.mesh.size(0) == 0:
+                strategy_3 = (
+                    [Partial(), Shard(i)], 
+                    [Shard(i), Replicate(), Shard(i), None]
+                )
+                acceptable_shardings.append(strategy_3)
+        if tensor1_dim == 2 and tensor1.shape[0] % tensor1.mesh.size(0) == 0:
+            strategy_4 = (
+                [Shard(0), Partial()], 
+                [Shard(grad_dim - 2), Shard(0), Replicate(), None]
+            )
+            acceptable_shardings.append(strategy_4)
+        return acceptable_shardings
+    else:
+        if grad.shape[-1] % grad.mesh.size(0) == 0:
+            strategy_1 = (
+                [Partial(), Shard(grad_dim - 1)], 
+                [Shard(grad_dim - 1), Replicate(), Shard(tensor2_dim - 1), None]
+            )
+            acceptable_shardings.append(strategy_1)
+        if grad.shape[-2] % grad.mesh.size(0) == 0:
+            strategy_2 = (
+                [Shard(grad_dim - 2), Partial()], 
+                [Shard(grad_dim - 2), Shard(tensor1_dim - 2), Replicate(), None]
+            )
+            acceptable_shardings.append(strategy_2)
+        if tensor1.shape[-1] % tensor1.mesh.size(0) == 0:
+            strategy_3 = (
+                [Shard(grad_dim - 1), Shard(grad_dim - 2)], 
+                [Replicate(), Shard(tensor1_dim - 1), Shard(tensor2_dim - 2), None]
+            )
+            acceptable_shardings.append(strategy_3)
+
+        diff = abs(tensor1_dim - tensor2_dim)
+        is_shape1_longer = tensor1_dim > tensor2_dim
+
+        for i in range(min(tensor1_dim, tensor2_dim) - 3, -1, -1):  
+            shape1_shardable = tensor1.shape[i + diff] % tensor1.mesh.size(0) == 0 if is_shape1_longer \
+                else tensor1.shape[i] % tensor1.mesh.size(0) == 0
+            shape2_shardable = tensor2.shape[i] % tensor2.mesh.size(0) == 0 if is_shape1_longer \
+                else tensor2.shape[i + diff] % tensor2.mesh.size(0) == 0
+            if shape1_shardable and shape2_shardable:
+                strategy_batch = (
+                    [Shard(i + diff), Shard(i + diff)], 
+                    [Shard(i + diff), Shard(i + diff), Shard(i), None]
+                ) if is_shape1_longer else (
+                    [Shard(i + diff), Shard(i + diff)], 
+                    [Shard(i + diff), Shard(i), Shard(i + diff), None]
+                )
+                acceptable_shardings.append(strategy_batch)
+        
+        for i in range(diff - 1, -1, -1):
+            if is_shape1_longer and tensor1.shape[i] % tensor1.mesh.size(0) == 0:
+                strategy_batch = (
+                    [Shard(i), Partial()], 
+                    [Shard(i), Shard(i), Replicate(), None]
+                )
+                acceptable_shardings.append(strategy_batch)
+            elif not is_shape1_longer and tensor2.shape[i] % tensor2.mesh.size(0) == 0:
+                strategy_batch = (
+                    [Partial(), Shard(i)], 
+                    [Shard(i), Replicate(), Shard(i), None]
+                )
+                acceptable_shardings.append(strategy_batch)
+    
     return acceptable_shardings
 
 

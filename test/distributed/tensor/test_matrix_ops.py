@@ -814,6 +814,131 @@ class TestApplyAdamW(NPUDTensorTestBase):
         self.assertEqual(v_ret_npu_dtensor.full_tensor(), v_ret_npu)
 
 
+class TestMatmul(NPUDTensorTestBase):
+    def run_matmul(self, shape1, shape2, device_mesh, placement1, placement2):
+        x = torch.rand(shape1, device=self.device_type, requires_grad=True)
+        dist_x = distribute_tensor(x, device_mesh, [placement1])
+        y = torch.rand(shape2, device=self.device_type, requires_grad=True)
+        dist_y = distribute_tensor(y, device_mesh, [placement2])
+
+        local_out = torch.matmul(x, y)
+        dist_out = torch.matmul(dist_x, dist_y)
+
+        self.assertEqual(dist_out.full_tensor(), local_out)
+
+        grad = torch.rand(local_out.shape, device=self.device_type)
+        dist_grad = distribute_tensor(grad, device_mesh, [Replicate()])
+
+        local_out.backward(grad)
+        dist_out.backward(dist_grad)
+
+        self.assertEqual(dist_x.grad.full_tensor(), x.grad)
+        self.assertEqual(dist_y.grad.full_tensor(), y.grad)
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_matmul_sharding_strategy_n_n(self):
+        device_mesh = self.build_device_mesh()
+        shape1 = (8,)
+        shape2 = (8,)
+
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Shard(0), Shard(0))
+    
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_matmul_sharding_strategy_nm_m1(self):
+        device_mesh = self.build_device_mesh()
+        shape1 = (8, 4)
+        shape2 = (4)
+
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Shard(0), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Shard(1), Shard(0))
+    
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_matmul_sharding_strategy_n_nk(self):
+        device_mesh = self.build_device_mesh()
+        shape1 = (4)
+        shape2 = (4, 8)
+
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Shard(1))
+        self.run_matmul(shape1, shape2, device_mesh, Shard(0), Shard(0))
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_matmul_sharding_strategy_nm_mk(self):
+        device_mesh = self.build_device_mesh()
+        shape1 = (8, 4)
+        shape2 = (4, 8)
+
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Shard(1))
+        self.run_matmul(shape1, shape2, device_mesh, Shard(0), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Shard(1), Shard(0))
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_matmul_sharding_strategy_xnm_mk(self):
+        device_mesh = self.build_device_mesh()
+        shape1 = (8, 4, 8)
+        shape2 = (8, 8)
+
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Shard(1))
+        self.run_matmul(shape1, shape2, device_mesh, Shard(2), Shard(0))
+        self.run_matmul(shape1, shape2, device_mesh, Shard(1), Replicate())
+
+        shape1 = (8, 4, 8)
+        shape2 = (8)
+
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Shard(2), Shard(0))
+        self.run_matmul(shape1, shape2, device_mesh, Shard(1), Replicate())
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_matmul_sharding_strategy_nm_xmk(self):
+        device_mesh = self.build_device_mesh()
+        shape1 = (4, 8)
+        shape2 = (8, 8, 8)
+
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Shard(2))
+        self.run_matmul(shape1, shape2, device_mesh, Shard(1), Shard(1))
+        self.run_matmul(shape1, shape2, device_mesh, Shard(0), Replicate())
+
+        shape1 = (8)
+        shape2 = (8, 8, 8)
+
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Shard(0), Shard(1))
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Shard(2))
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_matmul_sharding_strategy_xnm_xmk(self):       
+        device_mesh = self.build_device_mesh()
+
+        shape1 = (8, 4, 8)
+        shape2 = (8, 8, 8, 4)
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Shard(0), Shard(1))
+        self.run_matmul(shape1, shape2, device_mesh, Shard(1), Replicate())
+        self.run_matmul(shape1, shape2, device_mesh, Shard(2), Shard(2))
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Shard(0))
+        self.run_matmul(shape1, shape2, device_mesh, Replicate(), Shard(3))
+
+
 instantiate_parametrized_tests(TestGroupedMatMulOp)
 
 
