@@ -17,6 +17,7 @@
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
@@ -414,7 +415,7 @@ struct ExpandableSegment {
 
         NPU_CHECK_ERROR(
             c10_npu::acl::AclrtReserveMemAddress(&ptr_, segment_size_ * max_handles_, 0, nullptr, 1, getHcclComm()));
-        ASCEND_LOGD("NPUCachingAllocator malloc by AclrtReserveMemAddress: size=%zu, segment_size=%zu",
+        TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator malloc by AclrtReserveMemAddress: size=%zu, segment_size=%zu",
             segment_size_ * max_handles_, segment_size_);
     }
     // begin must be aligned to segment_size_.
@@ -436,7 +437,7 @@ struct ExpandableSegment {
             TORCH_INTERNAL_ASSERT(!handles_.at(i), PTA_ERROR(ErrCode::VALUE));
             aclrtDrvMemHandle handle = nullptr;
             if (!pool->free_physical_handles_.empty()) {
-                ASCEND_LOGD("Remap cached physical handles for block %zu", i);
+                TORCH_NPU_MEMORY_LOGD("Remap cached physical handles for block %zu", i);
                 handle = pool->free_physical_handles_.back();
                 pool->free_physical_handles_.pop_back();
                 handles_.at(i) = Handle{handle, std::nullopt};
@@ -449,7 +450,7 @@ struct ExpandableSegment {
             prop.location.type = ACL_MEM_LOCATION_TYPE_DEVICE;
             prop.location.id = static_cast<unsigned>(device_);
             prop.reserve = 0;
-            ASCEND_LOGD("Alloc memory from physical device for block %zu", i);
+            TORCH_NPU_MEMORY_LOGD("Alloc memory from physical device for block %zu", i);
             auto status = c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
             if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
                 for (auto j : c10::irange(begin, i)) {
@@ -467,7 +468,7 @@ struct ExpandableSegment {
             NPU_CHECK_ERROR(c10_npu::acl::AclrtMapMem((char *)ptr_ + i * segment_size_, segment_size_, 0,
                 handles_.at(i).value().handle, 0, getHcclComm()));
         }
-        ASCEND_LOGD("NPUCachingAllocator map: segment_size=%zu", segment_size_);
+        TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator map: segment_size=%zu", segment_size_);
         return rangeFromHandles(begin, end);
     }
 
@@ -563,7 +564,7 @@ struct ExpandableSegment {
     {
         forEachAllocatedRange([&](size_t begin, size_t end) { unmapHandles(begin, end); });
         NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr_, getHcclComm()));
-        ASCEND_LOGD("NPUCachingAllocator free by AclrtReleaseMemAddress");
+        TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator free by AclrtReleaseMemAddress");
     }
 
 private:
@@ -573,7 +574,7 @@ private:
             NPU_CHECK_ERROR(c10_npu::acl::AclrtMapMem((char *)ptr_ + i * segment_size_, segment_size_, 0,
                 handles_.at(i).value().handle, 0, getHcclComm()));
         }
-        ASCEND_LOGD("NPUCachingAllocator mapAndSetAccess: segment_size=%zu", segment_size_);
+        TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator mapAndSetAccess: segment_size=%zu", segment_size_);
     }
 
     void unmapHandles(size_t begin, size_t end, BlockPool *pool = nullptr)
@@ -605,7 +606,7 @@ private:
                 pool->free_physical_handles_.push_back(h.handle);
             }
         }
-        ASCEND_LOGD("NPUCachingAllocator unmap: segment_size=%zu", segment_size_);
+        TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator unmap: segment_size=%zu", segment_size_);
         trimHandles();
     }
 
@@ -882,7 +883,7 @@ bool isConfig1GPageSizeEnable()
 
 void setAllocatorSettings(const std::string& settings)
 {
-    ASCEND_LOGI("setAllocatorSettings: %s.", settings.c_str());
+    TORCH_NPU_MEMORY_LOGI("setAllocatorSettings: %s.", settings.c_str());
     // Empty NPU task queue before changing the allocator settings.
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
@@ -898,7 +899,7 @@ bool saveDevMemUsageInfo(const int& device)
     // Get the memory usage information
     aclError ret = c10_npu::acl::AclrtGetMemUsageInfo(device, memUsageInfo, MAX_MODULE_NUM, &moduleCount);
     if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("AclrtGetMemUsageInfo failed, ret:%d", ret);
+        TORCH_NPU_MEMORY_LOGE("AclrtGetMemUsageInfo failed, ret:%d", ret);
         return false;
     }
 
@@ -913,7 +914,7 @@ bool saveDevMemUsageInfo(const int& device)
 
     std::ofstream csv_file(savefilepath);
     if (!csv_file.is_open()) {
-        ASCEND_LOGE("Failed to open file: %s", savefilepath.c_str());
+        TORCH_NPU_MEMORY_LOGE("Failed to open file: %s", savefilepath.c_str());
         return false;
     }
 
@@ -925,11 +926,11 @@ bool saveDevMemUsageInfo(const int& device)
                  << static_cast<double>(memUsageInfo[i].memPeakSize) / kMB << "\n";
     }
     if (moduleCount > MAX_MODULE_NUM) {
-        ASCEND_LOGW("The number of modules exceeds the maximum limit: %zu > %zu", moduleCount, MAX_MODULE_NUM);
+        TORCH_NPU_MEMORY_LOGW("The number of modules exceeds the maximum limit: %zu > %zu", moduleCount, MAX_MODULE_NUM);
     }
     csv_file.close();
 
-    ASCEND_LOGI("Device memory usage information saved to file: %s", savefilepath.c_str());
+    TORCH_NPU_MEMORY_LOGI("Device memory usage information saved to file: %s", savefilepath.c_str());
     return true;
 }
 
@@ -1112,7 +1113,7 @@ public:
                 // If there is an overlap, mark the block as unsafe
                 if (addr <= block_end && addr_end >= block_start) {
                     const_cast<Block *>(head_block)->is_safe = false;
-                    ASCEND_LOGI(
+                    TORCH_NPU_MEMORY_LOGI(
                         "Memory block with UCE fault error found in the NPUCachingAllocator and was marked as unsafe");
                     found = true;
                     any_found = true;
@@ -1161,6 +1162,7 @@ public:
 
     Block *malloc(int device, size_t orig_size, aclrtStream stream, uint8_t allocator_type = 0)
     {
+        TORCH_NPU_MEMORY_LOGD("Allocating memory: size=%zu, device=%d", orig_size, device);
         // done outside the lock because we don't know what locks the recorder needs
         // to have...
         auto context = maybeGatherContext(RecordContext::STATE);
@@ -1169,6 +1171,7 @@ public:
 
         if (device == -1) {
             NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+            TORCH_NPU_MEMORY_LOGD("Using device: %d", device);
         }
 
         if (C10_LIKELY(captures_underway.empty())) {
@@ -1194,6 +1197,9 @@ public:
         AllocParams params(device, size, stream, &pool, alloc_size, stats);
         params.stat_types = get_stat_types_for_pool(pool);
 
+        TORCH_NPU_MEMORY_LOGD("Rounded size: %zu, alloc size: %zu, using %s pool on device %d",
+            size, alloc_size, pool.is_small ? "small" : "large", device);
+
         // First, try to get a block from the existing pool.
         bool block_found =
             // Search pool
@@ -1202,8 +1208,10 @@ public:
             (trigger_free_memory_callbacks(params) && get_free_block(params));
         // Can't reuse an existing block; try to get a new one.
         if (!block_found) {
+            TORCH_NPU_MEMORY_LOGD("No existing block found on device %d, attempting to allocate new block", device);
             // Do garbage collection if the flag is set.
             if (C10_UNLIKELY(set_fraction && CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
+                TORCH_NPU_MEMORY_LOGD("Triggering garbage collection on device %d", device);
                 garbage_collect_cached_blocks(context, lock);
             }
             // Attempt allocate
@@ -1214,7 +1222,7 @@ public:
         }
 
         if (!block_found && C10_LIKELY(captures_underway.empty())) {
-            ASCEND_LOGE(
+            TORCH_NPU_MEMORY_LOGE(
                 "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log can be ignored.");
             // Free all non-split cached blocks and retry alloc.
             {
@@ -1280,12 +1288,14 @@ public:
                     " reserved in total by PyTorch)." +
                     "If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.";
 
-                ASCEND_LOGE("%s", retmsg.c_str());
+                TORCH_NPU_MEMORY_LOGE("%s", retmsg.c_str());
                 TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
             } else {
                 NPU_CHECK_ERROR(params.err);
             }
         }
+
+        TORCH_NPU_MEMORY_LOGD("Block found: ptr=%p, size=%zu, device=%d", params.block->ptr, params.block->size, params.device());
 
         int64_t ori_block_ptr = int64_t(params.block->ptr);
         size_t align_round = CachingAllocatorConfig::base_addr_aligned_size();
@@ -1294,6 +1304,7 @@ public:
             char *align_ptr = reinterpret_cast<char *>((ori_block_ptr + align_round) - (ori_block_ptr % align_round));
             size_t offset_size = align_ptr - (char *)params.block->ptr;
             if (offset_size + params.size() <= params.block->size) {
+                TORCH_NPU_MEMORY_LOGD("Aligning block: offset=%zu, new ptr=%p, device=%d", offset_size, align_ptr, params.device());
                 auto size = params.block->size;
                 Block *remaining = params.block;
 
@@ -1320,6 +1331,7 @@ public:
     Block *alloc_found_block(AllocParams params, size_t orig_size, std::shared_ptr<c10::GatheredContext> context,
         bool split_remainder, uint8_t allocator_type)
     {
+        TORCH_NPU_MEMORY_LOGD("Allocating found block: size=%zu, orig_size=%zu, device=%d", params.size(), orig_size, params.device());
         auto size = params.size();
         auto device = params.device();
         auto pool = params.pool;
@@ -1332,6 +1344,7 @@ public:
 
         const bool already_split = block->is_split();
         if (split_remainder) {
+            TORCH_NPU_MEMORY_LOGD("Splitting block: size=%zu, remainder size=%zu, device=%d", size, block->size - size, params.device());
             remaining = block;
 
             block = new Block(device, stream, size, pool, block->ptr);
@@ -1370,7 +1383,7 @@ public:
         block->allocated = true;
         block->requested_size = orig_size;
         if (block->is_safe == false) {
-            ASCEND_LOGI("Unsafe memory block is passively refreshed by releasing and mallocing memory again");
+            TORCH_NPU_MEMORY_LOGI("Unsafe memory block is passively refreshed by releasing and mallocing memory again");
         }
         block->is_safe = true;
 
@@ -1392,7 +1405,7 @@ public:
             update_stat(stats.oversize_allocations, 1);
         }
 
-        ASCEND_LOGD("PTA CachingAllocator malloc: malloc = %zu, cached = %lu, allocated = %lu", block->size,
+        TORCH_NPU_MEMORY_LOGD("PTA CachingAllocator malloc: malloc = %zu, cached = %lu, allocated = %lu", block->size,
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
@@ -1419,9 +1432,9 @@ public:
         return block;
     }
 
-
     void free(Block *block, uint8_t allocator_type = 0)
     {
+        TORCH_NPU_MEMORY_LOGD("Freeing memory block: size=%zu, ptr=%p, device=%d", block->size, block->ptr, block->device);
         std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
         std::lock_guard<std::recursive_mutex> lock(mutex);
 
@@ -1459,7 +1472,7 @@ public:
             free_block(block, context, allocator_type);
         }
 
-        ASCEND_LOGD("PTA CachingAllocator free: free = %zu, cached = %lu, allocated = %lu", orig_block_size,
+        TORCH_NPU_MEMORY_LOGD("PTA CachingAllocator free: free = %zu, cached = %lu, allocated = %lu", orig_block_size,
             stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
             stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 #ifndef BUILD_LIBTORCH
@@ -2182,7 +2195,7 @@ private:
         }
         auto segment = new (std::nothrow) ExpandableSegment(device, stream, segment_size);
         if (!segment) {
-            ASCEND_LOGE("Failed to allocate ExpandableSegment.");
+            TORCH_NPU_MEMORY_LOGE("Failed to allocate ExpandableSegment.");
             return nullptr;
         }
         if (hcclComm_) {
@@ -2193,7 +2206,7 @@ private:
         ExpandableSegment *es = expandable_segments_.back();
         Block *candidate = new (std::nothrow) Block(device, stream, es->size(), pool, es->ptr());
         if (!candidate) {
-            ASCEND_LOGE("Failed to allocate Block.");
+            TORCH_NPU_MEMORY_LOGE("Failed to allocate Block.");
             return nullptr;
         }
         candidate->mapped = false;
@@ -2204,6 +2217,7 @@ private:
 
     bool map_block(Block *to_map, size_t size, const std::shared_ptr<c10::GatheredContext> &ctx, BlockPool *map_pool)
     {
+        TORCH_NPU_MEMORY_LOGD("Mapping block: size=%zu, ptr=%p, device=%d", size, to_map->ptr, to_map->device);
         TORCH_INTERNAL_ASSERT(!to_map->mapped && size <= to_map->size, PTA_ERROR(ErrCode::VALUE));
         TORCH_INTERNAL_ASSERT(!to_map->context_when_allocated); // unmapped blocks should not keep
                                                                 // history
@@ -2252,6 +2266,7 @@ private:
     Block *try_allocate_expandable_block(int device, aclrtStream stream, BlockPool *pool, size_t size,
         const std::shared_ptr<c10::GatheredContext> &ctx)
     {
+        TORCH_NPU_MEMORY_LOGD("Trying to allocate expandable block: size=%zu, device=%d", size, device);
         Block *candidate = find_expandable_block(device, stream, pool, size);
         // Candidate is now a list free/unmapped blocks with at least size room:
         // unmapped -> null
@@ -2280,10 +2295,10 @@ private:
         return candidate;
     }
 
-
     /* * moves a block into a pool of cached free blocks * */
     void free_block(Block *block, const std::shared_ptr<c10::GatheredContext> &context, uint8_t allocator_type = 0)
     {
+        TORCH_NPU_MEMORY_LOGD("Freeing block to cache: size=%zu, ptr=%p, device=%d", block->size, block->ptr, block->device);
         AT_ASSERT(!block->allocated && block->event_count == 0, PTA_ERROR(ErrCode::VALUE));
 
         record_trace(TraceEntry::FREE_COMPLETED, int64_t(block->ptr), block->requested_size, block->stream,
@@ -2432,6 +2447,7 @@ private:
 
     bool get_free_block(AllocParams &p)
     {
+        TORCH_NPU_MEMORY_LOGD("Searching for free block: size=%zu, stream=%p, device=%d", p.size(), p.stream(), p.device());
         BlockPool &pool = *p.pool;
 
         if (C10_UNLIKELY(set_fraction && CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
@@ -2442,6 +2458,7 @@ private:
         }
         auto it = pool.blocks.lower_bound(&p.search_key);
         if (it == pool.blocks.end() || (*it)->stream != p.stream()) {
+            TORCH_NPU_MEMORY_LOGD("No free block found for stream=%p, device=%d", p.stream(), p.device());
             return false;
         }
 
@@ -2486,6 +2503,7 @@ private:
             return false;
         }
         p.block = *it;
+        TORCH_NPU_MEMORY_LOGD("Found free block: size=%zu, ptr=%p, stream=%p, device=%d", p.block->size, p.block->ptr, p.block->stream, p.block->device);
         (*it)->gc_count = 0; // Denote this block has been used
         pool.blocks.erase(it);
         return true;
@@ -2513,8 +2531,10 @@ private:
 
         size_t gc_threshold =
             static_cast<size_t>(CachingAllocatorConfig::garbage_collection_threshold() * allowed_memory_maximum);
+        TORCH_NPU_MEMORY_LOGD("Starting garbage collection: total_allocated=%zu, threshold=%zu", total_allocated_memory, gc_threshold);
         // No need to trigger GC yet
         if (total_allocated_memory <= gc_threshold) {
+            TORCH_NPU_MEMORY_LOGD("No need for garbage collection: total_allocated=%zu <= threshold=%zu", total_allocated_memory, gc_threshold);
             return;
         }
         const auto target_size = total_allocated_memory - gc_threshold;
@@ -2561,17 +2581,19 @@ private:
                     freeable_block_count--;       // One less block that can be freed
                     release_block(block, ctx);
 
-                    ASCEND_LOGD("PTA CachingAllocator gc: free = %zu, cached = %lu, allocated = %lu", block->size,
+                    TORCH_NPU_MEMORY_LOGD("PTA CachingAllocator gc: free = %zu, cached = %lu, allocated = %lu", block->size,
                         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
                         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
                 }
             }
         }
+        TORCH_NPU_MEMORY_LOGD("Garbage collection completed: reclaimed=%zu, target=%zu", gc_reclaimed, target_size);
     }
 
     bool alloc_block(AllocParams &p, bool isRetry, const std::shared_ptr<c10::GatheredContext> &ctx,
         std::unique_lock<std::recursive_mutex> &lock)
     {
+        TORCH_NPU_MEMORY_LOGD("Allocating block: size=%zu, device=%d, isRetry=%d", p.alloc_size, p.device(), isRetry);
         size_t size = p.alloc_size;
         void *ptr = nullptr;
 
@@ -2611,7 +2633,7 @@ private:
             }
         }
 
-        ASCEND_LOGD("NPUCachingAllocator malloc by AclrtMallocAlign32: size=%zu", size);
+        TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator malloc by AclrtMallocAlign32: size=%zu", size);
 
         if (p.pool->owner_PrivatePool) {
             // The block is for a NPU graph's PrivatePool.
@@ -2627,7 +2649,7 @@ private:
         if (size >= CachingAllocatorConfig::max_split_size()) {
             update_stat(stats.oversize_segments, 1);
         }
-        ASCEND_LOGD("pta_memory acl_malloc: malloc = %zu, ret = %d", size, p.err);
+        TORCH_NPU_MEMORY_LOGD("pta_memory acl_malloc: malloc = %zu, ret = %d", size, p.err);
 
         // p.block came from new, not npuMalloc. It should not be nullptr here.
         TORCH_INTERNAL_ASSERT(p.block != nullptr && p.block->ptr != nullptr);
@@ -2641,6 +2663,7 @@ private:
     bool release_available_cached_blocks(const AllocParams& p, const std::shared_ptr<c10::GatheredContext>& ctx,
                                          std::unique_lock<std::recursive_mutex>& lock)
     {
+        TORCH_NPU_MEMORY_LOGD("Releasing available cached blocks: size=%zu, device=%d", p.size(), p.device());
         if (CachingAllocatorConfig::max_split_size() == std::numeric_limits<size_t>::max()) {
             return false;
         }
@@ -2676,9 +2699,12 @@ private:
                 }
             }
             if (totalReleased < key.size) {
+                TORCH_NPU_MEMORY_LOGD("Could not release enough blocks: released=%zu, needed=%zu", totalReleased, key.size);
                 return false;
             }
+            TORCH_NPU_MEMORY_LOGD("Released multiple blocks: total_released=%zu", totalReleased);
         } else {
+            TORCH_NPU_MEMORY_LOGD("Released single block: size=%zu", (*it)->size);
             release_block(*it, ctx);
         }
         return true;
@@ -2714,6 +2740,7 @@ private:
 
     void release_expandable_segment(Block *block)
     {
+        TORCH_NPU_MEMORY_LOGD("Releasing expandable segment: size=%zu, ptr=%p, device=%d", block->size, block->ptr, block->device);
         TORCH_INTERNAL_ASSERT(block->size == block->expandable_segment_->size(), "block disagrees with segment",
             PTA_ERROR(ErrCode::INTERNAL));
         TORCH_INTERNAL_ASSERT(!block->mapped, PTA_ERROR(ErrCode::INTERNAL));
@@ -2730,7 +2757,8 @@ private:
     void release_block(Block *block, const std::shared_ptr<c10::GatheredContext> &context)
     {
         TORCH_INTERNAL_ASSERT(!block->expandable_segment_, PTA_ERROR(ErrCode::VALUE));
-        ASCEND_LOGD("NPUCachingAllocator free by aclrtFree: size=%zu", block->size);
+        TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator free by aclrtFree: size=%zu, ptr=%p, device=%d",
+            block->size, block->ptr, block->device);
 
         record_trace(TraceEntry::SEGMENT_FREE, int64_t(block->ptr), block->size, block->stream, block->device,
             context ? context : block->context_when_segment_allocated);
@@ -2760,7 +2788,7 @@ private:
         if (block->size >= CachingAllocatorConfig::max_split_size()) {
             update_stat(stats.oversize_segments, -1);
         }
-        ASCEND_LOGD("pta_memory acl_free: free_size = %zu", block->size);
+        TORCH_NPU_MEMORY_LOGD("pta_memory acl_free: free_size = %zu", block->size);
 
         pool->blocks.erase(block);
         delete block;
@@ -2769,6 +2797,7 @@ private:
 
     void unmap_block(Block *block, const std::shared_ptr<c10::GatheredContext> &context, bool free_physical)
     {
+        TORCH_NPU_MEMORY_LOGD("Unmapping block: size=%zu, ptr=%p, device=%d, free_physical=%d", block->size, block->ptr, block->device, free_physical);
         auto pool = free_physical ? nullptr : block->pool;
         auto unmapped = block->expandable_segment_->unmap(SegmentRange{ block->ptr, block->size }, pool);
         if (unmapped.size == 0) {
@@ -2876,10 +2905,10 @@ private:
                     if (check_error) {
                         NPU_CHECK_ERROR(err);
                     } else {
-                        ASCEND_LOGE("Event: aclrtSynchronizeEvent failed, event = %p", event.get());
+                        TORCH_NPU_MEMORY_LOGE("Event: aclrtSynchronizeEvent failed, event = %p", event.get());
                     }
                 } else {
-                    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event.get());
+                    TORCH_NPU_MEMORY_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event.get());
                 }
 #ifndef BUILD_LIBTORCH
                 const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -2929,7 +2958,7 @@ private:
 
             EventPool::Event event = create_event_internal(stream.device_index());
             event->record(stream);
-            ASCEND_LOGI("Event: record DeviceAllocator is successfully executed, event=%p", event.get());
+            TORCH_NPU_MEMORY_LOGI("Event: record DeviceAllocator is successfully executed, event=%p", event.get());
 
             block->event_count++;
             npu_events[stream].emplace_back(std::move(event), block);
@@ -3035,7 +3064,7 @@ static void uncached_delete(void *ptr)
     if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
         c10_npu::npuSynchronizeDevice(false);
     }
-    ASCEND_LOGD("Without NPUCachingAllocator, free by aclrtFree.");
+    TORCH_NPU_MEMORY_LOGD("Without NPUCachingAllocator, free by aclrtFree.");
     NPU_CHECK_ERROR(aclrtFree(ptr));
 }
 
@@ -3199,7 +3228,7 @@ public:
         Block *block = get_allocated_block(ptr.get());
         TORCH_INTERNAL_ASSERT(block != nullptr, "No allocated block can be found", PTA_ERROR(ErrCode::NOT_FOUND));
         if (block->is_safe == false) {
-            ASCEND_LOGI("Triggers to refresh the data of the unsafe memory block and remove the unsafe flag");
+            TORCH_NPU_MEMORY_LOGI("Triggers to refresh the data of the unsafe memory block and remove the unsafe flag");
         }
         block->is_safe = true;
     }
@@ -3214,7 +3243,7 @@ public:
 
     void emptyCacheImpl(bool check_error, bool free_physical) override
     {
-        ASCEND_LOGD("Begin empty cache with check_error = %d", check_error);
+        TORCH_NPU_MEMORY_LOGD("Begin empty cache with check_error = %d", check_error);
         int32_t current_device = 0;
         if (check_error) {
             NPU_CHECK_ERROR(c10_npu::GetDevice(&current_device));
@@ -3235,7 +3264,7 @@ public:
         } else {
             NPU_CHECK_WARN(c10_npu::MaybeSetDevice(current_device));
         }
-        ASCEND_LOGD("End empty cache with check_error = %d", check_error);
+        TORCH_NPU_MEMORY_LOGD("End empty cache with check_error = %d", check_error);
     }
 
     void emptyCache(bool check_error) override
@@ -3445,7 +3474,7 @@ public:
         constexpr size_t one_exa_bytes = 1152921504606846976ULL;
         if (size >= one_exa_bytes) {
             auto retmsg = std::string("NPU out of memory. Tried to allocate more than 1EB memory.");
-            ASCEND_LOGE("%s", retmsg.c_str());
+            TORCH_NPU_MEMORY_LOGE("%s", retmsg.c_str());
             TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
         }
         
@@ -3461,7 +3490,7 @@ public:
                 size_t alloc_size = size + AddPadSize();
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size,
                     aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
-                ASCEND_LOGD("Without NPUCachingAllocator, malloc by "
+                TORCH_NPU_MEMORY_LOGD("Without NPUCachingAllocator, malloc by "
                     "AclrtMallocAlign32: size=%zu",
                     alloc_size);
             } else {
@@ -3476,7 +3505,7 @@ public:
         constexpr size_t one_exa_bytes = 1152921504606846976ULL;
         if (C10_UNLIKELY(size >= one_exa_bytes)) {
             auto retmsg = std::string("NPU out of memory. Tried to allocate more than 1EB memory.");
-            ASCEND_LOGE("%s", retmsg.c_str());
+            TORCH_NPU_MEMORY_LOGE("%s", retmsg.c_str());
             TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
         }
         int device = 0;
@@ -3491,8 +3520,7 @@ public:
                 size_t alloc_size = size + AddPadSize() + aligned;
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&realPtr, alloc_size,
                                                                  aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
-                ASCEND_LOGD("Without NPUCachingAllocator, malloc by "
-                            "AclrtMallocAlign32: size=%zu", alloc_size);
+                TORCH_NPU_MEMORY_LOGD("Without NPUCachingAllocator, malloc by AclrtMallocAlign32: size=%zu", alloc_size);
             } else {
                 const_cast<NpuCachingAllocator *>(this)->malloc(&realPtr, device, size + aligned,
                                                                 c10_npu::getCurrentNPUStreamNoWait(device));
