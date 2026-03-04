@@ -23,6 +23,7 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
 from torch._C._distributed_c10d import PrefixStore, _register_process_group, _DistributedBackendOptions
 
 from torch_npu.utils._error_code import ErrCode, dist_error
+from torch_npu import npu
 
 if is_mpi_available():
     from torch.distributed.distributed_c10d import ProcessGroupMPI
@@ -96,7 +97,7 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
         Async work handle, if async_op is set to True.
         None, if not async_op or if not part of the group
     Note:
-        Npu doesn't support gather currently, replaced with all_gather.
+        Npu replaces gather with all_gather in default mode, uses gather with group send/recv in compatibility mode 
     """
 
     _check_single_tensor(tensor, "tensor")
@@ -120,35 +121,49 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
     input_tensors = [tensor]
     opts = GatherOptions()
     opts.rootRank = dst
+    use_compatible_impl = False
+    if tensor.device.type == 'npu':
+        use_compatible_impl = npu.are_compatible_impl_enabled()
+
     if group is None or group is GroupMember.WORLD:
         default_pg = _get_default_group()
         if tensor.device.type == 'npu':
-            if my_rank == dst:
-                warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
-            # To handle tensors of different shape on each rank, update recv shape first.
-            dist.broadcast_object_list(recv_size_list, dst, group)
-            if not gather_list:
-                gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
+            if use_compatible_impl:
+                output_tensors = [gather_list] if my_rank == dst else []
+                _group = default_pg._get_backend(torch.device("npu"))
+                work = _group.gather(output_tensors, input_tensors, opts)
+            else:
+                if my_rank == dst:
+                    warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
+                # To handle tensors of different shape on each rank, update recv shape first.
+                dist.broadcast_object_list(recv_size_list, dst, group)
+                if not gather_list:
+                    gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
 
-            output_tensors = [gather_list]
-            _group = default_pg._get_backend(torch.device("npu"))
-            work = _group.allgather(output_tensors, input_tensors)
+                output_tensors = [gather_list]
+                _group = default_pg._get_backend(torch.device("npu"))
+                work = _group.allgather(output_tensors, input_tensors)
         else:
             output_tensors = [gather_list] if dst == my_rank else []
             default_pg = _get_default_group()
             work = default_pg.gather(output_tensors, input_tensors, opts)
     else:
         if tensor.device.type == 'npu':
-            if my_rank == dst:
-                warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
-            # To handle tensors of different shape on each rank, update recv shape first.
-            dist.broadcast_object_list(recv_size_list, dst, group)
-            if not gather_list:
-                gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
+            if use_compatible_impl:
+                output_tensors = [gather_list] if my_rank == dst else []
+                _group = group._get_backend(torch.device("npu"))
+                work = _group.gather(output_tensors, input_tensors, opts)
+            else:
+                if my_rank == dst:
+                    warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
+                # To handle tensors of different shape on each rank, update recv shape first.
+                dist.broadcast_object_list(recv_size_list, dst, group)
+                if not gather_list:
+                    gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
 
-            output_tensors = [gather_list]
-            _group = group._get_backend(torch.device("npu"))
-            work = _group.allgather(output_tensors, input_tensors)
+                output_tensors = [gather_list]
+                _group = group._get_backend(torch.device("npu"))
+                work = _group.allgather(output_tensors, input_tensors)
         else:
             group_dst_rank = get_group_rank(group, dst)
             output_tensors = [gather_list] if dst == my_rank else []
