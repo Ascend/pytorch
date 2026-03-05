@@ -99,7 +99,8 @@ class TestAtenEmbeddingSimt(BenchmarkTestUtils):
             inductor_time = do_bench_using_profiling_npu(inductor_fn)
             self.write_performance_info(self.profiling_file_path, {
                 "op type": "aten.embedding",
-                "shape": f"{shape_info}",
+                "table_shape": f"{table_shape}",
+                "index_shape": f"{index_shape}",
                 "dtype": f"({index_dtype}, {table_dtype})",
                 "eager_time": f"{eager_time:.2f}",
                 "inductor_time": f"{inductor_time:.2f}"
