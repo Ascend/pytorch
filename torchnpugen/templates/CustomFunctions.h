@@ -2,6 +2,7 @@
 #define TORCH_NPU_CSRC_ATEN_CUSTOM_FUNCTIONS
 
 #include <ATen/ATen.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
