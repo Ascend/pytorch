@@ -257,6 +257,14 @@ def gen_op_hook_post_code(sig: Union[NativeSignature, DispatcherSignature]) -> T
     return res_code, return_code
 
 
+OVERWRITE_API_LIST = [
+    'matmul',
+    'matmul.out',
+    'matmul_backward',
+    'matmul_double_backward',
+]
+
+
 # This function is to add profiler information for each operator, which is later extended in the official
 def gen_unstructured(
     self, f: NativeFunction, g: Optional[NativeFunctionsGroup] = None
@@ -558,6 +566,10 @@ namespace {{
                 return None
             else:
                 payload = f"TORCH_FN({name})"
+                if f"{f.func.name}" in OVERWRITE_API_LIST:
+                    return f"""if (std::getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") == nullptr || std::string(std::getenv("TORCH_NPU_USE_COMPATIBLE_IMPL")) != "1") {{
+    m.impl("{f.func.name}", {payload});
+}}"""
                 return f'm.impl("{f.func.name}",\n{payload});\n'
         else:
             assert_never(self.target)
