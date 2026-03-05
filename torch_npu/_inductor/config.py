@@ -1,12 +1,22 @@
 import logging
 import os  # noqa: C101
 from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+
 import torch
 from torch._inductor import config
 from triton.runtime.driver import driver
+import torch._inductor.config as inductor_config
+
 from torch_npu.npu._backends import get_soc_version
 
 from .utils import classproperty
+
+
+# By default, native Torch/inductor set 'inplace_buffers = True', while it will disable NPU-IR's multi-buffer.
+# Here, we add this env variable as a switch to decide whether or not to reuse a kernel input as its output.
+enable_inplace_buffers = os.environ.get('ENABLE_INPLACE_BUFFERS', '1').lower() in ('1', 'true', 'yes')
+if not enable_inplace_buffers:
+    inductor_config.inplace_buffers = False
 
 enable_npu_indexing = True
 
