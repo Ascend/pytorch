@@ -87,7 +87,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
         input_list_npu = [input.npu() for input in input_list]
         input_tensor = torch.cat(input_list_npu)
         output = torch.empty_like(input_list_npu[rank])
-        torch_npu.distributed.reduce_scatter_tensor_uneven(output, input_tensor, reduce_op)
+        torch_npu.distributed.reduce_scatter_tensor_uneven(output, input_tensor, op=reduce_op)
         c2p.put((rank, output.cpu()))
         dist.barrier()
         p2c.get()

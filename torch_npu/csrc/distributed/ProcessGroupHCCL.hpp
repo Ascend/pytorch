@@ -522,6 +522,9 @@ public:
         int size,
         c10::intrusive_ptr<Options> options = Options::create());
 
+    // Only used for typedef in CustomRegisterSchema.cpp
+    ProcessGroupHCCL(int rank, int size) : c10d::Backend(rank, size) {}
+
     // This constructor includes the deprecated `groupName` argument.
     // If you have existing code that uses the `groupName`, you can replace
     // it by specifying a `c10d::PrefixStore(groupName, store)` for store.
@@ -577,15 +580,32 @@ public:
     c10::intrusive_ptr<c10d::Work> batch_isend_irecv(
 	    std::vector<std::string>& op_type,
 	    std::vector<at::Tensor>& tensors,
-	    std::vector<uint32_t> remote_rank_list);
+	    std::vector<int64_t> remote_rank_list);
+
+    c10::intrusive_ptr<c10d::Work> batch_isend_irecv_inner(
+	    std::vector<std::string>& op_type,
+	    std::vector<at::Tensor>& tensors,
+	    std::vector<int64_t> remote_rank_list);
 
     at::Tensor byte_alignment(at::Tensor& tensors) const;
+
+    c10::intrusive_ptr<c10d::Work> _reduce_scatter_base_uneven_inner(
+        at::Tensor& outputTensor,
+        at::Tensor& inputTensor,
+        std::vector<int64_t>& inputSplitSizes,
+        const c10d::ReduceScatterOptions& opts);
 
     c10::intrusive_ptr<c10d::Work> _reduce_scatter_base_uneven(
         at::Tensor& outputTensor,
         at::Tensor& inputTensor,
         std::vector<int64_t>& inputSplitSizes,
         const c10d::ReduceScatterOptions& opts);
+
+    c10::intrusive_ptr<c10d::Work> _allgather_base_uneven_inner(
+        at::Tensor& outputTensor,
+        at::Tensor& inputTensor,
+        std::vector<int64_t>& outputSplitSizes,
+        const c10d::AllgatherOptions& opts);
 
     c10::intrusive_ptr<c10d::Work> _allgather_base_uneven(
         at::Tensor& outputTensor,
