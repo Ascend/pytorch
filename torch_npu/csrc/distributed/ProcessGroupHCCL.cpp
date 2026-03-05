@@ -2532,12 +2532,8 @@ bool ProcessGroupHCCL::createHCCLCommEx(
     int p2pRank)
 {
     std::string rankTableFile = c10_npu::option::OptionsManager::GetRankTableFilePath();
-    if (rankTableFile.empty()) {
-        TORCH_NPU_HCCL_LOGW("The env var RANK_TABLE_FILE is empty, switch to original interface.");
-        return false;
-    }
-    if (!checkFilePathReadable(rankTableFile)) {
-        TORCH_NPU_HCCL_LOGW("The rank_table_file %s is not readable, switch to original interface.", rankTableFile.c_str());
+    if (rankTableFile.empty() || !checkFilePathReadable(rankTableFile)) {
+        TORCH_NPU_HCCL_LOGI("The rank_table_file is not available, switch to original interface.");
         return false;
     }
     if (c10_npu::option::OptionsManager::GetHCCLConnectTimeout() < 300) {
@@ -2545,7 +2541,7 @@ bool ProcessGroupHCCL::createHCCLCommEx(
             "It is recommended to set the timeout duration of HCCL_CONNECT_TIMEOUT to 300 seconds or more.");
     }
     if (!hcclCommInitClusterInfoConfigExist()) {
-        TORCH_NPU_HCCL_LOGW("The hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
+        TORCH_NPU_HCCL_LOGI("The hcclCommInitClusterInfoConfig is not exist, switch to original interface.");
         return false;
     }
     c10_npu::OptionalNPUGuard npuGuard;
