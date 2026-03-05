@@ -376,6 +376,9 @@ aclError CachingHostAllocator_recordEvent(
 
 bool CachingHostAllocator_isPinned(void *ptr)
 {
+    if (ptr == nullptr) {
+        return false;
+    }
     if (c10_npu::acl::AclrtPointerGetAttributesExist()) {
         if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
             return false;
