@@ -2,7 +2,6 @@ from itertools import count
 from typing import Dict, List, Optional
 
 import sympy
-import torch_mlir
 from torch._functorch.aot_autograd import (
     get_aot_compilation_context,
     set_model_name,
@@ -22,8 +21,6 @@ from torch._inductor.utils import (
     get_kernel_metadata,
 )
 from torch._inductor.virtualized import V
-from torch_mlir.compiler_utils import OutputType
-from torch_mlir.fx import stateless_fx_import
 
 from ... import config as anir_config
 from ...npu.utils import (
@@ -73,6 +70,9 @@ class AkgKernel(TritonKernel):
         )
 
     def codegen_kernel(self, Name=None):
+        from torch_mlir.compiler_utils import OutputType
+        from torch_mlir.fx import stateless_fx_import
+
         nodes = self.features.node_schedule
         traced_graph, call_args, compile_kwargs = create_fx_from_snodes_by_traced_graph(
             nodes, None
