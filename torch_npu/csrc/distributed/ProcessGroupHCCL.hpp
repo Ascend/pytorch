@@ -825,6 +825,7 @@ protected:
     // In the timeout case and we will dump debug info such as the NCCL flight
     // recorder to storage. Down the road, if we have more complicated or blocking
     // operations, we might need to use a side thread to do it.
+#ifndef BUILD_LIBTORCH
     bool dumpDebuggingInfo();
     void dumpTraceAndResetStatus();
     bool dumpPythonTraceback();
@@ -835,6 +836,7 @@ protected:
     // so that when we get stuck in some HCCL/CANN calls,
     // we can dump the debugging information and abort the process.
     virtual void heartbeatMonitor();
+#endif
     
     // Instance of the watchdog thread.
     std::unique_ptr<Watchdog> watchdog_;
