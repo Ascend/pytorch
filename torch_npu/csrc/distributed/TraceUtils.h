@@ -7,7 +7,10 @@
 #include <torch/csrc/distributed/c10d/Types.hpp>
 #include <torch/csrc/distributed/c10d/Utils.hpp>
 #include <torch/csrc/jit/serialization/pickler.h>
+
+#ifndef BUILD_LIBTORCH
 #include <torch/csrc/profiler/combined_traceback.h>
+#endif
 
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
@@ -232,6 +235,7 @@ DEFINE_CONSTANT(started_state, "started")
         return std::string(result.begin(), result.end());
     }
 
+#ifndef BUILD_LIBTORCH
     inline std::string get_python_cpp_trace()
     {
         // usage:
@@ -254,6 +258,7 @@ DEFINE_CONSTANT(started_state, "started")
         }
         return oss.str();
     }
+#endif
 
     inline c10::Dict<c10::IValue, c10::IValue> new_dict()
     {
@@ -313,7 +318,9 @@ DEFINE_CONSTANT(started_state, "started")
             size_t op_id_;
             std::string profiling_name_;
 
+#ifndef BUILD_LIBTORCH
             std::shared_ptr<torch::CapturedTraceback> traceback_;
+#endif
             // we borrow pointers to start_ and end_ so we can query the state
             // on reporting. However, once the event is completed, the call
             // to `complete` will clear these.
@@ -385,10 +392,11 @@ DEFINE_CONSTANT(started_state, "started")
                 // Current pg_status is not in FR.
                 all_pg_status_[pg_id] = std::move(pg_status);
             }
-            auto traceback =
-                torch::CapturedTraceback::gather(true, true, capture_cpp_stack_);
             std::lock_guard<std::mutex> guard(mutex_);
 
+#ifndef BUILD_LIBTORCH
+            auto traceback =
+                torch::CapturedTraceback::gather(true, true, capture_cpp_stack_);
             auto te = Entry{
                 id_,
                 pg_id,
@@ -403,6 +411,21 @@ DEFINE_CONSTANT(started_state, "started")
                 c10::getTime(),
                 timeout_ms.count(),
                 isP2P};
+#else
+            auto te = Entry{
+                id_,
+                pg_id,
+                pg_name,
+                collective_seq_id,
+                p2p_seq_id,
+                op_id,
+                std::move(profiling_name),
+                std::move(start),
+                std::move(end),
+                c10::getTime(),
+                timeout_ms.count(),
+                isP2P};
+#endif
 
             for (const auto &input : inputs) {
                 c10::IntArrayRef sizes = input.sizes();
@@ -538,6 +561,7 @@ DEFINE_CONSTANT(started_state, "started")
         {
             auto entries = new_list();
             auto result = dump_entries();
+#ifndef BUILD_LIBTORCH
             std::vector<torch::CapturedTraceback *> tracebacks;
             torch::SymbolizedTracebacks stracebacks;
             std::vector<c10::IValue> all_frames;
@@ -554,6 +578,7 @@ DEFINE_CONSTANT(started_state, "started")
                     all_frames.emplace_back(std::move(d));
                 }
             }
+#endif
             for (auto i : c10::irange(result.size())) {
                 auto dict = new_dict();
                 auto &e = result.at(i);
@@ -562,6 +587,7 @@ DEFINE_CONSTANT(started_state, "started")
                     continue;
                 }
 
+#ifndef BUILD_LIBTORCH
                 if (includeStacktraces) {
                     auto &tb = stracebacks.tracebacks.at(i);
                     auto frames = new_list();
@@ -570,6 +596,7 @@ DEFINE_CONSTANT(started_state, "started")
                     }
                     dict.insert(frames_key, frames);
                 }
+#endif
 
                 dict.insert(record_id_key, int64_t(e.id_));
                 dict.insert(pg_id_key, int64_t(e.pg_id_));
