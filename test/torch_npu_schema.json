@@ -2874,7 +2874,7 @@
     "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
   },
   "torch_c_func: batch_isend_irecv": {
-    "signature": "(std::vector<std::string>& op_type, std::vector<at::Tensor>& tensors, std::vector<uint32_t> remote_rank_list) -> c10::intrusive_ptr<c10d::Work>",
+    "signature": "(std::vector<std::string>& op_type, std::vector<at::Tensor>& tensors, std::vector<int64_t> remote_rank_list) -> c10::intrusive_ptr<c10d::Work>",
     "file": "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
   }
 }

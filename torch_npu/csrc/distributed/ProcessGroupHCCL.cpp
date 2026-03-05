@@ -4395,10 +4395,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
         opts.asyncOp);
 }
 
-c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
     std::vector<std::string>& op_type,
     std::vector<at::Tensor>& tensors,
-    std::vector<uint32_t> remote_rank_list)
+    std::vector<int64_t> remote_rank_list)
 {
     if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
         at_npu::native::OpHook::GetInstance().PreHook("batch_isend_irecv", tensors);
@@ -4419,7 +4419,18 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
 			    numel_list.push_back(getNumelForHCCL(tensors[i]));
 			    type_list.push_back(getHcclDataType(tensors[i].scalar_type()));
 			}
-			auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list, op_type, itemNum, comm, stream, is_dispatched]() -> int {
+
+            std::vector<uint32_t> remote_rank_list_cast;
+            remote_rank_list_cast.reserve(remote_rank_list.size());
+            for (size_t i = 0; i < remote_rank_list.size(); ++i) {
+                if (remote_rank_list[i] < 0 || remote_rank_list[i] > std::numeric_limits<uint32_t>::max()) {
+                    throw std::runtime_error("Value at index " + std::to_string(i) +
+                                            " (" + std::to_string(remote_rank_list[i]) +
+                                            ") is out of uint32_t range" + DIST_ERROR(ErrCode::VALUE));
+                }
+                remote_rank_list_cast.push_back(static_cast<uint32_t>(remote_rank_list[i]));
+            }
+			auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list_cast, op_type, itemNum, comm, stream, is_dispatched]() -> int {
 			    HcclSendRecvItem sendRecvInfo[itemNum];
 			    HcclSendRecvType currType;
 			    for (size_t i = 0; i < op_type.size(); ++i) {
@@ -4434,7 +4445,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
 			                                           tensor_ptr_list[i],
 			                                           numel_list[i],
 			                                           type_list[i],
-			                                           remote_rank_list[i]
+			                                           remote_rank_list_cast[i]
 			                                           };
 			    }
                 torch_npu::profiler::MstxRange range(
@@ -4464,6 +4475,29 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         c10d::OpType::UNKNOWN);
+}
+
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
+    std::vector<std::string>& op_type,
+    std::vector<at::Tensor>& tensors,
+    std::vector<int64_t> remote_rank_list)
+{
+    static auto op = c10::Dispatcher::singleton()
+                         .findSchemaOrThrow("npu_custom_dist::wrap_batch_isend_irecv_inner", "")
+                         .typed<c10::intrusive_ptr<::c10d::Work>(
+                             at::TensorList,
+                             std::vector<std::string>,
+                             std::vector<int64_t>,
+                             c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>)>();
+    auto work = op.call(
+        tensors,
+        op_type,
+        remote_rank_list,
+        c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>::unsafe_reclaim_from_nonowning(this));
+    for (auto tensor : tensors) {
+        c10d::register_work(tensor, work);
+    }
+    return work;
 }
 
 int g_broadcastID = 100000;
@@ -4773,7 +4807,7 @@ at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors) const
     return inter_tensors;
 }
 
-c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven_inner(
     at::Tensor& outputTensor,
     at::Tensor& inputTensor,
     std::vector<int64_t>& inputSplitSizes,
@@ -4874,7 +4908,33 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
         opts.asyncOp);
 }
 
-c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
+    at::Tensor& outputTensor,
+    at::Tensor& inputTensor,
+    std::vector<int64_t>& inputSplitSizes,
+    const c10d::ReduceScatterOptions& opts)
+{
+    static auto op = c10::Dispatcher::singleton()
+                         .findSchemaOrThrow("npu_custom_dist::wrap_reduce_scatter_base_uneven_inner", "")
+                         .typed<c10::intrusive_ptr<::c10d::Work>(
+                             at::Tensor&,
+                             at::Tensor&,
+                             std::vector<int64_t>,
+                             c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>,
+                             c10::intrusive_ptr<c10d::ReduceOp>,
+                             int64_t)>();
+    auto work = op.call(
+        outputTensor,
+        inputTensor,
+        inputSplitSizes,
+        c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>::unsafe_reclaim_from_nonowning(this),
+        c10::make_intrusive<c10d::ReduceOp>(opts.reduceOp),
+        opts.timeout.count());
+    c10d::register_work(outputTensor, work);
+    return work;
+}
+
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven_inner(
     at::Tensor& outputTensor,
     at::Tensor& inputTensor,
     std::vector<int64_t>& outputSplitSizes,
@@ -4952,6 +5012,30 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         c10d::OpType::ALLGATHER,
         opts.asyncOp);
+}
+
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
+    at::Tensor& outputTensor,
+    at::Tensor& inputTensor,
+    std::vector<int64_t>& outputSplitSizes,
+    const c10d::AllgatherOptions& opts)
+{
+    static auto op = c10::Dispatcher::singleton()
+                         .findSchemaOrThrow("npu_custom_dist::wrap_allgather_base_uneven_inner", "")
+                         .typed<c10::intrusive_ptr<::c10d::Work>(
+                             at::Tensor&,
+                             at::Tensor&,
+                             std::vector<int64_t>,
+                             c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>,
+                             int64_t)>();
+    auto work = op.call(
+        outputTensor,
+        inputTensor,
+        outputSplitSizes,
+        c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>::unsafe_reclaim_from_nonowning(this),
+        opts.timeout.count());
+    c10d::register_work(outputTensor, work);
+    return work;
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
