@@ -67,55 +67,15 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
             return std::make_tuple(true, dstFormat, outputShape);
         }
         TORCH_CHECK(false,
-            "aclnnNpuFormatCast does not exist, Current device only support aclnn operators.",
+            "aclnnNpuFormatCast does not exist, Current soc version only support aclnn operators.",
             PTA_ERROR(ErrCode::NOT_SUPPORT));
     }
-    if (at_npu::native::env::CheckJitDisable()) {
-        if (aclnnNpuFormatCastExist) {
-            auto acl_src = ConvertType(srcWrapper);
-            auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape,
-                &dstShapeSize, &dstFormat);
-            Release(acl_src);
-            if (api_ret != 0) {
-                if (customize_dtype.has_value()) {
-                    NPU_CHECK_ERROR(api_ret, "aclnnNpuFormatCastCalculateSizeAndFormat");
-                }
-                return std::make_tuple(false, dstFormat, outputShape);
-            }
-            for (uint64_t i = 0; i < dstShapeSize; i++) {
-                outputShape.push_back(dstStorageShape[i]);
-            }
-            if (srcAcltype == aclDataType::ACL_FLOAT4_E2M1 || srcAcltype == aclDataType::ACL_FLOAT4_E1M2 ||
-                srcAcltype == aclDataType::ACL_INT4) {
-                if (FORMAT_REAL_TO_FAKE.find(dstFormat) == FORMAT_REAL_TO_FAKE.end() || outputShape.empty()) {
-                    delete[] dstStorageShape;
-                    dstStorageShape = nullptr;
-                    TORCH_CHECK(false,
-                        "aclnnNpuFormatCast not support recovery format.",
-                        PTA_ERROR(ErrCode::NOT_SUPPORT));
-                }
-                outputShape.back() = outputShape.back() >> 1;
-                dstFormat = FORMAT_REAL_TO_FAKE[dstFormat];
-            }
-            delete[] dstStorageShape;
-            dstStorageShape = nullptr;
-            return std::make_tuple(true, dstFormat, outputShape);
-        } else {
-            if (C10_UNLIKELY(customize_dtype.has_value())) {
-                TORCH_CHECK(false,
-                    "customize_dtype is not supported while aclnnNpuFormatCast does not exist.",
-                    PTA_ERROR(ErrCode::NOT_SUPPORT));
-            }
-            return std::make_tuple(false, dstFormat, outputShape);
-        }
-    } else {
-        if (C10_UNLIKELY(customize_dtype.has_value())) {
-            TORCH_CHECK(false,
-                "customize_dtype is not supported while jit_compile=True.",
-                PTA_ERROR(ErrCode::NOT_SUPPORT));
-        }
-        return std::make_tuple(false, dstFormat, outputShape);
+    if (C10_UNLIKELY(customize_dtype.has_value())) {
+        TORCH_CHECK(false,
+            "customize_dtype is not supported by the current soc version.",
+            PTA_ERROR(ErrCode::NOT_SUPPORT));
     }
+    return std::make_tuple(false, dstFormat, outputShape);
 }
 
 at::Tensor create_tensor_with_format_and_shape(c10::IntArrayRef baseSizes,
