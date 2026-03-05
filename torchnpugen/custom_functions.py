@@ -23,7 +23,7 @@ ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
 
 
 CUSTOM_FUNCTIONS_DECLARATION = CodeTemplate("""\
-${return_type} ${func_name}(${args_str});
+TORCH_NPU_API ${return_type} ${func_name}(${args_str});
 """)
 
 CUSTOM_FUNCTIONS_DEFINITION = CodeTemplate("""\
