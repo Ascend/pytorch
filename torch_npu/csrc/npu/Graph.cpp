@@ -303,7 +303,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
         .def(
             "debug_dump",
             torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::debug_dump),
-             py::arg("debug_path"))
+            py::arg("debug_path"))
         .def(
             "enable_debug_mode",
             torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::enable_debug_mode));
