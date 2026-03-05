@@ -231,9 +231,10 @@ void NPUGeneratorState::replay_prologue(uint64_t wholegraph_increment)
  * NPUGeneratorImpl class implementation
  */
 NPUGeneratorImpl::NPUGeneratorImpl(c10::DeviceIndex device_index)
-  : c10::GeneratorImpl{c10::Device(c10::DeviceType::PrivateUse1, device_index),
-              c10::DispatchKeySet(c10::DispatchKey::PrivateUse1)}
+    : c10::GeneratorImpl{c10::Device(c10::DeviceType::PrivateUse1, device_index),
+               c10::DispatchKeySet(c10::DispatchKey::PrivateUse1)}
 {
+    c10_npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
     state_ = c10::make_intrusive<NPUGeneratorState>();
 }
 
@@ -254,7 +255,7 @@ void NPUGeneratorImpl::set_current_seed(uint64_t seed)
         state_->seed_ = seed;
         state_->philox_offset_per_thread_ = 0;
     } else {
-        TORCH_CHECK(state_->seed_ == seed, "NPUGeneratorImpl::set_current_seed cann be called during stream capture only if new seed is the same as the original seed.");
+        TORCH_CHECK(state_->seed_ == seed, "NPUGeneratorImpl::set_current_seed can be called during stream capture only if new seed is the same as the original seed.");
     }
 }
 
@@ -395,7 +396,11 @@ void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset)
 {
     // see Note [Why enforce RNG offset % 4 == 0?]
     TORCH_CHECK(offset % 4 == 0, "offset must be a multiple of 4", PTA_ERROR(ErrCode::VALUE));
-    state_->philox_offset_per_thread_ = offset;
+    if (C10_LIKELY(c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
+        state_->philox_offset_per_thread_ = offset;
+    } else {
+        state_->offset_intragraph_ = offset;
+    }
 }
 
 /**
@@ -403,7 +408,11 @@ void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset)
  */
 uint64_t NPUGeneratorImpl::philox_offset_per_thread() const
 {
-    return state_->philox_offset_per_thread_;
+    if (C10_LIKELY(c10_npu::currentStreamCaptureStatus() ==c10_npu::CaptureStatus::None)) {
+        return state_->philox_offset_per_thread_;
+    } else {
+        return state_->offset_intragraph_;
+    }
 }
 
 /**
