@@ -40,6 +40,9 @@ TORCH_NPU_API bool CachingHostAllocator_recordEvent(void* ptr, void* ctx, c10_np
 TORCH_NPU_API void CachingHostAllocator_emptyCache();
 
 inline TORCH_NPU_API bool CachingHostAllocator_isPinned(void* ptr) {
+    if (ptr == nullptr) {
+        return false;
+    }
     if (c10_npu::acl::AclrtPointerGetAttributesExist()) {
         if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
             return false;
