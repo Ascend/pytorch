@@ -29,6 +29,7 @@ torch_mlir_dump_path = os.environ.get("ANIR_TORCH_MLIR_DUMP", None)
 online_acc_comp = os.environ.get("ANIR_ONLINE_ACC_COMP", "0") == "1"
 runtime_error_dump = os.environ.get("ANIR_RUNTIME_ERROR_DUMP", "0") == "1"
 fallback_dump = os.environ.get("ANIR_FALLBACK_DUMP", "0") == "1"
+fallback_folder_expand = os.environ.get("ANIR_FALLBACK_FOLD_EXPAND", "0") == "1"
 acc_comp_tol = {
     torch.float32: {'rtol': 1.3e-6, 'atol': 1e-5},
     torch.float16: {'rtol': 1e-3, 'atol': 1e-5},
@@ -130,7 +131,7 @@ REDUCTION_OPS = [
 ]
 
 # fall back to aten exclude GENERATE_LIST, all aten IR except 
-GENERATE_LIST = [
+POINTWISE_OPS = [
     aten.mul,
     aten.add,
     aten.sub,
@@ -150,45 +151,47 @@ GENERATE_LIST = [
     torch.ops.npu.npu_dtype_cast_backward,
     torch.ops.npu._npu_dtype_cast,
     torch.ops.npu._npu_dtype_cast_backward,
+    aten.sin,
+    aten.cos,
+    aten.reciprocal,
+    aten.relu,
+    aten.where,
+    aten.log,
+    aten.sqrt,
+    aten.clamp_min,
+    aten.clamp_max,
+    aten.bitwise_not,
+    aten.tanh,
+    aten.copy,
+    aten.copy_,
+]
 
+NON_POINTWISE_OPS = [
+    aten.split,
+    aten.split_with_sizes,
+    aten.cat,
     aten.squeeze,
     aten.unsqueeze,
     aten.expand,
     aten.repeat,
     aten.clone,
     aten.reshape,
-    aten.sin,
-	aten.cos,
     aten.var_mean,
-    aten.sum, 
+    aten.sum,
     aten.mean,
     aten.full,
     aten.slice,
-    aten.split,
-    aten.split_with_sizes,
-    aten.reciprocal,
     aten.select,
-    # prims.iota,
-    aten.relu,
-    aten.copy_,
-    aten.where,
-    aten.log,
-    aten.scalar_tensor,
     aten.permute,
-    aten.cat,
-    aten.constant_pad_nd,
     aten.amax,
+    aten.scalar_tensor,
     aten.slice_scatter,
-    aten.sqrt,
-    aten.copy,
-    aten.clamp_min,
-    aten.clamp_max,
-    aten.bitwise_not,
-    aten.tanh,
+    aten.constant_pad_nd,
     aten.unbind,
     aten.lift_fresh_copy,
 ]
 
+GENERATE_LIST = POINTWISE_OPS + NON_POINTWISE_OPS
 
 FALLBACK_LIST = [
     aten.mm,

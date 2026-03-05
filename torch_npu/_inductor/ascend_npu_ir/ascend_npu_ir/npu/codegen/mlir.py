@@ -57,6 +57,7 @@ from ...npu.utils import (
     modify_gm_for_acc_comp,
     get_num_call_functions,
     is_fx_dynamic,
+    fold_expand,
     view_to_reshape
 )
 
@@ -361,7 +362,11 @@ class NpuMlirScheduling(SIMDScheduling):
                 dump_path = os.path.join(os.getenv("TORCHINDUCTOR_CACHE_DIR"), anir_config.traced_graph_cache, str(current_device.index), traced_graph_hash)
                 if not os.path.exists(dump_path):
                     os.makedirs(dump_path, exist_ok=True)
-                    to_folder(mlir_kernel._gm, dump_path, graph_hash=traced_graph_hash, module_name=traced_graph_hash)
+                    if anir_config.fallback_folder_expand:
+                        fold_expand(traced_graph)
+                        to_folder(traced_graph, dump_path, graph_hash=traced_graph_hash, module_name=traced_graph_hash)
+                    else:
+                        to_folder(mlir_kernel._gm, dump_path, graph_hash=traced_graph_hash, module_name=traced_graph_hash)
 
             if anir_config.fx_subgraph_dump_path is not None and mode in ["complete_fallback", "auto_fallback"]:
                 subgraph_dump_path = os.path.join(anir_config.fx_subgraph_dump_path, str(current_device.index), kernel_name)
