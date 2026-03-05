@@ -185,19 +185,6 @@ bool IsMallocPage1GMem(bool is_small_pool)
     return !is_small_pool && is_support_page_size_1g;
 }
 
-size_t AddPadSize()
-{
-    static size_t add_size = -1;
-    if (add_size == -1) {
-        if (GetSocVersion() >= SocVersion::Ascend910_95) {
-            add_size = 0;
-        } else {
-            add_size = 32;
-        }
-    }
-    return add_size;
-}
-
 struct Block;
 struct PrivatePool;
 using Comparison = bool (*)(const Block *, const Block *);
@@ -2061,7 +2048,9 @@ public:
 
     static size_t round_size(size_t size)
     {
-        size += AddPadSize();
+        constexpr size_t kPadSize = 32;
+        size += kPadSize;
+
         if (size < kMinBlockSize) {
             return kMinBlockSize;
         } else {
@@ -3505,7 +3494,7 @@ public:
         if (size != 0) {
             if (c10_npu::option::OptionsManager::CheckForceUncached()) {
                 deleteFunc = &uncached_delete;
-                size_t alloc_size = size + AddPadSize();
+                size_t alloc_size = size + 32;
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size,
                     aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
                 TORCH_NPU_MEMORY_LOGD("Without NPUCachingAllocator, malloc by "
@@ -3535,7 +3524,7 @@ public:
         if (size != 0) {
             if (c10_npu::option::OptionsManager::CheckForceUncached()) {
                 deleteFunc = &uncached_delete;
-                size_t alloc_size = size + AddPadSize() + aligned;
+                size_t alloc_size = size + 32 + aligned;
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&realPtr, alloc_size,
                                                                  aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
                 TORCH_NPU_MEMORY_LOGD("Without NPUCachingAllocator, malloc by AclrtMallocAlign32: size=%zu", alloc_size);
