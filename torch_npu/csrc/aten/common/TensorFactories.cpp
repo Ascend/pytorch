@@ -12,6 +12,7 @@
 
 #include <ATen/ATen.h>
 #include <ATen/NamedTensorUtils.h>
+#include <ATen/native/TensorFactories.h>
 #include <c10/util/irange.h>
 #include <ATen/record_function.h>
 
@@ -39,6 +40,12 @@ namespace at_npu {
 namespace native {
 
 namespace {
+inline bool should_fill_empty_deterministic()
+{
+    return at::globalContext().deterministicAlgorithms() &&
+           at::globalContext().deterministicFillUninitializedMemory();
+}
+
 void window_function_checks(
     const char *function_name,
     const c10::TensorOptions &options,
@@ -127,6 +134,9 @@ at::Tensor NPUNativeFunctions::empty(
         "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor", OPS_ERROR(ErrCode::NOT_SUPPORT));
     tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
     StorageDescHelper::SetDesc(tensor, size, tensor.strides());
+    if (C10_UNLIKELY(should_fill_empty_deterministic())) {
+        at::native::fill_empty_deterministic_(tensor);
+    }
 
     return tensor;
 }
@@ -238,6 +248,9 @@ at::Tensor empty_like_npu(
                 npu_format = ACL_FORMAT_ND;
             }
             result = OpPreparation::ApplyTensorWithFormat(self.sizes(), options, npu_format);
+            if (C10_UNLIKELY(should_fill_empty_deterministic())) {
+                at::native::fill_empty_deterministic_(result);
+            }
         }
     }
 
@@ -394,6 +407,9 @@ at::Tensor NPUNativeFunctions::empty_strided(
     c10_npu::NPUGuard guard(c10::device_or_default(device_opt));
     StorageDescHelper::SetDesc(t, size, stride);
     at_npu::native::resize_impl_npu_(t.unsafeGetTensorImpl(), size, stride);
+    if (C10_UNLIKELY(should_fill_empty_deterministic())) {
+        at::native::fill_empty_deterministic_(t);
+    }
     return t;
 }
 
@@ -424,6 +440,9 @@ at::Tensor &empty_out_npu(
         result.sparse_resize_and_clear_(size, size.size(), 0);
     } else {
         result.resize_(size);
+    }
+    if (C10_UNLIKELY(should_fill_empty_deterministic())) {
+        at::native::fill_empty_deterministic_(result);
     }
     return result;
 }
