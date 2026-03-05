@@ -2,11 +2,9 @@ import os
 import sys
 import time
 import warnings
-import importlib
 
 from torch._dynamo import register_backend as _register_backend
 from torch._dynamo.backends.registry import _BACKENDS
-from torch.library import Library, impl
 
 from torch_npu.utils._error_code import ErrCode, pta_error
 from torch_npu.utils.utils import _should_print_warning
@@ -19,12 +17,12 @@ __all__ = []
 NPUGRAPH_EX_BACKEND = "npugraph_ex"
 
 
-class _TorchairImportError(Exception):
-    def __init__(self):
+class _ImportError(Exception):
+    def __init__(self, pkg_name):
         super().__init__(self)
         self.err_info = (
-            "\nAn error occured when import `torchair` and the above is the specific error message. \n"
-            "This error message was generated when import torchair, but throwed asynchronously here. \n"
+            "\nAn error occurred when import `" + pkg_name + "` and the above is the specific error message. \n"
+            "This error message was generated when import " + pkg_name + ", but thrown asynchronously here. \n"
             "Please check the error message above. \n") + pta_error(ErrCode.INTERNAL)
 
     def __str__(self):
@@ -32,8 +30,8 @@ class _TorchairImportError(Exception):
 
 
 class _LazyException:
-    def __init__(self, e):
-        self._info = _TorchairImportError()
+    def __init__(self, e, pkg_name):
+        self._info = _ImportError(pkg_name)
         self._e = e
 
     def __getattr__(self, name):
@@ -59,34 +57,10 @@ def _get_global_npu_backend(name, config=None):
     return _global_npu_backend[name]
 
 
-class _LazyTorchair:
+class _LazyBackend:
     def __init__(self):
-        self._torchair = None
         self._exception = None
         self._allowed_list = ["__spec__", "__path__"]
-
-    def __getattr__(self, name):
-        if self._exception is not None:
-            return self._exception()
-
-        if self._torchair is not None:
-            return getattr(self._torchair, name)
-
-        if name not in self._allowed_list:
-            raise AttributeError(f"Try to get torchair's attr `{name}` before torchair is initialized."
-                                    + self._pta_error_code())
-
-        try:
-            from . import torchair
-        except Exception as e:
-            # In cpython, default import loader will suppress error when
-            # find module's __spec__. So here we need to record error and
-            # replay it later (when this func is invoked again).
-            self._exception = _LazyException(e)
-            raise
-
-        self._torchair = torchair
-        return getattr(torchair, name)
 
     def _pta_error_code(self):
         # Use static error code here because pta_error will lazy init the torch_npu's submodule,
@@ -97,6 +71,63 @@ class _LazyTorchair:
         return error_msg.format(
             time=time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()),
             pid=os.getpid())
+
+
+class _LazyTorchair(_LazyBackend):
+    def __init__(self, pkg_name):
+        self._torchair = None
+        self._pkg_name = pkg_name
+        super().__init__()
+
+    def __getattr__(self, name):
+        if self._exception is not None:
+            return self._exception()
+
+        if self._torchair is not None:
+            return getattr(self._torchair, name)
+
+        if name not in self._allowed_list:
+            raise AttributeError(f"Try to get {self._pkg_name}'s attr `{name}` before {self._pkg_name} is initialized."
+                                 + self._pta_error_code())
+
+        try:
+            from . import torchair
+        except Exception as e:
+            # In cpython, default import loader will suppress error when
+            # find module's __spec__. So here we need to record error and
+            # replay it later (when this func is invoked again).
+            self._exception = _LazyException(e, self._pkg_name)
+            raise
+
+        self._torchair = torchair
+        return getattr(torchair, name)
+
+
+class _LazyNpuGraphEx(_LazyBackend):
+    def __init__(self, pkg_name):
+        self._npugraph_ex = None
+        self._pkg_name = pkg_name
+        super().__init__()
+
+    def __getattr__(self, name):
+        if self._exception is not None:
+            return self._exception()
+
+        if self._npugraph_ex is not None:
+            return getattr(self._npugraph_ex, name)
+
+        if name not in self._allowed_list:
+            raise AttributeError(f"Try to get {self._pkg_name}'s attr `{name}` before {self._pkg_name} is initialized."
+                                 + self._pta_error_code())
+
+        try:
+            from . import npugraph_ex
+        except Exception as e:
+            self._exception = _LazyException(e, self._pkg_name)
+            raise
+
+        self._npugraph_ex = npugraph_ex
+        return getattr(npugraph_ex, name)
 
 
 def _get_default_backend(name):
@@ -110,17 +141,18 @@ def _get_default_backend(name):
     def _lazy_exec(*args, **kwargs):
         return _get_global_npu_backend(name)(*args, **kwargs)
 
-    sys.modules['torchair'] = _LazyTorchair()
+    sys.modules['torchair'] = _LazyTorchair('torchair')
     return _lazy_exec
 
 
 def _get_npugraph_ex_backend():
     def _exec(*args, **kwargs):
-        import torchair
-        config = torchair.CompilerConfig()
+        import npugraph_ex
+        config = npugraph_ex.CompilerConfig()
         config.mode = NPUGRAPH_EX_BACKEND
-        return _get_global_npu_backend(NPUGRAPH_EX_BACKEND, config)(*args, **kwargs)
+        return npugraph_ex.get_npu_backend(compiler_config=config)(*args, **kwargs)
 
+    sys.modules[NPUGRAPH_EX_BACKEND] = _LazyNpuGraphEx(NPUGRAPH_EX_BACKEND)
     return _exec
 
 
