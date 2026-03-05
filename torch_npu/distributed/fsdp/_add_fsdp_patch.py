@@ -1,24 +1,93 @@
-from typing import cast, Optional, Callable
+from collections import defaultdict
+from functools import reduce
+from typing import cast, Optional, Sequence
+from weakref import WeakKeyDictionary
+import operator
 
 import torch
 from torch import distributed as dist
 from torch.distributed.distributed_c10d import _resolve_process_group
-from torch.distributed.fsdp._fully_shard._fsdp_collectives import allocate_memory
 from torch.distributed.fsdp._fully_shard._fsdp_common import compiled_autograd_enabled, TrainingState
 from torch.distributed.fsdp._fully_shard._fsdp_param import FSDPParam, ShardedState
-from torch.distributed.fsdp._fully_shard._fsdp_param_group import FSDPParamGroup, AllGatherState
-from torch.distributed.distributed_c10d import ReduceOp
-from torch.distributed.tensor import DTensor
-from torch.distributed.device_mesh import _get_device_handle
-from torch.distributed.fsdp._fully_shard._fsdp_common import (
-    _get_dim0_padded_size,
-    _raise_assert_with_print,
-    _to_dtype_if_needed,
-)
-
-from torch.distributed.fsdp._fully_shard._fsdp_collectives import _get_gradient_divide_factors, foreach_reduce_scatter_copy_in, _div_if_needed
+from torch.distributed.fsdp._fully_shard._fsdp_param_group import FSDPParamGroup
+from torch.distributed.fsdp._fully_shard._fsdp_state import FSDPState
 
 import torch_npu
+
+
+class FSDPMemCache:
+    def __init__(self):
+        self.buffers = defaultdict(list) # dtype -> buffer list
+        self.used = defaultdict(list)    # dtype -> bool list
+        # use WeakKeyDictionary to identify when using cache, since ProcessGroup does not support custom attributes
+        self.pg_attrs: WeakKeyDictionary[dist.ProcessGroup, dict] = WeakKeyDictionary()
+
+    def set_pg_attr(self, pg: dist.ProcessGroup, key: str, value: bool | None):
+        self.pg_attrs.setdefault(pg, {})[key] = value
+
+    def get_pg_attr(self, pg: dist.ProcessGroup, key: str, default=None):
+        return self.pg_attrs.get(pg, {}).get(key, default)
+
+    def _get_storage_ptr(self, tensor: torch.Tensor) -> int:
+        return tensor.storage().data_ptr()
+
+    def allocate(
+        self,
+        size: Sequence[int | torch.SymInt],
+        *,
+        dtype: torch.dtype,
+        device: torch.device
+    ) -> torch.Tensor:
+        buffer_list = self.buffers[dtype]
+        used = self.used[dtype]
+        for i, buffer in enumerate(buffer_list):
+            if not used[i]:
+                needed_numel = reduce(operator.mul, size)
+                if buffer.numel() < needed_numel:
+                    buffer = torch.empty(size, dtype=dtype, device=device)
+                    buffer_list[i] = buffer
+                used[i] = True
+                return buffer[:needed_numel].view(size)
+
+        buffer = torch.empty(size, dtype=dtype, device=device)
+        buffer_list.append(buffer)
+        used.append(True)
+        return buffer
+
+    def free(self, tensor: torch.Tensor):
+        # if tensor is not from this cache, do nothing
+        buffer_list = self.buffers[tensor.dtype]
+        storage_ptr = self._get_storage_ptr(tensor)
+        for i, buffer in enumerate(buffer_list):
+            if self._get_storage_ptr(buffer) == storage_ptr:
+                self.used[tensor.dtype][i] = False
+                return
+
+    def clear(self):
+        self.buffers.clear()
+        self.used.clear()
+
+
+_fsdp_mem_cache = FSDPMemCache()
+
+
+def _patched_allocate_memory(
+    size: int,
+    dtype: torch.dtype,
+    device: torch.device,
+    group: dist.ProcessGroup,
+    from_process_group: bool,
+) -> torch.Tensor:
+    if from_process_group:
+        backend = group._get_backend(device)
+        if backend.supports_tensor_alloc(device):
+            return backend.allocate_tensor(size, dtype=dtype, device=device)
+    if not _fsdp_mem_cache.get_pg_attr(group, "_mem_cache_flag", None):
+        return torch.empty((size,), dtype=dtype, device=device)
+    # foreach_all_gather calls this function once to allocate output
+    # foreach_reduce calls this function twice to allocate input and output, we only cache the input
+    _fsdp_mem_cache.set_pg_attr(group, "_mem_cache_flag", False)
+    return _fsdp_mem_cache.allocate((size,), dtype=dtype, device=device)
 
 
 def _patched_finalize_backward(self):
@@ -106,7 +175,7 @@ def _patched_all_gather_copy_in(
     group_name: str,
     allocate_memory_from_process_group: bool,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    all_gather_output = allocate_memory(
+    all_gather_output = _patched_allocate_memory(
         all_gather_input_numel * world_size,
         dtype=dtype,
         device=device,
@@ -126,9 +195,135 @@ def _patched_all_gather_copy_in(
     return all_gather_input, all_gather_output
 
 
+def _patched_fsdp_param_group_init(original_func):
+    def wrapper(self, *args, **kwargs):
+        original_func(self, *args, **kwargs)
+        # set _use_mem_cache to fsdp_params
+        if self.modules and self.fsdp_params:
+            use_mem_cache = getattr(self.modules[0], "_use_mem_cache", False)
+            for fsdp_param in self.fsdp_params:
+                fsdp_param._use_mem_cache = use_mem_cache
+    return wrapper
+
+
+def _patched_wait_all_gather_streams_on_event(original_func):
+    def wrapper(self, event: Optional[torch.Event]):
+        original_func(self, event)
+        # if previous layer deferred free for overlap, free its output in current comm_ctx.all_gather_state
+        if self._training_state == TrainingState.FORWARD and self.comm_ctx.all_gather_state:
+            prev_all_gather_output = self.comm_ctx.all_gather_state.all_gather_result.all_gather_output
+            _fsdp_mem_cache.free(prev_all_gather_output)
+        # if current layer no need to defer free, free output after all_gather_copy_out event
+        elif self._all_gather_result:
+            all_gather_output = self._all_gather_result.all_gather_output
+            _fsdp_mem_cache.free(all_gather_output)
+    return wrapper
+
+
+def _patched_foreach_all_gather(original_func):
+    def wrapper(*args, **kwargs):
+        fsdp_params = kwargs.get("fsdp_params", args[0])
+        if not fsdp_params or not getattr(fsdp_params[0], "_use_mem_cache", False):
+            return original_func(*args, **kwargs)
+
+        group = kwargs.get("group", args[1])
+        _fsdp_mem_cache.set_pg_attr(group, "_mem_cache_flag", True)
+        out = original_func(*args, **kwargs)
+        _fsdp_mem_cache.set_pg_attr(group, "_mem_cache_flag", None)
+        return out
+    return wrapper
+
+
+def _patched_foreach_reduce(original_foreach_reduce):
+    def wrapper(*args, **kwargs):
+        fsdp_params = kwargs.get("fsdp_params", args[0])
+        if not fsdp_params or not getattr(fsdp_params[0], "_use_mem_cache", False):
+            return original_foreach_reduce(*args, **kwargs)
+
+        reduce_scatter_group = kwargs.get("reduce_scatter_group", args[2])
+        _fsdp_mem_cache.set_pg_attr(reduce_scatter_group, "_mem_cache_flag", True)
+        out = original_foreach_reduce(*args, **kwargs)
+        # free memory cache for reduce-scatter input
+        _fsdp_mem_cache.free(out[0])
+        _fsdp_mem_cache.set_pg_attr(reduce_scatter_group, "_mem_cache_flag", None)
+        return out
+    return wrapper
+
+
+def _patched_post_forward(original_post_forward):
+    # if _skip_post_forward is True, return output directly and skip the original post_forward
+    # if False, run original post_forward and then set _skip_post_forward to True
+    def wrapper(self, module, args, out):
+        if getattr(self, "_skip_post_forward", False):
+            return out
+        out = original_post_forward(self, module, args, out)
+        self._skip_post_forward = True
+        return out
+    return wrapper
+
+
+def _patched_post_backward(original_post_backward):
+    # reset _skip_post_forward to False before running original post_backward
+    def wrapper(self):
+        self._skip_post_forward = False
+        original_post_backward(self)
+    return wrapper
+
+
+def move_attr(src_obj, src_attr, dst_obj, dst_attr):
+    # move value of src_attr from src_obj to dst_attr of dst_obj, and clear src_attr of src_obj
+    src_value = getattr(src_obj, src_attr, None)
+    setattr(dst_obj, dst_attr, src_value)
+    if type(src_value) in (list, tuple, set, dict):
+        setattr(src_obj, src_attr, type(src_value)()) # [] / () / set() / {}
+    else:
+        setattr(src_obj, src_attr, None)
+
+
+def _patched_fsdp_state_post_forward(original_post_forward):
+    # manage forward prefetch state backup/restoration based on training state
+    # skip custom logic if skip flag is set or training state is PRE_BACKWARD
+    def wrapper(self, module, args, out):
+        if not hasattr(self, "_backup_forward_fetch"):
+            self._backup_forward_fetch = None
+
+        if hasattr(module, "skip_custom_post_forward") or not self._fsdp_param_group:
+            return original_post_forward(self, module, args, out)
+
+        # restore backup state if _skip_post_forward is True or in PRE_BACKWARD state
+        skip_post_forward = getattr(self._fsdp_param_group, "_skip_post_forward", False)
+        if skip_post_forward or self._training_state == TrainingState.PRE_BACKWARD:
+            if self._backup_forward_fetch is not None:
+                move_attr(self, "_backup_forward_fetch", self, "_states_to_forward_prefetch")
+            return original_post_forward(self, module, args, out)
+
+        # backup forward prefetch state before original post_forward
+        move_attr(self, "_states_to_forward_prefetch", self, "_backup_forward_fetch")
+        return original_post_forward(self, module, args, out)
+    return wrapper
+
+
 def _apply_fsdp_patch():
+    torch.distributed.fsdp._fully_shard._fsdp_collectives.allocate_memory = _patched_allocate_memory
+    FSDPState._post_forward = _patched_fsdp_state_post_forward(FSDPState._post_forward)
+    FSDPParamGroup.__init__ = _patched_fsdp_param_group_init(FSDPParamGroup.__init__)
+    FSDPParamGroup._wait_all_gather_streams_on_event \
+        = _patched_wait_all_gather_streams_on_event(FSDPParamGroup._wait_all_gather_streams_on_event)
+    FSDPParamGroup.post_forward = _patched_post_forward(FSDPParamGroup.post_forward)
+    FSDPParamGroup.post_backward = _patched_post_backward(FSDPParamGroup.post_backward)
     FSDPParamGroup.finalize_backward = _patched_finalize_backward
     torch.distributed.fsdp._fully_shard._fsdp_collectives._get_param_all_gather_inputs \
         = _patched_get_param_all_gather_inputs
     torch.ops.fsdp.all_gather_copy_in = _patched_all_gather_copy_in
     torch.ops.fsdp.all_gather_copy_in.default = _patched_all_gather_copy_in
+    origin_foreach_all_gather = torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_all_gather
+    torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_all_gather \
+        = _patched_foreach_all_gather(origin_foreach_all_gather)
+    origin_foreach_reduce = torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_reduce
+    torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_reduce \
+        = _patched_foreach_reduce(origin_foreach_reduce)
+    # _fsdp_param_group imported these functions before patching
+    torch.distributed.fsdp._fully_shard._fsdp_param_group.foreach_all_gather \
+        = _patched_foreach_all_gather(origin_foreach_all_gather)
+    torch.distributed.fsdp._fully_shard._fsdp_param_group.foreach_reduce \
+        = _patched_foreach_reduce(origin_foreach_reduce)
