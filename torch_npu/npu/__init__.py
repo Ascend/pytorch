@@ -620,13 +620,13 @@ def _get_deterministic_level():
 
 
 def use_compatible_impl(is_enable):
-    option = {"COMPATIBLE_IMPL": "enable" if is_enable else "disable"}
+    option = {"TORCH_NPU_USE_COMPATIBLE_IMPL": "1" if is_enable else "0"}
     torch_npu._C._npu_setOption(option)
 
 
 def are_compatible_impl_enabled():
-    compatible_value = torch_npu._C._npu_getOption("COMPATIBLE_IMPL")
-    return compatible_value is not None and compatible_value.decode() == "enable"
+    compatible_value = torch_npu._C._npu_getOption("TORCH_NPU_USE_COMPATIBLE_IMPL")
+    return compatible_value is not None and compatible_value.decode() == "1"
 
 
 class _NPUBase:
