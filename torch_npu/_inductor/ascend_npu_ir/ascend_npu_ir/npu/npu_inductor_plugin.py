@@ -62,7 +62,7 @@ from ..npu.utils import (
     logger,
 )
 from .. import config as anir_config
-from . import npu_patch_deprecated, torch_mlir_patch
+from . import npu_patch_deprecated
 from .npu_meta import npu_patch_meta
 
 _triton.has_triton = lambda: False
