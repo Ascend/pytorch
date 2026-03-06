@@ -265,7 +265,7 @@ def _new_process_group_lccl_helper(dist_backend_opts, pg_options):
 def _patch_backend_register_for_npu():
     """
     Patch Backend.register_backend to automatically add 'npu' device support
-    for backends that support 'cuda'. This ensures compatibility with PyTorch's
+    for 'fake' backend. This ensures compatibility with PyTorch's
     testing infrastructure (e.g., fake process group) without modifying PyTorch source.
     """
     Backend = torch.distributed.Backend
@@ -279,7 +279,7 @@ def _patch_backend_register_for_npu():
                 devices = [devices]
             else:
                 devices = list(devices)  # Make a copy to avoid modifying original
-            if 'cuda' in devices and 'npu' not in devices:
+            if backend_name == 'fake' and 'npu' not in devices:
                 devices.append('npu')
         # Call original register_backend
         return _original_register_backend(cls, backend_name, func, extended_api=extended_api, devices=devices)
@@ -288,7 +288,7 @@ def _patch_backend_register_for_npu():
 
     # Also patch already registered backends that support 'cuda' but not 'npu'
     for backend_name, supported_devices in Backend.backend_capability.items():
-        if 'cuda' in supported_devices and 'npu' not in supported_devices:
+        if backend_name == 'fake' and 'npu' not in supported_devices:
             Backend.backend_capability[backend_name].append('npu')
 
 
