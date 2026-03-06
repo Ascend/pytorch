@@ -89,12 +89,10 @@ force_fallback_kernel_id = []
 # Control whether to skip stride assertions for ops that may change stride
 # at runtime (like _to_copy on NPU forcing Contiguous memory format).
 #
-# NPU's _to_copy operator inherently forces Contiguous memory format, which
-# causes stride to change between compile-time (fake tensor) and runtime.
-# Therefore, we skip stride assertions for these ops by default on NPU.
-#
-# Set to False to enable stride assertions (may cause false assertion failures).
-skip_specific_stride_asserts = False
+# Usage:
+#   - Skip specific ops: skip_specific_stride_asserts = [torch.ops.aten._to_copy.default, ...]
+#   - Disable skip: skip_specific_stride_asserts = [] (default)
+skip_specific_stride_asserts = []
 
 acc_comp_tol = {
     torch.float32: {'rtol': 1.3e-6, 'atol': 1e-5},

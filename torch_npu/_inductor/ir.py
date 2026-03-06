@@ -92,17 +92,16 @@ def patch_fallback_kernel_codegen():
 def patch_extern_kernel_codegen_size_asserts():
     original_codegen_size_asserts = ExternKernel.codegen_size_asserts
 
-    ops_with_variable_stride = (
-        torch.ops.aten._to_copy.default,
-        torch.ops.aten.reshape.default,
-    )
-
     def npu_codegen_size_asserts(self, wrapper):
         fx_node = getattr(self, 'fx_node', None)
 
         should_skip = False
-        if npu_config.skip_specific_stride_asserts and fx_node and fx_node.target:
-            should_skip = fx_node.target in ops_with_variable_stride
+        if fx_node and fx_node.target:
+            skip_config = npu_config.skip_specific_stride_asserts
+
+            # Only skip ops that are in the configured list
+            if isinstance(skip_config, (list, tuple)):
+                should_skip = fx_node.target in skip_config
 
         if should_skip:
             if config.size_asserts and not V.graph.cpp_wrapper:
