@@ -127,7 +127,9 @@ class TileGenerator:
         reached_stop_numel = False
         slow_decend_split = False
 
-        while True:
+        max_idx = 0
+        thread = 30
+        while max_idx < thread:
             total_numel = self.stop_numel + 100
             for candi_block in self.candidate_blocks:
                 self.add_to_configs(candi_block)
@@ -154,7 +156,6 @@ class TileGenerator:
                     if last_blocks != self.blocks[axis]:
                         self.blocks[axis] = last_blocks
                         self.candidate_blocks.append(tuple(self.blocks))
-                    break
                 if total_programs > config.num_vector_core // 2 or self.dual_reduction:
                     if len(self.candidate_blocks) > 2:
                         self.candidate_blocks.pop(0)
@@ -177,6 +178,7 @@ class TileGenerator:
                 else:  # numel >4 and numel < 128 :
                     numel = self.sub_blocks[axis]
                     self.sub_blocks[axis] = numel - 1
+            max_idx = max_idx + 1
         return reached_stop_numel
 
 
