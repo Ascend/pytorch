@@ -51,6 +51,7 @@
 #include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/ipc/NPUIPCTypes.h"
 #include "op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h"
+#include "op_plugin/utils/OpUtils.h"
 #include "torch_npu/csrc/aten/common/from_blob.h"
 #include "torch_npu/csrc/profiler/combined_traceback.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
@@ -199,7 +200,13 @@ void initDeviceProperty(int64_t deviceid)
     } else {
         device_properties[deviceid].name = std::string(device_name);
     }
-    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    if (op_plugin::utils::is_gte_cann_version_850()) {
+        int64_t tmp_device_total = 0;
+        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetDeviceInfo(static_cast<uint32_t>(deviceid), ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE, &tmp_device_total));
+        device_total = static_cast<size_t>(tmp_device_total);
+    } else {
+        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    }
     device_properties[deviceid].totalGlobalMem = device_total;
 
     NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_AI_CORE_NUM, &cube_core_num));
