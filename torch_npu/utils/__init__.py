@@ -22,6 +22,7 @@ from .affinity import _set_thread_affinity as set_thread_affinity
 from .affinity import _reset_thread_affinity as reset_thread_affinity
 from ._graph_tree import _apply_npugraph_tree_methods
 from .dlpack import _apply_dlpack_patch
+from ._npu_meta_registration import npu_patch_meta
 
 
 
