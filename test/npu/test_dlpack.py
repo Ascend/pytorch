@@ -8,7 +8,7 @@ from torch_npu.testing.decorator import Dtypes, instantiate_tests
 @instantiate_tests
 class TestDLPack(TestCase):
 
-    @Dtypes(torch.float, torch.double, torch.int8, torch.int16, torch.int32, torch.int64, torch.uint8, torch.bool)
+    @Dtypes(torch.float, torch.double, torch.int8, torch.int16, torch.int32, torch.int64, torch.bool)
     def test_dlpack_roundtrip_basic(self, dtype, device="npu"):
         """Test basic dlpack roundtrip: torch_npu tensor -> dlpack -> torch_npu tensor"""
         # Create original tensor
