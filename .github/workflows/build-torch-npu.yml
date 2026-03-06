@@ -1,0 +1,113 @@
+name: Build Torch NPU Extension
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-torch-npu:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+    - name: Checkout kerer-ai/pytorch
+      uses: actions/checkout@v4
+      with:
+        path: torch-npu
+
+    - name: Checkout PyTorch
+      uses: actions/checkout@v4
+      with:
+        repository: pytorch/pytorch
+        path: pytorch
+        ref: main
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake \
+          ninja-build \
+          g++ \
+          git \
+          libopenblas-dev \
+          libopenmpi-dev \
+          openmpi-bin \
+          openmpi-common \
+          libgomp1 \
+          libnuma-dev
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install wheel setuptools
+        pip install -r torch-npu/requirements.txt
+
+    - name: Build PyTorch
+      working-directory: pytorch
+      env:
+        USE_CUDA: 0
+        USE_CUDNN: 0
+        USE_MKLDNN: 0
+        USE_NNPACK: 0
+        USE_QNNPACK: 0
+        USE_XNNPACK: 0
+        USE_DISTRIBUTED: 0
+        USE_OPENMP: 1
+        USE_FBGEMM: 0
+        USE_NUMPY: 1
+        BUILD_TEST: 0
+        _GLIBCXX_USE_CXX11_ABI: 1
+      run: |
+        # Install PyTorch build dependencies
+        pip install -r requirements.txt
+
+        # Build PyTorch in development mode
+        python setup.py develop
+
+    - name: Build torch_npu extension
+      working-directory: torch-npu
+      env:
+        _GLIBCXX_USE_CXX11_ABI: 1
+        USE_CUDA: 0
+      run: |
+        # Initialize submodules if needed
+        if [ -f .gitmodules ]; then
+          git submodule update --init --recursive
+        fi
+
+        # Build torch_npu
+        bash ci/build.sh --python=${{ matrix.python-version }}
+
+    - name: Test installation
+      run: |
+        # Install the built wheel
+        wheel_file=$(find torch-npu/dist -name "torch_npu*.whl" | head -1)
+        if [ -f "$wheel_file" ]; then
+          pip install "$wheel_file"
+          echo "torch_npu installed successfully"
+
+          # Basic test
+          python -c "import torch; import torch_npu; print(f'PyTorch version: {torch.__version__}'); print(f'torch_npu version: {torch_npu.__version__}')"
+        else
+          echo "Error: No wheel file found in torch-npu/dist/"
+          exit 1
+        fi
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: torch-npu-wheels-${{ matrix.python-version }}
+        path: torch-npu/dist/*.whl
+        retention-days: 7
