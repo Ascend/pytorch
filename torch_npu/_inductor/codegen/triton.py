@@ -495,6 +495,24 @@ def is_compatible(
         return False
 
 
+@functools.lru_cache(None)
+def gen_triton_ext_imports():
+    imports = IndentedBuffer()
+    imports.splice(
+        """
+        from torch._inductor.runtime import triton_helpers
+        from torch_npu._inductor import npu_triton_heuristics
+        from torch_npu._inductor import npu_triton_heuristics as triton_heuristics
+        from torch_npu._inductor import npu_triton_helpers
+        from torch_npu._inductor.runtime import NPUDeviceProperties
+        from torch_npu._inductor.npu_triton_helpers import libdevice, extension, math as tl_math
+        import torch
+        import torch_npu
+        """
+    )
+    return imports.getvalue()
+
+
 class NPUIndexTritonKernel(TritonKernel):
     overrides = NPUTritonKernelOverrides
 
@@ -530,21 +548,6 @@ class NPUIndexTritonKernel(TritonKernel):
 
     def _get_grid_type(self) -> type[triton_heuristics.GridExpr]:
         return npu_triton_heuristics.GridNpu
-
-    def gen_triton_ext_imports(self):
-        imports = IndentedBuffer()
-        imports.splice(
-            """
-            from torch._inductor.runtime import triton_helpers
-            from torch_npu._inductor import npu_triton_heuristics
-            from torch_npu._inductor import npu_triton_helpers
-            from torch_npu._inductor.runtime import NPUDeviceProperties
-            from torch_npu._inductor.npu_triton_helpers import libdevice, extension, math as tl_math
-            import torch
-            import torch_npu
-            """
-        )
-        return imports.getvalue()
 
     def patch_triton_hash(self):
         # remove this method once the original invocation is fixed
@@ -763,7 +766,7 @@ class NPUIndexTritonKernel(TritonKernel):
         if name is None:
             code.splice(gen_common_triton_imports())
             # Note: add extra imports for extensions
-            code.splice(self.gen_triton_ext_imports())
+            code.splice(gen_triton_ext_imports())
 
             if config.benchmark_kernel:
                 code.splice(self.imports_for_benchmark_kernel())

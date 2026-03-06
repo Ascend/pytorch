@@ -26,11 +26,24 @@ import torch._inductor.async_compile  # noqa: F401 required to warm up AsyncComp
 from torch._dynamo.utils import counters, dynamo_timed, identity, preserve_rng_state
 from torch._inductor import config, ir
 from torch._inductor.ir import ChoiceCaller
-from torch._inductor.utils import restore_stdout_stderr
+from torch._inductor.utils import restore_stdout_stderr, sympy_product, unique, Placeholder
 from torch._inductor.virtualized import V
+from torch._inductor.codegen.triton import (
+    texpr,
+    TritonScheduling,
+    gen_common_triton_imports,
+)
+from torch._inductor.codecache import PyCodeCache
+from torch._inductor.autotune_process import (
+    TensorMeta,
+    TritonBenchmarkRequest,
+    TritonCPUBenchmarkRequest,
+    TritonGPUBenchmarkRequest,
+)
 from torch._inductor.select_algorithm import (
+    TritonTemplate,
+    TritonTemplateKernel,
     VERIFY,
-    PRINT_AUTOTUNE,
     DEBUG,
     get_mm_log_filename,
     append_to_log,
@@ -42,8 +55,10 @@ from torch._inductor.select_algorithm import (
     TritonTemplateCaller,
     AutotuneArgs,
 )
+from torch._inductor.codegen.common import IndentedBuffer
 from torch._inductor.exc import CppCompileError
 from torch.utils._ordered_set import OrderedSet
+from torch_npu._inductor.codegen.triton import gen_triton_ext_imports
 
 from ..profiler import tensorboard_trace_handler
 
@@ -55,23 +70,369 @@ class NPUCompileError(CppCompileError):
     pass
 
 
-def patch_algorithm_selector():
+class NPUTritonTemplate(TritonTemplate):
+    """NPU-specific Triton template for kernel generation.
+    
+    This class extends TritonTemplate to provide NPU-specific optimizations
+    and configurations for Triton kernel generation.
+    """
+    
+    index_counter = itertools.count()
+
+    def __init__(self, name: str, grid: Any, source: str, debug: bool = False) -> None:
+        """Initialize NPU Triton template.
+        
+        Args:
+            name: Template name for identification
+            grid: Grid function for kernel launch configuration
+            source: Triton kernel source code
+            debug: Enable debug mode for verbose output
+        """
+        super().__init__(name, grid, source, debug)
+
+    def generate(
+        self,
+        input_nodes: list[ir.IRNode],
+        layout: ir.Layout,
+        num_stages: int,
+        num_warps: int,
+        prefix_args: int = 0,
+        suffix_args: int = 0,
+        epilogue_fn: Callable = identity,
+        subgraphs: Optional[list[ir.ComputedBuffer]] = None,
+        mutated_inputs: Optional[list[ir.IRNode]] = None,
+        call_sizes: Optional[list[sympy.Expr]] = None,
+        workspace_arg: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> Optional[ir.ChoiceCaller]:
+        defines = StringIO()
+        kwargs["ALLOW_TF32"] = "False"
+        for name, val in kwargs.items():
+            defines.write(f"{name} : tl.constexpr = {val}\n")
+        defines = defines.getvalue()
+
+        fake_out = ir.Buffer(name="buf_out", layout=layout)
+        kernel_name = f"triton_{self.name}"
+
+        numel = sympy_product(layout.size)
+        buffers = itertools.chain(input_nodes, (fake_out,))
+        if not TritonScheduling.can_use_32bit_indexing(numel, buffers):
+            raise NotImplementedError(
+                "64-bit indexing is not yet implemented for triton templates"
+            )
+
+        if call_sizes is None:
+            call_sizes = layout.size
+
+        kernel_options = {
+            "input_nodes": input_nodes,
+            "defines": defines,
+            "num_stages": num_stages,
+            "num_warps": num_warps,
+            "grid_fn": self.grid,
+            "meta": kwargs,
+            "call_sizes": call_sizes,
+            "prefix_args": prefix_args,
+            "suffix_args": suffix_args,
+            "epilogue_fn": epilogue_fn,
+            "subgraphs": subgraphs,
+        }
+
+        with (
+            patch.object(V.graph, "get_dtype", self._fake_get_dtype(fake_out)),
+            V.graph.set_current_device(layout.device),
+            NPUTritonTemplateKernel(
+                kernel_name=kernel_name,
+                output_node=fake_out,
+                workspace_arg=workspace_arg,
+                use_jit=False,
+                **kernel_options,
+            ) as kernel,
+        ):
+            try:
+                template = kernel.render(self.template, kwargs)
+                with kernel.set_subgraph_body("<STORE_OUTPUT>"):
+                    code = template.finalize_all()
+            except ZeroDivisionError:
+                log.debug(
+                    "ZeroDivisionError during kernel rendering for %s, "
+                    "returning None to skip this configuration",
+                    kernel_name,
+                )
+                return None
+
+            if self.debug:
+                log.debug("Generated Code:\n", code)
+            # Build extra string for cache key and description.
+            # We use '-' as the intermediate separator instead of ', ' because some
+            # kwargs values (like call_sizes, mutated_inputs, subgraphs) contain
+            # commas in their repr() output. Using '-' avoids ambiguity when parsing.
+            # The trailing '-' ensures consistent formatting before strip/replace.
+            extra = (
+                "-".join(
+                    [
+                        *[
+                            f"{kwarg}={repr(kwargs[kwarg])}"
+                            for kwarg in sorted(kwargs.keys())
+                        ],
+                        f"num_stages={num_stages}",
+                        f"num_warps={num_warps}",
+                    ]
+                )
+                + "-"
+            )
+            mod = PyCodeCache.load(code, extra)
+
+        input_call_args = tuple(kernel.args.input_buffers.keys())
+
+        # We expect the input_buffer order to be [*input_nodes, *captured_buffers]
+        expected_input_args = tuple(unique(x.get_name() for x in input_nodes))
+        assert input_call_args[: len(expected_input_args)] == expected_input_args, (
+            input_call_args,
+            expected_input_args,
+        )
+
+        full_input_nodes = tuple([V.graph.get_buffer(k) for k in input_call_args])
+        extra_args = V.graph.sizevars.size_hints(
+            map(sympy.expand, tuple(kernel.args.sizevars.keys())),
+            fallback=config.unbacked_symint_fallback,
+        )
+
+        kernel_hash_name = f"triton_{self.name}_{next(self.index_counter)}"
+
+        def make_kernel_render(out_node):
+            kernel = NPUTritonTemplateKernel(
+                kernel_name=str(Placeholder.KERNEL_NAME),
+                output_node=out_node,
+                workspace_arg=workspace_arg,
+                use_jit=False,
+                **kernel_options,
+            )
+            render = functools.partial(
+                kernel.render,
+                self.template,
+                kwargs,
+            )
+            return kernel, render
+
+        # create the BenchmarkRequest
+        assert mod.__file__ is not None
+        grid = self.grid(
+            *V.graph.sizevars.size_hints(
+                call_sizes,
+                fallback=config.unbacked_symint_fallback,
+            ),
+            kwargs,
+        )
+        bmreq_cls: type[TritonBenchmarkRequest]
+        if layout.device.type == "cpu":
+            bmreq_cls = TritonCPUBenchmarkRequest
+        else:
+            bmreq_cls = TritonGPUBenchmarkRequest
+        bmreq = bmreq_cls(
+            module_path=mod.__file__,
+            module_cache_key=mod.key,
+            kernel_name=kernel_name,
+            extra_args=[*extra_args, *grid],
+            num_stages=num_stages,
+            num_warps=num_warps,
+            matrix_instr_nonkdim=kwargs.get("matrix_instr_nonkdim", 0),
+            waves_per_eu=kwargs.get("waves_per_eu", 0),
+            kpack=kwargs.get("kpack", 2),
+            input_tensor_meta=TensorMeta.from_irnodes(full_input_nodes),  # type: ignore[arg-type]
+            output_tensor_meta=TensorMeta.from_irnodes(layout),
+            workspace_arg=workspace_arg,
+        )
+
+        return TritonTemplateCaller(
+            kernel_hash_name,
+            full_input_nodes,
+            layout,
+            make_kernel_render,
+            # Convert '-' back to ', ' for human-readable description in logs.
+            # Note: This assumes kwarg values don't contain '-' characters.
+            # See the comment above for why '-' was used as separator.
+            extra.strip("-").replace("-", ", "),
+            bmreq,
+            log_info={
+                "tile_shape": str(
+                    (
+                        kwargs.get("BLOCK_M", -1),
+                        kwargs.get("BLOCK_K", -1),
+                        kwargs.get("BLOCK_N", -1),
+                    )
+                ),
+                "num_stages": num_stages,
+                "num_warps": num_warps,
+                "allow_tf32": str(kwargs.get("ALLOW_TF32", None)),
+                "acc_type": str(kwargs.get("ACC_TYPE", None)),
+            },
+            mutated_inputs=mutated_inputs,
+            workspace_arg=workspace_arg,
+            allowed_prologue_inps=kernel.prologue_supported_inputs.copy(),
+        )
+
+
+class NPUTritonTemplateKernel(TritonTemplateKernel):
+    """NPU-specific Triton template kernel for code generation.
+    
+    This class extends TritonTemplateKernel to provide NPU-specific
+    kernel generation and compilation functionality.
+    """
+    
+    def __init__(
+        self,
+        kernel_name: str,
+        input_nodes: list[ir.IRNode],
+        output_node: ir.IRNode,
+        defines: str,
+        num_stages: int,
+        num_warps: int,
+        grid_fn: Callable,
+        meta: dict[str, Any],
+        call_sizes: list[sympy.Expr],
+        use_jit: bool = False,
+        prefix_args: int = 0,
+        suffix_args: int = 0,
+        epilogue_fn: Callable = identity,
+        subgraphs: Optional[list[ir.ComputedBuffer]] = None,
+        workspace_arg: Optional[Any] = None,
+    ) -> None:
+        """Initialize NPU Triton template kernel.
+        
+        Args:
+            kernel_name: Name of the kernel
+            input_nodes: List of input IR nodes
+            output_node: Output IR node
+            defines: Kernel defines string
+            num_stages: Number of pipeline stages
+            num_warps: Number of warps
+            grid_fn: Grid function for launch configuration
+            meta: Metadata dictionary
+            call_sizes: Call sizes for grid computation
+            use_jit: Whether to use JIT compilation
+            prefix_args: Number of prefix arguments
+            suffix_args: Number of suffix arguments
+            epilogue_fn: Epilogue function
+            subgraphs: List of subgraph buffers
+            workspace_arg: Workspace argument
+        """
+        super().__init__(
+            kernel_name,
+            input_nodes,
+            output_node,
+            defines,
+            num_stages,
+            num_warps,
+            grid_fn,
+            meta,
+            call_sizes,
+            use_jit,
+            prefix_args,
+            suffix_args,
+            epilogue_fn,
+            subgraphs,
+            workspace_arg,
+        )
+
+    def def_kernel(self, *argnames: str) -> str:
+        """Hook called from template code to generate function def and needed args.
+        
+        Args:
+            *argnames: Variable number of argument names
+            
+        Returns:
+            Render hook key string
+        """
+        assert all(isinstance(x, str) for x in argnames)
+        renames = IndentedBuffer(initial_indent=1)
+
+        named_args = self.input_nodes[
+            self.prefix_args : len(self.input_nodes) - self.suffix_args
+        ]
+
+        assert len(argnames) == len(named_args), (
+            len(argnames),
+            len(named_args),
+            self.prefix_args,
+            len(self.input_nodes),
+        )
+
+        # Unified processing of all input nodes
+        for idx, input_node in enumerate(self.input_nodes):
+            node_name = input_node.get_name()
+            
+            # Skip removed or fused buffers
+            if node_name in V.graph.removed_buffers:
+                continue
+            if node_name in self.prologue_fused_inputs:
+                continue
+            
+            # Process prefix args
+            if idx < self.prefix_args:
+                self.args.input(node_name)
+            # Process named args
+            elif idx < len(self.input_nodes) - self.suffix_args:
+                name = argnames[idx - self.prefix_args]
+                arg_name = f"arg_{name}"
+                self.named_input_nodes[name] = input_node
+                self.args.input_buffers[node_name] = arg_name
+            # Process suffix args
+            else:
+                self.args.input(node_name)
+
+        # The args may be duplicated, so renaming must be after args are de-duplicated.
+        for name in argnames:
+            input_node = self.named_input_nodes[name]
+            if input_node.get_name() in V.graph.removed_buffers:
+                continue
+            if input_node.get_name() in self.prologue_fused_inputs:
+                continue
+            arg_name = self.args.input_buffers[input_node.get_name()]
+            if input_node.get_layout().offset == 0:
+                renames.writeline(f"{name} = {arg_name}")
+            else:
+                offset = texpr(self.rename_indexing(input_node.get_layout().offset))
+                renames.writeline(f"{name} = {arg_name} + {offset}")
+
+        def hook():
+            # python_argdefs() cannot be run until after the rest of the template lazily adds more args
+            arg_defs, *_ = self.args.python_argdefs()
+            code = IndentedBuffer()
+            code.splice(gen_common_triton_imports())
+            code.splice(gen_triton_ext_imports())
+            code.splice(self.jit_lines())
+            code.writeline(
+                f"def {self.kernel_name}({', '.join(x.full_name() for x in arg_defs)}):"
+            )
+            with code.indent():
+                code.splice(self.defines)
+                code.splice(renames.getvalue())
+            return code.getvalue()
+
+        assert "<DEF_KERNEL>" not in self.render_hooks
+        self.render_hooks["<DEF_KERNEL>"] = hook
+        return "<DEF_KERNEL>"
+
+
+def patch_algorithm_selector() -> None:
+    """Patch AlgorithmSelectorCache with NPU-specific implementations.
+    
+    This function replaces the default AlgorithmSelectorCache methods with
+    NPU-optimized versions that include profiling and benchmarking capabilities
+    specific to NPU hardware.
+    """
 
     def __call__(
         self,
-        name,
+        name: str,
         choices: List[ChoiceCaller],
-        input_nodes,
-        layout,
-        # optional dict mapping arg indices to the functions
-        # generating a torch.Tensor for that input from the
-        # corresponding ir.Buffer. if passed for a given
-        # arg, the function will be called instead of
-        # generating a random torch.Tensor for benchmarking.
+        input_nodes: list[ir.IRNode],
+        layout: ir.Layout,
         input_gen_fns: Optional[Dict[int, Callable[[ir.Buffer], torch.Tensor]]] = None,
         precompilation_timeout_seconds: int = 60 * 60,
-        return_multi_template=False,
-    ):
+        return_multi_template: bool = False,
+    ) -> Any:
         from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
 
         # Templates selected with input_gen_fns require specific input data to avoid IMA
@@ -344,11 +705,22 @@ def patch_algorithm_selector():
     @classmethod
     def make_benchmark_fn(
         cls,
-        choices,
-        input_nodes,
-        layout,
-        input_gen_fns=None,
-    ):
+        choices: List[ChoiceCaller],
+        input_nodes: list[ir.IRNode],
+        layout: ir.Layout,
+        input_gen_fns: Optional[Dict[int, Callable[[ir.Buffer], torch.Tensor]]] = None,
+    ) -> Callable:
+        """Create a benchmark function for the given choices.
+        
+        Args:
+            choices: List of choice callers to benchmark
+            input_nodes: List of input IR nodes
+            layout: Output layout
+            input_gen_fns: Optional dict mapping arg indices to input generation functions
+            
+        Returns:
+            Benchmark function that can be called with choices
+        """
         if input_gen_fns is None:
             input_gen_fns = {}
 
@@ -412,7 +784,7 @@ def patch_algorithm_selector():
             )
 
         if DEBUG:
-            print(f"{len(choices)} tuning requests:")
+            log.debug(f"{len(choices)} tuning requests:")
 
         def benchmark_choice_in_current_process(
             choice: ChoiceCaller, autotune_args: AutotuneArgs

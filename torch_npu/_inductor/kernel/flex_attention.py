@@ -61,7 +61,7 @@ from torch._inductor.kernel.flex_attention import (
     flex_attention_backward_grid,
     create_num_blocks_fake_generator
 )
-
+from torch_npu._inductor.select_algorithm import NPUTritonTemplate
 aten = torch.ops.aten
 Expr = sympy.Expr
 
@@ -516,7 +516,7 @@ def forward_block_mn(
 del TritonTemplate.all_templates["flex_attention"]
 del TritonTemplate.all_templates["flex_attention_backward"]
 
-flex_attention_template = TritonTemplate(
+flex_attention_template = NPUTritonTemplate(
     name="flex_attention",
     grid=flex_attention_grid,
     source=compute_flex_attention
@@ -556,7 +556,7 @@ def _get_default_config_bwd(query) -> tuple[int, int, int, int]:
     return _get_npu_config(query, mode=Mode.bwd)
 
 
-flex_attention_backward_template = TritonTemplate(
+flex_attention_backward_template = NPUTritonTemplate(
     name="flex_attention_backward",
     grid=flex_attention_backward_grid,
     source=r"""

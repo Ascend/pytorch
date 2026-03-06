@@ -209,6 +209,24 @@ class GridNpu(GridExpr):
         self.z_grid = grid_fn(2)
 
 
+@dataclasses.dataclass
+class FixedGridNpu(GridExpr):
+    """Fixed grid for kernels that use precomputed grid values like flex attention"""
+
+    def generate(self, meta: dict[str, int]) -> None:
+        """Generate grid from fixed_grid in inductor_meta"""
+        self.x_grid, self.y_grid, self.z_grid = self.inductor_meta["fixed_grid"]
+
+    @staticmethod
+    def setup_grid_as_args() -> dict[str, Any]:
+        """Inductor meta so that launcher takes three extra grid arguments"""
+        return {
+            "grid_type": FixedGridNpu.__name__,
+            "fixed_grid": ["_grid_0", "_grid_1", "_grid_2"],
+            "extra_launcher_args": ["_grid_0", "_grid_1", "_grid_2"],
+        }
+
+
 def is_namedtuple_isinstance(obj):
     return (
         isinstance(obj, tuple) and 
@@ -226,13 +244,27 @@ class GridExprNpu(GridExpr):
         numels: List[str],
         mode: Literal["python", "cpp"] = "python",
     ) -> GridExpr:
-        grid_cls = globals()[inductor_meta["grid_type"]]
-        if not issubclass(grid_cls, GridNpu):
+        grid_type = inductor_meta["grid_type"]
+
+        # Map FixedGrid to FixedGridNpu
+        if grid_type == "FixedGrid":
+            grid_cls = FixedGridNpu
+        else:
+            grid_cls = globals().get(grid_type)
+            if grid_cls is None:
+                raise AssertionError(f"Unknown grid_type: {grid_type}")
+
+        # Handle FixedGridNpu (does not inherit from GridNpu)
+        if grid_cls is FixedGridNpu:
+            grid = grid_cls(inductor_meta=inductor_meta, mode=mode)
+        elif issubclass(grid_cls, GridNpu):
+            grid = grid_cls(inductor_meta=inductor_meta, mode=mode, numels=numels)
+        else:
             raise AssertionError(
-                f"grid_type in inductor_meta must be subclass of GridNpu"
+                f"grid_type in inductor_meta must be subclass of GridNpu or FixedGridNpu"
                 f"but got {inductor_meta['grid_type']}"
             )
-        grid = grid_cls(inductor_meta=inductor_meta, mode=mode, numels=numels)
+        
         if isinstance(cfg, Config):
             cfg = config_to_dict(cfg)
         grid.generate(cfg)
@@ -362,11 +394,15 @@ class TritonCompileResultNpu(TritonCompileResult):
         if "extra_launcher_args" in self.inductor_meta:
             def_args = [*def_args, *self.inductor_meta["extra_launcher_args"]]
 
-        numels = [
-            arg
-            for arg in fn.arg_names
-            if "_numel" in arg
-        ]
+        # FixedGridNpu does not need numels parameter
+        if self.inductor_meta.get("grid_type") == "FixedGridNpu":
+            numels = []
+        else:
+            numels = [
+                arg
+                for arg in fn.arg_names
+                if "_numel" in arg
+            ]
         grid = GridExprNpu.from_meta_and_set_numel(self.inductor_meta, cfg, numels)
         # grid.prefix is usually empty, grid.x_grid is something like `-(xnumel//-1024)`
         lines = [
@@ -1401,6 +1437,30 @@ def foreach(triton_meta, num_warps, filename=None, inductor_meta=None):
     return cached_autotune(
         None,
         [triton.Config({}, num_stages=1, num_warps=num_warps)],
+        triton_meta=triton_meta,
+        inductor_meta=inductor_meta,
+        heuristic_type=HeuristicType.TEMPLATE,
+        filename=filename,
+    )
+
+
+def template(num_stages, num_warps, triton_meta, filename=None, inductor_meta=None):
+    """
+    Compile a triton template
+    
+    Args:
+        num_stages: Number of pipeline stages
+        num_warps: Number of warps
+        triton_meta: Triton metadata
+        filename: Optional filename for caching
+        inductor_meta: Optional inductor metadata
+        
+    Returns:
+        NPUCachingAutotuner instance
+    """
+    return cached_autotune(
+        None,
+        [triton.Config({}, num_stages=num_stages, num_warps=num_warps)],
         triton_meta=triton_meta,
         inductor_meta=inductor_meta,
         heuristic_type=HeuristicType.TEMPLATE,
