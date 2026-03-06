@@ -45,16 +45,12 @@ from torch._decomp import (
 )
 
 from . import npu_patch_deprecated
-from .npu_meta import npu_patch_meta
 
 _triton.has_triton = lambda: False
 _triton.has_triton_package = lambda: False
 
 # Fix Error: Exit earlier than child process.
 atexit.register(shutdown_compile_workers)
-
-# new npu meta registration.
-npu_patch_meta()
 
 from torch._dynamo import config as dynamo_config
 dynamo_config.fake_tensor_cache_enabled = False
