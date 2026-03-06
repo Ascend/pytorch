@@ -1,0 +1,52 @@
+name: Test Build (Basic)
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout kerer-ai/pytorch
+      uses: actions/checkout@v4
+      with:
+        path: torch-npu
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.9"
+
+    - name: Install basic dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install wheel setuptools pyyaml -i https://mirrors.huaweicloud.com/repository/pypi/simple
+
+    - name: Check build script syntax
+      working-directory: torch-npu
+      run: |
+        echo "Checking build script..."
+        if [ -f ci/build.sh ]; then
+          bash -n ci/build.sh
+          echo "Build script syntax OK"
+        else
+          echo "Error: ci/build.sh not found"
+          exit 1
+        fi
+
+    - name: Check setup.py
+      working-directory: torch-npu
+      run: |
+        echo "Checking setup.py..."
+        python -m py_compile setup.py
+        echo "setup.py syntax OK"
+
+    - name: List project structure
+      working-directory: torch-npu
+      run: |
+        echo "Project structure:"
+        find . -type f -name "*.py" | head -20
+        echo ""
+        echo "Top-level files:"
+        ls -la
