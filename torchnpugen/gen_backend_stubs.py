@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass
 import pathlib
 import argparse
 import os
@@ -209,7 +210,8 @@ def parse_backend_yaml(
     if not isinstance(yaml_values, dict):
         raise TypeError("yaml_values is not dict")
 
-    valid_keys = ['backend', 'cpp_namespace', 'supported', 'autograd', 'custom', 'custom_autograd', 'symint', 'quant']
+    # NestedTensor is a stub for now. (Not yet implemented.)
+    valid_keys = ['backend', 'cpp_namespace', 'supported', 'autograd', 'custom', 'custom_autograd', 'symint', 'quant', 'nestedtensor']
 
     yaml_backend = yaml_values.pop('backend', None)
     true_backend = 'PrivateUse1' if yaml_backend == 'NPU' else yaml_backend
@@ -273,6 +275,11 @@ def parse_backend_yaml(
         raise TypeError(f'expected "quant" to be a list, but got: {quant}')
     quant = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in quant]
 
+    nestedtensor = yaml_values.pop('nestedtensor', [])
+    if not isinstance(nestedtensor, list):
+        raise TypeError(f'expected "nestedtensor" to be a list, but got: {nestedtensor}')
+    nestedtensor = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in nestedtensor]
+
     # custom_supported is only supported for filt expose api, and is not useful here.
     yaml_values.pop('custom_supported', [])
     if (len(yaml_values.keys()) > 0):
@@ -313,6 +320,13 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
         if quant_key in backend_indices:
             raise KeyError("quant_key should not be in backend_indices.")
         backend_indices[str(backend_key) + quant_key] = quant_idx
+
+    nestedtensor_key = "Nestedtensor"
+    if len(nestedtensor) > 0:
+        nestedtensor_idx = create_backend_index(nestedtensor, symint_set, backend_key, native_functions_map, cpp_namespace)
+        if nestedtensor_key in backend_indices:
+            raise KeyError("nestedtensor_key should not be in backend_indices.")
+        backend_indices[str(backend_key) + nestedtensor_key] = nestedtensor_idx
 
     # check_grouped_native_functions(backend_key, autograd_key, backend_indices, grouped_native_functions)
     return ParsedExternalYaml(true_backend, backend_key, autograd_key, cpp_namespace, backend_indices)
@@ -547,61 +561,131 @@ m.impl("${schema}", TORCH_FN(at::native::${kernel}));"""
     })
 
 
+# 定义配置数据类
+@dataclass
+class SpecialRegisterConfig:
+    dispatch_key: str
+    filename: str
+    header: str
+    extra_impls: List[str]
+
+KERNEL_TEMPLATE = CodeTemplate("""\
+m.impl("${schema}", TORCH_FN(op_plugin::${kernel}));""")
+
+
+def _gen_special_registration_body(
+    backend_indices: BackendIndex,
+    config: SpecialRegisterConfig,
+) -> str:
+    """生成特殊注册的主体内容"""
+    kernel_regs = [
+        KERNEL_TEMPLATE.substitute(schema=op_name, kernel=metadata.kernel)
+        for op_name, metadata in backend_indices.index.items()
+    ]
+    
+    template = CodeTemplate("""\
+TORCH_LIBRARY_IMPL(aten, $dispatch_key, m) {
+$kernel_registrations
+$extra_impls
+};""")
+    
+    return template.substitute(
+        dispatch_key=config.dispatch_key,
+        kernel_registrations=kernel_regs,
+        extra_impls="\n".join(config.extra_impls),
+    )
+
+
+def _write_special_register(
+    fm: FileManager,
+    config: SpecialRegisterConfig,
+    static_init_dispatch_registrations: str,
+) -> None:
+    """写入特殊注册文件"""
+    ns_helper = NamespaceHelper(namespace_str="at")
+    
+    dispatch_definitions = fm.substitute_with_template(
+        'RegisterDispatchDefinitions.ini',
+        lambda: {
+            'ns_prologue': ns_helper.prologue,
+            'ns_epilogue': ns_helper.epilogue,
+            'static_init_dispatch_registrations': static_init_dispatch_registrations,
+            'deferred_dispatch_registrations': '',
+            'dispatch_namespace': '',
+            'dispatch_namespaced_definitions': '',
+            'dispatch_anonymous_definitions': '',
+        },
+    ).split('\n')
+    
+    fm.write_with_template(
+        f'{config.filename}.cpp',
+        'RegisterDispatchKey.cpp',
+        lambda: {
+            'extra_cuda_headers': '',
+            'external_backend_headers': config.header,
+            'namespaced_headers': '',
+            'DispatchKey': 'NPU',
+            'dispatch_headers': '',
+            'ops_headers': '',
+            'dispatch_helpers': '',
+            'dispatch_definitions': dispatch_definitions,
+        }
+    )
+
+SPECIAL_REGISTERS = {
+    'quantize': SpecialRegisterConfig(
+        dispatch_key="QuantizedPrivateUse1",
+        filename="QuantizedRegister",
+        header='''\
+#include <ATen/ops/quantize_per_tensor.h>
+#include "op_plugin/OpInterface.h"
+''',
+        extra_impls=[
+            'm.impl("q_scale", TORCH_FN(at::native::q_scale_quant));',
+            'm.impl("q_per_channel_scales", TORCH_FN(at::native::q_per_channel_scales));',
+            'm.impl("q_zero_point", TORCH_FN(at::native::q_zero_point_quant));',
+            'm.impl("q_per_channel_zero_points", TORCH_FN(at::native::q_per_channel_zero_points));',
+            'm.impl("q_per_channel_axis", TORCH_FN(at::native::q_per_channel_axis));',
+            'm.impl("qscheme", TORCH_FN(at::native::qscheme_quant));',
+        ],
+    ),
+    'nestedtensor': SpecialRegisterConfig(
+        dispatch_key="NestedTensorPrivateUse1",
+        filename="NestedTensorRegister",
+        header="",
+        extra_impls=[
+            'm.impl("unbind.int", TORCH_FN(at::native::NestedTensor_unbind));',
+            'm.impl("values", TORCH_FN(at::native::values_nested));',
+            'm.impl("_nested_tensor_size", TORCH_FN(at::native::_nested_tensor_size));',
+        ],
+    ),
+}
+
+
 def gen_quantize_register(
     fm: FileManager,
     backend_indices: BackendIndex,
-):
-    ns_helper = NamespaceHelper(namespace_str="at")
+) -> None:
+    """生成量化注册"""
+    config = SPECIAL_REGISTERS['quantize']
+    static_init = _gen_special_registration_body(
+        backend_indices["NPUQuantize"],
+        config,
+    )
+    _write_special_register(fm, config, static_init)
 
-    quantize_dict: Dict[str, str] = {}
-    for op_name, metadata in backend_indices.index.items():
-        quantize_dict[op_name] = metadata.kernel
 
-    native_func_header = """\
-#include <ATen/ops/quantize_per_tensor.h>
-#include "op_plugin/OpInterface.h"
-"""
-    static_template = CodeTemplate(
-        """\
-TORCH_LIBRARY_IMPL(aten, $dispatch_key, m) {
-$dispatch_registrations_body
-m.impl("q_scale", TORCH_FN(at::native::q_scale_quant));
-m.impl("q_per_channel_scales", TORCH_FN(at::native::q_per_channel_scales));
-m.impl("q_zero_point", TORCH_FN(at::native::q_zero_point_quant));
-m.impl("q_per_channel_zero_points", TORCH_FN(at::native::q_per_channel_zero_points));
-m.impl("q_per_channel_axis", TORCH_FN(at::native::q_per_channel_axis));
-m.impl("qscheme", TORCH_FN(at::native::qscheme_quant));
-};"""
+def gen_nestedtensor_register(
+    fm: FileManager,
+    backend_indices: BackendIndex,
+) -> None:
+    """生成嵌套张量注册"""
+    config = SPECIAL_REGISTERS['nestedtensor']
+    static_init = _gen_special_registration_body(
+        backend_indices["NPUNestedtensor"],
+        config,
     )
-    kernel_template = CodeTemplate(
-        """\
-m.impl("${schema}", TORCH_FN(op_plugin::${kernel}));"""
-    )
-    static_init_dispatch_registrations = static_template.substitute(
-        dispatch_key="QuantizedPrivateUse1",
-        dispatch_registrations_body=[kernel_template.substitute(schema=kv[0], kernel=kv[1]) for kv in quantize_dict.items()]
-    )
-    fm.write_with_template(f'QuantizedRegister.cpp', 'RegisterDispatchKey.cpp', lambda: {
-        'extra_cuda_headers': '',
-        'external_backend_headers': native_func_header,
-        'namespaced_headers': '',
-        'DispatchKey': 'NPU',
-        'dispatch_headers': '',
-        'ops_headers': '',
-        'dispatch_helpers': '',
-        'dispatch_definitions': fm.substitute_with_template(
-            'RegisterDispatchDefinitions.ini',
-            lambda: {
-                'ns_prologue': ns_helper.prologue,
-                'ns_epilogue': ns_helper.epilogue,
-                'static_init_dispatch_registrations': static_init_dispatch_registrations,
-                'deferred_dispatch_registrations': '',
-                'dispatch_namespace': '',
-                'dispatch_namespaced_definitions': '',
-                'dispatch_anonymous_definitions': '',
-            },
-        ).split('\n'),
-    })
+    _write_special_register(fm, config, static_init)
 
 
 def gen_functionalization(fm: FileManager,
@@ -746,7 +830,8 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
                 register_dispatch_key_func=dest.RegisterDispatchKey,
             )
 
-        gen_quantize_register(fm, backend_indices=backend_indices["NPUQuantize"])
+        gen_quantize_register(fm, backend_indices)
+        gen_nestedtensor_register(fm, backend_indices)
 
         pta_template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
         fm = FileManager(install_dir=output_dir, template_dir=pta_template_dir, dry_run=dry_run)
