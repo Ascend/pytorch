@@ -1,3 +1,4 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates
 # Owner(s): ["module: tests"]
 import warnings
 import unittest
@@ -1650,6 +1651,7 @@ class NumpyTests(TestCase):
         kernel[range(len(kernel)), range(len(kernel))] = torch.square(col_max)
         torch.diagonal(kernel2).copy_(torch.square(col_max.view(4)))
         self.assertEqual(kernel, kernel2)
+
 
 instantiate_device_type_tests(TestIndexing, globals(), only_for='privateuse1')
 instantiate_device_type_tests(NumpyTests, globals(), only_for='privateuse1')
