@@ -31605,5 +31605,5 @@
   "test_fake_autocast_fft_ifftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_replicate (__main__.TestDataParallel)": ["", [""]],
   "test_replicate_buffers (__main__.TestDataParallel)": ["", [""]],
-  "test_index_put_accumulate_large_tensor (__main__.TestIndexing)": ["", ["910A"]]
+  "test_index_put_accumulate_large_tensor_npu (__main__.TestIndexingPRIVATEUSE1)": ["", ["910A"]]
 }
