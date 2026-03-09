@@ -45,7 +45,7 @@ class FSDPMemCache:
 
     def allocate(
         self,
-        size: Sequence[int | torch.SymInt],
+        size: Sequence[Union[int, torch.SymInt]],
         *,
         dtype: torch.dtype,
         device: torch.device
