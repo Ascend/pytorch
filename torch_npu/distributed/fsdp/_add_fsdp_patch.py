@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import reduce
-from typing import cast, Optional, Sequence
+from typing import cast, Optional, Sequence, Union
 from weakref import WeakKeyDictionary
 import operator
 
@@ -22,7 +22,7 @@ class FSDPMemCache:
         # use WeakKeyDictionary to identify when using cache, since ProcessGroup does not support custom attributes
         self.pg_attrs: WeakKeyDictionary[dist.ProcessGroup, dict] = WeakKeyDictionary()
 
-    def set_pg_attr(self, pg: dist.ProcessGroup, key: str, value: bool | None):
+    def set_pg_attr(self, pg: dist.ProcessGroup, key: str, value: Union[bool, None]):
         self.pg_attrs.setdefault(pg, {})[key] = value
 
     def get_pg_attr(self, pg: dist.ProcessGroup, key: str, default=None):
@@ -33,7 +33,7 @@ class FSDPMemCache:
 
     def allocate(
         self,
-        size: Sequence[int | torch.SymInt],
+        size: Sequence[Union[int, torch.SymInt]],
         *,
         dtype: torch.dtype,
         device: torch.device
