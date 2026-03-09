@@ -549,6 +549,169 @@ class NPUIndexTritonKernel(TritonKernel):
     def _get_grid_type(self) -> type[triton_heuristics.GridExpr]:
         return npu_triton_heuristics.GridNpu
 
+
+    def scan(
+        self,
+        dtypes: tuple[torch.dtype, ...],
+        combine_fn: Callable[
+            [tuple[CSEVariable, ...], tuple[CSEVariable, ...]], tuple[CSEVariable, ...]
+        ],
+        values: tuple[CSEVariable, ...],
+    ) -> tuple[CSEVariable, ...]:
+        """NPU override for ops.scan codegen.
+
+        Upstream TritonKernel.scan assumes the reduction/scan dimension is the
+        last dimension in the broadcasted tensor (layout [X, R]) and uses
+        `dim = triton_tensor_ndim() - num_reduction_dims`.
+
+        NPU index codegen may produce either an R-first ([R, X...]) or
+        R-last ([X..., R]) dense layout depending on how `golden_var_list` is
+        derived for the current kernel. We must scan along the actual reduction
+        ("r") axis position in the broadcasted dense tensor, instead of
+        hard-coding an axis.
+        """
+
+        assert self.inside_reduction
+        assert not self.cooperative_reduction, "TODO"
+
+        masks = OrderedSet(f"{tree.prefix}mask" for tree in self.range_trees)
+        self.filter_masks(masks)
+        masks = sorted(masks)
+        assert not self._load_mask, "ops.scan not supported inside ops.masked"
+
+        broadcasted_values: list[CSEVariable] = []
+        accumulators: list[CSEVariable] = []
+
+        dtypes = tuple(upcast_compute_type(dtype) for dtype in dtypes)
+        cse_compute = functools.partial(self.cse.generate, self.compute)
+        combine_helper_fn = self._lift_helper(combine_fn, len(values), dtypes)
+
+        # Pick the scan dimension by locating the reduction axis in the dense
+        # layout used by dense_size_list()/dense_size_str().
+        #
+        # dense_size_list() orders dims according to reversed(golden_var_list),
+        # i.e. the i-th size corresponds to reversed(golden_var_list)[i].
+        _ = self.dense_size_list()
+        golden = list(self.golden_var_list or [])
+        dense_vars = list(reversed(golden))
+        reduction_dims = [
+            i
+            for i, v in enumerate(dense_vars)
+            if str(v).startswith("r")
+        ]
+        # Scan is single-axis and only fuses with reductions on the same r-axis.
+        if reduction_dims:
+            dim = reduction_dims[-1]
+        else:
+            # Fallback to upstream heuristic if we failed to infer the layout.
+            dim = self.triton_tensor_ndim() - self.num_reduction_dims
+
+        # Derive per-axis reduction-loop symbol names from the scan dim.
+        dense_ndim = len(self.dense_size_list())
+        scan_axis_sym = dense_vars[dim] if 0 <= dim < len(dense_vars) else None
+        scan_axis = (
+            self.range_tree_nodes.get(scan_axis_sym) if scan_axis_sym in self.range_tree_nodes else None
+        )
+        scan_axis_name = (
+            getattr(scan_axis, "name", None) or (str(scan_axis_sym) if scan_axis_sym is not None else "r")
+        )
+        rbase_sym = f"base_{scan_axis_name}"
+        rblock_sym = f"{scan_axis_name.upper()}BLOCK_SUB"
+        if getattr(scan_axis, "is_split_axis", False):
+            roffset_expr = f"{scan_axis_name}_offset + (loop_{scan_axis_name} * {rblock_sym})"
+        else:
+            roffset_expr = f"(loop_{scan_axis_name} * {rblock_sym})"
+        reshape_sizes = ["1"] * dense_ndim
+        if 0 <= dim < dense_ndim:
+            reshape_sizes[dim] = rblock_sym
+        rbase_broadcast = (
+            f"tl.broadcast_to({rbase_sym}.reshape({', '.join(reshape_sizes)}), {self.dense_size_str()})"
+            if dense_ndim > 1
+            else rbase_sym
+        )
+
+        for value, dtype in zip(values, dtypes):
+            value_dtype = self.cse.generate(
+                self.compute,
+                f"{value}.to({triton_compute_type(dtype)})",
+                dtype=dtype,
+            )
+            value = self.cse.generate(
+                self.compute,
+                f"tl.broadcast_to({value_dtype}, {self.dense_size_str()})",
+                dtype=dtype,
+            )
+            broadcasted_values.append(value)
+
+            acc_type = triton_acc_type(dtype)
+
+            if not self.persistent_reduction:
+                accumulator = self.cse.newvar(dtype=dtype)
+                reduced_size = self.dense_size_list()
+                reduced_size[dim] = "1"
+                reduced_size = f"[{', '.join(reduced_size)}]"
+
+                default = "float('nan')" if dtype.is_floating_point else "-1"
+                self.body.writeline(
+                    f"{accumulator} = tl.full({reduced_size}, {default}, {acc_type})"
+                )
+                accumulators.append(accumulator)
+
+        def csv(vs):
+            return " ".join(f"{v}," for v in vs)
+
+        def cse_multiple(line, in_values, in_masks, in_dtypes):
+            n = len(in_values)
+            cache_keys = [f"{line}, {i}, {in_masks}" for i in range(n)]
+            if all(self.cse.contains(cache_key) for cache_key in cache_keys):
+                return [self.cse.get(cache_key) for cache_key in cache_keys]
+            result_vars = [self.cse.newvar(dtype=_dtype) for _dtype in in_dtypes]
+            self.compute.writeline(f"{csv(result_vars)} = {line}")
+            for result_var, cache_key in zip(result_vars, cache_keys):
+                if in_masks:
+                    result_var.mask_vars = in_masks  # type: ignore[attr-defined]
+                self.cse.put(cache_key, result_var)
+            return tuple(result_vars)
+
+        partial_scan_vars = cse_multiple(
+            f"tl.associative_scan(({csv(broadcasted_values)}), {dim}, {combine_helper_fn})",
+            values,
+            masks,
+            dtypes,
+        )
+
+        if not self.persistent_reduction:
+            partial_reduce_vars = [
+                cse_compute(
+                    f"triton_helpers.select_one(({partial_scan_var}), ({rbase_broadcast}) == ({rblock_sym} - 1), dim={dim}, keep_dims=True)",
+                    dtype=upcast_compute_type(partial_scan_var.dtype),
+                )
+                for partial_scan_var in partial_scan_vars
+            ]
+            accs_next = combine_fn(tuple(accumulators), tuple(partial_reduce_vars))
+            full_scan_vars = combine_fn(tuple(accumulators), partial_scan_vars)
+            result_vars = [
+                cse_compute(
+                    f"tl.where(({roffset_expr}) > 0, {full_scan}, {partial_scan})",
+                    dtype=partial_scan.dtype,
+                )
+                for full_scan, partial_scan in zip(full_scan_vars, partial_scan_vars)
+            ]
+            for acc_next, accumulator, partial_reduce in zip(
+                accs_next, accumulators, partial_reduce_vars
+            ):
+                self.compute.writeline(
+                    f"{accumulator} = tl.where(({roffset_expr}) > 0, {acc_next}, {partial_reduce})"
+                )
+        else:
+            result_vars = partial_scan_vars
+
+        for result_var in result_vars:
+            assert isinstance(result_var, TritonCSEVariable)
+            result_var.mask_vars = OrderedSet(masks)
+
+        return tuple(result_vars)
+
     def patch_triton_hash(self):
         # remove this method once the original invocation is fixed
         import hashlib
@@ -1322,11 +1485,12 @@ class NPUIndexTritonKernel(TritonKernel):
 
     def dense_size_list(self) -> List[str]:
         if self.inside_reduction:
-            if not self.reduce_analysis:
-                self.reduce_analysis = ReductionAnalysis(self)
-            if self.is_contiguous_reduction():
-                return self.reduce_analysis.dense_post_reduction_list()
-            return self.reduce_analysis.dense_size_list()
+            if self.find_reduction_node() is not None:
+                if not self.reduce_analysis:
+                    self.reduce_analysis = ReductionAnalysis(self)
+                if self.is_contiguous_reduction():
+                    return self.reduce_analysis.dense_post_reduction_list()
+                return self.reduce_analysis.dense_size_list()
 
         if not self.golden_var_list:
             self.select_golden_varlist()
@@ -1362,9 +1526,13 @@ class NPUIndexTritonKernel(TritonKernel):
 
     def dense_size_str(self):
         if self.inside_reduction:
-            if not self.reduce_analysis:
-                self.reduce_analysis = ReductionAnalysis(self)
-            return self.reduce_analysis.dense_size_str()
+            if self.find_reduction_node() is not None:
+                if not self.reduce_analysis:
+                    self.reduce_analysis = ReductionAnalysis(self)
+                return self.reduce_analysis.dense_size_str()
+            # Scan fallback: generate dense shape directly.
+            sizes = self.dense_size_list()
+            return f"[{', '.join(sizes)}]"
         sizes = self.dense_size_list()
         return f"[{', '.join(sizes)}]"
 

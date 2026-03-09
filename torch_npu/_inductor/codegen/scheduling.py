@@ -121,12 +121,11 @@ class NPUTritonScheduling(TritonScheduling):
             self, kernel_features: SIMDKernelFeatures, kernel_args, kernel_kwargs
     ) -> List[SIMDKernel]:
 
-        return [
-            self.kernel_type(
-                *kernel_args,
-                **kernel_kwargs,
-            )
-        ]
+        if kernel_features.contains_op("scan"):
+            kernel_kwargs = dict(kernel_kwargs)
+            kernel_kwargs["override_cooperative_reduction"] = False
+
+        return [self.kernel_type(*kernel_args, **kernel_kwargs)]
 
     # transform indexing before call codegen_node_schedule_with_kernel
     def codegen_node_schedule(self, kernel_features: SIMDKernelFeatures, nodes):
@@ -657,12 +656,16 @@ class NPUTritonScheduling(TritonScheduling):
             split_tiling = SplitTiling(kernel)
             split_tiling.select_split_tiling_axis()
             kernel.load_store_indexing = split_tiling.indexing
-            # ReductionAnalysis depends on kernel.load_store_indexing 
-            if kernel.inside_reduction:
-                kernel.reduce_analysis = ReductionAnalysis(kernel)
-                # pure_simt_kernel, high dim reduction don't use persitent reduction
-                if kernel.is_unified_simt_kernel() and kernel.reduction_dim() != len(kernel.golden_var_list) - 1:
-                    kernel.persistent_reduction = False
+            # ReductionAnalysis depends on kernel.load_store_indexing.
+            if kernel.inside_reduction and getattr(kernel, "find_reduction_node", None) is not None:
+                from torch._inductor import ir
+
+                reduction_node = kernel.find_reduction_node()
+                if reduction_node is not None and isinstance(reduction_node, ir.Reduction):
+                    kernel.reduce_analysis = ReductionAnalysis(kernel)
+                    # pure_simt_kernel, high dim reduction don't use persitent reduction
+                    if kernel.is_unified_simt_kernel() and kernel.reduction_dim() != len(kernel.golden_var_list) - 1:
+                        kernel.persistent_reduction = False
             # no_loop_axis depends on persistent reduction
             split_tiling.select_no_loop_axis()
 
