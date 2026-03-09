@@ -5,6 +5,7 @@ from torch.testing._internal.common_utils import run_tests, parametrize, instant
 from testutils import TestUtils
 import torch_npu
 import torch_npu._inductor
+from torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass import fold_redundant_ops
 
 
 class FoldMultiShapeUnchangeModel(torch.nn.Module):
@@ -77,7 +78,6 @@ class TestFoldMultiShapeUnchangePass(TestUtils):
         ShapeProp(graph_module).propagate(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1)
         
         # 应用优化 Pass
-        from torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass import fold_redundant_ops
         fold_redundant_ops(graph_module.graph)
         graph_module.recompile()
 
@@ -86,6 +86,98 @@ class TestFoldMultiShapeUnchangePass(TestUtils):
         inductor_result = graph_module(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1)
 
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+
+
+    @parametrize('shape', [(4, 8)])
+    @parametrize('dtype', ['float32'])
+    def test_view_squeeze_dim_fold(self, shape, dtype):
+        """view → squeeze(dim=...) → 应折叠回原始输入"""
+        class M(torch.nn.Module):
+            def forward(self, x):
+                v = torch.ops.aten.view.default(x, [4, 1, 8])
+                s = torch.ops.aten.squeeze.dim(v, 1)
+                return s + 1.0
+
+        x = self._generate_tensor(shape, dtype)
+        model = M()
+        model(x)
+        gm = fx.symbolic_trace(model)
+        ShapeProp(gm).propagate(x)
+
+        fold_redundant_ops(gm.graph)
+        gm.recompile()
+
+        view_nodes = [n for n in gm.graph.nodes if n.target == torch.ops.aten.view.default]
+        squeeze_nodes = [n for n in gm.graph.nodes if n.target == torch.ops.aten.squeeze.dim]
+        self.assertEqual(len(view_nodes) + len(squeeze_nodes), 0,
+                         "view → squeeze(dim) 等价模式应全部折叠")
+
+        self.assertEqual(model(x), gm(x))
+
+
+    @parametrize('shape', [(2, 3, 5)])
+    @parametrize('dtype', ['float32'])
+    def test_reshape_squeeze_default_fold(self, shape, dtype):
+        """reshape → squeeze.default → 应折叠"""
+        class M(torch.nn.Module):
+            def forward(self, x):
+                r = torch.ops.aten.reshape.default(x, [2, 3, 1, 5])
+                s = torch.ops.aten.squeeze.dim(r, 2)
+                return s.mean()
+
+        x = self._generate_tensor(shape, dtype)
+        model = M()
+        gm = fx.symbolic_trace(model)
+        ShapeProp(gm).propagate(x)
+
+        fold_redundant_ops(gm.graph)
+        gm.recompile()
+
+        reshape_nodes = [n for n in gm.graph.nodes if n.target == torch.ops.aten.reshape.default]
+        squeeze_nodes = [n for n in gm.graph.nodes if 'squeeze' in str(n.target)]
+        self.assertEqual(len(reshape_nodes) + len(squeeze_nodes), 0)
+
+
+    @parametrize('shape', [(4, 5)])
+    @parametrize('dtype', ['float32'])
+    def test_squeeze_not_after_view_no_fold(self, shape, dtype):
+        """squeeze 前面不是 view/reshape → 不折叠"""
+        class M(torch.nn.Module):
+            def forward(self, x):
+                s = torch.ops.aten.squeeze.default(x)
+                return s.sum()
+
+        x = self._generate_tensor(shape, dtype)
+        model = M()
+        gm = fx.symbolic_trace(model)
+        ShapeProp(gm).propagate(x)
+
+        fold_redundant_ops(gm.graph)
+
+        squeeze_nodes = [n for n in gm.graph.nodes if 'squeeze' in str(n.target)]
+        self.assertEqual(len(squeeze_nodes), 1, "非 view/reshape 前置不应折叠")
+
+
+    @parametrize('shape', [(2, 3, 1)])
+    @parametrize('dtype', ['float32'])
+    def test_view_squeeze_shape_mismatch_no_fold(self, shape, dtype):
+        """squeeze 后的 shape 与原始不一致 → 不折叠"""
+        class M(torch.nn.Module):
+            def forward(self, x):
+                v = torch.ops.aten.view.default(x, [2, 3, 1])
+                s = torch.ops.aten.squeeze.dim(v, 2)  # squeeze 后 shape (2,3)，原始是 (2,3,1)
+                return s + 1.0
+
+        x = self._generate_tensor(shape, dtype)
+        model = M()
+        gm = fx.symbolic_trace(model)
+        ShapeProp(gm).propagate(x)
+
+        fold_redundant_ops(gm.graph)
+
+        view_nodes = [n for n in gm.graph.nodes if n.target == torch.ops.aten.view.default]
+        squeeze_nodes = [n for n in gm.graph.nodes if 'squeeze' in str(n.target)]
+        self.assertEqual(len(view_nodes) + len(squeeze_nodes), 2, "shape 不一致不应折叠")
 
 
 instantiate_parametrized_tests(TestFoldMultiShapeUnchangePass)

@@ -22,6 +22,7 @@ from ..utils.check_op_util import (
     check_squeeze_op, 
     check_unsqueeze_op, 
     check_where_op,
+    match,
 )
 from ..utils.get_binary_fold_result import (
     get_binary_fold_result, 
@@ -126,10 +127,7 @@ def pad_slice_fold(graph: torch.fx.Graph) -> None:
             continue
         # 获取 pad 节点的输入和参数
         input_tensor = node.args[0]
-        pad = node.args[1]  # 填充参数，例如 [0, 0, 0, max_seq_len]
-        # value = node.args[2] if len(node.args) > 2 else 0.0  # 填充值，默认 0.0
-        # 检查 pad 是否只在特定维度填充
-        # 计算填充维度和填充量
+        pad = node.args[1]
         input_shape = get_node_shape(input_tensor)
         if input_shape is None:
             continue
@@ -140,30 +138,37 @@ def pad_slice_fold(graph: torch.fx.Graph) -> None:
         # 检查所有下游 slice 节点
         all_slices_valid = True
         slice_nodes = []
-        for user in node.users:
-            if user.op == "call_function" and user.target == operator.getitem:
-                start = user.args[1][pad_dim].start
-                end = user.args[1][pad_dim].stop
-                step = user.args[1][pad_dim].step
-                slice_start = start if isinstance(start, int) else 0 # 切片起始
-                slice_end = end if isinstance(end, int) else 0 # 切片结束
-                slice_step = step if isinstance(step, int) else 0
-                # 检查是否在维度上发生的切片，且切片范围不包含填充部分
-                if (
-                    slice_step != 0
-                    or slice_end > input_shape[pad_dim]
-                ):
-                    all_slices_valid = False
-                    break
-                slice_nodes.append((user, (input_tensor, user.args[1])))
-            else:
-                all_slices_valid = False  # 非 slice 消费者，保留 pad
+        for user in list(node.users):
+            if user.op != "call_function" or user.target != operator.getitem:
+                all_slices_valid = False
                 break
+            # 取出索引 tuple
+            idx = user.args[1]
+            if not isinstance(idx, (tuple, list)) or len(idx) <= pad_dim:
+                all_slices_valid = False
+                break
+            start = idx[pad_dim].start
+            end = idx[pad_dim].stop
+            step = idx[pad_dim].step
+            slice_start = start if isinstance(start, int) else 0
+            slice_end = end if isinstance(end, int) else None
+            slice_step = step if isinstance(step, int) else 1
+            # 检查是否在维度上发生的切片，且切片范围不包含填充部分
+            is_valid_prefix = (
+                isinstance(slice_end, int)
+                and slice_end <= input_shape[pad_dim]
+                and slice_step in (1, None)
+                and slice_start <= slice_end
+            )
+            if not is_valid_prefix:
+                all_slices_valid = False
+                break
+            slice_nodes.append((user, (input_tensor, idx)))
 
         # 如果所有 slice 节点都满足条件，替换 pad + slice 为直接 slice
         if all_slices_valid and slice_nodes:
-            for user, args in slice_nodes:
-                user.args = args
+            for user, new_args in slice_nodes:
+                user.args = new_args
             graph.erase_node(node)  # 删除 pad 节点
             changed = True
     eliminate_dead_code(graph, changed, pad_slice_fold.__name__, False)
@@ -172,31 +177,45 @@ def pad_slice_fold(graph: torch.fx.Graph) -> None:
 @register_custom_pass(PassType.POST)
 def fold_four_op_pass(graph: torch.fx.Graph) -> None:
     changed = False
-    add_ops = (torch.ops.aten.add.Tensor, torch.ops.aten.add.Scalar)
-    sub_rsub_ops = (torch.ops.aten.sub.Tensor, torch.ops.aten.sub.Scalar, torch.ops.aten.rsub.Tensor, torch.ops.aten.rsub.Scalar)
-    mul_ops = (torch.ops.aten.mul.Tensor, torch.ops.aten.mul.Scalar)
-    div_ops = (torch.ops.aten.div.Tensor, torch.ops.aten.div.Scalar)
-    for node in reversed(graph.nodes):
-        if node.op != 'call_function' or node.target not in (add_ops + sub_rsub_ops + mul_ops + div_ops):
-            continue
-        inp0 = node.args[0]
-        inp1 = node.args[1]
-        target_val = None
-        is_match = False
-        if check_op_by_targets(node, add_ops) or check_op_by_targets(node, sub_rsub_ops):
-            is_match, target_val = try_match(inp0, inp1, is_zero_like)
-        elif check_op_by_targets(node, mul_ops) or check_op_by_targets(node, div_ops):
-            is_match, target_val = try_match(inp0, inp1, is_one_like)
+    add_ops = (torch.add, torch.ops.aten.add.Tensor, torch.ops.aten.add.Scalar)
+    sub_ops = (torch.sub, torch.ops.aten.sub.Tensor, torch.ops.aten.sub.Scalar)
+    rsub_ops = (torch.rsub, torch.ops.aten.rsub.Tensor, torch.ops.aten.rsub.Scalar)
+    mul_ops = (torch.mul, torch.ops.aten.mul.Tensor, torch.ops.aten.mul.Scalar)
+    div_ops = (torch.div, torch.ops.aten.div.Tensor, torch.ops.aten.div.Scalar)
+    changed = True 
+    total_changed = False
+    while changed:
+        changed = False
+        for node in reversed(list(graph.nodes)):
+            if node.op != 'call_function' or node.target not in (add_ops + sub_ops + rsub_ops + mul_ops + div_ops):
+                continue
+            if len(node.args) < 2:
+                continue
+            inp0 = node.args[0]
+            inp1 = node.args[1]
+            target_val = None
+            is_match = False
+            if check_op_by_targets(node, add_ops):
+                is_match, target_val = try_match(inp0, inp1, is_zero_like)
+            elif check_op_by_targets(node, sub_ops):
+                is_match, target_val = try_match(inp0, inp1, is_zero_like, "right")
+            elif check_op_by_targets(node, rsub_ops):
+                is_match, target_val = try_match(inp0, inp1, is_zero_like, "left")
+            elif check_op_by_targets(node, div_ops):
+                is_match, target_val = try_match(inp0, inp1, is_one_like, "right")
+            elif check_op_by_targets(node, mul_ops):
+                is_match, target_val = try_match(inp0, inp1, is_one_like)
 
-        if is_match:
-            with graph.inserting_before(node):
-                fold_res = get_binary_fold_result(graph, target_val, node.meta)
-
-            if fold_res is not None:
-                node.replace_all_uses_with(fold_res)
-                graph.erase_node(node)
-                changed = True
-    eliminate_dead_code(graph, changed, fold_four_op_pass.__name__)
+            if is_match:
+                with graph.inserting_before(node):
+                    fold_res = get_binary_fold_result(graph, target_val, node.meta)
+                if fold_res is not None:
+                    node.replace_all_uses_with(fold_res)
+                    graph.erase_node(node)
+                    changed = True
+                    total_changed = True
+    if total_changed:
+        eliminate_dead_code(graph, total_changed, fold_four_op_pass.__name__)
 
 
 @register_custom_pass(PassType.POST)
@@ -520,10 +539,6 @@ def fold_squeeze(graph: torch.fx.Graph) -> None:
     eliminate_dead_code(graph, changed, fold_squeeze.__name__)
 
 
-def match(a, b):
-    return a == b if isinstance(b, int) else (len(b) == 1 and a in b)
-
-
 @register_custom_pass(PassType.POST)
 def fold_to_copy(graph: torch.fx.Graph) -> None:
     changed = False
@@ -548,9 +563,12 @@ def fold_to_copy(graph: torch.fx.Graph) -> None:
 
     def _useless_to_copy(copy: torch.fx.Node) -> bool:
         inp = copy.args[0]
+        copy_dtype = copy.kwargs.get("dtype", None)
         copy_meta = get_node_meta(copy)
         in_meta = get_node_meta(inp)
         if copy_meta is None or in_meta is None:
+            return False
+        if copy_dtype is not None and copy_dtype != in_meta.dtype:
             return False
         if in_meta.dtype != copy_meta.dtype:
             return False
