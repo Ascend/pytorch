@@ -214,6 +214,9 @@ torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module
                                                      unsupported_dtype=unsupported_dtype)
 torch.nn.parameter.UninitializedTensorMixin._allowed_methods.append(torch.Tensor.npu)
 
+# register npu device interface for dynamo
+_dynamo_register_interface_for_device()
+
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
 _apply_class_patches()
@@ -299,9 +302,6 @@ _rpc_backend_registry()
 
 # register rules for ops in dtensor
 _register_ops_under_dtensor_rules()
-
-# register npu device interface for dynamo
-_dynamo_register_interface_for_device()
 
 # Enable NPU Sanitizer
 if 'TORCH_NPU_SANITIZER' in os.environ:
