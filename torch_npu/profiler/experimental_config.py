@@ -75,7 +75,7 @@ class _ExperimentalConfig:
                  record_op_args: bool = False,
                  op_attr: bool = False,
                  gc_detect_threshold: float = None,
-                 export_type: Union[str, list] = None,
+                 export_type: Union[str, list] = ExportType.Text,
                  host_sys: list = None,
                  mstx_domain_include: list = None,
                  mstx_domain_exclude: list = None,
