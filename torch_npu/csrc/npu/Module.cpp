@@ -442,6 +442,16 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             });
         });
     m.def(
+        "_npu_beginAllocateCurrentThreadToPool",
+        [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+            auto tid = std::this_thread::get_id();
+            c10_npu::NPUCachingAllocator::beginAllocateToPool(
+                device, mempool_id, [=](aclrtStream) {
+                    auto current_tid = std::this_thread::get_id();
+                    return current_tid == tid;
+            });
+        });
+    m.def(
         "_npu_beginAllocateToPool",
         [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
             c10_npu::NPUCachingAllocator::beginAllocateToPool(
