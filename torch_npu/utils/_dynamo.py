@@ -1,6 +1,6 @@
 import sys
 import inspect
-from typing import Dict, List
+from typing import Dict, List, Optional, Any
 
 import torch
 from torch._dynamo.utils import tensortype_to_dtype
@@ -12,6 +12,10 @@ from torch._dynamo.variables.functions import SkipFunctionVariable
 from torch._dynamo.variables.constant import ConstantVariable
 from torch._dynamo.variables.tensor import TensorVariable
 from torch._dynamo.variables.lists import TupleVariable
+from torch._dynamo.variables.streams import (
+    StreamContextVariable,
+    StreamVariable,
+)
 from torch._dynamo import optimize
 from torch import _TorchCompileWrapper
 import torch_npu
@@ -59,10 +63,6 @@ def UserDefinedClassVariable__new__(cls, value, **kwargs):
     ]:
         return NPUTorchCtxManagerClassVariable(value, **kwargs)
     elif value in [
-        torch.npu.Stream,
-        torch_npu.npu.Stream,
-        torch.npu.streams.Stream,
-        torch_npu.npu.streams.Stream,
         torch_npu.npu.BoolTensor,
         torch_npu.npu.ByteTensor,
         torch_npu.npu.CharTensor,
@@ -230,6 +230,122 @@ def patch_event_variable_python_type():
         )
 
 
+class NpuStreamContextVariable(StreamContextVariable):
+    """This represents NPU stream context with FX graph set_stream node creation."""
+
+    @staticmethod
+    def create(
+        tx: "InstructionTranslator",
+        stream_to_enter: "StreamVariable",
+        **kwargs: dict[str, Any],
+    ) -> "NpuStreamContextVariable":
+        from torch._dynamo.device_interface import get_interface_for_device
+        device_interface = get_interface_for_device(stream_to_enter.device)
+        from torch._dynamo.variables.builder import wrap_fx_proxy_cls
+        current_stream_var = wrap_fx_proxy_cls(
+            StreamVariable,
+            tx,
+            tx.output.create_proxy(
+                "call_function",
+                device_interface.current_stream,
+                (None,),
+                {},
+            ),
+        )        
+
+        return NpuStreamContextVariable(
+            stream_to_enter,
+            current_stream=current_stream_var,
+            device_interface=device_interface,
+            **kwargs,
+        )
+
+    def __init__(
+        self,
+        stream: Optional["StreamVariable"],
+        current_stream: Optional["StreamVariable"] = None,
+        device_interface: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
+        self.current_stream = current_stream
+        self.device_interface = device_interface
+        super().__init__(stream, **kwargs)
+
+    def enter(
+        self, tx: "InstructionTranslator", *args: VariableTracker
+    ) -> VariableTracker:
+        # Create set_stream node to switch to self.stream
+        if self.get_stream():
+            tx.output.create_proxy(
+                "call_function",
+                self.device_interface.set_stream,
+                (self.get_stream().as_proxy(),),
+                {},
+            )
+        return super().enter(tx)
+
+    def exit(
+        self, tx: "InstructionTranslator", *args: VariableTracker
+    ) -> VariableTracker:
+        # First exit the symbolic stream state
+        # Create set_stream node to restore current_stream
+        if self.get_stream():
+            tx.output.create_proxy(
+                "call_function",
+                self.device_interface.set_stream,
+                (self.current_stream.as_proxy(),),
+                {},
+            )
+        return super().exit(tx, *args)
+
+    
+def patch_npu_stream_context():
+    from torch._dynamo.device_interface import get_interface_for_device
+
+    def _handle_npu_device_interface_stream(self, tx, stream):
+        return NpuStreamContextVariable.create(tx, stream)
+    
+    TorchInGraphFunctionVariable._get_handlers()[get_interface_for_device('npu').stream] = _handle_npu_device_interface_stream    
+
+
+def fake_record_stream(self, s):
+    """
+    let dynamo trace Tensor.record_stream as this emtpy function,
+    and you can replace it later in your compile backend to an actual function
+    """
+    if isinstance(self, torch._subclasses.fake_tensor.FakeTensor):
+        return
+    raise RuntimeError("tensor.record_stream is not supported on torch.compile! "
+                       "You should write a pass to replace torch.npu.fake_record_stream to an actual function in FX graph "
+                       "before aot_autograd.")
+
+
+def patch_record_stream():
+    torch.npu.fake_record_stream = fake_record_stream
+
+    def method_record_stream(self, s):
+        tx = torch._dynamo.symbolic_convert.InstructionTranslator.current_tx()
+        return torch._dynamo.variables.TorchInGraphFunctionVariable(
+            torch.npu.fake_record_stream
+        ).call_function(tx, [self, s], {})
+    
+    torch._dynamo.variables.tensor.TensorVariable.method_record_stream = method_record_stream  
+
+
+def patch_user_defined_class_variable():
+    import functools
+    original_method = UserDefinedClassVariable._in_graph_classes
+    
+    @staticmethod
+    @functools.lru_cache(None)
+    def patched_in_graph_classes():
+        result = original_method()
+        result.add(torch.npu.Event)  
+        result.add(torch.npu.Stream) 
+        return result
+    UserDefinedClassVariable._in_graph_classes = patched_in_graph_classes    
+
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
@@ -242,4 +358,7 @@ def add_dynamo_methods():
     patch_base_schedulernode()
     patch_event_variable_python_type()
     patch_builtin_variable()
+    patch_npu_stream_context()
+    patch_record_stream()
+    patch_user_defined_class_variable()
 
