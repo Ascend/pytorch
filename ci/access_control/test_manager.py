@@ -66,6 +66,40 @@ class TestMgr:
     def load_inductor_ut(self):
         self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/_inductor').rglob('test_*.py')]
 
+    def load_inductor_a5_ut(self):
+        """
+        Load inductor A5 test files based on configuration file.
+        
+        This method reads the test case list from ci/a5_test_list.yaml and
+        loads the corresponding test files from test/_inductor directory.
+        
+        Raises:
+            FileNotFoundError: If the configuration file or a test file does not exist.
+            yaml.YAMLError: If the YAML file is malformed.
+        
+        Example:
+            >>> test_mgr = TestMgr()
+            >>> test_mgr.load_inductor_a5_ut()
+            >>> test_files = test_mgr.get_test_files()
+        """
+        import yaml
+        
+        config_path = BASE_DIR / 'ci/a5_test_list.yaml'
+        if not config_path.exists():
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+        
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        
+        test_cases = config.get('test_cases', [])
+        inductor_dir = BASE_DIR / 'test/_inductor'
+        
+        for test_case in test_cases:
+            test_file = inductor_dir / f"{test_case}.py"
+            if not test_file.exists():
+                raise FileNotFoundError(f"Test file not found: {test_file}")
+            self.test_files['ut_files'].append(str(test_file))
+
     def load_op_plugin_ut(self):
         version_path = get_test_torch_version_path()
         file_hash = {}
