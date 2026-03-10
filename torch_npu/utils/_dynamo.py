@@ -155,14 +155,47 @@ def register_inductor_npu():
 
 
 def patch_inductor_wrapper():
+    from typing import Any, Optional, Literal
     from torch import _TorchCompileInductorWrapper
+    from torch.utils._config_module import Config, ConfigModule, _ConfigEntry
     src_call = _TorchCompileInductorWrapper.__call__
+    src_init = _TorchCompileInductorWrapper.__init__
+    src_get_config_copy = ConfigModule.get_config_copy
 
     def new_call(self, model_, inputs_):
         register_inductor_npu()
         return src_call(self, model_, inputs_)
 
+    def new_get_config_copy(self) -> Dict[str, Any]:
+        ori_dict = src_get_config_copy(self)
+        NpuBackendType = Literal["default", "mlir", "dvm"]
+        if "npu_backend" not in ori_dict:
+            ori_dict["npu_backend"] = "default"
+            self._config["npu_backend"] = _ConfigEntry(
+                    Config(default="default", value_type=NpuBackendType)
+            )
+        return ori_dict
+
+    def new_init(self, mode, options, dynamic):
+        src_init(self, mode, options, dynamic)
+        if self.config.get("npu_backend") == "mlir" or torch._inductor.config.npu_backend == "mlir":
+            import os
+            os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
+            device_id = torch_npu.npu.current_device()
+            torch_npu._C._recovery_all_npu_stream(device_id)
+            try:
+                import torch_mlir
+                from torch_mlir import ir
+            except ImportError as e:
+                raise ImportError("torch_mlir is not installed, install it first.") from e
+            from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu import (
+                npu_inductor_plugin,
+            )
+
     _TorchCompileInductorWrapper.__call__ = new_call
+    _TorchCompileInductorWrapper.__init__ = new_init
+    ConfigModule.get_config_copy = new_get_config_copy
+    torch._inductor.config.get_config_copy()
 
 
 def patch_dynamo_optimize():
