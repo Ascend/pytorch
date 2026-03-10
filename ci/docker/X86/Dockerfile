@@ -6,12 +6,12 @@ RUN echo "alias ll='ls -l --color=auto'" >> /root/.bashrc
 
 # Set pip&python
 RUN cd /usr/local/bin \
-    && ln -sf /opt/_internal/cpython-3.10.18/bin/pip3.10 pip3.10 \
-    && ln -sf /opt/_internal/cpython-3.11.13/bin/pip3.11 pip3.11 \
-    && ln -sf /opt/_internal/cpython-3.10.18/bin/pip3.10 pip3 \
-    && ln -sf /opt/_internal/cpython-3.10.18/bin/python3.10 python3.10 \
-    && ln -sf /opt/_internal/cpython-3.11.13/bin/python3.11 python3.11 \
-    && ln -sf /opt/_internal/cpython-3.10.18/bin/python3.10 python3
+    && ln -sf /opt/_internal/cpython-3.10.19/bin/pip3.10 pip3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.14/bin/pip3.11 pip3.11 \
+    && ln -sf /opt/_internal/cpython-3.10.19/bin/pip3.10 pip3 \
+    && ln -sf /opt/_internal/cpython-3.10.19/bin/python3.10 python3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.14/bin/python3.11 python3.11 \
+    && ln -sf /opt/_internal/cpython-3.10.19/bin/python3.10 python3
 
 # Set pip source
 RUN mkdir /root/.pip \
