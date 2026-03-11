@@ -26,6 +26,7 @@ class MatMulModule(torch.nn.Module):
 
     def forward(self, a, b):
         mm = torch.mm(a.t(), b)
+        mm = mm.to(torch.float32)
         return mm + 3
 
 
