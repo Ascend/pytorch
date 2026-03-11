@@ -1,262 +1,50 @@
 # Ascend Extension for PyTorch插件
 
-
 ## 简介
 
 本项目开发了名为**torch_npu**的**Ascend Extension for PyTorch**插件，使昇腾NPU可以适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。
 
 昇腾为基于华为昇腾处理器和软件的行业应用及服务提供全栈AI计算基础设施。您可以通过访问[昇腾社区](https://www.hiascend.com/zh/)，了解关于昇腾的更多信息。
 
+## 目录结构
+
+关键目录如下：
+
+```ColdFusion
+├─ci                             # 持续集成脚本目录
+├─cmake                          # CMake构建配置目录
+├─torch_npu                      # 核心适配目录
+│  ├─csrc/                       # 底层核心目录
+│  ├─npu/                        # NPU接口目录
+│  ├─distributed/                # 分布式训练适配目录
+│  ├─asd/                        # Ascend Debug工具目录
+├─docs                           # 项目文档目录
+├─examples                       # 示例目录
+├─torchnpugen/                   # 代码生成模块目录
+└─test                           # 测试目录
+```
+
 ## 版本说明
 
-### PyTorch与Python版本配套表
+Ascend Extension for PyTorch的版本说明包含版本配套说明、版本兼容性说明和更新说明等，具体请参见《[Ascend Extension for PyTorch 版本说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/release_notes/release_notes.md)》。
 
-| PyTorch版本    | Python版本                                                   |
-|---------------|:-------------------------------------------------------------|
-| PyTorch1.11.0 | Python3.7.x(>=3.7.5), Python3.8.x, Python3.9.x, Python3.10.x |
-| PyTorch2.1.0  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x        |
-| PyTorch2.2.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
-| PyTorch2.3.1  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x        |
-| PyTorch2.4.0  | Python3.8.x, Python3.9.x, Python3.10.x, Python 3.11.x        |
-| PyTorch2.5.1  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
-| PyTorch2.6.0  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
-| PyTorch2.7.1  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
-| PyTorch2.8.0  | Python3.9.x, Python3.10.x, Python 3.11.x                     |
-| PyTorch2.9.0  | Python3.10.x, Python3.11.x, Python3.12.x                     |
-| PyTorch2.10.0 | Python3.10.x, Python3.11.x, Python3.12.x                     |
-
-
-### 昇腾辅助软件
-
-**Ascend Extension for PyTorch**的分支名称采用`{PyTorch版本}-{昇腾版本}`命名规则，前者为**Ascend Extension for PyTorch**匹配的PyTorch版本，后者为**Ascend Extension for PyTorch**版本号，详细匹配如下：
-
-| CANN版本                | 支持的PyTorch版本 | 支持的Extension版本   | GitCode分支         | 
-|-----------------------|--------------|------------------|-------------------|
-| CANN 8.5.0            | 2.10.0       | 2.10.0rc2        | v2.10.0           |
-|                       | 2.9.0        | 2.9.0            | v2.9.0-7.3.0      |
-|                       | 2.8.0        | 2.8.0.post2      | v2.8.0-7.3.0      |
-|                       | 2.7.1        | 2.7.1.post2      | v2.7.1-7.3.0      |
-|                       | 2.6.0        | 2.6.0.post5      | v2.6.0-7.3.0      |
-| CANN 8.3.RC1          | 2.8.0        | 2.8.0            | v2.8.0-7.2.0      |
-|                       | 2.7.1        | 2.7.1            | v2.7.1-7.2.0      |
-|                       | 2.6.0        | 2.6.0.post3      | v2.6.0-7.2.0      |
-|                       | 2.1.0        | 2.1.0.post17     | v2.1.0-7.2.0      |
-| CANN 8.2.RC1          | 2.6.0        | 2.6.0            | v2.6.0-7.1.0      |
-|                       | 2.5.1        | 2.5.1.post1      | v2.5.1-7.1.0      |
-|                       | 2.1.0        | 2.1.0.post13     | v2.1.0-7.1.0      |
-| CANN 8.1.RC1          | 2.5.1        | 2.5.1            | v2.5.1-7.0.0      |
-|                       | 2.4.0        | 2.4.0.post4      | v2.4.0-7.0.0      |
-|                       | 2.3.1        | 2.3.1.post6      | v2.3.1-7.0.0      |
-|                       | 2.1.0        | 2.1.0.post12     | v2.1.0-7.0.0      |
-| CANN 8.0.0            | 2.4.0        | 2.4.0.post2      | v2.4.0-6.0.0      |
-|                       | 2.3.1        | 2.3.1.post4      | v2.3.1-6.0.0      |
-|                       | 2.1.0        | 2.1.0.post10     | v2.1.0-6.0.0      |
-| CANN 8.0.RC3          | 2.4.0        | 2.4.0            | v2.4.0-6.0.rc3    |
-|                       | 2.3.1        | 2.3.1.post2      | v2.3.1-6.0.rc3    |
-|                       | 2.1.0        | 2.1.0.post8      | v2.1.0-6.0.rc3    | 
-| CANN 8.0.RC2          | 2.3.1        | 2.3.1            | v2.3.1-6.0.rc2    | 
-|                       | 2.2.0        | 2.2.0.post2      | v2.2.0-6.0.rc2    |
-|                       | 2.1.0        | 2.1.0.post6      | v2.1.0-6.0.rc2    |
-|                       | 1.11.0       | 1.11.0.post14    | v1.11.0-6.0.rc2   |
-| CANN 8.0.RC1          | 2.2.0        | 2.2.0            | v2.2.0-6.0.rc1    |
-|                       | 2.1.0        | 2.1.0.post4      | v2.1.0-6.0.rc1    | 
-|                       | 1.11.0       | 1.11.0.post11    | v1.11.0-6.0.rc1   | 
-| CANN 7.0.0            | 2.1.0        | 2.1.0            | v2.1.0-5.0.0      |
-|                       | 2.0.1        | 2.0.1.post1      | v2.0.1-5.0.0      | 
-|                       | 1.11.0       | 1.11.0.post8     | v1.11.0-5.0.0     | 
-| CANN 7.0.RC1          | 2.1.0        | 2.1.0.rc1        | v2.1.0-5.0.rc3    | 
-|                       | 2.0.1        | 2.0.1            | v2.0.1-5.0.rc3    | 
-|                       | 1.11.0       | 1.11.0.post4     | v1.11.0-5.0.rc3   | 
-| CANN 6.3.RC3.1        | 1.11.0       | 1.11.0.post3     | v1.11.0-5.0.rc2.2 | 
-| CANN 6.3.RC3          | 1.11.0       | 1.11.0.post2     | v1.11.0-5.0.rc2.1 | 
-| CANN 6.3.RC2          | 2.0.1        | 2.0.1.rc1        | v2.0.1-5.0.rc2    | 
-|                       | 1.11.0       | 1.11.0.post1     | v1.11.0-5.0.rc2   |
-|                       | 1.8.1        | 1.8.1.post2      | v1.8.1-5.0.rc2    |
-| CANN 6.3.RC1          | 1.11.0       | 1.11.0           | v1.11.0-5.0.rc1   | 
-|                       | 1.8.1        | 1.8.1.post1      | v1.8.1-5.0.rc1    | 
-| CANN 6.0.1            | 1.5.0        | 1.5.0.post8      | v1.5.0-3.0.0      |
-|                       | 1.8.1        | 1.8.1            | v1.8.1-3.0.0      |
-|                       | 1.11.0       | 1.11.0.rc2（beta) | v1.11.0-3.0.0     | 
-| CANN 6.0.RC1          | 1.5.0        | 1.5.0.post7      | v1.5.0-3.0.rc3    |
-|                       | 1.8.1        | 1.8.1.rc3        | v1.8.1-3.0.rc3    |
-|                       | 1.11.0       | 1.11.0.rc1（beta) | v1.11.0-3.0.rc3   | 
-| CANN 5.1.RC2          | 1.5.0        | 1.5.0.post6      | v1.5.0-3.0.rc2    |
-|                       | 1.8.1        | 1.8.1.rc2        | v1.8.1-3.0.rc2    |
-| CANN 5.1.RC1          | 1.5.0        | 1.5.0.post5      | v1.5.0-3.0.rc1    |
-|                       | 1.8.1        | 1.8.1.rc1        | v1.8.1-3.0.rc1    | 
-| CANN 5.0.4            | 1.5.0        | 1.5.0.post4      | 2.0.4.tr5         |
-| CANN 5.0.3            | 1.8.1        | 1.5.0.post3      | 2.0.3.tr5         |
-| CANN 5.0.2            | 1.5.0        | 1.5.0.post2      | 2.0.2.tr5         |
-
-
-## 快速入门
-
-基于CNN模型识别手写数字的脚本，对在GPU上训练的该脚本代码进行修改，使其可以迁移到昇腾NPU上进行训练。具体操作请参见[Ascend Extension for PyTorch 快速入门](https://www.hiascend.com/document/detail/zh/Pytorch/710/fastexperience/fastexperience_0001.html)。
 
 ## 环境部署
 
-### 使用二进制文件进行安装
+Ascend Extension for PyTorch插件的安装操作，具体请参见《[Ascend Extension for PyTorch 软件安装](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/installation_guide/menu_installation_guide.md)》。
 
-我们为用户提供可以快速安装**torch_npu**的whl安装包。在安装**torch_npu**之前，您需要先安装**CANN**软件。[昇腾辅助软件](#昇腾辅助软件)中有更多关于CANN的版本信息。请参考[CANN安装指南](https://www.hiascend.com/cann)获取**CANN**安装包。
+## 快速入门
 
-1. **安装PyTorch**
+以CNN模型为例，介绍将其迁移至昇腾NPU上进行训练的方法，具体操作请参见《[Ascend Extension for PyTorch 快速入门](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/quick_start/quick_start.md)》。
 
-   通过 pip 安装 PyTorch。
+## 特性介绍
 
-   **aarch64:**
+Ascend Extension for PyTorch插件从内存资源优化、通信性能优化、计算性能优化、辅助报错定位等方面精心打造了一系列独特的特性，具体特性指导请参见《[PyTorch 框架特性指南](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/framework_feature_guide_pytorch/menu_framework_feature.md)》。
 
-   ```bash
-   pip3 install torch==2.10.0
-   ```
+## API参考
 
-   **x86:**
-
-   ```bash
-   pip3 install torch==2.10.0+cpu  --index-url https://download.pytorch.org/whl/cpu
-   ```
-
-   若使用pip命令安装失败，请使用下载链接或进入[PyTorch官方网站](https://pytorch.org/)进行查询下载对应版本。
-
-   | 架构    | Python版本  | 下载链接  |
-   |---------|------------|-----------------------------------------------------------------------------------------------------------|
-   | x86     | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl)  |
-   | x86     | Python3.11 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl)  |
-   | x86     | Python3.12 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl)  |
-   | aarch64 | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl) |
-   | aarch64 | Python3.11 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl) |
-   | aarch64 | Python3.12 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl) |
-
-2. **安装torch_npu依赖**
-
-   运行以下命令安装依赖。
-
-   ```bash
-   pip3 install pyyaml
-   pip3 install setuptools
-   ```
-
-3. **安装torch_npu**
-
-   ```bash
-   pip3 install torch-npu==2.10.0rc2
-   ```
-   如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
-
-### 使用源代码进行安装
-
-某些特殊场景下，用户可能需要自行编译**torch_npu**。可以根据[昇腾辅助软件表](#昇腾辅助软件)和[PyTorch与Python版本配套表](#pytorch与python版本配套表)选择合适的分支。
-
-推荐使用Docker镜像编译**torch_npu**，可以通过以下步骤获取（建议只挂载工作路径，并避开系统路径，以降低安全风险）, 生成的.whl文件路径为./dist/。
-
->**须知：**<br>
->如果不使用镜像，编译时请注意gcc版本需要为13.3
-
-1. **克隆torch_npu代码仓**
-
-   ```
-   git clone https://gitcode.com/ascend/pytorch.git -b v2.10.0 --depth 1
-   ```
-
-2. **构建镜像**
-
-   ```
-   cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
-   docker build -t manylinux-builder:v1 .
-   ```
-
-3. **进入Docker容器**
-
-   ```
-   docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
-   # {code_path} is the torch_npu source code path
-   ```
-
-4. **编译torch_npu**
-
-   以**Python 3.10** 为例。
-
-   ```
-   cd /home/pytorch
-   bash ci/build.sh --python=3.10
-   ```
-
- **提示**
- 
-   如果想使用新的C++ ABI编译，请首先运行如下命令，此时推荐和社区torch包相同的编译环境：glibc 2.28, gcc 13.3。
-
-   ```
-   export _GLIBCXX_USE_CXX11_ABI=1
-   ```
-
-   同时，我们支持使用如下变量配置-fabi-version，要求和社区torch包ABI版本一致
-
-   ```
-   export _ABI_VERSION=18
-   ```
-
-### 安装后验证
-
-#### 前提
-
-运行以下命令初始化**CANN**环境变量。
-
-```Shell
-# Default path, change it if needed.
-source /usr/local/Ascend/ascend-toolkit/set_env.sh
-```
-
-#### 快速验证
-
- 可以通过以下样例快速体验**昇腾NPU**。
-
-```diff
-import torch
-- import torch_npu # torch_npu2.5.1及以后版本可以不用手动导包
-
-x = torch.randn(2, 2).npu()
-y = torch.randn(2, 2).npu()
-z = x.mm(y)
-
-print(z)
-```
-
-## 卸载
-Pytorch框架训练环境的卸载可以参考[昇腾官方文档](https://www.hiascend.com/document/detail/zh/ModelZoo/pytorchframework/ptes/ptes_00032.html)。
-
-torch_npu的卸载只需执行命令：
-
-  ```bash
-  pip3 uninstall torch_npu
-  ```
-
-如需要保存卸载日志，可在pip3 uninstall命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
-
-
-
-## 硬件配套
-
-昇腾训练设备包含以下型号，都可作为PyTorch模型的训练环境。
-| 产品系列               | 产品型号                         |
-|-----------------------|----------------------------------|
-| Atlas 训练系列产品     | Atlas 800 训练服务器（型号：9000） |
-|                       | Atlas 800 训练服务器（型号：9010） |
-|                       | Atlas 900 PoD（型号：9000）       |
-|                       | Atlas 300T 训练卡（型号：9000）    |
-|                       | Atlas 300T Pro 训练卡（型号：9000）|
-| Atlas A2 训练系列产品  | Atlas 800T A2 训练服务器          |
-|                       | Atlas 900 A2 PoD 集群基础单元     |
-|                       | Atlas 200T A2 Box16 异构子框      |
-| Atlas A3 训练系列产品  | Atlas 800T A3 训练服务器          |
-|                       | Atlas 900 A3 SuperPoD 超节点     |
-
-昇腾推理设备包含以下型号，都可作为大模型的推理环境。
-| 产品系列               | 产品型号                         |
-|-----------------------|----------------------------------|
-| Atlas 800I A2推理产品  | Atlas 800I A2 推理服务器          |
-
-## 建议与交流
-
-欢迎大家为社区做贡献。如果有任何疑问或建议，请提交[GitCode Issues](https://gitcode.com/Ascend/pytorch/issues)，我们会尽快回复。感谢您的支持。
+- 原生PyTorch API在昇腾NPU设备上的支持情况请参见《[PyTorch 原生API支持度](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/native_apis/menu_pt_native_apis.md)》。
+- Ascend Extension for PyTorch插件提供了部分自定义API接口，具体使用请参见《[Ascend Extension for PyTorch自定义API](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/menu_Pytorch_API.md)》。
 
 ## 分支维护策略
 
@@ -284,28 +72,34 @@ Ascend Extension for PyTorch版本分支的维护阶段如下：
 | 2.3.1         | 常规分支     | 维护       | 2024/06/06 | 预计2026/06/07起进入无维护状态     |            |
 | 2.2.0         | 常规分支     | EOL        | 2024/04/01 |                                  | 2025/10/14 |
 | 2.1.0         | 长期支持     | 维护       | 2023/10/15 | 预计2026/12/30起进入无维护状态     |            |
-| 2.0.1         | 常规分支     | EOL        | 2023/07/19 |                                  | 2024/03/14 |
-| 1.11.0        | 长期支持     | EOL        | 2023/04/19 |                                  | 2025/10/25 |
-| 1.8.1         | 长期支持     | EOL        | 2022/04/10 |                                  | 2023/04/10 |
-| 1.5.0         | 长期支持     | EOL        | 2021/07/29 |                                  | 2022/07/29 |
+| 2.0.1         | 常规分支     | EOL        | 2023/7/19  |                                  | 2024/3/14  |
+| 1.11.0        | 长期支持     | EOL        | 2023/4/19  |                                  | 2025/10/25 |
+| 1.8.1         | 长期支持     | EOL        | 2022/4/10  |                                  | 2023/4/10 |
+| 1.5.0         | 长期支持     | EOL        | 2021/7/29  |                                  | 2022/7/29 |
+
+## 贡献指导
+介绍如何向Ascend Extension for PyTorch插件库贡献代码，具体请参见[Ascend Extension for PyTorch插件 贡献指南](CONTRIBUTING.md)。
+
+## 联系我们
+
+欢迎大家为社区做贡献。如果有任何疑问或建议，请提交[GitCode Issues](https://gitcode.com/Ascend/pytorch/issues)，我们会尽快回复。感谢您的支持。
 
 ## 安全声明
+Ascend Extension for PyTorch的系统安全加固、运行用户建议和文件权限控制等内容，请参见[Ascend Extension for PyTorch插件 安全声明](SECURITYNOTE.md)。
 
-[Ascend Extension for PyTorch插件 安全声明](./SECURITYNOTE.md)
+## 免责声明
+致Ascend Extension for PyTorch插件使用者
+- 本插件仅供调试和开发使用，使用者需自行承担使用风险，并理解以下内容：
+    - 数据处理及删除：用户在使用本插件过程中产生的数据属于用户责任范畴。建议用户在使用完毕后及时删除相关数据，以防信息泄露。
+    - 数据保密与传播：使用者了解并同意不得将通过本插件产生的数据随意外发或传播。对于由此产生的信息泄露、数据泄露或其他不良后果，本插件及其开发者概不负责。
+    - 用户输入安全性：用户需自行保证输入的命令行的安全性，并承担因输入不当而导致的任何安全风险或损失。对于输入命令行不当所导致的问题，本插件及其开发者概不负责。
+- 免责声明范围：本免责声明适用于所有使用本插件的个人或实体。使用本插件即表示您同意并接受本声明的内容，并愿意承担因使用该功能而产生的风险和责任，如有异议请停止使用本插件。
+- 在使用本工具之前，请谨慎阅读并理解以上免责声明的内容。对于使用本插件所产生的任何问题或疑问，请及时联系开发者。
 
-## 参考文档
+## License
 
-有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区Ascend Extension for PyTorch](https://www.hiascend.com/software/ai-frameworks?framework=pytorch)。
+Ascend Extension for PyTorch插件的使用许可证，具体请参见[LICENSE](LICENSE)文件。
 
-| 文档名称                   | 文档链接                                                     |
-| -------------------------- | ------------------------------------------------------------ |
-| 软件安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/730/configandinstg/instg/docs/zh/installation_guide/installation_description.md) |
-| 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/730/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html) |
-| 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/730/ptmoddevg/Frameworkfeatures/docs/zh/framework_feature_guide_pytorch/adaptation_description_opplugin.mdl) |
-| PyTorch原生接口清单          | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/730/apiref/PyTorchNativeapi/docs/zh/native_apis/pytorch_2-9-0/overview.md) |
-| Ascend Extension for PyTorch自定义API参考          | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/730/apiref/torchnpuCustomsapi/docs/context/overview.md) |
+## 致谢
 
-
-## 许可证
-
-Ascend Extension for PyTorch插件使用BSD许可证。详见[LICENSE](LICENSE)文件。
+感谢来自社区的每一个PR，欢迎贡献Ascend Extension for PyTorch插件！
