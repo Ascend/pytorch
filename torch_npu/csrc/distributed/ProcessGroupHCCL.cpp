@@ -5967,11 +5967,167 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::endCoalescing()
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
-    std::vector<std::vector<at::Tensor>>& /* unused */,
-    std::vector<at::Tensor>& /* unused */,
-    const c10d::GatherOptions& /* unused */)
+    std::vector<std::vector<at::Tensor>>& outputTensors,
+    std::vector<at::Tensor>& inputTensors,
+    const c10d::GatherOptions& opts)
 {
-    throw std::runtime_error("ProcessGroupHCCL does not support gather" + DIST_ERROR(ErrCode::NOT_SUPPORT));
+    static auto invalidArgument = [](const std::string& msg) {
+        C10_THROW_ERROR(ValueError, "ProcessGroupHCCL::gather: " + msg);
+    };
+
+    c10d::assertRootRank(invalidArgument, opts.rootRank, size_);
+    check_npu_tensors_different_devices(inputTensors);
+    c10d::assertSingleElementInput(invalidArgument, inputTensors);
+
+    std::vector<at::Tensor> outputs;
+
+    if (getRank() == opts.rootRank) {
+        if (outputTensors.size() != 1) {
+            std::stringstream ss;
+            ss << "requires a single-element output list containing a list with "
+                << getSize() << " tensors.";
+            invalidArgument(ss.str());
+        } else if (outputTensors[0].size() != static_cast<size_t>(getSize())) {
+            std::stringstream ss;
+            ss << "Incorrect output list size " << outputTensors[0].size()
+                << ". Output list size should be " << getSize()
+                << ", same as size of the process group.";
+            invalidArgument(ss.str());
+        }
+
+        const auto& options = inputTensors[0].options();
+        const auto& sizes = inputTensors[0].sizes();
+        c10d::assertTypeAndSizesMatch(invalidArgument, outputTensors[0], options, sizes);
+        outputs = outputTensors[0];
+    } else {
+        // if not in the root rank, initialize outputs as empty list
+        if (!outputTensors.empty()) {
+            invalidArgument("requires empty output on non-root");
+        }
+        outputs = {};
+        // append a empty tensor to list, we don't use it but
+        // `collective` template function requires it to invoke its function
+        outputs.emplace_back();
+    }
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("gather", outputs, inputTensors);
+    }
+
+    std::vector<at::Tensor> inputFlattened;
+    std::vector<std::vector<at::Tensor>> outputTensorsForFlatten;
+
+    if (getRank() == opts.rootRank) {
+        outputTensorsForFlatten.push_back(outputs);
+        inputFlattened = flatten_for_scatter_gather(outputTensorsForFlatten, inputTensors, size_);
+    } else {
+        std::vector<at::Tensor> empty(size_, at::empty_like(inputTensors[0]));
+        outputTensorsForFlatten.push_back(empty);
+        inputFlattened = flatten_for_scatter_gather(outputTensorsForFlatten, inputTensors, size_);
+    }
+
+    bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
+    if (!use_compatible_impl) {
+        throw std::runtime_error("ProcessGroupHCCL does not support gather" + DIST_ERROR(ErrCode::NOT_SUPPORT));
+    }
+
+    return collective(
+        inputFlattened,
+        inputFlattened,  // just to fit the collective interface
+        [this, opts, outputs, use_compatible_impl, inputTensors]
+        (at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+            if (!use_compatible_impl) {
+                return HCCL_E_INTERNAL;
+            }
+
+            RECORD_FUNCTION("HcclGather_SendRecv", std::vector<c10::IValue>({}));
+
+            const auto root = static_cast<int32_t>(opts.rootRank);
+
+            groupStart();
+            if (c10_npu::is_core_control_enabled) {
+                c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+            }
+            if (getRank() == root) {
+                for (const auto r : c10::irange(static_cast<int>(size_))) {
+                    if (r != root) {
+                        if (outputs[r].numel() > 0) {
+                            auto outputDataPtr = outputs[r].data_ptr();
+                            auto numel = getNumelForHCCL(outputs[r]);
+                            auto hcclType = getHcclDataType(outputs[r].scalar_type());
+                            auto hccl_call = [outputDataPtr, numel, hcclType, r, comm, stream, is_dispatched]() -> int {
+#ifndef BUILD_LIBTORCH
+                                torch_npu::profiler::MstxRange range(
+                                    getMstxHcclMsg("HcclRecv", numel, hcclType, comm, stream.id(),
+                                                   static_cast<uint32_t>(r), -1),
+                                    stream.stream(false),
+                                    torch_npu::profiler::DOMAIN_COMMUNICATION);
+#endif
+                                auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType,
+                                    static_cast<uint32_t>(r), comm, stream.stream(false));
+                                *is_dispatched = true;
+                                return hccl_result;
+                            };
+                            at_npu::native::OpCommand::RunOpApiV3("HcclRecv", hccl_call, false, &stream);
+                        }
+                    } else {
+                        outputs[r].copy_(inputTensors[0], true);
+                    }
+                }
+            } else {
+                if (inputTensors[0].numel() > 0) {
+                    auto inputDataPtr = inputTensors[0].data_ptr();
+                    auto numel = getNumelForHCCL(inputTensors[0]);
+                    auto hcclType = getHcclDataType(inputTensors[0].scalar_type());
+                    auto hccl_call = [inputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+#ifndef BUILD_LIBTORCH
+                        torch_npu::profiler::MstxRange range(
+                            getMstxHcclMsg("HcclSend", numel, hcclType, comm, stream.id(), -1,
+                                           static_cast<uint32_t>(root)),
+                            stream.stream(false),
+                            torch_npu::profiler::DOMAIN_COMMUNICATION);
+#endif
+                        auto hccl_result = HcclSend(inputDataPtr, numel, hcclType,
+                            static_cast<uint32_t>(root), comm, stream.stream(false));
+                        *is_dispatched = true;
+                        return hccl_result;
+                    };
+                    at_npu::native::OpCommand::RunOpApiV3("HcclSend", hccl_call, false, &stream);
+                }
+            }
+
+            groupEnd();
+
+            return HCCL_SUCCESS;
+        },
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+            work->lazyDestroy(inputFlattened);
+            // Copy the input tensors to the flattened inputs.
+            auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+            for (const auto i : c10::irange(inputTensors.size())) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+                // See [Sync Streams].
+                if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
+                    work->stashed_for_allocator_safety_->stash(inputTensors[i]);
+                } else {
+                    c10_npu::NPUCachingAllocator::recordStream(inputTensors[i].storage().data_ptr(), hcclStreams[i]);
+                    if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                        multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                        work->recorded_inputs_.push_back(
+                            std::make_pair(inputTensors[i].storage().getWeakStorageImpl(), hcclStreams[i]));
+                        if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                            auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputTensors[i].storage().data_ptr());
+                            work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                            c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                        }
+                    }
+                }
+                inputFlattened[i][0].copy_(inputTensors[i], true);
+            }
+        },
+        c10d::OpType::GATHER,
+        opts.asyncOp);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
@@ -6027,35 +6183,109 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
         inputTensors.push_back(empty);
         inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
     }
+
+    bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
+
     return collective(
         inputFlattened,
         outputTensors,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
-            RECORD_FUNCTION("HcclScatter", std::vector<c10::IValue>({input}));
-            const auto root = opts.rootRank;
-            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
-                c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
-            }
-            auto inputDataPtr = input.data_ptr();
-            auto outputDataPtr = output.data_ptr();
-            auto numel = getNumelForHCCL(output);
-            auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
-#ifndef BUILD_LIBTORCH
-                torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
-                    torch_npu::profiler::DOMAIN_COMMUNICATION);
-#endif
+        [this, opts, use_compatible_impl, inputTensors]
+        (at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+            if (use_compatible_impl) {
+                // Compatibility Mode
+                RECORD_FUNCTION("HcclScatter_SendRecv", std::vector<c10::IValue>({}));
+
+                const auto root = static_cast<int32_t>(opts.rootRank);
+
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
+                    c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+                }
+
+                groupStart();
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = hcclScatter(inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream.stream(false));
-                *is_dispatched = true;
-                return hccl_result;
-            };
-            at_npu::native::OpCommand::RunOpApiV3("HcclScatter", hccl_call, false, &stream);
+                if (getRank() == root) {
+                    for (const auto r : c10::irange(static_cast<int>(size_))) {
+                        if (r != root) {
+                            const at::Tensor& sendTensor = input.select(0, r);
+                            if (sendTensor.numel() > 0) {
+                                auto inputDataPtr = sendTensor.data_ptr();
+                                auto numel = getNumelForHCCL(sendTensor);
+                                auto hcclType = getHcclDataType(sendTensor.scalar_type());
+                                auto hccl_call = [inputDataPtr, numel, hcclType, r, comm, stream, is_dispatched]() -> int {
+#ifndef BUILD_LIBTORCH
+                                    torch_npu::profiler::MstxRange range(
+                                        getMstxHcclMsg("HcclSend", numel, hcclType, comm, stream.id(), -1,
+                                                       static_cast<uint32_t>(r)),
+                                        stream.stream(false),
+                                        torch_npu::profiler::DOMAIN_COMMUNICATION);
+#endif
+                                    auto hccl_result = HcclSend(inputDataPtr, numel, hcclType,
+                                        static_cast<uint32_t>(r), comm, stream.stream(false));
+                                    *is_dispatched = true;
+                                    return hccl_result;
+                                };
+                                at_npu::native::OpCommand::RunOpApiV3("HcclSend", hccl_call, false, &stream);
+                            }
+                        } else {
+                            // on its own rank, simply copy it to the output
+                            output.copy_(input.select(0, root));
+                        }
+                    }
+                } else {
+                    if (output.numel() > 0) {
+                        auto outputDataPtr = output.data_ptr();
+                        auto numel = getNumelForHCCL(output);
+                        auto hcclType = getHcclDataType(output.scalar_type());
+                        auto hccl_call = [outputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+#ifndef BUILD_LIBTORCH
+                            torch_npu::profiler::MstxRange range(
+                                getMstxHcclMsg("HcclRecv", numel, hcclType, comm, stream.id(),
+                                               static_cast<uint32_t>(root), -1),
+                                stream.stream(false),
+                                torch_npu::profiler::DOMAIN_COMMUNICATION);
+#endif
+                            auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType,
+                                static_cast<uint32_t>(root), comm, stream.stream(false));
+                            *is_dispatched = true;
+                            return hccl_result;
+                        };
+                        at_npu::native::OpCommand::RunOpApiV3("HcclRecv", hccl_call, false, &stream);
+                    }
+                }
 
-            return HCCL_SUCCESS;
+                groupEnd();
+
+                return HCCL_SUCCESS;
+            } else {
+                // Default Mode
+                RECORD_FUNCTION("HcclScatter", std::vector<c10::IValue>({input}));
+                const auto root = opts.rootRank;
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
+                    c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+                }
+                auto inputDataPtr = input.data_ptr();
+                auto outputDataPtr = output.data_ptr();
+                auto numel = getNumelForHCCL(output);
+                auto hcclType = getHcclDataType(input.scalar_type());
+                auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+#ifndef BUILD_LIBTORCH
+                    torch_npu::profiler::MstxRange range(
+                        getMstxHcclMsg("HcclScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
+                        torch_npu::profiler::DOMAIN_COMMUNICATION);
+#endif
+                    if (c10_npu::is_core_control_enabled) {
+                        c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+                    }
+                    auto hccl_result = hcclScatter(inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream.stream(false));
+                    *is_dispatched = true;
+                    return hccl_result;
+                };
+                at_npu::native::OpCommand::RunOpApiV3("HcclScatter", hccl_call, false, &stream);
+
+                return HCCL_SUCCESS;
+            }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
             work->lazyDestroy(inputFlattened);
@@ -6440,7 +6670,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
     }
 
     int ranks = getSize();
-
     int inputsize = static_cast<int>(input_split_sizes.size());
     int outsize = static_cast<int>(output_split_sizes.size());
     std::vector<uint64_t> input_counts;
@@ -6468,52 +6697,120 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
 
     check_npu_tensors_different_devices(in_tensors);
     check_npu_tensors_different_devices(out_tensors);
+
+    bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
+
     return collective(
         input_tensors_,
         output_tensors_,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
-            RECORD_FUNCTION("HcclAlltoAllV", std::vector<c10::IValue>({input}));
-            auto inputDataPtr = input.data_ptr();
-            auto outputDataPtr = output.data_ptr();
-            auto inputhcclDataType = getHcclDataType(input.scalar_type());
-            auto outputhcclDataType = getHcclDataType(output.scalar_type());
-            auto hccl_call = [inputDataPtr,
-                              input_counts,
-                              input_spl,
-                              inputhcclDataType,
-                              outputDataPtr,
-                              output_counts,
-                              output_spl,
-                              outputhcclDataType,
-                              comm,
-                              stream,
-                              is_dispatched]() -> int {
-#ifndef BUILD_LIBTORCH
-                torch_npu::profiler::MstxRange range(
-                    getMstxHcclMsg("HcclAlltoAllV", static_cast<uint64_t>(input_counts.size()),
-                                   inputhcclDataType, comm, stream.id(), -1, -1),
-                    stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
-#endif
+        [this, input_tensors, output_tensors, input_counts, input_spl, output_counts, output_spl, use_compatible_impl]
+        (at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+            if (use_compatible_impl) {
+                // Compatibility Mode
+                RECORD_FUNCTION("HcclAlltoAll_SendRecv", std::vector<c10::IValue>({}));
+
+                groupStart();
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = hcclAlltoAllV(
-                    inputDataPtr,
-                    input_counts.data(),
-                    input_spl.data(),
-                    inputhcclDataType,
-                    outputDataPtr,
-                    output_counts.data(),
-                    output_spl.data(),
-                    outputhcclDataType,
-                    comm,
-                    stream.stream(false));
-                *is_dispatched = true;
-                return hccl_result;
-            };
-            at_npu::native::OpCommand::RunOpApiV3("HcclAlltoAllV", hccl_call, false, &stream);
+                for (const int r : c10::irange(static_cast<int>(input_tensors.size()))) {
+                    int64_t input_offset = (r > 0) ? input_spl[r] : 0;
+                    int64_t input_count = input_counts[r];
+                    int64_t output_offset = (r > 0) ? output_spl[r] : 0;
+                    int64_t output_count = output_counts[r];
 
-            return HCCL_SUCCESS;
+                    at::Tensor input_slice = input.narrow(0, input_offset, input_count);
+                    at::Tensor output_slice = output.narrow(0, output_offset, output_count);
+
+                    if (input_slice.numel() > 0) {
+                        auto inputDataPtr = input_slice.data_ptr();
+                        auto numel = getNumelForHCCL(input_slice);
+                        auto hcclType = getHcclDataType(input_slice.scalar_type());
+                        auto hccl_call = [inputDataPtr, numel, hcclType, r, comm, stream, is_dispatched]() -> int {
+#ifndef BUILD_LIBTORCH
+                            torch_npu::profiler::MstxRange range(
+                                getMstxHcclMsg("HcclSend", numel, hcclType, comm, stream.id(), -1,
+                                               static_cast<uint32_t>(r)),
+                                stream.stream(false),
+                                torch_npu::profiler::DOMAIN_COMMUNICATION);
+#endif
+                            auto hccl_result = HcclSend(inputDataPtr, numel, hcclType,
+                                static_cast<uint32_t>(r), comm, stream.stream(false));
+                            *is_dispatched = true;
+                            return hccl_result;
+                        };
+                        at_npu::native::OpCommand::RunOpApiV3("HcclSend", hccl_call, false, &stream);
+                    }
+
+                    if (output_slice.numel() > 0) {
+                        auto outputDataPtr = output_slice.data_ptr();
+                        auto numel = getNumelForHCCL(output_slice);
+                        auto hcclType = getHcclDataType(output_slice.scalar_type());
+                        auto hccl_call = [outputDataPtr, numel, hcclType, r, comm, stream, is_dispatched]() -> int {
+#ifndef BUILD_LIBTORCH
+                            torch_npu::profiler::MstxRange range(
+                                getMstxHcclMsg("HcclRecv", numel, hcclType, comm, stream.id(),
+                                               static_cast<uint32_t>(r), -1),
+                                stream.stream(false),
+                                torch_npu::profiler::DOMAIN_COMMUNICATION);
+#endif
+                            auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType,
+                                static_cast<uint32_t>(r), comm, stream.stream(false));
+                            *is_dispatched = true;
+                            return hccl_result;
+                        };
+                        at_npu::native::OpCommand::RunOpApiV3("HcclRecv", hccl_call, false, &stream);
+                    }
+                }
+
+                groupEnd();
+
+                return HCCL_SUCCESS;
+            } else {
+                // Default Mode
+                RECORD_FUNCTION("HcclAlltoAllV", std::vector<c10::IValue>({input}));
+                auto inputDataPtr = input.data_ptr();
+                auto outputDataPtr = output.data_ptr();
+                auto inputhcclDataType = getHcclDataType(input.scalar_type());
+                auto outputhcclDataType = getHcclDataType(output.scalar_type());
+                auto hccl_call = [inputDataPtr,
+                                  input_counts,
+                                  input_spl,
+                                  inputhcclDataType,
+                                  outputDataPtr,
+                                  output_counts,
+                                  output_spl,
+                                  outputhcclDataType,
+                                  comm,
+                                  stream,
+                                  is_dispatched]() -> int {
+#ifndef BUILD_LIBTORCH
+                    torch_npu::profiler::MstxRange range(
+                        getMstxHcclMsg("HcclAlltoAllV", static_cast<uint64_t>(input_counts.size()),
+                                       inputhcclDataType, comm, stream.id(), -1, -1),
+                        stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
+#endif
+                    if (c10_npu::is_core_control_enabled) {
+                        c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+                    }
+                    auto hccl_result = hcclAlltoAllV(
+                        inputDataPtr,
+                        input_counts.data(),
+                        input_spl.data(),
+                        inputhcclDataType,
+                        outputDataPtr,
+                        output_counts.data(),
+                        output_spl.data(),
+                        outputhcclDataType,
+                        comm,
+                        stream.stream(false));
+                    *is_dispatched = true;
+                    return hccl_result;
+                };
+                at_npu::native::OpCommand::RunOpApiV3("HcclAlltoAllV", hccl_call, false, &stream);
+
+                return HCCL_SUCCESS;
+            }
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
