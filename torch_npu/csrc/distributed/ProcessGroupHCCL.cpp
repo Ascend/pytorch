@@ -6045,7 +6045,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
             const auto root = static_cast<int32_t>(opts.rootRank);
 
             groupStart();
-
+            if (c10_npu::is_core_control_enabled) {
+                c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+            }
             if (getRank() == root) {
                 for (const auto r : c10::irange(static_cast<int>(size_))) {
                     if (r != root) {
@@ -6200,7 +6202,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 }
 
                 groupStart();
-
+                if (c10_npu::is_core_control_enabled) {
+                    c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+                }
                 if (getRank() == root) {
                     for (const auto r : c10::irange(static_cast<int>(size_))) {
                         if (r != root) {
@@ -6271,7 +6275,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                         getMstxHcclMsg("HcclScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                         torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+                    if (c10_npu::is_core_control_enabled) {
+                        c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+                    }
                     auto hccl_result = hcclScatter(inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream.stream(false));
                     *is_dispatched = true;
                     return hccl_result;
@@ -6704,7 +6710,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                 RECORD_FUNCTION("HcclAlltoAll_SendRecv", std::vector<c10::IValue>({}));
 
                 groupStart();
-
+                if (c10_npu::is_core_control_enabled) {
+                    c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+                }
                 for (const int r : c10::irange(static_cast<int>(input_tensors.size()))) {
                     int64_t input_offset = (r > 0) ? input_spl[r] : 0;
                     int64_t input_count = input_counts[r];
@@ -6782,6 +6790,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                                        inputhcclDataType, comm, stream.id(), -1, -1),
                         stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
+                    if (c10_npu::is_core_control_enabled) {
+                        c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+                    }
                     auto hccl_result = hcclAlltoAllV(
                         inputDataPtr,
                         input_counts.data(),
