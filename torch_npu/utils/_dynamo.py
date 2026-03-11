@@ -74,7 +74,6 @@ def UserDefinedClassVariable__new__(cls, value, **kwargs):
         torch_npu.npu.LongTensor,
         torch_npu.npu.ShortTensor,
         torch_npu.npu.BFloat16Tensor,
-        torch.device,
     ]:
         return TorchInGraphFunctionVariable(value, **kwargs)
     return cls.__new__raw(cls)
