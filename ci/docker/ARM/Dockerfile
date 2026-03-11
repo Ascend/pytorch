@@ -1,4 +1,4 @@
-FROM pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-66ed646875945a78e9671d054c763b71d55c742a
+FROM pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-v2.10.0-rc7
 
 ENV PATH /usr/local/bin:$PATH
 
@@ -6,14 +6,14 @@ RUN echo "alias ll='ls -l --color=auto'" >> /root/.bashrc
 
 # Set pip&python
 RUN cd /usr/local/bin \
-    && ln -sf /opt/_internal/cpython-3.10.18/bin/pip3.10 pip3.10 \
-    && ln -sf /opt/_internal/cpython-3.11.13/bin/pip3.11 pip3.11 \
-    && ln -sf /opt/_internal/cpython-3.12.11/bin/pip3.12 pip3.12 \
-    && ln -sf /opt/_internal/cpython-3.10.18/bin/pip3.10 pip3 \
-    && ln -sf /opt/_internal/cpython-3.10.18/bin/python3.10 python3.10 \
-    && ln -sf /opt/_internal/cpython-3.11.13/bin/python3.11 python3.11 \
-    && ln -sf /opt/_internal/cpython-3.12.11/bin/python3.12 python3.12 \
-    && ln -sf /opt/_internal/cpython-3.10.18/bin/python3.10 python3
+    && ln -sf /opt/_internal/cpython-3.10.19/bin/pip3.10 pip3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.14/bin/pip3.11 pip3.11 \
+    && ln -sf /opt/_internal/cpython-3.12.12/bin/pip3.12 pip3.12 \
+    && ln -sf /opt/_internal/cpython-3.10.19/bin/pip3.10 pip3 \
+    && ln -sf /opt/_internal/cpython-3.10.19/bin/python3.10 python3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.14/bin/python3.11 python3.11 \
+    && ln -sf /opt/_internal/cpython-3.12.12/bin/python3.12 python3.12 \
+    && ln -sf /opt/_internal/cpython-3.10.19/bin/python3.10 python3
 
 # Set pip source
 RUN mkdir /root/.pip \
