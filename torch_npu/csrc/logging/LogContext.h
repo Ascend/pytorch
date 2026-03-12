@@ -11,7 +11,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 
 namespace npu_logging {
-class LogContext {
+class TORCH_NPU_API LogContext {
 public:
     LogContext() = default;
 
