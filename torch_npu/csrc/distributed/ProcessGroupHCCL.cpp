@@ -1109,7 +1109,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         asyncErrorHandling_ = TearDown;
         }
     }
-
+    globalRank();
     // Initialize the heartbeat monitor/watchdog instance. This has to be done
     // before the corresponding thread is launched to avoid the error.
     watchdog_ = std::make_unique<Watchdog>(this);
