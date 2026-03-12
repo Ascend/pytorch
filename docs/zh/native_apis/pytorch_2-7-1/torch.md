@@ -283,7 +283,7 @@
 |torch.broadcast_tensors|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.broadcast_to|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.broadcast_shapes|是|-|
-|torch.cdist|是|支持bf16，fp16，fp32|
+|torch.cdist|是|支持bf16，fp16，fp32<br>当 p=2.0 时，"compute_mode"仅支持"donot_use_mm_for_euclid_dist"模式，传入其他值会自动修改为此模式|
 |torch.clone|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.combinations|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.cov|是|支持fp32|
