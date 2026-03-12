@@ -31605,5 +31605,6 @@
   "test_fake_autocast_norm_nuc_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_fake_autocast_tanh_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_unwaited (__main__.TestWithHccl)": ["", [""]],
-  "test_index_put_accumulate_large_tensor_npu (__main__.TestIndexingPRIVATEUSE1)": ["", ["910A"]]
+  "test_index_put_accumulate_large_tensor_npu (__main__.TestIndexingPRIVATEUSE1)": ["", ["910A"]],
+  "test_serialization_array_with_empty (__main__.TestNpu)": ["", [""]]
 }

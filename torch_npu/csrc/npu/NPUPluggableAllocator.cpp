@@ -175,6 +175,14 @@ bool NPUPluggableAllocator::initialized()
     return initialized_;
 }
 
+double NPUPluggableAllocator::getMemoryFraction(int device)
+{
+    TORCH_CHECK(
+        false,
+        "NPUPluggableAllocator does not yet support getMemoryFraction. "
+        "If you need it, please file an issue describing your use case.");
+}
+
 void NPUPluggableAllocator::setMemoryFraction(double fraction, int device)
 {
     if (memory_fraction_fn_) {

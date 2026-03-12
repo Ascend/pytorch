@@ -31,6 +31,7 @@ __all__ = [
     "initial_seed",
     "caching_allocator_alloc",
     "caching_allocator_delete",
+    "get_per_process_memory_fraction",
     "set_per_process_memory_fraction",
     "empty_cache",
     "empty_virt_addr_cache",
