@@ -1670,7 +1670,8 @@ class NPUIndexTritonKernel(TritonKernel):
         root_op: str
 
         def final_reduction(value):
-            module = "tl"  # use tl
+            use_helper = reduction_type in {"any", "prod"}
+            module = "triton_helpers" if use_helper else "tl"
             if reduction_type in {"max"}:
                 return self.reduction_resize(f"{module}.{reduction_type}({value}, {dim}, propagate_nan=True)", dim)
             return self.reduction_resize(f"{module}.{reduction_type}({value}, {dim})", dim)
