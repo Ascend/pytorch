@@ -293,3 +293,6 @@ def _rpc_backend_registry():
             _npu_tensorpipe_construct_rpc_backend_options_handler,
             _npu_tensorpipe_init_backend_handler,
         )
+
+    import torch.distributed.rpc as _rpc_module
+    _rpc_module.BackendType = rpc.backend_registry.BackendType
