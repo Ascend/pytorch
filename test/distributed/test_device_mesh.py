@@ -54,6 +54,16 @@ class DeviceMeshTest(DTensorTestBase):
         return 2
 
     @skipIfUnsupportMultiNPU(2)
+    def test_init_process_group(self):
+        device_type = _get_device_type(self.world_size)
+        mesh_tensor = torch.arange(2).reshape(2, 1)
+        self.assertTrue(not is_initialized())
+        _set_env_var(world_size=self.world_size, rank=self.rank)
+        DeviceMesh(device_type, mesh_tensor)
+        self.assertTrue(is_initialized())
+        self.destroy_pg()
+
+    @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_2d_mesh_non_eager_init_subgroup(self):
         mesh_shape = (2, self.world_size // 2)
