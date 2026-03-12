@@ -3,6 +3,7 @@ __all__ = ["NPUShapeHandling"]
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import copy
 import logging
+import warnings
 from torch.utils._pytree import tree_flatten, tree_unflatten, TreeSpec
 import torch
 import torch_npu._C
@@ -115,7 +116,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
                     if isinstance(config[field], int):
                         config[field] = [config[field]]
                     if config["type"] == "BATCHSIZE" and len(config[field]) > 1:
-                        warning.warn("For BATCHSIZE, only the first element of 'dimensions' is used")
+                        warnings.warn("For BATCHSIZE, only the first element of 'dimensions' is used")
                         config[field] = config[field][0]
 
                 if not isinstance(config[field], (list, tuple)):

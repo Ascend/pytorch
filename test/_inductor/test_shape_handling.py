@@ -1,3 +1,6 @@
+import unittest
+from unittest import mock
+
 import torch
 from torch.nn.parallel import scatter_gather
 from torch.testing._internal.common_utils import (
@@ -17,6 +20,7 @@ import torch_npu._inductor
 import torch_npu.testing
 from torch_npu.testing.common_utils import get_cycles_per_ms
 from torch_npu._inductor.shape_handling import unified_copy
+import torch_npu._inductor.shape_handling as shape_handling_module
 
 torch._dynamo.config.cache_size_limit = 128
 
@@ -332,6 +336,191 @@ class TestShapeHandling(TestCase):
 
 
     
+class TestShapeHandlingBranchCoverage(TestCase):
+    def test_validate_configs_error_branches(self):
+        shape_handling = torch_npu._inductor.NPUShapeHandling()
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs([{}])
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs([{"type": 1}])
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs([{"type": "UNKNOWN"}])
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs([{"type": "BATCHSIZE", "dimensions": "0"}])
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs([{"type": "BATCHSIZE", "dimensions": [0, "1"]}])
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs([{"type": "BATCHSIZE", "min_size": 1.5}])
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs([{"type": "BATCHSIZE", "value": "bad"}])
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs([{"type": "BATCHSIZE", "policy": 1}])
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs([{"type": "BATCHSIZE", "policy": "BAD"}])
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs([{"type": "BATCHSIZE"}, {"type": "BATCHSIZE"}])
+
+        with self.assertRaises(ValueError):
+            shape_handling._validate_configs(
+                [{"type": "BATCHSIZE"}, {"type": "SEQLEN"}, {"type": "BATCHSIZE"}]
+            )
+
+    def test_construct_indices_branches(self):
+        shape_handling = torch_npu._inductor.NPUShapeHandling()
+        tensors = [torch.randn(2, 3), torch.randn(2)]
+
+        bs_indices = shape_handling._construct_indices(tensors, [], "BATCHSIZE")
+        self.assertEqual(bs_indices, [0, 1])
+
+        seq_indices_default = shape_handling._construct_indices(tensors, [], "SEQLEN")
+        self.assertEqual(seq_indices_default, [0])
+
+        seq_indices_dim0 = shape_handling._construct_indices(tensors, [0], "SEQLEN")
+        self.assertEqual(seq_indices_dim0, [0, 1])
+
+    def test_delay_initialize_builds_missing_indices(self):
+        configs = [
+            {
+                "type": "BATCHSIZE",
+                "dimensions": [0],
+                "indices": [],
+                "gears": [8]
+            },
+            {
+                "type": "SEQLEN",
+                "dimensions": [1],
+                "indices": [0],
+                "gears": [8]
+            }
+        ]
+        shape_handling = torch_npu._inductor.NPUShapeHandling(configs)
+        self.assertTrue(shape_handling.delay_init)
+
+        shape_handling.delay_initialize([torch.randn(4, 5)])
+        self.assertEqual(shape_handling.configs[0]["indices"], [0])
+        self.assertEqual(shape_handling.configs[1]["indices"], [0])
+        self.assertFalse(shape_handling.delay_init)
+
+    def test_flatten_and_unflatten_with_and_without_tensor(self):
+        shape_handling = torch_npu._inductor.NPUShapeHandling()
+
+        tensors, indices, leaves, spec = shape_handling.flatten_to_tensors({"a": 1, "b": "x"})
+        self.assertEqual(list(tensors), [])
+        self.assertEqual(list(indices), [])
+        self.assertEqual(len(leaves), 2)
+        self.assertIsNotNone(spec)
+
+        structure = ((torch.tensor([1.0]), "k"), {"v": torch.tensor([2.0])})
+        tensors, indices, leaves, spec = shape_handling.flatten_to_tensors(structure)
+        rebuilt = shape_handling.unflatten_from_tensors(
+            [torch.tensor([10.0]), torch.tensor([20.0])], indices, leaves, spec
+        )
+        self.assertEqual(rebuilt[0][1], "k")
+        self.assertTrue(torch.equal(rebuilt[0][0], torch.tensor([10.0])))
+        self.assertTrue(torch.equal(rebuilt[1]["v"], torch.tensor([20.0])))
+
+    def test_transform_hook_default_and_custom_paths(self):
+        shape_handling = torch_npu._inductor.NPUShapeHandling()
+        input_a = torch.tensor([1.0])
+        input_b = torch.tensor([2.0])
+        transform_res = [
+            [torch.tensor([3.0]), torch.tensor([4.0])],
+            [torch.tensor([5.0]), torch.tensor([6.0])]
+        ]
+
+        with mock.patch.object(
+            torch_npu._inductor.NPUShapeHandling, "transform", return_value=transform_res
+        ):
+            args_list, kwargs_list = shape_handling.transform_hook(input_a, extra=input_b)
+            self.assertEqual(len(args_list), 2)
+            self.assertEqual(len(kwargs_list), 2)
+            self.assertTrue(torch.equal(args_list[0][0], torch.tensor([3.0])))
+            self.assertTrue(torch.equal(kwargs_list[1]["extra"], torch.tensor([6.0])))
+
+        recorded = {}
+
+        def pre_fn(*args, **kwargs):
+            recorded["pre"] = (args, kwargs)
+            return [args[0]]
+
+        def post_fn(outputs):
+            recorded["post"] = outputs
+            return [("ok",)], [{"done": True}]
+
+        shape_handling_custom = torch_npu._inductor.NPUShapeHandling(
+            transform_pre_fn=pre_fn,
+            transform_post_fn=post_fn,
+        )
+        with mock.patch.object(
+            torch_npu._inductor.NPUShapeHandling, "transform", return_value=[[torch.tensor([9.0])]]
+        ):
+            out_args, out_kwargs = shape_handling_custom.transform_hook(torch.tensor([7.0]))
+            self.assertIn("pre", recorded)
+            self.assertIn("post", recorded)
+            self.assertEqual(out_args, [("ok",)])
+            self.assertEqual(out_kwargs, [{"done": True}])
+
+        shape_handling_none = torch_npu._inductor.NPUShapeHandling(transform_post_fn=lambda _: None)
+        with mock.patch.object(
+            torch_npu._inductor.NPUShapeHandling, "transform", return_value=[[torch.tensor([1.0])]]
+        ):
+            self.assertIsNone(shape_handling_none.transform_hook(torch.tensor([1.0])))
+
+    def test_recover_hook_default_and_custom_paths(self):
+        shape_handling = torch_npu._inductor.NPUShapeHandling()
+        groups = [
+            ((torch.tensor([1.0]), "x"), {"y": torch.tensor([2.0])})
+        ]
+
+        with mock.patch.object(
+            torch_npu._inductor.NPUShapeHandling,
+            "recover",
+            side_effect=lambda tensor_groups: list(tensor_groups[0]),
+        ):
+            outputs = shape_handling.recover_hook(groups)
+            self.assertEqual(outputs[0][1], "x")
+            self.assertTrue(torch.equal(outputs[0][0], torch.tensor([1.0])))
+            self.assertTrue(torch.equal(outputs[1]["y"], torch.tensor([2.0])))
+
+        custom = torch_npu._inductor.NPUShapeHandling(
+            recover_pre_fn=lambda groups: [[torch.tensor([5.0])]],
+            recover_post_fn=lambda recover_res: {"result": recover_res},
+        )
+        with mock.patch.object(
+            torch_npu._inductor.NPUShapeHandling, "recover", return_value=[torch.tensor([8.0])]
+        ):
+            outputs = custom.recover_hook(groups)
+            self.assertEqual(list(outputs.keys()), ["result"])
+            self.assertTrue(torch.equal(outputs["result"][0], torch.tensor([8.0])))
+
+    def test_get_shape_safe_and_patch_shape_handling(self):
+        shape_handling = torch_npu._inductor.NPUShapeHandling()
+        shape_info = shape_handling.get_shape_safe((torch.randn(2, 3), [torch.randn(1)]))
+        self.assertEqual(shape_info[0], [2, 3])
+        self.assertEqual(shape_info[1][0], [1])
+        self.assertIs(shape_handling.get_shape_safe(1), int)
+
+        if hasattr(shape_handling_module.patch_shape_handling, "_is_patched"):
+            delattr(shape_handling_module.patch_shape_handling, "_is_patched")
+        called = []
+        with mock.patch.object(shape_handling_module, "patch_dynamo_context", side_effect=lambda: called.append(1)):
+            shape_handling_module.patch_shape_handling()
+            shape_handling_module.patch_shape_handling()
+        self.assertEqual(len(called), 1)
+        if hasattr(shape_handling_module.patch_shape_handling, "_is_patched"):
+            delattr(shape_handling_module.patch_shape_handling, "_is_patched")
+
+
 class TestDynamicShapeCompile(TestCase):
     def test_npu_dynamic_shape_reuse_with_no_bucket(self):
     
@@ -608,7 +797,18 @@ class TestUnifiedCopy(TestCase):
         self.assertNotEqual(copied["data"][0][0].item(), 888.0)
 
 
+    def test_deepcopy_failure_returns_original(self):
+        class NonCopyable:
+            def __deepcopy__(self, memo):
+                raise TypeError("deepcopy not supported")
+
+        obj = NonCopyable()
+        copied = unified_copy(obj)
+        self.assertIs(copied, obj)
+
+
 instantiate_parametrized_tests(TestShapeHandling)
+instantiate_parametrized_tests(TestShapeHandlingBranchCoverage)
 instantiate_parametrized_tests(TestUnifiedCopy)
 instantiate_parametrized_tests(TestDynamicShapeCompile)
  
