@@ -45,7 +45,7 @@ else:
     from .npu_choices import should_use_persistent_reduction
     from .npu_device import NewNPUDeviceOpOverrides
     from .runtime import _load_cached_autotuning
-    from .utils import get_current_raw_stream, patch_is_gpu, patch_has_triton, disable_foreach
+    from .utils import get_current_raw_stream, patch_is_gpu, patch_has_triton, disable_foreach, patch_get_first_incompatible_cudagraph_node
     from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
     from .scheduler import patch_scheduler
     from .shape_handling import NPUShapeHandling, patch_shape_handling
@@ -190,6 +190,7 @@ else:
     patch_is_gpu()
     patch_has_triton()
     disable_foreach()
+    patch_get_first_incompatible_cudagraph_node()
     patch_device_override_func()
 
 
