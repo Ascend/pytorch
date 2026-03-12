@@ -76,7 +76,7 @@ from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import _apply_module_patch, _add_tensor_methods, _add_collect_env_methods, \
     _add_storage_methods, _add_serialization_methods, add_dynamo_methods, add_perf_dump_patch, \
     add_optim_method, _inductor_register_device_op_overrides, \
-    _apply_npu_show_warning, _apply_npugraph_tree_methods, _apply_dlpack_patch
+    _apply_npu_show_warning, _apply_npugraph_tree_methods, _apply_dlpack_patch, npu_patch_meta
 from torch_npu.utils._dynamo_device import _dynamo_register_interface_for_device
 from torch_npu.npu._format import _apply_npu_format_patch
 import torch_npu.utils._afd_ops
@@ -189,6 +189,7 @@ def _apply_class_patches():
     _apply_npu_format_patch()
     _apply_fsdp_patch()
     _apply_npugraph_tree_methods()
+    npu_patch_meta()
 
 
 def _apply_distributed_methods_patch():
