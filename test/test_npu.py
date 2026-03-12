@@ -192,6 +192,24 @@ class TestNpu(TestCase):
         torch_npu.npu.empty_cache()
         torch_npu.npu.reset_peak_memory_stats()
 
+    def test_get_per_process_memory_fraction(self):
+        # get the initial memory fraction
+        init_fraction = torch_npu.npu.get_per_process_memory_fraction()
+
+        # set and get the limiting cases
+        torch_npu.npu.set_per_process_memory_fraction(1.0)
+        self.assertEqual(torch_npu.npu.get_per_process_memory_fraction(), 1.0)
+        torch_npu.npu.set_per_process_memory_fraction(0.0)
+        self.assertEqual(torch_npu.npu.get_per_process_memory_fraction(), 0.0)
+
+        # test a few random cases
+        for val in torch.rand(3):
+            torch_npu.npu.set_per_process_memory_fraction(float(val))
+            self.assertEqual(torch_npu.npu.get_per_process_memory_fraction(), float(val))
+
+        # restore the initial memory fraction
+        torch_npu.npu.set_per_process_memory_fraction(init_fraction)
+
     def test_set_per_process_memory_fraction(self):
         # test invalid fraction value.
         with self.assertRaisesRegex(TypeError, "Invalid type"):
