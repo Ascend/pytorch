@@ -1114,6 +1114,24 @@ PyObject *THNPModule_is_jit_compile_false_wrap(PyObject *self, PyObject *noargs)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_getMemoryFraction(PyObject* _unused, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    PyObject* device_o = nullptr;
+    if (!PyArg_ParseTuple(args, "O", &device_o)) {
+        THPUtils_invalidArguments(
+            args,
+            nullptr,
+            "get_memory_fraction",
+            1,
+            "(int device);");
+        return nullptr;
+    }
+    int64_t device_index = PyLong_AsLongLong(device_o);
+    return PyFloat_FromDouble(c10_npu::NPUCachingAllocator::getMemoryFraction(device_index));
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_setMemoryFraction(PyObject *_unused, PyObject *args)
 {
     HANDLE_TH_ERRORS
@@ -2279,6 +2297,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_eraseStream", (PyCFunction)THNPModule_npu_eraseStream_wrap, METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_isCurrentStreamCapturing", (PyCFunction)THNPModule_isCurrentStreamCapturing_wrap, METH_NOARGS, nullptr},
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
+    {"_npu_getMemoryFraction", (PyCFunction) THNPModule_getMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
     {"_npu_hostEmptyCache", (PyCFunction) THNPModule_npu_hostEmptyCache, METH_NOARGS, nullptr},

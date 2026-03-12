@@ -1169,6 +1169,9 @@
   "torch_npu.npu.set_option": {
     "signature": "(option)"
   },
+  "torch_npu.npu.get_per_process_memory_fraction": {
+    "signature": "(device=None) -> float"
+  },
   "torch_npu.npu.set_per_process_memory_fraction": {
     "signature": "(fraction, device=None) -> None"
   },
@@ -1381,6 +1384,9 @@
   },
   "torch_npu.npu.memory.reset_peak_memory_stats": {
     "signature": "(device=None)"
+  },
+  "torch_npu.npu.memory.get_per_process_memory_fraction": {
+    "signature": "(device=None) -> float"
   },
   "torch_npu.npu.memory.set_per_process_memory_fraction": {
     "signature": "(fraction, device=None) -> None"
