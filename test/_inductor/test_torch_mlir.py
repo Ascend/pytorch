@@ -5,7 +5,6 @@ from testutils import TestUtils
 import torch_npu
 
 
-@skip("request torch-mlir")
 class TestAdd(TestUtils):
     def op_calc(self, first_element, second_element):
         result = first_element + second_element
@@ -17,7 +16,6 @@ class TestAdd(TestUtils):
         import os
 
         os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
-        os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
         
         first_element = self._generate_tensor(shape, dtype)
         second_element = self._generate_tensor(shape, dtype)
