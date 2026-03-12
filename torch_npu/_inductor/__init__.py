@@ -36,7 +36,7 @@ else:
     from .npu_choices import should_use_persistent_reduction
     from .npu_device import NewNPUDeviceOpOverrides
     from .runtime import _load_cached_autotuning
-    from .utils import get_current_raw_stream, patch_device_need_guard
+    from .utils import get_current_raw_stream, patch_device_need_guard, patch_get_first_incompatible_cudagraph_node
     from .shape_handling import NPUShapeHandling, patch_shape_handling
 
     set_compile_threads()
@@ -147,4 +147,5 @@ else:
     patch_triton_for_inductor()
     patch_count_bytes()
     patch_device_need_guard()
+    patch_get_first_incompatible_cudagraph_node()
     patch_device_override_func()
