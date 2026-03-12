@@ -1,5 +1,6 @@
-import gc
-import unittest
+from unittest import skip
+
+import set_simt_env
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import BenchmarkTestUtils
@@ -83,6 +84,7 @@ class TestAtenIndexSelectSimt(BenchmarkTestUtils):
         for dim in dims:
             self.do_single_test(dim, param_info)
 
+    @skip("Perf benchmark takes too long")
     @parametrize('param_info', IndexSelectParamInfoBenchmark)
     def test_aten_index_select_benchmark(self, param_info):
         table_shape, index_shape, dims, table_dtype, index_dtype, enable_profiling = param_info

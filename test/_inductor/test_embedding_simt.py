@@ -1,4 +1,6 @@
-import unittest
+from unittest import skip
+
+import set_simt_env
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import BenchmarkTestUtils
@@ -106,12 +108,15 @@ class TestAtenEmbeddingSimt(BenchmarkTestUtils):
                 "inductor_time": f"{inductor_time:.2f}"
             })
 
+
     @parametrize('param_info', EmbeddingParamInfo)
     @parametrize('index_dtype', IndexDtype)
     @parametrize('table_dtype', TableDtype)
     def test_aten_embedding(self, param_info, index_dtype, table_dtype):
         self.do_single_embedding_test(param_info, index_dtype, table_dtype)
 
+
+    @skip("Perf benchmark takes too long")
     @parametrize('param_info', EmbeddingParamInfoBenchmark)
     @parametrize('index_dtype', IndexDtype)
     @parametrize('table_dtype', TableDtype)
@@ -216,7 +221,7 @@ class TestAtenEmbeddingSimt(BenchmarkTestUtils):
             sum1 = torch.ops.aten.sum.dim_IntList(embedding1, [1])
             sum2 = torch.ops.aten.sum.dim_IntList(embedding2, [1])
             sum3 = torch.ops.aten.sum.dim_IntList(embedding3, [1])
-            return torch.ops.aten.cat.default([embedding1, embedding2, embedding3], 1)
+            return torch.ops.aten.cat.default([sum1, sum2, sum3], 1)
 
         table_shape = (5000, 8)
         index_shape = (128, 60)

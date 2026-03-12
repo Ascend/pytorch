@@ -1,2 +1,6 @@
 test_cases:
   - test_add
+  - test_embedding_simt
+  - test_index_simt
+  - test_gather_simt
+  - test_index_select_simt

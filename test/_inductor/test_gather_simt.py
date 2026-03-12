@@ -1,3 +1,4 @@
+import set_simt_env
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
