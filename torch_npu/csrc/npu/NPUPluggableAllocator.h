@@ -58,6 +58,7 @@ struct NPUPluggableAllocator
     void raw_delete(void* ptr) override;
     void init(int device_count) override;
     bool initialized() override;
+    double getMemoryFraction(int device) override;
     void setMemoryFraction(double fraction, int device) override;
     void emptyCacheImpl(bool check_error, bool free_physical) override;
     void emptyCache(bool check_error) override;

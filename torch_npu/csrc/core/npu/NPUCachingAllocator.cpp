@@ -1579,6 +1579,20 @@ public:
         }
     }
 
+    /** get memory fraction limiting maximum allocated memory **/
+    double getMemoryFraction()
+    {
+        if (!set_fraction) {
+            return 1.0;
+        }
+
+        size_t device_free = 0;
+        size_t device_total = 0;
+        NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+        return static_cast<double>(allowed_memory_maximum) /
+            static_cast<double>(device_total);
+    }
+
     /* * set memory fraction to limit maximum allocated memory * */
     void setMemoryFraction(double fraction)
     {
@@ -3157,6 +3171,15 @@ public:
         auto orig_block_ptr = block->ptr;
         auto orig_block_size = block->size;
         device_allocator[block->device]->free(block);
+    }
+
+    double getMemoryFraction(int device) override
+    {
+        TORCH_INTERNAL_ASSERT(
+            0 <= device && device < device_allocator.size(), "Allocator not initialized for device ",
+            device, ": did you call init?", PTA_ERROR(ErrCode::PARAM));
+        NPU_CHECK_ERROR(c10_npu::SetDevice(device));
+        return device_allocator[device]->getMemoryFraction();
     }
 
     void setMemoryFraction(double fraction, int device) override
