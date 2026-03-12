@@ -18,6 +18,7 @@ from ._memory_viz import memory as _memory, segments as _segments
 __all__ = [
     "caching_allocator_alloc",
     "caching_allocator_delete",
+    "get_per_process_memory_fraction",
     "set_per_process_memory_fraction",
     "empty_cache",
     "empty_virt_addr_cache",
@@ -121,6 +122,21 @@ def caching_allocator_delete(mem_ptr):
         management.
     """
     torch_npu._C._npu_npuCachingAllocator_raw_delete(mem_ptr)
+
+
+def get_per_process_memory_fraction(device=None) -> float:
+    r"""Get memory fraction for a process.
+    Args:
+        device (torch.device or int, optional): selected device. If it is
+            ``None`` the default NPU device is used.
+    Returns:
+        memory fraction, in range 0~1. Allowed memory equals total_memory * fraction.
+    """
+    _lazy_init()
+    if device is None:
+        device = torch_npu.npu.current_device()
+    device = _get_device_index(device)
+    return torch_npu._C._npu_getMemoryFraction(device)
 
 
 def set_per_process_memory_fraction(fraction, device=None) -> None:
