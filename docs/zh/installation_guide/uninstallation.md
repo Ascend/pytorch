@@ -2,21 +2,21 @@
 
 ## 卸载Ascend Extension for PyTorch
 
--   卸载PyTorch框架需执行如下命令：
+- 卸载PyTorch框架需执行如下命令：
 
-    ```
+    ```bash
     pip3 uninstall torch
     ```
 
--   卸载torch\_npu插件需执行如下命令：
+- 卸载torch\_npu插件需执行如下命令：
 
-    ```
+    ```bash
     pip3 uninstall torch_npu
     ```
 
--   卸载APEX模块需执行如下命令：
+- 卸载APEX模块需执行如下命令：
 
-    ```
+    ```bash
     pip3 uninstall apex
     ```
 
@@ -28,32 +28,38 @@
 通过 _xxx_.run格式离线安装CANN软件后，可参考以下方式进行卸载。
 
 > [!NOTICE]  
+>
 > - ops跟随Toolkit安装后，卸载Toolkit时，会自动卸载ops。
 > - 如果用户只卸载CANN软件包（如Toolkit），则卸载没有先后顺序，如果还要卸载驱动和固件，则需要卸载其他软件包以后再卸载驱动和固件。
 
 进入卸载脚本所在路径，执行卸载命令。
 
--  Toolkit
-    ```
+- Toolkit
+
+    ```bash
     cd /<path>/cann-<version>/{arch}-linux/script
     ./uninstall.sh
     ```
 
--  单独卸载ops
-    ```
+- 单独卸载ops
+
+    ```bash
     cd /<path>/cann-<version>/{arch}-linux/script
     ./ops_uninstall.sh
     ```
--  NNAL
-    ```
+
+- NNAL
+
+    ```bash
     cd /<path>/nnal/
     ./nnal_uninstall.sh
     ```
+
 其中 _<path\>_ 为软件包的安装路径，_<version\>_ 为软件包版本，\{arch\}-linux为CPU架构，请用户根据实际情况替换。
 
 卸载完成后，若显示如下信息，则说明软件卸载成功：
 
-```
+```bash
 [INFO] xxx uninstall success
 ```
 
@@ -63,30 +69,33 @@ _xxx_ 表示卸载的实际软件包名。
 
 驱动和固件的卸载没有先后顺序要求，操作步骤如下：
 
-1.  使用PuTTY登录服务器的OS命令行。
-2.  执行如下命令，切换至root用户。
+1. 使用PuTTY登录服务器的OS命令行。
+2. 执行如下命令，切换至root用户。
 
-    ```
+    ```bash
     su - root
     ```
 
-3.  在任意路径执行如下命令卸载软件包。
+3. 在任意路径执行如下命令卸载软件包。
 
-    -   卸载固件
+    - 卸载固件
 
-        ```
+        ```bash
         <install_path>/firmware/script/uninstall.sh
         ```
+
         若出现如下关键回显信息，则表示固件卸载成功。
 
         ```ColdFusion
         Firmware package uninstalled successfully! 
         ```
-    -   卸载驱动
 
-        ```
+    - 卸载驱动
+
+        ```bash
         <install_path>/driver/script/uninstall.sh
         ```
+
         若出现如下关键回显信息，则表示驱动卸载成功。
         
          ```ColdFusion
@@ -96,9 +105,8 @@ _xxx_ 表示卸载的实际软件包名。
     > [!NOTE]  
     > _<install\_path\>_ 表示软件包安装路径，可以执行**cat /etc/ascend\_install.info**命令查询安装路径，请根据实际情况替换。
 
-4.  根据系统提示信息决定是否重启服务器，若需要重启系统，请执行以下命令；否则，请跳过此步骤。
+4. 根据系统提示信息决定是否重启服务器，若需要重启系统，请执行以下命令；否则，请跳过此步骤。
 
-    ```
+    ```bash
     reboot
     ```
-
