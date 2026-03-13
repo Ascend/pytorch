@@ -136,7 +136,7 @@ at::Tensor NPUNativeFunctions::as_strided(
         c10::Storage(dst.storage()),
         dst.key_set(),
         dst.dtype());
-    setStrided(result, size, stride, storage_offset);
+    at::native::setStrided(result, size, stride, storage_offset);
     return result;
 }
 
