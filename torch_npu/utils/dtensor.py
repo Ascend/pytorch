@@ -24,15 +24,11 @@ def _register_ops_under_dtensor_rules():
         aten.isfinite.default,
         # custom ops
         npu.fast_gelu.default,
-        npu.npu_dtype_cast.default,
-        npu._npu_dtype_cast.default,
         npu.npu_fast_gelu.default,
         npu.npu_layer_norm_eval.default,
         # backward point-wise ops
         # please keep the entries below alphabetically sorted
-        npu.npu_fast_gelu_backward.default,
-        npu.npu_dtype_cast_backward.default,
-        npu._npu_dtype_cast_backward.default
+        npu.npu_fast_gelu_backward.default
     ]
 
     matrix_ops = [
