@@ -1,3 +1,6 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates
+# Owner(s): ["oncall: distributed"]
+
 from typing import Any, Callable, Dict, Optional, Sequence
 from unittest import skip
 
@@ -243,6 +246,27 @@ class DistElementwiseOpsTest(NPUDTensorTestBase):
         self.assertEqual(input_tensor, dtensor.to_local())
         self.assertEqual(expected, dt.to_local())
 
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_cast_strided_shard(self):
+        from torch.distributed.device_mesh import init_device_mesh
+        from torch.distributed.tensor.placement_types import _StridedShard
+
+        npu_input = torch.randn((8, 8), dtype=torch.float32).npu()
+        dst_dtype = torch.float16
+        local_result = torch_npu.npu_dtype_cast(npu_input, dst_dtype)
+
+        # distributed tensor
+        device_mesh = init_device_mesh(self.device_type, [1, 4], mesh_dim_names=["dp", "tp"])
+        shard0_spec = Shard(0)
+        strided_shard0_spec = _StridedShard(0, split_factor=4)
+        replica_spec = Replicate()
+        dt_input = distribute_tensor(npu_input, device_mesh, [strided_shard0_spec, shard0_spec])
+        dist_res: DTensor = torch_npu.npu_dtype_cast(dt_input, dst_dtype).redistribute(
+            device_mesh, [replica_spec, replica_spec]
+        )
+        self.assertEqual(dist_res.to_local().dtype, dst_dtype)
+        self.assertEqual(dist_res.to_local(), local_result)
 
 if __name__ == "__main__":
     run_tests()
