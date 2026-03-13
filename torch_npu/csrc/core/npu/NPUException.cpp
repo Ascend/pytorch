@@ -1,8 +1,11 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
+
+namespace {
 
 std::unordered_map<SubModule, std::string> submoduleMap = {
     {SubModule::PTA, "PTA"},
@@ -31,11 +34,55 @@ std::unordered_map<ErrCode, std::string> errCodeMap = {
     {ErrCode::GE, "call ge api failed"}
 };
 
+std::string getCurrentTimestamp()
+{
+    auto now = std::chrono::system_clock::now();
+    auto micros = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch());
+
+    std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+    std::tm* timeInfo = std::localtime(&currentTime);
+
+    auto milli_time = std::chrono::duration_cast<std::chrono::milliseconds>(micros).count() % 1000;
+    auto micro_time = micros.count() % 1000;
+
+    std::ostringstream oss;
+    oss << std::put_time(timeInfo, "%Y-%m-%d-%H:%M:%S");
+    return oss.str();
+}
+
+std::string formatDeviceErrorType(const aclrtErrorType error_type)
+{
+    if (error_type == ACL_RT_ERROR_OTHERS) {
+        return "0xFFFF";
+    }
+    return std::to_string(static_cast<int>(error_type));
+}
+
+std::string getRecentAclErrorMessage()
+{
+    const char* recent_error_msg = c10_npu::acl::AclGetErrMsg();
+    return recent_error_msg == nullptr ? "" : std::string(recent_error_msg);
+}
+
+std::string formatDeviceErrorVerbose(const aclrtErrorInfo& deviceErrInfo, const std::string& device_error_msg)
+{
+    std::string error_detail = device_error_msg;
+    if (error_detail.empty() && deviceErrInfo.errorType == ACL_RT_ERROR_OTHERS) {
+        error_detail = getRecentAclErrorMessage();
+    }
+    if (error_detail.empty()) {
+        return "device error type " + formatDeviceErrorType(deviceErrInfo.errorType);
+    }
+    return "device error type " + formatDeviceErrorType(deviceErrInfo.errorType) + ", " + error_detail;
+}
+
 c10::WarningHandler* getBaseHandler_()
 {
     static c10::WarningHandler warning_handler_ = c10::WarningHandler();
     return &warning_handler_;
 };
+
+} // namespace
 
 void warn_(const ::c10::Warning& warning)
 {
@@ -62,22 +109,6 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode)
     return oss.str();
 }
 
-static std::string getCurrentTimestamp()
-{
-    auto now = std::chrono::system_clock::now();
-    auto micros = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch());
-
-    std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
-    std::tm* timeInfo = std::localtime(&currentTime);
-
-    auto milli_time = std::chrono::duration_cast<std::chrono::milliseconds>(micros).count() % 1000;
-    auto micro_time = micros.count() % 1000;
-
-    std::ostringstream oss;
-    oss << std::put_time(timeInfo, "%Y-%m-%d-%H:%M:%S");
-    return oss.str();
-}
-
 namespace c10_npu {
 
 std::unordered_map<int, std::function<std::string(int)>> errCodeHandlerMap = {
@@ -91,8 +122,15 @@ std::unordered_map<int, std::function<std::string(int)>> errCodeHandlerMap = {
 };
 
 MemUceInfo memUceInfo;
+DeviceErrorInfo deviceErrorInfo;
 
 std::mutex memUceInfoMutex;
+std::mutex deviceErrorInfoMutex;
+
+bool ShouldAppendDeviceErrorVerbose()
+{
+    return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
+}
 
 void set_mem_uce_info(MemUceInfo& info)
 {
@@ -110,6 +148,28 @@ void clear_mem_uce_info()
 {
     std::lock_guard<std::mutex> lock(memUceInfoMutex);
     memUceInfo.clear();
+}
+
+namespace {
+
+void set_device_error_info(const c10_npu::DeviceErrorInfo& info)
+{
+    std::lock_guard<std::mutex> lock(c10_npu::deviceErrorInfoMutex);
+    c10_npu::deviceErrorInfo = info;
+}
+
+c10_npu::DeviceErrorInfo get_device_error_info()
+{
+    std::lock_guard<std::mutex> lock(c10_npu::deviceErrorInfoMutex);
+    return c10_npu::deviceErrorInfo;
+}
+
+} // namespace
+
+void clear_device_error_info()
+{
+    std::lock_guard<std::mutex> lock(deviceErrorInfoMutex);
+    deviceErrorInfo = DeviceErrorInfo();
 }
 
 const std::string c10_npu_check_error_message(std::string& errmsg)
@@ -164,6 +224,51 @@ const char *c10_npu_get_error_message()
         c10_npu::setRepoErrMsg(errmsg);
         return errmsg;
     }
+}
+
+std::string cacheDeviceErrorVerboseMsg(const std::string& device_error_msg)
+{
+    if (!ShouldAppendDeviceErrorVerbose()) {
+        return "";
+    }
+    if (!c10_npu::acl::IsExistAclrtGetErrorVerbose()) {
+        ASCEND_LOGI("AclrtGetErrorVerbose not supported on current device.");
+        return "";
+    }
+    clear_device_error_info();
+    int32_t device = static_cast<int32_t> (c10_npu::current_device());
+    DeviceErrorInfo cacheInfo;
+    cacheInfo.device = device;
+    auto ret = c10_npu::acl::AclrtGetErrorVerbose(device, &cacheInfo.info);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("AclrtGetErrorVerbose failed, device is %d, error code is %d.", device, ret);
+        return "";
+    }
+    cacheInfo.is_valid = true;
+    set_device_error_info(cacheInfo);
+    std::string err_msg = formatDeviceErrorVerbose(cacheInfo.info, device_error_msg);
+    return err_msg;
+}
+
+bool repair_device_error()
+{
+    if (!ShouldAppendDeviceErrorVerbose()) {
+        return false;
+    }
+    auto error_info = get_device_error_info();
+    if (!error_info.is_valid) {
+        return false;
+    }
+    if (!c10_npu::acl::IsExistAclrtRepairError()) {
+        ASCEND_LOGI("AclrtRepairError not supported on current device.");
+        return false;
+    }
+    auto ret = c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("AclrtRepairError failed, device is %d, error code is %d.", error_info.device, ret);
+        return false;
+    }
+    return true;
 }
 
 void record_mem_hbm_ecc_error()
@@ -272,8 +377,9 @@ std::string handleSuspectDeviceMemError(int errorCode)
 
 std::string handleLinkError(int errorCode)
 {
-    ASCEND_LOGE("getRepoStopFlag in Run, throw HCCS LINK ERROR.");
-    return "HCCS LINK ERROR";
+    std::string link_error_name = ShouldAppendDeviceErrorVerbose() ? "UB LINK ERROR" : "HCCS LINK ERROR";
+    ASCEND_LOGE("getRepoStopFlag in Run, throw %s.", link_error_name.c_str());
+    return link_error_name;
 }
 
 std::string handleHcclOpRetryFailed(int errorCode)
@@ -298,6 +404,17 @@ std::string handleDeviceError(int errorCode)
         }
     }
     return "";
+}
+
+std::string getDeviceErrorMessage(int errorCode)
+{
+    std::string device_error_msg = handleDeviceError(errorCode);
+    if (!ShouldAppendDeviceErrorVerbose()) {
+        return device_error_msg;
+    }
+
+    std::string device_error_verbose = cacheDeviceErrorVerboseMsg(device_error_msg);
+    return device_error_verbose.empty() ? device_error_msg : device_error_verbose;
 }
 
 bool isCannOOM(const std::string &errMsg)

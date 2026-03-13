@@ -14,6 +14,7 @@ typedef struct aclrtMemUsageInfo aclrtMemUsageInfo;
 typedef struct aclOpExecutor aclOpExecutor;
 struct aclrtUuid;
 struct aclrtIpcEventHandle;
+struct aclrtErrorInfo;
 namespace c10_npu {
 namespace acl {
 enum aclrtEventWaitStatus {
@@ -41,6 +42,23 @@ enum aclrtDevResLimitType {
     ACL_RT_DEV_RES_VECTOR_CORE = 1,
 };
 using aclrtDevResLimitType = enum aclrtDevResLimitType;
+
+enum aclrtErrorType {
+    ACL_RT_NO_ERROR = 0,
+    ACL_RT_ERROR_MEMORY = 1,
+    ACL_RT_ERROR_L2 = 2,
+    ACL_RT_ERROR_AICORE = 3,
+    ACL_RT_ERROR_LINK = 4,
+    ACL_RT_ERROR_OTHERS = 0xFFFF,
+};
+using aclrtErrorType = enum aclrtErrorType;
+
+enum aclrtAicoreErrorType {
+    ACL_RT_AICORE_ERROR_UNKOWN,
+    ACL_RT_AICORE_ERROR_SW,
+    ACL_RT_AICORE_ERROR_HW_LOCAL,
+};
+using aclrtAicoreErrorType = enum aclrtAicoreErrorType;
 
 /**
   aclprofStepInfo is provide by acl, it used to be store dispatch op info.
@@ -351,6 +369,14 @@ aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uuid);
 aclError AclrtValueWait(void* event, aclrtStream stream);
 
 aclError AclrtValueWrite(void* event, uint64_t value, aclrtStream stream);
+
+bool IsExistAclrtGetErrorVerbose();
+
+aclError AclrtGetErrorVerbose(int32_t deviceId, aclrtErrorInfo *errorInfo);
+
+bool IsExistAclrtRepairError();
+
+aclError AclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo);
 
 } // namespace acl
 } // namespace c10_npu
