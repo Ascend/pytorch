@@ -25,10 +25,18 @@ namespace native {
 at::Tensor NPUNativeOpApiFunctions::clone(const at::Tensor &src, c10::optional<c10::MemoryFormat> format)
 {
     DO_COMPATIBILITY(aclnnInplaceCopy, NPUNativeFunctions::clone(src, format));
-    auto baseSelf = OpPreparation::apply_tensor_without_format(src);
-    baseSelf.copy_(src);
-    at::namedinference::propagate_names(baseSelf, src);
-    return baseSelf;
+
+    auto memory_format = format.value_or(c10::MemoryFormat::Preserve);
+    at::Tensor dst;
+    if (memory_format == c10::MemoryFormat::Preserve && src.is_non_overlapping_and_dense()) {
+        dst = at::empty_strided(src.sizes(), src.strides(), src.options());
+    } else {
+        dst = OpPreparation::apply_tensor_without_format(src);
+    }
+
+    dst.copy_(src);
+    at::namedinference::propagate_names(dst, src);
+    return dst;
 }
 
 }  // namespace native
