@@ -302,6 +302,40 @@ typedef struct aclrtMemUceInfo {
     size_t reserved[UCE_INFO_RESERVED_SIZE];
 } aclrtMemUceInfo;
 
+typedef enum {
+    ACL_RT_NO_ERROR = 0,
+    ACL_RT_ERROR_MEMORY = 1,
+    ACL_RT_ERROR_L2 = 2,
+    ACL_RT_ERROR_AICORE = 3,
+    ACL_RT_ERROR_LINK = 4,
+    ACL_RT_ERROR_OTHERS = 0xFFFF,
+} aclrtErrorType;
+
+typedef enum aclrtAicoreErrorType {
+    ACL_RT_AICORE_ERROR_UNKOWN,
+    ACL_RT_AICORE_ERROR_SW,
+    ACL_RT_AICORE_ERROR_HW_LOCAL,
+} aclrtAicoreErrorType;
+
+#define ACL_RT_MEM_UCE_INFO_MAX_NUM 20
+typedef struct aclrtMemUceInfoArray {
+    size_t arraySize;
+    aclrtMemUceInfo memUceInfoArray[ACL_RT_MEM_UCE_INFO_MAX_NUM];
+} aclrtMemUceInfoArray;
+
+typedef union aclrtErrorInfoDetail {
+    aclrtMemUceInfoArray uceInfo;
+    aclrtAicoreErrorType aicoreErrType;
+} aclrtErrorInfoDetail;
+
+typedef struct aclrtErrorInfo {
+    uint8_t tryRepair;
+    uint8_t hasDetail;
+    uint8_t reserved[2];
+    aclrtErrorType errorType;
+    aclrtErrorInfoDetail detail;
+} aclrtErrorInfo;
+
 typedef enum aclrtCmoType {
     ACL_RT_CMO_TYPE_PREFETCH = 0,
     ACL_RT_CMO_TYPE_WRITEBACK,
@@ -1130,16 +1164,16 @@ ACL_FUNC_VISIBILITY aclError aclrtPointerGetAttributes(const void *ptr,
                                                        aclrtPtrAttributes *attributes);
 
 /**
-      * @ingroup AscendCL
-      * @brief register an existing host memory range
-      *
-      * @param ptr [IN]     host pointer to memory to page-lock
-      * @param size [IN]    size in bytes of the address range to page-lock in bytes
-      * @param flag [IN]    flag for allocation request
-      *
-      * @retval ACL_SUCCESS The function is successfully executed.
-      * @retval OtherValues Failure
-      */
+ * @ingroup AscendCL
+ * @brief register an existing host memory range
+ *
+ * @param ptr [IN]     host pointer to memory to page-lock
+ * @param size [IN]    size in bytes of the address range to page-lock in bytes
+ * @param flag [IN]    flag for allocation request
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
 ACL_FUNC_VISIBILITY aclError aclrtHostRegisterV2(void *ptr, uint64_t size, uint32_t flag);
 
 /**
@@ -2199,6 +2233,29 @@ ACL_FUNC_VISIBILITY aclError aclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uui
  */
 ACL_FUNC_VISIBILITY aclError aclrtLaunchHostFunc(aclrtStream stream, aclrtHostFunc func, void *args);
 
+ /**
+ * @ingroup AscendCL
+ * @brief Get detailed error information of the device
+ *
+ * @param deviceId [IN]   the device ID
+ * @param errorInfo [OUT] the error information
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetErrorVerbose(int32_t deviceId, aclrtErrorInfo *errorInfo);
+
+/**
+ * @ingroup AscendCL
+ * @brief Repair device errors
+ *
+ * @param deviceId [IN]   the device ID
+ * @param errorInfo [IN]  the error information
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo);
 #ifdef __cplusplus
 }
 #endif

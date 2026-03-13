@@ -123,6 +123,8 @@ LOAD_FUNCTION(aclrtDeviceGetUuid)
 LOAD_FUNCTION(aclrtMallocHostWithCfg)
 LOAD_FUNCTION(aclrtValueWait)
 LOAD_FUNCTION(aclrtValueWrite)
+LOAD_FUNCTION(aclrtGetErrorVerbose)
+LOAD_FUNCTION(aclrtRepairError)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1707,6 +1709,48 @@ aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid* uuid)
 
     TORCH_CHECK(func, "Failed to find function aclrtDeviceGetUuid", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(deviceId, uuid);
+}
+
+bool IsExistAclrtGetErrorVerbose()
+{
+    if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950) {
+        return false;
+    }
+    using AclrtGetErrorVerboseFunc = aclError(*)(int32_t, aclrtErrorInfo *);
+    static AclrtGetErrorVerboseFunc func = (AclrtGetErrorVerboseFunc) GET_FUNC(aclrtGetErrorVerbose);
+    return func != nullptr;
+}
+
+aclError AclrtGetErrorVerbose(int32_t deviceId, aclrtErrorInfo *errorInfo)
+{
+    using AclrtGetErrorVerbose = aclError(*)(int32_t, aclrtErrorInfo *);
+    static AclrtGetErrorVerbose func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetErrorVerbose) GET_FUNC(aclrtGetErrorVerbose);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtGetErrorVerbose", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(deviceId, errorInfo);
+}
+
+bool IsExistAclrtRepairError()
+{
+    if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950) {
+        return false;
+    }
+    using AclrtRepairErrorFunc = aclError(*)(int32_t, const aclrtErrorInfo *);
+    static AclrtRepairErrorFunc func = (AclrtRepairErrorFunc) GET_FUNC(aclrtRepairError);
+    return func != nullptr;
+}
+
+aclError AclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo)
+{
+    using AclrtRepairError = aclError(*)(int32_t, const aclrtErrorInfo *);
+    static AclrtRepairError func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtRepairError) GET_FUNC(aclrtRepairError);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtRepairError", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(deviceId, errorInfo);
 }
 
 } // namespace acl
