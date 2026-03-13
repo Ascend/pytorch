@@ -4,7 +4,8 @@ import sys
 import pickle
 import re
 import threading
-from typing import Any, Optional
+from typing import Any, Optional, Union
+from typing_extensions import TypeGuard
 
 import torch
 from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile, \
@@ -132,6 +133,10 @@ def _update_cpu_remap_info(map_location):
         RE_MAP_CPU = True
 
 
+def _is_path(name_or_buffer) -> TypeGuard[Union[str, os.PathLike]]:
+    return isinstance(name_or_buffer, (str, os.PathLike))
+
+
 def load(
     f: FileLike,
     map_location: MAP_LOCATION = None,
@@ -238,11 +243,10 @@ def load(
                     opened_file.seek(orig_position)
                     return torch.jit.load(opened_file, map_location=map_location)
                 if mmap:
-                    if not isinstance(f, str):
-                        raise TypeError("f must be a string filename in order to use mmap argument" +
-                                        pta_error(ErrCode.TYPE))
+                    if not _is_path(f):
+                        raise ValueError("f must be a file path in order to use the mmap argument")
                     size = os.path.getsize(f)
-                    overall_storage = torch.UntypedStorage.from_file(f, False, size)
+                    overall_storage = torch.UntypedStorage.from_file(os.fspath(f), False, size)
                 if weights_only:
                     try:
                         return _load(opened_zipfile, map_location, _weights_only_unpickler,
