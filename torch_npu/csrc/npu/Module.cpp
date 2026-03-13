@@ -815,6 +815,10 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
     }
 
     c10_npu::clear_mem_uce_info();
+    if (c10_npu::ShouldAppendDeviceErrorVerbose()) {
+        (void)c10_npu::repair_device_error();
+        c10_npu::clear_device_error_info();
+    }
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::INIT);
     c10_npu::NPUCachingAllocator::cleanEvent();
     loggerRecovery->info("NPU restart device end, device is %d.", device);

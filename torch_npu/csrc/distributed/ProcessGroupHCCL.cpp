@@ -511,6 +511,7 @@ std::string get_device_error(const std::string& error_msg)
         "HBM MULTI BIT ECC ERROR",
         "SUSPECT MEM ERROR",
         "HCCS LINK ERROR",
+        "UB LINK ERROR",
         "HCCL OP RETRY FAILED",
         "SUSPECT REMOTE ERROR"
     };
