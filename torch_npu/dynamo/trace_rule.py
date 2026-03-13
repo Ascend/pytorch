@@ -32,6 +32,7 @@ torch_non_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch.npu.memory.reset_max_memory_cached",
         "torch.npu.memory.reset_peak_host_memory_stats",
         "torch.npu.memory.reset_peak_memory_stats",
+        "torch.npu.memory.get_per_process_memory_fraction",
         "torch.npu.memory.set_per_process_memory_fraction",
         "torch.npu.random.manual_seed_all",
         "torch.npu.random.manual_seed",
@@ -44,6 +45,8 @@ torch_non_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch.npu._memory_viz._frame_fmt",
         "torch.npu.amp.autocast_mode.custom_bwd",
         "torch.npu.amp.autocast_mode.custom_fwd",
+        "torch.npu._get_current_allocator",
+        "torch.npu.is_bf16_supported",
     ],
     TorchInGraphFunctionVariable,
 )
@@ -64,8 +67,10 @@ torch_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch_npu._C._npu_resetPeakMemoryStats",
         "torch_npu._C._npu_set_sync_debug_mode",
         "torch_npu._C._npu_setDevice",
+        "torch_npu._C._npu_getMemoryFraction",
         "torch_npu._C._npu_setMemoryFraction",
         "torch_npu._C._npu_synchronize",
+        "torch_npu._C._npu_resetAccumulatedMemoryStats",
     ],
     TorchInGraphFunctionVariable,
 )

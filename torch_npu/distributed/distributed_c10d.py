@@ -18,12 +18,12 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     ProcessGroup, default_pg_timeout, ReduceScatterOptions, _unregister_process_group, _check_valid_timeout, \
     _find_pg_by_ranks_and_tag, is_initialized, _get_split_source, BackendConfig, is_mpi_available, is_gloo_available, \
     is_nccl_available, is_ucc_available, is_xccl_available, get_debug_level, DebugLevel, _process_group_color, \
-    _create_process_group_wrapper, _GLOO_AVAILABLE, _check_p2p_op_list, isend
+    _create_process_group_wrapper, _GLOO_AVAILABLE
 
 from torch._C._distributed_c10d import PrefixStore, _register_process_group, _DistributedBackendOptions
 
 from torch_npu.utils._error_code import ErrCode, dist_error
-from torch_npu.utils import get_cann_version
+from torch_npu import npu
 
 if is_mpi_available():
     from torch.distributed.distributed_c10d import ProcessGroupMPI
@@ -47,43 +47,28 @@ def _batch_isend_irecv(p2p_op_list):
     group = p2p_op_list[0].group
     device = p2p_op_list[0].tensor.device
     is_multi_pg = True
-
-    def peer_kwarg(op):
-        key = "group_dst" if op.op is isend else "group_src"
-        return {key: op.group_peer}
-
     if device.type == "cuda":
         with _coalescing_manager(group, device, async_ops=True) as cm:
             for p2p_op in p2p_op_list:
                 p2p_op.op(p2p_op.tensor, p2p_op.peer, p2p_op.group, p2p_op.tag)
         return cm.works
     elif device.type == "npu":
-        cann_version = get_cann_version("CANN")
         if group is None:
             group = _get_default_group()
             is_multi_pg = False
         _group = group._get_backend(device)
-        if isinstance(group, ProcessGroup) and group._get_backend(device).supports_coalescing and cann_version >= "9.0.0":
-            # coalescing manager
-            _check_p2p_op_list(p2p_op_list)
-            with _coalescing_manager(group=group, device=device, async_ops=True) as cm:
-                for p2p_op in p2p_op_list:
-                    p2p_op.op(p2p_op.tensor, group=p2p_op.group, tag=p2p_op.tag, **peer_kwarg(p2p_op))
-            return cm.works
-        else:
-            # batch_isend_irecv
-            op_type = []
-            tensors = []
-            remote_rank_list = []
-            for p2p_op in p2p_op_list:
-                if p2p_op.tensor.device.type != "npu":
-                    deviceType = p2p_op.tensor.device.type
-                    raise RuntimeError(f"No backend type associated with device type {deviceType}" + dist_error(ErrCode.PARAM))
-                op_type.append(p2p_op.op.__name__)
-                tensors.append(p2p_op.tensor)
-                rank_for_op = get_group_rank(group, p2p_op.peer) if is_multi_pg else p2p_op.peer
-                remote_rank_list.append(rank_for_op)
-            return [_group.batch_isend_irecv(op_type, tensors, remote_rank_list)]
+        op_type = []
+        tensors = []
+        remote_rank_list = []
+        for p2p_op in p2p_op_list:
+            if p2p_op.tensor.device.type != "npu":
+                deviceType = p2p_op.tensor.device.type
+                raise RuntimeError(f"No backend type associated with device type {deviceType}" + dist_error(ErrCode.PARAM))
+            op_type.append(p2p_op.op.__name__)
+            tensors.append(p2p_op.tensor)
+            rank_for_op = get_group_rank(group, p2p_op.peer) if is_multi_pg else p2p_op.peer
+            remote_rank_list.append(rank_for_op)
+        return [_group.batch_isend_irecv(op_type, tensors, remote_rank_list)]
     else:
         # Backward support for Gloo
         reqs = []
@@ -112,7 +97,7 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
         Async work handle, if async_op is set to True.
         None, if not async_op or if not part of the group
     Note:
-        Npu doesn't support gather currently, replaced with all_gather.
+        Npu replaces gather with all_gather in default mode, uses gather with group send/recv in compatibility mode 
     """
 
     _check_single_tensor(tensor, "tensor")
@@ -136,35 +121,49 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
     input_tensors = [tensor]
     opts = GatherOptions()
     opts.rootRank = dst
+    use_compatible_impl = False
+    if tensor.device.type == 'npu':
+        use_compatible_impl = npu.are_compatible_impl_enabled()
+
     if group is None or group is GroupMember.WORLD:
         default_pg = _get_default_group()
         if tensor.device.type == 'npu':
-            if my_rank == dst:
-                warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
-            # To handle tensors of different shape on each rank, update recv shape first.
-            dist.broadcast_object_list(recv_size_list, dst, group)
-            if not gather_list:
-                gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
+            if use_compatible_impl:
+                output_tensors = [gather_list] if my_rank == dst else []
+                _group = default_pg._get_backend(torch.device("npu"))
+                work = _group.gather(output_tensors, input_tensors, opts)
+            else:
+                if my_rank == dst:
+                    warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
+                # To handle tensors of different shape on each rank, update recv shape first.
+                dist.broadcast_object_list(recv_size_list, dst, group)
+                if not gather_list:
+                    gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
 
-            output_tensors = [gather_list]
-            _group = default_pg._get_backend(torch.device("npu"))
-            work = _group.allgather(output_tensors, input_tensors)
+                output_tensors = [gather_list]
+                _group = default_pg._get_backend(torch.device("npu"))
+                work = _group.allgather(output_tensors, input_tensors)
         else:
             output_tensors = [gather_list] if dst == my_rank else []
             default_pg = _get_default_group()
             work = default_pg.gather(output_tensors, input_tensors, opts)
     else:
         if tensor.device.type == 'npu':
-            if my_rank == dst:
-                warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
-            # To handle tensors of different shape on each rank, update recv shape first.
-            dist.broadcast_object_list(recv_size_list, dst, group)
-            if not gather_list:
-                gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
+            if use_compatible_impl:
+                output_tensors = [gather_list] if my_rank == dst else []
+                _group = group._get_backend(torch.device("npu"))
+                work = _group.gather(output_tensors, input_tensors, opts)
+            else:
+                if my_rank == dst:
+                    warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
+                # To handle tensors of different shape on each rank, update recv shape first.
+                dist.broadcast_object_list(recv_size_list, dst, group)
+                if not gather_list:
+                    gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
 
-            output_tensors = [gather_list]
-            _group = group._get_backend(torch.device("npu"))
-            work = _group.allgather(output_tensors, input_tensors)
+                output_tensors = [gather_list]
+                _group = group._get_backend(torch.device("npu"))
+                work = _group.allgather(output_tensors, input_tensors)
         else:
             group_dst_rank = get_group_rank(group, dst)
             output_tensors = [gather_list] if dst == my_rank else []

@@ -201,6 +201,7 @@ public:
     virtual void raw_delete(void* ptr) = 0;
     virtual void init(int device_count) = 0;
     virtual bool initialized() = 0;
+    virtual double getMemoryFraction(int device) = 0;
     virtual void setMemoryFraction(double fraction, int device) = 0;
     virtual void emptyCacheImpl(bool check_error, bool free_physical) = 0;
     virtual void emptyCache(bool check_error) = 0;
@@ -303,6 +304,11 @@ inline void init()
     uint32_t device_count = 0;
     NPU_CHECK_ERROR(aclrtGetDeviceCount(&device_count));
     return get()->init(device_count);
+}
+
+inline double getMemoryFraction(int device)
+{
+    return get()->getMemoryFraction(device);
 }
 
 inline void setMemoryFraction(double fraction, int device)

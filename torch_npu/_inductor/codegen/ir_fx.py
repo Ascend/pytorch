@@ -821,7 +821,7 @@ def _patch_mutationlayout_realize_into(cls, src, dst, unsafe_alias=False):
             dtype=src.get_dtype(),
             inner_fn=src.make_loader(),
             ranges=[
-                V.graph.sizevars.guard_equals(a, b)
+                V.graph.sizevars.check_equals(a, b)
                 for a, b in zip(src.get_size(), dst.get_size())
             ],
             traced_graph=new_graph,

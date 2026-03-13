@@ -302,6 +302,40 @@ typedef struct aclrtMemUceInfo {
     size_t reserved[UCE_INFO_RESERVED_SIZE];
 } aclrtMemUceInfo;
 
+typedef enum {
+    ACL_RT_NO_ERROR = 0,
+    ACL_RT_ERROR_MEMORY = 1,
+    ACL_RT_ERROR_L2 = 2,
+    ACL_RT_ERROR_AICORE = 3,
+    ACL_RT_ERROR_LINK = 4,
+    ACL_RT_ERROR_OTHERS = 0xFFFF,
+} aclrtErrorType;
+
+typedef enum aclrtAicoreErrorType {
+    ACL_RT_AICORE_ERROR_UNKOWN,
+    ACL_RT_AICORE_ERROR_SW,
+    ACL_RT_AICORE_ERROR_HW_LOCAL,
+} aclrtAicoreErrorType;
+
+#define ACL_RT_MEM_UCE_INFO_MAX_NUM 20
+typedef struct aclrtMemUceInfoArray {
+    size_t arraySize;
+    aclrtMemUceInfo memUceInfoArray[ACL_RT_MEM_UCE_INFO_MAX_NUM];
+} aclrtMemUceInfoArray;
+
+typedef union aclrtErrorInfoDetail {
+    aclrtMemUceInfoArray uceInfo;
+    aclrtAicoreErrorType aicoreErrType;
+} aclrtErrorInfoDetail;
+
+typedef struct aclrtErrorInfo {
+    uint8_t tryRepair;
+    uint8_t hasDetail;
+    uint8_t reserved[2];
+    aclrtErrorType errorType;
+    aclrtErrorInfoDetail detail;
+} aclrtErrorInfo;
+
 typedef enum aclrtCmoType {
     ACL_RT_CMO_TYPE_PREFETCH = 0,
     ACL_RT_CMO_TYPE_WRITEBACK,
@@ -394,21 +428,8 @@ typedef union {
 typedef enum {
     ACL_DEV_ATTR_AICPU_CORE_NUM  = 1,    // aicpu number
     ACL_DEV_ATTR_AICORE_CORE_NUM = 101,  // aicore number
-    ACL_DEV_ATTR_CUBE_CORE_NUM = 102, // cube core number
+
     ACL_DEV_ATTR_VECTOR_CORE_NUM = 201,  // vector core number
-    ACL_DEV_ATTR_WARP_SIZE = 202, //  number of threads in a Warp
-    ACL_DEV_ATTR_MAX_THREAD_PER_VECTOR_CORE = 203, // maximum number of concurrent threads per Vector Core
-    ACL_DEV_ATTR_LOCAL_MEM_PER_VECTOR_CORE = 204, // maximum available local memory per Vector Core, in Bytes
-    ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE = 301, // total available global memory on the Device, in Bytes
-    ACL_DEV_ATTR_L2_CACHE_SIZE = 302, // L2 Cache size, in Bytes
-    ACL_DEV_ATTR_SMP_ID = 401U, // indicates whether devices are on the same OS
-    ACL_DEV_ATTR_PHY_CHIP_ID = 402U, // physical chip id
-    ACL_DEV_ATTR_SUPER_POD_DEVIDE_ID = 403U, // super pod device id
-    ACL_DEV_ATTR_SUPER_POD_SERVER_ID = 404U, // super pod server id
-    ACL_DEV_ATTR_SUPER_POD_ID = 405U, // super pod id
-    ACL_DEV_ATTR_CUST_OP_PRIVILEGE = 406U, // indicates whether the custom operator privilege is enabled
-    ACL_DEV_ATTR_MAINBOARD_ID = 407U, // mainboard id
-    ACL_DEV_ATTR_IS_VIRTUAL = 501U, // whether it is in compute power splitting mode
 } aclrtDevAttr;
 
 typedef enum {
@@ -1889,17 +1910,6 @@ ACL_FUNC_VISIBILITY aclError aclrtGetMemInfo(aclrtMemAttr attr, size_t *free, si
 
 /**
  * @ingroup AscendCL
- * @brief get device infomation.
- * @param [in] deviceId the device id
- * @param [in] attr device attr
- * @param [out] value the device info
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- */
-ACL_FUNC_VISIBILITY aclError aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value);
-
-/**
- * @ingroup AscendCL
  * @brief Set the timeout interval for waitting of op
  *
  * @param timeout [IN]   op wait timeout
@@ -2222,6 +2232,30 @@ ACL_FUNC_VISIBILITY aclError aclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uui
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtLaunchHostFunc(aclrtStream stream, aclrtHostFunc func, void *args);
+
+/**
+ * @ingroup AscendCL
+ * @brief Get detailed error information of the device
+ *
+ * @param deviceId [IN]   the device ID
+ * @param errorInfo [OUT] the error information
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetErrorVerbose(int32_t deviceId, aclrtErrorInfo *errorInfo);
+
+/**
+ * @ingroup AscendCL
+ * @brief Repair device errors
+ *
+ * @param deviceId [IN]   the device ID
+ * @param errorInfo [IN]  the error information
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo);
 
 #ifdef __cplusplus
 }

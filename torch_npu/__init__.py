@@ -75,7 +75,7 @@ from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import _apply_module_patch, _add_tensor_methods, _add_collect_env_methods, \
     _add_storage_methods, _add_serialization_methods, add_dynamo_methods, add_perf_dump_patch, \
     add_optim_method, _inductor_register_device_op_overrides, \
-    _apply_npu_show_warning, _apply_npugraph_tree_methods, _apply_dlpack_patch
+    _apply_npu_show_warning, _apply_npugraph_tree_methods, _apply_dlpack_patch, npu_patch_meta
 from torch_npu.utils._dynamo_device import _dynamo_register_interface_for_device
 from torch_npu.npu._format import _apply_npu_format_patch
 import torch_npu.utils._afd_ops
@@ -188,6 +188,7 @@ def _apply_class_patches():
     _apply_npu_format_patch()
     _apply_fsdp_patch()
     _apply_npugraph_tree_methods()
+    npu_patch_meta()
 
 
 def _apply_distributed_methods_patch():
@@ -213,6 +214,9 @@ unsupported_dtype = [torch.quint8, torch.quint4x2, torch.quint2x4, torch.qint32,
 torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module=True, for_storage=True,
                                                      unsupported_dtype=unsupported_dtype)
 torch.nn.parameter.UninitializedTensorMixin._allowed_methods.append(torch.Tensor.npu)
+
+# register npu device interface for dynamo
+_dynamo_register_interface_for_device()
 
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
@@ -299,9 +303,6 @@ _rpc_backend_registry()
 
 # register rules for ops in dtensor
 _register_ops_under_dtensor_rules()
-
-# register npu device interface for dynamo
-_dynamo_register_interface_for_device()
 
 # Enable NPU Sanitizer
 if 'TORCH_NPU_SANITIZER' in os.environ:

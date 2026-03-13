@@ -53,7 +53,6 @@
 #include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/ipc/NPUIPCTypes.h"
 #include "op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h"
-#include "op_plugin/utils/OpUtils.h"
 #include "torch_npu/csrc/aten/common/from_blob.h"
 #include "torch_npu/csrc/profiler/combined_traceback.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
@@ -202,13 +201,7 @@ void initDeviceProperty(int64_t deviceid)
     } else {
         device_properties[deviceid].name = std::string(device_name);
     }
-    if (op_plugin::utils::is_gte_cann_version_850()) {
-        int64_t tmp_device_total = 0;
-        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetDeviceInfo(static_cast<uint32_t>(deviceid), ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE, &tmp_device_total));
-        device_total = static_cast<size_t>(tmp_device_total);
-    } else {
-        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
-    }
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
     device_properties[deviceid].totalGlobalMem = device_total;
 
     NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_AI_CORE_NUM, &cube_core_num));
@@ -447,6 +440,16 @@ void RegisterNpuPluggableAllocator(PyObject* module)
                 device, mempool_id, [stream](aclrtStream target) {
                 return target == stream;
             });
+        });
+    m.def(
+        "_npu_beginAllocateCurrentThreadToPool",
+        [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+            auto tid = std::this_thread::get_id();
+            c10_npu::NPUCachingAllocator::beginAllocateToPool(
+                device, mempool_id, [=](aclrtStream) {
+                    auto current_tid = std::this_thread::get_id();
+                    return current_tid == tid;
+                });
         });
     m.def(
         "_npu_beginAllocateToPool",
@@ -812,6 +815,10 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg)
     }
 
     c10_npu::clear_mem_uce_info();
+    if (c10_npu::ShouldAppendDeviceErrorVerbose()) {
+        (void)c10_npu::repair_device_error();
+        c10_npu::clear_device_error_info();
+    }
     setDefaultStreamsStatus(device, c10_npu::RepoStatus::INIT);
     c10_npu::NPUCachingAllocator::cleanEvent();
     loggerRecovery->info("NPU restart device end, device is %d.", device);
@@ -1108,6 +1115,24 @@ PyObject *THNPModule_is_jit_compile_false_wrap(PyObject *self, PyObject *noargs)
             Py_RETURN_FALSE;
         }
     }
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_getMemoryFraction(PyObject* _unused, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    PyObject* device_o = nullptr;
+    if (!PyArg_ParseTuple(args, "O", &device_o)) {
+        THPUtils_invalidArguments(
+            args,
+            nullptr,
+            "get_memory_fraction",
+            1,
+            "(int device);");
+        return nullptr;
+    }
+    int64_t device_index = PyLong_AsLongLong(device_o);
+    return PyFloat_FromDouble(c10_npu::NPUCachingAllocator::getMemoryFraction(device_index));
     END_HANDLE_TH_ERRORS
 }
 
@@ -2276,6 +2301,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_eraseStream", (PyCFunction)THNPModule_npu_eraseStream_wrap, METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_isCurrentStreamCapturing", (PyCFunction)THNPModule_isCurrentStreamCapturing_wrap, METH_NOARGS, nullptr},
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
+    {"_npu_getMemoryFraction", (PyCFunction) THNPModule_getMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
     {"_npu_hostEmptyCache", (PyCFunction) THNPModule_npu_hostEmptyCache, METH_NOARGS, nullptr},

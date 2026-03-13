@@ -11,6 +11,7 @@
 #include <string>
 #include <unistd.h>
 #include <unordered_map>
+#include <type_traits>
 #include <regex>
 #include <c10/macros/Macros.h>
 #include <c10/util/Exception.h>
@@ -83,7 +84,6 @@ enum class ErrCode {
     GE = 300
 };
 
-static std::string getCurrentTimestamp();
 std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 
 #define PTA_ERROR(error) formatErrorCode(SubModule::PTA, error)
@@ -125,7 +125,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
     if ((error_code_peek) != ACL_ERROR_NONE) {                               \
         error_code = error_code_peek;                                        \
     }                                                                        \
-    std::string device_error_msg = c10_npu::handleDeviceError(error_code);   \
+    std::string device_error_msg = c10_npu::getDeviceErrorMessage(error_code); \
     if (!device_error_msg.empty()) {                                         \
         TORCH_CHECK(                                                         \
             false,                                                           \
@@ -150,7 +150,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
                 if ((error_code_peek) != ACL_ERROR_NONE) {                   \
                     error_code = error_code_peek;                            \
                 }                                                            \
-                device_error_msg = c10_npu::handleDeviceError(error_code);   \
+                device_error_msg = c10_npu::getDeviceErrorMessage(error_code); \
             }                                                                \
             if (((error_code) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) && (device_error_msg.empty())) {              \
                 static auto feature_not_support_warn_once = []() {               \
@@ -253,6 +253,24 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
 
 namespace c10_npu {
 
+namespace detail {
+template <typename T, typename = void>
+struct is_complete : std::false_type {};
+
+template <typename T>
+struct is_complete<T, decltype(void(sizeof(T)))> : std::true_type {};
+} // namespace detail
+
+struct AclrtErrorInfoOpaque {
+    unsigned char data[1];
+};
+
+using AclrtErrorInfoStorage = typename std::conditional<
+    detail::is_complete<aclrtErrorInfo>::value,
+    aclrtErrorInfo,
+    AclrtErrorInfoOpaque>::type;
+
+
 struct MemUceInfo {
     int device;
     aclrtMemUceInfo info[MAX_MEM_UCE_INFO_ARRAY_SIZE];
@@ -272,6 +290,17 @@ struct MemUceInfo {
         retSize = 0;
         mem_type = 0;
         is_hbm_ecc_error = false;
+    }
+};
+
+struct DeviceErrorInfo {
+    int device;
+    AclrtErrorInfoStorage info;
+    bool is_valid;
+
+    DeviceErrorInfo() : device(-1), is_valid(false)
+    {
+        std::memset(&info, 0, sizeof(info));
     }
 };
 
@@ -301,10 +330,16 @@ std::string handleLinkError(int errorCode);
 
 std::string handleHcclOpRetryFailed(int errorCode);
 
-std::string handleDeviceError(int errorCode);
+std::string getDeviceErrorMessage(int errorCode);
 
 std::string handleSuspectRemoteError(int errorCode);
 
 bool isCannOOM(const std::string &errMsg);
+
+bool ShouldAppendDeviceErrorVerbose();
+
+void clear_device_error_info();
+
+bool repair_device_error();
 
 } // namespace c10_npu
