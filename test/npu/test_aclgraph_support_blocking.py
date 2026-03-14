@@ -14,7 +14,7 @@ os.environ["ASCEND_LAUNCH_BLOCKING"] = "1"
 
 
 class TestIFAAclgraphUpdateSupportBlocking(TestCase):
-    @SupportedDevices(['Ascend910B', 'Ascend910C'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_ifa_update_support_blocking(self):
         torch.npu.set_device(0)
         length = [29]
@@ -63,7 +63,7 @@ class TestIFAAclgraphUpdateSupportBlocking(TestCase):
         self.assertEqual(output.cpu(), res_src[0].cpu())
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
-    @SupportedDevices(['Ascend910B', 'Ascend910C'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_ifa_update_with_auto_dispatch_capture_support_blocking(self):
         torch.npu.set_device(0)
         length = [29]
@@ -97,7 +97,7 @@ class TestIFAAclgraphUpdateSupportBlocking(TestCase):
         self.assertEqual(output.cpu(), res_src[0].cpu())
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
-    @SupportedDevices(['Ascend910B', 'Ascend910C'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_ifa_update_with_non_out_and_auto_dispatch_capture_support_blocking(self):
         torch.npu.set_device(0)
         length = [29]
