@@ -31,7 +31,7 @@ class MyModel(nn.Module):
 
 class TestAclgraphLaunchHostFunc(TestCase):
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_launch_host_func(self):
         torch_npu.npu.set_compile_mode(jit_compile=False)
         torch_npu.npu.set_device(0)
