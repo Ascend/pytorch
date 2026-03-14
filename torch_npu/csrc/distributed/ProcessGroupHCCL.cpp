@@ -57,9 +57,7 @@
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
-#endif
 
-#ifndef BUILD_LIBTORCH
 namespace py = pybind11;
 using namespace py::literals;
 #endif
@@ -3413,11 +3411,9 @@ std::string ProcessGroupHCCL::getMstxHcclMsg(
         {HCCL_DATA_TYPE_BFP16, "bfp16"}
     };
     static std::map<HcclComm, std::string> commNames;
-#ifndef BUILD_LIBTORCH
     if (!torch_npu::profiler::mstxEnable()) {
         return "";
     }
-#endif
     std::unordered_map<std::string, std::string> msgDict;
     msgDict["opName"] = opName;
     auto nameIter = commNames.find(comm);
