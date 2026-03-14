@@ -360,19 +360,11 @@ def _register_npu_inductor_fallbacks():
             return clone(inputs[0])
             
         def _is_dynamic(shape):
-            return any(isinstance(s, (sympy.Symbol, sympy.Expr)) for s in shape)
+            return any((isinstance(s, (sympy.Symbol, sympy.Expr)) and len(s.free_symbols) > 0) for s in shape)
 
         is_dynamic = any(_is_dynamic(inp.get_size()) for inp in inputs)
 
-        if is_dynamic or has_fp64:    
-            new_inputs = []
-            for inp in inputs:
-                if inp.get_dtype() == torch.float64:
-                    new_inputs.append(to_dtype(inp, torch.float32))
-                else:
-                    new_inputs.append(inp)
-            inputs = new_inputs
-
+        if is_dynamic:
             return fallback_handler(aten.cat.default)(inputs, dim)
 
         if lowering_cat_with_concat_kernel:
