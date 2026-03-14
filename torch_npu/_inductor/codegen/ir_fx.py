@@ -206,6 +206,8 @@ def _patch_reduction_create(
         )
         r._post_init_setattr("traced_graph", traced_graph)
         r._post_init_setattr("node_name", node_name)
+        r.data.data._post_init_setattr("traced_graph", traced_graph)
+        r.data.data._post_init_setattr("node_name", node_name)
         return r
     elif split > 1:
         # triton doesn't support reduce to single element well, so break it up
@@ -222,6 +224,8 @@ def _patch_reduction_create(
         )
         r._post_init_setattr("traced_graph", traced_graph)
         r._post_init_setattr("node_name", node_name)
+        r.data.data._post_init_setattr("traced_graph", traced_graph)
+        r.data.data._post_init_setattr("node_name", node_name)
         return r
 
     r = ir.Reduction(
@@ -634,6 +638,7 @@ def _patch_concatkernel_create(cls, inputs, dim):
     concat_kernel._post_init_setattr("inputs", cls.unwrap_storage(concat_kernel.inputs))
     concat_kernel._post_init_setattr("traced_graph", new_graph)
     concat_kernel._post_init_setattr("node_name", node_name)
+    V.graph.register_operation(concat_kernel)
 
     return kernel
 
