@@ -6,6 +6,9 @@
 #include <variant>
 #include <future>
 #include <atomic>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <c10d/ProcessGroup.hpp>
 #include <c10d/Store.hpp>
 #include <c10d/Utils.hpp>
@@ -14,7 +17,7 @@
 #include "third_party/hccl/inc/hccl/hccl.h"
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
-#include "torch_npu/csrc/npu/Event.h"
+#include "torch_npu/csrc/core/npu/NPUEvent.h"
 
 
 namespace c10d_npu {
@@ -104,6 +107,7 @@ struct ProcessGroupStatus {
     size_t lastStartedNumelOut;
 };
 
+#ifndef BUILD_LIBTORCH
 struct DumpPipe {
     DumpPipe(int rank)
     {
@@ -148,6 +152,7 @@ struct DumpPipe {
 private:
     int fd_ = -1;
 };
+#endif
 
 // A shelf for stashing tensors between op call and `work.wait()`.
 // Used in case of async ops.
