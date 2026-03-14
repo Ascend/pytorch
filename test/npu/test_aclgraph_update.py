@@ -15,7 +15,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 class TestIFAAclgraphUpdate(TestCase):
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_ifa_update(self):
         torch.npu.set_device(0)
         length = [29]
@@ -64,7 +64,7 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertEqual(output.cpu(), res_src[0].cpu())
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_update_stream_globally_unique(self):
         torch.npu.set_device(0)
 
@@ -72,7 +72,7 @@ class TestIFAAclgraphUpdate(TestCase):
         g2 = torch.npu.NPUGraph()
         self.assertEqual(g1.graph_dispatch_mode.update_stream, g2.graph_dispatch_mode.update_stream)
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_ifa_update_with_auto_dispatch_capture(self):
         torch.npu.set_device(0)
         length = [29]
@@ -106,7 +106,7 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertEqual(output.cpu(), res_src[0].cpu())
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_ifa_update_with_non_out_and_auto_dispatch_capture(self):
         torch.npu.set_device(0)
         length = [29]
@@ -136,7 +136,7 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertEqual(output.cpu(), res_src[0].cpu())
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_ifa_v2_update_with_auto_dispatch_capture(self):
         torch.npu.set_device(0)
         length = [1]
@@ -169,7 +169,7 @@ class TestIFAAclgraphUpdate(TestCase):
         g.replay()
         self.assertEqual(output.cpu(), res_src[0].cpu())
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_ifa_v2_update_with_non_out_and_auto_dispatch_capture(self):
         torch.npu.set_device(0)
         length = [1]
@@ -198,7 +198,7 @@ class TestIFAAclgraphUpdate(TestCase):
         g.replay()
         self.assertEqual(output.cpu(), res_src[0].cpu())
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     @unittest.skip("this cann version is not supported")
     def test_npu_fused_infer_attention_score_v2(self):
         torch.npu.set_device(0)
@@ -246,7 +246,7 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertEqual(output.cpu(), res_src[0].cpu())
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_fia_out_4in1_with_graph(self, device="npu"):
         q = torch.randn(1, 8, 164, 128, dtype=torch.float16).npu()
         k = torch.randn(1, 8, 1024, 128, dtype=torch.float16).npu()
@@ -301,7 +301,7 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertTrue(torch.allclose(output, output2, 1e-4, 1e-4))
         self.assertTrue(torch.allclose(softmax_lse, softmax_lse2, 1e-4, 1e-4))
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     @unittest.skip("this cann version is not supported")
     def test_npugraph_debug_dump(self):
         N, D_in, H, D_out = 640, 4096, 2048, 1024
@@ -330,7 +330,7 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertTrue(os.path.getsize(file_path) > 0, "npugraph debug dump assert error")
         os.remove(file_path)
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_ifa_update_no_reset(self):
         torch.npu.set_device(0)
         length = [29]
@@ -378,7 +378,7 @@ class TestIFAAclgraphUpdate(TestCase):
         self.assertEqual(output.cpu(), res_src[0].cpu())
         self.assertEqual(softmax_lse.cpu(), res_src[1].cpu())
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     @unittest.skip("this cann version is not supported")
     def test_npu_fused_infer_attention_score_v2_no_reset(self):
         torch.npu.set_device(0)
@@ -548,7 +548,7 @@ class TestPAAclgraphUpdate(TestCase):
         )
         return params.output
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_paged_attention_aclgraph_update(self):
         params, golden_output = self.preprocess()
         output = None
