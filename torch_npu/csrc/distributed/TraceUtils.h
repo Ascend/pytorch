@@ -392,11 +392,13 @@ DEFINE_CONSTANT(started_state, "started")
                 // Current pg_status is not in FR.
                 all_pg_status_[pg_id] = std::move(pg_status);
             }
-            std::lock_guard<std::mutex> guard(mutex_);
-
 #ifndef BUILD_LIBTORCH
             auto traceback =
                 torch::CapturedTraceback::gather(true, true, capture_cpp_stack_);
+#endif
+            std::lock_guard<std::mutex> guard(mutex_);
+
+#ifndef BUILD_LIBTORCH
             auto te = Entry{
                 id_,
                 pg_id,
