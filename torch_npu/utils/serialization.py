@@ -438,7 +438,7 @@ def save(
             "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving"
         )
         _warn_legacy_serialization(warn_massage, "save")
-    return torch.serialization.save(obj, f, pickle_module, pickle_protocol, True, _disable_byteorder_record)
+    return torch.serialization.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
 
 
 def save_async(
