@@ -18,6 +18,8 @@
 #include <torch/csrc/THP.h>
 #include <fstream>
 #include <stdexcept>
+#include <utility>
+#include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
 
@@ -71,6 +73,56 @@ at::ScalarType DvmDType2TorchDtype(DType dtype)
     }
 }
 
+bool IsCurrentStreamCapturing()
+{
+    return static_cast<int>(c10_npu::currentStreamCaptureStatusMayInitCtx()) != 0;
+}
+
+class FakeWsAllocator : public WsAllocator {
+public:
+    explicit FakeWsAllocator(TorchKernelPy* kernel_py) : kernel_py_(kernel_py) {}
+
+    void* Alloc(size_t size) override
+    {
+        kernel_py_->SetWorkspaceSize(size);
+        return nullptr;
+    }
+
+private:
+    TorchKernelPy* kernel_py_ = nullptr;
+};
+
+class ExternalWsAllocator : public WsAllocator {
+public:
+    explicit ExternalWsAllocator(void* workspace_ptr) : workspace_ptr_(workspace_ptr) {}
+
+    void* Alloc(size_t) override { return workspace_ptr_; }
+
+private:
+    void* workspace_ptr_ = nullptr;
+};
+
+inline std::pair<at::Tensor, void*> AllocWorkspaceV1(size_t size)
+{
+    if (size == 0) {
+        return {at::Tensor(), nullptr};
+    }
+    at::TensorOptions options = at::TensorOptions(c10::DeviceType::PrivateUse1);
+    auto workspace_tensor = at::empty({static_cast<int64_t>(size)}, options.dtype(at::kByte));
+    auto workspace_ptr = const_cast<void*>(workspace_tensor.storage().data());
+    return {workspace_tensor, workspace_ptr};
+}
+
+inline std::pair<at::Tensor, void*> AllocWorkspaceV2(size_t size, aclrtStream stream)
+{
+    if (size == 0) {
+        return {at::Tensor(), nullptr};
+    }
+    auto workspace_tensor = at_npu::native::allocate_workspace(size, stream);
+    auto workspace_ptr = const_cast<void*>(workspace_tensor.storage().data());
+    return {workspace_tensor, workspace_ptr};
+}
+
 } // namespace
 
 TorchKernelPy::TorchKernelPy(int kernel_type, uint32_t flags)
@@ -106,13 +158,6 @@ void TorchKernelPy::SetTuning(bool enable)
     }
 }
 
-DynKernelPy::~DynKernelPy()
-{
-    for (auto ref : dyn_load_shapes_) {
-        delete ref;
-    }
-}
-
 IntArrayRef* TorchKernelPy::GetShapeRef(py::object shape) { return SymIntArraytoShapeRef(shape); }
 
 ShapeRef* TorchKernelPy::SymIntArraytoShapeRef(py::object shape)
@@ -134,18 +179,6 @@ ShapeRef* TorchKernelPy::SymIntArraytoShapeRef(at::IntArrayRef shape_array)
     return ref;
 }
 
-DynKernelPy::LoadShapeRef* DynKernelPy::GetDynLoadShapeRef(size_t dim_size)
-{
-    static int64_t init_dyn_data[ShapeWithRef::MAX_SIZE] = {-1};
-    auto ref = new LoadShapeRef();
-    ref->shape.data = init_dyn_data;
-    ref->shape.size = dim_size;
-    ref->stride.data = nullptr;
-    ref->stride.size = 0;
-    dyn_load_shapes_.push_back(ref);
-    return ref;
-}
-
 py::object TorchKernelPy::Load(py::object shape, DataTypePy type)
 {
     ShapeRef* shape_ref = SymIntArraytoShapeRef(shape);
@@ -158,28 +191,6 @@ py::object TorchKernelPy::ViewLoad(py::object shape, py::object stride, DataType
 {
     ShapeRef* shape_ref = SymIntArraytoShapeRef(shape);
     ShapeRef* stride_ref = SymIntArraytoShapeRef(stride);
-    auto op = kernel_.Load(nullptr, shape_ref, stride_ref, type);
-    loads_.emplace_back(op);
-    return ObjToPy(op);
-}
-
-py::object DynKernelPy::Load(py::object shape, DataTypePy type)
-{
-    auto shape_seq = shape.cast<py::sequence>();
-    auto ref = GetDynLoadShapeRef(shape_seq.size());
-    ShapeRef* shape_ref = &ref->shape;
-    auto op = kernel_.Load(nullptr, shape_ref, type);
-    loads_.emplace_back(op);
-    return ObjToPy(op);
-}
-
-py::object DynKernelPy::ViewLoad(py::object shape, py::object stride, DataTypePy type)
-{
-    auto shape_seq = shape.cast<py::sequence>();
-    auto ref = GetDynLoadShapeRef(shape_seq.size());
-    ref->stride = ref->shape;
-    ShapeRef* shape_ref = &ref->shape;
-    ShapeRef* stride_ref = &ref->stride;
     auto op = kernel_.Load(nullptr, shape_ref, stride_ref, type);
     loads_.emplace_back(op);
     return ObjToPy(op);
@@ -259,9 +270,16 @@ py::object TorchKernelPy::Run(py::args args)
     }
 
     aclrtStream stream = c10_npu::getCurrentNPUStream().stream(false);
-    auto dvm_call = [this, addr, stream]() { return Launch(addr->data(), stream); };
-
-    at_npu::native::OpCommand::RunOpApiV2(op_name_, dvm_call);
+    if (!IsCurrentStreamCapturing()) {
+        auto dvm_call = [this, addr, stream]() { return LaunchV2(addr->data(), stream); };
+        at_npu::native::OpCommand::RunOpApiV2(op_name_, dvm_call);
+    } else {
+        auto [workspace_tensor, workspace_ptr] = AllocWorkspaceV1(ws_size_);
+        auto dvm_call = [this, addr, stream, workspace_ptr]() {
+            return LaunchV1(addr->data(), stream, workspace_ptr);
+        };
+        at_npu::native::OpCommand::RunOpApiV2(op_name_, dvm_call);
+    }
 
     for (auto [ori_tensor, cur_tensor] : out_refs) {
         ori_tensor.copy_(cur_tensor);
@@ -277,8 +295,16 @@ py::object TorchKernelPy::Call(py::args args)
     auto parsed = ParseTensorCallInputs(args, tensor_list);
     auto ret = CreateOutputs(parsed.options, parsed.addr->data() + num_inputs);
     aclrtStream stream = c10_npu::getCurrentNPUStream().stream(false);
-    auto dvm_call = [this, addr = parsed.addr, stream]() { return Launch(addr->data(), stream); };
-    at_npu::native::OpCommand::RunOpApiV2(op_name_, dvm_call);
+    if (!IsCurrentStreamCapturing()) {
+        auto dvm_call = [this, addr = parsed.addr, stream]() { return LaunchV2(addr->data(), stream); };
+        at_npu::native::OpCommand::RunOpApiV2(op_name_, dvm_call);
+    } else {
+        auto [workspace_tensor, workspace_ptr] = AllocWorkspaceV1(ws_size_);
+        auto dvm_call = [this, addr = parsed.addr, stream, workspace_ptr]() {
+            return LaunchV1(addr->data(), stream, workspace_ptr);
+        };
+        at_npu::native::OpCommand::RunOpApiV2(op_name_, dvm_call);
+    }
     return ret;
 }
 
@@ -305,22 +331,41 @@ py::object TorchKernelPy::CreateOutputs(const at::TensorOptions& options, void**
     return tuple_ret;
 }
 
-void GraphSplitKernelPy::Setup()
+int TorchKernelPy::LaunchV2(void** addr, aclrtStream stream)
 {
-    SetupRelocs();
-    kernel_.Infer();
+    auto workspace_pair = AllocWorkspaceV2(ws_size_, stream);
+    auto workspace_ptr = workspace_pair.second;
+    return LaunchV1(addr, stream, workspace_ptr);
 }
 
-std::unique_ptr<DynKernelPy> DynGraphSplitKernelPy::CloneExecutor() const
+int TorchKernelPy::LaunchV1(void** addr, aclrtStream stream, void* workspace_ptr)
 {
-    auto executor = std::make_unique<DynGraphSplitKernelPy>();
-    CloneExecutorStateTo(*executor);
-    return executor;
+    for (size_t i = 0; i < relocs_.size(); ++i) {
+        relocs_[i].addr = addr[i];
+    }
+    return kernel_.Launch(relocs_.data(), relocs_.size(), workspace_ptr, stream);
 }
 
-void DynGraphSplitKernelPy::Setup() { DynKernelPy::Setup(); }
+void* GraphSplitBase::Alloc(size_t size)
+{
+    auto [workspace_tensor, workspace_ptr] = AllocWorkspaceV2(size, stream_);
+    ws_ = std::move(workspace_tensor);
+    return workspace_ptr;
+}
 
-int GraphSplitBase::Launch(Kernel& kernel, void** addr, aclrtStream stream, std::vector<RelocEntry>& relocs)
+int GraphSplitBase::LaunchV1(Kernel& kernel, void** addr, aclrtStream stream, std::vector<RelocEntry>& relocs,
+                             void* workspace_ptr)
+{
+    for (size_t i = 0; i < relocs.size(); ++i) {
+        relocs[i].addr = addr[i];
+    }
+    ExternalWsAllocator allocator(workspace_ptr);
+    kernel.CodeGen(relocs.data(), relocs.size(), &allocator);
+    int ret = kernel.Launch(stream);
+    return ret;
+}
+
+int GraphSplitBase::LaunchV2(Kernel& kernel, void** addr, aclrtStream stream, std::vector<RelocEntry>& relocs)
 {
     stream_ = stream;
     for (size_t i = 0; i < relocs.size(); ++i) {
@@ -330,6 +375,15 @@ int GraphSplitBase::Launch(Kernel& kernel, void** addr, aclrtStream stream, std:
     int ret = kernel.Launch(stream);
     ws_.reset();
     return ret;
+}
+
+void GraphSplitKernelPy::Setup()
+{
+    SetupRelocs();
+    kernel_.Infer();
+    SetWorkspaceSize(0);
+    FakeWsAllocator fake_alloc(this);
+    kernel_.CodeGen(nullptr, 0, &fake_alloc);
 }
 
 py::object GraphSplitKernelPy::Run(py::args)
@@ -343,12 +397,29 @@ py::object GraphSplitKernelPy::Call(py::args inputs)
     auto parsed = ParseTensorCallInputs(inputs, tensor_list);
     auto ret = CreateOutputs(parsed.options, parsed.addr->data() + loads_.size());
     auto stream = c10_npu::getCurrentNPUStream().stream(false);
-    auto launch_call = [this, stream, addr = parsed.addr]() -> int {
-        return GraphSplitBase::Launch(kernel_, addr->data(), stream, relocs_);
-    };
-    at_npu::native::OpCommand::RunOpApiV2(op_name_, launch_call);
+    if (!IsCurrentStreamCapturing()) {
+        auto launch_call = [this, stream, addr = parsed.addr]() -> int {
+            return GraphSplitBase::LaunchV2(kernel_, addr->data(), stream, relocs_);
+        };
+        at_npu::native::OpCommand::RunOpApiV2(op_name_, launch_call);
+    } else {
+        auto [workspace_tensor, workspace_ptr] = AllocWorkspaceV1(ws_size_);
+        auto launch_call = [this, stream, addr = parsed.addr, workspace_ptr]() -> int {
+            return GraphSplitBase::LaunchV1(kernel_, addr->data(), stream, relocs_, workspace_ptr);
+        };
+        at_npu::native::OpCommand::RunOpApiV2(op_name_, launch_call);
+    }
     return ret;
 }
+
+std::unique_ptr<DynKernelPy> DynGraphSplitKernelPy::CloneExecutor() const
+{
+    auto executor = std::make_unique<DynGraphSplitKernelPy>();
+    CloneExecutorStateTo(*executor);
+    return executor;
+}
+
+void DynGraphSplitKernelPy::Setup() { DynKernelPy::Setup(); }
 
 py::object DynGraphSplitKernelPy::Run(py::args)
 {
@@ -357,6 +428,8 @@ py::object DynGraphSplitKernelPy::Run(py::args)
 
 py::object DynGraphSplitKernelPy::Call(py::args inputs)
 {
+    TORCH_CHECK(!IsCurrentStreamCapturing(),
+                "DynGraphSplitKernel does not support stream capture: dynamic shape requires runtime Infer.");
     auto* executor = static_cast<DynGraphSplitKernelPy*>(AcquireExecutor());
     std::vector<at::Tensor> tensor_list;
     auto parsed = executor->ParseDynCallInputs(inputs, tensor_list);
@@ -366,7 +439,7 @@ py::object DynGraphSplitKernelPy::Call(py::args inputs)
     auto ret = executor->CreateOutputs(parsed.options, parsed.addr->data() + executor->loads_.size());
     auto stream = c10_npu::getCurrentNPUStream().stream(false);
     auto launch_call = [this, executor, stream, addr = parsed.addr]() -> int {
-        int ret = executor->GraphSplitBase::Launch(executor->kernel_, addr->data(), stream, executor->relocs_);
+        int ret = executor->GraphSplitBase::LaunchV2(executor->kernel_, addr->data(), stream, executor->relocs_);
         ReleaseExecutor(executor);
         return ret;
     };
@@ -374,18 +447,45 @@ py::object DynGraphSplitKernelPy::Call(py::args inputs)
     return ret;
 }
 
-int TorchKernelPy::Launch(void** addr, aclrtStream stream)
+DynKernelPy::~DynKernelPy()
 {
-    void* workspace_ptr = nullptr;
-    at::Tensor workspace_tensor;
-    if (ws_size_ != 0) {
-        workspace_tensor = at_npu::native::allocate_workspace(ws_size_, stream);
-        workspace_ptr = const_cast<void*>(workspace_tensor.storage().data());
+    for (auto ref : dyn_load_shapes_) {
+        delete ref;
     }
-    for (size_t i = 0; i < relocs_.size(); ++i) {
-        relocs_[i].addr = addr[i];
-    }
-    return kernel_.Launch(relocs_.data(), relocs_.size(), workspace_ptr, stream);
+}
+
+DynKernelPy::LoadShapeRef* DynKernelPy::GetDynLoadShapeRef(size_t dim_size)
+{
+    static int64_t init_dyn_data[ShapeWithRef::MAX_SIZE] = {-1};
+    auto ref = new LoadShapeRef();
+    ref->shape.data = init_dyn_data;
+    ref->shape.size = dim_size;
+    ref->stride.data = nullptr;
+    ref->stride.size = 0;
+    dyn_load_shapes_.push_back(ref);
+    return ref;
+}
+
+py::object DynKernelPy::Load(py::object shape, DataTypePy type)
+{
+    auto shape_seq = shape.cast<py::sequence>();
+    auto ref = GetDynLoadShapeRef(shape_seq.size());
+    ShapeRef* shape_ref = &ref->shape;
+    auto op = kernel_.Load(nullptr, shape_ref, type);
+    loads_.emplace_back(op);
+    return ObjToPy(op);
+}
+
+py::object DynKernelPy::ViewLoad(py::object shape, py::object stride, DataTypePy type)
+{
+    auto shape_seq = shape.cast<py::sequence>();
+    auto ref = GetDynLoadShapeRef(shape_seq.size());
+    ref->stride = ref->shape;
+    ShapeRef* shape_ref = &ref->shape;
+    ShapeRef* stride_ref = &ref->stride;
+    auto op = kernel_.Load(nullptr, shape_ref, stride_ref, type);
+    loads_.emplace_back(op);
+    return ObjToPy(op);
 }
 
 ShapeRef* DynKernelPy::SymIntArraytoShapeRef(py::object shape)
@@ -550,6 +650,8 @@ void DynKernelPy::Setup()
 
 py::object DynKernelPy::Run(py::args args)
 {
+    TORCH_CHECK(!IsCurrentStreamCapturing(),
+                "DynKernel does not support stream capture: dynamic shape requires runtime CodeGen.");
     const auto num_inputs = loads_.size();
     const auto num_outputs = stores_.size();
     const auto num_sym = sym_scalar_input_.size();
@@ -614,7 +716,7 @@ py::object DynKernelPy::Run(py::args args)
         }
         UpdateSymShapeData();
         ws_size_ = kernel_.CodeGen();
-        return Launch(info->addr.data(), stream);
+        return LaunchV2(info->addr.data(), stream);
     };
 
     at_npu::native::OpCommand::RunOpApiV2(op_name_, dvm_call);
@@ -627,6 +729,8 @@ py::object DynKernelPy::Run(py::args args)
 
 py::object DynKernelPy::Call(py::args args)
 {
+    TORCH_CHECK(!IsCurrentStreamCapturing(),
+                "DynKernel does not support stream capture: dynamic shape requires runtime CodeGen.");
     auto* executor = AcquireExecutor();
     const auto num_inputs = executor->loads_.size();
     std::vector<at::Tensor> tensor_list;
@@ -637,7 +741,7 @@ py::object DynKernelPy::Call(py::args args)
     auto ret = executor->CreateOutputs(parsed.options, parsed.addr->data() + num_inputs);
     aclrtStream stream = c10_npu::getCurrentNPUStream().stream(false);
     auto dvm_call = [this, executor, addr = parsed.addr, stream]() {
-        int ret = executor->Launch(addr->data(), stream);
+        int ret = executor->LaunchV2(addr->data(), stream);
         ReleaseExecutor(executor);
         return ret;
     };
