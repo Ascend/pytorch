@@ -325,6 +325,7 @@ class TestStorage(TestCase):
             self.assertIsInstance(getattr(y.float().cpu(), dtype)(), getattr(torch, dtype.title() + "Storage"))
 
     def test_deepcopy(self):
+        torch_npu.npu.config.allow_internal_format = True
         x = torch.tensor([1])
         y = copy.deepcopy(x)
 
