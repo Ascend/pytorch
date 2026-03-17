@@ -89,7 +89,7 @@ class CANNFileParser:
 
     def _check_cann_path_valid(self):
         if not self._cann_path:
-            raise RuntimeError(f"CANN path '{self._cann_path}' does not exist.")
+            raise RuntimeError(f"CANN Profiling data does not exist.")
         if not FileManager.check_file_readable(self._cann_path):
             raise PermissionError(f"Path '{self._cann_path}' owner is not readable. "
                                   f"Please execute 'chmod -R 755 '{self._cann_path}' '.")

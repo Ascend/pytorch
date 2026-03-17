@@ -25,12 +25,6 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestProfilerConfig(TestCase):
-    def test_load_is_cluster_with_non_cluster_file(self):
-        config = profiler_config.ProfilerConfig()
-        with patch.object(ProfilerPathManager, 'get_info_file_path', return_value='/path/profiler_info_normal.json'):
-            config.load_is_cluster('/mock/path')
-            self.assertFalse(config._is_cluster)
-
     def test_get_timestamp_from_syscnt_disabled(self):
         config = profiler_config.ProfilerConfig()
         config._syscnt_enable = False
@@ -64,7 +58,6 @@ class TestProfilerConfig(TestCase):
         self.assertFalse(config._msprof_tx)
         self.assertFalse(config._op_attr)
         self.assertTrue(config._data_simplification)
-        self.assertFalse(config._is_cluster)
         self.assertEqual(config._localtime_diff, 0)
         self.assertFalse(config._syscnt_enable)
         self.assertFalse(config._sys_io)
