@@ -11,7 +11,7 @@ torch.compile\(\)包含如下核心组件：
 | 组件                 |定位| 作用                                                                                                       |
 |--------------------|--|----------------------------------------------------------------------------------------------------------|
 | Dynamo             |前端编译器（代码转换器）| TorchDynamo能够JIT（即时）将用户的eager（动态图）代码编译为FX Graph，进而交给其他lowering编译器（如Inductor）进行编译，最终生成优化过后的底层机器代码，达到加速效果。 |
-| Inductor           |后端编译器（高效代码生成器）| 具备基于triton-ascend自动生成高性能算子的能力，能够显著减少开发者手动设计Tiling、管理内存等工作量。支持算子融合等图优化策略，通过减少内存访问次数来提升性能。                 |
+| Inductor           |后端编译器（高效代码生成器）| 具备基于多种模式（包括Triton/MLIR/DVM）的自动生成高性能算子能力，能够显著减少开发者手动设计Tiling、管理内存等工作量。支持算子融合等图优化策略，通过减少内存访问次数来提升性能。  |
 | NPUGraph（aclgraph） |硬件级下沉优化（NPU操作录屏）| 捕获一系列NPU操作（如 kernel 调用、内存拷贝）组成静态图缓存在NPU device设备上；一次捕获、多次复跑，避免重复的 kernel 启动开销（kernel launch overhead）。   |
 | NPUGraph_EX        |轻量化高性能图后端| 融合了ACLGraph的图下沉调度能力，在PyTorch FX图上叠加亲和NPU的图优化和编译缓存复用等能力，进一步加速大模型在NPU上编译运行。                                |
 | NPUGraph Tree      |动态形状路由与子图管理| 管理多个有关联的 NPUGraphs，让 NPUGraph的优化收益能覆盖动态形状场景，而非仅局限于固定形状，优化段图场景多个子图的内存使用。                                  |
@@ -21,15 +21,20 @@ torch.compile\(\)包含如下核心组件：
 
 Inductor后端：通过torch.compile(backend="inductor")使能，以降低Python开销和kernel启动开销为核心，通过Dynamo+Inductor协同，在不改变模型逻辑的前提下，自动进行算子融合和生成，提升训练或推理的吞吐量，尤其适合迭代次数多、单步计算量中等的场景。
 
+- Triton模式：Inductor后端的默认模式，基于Triton-Ascend生成融合算子。关于Triton-Ascend的详细介绍，可以参考[Triton-Ascend官方仓库](https://gitcode.com/Ascend/triton-ascend);
+- MLIR模式：通过torch.compile(backend="inductor", options={"npu_backend": "mlir"})使能，基于Torch-MLIR生成融合算子。关于Torch-MLIR的详细介绍，可以参考[Torch-MLIR官方仓库](https://github.com/llvm/torch-mlir);
+- DVM模式：通过torch.compile(backend="inductor", options={"npu_backend": "dvm"})使能，基于DVM生成融合算子。关于DVM的详细介绍，可以参考[DVM官方仓库](https://gitcode.com/mindspore/dvm/tree/master)。
+
 NPUGraph后端：通过torch.compile(backend="npugraphs")使能，利用NPUGraphs技术，彻底消除NPU任务的启动开销和CPU至NPU同步开销，适合eager模式存在host bound且kernel调用频繁但输入形状固定的场景，整体功能与backend="cudagraphs"一致。
 
 NPUGraph_EX后端：通过torch.compile(backend="npugraph_ex")使能，基于ACLGraph调度和FX图优化，对大模型推理进行加速，并与主流服务化框架快速、无缝地对接。
 
 ## 使用指导
 
-> [!NOTICE]  
-> Inductor后端需安装最新版本的triton-ascend，具体可参考[LINK](https://gitcode.com/Ascend/triton-ascend/blob/master/docs/sources/getting-started/installation.md)。
+> [!NOTICE]
 
+> Inductor后端需安装最新版本的Triton-Ascend依赖包，具体可参考[Triton-Ascend说明文档](https://gitcode.com/Ascend/triton-ascend/blob/master/docs/sources/getting-started/installation.md)。<br>
+> Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。
 
 接口原型：
 
@@ -50,6 +55,7 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
       -   triton.cudagraphs
       -   trace.enabled
       -   enable\_shape\_handling
+      -   npu\_backend
     - npugraph_ex支持的参数和详细使用指导请参考：[PyTorch图模式使用(TorchAir)](https://gitcode.com/Ascend/torchair/docs) - npugraph_ex后端。
 
 -   **disable**：可选参数，是否关闭torch.compile能力，默认值为False。
@@ -58,7 +64,7 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
 
 ## 使用样例
 
--   Inductor后端torch.compile\(backend="inductor"\)示例：
+-   Inductor后端`torch.compile(backend="inductor")`示例：
 
     ```Python
     import torch
@@ -83,7 +89,8 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
         backend="inductor",  # 指定后端为 Inductor
         mode="reduce-overhead"  # 优化策略：降低开销
     )
-    
+    # 如果需要指定算子编译器，加上选项options={"npu_backend":"mlir"/“dvm"}
+
     # 3. 正常训练/推理（使用方式与原始模型完全一致）
     optimizer = torch.optim.Adam(compiled_model.parameters(), lr=1e-3)
     criterion = nn.CrossEntropyLoss()
@@ -103,7 +110,7 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
     
     ```
 
--   NPUGraph后端torch.compile\(backend="npugraphs"\)示例：
+-   NPUGraph后端`torch.compile(backend="npugraphs")`示例：
 
     ```Python
     # 运行
@@ -145,7 +152,7 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
         optimizer.step()
     ```
   
-- NPUGraph_EX后端torch.compile\(backend="npugraph_ex"\)示例：
+- NPUGraph_EX后端`torch.compile(backend="npugraph_ex")`示例：
 
     ```Python
     import torch

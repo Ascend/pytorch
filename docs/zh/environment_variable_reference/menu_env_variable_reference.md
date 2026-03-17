@@ -54,6 +54,9 @@
     -   [TORCH\_NPU\_DEVICE\_CAPABILITY](TORCH_NPU_DEVICE_CAPABILITY.md)
     -   [TORCH\_TRANSFER\_TO\_NPU](TORCH_TRANSFER_TO_NPU.md)
 
+-   [图模式](inductor.md)
+    -   [TORCHINDUCTOR\_NPU\_BACKEND](TORCHINDUCTOR_NPU_BACKEND.md)
+
 -   [附录](appendix.md)
     -   [在进行模型分布式训练时遇到报错“RuntimeError: The Inner Error ...”](runtimeerror_Inner_Error.md)
 
