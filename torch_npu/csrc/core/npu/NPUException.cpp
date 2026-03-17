@@ -236,7 +236,11 @@ std::string cacheDeviceErrorVerboseMsg(const std::string& device_error_msg)
         return "";
     }
     clear_device_error_info();
-    int32_t device = static_cast<int32_t> (c10_npu::current_device());
+    // 解决当前Device未初始化时，循环初始化问题
+    int device = c10_npu::GetLocalDevice();
+    if (device < 0) {
+        return "";
+    }
     DeviceErrorInfo cacheInfo;
     cacheInfo.device = device;
     auto ret = c10_npu::acl::AclrtGetErrorVerbose(device, &cacheInfo.info);
