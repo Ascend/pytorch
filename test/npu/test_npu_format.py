@@ -49,6 +49,7 @@ class TestNPUFormat(TestCase):
     @unittest.skip("Temporarily disabled")
     def test_get_npu_format_weak_ref(self):
         """test get_npu_format"""
+        torch_npu.npu.config.allow_internal_format = True
         x1 = torch.ones(2, 2).npu()
         torch_npu.npu_format_cast_(x1, torch_npu.Format.FRACTAL_NZ)
 

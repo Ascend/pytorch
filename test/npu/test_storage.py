@@ -328,6 +328,7 @@ class TestStorage(TestCase):
     
     @unittest.skip("Temporarily disabled")
     def test_deepcopy(self):
+        torch_npu.npu.config.allow_internal_format = True
         x = torch.tensor([1])
         y = copy.deepcopy(x)
 
