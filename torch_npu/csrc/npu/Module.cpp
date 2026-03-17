@@ -211,6 +211,15 @@ void initDeviceProperty(int64_t deviceid)
     NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_L2_SIZE, &L2_cache_size));
     device_properties[deviceid].L2_cache_size = L2_cache_size;
 
+    // Set multi_processor_count to vector_core_num for compatibility with DataParallel balance check
+    // Use vector_core_num as it represents the number of processing units similar to CUDA's multi_processor_count
+    if (vector_core_num > 0) {
+        device_properties[deviceid].multi_processor_count = static_cast<int>(vector_core_num);
+    } else if (cube_core_num > 0) {
+        // Fallback to cube_core_num if vector_core_num is not available
+        device_properties[deviceid].multi_processor_count = static_cast<int>(cube_core_num);
+    }
+
     if (c10_npu::acl::IsExistDeviceGetUuid()) {
         aclError err = c10_npu::acl::AclrtDeviceGetUuid(deviceid, &uuid);
         if (err == ACL_ERROR_NONE) {
