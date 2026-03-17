@@ -216,7 +216,9 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     }
 
     // set default allow_internal_format value
-    if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910_9391) {
+    if (((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) &&
+        (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1)) ||
+        (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910_9391)) {
         SetDefaultAllowInternalFromatDisable();
     }
 
