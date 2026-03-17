@@ -67,7 +67,7 @@ class TorchNPUDeviceTestCase(TestCase):
     def test_npu_get_unsupported_device_properties(self):
         props = torch_npu.npu.get_device_properties(0)
         unsupported_fields = [
-            'major', 'minor', 'is_multi_gpu_board', 'is_integrated', 'multi_processor_count',
+            'major', 'minor', 'is_multi_gpu_board', 'is_integrated',
             'max_threads_per_multi_processor', 'warp_size', 'regs_per_multiprocessor', 'gcnArchName'
         ]
         for field in unsupported_fields:
