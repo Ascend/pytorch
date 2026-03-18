@@ -17,7 +17,7 @@ from torch._inductor import ir
 from torch._inductor.virtualized import ops, V
 from torch.utils._ordered_set import OrderedSet
 
-from ..lowering_fx import (
+from ..lowering import (
     fetch_graphs,
     merge_traced_graphs,
     node_id,
@@ -57,7 +57,7 @@ def _patch_pointwise_constant_to_device(self, device, traced_graph=None, node_na
     loader = self.make_loader()
     loader = patch.object(ir.ConstantBuffer, "override_device", device)(loader)
 
-    r = ir.Pointwise(device, self.dtype, loader, self.ranges)
+    r = ir.Pointwise(device=device, dtype=self.dtype, inner_fn=loader, ranges=self.ranges)
     r._post_init_setattr("traced_graph", traced_graph)
     r._post_init_setattr("node_name", node_name)
     return r
@@ -133,7 +133,9 @@ def _patch_reduction_create(
                 return inner_fn(index, reduction_index)
 
         return ir.Pointwise.create(
-            device=device, dtype=dst_dtype, inner_fn=fn, ranges=ranges
+            device=device, dtype=dst_dtype, inner_fn=fn, ranges=ranges,
+            traced_graph=traced_graph,
+            node_name=node_name
         )
 
     if (
@@ -182,7 +184,7 @@ def _patch_reduction_create(
             raise RuntimeError("assert new_ranges cannot be None")
         if new_reduction_ranges is None:
             raise RuntimeError("assert new_reduction_ranges cannot be None")
-        return cls.create_multilayer_existing_ranges(
+        r = cls.create_multilayer_existing_ranges(
             device,
             dst_dtype,
             src_dtype,
@@ -194,9 +196,14 @@ def _patch_reduction_create(
             reduction_type,
             reduction_hint,
         )
+        r._post_init_setattr("traced_graph", traced_graph)
+        r._post_init_setattr("node_name", node_name)
+        r.data.data._post_init_setattr("traced_graph", traced_graph)
+        r.data.data._post_init_setattr("node_name", node_name)
+        return r
     elif split > 1:
         # triton doesn't support reduce to single element well, so break it up
-        return cls.create_multilayer(
+        r = cls.create_multilayer(
             device,
             dst_dtype,
             src_dtype,
@@ -207,6 +214,11 @@ def _patch_reduction_create(
             split,
             reduction_hint,
         )
+        r._post_init_setattr("traced_graph", traced_graph)
+        r._post_init_setattr("node_name", node_name)
+        r.data.data._post_init_setattr("traced_graph", traced_graph)
+        r.data.data._post_init_setattr("node_name", node_name)
+        return r
 
     r = ir.Reduction(
         device=device,
@@ -423,7 +435,7 @@ def _patch_view_create(cls, x, new_size, traced_graph=None, node_name=None):
         def fake_reindex(index):
             return tuple([0] * len(old_size))
 
-        r = cls(x, list(new_size), fake_reindex)
+        r = cls(data=x, size=list(new_size), reindex=fake_reindex)
         r._post_init_setattr("traced_graph", traced_graph)
         r._post_init_setattr("node_name", node_name)
         return r
@@ -616,6 +628,7 @@ def _patch_concatkernel_create(cls, inputs, dim):
     concat_kernel._post_init_setattr("inputs", cls.unwrap_storage(concat_kernel.inputs))
     concat_kernel._post_init_setattr("traced_graph", new_graph)
     concat_kernel._post_init_setattr("node_name", node_name)
+    V.graph.register_operation(concat_kernel)
 
     return kernel
 

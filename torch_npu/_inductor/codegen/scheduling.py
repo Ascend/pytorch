@@ -46,7 +46,7 @@ from .split_tiling import SplitTiling
 from .split_tiling import SplitTiling
 from .triton import NPUIndexTritonKernel
 from .. import config as npu_config
-from ..lowering_fx import (
+from ..lowering import (
     create_fx_from_snodes_by_traced_graph,
     create_compile_kwargs,
     generate_fx_graph_code,
@@ -251,7 +251,7 @@ class NPUTritonScheduling(TritonScheduling):
             snode_str = f"\n# SchedulerNodes: {snodes}"
             metadata_comment += snode_str + "\n"
             if npu_config.dump_fx_graph:
-                from ..lowering_fx import snodes_to_fx
+                from ..lowering import snodes_to_fx
                 gm = snodes_to_fx.get(str(snodes), "")
                 gm_str = "\n# Graph Module str:\n"
                 gm_str += "\n".join([f"# {line}" for line in gm.split("\n")])

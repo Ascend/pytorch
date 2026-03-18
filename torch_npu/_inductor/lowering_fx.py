@@ -68,17 +68,6 @@ prims = torch.ops.prims
 npu = torch.ops.npu
 
 
-def _init_set(input_list, output_set):
-    for fn in input_list:
-        output_set.add(fn)
-        if isinstance(fn, torch._ops.OpOverloadPacket):
-            for overload in fn.overloads():
-                other_fn = getattr(fn, overload)
-                output_set.add(other_fn)
-
-
-LOWERING_OVERLOAD_OP = list(set(GENERATE_LIST) | set(LOWERING_OVERLOAD_OP))
-
 fn_to_aten_fn = {}
 node_id = itertools.count(0)
 snodes_to_fx = {}
@@ -517,16 +506,15 @@ num_inputs = {compile_kwargs['num_inputs']}
 num_outputs = {compile_kwargs['num_outputs']}
 non_contiguous_indices = {compile_kwargs['non_contiguous_indices']}
 mismatch_indices_shapes = {compile_kwargs['mismatch_indices_shapes']}
+async_compile = AsyncCompile()
+{kernel_name} = async_compile.triton('{kernel_name}', '''
+{kernel_code}
+''', device_str='npu')
+
+async_compile.wait(globals())
+del async_compile
 
 def run():
-    async_compile = AsyncCompile()
-    {kernel_name} = async_compile.triton('{kernel_name}', '''
-{kernel_code}
-    ''', device_str='npu')
-
-    async_compile.wait(globals())
-    del async_compile
-
     stream0 = get_raw_stream(0)
 
     
@@ -577,6 +565,173 @@ if __name__ == "__main__":
     return code_template
 
 
+def make_pointwise(
+        fn,
+        override_return_dtype=None,
+        override_device=None,
+        override_fn_when_input_bool=None,
+        override_fn_when_gpu_float64=None,
+        allow_alpha=False,
+        triton_fallback=None,
+        **kwargs
+):
+    def inner(*inputs: TensorBox, alpha=None):
+        if triton_fallback is not None and any(
+                isinstance(inp, IRNode) and is_triton(inp) for inp in inputs
+        ):
+            # not implemented
+            if allow_alpha:
+                raise RuntimeError("assert allow_alpha is not allowed")
+            return triton_fallback(*inputs)
+
+        inputs = lowering.promote_constants(inputs, override_return_dtype)
+        if allow_alpha:
+            if alpha is not None and alpha != 1:
+                inputs = list(inputs)
+                inputs[-1] = mul(inputs[-1], alpha)
+        else:
+            if alpha is not None:
+                raise RuntimeError("assert alpha is not None")
+        loaders = [x.make_loader() for x in inputs]
+        ranges = inputs[0].get_size()
+        dtype = override_return_dtype or inputs[0].get_dtype()
+        is_gpu_device = lowering.is_gpu(decode_device(inputs[0].get_device()).type)
+
+        for other in inputs[1:]:
+            if not (isinstance(other, ir.BaseConstant) or len(ranges) == len(other.get_size())):
+                raise RuntimeError(f"assert ndim mismatch {fn} {ranges} {other.get_size()}")
+
+        # in tracing, we will annotate pointwise nodes that correspond to the output of
+        # a pointwise node that would have been run in eager. intermediary pointwise nodes
+        # during decompositions are not annotated.
+        emulate_precision_casts = (
+                V.graph is not None
+                and getattr(V.graph, "current_node", None) is not None
+                and V.graph.current_node.meta is not None
+                and V.graph.current_node.meta.get("low_precision_pointwise_barrier", False)
+                and dtype in (torch.bfloat16, torch.float16)
+        )
+
+        def inner_fn(index):
+            if len(index) != len(ranges):
+                raise RuntimeError(f"assert wrong ndim {index} {ranges}")
+            if dtype == torch.bool and override_fn_when_input_bool is not None:
+                return override_fn_when_input_bool(*[load(index) for load in loaders])
+            elif (
+                    override_fn_when_gpu_float64
+                    and is_gpu_device
+                    and dtype == torch.float64
+            ):
+                return override_fn_when_gpu_float64(*[load(index) for load in loaders])
+            else:
+                inputs_loaded = []
+                for load in loaders:
+                    out = load(index)
+                    if emulate_precision_casts:
+                        downcast = ops.to_dtype(out, dtype, use_compute_types=False)
+                        out = ops.to_dtype(downcast, dtype)
+                    inputs_loaded.append(out)
+
+                out = fn(*inputs_loaded)
+                if emulate_precision_casts:
+                    # fp16/bf16 kernels are computed in fp32. Casting down to fp16/bf16 here,
+                    # then upcasting again, to emulate casts that eager would do.
+                    downcast = ops.to_dtype(out, dtype, use_compute_types=False)
+                    return ops.to_dtype(downcast, dtype)
+                return out
+
+        if not override_device:
+            device = None
+            for i in inputs:
+                if lowering.is_gpu(i.get_device().type):
+                    device = i.get_device()
+                    break
+            if not device:
+                device = inputs[0].get_device()
+
+        device = override_device or device
+
+        input_graphs = fetch_graphs(inputs)
+        node_name = f'pointwise_{next(node_id)}'
+        origin_fn = fn_to_aten_fn[fn]
+        new_graph = merge_traced_graphs(input_graphs, origin_fn, node_name, **kwargs)
+
+        return Pointwise.create(
+            device=device,
+            dtype=dtype,
+            inner_fn=inner_fn,
+            ranges=ranges,
+            node_name=node_name,
+            traced_graph=new_graph,
+        )
+
+    return inner
+
+
+def to_dtype(x: TensorBox, dtype: torch.dtype, copy=False):
+    src_dtype = x.get_dtype()
+    if src_dtype == dtype:
+        return clone(x) if copy else x
+
+    def _to_dtype(x):
+        return ops.to_dtype(x, dtype, src_dtype=src_dtype)
+
+    register_fn_to_aten_fn(_to_dtype, aten.to.dtype)
+    return make_pointwise(_to_dtype, override_return_dtype=dtype, dtype=dtype)(x)
+
+
+def _make_reduction_inner(x, *, axis, keepdims, dtype, override_return_dtype):
+    if dtype is not None:
+        x = to_dtype(x, dtype)
+    size = x.get_size()
+    axis = set(lowering._validate_reduction_axis(x, axis))
+
+    kept_sizes = []
+    kept_idx = []
+    reduced_sizes = []
+    reduced_idx = []
+    for i in range(len(size)):
+        if i in axis:
+            reduced_idx.append(i)
+            reduced_sizes.append(size[i])
+        else:
+            kept_idx.append(i)
+            kept_sizes.append(size[i])
+
+    def loader(index, reduction_index):
+        if len(reduction_index) != len(reduced_idx):
+            raise RuntimeError("assert reduction index length mismatch")
+        if keepdims:
+            if len(index) != len(size):
+                raise RuntimeError("assert index size length mismatch")
+            index = [index[i] for i in kept_idx]
+        if len(index) != len(kept_idx):
+            raise RuntimeError("assert index kept_idx length mismatch")
+        new_index = [None] * (len(index) + len(reduction_index))
+        for idx, var in itertools.chain(
+                zip(kept_idx, index), zip(reduced_idx, reduction_index)
+        ):
+            new_index[idx] = var
+        return inner_loader(new_index)
+
+    if keepdims:
+        new_size = list(size)
+        for i in reduced_idx:
+            new_size[i] = sympy.S.One
+    else:
+        new_size = kept_sizes
+
+    inner_loader = x.make_loader()
+    return dict(
+        device=x.get_device(),
+        dst_dtype=override_return_dtype or x.get_dtype(),
+        src_dtype=x.get_dtype(),
+        inner_fn=loader,
+        ranges=new_size,
+        reduction_ranges=reduced_sizes,
+    )
+
+    
 def dump_fx_graph_code(code, dump_path, traced_graph_hash):
     py_path = os.path.join(dump_path, traced_graph_hash + '.py')
     with open(py_path, 'w') as f:
@@ -598,31 +753,7 @@ def clone(x, *, memory_format=None):
     )
 
 
-def _register_npu_inductor_fallbacks():
-    gen_set = set()
-    _init_set(GENERATE_LIST, gen_set)
-    overload_op_set = set()
-    _init_set(LOWERING_OVERLOAD_OP, overload_op_set)
-
-    # 把不在白名单的op fallback
-    for op in lowering.lowerings:
-        if op not in decompositions and op not in gen_set:
-            if isinstance(op, torch._ops.OpOverloadPacket) or \
-                    isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
-                flag = False
-                for gens in GENERATE_LIST2:
-                    if str(op).find(gens) != -1:
-                        flag = True
-                if flag:
-                    continue
-                else:
-                    lowering.make_fallback(op)
-                    FALLBACK_LIST.append(op)
-
-    # 把需要overload的op在lowering里删除
-    for op in overload_op_set:
-        if op in lowering.lowerings:
-            del lowering.lowerings[op]
+def _register_npu_inductor_fallbacks_fx(make_reduction):
 
     def transform_args(
             args: List[Any],
@@ -761,56 +892,6 @@ def _register_npu_inductor_fallbacks():
             convert_input_to_bool=convert_input_to_bool,
         )
 
-    def _make_reduction_inner(x, *, axis, keepdims, dtype, override_return_dtype):
-        if dtype is not None:
-            x = to_dtype(x, dtype)
-        size = x.get_size()
-        axis = set(lowering._validate_reduction_axis(x, axis))
-
-        kept_sizes = []
-        kept_idx = []
-        reduced_sizes = []
-        reduced_idx = []
-        for i in range(len(size)):
-            if i in axis:
-                reduced_idx.append(i)
-                reduced_sizes.append(size[i])
-            else:
-                kept_idx.append(i)
-                kept_sizes.append(size[i])
-
-        def loader(index, reduction_index):
-            if len(reduction_index) != len(reduced_idx):
-                raise RuntimeError("assert reduction index length mismatch")
-            if keepdims:
-                if len(index) != len(size):
-                    raise RuntimeError("assert index size length mismatch")
-                index = [index[i] for i in kept_idx]
-            if len(index) != len(kept_idx):
-                raise RuntimeError("assert index kept_idx length mismatch")
-            new_index = [None] * (len(index) + len(reduction_index))
-            for idx, var in itertools.chain(
-                    zip(kept_idx, index), zip(reduced_idx, reduction_index)
-            ):
-                new_index[idx] = var
-            return inner_loader(new_index)
-
-        if keepdims:
-            new_size = list(size)
-            for i in reduced_idx:
-                new_size[i] = sympy.S.One
-        else:
-            new_size = kept_sizes
-
-        inner_loader = x.make_loader()
-        return dict(
-            device=x.get_device(),
-            dst_dtype=override_return_dtype or x.get_dtype(),
-            src_dtype=x.get_dtype(),
-            inner_fn=loader,
-            ranges=new_size,
-            reduction_ranges=reduced_sizes,
-        )
 
     def make_reduction(reduction_type: str, override_return_dtype=None):
         def inner(x, axis=None, keepdims=False, *, dtype=None):
@@ -855,16 +936,6 @@ def _register_npu_inductor_fallbacks():
 
     lowering.make_reduction = make_reduction
 
-    def to_dtype(x: TensorBox, dtype: torch.dtype, copy=False):
-        src_dtype = x.get_dtype()
-        if src_dtype == dtype:
-            return clone(x) if copy else x
-
-        def _to_dtype(x):
-            return ops.to_dtype(x, dtype, src_dtype=src_dtype)
-
-        register_fn_to_aten_fn(_to_dtype, aten.to.dtype)
-        return make_pointwise(_to_dtype, override_return_dtype=dtype, dtype=dtype)(x)
 
     @register_lowering(prims.convert_element_type, type_promotion_kind=None)
     def _convert_element_type(x: TensorBox, dtype: torch.dtype):
@@ -934,108 +1005,6 @@ def _register_npu_inductor_fallbacks():
                 convert_input_to_bool=convert_input_to_bool,
             )(fn)
         return fn
-
-    def make_pointwise(
-            fn,
-            override_return_dtype=None,
-            override_device=None,
-            override_fn_when_input_bool=None,
-            override_fn_when_gpu_float64=None,
-            allow_alpha=False,
-            triton_fallback=None,
-            **kwargs
-    ):
-        def inner(*inputs: TensorBox, alpha=None):
-            if triton_fallback is not None and any(
-                    isinstance(inp, IRNode) and is_triton(inp) for inp in inputs
-            ):
-                # not implemented
-                if allow_alpha:
-                    raise RuntimeError("assert allow_alpha is not allowed")
-                return triton_fallback(*inputs)
-
-            inputs = lowering.promote_constants(inputs, override_return_dtype)
-            if allow_alpha:
-                if alpha is not None and alpha != 1:
-                    inputs = list(inputs)
-                    inputs[-1] = mul(inputs[-1], alpha)
-            else:
-                if alpha is not None:
-                    raise RuntimeError("assert alpha is not None")
-            loaders = [x.make_loader() for x in inputs]
-            ranges = inputs[0].get_size()
-            dtype = override_return_dtype or inputs[0].get_dtype()
-            is_gpu_device = lowering.is_gpu(decode_device(inputs[0].get_device()).type)
-
-            for other in inputs[1:]:
-                if not (isinstance(other, ir.BaseConstant) or len(ranges) == len(other.get_size())):
-                    raise RuntimeError(f"assert ndim mismatch {fn} {ranges} {other.get_size()}")
-
-            # in tracing, we will annotate pointwise nodes that correspond to the output of
-            # a pointwise node that would have been run in eager. intermediary pointwise nodes
-            # during decompositions are not annotated.
-            emulate_precision_casts = (
-                    V.graph is not None
-                    and getattr(V.graph, "current_node", None) is not None
-                    and V.graph.current_node.meta is not None
-                    and V.graph.current_node.meta.get("low_precision_pointwise_barrier", False)
-                    and dtype in (torch.bfloat16, torch.float16)
-            )
-
-            def inner_fn(index):
-                if len(index) != len(ranges):
-                    raise RuntimeError(f"assert wrong ndim {index} {ranges}")
-                if dtype == torch.bool and override_fn_when_input_bool is not None:
-                    return override_fn_when_input_bool(*[load(index) for load in loaders])
-                elif (
-                        override_fn_when_gpu_float64
-                        and is_gpu_device
-                        and dtype == torch.float64
-                ):
-                    return override_fn_when_gpu_float64(*[load(index) for load in loaders])
-                else:
-                    inputs_loaded = []
-                    for load in loaders:
-                        out = load(index)
-                        if emulate_precision_casts:
-                            downcast = ops.to_dtype(out, dtype, use_compute_types=False)
-                            out = ops.to_dtype(downcast, dtype)
-                        inputs_loaded.append(out)
-
-                    out = fn(*inputs_loaded)
-                    if emulate_precision_casts:
-                        # fp16/bf16 kernels are computed in fp32. Casting down to fp16/bf16 here,
-                        # then upcasting again, to emulate casts that eager would do.
-                        downcast = ops.to_dtype(out, dtype, use_compute_types=False)
-                        return ops.to_dtype(downcast, dtype)
-                    return out
-
-            if not override_device:
-                device = None
-                for i in inputs:
-                    if lowering.is_gpu(i.get_device().type):
-                        device = i.get_device()
-                        break
-                if not device:
-                    device = inputs[0].get_device()
-
-            device = override_device or device
-
-            input_graphs = fetch_graphs(inputs)
-            node_name = f'pointwise_{next(node_id)}'
-            origin_fn = fn_to_aten_fn[fn]
-            new_graph = merge_traced_graphs(input_graphs, origin_fn, node_name, **kwargs)
-
-            return Pointwise.create(
-                device=device,
-                dtype=dtype,
-                inner_fn=inner_fn,
-                ranges=ranges,
-                node_name=node_name,
-                traced_graph=new_graph,
-            )
-
-        return inner
 
     @register_lowering(aten.where, broadcast=False, type_promotion_kind=None)
     def where(cond, a, b):
@@ -2189,126 +2158,7 @@ def _register_npu_inductor_fallbacks():
         fn = make_reduction("sum", override_return_dtype=dtype)
         return fn(x, axis, keepdims, dtype=dtype)
 
-
-    @register_lowering(aten.mean)
-    def mean(x, axis=None, keepdim=False, *, dtype=None):
-        if dtype is not None:
-            x = to_dtype(x, dtype)
-        size = x.get_size()
-        axis = lowering._validate_reduction_axis(x, axis)
-        # compute in higher-precision until end of mean lowering
-        output_dtype = x.get_dtype()
-        if output_dtype in (torch.float16, torch.bfloat16):
-            x = to_dtype(x, torch.float)
-        sum_result = sum_(x, axis, keepdim)
-        denom = sympy_product(size[i] for i in axis)
-        denom = ir.IndexingConstant(index=denom, dtype=x.get_dtype(), device=x.get_device())
-        denom = ExpandView.create(denom, list(sum_result.get_size()))
-        return to_dtype(div(sum_result, denom), output_dtype)
-
-    @register_lowering(aten.cumsum)
-    def cumsum(x, axis=None, dtype=None):
-        if (
-                is_integer_dtype(x.get_dtype()) or is_boolean_dtype(x.get_dtype())
-        ) and dtype is None:
-            # torch.int64->torch.int32
-            dtype = torch.int32
-        if len(x.get_size()) == 0:
-            if axis not in [0, -1]:
-                raise ValueError("axis must be 0 or -1")
-            dtype = dtype or x.get_dtype()
-            return to_dtype(x, dtype, copy=True)
-        return lowering.fallback_cumsum(x, dim=axis, dtype=dtype)
-
-    @register_lowering(npu.npu_dtype_cast, type_promotion_kind=None)
-    def _convert_npu_type(x: TensorBox, dtype: torch.dtype):
-        return to_dtype(x, dtype, copy=True)
-    
-    @register_lowering(npu._npu_dtype_cast, type_promotion_kind=None)
-    def _convert__npu_type(x: TensorBox, dtype: torch.dtype):
-        return to_dtype(x, dtype, copy=True)
-
-    def var_mean_sum_(x, axis, correction, keepdim, return_mean):
-        if correction is None:
-            correction = 1
-
-        size = x.get_size()
-        axis = lowering._validate_reduction_axis(x, axis)
-        x_mean = mean(x, axis, keepdim=True)
-        if return_mean:
-            x_mean.realize()
-
-        diffs = square(sub(x, x_mean))
-        sum_result = sum_(diffs, axis, keepdim)
-        denom = sympy_product(size[i] for i in axis)
-        if correction:
-            denom = sympy.Max(denom - correction, 0)
-        denom = ir.IndexingConstant(index=denom, dtype=x.get_dtype(), device=x.get_device())
-        denom = ExpandView.create(denom, list(sum_result.get_size()))
-        x_var = div(sum_result, denom)
-        if not return_mean:
-            return (x_var,)
-
-        x_mean = x_mean if keepdim else squeeze(x_mean, axis)
-        return x_var, x_mean
-
-    def var_mean_helper_(x, *, axis, correction, keepdim, return_mean):
-        out_dtype = x.get_dtype()
-        compute_dtype = get_computation_dtype(out_dtype)
-        x = to_dtype(x, compute_dtype, copy=False)
-        kwargs = dict(
-            x=x,
-            axis=axis,
-            correction=correction,
-            keepdim=keepdim,
-            return_mean=return_mean,
-        )
-        output = (
-            var_mean_sum_(**kwargs)
-        )
-        output = tuple(to_dtype(x, out_dtype, copy=False) for x in output)
-        return output[0] if not return_mean else output
-
-    @register_lowering(aten.var_mean)
-    def var_mean(x, axis=None, *, correction=None, keepdim=False):
-        return var_mean_helper_(
-            x, axis=axis, correction=correction, keepdim=keepdim, return_mean=True
-        )
-
-    @register_lowering([aten.var, prims.var])
-    def var_(x, axis=None, *, correction=None, keepdim=False):
-        return var_mean_helper_(
-            x, axis=axis, correction=correction, keepdim=keepdim, return_mean=False
-        )
-
-    @register_lowering(aten.embedding, type_promotion_kind=None)
-    def embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, sparse=False):
-        return lowering.fallback_handler(aten.embedding.default)(weight, indices, padding_idx=-1,
-                                                                 scale_grad_by_freq=False,
-                                                                 sparse=False)
-
-    @register_lowering(aten.cat)
-    def cat(inputs, dim=0):
-        cpu_device = inputs[0].get_device().type == "cpu"
-        if cpu_device and all(
-            inp.get_dtype() in [torch.int8, torch.uint8] for inp in inputs
-        ):
-            for inp in inputs:
-                inp.realize()
-            if all(len(inp.get_size()) == 4 for inp in inputs):
-                inputs, _ = require_channels_last(aten.cat, *inputs)
-            return fallback_handler(aten.cat.deault)(inputs, dim)
-        if len(inputs) == 1:
-            return clone(inputs[0])
-        dim = _validate_dim(inputs[0], dim, 0)
-        dtype = get_promoted_dtype(
-            *inputs,
-            type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
-
-        )
-        inputs = [to_dtype(inp, dtype) for inp in inputs]
-        return TensorBox(ir.ConcatKernel.create(inputs, dim))
-
     lowering.make_fallback(aten._log_softmax)
     lowering.make_fallback(aten.gather)
     lowering.make_fallback(aten.nll_loss_forward)
+    return (squeeze, _validate_dim, div, square, sub, sum_)
