@@ -496,13 +496,7 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             }
             return true;
         });
-    m.def(
-        "_storage_Use_Count",
-        [](size_t storage_impl_ptr) {
-            // NOLINTNEXTLINE(performance-no-int-to-ptr)
-            c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
-            return c10::raw::weak_intrusive_ptr::use_count(storage_impl);
-        });
+
     m.def(
         "_npu_getCheckpointState",
         [](c10::DeviceIndex device, c10_npu::MempoolId_t id) {
@@ -527,7 +521,7 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             }
             auto delta = c10_npu::NPUCachingAllocator::setCheckpointPoolState(device, std::move(pps));
             auto& freed_pointers = delta.ptrs_freed;
-    
+
             std::unordered_set<void*> allocd_set;
             for (auto& data_ptr : delta.dataptrs_allocd) {
                 allocd_set.insert(data_ptr.get());
@@ -548,7 +542,7 @@ void RegisterNpuPluggableAllocator(PyObject* module)
                 ptr_set.size() >= definite_freed_count,
                 "Any stale tensors which are being manually freed"
                 " must be passed to set checkpoint", PTA_ERROR(ErrCode::PARAM));
-    
+
             removeStorageDeleterFns(ptrs, freed_pointer_set);
             std::vector<c10::StorageImpl*> storages_to_add_deleters_to;
             storages_to_add_deleters_to.reserve(storages_to_add_deleters_to_ptr.size());
@@ -556,7 +550,7 @@ void RegisterNpuPluggableAllocator(PyObject* module)
                 // NOLINTNEXTLINE(performance-no-int-to-ptr)
                 storages_to_add_deleters_to.push_back((c10::StorageImpl*)ptr_int);
             }
-    
+
             addStorageDeleterFns(storages_to_add_deleters_to, delta);
             });
     m.def(
