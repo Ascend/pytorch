@@ -2252,6 +2252,9 @@
   "torch_npu.npu.npugraph_ex.inference.readable_cache": {
     "signature": "(cache_bin, print_output=True, file=None)"
   },
+  "torch_npu.npu.npugraph_ex.scope.limit_core_num": {
+    "signature": "(op_aicore_num: int, op_vectorcore_num: int)"
+  },
   "torch_npu.npu.npugraph_ex.compile_fx": {
     "signature": "(options: dict = None)"
   },
