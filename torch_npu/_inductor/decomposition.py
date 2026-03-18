@@ -3,7 +3,7 @@ from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
 from torch._inductor.decomposition import register_decomposition
 from torch._prims_common.wrappers import out_wrapper
 from .config import get_soc_version, Ascend910_9391
-from .lowering import _init_set
+from .lowering import _add_overload
 
 aten = torch.ops.aten
 
@@ -27,7 +27,7 @@ if get_soc_version() >= Ascend910_9391:
 
 def _register_npu_inductor_decompositons():
     overload_op_set = set()
-    _init_set(DECOMPOSITION_OVERLOAD_OP, overload_op_set)
+    _add_overload(DECOMPOSITION_OVERLOAD_OP, overload_op_set)
 
     for op in overload_op_set:
         if (op in decompositions):

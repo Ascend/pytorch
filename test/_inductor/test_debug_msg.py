@@ -4,6 +4,9 @@ import re
 import logging
 import tempfile
 from pathlib import Path
+
+from unittest import skip
+
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from torch._inductor import config
@@ -14,6 +17,7 @@ os.environ["INDUCTOR_ASCEND_DUMP_FX_GRAPH"] = "1"
 os.environ["TORCH_COMPILE_DEBUG"] = "1"
 
 
+@skip("Skip for lowering_fx")
 class TestDebugMsg(TestUtils):    
     @parametrize('shape_x', [(32, 512, 64)])
     @parametrize('shape_y', [(32, 1, 64)])

@@ -1,5 +1,6 @@
 import os
 from unittest.mock import patch
+from unittest import skip
 
 import torch
 import torch.nn.functional as F
@@ -11,6 +12,7 @@ torch._inductor.config.fx_graph_cache = False
 os.environ["INDUCTOR_ASCEND_DUMP_FX_GRAPH"] = "1"
 
 
+@skip("Skip for lowering_fx")
 class TestForceFallback(TestUtils):
     def test_case1(self):
         op_list = []

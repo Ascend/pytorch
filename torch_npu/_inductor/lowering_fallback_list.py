@@ -50,7 +50,7 @@ prims = torch.ops.prims
 # aten.log1p: 6, aten.sin: 7, aten.cos: 7
 # indirect_mem: 11, lowering_override: 6
 # mkl: 12, onednn: 10
-FALLBACK_LIST = [
+NPU_EXTRA_FALLBACK_LIST = [
     _c10d_functional.all_gather_into_tensor,
     _c10d_functional.all_gather_into_tensor.default,
     _c10d_functional.all_gather_into_tensor_coalesced,
@@ -973,14 +973,14 @@ FALLBACK_LIST = [
     aten.zeros.names,
     auto_functionalized,
     cond,
-    flex_attention,
-    flex_attention_backward,
+    # flex_attention,
+    # flex_attention_backward,
     fsdp.copy_.default,
     graphsafe_run_with_rng_state,
     inductor.resize_storage_bytes_,
     inductor.resize_storage_bytes_.default,
     invoke_quant,
-    invoke_subgraph,
+    # invoke_subgraph,
     # mkl._mkl_linear,
     # mkl._mkl_linear.default,
     # mkldnn._convolution_pointwise,
@@ -1161,6 +1161,10 @@ FALLBACK_LIST = [
     while_loop,
     with_effects,
 ]
+
+TORCH_NATIVE_FALLBACK_LIST = []
+
+FALLBACK_LIST = TORCH_NATIVE_FALLBACK_LIST + NPU_EXTRA_FALLBACK_LIST
 
 INDIRECT_MEM_FALLBACK_LIST = [
     aten.embedding,

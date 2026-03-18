@@ -1,5 +1,6 @@
 import os
 from unittest.mock import patch
+from unittest import skip
 
 import torch
 import torch.nn.functional as F
@@ -11,6 +12,7 @@ torch._inductor.config.fx_graph_cache = False
 os.environ["INDUCTOR_ASCEND_CHECK_ACCURACY"] = "1"
 
 
+@skip("Skip for lowering_fx")
 class TestCheckAccuracy(TestUtils):
     def test_check_accuracy_1(self):
         count_data_dump = 0

@@ -612,7 +612,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.ir",
             "torch_npu._inductor.graph",
             "torch_npu._inductor.lowering_fallback_list",
-            "torch_npu._inductor.lowering_op_list",
+            "torch_npu._inductor.lowering_override_list",
             "torch_npu._inductor.shape_handling",
             "torch_npu._inductor.scheduler",
             "torch_npu._inductor.select_algorithm",
