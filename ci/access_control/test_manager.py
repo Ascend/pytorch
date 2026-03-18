@@ -67,6 +67,8 @@ class TestMgr:
         self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/_inductor').rglob('test_*.py')]
 
     def load_op_plugin_ut(self):
+        if not os.path.exists(BASE_DIR / 'third_party/op-plugin/test'):
+            raise Exception("The path of op-plugin did not exist, check whether it had been pulled.")
         version_path = get_test_torch_version_path()
         file_hash = {}
         for file_path in (BASE_DIR / 'third_party/op-plugin/test').rglob('test_*.py'):
@@ -87,10 +89,7 @@ class TestMgr:
         if include_distributed_case:
             self.load_distributed_ut()
         if include_op_plugin_case:
-            if os.path.exists(BASE_DIR / 'third_party/op-plugin/test'):
-                self.load_op_plugin_ut()
-            else:
-                raise Exception("The path of op-plugin did not exist, check whether it had been pulled.")
+            self.load_op_plugin_ut()
 
     def split_test_files(self, rank, world_size):
         if rank > world_size:
