@@ -8,6 +8,7 @@ except ImportError:
     from torch._inductor.pattern_matcher import inference_graph as fwd_only
 
 from . import inference
+from . import scope
 
 
 def compile_fx(options: dict = None):
