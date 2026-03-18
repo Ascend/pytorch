@@ -1239,6 +1239,10 @@ bool AclrtMallocHostWithCfgExist()
         if (currentCANNVersion == "") {
             return false;
         }
+        const std::string kMinDriverVersion = "25.5.2";
+        if (!IsGteDriverVersion(kMinDriverVersion)) {
+            return false;
+        }
         // determine the runtime version
         const std::string kMinRuntimeVersion = "8.5.0";
         if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
