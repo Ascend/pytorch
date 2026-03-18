@@ -199,7 +199,14 @@ void initDeviceProperty(int64_t deviceid)
     } else {
         device_properties[deviceid].name = std::string(device_name);
     }
-    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    static const bool is_cann_900beta2 = IsGteCANNVersion("9.0.0.beta2", "CANN");
+    if (is_cann_900beta2) {
+        int64_t tmp_device_total = 0;
+        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetDeviceInfo(static_cast<uint32_t>(deviceid), ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE, &tmp_device_total));
+        device_total = static_cast<size_t>(tmp_device_total);
+    } else {
+        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    }
     device_properties[deviceid].totalGlobalMem = device_total;
 
     NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_AI_CORE_NUM, &cube_core_num));
