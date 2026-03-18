@@ -1,5 +1,6 @@
 import logging
 import os  # noqa: C101
+import re
 from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 
 import torch
@@ -143,11 +144,56 @@ dump_fx_graph = os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH", False) \
 # (2) [1, 2, 10] means try to fallback kernel like triton_xxx_1, triton_xxx_2 and triton_xxx_10
 force_fallback_kernel_id = []
 
+
+def parse_rtol_atol(env_str: str):
+    rtol, atol = None, None
+    if not env_str.strip():
+        return rtol, atol
+    
+    parts = [p.strip() for p in env_str.split(",") if p.strip()]
+    for part in parts:
+        match = re.match(r"^(rtol|atol)\s*=\s*([0-9.eE+-]+)$", part, re.IGNORECASE)
+        if not match:
+            logging.warning(f"INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL environment variable has invalid format: {part}. "
+                            f"It should be like 'rtol=1e-6,atol=1e-5'.")
+            continue
+        
+        key, value_str = match.groups()
+        try:
+            value = float(value_str)
+            if key.lower() == "rtol":
+                rtol = value
+            elif key.lower() == "atol":
+                atol = value
+        except ValueError:
+            logging.warning(f"INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL environment variable has invalid value for {key}: {value_str}. "
+                            f"It should be a float number.")
+            continue
+    
+    return rtol, atol
+
+# Default threshold
+rtol_f32 = 1.3e-6
+rtol_f16 = 1e-3
+rtol_bf16 = 1.6e-2
+rtol_default = 1.3e-6 
+atol_default = 1e-5
+
+if dump_fx_graph:
+    # Configure accuracy comparison thresholds when check_accuracy is enabled
+    ENV_TOL_STR = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL", "")
+    rtol_custom, atol_custom = parse_rtol_atol(ENV_TOL_STR)
+
+    if rtol_custom is not None:
+        rtol_f32 = rtol_f16 = rtol_bf16 = rtol_default = rtol_custom 
+    if atol_custom is not None:
+        atol_default = atol_custom 
+
 acc_comp_tol = {
-    torch.float32: {'rtol': 1.3e-6, 'atol': 1e-5},
-    torch.float16: {'rtol': 1e-3, 'atol': 1e-5},
-    torch.bfloat16: {'rtol': 1.6e-2, 'atol': 1e-5},
-    "default": {'rtol': 1.3e-6, 'atol': 1e-5},
+    torch.float32: {"rtol": rtol_f32, "atol": atol_default},
+    torch.float16: {"rtol": rtol_f16, "atol": atol_default},
+    torch.bfloat16: {"rtol": rtol_bf16, "atol": atol_default},
+    "default": {"rtol": rtol_default, "atol": atol_default},
 }
 
 ub_size = 192 * 1024
