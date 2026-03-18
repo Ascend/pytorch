@@ -132,6 +132,8 @@ if __name__ == "__main__":
         test_mgr.load_all_ut(options.distributed, options.network_ops)
     elif options.distributed:
         test_mgr.load_distributed_ut()
+    elif options.network_ops:
+        test_mgr.load_op_plugin_ut()
     elif options.inductor:
         test_mgr.load_inductor_ut()
     elif options.inductor_a5:
