@@ -2259,7 +2259,7 @@
     "signature": "(options: dict = None)"
   },
   "torch_npu.npu.npugraph_ex.register_replacement": {
-    "signature": "(search_fn, replace_fn, example_inputs, trace_fn=<function fwd_only>, extra_check=<function _return_true>, search_fn_pattern=None, scalar_workaround=None, skip_duplicates=False)"
+    "signature": "(search_fn: torch._inductor.pattern_matcher.SearchFn, replace_fn: torch._inductor.pattern_matcher.ReplaceFn, example_inputs: collections.abc.Iterable[typing.Any], trace_fn: torch._inductor.pattern_matcher.TraceFn = <function fwd_only>, extra_check: Callable[[Match], bool] = <function _return_true>, search_fn_pattern: Optional[torch._inductor.pattern_matcher.PatternExpr] = None, scalar_workaround: Optional[dict[str, Union[float, int]]] = None, skip_duplicates: bool = False)"
   },
   "torch_npu.npu.register_npu_graph_handler": {
     "signature": "(op_names)"
