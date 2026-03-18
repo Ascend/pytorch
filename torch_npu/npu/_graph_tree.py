@@ -438,7 +438,7 @@ class StorageWeakRefWrapper:
 
     @classmethod
     def from_weakref_and_data_ptr(
-        cls: Type[S],
+        cls: type[StorageWeakRefWrapper],
         cdata: Any,
         data_ptr: int,
         extra_ref_check: Optional[Callable[[], bool]] = None,
@@ -470,9 +470,15 @@ class StorageWeakRefWrapper:
         if self.extra_ref_check is not None and not self.extra_ref_check():
             return False
 
-        # if extra_ref_check is not None we expect an additional reference
-        stor_count = torch_npu._C._storage_Use_Count(self.ref.cdata)
-        return (stor_count - (self.extra_ref_check is not None)) == 0
+        stor_count = torch._C._storage_Use_Count(self.ref.cdata)
+        if self.extra_ref_check is not None:
+            # if extra_ref_check is not None we expect two additional references:
+            #  - one from the Python storage object
+            #  - one from the cached Tensor
+            stor_count -= 2
+        if stor_count < 0:
+            raise RuntimeError("check stor_count >= 0 fail")
+        return stor_count == 0
 
     def __repr__(self) -> str:
         if self.ref is None or self.ref.expired():
@@ -635,7 +641,7 @@ class NPUWarmupNode:
             s = storage()
             if s is not None:
                 non_npugraph_inps_storage_ptrs.add(s._cdata)
-    
+
         if not len(new_inputs) == 0:
             raise RuntimeError("check len(new_inputs) == 0 fail")
 
@@ -837,7 +843,7 @@ class NPUGraphNode:
         )
 
         self.non_static_input_idx: LevelList[int] = [
-            i 
+            i
             for i in range(len(inputs))
             if i not in self.static_input_idxs
         ]
@@ -1246,7 +1252,7 @@ class NPUGraphNode:
             static_outputs = model(inputs)
 
         if cpu_tensor is not None:
-            self.graph.update(cpu_update_input=[{"context_lens": cpu_tensor}, 
+            self.graph.update(cpu_update_input=[{"context_lens": cpu_tensor},
                                                 {"actual_seq_lengths_kv": cpu_tensor}])
 
         # running model should reclaim memory
