@@ -148,7 +148,7 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
     -   当申请内存小于等于1MB时：配置page\_size也不生效，内存申请粒度为2MB。
 -   pin_memory_expandable_segments特性要求最低Ascend Extension for PyTorch 7.3.0之后版本、Ascend HDK 25.5.0及以上版本、CANN商发8.5.0及以上版本使用。
 -   pinned_mem_register使用注意事项如下：
-    -   特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商发8.5.0及以上版本使用。
+    -   特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 25.5.2及以上版本、CANN商发8.5.0及以上版本使用。
     -   与pin_memory_expandable_segments特性不支持同时配置。
 -   multi_stream_lazy_reclaim使用注意事项：
     -   特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。
