@@ -42,7 +42,7 @@ def get_node_shape(node: torch.fx.Node):
 def get_node_unique_id(node: torch.fx.Node):
     if 'val' in node.meta:
         val = node.meta['val']
-        if isinstance(val, torch.Tensor):
+        if isinstance(val, torch.Tensor) and (not val.is_sparse or val.layout == torch.strided):
             return StorageWeakRef(val.untyped_storage())
     if 'tensor_meta' in node.meta:
         tm = node.meta.get('tensor_meta')
