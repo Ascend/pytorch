@@ -1,7 +1,7 @@
 
 import torch
 from torch.distributed.tensor._op_schema import OpSchema, RuntimeSchemaInfo
-from torch.distributed.tensor._ops.registration import register_op_strategy
+from torch.distributed.tensor._ops.utils import register_op_strategy
 from torch.distributed.tensor._ops._pointwise_ops import pointwise_strategy
 
 

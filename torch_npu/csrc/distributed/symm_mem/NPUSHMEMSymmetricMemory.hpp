@@ -33,6 +33,7 @@ public:
     void** get_buffer_ptrs_dev() override;
     void** get_signal_pad_ptrs_dev() override;
     size_t get_buffer_size() override;
+    size_t get_offset() override;
 
     bool has_multicast_support() override;
     void* get_multicast_ptr() override;
@@ -46,7 +47,6 @@ public:
     c10::Device get_device() override;
 
     const std::vector<int>& get_rank_to_global_rank() override;
-    int* get_rank_to_global_rank_dev() override;
 
 private:
     std::shared_ptr<NPUSHMEMAllocation> allocation_;
@@ -59,9 +59,6 @@ private:
     void** buffers_dev_;
     void** signal_pads_dev_;
     std::string group_name_;
-
-    std::vector<int> rank_to_global_rank_;
-    int* rank_to_global_rank_dev_;
 };
 
 class NPUSHMEMSymmetricMemoryAllocator : public SymmetricMemoryAllocator {

@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 import functools
+from typing import Optional
 import sympy
+
 import torch
 import torch.nn.functional as F
 from torch.autograd import Function
@@ -158,7 +160,7 @@ torch_npu.npu_fusion_attention_graph = npu_fusion_attention_graph
 
 
 @init_once_fakemode
-def register_fa_pass():
+def register_fa_pass(input_device: Optional[torch.device] = None):
     TOKEN_MAX = 2147483647
     from torch._inductor.pattern_matcher import register_replacement, fwd_only, joint_fwd_bwd
     from torch._inductor.fx_passes.joint_graph import patterns

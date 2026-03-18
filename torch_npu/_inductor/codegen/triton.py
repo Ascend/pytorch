@@ -41,7 +41,6 @@ from torch._inductor.codegen.triton import (
     IterationRangesRoot,
     IterationRangesEntry,
     CSEVariable,
-    gen_common_triton_imports,
     BlockPtrOptions,
     triton_acc_type,
     constant_repr,
@@ -711,7 +710,7 @@ class NPUIndexTritonKernel(TritonKernel):
         size_hints = self.get_size_hints()
         heuristics = self._get_heuristic()
         if name is None:
-            code.splice(gen_common_triton_imports())
+            code.splice(self.gen_common_triton_imports())
             # Note: add extra imports for extensions
             code.splice(self.gen_triton_ext_imports())
 
