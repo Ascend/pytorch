@@ -109,7 +109,7 @@ class device(object):
         self.prev_idx = -1
 
     def __enter__(self):
-        if self.idx == -1:
+        if self.idx < 0:
             return
         self.prev_idx = torch_npu._C._npu_getDeviceWithoutSet()
         if self.prev_idx != self.idx:
@@ -117,6 +117,9 @@ class device(object):
         torch_npu.npu._lazy_init()
 
     def __exit__(self, *args):
+        if self.idx < 0:
+            self.idx = -1
+            return False
         if self.prev_idx == -1:
             self.prev_idx = 0
         self.idx = torch_npu._C._npu_maybeExchangeDevice(self.prev_idx)
