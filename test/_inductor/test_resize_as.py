@@ -28,4 +28,3 @@ instantiate_parametrized_tests(TestResizeAs)
 
 if __name__ == "__main__":
     run_tests()
-s
