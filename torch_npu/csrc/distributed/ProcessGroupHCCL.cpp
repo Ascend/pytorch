@@ -798,11 +798,11 @@ void ProcessGroupHCCL::WorkHCCL::checkDispatch()
         auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTimepoint - workStartTime_);
         if (timeElapsed > dispatchTimeout_) {
             std::string repo_info = c10_npu::getRepoInfo();
-            TORCH_NPU_HCCL_LOGE("Process group work %s, seq_num %u dispatch timeout. %s", opTypeToString(opType_).c_str(), seq_, repo_info.c_str());
+            TORCH_NPU_HCCL_LOGW("Process group work %s, seq_num %u dispatch timeout. %s", opTypeToString(opType_).c_str(), seq_, repo_info.c_str());
             is_reported = true;
         }
     } else if (*is_dispatched && is_reported) {
-        TORCH_NPU_HCCL_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(opType_).c_str(), seq_);
+        TORCH_NPU_HCCL_LOGW("Process group work %s, seq_num %u dispatch success. This warning log can be ignored.", opTypeToString(opType_).c_str(), seq_);
         is_reported = false;
     }
 }
@@ -2091,7 +2091,7 @@ void ProcessGroupHCCL::Watchdog::runLoop()
             // Clean up completed work
             if (work.isCompleted()) {
                 if (*(work.is_dispatched) && work.is_reported) {
-                    TORCH_NPU_HCCL_LOGE("Process group work %s, seq_num %u dispatch sucess. This error log can be ignored.", opTypeToString(work.opType_).c_str(), work.seq_);
+                    TORCH_NPU_HCCL_LOGW("Process group work %s, seq_num %u dispatch success. This warning log can be ignored.", opTypeToString(work.opType_).c_str(), work.seq_);
                     work.is_reported = false;
                 }
 
