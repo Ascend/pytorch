@@ -38,7 +38,12 @@ NPUPluggableAllocator::NPUPluggableAllocator(NPUPluggableAllocator& other)
       memory_fraction_fn_(other.memory_fraction_fn_),
       base_alloc_fn_(other.base_alloc_fn_),
       record_stream_fn_(other.record_stream_fn_),
-      erase_stream_fn_(other.erase_stream_fn_) {}
+      erase_stream_fn_(other.erase_stream_fn_),
+      get_device_stats_fn_(other.get_device_stats_fn_),
+      reset_peak_status_fn_(other.reset_peak_status_fn_),
+      begin_allocate_to_pool_fn_(other.begin_allocate_to_pool_fn_),
+      end_allocate_to_pool_fn_(other.end_allocate_to_pool_fn_),
+      release_pool_fn_(other.release_pool_fn_) {}
 
 void NPUPluggableAllocator::set_init_fn(std::function<void(int)> init_fn)
 {
@@ -84,6 +89,24 @@ void NPUPluggableAllocator::set_reset_peak_status_fn(
     std::function<void(int)> reset_peak_status_fn)
 {
     reset_peak_status_fn_ = std::move(reset_peak_status_fn);
+}
+
+void NPUPluggableAllocator::set_begin_allocate_to_pool(
+    std::function<void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>)> capture_begin_fn)
+{
+    begin_allocate_to_pool_fn_ = std::move(capture_begin_fn);
+}
+
+void NPUPluggableAllocator::set_end_allocate_to_pool_fn(
+    std::function<void(int, c10_npu::MempoolId_t)> capture_about_to_end_fn)
+{
+    end_allocate_to_pool_fn_ = std::move(capture_about_to_end_fn);
+}
+
+void NPUPluggableAllocator::set_release_pool(
+    std::function<void(int, c10_npu::MempoolId_t)> capture_destroy_fn)
+{
+    release_pool_fn_ = std::move(capture_destroy_fn);
 }
 
 void* NPUPluggableAllocator::malloc(
@@ -297,30 +320,27 @@ void NPUPluggableAllocator::beginAllocateToPool(
     c10_npu::MempoolId_t mempool_id,
     std::function<bool(aclrtStream)> filter)
 {
-    TORCH_CHECK(
-        false,
-        "NPUPluggableAllocator does not yet support beginAllocateToPool. "
-        "If you need it, please file an issue describing your use case.");
+    if (begin_allocate_to_pool_fn_) {
+        begin_allocate_to_pool_fn_(device, mempool_id, std::move(filter));
+    }
 }
 
 void NPUPluggableAllocator::endAllocateToPool(
     c10::DeviceIndex device,
     c10_npu::MempoolId_t mempool_id)
 {
-    TORCH_CHECK(
-        false,
-        "NPUPluggableAllocator does not yet support endAllocateToPool. "
-        "If you need it, please file an issue describing your use case.");
+    if (end_allocate_to_pool_fn_) {
+        end_allocate_to_pool_fn_(device, mempool_id);
+    }
 }
 
 void NPUPluggableAllocator::releasePool(
     c10::DeviceIndex device,
     c10_npu::MempoolId_t mempool_id)
 {
-    TORCH_CHECK(
-        false,
-        "NPUPluggableAllocator does not yet support releasePool. "
-        "If you need it, please file an issue describing your use case.");
+    if (release_pool_fn_) {
+        release_pool_fn_(device, mempool_id);
+    }
 }
 
 void NPUPluggableAllocator::FreeDeviceCachedMemory(int device)
