@@ -74,7 +74,7 @@ skip_functions_npu = dict.fromkeys(
         "torch.npu.amp.autocast_mode.custom_bwd",
         "torch.npu.amp.autocast_mode.custom_fwd",
         "torch_npu._C._npu_resetAccumulatedMemoryStats",
-        
+        "torch_npu._C._npu_setStream",
     ],
     SkipFunctionVariable
 )
@@ -87,6 +87,7 @@ def _patch_npu_trace_rules():
     torch._dynamo.trace_rules.torch_name_rule_map.append(skip_functions_npu)
     torch_module.constant_fold_functions[torch.npu.current_device] = True
     torch_module.constant_fold_functions[torch.npu.get_device_properties] = True
+    torch_module.constant_fold_functions_need_guards[torch.npu.current_device] = True
     torch_module.constant_fold_functions[torch.npu.is_available] = True
     common_constant_types.add(torch_npu._C._NPUDeviceProperties)
 
