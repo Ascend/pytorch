@@ -94,12 +94,12 @@ Ascend Extension for PyTorch插件的安装操作，具体请参见《[Ascend Ex
 
 ## 特性介绍
  	 
-Ascend Extension for PyTorch插件从内存资源优化、通信性能优化、计算性能优化、辅助报错定位等方面精心打造了一系列独特的特性，具体特性指导请参见《[PyTorch 框架特性指南](docs/zh/framework_feature_guide_pytorch/menu_framework_feature.md)》。
+Ascend Extension for PyTorch插件从内存资源优化、通信性能优化、计算性能优化、辅助报错定位等方面精心打造了一系列独特的特性，具体特性指导请参见《[PyTorch 框架特性指南](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/framework_feature_guide_pytorch/menu_framework_feature.md)》。
  	 
 ## API参考
 
-- 原生PyTorch API在昇腾NPU设备上的支持情况请参见《[PyTorch 原生API支持度](docs/zh/native_apis/menu_pt_native_apis.md)》。
-- Ascend Extension for PyTorch插件提供了部分自定义API接口，具体使用请参见《[Ascend Extension for PyTorch自定义API](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/menu_Pytorch_API.md)》。
+- 原生PyTorch API在昇腾NPU设备上的支持情况请参见《[PyTorch 原生API支持度](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/native_apis/menu_pt_native_apis.md)》。
+- Ascend Extension for PyTorch插件提供了部分自定义API接口，具体使用请参见《[Ascend Extension for PyTorch自定义API](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/menu_Pytorch_API.md)》。
 
 ## 建议与交流
 
