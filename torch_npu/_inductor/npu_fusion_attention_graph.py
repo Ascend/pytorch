@@ -197,7 +197,7 @@ def register_fa_pass(input_device: Optional[torch.device] = None):
         g_inp = functools.partial(
             torch.empty, (2, 4, 8, 16), device=device, requires_grad=True
         )
-        c_inp = functools.partial(torch.tensor, 2.0, device=device)
+        c_inp = functools.partial(torch.tensor, 2.0, device=g_inp().device)
         d = {"dropout_p": 0.113377}
         candidates = []
         for dtype in [torch.float]:
