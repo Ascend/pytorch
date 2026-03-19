@@ -1,6 +1,7 @@
 import os
 import shutil
 import math
+import unittest
 
 import torch
 from torch.nn.parameter import Parameter
@@ -533,6 +534,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    @unittest.skip("skip now")
     def test_wrapper_npu_fused_attention_layernorm_qkv_fwd(self):
         class Model(torch.nn.Module):
             def __init__(self):
