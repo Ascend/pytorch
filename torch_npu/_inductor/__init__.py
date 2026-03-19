@@ -21,6 +21,7 @@ else:
     import torch
     from torch._dynamo.device_interface import register_interface_for_device, get_interface_for_device
     from torch._inductor import lowering as inductor_lowering
+    from torch._inductor.lowering import make_fallback as ori_make_fallback
     from torch._inductor.choices import InductorChoices
     from torch._inductor.codegen.common import register_backend_for_device, register_device_op_overrides
     from torch._inductor.runtime import autotune_cache
