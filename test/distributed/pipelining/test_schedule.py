@@ -8,6 +8,7 @@ import os
 from model_registry import MultiMLP
 
 import torch
+from torch._dynamo import OptimizedModule
 from torch.distributed.pipelining import (
     Schedule1F1B,
     ScheduleGPipe,
@@ -211,16 +212,18 @@ class ScheduleTest(TestCase):
         model = MultiMLP(8, n_layers=n_stages)
         # full_mod
         compiled_model = torch.compile(model)
+        self.assertTrue(isinstance(compiled_model, OptimizedModule))
         stage = PipelineStage(
             compiled_model,
             0,
             n_stages,
             device,
         )
-        with self.assertRaises(RuntimeError):
-            ScheduleInterleavedZeroBubble([stage], 2)
-
-        torch.distributed.destroy_process_group()
+        try:
+            with self.assertRaises(RuntimeError):
+                ScheduleInterleavedZeroBubble([stage], 2)
+        finally:
+            torch.distributed.destroy_process_group()
 
 
 instantiate_parametrized_tests(ScheduleTest)
@@ -714,7 +717,7 @@ class TestScheduleLowering(TestCase):
             loss_fn=loss_fn,
             scale_grads=False,
         )
-        schedule._load_actions(
+        schedule._prepare_schedule_with_comms(
             {
                 0: self._parse_actions(
                     [
@@ -825,7 +828,7 @@ class TestScheduleLowering(TestCase):
             num_microbatches,
             loss_fn=loss_fn,
         )
-        schedule._load_actions(
+        schedule._prepare_schedule_with_comms(
             {
                 0: self._parse_actions(
                     [
