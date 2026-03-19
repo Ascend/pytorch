@@ -47,6 +47,10 @@ struct NPUPluggableAllocator
         std::function<void(void* ptr, c10_npu::NPUStream stream)> erase_stream_fn);
     void set_get_device_stats_fn(std::function<c10_npu::NPUCachingAllocator::DeviceStats(int)> get_device_stats_fn);
     void set_reset_peak_status_fn(std::function<void(int)> reset_peak_status_fn);
+    void set_begin_allocate_to_pool(
+            std::function<void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>)> capture_begin_fn);
+    void set_end_allocate_to_pool_fn(std::function<void(int, c10_npu::MempoolId_t)> capture_about_to_end_fn);
+    void set_release_pool(std::function<void(int, c10_npu::MempoolId_t)> capture_destroy_fn);
     void* malloc(size_t size, int device, aclrtStream stream);
 
     c10::DataPtr allocate(size_t size) override;
@@ -121,6 +125,9 @@ protected:
     std::function<c10_npu::NPUCachingAllocator::DeviceStats(int)> get_device_stats_fn_;
     std::function<void(int)> reset_peak_status_fn_;
     std::mutex allocator_mutex_;
+    std::function<void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>)> begin_allocate_to_pool_fn_;
+    std::function<void(int, c10_npu::MempoolId_t)> end_allocate_to_pool_fn_;
+    std::function<void(int, c10_npu::MempoolId_t)> release_pool_fn_;
     // We do the bookeeping here in order to simplify custom allocators
     std::unordered_map<void*, _AllocationMetadata> allocation_metadata_;
 

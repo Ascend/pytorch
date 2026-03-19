@@ -433,6 +433,33 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             std::function<FuncType> func =
                 reinterpret_cast<FuncType*>(func_ptr);
             self.set_reset_peak_status_fn(func);
+        })
+        .def(
+        "set_begin_allocate_to_pool",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>);
+            std::function<FuncType> func =
+                 reinterpret_cast<FuncType*>(func_ptr);
+            self.set_begin_allocate_to_pool(func);
+        })
+        .def(
+        "set_end_allocate_to_pool_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(int, c10_npu::MempoolId_t);
+            std::function<FuncType> func =
+                 reinterpret_cast<FuncType*>(func_ptr);
+            self.set_end_allocate_to_pool_fn(func);
+        })
+        .def(
+        "set_release_pool",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(int, c10_npu::MempoolId_t);
+            std::function<FuncType> func =
+                 reinterpret_cast<FuncType*>(func_ptr);
+            self.set_release_pool(func);
         });
 
     m.def(
