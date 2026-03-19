@@ -182,6 +182,16 @@ def patch_inductor_wrapper():
             os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
             device_id = torch_npu.npu.current_device()
             torch_npu._C._recovery_all_npu_stream(device_id)
+            try:
+                import torch_mlir
+                from torch_mlir import ir
+            except ImportError as e:
+                raise ImportError("torch_mlir is not installed, install it first.") from e
+            from torch_npu._inductor import ori_make_fallback
+            torch._inductor.lowering.make_fallback = ori_make_fallback
+            from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+            from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu import torch_mlir_patch
+            
         elif self.config.get("npu_backend") == "dvm" or torch._inductor.config.npu_backend == "dvm":
             os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'dvm'
     _TorchCompileInductorWrapper.__call__ = new_call
