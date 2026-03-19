@@ -100,7 +100,6 @@ test/onnx/test_fx_to_onnx.py
 test/onnx/error_reproduction.py
 test/onnx/test_fx_type_promotion.py
 test/onnx/test_models_onnxruntime.py
-test/onnx/test_models_quantized_onnxruntime.py
 test/onnx/test_onnx_opset.py
 test/onnx/test_onnxscript_runtime.py
 test/onnx/test_op_consistency.py
