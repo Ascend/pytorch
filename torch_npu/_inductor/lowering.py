@@ -6,7 +6,7 @@ from torch._inductor import lowering
 from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
 from torch._inductor.ir import ExpandView, TensorBox, ops_wrapper
 from torch._inductor.ir import Reduction
-from torch._inductor.lowering import sum_, clone
+from torch._inductor.lowering import sum_ as sum__pt, clone
 from torch._inductor.utils import sympy_product
 from torch._prims_common import (
     is_boolean_dtype,
@@ -21,10 +21,10 @@ from torch._inductor.lowering import (
     to_dtype,
     fallback_cumsum,
     _validate_reduction_axis,
-    div,
-    squeeze,
-    square,
-    sub,
+    div as div_pt,
+    squeeze as squeeze_pt,
+    square as square_pt,
+    sub as sub_pt,
     fallback_handler,
     logical_and,
     make_pointwise,
@@ -33,12 +33,24 @@ from torch._inductor.lowering import (
     add_needs_realized_inputs,
     add_layout_constraint,
     require_channels_last,
-    _validate_dim,
+    _validate_dim as _validate_dim_pt,
     get_promoted_dtype,
 )
-import torch_npu
-from torch_npu import npu_dtype_cast, _npu_dtype_cast
+from .. import npu_dtype_cast, _npu_dtype_cast
 from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
+from . import config as npu_config
+from .lowering_fx import (
+    fetch_graphs,
+    merge_traced_graphs,
+    node_id,
+    create_fake_input,
+    subtract_graph,
+    create_fx_from_snodes_by_traced_graph,
+    create_compile_kwargs,
+    generate_fx_graph_code,
+    dump_fx_graph_code,
+    snodes_to_fx,
+    )
 
 
 def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False):
@@ -64,6 +76,16 @@ def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=Fal
 
 make_fallback = npu_make_fallback
 
+if npu_config.dump_fx_graph:
+    from .lowering_fx import (
+        _make_reduction_inner,
+        reduction_type_to_aten_fn,
+        clone,
+        to_dtype
+    )
+
+    LOWERING_OVERLOAD_OP = list(set(GENERATE_LIST) | set(LOWERING_OVERLOAD_OP))
+
 
 def make_reduction(reduction_type: str, override_return_dtype=None):
     def inner(x, axis=None, keepdims=False, *, dtype=None):
@@ -74,7 +96,20 @@ def make_reduction(reduction_type: str, override_return_dtype=None):
             dtype=dtype,
             override_return_dtype=override_return_dtype,
         )
-        result = Reduction.create(reduction_type=reduction_type, input_node=x, **kwargs)
+        if npu_config.dump_fx_graph:
+            node_name = f'reduction_{next(node_id)}'
+            input_graphs = fetch_graphs([x, axis if axis is not None else list(range(len(x.get_size())))])
+            new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type],
+                                            node_name, keepdim=keepdims)
+            result = Reduction.create(reduction_type=reduction_type,
+                                    input_node=x,
+                                    node_name=node_name,
+                                    traced_graph=new_graph,
+                                    **kwargs)
+        else:
+            result = Reduction.create(reduction_type=reduction_type,
+                                        input_node=x,
+                                        **kwargs)
         if isinstance(
                 result.data.data, Reduction
         ):  # Only realize if reduction isn't unrolled
@@ -113,6 +148,11 @@ def _init_set(input_list, output_set):
 
 
 def _register_npu_custom_lowerings():
+    if npu_config.dump_fx_graph:
+        from .lowering_fx import _register_npu_inductor_fallbacks_fx
+        (squeeze, _validate_dim, div, square, sub, sum_) = _register_npu_inductor_fallbacks_fx(make_reduction)
+    else:
+        (squeeze, _validate_dim, div, square, sub, sum_) = (squeeze_pt, _validate_dim_pt, div_pt, square_pt, sub_pt, sum__pt)
     # register the reductions useing custom make_reduction
     reduce_amax = register_lowering(aten.amax)(make_reduction("max"))
     reduce_amin = register_lowering(aten.amin)(make_reduction("min"))
