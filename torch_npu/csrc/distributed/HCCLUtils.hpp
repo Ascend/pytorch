@@ -56,6 +56,10 @@ extern HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_
 extern HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *rankIds, uint64_t subCommId, uint32_t subCommRankId,
     HcclCommConfig* config, HcclComm *subComm);
 extern HcclResult hcclCommWorkingDevNicSet(HcclComm comm, uint32_t *ranks, bool *useBackup, uint32_t nRanks);
+extern HcclResult hcclCommDestroy(HcclComm comm);
+extern HcclResult hcclBroadcast(void *buf, uint64_t count, HcclDataType dataType, uint32_t root, HcclComm comm, aclrtStream stream);
+extern HcclResult hcclCommInitRootInfo(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclComm *comm);
+extern HcclResult hcclCommInitAll(uint32_t ndev, int32_t *devices, HcclComm *comms);
 
 HcclDataType getHcclDataType(at::ScalarType type);
 
