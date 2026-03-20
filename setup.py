@@ -242,6 +242,7 @@ def patchelf_dynamic_library():
     library_files = [str(i) for i in library_dir.rglob('*.so')]
     for library_file in library_files:
         subprocess.check_call(["patchelf", "--remove-needed", "libgomp.so.1", library_file], cwd=BASE_DIR)  # Compliant
+        subprocess.check_call(["patchelf", "--remove-needed", "libhccl.so", library_file], cwd=BASE_DIR)  # Compliant
 
 
 

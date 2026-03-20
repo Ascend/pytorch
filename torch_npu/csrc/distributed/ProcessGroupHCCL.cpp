@@ -2504,7 +2504,7 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
     HcclRootInfo hcclID;
     bool isSingleP2POp = commType == HcclCommType::P2P ? true : false;
     if (rank_ == 0 || (isSingleP2POp && p2pRank == 0)) {
-        HCCL_CHECK_ERROR(HcclGetRootInfo(&hcclID));
+        HCCL_CHECK_ERROR(hcclGetRootInfo(&hcclID));
     }
     broadcastMasterID(&hcclID, isSingleP2POp, devicesKey, p2pRank);
 
@@ -2705,7 +2705,7 @@ void ProcessGroupHCCL::createHCCLCommForZeroCopy(
     HcclRootInfo hcclID;
 
     if (envMap["local_rank"] == localRootRank) {
-        HCCL_CHECK_ERROR(HcclGetRootInfo(&hcclID));
+        HCCL_CHECK_ERROR(hcclGetRootInfo(&hcclID));
     }
 
     HcclRootInfo* hcclID_ = &hcclID;
@@ -4359,7 +4359,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclAllReduce(
+                auto hccl_result = hcclAllReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -4536,7 +4536,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream(false));
+                auto hccl_result = hcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -4589,7 +4589,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclAllReduce(
+                auto hccl_result = hcclAllReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -5106,7 +5106,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     if (c10_npu::is_core_control_enabled) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
-                    auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+                    auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                     *is_dispatched = true;
                     return hccl_result;
                 };
@@ -5265,7 +5265,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     getMstxHcclMsg("HcclBroadcast", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                auto hccl_result = HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream());
+                auto hccl_result = hcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream());
                 *is_dispatched = true;
                 return hccl_result;
                 },
@@ -5309,7 +5309,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_into_tensor_coalesced
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+                auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -5356,7 +5356,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+                auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -5411,7 +5411,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+                auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -5463,7 +5463,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclReduceScatter(
+                auto hccl_result = hcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -5693,7 +5693,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclReduceScatter(
+                auto hccl_result = hcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -5756,7 +5756,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclReduceScatter(
+                auto hccl_result = hcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
@@ -6017,7 +6017,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
                                     stream.stream(false),
                                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                                auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType,
+                                auto hccl_result = hcclRecv(outputDataPtr, numel, hcclType,
                                     static_cast<uint32_t>(r), comm, stream.stream(false));
                                 *is_dispatched = true;
                                 return hccl_result;
@@ -6041,7 +6041,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
                             stream.stream(false),
                             torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                        auto hccl_result = HcclSend(inputDataPtr, numel, hcclType,
+                        auto hccl_result = hcclSend(inputDataPtr, numel, hcclType,
                             static_cast<uint32_t>(root), comm, stream.stream(false));
                         *is_dispatched = true;
                         return hccl_result;
@@ -6174,7 +6174,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                                         stream.stream(false),
                                         torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                                    auto hccl_result = HcclSend(inputDataPtr, numel, hcclType,
+                                    auto hccl_result = hcclSend(inputDataPtr, numel, hcclType,
                                         static_cast<uint32_t>(r), comm, stream.stream(false));
                                     *is_dispatched = true;
                                     return hccl_result;
@@ -6199,7 +6199,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                                 stream.stream(false),
                                 torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                            auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType,
+                            auto hccl_result = hcclRecv(outputDataPtr, numel, hcclType,
                                 static_cast<uint32_t>(root), comm, stream.stream(false));
                             *is_dispatched = true;
                             return hccl_result;
@@ -6295,7 +6295,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclSend(inputDataPtr, numel, hcclType, static_cast<uint32_t>(dst_rank), comm, stream.stream(false));
+                auto hccl_result = hcclSend(inputDataPtr, numel, hcclType, static_cast<uint32_t>(dst_rank), comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -6332,7 +6332,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
                 if (c10_npu::is_core_control_enabled) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType, static_cast<uint32_t>(src_rank), comm, stream.stream(false));
+                auto hccl_result = hcclRecv(outputDataPtr, numel, hcclType, static_cast<uint32_t>(src_rank), comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -6684,7 +6684,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                                 stream.stream(false),
                                 torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                            auto hccl_result = HcclSend(inputDataPtr, numel, hcclType,
+                            auto hccl_result = hcclSend(inputDataPtr, numel, hcclType,
                                 static_cast<uint32_t>(r), comm, stream.stream(false));
                             *is_dispatched = true;
                             return hccl_result;
@@ -6704,7 +6704,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                                 stream.stream(false),
                                 torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                            auto hccl_result = HcclRecv(outputDataPtr, numel, hcclType,
+                            auto hccl_result = hcclRecv(outputDataPtr, numel, hcclType,
                                 static_cast<uint32_t>(r), comm, stream.stream(false));
                             *is_dispatched = true;
                             return hccl_result;
