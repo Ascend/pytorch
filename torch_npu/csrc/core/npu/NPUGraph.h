@@ -6,6 +6,8 @@
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#include "third_party/acl/inc/acl/acl_sk.h"
+#include "torch_npu/csrc/core/npu/interface/SkInterface.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
@@ -33,6 +35,8 @@ TORCH_NPU_API void graph_task_group_begin(c10_npu::NPUStream stream);
 TORCH_NPU_API NPUTaskGroupHandle graph_task_group_end(c10_npu::NPUStream stream);
 TORCH_NPU_API void graph_task_update_begin(c10_npu::NPUStream stream, NPUTaskGroupHandle handle);
 TORCH_NPU_API void graph_task_update_end(c10_npu::NPUStream stream);
+TORCH_NPU_API void super_kernel_scope_begin(const char* scope_name);
+TORCH_NPU_API void super_kernel_scope_end(const char* scope_name);
 
 TORCH_NPU_API void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData);
 TORCH_NPU_API void subscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
@@ -58,6 +62,7 @@ struct TORCH_NPU_API NPUGraph {
     MempoolId_t pool();
     void enable_debug_mode();
     void debug_dump(const std::string& debug_path);
+    void super_kernel_optimize(const aclskOptions *options);
 
 protected:
     aclmdlRI model_ri_ = nullptr;

@@ -740,11 +740,17 @@
   "torch_npu.npu.graphs.NPUGraph.debug_dump": {
     "signature": "(self, debug_path)"
   },
+  "torch_npu.npu.graphs.NPUGraph.super_kernel_optimize": {
+    "signature": "(self, optimize_options=None, debug_options=None)"
+  },
   "torch_npu.npu.NPUGraph.update": {
     "signature": "(self, cpu_update_input)"
   },
   "torch_npu.npu.NPUGraph.debug_dump": {
     "signature": "(self, debug_path)"
+  },
+  "torch_npu.npu.NPUGraph.super_kernel_optimize": {
+    "signature": "(self, optimize_options=None, debug_options=None)"
   },
   "torch_npu.utils.serialization.save_async": {
     "signature": "(obj: object, f, pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False, model: torch.nn.modules.module.Module = None) -> None"
