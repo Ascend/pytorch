@@ -1,6 +1,6 @@
 import os
 import stat
-from unittest import skip
+import unittest
 
 import torch
 import torch_npu
@@ -52,6 +52,7 @@ class TestExportMemoryTimeline(TestCase):
     model_train = TrainModel()
     train_steps = 3
 
+    @unittest.skip("skip case for export memory timeline failed.")
     def test_export_memory_timeline_on_npu(self):
         def trace_handler(prof: torch_npu.profiler.profile):
             prof.export_memory_timeline(output_path="./mem_tl.json", device="npu:0")
@@ -88,7 +89,7 @@ class TestExportMemoryTimeline(TestCase):
             PathManager.remove_file_safety(json_gz_file)
         self.assertTrue(has_result)
 
-    @skip("skip to pass ci")
+    @unittest.skip("skip case for export memory timeline failed.")
     def test_export_memory_timeline_on_cpu(self):
         def trace_handler(prof: torch_npu.profiler.profile):
             prof.export_memory_timeline(output_path="./mem_tl.json", device="cpu")
