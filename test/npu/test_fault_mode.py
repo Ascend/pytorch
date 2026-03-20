@@ -257,6 +257,7 @@ class TestMode(TestCase):
         with self.assertRaisesRegex(ValueError, "loaded state dict has a different number of parameter groups"):
             optimizer1.load_state_dict(optimizer2.state_dict())
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     def test_aclopCompile(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_aclopCompileAndExecute.py')
         process = subprocess.Popen(["python", f"{path}"], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -271,6 +272,7 @@ class TestMode(TestCase):
             error
         )
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     def test_ascyn(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_aclopCompileAndExecute.py')
         process = subprocess.Popen(["python", f"{path}"], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
