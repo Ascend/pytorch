@@ -5,6 +5,7 @@
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#include "third_party/acl/inc/acl/acl_sk.h"
 
 struct PyFuncStruct {
     PyFuncStruct(PyObject *pyFunc, PyObject *pyFuncArgs)
