@@ -5,6 +5,7 @@ import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestMode(TestCase):
@@ -136,6 +137,7 @@ class TestMode(TestCase):
         )
 
     @skipIfUnsupportMultiNPU(2)
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     def test_hccl_timeout(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_hccl_timeout.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
@@ -154,6 +156,25 @@ class TestMode(TestCase):
             message
         )
 
+    @skipIfUnsupportMultiNPU(2)
+    @SupportedDevices(['Ascend950'])
+    def test_hccl_timeout_950(self):
+        path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_hccl_timeout.py')
+        process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True)
+        message = process.stderr.read()
+        process.stderr.close()
+        process.stdout.close()
+        process.terminate()
+        process.wait()
+        self.assertIn(
+            "wait for compute device to finish failed",
+            message
+        )
+        self.assertIn(
+            "task timeout",
+            message
+        )
 
 
 if __name__ == "__main__":
