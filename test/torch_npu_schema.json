@@ -2030,6 +2030,9 @@
   "torch_npu.npu.NPUGraph.debug_dump": {
     "signature": "(self, debug_path)"
   },
+  "torch_npu.npu.NPUGraph.super_kernel_optimize": {
+    "signature": "(self, optimize_options=None, debug_options=None)"
+  },
   "torch_npu.profiler.experimental_config.HostSystem": {
     "signature": "()"
   },
@@ -2047,6 +2050,9 @@
   },
   "torch_npu.npu.graphs.NPUGraph.debug_dump": {
     "signature": "(self, debug_path)"
+  },
+  "torch_npu.npu.graphs.NPUGraph.super_kernel_optimize": {
+    "signature": "(self, optimize_options=None, debug_options=None)"
   },
   "torch_npu.npu.get_device_limit": {
     "signature": "(device)"

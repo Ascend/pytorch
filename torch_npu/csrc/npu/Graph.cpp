@@ -52,6 +52,78 @@ void LaunchCallFunc(void *userData)
     PyGILState_Release(state);
 }
 
+class AclSkOptionHelper {
+public:
+    std::vector<aclskOption> optionsVec;
+    std::vector<std::string> stringPool;
+    std::vector<std::vector<char*>> ptrArrayPool;
+    void processInitOption(const std::string& key, int value)
+    {
+        static const std::unordered_map<std::string, std::function<void(aclskOption&, int)>> optionHandlers = {
+            {"preload_code", [](aclskOption& opt, int val) {
+                opt.optionType = aclskOptionType::PRELOAD_CODE;
+                opt.preload.preloadMode = static_cast<uint32_t>(val);
+            }},
+            {"split_mode", [](aclskOption& opt, int val) {
+                opt.optionType = aclskOptionType::SPLIT_MODE;
+                opt.splitMode.splitCnt = static_cast<uint32_t>(val);
+            }},
+            {"stream_fusion", [](aclskOption& opt, int val) {
+                opt.optionType = aclskOptionType::STREAM_FUSION;
+                opt.streamFusion.streamFusion = static_cast<uint32_t>(val);
+            }},
+            {"debug_sync_all", [](aclskOption& opt, int val) {
+                opt.optionType = aclskOptionType::DEBUG_SYNC_ALL;
+                opt.debugSync.debugSyncAll = static_cast<uint32_t>(val);
+            }}
+        };
+
+        auto it = optionHandlers.find(key);
+        if (it != optionHandlers.end()) {
+            aclskOption opt = {};
+            it->second(opt, value);
+            optionsVec.push_back(opt);
+        }
+    }
+
+    void processStringArrayOption(const std::string& key, const std::vector<std::string>& values)
+    {
+        if (key == "debug_dcci_disable_on_kernel") {
+            processDcciDisableOnKernel(values);
+        }
+    }
+
+    aclskOptions getStruct()
+    {
+        aclskOptions finalOpt = {};
+        finalOpt.options = optionsVec.data();
+        finalOpt.numOptions = optionsVec.size();
+        return finalOpt;
+    }
+
+private:
+    void processDcciDisableOnKernel(const std::vector<std::string>& values)
+    {
+        aclskOption opt = {};
+        opt.optionType = aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+        opt.disableKernelDcci.kernelCnt = static_cast<int>(values.size());
+        opt.disableKernelDcci.kernelNames = convertStringArray(values);
+        optionsVec.push_back(opt);
+    }
+
+    char** convertStringArray(const std::vector<std::string>& values)
+    {
+        std::vector<char*> charPtrs;
+        charPtrs.reserve(values.size());
+        for (const auto& token : values) {
+            stringPool.push_back(token);
+            charPtrs.push_back(const_cast<char*>(stringPool.back().c_str()));
+        }
+        ptrArrayPool.push_back(std::move(charPtrs));
+        return ptrArrayPool.back().data();
+    }
+};
+
 void TORCH_NPU_API THNPGraph_init(PyObject* module) {
     // Pybind11 patch notes say "py::module_" is more up-to-date syntax,
     // but CI linter and some builds prefer "module".
@@ -76,6 +148,12 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
         .def("_graph_task_update_end", [](py::object py_stream) {
             auto stream = (*py_stream).ptr();
             c10_npu::graph_task_update_end(THNPUtils_PyObject_to_NPUStream(stream));
+        })
+        .def("_super_kernel_scope_begin", [](const char* scope_name) {
+            c10_npu::super_kernel_scope_begin(scope_name);
+        })
+        .def("_super_kernel_scope_end", [](const char* scope_name) {
+            c10_npu::super_kernel_scope_end(scope_name);
         })
         .def("_launch_host_func", [](py::object py_stream, py::object py_func, py::object py_data) {
             auto func = (*py_func).ptr();
@@ -306,5 +384,40 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
              py::arg("debug_path"))
         .def(
             "enable_debug_mode",
-            torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::enable_debug_mode));
+            torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::enable_debug_mode))
+        .def(
+            "super_kernel_optimize",
+            [](c10_npu::NPUGraph& self,
+               py::object optimize_options,
+               py::object debug_options) {
+                AclSkOptionHelper helper;
+                if (!optimize_options.is_none()) {
+                    auto opts = optimize_options.cast<py::dict>();
+                    for (auto item : opts) {
+                        std::string key = py::str(item.first);
+                        if (py::isinstance<py::int_>(item.second)) {
+                            helper.processInitOption(key, item.second.cast<int>());
+                        }
+                    }
+                }
+
+                if (!debug_options.is_none()) {
+                    auto opts = debug_options.cast<py::dict>();
+                    for (auto item : opts) {
+                        std::string key = py::str(item.first);
+                        if (py::isinstance<py::int_>(item.second)) {
+                            helper.processInitOption(key, item.second.cast<int>());
+                        } else if (py::isinstance<py::list>(item.second)) {
+                            helper.processStringArrayOption(key, item.second.cast<std::vector<std::string>>());
+                        }
+                    }
+                }
+                aclskOptions options = helper.getStruct();
+                {
+                    py::gil_scoped_release release;
+                    return self.super_kernel_optimize(&options);
+                }
+            },
+            py::arg("optimize_options"),
+            py::arg("debug_options"));
 }

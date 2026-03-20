@@ -66,6 +66,18 @@ void graph_task_update_end(c10_npu::NPUStream stream)
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskUpdateEnd(stream));
 }
 
+void super_kernel_scope_begin(const char* scope_name)
+{
+    auto stream = c10_npu::getCurrentNPUStream();
+    NPU_CHECK_ERROR(c10_npu::skapi::AclskScopeBegin(scope_name, stream));
+}
+
+void super_kernel_scope_end(const char* scope_name)
+{
+    auto stream = c10_npu::getCurrentNPUStream();
+    NPU_CHECK_ERROR(c10_npu::skapi::AclskScopeEnd(scope_name, stream));
+}
+
 void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData)
 {
     aclrtCallbackBlockType type = aclrtCallbackBlockType::ACL_CALLBACK_BLOCK;
@@ -280,6 +292,13 @@ void NPUGraph::debug_dump(const std::string& debug_path)
     } else {
         TORCH_WARN("Called NPUGraph::debug_dump without a preceding successful capture.");
     }
+}
+
+void NPUGraph::super_kernel_optimize(const aclskOptions *options)
+{
+    TORCH_CHECK(has_graph_exec_,
+                "Called NPUGraph::super_kernel_optimize without a preceding successful capture.");
+    NPU_CHECK_ERROR(c10_npu::skapi::AclskOptimize(model_ri_, options));
 }
 
 void NPUGraph::reset()
