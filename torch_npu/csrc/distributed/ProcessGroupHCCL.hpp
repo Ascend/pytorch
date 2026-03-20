@@ -15,10 +15,40 @@
 #include <c10d/Work.hpp>
 
 #include "third_party/hccl/inc/hccl/hccl.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 
+inline std::shared_ptr<npu_logging::Logger>& GetLoggerHccl()
+{
+    static std::shared_ptr<npu_logging::Logger> loggerHccl = npu_logging::logging().getLogger("torch.distributed");
+    return loggerHccl;
+}
+// macros for log hccl
+#define TORCH_NPU_HCCL_LOGD(format, ...)                                       \
+    do {                                                                       \
+        TORCH_NPU_LOGD(GetLoggerHccl(), format, ##__VA_ARGS__);                \
+        ASCEND_LOGD(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_HCCL_LOGI(format, ...)                                       \
+    do {                                                                       \
+        TORCH_NPU_LOGI(GetLoggerHccl(), format, ##__VA_ARGS__);                \
+        ASCEND_LOGI(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_HCCL_LOGW(format, ...)                                       \
+    do {                                                                       \
+        TORCH_NPU_LOGW(GetLoggerHccl(), format, ##__VA_ARGS__);                \
+        ASCEND_LOGW(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_HCCL_LOGE(format, ...)                                       \
+    do {                                                                       \
+        TORCH_NPU_LOGE(GetLoggerHccl(), format, ##__VA_ARGS__);                \
+        ASCEND_LOGE(format, ##__VA_ARGS__);                                    \
+    } while (0);
 
 namespace c10d_npu {
 // Environment variable which controls whether or not wait() is blocking or
