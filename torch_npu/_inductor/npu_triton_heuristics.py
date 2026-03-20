@@ -48,7 +48,8 @@ from torch._inductor.runtime.triton_heuristics import (
     NoTritonConfigsError,
     TritonCompileResult,
     GridExpr,
-    config_to_dict
+    config_to_dict,
+    config_from_dict
 )
 from torch._inductor.runtime.runtime_utils import triton_hash_to_path_key
 from triton.compiler import CompiledKernel
@@ -204,6 +205,39 @@ class GridExprNpu(GridExpr):
             cfg = config_to_dict(cfg)
         grid.generate(cfg)
         return grid
+
+
+@dataclasses.dataclass
+class PrecomputedGridNpu(GridNpu):
+    def __init__(self, *, inductor_meta, mode="python", **kwargs):
+        super().__init__(inductor_meta=inductor_meta, mode=mode, numels=kwargs.get("numels"))
+    
+    def generate(self, meta: dict[str, int]) -> None:
+        for candidate in self.inductor_meta["precomputed_grids"]:
+            if all(meta.get(k) == v for k, v in candidate["config"].items()):
+                self.x_grid, self.y_grid, self.z_grid = candidate[self.mode]
+                return
+        raise AssertionError(
+            f"Precomputed grid not found for {meta} in {self.inductor_meta['precomputed_grids']}"
+        )
+
+
+@dataclasses.dataclass
+class FixedGridNpu(GridNpu):
+    def __init__(self, *, inductor_meta, mode="python", **kwargs):
+        super().__init__(inductor_meta=inductor_meta, mode=mode, numels=kwargs.get("numels"))
+    
+    @staticmethod
+    def setup_grid_as_args() -> dict[str, Any]:
+        """Inductor meta so the launcher takes three extra grid arguments"""
+        return {
+            "grid_type": FixedGridNpu.__name__,
+            "fixed_grid": ["_grid_0", "_grid_1", "_grid_2"],
+            "extra_launcher_args": ["_grid_0", "_grid_1", "_grid_2"],
+        }
+
+    def generate(self, meta: dict[str, int]) -> None:
+        self.x_grid, self.y_grid, self.z_grid = self.inductor_meta["fixed_grid"]
 
 
 class TritonCompileResultNpu(TritonCompileResult):
@@ -1338,3 +1372,26 @@ def benchmark_all_configs(self, *args, input_grid, **kwargs):
                 k.shared,
             )
     return timings
+
+
+def user_autotune_npu(
+        configs,
+        triton_meta,
+        filename=None,
+        inductor_meta=None,
+        custom_kernel=False,
+):
+   
+    if len(configs) == 0:
+        configs = [triton.Config({})]
+    else:
+        configs = [*map(config_from_dict, configs)]
+    return cached_autotune(
+        None,
+        configs,
+        triton_meta=triton_meta,
+        heuristic_type=HeuristicType.USER_AUTOTUNE,
+        filename=filename,
+        inductor_meta=inductor_meta,
+        custom_kernel=custom_kernel,
+    )

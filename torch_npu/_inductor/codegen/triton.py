@@ -480,7 +480,8 @@ class NPUIndexTritonKernel(TritonKernel):
     def _get_grid_type(self) -> type[triton_heuristics.GridExpr]:
         return npu_triton_heuristics.GridNpu
 
-    def gen_triton_ext_imports(self):
+    @staticmethod
+    def gen_triton_ext_imports():
         imports = IndentedBuffer()
         imports.splice(
             """
