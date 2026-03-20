@@ -52,7 +52,7 @@ void FeatureMgr::FormatFeatureList(size_t size, void* featuresData)
         std::string featureName = features->featureName;
         auto it = NAME_TABLE.find(featureName);
         if (it == NAME_TABLE.end()) {
-            printf("[WARN]%s,%s:%u:Do not support feature: %s, log is: %s\n", __FUNCTION__, __FILENAME__, __LINE__,
+            printf("[WARN]%s,%s:%u:Do not support feature: %s, log is: %s\n", __FUNCTION__, FILE_NAME, __LINE__,
                    features->featureName, features->info.infoLog);
             features++;
             i++;
@@ -92,7 +92,7 @@ bool FeatureMgr::IsSupportFeature(FeatureType featureName)
     auto profIt = profFeatures_.find(featureName);
     if (fmkIt == FMK_FEATURES.end() || profIt == profFeatures_.end()) {
         printf("[WARN]%s,%s:%u:FMW or CANN do not support this feature type is: %d.\n", __FUNCTION__,
-               __FILENAME__, __LINE__, featureName);
+               FILE_NAME, __LINE__, featureName);
         return false;
     }
 

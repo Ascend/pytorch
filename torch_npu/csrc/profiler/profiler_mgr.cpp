@@ -43,7 +43,7 @@ aclprofAicoreMetrics CheckAicMetricsFeature(aclprofAicoreMetrics aic_metrics, in
         !FeatureMgr::GetInstance()->IsSupportFeature(FeatureType::FEATURE_MEMORY_ACCESS)) {
         ASCEND_LOGW("AiCMetrics is not supported to set to MemoryAccess.");
         printf("[WARN]%s,%s:%u:AiCMetrics is not supported to set to MemoryAccess, reset to default.\n",
-               __FUNCTION__, __FILENAME__, __LINE__);
+               __FUNCTION__, FILE_NAME, __LINE__);
         return (level >= 1 ? ACL_AICORE_PIPE_UTILIZATION : ACL_AICORE_NONE);
     }
     return aic_metrics;

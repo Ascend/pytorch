@@ -3,6 +3,7 @@
 #include <c10/core/Allocator.h>
 #include <c10/util/Registry.h>
 #include <c10/util/SmallVector.h>
+#include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
@@ -11,6 +12,36 @@
 
 #include <mutex>
 #include <atomic>
+
+inline std::shared_ptr<npu_logging::Logger>& GetLoggerMem()
+{
+    static std::shared_ptr<npu_logging::Logger> loggerMem = npu_logging::logging().getLogger("torch_npu.memory");
+    return loggerMem;
+}
+// macros for log memory
+#define TORCH_NPU_MEMORY_LOGD(format, ...)                                     \
+    do {                                                                       \
+        TORCH_NPU_LOGD(GetLoggerMem(), format, ##__VA_ARGS__);                 \
+        ASCEND_LOGD(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_MEMORY_LOGI(format, ...)                                     \
+    do {                                                                       \
+        TORCH_NPU_LOGI(GetLoggerMem(), format, ##__VA_ARGS__);                 \
+        ASCEND_LOGI(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_MEMORY_LOGW(format, ...)                                     \
+    do {                                                                       \
+        TORCH_NPU_LOGW(GetLoggerMem(), format, ##__VA_ARGS__);                 \
+        ASCEND_LOGW(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_MEMORY_LOGE(format, ...)                                     \
+    do {                                                                       \
+        TORCH_NPU_LOGE(GetLoggerMem(), format, ##__VA_ARGS__);                 \
+        ASCEND_LOGE(format, ##__VA_ARGS__);                                    \
+    } while (0);
 
 std::string format_size(uint64_t size);
 
