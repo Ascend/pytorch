@@ -74,48 +74,4 @@ private:
         }                                                                       \
     } while (0);
 
-#define TORCH_NPU_LOGC(module, format, ...)                                     \
-    do {                                                                        \
-        if (module->getAllowLevel() <= npu_logging::LoggingLevel::CRITICAL) {   \
-            module->critical(format, ##__VA_ARGS__);                            \
-        }                                                                       \
-    } while (0);
-
-
-// public macros for logging long message
-#define TORCH_NPU_LOGDL(module, format, ...)                                    \
-    do {                                                                        \
-        if (module->getAllowLevel() <= npu_logging::LoggingLevel::DEBUG) {      \
-            module->long_debug(format, ##__VA_ARGS__);                          \
-        }                                                                       \
-    } while (0);
-
-#define TORCH_NPU_LOGIL(module, format, ...)                                    \
-    do {                                                                        \
-        if (module->getAllowLevel() <= npu_logging::LoggingLevel::INFO) {       \
-            module->long_info(format, ##__VA_ARGS__);                           \
-        }                                                                       \
-    } while (0);
-
-#define TORCH_NPU_LOGWL(module, format, ...)                                    \
-    do {                                                                        \
-        if (module->getAllowLevel() <= npu_logging::LoggingLevel::WARNING) {    \
-            module->long_warn(format, ##__VA_ARGS__);                           \
-        }                                                                       \
-    } while (0);
-
-#define TORCH_NPU_LOGEL(module, format, ...)                                    \
-    do {                                                                        \
-        if (module->getAllowLevel() <= npu_logging::LoggingLevel::ERROR) {      \
-            module->long_error(format, ##__VA_ARGS__);                          \
-        }                                                                       \
-    } while (0);
-
-#define TORCH_NPU_LOGCL(module, format, ...)                                    \
-    do {                                                                        \
-        if (module->getAllowLevel() <= npu_logging::LoggingLevel::CRITICAL) {   \
-            module->long_critical(format, ##__VA_ARGS__);                       \
-        }                                                                       \
-    } while (0);
-
 #endif
