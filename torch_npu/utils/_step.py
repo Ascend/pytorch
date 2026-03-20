@@ -270,17 +270,19 @@ def add_perf_dump_patch():
                               f"upper_thresh2 is {matmul_check.get_upper_thresh2()}. grad_sample_interval is {matmul_check.get_grad_sample_interval()}.")
     else:
         asd_value = os.getenv("NPU_ASD_ENABLE", "0")
-        if torch_npu._C._get_silent_check_version() == 1:
-            if asd_value == "1":
-                warnings.warn(f"Warning: CANN version lower than 8.0.RC3 and currently does not support silent check 2.0 version or later. It will switch to 1.0 version.")
-        else:
-            if asd_value not in ["0", "1", "2", "3"]:
-                raise ValueError("NPU_ASD_ENABLE should be 0, 1, 2 or 3. For details, 0 as `ASD closed`, "
-                                "1 as `ASD opened, print error logs`, "
-                                "2 as `ASD opened, print error logs and raise exception`, "
-                                "3 as `ASD opened, print debug logs and raise exception`" + pta_error(ErrCode.VALUE))
-            asd_enable = int(asd_value)
-            if asd_enable:
+        if asd_value not in ["0", "1", "2", "3"]:
+            raise ValueError("NPU_ASD_ENABLE should be 0, 1, 2 or 3. For details, 0 as `ASD closed`, "
+                            "1 as `ASD opened, print error logs`, "
+                            "2 as `ASD opened, print error logs and raise exception`, "
+                            "3 as `ASD opened, print debug logs and raise exception`" + pta_error(ErrCode.VALUE))
+        asd_enable = int(asd_value)
+        if asd_enable > 0:
+            if torch_npu._C._get_silent_check_version() == 1:
+                # The old version CANN only supports ASD 1.0. It can be enabled by patching layernorm and embedding in asd.py,
+                # and will raise an error when NPU_ASD_ENABLE is set to 2 or 3.
+                if asd_enable == 1:
+                    warnings.warn(f"Warning: CANN version lower than 8.0.RC3 and currently does not support silent check 2.0 version or later. It will switch to 1.0 version.")
+            else:
                 warnings.warn(f"Warning: Silent check 2.0 version will be enabled. The asd_detect is {asd_enable}. It is recommended to enable silent check v3 using the NPU_ASD_CONFIG.\n"
                               "Silent data corruption check may take up 1.5GB device memory, please make sure there are enough free space in device. ")
                 silent_check.set_check_enable(asd_enable)

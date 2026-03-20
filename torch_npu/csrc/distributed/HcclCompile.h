@@ -30,10 +30,154 @@ LOAD_FUNCTION(HcclCommWorkingDevNicSet)
 LOAD_FUNCTION(HcclCommRegister)
 LOAD_FUNCTION(HcclCommDeregister)
 LOAD_FUNCTION(HcclCommExchangeMem)
+LOAD_FUNCTION(HcclGetRootInfo)
+LOAD_FUNCTION(HcclCommDestroy)
+LOAD_FUNCTION(HcclSend)
+LOAD_FUNCTION(HcclRecv)
+LOAD_FUNCTION(HcclAllReduce)
+LOAD_FUNCTION(HcclBroadcast)
+LOAD_FUNCTION(HcclAllGather)
+LOAD_FUNCTION(HcclReduceScatter)
+LOAD_FUNCTION(HcclCommInitAll)
+LOAD_FUNCTION(HcclCommInitRootInfo)
 
 REGISTER_LIBRARY(libhcomm)
 REGISTER_FUNCTION(libhcomm, HcclGroupStart)
 REGISTER_FUNCTION(libhcomm, HcclGroupEnd)
+
+extern HcclResult hcclGetRootInfo(HcclRootInfo *rootInfo)
+{
+    using HcclGetRootInfoFunc = HcclResult(*)(HcclRootInfo *);
+    static HcclGetRootInfoFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclGetRootInfoFunc)GET_FUNC(HcclGetRootInfo)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclGetRootInfo", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(rootInfo);
+    return ret;
+}
+
+extern HcclResult hcclCommDestroy(HcclComm comm)
+{
+    using HcclCommDestroyFunc = HcclResult(*)(HcclComm);
+    static HcclCommDestroyFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommDestroyFunc)GET_FUNC(HcclCommDestroy)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommDestroy", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(comm);
+    return ret;
+}
+
+extern HcclResult hcclSend(void *sendBuf, uint64_t count, HcclDataType dataType, uint32_t destRank,
+    HcclComm comm, aclrtStream stream)
+{
+    using HcclSendFunc = HcclResult(*)(
+        void *, uint64_t, HcclDataType, uint32_t, HcclComm, aclrtStream);
+    static HcclSendFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclSendFunc)GET_FUNC(HcclSend)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclSend", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(sendBuf, count, dataType, destRank, comm, stream);
+    return ret;
+}
+
+extern HcclResult hcclRecv(void *recvBuf, uint64_t count, HcclDataType dataType, uint32_t srcRank,
+    HcclComm comm, aclrtStream stream)
+{
+    using HcclRecvFunc = HcclResult(*)(
+        void *, uint64_t, HcclDataType, uint32_t, HcclComm, aclrtStream);
+    static HcclRecvFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclRecvFunc)GET_FUNC(HcclRecv)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclRecv", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(recvBuf, count, dataType, srcRank, comm, stream);
+    return ret;
+}
+
+extern HcclResult hcclCommInitAll(uint32_t ndev, int32_t *devices, HcclComm *comms)
+{
+    using HcclCommInitAllFunc = HcclResult(*)(
+        uint32_t, int32_t *, HcclComm *);
+    static HcclCommInitAllFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommInitAllFunc)GET_FUNC(HcclCommInitAll)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommInitAll", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(ndev, devices, comms);
+    return ret;
+}
+
+extern HcclResult hcclAllGather(void *sendBuf, void *recvBuf, uint64_t sendCount, HcclDataType dataType,
+    HcclComm comm, aclrtStream stream)
+{
+    using HcclAllGatherFunc = HcclResult(*)(
+        void *, void *, uint64_t, HcclDataType, HcclComm, aclrtStream);
+    static HcclAllGatherFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclAllGatherFunc)GET_FUNC(HcclAllGather)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclAllGather", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(sendBuf, recvBuf, sendCount, dataType, comm, stream);
+    return ret;
+}
+
+extern HcclResult hcclAllReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType dataType,
+    HcclReduceOp op, HcclComm comm, aclrtStream stream)
+{
+    using HcclAllReduceFunc = HcclResult(*)(
+        void *, void *, uint64_t, HcclDataType, HcclReduceOp, HcclComm, aclrtStream);
+    static HcclAllReduceFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclAllReduceFunc)GET_FUNC(HcclAllReduce)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclAllReduce", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(sendBuf, recvBuf, count, dataType, op, comm, stream);
+    return ret;
+}
+
+extern HcclResult hcclBroadcast(void *buf, uint64_t count, HcclDataType dataType, uint32_t root, HcclComm comm,
+    aclrtStream stream)
+{
+    using HcclBroadcastFunc = HcclResult(*)(
+        void *, uint64_t, HcclDataType, uint32_t, HcclComm, aclrtStream);
+    static HcclBroadcastFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclBroadcastFunc)GET_FUNC(HcclBroadcast)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclBroadcast", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(buf, count, dataType, root, comm, stream);
+    return ret;
+}
+
+extern HcclResult hcclCommInitRootInfo(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclComm *comm)
+{
+    using HcclCommInitRootInfoFunc = HcclResult(*)(
+        uint32_t, const HcclRootInfo *, uint32_t, HcclComm *);
+    static HcclCommInitRootInfoFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommInitRootInfoFunc)GET_FUNC(HcclCommInitRootInfo)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommInitRootInfo", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(nRanks, rootInfo, rank, comm);
+    return ret;
+}
+
+extern HcclResult hcclReduceScatter(void *sendBuf, void *recvBuf, uint64_t recvCount, HcclDataType dataType,
+    HcclReduceOp op, HcclComm comm, aclrtStream stream)
+{
+    using HcclReduceScatterFunc = HcclResult(*)(
+        void *, void *, uint64_t, HcclDataType, HcclReduceOp, HcclComm, aclrtStream);
+    static HcclReduceScatterFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclReduceScatterFunc)GET_FUNC(HcclReduceScatter);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclReduceScatter", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(sendBuf, recvBuf, recvCount, dataType, op, comm, stream);
+    return ret;
+}
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
