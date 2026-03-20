@@ -20,9 +20,10 @@ from torch._inductor.virtualized import V
 from torch._subclasses.fake_tensor import FakeTensor, FakeTensorMode
 from torch.utils._sympy.singleton_int import SingletonInt
 from torch._inductor.ir import GraphPartitionSignature
-
 from torch_npu._inductor import config as npu_config
 import torch_npu.npu.aclnn
+from torch_npu._inductor.codegen.triton import gen_triton_ext_imports
+from torch_npu._inductor.npu_triton_heuristics import PrecomputedGridNpu, user_autotune_npu
 
 
 class NPUWrapperCodeGen(PythonWrapperCodegen):
@@ -265,3 +266,29 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 self.wrapper_call.writeline('exc_info=(None, None, None)')
                 self.wrapper_call.writeline('static_kernel_complier.__exit__(*exc_info)')
         super().generate_return(output_refs)
+
+    def define_kernel(
+        self,
+        kernel_name: str,
+        kernel_body: str,
+        metadata: Optional[str] = None,
+        gpu: bool = True,
+        cpp_definition: Optional[str] = None,
+    ):
+        #重写父类逻辑
+        #修改user_autotune为user_autotune_npu进行适配，必满core dump错误
+        if "user_autotune" in kernel_body and "user_autotune_npu" not in kernel_body:
+            kernel_body = kernel_body.replace(
+                "triton_heuristics.user_autotune(",
+                "npu_triton_heuristics.user_autotune_npu("
+            )
+            kernel_body = kernel_body.replace(
+                "PrecomputedGrid",
+                "PrecomputedGridNpu"
+            )
+            #import npu_triton_heuristicsd相关头文件
+            kernel_body = kernel_body.replace(
+                "'''\n",
+                "'''\n" + gen_triton_ext_imports() + "\n"
+            )
+        super().define_kernel(kernel_name, kernel_body, metadata, gpu, cpp_definition)
