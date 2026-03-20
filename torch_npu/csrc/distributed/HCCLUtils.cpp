@@ -123,7 +123,7 @@ std::shared_ptr<HCCLComm> HCCLComm::create(
     HcclRootInfo& rootInfo)
 {
     auto comm = std::make_shared<HCCLComm>();
-    HCCL_CHECK_ERROR(HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
+    HCCL_CHECK_ERROR(hcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
     c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {comm->destroyHcclComm();},
                                                          c10_npu::ReleasePriority::PriorityMiddle);
     return comm;
@@ -193,7 +193,7 @@ void HCCLComm::destroyHcclComm()
 {
     std::unique_lock<std::mutex> lock(mutex_);
     if (hcclComm_) {
-        HcclCommDestroy(hcclComm_);
+        hcclCommDestroy(hcclComm_);
         hcclComm_ = nullptr;
     }
 }

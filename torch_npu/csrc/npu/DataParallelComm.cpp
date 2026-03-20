@@ -44,7 +44,7 @@ struct HcclCommList {
     int ndevices;
     explicit HcclCommList(const std::vector<int>& devices): comms(new HcclComm[devices.size()]), ndevices(devices.size())
     {
-        HCCL_CHECK_ERROR(HcclCommInitAll(devices.size(), const_cast<int32_t*>(devices.data()), comms.get()));
+        HCCL_CHECK_ERROR(c10d_npu::hcclCommInitAll(devices.size(), const_cast<int32_t*>(devices.data()), comms.get()));
     }
     HcclCommList(HcclCommList&& foo) = default;
     HcclCommList& operator=(HcclCommList&& foo) = default;
@@ -61,7 +61,7 @@ struct HcclCommList {
                     In these cases, skip hcclCommDestroy */
                     return;
                 }
-                HcclCommDestroy(comms[i]);
+                c10d_npu::hcclCommDestroy(comms[i]);
             }
         }
     }
@@ -228,7 +228,7 @@ void broadcast(TensorList tensors, const stream_list& streams = {}, const comm_l
                 count_max,
                 ")" + PTA_ERROR(ErrCode::VALUE));
             HcclComm comm = comms[i];
-            HCCL_CHECK_ERROR(HcclBroadcast(tensors[i].data_ptr(), numel, data_type, 0, comm, stream));
+            HCCL_CHECK_ERROR(c10d_npu::hcclBroadcast(tensors[i].data_ptr(), numel, data_type, 0, comm, stream));
         });
     }
     for (auto &t : threads) {
