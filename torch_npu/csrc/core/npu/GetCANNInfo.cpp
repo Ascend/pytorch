@@ -17,6 +17,7 @@ constexpr size_t kVersionIndex2 = 2;
 constexpr size_t kVersionIndex3 = 3;
 constexpr size_t kVersionIndex4 = 4;
 
+constexpr size_t tokenNum2 = 2;
 constexpr size_t tokenNum3 = 3;
 constexpr size_t tokenNum4 = 4;
 constexpr size_t tokenNum5 = 5;
@@ -491,22 +492,31 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
     if (module.compare(unsupportedModule) == 0) {
         TORCH_CHECK(false, "When the module is DRIVER, IsGteCANNVersion is not supported. ", PTA_ERROR(ErrCode::VALUE));
     }
-    if (version.compare(baseVersion) < 0) {
-        TORCH_CHECK(false, "When the version " + version + " is less than \"8.1.RC1\", GetCANNVersion is not supported. ", PTA_ERROR(ErrCode::VALUE));
+    
+    std::vector<std::string> tokensVersion = SplitVersionStr(version);
+    std::vector<std::string> tokensBaseVersion = SplitVersionStr(baseVersion);
+    if (tokensVersion.size() < tokenNum2 || !isDigits(tokensVersion[index0])) {
+        ASCEND_LOGW("The version: %s is invalid.", version.c_str());
+        return false;
     }
-    std::string currentVersion = GetCANNVersion(module);
-    std::vector<std::string> tokens1 = SplitVersionStr(currentVersion);
-    std::vector<std::string> tokens2 = SplitVersionStr(version);
+    if (ExtractNumFromStr(tokensVersion[index0]) <= ExtractNumFromStr(tokensBaseVersion[index0])) {
+        if (version.compare(baseVersion) < 0) {
+                TORCH_CHECK(false, "When the version " + version + " is less than \"8.1.RC1\", GetCANNVersion is not supported. ", PTA_ERROR(ErrCode::VALUE));
+            }
+    }
 
+    std::string currentVersion = GetCANNVersion(module);
+    std::vector<std::string> tokensCurrentVersion = SplitVersionStr(currentVersion);
+    
     int64_t current_num = 0;
     int64_t boundary_num = 0;
     bool isInvalid = false;
-    if (tokens1.size() > 2 && tokens2.size() > 2) {
-        if (isDigits(tokens1[index0]) && isDigits(tokens1[index1]) && isDigits(tokens2[index0]) && isDigits(tokens2[index1])) {
-            int64_t major1 = ExtractNumFromStr(tokens1[index0]);
-            int64_t minor1 = ExtractNumFromStr(tokens1[index1]);
-            int64_t major2 = ExtractNumFromStr(tokens2[index0]);
-            int64_t minor2 = ExtractNumFromStr(tokens2[index1]);
+    if (tokensCurrentVersion.size() > tokenNum2 && tokensVersion.size() > tokenNum2) {
+        if (isDigits(tokensCurrentVersion[index0]) && isDigits(tokensCurrentVersion[index1]) && isDigits(tokensVersion[index0]) && isDigits(tokensVersion[index1])) {
+            int64_t major1 = ExtractNumFromStr(tokensCurrentVersion[index0]);
+            int64_t minor1 = ExtractNumFromStr(tokensCurrentVersion[index1]);
+            int64_t major2 = ExtractNumFromStr(tokensVersion[index0]);
+            int64_t minor2 = ExtractNumFromStr(tokensVersion[index1]);
             if (major1 == 8 && minor1 < 5 && major2 == 8 && minor2 < 5) {
                 current_num = VersionToNum(currentVersion);
                 boundary_num = VersionToNum(version);
