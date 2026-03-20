@@ -93,6 +93,20 @@ void* mallocHostSwapMemory(size_t size)
 
 static void svm_deleter(void* ptr)
 {
+    if (ptr == nullptr) {
+        return;
+    }
+
+    auto it = memBlocks.find(ptr);
+    if (it != memBlocks.end()) {
+        c10_npu::npuSynchronizeDevice();
+        // 1. 注销主机内存注册
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtHostUnregister(it->second.alignedPtr));
+        // 2. 释放主机内存
+        NPU_CHECK_ERROR(aclrtFreeHost(it->second.ptr));
+        // 3. 从映射表中移除
+        memBlocks.erase(it);
+    }
 }
 
 namespace c10_npu {
