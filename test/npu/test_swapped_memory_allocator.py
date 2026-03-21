@@ -19,7 +19,6 @@ import torch_npu
 from torch_npu.testing.common_utils import SupportedDevices
 
 
-
 class TestNPUSwappedMemoryAllocator(unittest.TestCase):
 
     def setUp(self):
@@ -54,7 +53,6 @@ class TestNPUSwappedMemoryAllocator(unittest.TestCase):
             torch.npu.empty_cache()
             gc.collect()
 
-
     @SupportedDevices(['Ascend910B'])
     def test_02_async_operations_and_release(self):
         """Test 2: Async operations followed by release (verify stream sync works)"""
@@ -71,6 +69,15 @@ class TestNPUSwappedMemoryAllocator(unittest.TestCase):
             tensor = tensor + i * 0.1
         
         tensor.sqrt_()
+        
+        expected_tensor = torch.empty([512, 512], dtype=torch.float32, device='npu:0')
+        expected_tensor.fill_(1.0)
+        for i in range(10):
+            expected_tensor = expected_tensor * 1.1
+            expected_tensor = expected_tensor + i * 0.1
+        expected_tensor = expected_tensor.sqrt()
+        
+        self.assertTrue(torch.allclose(tensor, expected_tensor, rtol=1e-5, atol=1e-5))
         
         weak_ref = weakref.ref(tensor)
         del tensor
