@@ -14,6 +14,7 @@
 #include <ATen/NamedTensorUtils.h>
 #include <c10/util/irange.h>
 #include <ATen/record_function.h>
+#include <c10/core/impl/COW.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUSwappedMemoryAllocator.h"
@@ -833,6 +834,35 @@ at::Tensor NPUNativeFunctions::isnan(const at::Tensor& self)
 at::Tensor NPUNativeFunctions::unfold(const at::Tensor& self, int64_t dimension, int64_t size, int64_t step)
 {
     return at::native::unfold(self, dimension, size, step);
+}
+
+at::Tensor NPUNativeFunctions::_lazy_clone(at::Tensor const& self)
+{
+    // 1. Obtain the StorageImpl pointer of the source Tensor
+    c10::StorageImpl* self_storage = self.storage().unsafeGetStorageImpl();
+
+    // 2. Call the PyTorch core COW mechanism to create a lazy clone storage
+    c10::intrusive_ptr<c10::StorageImpl> storage =
+        c10::impl::cow::lazy_clone_storage(*self_storage);
+    TORCH_CHECK(storage != nullptr);
+
+    // 3. Create a new TensorImpl based on cloned storage
+    auto tensor = c10::make_intrusive<c10::TensorImpl>(
+        c10::Storage(std::move(storage)),
+        self.key_set(),
+        self.dtype());
+
+    // 4. Set the metadata (dimensions, strides, offset) of the new Tensor
+    tensor->set_sizes_and_strides(
+        self.sym_sizes(),
+        self.sym_strides(),
+        self.sym_storage_offset());
+
+    // 5. Create a Tensor and copy the NPU-specific description information
+    auto result = at::Tensor(std::move(tensor));
+    StorageDescHelper::CopyDesc(result, self);
+
+    return result;
 }
 
 } // namespace native
