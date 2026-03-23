@@ -337,7 +337,7 @@ std::string NPUPluggableAllocator::name()
 // Note [COW/lazy_clone is not supported yet]
 void NPUPluggableAllocator::copy_data(void* dest, const void* src, std::size_t count) const
 {
-    default_copy_data(dest, src, count);
+    NPU_CHECK_ERROR(aclrtMemcpy(dest, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE));
 }
 
 std::shared_ptr<void> NPUPluggableAllocator::getIpcDevPtr(std::string handle)
