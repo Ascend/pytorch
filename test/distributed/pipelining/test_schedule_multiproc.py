@@ -1,3 +1,18 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates
+# Owner(s): ["oncall: distributed"]
+# This file is a Schedule zoo for testing torch.distributed.pipelining.
+# It includes schedules designed purely for testing purposes
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://github.com/pytorch/pytorch/blob/main/LICENSE
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import copy
 import logging
 import tempfile
@@ -35,7 +50,6 @@ from torch.testing._internal.common_utils import (
     skip_but_pass_in_sandcastle_if,
 )
 
-from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +71,6 @@ class ScheduleTest(MultiProcContinousTest):
     def device(self) -> torch.device:
         return torch.device(device_type, self.rank)
 
-    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [_ScheduleForwardOnly])
     def test_forward_only(self, ScheduleClass):
         mod = MultiMLP(d_hid, n_layers=self.world_size)
@@ -106,7 +119,6 @@ class ScheduleTest(MultiProcContinousTest):
 
             torch.testing.assert_close(x_clone, out)
 
-    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleGPipe, Schedule1F1B])
     def test_multi_iter(self, ScheduleClass):
         mod = MultiMLP(d_hid, n_layers=self.world_size)
@@ -145,7 +157,6 @@ class ScheduleTest(MultiProcContinousTest):
             else:
                 schedule.step()
 
-    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleGPipe, Schedule1F1B])
     def test_kwargs_with_tracer(self, ScheduleClass):
         # Model has two stages only, thus limiting group size to 2
@@ -189,7 +200,6 @@ class ScheduleTest(MultiProcContinousTest):
             out = schedule.step(target=target, losses=losses)
         else:
             schedule.step()
-
         # Last rank checks result
         if self.rank == group_size - 1:
             ref_out = mod(x, y=y)
@@ -198,7 +208,6 @@ class ScheduleTest(MultiProcContinousTest):
             torch.testing.assert_close(out, ref_out, rtol=1e-2, atol=5e-3)
             torch.testing.assert_close(pipe_loss, ref_loss)
 
-    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleGPipe, Schedule1F1B])
     def test_grad_with_tracer(self, ScheduleClass):
         mod = MultiMLP(d_hid, n_layers=self.world_size)
@@ -272,7 +281,6 @@ class ScheduleTest(MultiProcContinousTest):
                 print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                 raise
 
-    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleGPipe, Schedule1F1B])
     @parametrize("shape_inference", [True, False])
     def test_grad_with_manual(self, ScheduleClass, shape_inference):
@@ -355,7 +363,6 @@ class ScheduleTest(MultiProcContinousTest):
                 print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                 raise
 
-    @skipIfUnsupportMultiNPU(2)
     @parametrize(
         "ScheduleClass",
         [
@@ -388,10 +395,16 @@ class ScheduleTest(MultiProcContinousTest):
             ref_loss.backward()
 
         # Get a submodule, e.g. `layers.0` or `layers.1`
-        stage_indices = [self.rank + i * self.world_size for i in range(stages_per_rank)]
+        stage_indices = [
+            self.rank + i * self.world_size
+            for i in range(stages_per_rank)
+        ]
         print(f"Rank {self.rank} stages: {stage_indices}")
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
+        stage_modules = [
+            full_mod.get_submodule(submod_name)
+            for submod_name in submod_names
+        ]
         # Create a pipeline stage to wrap that submodule
         num_microbatches = (
             ScheduleClass.num_microbatches
@@ -503,7 +516,6 @@ class ScheduleTest(MultiProcContinousTest):
                     print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                     raise
 
-    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleWithW, ScheduleInterleavedZeroBubble])
     def test_schedule_with_native_zero_bubble(self, ScheduleClass):
         print(ScheduleClass)
@@ -536,7 +548,10 @@ class ScheduleTest(MultiProcContinousTest):
         stage_indices = rank_stages.get(self.rank)
         print(f"Rank {self.rank} stages: {stage_indices}")
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
+        stage_modules = [
+            full_mod.get_submodule(submod_name)
+            for submod_name in submod_names
+        ]
         stages = [
             PipelineStage(
                 stage_module,
@@ -593,7 +608,6 @@ class ScheduleTest(MultiProcContinousTest):
                     )
                     raise
 
-    @skipIfUnsupportMultiNPU(2)
     @parametrize(
         "ScheduleClass",
         [
@@ -624,10 +638,16 @@ class ScheduleTest(MultiProcContinousTest):
             ref_loss.backward()
 
         # Get a submodule, e.g. `layers.0` or `layers.1`
-        stage_indices = [self.rank + i * self.world_size for i in range(stages_per_rank)]
+        stage_indices = [
+            self.rank + i * self.world_size
+            for i in range(stages_per_rank)
+        ]
         print(f"Rank {self.rank} stages: {stage_indices}")
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
+        stage_modules = [
+            full_mod.get_submodule(submod_name)
+            for submod_name in submod_names
+        ]
         # Create a pipeline stage to wrap that submodule
         num_microbatches = (
             ScheduleClass.num_microbatches
@@ -693,7 +713,6 @@ class ScheduleTest(MultiProcContinousTest):
                     print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                     raise
 
-    @skipIfUnsupportMultiNPU(2)
     @parametrize(
         "schedule_class", [ScheduleVShaped, ScheduleUnbalanced, ScheduleZBVZeroBubble]
     )
@@ -732,7 +751,10 @@ class ScheduleTest(MultiProcContinousTest):
         stage_indices = rank_stages.get(self.rank)
         print(f"Rank {self.rank} stages: {stage_indices}")
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
+        stage_modules = [
+            full_mod.get_submodule(submod_name)
+            for submod_name in submod_names
+        ]
         stages = [
             PipelineStage(
                 stage_module,
@@ -794,8 +816,6 @@ class ScheduleTest(MultiProcContinousTest):
                     print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                     raise
 
-
-    @skipIfUnsupportMultiNPU(2)
     @parametrize("ScheduleClass", [ScheduleInterleavedZeroBubble])
     def test_schedule_with_weight_update_mlp_e2e(self, ScheduleClass):
         stages_per_rank = 2
@@ -816,13 +836,22 @@ class ScheduleTest(MultiProcContinousTest):
         full_mod.toggle()
 
         # Get a submodule, e.g. `layers.0` or `layers.1`
-        stage_indices = [self.rank + i * self.world_size for i in range(stages_per_rank)]
+        stage_indices = [
+            self.rank + i * self.world_size
+            for i in range(stages_per_rank)
+        ]
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
+        stage_modules = [
+            full_mod.get_submodule(submod_name)
+            for submod_name in submod_names
+        ]
 
         # Run reference
         for _ in range(2):
-            ref_stage_modules = [ref_mod.get_submodule(submod_name) for submod_name in submod_names]
+            ref_stage_modules = [
+                ref_mod.get_submodule(submod_name)
+                for submod_name in submod_names
+            ]
             for stage_module in ref_stage_modules:
                 stage_module.zero_grad()
 
@@ -904,7 +933,6 @@ class ScheduleTest(MultiProcContinousTest):
                 ref_p = ref_submod.get_parameter(name)
                 torch.testing.assert_close(p.grad, ref_p.grad, rtol=1e-5, atol=4e-5)
 
-    @skipIfUnsupportMultiNPU(2)
     @parametrize(
         "ScheduleClass",
         [ScheduleInterleavedZeroBubble, ScheduleInterleaved1F1B],
@@ -927,12 +955,21 @@ class ScheduleTest(MultiProcContinousTest):
         loss_fn = torch.nn.MSELoss(reduction="sum")
 
         # Get a submodule, e.g. `layers.0` or `layers.1`
-        stage_indices = [self.rank + i * self.world_size for i in range(stages_per_rank)]
+        stage_indices = [
+            self.rank + i * self.world_size
+            for i in range(stages_per_rank)
+        ]
         submod_names = [f"layers.{i}" for i in stage_indices]
-        stage_modules = [full_mod.get_submodule(submod_name) for submod_name in submod_names]
+        stage_modules = [
+            full_mod.get_submodule(submod_name)
+            for submod_name in submod_names
+        ]
         # Run reference
         for _ in range(2):
-            ref_stage_modules = [ref_mod.get_submodule(submod_name) for submod_name in submod_names]
+            ref_stage_modules = [
+                ref_mod.get_submodule(submod_name)
+                for submod_name in submod_names
+            ]
             for stage_module in ref_stage_modules:
                 stage_module.zero_grad()
 
@@ -1006,7 +1043,6 @@ class ScheduleTest(MultiProcContinousTest):
 
 
 instantiate_parametrized_tests(ScheduleTest)
-
 
 if __name__ == "__main__":
     run_tests()
