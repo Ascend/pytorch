@@ -2,6 +2,17 @@
 # Owner(s): ["oncall: distributed"]
 # This file is a Schedule zoo for testing torch.distributed.pipelining.
 # It includes schedules designed purely for testing purposes
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://github.com/pytorch/pytorch/blob/main/LICENSE
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import Callable, Optional
 
 from torch.distributed.pipelining.schedules import (
@@ -20,7 +31,7 @@ from torch.distributed.pipelining.stage import _PipelineStageBase
 F = _ComputationType.FORWARD
 B = _ComputationType.FULL_BACKWARD
 W = _ComputationType.BACKWARD_WEIGHT
-INPUT = _ComputationType.BACKWARD_INPUT
+I = _ComputationType.BACKWARD_INPUT
 
 
 class ScheduleVShaped(PipelineScheduleMulti):
@@ -45,7 +56,7 @@ class ScheduleVShaped(PipelineScheduleMulti):
         )
 
         # Go through one microbatch
-        # Note(whc) - it might be easier to work with thes schedules by writing them as a list of
+        # Note(whc) - it might be easier to work with this schedules by writing them as a list of
         # ["0F0", ...] and then parsing them in the test infra to turn them into actions.
         self.pipeline_order = {
             0: [
@@ -156,12 +167,12 @@ class ScheduleWithW(PipelineScheduleMulti):
                 _Action(2, F, 0),
                 _Action(2, F, 1),
                 None,
-                _Action(2, INPUT, 0),
+                _Action(2, I, 0),
                 _Action(2, W, 0),
-                _Action(0, INPUT, 0),
-                _Action(2, INPUT, 1),
+                _Action(0, I, 0),
+                _Action(2, I, 1),
                 _Action(0, W, 0),
-                _Action(0, INPUT, 1),
+                _Action(0, I, 1),
                 _Action(2, W, 1),
                 _Action(0, W, 1),
             ],
@@ -170,12 +181,12 @@ class ScheduleWithW(PipelineScheduleMulti):
                 _Action(1, F, 0),
                 _Action(1, F, 1),
                 _Action(3, F, 0),
-                _Action(3, INPUT, 0),
+                _Action(3, I, 0),
                 _Action(3, F, 1),
-                _Action(1, INPUT, 0),
-                _Action(3, INPUT, 1),
+                _Action(1, I, 0),
+                _Action(3, I, 1),
                 _Action(3, W, 0),
-                _Action(1, INPUT, 1),
+                _Action(1, I, 1),
                 _Action(1, W, 0),
                 _Action(3, W, 1),
                 _Action(1, W, 1),

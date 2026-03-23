@@ -1,19 +1,34 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 # Owner(s): ["oncall: distributed"]
 # This file is a model zoo for testing torch.distributed.pipelining.
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://github.com/pytorch/pytorch/blob/main/LICENSE
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import torch
 from torch.autograd import Function
 from torch.distributed.pipelining import pipe_split, SplitPoint
 
 
 class ExampleCode(torch.nn.Module):
-    def __init__(self, d_hid):
+    def __init__(self, d_hid, splits=2):
+        if splits > 4:
+            raise ValueError(f"splits must be <= 4, got {splits}")
         super().__init__()
+        self.splits = splits
         self.mm_param0 = torch.nn.Parameter(torch.randn(d_hid, d_hid))
         self.mm_param1 = torch.nn.Parameter(torch.randn(d_hid, d_hid))
         self.cval = torch.nn.Buffer(torch.randn((d_hid,), requires_grad=False))
         self.lin0 = torch.nn.Linear(d_hid, d_hid)
         self.lin1 = torch.nn.Linear(d_hid, d_hid)
+        self.lin2 = torch.nn.Linear(d_hid, d_hid)
 
     def forward(self, x):
         x = torch.mm(x, self.mm_param0)
@@ -24,8 +39,14 @@ class ExampleCode(torch.nn.Module):
         pipe_split()
         x = torch.relu(x) + a_constant
         x = torch.mm(x, self.mm_param1)
-        x = self.lin1(x)
-        x = torch.relu(x)
+        if self.splits > 2:
+            pipe_split()
+            x = self.lin1(x)
+            x = torch.relu(x)
+        if self.splits > 3:
+            pipe_split()
+            x = self.lin2(x)
+            x = torch.relu(x)
         return x
 
 
@@ -33,12 +54,17 @@ class ModelWithKwargs(torch.nn.Module):
     DEFAULT_DHID = 512
     DEFAULT_BATCH_SIZE = 256
 
-    def __init__(self, d_hid: int = DEFAULT_DHID):
+    def __init__(self, d_hid: int = DEFAULT_DHID, splits=2):
+        if splits > 4:
+            raise ValueError(f"splits must be <= 4, got {splits}")
         super().__init__()
+        self.splits = splits
         self.mm_param0 = torch.nn.Parameter(torch.randn(d_hid, d_hid))
         self.mm_param1 = torch.nn.Parameter(torch.randn(d_hid, d_hid))
         self.lin0 = torch.nn.Linear(d_hid, d_hid)
         self.lin1 = torch.nn.Linear(d_hid, d_hid)
+        self.lin2 = torch.nn.Linear(d_hid, d_hid)
+        self.lin3 = torch.nn.Linear(d_hid, d_hid)
 
     def forward(self, x, y=torch.zeros(DEFAULT_BATCH_SIZE, DEFAULT_DHID)):
         x = torch.mm(x, self.mm_param0)
@@ -49,6 +75,14 @@ class ModelWithKwargs(torch.nn.Module):
         x = torch.mm(x, self.mm_param1)
         x = self.lin1(x)
         x = torch.relu(x)
+        if self.splits > 2:
+            pipe_split()
+            x = self.lin2(x)
+            x = torch.relu(x)
+        if self.splits > 3:
+            pipe_split()
+            x = self.lin3(x)
+            x = torch.relu(x)
         return x
 
 
@@ -88,13 +122,30 @@ class MLPModule(torch.nn.Module):
         return x
 
 
+class MLPKWargModule(torch.nn.Module):
+    def __init__(self, d_hid: int, layer_num):
+        super().__init__()
+        self.net1 = torch.nn.Linear(d_hid, d_hid)
+        self.relu = torch.nn.ReLU()
+        self.net2 = torch.nn.Linear(d_hid, d_hid)
+        self.layer_num = layer_num
+
+    def forward(self, x, unused_kwarg: torch.Tensor = torch.zeros(1)):
+        x = self.net1(x)
+        x = self.relu(x)
+        x = self.net2(x)
+        return x
+
+
 # Multi-MLP model
 class MultiMLP(torch.nn.Module):
     def __init__(self, d_hid: int, n_layers: int = 2):
         super().__init__()
         self.layers = torch.nn.ModuleList([MLPModule(d_hid) for _ in range(n_layers)])
         # For testing purpose only, this should be defined by user
-        self.split_spec = {f"layers.{i}": SplitPoint.BEGINNING for i in range(1, n_layers)}
+        self.split_spec = {
+            f"layers.{i}": SplitPoint.BEGINNING for i in range(1, n_layers)
+        }
 
     def forward(self, x):
         for layer in self.layers:
@@ -102,9 +153,26 @@ class MultiMLP(torch.nn.Module):
         return x
 
 
+# Multi-MLP with kwargs model
+class MultiMLPKwargs(torch.nn.Module):
+    def __init__(self, d_hid: int, n_layers: int = 2):
+        super().__init__()
+        self.layers = torch.nn.ModuleList(
+            [MLPKWargModule(d_hid, i) for i in range(n_layers)]
+        )
+        # For testing purpose only, this should be defined by user
+        self.split_spec = {
+            f"layers.{i}": SplitPoint.BEGINNING for i in range(1, n_layers)
+        }
+
+    def forward(self, x, unused_kwarg: torch.Tensor = torch.zeros(1)):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+
 class CustomLinearDx(Function):
     @staticmethod
-    # pylint:disable=huawei-too-many-arguments
     def forward(ctx, input_val, weight, bias, module, layer_idx):
         ctx.save_for_backward(input_val, weight, bias)
         ctx.module = module
@@ -113,7 +181,7 @@ class CustomLinearDx(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        input_val, weight, bias = ctx.saved_tensors
+        input_val, weight, _ = ctx.saved_tensors
         grad_input = grad_output.mm(weight)
         ctx.module.cached_context[ctx.layer_idx].append(grad_output.clone())
         ctx.module.cached_context[str(ctx.layer_idx) + "_input"].append(
@@ -130,7 +198,7 @@ class CustomLinearDxDw(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        input_val, weight, bias = ctx.saved_tensors
+        input_val, weight, _ = ctx.saved_tensors
         grad_input = grad_output.mm(weight)
         grad_weight = grad_output.t().mm(input_val)
         grad_bias = grad_output.sum(0)
@@ -145,10 +213,10 @@ class MLPModuleWithDw(torch.nn.Module):
         self.fc2_weight = torch.nn.Parameter(torch.randn(d_hid, d_hid))
         self.fc2_bias = torch.nn.Parameter(torch.randn(d_hid))
 
-        torch.nn.init.uniform_(self.fc1_weight, -0.01, 0.01)
-        torch.nn.init.uniform_(self.fc2_weight, -0.01, 0.01)
-        torch.nn.init.uniform_(self.fc1_bias, -0.01, 0.01)
-        torch.nn.init.uniform_(self.fc2_bias, -0.01, 0.01)
+        torch.nn.init.uniform_(self.fc1_weight, -0.001, 0.001)
+        torch.nn.init.uniform_(self.fc2_weight, -0.001, 0.001)
+        torch.nn.init.uniform_(self.fc1_bias, -0.001, 0.001)
+        torch.nn.init.uniform_(self.fc2_bias, -0.001, 0.001)
 
         self.cached_context = {}
         self.cached_context["fc1"] = []
@@ -209,7 +277,9 @@ class MultiMLPWithDw(torch.nn.Module):
             [MLPModuleWithDw(d_hid) for _ in range(n_layers)]
         )
         # For testing purpose only, this should be defined by user
-        self.split_spec = {f"layers.{i}": SplitPoint.BEGINNING for i in range(1, n_layers)}
+        self.split_spec = {
+            f"layers.{i}": SplitPoint.BEGINNING for i in range(1, n_layers)
+        }
         self.use_custom_logic = False
 
     def forward(self, x):
