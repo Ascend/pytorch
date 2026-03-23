@@ -204,7 +204,7 @@ class ProfilerConfig:
         return self.LEVEL_TRACE_PRUNE_CONFIG.get(self._profiler_level)
 
     def is_all_kernel_headers(self):
-        if self._ai_core_metrics != Constant.AicMetricsNone:
+        if self._profiler_level != Constant.LEVEL0:
             return True
         else:
             return False
