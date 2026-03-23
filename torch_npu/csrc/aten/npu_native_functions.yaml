@@ -54,6 +54,7 @@ supported:
   - func: _copy_from_and_resize
     device_check: NoCheck
   - flatten_dense_tensors
+  - _lazy_clone
 
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
