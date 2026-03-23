@@ -1,6 +1,18 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 # Owner(s): ["oncall: distributed"]
 # This file is a model zoo for testing torch.distributed.pipelining.
+# It includes schedules designed purely for testing purposes
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://github.com/pytorch/pytorch/blob/main/LICENSE
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import torch
 from torch.autograd import Function
 from torch.distributed.pipelining import pipe_split, SplitPoint
@@ -33,12 +45,21 @@ class ModelWithKwargs(torch.nn.Module):
     DEFAULT_DHID = 512
     DEFAULT_BATCH_SIZE = 256
 
-    def __init__(self, d_hid: int = DEFAULT_DHID):
+    def __init__(self, d_hid: int = DEFAULT_DHID, splits=2):
+        if splits > 8:
+            raise ValueError(f"splits must be <= 8, got {splits}")
         super().__init__()
+        self.splits = splits
         self.mm_param0 = torch.nn.Parameter(torch.randn(d_hid, d_hid))
         self.mm_param1 = torch.nn.Parameter(torch.randn(d_hid, d_hid))
         self.lin0 = torch.nn.Linear(d_hid, d_hid)
         self.lin1 = torch.nn.Linear(d_hid, d_hid)
+        self.lin2 = torch.nn.Linear(d_hid, d_hid)
+        self.lin3 = torch.nn.Linear(d_hid, d_hid)
+        self.lin4 = torch.nn.Linear(d_hid, d_hid)
+        self.lin5 = torch.nn.Linear(d_hid, d_hid)
+        self.lin6 = torch.nn.Linear(d_hid, d_hid)
+        self.lin7 = torch.nn.Linear(d_hid, d_hid)
 
     def forward(self, x, y=torch.zeros(DEFAULT_BATCH_SIZE, DEFAULT_DHID)):
         x = torch.mm(x, self.mm_param0)
@@ -49,6 +70,30 @@ class ModelWithKwargs(torch.nn.Module):
         x = torch.mm(x, self.mm_param1)
         x = self.lin1(x)
         x = torch.relu(x)
+        if self.splits > 2:
+            pipe_split()
+            x = self.lin2(x)
+            x = torch.relu(x)
+        if self.splits > 3:
+            pipe_split()
+            x = self.lin3(x)
+            x = torch.relu(x)
+        if self.splits > 4:
+            pipe_split()
+            x = self.lin4(x)
+            x = torch.relu(x)
+        if self.splits > 5:
+            pipe_split()
+            x = self.lin5(x)
+            x = torch.relu(x)
+        if self.splits > 6:
+            pipe_split()
+            x = self.lin6(x)
+            x = torch.relu(x)
+        if self.splits > 7:
+            pipe_split()
+            x = self.lin7(x)
+            x = torch.relu(x)
         return x
 
 
@@ -88,6 +133,22 @@ class MLPModule(torch.nn.Module):
         return x
 
 
+class MLPKWargModule(torch.nn.Module):
+    def __init__(self, d_hid: int, layer_num):
+        super().__init__()
+        self.net1 = torch.nn.Linear(d_hid, d_hid)
+        self.relu = torch.nn.ReLU()
+        self.net2 = torch.nn.Linear(d_hid, d_hid)
+        self.layer_num = layer_num
+
+    def forward(self, x, unused_kwarg: torch.Tensor = torch.zeros(1)):
+        x = self.net1(x)
+        x = self.relu(x)
+        x = self.net2(x)
+        # Test when only 1 module has extra outputs
+        return x
+
+
 # Multi-MLP model
 class MultiMLP(torch.nn.Module):
     def __init__(self, d_hid: int, n_layers: int = 2):
@@ -97,6 +158,24 @@ class MultiMLP(torch.nn.Module):
         self.split_spec = {f"layers.{i}": SplitPoint.BEGINNING for i in range(1, n_layers)}
 
     def forward(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+
+# Multi-MLP with kwargs model
+class MultiMLPKwargs(torch.nn.Module):
+    def __init__(self, d_hid: int, n_layers: int = 2):
+        super().__init__()
+        self.layers = torch.nn.ModuleList(
+            [MLPKWargModule(d_hid, i) for i in range(n_layers)]
+        )
+        # For testing purpose only, this should be defined by user
+        self.split_spec = {
+            f"layers.{i}": SplitPoint.BEGINNING for i in range(1, n_layers)
+        }
+
+    def forward(self, x, unused_kwarg: torch.Tensor = torch.zeros(1)):
         for layer in self.layers:
             x = layer(x)
         return x
