@@ -1666,6 +1666,10 @@ aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attribut
 bool AclrtPointerGetAttributesExist()
 {
     const static bool isAclrtPointerGetAttributesExist = []() -> bool {
+        const std::string kMinDriverVersion = "25.5.0";
+        if (!IsGteDriverVersion(kMinDriverVersion)) {
+            return false;
+        }
         const std::string kMinRuntimeVersion = "8.5.0";
         if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
             return false;
