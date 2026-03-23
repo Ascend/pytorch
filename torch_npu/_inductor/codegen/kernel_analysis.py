@@ -6,6 +6,22 @@ from torch._inductor.utils import sympy_index_symbol
 from torch._inductor.virtualized import V
 
 
+def _deduplicate_vars(var_list: List) -> List:
+    seen = set()
+    unique_vars = []
+    for v in var_list:
+        if hasattr(v, 'name'):
+            v_key = v.name
+        elif hasattr(v, 'symbol'):
+            v_key = str(v.symbol())
+        else:
+            v_key = str(v)
+        if v_key not in seen:
+            seen.add(v_key)
+            unique_vars.append(v)
+    return unique_vars
+
+
 class IndexAnalysis:
     def __init__(self, kernel, raw_index, is_store_index=False, is_index_expr=False):
         self.index = raw_index.subs(V.graph.sizevars.var_to_val)
@@ -251,7 +267,8 @@ class ReductionAnalysis:
         return shape_str
 
     def dense_size_list(self) -> List[str]:
-        sizes = [f"{x.name.upper()}BLOCK_SUB" for x in self.kernel.golden_var_list]
+        unique_vars = _deduplicate_vars(self.kernel.golden_var_list)
+        sizes = [f"{x.name.upper()}BLOCK_SUB" for x in unique_vars]
         sizes = list(reversed(sizes))
         return sizes
 

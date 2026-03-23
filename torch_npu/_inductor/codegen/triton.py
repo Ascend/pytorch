@@ -79,7 +79,7 @@ from torch_npu.npu._backends import get_soc_version
 
 from .. import config as inductor_npu_config
 
-from .kernel_analysis import IndexAnalysis, ReductionAnalysis
+from .kernel_analysis import IndexAnalysis, ReductionAnalysis, _deduplicate_vars
 from .npu_kernel_features import NumelList
 from .triton_utils import NPUKernelType
 from ..runtime import NPUDeviceProperties
@@ -239,6 +239,20 @@ def group_fn(self, sizes):
     return tuple(groups)
 
 
+def get_allow_dynamic():
+    from torch._inductor.dependencies import V as V_DYNAMIC
+    
+    graph = getattr(V_DYNAMIC, "graph", None)
+    if graph is None:
+        return False
+        
+    sizevars = getattr(graph, "sizevars", None)
+    shape_env = getattr(graph, "shape_env", None) or getattr(sizevars, "shape_env", None)
+    
+    if shape_env and hasattr(shape_env, "var_to_range"):
+        return len(shape_env.var_to_range) > 0
+    return False
+
 @staticmethod
 def select_index_dtype(node_schedule, numel, reduction_numel):
     return "tl.int32"
@@ -264,7 +278,8 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
 
     # axis mask
     def _codegen_mask(self):
-        codegen_mask = self.is_tiling_axis and not self.is_no_loop_axis
+        allow_dynamic = get_allow_dynamic()
+        codegen_mask = self.is_tiling_axis and (not self.is_no_loop_axis or allow_dynamic)
         if V.kernel.is_unified_simt_kernel():
             codegen_mask = self.is_tiling_axis
         if codegen_mask:
@@ -1456,14 +1471,24 @@ class NPUIndexTritonKernel(TritonKernel):
         return res
 
     def all_tiling_in_var_list(self, var_list):
-        return all([x in var_list for x in self.tiling_axis])
+        return all([x.symbol() in var_list for x in self.tiling_axis])
+
+    def _get_tiling_axis_symbols(self):
+        return [x.symbol() for x in self.tiling_axis] if self.tiling_axis else []
+
+    def _filter_and_append_missing(self, source_list, tiling_axis_symbols):
+        tiling_axis_set = set(tiling_axis_symbols)
+        filtered_list = [x for x in source_list if x in tiling_axis_set]
+        for x in tiling_axis_symbols:
+            if x not in filtered_list:
+                filtered_list.append(x)
+        return filtered_list
 
     def select_golden_varlist(self):
         longest = None
         maximum_length = 0
         self.golden_var_list = None
 
-        # all are load indexings, select the longest as gold
         for index in self.load_store_indexing:
             index = index.subs(V.graph.sizevars.var_to_val)
             analyze = IndexAnalysis(self, index)
@@ -1471,17 +1496,20 @@ class NPUIndexTritonKernel(TritonKernel):
                 longest = analyze.var_list
                 maximum_length = len(longest)
 
+        tiling_axis_symbols = self._get_tiling_axis_symbols()
+
         if not longest:
             if self.find_reduction_node is not None and self.load_store_index_in_all_tiling_list() is False:
-                self.golden_var_list = self.parse_golden_from_load_store_index()
+                parsed_list = self.parse_golden_from_load_store_index()
+                filtered_list = self._filter_and_append_missing(parsed_list, tiling_axis_symbols)
+                self.golden_var_list = tuple(filtered_list)
             else:
-                self.golden_var_list = tuple([x.symbol() for x in self.tiling_axis]) if self.tiling_axis else []
+                self.golden_var_list = tuple(tiling_axis_symbols) if tiling_axis_symbols else []
         else:
-            self.golden_var_list = tuple([x for x in longest if x in self.tiling_axis]) if self.tiling_axis else []
+            filtered_list = self._filter_and_append_missing(longest, tiling_axis_symbols)
+            self.golden_var_list = tuple(filtered_list) if tiling_axis_symbols else []
         if self.golden_var_list is None:
             raise RuntimeError("assert self.golden_var_list is None")
-
-        # to generate shape of the tile
 
     def dense_size_list(self) -> List[str]:
         if self.inside_reduction:
@@ -1490,14 +1518,26 @@ class NPUIndexTritonKernel(TritonKernel):
                     self.reduce_analysis = ReductionAnalysis(self)
                 if self.is_contiguous_reduction():
                     return self.reduce_analysis.dense_post_reduction_list()
+                
                 return self.reduce_analysis.dense_size_list()
 
         if not self.golden_var_list:
             self.select_golden_varlist()
 
-        golden_var_list = self.golden_var_list if self.golden_var_list else [x.symbol() for x in self.tiling_axis]
+        golden_var_list = self.golden_var_list if self.golden_var_list else self._get_tiling_axis_symbols()
         if golden_var_list is None:
             raise RuntimeError("assert golden_var_list is None")
+
+        tiling_axis_symbols = self._get_tiling_axis_symbols()
+        tiling_axis_set = set(tiling_axis_symbols)
+        golden_var_symbols = set(str(v) for v in golden_var_list)
+        if not golden_var_symbols.issubset(tiling_axis_set) or len(golden_var_list) != len(tiling_axis_symbols):
+            golden_var_list = tiling_axis_symbols
+        else:
+            golden_var_list = list(golden_var_list)
+
+        golden_var_list = _deduplicate_vars(golden_var_list)
+
         sizes = [None for _ in golden_var_list]
         for i, var in enumerate(reversed(golden_var_list)):
             axis = self.range_tree_nodes[var]
@@ -1529,12 +1569,15 @@ class NPUIndexTritonKernel(TritonKernel):
             if self.find_reduction_node() is not None:
                 if not self.reduce_analysis:
                     self.reduce_analysis = ReductionAnalysis(self)
-                return self.reduce_analysis.dense_size_str()
-            # Scan fallback: generate dense shape directly.
+                sizes = self.dense_size_list()
+                result = f"[{', '.join(sizes)}]"
+                return result
             sizes = self.dense_size_list()
-            return f"[{', '.join(sizes)}]"
+            result = f"[{', '.join(sizes)}]"
+            return result
         sizes = self.dense_size_list()
-        return f"[{', '.join(sizes)}]"
+        result = f"[{', '.join(sizes)}]"
+        return result
 
     # and add to shape to value
     def reduction_resize(self, value, dim):
@@ -1576,13 +1619,14 @@ class NPUIndexTritonKernel(TritonKernel):
 
         for node in self.sorted_axis:
             is_persistent_reduction_axis = self.persistent_reduction and node.is_reduction
+            allow_dynamic = get_allow_dynamic()
             if self.is_unified_simt_kernel():
                 if not node.is_tiling_axis:
                     continue
             else:
                 if ((not node.is_tiling_axis) or
                     is_persistent_reduction_axis or
-                    node.is_no_loop_axis):
+                    (node.is_no_loop_axis and not allow_dynamic)):
                     continue
 
             if save_variable_mask and node.name in subblock_axis:
@@ -1643,7 +1687,8 @@ class NPUIndexTritonKernel(TritonKernel):
         if not self.reduce_analysis:
             self.reduce_analysis = ReductionAnalysis(self)
 
-        dense_size_str = self.dense_size_str()
+        dense_size_list = self.dense_size_list()
+        dense_size_str = f"[{', '.join(dense_size_list)}]"
         axis_list = []
         for index in self.load_store_indexing:
             for axis in V.kernel.range_tree_nodes.keys():
@@ -1657,6 +1702,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 ),
                 value,
             )
+
         if len(dense_size_str) > 2 and (not self.persistent_reduction or self.numof_reduction_axis() != 1):
             value = self._map_tuple_or_scalar(
                 lambda v: self.cse.generate(
