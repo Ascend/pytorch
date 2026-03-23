@@ -421,7 +421,7 @@ void createFile(const char* path)
 }
 } // namespace
 
-constexpr int64_t kSynchronizeBusyWaitMillis = 10;
+constexpr int64_t kSynchronizeBusyWaitMillis = 1;
 constexpr int64_t maxOpNumPerSyncPoint = 2;
 const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
