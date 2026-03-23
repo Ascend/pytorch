@@ -200,11 +200,16 @@ struct HostAllocator {
         // we process the streams.
         block.allocated = false;
 
-        // insert npu events for each stream on which this block was used. This
-        aclError err = insertEvents(block);
-        if (err != ACL_ERROR_NONE) {
-            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
-            return err;
+        // Match the device allocator's shutdown behavior: once runtime teardown
+        // starts, never touch NPU stream/event state from a late host-tensor
+        // destructor. Any remaining blocks can be leaked safely at process exit.
+        if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+            // insert npu events for each stream on which this block was used.
+            aclError err = insertEvents(block);
+            if (err != ACL_ERROR_NONE) {
+                CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+                return err;
+            }
         }
 
         if (block.event_count == 0) {
