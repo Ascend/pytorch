@@ -41,14 +41,22 @@ class TestNpuGraphEx(TestCase):
             def forward(self, x, y):
                 return x + y
 
+        def custom_compiler(gm: torch.fx.GraphModule, example_inputs):
+            compiled_graph = torch.npu.npugraph_ex.compile_fx(gm, example_inputs)
+            return compiled_graph
+        
+        def custom_compiler_with_options(gm: torch.fx.GraphModule, example_inputs):
+            test_kwargs = {
+                "clone_input": False
+            }
+            compiled_graph = torch.npu.npugraph_ex.compile_fx(gm, example_inputs, test_kwargs)
+            return compiled_graph
+        
         def my_backend(gm: torch.fx.GraphModule, example_inputs):
-            compiler = torch.npu.npugraph_ex.compile_fx()
-            return aot_module_simplified(gm, example_inputs, fw_compiler=compiler)
+            return aot_module_simplified(gm, example_inputs, fw_compiler=custom_compiler)
 
         def my_backend_with_options(gm: torch.fx.GraphModule, example_inputs):
-            options = {"clone_input": False}
-            compiler = torch.npu.npugraph_ex.compile_fx(options=options)
-            return aot_module_simplified(gm, example_inputs, fw_compiler=compiler)
+            return aot_module_simplified(gm, example_inputs, fw_compiler=custom_compiler_with_options)
 
         model = Model().npu()
         compiled_model = torch.compile(model, backend=my_backend, fullgraph=True, dynamic=False)
