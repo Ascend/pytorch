@@ -476,6 +476,7 @@ class NPUIndexTritonKernel(TritonKernel):
         self.golden_var_list = None
         self.reduce_analysis = None
         self.load_store_indexing = None
+        self.inductor_meta = self.create_inductor_meta()
 
     def _get_grid_type(self) -> type[triton_heuristics.GridExpr]:
         return npu_triton_heuristics.GridNpu
@@ -515,7 +516,7 @@ class NPUIndexTritonKernel(TritonKernel):
     def initialize_range_tree(self, pid_cache):
         for k, x in self.numels.items():
             if not isinstance(x, sympy.Integer):
-                x = x.subs(V.graph.sizevars.var_to_val)
+                x = x.subs(V.graph.sizevars.backed_var_to_val)
                 self.numels[k] = x
 
         no_r_dim = not self.inside_reduction or self.numels["r"] == 1
@@ -1101,7 +1102,7 @@ class NPUIndexTritonKernel(TritonKernel):
 
         # all are load indexings, select the longest as gold
         for index in self.load_store_indexing:
-            index = index.subs(V.graph.sizevars.var_to_val)
+            index = index.subs(V.graph.sizevars.backed_var_to_val)
             analyze = IndexAnalysis(self, index)
             if len(analyze.var_list) > maximum_length and all_tiling_in_var_list(analyze.var_list):
                 longest = analyze.var_list

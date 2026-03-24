@@ -254,10 +254,10 @@ class SplitTiling:
         xnumel = x
         ynumel = y
         if isinstance(xnumel, (sympy.Symbol, sympy.Expr)) and not isinstance(xnumel, sympy.Integer):
-            xnumel = xnumel.subs(V.graph.sizevars.var_to_val)
+            xnumel = xnumel.subs(V.graph.sizevars.backed_var_to_val)
 
         if isinstance(ynumel, (sympy.Symbol, sympy.Expr)) and not isinstance(ynumel, sympy.Integer):
-            ynumel = ynumel.subs(V.graph.sizevars.var_to_val)
+            ynumel = ynumel.subs(V.graph.sizevars.backed_var_to_val)
 
         if isinstance(xnumel, sympy.Integer) and isinstance(ynumel, int):
             ynumel = sympy.Integer(ynumel)

@@ -779,6 +779,7 @@ class CppWrapperNpu(CppWrapperCpu):
         raw_args=None,
         grid_fn: str = "grid",
         triton_meta=None,
+        inductor_meta=None,
         autotune_configs=None,
         grid_extra_kwargs="",
     ):
