@@ -239,6 +239,20 @@ def group_fn(self, sizes):
     return tuple(groups)
 
 
+def get_allow_dynamic():
+    from torch._inductor.dependencies import V as V_DYNAMIC
+    
+    graph = getattr(V_DYNAMIC, "graph", None)
+    if graph is None:
+        return False
+        
+    sizevars = getattr(graph, "sizevars", None)
+    shape_env = getattr(graph, "shape_env", None) or getattr(sizevars, "shape_env", None)
+    
+    if shape_env and hasattr(shape_env, "var_to_range"):
+        return len(shape_env.var_to_range) > 0
+    return False
+
 @staticmethod
 def select_index_dtype(node_schedule, numel, reduction_numel):
     return "tl.int32"
@@ -264,7 +278,8 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
 
     # axis mask
     def _codegen_mask(self):
-        codegen_mask = self.is_tiling_axis and not self.is_no_loop_axis
+        allow_dynamic = get_allow_dynamic()
+        codegen_mask = self.is_tiling_axis and (not self.is_no_loop_axis or allow_dynamic)
         if V.kernel.is_unified_simt_kernel():
             codegen_mask = self.is_tiling_axis
         if codegen_mask:
@@ -1582,6 +1597,7 @@ class NPUIndexTritonKernel(TritonKernel):
             save_variable_mask = subblock_axis.issubset({str(var) for var in index_vars})
 
         for node in self.sorted_axis:
+            allow_dynamic = get_allow_dynamic()
             is_persistent_reduction_axis = self.persistent_reduction and node.is_reduction
             if self.is_unified_simt_kernel():
                 if not node.is_tiling_axis:
@@ -1589,7 +1605,7 @@ class NPUIndexTritonKernel(TritonKernel):
             else:
                 if ((not node.is_tiling_axis) or
                     is_persistent_reduction_axis or
-                    node.is_no_loop_axis):
+                    (node.is_no_loop_axis and not allow_dynamic)):
                     continue
 
             if save_variable_mask and node.name in subblock_axis:
