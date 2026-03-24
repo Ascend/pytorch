@@ -1269,8 +1269,27 @@ void ProcessGroupHCCL::shutdown()
     if (terminateProcessGroup_.exchange(true)) {
         return;
     }
-    // Synchronize device to wait for all HCCL operations to complete
-    c10_npu::npuSynchronizeDevice();
+    std::vector<c10_npu::NPUStream> hcclStreamsToSync;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        for (const auto& it : hcclStreams_) {
+            hcclStreamsToSync.insert(
+                hcclStreamsToSync.end(),
+                it.second.begin(),
+                it.second.end());
+        }
+    }
+
+    // Temporarily use stream synchronization as a substitute for the HCCL finalize API.
+    // Only synchronize streams owned by this process group.
+    if (hcclStreamsToSync.empty()) {
+        LOG(INFO) << logPrefix()
+                  << "Skip shutdown stream synchronization because no HCCL streams were created.";
+    } else {
+        for (const auto& hcclStream : hcclStreamsToSync) {
+            hcclStream.synchronize();
+        }
+    }
 
     if (windowMem_.has_value()) {
         std::vector<at::Device> devices = {windowMem_->device()};
