@@ -241,8 +241,7 @@ class FastATileGenerator(TileGenerator):
         return total_programs
 
     def old_descend_split_tiling(self):
-        super().descend_split_tiling()
-        return
+         return super().descend_split_tiling()
 
     def get_block_and_sub_list(self, start_core_num, stop_core_num, core_num_step,
                                start_ub, stop_ub, sub_block_step):
@@ -405,7 +404,15 @@ class FastATileGenerator(TileGenerator):
         min_avg_core_config_num = 3
 
         if FASTA_SETTING.use_tile_exp:
-            self.old_descend_split_tiling()
+            if self.npu_kernel_type == NPUKernelType.SIMD_SIMT_MIX:
+                self.set_kernel_type(NPUKernelType.SIMT_ONLY)
+                self.configs.extend(self.old_descend_split_tiling())
+                self.set_kernel_type(NPUKernelType.SIMT_TEMPLATE)
+                self.configs.extend(self.old_descend_split_tiling())
+                self.set_kernel_type(NPUKernelType.SIMD)
+                self.configs.extend(self.old_descend_split_tiling())
+            else:
+                self.configs = self.old_descend_split_tiling()
             self.expert_configs = copy.deepcopy(self.configs)
             self.configs.clear()
             for _, cfg in enumerate(self.expert_configs):
@@ -911,6 +918,7 @@ class NPUFastAutotuner(NPUCachingAutotuner):
 
         if self.use_origin_autotuner:
             self.configs = self.expert_configs
+            self.skip_precompile = False
             return
 
         if FASTA_SETTING.autotune_method == "Expert":
