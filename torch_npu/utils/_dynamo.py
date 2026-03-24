@@ -343,3 +343,4 @@ def add_dynamo_methods():
     patch_event_variable_python_type()
     patch_variable_builder()
     patch_builtin_variable()
+
