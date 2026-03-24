@@ -406,9 +406,9 @@ class NpuMlirCompiler:
                 if idx in self.mutated_indices:
                     cloned_arg = clone_preserve_strides(arg)
                     args[idx] = cloned_arg
-                    args_new = args_new + (cloned_arg, cloned_arg, 0) + arg.size() + arg.stride()
+                    args_new = args_new + (cloned_arg, cloned_arg, 0) + tuple(arg.size()) + tuple(arg.stride())
                 else:
-                    args_new = args_new + (arg, arg, 0) + arg.size() + arg.stride()
+                    args_new = args_new + (arg, arg, 0) + tuple(arg.size()) + tuple(arg.stride())
         else:
             for idx, arg in enumerate(args):
                 if torch.is_tensor(arg) and idx in self.mutated_indices:
