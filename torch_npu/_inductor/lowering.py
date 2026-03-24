@@ -102,8 +102,10 @@ if npu_config.dump_fx_graph:
         _npu_prune_redundant_deps,
         _npu_get_unmet_dep_nodes,
         clone,
-        to_dtype
+        to_dtype,
+        DUMP_FX_GRAPH_LOWERING_OPS
     )
+    LOWERING_OVERRIDE_OP = list(set(LOWERING_OVERRIDE_OP) | set(DUMP_FX_GRAPH_LOWERING_OPS))
 
     Scheduler.compute_ancestors = npu_compute_ancestors
     scheduler._prune_redundant_deps = _npu_prune_redundant_deps

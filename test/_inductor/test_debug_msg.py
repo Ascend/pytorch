@@ -17,7 +17,6 @@ os.environ["INDUCTOR_ASCEND_DUMP_FX_GRAPH"] = "1"
 os.environ["TORCH_COMPILE_DEBUG"] = "1"
 
 
-@skip("Skip for lowering_fx")
 class TestDebugMsg(TestUtils):    
     @parametrize('shape_x', [(32, 512, 64)])
     @parametrize('shape_y', [(32, 1, 64)])
