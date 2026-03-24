@@ -178,7 +178,22 @@ def patch_register_run_with_rng_state_op():
     ] = backend_select_with_npu
 
 
+def patch_rng_prims_device():
+    from torch._prims import rng_prims
+    src_get_device = rng_prims.get_device
+
+    def new_patch_device(args, kwargs):
+        device = src_get_device(args, kwargs)
+        if device is None:
+            devices = {arg.device.type for arg in args if isinstance(arg, torch.Tensor)}
+            if any(dev == "npu" for dev in devices):
+                return "npu"
+        return device
+    rng_prims.get_device = new_patch_device
+
+
 patch_register_run_and_save_rng_state_op()
 patch_register_run_with_rng_state_op()
 patch_philox_rand_offset()
 patch_register_philox_rand()
+patch_rng_prims_device()
