@@ -1209,7 +1209,7 @@
     "signature": "(bwd)"
   },
   "torch_npu.npu.amp.custom_fwd": {
-    "signature": "(fwd=None, **kwargs)"
+    "signature": "(fwd=None, *, cast_inputs=None)"
   },
   "torch_npu.npu.amp.autocast_mode.autocast": {
     "signature": "(enabled: bool = True, dtype: torch.dtype = torch.float16, cache_enabled: bool = True)"
@@ -1218,7 +1218,7 @@
     "signature": "(bwd)"
   },
   "torch_npu.npu.amp.autocast_mode.custom_fwd": {
-    "signature": "(fwd=None, **kwargs)"
+    "signature": "(fwd=None, *, cast_inputs=None)"
   },
   "torch_npu.npu.amp.common.amp_definitely_not_available": {
     "signature": "()"

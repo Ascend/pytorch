@@ -1,6 +1,10 @@
+__all__ = ["autocast", "custom_fwd", "custom_bwd"]
+
+
 import functools
 import collections
 from typing import Any
+from typing_extensions import deprecated
 
 try:
     import numpy as np
@@ -66,78 +70,29 @@ def _cast(value, dtype):
         return value
 
 
-# custom_fwd is a decorator that may or may not be used with arguments.
-# this works:
-#     @custom_fwd
-#     def forward(...):
-# this also works:
-#     @custom_fwd(cast_inputs=torch.float)
-#     def forward(...):
-# def custom_fwd(fwd=None, *, cast_inputs=None) with internal changes following the link above.
-def custom_fwd(fwd=None, **kwargs):
+@deprecated(
+    "`torch_npu.npu.amp.custom_fwd(args...)` is deprecated. "
+    "Please use `torch.amp.custom_fwd(args..., device_type='npu')` instead.",
+    category=FutureWarning,
+)
+def custom_fwd(fwd=None, *, cast_inputs=None):
     """
-    Helper decorator for ``forward`` methods of custom autograd functions (subclasses of
-    :class:`torch.autograd.Function`).  See the :ref:`example page<amp-custom-examples>` for more detail.
-
-    Args:
-        cast_inputs (:class:`torch.dtype` or None, optional, default=None):  If not ``None``,
-            when ``forward`` runs in an autocast-enabled region, casts incoming
-            floating-point NPU Tensors to the target dtype (non-floating-point Tensors are not affected),
-            then executes ``forward`` with autocast disabled.
-            If ``None``, ``forward``'s internal ops execute with the current autocast state.
-
-    .. note::
-        If the decorated ``forward`` is called outside an autocast-enabled region,
-        :func:`custom_fwd<custom_fwd>` is a no-op and ``cast_inputs`` has no effect.
+    ``torch_npu.npu.amp.custom_fwd(args...)`` is deprecated. Please use
+    ``torch.amp.custom_fwd(args..., device_type='npu')`` instead.
     """
-    if fwd is None:
-        if len(kwargs) == 0:
-            cast_inputs = None
-        else:
-            if len(kwargs) != 1:
-                raise ValueError("More than one keyword argument." + pta_error(ErrCode.PARAM))
-            cast_inputs = kwargs.get("cast_inputs", None)
-        return functools.partial(custom_fwd, cast_inputs=cast_inputs)
-
-    if len(kwargs) == 0:
-        cast_inputs = None
-    else:
-        if len(kwargs) != 1:
-            raise ValueError("More than one keyword argument." + pta_error(ErrCode.PARAM))
-        cast_inputs = kwargs.get("cast_inputs", None)
-
-    @functools.wraps(fwd)
-    def decorate_fwd(*args, **kwargs):
-        args[0]._dtype = torch.get_autocast_dtype("npu")
-        if cast_inputs is None:
-            args[0]._fwd_used_autocast = torch_npu._C.is_autocast_enabled()
-            return fwd(*args, **kwargs)
-        else:
-            autocast_context = torch_npu._C.is_autocast_enabled()
-            args[0]._fwd_used_autocast = False
-            if autocast_context:
-                with autocast(enabled=False):
-                    return fwd(*_cast(args, cast_inputs), **_cast(kwargs, cast_inputs))
-            else:
-                return fwd(*args, **kwargs)
-
-    return decorate_fwd
+    return functools.partial(torch.amp.custom_fwd, device_type="npu")(
+        fwd=fwd, cast_inputs=cast_inputs
+    )
 
 
-# Autograd ensures incoming gradients are the same type as forward outputs.  Allowing a separate
-# cast_inputs argument on custom_bwd is unnecessary and could cause errors if it doesn't match
-# cast_inputs supplied to custom_fwd.
+@deprecated(
+    "`torch_npu.npu.amp.custom_bwd(args...)` is deprecated. "
+    "Please use `torch.amp.custom_bwd(args..., device_type='npu')` instead.",
+    category=FutureWarning,
+)
 def custom_bwd(bwd):
     """
-    Helper decorator for backward methods of custom autograd functions (subclasses of
-    :class:`torch.autograd.Function`).
-    Ensures that ``backward`` executes with the same autocast state as ``forward``.
-    See the :ref:`example page<amp-custom-examples>` for more detail.
+    ``torch_npu.npu.amp.custom_bwd(args...)`` is deprecated. Please use
+    ``torch.amp.custom_bwd(args..., device_type='npu')`` instead.
     """
-
-    @functools.wraps(bwd)
-    def decorate_bwd(*args, **kwargs):
-        with autocast(args[0]._fwd_used_autocast, dtype=args[0]._dtype):
-            return bwd(*args, **kwargs)
-
-    return decorate_bwd
+    return functools.partial(torch.amp.custom_bwd, device_type="npu")(bwd)
