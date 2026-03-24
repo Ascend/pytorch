@@ -1,4 +1,6 @@
 import itertools
+import operator
+from functools import reduce
 import numpy as np
 
 import torch
@@ -939,7 +941,64 @@ class TestMatmul(NPUDTensorTestBase):
         self.run_matmul(shape1, shape2, device_mesh, Replicate(), Shard(3))
 
 
+class TestDropout(NPUDTensorTestBase):
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_torch_dropout_forward(self):
+        mesh = self.build_device_mesh()
+
+        tensor_input = torch.randn(4, 4, device="npu", requires_grad=True)
+        p = 0.5
+
+        out = torch.dropout(tensor_input, p, train=True)
+
+        plcaements = [[Replicate()], [Shard(0)], [Shard(1)]]
+        for plcaement in plcaements:
+            input_dtensor = distribute_tensor(tensor_input, mesh, plcaement)
+
+            output_dt = torch.dropout(input_dtensor, p, train=True)
+            mask = (output_dt.full_tensor() != 0) & (out != 0)
+            if torch.any(mask):
+                self.assertEqual(output_dt.full_tensor()[mask], out[mask])
+    
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    @parametrize(
+        "grad_placement,mask_placement",
+        [
+            ([Shard(0)], [Shard(0)]),
+            ([Shard(0)], [Replicate()]),
+            ([Shard(1)], [Shard(0)]),
+            ([Shard(1)], [Replicate()]),
+            ([Replicate()], [Shard(0)]),
+            ([Replicate()], [Replicate()]),
+        ]
+    )
+    def test_torch_dropout_backward(self, grad_placement, mask_placement):
+        mesh = self.build_device_mesh()
+
+        size = (4, 4)
+        numel = reduce(operator.mul, size)
+        numel = (numel + 128 - 1) // 128 * 128
+        numel = numel // 8
+
+        tensor_grad = torch.randn(size, device="npu", requires_grad=True)
+        tensor_mask = (torch.rand(numel, device="npu") < 0.5).to(torch.uint8)
+        scale=0
+
+        grad_dtensor = distribute_tensor(tensor_grad, mesh, grad_placement)
+        mask_dtensor = distribute_tensor(tensor_mask, mesh, mask_placement)
+
+        out = torch.ops.aten.native_dropout_backward(tensor_grad, tensor_mask, scale=scale)
+        out_dtensor = torch.ops.aten.native_dropout_backward(grad_dtensor, mask_dtensor, scale=scale)
+
+        self.assertEqual(out_dtensor.full_tensor(), out)
+
+
 instantiate_parametrized_tests(TestGroupedMatMulOp)
+instantiate_parametrized_tests(TestDropout)
 
 
 if __name__ == "__main__":
