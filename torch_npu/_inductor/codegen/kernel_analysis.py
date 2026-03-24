@@ -192,7 +192,7 @@ class IndexAnalysis:
 
         def all_tiling_in_var_list():
             return all([x in self.var_list for x in self.tiling_axis])
-            # 2 analyze permute shape for full_dim_len index
+        # 2 analyze permute shape for full_dim_len index
 
         if all_tiling_in_var_list():
             self.similar = self.var_list

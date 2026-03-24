@@ -325,6 +325,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         if index:
             self.writeline(index)
             self._codegen_mask()
+        
         return self.name
 
     def writeline(self, line):
@@ -1072,21 +1073,20 @@ class NPUIndexTritonKernel(TritonKernel):
     def find_axis_in_load_store(self, range_val):
         if not range_val:
             return False
+        
         for line in self.loads._lines:
-            if line.find('tl.load') >= 0 and self.is_isolated_symbol(line, range_val):
+            if self.is_isolated_symbol(line, range_val):
                 return True
         for line in self.compute._lines:
-            if line.find('tl.load') >= 0 and self.is_isolated_symbol(line, range_val):
+            if self.is_isolated_symbol(line, range_val):
                 return True
         for line in self.post_loop_store._lines:
-            if isinstance(line, DeferredLine):
-                line = line.line
-            if line.find('tl.store') >= 0 and self.is_isolated_symbol(line, range_val):
+            str_line = line.line if isinstance(line, DeferredLine) else line
+            if self.is_isolated_symbol(str_line, range_val):
                 return True
         for line in self.stores._lines:
-            if isinstance(line, DeferredLine):
-                line = line.line
-            if line.find('tl.store') >= 0 and self.is_isolated_symbol(line, range_val):
+            str_line = line.line if isinstance(line, DeferredLine) else line
+            if self.is_isolated_symbol(str_line, range_val):
                 return True
         return False
 
@@ -1142,12 +1142,9 @@ class NPUIndexTritonKernel(TritonKernel):
 
             is_last_axis = index == len(self.sorted_axis) - 1
             indexing_code = getattr(range_val, "indexing_code")
+            
             reduction_1d = is_1d_reduction()
             do_indent = False
-            # do nothing except for writing porintwise
-            if len(self.loads._lines) == 0 and len(self.stores._lines) == 0:
-                do_indent = False
-                indexing_code = None
             # tiling axis and last tiling
             if range_val.is_tiling_axis and last_tiling:
                 do_indent = False
@@ -1166,7 +1163,8 @@ class NPUIndexTritonKernel(TritonKernel):
             # tiling axis and but not last tiling
             elif range_val.is_tiling_axis:
                 do_indent = False
-                if len(self.loads._lines) == 0 and len(self.stores._lines) == 0:
+                have_load_store = self.find_axis_in_load_store(range_val)
+                if not have_load_store:
                     do_indent = False
                     indexing_code = None
                 if not range_val.is_no_loop_axis:
@@ -1478,6 +1476,15 @@ class NPUIndexTritonKernel(TritonKernel):
                 self.golden_var_list = tuple([x.symbol() for x in self.tiling_axis]) if self.tiling_axis else []
         else:
             self.golden_var_list = tuple([x for x in longest if x in self.tiling_axis]) if self.tiling_axis else []
+
+        if self.golden_var_list is not None and self.tiling_axis:
+            golden_list = list(self.golden_var_list)
+            for x in self.tiling_axis:
+                sym = x.symbol() if hasattr(x, 'symbol') else x
+                if sym not in golden_list:
+                    golden_list.append(sym)
+            self.golden_var_list = tuple(golden_list)
+
         if self.golden_var_list is None:
             raise RuntimeError("assert self.golden_var_list is None")
 
