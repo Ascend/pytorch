@@ -8,9 +8,11 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch.testing._internal.common_utils import TestCase, run_tests, TEST_PRIVATEUSE1
 
 os.environ["PYTORCH_NPU_ALLOC_CONF"] = "expandable_segments:True"
+device_name = torch_npu.npu.get_device_name(0)
 
 
 class Test_expandable_segments(TestCase):
+    @unittest.skipIf(device_name == "Ascend910B4", "Skip when device name is Ascend910B4")
     def test_empty_virt_addr_cache(self):
         gc.collect()
         torch_npu.npu.empty_cache()
