@@ -520,7 +520,7 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
             if (major1 == 8 && minor1 < 5 && major2 == 8 && minor2 < 5) {
                 current_num = VersionToNum(currentVersion);
                 boundary_num = VersionToNum(version);
-            } else if (major1 >= 8 && minor1 >= 5 && major2 >= 8 && minor2 >= 5) {
+            } else if ((major1 == 8 && minor1 == 5 && major2 == 8 && minor2 == 5) or (major1 > 8 && major2 > 8)) {
                 current_num = VersionV2ToNum(currentVersion);
                 boundary_num = VersionV2ToNum(version);
             } else {
