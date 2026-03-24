@@ -18,7 +18,7 @@
 	url = https://gitee.com/mirrors/fmt.git
 [submodule "third_party/nlohmann"]
 	path = third_party/nlohmann
-	url = https://gitee.com/mirrors/nlohmann-json.git
+	url = https://gitcode.com/GitHub_Trending/js/json
 [submodule "third_party/torch-mlir"]
 	path = third_party/torch-mlir
 	url = https://gitee.com/mirrors_llvm/torch-mlir.git
