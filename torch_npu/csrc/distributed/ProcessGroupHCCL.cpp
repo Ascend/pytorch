@@ -52,6 +52,7 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/logging/LogContext.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 
 #ifndef BUILD_LIBTORCH
@@ -418,6 +419,17 @@ void createFile(const char* path)
         throw std::runtime_error("Create file failed. Please check whether input file is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
     }
     close(fd);
+}
+
+// Check if current SoC is compatible with compatible mode, only fit in A2 and A3 so far
+inline bool IsCompatibleSoc()
+{
+    static const bool is_compatible = []() {
+        auto soc_version = c10_npu::GetSocVersion();
+        return ((soc_version >= c10_npu::SocVersion::Ascend910B1) && (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
+                ((soc_version >= c10_npu::SocVersion::Ascend910_9391) && (soc_version < c10_npu::SocVersion::Ascend910_95));
+    }();
+    return is_compatible;
 }
 } // namespace
 
@@ -6042,6 +6054,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
         inputFlattened = flatten_for_scatter_gather(outputTensorsForFlatten, inputTensors, size_);
     }
 
+    bool is_compatible_soc = IsCompatibleSoc();
+
     bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
     if (!use_compatible_impl) {
         throw std::runtime_error("ProcessGroupHCCL does not support gather" + DIST_ERROR(ErrCode::NOT_SUPPORT));
@@ -6050,9 +6064,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
     return collective(
         inputFlattened,
         inputFlattened,  // just to fit the collective interface
-        [this, opts, outputs, use_compatible_impl, inputTensors]
+        [this, opts, outputs, use_compatible_impl, is_compatible_soc, inputTensors]
         (at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
-            if (!use_compatible_impl) {
+            if (!use_compatible_impl || !is_compatible_soc) {
                 return HCCL_E_INTERNAL;
             }
 
@@ -6202,12 +6216,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
 
     bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
 
+    bool is_compatible_soc = IsCompatibleSoc();
+
     return collective(
         inputFlattened,
         outputTensors,
-        [this, opts, use_compatible_impl, inputTensors]
+        [this, opts, use_compatible_impl, inputTensors, is_compatible_soc]
         (at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
-            if (use_compatible_impl) {
+            if (use_compatible_impl && is_compatible_soc) {
                 // Compatibility Mode
                 RECORD_FUNCTION("HcclScatter_SendRecv", std::vector<c10::IValue>({}));
 
@@ -6716,12 +6732,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
 
     bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
 
+    bool is_compatible_soc = IsCompatibleSoc();
+
     return collective(
         input_tensors_,
         output_tensors_,
-        [this, input_tensors, output_tensors, input_counts, input_spl, output_counts, output_spl, use_compatible_impl]
+        [this, input_tensors, output_tensors, input_counts, input_spl, output_counts, output_spl, use_compatible_impl, is_compatible_soc]
         (at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
-            if (use_compatible_impl) {
+            if (use_compatible_impl && is_compatible_soc) {
                 // Compatibility Mode
                 RECORD_FUNCTION("HcclAlltoAll_SendRecv", std::vector<c10::IValue>({}));
 
