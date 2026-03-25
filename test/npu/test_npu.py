@@ -596,6 +596,41 @@ class TestNpu(TestCase):
         x_like = torch.empty_like(x)
         res = x_like + 1
 
+    def test_function_torch_empty_like_with_stride(self):
+        # if a is contiguous, stride of b should be same as a
+        a = torch.empty([16, 32], device='npu')
+        self.assertTrue(a.is_contiguous())
+        self.assertEqual(a.stride(), (32, 1))
+
+        b = torch.empty_like(a)
+        self.assertTrue(b.is_contiguous())
+        self.assertEqual(b.stride(), (32, 1))
+
+        b = torch.empty_like(a, memory_format=torch.preserve_format)
+        self.assertTrue(b.is_contiguous())
+        self.assertEqual(b.stride(), (32, 1))
+
+        b = torch.empty_like(a, memory_format=torch.contiguous_format)
+        self.assertTrue(b.is_contiguous())
+        self.assertEqual(b.stride(), (32, 1))
+
+        # if a is Not contiguous, stride of b should be same as a when memory_format=torch.preserve_format(default)
+        a = torch.empty([16, 32], device='npu').T
+        self.assertFalse(a.is_contiguous())
+        self.assertEqual(a.stride(), (1, 32))
+
+        b = torch.empty_like(a)
+        self.assertFalse(b.is_contiguous())
+        self.assertEqual(b.stride(), (1, 32))
+
+        b = torch.empty_like(a, memory_format=torch.preserve_format)
+        self.assertFalse(b.is_contiguous())
+        self.assertEqual(b.stride(), (1, 32))
+
+        b = torch.empty_like(a, memory_format=torch.contiguous_format)
+        self.assertTrue(b.is_contiguous())
+        self.assertEqual(b.stride(), (16, 1))
+
     def test_function_torch_empty_like_in_fake_tensor_mode(self):
         with torch._subclasses.fake_tensor.FakeTensorMode():
             x = torch.rand(3, 3).npu()
