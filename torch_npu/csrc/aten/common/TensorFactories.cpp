@@ -238,7 +238,15 @@ at::Tensor empty_like_npu(
             if ((typeid(*self.storage().unsafeGetStorageImpl()) != typeid(torch_npu::NPUStorageImpl))) {
                 npu_format = ACL_FORMAT_ND;
             }
-            result = OpPreparation::ApplyTensorWithFormat(self.sizes(), options, npu_format);
+            if (FormatHelper::IsBaseFormatType(npu_format) && self.unsafeGetTensorImpl()->support_as_strided() &&
+                self.layout() == c10::kStrided &&
+               (!optional_memory_format.has_value() || optional_memory_format.value() == c10::MemoryFormat::Preserve)) {
+                // keep strides
+                std::vector<int64_t> strides = at::infer_dense_strides(self.sizes(), self.strides());
+                result = at::empty_strided(self.sizes(), strides, options.memory_format(std::nullopt));
+            } else {
+                result = OpPreparation::ApplyTensorWithFormat(self.sizes(), options, npu_format);
+            }
         }
     }
 
