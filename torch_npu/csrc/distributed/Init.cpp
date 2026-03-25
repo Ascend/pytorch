@@ -418,6 +418,10 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
         .def("_get_stream_id", &::c10d_npu::ProcessGroupHCCL::getStreamId,
              py::arg("p2p") = false,
              py::arg("peer") = -1)
+        .def("get_p2p_stream_id", &::c10d_npu::ProcessGroupHCCL::getP2PStreamId,
+             py::arg("device"),
+             py::arg("peer"),
+             py::arg("is_batched"))
         .def("_window_register_and_exchange", &::c10d_npu::ProcessGroupHCCL::windowRegisterAndExchange,
              py::arg("window_size"),
              py::arg("peer_ranks"))
