@@ -35,14 +35,14 @@ import torch_npu.testing
 from torch.testing._internal.common_dtype import integral_types, get_all_math_dtypes, floating_types
 from torch.testing._internal.common_utils import freeze_rng_state, run_tests, TestCase, skipIfNoLapack, skipIfRocm, \
     TEST_NUMPY, TEST_SCIPY, TEST_WITH_CROSSREF, TEST_WITH_ROCM, \
-    download_file, get_function_arglist, load_tests, skipIfMps, \
+    download_file, get_function_arglist, load_tests, skipIfMPS, \
     IS_PPC, TEST_PRIVATEUSE1, custom_device_mod, \
     parametrize as parametrize_test, subtest, instantiate_parametrized_tests, \
     skipIfTorchDynamo, IS_WINDOWS, gcIfJetson, set_default_dtype
 from torch.testing._internal.common_cuda import TEST_CUDNN, TEST_CUDNN_VERSION, PLATFORM_SUPPORTS_FLASH_ATTENTION
 from torch.testing._internal.common_nn import NNTestCase, NewModuleTest, CriterionTest, \
     module_tests, criterion_tests, loss_reference_fns, _create_basic_net, \
-    ctcloss_reference, new_module_tests, single_batch_reference_fn, _test_bfloat16_ops, _test_module_empty_input
+    ctcloss_reference, get_new_module_tests, single_batch_reference_fn, _test_bfloat16_ops, _test_module_empty_input
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, dtypes, \
     precisionOverride, skipCUDAIfCudnnVersionLessThan, onlyCPU, \
     skipCUDAIfRocm, skipCUDAIf, skipCUDAIfNotRocm, \
@@ -54,10 +54,10 @@ import torch.testing._internal.hypothesis_utils as hu
 from torch.testing._internal.common_utils import _assertGradAndGradgradChecks, gradcheck, gradgradcheck, \
     GRADCHECK_NONDET_TOL
 from torch.testing._internal.common_utils import dtype2prec_DONTUSE
-from torch.testing._internal.common_cuda import tf32_on_and_off, tf32_is_not_fp32, tf32_off, tf32_on
+from torch.testing._internal.common_cuda import tf32_on_and_off, tf32_off, tf32_on
 
 
-AMPERE_OR_ROCM = TEST_WITH_ROCM or tf32_is_not_fp32()
+AMPERE_OR_ROCM = TEST_WITH_ROCM or torch.cuda.is_tf32_supported()
 
 # load_tests from common_utils is used to automatically filter tests for
 # sharding on sandcastle. This line silences flake warnings
@@ -7439,7 +7439,7 @@ def add_test(test_tmp, decorator=None):
         kwargs['extra_args'] = test_tmp.extra_args
 
     if 'dtype' in get_function_arglist(test_tmp.test_cuda):
-        if tf32_is_not_fp32() and test_tmp.with_tf32:
+        if torch.cuda.is_tf32_supported() and test_tmp.with_tf32:
 
             def with_tf32_off(self, test_tmp=test_tmp, kwargs=kwargs):
                 with tf32_off():
@@ -7482,7 +7482,7 @@ def add_test(test_tmp, decorator=None):
             with tf32_off():
                 test_tmp.test_cuda(self, **kwargs)
 
-        if tf32_is_not_fp32() and test_tmp.with_tf32:
+        if torch.cuda.is_tf32_supported() and test_tmp.with_tf32:
             add(cuda_test_name + '_fp32', with_tf32_off)
 
             def with_tf32_on(self, test_tmp=test_tmp, kwargs=kwargs):
@@ -7494,7 +7494,7 @@ def add_test(test_tmp, decorator=None):
             add(cuda_test_name, with_tf32_off)
 
 
-for test_params in module_tests + new_module_tests:
+for test_params in module_tests + get_new_module_tests():
     if 'constructor' not in test_params:
         name = test_params.pop('module_name')
         test_params['constructor'] = getattr(nn, name)
@@ -10606,7 +10606,7 @@ class TestNNDeviceType(NNTestCase):
         self.assertEqual(logits_soft.grad, logits_hard.grad, atol=tol, rtol=0)
 
     @dtypesIfPRIVATEUSE1(torch.half, torch.float, torch.double)
-    @skipIfMps
+    @skipIfMPS
     @dtypes(torch.float, torch.double)
     def test_gumbel_softmax(self, device, dtype):
         self._test_gumbel_softmax_st_shapes(device, dtype, shape=[5], dim=0, count_expected=1)
