@@ -2,6 +2,7 @@ import io
 import os
 import tempfile
 import argparse
+from unittest.mock import patch
 
 import torch
 import torch.nn as nn
@@ -253,6 +254,34 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(before_save['conv2.bias'].cpu(), after_load['conv2.bias'].cpu())
             self.assertRtolEqual(before_save['fc1.bias'].cpu(), after_load['fc1.bias'].cpu())
             self.assertRtolEqual(before_save['fc2.bias'].cpu(), after_load['fc2.bias'].cpu())
+
+    def test_use_pinned_memory_for_d2h(self):
+        if not torch.accelerator.is_available():
+            self.skipTest("accelerator is not available")
+        if torch.accelerator.current_accelerator().type != "npu":
+            self.skipTest("current accelerator is not npu")
+
+        from torch.utils.serialization import config as serialization_config
+
+        def patched_write_record(self, filename, data, nbytes):
+            if isinstance(data, (torch.TypedStorage, torch.UntypedStorage)):
+                if not data.is_pinned(device="npu"):
+                    raise RuntimeError("Expected storage to be in pinned memory")
+
+        sd = torch.nn.Linear(3, 5, device="npu").state_dict()
+
+        with patch('torch._C.PyTorchFileWriter.write_record', patched_write_record):
+            with tempfile.NamedTemporaryFile() as f:
+                with self.assertRaisesRegex(RuntimeError, "Expected storage to be in pinned memory"):
+                    torch.save(sd, f)
+
+            with tempfile.NamedTemporaryFile() as f:
+                pinned_before = serialization_config.save.use_pinned_memory_for_d2h
+                try:
+                    serialization_config.save.use_pinned_memory_for_d2h = True
+                    torch.save(sd, f)
+                finally:
+                    serialization_config.save.use_pinned_memory_for_d2h = pinned_before
 
     def test_save_different_dtype_unallocated(self):
 
