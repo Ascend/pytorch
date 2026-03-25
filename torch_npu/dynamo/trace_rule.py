@@ -46,6 +46,7 @@ torch_non_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch.npu.amp.autocast_mode.custom_fwd",
         "torch.npu._get_current_allocator",
         "torch.npu.is_bf16_supported",
+        "torch.npu.memory._get_current_allocator",
     ],
     TorchInGraphFunctionVariable,
 )
