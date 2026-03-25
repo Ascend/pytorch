@@ -2862,6 +2862,31 @@ int64_t ProcessGroupHCCL::getStreamId(bool p2p, int peer)
     return hcclStreams_[key][0].id();
 }
 
+int64_t ProcessGroupHCCL::getP2PStreamId(
+    at::Device device,
+    int peer,
+    int is_batched)
+{
+    std::string key;
+    if (is_batched == 1) {
+        std::vector<at::Device> devices = {device};
+        key = getKeyFromDevices(devices);
+    } else {
+        key = getKeySendRecv(rank_, peer);
+    }
+    if (hcclStreams_.find(key) == hcclStreams_.end() || hcclStreams_[key].empty()) {
+        // not found
+        LOG(INFO) << "getP2PStreamId: keys: (";
+        for (const auto& pair : hcclStreams_) {
+            LOG(INFO) <<"<"<< pair.first << ">, ";
+        }
+        LOG(INFO) << ")" << std::endl;
+        LOG(INFO) << "the key to look for: <" << key << ">" << std::endl;
+        return -1;
+    }
+    return hcclStreams_[key][0].id();
+}
+
 void ProcessGroupHCCL::windowRegisterAndExchange(int64_t windowSize, std::vector<uint32_t>& peerRanks)
 {
     TORCH_CHECK(windowSize > 0, "Window memory must be greater than 0.", DIST_ERROR(ErrCode::PARAM));
