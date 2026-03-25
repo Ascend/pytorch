@@ -419,6 +419,28 @@ def _npu_save(
                 storage = new_storage
             else:
                 storage = storage.cpu()
+
+        # Fallback for cases where tensor reduce path has already materialized
+        # NPU tensors as CPU storages before reaching _npu_save.
+        else:
+            from torch.utils.serialization import config
+
+            if (
+                config.save.use_pinned_memory_for_d2h
+                and (
+                    acc := torch.accelerator.current_accelerator(
+                        check_available=True
+                    )
+                )
+                is not None
+                and acc.type == "npu"
+            ):
+                new_storage = torch.empty(
+                    num_bytes, dtype=torch.uint8, device="cpu", pin_memory=True
+                ).untyped_storage()
+                new_storage.copy_(storage)
+                torch.accelerator.current_stream(storage.device.index).synchronize()
+                storage = new_storage
         # Now that it is on the CPU we can directly copy it into the zip file
         zip_file.write_record(name, storage, num_bytes)
 
