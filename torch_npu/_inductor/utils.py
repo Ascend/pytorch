@@ -181,14 +181,14 @@ def patch_get_first_incompatible_cudagraph_node():
     from torch._inductor import utils as inductor_utils
     inductor_utils.get_first_incompatible_cudagraph_node = get_first_incompatible_cudagraph_node
 
-    # Also patch modules that may have already imported it
     from torch._inductor import compile_fx
-    if hasattr(compile_fx, 'get_first_incompatible_cudagraph_node'):
-        compile_fx.get_first_incompatible_cudagraph_node = get_first_incompatible_cudagraph_node
+    compile_fx.get_first_incompatible_cudagraph_node = get_first_incompatible_cudagraph_node
 
     from torch._dynamo.backends import cudagraphs
-    if hasattr(cudagraphs, 'get_first_incompatible_cudagraph_node'):
-        cudagraphs.get_first_incompatible_cudagraph_node = get_first_incompatible_cudagraph_node
+    cudagraphs.get_first_incompatible_cudagraph_node = get_first_incompatible_cudagraph_node
+
+    from torch_npu.utils import _graph_tree
+    _graph_tree.get_first_incompatible_cudagraph_node = get_first_incompatible_cudagraph_node
 
 
 class classproperty:
