@@ -31661,5 +31661,9 @@
   "test_replicate (__main__.TestDataParallel)": ["", [""]],
   "test_replicate_buffers (__main__.TestDataParallel)": ["", [""]],
   "test_index_put_accumulate_large_tensor_npu (__main__.TestIndexingPRIVATEUSE1)": ["", ["910A"]],
-  "test_serialization_array_with_empty (__main__.TestNpu)": ["", [""]]
+  "test_serialization_array_with_empty (__main__.TestNpu)": ["", [""]],
+  "test_module_backcompat (__main__.TestNN)": ["", [""]],
+  "test_register_state_dict_pre_hook_backward_compat (__main__.TestNN)": ["", [""]],
+  "test_softmax_forward_64bit_indexing_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_upsampling_bfloat16 (__main__.TestNN)": ["", [""]]
 }
