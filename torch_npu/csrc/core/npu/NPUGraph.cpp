@@ -4,6 +4,7 @@
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "third_party/acl/inc/acl/error_codes/rt_error_codes.h"
 
 #include <chrono>
@@ -22,6 +23,9 @@ constexpr int kSynchronizeBusyWaitMillis = 10;
 namespace {
 void apply_cache_op_info(aclrtStream stream, bool enabled)
 {
+    if (!IsGteCANNVersion("8.5.0", "CANN")) {
+		return;
+	}
     aclrtStreamAttrValue val;
     val.cacheOpInfoSwitch = static_cast<uint32_t>(enabled ? 1u : 0u);
     int32_t ret = c10_npu::acl::AclrtSetStreamAttribute(stream, aclrtStreamAttr::ACL_STREAM_ATTR_CACHE_OP_IFNO,
