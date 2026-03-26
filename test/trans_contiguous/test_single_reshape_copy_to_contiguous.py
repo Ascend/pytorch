@@ -201,13 +201,15 @@ class SingleViewCopyToContiguous(TestCase):
                 npu_out2 = npu_input[0] + 1
             if match_case:
                 self.assertEqual(check_operators_in_prof(['contiguous_h_memRepoint'], prof) or
-                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
-                                 True, message="contiguous_h_memRepoint or aclnnInplaceCopy is not called!")
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof) or
+                                 check_operators_in_prof(['aclnnAdds'], prof),
+                                 True, message="contiguous_h_memRepoint or aclnnInplaceCopy or aclnnAdds is not called!")
             else:
                 # refresh storage desc after transdata
                 self.assertEqual(check_operators_in_prof(['Identity'], prof) or
-                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
-                                 True, message="Identity or aclnnInplaceCopy is not called!")
+                                 check_operators_in_prof(['aclnnInplaceCopy'], prof) or
+                                 check_operators_in_prof(['aclnnAdds'], prof),
+                                 True, message="Identity or aclnnInplaceCopy or aclnnAdds is not called!")
             cpu_out2 = cpu_input[0] + 1
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
