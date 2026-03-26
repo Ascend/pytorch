@@ -42,4 +42,4 @@
 |设备管理|[TORCH_NPU_DEVICE_CAPABILITY](TORCH_NPU_DEVICE_CAPABILITY.md)|通过此环境变量可配置`torch_npu.npu.get_device_capability()`的返回值。|
 |设备管理|[TORCH_TRANSFER_TO_NPU](TORCH_TRANSFER_TO_NPU.md)|通过此环境变量可配置是否自动启用transfer_to_npu功能，将PyTorch的CUDA相关API自动替换为NPU对应API。|
 |图模式|[TORCHINDUCTOR_NPU_BACKEND](TORCHINDUCTOR_NPU_BACKEND.md)|通过该环境变量可配置图模式下的优化模式，支持Triton、MLIR、DVM等优化模式。|
-|图模式|[INDUCTOR_ASCEND_CHECK_ACCURACY](INDUCTOR_ASCEND_CHECK_ACCURACY.md)|INDUCTOR_ASCEND_CHECK_ACCURACY是Ascend Extension for PyTorch提供的精度校验工具，仅在torch.compile图编译后端为"Inductor"且模式为"Triton"时自动检测融合算子的数值精度。|
+|图模式|[（beta）INDUCTOR_ASCEND_CHECK_ACCURACY](INDUCTOR_ASCEND_CHECK_ACCURACY.md)|INDUCTOR_ASCEND_CHECK_ACCURACY是Ascend Extension for PyTorch提供的精度校验工具，仅在torch.compile图编译后端为"Inductor"且模式为"Triton"时自动检测融合算子的数值精度。|

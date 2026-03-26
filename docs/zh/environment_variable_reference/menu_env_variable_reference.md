@@ -56,7 +56,7 @@
 
 -   [图模式](inductor.md)
     -   [TORCHINDUCTOR\_NPU\_BACKEND](TORCHINDUCTOR_NPU_BACKEND.md)
-    -   [INDUCTOR\_ASCEND\_CHECK\_ACCURACY](INDUCTOR_ASCEND_CHECK_ACCURACY.md)
+    -   [（beta）INDUCTOR\_ASCEND\_CHECK\_ACCURACY](INDUCTOR_ASCEND_CHECK_ACCURACY.md)
 
 -   [附录](appendix.md)
     -   [在进行模型分布式训练时遇到报错“RuntimeError: The Inner Error ...”](runtimeerror_Inner_Error.md)
