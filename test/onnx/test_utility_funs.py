@@ -642,6 +642,7 @@ class TestUtilityFuns(_BaseTestCase):
         onnx_model = onnx.load(io.BytesIO(f.getvalue()))
         self.assertEqual(len(onnx_model.graph.initializer), 0)
 
+    # onnx need protobuf
     def test_verbose(self):
         class MyModule(torch.nn.Module):
             def forward(self, input_):
