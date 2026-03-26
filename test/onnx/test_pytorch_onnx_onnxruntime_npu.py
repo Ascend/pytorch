@@ -118,6 +118,7 @@ class TestONNXRuntime_npu(onnx_test_common._TestONNXRuntime):
 
     # ONNX supports bfloat16 for opsets >= 13
     # Add, Sub and Mul ops don't support bfloat16 cpu in onnxruntime.
+    @unittest.skip("Add, Sub and Mul ops don't support bfloat16 cpu in onnxruntime.")
     @skipIfUnsupportedMinOpsetVersion(13)
     @skipIfNoBFloat16NPU
     def test_arithmetic_bfp16(self):
