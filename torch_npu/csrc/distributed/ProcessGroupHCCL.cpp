@@ -845,6 +845,11 @@ void ProcessGroupHCCL::WorkHCCL::synchronize()
     // Call Synchronize without a timeout. We use this method to avoid adding a
     // timeout argument to the public synchronize API.
     synchronizeInternal(kNoTimeout);
+    if (c10d::allow_inflight_collective_as_graph_input()) {
+        c10d::unregister_work(
+            c10::intrusive_ptr<
+                ProcessGroupHCCL::WorkHCCL>::unsafe_reclaim_from_nonowning(this));
+    }
 }
 
 void ProcessGroupHCCL::WorkHCCL::handleException(ErrorHandlingMode errorHandling)
@@ -968,6 +973,11 @@ void ProcessGroupHCCL::WorkHCCL::lazyDestroy(std::vector<at::Tensor> tensors)
 bool ProcessGroupHCCL::WorkHCCL::wait(std::chrono::milliseconds timeout)
 {
     synchronizeInternal(timeout);
+    if (c10d::allow_inflight_collective_as_graph_input()) {
+        c10d::unregister_work(
+            c10::intrusive_ptr<
+                ProcessGroupHCCL::WorkHCCL>::unsafe_reclaim_from_nonowning(this));
+    }
     // Always return true, because abort API is not implemented.
     return true;
 }
@@ -4557,8 +4567,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
         op_type,
         remote_rank_list,
         c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>::unsafe_reclaim_from_nonowning(this));
-    for (auto tensor : tensors) {
-        c10d::register_work(tensor, work);
+    if (c10d::allow_inflight_collective_as_graph_input()) {
+        for (auto tensor : tensors) {
+            c10d::register_work(tensor, work);
+        }
     }
     return work;
 }
@@ -4998,7 +5010,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
         c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>::unsafe_reclaim_from_nonowning(this),
         c10::make_intrusive<c10d::ReduceOp>(opts.reduceOp),
         opts.timeout.count());
-    c10d::register_work(outputTensor, work);
+    if (c10d::allow_inflight_collective_as_graph_input()) {
+        c10d::register_work(outputTensor, work);
+    }
     return work;
 }
 
@@ -5103,7 +5117,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
         outputSplitSizes,
         c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>::unsafe_reclaim_from_nonowning(this),
         opts.timeout.count());
-    c10d::register_work(outputTensor, work);
+    if (c10d::allow_inflight_collective_as_graph_input()) {
+        c10d::register_work(outputTensor, work);
+    }
     return work;
 }
 
