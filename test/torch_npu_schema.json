@@ -563,6 +563,9 @@
   "torch_npu.distributed.distributed_c10d.reinit_process_group": {
     "signature": "(group=None, rebuild_link=True)"
   },
+  "torch_npu.distributed.fsdp.fully_shard": {
+    "signature": "(*args, **kwargs)"
+  },
   "torch_npu.distributed.reinit_process_group": {
     "signature": "(group=None, rebuild_link=True)"
   },
