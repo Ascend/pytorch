@@ -1116,7 +1116,7 @@ class TestOnnxOps(TestCase):
                 super(Model, self).__init__()
 
             def forward(self, sorted_experts):
-                return torch_npu.npu_moe_compute_expert_tokens(sorted_experts=5)
+                return torch_npu.npu_moe_compute_expert_tokens(sorted_experts=sorted_experts)
             
         def export_onnx(onnx_model_name):
             data = list(range(20))
