@@ -16,6 +16,7 @@ from torch.distributed.fsdp._fully_shard._fsdp_param_group import FSDPParamGroup
 from torch.distributed.utils import _to_kwargs
 from torch.profiler import record_function
 from torch.distributed.distributed_c10d import ReduceOp
+from torch.distributed.fsdp import fully_shard as torch_fully_shard
 from torch.distributed.fsdp._fully_shard._fsdp_common import (
     _get_dim0_padded_size,
     _raise_assert_with_print,
@@ -38,6 +39,7 @@ from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 logger = logging.getLogger("torch.distributed.fsdp.fully_shard")
+_FSDP_ENHANCE_PATCH_APPLIED = False
 
 
 class FSDPMemCache:
@@ -707,12 +709,7 @@ def _patched_fsdp_state_post_forward(original_post_forward):
 
 
 def _apply_fsdp_patch():
-    FSDPState._post_forward = _patched_fsdp_state_post_forward(FSDPState._post_forward)
-    FSDPParamGroup.__init__ = _patched_fsdp_param_group_init(FSDPParamGroup.__init__)
-    FSDPParamGroup._wait_all_gather_streams_on_event \
-        = _patched_wait_all_gather_streams_on_event(FSDPParamGroup._wait_all_gather_streams_on_event)
-    FSDPParamGroup.post_forward = _patched_post_forward(FSDPParamGroup.post_forward)
-    FSDPParamGroup.post_backward = _patched_post_backward(FSDPParamGroup.post_backward)
+    # essential patch to run on NPU
     FSDPParamGroup.finalize_backward = _patched_finalize_backward
     FSDPParamGroup.wait_for_unshard = patched_wait_for_unshard
     tensor_version_op._unsafe_set_version_counter_functional = _patched_unsafe_set_version_counter_functional
@@ -721,8 +718,35 @@ def _apply_fsdp_patch():
     _unsafe_preserve_version_counter.__exit__ = _patched_unsafe_preserve_version_counter.__exit__
     torch.distributed.fsdp._fully_shard._fsdp_collectives._get_param_all_gather_inputs = _get_param_all_gather_inputs
     torch.distributed.fsdp._fully_shard._fsdp_state.FSDPState._root_pre_forward = _patched_root_pre_forward
+
+
+def _apply_fsdp_enhance_patch():
+    global _FSDP_ENHANCE_PATCH_APPLIED
+    if _FSDP_ENHANCE_PATCH_APPLIED:
+        return
+
+    # support using memory cache for FSDP comm ops
+    FSDPParamGroup.__init__ = _patched_fsdp_param_group_init(FSDPParamGroup.__init__)
+    FSDPParamGroup._wait_all_gather_streams_on_event \
+        = _patched_wait_all_gather_streams_on_event(FSDPParamGroup._wait_all_gather_streams_on_event)
     torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_all_gather = _patched_foreach_all_gather
     torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_reduce = _patched_foreach_reduce
     # _fsdp_param_group imported these functions before patching
     torch.distributed.fsdp._fully_shard._fsdp_param_group.foreach_all_gather = _patched_foreach_all_gather
     torch.distributed.fsdp._fully_shard._fsdp_param_group.foreach_reduce = _patched_foreach_reduce
+
+    # optimize communication, e.g. removing redundant all-gather when recomputing in backward
+    FSDPState._post_forward = _patched_fsdp_state_post_forward(FSDPState._post_forward)
+    FSDPParamGroup.post_forward = _patched_post_forward(FSDPParamGroup.post_forward)
+    FSDPParamGroup.post_backward = _patched_post_backward(FSDPParamGroup.post_backward)
+
+    _FSDP_ENHANCE_PATCH_APPLIED = True
+
+
+def fully_shard(*args, **kwargs):
+    _apply_fsdp_enhance_patch()
+    return torch_fully_shard(*args, **kwargs)
+
+
+fully_shard.state = torch_fully_shard.state
+fully_shard.__doc__ = torch_fully_shard.__doc__
