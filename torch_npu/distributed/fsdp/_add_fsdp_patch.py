@@ -5,12 +5,16 @@ import operator
 
 import torch
 from torch import distributed as dist
+from torch.distributed.fsdp import fully_shard as torch_fully_shard
 from torch.distributed.fsdp._fully_shard._fsdp_common import compiled_autograd_enabled, TrainingState
 from torch.distributed.fsdp._fully_shard._fsdp_param import FSDPParam, ShardedState
 from torch.distributed.fsdp._fully_shard._fsdp_param_group import FSDPParamGroup
 from torch.distributed.fsdp._fully_shard._fsdp_state import FSDPState
 
 import torch_npu
+
+
+_FSDP_ENHANCE_PATCH_APPLIED = False
 
 
 class FSDPMemCache:
@@ -271,24 +275,49 @@ def _patched_fsdp_state_post_forward(original_post_forward):
 
 
 def _apply_fsdp_patch():
-    FSDPState._post_forward = _patched_fsdp_state_post_forward(FSDPState._post_forward)
-    FSDPParamGroup.__init__ = _patched_fsdp_param_group_init(FSDPParamGroup.__init__)
-    FSDPParamGroup._wait_all_gather_streams_on_event \
-        = _patched_wait_all_gather_streams_on_event(FSDPParamGroup._wait_all_gather_streams_on_event)
-    FSDPParamGroup.post_forward = _patched_post_forward(FSDPParamGroup.post_forward)
-    FSDPParamGroup.post_backward = _patched_post_backward(FSDPParamGroup.post_backward)
+    # essential patch to run on NPU
     FSDPParamGroup.finalize_backward = _patched_finalize_backward
-    torch.distributed.fsdp._fully_shard._fsdp_collectives.DefaultAllGather.allocate = _patched_all_gather_allocate
-    torch.distributed.fsdp._fully_shard._fsdp_collectives.DefaultReduceScatter.allocate = _patched_reduce_scatter_allocate
     torch.distributed.fsdp._fully_shard._fsdp_collectives._get_param_all_gather_inputs \
         = _patched_get_param_all_gather_inputs
     torch.ops.fsdp.all_gather_copy_in = _patched_all_gather_copy_in
     torch.ops.fsdp.all_gather_copy_in.default = _patched_all_gather_copy_in
+
+
+def _apply_fsdp_enhance_patch():
+    global _FSDP_ENHANCE_PATCH_APPLIED
+    if _FSDP_ENHANCE_PATCH_APPLIED:
+        return
+
+    # support using memory cache for FSDP comm ops
+    FSDPParamGroup.__init__ = _patched_fsdp_param_group_init(FSDPParamGroup.__init__)
+    FSDPParamGroup._wait_all_gather_streams_on_event \
+        = _patched_wait_all_gather_streams_on_event(FSDPParamGroup._wait_all_gather_streams_on_event)
+    torch.distributed.fsdp._fully_shard._fsdp_collectives.DefaultAllGather.allocate = _patched_all_gather_allocate
+    torch.distributed.fsdp._fully_shard._fsdp_collectives.DefaultReduceScatter.allocate \
+        = _patched_reduce_scatter_allocate
     origin_foreach_reduce = torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_reduce
     torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_reduce \
         = _patched_foreach_reduce(origin_foreach_reduce)
     # _fsdp_param_group imported these functions before patching
     torch.distributed.fsdp._fully_shard._fsdp_param_group.DefaultAllGather.allocate = _patched_all_gather_allocate
-    torch.distributed.fsdp._fully_shard._fsdp_param_group.DefaultReduceScatter.allocate = _patched_reduce_scatter_allocate
+    torch.distributed.fsdp._fully_shard._fsdp_param_group.DefaultReduceScatter.allocate \
+        = _patched_reduce_scatter_allocate
     torch.distributed.fsdp._fully_shard._fsdp_param_group.foreach_reduce \
         = _patched_foreach_reduce(origin_foreach_reduce)
+
+
+    # optimize communication, e.g. removing redundant all-gather when recomputing in backward
+    FSDPState._post_forward = _patched_fsdp_state_post_forward(FSDPState._post_forward)
+    FSDPParamGroup.post_forward = _patched_post_forward(FSDPParamGroup.post_forward)
+    FSDPParamGroup.post_backward = _patched_post_backward(FSDPParamGroup.post_backward)
+
+    _FSDP_ENHANCE_PATCH_APPLIED = True
+
+
+def fully_shard(*args, **kwargs):
+    _apply_fsdp_enhance_patch()
+    return torch_fully_shard(*args, **kwargs)
+
+
+fully_shard.state = torch_fully_shard.state
+fully_shard.__doc__ = torch_fully_shard.__doc__
