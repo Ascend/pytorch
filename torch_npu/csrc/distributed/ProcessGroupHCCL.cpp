@@ -427,7 +427,7 @@ inline bool IsCompatibleSoc()
     static const bool is_compatible = []() {
         auto soc_version = c10_npu::GetSocVersion();
         return ((soc_version >= c10_npu::SocVersion::Ascend910B1) && (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
-                ((soc_version >= c10_npu::SocVersion::Ascend910_9391) && (soc_version < c10_npu::SocVersion::Ascend910_95));
+                ((soc_version >= c10_npu::SocVersion::Ascend910_9391) && (soc_version < c10_npu::SocVersion::Ascend950));
     }();
     return is_compatible;
 }
