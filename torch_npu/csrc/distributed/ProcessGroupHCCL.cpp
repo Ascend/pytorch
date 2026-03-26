@@ -2820,7 +2820,10 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     // comms have not been initiated yet, but run HcclGroupEnd before, so end it first
     for (const auto i : c10::irange(hcclActiveGroupCounter_)) {
         (void)i;
-        HCCL_CHECK_ERROR(hcclGroupEnd());
+        auto hccl_call = [this]() -> HcclResult {
+            return hcclGroupEnd();
+        };
+        at_npu::native::OpCommand::RunOpApiV3("hcclGroupEnd", hccl_call);
     }
     if (!createHCCLCommEx(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank)) {
         createHCCLCommOrigin(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
@@ -2828,7 +2831,10 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     // restart the HcclGroupStart
     for (const auto i : c10::irange(hcclActiveGroupCounter_)) {
         (void)i;
-        HCCL_CHECK_ERROR(hcclGroupStart());
+        auto hccl_call = [this]() -> HcclResult {
+            return hcclGroupStart();
+        };
+        at_npu::native::OpCommand::RunOpApiV3("hcclGroupStart", hccl_call);
     }
 
     hcclStreams_.emplace(devicesKey, std::move(streamVal));
@@ -3280,6 +3286,7 @@ void ProcessGroupHCCL::resumeHcclComm(int device_id)
             auto& hcclComms = devHCCLCommMap_[key];
             for (const auto& hcclComm : hcclComms) {
                 auto comm = hcclComm->getHcclComm();
+                TORCH_NPU_HCCL_LOGI("getHcclComm, hcclComm is %p, device_id %d.", comm, device_id);
                 HCCL_CHECK_ERROR(at_npu::hccl::HcclCommResumeFace(comm));
             }
         }
@@ -3291,13 +3298,14 @@ void ProcessGroupHCCL::resumeHcclComm(int device_id)
                     auto& hcclComms = devHCCLCommMap_[p2pKey];
                     for (const auto& hcclComm : hcclComms) {
                         auto comm = hcclComm->getHcclComm();
+                        TORCH_NPU_HCCL_LOGI("getHcclComm, hcclComm is %p, device_id %d.", comm, device_id);
                         HCCL_CHECK_ERROR(at_npu::hccl::HcclCommResumeFace(comm));
                     }
                 }
             }
         }
     }
-    TORCH_NPU_HCCL_LOGI("resumeHcclComm success, group id is %s.", options_->group_id.c_str());
+    TORCH_NPU_HCCL_LOGI("resumeHcclComm success, group id is %s, device_id is %d", options_->group_id.c_str(), device_id);
 }
 
 bool ProcessGroupHCCL::setCommWorkingDevNic(
@@ -4216,7 +4224,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
     std::string key;
     std::vector<std::shared_ptr<HCCLComm>> hcclComms;
 
-    if (hcclCommInitRootInfoConfigExist() && c10_npu::option::OptionsManager::GetP2PBufferSize() != 0) {
+    if (hcclCommInitRootInfoConfigExist() && c10_npu::option::OptionsManager::GetP2PBufferSize() != 0 && coalescing_state_ == 0) {
         key = getKeySendRecv(rank_, peer);
         p2pRank = rank_ <= peer ? 0 : 1;
         isSendRecvSelf = rank_ == peer;
@@ -4231,22 +4239,66 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
 
     // Bump the logical operation counter regardless of whether this op is
     // coalesced or individual
-    seqP2P_++;
     op_id_++;
+
+    // Handle coalescing state for P2P operations
+    if (coalescing_state_ & CoalActive) {
+        // Bump seqP2P_ once per coalesced group, not once per individual op.
+        if ((coalescing_state_ & CoalP2P) == 0) {
+            seqP2P_++;
+        }
+        coalescing_state_ |= CoalP2P;
+        // Verify device consistency across coalesced operations
+        // For HCCL, we support multiple devices, so we check if devices match
+        if (coalescedDevice_.index() < 0) {
+            // First P2P op in coalesced group, set the device
+            // For multi-device support, we use the first device as reference
+            coalescedDevice_ = devices[0];
+        } else {
+            // Verify all devices match the coalesced device
+            for (const auto& device : devices) {
+                TORCH_CHECK(
+                    coalescedDevice_.index() == device.index(),
+                    "Expecting same device across coalesced P2P operations. "
+                    "Got device ", device.index(), " but expected ", coalescedDevice_.index());
+            }
+        }
+        
+        // Verify communicator consistency
+        if (coalescedComm_ == nullptr) {
+            coalescedComm_ = hcclComms[0];
+        } else {
+            // For multi-device, we check if the first comm matches
+            TORCH_CHECK(
+                coalescedComm_ == hcclComms[0],
+                "Expecting same communicator across coalesced P2P operations.");
+        }
+    } else {
+        // Not coalescing, bump seqP2P_ normally
+        seqP2P_++;
+    }
 
     // First let HCCL streams wait for input tensors allocation streams
     syncStreams(devices, hcclEvents_[key], hcclStreams_[key]);
 
     // Work itself will create the CUDA events on all NPUs of tensors
-    auto work = initWork(devices, rank_, opType, "", tensors, tensors, true);
-    // This bypasses something in Work() that crashes if {tensor} is given as
-    // output, not sure what
-    work->outputs_ = std::make_shared<std::vector<at::Tensor>>(tensors);
+    c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> work;
+    if (coalescing_state_) {
+        // When coalescing, we don't create a Work object for individual ops.
+        // Instead, we stash the tensors for allocator safety and the Work
+        // will be created in endCoalescing.
+        coalescedTensors_.stash(tensors);
+    } else {
+        work = initWork(devices, rank_, opType, "", tensors, tensors, true);
+        // This bypasses something in Work() that crashes if {tensor} is given as
+        // output, not sure what
+        work->outputs_ = std::make_shared<std::vector<at::Tensor>>(tensors);
+    }
 
     // is npuGuard needed for the if block below, or can i swap them
     c10_npu::OptionalNPUGuard npuGuard;
 
-    if (desyncDebug_) {
+    if (!coalescing_state_ && desyncDebug_) {
         for (const auto i : c10::irange(devices.size())) {
             c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
             (*(work->hcclStartEvents_))[i].record(hcclStream);
@@ -4264,7 +4316,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
         }
     }
 
-    pre(hcclStreams_[key], work);
+    if (!coalescing_state_) {
+        pre(hcclStreams_[key], work);
+    }
 
     if (nslb_path != nullptr && !nslb_is_end) {
         auto nslb_num = c10_npu::option::OptionsManager::GetNslbCntVal();
@@ -4328,7 +4382,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
         // See [Sync Streams].
         auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
         c10_npu::NPUCachingAllocator::recordStream(tensors[i].storage().data_ptr(), hcclStream);
-        if (multi_stream_memory_reuse_mode != c10_npu::option::CLOSE) {
+        if (!coalescing_state_ && multi_stream_memory_reuse_mode != c10_npu::option::CLOSE) {
             work->recorded_inputs_.push_back(std::make_pair(tensors[i].storage().getWeakStorageImpl(), hcclStream));
             if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
                 auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(tensors[i].storage().data_ptr());
@@ -4344,43 +4398,61 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
             // insert sync point fluxLimit(key, i)
             c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
             hcclUs startut = std::chrono::steady_clock::now();
-            HCCL_CHECK_ERROR(fn(tensors[i], hcclComms[i]->getHcclComm(), hcclStream, work->is_dispatched, p2pTargetRank), opTypeToString(opType).c_str());
+            // For coalescing, we use a dummy is_dispatched pointer
+            std::shared_ptr<bool> is_dispatched = coalescing_state_ ? std::make_shared<bool>(false) : work->is_dispatched;
+            if (coalescing_state_) {
+                auto hccl_call = [this]() -> HcclResult {
+                    return hcclGroupStart();
+                };
+                at_npu::native::OpCommand::RunOpApiV3("hcclGroupStart", hccl_call);
+            }
+            HCCL_CHECK_ERROR(fn(tensors[i], hcclComms[i]->getHcclComm(), hcclStream, is_dispatched, p2pTargetRank), opTypeToString(opType).c_str());
+            if (coalescing_state_) {
+                auto hccl_call = [this]() -> HcclResult {
+                    return hcclGroupEnd();
+                };
+                at_npu::native::OpCommand::RunOpApiV3("hcclGroupEnd", hccl_call);
+            }
         }
     }
-    post(hcclStreams_[key], work);
- 
-    // Future only needs to be created and marked completed with outputs for
-    // recv(), but still create future for use cases such as profiling even for
-    // send().
-    {
-        c10_npu::NPUMultiStreamGuard guard(hcclStreams_[key]);
-        work->future_ = c10::make_intrusive<at::ivalue::Future>(
-            c10::ListType::create(c10::TensorType::get()),
-            devices);
-        work->future_->markCompleted(at::IValue(*work->outputs_));
-    }
- 
-    // End event should only be recorded after the hcclGroupEnd()
-    for (const auto i : c10::irange(tensors.size())) {
-        c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
-        (*(work->hcclEndEvents_))[i].record(hcclStream);
-        work->hcclComms_[i] = hcclComms[i];
-        work->blockingWait_ = blockingWait_;
-        work->opTimeout_ = options_->timeout;
-        work->store_ = store_;
-        // Record size info for debug. We only record the size on the first device
-        // as multi-device per process is deprecated
-        work->numelIn_ = work->numelOut_ = static_cast<size_t>(tensors[i].numel());
+
+    if (!coalescing_state_) {
+        post(hcclStreams_[key], work);
+
+        // Future only needs to be created and marked completed with outputs for
+        // recv(), but still create future for use cases such as profiling even for
+        // send().
+        {
+            c10_npu::NPUMultiStreamGuard guard(hcclStreams_[key]);
+            work->future_ = c10::make_intrusive<at::ivalue::Future>(
+                c10::ListType::create(c10::TensorType::get()),
+                devices);
+            work->future_->markCompleted(at::IValue(*work->outputs_));
+        }
+
+        // End event should only be recorded after the hcclGroupEnd()
+        for (const auto i : c10::irange(tensors.size())) {
+            c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+            (*(work->hcclEndEvents_))[i].record(hcclStream);
+            work->hcclComms_[i] = hcclComms[i];
+            work->blockingWait_ = blockingWait_;
+            work->opTimeout_ = options_->timeout;
+            work->store_ = store_;
+            // Record size info for debug. We only record the size on the first device
+            // as multi-device per process is deprecated
+            work->numelIn_ = work->numelOut_ = static_cast<size_t>(tensors[i].numel());
+        }
+    
+        c10_npu::NPUGraph::inc_pending_event_queries();
+        if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
+            workEnqueue(work);
+        } else {
+            c10_npu::NPUGraph::dec_pending_event_queries();
+        }
     }
 
-    c10_npu::NPUGraph::inc_pending_event_queries();
-    if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
-        workEnqueue(work);
-    } else {
-        c10_npu::NPUGraph::dec_pending_event_queries();
-    }
-    
-    return work;
+    // When coalescing, return nullptr as the Work will be created in endCoalescing
+    return coalescing_state_ ? nullptr : work;
 }
 
 template <typename Fn>
@@ -5996,6 +6068,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::endCoalescing(c10d::OpType opty
     NPU_CHECK_ERROR(c10_npu::SetDevice(device.index()));
     groupEnd();
 
+    // Record end after hcclGroupEnd
+    (*(work->hcclEndEvents_))[0].record(hcclStream);
+
     if (enqueue) {
         c10_npu::NPUGraph::inc_pending_event_queries();
         workEnqueue(work);
@@ -6019,13 +6094,19 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::endCoalescing(c10d::OpType opty
 
 void ProcessGroupHCCL::groupStart()
 {
-    HCCL_CHECK_ERROR(hcclGroupStart());
+    auto hccl_call = [this]() -> HcclResult {
+        return hcclGroupStart();
+    };
+    at_npu::native::OpCommand::RunOpApiV3("hcclGroupStart", hccl_call);
     ++hcclActiveGroupCounter_;
 }
 
 void ProcessGroupHCCL::groupEnd()
 {
-    HCCL_CHECK_ERROR(hcclGroupEnd());
+    auto hccl_call = [this]() -> HcclResult {
+        return hcclGroupEnd();
+    };
+    at_npu::native::OpCommand::RunOpApiV3("hcclGroupEnd", hccl_call);
     --hcclActiveGroupCounter_;
 }
 
