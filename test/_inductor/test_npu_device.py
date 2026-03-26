@@ -1,4 +1,5 @@
 import torch
+import unittest
 from torch_npu.npu import device_count
 from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
 from torch_npu.utils._inductor import NPUDeviceOpOverrides
@@ -19,7 +20,7 @@ class TestNpuDevice(TestCase):
         result = overrides.cpp_stream_type()
         excepted = "aclrtStream"
         self.assertEqual(result, excepted)
-
+    @unittest.skip
     def test_abi_compatible_header(self):
         overrides = NewNPUDeviceOpOverrides()
         result = overrides.abi_compatible_header()

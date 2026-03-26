@@ -427,7 +427,7 @@ inline bool IsCompatibleSoc()
     static const bool is_compatible = []() {
         auto soc_version = c10_npu::GetSocVersion();
         return ((soc_version >= c10_npu::SocVersion::Ascend910B1) && (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
-                ((soc_version >= c10_npu::SocVersion::Ascend910_9391) && (soc_version < c10_npu::SocVersion::Ascend910_95));
+                ((soc_version >= c10_npu::SocVersion::Ascend910_9391) && (soc_version < c10_npu::SocVersion::Ascend950));
     }();
     return is_compatible;
 }
@@ -4853,7 +4853,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
 constexpr int64_t ADDRESS_ALIGNMENT_BYTE = 512;
 at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors) const
 {
-    static bool no_need_padding = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910_95;
+    static bool no_need_padding = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
     at::Tensor inter_tensors = at::reshape(tensors, {1, tensors.numel()});
     if (tensors.element_size() == 0 || no_need_padding) {
         return inter_tensors;
