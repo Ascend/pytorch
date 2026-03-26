@@ -1244,7 +1244,7 @@ class TestMemoryProfilerE2E(TestCase):
             aten::add_.Tensor                        3 (PARAMETER), 11 (OPTIMIZER_STATE)           -> 3 (PARAMETER)""",
         )
 
-    @unittest.skip("skip test_categories_e2e_sequential_fwd now")
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_categories_e2e_sequential_fwd(self) -> None:
         model = torch.nn.Sequential(
             torch.nn.Linear(2, 4, bias=True),
@@ -1266,7 +1266,7 @@ class TestMemoryProfilerE2E(TestCase):
             aten::detach                             8 (ACTIVATION)                                -> ???""",
         )
 
-    @unittest.skip("skip test_categories_e2e_sequential_fwd_bwd now")
+    @unittest.skipIf(platform.machine().lower().startswith(('arm', 'aarch')), "Skip this test on ARM-based architectures")
     def test_categories_e2e_sequential_fwd_bwd(self) -> None:
         model = torch.nn.Sequential(
             torch.nn.Linear(2, 4, bias=True),
@@ -1342,7 +1342,6 @@ class TestMemoryProfilerE2E(TestCase):
             aten::detach                             29 (GRADIENT)                                 -> ???""",
         )
 
-    @unittest.skip("skip test_memory_timeline now")
     def test_memory_timeline(self) -> None:
         model = torch.nn.Sequential(
             torch.nn.Linear(64, 512, bias=True),
@@ -1405,7 +1404,7 @@ class TestMemoryProfilerE2E(TestCase):
             for _, action, (key, version), size in prof._memory_profile().timeline
             # We generally don't care about tiny allocations during memory
             # profiling and they add a lot of noise to the unit test.
-            if size > 1024
+            if size > 1024 and isinstance(key, _memory_profiler.TensorKey)
         ]
 
         self.assertExpectedInline(
