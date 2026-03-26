@@ -6024,28 +6024,21 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
         at_npu::native::OpHook::GetInstance().PreHook("gather", outputs, inputTensors);
     }
 
-    std::vector<at::Tensor> inputFlattened;
-    std::vector<std::vector<at::Tensor>> outputTensorsForFlatten;
-
-    if (getRank() == opts.rootRank) {
-        outputTensorsForFlatten.push_back(outputs);
-        inputFlattened = flatten_for_scatter_gather(outputTensorsForFlatten, inputTensors, size_);
-    } else {
-        std::vector<at::Tensor> empty(size_, at::empty_like(inputTensors[0]));
-        outputTensorsForFlatten.push_back(empty);
-        inputFlattened = flatten_for_scatter_gather(outputTensorsForFlatten, inputTensors, size_);
-    }
-
     bool is_compatible_soc = IsCompatibleSoc();
-
+    // Check compatible mode before flattening, for compatible mode only need original inputs
     bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
     if (!use_compatible_impl) {
         throw std::runtime_error("ProcessGroupHCCL does not support gather" + DIST_ERROR(ErrCode::NOT_SUPPORT));
     }
 
+    std::vector<at::Tensor> collectiveInputs;
+
+    // Pass a placeholder tensor for collective's interface requirement
+    collectiveInputs.push_back(inputTensors[0]);  // Use input tensor as placeholder
+
     return collective(
-        inputFlattened,
-        inputFlattened,  // just to fit the collective interface
+        collectiveInputs,
+        collectiveInputs,  // just to fit the collective interface
         [this, opts, outputs, use_compatible_impl, is_compatible_soc, inputTensors]
         (at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             if (!use_compatible_impl || !is_compatible_soc) {
@@ -6114,8 +6107,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
-            work->lazyDestroy(inputFlattened);
-            // Copy the input tensors to the flattened inputs.
+            // No need to destroy flattened tensors or copy data
             auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
             for (const auto i : c10::irange(inputTensors.size())) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
@@ -6135,7 +6127,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
                         }
                     }
                 }
-                inputFlattened[i][0].copy_(inputTensors[i], true);
             }
         },
         c10d::OpType::GATHER);
@@ -6183,24 +6174,39 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
         at_npu::native::OpHook::GetInstance().PreHook("scatter", outputTensors, inputTensors);
     }
 
-    std::vector<at::Tensor> inputFlattened;
-    if (getRank() == opts.rootRank) {
-        inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
-    } else {
-        std::vector<at::Tensor> empty;
-        for (int i = 0; i < size_; i++) {
-            empty.push_back(at::empty_like(outputTensors[0]));
-        }
-        inputTensors.push_back(empty);
-        inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
-    }
-
     bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
+
+    std::vector<at::Tensor> collectiveInputs;
+    std::vector<at::Tensor> inputFlattened;  // Only used in default mode
+    bool need_flatten_copy = false;  // Only used in default mode
+
+    if (use_compatible_impl) {
+        // Pass a placeholder tensor for collective's interface requirement
+        if (getRank() == opts.rootRank) {
+            collectiveInputs.push_back(inputTensors[0][0]);
+        } else {
+            collectiveInputs.push_back(outputTensors[0]);
+        }
+    } else {
+        // Default Mode: use flatten as before
+        if (getRank() == opts.rootRank) {
+            inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
+        } else {
+            std::vector<at::Tensor> empty;
+            for (int i = 0; i < size_; i++) {
+                empty.push_back(at::empty_like(outputTensors[0]));
+            }
+            inputTensors.push_back(empty);
+            inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
+        }
+        collectiveInputs = inputFlattened;
+        need_flatten_copy = true;
+    }
 
     bool is_compatible_soc = IsCompatibleSoc();
 
     return collective(
-        inputFlattened,
+        collectiveInputs,
         outputTensors,
         [this, opts, use_compatible_impl, inputTensors, is_compatible_soc]
         (at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
@@ -6221,7 +6227,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 if (getRank() == root) {
                     for (const auto r : c10::irange(static_cast<int>(size_))) {
                         if (r != root) {
-                            const at::Tensor& sendTensor = input.select(0, r);
+                            const at::Tensor& sendTensor = inputTensors[0][r];
                             if (sendTensor.numel() > 0) {
                                 auto inputDataPtr = sendTensor.data_ptr();
                                 auto numel = getNumelForHCCL(sendTensor);
@@ -6243,7 +6249,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                             }
                         } else {
                             // on its own rank, simply copy it to the output
-                            output.copy_(input.select(0, root));
+                            output.copy_(inputTensors[0][root]);
                         }
                     }
                 } else {
@@ -6272,7 +6278,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
 
                 return HCCL_SUCCESS;
             } else {
-                // Default Mode
+                // Default Mode: use flatten as before
                 RECORD_FUNCTION("HcclScatter", std::vector<c10::IValue>({input}));
                 const auto root = opts.rootRank;
                 if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
@@ -6301,29 +6307,55 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
             }
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
-            work->lazyDestroy(inputFlattened);
-            // Copy the input tensors to the flattened inputs.
-            auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
-            for (const auto i : c10::irange(inputTensors.size())) {
-                c10_npu::NPUStreamGuard guard(hcclStreams[i]);
-                for (const auto j : c10::irange(inputTensors[0].size())) {
-                    // See [Sync Streams].
-                    if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
-                        work->stashed_for_allocator_safety_.push_back(inputTensors[i][j]);
-                    } else {
-                        c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
-                        if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
-                            multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
-                            work->recorded_inputs_.push_back(
-                                std::make_pair(inputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
-                            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
-                                auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputTensors[i][j].storage().data_ptr());
-                                work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
-                                c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+            if (need_flatten_copy) {
+                // Default Mode: need to destroy flattened tensors and copy data
+                work->lazyDestroy(inputFlattened);
+                // Copy the input tensors to the flattened inputs.
+                auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+                for (const auto i : c10::irange(inputTensors.size())) {
+                    c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+                    for (const auto j : c10::irange(inputTensors[0].size())) {
+                        // See [Sync Streams].
+                        if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
+                            work->stashed_for_allocator_safety_.push_back(inputTensors[i][j]);
+                        } else {
+                            c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
+                            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                                multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                                work->recorded_inputs_.push_back(
+                                    std::make_pair(inputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                                if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                                    auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputTensors[i][j].storage().data_ptr());
+                                    work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                                    c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                                }
+                            }
+                        }
+                        inputFlattened[i][j].copy_(inputTensors[i][j], true);
+                    }
+                }
+            } else {
+                // No need to destroy flattened tensors or copy data
+                auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+                if (getRank() == opts.rootRank) {
+                    for (const auto j : c10::irange(inputTensors[0].size())) {
+                        c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                        if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
+                            work->stashed_for_allocator_safety_.push_back(inputTensors[0][j]);
+                        } else {
+                            c10_npu::NPUCachingAllocator::recordStream(inputTensors[0][j].storage().data_ptr(), hcclStreams[0]);
+                            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                                multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                                work->recorded_inputs_.push_back(
+                                    std::make_pair(inputTensors[0][j].storage().getWeakStorageImpl(), hcclStreams[0]));
+                                if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                                    auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(inputTensors[0][j].storage().data_ptr());
+                                    work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                                    c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                                }
                             }
                         }
                     }
-                    inputFlattened[i][j].copy_(inputTensors[i][j], true);
                 }
             }
         },
