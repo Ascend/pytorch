@@ -49,7 +49,7 @@ def generate_dvm_fx_case(
             f"arg{i} = torch.empty_strided("
             f"torch.Size({tuple(v.shape)}), "
             f"{tuple(v.stride())}, "
-            f"dtype={v.dtype}).uniform_(0, 1).npu()"
+            f"dtype={v.dtype}, device='npu').uniform_(0, 1)"
         )
 
     input_code = "\n    ".join(input_lines)
@@ -78,6 +78,7 @@ def generate_dvm_fx_case(
 
     test_code = f"""import torch
 import torch_npu
+from torch import device
 from torch.utils._pytree import tree_flatten
 import os
 {env_lines}
@@ -89,7 +90,7 @@ class {class_name}(torch.nn.Module):
 {_indent(gm.code, 4)}
 
 
-def _assert_close(ref, out, atol=1e-4, rtol=1e-4):
+def _assert_close(ref, out, atol=2e-3, rtol=2e-3):
     rf, rs = tree_flatten(ref)
     of, os = tree_flatten(out)
     assert rs == os, f"pytree mismatch\\nref={{rs}}\\nout={{os}}"

@@ -2,6 +2,7 @@ import os
 from unittest import skip
 
 import torch
+from torch._inductor import config as inductor_config
 
 from torch.testing._internal.common_utils import TestCase
 from torch.testing._internal.common_utils import (
@@ -42,6 +43,31 @@ class TestDvmByMlir(TestCase):
             expect = model(a, b, c)
             result = dvm_compiled_model(a, b, c)
             self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
+        del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
+
+    @parametrize("dtype", [torch.bfloat16])
+    @parametrize("is_dynamic", [False])
+    def test_basic_partitioning_npugraph(self, dtype, is_dynamic):
+        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
+        inductor_config.triton.cudagraphs = True
+        inductor_config.trace.enabled = True
+        a = torch.normal(0, 0.01, size=(512, 1), dtype=dtype).npu()
+        b = torch.normal(0, 0.01, size=(512, 4, 256), dtype=dtype).npu()
+        c = torch.normal(0, 0.01, size=(1, 256), dtype=dtype).npu()
+        model = TestModule()
+        dvm_compiled_model = torch.compile(
+            model,
+            backend="inductor",
+            dynamic=is_dynamic,
+        )
+        with torch.no_grad():
+            expect = model(a, b, c)
+            result = dvm_compiled_model(a, b, c)
+            result = dvm_compiled_model(a, b, c)
+            result = dvm_compiled_model(a, b, c)
+            self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
+        inductor_config.triton.cudagraphs = False
+        inductor_config.trace.enabled = False
         del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
 
 
