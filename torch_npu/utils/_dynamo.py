@@ -220,6 +220,8 @@ def patch_inductor_wrapper():
 
         elif self.config.get("npu_backend") == "dvm" or torch._inductor.config.npu_backend == "dvm":
             os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'dvm'
+            from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+            from torch_npu._inductor.dvm import mlir_fusion
 
     _TorchCompileInductorWrapper.__call__ = new_call
     _TorchCompileInductorWrapper.apply_options = new_apply_options
