@@ -74,6 +74,7 @@ torch_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch_npu._C._npu_setMemoryFraction",
         "torch_npu._C._npu_synchronize",
         "torch_npu._C._npu_resetAccumulatedMemoryStats",
+        "torch_npu._C._npu_hasPrimaryContext",
         "torch_npu._C._npu_setStream",
     ],
     TorchInGraphFunctionVariable,
