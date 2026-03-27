@@ -118,7 +118,7 @@ class TraceStepTimeDbParser(BaseParser):
                     save_time.append(save_info)
 
         for calc_time in save_time:
-            calc_time['comunNotOverlpRec'] = calc_time['comunNotOverlp'] - calc_time['bubble']
+            calc_time['comunNotOverlpRec'] = max(calc_time['comunNotOverlp'] - calc_time['bubble'], 0)
             calc_time['Overlp'] = calc_time['comun'] - calc_time['comunNotOverlp']
         reformat_time = []
         for step in save_time:
