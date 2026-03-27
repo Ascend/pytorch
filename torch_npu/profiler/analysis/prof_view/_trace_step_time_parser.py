@@ -148,7 +148,7 @@ class TraceStepTimeParser(BaseParser):
             for step, step_time in device_time.items():
                 if self.step_range and step is None:
                     continue
-                step_time['comunNotOverlpRec'] = step_time['comunNotOverlp'] - step_time['bubble']
+                step_time['comunNotOverlpRec'] = max(step_time['comunNotOverlp'] - step_time['bubble'], 0)
                 step_time['Overlp'] = step_time['comun'] - step_time['comunNotOverlp']
                 step_time['stage'] = self.get_e2e_time(step, step_dict.get(device, [])) - step_time['bubble']
                 step_time['prepare'] = self.get_prepare_time(step, step_dict.get(device, []))
