@@ -2318,6 +2318,16 @@ PyObject* THNPModule_get_deterministic_level(PyObject* self, PyObject*  noargs)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_hasPrimaryContext_wrap(PyObject* self, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(THPUtils_checkLong(arg), "invalid argument to _npu_hasPrimaryContext",
+                PTA_ERROR(ErrCode::VALUE));
+    c10::DeviceIndex device_index = static_cast<int32_t>(THPUtils_unpackDeviceIndex(arg));
+    return PyBool_FromLong(c10_npu::hasPrimaryContext(device_index));
+    END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -2394,6 +2404,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_device_res_limit", (PyCFunction)THNPModule_get_device_res_limit, METH_VARARGS, nullptr},
     {"_npu_set_device_res_limit", (PyCFunction)THNPModule_set_device_res_limit, METH_VARARGS, nullptr},
     {"_npu_reset_device_res_limit", (PyCFunction)THNPModule_reset_device_res_limit, METH_O, nullptr},
+    {"_npu_hasPrimaryContext", (PyCFunction)THNPModule_hasPrimaryContext_wrap, METH_O, nullptr},
     {"_aclop_start_dump", (PyCFunction)THNPModule_aclop_start_dump, METH_O, nullptr},
     {"_aclop_stop_dump", (PyCFunction)THNPModule_aclop_stop_dump, METH_NOARGS, nullptr},
     {"_npu_set_stream_res_limit", (PyCFunction)THNPModule_set_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
