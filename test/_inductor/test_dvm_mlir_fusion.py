@@ -44,6 +44,28 @@ class TestDvmByMlir(TestCase):
             self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
         del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
 
+    @parametrize("dtype", [torch.bfloat16])
+    @parametrize("is_dynamic", [False])
+    def test_basic_partitioning_npugraph(self, dtype, is_dynamic):
+        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
+        a = torch.normal(0, 0.01, size=(512, 1), dtype=dtype).npu()
+        b = torch.normal(0, 0.01, size=(512, 4, 256), dtype=dtype).npu()
+        c = torch.normal(0, 0.01, size=(1, 256), dtype=dtype).npu()
+        model = TestModule()
+        dvm_compiled_model = torch.compile(
+            model,
+            backend="inductor",
+            dynamic=is_dynamic,
+            options={"triton.cudagraphs": True},
+        )
+        with torch.no_grad():
+            expect = model(a, b, c)
+            result = dvm_compiled_model(a, b, c)
+            result = dvm_compiled_model(a, b, c)
+            result = dvm_compiled_model(a, b, c)
+            self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
+        del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
+
 
 instantiate_parametrized_tests(TestDvmByMlir)
 if __name__ == "__main__":

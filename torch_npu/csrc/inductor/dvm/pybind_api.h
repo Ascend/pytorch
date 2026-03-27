@@ -74,7 +74,8 @@ public:
         kernel_.SetNameHint(op_name_.c_str(), op_fullname_.c_str());
     }
 
-    int Launch(void** addr, aclrtStream stream);
+    int LaunchV1(void** addr, aclrtStream stream, void* workspace_ptr);
+    int LaunchV2(void** addr, aclrtStream stream);
     virtual void Setup();
     virtual py::object Run(py::args args);
     virtual py::object Call(py::args args);
@@ -85,6 +86,7 @@ public:
     ShapeRef* SymIntArraytoShapeRef(at::IntArrayRef shape_array);
     py::object CreateOutputs(const at::TensorOptions& options, void** addr);
     void SetupRelocs();
+    void SetWorkspaceSize(size_t size) { ws_size_ = size; }
 
     struct ShapeWithRef : public ShapeRef {
         enum { MAX_SIZE = 8 };
@@ -120,15 +122,11 @@ protected:
 class GraphSplitBase : public WsAllocator {
 public:
     virtual ~GraphSplitBase() = default;
-    int Launch(Kernel& kernel, void** addr, aclrtStream stream, std::vector<RelocEntry>& relocs);
+    int LaunchV1(Kernel& kernel, void** addr, aclrtStream stream, std::vector<RelocEntry>& relocs,
+                 void* workspace_ptr);
+    int LaunchV2(Kernel& kernel, void** addr, aclrtStream stream, std::vector<RelocEntry>& relocs);
 
-    void* Alloc(size_t size) override { return AllocWorkspace(size); }
-
-    inline void* AllocWorkspace(uint64_t size)
-    {
-        ws_ = at_npu::native::allocate_workspace(size, stream_);
-        return const_cast<void*>(ws_.storage().data());
-    }
+    void* Alloc(size_t size) override;
 
 protected:
     at::Tensor ws_;

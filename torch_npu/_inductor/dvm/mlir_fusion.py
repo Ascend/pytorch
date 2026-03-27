@@ -72,6 +72,7 @@ anir_config.GENERATE_LIST = [
     aten.relu,
     aten.where,
     aten.scalar_tensor,
+    aten.unsqueeze,
     # aten.clone,
     # aten.reshape,
     # aten.copy_,

@@ -17,7 +17,7 @@ class TestModule(torch.nn.Module):
     def forward(self, a, b, c):
         add = a + b
         mul = add * c
-        return torch.sum(mul, dim=(1,), keepdim=True)
+        return torch.sum(mul, dim=(0,), keepdim=True) + 1
 
 
 class MatMulModule(torch.nn.Module):
@@ -27,7 +27,7 @@ class MatMulModule(torch.nn.Module):
     def forward(self, a, b):
         mm = torch.mm(a.t(), b)
         mm = mm.to(torch.float32)
-        return mm + 3
+        return mm + 1
 
 
 class TestDvmByGraphFusion(TestCase):
@@ -45,6 +45,26 @@ class TestDvmByGraphFusion(TestCase):
             )
             with torch.no_grad():
                 expect = model(a, b, c)
+                result = dvm_compiled_model(a, b, c)
+                self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
+
+    @parametrize("dtype", [torch.float16])
+    @parametrize("is_dynamic", [False])
+    def test_basic_partitioning_npugraph(self, dtype, is_dynamic):
+        a = torch.normal(0, 0.1, size=(512, 1024), dtype=dtype).npu()
+        b = torch.normal(0, 0.1, size=(512, 1024), dtype=torch.float16).npu()
+        c = torch.normal(0, 0.1, size=(1, 1024), dtype=dtype).npu()
+        model = TestModule()
+        with DvmGraphFusionPatch():
+            dvm_compiled_model = torch.compile(
+                model,
+                backend="inductor",
+                dynamic=is_dynamic,
+                options={"triton.cudagraphs": True},
+            )
+            with torch.no_grad():
+                expect = model(a, b, c)
+                result = dvm_compiled_model(a, b, c)
                 result = dvm_compiled_model(a, b, c)
                 self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
 
