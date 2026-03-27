@@ -2513,7 +2513,11 @@ class NPUIndexTritonKernel(TritonKernel):
 
                 for index, line in enumerate(self.compute._lines):
                     if "load" in line and "_index_mask_" not in line and contains_axis_name(line, axis_name):
-                        new_line = f"{line[:-1]} & {axis_name}_index_mask_{size})"
+                        if line.endswith(", other=0.0)"):
+                            tail_len = len(", other=0.0)")
+                            new_line = f"{line[:-tail_len]} & {axis_name}_index_mask_{size}, other=0.0)"
+                        else:
+                            new_line = f"{line[:-1]} & {axis_name}_index_mask_{size})"
                         new_line = new_line.replace("None & ", "")
                         self.compute._lines[index] = new_line
 
