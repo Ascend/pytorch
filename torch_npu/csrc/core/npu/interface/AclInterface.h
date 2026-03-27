@@ -366,6 +366,8 @@ bool IsExistDeviceGetUuid();
 
 aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uuid);
 
+aclError AclrtGetPrimaryCtxState(int32_t deviceId, uint32_t* flags, int32_t* activate);
+
 aclError AclrtValueWait(void* event, aclrtStream stream);
 
 aclError AclrtValueWrite(void* event, uint64_t value, aclrtStream stream);

@@ -47,6 +47,20 @@ c10::DeviceIndex device_count() noexcept
     return static_cast<c10::DeviceIndex>(dev_count);
 }
 
+bool hasPrimaryContext(c10::DeviceIndex device_index)
+{
+    /* This interface is implemented to align with 'c10::cuda::hasPrimaryContext(device_index)' interface,
+     * but it has performance overhead due to calling AclrtGetPrimaryCtxState API.
+     * For internal usage, it's recommended to use the more performant isDeviceCtxActive
+     * function which checks the locally cached device context state.
+     */
+    TORCH_CHECK(device_index >= 0 && device_index < device_count(),
+        "hasPrimaryContext expects a valid device index, but got device_index=", device_index, PTA_ERROR(ErrCode::VALUE));
+    int32_t ctx_is_active = 0;
+    NPU_CHECK_ERROR_WITHOUT_UCE(acl::AclrtGetPrimaryCtxState(device_index, nullptr, &ctx_is_active));
+    return ctx_is_active == 1;
+}
+
 c10::DeviceIndex device_count_ensure_non_zero()
 {
     unsigned int count = 0;
