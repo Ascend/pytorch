@@ -950,7 +950,55 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
             self.assertEqual(input_dtensor.grad.full_tensor(), input_tensor.grad)
 
 
+class TestKLDivLoss(NPUDTensorTestBase):
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    @parametrize(
+        "pred_placement,target_placement",
+        [
+            (Shard(0), Shard(0)),
+            (Shard(0), Shard(1)),
+            (Shard(0), Shard(2)),
+            (Shard(0), Replicate()),
+            (Shard(1), Shard(0)),
+            (Shard(1), Shard(1)),
+            (Shard(1), Shard(2)),
+            (Shard(1), Replicate()),
+            (Shard(2), Shard(0)),
+            (Shard(2), Shard(1)),
+            (Shard(2), Shard(2)),
+            (Shard(2), Replicate()),
+            (Replicate(), Shard(0)),
+            (Replicate(), Shard(1)),
+            (Replicate(), Shard(2)),
+            (Replicate(), Replicate()),
+        ]
+    )
+    def test_torch_nn_KLDivLoss(self, pred_placement, target_placement):
+        reductions = ["none", "sum", "mean", "batchmean"]
+        mesh = self.build_device_mesh()
+
+        pred = torch.randn(4, 4, 4, device="npu", requires_grad=True)
+        target = torch.randn(4, 4, 4, device="npu")
+        
+        # def test_placement_comb(placements1, placements2):
+        pred_dt = distribute_tensor(pred, mesh, [pred_placement])
+        # pred_dt = pred_dt
+        target_dt = distribute_tensor(target, mesh, [target_placement])
+
+        for reduction in reductions:
+            loss_fn = torch.nn.KLDivLoss(reduction=reduction, log_target=True).to("npu")
+            loss_dt = loss_fn(pred_dt.log_softmax(dim=-1), target_dt)
+            loss_dt.sum().backward()
+            loss = loss_fn(pred.log_softmax(dim=-1), target)
+            loss.sum().backward()
+            self.assertEqual(loss_dt.full_tensor(), loss)
+            self.assertEqual(pred_dt.grad.full_tensor(), pred.grad)
+
+
 instantiate_parametrized_tests(TestMathOps)
+instantiate_parametrized_tests(TestKLDivLoss)
 
 
 if __name__ == "__main__":
