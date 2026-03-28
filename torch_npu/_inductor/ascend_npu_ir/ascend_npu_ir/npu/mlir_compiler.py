@@ -459,13 +459,14 @@ class NpuMlirCompiler:
             try:
                 logger.info(f"start to eval kernel {self.kernel_paths[idx]}")
                 times = self.bench(idx, launcher, *transformed_args, **kwargs)
-                if self.accuracy_pass(fx_outputs, *transformed_args):
+                if self.accuracy_pass(fx_outputs, *args):
                     timings.append([times, idx])
                 logger.info(f"eval over")
             except Exception as e:
                 print(e)
                 continue
         if not timings:
+            print(f"{self.kernel_name}: Tuning accuracy failed, no valid kernels found, using fallback")
             timings.append([float(1.0), len(self.launchers) - 1])
         return timings
     
