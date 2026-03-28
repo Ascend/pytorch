@@ -1401,7 +1401,24 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
     if (!terminateProcessGroup_.load()) {
         // User did not explicitly call destroy_process_group
         // Use shutdown for complete cleanup
-        shutdown();
+        try {
+            shutdown();
+        } catch (const std::exception& e) {
+            const auto exitMsg = c10::str(
+                logPrefix(),
+                "ProcessGroupHCCL destructor caught shutdown exception: ",
+                e.what());
+            LOG(ERROR) << exitMsg;
+            auto exceptionPtr = std::make_exception_ptr(std::runtime_error(exitMsg));
+            std::rethrow_exception(exceptionPtr);
+        } catch (...) {
+            const auto exitMsg = c10::str(
+                logPrefix(),
+                "ProcessGroupHCCL destructor caught unknown shutdown exception.");
+            LOG(ERROR) << exitMsg;
+            auto exceptionPtr = std::make_exception_ptr(std::runtime_error(exitMsg));
+            std::rethrow_exception(exceptionPtr);
+        }
     }
 
     terminateProcessGroup_.store(true);
