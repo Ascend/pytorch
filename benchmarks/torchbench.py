@@ -37,31 +37,50 @@ import re
 import sys
 import warnings
 from os.path import abspath, exists
-
 import torch
-
 from common import BenchmarkRunner, main
-
 from torch._dynamo.testing import collect_results, reduce_to_scalar_loss
 from torch._dynamo.utils import clone_inputs
-
 try:
     import torch_npu
-    os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
-    from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import logger
 except ImportError:
-    # ignore the error if torch_npu is not installed
     pass
-
 from benchmark.userbenchmark.dynamo.dynamobench.torchbench import (
     USE_SMALL_BATCH_SIZE, ONLY_TRAINING_MODE, REQUIRE_HIGHER_TOLERANCE, REQUIRE_EVEN_HIGHER_TOLERANCE,
     NONDETERMINISTIC, VERY_SLOW_BENCHMARKS, SLOW_BENCHMARKS, DONT_CHANGE_BATCH_SIZE,
-    MAX_BATCH_SIZE_FOR_ACCURACY_CHECK, FORCE_AMP_FOR_FP16_BF16_MODELS, setup_torchbench_cwd, 
+    MAX_BATCH_SIZE_FOR_ACCURACY_CHECK, FORCE_AMP_FOR_FP16_BF16_MODELS, 
 )
 
 # We are primarily interested in tf32 datatype
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.npu.config.allow_internal_format = False
+
+
+def setup_torchbench_cwd():
+    original_dir = abspath(os.getcwd())
+
+    os.environ["KALDI_ROOT"] = "/tmp"  # avoids some spam
+    search_dirs = [
+        "./benchmark",
+        "./torchbenchmark",
+        "../torchbenchmark", 
+        "../torchbench",
+        "../benchmark",
+        "../../torchbenchmark",
+        "../../torchbench",
+        "../../benchmark",
+    ]
+    torchbench_dir = None
+    for path in search_dirs:
+        if exists(path):
+            torchbench_dir = abspath(path)
+            break
+    
+    if torchbench_dir:
+        os.chdir(torchbench_dir)
+        sys.path.append(torchbench_dir)
+
+    return original_dir
 
 
 SKIP = {
@@ -73,13 +92,16 @@ SKIP = {
     "maml",
 }
 
+
 CHECK_NUMPY_VERSION = {
     "soft_actor_critic"
 }
 
+
 REQUIRE_HIGHER_FP16_TOLERANCE = {
     "drq",
 }
+
 
 NPU_REQUIRE_HIGHER_TOLERANCE = {
     "dcgan",
@@ -88,6 +110,7 @@ NPU_REQUIRE_HIGHER_TOLERANCE = {
     "timm_vovnet",
     "phlippe_resnet",
 }
+
 
 NPU_REQUIRE_HIGHER_FP16_TOLERANCE = {
     "timm_vision_transformer",
@@ -98,16 +121,19 @@ NPU_REQUIRE_HIGHER_FP16_TOLERANCE = {
 }
 REQUIRE_HIGHER_FP16_TOLERANCE.update(NPU_REQUIRE_HIGHER_FP16_TOLERANCE)
 
+
 # models in canary_models that we should run anyway
 CANARY_MODELS = {
     "torchrec_dlrm",
 }
+
 
 NPU_REQUIRE_LEARNING_RATE = {
     "alexnet",
     "dcgan",
     "nvidia_deeprecommender",
 }
+
 
 NPU_REQUIRE_LOWER_LEARNING_RATE = {
     "phlippe_densenet",
@@ -119,11 +145,22 @@ NPU_REQUIRE_LOWER_LEARNING_RATE = {
     "vgg16",
 }
 
+
 NPU_REUQIRE_EVEN_LOWER_LEARNING_RATE = {
     "mobilenet_v2",
     "resnet18",
     "shufflenet_v2_x1_0",
     "timm_vovnet",
+}
+
+
+NPU_DVM_NO_ACLGRAPH = {
+
+}
+
+
+NPU_MLIR_NO_ACLGRAPH = {
+
 }
 
 
