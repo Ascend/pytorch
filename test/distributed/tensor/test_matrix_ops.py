@@ -971,6 +971,33 @@ class TestMatmul(DTensorTestBase):
         self.run_matmul(shape1, shape2, device_mesh, Replicate(), Shard(3))
 
 
+class TestDropout(DTensorTestBase):
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_torch_dropout(self):
+        mesh = self.build_device_mesh()
+
+        tensor_input = torch.randn(4, 4, device="npu", requires_grad=True)
+        p = 0.5
+
+        out = torch.dropout(tensor_input, p, train=True)
+        grad_input = torch.ones_like(out, device="npu")
+        out.backward(grad_input)
+
+        plcaements = [[Replicate()], [Shard(0)], [Shard(1)]]
+        for plcaement in plcaements:
+            input_dtensor = distribute_tensor(tensor_input, mesh, plcaement)
+            grad_dtensor = distribute_tensor(grad_input, mesh, plcaement)
+
+            output_dt = torch.dropout(input_dtensor, p, train=True)
+            output_dt.backward(grad_dtensor)
+            mask = (output_dt.full_tensor() != 0) & (out != 0)
+            if torch.any(mask):
+                self.assertEqual(output_dt.full_tensor()[mask], out[mask])
+                self.assertEqual(input_dtensor.grad.full_tensor()[mask], tensor_input.grad[mask])
+
+
 instantiate_parametrized_tests(TestGroupedMatMulOp)
 
 
