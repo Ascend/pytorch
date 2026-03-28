@@ -6124,7 +6124,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
     bool is_compatible_soc = IsCompatibleSoc();
     // Check compatible mode before flattening, for compatible mode only need original inputs
     bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
-    if (!use_compatible_impl) {
+    if (!use_compatible_impl || !is_compatible_soc) {
         throw std::runtime_error("ProcessGroupHCCL does not support gather" + DIST_ERROR(ErrCode::NOT_SUPPORT));
     }
 
@@ -6272,12 +6272,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
     }
 
     bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
+    bool is_compatible_soc = IsCompatibleSoc();
 
     std::vector<at::Tensor> collectiveInputs;
     std::vector<at::Tensor> inputFlattened;  // Only used in default mode
     bool need_flatten_copy = false;  // Only used in default mode
 
-    if (use_compatible_impl) {
+    if (use_compatible_impl && is_compatible_soc) {
         // Pass a placeholder tensor for collective's interface requirement
         if (getRank() == opts.rootRank) {
             collectiveInputs.push_back(inputTensors[0][0]);
@@ -6299,8 +6300,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
         collectiveInputs = inputFlattened;
         need_flatten_copy = true;
     }
-
-    bool is_compatible_soc = IsCompatibleSoc();
 
     return collective(
         collectiveInputs,
@@ -6781,92 +6780,117 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
         at_npu::native::OpHook::GetInstance().PreHook("alltoall", output_tensors, input_tensors);
     }
 
-    std::vector<int64_t> output_split_sizes;
-    std::vector<int64_t> input_split_sizes;
-    std::vector<at::Tensor> output_results;
-    std::vector<at::Tensor> input_tensors_flattened;
-    std::vector<at::Tensor> output_tensors_flattened;
-    bool view_as_byte = false;
-    if (input_tensors[0].dtype() == at::ScalarType::Float8_e5m2 || input_tensors[0].dtype() == at::ScalarType::Float8_e4m3fn) {
-        view_as_byte = true;
-        for (size_t i = 0; i < input_tensors.size(); i++) {
-            input_split_sizes.push_back(input_tensors[i].numel());
-            input_tensors_flattened.push_back(at::reshape(input_tensors[i], {input_tensors[i].numel(), 1}).view(at::ScalarType::Byte));
-        }
-        for (size_t i = 0; i < output_tensors.size(); i++) {
-            output_split_sizes.push_back(output_tensors[i].numel());
-            output_tensors_flattened.push_back(at::reshape(output_tensors[i], {output_tensors[i].numel(), 1}).view(at::ScalarType::Byte));
-        }
+    bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
+    bool is_compatible_soc = IsCompatibleSoc();
+
+    // Variables for different modes
+    std::vector<at::Tensor> collectiveInputs;
+    std::vector<at::Tensor> collectiveOutputs;
+    std::vector<at::Tensor> input_tensors_flattened;    // Only used in default mode
+    std::vector<at::Tensor> output_tensors_flattened;   // Only used in default mode
+    std::vector<at::Tensor> input_tensors_;             // Format-converted inputs (default mode only)
+    std::vector<at::Tensor> output_tensors_;            // Format-converted outputs (default mode only)
+    std::vector<int64_t> output_split_sizes;            // Only used in default mode
+    std::vector<int64_t> input_split_sizes;             // Only used in default mode
+    bool view_as_byte = false;                           // Only used in default mode
+    bool need_flatten_copy = false;                      // Mark whether flatten operations are needed
+
+    if (use_compatible_impl && is_compatible_soc) {
+        // Use first tensor as placeholder
+        collectiveInputs.push_back(input_tensors[0]);
+        collectiveOutputs.push_back(output_tensors[0]);
     } else {
-        for (size_t i = 0; i < input_tensors.size(); i++) {
-            input_split_sizes.push_back(input_tensors[i].numel());
-            input_tensors_flattened.push_back(at::reshape(input_tensors[i], {input_tensors[i].numel(), 1}));
+        // Default Mode: use flatten for hcclAlltoAllV
+        if (input_tensors[0].dtype() == at::ScalarType::Float8_e5m2 ||
+            input_tensors[0].dtype() == at::ScalarType::Float8_e4m3fn) {
+            view_as_byte = true;
         }
-        for (size_t i = 0; i < output_tensors.size(); i++) {
-            output_split_sizes.push_back(output_tensors[i].numel());
-            output_tensors_flattened.push_back(at::reshape(output_tensors[i], {output_tensors[i].numel(), 1}));
+        if (view_as_byte) {
+            for (size_t i = 0; i < input_tensors.size(); i++) {
+                input_split_sizes.push_back(input_tensors[i].numel());
+                input_tensors_flattened.push_back(
+                    at::reshape(input_tensors[i], {input_tensors[i].numel(), 1}).view(at::ScalarType::Byte));
+            }
+            for (size_t i = 0; i < output_tensors.size(); i++) {
+                output_split_sizes.push_back(output_tensors[i].numel());
+                output_tensors_flattened.push_back(
+                    at::reshape(output_tensors[i], {output_tensors[i].numel(), 1}).view(at::ScalarType::Byte));
+            }
+        } else {
+            for (size_t i = 0; i < input_tensors.size(); i++) {
+                input_split_sizes.push_back(input_tensors[i].numel());
+                input_tensors_flattened.push_back(at::reshape(input_tensors[i], {input_tensors[i].numel(), 1}));
+            }
+            for (size_t i = 0; i < output_tensors.size(); i++) {
+                output_split_sizes.push_back(output_tensors[i].numel());
+                output_tensors_flattened.push_back(at::reshape(output_tensors[i], {output_tensors[i].numel(), 1}));
+            }
         }
+
+        std::vector<at::Tensor> in_tensors = {at::cat(input_tensors_flattened, 0)};
+        std::vector<at::Tensor> out_tensors = {at::cat(output_tensors_flattened, 0)};
+
+        input_tensors_ = cast_to_origin_format(in_tensors);
+        output_tensors_ = cast_to_origin_format(out_tensors);
+
+        // Only check different devices in default mode with flattened tensors
+        check_npu_tensors_different_devices(in_tensors);
+        check_npu_tensors_different_devices(out_tensors);
+
+        collectiveInputs = input_tensors_;
+        collectiveOutputs = output_tensors_;
+        need_flatten_copy = true;
     }
 
+    // Prepare split offsets (only needed for default mode)
     int ranks = getSize();
-    int inputsize = static_cast<int>(input_split_sizes.size());
-    int outsize = static_cast<int>(output_split_sizes.size());
+    int inputsize = static_cast<int>(input_tensors.size());
+    int outsize = static_cast<int>(output_tensors.size());
     std::vector<uint64_t> input_counts;
     std::vector<uint64_t> input_spl;
     std::vector<uint64_t> output_counts;
     std::vector<uint64_t> output_spl;
     input_spl.push_back(0);
     output_spl.push_back(0);
-    output_counts.push_back(static_cast<uint64_t>(output_split_sizes[0]));
-    input_counts.push_back(static_cast<uint64_t>(input_split_sizes[0]));
-    for (int i = 1; i < outsize; i++) {
-        output_counts.push_back(static_cast<uint64_t>(output_split_sizes[i]));
-        output_spl.push_back(output_spl[i - 1] + static_cast<uint64_t>(output_split_sizes[i - 1]));
+
+    if (!use_compatible_impl || !is_compatible_soc) {
+        output_counts.push_back(static_cast<uint64_t>(output_split_sizes[0]));
+        input_counts.push_back(static_cast<uint64_t>(input_split_sizes[0]));
+        for (int i = 1; i < outsize; i++) {
+            output_counts.push_back(static_cast<uint64_t>(output_split_sizes[i]));
+            output_spl.push_back(output_spl[i - 1] + static_cast<uint64_t>(output_split_sizes[i - 1]));
+        }
+        for (int i = 1; i < inputsize; i++) {
+            input_counts.push_back(static_cast<uint64_t>(input_split_sizes[i]));
+            input_spl.push_back(input_spl[i - 1] + static_cast<uint64_t>(input_split_sizes[i - 1]));
+        }
     }
-    for (int i = 1; i < inputsize; i++) {
-        input_counts.push_back(static_cast<uint64_t>(input_split_sizes[i]));
-        input_spl.push_back(input_spl[i - 1] + static_cast<uint64_t>(input_split_sizes[i - 1]));
-    }
-
-    std::vector<at::Tensor> in_tensors = {at::cat(input_tensors_flattened, 0)};
-    std::vector<at::Tensor> out_tensors = {at::cat(output_tensors_flattened, 0)};
-
-    auto input_tensors_ = cast_to_origin_format(in_tensors);
-    auto output_tensors_ = cast_to_origin_format(out_tensors);
-
-    check_npu_tensors_different_devices(in_tensors);
-    check_npu_tensors_different_devices(out_tensors);
-
-    bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
-
-    bool is_compatible_soc = IsCompatibleSoc();
 
     return collective(
-        input_tensors_,
-        output_tensors_,
-        [this, input_tensors, output_tensors, input_counts, input_spl, output_counts, output_spl, use_compatible_impl, is_compatible_soc]
-        (at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+        collectiveInputs,
+        collectiveOutputs,
+        [this, input_tensors, output_tensors, use_compatible_impl, input_counts, input_spl,
+         output_counts, output_spl, is_compatible_soc]
+        (at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream,
+         std::shared_ptr<bool> is_dispatched) {
             if (use_compatible_impl && is_compatible_soc) {
-                // Compatibility Mode
+                // Compatible Mode - Use original tensors via lambda capture
                 RECORD_FUNCTION("HcclAlltoAll_SendRecv", std::vector<c10::IValue>({}));
 
+                // Record stream for output placeholder
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
+                    c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+                }
                 groupStart();
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 for (const int r : c10::irange(static_cast<int>(input_tensors.size()))) {
-                    int64_t input_offset = (r > 0) ? input_spl[r] : 0;
-                    int64_t input_count = input_counts[r];
-                    int64_t output_offset = (r > 0) ? output_spl[r] : 0;
-                    int64_t output_count = output_counts[r];
 
-                    at::Tensor input_slice = input.narrow(0, input_offset, input_count);
-                    at::Tensor output_slice = output.narrow(0, output_offset, output_count);
-
-                    if (input_slice.numel() > 0) {
-                        auto inputDataPtr = input_slice.data_ptr();
-                        auto numel = getNumelForHCCL(input_slice);
-                        auto hcclType = getHcclDataType(input_slice.scalar_type());
+                    if (input_tensors[r].numel() > 0) {
+                        auto inputDataPtr = input_tensors[r].data_ptr();
+                        auto numel = getNumelForHCCL(input_tensors[r]);
+                        auto hcclType = getHcclDataType(input_tensors[r].scalar_type());
                         auto hccl_call = [inputDataPtr, numel, hcclType, r, comm, stream, is_dispatched]() -> int {
 #ifndef BUILD_LIBTORCH
                             torch_npu::profiler::MstxRange range(
@@ -6883,10 +6907,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                         at_npu::native::OpCommand::RunOpApiV3("HcclSend", hccl_call, false, &stream);
                     }
 
-                    if (output_slice.numel() > 0) {
-                        auto outputDataPtr = output_slice.data_ptr();
-                        auto numel = getNumelForHCCL(output_slice);
-                        auto hcclType = getHcclDataType(output_slice.scalar_type());
+                    if (output_tensors[r].numel() > 0) {
+                        auto outputDataPtr = output_tensors[r].data_ptr();
+                        auto numel = getNumelForHCCL(output_tensors[r]);
+                        auto hcclType = getHcclDataType(output_tensors[r].scalar_type());
                         auto hccl_call = [outputDataPtr, numel, hcclType, r, comm, stream, is_dispatched]() -> int {
 #ifndef BUILD_LIBTORCH
                             torch_npu::profiler::MstxRange range(
@@ -6908,7 +6932,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
 
                 return HCCL_SUCCESS;
             } else {
-                // Default Mode
+                // Default Mode: use hcclAlltoAllV with flattened tensors
                 RECORD_FUNCTION("HcclAlltoAllV", std::vector<c10::IValue>({input}));
                 auto inputDataPtr = input.data_ptr();
                 auto outputDataPtr = output.data_ptr();
@@ -6953,29 +6977,78 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                 return HCCL_SUCCESS;
             }
         },
-        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
-            work->lazyDestroy(input_tensors_);
-            work->lazyDestroy(output_tensors_);
-            c10_npu::NPUStreamGuard guard(hcclStreams[0]);
-            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
-                work->stashed_for_allocator_safety_.push_back(output_tensors_[0]);
+            // Conditional PreProcess
+            if (need_flatten_copy) {
+                work->lazyDestroy(input_tensors_);
+                work->lazyDestroy(output_tensors_);
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                    work->stashed_for_allocator_safety_.push_back(output_tensors_[0]);
+                } else {
+                    c10_npu::NPUCachingAllocator::recordStream(output_tensors_[0].storage().data_ptr(), hcclStreams[0]);
+                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                        work->recorded_outputs_.push_back(
+                            std::make_pair(output_tensors_[0].storage().getWeakStorageImpl(), hcclStreams[0]));
+                    }
+                }
             } else {
-                c10_npu::NPUCachingAllocator::recordStream(output_tensors_[0].storage().data_ptr(), hcclStreams[0]);
-                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
-                    work->recorded_outputs_.push_back(
-                        std::make_pair(output_tensors_[0].storage().getWeakStorageImpl(), hcclStreams[0]));
+                // Compatible Mode: No need to destroy flattened tensors or copy data
+                auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+
+                for (const auto i : c10::irange(input_tensors.size())) {
+                    c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                    if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
+                        work->stashed_for_allocator_safety_.push_back(input_tensors[i]);
+                    } else {
+                        c10_npu::NPUCachingAllocator::recordStream(input_tensors[i].storage().data_ptr(), hcclStreams[0]);
+                        if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                            multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                            work->recorded_inputs_.push_back(
+                                std::make_pair(input_tensors[i].storage().getWeakStorageImpl(), hcclStreams[0]));
+                            if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                                auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(input_tensors[i].storage().data_ptr());
+                                work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                                c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block_ptr, static_cast<void*>(work.get()));
+                            }
+                        }
+                    }
+                }
+
+                for (const auto i : c10::irange(output_tensors.size())) {
+                    c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                    if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
+                        work->stashed_for_allocator_safety_.push_back(output_tensors[i]);
+                    } else {
+                        c10_npu::NPUCachingAllocator::recordStream(output_tensors[i].storage().data_ptr(), hcclStreams[0]);
+                        if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                            multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                            work->recorded_outputs_.push_back(
+                                std::make_pair(output_tensors[i].storage().getWeakStorageImpl(), hcclStreams[0]));
+                        }
+                    }
                 }
             }
-            if (view_as_byte) {
-                out_tensors[0] = out_tensors[0].view(input_tensors[0].scalar_type());
-            }
-            if (!at_npu::native::FormatHelper::IsBaseFormatType(out_tensors[0])) {
-                out_tensors[0].copy_(output_tensors_[0], true);
-            }
-            output_results = at::split(out_tensors[0], output_split_sizes, 0);
-            for (int i = 0; i < output_results.size(); i++) {
-                output_tensors[i].copy_(at::reshape(output_results[i], output_tensors[i].sizes()), true);
+        },
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+            if (need_flatten_copy) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                std::vector<at::Tensor> out_tensors;
+                if (view_as_byte) {
+                    out_tensors = {output_tensors_[0].view(input_tensors[0].scalar_type())};
+                } else {
+                    out_tensors = output_tensors_;
+                }
+
+                std::vector<at::Tensor> output_results = at::split(out_tensors[0], output_split_sizes, 0);
+
+                for (int i = 0; i < output_results.size(); i++) {
+                    at::Tensor reshaped = at::reshape(output_results[i], {output_results[i].numel(), 1});
+                    if (view_as_byte) {
+                        reshaped = reshaped.view(input_tensors[0].scalar_type());
+                    }
+                    output_tensors[i].copy_(at::reshape(reshaped, output_tensors[i].sizes()), true);
+                }
             }
         },
         c10d::OpType::ALLTOALL);
