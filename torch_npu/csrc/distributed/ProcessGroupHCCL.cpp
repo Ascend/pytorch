@@ -4494,7 +4494,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
                     getMstxHcclMsg("HcclAllreduce", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclAllReduce(
@@ -4596,7 +4596,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
                     getMstxHcclMsg("HcclBatchSendRecv", sendRecvInfo[0].count, sendRecvInfo[0].dataType, comm, stream.id(), -1, -1),
                     stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-			    if (c10_npu::is_core_control_enabled) {
+			    if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclBatchIsendIrecv(sendRecvInfo, itemNum, comm, stream.stream(false));
@@ -4673,7 +4673,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
                     getMstxHcclMsg("HcclBroadcast", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream(false));
@@ -4726,7 +4726,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
                     getMstxHcclMsg("HcclAllreduce", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclAllReduce(
@@ -4805,7 +4805,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
                     getMstxHcclMsg("HcclReduce", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclReduce(
@@ -4880,7 +4880,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
                     getMstxHcclMsg("HcclReduce", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclReduce(
@@ -5017,7 +5017,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven_inn
                         getMstxHcclMsg("HcclReduceScatterV", numel, hcclType, comm, stream.id(), -1, -1),
                         stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                    if (c10_npu::is_core_control_enabled) {
+                    if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
                     auto hccl_result = hcclReduceScatterV(
@@ -5145,7 +5145,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven_inner(
                         getMstxHcclMsg("HcclAllGatherV", numel, hcclType, comm, stream.id(), -1, -1),
                         stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                    if (c10_npu::is_core_control_enabled) {
+                    if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
                     auto hccl_result = hcclAllGatherV(
@@ -5247,7 +5247,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                         getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                         torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                    if (c10_npu::is_core_control_enabled) {
+                    if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
                     auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
@@ -5329,7 +5329,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                             getMstxHcclMsg("HcclAllGatherV", numel, hcclType, comm, stream.id(), -1, -1),
                             stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                        if (c10_npu::is_core_control_enabled) {
+                        if (c10_npu::is_core_control_enabled()) {
                             c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                         }
                         auto hccl_result = hcclAllGatherV(
@@ -5450,7 +5450,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_into_tensor_coalesced
                     getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
@@ -5497,7 +5497,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
                     getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
@@ -5552,7 +5552,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
                     getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
@@ -5604,7 +5604,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                     getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclReduceScatter(
@@ -5705,7 +5705,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                             getMstxHcclMsg("HcclReduceScatterV", numel, hcclType, comm, stream.id(), -1, -1),
                             stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                        if (c10_npu::is_core_control_enabled) {
+                        if (c10_npu::is_core_control_enabled()) {
                             c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                         }
                         auto hccl_result = hcclReduceScatterV(
@@ -5834,7 +5834,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
                     getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclReduceScatter(
@@ -5897,7 +5897,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
                     getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclReduceScatter(
@@ -6147,7 +6147,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
             const auto root = static_cast<int32_t>(opts.rootRank);
 
             groupStart();
-            if (c10_npu::is_core_control_enabled) {
+            if (c10_npu::is_core_control_enabled()) {
                 c10_npu::UseStreamResInCurrentThread(stream.stream(false));
             }
             if (getRank() == root) {
@@ -6318,7 +6318,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 }
 
                 groupStart();
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 if (getRank() == root) {
@@ -6391,7 +6391,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                         getMstxHcclMsg("HcclScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                         torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                    if (c10_npu::is_core_control_enabled) {
+                    if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
                     auto hccl_result = hcclScatter(inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream.stream(false));
@@ -6481,7 +6481,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
                     getMstxHcclMsg("HcclSend", numel, hcclType, comm, stream.id(), -1, dst_rank), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclSend(inputDataPtr, numel, hcclType, static_cast<uint32_t>(dst_rank), comm, stream.stream(false));
@@ -6518,7 +6518,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
                     getMstxHcclMsg("HcclRecv", numel, hcclType, comm, stream.id(), src_rank, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclRecv(outputDataPtr, numel, hcclType, static_cast<uint32_t>(src_rank), comm, stream.stream(false));
@@ -6613,7 +6613,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                             getMstxHcclMsg("HcclAlltoAll", input_counts, inputhcclDataType, comm, stream.id(), -1, -1),
                             stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                        if (c10_npu::is_core_control_enabled) {
+                        if (c10_npu::is_core_control_enabled()) {
                             c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                         }
                         auto hccl_result = hcclAlltoAll(
@@ -6716,7 +6716,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                                        inputhcclDataType, comm, stream.id(), -1, -1),
                         stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                    if (c10_npu::is_core_control_enabled) {
+                    if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
                     auto hccl_result = hcclAlltoAllV(
@@ -6851,7 +6851,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                 RECORD_FUNCTION("HcclAlltoAll_SendRecv", std::vector<c10::IValue>({}));
 
                 groupStart();
-                if (c10_npu::is_core_control_enabled) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 for (const int r : c10::irange(static_cast<int>(input_tensors.size()))) {
@@ -6931,7 +6931,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                                        inputhcclDataType, comm, stream.id(), -1, -1),
                         stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                    if (c10_npu::is_core_control_enabled) {
+                    if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
                     auto hccl_result = hcclAlltoAllV(
