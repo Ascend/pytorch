@@ -8,6 +8,8 @@ __all__ = [
     "NPUGraph",
     "graph",
     "make_graphed_callables",
+    "super_kernel_scope_begin",
+    "super_kernel_scope_end",
 ]
 
 import gc
@@ -92,8 +94,7 @@ def graph_task_update_end(stream):
     _graph_task_update_end(stream)
 
 
-@torch.library.custom_op("npu::super_kernel_scope_begin", mutates_args=())
-def super_kernel_scope_begin(scope_name: Optional[str] = None) -> None:
+def _super_kernel_scope_begin_impl(scope_name: Optional[str] = None) -> None:
     if scope_name is not None and not scope_name.strip():
         raise RuntimeError(
             f"scope_name should be None or a non-empty string.",
@@ -102,13 +103,7 @@ def super_kernel_scope_begin(scope_name: Optional[str] = None) -> None:
     _super_kernel_scope_begin(scope_name)
 
 
-@super_kernel_scope_begin.register_fake
-def _super_kernel_scope_begin_meta(scope_name: Optional[str] = None):
-    return None
-
-
-@torch.library.custom_op("npu::super_kernel_scope_end", mutates_args=())
-def super_kernel_scope_end(scope_name: Optional[str] = None) -> None:
+def _super_kernel_scope_end_impl(scope_name: Optional[str] = None) -> None:
     if scope_name is not None and not scope_name.strip():
         raise RuntimeError(
             f"scope_name should be None or a non-empty string.",
@@ -116,13 +111,40 @@ def super_kernel_scope_end(scope_name: Optional[str] = None) -> None:
         )
     _super_kernel_scope_end(scope_name)
 
+_npu_lib = torch.library.Library("npu", "FRAGMENT")
+if not hasattr(torch.ops.npu, "super_kernel_scope_begin"):
+    _npu_lib.define("super_kernel_scope_begin(str? scope_name=None) -> ()")
 
-@super_kernel_scope_end.register_fake
-def _super_kernel_scope_end_meta(scope_name: Optional[str] = None):
-    return None
+    _npu_lib.impl("super_kernel_scope_begin", _super_kernel_scope_begin_impl, "PrivateUse1")
+    _npu_lib.impl("super_kernel_scope_begin", _super_kernel_scope_begin_impl, "BackendSelect")
+    _npu_lib.impl("super_kernel_scope_begin", _super_kernel_scope_begin_impl, "CPU")
 
-has_side_effect(torch.ops.npu.super_kernel_scope_begin.default)
-has_side_effect(torch.ops.npu.super_kernel_scope_end.default)
+    has_side_effect(torch.ops.npu.super_kernel_scope_begin.default)
+
+    @torch.library.register_fake("npu::super_kernel_scope_begin")
+    def _super_kernel_scope_begin_meta(scope_name: Optional[str] = None):
+        pass
+
+if not hasattr(torch.ops.npu, "super_kernel_scope_end"):
+    _npu_lib.define("super_kernel_scope_end(str? scope_name=None) -> ()")
+
+    _npu_lib.impl("super_kernel_scope_end", _super_kernel_scope_end_impl, "PrivateUse1")
+    _npu_lib.impl("super_kernel_scope_end", _super_kernel_scope_end_impl, "BackendSelect")
+    _npu_lib.impl("super_kernel_scope_end", _super_kernel_scope_end_impl, "CPU")
+
+    has_side_effect(torch.ops.npu.super_kernel_scope_end.default)
+
+    @torch.library.register_fake("npu::super_kernel_scope_end")
+    def _super_kernel_scope_end_meta(scope_name: Optional[str] = None):
+        pass
+
+
+def super_kernel_scope_begin(scope_name: Optional[str] = None):
+    return torch.ops.npu.super_kernel_scope_begin(scope_name)
+
+
+def super_kernel_scope_end(scope_name: Optional[str] = None):
+    return torch.ops.npu.super_kernel_scope_end(scope_name)
 
 
 @dataclass
