@@ -30,7 +30,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import annotations
-
 import argparse
 import collections
 import contextlib
@@ -51,10 +50,9 @@ import sys
 import time
 import warnings
 from contextlib import contextmanager
-
 from typing import Any, Callable, Mapping, NamedTuple, Optional, Tuple, Type
 from unittest.mock import MagicMock
-
+import json
 import numpy as np
 import pandas as pd
 import psutil
@@ -72,12 +70,9 @@ from torch._functorch.aot_autograd import set_model_name
 from torch._inductor import config as inductor_config
 from torch._inductor.utils import fresh_inductor_cache
 from torch._subclasses.fake_tensor import FakeTensorMode
-
 from torch.utils import _pytree as pytree
 from torch.utils._pytree import tree_map, tree_map_only
-
 from tqdm.auto import tqdm, trange
-
 try:
     import torch_npu
     is_npu_available = torch_npu.npu.is_available()
@@ -87,25 +82,21 @@ except ImportError:
     # ignore the error if torch_npu is not installed
     is_npu_available = False
     from profiler import CUDAProfiler
-
 from benchmark.userbenchmark.dynamo.dynamobench.common import (
     load_model_from_path, Stats, randomize_input, speedup_experiment_ds,
     baselines, null_experiment, DummyGradScaler, cast_to_bf16, cast_to_fp16,
     cast_to_fp64, cast_to_fp32, maybe_fresh_cache, maybe_init_distributed,
 )
-log = logging.getLogger(__name__)
 
+log = logging.getLogger(__name__)
 # We are primarily interested in TF32
 torch.backends.cuda.matmul.allow_tf32 = True
-
 # Suppress torch.profiler spam
 os.environ["KINETO_LOG_LEVEL"] = "5"
-
 current_name = ""
 current_device = ""
 current_batch_size = None
 output_filename = None
-
 MAX_DOWNLOAD_ATTEMPTS = 5
 
 
@@ -156,6 +147,7 @@ class PathManager:
             msg = f"The path permission check failed: {path}"
             raise RuntimeError(msg)
 
+
 callbacks = []
 
 
@@ -165,7 +157,6 @@ def register_callback(callback):
 
 def model_specified_by_path(path_and_class_str):
     return ":" in path_and_class_str
-
 
 
 def output_csv(filename, headers, row):
@@ -190,10 +181,6 @@ def output_csv(filename, headers, row):
             writer.writerow(list(line) + ["0"] * (len(headers) - len(line)))
 
 
-def nothing(f):
-    return f
-
-
 @functools.lru_cache(None)
 def patch_torch_manual_seed():
     """Make torch manual seed deterministic. Helps with accuracy testing."""
@@ -214,7 +201,6 @@ def patch_torch_manual_seed():
 
 def synchronize():
     pass
-
 
 
 def timed(
@@ -242,9 +228,6 @@ def timed(
     t_1 = time.perf_counter()
     time_total += t_1 - t_0
     return (time_total, result) if return_result else time_total
-
-
-
 
 
 def speedup_experiment(args, model_iter_fn, model, example_inputs, **kwargs):
@@ -371,10 +354,6 @@ def speedup_experiment(args, model_iter_fn, model, example_inputs, **kwargs):
     return msg
 
 
-
-
-
-
 def read_batch_size_from_file(args, filename, model_name):
     batch_size = None
     if os.path.exists("benchmarks"):
@@ -406,7 +385,6 @@ def get_peak_memory():
 
 def get_peak_memory_npu():
     return torch_npu.npu.max_memory_allocated() / 10**9
-
 
 
 def reset_rng_state():
@@ -1048,11 +1026,6 @@ def parse_args(args=None):
         help="Runs a dynamic shapes version of the benchmark, if available.",
     )
     parser.add_argument(
-        "--dynamic-batch-only",
-        action="store_true",
-        help="Only assume batch dimension is dynamic.  Implies --dynamic-shapes",
-    )
-    parser.add_argument(
         "--output",
         help="Overrides the output filename",
     )
@@ -1094,11 +1067,6 @@ def parse_args(args=None):
         help="Use a fresh triton cachedir when running each model, to force cold-start compile.",
     )
     parser.add_argument(
-        "--disable-cudagraphs",
-        action="store_true",
-        help="Disables cudagraphs for Inductor",
-    )
-    parser.add_argument(
         "--disable-split-reductions",
         action="store_true",
         help="Disables split reductions for Inductor",
@@ -1107,11 +1075,6 @@ def parse_args(args=None):
         "--disable-persistent-reductions",
         action="store_true",
         help="Disables split reductions for Inductor",
-    )
-    parser.add_argument(
-        "--inductor-compile-mode",
-        default=None,
-        help="torch.compile mode argument for inductor runs.",
     )
     parser.add_argument(
         "--print-graph-breaks",
@@ -1130,32 +1093,27 @@ def parse_args(args=None):
         want to verify the numerical correctness of graidents. But that may
         cause time measurement not accurate""",
     )
-
     parser.add_argument(
         "--timeout",
         type=int,
         default=2000,
         help="timeout (second) for benchmarking.",
     )
-
     parser.add_argument(
         "--enable-profiler",
         action="store_true",
         help="Enable profile for NPU and GPU."
     )
-
     parser.add_argument(
         "--prof-output-path",
         help="Overrides the profile output path",
         default="./profile"
     )
-
     parser.add_argument(
         "--dump-compile-time",
         action="store_true",
         help="dump compile time",
     )
-
     group_prec = parser.add_mutually_exclusive_group()
     group_prec.add_argument("--float16", action="store_true", help="cast model to fp16")
     group_prec.add_argument(
@@ -1165,20 +1123,18 @@ def parse_args(args=None):
     group_prec.add_argument(
         "--amp", action="store_true", help="use automatic mixed precision"
     )
-
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
-        "--inductor",
-        action="store_true",
-        help="Measure speedup with TorchInductor",
-    )
-    group.add_argument(
+    parser.add_argument(
         "--backend",
         choices=torch._dynamo.list_backends(exclude_tags=None),
+        default="inductor",
         help="measure speedup with a given backend",
     )
-    group.add_argument("--nothing", action="store_true", help="A no-op experiment useful for making sure TorchBenchark alone works properly")
-
+    parser.add_argument(
+        "--npu-backend",
+        choices=["mlir", "dvm", "triton", "default"],
+        default="default",
+        help="Specify NPU backend (only effective when --backend is inductor)",
+    )
     mode_group = parser.add_mutually_exclusive_group(required=True)
     mode_group.add_argument(
         "--accuracy",
@@ -1244,17 +1200,6 @@ def main(runner, original_dir=None):
 def run(runner, args, original_dir=None):
     # Pass the parsed args object to benchmark runner object
     runner.args = args
-
-    if args.inductor:
-        if args.backend is not None:
-            raise AssertionError
-        args.backend = "inductor"
-    if args.dynamic_batch_only:
-        args.dynamic_shapes = True
-        torch._dynamo.config.assume_static_by_default = True
-    if args.dynamic_shapes:
-        if not args.dynamic_batch_only:
-            torch._dynamo.config.assume_static_by_default = False
     if args.ddp:
         # but just to measure impact on singlenode of performing graph-breaks.
         # Left it as a follow up to keep this PR isolated.
@@ -1368,30 +1313,13 @@ def run(runner, args, original_dir=None):
     global current_name, current_device, current_batch_size, output_filename
     optimize_ctx = contextlib.nullcontext()
 
-    if args.inductor:
-        optimize_ctx = functools.partial(
-            torch.compile,
-            backend="inductor",
-            fullgraph=args.nopython,
-            mode=args.inductor_compile_mode,
-        )
-        experiment = speedup_experiment
-        output_filename = "inductor.csv"
-    elif args.nothing:
-        optimize_ctx = nothing
-        experiment = speedup_experiment
-        output_filename = "nothing.csv"
-    elif args.backend:
-        optimize_ctx = compile_with_backend(args)
+    if args.backend:
+        optimize_ctx = configure_compile_options(args)
         experiment = speedup_experiment
         if args.accuracy:
             output_filename = f"accuracy_{args.backend}.csv"
         else:
             output_filename = f"speedup_{args.backend}.csv"
-
-    if args.only is not None and args.only not in {"hf_Bart", "torch_multimodal_clip", "timm_vision_transformer"}:
-        if args.inductor or args.backend == "inductor" or args.export_aot_inductor:
-            inductor_config.triton.cudagraphs = not args.disable_cudagraphs
 
     runner.setup_amp()
 
@@ -1413,12 +1341,8 @@ def run(runner, args, original_dir=None):
         if args.profiler_trace_name is None:
             if args.backend:
                 args.profiler_trace_name = args.backend
-            elif args.inductor:
-                args.profiler_trace_name = "inductor"
             else:
                 args.profiler_trace_name = "profile"
-        else:
-            args.profiler_trace_name = args.profiler_trace_name
 
     experiment = functools.partial(experiment, args, runner.model_iter_fn)
 
@@ -1496,14 +1420,6 @@ def run(runner, args, original_dir=None):
                         marked = True
                         break
 
-            if (
-                args.dynamic_batch_only
-                and batch_size > 1
-            ):
-                tree_map_only(torch.Tensor, detect_and_mark_batch, example_inputs)
-                if not marked:
-                    raise AssertionError(f"nothing in example_inputs had a dim with {batch_size}")
-
             model, example_inputs = runner.cast_based_on_args(model, example_inputs)
             runner.run_one_model(
                 name,
@@ -1563,8 +1479,69 @@ def run(runner, args, original_dir=None):
                 write_csv("infra_error")
 
 
-def compile_with_backend(args):
-    return torch._dynamo.optimize(args.backend, nopython=args.nopython)
+def get_npu_backend(args):
+    if not hasattr(get_npu_backend, "_config_cache"):
+        try:
+            with open("./npu_backend_config.json", "r") as f:
+                get_npu_backend._config_cache = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            log.warning(f"Failed to load npu_backend_config.json: {e}, using default backend 'dvm'")
+            get_npu_backend._config_cache = None
+
+    if get_npu_backend._config_cache is None:
+        return "dvm"
+
+    for item in get_npu_backend._config_cache:
+        if item.get("model") == args.only:
+            return item.get("mode", "dvm")
+
+    return "dvm"
+
+
+def configure_compile_options(args):
+    try:
+        from torchbench import NPU_DVM_NO_ACLGRAPH, NPU_MLIR_NO_ACLGRAPH
+    except ImportError:
+        NPU_DVM_NO_ACLGRAPH = set()
+        NPU_MLIR_NO_ACLGRAPH = set()
+    npu_backend = args.npu_backend
+    # mode Config
+    mode = None
+    if args.only is not None:
+        if npu_backend == "dvm" and args.only not in NPU_DVM_NO_ACLGRAPH:
+            mode = "max-autotune"
+        elif npu_backend == "mlir" and args.only not in NPU_MLIR_NO_ACLGRAPH:
+            mode = "max-autotune"
+    # Backend Config
+    backend = None
+    if args.backend:
+        backend = args.backend
+    else:
+        backend = None
+
+    # Dynamic shape Config
+    dynamic = None
+    if args.dynamic_shapes:
+        dynamic = True
+
+    if backend:
+        compile_kwargs = {
+            "backend": backend,
+            "fullgraph": args.nopython,
+            "dynamic": dynamic,
+        }
+        if mode is not None:
+            compile_kwargs["mode"] = mode
+        if backend == "inductor" and hasattr(args, 'npu_backend'):
+            if npu_backend == "default":
+                npu_backend = get_npu_backend(args)
+            if npu_backend in ["mlir", "dvm"]:
+                os.environ['TORCHINDUCTOR_NPU_BACKEND'] = npu_backend
+        optimize_ctx = functools.partial(torch.compile, **compile_kwargs)
+    else:
+        optimize_ctx = contextlib.nullcontext()
+
+    return optimize_ctx
 
 
 if __name__ == "__main__":
