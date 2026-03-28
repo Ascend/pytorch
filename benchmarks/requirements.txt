@@ -1,0 +1,18 @@
+numpy
+gym
+
+# 计算机视觉库
+opencv-python-headless
+
+# 深度学习与NLP
+transformers==4.36.0
+timm
+
+# 语音处理
+kaldi_io
+
+# 日志与可视化
+tensorboardX
+
+# 多模态库（需要从源码安装）
+git+https://github.com/facebookresearch/multimodal.git
