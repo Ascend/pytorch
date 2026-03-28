@@ -105,7 +105,7 @@ def try_import_catlass() -> bool:
 def _normalize_npu_arch(arch: str) -> str:
     if "910B" in arch or arch.startswith("Ascend910_93"):
         return "910B"
-    elif arch.startswith("Ascend910_95") or arch.startswith("Ascend950"):
+    elif arch.startswith("Ascend950"):
         return "910D"
     else:
         raise NotImplementedError(f"Unsupported npu arch: {arch}")
@@ -115,7 +115,7 @@ def _normalize_npu_arch_to_atlas(arch: str) -> str:
     from catlass_cppgen.catlass.arch.arch import Arch
     if "910B" in arch or arch.startswith("Ascend910_93"):
         return Arch.AtlasA2
-    elif arch.startswith("Ascend910_95") or arch.startswith("Ascend950"):
+    elif arch.startswith("Ascend950"):
         return Arch.AtlasA5
     else:
         raise NotImplementedError(f"Unsupported npu arch: {arch}")

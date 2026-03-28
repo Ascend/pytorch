@@ -200,6 +200,8 @@ class SupportedDevices:
             device_name = torch_npu.npu.get_device_name(0)[:10]
             if device_name == "Ascend910_":
                 device_name = torch_npu.npu.get_device_name(0)[:12]
+            elif device_name.startswith("Ascend950"):
+                device_name = torch_npu.npu.get_device_name(0)[:9]
             if device_name not in self.supported_devices:
                 reason = f"Only run on {repr(self.supported_devices)}, current device is {device_name}."
                 raise unittest.SkipTest(reason)
