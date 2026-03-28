@@ -650,7 +650,7 @@ class NpuMlirCompiler:
                 if not torch.is_tensor(arg):
                     args_new = args_new + (arg, )
                     continue
-                args_new = args_new + (arg, arg, 0) + arg.size() + arg.stride()
+                args_new = args_new + (arg, arg, 0) + tuple(arg.size()) + tuple(arg.stride())
             args = args_new
 
         output = launcher(*args, **kwargs)
