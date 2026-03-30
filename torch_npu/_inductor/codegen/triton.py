@@ -546,6 +546,21 @@ class NPUIndexTritonKernel(TritonKernel):
         dtype = None
         if axis is None:
             return None
+        
+        def _lookup_dim(sym) -> Optional["IterationRangesEntryNPUIndex"]:
+            dim = self.range_tree_nodes.get(sym)
+            if dim is not None:
+                return dim
+            return self.range_tree_nodes_removed.get(sym)
+
+        def _iter_candidate_syms(key):
+            # indexing_map keys can be sympy.Symbol (common) or sympy.Expr (e.g. linearized indexing)
+            # Try direct lookup first, then fall back to free_symbols for Expr.
+            yield key
+            if isinstance(key, sympy.Expr) and not isinstance(key, sympy.Symbol):
+                for s in key.free_symbols:
+                    yield s
+
         for node in self.node_schedule:
             if node in (EnableReduction, DisableReduction):
                 continue
@@ -560,10 +575,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 if node in (EnableReduction, DisableReduction):
                     continue
                 for key, _ in node._body.indexing_map.items():
-                    if key in self.range_tree_nodes:
-                        dim = self.range_tree_nodes[key]
-                    else:
-                        dim = self.range_tree_nodes_removed[key]
+                    dim = None
+                    for cand in _iter_candidate_syms(key):
+                        dim = _lookup_dim(cand)
+                        if dim is not None:
+                            break
+                    if dim is None:
+                        continue
 
                     if dim.parent == axis.parent:
                         dtype = V.graph.get_dtype(node.node.name)
