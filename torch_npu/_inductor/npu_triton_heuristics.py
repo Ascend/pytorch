@@ -139,6 +139,7 @@ def read_device_time(torch_path, triton_only=True, return_list=True):
                 return durations
             ret = sum(durations)
             return ret
+    delete_file_base(torch_path)
     raise RuntimeError(f"Could not find kernel_details.csv from dir {torch_path}")
 
 
