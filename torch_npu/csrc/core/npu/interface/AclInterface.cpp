@@ -124,6 +124,7 @@ LOAD_FUNCTION(aclrtValueWait)
 LOAD_FUNCTION(aclrtValueWrite)
 LOAD_FUNCTION(aclrtGetErrorVerbose)
 LOAD_FUNCTION(aclrtRepairError)
+LOAD_FUNCTION(aclrtGetDeviceInfo)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1635,6 +1636,27 @@ aclError AclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo)
     }
     TORCH_CHECK(func, "Failed to find function ", "aclrtRepairError", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(deviceId, errorInfo);
+}
+
+bool IsExistAclrtGetDeviceInfo()
+{
+    typedef aclError (*AclrtGetDeviceInfo)(uint32_t, aclrtDevAttr, int64_t *);
+    static AclrtGetDeviceInfo func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetDeviceInfo)GET_FUNC(aclrtGetDeviceInfo);
+    }
+    return func != nullptr;
+}
+
+aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value)
+{
+    typedef aclError (*AclrtGetDeviceInfo)(uint32_t, aclrtDevAttr, int64_t *);
+    static AclrtGetDeviceInfo func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetDeviceInfo)GET_FUNC(aclrtGetDeviceInfo);
+    }
+    TORCH_CHECK(func, "Failed to find function aclrtGetDeviceInfo", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(deviceId, attr, value);
 }
 
 } // namespace acl

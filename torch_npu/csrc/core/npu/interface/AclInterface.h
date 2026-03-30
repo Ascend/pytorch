@@ -378,5 +378,9 @@ bool IsExistAclrtRepairError();
 
 aclError AclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo);
 
+bool IsExistAclrtGetDeviceInfo();
+
+aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value);
+
 } // namespace acl
 } // namespace c10_npu
