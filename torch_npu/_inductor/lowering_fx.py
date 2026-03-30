@@ -220,6 +220,8 @@ DUMP_FX_GRAPH_LOWERING_OPS = [
     aten.__ixor__,
     aten.sum,
     prims.sum,
+    torch.ops._inductor_test.realize,
+    torch.ops._inductor_test.realize.default,
 ]
 
 
