@@ -222,6 +222,8 @@ DUMP_FX_GRAPH_LOWERING_OPS = [
     prims.sum,
     torch.ops._inductor_test.realize,
     torch.ops._inductor_test.realize.default,
+    aten.embedding,
+    aten.gather,
 ]
 
 
@@ -2345,6 +2347,69 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             node_name=node_name
         )
 
+    def inductor_gather(x, dim, index, sparse_grad=False):
+        # sparse_grad doesn't affect forward computation,
+        # and backward tracing is taken care of by AOT Autograd
+        if not isinstance(x, TensorBox):
+            raise TypeError(f"Expected x to be a TensorBox, got {type(x)}.")
+        if index.get_numel() == 0:
+            # Empty index case. Return an empty array with the same shape
+            return new_empty(x, index.get_size())
+
+        input_graphs = fetch_graphs([x, dim, index])
+        node_name = f'gather_{next(node_id)}'
+        new_graph = merge_traced_graphs(input_graphs, torch.ops.aten.gather.default, node_name, sparse_grad=sparse_grad)
+
+        if not index.get_dtype() == torch.int64:
+            raise TypeError(f"index must have integer dtype, got {index.get_dtype()}.")
+
+        size = x.get_size()
+        offset = len(size) == 0
+        dim = _validate_dim(x, dim, offset)
+
+        if offset:
+            x = expand(x, [1])
+            size = [1]
+
+        x_loader = x.make_loader()
+        index_loader = index.make_loader()
+
+        def fn(idx):
+            idx = list(idx)
+            gather_idx = ops.indirect_indexing(index_loader(idx), size[dim])
+            if len(idx) == 0:
+                idx = [gather_idx]
+            else:
+                idx[dim] = gather_idx
+            return x_loader(idx)
+
+        return Pointwise.create(
+            device=x.get_device(),
+            dtype=x.get_dtype(),
+            inner_fn=fn,
+            ranges=index.get_size(),
+            traced_graph=new_graph,
+            node_name=node_name
+        )
+
+    def inductor_index_impl(x, indices, check):
+        input_graphs = fetch_graphs([x, indices])
+        node_name = f'index_{next(node_id)}'
+        new_graph = merge_traced_graphs(input_graphs, torch.ops.aten.index.Tensor, node_name)
+        output_size, inner_fn, _ = lowering.index_impl_helper(x, indices, check)
+
+        return Pointwise.create(
+            device=x.get_device(),
+            dtype=x.get_dtype(),
+            inner_fn=inner_fn,
+            ranges=output_size,
+            traced_graph=new_graph,
+            node_name=node_name
+        )
+
+    lowering.index_impl=inductor_index_impl
+    lowering.embedding=inductor_embedding
+    lowering.gather=inductor_gather
     lowering.make_fallback(aten._log_softmax)
     lowering.make_fallback(aten.nll_loss_forward)
 

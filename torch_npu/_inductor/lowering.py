@@ -1,3 +1,18 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# Copyright (c) 2026, Huawei Technologies Co., Ltd
+#
+# Licensed under the Apache-2.0 License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://github.com/pytorch/pytorch/blob/main/LICENSE
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import sympy
 import torch._ops
@@ -263,7 +278,7 @@ def _register_npu_inductor_fallbacks():
     def _convert__npu_type(x: TensorBox, dtype: torch.dtype):
         return to_dtype(x, dtype, copy=True)
 
-    def lowering_index_select(x, select_dim, indices, index_select_type, traced_graph, node_name):
+    def lowering_index_select(x, select_dim, indices, index_select_type, traced_graph=None, node_name=None):
         assert isinstance(x, TensorBox)
         assert isinstance(indices, TensorBox)
         assert "int" in str(indices.get_dtype())
@@ -837,6 +852,15 @@ def _register_npu_inductor_fallbacks():
     @register_lowering(aten.index, type_promotion_kind=None)
     def index(x, indices):
         # check whether is high dim index_select
+
+        if npu_config.dump_fx_graph:
+            input_graphs = fetch_graphs([x, indices])
+            node_name = f'index_{next(node_id)}'
+            new_graph = merge_traced_graphs(input_graphs, aten.index, node_name)
+        else:
+            new_graph = None
+            node_name = None
+
         def should_use_template():
             x_size = x.get_size()
             valid_indices = [indice for indice in indices if indice]
@@ -858,7 +882,7 @@ def _register_npu_inductor_fallbacks():
         if should_use_template():
             valid_indices = [indice for indice in indices if indice]
             select_dim = indices.index(valid_indices[0])
-            return lowering_index_select(x, select_dim, valid_indices[0], 'index_select')
+            return lowering_index_select(x, select_dim, valid_indices[0], 'index_select', new_graph, node_name)
 
         return lowering.index(x, indices)
 
