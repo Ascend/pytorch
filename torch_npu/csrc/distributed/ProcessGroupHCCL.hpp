@@ -795,6 +795,8 @@ public:
 
     int64_t getStreamId(bool p2p, int peer);
 
+    int64_t getP2PStreamId(at::Device device, int peer, int is_batched);
+
     void windowRegisterAndExchange(int64_t windowSize, std::vector<uint32_t>& peerRanks);
 
     const at::Tensor& getWindowMem();
