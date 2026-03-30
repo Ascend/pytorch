@@ -12,7 +12,7 @@ import pkgutil
 import torch
 from torch.testing._internal.common_utils import TestCase, run_tests
 from torch._utils_internal import get_file_path_2
-import torch_npu
+import torch_npu  
 
 
 NOT_IMPORT_LIST = [

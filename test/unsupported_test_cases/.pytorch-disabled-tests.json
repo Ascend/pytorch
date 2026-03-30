@@ -30753,7 +30753,6 @@
   "test_custom_op_fallthrough (__main__.TestUtilityFuns_opset_19)": ["", [""]],
   "test_custom_op_fallthrough (__main__.TestUtilityFuns_opset_20)": ["", [""]],
   "test_custom_op_fallthrough (__main__.TestUtilityFuns_opset_9)": ["", [""]],
-  "test_api_compatibility (__main__.TestPublicApiCompatibility)": ["", [""]],
   "test_mobilenet_v3 (__main__.TestQuantizedModelsONNXRuntime_is_script_False)": ["", [""]],
   "test_check_inplace_nn_ReLU_npu_float64 (__main__.TestModulePRIVATEUSE1)": ["", ["A2"]],
   "test_cpu_gpu_parity_nn_ReLU_npu_float64 (__main__.TestModulePRIVATEUSE1)": ["", ["A2"]],
