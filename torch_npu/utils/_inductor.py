@@ -127,10 +127,14 @@ def patch_register_philox_rand():
 def patch_register_run_and_save_rng_state_op():
     from torch._prims import rng_prims
     from torch._C import DispatchKey
+    from torch._subclasses.fake_tensor import FakeTensorMode
 
     run_and_save_rng_state = getattr(
         rng_prims, "run_and_save_rng_state", None
     )
+
+    if getattr(run_and_save_rng_state, "_npu_patched", False):
+        return
 
 
     @run_and_save_rng_state.py_impl(DispatchKey.PrivateUse1)
@@ -141,6 +145,10 @@ def patch_register_run_and_save_rng_state_op():
 
     backend_select_impl = run_and_save_rng_state.py_kernels.get(
         DispatchKey.BackendSelect, None
+    )
+
+    fake_tensor_mode_impl = run_and_save_rng_state.python_key_table.get(
+        FakeTensorMode, None
     )
 
 
@@ -154,14 +162,30 @@ def patch_register_run_and_save_rng_state_op():
 
         return backend_select_impl(op, *args, **kwargs)
 
+
+    def fake_tensor_mode_with_npu(mode, op, *args, **kwargs):
+        from torch._prims.rng_prims import get_device
+
+        device = get_device(args, kwargs)
+
+        if device == "npu":
+            with mode:
+                return impl_npu(op, *args, **kwargs)
+
+        return fake_tensor_mode_impl(mode, op, *args, **kwargs)
+
     run_and_save_rng_state.py_kernels[
         DispatchKey.BackendSelect
     ] = backend_select_with_npu
+    run_and_save_rng_state.python_key_table[
+        FakeTensorMode
+    ] = fake_tensor_mode_with_npu
 
 
 def patch_register_run_with_rng_state_op():
     from torch._prims import rng_prims
     from torch._C import DispatchKey
+    from torch._subclasses.fake_tensor import FakeTensorMode
 
     run_with_rng_state = getattr(
         rng_prims, "run_with_rng_state", None
@@ -187,6 +211,10 @@ def patch_register_run_with_rng_state_op():
         DispatchKey.BackendSelect, None
     )
 
+    fake_tensor_mode_impl = run_with_rng_state.python_key_table.get(
+        FakeTensorMode, None
+    )
+
 
     def backend_select_with_npu(rng_state, op, *args, **kwargs):
         from torch._prims.rng_prims import get_device
@@ -198,9 +226,24 @@ def patch_register_run_with_rng_state_op():
 
         return backend_select_impl(rng_state, op, *args, **kwargs)
 
+
+    def fake_tensor_mode_with_npu(mode, rng_state, op, *args, **kwargs):
+        from torch._prims.rng_prims import get_device
+
+        device = get_device(args, kwargs)
+
+        if device == "npu":
+            with mode:
+                return op(*args, **kwargs)
+
+        return fake_tensor_mode_impl(mode, rng_state, op, *args, **kwargs)
+
     run_with_rng_state.py_kernels[
         DispatchKey.BackendSelect
     ] = backend_select_with_npu
+    run_with_rng_state.python_key_table[
+        FakeTensorMode
+    ] = fake_tensor_mode_with_npu
 
 
 def patch_rng_prims_device():
