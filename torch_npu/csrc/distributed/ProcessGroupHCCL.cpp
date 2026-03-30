@@ -1994,6 +1994,7 @@ void ProcessGroupHCCL::checkHcclComms()
                 C10_LOG_API_USAGE_ONCE("ProcessGroupHCCL.handleException");
 
                 reportedErrorComms_.insert(name);
+                ProcessGroupHCCL::exceptionMessage_ = getExceptionMsgFromExceptionPtr(exception_ptr);
                 if (SHOULD_TEAR_DOWN(asyncErrorHandling_)) {
                     TORCH_NPU_HCCL_LOGE("To avoid data inconsistency, we are taking the entire process down.");
                     LOG(ERROR) << "To avoid data inconsistency, we are taking the entire process down.";
@@ -2168,7 +2169,7 @@ void ProcessGroupHCCL::Watchdog::runLoop()
                     // minimal
                     pg_->shelvesToUnstash_.push_back(work.stashed_for_allocator_safety_);
                 }
-                if (status_save_enable) {
+                if (status_save_enable && !work.exception()) {
                     pg_->is_refreshed = pg_->refreshStatusInfo(work, "end"); // Update Statusinfo，but not write into the map
                 }
                 pg_->pgStatus_->lastCompletedSeq = static_cast<int64_t>(work.seq_);
