@@ -27677,7 +27677,6 @@
   "test_resnet18 (__main__.TestQuantizedModelsONNXRuntime_is_script_True)": ["", [""]],
   "test_resnet50 (__main__.TestQuantizedModelsONNXRuntime_is_script_True)": ["", [""]],
   "test_resnext101_32x8d (__main__.TestQuantizedModelsONNXRuntime_is_script_True)": ["", [""]],
-  "test_api_compatibility (__main__.TestPublicApiCompatibility)": ["", [""]],
   "test_wrapper_npu_fused_attention_layernorm_qkv_fwd (__main__.TestOnnxOps)": ["", [""]],
   "test_faster_rcnn (__main__.TestModelsONNXRuntime_is_script_False)": ["", [""]],
   "test_shufflenet (__main__.TestModels)": ["", [""]],
