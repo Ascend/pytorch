@@ -36,6 +36,7 @@
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
@@ -202,9 +203,9 @@ void initDeviceProperty(int64_t deviceid)
         device_properties[deviceid].name = std::string(device_name);
     }
     static const bool is_cann_900beta2 = IsGteCANNVersion("9.0.0.beta2", "CANN");
-    if (is_cann_900beta2) {
+    if (is_cann_900beta2 && c10_npu::acl::IsExistAclrtGetDeviceInfo()) {
         int64_t tmp_device_total = 0;
-        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetDeviceInfo(static_cast<uint32_t>(deviceid), ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE, &tmp_device_total));
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtGetDeviceInfo(static_cast<uint32_t>(deviceid), ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE, &tmp_device_total));
         device_total = static_cast<size_t>(tmp_device_total);
     } else {
         NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
