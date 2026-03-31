@@ -163,7 +163,7 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
             Replicate(), # grad_query
             Replicate(), # grad_key
             Replicate(), # grad_value
-            Replicate(), # grad_pse(reserve, unused now)
+            Replicate() if pse is not None else None, # grad_pse(reserve, unused now)
             Replicate()  # grad_sink
         ],
         [
@@ -208,7 +208,7 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
                 Shard(batch_dim), # grad_query
                 Shard(batch_dim), # grad_key
                 Shard(batch_dim), # grad_value
-                Replicate(),      # grad_pse(reserve, unused now)
+                Replicate() if pse is not None else None,      # grad_pse(reserve, unused now)
                 Replicate()       # grad_sink(unsupported now)
             ],
             [
@@ -245,7 +245,7 @@ def npu_fusion_attention_grad_strategy(query, key, value, dy, head_num, input_la
                 Shard(head_dim), # grad_query
                 Shard(head_dim), # grad_key
                 Shard(head_dim), # grad_value
-                Replicate(),     # grad_pse(reserve, unused now)
+                Replicate() if pse is not None else None,     # grad_pse(reserve, unused now)
                 Replicate()      # grad_sink(unsupported now)
             ],
             [
