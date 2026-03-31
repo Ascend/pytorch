@@ -203,7 +203,6 @@ class TestOnnxOps(TestCase):
         assert(os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                            onnx_model_name)))
 
-    @unittest.skip
     def test_wrapper_npu_multi_head_attention(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -387,7 +386,6 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    @unittest.skip
     def test_wrapper_npu_format_cast(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -906,7 +904,7 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
-    @unittest.skip
+
     def test_wrapper_npu_lstm_cell(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -958,7 +956,6 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    @unittest.skip
     def test_wrapper_npu_lstm(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1015,7 +1012,6 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    @unittest.skip
     def test_wrapper_npu_gru(self):
         class Model(torch.nn.Module):
             def __init__(self):
