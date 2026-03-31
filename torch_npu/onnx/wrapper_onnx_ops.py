@@ -258,8 +258,9 @@ class _NPUDeformableConv2dOP(torch.autograd.Function):
 class _NPUFormatCastOP(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx, *args, **kwargs):
-        return torch.ops.npu.npu_format_cast(*args, **kwargs)
+    def forward(ctx, self, acl_format, customize_dtype=None):
+        return torch.ops.npu.npu_format_cast(
+            self, acl_format, customize_dtype=customize_dtype)
 
     @staticmethod
     def symbolic(g, self: Tensor, acl_format: int, customize_dtype: int = None):
@@ -1065,7 +1066,7 @@ def _wrapper_npu_deformable_conv2d(inputs, weight, offset, bias, kernel_size, st
                                        padding, dilation, groups, deformable_groups, modulated)
 
 
-def _wrapper_npu_format_cast(self, acl_format, customize_dtype=None):
+def _wrapper_npu_format_cast(self, acl_format, *, customize_dtype=None):
     return _NPUFormatCastOP.apply(self, acl_format, customize_dtype)
 
 

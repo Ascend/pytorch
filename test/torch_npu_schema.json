@@ -2076,7 +2076,7 @@
     "signature": "(self, other, offset1, offset2, c1_len)"
   },
   "torch_npu.npu_format_cast": {
-    "signature": "(self, acl_format, customize_dtype=None)"
+    "signature": "(self, acl_format, *, customize_dtype=None)"
   },
   "torch_npu.npu_fused_attention_score": {
     "signature": "(query_layer, key_layer, value_layer, attention_mask, scale, keep_prob, query_transpose=False, key_transpose=False, bmm_score_transpose_a=False, bmm_score_transpose_b=False, value_transpose=False, dx_transpose=False)"
