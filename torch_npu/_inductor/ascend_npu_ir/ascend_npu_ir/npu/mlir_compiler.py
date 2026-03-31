@@ -415,14 +415,15 @@ class NpuMlirCompiler:
         args_new = ()
         args = list(args)
 
-        launcher_fx = self.launchers[-1]
-        fx_outputs = [clone_preserve_strides(arg).to(torch.float32) if arg.dtype == torch.bfloat16 \
-                      else clone_preserve_strides(arg) for arg in args[-self.num_outputs:]]
-        fx_inputs = [clone_preserve_strides(arg) if isinstance(arg, torch.Tensor) else arg for arg in args[:-self.num_outputs]]
-        fx_inputs = [inp.float() if isinstance(inp, torch.Tensor) and inp.dtype == torch.bfloat16 else inp for inp in fx_inputs]
-        
-        fx_args = fx_inputs + fx_outputs
-        launcher_fx(*fx_args, **kwargs)
+        if anir_config.acc_check_during_tune:
+            launcher_fx = self.launchers[-1]
+            fx_outputs = [clone_preserve_strides(arg).to(torch.float32) if arg.dtype == torch.bfloat16 \
+                        else clone_preserve_strides(arg) for arg in args[-self.num_outputs:]]
+            fx_inputs = [clone_preserve_strides(arg) if isinstance(arg, torch.Tensor) else arg for arg in args[:-self.num_outputs]]
+            fx_inputs = [inp.float() if isinstance(inp, torch.Tensor) and inp.dtype == torch.bfloat16 else inp for inp in fx_inputs]
+            
+            fx_args = fx_inputs + fx_outputs
+            launcher_fx(*fx_args, **kwargs)
 
         if self.dynamic:
             for idx, arg in enumerate(args):
@@ -459,7 +460,10 @@ class NpuMlirCompiler:
             try:
                 logger.info(f"start to eval kernel {self.kernel_paths[idx]}")
                 times = self.bench(idx, launcher, *transformed_args, **kwargs)
-                if self.accuracy_pass(fx_outputs, *args):
+                if anir_config.acc_check_during_tune:
+                    if self.accuracy_pass(fx_outputs, *args):
+                        timings.append([times, idx])
+                else:
                     timings.append([times, idx])
                 logger.info(f"eval over")
             except Exception as e:
