@@ -248,6 +248,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
     def write_prefix(self) -> None:
         super().write_prefix()
         if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+            self.prefix.do_indent()
             with self.prefix.indent():
                 self.prefix.writeline('global has_initialized')
                 self.prefix.writeline('if not has_initialized:')
