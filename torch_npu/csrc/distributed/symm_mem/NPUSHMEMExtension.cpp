@@ -49,7 +49,7 @@ void initialize_npushmem_with_store(
         status = c10d::symmetric_memory::Aclshmemx_set_attr_uniqueid_args(rank, world_size, init_size, &unique_ids[0], &attr);
         TORCH_CHECK(status == 0, "aclshmemx_set_attr_uniqueid_args failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
 
-        status = c10d::symmetric_memory::Aclshmemx_init_attr(ACLSHMEMX_INIT_WITH_DEFAULT, &attr);
+        status = c10d::symmetric_memory::Aclshmemx_init_attr(ACLSHMEMX_INIT_WITH_UNIQUEID, &attr);
         TORCH_CHECK(status == 0, "aclshmemx_init_attr failed, status is ", status, DIST_ERROR(ErrCode::INTERNAL));
         logger->debug("NPUSHMEMSymmetricMemoryAllocator initialize_npushmem_with_store success, rank is %d, world_size is %d.", rank, world_size);
     } else {
