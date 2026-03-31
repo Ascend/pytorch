@@ -6,6 +6,7 @@
 |API名称|是否支持|限制与说明|
 |--|--|--|
 |torch.nn.parameter.Parameter|是|支持fp32|
+|torch.nn.parameter.Buffer|是|支持fp32|
 |torch.nn.parameter.UninitializedParameter|是|-|
 |torch.nn.parameter.UninitializedParameter.cls_to_become|是|-|
 |torch.nn.parameter.UninitializedBuffer|是|-|
