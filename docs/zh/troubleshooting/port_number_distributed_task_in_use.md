@@ -54,11 +54,13 @@ RuntimeError: The server socket has failed to listen on any local network addres
 查看并修改脚本中os.environ['MASTER_PORT']配置的端口号，例如：
 
 修改前
-```
+
+```python
 os.environ['MASTER_PORT'] = '29500'
 ```
+
 修改后
-```
+
+```python
 os.environ['MASTER_PORT'] = '29580'
 ```
-

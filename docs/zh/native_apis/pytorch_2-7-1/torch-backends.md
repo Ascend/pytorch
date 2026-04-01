@@ -37,5 +37,3 @@
 |torch.backends.opt_einsum.get_opt_einsum|-|是|支持fp32|
 |torch.backends.opt_einsum.enabled|-|否|-|
 |torch.backends.opt_einsum.strategy|-|否|-|
-
-

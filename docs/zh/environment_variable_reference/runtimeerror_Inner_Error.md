@@ -16,9 +16,8 @@
 
 在HCCL\_CONNECT\_TIMEOUT原有时间的基础上增加30秒。如原超时时间为120秒，可进行如下设置：
 
-```
+```bash
 export HCCL_CONNECT_TIMEOUT=150
 ```
 
 最后，再次运行模型。
-

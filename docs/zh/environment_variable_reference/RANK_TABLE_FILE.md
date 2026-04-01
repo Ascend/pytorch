@@ -4,8 +4,8 @@
 
 通过此环境变量可配置是否通过RANK\_TABLE\_FILE进行集合通信域建链。
 
--   未配置时，通过默认的协商流程进行集合通信域建链。
--   配置且文件全路径有效时，通过RANK\_TABLE\_FILE进行集合通信域建链。
+- 未配置时，通过默认的协商流程进行集合通信域建链。
+- 配置且文件全路径有效时，通过RANK\_TABLE\_FILE进行集合通信域建链。
 
 此环境变量默认未配置。
 
@@ -16,19 +16,20 @@
 
 启用ranktable文件方式建链示例：
 
-```
+```bash
 export RANK_TABLE_FILE=/home/ranktable.json
 ```
 
 > [!CAUTION]  
-> -   配置的文件路径不存在时，会通过默认的协商流程进行集合通信域建链。
-> -   配置的文件路径存在，但配置信息有误时，不会通过默认的协商流程进行集合通信域建链，而是在实际通信时会进行相应的报错。
-> -   配置的文件路径不能为软链接，且存在读取权限。
-> -   配置的文件需要为json格式，具体可参考《[HCCL集合通信库用户指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/commlib/hcclug/hcclug_000001.html)》中对应的“rank table配置资源信息”章节。
+>
+> - 配置的文件路径不存在时，会通过默认的协商流程进行集合通信域建链。
+> - 配置的文件路径存在，但配置信息有误时，不会通过默认的协商流程进行集合通信域建链，而是在实际通信时会进行相应的报错。
+> - 配置的文件路径不能为软链接，且存在读取权限。
+> - 配置的文件需要为json格式，具体可参考《[HCCL集合通信库用户指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/commlib/hcclug/hcclug_000001.html)》中对应的“rank table配置资源信息”章节。
 
 关闭ranktable文件方式建链示例：
 
-```
+```bash
 unset RANK_TABLE_FILE
 ```
 
@@ -38,7 +39,6 @@ unset RANK_TABLE_FILE
 
 ## 支持的型号
 
--   <term>Atlas 训练系列产品</term>
--   <term>Atlas A2 训练系列产品</term>
--   <term>Atlas A3 训练系列产品</term>
-
+- <term>Atlas 训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>

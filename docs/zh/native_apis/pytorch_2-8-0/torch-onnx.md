@@ -29,5 +29,3 @@
 |torch.onnx.JitScalarType.torch_name|是|-|
 |torch.onnx.verification.GraphInfo|是|-|
 |torch.onnx.verification.VerificationOptions|是|-|
-
-

@@ -16,8 +16,8 @@
 
 ## 贡献流程
 
--   [贡献者许可协议](#贡献者许可协议)
--   [开发与测试](#开发与测试)
+- [贡献者许可协议](#贡献者许可协议)
+- [开发与测试](#开发与测试)
 
 ### 贡献者许可协议
 
@@ -31,36 +31,35 @@
 
 2. 克隆到本地:
 
-```bash
-git clone https://gitcode.com/<your-username>/pytorch.git
-cd pytorch
+    ```bash
+    git clone https://gitcode.com/<your-username>/pytorch.git
+    cd pytorch
 
-```
-3. 在个人仓库进行代码开发
-	代码开发请遵循  **[代码规范](#代码规范)**  
+    ```
 
-4. 代码测试
-	参见 **[代码测试](https://gitcode.com/Ascend/pytorch/blob/master/test/README.md)**
+3. 在个人仓库进行代码开发请遵循[代码规范](#代码规范)。
 
-5.  **[门禁异常处理](#门禁异常处理)**  
+4. 代码测试，请参见 [代码测试](https://gitcode.com/Ascend/pytorch/blob/master/test/README.md)。
 
-6.  **[提交Pull Request](#提交Pull-Request)**  
+5. [门禁异常处理](#门禁异常处理)。
 
-7.  **[报告问题](#报告问题)**  
+6. [提交Pull Request](#提交Pull Request)。
+
+7. [报告问题](#报告问题)。
 
 #### 代码规范
 
 请遵循这些风格,以使 PyTorch 易于开发、审查和维护。
 
--   编码指南
+- 编码指南
 
     请在PyTorch社区使用规统一的编码分格,python建议的编码风格是[PEP 8编码样式](https://pep8.org/),C++编码所建议的风格是  [Google C++编码指南](http://google.github.io/styleguide/cppguide.html)  。可以使用[CppLint](https://github.com/cpplint/cpplint),[CppCheck](http://cppcheck.sourceforge.net/),[CMakeLint](https://github.com/cmake-lint/cmake-lint),[CodeSpell](https://github.com/codespell-project/codespell),  [Lizard](http://www.lizard.ws/),[ShellCheck](https://github.com/koalaman/shellcheck)和[pylint](https://pylint.org/)检查代码的格式,建议在您的IDE中安装这些插件。
 
--   单元测试指南
+- 单元测试指南
 
-    请在PyTorch社区使用统一的单元测试风格,  Python中建议的单元测试风格是[pytest](http://www.pytest.org/en/latest/),C++单元测试所建议的风格是  [Googletest Primer](#https://github.com/google/googletest/blob/master/docs/primer.md)  。测试用例的设计意图应该通过它的注释名称来反映。
+    请在PyTorch社区使用统一的单元测试风格,  Python中建议的单元测试风格是[pytest](http://www.pytest.org/en/latest/),C++单元测试所建议的风格是  [Googletest Primer](https://github.com/google/googletest/blob/master/docs/primer.md)  。测试用例的设计意图应该通过它的注释名称来反映。
 
--   重构指南
+- 重构指南
 
     我们鼓励开发人员重构我们的代码以消除[代码异味](https://en.wikipedia.org/wiki/Code_smell)。所有的代码都应该符合编码风格和测试风格的需求,重构代码也不例外。当您收到警告时,您必须重构要合并的代码。
 
@@ -68,35 +67,35 @@ cd pytorch
 
 门禁异常主要包含如下几种,请根据相关提示解决异常问题。
 
--   编译异常
+- 编译异常
 
     请检查代码编译失败的原因,解决问题后重新编译即可。
 
--   静态检查异常(代码Bug、代码漏洞、代码异味)
+- 静态检查异常(代码Bug、代码漏洞、代码异味)
 
     请依照提示查找代码中的异常并解决。
 
--   UT测试未通过
+- UT测试未通过
 
     请根据提示,查找测试用例不通过项并检查原因,解决后再测试。
 
-#### 提交Pull Request
+#### 提交Pull Request<a id="提交Pull Request"></a>
 
-1.  本地创建分支。
+1. 本地创建分支。
 
-    为了避免多个分支之间的不一致,建议创建新的分支进行开发:
+    为了避免多个分支之间的不一致,建议创建新的分支进行开发：
 
-    ```
+    ```bash
     git checkout -b {new_branch_name} origin/master
     ```
 
     以master分支为例,PyTorch可能会根据需要创建版本分支和下游开发分支,请先修复上游的bug。然后就可以随意更改代码了。
 
-2.  将代码推送到远程仓库。
+2. 将代码推送到远程仓库。
 
     更新代码后,您需要以正式的方式推送更新:
 
-    ```
+    ```bash
     git add .
     git status # Check the update status
     git commit -m "Your commit title"
@@ -122,19 +121,20 @@ cd pytorch
 
 报告问题时,请参考以下格式:
 
--   您使用的是什么版本的环境 (pytorch、os、python 等)?
--   这是错误报告还是功能请求?
--   什么样的问题,添加标签以在问题仪表板上突出显示。
--   发生了什么?
--   您预计会发生什么?
--   如何重现它?(尽可能最小和精确。)
--   给审稿人的特别说明?
+- 您使用的是什么版本的环境 (pytorch、os、python 等)?
+- 这是错误报告还是功能请求?
+- 什么样的问题,添加标签以在问题仪表板上突出显示。
+- 发生了什么?
+- 您预计会发生什么?
+- 如何重现它?(尽可能最小和精确。)
+- 给审稿人的特别说明?
 
 问题咨询:
 
--   如果您发现一个未解决的问题,而这正是您要解决的问题,请对该问题发表一些评论,告诉其他人您将负责它。
--   如果问题已打开一段时间,建议贡献者在解决该问题之前进行预检查。
--   如果您解决了自己报告的问题,则还需要在关闭该问题之前让其他人知道。
+- 如果您发现一个未解决的问题,而这正是您要解决的问题,请对该问题发表一些评论,告诉其他人您将负责它。
+- 如果问题已打开一段时间,建议贡献者在解决该问题之前进行预检查。
+- 如果您解决了自己报告的问题,则还需要在关闭该问题之前让其他人知道。
+
 ## 社区准则
 
 ### 行为准则
@@ -150,5 +150,3 @@ cd pytorch
 
 - **Issues**:用于报告Bug、提出功能建议和讨论技术问题
 - **Pull Requests**:用于代码审查和讨论具体实现
-
-

@@ -10,21 +10,20 @@
 
 ## 配置示例
 
-```
+```bash
 export ASCEND_LAUNCH_BLOCKING=1
 ```
 
 ## 使用约束
 
--   ASCEND\_LAUNCH\_BLOCKING设置为“1”时，强制算子采用同步模式运行会导致性能下降。
--   ASCEND\_LAUNCH\_BLOCKING设置为“1”时，task\_queue算子队列关闭，[TASK\_QUEUE\_ENABLE](TASK_QUEUE_ENABLE.md)设置不生效。
+- ASCEND\_LAUNCH\_BLOCKING设置为“1”时，强制算子采用同步模式运行会导致性能下降。
+- ASCEND\_LAUNCH\_BLOCKING设置为“1”时，task\_queue算子队列关闭，[TASK\_QUEUE\_ENABLE](TASK_QUEUE_ENABLE.md)设置不生效。
 
--   ASCEND\_LAUNCH\_BLOCKING设置为“0”时，会增加内存消耗，有导致OOM的风险。
+- ASCEND\_LAUNCH\_BLOCKING设置为“0”时，会增加内存消耗，有导致OOM的风险。
 
 ## 支持的型号
 
--   <term>Atlas 训练系列产品</term>
--   <term>Atlas A2 训练系列产品</term>
--   <term>Atlas A3 训练系列产品</term>
--   <term>Atlas 推理系列产品</term>
-
+- <term>Atlas 训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas 推理系列产品</term>

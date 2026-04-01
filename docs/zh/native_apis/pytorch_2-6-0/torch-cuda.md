@@ -3,7 +3,8 @@
 > [!NOTE]  
 > 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。<br>
 > 在使用支持的cuda接口时，需要将API名称中的cuda变换为NPU形式才能使用：torch.cuda.变换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
->```
+>
+>```python
 >torch.cuda.current_device --> torch_npu.npu.current_device
 >torch.cuda.current_device --> torch.npu.current_device
 >```
@@ -83,5 +84,3 @@
 |torch.cuda.CUDAPluggableAllocator|torch_npu.npu.NPUPluggableAllocator|是|该接口涉及高危操作，使用请参考《Ascend Extension for PyTorch 自定义 API参考》中的“[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/torch-npu-npu-NPUPluggableAllocator.md)”章节。|
 |torch.cuda.change_current_allocator|torch_npu.npu.change_current_allocator|是|该接口涉及高危操作，使用请参考《Ascend Extension for PyTorch 自定义 API参考》中的“[torch_npu.npu.change_current_allocator](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/torch-npu-npu-change_current_allocator.md)”章节。|
 |torch.cuda._sanitizer.enable_cuda_sanitizer|torch_npu.npu._sanitizer.enable_npu_sanitizer|是|-|
-
-

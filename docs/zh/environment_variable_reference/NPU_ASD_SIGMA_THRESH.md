@@ -9,31 +9,32 @@
 默认阈值为100000,5000。
 
 > [!NOTE]  
+>
 > 出厂默认阈值即为最优值，不推荐客户修改。若发生如下情况可根据实际场景调整阈值，并注意相关影响。
-> -   需要调大阈值场景：若发生告警，并且确认此次数值波动为正常，不影响训练，则调大阈值。
->     -   若val超过NPU\_ASD\_UPPER\_THRESH导致告警，则需根据val值调大阈值NPU\_ASD\_UPPER\_THRESH（推荐为val\*2）；
->     -   若跳变幅度超过NPU\_ASD\_SIGMA\_THRESH触发告警，则需根据\(val-pre\_val\)和\(max-min\)的比值调大阈值NPU\_ASD\_SIGMA\_THRESH（推荐为\(val-pre\_val\)/\(max-min\)\*2 ）。
+>
+> - 需要调大阈值场景：若发生告警，并且确认此次数值波动为正常，不影响训练，则调大阈值。
+>     - 若val超过NPU\_ASD\_UPPER\_THRESH导致告警，则需根据val值调大阈值NPU\_ASD\_UPPER\_THRESH（推荐为val\*2）；
+>     - 若跳变幅度超过NPU\_ASD\_SIGMA\_THRESH触发告警，则需根据\(val-pre\_val\)和\(max-min\)的比值调大阈值NPU\_ASD\_SIGMA\_THRESH（推荐为\(val-pre\_val\)/\(max-min\)\*2 ）。
 > 
 >     相关影响：调大阈值会导致检出率有所减低，但误检率也会降低。
-> -   需要调小阈值场景：若频繁出现loss spike/grad norm spike影响训练，重新拉起依然有spike，但无告警，则按照一定比例（如10）逐渐调小阈值。  
+> - 需要调小阈值场景：若频繁出现loss spike/grad norm spike影响训练，重新拉起依然有spike，但无告警，则按照一定比例（如10）逐渐调小阈值。  
 >     相关影响：调小阈值能够提高检出率，但也容易引发误检。
 
 ## 配置示例
 
-```
+```bash
 export NPU_ASD_SIGMA_THRESH=100000,5000
 ```
 
 ## 使用约束
 
--   此环境变量不支持在PyTorch图模式（TorchAir）场景下使用。
+- 此环境变量不支持在PyTorch图模式（TorchAir）场景下使用。
 
--   此环境变量适用于Ascend Extension for PyTorch 7.0.0及之前版本。
+- 此环境变量适用于Ascend Extension for PyTorch 7.0.0及之前版本。
 
 ## 支持的型号
 
--   <term>Atlas 训练系列产品</term>
--   <term>Atlas A2 训练系列产品</term>
--   <term>Atlas A3 训练系列产品</term>
--   <term>Atlas 推理系列产品</term>
-
+- <term>Atlas 训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas 推理系列产品</term>

@@ -6,5 +6,3 @@
 |API名称|是否支持|限制与说明|
 |--|--|--|
 |torch.utils.model_zoo.load_url|是|-|
-
-

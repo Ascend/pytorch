@@ -9,5 +9,3 @@
 |torch.linalg.lstsq|否|-|
 |torch.linalg.matmul|是|支持fp16，fp32<br>输入最大支持6维|
 |torch.linalg.ldl_factor|否|-|
-
-

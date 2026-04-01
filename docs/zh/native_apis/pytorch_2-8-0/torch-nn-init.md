@@ -20,5 +20,3 @@
 |torch.nn.init.trunc_normal_|是|-|
 |torch.nn.init.orthogonal_|是|支持fp32|
 |torch.nn.init.sparse_|是|支持fp32|
-
-

@@ -12,5 +12,3 @@
 |torch.linalg.ldl_factor|否|-|
 |torch.linalg.qr|是|支持fp32，fp64，complex64，complex128|
 |torch.linalg.solve_triangular|是|支持fp32，fp64，complex64，complex128|
-
-

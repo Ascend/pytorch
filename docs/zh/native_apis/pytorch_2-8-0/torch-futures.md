@@ -15,5 +15,3 @@
 |torch.futures.Future.wait|是|-|
 |torch.futures.collect_all|是|-|
 |torch.futures.wait_all|是|-|
-
-

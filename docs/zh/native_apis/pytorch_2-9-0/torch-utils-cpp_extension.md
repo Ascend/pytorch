@@ -14,5 +14,3 @@
 |torch.utils.cpp_extension.get_compiler_abi_compatibility_and_version|是|-|
 |torch.utils.cpp_extension.verify_ninja_availability|是|-|
 |torch.utils.cpp_extension.is_ninja_available|是|-|
-
-

@@ -48,5 +48,3 @@
 |Node.next_functions|是|-|
 |Node.register_hook|是|-|
 |Node.register_prehook|是|-|
-
-

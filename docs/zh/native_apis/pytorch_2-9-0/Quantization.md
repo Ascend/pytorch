@@ -129,5 +129,3 @@
 |torch.ao.nn.quantized.dynamic.LSTMCell|是|支持fp32|
 |torch.ao.nn.quantized.dynamic.GRUCell|是|支持fp32|
 |torch.ao.ns.fx.utils.compute_sqnr|否|-|
-
-

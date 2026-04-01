@@ -127,5 +127,3 @@
 |torch.QUInt4x2Storage.dtype|是|支持uint8|
 |torch.QUInt2x4Storage|否|-|
 |torch.QUInt2x4Storage.dtype|是|支持uint8|
-
-

@@ -8,7 +8,7 @@
 
 ## 适配文件结构
 
-```
+```bash
 ├── build_and_run.sh                // 自定义算子wheel包编译安装并执行用例的脚本
 ├── csrc                            // 算子适配层c++代码目录
 │   ├── add_custom.cpp              // 自定义算子正反向适配代码以及绑定
@@ -27,8 +27,8 @@
 
 ## 操作步骤
 
-1.  在算子适配层c++代码目录（csrc）中完成C++侧算子代码适配。<a id="li92751732161014"></a>
-    1.  在registration.cpp中，注册自定义算子schema。
+1. 在算子适配层c++代码目录（csrc）中完成C++侧算子代码适配。<a id="li92751732161014"></a>
+    1. 在registration.cpp中，注册自定义算子schema。
 
         PyTorch提供TORCH\_LIBRARY宏来定义新的命名空间，并在该命名空间里注册schema。注意命名空间的名字必须是唯一的。具体示例如下：
 
@@ -41,8 +41,8 @@
         }
         ```
 
-    2.  在add\_custom.cpp完成自定义算子前向和反向的适配以及绑定，主要用于创建输出内存，调用底层算子进行计算，获取返回结果并输出，为[1.a](#li92751732161014)中注册的接口提供了具体实现。
-        1.  完成NPU设备的前向和反向代码实现以及绑定，具体示例如下：
+    2. 在add\_custom.cpp完成自定义算子前向和反向的适配以及绑定，主要用于创建输出内存，调用底层算子进行计算，获取返回结果并输出，为[1.a](#li92751732161014)中注册的接口提供了具体实现。
+        1. 完成NPU设备的前向和反向代码实现以及绑定，具体示例如下：
 
             ```cpp
             // add_custom.cpp
@@ -102,7 +102,7 @@
             }
             ```
 
-        2.  仅注册的自定义算子需要入图使用时，为Meta设备注册并完成前向和反向实现，具体示例如下：<a id="li118541236103118"></a>
+        2. 仅注册的自定义算子需要入图使用时，为Meta设备注册并完成前向和反向实现，具体示例如下：<a id="li118541236103118"></a>
 
             ```cpp
             // add_custom.cpp
@@ -123,7 +123,7 @@
             }
             ```
 
-    3.  <a id="li19878192404815"></a>
+    3. <a id="li19878192404815"></a>
         完成前向和反向适配以及绑定以后，在function.h正反向接口头文件中声明c++自动求导接口（例如：add\_custom\_autograd），并在registration.cpp自定义算子Aten IR注册文件中将C++自动求导的接口（例如：add\_custom\_autograd）通过pybind绑定一个python接口（例如：add\_custom），以便在python代码里调用。  
 
         function.h正反向接口头文件：
@@ -150,8 +150,8 @@
         }
         ```
 
-2.  python侧自定义算子代码适配。
-    1.  在add\_custom.py文件中，新增python调用接口，此接口用户可自定义（例如：npu\_add\_custom）。
+2. python侧自定义算子代码适配。
+    1. 在add\_custom.py文件中，新增python调用接口，此接口用户可自定义（例如：npu\_add\_custom）。
 
         > [!NOTE]   
         > custom\_ops\_lib.**add\_custom**中**add\_custom**需和[1.c](#li19878192404815)中python接口（例如：add\_custom）保持一致。
@@ -164,7 +164,7 @@
             return custom_ops_lib.add_custom(self, other)
         ```
 
-    2.  在\_\_init\_\_.py文件中，导入add\_custom.py中新增的python调用接口。
+    2. 在\_\_init\_\_.py文件中，导入add\_custom.py中新增的python调用接口。
 
         ```Python
         # __init__.py
@@ -172,19 +172,19 @@
         from .add_custom import *
         ```
 
-3.  通过执行setup.py脚本，会将c++文件编译成so，并将其和python文件一起打包制作成wheel包。生成的wheel包在dist目录下。
+3. 通过执行setup.py脚本，会将c++文件编译成so，并将其和python文件一起打包制作成wheel包。生成的wheel包在dist目录下。
 
-    ```
+    ```bash
     python3 setup.py build bdist_wheel
     ```
 
-4.  自定义算子入图。
+4. 自定义算子入图。
 
     自定义算子入图为NPU上图模式特有，入图依赖[1.b.ii](#li118541236103118)中meta注册以及自定义算子开发产生的REG\_OP算子原型。
 
     若AddCustom的REG\_OP原型为示例如下：
 
-    ```
+    ```c++
     REG_OP(AddCustom)
       .INPUT(x, ge::TensorType::ALL())
       .INPUT(y, ge::TensorType::ALL())
@@ -210,4 +210,3 @@
             outputs=['z']    # 和REG_OP中OUTPUT保持一致
     )
     ```
-
