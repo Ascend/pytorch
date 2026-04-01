@@ -126,6 +126,7 @@ LOAD_FUNCTION(aclrtValueWait)
 LOAD_FUNCTION(aclrtValueWrite)
 LOAD_FUNCTION(aclrtGetErrorVerbose)
 LOAD_FUNCTION(aclrtRepairError)
+LOAD_FUNCTION(aclrtGetDeviceInfo)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1766,6 +1767,28 @@ aclError AclrtGetPrimaryCtxState(int32_t deviceId, uint32_t* flags, int32_t* act
 
     TORCH_CHECK(func, "Failed to find function aclrtGetPrimaryCtxState", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(deviceId, flags, activate);
+}
+
+bool IsExistAclrtGetDeviceInfo()
+{
+    typedef aclError (*AclrtGetDeviceInfo)(uint32_t, aclrtDevAttr, int64_t *);
+    static AclrtGetDeviceInfo func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetDeviceInfo)GET_FUNC(aclrtGetDeviceInfo);
+    }
+    return func != nullptr;
+}
+
+aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value)
+{
+    ACL_CALL_LOG("aclrtGetDeviceInfo", "deviceId=" << deviceId << ", attr=" << attr << ", value=" << value);
+    typedef aclError (*AclrtGetDeviceInfo)(uint32_t, aclrtDevAttr, int64_t *);
+    static AclrtGetDeviceInfo func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetDeviceInfo)GET_FUNC(aclrtGetDeviceInfo);
+    }
+    TORCH_CHECK(func, "Failed to find function aclrtGetDeviceInfo", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(deviceId, attr, value);
 }
 
 } // namespace acl
