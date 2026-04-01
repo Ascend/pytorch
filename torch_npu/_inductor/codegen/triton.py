@@ -2166,7 +2166,10 @@ class NPUIndexTritonKernel(TritonKernel):
 
                 while (
                     current_group < len(remaining)
-                    and sv.statically_known_equals(remaining[current_group], 1)
+                    and ( 
+                        sv.statically_known_equals(remaining[current_group], 1)
+                        or sv.size_hint(remaining[current_group]) == 1
+                    )
                 ):
                     # scroll to next group with remaining elements
                     current_group += 1
@@ -2174,6 +2177,8 @@ class NPUIndexTritonKernel(TritonKernel):
                     # add multiple ranges (two or more) to the list, as well as the getter funcs
                     add_multiple_range(size, return_getters)
                 else:
+                    if current_group >= len(remaining):
+                        raise CantSplit
                     return_getters.append(
                         operator.itemgetter(add_range(current_group, size))
                     )
