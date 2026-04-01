@@ -106,5 +106,3 @@
 |torch.nn.functional.grid_sample|是|支持fp16，fp32，fp64|
 |torch.nn.functional.affine_grid|是|支持fp16，fp32|
 |torch.nn.parallel.data_parallel|否|-|
-
-

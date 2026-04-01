@@ -6,7 +6,7 @@ PyTorch训练场景用于设置是否通过msMonitor nputrace方式开启dynamic
 
 ## 配置示例
 
-```
+```bash
 export KINETO_USE_DAEMON=1
 ```
 
@@ -14,8 +14,8 @@ export KINETO_USE_DAEMON=1
 
 ## 使用约束
 
--   脚本不手动添加代码的情况，此环境变量适用于PyTorch训练场景。
--   脚本内添加dynamic\_profile模块后，此环境变量可以在非训练场景使用。例如：
+- 脚本不手动添加代码的情况，此环境变量适用于PyTorch训练场景。
+- 脚本内添加dynamic\_profile模块后，此环境变量可以在非训练场景使用。例如：
 
     ```python
     # 加载dynamic_profile模块
@@ -24,14 +24,13 @@ export KINETO_USE_DAEMON=1
     dp.init("profiler_config_path")
     …
     for step in steps:
-    	train_one_step()
-    	# 划分step
-    	dp.step()
+        train_one_step()
+        # 划分step
+        dp.step()
     ```
 
 ## 支持的型号
 
--   <term>Atlas 训练系列产品</term>
--   <term>Atlas A2 训练系列产品</term>
--   <term>Atlas A3 训练系列产品</term>
-
+- <term>Atlas 训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>

@@ -8,21 +8,23 @@
 
 2. （可选）当用户使用“二进制软件包安装”或“二进制软件包安装（abi1版本）”安装torch\_npu插件时，适配前需执行如下命令拉取torch\_npu仓对应分支的代码并进入OpPlugin目录，完成torch_npu源码下载。
 
-    ```
+    ```bash
     git clone https://gitcode.com/ascend/pytorch.git -b v2.7.1-7.3.0 --recursive
     cd pytorch/third_party/op-plugin
     ```
 
-    -   *2.7.1*为PyTorch版本，用户需根据实际情况指定PyTorch版本。
-    -   *7.3.0*为Ascend Extension for PyTorch软件版本。
+    - *2.7.1*为PyTorch版本，用户需根据实际情况指定PyTorch版本。
+    - *7.3.0*为Ascend Extension for PyTorch软件版本。
 
 3. 在框架算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库接口](https://www.hiascend.com/document/detail/zh/canncommercial/850/API/aolapi/operatorlist_00001.html)。
     > [!NOTE]  
+    >
     > 本示例对应CANN算子为aclnnAdd，可参考[CANN 算子库接口]中[NN算子接口](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/83RC1alpha003/API/aolapi/context/aclnnAdd&aclnnInplaceAdd.md)。
 
 ## 适配开发
+
 1. 对自定义算子进行yaml配置。
-   1.  执行如下命令打开op\_plugin\_functions.yaml文件进行算子yaml配置。
+   1. 执行如下命令打开op\_plugin\_functions.yaml文件进行算子yaml配置。
 
         ```yaml
         vi op_plugin/config/op_plugin_functions.yaml
@@ -47,7 +49,7 @@
             op_api: v2.7
         ```
 
-   2.  打开derivatives.yaml文件，进行自定义算子的前反向注册绑定。
+   2. 打开derivatives.yaml文件，进行自定义算子的前反向注册绑定。
 
         ```yaml
         vi op_plugin/config/derivatives.yaml
@@ -88,14 +90,15 @@
           - func: npu_add_custom_backward(Tensor grad) -> (Tensor, Tensor)
             op_api: v2.7
         ```
-   -  通用化算子适配。
-      1.  在op_plugin/ops/opapi目录下，创建AddCustomKernelNpuOpApi.cpp文件并实现算子适配主体函数npu\_add\_custom和npu\_add\_custom\_backward。其核心逻辑为调用EXEC\_NPU\_CMD接口，完成输出结果的计算，EXEC\_NPU\_CMD第一个入参格式为aclnn+Optype（算子类型），之后的参数分别为输入输出。其中由于add操作的反向计算相对简单，因此不需要调用算子进行计算。
 
-          ```
+   - 通用化算子适配。
+      1. 在op_plugin/ops/opapi目录下，创建AddCustomKernelNpuOpApi.cpp文件并实现算子适配主体函数npu\_add\_custom和npu\_add\_custom\_backward。其核心逻辑为调用EXEC\_NPU\_CMD接口，完成输出结果的计算，EXEC\_NPU\_CMD第一个入参格式为aclnn+Optype（算子类型），之后的参数分别为输入输出。其中由于add操作的反向计算相对简单，因此不需要调用算子进行计算。
+
+          ```bash
           vi op_plugin/ops/opapi/AddCustomKernelNpuOpApi.cpp
           ```
 
-      2.  完成算子适配，完整的AddCustomKernelNpuOpApi.cpp文件如下。
+      2. 完成算子适配，完整的AddCustomKernelNpuOpApi.cpp文件如下。
 
           ```cpp
           #include "op_plugin/OpApiInterface.h" 
@@ -196,14 +199,14 @@
             return torch.empty_like(output, dtype=self.dtype)
         ```
 
-
 ## 编译验证
-1. 编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
 
+1. 编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
 
 2. 上述开发过程完成后，调用开发者测试脚本，验证基本功能是否正常。
 
    1. 在test/test\_custom\_ops目录下，新增开发者测试文件test\_npu\_add\_custom.py，新增如下内容：
+
       ```Python
       import torch
       import torch_npu
@@ -240,9 +243,10 @@
 
    2. 执行命令如下验证新增算子功能是否正常：
       > [!CAUTION]  
+      >
       > 注意运行该脚本的时候不要在torch\_npu仓的根目录下，否则可能会出现找不到torch\_npu.\_C的报错。
 
-      ```
+      ```bash
       python op-plugin/test/test_custom_ops/test_npu_add_custom.py -v
       ```
 
@@ -257,4 +261,3 @@
 
       OK
       ```
-

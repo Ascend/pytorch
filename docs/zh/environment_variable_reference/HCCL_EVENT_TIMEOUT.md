@@ -9,13 +9,14 @@
 单位为s，取值范围为\[0, 2147483647\]，默认值为1868，当配置为0时代表永不超时。
 
 > [!NOTE]  
-> -   acl.init接口详情具体请参见《CANN 应用开发接口》中“[函数：init](https://www.hiascend.com/document/detail/zh/canncommercial/850/API/appdevgapi/aclpythondevg_01_0005.html)”章节。
-> -   acl.rt.set\_op\_wait\_timeout接口详情具体请参见《CANN 应用开发接口》中“[函数：set\_op\_wait\_timeout](https://www.hiascend.com/document/detail/zh/canncommercial/850/API/appdevgapi/aclpythondevg_01_0102.html)”章节。
-> -   acl.rt.stream\_wait\_event接口详情具体请参见《CANN 应用开发接口》中“[函数：stream\_wait\_event](https://www.hiascend.com/document/detail/zh/canncommercial/850/API/appdevgapi/aclpythondevg_01_0101.html)”章节。
+>
+> - acl.init接口详情具体请参见《CANN 应用开发接口》中“[函数：init](https://www.hiascend.com/document/detail/zh/canncommercial/850/API/appdevgapi/aclpythondevg_01_0005.html)”章节。
+> - acl.rt.set\_op\_wait\_timeout接口详情具体请参见《CANN 应用开发接口》中“[函数：set\_op\_wait\_timeout](https://www.hiascend.com/document/detail/zh/canncommercial/850/API/appdevgapi/aclpythondevg_01_0102.html)”章节。
+> - acl.rt.stream\_wait\_event接口详情具体请参见《CANN 应用开发接口》中“[函数：stream\_wait\_event](https://www.hiascend.com/document/detail/zh/canncommercial/850/API/appdevgapi/aclpythondevg_01_0101.html)”章节。
 
 ## 配置示例
 
-```
+```bash
 export HCCL_EVENT_TIMEOUT=1800
 ```
 
@@ -25,7 +26,6 @@ export HCCL_EVENT_TIMEOUT=1800
 
 ## 支持的型号
 
--   <term>Atlas 训练系列产品</term>
--   <term>Atlas A2 训练系列产品</term>
--   <term>Atlas A3 训练系列产品</term>
-
+- <term>Atlas 训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>

@@ -109,6 +109,3 @@
 |torch.distributed.elastic.events.api.Event|是|-|
 |torch.distributed.elastic.events.api.EventSource|是|-|
 |torch.distributed.elastic.events.api.EventMetadataValue|是|-|
-|torch.distributed.elastic.events.construct_and_record_rdzv_event|是|-|
-
-

@@ -10,5 +10,3 @@
 |torch.distributed.tensor.parallel.RowwiseParallel|否|-|
 |torch.distributed.tensor.parallel.PrepareModuleInput|否|-|
 |torch.distributed.tensor.parallel.PrepareModuleOutput|是|-|
-
-

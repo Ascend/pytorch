@@ -14,5 +14,3 @@
 |torch.special.logsumexp|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.special.ndtr|是|-|
 |torch.special.xlogy|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-
-

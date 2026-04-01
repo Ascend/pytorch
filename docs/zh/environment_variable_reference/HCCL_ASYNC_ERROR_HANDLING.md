@@ -4,8 +4,8 @@
 
 当使用HCCL作为通信后端时，通过此环境变量可控制是否开启异步错误处理。
 
--   0：不开启异步错误处理。
--   1：开启异步错误处理。
+- 0：不开启异步错误处理。
+- 1：开启异步错误处理。
 
 当PyTorch版本为1.11.0时，默认值为0；当PyTorch版本大于等于2.1.0时，默认值为1。
 
@@ -14,7 +14,7 @@
 
 ## 配置示例
 
-```
+```bash
 export HCCL_ASYNC_ERROR_HANDLING=1
 ```
 
@@ -24,8 +24,7 @@ export HCCL_ASYNC_ERROR_HANDLING=1
 
 ## 支持的型号
 
--   <term>Atlas 训练系列产品</term>
--   <term>Atlas A2 训练系列产品</term>
--   <term>Atlas A3 训练系列产品</term>
--   <term>Atlas 推理系列产品</term>
-
+- <term>Atlas 训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas 推理系列产品</term>

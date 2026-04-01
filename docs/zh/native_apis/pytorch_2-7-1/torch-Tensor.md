@@ -462,4 +462,3 @@
 |Tensor.xlogy|是|支持fp16，fp32|
 |Tensor.xlogy_|是|支持fp16，fp32|
 |Tensor.zero_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-

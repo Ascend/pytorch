@@ -25,5 +25,3 @@
 |torch.utils.data.WeightedRandomSampler|是|支持fp32|
 |torch.utils.data.BatchSampler|是|支持fp32|
 |torch.utils.data.distributed.DistributedSampler|是|支持int32|
-
-

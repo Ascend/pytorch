@@ -17,18 +17,18 @@
 
 可选择如下任一方式：
 
--   设置环境变量PYTORCH\_NPU\_ALLOC\_CONF=expandable\_segments:<value\>，此环境变量使用详情请参考《环境变量参考》中的“[PYTORCH\_NPU\_ALLOC\_CONF](../environment_variable_reference/PYTORCH_NPU_ALLOC_CONF.md)”章节。
--   修改torch.npu.memory.\_set\_allocator\_settings（“expandable\_segments: <value\>”）接口中的“expandable\_segments“属性值。
+- 设置环境变量PYTORCH\_NPU\_ALLOC\_CONF=expandable\_segments:<value\>，此环境变量使用详情请参考《环境变量参考》中的“[PYTORCH\_NPU\_ALLOC\_CONF](../environment_variable_reference/PYTORCH_NPU_ALLOC_CONF.md)”章节。
+- 修改torch.npu.memory.\_set\_allocator\_settings（“expandable\_segments: <value\>”）接口中的“expandable\_segments“属性值。
 
     value可以取值为True或False。默认为False。
 
-    -   设置为True时，此设置将指示缓存分配器创建特定的内存块分配，这些内存块后续可以扩展，以便能更好地处理内存使用中频繁变更使用内存大小的情况。
+    - 设置为True时，此设置将指示缓存分配器创建特定的内存块分配，这些内存块后续可以扩展，以便能更好地处理内存使用中频繁变更使用内存大小的情况。
 
-    -   设置为False时，关闭内存池扩展段功能，使用原有的内存申请方式。
+    - 设置为False时，关闭内存池扩展段功能，使用原有的内存申请方式。
 
 ## 使用样例
 
--   PYTORCH\_NPU\_ALLOC\_CONF使用样例如下所示。
+- PYTORCH\_NPU\_ALLOC\_CONF使用样例如下所示。
 
     开启虚拟内存机制：
 
@@ -42,7 +42,7 @@
     export PYTORCH_NPU_ALLOC_CONF=expandable_segments:False
     ```
 
--   torch.npu.memory.\_set\_allocator\_settings使用样例如下所示。
+- torch.npu.memory.\_set\_allocator\_settings使用样例如下所示。
 
     开启虚拟内存机制：
 
@@ -63,4 +63,3 @@ expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
 torch.npu.memory.\_set\_allocator\_settings仅支持在PyTorch2.6.0及以上版本使用。
 
 torch.npu.memory.\_set\_allocator\_settings当前仅支持修改expandable\_segments属性。
-

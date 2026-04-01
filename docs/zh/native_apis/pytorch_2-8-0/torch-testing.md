@@ -8,5 +8,3 @@
 |torch.testing.assert_close|是|支持fp32|
 |torch.testing.make_tensor|是|支持fp32，bool|
 |torch.testing.assert_allclose|是|支持fp32|
-
-

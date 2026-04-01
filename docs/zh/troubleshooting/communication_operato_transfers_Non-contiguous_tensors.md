@@ -22,11 +22,7 @@ RuntimeError: Tensors must be contiguous
 
 由于通信算子传入非连续tensor，导致启动分布式任务时报错，并打印错误码“ERR02002”。
 
-
-
 ## 解决措施
 
 代码脚本可能存在问题。
 根据日志信息找到报错的代码行，检查输入数据的连续性，通过`.contiguous()`将非连续tensor转换为连续tensor，保证通信算子传入的tensor是连续的。
-
-

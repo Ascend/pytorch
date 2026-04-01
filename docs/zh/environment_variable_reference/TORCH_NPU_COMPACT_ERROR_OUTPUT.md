@@ -4,14 +4,14 @@
 
 通过此环境变量可精简打印错误信息，开启后会将CANN内部调用栈、Ascend Extension for PyTorch错误码等自定义报错信息转移到plog中，仅保留有效的错误说明，提高异常信息的可读性。plog的详细信息请参考[plog日志信息](../troubleshooting/plog_log.md)。
 
--   配置为0时：正常进行ERROR打印。
--   配置为1时：启用精简ERROR打印。
+- 配置为0时：正常进行ERROR打印。
+- 配置为1时：启用精简ERROR打印。
 
 此环境变量默认值为0。
 
 ## 配置示例
 
-```
+```bash
 export TORCH_NPU_COMPACT_ERROR_OUTPUT=1
 ```
 
@@ -21,13 +21,13 @@ export TORCH_NPU_COMPACT_ERROR_OUTPUT=1
 
 ## 支持的型号
 
--   <term>Atlas 训练系列产品</term>
--   <term>Atlas A2 训练系列产品</term>
--   <term>Atlas A3 训练系列产品</term>
+- <term>Atlas 训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>
 
 ## 结果示例
 
--   设置为默认值0，正常进行ERROR打印时：
+- 设置为默认值0，正常进行ERROR打印时：
 
     ```ColdFusion
     >>> torch_npu.npu.set_device(100)
@@ -45,11 +45,10 @@ export TORCH_NPU_COMPACT_ERROR_OUTPUT=1
             The argument is invalid.Reason: rtGetDevMsg execute failed, reason=[context pointer null]
     ```
 
--   设置为1，开启精简打印时：
+- 设置为1，开启精简打印时：
 
     ```ColdFusion
     >>> torch_npu.npu.set_device(100)
     ......
     RuntimeError: CANN error: The argument is invalid.Reason: Set device failed, invalid device, set drv device=100, valid device range is [0, 8) Solution: 1.Check the input parameter range of the function. 2.Check the function invocation relationship.
     ```
-

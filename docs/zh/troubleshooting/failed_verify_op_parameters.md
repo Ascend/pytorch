@@ -25,10 +25,13 @@ RuntimeError: Expected all tensors to be on the same device. Expected NPU tensor
 检查传入的tensor的device、dtype等属性是否正确。如果device类型不一致，需要修改为同一device。
 
 比如将：
-```
+
+```python
 torch.add(torch.rand(2), torch.rand(2).npu())
 ```
+
 改为：
-```
+
+```python
 torch.add(torch.rand(2).npu(), torch.rand(2).npu())
 ```

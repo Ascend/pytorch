@@ -16,5 +16,3 @@
 |torch.fft.rfftfreq|否|-|
 |torch.fft.fftshift|否|-|
 |torch.fft.ifftshift|否|-|
-
-

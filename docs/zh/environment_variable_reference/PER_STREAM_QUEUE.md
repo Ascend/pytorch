@@ -7,14 +7,14 @@
 
 通过此环境变量可配置是否开启一个stream一个task\_queue算子下发队列。
 
--   配置为“0“时，关闭一个stream一个task\_queue算子下发队列。
--   配置为“1“时，开启一个stream一个task\_queue算子下发队列。
+- 配置为“0“时，关闭一个stream一个task\_queue算子下发队列。
+- 配置为“1“时，开启一个stream一个task\_queue算子下发队列。
 
 此环境变量默认配置为“0“。
 
 ## 配置示例
 
-```
+```bash
 export PER_STREAM_QUEUE=1
 ```
 
@@ -24,9 +24,8 @@ export PER_STREAM_QUEUE=1
 
 ## 支持的型号
 
--   <term>Atlas 训练系列产品</term>
--   <term>Atlas A2 训练系列产品</term>
--   <term>Atlas A3 训练系列产品</term>
--   <term>Atlas 800I A2 推理产品</term>
--   <term>Atlas 推理系列产品</term>
-
+- <term>Atlas 训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas 800I A2 推理产品</term>
+- <term>Atlas 推理系列产品</term>

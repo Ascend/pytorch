@@ -6,7 +6,6 @@
 
 ## 安装PyTorch
 
-
 |PyTorch版本<!-- class: installation_torch_npu -->|torch_npu插件版本|Python版本|系统架构|CANN版本|安装方式|安装命令|
 |--|--|--|--|--|--|--|
 |2.6.0|7.3.0|Python 3.9|AArch64|8.5.0|Pip|<copy># 下载并安装PyTorch框架<br>wget https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp39-cp39-manylinux_2_28_aarch64.whl<br>pip3 install torch-2.6.0+cpu-cp39-cp39-manylinux_2_28_aarch64.whl<br><br># 下载并安装torch_npu插件<br>wget https://gitcode.com/Ascend/pytorch/releases/download/v7.3.0-pytorch2.6.0/torch_npu-2.6.0.post5-cp39-cp39-manylinux_2_28_aarch64.whl<br>pip3 install torch_npu-2.6.0.post5-cp39-cp39-manylinux_2_28_aarch64.whl</copy>|
@@ -41,19 +40,21 @@
 |2.9.0|7.3.0|Python 3.12|X86_64|8.5.0|Pip|<copy># 下载并安装PyTorch框架<br>wget https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl<br>pip3 install torch-2.9.0+cpu-cp312-cp312-manylinux_2_28_x86_64.whl<br><br># 下载并安装torch_npu插件<br>wget https://gitcode.com/Ascend/pytorch/releases/download/v7.3.0-pytorch2.9.0/torch_npu-2.9.0-cp312-cp312-manylinux_2_28_x86_64.whl<br>pip3 install torch_npu-2.9.0-cp312-cp312-manylinux_2_28_x86_64.whl</copy>|
 
 > [!NOTE]
-> -   出现“找不到google或protobuf，或者protobuf版本过高”报错时，需执行如下命令：
->       ```
+>
+> - 出现“找不到google或protobuf，或者protobuf版本过高”报错时，需执行如下命令：
+>
+>       ```bash
 >       pip3 install protobuf==3.20
 >       ```
-> -   更多PyTorch版本可单击[Link](https://download.pytorch.org/whl/torch/)进行查询。
-> -   更多torch\_npu插件版本可单击[Link](https://gitcode.com/Ascend/pytorch/releases)查询。
-
+>
+> - 更多PyTorch版本可单击[Link](https://download.pytorch.org/whl/torch/)进行查询。
+> - 更多torch\_npu插件版本可单击[Link](https://gitcode.com/Ascend/pytorch/releases)查询。
 
 ## 安装后验证
 
 执行以下命令可检查PyTorch框架和torch\_npu插件是否已成功安装。
 
--   方法一
+- 方法一
 
     ```Python
     python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
@@ -67,7 +68,7 @@
             [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
     ```
 
--   方法二
+- 方法二
 
     ```Python
     import torch
@@ -86,4 +87,3 @@
     tensor([[-0.0515,  0.3664],
             [-0.1258, -0.5425]], device='npu:0')
     ```
-

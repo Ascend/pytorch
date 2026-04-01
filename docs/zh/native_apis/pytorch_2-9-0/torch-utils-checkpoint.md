@@ -7,5 +7,3 @@
 |--|--|--|
 |torch.utils.checkpoint.checkpoint|是|-|
 |torch.utils.checkpoint.checkpoint_sequential|是|支持fp32|
-
-

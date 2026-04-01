@@ -20,4 +20,3 @@
 
 > [!NOTE]  
 > 更多日志详细介绍可参见《[CANN 日志参考](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/logreference/logreference_0001.html)》。
-

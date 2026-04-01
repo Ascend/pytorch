@@ -2,10 +2,10 @@
 
 回显信息通常比较多，许多组件都会在屏幕上进行错误信息的输出，可以大致分为如下几类：
 
--   Python调用栈和异常信息
--   torch\_npu错误码
--   CANN软件错误码
--   原生框架报错信息
+- Python调用栈和异常信息
+- torch\_npu错误码
+- CANN软件错误码
+- 原生框架报错信息
 
 ## Python调用栈和异常信息
 
@@ -52,4 +52,3 @@ Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
 RuntimeError: Unsupported input type encountered for isin(): BFloat16
 ```
-
