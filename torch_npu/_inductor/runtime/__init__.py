@@ -1,0 +1,2 @@
+from .autotune_cache import patch_load_cached_autotuning
+from .hints import patch_create_device_properties

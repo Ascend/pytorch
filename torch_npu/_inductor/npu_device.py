@@ -23,10 +23,10 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
         return f"torch.npu.utils.device({device_idx})"
 
     def cpp_aoti_device_guard(self):
-        raise NotImplementedError
+        return "AOTINpuGuard"
 
     def cpp_aoti_stream_guard(self):
-        return "AOTICudaStreamGuard"
+        return "AOTINpuStreamGuard"
 
     def kernel_driver(self):
         source_code = """
@@ -199,7 +199,7 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
         return "aclrtStream"
 
     def aoti_get_stream(self):
-        return "aoti_torch_get_current_cuda_stream"
+        return "aoti_torch_get_current_npu_stream"
 
     def cpp_kernel_type(self):
         return "void *"

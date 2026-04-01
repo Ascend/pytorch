@@ -34,6 +34,8 @@ class TestMgr:
     def load(self, modify_files, world_size):
         with open(modify_files) as f:
             for line in f:
+                if world_size != 0 and ("test/_inductor/" in line):
+                    continue
                 line = line.strip()
                 self.modify_files.append(line)
 

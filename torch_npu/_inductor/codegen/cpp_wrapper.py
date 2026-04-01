@@ -5,6 +5,7 @@ import os
 import sys
 from itertools import chain, count, zip_longest
 from typing import Any, Callable, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing_extensions import Self
 import sympy
 import torch
 from torch import dtype as torch_dtype
@@ -14,10 +15,9 @@ from torch._inductor.codecache import get_cpp_wrapper_cubin_path_name
 from torch._inductor.codegen.aoti_hipify_utils import maybe_hipify_code_wrapper
 from torch._inductor.codegen.common import get_device_op_overrides
 from torch._inductor.codegen.cpp_utils import cexpr, DTYPE_TO_CPP, DEVICE_TO_ATEN
-from torch._inductor.codegen.triton_utils import should_unwrap_unspec_arg
-from torch._inductor.codegen.cpp_wrapper_cpu import CppWrapperCpu
+from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu, DeferredTritonCallWrapper
 from torch._inductor.codegen.multi_kernel import MultiKernelCall
-from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg
+from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg, pexpr
 from torch._inductor.ir import IRNode, TensorBox, GraphPartitionSignature
 from torch._inductor.runtime.runtime_utils import dynamo_timed
 from torch._inductor.utils import DeferredLineBase, IndentedBuffer
@@ -27,6 +27,7 @@ from torch._inductor.utils import _align, ALIGN_BYTES
 from .. import config as npu_config
 from ..config import npu_block as NPU_ALIGN_BYTES
 from ..npu_triton_heuristics import GridExprNpu
+from ..utils import triton_support_ffts
 
 if TYPE_CHECKING:
     from torch._inductor.graph import GraphLowering
@@ -62,7 +63,7 @@ class UnwrapUnspecArg:
 
 
 @dataclasses.dataclass
-class DeferredNpuTritonCallWrapper:
+class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
     """
     When using cpp wrapper, GPU kernel load and launch needs to wait for Triton kernels
     to be tuned and stored as cubin files, so use a deferred generating the final wrapper around
@@ -147,7 +148,7 @@ class DeferredNpuTritonCallWrapper:
         params: dict[str, Any],
     ):
 
-        numels = [arg for arg in params["call_args"] if "_numel" in arg]
+        numels = [arg for arg in params["def_args"] if "_numel" in arg]
         grid = GridExprNpu.from_meta_and_set_numel(
             inductor_meta, params["config"], numels, "cpp"
         )
@@ -196,7 +197,7 @@ class DeferredNpuTritonCallWrapper:
         prefix.writeline(r"launchKernel({}, {});".format(call, f'"{kernel_var_name}"'))
 
 
-class CppWrapperNpu(CppWrapperCpu):
+class CppWrapperNpu(CppWrapperGpu):
     """
     Generates cpp wrapper for running on NPU and calls CUDA kernels
     """
@@ -208,7 +209,6 @@ class CppWrapperNpu(CppWrapperCpu):
         self.grid_id = count()
         self.visited_raii_handle = set()
         self.visited_handle_for_kernel_id = dict()
-        self._triton_call_wrappers: dict[str, DeferredNpuTritonCallWrapper] = {}
 
     @staticmethod
     def create(
@@ -234,6 +234,7 @@ class CppWrapperNpu(CppWrapperCpu):
                 """
                 #include <torch_npu/csrc/inductor/aoti_runtime/interface.h>
                 #include <torch_npu/csrc/inductor/aoti_runtime/model.h>
+                #include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>
                 """
             )
             with open(
@@ -278,6 +279,7 @@ class CppWrapperNpu(CppWrapperCpu):
 
                 #include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>
                 #include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
+                #include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>
                 using namespace torch::aot_inductor;
                 """
             )
@@ -349,6 +351,17 @@ class CppWrapperNpu(CppWrapperCpu):
         )
         return name
 
+    def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
+        expr = f"{kernel_name}_{node.name}_numel"
+
+        if (expr, V.graph) not in self.kernel_numel_expr:
+            # declare expr once in each graph (scope)
+            self.kernel_numel_expr.add((expr, V.graph))
+            self.writeline(f"int64_t {expr} = {cexpr(numel_expr)};")
+        else:
+            self.writeline(f"{expr} = {cexpr(numel_expr)};")
+        return SymbolicCallArg(expr, numel_expr)
+
     def codegen_inputs(self):
         # See Note: [Input Alignment handling in Inductor]
         #
@@ -372,88 +385,64 @@ class CppWrapperNpu(CppWrapperCpu):
 
         super().codegen_inputs()
 
-    def define_kernel(
+    def generate_kernel_call(
         self,
         kernel_name: str,
-        kernel_body: str,
-        metadata: Optional[str] = None,
-        gpu=True,
+        call_args,
+        *,
+        device=None,
+        triton=True,
+        arg_types=None,
+        raw_args=None,
+        triton_meta=None,
     ):
-        if gpu:
-            if config.triton.autotune_at_compile_time:
-                # Call PythonWrapperCodegen to create the autotune code block
-                PythonWrapperCodegen.define_kernel(
-                    self, kernel_name, kernel_body, metadata, gpu
-                )
-        else:
-            return CppWrapperCpu.define_kernel(
-                self, kernel_name, kernel_body, metadata, gpu
+        super().generate_kernel_call(
+            kernel_name,
+            call_args,
+            device=device,
+            triton=triton,
+            arg_types=arg_types,
+            raw_args=raw_args,
+            triton_meta=triton_meta
+        )
+
+        wrapper_name = f"call_{kernel_name}"
+        if wrapper_name in self._triton_call_wrappers:
+            # trans DeferredTritonCallWrapper to DeferredNpuTritonCallWrapper
+            wrapper = self._triton_call_wrappers[wrapper_name]
+            current_kernel_id = next(self.kernel_callsite_id)
+            npu_wrapper = DeferredNpuTritonCallWrapper(
+                wrapper.wrapper_name,
+                wrapper.kernel_name,
+                wrapper.arg_types,
+                current_kernel_id,
             )
+            self._triton_call_wrappers[wrapper_name] = npu_wrapper
+
+    def add_device_include(self, device: str) -> None:
+        if device in self.included_devices:
+            return
+
+        self.included_devices.add(device)
+
+        # todo: add aoti_include, cpp_wrapper, aoti_torch/c implement in csrc/inductor to support extern kernel
 
     def generate(self, is_inference):
         with dynamo_timed("CppWrapperNpu.generate", log_pt2_compile_event=True):
-            self.prefix.writeline("\n")
-            if not V.graph.aot_mode:
-                for kernel in chain(
-                    sorted(self.src_to_kernel.values()),
-                    sorted(
-                        [entry[0] for entry in self.user_defined_kernel_cache.values()]
-                    ),
-                ):
-                    self.prefix.writeline(
-                        maybe_hipify_code_wrapper(
-                            f"static {self.device_codegen.cpp_kernel_type()} {kernel} = nullptr;"
-                        )
-                    )
-                self.prefix.writeline("\n")
             return super().generate(is_inference)
 
-    def generate_user_defined_triton_kernel(
-        self,
-        kernel_name: str,
-        raw_args: List[Any],
-        grid: List[Any],
-        configs,
-        triton_meta,
-        constexprs,
-    ):
-        if (
-            config.triton.autotune_at_compile_time
-            and kernel_name not in self.kernel_autotune_names
-        ):
-            # Call PythonWrapperCodegen to create the autotune code block
-            PythonWrapperCodegen.generate_user_defined_triton_kernel(
-                self,
-                kernel_name,
-                raw_args,
-                grid,
-                configs,
-                triton_meta,
-                constexprs,
-            )
 
-        # in C++ wrapper, we don't pass constexpr args, as they don't
-        # get added as parameters to the PTX code compiled from the
-        # user-defined Triton kernel (only non-constexpr args do)
-        raw_args = [raw_arg for i, raw_arg in enumerate(raw_args) if i not in constexprs]
-        args = [self.val_to_arg_str(v) for v in raw_args]
-        arg_types = [
-            arg.get_dtype() if isinstance(arg, IRNode) else type(arg)
-            for arg in raw_args
-        ]
+    def prepare_triton_kernel_call(self, call_args):
+        new_call_args = call_args
+        if npu_config.inductor_static_mode:
+            # in inductor_static_mode, numel arg is constexpr, remove all Integer constant args from call_args
+            new_call_args = [
+                call_args
+                for call_arg in call_args
+                if not isinstance(call_arg, sympy.Integer)
+            ]
 
-        # Call self.generate_kernel_call to generate the real kernel call in cpp
-        self.generate_kernel_call(
-            kernel_name,
-            args,
-            arg_types=arg_types,
-            raw_args=raw_args,
-            grid=grid,
-            gpu=True,
-            triton=True,
-            triton_meta=triton_meta,
-            autotune_configs=configs,
-        )
+        return super().prepare_triton_kernel_call(new_call_args)
 
     def codegen_tensor_item_npu(
         self, dtype: torch.dtype, tensor: str, scalar: str, indented_buffer=None
@@ -544,7 +533,7 @@ class CppWrapperNpu(CppWrapperCpu):
 
     def generate_args_decl(
         self,
-        code,
+        code: Union[IndentedBuffer, Self],
         call_args,
         arg_types,
         arg_signatures,
@@ -587,6 +576,8 @@ class CppWrapperNpu(CppWrapperCpu):
         struct_def_body = ""
         struct_arg_body = ""
 
+        target_support_ffts = triton_support_ffts()
+
         def process_args(arg, arg_type, arg_signature=None):
             var_name = f"var_{next(self.arg_var_id)}"
             # ignore nvTmaDesc, as host-side TMA descriptors need
@@ -612,9 +603,9 @@ class CppWrapperNpu(CppWrapperCpu):
                 struct_data = f"void* {var_name} __attribute__((aligned(8)));"
                 arg_data = f"static_cast<void*>({var_name})"
             elif arg_type in (sympy.Integer, int):
-                code.writeline(f"int {var_name} = {cexpr(arg)};")
-                struct_data = f"int {var_name} __attribute__((aligned(4)));"
-                arg_data = f"static_cast<int>({var_name})"
+                code.writeline(f"int64_t {var_name} = {cexpr(arg)};")
+                struct_data = f"int64_t {var_name} __attribute__((aligned(8)));"
+                arg_data = f"static_cast<int64_t>({var_name})"
             elif arg_type in (sympy.Float, float):
                 code.writeline(f"float {var_name} = {cexpr(arg)};")
                 struct_data = f"float {var_name} __attribute__((aligned(4)));"
@@ -650,18 +641,21 @@ class CppWrapperNpu(CppWrapperCpu):
         debug_str_after_kernel = self.generate_debug_str(
             call_args, kernel_name, kernel_id, "after"
         )
-        launch_str = f"""
-    auto launch_call_{kernel_id} = [=]() {{
-        rtError_t ret;
+        ffts_str = """
         void* ffts_addr = NULL;
         uint32_t ffts_len;
         ret = rtGetC2cCtrlAddr((uint64_t*)&ffts_addr, &ffts_len);
         if (ret != RT_ERROR_NONE) return ret;
+        """
+        launch_str = f"""
+    auto launch_call_{kernel_id} = [=]() {{
+        rtError_t ret;
+        {ffts_str if target_support_ffts else ''}
         void* workspace_addr = NULL;
         void* sync_block_lock = NULL;
 
         struct __attribute__((packed)) {{
-            void* ffts_addr __attribute__((aligned(8)));
+            {"void* ffts_addr __attribute__((aligned(8)));" if target_support_ffts else ''}
             void* sync_block_lock __attribute__((aligned(8)));
             void* workspace_addr __attribute__((aligned(8)));
             {struct_def_body}
@@ -669,7 +663,7 @@ class CppWrapperNpu(CppWrapperCpu):
             int32_t grid_1 __attribute__((aligned(4)));
             int32_t grid_2 __attribute__((aligned(4)));
         }} kernel_args = {{
-            static_cast<void*>(ffts_addr),
+            {"static_cast<void*>(ffts_addr)," if target_support_ffts else ''}
             static_cast<void*>(sync_block_lock),
             static_cast<void*>(workspace_addr),
             {struct_arg_body}
@@ -689,174 +683,3 @@ class CppWrapperNpu(CppWrapperCpu):
     }};
         """
         return f"launch_call_{kernel_id}", launch_str
-
-    def generate_kernel_call_npu(
-        self,
-        kernel_name: str,
-        call_args,
-        grid=None,
-        device_index=None,
-        npu=True,
-        triton=True,
-        arg_types=None,
-        raw_args=None,
-        grid_fn: str = "grid",
-        triton_meta=None,
-        autotune_configs=None,
-        grid_extra_kwargs="",
-    ):
-        if (
-            config.triton.autotune_at_compile_time
-            and kernel_name not in self.kernel_autotune_names
-        ):
-            # Call PythonWrapperCodegen to create the autotune code block
-            PythonWrapperCodegen.generate_kernel_call(
-                self,
-                kernel_name,
-                call_args,
-                grid,
-                device_index,
-                npu,
-                triton,
-                arg_types,
-                raw_args,
-                grid_fn,
-                triton_meta,
-                autotune_configs,
-                grid_extra_kwargs,
-            )
-
-        if device_index is None:
-            current_device = V.graph.get_current_device_or_throw()
-            device_index = current_device.index
-
-        stream = (
-            "stream"
-            if V.graph.aot_mode
-            else self.write_get_raw_stream(device_index, V.graph)
-        )
-
-        if triton:
-            call_args, arg_types = self.prepare_triton_wrapper_args(
-                call_args, arg_types
-            )
-            wrapper_name = f"call_{kernel_name}"
-            current_kernel_id = next(self.kernel_callsite_id)
-            if wrapper_name not in self._triton_call_wrappers:
-                self._triton_call_wrappers[wrapper_name] = DeferredNpuTritonCallWrapper(
-                    wrapper_name, kernel_name, arg_types, current_kernel_id
-                )
-            call_args.append(stream)
-            if V.graph.aot_mode:
-                call_args.append("kernels")
-                call_args.append("this->cubin_dir_")
-            debug_printer_manager = V.graph.wrapper_code.debug_printer
-            debug_printer_manager.set_printer_args(
-                call_args[: len(arg_types)], kernel_name, arg_types, None
-            )
-            with debug_printer_manager:
-                self.writeline(f"{wrapper_name}({', '.join(call_args)});")
-        else:
-            casted = []
-            for arg_type, arg in zip(arg_types, call_args):
-                new_arg = arg
-                if arg_type.endswith("*") and arg != "nullptr":
-                    new_arg = f"{arg}.data_ptr()"
-                casted.append(f"({arg_type}){new_arg}")
-            call_args_str = ", ".join(casted)
-            self.writeline(f"kernels.{kernel_name}({call_args_str}, {stream});")
-
-    def generate_kernel_call(
-        self,
-        kernel_name: str,
-        call_args,
-        grid=None,
-        device_index=None,
-        gpu=True,
-        triton=True,
-        arg_types=None,
-        raw_args=None,
-        grid_fn: str = "grid",
-        triton_meta=None,
-        autotune_configs=None,
-        grid_extra_kwargs="",
-    ):
-        """
-        Override the default value of argument 'gpu' to True here.
-        generate_kernel_call can still be called with gpu=False because of
-        a mix of cpu kernels and gpu kernels.
-        """
-
-        """
-        To fit with NPU: we write a new function 'generate_kernel_call_npu
-        and make a new parameter called 'npu', which always equals to 'gpu',
-        because 'gpu' parameter means 'not cpu' in upper logic
-        """
-
-        if not gpu:
-            # Even in CppWrapperNpu, we may see cpp kernels
-            return CppWrapperCpu.generate_kernel_call(
-                self,
-                kernel_name,
-                call_args,
-                grid,
-                device_index,
-                gpu,
-                triton,
-                arg_types,
-                raw_args,
-                grid_fn,
-                triton_meta,
-                autotune_configs,
-                grid_extra_kwargs,
-            )
-
-        self.generate_kernel_call_npu(
-            kernel_name,
-            call_args,
-            grid,
-            device_index,
-            gpu,
-            triton,
-            arg_types,
-            raw_args,
-            grid_fn,
-            triton_meta,
-            autotune_configs,
-            grid_extra_kwargs,
-        )
-
-    def finalize_prefix(self):
-        """Define the triton kernels now that autotuning is finished"""
-        old_prefix = self.prefix  # new content should go at start of prefix
-        self.prefix = IndentedBuffer()
-        super().finalize_prefix()
-        for kernel in self._triton_call_wrappers.values():
-            self.prefix.writeline("\n")
-            kernel.generate(self)
-        self.prefix.writeline("\n")
-        self.prefix.splice(old_prefix)
-
-    @staticmethod
-    def prepare_triton_wrapper_args(
-        call_args: list[Any], arg_types: list[Any]
-    ) -> tuple[list[Any], list[Any]]:
-        new_args = []
-        new_args_types = []
-        for arg, arg_type in zip(call_args, arg_types):
-            if isinstance(arg, str):
-                if isinstance(arg_type, torch_dtype) and should_unwrap_unspec_arg(arg):
-                    # dynamo wraps unspec variable as 0d CPU tensor, need convert to scalar
-                    arg_type = UnwrapUnspecArg(dtype=arg_type)
-                new_args.append(arg)
-            elif isinstance(arg, bool):
-                new_args.append(str(arg).lower())
-            elif isinstance(arg, (int, float, SymbolicCallArg)):
-                new_args.append(str(arg))
-            else:
-                new_args.append(cexpr(V.graph.sizevars.simplify(arg)))
-            new_args_types.append(arg_type)
-        return new_args, new_args_types
-
-    def make_zero_buffer(self, name):
-        return f"AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_zero_({name}.get()));"

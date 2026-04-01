@@ -20,16 +20,15 @@ from torch._inductor.runtime.hints import AutotuneHint, ReductionHint, TileHint,
 from torch._inductor.runtime import triton_helpers
 from torch_npu._inductor import npu_triton_heuristics
 from torch_npu._inductor import npu_triton_helpers
-from torch_npu._inductor.runtime import NPUDeviceProperties
 from torch_npu._inductor.npu_triton_helpers import libdevice, math as tl_math
 import torch
 import torch_npu
 
-@npu_triton_heuristics.pointwise_npu_index(
+@npu_triton_heuristics.pointwise(
     size_hints=[16384, 32], tile_hint=TileHint.DEFAULT,
     filename=__file__,
     triton_meta={'signature': {'in_ptr0': '*fp16', 'in_ptr1': '*fp16', 'out_ptr0': '*fp16', 'y0_numel': 'i32', 'x1_numel': 'i32'},
-    'device': NPUDeviceProperties(type='npu', index=0, multi_processor_count=40, cc='Ascend910B3', 
+    'device': DeviceProperties(type='npu', index=0, multi_processor_count=40, cc='Ascend910B3', 
                                   major=None, regs_per_multiprocessor=None, max_threads_per_multi_processor=None, warp_size=32),
                                   'constants': {}, 'mix_mode': 'aiv'},
     inductor_meta={'autotune_hints': set(), 'kernel_name': 'triton_unk_fused_add_0', 'mutated_arg_names': [], 

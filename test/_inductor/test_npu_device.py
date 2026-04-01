@@ -1,8 +1,3 @@
-import torch
-from torch_npu.npu import device_count
-from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
-from torch_npu.utils._inductor import NPUDeviceOpOverrides
-from torch_npu._inductor.config import config as npu_config
 from torch_npu._inductor.npu_device import NewNPUDeviceOpOverrides
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -11,7 +6,7 @@ class TestNpuDevice(TestCase):
     def test_aoti_get_stream(self):
         overrides = NewNPUDeviceOpOverrides()
         result = overrides.aoti_get_stream()
-        excepted = "aoti_torch_get_current_cuda_stream"
+        excepted = "aoti_torch_get_current_npu_stream"
         self.assertEqual(result, excepted)
 
     def test_cpp_stream_type(self):
@@ -41,13 +36,14 @@ class TestNpuDevice(TestCase):
     def test_cpp_aoti_stream_guard(self):
         overrides = NewNPUDeviceOpOverrides()
         result = overrides.cpp_aoti_stream_guard()
-        excepted = "AOTICudaStreamGuard"
+        excepted = "AOTINpuStreamGuard"
         self.assertEqual(result, excepted)
 
-    def test_cpp_aoti_device_guard_not_implemented(self):
+    def test_cpp_aoti_device_guard(self):
         overrides = NewNPUDeviceOpOverrides()
-        with self.assertRaises(NotImplementedError):
-            overrides.cpp_aoti_device_guard()
+        result = overrides.cpp_aoti_device_guard()
+        excepted = "AOTINpuGuard"
+        self.assertEqual(result, excepted)
 
     def test_device_guard(self):
         overrides = NewNPUDeviceOpOverrides()

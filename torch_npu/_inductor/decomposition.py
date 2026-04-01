@@ -9,8 +9,6 @@ aten = torch.ops.aten
 
 DECOMPOSITION_OVERLOAD_OP = [
     aten.nll_loss_forward,
-    # aten.gelu_backward,
-    # aten.gelu,
     aten.nll_loss_backward,
     aten._log_softmax_backward_data,
     aten.embedding_dense_backward,
@@ -40,7 +38,7 @@ def _register_npu_inductor_decompositons():
 
     @register_decomposition([aten.erfc])
     def erfc(x):
-        tensor = torch.ones_like(x) - torch.exp(x)
+        tensor = torch.ones_like(x) - torch.erf(x)
         return tensor
 
     @register_decomposition(aten.native_dropout)

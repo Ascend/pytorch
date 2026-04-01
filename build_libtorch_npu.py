@@ -160,7 +160,8 @@ def run_cmake():
         '-DPYTHON_INCLUDE_DIR=' + get_paths().get('include'),
         '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir(),
         '-DTORCH_VERSION=' + VERSION,
-        '-DBUILD_LIBTORCH=' + "ON"]
+        '-DBUILD_LIBTORCH=' + "ON",
+        '-DUSE_NPU=' + "ON"]
 
     if check_opplugin_valid(BASE_DIR):
         cmake_args.append('-DBUILD_OPPLUGIN=on')

@@ -22,14 +22,14 @@ if not enable_inplace_buffers:
 enable_npu_indexing = True
 
 config.triton.unique_kernel_names = True
-# avoid test_opensora_cases_model_16_forward  reinterpre_tensor issue
+# avoid test_opensora_cases_model_16_forward  reinterpret_tensor issue
 config.allow_buffer_reuse = False
 # inductor debug switch
 config.trace.enabled = True
 
 config.fallback_random = True
 
-# npu hardware params from trion
+# npu hardware params from triton
 target = driver.active.get_current_target()
 device = driver.active.get_current_device()
 prop = driver.active.utils.get_device_properties(device)
@@ -88,7 +88,7 @@ class catlass:
 
     catlass_backend_min_gemm_size: int = 1
 
-    # Wheter to ignore GEMM template for standard matmul
+    # Whether to ignore GEMM template for standard matmul
     catlass_ignore_gemm_in_standard_mm: bool = True
 
     catlass_epilogue_fusion_enable = (
@@ -99,7 +99,7 @@ class catlass:
         os.environ.get("TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING", "0") == "1"
     )
 
-    # Note: This fuction is not implemented yet.
+    # Note: This function is not implemented yet.
     # enable generation of inline standalone runner in CATLASS CPP generated code
     # which allows to compile the generated code into a standalone executable.
     generate_test_runner: bool = (
