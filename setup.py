@@ -238,14 +238,20 @@ def generate_dbg_files_and_strip():
 
 
 def patchelf_dynamic_library():
-    library_dir = Path(BASE_DIR).joinpath("build/packages/torch_npu/lib")
-    library_files = [str(i) for i in library_dir.rglob('*.so')]
-    for library_file in library_files:
+    # Process all .so files in lib directory
+    lib_dir = Path(BASE_DIR).joinpath("build/packages/torch_npu/lib")
+    lib_files = [str(i) for i in lib_dir.rglob('*.so')]
+
+    # Process _C.cpython*.so files in parent directory
+    root_dir = Path(BASE_DIR).joinpath("build/packages/torch_npu")
+    c_files = [str(i) for i in root_dir.glob('_C.cpython*.so')]
+
+    # Combine all files to process
+    all_files = lib_files + c_files
+
+    for library_file in all_files:
         subprocess.check_call(["patchelf", "--remove-needed", "libgomp.so.1", library_file], cwd=BASE_DIR)  # Compliant
         subprocess.check_call(["patchelf", "--remove-needed", "libhccl.so", library_file], cwd=BASE_DIR)  # Compliant
-
-
-
 
 def CppExtension(name, sources, *args, **kwargs):
     r'''
