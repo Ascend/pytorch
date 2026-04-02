@@ -23,7 +23,7 @@ struct C10_NPU_API NPUEvent {
     // Constructors
     // Default value for `flags` is specified below
     NPUEvent();
-    NPUEvent(unsigned int flags) : flags_(flags) {}
+    NPUEvent(unsigned int flags);
     NPUEvent(c10::DeviceIndex device_index, const aclrtIpcEventHandle* handle);
 
     ~NPUEvent();
