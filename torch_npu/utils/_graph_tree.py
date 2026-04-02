@@ -140,7 +140,7 @@ def npugraphify_impl(
     Assumes inputs[static_input_idxs[i]] are always the same memory address
     """
     check_input_idxs = get_input_idxs_to_check(inputs, static_input_idxs)  # type: ignore[arg-type]
-    static_input_idxs: OrderedSet[int] = OrderedSet(
+    static_input_idxs = OrderedSet(
         remove_unaligned_input_idxs(inputs, static_input_idxs)  # type: ignore[arg-type]
     )
     copy_misaligned_inputs(inputs, check_input_idxs)  # type: ignore[arg-type]
@@ -235,7 +235,11 @@ def npugraphify_impl(
             graph.replay()
             return static_outputs
 
-    return align_inputs_from_check_idxs(run, check_input_idxs)
+    return align_inputs_from_check_idxs(
+        run,
+        inputs_to_check=check_input_idxs,
+        mutated_input_idxs=OrderedSet(),
+    )
 
 
 def check_for_skip(aot_model: torch.fx.GraphModule, num_fixed) -> Optional[str]:
