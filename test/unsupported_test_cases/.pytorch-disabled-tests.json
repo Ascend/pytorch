@@ -31679,7 +31679,6 @@
   "test_fake_autocast_fft_fftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_fake_autocast_fft_ifftshift_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
   "test_index_put_accumulate_large_tensor_npu (__main__.TestIndexingPRIVATEUSE1)": ["", ["910A"]],
-  "test_serialization_array_with_empty (__main__.TestNpu)": ["", [""]],
   "test_module_backcompat (__main__.TestNN)": ["", [""]],
   "test_register_state_dict_pre_hook_backward_compat (__main__.TestNN)": ["", [""]],
   "test_CTCLoss_empty_target_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
