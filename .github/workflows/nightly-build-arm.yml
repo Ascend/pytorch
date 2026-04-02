@@ -2,7 +2,7 @@ name: Ascend/pytorch Nightly Build Validation (ARM)
 
 on:
   pull_request:  # 监听所有PR事件
-    branches: master
+    branches: [ master ]
   schedule:
     - cron: '0 22 * * *'  # UTC 22:00（北京时间次日 06:00）
     - cron: '0 3 * * *'   # UTC 03:00（北京时间 11:00）
