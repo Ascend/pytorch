@@ -4,8 +4,7 @@ import os
 import torch
 from torch.distributed._tensor.experimental import register_sharding
 from torch.distributed.tensor._dtensor_spec import DTensorSpec, TensorMeta
-from torch.distributed.tensor._ops.registration import register_op_strategy
-from torch.distributed.tensor._ops.utils import expand_to_full_mesh_op_strategy
+from torch.distributed.tensor._ops.utils import expand_to_full_mesh_op_strategy, register_op_strategy
 from torch.distributed.tensor import DTensor, Partial, Replicate, Shard
 from torch.distributed.tensor._op_schema import (
     OpInfo,
@@ -767,6 +766,59 @@ def _npu_apply_adam_w_handler(
         return tuple(out_dts) if len(out_dts) > 1 else out_dts[0]
     else:
         return DTensor._op_dispatcher.wrap(local_results, output_sharding.output_spec)
+
+
+@register_op_strategy(aten.native_dropout.default)
+def custom_dropout_forward_sharding(op_schema: OpSchema):
+    args_schema = op_schema.args_schema
+
+    input_strategy = args_schema[0] if len(args_schema) > 0 else None
+    input_spec = input_strategy.strategies[0].output_spec
+    single_mesh_dim_strategies = []
+
+    if input_spec.placements[0].is_shard():
+        shard_dim = cast(Shard, input_spec.placements[0]).dim
+
+        if input_spec.shape[shard_dim] < input_spec.mesh.size(0):
+            output_target_specs = []
+            output_target_specs.append(input_spec)
+            output_target_specs.append(
+                DTensorSpec(
+                    mesh=input_spec.mesh,
+                    placements=[Shard(0)]
+                )
+            )
+            input_target_specs = []
+            input_target_specs.append(input_spec)
+            output_strategy = OpStrategy([
+                OpSpec(output_specs=output_target_specs, input_specs=input_target_specs)
+            ])
+            return output_strategy
+
+    replicate_strategy = [Replicate(), Replicate(), Replicate()]
+    single_mesh_dim_strategies.append(replicate_strategy)
+
+    for dim in range(input_spec.ndim):
+        shard_strategy = [Shard(dim), Shard(0), Shard(dim)]
+        single_mesh_dim_strategies.append(shard_strategy)
+
+    return expand_to_full_mesh_op_strategy(
+        input_spec.mesh, op_schema, single_mesh_dim_strategies, input_index=2
+    )
+
+
+@register_op_strategy(aten.native_dropout_backward.default)
+def custom_dropout_backward_sharding(op_schema: OpSchema) -> OpStrategy:
+    input_target_specs = []
+    for spec in op_schema.args_schema:
+        if isinstance(spec, OpStrategy):
+            input_target_specs.append(spec.strategies[0].output_spec)
+
+    output_strategy = OpStrategy([
+        OpSpec(output_specs=op_schema.args_schema[0].strategies[0].output_spec, input_specs=input_target_specs)
+    ])
+
+    return output_strategy
 
 
 customized_ops = {

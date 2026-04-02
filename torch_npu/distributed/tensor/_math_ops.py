@@ -11,10 +11,10 @@ from torch.distributed.tensor._op_schema import (
     PlacementList,
     RuntimeSchemaInfo,
 )
-from torch.distributed.tensor._ops.registration import register_op_strategy
 from torch.distributed.tensor._ops.utils import (
     generate_redistribute_costs,
     normalize_dim,
+    register_op_strategy,
     expand_to_full_mesh_op_strategy,
 )
 from torch.distributed.tensor._ops._math_ops import (
@@ -686,4 +686,76 @@ def custom_npu_repeat_interleave_backward_int_strategy(grad, x, repeats, dim=Non
                 )
                 acceptable_shardings.append(sharding_strategy)
 
+    return acceptable_shardings
+
+
+@register_sharding(aten.kl_div.default)
+def custom_KLDivLoss_forward_strategy(x, target, reduction=1, log_target=False):
+    acceptable_shardings = []
+
+    # all replicate strategy
+    replicate_strategy = (
+        [
+            Replicate()  # loss
+        ],
+        [
+            Replicate(), # x
+            Replicate(), # target
+            None, None
+        ]
+    )
+    acceptable_shardings.append(replicate_strategy)
+
+    for dim in range(x.ndim):
+        if reduction == 0:
+            shard_strategy = (
+                [Shard(dim)],
+                [Shard(dim), Shard(dim), None, None]
+            )
+        elif reduction == 1 and x.shape[dim] % x.mesh.size(0) == 0:
+            shard_strategy = (
+                [Partial("avg")],
+                [Shard(dim), Shard(dim), None, None]
+            )
+        elif reduction == 2:
+            shard_strategy = (
+                [Partial("sum")],
+                [Shard(dim), Shard(dim), None, None]
+            )
+        acceptable_shardings.append(shard_strategy)
+
+    return acceptable_shardings
+
+
+@register_sharding(npu.kl_div_backward.default)
+def custom_KLDivLoss_backward_strategy(grad_out, x, target, reduction=1, log_target=False):
+    acceptable_shardings = []
+
+    # all replicate strategy
+    replicate_strategy = (
+        [
+            Replicate()  # dx
+        ],
+        [
+            Replicate(), # grad_out
+            Replicate(), # x
+            Replicate(), # target
+            None, None
+        ]
+    )
+    acceptable_shardings.append(replicate_strategy)
+
+    for dim in range(x.ndim):
+        if reduction == 0:
+            shard_strategy = (
+                [Shard(dim)],
+                [Shard(dim), Shard(dim), Shard(dim), None, None]
+            )
+            acceptable_shardings.append(shard_strategy)
+        elif reduction == 2:
+            shard_strategy = (
+                [Shard(dim)],
+                [Replicate(), Shard(dim), Shard(dim), None, None]
+            )
+            acceptable_shardings.append(shard_strategy)
     return acceptable_shardings

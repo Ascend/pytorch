@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "third_party/acl/inc/acl/error_codes/rt_error_codes.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 
 #include <chrono>
 #include <cstddef>
@@ -22,6 +23,9 @@ constexpr int kSynchronizeBusyWaitMillis = 10;
 namespace {
 void apply_cache_op_info(aclrtStream stream, bool enabled)
 {
+    if (!IsGteCANNVersion("8.5.0", "CANN")) {
+        return;
+    }
     aclrtStreamAttrValue val;
     val.cacheOpInfoSwitch = static_cast<uint32_t>(enabled ? 1u : 0u);
     int32_t ret = c10_npu::acl::AclrtSetStreamAttribute(stream, aclrtStreamAttr::ACL_STREAM_ATTR_CACHE_OP_IFNO,
@@ -64,6 +68,18 @@ void graph_task_update_begin(c10_npu::NPUStream stream, NPUTaskGroupHandle handl
 void graph_task_update_end(c10_npu::NPUStream stream)
 {
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskUpdateEnd(stream));
+}
+
+void super_kernel_scope_begin(const char* scope_name)
+{
+    auto stream = c10_npu::getCurrentNPUStream();
+    NPU_CHECK_ERROR(c10_npu::skapi::AclskScopeBegin(scope_name, stream));
+}
+
+void super_kernel_scope_end(const char* scope_name)
+{
+    auto stream = c10_npu::getCurrentNPUStream();
+    NPU_CHECK_ERROR(c10_npu::skapi::AclskScopeEnd(scope_name, stream));
 }
 
 void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData)
@@ -280,6 +296,13 @@ void NPUGraph::debug_dump(const std::string& debug_path)
     } else {
         TORCH_WARN("Called NPUGraph::debug_dump without a preceding successful capture.");
     }
+}
+
+void NPUGraph::super_kernel_optimize(const aclskOptions *options)
+{
+    TORCH_CHECK(has_graph_exec_,
+                "Called NPUGraph::super_kernel_optimize without a preceding successful capture.");
+    NPU_CHECK_ERROR(c10_npu::skapi::AclskOptimize(model_ri_, options));
 }
 
 void NPUGraph::reset()

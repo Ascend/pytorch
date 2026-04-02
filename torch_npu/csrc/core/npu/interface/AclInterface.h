@@ -254,6 +254,8 @@ aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
 
 aclError AclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path);
 
+aclError AclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode* mode);
+
 /**
  * @ingroup AscendCL
  * @brief register host memory
@@ -366,6 +368,8 @@ bool IsExistDeviceGetUuid();
 
 aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uuid);
 
+aclError AclrtGetPrimaryCtxState(int32_t deviceId, uint32_t* flags, int32_t* activate);
+
 aclError AclrtValueWait(void* event, aclrtStream stream);
 
 aclError AclrtValueWrite(void* event, uint64_t value, aclrtStream stream);
@@ -377,6 +381,12 @@ aclError AclrtGetErrorVerbose(int32_t deviceId, aclrtErrorInfo *errorInfo);
 bool IsExistAclrtRepairError();
 
 aclError AclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo);
+
+bool IsExistAclrtGetDeviceInfo();
+
+aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value);
+
+aclError AclrtMemSet(void *devPtr, size_t maxCount, int32_t value, size_t count);
 
 } // namespace acl
 } // namespace c10_npu

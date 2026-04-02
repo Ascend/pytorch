@@ -13,6 +13,9 @@ namespace symmetric_memory {
 static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.symmetric_memory");
 static NPUStoreExchange storeExchange = NPUStoreExchange("NPUSHMEMSymmetricMemory");
 
+static std::mutex rank_map_mutex;
+static std::unordered_map<std::string, std::vector<int>> rank_to_global_rank_map{};
+
 NPUSHMEMAllocation::~NPUSHMEMAllocation()
 {
     // Avoid calling NPU functions after driver shutting down
@@ -46,30 +49,33 @@ NPUSHMEMSymmetricMemory::NPUSHMEMSymmetricMemory(
     world_size_ = group_info.world_size;
     // Exchange rank to global rank mapping for this group.
     // If it is already available, skip the exchange.
-    if (group_info.rank_to_global_rank.empty()) {
-        group_info.rank_to_global_rank =
+    std::lock_guard<std::mutex> rank_map_lock(rank_map_mutex);
+    auto it = rank_to_global_rank_map.find(group_name_);
+    if (it == rank_to_global_rank_map.end()) {
+        auto rank_to_global_rank =
             storeExchange.all_gather(store, rank_, world_size_, global_rank);
         exchanged_n_times++;
         if (rank_ == 0) {
             std::stringstream ss;
-            for (size_t i = 0; i < group_info.rank_to_global_rank.size(); ++i) {
-                ss << group_info.rank_to_global_rank[i];
-                if (i != group_info.rank_to_global_rank.size() - 1) {
+            for (size_t i = 0; i < rank_to_global_rank.size(); ++i) {
+                ss << rank_to_global_rank[i];
+                if (i != rank_to_global_rank.size() - 1) {
                     ss << ", ";
                 }
             }
             logger->debug("[rank %d] rank_to_global_rank: %s, group_name: %s, exchanged_n_times: %d.",
                 rank_, (ss.str()).c_str(), group_name_.c_str(), exchanged_n_times);
         }
+        it = rank_to_global_rank_map.emplace_hint(
+            it, group_name_, rank_to_global_rank);
     }
-    TORCH_INTERNAL_ASSERT(!group_info.rank_to_global_rank.empty());
-    rank_to_global_rank_ = group_info.rank_to_global_rank;
+    auto& rank_to_global_rank = it->second;
     for (int r = 0; r < world_size_; ++r) {
-        auto buffer = Aclshmem_ptr(allocation->ptr, rank_to_global_rank_[r]);
+        auto buffer = Aclshmem_ptr(allocation->ptr, rank_to_global_rank[r]);
         TORCH_CHECK(buffer != nullptr, "shmem_ptr return nullptr with ptr ", allocation->ptr, DIST_ERROR(ErrCode::MEMORY));
         buffers_.push_back(buffer);
         logger->debug("[rank %d] NPUSHMEMSymmetricMemory shmem_ptr, r is %d, rank_to_global_rank is %d, ptr is %p, shmem_ptr is %p.",
-            rank_, r, rank_to_global_rank_[r], allocation->ptr, buffer);
+            rank_, r, rank_to_global_rank[r], allocation->ptr, buffer);
     }
 
     // to be done
@@ -155,12 +161,11 @@ int NPUSHMEMSymmetricMemory::get_world_size()
 
 const std::vector<int>& NPUSHMEMSymmetricMemory::get_rank_to_global_rank()
 {
-    return rank_to_global_rank_;
-}
-
-int* NPUSHMEMSymmetricMemory::get_rank_to_global_rank_dev()
-{
-    return rank_to_global_rank_dev_;
+    std::lock_guard<std::mutex> lock(rank_map_mutex);
+    auto it = rank_to_global_rank_map.find(group_name_);
+    TORCH_CHECK(it != rank_to_global_rank_map.end(),
+        "Group name not found in rank_to_global_rank_map", DIST_ERROR(ErrCode::PARAM));
+    return it->second;
 }
 
 c10::Device NPUSHMEMSymmetricMemory::get_device()
@@ -250,6 +255,11 @@ c10::DeviceType NPUSHMEMSymmetricMemoryAllocator::supported_device_type()
 std::string NPUSHMEMSymmetricMemoryAllocator::name()
 {
     return "NPUSHMEM";
+}
+
+size_t NPUSHMEMSymmetricMemory::get_offset()
+{
+    return 0;
 }
 
 struct RegisterNPUSHMEMSymmetricMemoryAllocator {

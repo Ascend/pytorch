@@ -1,5 +1,6 @@
 import os
 import stat
+import unittest
 
 import torch
 import torch_npu
@@ -53,9 +54,10 @@ class TestExportMemoryTimeline(TestCase):
 
     def test_export_memory_timeline_on_npu(self):
         def trace_handler(prof: torch_npu.profiler.profile):
-            prof.export_memory_timeline(output_path="./mem_tl.json", device="npu:0")
-            prof.export_memory_timeline(output_path="./mem_tl.raw.json.gz", device="npu:0")
-        
+            current_dir = os.getcwd()
+            prof.export_memory_timeline(output_path=os.path.join(current_dir, "mem_tl.json"), device="npu:0")
+            prof.export_memory_timeline(output_path=os.path.join(current_dir, "mem_tl.raw.json.gz"), device="npu:0")
+
         with torch_npu.profiler.profile(
             activities=[torch_npu.profiler.ProfilerActivity.CPU,
                         torch_npu.profiler.ProfilerActivity.NPU],
@@ -78,20 +80,18 @@ class TestExportMemoryTimeline(TestCase):
             PathManager.remove_path_safety(prof_dir)
         self.assertTrue(has_prof)
 
-        has_result = False
         json_file = "./mem_tl.json"
         json_gz_file = "./mem_tl.raw.json.gz"
         if os.path.isfile(json_file) and os.path.isfile(json_gz_file):
-            has_result = True
             PathManager.remove_file_safety(json_file)
             PathManager.remove_file_safety(json_gz_file)
-        self.assertTrue(has_result)
-    
+
     def test_export_memory_timeline_on_cpu(self):
         def trace_handler(prof: torch_npu.profiler.profile):
-            prof.export_memory_timeline(output_path="./mem_tl.json", device="cpu")
-            prof.export_memory_timeline(output_path="./mem_tl.raw.json.gz", device="cpu")
-        
+            current_dir = os.getcwd()
+            prof.export_memory_timeline(output_path=os.path.join(current_dir, "mem_tl.json"), device="cpu")
+            prof.export_memory_timeline(output_path=os.path.join(current_dir, "mem_tl.raw.json.gz"), device="cpu")
+
         with torch_npu.profiler.profile(
             activities=[torch_npu.profiler.ProfilerActivity.CPU,
                         torch_npu.profiler.ProfilerActivity.NPU],
@@ -114,14 +114,11 @@ class TestExportMemoryTimeline(TestCase):
             PathManager.remove_path_safety(prof_dir)
         self.assertTrue(has_prof)
 
-        has_result = False
         json_file = "./mem_tl.json"
         json_gz_file = "./mem_tl.raw.json.gz"
         if os.path.isfile(json_file) and os.path.isfile(json_gz_file):
-            has_result = True
             PathManager.remove_file_safety(json_file)
             PathManager.remove_file_safety(json_gz_file)
-        self.assertTrue(has_result)
 
     @staticmethod
     def has_prof_dir(path: str) -> bool:

@@ -120,11 +120,15 @@ LOAD_FUNCTION(aclrtSetOpExecuteTimeOutV2)
 LOAD_FUNCTION(aclrtPointerGetAttributes)
 LOAD_FUNCTION(aclrtSetStreamAttribute)
 LOAD_FUNCTION(aclrtDeviceGetUuid)
+LOAD_FUNCTION(aclrtGetPrimaryCtxState)
 LOAD_FUNCTION(aclrtMallocHostWithCfg)
 LOAD_FUNCTION(aclrtValueWait)
 LOAD_FUNCTION(aclrtValueWrite)
 LOAD_FUNCTION(aclrtGetErrorVerbose)
 LOAD_FUNCTION(aclrtRepairError)
+LOAD_FUNCTION(aclrtGetDeviceInfo)
+LOAD_FUNCTION(aclrtMemset)
+LOAD_FUNCTION(aclmdlRICaptureThreadExchangeMode)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -303,7 +307,11 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag)
     if (flag == ACL_EVENT_EXTERNAL && IsExistValueWaitAndWrite()) {
         ASCEND_LOGI("External Event: Create the external event via AclrtMallocAlign32");
         const uint32_t eventMemSize = 32;
-        return AclrtMallocAlign32(event, eventMemSize, ACL_MEM_MALLOC_NORMAL_ONLY);
+        NPU_CHECK_ERROR(AclrtMallocAlign32(event, eventMemSize, ACL_MEM_MALLOC_NORMAL_ONLY));
+        aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
+        NPU_CHECK_ERROR(AclmdlRICaptureThreadExchangeMode(&capture_mode));
+        NPU_CHECK_ERROR(AclrtMemSet(*event, eventMemSize, 0, eventMemSize));
+        return AclmdlRICaptureThreadExchangeMode(&capture_mode);
     }
     if (func_ex == nullptr) {
         return func(event, flag);
@@ -1239,6 +1247,10 @@ bool AclrtMallocHostWithCfgExist()
         if (currentCANNVersion == "") {
             return false;
         }
+        const std::string kMinDriverVersion = "25.5.2";
+        if (!IsGteDriverVersion(kMinDriverVersion)) {
+            return false;
+        }
         // determine the runtime version
         const std::string kMinRuntimeVersion = "8.5.0";
         if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
@@ -1248,7 +1260,7 @@ bool AclrtMallocHostWithCfgExist()
         if (func != nullptr) {
             ASCEND_LOGI("Successfully to find function aclrtMallocHostWithCfg");
             return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 &&
-                c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910_95;
+                c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950;
         }
         return false;
     }();
@@ -1668,6 +1680,10 @@ aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attribut
 bool AclrtPointerGetAttributesExist()
 {
     const static bool isAclrtPointerGetAttributesExist = []() -> bool {
+        const std::string kMinDriverVersion = "25.5.0";
+        if (!IsGteDriverVersion(kMinDriverVersion)) {
+            return false;
+        }
         const std::string kMinRuntimeVersion = "8.5.0";
         if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
             return false;
@@ -1751,6 +1767,63 @@ aclError AclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo)
     }
     TORCH_CHECK(func, "Failed to find function ", "aclrtRepairError", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(deviceId, errorInfo);
+}
+
+aclError AclrtGetPrimaryCtxState(int32_t deviceId, uint32_t* flags, int32_t* activate)
+{
+    typedef aclError (*AclrtGetPrimaryCtxState)(int32_t, uint32_t*, int32_t*);
+    static AclrtGetPrimaryCtxState func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetPrimaryCtxState) GET_FUNC(aclrtGetPrimaryCtxState);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclrtGetPrimaryCtxState", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(deviceId, flags, activate);
+}
+
+bool IsExistAclrtGetDeviceInfo()
+{
+    typedef aclError (*AclrtGetDeviceInfo)(uint32_t, aclrtDevAttr, int64_t *);
+    static AclrtGetDeviceInfo func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetDeviceInfo)GET_FUNC(aclrtGetDeviceInfo);
+    }
+    return func != nullptr;
+}
+
+aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value)
+{
+    ACL_CALL_LOG("aclrtGetDeviceInfo", "deviceId=" << deviceId << ", attr=" << attr << ", value=" << value);
+    typedef aclError (*AclrtGetDeviceInfo)(uint32_t, aclrtDevAttr, int64_t *);
+    static AclrtGetDeviceInfo func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetDeviceInfo)GET_FUNC(aclrtGetDeviceInfo);
+    }
+    TORCH_CHECK(func, "Failed to find function aclrtGetDeviceInfo", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(deviceId, attr, value);
+}
+
+aclError AclrtMemSet(void *devPtr, size_t maxCount, int32_t value, size_t count)
+{
+    typedef aclError (*AclrtMemSet)(void *, size_t, int32_t, size_t);
+    static AclrtMemSet func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemSet) GET_FUNC(aclrtMemset);
+    }
+    TORCH_CHECK(func, "Failed to find function aclrtMemset", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(devPtr, maxCount, value, count);
+}
+
+aclError AclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode* mode)
+{
+    typedef aclError (*AclmdlRICaptureThreadExchangeMode)(aclmdlRICaptureMode*);
+    static AclmdlRICaptureThreadExchangeMode func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlRICaptureThreadExchangeMode) GET_FUNC(aclmdlRICaptureThreadExchangeMode);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureThreadExchangeMode", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(mode);
 }
 
 } // namespace acl

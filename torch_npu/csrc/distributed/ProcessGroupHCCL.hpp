@@ -6,16 +6,49 @@
 #include <variant>
 #include <future>
 #include <atomic>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <c10d/ProcessGroup.hpp>
 #include <c10d/Store.hpp>
 #include <c10d/Utils.hpp>
 #include <c10d/Work.hpp>
 
 #include "third_party/hccl/inc/hccl/hccl.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
-#include "torch_npu/csrc/npu/Event.h"
+#include "torch_npu/csrc/core/npu/NPUEvent.h"
 
+inline std::shared_ptr<npu_logging::Logger>& GetLoggerHccl()
+{
+    static std::shared_ptr<npu_logging::Logger> loggerHccl = npu_logging::logging().getLogger("torch.distributed");
+    return loggerHccl;
+}
+// macros for log hccl
+#define TORCH_NPU_HCCL_LOGD(format, ...)                                       \
+    do {                                                                       \
+        TORCH_NPU_LOGD(GetLoggerHccl(), format, ##__VA_ARGS__);                \
+        ASCEND_LOGD(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_HCCL_LOGI(format, ...)                                       \
+    do {                                                                       \
+        TORCH_NPU_LOGI(GetLoggerHccl(), format, ##__VA_ARGS__);                \
+        ASCEND_LOGI(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_HCCL_LOGW(format, ...)                                       \
+    do {                                                                       \
+        TORCH_NPU_LOGW(GetLoggerHccl(), format, ##__VA_ARGS__);                \
+        ASCEND_LOGW(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_HCCL_LOGE(format, ...)                                       \
+    do {                                                                       \
+        TORCH_NPU_LOGE(GetLoggerHccl(), format, ##__VA_ARGS__);                \
+        ASCEND_LOGE(format, ##__VA_ARGS__);                                    \
+    } while (0);
 
 namespace c10d_npu {
 // Environment variable which controls whether or not wait() is blocking or
@@ -104,6 +137,7 @@ struct ProcessGroupStatus {
     size_t lastStartedNumelOut;
 };
 
+#ifndef BUILD_LIBTORCH
 struct DumpPipe {
     DumpPipe(int rank)
     {
@@ -148,6 +182,7 @@ struct DumpPipe {
 private:
     int fd_ = -1;
 };
+#endif
 
 // A shelf for stashing tensors between op call and `work.wait()`.
 // Used in case of async ops.
@@ -759,6 +794,8 @@ public:
     const std::vector<uint32_t>& groupRanks() const;
 
     int64_t getStreamId(bool p2p, int peer);
+
+    int64_t getP2PStreamId(at::Device device, int peer, int is_batched);
 
     void windowRegisterAndExchange(int64_t windowSize, std::vector<uint32_t>& peerRanks);
 

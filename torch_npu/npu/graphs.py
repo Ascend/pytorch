@@ -8,6 +8,8 @@ __all__ = [
     "NPUGraph",
     "graph",
     "make_graphed_callables",
+    "super_kernel_scope_begin",
+    "super_kernel_scope_end",
 ]
 
 import gc
@@ -19,6 +21,8 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Tuple
 
 import torch
+from torch.fx.node import has_side_effect
+
 import torch_npu._C
 from torch_npu._C import _weak_ref_tensor as TensorWeakRef
 from torch_npu.npu._npugraph_handlers.npugraph_handler import _NPU_GRAPH_OP_HANDLERS
@@ -38,6 +42,8 @@ if not hasattr(torch_npu._C, "_NPUStreamBase"):
     torch_npu._C.__dict__["_graph_task_group_end"] = _dummy_type("_graph_task_group_end")
     torch_npu._C.__dict__["_graph_task_update_begin"] = _dummy_type("_graph_task_update_begin")
     torch_npu._C.__dict__["_graph_task_update_end"] = _dummy_type("_graph_task_update_end")
+    torch_npu._C.__dict__["_super_kernel_scope_begin"] = _dummy_type("_super_kernel_scope_begin")
+    torch_npu._C.__dict__["_super_kernel_scope_end"] = _dummy_type("_super_kernel_scope_end")
 
 from torch_npu._C import (  # noqa: F401
     _npu_isCurrentStreamCapturing,
@@ -47,6 +53,8 @@ from torch_npu._C import (  # noqa: F401
     _graph_task_group_end,
     _graph_task_update_begin,
     _graph_task_update_end,
+    _super_kernel_scope_begin,
+    _super_kernel_scope_end,
 )
 
 
@@ -84,6 +92,59 @@ def graph_task_update_begin(stream, handle):
 
 def graph_task_update_end(stream):
     _graph_task_update_end(stream)
+
+
+def _super_kernel_scope_begin_impl(scope_name: Optional[str] = None) -> None:
+    if scope_name is not None and not scope_name.strip():
+        raise RuntimeError(
+            f"scope_name should be None or a non-empty string.",
+            pta_error(ErrCode.PARAM),
+        )
+    _super_kernel_scope_begin(scope_name)
+
+
+def _super_kernel_scope_end_impl(scope_name: Optional[str] = None) -> None:
+    if scope_name is not None and not scope_name.strip():
+        raise RuntimeError(
+            f"scope_name should be None or a non-empty string.",
+            pta_error(ErrCode.PARAM),
+        )
+    _super_kernel_scope_end(scope_name)
+
+_npu_lib = torch.library.Library("npu", "FRAGMENT")
+if not hasattr(torch.ops.npu, "super_kernel_scope_begin"):
+    _npu_lib.define("super_kernel_scope_begin(str? scope_name=None) -> ()")
+
+    _npu_lib.impl("super_kernel_scope_begin", _super_kernel_scope_begin_impl, "PrivateUse1")
+    _npu_lib.impl("super_kernel_scope_begin", _super_kernel_scope_begin_impl, "BackendSelect")
+    _npu_lib.impl("super_kernel_scope_begin", _super_kernel_scope_begin_impl, "CPU")
+
+    has_side_effect(torch.ops.npu.super_kernel_scope_begin.default)
+
+    @torch.library.register_fake("npu::super_kernel_scope_begin")
+    def _super_kernel_scope_begin_meta(scope_name: Optional[str] = None):
+        pass
+
+if not hasattr(torch.ops.npu, "super_kernel_scope_end"):
+    _npu_lib.define("super_kernel_scope_end(str? scope_name=None) -> ()")
+
+    _npu_lib.impl("super_kernel_scope_end", _super_kernel_scope_end_impl, "PrivateUse1")
+    _npu_lib.impl("super_kernel_scope_end", _super_kernel_scope_end_impl, "BackendSelect")
+    _npu_lib.impl("super_kernel_scope_end", _super_kernel_scope_end_impl, "CPU")
+
+    has_side_effect(torch.ops.npu.super_kernel_scope_end.default)
+
+    @torch.library.register_fake("npu::super_kernel_scope_end")
+    def _super_kernel_scope_end_meta(scope_name: Optional[str] = None):
+        pass
+
+
+def super_kernel_scope_begin(scope_name: Optional[str] = None):
+    return torch.ops.npu.super_kernel_scope_begin(scope_name)
+
+
+def super_kernel_scope_end(scope_name: Optional[str] = None):
+    return torch.ops.npu.super_kernel_scope_end(scope_name)
 
 
 @dataclass
@@ -340,6 +401,64 @@ class NPUGraph(torch_npu._C._NPUGraph):
             debug_path (required): Path to dump the graph to.
         """
         return super().debug_dump(debug_path)
+
+    def super_kernel_optimize(self, optimize_options=None, debug_options=None):
+        r"""Calls a function to optimize graph by super kernel.
+
+        Arguments:
+            optimize_options (optional):
+                preload_code (int) - Controls code preloading strategy.
+                split_mode (int) - Controls kernel splitting mode for better performance.
+                stream_fusion (int) - Enables/disables stream fusion optimization.
+
+            debug_options (optional):
+                debug_sync_all (int) - Enables debug synchronization for all operations.
+                debug_dcci_disable_on_kernel (list) - Comma-separated list of kernel names to disable optimization.
+        """
+        self._validate_options("optimize_options", optimize_options)
+        self._validate_options("debug_options", debug_options)
+        return super().super_kernel_optimize(optimize_options, debug_options)
+
+    def _validate_options(self, option_name, options=None):
+        if options is None:
+            return
+
+        if not isinstance(options, dict):
+            raise RuntimeError(f"{option_name} param must be dict or None.", pta_error(ErrCode.PARAM))
+
+        valid_options = {
+            'optimize_options': {
+                'preload_code': {
+                    'value_type': int
+                },
+                'split_mode': {
+                    'value_type': int
+                },
+                'stream_fusion': {
+                    'value_type': int
+                }
+            },
+            'debug_options': {
+                'debug_sync_all': {
+                    'value_type': int
+                },
+                'debug_dcci_disable_on_kernel': {
+                    'value_type': list
+                }
+            }
+        }
+
+        for key, value in options.items():
+            if option_name not in valid_options:
+                raise RuntimeError(f"Invalid {option_name} param.", pta_error(ErrCode.PARAM))
+
+            if key not in valid_options[option_name]:
+                raise RuntimeError(f"Invalid {option_name} param key: '{key}'.", pta_error(ErrCode.PARAM))
+
+            expected_type = valid_options[option_name][key]['value_type']
+            if not isinstance(value, expected_type):
+                raise RuntimeError(f"{option_name} param['{key}'] must be {expected_type.__name__}, "
+                                   f"got {type(value).__name__}", pta_error(ErrCode.PARAM))
 
 
 class graph:

@@ -93,6 +93,20 @@ void* mallocHostSwapMemory(size_t size)
 
 static void svm_deleter(void* ptr)
 {
+    if (ptr == nullptr) {
+        return;
+    }
+
+    auto it = memBlocks.find(ptr);
+    if (it != memBlocks.end()) {
+        c10_npu::npuSynchronizeDevice();
+        // 1. 注销主机内存注册
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtHostUnregister(it->second.alignedPtr));
+        // 2. 释放主机内存
+        NPU_CHECK_ERROR(aclrtFreeHost(it->second.ptr));
+        // 3. 从映射表中移除
+        memBlocks.erase(it);
+    }
 }
 
 namespace c10_npu {
@@ -118,7 +132,7 @@ public:
     // Note [COW/lazy_clone is not supported yet]
     void copy_data(void* dest, const void* src, std::size_t count) const final
     {
-        default_copy_data(dest, src, count);
+        NPU_CHECK_ERROR(aclrtMemcpy(dest, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE));
     }
 }; // class NpuSwappedMemoryAllocator
 

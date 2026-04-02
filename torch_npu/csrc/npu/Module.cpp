@@ -36,6 +36,7 @@
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
@@ -201,7 +202,14 @@ void initDeviceProperty(int64_t deviceid)
     } else {
         device_properties[deviceid].name = std::string(device_name);
     }
-    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    static const bool is_cann_900beta2 = IsGteCANNVersion("9.0.0.beta2", "CANN");
+    if (is_cann_900beta2 && c10_npu::acl::IsExistAclrtGetDeviceInfo()) {
+        int64_t tmp_device_total = 0;
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtGetDeviceInfo(static_cast<uint32_t>(deviceid), ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE, &tmp_device_total));
+        device_total = static_cast<size_t>(tmp_device_total);
+    } else {
+        NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    }
     device_properties[deviceid].totalGlobalMem = device_total;
 
     NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_AI_CORE_NUM, &cube_core_num));
@@ -212,6 +220,15 @@ void initDeviceProperty(int64_t deviceid)
 
     NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_L2_SIZE, &L2_cache_size));
     device_properties[deviceid].L2_cache_size = L2_cache_size;
+
+    // Set multi_processor_count to vector_core_num for compatibility with DataParallel balance check
+    // Use vector_core_num as it represents the number of processing units similar to CUDA's multi_processor_count
+    if (vector_core_num > 0) {
+        device_properties[deviceid].multi_processor_count = static_cast<int>(vector_core_num);
+    } else if (cube_core_num > 0) {
+        // Fallback to cube_core_num if vector_core_num is not available
+        device_properties[deviceid].multi_processor_count = static_cast<int>(cube_core_num);
+    }
 
     if (c10_npu::acl::IsExistDeviceGetUuid()) {
         aclError err = c10_npu::acl::AclrtDeviceGetUuid(deviceid, &uuid);
@@ -417,6 +434,33 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             std::function<FuncType> func =
                 reinterpret_cast<FuncType*>(func_ptr);
             self.set_reset_peak_status_fn(func);
+        })
+        .def(
+        "set_begin_allocate_to_pool",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>);
+            std::function<FuncType> func =
+                 reinterpret_cast<FuncType*>(func_ptr);
+            self.set_begin_allocate_to_pool(func);
+        })
+        .def(
+        "set_end_allocate_to_pool_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(int, c10_npu::MempoolId_t);
+            std::function<FuncType> func =
+                 reinterpret_cast<FuncType*>(func_ptr);
+            self.set_end_allocate_to_pool_fn(func);
+        })
+        .def(
+        "set_release_pool",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(int, c10_npu::MempoolId_t);
+            std::function<FuncType> func =
+                 reinterpret_cast<FuncType*>(func_ptr);
+            self.set_release_pool(func);
         });
 
     m.def(
@@ -480,13 +524,7 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             }
             return true;
         });
-    m.def(
-        "_storage_Use_Count",
-        [](size_t storage_impl_ptr) {
-            // NOLINTNEXTLINE(performance-no-int-to-ptr)
-            c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
-            return c10::raw::weak_intrusive_ptr::use_count(storage_impl);
-        });
+
     m.def(
         "_npu_getCheckpointState",
         [](c10::DeviceIndex device, c10_npu::MempoolId_t id) {
@@ -511,7 +549,7 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             }
             auto delta = c10_npu::NPUCachingAllocator::setCheckpointPoolState(device, std::move(pps));
             auto& freed_pointers = delta.ptrs_freed;
-    
+
             std::unordered_set<void*> allocd_set;
             for (auto& data_ptr : delta.dataptrs_allocd) {
                 allocd_set.insert(data_ptr.get());
@@ -532,7 +570,7 @@ void RegisterNpuPluggableAllocator(PyObject* module)
                 ptr_set.size() >= definite_freed_count,
                 "Any stale tensors which are being manually freed"
                 " must be passed to set checkpoint", PTA_ERROR(ErrCode::PARAM));
-    
+
             removeStorageDeleterFns(ptrs, freed_pointer_set);
             std::vector<c10::StorageImpl*> storages_to_add_deleters_to;
             storages_to_add_deleters_to.reserve(storages_to_add_deleters_to_ptr.size());
@@ -540,7 +578,7 @@ void RegisterNpuPluggableAllocator(PyObject* module)
                 // NOLINTNEXTLINE(performance-no-int-to-ptr)
                 storages_to_add_deleters_to.push_back((c10::StorageImpl*)ptr_int);
             }
-    
+
             addStorageDeleterFns(storages_to_add_deleters_to, delta);
             });
     m.def(
@@ -2275,6 +2313,16 @@ PyObject* THNPModule_get_deterministic_level(PyObject* self, PyObject*  noargs)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_hasPrimaryContext_wrap(PyObject* self, PyObject* arg)
+{
+    HANDLE_TH_ERRORS
+    TORCH_CHECK(THPUtils_checkLong(arg), "invalid argument to _npu_hasPrimaryContext",
+                PTA_ERROR(ErrCode::VALUE));
+    c10::DeviceIndex device_index = static_cast<int32_t>(THPUtils_unpackDeviceIndex(arg));
+    return PyBool_FromLong(c10_npu::hasPrimaryContext(device_index));
+    END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -2351,6 +2399,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_device_res_limit", (PyCFunction)THNPModule_get_device_res_limit, METH_VARARGS, nullptr},
     {"_npu_set_device_res_limit", (PyCFunction)THNPModule_set_device_res_limit, METH_VARARGS, nullptr},
     {"_npu_reset_device_res_limit", (PyCFunction)THNPModule_reset_device_res_limit, METH_O, nullptr},
+    {"_npu_hasPrimaryContext", (PyCFunction)THNPModule_hasPrimaryContext_wrap, METH_O, nullptr},
     {"_aclop_start_dump", (PyCFunction)THNPModule_aclop_start_dump, METH_O, nullptr},
     {"_aclop_stop_dump", (PyCFunction)THNPModule_aclop_stop_dump, METH_NOARGS, nullptr},
     {"_npu_set_stream_res_limit", (PyCFunction)THNPModule_set_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},

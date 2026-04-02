@@ -176,16 +176,90 @@ class TestTreeManagerContainer(TestCase):
 
 
 class TestStorageWeakRefWrapper(TestCase):
-    def test_storage_ref(self):
+    def test_init_from_tensor(self):
         tensor = torch.tensor([1], device="npu")
         wrapper = StorageWeakRefWrapper(tensor)
         self.assertEqual(wrapper.data_ptr(), tensor.untyped_storage().data_ptr())
-        del tensor
-        # Storage might still be alive due to Python's ref counting; force GC
-        import gc
+        self.assertFalse(wrapper.expired())
 
+    def test_init_from_untyped_storage(self):
+        tensor = torch.tensor([1], device="npu")
+        storage = tensor.untyped_storage()
+        wrapper = StorageWeakRefWrapper(storage)
+        self.assertEqual(wrapper.data_ptr(), storage.data_ptr())
+        self.assertFalse(wrapper.expired())
+
+    def test_expired_after_delete(self):
+        tensor = torch.tensor([1], device="npu")
+        wrapper = StorageWeakRefWrapper(tensor)
+        del tensor
+        import gc
         gc.collect()
         self.assertTrue(wrapper.expired())
+
+    def test_call_returns_cdata_when_alive(self):
+        tensor = torch.tensor([1], device="npu")
+        wrapper = StorageWeakRefWrapper(tensor)
+        result = wrapper()
+        self.assertIsNotNone(result)
+
+    def test_call_returns_none_when_expired(self):
+        tensor = torch.tensor([1], device="npu")
+        wrapper = StorageWeakRefWrapper(tensor)
+        del tensor
+        import gc
+        gc.collect()
+        self.assertIsNone(wrapper())
+
+    def test_data_ptr_persists_after_expiry(self):
+        tensor = torch.tensor([1], device="npu")
+        expected_ptr = tensor.untyped_storage().data_ptr()
+        wrapper = StorageWeakRefWrapper(tensor)
+        del tensor
+        import gc
+        gc.collect()
+        # data_ptr() must return the original ptr even after storage has expired
+        self.assertEqual(wrapper.data_ptr(), expected_ptr)
+
+    def test_from_weakref_and_data_ptr(self):
+        tensor = torch.tensor([1], device="npu")
+        storage = tensor.untyped_storage()
+        cdata = storage._cdata
+        data_ptr = storage.data_ptr()
+        wrapper = StorageWeakRefWrapper.from_weakref_and_data_ptr(cdata, data_ptr)
+        self.assertEqual(wrapper.data_ptr(), data_ptr)
+        self.assertFalse(wrapper.expired())
+
+    def test_extra_ref_check_prevents_expiry(self):
+        tensor = torch.tensor([1], device="npu")
+        # extra_ref_check returning False means "not expired yet"
+        extra_check = MagicMock(return_value=False)
+        wrapper = StorageWeakRefWrapper(tensor, extra_ref_check=extra_check)
+        self.assertFalse(wrapper.expired())
+        extra_check.assert_called()
+
+    def test_remove_extra_reference(self):
+        tensor = torch.tensor([1], device="npu")
+        extra_check = MagicMock(return_value=False)
+        wrapper = StorageWeakRefWrapper(tensor, extra_ref_check=extra_check)
+        wrapper.remove_extra_reference()
+        self.assertIsNone(wrapper.extra_ref_check)
+
+    def test_repr_alive(self):
+        tensor = torch.tensor([1], device="npu")
+        wrapper = StorageWeakRefWrapper(tensor)
+        r = repr(wrapper)
+        self.assertIn("alive", r)
+        self.assertIn(str(wrapper.data_ptr()), r)
+
+    def test_repr_dead(self):
+        tensor = torch.tensor([1], device="npu")
+        wrapper = StorageWeakRefWrapper(tensor)
+        del tensor
+        import gc
+        gc.collect()
+        r = repr(wrapper)
+        self.assertIn("dead", r)
 
 
 class TestNPUWarmupNode(TestCase):
@@ -364,7 +438,7 @@ class TestNPUGraphNode:
         ) as mock_construct:
             outputs = basic_npu_graph_node.reconstruct_outputs()
             assert len(outputs) == 1
-        
+
     def test_reconstruct_outputs_with_format(self, basic_npu_graph_node):
         # Setup mock metadata and storage info
         basic_npu_graph_node.outputs_metadata = [
@@ -694,15 +768,15 @@ class TestNPUGraphNodeRun(TestCase):
 
 
 class TestGetNpugraphSegments(TestCase):
-    @patch('torch.npu.memory_snapshot')  
-    def test_get_npugraph_segments(self, mock_snapshot):            
+    @patch('torch.npu.memory_snapshot')
+    def test_get_npugraph_segments(self, mock_snapshot):
         mock_snapshot.return_value = [
                     {"segment_pool_id": (0, 1), "address": 1000, "blocks": []},
                     {"segment_pool_id": (0, 0), "address": 2000, "blocks": []},
                     {"segment_pool_id": (0, 1), "address": 3000, "blocks": []},
-                ]                      
-        result = get_npugraph_segments((0, 1))                      
-        self.assertEqual(len(result), 2)      
+                ]
+        result = get_npugraph_segments((0, 1))
+        self.assertEqual(len(result), 2)
         mock_snapshot.assert_called_once_with()
 
 
@@ -919,15 +993,15 @@ class TestNPUGraphTreeManager:
         manager.npu_graphs_thread_pool = "pool_handle"
         manager.device_index = 0
         manager.stream = MagicMock()
-        
+
         # 设置模拟返回值
         mock_node_instance = MagicMock()
         mock_node.return_value = mock_node_instance
         mock_node_instance.run_first_inputs.return_value = [torch.tensor([1.0])]
-        
+
         # 执行测试
         result = manager.record_function([torch.tensor([1.0])], FunctionID(1))
-        
+
         # 验证调用
         mock_synchronize.assert_any_call()
         mock_node.assert_called_once_with(
@@ -950,10 +1024,10 @@ class TestNPUGraphTreeManager:
         manager = NPUGraphTreeManager(0)
         mock_node = MagicMock()
         mock_node.run.return_value = [torch.tensor([1.0])]
-        
+
         # 执行测试
         result = manager.execute_node(mock_node, [torch.tensor([1.0])])
-        
+
         # 验证调用
         mock_update_gen.assert_called_once_with()
         assert manager.current_node == mock_node
@@ -970,15 +1044,15 @@ class TestNPUGraphTreeManager:
         manager.graph = MagicMock()
         manager.device_index = 0
         manager.stream = MagicMock()
-        
+
         # 设置模拟返回值
         mock_node_instance = MagicMock()
         mock_warmup_node.return_value = mock_node_instance
         mock_node_instance.run.return_value = [torch.tensor([1.0])]
-        
+
         # 执行测试
         result = manager.run_eager([torch.tensor([1.0])], FunctionID(1))
-        
+
         # 验证调用
         mock_update_gen.assert_called_once_with()
         mock_warmup_node.assert_called_once_with(
@@ -1163,7 +1237,7 @@ class TestNPUGraphTreeManager:
     ):
         manager = NPUGraphTreeManager(0)
         mock_in_new_invocation.return_value = True
-        
+
         mock_node = MagicMock()
         mock_node._path_from_root = [MagicMock()]
         mock_node._path_from_root[0].wrapped_function.id = FunctionID(2)
@@ -1179,22 +1253,22 @@ class TestNPUGraphTreeManager:
     ):
         manager = NPUGraphTreeManager(0)
         mock_in_new_invocation.return_value = True
-        
+
         mock_node1 = MagicMock()
         mock_node1.wrapped_function.id = FunctionID(1)
         mock_node1.parent = MagicMock()
         mock_node1.parent.wrapped_function.id = FunctionID(0)
-        
+
         mock_node2 = MagicMock()
         mock_node2.wrapped_function.id = FunctionID(1)
         mock_node2.parent = MagicMock()
         mock_node2.parent.wrapped_function.id = FunctionID(0)
-        
+
         mock_current_node = MagicMock()
         mock_current_node.wrapped_function.id = FunctionID(1)
         mock_current_node.parent = MagicMock()
         mock_current_node.parent.wrapped_function.id = FunctionID(0)
-        
+
         mock_current_node._path_from_root = [mock_node1, mock_node2]
         manager.current_node = mock_current_node
         manager.check_warn_on_unable_to_start_executing(FunctionID(1))

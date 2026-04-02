@@ -46,10 +46,10 @@ using Comparison = bool (*)(const ExpandableBlock *, const ExpandableBlock *);
 static bool BlockComparatorSize(const ExpandableBlock *a, const ExpandableBlock *b);
 static bool BlockComparatorAddress(const ExpandableBlock *a, const ExpandableBlock *b);
 
-struct BlockPool {
+struct ExpandableBlockPool {
     std::set<ExpandableBlock *, Comparison> blocks;
     std::set<ExpandableBlock *, Comparison> unmapped;
-    BlockPool() : blocks(BlockComparatorSize), unmapped(BlockComparatorAddress) {
+    ExpandableBlockPool() : blocks(BlockComparatorSize), unmapped(BlockComparatorAddress) {
     }
 };
 
@@ -57,7 +57,7 @@ struct ExpandableSegment;
 
 struct ExpandableBlock : at::HostBlock<c10_npu::NPUStream>{
     size_t requested_size{};  // memory originally requested
-    BlockPool *pool{};        // owning memory pool
+    ExpandableBlockPool *pool{};        // owning memory pool
     bool mapped{ true };    // is the virtual address range this Block references
                             // backed by physical pages. Always true when
                             // expandable_segment_ is null. When false
@@ -72,7 +72,7 @@ struct ExpandableBlock : at::HostBlock<c10_npu::NPUStream>{
           next(nullptr)
         {}
 
-    ExpandableBlock(const size_t size, BlockPool *pool, void *ptr)
+    ExpandableBlock(const size_t size, ExpandableBlockPool *pool, void *ptr)
         : HostBlock(size, ptr),
           pool(pool),
           prev(nullptr),
@@ -404,7 +404,7 @@ struct ExpandableSegment {
     // returns the actual range mapped, which may be
     // greater than requested if size is not aligned to segment_size_.
     // return size of 0 indicates OOM
-    SegmentRange map(SegmentRange range, BlockPool *pool)
+    SegmentRange map(SegmentRange range, ExpandableBlockPool *pool)
     {
         auto begin = segmentLeft(range.ptr);
         auto end = segmentRight(range.ptr + range.size);
@@ -543,7 +543,7 @@ private:
 };
 
 struct AllocParams {
-    AllocParams(size_t size, BlockPool *pool)
+    AllocParams(size_t size, ExpandableBlockPool *pool)
         : search_key(size),
           pool(pool),
           err(ACL_ERROR_NONE)
@@ -556,7 +556,7 @@ struct AllocParams {
 
     ExpandableBlock search_key;
 
-    BlockPool *pool;
+    ExpandableBlockPool *pool;
 
     ExpandableBlock *block{};
 
@@ -685,7 +685,7 @@ public:
     }
 
 private:
-    BlockPool blocks_pool;
+    ExpandableBlockPool blocks_pool;
 
     std::mutex mutex;
 
@@ -816,8 +816,8 @@ private:
             std::lock_guard<std::mutex> lock(stats_mutex_);
             stats.allocated_bytes.decrease(unmapped.size);
         }
-        try_merge_blocks(block, block->prev, *block->pool);
-        try_merge_blocks(block, block->next, *block->pool);
+        try_merge_blocks(*block, block->prev, *block->pool);
+        try_merge_blocks(*block, block->next, *block->pool);
         block->pool->unmapped.insert(block);
     }
 
@@ -837,29 +837,29 @@ private:
     }
 
     /* * combine previously split blocks. returns the size of the subsumed block, or 0 on failure. * */
-    size_t try_merge_blocks(ExpandableBlock *dst, ExpandableBlock *src, BlockPool &pool)
+    size_t try_merge_blocks(ExpandableBlock &dst, ExpandableBlock *src, ExpandableBlockPool &pool)
     {
-        if (!src || src->allocated_ || src->event_count_ > 0 || !src->streams_.empty() || dst->mapped != src->mapped) {
+        if (!src || src->allocated_ || src->event_count_ > 0 || !src->streams_.empty() || dst.mapped != src->mapped) {
             return 0;
         }
 
-        AT_ASSERT(dst->is_split() && src->is_split(), PTA_ERROR(ErrCode::VALUE));
+        AT_ASSERT(dst.is_split() && src->is_split(), PTA_ERROR(ErrCode::VALUE));
 
-        if (dst->prev == src) {
-            dst->ptr_ = src->ptr_;
-            dst->prev = src->prev;
-            if (dst->prev) {
-                dst->prev->next = dst;
+        if (dst.prev == src) {
+            dst.ptr_ = src->ptr_;
+            dst.prev = src->prev;
+            if (dst.prev) {
+                dst.prev->next = &dst;
             }
         } else {
-            dst->next = src->next;
-            if (dst->next) {
-                dst->next->prev = dst;
+            dst.next = src->next;
+            if (dst.next) {
+                dst.next->prev = &dst;
             }
         }
 
         const size_t subsumed_size = src->size_;
-        dst->size_ += subsumed_size;
+        dst.size_ += subsumed_size;
         auto erased = src->mapped ? pool.blocks.erase(src) : pool.unmapped.erase(src);
         delete src;
         src = nullptr;
@@ -879,13 +879,13 @@ private:
         auto &pool = *block->pool;
         const std::array<ExpandableBlock *, 2> merge_candidates = { block->prev, block->next };
         for (ExpandableBlock *merge_candidate : merge_candidates) {
-            try_merge_blocks(block, merge_candidate, pool);
+            try_merge_blocks(*block, merge_candidate, pool);
         }
         ptr_to_block_.erase(block->ptr_);
         pool.blocks.insert(block);
     }
 
-    void process_events() override
+    void process_events()
     {
         while (true) {
             // Avoid calling cudaEventDestroy while holding a mutex, so move
@@ -970,7 +970,7 @@ private:
 
     bool get_free_expandable_block(AllocParams &p)
     {
-        BlockPool &pool = *p.pool;
+        ExpandableBlockPool &pool = *p.pool;
         auto it = pool.blocks.lower_bound(&p.search_key);
         if (it == pool.blocks.end()) {
             return false;
@@ -1000,7 +1000,7 @@ private:
 
     bool alloc_block(AllocParams &p)
     {
-        p.block = try_allocate_expandable_block(p.pool, p.size());
+        p.block = try_allocate_expandable_block(*p.pool, p.size());
         if (p.block) {
             p.err = ACL_ERROR_NONE;
         } else {
@@ -1012,7 +1012,7 @@ private:
     // returns the smallest possible address in any segment
     // where there is enough free address space to fit size
     // may be composed of free and unmapped segments
-    ExpandableBlock *find_expandable_block(BlockPool *pool, size_t size)
+    ExpandableBlock *find_expandable_block(ExpandableBlockPool &pool, size_t size)
     {
         ExpandableBlock key(0);
 
@@ -1028,7 +1028,7 @@ private:
             }
             return bytes >= size;
         };
-        for (auto it = pool->unmapped.lower_bound(&key); it != pool->unmapped.end(); ++it) {
+        for (auto it = pool.unmapped.lower_bound(&key); it != pool.unmapped.end(); ++it) {
             ExpandableBlock *c = *it;
             // we found the lowest address of an unmapped segment
             // but there might be a free segment we can also use
@@ -1050,55 +1050,55 @@ private:
         expandable_segments_.emplace_back(segment);
 
         ExpandableSegment *es = expandable_segments_.back();
-        ExpandableBlock *candidate = new (std::nothrow) ExpandableBlock(es->size(), pool, es->ptr());
+        ExpandableBlock *candidate = new (std::nothrow) ExpandableBlock(es->size(), &pool, es->ptr());
         if (!candidate) {
             ASCEND_LOGE("Failed to allocate Block.");
             return nullptr;
         }
         candidate->mapped = false;
         candidate->expandable_segment_ = es;
-        pool->unmapped.insert(candidate);
+        pool.unmapped.insert(candidate);
         return candidate;
     }
 
-    bool map_block(ExpandableBlock *to_map, size_t size, BlockPool *map_pool)
+    bool map_block(ExpandableBlock &to_map, size_t size, ExpandableBlockPool &map_pool)
     {
-        TORCH_INTERNAL_ASSERT(!to_map->mapped && size <= to_map->size_, PTA_ERROR(ErrCode::VALUE));
+        TORCH_INTERNAL_ASSERT(!to_map.mapped && size <= to_map.size_, PTA_ERROR(ErrCode::VALUE));
 
-        auto mapped_range = to_map->expandable_segment_->map(SegmentRange{ to_map->ptr_, size }, map_pool);
+        auto mapped_range = to_map.expandable_segment_->map(SegmentRange{ to_map.ptr_, size }, &map_pool);
         // failed to map the memory
         if (mapped_range.size == 0) {
             return false;
         }
-        TORCH_INTERNAL_ASSERT(mapped_range.ptr == to_map->ptr_ && mapped_range.size >= size,
+        TORCH_INTERNAL_ASSERT(mapped_range.ptr == to_map.ptr_ && mapped_range.size >= size,
             PTA_ERROR(ErrCode::INTERNAL));
 
-        BlockPool &pool = *to_map->pool;
-        pool.unmapped.erase(to_map);
-        to_map->mapped = true;
+        ExpandableBlockPool &pool = *to_map.pool;
+        pool.unmapped.erase(&to_map);
+        to_map.mapped = true;
 
-        if (mapped_range.size < to_map->size_) {
+        if (mapped_range.size < to_map.size_) {
             // to_map -> remaining -> to_map->next(?)
-            ExpandableBlock *remaining = new ExpandableBlock(to_map->size_ - mapped_range.size, &pool,
-                static_cast<char *>(to_map->ptr_) + mapped_range.size);
+            ExpandableBlock *remaining = new ExpandableBlock(to_map.size_ - mapped_range.size, &pool,
+                static_cast<char *>(to_map.ptr_) + mapped_range.size);
             remaining->mapped = false;
-            remaining->expandable_segment_ = to_map->expandable_segment_;
-            remaining->splice(to_map, to_map->next);
+            remaining->expandable_segment_ = to_map.expandable_segment_;
+            remaining->splice(&to_map, to_map.next);
             pool.unmapped.insert(remaining);
-            to_map->size_ = mapped_range.size;
+            to_map.size_ = mapped_range.size;
         }
 
-        try_merge_blocks(to_map, to_map->prev, pool);
-        try_merge_blocks(to_map, to_map->next, pool);
+        try_merge_blocks(to_map, to_map.prev, pool);
+        try_merge_blocks(to_map, to_map.next, pool);
         {
             std::lock_guard<std::mutex> lock(stats_mutex_);
             stats.allocated_bytes.increase(mapped_range.size);
         }
-        pool.blocks.insert(to_map);
+        pool.blocks.insert(&to_map);
         return true;
     }
 
-    ExpandableBlock *try_allocate_expandable_block(BlockPool *pool, size_t size)
+    ExpandableBlock *try_allocate_expandable_block(ExpandableBlockPool &pool, size_t size)
     {
         ExpandableBlock *candidate = find_expandable_block(pool, size);
         // Candidate is now a list free/unmapped blocks with at least size room:
@@ -1107,7 +1107,7 @@ private:
         // free -> unmapped -> *
 
         auto start = std::chrono::steady_clock::now();
-        if (!candidate->mapped && !map_block(candidate, std::min(candidate->size_, size), pool)) {
+        if (!candidate->mapped && !map_block(*candidate, std::min(candidate->size_, size), pool)) {
             return nullptr;
         }
         TORCH_INTERNAL_ASSERT(candidate->mapped, PTA_ERROR(ErrCode::INTERNAL));
@@ -1120,12 +1120,12 @@ private:
             if (C10_UNLIKELY(new_candidate == nullptr)) {
                 return nullptr;
             }
-            if (!map_block(new_candidate, std::min(remaining, candidate->next->size_), pool)) {
+            if (!map_block(*new_candidate, std::min(remaining, candidate->next->size_), pool)) {
                 return nullptr;
             }
             candidate = new_candidate;
         }
-        pool->blocks.erase(candidate);
+        pool.blocks.erase(candidate);
         auto end = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         // Update the statistics on the time spent on AclrtMallocPhysical/AclrtMapMem

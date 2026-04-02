@@ -17,7 +17,6 @@
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
-#include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
@@ -1227,8 +1226,12 @@ public:
         }
 
         if (!block_found && C10_LIKELY(captures_underway.empty())) {
-            TORCH_NPU_MEMORY_LOGE(
-                "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log can be ignored.");
+            const char* const allocRetryMsg = "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log can be ignored.";
+            // torch_npu will try to free cached blocks and reallocate memory, so this error can be ignored.
+            // write error message to plog, and tell users that this error log can be ignored.
+            ASCEND_LOGE("%s", allocRetryMsg);
+            // use debug level to avoid printing to screen in default log level.
+            TORCH_NPU_LOGD(GetLoggerMem(), "%s", allocRetryMsg);
             // Free all non-split cached blocks and retry alloc.
             {
                 UnlockGuard guard(lock);
@@ -3750,7 +3753,7 @@ public:
     // Note [COW/lazy_clone is not supported yet]
     void copy_data(void *dest, const void *src, std::size_t count) const final
     {
-        default_copy_data(dest, src, count);
+        NPU_CHECK_ERROR(aclrtMemcpy(dest, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE));
     }
 
     void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLComm> hcclComm)

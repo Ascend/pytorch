@@ -49,7 +49,6 @@ class ProfilerConfig:
         self._msprof_tx = False
         self._op_attr = False
         self._data_simplification = True
-        self._is_cluster = False
         self._localtime_diff = 0
         self._syscnt_enable = False
         self._sys_io = False
@@ -60,6 +59,7 @@ class ProfilerConfig:
         self._export_type = [Constant.Text]
         self._rank_id = -1
         self._activities = []
+        self._is_load = False
 
     @property
     def data_simplification(self):
@@ -145,18 +145,29 @@ class ProfilerConfig:
             return {}
 
     def load_info(self, profiler_path: str):
-        self.load_is_cluster(profiler_path)
+        if self._is_load:
+            return
         info_json = self._get_json_data(ProfilerPathManager.get_info_file_path(profiler_path))
-        self._activities = info_json.get(Constant.CONFIG, {}).get(Constant.COMMON_CONFIG, {}).get(Constant.ACTIVITIES, [])
+        self.load_activities(profiler_path, info_json)
         self.load_rank_info(info_json)
         self.load_experimental_cfg_info(info_json)
         self.load_timediff_info(profiler_path, info_json)
         self.load_syscnt_info(profiler_path, info_json)
+        self._is_load = True
 
-    def load_is_cluster(self, profiler_path: str):
-        info_file_path = ProfilerPathManager.get_info_file_path(profiler_path)
-        if info_file_path:
-            self._is_cluster = re.match(r"^profiler_info_\d+\.json", os.path.basename(info_file_path))
+    def load_activities(self, profiler_path: str, info_json: dict):
+        self._activities = (info_json.get(Constant.CONFIG, {}).get(Constant.COMMON_CONFIG, {})
+                            .get(Constant.ACTIVITIES, []))
+        fwk_path = ProfilerPathManager.get_fwk_path(profiler_path)
+        cann_path = ProfilerPathManager.get_cann_path(profiler_path)
+
+        if Constant.CPU_ACTIVITIES in self._activities and not fwk_path:
+            print_error_msg("ProfilerActivity.CPU is set in activities, but FWK Profiling data does not exist.")
+            self._activities.remove(Constant.CPU_ACTIVITIES)
+
+        if Constant.NPU_ACTIVITIES in self._activities and not cann_path:
+            print_error_msg("ProfilerActivity.NPU is set in activities, but CANN Profiling data does not exist.")
+            self._activities.remove(Constant.NPU_ACTIVITIES)
 
     def load_rank_info(self, info_json: dict):
         self._rank_id = info_json.get(Constant.RANK_ID, -1)
@@ -193,7 +204,7 @@ class ProfilerConfig:
         return self.LEVEL_TRACE_PRUNE_CONFIG.get(self._profiler_level)
 
     def is_all_kernel_headers(self):
-        if self._ai_core_metrics != Constant.AicMetricsNone:
+        if self._profiler_level != Constant.LEVEL0:
             return True
         else:
             return False

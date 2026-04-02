@@ -138,6 +138,8 @@ __all__ = [
     "are_compatible_impl_enabled",
     "NpuGraphOpHandler",
     "register_npu_graph_handler",
+    "super_kernel_scope_begin",
+    "super_kernel_scope_end",
 ]
 
 from typing import Tuple, Union, List, cast, Optional
@@ -179,6 +181,8 @@ from .graphs import (
     graph_task_group_end,
     graph_task_update_begin,
     graph_task_update_end,
+    super_kernel_scope_begin,
+    super_kernel_scope_end,
 )
 
 from ._npugraph_handlers import (

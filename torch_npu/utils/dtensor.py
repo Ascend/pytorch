@@ -1,7 +1,6 @@
 import torch
 from torch.distributed.tensor._ops._common_rules import pointwise_rule
-from torch.distributed.tensor._ops.registration import register_prop_rule
-from torch.distributed.tensor._ops.utils import normalize_dims
+from torch.distributed.tensor._ops.utils import normalize_dims, register_prop_rule
 from torch.distributed.tensor._ops._matrix_ops import bmm_strategy
 from torch.distributed.tensor._ops._view_ops import (
     register_op_strategy_map,
@@ -24,15 +23,11 @@ def _register_ops_under_dtensor_rules():
         aten.isfinite.default,
         # custom ops
         npu.fast_gelu.default,
-        npu.npu_dtype_cast.default,
-        npu._npu_dtype_cast.default,
         npu.npu_fast_gelu.default,
         npu.npu_layer_norm_eval.default,
         # backward point-wise ops
         # please keep the entries below alphabetically sorted
-        npu.npu_fast_gelu_backward.default,
-        npu.npu_dtype_cast_backward.default,
-        npu._npu_dtype_cast_backward.default
+        npu.npu_fast_gelu_backward.default
     ]
 
     matrix_ops = [

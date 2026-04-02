@@ -41,7 +41,6 @@ from torch._inductor.codegen.triton import (
     IterationRangesRoot,
     IterationRangesEntry,
     CSEVariable,
-    gen_common_triton_imports,
     BlockPtrOptions,
     triton_acc_type,
     constant_repr,
@@ -477,11 +476,13 @@ class NPUIndexTritonKernel(TritonKernel):
         self.golden_var_list = None
         self.reduce_analysis = None
         self.load_store_indexing = None
+        self.inductor_meta = self.create_inductor_meta()
 
     def _get_grid_type(self) -> type[triton_heuristics.GridExpr]:
         return npu_triton_heuristics.GridNpu
 
-    def gen_triton_ext_imports(self):
+    @staticmethod
+    def gen_triton_ext_imports():
         imports = IndentedBuffer()
         imports.splice(
             """
@@ -515,7 +516,7 @@ class NPUIndexTritonKernel(TritonKernel):
     def initialize_range_tree(self, pid_cache):
         for k, x in self.numels.items():
             if not isinstance(x, sympy.Integer):
-                x = x.subs(V.graph.sizevars.var_to_val)
+                x = x.subs(V.graph.sizevars.backed_var_to_val)
                 self.numels[k] = x
 
         no_r_dim = not self.inside_reduction or self.numels["r"] == 1
@@ -559,6 +560,20 @@ class NPUIndexTritonKernel(TritonKernel):
         dtype = None
         if axis is None:
             return None
+        def _lookup_dim(sym) -> Optional["IterationRangesEntryNPUIndex"]:
+            dim = self.range_tree_nodes.get(sym)
+            if dim is not None:
+                return dim
+            return self.range_tree_nodes_removed.get(sym)
+
+        def _iter_candidate_syms(key):
+            # indexing_map keys can be sympy.Symbol (common) or sympy.Expr (e.g. linearized indexing)
+            # Try direct lookup first, then fall back to free_symbols for Expr.
+            yield key
+            if isinstance(key, sympy.Expr) and not isinstance(key, sympy.Symbol):
+                for s in key.free_symbols:
+                    yield s
+
         for node in self.node_schedule:
             if node in (EnableReduction, DisableReduction):
                 continue
@@ -573,10 +588,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 if node in (EnableReduction, DisableReduction):
                     continue
                 for key, _ in node._body.indexing_map.items():
-                    if key in self.range_tree_nodes:
-                        dim = self.range_tree_nodes[key]
-                    else:
-                        dim = self.range_tree_nodes_removed[key]
+                    dim = None
+                    for cand in _iter_candidate_syms(key):
+                        dim = _lookup_dim(cand)
+                        if dim is not None:
+                            break
+                    if dim is None:
+                        continue
 
                     if dim.parent == axis.parent:
                         dtype = V.graph.get_dtype(node.node.name)
@@ -711,7 +729,7 @@ class NPUIndexTritonKernel(TritonKernel):
         size_hints = self.get_size_hints()
         heuristics = self._get_heuristic()
         if name is None:
-            code.splice(gen_common_triton_imports())
+            code.splice(self.gen_common_triton_imports())
             # Note: add extra imports for extensions
             code.splice(self.gen_triton_ext_imports())
 
@@ -1101,7 +1119,7 @@ class NPUIndexTritonKernel(TritonKernel):
 
         # all are load indexings, select the longest as gold
         for index in self.load_store_indexing:
-            index = index.subs(V.graph.sizevars.var_to_val)
+            index = index.subs(V.graph.sizevars.backed_var_to_val)
             analyze = IndexAnalysis(self, index)
             if len(analyze.var_list) > maximum_length and all_tiling_in_var_list(analyze.var_list):
                 longest = analyze.var_list

@@ -124,11 +124,13 @@ at::Tensor NPUNativeFunctions::as_strided(
     c10::optional<int64_t> storage_offset_)
 {
     auto dst = self;
-    if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(dst, size) && !FormatHelper::IsOpInputBaseFormat(dst)) {
-        TORCH_WARN_ONCE("current tensor is running as_strided, don't perform inplace operations on the returned value."
-            " If you encounter this warning and have precision issues,"
-            " you can try torch.npu.config.allow_internal_format = False to resolve precision issues.")
-        dst = FormatCastHelper::ApplyBaseFormatTensorBy(dst);
+    if (!FormatHelper::IsOpInputBaseFormat(dst)) {
+        if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(dst, size)) {
+            TORCH_WARN_ONCE("current tensor is running as_strided, don't perform inplace operations on the returned value."
+                " If you encounter this warning and have precision issues,"
+                " you can try torch.npu.config.allow_internal_format = False to resolve precision issues.")
+            dst = FormatCastHelper::ApplyBaseFormatTensorBy(dst);
+        }
     }
     auto storage_offset = storage_offset_.value_or(dst.storage_offset());
     auto result = at::detail::make_tensor<at::TensorImpl>(
@@ -136,7 +138,7 @@ at::Tensor NPUNativeFunctions::as_strided(
         c10::Storage(dst.storage()),
         dst.key_set(),
         dst.dtype());
-    setStrided(result, size, stride, storage_offset);
+    at::native::setStrided(result, size, stride, storage_offset);
     return result;
 }
 
@@ -151,11 +153,12 @@ const at::Tensor& NPUNativeFunctions::as_strided__symint(
                            ks.has_all(c10::DispatchKeySet(c10::DispatchKey::Python)) ||
                            self.is_meta();
     if (!is_fake_or_meta) {
-        if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(self, c10::asIntArrayRefUnchecked(size)) &&
-            !FormatHelper::IsOpInputBaseFormat(self)) {
-            TORCH_CHECK(false, "Current tensor is running as_strided__symint while internal format is not allowed."
-                " You can try torch.npu.config.allow_internal_format = False to avoid the problem.",
-                PTA_ERROR(ErrCode::NOT_SUPPORT))
+        if (!FormatHelper::IsOpInputBaseFormat(self)) {
+            if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(self, c10::asIntArrayRefUnchecked(size))) {
+                TORCH_CHECK(false, "Current tensor is running as_strided__symint while internal format is not allowed."
+                    " You can try torch.npu.config.allow_internal_format = False to avoid the problem.",
+                    PTA_ERROR(ErrCode::NOT_SUPPORT));
+            }
         }
     }
     auto storage_offset = storage_offset_.value_or(self.sym_storage_offset());

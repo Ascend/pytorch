@@ -54,17 +54,18 @@ supported:
   - func: _copy_from_and_resize
     device_check: NoCheck
   - flatten_dense_tensors
+  - _lazy_clone
 
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
     device_check: NoCheck
   - func: get_npu_format(Tensor self) -> int
-  - func: npu_format_cast.Tensor(Tensor self, Tensor dst, int? customize_dtype=None, *, int? input_dtype=None) -> Tensor
+  - func: npu_format_cast.Tensor(Tensor self, Tensor dst, *, int? customize_dtype=None, int? input_dtype=None) -> Tensor
     device_check: NoCheck
     exposed: True
-  - func: npu_format_cast_.acl_format(Tensor(a!) self, int acl_format, int? customize_dtype=None, *, int? input_dtype=None) -> Tensor(a!)
+  - func: npu_format_cast_.acl_format(Tensor(a!) self, int acl_format, *, int? customize_dtype=None, int? input_dtype=None) -> Tensor(a!)
     exposed: True
-  - func: npu_format_cast_(Tensor(a!) self, Tensor src, int? customize_dtype=None, *, int? input_dtype=None) -> Tensor(a!)
+  - func: npu_format_cast_(Tensor(a!) self, Tensor src, *, int? customize_dtype=None, int? input_dtype=None) -> Tensor(a!)
     device_check: NoCheck
     exposed: True
   - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, int? base_addr_aligned_kb=None) -> Tensor
@@ -79,7 +80,7 @@ custom:
   - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
     device_check: NoCheck
   - func: get_storage_size(Tensor self) -> int
-  - func: npu_format_cast(Tensor self, int acl_format, int? customize_dtype=None, *, int? input_dtype=None) -> Tensor
+  - func: npu_format_cast(Tensor self, int acl_format, *, int? customize_dtype=None, int? input_dtype=None) -> Tensor
     exposed: True
   - func: _npu_format_cast(Tensor self, int acl_format) -> Tensor
   - func: _npu_format_cast.aclnn(Tensor self, int acl_format, int customize_dtype) -> Tensor

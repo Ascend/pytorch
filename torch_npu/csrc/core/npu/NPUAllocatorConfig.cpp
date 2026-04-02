@@ -418,8 +418,8 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
 
     if (m_pinned_mem_register) {
         if (!c10_npu::acl::AclrtMallocHostWithCfgExist()) {
-            TORCH_NPU_WARN_ONCE("pinned_mem_register setting failure, the current cann version does not support this feature, now change to `False`."
-                "To use this feature, you need to upgrade to version 8.5.0 or higher");
+            TORCH_NPU_WARN_ONCE("pinned_mem_register setting failure, the current cann version or driver version does not support this feature, now change to `False`."
+                                "To use this feature, you need to upgrade to cann version 8.5.0 or higher and driver version 25.5.2 or higher.");
             m_pinned_mem_register = false;
         }
 

@@ -35,12 +35,12 @@ c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
     int64_t size = size_bytes.as_int_unchecked();
     TORCH_CHECK(size >= 0, "Size bytes must be non-negative, but got ", size);
 
-    if (size == 0) {
-        TORCH_CHECK(data_ptr == nullptr, "When size is 0, data_ptr must be null.");
-    } else if (data_ptr == nullptr) {
-        TORCH_CHECK(allocator != nullptr, "When data_ptr is null and size > 0, allocator must be provided.");
+    if (data_ptr == nullptr) {
+        TORCH_CHECK(allocator != nullptr, "When data_ptr is null, allocator must be provided.");
         data_ptr = allocator->allocate(size);
-        TORCH_CHECK(data_ptr, "Get data_ptr failed", PTA_ERROR(ErrCode::PARAM));
+        if (size > 0) {
+            TORCH_CHECK(data_ptr, "Get data_ptr failed", PTA_ERROR(ErrCode::PARAM));
+        }
     }
 
     // Correctly create NPUStorageImpl object.

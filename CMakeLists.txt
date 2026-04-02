@@ -11,6 +11,7 @@ else()
 endif()
 
 project(TORCHNPU CXX C)
+add_compile_options(-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
 set(LINUX TRUE)
 set(CMAKE_INSTALL_MESSAGE NEVER)
@@ -119,8 +120,6 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=pedantic")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=redundant-decls")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=old-style-cast")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(notdir $(abspath $<))\"'")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-builtin-macro-redefined -D__FILE__='\"$(subst $(realpath ${CMAKE_SOURCE_DIR})/,,$(abspath $<))\"'")
 
 # These flags are not available in GCC-4.8.5. Set only when using clang.
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
@@ -313,8 +312,6 @@ add_subdirectory(${TORCHNPU_THIRD_PARTY_ROOT}/fmt EXCLUDE_FROM_ALL)
 
 link_directories(${PYTORCH_INSTALL_DIR}/lib)
 link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
-
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libhccl.so)
 
 if (NOT DEFINED BUILD_LIBTORCH)
   target_link_libraries(${PLUGIN_NAME} PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)

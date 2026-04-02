@@ -6,6 +6,7 @@ from torch.testing._internal.common_utils import (
 )
 from testutils import TestUtils
 import torch_npu
+import torch_npu._inductor
 
 
 class TestResizeAs(TestUtils):
@@ -28,4 +29,3 @@ instantiate_parametrized_tests(TestResizeAs)
 
 if __name__ == "__main__":
     run_tests()
-s

@@ -569,6 +569,9 @@
   "torch_npu.distributed.distributed_c10d.reinit_process_group": {
     "signature": "(group=None, rebuild_link=True)"
   },
+  "torch_npu.distributed.fsdp.fully_shard": {
+    "signature": "(*args, **kwargs)"
+  },
   "torch_npu.distributed.reinit_process_group": {
     "signature": "(group=None, rebuild_link=True)"
   },
@@ -758,11 +761,29 @@
   "torch_npu.npu.graphs.NPUGraph.debug_dump": {
     "signature": "(self, debug_path)"
   },
+  "torch_npu.npu.graphs.super_kernel_scope_begin": {
+    "signature": "(scope_name: Optional[str] = None)"
+  },
+  "torch_npu.npu.graphs.super_kernel_scope_end": {
+    "signature": "(scope_name: Optional[str] = None)"
+  },
+  "torch_npu.npu.graphs.NPUGraph.super_kernel_optimize": {
+    "signature": "(self, optimize_options=None, debug_options=None)"
+  },
   "torch_npu.npu.NPUGraph.update": {
     "signature": "(self, cpu_update_input)"
   },
   "torch_npu.npu.NPUGraph.debug_dump": {
     "signature": "(self, debug_path)"
+  },
+  "torch_npu.npu.super_kernel_scope_begin": {
+    "signature": "(scope_name: Optional[str] = None)"
+  },
+  "torch_npu.npu.super_kernel_scope_end": {
+    "signature": "(scope_name: Optional[str] = None)"
+  },
+  "torch_npu.npu.NPUGraph.super_kernel_optimize": {
+    "signature": "(self, optimize_options=None, debug_options=None)"
   },
   "torch_npu.utils.serialization.save_async": {
     "signature": "(obj: object, f, pickle_module: Any = <module 'pickle'>, pickle_protocol: int = 2, _use_new_zipfile_serialization: bool = True, _disable_byteorder_record: bool = False, model: torch.nn.modules.module.Module = None) -> None"
@@ -1245,7 +1266,7 @@
     "signature": "(bwd)"
   },
   "torch_npu.npu.amp.custom_fwd": {
-    "signature": "(fwd=None, **kwargs)"
+    "signature": "(fwd=None, *, cast_inputs=None)"
   },
   "torch_npu.npu.amp.autocast_mode.autocast": {
     "signature": "(enabled: bool = True, dtype: torch.dtype = torch.float16, cache_enabled: bool = True)"
@@ -1254,7 +1275,7 @@
     "signature": "(bwd)"
   },
   "torch_npu.npu.amp.autocast_mode.custom_fwd": {
-    "signature": "(fwd=None, **kwargs)"
+    "signature": "(fwd=None, *, cast_inputs=None)"
   },
   "torch_npu.npu.amp.common.amp_definitely_not_available": {
     "signature": "()"
@@ -2163,7 +2184,7 @@
     "signature": "(self, rois, spatial_scale, pooled_height, pooled_width, sample_num, roi_end_mode)"
   },
   "torch_npu.npu_rotary_mul": {
-    "signature": "(x, r1, r2)"
+    "signature": "(input, r1, r2, rotary_mode='half')"
   },
   "torch_npu.npu_rotated_iou": {
     "signature": "(self, query_boxes, trans=False, mode=0, is_cross=True, v_threshold=0.0, e_threshold=0.0)"
@@ -2232,7 +2253,7 @@
     "signature": "(sorted_experts, num_experts=1)"
   },
   "torch_npu.npu_group_norm_silu": {
-    "signature": "(x, gamma, beta, group, eps=1e-05)"
+    "signature": "(input, weight, bias, group, eps=1e-05)"
   },
   "torch_npu.npu_gelu": {
     "signature": "(x, approximate='none')"
@@ -2252,11 +2273,14 @@
   "torch_npu.npu.npugraph_ex.inference.readable_cache": {
     "signature": "(cache_bin, print_output=True, file=None)"
   },
+  "torch_npu.npu.npugraph_ex.scope.limit_core_num": {
+    "signature": "(op_aicore_num: int, op_vectorcore_num: int)"
+  },
   "torch_npu.npu.npugraph_ex.compile_fx": {
-    "signature": "(options: dict = None)"
+    "signature": "(gm, example_inputs=None, options=None)"
   },
   "torch_npu.npu.npugraph_ex.register_replacement": {
-    "signature": "(search_fn, replace_fn, example_inputs, trace_fn=<function fwd_only>, extra_check=<function _return_true>, search_fn_pattern=None, scalar_workaround=None, skip_duplicates=False)"
+    "signature": "(search_fn: torch._inductor.pattern_matcher.SearchFn, replace_fn: torch._inductor.pattern_matcher.ReplaceFn, example_inputs: collections.abc.Iterable[typing.Any], trace_fn: torch._inductor.pattern_matcher.TraceFn = <function fwd_only>, extra_check: Callable[[Match], bool] = <function _return_true>, search_fn_pattern: Optional[torch._inductor.pattern_matcher.PatternExpr] = None, scalar_workaround: Optional[dict[str, Union[float, int]]] = None, skip_duplicates: bool = False)"
   },
   "torch_npu.npu.register_npu_graph_handler": {
     "signature": "(op_names)"
@@ -2355,16 +2379,16 @@
     "signature": "(int[] size, *, ScalarType? dtype=None, Device? device=None) -> Tensor"
   },
   "func: npu_format_cast": {
-    "signature": "(Tensor self, int acl_format, int? customize_dtype=None, *, int? input_dtype=None) -> Tensor"
+    "signature": "(Tensor self, int acl_format, *, int? customize_dtype=None, int? input_dtype=None) -> Tensor"
   },
   "func: npu_format_cast_": {
-    "signature": "(Tensor(a!) self, Tensor src, int? customize_dtype=None, *, int? input_dtype=None) -> Tensor(a!)"
+    "signature": "(Tensor(a!) self, Tensor src, *, int? customize_dtype=None, int? input_dtype=None) -> Tensor(a!)"
   },
   "func: npu_format_cast_.acl_format": {
-    "signature": "(Tensor(a!) self, int acl_format, int? customize_dtype=None, *, int? input_dtype=None) -> Tensor(a!)"
+    "signature": "(Tensor(a!) self, int acl_format, *, int? customize_dtype=None, int? input_dtype=None) -> Tensor(a!)"
   },
   "func: npu_format_cast.Tensor": {
-    "signature": "(Tensor self, Tensor dst, int? customize_dtype=None, *, int? input_dtype=None) -> Tensor"
+    "signature": "(Tensor self, Tensor dst, *, int? customize_dtype=None, int? input_dtype=None) -> Tensor"
   },
   "func: npu_change_data_ptr": {
     "signature": "(Tensor dst, Tensor src, int index) -> int"
