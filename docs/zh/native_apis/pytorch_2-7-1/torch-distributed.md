@@ -48,14 +48,14 @@
 |torch.distributed.all_gather|是|支持bf16，fp16，fp32，int8，int32，bool|
 |torch.distributed.all_gather_into_tensor|是|支持bf16，fp16，fp32，int8，int32，boolworld size<br>不支持3，5，6，7|
 |torch.distributed.all_gather_object|是|-|
-|torch.distributed.gather|是|支持bf16，fp16，fp32，int8，int32，bool|
+|torch.distributed.gather|是|支持bf16，fp16，fp32，int8，int32，bool<br>通过设置torch_npu.npu.use_compatible_impl(True)，torch.distributed.gather切换至与原生实现保持一致|
 |torch.distributed.gather_object|是|支持的输入类型为Python Object对象|
-|torch.distributed.scatter|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.distributed.scatter|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>通过设置torch_npu.npu.use_compatible_impl(True)，torch.distributed.scatter切换至与原生实现保持一致|
 |torch.distributed.scatter_object_list|是|不涉及dtype参数|
 |torch.distributed.reduce_scatter|是|支持bf16，fp16，fp32，int8，int32|
-|torch.distributed.reduce_scatter_tensor|是|支持bf16，fp16，fp32，int8，int32world size<br>不支持3，5，6，7|
+|torch.distributed.reduce_scatter_tensor|是|支持bf16，fp16，fp32，int8，int32world size<br>不支持3，5，6，7<br>针对<term>Atlas A2 训练系列产品</term>，当前版本"prod"操作不支持int16、bf16数据类型|
 |torch.distributed.all_to_all_single|是|支持fp32|
-|torch.distributed.all_to_all|是|支持fp32|
+|torch.distributed.all_to_all|是|支持fp3<br>通过设置torch_npu.npu.use_compatible_impl(True)，torch.distributed.all_to_all切换至与原生实现保持一致|
 |torch.distributed.barrier|是|-|
 |torch.distributed.monitored_barrier|是|-|
 |torch.distributed.ReduceOp|是|支持bf16，fp16，fp32，uint8，int8，int32，int64，bool|

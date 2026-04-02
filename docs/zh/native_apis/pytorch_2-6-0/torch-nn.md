@@ -184,7 +184,7 @@
 |torch.nn.LazyInstanceNorm1d.cls_to_become|是|-|
 |torch.nn.LazyInstanceNorm2d.cls_to_become|是|-|
 |torch.nn.LazyInstanceNorm3d.cls_to_become|是|-|
-|torch.nn.LayerNorm|是|支持bf16，fp16，fp32|
+|torch.nn.LayerNorm|是|支持bf16，fp16，fp32<br>通过torch_npu.npu.use_compatible_impl(True)，设置该接口从aclnnLayerNorm算子切换为aclnnFastLayerNorm算子，保证与社区同名接口在内存一致性上对齐。|
 |torch.nn.RNNBase|否|-|
 |torch.nn.RNNBase.flatten_parameters|否|-|
 |torch.nn.RNN|否|-|
