@@ -1651,6 +1651,15 @@ ACL_FUNC_VISIBILITY aclError aclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
  */
 ACL_FUNC_VISIBILITY aclError aclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path);
 
+/**
+ * @ingroup AscendCL
+ * @brief Switch the capture mode for the current thread.
+ * @param mode [IN] capture mode
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode* mode);
+
 #ifdef __cplusplus
 }
 #endif

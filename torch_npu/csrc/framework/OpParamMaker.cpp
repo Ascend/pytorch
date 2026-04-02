@@ -637,7 +637,7 @@ int ValueWriteFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
     logger->debug("ValueWriteFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
 
-    aclError ret = aclrtValueWrite(cur_paras->event, 1, 0, stream);
+    aclError ret = c10_npu::acl::AclrtValueWrite(cur_paras->event, 1, stream);
     if (ret != ACL_ERROR_NONE) {
         auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         if (ret_temp != ACL_ERROR_NONE) {
@@ -659,7 +659,7 @@ int ValueWaitResetFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
 {
     auto cur_paras = static_cast<c10_npu::queue::EventParas *>(in->paramVal);
     logger->debug("ValueWaitResetFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
-    aclError ret = aclrtValueWait(cur_paras->event, 1, ACL_VALUE_WAIT_EQ, stream);
+    aclError ret = c10_npu::acl::AclrtValueWait(cur_paras->event, stream);
     if (ret != ACL_ERROR_NONE) {
         auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         if (ret_temp != ACL_ERROR_NONE) {
@@ -672,7 +672,7 @@ int ValueWaitResetFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     }
 
     logger->debug("ValueResetFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
-    ret = aclrtValueWrite(cur_paras->event, 0, 0, stream);
+    ret = c10_npu::acl::AclrtValueWrite(cur_paras->event, 0, stream);
     if (ret != ACL_ERROR_NONE) {
         auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
         if (ret_temp != ACL_ERROR_NONE) {
