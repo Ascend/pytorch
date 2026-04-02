@@ -34,6 +34,30 @@ class TestCat(TestUtils):
         inductor_cat = compiled_op_calc(input_element, dim)
         self.assertEqual(std_cat, inductor_cat, atol=1e-4, rtol=1e-4, equal_nan=True)
 
+    def op_calc_constant_cpu(self):
+        x = torch.full((2, 32), 1.0, device="cpu")
+        y = torch.full((2, 32), 2.0, device="cpu")
+        z = torch.full((2, 32), 3.0, device="cpu")
+        return torch.cat([x, y, z], -1)
+
+    def test_cat_constant_cpu(self):
+        cpu_cat = self.op_calc_constant_cpu()
+        compiled_op_calc_constant_cpu = torch.compile(self.op_calc_constant_cpu, backend="inductor")
+        inductor_cat = compiled_op_calc_constant_cpu()
+        self.assertEqual(cpu_cat, inductor_cat, atol=1e-4, rtol=1e-4, equal_nan=True)
+
+    def op_calc_constant_npu(self):
+        x = torch.full((2, 32), 1.0, device="npu")
+        y = torch.full((2, 32), 2.0, device="npu")
+        z = torch.full((2, 32), 3.0, device="npu")
+        return torch.cat([x, y, z], -1)
+
+    def test_cat_constant_npu(self):
+        npu_cat = self.op_calc_constant_npu()
+        compiled_op_calc_constant_npu = torch.compile(self.op_calc_constant_npu, backend="inductor")
+        inductor_cat = compiled_op_calc_constant_npu()
+        self.assertEqual(npu_cat, inductor_cat, atol=1e-4, rtol=1e-4, equal_nan=True)
+
     @parametrize('shape', [(64, 1)])
     @parametrize('dim', [-1])
     @parametrize('dtype', ['float32'])

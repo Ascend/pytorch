@@ -2518,6 +2518,12 @@ class NPUIndexTritonKernel(TritonKernel):
 
             @staticmethod
             def cat_store(dst: CSEVariable, src: CSEVariable, size, store_offset_index, output_buffer_index) -> CSEVariable:
+                if self.golden_var_list is None:
+                    indexing = self.indexing(store_offset_index, block_ptr=True)
+                    code = f"tl.store({self.args.output(dst)} + {indexing.index_str}, {src}, None)"
+                    self.stores.writeline(code)
+                    return src
+
                 axis = self.range_tree_nodes[self.golden_var_list[::-1][-1]]
                 axis_name = axis.name
                 line = f"{axis_name}_index_mask_{size} = {axis_name} < {size}"

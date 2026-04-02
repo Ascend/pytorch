@@ -362,7 +362,7 @@ def _register_npu_inductor_fallbacks():
         if is_dynamic:
             return fallback_handler(aten.cat.default)(inputs, dim)
 
-        if lowering_cat_with_concat_kernel:
+        if inputs[0].get_device().type == "npu" and lowering_cat_with_concat_kernel:
             def is_reindex_view(x) -> bool:
                 if isinstance(x, (TensorBox, ir.StorageBox)):
                     return is_reindex_view(x.data)
