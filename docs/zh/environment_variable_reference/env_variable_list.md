@@ -30,6 +30,7 @@
 |告警信息打印|[TORCH_NPU_DISABLED_WARNING](TORCH_NPU_DISABLED_WARNING.md)|通过此环境变量可配置是否打印Ascend Extension for PyTorch的告警信息。|
 |告警信息打印|[TORCH_NPU_COMPACT_ERROR_OUTPUT](TORCH_NPU_COMPACT_ERROR_OUTPUT.md)|通过此环境变量可精简打印错误信息，开启后会将CANN内部调用栈、Ascend Extension for PyTorch错误码等自定义报错信息转移到plog中，仅保留有效的错误说明，提高异常信息的可读性。|
 |告警信息打印|[TORCH_NPU_LOGS](TORCH_NPU_LOGS.md)|此环境变量用于配置Ascend Extension for PyTorch新增模块的日志打印功能，为开发者在Debugging场景下提供精准的调试定位能力。|
+|告警信息打印|[TORCH_NPU_LOGS_FILTER](TORCH_NPU_LOGS_FILTER.md)|此环境变量用于过滤Ascend Extension for PyTorch日志输出内容，通过黑白名单机制筛选需要显示的日志信息，帮助开发者在大量日志中快速定位关键信息。|
 |同步超时|[ACL_DEVICE_SYNC_TIMEOUT](ACL_DEVICE_SYNC_TIMEOUT.md)|通过此环境变量可配置设备同步的超时时间。|
 |特征值检测|[NPU_ASD_ENABLE](NPU_ASD_ENABLE.md)|Ascend Extension for PyTorch 7.0.0及之前版本，通过此环境变量可控制是否开启Ascend Extension for PyTorch的特征值检测功能。|
 |特征值检测|[NPU_ASD_UPPER_THRESH](NPU_ASD_UPPER_THRESH.md)|Ascend Extension for PyTorch 7.0.0及之前版本，通过此环境变量可配置特征值检测功能的绝对阈值。|
