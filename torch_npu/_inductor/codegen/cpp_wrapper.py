@@ -437,7 +437,7 @@ class CppWrapperNpu(CppWrapperGpu):
         if npu_config.inductor_static_mode:
             # in inductor_static_mode, numel arg is constexpr, remove all Integer constant args from call_args
             new_call_args = [
-                call_args
+                call_arg
                 for call_arg in call_args
                 if not isinstance(call_arg, sympy.Integer)
             ]

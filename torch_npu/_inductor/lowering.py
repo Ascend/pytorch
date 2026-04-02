@@ -372,7 +372,7 @@ def _register_npu_inductor_fallbacks():
 
             for inp in inputs:
                 if is_reindex_view(inp):
-                    return TensorBox(npu_ir.ConcatKernel.create(inputs, dim, True))
+                    return fallback_handler(aten.cat.default)(inputs, dim)
 
             input_dims = len(inputs[0].get_size())
             if input_dims > 1 and (dim == -1 or dim == input_dims - 1):
