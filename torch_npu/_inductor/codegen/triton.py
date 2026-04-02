@@ -1528,13 +1528,12 @@ class NPUIndexTritonKernel(TritonKernel):
         # to generate shape of the tile
 
     def dense_size_list(self) -> List[str]:
-        if self.inside_reduction:
-            if self.find_reduction_node() is not None:
-                if not self.reduce_analysis:
-                    self.reduce_analysis = ReductionAnalysis(self)
-                if self.is_contiguous_reduction():
-                    return self.reduce_analysis.dense_post_reduction_list()
-                return self.reduce_analysis.dense_size_list()
+        if self.find_reduction_node() is not None:
+            if not self.reduce_analysis:
+                self.reduce_analysis = ReductionAnalysis(self)
+            if self.is_contiguous_reduction():
+                return self.reduce_analysis.dense_post_reduction_list()
+            return self.reduce_analysis.dense_size_list()
 
         if not self.golden_var_list:
             self.select_golden_varlist()
@@ -1569,14 +1568,11 @@ class NPUIndexTritonKernel(TritonKernel):
         return False
 
     def dense_size_str(self):
-        if self.inside_reduction:
-            if self.find_reduction_node() is not None:
-                if not self.reduce_analysis:
-                    self.reduce_analysis = ReductionAnalysis(self)
-                return self.reduce_analysis.dense_size_str()
-            # Scan fallback: generate dense shape directly.
-            sizes = self.dense_size_list()
-            return f"[{', '.join(sizes)}]"
+        if self.find_reduction_node() is not None:
+            if not self.reduce_analysis:
+                self.reduce_analysis = ReductionAnalysis(self)
+            return self.reduce_analysis.dense_size_str()
+        # Scan fallback: generate dense shape directly.
         sizes = self.dense_size_list()
         return f"[{', '.join(sizes)}]"
 

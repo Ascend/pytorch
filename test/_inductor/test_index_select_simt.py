@@ -137,6 +137,34 @@ class TestAtenIndexSelectSimt(BenchmarkTestUtils):
         r1 = index_select_triton(table, dim, indice, table2)
         self.assertEqual(r, r1)
 
+    def test_index_select_reduction(self):
+        def reduction_index_select(table, reduction_tensor, add_tensor):
+            a = torch.sum(reduction_tensor, dim=1)
+            b = a + add_tensor
+            c = torch.index_select(table, 0, b)
+            return c
+
+        def index_select_reduction(table, indice_tensor):
+            a = torch.index_select(table, 0, indice_tensor)
+            c = torch.sum(a, dim=1)
+            return c
+
+        reduction_tensor = torch.randint(0, 2, size=(512, 128), dtype=torch.int64, device='npu')
+        add_tensor = torch.randint(0, 4, size=(512, ), dtype=torch.int64, device='npu')
+        table = torch.randn((1024, ), requires_grad=False, dtype=torch.float32, device='npu')
+
+        reduction_index_select_triton = torch.compile(reduction_index_select, backend="inductor", dynamic=False)
+        r = reduction_index_select(table, reduction_tensor, add_tensor)
+        r1 = reduction_index_select_triton(table, reduction_tensor, add_tensor)
+        self.assertEqual(r, r1)
+
+        table = torch.randn((1024, 256), requires_grad=False, dtype=torch.float32, device='npu')
+        indice_tensor = torch.randint(0, 1024, size=(128, ), dtype=torch.int64, device='npu')
+        index_select_reduction_triton = torch.compile(index_select_reduction, backend="inductor", dynamic=False)
+        r = index_select_reduction(table, indice_tensor)
+        r1 = index_select_reduction_triton(table, indice_tensor)
+        self.assertEqual(r, r1)
+
 instantiate_parametrized_tests(TestAtenIndexSelectSimt)
 
 if __name__ == "__main__":
