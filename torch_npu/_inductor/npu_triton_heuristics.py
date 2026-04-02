@@ -30,7 +30,6 @@ from torch._inductor.runtime.runtime_utils import (
     create_bandwidth_info_str,
     get_num_bytes,
     next_power_of_2,
-
 )
 from torch._inductor.utils import triton_version_uses_attrs_dict
 from torch.utils._ordered_set import OrderedSet
@@ -50,7 +49,17 @@ from torch._inductor.runtime.triton_heuristics import (
     TritonCompileResult,
     GridExpr,
     config_to_dict,
-    config_from_dict
+    config_from_dict,
+    FixedGrid,
+    PrecomputedGrid
+)
+
+# used for wrapper codegen, do not remove this
+from torch._inductor.runtime.triton_heuristics import (
+    fixed_config,
+    user_autotune,
+    foreach,
+    template
 )
 from torch._inductor.runtime.runtime_utils import triton_hash_to_path_key
 from triton.compiler import CompiledKernel
@@ -210,39 +219,6 @@ class GridNpu(GridExpr):
         self.z_grid = grid_fn(2)
 
 
-@dataclasses.dataclass
-class FixedGridNpu(GridExpr):
-    """Fixed grid for kernels that use precomputed grid values like flex attention"""
-
-    def generate(self, meta: dict[str, int]) -> None:
-        """Generate grid from fixed_grid in inductor_meta"""
-        self.x_grid, self.y_grid, self.z_grid = self.inductor_meta["fixed_grid"]
-
-    @staticmethod
-    def setup_grid_as_args() -> dict[str, Any]:
-        """Inductor meta so that launcher takes three extra grid arguments"""
-        return {
-            "grid_type": FixedGridNpu.__name__,
-            "fixed_grid": ["_grid_0", "_grid_1", "_grid_2"],
-            "extra_launcher_args": ["_grid_0", "_grid_1", "_grid_2"],
-        }
-
-
-@dataclasses.dataclass
-class PrecomputedGridNpu(GridNpu):
-    def __init__(self, *, inductor_meta, mode="python", **kwargs):
-        super().__init__(inductor_meta=inductor_meta, mode=mode, numels=kwargs.get("numels"))
-    
-    def generate(self, meta: dict[str, int]) -> None:
-        for candidate in self.inductor_meta["precomputed_grids"]:
-            if all(meta.get(k) == v for k, v in candidate["config"].items()):
-                self.x_grid, self.y_grid, self.z_grid = candidate[self.mode]
-                return
-        raise AssertionError(
-            f"Precomputed grid not found for {meta} in {self.inductor_meta['precomputed_grids']}"
-        )
-        
-
 def is_namedtuple_isinstance(obj):
     return (
         isinstance(obj, tuple) and 
@@ -262,25 +238,12 @@ class GridExprNpu(GridExpr):
     ) -> GridExpr:
         grid_type = inductor_meta["grid_type"]
 
-        # Map FixedGrid to FixedGridNpu
-        if grid_type == "FixedGrid":
-            grid_cls = FixedGridNpu
-        else:
-            grid_cls = globals().get(grid_type)
-            if grid_cls is None:
-                raise AssertionError(f"Unknown grid_type: {grid_type}")
-
-        # Handle FixedGridNpu (does not inherit from GridNpu)
-        if grid_cls is FixedGridNpu:
-            grid = grid_cls(inductor_meta=inductor_meta, mode=mode)
-        elif issubclass(grid_cls, GridNpu):
+        grid_cls = globals().get(grid_type)
+        if issubclass(grid_cls, GridNpu):
             grid = grid_cls(inductor_meta=inductor_meta, mode=mode, numels=numels)
         else:
-            raise AssertionError(
-                f"grid_type in inductor_meta must be subclass of GridNpu or FixedGridNpu"
-                f"but got {inductor_meta['grid_type']}"
-            )
-        
+            grid = grid_cls(inductor_meta=inductor_meta, mode=mode)
+
         if isinstance(cfg, Config):
             cfg = config_to_dict(cfg)
         grid.generate(cfg)
@@ -410,15 +373,11 @@ class TritonCompileResultNpu(TritonCompileResult):
         if "extra_launcher_args" in self.inductor_meta:
             def_args = [*def_args, *self.inductor_meta["extra_launcher_args"]]
 
-        # FixedGridNpu does not need numels parameter
-        if self.inductor_meta.get("grid_type") == "FixedGridNpu":
-            numels = []
-        else:
-            numels = [
-                arg
-                for arg in fn.arg_names
-                if "_numel" in arg
-            ]
+        numels = [
+            arg
+            for arg in fn.arg_names
+            if "_numel" in arg
+        ]
         grid = GridExprNpu.from_meta_and_set_numel(self.inductor_meta, cfg, numels)
         # grid.prefix is usually empty, grid.x_grid is something like `-(xnumel//-1024)`
         lines = [
@@ -1302,13 +1261,17 @@ def cached_autotune(
     return decorator
 
 
+def patch_triton_heuristics_cached_autotune():
+    torch._inductor.runtime.triton_heuristics.cached_autotune = cached_autotune
+
+
 # split:sizeof split, xblock:axis1 length, rblock:axis2 length
 def triton_config_npu_index(
         size_hints,
         inductor_meta,
         triton_meta=None,
-        reduction=False,
-        persistent_reduction=False,
+        is_reduction=False,
+        is_persistent_reduction=False,
 
 ) -> List[Config]:
     num_warps = 1
@@ -1328,14 +1291,14 @@ def triton_config_npu_index(
     if npu_config.fasta_autotune:
         from .fasta_autotune import FastATileGenerator
         tile_generator = FastATileGenerator(size_hints, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims,
-                                            persistent_reduction=persistent_reduction,
+                                            persistent_reduction=is_persistent_reduction,
                                             dtype=split_axis_dtype,
                                             npu_kernel_type=npu_kernel_type,
                                             input_ptr_num=input_ptr_num, dual_reduction=dual_reduction)
         configs = tile_generator.descend_split_tiling()
     else:
         tile_generator = TileGenerator(size_hints, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims,
-                                       persistent_reduction=persistent_reduction, 
+                                       persistent_reduction=is_persistent_reduction,
                                        dtype=split_axis_dtype,
                                        npu_kernel_type=npu_kernel_type,
                                        input_ptr_num=input_ptr_num, dual_reduction=dual_reduction)
@@ -1375,7 +1338,7 @@ def triton_config_npu_index(
     return configs
 
 
-def pointwise_npu_index(
+def pointwise(
         size_hints,
         triton_meta,
         tile_hint=None,
@@ -1398,7 +1361,7 @@ def pointwise_npu_index(
     )
 
 
-def reduction_npu_index(
+def reduction(
         size_hints,
         reduction_hint=False,
         triton_meta=None,
@@ -1411,8 +1374,8 @@ def reduction_npu_index(
     if triton_meta is None:
         raise RuntimeError("assert triton_meta is not None")
 
-    contiguous_config = triton_config_npu_index(size_hints, inductor_meta=inductor_meta, 
-                                                triton_meta=triton_meta, reduction=True)
+    contiguous_config = triton_config_npu_index(size_hints, inductor_meta=inductor_meta,
+                                                triton_meta=triton_meta, is_reduction=True)
     return cached_autotune(
         size_hints,
         [
@@ -1425,7 +1388,7 @@ def reduction_npu_index(
     )
 
 
-def persistent_reduction_npu_index(
+def persistent_reduction(
         size_hints,
         reduction_hint=False,
         triton_meta=None,
@@ -1434,8 +1397,8 @@ def persistent_reduction_npu_index(
 ):
     inductor_meta = {} if inductor_meta is None else inductor_meta
     inductor_meta["reduction_hint"] = reduction_hint
-    configs = triton_config_npu_index(size_hints, inductor_meta=inductor_meta, reduction=True,
-                                      triton_meta=triton_meta, persistent_reduction=True)
+    configs = triton_config_npu_index(size_hints, inductor_meta=inductor_meta, is_reduction=True,
+                                      triton_meta=triton_meta, is_persistent_reduction=True)
 
     return cached_autotune(
         size_hints,
@@ -1444,44 +1407,6 @@ def persistent_reduction_npu_index(
         inductor_meta=inductor_meta,
         filename=filename,
         heuristic_type=HeuristicType.PERSISTENT_REDUCTION,
-    )
-
-
-def foreach(triton_meta, num_warps, filename=None, inductor_meta=None):
-    """
-    Compile a triton foreach kernel
-    """
-    return cached_autotune(
-        None,
-        [triton.Config({}, num_stages=1, num_warps=num_warps)],
-        triton_meta=triton_meta,
-        inductor_meta=inductor_meta,
-        heuristic_type=HeuristicType.TEMPLATE,
-        filename=filename,
-    )
-
-
-def template(num_stages, num_warps, triton_meta, filename=None, inductor_meta=None):
-    """
-    Compile a triton template
-    
-    Args:
-        num_stages: Number of pipeline stages
-        num_warps: Number of warps
-        triton_meta: Triton metadata
-        filename: Optional filename for caching
-        inductor_meta: Optional inductor metadata
-        
-    Returns:
-        NPUCachingAutotuner instance
-    """
-    return cached_autotune(
-        None,
-        [triton.Config({}, num_stages=num_stages, num_warps=num_warps)],
-        triton_meta=triton_meta,
-        inductor_meta=inductor_meta,
-        heuristic_type=HeuristicType.TEMPLATE,
-        filename=filename,
     )
 
 

@@ -32,7 +32,7 @@ class IndexAnalysis:
         ]
         # sort by stride 
         self.var_stride.sort(key=lambda x: x[1])
-        # only contains tiing axis var
+        # only contains tiling axis var
         self.var_list = tuple([x[0] for x in self.var_stride if x[0] in self.tiling_axis])
         self.stride_list = tuple([x[1] for x in self.var_stride if x[0] in self.tiling_axis])
         self.all_var_list = tuple([x[0] for x in self.var_stride])

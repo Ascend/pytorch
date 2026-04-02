@@ -39,13 +39,22 @@ else:
         disable_comprehensive_padding, max_precompiled_thread_num
     )
     from .config import log as npulog
+    from .codegen.triton import patch_gen_common_triton_ext_imports
     from .decomposition import _register_npu_inductor_decompositons
     from .graph import patch_count_bytes
     from .lowering import make_reduction, npu_make_fallback
     from .npu_choices import should_use_persistent_reduction
     from .npu_device import NewNPUDeviceOpOverrides
-    from .runtime import _load_cached_autotuning
-    from .utils import get_current_raw_stream, patch_is_gpu, patch_has_triton, disable_foreach, patch_get_first_incompatible_cudagraph_node
+    from .npu_triton_heuristics import patch_triton_heuristics_cached_autotune
+    from .runtime import patch_load_cached_autotuning, patch_create_device_properties
+    from .utils import (
+        get_current_raw_stream,
+        patch_is_gpu,
+        patch_has_triton,
+        disable_foreach,
+        patch_expr_fits_within_32bit,
+        patch_get_first_incompatible_cudagraph_node
+    )
     from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
     from .scheduler import patch_scheduler
     from .shape_handling import NPUShapeHandling, patch_shape_handling
@@ -136,6 +145,11 @@ else:
     patch_tuning_process_pool()
     patch_async_compile()
     patch_scheduler()
+    patch_gen_common_triton_ext_imports()
+    patch_load_cached_autotuning()
+    patch_create_device_properties()
+    patch_expr_fits_within_32bit()
+    patch_triton_heuristics_cached_autotune()
 
 
     # register fx_pass should be put behind of _register_npu_inductor_decompositons
@@ -158,7 +172,6 @@ else:
         _replace_precompile()
 
     InductorChoices.should_use_persistent_reduction = should_use_persistent_reduction
-    autotune_cache._load_cached_autotuning = _load_cached_autotuning
 
 
     def patch_device_override_func():

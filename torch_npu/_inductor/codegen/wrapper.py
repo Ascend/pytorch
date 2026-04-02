@@ -22,8 +22,6 @@ from torch.utils._sympy.singleton_int import SingletonInt
 from torch._inductor.ir import GraphPartitionSignature
 from torch_npu._inductor import config as npu_config
 import torch_npu.npu.aclnn
-from torch_npu._inductor.codegen.triton import gen_triton_ext_imports
-from torch_npu._inductor.npu_triton_heuristics import PrecomputedGridNpu, user_autotune_npu
 
 
 class NPUWrapperCodeGen(PythonWrapperCodegen):
@@ -52,22 +50,14 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
 
     @cache_on_self
     def write_triton_header_once(self) -> None:
-        import_str = f"""
-            import triton
-            import triton.language as tl
-            from {triton_heuristics.__name__} import start_graph, end_graph
-            import torch_npu
-            has_initialized = False
-            """
+        super().write_triton_header_once()
         if config.triton.autotune_at_compile_time:
-            self.kernel_autotune_calls.splice(import_str)
-            self.kernel_autotune_calls.writeline(
-                V.graph.device_ops.import_get_raw_stream_as("get_raw_stream")
+            self.kernel_autotune_calls.splice(
+                "import torch_npu._inductor.npu_triton_heuristics as triton_heuristics"
             )
         if not V.graph.cpp_wrapper:
-            self.imports.splice(import_str, strip=True)
-            self.imports.writeline(
-                V.graph.device_ops.import_get_raw_stream_as("get_raw_stream")
+            self.imports.splice(
+                "import torch_npu._inductor.npu_triton_heuristics as triton_heuristics"
             )
 
     # generate numel expr for range_tree_node
@@ -266,29 +256,3 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 self.wrapper_call.writeline('exc_info=(None, None, None)')
                 self.wrapper_call.writeline('static_kernel_complier.__exit__(*exc_info)')
         super().generate_return(output_refs)
-
-    def define_kernel(
-        self,
-        kernel_name: str,
-        kernel_body: str,
-        metadata: Optional[str] = None,
-        gpu: bool = True,
-        cpp_definition: Optional[str] = None,
-    ):
-        #重写父类逻辑
-        #修改user_autotune为user_autotune_npu进行适配，必满core dump错误
-        if "user_autotune" in kernel_body and "user_autotune_npu" not in kernel_body:
-            kernel_body = kernel_body.replace(
-                "triton_heuristics.user_autotune(",
-                "npu_triton_heuristics.user_autotune_npu("
-            )
-            kernel_body = kernel_body.replace(
-                "PrecomputedGrid",
-                "PrecomputedGridNpu"
-            )
-            #import npu_triton_heuristicsd相关头文件
-            kernel_body = kernel_body.replace(
-                "'''\n",
-                "'''\n" + gen_triton_ext_imports() + "\n"
-            )
-        super().define_kernel(kernel_name, kernel_body, metadata, gpu, cpp_definition)

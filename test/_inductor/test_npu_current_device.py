@@ -27,7 +27,7 @@ class TestCurrentDevice(TestUtils):
         x = self._generate_tensor(shape, dtype)
         y = self._generate_tensor(shape, dtype)
         compile_result, codes = run_and_get_code(torch.compile(op_calc, backend='inductor'), x, y)
-        self.assertTrue('triton_unk_fused_add_mul_0.run' in codes[0])
+        self.assertTrue('triton_poi_fused_add_mul_0.run' in codes[0])
 
 
 instantiate_parametrized_tests(TestCurrentDevice)

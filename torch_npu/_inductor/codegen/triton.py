@@ -39,7 +39,6 @@ from torch._inductor.codegen.triton import (
     IterationRangesRoot,
     IterationRangesEntry,
     CSEVariable,
-    gen_common_triton_imports,
     BlockPtrOptions,
     triton_acc_type,
     constant_repr,
@@ -50,7 +49,7 @@ from torch._inductor.codegen.triton import (
 )
 from torch._inductor.codegen.triton_utils import config_of, signature_of, signature_to_meta, should_unwrap_unspec_arg
 from torch._inductor.dtype_propagation import DtypePropagationOpsHandler
-from torch._inductor.runtime.hints import ReductionHint
+from torch._inductor.runtime.hints import DeviceProperties
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import (
@@ -82,7 +81,6 @@ from .. import config as inductor_npu_config
 from .kernel_analysis import IndexAnalysis, ReductionAnalysis
 from .npu_kernel_features import NumelList
 from .triton_utils import NPUKernelType
-from ..runtime import NPUDeviceProperties
 from .. import npu_triton_heuristics
 
 
@@ -94,6 +92,34 @@ def flatten(nums):
         else:
             res.append(i)
     return res
+
+
+origin_gen_common_triton_imports = torch._inductor.codegen.triton.gen_common_triton_imports
+
+
+@functools.lru_cache(None)
+def gen_common_triton_imports():
+    imports = IndentedBuffer()
+    imports.splice(origin_gen_common_triton_imports())
+    imports.splice(
+        """
+        import torch
+        import torch_npu
+        from torch_npu._inductor import npu_triton_heuristics as triton_heuristics
+        from torch_npu._inductor.npu_triton_helpers import libdevice, extension, math as tl_math
+        """
+    )
+    return imports.getvalue()
+
+
+def patch_gen_common_triton_ext_imports():
+    from torch._inductor import select_algorithm
+    from torch._inductor.codegen import triton, triton_combo_kernel
+
+    triton.gen_common_triton_imports = gen_common_triton_imports
+    select_algorithm.gen_common_triton_imports = gen_common_triton_imports
+    triton_combo_kernel.gen_common_triton_imports = gen_common_triton_imports
+
 
 
 class NPUTritonKernelOverrides(TritonKernelOverrides):
@@ -511,24 +537,6 @@ def is_compatible(
         return False
 
 
-@functools.lru_cache(None)
-def gen_triton_ext_imports():
-    imports = IndentedBuffer()
-    imports.splice(
-        """
-        from torch._inductor.runtime import triton_helpers
-        from torch_npu._inductor import npu_triton_heuristics
-        from torch_npu._inductor import npu_triton_heuristics as triton_heuristics
-        from torch_npu._inductor import npu_triton_helpers
-        from torch_npu._inductor.runtime import NPUDeviceProperties
-        from torch_npu._inductor.npu_triton_helpers import libdevice, extension, math as tl_math
-        import torch
-        import torch_npu
-        """
-    )
-    return imports.getvalue()
-
-
 class NPUIndexTritonKernel(TritonKernel):
     overrides = NPUTritonKernelOverrides
 
@@ -846,12 +854,10 @@ class NPUIndexTritonKernel(TritonKernel):
             "numof_reduction_axis": self.numof_reduction_axis(),
             "split_axis_dtype": split_axis_dtype,
             "dual_reduction": self.numof_reduction_axis() > 1,
+            "npu_kernel_type": str(self.npu_kernel_type),
             "traced_graph_hash": "TRACED_GRAPH_HASH",
             "traced_graph_dir": "TRACED_GRAPH_DIR",
-            "store_cubin": config.triton.store_cubin,
-            "force_disable_caches": config.force_disable_caches,
-            "profile_bandwidth_with_do_bench_using_profiling": config.profile_bandwidth_with_do_bench_using_profiling,
-            "npu_kernel_type": str(self.npu_kernel_type)
+            **TritonKernel.inductor_meta_common()
         }
         return inductor_meta
 
@@ -886,7 +892,7 @@ class NPUIndexTritonKernel(TritonKernel):
             call_args.append(expr)
             arg_types.append(type(expr))
 
-    def gen_numel_args(self, signature, triton_meta_signature, argdefs):
+    def gen_numel_args(self, signature, triton_meta, triton_meta_signature, argdefs):
         for node in self.sorted_axis:
             arg_name = f"{node.name}_numel"
             if not inductor_npu_config.inductor_static_mode:
@@ -898,7 +904,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 argdefs.append(ArgName(arg_name))
             else:
                 argdefs.append(ArgName(arg_name, is_constexpr=True))
-                self.triton_meta["constants"][arg_name] = node.length
+                triton_meta["constants"][arg_name] = node.length
 
     # BLOCK and SUB_BLOCK definitions
     def add_autotune_args(self, argdefs):
@@ -913,13 +919,14 @@ class NPUIndexTritonKernel(TritonKernel):
             argdefs.append(ArgName(f"{axis.name.upper()}BLOCK_SUB", is_constexpr=True))
 
     def _get_heuristic(self):
+        # not support fixed config and cooperative_reduction yet
         if self.persistent_reduction:
             if not self.inside_reduction:
                 raise RuntimeError("assert self.inside_reduction to be true")
-            return "persistent_reduction_npu_index"
+            return "persistent_reduction"
         elif self.inside_reduction:
-            return "reduction_npu_index"
-        return "pointwise_npu_index"
+            return "reduction"
+        return "pointwise"
 
     def get_kernel_name(self, src_code, node_schedule, kernel):
         wrapper = V.graph.wrapper_code
@@ -944,8 +951,6 @@ class NPUIndexTritonKernel(TritonKernel):
         heuristics = self._get_heuristic()
         if name is None:
             code.splice(gen_common_triton_imports())
-            # Note: add extra imports for extensions
-            code.splice(gen_triton_ext_imports())
 
             if config.benchmark_kernel:
                 code.splice(self.imports_for_benchmark_kernel())
@@ -965,7 +970,7 @@ class NPUIndexTritonKernel(TritonKernel):
         triton_meta = {
             "signature": triton_meta_signature,
             "device":
-                NPUDeviceProperties.create(
+                DeviceProperties.create(
                     V.graph.get_current_device_or_throw()
                 ),
             "constants": {},
@@ -979,10 +984,9 @@ class NPUIndexTritonKernel(TritonKernel):
             num_gb = self.estimate_kernel_num_bytes() / 1e9
             inductor_meta["kernel_num_gb"] = num_gb
 
-        self.gen_numel_args(signature, triton_meta_signature, argdefs)
+        self.gen_numel_args(signature, triton_meta, triton_meta_signature, argdefs)
         if self.is_unified_simt_kernel():
             triton_meta["configs"] = [config_of(signature)]
-        self.triton_meta = triton_meta
 
         # add in tiling args
         self.add_autotune_args(argdefs)
@@ -1000,7 +1004,7 @@ class NPUIndexTritonKernel(TritonKernel):
         if self.inside_reduction:
             reduction_hint = self.features.get_reduction_hint()
             heuristics_line = f"""
-                @npu_triton_heuristics.{heuristics}(
+                @triton_heuristics.{heuristics}(
                     size_hints={size_hints},
                     reduction_hint={reduction_hint},
                     filename=__file__,
@@ -1017,7 +1021,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 else:
                     tile_hint = "tile_hint=TileHint.DEFAULT,"
             heuristics_line = f"""
-                @npu_triton_heuristics.{heuristics}(
+                @triton_heuristics.{heuristics}(
                     size_hints={size_hints!r}, {tile_hint}
                     filename=__file__,
                     triton_meta={triton_meta!r},

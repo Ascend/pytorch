@@ -4,6 +4,7 @@ import torch
 from torch._inductor.codegen.rocm.ck_universal_gemm_template import CKGemmTemplate
 
 from torch._inductor import ir, lowering as L
+from torch._inductor.lowering import fallback_handler
 from torch._inductor.select_algorithm import (
     autotune_select_algorithm,
     ExternKernelChoice,
@@ -55,6 +56,10 @@ def is_batch_stride_largest_or_zero(mat1, mat2, layout) -> bool:
 def _register_npu_inductor_bmm():
     @L.register_lowering(aten.bmm)
     def tuned_bmm(mat1, mat2, *, layout=None):
+        # not support lowering bmm for cpp_wrapper yet
+        if V.graph.cpp_wrapper:
+            return fallback_handler(aten.bmm.default)(mat1, mat2)
+
         if all(x.get_device().type == "cpu" for x in [mat1, mat2]):
             # decompose to small ops when memory bound
             if mat1.get_size()[1] == 1 or mat2.get_size()[2] == 1:

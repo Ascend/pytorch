@@ -58,7 +58,6 @@ from torch._inductor.select_algorithm import (
 from torch._inductor.codegen.common import IndentedBuffer
 from torch._inductor.exc import CppCompileError
 from torch.utils._ordered_set import OrderedSet
-from torch_npu._inductor.codegen.triton import gen_triton_ext_imports
 
 from ..profiler import tensorboard_trace_handler
 
@@ -400,7 +399,6 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             arg_defs, *_ = self.args.python_argdefs()
             code = IndentedBuffer()
             code.splice(gen_common_triton_imports())
-            code.splice(gen_triton_ext_imports())
             code.splice(self.jit_lines())
             code.writeline(
                 f"def {self.kernel_name}({', '.join(x.full_name() for x in arg_defs)}):"

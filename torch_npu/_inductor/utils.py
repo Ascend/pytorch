@@ -4,6 +4,7 @@ import functools
 import logging
 from typing import List, Optional
 
+import sympy
 import torch
 import torch_npu
 
@@ -81,6 +82,17 @@ def patch_has_triton():
 
     torch.utils._triton.has_triton = has_triton
     torch._inductor.scheduler.has_triton = has_triton
+
+
+def patch_expr_fits_within_32bit():
+    def npu_expr_fits_within_32bit(e: sympy.Expr) -> bool:
+        return False
+
+    from torch._inductor import utils
+    from torch._inductor.codegen import simd, triton_utils
+    utils.expr_fits_within_32bit = npu_expr_fits_within_32bit
+    simd.expr_fits_within_32bit = npu_expr_fits_within_32bit
+    triton_utils.expr_fits_within_32bit = npu_expr_fits_within_32bit
 
 
 def disable_foreach():
@@ -266,3 +278,13 @@ def use_catlass_template(op_name: str, layout: Layout, m: int, n: int, k: int) -
             return False
 
     return res
+
+
+def triton_support_ffts():
+    from triton.backends.ascend.utils import (
+        get_ascend_arch_from_env,
+        is_ffts_supported,
+        force_disable_ffts
+    )
+    arch = get_ascend_arch_from_env()
+    return is_ffts_supported(arch) and (not force_disable_ffts())

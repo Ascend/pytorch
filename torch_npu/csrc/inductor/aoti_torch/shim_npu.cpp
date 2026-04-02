@@ -1,13 +1,15 @@
+#include <cstdint>
 #include <ATen/TensorUtils.h>
-#include <ATen/ops/empty_strided.h>
-#include <c10/core/DeviceType.h>
 #include <c10/core/ScalarType.h>
+#include <c10/core/DeviceType.h>
+#include <ATen/ops/empty_strided.h>
+
 #include <torch_npu/csrc/aten/common/from_blob.h>
-#include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
+#include <torch_npu/csrc/core/npu/NPUStream.h>
+#include <torch_npu/csrc/core/npu/NPUCachingAllocator.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim_npu.h>
 #include <torch_npu/csrc/inductor/aoti_torch/utils.h>
 #include <torch_npu/csrc/inductor/inductor_ops.h>
-
-#include <cstdint>
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +30,47 @@ static c10::Device c10_device(int32_t device_type, int32_t device_index)
     }
 }
 } // namespace
+
+AOTITorchError aoti_torch_create_npu_guard(int32_t device_index, NPUGuardHandle* ret_guard)
+{
+    // todo: implement create npu guard logic
+    return AOTI_TORCH_SUCCESS;
+}
+
+AOTITorchError aoti_torch_delete_npu_guard(NPUGuardHandle guard)
+{
+    // todo: implement delete npu guard logic
+    return AOTI_TORCH_SUCCESS;
+}
+
+AOTITorchError aoti_torch_npu_guard_set_index(NPUGuardHandle guard, int32_t device_index)
+{
+    // todo: implement npu guard set index logic
+    return AOTI_TORCH_SUCCESS;
+}
+
+AOTITorchError aoti_torch_create_npu_stream_guard(
+    void* stream,
+    int32_t device_index,
+    NPUStreamGuardHandle* ret_guard)
+{
+    // todo: implement create npu stream guard logic
+    return AOTI_TORCH_SUCCESS;
+}
+
+AOTITorchError aoti_torch_delete_npu_stream_guard(NPUStreamGuardHandle guard)
+{
+    // todo: implement delete npu stream guard logic
+    return AOTI_TORCH_SUCCESS;
+}
+
+AOTI_TORCH_EXPORT AOTITorchError
+aoti_torch_get_current_npu_stream(int32_t device_index, void** ret_stream)
+{
+    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+        *(aclrtStream*)ret_stream = c10_npu::getCurrentNPUStream(device_index).stream();
+    });
+}
 
 AOTITorchError aoti_torch_create_tensor_from_blob_npu(void* data, int64_t ndim, const int64_t* sizes_ptr,
                                                       const int64_t* strides_ptr, int64_t storage_offset, int32_t dtype,
