@@ -203,7 +203,7 @@ void initDeviceProperty(int64_t deviceid)
         device_properties[deviceid].name = std::string(device_name);
     }
     static const bool is_cann_900beta2 = IsGteCANNVersion("9.0.0.beta2", "CANN");
-    if (is_cann_900beta2 && c10_npu::acl::IsExistAclrtGetDeviceInfo()) {
+    if (is_cann_900beta2 && c10_npu::acl::IsExistAclrtGetDeviceInfo() && (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950)) {
         int64_t tmp_device_total = 0;
         NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtGetDeviceInfo(static_cast<uint32_t>(deviceid), ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE, &tmp_device_total));
         device_total = static_cast<size_t>(tmp_device_total);
