@@ -251,8 +251,11 @@ class ReductionAnalysis:
         return shape_str
 
     def dense_size_list(self) -> List[str]:
-        sizes = ["1"] * len(self.kernel.golden_var_list)
-        for i, axis in enumerate(self.kernel.golden_var_list):
+        if not self.kernel.golden_var_list:
+            self.kernel.select_golden_varlist()
+        golden_var_list = list(self.kernel.golden_var_list) if self.kernel.golden_var_list else []
+        sizes = ["1"] * len(golden_var_list)
+        for i, axis in enumerate(golden_var_list):
             if axis.name[0] != 'r' or self.kernel.inside_reduction:
                 sizes[i] = f"{axis.name.upper()}BLOCK_SUB"
         sizes = list(reversed(sizes))
@@ -277,8 +280,10 @@ class ReductionAnalysis:
         sizes = self.dense_size_list()
         if self.numof_reduction_axis() > 1:
             if self.contiguous_reduction:
-                return f"[{', '.join(self.dense_post_reduction_list())}]"
-            return f"[{'* '.join(sizes)}]"
+                dense_post_reduction_list = self.dense_post_reduction_list()
+                return f"[{', '.join(dense_post_reduction_list)}]"
+            else:
+                return f"[{'* '.join(sizes)}]"
         return f"[{', '.join(sizes)}]"
 
     def numof_reduction_axis(self):
@@ -293,13 +298,19 @@ class ReductionAnalysis:
                 self.reduced_dim = 0
                 return 0
 
-        if not self.kernel.golden_var_list:
-            self.kernel.select_golden_varlist()
-        if self.kernel.golden_var_list is None:
-            raise RuntimeError("assert self.kernel.golden_var_list is not None")
+        # Use stride-sorted var list to find reduction dimension
+        stride_sorted_var_list = self.kernel.parse_golden_from_load_store_index()
+        
+        if not stride_sorted_var_list or not any(x.name[0] == 'r' for x in stride_sorted_var_list):
+            if not self.kernel.golden_var_list:
+                self.kernel.select_golden_varlist()
+            stride_sorted_var_list = list(self.kernel.golden_var_list) if self.kernel.golden_var_list else []
+        
+        if not stride_sorted_var_list:
+            raise RuntimeError("assert stride_sorted_var_list is not empty")
 
         dim = -1
-        for i, x in enumerate(reversed(self.kernel.golden_var_list)):
+        for i, x in enumerate(reversed(stride_sorted_var_list)):
             if x.name[0] == 'r':
                 dim = i
                 break

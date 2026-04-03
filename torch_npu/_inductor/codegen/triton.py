@@ -631,7 +631,7 @@ class NPUIndexTritonKernel(TritonKernel):
         # dense_size_list() orders dims according to reversed(golden_var_list),
         # i.e. the i-th size corresponds to reversed(golden_var_list)[i].
         _ = self.dense_size_list()
-        golden = list(self.golden_var_list or [])
+        golden = list(self.get_reduction_layout_var_list())
         dense_vars = list(reversed(golden))
         reduction_dims = [
             i
@@ -1497,6 +1497,17 @@ class NPUIndexTritonKernel(TritonKernel):
         sorted_keys = [key for key, _ in sorted_items]
         return sorted_keys
 
+    def get_reduction_layout_var_list(self):
+        if self.numof_reduction_axis() > 1:
+            stride_sorted_var_list = self.parse_golden_from_load_store_index()
+            if stride_sorted_var_list:
+                return tuple(stride_sorted_var_list)
+        if not self.golden_var_list:
+            self.select_golden_varlist()
+        if self.golden_var_list:
+            return tuple(self.golden_var_list)
+        return tuple([x.symbol() for x in self.tiling_axis]) if self.tiling_axis else ()
+
     def load_store_index_in_all_tiling_list(self):
         res = False
         for index in self.load_store_indexing:
@@ -1563,23 +1574,27 @@ class NPUIndexTritonKernel(TritonKernel):
         return sizes
 
     def is_contiguous_reduction(self):
-        def is_continugous_axis(axis_list):
+        def is_contiguous_axis(axis_list):
             axis_set = set(axis_list)
             return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
 
         if self.numof_reduction_axis() > 1:
             reduction_dim_list = [] 
 
-            if not self.golden_var_list:
-                self.select_golden_varlist()
+            # Use stride-sorted var list to reflect actual memory layout
+            stride_sorted_var_list = self.parse_golden_from_load_store_index()
+            
+            if not stride_sorted_var_list:
+                # Fallback to golden_var_list if parse_golden_from_load_store_index() returns empty
+                if not self.golden_var_list:
+                    self.select_golden_varlist()
+                stride_sorted_var_list = list(self.golden_var_list) if self.golden_var_list else []
 
-            if self.golden_var_list is None:
-                raise RuntimeError("assert self.kernel.golden_var_list is not None")
-
-            for i, x in enumerate(reversed(self.golden_var_list)):
+            for i, x in enumerate(reversed(stride_sorted_var_list)):
                 if x.name[0] == 'r':
                     reduction_dim_list.append(i)
-            return is_continugous_axis(reduction_dim_list)
+            return is_contiguous_axis(reduction_dim_list)
+
         return False
 
     def dense_size_str(self):
@@ -1742,7 +1757,7 @@ class NPUIndexTritonKernel(TritonKernel):
 
         def get_reduction_axis():
             reduce_dim = self.reduction_dim()
-            axis_key = self.golden_var_list[::-1][reduce_dim]
+            axis_key = self.get_reduction_layout_var_list()[::-1][reduce_dim]
             reduced_axis = self.range_tree_nodes[axis_key]
             return reduced_axis
 

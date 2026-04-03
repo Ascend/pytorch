@@ -29,17 +29,26 @@ class SplitTiling:
 
 
     def is_contiguous_reduction(self):
-        def is_continugous_axis(axis_list):
+        def is_contiguous_axis(axis_list):
             axis_set = set(axis_list)
             return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
 
         if self.kernel.numof_reduction_axis() > 1:
-            golden_var_list = self.kernel.parse_golden_from_load_store_index()
+            # Use stride-sorted var list to reflect actual memory layout
+            stride_sorted_var_list = self.kernel.parse_golden_from_load_store_index()
+            
+            if not stride_sorted_var_list:
+                # Fallback to golden_var_list if parse_golden_from_load_store_index() returns empty
+                if not self.kernel.golden_var_list:
+                    self.kernel.select_golden_varlist()
+                stride_sorted_var_list = list(self.kernel.golden_var_list) if self.kernel.golden_var_list else []
+            
             reduction_dim_list = [] 
-            for i, x in enumerate(reversed(golden_var_list)):
+            for i, x in enumerate(reversed(stride_sorted_var_list)):
                 if x.name[0] == 'r':
                     reduction_dim_list.append(i)
-            return is_continugous_axis(reduction_dim_list)
+            return is_contiguous_axis(reduction_dim_list)
+
         return False
 
     @classmethod
