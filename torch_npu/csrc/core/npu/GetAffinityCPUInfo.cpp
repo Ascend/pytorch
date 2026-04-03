@@ -77,6 +77,11 @@ void GetExclusiveAffinityCPU()
     std::map<int, std::string> CardIdAffinityCpuDefault;
     for (int i = 0; i < device_count; i++) {
         std::string affinity_cpu = GetAffinityCPUBaseInfo(i);
+        if (affinity_cpu.find(",") != std::string::npos) {
+            ASCEND_LOGW("torch_npu not support affinity cpu format:%s when set npu_affine:1.", affinity_cpu.c_str());
+            CardIdAffinityCPU.clear();
+            return;
+        }
         if (affinity_cpu.empty()) {
             return;
         }
