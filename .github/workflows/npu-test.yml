@@ -111,7 +111,9 @@ jobs:
           fi
 
           # 构建参数
-          export MAX_JOBS=$(nproc)
+          echo "nproc value: $(nproc)"
+          echo "MAX_JOBS: 40"
+          export MAX_JOBS=40
           export DISABLE_INSTALL_TORCHAIR=FALSE
           export BUILD_WITHOUT_SHA=1
 
