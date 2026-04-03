@@ -206,12 +206,42 @@ def _test_for_npu():
     common_utils.TEST_CUDA = common_utils.TEST_PRIVATEUSE1
 
 
+def _patch_backend_register_for_npu():
+    """
+    Patch Backend.register_backend to automatically add 'npu' device support
+    for 'fake' backend. This ensures compatibility with PyTorch's
+    testing infrastructure (e.g., fake process group) without modifying PyTorch source.
+    """
+    Backend = torch.distributed.Backend
+    _original_register_backend = Backend.register_backend.__func__
+
+    @classmethod
+    def _patched_register_backend(cls, backend_name, func, extended_api=False, devices=None):
+        if devices is not None:
+            if isinstance(devices, str):
+                devices = [devices]
+            else:
+                devices = list(devices)
+            if backend_name == 'fake' and 'npu' not in devices:
+                devices.append('npu')
+        return _original_register_backend(cls, backend_name, func, extended_api=extended_api, devices=devices)
+
+    Backend.register_backend = _patched_register_backend
+
+    # Also patch already registered 'fake' backend that not support 'npu'
+    for backend_name, supported_devices in Backend.backend_capability.items():
+        if backend_name == 'fake' and 'npu' not in supported_devices:
+            Backend.backend_capability[backend_name].append('npu')
+
+
 def _apply_test_patchs():
     update_skip_list()
     OpInfo.get_decorators = get_decorators
     OpInfo.supported_dtypes = _supported_dtypes
     OpInfo.supported_backward_dtypes = _supported_backward_dtypes
     common_utils.check_if_enable = _check_if_enable_npu
+
+    _patch_backend_register_for_npu()
 
 
 # apply test_ops related patch
