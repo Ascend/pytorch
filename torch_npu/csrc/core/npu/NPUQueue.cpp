@@ -341,8 +341,8 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
         ASCEND_LOGE("%s", error_msg.c_str());
     }
     if (check_error && !runtime_error.empty()) {
+        ASCEND_LOGE("runtime_error: %s", runtime_error.c_str());
         if (cannOOM) {
-            ASCEND_LOGE("%s", runtime_error.c_str());
             TORCH_CHECK_WITH(OutOfMemoryError, false, runtime_error.c_str());
         } else {
             throw std::runtime_error(runtime_error);
