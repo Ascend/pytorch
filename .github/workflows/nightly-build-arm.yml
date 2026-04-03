@@ -19,11 +19,11 @@ jobs:
     name: Build torch_npu (ARM, PyTorch nightly)
     runs-on: linux-aarch64-a3-2
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      image: swr.cn-southwest-2.myhuaweicloud.com/base_image/ascend-ci/cann:8.5.0-a3-ubuntu22.04-py3.11
       options: --user root
     env:
       PYTHON_VERSION: '3.11'
-      DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      DOCKER_IMAGE: swr.cn-southwest-2.myhuaweicloud.com/base_image/ascend-ci/cann:8.5.0-a3-ubuntu22.04-py3.11
       # 跳过 auditwheel repair，避免因缺少 CANN 库（如 libccl_dpu.so）导致构建失败
       # torch_npu 依赖外部 CANN 环境，wheel 不需要自包含这些库
       AUDITWHEEL_PLAT: 'skip'
