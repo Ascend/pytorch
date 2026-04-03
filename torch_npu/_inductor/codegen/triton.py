@@ -251,6 +251,21 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         var.mask_vars = indexing.mask_vars
         return var
 
+    @staticmethod
+    def frexp(x):
+        cache_key = f"frexp({x})"
+        cse_val = V.kernel.cse.try_get(cache_key)
+        if cse_val:
+            return cse_val
+
+        mantissa = V.kernel.cse.newvar(dtype=x.dtype)
+        exponent = V.kernel.cse.newvar(dtype=torch.int32)
+        V.kernel.compute.writeline(
+            f"{mantissa}, {exponent} = npu_triton_helpers.frexp({x})"
+        )
+        V.kernel.cse.put(cache_key, (mantissa, exponent))
+        return (mantissa, exponent)
+
 
 def group_fn(self, sizes):
     groups = list()
