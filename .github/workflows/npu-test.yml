@@ -155,6 +155,8 @@ jobs:
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
           PYTHON=python${{ env.PYTHON_VERSION }}
+          # 切换到项目根目录的上一级，避免从源码目录加载 torch_npu
+          cd ..
           echo "=== Testing torch_npu import ==="
           $PYTHON -c "import torch; print(f'torch: {torch.__version__}'); import torch_npu; print(f'torch_npu: {torch_npu.__version__}'); print(f'NPU available: {torch.npu.is_available()}'); print(f'NPU count: {torch.npu.device_count()}'); print(f'NPU name: {torch.npu.get_device_name(0) if torch.npu.is_available() else \"N/A\"}')"
 
@@ -168,6 +170,7 @@ jobs:
           PYTHON=python${{ env.PYTHON_VERSION }}
           PIP=pip${{ env.PYTHON_VERSION }}
 
+          # 步骤开始时自动回到项目根目录，进入 test 目录执行测试
           cd test
           $PYTHON -m pytest npu/test_device.py -v 2>&1 | tee /tmp/test.log
 
