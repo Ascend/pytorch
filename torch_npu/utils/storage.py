@@ -21,11 +21,24 @@ def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, ba
         "please use newer torch to re-store the weight file."
     )
     se._warn_legacy_serialization(warn_massages, "oldfile")
-    tensor = torch.tensor([], dtype=storage.dtype, device=storage._untyped_storage.device)
+    tensor = torch.empty(
+        (0,),
+        dtype=storage.dtype,
+        device=storage._untyped_storage.device,
+        requires_grad=requires_grad,
+    )
     tensor.set_(storage, storage_offset, size, stride)
     tensor.requires_grad = requires_grad
     tensor._backward_hooks = backward_hooks
-    if not se.RE_MAP_CPU:
+    target_device = torch.device("cpu") if se.RE_MAP_CPU else torch.device("npu")
+    is_fake_mode = (
+        hasattr(torch, "_guards")
+        and torch._guards.detect_fake_mode(None) is not None
+    )
+
+    if is_fake_mode:
+        tensor.fake_device = target_device
+    elif not se.RE_MAP_CPU:
         if isinstance(npu_storage_info, bool):
             tensor = tensor.npu()
         else:
