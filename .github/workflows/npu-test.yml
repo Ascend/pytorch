@@ -1,8 +1,12 @@
 name: NPU Build and Test
 
 on:
+  push:
+    paths:
+      - '.github/workflows/npu-test.yml'
   pull_request:
-    branches: [ master ]
+    paths:
+      - '.github/workflows/npu-test.yml'
   workflow_dispatch:
     inputs:
       torch_nightly_date:
@@ -16,7 +20,7 @@ jobs:
     runs-on: linux-aarch64-a3-2
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
-      options: --user root -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi
+      options: --user root
     env:
       PYTHON_VERSION: '3.11'
       DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
@@ -30,25 +34,22 @@ jobs:
 
       - name: Setup cache directories
         run: |
-          mkdir -p ~/.cache/pip
-          mkdir -p ~/.cache/ccache
-          chmod -R 777 ~/.cache
+          mkdir -p /github/home/.cache/pip
+          mkdir -p /github/home/.cache/ccache
+          chmod -R 777 /github/home/.cache
+
+      - name: Install ccache
+        run: |
+          yum install -y ccache
+          ccache --version
 
       - name: Cache pip
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
+          path: /github/home/.cache/pip
           key: pip-arm-py${{ env.PYTHON_VERSION }}-build-test
           restore-keys: |
             pip-arm-py${{ env.PYTHON_VERSION }}-
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ccache
-          key: ccache-arm-py${{ env.PYTHON_VERSION }}-${{ github.run_id }}
-          restore-keys: |
-            ccache-arm-py${{ env.PYTHON_VERSION }}-
 
       - name: Uninstall pre-installed packages
         run: |
@@ -61,7 +62,7 @@ jobs:
           PIP=pip${{ env.PYTHON_VERSION }}
           PYTHON=python${{ env.PYTHON_VERSION }}
 
-          export PIP_CACHE_DIR=~/.cache/pip
+          export PIP_CACHE_DIR=/github/home/.cache/pip
           $PIP install --upgrade pip
 
           # 安装基础依赖
@@ -79,6 +80,14 @@ jobs:
           echo "version=${TORCH_VER}" >> $GITHUB_OUTPUT
           echo "PyTorch nightly version: ${TORCH_VER}"
 
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/ccache
+          key: ccache-arm-py${{ env.PYTHON_VERSION }}-torch${{ steps.install_torch.outputs.version }}-${{ github.sha }}
+          restore-keys: |
+            ccache-arm-py${{ env.PYTHON_VERSION }}-torch${{ steps.install_torch.outputs.version }}-
+
       - name: Build torch_npu wheel
         id: build
         run: |
@@ -91,7 +100,7 @@ jobs:
             ccache -z || true
             export CC="ccache gcc"
             export CXX="ccache g++"
-            export CCACHE_DIR=~/.cache/ccache
+            export CCACHE_DIR=/github/home/.cache/ccache
             export CCACHE_COMPRESS=1
             export CCACHE_MAXSIZE=10G
             export CCACHE_BASEDIR="${PWD}"
@@ -110,9 +119,9 @@ jobs:
           bash ci/build.sh --python=${{ env.PYTHON_VERSION }} 2>&1 | tee /tmp/build.log
           BUILD_STATUS=${PIPESTATUS[0]}
 
-          # ccache 统计
+          # ccache 统计（兼容 ccache 3.x/4.x 格式）
           if [ "${USE_CCACHE}" = "1" ]; then
-            CCACHE_STATS=$(ccache -s | grep -E "^(Hits|Misses|Cache size)" | tr '\n' ' ')
+            CCACHE_STATS=$(ccache -s | grep -E "cache hit|cache miss|cache size|hit rate" | tr '\n' ' ')
             echo "ccache_stats=${CCACHE_STATS}" >> $GITHUB_OUTPUT
             ccache -s
           fi
@@ -156,9 +165,6 @@ jobs:
 
           PYTHON=python${{ env.PYTHON_VERSION }}
           PIP=pip${{ env.PYTHON_VERSION }}
-
-          # 安装 pytest
-          $PIP install pytest pytest-xdist
 
           cd test
           $PYTHON -m pytest npu/test_device.py -v 2>&1 | tee /tmp/test.log
