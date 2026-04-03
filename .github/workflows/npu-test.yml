@@ -16,7 +16,7 @@ jobs:
     runs-on: linux-aarch64-a3-2
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
-      options: --user root --device /dev/davinci4 --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi -v /usr/local/Ascend/driver:/usr/local/Ascend/driver -v /usr/local/Ascend/firmware:/usr/local/Ascend/firmware -v /usr/local/Ascend/cann:/usr/local/Ascend/cann -v /usr/local/Ascend/nnal:/usr/local/Ascend/nnal
+      options: --user root -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi
     env:
       PYTHON_VERSION: '3.11'
       DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
