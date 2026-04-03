@@ -7,6 +7,7 @@ from torch.testing._internal.common_utils import (
 from torch._prims.rng_prims import register_run_and_save_rng_state_op, run_and_save_rng_state
 from testutils import TestUtils
 import torch_npu
+import torch_npu._inductor
 
 
 class TestRNGPrims(TestUtils):
