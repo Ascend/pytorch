@@ -1067,6 +1067,11 @@ def parse_args(args=None):
         help="Use a fresh triton cachedir when running each model, to force cold-start compile.",
     )
     parser.add_argument(
+        "--disable-aclgraph",
+        action="store_true",
+        help="Disables aclgraph for NPU Inductor",
+    )
+    parser.add_argument(
         "--disable-split-reductions",
         action="store_true",
         help="Disables split reductions for Inductor",
@@ -1176,9 +1181,6 @@ def main(runner, original_dir=None):
     if args.baseline:
         args.baseline = os.path.abspath(args.baseline)
 
-    if is_npu_available and args.only:
-        patch_model(args.only)
-
     args.use_distributed = (args.ddp) and args.only
     if args.multiprocess:
         # NB: Do NOT query device count before CUDA initialization; we're
@@ -1200,6 +1202,18 @@ def main(runner, original_dir=None):
 def run(runner, args, original_dir=None):
     # Pass the parsed args object to benchmark runner object
     runner.args = args
+    experiment = null_experiment
+    global current_name, current_device, current_batch_size, output_filename
+    optimize_ctx = contextlib.nullcontext()
+
+    if args.backend:
+        optimize_ctx = configure_compile_options(args)
+        experiment = speedup_experiment
+        if args.accuracy:
+            output_filename = f"accuracy_{args.backend}.csv"
+        else:
+            output_filename = f"speedup_{args.backend}.csv"
+
     if args.ddp:
         # but just to measure impact on singlenode of performing graph-breaks.
         # Left it as a follow up to keep this PR isolated.
@@ -1309,18 +1323,6 @@ def run(runner, args, original_dir=None):
     if args.no_skip:
         runner.skip_models.clear()
 
-    experiment = null_experiment
-    global current_name, current_device, current_batch_size, output_filename
-    optimize_ctx = contextlib.nullcontext()
-
-    if args.backend:
-        optimize_ctx = configure_compile_options(args)
-        experiment = speedup_experiment
-        if args.accuracy:
-            output_filename = f"accuracy_{args.backend}.csv"
-        else:
-            output_filename = f"speedup_{args.backend}.csv"
-
     runner.setup_amp()
 
     if args.output:
@@ -1350,6 +1352,9 @@ def run(runner, args, original_dir=None):
         # use aclnn by default, otherwise compared with aclop
         if os.environ.get("USE_ACLOP", "0").upper() in ["1", "ON"]:
             torch_npu.npu.set_compile_mode(jit_compile=True)
+
+        if is_npu_available:
+            patch_model(args.only)
 
         model_name = args.only
         for device in args.devices:
@@ -1506,12 +1511,15 @@ def configure_compile_options(args):
         NPU_MLIR_NO_ACLGRAPH = set()
     npu_backend = args.npu_backend
     # mode Config
-    mode = None
+    if not args.disable_aclgraph:
+        mode = "max-autotune"
+    else:
+        mode = None
     if args.only is not None:
-        if npu_backend == "dvm" and args.only not in NPU_DVM_NO_ACLGRAPH:
-            mode = "max-autotune"
-        elif npu_backend == "mlir" and args.only not in NPU_MLIR_NO_ACLGRAPH:
-            mode = "max-autotune"
+        if npu_backend == "dvm" and args.only in NPU_DVM_NO_ACLGRAPH:
+            mode = None
+        elif npu_backend == "mlir" and args.only in NPU_MLIR_NO_ACLGRAPH:
+            mode = None
     # Backend Config
     backend = None
     if args.backend:
@@ -1530,8 +1538,7 @@ def configure_compile_options(args):
             "fullgraph": args.nopython,
             "dynamic": dynamic,
         }
-        if mode is not None:
-            compile_kwargs["mode"] = mode
+        compile_kwargs["mode"] = mode
         if backend == "inductor" and hasattr(args, 'npu_backend'):
             if npu_backend == "default":
                 npu_backend = get_npu_backend(args)
