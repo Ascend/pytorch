@@ -26,6 +26,7 @@ from torch._inductor.utils import sympy_product
 from torch._prims_common import (
     is_boolean_dtype,
     is_integer_dtype,
+    is_float_dtype,
     get_computation_dtype,
     ELEMENTWISE_TYPE_PROMOTION_KIND,
     Number
@@ -53,7 +54,11 @@ from torch._inductor.lowering import (
     get_promoted_dtype,
     add as add_pt,
     rsqrt as rsqrt_pt,
-    mul as mul_pt
+    mul as mul_pt,
+    sqrt as sqrt_pt,
+    clone as clone_pt,
+    pow_recursive,
+    exp2 as exp2_pt
 )
 
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
@@ -348,7 +353,68 @@ def _register_npu_inductor_fallbacks():
         if should_use_template():
             return lowering_index_select(weight, 0, indices, 'embedding', new_graph, node_name)
         return lowering.embedding(weight, indices)
+    
+    @make_pointwise
+    def pow_native(a,b):
+        return ops.pow(a,b)
 
+    fallback_pow_tensor_tensor = fallback_handler(
+        aten.pow.Tensor_Tensor, add_to_fallback_set=False    
+    )
+    fallback_pow_scalar = fallback_handler(aten.pow.Scalar, add_to_fallback_set=False)
+    fallback_pow_tensor_scalar = fallback_handler(
+        aten.pow.Tensor_Scalar, add_to_fallback_set=False    
+    )
+                
+    @register_lowering(aten.pow, broadcast=True)
+    def pow(a, b):
+        if isinstance(b, float) and b == int(b):
+            return pow(a, int(b))
+        elif isinstance(b, float) and b == 0.5:
+            return sqrt_pt(a)
+        elif isinstance(b, int) and b == 1:
+            return clone_pt(a)
+        
+        # Type promotion ensures all tensor arguments have the same Type
+        dtype = next(x.get_dtype() for x in (a, b) if isinstance(x, ir.TensorBox))
+        is_integer_pow = is_integer_dtype(dtype)
+        is_fp64_pow = (dtype == torch.float64)
+
+        # Optimize away small fixed powers, or for integers avoid falling back to Aten
+        embed_exponent = isinstance(b, int) and (
+            -32 < b < 32 or (is_integer_pow and b >= 0)
+        )
+        if embed_exponent:
+            loader = a.make_loader()
+            
+            def fn(idx):
+                return pow_recursive(loader(idx), b, a.get_dtype())
+            
+            return Pointwise.create(
+                device=a.get_device(),
+                dtype=a.get_dtype(),
+                inner_fn=fn,
+                ranges=a.get_size(),
+            )
+        
+        if isinstance(a, Number):
+            if a == 1:
+                return full_like(b, 1)
+            if a == 2 and is_float_dtype(b.get_dtype()):
+                return exp2_pt(b)
+            
+        if is_integer_pow or is_fp64_pow:
+            # ops.pow doesn't work for integers
+            if isinstance(a, Number):
+                return fallback_pow_scalar(a, b)
+            elif isinstance(b, Number):
+                return fallback_pow_tensor_scalar(a, b)
+            else:
+                return fallback_pow_tensor_tensor(a, b)
+            
+        return pow_native(a, b)
+
+    
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
         if len(inputs) == 1:
