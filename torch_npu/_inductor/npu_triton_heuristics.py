@@ -1266,6 +1266,22 @@ def patch_triton_heuristics_cached_autotune():
     torch._inductor.runtime.triton_heuristics.cached_autotune = cached_autotune
 
 
+def brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta) -> List[Config]:
+    import os
+    max_num_str = os.environ.get("FAST_RUN_WITH_MAX_TILING_NUM", "-1")
+    try:
+        max_num = int(max_num_str)
+    except ValueError:
+        max_num = -1
+    
+    if max_num > 0 and len(configs) > max_num:
+        configs = configs[-1 * max_num:]
+        logging.debug("[%s], prune tiling configs to [%s]",
+                    inductor_meta["kernel_name"],
+                    len(configs))
+    return configs
+
+
 # split:sizeof split, xblock:axis1 length, rblock:axis2 length
 def triton_config_npu_index(
         size_hints,
@@ -1336,8 +1352,11 @@ def triton_config_npu_index(
     logging.debug("[%s], generate candidate tiling count: [%s]",
                 inductor_meta["kernel_name"],
                 len(configs))
+    
+    # if fast run, we prune the configs to the last max_num configs
+    configs = brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta)
     return configs
-
+    
 
 def pointwise(
         size_hints,
