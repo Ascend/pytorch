@@ -124,7 +124,7 @@ void copy_h2d_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
         return;
     }
 
-    at::Tensor dst_contig = dst_is_contiguous ? dst : at::empty_like(dst);
+    at::Tensor dst_contig = dst_is_contiguous ? dst : at::empty_like(dst, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
     at::Tensor src_contig;
     if (!same_type) {
         src_contig = src.to(dst.dtype()).expand_as(dst).contiguous();
@@ -153,7 +153,7 @@ void copy_d2h_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
         copy_d2h_baseformat_dtype_contigous_opapi(dst, src, non_blocking);
         return;
     }
-    at::Tensor dst_contig = (dst_is_contiguous && same_type) ? dst : at::empty_like(dst, src.dtype());
+    at::Tensor dst_contig = (dst_is_contiguous && same_type) ? dst : at::empty_like(dst, src.dtype(), LEGACY_CONTIGUOUS_MEMORY_FORMAT);
     at::Tensor src_contig = src.expand_as(dst).contiguous();
     // perform a same-dtype copy on contiguous tensors
     TORCH_INTERNAL_ASSERT(dst_contig.sizes().equals(src_contig.sizes()), OPS_ERROR(ErrCode::VALUE));
