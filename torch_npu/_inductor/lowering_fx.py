@@ -72,6 +72,7 @@ from torch.utils._sympy.functions import (
     Identity,
     ModularIndexing,
 )
+from torch_npu._inductor import ir as npu_ir
 from .config import log
 
 aten = torch.ops.aten
@@ -453,7 +454,19 @@ def fetch_graphs(inputs: Optional[List[TensorBox]]):
                 continue
         name = inp.get_name()
         traced_graph = inp.get_traced_graph()
-        if traced_graph is not None:
+        if (
+            traced_graph is not None
+            and not isinstance(inp, (ir.ConcatKernel, npu_ir.ConcatKernel))
+            and not (
+                hasattr(inp, 'data')
+                and isinstance(inp.data, (ir.ConcatKernel, npu_ir.ConcatKernel))
+            )
+            and not (
+                hasattr(inp, 'data')
+                and hasattr(inp.data, 'data')
+                and isinstance(inp.data.data, (ir.ConcatKernel, npu_ir.ConcatKernel))
+            )
+        ):
             input_graphs.append(traced_graph)
             continue
         traced_graph = TracedGraph()
