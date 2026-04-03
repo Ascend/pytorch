@@ -553,6 +553,7 @@ void setDefaultStreamsStatus(c10::DeviceIndex device_index, RepoStatus status)
 
 bool npuSynchronizeDevice(bool check_error)
 {
+    ASCEND_LOGD("npuSynchronizeDevice start, check_error=%d.", check_error);
     if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
         NPUStatus ret = c10_npu::emptyAllNPUStream(check_error);
         if (ret != NPU_STATUS_SUCCESS) {
