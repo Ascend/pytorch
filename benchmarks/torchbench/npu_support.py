@@ -304,6 +304,7 @@ def _patch_model_9():
 def _patch_model_10():
     try:
         from torch_npu.contrib import transfer_to_npu
+        import torch_npu._inductor
     except ImportError:
         log.warning("NPU_FlAG is False!")
         return
@@ -578,11 +579,77 @@ def _patch_model_19():
             return hidden_state
 
         projected_embeddings = self.projection(
-            hidden_state[torch.arange(hidden_state.shape[0]), text.argmax(dim=-1)]
+            hidden_state[torch.arange(hidden_state.shape[0], device="npu"), text.argmax(dim=-1)]
         )
         return projected_embeddings
 
     CLIPTextEncoder.forward = new_forward
+
+
+def patch_remove_ops_from_generate_list(op_names=None):
+    try:
+        import torch
+        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
+
+        if not op_names:
+            print("[patch] No op names provided, nothing to do.")
+            return
+
+        for name in op_names:
+            parts = name.split(".")
+            op = torch.ops
+            for p in parts:
+                op = getattr(op, p)
+
+            if op in anir_config.GENERATE_LIST:
+                anir_config.GENERATE_LIST.remove(op)
+                print(f"[patch] Successfully removed {name} from GENERATE_LIST.")
+            else:
+                print(f"[patch] {name} not found in GENERATE_LIST (maybe already removed).")
+
+    except Exception as e:
+        print(f"[patch] Failed to modify GENERATE_LIST: {e}")
+
+
+@register_patch("speech_transformer")
+def _patch_model_20():
+    import numpy as np
+    try:
+        from torchbenchmark.models.speech_transformer.speech_transformer.transformer.attention import MultiHeadAttention, ScaledDotProductAttention
+    except ImportError:
+        log.warning("import torchvision fail or could not get MultiHeadAttention or ScaledDotProductAttention from module "
+                    "torchbenchmark.models.speech_transformer.transformer.attention")
+        return
+
+    def new_init(self, n_head, d_model, d_k, d_v, dropout=0.1):
+        super(MultiHeadAttention, self).__init__()
+
+        self.n_head = n_head
+        self.d_k = d_k
+        self.d_v = d_v
+
+        self.w_qs = nn.Linear(d_model, n_head * d_k)
+        self.w_ks = nn.Linear(d_model, n_head * d_k)
+        self.w_vs = nn.Linear(d_model, n_head * d_v)
+        nn.init.normal_(self.w_qs.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_k)))
+        nn.init.normal_(self.w_ks.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_k)))
+        nn.init.normal_(self.w_vs.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_v)))
+
+        # fix two different devices npu, cpu
+        self.temperature = d_k ** 0.5
+        self.attention = ScaledDotProductAttention(temperature=self.temperature,
+                                                   attn_dropout=dropout)
+        self.layer_norm = nn.LayerNorm(d_model)
+
+        self.fc = nn.Linear(n_head * d_v, d_model)
+        nn.init.xavier_normal_(self.fc.weight)
+
+        self.dropout = nn.Dropout(dropout)
+
+    MultiHeadAttention.__init__ = new_init
+
+    patch_remove_ops_from_generate_list(["aten.cat", "aten.full"])
+
 
 
 def patch_model(model_name):
