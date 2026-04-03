@@ -297,6 +297,16 @@ class TileGenerator:
             if self.persistent_reduction and self.axis_name[axis][0] == "r":
                 reached_stop_numel = True
                 break
+
+            if not slow_decend_split or self.npu_kernel_type == NPUKernelType.SIMT_ONLY:
+                self.blocks[axis] = numel // 2
+                self.sub_blocks[axis] = self.blocks[axis]
+
+            else:
+                step = numel // 4 if numel // 4 > 1 else 1
+                self.blocks[axis] = numel - step
+                self.sub_blocks[axis] = self.blocks[axis]
+
             total_programs = calc_total_programs()
             if total_programs > config.num_vector_core:
                 last_blocks = self.calcu_last_split_blocks(axis)
@@ -315,15 +325,6 @@ class TileGenerator:
                 if self.tiny_kernel:
                     self.add_to_configs(list(tuple(self.blocks)))
                 slow_decend_split = (total_programs > config.num_vector_core // 2)
-
-            if not slow_decend_split or self.npu_kernel_type == NPUKernelType.SIMT_ONLY:
-                self.blocks[axis] = numel // 2
-                self.sub_blocks[axis] = self.blocks[axis]
-
-            else:
-                step = numel // 4 if numel // 4 > 1 else 1
-                self.blocks[axis] = numel - step
-                self.sub_blocks[axis] = self.blocks[axis]
 
             total_programs = calc_total_programs()
             if self.blocks[axis] == 1 and (total_programs > self.program_threshold or self.dual_reduction) and tuple(
