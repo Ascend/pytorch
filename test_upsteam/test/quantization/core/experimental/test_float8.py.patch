@@ -1,0 +1,38 @@
+diff --git a/test/quantization/core/experimental/test_float8.py b/test/quantization/core/experimental/test_float8.py
+index 1c4956d..c5b53a8 100644
+--- a/test/quantization/core/experimental/test_float8.py
++++ b/test/quantization/core/experimental/test_float8.py
+@@ -4,6 +4,15 @@ import struct
+ import unittest
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ from torch.testing._internal.common_device_type import (
+     dtypes,
+     dtypesIfCUDA,
+@@ -392,7 +401,7 @@ class TestFloat8Dtype(TestCase):
+             torch.testing.assert_close(x1, x1_save_load, atol=0, rtol=0)
+ 
+ 
+-instantiate_device_type_tests(TestFloat8Dtype, globals())
++instantiate_device_type_tests(TestFloat8Dtype, globals(), only_for=['cpu', 'privateuse1'])
+ 
+ 
+ class TestFloat8DtypeCPUOnly(TestCase):
+@@ -439,7 +448,7 @@ class TestFloat8DtypeCPUOnly(TestCase):
+         f(x).sum().backward()
+ 
+ 
+-instantiate_device_type_tests(TestFloat8DtypeCPUOnly, globals(), only_for="cpu")
++instantiate_device_type_tests(TestFloat8DtypeCPUOnly, globals(), only_for=['cpu'])
+ 
+ if __name__ == "__main__":
+     run_tests()

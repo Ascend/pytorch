@@ -1,0 +1,12 @@
+diff --git a/test/test_jit_llga_fuser.py b/test/test_jit_llga_fuser.py
+index 40e658d..536018c 100644
+--- a/test/test_jit_llga_fuser.py
++++ b/test/test_jit_llga_fuser.py
+@@ -1,6 +1,7 @@
+ # Owner(s): ["module: mkldnn"]
+ import sys
+ import torch
++import torch_npu
+ import unittest
+ import itertools
+ import torch.nn as nn

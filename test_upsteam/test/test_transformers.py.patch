@@ -1,0 +1,21 @@
+diff --git a/test/test_transformers.py b/test/test_transformers.py
+index 798095e..5c3b2db 100644
+--- a/test/test_transformers.py
++++ b/test/test_transformers.py
+@@ -1,11 +1,15 @@
+ # Owner(s): ["module: sdpa"]
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
+ 
+ import contextlib
+ from functools import partial
+ from collections import namedtuple
+ import os
+ import sys
+-import torch
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from torch.nn.functional import scaled_dot_product_attention

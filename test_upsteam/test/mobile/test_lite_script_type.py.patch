@@ -1,0 +1,12 @@
+diff --git a/test/mobile/test_lite_script_type.py b/test/mobile/test_lite_script_type.py
+index 183dd3c..c143bdb 100644
+--- a/test/mobile/test_lite_script_type.py
++++ b/test/mobile/test_lite_script_type.py
+@@ -1,5 +1,6 @@
+ # Owner(s): ["oncall: mobile"]
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import io
+ import unittest
+ from collections import namedtuple

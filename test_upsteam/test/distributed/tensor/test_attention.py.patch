@@ -1,0 +1,27 @@
+diff --git a/test/distributed/tensor/test_attention.py b/test/distributed/tensor/test_attention.py
+index d123de7..a1a8c8a 100644
+--- a/test/distributed/tensor/test_attention.py
++++ b/test/distributed/tensor/test_attention.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ import unittest
+@@ -32,9 +37,12 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorTestBase,
+     ModelArgs,
+     Transformer,
+-    with_comms,
++    # with_comms,
+ )
++from torch_npu.testing.common_distributed import with_comms
+ 
++PLATFORM_SUPPORTS_FLASH_ATTENTION = True
++PLATFORM_SUPPORTS_FUSED_ATTENTION = True
+ 
+ c10d_functional = torch.ops.c10d_functional
+ backends = []

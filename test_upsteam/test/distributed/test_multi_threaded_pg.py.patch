@@ -1,0 +1,13 @@
+diff --git a/test/distributed/test_multi_threaded_pg.py b/test/distributed/test_multi_threaded_pg.py
+index 196cebb..bbcf416 100644
+--- a/test/distributed/test_multi_threaded_pg.py
++++ b/test/distributed/test_multi_threaded_pg.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import operator

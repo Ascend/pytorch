@@ -1,0 +1,14 @@
+diff --git a/test/test_appending_byte_serializer.py b/test/test_appending_byte_serializer.py
+index e650fad..2c8006a 100644
+--- a/test/test_appending_byte_serializer.py
++++ b/test/test_appending_byte_serializer.py
+@@ -9,6 +9,9 @@ from torch.utils._appending_byte_serializer import (
+     BytesWriter,
+ )
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ class TestAppendingByteSerializer(TestCase):
+     def test_write_and_read_int(self) -> None:

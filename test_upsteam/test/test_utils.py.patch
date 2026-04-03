@@ -1,0 +1,60 @@
+diff --git a/test/test_utils.py b/test/test_utils.py
+index 5f69ecd..7314079 100644
+--- a/test/test_utils.py
++++ b/test/test_utils.py
+@@ -1,5 +1,10 @@
+ # mypy: allow-untyped-defs
+ # Owner(s): ["module: unknown"]
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
+ 
+ import os
+ import random
+@@ -14,7 +19,6 @@ import unittest
+ import warnings
+ from typing import Any
+ 
+-import torch
+ import torch.cuda
+ import torch.nn as nn
+ import torch.utils.cpp_extension
+@@ -531,7 +535,7 @@ class TestCheckpoint(TestCase):
+         with warnings.catch_warnings():
+             warnings.simplefilter("error")
+             device_type = _infer_device_type(inp)
+-            self.assertEqual("cuda", device_type)
++            self.assertEqual("npu", device_type)
+         inp = {
+             "foo": torch.rand(10, device="cuda:0"),
+             "bar": [torch.rand(10, device="cuda:0")],
+@@ -539,7 +543,7 @@ class TestCheckpoint(TestCase):
+         with warnings.catch_warnings():
+             warnings.simplefilter("error")
+             device_type = _infer_device_type(inp)
+-            self.assertEqual("cuda", device_type)
++            self.assertEqual("npu", device_type)
+         # Check that a warning is issued for cuda:0, meta and that it includes
+         # device type information
+         inp = {
+@@ -548,15 +552,15 @@ class TestCheckpoint(TestCase):
+         }
+         with warnings.catch_warnings(record=True) as w:
+             device_type = _infer_device_type(inp)
+-            self.assertEqual("cuda", device_type)
++            self.assertEqual("npu", device_type)
+         self.assertEqual(len(w), 1)
+         warning_msg = str(w[-1].message)
+         self.assertTrue(
+             "Tensor arguments, excluding CPU tensors, are detected on at least two types of devices"
+             in warning_msg
+         )
+-        self.assertTrue("Device types: ['cuda', 'meta']" in warning_msg)
+-        self.assertTrue("first device type: cuda" in warning_msg)
++        self.assertTrue("Device types: ['meta', 'npu']" in warning_msg)
++        self.assertTrue("first device type: npu" in warning_msg)
+ 
+ 
+ class TestDataLoaderUtils(TestCase):

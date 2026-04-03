@@ -1,0 +1,101 @@
+diff --git a/test/test_cuda.py b/test/test_cuda.py
+index 3726c37..ccd636f 100644
+--- a/test/test_cuda.py
++++ b/test/test_cuda.py
+@@ -21,6 +21,8 @@ from random import randint
+ import psutil
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.cuda
+ from torch import inf, nan
+ from torch.cuda._memory_viz import (
+@@ -91,6 +93,9 @@ try:
+     HAS_TORCHVISION = True
+ except ImportError:
+     HAS_TORCHVISION = False
++
++TEST_NPU = True
++
+ skipIfNoTorchVision = unittest.skipIf(not HAS_TORCHVISION, "no torchvision")
+ 
+ TEST_CUDAMALLOCASYNC = TEST_CUDA and (
+@@ -183,7 +188,7 @@ class TestCuda(TestCase):
+             }
+ 
+         def check_stats(expected):
+-            stats = torch.cuda.host_memory_stats()
++            stats = torch_npu.npu.host_memory_stats()
+             for k, v in expected.items():
+                 self.assertEqual(v, stats[k])
+ 
+@@ -196,7 +201,7 @@ class TestCuda(TestCase):
+ 
+         # Reset any lingering state
+         gc.collect()
+-        torch._C._host_emptyCache()
++        torch_npu.npu.host_empty_cache()
+ 
+         # Check that stats are empty
+         check_stats(expected)
+@@ -278,7 +283,7 @@ class TestCuda(TestCase):
+         check_stats(expected)
+ 
+         # Empty cache and check stats
+-        torch._C._host_emptyCache()
++        torch_npu.npu.host_empty_cache()
+         expected["segment.freed"] += expected["segment.current"]
+         expected["segment.current"] = 0
+         expected["reserved_bytes.freed"] += expected["reserved_bytes.current"]
+@@ -289,8 +294,8 @@ class TestCuda(TestCase):
+         check_stats(expected)
+ 
+         # Finally, check the reset of peak and accumulated stats
+-        torch.cuda.reset_peak_host_memory_stats()
+-        torch.cuda.reset_accumulated_host_memory_stats()
++        torch_npu.npu.reset_peak_host_memory_stats()
++        torch_npu.npu.reset_accumulated_host_memory_stats()
+ 
+         expected = empty_stats()
+ 
+@@ -306,7 +311,7 @@ class TestCuda(TestCase):
+                     t = torch.ones(1024 * 1024, pin_memory=True)
+                     self.assertTrue(t.is_pinned())
+                     del t
+-                    torch._C._host_emptyCache()
++                    torch_npu.npu.host_empty_cache()
+                 except RuntimeError as e:
+                     # Some GPUs don't support same address space on host and device side
+                     pass
+@@ -644,6 +649,7 @@ class TestCuda(TestCase):
+             )
+             self.assertEqual("_BlasBackend.Cublaslt", r)
+ 
++    @unittest.skipIf(TEST_NPU, "NPU doesn't have cublas workspaces")
+     @unittest.skipIf(TEST_CUDAMALLOCASYNC, "temporarily disabled for async")
+     @setBlasBackendsToDefaultFinally
+     def test_cublas_workspace_explicit_allocation(self):
+@@ -1243,9 +1249,19 @@ class TestCuda(TestCase):
+         self.assertNotEqual(r.min().item(), 0)
+ 
+         # test corner case from Issue #13867
+-        torch.cuda.manual_seed(33)
+-        probs = torch.randn(1000000, device="cuda").clamp(min=0) * 3e-5
+-        samples = probs.multinomial(1000000, replacement=True)
++        torch.npu.manual_seed(33)
++        probs_size = 1000000
++        sample_size = 1000000
++        batch_size = 1000
++        probs = torch.randn(probs_size, device="npu", dtype=float).clamp(min=0) * 3e-5
++        samples_list = []
++        remaining = sample_size
++        while remaining > 0:
++            current_sample = min(remaining, batch_size)
++            samples_batch = probs.multinomial(current_sample, replacement=True)
++            samples_list.append(samples_batch)
++            remaining -= current_sample
++        samples = torch.cat(samples_list)
+         self.assertGreater(probs[samples].min().item(), 0)
+ 
+     def _spawn_test_multinomial_invalid_probs_cuda(self, probs):

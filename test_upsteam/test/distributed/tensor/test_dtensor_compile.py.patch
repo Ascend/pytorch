@@ -1,0 +1,28 @@
+diff --git a/test/distributed/tensor/test_dtensor_compile.py b/test/distributed/tensor/test_dtensor_compile.py
+index 06e728c..569947e 100644
+--- a/test/distributed/tensor/test_dtensor_compile.py
++++ b/test/distributed/tensor/test_dtensor_compile.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 
+@@ -47,12 +52,13 @@ from torch.testing._internal.common_utils import (
+ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorTestBase,
+     MLPModule,
+-    with_comms,
++    # with_comms,
+ )
+ from torch.testing._internal.distributed.fake_pg import FakeStore
+ from torch.testing._internal.inductor_utils import HAS_GPU
+ from torch.testing._internal.two_tensor import TwoTensor
+ from torch.utils.checkpoint import checkpoint
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ dev_type = torch.device(get_devtype())

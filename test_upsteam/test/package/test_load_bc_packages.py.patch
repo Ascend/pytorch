@@ -1,0 +1,14 @@
+diff --git a/test/package/test_load_bc_packages.py b/test/package/test_load_bc_packages.py
+index 2536f81..34d5e2e 100644
+--- a/test/package/test_load_bc_packages.py
++++ b/test/package/test_load_bc_packages.py
+@@ -6,6 +6,9 @@ from unittest import skipIf
+ from torch.package import PackageImporter
+ from torch.testing._internal.common_utils import IS_FBCODE, IS_SANDCASTLE, run_tests
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ try:
+     from .common import PackageTestCase

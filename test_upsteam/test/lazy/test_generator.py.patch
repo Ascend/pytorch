@@ -1,0 +1,12 @@
+diff --git a/test/lazy/test_generator.py b/test/lazy/test_generator.py
+index e87043f..aacc953 100644
+--- a/test/lazy/test_generator.py
++++ b/test/lazy/test_generator.py
+@@ -1,5 +1,6 @@
+ # Owner(s): ["oncall: jit"]
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch
+ import torch._lazy.metrics as metrics
+ import torch._lazy.ts_backend

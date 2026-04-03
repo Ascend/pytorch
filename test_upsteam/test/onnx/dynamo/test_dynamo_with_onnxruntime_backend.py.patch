@@ -1,0 +1,32 @@
+diff --git a/test/onnx/dynamo/test_dynamo_with_onnxruntime_backend.py b/test/onnx/dynamo/test_dynamo_with_onnxruntime_backend.py
+index ef8fdff..4c34b50 100644
+--- a/test/onnx/dynamo/test_dynamo_with_onnxruntime_backend.py
++++ b/test/onnx/dynamo/test_dynamo_with_onnxruntime_backend.py
+@@ -13,6 +13,15 @@ import onnxruntime
+ from parameterized import parameterized
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ import torch._dynamo.backends.registry
+ from torch import nn
+ from torch.onnx import (
+@@ -732,9 +741,9 @@ class TestDynamoWithONNXRuntime(onnx_test_common._TestONNXRuntime):
+             self.assertTrue(os.path.exists(expected))
+             self.assertFalse(os.path.exists(not_expected))
+ 
+-    @unittest.skipIf(not torch.cuda.is_available(), "No CUDA to run mix devicei nputs")
++    @unittest.skipIf(not torch_npu.npu.is_available(), "No NPU to run mix devicei nputs")
+     def test_mix_device_inputs(self):
+-        data = torch.randn(4, 8, device="cuda")
++        data = torch.randn(4, 8, device="npu")
+         ref_data = torch.randn(8, 4, device="cpu")
+ 
+         def reshape_wrapper(data, ref_cpu_data):

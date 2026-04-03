@@ -1,0 +1,11 @@
+diff --git a/test/test_namedtuple_return_api.py b/test/test_namedtuple_return_api.py
+index e2ebbc9..0015330 100644
+--- a/test/test_namedtuple_return_api.py
++++ b/test/test_namedtuple_return_api.py
+@@ -1,4 +1,6 @@
+ # Owner(s): ["module: unknown"]
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ import os
+ import re

@@ -1,0 +1,10 @@
+diff --git a/test/mobile/test_bytecode.py b/test/mobile/test_bytecode.py
+index 1e42493..b14c691 100644
+--- a/test/mobile/test_bytecode.py
++++ b/test/mobile/test_bytecode.py
+@@ -1,5 +1,4 @@
+ # Owner(s): ["oncall: mobile"]
+-
+ import fnmatch
+ import io
+ import shutil

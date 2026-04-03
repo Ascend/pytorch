@@ -1,0 +1,12 @@
+diff --git a/test/mobile/test_upgrader_codegen.py b/test/mobile/test_upgrader_codegen.py
+index 033cb26..9c20c26 100644
+--- a/test/mobile/test_upgrader_codegen.py
++++ b/test/mobile/test_upgrader_codegen.py
+@@ -1,5 +1,6 @@
+ # Owner(s): ["oncall: mobile"]
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import os
+ import tempfile
+ from pathlib import Path

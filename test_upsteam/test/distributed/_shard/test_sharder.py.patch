@@ -1,0 +1,13 @@
+diff --git a/test/distributed/_shard/test_sharder.py b/test/distributed/_shard/test_sharder.py
+index 869e566..39deec2 100644
+--- a/test/distributed/_shard/test_sharder.py
++++ b/test/distributed/_shard/test_sharder.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ import copy
+ import sys

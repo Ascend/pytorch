@@ -1,0 +1,20 @@
+diff --git a/test/onnx/internal/test_diagnostics.py b/test/onnx/internal/test_diagnostics.py
+index a7d979f..c9b7763 100644
+--- a/test/onnx/internal/test_diagnostics.py
++++ b/test/onnx/internal/test_diagnostics.py
+@@ -9,6 +9,15 @@ import typing
+ from typing import Protocol
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ from torch.onnx import errors
+ from torch.onnx._internal import diagnostics
+ from torch.onnx._internal.diagnostics import infra

@@ -1,0 +1,72 @@
+diff --git a/test/test_cuda_multigpu.py b/test/test_cuda_multigpu.py
+index 25c1cf2..c0c7dbc 100644
+--- a/test/test_cuda_multigpu.py
++++ b/test/test_cuda_multigpu.py
+@@ -14,6 +14,8 @@ from itertools import chain, repeat
+ from typing import NamedTuple, Union
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.cuda.comm as comm
+ from torch.nn.parallel import scatter_gather
+ from torch.testing._internal.common_cuda import (
+@@ -45,6 +47,7 @@ if not TEST_CUDA:
+     print("CUDA not available, skipping tests", file=sys.stderr)
+     TestCase = NoTest  # noqa: F811
+ 
++TEST_NPU = True
+ 
+ class TestCudaMultiGPU(TestCase):
+     FIFTY_MIL_CYCLES = 50000000
+@@ -437,13 +440,13 @@ class TestCudaMultiGPU(TestCase):
+     @unittest.skipIf(torch.cuda.device_count() >= 10, "Loading a cuda:9 tensor")
+     def test_load_nonexistent_device(self):
+         # Setup: create a serialized file object with a 'cuda:9' restore location
+-        tensor = torch.randn(2, device="cuda")
++        tensor = torch.randn(2, device="npu")
+         buf = io.BytesIO()
+         torch.save(tensor, buf)
+         # NB: this might not work in the future if serialization changes
+-        buf = io.BytesIO(buf.getvalue().replace(b"cuda:0", b"cuda:9"))
++        buf = io.BytesIO(buf.getvalue().replace(b"npu:0", b"npu:9"))
+ 
+-        msg = r"Attempting to deserialize object on CUDA device 9"
++        msg = r"Attempting to deserialize object on NPU device 9"
+         with self.assertRaisesRegex(RuntimeError, msg):
+             _ = torch.load(buf)
+ 
+@@ -1040,6 +1043,7 @@ class TestCudaMultiGPU(TestCase):
+             _test("cuda:1")
+ 
+     # Test that wrap_with_cuda_memory_check successfully detects leak
++    @unittest.skipIf(TEST_NPU, "NPU doesn't have cublas workspaces")
+     def test_cuda_memory_leak_detection(self):
+         l = []
+ 
+@@ -1613,13 +1617,13 @@ class TestCudaComm(TestCase):
+         expected_size[dim] += y.size(dim)
+         expected_size = torch.Size(expected_size)
+ 
+-        destinations = [None, torch.device("cuda:0"), torch.device("cpu")]
++        destinations = [None, torch.device("npu:0"), torch.device("cpu")]
+         if torch.cuda.device_count() > 2:
+-            destinations.append(torch.device("cuda:2"))
++            destinations.append(torch.device("npu:2"))
+         with torch.cuda.device(1):
+             for destination in destinations:
+                 if destination is None:
+-                    expected_device = torch.device("cuda", torch.cuda.current_device())
++                    expected_device = torch.device("npu", torch.cuda.current_device())
+                 else:
+                     expected_device = destination
+                 for use_out in [True, False]:
+@@ -1654,7 +1658,7 @@ class TestCudaComm(TestCase):
+         ):
+             comm.gather(())
+         with self.assertRaisesRegex(
+-            RuntimeError, r"Expected all input tensors to be CUDA tensors, "
++            RuntimeError, r"Expected all input tensors to be NPU tensors, "
+         ):
+             comm.gather((x.cpu(), y))
+         with self.assertRaisesRegex(

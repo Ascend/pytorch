@@ -1,0 +1,14 @@
+diff --git a/test/test_complex.py b/test/test_complex.py
+index 159f3e1..cf17201 100644
+--- a/test/test_complex.py
++++ b/test/test_complex.py
+@@ -10,6 +10,9 @@ from torch.testing._internal.common_device_type import (
+ from torch.testing._internal.common_dtype import complex_types
+ from torch.testing._internal.common_utils import run_tests, set_default_dtype, TestCase
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ devices = (torch.device("cpu"), torch.device("cuda:0"))
+ 

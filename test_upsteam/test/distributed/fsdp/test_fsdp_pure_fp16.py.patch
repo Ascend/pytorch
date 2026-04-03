@@ -1,0 +1,43 @@
+diff --git a/test/distributed/fsdp/test_fsdp_pure_fp16.py b/test/distributed/fsdp/test_fsdp_pure_fp16.py
+index 9ec55f2..52a0a7d 100644
+--- a/test/distributed/fsdp/test_fsdp_pure_fp16.py
++++ b/test/distributed/fsdp/test_fsdp_pure_fp16.py
+@@ -1,3 +1,10 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
++import pdb
++import traceback
+ # Owner(s): ["oncall: distributed"]
+ 
+ import sys
+@@ -69,6 +76,7 @@ class TestPureFP16(FSDPTest):
+         saved dtype attributes are as expected when using an FP16 model
+         possibly with explicit mixed precision enabled.
+         """
++
+         self.run_subtests(
+             {
+                 "to_half_before_fsdp_init": [False, True],
+@@ -113,6 +121,10 @@ class TestPureFP16(FSDPTest):
+             fsdp_model = fsdp_model.half()
+         for param in fsdp_model.parameters():
+             self.assertEqual(param.dtype, torch.float16)
++
++        if self.device_type == 'privateuse1':
++            self.device_type = 'npu'
++
+         inp = tuple(
+             t.half() if torch.is_tensor(t) else t
+             for t in fsdp_model.module.get_input(self.device_type)
+@@ -151,7 +163,7 @@ class TestPureFP16(FSDPTest):
+                 self.assertEqual(param.grad.dtype, torch.float16)
+ 
+ 
+-devices = ("cuda", "hpu", "xpu")
++devices = ("npu", "hpu", "xpu")
+ instantiate_device_type_tests(TestPureFP16, globals(), only_for=devices)
+ if __name__ == "__main__":
+     run_tests()

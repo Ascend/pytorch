@@ -1,0 +1,13 @@
+diff --git a/test/test_hop_infra.py b/test/test_hop_infra.py
+index 2ece25a..5d0d070 100644
+--- a/test/test_hop_infra.py
++++ b/test/test_hop_infra.py
+@@ -9,6 +9,8 @@ from torch.testing._internal.hop_db import (
+     hop_db,
+ )
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ def do_imports():
+     for mod in pkgutil.walk_packages(

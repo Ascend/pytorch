@@ -1,0 +1,12 @@
+diff --git a/test/lazy/test_reuse_ir.py b/test/lazy/test_reuse_ir.py
+index ce06bdd..c8e1631 100644
+--- a/test/lazy/test_reuse_ir.py
++++ b/test/lazy/test_reuse_ir.py
+@@ -1,5 +1,6 @@
+ # Owner(s): ["oncall: jit"]
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import os
+ import unittest
+ 

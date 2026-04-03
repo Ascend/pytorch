@@ -1,0 +1,13 @@
+diff --git a/test/distributed/checkpoint/test_nested_dict.py b/test/distributed/checkpoint/test_nested_dict.py
+index bf9a61f..978a98d 100644
+--- a/test/distributed/checkpoint/test_nested_dict.py
++++ b/test/distributed/checkpoint/test_nested_dict.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import torch

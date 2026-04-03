@@ -1,0 +1,23 @@
+diff --git a/test/nn/test_embedding.py b/test/nn/test_embedding.py
+index 6b38337..7f75a9e 100644
+--- a/test/nn/test_embedding.py
++++ b/test/nn/test_embedding.py
+@@ -5,6 +5,8 @@ import unittest
+ from itertools import product
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from torch.testing._internal.common_cuda import TEST_CUDA
+@@ -83,7 +85,8 @@ class TestEmbeddingNN(NNTestCase):
+ 
+         if torch.cuda.is_available():
+             embedding.to("cuda")
+-            self.assertEqual(embedding.weight.device.type, "cuda")
++            # self.assertEqual(embedding.weight.device.type, "cuda")
++            self.assertEqual(embedding.weight.device.type, "npu")
+             embedding.to("cpu")
+             self.assertEqual(embedding.weight.device.type, "cpu")
+ 

@@ -1,0 +1,22 @@
+diff --git a/test/test_jit_disabled.py b/test/test_jit_disabled.py
+index 6bb694b..b06f80d 100644
+--- a/test/test_jit_disabled.py
++++ b/test/test_jit_disabled.py
+@@ -6,6 +6,8 @@ import contextlib
+ import subprocess
+ from torch.testing._internal.common_utils import TestCase, run_tests, TemporaryFileName
+ 
++import torch_npu
++
+ 
+ @contextlib.contextmanager
+ def _jit_disabled():
+@@ -55,7 +57,7 @@ class Foo(torch.jit.ScriptModule):
+     def forward(self, input):
+         return input
+ 
+-s = Foo(torch.ones(2, 3))
++s = Foo(torch.ones(2, 3).npu())
+ print(s.x)
+ """
+         self.compare_enabled_disabled(_program_string)

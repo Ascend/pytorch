@@ -1,0 +1,11 @@
+diff --git a/test/jit/test_ignore_context_manager.py b/test/jit/test_ignore_context_manager.py
+index b0d5bf4..afa4c00 100644
+--- a/test/jit/test_ignore_context_manager.py
++++ b/test/jit/test_ignore_context_manager.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: jit"]
+ 
+ import os

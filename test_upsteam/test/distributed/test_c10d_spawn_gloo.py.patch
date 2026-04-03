@@ -1,0 +1,22 @@
+diff --git a/test/distributed/test_c10d_spawn_gloo.py b/test/distributed/test_c10d_spawn_gloo.py
+index 9a9dacf..1cf9943 100644
+--- a/test/distributed/test_c10d_spawn_gloo.py
++++ b/test/distributed/test_c10d_spawn_gloo.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import copy
+@@ -17,7 +22,7 @@ from torch.testing._internal.common_utils import (
+     TEST_WITH_DEV_DBG_ASAN,
+     TestCase,
+ )
+-
++TEST_CUDA = True
+ 
+ # Fails on Python-3.9, see https://github.com/pytorch/pytorch/issues/51619
+ 

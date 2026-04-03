@@ -1,0 +1,23 @@
+diff --git a/test/distributed/fsdp/test_fsdp_clip_grad_norm.py b/test/distributed/fsdp/test_fsdp_clip_grad_norm.py
+index 2968577..fa64509 100644
+--- a/test/distributed/fsdp/test_fsdp_clip_grad_norm.py
++++ b/test/distributed/fsdp/test_fsdp_clip_grad_norm.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ import itertools
+ import sys
+@@ -106,7 +111,9 @@ class TestClipGradNorm(FSDPTest):
+             DEVICEInitMode.DEVICE_BEFORE,
+             deterministic=True,
+         )
++        print("Device type is", device_type)
+         ddp_model = DDP(local_model, device_ids=[device_type])
++        print("DDP device ids", ddp_model.device_ids)
+         fsdp_kwargs = {
+             "cpu_offload": CPUOffload(offload_params=offload_params),
+             "use_orig_params": use_orig_params,

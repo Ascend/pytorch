@@ -1,0 +1,11 @@
+diff --git a/test/dynamo/test_higher_order_ops.py b/test/dynamo/test_higher_order_ops.py
+index 5985612..51b1af6 100644
+--- a/test/dynamo/test_higher_order_ops.py
++++ b/test/dynamo/test_higher_order_ops.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: dynamo"]
+ import enum
+ import functools

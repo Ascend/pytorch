@@ -1,0 +1,11 @@
+diff --git a/test/fx/test_fx_const_fold.py b/test/fx/test_fx_const_fold.py
+index c1e5929..6c5266f 100644
+--- a/test/fx/test_fx_const_fold.py
++++ b/test/fx/test_fx_const_fold.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: fx"]
+ 
+ import operator

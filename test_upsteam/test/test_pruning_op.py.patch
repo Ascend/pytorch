@@ -1,0 +1,12 @@
+diff --git a/test/test_pruning_op.py b/test/test_pruning_op.py
+index 5d24a9a..f1d9753 100644
+--- a/test/test_pruning_op.py
++++ b/test/test_pruning_op.py
+@@ -3,6 +3,7 @@
+ import hypothesis.strategies as st
+ from hypothesis import given
+ import numpy as np
++from torch_npu.contrib import transfer_to_npu
+ import torch
+ from torch.testing._internal.common_utils import TestCase, run_tests, skipIfTorchDynamo
+ import torch.testing._internal.hypothesis_utils as hu

@@ -1,0 +1,25 @@
+diff --git a/test/distributed/tensor/test_redistribute.py b/test/distributed/tensor/test_redistribute.py
+index adff7e3..618e143 100644
+--- a/test/distributed/tensor/test_redistribute.py
++++ b/test/distributed/tensor/test_redistribute.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 
+@@ -12,9 +17,9 @@ from torch.distributed.tensor.debug import CommDebugMode
+ from torch.testing._internal.common_utils import run_tests, TEST_CUDA, TEST_HPU
+ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorTestBase,
+-    with_comms,
++    # with_comms,
+ )
+-
++from torch_npu.testing.common_distributed import with_comms
+ 
+ funcol = torch.ops.c10d_functional
+ 

@@ -1,0 +1,23 @@
+diff --git a/test/test_accelerator.py b/test/test_accelerator.py
+index 5790dcd..b5b837c 100644
+--- a/test/test_accelerator.py
++++ b/test/test_accelerator.py
+@@ -6,6 +6,9 @@ import unittest
+ import torch
+ from torch.testing._internal.common_utils import NoTest, run_tests, TEST_MPS, TestCase
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ if not torch.accelerator.is_available():
+     print("No available accelerator detected, skipping tests", file=sys.stderr)
+@@ -19,7 +22,7 @@ TEST_MULTIACCELERATOR = torch.accelerator.device_count() > 1
+ class TestAccelerator(TestCase):
+     def test_current_accelerator(self):
+         self.assertTrue(torch.accelerator.is_available())
+-        accelerators = ["cuda", "xpu", "mps"]
++        accelerators = ["npu", "xpu", "mps"]
+         for accelerator in accelerators:
+             if torch.get_device_module(accelerator).is_available():
+                 self.assertEqual(

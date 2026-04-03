@@ -1,0 +1,22 @@
+diff --git a/test/distributed/pipelining/test_schedule_multiproc.py b/test/distributed/pipelining/test_schedule_multiproc.py
+index 8491881..b93a992 100644
+--- a/test/distributed/pipelining/test_schedule_multiproc.py
++++ b/test/distributed/pipelining/test_schedule_multiproc.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ import copy
+@@ -39,7 +44,7 @@ from torch.testing._internal.common_utils import (
+     parametrize,
+     skip_but_pass_in_sandcastle_if,
+ )
+-
++TEST_MULTIGPU = True
+ 
+ logger = logging.getLogger(__name__)
+ 

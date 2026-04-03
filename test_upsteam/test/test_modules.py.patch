@@ -1,0 +1,64 @@
+diff --git a/test/test_modules.py b/test/test_modules.py
+index 86e780d..02799ef 100644
+--- a/test/test_modules.py
++++ b/test/test_modules.py
+@@ -7,17 +7,21 @@ import tempfile
+ from operator import methodcaller
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ from torch._subclasses.meta_utils import assert_metadata_eq
+ from torch.testing._internal.common_cuda import with_tf32_off
+ from torch.testing._internal.common_device_type import (
+-    instantiate_device_type_tests, onlyCPU, onlyCUDA, toleranceOverride, tol, skipMeta)
++    instantiate_device_type_tests, onlyCPU, onlyNPU, toleranceOverride, tol, skipMeta)
+ from torch.testing._internal.common_modules import module_db, modules, ModuleErrorEnum, TrainEvalMode
+ from torch.testing._internal.common_utils import (
+     TestCase, run_tests, freeze_rng_state, mock_wrapper, get_tensors_from, gradcheck,
+     gradgradcheck, parametrize, wrapSwapTensorsTest)
+ from unittest.mock import patch, call
+ 
++torch.npu.config.allow_internal_format = False
++
+ 
+ class TestModule(TestCase):
+     _do_cuda_memory_leak_check = True
+@@ -139,7 +143,7 @@ class TestModule(TestCase):
+                 m.train(training)
+                 self._assert_module_parameters_and_buffer_are(m, device, dtype)
+ 
+-    @onlyCUDA
++    @onlyNPU
+     @modules(module_db)
+     def test_multiple_device_transfer(self, device, dtype, module_info, training):
+         module_cls = module_info.module_cls
+@@ -528,7 +532,7 @@ class TestModule(TestCase):
+     def test_gradgrad(self, device, dtype, module_info, training):
+         self._test_gradients_helper(device, dtype, module_info, training, gradgradcheck)
+ 
+-    @onlyCUDA
++    @onlyNPU
+     @with_tf32_off  # Turn off TF32 to compute at full precision https://github.com/pytorch/pytorch/issues/86798
+     @toleranceOverride({torch.float32: tol(5e-2, 0),
+                         torch.float64: tol(4e-4, 0)})
+@@ -879,7 +883,7 @@ class TestModule(TestCase):
+         module_cls = module_info.module_cls
+         devices = ['cpu']
+         if torch.cuda.is_available():
+-            devices += ['cuda']
++            devices += ['npu']
+         dtypes = module_info.dtypes
+         module_inputs = module_info.module_inputs_func(module_info, device=device, dtype=dtype,
+                                                        requires_grad=False, training=training)
+@@ -1001,7 +1005,8 @@ class TestModule(TestCase):
+                 self.assertTrue(all(a != b for a, b in zip(p_cdatas_before, p_cdatas_after)))
+ 
+ 
+-instantiate_device_type_tests(TestModule, globals(), allow_mps=True)
++#instantiate_device_type_tests(TestModule, globals(), allow_mps=True)
++instantiate_device_type_tests(TestModule, globals(), allow_mps=True, only_for=['cpu', 'privateuse1'])
+ 
+ if __name__ == '__main__':
+     run_tests()

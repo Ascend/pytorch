@@ -1,0 +1,24 @@
+diff --git a/test/distributed/tensor/test_common_rules.py b/test/distributed/tensor/test_common_rules.py
+index f712ef1..deca479 100644
+--- a/test/distributed/tensor/test_common_rules.py
++++ b/test/distributed/tensor/test_common_rules.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 
+@@ -9,8 +14,9 @@ from torch.distributed.tensor._ops._common_rules import einop_rule, pointwise_ru
+ from torch.testing._internal.common_utils import run_tests
+ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorTestBase,
+-    with_comms,
++    # with_comms,
+ )
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ aten = torch.ops.aten

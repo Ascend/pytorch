@@ -1,0 +1,56 @@
+diff --git a/test/quantization/pt2e/test_quantize_pt2e_qat.py b/test/quantization/pt2e/test_quantize_pt2e_qat.py
+index abc9849..af1681d 100644
+--- a/test/quantization/pt2e/test_quantize_pt2e_qat.py
++++ b/test/quantization/pt2e/test_quantize_pt2e_qat.py
+@@ -1,3 +1,5 @@
++
++
+ # Owner(s): ["oncall: quantization"]
+ import copy
+ import operator
+@@ -5,6 +7,15 @@ import unittest
+ from typing import Any, Optional
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ from torch.ao.quantization import (
+     default_fake_quant,
+     FusedMovingAvgObsFakeQuantize,
+@@ -436,10 +447,10 @@ class TestQuantizePT2EQAT_ConvBn_Base(PT2EQATTestCase):
+         self._verify_symmetric_xnnpack_qat_graph(m, self.example_inputs, has_relu=False)
+         self._verify_symmetric_xnnpack_qat_numerics(m, self.example_inputs)
+ 
+-    @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
+-    def test_qat_conv_bn_fusion_cuda(self):
+-        m = self._get_conv_bn_model().cuda()
+-        example_inputs = (self.example_inputs[0].cuda(),)
++    # @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
++    def test_qat_conv_bn_fusion_npu(self):
++        m = self._get_conv_bn_model().npu()
++        example_inputs = (self.example_inputs[0].npu(),)
+         self._verify_symmetric_xnnpack_qat_graph(
+             m,
+             example_inputs,
+@@ -523,10 +534,10 @@ class TestQuantizePT2EQAT_ConvBn_Base(PT2EQATTestCase):
+         self._verify_symmetric_xnnpack_qat_graph(m, self.example_inputs, has_relu=True)
+         self._verify_symmetric_xnnpack_qat_numerics(m, self.example_inputs)
+ 
+-    @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
+-    def test_qat_conv_bn_relu_fusion_cuda(self):
+-        m = self._get_conv_bn_model(has_relu=True).cuda()
+-        example_inputs = (self.example_inputs[0].cuda(),)
++    # @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
++    def test_qat_conv_bn_relu_fusion_npu(self):
++        m = self._get_conv_bn_model(has_relu=True).npu()
++        example_inputs = (self.example_inputs[0].npu(),)
+         self._verify_symmetric_xnnpack_qat_graph(
+             m,
+             example_inputs,

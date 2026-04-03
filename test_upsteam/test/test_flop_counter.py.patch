@@ -1,0 +1,16 @@
+diff --git a/test/test_flop_counter.py b/test/test_flop_counter.py
+index 58400d8..5aa71e8 100644
+--- a/test/test_flop_counter.py
++++ b/test/test_flop_counter.py
+@@ -4,9 +4,11 @@ import functools
+ import unittest
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn.functional as F
+ import torch.utils.flop_counter
+ from torch._subclasses.fake_tensor import FakeTensorMode
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_cuda import (
+     PLATFORM_SUPPORTS_FLASH_ATTENTION,
+     PLATFORM_SUPPORTS_FP8,

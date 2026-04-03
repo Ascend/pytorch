@@ -1,0 +1,13 @@
+diff --git a/test/nn/test_packed_sequence.py b/test/nn/test_packed_sequence.py
+index 0d6de01..0a28700 100644
+--- a/test/nn/test_packed_sequence.py
++++ b/test/nn/test_packed_sequence.py
+@@ -4,6 +4,8 @@ import itertools
+ import random
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn.utils.rnn as rnn_utils
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 

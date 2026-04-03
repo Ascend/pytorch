@@ -1,0 +1,14 @@
+diff --git a/test/package/test_save_load.py b/test/package/test_save_load.py
+index a0cc967..fedfc44 100644
+--- a/test/package/test_save_load.py
++++ b/test/package/test_save_load.py
+@@ -10,6 +10,9 @@ import torch
+ from torch.package import PackageExporter, PackageImporter, sys_importer
+ from torch.testing._internal.common_utils import run_tests
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ try:
+     from .common import PackageTestCase

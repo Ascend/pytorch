@@ -1,0 +1,20 @@
+diff --git a/test/jit/test_hooks.py b/test/jit/test_hooks.py
+index 33e8444..fdd6c60 100644
+--- a/test/jit/test_hooks.py
++++ b/test/jit/test_hooks.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: jit"]
+ 
+ import os
+@@ -223,7 +226,7 @@ class TestHooks(JitTestCase):
+         )
+ 
+     # TODO: add this test back once figured out how to print error msg
+-    @unittest.skip
++    #@unittest.skip
+     def test_hook_compilation_hint(self):
+         # Tests if hook error message is printed out if erroring after schema check.
+         # Useful for when user is scripting hooks while not aware of it.

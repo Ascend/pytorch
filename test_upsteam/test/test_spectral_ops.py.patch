@@ -1,0 +1,13 @@
+diff --git a/test/test_spectral_ops.py b/test/test_spectral_ops.py
+index 154c368..c3fafb2 100644
+--- a/test/test_spectral_ops.py
++++ b/test/test_spectral_ops.py
+@@ -23,7 +23,7 @@ from torch._prims_common import corresponding_complex_dtype
+ 
+ from typing import Optional
+ from packaging import version
+-
++from torch_npu.contrib import transfer_to_npu
+ 
+ if TEST_NUMPY:
+     import numpy as np

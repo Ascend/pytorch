@@ -1,0 +1,12 @@
+diff --git a/test/test_masked.py b/test/test_masked.py
+index c5aee47..81b6732 100644
+--- a/test/test_masked.py
++++ b/test/test_masked.py
+@@ -8,6 +8,7 @@ import torch
+ from typing import Any
+ from functools import wraps
+ import unittest
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import skipIfTorchDynamo
+ 
+ 

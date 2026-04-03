@@ -1,0 +1,22 @@
+diff --git a/test/distributed/_tools/test_runtime_estimator.py b/test/distributed/_tools/test_runtime_estimator.py
+index 7086d1c..afa169c 100644
+--- a/test/distributed/_tools/test_runtime_estimator.py
++++ b/test/distributed/_tools/test_runtime_estimator.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: unknown"]
+ import unittest
+ from dataclasses import dataclass
+@@ -13,7 +18,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     ModelArgs,
+     Transformer,
+ )
+-
++TEST_CUDA = True
+ 
+ @dataclass
+ class ConvArgs:

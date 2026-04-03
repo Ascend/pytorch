@@ -1,0 +1,20 @@
+diff --git a/test/ao/sparsity/test_composability.py b/test/ao/sparsity/test_composability.py
+index 8b4586f..913dce2 100644
+--- a/test/ao/sparsity/test_composability.py
++++ b/test/ao/sparsity/test_composability.py
+@@ -4,6 +4,15 @@
+ import logging
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ import torch.ao.quantization as tq
+ from torch import nn
+ from torch.ao import pruning

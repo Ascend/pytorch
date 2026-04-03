@@ -1,0 +1,12 @@
+diff --git a/test/higher_order_ops/test_invoke_quant.py b/test/higher_order_ops/test_invoke_quant.py
+index 3fe1fa5..7f60b6e 100644
+--- a/test/higher_order_ops/test_invoke_quant.py
++++ b/test/higher_order_ops/test_invoke_quant.py
+@@ -1,5 +1,7 @@
+ # Owner(s): ["module: higher order operators"]
+ # flake8: noqa: B950
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ import contextlib
+ import logging

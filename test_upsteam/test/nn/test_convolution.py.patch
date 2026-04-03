@@ -1,0 +1,147 @@
+diff --git a/test/nn/test_convolution.py b/test/nn/test_convolution.py
+index 78fcd9b..25fe09b 100644
+--- a/test/nn/test_convolution.py
++++ b/test/nn/test_convolution.py
+@@ -6,6 +6,8 @@ import warnings
+ from itertools import product
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.autograd.forward_ad as fwAD
+ import torch.backends.cudnn as cudnn
+ import torch.nn as nn
+@@ -59,7 +61,7 @@ from torch.testing._internal.common_utils import (
+ )
+ 
+ 
+-AMPERE_OR_ROCM = TEST_WITH_ROCM or torch.cuda.is_tf32_supported()
++AMPERE_OR_ROCM = False
+ 
+ 
+ if TEST_SCIPY:
+@@ -1314,7 +1316,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+                 conv1.weight.grad.data, conv2.weight.grad.data, atol=0.0, rtol=0
+             )
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @dtypes(
+         *floating_types_and(torch.half, *[torch.bfloat16] if AMPERE_OR_ROCM else [])
+     )
+@@ -1340,7 +1342,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+         run_test(benchmark=False)
+         run_test(benchmark=True)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @dtypes(torch.half, torch.float)
+     def test_ConvTranspose2d_large_output_padding(self, device, dtype):
+         net1 = torch.nn.ConvTranspose2d(
+@@ -1359,7 +1361,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+         x.backward(torch.randn_like(x))
+         torch.cuda.synchronize()
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @dtypes(torch.float, torch.double, torch.half)
+     # Very similar to test_Conv2d_naive_groups but with special care to handle
+     # the number of groups == number of input channels
+@@ -1423,7 +1425,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+                 rtol=0,
+             )
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @dtypes(torch.float, torch.double, torch.half)
+     @torch.backends.cudnn.flags(enabled=True, deterministic=True, benchmark=False)
+     @tf32_on_and_off(0.01)
+@@ -1492,7 +1494,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+                 rtol=rtol,
+             )
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @dtypes(
+         *floating_types_and(torch.half, *[torch.bfloat16] if AMPERE_OR_ROCM else [])
+     )
+@@ -1516,7 +1518,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+             result, input.grad.data, atol=dtype2prec_DONTUSE[dtype], rtol=0
+         )
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @dtypes(torch.double)
+     def test_conv_double_backward(self, device, dtype):
+         with torch.backends.cudnn.flags(enabled=True, deterministic=True):
+@@ -2150,6 +2152,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+         m = ConvTransposeNd(
+             1, 1, kernel_size=16, stride=16, padding=7, bias=False, device=device
+         )
++        torch.npu.config.allow_internal_format = False
+         output = m(inp, output_size=output_size)
+         self.assertEqual(output.shape, output_size)
+ 
+@@ -3081,7 +3084,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+             with torch.backends.cudnn.flags(enabled=False):
+                 _test_module_empty_input(self, mod, inp, check_size=False)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @largeTensorTest("12GB")
+     def test_conv_large_nosplit(self, device):
+         # Here we just test the convolution correctly route to the fallback implementation
+@@ -3142,7 +3145,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+             out2 = conv1(input_c)
+             self.assertEqual(out1, out2)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @largeTensorTest("12GB")
+     @skipIfRocmVersionLessThan((6, 0))
+     def test_conv_transposed_large(self, device):
+@@ -3187,7 +3190,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+             self.assertEqual(maxdiff2, 0)
+             self.assertEqual(maxdiff3, 0)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @skipCUDAIfRocm
+     @largeTensorTest("12GB")
+     def test_conv_large(self, device):
+@@ -3220,7 +3223,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+         grad2 = grad2 * scale
+         self.assertEqual(grad1, grad2, atol=5e-2, rtol=5e-3)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @skipCUDAIfRocm
+     @largeTensorTest("20GB", "cpu")
+     @largeTensorTest("60GB", "cuda")
+@@ -3243,7 +3246,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+         output_cpu = model(input_tensor.float().cpu())
+         self.assertEqual(output.cpu().float(), output_cpu, atol=1e-3, rtol=1e-3)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @skipCUDAIfRocm
+     @largeTensorTest("24GB", "cpu")
+     @largeTensorTest("20GB", "cuda")
+@@ -3267,7 +3270,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+         F.conv_transpose2d(x, torch.randn(16, 1, 1, 1, device=device))
+         F.conv2d(x, torch.randn(1, 16, 1, 1, device=device))
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @tf32_on_and_off(0.005)
+     def test_Conv2d_size_1_kernel(self, device):
+         x_cpu = torch.randn(2, 3, 5, 5)
+@@ -3864,7 +3867,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
+ 
+     # Test that faster algorithms used for inference produce the same results
+     # Validates depthwise3x3 bug reported in https://github.com/pytorch/pytorch/issues/60176
+-    @onlyCPU
++    # @onlyCPU
+     @dtypes(torch.float)
+     def test_conv2d_no_grad(self, device, dtype):
+         for batch in [1, 2, 3]:

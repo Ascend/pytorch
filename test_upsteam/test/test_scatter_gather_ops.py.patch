@@ -1,0 +1,17 @@
+diff --git a/test/test_scatter_gather_ops.py b/test/test_scatter_gather_ops.py
+index 22299a5..9c46040 100644
+--- a/test/test_scatter_gather_ops.py
++++ b/test/test_scatter_gather_ops.py
+@@ -16,6 +16,12 @@ from torch.testing._internal.common_dtype import \
+ # Protects against includes accidentally setting the default dtype
+ assert torch.get_default_dtype() is torch.float32
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ # Note: test_scatter_gather_ops.py
+ # This test file tests scatter and gather operations,

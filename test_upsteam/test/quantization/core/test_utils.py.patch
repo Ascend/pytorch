@@ -1,0 +1,20 @@
+diff --git a/test/quantization/core/test_utils.py b/test/quantization/core/test_utils.py
+index e4a3d30..e42a720 100644
+--- a/test/quantization/core/test_utils.py
++++ b/test/quantization/core/test_utils.py
+@@ -1,6 +1,15 @@
+ # Owner(s): ["oncall: quantization"]
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ from torch.testing._internal.common_utils import TestCase
+ from torch.ao.quantization.utils import get_fqn_to_example_inputs
+ from torch.ao.nn.quantized.modules.utils import _quantize_weight

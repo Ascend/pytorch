@@ -1,0 +1,11 @@
+diff --git a/test/dynamo/test_python_dispatcher.py b/test/dynamo/test_python_dispatcher.py
+index 1ef2083..a62b34d 100644
+--- a/test/dynamo/test_python_dispatcher.py
++++ b/test/dynamo/test_python_dispatcher.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: dynamo"]
+ import unittest
+ 

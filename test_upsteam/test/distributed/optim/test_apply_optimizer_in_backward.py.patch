@@ -1,0 +1,13 @@
+diff --git a/test/distributed/optim/test_apply_optimizer_in_backward.py b/test/distributed/optim/test_apply_optimizer_in_backward.py
+index a2db805..bb20093 100644
+--- a/test/distributed/optim/test_apply_optimizer_in_backward.py
++++ b/test/distributed/optim/test_apply_optimizer_in_backward.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ # Copyright (c) Meta Platforms, Inc. and affiliates.

@@ -1,0 +1,26 @@
+diff --git a/test/distributed/tensor/test_tensor_ops.py b/test/distributed/tensor/test_tensor_ops.py
+index 6d970c3..1edbf8b 100644
+--- a/test/distributed/tensor/test_tensor_ops.py
++++ b/test/distributed/tensor/test_tensor_ops.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 
+@@ -10,9 +15,10 @@ from torch.testing._internal.common_utils import run_tests, skipIfRocm
+ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorConverter,
+     DTensorTestBase,
+-    with_comms,
++    # with_comms,
+ )
+-
++# from torch.distributed.device_mesh import _mesh_resources, DeviceMesh, init_device_mesh 
++from torch_npu.testing.common_distributed import with_comms
+ 
+ class DistTensorOpsTest(DTensorTestBase):
+     @with_comms

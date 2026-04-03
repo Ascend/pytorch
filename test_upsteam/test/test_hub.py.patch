@@ -1,0 +1,24 @@
+diff --git a/test/test_hub.py b/test/test_hub.py
+index 1447b3d..541aa7a 100644
+--- a/test/test_hub.py
++++ b/test/test_hub.py
+@@ -8,7 +8,10 @@ from unittest.mock import patch
+ 
+ import torch
+ import torch.hub as hub
+-from torch.testing._internal.common_utils import IS_SANDCASTLE, retry, TestCase
++from torch.testing._internal.common_utils import IS_SANDCASTLE, retry, TestCase, run_tests
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ 
+ def sum_of_state_dict(state_dict):
+@@ -307,3 +310,7 @@ class TestHub(TestCase):
+         torch.hub.load("ailzhang/torchhub_example", "mnist_zip_1_6", trust_repo="check")
+ 
+         self._assert_trusted_list_is_empty()
++
++
++if __name__ == "__main__":
++    run_tests()

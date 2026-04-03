@@ -1,0 +1,30 @@
+diff --git a/test/distributed/checkpoint/test_state_dict.py b/test/distributed/checkpoint/test_state_dict.py
+index f8eb7c0..9d05aac 100644
+--- a/test/distributed/checkpoint/test_state_dict.py
++++ b/test/distributed/checkpoint/test_state_dict.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import copy
+@@ -50,7 +55,7 @@ from torch.testing._internal.common_utils import run_tests, TEST_WITH_DEV_DBG_AS
+ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorTestBase,
+     MultiProcessTestCase,
+-    with_comms,
++    # with_comms,
+ )
+ from torch.testing._internal.distributed.common_state_dict import (
+     FusionEmbedding,
+@@ -59,6 +64,7 @@ from torch.testing._internal.distributed.common_state_dict import (
+     VerifyStateDictMixin,
+ )
+ from torch.utils._pytree import tree_all, tree_all_only
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ if not dist.is_available():

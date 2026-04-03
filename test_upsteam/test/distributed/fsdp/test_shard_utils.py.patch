@@ -1,0 +1,24 @@
+diff --git a/test/distributed/fsdp/test_shard_utils.py b/test/distributed/fsdp/test_shard_utils.py
+index c1a72a4..7e0c61f 100644
+--- a/test/distributed/fsdp/test_shard_utils.py
++++ b/test/distributed/fsdp/test_shard_utils.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import torch
+@@ -11,8 +16,9 @@ from torch.testing._internal.common_utils import run_tests
+ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorTestBase,
+     skip_if_lt_x_gpu,
+-    with_comms,
++    # with_comms,
+ )
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ class TestShardUtilsDistributed(FSDPTest):

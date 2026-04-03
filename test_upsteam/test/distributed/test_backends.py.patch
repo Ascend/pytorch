@@ -1,0 +1,22 @@
+diff --git a/test/distributed/test_backends.py b/test/distributed/test_backends.py
+index baf78bb..9fc90a5 100644
+--- a/test/distributed/test_backends.py
++++ b/test/distributed/test_backends.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import os
+@@ -23,6 +28,8 @@ class TestMiscCollectiveUtils(TestCase):
+             assert dist.get_default_backend_for_device(device) == "gloo"
+         elif "hpu" in device:
+             assert dist.get_default_backend_for_device(device) == "hccl"
++        elif "npu" in device:
++            assert dist.get_default_backend_for_device(device) == "hccl"
+         else:
+             with self.assertRaises(ValueError):
+                 dist.get_default_backend_for_device(device)

@@ -1,0 +1,58 @@
+diff --git a/test/onnx/test_pytorch_onnx_no_runtime.py b/test/onnx/test_pytorch_onnx_no_runtime.py
+index cb4f72e..82422c7 100644
+--- a/test/onnx/test_pytorch_onnx_no_runtime.py
++++ b/test/onnx/test_pytorch_onnx_no_runtime.py
+@@ -19,6 +19,15 @@ import onnx.numpy_helper
+ import pytorch_test_common
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ import torch.nn.functional as F
+ from torch import Tensor
+ from torch.onnx import symbolic_helper, utils
+@@ -1161,7 +1170,7 @@ class TestQuantizeEagerONNXExport(common_utils.TestCase):
+         data = torch.from_numpy(data_numpy).to(dtype=torch.float)
+         self._test_lower_graph_impl(model, data)
+ 
+-    @pytorch_test_common.skipIfNoCuda
++    # @pytorch_test_common.skipIfNoCuda
+     def test_composed_layer_norm_small_eps_fp16_keep_double(self):
+         class Net(torch.nn.Module):
+             def __init__(self, C):
+@@ -1172,8 +1181,8 @@ class TestQuantizeEagerONNXExport(common_utils.TestCase):
+                 return self.layer_norm(x)
+ 
+         N, C = 8, 4
+-        model = Net(C).cuda().half()
+-        x = torch.randn(N, C).cuda().half()
++        model = Net(C).npu().half()
++        x = torch.randn(N, C).npu().half()
+         f = io.BytesIO()
+         torch.onnx.export(model, (x,), f, opset_version=14)
+         onnx_model = onnx.load_from_string(f.getvalue())
+@@ -1187,7 +1196,7 @@ class TestQuantizeEagerONNXExport(common_utils.TestCase):
+                     double_type_count += 1
+         self.assertNotEqual(double_type_count, 0)
+ 
+-    @pytorch_test_common.skipIfNoCuda
++    # @pytorch_test_common.skipIfNoCuda
+     def test_aten_device_with_index(self):
+         from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+ 
+@@ -1195,7 +1204,7 @@ class TestQuantizeEagerONNXExport(common_utils.TestCase):
+         model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
+         model = torch.compile(model, backend="onnxrt")
+         model = model.eval()
+-        device = "cuda:0"
++        device = "npu:0"
+         model = model.to(device)
+         ids = tokenizer.batch_encode_plus(["This is a test"], return_tensors="pt").to(
+             device

@@ -1,0 +1,55 @@
+diff --git a/test/test_multiprocessing.py b/test/test_multiprocessing.py
+index 9f58f14..6f09a3b 100644
+--- a/test/test_multiprocessing.py
++++ b/test/test_multiprocessing.py
+@@ -1,5 +1,7 @@
+ # Owner(s): ["module: multiprocessing"]
+ # ruff: noqa: F841
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import contextlib
+ import copy
+ import gc
+@@ -10,6 +12,7 @@ import unittest
+ from sys import platform
+ 
+ import torch
++torch.cuda.get_device_capability = lambda :(8, 0)
+ import torch.cuda
+ import torch.multiprocessing as mp
+ import torch.utils.hooks
+@@ -607,20 +610,21 @@ class TestMultiprocessing(TestCase):
+         self.assertIsInstance(outq.get(), RuntimeError)
+ 
+     @unittest.skipIf(IS_WINDOWS, "not applicable to Windows (only fails with fork)")
+-    @unittest.skipIf(not torch.cuda.is_available(), "CUDA not available")
+-    def test_wrong_cuda_fork(self):
++    @unittest.skipIf(not torch.npu.is_available(), "NPU not available")
++    def test_wrong_npu_fork(self):
+         stderr = TestCase.runWithPytorchAPIUsageStderr(
+             """\
+ import torch
++import torch_npu
+ from torch.multiprocessing import Process
+ def run(rank):
+-    torch.cuda.set_device(rank)
++    torch.npu.set_device(rank)
+ if __name__ == "__main__":
+     size = 2
+     processes = []
+     for rank in range(size):
+         # it would work fine without the line below
+-        x = torch.rand(20, 2).cuda()
++        x = torch.rand(20, 2).npu()
+         p = Process(target=run, args=(rank,))
+         p.start()
+         processes.append(p)
+@@ -628,7 +632,7 @@ if __name__ == "__main__":
+         p.join()
+ """
+         )
+-        self.assertRegex(stderr, "Cannot re-initialize CUDA in forked subprocess.")
++        self.assertRegex(stderr, "Cannot re-initialize NPU in forked subprocess.")
+ 
+     @unittest.skipIf(not TEST_CUDA_IPC, "CUDA IPC not available")
+     def test_event(self):

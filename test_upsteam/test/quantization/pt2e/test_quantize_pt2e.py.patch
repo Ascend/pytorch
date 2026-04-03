@@ -1,0 +1,67 @@
+diff --git a/test/quantization/pt2e/test_quantize_pt2e.py b/test/quantization/pt2e/test_quantize_pt2e.py
+index 2bc87f7..b10ddb3 100644
+--- a/test/quantization/pt2e/test_quantize_pt2e.py
++++ b/test/quantization/pt2e/test_quantize_pt2e.py
+@@ -2,6 +2,15 @@
+ # ruff: noqa: F841
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ from torch import Tensor
+ from torch.ao.quantization import observer, ObserverOrFakeQuantize, QConfigMapping
+ from torch.ao.quantization.qconfig import (
+@@ -1863,9 +1872,13 @@ class TestQuantizePT2E(PT2EQuantizationTestCase):
+             torch.ops.aten.batch_norm.default,
+         )
+ 
++    # @parametrize(
++    #     "device",
++    #     ["cpu"] + (["cuda"] if TEST_CUDA else []) + (["hpu"] if TEST_HPU else []),
++    # )
+     @parametrize(
+         "device",
+-        ["cpu"] + (["cuda"] if TEST_CUDA else []) + (["hpu"] if TEST_HPU else []),
++        ["cpu"] + (["npu"] if torch_npu.npu.is_available() else []),
+     )
+     def test_move_exported_model_bn(self, device):
+         """
+@@ -1881,7 +1894,8 @@ class TestQuantizePT2E(PT2EQuantizationTestCase):
+             def forward(self, x):
+                 return self.bn(x)
+ 
+-        if TEST_CUDA or TEST_HPU:
++        # if TEST_CUDA or TEST_HPU:
++        if torch_npu.npu.is_available():
+             m = M().train().to(device)
+             example_inputs = (torch.randn((1, 3, 3, 3), device=device),)
+ 
+@@ -1954,9 +1968,9 @@ class TestQuantizePT2E(PT2EQuantizationTestCase):
+                 x = self.dropout(x)
+                 return x
+ 
+-        if TEST_CUDA:
+-            m = M().train().cuda()
+-            example_inputs = (torch.randn(1, 3, 3, 3).cuda(),)
++        if torch_npu.npu.is_available():
++            m = M().train().npu()
++            example_inputs = (torch.randn(1, 3, 3, 3).npu(),)
+         else:
+             m = M().train()
+             example_inputs = (torch.randn(1, 3, 3, 3),)
+@@ -1968,7 +1982,7 @@ class TestQuantizePT2E(PT2EQuantizationTestCase):
+             bn_op = bn_train_op if train else bn_eval_op
+             bn_node = self._get_node(m, bn_op)
+             self.assertTrue(bn_node is not None)
+-            if TEST_CUDA:
++            if torch_npu.npu.is_available():
+                 self.assertEqual(bn_node.args[5], train)
+             dropout_node = self._get_node(m, torch.ops.aten.dropout.default)
+             self.assertEqual(dropout_node.args[2], train)

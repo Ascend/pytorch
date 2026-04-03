@@ -1,0 +1,13 @@
+diff --git a/test/distributed/_tools/test_mod_tracker.py b/test/distributed/_tools/test_mod_tracker.py
+index 80cbc4c..9cf4241 100644
+--- a/test/distributed/_tools/test_mod_tracker.py
++++ b/test/distributed/_tools/test_mod_tracker.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: unknown"]
+ 
+ from copy import copy

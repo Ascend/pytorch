@@ -1,0 +1,11 @@
+diff --git a/test/dynamo/test_utils.py b/test/dynamo/test_utils.py
+index e887d83..f7e1b97 100644
+--- a/test/dynamo/test_utils.py
++++ b/test/dynamo/test_utils.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: dynamo"]
+ import dataclasses
+ import pprint

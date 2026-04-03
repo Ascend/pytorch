@@ -1,0 +1,13 @@
+diff --git a/test/test_dataloader.py b/test/test_dataloader.py
+index 5c07088..1e43dcb 100644
+--- a/test/test_dataloader.py
++++ b/test/test_dataloader.py
+@@ -18,6 +18,8 @@ import unittest
+ import warnings
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.utils.data.datapipes as dp
+ from torch import multiprocessing as mp
+ from torch._utils import ExceptionWrapper

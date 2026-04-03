@@ -1,0 +1,13 @@
+diff --git a/test/distributed/algorithms/test_join.py b/test/distributed/algorithms/test_join.py
+index 60982d2..0c528a8 100644
+--- a/test/distributed/algorithms/test_join.py
++++ b/test/distributed/algorithms/test_join.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import contextlib

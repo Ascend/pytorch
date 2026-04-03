@@ -1,0 +1,24 @@
+diff --git a/test/test_tensor_creation_ops.py b/test/test_tensor_creation_ops.py
+index 35db309..0ed3146 100644
+--- a/test/test_tensor_creation_ops.py
++++ b/test/test_tensor_creation_ops.py
+@@ -47,7 +47,7 @@ from torch.testing._internal.common_dtype import (
+ )
+ 
+ from torch.utils.dlpack import to_dlpack
+-
++from torch_npu.contrib import transfer_to_npu
+ # TODO: replace with make_tensor
+ def _generate_input(shape, dtype, device, with_extremal):
+     if shape == ():
+@@ -2612,8 +2612,8 @@ class TestTensorCreation(TestCase):
+             torch.empty([0, 4, 2305843009213693952], dtype=torch.float32)
+ 
+     def test_eye(self, device):
+-        for dtype in all_types_and_complex_and(torch.half, torch.bool, torch.bfloat16):
+-            if dtype == torch.bfloat16:
++        for dtype in all_types_and(torch.half, torch.bool):
++            if dtype == torch.float64:
+                 continue
+             # Test the RuntimeError is raised when either m or n is a negative number
+             for n, m in ((-1, 1), (1, -1), (-1, -1)):

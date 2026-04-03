@@ -1,0 +1,24 @@
+diff --git a/test/distributed/tensor/parallel/test_tp_examples.py b/test/distributed/tensor/parallel/test_tp_examples.py
+index 9b412f8..9a9e7f1 100644
+--- a/test/distributed/tensor/parallel/test_tp_examples.py
++++ b/test/distributed/tensor/parallel/test_tp_examples.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 
+@@ -39,8 +44,9 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     NUM_DEVICES,
+     skip_unless_torch_gpu,
+     Transformer,
+-    with_comms,
++    # with_comms,
+ )
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ c10d_functional = torch.ops.c10d_functional

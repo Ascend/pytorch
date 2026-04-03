@@ -1,0 +1,13 @@
+diff --git a/test/distributed/pipelining/test_backward.py b/test/distributed/pipelining/test_backward.py
+index 0acb27b..ef77fe6 100644
+--- a/test/distributed/pipelining/test_backward.py
++++ b/test/distributed/pipelining/test_backward.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ import copy

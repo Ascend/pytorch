@@ -1,0 +1,14 @@
+diff --git a/test/test_futures.py b/test/test_futures.py
+index dd1e79f..dad95f6 100644
+--- a/test/test_futures.py
++++ b/test/test_futures.py
+@@ -9,6 +9,9 @@ from torch.futures import Future
+ from torch.testing._internal.common_utils import IS_WINDOWS, TestCase, TemporaryFileName, run_tests
+ from typing import TypeVar
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ T = TypeVar("T")
+ 
+ 

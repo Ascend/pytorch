@@ -1,0 +1,14 @@
+diff --git a/test/test_cpp_extensions_stream_and_event.py b/test/test_cpp_extensions_stream_and_event.py
+index f6b2281..609b348 100644
+--- a/test/test_cpp_extensions_stream_and_event.py
++++ b/test/test_cpp_extensions_stream_and_event.py
+@@ -18,6 +18,9 @@ from torch.testing._internal.common_utils import (
+ )
+ from torch.utils.cpp_extension import CUDA_HOME, ROCM_HOME
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ # define TEST_ROCM before changing TEST_CUDA
+ TEST_ROCM = TEST_CUDA and torch.version.hip is not None and ROCM_HOME is not None

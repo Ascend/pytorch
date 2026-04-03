@@ -1,0 +1,20 @@
+diff --git a/test/quantization/pt2e/test_metadata_porting.py b/test/quantization/pt2e/test_metadata_porting.py
+index 4f6eb4f..0fb648c 100644
+--- a/test/quantization/pt2e/test_metadata_porting.py
++++ b/test/quantization/pt2e/test_metadata_porting.py
+@@ -3,6 +3,15 @@ import copy
+ import unittest
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ import torch._export
+ from torch.ao.quantization.quantize_pt2e import convert_pt2e, prepare_pt2e
+ from torch.ao.quantization.quantizer import QuantizationAnnotation, Quantizer

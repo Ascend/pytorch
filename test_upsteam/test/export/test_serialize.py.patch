@@ -1,0 +1,24 @@
+diff --git a/test/export/test_serialize.py b/test/export/test_serialize.py
+index 402bfa1..d830760 100644
+--- a/test/export/test_serialize.py
++++ b/test/export/test_serialize.py
+@@ -1302,7 +1302,7 @@ def forward(self, x):
+         f = Module()
+         self.check_graph(f, (torch.tensor([1, 1]),))
+ 
+-    @unittest.skipIf(not torch.cuda.is_available(), "Requires cuda")
++    @unittest.skipIf(not torch.npu.is_available(), "Requires npu")
+     def test_device(self) -> None:
+         class MyModule(torch.nn.Module):
+             def __init__(self) -> None:
+@@ -1316,8 +1316,8 @@ def forward(self, x):
+                 mul = relu * 0.5
+                 return mul
+ 
+-        inp = torch.randn((1, 3, 224, 224), dtype=torch.float).to("cuda")
+-        model = MyModule().eval().cuda()
++        inp = torch.randn((1, 3, 224, 224), dtype=torch.float).to("npu")
++        model = MyModule().eval().npu()
+         self.check_graph(model, (inp,))
+ 
+     def test_custom_obj_tuple_out(self):

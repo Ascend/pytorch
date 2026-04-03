@@ -1,0 +1,13 @@
+diff --git a/test/distributed/test_control_collectives.py b/test/distributed/test_control_collectives.py
+index 594c028..bfd7be4 100644
+--- a/test/distributed/test_control_collectives.py
++++ b/test/distributed/test_control_collectives.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ from datetime import timedelta

@@ -1,0 +1,43 @@
+diff --git a/test/distributed/_composable/test_composability/test_2d_composability.py b/test/distributed/_composable/test_composability/test_2d_composability.py
+index 3cec8a0..9c2941d 100644
+--- a/test/distributed/_composable/test_composability/test_2d_composability.py
++++ b/test/distributed/_composable/test_composability/test_2d_composability.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import copy
+@@ -54,9 +59,10 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     MLPModule,
+     ModelArgs,
+     Transformer,
+-    with_comms,
++    # with_comms,
+ )
+ from torch.testing._internal.distributed.checkpoint_utils import with_temp_dir
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ class SimpleModel(nn.Module):
+@@ -112,7 +118,7 @@ class TestFullyShard2DTraining(FSDPTest):
+         # Prefer to test with >=4 GPUs, but for 2 GPUs, use 2-way TP
+         dp_size = 2 if self.world_size > 2 else 1
+         return init_device_mesh(
+-            "cuda", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
++            "npu", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
+         )
+ 
+     # TODO: remove this test when uneven sharding is supported for FSDP+TP
+@@ -432,7 +438,7 @@ class TestFullyShard2DStateDict(DTensorTestBase):
+     def test_fully_shard_tp_2d_set_full_state_dict(self):
+         dummy_model = SimpleModel().cuda()
+         mesh_2d = init_device_mesh(
+-            "cuda",
++            "npu",
+             (2, self.world_size // 2),
+             mesh_dim_names=("dp", "tp"),
+         )

@@ -1,0 +1,20 @@
+diff --git a/test/higher_order_ops/test_invoke_subgraph.py b/test/higher_order_ops/test_invoke_subgraph.py
+index 5487481..36e6c71 100644
+--- a/test/higher_order_ops/test_invoke_subgraph.py
++++ b/test/higher_order_ops/test_invoke_subgraph.py
+@@ -1,5 +1,7 @@
+ # Owner(s): ["module: higher order operators"]
+ # flake8: noqa: B950
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ import unittest
+ 
+@@ -19,7 +21,6 @@ from torch.testing._internal.common_utils import (
+ )
+ from torch.testing._internal.inductor_utils import HAS_CUDA
+ 
+-
+ requires_cuda = unittest.skipUnless(HAS_CUDA, "requires cuda")
+ 
+ 

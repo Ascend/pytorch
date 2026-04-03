@@ -1,0 +1,13 @@
+diff --git a/test/test_cuda_trace.py b/test/test_cuda_trace.py
+index 124b0ac..40a4143 100644
+--- a/test/test_cuda_trace.py
++++ b/test/test_cuda_trace.py
+@@ -7,7 +7,7 @@ import unittest.mock
+ import torch
+ import torch.cuda._gpu_trace as gpu_trace
+ from torch.testing._internal.common_utils import NoTest, run_tests, TEST_CUDA, TestCase
+-
++from torch_npu.contrib import transfer_to_npu
+ 
+ # NOTE: Each test needs to be run in a brand new process, to reset the registered hooks
+ # and make sure the CUDA streams are initialized for each test that uses them.

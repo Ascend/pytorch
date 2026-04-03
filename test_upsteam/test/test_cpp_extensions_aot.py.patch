@@ -1,0 +1,14 @@
+diff --git a/test/test_cpp_extensions_aot.py b/test/test_cpp_extensions_aot.py
+index 65437c0..fc41a7d 100644
+--- a/test/test_cpp_extensions_aot.py
++++ b/test/test_cpp_extensions_aot.py
+@@ -22,6 +22,9 @@ from torch.testing._internal.common_utils import (
+     xfailIfTorchDynamo,
+ )
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ try:
+     import pytest

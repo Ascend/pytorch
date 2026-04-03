@@ -1,0 +1,25 @@
+diff --git a/test/distributed/tensor/test_optimizers.py b/test/distributed/tensor/test_optimizers.py
+index a8a86b6..0bce788 100644
+--- a/test/distributed/tensor/test_optimizers.py
++++ b/test/distributed/tensor/test_optimizers.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ from copy import deepcopy
+@@ -16,9 +21,9 @@ from torch.testing._internal.common_utils import run_tests
+ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorTestBase,
+     MLPModule,
+-    with_comms,
++    # with_comms,
+ )
+-
++from torch_npu.testing.common_distributed import with_comms
+ 
+ # shard function to do full sharding on all parameters of a module
+ def shard_fn(name, module, device_mesh):

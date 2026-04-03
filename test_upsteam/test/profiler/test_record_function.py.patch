@@ -1,0 +1,14 @@
+diff --git a/test/profiler/test_record_function.py b/test/profiler/test_record_function.py
+index 4bc4ad1..233d28e 100644
+--- a/test/profiler/test_record_function.py
++++ b/test/profiler/test_record_function.py
+@@ -28,6 +28,9 @@ from torch.autograd.profiler import profile as _profile
+ from torch.profiler import kineto_available, record_function
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ Json = dict[str, Any]
+ 

@@ -1,0 +1,22 @@
+diff --git a/test/distributed/pipelining/test_stage.py b/test/distributed/pipelining/test_stage.py
+index 450e719..ade6769 100644
+--- a/test/distributed/pipelining/test_stage.py
++++ b/test/distributed/pipelining/test_stage.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ import os
+@@ -26,7 +31,7 @@ from torch.testing._internal.common_utils import (
+     skip_but_pass_in_sandcastle_if,
+ )
+ from torch.utils._pytree import tree_map_only
+-
++TEST_MULTIGPU = True
+ 
+ d_hid = 512
+ batch_size = 256

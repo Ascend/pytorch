@@ -1,0 +1,38 @@
+diff --git a/test/onnx/test_pytorch_jit_onnx.py b/test/onnx/test_pytorch_jit_onnx.py
+index 68f26ae..001ef4b 100644
+--- a/test/onnx/test_pytorch_jit_onnx.py
++++ b/test/onnx/test_pytorch_jit_onnx.py
+@@ -4,6 +4,15 @@ import pytorch_test_common
+ from pytorch_test_common import skipIfNoCuda
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ from torch.onnx import verification
+ from torch.onnx._globals import GLOBALS
+ from torch.testing._internal import common_utils
+@@ -160,7 +169,7 @@ class _TestJITIRToONNX:
+         x = torch.randn(5, 2)
+         self.run_test(graph_ir, (x,))
+ 
+-    @skipIfNoCuda
++    # @skipIfNoCuda
+     def test_log_softmax_half_to_float(self):
+         graph_ir = """
+         graph(%x: Tensor):
+@@ -169,7 +178,7 @@ class _TestJITIRToONNX:
+           %y = aten::_log_softmax(%x, %dim, %half_to_float)
+           return (%y)
+         """
+-        x = torch.randn(5, 2).half().to("cuda")
++        x = torch.randn(5, 2).half().to("npu")
+         self.run_test(graph_ir, (x,))
+ 
+     def test_native_dropout(self):

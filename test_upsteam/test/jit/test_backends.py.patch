@@ -1,0 +1,11 @@
+diff --git a/test/jit/test_backends.py b/test/jit/test_backends.py
+index 8453f59..d5e8143 100644
+--- a/test/jit/test_backends.py
++++ b/test/jit/test_backends.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: jit"]
+ 
+ import io

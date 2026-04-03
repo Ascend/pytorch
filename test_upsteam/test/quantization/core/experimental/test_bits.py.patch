@@ -1,0 +1,13 @@
+diff --git a/test/quantization/core/experimental/test_bits.py b/test/quantization/core/experimental/test_bits.py
+index daa780a..07311d7 100644
+--- a/test/quantization/core/experimental/test_bits.py
++++ b/test/quantization/core/experimental/test_bits.py
+@@ -86,7 +86,7 @@ class TestBits(TestCase):
+         s = s + 1 - 1
+         self.assertTrue(torch.allclose(s, torch.zeros(20, dtype=torch.bits16)))
+ 
+-instantiate_device_type_tests(TestBits, globals())
++instantiate_device_type_tests(TestBits, globals(), only_for=['cpu', 'privateuse1'])
+ 
+ 
+ if __name__ == '__main__':

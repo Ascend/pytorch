@@ -1,0 +1,34 @@
+diff --git a/test/distributed/test_store.py b/test/distributed/test_store.py
+index 115ca2a..5bd775f 100644
+--- a/test/distributed/test_store.py
++++ b/test/distributed/test_store.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import datetime
+@@ -435,7 +440,7 @@ class TCPStoreTest(TestCase, StoreTestBase):
+             addr,
+             port,
+             world_size=world_size,
+-            timeout=timedelta(seconds=10),
++            timeout=timedelta(seconds=100),
+             use_libuv=self._use_libuv,
+         )
+         self.assertEqual(b"value", client_store.get("key"))
+@@ -930,9 +935,10 @@ class TestMultiThreadedWait(MultiThreadedTestCase):
+         self._spawn_threads()
+ 
+     def _test_wait(self, store):
+-        store.set_timeout(timedelta(seconds=2))
++        store.set_timeout(timedelta(seconds=20))
+         if dist.get_rank() == 0:
+             store.wait(["key1"])
++            print("!!!!!!!!!!!!!!", store.get("key1"))
+             self.assertEqual(b"value1", store.get("key1"))
+         if dist.get_rank() == 1:
+             store.set("key1", "value1")

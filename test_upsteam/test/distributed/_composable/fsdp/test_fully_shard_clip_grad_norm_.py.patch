@@ -1,0 +1,13 @@
+diff --git a/test/distributed/_composable/fsdp/test_fully_shard_clip_grad_norm_.py b/test/distributed/_composable/fsdp/test_fully_shard_clip_grad_norm_.py
+index 4029bdd..3c2f78f 100644
+--- a/test/distributed/_composable/fsdp/test_fully_shard_clip_grad_norm_.py
++++ b/test/distributed/_composable/fsdp/test_fully_shard_clip_grad_norm_.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import copy

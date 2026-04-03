@@ -1,0 +1,13 @@
+diff --git a/test/test_tensorexpr.py b/test/test_tensorexpr.py
+index 3872fc1..b49835c 100644
+--- a/test/test_tensorexpr.py
++++ b/test/test_tensorexpr.py
+@@ -18,7 +18,7 @@ class BaseTestClass(JitTestCase):
+     def setUp(self):
+         super().setUp()
+         self.tensorexpr_options = TensorExprTestOptions()
+-        self.devices = ['cpu'] if not torch.cuda.is_available() else ['cpu', 'cuda']
++        self.devices = ['cpu'] if not torch.cuda.is_available() else ['cpu', 'gpu']
+         self.dtypes = [torch.float32, torch.bfloat16] if LLVM_ENABLED else [torch.float32]
+ 
+     def tearDown(self):

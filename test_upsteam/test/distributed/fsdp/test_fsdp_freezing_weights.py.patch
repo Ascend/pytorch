@@ -1,0 +1,13 @@
+diff --git a/test/distributed/fsdp/test_fsdp_freezing_weights.py b/test/distributed/fsdp/test_fsdp_freezing_weights.py
+index 0ffe605..1d7c56b 100644
+--- a/test/distributed/fsdp/test_fsdp_freezing_weights.py
++++ b/test/distributed/fsdp/test_fsdp_freezing_weights.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import contextlib

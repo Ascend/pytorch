@@ -1,0 +1,21 @@
+diff --git a/test/test_tensorboard.py b/test/test_tensorboard.py
+index c5a2e97..bfe1bf4 100644
+--- a/test/test_tensorboard.py
++++ b/test/test_tensorboard.py
+@@ -24,6 +24,7 @@ try:
+     import torchvision
+ except ImportError:
+     HAS_TORCHVISION = False
++
+ skipIfNoTorchVision = unittest.skipIf(not HAS_TORCHVISION, "no torchvision")
+ 
+ TEST_MATPLOTLIB = True
+@@ -50,7 +51,7 @@ from torch.testing._internal.common_utils import (
+     xfailIfS390X,
+ )
+ 
+-
++from torch_npu.contrib import transfer_to_npu
+ def tensor_N(shape, dtype=float):
+     numel = np.prod(shape)
+     x = (np.arange(numel, dtype=dtype)).reshape(shape)

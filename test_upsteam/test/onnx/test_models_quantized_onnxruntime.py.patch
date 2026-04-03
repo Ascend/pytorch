@@ -1,0 +1,39 @@
+diff --git a/test/onnx/test_models_quantized_onnxruntime.py b/test/onnx/test_models_quantized_onnxruntime.py
+index 81a180e..0aeccb8 100644
+--- a/test/onnx/test_models_quantized_onnxruntime.py
++++ b/test/onnx/test_models_quantized_onnxruntime.py
+@@ -9,7 +9,17 @@ import PIL
+ import torchvision
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ from torch import nn
++from torch.testing._internal import common_utils
+ 
+ 
+ def _get_test_image_tensor():
+@@ -56,6 +66,7 @@ class TestQuantizedModelsONNXRuntime(onnx_test_common._TestONNXRuntime):
+         return super().run_test(model, inputs, *args, **kwargs)
+ 
+     def test_mobilenet_v3(self):
++        torch.backends.quantized.engine = 'qnnpack'
+         model = torchvision.models.quantization.mobilenet_v3_large(
+             pretrained=True, quantize=True
+         )
+@@ -95,3 +106,7 @@ class TestQuantizedModelsONNXRuntime(onnx_test_common._TestONNXRuntime):
+             pretrained=True, quantize=True
+         )
+         self.run_test(model, _get_test_image_tensor())
++
++
++if __name__ == "__main__":
++    common_utils.run_tests()
+\ No newline at end of file

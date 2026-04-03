@@ -1,0 +1,13 @@
+diff --git a/test/distributed/rpc/test_tensorpipe_agent.py b/test/distributed/rpc/test_tensorpipe_agent.py
+index fe24d1e..c7f2b41 100644
+--- a/test/distributed/rpc/test_tensorpipe_agent.py
++++ b/test/distributed/rpc/test_tensorpipe_agent.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ #!/usr/bin/env python3
+ # Owner(s): ["oncall: distributed"]
+ 

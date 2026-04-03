@@ -1,0 +1,23 @@
+diff --git a/test/test_matmul_cuda.py b/test/test_matmul_cuda.py
+index 8ec860b..1a2c5a9 100644
+--- a/test/test_matmul_cuda.py
++++ b/test/test_matmul_cuda.py
+@@ -9,6 +9,7 @@ import unittest
+ from itertools import product
+ from functools import partial
+ from typing import Optional
++from torch_npu.contrib import transfer_to_npu
+ 
+ import torch
+ 
+@@ -48,8 +49,8 @@ from torch.testing._internal.common_utils import (
+ )
+ 
+ _IS_SM8X = False
+-if TEST_CUDA:
+-    _IS_SM8X = torch.cuda.get_device_capability(0)[0] == 8
++#if TEST_CUDA:
++#    _IS_SM8X = torch.cuda.get_device_capability(0)[0] == 8
+ 
+ # Protects against includes accidentally setting the default dtype
+ assert torch.get_default_dtype() is torch.float32

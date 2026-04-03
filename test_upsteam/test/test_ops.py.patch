@@ -1,0 +1,127 @@
+diff --git a/test/test_ops.py b/test/test_ops.py
+index 871b643..2d037f4 100644
+--- a/test/test_ops.py
++++ b/test/test_ops.py
+@@ -4,6 +4,7 @@ import copy
+ import inspect
+ import itertools
+ import os
++os.environ['TORCH_NPU_USE_COMPATIBLE_IMPL'] = "1"
+ import re
+ import unittest
+ import warnings
+@@ -22,6 +23,9 @@ from torch._subclasses.fake_utils import outputs_alias_inputs
+ from torch.testing import make_tensor
+ from torch.testing._internal import composite_compliance, opinfo
+ from torch.testing._internal.common_cuda import with_tf32_off
++import torch_npu
++torch_npu.npu.config.allow_internal_format = False
++
+ from torch.testing._internal.common_device_type import (
+     deviceCountAtLeast,
+     instantiate_device_type_tests,
+@@ -244,11 +248,13 @@ class TestCommon(TestCase):
+             assert len(filtered_ops) == 0, err_msg
+ 
+     # Validates that each OpInfo works correctly on different CUDA devices
+-    @onlyCUDA
++    # @onlyCUDA
+     @deviceCountAtLeast(2)
+     @ops(op_db, allowed_dtypes=(torch.float32, torch.long))
+     def test_multiple_devices(self, devices, dtype, op):
+         for cuda_device_str in devices:
++            if cuda_device_str.startswith('cpu'):
++                raise unittest.SkipTest("onlyCUDA skip cpu")
+             cuda_device = torch.device(cuda_device_str)
+             # NOTE: only tests on first sample
+             samples = op.sample_inputs(cuda_device, dtype)
+@@ -376,7 +382,7 @@ class TestCommon(TestCase):
+                 )
+ 
+     # Tests that the cpu and gpu results are consistent
+-    @onlyCUDA
++    # @onlyCUDA
+     @suppress_warnings
+     @slowTest
+     @ops(_ops_and_refs_with_no_numpy_ref, dtypes=OpDTypes.any_common_cpu_cuda_one)
+@@ -386,6 +392,8 @@ class TestCommon(TestCase):
+                 return arg.to(device="cpu")
+             return arg
+ 
++        if cuda_device_str.startswith('cpu'):
++            raise unittest.SkipTest("onlyCUDA skip cpu")
+         samples = op.reference_inputs(device, dtype)
+ 
+         for sample in samples:
+@@ -637,11 +645,13 @@ class TestCommon(TestCase):
+             )
+         self._ref_test_helper(contextlib.nullcontext, device, dtype, op)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @ops(python_ref_db)
+     @parametrize("executor", ["aten"])
+     @skipIfTorchInductor("Takes too long for inductor")
+     def test_python_ref_executor(self, device, dtype, op, executor):
++        if cuda_device_str.startswith('cpu'):
++            raise unittest.SkipTest("onlyCUDA skip cpu")
+         if (
+             TEST_WITH_ROCM
+             and (op.name == "_refs.fft.ihfftn" or op.name == "_refs.fft.ihfft2")
+@@ -2113,7 +2123,7 @@ class TestMathBits(TestCase):
+                     cloned1_tensor = (
+                         cloned1 if isinstance(cloned1, torch.Tensor) else cloned1[0]
+                     )
+-                    self.assertEqual(tensor.grad, cloned1_tensor.grad)
++                    self.assertEqual(tensor.grad.cpu(), cloned1_tensor.grad.cpu())
+ 
+                     tensor.grad, cloned1_tensor.grad = None, None
+ 
+@@ -2125,7 +2135,7 @@ class TestMathBits(TestCase):
+                             math_op_view(math_op_physical(grad))
+                         )
+ 
+-                        self.assertEqual(tensor.grad, cloned1_tensor.grad)
++                        self.assertEqual(tensor.grad.cpu(), cloned1_tensor.grad.cpu())
+ 
+     @ops(ops_and_refs, allowed_dtypes=(torch.cfloat,))
+     def test_conj_view(self, device, dtype, op):
+@@ -2508,6 +2518,7 @@ fake_autocast_device_skips = defaultdict(dict)
+ # TODO: investigate/fix
+ fake_autocast_device_skips["cpu"] = {"linalg.pinv"}
+ fake_autocast_device_skips["cuda"] = {"linalg.pinv", "pinverse"}
++fake_autocast_device_skips["npu"] = {"linalg.pinv", "pinverse"}
+ 
+ 
+ dynamic_output_op_tests = (
+@@ -2794,15 +2805,17 @@ class TestFakeTensor(TestCase):
+             except torch._subclasses.fake_tensor.UnsupportedOperatorException:
+                 pass
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @ops([op for op in op_db if op.supports_autograd], allowed_dtypes=(torch.float,))
+     @skipOps(
+         "TestFakeTensor", "test_fake_crossref_backward_no_amp", fake_backward_xfails
+     )
+     def test_fake_crossref_backward_no_amp(self, device, dtype, op):
++        if device.startswith('cpu'):
++            raise unittest.SkipTest("onlyCUDA skip cpu")
+         self._test_fake_crossref_helper(device, dtype, op, contextlib.nullcontext)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @ops([op for op in op_db if op.supports_autograd], allowed_dtypes=(torch.float,))
+     @skipOps(
+         "TestFakeTensor",
+@@ -2810,7 +2823,9 @@ class TestFakeTensor(TestCase):
+         fake_backward_xfails | fake_autocast_backward_xfails,
+     )
+     def test_fake_crossref_backward_amp(self, device, dtype, op):
+-        self._test_fake_crossref_helper(device, dtype, op, torch.cuda.amp.autocast)
++        if device.startswith('cpu'):
++            raise unittest.SkipTest("onlyCUDA skip cpu")
++        self._test_fake_crossref_helper(device, dtype, op, torch_npu.npu.amp.autocast)
+ 
+     @ops([op for op in ops_and_refs if op.is_factory_function])
+     def test_strided_layout(self, device, dtype, op):

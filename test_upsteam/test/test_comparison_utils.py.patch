@@ -1,0 +1,14 @@
+diff --git a/test/test_comparison_utils.py b/test/test_comparison_utils.py
+index a4ebd80..7eee8f1 100644
+--- a/test/test_comparison_utils.py
++++ b/test/test_comparison_utils.py
+@@ -6,6 +6,9 @@ import unittest
+ import torch
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ class TestComparisonUtils(TestCase):
+     def test_all_equal_no_assert(self):

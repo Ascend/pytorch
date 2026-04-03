@@ -1,0 +1,16 @@
+diff --git a/torch/cuda/_sanitizer.py b/torch/cuda/_sanitizer.py
+index ff287b8..05a3499 100644
+--- a/torch/cuda/_sanitizer.py
++++ b/torch/cuda/_sanitizer.py
+@@ -599,8 +599,10 @@ class CUDASanitizerDispatchMode(TorchDispatchMode):
+         outputs = func(*args, **kwargs)
+ 
+         argument_handler.parse_outputs(func._schema, outputs, is_factory=is_factory)
++        import torch_npu
+         errors = self.event_handler._handle_kernel_launch(
+-            torch.cuda.current_stream().cuda_stream,
++            #torch.cuda.current_stream().cuda_stream,
++            torch_npu.npu.current_stream().npu_stream,
+             argument_handler.dataptrs_read - argument_handler.dataptrs_written,
+             argument_handler.dataptrs_written,
+             argument_handler.outputs,

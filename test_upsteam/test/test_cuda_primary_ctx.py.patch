@@ -1,0 +1,13 @@
+diff --git a/test/test_cuda_primary_ctx.py b/test/test_cuda_primary_ctx.py
+index 37a9c0a..e3abba7 100644
+--- a/test/test_cuda_primary_ctx.py
++++ b/test/test_cuda_primary_ctx.py
+@@ -4,6 +4,8 @@ import sys
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_cuda import TEST_CUDA, TEST_MULTIGPU
+ from torch.testing._internal.common_utils import NoTest, run_tests, TestCase
+ 

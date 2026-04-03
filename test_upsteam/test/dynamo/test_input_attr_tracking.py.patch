@@ -1,0 +1,11 @@
+diff --git a/test/dynamo/test_input_attr_tracking.py b/test/dynamo/test_input_attr_tracking.py
+index ed12bbf..df0b893 100644
+--- a/test/dynamo/test_input_attr_tracking.py
++++ b/test/dynamo/test_input_attr_tracking.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: dynamo"]
+ # flake8: noqa
+ import torch

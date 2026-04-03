@@ -1,0 +1,12 @@
+diff --git a/test/test_functionalization.py b/test/test_functionalization.py
+index ed74465..3a57378 100644
+--- a/test/test_functionalization.py
++++ b/test/test_functionalization.py
+@@ -17,6 +17,7 @@ from torch._subclasses.functional_tensor import (
+ from torch.fx.experimental.proxy_tensor import make_fx
+ from torch.fx.passes.reinplace import reinplace
+ from torch.multiprocessing.reductions import StorageWeakRef
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import (
+     IS_WINDOWS,
+     run_tests,

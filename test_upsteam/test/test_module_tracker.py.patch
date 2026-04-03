@@ -1,0 +1,14 @@
+diff --git a/test/test_module_tracker.py b/test/test_module_tracker.py
+index 50a5e3f..55ef2c4 100644
+--- a/test/test_module_tracker.py
++++ b/test/test_module_tracker.py
+@@ -13,6 +13,9 @@ from torch.testing._internal.common_utils import (
+ from torch.utils.checkpoint import checkpoint
+ from torch.utils.module_tracker import ModuleTracker
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ class TestModuleTracker(TestCase):
+     # "https://github.com/pytorch/pytorch/issues/127112

@@ -1,0 +1,38 @@
+diff --git a/test/distributed/test_nccl.py b/test/distributed/test_nccl.py
+index f9bb4f6..74c5606 100644
+--- a/test/distributed/test_nccl.py
++++ b/test/distributed/test_nccl.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import re
+@@ -21,7 +26,8 @@ from torch.testing._internal.common_utils import (
+     TEST_WITH_ROCM,
+     TestCase,
+ )
+-
++TEST_CUDA = True
++TEST_MULTIGPU = True
+ 
+ HIP_VERSION = (
+     0.0
+@@ -40,10 +46,10 @@ if not TEST_CUDA:
+ 
+ 
+ datatypes = [torch.float]
+-if (
+-    TEST_CUDA and c10d.is_nccl_available() and nccl.version() >= (2, 10)
+-) or TEST_WITH_ROCM:
+-    datatypes.append(torch.bfloat16)
++# if (
++#     TEST_CUDA and c10d.is_nccl_available() and nccl.version() >= (2, 10)
++# ) or TEST_WITH_ROCM:
++datatypes.append(torch.bfloat16)
+ 
+ # Broadcast (and alltoall) support float8, while reduce and allreduce do not support float8 currently
+ broadcast_dtypes = (

@@ -1,0 +1,14 @@
+diff --git a/test/test_bundled_images.py b/test/test_bundled_images.py
+index 1919e1c..11cd8a0 100644
+--- a/test/test_bundled_images.py
++++ b/test/test_bundled_images.py
+@@ -10,6 +10,9 @@ import torch
+ import torch.utils.bundled_inputs
+ from torch.testing._internal.common_utils import TestCase
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ torch.ops.load_library("//caffe2/torch/fb/operators:decode_bundled_image")
+ 

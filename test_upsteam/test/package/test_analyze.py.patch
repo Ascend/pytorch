@@ -1,0 +1,14 @@
+diff --git a/test/package/test_analyze.py b/test/package/test_analyze.py
+index b6bc973..04d55cd 100644
+--- a/test/package/test_analyze.py
++++ b/test/package/test_analyze.py
+@@ -4,6 +4,9 @@ import torch
+ from torch.package import analyze
+ from torch.testing._internal.common_utils import run_tests
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ try:
+     from .common import PackageTestCase

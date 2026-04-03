@@ -1,0 +1,15 @@
+diff --git a/test/jit/test_alias_analysis.py b/test/jit/test_alias_analysis.py
+index 222140d..b52891e 100644
+--- a/test/jit/test_alias_analysis.py
++++ b/test/jit/test_alias_analysis.py
+@@ -1,5 +1,10 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: jit"]
+ 
++import npu
++
+ import torch
+ from torch._C import parse_ir
+ from torch.testing._internal.common_utils import TemporaryFileName

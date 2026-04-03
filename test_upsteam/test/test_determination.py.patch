@@ -1,0 +1,14 @@
+diff --git a/test/test_determination.py b/test/test_determination.py
+index 09a67de..c31b791 100644
+--- a/test/test_determination.py
++++ b/test/test_determination.py
+@@ -4,6 +4,9 @@ import os
+ 
+ import run_test
+ 
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 
+ 

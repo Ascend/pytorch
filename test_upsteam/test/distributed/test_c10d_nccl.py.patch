@@ -1,0 +1,13 @@
+diff --git a/test/distributed/test_c10d_nccl.py b/test/distributed/test_c10d_nccl.py
+index f5a35c9..22a48ba 100644
+--- a/test/distributed/test_c10d_nccl.py
++++ b/test/distributed/test_c10d_nccl.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import copy

@@ -1,0 +1,12 @@
+diff --git a/test/test_function_schema.py b/test/test_function_schema.py
+index d98b705..c0d5a2f 100644
+--- a/test/test_function_schema.py
++++ b/test/test_function_schema.py
+@@ -2,6 +2,7 @@
+ 
+ import torch
+ from torch._C import parse_schema
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 
+ 

@@ -1,0 +1,14 @@
+diff --git a/test/test_dispatch.py b/test/test_dispatch.py
+index 0e77c31..53e96fa 100644
+--- a/test/test_dispatch.py
++++ b/test/test_dispatch.py
+@@ -10,6 +10,9 @@ import torch.utils.cpp_extension
+ from torch._python_dispatcher import PythonDispatcher
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ # TODO: Expand the dispatcher API to be a generic API for interfacing with
+ # the dispatcher from Python!

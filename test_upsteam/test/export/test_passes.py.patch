@@ -1,0 +1,36 @@
+diff --git a/test/export/test_passes.py b/test/export/test_passes.py
+index d3194ea..4335ada 100644
+--- a/test/export/test_passes.py
++++ b/test/export/test_passes.py
+@@ -1317,12 +1317,12 @@ default](args = (%x, %b_state), kwargs = {})
+         mod = Model()
+         example_inputs = (torch.rand(1, 10, 4),)
+         ep = export(mod, example_inputs, strict=True)
+-        location = torch.device("cuda:0")
++        location = torch.device("npu:0")
+         ep = move_to_device_pass(ep, location=location)
+         gm = ep.module()
+-        test_inputs = (torch.rand(1, 10, 4).to("cuda:0"),)
++        test_inputs = (torch.rand(1, 10, 4).to("npu:0"),)
+         outputs = gm(*test_inputs)
+-        self.assertEqual(outputs.device, torch.device("cuda:0"))
++        self.assertEqual(outputs.device, torch.device("npu:0"))
+         # move it back to cpu
+         location = "cpu"
+         ep = move_to_device_pass(ep, location=location)
+@@ -1331,12 +1331,12 @@ default](args = (%x, %b_state), kwargs = {})
+         outputs = gm(*test_inputs)
+         self.assertEqual(outputs.device, torch.device("cpu"))
+         # move it to cuda:0 again
+-        location = {"cpu": "cuda:0"}
++        location = {"cpu": "npu:0"}
+         ep = move_to_device_pass(ep, location=location)
+         gm = ep.module()
+-        test_inputs = (torch.rand(1, 10, 4).to("cuda:0"),)
++        test_inputs = (torch.rand(1, 10, 4).to("npu:0"),)
+         outputs = gm(*test_inputs)
+-        self.assertEqual(outputs.device, torch.device("cuda:0"))
++        self.assertEqual(outputs.device, torch.device("npu:0"))
+ 
+     def test_constant_folding_pass(self):
+         from torch.ao.quantization.observer import MappingType, PerGroup, PerToken

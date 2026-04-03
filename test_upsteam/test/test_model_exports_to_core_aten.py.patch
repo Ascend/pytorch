@@ -1,0 +1,19 @@
+diff --git a/test/test_model_exports_to_core_aten.py b/test/test_model_exports_to_core_aten.py
+index aae14c2..37abead 100644
+--- a/test/test_model_exports_to_core_aten.py
++++ b/test/test_model_exports_to_core_aten.py
+@@ -4,10 +4,13 @@ import copy
+ import pytest
+ 
+ import torch
+-import torch._export as export
++import torch.export as export
+ from torch.testing._internal.common_quantization import skip_if_no_torchvision
+ from torch.testing._internal.common_utils import TestCase
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ def _get_ops_list(m: torch.fx.GraphModule):
+     op_list = []

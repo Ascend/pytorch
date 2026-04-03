@@ -1,0 +1,13 @@
+diff --git a/test/nn/test_pruning.py b/test/nn/test_pruning.py
+index a2ca609..35712dd 100644
+--- a/test/nn/test_pruning.py
++++ b/test/nn/test_pruning.py
+@@ -4,6 +4,8 @@ import unittest
+ import unittest.mock as mock
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn as nn
+ import torch.nn.utils.prune as prune
+ from torch.testing._internal.common_nn import NNTestCase

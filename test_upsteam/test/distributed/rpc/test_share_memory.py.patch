@@ -1,0 +1,13 @@
+diff --git a/test/distributed/rpc/test_share_memory.py b/test/distributed/rpc/test_share_memory.py
+index bda98b1..edffda5 100644
+--- a/test/distributed/rpc/test_share_memory.py
++++ b/test/distributed/rpc/test_share_memory.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ #!/usr/bin/env python3
+ # Owner(s): ["oncall: distributed"]
+ 

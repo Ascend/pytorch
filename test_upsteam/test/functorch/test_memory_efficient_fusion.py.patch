@@ -1,0 +1,49 @@
+diff --git a/test/functorch/test_memory_efficient_fusion.py b/test/functorch/test_memory_efficient_fusion.py
+index 7bf2634..710e5b7 100644
+--- a/test/functorch/test_memory_efficient_fusion.py
++++ b/test/functorch/test_memory_efficient_fusion.py
+@@ -6,6 +6,15 @@ import unittest
+ from typing import Callable
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ import torch.fx as fx
+ import torch.nn as nn
+ from functorch import make_fx
+@@ -15,7 +24,9 @@ from torch.nn import functional as F
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 
+ 
+-HAS_CUDA = torch.cuda.is_available()
++
++
++HAS_NPU = torch_npu.npu.is_available()
+ 
+ 
+ def _num_args(fn: Callable):
+@@ -98,7 +109,7 @@ def hard_mish(x):
+ 
+ def run_and_compare_activation(self, fn, inps):
+     with torch.jit.fuser("fuser1"):
+-        device = "cuda"
++        device = "npu"
+         dtype = torch.float
+         if isinstance(fn, nn.Module):
+             fn = fn.to(device=device, dtype=dtype)
+@@ -124,7 +135,7 @@ def run_and_compare_activation(self, fn, inps):
+             self.assertEqual(ref_arg.grad, res_arg.grad)
+ 
+ 
+-@unittest.skipIf(not torch.cuda.is_available(), "CUDA is unavailable")
++@unittest.skipIf(not torch_npu.npu.is_available(), "NPU is unavailable")
+ class TestMemoryEfficientOpAuthoring(TestCase):
+     def test_gelu_bias(self):
+         run_and_compare_activation(self, gelu_bias, [(1024,), (1024,)])

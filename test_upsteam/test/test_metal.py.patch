@@ -1,0 +1,15 @@
+diff --git a/test/test_metal.py b/test/test_metal.py
+index 21b55f3..a0bca77 100644
+--- a/test/test_metal.py
++++ b/test/test_metal.py
+@@ -7,6 +7,10 @@ from torch.testing._internal.common_utils import TestCase, run_tests
+ from torch.testing import FileCheck
+ import io
+ 
++#import torch_npu
++#from torch_npu.contrib import transfer_to_npu
++
++
+ class TestMetalRewritePass(TestCase):
+     @staticmethod
+     def validate_transformed_module(

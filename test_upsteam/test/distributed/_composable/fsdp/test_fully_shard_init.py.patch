@@ -1,0 +1,209 @@
+diff --git a/test/distributed/_composable/fsdp/test_fully_shard_init.py b/test/distributed/_composable/fsdp/test_fully_shard_init.py
+index 9728e53..046700b 100644
+--- a/test/distributed/_composable/fsdp/test_fully_shard_init.py
++++ b/test/distributed/_composable/fsdp/test_fully_shard_init.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import copy
+@@ -45,7 +50,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     Transformer,
+     TransformerBlock,
+ )
+-
++TEST_CUDA = True
+ 
+ class TestFullyShardDeviceTensor(FSDPTestMultiThread):
+     """Tests that tensor parameters are moved to the expected device."""
+@@ -60,7 +65,7 @@ class TestFullyShardDeviceTensor(FSDPTestMultiThread):
+         for tensor in itertools.chain(model.parameters(), model.buffers()):
+             self.assertEqual(tensor.device, torch.device("cpu"))
+         fully_shard(model)
+-        cuda_device = torch.device("cuda", torch.cuda.current_device())
++        cuda_device = torch.device("npu", torch.cuda.current_device())
+         for tensor in itertools.chain(model.parameters(), model.buffers()):
+             self.assertEqual(tensor.device, cuda_device)
+ 
+@@ -77,7 +82,7 @@ class TestFullyShardDeviceDTensor(FSDPTestMultiThread):
+         assert self.world_size >= 4, f"{self.world_size}"
+         dp_size = 2
+         global_mesh = init_device_mesh(
+-            "cuda", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
++            "npu", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
+         )
+         dp_mesh, tp_mesh = global_mesh["dp"], global_mesh["tp"]
+         model = MLP(8, torch.device("cpu"), with_buffer=True)
+@@ -86,7 +91,7 @@ class TestFullyShardDeviceDTensor(FSDPTestMultiThread):
+             tp_mesh,
+             {"in_proj": ColwiseParallel(), "out_proj": RowwiseParallel()},
+         )
+-        cuda_device = torch.device("cuda", torch.cuda.current_device())
++        cuda_device = torch.device("npu", torch.cuda.current_device())
+         for tensor in itertools.chain(model.parameters(), model.buffers()):
+             if isinstance(tensor, DTensor):
+                 # DTensor constructor moves to the mesh's device
+@@ -105,7 +110,7 @@ class TestFullyShardDeviceDTensor(FSDPTestMultiThread):
+         assert self.world_size >= 4, f"{self.world_size}"
+         dp_size = 2
+         global_cuda_mesh = init_device_mesh(
+-            "cuda", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
++            "npu", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
+         )
+         global_cpu_mesh = init_device_mesh(
+             "cpu", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
+@@ -122,7 +127,7 @@ class TestFullyShardDeviceDTensor(FSDPTestMultiThread):
+             self.assertEqual(tensor.device, torch.device("cpu"))
+             if isinstance(tensor, DTensor):
+                 self.assertEqual(tensor._local_tensor.device, torch.device("cpu"))
+-        regex = r"Requires DTensor to have mesh of the same type as the FSDP mesh but got cpu for DTensor and cuda for FSDP"
++        regex = r"Requires DTensor to have mesh of the same type as the FSDP mesh but got cpu for DTensor and npu for FSDP"
+         with self.assertRaisesRegex(ValueError, regex):
+             fully_shard(model, mesh=dp_mesh)
+ 
+@@ -613,7 +618,7 @@ class TestFullyShardMetaDeviceInit(FSDPTestMultiThread):
+     @unittest.skipIf(not TEST_CUDA, "no cuda")
+     def test_meta_device_1d_init(self):
+         default_pg = torch.distributed.distributed_c10d._get_default_group()
+-        mesh = init_device_mesh("cuda", mesh_shape=(default_pg.size(),))
++        mesh = init_device_mesh("npu", mesh_shape=(default_pg.size(),))
+ 
+         # Test both even sharding (8) and uneven sharding (3)
+         for mlp_dim in (8, 3):
+@@ -646,7 +651,7 @@ class TestFullyShardMetaDeviceInit(FSDPTestMultiThread):
+         assert self.world_size >= 4, f"{self.world_size}"
+         dp_size = 2
+         global_mesh = init_device_mesh(
+-            "cuda", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
++            "npu", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
+         )
+         dp_mesh, tp_mesh = global_mesh["dp"], global_mesh["tp"]
+ 
+@@ -674,7 +679,7 @@ class TestFullyShardMetaDeviceInit(FSDPTestMultiThread):
+         self, model: nn.Module, mesh: DeviceMesh, mlp_dim: int
+     ):
+         # Check that we can materialize it on GPU with empty values
+-        device = torch.device("cuda", torch.cuda.current_device())
++        device = torch.device("npu", torch.cuda.current_device())
+         model.to_empty(device=device)
+         for param in model.parameters():
+             self.assertEqual(param.device, device)
+@@ -732,7 +737,7 @@ class TestFullyShardMetaDeviceInit(FSDPTestMultiThread):
+                 self.assertEqual(param.device, torch.device("cpu"))
+ 
+         # Initialize the sharded model on meta device
+-        fsdp_mesh = init_device_mesh("cuda", (self.world_size,))
++        fsdp_mesh = init_device_mesh("npu", (self.world_size,))
+         with torch.device("meta"):
+             model = Transformer(model_args)
+         for module in model.modules():
+@@ -752,7 +757,7 @@ class TestFullyShardMetaDeviceInit(FSDPTestMultiThread):
+             for (param_name, full_param), sharded_meta_param in zip(
+                 full_sd.items(), meta_sharded_sd.values()
+             ):
+-                full_param = full_param.detach().cuda()
++                full_param = full_param.detach().npu()
+                 mesh = sharded_meta_param.device_mesh
+                 dist.broadcast(full_param, src=0, group=mesh.get_group(0))
+                 sharded_tensor = distribute_tensor(
+@@ -763,7 +768,7 @@ class TestFullyShardMetaDeviceInit(FSDPTestMultiThread):
+             for param_name, sharded_meta_param in meta_sharded_sd.items():
+                 full_tensor = torch.empty(
+                     sharded_meta_param.size(),
+-                    device="cuda",
++                    device="npu",
+                     dtype=sharded_meta_param.dtype,
+                 )
+                 mesh = sharded_meta_param.device_mesh
+@@ -776,7 +781,7 @@ class TestFullyShardMetaDeviceInit(FSDPTestMultiThread):
+         model.load_state_dict(sharded_sd, assign=True)
+         for param in model.parameters():
+             self.assertIsInstance(param, DTensor)
+-            self.assertEqual(param.device.type, "cuda")
++            self.assertEqual(param.device.type, "npu")
+ 
+         # Construct the reference model on nonzero ranks by broadcasting the
+         # unsharded model from rank 0 and sharding on all ranks
+@@ -818,13 +823,13 @@ class TestFullyShardProcessGroupInit(FSDPTestMultiThread):
+         # (in practice, the trainer would do it manually via `new_group()`)
+         dp_size = 2
+         global_mesh = init_device_mesh(
+-            "cuda", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
++            "npu", (dp_size, self.world_size // dp_size), mesh_dim_names=("dp", "tp")
+         )
+         ref_dp_mesh, tp_mesh = global_mesh["dp"], global_mesh["tp"]
+         dp_pg = ref_dp_mesh.get_group(0)
+ 
+         # Check the `from_group()` API for correctness
+-        dp_mesh = DeviceMesh.from_group(dp_pg, "cuda", mesh_dim_names=("dp",))
++        dp_mesh = DeviceMesh.from_group(dp_pg, "npu", mesh_dim_names=("dp",))
+         # Only compare the mesh tensors, not `DeviceMesh` objects themselves,
+         # since the ref has a parent mesh, while the `from_group` one does not
+         self.assertEqual(dp_mesh.mesh, ref_dp_mesh.mesh)
+@@ -849,7 +854,7 @@ class TestFullyShardProcessGroupInit(FSDPTestMultiThread):
+             fully_shard(module, mesh=dp_mesh)
+ 
+         # Ensure that TP ranks have the same input
+-        inp = torch.randn((4, mlp_dim), device="cuda")
++        inp = torch.randn((4, mlp_dim), device="npu")
+         if self.rank in (0, 1):
+             dist.broadcast(inp, src=0, group=tp_mesh.get_group(0))
+         elif self.rank in (2, 3):
+@@ -880,7 +885,7 @@ class TestFullyShardProcessGroupInit(FSDPTestMultiThread):
+         replicate_mesh_dim_size = self.world_size // shard_mesh_dim_size
+         mesh_dim_names = ("replicate", "shard")
+         ref_mesh = init_device_mesh(
+-            "cuda",
++            "npu",
+             (replicate_mesh_dim_size, shard_mesh_dim_size),
+             mesh_dim_names=mesh_dim_names,
+         )
+@@ -899,7 +904,7 @@ class TestFullyShardProcessGroupInit(FSDPTestMultiThread):
+         # Check the `from_group()` API for correctness
+         mesh = DeviceMesh.from_group(
+             [dp_replicate_group, dp_shard_group],
+-            "cuda",
++            "npu",
+             mesh_dim_names=mesh_dim_names,
+             mesh=mesh_tensor,
+         )
+@@ -938,7 +943,7 @@ class TestFullyShardProcessGroupInit(FSDPTestMultiThread):
+         for module in (model.in_proj, model.out_proj, model):
+             fully_shard(module, mesh=mesh)
+ 
+-        inp = torch.randn((4, mlp_dim), device="cuda")
++        inp = torch.randn((4, mlp_dim), device="npu")
+         ref_loss = ref_model(inp).sum()
+         ref_loss.backward()
+         loss = model(inp).sum()
+@@ -1028,7 +1033,7 @@ class TestHSDPWithCustomHook(FSDPTestMultiThread):
+     @unittest.skipIf(not TEST_CUDA, "no cuda")
+     def test_custom_hook_custom_stream(self):
+         hsdp_mesh = init_device_mesh(
+-            "cuda", (2, 2), mesh_dim_names=("replicate", "shard")
++            "npu", (2, 2), mesh_dim_names=("replicate", "shard")
+         )
+         model = MLP(10, bias=False)
+         fully_shard(model, mesh=hsdp_mesh)
+@@ -1046,7 +1051,7 @@ class TestHSDPWithCustomHook(FSDPTestMultiThread):
+         intra_pg = _init_intra_node_process_group(2)
+         fsdp_mesh = DeviceMesh.from_group(
+             intra_pg,
+-            "cuda",
++            "npu",
+             dist.get_process_group_ranks(intra_pg),
+             mesh_dim_names=("shard",),
+         )
+@@ -1074,7 +1079,7 @@ class TestHSDPWithCustomHook(FSDPTestMultiThread):
+         inter_pg = _init_inter_node_process_group(world_pg, 2)
+         mesh = DeviceMesh.from_group(
+             intra_pg,
+-            "cuda",
++            "npu",
+             dist.get_process_group_ranks(intra_pg),
+             mesh_dim_names=("shard",),
+         )

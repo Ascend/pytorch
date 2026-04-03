@@ -1,0 +1,12 @@
+diff --git a/test/test_static_runtime.py b/test/test_static_runtime.py
+index 893aea8..f4c7fca 100644
+--- a/test/test_static_runtime.py
++++ b/test/test_static_runtime.py
+@@ -10,7 +10,6 @@ from torch import nn
+ from torch.testing._internal.common_utils import TestCase, run_tests
+ from torch.testing._internal.static_module import StaticModule
+ 
+-
+ def linear_shim(
+     input: torch.Tensor, weight: torch.Tensor, bias: Optional[torch.Tensor] = None
+ ) -> torch.Tensor:

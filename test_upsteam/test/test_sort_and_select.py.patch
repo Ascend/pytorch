@@ -1,0 +1,22 @@
+diff --git a/test/test_sort_and_select.py b/test/test_sort_and_select.py
+index daa3996..fed4d42 100644
+--- a/test/test_sort_and_select.py
++++ b/test/test_sort_and_select.py
+@@ -31,7 +31,7 @@ from torch.testing._internal.common_utils import (
+     TestCase,
+ )
+ 
+-
++from torch_npu.contrib import transfer_to_npu
+ class TestSortAndSelect(TestCase):
+     def assertIsOrdered(self, order, x, mxx, ixx, task):
+         SIZE = x.size(1)
+@@ -353,7 +353,7 @@ class TestSortAndSelect(TestCase):
+                 # binary strings
+                 yield (torch.tensor([0, 1] * size, dtype=dtype, device=device), 0)
+ 
+-            if self.device_type == "cuda":
++            if self.device_type == "npu":
+                 return
+ 
+             yield (torch.tensor([0, 1] * 100, dtype=dtype, device=device), 0)

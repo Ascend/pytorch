@@ -1,0 +1,44 @@
+diff --git a/test/test_jiterator.py b/test/test_jiterator.py
+index 813552f..5a0c184 100644
+--- a/test/test_jiterator.py
++++ b/test/test_jiterator.py
+@@ -10,9 +10,9 @@ from torch.testing._internal.common_dtype import all_types_and_complex_and
+ from torch.testing._internal.common_device_type import (
+     skipCUDAIfVersionLessThan, instantiate_device_type_tests, dtypes, toleranceOverride, tol)
+ 
+-if not TEST_CUDA:
+-    print('CUDA not available, skipping tests', file=sys.stderr)
+-    TestCase = NoTest  # noqa: F811
++#if not TEST_CUDA:
++#    print('CUDA not available, skipping tests', file=sys.stderr)
++#    TestCase = NoTest  # noqa: F811
+ 
+ 
+ code_string = "template <typename T> T my_fused_kernel(T x, T y, T alpha, T beta) { return alpha * x + beta * y; }"
+@@ -116,7 +116,7 @@ class TestPythonJiterator(TestCase):
+     def test_various_num_inputs(self, num_inputs):
+         inputs = []
+         for i in range(num_inputs):
+-            inputs.append(torch.rand(3, device='cuda').mul(10))
++            inputs.append(torch.rand(3, device='npu').mul(10))
+ 
+         input_string = ",".join([f"T i{i}" for i in range(num_inputs)])
+         function_body = "+".join([f"i{i}" for i in range(num_inputs)])
+@@ -133,7 +133,7 @@ class TestPythonJiterator(TestCase):
+ 
+     @parametrize("num_outputs", [1, 4, 8])
+     def test_various_num_outputs(self, num_outputs):
+-        input = torch.rand(3, device='cuda')
++        input = torch.rand(3, device='npu')
+ 
+         output_string = ", ".join([f"T& out{i}" for i in range(num_outputs)])
+         function_body = ""
+@@ -168,7 +168,7 @@ class TestPythonJiterator(TestCase):
+             create_jit_fn(code_string)
+ 
+ 
+-instantiate_device_type_tests(TestPythonJiterator, globals(), only_for="cuda")
++instantiate_device_type_tests(TestPythonJiterator, globals(), only_for=("privateuse1",))
+ 
+ if __name__ == '__main__':
+     run_tests()

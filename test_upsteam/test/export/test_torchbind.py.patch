@@ -1,0 +1,36 @@
+diff --git a/test/export/test_torchbind.py b/test/export/test_torchbind.py
+index 673c0f0..adbd137 100644
+--- a/test/export/test_torchbind.py
++++ b/test/export/test_torchbind.py
+@@ -872,7 +872,7 @@ def forward(self, token, safe_obj):
+                 super().__init__()
+ 
+             def forward(self, tq, x):
+-                with torch.autocast("cuda", dtype=torch.bfloat16):
++                with torch.autocast("npu", dtype=torch.bfloat16):
+                     torch.ops._TorchScriptTesting.queue_push(tq, x.cos())
+                     torch.ops._TorchScriptTesting.queue_push(tq, x.sin())
+                     x_sin = torch.ops._TorchScriptTesting.queue_pop(
+@@ -909,19 +909,19 @@ def forward(self, token, safe_obj):
+             with torch.library._scoped_library(ns, "FRAGMENT") as lib:
+                 for op in ops:
+                     lib.impl(
+-                        op.__name__, torch.library.fallthrough_kernel, "AutocastCUDA"
++                        op.__name__, torch.library.fallthrough_kernel, "AutocastNPU"
+                     )
+ 
+                 gm = make_fx(mod, tracing_mode="fake")(tq1, x)
+         else:
+             for op in ops:
+-                op.default.py_impl(torch._C.DispatchKey.AutocastCUDA)(
++                op.default.py_impl(torch._C.DispatchKey.AutocastNPU)(
+                     torch.library.fallthrough_kernel
+                 )
+             gm = make_fx(mod, tracing_mode="fake")(tq1, x)
+             for op in ops:
+                 op.default._dispatch_cache.clear()
+-                del op.default.py_kernels[torch._C.DispatchKey.AutocastCUDA]
++                del op.default.py_kernels[torch._C.DispatchKey.AutocastNPU]
+ 
+         self.assertExpectedInline(
+             gm.code.strip(),

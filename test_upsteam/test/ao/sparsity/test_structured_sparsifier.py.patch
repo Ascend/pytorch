@@ -1,0 +1,47 @@
+diff --git a/test/ao/sparsity/test_structured_sparsifier.py b/test/ao/sparsity/test_structured_sparsifier.py
+index 00fdbed..39dade4 100644
+--- a/test/ao/sparsity/test_structured_sparsifier.py
++++ b/test/ao/sparsity/test_structured_sparsifier.py
+@@ -4,6 +4,15 @@ import logging
+ import random
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ from torch import nn
+ from torch.ao.pruning._experimental.pruner import (
+     BaseStructuredSparsifier,
+@@ -29,7 +38,7 @@ from torch.testing._internal.common_pruning import (
+     SimpleConv2d,
+     SimpleLinear,
+ )
+-from torch.testing._internal.common_utils import skipIfTorchDynamo, TestCase
++from torch.testing._internal.common_utils import skipIfTorchDynamo, TestCase, run_tests
+ 
+ 
+ logging.basicConfig(
+@@ -38,7 +47,7 @@ logging.basicConfig(
+ 
+ DEVICES = {
+     torch.device("cpu"),
+-    torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
++    torch.device("npu") if torch_npu.npu.is_available() else torch.device("cpu"),
+ }
+ 
+ 
+@@ -1089,3 +1098,7 @@ class TestFPGMPruner(TestCase):
+             self._test_update_mask_on_multiple_layer(
+                 expected_conv1, expected_conv2, device
+             )
++
++
++if __name__ == "__main__":
++    run_tests()
+\ No newline at end of file

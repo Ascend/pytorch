@@ -1,0 +1,22 @@
+diff --git a/test/distributed/_tools/test_fsdp2_mem_tracker.py b/test/distributed/_tools/test_fsdp2_mem_tracker.py
+index 31ae323..dbd378b 100644
+--- a/test/distributed/_tools/test_fsdp2_mem_tracker.py
++++ b/test/distributed/_tools/test_fsdp2_mem_tracker.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: unknown"]
+ import functools
+ import gc
+@@ -87,7 +92,7 @@ class TestTrackerFullyShard1DTrainingCore(FSDPTest):
+         lin_dim, bsz = 2048, 8192
+         with torch.device(dev):
+             model = nn.Sequential(*[MLP(dim=lin_dim, device=dev) for _ in range(4)])
+-        mesh = init_device_mesh("cuda", (self.world_size,))
++        mesh = init_device_mesh("npu", (self.world_size,))
+         fully_shard_fn = functools.partial(
+             fully_shard,
+             mesh=mesh,

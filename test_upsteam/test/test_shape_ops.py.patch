@@ -1,0 +1,22 @@
+diff --git a/test/test_shape_ops.py b/test/test_shape_ops.py
+index a60b04c..8337ea7 100644
+--- a/test/test_shape_ops.py
++++ b/test/test_shape_ops.py
+@@ -34,6 +34,9 @@ from torch.testing._internal.common_utils import (
+     torch_to_numpy_dtype_dict,
+ )
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ # TODO: replace with make_tensor
+ def _generate_input(shape, dtype, device, with_extremal):
+@@ -568,7 +571,6 @@ class TestShapeOps(TestCase):
+                     np_fn = partial(np.flip, axis=flip_dim)
+                     self.compare_with_numpy(torch_fn, np_fn, data)
+ 
+-    @onlyCUDA  # CPU is too slow
+     @largeTensorTest("17GB")  # 4 tensors of 4GB (in, out) x (torch, numpy) + 1GB
+     @largeTensorTest(
+         "81GB", "cpu"

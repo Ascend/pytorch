@@ -1,0 +1,15 @@
+diff --git a/test/test_set_default_mobile_cpu_allocator.py b/test/test_set_default_mobile_cpu_allocator.py
+index accf1fa..7c3ab4b 100644
+--- a/test/test_set_default_mobile_cpu_allocator.py
++++ b/test/test_set_default_mobile_cpu_allocator.py
+@@ -3,6 +3,10 @@
+ import torch
+ from torch.testing._internal.common_utils import TestCase, run_tests
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
++
+ class TestSetDefaultMobileCPUAllocator(TestCase):
+     def test_no_exception(self):
+         torch._C._set_default_mobile_cpu_allocator()

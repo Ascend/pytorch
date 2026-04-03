@@ -1,0 +1,13 @@
+diff --git a/test/distributed/fsdp/test_fsdp_exec_order.py b/test/distributed/fsdp/test_fsdp_exec_order.py
+index 7d8f8aa..60065df 100644
+--- a/test/distributed/fsdp/test_fsdp_exec_order.py
++++ b/test/distributed/fsdp/test_fsdp_exec_order.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import sys

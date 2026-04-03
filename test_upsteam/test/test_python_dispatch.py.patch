@@ -1,0 +1,21 @@
+diff --git a/test/test_python_dispatch.py b/test/test_python_dispatch.py
+index 2e6bbd4..1d23987 100644
+--- a/test/test_python_dispatch.py
++++ b/test/test_python_dispatch.py
+@@ -48,6 +48,7 @@ from torch.utils._python_dispatch import (
+     TorchDispatchMode,
+ )
+ from torch.utils._pytree import tree_map, tree_map_only
++from torch_npu.contrib import transfer_to_npu
+ 
+ 
+ # used as DataLoader collate_fn below; named here to avoid trying to pickle a lambda
+@@ -361,7 +362,7 @@ class TestPythonRegistration(TestCase):
+                 )
+                 x = torch.tensor([1, 2, 3], device=device)
+                 y = torch.tensor([-1, -2, -3], device=device)
+-
++                print("--->", torch.where(cond, x, y))
+                 self.assertEqual(torch.where(cond, x, y), torch.tensor([-1, -2, 3]))
+                 self.assertTrue(CALLED[0])
+ 

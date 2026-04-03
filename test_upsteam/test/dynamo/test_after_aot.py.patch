@@ -1,0 +1,11 @@
+diff --git a/test/dynamo/test_after_aot.py b/test/dynamo/test_after_aot.py
+index 1f8425a..5c52470 100644
+--- a/test/dynamo/test_after_aot.py
++++ b/test/dynamo/test_after_aot.py
+@@ -1,3 +1,6 @@
++# import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: dynamo"]
+ 
+ import io

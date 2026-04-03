@@ -1,0 +1,13 @@
+diff --git a/test/nn/test_load_state_dict.py b/test/nn/test_load_state_dict.py
+index 6410172..d39a7bc 100644
+--- a/test/nn/test_load_state_dict.py
++++ b/test/nn/test_load_state_dict.py
+@@ -5,6 +5,8 @@ from copy import deepcopy
+ from itertools import product
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn as nn
+ from torch.testing._internal.common_nn import NNTestCase
+ from torch.testing._internal.common_utils import (

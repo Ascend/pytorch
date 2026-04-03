@@ -1,0 +1,11 @@
+diff --git a/test/jit/test_python_bindings.py b/test/jit/test_python_bindings.py
+index 9de3bf0..b7111e8 100644
+--- a/test/jit/test_python_bindings.py
++++ b/test/jit/test_python_bindings.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: jit"]
+ 
+ import torch

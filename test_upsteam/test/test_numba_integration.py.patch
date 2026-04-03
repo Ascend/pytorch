@@ -1,0 +1,11 @@
+diff --git a/test/test_numba_integration.py b/test/test_numba_integration.py
+index dc63d49..c92c195 100644
+--- a/test/test_numba_integration.py
++++ b/test/test_numba_integration.py
+@@ -1,5 +1,5 @@
+ # Owner(s): ["module: unknown"]
+-
++from torch_npu.contrib import transfer_to_npu
+ import unittest
+ 
+ import torch

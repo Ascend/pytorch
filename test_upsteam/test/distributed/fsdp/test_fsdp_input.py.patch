@@ -1,0 +1,22 @@
+diff --git a/test/distributed/fsdp/test_fsdp_input.py b/test/distributed/fsdp/test_fsdp_input.py
+index 9a58eaf..e655365 100644
+--- a/test/distributed/fsdp/test_fsdp_input.py
++++ b/test/distributed/fsdp/test_fsdp_input.py
+@@ -1,3 +1,7 @@
++import torch_npu.testing
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ import sys
+ 
+@@ -50,7 +54,8 @@ class TestInput(FSDPTest):
+                     assert isinstance(input, dict), input
+                     input = input["in"]
+                 return self.layer(input)
+-
++        
++        device = 'npu'
+         fsdp_kwargs = {
+             "device_id": device,
+         }

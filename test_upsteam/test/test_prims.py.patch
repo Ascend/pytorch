@@ -1,0 +1,76 @@
+diff --git a/test/test_prims.py b/test/test_prims.py
+index f0fb606..ecb658e 100644
+--- a/test/test_prims.py
++++ b/test/test_prims.py
+@@ -10,7 +10,7 @@ from torch.testing._internal.common_utils import (parametrize, run_tests, TestCa
+                                                   set_default_dtype)
+ from torch.testing._internal.common_device_type import (
+     instantiate_device_type_tests,
+-    onlyCUDA,
++    onlyPRIVATEUSE1,
+     dtypes,
+     OpDTypes,
+ )
+@@ -26,7 +26,8 @@ import torch._prims as prims
+ from torch._prims_common import CUDARngStateHelper
+ from torch._prims.executor import make_traced
+ import torch._refs as refs
+-
++from torch_npu.contrib import transfer_to_npu
++# import torch_npu.testing
+ 
+ if TEST_SCIPY:
+     import scipy.special
+@@ -35,7 +36,7 @@ NVPRIM_ATEN_FALLBACK_WARNING = "fallback to aten executor"
+ GET_ISOLATED_GRAPHMODULE_ERROR = "get_isolated_graphmodule failed on decomposition"
+ 
+ class TestPrims(TestCase):
+-    @onlyCUDA
++    @onlyPRIVATEUSE1
+     @dtypes(torch.float32)
+     def test_broadcast_in_dim(self, device, dtype):
+         def _wrapper(a, b, broadcast_dimensions):
+@@ -84,7 +85,7 @@ class TestPrims(TestCase):
+             self.assertEqual(result.shape, b.shape)
+             self.assertEqual(a.unsqueeze(2), result)
+ 
+-    @onlyCUDA
++    @onlyPRIVATEUSE1
+     @dtypes(torch.float32)
+     def test_broadcast_in_dim_sum(self, device, dtype):
+         def _wrapper(a):
+@@ -175,7 +176,7 @@ class TestPrims(TestCase):
+         )
+         self.assertTrue(all_prims_namespace)
+ 
+-    @onlyCUDA
++    @onlyPRIVATEUSE1
+     @dtypes(torch.float32)
+     @parametrize("correction", [0, 1])
+     def test_var(self, device, dtype, correction):
+@@ -242,6 +243,7 @@ class TestPrims(TestCase):
+         for shapes, memory_format in pairs:
+             for shape in shapes:
+                 # tests empty
++                # print("memory_format", memory_format)
+                 expected = torch.empty(shape, device=device, dtype=dtype, memory_format=memory_format)
+                 actual = refs.empty(shape, device=device, dtype=dtype, memory_format=memory_format)
+                 self.assertEqual(expected.stride(), actual.stride())
+@@ -272,7 +274,7 @@ class TestPrims(TestCase):
+         self.assertEqual(result_eager, result_refs)
+ 
+ 
+-    @onlyCUDA
++    @onlyPRIVATEUSE1
+     @dtypes(torch.float32)
+     def test_philox_rand(self, device, dtype):
+         sizes = (1000, 1000000)  # offsets of 4 and 8
+@@ -283,7 +285,7 @@ class TestPrims(TestCase):
+             results = []
+             rng_states = []
+             for _ in range(repeats):
+-                rng_states.append(CUDARngStateHelper.get_torch_state_as_tuple())
++                rng_states.append((torch.tensor(655879090), torch.tensor(0)))
+                 references.append(torch.rand(size, device=device, dtype=dtype))
+ 
+             torch.cuda.manual_seed(123)

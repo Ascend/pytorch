@@ -1,0 +1,59 @@
+diff --git a/test/test_meta.py b/test/test_meta.py
+index 8a6e293..67ca6be 100644
+--- a/test/test_meta.py
++++ b/test/test_meta.py
+@@ -3,6 +3,9 @@
+ 
+ import itertools
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++# from torch_npu import testing
+ import os
+ import numpy as np
+ from enum import Enum
+@@ -1264,6 +1267,8 @@ class TestMeta(TestCase):
+     @suppress_warnings
+     @ops(itertools.chain(op_db, foreach_op_db))
+     def test_dispatch_meta_outplace(self, device, dtype, op):
++        torch.npu.init()
++        torch.npu.config.allow_internal_format = False
+         self._run_dispatch_meta_test(device, dtype, op, symbolic_meta=False, inplace=False)
+ 
+     @skipIfCrossRef
+@@ -1290,7 +1295,7 @@ class TestMeta(TestCase):
+     # only test one dtype, as output stride behavior is the same for all dtypes
+     @ops(itertools.chain(op_db, foreach_op_db), dtypes=OpDTypes.any_common_cpu_cuda_one)
+     # Only test on CUDA, as CUDA kernel's stride is the reference
+-    @onlyCUDA
++    # @onlyCUDA
+     def test_dispatch_symbolic_meta_outplace_all_strides(self, device, dtype, op):
+         self._run_dispatch_meta_test(device, dtype, op, symbolic_meta=True, inplace=False, all_stride_variants=True)
+ 
+@@ -1299,7 +1304,7 @@ class TestMeta(TestCase):
+     # only test one dtype, as output stride behavior is the same for all dtypes
+     @ops(itertools.chain(op_db, foreach_op_db), dtypes=OpDTypes.any_common_cpu_cuda_one)
+     # Only test on CUDA, as CUDA kernel's stride is the reference
+-    @onlyCUDA
++    # @onlyCUDA
+     def test_dispatch_symbolic_meta_inplace_all_strides(self, device, dtype, op):
+         self._run_dispatch_meta_test(device, dtype, op, symbolic_meta=True, inplace=True, all_stride_variants=True)
+ 
+@@ -1308,7 +1313,7 @@ class TestMeta(TestCase):
+     # only test one dtype, as output stride behavior is the same for all dtypes
+     @ops(binary_ufuncs, allowed_dtypes=(torch.float32,))
+     # Only test on CUDA, as CUDA kernel's stride is the reference
+-    @onlyCUDA
++    # @onlyCUDA
+     def test_binary_ufuncs_mixed_dtype(self, device, dtype, op):
+         make_arg = partial(
+             make_tensor,
+@@ -1691,7 +1696,7 @@ class TestMeta(TestCase):
+         self.assertEqual(grad_weight.to('meta'), meta_grad_weight)
+ 
+     # opinfo test is using aten.fill_, it's not testing aten.fill
+-    @onlyCUDA
++    # @onlyCUDA
+     def test_fill_stride(self):
+         to_meta = MetaConverter()
+         sample_args = [torch.rand(2, 2, 2, 2), 1.0]

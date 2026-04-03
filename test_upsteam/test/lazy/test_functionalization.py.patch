@@ -1,0 +1,12 @@
+diff --git a/test/lazy/test_functionalization.py b/test/lazy/test_functionalization.py
+index bcd21ff..f21d71d 100644
+--- a/test/lazy/test_functionalization.py
++++ b/test/lazy/test_functionalization.py
+@@ -1,5 +1,6 @@
+ # Owner(s): ["oncall: jit"]
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import re
+ 
+ import torch

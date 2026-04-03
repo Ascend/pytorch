@@ -1,0 +1,11 @@
+diff --git a/test/dynamo/test_cudagraphs_expandable_segments.py b/test/dynamo/test_cudagraphs_expandable_segments.py
+index fe8d23d..f26877c 100644
+--- a/test/dynamo/test_cudagraphs_expandable_segments.py
++++ b/test/dynamo/test_cudagraphs_expandable_segments.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: cuda"]
+ # run time cuda tests, but with the allocator using expandable segments
+ 

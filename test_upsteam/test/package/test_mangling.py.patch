@@ -1,0 +1,14 @@
+diff --git a/test/package/test_mangling.py b/test/package/test_mangling.py
+index 30477e8..63ceaaa 100644
+--- a/test/package/test_mangling.py
++++ b/test/package/test_mangling.py
+@@ -11,6 +11,9 @@ from torch.package._mangling import (
+ )
+ from torch.testing._internal.common_utils import run_tests
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ try:
+     from .common import PackageTestCase

@@ -1,0 +1,13 @@
+diff --git a/test/nn/test_parametrization.py b/test/nn/test_parametrization.py
+index cbc2a14..590afdf 100644
+--- a/test/nn/test_parametrization.py
++++ b/test/nn/test_parametrization.py
+@@ -4,6 +4,8 @@ from copy import deepcopy
+ from itertools import product
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn as nn
+ import torch.nn.functional as F
+ import torch.nn.init as init

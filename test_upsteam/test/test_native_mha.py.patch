@@ -1,0 +1,12 @@
+diff --git a/test/test_native_mha.py b/test/test_native_mha.py
+index 0e4489a..8a24532 100644
+--- a/test/test_native_mha.py
++++ b/test/test_native_mha.py
+@@ -1,4 +1,7 @@
+ # Owner(s): ["module: nn"]
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ import math
+ import copy
+ 

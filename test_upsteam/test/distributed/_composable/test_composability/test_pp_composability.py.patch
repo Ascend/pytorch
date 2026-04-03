@@ -1,0 +1,22 @@
+diff --git a/test/distributed/_composable/test_composability/test_pp_composability.py b/test/distributed/_composable/test_composability/test_pp_composability.py
+index d30d042..57d4f68 100644
+--- a/test/distributed/_composable/test_composability/test_pp_composability.py
++++ b/test/distributed/_composable/test_composability/test_pp_composability.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ import os
+ from typing import TYPE_CHECKING
+@@ -41,7 +46,7 @@ from torch.testing._internal.common_utils import (
+     skipIfRocm,
+ )
+ from torch.testing._internal.distributed.checkpoint_utils import with_temp_dir
+-
++TEST_MULTIGPU = True
+ 
+ if TYPE_CHECKING:
+     from torch.distributed.checkpoint.metadata import STATE_DICT_TYPE

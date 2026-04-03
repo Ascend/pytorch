@@ -1,0 +1,20 @@
+diff --git a/test/quantization/fx/test_model_report_fx.py b/test/quantization/fx/test_model_report_fx.py
+index 3b0ff7a..e54bff6 100644
+--- a/test/quantization/fx/test_model_report_fx.py
++++ b/test/quantization/fx/test_model_report_fx.py
+@@ -2,6 +2,15 @@
+ # ruff: noqa: F841
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
+ import torch.nn as nn
+ import torch.ao.quantization.quantize_fx as quantize_fx
+ import torch.nn.functional as F

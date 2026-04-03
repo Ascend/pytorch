@@ -1,0 +1,13 @@
+diff --git a/test/distributed/optim/test_named_optimizer.py b/test/distributed/optim/test_named_optimizer.py
+index 5900b29..483c038 100644
+--- a/test/distributed/optim/test_named_optimizer.py
++++ b/test/distributed/optim/test_named_optimizer.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ # Copyright (c) Meta Platforms, Inc. and affiliates.

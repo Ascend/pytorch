@@ -1,0 +1,28 @@
+diff --git a/test/test_indexing.py b/test/test_indexing.py
+index 1fbe397..4c677f4 100644
+--- a/test/test_indexing.py
++++ b/test/test_indexing.py
+@@ -1,4 +1,6 @@
+ # Owner(s): ["module: tests"]
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ import operator
+ import random
+@@ -187,9 +189,14 @@ class TestIndexing(TestCase):
+             # Creates the sequence in float since CPU half doesn't support the
+             # needed operations. Converts to dtype before returning.
+             numel = reduce(operator.mul, size, 1)
+-            sequence = torch.ones(numel, dtype=torch.float, device=device).cumsum(0)
++            # Keep historical behavior for half on all devices, since some
++            # backends may have limited half support for cumsum.
++            sequence_dtype = torch.float if dtype == torch.half else dtype
++            sequence = torch.ones(numel, dtype=sequence_dtype, device=device).cumsum(0)
+             sequence.add_(start - 1)
+-            return sequence.view(*size).to(dtype=dtype)
++            if sequence_dtype != dtype:
++                sequence = sequence.to(dtype=dtype)
++            return sequence.view(*size)
+ 
+         # pick a random valid indexer type
+         def ri(indices):

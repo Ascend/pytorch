@@ -1,0 +1,51 @@
+diff --git a/test/distributed/_composable/test_checkpoint.py b/test/distributed/_composable/test_checkpoint.py
+index f30f8c3..0cb3670 100644
+--- a/test/distributed/_composable/test_checkpoint.py
++++ b/test/distributed/_composable/test_checkpoint.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import unittest
+@@ -12,7 +17,7 @@ from torch.distributed._composable import checkpoint
+ from torch.testing._internal.common_cuda import TEST_CUDA
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ from torch.utils.checkpoint import CheckpointError
+-
++TEST_CUDA = True
+ 
+ class MemoryDelta(ContextDecorator):
+     def __init__(self, device: torch.device):
+@@ -23,7 +28,7 @@ class MemoryDelta(ContextDecorator):
+     def __enter__(self):
+         self.active_memory_enter = (
+             torch.cuda.memory_stats()["active_bytes.all.current"]
+-            if self.device.type == "cuda"
++            if self.device.type == "npu"
+             else 0
+         )
+         return self
+@@ -31,7 +36,7 @@ class MemoryDelta(ContextDecorator):
+     def __exit__(self, *exc):
+         self.active_memory_exit = (
+             torch.cuda.memory_stats()["active_bytes.all.current"]
+-            if self.device.type == "cuda"
++            if self.device.type == "npu"
+             else 0
+         )
+ 
+@@ -139,8 +144,8 @@ class TestCheckpoint(TestCase):
+ 
+     @unittest.skipIf(not TEST_CUDA, "no cuda")
+     def test_tensor_only_gpu(self):
+-        x = torch.randn(20, 100, device="cuda:0")
+-        net = ToyModel().to("cuda:0")
++        x = torch.randn(20, 100, device="npu:0")
++        net = ToyModel().to("npu:0")
+         self._test_tensor_only(net, x)
+ 
+     def test_random_cpu(self):

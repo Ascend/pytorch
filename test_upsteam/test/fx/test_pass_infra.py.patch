@@ -1,0 +1,11 @@
+diff --git a/test/fx/test_pass_infra.py b/test/fx/test_pass_infra.py
+index d0449b4..6501904 100644
+--- a/test/fx/test_pass_infra.py
++++ b/test/fx/test_pass_infra.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: fx"]
+ 
+ import torch

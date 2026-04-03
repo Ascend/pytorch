@@ -1,0 +1,14 @@
+diff --git a/test/test_ci_sanity_check_fail.py b/test/test_ci_sanity_check_fail.py
+index 895cf98..57b4117 100644
+--- a/test/test_ci_sanity_check_fail.py
++++ b/test/test_ci_sanity_check_fail.py
+@@ -5,6 +5,9 @@ import os
+ 
+ from torch.testing._internal.common_utils import run_tests, slowTest, TestCase
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ class TestCISanityCheck(TestCase):
+     def test_env_vars_exist(self):

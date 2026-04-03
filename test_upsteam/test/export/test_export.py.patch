@@ -1,0 +1,74 @@
+diff --git a/test/export/test_export.py b/test/export/test_export.py
+index c7e70ad..4c0aa5c 100755
+--- a/test/export/test_export.py
++++ b/test/export/test_export.py
+@@ -6559,7 +6559,7 @@ def forward(self, b_a_buffer, x):
+     @testing.expectedFailureCppRuntime
+     def test_export_associative_scan_symbol_dim(self):
+         dim1 = torch.export.Dim("dim0", min=5, max=15)
+-        xs = torch.ones(3, 10, 2, device=torch.device("cuda"))
++        xs = torch.ones(3, 10, 2, device=torch.device("npu"))
+ 
+         class Foo(torch.nn.Module):
+             def __init__(self) -> None:
+@@ -6578,7 +6578,7 @@ def forward(self, b_a_buffer, x):
+     @testing.expectedFailureCppRuntime
+     def test_export_associative_scan_symbol_scandim(self):
+         dim1 = torch.export.Dim("dim0", min=5, max=15)
+-        xs = torch.ones(3, 10, 2, device=torch.device("cuda"))
++        xs = torch.ones(3, 10, 2, device=torch.device("npu"))
+ 
+         class Foo(torch.nn.Module):
+             def __init__(self) -> None:
+@@ -6602,7 +6602,7 @@ def forward(self, b_a_buffer, x):
+             def __init__(self) -> None:
+                 super().__init__()
+                 self.buffer = torch.nn.Buffer(
+-                    torch.ones(3, 2, device=torch.device("cuda"))
++                    torch.ones(3, 2, device=torch.device("npu"))
+                 )
+ 
+             def combine_fn(self, x, y):
+@@ -6611,7 +6611,7 @@ def forward(self, b_a_buffer, x):
+             def forward(self, x):
+                 return associative_scan(self.combine_fn, x, 1, combine_mode="pointwise")
+ 
+-        inp = torch.ones(3, 10, 2, device=torch.device("cuda"))
++        inp = torch.ones(3, 10, 2, device=torch.device("npu"))
+         ep = export(M(), (inp,))
+         epm = ep.module()
+         self.assertTrue(torch.allclose(epm(inp), M()(inp)))
+@@ -7460,9 +7460,9 @@ graph():
+             model = Model()
+ 
+         # Manualy set the fake_device of fake tensors.
+-        x.fake_device = torch.device("cuda:0")
++        x.fake_device = torch.device("npu:0")
+         for n, p in model.named_parameters():
+-            p.fake_device = torch.device("cuda:0")
++            p.fake_device = torch.device("npu:0")
+ 
+         # Need to set all the requires_grad of tensors to False, because fake_tensor with CUDA device
+         # doesn't quite work well with aot_autograd right now due to some logic fails
+@@ -10230,7 +10230,7 @@ def forward(self, x, b_t, y):
+         class Model(torch.nn.Module):
+             def forward(self, x):
+                 with torch.autocast(
+-                    device_type="cuda", dtype=torch.int16, enabled=True
++                    device_type="npu", dtype=torch.int16, enabled=True
+                 ):
+                     y = x.sin().sum()
+                 with torch.autocast(
+@@ -12441,9 +12441,9 @@ class TestOneOffModelExportResult(TestCase):
+                 )
+                 return attn_output
+ 
+-        q = torch.randn(1, 16, 16, 64, dtype=torch.bfloat16, device="cuda")
+-        k = torch.randn(1, 16, 16, 64, dtype=torch.bfloat16, device="cuda")
+-        v = torch.randn(1, 16, 16, 64, dtype=torch.bfloat16, device="cuda")
++        q = torch.randn(1, 16, 16, 64, dtype=torch.bfloat16, device="npu")
++        k = torch.randn(1, 16, 16, 64, dtype=torch.bfloat16, device="npu")
++        v = torch.randn(1, 16, 16, 64, dtype=torch.bfloat16, device="npu")
+ 
+         ep = torch.export.export(
+             ScaledDotProductAttention(), (q, k, v)

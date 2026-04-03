@@ -1,0 +1,104 @@
+diff --git a/test/test_sparse.py b/test/test_sparse.py
+index 64d7ad9..c67d60c 100644
+--- a/test/test_sparse.py
++++ b/test/test_sparse.py
+@@ -2,6 +2,8 @@
+ # ruff: noqa: F841
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import itertools
+ import functools
+ import operator
+@@ -902,7 +904,7 @@ class TestSparse(TestSparseBase):
+         self.assertEqual(expected_grad.to_dense(), x2.grad.to('cuda:0').to_dense())
+         self.assertEqual(None, x1.grad)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     def test_cuda_empty(self, device):
+         def test_tensor(x):
+             y = x.to(device)
+@@ -1413,7 +1415,7 @@ class TestSparse(TestSparseBase):
+         ).transpose(1, 2)
+         self.assertEqual(ab, ab_traspose_check)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @coalescedonoff
+     @dtypes(torch.double)
+     @unittest.skipIf(
+@@ -1453,7 +1455,7 @@ class TestSparse(TestSparseBase):
+         test_shape(10, 10, 100, 0, 20)
+         test_shape(10, 10, 100, 0, 20)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @unittest.skipIf(
+         IS_WINDOWS and TEST_CUDA,
+         "bmm sparse-dense CUDA is not yet supported in Windows, at least up to CUDA 10.1"
+@@ -2627,7 +2629,7 @@ class TestSparse(TestSparseBase):
+ 
+         self.assertFalse(z._indices().numel() != 2 and z.is_coalesced())
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     def test_storage_not_null(self, device):
+         x = torch.sparse_coo_tensor((2,), dtype=torch.float32, device=device)
+         self.assertNotEqual(x.get_device(), -1)
+@@ -2635,7 +2637,7 @@ class TestSparse(TestSparseBase):
+         x = torch.sparse_coo_tensor((2, 0), dtype=torch.float32, device=device)
+         self.assertNotEqual(x.get_device(), -1)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @deviceCountAtLeast(2)
+     def test_same_gpu(self, devices):
+         def check_device(x, device_id):
+@@ -2670,14 +2672,14 @@ class TestSparse(TestSparseBase):
+         self.assertEqual(x1.get_device(), device)
+         self.assertEqual(x2.get_device(), device)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     def test_new_device_single_gpu(self):
+         self._test_new_device((), 0)
+         self._test_new_device((30, 20), 0)
+         self._test_new_device((30, 20, 10), 0)
+         self._test_new_device((30, 20, 10, 0), 0)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     @unittest.skipIf(not TEST_MULTIGPU, "only one GPU detected")
+     def test_new_device_multi_gpu(self):
+         self._test_new_device((), 1)
+@@ -2862,7 +2864,7 @@ class TestSparse(TestSparseBase):
+         t = torch.sparse_coo_tensor(torch.tensor(([0], [2])), torch.LongTensor(1, 0))
+         self.assertEqual(torch.int64, t.dtype)
+ 
+-    @onlyCUDA
++    # @onlyCUDA
+     def test_factory_device_type_inference(self, device):
+         # both indices/values are CUDA
+ 
+@@ -2986,7 +2988,8 @@ class TestSparse(TestSparseBase):
+         all_sparse_dtypes = all_types_and_complex_and(torch.half, torch.bool, torch.bfloat16)
+         do_test_dtypes(self, all_sparse_dtypes, torch.sparse_coo, torch.device('cpu'))
+         if torch.cuda.is_available():
+-            do_test_dtypes(self, all_sparse_dtypes, torch.sparse_coo, torch.device('cuda:0'))
++            # do_test_dtypes(self, all_sparse_dtypes, torch.sparse_coo, torch.device('cuda:0'))
++            do_test_dtypes(self, all_sparse_dtypes, torch.sparse_coo, torch.device('npu:0'))
+ 
+     def _test_empty_full(self, device, dtype, requires_grad):
+         shape = (2, 3)
+@@ -3027,7 +3030,8 @@ class TestSparse(TestSparseBase):
+         self._test_empty_full(device, dtype, requires_grad)
+         if torch.cuda.is_available():
+             self._test_empty_full(None, dtype, requires_grad)
+-            self._test_empty_full(torch.device('cuda:0'), dtype, requires_grad)
++            # self._test_empty_full(torch.device('cuda:0'), dtype, requires_grad)
++            self._test_empty_full(torch.device('npu:0'), dtype, requires_grad)
+ 
+     def test_is_sparse(self, device):
+         x = torch.randn(3, 3)

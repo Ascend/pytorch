@@ -1,0 +1,30 @@
+diff --git a/test/export/test_converter.py b/test/export/test_converter.py
+index 3db578c..52485bd 100644
+--- a/test/export/test_converter.py
++++ b/test/export/test_converter.py
+@@ -17,7 +17,7 @@ from torch.testing._internal.torchbind_impls import (
+ )
+ 
+ 
+-requires_cuda = unittest.skipUnless(torch.cuda.is_available(), "requires cuda")
++requires_npu = unittest.skipUnless(torch.npu.is_available(), "requires npu")
+ 
+ 
+ class TestConverter(TestCase):
+@@ -404,14 +404,14 @@ class TestConverter(TestCase):
+         inp = (torch.rand(3, 4),)
+         self._check_equal_ts_ep_converter(Module(), inp)
+ 
+-    @requires_cuda
++    @requires_npu
+     def test_prim_device_cuda(self):
+         class Module(torch.nn.Module):
+             def forward(self, x):
+                 device = x.device
+                 return torch.ones(2, 3, device=device)
+ 
+-        inp = (torch.rand((3, 4), device="cuda:0"),)
++        inp = (torch.rand((3, 4), device="npu:0"),)
+         self._check_equal_ts_ep_converter(Module(), inp)
+ 
+     def test_prim_dtype(self):

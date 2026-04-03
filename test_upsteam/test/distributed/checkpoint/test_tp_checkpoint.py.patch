@@ -1,0 +1,52 @@
+diff --git a/test/distributed/checkpoint/test_tp_checkpoint.py b/test/distributed/checkpoint/test_tp_checkpoint.py
+index 3f5bbce..d8281b7 100644
+--- a/test/distributed/checkpoint/test_tp_checkpoint.py
++++ b/test/distributed/checkpoint/test_tp_checkpoint.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ from copy import deepcopy
+@@ -19,9 +24,10 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorTestBase,
+     MLPModule,
+     skip_if_lt_x_gpu,
+-    with_comms,
++    # with_comms,
+ )
+ from torch.testing._internal.distributed.checkpoint_utils import with_temp_dir
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ class UnevenShardedModel(torch.nn.Module):
+@@ -47,7 +53,7 @@ class TestTpCheckpoint(DTensorTestBase):
+         tp_mesh = init_device_mesh(self.device_type, mesh_shpe)
+ 
+         # create model and move it to GPU with id rank
+-        model = MLPModule(self.device_type).cuda(self.rank)
++        model = MLPModule(self.device_type).npu(self.rank)
+         # Parallelize the module based on the given Parallel Style.
+         parallelize_plan = {
+             "net1": ColwiseParallel(),
+@@ -65,7 +71,7 @@ class TestTpCheckpoint(DTensorTestBase):
+ 
+         # Update the parameters so model.state_dict() will be different from original_state_dict.
+         torch.manual_seed(0)
+-        inp = torch.rand(20, 10).cuda(self.rank)
++        inp = torch.rand(20, 10).npu(self.rank)
+         output = model(inp)
+         output.sum().backward()
+         optimizer.step()
+@@ -94,7 +100,7 @@ class TestTpCheckpoint(DTensorTestBase):
+         tp_mesh = init_device_mesh(self.device_type, mesh_shpe)
+ 
+         # create model and move it to GPU with id rank
+-        model = UnevenShardedModel(self.device_type).cuda(self.rank)
++        model = UnevenShardedModel(self.device_type).npu(self.rank)
+         # Parallelize the module based on the given Parallel Style.
+         parallelize_plan = {
+             "net1": ColwiseParallel(),

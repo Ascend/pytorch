@@ -1,0 +1,13 @@
+diff --git a/test/distributed/_shard/sharded_tensor/ops/test_init.py b/test/distributed/_shard/sharded_tensor/ops/test_init.py
+index c33136f..166b42b 100644
+--- a/test/distributed/_shard/sharded_tensor/ops/test_init.py
++++ b/test/distributed/_shard/sharded_tensor/ops/test_init.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import sys
