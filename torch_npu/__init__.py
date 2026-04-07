@@ -201,6 +201,7 @@ def _apply_distributed_methods_patch():
     torch.distributed.launcher.api._get_addr_and_port = torch_npu.distributed.distributed_c10d._trigger__get_addr_and_port_decorator(torch.distributed.launcher.api._get_addr_and_port)
     torch._C._distributed_c10d.ProcessGroup._get_sequence_number_for_group = (
         torch_npu.distributed.distributed_c10d._hccl_get_sequence_number_for_group)
+    torch.distributed.nn.functional._AllGatherBase.backward = torch_npu.distributed.nn.functional._allgather_base_backward_hccl
 
 
 torch.utils.rename_privateuse1_backend("npu")
