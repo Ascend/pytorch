@@ -258,6 +258,7 @@ public:
         c10::DeviceIndex device,
         MempoolId_t mempool_id) = 0;
     virtual void releasePool(c10::DeviceIndex device, MempoolId_t mempool_id) = 0;
+    virtual bool hasCapturesUnderway(c10::DeviceIndex device) { return false; }
     virtual void FreeDeviceCachedMemory(int device) = 0;
     virtual std::string name() = 0;
     virtual bool checkPoolLiveAllocations(
@@ -448,6 +449,11 @@ inline void endAllocateToPool(c10::DeviceIndex device, MempoolId_t mempool_id)
 inline void releasePool(c10::DeviceIndex device, MempoolId_t mempool_id)
 {
     return get()->releasePool(device, mempool_id);
+}
+
+inline bool hasCapturesUnderway(c10::DeviceIndex device)
+{
+    return get()->hasCapturesUnderway(device);
 }
 
 inline std::shared_ptr<void> getIpcDevPtr(std::string handle)
