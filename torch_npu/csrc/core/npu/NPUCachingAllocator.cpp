@@ -2121,6 +2121,12 @@ public:
         TORCH_CHECK(false, "endAllocatePool: not currently recording to mempool_id");
     }
 
+    bool hasCapturesUnderway()
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return !captures_underway.empty();
+    }
+
     // Called by NPUGraph::reset
     void releasePool(MempoolId_t mempool_id)
     {
@@ -3504,6 +3510,12 @@ public:
     {
         assertValidDevice(device);
         device_allocator[device]->releasePool(std::move(mempool_id));
+    }
+
+    bool hasCapturesUnderway(c10::DeviceIndex device) override
+    {
+        assertValidDevice(device);
+        return device_allocator[device]->hasCapturesUnderway();
     }
 
     c10::DataPtr allocate(size_t size) override
