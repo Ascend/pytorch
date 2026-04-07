@@ -37,7 +37,7 @@ jobs:
     runs-on: linux-aarch64-a3-2
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
-      options: --user root --device /dev/davinci4 --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi -v /usr/local/Ascend/driver:/usr/local/Ascend/driver -v /usr/local/Ascend/firmware:/usr/local/Ascend/firmware
+      options: --user root
     outputs:
       shard_matrix: ${{ steps.set_matrix.outputs.shard_matrix }}
     steps:
@@ -63,7 +63,7 @@ jobs:
     runs-on: linux-aarch64-a3-2
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
-      options: --user root --device /dev/davinci4 --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi -v /usr/local/Ascend/driver:/usr/local/Ascend/driver -v /usr/local/Ascend/firmware:/usr/local/Ascend/firmware
+      options: --user root
     strategy:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.shard_matrix) }}
