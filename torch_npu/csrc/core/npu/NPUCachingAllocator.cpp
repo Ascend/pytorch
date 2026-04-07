@@ -107,6 +107,8 @@ const std::string kMinDriverVersion = "25.0.RC1";     // minimum driver version 
 const std::string kCannModule = "CANN";               // cann module name
 constexpr int kPrecision = 4;                         // precision of the memory usage information
 constexpr size_t kLazyQuerySize = 512;                // lazy query event size
+// need check error for emptyCache, default is true, set false when check_uce_in_memory()
+thread_local bool need_check_error = true;
 
 static char SHAREABLE_HANDLE_VERSION = 1;
 enum ShareableHandleType : char {
@@ -579,7 +581,7 @@ private:
         // Locking order must be GIL -> Allocator Lock
         {
             c10_npu::NPUGuard device_guard(device_);
-            c10_npu::npuSynchronizeDevice(true);
+            c10_npu::npuSynchronizeDevice(need_check_error);
         }
 #ifndef BUILD_LIBTORCH
         const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
@@ -1609,12 +1611,18 @@ public:
     /* * returns cached blocks to the system allocator * */
     void emptyCache(int device, bool check_error, bool free_physical)
     {
+        TORCH_NPU_MEMORY_LOGI("emptyCache: device=%d, check_error=%d, free_physical=%d", device, check_error, free_physical);
+        // when exec emptyCache in torch_npu.npu.check_uce_in_memory(), check_error is false
+        bool prev_need_check_error = need_check_error;
+        need_check_error = check_error;
         std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
         // Make sure event deque from taskqueue, then synchronize Event
-        c10_npu::npuSynchronizeDevice(check_error);
+        c10_npu::npuSynchronizeDevice(need_check_error);
         std::lock_guard<std::recursive_mutex> lock(mutex);
-        c10_npu::NPUWorkspaceAllocator::emptyCache(device, check_error);
+        c10_npu::NPUWorkspaceAllocator::emptyCache(device, need_check_error);
         release_cached_blocks(check_error, context, free_physical);
+        need_check_error = prev_need_check_error;
+        TORCH_NPU_MEMORY_LOGI("emptyCache success, device=%d.", device);
     }
 
     void buildServerMemMapForHccl(std::shared_ptr<c10d_npu::HCCLComm> hcclComm)
@@ -2115,6 +2123,12 @@ public:
             }
         }
         TORCH_CHECK(false, "endAllocatePool: not currently recording to mempool_id");
+    }
+
+    bool hasCapturesUnderway()
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return !captures_underway.empty();
     }
 
     // Called by NPUGraph::reset
@@ -3500,6 +3514,12 @@ public:
     {
         assertValidDevice(device);
         device_allocator[device]->releasePool(std::move(mempool_id));
+    }
+
+    bool hasCapturesUnderway(c10::DeviceIndex device) override
+    {
+        assertValidDevice(device);
+        return device_allocator[device]->hasCapturesUnderway();
     }
 
     c10::DataPtr allocate(size_t size) override
