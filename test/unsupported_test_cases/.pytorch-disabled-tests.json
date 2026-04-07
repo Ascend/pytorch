@@ -31619,5 +31619,6 @@
   "test_module_backcompat (__main__.TestNN)": ["", [""]],
   "test_register_state_dict_pre_hook_backward_compat (__main__.TestNN)": ["", [""]],
   "test_softmax_forward_64bit_indexing_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
-  "test_upsampling_bfloat16 (__main__.TestNN)": ["", [""]]
+  "test_upsampling_bfloat16 (__main__.TestNN)": ["", [""]],
+  "test_grad_with_v_schedule (__main__.TestScheduleLowering)": ["", [""]]
 }
