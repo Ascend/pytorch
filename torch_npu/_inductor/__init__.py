@@ -69,6 +69,7 @@ else:
         _register_npu_inductor_flex_attention,
         _validate_device,
     )
+    from .cpp_builder import patch_get_optimization_cflags
     from torch.nn.attention import flex_attention
     flex_attention._validate_device = _validate_device
 
@@ -203,6 +204,7 @@ else:
     disable_foreach()
     patch_get_first_incompatible_cudagraph_node()
     patch_device_override_func()
+    patch_get_optimization_cflags()
 
 
     def add_additional_op():
