@@ -1,0 +1,259 @@
+name: PyTorch NPU Full Test (v2.7.1)
+
+on:
+  push:
+    paths:
+      - '.github/workflows/npu-full-test.yml'
+      - '.github/scripts/run_npu_test_shard.py'
+      - 'test_upsteam/**'
+  pull_request:
+    paths:
+      - '.github/workflows/npu-full-test.yml'
+      - '.github/scripts/run_npu_test_shard.py'
+      - 'test_upsteam/**'
+  schedule:
+    - cron: '0 22 * * 1'  # UTC 22:00 (Beijing time next day 06:00), every Monday
+  workflow_dispatch:
+    inputs:
+      shard_start:
+        description: 'Start shard number (default 1)'
+        required: false
+        default: '1'
+        type: string
+      shard_end:
+        description: 'End shard number (default 3)'
+        required: false
+        default: '3'
+        type: string
+
+env:
+  PYTHON_VERSION: '3.11'
+  PYTORCH_VERSION: '2.7.1'
+  TORCH_NPU_WHL: 'https://gitcode.com/Ascend/pytorch/releases/download/v7.3.1-pytorch2.7.1/torch_npu-2.7.1.post3-cp311-cp311-manylinux_2_28_aarch64.whl'
+  NUM_SHARDS: '100'  # 100 shards, each shard ~1% of tests
+
+jobs:
+  prepare:
+    runs-on: [self-hosted, npu-910b]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root --device /dev/davinci4 --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi -v /usr/local/Ascend/driver:/usr/local/Ascend/driver -v /usr/local/Ascend/firmware:/usr/local/Ascend/firmware
+    outputs:
+      shard_matrix: ${{ steps.set_matrix.outputs.shard_matrix }}
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set shard matrix
+        id: set_matrix
+        run: |
+          # Get shard range from inputs or use defaults
+          SHARD_START=${{ inputs.shard_start || '1' }}
+          SHARD_END=${{ inputs.shard_end || '3' }}
+
+          # Build shard matrix JSON
+          SHARDS=$(seq $SHARD_START $SHARD_END | tr '\n' ',' | sed 's/,$//')
+          echo "shard_matrix=[${SHARDS}]" >> $GITHUB_OUTPUT
+          echo "Running shards: $SHARD_START to $SHARD_END"
+
+  test:
+    needs: prepare
+    runs-on: [self-hosted, npu-910b]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root --device /dev/davinci4 --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi -v /usr/local/Ascend/driver:/usr/local/Ascend/driver -v /usr/local/Ascend/firmware:/usr/local/Ascend/firmware
+    strategy:
+      matrix:
+        shard: ${{ fromJson(needs.prepare.outputs.shard_matrix) }}
+      fail-fast: false
+      max-parallel: 1  # Serial execution to avoid NPU device contention
+
+    steps:
+      - name: Checkout current repository (for patches)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: ascend_pytorch
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+          chmod -R 777 /github/home/.cache
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/pip
+          key: pip-arm-fulltest-py${{ env.PYTHON_VERSION }}-v${{ env.PYTORCH_VERSION }}-shard${{ matrix.shard }}
+          restore-keys: |
+            pip-arm-fulltest-py${{ env.PYTHON_VERSION }}-
+
+      - name: Uninstall pre-installed torch/torchvision
+        run: |
+          pip${{ env.PYTHON_VERSION }} uninstall -y torch torchvision || true
+          echo "Pre-installed torch/torchvision uninstalled"
+
+      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu
+        run: |
+          # Set CANN environment variables (torch_npu depends on CANN libraries)
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PIP=pip${{ env.PYTHON_VERSION }}
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          $PIP install --upgrade pip
+          $PIP install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+          $PIP install ${{ env.TORCH_NPU_WHL }}
+
+          echo "PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu installed"
+
+      - name: Clone PyTorch v${{ env.PYTORCH_VERSION }} (for test source)
+        run: |
+          git clone --depth=1 --branch v${{ env.PYTORCH_VERSION }} \
+            https://github.com/pytorch/pytorch.git pytorch-test-src
+
+      - name: Copy test_upsteam patches
+        run: |
+          cp -r ascend_pytorch/test_upsteam pytorch-test-src/
+
+      - name: Apply NPU patches
+        id: apply_patches
+        run: |
+          cd pytorch-test-src/test_upsteam
+          chmod +x apply_patch.sh
+          ./apply_patch.sh 2>&1 | tee /tmp/patch.log
+          PATCH_COUNT=$(grep -c "成功" /tmp/patch.log || echo "0")
+          echo "patch_count=${PATCH_COUNT}" >> $GITHUB_OUTPUT
+
+      - name: Verify NPU availability
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          $PYTHON -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          if torch.npu.is_available():
+              print(f'NPU name: {torch.npu.get_device_name(0)}')
+          "
+
+      - name: Install test dependencies
+        run: |
+          PIP=pip${{ env.PYTHON_VERSION }}
+          cd pytorch-test-src
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis
+          $PIP install -r requirements.txt 2>/dev/null || true
+
+      - name: Run shard ${{ matrix.shard }}/${{ env.NUM_SHARDS }}
+        id: run_test
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          REPORT_DIR=test-reports
+
+          mkdir -p ${REPORT_DIR}
+
+          # Script is in ascend_pytorch repository, tests in pytorch-test-src
+          $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
+            --shard ${{ matrix.shard }} \
+            --num-shards ${NUM_SHARDS} \
+            --test-dir pytorch-test-src/test \
+            --disabled-testcases pytorch-test-src/test_upsteam/disabled_testcases.json \
+            --report-dir ${REPORT_DIR} \
+            --timeout 600 \
+            2>&1 | tee /tmp/test_shard_${{ matrix.shard }}.log
+
+          echo "status=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-shard-${{ matrix.shard }}
+          path: test-reports/
+          retention-days: 30
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-shard-${{ matrix.shard }}
+          path: |
+            /tmp/patch.log
+            /tmp/test_shard_${{ matrix.shard }}.log
+          if-no-files-found: warn
+
+      - name: Summary
+        if: always()
+        run: |
+          # Extract torch_npu version from environment variable
+          TORCH_NPU_VER=$(basename "${{ env.TORCH_NPU_WHL }}")
+          PYTORCH_VER="v${{ env.PYTORCH_VERSION }}"
+
+          # Read test statistics
+          STATS_FILE="test-reports/shard_${{ matrix.shard }}_stats.json"
+          echo "Looking for stats file: $STATS_FILE"
+          ls -la test-reports/ 2>/dev/null || echo "test-reports directory not found"
+
+          if [ -f "$STATS_FILE" ]; then
+            echo "Stats file found, reading..."
+            TOTAL=$(python3 -c "import json; print(json.load(open('$STATS_FILE')).get('total', 0))")
+            PASSED=$(python3 -c "import json; print(json.load(open('$STATS_FILE')).get('passed', 0))")
+            FAILED=$(python3 -c "import json; print(json.load(open('$STATS_FILE')).get('failed', 0))")
+            SKIPPED=$(python3 -c "import json; print(json.load(open('$STATS_FILE')).get('skipped', 0))")
+            ERRORS=$(python3 -c "import json; print(json.load(open('$STATS_FILE')).get('errors', 0))")
+            DURATION=$(python3 -c "print(f\"{json.load(open('$STATS_FILE')).get('duration', 0):.1f}\")")
+          else
+            echo "Stats file not found, using defaults"
+            TOTAL=0
+            PASSED=0
+            FAILED=0
+            SKIPPED=0
+            ERRORS=0
+            DURATION="0.0"
+          fi
+
+          echo "Test stats: Total=$TOTAL, Passed=$PASSED, Failed=$FAILED, Skipped=$SKIPPED, Errors=$ERRORS"
+
+          # Determine overall status
+          if [ "$FAILED" -eq 0 ] && [ "$ERRORS" -eq 0 ] && [ "$TOTAL" -gt 0 ]; then
+            STATUS="PASSED"
+          elif [ "$TOTAL" -eq 0 ]; then
+            STATUS="NO TESTS"
+          else
+            STATUS="FAILED"
+          fi
+
+          # Write Summary
+          echo "## PyTorch NPU Full Test - Shard ${{ matrix.shard }}/${{ env.NUM_SHARDS }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| PyTorch | \`${PYTORCH_VER}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| torch_npu | \`${TORCH_NPU_VER}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Patches applied | ${{ steps.apply_patches.outputs.patch_count || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Shard | ${{ matrix.shard }} / ${{ env.NUM_SHARDS }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total | ${TOTAL} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Passed | ${PASSED} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Failed | ${FAILED} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Skipped | ${SKIPPED} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Errors | ${ERRORS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Duration | ${DURATION}s |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Result**: ${STATUS}" >> $GITHUB_STEP_SUMMARY
