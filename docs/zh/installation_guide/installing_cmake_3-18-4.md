@@ -1,18 +1,18 @@
-# 安装3.18.0版本cmake
+# 安装3.18.4版本cmake
 
 以下步骤请在**root**用户下执行。
 
 1. 在服务器任意目录下（如“/home”），执行如下命令获取cmake软件包。
 
     ```bash
-    wget https://cmake.org/files/v3.18/cmake-3.18.0.tar.gz
+    wget https://cmake.org/files/v3.18/cmake-3.18.4.tar.gz
     ```
 
 2. 解压并进入软件包目录。
 
     ```bash
-    tar -xf cmake-3.18.0.tar.gz
-    cd cmake-3.18.0/
+    tar -xf cmake-3.18.4.tar.gz
+    cd cmake-3.18.4/
     ```
 
 3. 执行配置、编译和安装命令。
@@ -42,4 +42,4 @@
     cmake --version
     ```
 
-    如打印“cmake version 3.18.0”则表示安装成功。
+    如打印“cmake version 3.18.4”则表示安装成功。

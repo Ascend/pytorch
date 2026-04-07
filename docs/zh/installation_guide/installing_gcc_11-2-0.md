@@ -8,7 +8,7 @@
     wget https://repo.huaweicloud.com/gnu/gcc/gcc-11.2.0/gcc-11.2.0.tar.gz
     ```
 
-    若该命令报错，用户可单击[Link](https://repo.huaweicloud.com/gnu/gcc/gcc-11.2.0/gcc-11.2.0.tar.gz)手动下载并上传源码包。
+    若该命令报错，用户可单击[gcc源码包](https://repo.huaweicloud.com/gnu/gcc/gcc-11.2.0/gcc-11.2.0.tar.gz)手动下载并上传。
 
 2. 安装gcc时会占用大量临时空间，可先执行以下命令清空/tmp目录：
 
@@ -76,6 +76,7 @@
         ```
 
         > [!NOTE]  
+        >
         > - 编译耗时1小时左右，请用户耐心等待。
         > - 其中“--prefix”参数用于指定gcc11.2.0安装路径，用户可自行配置，但注意不要配置为“/usr/local”及“/usr”，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/gcc11.2.0”。
 
@@ -98,7 +99,7 @@
     gcc (GCC) 11.2.0
     ```
 
-> [!NOTICE]<br>
+> [!NOTICE]  
 > 如果用户明确需要gcc 11.2.0编译，且由于用户编译脚本等问题，无法通过环境变量控制gcc版本时，可执行如下操作，修改软链接。
 >
 > 1. 备份旧版本软链接。

@@ -6,12 +6,10 @@
 
 |组件|地址|
 |:---|:---|
-|Ascend Extension for PyTorch|v2.6.0分支请参见《[安全声明](https://gitcode.com/lyx324521/pytorch/blob/v2.6.0/SECURITYNOTE.md)》。|
-|Ascend Extension for PyTorch|v2.7.1分支请参考《[安全声明](https://gitcode.com/lyx324521/pytorch/blob/v2.7.1/docs/zh/SECURITYNOTE.md)》。|
-|Ascend Extension for PyTorch|v2.8.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.8.0/SECURITYNOTE.md)》。|
-|Ascend Extension for PyTorch|v2.9.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.9.0/SECURITYNOTE.md)》。|
-|OpPlugin|请参考《[安全声明](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/SECURITYNOTE.md)》。|
-|Driving SDK|请参考《[安全声明](https://gitcode.com/Ascend/DrivingSDK/blob/master/docs/zh/security/SECURITYNOTE.md)》。|
-|TorchAir|请参考《[安全声明](https://gitcode.com/Ascend/torchair/blob/master/SECURITY_README.md)》。|
+|Ascend Extension for PyTorch|v2.7.1分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/SECURITYNOTE.md)》。|
+|Ascend Extension for PyTorch|v2.8.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.8.0-26.0.0/SECURITYNOTE.md)》。|
+|Ascend Extension for PyTorch|v2.9.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.9.0-26.0.0/SECURITYNOTE.md)》。|
+|scend Extension for PyTorch|v2.10.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.10.0-26.0.0/SECURITYNOTE.md)》。|
+|OpPlugin|请参考《[安全声明](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/zh/SECURITYNOTE.md)》。|
+|TorchAir|请参考《[安全声明](https://gitcode.com/Ascend/torchair/blob/26.0.0/SECURITY_README.md)》。|
 |Ascend Extension for TensorPipe|请参考《[安全声明](https://gitcode.com/Ascend/Tensorpipe/blob/master/docs/zh/SECURITYNOTE.md)》。|
-|openMind|请参考《[安全声明](https://gitcode.com/Ascend/openmind/blob/master/security_statement.md)》。|
