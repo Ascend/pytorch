@@ -74,8 +74,6 @@ from torch.utils._sympy.value_ranges import bound_sympy, ValueRanges
 from torch._inductor.bounds import ValueRangeAnalysis
 from torch._inductor.runtime import triton_heuristics
 
-from torch_npu.npu._backends import get_soc_version
-
 from .. import config as inductor_npu_config
 
 from .kernel_analysis import IndexAnalysis, ReductionAnalysis
@@ -417,7 +415,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
 
         dtype_cast_str = ""
-        if V.kernel.index_dtype == "tl.int64" and get_soc_version() >= 250:
+        if V.kernel.index_dtype == "tl.int64" and inductor_npu_config.is_ascend950:
             dtype_cast_str = ".to(tl.int64)"
 
         if self.is_split_axis:
@@ -2063,7 +2061,7 @@ class NPUIndexTritonKernel(TritonKernel):
         if isinstance(index, sympy.Integer):
             expand_str = f"{copy_shape}.shape" if copy_shape else self.dense_size_str()
             if (index != 0):
-                if get_soc_version() >= 250:
+                if inductor_npu_config.is_ascend950:
                     index_str = f"tl.full({expand_str}, {index_str}, {V.kernel.index_dtype})"
                 else:
                     index_str = f"tl.full({expand_str}, {index_str}, tl.int32)"

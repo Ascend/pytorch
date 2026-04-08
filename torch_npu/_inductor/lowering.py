@@ -66,13 +66,12 @@ from torch._inductor.lowering import (unsqueeze as unsqueeze_pt, index_put_as_ma
 from torch._inductor.virtualized import V, ops
 from torch._inductor import scheduler
 from torch._inductor.scheduler import Scheduler
-from ..npu._backends import get_soc_version
 from .. import npu_dtype_cast, _npu_dtype_cast
 from . import ir as npu_ir
 from .codegen.triton_utils import NPUKernelType
 from .ir import IndexputTemplate, ScatterTemplate
 from .lowering_override_list import LOWERING_OVERRIDE_OP
-from .config import inductor_indirect_memory_mode, lowering_cat_with_concat_kernel, log, Ascend910_9391
+from .config import inductor_indirect_memory_mode, lowering_cat_with_concat_kernel, log, is_ascend950
 
 from .lowering_fallback_list import FALLBACK_LIST, NPU_EXTRA_FALLBACK_LIST
 
@@ -267,7 +266,7 @@ def _register_npu_inductor_fallbacks():
     def cumsum(x, axis=None, dtype=None):
         if (is_integer_dtype(x.get_dtype()) or is_boolean_dtype(x.get_dtype())) and dtype is None:
             # torch.int64->torch.int32
-            dtype = torch.int64 if get_soc_version() >= 250 else torch.int32
+            dtype = torch.int64 if is_ascend950 else torch.int32
         if len(x.get_size()) == 0:
             if axis not in [0, -1]:
                 raise ValueError("axis must be 0 or -1")
@@ -974,7 +973,7 @@ def _register_npu_inductor_fallbacks():
         eps=1e-5
     ):
         # Performance consideration: fallback for bfloat16 and float16
-        if get_soc_version() >= 250 and \
+        if is_ascend950 and \
             (x.dtype == torch.bfloat16 or x.dtype == torch.float16):
             return fallback_handler(aten.native_layer_norm.default)(x, normalized_shape, weight, bias, eps)
         # Validate input
