@@ -204,3 +204,6 @@ torch_npu/csrc/aten/python_custom_functions.cpp
 torch_npu/_op_plugin_docs.py
 
 .codemate
+.claude/settings.local.json
+_gh_run_24081056661_shard3/
+.claude/

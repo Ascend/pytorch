@@ -13,9 +13,11 @@ import json
 import os
 import subprocess
 import sys
+import traceback
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
+from time import monotonic
 from typing import List, Set, Dict
 
 
@@ -42,7 +44,7 @@ def load_disabled_testcases(json_file: str) -> Set[str]:
     """加载 disabled_testcases.json 中的禁用测试用例"""
     disabled = set()
     if json_file and os.path.exists(json_file):
-        with open(json_file) as f:
+        with open(json_file, encoding='utf-8') as f:
             data = json.load(f)
             # JSON 格式: {"test_name": ["reason", ["issues"]], ...}
             disabled = set(data.keys())
@@ -120,9 +122,82 @@ def parse_junit_xml(xml_file: str) -> Dict:
     return stats
 
 
+def create_empty_stats() -> Dict:
+    """创建空的测试统计信息"""
+    return {
+        'total': 0,
+        'passed': 0,
+        'failed': 0,
+        'skipped': 0,
+        'errors': 0,
+        'duration': 0.0
+    }
+
+
+def finalize_stats(
+    xml_report: str,
+    returncode: int,
+    fallback_duration: float = 0.0,
+    error_message: str = '',
+    timed_out: bool = False,
+) -> Dict:
+    """解析 XML 并补齐兜底统计字段"""
+    stats = parse_junit_xml(xml_report)
+    if not stats:
+        stats = create_empty_stats()
+
+    if timed_out and fallback_duration > 0:
+        stats['duration'] = max(stats.get('duration', 0.0), fallback_duration)
+    elif stats.get('duration', 0.0) <= 0 and fallback_duration > 0:
+        stats['duration'] = fallback_duration
+
+    if timed_out:
+        stats['errors'] = max(stats.get('errors', 0), 1)
+        stats['timed_out'] = True
+
+    if error_message:
+        stats['error_message'] = error_message
+
+    stats['returncode'] = returncode
+    return stats
+
+
+def print_stats_summary(shard: int, stats: Dict) -> None:
+    """输出测试统计信息"""
+    print(f"\n{'='*60}")
+    print(f"Test Results for Shard {shard}")
+    print(f"{'='*60}")
+    print(f"Total:  {stats['total']}")
+    print(f"Passed: {stats['passed']}")
+    print(f"Failed: {stats['failed']}")
+    print(f"Skipped: {stats['skipped']}")
+    print(f"Errors: {stats['errors']}")
+    print(f"Duration: {stats['duration']:.2f}s")
+    print(f"{'='*60}")
+
+
+def save_stats_file(report_dir: str, shard: int, stats: Dict) -> str:
+    """保存测试统计到 JSON 文件"""
+    os.makedirs(report_dir, exist_ok=True)
+    stats_file = os.path.join(report_dir, f'shard_{shard}_stats.json')
+    with open(stats_file, 'w', encoding='utf-8') as f:
+        json.dump(stats, f, indent=2)
+    return stats_file
+
+
+def format_subprocess_output(output) -> str:
+    """将 subprocess 输出统一转换为字符串"""
+    if not output:
+        return ''
+    if isinstance(output, bytes):
+        return output.decode('utf-8', errors='replace')
+    return str(output)
+
+
 def run_pytest(
     test_files: List[str],
     test_dir: str,
+    disabled_testcases_file: str,
     report_dir: str,
     shard: int,
     timeout: int,
@@ -136,6 +211,7 @@ def run_pytest(
 
     xml_report = os.path.join(report_dir, f'junit_shard_{shard}.xml')
     log_file = os.path.join(report_dir, f'test_shard_{shard}.log')
+    overall_timeout = 7200
 
     # 构建 pytest 命令
     cmd = [
@@ -145,6 +221,7 @@ def run_pytest(
         '--tb=short',
         f'--timeout={timeout}',
         '-p', 'no:xdist',  # 禁用 xdist（单进程）
+        '-p', 'pytest_disabled_testcases_plugin',
         '--durations=50',
     ]
 
@@ -175,60 +252,92 @@ def run_pytest(
     # 获取已安装 torch 的路径，确保优先级最高
     import torch
     torch_path = Path(torch.__file__).parent.parent  # torch 包的父目录 (site-packages)
+    script_dir = Path(__file__).resolve().parent
 
     # 构建 PYTHONPATH：
     # - 已安装的 torch 路径放在最前面
     # - test 目录（用于测试工具模块如 common_utils）
+    # - 脚本目录（用于 pytest plugin）
     # - 不包含源码 torch/ 目录
     existing_pythonpath = env.get('PYTHONPATH', '')
 
-    # 优先级：已安装 torch > test 目录 > 现有 PYTHONPATH
-    new_pythonpath = str(torch_path)
-    new_pythonpath += f":{str(test_dir_path)}"
+    # 优先级：已安装 torch > test 目录 > 脚本目录 > 现有 PYTHONPATH
+    pythonpath_parts = [str(torch_path), str(test_dir_path), str(script_dir)]
     if existing_pythonpath:
-        new_pythonpath += f":{existing_pythonpath}"
+        pythonpath_parts.append(existing_pythonpath)
 
-    env['PYTHONPATH'] = new_pythonpath
+    env['PYTHONPATH'] = os.pathsep.join(pythonpath_parts)
     env['PYTORCH_TEST_NPU'] = '1'
     env['TORCH_DEVICE_BACKEND_AUTOLOAD'] = '1'  # 允许加载 torch_npu backend
+    if disabled_testcases_file:
+        env['NPU_DISABLED_TESTCASES_JSON'] = os.path.abspath(disabled_testcases_file)
 
     print(f"PYTHONPATH priority: {torch_path} (installed torch)")
 
-    with open(log_file, 'w') as log:
+    with open(log_file, 'w', encoding='utf-8') as log:
         log.write(f"Test execution started at {datetime.now()}\n")
         log.write(f"Test files: {len(test_files)}\n\n")
         log.flush()
 
-        result = subprocess.run(
-            cmd,
-            cwd=test_dir,  # 工作目录设为 test 目录
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            timeout=7200  # 整体超时 2 小时
-        )
+        start_time = monotonic()
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=test_dir,  # 工作目录设为 test 目录
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=overall_timeout
+            )
+            log.write(result.stdout)
+            print(result.stdout[-5000:] if len(result.stdout) > 5000 else result.stdout)
 
-        log.write(result.stdout)
+            stats = finalize_stats(
+                xml_report,
+                returncode=result.returncode,
+                fallback_duration=monotonic() - start_time
+            )
+        except subprocess.TimeoutExpired as e:
+            partial_output = format_subprocess_output(e.stdout)
+            if partial_output:
+                log.write(partial_output)
+                if not partial_output.endswith('\n'):
+                    log.write('\n')
 
-    print(result.stdout[-5000:] if len(result.stdout) > 5000 else result.stdout)
+            timeout_message = (
+                f"Shard {shard} exceeded overall timeout of {overall_timeout} seconds"
+            )
+            log.write(f"\n{timeout_message}\n")
+            print(timeout_message)
+            if partial_output:
+                print(partial_output[-5000:] if len(partial_output) > 5000 else partial_output)
 
-    # 解析测试结果
-    stats = parse_junit_xml(xml_report)
-    stats['returncode'] = result.returncode
+            stats = finalize_stats(
+                xml_report,
+                returncode=124,
+                fallback_duration=monotonic() - start_time,
+                error_message=timeout_message,
+                timed_out=True,
+            )
+        except Exception as e:
+            error_trace = traceback.format_exc()
+            log.write("\nUnexpected error while running pytest:\n")
+            log.write(error_trace)
 
-    # 输出统计信息
-    print(f"\n{'='*60}")
-    print(f"Test Results for Shard {shard}")
-    print(f"{'='*60}")
-    print(f"Total:  {stats['total']}")
-    print(f"Passed: {stats['passed']}")
-    print(f"Failed: {stats['failed']}")
-    print(f"Skipped: {stats['skipped']}")
-    print(f"Errors: {stats['errors']}")
-    print(f"Duration: {stats['duration']:.2f}s")
-    print(f"{'='*60}")
+            error_message = f"Unexpected error while running pytest: {e}"
+            print(error_message)
+            print(error_trace[-5000:] if len(error_trace) > 5000 else error_trace)
 
+            stats = finalize_stats(
+                xml_report,
+                returncode=1,
+                fallback_duration=monotonic() - start_time,
+                error_message=error_message,
+            )
+            stats['errors'] = max(stats.get('errors', 0), 1)
+
+    print_stats_summary(shard, stats)
     return stats
 
 
@@ -243,56 +352,63 @@ def main():
     print(f"Disabled testcases: {args.disabled_testcases}")
     print(f"{'='*60}\n")
 
-    # Step 1: 加载禁用测试用例
-    disabled = load_disabled_testcases(args.disabled_testcases)
+    try:
+        # Step 1: 加载禁用测试用例
+        disabled = load_disabled_testcases(args.disabled_testcases)
 
-    # Step 2: 发现测试文件
-    all_test_files = discover_test_files(args.test_dir)
-    print(f"Discovered {len(all_test_files)} test files")
+        # Step 2: 发现测试文件
+        all_test_files = discover_test_files(args.test_dir)
+        print(f"Discovered {len(all_test_files)} test files")
 
-    # Step 3: 分片
-    sharded_tests = shard_tests(all_test_files, args.shard, args.num_shards)
-    print(f"Shard {args.shard} contains {len(sharded_tests)} test files")
+        # Step 3: 分片
+        sharded_tests = shard_tests(all_test_files, args.shard, args.num_shards)
+        print(f"Shard {args.shard} contains {len(sharded_tests)} test files")
 
-    if not sharded_tests:
-        print("No tests to run for this shard")
-        # 输出空结果
-        stats = {'total': 0, 'passed': 0, 'failed': 0, 'skipped': 0, 'errors': 0, 'duration': 0.0, 'returncode': 0}
-        stats_file = os.path.join(args.report_dir, f'shard_{args.shard}_stats.json')
+        if not sharded_tests:
+            print("No tests to run for this shard")
+            # 输出空结果
+            stats = create_empty_stats()
+            stats['returncode'] = 0
+            save_stats_file(args.report_dir, args.shard, stats)
+            return 0
+
+        # Step 4: 保存分片信息
+        info = {
+            'shard': args.shard,
+            'num_shards': args.num_shards,
+            'total_files': len(all_test_files),
+            'shard_files': len(sharded_tests),
+            'disabled_count': len(disabled),
+            'timestamp': datetime.now().isoformat()
+        }
+        info_file = os.path.join(args.report_dir, f'shard_{args.shard}_info.json')
         os.makedirs(args.report_dir, exist_ok=True)
-        with open(stats_file, 'w') as f:
-            json.dump(stats, f, indent=2)
-        return 0
+        with open(info_file, 'w', encoding='utf-8') as f:
+            json.dump(info, f, indent=2)
 
-    # Step 4: 保存分片信息
-    info = {
-        'shard': args.shard,
-        'num_shards': args.num_shards,
-        'total_files': len(all_test_files),
-        'shard_files': len(sharded_tests),
-        'disabled_count': len(disabled),
-        'timestamp': datetime.now().isoformat()
-    }
-    info_file = os.path.join(args.report_dir, f'shard_{args.shard}_info.json')
-    os.makedirs(args.report_dir, exist_ok=True)
-    with open(info_file, 'w') as f:
-        json.dump(info, f, indent=2)
+        # Step 5: 执行测试
+        stats = run_pytest(
+            sharded_tests,
+            args.test_dir,
+            args.disabled_testcases,
+            args.report_dir,
+            args.shard,
+            args.timeout,
+            args.verbose
+        )
+    except Exception as e:
+        error_trace = traceback.format_exc()
+        print(f"Fatal error in shard runner: {e}")
+        print(error_trace[-5000:] if len(error_trace) > 5000 else error_trace)
 
-    # Step 5: 执行测试
-    stats = run_pytest(
-        sharded_tests,
-        args.test_dir,
-        args.report_dir,
-        args.shard,
-        args.timeout,
-        args.verbose
-    )
+        stats = create_empty_stats()
+        stats['errors'] = 1
+        stats['returncode'] = 1
+        stats['error_message'] = f"Fatal error in shard runner: {e}"
+        stats['fatal_runner_error'] = True
 
     # Step 6: 保存测试统计到 JSON 文件（供 workflow 读取）
-    stats_file = os.path.join(args.report_dir, f'shard_{args.shard}_stats.json')
-    with open(stats_file, 'w') as f:
-        json.dump(stats, f, indent=2)
-
+    save_stats_file(args.report_dir, args.shard, stats)
     return stats.get('returncode', 1)
 
 
