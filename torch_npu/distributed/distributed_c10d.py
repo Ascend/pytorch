@@ -277,20 +277,24 @@ def _clear_pg_cache_in_torch(group: ProcessGroup):
 
 
 def reinit_process_group(group=None, rebuild_link=True):
+    device_id = torch.npu.current_device()
+    logger.info(f"reinit process group, group={group}, rebuild link={rebuild_link}, device={device_id}")
     if group is None:
         group = _world.default_pg
     if not rebuild_link:
-        device_id = torch.npu.current_device()
         npu_device = torch.device('npu')
         for pg in _pg_map:
             if (npu_device in pg._device_types):
                 pg._get_backend(npu_device).resume_hccl_comm(device_id)
+        logger.info(f"resume hccl comm end, device_id={device_id}")
         return None
     else:
         backend = dist_c10d.Backend(_world.pg_map[group][0])
         if 'hccl' in backend:
+            logger.info(f"reinit hccl comm start, group={group}, device_id={device_id}")
             group._get_backend(torch.device('npu'))._delete_tcpstore_key()
             group._get_backend(torch.device('npu')).abort_hccl_comm("reinit")
+        logger.info(f"reinit hccl comm end, group={group}, device_id={device_id}")
         return group
 
 
