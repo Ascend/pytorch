@@ -11,6 +11,7 @@ NPU 测试分片执行脚本
 import argparse
 import json
 import os
+import signal
 import subprocess
 import sys
 import traceback
@@ -134,6 +135,20 @@ def create_empty_stats() -> Dict:
     }
 
 
+def create_shard_info(shard: int, num_shards: int, timestamp: str) -> Dict:
+    """创建分片信息的默认结构"""
+    return {
+        'shard': shard,
+        'num_shards': num_shards,
+        'total_files': 0,
+        'shard_files': 0,
+        'disabled_count': 0,
+        'disabled_count_matched': 0,
+        'disabled_count_deselected': 0,
+        'timestamp': timestamp,
+    }
+
+
 def finalize_stats(
     xml_report: str,
     returncode: int,
@@ -142,6 +157,7 @@ def finalize_stats(
     timed_out: bool = False,
 ) -> Dict:
     """解析 XML 并补齐兜底统计字段"""
+    has_xml_report = os.path.exists(xml_report)
     stats = parse_junit_xml(xml_report)
     if not stats:
         stats = create_empty_stats()
@@ -154,6 +170,26 @@ def finalize_stats(
     if timed_out:
         stats['errors'] = max(stats.get('errors', 0), 1)
         stats['timed_out'] = True
+
+    if returncode < 0:
+        signal_num = abs(returncode)
+        try:
+            signal_name = signal.Signals(signal_num).name
+        except ValueError:
+            signal_name = f"SIG{signal_num}"
+        stats['crashed'] = True
+        stats['crash_signal'] = signal_name
+
+        if not error_message:
+            error_message = f"Pytest process crashed with signal {signal_name}"
+
+    if returncode != 0 and not has_xml_report:
+        stats['errors'] = max(stats.get('errors', 0), 1)
+        stats['incomplete'] = True
+        if not error_message:
+            error_message = (
+                "Pytest exited before producing a JUnit XML report"
+            )
 
     if error_message:
         stats['error_message'] = error_message
@@ -185,6 +221,44 @@ def save_stats_file(report_dir: str, shard: int, stats: Dict) -> str:
     return stats_file
 
 
+def save_info_file(report_dir: str, shard: int, info: Dict) -> str:
+    """保存分片信息到 JSON 文件"""
+    os.makedirs(report_dir, exist_ok=True)
+    info_file = os.path.join(report_dir, f'shard_{shard}_info.json')
+    with open(info_file, 'w', encoding='utf-8') as f:
+        json.dump(info, f, indent=2)
+    return info_file
+
+
+def get_disabled_testcases_report_file(report_dir: str, shard: int) -> str:
+    """获取当前分片的 disabled testcases 命中统计文件路径"""
+    return os.path.join(report_dir, f'shard_{shard}_disabled_testcases.json')
+
+
+def load_disabled_testcases_report(report_dir: str, shard: int) -> Dict:
+    """读取当前分片的 disabled testcases 命中统计"""
+    report_file = get_disabled_testcases_report_file(report_dir, shard)
+    if not os.path.exists(report_file):
+        return {
+            'disabled_count_matched': 0,
+            'disabled_count_deselected': 0,
+        }
+
+    try:
+        with open(report_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return {
+            'disabled_count_matched': data.get('disabled_count_matched', 0),
+            'disabled_count_deselected': data.get('disabled_count_deselected', 0),
+        }
+    except Exception as e:
+        print(f"Warning: Failed to read disabled testcase report: {e}")
+        return {
+            'disabled_count_matched': 0,
+            'disabled_count_deselected': 0,
+        }
+
+
 def format_subprocess_output(output) -> str:
     """将 subprocess 输出统一转换为字符串"""
     if not output:
@@ -192,6 +266,47 @@ def format_subprocess_output(output) -> str:
     if isinstance(output, bytes):
         return output.decode('utf-8', errors='replace')
     return str(output)
+
+
+def log_print(message: str = '') -> None:
+    """统一打印日志并立即刷新，避免长时间无输出"""
+    print(message, flush=True)
+
+
+def build_test_targets(test_files: List[str], test_dir: str) -> List[str]:
+    """将测试文件转换为 pytest 目标路径"""
+    test_dir_path = Path(test_dir).resolve()
+    targets = []
+
+    for tf in test_files:
+        tf_path = Path(tf).resolve()
+        try:
+            rel_path = tf_path.relative_to(test_dir_path)
+            targets.append(str(rel_path))
+        except ValueError:
+            # 如果不在 test_dir 下，使用绝对路径
+            targets.append(str(tf_path))
+
+    return targets
+
+
+def save_test_plan_file(report_dir: str, shard: int, test_targets: List[str]) -> str:
+    """保存当前分片的测试计划文件列表"""
+    os.makedirs(report_dir, exist_ok=True)
+    plan_file = os.path.join(report_dir, f'shard_{shard}_planned_test_files.txt')
+    with open(plan_file, 'w', encoding='utf-8') as f:
+        for target in test_targets:
+            f.write(f"{target}\n")
+    return plan_file
+
+
+def print_test_plan(shard: int, test_targets: List[str], plan_file: str) -> None:
+    """在执行前打印当前分片计划执行的测试文件"""
+    log_print(f"Planned test files for shard {shard} ({len(test_targets)} files):")
+    for index, target in enumerate(test_targets, 1):
+        log_print(f"  [{index:03d}] {target}")
+    log_print(f"Saved planned test file list to: {plan_file}")
+    log_print()
 
 
 def run_pytest(
@@ -225,21 +340,15 @@ def run_pytest(
         '--durations=50',
     ]
 
-    # 添加测试文件 - 使用相对于 test_dir 的相对路径
-    test_dir_path = Path(test_dir).resolve()
-    for tf in test_files:
-        tf_path = Path(tf).resolve()
-        try:
-            rel_path = tf_path.relative_to(test_dir_path)
-            cmd.append(str(rel_path))
-        except ValueError:
-            # 如果不在 test_dir 下，使用绝对路径
-            cmd.append(str(tf_path))
+    test_targets = build_test_targets(test_files, test_dir)
+    cmd.extend(test_targets)
+    plan_file = save_test_plan_file(report_dir, shard, test_targets)
 
-    print(f"\n{'='*60}")
-    print(f"Running shard {shard}: {len(test_files)} test files")
-    print(f"Working directory: {test_dir}")
-    print(f"{'='*60}\n")
+    log_print(f"\n{'='*60}")
+    log_print(f"Running shard {shard}: {len(test_files)} test files")
+    log_print(f"Working directory: {test_dir}")
+    log_print(f"{'='*60}\n")
+    print_test_plan(shard, test_targets, plan_file)
 
     # --------------------------------------------------------------------
     # 关键：Python 路径优先级
@@ -271,12 +380,18 @@ def run_pytest(
     env['TORCH_DEVICE_BACKEND_AUTOLOAD'] = '1'  # 允许加载 torch_npu backend
     if disabled_testcases_file:
         env['NPU_DISABLED_TESTCASES_JSON'] = os.path.abspath(disabled_testcases_file)
+        env['NPU_DISABLED_TESTCASES_REPORT'] = os.path.abspath(
+            get_disabled_testcases_report_file(report_dir, shard)
+        )
 
-    print(f"PYTHONPATH priority: {torch_path} (installed torch)")
+    log_print(f"PYTHONPATH priority: {torch_path} (installed torch)")
 
     with open(log_file, 'w', encoding='utf-8') as log:
         log.write(f"Test execution started at {datetime.now()}\n")
         log.write(f"Test files: {len(test_files)}\n\n")
+        for index, target in enumerate(test_targets, 1):
+            log.write(f"[{index:03d}] {target}\n")
+        log.write("\n")
         log.flush()
 
         start_time = monotonic()
@@ -291,7 +406,7 @@ def run_pytest(
                 timeout=overall_timeout
             )
             log.write(result.stdout)
-            print(result.stdout[-5000:] if len(result.stdout) > 5000 else result.stdout)
+            log_print(result.stdout[-5000:] if len(result.stdout) > 5000 else result.stdout)
 
             stats = finalize_stats(
                 xml_report,
@@ -309,9 +424,9 @@ def run_pytest(
                 f"Shard {shard} exceeded overall timeout of {overall_timeout} seconds"
             )
             log.write(f"\n{timeout_message}\n")
-            print(timeout_message)
+            log_print(timeout_message)
             if partial_output:
-                print(partial_output[-5000:] if len(partial_output) > 5000 else partial_output)
+                log_print(partial_output[-5000:] if len(partial_output) > 5000 else partial_output)
 
             stats = finalize_stats(
                 xml_report,
@@ -326,8 +441,8 @@ def run_pytest(
             log.write(error_trace)
 
             error_message = f"Unexpected error while running pytest: {e}"
-            print(error_message)
-            print(error_trace[-5000:] if len(error_trace) > 5000 else error_trace)
+            log_print(error_message)
+            log_print(error_trace[-5000:] if len(error_trace) > 5000 else error_trace)
 
             stats = finalize_stats(
                 xml_report,
@@ -343,50 +458,47 @@ def run_pytest(
 
 def main():
     args = parse_args()
+    timestamp = datetime.now().isoformat()
+    info = create_shard_info(args.shard, args.num_shards, timestamp)
 
-    print(f"\n{'='*60}")
-    print("PyTorch NPU Test Shard Runner")
-    print(f"{'='*60}")
-    print(f"Shard: {args.shard}/{args.num_shards}")
-    print(f"Test directory: {args.test_dir}")
-    print(f"Disabled testcases: {args.disabled_testcases}")
-    print(f"{'='*60}\n")
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(line_buffering=True)
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(line_buffering=True)
+
+    log_print(f"\n{'='*60}")
+    log_print("PyTorch NPU Test Shard Runner")
+    log_print(f"{'='*60}")
+    log_print(f"Shard: {args.shard}/{args.num_shards}")
+    log_print(f"Test directory: {args.test_dir}")
+    log_print(f"Disabled testcases: {args.disabled_testcases}")
+    log_print(f"{'='*60}\n")
 
     try:
         # Step 1: 加载禁用测试用例
         disabled = load_disabled_testcases(args.disabled_testcases)
+        info['disabled_count'] = len(disabled)
 
         # Step 2: 发现测试文件
         all_test_files = discover_test_files(args.test_dir)
-        print(f"Discovered {len(all_test_files)} test files")
+        log_print(f"Discovered {len(all_test_files)} test files")
+        info['total_files'] = len(all_test_files)
 
         # Step 3: 分片
         sharded_tests = shard_tests(all_test_files, args.shard, args.num_shards)
-        print(f"Shard {args.shard} contains {len(sharded_tests)} test files")
+        log_print(f"Shard {args.shard} contains {len(sharded_tests)} test files")
+        info['shard_files'] = len(sharded_tests)
 
         if not sharded_tests:
-            print("No tests to run for this shard")
+            log_print("No tests to run for this shard")
             # 输出空结果
             stats = create_empty_stats()
             stats['returncode'] = 0
+            save_info_file(args.report_dir, args.shard, info)
             save_stats_file(args.report_dir, args.shard, stats)
             return 0
 
-        # Step 4: 保存分片信息
-        info = {
-            'shard': args.shard,
-            'num_shards': args.num_shards,
-            'total_files': len(all_test_files),
-            'shard_files': len(sharded_tests),
-            'disabled_count': len(disabled),
-            'timestamp': datetime.now().isoformat()
-        }
-        info_file = os.path.join(args.report_dir, f'shard_{args.shard}_info.json')
-        os.makedirs(args.report_dir, exist_ok=True)
-        with open(info_file, 'w', encoding='utf-8') as f:
-            json.dump(info, f, indent=2)
-
-        # Step 5: 执行测试
+        # Step 4: 执行测试
         stats = run_pytest(
             sharded_tests,
             args.test_dir,
@@ -396,10 +508,11 @@ def main():
             args.timeout,
             args.verbose
         )
+        info.update(load_disabled_testcases_report(args.report_dir, args.shard))
     except Exception as e:
         error_trace = traceback.format_exc()
-        print(f"Fatal error in shard runner: {e}")
-        print(error_trace[-5000:] if len(error_trace) > 5000 else error_trace)
+        log_print(f"Fatal error in shard runner: {e}")
+        log_print(error_trace[-5000:] if len(error_trace) > 5000 else error_trace)
 
         stats = create_empty_stats()
         stats['errors'] = 1
@@ -407,7 +520,8 @@ def main():
         stats['error_message'] = f"Fatal error in shard runner: {e}"
         stats['fatal_runner_error'] = True
 
-    # Step 6: 保存测试统计到 JSON 文件（供 workflow 读取）
+    # Step 5: 保存分片信息和测试统计（供 workflow 读取）
+    save_info_file(args.report_dir, args.shard, info)
     save_stats_file(args.report_dir, args.shard, stats)
     return stats.get('returncode', 1)
 

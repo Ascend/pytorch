@@ -31,6 +31,7 @@ env:
   PYTORCH_VERSION: '2.7.1'
   TORCH_NPU_WHL: 'https://gitcode.com/Ascend/pytorch/releases/download/v7.3.1-pytorch2.7.1/torch_npu-2.7.1.post3-cp311-cp311-manylinux_2_28_aarch64.whl'
   NUM_SHARDS: '100'  # 100 shards, each shard ~1% of tests
+  PREPARED_TEST_SRC_ARTIFACT: 'pytorch-test-src-v2.7.1-patched'
 
 defaults:
   run:
@@ -44,6 +45,7 @@ jobs:
       options: --user root
     outputs:
       shard_matrix: ${{ steps.set_matrix.outputs.shard_matrix }}
+      patch_count: ${{ steps.apply_patches.outputs.patch_count }}
     steps:
       - name: Checkout current repository
         uses: actions/checkout@v4
@@ -62,6 +64,44 @@ jobs:
           echo "shard_matrix=[${SHARDS}]" >> $GITHUB_OUTPUT
           echo "Running shards: $SHARD_START to $SHARD_END"
 
+      - name: Clone PyTorch v${{ env.PYTORCH_VERSION }} (for test source)
+        run: |
+          git clone --depth=1 --branch v${{ env.PYTORCH_VERSION }} \
+            https://github.com/pytorch/pytorch.git pytorch-test-src
+
+      - name: Copy test_upsteam patches
+        run: |
+          cp -r test_upsteam pytorch-test-src/
+
+      - name: Apply NPU patches
+        id: apply_patches
+        run: |
+          cd pytorch-test-src/test_upsteam
+          chmod +x apply_patch.sh
+          ./apply_patch.sh 2>&1 | tee /tmp/patch.log
+          PATCH_COUNT=$(grep -c "成功" /tmp/patch.log || echo "0")
+          echo "patch_count=${PATCH_COUNT}" >> $GITHUB_OUTPUT
+
+      - name: Package prepared test source
+        run: |
+          tar -czf pytorch-test-src.tar.gz pytorch-test-src
+
+      - name: Upload prepared test source
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: pytorch-test-src.tar.gz
+          retention-days: 7
+
+      - name: Upload prepare logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prepare-logs
+          path: /tmp/patch.log
+          if-no-files-found: warn
+          retention-days: 30
+
   test:
     needs: prepare
     runs-on: linux-aarch64-a3-2
@@ -75,7 +115,7 @@ jobs:
       max-parallel: 100  # Run all 100 shards concurrently
 
     steps:
-      - name: Checkout current repository (for patches)
+      - name: Checkout current repository (for test runner)
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
@@ -115,23 +155,15 @@ jobs:
 
           echo "PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu installed"
 
-      - name: Clone PyTorch v${{ env.PYTORCH_VERSION }} (for test source)
-        run: |
-          git clone --depth=1 --branch v${{ env.PYTORCH_VERSION }} \
-            https://github.com/pytorch/pytorch.git pytorch-test-src
+      - name: Download prepared test source
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: prepared-test-src-artifact
 
-      - name: Copy test_upsteam patches
+      - name: Extract prepared test source
         run: |
-          cp -r ascend_pytorch/test_upsteam pytorch-test-src/
-
-      - name: Apply NPU patches
-        id: apply_patches
-        run: |
-          cd pytorch-test-src/test_upsteam
-          chmod +x apply_patch.sh
-          ./apply_patch.sh 2>&1 | tee /tmp/patch.log
-          PATCH_COUNT=$(grep -c "成功" /tmp/patch.log || echo "0")
-          echo "patch_count=${PATCH_COUNT}" >> $GITHUB_OUTPUT
+          tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
 
       - name: Verify NPU availability
         run: |
@@ -172,7 +204,7 @@ jobs:
 
           mkdir -p ${REPORT_DIR}
 
-          # Script is in ascend_pytorch repository, tests in pytorch-test-src
+          # Script is in ascend_pytorch repository, prepared tests are in pytorch-test-src
           set +e
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --shard ${{ matrix.shard }} \
@@ -202,7 +234,6 @@ jobs:
         with:
           name: logs-shard-${{ matrix.shard }}
           path: |
-            /tmp/patch.log
             /tmp/test_shard_${{ matrix.shard }}.log
           if-no-files-found: warn
 
@@ -241,7 +272,7 @@ jobs:
           # Determine overall status
           if [ "$FAILED" -eq 0 ] && [ "$ERRORS" -eq 0 ] && [ "$TOTAL" -gt 0 ]; then
             STATUS="PASSED"
-          elif [ "$TOTAL" -eq 0 ]; then
+          elif [ "$FAILED" -eq 0 ] && [ "$ERRORS" -eq 0 ] && [ "$TOTAL" -eq 0 ]; then
             STATUS="NO TESTS"
           else
             STATUS="FAILED"
@@ -254,7 +285,7 @@ jobs:
           echo "|------|---------|" >> $GITHUB_STEP_SUMMARY
           echo "| PyTorch | \`${PYTORCH_VER}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| torch_npu | \`${TORCH_NPU_VER}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Patches applied | ${{ steps.apply_patches.outputs.patch_count || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Patches applied | ${{ needs.prepare.outputs.patch_count || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Shard | ${{ matrix.shard }} / ${{ env.NUM_SHARDS }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Test Results" >> $GITHUB_STEP_SUMMARY

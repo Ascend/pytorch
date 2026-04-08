@@ -13,6 +13,7 @@ from typing import Iterable, Optional, Set
 
 
 DISABLED_TESTCASES_ENV = "NPU_DISABLED_TESTCASES_JSON"
+DISABLED_TESTCASES_REPORT_ENV = "NPU_DISABLED_TESTCASES_REPORT"
 
 
 def _load_disabled_testcases() -> Set[str]:
@@ -87,6 +88,26 @@ def _build_match_keys(item) -> Set[str]:
 
 
 _DISABLED_TESTCASES = _load_disabled_testcases()
+_DISABLED_REPORT = {
+    "disabled_count_total": len(_DISABLED_TESTCASES),
+    "disabled_count_matched": 0,
+    "disabled_count_deselected": 0,
+}
+
+
+def _write_report() -> None:
+    report_file = os.environ.get(DISABLED_TESTCASES_REPORT_ENV)
+    if not report_file:
+        return
+
+    try:
+        report_dir = os.path.dirname(report_file)
+        if report_dir:
+            os.makedirs(report_dir, exist_ok=True)
+        with open(report_file, "w", encoding="utf-8") as f:
+            json.dump(_DISABLED_REPORT, f, indent=2)
+    except Exception as exc:
+        print(f"[npu-disabled] Failed to write disabled testcases report: {exc}")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -108,8 +129,14 @@ def pytest_collection_modifyitems(config, items):
     if deselected:
         items[:] = kept
         config.hook.pytest_deselected(items=deselected)
+        _DISABLED_REPORT["disabled_count_matched"] = len(matched)
+        _DISABLED_REPORT["disabled_count_deselected"] = len(deselected)
         print(
             "[npu-disabled] Deselected "
             f"{len(deselected)} collected tests from disabled_testcases.json "
             f"({len(matched)} unique entries matched in this shard)"
         )
+
+
+def pytest_sessionfinish(session, exitstatus):
+    _write_report()
