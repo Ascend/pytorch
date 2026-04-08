@@ -127,7 +127,7 @@ const uint32_t HCCL_COMM_DEFAULT_OP_EXPANSION_MODE = 0;
 const uint32_t HCCL_COMM_TRAFFIC_CLASS_CONFIG_NOT_SET = 0xffffffff;
 const uint32_t HCCL_COMM_SERVICE_LEVEL_CONFIG_NOT_SET = 0xffffffff;
 const int32_t HCCL_COMM_EXECTIMEOUT_CONFIG_NOT_SET = 0xffffffff;
-const uint32_t HCCL_COMM_HCCL_QOS_CONFIG_NOT_SET = 0xffffffff;
+const uint32_t HCCL_COMM_QOS_CONFIG_NOT_SET = 0xffffffff;
 
 typedef struct HcclCommConfigDef {
     char reserved[HCCL_COMM_CONFIG_INFO_BYTES];
