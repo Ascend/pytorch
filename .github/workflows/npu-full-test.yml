@@ -25,16 +25,16 @@ on:
         default: '1'
         type: string
       shard_end:
-        description: 'End shard number (default 100)'
+        description: 'End shard number (default 40)'
         required: false
-        default: '100'
+        default: '40'
         type: string
 
 env:
   PYTHON_VERSION: '3.11'
   PYTORCH_VERSION: '2.7.1'
   TORCH_NPU_WHL: 'https://gitcode.com/Ascend/pytorch/releases/download/v7.3.1-pytorch2.7.1/torch_npu-2.7.1.post3-cp311-cp311-manylinux_2_28_aarch64.whl'
-  NUM_SHARDS: '100'  # 100 shards, each shard ~1% of tests
+  NUM_SHARDS: '40'  # 40 shards, each shard ~2.5% of tests
   PREPARED_TEST_SRC_ARTIFACT: 'pytorch-test-src-v2.7.1-patched'
 
 defaults:
@@ -58,7 +58,7 @@ jobs:
         run: |
           # Get shard range from inputs or use defaults
           SHARD_START=${{ inputs.shard_start || '1' }}
-          SHARD_END=${{ inputs.shard_end || '100' }}
+          SHARD_END=${{ inputs.shard_end || '40' }}
 
           # Build shard matrix JSON
           SHARDS=$(seq $SHARD_START $SHARD_END | tr '\n' ',' | sed 's/,$//')
@@ -113,7 +113,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.shard_matrix) }}
       fail-fast: false
-      max-parallel: 100  # Run all 100 shards concurrently
+      max-parallel: 40  # Run all 40 shards concurrently
 
     steps:
       - name: Checkout current repository (for test runner)

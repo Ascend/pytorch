@@ -19,7 +19,10 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
 from time import monotonic
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Tuple
+
+
+EXCLUDED_TEST_DIRS = ('custom_ops', 'distributions', 'jit')
 
 
 def parse_args():
@@ -53,22 +56,22 @@ def load_disabled_testcases(json_file: str) -> Set[str]:
     return disabled
 
 
-def discover_test_files(test_dir: str) -> List[str]:
-    """发现所有 test_*.py 文件"""
+def discover_test_files(test_dir: str) -> Tuple[List[str], List[str]]:
+    """发现所有 test_*.py 文件，并记录因目录规则被排除的文件"""
     test_path = Path(test_dir)
     test_files = []
+    excluded_test_files = []
 
     # 查找所有 test_*.py 文件（排除某些特殊目录）
-    exclude_dirs = {'distributions', 'custom_ops', 'jit'}
-
     for test_file in test_path.rglob('test_*.py'):
         rel_path = test_file.relative_to(test_path)
         # 检查是否在排除目录中
-        if any(part in exclude_dirs for part in rel_path.parts):
+        if any(part in EXCLUDED_TEST_DIRS for part in rel_path.parts):
+            excluded_test_files.append(str(rel_path))
             continue
         test_files.append(str(test_file))
 
-    return sorted(test_files)
+    return sorted(test_files), sorted(excluded_test_files)
 
 
 def shard_tests(tests: List[str], shard: int, num_shards: int) -> List[str]:
@@ -142,6 +145,8 @@ def create_shard_info(shard: int, num_shards: int, timestamp: str) -> Dict:
         'num_shards': num_shards,
         'total_files': 0,
         'shard_files': 0,
+        'excluded_dirs': list(EXCLUDED_TEST_DIRS),
+        'excluded_test_files': 0,
         'disabled_count': 0,
         'disabled_count_matched': 0,
         'disabled_count_deselected': 0,
@@ -298,6 +303,16 @@ def save_test_plan_file(report_dir: str, shard: int, test_targets: List[str]) ->
         for target in test_targets:
             f.write(f"{target}\n")
     return plan_file
+
+
+def save_excluded_test_files_file(report_dir: str, shard: int, test_targets: List[str]) -> str:
+    """保存因目录规则被排除的测试文件列表"""
+    os.makedirs(report_dir, exist_ok=True)
+    excluded_file = os.path.join(report_dir, f'shard_{shard}_excluded_test_files.txt')
+    with open(excluded_file, 'w', encoding='utf-8') as f:
+        for target in test_targets:
+            f.write(f"{target}\n")
+    return excluded_file
 
 
 def print_test_plan(shard: int, test_targets: List[str], plan_file: str) -> None:
@@ -481,9 +496,19 @@ def main():
         info['disabled_count'] = len(disabled)
 
         # Step 2: 发现测试文件
-        all_test_files = discover_test_files(args.test_dir)
+        all_test_files, excluded_test_files = discover_test_files(args.test_dir)
         log_print(f"Discovered {len(all_test_files)} test files")
         info['total_files'] = len(all_test_files)
+        info['excluded_test_files'] = len(excluded_test_files)
+        if excluded_test_files:
+            excluded_file = save_excluded_test_files_file(
+                args.report_dir,
+                args.shard,
+                excluded_test_files,
+            )
+            log_print(
+                f"Excluded {len(excluded_test_files)} test files by directory rules: {excluded_file}"
+            )
 
         # Step 3: 分片
         sharded_tests = shard_tests(all_test_files, args.shard, args.num_shards)
