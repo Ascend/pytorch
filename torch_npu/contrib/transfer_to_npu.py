@@ -423,6 +423,7 @@ def _init():
     _patch_cuda()
     _device_wrapper(torch.cuda, torch_cuda_fn_white_list)
     torch.cuda.device.__init__ = _wrapper_cuda(torch.cuda.device.__init__)
+    torch.cuda.amp.autocast_mode = torch_npu.npu.amp.autocast_mode
 
     # torch.cuda.memory.*
     _device_wrapper(torch.npu.memory, ['_record_memory_history', '_snapshot'])
