@@ -5,11 +5,15 @@ on:
     paths:
       - '.github/workflows/npu-full-test.yml'
       - '.github/scripts/run_npu_test_shard.py'
+      - '.github/scripts/pytest_disabled_testcases_plugin.py'
+      - '.github/scripts/generate_npu_full_test_report.py'
       - 'test_upsteam/**'
   pull_request:
     paths:
       - '.github/workflows/npu-full-test.yml'
       - '.github/scripts/run_npu_test_shard.py'
+      - '.github/scripts/pytest_disabled_testcases_plugin.py'
+      - '.github/scripts/generate_npu_full_test_report.py'
       - 'test_upsteam/**'
   schedule:
     - cron: '0 22 * * 1'  # UTC 22:00 (Beijing time next day 06:00), every Monday
@@ -39,10 +43,7 @@ defaults:
 
 jobs:
   prepare:
-    runs-on: linux-aarch64-a3-2
-    container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
-      options: --user root
+    runs-on: ubuntu-latest
     outputs:
       shard_matrix: ${{ steps.set_matrix.outputs.shard_matrix }}
       patch_count: ${{ steps.apply_patches.outputs.patch_count }}
@@ -237,66 +238,53 @@ jobs:
             /tmp/test_shard_${{ matrix.shard }}.log
           if-no-files-found: warn
 
-      - name: Summary
-        if: always()
+  report:
+    needs:
+      - prepare
+      - test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current repository (for report)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Download shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-shard-*
+          path: all-test-reports
+          merge-multiple: true
+
+      - name: Generate consolidated summary
         run: |
-          # Extract torch_npu version from environment variable
-          TORCH_NPU_VER=$(basename "${{ env.TORCH_NPU_WHL }}")
-          PYTORCH_VER="v${{ env.PYTORCH_VERSION }}"
+          PYTHON=python
+          REPORT_MD=npu-full-test-summary.md
+          REPORT_JSON=npu-full-test-summary.json
 
-          # Read test statistics
-          STATS_FILE="test-reports/shard_${{ matrix.shard }}_stats.json"
-          echo "Looking for stats file: $STATS_FILE"
-          ls -la test-reports/ 2>/dev/null || echo "test-reports directory not found"
+          $PYTHON .github/scripts/generate_npu_full_test_report.py \
+            --reports-root all-test-reports \
+            --output-markdown ${REPORT_MD} \
+            --output-json ${REPORT_JSON} \
+            --pytorch-version "${{ env.PYTORCH_VERSION }}" \
+            --torch-npu-whl "${{ env.TORCH_NPU_WHL }}" \
+            --patch-count "${{ needs.prepare.outputs.patch_count || 'N/A' }}" \
+            --shard-matrix-json '${{ needs.prepare.outputs.shard_matrix }}'
 
-          if [ -f "$STATS_FILE" ]; then
-            echo "Stats file found, reading..."
-            TOTAL=$(python3 -c "import json; print(json.load(open('$STATS_FILE')).get('total', 0))")
-            PASSED=$(python3 -c "import json; print(json.load(open('$STATS_FILE')).get('passed', 0))")
-            FAILED=$(python3 -c "import json; print(json.load(open('$STATS_FILE')).get('failed', 0))")
-            SKIPPED=$(python3 -c "import json; print(json.load(open('$STATS_FILE')).get('skipped', 0))")
-            ERRORS=$(python3 -c "import json; print(json.load(open('$STATS_FILE')).get('errors', 0))")
-            DURATION=$(python3 -c "import json; print(f\"{json.load(open('$STATS_FILE')).get('duration', 0):.1f}\")")
-          else
-            echo "Stats file not found, using defaults"
-            TOTAL=0
-            PASSED=0
-            FAILED=0
-            SKIPPED=0
-            ERRORS=0
-            DURATION="0.0"
-          fi
+          cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
 
-          echo "Test stats: Total=$TOTAL, Passed=$PASSED, Failed=$FAILED, Skipped=$SKIPPED, Errors=$ERRORS"
-
-          # Determine overall status
-          if [ "$FAILED" -eq 0 ] && [ "$ERRORS" -eq 0 ] && [ "$TOTAL" -gt 0 ]; then
-            STATUS="PASSED"
-          elif [ "$FAILED" -eq 0 ] && [ "$ERRORS" -eq 0 ] && [ "$TOTAL" -eq 0 ]; then
-            STATUS="NO TESTS"
-          else
-            STATUS="FAILED"
-          fi
-
-          # Write Summary
-          echo "## PyTorch NPU Full Test - Shard ${{ matrix.shard }}/${{ env.NUM_SHARDS }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Item | Details |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|---------|" >> $GITHUB_STEP_SUMMARY
-          echo "| PyTorch | \`${PYTORCH_VER}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| torch_npu | \`${TORCH_NPU_VER}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Patches applied | ${{ needs.prepare.outputs.patch_count || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Shard | ${{ matrix.shard }} / ${{ env.NUM_SHARDS }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Total | ${TOTAL} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Passed | ${PASSED} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Failed | ${FAILED} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Skipped | ${SKIPPED} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Errors | ${ERRORS} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Duration | ${DURATION}s |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Result**: ${STATUS}" >> $GITHUB_STEP_SUMMARY
+      - name: Upload consolidated summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npu-full-test-summary
+          path: |
+            npu-full-test-summary.md
+            npu-full-test-summary.json
+          retention-days: 30

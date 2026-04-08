@@ -12,9 +12,9 @@ from typing import Dict, List, Tuple
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate consolidated NPU full test report")
-    parser.add_argument("--reports-root", required=True, help="Root directory containing downloaded shard report artifacts")
+    parser.add_argument("--reports-root", required=True, help="Root directory containing shard report files")
     parser.add_argument("--output-markdown", required=True, help="Path to write markdown report")
-    parser.add_argument("--output-json", required=True, help="Path to write json report")
+    parser.add_argument("--output-json", required=True, help="Path to write JSON report")
     parser.add_argument("--pytorch-version", required=True, help="PyTorch version string")
     parser.add_argument("--torch-npu-whl", required=True, help="torch_npu wheel URL")
     parser.add_argument("--patch-count", default="N/A", help="Applied patch count")
@@ -190,16 +190,16 @@ def main():
     expected_reports = len(shard_ids)
 
     failed_like = [row for row in shard_rows if row["status"] not in ("PASSED", "NO TESTS")]
-    slowest = sorted(shard_rows, key=lambda row: row["duration"], reverse=True)[:10]
+    slowest = sorted(shard_rows, key=lambda row: row["duration"], reverse=True)[:20]
 
     markdown_lines = [
-        "# PyTorch NPU Full Test 汇总报告",
+        "# PyTorch NPU Full Test Summary",
         "",
-        "## 总览",
+        "## Overview",
     ]
     markdown_lines.extend(
         render_table(
-            ["项目", "值"],
+            ["Item", "Value"],
             [
                 ["PyTorch", f"`v{args.pytorch_version}`"],
                 ["torch_npu", f"`{whl_name}`"],
@@ -210,34 +210,24 @@ def main():
             ],
         )
     )
-    markdown_lines.extend(
-        [
-            "",
-            "## 测试统计",
-        ]
-    )
+    markdown_lines.extend(["", "## Totals"])
     markdown_lines.extend(
         render_table(
-            ["指标", "数值"],
+            ["Metric", "Value"],
             [
                 ["Total", str(totals["total"])],
                 ["Passed", str(totals["passed"])],
                 ["Failed", str(totals["failed"])],
                 ["Skipped", str(totals["skipped"])],
                 ["Errors", str(totals["errors"])],
-                ["累计耗时", format_duration(totals["duration"])],
+                ["Cumulative duration", format_duration(totals["duration"])],
             ],
         )
     )
-    markdown_lines.extend(
-        [
-            "",
-            "## 分片状态",
-        ]
-    )
+    markdown_lines.extend(["", "## Shard Status Counts"])
     markdown_lines.extend(
         render_table(
-            ["状态", "分片数"],
+            ["Status", "Shard count"],
             [
                 ["PASSED", str(status_counts["PASSED"])],
                 ["FAILED", str(status_counts["FAILED"])],
@@ -250,60 +240,44 @@ def main():
             ],
         )
     )
-
-    markdown_lines.extend(["", "## 最慢分片 Top 10"])
+    markdown_lines.extend(["", "## Per-Shard Results"])
     markdown_lines.extend(
         render_table(
-            ["Shard", "Status", "Total", "Failed", "Errors", "Duration", "Files", "Disabled matched"],
+            ["Shard", "Status", "Total", "Passed", "Failed", "Skipped", "Errors", "Duration", "Files", "Disabled matched", "Note"],
             [
                 [
                     str(row["shard"]),
                     row["status"],
                     str(row["total"]),
+                    str(row["passed"]),
                     str(row["failed"]),
+                    str(row["skipped"]),
                     str(row["errors"]),
                     format_duration(row["duration"]),
                     str(row["files"]),
                     str(row["disabled_matched"]),
+                    row["note"] or "-",
+                ]
+                for row in sorted(shard_rows, key=lambda row: row["shard"])
+            ],
+        )
+    )
+    markdown_lines.extend(["", "## Slowest Shards"])
+    markdown_lines.extend(
+        render_table(
+            ["Shard", "Status", "Duration", "Total", "Failed", "Files"],
+            [
+                [
+                    str(row["shard"]),
+                    row["status"],
+                    format_duration(row["duration"]),
+                    str(row["total"]),
+                    str(row["failed"]),
+                    str(row["files"]),
                 ]
                 for row in slowest
             ],
         )
-    )
-
-    markdown_lines.extend(["", "## 非通过分片"])
-    if failed_like:
-        markdown_lines.extend(
-            render_table(
-                ["Shard", "Status", "Total", "Failed", "Errors", "Duration", "Files", "Disabled matched", "备注"],
-                [
-                    [
-                        str(row["shard"]),
-                        row["status"],
-                        str(row["total"]),
-                        str(row["failed"]),
-                        str(row["errors"]),
-                        format_duration(row["duration"]),
-                        str(row["files"]),
-                        str(row["disabled_matched"]),
-                        row["note"] or "-",
-                    ]
-                    for row in sorted(failed_like, key=lambda row: row["shard"])
-                ],
-            )
-        )
-    else:
-        markdown_lines.append("所有分片均通过。")
-
-    markdown_lines.extend(
-        [
-            "",
-            "## 说明",
-            "",
-            "- `累计耗时` 为所有分片 `duration` 的求和，不等于 workflow 墙钟时间。",
-            "- `Disabled matched` 表示当前分片命中的 disabled testcase 条目数。",
-            "- `MISSING` 表示汇总阶段未找到该分片的 stats 文件。",
-        ]
     )
 
     report_json = {
@@ -316,6 +290,8 @@ def main():
         "status_counts": dict(status_counts),
         "totals": totals,
         "shards": shard_rows,
+        "failed_like_shards": failed_like,
+        "slowest_shards": slowest,
     }
 
     output_markdown.write_text("\n".join(markdown_lines) + "\n", encoding="utf-8")
