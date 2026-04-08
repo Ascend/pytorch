@@ -131,7 +131,7 @@ def _get_optimization_cflags(
         return ["O1" if min_optimize else "O2"]
     else:
         cflags = (
-            ["00", "g"]
+            ["O0", "g"]
             if config.aot_inductor.debug_compile
             else ["O1" if min_optimize else "O3", "DNDEBUG"]
         )
