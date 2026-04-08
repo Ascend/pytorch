@@ -45,9 +45,15 @@ def parse_requested_shards(raw: str) -> List[int]:
     return sorted(set(result))
 
 
-def discover_shard_files(reports_root: Path) -> Tuple[Dict[int, Path], Dict[int, Path]]:
+def load_text_lines(path: Path) -> List[str]:
+    with open(path, "r", encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip()]
+
+
+def discover_shard_files(reports_root: Path) -> Tuple[Dict[int, Path], Dict[int, Path], Dict[int, Path]]:
     stats_files = {}
     info_files = {}
+    plan_files = {}
 
     for path in reports_root.rglob("shard_*_stats.json"):
         try:
@@ -63,7 +69,14 @@ def discover_shard_files(reports_root: Path) -> Tuple[Dict[int, Path], Dict[int,
             continue
         info_files[shard] = path
 
-    return stats_files, info_files
+    for path in reports_root.rglob("shard_*_planned_test_files.txt"):
+        try:
+            shard = int(path.stem.split("_")[1])
+        except (IndexError, ValueError):
+            continue
+        plan_files[shard] = path
+
+    return stats_files, info_files, plan_files
 
 
 def get_shard_status(stats: Dict, present: bool) -> str:
@@ -119,6 +132,16 @@ def build_note(stats: Dict) -> str:
     return "; ".join(notes)
 
 
+def sanitize_markdown_cell(value: str) -> str:
+    return value.replace("|", "\\|").replace("\n", "<br>")
+
+
+def format_planned_files_cell(planned_files: List[str]) -> str:
+    if not planned_files:
+        return "-"
+    return "<br>".join(sanitize_markdown_cell(path) for path in planned_files)
+
+
 def render_table(headers: List[str], rows: List[List[str]]) -> List[str]:
     lines = [
         "| " + " | ".join(headers) + " |",
@@ -136,7 +159,7 @@ def main():
     output_json = Path(args.output_json)
     requested_shards = parse_requested_shards(args.shard_matrix_json)
 
-    stats_files, info_files = discover_shard_files(reports_root)
+    stats_files, info_files, plan_files = discover_shard_files(reports_root)
     shard_ids = requested_shards or sorted(set(stats_files) | set(info_files))
 
     status_counts = Counter()
@@ -147,14 +170,18 @@ def main():
         "skipped": 0,
         "errors": 0,
         "duration": 0.0,
+        "discovered_test_files": 0,
+        "planned_files": 0,
     }
     shard_rows = []
 
     for shard in shard_ids:
         stats_path = stats_files.get(shard)
         info_path = info_files.get(shard)
+        plan_path = plan_files.get(shard)
         stats = load_json_file(stats_path) if stats_path else {}
         info = load_json_file(info_path) if info_path else {}
+        planned_files = load_text_lines(plan_path) if plan_path else []
         present = bool(stats_path)
 
         status = get_shard_status(stats, present)
@@ -166,6 +193,10 @@ def main():
         totals["skipped"] += int(stats.get("skipped", 0))
         totals["errors"] += int(stats.get("errors", 0))
         totals["duration"] += float(stats.get("duration", 0.0))
+        totals["discovered_test_files"] = max(
+            totals["discovered_test_files"], int(info.get("total_files", 0))
+        )
+        totals["planned_files"] += int(info.get("shard_files", 0))
 
         shard_rows.append(
             {
@@ -177,7 +208,9 @@ def main():
                 "skipped": int(stats.get("skipped", 0)),
                 "errors": int(stats.get("errors", 0)),
                 "duration": float(stats.get("duration", 0.0)),
-                "files": int(info.get("shard_files", 0)),
+                "planned_files": int(info.get("shard_files", 0)),
+                "discovered_test_files": int(info.get("total_files", 0)),
+                "planned_file_names": planned_files,
                 "disabled_matched": int(info.get("disabled_count_matched", 0)),
                 "disabled_deselected": int(info.get("disabled_count_deselected", 0)),
                 "note": build_note(stats),
@@ -206,6 +239,8 @@ def main():
                 ["Patches applied", str(args.patch_count)],
                 ["Requested shards", str(expected_reports)],
                 ["Reports collected", f"{received_reports} / {expected_reports}"],
+                ["Discovered test files", str(totals["discovered_test_files"])],
+                ["Planned files in requested shards", str(totals["planned_files"])],
                 ["Overall result", overall_status],
             ],
         )
@@ -220,6 +255,8 @@ def main():
                 ["Failed", str(totals["failed"])],
                 ["Skipped", str(totals["skipped"])],
                 ["Errors", str(totals["errors"])],
+                ["Discovered test files", str(totals["discovered_test_files"])],
+                ["Planned files in requested shards", str(totals["planned_files"])],
                 ["Cumulative duration", format_duration(totals["duration"])],
             ],
         )
@@ -243,7 +280,20 @@ def main():
     markdown_lines.extend(["", "## Per-Shard Results"])
     markdown_lines.extend(
         render_table(
-            ["Shard", "Status", "Total", "Passed", "Failed", "Skipped", "Errors", "Duration", "Files", "Disabled matched", "Note"],
+            [
+                "Shard",
+                "Status",
+                "Total",
+                "Passed",
+                "Failed",
+                "Skipped",
+                "Errors",
+                "Duration",
+                "Planned Files",
+                "Planned File Names",
+                "Disabled matched",
+                "Note",
+            ],
             [
                 [
                     str(row["shard"]),
@@ -254,9 +304,10 @@ def main():
                     str(row["skipped"]),
                     str(row["errors"]),
                     format_duration(row["duration"]),
-                    str(row["files"]),
+                    str(row["planned_files"]),
+                    format_planned_files_cell(row["planned_file_names"]),
                     str(row["disabled_matched"]),
-                    row["note"] or "-",
+                    sanitize_markdown_cell(row["note"] or "-"),
                 ]
                 for row in sorted(shard_rows, key=lambda row: row["shard"])
             ],
@@ -265,7 +316,7 @@ def main():
     markdown_lines.extend(["", "## Slowest Shards"])
     markdown_lines.extend(
         render_table(
-            ["Shard", "Status", "Duration", "Total", "Failed", "Files"],
+            ["Shard", "Status", "Duration", "Total", "Failed", "Planned Files"],
             [
                 [
                     str(row["shard"]),
@@ -273,7 +324,7 @@ def main():
                     format_duration(row["duration"]),
                     str(row["total"]),
                     str(row["failed"]),
-                    str(row["files"]),
+                    str(row["planned_files"]),
                 ]
                 for row in slowest
             ],

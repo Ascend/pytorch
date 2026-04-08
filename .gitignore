@@ -207,3 +207,4 @@ torch_npu/_op_plugin_docs.py
 .claude/settings.local.json
 _gh_run_*/
 .claude/
+.tmp/
