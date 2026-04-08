@@ -827,7 +827,10 @@ class NPUCachingAutotuner(CachingAutotuner):
                     fx_inputs[ind] = fx_inputs[ind].reshape(shape)
             model_outputs = model.forward(*fx_inputs)
             for idx, (out1, out2) in enumerate(zip(model_outputs, fx_args[num_inputs:(num_inputs + num_outputs)])):
-                out1 = out1.reshape(out2.shape)
+                try:
+                    out1 = out1.reshape(out2.shape)
+                except Exception as e:
+                    return f"kernel output shape mismatch error: correct shape: {out1.shape}, actual shape: {out2.shape}"
                 if idx in non_contiguous_indices['outputs']:
                     out2.copy_(out1)
                 else:
@@ -898,7 +901,9 @@ class NPUCachingAutotuner(CachingAutotuner):
                     arg)
                 fx_args.append(fx_arg)
 
-        fx_graph_call(*fx_args)
+        output_shape_mismatch_error = fx_graph_call(*fx_args)
+        if output_shape_mismatch_error:
+            raise RuntimeError(output_shape_mismatch_error)
         for actual, expected in zip([args[i] for i in call_outputs_indices], fx_args[fx_module.num_inputs:]):
             if actual.dtype != expected.dtype:
                 expected = expected.to(actual.dtype)
@@ -921,7 +926,10 @@ class NPUCachingAutotuner(CachingAutotuner):
                     arg)
                 fx_args.append(fx_arg)
 
-        fx_graph_call(*fx_args)
+        output_shape_mismatch_error = fx_graph_call(*fx_args)
+        if output_shape_mismatch_error:
+            log.warning(f"CHECK ACCURACY FAILED! kernel name: {self.get_fn_name()}, reason: {output_shape_mismatch_error}")
+            return True
 
         launcher(
             *args,

@@ -634,7 +634,10 @@ def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode])
                 if len(buf.get_mutations()):
                     fx_call_outputs.extend(buf.get_mutations())
                 elif len(buf.get_aliases()):
-                    fx_call_outputs.append(buf.get_name())
+                    if isinstance(buf.node.data, npu_ir.ConcatOutputKernel):
+                        fx_call_outputs.extend(buf.get_aliases())
+                    else:
+                        fx_call_outputs.append(buf.get_name())
         elif snode.node.get_name() not in (V.graph.removed_buffers | V.graph.inplaced_to_remove):
             fx_call_outputs.append(snode.node.get_name())
     num_outputs = len(fx_call_outputs)
