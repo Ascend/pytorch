@@ -9,6 +9,7 @@ NPU 测试分片执行脚本
 """
 
 import argparse
+import importlib.util
 import json
 import os
 import signal
@@ -22,7 +23,30 @@ from time import monotonic
 from typing import List, Set, Dict, Tuple
 
 
-EXCLUDED_TEST_DIRS = ('custom_ops', 'distributions', 'jit')
+SPECIAL_TEST_FILE_ALIASES = {
+    'test_autoload_enable': 'test_autoload.py',
+    'test_autoload_disable': 'test_autoload.py',
+    'test_cpp_extensions_aot_ninja': 'test_cpp_extensions_aot.py',
+    'test_cpp_extensions_aot_no_ninja': 'test_cpp_extensions_aot.py',
+}
+
+WORKFLOW_DISTRIBUTED_SPECIAL_TESTS = {
+    'distributed/test_distributed_spawn',
+    'distributed/algorithms/quantization/test_quantization',
+    'distributed/test_c10d_common',
+    'distributed/test_c10d_nccl',
+    'distributed/test_c10d_spawn_nccl',
+    'distributed/test_store',
+    'distributed/test_pg_wrapper',
+}
+
+WORKFLOW_HANDLED_SPECIAL_TESTS = {
+    'test_autoload_enable',
+    'test_autoload_disable',
+    'test_cpp_extensions_aot_ninja',
+    'test_cpp_extensions_aot_no_ninja',
+    *WORKFLOW_DISTRIBUTED_SPECIAL_TESTS,
+}
 
 
 def parse_args():
@@ -56,22 +80,104 @@ def load_disabled_testcases(json_file: str) -> Set[str]:
     return disabled
 
 
-def discover_test_files(test_dir: str) -> Tuple[List[str], List[str]]:
-    """发现所有 test_*.py 文件，并记录因目录规则被排除的文件"""
+def discover_raw_test_files(test_dir: str) -> Tuple[List[str], List[str]]:
+    """发现 test 目录下所有 test_*.py 文件。"""
     test_path = Path(test_dir)
     test_files = []
-    excluded_test_files = []
+    relative_files = []
 
-    # 查找所有 test_*.py 文件（排除某些特殊目录）
     for test_file in test_path.rglob('test_*.py'):
         rel_path = test_file.relative_to(test_path)
-        # 检查是否在排除目录中
-        if any(part in EXCLUDED_TEST_DIRS for part in rel_path.parts):
-            excluded_test_files.append(str(rel_path))
-            continue
         test_files.append(str(test_file))
+        relative_files.append(str(rel_path).replace('\\', '/'))
 
-    return sorted(test_files), sorted(excluded_test_files)
+    return sorted(test_files), sorted(relative_files)
+
+
+def load_upstream_default_test_entries(test_dir: str) -> List[str]:
+    """加载上游 discover_tests.TESTS，并应用 run_test.py 的默认选择语义。"""
+    test_dir_path = Path(test_dir).resolve()
+    repo_root = test_dir_path.parent
+    discover_tests_path = repo_root / 'tools' / 'testing' / 'discover_tests.py'
+
+    if not discover_tests_path.exists():
+        raise FileNotFoundError(f'Upstream discover_tests.py not found: {discover_tests_path}')
+
+    spec = importlib.util.spec_from_file_location('upstream_discover_tests', discover_tests_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f'Failed to load module spec from {discover_tests_path}')
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    tests = list(module.TESTS)
+
+    selected_tests = []
+    for test_name in tests:
+        if test_name.startswith('cpp/'):
+            continue
+        if test_name.startswith('onnx'):
+            continue
+        if test_name in {'test_mps', 'test_metal', 'test_xpu'}:
+            continue
+        selected_tests.append(test_name)
+
+    return selected_tests
+
+
+def build_upstream_selection_plan(test_dir: str) -> Dict[str, object]:
+    """基于上游官方 TESTS 列表构建当前 runner 的可执行测试计划。"""
+    raw_test_files, raw_relative_files = discover_raw_test_files(test_dir)
+    raw_by_relative = {
+        str(Path(abs_path).resolve().relative_to(Path(test_dir).resolve())).replace('\\', '/'): abs_path
+        for abs_path in raw_test_files
+    }
+
+    selected_entries = load_upstream_default_test_entries(test_dir)
+    selected_file_targets = []
+    selected_file_relatives = []
+    selected_backing_files = set()
+    unhandled_entries = []
+
+    for test_name in selected_entries:
+        relative_file = f'{test_name}.py'
+        if test_name in WORKFLOW_HANDLED_SPECIAL_TESTS:
+            selected_backing_files.add(relative_file)
+            alias_file = SPECIAL_TEST_FILE_ALIASES.get(test_name)
+            if alias_file:
+                selected_backing_files.add(alias_file)
+            continue
+
+        abs_path = raw_by_relative.get(relative_file)
+        if abs_path is None:
+            candidate_path = Path(test_dir).resolve() / relative_file
+            if candidate_path.exists():
+                abs_path = str(candidate_path)
+        if abs_path is not None:
+            selected_file_targets.append(abs_path)
+            selected_file_relatives.append(relative_file)
+            selected_backing_files.add(relative_file)
+            continue
+
+        alias_file = SPECIAL_TEST_FILE_ALIASES.get(test_name)
+        if alias_file and alias_file in raw_by_relative:
+            selected_backing_files.add(alias_file)
+        if test_name not in WORKFLOW_HANDLED_SPECIAL_TESTS:
+            unhandled_entries.append(test_name)
+
+    excluded_test_files = sorted(
+        relative_file for relative_file in raw_relative_files if relative_file not in selected_backing_files
+    )
+
+    return {
+        'selection_mode': 'upstream_discover_tests',
+        'raw_test_files': raw_test_files,
+        'raw_relative_files': raw_relative_files,
+        'selected_entries': selected_entries,
+        'selected_file_targets': sorted(selected_file_targets),
+        'selected_file_relatives': sorted(selected_file_relatives),
+        'excluded_test_files': excluded_test_files,
+        'unhandled_entries': sorted(unhandled_entries),
+    }
 
 
 def shard_tests(tests: List[str], shard: int, num_shards: int) -> List[str]:
@@ -143,9 +249,12 @@ def create_shard_info(shard: int, num_shards: int, timestamp: str) -> Dict:
     return {
         'shard': shard,
         'num_shards': num_shards,
+        'selection_mode': 'unknown',
         'total_files': 0,
+        'upstream_selected_tests': 0,
+        'upstream_selected_file_tests': 0,
+        'upstream_unhandled_tests': 0,
         'shard_files': 0,
-        'excluded_dirs': list(EXCLUDED_TEST_DIRS),
         'excluded_test_files': 0,
         'disabled_count': 0,
         'disabled_count_matched': 0,
@@ -306,13 +415,23 @@ def save_test_plan_file(report_dir: str, shard: int, test_targets: List[str]) ->
 
 
 def save_excluded_test_files_file(report_dir: str, shard: int, test_targets: List[str]) -> str:
-    """保存因目录规则被排除的测试文件列表"""
+    """保存因上游选择语义被排除的测试文件列表"""
     os.makedirs(report_dir, exist_ok=True)
     excluded_file = os.path.join(report_dir, f'shard_{shard}_excluded_test_files.txt')
     with open(excluded_file, 'w', encoding='utf-8') as f:
         for target in test_targets:
             f.write(f"{target}\n")
     return excluded_file
+
+
+def save_unhandled_test_entries_file(report_dir: str, shard: int, test_entries: List[str]) -> str:
+    """保存上游官方选择中当前 runner 未直接承接的特殊测试项。"""
+    os.makedirs(report_dir, exist_ok=True)
+    unhandled_file = os.path.join(report_dir, f'shard_{shard}_unhandled_upstream_tests.txt')
+    with open(unhandled_file, 'w', encoding='utf-8') as f:
+        for entry in test_entries:
+            f.write(f"{entry}\n")
+    return unhandled_file
 
 
 def print_test_plan(shard: int, test_targets: List[str], plan_file: str) -> None:
@@ -496,10 +615,24 @@ def main():
         info['disabled_count'] = len(disabled)
 
         # Step 2: 发现测试文件
-        all_test_files, excluded_test_files = discover_test_files(args.test_dir)
-        log_print(f"Discovered {len(all_test_files)} test files")
-        info['total_files'] = len(all_test_files)
+        selection_plan = build_upstream_selection_plan(args.test_dir)
+        all_test_files = selection_plan['selected_file_targets']
+        excluded_test_files = selection_plan['excluded_test_files']
+        unhandled_entries = selection_plan['unhandled_entries']
+
+        log_print(
+            f"Discovered {len(selection_plan['raw_test_files'])} raw test_*.py files"
+        )
+        log_print(
+            f"Selected {len(all_test_files)} file-backed tests from upstream TESTS semantics"
+        )
+        info['selection_mode'] = str(selection_plan['selection_mode'])
+        info['total_files'] = len(selection_plan['raw_test_files'])
+        info['upstream_selected_tests'] = len(selection_plan['selected_entries'])
+        info['upstream_selected_file_tests'] = len(all_test_files)
+        info['upstream_unhandled_tests'] = len(unhandled_entries)
         info['excluded_test_files'] = len(excluded_test_files)
+
         if excluded_test_files:
             excluded_file = save_excluded_test_files_file(
                 args.report_dir,
@@ -507,7 +640,16 @@ def main():
                 excluded_test_files,
             )
             log_print(
-                f"Excluded {len(excluded_test_files)} test files by directory rules: {excluded_file}"
+                f"Excluded {len(excluded_test_files)} test files by upstream selection semantics: {excluded_file}"
+            )
+        if unhandled_entries:
+            unhandled_file = save_unhandled_test_entries_file(
+                args.report_dir,
+                args.shard,
+                unhandled_entries,
+            )
+            log_print(
+                f"Recorded {len(unhandled_entries)} upstream-selected special tests not directly handled by this runner: {unhandled_file}"
             )
 
         # Step 3: 分片

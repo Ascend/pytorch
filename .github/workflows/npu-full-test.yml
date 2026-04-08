@@ -238,10 +238,292 @@ jobs:
             /tmp/test_shard_${{ matrix.shard }}.log
           if-no-files-found: warn
 
+  autoload:
+    needs: prepare
+    runs-on: linux-aarch64-a3-2
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root
+    strategy:
+      matrix:
+        test_name:
+          - test_autoload_enable
+          - test_autoload_disable
+      fail-fast: false
+
+    steps:
+      - name: Checkout current repository (for special test runner)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: ascend_pytorch
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+          chmod -R 777 /github/home/.cache
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/pip
+          key: pip-arm-fulltest-py${{ env.PYTHON_VERSION }}-v${{ env.PYTORCH_VERSION }}
+          restore-keys: |
+            pip-arm-fulltest-py${{ env.PYTHON_VERSION }}-
+
+      - name: Uninstall pre-installed torch/torchvision
+        run: |
+          pip${{ env.PYTHON_VERSION }} uninstall -y torch torchvision || true
+
+      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PIP=pip${{ env.PYTHON_VERSION }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          $PIP install --upgrade pip
+          $PIP install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+          $PIP install ${{ env.TORCH_NPU_WHL }}
+
+      - name: Download prepared test source
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: prepared-test-src-artifact
+
+      - name: Extract prepared test source
+        run: |
+          tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
+
+      - name: Install test dependencies
+        run: |
+          PIP=pip${{ env.PYTHON_VERSION }}
+          cd pytorch-test-src
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard
+          if [ -f requirements.txt ]; then
+            $PIP install -r requirements.txt
+          fi
+
+      - name: Run special autoload test
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          REPORT_DIR=special-test-reports
+
+          mkdir -p ${REPORT_DIR}
+
+          $PYTHON ascend_pytorch/.github/scripts/run_npu_special_test.py \
+            --test-name ${{ matrix.test_name }} \
+            --repo-root pytorch-test-src \
+            --report-dir ${REPORT_DIR}
+
+      - name: Upload special test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: special-test-reports-${{ matrix.test_name }}
+          path: special-test-reports/
+          retention-days: 30
+
+  cpp-extension:
+    needs: prepare
+    runs-on: linux-aarch64-a3-2
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root
+    strategy:
+      matrix:
+        test_name:
+          - test_cpp_extensions_aot_ninja
+          - test_cpp_extensions_aot_no_ninja
+      fail-fast: false
+
+    steps:
+      - name: Checkout current repository (for special test runner)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: ascend_pytorch
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+          chmod -R 777 /github/home/.cache
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/pip
+          key: pip-arm-fulltest-py${{ env.PYTHON_VERSION }}-v${{ env.PYTORCH_VERSION }}
+          restore-keys: |
+            pip-arm-fulltest-py${{ env.PYTHON_VERSION }}-
+
+      - name: Uninstall pre-installed torch/torchvision
+        run: |
+          pip${{ env.PYTHON_VERSION }} uninstall -y torch torchvision || true
+
+      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PIP=pip${{ env.PYTHON_VERSION }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          $PIP install --upgrade pip
+          $PIP install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+          $PIP install ${{ env.TORCH_NPU_WHL }}
+          $PIP install ninja
+
+      - name: Download prepared test source
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: prepared-test-src-artifact
+
+      - name: Extract prepared test source
+        run: |
+          tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
+
+      - name: Install test dependencies
+        run: |
+          PIP=pip${{ env.PYTHON_VERSION }}
+          cd pytorch-test-src
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard
+          if [ -f requirements.txt ]; then
+            $PIP install -r requirements.txt
+          fi
+
+      - name: Run special cpp extension test
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          REPORT_DIR=special-test-reports
+
+          mkdir -p ${REPORT_DIR}
+
+          $PYTHON ascend_pytorch/.github/scripts/run_npu_special_test.py \
+            --test-name ${{ matrix.test_name }} \
+            --repo-root pytorch-test-src \
+            --report-dir ${REPORT_DIR}
+
+      - name: Upload special test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: special-test-reports-${{ matrix.test_name }}
+          path: special-test-reports/
+          retention-days: 30
+
+  distributed-special:
+    needs: prepare
+    runs-on: linux-aarch64-a3-2
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root
+    strategy:
+      matrix:
+        test_name:
+          - distributed/test_distributed_spawn
+          - distributed/algorithms/quantization/test_quantization
+          - distributed/test_c10d_common
+          - distributed/test_c10d_nccl
+          - distributed/test_c10d_spawn_nccl
+          - distributed/test_store
+          - distributed/test_pg_wrapper
+      fail-fast: false
+
+    steps:
+      - name: Checkout current repository (for special test runner)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: ascend_pytorch
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+          chmod -R 777 /github/home/.cache
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/pip
+          key: pip-arm-fulltest-py${{ env.PYTHON_VERSION }}-v${{ env.PYTORCH_VERSION }}
+          restore-keys: |
+            pip-arm-fulltest-py${{ env.PYTHON_VERSION }}-
+
+      - name: Uninstall pre-installed torch/torchvision
+        run: |
+          pip${{ env.PYTHON_VERSION }} uninstall -y torch torchvision || true
+
+      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PIP=pip${{ env.PYTHON_VERSION }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          $PIP install --upgrade pip
+          $PIP install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+          $PIP install ${{ env.TORCH_NPU_WHL }}
+
+      - name: Download prepared test source
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: prepared-test-src-artifact
+
+      - name: Extract prepared test source
+        run: |
+          tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
+
+      - name: Install test dependencies
+        run: |
+          PIP=pip${{ env.PYTHON_VERSION }}
+          cd pytorch-test-src
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard
+          if [ -f requirements.txt ]; then
+            $PIP install -r requirements.txt
+          fi
+
+      - name: Run distributed special test
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          REPORT_DIR=special-test-reports
+
+          mkdir -p ${REPORT_DIR}
+
+          $PYTHON ascend_pytorch/.github/scripts/run_npu_special_test.py \
+            --test-name ${{ matrix.test_name }} \
+            --repo-root pytorch-test-src \
+            --report-dir ${REPORT_DIR}
+
+      - name: Upload special test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: special-test-reports-${{ matrix.test_name }}
+          path: special-test-reports/
+          retention-days: 30
+
   report:
     needs:
       - prepare
       - test
+      - autoload
+      - cpp-extension
+      - distributed-special
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -262,6 +544,13 @@ jobs:
           path: all-test-reports
           merge-multiple: true
 
+      - name: Download special test reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: special-test-reports-*
+          path: all-special-test-reports
+          merge-multiple: true
+
       - name: Generate consolidated summary
         run: |
           PYTHON=python
@@ -270,12 +559,14 @@ jobs:
 
           $PYTHON .github/scripts/generate_npu_full_test_report.py \
             --reports-root all-test-reports \
+            --special-reports-root all-special-test-reports \
             --output-markdown ${REPORT_MD} \
             --output-json ${REPORT_JSON} \
             --pytorch-version "${{ env.PYTORCH_VERSION }}" \
             --torch-npu-whl "${{ env.TORCH_NPU_WHL }}" \
             --patch-count "${{ needs.prepare.outputs.patch_count || 'N/A' }}" \
-            --shard-matrix-json '${{ needs.prepare.outputs.shard_matrix }}'
+            --shard-matrix-json '${{ needs.prepare.outputs.shard_matrix }}' \
+            --expected-special-tests-json '["test_autoload_enable", "test_autoload_disable", "test_cpp_extensions_aot_ninja", "test_cpp_extensions_aot_no_ninja", "distributed/test_distributed_spawn", "distributed/algorithms/quantization/test_quantization", "distributed/test_c10d_common", "distributed/test_c10d_nccl", "distributed/test_c10d_spawn_nccl", "distributed/test_store", "distributed/test_pg_wrapper"]'
 
           cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
 

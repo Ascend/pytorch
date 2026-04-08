@@ -19,6 +19,8 @@ def parse_args():
     parser.add_argument("--torch-npu-whl", required=True, help="torch_npu wheel URL")
     parser.add_argument("--patch-count", default="N/A", help="Applied patch count")
     parser.add_argument("--shard-matrix-json", required=True, help="JSON array of requested shard ids")
+    parser.add_argument("--special-reports-root", help="Root directory containing special test report files")
+    parser.add_argument("--expected-special-tests-json", default="[]", help="JSON array of expected special test names")
     return parser.parse_args()
 
 
@@ -45,6 +47,22 @@ def parse_requested_shards(raw: str) -> List[int]:
     return sorted(set(result))
 
 
+def parse_expected_special_tests(raw: str) -> List[str]:
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        return []
+
+    if not isinstance(value, list):
+        return []
+
+    result = []
+    for item in value:
+        if isinstance(item, str) and item:
+            result.append(item)
+    return sorted(set(result))
+
+
 def load_text_lines(path: Path) -> List[str]:
     with open(path, "r", encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip()]
@@ -52,11 +70,12 @@ def load_text_lines(path: Path) -> List[str]:
 
 def discover_shard_files(
     reports_root: Path,
-) -> Tuple[Dict[int, Path], Dict[int, Path], Dict[int, Path], Dict[int, Path]]:
+) -> Tuple[Dict[int, Path], Dict[int, Path], Dict[int, Path], Dict[int, Path], Dict[int, Path]]:
     stats_files = {}
     info_files = {}
     plan_files = {}
     excluded_files = {}
+    unhandled_files = {}
 
     for path in reports_root.rglob("shard_*_stats.json"):
         try:
@@ -86,7 +105,14 @@ def discover_shard_files(
             continue
         excluded_files[shard] = path
 
-    return stats_files, info_files, plan_files, excluded_files
+    for path in reports_root.rglob("shard_*_unhandled_upstream_tests.txt"):
+        try:
+            shard = int(path.stem.split("_")[1])
+        except (IndexError, ValueError):
+            continue
+        unhandled_files[shard] = path
+
+    return stats_files, info_files, plan_files, excluded_files, unhandled_files
 
 
 def get_shard_status(stats: Dict, present: bool) -> str:
@@ -168,14 +194,33 @@ def render_table(headers: List[str], rows: List[List[str]]) -> List[str]:
     return lines
 
 
+def discover_special_test_files(reports_root: Path | None) -> Dict[str, Path]:
+    if reports_root is None or not reports_root.exists():
+        return {}
+
+    special_files = {}
+    for path in reports_root.rglob("special_test_*.json"):
+        try:
+            payload = load_json_file(path)
+        except Exception:
+            continue
+        name = payload.get("name")
+        if isinstance(name, str) and name:
+            special_files[name] = path
+    return special_files
+
+
 def main():
     args = parse_args()
     reports_root = Path(args.reports_root)
     output_markdown = Path(args.output_markdown)
     output_json = Path(args.output_json)
     requested_shards = parse_requested_shards(args.shard_matrix_json)
+    expected_special_tests = parse_expected_special_tests(args.expected_special_tests_json)
+    special_reports_root = Path(args.special_reports_root) if args.special_reports_root else None
 
-    stats_files, info_files, plan_files, excluded_files = discover_shard_files(reports_root)
+    stats_files, info_files, plan_files, excluded_files, unhandled_files = discover_shard_files(reports_root)
+    special_test_files = discover_special_test_files(special_reports_root)
     shard_ids = requested_shards or sorted(set(stats_files) | set(info_files))
 
     status_counts = Counter()
@@ -187,27 +232,34 @@ def main():
         "errors": 0,
         "duration": 0.0,
         "discovered_test_files": 0,
+        "upstream_selected_tests": 0,
+        "upstream_selected_file_tests": 0,
         "planned_files": 0,
     }
     shard_rows = []
     unique_planned_files = set()
     unique_excluded_files = set()
-    excluded_dirs = set()
+    unique_unhandled_tests = set()
+    selection_modes = set()
 
     for shard in shard_ids:
         stats_path = stats_files.get(shard)
         info_path = info_files.get(shard)
         plan_path = plan_files.get(shard)
         excluded_path = excluded_files.get(shard)
+        unhandled_path = unhandled_files.get(shard)
         stats = load_json_file(stats_path) if stats_path else {}
         info = load_json_file(info_path) if info_path else {}
         planned_files = load_text_lines(plan_path) if plan_path else []
         excluded_test_files = load_text_lines(excluded_path) if excluded_path else []
+        unhandled_tests = load_text_lines(unhandled_path) if unhandled_path else []
         present = bool(stats_path)
 
         unique_planned_files.update(planned_files)
         unique_excluded_files.update(excluded_test_files)
-        excluded_dirs.update(info.get("excluded_dirs", []))
+        unique_unhandled_tests.update(unhandled_tests)
+        if info.get("selection_mode"):
+            selection_modes.add(str(info.get("selection_mode")))
 
         status = get_shard_status(stats, present)
         status_counts[status] += 1
@@ -220,6 +272,12 @@ def main():
         totals["duration"] += float(stats.get("duration", 0.0))
         totals["discovered_test_files"] = max(
             totals["discovered_test_files"], int(info.get("total_files", 0))
+        )
+        totals["upstream_selected_tests"] = max(
+            totals["upstream_selected_tests"], int(info.get("upstream_selected_tests", 0))
+        )
+        totals["upstream_selected_file_tests"] = max(
+            totals["upstream_selected_file_tests"], int(info.get("upstream_selected_file_tests", 0))
         )
         totals["planned_files"] += int(info.get("shard_files", 0))
 
@@ -235,6 +293,9 @@ def main():
                 "duration": float(stats.get("duration", 0.0)),
                 "planned_files": int(info.get("shard_files", 0)),
                 "discovered_test_files": int(info.get("total_files", 0)),
+                "upstream_selected_tests": int(info.get("upstream_selected_tests", 0)),
+                "upstream_selected_file_tests": int(info.get("upstream_selected_file_tests", 0)),
+                "upstream_unhandled_tests": int(info.get("upstream_unhandled_tests", 0)),
                 "planned_file_names": planned_files,
                 "excluded_test_files": int(info.get("excluded_test_files", 0)),
                 "disabled_matched": int(info.get("disabled_count_matched", 0)),
@@ -248,10 +309,10 @@ def main():
     received_reports = len(stats_files)
     expected_reports = len(shard_ids)
     unique_planned_count = len(unique_planned_files)
-    excluded_dirs_list = sorted(excluded_dirs)
     excluded_test_files_list = sorted(unique_excluded_files)
+    unhandled_tests_list = sorted(unique_unhandled_tests)
     not_covered_by_requested_shards = max(
-        totals["discovered_test_files"] - unique_planned_count,
+        totals["upstream_selected_file_tests"] - unique_planned_count,
         0,
     )
     not_covered_display = str(not_covered_by_requested_shards)
@@ -259,9 +320,31 @@ def main():
         not_covered_display = (
             f"{not_covered_by_requested_shards} (based on collected reports only; some shard reports are missing)"
         )
+    selection_mode_display = ", ".join(sorted(selection_modes)) if selection_modes else "-"
 
     failed_like = [row for row in shard_rows if row["status"] not in ("PASSED", "NO TESTS")]
     slowest = sorted(shard_rows, key=lambda row: row["duration"], reverse=True)[:20]
+    special_test_names = expected_special_tests or sorted(special_test_files)
+    special_test_rows = []
+    special_status_counts = Counter()
+
+    for test_name in special_test_names:
+        payload = load_json_file(special_test_files[test_name]) if test_name in special_test_files else {}
+        status = str(payload.get("status", "MISSING"))
+        special_status_counts[status] += 1
+        special_test_rows.append(
+            {
+                "name": test_name,
+                "group": str(payload.get("group", "-")),
+                "status": status,
+                "duration": float(payload.get("duration", 0.0)),
+                "returncode": payload.get("returncode", "-"),
+                "note": str(payload.get("note", "") or "-"),
+            }
+        )
+
+    if any(row["status"] != "PASSED" for row in special_test_rows):
+        overall_status = "FAILED"
 
     markdown_lines = [
         "# PyTorch NPU Full Test Summary",
@@ -277,8 +360,12 @@ def main():
                 ["Patches applied", str(args.patch_count)],
                 ["Requested shards", str(expected_reports)],
                 ["Reports collected", f"{received_reports} / {expected_reports}"],
+                ["Selection mode", selection_mode_display],
                 ["Discovered test files", str(totals["discovered_test_files"])],
+                ["Upstream selected test entries", str(totals["upstream_selected_tests"])],
+                ["Upstream selected file-backed tests", str(totals["upstream_selected_file_tests"])],
                 ["Planned files in requested shards", str(totals["planned_files"])],
+                ["Special tests expected", str(len(special_test_names))],
                 ["Overall result", overall_status],
             ],
         )
@@ -294,7 +381,10 @@ def main():
                 ["Skipped", str(totals["skipped"])],
                 ["Errors", str(totals["errors"])],
                 ["Discovered test files", str(totals["discovered_test_files"])],
+                ["Upstream selected test entries", str(totals["upstream_selected_tests"])],
+                ["Upstream selected file-backed tests", str(totals["upstream_selected_file_tests"])],
                 ["Planned files in requested shards", str(totals["planned_files"])],
+                ["Special tests passed", str(special_status_counts["PASSED"])],
                 ["Cumulative duration", format_duration(totals["duration"])],
             ],
         )
@@ -304,17 +394,36 @@ def main():
         render_table(
             ["Item", "Value"],
             [
+                ["Selection source", selection_mode_display],
                 ["Unique planned test files in collected reports", str(unique_planned_count)],
                 ["Files not covered by requested shard range", not_covered_display],
-                ["Excluded directories by code logic", ", ".join(excluded_dirs_list) if excluded_dirs_list else "-"],
-                ["Excluded test files by code logic", str(len(excluded_test_files_list))],
+                ["Excluded test files by upstream selection semantics", str(len(excluded_test_files_list))],
+                ["Upstream special tests not directly handled by current runner", str(len(unhandled_tests_list))],
+                ["Workflow-handled special tests", str(len(special_test_rows))],
             ],
         )
     )
-    markdown_lines.extend(["", "### Excluded Directories"])
-    markdown_lines.extend(format_scope_list(excluded_dirs_list))
     markdown_lines.extend(["", "### Excluded Test Files"])
     markdown_lines.extend(format_scope_list(excluded_test_files_list))
+    markdown_lines.extend(["", "### Unhandled Upstream Special Tests"])
+    markdown_lines.extend(format_scope_list(unhandled_tests_list))
+    markdown_lines.extend(["", "## Special Test Results"])
+    markdown_lines.extend(
+        render_table(
+            ["Test", "Group", "Status", "Duration", "Return Code", "Note"],
+            [
+                [
+                    row["name"],
+                    row["group"],
+                    row["status"],
+                    format_duration(row["duration"]),
+                    str(row["returncode"]),
+                    sanitize_markdown_cell(row["note"]),
+                ]
+                for row in special_test_rows
+            ] or [["-", "-", "-", "0.0s", "-", "-"]],
+        )
+    )
     markdown_lines.extend(["", "## Shard Status Counts"])
     markdown_lines.extend(
         render_table(
@@ -395,10 +504,16 @@ def main():
         "status_counts": dict(status_counts),
         "totals": totals,
         "execution_scope": {
+            "selection_mode": sorted(selection_modes),
             "unique_planned_test_files": unique_planned_count,
             "files_not_covered_by_requested_shards": not_covered_by_requested_shards,
-            "excluded_directories": excluded_dirs_list,
             "excluded_test_files": excluded_test_files_list,
+            "unhandled_upstream_special_tests": unhandled_tests_list,
+        },
+        "special_tests": {
+            "expected": special_test_names,
+            "status_counts": dict(special_status_counts),
+            "results": special_test_rows,
         },
         "shards": shard_rows,
         "failed_like_shards": failed_like,
