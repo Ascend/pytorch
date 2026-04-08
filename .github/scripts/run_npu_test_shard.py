@@ -322,6 +322,7 @@ def run_pytest(
     # 转换为绝对路径
     report_dir = os.path.abspath(report_dir)
     test_dir = os.path.abspath(test_dir)
+    test_dir_path = Path(test_dir).resolve()
     os.makedirs(report_dir, exist_ok=True)
 
     xml_report = os.path.join(report_dir, f'junit_shard_{shard}.xml')

@@ -1,0 +1,329 @@
+#!/usr/bin/env python3
+"""
+Generate a consolidated markdown/json report for the NPU full test workflow.
+"""
+
+import argparse
+import json
+from collections import Counter
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Generate consolidated NPU full test report")
+    parser.add_argument("--reports-root", required=True, help="Root directory containing downloaded shard report artifacts")
+    parser.add_argument("--output-markdown", required=True, help="Path to write markdown report")
+    parser.add_argument("--output-json", required=True, help="Path to write json report")
+    parser.add_argument("--pytorch-version", required=True, help="PyTorch version string")
+    parser.add_argument("--torch-npu-whl", required=True, help="torch_npu wheel URL")
+    parser.add_argument("--patch-count", default="N/A", help="Applied patch count")
+    parser.add_argument("--shard-matrix-json", required=True, help="JSON array of requested shard ids")
+    return parser.parse_args()
+
+
+def load_json_file(path: Path) -> Dict:
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def parse_requested_shards(raw: str) -> List[int]:
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        return []
+
+    if not isinstance(value, list):
+        return []
+
+    result = []
+    for item in value:
+        try:
+            result.append(int(item))
+        except (TypeError, ValueError):
+            continue
+    return sorted(set(result))
+
+
+def discover_shard_files(reports_root: Path) -> Tuple[Dict[int, Path], Dict[int, Path]]:
+    stats_files = {}
+    info_files = {}
+
+    for path in reports_root.rglob("shard_*_stats.json"):
+        try:
+            shard = int(path.stem.split("_")[1])
+        except (IndexError, ValueError):
+            continue
+        stats_files[shard] = path
+
+    for path in reports_root.rglob("shard_*_info.json"):
+        try:
+            shard = int(path.stem.split("_")[1])
+        except (IndexError, ValueError):
+            continue
+        info_files[shard] = path
+
+    return stats_files, info_files
+
+
+def get_shard_status(stats: Dict, present: bool) -> str:
+    if not present:
+        return "MISSING"
+    if stats.get("crashed"):
+        return "CRASHED"
+    if stats.get("timed_out"):
+        return "TIMEOUT"
+    if stats.get("incomplete"):
+        return "INCOMPLETE"
+    if stats.get("errors", 0) > 0:
+        return "ERROR"
+    if stats.get("failed", 0) > 0:
+        return "FAILED"
+    if stats.get("total", 0) == 0:
+        return "NO TESTS"
+    return "PASSED"
+
+
+def get_overall_status(status_counts: Counter) -> str:
+    if status_counts["MISSING"] > 0:
+        return "FAILED"
+    if any(status_counts[key] > 0 for key in ("CRASHED", "TIMEOUT", "INCOMPLETE", "ERROR", "FAILED")):
+        return "FAILED"
+    if status_counts["PASSED"] > 0:
+        return "PASSED"
+    return "NO TESTS"
+
+
+def format_duration(seconds: float) -> str:
+    seconds = float(seconds)
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = seconds % 60
+    if hours > 0:
+        return f"{hours}h {minutes}m {secs:.1f}s"
+    if minutes > 0:
+        return f"{minutes}m {secs:.1f}s"
+    return f"{secs:.1f}s"
+
+
+def build_note(stats: Dict) -> str:
+    notes = []
+    if stats.get("crash_signal"):
+        notes.append(stats["crash_signal"])
+    if stats.get("timed_out"):
+        notes.append("overall timeout")
+    if stats.get("incomplete"):
+        notes.append("no junit xml")
+    if stats.get("error_message"):
+        notes.append(stats["error_message"])
+    return "; ".join(notes)
+
+
+def render_table(headers: List[str], rows: List[List[str]]) -> List[str]:
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join(["---"] * len(headers)) + " |",
+    ]
+    for row in rows:
+        lines.append("| " + " | ".join(row) + " |")
+    return lines
+
+
+def main():
+    args = parse_args()
+    reports_root = Path(args.reports_root)
+    output_markdown = Path(args.output_markdown)
+    output_json = Path(args.output_json)
+    requested_shards = parse_requested_shards(args.shard_matrix_json)
+
+    stats_files, info_files = discover_shard_files(reports_root)
+    shard_ids = requested_shards or sorted(set(stats_files) | set(info_files))
+
+    status_counts = Counter()
+    totals = {
+        "total": 0,
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0,
+        "duration": 0.0,
+    }
+    shard_rows = []
+
+    for shard in shard_ids:
+        stats_path = stats_files.get(shard)
+        info_path = info_files.get(shard)
+        stats = load_json_file(stats_path) if stats_path else {}
+        info = load_json_file(info_path) if info_path else {}
+        present = bool(stats_path)
+
+        status = get_shard_status(stats, present)
+        status_counts[status] += 1
+
+        totals["total"] += int(stats.get("total", 0))
+        totals["passed"] += int(stats.get("passed", 0))
+        totals["failed"] += int(stats.get("failed", 0))
+        totals["skipped"] += int(stats.get("skipped", 0))
+        totals["errors"] += int(stats.get("errors", 0))
+        totals["duration"] += float(stats.get("duration", 0.0))
+
+        shard_rows.append(
+            {
+                "shard": shard,
+                "status": status,
+                "total": int(stats.get("total", 0)),
+                "passed": int(stats.get("passed", 0)),
+                "failed": int(stats.get("failed", 0)),
+                "skipped": int(stats.get("skipped", 0)),
+                "errors": int(stats.get("errors", 0)),
+                "duration": float(stats.get("duration", 0.0)),
+                "files": int(info.get("shard_files", 0)),
+                "disabled_matched": int(info.get("disabled_count_matched", 0)),
+                "disabled_deselected": int(info.get("disabled_count_deselected", 0)),
+                "note": build_note(stats),
+            }
+        )
+
+    overall_status = get_overall_status(status_counts)
+    whl_name = Path(args.torch_npu_whl).name
+    received_reports = len(stats_files)
+    expected_reports = len(shard_ids)
+
+    failed_like = [row for row in shard_rows if row["status"] not in ("PASSED", "NO TESTS")]
+    slowest = sorted(shard_rows, key=lambda row: row["duration"], reverse=True)[:10]
+
+    markdown_lines = [
+        "# PyTorch NPU Full Test 汇总报告",
+        "",
+        "## 总览",
+    ]
+    markdown_lines.extend(
+        render_table(
+            ["项目", "值"],
+            [
+                ["PyTorch", f"`v{args.pytorch_version}`"],
+                ["torch_npu", f"`{whl_name}`"],
+                ["Patches applied", str(args.patch_count)],
+                ["Requested shards", str(expected_reports)],
+                ["Reports collected", f"{received_reports} / {expected_reports}"],
+                ["Overall result", overall_status],
+            ],
+        )
+    )
+    markdown_lines.extend(
+        [
+            "",
+            "## 测试统计",
+        ]
+    )
+    markdown_lines.extend(
+        render_table(
+            ["指标", "数值"],
+            [
+                ["Total", str(totals["total"])],
+                ["Passed", str(totals["passed"])],
+                ["Failed", str(totals["failed"])],
+                ["Skipped", str(totals["skipped"])],
+                ["Errors", str(totals["errors"])],
+                ["累计耗时", format_duration(totals["duration"])],
+            ],
+        )
+    )
+    markdown_lines.extend(
+        [
+            "",
+            "## 分片状态",
+        ]
+    )
+    markdown_lines.extend(
+        render_table(
+            ["状态", "分片数"],
+            [
+                ["PASSED", str(status_counts["PASSED"])],
+                ["FAILED", str(status_counts["FAILED"])],
+                ["ERROR", str(status_counts["ERROR"])],
+                ["CRASHED", str(status_counts["CRASHED"])],
+                ["TIMEOUT", str(status_counts["TIMEOUT"])],
+                ["INCOMPLETE", str(status_counts["INCOMPLETE"])],
+                ["NO TESTS", str(status_counts["NO TESTS"])],
+                ["MISSING", str(status_counts["MISSING"])],
+            ],
+        )
+    )
+
+    markdown_lines.extend(["", "## 最慢分片 Top 10"])
+    markdown_lines.extend(
+        render_table(
+            ["Shard", "Status", "Total", "Failed", "Errors", "Duration", "Files", "Disabled matched"],
+            [
+                [
+                    str(row["shard"]),
+                    row["status"],
+                    str(row["total"]),
+                    str(row["failed"]),
+                    str(row["errors"]),
+                    format_duration(row["duration"]),
+                    str(row["files"]),
+                    str(row["disabled_matched"]),
+                ]
+                for row in slowest
+            ],
+        )
+    )
+
+    markdown_lines.extend(["", "## 非通过分片"])
+    if failed_like:
+        markdown_lines.extend(
+            render_table(
+                ["Shard", "Status", "Total", "Failed", "Errors", "Duration", "Files", "Disabled matched", "备注"],
+                [
+                    [
+                        str(row["shard"]),
+                        row["status"],
+                        str(row["total"]),
+                        str(row["failed"]),
+                        str(row["errors"]),
+                        format_duration(row["duration"]),
+                        str(row["files"]),
+                        str(row["disabled_matched"]),
+                        row["note"] or "-",
+                    ]
+                    for row in sorted(failed_like, key=lambda row: row["shard"])
+                ],
+            )
+        )
+    else:
+        markdown_lines.append("所有分片均通过。")
+
+    markdown_lines.extend(
+        [
+            "",
+            "## 说明",
+            "",
+            "- `累计耗时` 为所有分片 `duration` 的求和，不等于 workflow 墙钟时间。",
+            "- `Disabled matched` 表示当前分片命中的 disabled testcase 条目数。",
+            "- `MISSING` 表示汇总阶段未找到该分片的 stats 文件。",
+        ]
+    )
+
+    report_json = {
+        "overall_status": overall_status,
+        "requested_shards": shard_ids,
+        "reports_collected": received_reports,
+        "patch_count": args.patch_count,
+        "pytorch_version": args.pytorch_version,
+        "torch_npu_whl": whl_name,
+        "status_counts": dict(status_counts),
+        "totals": totals,
+        "shards": shard_rows,
+    }
+
+    output_markdown.write_text("\n".join(markdown_lines) + "\n", encoding="utf-8")
+    output_json.write_text(json.dumps(report_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    print(f"Generated markdown report: {output_markdown}")
+    print(f"Generated json report: {output_json}")
+
+
+if __name__ == "__main__":
+    main()
