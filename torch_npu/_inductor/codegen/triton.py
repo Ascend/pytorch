@@ -574,14 +574,18 @@ class NPUIndexTritonKernel(TritonKernel):
                 if node in (EnableReduction, DisableReduction):
                     continue
                 for key, _ in node._body.indexing_map.items():
-                    if key in self.range_tree_nodes:
-                        dim = self.range_tree_nodes[key]
-                    else:
-                        dim = self.range_tree_nodes_removed[key]
-
-                    if dim.parent == axis.parent:
-                        dtype = V.graph.get_dtype(node.node.name)
-                        should_break_all = True
+                    syms = (key.free_symbols if isinstance(key, sympy.Expr) else {key})
+                    for sym in syms:
+                        
+                        if sym in self.range_tree_nodes:
+                            dim = self.range_tree_nodes[sym]
+                        else:
+                            dim = self.range_tree_nodes_removed[sym]  
+                        if dim.parent == axis.parent:
+                            dtype = V.graph.get_dtype(node.node.name)
+                            should_break_all = True
+                            break
+                    if should_break_all:
                         break
         return dtype
 
