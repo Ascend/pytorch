@@ -393,6 +393,7 @@ class TritonCompileResultNpu(TritonCompileResult):
 
         launcher = scope["launcher"]
         launcher.config = cfg
+        launcher.runnable = True
         launcher.n_regs = getattr(binary, "n_regs", None)
         launcher.n_spills = getattr(binary, "n_spills", None)
         launcher.shared = binary_shared
@@ -1437,11 +1438,12 @@ def benchmark_all_configs(self, *args, **kwargs):
 
 def _benchmark_all_configs(self, *args, **kwargs):
     log.info(f"{self.get_fn_name()} candidate launcher count = {len(self.launchers)}")
-    
     tilling_kernel_list = []
 
     def kernel_call(launcher):
         def call_kernel():
+            if not launcher.runnable:
+                return
             if launcher.config.pre_hook is not None:
                 launcher.config.pre_hook(
                     {**dict(zip(self.arg_names, args)), **launcher.config.kwargs}
@@ -1456,7 +1458,7 @@ def _benchmark_all_configs(self, *args, **kwargs):
 
         return call_kernel
 
-    for launcher in self.launchers:
+    for idx, launcher in enumerate(self.launchers):
         if not self.custom_kernel and launcher.n_spills > config.triton.spill_threshold:
             return float("inf")
 
@@ -1469,8 +1471,14 @@ def _benchmark_all_configs(self, *args, **kwargs):
         try:
             kernel_call_fn()
             torch.npu.synchronize()
+            log.debug(f"PreRun [{self.fn.__name__}], index: {idx}\n tiling [{launcher.config}] success")
         except Exception as e:
-            raise RuntimeError(f"Run [{self.fn.__name__}] \n tiling [{launcher.config}] \n") from e
+            launcher.runnable = False
+            log.warning(f"PreRun [{self.fn.__name__}], index: {idx}\n tiling [{launcher.config}] \n err: {e}")
+
+    valid_tiling_length = len([launcher for launcher in self.launchers if launcher.runnable])
+    if not valid_tiling_length:
+        raise RuntimeError("All tiling for [{self.fn.__name__}] are not runnable.")
 
     def do_batch_benchmark(tilling_kernel_list):
 
@@ -1509,9 +1517,20 @@ def _benchmark_all_configs(self, *args, **kwargs):
                 df = pd.read_csv(target_file)
                 triton_rows = df[df['Name'].str.startswith('triton', na=False)]
                 time_cost = [0] * tiling_length
+                valid_tiling_index = 0
+
+                if len(triton_rows) != valid_tiling_length * ACTIVE:
+                    raise RuntimeError(f"Expected {valid_tiling_length * ACTIVE} rows for triton kernels, but got {len(triton_rows)}. "
+                                f"This may be due to profiling errors. Please check the profiling result at {target_file} for more details.")
+
                 for tiling_index in range(tiling_length):
+                    if not self.launchers[tiling_index].runnable:
+                        time_cost[tiling_index] = float('inf')
+                        continue
                     for active_index in range(ACTIVE):
-                        time_cost[tiling_index] += triton_rows.iloc[tiling_index + tiling_length * active_index]['Duration(us)']
+                        time_cost[tiling_index] += triton_rows.iloc[valid_tiling_index + valid_tiling_length * active_index]['Duration(us)']
+                    valid_tiling_index += 1
+
                 time_cost = list(map(lambda x: x / ACTIVE, time_cost))
                 delete_file(autotune_path)
                 return time_cost
@@ -1540,7 +1559,7 @@ def _benchmark_all_configs(self, *args, **kwargs):
         print(e)
         print("switched to single bench...")
         timings = {
-            launcher: self.bench(launcher, *args, **kwargs)
+            launcher: self.bench(launcher, *args, **kwargs) if launcher.runnable else float("inf")
             for launcher in self.launchers
         }
 
