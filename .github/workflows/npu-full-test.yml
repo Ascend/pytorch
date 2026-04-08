@@ -187,7 +187,24 @@ jobs:
         run: |
           PIP=pip${{ env.PYTHON_VERSION }}
           cd pytorch-test-src
+
+          # Base test runner dependencies used by this workflow itself.
           $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard
+
+          # Minimal compatibility layer for upstream test/run_test.py semantics.
+          # - pytest-rerunfailures: required because upstream get_pytest_args() adds --reruns=2 by default.
+          # - pytest-flakefinder: required when upstream rerun-disabled-tests / flake-finder path is enabled.
+          # - pytest-subtests: used by a subset of upstream pytest-based tests.
+          # - xdoctest: required if upstream-selected doctests are included.
+          # - pulp: imported by distributed/_tools/test_sac_ilp.
+          $PIP install \
+            'pytest-rerunfailures>=10.3' \
+            'pytest-flakefinder==1.1.0' \
+            'pytest-subtests==0.13.1' \
+            'xdoctest==1.1.0' \
+            'pulp>=2.9'
+
+          # Prepared upstream test source still provides the broader base dependency set.
           if [ -f requirements.txt ]; then
             $PIP install -r requirements.txt
           else
