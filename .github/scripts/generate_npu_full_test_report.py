@@ -397,13 +397,10 @@ def main():
                 ["Selection source", selection_mode_display],
                 ["Unique planned test files in collected reports", str(unique_planned_count)],
                 ["Files not covered by requested shard range", not_covered_display],
-                ["Excluded test files by upstream selection semantics", str(len(excluded_test_files_list))],
                 ["Upstream special tests not directly handled by current runner", str(len(unhandled_tests_list))],
             ] + ([["Workflow-handled special tests", str(len(special_test_rows))]] if include_special_tests else []),
         )
     )
-    markdown_lines.extend(["", "### Excluded Test Files"])
-    markdown_lines.extend(format_scope_list(excluded_test_files_list))
     markdown_lines.extend(["", "### Unhandled Upstream Special Tests"])
     markdown_lines.extend(format_scope_list(unhandled_tests_list))
     if include_special_tests:

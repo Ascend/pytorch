@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 import shutil
+import tempfile
 import signal
 import sys
 import traceback
@@ -85,7 +86,7 @@ def parse_junit_xml(xml_file: str) -> Dict:
     return stats
 
 
-def aggregate_junit_stats(report_root: Path) -> Dict:
+def aggregate_junit_stats(report_roots: List[Path]) -> Dict:
     totals = {
         "total": 0,
         "passed": 0,
@@ -95,10 +96,22 @@ def aggregate_junit_stats(report_root: Path) -> Dict:
         "duration": 0.0,
     }
 
-    for xml_file in report_root.rglob("*.xml"):
-        stats = parse_junit_xml(str(xml_file))
-        for key in totals:
-            totals[key] += stats[key]
+    seen_files = set()
+    for report_root in report_roots:
+        if not report_root.exists():
+            continue
+        for xml_file in report_root.rglob("*.xml"):
+            try:
+                resolved = str(xml_file.resolve())
+            except OSError:
+                resolved = str(xml_file)
+            if resolved in seen_files:
+                continue
+            seen_files.add(resolved)
+
+            stats = parse_junit_xml(str(xml_file))
+            for key in totals:
+                totals[key] += stats[key]
     return totals
 
 
@@ -396,11 +409,56 @@ def clean_test_reports_dir(test_reports_dir: Path) -> None:
     test_reports_dir.mkdir(parents=True, exist_ok=True)
 
 
+def clean_existing_junit_xml(report_dir: Path) -> None:
+    if not report_dir.exists():
+        return
+    for xml_file in report_dir.rglob("*.xml"):
+        xml_file.unlink(missing_ok=True)
+
+
+def collect_junit_xml_files(report_dir: Path, candidate_roots: List[Path]) -> List[Path]:
+    copied_files = []
+    seen_sources = set()
+    report_dir.mkdir(parents=True, exist_ok=True)
+
+    for candidate_root in candidate_roots:
+        if not candidate_root.exists():
+            continue
+        for xml_file in candidate_root.rglob("*.xml"):
+            try:
+                resolved = str(xml_file.resolve())
+            except OSError:
+                resolved = str(xml_file)
+            if resolved in seen_sources:
+                continue
+            seen_sources.add(resolved)
+
+            destination = report_dir / xml_file.name
+            if destination.exists():
+                if destination.resolve() == xml_file.resolve():
+                    copied_files.append(destination)
+                    continue
+                stem = destination.stem
+                suffix = destination.suffix
+                with tempfile.NamedTemporaryFile(
+                    dir=report_dir,
+                    prefix=f"{stem}_",
+                    suffix=suffix,
+                    delete=False,
+                ) as tmp_file:
+                    destination = Path(tmp_file.name)
+            shutil.copy2(xml_file, destination)
+            copied_files.append(destination)
+
+    return copied_files
+
+
 def run_upstream_shard(
     module,
     options,
     sharded_tests,
     test_dir: Path,
+    report_dir: Path,
     env_updates: Dict[str, str],
 ) -> Tuple[int, Dict, str]:
     failures = []
@@ -418,8 +476,14 @@ def run_upstream_shard(
             error_message = f"Unexpected error while running upstream run_test shard: {exc}\n{traceback.format_exc()}"
 
     duration = monotonic() - start
-    stats = aggregate_junit_stats(test_dir / "test-reports")
+    candidate_report_roots = [report_dir, test_dir / "test-reports"]
+    copied_xml_files = collect_junit_xml_files(report_dir, candidate_report_roots)
+    stats = aggregate_junit_stats(candidate_report_roots)
     stats = finalize_stats(stats or create_empty_stats(), returncode, duration, error_message)
+    if copied_xml_files:
+        print(f"Collected {len(copied_xml_files)} JUnit XML file(s) into {report_dir}")
+    else:
+        print(f"Warning: No JUnit XML files found under: {', '.join(str(path) for path in candidate_report_roots)}")
     return returncode, stats, error_message
 
 
@@ -467,9 +531,10 @@ def main():
         print(f"  [{index:03d}] {target}")
 
     test_reports_dir = test_dir / "test-reports"
+    clean_existing_junit_xml(report_dir)
     clean_test_reports_dir(test_reports_dir)
 
-    _, stats, _ = run_upstream_shard(module, options, sharded_tests, test_dir, env_updates)
+    _, stats, _ = run_upstream_shard(module, options, sharded_tests, test_dir, report_dir, env_updates)
     info.update(load_disabled_testcases_report(str(report_dir), args.shard))
 
     save_info_file(str(report_dir), args.shard, info)
