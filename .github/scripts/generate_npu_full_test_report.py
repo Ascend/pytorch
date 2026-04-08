@@ -346,6 +346,8 @@ def main():
     if any(row["status"] != "PASSED" for row in special_test_rows):
         overall_status = "FAILED"
 
+    include_special_tests = bool(special_test_names or special_test_rows)
+
     markdown_lines = [
         "# PyTorch NPU Full Test Summary",
         "",
@@ -365,9 +367,8 @@ def main():
                 ["Upstream selected test entries", str(totals["upstream_selected_tests"])],
                 ["Upstream selected file-backed tests", str(totals["upstream_selected_file_tests"])],
                 ["Planned files in requested shards", str(totals["planned_files"])],
-                ["Special tests expected", str(len(special_test_names))],
                 ["Overall result", overall_status],
-            ],
+            ] + ([["Special tests expected", str(len(special_test_names))]] if include_special_tests else []),
         )
     )
     markdown_lines.extend(["", "## Totals"])
@@ -384,9 +385,8 @@ def main():
                 ["Upstream selected test entries", str(totals["upstream_selected_tests"])],
                 ["Upstream selected file-backed tests", str(totals["upstream_selected_file_tests"])],
                 ["Planned files in requested shards", str(totals["planned_files"])],
-                ["Special tests passed", str(special_status_counts["PASSED"])],
                 ["Cumulative duration", format_duration(totals["duration"])],
-            ],
+            ] + ([["Special tests passed", str(special_status_counts["PASSED"])]] if include_special_tests else []),
         )
     )
     markdown_lines.extend(["", "## Execution Scope"])
@@ -399,31 +399,31 @@ def main():
                 ["Files not covered by requested shard range", not_covered_display],
                 ["Excluded test files by upstream selection semantics", str(len(excluded_test_files_list))],
                 ["Upstream special tests not directly handled by current runner", str(len(unhandled_tests_list))],
-                ["Workflow-handled special tests", str(len(special_test_rows))],
-            ],
+            ] + ([["Workflow-handled special tests", str(len(special_test_rows))]] if include_special_tests else []),
         )
     )
     markdown_lines.extend(["", "### Excluded Test Files"])
     markdown_lines.extend(format_scope_list(excluded_test_files_list))
     markdown_lines.extend(["", "### Unhandled Upstream Special Tests"])
     markdown_lines.extend(format_scope_list(unhandled_tests_list))
-    markdown_lines.extend(["", "## Special Test Results"])
-    markdown_lines.extend(
-        render_table(
-            ["Test", "Group", "Status", "Duration", "Return Code", "Note"],
-            [
+    if include_special_tests:
+        markdown_lines.extend(["", "## Special Test Results"])
+        markdown_lines.extend(
+            render_table(
+                ["Test", "Group", "Status", "Duration", "Return Code", "Note"],
                 [
-                    row["name"],
-                    row["group"],
-                    row["status"],
-                    format_duration(row["duration"]),
-                    str(row["returncode"]),
-                    sanitize_markdown_cell(row["note"]),
-                ]
-                for row in special_test_rows
-            ] or [["-", "-", "-", "0.0s", "-", "-"]],
+                    [
+                        row["name"],
+                        row["group"],
+                        row["status"],
+                        format_duration(row["duration"]),
+                        str(row["returncode"]),
+                        sanitize_markdown_cell(row["note"]),
+                    ]
+                    for row in special_test_rows
+                ] or [["-", "-", "-", "0.0s", "-", "-"]],
+            )
         )
-    )
     markdown_lines.extend(["", "## Shard Status Counts"])
     markdown_lines.extend(
         render_table(
@@ -510,15 +510,17 @@ def main():
             "excluded_test_files": excluded_test_files_list,
             "unhandled_upstream_special_tests": unhandled_tests_list,
         },
-        "special_tests": {
-            "expected": special_test_names,
-            "status_counts": dict(special_status_counts),
-            "results": special_test_rows,
-        },
         "shards": shard_rows,
         "failed_like_shards": failed_like,
         "slowest_shards": slowest,
     }
+
+    if include_special_tests:
+        report_json["special_tests"] = {
+            "expected": special_test_names,
+            "status_counts": dict(special_status_counts),
+            "results": special_test_rows,
+        }
 
     output_markdown.write_text("\n".join(markdown_lines) + "\n", encoding="utf-8")
     output_json.write_text(json.dumps(report_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
