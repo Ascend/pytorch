@@ -186,7 +186,7 @@ jobs:
         run: |
           PIP=pip${{ env.PYTHON_VERSION }}
           cd pytorch-test-src
-          $PIP install pytest pytest-timeout pytest-xdist hypothesis
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard
           if [ -f requirements.txt ]; then
             $PIP install -r requirements.txt
           else
