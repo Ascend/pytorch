@@ -31655,5 +31655,7 @@
   "test_replicate_buffers (__main__.TestDataParallel)": ["", [""]],
   "test_index_put_accumulate_large_tensor_npu (__main__.TestIndexingPRIVATEUSE1)": ["", ["910A"]],
   "test_module_backcompat (__main__.TestNN)": ["", [""]],
-  "test_register_state_dict_pre_hook_backward_compat (__main__.TestNN)": ["", [""]]
+  "test_register_state_dict_pre_hook_backward_compat (__main__.TestNN)": ["", [""]],
+ 	"test_npu_roi_align_1 (__main__.TestPsRoiPooling)": ["", [""]],
+ 	"test_silu (__main__.TestActivations)": ["", [""]]
 }
