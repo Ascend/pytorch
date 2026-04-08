@@ -16,10 +16,10 @@
     1. 下载torch\_npu源码。
 
         ```bash
-        git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-7.3.0 --depth 1  
+        git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-26.0.0 --depth 1  
         ```
 
-        以v2.7.1-7.3.0为例，下载对应的Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
+        以v2.7.1-26.0.0为例，下载对应的Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
 
     2. 构建镜像。
 
@@ -47,7 +47,7 @@
         bash ci/build.sh --python=3.10
         ```
 
-        如需指定其他Python版本请使用--python=3.9、--python=3.11或--python=3.12。
+        如需指定其他Python版本请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
 
     5. 在运行环境中安装生成的torch\_npu插件包，如果使用非root用户进行安装，需要在命令后加`--user`。
 
@@ -62,7 +62,7 @@
 
         选择编译安装方式安装时需要安装系统依赖，根据不同类型的操作系统，选择对应的命令安装所需依赖。
 
-        - openEuler、CentOS、Kylin、BCLinux、UOS V20、AntOS、AliOS、CTyunOS、CULinux、Tlinux、MTOS、vesselOS：<br>
+        - openEuler、CentOS、Kylin、BCLinux、UOS V20、AntOS、AliOS、CTyunOS、CULinux、Tlinux、MTOS、vesselOS：
             1. 安装依赖（除gcc和cmake以外）。
 
                 ```bash
@@ -88,23 +88,23 @@
 
         |PyTorch版本|系统架构|gcc版本|cmake版本|
         |--|--|--|--|
-        |2.6.0|X86_64|9.4.0|3.18.0版本及以上|
-        |2.6.0|AArch64|11.2.0|3.31.0版本及以上|
-        |2.7.1|X86_64|11.2.0|3.18.0版本及以上|
-        |2.7.1|AArch64|11.2.0|3.31.0版本及以上|
-        |2.8.0|X86_64|13.3.0|3.18.0版本及以上|
-        |2.8.0|AArch64|13.3.0|3.31.0版本及以上|
-        |2.9.0|X86_64|13.3.0|3.18.0版本及以上|
-        |2.9.0|AArch64|13.3.0|3.31.0版本及以上|
+        |2.7.1|X86_64|11.2.0|3.18.4|
+        |2.7.1|AArch64|11.2.0|3.31.1|
+        |2.8.0|X86_64|13.3.0|3.18.4|
+        |2.8.0|AArch64|13.3.0|4.0.3|
+        |2.9.0|X86_64|13.3.0|3.18.4|
+        |2.9.0|AArch64|13.3.0|4.0.3|
+        |2.10.0|X86_64|13.3.0|3.18.4|
+        |2.10.0|AArch64|13.3.0|4.0.3|
 
-        > [!NOTE]  
-        > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.0版本cmake](installing_cmake_3-18-0.md)。
+        > [!NOTE]<br>
+        > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
 
     2. 编译生成torch\_npu插件的二进制安装包。
-        1. 以v2.7.1-7.3.0为例，下载对应的Ascend Extension for PyTorch分支代码并进入插件根目录。
+        1. 以v2.7.1-26.0.0为例，下载对应的Ascend Extension for PyTorch分支代码并进入插件根目录。
 
             ```bash
-            git clone -b v2.7.1-7.3.0 https://gitcode.com/Ascend/pytorch.git 
+            git clone -b v2.7.1-26.0.0 https://gitcode.com/Ascend/pytorch.git 
             cd pytorch
             ```
 
@@ -116,7 +116,7 @@
             bash ci/build.sh --python=3.10
             ```
 
-            如需指定其他Python版本请使用--python=3.9、--python=3.11或--python=3.12。
+            如需指定其他Python版本请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
 
     3. 安装pytorch/dist目录下生成的插件torch\_npu包，如果使用非root用户安装，需要在命令后加`--user`。
 
