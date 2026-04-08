@@ -235,6 +235,12 @@ def main():
         "upstream_selected_tests": 0,
         "upstream_selected_file_tests": 0,
         "planned_files": 0,
+        "junit_generated_shards": 0,
+        "junit_xml_files": 0,
+        "zero_item_test_files": 0,
+        "startup_failures": 0,
+        "import_failures": 0,
+        "test_failures": 0,
     }
     shard_rows = []
     unique_planned_files = set()
@@ -280,6 +286,12 @@ def main():
             totals["upstream_selected_file_tests"], int(info.get("upstream_selected_file_tests", 0))
         )
         totals["planned_files"] += int(info.get("shard_files", 0))
+        totals["junit_generated_shards"] += 1 if info.get("junit_generated") else 0
+        totals["junit_xml_files"] += int(info.get("junit_xml_files", 0) or stats.get("junit_xml_files", 0))
+        totals["zero_item_test_files"] += int(info.get("zero_item_test_files", 0) or stats.get("zero_item_test_files", 0))
+        totals["startup_failures"] += int(info.get("startup_failures", 0) or stats.get("startup_failures", 0))
+        totals["import_failures"] += int(info.get("import_failures", 0) or stats.get("import_failures", 0))
+        totals["test_failures"] += int(info.get("test_failures", 0) or stats.get("test_failures", 0))
 
         shard_rows.append(
             {
@@ -300,6 +312,12 @@ def main():
                 "excluded_test_files": int(info.get("excluded_test_files", 0)),
                 "disabled_matched": int(info.get("disabled_count_matched", 0)),
                 "disabled_deselected": int(info.get("disabled_count_deselected", 0)),
+                "junit_generated": bool(info.get("junit_generated", stats.get("junit_generated", False))),
+                "junit_xml_files": int(info.get("junit_xml_files", stats.get("junit_xml_files", 0))),
+                "zero_item_test_files": int(info.get("zero_item_test_files", stats.get("zero_item_test_files", 0))),
+                "startup_failures": int(info.get("startup_failures", stats.get("startup_failures", 0))),
+                "import_failures": int(info.get("import_failures", stats.get("import_failures", 0))),
+                "test_failures": int(info.get("test_failures", stats.get("test_failures", 0))),
                 "note": build_note(stats),
             }
         )
@@ -381,6 +399,9 @@ def main():
                 ["Failed", str(totals["failed"])],
                 ["Skipped", str(totals["skipped"])],
                 ["Errors", str(totals["errors"])],
+                ["Shards with JUnit", str(totals["junit_generated_shards"])],
+                ["Collected JUnit XML files", str(totals["junit_xml_files"])],
+                ["Test files with 0 collected items", str(totals["zero_item_test_files"])],
                 ["Discovered test files", str(totals["discovered_test_files"])],
                 ["Upstream selected test entries", str(totals["upstream_selected_tests"])],
                 ["Upstream selected file-backed tests", str(totals["upstream_selected_file_tests"])],
@@ -403,6 +424,17 @@ def main():
     )
     markdown_lines.extend(["", "### Unhandled Upstream Special Tests"])
     markdown_lines.extend(format_scope_list(unhandled_tests_list))
+    markdown_lines.extend(["", "## Failure Breakdown"])
+    markdown_lines.extend(
+        render_table(
+            ["Failure type", "Count"],
+            [
+                ["Startup failures", str(totals["startup_failures"])],
+                ["Import failures", str(totals["import_failures"])],
+                ["Real test failures", str(totals["test_failures"])],
+            ],
+        )
+    )
     if include_special_tests:
         markdown_lines.extend(["", "## Special Test Results"])
         markdown_lines.extend(
@@ -450,6 +482,12 @@ def main():
                 "Errors",
                 "Duration",
                 "Planned Files",
+                "JUnit",
+                "XMLs",
+                "0 Items",
+                "Startup",
+                "Import",
+                "Test",
                 "Planned File Names",
                 "Disabled matched",
                 "Note",
@@ -465,6 +503,12 @@ def main():
                     str(row["errors"]),
                     format_duration(row["duration"]),
                     str(row["planned_files"]),
+                    "yes" if row["junit_generated"] else "no",
+                    str(row["junit_xml_files"]),
+                    str(row["zero_item_test_files"]),
+                    str(row["startup_failures"]),
+                    str(row["import_failures"]),
+                    str(row["test_failures"]),
                     format_planned_files_cell(row["planned_file_names"]),
                     str(row["disabled_matched"]),
                     sanitize_markdown_cell(row["note"] or "-"),
@@ -506,6 +550,11 @@ def main():
             "files_not_covered_by_requested_shards": not_covered_by_requested_shards,
             "excluded_test_files": excluded_test_files_list,
             "unhandled_upstream_special_tests": unhandled_tests_list,
+        },
+        "failure_breakdown": {
+            "startup_failures": totals["startup_failures"],
+            "import_failures": totals["import_failures"],
+            "test_failures": totals["test_failures"],
         },
         "shards": shard_rows,
         "failed_like_shards": failed_like,

@@ -123,6 +123,12 @@ def create_empty_stats() -> Dict:
         "skipped": 0,
         "errors": 0,
         "duration": 0.0,
+        "junit_generated": False,
+        "junit_xml_files": 0,
+        "zero_item_test_files": 0,
+        "startup_failures": 0,
+        "import_failures": 0,
+        "test_failures": 0,
     }
 
 
@@ -140,6 +146,12 @@ def create_shard_info(shard: int, num_shards: int, timestamp: str) -> Dict:
         "disabled_count": 0,
         "disabled_count_matched": 0,
         "disabled_count_deselected": 0,
+        "junit_generated": False,
+        "junit_xml_files": 0,
+        "zero_item_test_files": 0,
+        "startup_failures": 0,
+        "import_failures": 0,
+        "test_failures": 0,
         "timestamp": timestamp,
     }
 
@@ -453,14 +465,91 @@ def collect_junit_xml_files(report_dir: Path, candidate_roots: List[Path]) -> Li
     return copied_files
 
 
+def classify_test_segment(segment: str) -> str | None:
+    normalized = segment.lower()
+    if " was successful" in normalized:
+        return None
+    if "modulenotfounderror:" in normalized or "importerror:" in normalized:
+        return "import"
+    if (
+        "error: unrecognized arguments:" in normalized
+        or "no stepcurrent file found" in normalized
+        or "running 0 items in this shard:" in normalized and "failed!" in normalized
+        or "valueerror: an empty op_list was passed to @ops" in normalized
+        or "filenotfounderror:" in normalized and ".xml" in normalized
+    ):
+        return "startup"
+    if " failed!" in normalized:
+        return "test"
+    return None
+
+
+def analyze_shard_log(log_file: Path) -> Dict:
+    metrics = {
+        "zero_item_test_files": 0,
+        "startup_failures": 0,
+        "import_failures": 0,
+        "test_failures": 0,
+    }
+
+    if not log_file.exists():
+        return metrics
+
+    try:
+        content = log_file.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return metrics
+
+    metrics["zero_item_test_files"] = content.count("Running 0 items in this shard:")
+
+    current_lines: List[str] = []
+    for line in content.splitlines():
+        if line.startswith("Running ") and " ... [" in line:
+            if current_lines:
+                category = classify_test_segment("\n".join(current_lines))
+                if category == "startup":
+                    metrics["startup_failures"] += 1
+                elif category == "import":
+                    metrics["import_failures"] += 1
+                elif category == "test":
+                    metrics["test_failures"] += 1
+            current_lines = [line]
+            continue
+        if current_lines:
+            current_lines.append(line)
+
+    if current_lines:
+        category = classify_test_segment("\n".join(current_lines))
+        if category == "startup":
+            metrics["startup_failures"] += 1
+        elif category == "import":
+            metrics["import_failures"] += 1
+        elif category == "test":
+            metrics["test_failures"] += 1
+
+    return metrics
+
+
+def find_shard_log(report_dir: Path, shard: int) -> Path | None:
+    direct_path = report_dir / f"test_shard_{shard}.log"
+    if direct_path.exists():
+        return direct_path
+
+    matches = sorted(report_dir.rglob(f"test_shard_{shard}.log"))
+    if matches:
+        return matches[0]
+    return None
+
+
 def run_upstream_shard(
     module,
     options,
     sharded_tests,
+    shard: int,
     test_dir: Path,
     report_dir: Path,
     env_updates: Dict[str, str],
-) -> Tuple[int, Dict, str]:
+) -> Tuple[int, Dict, str, Dict]:
     failures = []
     error_message = ""
     start = monotonic()
@@ -479,12 +568,23 @@ def run_upstream_shard(
     candidate_report_roots = [report_dir, test_dir / "test-reports"]
     copied_xml_files = collect_junit_xml_files(report_dir, candidate_report_roots)
     stats = aggregate_junit_stats(candidate_report_roots)
+    stats["junit_generated"] = bool(copied_xml_files)
+    stats["junit_xml_files"] = len(copied_xml_files)
+
+    shard_log = find_shard_log(report_dir, shard)
+    log_metrics = analyze_shard_log(shard_log) if shard_log else {
+        "zero_item_test_files": 0,
+        "startup_failures": 0,
+        "import_failures": 0,
+        "test_failures": 0,
+    }
+    stats.update(log_metrics)
     stats = finalize_stats(stats or create_empty_stats(), returncode, duration, error_message)
     if copied_xml_files:
         print(f"Collected {len(copied_xml_files)} JUnit XML file(s) into {report_dir}")
     else:
         print(f"Warning: No JUnit XML files found under: {', '.join(str(path) for path in candidate_report_roots)}")
-    return returncode, stats, error_message
+    return returncode, stats, error_message, log_metrics
 
 
 def main():
@@ -534,7 +634,21 @@ def main():
     clean_existing_junit_xml(report_dir)
     clean_test_reports_dir(test_reports_dir)
 
-    _, stats, _ = run_upstream_shard(module, options, sharded_tests, test_dir, report_dir, env_updates)
+    _, stats, _, log_metrics = run_upstream_shard(
+        module,
+        options,
+        sharded_tests,
+        args.shard,
+        test_dir,
+        report_dir,
+        env_updates,
+    )
+    info["junit_generated"] = bool(stats.get("junit_generated", False))
+    info["junit_xml_files"] = int(stats.get("junit_xml_files", 0))
+    info["zero_item_test_files"] = int(log_metrics.get("zero_item_test_files", 0))
+    info["startup_failures"] = int(log_metrics.get("startup_failures", 0))
+    info["import_failures"] = int(log_metrics.get("import_failures", 0))
+    info["test_failures"] = int(log_metrics.get("test_failures", 0))
     info.update(load_disabled_testcases_report(str(report_dir), args.shard))
 
     save_info_file(str(report_dir), args.shard, info)
