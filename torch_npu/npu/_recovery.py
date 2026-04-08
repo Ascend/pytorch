@@ -1,3 +1,4 @@
+import logging
 import torch
 from torch.distributed.distributed_c10d import _pg_map
 
@@ -8,6 +9,7 @@ from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
 
 WATCHDOG_STATUS_RUN = 1
 WATCHDOG_STATUS_STOP = 2
+logger = logging.getLogger("torch_npu.recovery")
 
 
 def check_npu_storage_is_safe(storage_obj):
@@ -55,6 +57,7 @@ def _recovery_all_npu_stream(device: int) -> None:
 
 
 def restart_device(device_id: int, rebuild_all_resources: int = False):
+    logger.info(f"restart device start, device_id={device_id}, rebuild_all_resources={rebuild_all_resources}")
     torch_npu.npu._lazy_init()
     if rebuild_all_resources:
         mark_all_npu_tensor_unsafe(device_id)
@@ -68,9 +71,12 @@ def restart_device(device_id: int, rebuild_all_resources: int = False):
         if (npu_device in pg._device_types):
             pg._get_backend(npu_device).clear_workmeta_list()
             pg._get_backend(npu_device).set_watchdog_status(WATCHDOG_STATUS_RUN)
+            logger.info(f"set watchdog status to run, device_id={device_id}, group={pg}")
+    logger.info(f"restart device end, device_id={device_id}")
 
 
 def stop_device(device_id):
+    logger.info(f"stop device start, device_id={device_id}")
     torch_npu.npu._lazy_init()
     result = torch_npu._C._npu_stopDevice(device_id)
     _except_handler.set_force_stop_exception(True)
@@ -78,4 +84,6 @@ def stop_device(device_id):
     for pg in _pg_map:
         if (npu_device in pg._device_types):
             pg._get_backend(npu_device).set_watchdog_status(WATCHDOG_STATUS_STOP)
+            logger.info(f"set watchdog status to stop, device_id={device_id}, group={pg}")
+    logger.info(f"stop device end, device_id={device_id}, result={result}")
     return result
