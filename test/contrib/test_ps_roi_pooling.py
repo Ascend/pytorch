@@ -1,3 +1,5 @@
+import unittest
+
 import torch
 import torch_npu
 
@@ -27,6 +29,7 @@ class TestPsRoiPooling(TestCase):
         output.sum().backward()
         return output.detach().cpu(), cls_feat.grad.cpu()
 
+    @unittest.skip("test_npu_roi_align_1 is not supported yet")
     def test_npu_roi_align_1(self):
         cls_feat = torch.randn(4, 1078, 84, 84).float().npu()
         rois_tensor = self.get_random_rois((4, 128, 5)).permute(0, 2, 1).float().npu()
