@@ -33,7 +33,7 @@ else:
 
     from . import config as npu_config
     from . import codegen
-    from .npu_fusion_attention_graph import register_fa_pass
+    from .fx_passes.pattern_match.npu_fusion_attention_graph import register_fa_pass
     from .config import (
         aggresive_autotune, num_vector_core, set_compile_threads, 
         disable_comprehensive_padding, max_precompiled_thread_num
