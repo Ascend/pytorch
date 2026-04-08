@@ -94,8 +94,14 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
                     kernel_mode_str = nameFuncMode.substr(spacePos + 1);
                     funcName = nameFuncMode.substr(0, spacePos);
                 } else {
-                    throw std::runtime_error(std::string("Parse kernel name failed, expect "
-                                                        "'kernel_name kernel_mode', bug got: ") + nameFuncMode);
+                    size_t underLinePos = nameFuncMode.find_last_of('_');
+                    if (underLinePos != std::string::npos) {
+                        kernel_mode_str = nameFuncMode.substr(underLinePos + 1);
+                        funcName = nameFuncMode.substr(0, underLinePos);
+                    } else {
+                        throw std::runtime_error(std::string("Parse kernel name failed, expect "
+                                    "'kernel_name kernel_mode' or 'kernel_name_kernel_mode', bug got: ") + nameFuncMode);
+                    }
                 }
 
                 std::ifstream file(std::string(filePath), std::ios::binary | std::ios::ate);
