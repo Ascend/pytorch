@@ -3,7 +3,8 @@
 > [!NOTE]  
 > 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。<br>
 > 在使用支持的cuda接口时，需要将API名称中的cuda变换为NPU形式才能使用：torch.cuda.变换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
->```
+>
+>```python
 >torch.cuda.current_device --> torch_npu.npu.current_device
 >torch.cuda.current_device --> torch.npu.current_device
 >```
@@ -87,4 +88,3 @@
 |torch.cuda.reset_peak_host_memory_stats| torch_npu.npu.reset_peak_host_memory_stats          |是|-|
 |torch.cuda.host_memory_stats_as_nested_dict| torch_npu.npu.host_memory_stats_as_nested_dict             |是|-|
 |torch.cuda.host_memory_stats| torch_npu.npu.host_memory_stats             |是|-|
-

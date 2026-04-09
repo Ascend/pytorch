@@ -24,7 +24,7 @@
 |集合通信|[HCCL_ASYNC_ERROR_HANDLING](HCCL_ASYNC_ERROR_HANDLING.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否开启异步错误处理。|
 |集合通信|[HCCL_DESYNC_DEBUG](HCCL_DESYNC_DEBUG.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否进行通信超时分析。|
 |集合通信|[HCCL_EVENT_TIMEOUT](HCCL_EVENT_TIMEOUT.md)|当使用HCCL作为通信后端时，通过此环境变量可设置等待Event完成的超时时间。|
-|集合通信|[P2P_HCCL_BUFFSIZE](P2P_HCCL_BUFFSIZE.md)|通过此环境变量可配置是否开启点对点通信（`torch.distributed.isend`、`torch.distributed.irecv`和`torch.distributed.batch_isend_irecv`）使用独立通信域功能。|
+|集合通信|[P2P_HCCL_BUFFSIZE](P2P_HCCL_BUFFSIZE.md)|通过此环境变量可配置是否开启点对点通信（`torch.distributed.isend`、`torch.distributed.irecv`和`torch.distributed.batch_isend_irecv`），并使用独立通信域功能。|
 |集合通信|[RANK_TABLE_FILE](RANK_TABLE_FILE.md)|通过此环境变量可配置是否通过RANK_TABLE_FILE进行集合通信域建链。|
 |集合通信|[(beta) TORCH_HCCL_ZERO_COPY](（beta）TORCH_HCCL_ZERO_COPY.md)|训练或在线推理场景下，可通过此环境变量开启集合通信片内零拷贝功能，减少通信算子在通信过程中片内拷贝次数，提升集合通信效率，降低通信耗时。同时在计算通信并行场景下，降低通信过程中对显存带宽的抢占。|
 |告警信息打印|[TORCH_NPU_DISABLED_WARNING](TORCH_NPU_DISABLED_WARNING.md)|通过此环境变量可配置是否打印Ascend Extension for PyTorch的告警信息。|
@@ -37,7 +37,7 @@
 |特征值检测|[NPU_ASD_SIGMA_THRESH](NPU_ASD_SIGMA_THRESH.md)|Ascend Extension for PyTorch 7.0.0及之前版本，通过此环境变量可配置特征值检测功能的相对阈值。|
 |特征值检测|[NPU_ASD_CONFIG](NPU_ASD_CONFIG.md)|Ascend Extension for PyTorch 7.1.0及之后版本，通过此环境变量可控制是否开启Ascend Extension for PyTorch的特征值检测功能。|
 |性能优化|[CPU_AFFINITY_CONF](CPU_AFFINITY_CONF.md)|Ascend Extension for PyTorch可以通过设置环境变量CPU_AFFINITY_CONF来开启粗/细粒度绑核。该配置能够避免线程间抢占，提高缓存命中，避免跨NUMA（非统一内存访问架构）节点的内存访问，减少任务调度开销，优化任务执行效率。|
-|性能优化|[PROF_CONFIG_PATH](PROF_CONFIG_PATH.md)|PyTorch训练场景Ascend PyTorch Profiler接口的dynamic_profile采集功能profiler_config.json配置文件路径环境变量。|
+|性能优化|[PROF_CONFIG_PATH](PROF_CONFIG_PATH.md)|在PyTorch训练场景中，通过此环境变量可指定Ascend PyTorch Profiler接口的dynamic_profile采集功能的profiler_config.json配置文件路径。|
 |性能优化|[KINETO_USE_DAEMON](KINETO_USE_DAEMON.md)|PyTorch训练场景用于设置是否通过msMonitor nputrace方式开启dynamic_profile采集功能。|
 |设备管理|[STREAMS_PER_DEVICE](STREAMS_PER_DEVICE.md)|通过此环境变量可配置stream pool的最大流数。|
 |设备管理|[TORCH_NPU_DEVICE_CAPABILITY](TORCH_NPU_DEVICE_CAPABILITY.md)|通过此环境变量可配置`torch_npu.npu.get_device_capability()`的返回值。|

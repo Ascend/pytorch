@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可配置是否开启点对点通信（torch.distributed.isend、torch.distributed.irecv和torch.distributed.batch\_isend\_irecv）使用独立通信域功能。
+通过此环境变量可配置是否开启点对点通信（torch.distributed.isend、torch.distributed.irecv和torch.distributed.batch\_isend\_irecv），并使用独立通信域功能。
 
 - 配置为0时：关闭点对点通信使用独立通信域功能。
 - 配置大于等于1时：开启点对点通信使用独立通信域功能，并且缓存区大小为配置值。

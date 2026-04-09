@@ -43,5 +43,3 @@
 |torch.package.PackageImporter.python_version|是|-|
 |torch.package.Directory|是|-|
 |torch.package.Directory.has_file|是|-|
-
-
