@@ -24,7 +24,7 @@ Inductor后端：通过torch.compile(backend="inductor")使能，以降低Python
 - MLIR模式：通过torch.compile(backend="inductor", options={"npu_backend": "mlir"})使能，基于Torch-MLIR生成融合算子。关于Torch-MLIR的详细介绍，可以参考[Torch-MLIR官方仓库](https://github.com/llvm/torch-mlir);
 - DVM模式：通过torch.compile(backend="inductor", options={"npu_backend": "dvm"})使能，基于DVM生成融合算子。关于DVM的详细介绍，可以参考[DVM官方仓库](https://gitcode.com/mindspore/dvm/tree/master)。
 
-NPUGraph后端：通过torch.compile(backend="npugraphs")使能，利用NPUGraphs技术，彻底消除NPU任务的启动开销和CPU至NPU同步开销，适合eager模式存在host bound且kernel调用频繁但输入形状固定的场景，整体功能与backend="cudagraphs"一致。
+NPUGraph后端：通过torch.compile(backend="npugraphs")使能，利用NPUGraphs技术，彻底消除NPU任务的启动开销和CPU至NPU同步开销，适合eager模式存在host bound且kernel调用频繁但输入形状固定的场景，整体功能与backend="cudagraphs"一致。如需了解NPUGraph的工作原理、核心优势、API详解和更多使用示例，请参阅 [NPUGraph](pytorch_npugraph_desc.md)。
 
 NPUGraph_EX后端：通过torch.compile(backend="npugraph_ex")使能，基于ACLGraph调度和FX图优化，对大模型推理进行加速，并与主流服务化框架快速、无缝地对接。
 

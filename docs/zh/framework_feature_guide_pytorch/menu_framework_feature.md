@@ -25,6 +25,7 @@
 
 - [PyTorch图模式](./pytorch_graph_mode.md)
   - [PyTorch编译模式（torch.compile）](./pytorch_compilation_mode.md)
+  - [NPUGraph](./pytorch_npugraph_desc.md)
 
 - [自定义算子适配开发](./custom_operator_adaptation.md)
   - [基于OpPlugin算子适配开发](./opplugin_operator_adaptation.md)
