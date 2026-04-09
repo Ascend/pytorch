@@ -342,12 +342,18 @@ class NpuMlirCompiler:
                     compile_args.append((tiling_size, ops_reorder, auto_db))
         return compile_args
 
+    def _should_disable_autotune_for_determinism(self):
+        return (
+            self.kernel_meta.get('are_deterministic_algorithms_enabled', False)
+            and self.kernel_meta.get('is_reduction', False)
+        )
+
     def precompile(self, 
                     device_info: Tuple[Any],
                     suppress_error=False,
                     logger_level=None):
 
-        if anir_config.autotune:
+        if anir_config.autotune and not self._should_disable_autotune_for_determinism():
             compile_args = self.get_autotune_config()
         else:
             compile_args = [(None, True, True)]
