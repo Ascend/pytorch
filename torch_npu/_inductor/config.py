@@ -19,11 +19,6 @@ enable_inplace_buffers = os.environ.get('ENABLE_INPLACE_BUFFERS', '1').lower() i
 if not enable_inplace_buffers:
     inductor_config.inplace_buffers = False
 
-enable_npu_indexing = True
-
-config.triton.unique_kernel_names = True
-# avoid test_opensora_cases_model_16_forward  reinterpret_tensor issue
-config.allow_buffer_reuse = False
 # inductor debug switch
 config.trace.enabled = True
 
@@ -41,34 +36,8 @@ Ascend910B1 = 220
 Ascend310B1 = 240
 Ascend910_9391 = 250
 Ascend950 = 260
-# unit byte
-npu_block = 32
-
 is_ascend950 = get_soc_version() >= Ascend950
 
-
-# For debug
-class aot_inductor:
-    # If debug_kernel is set, codegen in python wrapper (output_code.py) and cpp wrapper (model.pt2)
-    # will be modified to dump fx graph and weights. Meanwhile, generate repro func in output_code.py. 
-    # Then, run aoti and output_code.py will dump tensor args before and after each triton kernel,
-    # which can be used to detect which kernel is incorrect.
-    debug_kernel = os.environ.get("AOTI_ASCEND_DEBUG_KERNEL", False)
-
-    # No need to set debug_kernel_in_run manually. It will be set in output_code.py
-    # by codegen if debug_kernel is set.
-    debug_kernel_in_run = False
-
-    # Path that to be used for dump weights in aoti to reproduce when debug_kernel is set.
-    repro_tensor_path = os.environ.get("AOTI_ASCEND_REPRO_TENSOR_PATH", "aoti_repro_tensors")
-
-    # Path that to be used for dump tensor args before and after triton kernel in aoti execute
-    # when debug_kernel is set.
-    dump_path_cpp = os.environ.get("AOTI_ASCEND_DUMP_PATH_CPP", "aoti_dump_cpp")
-
-    # Path that to be used for dump tensor args before and after triton kernel in output_code.py
-    # when debug_kernel_in_run is set.
-    dump_path_py = os.environ.get("AOTI_DUMP_PATH_PY", "aoti_dump_py")
 
 
 class catlass:
@@ -138,14 +107,7 @@ fallback_warning = os.environ.get("INDUCTOR_ASCEND_FALLBACK_WARNING", False)
 
 # Trace fx graph when lowering and dump.
 dump_fx_graph = os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH", False) \
-                or check_accuracy \
-                or aot_inductor.debug_kernel
-# Specify kernel ids that to be force fallback to fx graph call.
-# Usage: `torch_npu._inductor.config.force_fallback_kernel_id = 'all' `
-#    or  `torch_npu._inductor.config.force_fallback_kernel_id = [1, 2, 10] `
-# (1) 'all' means try to fallback all kernel to fx graph call.
-# (2) [1, 2, 10] means try to fallback kernel like triton_xxx_1, triton_xxx_2 and triton_xxx_10
-force_fallback_kernel_id = []
+                or check_accuracy
 
 
 def parse_rtol_atol(env_str: str):
@@ -269,13 +231,6 @@ if fasta_autotune:
 max_precompiled_thread_num = os.cpu_count() // 2 # default precompile max thread num is half of the cpu count
 if "TORCHNPU_PRECOMPILE_THREADS" in os.environ:
     max_precompiled_thread_num = int(os.environ["TORCHNPU_PRECOMPILE_THREADS"])
-
-
-def set_compile_threads():
-    if "TORCHINDUCTOR_COMPILE_THREADS" in os.environ:
-        torchinductor_compile_threads = int(os.environ["TORCHINDUCTOR_COMPILE_THREADS"])
-        if torchinductor_compile_threads == 1:
-            return
 
 
 def disable_comprehensive_padding():

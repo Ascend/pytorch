@@ -6,6 +6,10 @@ from torch._inductor.async_compile import AsyncCompile
 AsyncCompile.warm_pool()
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 
+# all backends need register npu/cpu/mps device_op_overrides
+from .codegen.common import patch_get_device_op_overrides
+patch_get_device_op_overrides()
+
 if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
     try:
         import torch_mlir
@@ -22,45 +26,46 @@ else:
     import os
 
     import torch
-    from torch._dynamo.device_interface import register_interface_for_device, get_interface_for_device
+    from torch._dynamo.device_interface import get_interface_for_device
     from torch._inductor import lowering as inductor_lowering
-    from torch._inductor.choices import InductorChoices
     from torch._inductor.codegen.common import register_backend_for_device, register_device_op_overrides
-    from torch._inductor.runtime import autotune_cache
-    from torch_npu.npu import device_count
-    from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
-    from torch_npu.utils._inductor import NPUDeviceOpOverrides
 
     from . import config as npu_config
     from . import codegen
     from .fx_passes.pattern_match.npu_fusion_attention_graph import register_fa_pass
     from .config import (
-        aggresive_autotune, num_vector_core, set_compile_threads, 
+        aggresive_autotune, num_vector_core,
         disable_comprehensive_padding, max_precompiled_thread_num
     )
     from .config import log as npulog
     from .codegen.triton import patch_gen_common_triton_ext_imports
     from .decomposition import _register_npu_inductor_decompositons
-    from .graph import patch_count_bytes
-    from .lowering import make_reduction, npu_make_fallback
-    from .npu_choices import should_use_persistent_reduction
-    from .npu_device import NewNPUDeviceOpOverrides
-    from .npu_triton_heuristics import patch_triton_heuristics_cached_autotune
-    from .runtime import patch_load_cached_autotuning, patch_create_device_properties
+    from .graph import patch_count_bytes, patch_codegen_with_cpp_wrapper
+    from .ir import patch_fallback_kernel_codegen
+    from .lowering import make_reduction
+    from .runtime import (
+        patch_load_cached_autotuning,
+        patch_create_device_properties,
+        patch_triton_heuristics_cached_autotune
+    )
+    from .choices import NPUInductorChoices
     from .utils import (
-        get_current_raw_stream,
         patch_is_gpu,
         patch_has_triton,
         disable_foreach,
         patch_get_first_incompatible_cudagraph_node
     )
     from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
+    from .cpp_builder import patch_get_cpp_torch_device_options
+    from .codegen.cpp_utils import patch_device_to_aten
     from .scheduler import patch_scheduler
     from .shape_handling import NPUShapeHandling, patch_shape_handling
     from .async_compile import patch_async_compile
     from .autotune_process import patch_tuning_process, patch_tuning_process_pool
     from .select_algorithm import patch_algorithm_selector
     from .fx_passes import patch_pattern_mm_plus_mm
+    from .fx_passes.graph_match_pass import pre_grad_custom_pass_fuc, post_grad_custom_pass_fuc
+    from .fx_passes.joint_graph import patch_constant_fold_uniform_value
     from .kernel import (
         _register_npu_inductor_mm,
         _register_npu_inductor_addmm,
@@ -73,7 +78,6 @@ else:
     from torch.nn.attention import flex_attention
     flex_attention._validate_device = _validate_device
 
-    set_compile_threads()
     disable_comprehensive_padding()
 
 
@@ -86,43 +90,16 @@ else:
 
     _inductor_register_backend_for_device()
 
-
-    def _inductor_register_device_op_overrides():
-        from torch._inductor.codegen import cpu_device_op_overrides
-        register_device_op_overrides('npu', NewNPUDeviceOpOverrides())
-
-
-    _inductor_register_device_op_overrides()
-
     device = get_interface_for_device("npu")
 
     inductor_lowering.make_reduction = make_reduction
-    inductor_lowering.make_fallback = npu_make_fallback
 
-
-    def patch_torch_for_aoti():
-        from .graph import patch_codegen_with_cpp_wrapper
-        from .cpp_builder import patch_get_cpp_torch_device_options
-        from .codegen.cpp_utils import patch_device_to_aten
-        from .utils import patch_is_same_tensor
-        from .fx_passes.joint_graph import patch_constant_fold_uniform_value
-        from .ir import patch_fallback_kernel_codegen
-
-        patch_codegen_with_cpp_wrapper()
-        patch_get_cpp_torch_device_options()
-        patch_device_to_aten()
-        patch_is_same_tensor()
-        patch_constant_fold_uniform_value()
-        patch_fallback_kernel_codegen()
-        patch_aot_code_compiler_compile()
-
-        from .fx_passes.graph_match_pass import pre_grad_custom_pass_fuc 
-        pre_grad_custom_pass_fuc() 
-        from .fx_passes.graph_match_pass import post_grad_custom_pass_fuc 
-        post_grad_custom_pass_fuc()
-
-    if os.environ.get("DISABLE_AOTI_PATCH", "0") != "1":
-        patch_torch_for_aoti()
+    patch_codegen_with_cpp_wrapper()
+    patch_get_cpp_torch_device_options()
+    patch_device_to_aten()
+    patch_constant_fold_uniform_value()
+    patch_fallback_kernel_codegen()
+    patch_aot_code_compiler_compile()
 
 
     if npu_config.dump_fx_graph:
@@ -146,21 +123,23 @@ else:
     patch_async_compile()
     patch_scheduler()
     patch_gen_common_triton_ext_imports()
-    patch_load_cached_autotuning()
     patch_create_device_properties()
+    patch_load_cached_autotuning()
     patch_triton_heuristics_cached_autotune()
 
+    pre_grad_custom_pass_fuc()
+    post_grad_custom_pass_fuc()
 
     # register fx_pass should be put behind of _register_npu_inductor_decompositons
     def _replace_benchmark_all_configs():
         from torch._inductor.runtime.triton_heuristics import CachingAutotuner
-        from .npu_triton_heuristics import benchmark_all_configs, _benchmark_all_configs
+        from .runtime.triton_heuristics import benchmark_all_configs, _benchmark_all_configs
         CachingAutotuner._benchmark_all_configs = _benchmark_all_configs
         CachingAutotuner.benchmark_all_configs = benchmark_all_configs
 
 
     def _replace_precompile():
-        from .npu_triton_heuristics import precompile_parallel, NPUCachingAutotuner
+        from .runtime.triton_heuristics import precompile_parallel, NPUCachingAutotuner
         NPUCachingAutotuner.precompile = precompile_parallel
 
 
@@ -170,31 +149,7 @@ else:
     if (max_precompiled_thread_num > 1):
         _replace_precompile()
 
-    InductorChoices.should_use_persistent_reduction = should_use_persistent_reduction
-
-
-    def patch_device_override_func():
-        def get_device_op_overrides_patch(device_name: str):
-            def register_cpu_backend():
-                from torch._inductor.codegen import cpu_device_op_overrides
-
-                return
-
-            def register_mps_backend():
-                from torch._inductor.codegen import mps_device_op_overrides
-
-                return
-
-            backend_factory = {"cpu": register_cpu_backend, "mps": register_mps_backend}
-
-            if device_name not in torch._inductor.codegen.common.device_op_overrides_dict:
-                if device_name not in backend_factory:
-                    raise ValueError("backend not found: ", device_name)
-                backend_factory[device_name]()
-
-            return torch._inductor.codegen.common.device_op_overrides_dict[device_name]
-
-        torch._inductor.graph.get_device_op_overrides = get_device_op_overrides_patch
+    torch._inductor.virtualized.V.set_choices_handler(NPUInductorChoices())
 
     register_fa_pass()
     patch_cache_base_get_system()
@@ -203,7 +158,6 @@ else:
     patch_has_triton()
     disable_foreach()
     patch_get_first_incompatible_cudagraph_node()
-    patch_device_override_func()
     patch_get_optimization_cflags()
 
 

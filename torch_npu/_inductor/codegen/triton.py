@@ -1,10 +1,7 @@
 import functools
 import itertools
 import operator
-import os
 import re
-import textwrap
-from enum import Enum
 from typing import List, Set, Iterable, Callable, Sequence
 from typing import (
     Optional,
@@ -74,12 +71,11 @@ from torch.utils._sympy.value_ranges import bound_sympy, ValueRanges
 from torch._inductor.bounds import ValueRangeAnalysis
 from torch._inductor.runtime import triton_heuristics
 
-from .. import config as inductor_npu_config
-
+from .. import config as npu_config
+from ..runtime import triton_heuristics as npu_triton_heuristics
 from .kernel_analysis import IndexAnalysis, ReductionAnalysis
 from .npu_kernel_features import NumelList
 from .triton_utils import NPUKernelType
-from .. import npu_triton_heuristics
 
 
 def flatten(nums):
@@ -90,7 +86,6 @@ def flatten(nums):
         else:
             res.append(i)
     return res
-
 
 origin_gen_common_triton_imports = torch._inductor.codegen.triton.gen_common_triton_imports
 
@@ -103,8 +98,9 @@ def gen_common_triton_imports():
         """
         import torch
         import torch_npu
-        from torch_npu._inductor import npu_triton_heuristics as triton_heuristics
-        from torch_npu._inductor.npu_triton_helpers import libdevice, extension, math as tl_math
+        from torch_npu._inductor.runtime import triton_heuristics as triton_heuristics
+        from torch_npu._inductor.runtime import triton_helpers
+        from torch_npu._inductor.runtime.triton_helpers import libdevice, extension, math as tl_math
         """
     )
     return imports.getvalue()
@@ -119,7 +115,6 @@ def patch_gen_common_triton_ext_imports():
     triton_combo_kernel.gen_common_triton_imports = gen_common_triton_imports
 
 
-
 class NPUTritonKernelOverrides(TritonKernelOverrides):
 
     @staticmethod
@@ -129,6 +124,14 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
     @staticmethod
     def sqrt(x):
         return f"tl_math.sqrt({x})"
+
+    @staticmethod
+    def maximum(a, b):
+        return f"tl.maximum({a}, {b}, tl.PropagateNan.ALL)"
+
+    @staticmethod
+    def minimum(a, b):
+        return f"tl.minimum({a}, {b}, tl.PropagateNan.ALL)"
 
     @staticmethod
     def tanh(x):
@@ -259,7 +262,7 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         mantissa = V.kernel.cse.newvar(dtype=x.dtype)
         exponent = V.kernel.cse.newvar(dtype=torch.int32)
         V.kernel.compute.writeline(
-            f"{mantissa}, {exponent} = npu_triton_helpers.frexp({x})"
+            f"{mantissa}, {exponent} = triton_helpers.frexp({x})"
         )
         V.kernel.cse.put(cache_key, (mantissa, exponent))
         return (mantissa, exponent)
@@ -280,14 +283,14 @@ def group_fn(self, sizes):
 
 def get_allow_dynamic():
     from torch._inductor.dependencies import V as V_DYNAMIC
-    
+
     graph = getattr(V_DYNAMIC, "graph", None)
     if graph is None:
         return False
-        
+
     sizevars = getattr(graph, "sizevars", None)
     shape_env = getattr(graph, "shape_env", None) or getattr(sizevars, "shape_env", None)
-    
+
     if shape_env and hasattr(shape_env, "var_to_range"):
         return len(shape_env.var_to_range) > 0
     return False
@@ -379,7 +382,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         if index:
             self.writeline(index)
             self._codegen_mask()
-        
+
         return self.name
 
     def writeline(self, line):
@@ -415,7 +418,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
 
         dtype_cast_str = ""
-        if V.kernel.index_dtype == "tl.int64" and inductor_npu_config.is_ascend950:
+        if V.kernel.index_dtype == "tl.int64" and npu_config.is_ascend950:
             dtype_cast_str = ".to(tl.int64)"
 
         if self.is_split_axis:
@@ -749,15 +752,6 @@ class NPUIndexTritonKernel(TritonKernel):
 
         return tuple(result_vars)
 
-    def patch_triton_hash(self):
-        # remove this method once the original invocation is fixed
-        import hashlib
-        from triton.compiler.compiler import triton_key, make_backend
-        from triton.runtime.driver import driver
-        backend = make_backend(driver.active.get_current_target())
-        key = f"{triton_key()}-{backend.hash()}"
-        return hashlib.sha256(key.encode("utf-8")).hexdigest()
-
     def numof_tiling_axis(self):
         return len(self.tiling_axis)
 
@@ -876,7 +870,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "mutated_arg_names": mutated_args,
 
             # Due to breaking change of triton 3.0, the original invocation is broken
-            "backend_hash": self.patch_triton_hash(),  # torch.utils._triton.triton_hash_with_backend(),
+            "backend_hash": torch.utils._triton.triton_hash_with_backend(),
             "split_axis": split_axis,
             "tiling_axis": tiling_axis,
             "no_loop_axis": no_loop_axis,
@@ -926,7 +920,7 @@ class NPUIndexTritonKernel(TritonKernel):
     def gen_numel_args(self, signature, triton_meta, triton_meta_signature, argdefs):
         for node in self.sorted_axis:
             arg_name = f"{node.name}_numel"
-            if not inductor_npu_config.inductor_static_mode:
+            if not npu_config.inductor_static_mode:
                 sizearg = SizeArg(arg_name, node.length)
                 signature.append(sizearg)
                 triton_meta_signature[arg_name] = signature_of(
@@ -958,22 +952,6 @@ class NPUIndexTritonKernel(TritonKernel):
         elif self.inside_reduction:
             return "reduction"
         return "pointwise"
-
-    def get_kernel_name(self, src_code, node_schedule, kernel):
-        wrapper = V.graph.wrapper_code
-        if src_code in wrapper.src_to_kernel:
-            kernel_name = wrapper.src_to_kernel[src_code]
-        else:
-            fused_name = (
-                get_fused_kernel_name(node_schedule, config.triton.descriptive_names)
-                if config.triton.descriptive_names
-                else ""
-            )
-            kernel_category = get_kernel_category_by_source_code(src_code)[:3]
-            kernel_name = "_".join(
-                ["triton", kernel_category, fused_name, wrapper.get_next_kernel_suffix()]
-            )
-        return kernel_name
 
     # modify triton_meta, inductor_meta , etc.
     def codegen_kernel(self, name=None):
@@ -1123,7 +1101,7 @@ class NPUIndexTritonKernel(TritonKernel):
     def find_axis_in_load_store(self, range_val):
         if not range_val:
             return False
-        
+
         for line in self.loads._lines:
             if self.is_isolated_symbol(line, range_val):
                 return True
@@ -1192,7 +1170,7 @@ class NPUIndexTritonKernel(TritonKernel):
 
             is_last_axis = index == len(self.sorted_axis) - 1
             indexing_code = getattr(range_val, "indexing_code")
-            
+
             reduction_1d = is_1d_reduction()
             do_indent = False
             # tiling axis and last tiling
@@ -1566,7 +1544,7 @@ class NPUIndexTritonKernel(TritonKernel):
             return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
 
         if self.numof_reduction_axis() > 1:
-            reduction_dim_list = [] 
+            reduction_dim_list = []
 
             if not self.golden_var_list:
                 self.select_golden_varlist()
@@ -1859,7 +1837,7 @@ class NPUIndexTritonKernel(TritonKernel):
             return result_var
 
         index_analyze = IndexAnalysis(self, index)
-        nddma_switch = inductor_npu_config.nddma_switch
+        nddma_switch = npu_config.nddma_switch
         index_analyze.analyze_index(nddma=nddma_switch)
         indirect_indexing = self.is_indirect_indexing(index)
         indexing = self.indexing(index, nddma=nddma_switch, block_ptr=True)
@@ -2061,7 +2039,7 @@ class NPUIndexTritonKernel(TritonKernel):
         if isinstance(index, sympy.Integer):
             expand_str = f"{copy_shape}.shape" if copy_shape else self.dense_size_str()
             if (index != 0):
-                if inductor_npu_config.is_ascend950:
+                if npu_config.is_ascend950:
                     index_str = f"tl.full({expand_str}, {index_str}, {V.kernel.index_dtype})"
                 else:
                     index_str = f"tl.full({expand_str}, {index_str}, tl.int32)"
@@ -2575,12 +2553,12 @@ class NPUIndexTritonKernel(TritonKernel):
 
             @staticmethod
             def index_select(src_name: str, weight_index: CSEVariable, indirect_var, set_indirect, bound, index_select_type) -> CSEVariable:
-                inductor_npu_config.log.debug(f"index_select: {src_name}, {weight_index}, {indirect_var}, {set_indirect}, {bound}, {index_select_type}")
+                npu_config.log.debug(f"index_select: {src_name}, {weight_index}, {indirect_var}, {set_indirect}, {bound}, {index_select_type}")
 
                 from torch._inductor.utils import triton_type
 
                 def fallback_index_select_load(reason):
-                    inductor_npu_config.log.info(f"fallback index_select to tl.load reason: {reason}, bound: {bound}")
+                    npu_config.log.info(f"fallback index_select to tl.load reason: {reason}, bound: {bound}")
                     new_indirect_var = V.ops.indirect_indexing(indirect_var, bound)
                     new_index = sympy_subs(weight_index, {sympy_index_symbol(indirect_var.name): sympy_index_symbol(new_indirect_var.name)})
                     return V.ops.load(src_name, new_index)

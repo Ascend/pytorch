@@ -1,9 +1,7 @@
 import triton
 import triton.language as tl
 
-from torch._inductor.runtime import triton_helpers
-
-from .config import logging
+from torch._inductor.runtime.triton_helpers import *
 
 try:
     extension = tl.extra.cann.extension
@@ -13,21 +11,6 @@ except Exception as e:
     libdevice = tl.extra.ascend.libdevice
 
 math = tl.math
-
-
-@triton.jit
-def maximum(a, b):
-    return tl.maximum(a, b, tl.PropagateNan.ALL)
-
-
-@triton.jit
-def minimum(a, b):
-    return tl.minimum(a, b, tl.PropagateNan.ALL)
-
-
-triton_helpers.maximum = maximum
-triton_helpers.minimum = minimum
-
 
 @triton.jit
 def frexp(x):

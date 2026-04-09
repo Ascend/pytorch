@@ -4,26 +4,7 @@ from functools import reduce
 
 import torch
 from torch._prims_common import TensorLike
-from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op_overrides
 from torch._prims.rng_prims import register_rng_prim
-
-
-class NPUDeviceOpOverrides(DeviceOpOverrides):
-    def import_get_raw_stream_as(self, name):
-        return f"from torch_npu._C import _npu_getCurrentRawStream as {name}"
-
-    def set_device(self, device_idx):
-        return f"torch_npu.npu.set_device({device_idx})"
-
-    def synchronize(self):
-        return "torch_npu.npu.synchronize()"
-
-    def device_guard(self, device_idx):
-        return f"torch_npu.npu._DeviceGuard({device_idx})"
-
-
-def _inductor_register_device_op_overrides():
-    register_device_op_overrides('npu', NPUDeviceOpOverrides())
 
 
 aten = torch.ops.aten

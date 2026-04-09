@@ -1,65 +1,34 @@
-import functools
-import re
 import dataclasses
 import os
 import sys
 from itertools import chain, count, zip_longest
-from typing import Any, Callable, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Optional, TYPE_CHECKING, Union
 from typing_extensions import Self
 import sympy
 import torch
 from torch import dtype as torch_dtype
 from torch._inductor import config
-from torch._inductor.codecache import CudaKernelParamCache
-from torch._inductor.codecache import get_cpp_wrapper_cubin_path_name
 from torch._inductor.codegen.aoti_hipify_utils import maybe_hipify_code_wrapper
-from torch._inductor.codegen.common import get_device_op_overrides
 from torch._inductor.codegen.cpp_utils import cexpr, DTYPE_TO_CPP, DEVICE_TO_ATEN
 from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu, DeferredTritonCallWrapper
 from torch._inductor.codegen.multi_kernel import MultiKernelCall
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg, pexpr
 from torch._inductor.ir import IRNode, TensorBox, GraphPartitionSignature
+from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu, DeferredTritonCallWrapper, UnwrapUnspecArg
+from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg
+from torch._inductor.ir import GraphPartitionSignature
 from torch._inductor.runtime.runtime_utils import dynamo_timed
-from torch._inductor.utils import DeferredLineBase, IndentedBuffer
+from torch._inductor.utils import IndentedBuffer
 from torch._inductor.virtualized import V
-from torch._inductor.utils import _align, ALIGN_BYTES
+from torch._inductor.utils import ALIGN_BYTES
 
+from .common import get_device_op_overrides
 from .. import config as npu_config
-from ..config import npu_block as NPU_ALIGN_BYTES
-from ..npu_triton_heuristics import GridExprNpu
-from ..utils import triton_support_ffts
+from ..runtime.triton_heuristics import GridExprNpu
+from ..utils import triton_support_ffts, NPU_ALIGN_BYTES
 
 if TYPE_CHECKING:
     from torch._inductor.graph import GraphLowering
-
-
-def checkIfTrue(value, msg):
-    if not value:
-        raise RuntimeError(msg)
-
-
-_cpp_string_literal_escapes = {
-    "\\": "\\\\",
-    '"': '\\"',
-    "\n": "\\n",
-    "\t": "\\t",
-    "\r": "\\r",
-}
-_cpp_string_literal_pattern = re.compile(r'["\\\n\t\r]')
-
-
-def cpp_string_literal(s: str) -> str:
-    escaped = _cpp_string_literal_pattern.sub(
-        lambda match: _cpp_string_literal_escapes[match.group(0)], s
-    )
-    return f'"{escaped}"'
-
-
-@dataclasses.dataclass
-class UnwrapUnspecArg:
-    """Marker that we need to call .item() on the tensor"""
-
-    dtype: torch_dtype
 
 
 @dataclasses.dataclass
@@ -74,72 +43,6 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
     kernel_name: str
     arg_types: list[Any]
     kernel_id: int
-
-    def generate(self, wrapper):
-        prefix = wrapper.prefix
-        if self.kernel_name.startswith("multi_kernel_"):
-            # MultiKernel will select one kernel after running the autotune block
-            self.kernel_name = MultiKernelCall.lookup_choice(self.kernel_name)
-        params = CudaKernelParamCache.get(self.kernel_name)
-        def_args = params["def_args"]
-        arg_types = self.arg_types
-        inductor_meta = params["inductor_meta"]
-
-        if "extra_launcher_args" in inductor_meta and len(def_args) > len(arg_types):
-            # extra_launcher_args should already be in def_args
-            arg_types = arg_types + [SymbolicCallArg] * len(
-                inductor_meta["extra_launcher_args"]
-            )
-
-        if not V.graph.aot_mode:
-            prefix.writeline(
-                maybe_hipify_code_wrapper(
-                    f"static {wrapper.device_codegen.cpp_kernel_type()} {self.kernel_name} = nullptr;"
-                )
-            )
-            kernel_var_name = self.kernel_name
-        else:
-            kernel_var_name = f"kernels_.{self.kernel_name}"
-
-        # tensors can be RAIIAtenTensorHandle or ConstantHandle, so make them template types
-        template_types = [
-            f"typename {name}_type_"
-            for name, arg_type in zip(def_args, arg_types)
-            if isinstance(arg_type, (torch_dtype, UnwrapUnspecArg))
-        ]
-        if V.graph.aot_mode:
-            template_types.append("typename kernels_type_")
-        if template_types:
-            prefix.writeline(f"template <{', '.join(template_types)}>")
-        prefix.writeline(f"static inline void {self.wrapper_name}(")
-        with prefix.indent():
-            for name, arg_type in zip(def_args, arg_types):
-                if isinstance(arg_type, (torch_dtype, UnwrapUnspecArg)):
-                    prefix.writeline(f"const {name}_type_& {name},")
-                elif issubclass(arg_type, (SymbolicCallArg, sympy.Expr, int)):
-                    prefix.writeline(f"int64_t {name},")
-                elif arg_type is float:
-                    prefix.writeline(f"float {name},")
-                elif arg_type is bool:
-                    prefix.writeline(f"bool {name},")
-                else:
-                    raise ValueError(f"Unexpected arg type {arg_type}")
-            prefix.writeline(f"{wrapper.device_codegen.cpp_stream_type()} stream_,")
-            if V.graph.aot_mode:
-                prefix.writeline("kernels_type_& kernels_,")
-            prefix.writeline(
-                "const std::optional<std::string>& cubin_dir_ = std::nullopt"
-            )
-        prefix.writeline("){")
-        with prefix.indent():
-            self.generate_grid(prefix, inductor_meta, params)
-            self.generate_load_kernel(prefix, kernel_var_name, params)
-            self.generate_launch_kernel(prefix, wrapper, kernel_var_name, params)
-        prefix.writeline("}")
-        # Ensure the cubin file is included in the package
-        V.graph.wrapper_code.additional_files.append(
-            params[get_cpp_wrapper_cubin_path_name()]
-        )
 
     def generate_grid(
         self,
@@ -162,20 +65,6 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
             """
         )
         prefix.writeline("if (grid_0 == 0 || grid_1 == 0 || grid_2 == 0) return;")
-
-    def generate_load_kernel(self, prefix, kernel_var_name, params):
-        prefix.writeline(f"if ({kernel_var_name} == nullptr) {{")
-        with prefix.indent():
-            load_kernel_args = [
-                cpp_string_literal(params[get_cpp_wrapper_cubin_path_name()]),
-                cpp_string_literal(params["mangled_name"]),
-                str(params["shared_mem"]),
-                "cubin_dir_",
-            ]
-            prefix.writeline(
-                f"{kernel_var_name} = loadKernel({', '.join(load_kernel_args)}); "
-            )
-        prefix.writeline("}")
 
     def generate_launch_kernel(self, prefix, wrapper, kernel_var_name, params):
         triton_meta = params["triton_meta"]
@@ -336,20 +225,6 @@ class CppWrapperNpu(CppWrapperGpu):
         )
         self.header.splice("#include <torch_npu/csrc/framework/OpCommand.h>")
         self.header.splice("#include <runtime/runtime/rt.h>")
-        if npu_config.aot_inductor.debug_kernel:
-            self.header.splice("#include <torch/torch.h>")
-
-    def write_get_raw_stream(self, device_idx: int, graph=None) -> str:
-        name = f"stream{device_idx}"
-        self.writeline(
-            maybe_hipify_code_wrapper(
-                f"{self.device_codegen.cpp_stream_type()} {name};"
-            )
-        )
-        self.writeline(
-            f"AOTI_TORCH_ERROR_CODE_CHECK({self.device_codegen.aoti_get_stream()}({device_idx}, (void**)&{name}));"
-        )
-        return name
 
     def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
         expr = f"{kernel_name}_{node.name}_numel"
@@ -361,6 +236,7 @@ class CppWrapperNpu(CppWrapperGpu):
         else:
             self.writeline(f"{expr} = {cexpr(numel_expr)};")
         return SymbolicCallArg(expr, numel_expr)
+
 
     def codegen_inputs(self):
         # See Note: [Input Alignment handling in Inductor]
@@ -431,7 +307,6 @@ class CppWrapperNpu(CppWrapperGpu):
         with dynamo_timed("CppWrapperNpu.generate", log_pt2_compile_event=True):
             return super().generate(is_inference)
 
-
     def prepare_triton_kernel_call(self, call_args):
         new_call_args = call_args
         if npu_config.inductor_static_mode:
@@ -477,59 +352,6 @@ class CppWrapperNpu(CppWrapperGpu):
             device_str = "npu"
         self.used_cached_devices.add(device_str)
         return f"cached_torch_device_type_{device_str}, {device.index if device.index else 0}"
-
-    def write_wrapper_decl(self):
-        super().write_wrapper_decl()
-        with self.prefix.indent():
-            if not V.graph.aot_mode:
-                return
-            dump_path = npu_config.aot_inductor.dump_path_cpp
-            if npu_config.aot_inductor.debug_kernel:
-                self.prefix.splice(
-                    f"""
-                    auto dump_path = std::filesystem::current_path() / "{dump_path}";
-                    if (!std::filesystem::exists(dump_path)) {{
-                        std::filesystem::create_directory(dump_path);
-                    }}
-                    """
-                )
-
-                self.prefix.splice(
-                    """
-                    auto  tensor_handle_to_tensor_pointer = [](AtenTensorHandle handle) {
-                        return reinterpret_cast<at::Tensor*>(handle);
-                    };
-                    """
-                )
-
-    def generate_debug_str(self, args, kernel_name, kernel_id, mark):
-        if not npu_config.aot_inductor.debug_kernel:
-            return ""
-        if kernel_id not in self.visited_handle_for_kernel_id:
-            self.visited_handle_for_kernel_id[kernel_id] = set()
-
-        def get_tensor_from_handle(h, t):
-            if h in self.visited_handle_for_kernel_id[kernel_id]:
-                return ""
-            self.visited_handle_for_kernel_id[kernel_id].add(h)
-            return f"        auto {t} = *tensor_handle_to_tensor_pointer({h});\n"
-
-        # Only dump tensor args, e.g, ['buf2', '8L', '4L'] => ['buf2']
-        tensor_args = [arg for arg in args if not arg[0].isdigit()]
-
-        tensor_args_h = [f"{arg}_h" for arg in tensor_args]
-        tensor_args_t = [f"{arg}_t" for arg in tensor_args]
-        handle_tensor_str = "".join(
-            [get_tensor_from_handle(h, t) for h, t in zip(tensor_args_h, tensor_args_t)]
-        )
-
-        dump_path = npu_config.aot_inductor.dump_path_cpp
-        return f"""
-        c10_npu::npuSynchronizeDevice();
-        \n{handle_tensor_str}
-        std::vector<at::Tensor> arg_{mark}{{{", ".join(tensor_args_t)}}};
-        torch::save(arg_{mark}, "{dump_path}/{kernel_id}_{kernel_name}_{mark}.pt");
-        """
 
     def generate_args_decl(
         self,
@@ -596,10 +418,6 @@ class CppWrapperNpu(CppWrapperGpu):
                         f"{device_ptr_type} {var_name} = reinterpret_cast<{device_ptr_type}>({arg}.data_ptr());"
                     )
                 )
-                if npu_config.aot_inductor.debug_kernel:
-                    if arg not in self.visited_raii_handle:
-                        self.writeline(f"AtenTensorHandle {arg}_h = {arg}.get();")
-                        self.visited_raii_handle.add(arg)
                 struct_data = f"void* {var_name} __attribute__((aligned(8)));"
                 arg_data = f"static_cast<void*>({var_name})"
             elif arg_type in (sympy.Integer, int):
@@ -635,12 +453,6 @@ class CppWrapperNpu(CppWrapperGpu):
         ):
             process_args(arg, arg_type, arg_signature)
 
-        debug_str_before_kernel = self.generate_debug_str(
-            call_args, kernel_name, kernel_id, "before"
-        )
-        debug_str_after_kernel = self.generate_debug_str(
-            call_args, kernel_name, kernel_id, "after"
-        )
         ffts_str = """
         void* ffts_addr = NULL;
         uint32_t ffts_len;
@@ -675,9 +487,7 @@ class CppWrapperNpu(CppWrapperGpu):
         uint32_t block_num = grid_0 * grid_1 * grid_2;
         auto arg_ptr = static_cast<void*>(&kernel_args);
         auto arg_size = sizeof(kernel_args);
-        {debug_str_before_kernel}
         ret = rtKernelLaunch({kernel_name}, block_num, arg_ptr, arg_size, NULL, stream_);
-        {debug_str_after_kernel}
         if (ret != RT_ERROR_NONE) return ret;
         return ret;
     }};

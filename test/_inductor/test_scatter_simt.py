@@ -2,7 +2,7 @@ import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
 from torch_npu._inductor.config import inductor_indirect_memory_mode
-from torch_npu._inductor.npu_triton_heuristics import do_bench_using_profiling_npu
+from torch_npu._inductor.runtime.triton_heuristics import do_bench_using_profiling_npu
 
 ScatterParamInfo = [
     [(128,), (128,), (128,)],

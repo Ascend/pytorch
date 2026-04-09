@@ -727,7 +727,7 @@ from torch._inductor.codegen.multi_kernel import MultiKernelCall
 import triton
 import triton.language as tl
 from torch._inductor.runtime.triton_heuristics import start_graph, end_graph
-from torch_npu._inductor import get_current_raw_stream as get_raw_stream
+from torch_npu._C import _npu_getCurrentRawStream as get_raw_stream
 from torch_npu._inductor import config as npu_config
 
 aten = torch.ops.aten
@@ -2423,7 +2423,5 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
     lowering.index_impl=inductor_index_impl
     lowering.embedding=inductor_embedding
     lowering.gather=inductor_gather
-    lowering.make_fallback(aten._log_softmax)
-    lowering.make_fallback(aten.nll_loss_forward)
 
     return (squeeze, expand, view, unsqueeze, _validate_dim, full_like, mul, div, rsqrt, add, square, sub)

@@ -1,12 +1,7 @@
-import torch
-from torch_npu.npu import device_count
-from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
-from torch_npu.utils._inductor import NPUDeviceOpOverrides
-from . import config as npu_config
+from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op_overrides
 
 
-## Override original inductor device overrides in torch_npu
-class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
+class NewNPUDeviceOpOverrides(DeviceOpOverrides):
     def import_get_raw_stream_as(self, name):
         return f"from torch_npu._C import _npu_getCurrentRawStream as {name}"
 
@@ -166,12 +161,6 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
             static inline void launchKernel(
                     std::function<int()> launch_call,
                     std::string&& kernel_name) {
-                launch_call();
-            }
-        """ if npu_config.aot_inductor.debug_kernel else """
-            static inline void launchKernel(
-                    std::function<int()> launch_call,
-                    std::string&& kernel_name) {
                 at_npu::native::OpCommand cmd;
                 cmd.Name(kernel_name.c_str())
                     .SetCustomHandler(launch_call)
@@ -212,3 +201,5 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
 
     def cpp_device_ptr(self):
         return "void*"
+
+register_device_op_overrides('npu', NewNPUDeviceOpOverrides())

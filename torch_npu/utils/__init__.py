@@ -12,7 +12,7 @@ from .npu_intercept import _cann_package_check, _add_intercept_methods
 from .dtensor import _register_ops_under_dtensor_rules
 from .collect_env import _add_collect_env_methods
 from ._dynamo import add_dynamo_methods
-from ._inductor import _inductor_register_device_op_overrides
+from ._inductor import _max_unpoolnd_patch
 from ._optim import add_optim_method
 from .asd_detector import set_asd_loss_scale, register_asd_hook
 from .utils import _print_error_log, _print_warn_log, _print_info_log, _apply_npu_show_warning, _should_print_warning

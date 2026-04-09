@@ -6,15 +6,19 @@ import torch_npu
 
 
 class TestEmbeddingDense(TestUtils):
-    def op_calc(self, arg, embedding):
-        output = embedding(arg)
+    def __init__(self, methodName='runTest'):
+        super().__init__(methodName)
+        self.embedding = nn.Embedding(16, 128).npu()
+
+    def op_calc(self, input):
+        output = self.embedding(input)
         return output
 
     # UT skip, reason: precision fail
     # Added to pytorch-disable-tests.json
     def test_pointwise_cases(self):
         
-        arg0 = torch.tensor([[14, 1, 2, 10, 0, 10, 0],
+        input = torch.tensor([[14, 1, 2, 10, 0, 10, 0],
                         [9, 13, 13, 4, 7, 15, 14],
                         [8, 0, 3, 15, 4, 2, 6],
                         [15, 12, 13, 9, 0, 8, 1],
@@ -27,11 +31,11 @@ class TestEmbeddingDense(TestUtils):
                         [1, 1, 5, 1, 1, 6, 14],
                         [3, 9, 8, 4, 13, 8, 3],
                         [4, 10, 8, 13, 6, 8, 3]], device='npu:0')
-        embedding = nn.Embedding(16, 128).npu()
-        std_sub = self.op_calc(arg0, embedding)
+
+        std_sub = self.op_calc(input)
 
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
-        inductor_sum = compiled_op_calc(arg0, embedding)
+        inductor_sum = compiled_op_calc(input)
         self.assertEqual(std_sub, inductor_sum)
 
 

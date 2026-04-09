@@ -1,4 +1,4 @@
-from torch_npu._inductor.npu_device import NewNPUDeviceOpOverrides
+from torch_npu._inductor.codegen.npu.device_op_overrides import NewNPUDeviceOpOverrides
 from torch_npu.testing.testcase import TestCase, run_tests
 
 

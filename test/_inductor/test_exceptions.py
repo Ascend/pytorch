@@ -18,13 +18,12 @@ from torch._inductor.runtime.triton_helpers import libdevice, math as tl_math
 from torch._inductor.runtime.hints import AutotuneHint, ReductionHint, TileHint, DeviceProperties
 
 from torch._inductor.runtime import triton_helpers
-from torch_npu._inductor import npu_triton_heuristics
-from torch_npu._inductor import npu_triton_helpers
-from torch_npu._inductor.npu_triton_helpers import libdevice, math as tl_math
+from torch_npu._inductor.runtime import triton_heuristics
+from torch_npu._inductor.runtime.triton_helpers import libdevice, math as tl_math
 import torch
 import torch_npu
 
-@npu_triton_heuristics.pointwise(
+@triton_heuristics.pointwise(
     size_hints=[16384, 32], tile_hint=TileHint.DEFAULT,
     filename=__file__,
     triton_meta={'signature': {'in_ptr0': '*fp16', 'in_ptr1': '*fp16', 'out_ptr0': '*fp16', 'y0_numel': 'i32', 'x1_numel': 'i32'},

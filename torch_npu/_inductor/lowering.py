@@ -21,15 +21,8 @@ from torch._inductor import lowering
 from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
 from torch._inductor.ir import ExpandView, TensorBox, ops_wrapper, StorageBox, View
 from torch._inductor.ir import Reduction, Pointwise
-from torch._inductor.lowering import sum_
-from torch._inductor.utils import sympy_product
 from torch._prims_common import (
-    is_boolean_dtype,
-    is_integer_dtype,
     is_float_dtype,
-    get_computation_dtype,
-    ELEMENTWISE_TYPE_PROMOTION_KIND,
-    Number
 )
 from torch._inductor.lowering import (
     lowerings,
@@ -37,14 +30,12 @@ from torch._inductor.lowering import (
     register_lowering,
     to_dtype,
     fallback_cumsum,
-    _validate_reduction_axis,
     div as div_pt,
     squeeze as squeeze_pt,
     square as square_pt,
     sub as sub_pt,
+    sum_,
     fallback_handler,
-    is_boolean_type,
-    make_pointwise,
     _make_reduction_inner,
     _validate_reduction_axis,
     add_needs_realized_inputs,
@@ -58,10 +49,18 @@ from torch._inductor.lowering import (
     sqrt as sqrt_pt,
     clone as clone_pt,
     pow_recursive,
-    exp2 as exp2_pt
+    exp2 as exp2_pt, make_pointwise
+)
+from torch._inductor.ops_handler import ReductionType
+from torch._inductor.utils import sympy_product
+from torch._prims_common import (
+    is_boolean_dtype,
+    is_integer_dtype,
+    get_computation_dtype,
+    ELEMENTWISE_TYPE_PROMOTION_KIND,
+    Number
 )
 
-from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch._inductor.lowering import (unsqueeze as unsqueeze_pt, index_put_as_masked_fill, index_put_fallback, needs_fallback_due_to_atomic_add_limitations, view as view_pt, check_and_broadcast_indices, index_output_size_and_inner_fn, expand as expand_pt, clone, new_empty, scatter_fallback, full_like as full_like_pt)
 from torch._inductor.virtualized import V, ops
 from torch._inductor import scheduler
@@ -131,7 +130,7 @@ if npu_config.dump_fx_graph:
     Scheduler._get_unmet_dep_nodes = _npu_get_unmet_dep_nodes
 
 
-def make_reduction(reduction_type: str, override_return_dtype=None):
+def make_reduction(reduction_type: ReductionType, override_return_dtype=None):
     def inner(x, axis=None, keepdims=False, *, dtype=None):
         kwargs = _make_reduction_inner(
             x,
@@ -155,21 +154,9 @@ def make_reduction(reduction_type: str, override_return_dtype=None):
                                         input_node=x,
                                         **kwargs)
         if isinstance(
-                result.data.data, Reduction
+            result.data.data,  # type: ignore[attr-defined]
+            Reduction,
         ):  # Only realize if reduction isn't unrolled
-            size = x.get_size()
-            axis = set(_validate_reduction_axis(x, axis))
-            kept_idx = []
-            reduced_idx = []
-            for i in range(len(size)):
-                if i in axis:
-                    reduced_idx.append(i)
-                else:
-                    kept_idx.append(i)
-
-            object.__setattr__(result.data.data, "kept_idx", kept_idx)
-            object.__setattr__(result.data.data, "reduced_idx", reduced_idx)
-
             result.realize()
         return result
 
@@ -352,19 +339,19 @@ def _register_npu_inductor_fallbacks():
         if should_use_template():
             return lowering_index_select(weight, 0, indices, 'embedding', new_graph, node_name)
         return lowering.embedding(weight, indices)
-    
+
     @make_pointwise
     def pow_native(a,b):
         return ops.pow(a,b)
 
     fallback_pow_tensor_tensor = fallback_handler(
-        aten.pow.Tensor_Tensor, add_to_fallback_set=False    
+        aten.pow.Tensor_Tensor, add_to_fallback_set=False
     )
     fallback_pow_scalar = fallback_handler(aten.pow.Scalar, add_to_fallback_set=False)
     fallback_pow_tensor_scalar = fallback_handler(
-        aten.pow.Tensor_Scalar, add_to_fallback_set=False    
+        aten.pow.Tensor_Scalar, add_to_fallback_set=False
     )
-                
+
     @register_lowering(aten.pow, broadcast=True)
     def pow(a, b):
         if isinstance(b, float) and b == int(b):
@@ -373,7 +360,7 @@ def _register_npu_inductor_fallbacks():
             return sqrt_pt(a)
         elif isinstance(b, int) and b == 1:
             return clone_pt(a)
-        
+
         # Type promotion ensures all tensor arguments have the same Type
         dtype = next(x.get_dtype() for x in (a, b) if isinstance(x, ir.TensorBox))
         is_integer_pow = is_integer_dtype(dtype)
@@ -385,23 +372,23 @@ def _register_npu_inductor_fallbacks():
         )
         if embed_exponent:
             loader = a.make_loader()
-            
+
             def fn(idx):
                 return pow_recursive(loader(idx), b, a.get_dtype())
-            
+
             return Pointwise.create(
                 device=a.get_device(),
                 dtype=a.get_dtype(),
                 inner_fn=fn,
                 ranges=a.get_size(),
             )
-        
+
         if isinstance(a, Number):
             if a == 1:
                 return full_like(b, 1)
             if a == 2 and is_float_dtype(b.get_dtype()):
                 return exp2_pt(b)
-            
+
         if is_integer_pow or is_fp64_pow:
             # ops.pow doesn't work for integers
             if isinstance(a, Number):
@@ -410,10 +397,10 @@ def _register_npu_inductor_fallbacks():
                 return fallback_pow_tensor_scalar(a, b)
             else:
                 return fallback_pow_tensor_tensor(a, b)
-            
+
         return pow_native(a, b)
 
-    
+
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
         if len(inputs) == 1:
@@ -896,6 +883,7 @@ def _register_npu_inductor_fallbacks():
             keepdim=keepdim,
             return_mean=return_mean,
         )
+        # todo: support welford var mean
         output = (
             var_mean_sum_(**kwargs)
         )
@@ -1020,23 +1008,4 @@ def _register_npu_inductor_fallbacks():
         
         # native_layer_norm returns three values: output, mean, reciprocal of standard deviation
         return normalized, mean, inv_std
-    
-    @register_lowering(triton_kernel_wrapper_mutation)
-    def triton_kernel_wrap_(
-        *,
-        kernel_idx,
-        constant_args_idx,
-        grid,
-        tma_descriptor_metadata,
-        kwargs,
-    ):
-        from torch._higher_order_ops.triton_kernel_wrap import kernel_side_table
 
-        constant_args = kernel_side_table.get_constant_args(constant_args_idx)
-        ir.UserDefinedTritonKernel(
-            kernel_idx=kernel_idx,
-            grid=grid,
-            tma_descriptor_metadata=tma_descriptor_metadata,
-            kernel_args={**kwargs, **constant_args},
-        )
-        return {key: val for key, val in kwargs.items() if isinstance(val, TensorBox)}

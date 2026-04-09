@@ -61,7 +61,6 @@ def lock_context(key):
         yield
 
 
-
 def patch_cache_base_get_system():
     # patch function CacheBase.get_system with get_system_npu, add logic to support CANN
     @staticmethod

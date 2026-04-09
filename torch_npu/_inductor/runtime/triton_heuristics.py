@@ -53,14 +53,14 @@ from torch._inductor.runtime.triton_heuristics import (
     FixedGrid,
     PrecomputedGrid
 )
-
 # used for wrapper codegen, do not remove this
-from torch._inductor.runtime.triton_heuristics import (
+from torch._inductor.runtime.triton_heuristics import ( # noqa: F401
     fixed_config,
     user_autotune,
     foreach,
     template
 )
+
 from torch._inductor.runtime.runtime_utils import triton_hash_to_path_key
 from triton.compiler import CompiledKernel
 from torch._inductor.triton_bundler import TritonBundler
@@ -77,11 +77,11 @@ except ImportError:
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
 
-from .codegen.tile_generator import TileGenerator
-from .codegen.triton_utils import get_byte_per_numel, NPUKernelType
-from .config import log
-from . import config as npu_config
-from .profiler import simple_trace_handler, mspti_batch_benchmark
+from ..codegen.tile_generator import TileGenerator
+from ..codegen.triton_utils import NPUKernelType
+from ..config import log
+from .. import config as npu_config
+from ..profiler import simple_trace_handler, mspti_batch_benchmark
 
 kernel_idx = count()
 
@@ -279,7 +279,9 @@ class TritonCompileResultNpu(TritonCompileResult):
                 # num_warps/num_stages are special implicit args that are not in the signature
                 # see test_triton_kernel_special_params
                 def_args = [
-                    arg for arg in def_args if arg not in ("num_warps", "num_stages")
+                    arg
+                    for arg in def_args
+                    if arg not in ("num_warps", "num_stages")
                 ]
                 repl = {
                     k: str(compile_meta["constants"].get(k))
@@ -863,52 +865,6 @@ class NPUCachingAutotuner(CachingAutotuner):
                 self.fn_name = self.kernel_name
         return self.fn_name
 
-    def fallback_to_fx(self, *args, launcher, stream, **kwargs):
-        """
-        Try to fallback kernel to fx graph call according to kernel id.
-        """
-
-        def should_fallback():
-            fallback_id = npu_config.force_fallback_kernel_id
-            if fallback_id != "all" and not isinstance(fallback_id, list):
-                raise RuntimeError("torch_npu._inductor.config.aot_inductor.force_fallback_kernel_id "
-                                   "should be set to 'all' or List, e.g, [1, 2, 10]." + pta_error(ErrCode.VALUE))
-
-            if isinstance(fallback_id, list):
-                kernel_name = self.get_fn_name()
-                try:
-                    kernel_id = int(kernel_name.split("_")[-1])
-                except ValueError:
-                    kernel_id = -1
-                if kernel_id not in fallback_id:
-                    return False
-            return True
-
-        if not should_fallback():
-            return None
-
-        fx_graph_call, _, _, fx_module = self.get_fx_graph_call()
-        if not fx_graph_call:
-            return None
-
-        call_outputs_indices = fx_module.call_args_mapping[fx_module.num_inputs:]
-        fx_args = []
-        for idx in fx_module.call_args_mapping:
-            arg = args[idx]
-            if isinstance(arg, torch.Tensor):
-                fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(
-                    arg)
-                fx_args.append(fx_arg)
-
-        fx_graph_call(*fx_args)
-        for actual, expected in zip([args[i] for i in call_outputs_indices], fx_args[fx_module.num_inputs:]):
-            if actual.dtype != expected.dtype:
-                expected = expected.to(actual.dtype)
-            actual.copy_(expected)
-        for arg in fx_args:
-            del arg
-        return True
-
     def check_accuracy(self, *args, launcher, grid, stream, **kwargs):
         fx_graph_call, kernel_name, dump_path, fx_module = self.get_fx_graph_call()
         if not fx_graph_call:
@@ -965,33 +921,9 @@ class NPUCachingAutotuner(CachingAutotuner):
             del arg
         return True
 
-    def debug_kernel_in_run(self, *args, launcher, stream, **kwargs):
-        '''
-        Save tensors for kernel args and outputs before and after kernel execute.
-        These tensors can be load and compared with tensors dumped by aot-inductor cpp runtime.
-        '''
-        dump_path = npu_config.aot_inductor.dump_path_py
-        if not os.path.exists(dump_path):
-            os.makedirs(dump_path)
-
-        idx = next(kernel_idx)
-        fn_name = self.get_fn_name()
-        dump_args = [arg for arg in args if isinstance(arg, torch.Tensor)]
-        torch.npu.synchronize()
-        torch.save(dump_args, f"{dump_path}/{idx}_{fn_name}_before.pt")
-
-        result = super().run(*args, stream=stream, **kwargs)
-
-        torch.npu.synchronize()
-        torch.save(dump_args, f"{dump_path}/{idx}_{fn_name}_after.pt")
-        return result
-
     @functools.lru_cache(None)
     def is_run_debug(self):
-        return (npu_config.dump_fx_graph
-                or npu_config.check_accuracy
-                or npu_config.force_fallback_kernel_id
-                or npu_config.aot_inductor.debug_kernel_in_run)
+        return npu_config.dump_fx_graph or npu_config.check_accuracy
 
     def maybe_run_debug(self, *args, grid_, stream, launcher, **kwargs):
         kernel_name = self.get_fn_name()
@@ -1002,16 +934,6 @@ class NPUCachingAutotuner(CachingAutotuner):
         if npu_config.check_accuracy:
             if self.check_accuracy(*args, launcher=launcher, grid=grid_, stream=stream, **kwargs):
                 return "check_accuracy"
-        elif npu_config.force_fallback_kernel_id:
-            fallback_result = self.fallback_to_fx(*args, launcher=launcher, grid_=grid_, stream=stream, **kwargs)
-            if fallback_result is not None:
-                log.debug(f"fallback kernel {self.get_fn_name()} to fx graph call.")
-                return "force_fallback_kernel_id"
-            else:
-                log.warning(f"kernel {self.get_fn_name()} could not fallback to fx.")
-        elif npu_config.aot_inductor.debug_kernel_in_run:
-            _ = self.debug_kernel_in_run(*args, launcher=launcher, grid_=grid_, stream=stream, **kwargs)
-            return "debug_kernel_in_run"
 
         log.info(f"No debug mode is activated for kernel {kernel_name}.")
         return None
@@ -1036,9 +958,9 @@ class NPUCachingAutotuner(CachingAutotuner):
                 *args,
                 **kwargs,
             )
-        autotune_start_time = time.perf_counter()
+
         self.autotuner(*args, stream=stream, benchmark_run=benchmark_run, **kwargs)
-        log.info(f"{self.get_fn_name()} benchmark elapsed time {time.perf_counter() - autotune_start_time}s")
+
         if not getattr(
                 self.launchers[0].config, "found_by_coordesc", False
         ) and self.inductor_meta.get("coordinate_descent_tuning", False):
@@ -1089,12 +1011,14 @@ class NPUCachingAutotuner(CachingAutotuner):
 
     def autotuner(self, *args, stream, benchmark_run=False, **kwargs):
         if len(self.launchers) != 1:
+            autotune_start_time = time.perf_counter()
             if len(self.launchers) == 0:
                 start_time = time.time_ns()
                 self.precompile()
                 self.precompile_time_taken_ns = time.time_ns() - start_time
             if len(self.launchers) > 1:
                 self.autotune_to_one_config(*args, **kwargs)
+            log.info(f"{self.get_fn_name()} benchmark elapsed time {time.perf_counter() - autotune_start_time}s")
 
     def _interpret_args_grid(
             self, args: tuple[Any, ...], cfg: Config
@@ -1606,26 +1530,3 @@ def precompile_parallel(
     self._precompile_worker_parallel()
     self._make_launchers()
     log.info(f"kernel: {self.get_fn_name()} precompile elapsed time: {time.perf_counter() - start_time}s")
-
-
-def user_autotune_npu(
-        configs,
-        triton_meta,
-        filename=None,
-        inductor_meta=None,
-        custom_kernel=False,
-):
-   
-    if len(configs) == 0:
-        configs = [triton.Config({})]
-    else:
-        configs = [*map(config_from_dict, configs)]
-    return cached_autotune(
-        None,
-        configs,
-        triton_meta=triton_meta,
-        heuristic_type=HeuristicType.USER_AUTOTUNE,
-        filename=filename,
-        inductor_meta=inductor_meta,
-        custom_kernel=custom_kernel,
-    )

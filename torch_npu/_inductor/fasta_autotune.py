@@ -4,7 +4,6 @@ import math
 import heapq
 import os
 import time
-import logging
 import re
 import dataclasses
 import functools
@@ -25,7 +24,7 @@ from torch._inductor import config
 import torch_npu
 from .codegen.tile_generator import TileGenerator
 from .config import log
-from .npu_triton_heuristics import NPUCachingAutotuner
+from .runtime.triton_heuristics import NPUCachingAutotuner
 from . import config as npu_config
 from .codegen.triton_utils import get_byte_per_numel, NPUKernelType
 from .profiler import simple_trace_handler
