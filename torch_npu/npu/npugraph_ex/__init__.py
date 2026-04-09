@@ -14,13 +14,7 @@ from . import scope
 
 def compile_fx(gm, example_inputs=None, options=None):
     import npugraph_ex
-    from npugraph_ex.configs import npugraphex_config
-
-    compiler_config = npugraph_ex.CompilerConfig()
-    compiler_config.mode = "npugraph_ex"
-    npugraphex_config._process_kwargs_options(compiler_config, {"options": {} if options is None else options})
-    compiler = npugraph_ex.get_compiler(compiler_config)
-    return compiler(gm, example_inputs)
+    return npugraph_ex.compile_fx(gm, example_inputs, options)
 
 
 def _return_true(match: Match):
