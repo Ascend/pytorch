@@ -882,6 +882,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "npu_kernel_type": str(self.npu_kernel_type),
             "traced_graph_hash": "TRACED_GRAPH_HASH",
             "traced_graph_dir": "TRACED_GRAPH_DIR",
+            "are_deterministic_algorithms_enabled": torch.are_deterministic_algorithms_enabled(),
             **TritonKernel.inductor_meta_common()
         }
         return inductor_meta

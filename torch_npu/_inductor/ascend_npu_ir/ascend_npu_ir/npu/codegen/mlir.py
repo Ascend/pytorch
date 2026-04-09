@@ -321,6 +321,8 @@ class NpuMlirScheduling(SIMDScheduling):
                 'traced_graph_cache': anir_config.traced_graph_cache,
                 'traced_graph_hash': traced_graph_hash,
                 'num_call_functions': num_call_functions,
+                'is_reduction': 'linalg.reduce' in src_code,
+                'are_deterministic_algorithms_enabled': torch.are_deterministic_algorithms_enabled(),
                 **kernel_info
             }
 
