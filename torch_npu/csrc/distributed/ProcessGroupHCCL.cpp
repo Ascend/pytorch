@@ -1393,38 +1393,26 @@ void ProcessGroupHCCL::abortAndClearHcclComm(c10::optional<std::string> abortRea
 ProcessGroupHCCL::~ProcessGroupHCCL()
 {
     LOG(INFO) << logPrefix() << "ProcessGroupHCCL destructor entered.";
+    if (windowMem_.has_value()) {
+        std::vector<at::Device> devices = {windowMem_->device()};
+        auto comm = getHcclCommByDevices(devices);
+        if (comm->getHcclComm() != nullptr) {
+            auto ret = hcclCommDeregister(comm->getHcclComm(), windowHandle_);
+            if (ret != HCCL_SUCCESS) {
+                ASCEND_LOGE("Call HcclCommDeregister failed.")
+            }
+        }
+        windowHandle_ = nullptr;
+        windowMem_ = c10::nullopt;
+    }
 
     if (options_->global_ranks_in_group.empty()) {
         global_ = nullptr;
     }
 
-    if (!terminateProcessGroup_.load()) {
-        // User did not explicitly call destroy_process_group
-        // Use shutdown for complete cleanup
-        try {
-            shutdown();
-        } catch (const std::exception& e) {
-            const auto exitMsg = c10::str(
-                logPrefix(),
-                "ProcessGroupHCCL destructor caught shutdown exception: ",
-                e.what());
-            LOG(ERROR) << exitMsg;
-            auto exceptionPtr = std::make_exception_ptr(std::runtime_error(exitMsg));
-            std::rethrow_exception(exceptionPtr);
-        } catch (...) {
-            const auto exitMsg = c10::str(
-                logPrefix(),
-                "ProcessGroupHCCL destructor caught unknown shutdown exception.");
-            LOG(ERROR) << exitMsg;
-            auto exceptionPtr = std::make_exception_ptr(std::runtime_error(exitMsg));
-            std::rethrow_exception(exceptionPtr);
-        }
-    }
-
     terminateProcessGroup_.store(true);
-    watchdog_->notify();
-
     terminateHeartbeatMonitorThread_.store(true);
+    watchdog_->notify();
     monitorWakeUpCV_.notify_one();
 
 #ifdef ENABLE_HCCL_ERROR_CHECKING
@@ -1432,10 +1420,22 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
     if (hcclHeartbeatMonitorThread_.joinable()) {
         hcclHeartbeatMonitorThread_.join();
         LOG(INFO) << logPrefix()
-                  << "Heartbeat monitor thread joined in destructor.";
+                << "ProcessGroupHCCL heart beat monitor thread joined.";
     }
 #endif
+    {
+        // Destropy all HCCL Communicators on Process Group Destruction
+        std::lock_guard<std::mutex> lock(mutex_);
+        for (auto& it : devHCCLCommMap_) {
+            auto& hcclComms = it.second;
 
+            for (const auto& hcclComm : hcclComms) {
+                hcclComm->destroyHcclComm();
+            }
+        }
+        devHCCLCommMap_.clear();
+        p2pSendRecvKeys_.clear();
+    }
     LOG(INFO) << logPrefix() << "ProcessGroupHCCL destructor completed.";
     TORCH_NPU_HCCL_LOGI("process group destroyed, group id is %s.", options_->group_id.c_str());
 }
