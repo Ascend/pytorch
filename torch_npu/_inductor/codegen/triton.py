@@ -1414,6 +1414,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 index_str = indexing.index_str
                 mask_str = indexing.mask_str
                 line = f"tl.load({var} + ({index_str}), {mask_str}{ep}{other})"
+        
+        if (
+            dtype in (torch.float16, torch.bfloat16)
+            and config.triton.codegen_upcast_to_fp32
+        ):
+            line += ".to(tl.float32)"
+            dtype = torch.float32
 
             dtype = V.graph.get_dtype(name)
             if dtype in (torch.bfloat16,):
