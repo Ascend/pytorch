@@ -627,6 +627,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "store_cubin": config.triton.store_cubin,
             "force_disable_caches": config.force_disable_caches,
             "profile_bandwidth_with_do_bench_using_profiling": config.profile_bandwidth_with_do_bench_using_profiling,
+            "are_deterministic_algorithms_enabled": torch.are_deterministic_algorithms_enabled(),
         }
         return inductor_meta
 

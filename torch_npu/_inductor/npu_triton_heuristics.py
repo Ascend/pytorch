@@ -676,6 +676,22 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         return benchmarker.benchmark_gpu(kernel_call, rep=1)
 
+    def _should_skip_autotune_for_determinism(self):
+        """
+        When deterministic algorithms are enabled, skip benchmarking for
+        reduction kernels and use the first successfully compiled config.
+        All configs are still compiled so that compilation failures on NPU
+        do not crash the program.
+        Pointwise kernels are unaffected because their tiling does not change
+        floating-point numerics.
+        """
+        return (
+            self.inductor_meta.get("are_deterministic_algorithms_enabled")
+            and self.heuristic_type in (
+                HeuristicType.REDUCTION,
+                HeuristicType.PERSISTENT_REDUCTION,
+            )
+        )
 
     def autotune_to_one_config(self, *args, **kwargs):
         """Do the actual autotuning"""
@@ -930,7 +946,12 @@ class NPUCachingAutotuner(CachingAutotuner):
                 self.precompile()
                 self.precompile_time_taken_ns = time.time_ns() - start_time
             if len(self.launchers) > 1:
-                self.autotune_to_one_config(*args, **kwargs)
+                if self._should_skip_autotune_for_determinism():
+                    self.launchers = [self.launchers[0]]
+                    if self.save_cache_hook:
+                        self.save_cache_hook(self.launchers[0].config, 0)
+                else:
+                    self.autotune_to_one_config(*args, **kwargs)
 
         if not getattr(
                 self.launchers[0].config, "found_by_coordesc", False
