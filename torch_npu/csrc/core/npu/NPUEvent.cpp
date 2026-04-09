@@ -22,6 +22,14 @@ NPUEvent::NPUEvent()
     flags_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
 }
 
+NPUEvent::NPUEvent(unsigned int flags)
+{
+    flags_ = flags;
+    if (flags_ == ACL_EVENT_EXTERNAL && c10_npu::acl::IsExistValueWaitAndWrite()) {
+        createEvent(getCurrentNPUStream().device_index());
+    }
+}
+
 NPUEvent::NPUEvent(
     c10::DeviceIndex device_index, const aclrtIpcEventHandle* handle) : device_index_(device_index)
 {
@@ -123,9 +131,6 @@ void NPUEvent::record(const NPUStream& stream)
 
 void NPUEvent::block(const NPUStream& stream)
 {
-    if (!is_created_ && (flags_ == ACL_EVENT_EXTERNAL)) {
-        createEvent(stream.device_index());
-    }
     if (is_created_) {
         // If using multiple task queues or using IPC events across devices in a single process,
         // it is necessary to ensure that the enqueued record is dequeued before wait.
