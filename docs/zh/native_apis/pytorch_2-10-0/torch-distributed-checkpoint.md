@@ -60,5 +60,3 @@
 |torch.distributed.checkpoint.state_dict.set_model_state_dict|是|-|
 |torch.distributed.checkpoint.state_dict.set_optimizer_state_dict|是|-|
 |torch.distributed.checkpoint.state_dict.StateDictOptions|是|-|
-
-

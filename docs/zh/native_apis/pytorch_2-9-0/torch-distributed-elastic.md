@@ -1,6 +1,7 @@
 # torch.distributed.elastic
 
-> [!NOTE]  
+> [!NOTE]
+>
 > 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
 
 |API名称|是否支持|限制与说明|
@@ -110,5 +111,3 @@
 |torch.distributed.elastic.events.api.EventSource|是|-|
 |torch.distributed.elastic.events.api.EventMetadataValue|是|-|
 |torch.distributed.elastic.events.construct_and_record_rdzv_event|是|-|
-
-

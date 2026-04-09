@@ -1,6 +1,6 @@
 # 故障案例集
 
-- **[通信算子传入非连续tensor](communication_operato_transfers_Non-contiguous_tensors.md)**  
+- **[通信算子传入非连续tensor](communication_operator_transfers_Non-contiguous_tensors.md)**  
 
 - **[调用算子参数校验失败](failed_verify_op_parameters.md)**  
 

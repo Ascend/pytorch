@@ -12,7 +12,7 @@ torch.compile\(\)包含如下核心组件：
 |--------------------|--|----------------------------------------------------------------------------------------------------------|
 | Dynamo             |前端编译器（代码转换器）| TorchDynamo能够JIT（即时）将用户的eager（动态图）代码编译为FX Graph，进而交给其他lowering编译器（如Inductor）进行编译，最终生成优化过后的底层机器代码，达到加速效果。 |
 | Inductor           |后端编译器（高效代码生成器）| 具备基于多种模式（包括Triton/MLIR/DVM）的自动生成高性能算子能力，能够显著减少开发者手动设计Tiling、管理内存等工作量。支持算子融合等图优化策略，通过减少内存访问次数来提升性能。  |
-| NPUGraph（aclgraph） |硬件级下沉优化（NPU操作录屏）| 捕获一系列NPU操作（如 kernel 调用、内存拷贝）组成静态图缓存在NPU device设备上；一次捕获、多次复跑，避免重复的 kernel 启动开销（kernel launch overhead）。   |
+| NPUGraph（ACLGraph） |硬件级下沉优化（NPU操作录制）| 捕获一系列NPU操作（如 kernel 调用、内存拷贝）组成静态图缓存在NPU device设备上；一次捕获、多次复跑，避免重复的 kernel 启动开销（kernel launch overhead）。   |
 | NPUGraph_EX        |轻量化高性能图后端| 融合了ACLGraph的图下沉调度能力，在PyTorch FX图上叠加亲和NPU的图优化和编译缓存复用等能力，进一步加速大模型在NPU上编译运行。                                |
 | NPUGraph Tree      |动态形状路由与子图管理| 管理多个有关联的 NPUGraphs，让 NPUGraph的优化收益能覆盖动态形状场景，而非仅局限于固定形状，优化段图场景多个子图的内存使用。                                  |
 
@@ -186,5 +186,5 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
 
 1. 优化器（optimizer）通常不入图，优化器的step\(\)包含Python侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
 2. torch.compile\(backend="npugraphs"\)必须固定输入形状（捕获后无法修改 batch\_size、序列长度等）。torch.compile\(backend="inductor"\)支持动态形状，但会触发重新编译（增加开销），建议尽量固定形状。
-3. 使用NPUGraph（aclgraph）时需要判断算子在replay时是否需要更新，如需更新，启用update机制。
-4. 仅算子全部为NN算子时，方可使用NPUGraph（aclgraph）。
+3. 使用NPUGraph（ACLGraph）时需要判断算子在replay时是否需要更新，如需更新，启用update机制。
+4. 仅算子全部为NN算子时，方可使用NPUGraph（ACLGraph）。

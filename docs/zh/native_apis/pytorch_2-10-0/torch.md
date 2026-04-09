@@ -358,4 +358,3 @@
 |torch.mv|是|支持fp16，fp32|
 |torch.quasirandom.SobolEngine.draw|是|支持fp32，fp64|
 |torch._foreach_sqrt|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-

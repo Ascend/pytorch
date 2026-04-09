@@ -338,5 +338,3 @@
 |torch.nn.modules.lazy.LazyModuleMixin|是|支持fp32|
 |torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params|是|支持fp32|
 |torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters|是|支持fp32|
-
-

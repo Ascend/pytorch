@@ -30,7 +30,7 @@
   - [coredump问题定位](locating_coredump_faults.md)
 
 - [故障案例集](troubleshooting_cases.md)
-  - [通信算子传入非连续tensor](communication_operato_transfers_Non-contiguous_tensors.md)
+  - [通信算子传入非连续tensor](communication_operator_transfers_Non-contiguous_tensors.md)
   - [调用算子参数校验失败](failed_verify_op_parameters.md)
   - [分布式任务端口号被占用](port_number_distributed_task_in_use.md)
   - [用于梯度计算的变量被inplace操作](variables_used_gradient_computation_modified_by_in-place_op.md)

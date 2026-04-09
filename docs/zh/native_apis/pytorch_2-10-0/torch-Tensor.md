@@ -1,6 +1,7 @@
 # torch.Tensor
 
-> [!NOTE]   
+> [!NOTE]
+>
 > 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
 
 |API名称|是否支持|限制与说明|
@@ -460,4 +461,3 @@
 |Tensor.xlogy|是|支持fp16，fp32|
 |Tensor.xlogy_|是|支持fp16，fp32|
 |Tensor.zero_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-

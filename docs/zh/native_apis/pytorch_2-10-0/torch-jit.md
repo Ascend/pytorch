@@ -83,5 +83,3 @@
 |torch.jit.Attribute.type|否|-|
 |torch.jit.Attribute.value|否|-|
 |torch.jit.annotate|是|支持fp32|
-
-

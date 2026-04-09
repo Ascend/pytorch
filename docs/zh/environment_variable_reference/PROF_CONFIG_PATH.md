@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-PyTorch训练场景Ascend PyTorch Profiler接口的dynamic\_profile采集功能profiler\_config.json配置文件路径环境变量。
+在PyTorch训练场景中，通过此环境变量可指定Ascend PyTorch Profiler接口的dynamic_profile采集功能的profiler_config.json配置文件路径。
 
 ## 配置示例
 
