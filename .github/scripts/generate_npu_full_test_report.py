@@ -205,6 +205,13 @@ def format_planned_files_cell(planned_files: List[str]) -> str:
     return "<br>".join(sanitize_markdown_cell(path) for path in planned_files)
 
 
+def format_summary_note(note: str) -> str:
+    cleaned = (note or "").strip()
+    if not cleaned or cleaned == "pytest exited with code 1":
+        return "-"
+    return sanitize_markdown_cell(cleaned)
+
+
 def format_scope_list(items: List[str]) -> List[str]:
     if not items:
         return ["- None"]
@@ -362,11 +369,6 @@ def main():
         totals["selected_test_files"] - unique_planned_count,
         0,
     )
-    not_covered_display = str(not_covered_by_requested_shards)
-    if received_reports < expected_reports:
-        not_covered_display = (
-            f"{not_covered_by_requested_shards} (based on collected reports only; some shard reports are missing)"
-        )
     selection_mode_display = ", ".join(sorted(selection_modes)) if selection_modes else "-"
     include_selected_entries = totals["selected_test_entries"] > 0
     include_unhandled_tests = bool(unhandled_tests_list)
@@ -397,6 +399,41 @@ def main():
 
     include_special_tests = bool(special_test_names or special_test_rows)
 
+    overview_rows = [
+        ["Overall result", overall_status],
+        ["PyTorch", f"`v{args.pytorch_version}`"],
+        ["torch_npu", f"`{whl_name}`"],
+        ["Patches applied", str(args.patch_count)],
+        ["Shards", f"{received_reports} / {expected_reports} reported"],
+        [
+            "Selection",
+            (
+                f"{selection_mode_display}; "
+                f"{totals['selected_test_files']} selected, "
+                f"{totals['path_filtered_out_files']} filtered out"
+            ),
+        ],
+        [
+            "Tests",
+            (
+                f"{totals['total']} total; {totals['passed']} passed; {totals['failed']} failed; "
+                f"{totals['skipped']} skipped; {totals['errors']} errors"
+            ),
+        ],
+        ["JUnit", f"{totals['junit_generated_shards']} shards, {totals['junit_xml_files']} xml files"],
+        ["Duration", format_duration(totals["duration"])],
+    ]
+    if include_selected_entries:
+        overview_rows.insert(6, ["Selected test entries", str(totals["selected_test_entries"])])
+    if include_special_tests:
+        overview_rows.append(["Special tests expected", str(len(special_test_names))])
+
+    shard_status_rows = [
+        [status, str(status_counts[status])]
+        for status in ("CRASHED", "ERROR", "FAILED", "TIMEOUT", "INCOMPLETE", "MISSING", "NO TESTS", "PASSED")
+        if status_counts[status] > 0
+    ]
+
     markdown_lines = [
         "# PyTorch NPU Full Test Summary",
         "",
@@ -405,74 +442,38 @@ def main():
     markdown_lines.extend(
         render_table(
             ["Item", "Value"],
-            [
-                ["PyTorch", f"`v{args.pytorch_version}`"],
-                ["torch_npu", f"`{whl_name}`"],
-                ["Patches applied", str(args.patch_count)],
-                ["Requested shards", str(expected_reports)],
-                ["Reports collected", f"{received_reports} / {expected_reports}"],
-                ["Selection mode", selection_mode_display],
-                ["Discovered test files", str(totals["discovered_test_files"])],
-                ["Selected test files", str(totals["selected_test_files"])],
-                ["Path-filtered test files", str(totals["path_filtered_out_files"])],
-                ["Planned files in requested shards", str(totals["planned_files"])],
-                ["Overall result", overall_status],
-            ]
-            + ([["Selected test entries", str(totals["selected_test_entries"])] ] if include_selected_entries else [])
-            + ([["Special tests expected", str(len(special_test_names))]] if include_special_tests else []),
+            overview_rows,
         )
     )
-    markdown_lines.extend(["", "## Totals"])
+    markdown_lines.extend(["", "## Shard Status"])
     markdown_lines.extend(
         render_table(
-            ["Metric", "Value"],
-            [
-                ["Total", str(totals["total"])],
-                ["Passed", str(totals["passed"])],
-                ["Failed", str(totals["failed"])],
-                ["Skipped", str(totals["skipped"])],
-                ["Errors", str(totals["errors"])],
-                ["Shards with JUnit", str(totals["junit_generated_shards"])],
-                ["Collected JUnit XML files", str(totals["junit_xml_files"])],
-                ["Test files with 0 collected items", str(totals["zero_item_test_files"])],
-                ["Discovered test files", str(totals["discovered_test_files"])],
-                ["Selected test files", str(totals["selected_test_files"])],
-                ["Path-filtered test files", str(totals["path_filtered_out_files"])],
-                ["Planned files in requested shards", str(totals["planned_files"])],
-                ["Cumulative duration", format_duration(totals["duration"])],
-            ]
-            + ([["Selected test entries", str(totals["selected_test_entries"])] ] if include_selected_entries else [])
-            + ([["Special tests passed", str(special_status_counts["PASSED"])]] if include_special_tests else []),
+            ["Status", "Shard count"],
+            shard_status_rows or [["PASSED", "0"]],
         )
     )
-    markdown_lines.extend(["", "## Execution Scope"])
-    markdown_lines.extend(
-        render_table(
-            ["Item", "Value"],
-            [
-                ["Selection source", selection_mode_display],
-                ["Unique planned test files in collected reports", str(unique_planned_count)],
-                ["Path-filtered out files", str(totals["path_filtered_out_files"])],
-                ["Files not covered by requested shard range", not_covered_display],
-            ]
-            + ([["Unhandled special tests", str(len(unhandled_tests_list))]] if include_unhandled_tests else [])
-            + ([["Workflow-handled special tests", str(len(special_test_rows))]] if include_special_tests else []),
+    if failed_like:
+        markdown_lines.extend(["", "## Non-Passing Shards"])
+        markdown_lines.extend(
+            render_table(
+                ["Shard", "Status", "Duration", "Failed", "Errors", "Scope", "Note"],
+                [
+                    [
+                        str(row["shard"]),
+                        row["status"],
+                        format_duration(row["duration"]),
+                        str(row["failed"]),
+                        str(row["errors"]),
+                        format_planned_files_cell(row["planned_file_names"]),
+                        format_summary_note(row["note"]),
+                    ]
+                    for row in sorted(failed_like, key=lambda row: row["shard"])
+                ],
+            )
         )
-    )
     if include_unhandled_tests:
-        markdown_lines.extend(["", "### Unhandled Special Tests"])
+        markdown_lines.extend(["", "## Unhandled Special Tests"])
         markdown_lines.extend(format_scope_list(unhandled_tests_list))
-    markdown_lines.extend(["", "## Failure Breakdown"])
-    markdown_lines.extend(
-        render_table(
-            ["Failure type", "Count"],
-            [
-                ["Startup failures", str(totals["startup_failures"])],
-                ["Import failures", str(totals["import_failures"])],
-                ["Real test failures", str(totals["test_failures"])],
-            ],
-        )
-    )
     if include_special_tests:
         markdown_lines.extend(["", "## Special Test Results"])
         markdown_lines.extend(
@@ -491,87 +492,6 @@ def main():
                 ] or [["-", "-", "-", "0.0s", "-", "-"]],
             )
         )
-    markdown_lines.extend(["", "## Shard Status Counts"])
-    markdown_lines.extend(
-        render_table(
-            ["Status", "Shard count"],
-            [
-                ["PASSED", str(status_counts["PASSED"])],
-                ["FAILED", str(status_counts["FAILED"])],
-                ["ERROR", str(status_counts["ERROR"])],
-                ["CRASHED", str(status_counts["CRASHED"])],
-                ["TIMEOUT", str(status_counts["TIMEOUT"])],
-                ["INCOMPLETE", str(status_counts["INCOMPLETE"])],
-                ["NO TESTS", str(status_counts["NO TESTS"])],
-                ["MISSING", str(status_counts["MISSING"])],
-            ],
-        )
-    )
-    markdown_lines.extend(["", "## Per-Shard Results"])
-    markdown_lines.extend(
-        render_table(
-            [
-                "Shard",
-                "Status",
-                "Total",
-                "Passed",
-                "Failed",
-                "Skipped",
-                "Errors",
-                "Duration",
-                "Planned Files",
-                "JUnit",
-                "XMLs",
-                "0 Items",
-                "Startup",
-                "Import",
-                "Test",
-                "Planned File Names",
-                "Disabled matched",
-                "Note",
-            ],
-            [
-                [
-                    str(row["shard"]),
-                    row["status"],
-                    str(row["total"]),
-                    str(row["passed"]),
-                    str(row["failed"]),
-                    str(row["skipped"]),
-                    str(row["errors"]),
-                    format_duration(row["duration"]),
-                    str(row["planned_files"]),
-                    "yes" if row["junit_generated"] else "no",
-                    str(row["junit_xml_files"]),
-                    str(row["zero_item_test_files"]),
-                    str(row["startup_failures"]),
-                    str(row["import_failures"]),
-                    str(row["test_failures"]),
-                    format_planned_files_cell(row["planned_file_names"]),
-                    str(row["disabled_matched"]),
-                    sanitize_markdown_cell(row["note"] or "-"),
-                ]
-                for row in sorted(shard_rows, key=lambda row: row["shard"])
-            ],
-        )
-    )
-    markdown_lines.extend(["", "## Slowest Shards"])
-    markdown_lines.extend(
-        render_table(
-            ["Shard", "Status", "Duration", "Total", "Failed", "Planned Files"],
-            [
-                [
-                    str(row["shard"]),
-                    row["status"],
-                    format_duration(row["duration"]),
-                    str(row["total"]),
-                    str(row["failed"]),
-                    str(row["planned_files"]),
-                ]
-                for row in slowest
-            ],
-        )
-    )
 
     report_json = {
         "overall_status": overall_status,
