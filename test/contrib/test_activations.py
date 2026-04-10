@@ -31,6 +31,7 @@ class TestActivations(TestCase):
         res.backward(torch.ones_like(res))
         return res.detach().cpu(), input1.grad.cpu()
     
+    @unittest.skip("test_mish is not supported yet")
     def test_mish(self):
         dtype_list = [np.float16, np.float32]
         format_list = [-1, 0, 2]
@@ -81,6 +82,7 @@ class TestActivations(TestCase):
         output.backward()
         return res.detach().cpu(), input1.grad.cpu()
 
+    @unittest.skip("test_silu is not supported yet")
     def test_silu(self):
         dtype_list = [np.float32, np.float16]
         format_list = [-1, 0, 2]

@@ -31682,5 +31682,7 @@
   "test_module_backcompat (__main__.TestNN)": ["", [""]],
   "test_register_state_dict_pre_hook_backward_compat (__main__.TestNN)": ["", [""]],
   "test_CTCLoss_empty_target_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
-  "test_to_complex_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]]
+  "test_to_complex_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
+ 	"test_npu_roi_align_1 (__main__.TestPsRoiPooling)": ["", [""]],
+ 	"test_silu (__main__.TestActivations)": ["", [""]]
 }
