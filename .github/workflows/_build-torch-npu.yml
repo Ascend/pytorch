@@ -11,14 +11,6 @@ on:
         required: true
         type: string
         description: PyTorch version to install
-      runner:
-        required: true
-        type: string
-        description: The runner to use for building
-      docker_image:
-        required: true
-        type: string
-        description: Docker image to use for building
       torch_npu_wheel_artifact:
         required: true
         type: string
@@ -36,26 +28,31 @@ on:
     outputs:
       wheel_name:
         description: Name of the built wheel file
-        value: ${{ jobs.build_torch_npu.outputs.wheel_name }}
+        value: ${{ jobs.build_torch_npu.outputs.wheel }}
       build_status:
         description: Build status (0 for success, non-zero for failure)
-        value: ${{ jobs.build_torch_npu.outputs.build_status }}
+        value: ${{ jobs.build_torch_npu.outputs.status }}
 
 jobs:
   build_torch_npu:
-    runs-on: ${{ inputs.runner }}
-    container:
-      image: ${{ inputs.docker_image }}
-      options: --user root
+    runs-on: ubuntu-22.04-arm
     outputs:
-      wheel_name: ${{ steps.build.outputs.wheel }}
-      build_status: ${{ steps.build.outputs.status }}
+      wheel: ${{ steps.build.outputs.wheel }}
+      status: ${{ steps.build.outputs.status }}
+    env:
+      PYTHON_VERSION: ${{ inputs.python_version }}
+
     steps:
-      - name: Checkout current repository (for wheel build)
+      - name: Checkout current repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           submodules: ${{ inputs.submodule_recursive }}
+
+      - name: Setup Python ${{ inputs.python_version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
 
       - name: Collect repository metadata
         id: repo_meta
@@ -68,6 +65,21 @@ jobs:
           echo "commit_short=${COMMIT_SHORT}" >> $GITHUB_OUTPUT
           echo "commit_date=${COMMIT_DATE}" >> $GITHUB_OUTPUT
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            ccache \
+            libopenblas-dev \
+            libomp-dev
+
+          echo "cmake version: $(cmake --version | head -1)"
+          echo "gcc version: $(gcc --version | head -1)"
+          echo "ccache version: $(ccache --version | head -1)"
+
       - name: Collect toolchain metadata
         id: toolchain_meta
         run: |
@@ -79,14 +91,14 @@ jobs:
 
       - name: Setup cache directories
         run: |
-          mkdir -p /github/home/.cache/pip
-          mkdir -p /github/home/.cache/ccache
-          chmod -R 777 /github/home/.cache
+          mkdir -p ~/.cache/pip
+          mkdir -p ~/.cache/ccache
+          chmod -R 777 ~/.cache
 
       - name: Cache pip
         uses: actions/cache@v4
         with:
-          path: /github/home/.cache/pip
+          path: ~/.cache/pip
           key: pip-arm-build-py${{ inputs.python_version }}-v${{ inputs.pytorch_version }}
           restore-keys: |
             pip-arm-build-py${{ inputs.python_version }}-
@@ -94,22 +106,17 @@ jobs:
       - name: Cache ccache
         uses: actions/cache@v4
         with:
-          path: /github/home/.cache/ccache
+          path: ~/.cache/ccache
           key: ccache-arm-build-py${{ inputs.python_version }}-${{ github.run_id }}
           restore-keys: |
             ccache-arm-build-py${{ inputs.python_version }}-
 
-      - name: Uninstall pre-installed torch/torchvision
-        run: |
-          pip${{ inputs.python_version }} uninstall -y torch torchvision || true
-          echo "Pre-installed torch/torchvision uninstalled"
-
       - name: Install PyTorch ${{ inputs.pytorch_version }} and build dependencies
         id: install_torch
         run: |
-          PIP=pip${{ inputs.python_version }}
           PYTHON=python${{ inputs.python_version }}
-          export PIP_CACHE_DIR=/github/home/.cache/pip
+          PIP=pip${{ inputs.python_version }}
+          export PIP_CACHE_DIR=~/.cache/pip
 
           $PIP install --upgrade pip
           $PIP install torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
@@ -117,6 +124,7 @@ jobs:
 
           TORCH_VER=$($PYTHON -c "import torch; print(torch.__version__)")
           echo "torch_version=${TORCH_VER}" >> $GITHUB_OUTPUT
+          echo "PyTorch version: ${TORCH_VER}"
 
       - name: Build torch_npu wheel
         id: build
@@ -124,21 +132,15 @@ jobs:
           PYTHON=python${{ inputs.python_version }}
 
           # 配置 ccache
-          if command -v ccache &> /dev/null; then
-            echo "ccache found, enabling ccache"
-            ccache -M 10G
-            ccache -z || true
-            export CC="ccache gcc"
-            export CXX="ccache g++"
-            export CCACHE_DIR=/github/home/.cache/ccache
-            export CCACHE_COMPRESS=1
-            export CCACHE_MAXSIZE=10G
-            export CCACHE_BASEDIR="${PWD}"
-            USE_CCACHE=1
-          else
-            echo "ccache not found, building without cache"
-            USE_CCACHE=0
-          fi
+          echo "ccache found, enabling ccache"
+          ccache -M 10G
+          ccache -z || true
+          export CC="ccache gcc"
+          export CXX="ccache g++"
+          export CCACHE_DIR=~/.cache/ccache
+          export CCACHE_COMPRESS=1
+          export CCACHE_MAXSIZE=10G
+          export CCACHE_BASEDIR="${PWD}"
 
           # 构建参数
           echo "nproc value: $(nproc)"
@@ -146,17 +148,17 @@ jobs:
           export MAX_JOBS=${{ inputs.max_jobs }}
           export DISABLE_INSTALL_TORCHAIR=FALSE
           export BUILD_WITHOUT_SHA=1
+          # 跳过 auditwheel repair，torch_npu 依赖外部 CANN 环境
+          export AUDITWHEEL_PLAT=skip
 
           # 使用 ci/build.sh 脚本
           bash ci/build.sh --python=${{ inputs.python_version }} 2>&1 | tee /tmp/build_torch_npu.log
           BUILD_STATUS=${PIPESTATUS[0]}
 
-          # ccache 统计（兼容 ccache 3.x/4.x 格式）
-          if [ "${USE_CCACHE}" = "1" ]; then
-            CCACHE_STATS=$(ccache -s | grep -E "cache hit|cache miss|cache size|hit rate" | tr '\n' ' ')
-            echo "ccache_stats=${CCACHE_STATS}" >> $GITHUB_OUTPUT
-            ccache -s
-          fi
+          # ccache 统计
+          CCACHE_STATS=$(ccache -s | grep -E "cache hit|cache miss|cache size|hit rate" | tr '\n' ' ')
+          echo "ccache_stats=${CCACHE_STATS}" >> $GITHUB_OUTPUT
+          ccache -s
 
           echo "status=${BUILD_STATUS}" >> $GITHUB_OUTPUT
 
@@ -202,7 +204,7 @@ jobs:
           | Item | Value |
           |------|-------|
           | Build time | $(date -u '+%Y-%m-%d %H:%M UTC') |
-          | Docker image | \`${{ inputs.docker_image }}\` |
+          | Runner | \`ubuntu-22.04-arm\` |
           | CMake | \`${{ steps.toolchain_meta.outputs.cmake_version }}\` |
           | GCC | \`${{ steps.toolchain_meta.outputs.gcc_version }}\` |
           | Source commit | [\`${{ steps.repo_meta.outputs.commit_short }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.repo_meta.outputs.commit }}) |

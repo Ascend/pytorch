@@ -111,8 +111,6 @@ jobs:
     with:
       python_version: '3.11'
       pytorch_version: '2.7.1'
-      runner: 'linux-aarch64-a3-2'
-      docker_image: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331'
       torch_npu_wheel_artifact: 'torch-npu-wheel-v2.7.1-source'
       max_jobs: '40'
       submodule_recursive: true
