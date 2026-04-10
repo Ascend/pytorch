@@ -33,9 +33,9 @@ on:
 env:
   PYTHON_VERSION: '3.11'
   PYTORCH_VERSION: '2.7.1'
-  TORCH_NPU_WHL: 'https://gitcode.com/Ascend/pytorch/releases/download/v7.3.1-pytorch2.7.1/torch_npu-2.7.1.post3-cp311-cp311-manylinux_2_28_aarch64.whl'
   NUM_SHARDS: '40'  # 40 shards, each shard ~2.5% of tests
   PREPARED_TEST_SRC_ARTIFACT: 'pytorch-test-src-v2.7.1-patched'
+  TORCH_NPU_WHEEL_ARTIFACT: 'torch-npu-wheel-v2.7.1-source'
 
 defaults:
   run:
@@ -103,8 +103,136 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  build_torch_npu:
+    runs-on: linux-aarch64-a3-2
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root
+    outputs:
+      wheel_name: ${{ steps.build.outputs.wheel_name }}
+    env:
+      AUDITWHEEL_PLAT: 'skip'
+    steps:
+      - name: Checkout current repository (for wheel build)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+          mkdir -p /github/home/.cache/ccache
+          chmod -R 777 /github/home/.cache
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/pip
+          key: pip-arm-build-py${{ env.PYTHON_VERSION }}-v${{ env.PYTORCH_VERSION }}
+          restore-keys: |
+            pip-arm-build-py${{ env.PYTHON_VERSION }}-
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/ccache
+          key: ccache-arm-build-py${{ env.PYTHON_VERSION }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-arm-build-py${{ env.PYTHON_VERSION }}-
+
+      - name: Uninstall pre-installed torch/torchvision
+        run: |
+          pip${{ env.PYTHON_VERSION }} uninstall -y torch torchvision || true
+          echo "Pre-installed torch/torchvision uninstalled"
+
+      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and build dependencies
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PIP=pip${{ env.PYTHON_VERSION }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          $PIP install --upgrade pip
+          $PIP install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+          $PIP install pyyaml setuptools wheel
+
+      - name: Build torch_npu wheel from source
+        id: build
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+
+          if command -v ccache &> /dev/null; then
+            echo "ccache found, enabling ccache"
+            ccache -M 10G
+            ccache -z || true
+            export CC="ccache gcc"
+            export CXX="ccache g++"
+            export CCACHE_DIR=/github/home/.cache/ccache
+            export CCACHE_COMPRESS=1
+            export CCACHE_MAXSIZE=10G
+            export CCACHE_BASEDIR="${PWD}"
+            USE_CCACHE=1
+          else
+            echo "ccache not found, building without cache"
+            USE_CCACHE=0
+          fi
+
+          export MAX_JOBS=$(nproc)
+          export DISABLE_INSTALL_TORCHAIR=FALSE
+          export BUILD_WITHOUT_SHA=1
+
+          set +e
+          $PYTHON setup.py build bdist_wheel 2>&1 | tee /tmp/build_torch_npu.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -e
+
+          if [ "${USE_CCACHE}" = "1" ]; then
+            ccache -s
+          fi
+
+          if [ ${BUILD_STATUS} -eq 0 ]; then
+            WHL=$(ls dist/*.whl 2>/dev/null | head -1)
+            if [ -z "${WHL}" ]; then
+              echo "Build completed but dist/*.whl was not found"
+              BUILD_STATUS=1
+            else
+              WHEEL_NAME=$(basename "${WHL}")
+              echo "wheel_path=${WHL}" >> $GITHUB_OUTPUT
+              echo "wheel_name=${WHEEL_NAME}" >> $GITHUB_OUTPUT
+              echo "Build succeeded: ${WHL}"
+            fi
+          fi
+
+          echo "status=${BUILD_STATUS}" >> $GITHUB_OUTPUT
+          exit ${BUILD_STATUS}
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-torch-npu
+          path: /tmp/build_torch_npu.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload built torch_npu wheel
+        if: steps.build.outputs.status == '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.TORCH_NPU_WHEEL_ARTIFACT }}
+          path: dist/*.whl
+          if-no-files-found: error
+          retention-days: 7
+
   test:
-    needs: prepare
+    needs:
+      - prepare
+      - build_torch_npu
     runs-on: linux-aarch64-a3-2
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
@@ -135,12 +263,18 @@ jobs:
           restore-keys: |
             pip-arm-fulltest-py${{ env.PYTHON_VERSION }}-
 
+      - name: Download built torch_npu wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TORCH_NPU_WHEEL_ARTIFACT }}
+          path: torch-npu-wheel-artifact
+
       - name: Uninstall pre-installed torch/torchvision
         run: |
           pip${{ env.PYTHON_VERSION }} uninstall -y torch torchvision || true
           echo "Pre-installed torch/torchvision uninstalled"
 
-      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu
+      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and built torch_npu
         run: |
           # Set CANN environment variables (torch_npu depends on CANN libraries)
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
@@ -152,9 +286,10 @@ jobs:
 
           $PIP install --upgrade pip
           $PIP install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
-          $PIP install ${{ env.TORCH_NPU_WHL }}
+          TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
+          $PIP install "${TORCH_NPU_WHL}"
 
-          echo "PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu installed"
+          echo "PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu installed from ${TORCH_NPU_WHL}"
 
       - name: Download prepared test source
         uses: actions/download-artifact@v4
@@ -252,8 +387,9 @@ jobs:
   report:
     needs:
       - prepare
+      - build_torch_npu
       - test
-    if: always()
+    if: always() && needs.prepare.result == 'success' && needs.build_torch_npu.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'failure')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout current repository (for report)
@@ -284,7 +420,7 @@ jobs:
             --output-markdown ${REPORT_MD} \
             --output-json ${REPORT_JSON} \
             --pytorch-version "${{ env.PYTORCH_VERSION }}" \
-            --torch-npu-whl "${{ env.TORCH_NPU_WHL }}" \
+            --torch-npu-whl "${{ needs.build_torch_npu.outputs.wheel_name || 'source-build.whl' }}" \
             --patch-count "${{ needs.prepare.outputs.patch_count || 'N/A' }}" \
             --shard-matrix-json '${{ needs.prepare.outputs.shard_matrix }}'
 
