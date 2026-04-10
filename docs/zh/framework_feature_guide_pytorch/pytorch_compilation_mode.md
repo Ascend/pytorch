@@ -2,7 +2,7 @@
 
 ## 简介
 
-torch.compile\(\)是PyTorch 2.0+推出的核心优化接口，通过"动态图捕获+静态图优化+高效代码生成"的方式显著加速模型训练和推理任务。Ascend Extension for PyTorch在2.6.0以上版本已支持该特性，为用户提供三种常用的backend配置选项，分别是torch.compile\(backend="inductor"\)、torch.compile\(backend="npugraphs"\)和torch.compile\(backend="npugraph_ex"\)。
+torch.compile\(\)是PyTorch 2.0+推出的核心优化接口，通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务。Ascend Extension for PyTorch在2.6.0以上版本已支持该特性，为用户提供三种常用的backend配置选项，分别是torch.compile\(backend="inductor"\)、torch.compile\(backend="npugraphs"\)和torch.compile\(backend="npugraph_ex"\)。
 
 torch.compile\(\)包含如下核心组件：
 

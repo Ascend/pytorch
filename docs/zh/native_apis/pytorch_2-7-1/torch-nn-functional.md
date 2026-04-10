@@ -18,7 +18,7 @@
 |torch.nn.functional.avg_pool3d|否|-|
 |torch.nn.functional.max_pool1d|否|-|
 |torch.nn.functional.max_pool2d|是|支持bf16，fp16，fp32<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐|
-|torch.nn.functional.max_pool3d|是|支持bf16，fp16，fp32<br>dilation的值目前在NPU上仅支持设置为1或(1,1,1)<br>return_indices为true时,返回的argmax的数据类型为int32|
+|torch.nn.functional.max_pool3d|是|支持bf16，fp16，fp32<br>dilation的值目前在NPU上仅支持设置为1或(1,1,1)<br>return_indices为true时，返回的argmax的数据类型为int32|
 |torch.nn.functional.max_unpool1d|是|支持fp16，fp32，fp64，uint8，int8，int32，int64|
 |torch.nn.functional.max_unpool2d|是|支持fp16，fp32，fp64，uint8，int8，int32，int64<br>jit_compile=False即二进制模式时，output_size的乘积需要大于等于input的H，W的乘积|
 |torch.nn.functional.max_unpool3d|否|-|
@@ -32,7 +32,7 @@
 |torch.nn.functional.adaptive_avg_pool3d|是|支持bf16，fp16，fp32|
 |torch.nn.functional.fractional_max_pool2d|是|可能回退至CPU执行|
 |torch.nn.functional.fractional_max_pool3d|是|-|
-|torch.nn.functional.scaled_dot_product_attention<br>在当前版本中，sdpa（scaled_dot_product_attention）接口仅作为一项试用特性，此功能在后续版本中可能会有所调整或改进。请用户在使用过程中关注后续版本的迭代。|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>：是|支持bf16、fp16和fp32。所有参数输入均符合以下约束<br>**约束**：<br>所有参数输入符合规格：<br>- 输入query、key、value的N：batch size，当前只支持[N，head_num, S(L), E(Ev)]的排布方式，取值范围1~2K<br>- 输入query的head num和key/value的head num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256<br>- 输入query的L：Target sequence length，取值范围1~512K<br>- 输入key、value的S：Source sequence length，取值范围1~512K<br>输入query、key、value的E：Embedding dimension of the query and key，取值范围1~512<br>- 输入value的Ev：Embedding dimension of the value，必须与E相等<br>- 输入attn_mask：当前支持[N, 1, L, S]、[N, head_num, L, S]、[1, 1, L, S]、[L, S]共4种排布方式<br>- 在使能is_causal计算时，attn_mask必须为None；不使能is_causal时，若attn_mask输入有效数据，输入数据类型必须是Bool类型<br>- 输入query、key、value的数据类型bf16、fp16、fp32<br>与原接口除了规格限制之外差异点：<br>- NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致<br>- 当前接口支持输入query的head num和key/value的head num不等长，而原生PyTorch接口不支持|
+|torch.nn.functional.scaled_dot_product_attention<br>在当前版本中，sdpa（scaled_dot_product_attention）接口仅作为一项试用特性，此功能在后续版本中可能会有所调整或改进。请用户在使用过程中关注后续版本的迭代。|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>：是|支持bf16、fp16和fp32。所有参数输入均符合以下约束<br>**约束**：<br>所有参数输入符合规格：<br>&#8226; 输入query、key、value的N：batch size，当前只支持[N，head_num, S(L), E(Ev)]的排布方式，取值范围1~2K<br>&#8226; 输入query的head num和key/value的head num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256<br>&#8226; 输入query的L：Target sequence length，取值范围1~512K<br>&#8226; 输入key、value的S：Source sequence length，取值范围1~512K<br>输入query、key、value的E：Embedding dimension of the query and key，取值范围1~512<br>&#8226; 输入value的Ev：Embedding dimension of the value，必须与E相等<br>&#8226; 输入attn_mask：当前支持[N, 1, L, S]、[N, head_num, L, S]、[1, 1, L, S]、[L, S]共4种排布方式<br>&#8226; 在使能is_causal计算时，attn_mask必须为None；不使能is_causal时，若attn_mask输入有效数据，输入数据类型必须是Bool类型<br>&#8226; 输入query、key、value的数据类型bf16、fp16、fp32<br>与原接口除了规格限制之外差异点：<br>&#8226; NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致<br>&#8226; 当前接口支持输入query的head num和key/value的head num不等长，而原生PyTorch接口不支持|
 |torch.nn.functional.threshold|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.nn.functional.threshold_|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.nn.functional.relu|是|支持bf16，fp16，fp32，uint8，int8，int32，int64|

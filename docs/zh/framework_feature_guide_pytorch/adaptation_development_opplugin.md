@@ -2,7 +2,7 @@
 
 ## 适配文件结构
 
-```bash
+```text
 ├── op_plugin
 │   ├── config                                 # 算子适配配置文件目录
 │   │   ├── derivatives.yaml                   # 算子前反向绑定配置文件

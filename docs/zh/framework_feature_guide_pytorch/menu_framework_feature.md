@@ -46,3 +46,4 @@
     - [适配开发及调用（结构化）](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/cpp_extension_structured/README.md)
     - [适配开发及调用（AscendC）](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/cpp_extension_asc/README.md)
     - [适配开发及调用（pybind）](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/cpp_extension_pybind/README.md)
+    

@@ -72,7 +72,7 @@
 |torch.index_select|是|支持bf16，fp16，fp32，uint8，int16，int32，int64，bool，complex64，complex128|
 |torch.masked_select|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.movedim|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch.moveaxis|是|支持torch.int64， torch.float， torch.complex128|
+|torch.moveaxis|是|支持fp32，int64，complex128|
 |torch.narrow|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.narrow_copy|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool可能回退至CPU执行|
 |torch.nonzero|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -207,7 +207,7 @@
 |torch.remainder|是|支持bf16，fp16，fp32，fp64，int32，int64|
 |torch.round|是|支持bf16，fp16，fp32，fp64，int32，int64|
 |torch.rsqrt|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch.sigmoid|是|支持fp16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|torch.sigmoid|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.sign|是|支持bf16，fp16，fp32，fp64，int32，int64，bool|
 |torch.sgn|是|支持bf16，fp16，fp32，int32，int64，bool，complex64，complex128|
 |torch.sin|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -240,7 +240,7 @@
 |torch.nanquantile|否|-|
 |torch.std|是|可能回退至CPU执行|
 |torch.std_mean|否|-|
-|torch.sum|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool不支持dtype参数|
+|torch.sum|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>不支持dtype参数|
 |torch.unique|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>带dim场景不支持fp16<br>在输入包含0的情况下，输出中可能会包含正0和负0，而非只输出一个0|
 |torch.unique_consecutive|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.var|是|支持fp16，fp32|

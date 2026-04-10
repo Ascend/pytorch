@@ -134,7 +134,7 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
 
 - expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
 - max\_split\_size\_mb和garbage\_collection\_threshold中任意一个为非默认值时，expandable\_segments必须设置为False。
-- page\_size特性要求在Ascend HDK 25.0.RC1及以上版本、CANN商发8.1.RC1及以上版本使用，支持如下产品：
+- page\_size特性要求在Ascend HDK 25.0.RC1及以上版本、CANN商用8.1.RC1及以上版本使用，支持如下产品：
     - <term>Atlas A2 训练系列产品</term>
     - <term>Atlas A3 训练系列产品</term>
 
@@ -144,10 +144,10 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
         - 若未配置page\_size，内存申请粒度为2MB。
 
     - 当申请内存小于等于1MB时：配置page\_size也不生效，内存申请粒度为2MB。
-- pin_memory_expandable_segments特性要求最低Ascend Extension for PyTorch 7.3.0之后版本、Ascend HDK 25.5.0及以上版本、CANN商发8.5.0及以上版本使用。
+- pin_memory_expandable_segments特性要求最低Ascend Extension for PyTorch 7.3.0之后版本、Ascend HDK 25.5.0及以上版本、CANN商用8.5.0及以上版本使用。
 - pinned_use_background_threads特性要求在Ascend Extension for PyTorch 26.0.0及之后版本且PyTorch 2.8.0及以上版本使用。
 - pinned_mem_register使用注意事项如下：
-    - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 25.5.2及以上版本、CANN商发8.5.0及以上版本使用。
+    - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 25.5.2及以上版本、CANN商用8.5.0及以上版本使用。
     - 与pin_memory_expandable_segments特性不支持同时配置。
 - multi_stream_lazy_reclaim使用注意事项：
     - 特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。

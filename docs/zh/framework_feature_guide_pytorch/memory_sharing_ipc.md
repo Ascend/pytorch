@@ -5,7 +5,7 @@
 IPC（Inter-Process Communication），表示进程间通信，进程间可以直接访问设备内存，而不需要做显式的数据拷贝。该特性基于社区IPC特性（[LINK](https://docs.pytorch.org/docs/2.8/multiprocessing.html)）开发，支持社区IPC特性的使用方式，整体使用流程如下：
 
 1. 发送方将tensor、storage的内存信息封装为handle，结合storage\_size、storage\_offset等必要信息以及重建函数打包返回，用于发送给接收方重构；
-2. 跨进程的接收方获得以上信息后，利用重构函数和handle等参数，恢复回原来的tensor、storage对象。
+2. 跨进程的接收方获得以上信息后，利用重构函数和handle等参数，恢复为原来的tensor、storage对象。
 
 ## 使用场景
 

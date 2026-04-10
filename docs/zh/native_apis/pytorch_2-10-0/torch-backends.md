@@ -11,7 +11,7 @@
 |torch.backends.cuda.cufft_plan_cache|torch.npu.backends.fft_plan_cache|是|-|
 |torch.backends.cuda.cufft_plan_cache.size|torch.npu.backends.fft_plan_cache.size|是|-|
 |torch.backends.cuda.cufft_plan_cache.max_size|torch.npu.backends.fft_plan_cache.max_size|是|输入范围为1-99|
-|torch.backends.cuda.cufft_plan_cache.clear|torch.npu.backends.fft_plan_cache.clear()|是|-|
+|torch.backends.cuda.cufft_plan_cache.clear|torch.npu.backends.fft_plan_cache.clear|是|-|
 |torch.backends.cuda.preferred_linalg_library|-|否|-|
 |torch.backends.cuda.flash_sdp_enabled|-|否|-|
 |torch.backends.cuda.enable_mem_efficient_sdp|-|否|-|
