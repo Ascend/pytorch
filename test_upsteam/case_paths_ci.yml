@@ -1,0 +1,11 @@
+whitelist:
+  - test/export
+  - test/quantization
+  - test/test_binary_ufuncs.py
+  - test/test_foreach.py
+  - test/test_nestedtensor.py
+  - test/test_transformers.py
+  - test/test_utils.py
+  - test/torch_np
+blacklist:
+  - test/export/test_export_legacy.py

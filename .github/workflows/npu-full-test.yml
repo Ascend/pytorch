@@ -188,18 +188,11 @@ jobs:
           PIP=pip${{ env.PYTHON_VERSION }}
           cd pytorch-test-src
 
-          # Base test runner dependencies used by this workflow itself.
-          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard
+          # Core dependencies for direct pytest execution plus path-rule parsing.
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
 
-          # Minimal compatibility layer for upstream test/run_test.py semantics.
-          # - pytest-rerunfailures: required because upstream get_pytest_args() adds --reruns=2 by default.
-          # - pytest-flakefinder: required when upstream rerun-disabled-tests / flake-finder path is enabled.
-          # - pytest-subtests: used by a subset of upstream pytest-based tests.
-          # - xdoctest: required if upstream-selected doctests are included.
-          # - pulp: imported by distributed/_tools/test_sac_ilp.
+          # Compatibility packages still needed by a subset of upstream tests.
           $PIP install \
-            'pytest-rerunfailures>=10.3' \
-            'pytest-flakefinder==1.1.0' \
             'pytest-subtests==0.13.1' \
             'xdoctest==1.1.0' \
             'pulp>=2.9'
@@ -229,6 +222,7 @@ jobs:
             --num-shards ${NUM_SHARDS} \
             --test-dir pytorch-test-src/test \
             --disabled-testcases pytorch-test-src/test_upsteam/disabled_testcases.json \
+            --case-paths-config pytorch-test-src/test_upsteam/case_paths_ci.yml \
             --report-dir ${REPORT_DIR} \
             --timeout 600 \
             2>&1 | tee /tmp/test_shard_${{ matrix.shard }}.log

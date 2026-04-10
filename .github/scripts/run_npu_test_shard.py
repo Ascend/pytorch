@@ -1,60 +1,174 @@
 #!/usr/bin/env python3
 """
-Run a shard of patched upstream PyTorch tests by reusing upstream test/run_test.py
-for test selection, sharding, and special-handler execution.
+Run a shard of patched upstream PyTorch tests directly with pytest.
+
+Selection is controlled in two layers:
+1. File-level allow/deny rules from case_paths_ci.yml
+2. Item-level deselection from disabled_testcases.json via a pytest plugin
 """
 
 import argparse
-import importlib.util
+import fnmatch
 import json
 import os
-import shutil
-import tempfile
+import re
 import signal
+import subprocess
 import sys
-import traceback
 import xml.etree.ElementTree as ET
-from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from time import monotonic
 from typing import Dict, List, Tuple
 
 
-SPECIAL_TEST_FILE_ALIASES = {
-    "test_autoload_enable": "test_autoload.py",
-    "test_autoload_disable": "test_autoload.py",
-    "test_cpp_extensions_aot_ninja": "test_cpp_extensions_aot.py",
-    "test_cpp_extensions_aot_no_ninja": "test_cpp_extensions_aot.py",
-}
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Run PyTorch NPU tests for a shard")
     parser.add_argument("--shard", type=int, required=True, help="Shard number (1-indexed)")
     parser.add_argument("--num-shards", type=int, required=True, help="Total number of shards")
-    parser.add_argument("--test-dir", type=str, required=True, help="Path to PyTorch test directory")
+    parser.add_argument("--test-dir", type=str, required=True, help="Path to the PyTorch test directory")
     parser.add_argument("--disabled-testcases", type=str, help="Path to disabled_testcases.json")
+    parser.add_argument(
+        "--case-paths-config",
+        type=str,
+        help="Path to case_paths_ci.yml for file-level whitelist/blacklist control",
+    )
     parser.add_argument("--report-dir", type=str, default="test-reports", help="Directory for test reports")
-    parser.add_argument("--timeout", type=int, default=600, help="Reserved for compatibility")
+    parser.add_argument("--timeout", type=int, default=600, help="Per-test timeout passed to pytest")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     return parser.parse_args()
 
 
-def load_disabled_testcases(json_file: str) -> int:
-    if json_file and os.path.exists(json_file):
-        with open(json_file, encoding="utf-8") as f:
-            return len(json.load(f))
+def normalize_path(value: str) -> str:
+    normalized = value.replace("\\", "/").strip()
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return normalized.strip("/")
+
+
+def normalize_rule_path(rule: str) -> str:
+    normalized = normalize_path(rule)
+    if not normalized:
+        return ""
+    if normalized == "test" or normalized.startswith("test/"):
+        return normalized.rstrip("/")
+    return f"test/{normalized}".rstrip("/")
+
+
+def load_disabled_testcases_count(json_file: str) -> int:
+    if not json_file or not os.path.exists(json_file):
+        return 0
+
+    with open(json_file, encoding="utf-8") as f:
+        data = json.load(f)
+
+    if isinstance(data, (dict, list)):
+        return len(data)
     return 0
 
 
-def discover_raw_test_files(test_dir: str) -> List[str]:
-    test_path = Path(test_dir)
+def parse_simple_yaml_lists(raw_text: str) -> Dict[str, List[str]]:
+    parsed = {"whitelist": [], "blacklist": []}
+    current_key = None
+
+    for raw_line in raw_text.splitlines():
+        without_comment = raw_line.split("#", 1)[0].rstrip()
+        if not without_comment.strip():
+            continue
+
+        stripped = without_comment.lstrip()
+        if not raw_line.startswith((" ", "\t")) and stripped.endswith(":"):
+            key = stripped[:-1].strip()
+            current_key = key if key in parsed else None
+            continue
+
+        if current_key and stripped.startswith("- "):
+            value = stripped[2:].strip().strip("\"'")
+            if value:
+                parsed[current_key].append(value)
+
+    return parsed
+
+
+def coerce_rule_list(value, key: str) -> List[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"Expected '{key}' to be a list, got {type(value).__name__}")
+
+    normalized_values = []
+    for item in value:
+        if not isinstance(item, str):
+            raise ValueError(f"Expected every '{key}' entry to be a string, got {type(item).__name__}")
+        normalized = normalize_rule_path(item)
+        if normalized:
+            normalized_values.append(normalized)
+    return normalized_values
+
+
+def load_case_path_rules(config_file: str) -> Tuple[str, List[str], List[str]]:
+    if not config_file:
+        return "", [], []
+
+    config_path = Path(config_file).resolve()
+    if not config_path.exists():
+        raise FileNotFoundError(f"case_paths_ci config not found: {config_path}")
+
+    raw_text = config_path.read_text(encoding="utf-8")
+    try:
+        import yaml  # type: ignore
+    except ImportError:
+        payload = parse_simple_yaml_lists(raw_text)
+    else:
+        payload = yaml.safe_load(raw_text) or {}
+
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected a YAML object in {config_path}, got {type(payload).__name__}")
+
+    whitelist = coerce_rule_list(payload.get("whitelist"), "whitelist")
+    blacklist = coerce_rule_list(payload.get("blacklist"), "blacklist")
+    return str(config_path), whitelist, blacklist
+
+
+def discover_raw_test_files(test_dir: Path) -> List[str]:
     files = []
-    for test_file in test_path.rglob("test_*.py"):
-        rel_path = test_file.relative_to(test_path)
-        files.append(str(rel_path).replace("\\", "/"))
+    for test_file in test_dir.rglob("test_*.py"):
+        rel_path = test_file.relative_to(test_dir).as_posix()
+        files.append(f"test/{rel_path}")
     return sorted(files)
+
+
+def path_matches_rule(test_path: str, rule: str) -> bool:
+    normalized_path = normalize_path(test_path)
+    normalized_rule = normalize_rule_path(rule)
+    if not normalized_rule:
+        return False
+
+    if any(char in normalized_rule for char in "*?[]"):
+        return fnmatch.fnmatch(normalized_path, normalized_rule)
+
+    return normalized_path == normalized_rule or normalized_path.startswith(f"{normalized_rule}/")
+
+
+def apply_case_path_rules(
+    test_files: List[str], whitelist: List[str], blacklist: List[str]
+) -> Tuple[List[str], List[str]]:
+    if whitelist:
+        selected = [path for path in test_files if any(path_matches_rule(path, rule) for rule in whitelist)]
+    else:
+        selected = list(test_files)
+
+    if blacklist:
+        selected = [path for path in selected if not any(path_matches_rule(path, rule) for rule in blacklist)]
+
+    selected_set = set(selected)
+    excluded = [path for path in test_files if path not in selected_set]
+    return selected, excluded
+
+
+def select_shard_files(test_files: List[str], shard: int, num_shards: int) -> List[str]:
+    shard_index = shard - 1
+    return [path for index, path in enumerate(test_files) if index % num_shards == shard_index]
 
 
 def parse_junit_xml(xml_file: str) -> Dict:
@@ -136,16 +250,18 @@ def create_shard_info(shard: int, num_shards: int, timestamp: str) -> Dict:
     return {
         "shard": shard,
         "num_shards": num_shards,
-        "selection_mode": "upstream_run_test",
+        "selection_mode": "pytest_direct",
         "total_files": 0,
-        "upstream_selected_tests": 0,
-        "upstream_selected_file_tests": 0,
-        "upstream_unhandled_tests": 0,
+        "selected_test_entries": 0,
+        "selected_test_files": 0,
         "shard_files": 0,
+        "path_filtered_out_files": 0,
         "excluded_test_files": 0,
         "disabled_count": 0,
         "disabled_count_matched": 0,
         "disabled_count_deselected": 0,
+        "whitelist_entries": 0,
+        "blacklist_entries": 0,
         "junit_generated": False,
         "junit_xml_files": 0,
         "zero_item_test_files": 0,
@@ -262,55 +378,32 @@ def print_stats_summary(shard: int, stats: Dict) -> None:
     print(f"{'=' * 60}")
 
 
-@contextmanager
-def patched_argv(fake_argv: List[str]):
-    original_argv = sys.argv[:]
-    sys.argv = fake_argv
+def load_installed_torch_root() -> str:
     try:
-        yield
-    finally:
-        sys.argv = original_argv
+        import torch
+    except Exception as exc:
+        print(f"Warning: Failed to import installed torch while preparing PYTHONPATH: {exc}")
+        return ""
+
+    return str(Path(torch.__file__).resolve().parent.parent)
 
 
-@contextmanager
-def prepend_sys_path(paths: List[str]):
-    original_sys_path = sys.path[:]
-    for path in reversed(paths):
-        if path and path not in sys.path:
-            sys.path.insert(0, path)
-    try:
-        yield
-    finally:
-        sys.path = original_sys_path
-
-
-@contextmanager
-def patched_environ(updates: Dict[str, str]):
-    original_env = os.environ.copy()
-    os.environ.update(updates)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(original_env)
-
-
-@contextmanager
-def patched_cwd(path: Path):
-    original_cwd = Path.cwd()
-    os.chdir(str(path))
-    try:
-        yield
-    finally:
-        os.chdir(str(original_cwd))
-
-
-def build_execution_env(test_dir: Path, script_dir: Path, disabled_testcases_file: str, report_dir: str, shard: int) -> Dict[str, str]:
-    import torch
-
+def build_execution_env(
+    test_dir: Path,
+    script_dir: Path,
+    disabled_testcases_file: str,
+    report_dir: str,
+    shard: int,
+) -> Dict[str, str]:
     repo_root = test_dir.parent
-    torch_path = str(Path(torch.__file__).parent.parent)
-    pythonpath_parts = [torch_path, str(repo_root), str(test_dir), str(script_dir)]
+    pythonpath_parts = [str(script_dir)]
+
+    torch_path = load_installed_torch_root()
+    if torch_path:
+        pythonpath_parts.append(torch_path)
+
+    pythonpath_parts.extend([str(repo_root), str(test_dir)])
+
     existing_pythonpath = os.environ.get("PYTHONPATH", "")
     if existing_pythonpath:
         pythonpath_parts.append(existing_pythonpath)
@@ -321,104 +414,16 @@ def build_execution_env(test_dir: Path, script_dir: Path, disabled_testcases_fil
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "1",
         "NO_TD": "1",
         "PYTEST_ADDOPTS": os.environ.get("PYTEST_ADDOPTS", ""),
+        "PYTHONUNBUFFERED": "1",
     }
+
     if disabled_testcases_file:
         updates["NPU_DISABLED_TESTCASES_JSON"] = os.path.abspath(disabled_testcases_file)
         updates["NPU_DISABLED_TESTCASES_REPORT"] = os.path.abspath(
             get_disabled_testcases_report_file(report_dir, shard)
         )
+
     return updates
-
-
-def import_upstream_run_test_module(test_dir: Path, script_dir: Path, env_updates: Dict[str, str]):
-    run_test_path = test_dir / "run_test.py"
-    repo_root = test_dir.parent
-    spec = importlib.util.spec_from_file_location("upstream_run_test", run_test_path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Failed to load upstream run_test.py from {run_test_path}")
-
-    with patched_environ(env_updates), prepend_sys_path([str(repo_root), str(test_dir), str(script_dir)]), patched_cwd(test_dir):
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-    original_get_pytest_args = module.get_pytest_args
-
-    def wrapped_get_pytest_args(options, is_cpp_test=False, is_distributed_test=False):
-        args = list(original_get_pytest_args(options, is_cpp_test=is_cpp_test, is_distributed_test=is_distributed_test))
-        if not is_cpp_test:
-            args.extend(["-p", "pytest_disabled_testcases_plugin"])
-        return args
-
-    module.get_pytest_args = wrapped_get_pytest_args
-    module.IS_CI = False
-    return module
-
-
-def build_options(module, shard: int, num_shards: int, verbose: bool):
-    fake_argv = [
-        "run_test.py",
-        "--shard",
-        str(shard),
-        str(num_shards),
-        "--continue-through-error",
-        "--pipe-logs",
-        "--enable-timeout",
-    ]
-    if verbose:
-        fake_argv.append("-v")
-
-    with patched_argv(fake_argv):
-        options = module.parse_args()
-
-    options.enable_td = False
-    options.upload_artifacts_while_running = False
-    options.coverage = False
-    options.dry_run = False
-    options.pytest = False
-    return options
-
-
-def compute_selection_plan(module, options, test_dir: Path) -> Tuple[List[str], List[object], List[str], List[str], int]:
-    selected_tests = module.get_selected_tests(options)
-    raw_tests = [module.TestRun(test_name) for test_name in selected_tests]
-    test_file_times = module.load_test_file_times()
-    test_class_times = module.load_test_class_times()
-    _, sharded_tests = module.do_sharding(
-        options,
-        raw_tests,
-        test_file_times,
-        test_class_times,
-        sort_by_time=True,
-    )
-
-    raw_test_files = discover_raw_test_files(str(test_dir))
-    selected_backing_files = set()
-    unhandled_tests = []
-    custom_handlers = getattr(module, "CUSTOM_HANDLERS", {})
-    cpp_tests = set(getattr(module, "CPP_TESTS", []))
-    for test_name in selected_tests:
-        relative_file = f"{test_name}.py"
-        if (test_dir / relative_file).exists():
-            selected_backing_files.add(relative_file)
-            continue
-        alias_file = SPECIAL_TEST_FILE_ALIASES.get(test_name)
-        if alias_file and (test_dir / alias_file).exists():
-            selected_backing_files.add(alias_file)
-            continue
-        if test_name in custom_handlers or test_name in cpp_tests:
-            continue
-        unhandled_tests.append(test_name)
-
-    excluded_test_files = sorted(
-        relative_file for relative_file in raw_test_files if relative_file not in selected_backing_files
-    )
-    return selected_tests, sharded_tests, excluded_test_files, sorted(unhandled_tests), len(selected_backing_files)
-
-
-def clean_test_reports_dir(test_reports_dir: Path) -> None:
-    if test_reports_dir.exists():
-        shutil.rmtree(test_reports_dir)
-    test_reports_dir.mkdir(parents=True, exist_ok=True)
 
 
 def clean_existing_junit_xml(report_dir: Path) -> None:
@@ -428,63 +433,48 @@ def clean_existing_junit_xml(report_dir: Path) -> None:
         xml_file.unlink(missing_ok=True)
 
 
-def collect_junit_xml_files(report_dir: Path, candidate_roots: List[Path]) -> List[Path]:
-    copied_files = []
-    seen_sources = set()
-    report_dir.mkdir(parents=True, exist_ok=True)
-
-    for candidate_root in candidate_roots:
-        if not candidate_root.exists():
-            continue
-        for xml_file in candidate_root.rglob("*.xml"):
-            try:
-                resolved = str(xml_file.resolve())
-            except OSError:
-                resolved = str(xml_file)
-            if resolved in seen_sources:
-                continue
-            seen_sources.add(resolved)
-
-            destination = report_dir / xml_file.name
-            if destination.exists():
-                if destination.resolve() == xml_file.resolve():
-                    copied_files.append(destination)
-                    continue
-                stem = destination.stem
-                suffix = destination.suffix
-                with tempfile.NamedTemporaryFile(
-                    dir=report_dir,
-                    prefix=f"{stem}_",
-                    suffix=suffix,
-                    delete=False,
-                ) as tmp_file:
-                    destination = Path(tmp_file.name)
-            shutil.copy2(xml_file, destination)
-            copied_files.append(destination)
-
-    return copied_files
+def remove_existing_file(path: Path) -> None:
+    path.unlink(missing_ok=True)
 
 
-def classify_test_segment(segment: str) -> str | None:
-    normalized = segment.lower()
-    if " was successful" in normalized:
-        return None
-    if "modulenotfounderror:" in normalized or "importerror:" in normalized:
-        return "import"
-    if (
-        "error: unrecognized arguments:" in normalized
-        or "no stepcurrent file found" in normalized
-        or "running 0 items in this shard:" in normalized and "failed!" in normalized
-        or "valueerror: an empty op_list was passed to @ops" in normalized
-        or "filenotfounderror:" in normalized and ".xml" in normalized
-    ):
-        return "startup"
-    if " failed!" in normalized:
-        return "test"
-    return None
+def get_shard_log_file(report_dir: Path, shard: int) -> Path:
+    return report_dir / f"test_shard_{shard}.log"
 
 
-def analyze_shard_log(log_file: Path) -> Dict:
+def run_command_with_tee(command: List[str], cwd: Path, env: Dict[str, str], log_file: Path) -> int:
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    merged_env = os.environ.copy()
+    merged_env.update(env)
+
+    with log_file.open("w", encoding="utf-8") as log_handle:
+        process = subprocess.Popen(
+            command,
+            cwd=str(cwd),
+            env=merged_env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+        )
+
+        try:
+            assert process.stdout is not None
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log_handle.write(line)
+            return process.wait()
+        except BaseException:
+            process.kill()
+            raise
+        finally:
+            if process.stdout is not None:
+                process.stdout.close()
+
+
+def analyze_pytest_log(log_file: Path, returncode: int) -> Dict:
     metrics = {
         "zero_item_test_files": 0,
         "startup_failures": 0,
@@ -500,149 +490,176 @@ def analyze_shard_log(log_file: Path) -> Dict:
     except OSError:
         return metrics
 
-    metrics["zero_item_test_files"] = content.count("Running 0 items in this shard:")
+    if returncode == 5 or "collected 0 items" in content or "no tests ran" in content:
+        metrics["zero_item_test_files"] = 1
 
-    current_lines: List[str] = []
-    for line in content.splitlines():
-        if line.startswith("Running ") and " ... [" in line:
-            if current_lines:
-                category = classify_test_segment("\n".join(current_lines))
-                if category == "startup":
-                    metrics["startup_failures"] += 1
-                elif category == "import":
-                    metrics["import_failures"] += 1
-                elif category == "test":
-                    metrics["test_failures"] += 1
-            current_lines = [line]
-            continue
-        if current_lines:
-            current_lines.append(line)
-
-    if current_lines:
-        category = classify_test_segment("\n".join(current_lines))
-        if category == "startup":
-            metrics["startup_failures"] += 1
-        elif category == "import":
-            metrics["import_failures"] += 1
-        elif category == "test":
-            metrics["test_failures"] += 1
-
+    metrics["import_failures"] = len(
+        re.findall(r"^ImportError while importing test module", content, flags=re.MULTILINE)
+    )
+    collection_errors = len(re.findall(r"^ERROR collecting ", content, flags=re.MULTILINE))
+    metrics["startup_failures"] = max(collection_errors - metrics["import_failures"], 0)
     return metrics
 
 
-def find_shard_log(report_dir: Path, shard: int) -> Path | None:
-    direct_path = report_dir / f"test_shard_{shard}.log"
-    if direct_path.exists():
-        return direct_path
-
-    matches = sorted(report_dir.rglob(f"test_shard_{shard}.log"))
-    if matches:
-        return matches[0]
-    return None
-
-
-def run_upstream_shard(
-    module,
-    options,
-    sharded_tests,
+def build_pytest_command(
+    planned_tests: List[str],
+    report_dir: Path,
     shard: int,
-    test_dir: Path,
+    timeout: int,
+    verbose: bool,
+) -> List[str]:
+    xml_file = report_dir / f"shard_{shard}_pytest.xml"
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "--color=no",
+        "-ra",
+        "--tb=short",
+        "--continue-on-collection-errors",
+        f"--junitxml={xml_file}",
+        "-p",
+        "pytest_disabled_testcases_plugin",
+    ]
+
+    if timeout > 0:
+        command.append(f"--timeout={timeout}")
+
+    command.append("-vv" if verbose else "-v")
+    command.extend(planned_tests)
+    return command
+
+
+def run_pytest_shard(
+    planned_tests: List[str],
+    shard: int,
+    repo_root: Path,
     report_dir: Path,
     env_updates: Dict[str, str],
-) -> Tuple[int, Dict, str, Dict]:
-    failures = []
-    error_message = ""
+    timeout: int,
+    verbose: bool,
+) -> Tuple[int, Dict, Dict]:
     start = monotonic()
+    raw_returncode = 0
+    error_message = ""
+    log_file = get_shard_log_file(report_dir, shard)
+    command = build_pytest_command(planned_tests, report_dir, shard, timeout, verbose)
 
-    with patched_environ(env_updates), patched_cwd(test_dir):
-        try:
-            module.run_tests(sharded_tests, str(test_dir), options, failures)
-            returncode = 0 if not failures else 1
-            if failures:
-                error_message = "\n".join(failure.message for failure in failures[:20])
-        except Exception as exc:
-            returncode = 1
-            error_message = f"Unexpected error while running upstream run_test shard: {exc}\n{traceback.format_exc()}"
+    print("Executing pytest command:")
+    print("  " + " ".join(command))
+
+    try:
+        raw_returncode = run_command_with_tee(command, repo_root, env_updates, log_file)
+    except Exception as exc:
+        raw_returncode = 1
+        error_message = f"Failed to execute pytest: {exc}"
 
     duration = monotonic() - start
-    candidate_report_roots = [report_dir, test_dir / "test-reports"]
-    copied_xml_files = collect_junit_xml_files(report_dir, candidate_report_roots)
-    stats = aggregate_junit_stats(candidate_report_roots)
-    stats["junit_generated"] = bool(copied_xml_files)
-    stats["junit_xml_files"] = len(copied_xml_files)
 
-    shard_log = find_shard_log(report_dir, shard)
-    log_metrics = analyze_shard_log(shard_log) if shard_log else {
-        "zero_item_test_files": 0,
-        "startup_failures": 0,
-        "import_failures": 0,
-        "test_failures": 0,
-    }
+    xml_files = sorted(report_dir.rglob("*.xml"))
+    stats = aggregate_junit_stats([report_dir])
+    stats["junit_generated"] = bool(xml_files)
+    stats["junit_xml_files"] = len(xml_files)
+
+    returncode = raw_returncode
+    if raw_returncode == 5 and stats.get("total", 0) == 0 and stats.get("failed", 0) == 0 and stats.get("errors", 0) == 0:
+        returncode = 0
+        print("Pytest collected no tests for this shard after file filtering and testcase deselection.")
+
+    log_metrics = analyze_pytest_log(log_file, raw_returncode)
+    log_metrics["test_failures"] = int(stats.get("failed", 0))
     stats.update(log_metrics)
+
+    if returncode != 0 and not error_message:
+        error_message = f"pytest exited with code {raw_returncode}"
+
     stats = finalize_stats(stats or create_empty_stats(), returncode, duration, error_message)
-    if copied_xml_files:
-        print(f"Collected {len(copied_xml_files)} JUnit XML file(s) into {report_dir}")
-    else:
-        print(f"Warning: No JUnit XML files found under: {', '.join(str(path) for path in candidate_report_roots)}")
-    return returncode, stats, error_message, log_metrics
+    return returncode, stats, log_metrics
 
 
 def main():
     args = parse_args()
+    if args.num_shards < 1:
+        raise ValueError(f"Invalid num_shards {args.num_shards}; expected a positive integer")
+    if args.shard < 1 or args.shard > args.num_shards:
+        raise ValueError(f"Invalid shard {args.shard}; expected 1 <= shard <= {args.num_shards}")
+
     timestamp = datetime.now().isoformat()
     info = create_shard_info(args.shard, args.num_shards, timestamp)
-    info["disabled_count"] = load_disabled_testcases(args.disabled_testcases)
+    info["disabled_count"] = load_disabled_testcases_count(args.disabled_testcases)
 
     test_dir = Path(args.test_dir).resolve()
+    if not test_dir.is_dir():
+        raise FileNotFoundError(f"Test directory not found: {test_dir}")
+    repo_root = test_dir.parent
     script_dir = Path(__file__).resolve().parent
     report_dir = Path(args.report_dir).resolve()
     report_dir.mkdir(parents=True, exist_ok=True)
 
-    env_updates = build_execution_env(test_dir, script_dir, args.disabled_testcases, str(report_dir), args.shard)
-    module = import_upstream_run_test_module(test_dir, script_dir, env_updates)
-    options = build_options(module, args.shard, args.num_shards, args.verbose)
-    selected_tests, sharded_tests, excluded_test_files, unhandled_tests, selected_file_tests = compute_selection_plan(
-        module,
-        options,
-        test_dir,
-    )
+    case_paths_file, whitelist, blacklist = load_case_path_rules(args.case_paths_config)
+    info["whitelist_entries"] = len(whitelist)
+    info["blacklist_entries"] = len(blacklist)
+    if case_paths_file:
+        info["path_rules_file"] = case_paths_file
 
-    planned_tests = [test.name for test in sharded_tests]
-    info["total_files"] = len(discover_raw_test_files(str(test_dir)))
-    info["upstream_selected_tests"] = len(selected_tests)
-    info["upstream_selected_file_tests"] = selected_file_tests
-    info["upstream_unhandled_tests"] = len(unhandled_tests)
-    info["shard_files"] = len(planned_tests)
+    raw_test_files = discover_raw_test_files(test_dir)
+    selected_test_files, excluded_test_files = apply_case_path_rules(raw_test_files, whitelist, blacklist)
+    planned_tests = select_shard_files(selected_test_files, args.shard, args.num_shards)
+
+    info["total_files"] = len(raw_test_files)
+    info["selected_test_files"] = len(selected_test_files)
+    info["path_filtered_out_files"] = len(excluded_test_files)
     info["excluded_test_files"] = len(excluded_test_files)
+    info["shard_files"] = len(planned_tests)
 
     save_test_plan_file(str(report_dir), args.shard, planned_tests)
     save_excluded_test_files_file(str(report_dir), args.shard, excluded_test_files)
-    save_unhandled_upstream_tests_file(str(report_dir), args.shard, unhandled_tests)
+    save_unhandled_upstream_tests_file(str(report_dir), args.shard, [])
 
     print(f"\n{'=' * 60}")
-    print("PyTorch NPU Upstream run_test Shard Runner")
+    print("PyTorch NPU Pytest Shard Runner")
     print(f"{'=' * 60}")
     print(f"Shard: {args.shard}/{args.num_shards}")
+    print(f"Repository root: {repo_root}")
     print(f"Test directory: {test_dir}")
-    print(f"Selected tests: {len(selected_tests)}")
+    if case_paths_file:
+        print(f"Case path rules: {case_paths_file}")
+    print(f"Discovered test files: {len(raw_test_files)}")
+    print(f"Selected by path rules: {len(selected_test_files)}")
+    print(f"Path-filtered out: {len(excluded_test_files)}")
     print(f"Tests in shard: {len(planned_tests)}")
+    print(f"Disabled testcase entries: {info['disabled_count']}")
     print(f"{'=' * 60}\n")
+
     for index, target in enumerate(planned_tests, 1):
         print(f"  [{index:03d}] {target}")
 
-    test_reports_dir = test_dir / "test-reports"
     clean_existing_junit_xml(report_dir)
-    clean_test_reports_dir(test_reports_dir)
+    remove_existing_file(Path(get_disabled_testcases_report_file(str(report_dir), args.shard)))
+    remove_existing_file(get_shard_log_file(report_dir, args.shard))
 
-    _, stats, _, log_metrics = run_upstream_shard(
-        module,
-        options,
-        sharded_tests,
-        args.shard,
-        test_dir,
-        report_dir,
-        env_updates,
-    )
+    env_updates = build_execution_env(test_dir, script_dir, args.disabled_testcases, str(report_dir), args.shard)
+
+    if planned_tests:
+        _, stats, log_metrics = run_pytest_shard(
+            planned_tests,
+            args.shard,
+            repo_root,
+            report_dir,
+            env_updates,
+            args.timeout,
+            args.verbose,
+        )
+    else:
+        print("No test files assigned to this shard after file-level filtering.")
+        stats = finalize_stats(create_empty_stats(), 0, 0.0)
+        log_metrics = {
+            "zero_item_test_files": 0,
+            "startup_failures": 0,
+            "import_failures": 0,
+            "test_failures": 0,
+        }
+
     info["junit_generated"] = bool(stats.get("junit_generated", False))
     info["junit_xml_files"] = int(stats.get("junit_xml_files", 0))
     info["zero_item_test_files"] = int(log_metrics.get("zero_item_test_files", 0))

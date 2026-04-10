@@ -68,6 +68,33 @@ def load_text_lines(path: Path) -> List[str]:
         return [line.strip() for line in f if line.strip()]
 
 
+def get_int_value(payload: Dict, *keys: str) -> int:
+    for key in keys:
+        if key not in payload:
+            continue
+        try:
+            return int(payload.get(key, 0))
+        except (TypeError, ValueError):
+            continue
+    return 0
+
+
+def get_selected_test_entries(info: Dict) -> int:
+    return get_int_value(info, "selected_test_entries", "upstream_selected_tests")
+
+
+def get_selected_test_files(info: Dict) -> int:
+    return get_int_value(info, "selected_test_files", "upstream_selected_file_tests")
+
+
+def get_path_filtered_out_files(info: Dict) -> int:
+    return get_int_value(info, "path_filtered_out_files", "excluded_test_files")
+
+
+def get_unhandled_special_tests(info: Dict) -> int:
+    return get_int_value(info, "unhandled_special_tests", "upstream_unhandled_tests")
+
+
 def discover_shard_files(
     reports_root: Path,
 ) -> Tuple[Dict[int, Path], Dict[int, Path], Dict[int, Path], Dict[int, Path], Dict[int, Path]]:
@@ -232,8 +259,9 @@ def main():
         "errors": 0,
         "duration": 0.0,
         "discovered_test_files": 0,
-        "upstream_selected_tests": 0,
-        "upstream_selected_file_tests": 0,
+        "selected_test_entries": 0,
+        "selected_test_files": 0,
+        "path_filtered_out_files": 0,
         "planned_files": 0,
         "junit_generated_shards": 0,
         "junit_xml_files": 0,
@@ -256,6 +284,10 @@ def main():
         unhandled_path = unhandled_files.get(shard)
         stats = load_json_file(stats_path) if stats_path else {}
         info = load_json_file(info_path) if info_path else {}
+        selected_test_entries = get_selected_test_entries(info)
+        selected_test_files = get_selected_test_files(info)
+        path_filtered_out_files = get_path_filtered_out_files(info)
+        unhandled_special_tests = get_unhandled_special_tests(info)
         planned_files = load_text_lines(plan_path) if plan_path else []
         excluded_test_files = load_text_lines(excluded_path) if excluded_path else []
         unhandled_tests = load_text_lines(unhandled_path) if unhandled_path else []
@@ -279,12 +311,9 @@ def main():
         totals["discovered_test_files"] = max(
             totals["discovered_test_files"], int(info.get("total_files", 0))
         )
-        totals["upstream_selected_tests"] = max(
-            totals["upstream_selected_tests"], int(info.get("upstream_selected_tests", 0))
-        )
-        totals["upstream_selected_file_tests"] = max(
-            totals["upstream_selected_file_tests"], int(info.get("upstream_selected_file_tests", 0))
-        )
+        totals["selected_test_entries"] = max(totals["selected_test_entries"], selected_test_entries)
+        totals["selected_test_files"] = max(totals["selected_test_files"], selected_test_files)
+        totals["path_filtered_out_files"] = max(totals["path_filtered_out_files"], path_filtered_out_files)
         totals["planned_files"] += int(info.get("shard_files", 0))
         totals["junit_generated_shards"] += 1 if info.get("junit_generated") else 0
         totals["junit_xml_files"] += int(info.get("junit_xml_files", 0) or stats.get("junit_xml_files", 0))
@@ -305,11 +334,11 @@ def main():
                 "duration": float(stats.get("duration", 0.0)),
                 "planned_files": int(info.get("shard_files", 0)),
                 "discovered_test_files": int(info.get("total_files", 0)),
-                "upstream_selected_tests": int(info.get("upstream_selected_tests", 0)),
-                "upstream_selected_file_tests": int(info.get("upstream_selected_file_tests", 0)),
-                "upstream_unhandled_tests": int(info.get("upstream_unhandled_tests", 0)),
+                "selected_test_entries": selected_test_entries,
+                "selected_test_files": selected_test_files,
+                "unhandled_special_tests": unhandled_special_tests,
                 "planned_file_names": planned_files,
-                "excluded_test_files": int(info.get("excluded_test_files", 0)),
+                "path_filtered_out_files": path_filtered_out_files,
                 "disabled_matched": int(info.get("disabled_count_matched", 0)),
                 "disabled_deselected": int(info.get("disabled_count_deselected", 0)),
                 "junit_generated": bool(info.get("junit_generated", stats.get("junit_generated", False))),
@@ -330,7 +359,7 @@ def main():
     excluded_test_files_list = sorted(unique_excluded_files)
     unhandled_tests_list = sorted(unique_unhandled_tests)
     not_covered_by_requested_shards = max(
-        totals["upstream_selected_file_tests"] - unique_planned_count,
+        totals["selected_test_files"] - unique_planned_count,
         0,
     )
     not_covered_display = str(not_covered_by_requested_shards)
@@ -339,6 +368,8 @@ def main():
             f"{not_covered_by_requested_shards} (based on collected reports only; some shard reports are missing)"
         )
     selection_mode_display = ", ".join(sorted(selection_modes)) if selection_modes else "-"
+    include_selected_entries = totals["selected_test_entries"] > 0
+    include_unhandled_tests = bool(unhandled_tests_list)
 
     failed_like = [row for row in shard_rows if row["status"] not in ("PASSED", "NO TESTS")]
     slowest = sorted(shard_rows, key=lambda row: row["duration"], reverse=True)[:20]
@@ -382,11 +413,13 @@ def main():
                 ["Reports collected", f"{received_reports} / {expected_reports}"],
                 ["Selection mode", selection_mode_display],
                 ["Discovered test files", str(totals["discovered_test_files"])],
-                ["Upstream selected test entries", str(totals["upstream_selected_tests"])],
-                ["Upstream selected file-backed tests", str(totals["upstream_selected_file_tests"])],
+                ["Selected test files", str(totals["selected_test_files"])],
+                ["Path-filtered test files", str(totals["path_filtered_out_files"])],
                 ["Planned files in requested shards", str(totals["planned_files"])],
                 ["Overall result", overall_status],
-            ] + ([["Special tests expected", str(len(special_test_names))]] if include_special_tests else []),
+            ]
+            + ([["Selected test entries", str(totals["selected_test_entries"])] ] if include_selected_entries else [])
+            + ([["Special tests expected", str(len(special_test_names))]] if include_special_tests else []),
         )
     )
     markdown_lines.extend(["", "## Totals"])
@@ -403,11 +436,13 @@ def main():
                 ["Collected JUnit XML files", str(totals["junit_xml_files"])],
                 ["Test files with 0 collected items", str(totals["zero_item_test_files"])],
                 ["Discovered test files", str(totals["discovered_test_files"])],
-                ["Upstream selected test entries", str(totals["upstream_selected_tests"])],
-                ["Upstream selected file-backed tests", str(totals["upstream_selected_file_tests"])],
+                ["Selected test files", str(totals["selected_test_files"])],
+                ["Path-filtered test files", str(totals["path_filtered_out_files"])],
                 ["Planned files in requested shards", str(totals["planned_files"])],
                 ["Cumulative duration", format_duration(totals["duration"])],
-            ] + ([["Special tests passed", str(special_status_counts["PASSED"])]] if include_special_tests else []),
+            ]
+            + ([["Selected test entries", str(totals["selected_test_entries"])] ] if include_selected_entries else [])
+            + ([["Special tests passed", str(special_status_counts["PASSED"])]] if include_special_tests else []),
         )
     )
     markdown_lines.extend(["", "## Execution Scope"])
@@ -417,13 +452,16 @@ def main():
             [
                 ["Selection source", selection_mode_display],
                 ["Unique planned test files in collected reports", str(unique_planned_count)],
+                ["Path-filtered out files", str(totals["path_filtered_out_files"])],
                 ["Files not covered by requested shard range", not_covered_display],
-                ["Upstream special tests not directly handled by current runner", str(len(unhandled_tests_list))],
-            ] + ([["Workflow-handled special tests", str(len(special_test_rows))]] if include_special_tests else []),
+            ]
+            + ([["Unhandled special tests", str(len(unhandled_tests_list))]] if include_unhandled_tests else [])
+            + ([["Workflow-handled special tests", str(len(special_test_rows))]] if include_special_tests else []),
         )
     )
-    markdown_lines.extend(["", "### Unhandled Upstream Special Tests"])
-    markdown_lines.extend(format_scope_list(unhandled_tests_list))
+    if include_unhandled_tests:
+        markdown_lines.extend(["", "### Unhandled Special Tests"])
+        markdown_lines.extend(format_scope_list(unhandled_tests_list))
     markdown_lines.extend(["", "## Failure Breakdown"])
     markdown_lines.extend(
         render_table(
@@ -546,10 +584,13 @@ def main():
         "totals": totals,
         "execution_scope": {
             "selection_mode": sorted(selection_modes),
+            "selected_test_entries": totals["selected_test_entries"],
+            "selected_test_files": totals["selected_test_files"],
+            "path_filtered_out_files": totals["path_filtered_out_files"],
             "unique_planned_test_files": unique_planned_count,
             "files_not_covered_by_requested_shards": not_covered_by_requested_shards,
             "excluded_test_files": excluded_test_files_list,
-            "unhandled_upstream_special_tests": unhandled_tests_list,
+            "unhandled_special_tests": unhandled_tests_list,
         },
         "failure_breakdown": {
             "startup_failures": totals["startup_failures"],
