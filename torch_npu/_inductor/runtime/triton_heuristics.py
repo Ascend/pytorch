@@ -146,7 +146,7 @@ def read_device_time(torch_path, triton_only=True, return_list=True):
                     durations.append(float(row_read['Duration(us)']))
             if return_list:
                 return durations
-            ret = sum(durations)
+            ret = sum(durations) / len(durations)
             return ret
     delete_file_base(torch_path)
     raise RuntimeError(f"Could not find kernel_details.csv from dir {torch_path}")
@@ -178,7 +178,7 @@ def do_bench_using_profiling_npu(fn, warmup=2, rep=10, grad_to_none=None, quanti
     random_uuid = uuid.uuid4().hex
     md5_hash = hashlib.md5(random_uuid.encode()).hexdigest()
     torch_path = os.path.join(os.getcwd(), "profile_result", f"triton_{md5_hash}")
-    with create_profiler(torch_path) as prof:
+    with create_profiler(torch_path, active=8) as prof:
         stream.synchronize()
         for _ in range(rep + 10):
             fn()
