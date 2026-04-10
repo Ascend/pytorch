@@ -153,8 +153,6 @@ jobs:
           export MAX_JOBS=${{ inputs.max_jobs }}
           export DISABLE_INSTALL_TORCHAIR=FALSE
           export BUILD_WITHOUT_SHA=1
-          # 跳过 auditwheel repair，torch_npu 依赖外部 CANN 环境
-          export AUDITWHEEL_PLAT=skip
 
           # 使用 ci/build.sh 脚本
           bash ci/build.sh --python=${{ inputs.python_version }} 2>&1 | tee /tmp/build_torch_npu.log
