@@ -98,17 +98,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /github/home/.cache/pip
-          key: pip-arm-build-py${{ inputs.python_version }}-v${{ inputs.pytorch_version }}
+          key: pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-${{ github.sha }}
           restore-keys: |
-            pip-arm-build-py${{ inputs.python_version }}-
+            pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-
 
       - name: Cache ccache
         uses: actions/cache@v4
         with:
           path: /github/home/.cache/ccache
-          key: ccache-arm-build-py${{ inputs.python_version }}-${{ github.run_id }}
+          key: ccache-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-${{ github.sha }}
           restore-keys: |
-            ccache-arm-build-py${{ inputs.python_version }}-
+            ccache-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-
 
       - name: Install PyTorch ${{ inputs.pytorch_version }} and build dependencies
         id: install_torch
