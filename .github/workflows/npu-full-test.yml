@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/npu-full-test.yml'
+      - '.github/workflows/_build-torch-npu.yml'
       - '.github/scripts/run_npu_test_shard.py'
       - '.github/scripts/pytest_disabled_testcases_plugin.py'
       - '.github/scripts/generate_npu_full_test_report.py'
@@ -11,6 +12,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/npu-full-test.yml'
+      - '.github/workflows/_build-torch-npu.yml'
       - '.github/scripts/run_npu_test_shard.py'
       - '.github/scripts/pytest_disabled_testcases_plugin.py'
       - '.github/scripts/generate_npu_full_test_report.py'
@@ -104,198 +106,16 @@ jobs:
           retention-days: 30
 
   build_torch_npu:
-    runs-on: linux-aarch64-a3-2
-    container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
-      options: --user root
-    outputs:
-      wheel_name: ${{ steps.build.outputs.wheel_name }}
-    env:
-      AUDITWHEEL_PLAT: 'skip'
-      DOCKER_IMAGE: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331'
-      # Full-test wheel builds do not exercise RPC; disabling it avoids Tensorpipe/libuv CMake breakage.
-      DISABLE_RPC_FRAMEWORK: 'TRUE'
-    steps:
-      - name: Checkout current repository (for wheel build)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          submodules: recursive
-
-      - name: Collect repository metadata
-        id: repo_meta
-        run: |
-          COMMIT=$(git rev-parse HEAD)
-          COMMIT_SHORT=$(git rev-parse --short HEAD)
-          COMMIT_DATE=$(git log -1 --format='%ci')
-
-          echo "commit=${COMMIT}" >> $GITHUB_OUTPUT
-          echo "commit_short=${COMMIT_SHORT}" >> $GITHUB_OUTPUT
-          echo "commit_date=${COMMIT_DATE}" >> $GITHUB_OUTPUT
-
-      - name: Collect toolchain metadata
-        id: toolchain_meta
-        run: |
-          CMAKE_VERSION=$(cmake --version | head -1)
-          GCC_VERSION=$(gcc --version | head -1)
-
-          echo "cmake_version=${CMAKE_VERSION}" >> $GITHUB_OUTPUT
-          echo "gcc_version=${GCC_VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Setup cache directories
-        run: |
-          mkdir -p /github/home/.cache/pip
-          mkdir -p /github/home/.cache/ccache
-          chmod -R 777 /github/home/.cache
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: /github/home/.cache/pip
-          key: pip-arm-build-py${{ env.PYTHON_VERSION }}-v${{ env.PYTORCH_VERSION }}
-          restore-keys: |
-            pip-arm-build-py${{ env.PYTHON_VERSION }}-
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: /github/home/.cache/ccache
-          key: ccache-arm-build-py${{ env.PYTHON_VERSION }}-${{ github.run_id }}
-          restore-keys: |
-            ccache-arm-build-py${{ env.PYTHON_VERSION }}-
-
-      - name: Uninstall pre-installed torch/torchvision
-        run: |
-          pip${{ env.PYTHON_VERSION }} uninstall -y torch torchvision || true
-          echo "Pre-installed torch/torchvision uninstalled"
-
-      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and build dependencies
-        id: install_torch
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          PIP=pip${{ env.PYTHON_VERSION }}
-          PYTHON=python${{ env.PYTHON_VERSION }}
-          export PIP_CACHE_DIR=/github/home/.cache/pip
-
-          $PIP install --upgrade pip
-          $PIP install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
-          $PIP install pyyaml setuptools wheel
-
-          TORCH_VER=$($PYTHON -c "import torch; print(torch.__version__)")
-          echo "torch_version=${TORCH_VER}" >> $GITHUB_OUTPUT
-
-      - name: Build torch_npu wheel from source
-        id: build
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          PYTHON=python${{ env.PYTHON_VERSION }}
-
-          if command -v ccache &> /dev/null; then
-            echo "ccache found, enabling ccache"
-            ccache -M 10G
-            ccache -z || true
-            export CC="ccache gcc"
-            export CXX="ccache g++"
-            export CCACHE_DIR=/github/home/.cache/ccache
-            export CCACHE_COMPRESS=1
-            export CCACHE_MAXSIZE=10G
-            export CCACHE_BASEDIR="${PWD}"
-            USE_CCACHE=1
-          else
-            echo "ccache not found, building without cache"
-            USE_CCACHE=0
-          fi
-
-          if [ "${USE_CCACHE}" = "1" ]; then
-            echo "ccache_stats=pending" >> $GITHUB_OUTPUT
-          else
-            echo "ccache_stats=ccache not available" >> $GITHUB_OUTPUT
-          fi
-
-          export MAX_JOBS=$(nproc)
-          export DISABLE_INSTALL_TORCHAIR=FALSE
-          export BUILD_WITHOUT_SHA=1
-
-          set +e
-          $PYTHON setup.py build bdist_wheel 2>&1 | tee /tmp/build_torch_npu.log
-          BUILD_STATUS=${PIPESTATUS[0]}
-          set -e
-
-          if [ "${USE_CCACHE}" = "1" ]; then
-            CCACHE_STATS=$(ccache -s | awk '/^[[:space:]]*Hits:|^[[:space:]]*Misses:|^[[:space:]]*Cache size/ {gsub(/^[[:space:]]+/, "", $0); lines = lines $0 " | "} END {sub(/ \| $/, "", lines); print lines}')
-            if [ -z "${CCACHE_STATS}" ]; then
-              CCACHE_STATS="enabled (details in build log)"
-            fi
-            echo "ccache_stats=${CCACHE_STATS}" >> $GITHUB_OUTPUT
-            ccache -s
-          fi
-
-          if [ ${BUILD_STATUS} -eq 0 ]; then
-            WHL=$(ls dist/*.whl 2>/dev/null | head -1)
-            if [ -z "${WHL}" ]; then
-              echo "Build completed but dist/*.whl was not found"
-              BUILD_STATUS=1
-            else
-              WHEEL_NAME=$(basename "${WHL}")
-              echo "wheel_path=${WHL}" >> $GITHUB_OUTPUT
-              echo "wheel_name=${WHEEL_NAME}" >> $GITHUB_OUTPUT
-              echo "Build succeeded: ${WHL}"
-            fi
-          fi
-
-          echo "status=${BUILD_STATUS}" >> $GITHUB_OUTPUT
-          exit ${BUILD_STATUS}
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs-torch-npu
-          path: /tmp/build_torch_npu.log
-          if-no-files-found: warn
-          retention-days: 30
-
-      - name: Upload built torch_npu wheel
-        if: steps.build.outputs.status == '0'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.TORCH_NPU_WHEEL_ARTIFACT }}
-          path: dist/*.whl
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Build summary
-        if: always()
-        run: |
-          BUILD_STATUS="${{ steps.build.outputs.status }}"
-          if [ "${BUILD_STATUS}" = "0" ]; then
-            BUILD_RESULT="SUCCESS"
-          else
-            BUILD_RESULT="FAILED"
-          fi
-
-          cat >> $GITHUB_STEP_SUMMARY << EOF
-          ## torch_npu Source Build
-
-          | Item | Value |
-          |------|-------|
-          | Build time | $(date -u '+%Y-%m-%d %H:%M UTC') |
-          | Docker image | \`${{ env.DOCKER_IMAGE }}\` |
-          | CMake | \`${{ steps.toolchain_meta.outputs.cmake_version }}\` |
-          | GCC | \`${{ steps.toolchain_meta.outputs.gcc_version }}\` |
-          | Source commit | [\`${{ steps.repo_meta.outputs.commit_short }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.repo_meta.outputs.commit }}) |
-          | Commit time | ${{ steps.repo_meta.outputs.commit_date }} |
-          | PyTorch | \`${{ steps.install_torch.outputs.torch_version }}\` |
-          | RPC/Tensorpipe | disabled for full-test wheel build |
-          | ccache | ${{ steps.build.outputs.ccache_stats }} |
-          | Build result | ${BUILD_RESULT} |
-
-          $( [ "${BUILD_STATUS}" = "0" ] && echo "> Wheel: \`${{ steps.build.outputs.wheel_name }}\`" || echo "> See the build-logs-torch-npu artifact for failure details." )
-          EOF
+    needs: prepare
+    uses: ./.github/workflows/_build-torch-npu.yml
+    with:
+      python_version: '3.11'
+      pytorch_version: '2.7.1'
+      runner: 'linux-aarch64-a3-2'
+      docker_image: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331'
+      torch_npu_wheel_artifact: 'torch-npu-wheel-v2.7.1-source'
+      max_jobs: '40'
+      submodule_recursive: true
 
   test:
     needs:
