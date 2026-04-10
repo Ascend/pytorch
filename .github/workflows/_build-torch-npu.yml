@@ -20,11 +20,6 @@ on:
         type: string
         default: '40'
         description: Maximum number of parallel build jobs
-      submodule_recursive:
-        required: false
-        type: boolean
-        default: true
-        description: Whether to checkout submodules recursively
     outputs:
       wheel_name:
         description: Name of the built wheel file
@@ -47,7 +42,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-          submodules: ${{ inputs.submodule_recursive }}
+          submodules: recursive
 
       - name: Setup Python ${{ inputs.python_version }}
         uses: actions/setup-python@v5

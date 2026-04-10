@@ -113,7 +113,6 @@ jobs:
       pytorch_version: '2.7.1'
       torch_npu_wheel_artifact: 'torch-npu-wheel-v2.7.1-source'
       max_jobs: '40'
-      submodule_recursive: true
 
   test:
     needs:
