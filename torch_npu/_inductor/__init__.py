@@ -33,7 +33,7 @@ else:
 
     from . import config as npu_config
     from . import codegen
-    from .npu_fusion_attention_graph import register_fa_pass
+    from .fx_passes.pattern_match.npu_fusion_attention_graph import register_fa_pass
     from .config import (
         aggresive_autotune, num_vector_core, set_compile_threads, 
         disable_comprehensive_padding, max_precompiled_thread_num
@@ -52,7 +52,6 @@ else:
         patch_is_gpu,
         patch_has_triton,
         disable_foreach,
-        patch_expr_fits_within_32bit,
         patch_get_first_incompatible_cudagraph_node
     )
     from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
@@ -149,7 +148,6 @@ else:
     patch_gen_common_triton_ext_imports()
     patch_load_cached_autotuning()
     patch_create_device_properties()
-    patch_expr_fits_within_32bit()
     patch_triton_heuristics_cached_autotune()
 
 

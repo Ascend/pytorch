@@ -2,7 +2,7 @@ import torch._ops
 from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
 from torch._inductor.decomposition import register_decomposition
 from torch._prims_common.wrappers import out_wrapper
-from .config import get_soc_version, Ascend910_9391
+from .config import get_soc_version, is_ascend950
 from .lowering import _add_overload
 
 aten = torch.ops.aten
@@ -19,7 +19,7 @@ DECOMPOSITION_OVERLOAD_OP = [
     aten.native_dropout_backward
 ]
 
-if get_soc_version() >= Ascend910_9391:
+if is_ascend950:
     DECOMPOSITION_OVERLOAD_OP.append(aten.max_pool2d_with_indices)
 
 

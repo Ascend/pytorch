@@ -146,8 +146,9 @@ def read_device_time(torch_path, triton_only=True, return_list=True):
                     durations.append(float(row_read['Duration(us)']))
             if return_list:
                 return durations
-            ret = sum(durations)
+            ret = sum(durations) / len(durations)
             return ret
+    delete_file_base(torch_path)
     raise RuntimeError(f"Could not find kernel_details.csv from dir {torch_path}")
 
 
@@ -177,7 +178,7 @@ def do_bench_using_profiling_npu(fn, warmup=2, rep=10, grad_to_none=None, quanti
     random_uuid = uuid.uuid4().hex
     md5_hash = hashlib.md5(random_uuid.encode()).hexdigest()
     torch_path = os.path.join(os.getcwd(), "profile_result", f"triton_{md5_hash}")
-    with create_profiler(torch_path) as prof:
+    with create_profiler(torch_path, active=8) as prof:
         stream.synchronize()
         for _ in range(rep + 10):
             fn()
@@ -392,6 +393,7 @@ class TritonCompileResultNpu(TritonCompileResult):
 
         launcher = scope["launcher"]
         launcher.config = cfg
+        launcher.runnable = True
         launcher.n_regs = getattr(binary, "n_regs", None)
         launcher.n_spills = getattr(binary, "n_spills", None)
         launcher.shared = binary_shared
@@ -827,10 +829,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                     fx_inputs[ind] = fx_inputs[ind].reshape(shape)
             model_outputs = model.forward(*fx_inputs)
             for idx, (out1, out2) in enumerate(zip(model_outputs, fx_args[num_inputs:(num_inputs + num_outputs)])):
-                try:
-                    out1 = out1.reshape(out2.shape)
-                except Exception as e:
-                    return f"kernel output shape mismatch error: correct shape: {out1.shape}, actual shape: {out2.shape}"
+                out1 = out1.reshape(out2.shape)
                 if idx in non_contiguous_indices['outputs']:
                     out2.copy_(out1)
                 else:
@@ -901,9 +900,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                     arg)
                 fx_args.append(fx_arg)
 
-        output_shape_mismatch_error = fx_graph_call(*fx_args)
-        if output_shape_mismatch_error:
-            raise RuntimeError(output_shape_mismatch_error)
+        fx_graph_call(*fx_args)
         for actual, expected in zip([args[i] for i in call_outputs_indices], fx_args[fx_module.num_inputs:]):
             if actual.dtype != expected.dtype:
                 expected = expected.to(actual.dtype)
@@ -926,10 +923,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                     arg)
                 fx_args.append(fx_arg)
 
-        output_shape_mismatch_error = fx_graph_call(*fx_args)
-        if output_shape_mismatch_error:
-            log.warning(f"CHECK ACCURACY FAILED! kernel name: {self.get_fn_name()}, reason: {output_shape_mismatch_error}")
-            return True
+        fx_graph_call(*fx_args)
 
         launcher(
             *args,
@@ -1273,6 +1267,22 @@ def patch_triton_heuristics_cached_autotune():
     torch._inductor.runtime.triton_heuristics.cached_autotune = cached_autotune
 
 
+def brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta) -> List[Config]:
+    import os
+    max_num_str = os.environ.get("FAST_RUN_WITH_MAX_TILING_NUM", "-1")
+    try:
+        max_num = int(max_num_str)
+    except ValueError:
+        max_num = -1
+    
+    if max_num > 0 and len(configs) > max_num:
+        configs = configs[-1 * max_num:]
+        logging.debug("[%s], prune tiling configs to [%s]",
+                    inductor_meta["kernel_name"],
+                    len(configs))
+    return configs
+
+
 # split:sizeof split, xblock:axis1 length, rblock:axis2 length
 def triton_config_npu_index(
         size_hints,
@@ -1343,8 +1353,11 @@ def triton_config_npu_index(
     logging.debug("[%s], generate candidate tiling count: [%s]",
                 inductor_meta["kernel_name"],
                 len(configs))
+    
+    # if fast run, we prune the configs to the last max_num configs
+    configs = brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta)
     return configs
-
+    
 
 def pointwise(
         size_hints,
@@ -1425,11 +1438,12 @@ def benchmark_all_configs(self, *args, **kwargs):
 
 def _benchmark_all_configs(self, *args, **kwargs):
     log.info(f"{self.get_fn_name()} candidate launcher count = {len(self.launchers)}")
-    
     tilling_kernel_list = []
 
     def kernel_call(launcher):
         def call_kernel():
+            if not launcher.runnable:
+                return
             if launcher.config.pre_hook is not None:
                 launcher.config.pre_hook(
                     {**dict(zip(self.arg_names, args)), **launcher.config.kwargs}
@@ -1444,7 +1458,7 @@ def _benchmark_all_configs(self, *args, **kwargs):
 
         return call_kernel
 
-    for launcher in self.launchers:
+    for idx, launcher in enumerate(self.launchers):
         if not self.custom_kernel and launcher.n_spills > config.triton.spill_threshold:
             return float("inf")
 
@@ -1457,8 +1471,14 @@ def _benchmark_all_configs(self, *args, **kwargs):
         try:
             kernel_call_fn()
             torch.npu.synchronize()
+            log.debug(f"PreRun [{self.fn.__name__}], index: {idx}\n tiling [{launcher.config}] success")
         except Exception as e:
-            raise RuntimeError(f"Run [{self.fn.__name__}] \n tiling [{launcher.config}] \n") from e
+            launcher.runnable = False
+            log.warning(f"PreRun [{self.fn.__name__}], index: {idx}\n tiling [{launcher.config}] \n err: {e}")
+
+    valid_tiling_length = len([launcher for launcher in self.launchers if launcher.runnable])
+    if not valid_tiling_length:
+        raise RuntimeError("All tiling for [{self.fn.__name__}] are not runnable.")
 
     def do_batch_benchmark(tilling_kernel_list):
 
@@ -1497,9 +1517,20 @@ def _benchmark_all_configs(self, *args, **kwargs):
                 df = pd.read_csv(target_file)
                 triton_rows = df[df['Name'].str.startswith('triton', na=False)]
                 time_cost = [0] * tiling_length
+                valid_tiling_index = 0
+
+                if len(triton_rows) != valid_tiling_length * ACTIVE:
+                    raise RuntimeError(f"Expected {valid_tiling_length * ACTIVE} rows for triton kernels, but got {len(triton_rows)}. "
+                                f"This may be due to profiling errors. Please check the profiling result at {target_file} for more details.")
+
                 for tiling_index in range(tiling_length):
+                    if not self.launchers[tiling_index].runnable:
+                        time_cost[tiling_index] = float('inf')
+                        continue
                     for active_index in range(ACTIVE):
-                        time_cost[tiling_index] += triton_rows.iloc[tiling_index + tiling_length * active_index]['Duration(us)']
+                        time_cost[tiling_index] += triton_rows.iloc[valid_tiling_index + valid_tiling_length * active_index]['Duration(us)']
+                    valid_tiling_index += 1
+
                 time_cost = list(map(lambda x: x / ACTIVE, time_cost))
                 delete_file(autotune_path)
                 return time_cost
@@ -1528,7 +1559,7 @@ def _benchmark_all_configs(self, *args, **kwargs):
         print(e)
         print("switched to single bench...")
         timings = {
-            launcher: self.bench(launcher, *args, **kwargs)
+            launcher: self.bench(launcher, *args, **kwargs) if launcher.runnable else float("inf")
             for launcher in self.launchers
         }
 

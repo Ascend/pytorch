@@ -221,6 +221,8 @@ DUMP_FX_GRAPH_LOWERING_OPS = [
     aten.__ixor__,
     aten.sum,
     prims.sum,
+    torch.ops._inductor_test.realize,
+    torch.ops._inductor_test.realize.default,
     aten.embedding,
     aten.gather,
 ]
@@ -634,10 +636,7 @@ def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode])
                 if len(buf.get_mutations()):
                     fx_call_outputs.extend(buf.get_mutations())
                 elif len(buf.get_aliases()):
-                    if isinstance(buf.node.data, npu_ir.ConcatOutputKernel):
-                        fx_call_outputs.extend(buf.get_aliases())
-                    else:
-                        fx_call_outputs.append(buf.get_name())
+                    fx_call_outputs.append(buf.get_name())
         elif snode.node.get_name() not in (V.graph.removed_buffers | V.graph.inplaced_to_remove):
             fx_call_outputs.append(snode.node.get_name())
     num_outputs = len(fx_call_outputs)

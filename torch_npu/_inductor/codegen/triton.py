@@ -74,8 +74,6 @@ from torch.utils._sympy.value_ranges import bound_sympy, ValueRanges
 from torch._inductor.bounds import ValueRangeAnalysis
 from torch._inductor.runtime import triton_heuristics
 
-from torch_npu.npu._backends import get_soc_version
-
 from .. import config as inductor_npu_config
 
 from .kernel_analysis import IndexAnalysis, ReductionAnalysis
@@ -251,6 +249,21 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         var.mask_vars = indexing.mask_vars
         return var
 
+    @staticmethod
+    def frexp(x):
+        cache_key = f"frexp({x})"
+        cse_val = V.kernel.cse.try_get(cache_key)
+        if cse_val:
+            return cse_val
+
+        mantissa = V.kernel.cse.newvar(dtype=x.dtype)
+        exponent = V.kernel.cse.newvar(dtype=torch.int32)
+        V.kernel.compute.writeline(
+            f"{mantissa}, {exponent} = npu_triton_helpers.frexp({x})"
+        )
+        V.kernel.cse.put(cache_key, (mantissa, exponent))
+        return (mantissa, exponent)
+
 
 def group_fn(self, sizes):
     groups = list()
@@ -402,7 +415,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
 
         dtype_cast_str = ""
-        if V.kernel.index_dtype == "tl.int64" and get_soc_version() >= 250:
+        if V.kernel.index_dtype == "tl.int64" and inductor_npu_config.is_ascend950:
             dtype_cast_str = ".to(tl.int64)"
 
         if self.is_split_axis:
@@ -794,6 +807,21 @@ class NPUIndexTritonKernel(TritonKernel):
         dtype = None
         if axis is None:
             return None
+
+        def _lookup_dim(sym) -> Optional["IterationRangesEntryNPUIndex"]:
+            dim = self.range_tree_nodes.get(sym)
+            if dim is not None:
+                return dim
+            return self.range_tree_nodes_removed.get(sym)
+
+        def _iter_candidate_syms(key):
+            # indexing_map keys can be sympy.Symbol (common) or sympy.Expr (e.g. linearized indexing)
+            # Try direct lookup first, then fall back to free_symbols for Expr.
+            yield key
+            if isinstance(key, sympy.Expr) and not isinstance(key, sympy.Symbol):
+                for s in key.free_symbols:
+                    yield s
+
         for node in self.node_schedule:
             if node in (EnableReduction, DisableReduction):
                 continue
@@ -808,20 +836,18 @@ class NPUIndexTritonKernel(TritonKernel):
                 if node in (EnableReduction, DisableReduction):
                     continue
                 for key, _ in node._body.indexing_map.items():
-                    if should_break_all:
-                        break
-                    syms = (key.free_symbols if isinstance(key, sympy.Expr) else {key})
-                    for sym in syms:
-                        
-                        if sym in self.range_tree_nodes:
-                            dim = self.range_tree_nodes[sym]
-                        else:
-                            dim = self.range_tree_nodes_removed[sym]  
-                        if dim.parent == axis.parent:
-                            dtype = V.graph.get_dtype(node.node.name)
-                            should_break_all = True
+                    dim = None
+                    for cand in _iter_candidate_syms(key):
+                        dim = _lookup_dim(cand)
+                        if dim is not None:
                             break
+                    if dim is None:
+                        continue
 
+                    if dim.parent == axis.parent:
+                        dtype = V.graph.get_dtype(node.node.name)
+                        should_break_all = True
+                        break
         return dtype
 
     def create_inductor_meta(self):
@@ -1515,13 +1541,12 @@ class NPUIndexTritonKernel(TritonKernel):
         # to generate shape of the tile
 
     def dense_size_list(self) -> List[str]:
-        if self.inside_reduction:
-            if self.find_reduction_node() is not None:
-                if not self.reduce_analysis:
-                    self.reduce_analysis = ReductionAnalysis(self)
-                if self.is_contiguous_reduction():
-                    return self.reduce_analysis.dense_post_reduction_list()
-                return self.reduce_analysis.dense_size_list()
+        if self.find_reduction_node() is not None:
+            if not self.reduce_analysis:
+                self.reduce_analysis = ReductionAnalysis(self)
+            if self.is_contiguous_reduction():
+                return self.reduce_analysis.dense_post_reduction_list()
+            return self.reduce_analysis.dense_size_list()
 
         if not self.golden_var_list:
             self.select_golden_varlist()
@@ -1556,14 +1581,11 @@ class NPUIndexTritonKernel(TritonKernel):
         return False
 
     def dense_size_str(self):
-        if self.inside_reduction:
-            if self.find_reduction_node() is not None:
-                if not self.reduce_analysis:
-                    self.reduce_analysis = ReductionAnalysis(self)
-                return self.reduce_analysis.dense_size_str()
-            # Scan fallback: generate dense shape directly.
-            sizes = self.dense_size_list()
-            return f"[{', '.join(sizes)}]"
+        if self.find_reduction_node() is not None:
+            if not self.reduce_analysis:
+                self.reduce_analysis = ReductionAnalysis(self)
+            return self.reduce_analysis.dense_size_str()
+        # Scan fallback: generate dense shape directly.
         sizes = self.dense_size_list()
         return f"[{', '.join(sizes)}]"
 
@@ -2039,7 +2061,7 @@ class NPUIndexTritonKernel(TritonKernel):
         if isinstance(index, sympy.Integer):
             expand_str = f"{copy_shape}.shape" if copy_shape else self.dense_size_str()
             if (index != 0):
-                if get_soc_version() >= 250:
+                if inductor_npu_config.is_ascend950:
                     index_str = f"tl.full({expand_str}, {index_str}, {V.kernel.index_dtype})"
                 else:
                     index_str = f"tl.full({expand_str}, {index_str}, tl.int32)"
@@ -2153,7 +2175,10 @@ class NPUIndexTritonKernel(TritonKernel):
 
                 while (
                     current_group < len(remaining)
-                    and sv.statically_known_equals(remaining[current_group], 1)
+                    and ( 
+                        sv.statically_known_equals(remaining[current_group], 1)
+                        or sv.size_hint(remaining[current_group]) == 1
+                    )
                 ):
                     # scroll to next group with remaining elements
                     current_group += 1
@@ -2161,6 +2186,8 @@ class NPUIndexTritonKernel(TritonKernel):
                     # add multiple ranges (two or more) to the list, as well as the getter funcs
                     add_multiple_range(size, return_getters)
                 else:
+                    if current_group >= len(remaining):
+                        raise CantSplit
                     return_getters.append(
                         operator.itemgetter(add_range(current_group, size))
                     )
@@ -2504,6 +2531,12 @@ class NPUIndexTritonKernel(TritonKernel):
 
             @staticmethod
             def cat_store(dst: CSEVariable, src: CSEVariable, size, store_offset_index, output_buffer_index) -> CSEVariable:
+                if self.golden_var_list is None:
+                    indexing = self.indexing(store_offset_index, block_ptr=True)
+                    code = f"tl.store({self.args.output(dst)} + {indexing.index_str}, {src}, None)"
+                    self.stores.writeline(code)
+                    return src
+
                 axis = self.range_tree_nodes[self.golden_var_list[::-1][-1]]
                 axis_name = axis.name
                 line = f"{axis_name}_index_mask_{size} = {axis_name} < {size}"

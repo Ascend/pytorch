@@ -251,7 +251,10 @@ class ReductionAnalysis:
         return shape_str
 
     def dense_size_list(self) -> List[str]:
-        sizes = [f"{x.name.upper()}BLOCK_SUB" for x in self.kernel.golden_var_list]
+        sizes = ["1"] * len(self.kernel.golden_var_list)
+        for i, axis in enumerate(self.kernel.golden_var_list):
+            if axis.name[0] != 'r' or self.kernel.inside_reduction:
+                sizes[i] = f"{axis.name.upper()}BLOCK_SUB"
         sizes = list(reversed(sizes))
         return sizes
 

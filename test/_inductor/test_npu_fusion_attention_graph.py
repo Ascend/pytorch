@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.autograd import Function
 from torch.library import Library, impl
 import torch_npu
-from torch_npu._inductor.npu_fusion_attention_graph import NpuGraphAttentionFunction
+from torch_npu._inductor.fx_passes.pattern_match.npu_fusion_attention_graph import NpuGraphAttentionFunction
 from torch_npu.testing.testcase import TestCase, run_tests
 
 

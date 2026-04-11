@@ -84,17 +84,6 @@ def patch_has_triton():
     torch._inductor.scheduler.has_triton = has_triton
 
 
-def patch_expr_fits_within_32bit():
-    def npu_expr_fits_within_32bit(e: sympy.Expr) -> bool:
-        return False
-
-    from torch._inductor import utils
-    from torch._inductor.codegen import simd, triton_utils
-    utils.expr_fits_within_32bit = npu_expr_fits_within_32bit
-    simd.expr_fits_within_32bit = npu_expr_fits_within_32bit
-    triton_utils.expr_fits_within_32bit = npu_expr_fits_within_32bit
-
-
 def disable_foreach():
     from torch._inductor.scheduler import Scheduler
 
