@@ -1,0 +1,16 @@
+# Test files that cause segmentation fault or process crash on NPU
+# These files are excluded from test shards to prevent CI crashes
+# Generated from workflow run: https://github.com/Ascend/pytorch/actions/runs/24278922756
+crashed_files:
+  - test/distributed/tensor/test_dtensor_compile.py
+  - test/functorch/test_aotdispatch.py
+  - test/functorch/test_vmap.py
+  - test/nn/test_embedding.py
+  - test/nn/test_pooling.py
+  - test/quantization/core/test_workflow_module.py
+  - test/test_indexing.py
+  - test/test_proxy_tensor.py
+  - test/test_segment_reductions.py
+  - test/test_sort_and_select.py
+  - test/test_tensor_creation_ops.py
+  - test/test_view_ops.py

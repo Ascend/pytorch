@@ -33,6 +33,11 @@ def parse_args():
         type=str,
         help="Path to case_paths_ci.yml for file-level whitelist/blacklist control",
     )
+    parser.add_argument(
+        "--crashed-files-config",
+        type=str,
+        help="Path to CRASHED.yml for crashed test files blacklist",
+    )
     parser.add_argument("--report-dir", type=str, default="test-reports", help="Directory for test reports")
     parser.add_argument("--timeout", type=int, default=600, help="Per-test timeout passed to pytest")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
@@ -128,6 +133,53 @@ def load_case_path_rules(config_file: str) -> Tuple[str, List[str], List[str]]:
     whitelist = coerce_rule_list(payload.get("whitelist"), "whitelist")
     blacklist = coerce_rule_list(payload.get("blacklist"), "blacklist")
     return str(config_path), whitelist, blacklist
+
+
+def load_crashed_files_list(config_file: str) -> Tuple[str, List[str]]:
+    """
+    Load crashed test files blacklist from CRASHED.yml.
+
+    This file contains test files that cause segmentation fault or process crash
+    on NPU, which would break CI execution. These files are excluded before
+    the whitelist/blacklist rules are applied.
+
+    Args:
+        config_file: Path to CRASHED.yml file
+
+    Returns:
+        Tuple of (config_file_path, list_of_crashed_files)
+    """
+    if not config_file:
+        return "", []
+
+    config_path = Path(config_file).resolve()
+    if not config_path.exists():
+        # File doesn't exist, return empty list (not an error)
+        return "", []
+
+    raw_text = config_path.read_text(encoding="utf-8")
+    try:
+        import yaml  # type: ignore
+    except ImportError:
+        # Parse manually - CRASHED.yml has simpler format
+        crashed_files = []
+        for line in raw_text.splitlines():
+            stripped = line.lstrip()
+            if stripped.startswith("- "):
+                value = stripped[2:].strip()
+                if value:
+                    crashed_files.append(value)
+    else:
+        payload = yaml.safe_load(raw_text) or {}
+        if not isinstance(payload, dict):
+            return str(config_path), []
+        crashed_files = payload.get("crashed_files", [])
+        if not isinstance(crashed_files, list):
+            crashed_files = []
+
+    # Normalize the paths
+    normalized_files = coerce_rule_list(crashed_files, "crashed_files")
+    return str(config_path), normalized_files
 
 
 def discover_raw_test_files(test_dir: Path) -> List[str]:
@@ -630,6 +682,12 @@ def main():
     report_dir = Path(args.report_dir).resolve()
     report_dir.mkdir(parents=True, exist_ok=True)
 
+    # Load crashed files blacklist (applied first to prevent CI crashes)
+    crashed_config_file, crashed_files_list = load_crashed_files_list(args.crashed_files_config)
+    info["crashed_files_count"] = len(crashed_files_list)
+    if crashed_config_file:
+        info["crashed_files_config"] = crashed_config_file
+
     case_paths_file, whitelist, blacklist = load_case_path_rules(args.case_paths_config)
     info["whitelist_entries"] = len(whitelist)
     info["blacklist_entries"] = len(blacklist)
@@ -637,10 +695,20 @@ def main():
         info["path_rules_file"] = case_paths_file
 
     raw_test_files = discover_raw_test_files(test_dir)
+
+    # First exclude crashed files to prevent process crashes
+    if crashed_files_list:
+        crashed_excluded = [path for path in raw_test_files if any(path_matches_rule(path, rule) for rule in crashed_files_list)]
+        raw_test_files = [path for path in raw_test_files if not any(path_matches_rule(path, rule) for rule in crashed_files_list)]
+        info["crashed_excluded_files"] = len(crashed_excluded)
+    else:
+        info["crashed_excluded_files"] = 0
+
+    # Then apply whitelist/blacklist rules
     selected_test_files, excluded_test_files = apply_case_path_rules(raw_test_files, whitelist, blacklist)
     planned_tests = select_shard_files(selected_test_files, args.shard, args.num_shards)
 
-    info["total_files"] = len(raw_test_files)
+    info["total_files"] = len(discover_raw_test_files(test_dir))  # Original count before crashed exclusion
     info["selected_test_files"] = len(selected_test_files)
     info["path_filtered_out_files"] = len(excluded_test_files)
     info["excluded_test_files"] = len(excluded_test_files)
@@ -656,9 +724,13 @@ def main():
     print(f"Shard: {args.shard}/{args.num_shards}")
     print(f"Repository root: {repo_root}")
     print(f"Test directory: {test_dir}")
+    if crashed_config_file:
+        print(f"Crashed files config: {crashed_config_file}")
+        print(f"Crashed files excluded: {info['crashed_excluded_files']}")
     if case_paths_file:
         print(f"Case path rules: {case_paths_file}")
-    print(f"Discovered test files: {len(raw_test_files)}")
+    print(f"Discovered test files: {info['total_files']}")
+    print(f"After crashed exclusion: {len(raw_test_files)}")
     print(f"Selected by path rules: {len(selected_test_files)}")
     print(f"Path-filtered out: {len(excluded_test_files)}")
     print(f"Tests in shard: {len(planned_tests)}")
