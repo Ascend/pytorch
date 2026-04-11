@@ -167,8 +167,42 @@ def apply_case_path_rules(
 
 
 def select_shard_files(test_files: List[str], shard: int, num_shards: int) -> List[str]:
-    shard_index = shard - 1
-    return [path for index, path in enumerate(test_files) if index % num_shards == shard_index]
+    """
+    Select test files for a shard using contiguous range-based selection.
+
+    This approach assigns consecutive files to each shard (sorted alphabetically),
+    ensuring that files from the same directory end up in the same or adjacent shards.
+    This is different from round-robin (modulo) distribution which spreads adjacent
+    files across different shards.
+
+    Args:
+        test_files: List of test file paths, already sorted alphabetically
+        shard: Shard number (1-indexed, 1 <= shard <= num_shards)
+        num_shards: Total number of shards (max 100)
+
+    Returns:
+        List of test files assigned to this shard
+    """
+    if not test_files:
+        return []
+
+    shard_index = shard - 1  # Convert to 0-indexed
+    total_files = len(test_files)
+
+    # Calculate base size and remainder for even distribution
+    base_size = total_files // num_shards
+    remainder = total_files % num_shards
+
+    # Shards with index < remainder get one extra file
+    # This ensures files are distributed as evenly as possible
+    if shard_index < remainder:
+        start = shard_index * (base_size + 1)
+        end = start + base_size + 1
+    else:
+        start = remainder * (base_size + 1) + (shard_index - remainder) * base_size
+        end = start + base_size
+
+    return test_files[start:end]
 
 
 def parse_junit_xml(xml_file: str) -> Dict:
