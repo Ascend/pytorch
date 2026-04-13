@@ -5,9 +5,10 @@ Generate a consolidated markdown/json report for the NPU full test workflow.
 
 import argparse
 import json
+import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 
 def parse_args():
@@ -27,6 +28,98 @@ def parse_args():
 def load_json_file(path: Path) -> Dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def parse_junit_xml_testsuites(xml_path: Path) -> List[Dict]:
+    """
+    Parse JUnit XML file and extract per-testsuite statistics.
+
+    Each testsuite represents a test file with its own stats:
+    - name: test file name
+    - tests: total test cases
+    - failures: failed test cases
+    - errors: error test cases
+    - skipped: skipped test cases
+    - time: execution time in seconds
+
+    Returns a list of testsuite statistics.
+    """
+    testsuites = []
+
+    if not xml_path.exists():
+        return testsuites
+
+    try:
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+
+        # Handle both <testsuites> and <testsuite> as root
+        if root.tag == "testsuites":
+            for testsuite in root.findall("testsuite"):
+                stats = parse_testsuite_element(testsuite)
+                if stats:
+                    testsuites.append(stats)
+        elif root.tag == "testsuite":
+            stats = parse_testsuite_element(root)
+            if stats:
+                testsuites.append(stats)
+
+    except ET.ParseError as e:
+        print(f"Warning: Failed to parse XML {xml_path}: {e}")
+    except Exception as e:
+        print(f"Warning: Error reading XML {xml_path}: {e}")
+
+    return testsuites
+
+
+def parse_testsuite_element(testsuite: ET.Element) -> Optional[Dict]:
+    """Parse a single testsuite element and return its statistics."""
+    try:
+        name = testsuite.get("name", "unknown")
+        tests = int(testsuite.get("tests", 0))
+        failures = int(testsuite.get("failures", 0))
+        errors = int(testsuite.get("errors", 0))
+        skipped = int(testsuite.get("skipped", 0))
+        time = float(testsuite.get("time", 0.0))
+        passed = tests - failures - errors - skipped
+
+        return {
+            "name": name,
+            "tests": tests,
+            "passed": passed,
+            "failures": failures,
+            "errors": errors,
+            "skipped": skipped,
+            "time": time,
+        }
+    except (ValueError, TypeError):
+        return None
+
+
+def aggregate_testsuite_stats_for_shard(reports_root: Path, shard: int) -> List[Dict]:
+    """
+    Aggregate all testsuite statistics for a specific shard.
+
+    Scans for XML files matching the shard pattern and extracts
+    per-test-file statistics.
+    """
+    all_testsuites = []
+
+    # Look for XML files in the reports directory
+    for xml_path in reports_root.rglob(f"shard_{shard}_pytest.xml"):
+        testsuites = parse_junit_xml_testsuites(xml_path)
+        all_testsuites.extend(testsuites)
+
+    # Also look for any other XML files that might contain shard results
+    for xml_path in reports_root.rglob("*.xml"):
+        if f"shard_{shard}" in xml_path.name or f"test_shard_{shard}" in xml_path.name:
+            testsuites = parse_junit_xml_testsuites(xml_path)
+            all_testsuites.extend(testsuites)
+
+    # Sort by name for consistent output
+    all_testsuites.sort(key=lambda x: x["name"])
+
+    return all_testsuites
 
 
 def parse_requested_shards(raw: str) -> List[int]:
@@ -97,12 +190,13 @@ def get_unhandled_special_tests(info: Dict) -> int:
 
 def discover_shard_files(
     reports_root: Path,
-) -> Tuple[Dict[int, Path], Dict[int, Path], Dict[int, Path], Dict[int, Path], Dict[int, Path]]:
+) -> Tuple[Dict[int, Path], Dict[int, Path], Dict[int, Path], Dict[int, Path], Dict[int, Path], Dict[int, Path]]:
     stats_files = {}
     info_files = {}
     plan_files = {}
     excluded_files = {}
     unhandled_files = {}
+    xml_files = {}
 
     for path in reports_root.rglob("shard_*_stats.json"):
         try:
@@ -139,7 +233,15 @@ def discover_shard_files(
             continue
         unhandled_files[shard] = path
 
-    return stats_files, info_files, plan_files, excluded_files, unhandled_files
+    # Discover XML files for per-test-file statistics
+    for path in reports_root.rglob("shard_*_pytest.xml"):
+        try:
+            shard = int(path.stem.split("_")[1])
+        except (IndexError, ValueError):
+            continue
+        xml_files[shard] = path
+
+    return stats_files, info_files, plan_files, excluded_files, unhandled_files, xml_files
 
 
 def get_shard_status(stats: Dict, present: bool) -> str:
@@ -205,6 +307,59 @@ def format_planned_files_cell(planned_files: List[str]) -> str:
     return "<br>".join(sanitize_markdown_cell(path) for path in planned_files)
 
 
+def format_testsuite_detail(stats: Dict) -> str:
+    """
+    Format a single testsuite's stats for display.
+
+    Format: "test_file.py: 5 passed, 2 failed, 1 error, 0 skipped, 3.2s"
+    """
+    name = sanitize_markdown_cell(stats.get("name", "unknown"))
+    passed = stats.get("passed", 0)
+    failures = stats.get("failures", 0)
+    errors = stats.get("errors", 0)
+    skipped = stats.get("skipped", 0)
+    time = stats.get("time", 0.0)
+
+    parts = [name]
+    if passed > 0:
+        parts.append(f"{passed} passed")
+    if failures > 0:
+        parts.append(f"{failures} failed")
+    if errors > 0:
+        parts.append(f"{errors} error")
+    if skipped > 0:
+        parts.append(f"{skipped} skipped")
+    parts.append(format_duration_short(time))
+
+    return ": ".join(parts)
+
+
+def format_duration_short(seconds: float) -> str:
+    """Format duration in a compact form for testsuite display."""
+    seconds = float(seconds)
+    if seconds >= 60:
+        minutes = int(seconds // 60)
+        secs = seconds % 60
+        return f"{minutes}m{secs:.0f}s"
+    return f"{seconds:.1f}s"
+
+
+def format_testsuite_details_cell(testsuites: List[Dict]) -> str:
+    """
+    Format all testsuite stats for a shard into a single cell.
+
+    Each testsuite is displayed on a separate line with its stats.
+    """
+    if not testsuites:
+        return "-"
+
+    lines = []
+    for ts in testsuites:
+        lines.append(format_testsuite_detail(ts))
+
+    return "<br>".join(lines)
+
+
 def format_summary_note(note: str) -> str:
     cleaned = (note or "").strip()
     if not cleaned or cleaned == "pytest exited with code 1":
@@ -253,7 +408,7 @@ def main():
     expected_special_tests = parse_expected_special_tests(args.expected_special_tests_json)
     special_reports_root = Path(args.special_reports_root) if args.special_reports_root else None
 
-    stats_files, info_files, plan_files, excluded_files, unhandled_files = discover_shard_files(reports_root)
+    stats_files, info_files, plan_files, excluded_files, unhandled_files, xml_files = discover_shard_files(reports_root)
     special_test_files = discover_special_test_files(special_reports_root)
     shard_ids = requested_shards or sorted(set(stats_files) | set(info_files))
 
@@ -289,6 +444,7 @@ def main():
         plan_path = plan_files.get(shard)
         excluded_path = excluded_files.get(shard)
         unhandled_path = unhandled_files.get(shard)
+        xml_path = xml_files.get(shard)
         stats = load_json_file(stats_path) if stats_path else {}
         info = load_json_file(info_path) if info_path else {}
         selected_test_entries = get_selected_test_entries(info)
@@ -299,6 +455,9 @@ def main():
         excluded_test_files = load_text_lines(excluded_path) if excluded_path else []
         unhandled_tests = load_text_lines(unhandled_path) if unhandled_path else []
         present = bool(stats_path)
+
+        # Parse XML to get per-test-file statistics
+        testsuite_stats = parse_junit_xml_testsuites(xml_path) if xml_path else []
 
         unique_planned_files.update(planned_files)
         unique_excluded_files.update(excluded_test_files)
@@ -355,6 +514,7 @@ def main():
                 "import_failures": int(info.get("import_failures", stats.get("import_failures", 0))),
                 "test_failures": int(info.get("test_failures", stats.get("test_failures", 0))),
                 "note": build_note(stats),
+                "testsuite_stats": testsuite_stats,  # Per-test-file statistics
             }
         )
 
@@ -457,7 +617,7 @@ def main():
     markdown_lines.extend(["", "## 分片任务详情"])
     markdown_lines.extend(
         render_table(
-            ["Shard", "Status", "总用例数", "通过用例数", "Failed", "Errors", "Duration", "Scope", "Note"],
+            ["Shard", "Status", "总用例数", "通过用例数", "Failed", "Errors", "Duration", "测试文件详情", "Note"],
             [
                 [
                     str(row["shard"]),
@@ -467,7 +627,7 @@ def main():
                     str(row["failed"]),
                     str(row["errors"]),
                     format_duration(row["duration"]),
-                    format_planned_files_cell(row["planned_file_names"]),
+                    format_testsuite_details_cell(row["testsuite_stats"]),
                     format_summary_note(row["note"]),
                 ]
                 for row in sorted_shards
