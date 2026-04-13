@@ -231,6 +231,9 @@ jobs:
           # Core dependencies for direct pytest execution plus path-rule parsing.
           $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
 
+          # Dependencies required by run_test.py (check_pip_packages)
+          $PIP install pytest-rerunfailures pytest-flakefinder
+
           # Compatibility packages still needed by a subset of upstream tests.
           $PIP install \
             'pytest-subtests==0.13.1' \
