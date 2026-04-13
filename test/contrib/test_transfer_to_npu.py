@@ -388,6 +388,14 @@ class TestTransferToNpu(TestCase):
                 torch.distributed.destroy_process_group()
                 print(f"Process {RANK}: Process group destroyed")
 
+    def test_process_group_nccl(self):
+        from torch.distributed import ProcessGroupNCCL
+        pg_options = ProcessGroupNCCL.Options()
+        self.assertIsNotNone(pg_options)
+
+        from torch.distributed.distributed_c10d import ProcessGroupNCCL
+        pg_options = ProcessGroupNCCL.Options()
+        self.assertIsNotNone(pg_options)
 
 if __name__ == "__main__":
     run_tests()
