@@ -104,6 +104,7 @@ constexpr size_t kRoundUpPowerOfTwoEnd = 1ULL << 36;   // 64 GB
 constexpr size_t kRoundUpPowerOfTwoIntervals = 16;
 const std::string kMinCannVersion = "8.1.RC1";        // minimum cann version which supports 1g mem 8.1.RC1
 const std::string kMinDriverVersion = "25.0.RC1";     // minimum driver version which supports 1g mem 25.0.RC1
+const std::string kMinDel32PaddingSizeCannVersion = "9.1.0";// minimum cann version which supports del 32 paddingsize
 const std::string kCannModule = "CANN";               // cann module name
 constexpr int kPrecision = 4;                         // precision of the memory usage information
 constexpr size_t kLazyQuerySize = 512;                // lazy query event size
@@ -184,6 +185,23 @@ bool IsMallocPage1GMem(bool is_small_pool)
     }();
 
     return !is_small_pool && is_support_page_size_1g;
+}
+
+size_t AddPadSize()
+{
+    static size_t add_size = -1;
+    if (add_size == -1) {
+        // 新增cann版本兼容
+        if (GetSocVersion() >= SocVersion::Ascend950 &&
+            IsGteCANNVersion(kMinDel32PaddingSizeCannVersion, kCannModule)) {
+            add_size = 0;
+        } else {
+            TORCH_NPU_WARN_ONCE(
+                    "The current CANN and Soc versions require processing for 32 padding size, with memory allocation.");
+            add_size = 32;
+        }
+    }
+    return add_size;
 }
 
 struct Block;
@@ -2073,9 +2091,7 @@ public:
 
     static size_t round_size(size_t size)
     {
-        constexpr size_t kPadSize = 32;
-        size += kPadSize;
-
+        size += AddPadSize();
         if (size < kMinBlockSize) {
             return kMinBlockSize;
         } else {
@@ -3540,7 +3556,7 @@ public:
         if (size != 0) {
             if (c10_npu::option::OptionsManager::CheckForceUncached()) {
                 deleteFunc = &uncached_delete;
-                size_t alloc_size = size + 32;
+                size_t alloc_size = size + AddPadSize();
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size,
                     aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
                 TORCH_NPU_MEMORY_LOGD("Without NPUCachingAllocator, malloc by "
@@ -3570,7 +3586,7 @@ public:
         if (size != 0) {
             if (c10_npu::option::OptionsManager::CheckForceUncached()) {
                 deleteFunc = &uncached_delete;
-                size_t alloc_size = size + 32 + aligned;
+                size_t alloc_size = size + AddPadSize() + aligned;
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&realPtr, alloc_size,
                                                                  aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
                 TORCH_NPU_MEMORY_LOGD("Without NPUCachingAllocator, malloc by AclrtMallocAlign32: size=%zu", alloc_size);
