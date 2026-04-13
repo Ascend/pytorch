@@ -835,6 +835,5 @@
     "test_fake_autocast_argsort_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
     "test_pointwise_ops_argsort_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
     "test_Conv2d_backward_depthwise_cpu_float64 (__main__.TestConvolutionNNDeviceTypeCPU)": ["", [""]],
-    "test_Conv2d_backward_depthwise_cpu_complex128 (__main__.TestConvolutionNNDeviceTypeCPU)": ["", [""]],
-    "test_make_fx_exhaustive__native_batch_norm_legit_npu_float32 (__main__.TestProxyTensorOpInfoPRIVATEUSE1)": ["Segmentation fault on NPU during make_fx tracing", [""]]
+    "test_Conv2d_backward_depthwise_cpu_complex128 (__main__.TestConvolutionNNDeviceTypeCPU)": ["", [""]]
   }
