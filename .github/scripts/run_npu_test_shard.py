@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """
-Run a shard of patched upstream PyTorch tests directly with pytest.
+Run a shard of patched upstream PyTorch tests via run_test.py.
 
 Selection is controlled in two layers:
 1. File-level allow/deny rules from case_paths_ci.yml
 2. Item-level deselection from disabled_testcases.json via a pytest plugin
+
+Tests are executed using run_test.py which provides file-level parallel execution
+via multiprocessing Pool (default NUM_PARALLEL_PROCS=2).
 """
 
 import argparse
@@ -23,7 +26,7 @@ from typing import Dict, List, Tuple
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run PyTorch NPU tests for a shard")
+    parser = argparse.ArgumentParser(description="Run PyTorch NPU tests for a shard via run_test.py")
     parser.add_argument("--shard", type=int, required=True, help="Shard number (1-indexed)")
     parser.add_argument("--num-shards", type=int, required=True, help="Total number of shards")
     parser.add_argument("--test-dir", type=str, required=True, help="Path to the PyTorch test directory")
@@ -41,6 +44,7 @@ def parse_args():
     parser.add_argument("--report-dir", type=str, default="test-reports", help="Directory for test reports")
     parser.add_argument("--timeout", type=int, default=600, help="Per-test timeout passed to pytest")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument("--parallel", type=int, default=2, help="Number of parallel workers (NUM_PARALLEL_PROCS)")
     return parser.parse_args()
 
 
@@ -587,6 +591,52 @@ def analyze_pytest_log(log_file: Path, returncode: int) -> Dict:
     return metrics
 
 
+def strip_test_prefix(path: str) -> str:
+    """Remove 'test/' prefix from path for run_test.py -i argument."""
+    normalized = normalize_path(path)
+    if normalized.startswith("test/"):
+        return normalized[5:]  # Remove 'test/' prefix
+    return normalized
+
+
+def build_run_test_command(
+    planned_tests: List[str],
+    report_dir: Path,
+    shard: int,
+    timeout: int,
+    verbose: bool,
+    parallel: int,
+) -> List[str]:
+    """
+    Build command to run tests via run_test.py.
+
+    run_test.py uses multiprocessing Pool for file-level parallel execution.
+    Tests are passed via -i argument without 'test/' prefix since we cd to test directory.
+    """
+    # Strip 'test/' prefix from test paths for run_test.py -i argument
+    test_names = [strip_test_prefix(t) for t in planned_tests]
+
+    command = [
+        sys.executable,
+        "run_test.py",
+        "-i",
+        *test_names,  # Pass all test names as arguments to -i
+    ]
+
+    if verbose:
+        command.append("-vv")
+    else:
+        command.append("-v")
+
+    # Pass additional pytest args through run_test.py
+    # Note: run_test.py handles pytest execution internally with Pool parallelism
+    command.extend([
+        "--continue-through-error",  # Keep running even if some tests fail
+    ])
+
+    return command
+
+
 def build_pytest_command(
     planned_tests: List[str],
     report_dir: Path,
@@ -594,6 +644,7 @@ def build_pytest_command(
     timeout: int,
     verbose: bool,
 ) -> List[str]:
+    """Build pytest command for direct execution (fallback mode)."""
     xml_file = report_dir / f"shard_{shard}_pytest.xml"
     command = [
         sys.executable,
@@ -616,6 +667,78 @@ def build_pytest_command(
     return command
 
 
+def run_tests_via_run_test(
+    planned_tests: List[str],
+    shard: int,
+    test_dir: Path,  # Working directory is test_dir (not repo_root)
+    report_dir: Path,
+    env_updates: Dict[str, str],
+    timeout: int,
+    verbose: bool,
+    parallel: int,
+) -> Tuple[int, Dict, Dict]:
+    """
+    Run tests via run_test.py with file-level parallel execution.
+
+    Args:
+        planned_tests: List of test file paths (with 'test/' prefix)
+        shard: Shard number
+        test_dir: Path to the test directory (working directory for execution)
+        report_dir: Directory for test reports
+        env_updates: Environment variable updates
+        timeout: Per-test timeout
+        verbose: Verbose output flag
+        parallel: Number of parallel workers (NUM_PARALLEL_PROCS)
+
+    Returns:
+        Tuple of (returncode, stats, log_metrics)
+    """
+    start = monotonic()
+    raw_returncode = 0
+    error_message = ""
+    log_file = get_shard_log_file(report_dir, shard)
+
+    # Build command for run_test.py
+    command = build_run_test_command(planned_tests, report_dir, shard, timeout, verbose, parallel)
+
+    print("Executing run_test.py command:")
+    print("  " + " ".join(command))
+    print(f"  Working directory: {test_dir}")
+    print(f"  Parallel workers: {parallel}")
+
+    # Set NUM_PARALLEL_PROCS environment variable for file-level parallelism
+    env_updates["NUM_PARALLEL_PROCS"] = str(parallel)
+
+    try:
+        # Execute from test directory (run_test.py expects to be run from test/)
+        raw_returncode = run_command_with_tee(command, test_dir, env_updates, log_file)
+    except Exception as exc:
+        raw_returncode = 1
+        error_message = f"Failed to execute run_test.py: {exc}"
+
+    duration = monotonic() - start
+
+    xml_files = sorted(report_dir.rglob("*.xml"))
+    stats = aggregate_junit_stats([report_dir])
+    stats["junit_generated"] = bool(xml_files)
+    stats["junit_xml_files"] = len(xml_files)
+
+    returncode = raw_returncode
+    if raw_returncode == 5 and stats.get("total", 0) == 0 and stats.get("failed", 0) == 0 and stats.get("errors", 0) == 0:
+        returncode = 0
+        print("run_test.py collected no tests for this shard after file filtering and testcase deselection.")
+
+    log_metrics = analyze_pytest_log(log_file, raw_returncode)
+    log_metrics["test_failures"] = int(stats.get("failed", 0))
+    stats.update(log_metrics)
+
+    if returncode != 0 and not error_message:
+        error_message = f"run_test.py exited with code {raw_returncode}"
+
+    stats = finalize_stats(stats or create_empty_stats(), returncode, duration, error_message)
+    return returncode, stats, log_metrics
+
+
 def run_pytest_shard(
     planned_tests: List[str],
     shard: int,
@@ -625,6 +748,7 @@ def run_pytest_shard(
     timeout: int,
     verbose: bool,
 ) -> Tuple[int, Dict, Dict]:
+    """Run tests via direct pytest execution (fallback mode)."""
     start = monotonic()
     raw_returncode = 0
     error_message = ""
@@ -673,11 +797,12 @@ def main():
     timestamp = datetime.now().isoformat()
     info = create_shard_info(args.shard, args.num_shards, timestamp)
     info["disabled_count"] = load_disabled_testcases_count(args.disabled_testcases)
+    info["parallel_procs"] = args.parallel  # Record parallel worker count
 
     test_dir = Path(args.test_dir).resolve()
     if not test_dir.is_dir():
         raise FileNotFoundError(f"Test directory not found: {test_dir}")
-    repo_root = test_dir.parent
+    repo_root = test_dir.parent  # Parent of test directory
     script_dir = Path(__file__).resolve().parent
     report_dir = Path(args.report_dir).resolve()
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -719,11 +844,12 @@ def main():
     save_unhandled_upstream_tests_file(str(report_dir), args.shard, [])
 
     print(f"\n{'=' * 60}")
-    print("PyTorch NPU Pytest Shard Runner")
+    print("PyTorch NPU Test Runner (via run_test.py)")
     print(f"{'=' * 60}")
     print(f"Shard: {args.shard}/{args.num_shards}")
     print(f"Repository root: {repo_root}")
     print(f"Test directory: {test_dir}")
+    print(f"Parallel workers (NUM_PARALLEL_PROCS): {args.parallel}")
     if crashed_config_file:
         print(f"Crashed files config: {crashed_config_file}")
         print(f"Crashed files excluded: {info['crashed_excluded_files']}")
@@ -738,7 +864,9 @@ def main():
     print(f"{'=' * 60}\n")
 
     for index, target in enumerate(planned_tests, 1):
-        print(f"  [{index:03d}] {target}")
+        # Show test name without 'test/' prefix for clarity
+        display_name = strip_test_prefix(target)
+        print(f"  [{index:03d}] {display_name}")
 
     clean_existing_junit_xml(report_dir)
     remove_existing_file(Path(get_disabled_testcases_report_file(str(report_dir), args.shard)))
@@ -747,14 +875,17 @@ def main():
     env_updates = build_execution_env(test_dir, script_dir, args.disabled_testcases, str(report_dir), args.shard)
 
     if planned_tests:
-        _, stats, log_metrics = run_pytest_shard(
+        # Run tests via run_test.py with file-level parallelism
+        # Working directory is test_dir (run_test.py expects to be run from test/)
+        _, stats, log_metrics = run_tests_via_run_test(
             planned_tests,
             args.shard,
-            repo_root,
+            test_dir,  # Working directory is test directory
             report_dir,
             env_updates,
             args.timeout,
             args.verbose,
+            args.parallel,
         )
     else:
         print("No test files assigned to this shard after file-level filtering.")

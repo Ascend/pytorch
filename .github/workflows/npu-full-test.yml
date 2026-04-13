@@ -256,6 +256,7 @@ jobs:
           mkdir -p ${REPORT_DIR}
 
           # Script is in ascend_pytorch repository, prepared tests are in pytorch-test-src
+          # Using run_test.py for file-level parallel execution (default --parallel 2)
           set +e
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --shard ${{ matrix.shard }} \
@@ -266,6 +267,7 @@ jobs:
             --crashed-files-config pytorch-test-src/test_upsteam/CRASHED.yml \
             --report-dir ${REPORT_DIR} \
             --timeout 600 \
+            --parallel 2 \
             2>&1 | tee /tmp/test_shard_${{ matrix.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
