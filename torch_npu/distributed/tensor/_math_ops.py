@@ -1,8 +1,10 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 
 from typing import Optional, cast
+import logging
 
 import torch
+from torch.nn import _reduction as _Reduction
 from torch.distributed.tensor._dtensor_spec import DTensorSpec
 from torch.distributed.tensor._op_schema import (
     OpSchema,
@@ -26,6 +28,7 @@ from torch.distributed.tensor._utils import normalize_to_torch_size
 from torch.distributed.tensor import Partial, Replicate, Shard
 from torch.distributed.tensor.experimental import register_sharding
 
+logger = logging.getLogger("torch.distributed.tensor")
 npu = torch.ops.npu
 aten = torch.ops.aten
 
@@ -690,7 +693,7 @@ def custom_npu_repeat_interleave_backward_int_strategy(grad, x, repeats, dim=Non
 
 
 @register_sharding(aten.kl_div.default)
-def custom_KLDivLoss_forward_strategy(x, target, reduction=1, log_target=False):
+def custom_KLDivLoss_forward_strategy(x, target, reduction=_Reduction.get_enum("mean"), log_target=False):
     acceptable_shardings = []
 
     # all replicate strategy
@@ -707,28 +710,36 @@ def custom_KLDivLoss_forward_strategy(x, target, reduction=1, log_target=False):
     acceptable_shardings.append(replicate_strategy)
 
     for dim in range(x.ndim):
-        if reduction == 0:
+        if reduction == _Reduction.get_enum("none"):
             shard_strategy = (
                 [Shard(dim)],
                 [Shard(dim), Shard(dim), None, None]
             )
-        elif reduction == 1 and x.shape[dim] % x.mesh.size(0) == 0:
+        elif reduction == _Reduction.get_enum("mean") and x.shape[dim] % x.mesh.size(0) == 0:
             shard_strategy = (
                 [Partial("avg")],
                 [Shard(dim), Shard(dim), None, None]
             )
-        elif reduction == 2:
+        # The int value of batchmean is the same as that of sum
+        elif reduction == _Reduction.get_enum("sum"):
             shard_strategy = (
                 [Partial("sum")],
                 [Shard(dim), Shard(dim), None, None]
             )
+        else:
+            logger.warning(
+                "%d is not a valid value for reduction. "
+                "Parameters supported by reduction: none: 0, mean: 1, sum & batchmean: 2.",
+                reduction
+            )
+            return acceptable_shardings
         acceptable_shardings.append(shard_strategy)
 
     return acceptable_shardings
 
 
 @register_sharding(npu.kl_div_backward.default)
-def custom_KLDivLoss_backward_strategy(grad_out, x, target, reduction=1, log_target=False):
+def custom_KLDivLoss_backward_strategy(grad_out, x, target, reduction=_Reduction.get_enum("mean"), log_target=False):
     acceptable_shardings = []
 
     # all replicate strategy
@@ -746,16 +757,25 @@ def custom_KLDivLoss_backward_strategy(grad_out, x, target, reduction=1, log_tar
     acceptable_shardings.append(replicate_strategy)
 
     for dim in range(x.ndim):
-        if reduction == 0:
+        if reduction == _Reduction.get_enum("none"):
             shard_strategy = (
                 [Shard(dim)],
                 [Shard(dim), Shard(dim), Shard(dim), None, None]
             )
-            acceptable_shardings.append(shard_strategy)
-        elif reduction == 2:
+        # The int value of batchmean is the same as that of sum
+        elif reduction == _Reduction.get_enum("sum"):
             shard_strategy = (
                 [Shard(dim)],
                 [Replicate(), Shard(dim), Shard(dim), None, None]
             )
-            acceptable_shardings.append(shard_strategy)
+        else:
+            if reduction != _Reduction.get_enum("mean"):
+                logger.warning(
+                    "%d is not a valid value for reduction. "
+                    "Parameters supported by reduction: none: 0, mean: 1, sum & batchmean: 2.",
+                    reduction
+                )
+            return acceptable_shardings
+        acceptable_shardings.append(shard_strategy)
+
     return acceptable_shardings
