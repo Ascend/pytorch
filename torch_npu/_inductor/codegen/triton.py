@@ -74,9 +74,14 @@ from torch.utils._sympy.value_ranges import bound_sympy, ValueRanges
 from torch._inductor.bounds import ValueRangeAnalysis
 from torch._inductor.runtime import triton_heuristics
 
-from .. import config as inductor_npu_config
+from .. import config as npu_config
 
-from .kernel_analysis import IndexAnalysis, ReductionAnalysis
+from .kernel_analysis import (
+    IndexAnalysis,
+    ReductionAnalysis,
+    collect_stride_sorted_vars_from_indexings,
+    collect_stride_sorted_vars_from_nodes,
+)
 from .npu_kernel_features import NumelList
 from .triton_utils import NPUKernelType
 from .. import npu_triton_heuristics
@@ -415,7 +420,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
 
         dtype_cast_str = ""
-        if V.kernel.index_dtype == "tl.int64" and inductor_npu_config.is_ascend950:
+        if V.kernel.index_dtype == "tl.int64" and npu_config.is_ascend950:
             dtype_cast_str = ".to(tl.int64)"
 
         if self.is_split_axis:
@@ -930,7 +935,7 @@ class NPUIndexTritonKernel(TritonKernel):
     def gen_numel_args(self, signature, triton_meta, triton_meta_signature, argdefs):
         for node in self.sorted_axis:
             arg_name = f"{node.name}_numel"
-            if not inductor_npu_config.inductor_static_mode:
+            if not npu_config.inductor_static_mode:
                 sizearg = SizeArg(arg_name, node.length)
                 signature.append(sizearg)
                 triton_meta_signature[arg_name] = signature_of(
@@ -1492,20 +1497,24 @@ class NPUIndexTritonKernel(TritonKernel):
         return axis_start_offset, axis_end_offset, reshape_type, reshape_list
 
     def parse_golden_from_load_store_index(self):
-        sybol_stride_map = {}
-        for node in self.node_schedule:
-            if node in (EnableReduction, DisableReduction):
-                continue
-            indexing_list = node._body.indexing
-            for index in indexing_list.values():
-                for var, stride in index.as_coefficients_dict().items():
-                    if var.is_Symbol and var not in sybol_stride_map \
-                        and not free_symbol_is_type(var, SymT.INDIRECT):
-                        sybol_stride_map[var] = stride
-        sorted_items = sorted(sybol_stride_map.items(), key=lambda x: x[1], reverse=False)
-        sorted_keys = [key for key, _ in sorted_items]
-        return sorted_keys
+        load_store_indexing = getattr(self, "load_store_indexing", None)
+        if load_store_indexing:
+            return collect_stride_sorted_vars_from_indexings(load_store_indexing)
+        return collect_stride_sorted_vars_from_nodes(
+            self.node_schedule,
+            (EnableReduction, DisableReduction),
+        )
 
+    def get_reduction_layout_var_list(self):
+        if self.numof_reduction_axis() > 1:
+            stride_sorted_var_list = self.parse_golden_from_load_store_index()
+            if stride_sorted_var_list:
+                return tuple(stride_sorted_var_list)
+        if not self.golden_var_list:
+            self.select_golden_varlist()
+        if self.golden_var_list:
+            return tuple(self.golden_var_list)
+        return tuple([x.symbol() for x in self.tiling_axis]) if self.tiling_axis else ()
     def load_store_index_in_all_tiling_list(self):
         res = False
         for index in self.load_store_indexing:
@@ -1572,23 +1581,21 @@ class NPUIndexTritonKernel(TritonKernel):
         return sizes
 
     def is_contiguous_reduction(self):
-        def is_continugous_axis(axis_list):
+        def is_contiguous_axis(axis_list):
             axis_set = set(axis_list)
             return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
 
         if self.numof_reduction_axis() > 1:
-            reduction_dim_list = [] 
-
-            if not self.golden_var_list:
-                self.select_golden_varlist()
-
-            if self.golden_var_list is None:
-                raise RuntimeError("assert self.kernel.golden_var_list is not None")
-
-            for i, x in enumerate(reversed(self.golden_var_list)):
+            stride_sorted_var_list = self.parse_golden_from_load_store_index()
+            reduction_dim_list = []
+            if not stride_sorted_var_list:
+                if not self.golden_var_list:
+                    self.select_golden_varlist()
+                stride_sorted_var_list = list(self.golden_var_list) if self.golden_var_list else []
+            for i, x in enumerate(reversed(stride_sorted_var_list)):
                 if x.name[0] == 'r':
                     reduction_dim_list.append(i)
-            return is_continugous_axis(reduction_dim_list)
+            return is_contiguous_axis(reduction_dim_list)
         return False
 
     def dense_size_str(self):
@@ -1607,7 +1614,8 @@ class NPUIndexTritonKernel(TritonKernel):
             return f"triton_helpers.promote_to_tensor({value})"
         dense_list = self.dense_size_list()
         dense_list[dim] = "1"
-        if self.is_contiguous_reduction():
+        contiguous_reduction = self.is_contiguous_reduction()
+        if contiguous_reduction:
             residual_shape_length = len(self.golden_var_list) - len(dense_list)
             for i in range(residual_shape_length):
                 dense_list.insert(dim + i + 1, "1")
@@ -1870,7 +1878,7 @@ class NPUIndexTritonKernel(TritonKernel):
             return result_var
 
         index_analyze = IndexAnalysis(self, index)
-        nddma_switch = inductor_npu_config.nddma_switch
+        nddma_switch = npu_config.nddma_switch
         index_analyze.analyze_index(nddma=nddma_switch)
         indirect_indexing = self.is_indirect_indexing(index)
         indexing = self.indexing(index, nddma=nddma_switch, block_ptr=True)
@@ -2072,7 +2080,7 @@ class NPUIndexTritonKernel(TritonKernel):
         if isinstance(index, sympy.Integer):
             expand_str = f"{copy_shape}.shape" if copy_shape else self.dense_size_str()
             if (index != 0):
-                if inductor_npu_config.is_ascend950:
+                if npu_config.is_ascend950:
                     index_str = f"tl.full({expand_str}, {index_str}, {V.kernel.index_dtype})"
                 else:
                     index_str = f"tl.full({expand_str}, {index_str}, tl.int32)"
@@ -2586,12 +2594,12 @@ class NPUIndexTritonKernel(TritonKernel):
 
             @staticmethod
             def index_select(src_name: str, weight_index: CSEVariable, indirect_var, set_indirect, bound, index_select_type) -> CSEVariable:
-                inductor_npu_config.log.debug(f"index_select: {src_name}, {weight_index}, {indirect_var}, {set_indirect}, {bound}, {index_select_type}")
+                npu_config.log.debug(f"index_select: {src_name}, {weight_index}, {indirect_var}, {set_indirect}, {bound}, {index_select_type}")
 
                 from torch._inductor.utils import triton_type
 
                 def fallback_index_select_load(reason):
-                    inductor_npu_config.log.info(f"fallback index_select to tl.load reason: {reason}, bound: {bound}")
+                    npu_config.log.info(f"fallback index_select to tl.load reason: {reason}, bound: {bound}")
                     new_indirect_var = V.ops.indirect_indexing(indirect_var, bound)
                     new_index = sympy_subs(weight_index, {sympy_index_symbol(indirect_var.name): sympy_index_symbol(new_indirect_var.name)})
                     return V.ops.load(src_name, new_index)
