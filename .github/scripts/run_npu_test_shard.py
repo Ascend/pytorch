@@ -602,8 +602,87 @@ def strip_test_prefix(path: str) -> str:
     return normalized
 
 
-def build_run_test_command(
+def get_run_test_valid_choices(test_dir: Path) -> set:
+    """
+    Get the set of valid test choices recognized by run_test.py.
+
+    run_test.py validates test names against a predefined TESTS list.
+    We run run_test.py --dry-run to check if tests are valid, or parse error output.
+    """
+    # Run run_test.py with an invalid test name to get the valid choices list from error message
+    try:
+        result = subprocess.run(
+            [sys.executable, "run_test.py", "-i", "__invalid_test__"],
+            cwd=str(test_dir),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        # Parse the error message for valid choices
+        # Error format: "invalid choice: 'x' (choose from 'a', 'b', 'c' ...)"
+        stderr = result.stderr
+        valid_choices = set()
+
+        # Look for the "choose from" part in the error message
+        match = re.search(r"choose from '([^']+)'", stderr)
+        if match:
+            # Found at least one valid choice, parse the rest
+            # The choices are listed as 'test1', 'test2', ... in parentheses
+            choices_str = stderr
+            # Extract all quoted test names
+            for m in re.finditer(r"'([^']+/test_[^']+)'", choices_str):
+                valid_choices.add(m.group(1))
+        return valid_choices
+    except Exception as e:
+        print(f"Warning: Failed to get valid choices from run_test.py: {e}")
+        return set()
+
+
+def validate_tests_for_run_test(
     planned_tests: List[str],
+    test_dir: Path,
+) -> Tuple[List[str], List[str]]:
+    """
+    Validate which tests are recognized by run_test.py.
+
+    run_test.py only recognizes tests from specific directories (excluding
+    custom_backend, custom_operator, etc.). We validate against its choices.
+
+    Returns:
+        Tuple of (valid_tests, unrecognized_tests)
+    """
+    # Simple heuristic: tests in special directories are not recognized by run_test.py
+    # These directories are not part of the standard test discovery:
+    # - custom_backend/
+    # - custom_operator/
+    # - cpp_extensions/ (subdirectory structure differs)
+    known_unrecognized_prefixes = [
+        "test/custom_backend/",
+        "test/custom_operator/",
+        "custom_backend/",
+        "custom_operator/",
+    ]
+
+    valid_tests = []
+    unrecognized_tests = []
+
+    for test in planned_tests:
+        test_normalized = strip_test_prefix(test)
+        is_unrecognized = False
+        for prefix in known_unrecognized_prefixes:
+            if test_normalized.startswith(prefix):
+                is_unrecognized = True
+                break
+        if is_unrecognized:
+            unrecognized_tests.append(test)
+        else:
+            valid_tests.append(test)
+
+    return valid_tests, unrecognized_tests
+
+
+def build_run_test_command(
+    valid_tests: List[str],
     report_dir: Path,
     shard: int,
     timeout: int,
@@ -616,8 +695,8 @@ def build_run_test_command(
     run_test.py uses multiprocessing Pool for file-level parallel execution.
     Tests are passed via -i argument without 'test/' prefix since we cd to test directory.
     """
-    # Strip 'test/' prefix from test paths for run_test.py -i argument
-    test_names = [strip_test_prefix(t) for t in planned_tests]
+    # Strip 'test/' prefix and '.py' suffix from test paths for run_test.py -i argument
+    test_names = [strip_test_prefix(t) for t in valid_tests]
 
     command = [
         sys.executable,
@@ -683,6 +762,8 @@ def run_tests_via_run_test(
     """
     Run tests via run_test.py with file-level parallel execution.
 
+    Tests not recognized by run_test.py are run via direct pytest.
+
     Args:
         planned_tests: List of test file paths (with 'test/' prefix)
         shard: Shard number
@@ -701,23 +782,138 @@ def run_tests_via_run_test(
     error_message = ""
     log_file = get_shard_log_file(report_dir, shard)
 
-    # Build command for run_test.py
-    command = build_run_test_command(planned_tests, report_dir, shard, timeout, verbose, parallel)
+    # Validate tests against run_test.py's valid choices
+    valid_tests, unrecognized_tests = validate_tests_for_run_test(planned_tests, test_dir)
 
-    print("Executing run_test.py command:")
-    print("  " + " ".join(command))
-    print(f"  Working directory: {test_dir}")
-    print(f"  Parallel workers: {parallel}")
+    if unrecognized_tests:
+        print(f"Warning: {len(unrecognized_tests)} tests not recognized by run_test.py, will run via direct pytest:")
+        for test in unrecognized_tests:
+            print(f"  - {strip_test_prefix(test)}")
 
     # Set NUM_PARALLEL_PROCS environment variable for file-level parallelism
     env_updates["NUM_PARALLEL_PROCS"] = str(parallel)
+    merged_env = os.environ.copy()
+    merged_env.update(env_updates)
 
-    try:
-        # Execute from test directory (run_test.py expects to be run from test/)
-        raw_returncode = run_command_with_tee(command, test_dir, env_updates, log_file)
-    except Exception as exc:
-        raw_returncode = 1
-        error_message = f"Failed to execute run_test.py: {exc}"
+    # Phase 1: Run valid tests via run_test.py (if any)
+    if valid_tests:
+        command = build_run_test_command(valid_tests, report_dir, shard, timeout, verbose, parallel)
+
+        print(f"\nExecuting run_test.py for {len(valid_tests)} valid tests:")
+        print("  " + " ".join(command))
+        print(f"  Working directory: {test_dir}")
+        print(f"  Parallel workers: {parallel}")
+
+        with log_file.open("w", encoding="utf-8") as log_handle:
+            log_handle.write("=" * 60 + "\n")
+            log_handle.write("Phase 1: run_test.py (file-level parallel)\n")
+            log_handle.write("=" * 60 + "\n")
+            log_handle.write(f"Valid tests: {len(valid_tests)}\n")
+            log_handle.write(f"Unrecognized tests: {len(unrecognized_tests)}\n")
+            log_handle.write("=" * 60 + "\n\n")
+            log_handle.flush()
+
+            process = subprocess.Popen(
+                command,
+                cwd=str(test_dir),
+                env=merged_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
+            )
+
+            try:
+                assert process.stdout is not None
+                for line in process.stdout:
+                    sys.stdout.write(line)
+                    sys.stdout.flush()
+                    log_handle.write(line)
+                raw_returncode = process.wait()
+            except BaseException:
+                process.kill()
+                raw_returncode = 1
+            finally:
+                if process.stdout is not None:
+                    process.stdout.close()
+
+        if raw_returncode != 0:
+            error_message = f"run_test.py exited with code {raw_returncode}"
+
+    # Phase 2: Run unrecognized tests via direct pytest (if any)
+    pytest_returncode = 0
+    if unrecognized_tests:
+        # Append to the same log file
+        with log_file.open("a", encoding="utf-8") as log_handle:
+            log_handle.write("\n" + "=" * 60 + "\n")
+            log_handle.write("Phase 2: direct pytest for unrecognized tests\n")
+            log_handle.write("=" * 60 + "\n\n")
+            log_handle.flush()
+
+            pytest_xml_file = report_dir / f"shard_{shard}_pytest_unrecognized.xml"
+            pytest_command = [
+                sys.executable,
+                "-m",
+                "pytest",
+                "--color=no",
+                "-ra",
+                "--tb=short",
+                "--continue-on-collection-errors",
+                f"--junitxml={pytest_xml_file}",
+                "-p",
+                "pytest_disabled_testcases_plugin",
+                "-vv" if verbose else "-v",
+            ]
+            if timeout > 0:
+                pytest_command.append(f"--timeout={timeout}")
+            # Add test paths (relative to test_dir)
+            pytest_command.extend(unrecognized_tests)
+
+            print(f"\nExecuting direct pytest for {len(unrecognized_tests)} unrecognized tests:")
+            print("  " + " ".join(pytest_command))
+
+            process = subprocess.Popen(
+                pytest_command,
+                cwd=str(test_dir),
+                env=merged_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
+            )
+
+            try:
+                assert process.stdout is not None
+                for line in process.stdout:
+                    sys.stdout.write(line)
+                    sys.stdout.flush()
+                    log_handle.write(line)
+                pytest_returncode = process.wait()
+            except BaseException:
+                process.kill()
+                pytest_returncode = 1
+            finally:
+                if process.stdout is not None:
+                    process.stdout.close()
+
+        if pytest_returncode != 0:
+            if error_message:
+                error_message += f"; pytest exited with code {pytest_returncode}"
+            else:
+                error_message = f"pytest exited with code {pytest_returncode}"
+
+    # Combine return codes
+    if valid_tests and unrecognized_tests:
+        # If both ran, combine failures
+        final_returncode = raw_returncode if raw_returncode != 0 else pytest_returncode
+    elif valid_tests:
+        final_returncode = raw_returncode
+    else:
+        final_returncode = pytest_returncode
 
     duration = monotonic() - start
 
@@ -725,18 +921,17 @@ def run_tests_via_run_test(
     stats = aggregate_junit_stats([report_dir])
     stats["junit_generated"] = bool(xml_files)
     stats["junit_xml_files"] = len(xml_files)
+    stats["valid_tests_count"] = len(valid_tests)
+    stats["unrecognized_tests_count"] = len(unrecognized_tests)
 
-    returncode = raw_returncode
-    if raw_returncode == 5 and stats.get("total", 0) == 0 and stats.get("failed", 0) == 0 and stats.get("errors", 0) == 0:
+    returncode = final_returncode
+    if final_returncode == 5 and stats.get("total", 0) == 0 and stats.get("failed", 0) == 0 and stats.get("errors", 0) == 0:
         returncode = 0
-        print("run_test.py collected no tests for this shard after file filtering and testcase deselection.")
+        print("Tests collected no items after file filtering and testcase deselection.")
 
-    log_metrics = analyze_pytest_log(log_file, raw_returncode)
+    log_metrics = analyze_pytest_log(log_file, final_returncode)
     log_metrics["test_failures"] = int(stats.get("failed", 0))
     stats.update(log_metrics)
-
-    if returncode != 0 and not error_message:
-        error_message = f"run_test.py exited with code {raw_returncode}"
 
     stats = finalize_stats(stats or create_empty_stats(), returncode, duration, error_message)
     return returncode, stats, log_metrics
