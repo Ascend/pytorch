@@ -387,6 +387,14 @@ class TestTransferToNpu(TestCase):
             if torch.distributed.is_initialized():
                 torch.distributed.destroy_process_group()
 
+    def test_process_group_nccl(self):
+        from torch.distributed import ProcessGroupNCCL
+        pg_options = ProcessGroupNCCL.Options()
+        self.assertIsNotNone(pg_options)
+
+        from torch.distributed.distributed_c10d import ProcessGroupNCCL
+        pg_options = ProcessGroupNCCL.Options()
+        self.assertIsNotNone(pg_options)
 
 if __name__ == "__main__":
     run_tests()
