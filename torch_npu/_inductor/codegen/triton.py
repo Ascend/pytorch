@@ -73,7 +73,12 @@ from torch._inductor.runtime import triton_heuristics
 
 from .. import config as npu_config
 from ..runtime import triton_heuristics as npu_triton_heuristics
-from .kernel_analysis import IndexAnalysis, ReductionAnalysis
+from .kernel_analysis import (
+    IndexAnalysis,
+    ReductionAnalysis,
+    collect_stride_sorted_vars_from_indexings,
+    collect_stride_sorted_vars_from_nodes,
+)
 from .npu_kernel_features import NumelList
 from .triton_utils import NPUKernelType
 
@@ -1460,20 +1465,24 @@ class NPUIndexTritonKernel(TritonKernel):
         return axis_start_offset, axis_end_offset, reshape_type, reshape_list
 
     def parse_golden_from_load_store_index(self):
-        sybol_stride_map = {}
-        for node in self.node_schedule:
-            if node in (EnableReduction, DisableReduction):
-                continue
-            indexing_list = node._body.indexing
-            for index in indexing_list.values():
-                for var, stride in index.as_coefficients_dict().items():
-                    if var.is_Symbol and var not in sybol_stride_map \
-                        and not free_symbol_is_type(var, SymT.INDIRECT):
-                        sybol_stride_map[var] = stride
-        sorted_items = sorted(sybol_stride_map.items(), key=lambda x: x[1], reverse=False)
-        sorted_keys = [key for key, _ in sorted_items]
-        return sorted_keys
+        load_store_indexing = getattr(self, "load_store_indexing", None)
+        if load_store_indexing:
+            return collect_stride_sorted_vars_from_indexings(load_store_indexing)
+        return collect_stride_sorted_vars_from_nodes(
+            self.node_schedule,
+            (EnableReduction, DisableReduction),
+        )
 
+    def get_reduction_layout_var_list(self):
+        if self.numof_reduction_axis() > 1:
+            stride_sorted_var_list = self.parse_golden_from_load_store_index()
+            if stride_sorted_var_list:
+                return tuple(stride_sorted_var_list)
+        if not self.golden_var_list:
+            self.select_golden_varlist()
+        if self.golden_var_list:
+            return tuple(self.golden_var_list)
+        return tuple([x.symbol() for x in self.tiling_axis]) if self.tiling_axis else ()
     def load_store_index_in_all_tiling_list(self):
         res = False
         for index in self.load_store_indexing:
@@ -1540,23 +1549,21 @@ class NPUIndexTritonKernel(TritonKernel):
         return sizes
 
     def is_contiguous_reduction(self):
-        def is_continugous_axis(axis_list):
+        def is_contiguous_axis(axis_list):
             axis_set = set(axis_list)
             return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
 
         if self.numof_reduction_axis() > 1:
+            stride_sorted_var_list = self.parse_golden_from_load_store_index()
             reduction_dim_list = []
-
-            if not self.golden_var_list:
-                self.select_golden_varlist()
-
-            if self.golden_var_list is None:
-                raise RuntimeError("assert self.kernel.golden_var_list is not None")
-
-            for i, x in enumerate(reversed(self.golden_var_list)):
+            if not stride_sorted_var_list:
+                if not self.golden_var_list:
+                    self.select_golden_varlist()
+                stride_sorted_var_list = list(self.golden_var_list) if self.golden_var_list else []
+            for i, x in enumerate(reversed(stride_sorted_var_list)):
                 if x.name[0] == 'r':
                     reduction_dim_list.append(i)
-            return is_continugous_axis(reduction_dim_list)
+            return is_contiguous_axis(reduction_dim_list)
         return False
 
     def dense_size_str(self):
@@ -1575,7 +1582,8 @@ class NPUIndexTritonKernel(TritonKernel):
             return f"triton_helpers.promote_to_tensor({value})"
         dense_list = self.dense_size_list()
         dense_list[dim] = "1"
-        if self.is_contiguous_reduction():
+        contiguous_reduction = self.is_contiguous_reduction()
+        if contiguous_reduction:
             residual_shape_length = len(self.golden_var_list) - len(dense_list)
             for i in range(residual_shape_length):
                 dense_list.insert(dim + i + 1, "1")
