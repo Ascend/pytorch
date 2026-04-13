@@ -5,6 +5,7 @@ import os
 import re
 import textwrap
 from enum import Enum
+from torch._inductor.utils import DeferredLineBase, LineContext
 from typing import List, Set, Iterable, Callable, Sequence
 from typing import (
     Optional,
@@ -14,6 +15,7 @@ from typing import (
     cast,
     Dict
 )
+import math
 import sympy
 import torch
 from torch._inductor import config, ir
@@ -480,15 +482,23 @@ class IterationRangesRootNPUIndex(IterationRangesRoot):
         return f"IterationRangesRootNPUIndex({self.name!r}, {self.numel}, ...)"
 
     def remove_entry(self, name):
+        """
+        Remove an entry from the range tree.
+        
+        Args:
+            name: sympy.Symbol representing the dimension to remove
+        """
         if name in self.var_ranges:
             del self.var_ranges[name]
         if name in self.var_list:
             del self.var_list[self.var_list.index(name)]
         if name in V.kernel.range_tree_nodes:
-            V.kernel.range_tree_nodes_removed[name] = V.kernel.range_tree_nodes[name]
+            node = V.kernel.range_tree_nodes[name]
+            V.kernel.range_tree_nodes_removed[name] = node
             del V.kernel.range_tree_nodes[name]
-        if name in self.nodes:
-            del self.nodes[name]
+            # nodes dict uses expr as key, not symbol
+            if node.expr in self.nodes:
+                del self.nodes[node.expr]
 
     def duplicated_check(self, divisor, length):
         """
@@ -1136,25 +1146,54 @@ class NPUIndexTritonKernel(TritonKernel):
                 return True
         return False
 
+    def _axis_used_in_coordinate_transforms(self, axis_name):
+        if not hasattr(self, 'coordinate_transforms') or not self.coordinate_transforms:
+            return False
+        return any(
+            transform_info.get('unified_var') == axis_name
+            for transform_info in self.coordinate_transforms.values()
+        )
+
+    def _iter_codegen_lines(self):
+        for line in self.loads._lines:
+            yield line
+        for line in self.compute._lines:
+            yield line
+        for line in self.post_loop_store._lines:
+            yield line.line if isinstance(line, DeferredLine) else line
+        for line in self.stores._lines:
+            yield line.line if isinstance(line, DeferredLine) else line
+
+    def _emit_coordinate_transforms(self):
+        """
+        Emit coordinate transformation code into the kernel body.
+        """
+        if not hasattr(self, 'coordinate_transforms') or not self.coordinate_transforms:
+            return
+
+        self.body.writeline("# Coordinate transformation for different expansion patterns")
+        for name, transform_info in self.coordinate_transforms.items():
+            self.body.writeline(f"# Transform for {name}")
+            transform_lines = self._generate_coordinate_transform_lines(
+                transform_info['unified_var'],
+                transform_info['dims'],
+                transform_info['numels'],
+            )
+            for line in transform_lines:
+                self.body.writeline(line)
+
+
     def find_axis_in_load_store(self, range_val):
         if not range_val:
             return False
-        
-        for line in self.loads._lines:
-            if self.is_isolated_symbol(line, range_val):
-                return True
-        for line in self.compute._lines:
-            if self.is_isolated_symbol(line, range_val):
-                return True
-        for line in self.post_loop_store._lines:
-            str_line = line.line if isinstance(line, DeferredLine) else line
-            if self.is_isolated_symbol(str_line, range_val):
-                return True
-        for line in self.stores._lines:
-            str_line = line.line if isinstance(line, DeferredLine) else line
-            if self.is_isolated_symbol(str_line, range_val):
-                return True
-        return False
+
+        if self._axis_used_in_coordinate_transforms(range_val.name):
+            return True
+
+        return any(
+            self.is_isolated_symbol(line, range_val)
+            for line in self._iter_codegen_lines()
+        )
 
     def write_scalar(self):
         self.body.splice(self.indexing_code)
@@ -1177,11 +1216,59 @@ class NPUIndexTritonKernel(TritonKernel):
             return
 
         def write_pointwise():
+            self._emit_coordinate_transforms()
             self.body.splice(self.indexing_code)
             self.body.splice(self.loads)
             self.body.splice(self.compute)
             self.body.splice(self.stores)
 
+        def collect_store_unified_vars():
+            """
+            Collect unified axis names that are directly referenced by Store indices.
+
+            Returns:
+                A set of unified axis names used by Store indices.
+            """
+            if not hasattr(self, 'store_unified_indexing') or not self.store_unified_indexing:
+                return set()
+
+            store_unified_vars = set()
+            for store_index in self.store_unified_indexing:
+                store_unified_vars.update(str(sym) for sym in store_index.free_symbols)
+            return store_unified_vars
+
+        def build_sub_axis_to_unified_var(store_unified_vars):
+            """
+            Build a mapping from sub-axis names to their unified axis names.
+
+            Args:
+                store_unified_vars: Unified axis names that are directly used by Store indices.
+
+            Returns:
+                A dictionary mapping each sub-axis name to its unified axis name.
+            """
+            if not hasattr(self, 'different_expansions') or not self.different_expansions:
+                return {}
+            if not hasattr(self, 'coordinate_transforms') or not self.coordinate_transforms:
+                return {}
+
+            sub_axis_to_unified_var = {}
+            for expansion_list in self.different_expansions.values():
+                for exp in expansion_list:
+                    transform_info = self.coordinate_transforms.get(exp['name'])
+                    if not transform_info:
+                        continue
+
+                    unified_var = transform_info.get('unified_var')
+                    if unified_var not in store_unified_vars:
+                        continue
+
+                    for dim in exp['dims']:
+                        sub_axis_to_unified_var[dim] = unified_var
+            return sub_axis_to_unified_var
+
+        store_unified_vars = collect_store_unified_vars()
+        sub_axis_to_unified_var = build_sub_axis_to_unified_var(store_unified_vars)
         def codegen_range(index):
             def is_1d_reduction():
                 return V.graph.sizevars.statically_known_gt(self.numels["r"], 1) and len(self.numels) == 1
@@ -1198,10 +1285,30 @@ class NPUIndexTritonKernel(TritonKernel):
                 if do_indent:
                     self.body.do_unindent()
 
+            def should_skip_loop_for_sub_axis(range_val):
+                """
+                Check if this axis is a sub-axis that should skip loop generation.
+
+                Returns:
+                    True if should skip loop generation, False otherwise
+                """
+                axis_name = range_val.name
+                unified_var = sub_axis_to_unified_var.get(axis_name)
+                if unified_var is None:
+                    return False
+
+                return True
+
             if index < 0 or index >= len(self.range_tree_nodes):
                 return
 
             range_val = self.sorted_axis[index]
+            
+            if should_skip_loop_for_sub_axis(range_val):
+                # Skip loop generation, just process the next axis
+                loop_body(index, None, is_last_axis=False, do_indent=False)
+                return
+            
             numof_tilings = len(self.tiling_axis)
             last_tiling = range_val.is_tiling_axis and numof_tilings >= 1 and range_val.tiling_order == len(
                 self.tiling_axis) - 1
@@ -1526,12 +1633,483 @@ class NPUIndexTritonKernel(TritonKernel):
     def all_tiling_in_var_list(self, var_list):
         return all([x in var_list for x in self.tiling_axis])
 
-    def select_golden_varlist(self):
+    def _parse_expansion_from_index(self, index):
+        """
+        Parse index Expression to Extract Expansion Patterns.
+        
+        CRITICAL FIX (v1.4):
+            Previous versions tried to derive dimension sizes from strides or
+            factorization, which is fragile and error-prone.
+            
+            The correct approach: directly query V.kernel.range_tree_nodes,
+            which already stores each axis's size (length) as an authoritative
+            data source. No guessing needed.
+        
+        Data source:
+            V.kernel.range_tree_nodes is a Dict[sympy.Symbol, IterationRangesEntryNPUIndex]
+            Each IterationRangesEntryNPUIndex has a .length attribute = axis size.
+            
+            These nodes are created during scan() -> index_preparation() -> lookup(),
+            so they are already available when this function is called.
+        
+        Args:
+            index: SymPy expression representing the index
+            
+        Returns:
+            Dict mapping prefix to expansion info:
+            {
+                'x': {'dims': ['x3', 'x4'], 'numels': [32, 20]},
+                'y': {'dims': ['y1'], 'numels': [80]}
+            }
+            
+        Example:
+            index = x4 + 20*y1 + 1600*x3 + 51200*z0
+            
+            Direct query:
+                V.kernel.range_tree_nodes[x3].length = 32
+                V.kernel.range_tree_nodes[x4].length = 20
+            
+            Returns:
+                {'x': {'dims': ['x3', 'x4'], 'numels': [32, 20]}}
+        """
+        result = {}
+        symbols = index.free_symbols
+        
+        # Group symbols by prefix (x, y, z, r)
+        symbol_groups = {}
+        for sym in symbols:
+            sym_str = str(sym)
+            if len(sym_str) > 0:
+                prefix = sym_str[0]
+                if prefix not in symbol_groups:
+                    symbol_groups[prefix] = []
+                symbol_groups[prefix].append(sym)
+        
+        # Analyze each group with multiple symbols
+        for prefix, syms in symbol_groups.items():
+            if len(syms) >= 2:
+                # Get strides for sorting (innermost dimension has smallest stride)
+                strides = []
+                for sym in syms:
+                    coeff = index.coeff(sym)
+                    if coeff is not None and coeff != 0:
+                        strides.append((sym, coeff))
+                
+                if len(strides) >= 2:
+                    # Sort by stride (ascending) to get correct dimension order
+                    # Handle symbolic strides in dynamic shape mode
+                    def get_sort_key(item):
+                        sym, stride = item
+                        # If stride contains symbolic variables (dynamic shape)
+                        if hasattr(stride, 'free_symbols') and stride.free_symbols:
+                            # Use sorted_order from range_tree_nodes for consistent ordering
+                            if sym in V.kernel.range_tree_nodes:
+                                return V.kernel.range_tree_nodes[sym].sorted_order or 0
+                            elif sym in V.kernel.range_tree_nodes_removed:
+                                return V.kernel.range_tree_nodes_removed[sym].sorted_order or 0
+                            else:
+                                # Fallback to string representation
+                                return str(sym)
+                        else:
+                            # For concrete values, use the stride value
+                            return stride if stride else 0
+                    
+                    sorted_strides = sorted(strides, key=get_sort_key)
+                    
+                    # Direct query from V.kernel.range_tree_nodes
+                    # Each axis (x3, x4, etc.) was registered during scan() phase
+                    dims = []
+                    numels = []
+                    
+                    for sym, _stride in sorted_strides:
+                        # Try range_tree_nodes first, then range_tree_nodes_removed
+                        # (axes may be moved to removed dict during processing)
+                        if sym in V.kernel.range_tree_nodes:
+                            size = V.kernel.range_tree_nodes[sym].length
+                        elif sym in V.kernel.range_tree_nodes_removed:
+                            size = V.kernel.range_tree_nodes_removed[sym].length
+                        else:
+                            npu_config.log.warning(
+                                "Missing range tree node for symbol %s while parsing expansion",
+                                sym,
+                            )
+                            continue
+                        
+                        dims.append(str(sym))
+                        numels.append(int(size))
+                    
+                    if len(dims) == len(sorted_strides):
+                        result[prefix] = {'dims': dims, 'numels': numels}
+        
+        return result
+
+    def _detect_different_expansions(self):
+        """
+        Detect if Same Output Dimension has Different Expansion Patterns.
+        
+        Returns:
+            Dict mapping prefix to list of Expansion info if Different Patterns Exist, or None
+        """
+        expansions = {}  # prefix -> list of {name, dims, numels}
+        
+        for idx, index in enumerate(self.load_store_indexing):
+            parsed = self._parse_expansion_from_index(index)
+            
+            for prefix, info in parsed.items():
+                if prefix not in expansions:
+                    expansions[prefix] = []
+                expansions[prefix].append({
+                    'name': f'index_{idx}',
+                    'dims': info['dims'],
+                    'numels': info['numels']
+                })
+        
+        # Check for different patterns
+        different = {}
+        for prefix, expansion_list in expansions.items():
+            # Compare numels
+            numels_set = set(tuple(e['numels']) for e in expansion_list)
+            
+            if len(numels_set) > 1:
+                different[prefix] = expansion_list
+                npu_config.log.info(
+                    "Detected different expansions for prefix %s: %s",
+                    prefix,
+                    [
+                        {
+                            "name": e["name"],
+                            "dims": e["dims"],
+                            "numels": e["numels"],
+                        }
+                        for e in expansion_list
+                    ],
+                )
+        
+        return different if different else None
+
+    def _find_store_unified_axis(self, prefix, dims_to_remove, total_size):
+        store_indexing = getattr(self, "store_unified_indexing", None)
+        if not store_indexing:
+            npu_config.log.info(
+                "Skip special path for prefix %s because Store unified indexing is unavailable",
+                prefix,
+            )
+            return None
+
+        matched_axes = {}
+        for idx, store_index in enumerate(store_indexing):
+            prefix_symbols = []
+            for sym in sorted(store_index.free_symbols, key=str):
+                if not sym.name.startswith(prefix) or sym.name in dims_to_remove:
+                    continue
+                node = self.range_tree_nodes.get(sym) or self.range_tree_nodes_removed.get(sym)
+                if node is not None and node.length == total_size:
+                    prefix_symbols.append(node)
+            if len(prefix_symbols) == 1:
+                matched_axes[prefix_symbols[0].name] = prefix_symbols[0]
+
+        if len(matched_axes) == 1:
+            unified_axis = next(iter(matched_axes.values()))
+            npu_config.log.info(
+                "Selected Store unified axis for prefix %s: %s (length=%s)",
+                prefix,
+                unified_axis.name,
+                unified_axis.length,
+            )
+            return unified_axis
+
+        if len(matched_axes) > 1:
+            npu_config.log.warning(
+                "Ambiguous Store unified axis for prefix %s: %s",
+                prefix,
+                sorted(matched_axes.keys()),
+            )
+        else:
+            npu_config.log.info(
+                "Skip special path for prefix %s because no valid Store unified axis exists",
+                prefix,
+            )
+        return None
+
+    def _get_range_tree_for_prefix(self, prefix):
+        """
+        Get the IterationRangesRoot for the Given Prefix.
+        
+        The range_trees are created during initialize_range_tree() and contain one
+        IterationRangesRootNPUIndex per prefix (x, y, z, r).
+        
+        Args:
+            prefix: Dimension prefix ('x', 'y', 'z', 'r')
+            
+        Returns:
+            IterationRangesRootNPUIndex or None if not found
+        """
+        for tree in self.range_trees:
+            if hasattr(tree, 'prefix') and tree.prefix == prefix:
+                return tree
+        return None
+
+    def _create_unified_dimension(self, prefix, expansion_list):
+        """
+        Create Unified Dimension Using Lookup.
+        
+        Args:
+            prefix: Dimension prefix (e.g., 'x')
+            expansion_list: List of expansion info dicts
+            
+        Returns:
+            Unified IterationRangesEntry or None if failed
+        """
+        # Calculate total size from the first expansion
+        total_size = 1
+        for numel in expansion_list[0]['numels']:
+            total_size *= numel
+
+        # Verify total_size matches self.numels
+        expected_size = self.numels.get(prefix)
+        if expected_size is not None and total_size != expected_size:
+            npu_config.log.warning(
+                "Adjust unified size for prefix %s from %s to %s",
+                prefix,
+                total_size,
+                expected_size,
+            )
+            total_size = expected_size
+
+        # Get the range tree for this prefix
+        root = self._get_range_tree_for_prefix(prefix)
+        if root is None:
+            npu_config.log.warning(
+                "No range tree found for prefix %s while creating unified dimension",
+                prefix,
+            )
+            return None
+
+        # Use lookup to create unified dimension
+        # lookup(1, total_size) creates an IterationRangesEntry representing the entire dimension
+        # Expression: xindex // 1 = xindex (the entire x dimension)
+        unified_axis = root.lookup(1, total_size)
+        return unified_axis
+
+    def _generate_coordinate_transform_code(self, unified_var, dims, numels):
+        """
+        Generate Coordinate Transformation Code.
+        
+        Args:
+            unified_var: Unified variable name (e.g., 'x')
+            dims: List of dimension names (e.g., ['x3', 'x4'])
+            numels: List of dimension sizes (e.g., [32, 20])
+            
+        Returns:
+            String containing transformation code
+        """
+        code_lines = []
+        
+        # dims/numels are ordered from smallest stride to largest stride.
+        # Example:
+        #   dims   = [x4, x3]
+        #   numels = [20, 32]
+        #   flat_x = x4 + 20 * x3
+        # Therefore:
+        #   x3 = flat_x // 20
+        #   x4 = flat_x % 20
+        remaining = unified_var
+        for i in range(len(dims) - 1, 0, -1):
+            factor = math.prod(numels[:i])
+            code_lines.append(f"{dims[i]} = {remaining} // {factor}")
+            remaining = f"({remaining} % {factor})"
+        code_lines.append(f"{dims[0]} = {remaining}")
+        
+        return '\n'.join(code_lines)
+
+    def _generate_coordinate_transform_lines(self, unified_var, dims, numels):
+        """
+        Generate coordinate transformation code lines.
+
+        Args:
+            unified_var: Unified variable name (e.g., 'x2')
+            dims: List of dimension names participating in the transform
+            numels: List of dimension sizes
+
+        Returns:
+            A list of code lines implementing the coordinate transform.
+        """
+        return self._generate_coordinate_transform_code(
+            unified_var, dims, numels
+        ).split('\n')
+
+    def _log_select_golden_varlist_inputs(self):
+        """
+        Log the current load/store indexing state before selecting golden vars.
+        """
+        npu_config.log.debug(
+            "select_golden_varlist load_store_indexing=%s",
+            len(self.load_store_indexing),
+        )
+
+    def _build_guarded_expansions(self, different_expansions):
+        """
+        Filter different expansions to cases with a valid Store-side unified axis.
+
+        Args:
+            different_expansions: Expansion info detected from load/store indexing.
+
+        Returns:
+            A dictionary containing only guarded expansion groups.
+        """
+        guarded_expansions = {}
+        if not different_expansions:
+            return guarded_expansions
+
+        for prefix, expansion_list in different_expansions.items():
+            dims_to_remove = set()
+            for exp in expansion_list:
+                dims_to_remove.update(exp['dims'])
+            total_size = 1
+            for size in expansion_list[0]['numels']:
+                total_size *= size
+            unified_axis = self._find_store_unified_axis(prefix, dims_to_remove, total_size)
+            if unified_axis is None:
+                continue
+            guarded_expansions[prefix] = {
+                "expansion_list": expansion_list,
+                "dims_to_remove": dims_to_remove,
+                "unified_axis": unified_axis,
+            }
+        return guarded_expansions
+
+    def _remove_expansion_dims_from_axes(self, dims_to_remove):
+        """
+        Remove sub-axis dimensions from active tiling/sorted axes.
+
+        Args:
+            dims_to_remove: Dimension names to remove from active structure axes.
+        """
+        old_len = len(self.tiling_axis)
+        self.tiling_axis = [
+            axis for axis in self.tiling_axis
+            if axis.name not in dims_to_remove
+        ]
+
+        if hasattr(self, 'sorted_axis') and self.sorted_axis:
+            old_len = len(self.sorted_axis)
+            self.sorted_axis = [
+                axis for axis in self.sorted_axis
+                if axis.name not in dims_to_remove
+            ]
+
+            for i, axis in enumerate(self.sorted_axis):
+                axis.sorted_order = i
+
+            self.low_dims = set()
+
+    def _append_unified_axis_to_active_axes(self, unified_axis):
+        """
+        Add the unified axis back into active tiling and sorted axes.
+
+        Args:
+            unified_axis: The Store-side unified axis.
+        """
+        if not unified_axis:
+            return
+
+        unified_axis.is_tiling_axis = True
+        unified_axis.is_no_loop_axis = False
+        if unified_axis not in self.tiling_axis:
+            unified_axis.tiling_order = len(self.tiling_axis)
+            self.tiling_axis.append(unified_axis)
+        else:
+            unified_axis.tiling_order = self.tiling_axis.index(unified_axis)
+
+        if hasattr(self, 'sorted_axis') and self.sorted_axis is not None and unified_axis not in self.sorted_axis:
+            unified_axis.sorted_order = len(self.sorted_axis)
+            self.sorted_axis.append(unified_axis)
+        elif hasattr(self, 'sorted_axis') and self.sorted_axis is not None:
+            unified_axis.sorted_order = self.sorted_axis.index(unified_axis)
+
+    def _clear_sub_axis_states(self, dims_to_remove):
+        """
+        Clear structure state for sub-axes that are kept only for indexing.
+
+        Args:
+            dims_to_remove: Dimension names whose structure state should be cleared.
+        """
+        for dim_name in dims_to_remove:
+            matched = False
+            for container_name, container in (
+                ("range_tree_nodes", self.range_tree_nodes),
+                ("range_tree_nodes_removed", self.range_tree_nodes_removed),
+            ):
+                for key, node in container.items():
+                    if str(key) != dim_name:
+                        continue
+                    node.is_tiling_axis = False
+                    node.is_no_loop_axis = False
+                    node.tiling_order = None
+                    node.directions = []
+                    node.var_directions = {}
+                    matched = True
+            if not matched:
+                npu_config.log.warning(
+                    "Failed to clear sub-axis state for %s",
+                    dim_name,
+                )
+
+    def _update_coordinate_transforms(self, prefix, expansion_list, unified_axis):
+        """
+        Build coordinate transform metadata for a guarded expansion group.
+
+        Args:
+            prefix: Dimension prefix of the guarded expansion group.
+            expansion_list: Expansion metadata list.
+            unified_axis: The Store-side unified axis.
+        """
+        unified_var_name = unified_axis.name if unified_axis else prefix
+        for exp in expansion_list:
+            self.coordinate_transforms[exp['name']] = {
+                'unified_var': unified_var_name,
+                'dims': exp['dims'],
+                'numels': exp['numels'],
+            }
+
+    def _apply_guarded_expansions(self, guarded_expansions):
+        """
+        Apply unified-axis special path using guarded expansion metadata.
+
+        Args:
+            guarded_expansions: Guarded expansion groups keyed by prefix.
+        """
+        self.coordinate_transforms = {}
+
+        for prefix, guarded_info in guarded_expansions.items():
+            expansion_list = guarded_info["expansion_list"]
+            dims_to_remove = guarded_info["dims_to_remove"]
+            unified_axis = guarded_info["unified_axis"]
+            self._remove_expansion_dims_from_axes(dims_to_remove)
+            self._append_unified_axis_to_active_axes(unified_axis)
+            self._clear_sub_axis_states(dims_to_remove)
+            self._update_coordinate_transforms(prefix, expansion_list, unified_axis)
+            npu_config.log.info(
+                "Apply unified-axis special path for prefix %s: unified_axis=%s, removed_dims=%s",
+                prefix,
+                unified_axis.name if unified_axis else None,
+                sorted(dims_to_remove),
+            )
+
+        self.golden_var_list = tuple([x.symbol() for x in self.tiling_axis])
+        npu_config.log.info(
+            "Unified-axis final structure: golden=%s, tiling_axis=%s, sorted_axis=%s",
+            self.golden_var_list,
+            [x.name for x in self.tiling_axis],
+            [x.name for x in self.sorted_axis] if self.sorted_axis else [],
+        )
+
+    def _select_golden_varlist_normal_case(self):
+        """
+        Run the original golden var selection logic for non-special cases.
+        """
         longest = None
         maximum_length = 0
-        self.golden_var_list = None
-
-        # all are load indexings, select the longest as gold
         for index in self.load_store_indexing:
             index = index.subs(V.graph.sizevars.var_to_val)
             analyze = IndexAnalysis(self, index)
@@ -1555,10 +2133,33 @@ class NPUIndexTritonKernel(TritonKernel):
                     golden_list.append(sym)
             self.golden_var_list = tuple(golden_list)
 
+    def select_golden_varlist(self):
+        self.golden_var_list = None
+        self._log_select_golden_varlist_inputs()
+
+        different_expansions = self._detect_different_expansions()
+        guarded_expansions = self._build_guarded_expansions(different_expansions)
+
+        different_expansions = {
+            prefix: info["expansion_list"]
+            for prefix, info in guarded_expansions.items()
+        } or None
+
+        self.different_expansions = different_expansions
+        if different_expansions:
+            self._apply_guarded_expansions(guarded_expansions)
+        else:
+            self._select_golden_varlist_normal_case()
+
         if self.golden_var_list is None:
             raise RuntimeError("assert self.golden_var_list is None")
 
-        # to generate shape of the tile
+        npu_config.log.info(
+            "Selected golden vars: golden=%s, tiling_axis=%s, different_expansions=%s",
+            self.golden_var_list,
+            [x.name for x in self.tiling_axis] if self.tiling_axis else [],
+            different_expansions,
+        )
 
     def dense_size_list(self) -> List[str]:
         if self.find_reduction_node() is not None:

@@ -133,6 +133,25 @@ def detect_flattened_dims(kernel, index):
     return new_vars
 
 
+def _should_skip_store_substitution(key, index, var, has_multiple_expansions, kernel):
+    if not (hasattr(kernel, 'store_index_keys') and key in kernel.store_index_keys):
+        return False
+    if not has_multiple_expansions:
+        return False
+    if var not in index.free_symbols:
+        return False
+
+    prefix = str(var)[0]
+    same_prefix_symbols = sorted(
+        [
+            sym for sym in index.free_symbols
+            if getattr(sym, "name", str(sym)).startswith(prefix)
+        ],
+        key=str,
+    )
+    return len(same_prefix_symbols) == 1 and same_prefix_symbols[0] == var
+
+
 def rebuild_flattened_dims(indexing):
     def rebuild_flattened_dim(key, index, old_node, flatten_dim):
         for _, pair in flatten_dim.items():
@@ -171,6 +190,11 @@ def rebuild_flattened_dims(indexing):
     kernel = V.kernel
     
     for key, index in indexing.items():
+        # Store indices should remain as single axis form, not be processed by rebuild_flattened_dims
+        # This prevents creating new axes (like x7) for Store indices
+        if hasattr(kernel, 'store_index_keys') and key in kernel.store_index_keys:
+            continue
+        
         # 1. try to find out flattened axis from indexing
         flatten_dims = detect_flattened_dims(kernel, index)
         
@@ -194,7 +218,6 @@ def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substi
         if not (len(candidates) > 0):
             raise RuntimeError("assert len(candidates) > 0, candidates")
         exprs = sorted(candidates, reverse=True, key=lambda x: x[0])
-        # the best candidate is with the longest numel
         numel = exprs[0][0]
         expr = exprs[0][1]
         node = kernel.range_tree_nodes[var]
@@ -202,12 +225,21 @@ def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substi
             log.debug("sub nodes (expr%s, numel:%d) can not substitute parent node(%s:%d)",
                       expr, numel, node.symbol(), node.length)
             continue
+
+        has_multiple_expansions = len(candidates) > 1
+
         for key, index in indexing.items():
+            if _should_skip_store_substitution(key, index, var, has_multiple_expansions, kernel):
+                log.info(
+                    "Skip Store substitution for key=%s var=%s because Store unified anchor is preserved",
+                    key,
+                    var,
+                )
+                continue
             if var in index.free_symbols:
                 index = index.subs(var, expr)
                 indexing[key] = index
                 substituted = True
-
     return substituted
 
 

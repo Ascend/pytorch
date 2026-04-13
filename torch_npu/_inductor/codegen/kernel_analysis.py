@@ -229,6 +229,9 @@ class IndexAnalysis:
         if not self.kernel.golden_var_list:
             self.kernel.select_golden_varlist()
             self.gold = self.kernel.golden_var_list
+            self.tiling_axis = [x.symbol() for x in self.kernel.tiling_axis]
+            self.var_list = tuple([x[0] for x in self.var_stride if x[0] in self.tiling_axis])
+            self.stride_list = tuple([x[1] for x in self.var_stride if x[0] in self.tiling_axis])
 
         if self.gold is None:
             raise RuntimeError("assert gold must not be None")

@@ -623,51 +623,152 @@ class NPUTritonScheduling(TritonScheduling):
     can_fuse_vertical = can_fuse
     can_fuse_horizontal = can_fuse
 
+    def _store_keeps_unified_anchor(self, var, index):
+        """
+        Check if a Store index keeps the unified axis as the only axis with the same prefix.
+
+        Args:
+            var: The unified axis symbol to check.
+            index: The Store index expression to analyze.
+
+        Returns:
+            True if the Store index contains only ``var`` as the axis with the same prefix.
+        """
+        if var not in index.free_symbols:
+            return False
+        prefix = str(var)[0]
+        same_prefix_symbols = sorted(
+            [
+                sym for sym in index.free_symbols
+                if getattr(sym, "name", str(sym)).startswith(prefix)
+            ],
+            key=str,
+        )
+        return len(same_prefix_symbols) == 1 and same_prefix_symbols[0] == var
+
+    def _iter_schedule_nodes(self, node_schedule):
+        """
+        Iterate over real scheduled nodes, skipping reduction sentinels.
+        """
+        for node in node_schedule:
+            if node not in (EnableReduction, DisableReduction):
+                yield node
+
+    def _iter_store_indices(self, node_schedule, kernel):
+        """
+        Yield Store key/index pairs from scheduled nodes.
+        """
+        for node in self._iter_schedule_nodes(node_schedule):
+            for key in kernel.store_index_keys:
+                if key in node._body.indexing:
+                    yield key, node._body.indexing[key]
+
+    def _mark_store_index_keys(self, node_schedule, kernel):
+        """
+        Collect Store index keys before any indexing transformation happens.
+        """
+        kernel.store_index_keys = set()
+        for node in self._iter_schedule_nodes(node_schedule):
+            from torch._inductor.loop_body import MemoryUsageType
+
+            names = []
+            for write in node._body.memory_usage[MemoryUsageType.STORE]:
+                names.append(write.index_name)
+            for write in node._body.memory_usage[MemoryUsageType.STORE_REDUCTION]:
+                names.append(write.index_name)
+            indexing_dict = node._body.indexing
+            if indexing_dict is None:
+                indexing_dict = node._body.indexing_exprs
+                log.debug("Fallback to indexing_exprs for early Store key detection")
+            for key in indexing_dict.keys():
+                if key in names:
+                    kernel.store_index_keys.add(key)
+                    log.info("Marked Store index key early: %s", key)
+
+    def _transform_schedule_indexing(self, node_schedule, kernel):
+        """
+        Transform loop-body indexing and collect substitution candidates.
+        """
+        stack = contextlib.ExitStack()
+        for node in node_schedule:
+            if node is DisableReduction:
+                stack.enter_context(kernel.disable_reduction())
+            elif node is EnableReduction:
+                stack.close()
+            else:
+                index_vars = kernel.split_and_set_ranges(node.get_ranges())
+                node._body.transform_dims_in_indexing(index_vars)
+
+        self.additional_nodes_to_be_subs(kernel, kernel.range_tree_nodes_substituted)
+
+        for node in self._iter_schedule_nodes(node_schedule):
+            indexing = node._body.indexing
+            node._body.substituted_dims_in_indexing(indexing, kernel, kernel.range_tree_nodes_substituted)
+
+    def _record_store_unified_indexing(self, node_schedule, kernel):
+        """
+        Record Store indexing expressions used by unified-axis guards.
+        """
+        kernel.store_unified_indexing = []
+        for key, index in self._iter_store_indices(node_schedule, kernel):
+            kernel.store_unified_indexing.append(index)
+            log.debug("Recorded Store unified indexing: key=%s, index=%s", key, index)
+
+    def _should_preserve_substituted_var(self, node_schedule, kernel, var, candidates):
+        """
+        Check whether a substituted parent axis should remain in the kernel.
+        """
+        if len(candidates) <= 1:
+            return False
+
+        for key, index in self._iter_store_indices(node_schedule, kernel):
+            if self._store_keeps_unified_anchor(var, index):
+                log.info(
+                    "Preserve substituted var %s because Store key %s keeps the unified anchor",
+                    var,
+                    key,
+                )
+                return True
+        return False
+
+    def _remove_substituted_dims_from_kernel(self, node_schedule, kernel):
+        """
+        Remove substituted parent dimensions unless a Store-side unified anchor preserves them.
+        """
+        for var, candidates in kernel.range_tree_nodes_substituted.items():
+            if self._should_preserve_substituted_var(node_schedule, kernel, var, candidates):
+                continue
+
+            if var in kernel.range_tree_nodes:
+                root = kernel.range_tree_nodes[var].parent
+                root.remove_entry(var)
+
+    def _finalize_kernel_codegen_dims(self, kernel):
+        """
+        Finalize split/tiling/no-loop axis metadata after substitutions are resolved.
+        """
+        split_tiling = SplitTiling(kernel)
+        split_tiling.select_split_tiling_axis()
+        kernel.load_store_indexing = split_tiling.indexing
+
+        if kernel.inside_reduction and getattr(kernel, "find_reduction_node", None) is not None:
+            from torch._inductor import ir
+
+            reduction_node = kernel.find_reduction_node()
+            if reduction_node is not None and isinstance(reduction_node, ir.Reduction):
+                kernel.reduce_analysis = ReductionAnalysis(kernel)
+                if kernel.is_unified_simt_kernel() and kernel.reduction_dim() != len(kernel.golden_var_list) - 1:
+                    kernel.persistent_reduction = False
+
+        split_tiling.select_no_loop_axis()
+
     def decide_codegen_dims_in_kernel(self, node_schedule, kernel):
-        def current_reduction_nodes(nodes):
-            return itertools.takewhile(lambda n: n is not DisableReduction, nodes)
-
         with kernel:
-            # 1. transform dims: create new dims to substitute floor_divide and modular expression
-            stack = contextlib.ExitStack()
-            for _, node in enumerate(node_schedule):
-                if node is DisableReduction:
-                    stack.enter_context(kernel.disable_reduction())
-                elif node is EnableReduction:
-                    stack.close()
-                else:
-                    index_vars = kernel.split_and_set_ranges(node.get_ranges())
-                    node._body.transform_dims_in_indexing(index_vars)
-            # 2. go through range_tree_nodes to findout, to find one axis could be substituted by others
-            self.additional_nodes_to_be_subs(kernel, kernel.range_tree_nodes_substituted)
-            # 3.do the substitution on all indexing
-            for node in node_schedule:
-                if node in (EnableReduction, DisableReduction):
-                    continue
-                indexing = node._body.indexing
-                node._body.substituted_dims_in_indexing(indexing, kernel, kernel.range_tree_nodes_substituted)
-
-            # 4.remove the substituted dims from kernel
-            for var, _ in kernel.range_tree_nodes_substituted.items():
-                if (var in kernel.range_tree_nodes):
-                    root = kernel.range_tree_nodes[var].parent
-                    root.remove_entry(var)
-            # select split and tiling axis
-            split_tiling = SplitTiling(kernel)
-            split_tiling.select_split_tiling_axis()
-            kernel.load_store_indexing = split_tiling.indexing
-            # ReductionAnalysis depends on kernel.load_store_indexing.
-            if kernel.inside_reduction and getattr(kernel, "find_reduction_node", None) is not None:
-                from torch._inductor import ir
-
-                reduction_node = kernel.find_reduction_node()
-                if reduction_node is not None and isinstance(reduction_node, ir.Reduction):
-                    kernel.reduce_analysis = ReductionAnalysis(kernel)
-                    # pure_simt_kernel, high dim reduction don't use persitent reduction
-                    if kernel.is_unified_simt_kernel() and kernel.reduction_dim() != len(kernel.golden_var_list) - 1:
-                        kernel.persistent_reduction = False
-            # no_loop_axis depends on persistent reduction
-            split_tiling.select_no_loop_axis()
+            self._mark_store_index_keys(node_schedule, kernel)
+            self._transform_schedule_indexing(node_schedule, kernel)
+            self._record_store_unified_indexing(node_schedule, kernel)
+            self._remove_substituted_dims_from_kernel(node_schedule, kernel)
+            self._finalize_kernel_codegen_dims(kernel)
 
     def additional_nodes_to_be_subs(self, kernel, node_to_be_substituted):
         for node in kernel.range_tree_nodes.values():
