@@ -469,6 +469,8 @@ def _init():
     torch.distributed.distributed_c10d._new_group_with_tag = _wrapper_hccl(
         torch.distributed.distributed_c10d._new_group_with_tag)
     torch.distributed.device_mesh.DeviceMesh.__init__ = _wrapper_cuda(torch.distributed.device_mesh.DeviceMesh.__init__)
+    torch.distributed.ProcessGroupNCCL = torch_npu._C._distributed_c10d.ProcessGroupHCCL
+    torch.distributed.distributed_c10d.ProcessGroupNCCL = torch_npu._C._distributed_c10d.ProcessGroupHCCL
 
     # torch.distributed.pipelining.*
     if hasattr(torch.distributed, 'pipelining'):
