@@ -947,10 +947,17 @@ class NPUIndexTritonKernel(TritonKernel):
             argdefs.append(ArgName(f"{axis.name.upper()}BLOCK", is_constexpr=True))
 
         for axis in self.tiling_axis:
+            # Skip persistent_reduction reduction axis only if length is static (handled in codegen_static_numels)
             if axis.name[0] == 'r' and self.persistent_reduction:
-                continue
-            if axis.is_no_loop_axis:
-                continue
+                simplified = V.graph.sizevars.simplify(axis.length)
+                if isinstance(simplified, (sympy.Integer, int)):
+                    continue  # Static length: handled by codegen_static_numels
+                # Dynamic length: need to pass as parameter
+            elif axis.is_no_loop_axis:
+                simplified = V.graph.sizevars.simplify(axis.length)
+                if isinstance(simplified, (sympy.Integer, int)):
+                    continue  # Static length: handled by codegen_static_numels
+                # Dynamic length: need to pass as parameter
             argdefs.append(ArgName(f"{axis.name.upper()}BLOCK_SUB", is_constexpr=True))
 
     def _get_heuristic(self):
