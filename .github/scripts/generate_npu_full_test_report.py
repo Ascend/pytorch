@@ -373,7 +373,8 @@ def main():
     include_selected_entries = totals["selected_test_entries"] > 0
     include_unhandled_tests = bool(unhandled_tests_list)
 
-    failed_like = [row for row in shard_rows if row["status"] not in ("PASSED", "NO TESTS")]
+    # Show all shards in the detail table
+    sorted_shards = sorted(shard_rows, key=lambda row: row["shard"])
     slowest = sorted(shard_rows, key=lambda row: row["duration"], reverse=True)[:20]
     special_test_names = expected_special_tests or sorted(special_test_files)
     special_test_rows = []
@@ -452,25 +453,27 @@ def main():
             shard_status_rows or [["PASSED", "0"]],
         )
     )
-    if failed_like:
-        markdown_lines.extend(["", "## Non-Passing Shards"])
-        markdown_lines.extend(
-            render_table(
-                ["Shard", "Status", "Duration", "Failed", "Errors", "Scope", "Note"],
+    # Show all shards in detail table
+    markdown_lines.extend(["", "## 分片任务详情"])
+    markdown_lines.extend(
+        render_table(
+            ["Shard", "Status", "总用例数", "通过用例数", "Failed", "Errors", "Duration", "Scope", "Note"],
+            [
                 [
-                    [
-                        str(row["shard"]),
-                        row["status"],
-                        format_duration(row["duration"]),
-                        str(row["failed"]),
-                        str(row["errors"]),
-                        format_planned_files_cell(row["planned_file_names"]),
-                        format_summary_note(row["note"]),
-                    ]
-                    for row in sorted(failed_like, key=lambda row: row["shard"])
-                ],
-            )
+                    str(row["shard"]),
+                    row["status"],
+                    str(row["total"]),
+                    str(row["passed"]),
+                    str(row["failed"]),
+                    str(row["errors"]),
+                    format_duration(row["duration"]),
+                    format_planned_files_cell(row["planned_file_names"]),
+                    format_summary_note(row["note"]),
+                ]
+                for row in sorted_shards
+            ],
         )
+    )
     if include_unhandled_tests:
         markdown_lines.extend(["", "## Unhandled Special Tests"])
         markdown_lines.extend(format_scope_list(unhandled_tests_list))
@@ -518,7 +521,7 @@ def main():
             "test_failures": totals["test_failures"],
         },
         "shards": shard_rows,
-        "failed_like_shards": failed_like,
+        "failed_shards": [row for row in shard_rows if row["status"] not in ("PASSED", "NO TESTS")],
         "slowest_shards": slowest,
     }
 
