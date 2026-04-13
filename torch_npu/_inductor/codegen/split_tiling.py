@@ -79,8 +79,14 @@ class SplitTiling:
         self.kernel.split_axis.clear()
 
         # total numel exceed aicore or total split axis exceed 3
-        def meet_stop_condition():
-            if self.total_split_numels(self.kernel.split_axis) >= num_vector_core:
+        def meet_stop_condition(): 
+            sv = V.graph.sizevars
+            current_numels = self.total_split_numels(self.kernel.split_axis)
+            try:
+                val = sv.size_hint(current_numels)
+            except TypeError:
+                return len(self.kernel.split_axis) >= 3
+            if val >= num_vector_core:
                 return True
             if len(self.kernel.split_axis) == 3:
                 return True
