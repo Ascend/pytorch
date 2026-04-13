@@ -114,10 +114,28 @@ jobs:
       torch_npu_wheel_artifact: 'torch-npu-wheel-v2.7.1-source'
       max_jobs: '40'
 
+  # Re-upload torch-npu wheel to make it visible in main workflow artifacts
+  upload_torch_npu_wheel:
+    needs: build_torch_npu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download torch-npu wheel from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TORCH_NPU_WHEEL_ARTIFACT }}
+          path: torch-npu-wheel
+
+      - name: Upload torch-npu wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: torch-npu-wheel-${{ env.PYTORCH_VERSION }}
+          path: torch-npu-wheel/*.whl
+          retention-days: 30
+
   test:
     needs:
       - prepare
-      - build_torch_npu
+      - upload_torch_npu_wheel
     runs-on: linux-aarch64-a3-2
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
@@ -274,6 +292,7 @@ jobs:
     needs:
       - prepare
       - build_torch_npu
+      - upload_torch_npu_wheel
       - test
     if: always() && needs.prepare.result == 'success' && needs.build_torch_npu.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'failure')
     runs-on: ubuntu-latest
