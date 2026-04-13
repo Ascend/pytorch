@@ -15,7 +15,7 @@ from torch._inductor import config
 from torch.utils._sympy.value_ranges import IntInfinity, ValueRanges
 from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
 from .triton_utils import get_indirect_var, get_indirect_mem_var, NPUKernelType
-from ..config import log, inductor_indirect_memory_mode
+from ..config import log, inductor_indirect_memory_mode, is_ascend950
 
 
 def reduction_split_factor(reduction_ranges):
@@ -169,9 +169,11 @@ def rebuild_flattened_dims(indexing):
         return any([index.find(key) for key in kernel.expr_substituted.keys()])
 
     kernel = V.kernel
+    
     for key, index in indexing.items():
         # 1. try to find out flattened axis from indexing
         flatten_dims = detect_flattened_dims(kernel, index)
+        
         # 2. try to rebuild these flattened dims
         for var, flatten_dim in flatten_dims.items():
             if (var in kernel.range_tree_nodes):
@@ -211,6 +213,7 @@ def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substi
 
 def generate_body_indexing(body, indices):
     index = list(itertools.chain.from_iterable(indices))
+    
     if not (len(index) == len(body.var_ranges)):
         raise RuntimeError("assert len(index) == len(body.var_ranges), (index, body.var_ranges)")
     if not (all(v not in body.var_ranges for v in index)):
@@ -223,6 +226,7 @@ def generate_body_indexing(body, indices):
         name: sympy_subs(expr, replacements)
         for name, expr in body.indexing_exprs.items()
     }
+    
     setattr(body, 'indirect_replacements', {})
     body.generate_indirect_replacements()
 
@@ -868,15 +872,141 @@ def split_expression(expr):
         return expr
 
 
+def has_dynamic_shape(var_ranges):
+    """
+    Check if any dimension in var_ranges is dynamic (unbacked symint)
+
+    A dimension is considered dynamic if:
+    1. Its length is a sympy Symbol (not a concrete value)
+    2. Its length is a sympy expression containing free symbols
+    This indicates the dimension size is not statically known at compile time.
+
+    Args:
+        var_ranges: Dict[sympy.Symbol, int/sympy.Expr]
+                   Mapping from variable symbols to their range lengths
+
+    Returns:
+        bool: True if any dimension is dynamic, False otherwise
+    """
+    try:
+        for var, length in var_ranges.items():
+            # Check 1: If length is a pure Symbol, it's dynamic
+            if isinstance(length, sympy.Symbol):
+                return True
+            
+            # Check 2: If length has free symbols (expression with unknowns), it's dynamic
+            if hasattr(length, 'free_symbols'):
+                free_syms = length.free_symbols
+                if free_syms:
+                    return True
+            
+            # Check 3: If length is not a concrete number, it's dynamic
+            if not isinstance(length, (int, sympy.Integer)):
+                return True
+
+        return False
+
+    except Exception as e:
+        log.warning(f"Error checking dynamic shape: {e}")
+        return False
+
+
+def check_subexpr_for_dynamic_symbols(expr):
+    """
+    Recursively check if expression contains symbolic variables in problematic contexts.
+    
+    Checks ModularIndexing.upper and FloorDiv.divisor for symbolic variables.
+    These parameters cause issues in linearization when they are symbolic.
+    
+    Args:
+        expr: sympy expression to check
+        
+    Returns:
+        bool: True if expression contains symbolic bounds, False otherwise
+    """
+    if isinstance(expr, ModularIndexing):
+        args = expr.args
+        if len(args) == 3:
+            expr_to_mod, lower, upper = args
+            # If upper is a symbol or has free symbols, it's dynamic
+            if isinstance(upper, sympy.Symbol):
+                return True
+            if hasattr(upper, 'free_symbols') and upper.free_symbols:
+                return True
+    
+    elif isinstance(expr, FloorDiv):
+        args = expr.args
+        if len(args) >= 1:
+            divisor = args[-1]
+            # If divisor is a symbol or has free symbols, it's dynamic
+            if isinstance(divisor, sympy.Symbol):
+                return True
+            if hasattr(divisor, 'free_symbols') and divisor.free_symbols:
+                return True
+    
+    # Recursively check args
+    if hasattr(expr, 'args'):
+        for arg in expr.args:
+            if check_subexpr_for_dynamic_symbols(arg):
+                return True
+    
+    return False
+
+
+def should_skip_linearization_on_a5(var_ranges, indexing):
+    """
+    Determine if memory access linearization should be skipped on A5 platform.
+    
+    On A5 platform, skip linearization when:
+    1. var_ranges contain dynamic shapes (symbolic lengths)
+    2. indexing expressions contain symbolic bounds in ModularIndexing/FloorDiv
+    
+    Args:
+        var_ranges: Dict mapping symbols to their range lengths
+        indexing: Dict mapping buffer names to index expressions
+        
+    Returns:
+        bool: True if should skip linearization on A5, False otherwise
+    """
+    if not is_ascend950:
+        return False
+    
+    # Check var_ranges for dynamic shapes
+    if has_dynamic_shape(var_ranges):
+        return True
+    
+    # Check indexing expressions for symbolic bounds
+    if indexing:
+        for key, index_expr in indexing.items():
+            if check_subexpr_for_dynamic_symbols(index_expr):
+                return True
+    
+    return False
+
+
 def transform_dims_in_indexing(self, indices):
+    # Step 1: Generate basic indexing (always executed)
     if self.indexing is None:
         remove_zero_terms(self.indexing_exprs, self.var_ranges)
         generate_body_indexing(self, indices)
     
+    # Step 2: Check for dynamic shapes (only skip on A5 platform)
+    if should_skip_linearization_on_a5(self.var_ranges, self.indexing):
+        log.info(
+            "Skip memory access linearization due to dynamic shape on A5. "
+            f"var_ranges: {self.var_ranges}"
+        )
+        # Set SIMT_ONLY compile option for dynamic shapes on A5
+        V.kernel.npu_kernel_type = NPUKernelType.SIMT_ONLY
+        return  # Early return, skip linearization on A5 with dynamic shapes
+    
+    # Step 3: Perform memory access linearization
     log.debug(f"[Linear] ori indexing:{self.indexing}\nV.kernel.range_tree_nodes:{V.kernel.range_tree_nodes}")
+    
     for key, index_expr in self.indexing.items():
         analyse_res = analyze_expression(index_expr, V.kernel.range_tree_nodes)
         log.debug(f"[Linear] linear analyse res:{analyse_res}")
+        
         if not analyse_res["can_split_all"]:
             raise ValueError(f"Can not split expression:{self.indexing}"\
                              f"\nrange_tree_nodes:{V.kernel.range_tree_nodes}"\
