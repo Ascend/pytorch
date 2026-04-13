@@ -172,6 +172,9 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
     if (self.numel() == 0) {
         return self;
     }
+    if (src._is_zerotensor()) {
+        return self.zero_();
+    }
 
     auto maybe_outnames = at::namedinference::compute_broadcast_outnames(self, src);
 

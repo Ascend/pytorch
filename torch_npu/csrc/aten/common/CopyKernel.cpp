@@ -435,6 +435,9 @@ at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, b
     if (self.numel() == 0) {
         return self;
     }
+    if (src._is_zerotensor()) {
+        return self.zero_();
+    }
     // save tensor dim name
     c10::optional<at::DimnameList> names = src.opt_names();
     if (names.has_value()) {
