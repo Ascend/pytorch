@@ -868,8 +868,9 @@ def run_tests_via_run_test(
             ]
             if timeout > 0:
                 pytest_command.append(f"--timeout={timeout}")
-            # Add test paths (relative to test_dir)
-            pytest_command.extend(unrecognized_tests)
+            # Add test paths (strip 'test/' prefix since pytest runs from test_dir)
+            pytest_test_paths = [strip_test_prefix(t) + ".py" for t in unrecognized_tests]
+            pytest_command.extend(pytest_test_paths)
 
             print(f"\nExecuting direct pytest for {len(unrecognized_tests)} unrecognized tests:")
             print("  " + " ".join(pytest_command))
