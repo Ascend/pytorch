@@ -32,6 +32,7 @@ NPUGraph的优势可以通过下图展示：
 > [!NOTE]
 > 
 > CPU逐个启动一列短核时，CPU启动开销会在核之间造成显著间隙。而使用NPUGraph替代这串核序列，最初需要花更多时间构建图并一次性启动整个图，但后续执行会非常快，因为核间的间隙非常小。当同一操作序列重复多次（例如训练步数非常多）时，差异更为明显。构建和启动图的初始成本将在整个训练迭代次数中摊销。
+
 ## 适用场景
 
 **推荐使用NPUGraph的场景：**
@@ -87,6 +88,7 @@ def graph_capture_simple():
 
 graph_capture_simple()
 ```
+
 ### 使能方式二：使用graph上下文管理器
 
 `torch_npu.npu.graph` 是简单通用的上下文管理器，可在其作用域内捕获NPU操作。相比手动调用 `capture_begin()` 和 `capture_end()`，该方式更加简洁，自动处理Stream同步和缓存清理。
@@ -193,4 +195,3 @@ def main():
 if __name__ == "__main__":
     main()
 ```
-

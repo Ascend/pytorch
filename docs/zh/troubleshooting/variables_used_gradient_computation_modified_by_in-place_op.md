@@ -4,7 +4,7 @@
 
 回显信息中存在关键字“**one of the variables needed for gradient computation has been modified by an inplace operation**”，类似如下打印信息：
 
-```ColdFusion
+```python
 ERROR: test_autograd_backward (__main__.TestMode)
 ----------------------------------------------------------------------
 Traceback (most recent call last):

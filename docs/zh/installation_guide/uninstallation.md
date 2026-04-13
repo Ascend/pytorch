@@ -98,12 +98,12 @@ _xxx_ 表示卸载的实际软件包名。
 
         若出现如下关键回显信息，则表示驱动卸载成功。
         
-         ```ColdFusion
+         ```bash
         Driver package uninstalled successfully!
         ```
 
     > [!NOTE]  
-    > _<install\_path\>_ 表示软件包安装路径，可以执行**cat /etc/ascend\_install.info**命令查询安装路径，请根据实际情况替换。
+    > _<install\_path\>_ 表示软件包安装路径，可以执行**cat /etc/ascend_install.info**命令查询安装路径，请根据实际情况替换。
 
 4. 根据系统提示信息决定是否重启服务器，若需要重启系统，请执行以下命令；否则，请跳过此步骤。
 
