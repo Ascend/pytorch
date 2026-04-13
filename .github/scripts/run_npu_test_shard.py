@@ -592,10 +592,13 @@ def analyze_pytest_log(log_file: Path, returncode: int) -> Dict:
 
 
 def strip_test_prefix(path: str) -> str:
-    """Remove 'test/' prefix from path for run_test.py -i argument."""
+    """Remove 'test/' prefix and '.py' suffix from path for run_test.py -i argument."""
     normalized = normalize_path(path)
     if normalized.startswith("test/"):
-        return normalized[5:]  # Remove 'test/' prefix
+        normalized = normalized[5:]  # Remove 'test/' prefix
+    # Remove '.py' suffix if present (run_test.py expects names without extension)
+    if normalized.endswith(".py"):
+        normalized = normalized[:-3]
     return normalized
 
 
