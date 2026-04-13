@@ -27,9 +27,9 @@ on:
         default: '1'
         type: string
       shard_end:
-        description: 'End shard number (default 100)'
+        description: 'End shard number (default 10)'
         required: false
-        default: '100'
+        default: '10'
         type: string
 
 env:
@@ -60,7 +60,7 @@ jobs:
         run: |
           # Get shard range from inputs or use defaults
           SHARD_START=${{ inputs.shard_start || '1' }}
-          SHARD_END=${{ inputs.shard_end || '100' }}
+          SHARD_END=${{ inputs.shard_end || '10' }}
 
           # Build shard matrix JSON
           SHARDS=$(seq $SHARD_START $SHARD_END | tr '\n' ',' | sed 's/,$//')
