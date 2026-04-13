@@ -11,7 +11,7 @@ DECOMPOSITION_OVERLOAD_OP = [
     aten.nll_loss_forward,
     aten.nll_loss_backward,
     aten._log_softmax_backward_data,
-    aten.embedding_dense_backward,
+    # aten.embedding_dense_backward,
     aten.addmm,
     aten.gelu,
     aten.native_layer_norm,
