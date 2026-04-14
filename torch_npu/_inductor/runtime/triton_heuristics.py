@@ -1424,7 +1424,7 @@ def _benchmark_all_configs(self, *args, **kwargs):
 
     valid_tiling_length = len([launcher for launcher in self.launchers if launcher.runnable])
     if not valid_tiling_length:
-        raise RuntimeError("All tiling for [{self.fn.__name__}] are not runnable.")
+        raise RuntimeError(f"All tiling for [{self.fn.__name__}] are not runnable.")
 
     def do_batch_benchmark(tilling_kernel_list):
 

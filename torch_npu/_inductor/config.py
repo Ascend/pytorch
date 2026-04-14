@@ -232,6 +232,7 @@ max_precompiled_thread_num = os.cpu_count() // 2 # default precompile max thread
 if "TORCHNPU_PRECOMPILE_THREADS" in os.environ:
     max_precompiled_thread_num = int(os.environ["TORCHNPU_PRECOMPILE_THREADS"])
 
+lowering_axis_count = None
 
 def disable_comprehensive_padding():
     torch._inductor.config.comprehensive_padding = False

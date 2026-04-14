@@ -40,7 +40,7 @@ else:
     from .config import log as npulog
     from .codegen.triton import patch_gen_common_triton_ext_imports
     from .decomposition import _register_npu_inductor_decompositons
-    from .graph import patch_count_bytes, patch_codegen_with_cpp_wrapper
+    from .graph import patch_count_bytes, patch_codegen_with_cpp_wrapper, patch_run_node
     from .ir import patch_fallback_kernel_codegen
     from .lowering import make_reduction
     from .runtime import (
@@ -154,6 +154,7 @@ else:
     register_fa_pass()
     patch_cache_base_get_system()
     patch_count_bytes()
+    patch_run_node()
     patch_is_gpu()
     patch_has_triton()
     disable_foreach()
