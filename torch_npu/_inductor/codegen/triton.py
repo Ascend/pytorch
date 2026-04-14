@@ -2753,7 +2753,9 @@ class NPUIndexTritonKernel(TritonKernel):
 
         def add_range(i, expr):
             expr = sv.simplify(expr)
-            if not sv.statically_known_multiple_of(remaining[i], expr):
+            if sv.statically_known_equals(remaining[i], expr):
+                pass
+            elif not sv.statically_known_multiple_of(remaining[i], expr):
                 raise CantSplit
             # guard on the last item out
             remaining[i] = FloorDiv(remaining[i], expr)
@@ -2800,6 +2802,12 @@ class NPUIndexTritonKernel(TritonKernel):
                 raise CantSplit
             return_getters.append(make_combined(stride_list, index_list))
 
+        def safe_size_hint_is_one(expr):
+            try:
+                return int(sv.size_hint(expr)) == 1
+            except (TypeError, ValueError):
+                return False
+
         return_getters_groups = []
         current_group = 0
 
@@ -2814,7 +2822,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     current_group < len(remaining)
                     and ( 
                         sv.statically_known_equals(remaining[current_group], 1)
-                        or sv.size_hint(remaining[current_group]) == 1
+                        or safe_size_hint_is_one(remaining[current_group])
                     )
                 ):
                     # scroll to next group with remaining elements
