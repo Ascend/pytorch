@@ -44,6 +44,55 @@ SHARD_REGULAR_TOTAL = 7
 
 TOTAL_SHARDS = 10
 
+# JIT shard special tests: these are in case_paths_ci.yml whitelist but
+# excluded by discover_tests.py blocklisted_patterns/blocklisted_tests.
+# JIT shard runs these tests directly via pytest (not via run_test.py).
+JIT_BLOCKLISTED_TESTS = [
+    # blocklisted_pattern: custom_backend
+    "test/custom_backend/test_custom_backend.py",
+    # blocklisted_pattern: custom_operator
+    "test/custom_operator/test_custom_ops.py",
+    "test/custom_operator/test_infer_schema_annotation.py",
+    # blocklisted_pattern: fx
+    "test/fx/test_common_passes.py",
+    "test/fx/test_cse_pass.py",
+    "test/fx/test_dce_pass.py",
+    "test/fx/test_dynamism.py",
+    "test/fx/test_future.py",
+    "test/fx/test_fx_const_fold.py",
+    "test/fx/test_fx_node_hook.py",
+    "test/fx/test_fx_param_shape_control_flow.py",
+    "test/fx/test_fx_split.py",
+    "test/fx/test_fx_traceback.py",
+    "test/fx/test_fx_xform_observer.py",
+    "test/fx/test_gradual_type.py",
+    "test/fx/test_graph_pickler.py",
+    "test/fx/test_lazy_graph_module.py",
+    "test/fx/test_matcher_utils.py",
+    "test/fx/test_partitioner_order.py",
+    "test/fx/test_pass_infra.py",
+    "test/fx/test_shape_inference.py",
+    "test/fx/test_source_matcher_utils.py",
+    "test/fx/test_subgraph_rewriter.py",
+    "test/fx/test_z3_gradual_types.py",
+    # blocklisted_pattern: mobile
+    "test/mobile/test_bytecode.py",
+    "test/mobile/test_lite_script_module.py",
+    "test/mobile/test_lite_script_type.py",
+    "test/mobile/test_quantize_fx_lite_script_module.py",
+    "test/mobile/test_upgrader_codegen.py",
+    "test/mobile/test_upgraders.py",
+    # blocklisted_tests
+    "test/test_bundled_images.py",
+    "test/test_cpp_extensions_aot.py",
+    "test/test_determination.py",
+    "test/test_jit_string.py",
+    "test/test_kernel_launch_checks.py",
+    "test/test_nnapi.py",
+    "test/test_static_runtime.py",
+    "test/test_throughput_benchmark.py",
+]
+
 
 def get_shard_type(shard: int) -> Tuple[str, int, int]:
     """
@@ -383,20 +432,19 @@ def filter_tests_by_type(test_files: List[str], shard_type: str) -> Tuple[List[s
         selected = [f for f in test_files if f.startswith("test/distributed/")]
         excluded = [f for f in test_files if not f.startswith("test/distributed/")]
     elif shard_type == "jit":
-        # JIT executor tests: test_jit_profiling, test_jit_legacy, test_jit_fuser_legacy
-        jit_tests = ["test/test_jit_profiling.py", "test/test_jit_legacy.py", "test/test_jit_fuser_legacy.py"]
-        selected = [f for f in test_files if f in jit_tests]
-        excluded = [f for f in test_files if f not in jit_tests]
+        # JIT shard: run tests that are in whitelist but excluded by discover_tests.py
+        # These tests are defined in JIT_BLOCKLISTED_TESTS and run directly via pytest
+        selected = [f for f in test_files if f in JIT_BLOCKLISTED_TESTS]
+        excluded = [f for f in test_files if f not in JIT_BLOCKLISTED_TESTS]
     else:
-        # Regular tests: exclude distributed and JIT executor tests
-        jit_tests = ["test/test_jit_profiling.py", "test/test_jit_legacy.py", "test/test_jit_fuser_legacy.py"]
+        # Regular tests: exclude distributed and JIT blocklisted tests
         selected = [
             f for f in test_files
-            if not f.startswith("test/distributed/") and f not in jit_tests
+            if not f.startswith("test/distributed/") and f not in JIT_BLOCKLISTED_TESTS
         ]
         excluded = [
             f for f in test_files
-            if f.startswith("test/distributed/") or f in jit_tests
+            if f.startswith("test/distributed/") or f in JIT_BLOCKLISTED_TESTS
         ]
 
     return selected, excluded
@@ -862,14 +910,12 @@ def build_run_test_command(
     ]
 
     if shard_type == "jit":
-        # JIT tests: use --include with specific test names
-        # test_jit_profiling, test_jit_legacy, test_jit_fuser_legacy
-        command.extend([
-            "--include",
-            "test_jit_profiling",
-            "test_jit_legacy",
-            "test_jit_fuser_legacy",
-        ])
+        # JIT shard is handled by run_jit_tests_via_pytest, not by run_test.py
+        # This branch should not be reached, but provide safety fallback
+        print("Warning: JIT shard unexpectedly using run_test.py path")
+        test_names = [strip_test_prefix_and_suffix(t) for t in valid_tests]
+        if test_names:
+            command.extend(["--include", *test_names])
     elif shard_type == "distributed":
         # Distributed tests: pass filtered test list via -i
         # Strip 'test/' prefix and '.py' suffix for run_test.py
@@ -930,6 +976,174 @@ def build_pytest_command(
     command.append("-vv" if verbose else "-v")
     command.extend(planned_tests)
     return command
+
+
+def build_jit_pytest_command(
+    planned_tests: List[str],
+    report_dir: Path,
+    shard: int,
+    timeout: int,
+    verbose: bool,
+    parallel: int,
+) -> List[str]:
+    """
+    Build pytest command for JIT shard tests with parallel execution.
+
+    JIT shard tests are excluded by discover_tests.py and must be run
+    directly via pytest (not via run_test.py).
+
+    Args:
+        planned_tests: List of test file paths (with 'test/' prefix)
+        report_dir: Directory for test reports
+        shard: Shard number
+        timeout: Per-test timeout
+        verbose: Verbose output flag
+        parallel: Number of parallel workers (NUM_PARALLEL_PROCS)
+
+    Returns:
+        Command list for subprocess execution
+    """
+    xml_file = report_dir / f"shard_{shard}_jit_pytest.xml"
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "--color=no",
+        "-ra",
+        "--tb=short",
+        "--continue-on-collection-errors",
+        f"--junitxml={xml_file}",
+        "-p",
+        "pytest_disabled_testcases_plugin",
+        f"-n={parallel}",  # pytest-xdist for parallel execution
+        "--dist=loadfile",  # Distribute by file
+    ]
+
+    if timeout > 0:
+        command.append(f"--timeout={timeout}")
+
+    if verbose:
+        command.append("-vv")
+    else:
+        command.append("-v")
+
+    # Add test files (strip 'test/' prefix since we're in test directory)
+    for test in planned_tests:
+        test_stripped = strip_test_prefix(test)
+        command.append(test_stripped)
+
+    return command
+
+
+def run_jit_tests_via_pytest(
+    planned_tests: List[str],
+    shard: int,
+    test_dir: Path,
+    report_dir: Path,
+    env_updates: Dict[str, str],
+    timeout: int,
+    verbose: bool,
+    parallel: int,
+) -> Tuple[int, Dict, Dict]:
+    """
+    Run JIT shard tests directly via pytest (not via run_test.py).
+
+    JIT shard tests are in case_paths_ci.yml whitelist but excluded by
+    discover_tests.py blocklisted_patterns/blocklisted_tests. They must
+    be run directly via pytest with parallel execution.
+
+    Args:
+        planned_tests: List of test file paths (with 'test/' prefix)
+        shard: Shard number
+        test_dir: Path to the test directory (working directory)
+        report_dir: Directory for test reports
+        env_updates: Environment variable updates
+        timeout: Per-test timeout
+        verbose: Verbose output flag
+        parallel: Number of parallel workers
+
+    Returns:
+        Tuple of (returncode, stats, log_metrics)
+    """
+    start = monotonic()
+    log_file = get_shard_log_file(report_dir, shard)
+
+    merged_env = os.environ.copy()
+    merged_env.update(env_updates)
+
+    command = build_jit_pytest_command(
+        planned_tests,
+        report_dir,
+        shard,
+        timeout,
+        verbose,
+        parallel,
+    )
+
+    print(f"\nExecuting pytest for JIT shard tests (shard {shard}):")
+    print("  " + " ".join(command))
+    print(f"  Working directory: {test_dir}")
+    print(f"  Parallel workers: {parallel}")
+
+    with log_file.open("w", encoding="utf-8") as log_handle:
+        log_handle.write("=" * 60 + "\n")
+        log_handle.write("JIT Shard: Direct pytest execution\n")
+        log_handle.write("=" * 60 + "\n")
+        log_handle.write(f"Test files: {len(planned_tests)}\n")
+        log_handle.write(f"Parallel workers: {parallel}\n")
+        log_handle.write("=" * 60 + "\n\n")
+        log_handle.flush()
+
+        process = subprocess.Popen(
+            command,
+            cwd=str(test_dir),
+            env=merged_env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+        )
+
+        raw_returncode = 0
+        try:
+            assert process.stdout is not None
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log_handle.write(line)
+            raw_returncode = process.wait()
+        except BaseException:
+            process.kill()
+            raw_returncode = 1
+        finally:
+            if process.stdout is not None:
+                process.stdout.close()
+
+    # Parse JUnit XML for stats
+    xml_file = report_dir / f"shard_{shard}_jit_pytest.xml"
+    stats = parse_junit_xml(str(xml_file))
+    stats["returncode"] = raw_returncode
+    stats["junit_generated"] = xml_file.exists()
+    stats["junit_xml_files"] = 1 if xml_file.exists() else 0
+
+    elapsed = monotonic() - start
+    stats = finalize_stats(stats, raw_returncode, elapsed)
+
+    log_metrics = {
+        "zero_item_test_files": 0,
+        "startup_failures": 0,
+        "import_failures": 0,
+        "test_failures": stats.get("failed", 0) + stats.get("errors", 0),
+    }
+
+    if raw_returncode != 0:
+        print(f"\nJIT shard tests completed with errors (returncode: {raw_returncode})")
+    else:
+        print(f"\nJIT shard tests completed successfully")
+
+    return raw_returncode, stats, log_metrics
 
 
 def run_tests_via_run_test(
@@ -1285,26 +1499,52 @@ def main():
     env_updates = build_execution_env(test_dir, script_dir, args.disabled_testcases, str(report_dir), args.shard)
 
     if planned_tests:
-        # Run tests via run_test.py with file-level parallelism
-        # Working directory is test_dir (run_test.py expects to be run from test/)
-        # For distributed tests, use fewer parallel workers (distributed tests need more resources)
+        # Run tests based on shard type
+        # - JIT shard: run directly via pytest (tests excluded by discover_tests.py)
+        # - Distributed/Regular: run via run_test.py
         effective_parallel = args.parallel
-        if shard_type == "distributed":
-            # Distributed tests typically use fewer parallel workers due to resource constraints
-            effective_parallel = min(args.parallel, 4)  # Use at most 4 workers for distributed
-            print(f"Note: Distributed tests using {effective_parallel} parallel workers (reduced for stability)")
 
-        _, stats, log_metrics = run_tests_via_run_test(
-            planned_tests,
-            args.shard,
-            test_dir,  # Working directory is test directory
-            report_dir,
-            env_updates,
-            args.timeout,
-            args.verbose,
-            effective_parallel,
-            shard_type,
-        )
+        if shard_type == "jit":
+            # JIT shard tests run directly via pytest with parallel execution
+            print(f"Note: JIT shard running {len(planned_tests)} tests directly via pytest (parallel: {effective_parallel})")
+            _, stats, log_metrics = run_jit_tests_via_pytest(
+                planned_tests,
+                args.shard,
+                test_dir,
+                report_dir,
+                env_updates,
+                args.timeout,
+                args.verbose,
+                effective_parallel,
+            )
+        elif shard_type == "distributed":
+            # Distributed tests: fewer parallel workers due to resource constraints
+            effective_parallel = min(args.parallel, 4)
+            print(f"Note: Distributed tests using {effective_parallel} parallel workers (reduced for stability)")
+            _, stats, log_metrics = run_tests_via_run_test(
+                planned_tests,
+                args.shard,
+                test_dir,
+                report_dir,
+                env_updates,
+                args.timeout,
+                args.verbose,
+                effective_parallel,
+                shard_type,
+            )
+        else:
+            # Regular tests: run via run_test.py
+            _, stats, log_metrics = run_tests_via_run_test(
+                planned_tests,
+                args.shard,
+                test_dir,
+                report_dir,
+                env_updates,
+                args.timeout,
+                args.verbose,
+                effective_parallel,
+                shard_type,
+            )
     else:
         print("No test files assigned to this shard after file-level filtering.")
         stats = finalize_stats(create_empty_stats(), 0, 0.0)
