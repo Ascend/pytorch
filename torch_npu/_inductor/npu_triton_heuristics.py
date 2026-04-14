@@ -662,8 +662,8 @@ class NPUCachingAutotuner(CachingAutotuner):
                                f"Stack trace: {exc_stack}")
         self.launchers = launchers
 
-    def save_gpu_kernel(self, input_stream, input_launcher):
-        self.save_npu_kernel(input_stream, input_launcher)
+    def save_gpu_kernel(self, stream, launcher):
+        self.save_npu_kernel(stream, launcher)
 
     def save_npu_kernel(self, input_stream, input_launcher):
         key = self.inductor_meta.get("kernel_name", None)  # unique kernel name

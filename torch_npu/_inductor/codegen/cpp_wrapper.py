@@ -5,6 +5,7 @@ import os
 import sys
 from itertools import chain, count, zip_longest
 from typing import Any, Callable, List, Optional, Tuple, TYPE_CHECKING, Union
+
 from typing_extensions import Self
 import sympy
 import torch
@@ -15,10 +16,11 @@ from torch._inductor.codecache import get_cpp_wrapper_cubin_path_name
 from torch._inductor.codegen.aoti_hipify_utils import maybe_hipify_code_wrapper
 from torch._inductor.codegen.common import get_device_op_overrides
 from torch._inductor.codegen.cpp_utils import cexpr, DTYPE_TO_CPP, DEVICE_TO_ATEN
-from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu, DeferredTritonCallWrapper
+from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu, DeferredTritonCallWrapper, UnwrapUnspecArg
 from torch._inductor.codegen.multi_kernel import MultiKernelCall
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg, pexpr
 from torch._inductor.ir import IRNode, TensorBox, GraphPartitionSignature
+from torch._inductor.runtime import triton_heuristics
 from torch._inductor.runtime.runtime_utils import dynamo_timed
 from torch._inductor.utils import DeferredLineBase, IndentedBuffer
 from torch._inductor.virtualized import V
@@ -32,6 +34,10 @@ from ..utils import triton_support_ffts
 if TYPE_CHECKING:
     from torch._inductor.graph import GraphLowering
 
+# follow triton-ascend implement
+DTYPE_TO_CPP[torch.bool] = "int32_t"
+DTYPE_TO_CPP[torch.float16] = "float"
+DTYPE_TO_CPP[torch.bfloat16] = "float"
 
 def checkIfTrue(value, msg):
     if not value:
@@ -53,13 +59,6 @@ def cpp_string_literal(s: str) -> str:
         lambda match: _cpp_string_literal_escapes[match.group(0)], s
     )
     return f'"{escaped}"'
-
-
-@dataclasses.dataclass
-class UnwrapUnspecArg:
-    """Marker that we need to call .item() on the tensor"""
-
-    dtype: torch_dtype
 
 
 @dataclasses.dataclass
@@ -431,7 +430,6 @@ class CppWrapperNpu(CppWrapperGpu):
         with dynamo_timed("CppWrapperNpu.generate", log_pt2_compile_event=True):
             return super().generate(is_inference)
 
-
     def prepare_triton_kernel_call(self, call_args):
         new_call_args = call_args
         if npu_config.inductor_static_mode:
@@ -564,6 +562,9 @@ class CppWrapperNpu(CppWrapperGpu):
             "i16": "int16_t",
             "i32": "int32_t",
             "i64": "int64_t",
+            "u1": "uint32_t",
+            "u8": "uint8_t",
+            "u16": "uint16_t",
             "u32": "uint32_t",
             "u64": "uint64_t",
             "fp16": "float",
@@ -583,7 +584,7 @@ class CppWrapperNpu(CppWrapperGpu):
             # ignore nvTmaDesc, as host-side TMA descriptors need
             # to be passed to the compiled Triton kernel by value
             if isinstance(arg_type, UnwrapUnspecArg) and arg_signature != "nvTmaDesc":
-                self.codegen_tensor_item_npu(
+                struct_data, arg_data = self.codegen_tensor_item_npu(
                     arg_type.dtype,
                     arg,
                     var_name,
@@ -603,9 +604,9 @@ class CppWrapperNpu(CppWrapperGpu):
                 struct_data = f"void* {var_name} __attribute__((aligned(8)));"
                 arg_data = f"static_cast<void*>({var_name})"
             elif arg_type in (sympy.Integer, int):
-                code.writeline(f"int64_t {var_name} = {cexpr(arg)};")
-                struct_data = f"int64_t {var_name} __attribute__((aligned(8)));"
-                arg_data = f"static_cast<int64_t>({var_name})"
+                code.writeline(f"int32_t {var_name} = {cexpr(arg)};")
+                struct_data = f"int32_t {var_name} __attribute__((aligned(4)));"
+                arg_data = f"static_cast<int32_t>({var_name})"
             elif arg_type in (sympy.Float, float):
                 code.writeline(f"float {var_name} = {cexpr(arg)};")
                 struct_data = f"float {var_name} __attribute__((aligned(4)));"
