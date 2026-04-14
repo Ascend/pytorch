@@ -136,7 +136,7 @@ jobs:
     needs:
       - prepare
       - upload_torch_npu_wheel
-    runs-on: linux-aarch64-a3-2
+    runs-on: linux-aarch64-a3-8
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
       options: --user root
