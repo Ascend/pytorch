@@ -45,6 +45,18 @@ def parse_args():
     parser.add_argument("--timeout", type=int, default=600, help="Per-test timeout passed to pytest")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--parallel", type=int, default=2, help="Number of parallel workers (NUM_PARALLEL_PROCS)")
+    parser.add_argument(
+        "--use-tests-list",
+        action="store_true",
+        default=True,
+        help="Use TESTS list from discover_tests.py (same as run_test.py --help). Default: True",
+    )
+    parser.add_argument(
+        "--use-raw-discovery",
+        action="store_true",
+        default=False,
+        help="Use raw file discovery (scan all test_*.py) instead of TESTS list. Default: False",
+    )
     return parser.parse_args()
 
 
@@ -187,11 +199,65 @@ def load_crashed_files_list(config_file: str) -> Tuple[str, List[str]]:
 
 
 def discover_raw_test_files(test_dir: Path) -> List[str]:
+    """Fallback: scan all test_*.py files in test directory."""
     files = []
     for test_file in test_dir.rglob("test_*.py"):
         rel_path = test_file.relative_to(test_dir).as_posix()
         files.append(f"test/{rel_path}")
     return sorted(files)
+
+
+def get_tests_list_from_discover_tests(test_dir: Path) -> List[str]:
+    """
+    Get TESTS list from tools/testing/discover_tests.py (same as run_test.py --help).
+
+    This provides the official test list that run_test.py recognizes, which includes:
+    - Blocklisted patterns (e.g., "ao", "custom_backend", "fx", "jit")
+    - Blocklisted tests (specific test files to exclude)
+    - Extra tests (additional tests not discovered by file scanning)
+
+    Returns:
+        List of test paths with 'test/' prefix (e.g., 'test/test_autograd.py')
+    """
+    repo_root = test_dir.parent
+    discover_tests_path = repo_root / "tools" / "testing" / "discover_tests.py"
+
+    if not discover_tests_path.exists():
+        print(f"Warning: discover_tests.py not found at {discover_tests_path}, falling back to raw file scan")
+        return discover_raw_test_files(test_dir)
+
+    # Import TESTS list from discover_tests.py
+    # We need to temporarily add repo_root to sys.path
+    original_path = sys.path.copy()
+    sys.path.insert(0, str(repo_root))
+
+    try:
+        from tools.testing.discover_tests import TESTS
+
+        # TESTS list contains test names without 'test/' prefix and without '.py' suffix
+        # e.g., 'test_autograd', 'distributed/test_c10d'
+        # We need to convert to full paths with 'test/' prefix
+        tests_with_prefix = []
+        for test in TESTS:
+            if test.startswith("cpp/"):
+                # C++ tests - skip for now as we focus on Python tests
+                continue
+            # Add 'test/' prefix and '.py' suffix if not already present
+            if not test.startswith("test/"):
+                test_path = f"test/{test}"
+            else:
+                test_path = test
+            # Add '.py' suffix if it looks like a Python test file (not a directory)
+            if not test_path.endswith(".py") and "/" not in test_path:
+                test_path = f"{test_path}.py"
+            tests_with_prefix.append(test_path)
+
+        return sorted(tests_with_prefix)
+    except ImportError as e:
+        print(f"Warning: Failed to import TESTS from discover_tests.py: {e}, falling back to raw file scan")
+        return discover_raw_test_files(test_dir)
+    finally:
+        sys.path = original_path
 
 
 def path_matches_rule(test_path: str, rule: str) -> bool:
@@ -1018,7 +1084,14 @@ def main():
     if case_paths_file:
         info["path_rules_file"] = case_paths_file
 
-    raw_test_files = discover_raw_test_files(test_dir)
+    # Get test file list - use TESTS list from discover_tests.py (same as run_test.py --help)
+    # unless --use-raw-discovery is specified
+    if args.use_tests_list and not args.use_raw_discovery:
+        raw_test_files = get_tests_list_from_discover_tests(test_dir)
+        info["test_discovery_mode"] = "TESTS_list"
+    else:
+        raw_test_files = discover_raw_test_files(test_dir)
+        info["test_discovery_mode"] = "raw_file_scan"
 
     # First exclude crashed files to prevent process crashes
     if crashed_files_list:
@@ -1032,7 +1105,11 @@ def main():
     selected_test_files, excluded_test_files = apply_case_path_rules(raw_test_files, whitelist, blacklist)
     planned_tests = select_shard_files(selected_test_files, args.shard, args.num_shards)
 
-    info["total_files"] = len(discover_raw_test_files(test_dir))  # Original count before crashed exclusion
+    # Record original count based on discovery mode
+    if args.use_tests_list and not args.use_raw_discovery:
+        info["total_files"] = len(get_tests_list_from_discover_tests(test_dir))
+    else:
+        info["total_files"] = len(discover_raw_test_files(test_dir))
     info["selected_test_files"] = len(selected_test_files)
     info["path_filtered_out_files"] = len(excluded_test_files)
     info["excluded_test_files"] = len(excluded_test_files)
@@ -1048,17 +1125,18 @@ def main():
     print(f"Shard: {args.shard}/{args.num_shards}")
     print(f"Repository root: {repo_root}")
     print(f"Test directory: {test_dir}")
+    print(f"Test discovery mode: {info['test_discovery_mode']} (TESTS list from run_test.py)")
     print(f"Parallel workers (NUM_PARALLEL_PROCS): {args.parallel}")
     if crashed_config_file:
         print(f"Crashed files config: {crashed_config_file}")
         print(f"Crashed files excluded: {info['crashed_excluded_files']}")
     if case_paths_file:
         print(f"Case path rules: {case_paths_file}")
-    print(f"Discovered test files: {info['total_files']}")
+    print(f"Total test files (TESTS list): {info['total_files']}")
     print(f"After crashed exclusion: {len(raw_test_files)}")
-    print(f"Selected by path rules: {len(selected_test_files)}")
-    print(f"Path-filtered out: {len(excluded_test_files)}")
-    print(f"Tests in shard: {len(planned_tests)}")
+    print(f"Selected by path rules (whitelist): {len(selected_test_files)}")
+    print(f"Path-filtered out (blacklist): {len(excluded_test_files)}")
+    print(f"Tests in this shard: {len(planned_tests)}")
     print(f"Disabled testcase entries: {info['disabled_count']}")
     print(f"{'=' * 60}\n")
 

@@ -35,7 +35,8 @@ on:
 env:
   PYTHON_VERSION: '3.11'
   PYTORCH_VERSION: '2.7.1'
-  NUM_SHARDS: '100'  # Max 100 shards, contiguous range-based selection keeps same-directory tests together
+  NUM_SHARDS: '10'  # 10 shards for 8-card NPU machines, each shard runs 8 parallel workers
+  NUM_PARALLEL_PROCS: '8'  # 8 parallel workers per machine (one per NPU card)
   PREPARED_TEST_SRC_ARTIFACT: 'pytorch-test-src-v2.7.1-patched'
   TORCH_NPU_WHEEL_ARTIFACT: 'torch-npu-wheel-v2.7.1-source'
 
@@ -144,7 +145,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.shard_matrix) }}
       fail-fast: false
-      max-parallel: 100  # Run all shards concurrently
+      max-parallel: 10  # Run all 10 shards concurrently (10 machines with 8 NPU cards each)
 
     steps:
       - name: Checkout current repository (for test runner)
@@ -259,7 +260,12 @@ jobs:
           mkdir -p ${REPORT_DIR}
 
           # Script is in ascend_pytorch repository, prepared tests are in pytorch-test-src
-          # Using run_test.py for file-level parallel execution (default --parallel 2)
+          # Using run_test.py for file-level parallel execution
+          # Test selection uses:
+          # 1. TESTS list from run_test.py (--help output)
+          # 2. case_paths_ci.yml whitelist/blacklist for file-level filtering
+          # 3. disabled_testcases.json for item-level deselection
+          # CRASHED.yml is NOT used (excluded for now)
           set +e
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --shard ${{ matrix.shard }} \
@@ -267,10 +273,9 @@ jobs:
             --test-dir pytorch-test-src/test \
             --disabled-testcases pytorch-test-src/test_upsteam/disabled_testcases.json \
             --case-paths-config pytorch-test-src/test_upsteam/case_paths_ci.yml \
-            --crashed-files-config pytorch-test-src/test_upsteam/CRASHED.yml \
             --report-dir ${REPORT_DIR} \
             --timeout 600 \
-            --parallel 2 \
+            --parallel ${NUM_PARALLEL_PROCS} \
             2>&1 | tee /tmp/test_shard_${{ matrix.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
