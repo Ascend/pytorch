@@ -1022,9 +1022,13 @@ def build_excluded_pytest_command(
     else:
         command.append("-v")
 
-    # Add test files (strip 'test/' prefix since we're in test directory)
+    # Add test files (strip only 'test/' prefix, keep '.py' suffix for pytest)
+    # pytest needs actual file paths with .py extension
     for test in planned_tests:
-        test_stripped = strip_test_prefix(test)
+        if test.startswith("test/"):
+            test_stripped = test[5:]  # Remove only 'test/' prefix, keep '.py'
+        else:
+            test_stripped = test
         command.append(test_stripped)
 
     return command
