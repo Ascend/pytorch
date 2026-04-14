@@ -39,6 +39,8 @@ env:
   NUM_PARALLEL_PROCS: '8'  # 8 parallel workers per machine (one per NPU card)
   PREPARED_TEST_SRC_ARTIFACT: 'pytorch-test-src-v2.7.1-patched'
   TORCH_NPU_WHEEL_ARTIFACT: 'torch-npu-wheel-v2.7.1-source'
+  DOCKER_IMAGE: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331'
+  RUNNER_TYPE: 'linux-aarch64-a3-8'
 
 defaults:
   run:
@@ -341,7 +343,9 @@ jobs:
             --pytorch-version "${{ env.PYTORCH_VERSION }}" \
             --torch-npu-whl "${{ needs.build_torch_npu.outputs.wheel_name || 'source-build.whl' }}" \
             --patch-count "${{ needs.prepare.outputs.patch_count || 'N/A' }}" \
-            --shard-matrix-json '${{ needs.prepare.outputs.shard_matrix }}'
+            --shard-matrix-json '${{ needs.prepare.outputs.shard_matrix }}' \
+            --docker-image "${{ env.DOCKER_IMAGE }}" \
+            --runner "${{ env.RUNNER_TYPE }}"
 
           cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
 

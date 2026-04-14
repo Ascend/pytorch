@@ -20,6 +20,8 @@ def parse_args():
     parser.add_argument("--torch-npu-whl", required=True, help="torch_npu wheel URL")
     parser.add_argument("--patch-count", default="N/A", help="Applied patch count")
     parser.add_argument("--shard-matrix-json", required=True, help="JSON array of requested shard ids")
+    parser.add_argument("--docker-image", default="N/A", help="Docker image used for test execution")
+    parser.add_argument("--runner", default="N/A", help="Runner machine type")
     parser.add_argument("--special-reports-root", help="Root directory containing special test report files")
     parser.add_argument("--expected-special-tests-json", default="[]", help="JSON array of expected special test names")
     return parser.parse_args()
@@ -788,6 +790,8 @@ def main():
         ["PyTorch", f"`v{args.pytorch_version}`"],
         ["torch_npu", f"`{whl_name}`"],
         ["Patches applied", str(args.patch_count)],
+        ["Docker image", f"`{args.docker_image}`"],
+        ["Runner", f"`{args.runner}`"],
         ["Shards", f"{received_reports} / {expected_reports} reported"],
         [
             "Selection",
@@ -808,7 +812,7 @@ def main():
         ["Duration", format_duration(totals["duration"])],
     ]
     if include_selected_entries:
-        overview_rows.insert(6, ["Selected test entries", str(totals["selected_test_entries"])])
+        overview_rows.insert(9, ["Selected test entries", str(totals["selected_test_entries"])])
     if include_special_tests:
         overview_rows.append(["Special tests expected", str(len(special_test_names))])
 
@@ -886,6 +890,8 @@ def main():
         "patch_count": args.patch_count,
         "pytorch_version": args.pytorch_version,
         "torch_npu_whl": whl_name,
+        "docker_image": args.docker_image,
+        "runner": args.runner,
         "status_counts": dict(status_counts),
         "totals": totals,
         "execution_scope": {
