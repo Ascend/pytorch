@@ -283,7 +283,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-reports-shard-${{ matrix.shard }}
-          path: test-reports/
+          path: |
+            test-reports/
+            pytorch-test-src/test/test-reports/
           retention-days: 30
 
       - name: Upload logs

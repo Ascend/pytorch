@@ -96,30 +96,102 @@ def parse_testsuite_element(testsuite: ET.Element) -> Optional[Dict]:
         return None
 
 
-def aggregate_testsuite_stats_for_shard(reports_root: Path, shard: int) -> List[Dict]:
+def extract_test_identifier(test_path: str) -> str:
+    """
+    Extract a test identifier from a test file path.
+
+    Converts paths like:
+    - "test/distributed/_composable/fsdp/test_fully_shard_autograd.py"
+    To:
+    - "distributed._composable.fsdp.test_fully_shard_autograd"
+
+    This matches the testsuite naming convention used by pytest/run_test.py.
+    """
+    # Remove 'test/' prefix if present
+    path = test_path
+    if path.startswith("test/"):
+        path = path[5:]
+    # Remove '.py' suffix
+    if path.endswith(".py"):
+        path = path[:-3]
+    # Convert path separators to dots
+    path = path.replace("/", ".").replace("\\", ".")
+    return path
+
+
+def aggregate_testsuite_stats_for_shard(reports_root: Path, shard: int, planned_files: List[str]) -> List[Dict]:
     """
     Aggregate all testsuite statistics for a specific shard.
 
-    Scans for XML files matching the shard pattern and extracts
-    per-test-file statistics.
+    Scans for ALL XML files in the reports directory and extracts
+    per-test-file statistics. Filters results to only include testsuites
+    that match the shard's planned test files.
+
+    Args:
+        reports_root: Root directory containing all merged report files
+        shard: Shard number to aggregate for
+        planned_files: List of test file paths planned for this shard
+                      (from shard_X_planned_test_files.txt)
+
+    Returns:
+        List of testsuite statistics for tests belonging to this shard
     """
     all_testsuites = []
 
-    # Look for XML files in the reports directory
-    for xml_path in reports_root.rglob(f"shard_{shard}_pytest.xml"):
+    # Build set of test identifiers from planned files
+    planned_identifiers = set()
+    for planned in planned_files:
+        identifier = extract_test_identifier(planned)
+        if identifier:
+            planned_identifiers.add(identifier)
+
+    # Also include just the test file names for simpler matching
+    planned_test_names = set()
+    for planned in planned_files:
+        name = Path(planned).name.replace(".py", "")
+        planned_test_names.add(name)
+
+    # Look for shard-specific pytest XML files (Phase 2 unrecognized tests)
+    for xml_path in reports_root.rglob(f"shard_{shard}_pytest*.xml"):
         testsuites = parse_junit_xml_testsuites(xml_path)
         all_testsuites.extend(testsuites)
 
-    # Also look for any other XML files that might contain shard results
-    for xml_path in reports_root.rglob("*.xml"):
-        if f"shard_{shard}" in xml_path.name or f"test_shard_{shard}" in xml_path.name:
-            testsuites = parse_junit_xml_testsuites(xml_path)
-            all_testsuites.extend(testsuites)
+    # Look for ALL XML files anywhere in the reports (Phase 1 run_test.py output)
+    for xml_path in reports_root.rglob("**/*.xml"):
+        # Skip shard-specific files (already processed above)
+        if xml_path.name.startswith(f"shard_{shard}"):
+            continue
+        testsuites = parse_junit_xml_testsuites(xml_path)
+        for ts in testsuites:
+            ts_name = ts.get("name", "")
+            # Match testsuite name against planned identifiers
+            matched = False
+            for identifier in planned_identifiers:
+                if identifier in ts_name or ts_name == identifier:
+                    matched = True
+                    break
+            if not matched:
+                # Also try simpler name matching
+                for test_name in planned_test_names:
+                    if test_name in ts_name:
+                        matched = True
+                        break
+            if matched:
+                all_testsuites.append(ts)
+
+    # Deduplicate by name
+    seen_names = set()
+    unique_testsuites = []
+    for ts in all_testsuites:
+        name = ts.get("name", "")
+        if name not in seen_names:
+            seen_names.add(name)
+            unique_testsuites.append(ts)
 
     # Sort by name for consistent output
-    all_testsuites.sort(key=lambda x: x["name"])
+    unique_testsuites.sort(key=lambda x: x["name"])
 
-    return all_testsuites
+    return unique_testsuites
 
 
 def parse_requested_shards(raw: str) -> List[int]:
@@ -444,7 +516,6 @@ def main():
         plan_path = plan_files.get(shard)
         excluded_path = excluded_files.get(shard)
         unhandled_path = unhandled_files.get(shard)
-        xml_path = xml_files.get(shard)
         stats = load_json_file(stats_path) if stats_path else {}
         info = load_json_file(info_path) if info_path else {}
         selected_test_entries = get_selected_test_entries(info)
@@ -456,8 +527,10 @@ def main():
         unhandled_tests = load_text_lines(unhandled_path) if unhandled_path else []
         present = bool(stats_path)
 
-        # Parse XML to get per-test-file statistics
-        testsuite_stats = parse_junit_xml_testsuites(xml_path) if xml_path else []
+        # Parse ALL XML files to get per-test-file statistics
+        # This includes Phase 1 (run_test.py) and Phase 2 (pytest fallback) results
+        # Filter by planned test files to ensure we only include tests for this shard
+        testsuite_stats = aggregate_testsuite_stats_for_shard(reports_root, shard, planned_files)
 
         unique_planned_files.update(planned_files)
         unique_excluded_files.update(excluded_test_files)
