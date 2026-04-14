@@ -217,7 +217,7 @@ def get_tests_list_from_discover_tests(test_dir: Path) -> List[str]:
     - Extra tests (additional tests not discovered by file scanning)
 
     Returns:
-        List of test paths with 'test/' prefix (e.g., 'test/test_autograd.py')
+        List of test paths with 'test/' prefix and '.py' suffix (e.g., 'test/test_autograd.py')
     """
     repo_root = test_dir.parent
     discover_tests_path = repo_root / "tools" / "testing" / "discover_tests.py"
@@ -236,19 +236,21 @@ def get_tests_list_from_discover_tests(test_dir: Path) -> List[str]:
 
         # TESTS list contains test names without 'test/' prefix and without '.py' suffix
         # e.g., 'test_autograd', 'distributed/test_c10d'
-        # We need to convert to full paths with 'test/' prefix
+        # We need to convert to full paths with 'test/' prefix and '.py' suffix
         tests_with_prefix = []
         for test in TESTS:
             if test.startswith("cpp/"):
                 # C++ tests - skip for now as we focus on Python tests
                 continue
-            # Add 'test/' prefix and '.py' suffix if not already present
+            # Add 'test/' prefix if not already present
             if not test.startswith("test/"):
                 test_path = f"test/{test}"
             else:
                 test_path = test
-            # Add '.py' suffix if it looks like a Python test file (not a directory)
-            if not test_path.endswith(".py") and "/" not in test_path:
+            # Add '.py' suffix for all Python test files (they all end with test_*)
+            # Check if it's a directory-like entry (no test_ prefix in the last component)
+            last_component = test.split("/")[-1]
+            if not test_path.endswith(".py") and last_component.startswith("test_"):
                 test_path = f"{test_path}.py"
             tests_with_prefix.append(test_path)
 
