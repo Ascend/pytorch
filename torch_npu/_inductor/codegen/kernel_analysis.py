@@ -323,11 +323,18 @@ class ReductionAnalysis:
 
     def dense_size_str(self):
         sizes = self.dense_size_list()
-        if self.numof_reduction_axis() > 1:
-            if self.contiguous_reduction:
-                return f"[{', '.join(self.dense_post_reduction_list())}]"
-            return f"[{'* '.join(sizes)}]"
-        return f"[{', '.join(sizes)}]"
+        num_red = self.numof_reduction_axis()
+        is_contig = self.contiguous_reduction
+        
+        if num_red > 1:
+            if is_contig:
+                result = f"[{', '.join(self.dense_post_reduction_list())}]"
+            else:
+                result = f"[{'* '.join(sizes)}]"
+        else:
+            result = f"[{', '.join(sizes)}]"
+        
+        return result
 
     def numof_reduction_axis(self):
         return self.kernel.numof_reduction_axis()
