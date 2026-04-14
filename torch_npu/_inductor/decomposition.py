@@ -17,8 +17,6 @@ DECOMPOSITION_OVERLOAD_OP = [
     aten.embedding_dense_backward,
     aten.addmm,
     aten.gelu,
-    aten.native_dropout,
-    aten.native_dropout_backward
 ]
 
 
@@ -39,25 +37,3 @@ def _register_npu_inductor_decompositons():
     def erfc(x):
         tensor = torch.ones_like(x) - torch.exp(x)
         return tensor
-
-    @register_decomposition(aten.native_dropout)
-    @out_wrapper("out0", "out1")
-    def native_dropout(tensor_input, p, train):
-        if torch._inductor.config.fallback_random:
-            if train and p != 0:
-                return torch.ops.npu._npu_dropout(tensor_input, p)
-            return (tensor_input, torch.ones_like(tensor_input, dtype=torch.bool))
-        else:
-            from torch._decomp.decompositions import native_dropout
-            return native_dropout(tensor_input, p, train)
-
-    @register_decomposition(aten.native_dropout_backward)
-    @out_wrapper()
-    def native_dropout_backward(grad_output, mask, scale):
-        if torch._inductor.config.fallback_random:
-            p = 1 if scale == 0 else (1 - 1 / scale)
-            r = torch.ops.npu.npu_dropout_backward(grad_output, mask, p)
-            return r
-        else:
-            from torch._decomp.decompositions import native_dropout_backward
-            return native_dropout_backward(grad_output, mask, scale)

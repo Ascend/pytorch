@@ -99,15 +99,3 @@ def npu_patch_meta():
         op_overload.py_impl(DispatchKey.Meta)(fn)
 
     patch_torch_decomp_decompositions()
-
-
-@register_meta_npu(aten.native_dropout)
-def meta_native_dropout(tensor_input: Tensor, p: float, train: Optional[bool]):
-    if train and p != 0:
-        sizes_1 = tensor_input.shape
-        numel = reduce(operator.mul, sizes_1)
-        numel = (numel + 128 - 1) // 128 * 128
-        numel = numel // 8
-        return (torch.empty_like(tensor_input), torch.empty(numel, dtype=torch.uint8, device=tensor_input.device))
-    else:
-        return (tensor_input, torch.ones_like(tensor_input, dtype=torch.bool))
