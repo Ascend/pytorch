@@ -14,7 +14,7 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     _check_tensor_list, _coalescing_manager, _ensure_all_tensors_same_dtype, get_rank, _rank_not_in_group, \
     _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size, \
     _get_object_coll_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend, \
-    get_backend, GatherOptions, _update_default_pg, _world, _unregister_all_process_groups, _pg_map, \
+    get_backend, GatherOptions, _update_default_pg, _unregister_all_process_groups, \
     ProcessGroup, default_pg_timeout, ReduceScatterOptions, _unregister_process_group, _check_valid_timeout, \
     _find_pg_by_ranks_and_tag, is_initialized, _get_split_source, BackendConfig, is_mpi_available, is_gloo_available, \
     is_nccl_available, is_ucc_available, is_xccl_available, get_debug_level, DebugLevel, _process_group_color, \
@@ -259,20 +259,20 @@ def is_hccl_available():
 
 
 def _clear_pg_cache_in_torch(group: ProcessGroup):
-    if _world.pg_map.get(group) is not None:
-        del _world.pg_map[group]
-    if _world.pg_names.get(group) is not None:
-        del _world.pg_names[group]
-    if _world.pg_group_ranks.get(group) is not None:
-        del _world.pg_group_ranks[group]
-    if _world.pg_backend_config.get(group) is not None:
-        del _world.pg_backend_config[group]
-    if _world.pg_to_tag.get(group) is not None:
-        del _world.pg_to_tag[group]
-    tags_list = [key for key, value in _world.tags_to_pg.items() if group in value]
+    if dist_c10d._world.pg_map.get(group) is not None:
+        del dist_c10d._world.pg_map[group]
+    if dist_c10d._world.pg_names.get(group) is not None:
+        del dist_c10d._world.pg_names[group]
+    if dist_c10d._world.pg_group_ranks.get(group) is not None:
+        del dist_c10d._world.pg_group_ranks[group]
+    if dist_c10d._world.pg_backend_config.get(group) is not None:
+        del dist_c10d._world.pg_backend_config[group]
+    if dist_c10d._world.pg_to_tag.get(group) is not None:
+        del dist_c10d._world.pg_to_tag[group]
+    tags_list = [key for key, value in dist_c10d._world.tags_to_pg.items() if group in value]
     if len(tags_list) > 0:
         for tag in tags_list:
-            del _world.tags_to_pg[tag]
+            del dist_c10d._world.tags_to_pg[tag]
     _unregister_process_group(group.group_name)
 
 
@@ -280,16 +280,16 @@ def reinit_process_group(group=None, rebuild_link=True):
     device_id = torch.npu.current_device()
     logger.info(f"reinit process group, group={group}, rebuild link={rebuild_link}, device={device_id}")
     if group is None:
-        group = _world.default_pg
+        group = dist_c10d._world.default_pg
     if not rebuild_link:
         npu_device = torch.device('npu')
-        for pg in _pg_map:
+        for pg in dist_c10d._pg_map:
             if (npu_device in pg._device_types):
                 pg._get_backend(npu_device).resume_hccl_comm(device_id)
         logger.info(f"resume hccl comm end, device_id={device_id}")
         return None
     else:
-        backend = dist_c10d.Backend(_world.pg_map[group][0])
+        backend = dist_c10d.Backend(dist_c10d._world.pg_map[group][0])
         if 'hccl' in backend:
             logger.info(f"reinit hccl comm start, group={group}, device_id={device_id}")
             group._get_backend(torch.device('npu'))._delete_tcpstore_key()
@@ -303,7 +303,7 @@ def _comm_switch_nic(ranks, useBackup):
     npu_device = torch.device('npu')
     rankid = int(os.environ['RANK'])
     result = True
-    for pg in _pg_map:
+    for pg in dist_c10d._pg_map:
         if (npu_device in pg._device_types):
             presult = pg._get_backend(npu_device)._set_switch_nic_comm(rankid, nRanks, ranks, useBackup)
             if not presult:
@@ -391,15 +391,15 @@ def _trigger_rendezvous_decorator(func):
 
 def _destructor_process_group():
     _update_default_pg(None)
-    _world.pg_map.clear()
-    _world.pg_names.clear()
-    _world.pg_group_ranks.clear()
-    _world.pg_backend_config.clear()
-    _world.pg_to_tag.clear()
-    _world.tags_to_pg.clear()
-    _world.pg_coalesce_state.clear()
+    dist_c10d._world.pg_map.clear()
+    dist_c10d._world.pg_names.clear()
+    dist_c10d._world.pg_group_ranks.clear()
+    dist_c10d._world.pg_backend_config.clear()
+    dist_c10d._world.pg_to_tag.clear()
+    dist_c10d._world.tags_to_pg.clear()
+    dist_c10d._world.pg_coalesce_state.clear()
     _unregister_all_process_groups()
-    _world.group_count = 0
+    dist_c10d._world.group_count = 0
 
 
 def _hccl_get_sequence_number_for_group(self):
@@ -432,9 +432,8 @@ def _patched_new_process_group_helper(
 
     This function is called with ``global_ranks_in_group == []`` for the default group.
     """
-    global _world
 
-    if group_name in _world.pg_names.values():
+    if group_name in dist_c10d._world.pg_names.values():
         raise ValueError(
             "The specified group name has already been "
             "created, please use a different group name"
@@ -452,7 +451,7 @@ def _patched_new_process_group_helper(
         # creating with the same tag and rank set results in the same underlying PG
         existing_group = _find_pg_by_ranks_and_tag(pg_tag, global_ranks_in_group)
         if existing_group:
-            _, prefix_store = _world.pg_map[existing_group]
+            _, prefix_store = dist_c10d._world.pg_map[existing_group]
             return existing_group, prefix_store
 
     group_desc = "undefined" if group_desc is None else group_desc
@@ -688,20 +687,20 @@ def _patched_new_process_group_helper(
         eager_backend.eager_connect_single_device(device_id)
 
     # update global state
-    _world.pg_map[pg] = (backend, prefix_store)
-    _world.pg_names[pg] = group_name
+    dist_c10d._world.pg_map[pg] = (backend, prefix_store)
+    dist_c10d._world.pg_names[pg] = group_name
     _register_process_group(group_name, pg)
 
-    _world.pg_backend_config[pg] = str(backend_config)
+    dist_c10d._world.pg_backend_config[pg] = str(backend_config)
     # "" is the default tag for user PGs
     if pg_tag in [None, ""]:
         pg_tag = f"ptd:{group_name}"
-        _world.tags_to_pg.setdefault("", []).append(pg)
+        dist_c10d._world.tags_to_pg.setdefault("", []).append(pg)
     else:
         pg_tag = f"user:{pg_tag}"
 
-    _world.tags_to_pg.setdefault(pg_tag, []).append(pg)
-    _world.pg_to_tag[pg] = pg_tag
+    dist_c10d._world.tags_to_pg.setdefault(pg_tag, []).append(pg)
+    dist_c10d._world.pg_to_tag[pg] = pg_tag
     return pg, prefix_store
 
 torch.distributed.distributed_c10d._new_process_group_helper = _patched_new_process_group_helper
