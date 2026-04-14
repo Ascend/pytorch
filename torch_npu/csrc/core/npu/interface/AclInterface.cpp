@@ -213,7 +213,7 @@ aclError AclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uin
             TORCH_CHECK(AclrtSetStreamOverflowSwitch(*stream, 1) == ACL_SUCCESS, "SET StreamOverflowSwitch Failed.", PROF_ERROR(ErrCode::ACL));
         }
         const char* mode = std::getenv("TORCHINDUCTOR_NPU_BACKEND");
-        if (mode != nullptr && std::strcmp(mode, "mlir") == 0) {
+        if (mode != nullptr && (std::strcmp(mode, "mlir") == 0 || std::strcmp(mode, "default") == 0)) {
             return AclrtSetStreamFailureMode(*stream, ACL_CONTINUE_ON_FAILURE);
         }
         return AclrtSetStreamFailureMode(*stream, ACL_STOP_ON_FAILURE);
