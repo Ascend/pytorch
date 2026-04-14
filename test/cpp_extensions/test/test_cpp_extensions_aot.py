@@ -15,11 +15,11 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 try:
     import torch_test_cpp_extension.npu as npu_extension
+    import torch_test_cpp_extension.npu_from_blob as from_blob_ext
 except ImportError as e:
     raise RuntimeError(
         "test_cpp_extensions_aot.py cannot be invoked directly. Run "
         "`python run_cpp_test.py` instead.") from e
-
 
 class TestCppExtensionAOT(TestCase):
     """Tests ahead-of-time cpp extensions
@@ -39,22 +39,6 @@ class TestCppExtensionAOT(TestCase):
         npu_z = npu_extension.npu_add(x.npu(), y.npu())
         self.assertEqual(npu_z.cpu(), (x + y))
 
-    def test_storage_sizes(self):
-        t = torch_npu.npu_format_cast(torch.ones(128, 512, dtype=torch.int8).npu(), 29)
-        self.assertTrue(npu_extension.check_storage_sizes(t, (16, 8, 16, 32)))
-        t = torch_npu.npu_format_cast(torch.ones(31, 127, 511, dtype=torch.int8).npu(), 29)
-        self.assertTrue(npu_extension.check_storage_sizes(t, (31, 16, 8, 16, 32)))
-        t = torch_npu.npu_format_cast(torch.ones(128, 512, dtype=torch.float16).npu(), 29)
-        self.assertTrue(npu_extension.check_storage_sizes(t, (32, 8, 16, 16)))
-        # float32 will cast to float16 before calculate
-        t = torch_npu.npu_format_cast(torch.ones(128, 512, dtype=torch.float32).npu(), 29)
-        self.assertTrue(npu_extension.check_storage_sizes(t, (32, 8, 16, 16)))
-
-    def test_from_blob(self):
-        self.assertTrue(npu_extension.check_from_blob())
-        self.assertTrue(npu_extension.check_from_blob_strides())
-        self.assertTrue(npu_extension.check_from_blob_delete())
-
     def test_dispatch_allreduce(self):
         flags = os.O_WRONLY | os.O_RDONLY | os.O_CREAT
         modes = stat.S_IWUSR | stat.S_IRUSR
@@ -65,7 +49,7 @@ class TestCppExtensionAOT(TestCase):
             cmd = ["torchrun", "--nproc-per-node=1", code_file]
             p = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=f)
             p.wait()
-        
+
         timeout = 0
         with open(log_pth, 'r', encoding='utf-8') as f:
             tmp = f.readlines()
@@ -207,6 +191,35 @@ class TestCppExtensionAOT(TestCase):
         os.remove(dump_pth)
         os.remove(dump_pth + "_py_traceback")
 
+class TestFromBlob(TestCase):
+    """Tests for at_npu::native::from_blob interface"""
+
+    def test_from_blob_basic(self):
+        self.assertTrue(from_blob_ext.test_from_blob_basic())
+
+    def test_from_blob_deleter(self):
+        self.assertTrue(from_blob_ext.test_from_blob_deleter())
+
+    def test_from_blob_strides(self):
+        self.assertTrue(from_blob_ext.test_from_blob_strides())
+
+    def test_from_blob_storage_offset(self):
+        self.assertTrue(from_blob_ext.test_from_blob_storage_offset())
+
+    def test_from_blob_storage_offset_2d(self):
+        self.assertTrue(from_blob_ext.test_from_blob_storage_offset_2d())
+
+    def test_from_blob_storage_offset_dtype(self):
+        self.assertTrue(from_blob_ext.test_from_blob_storage_offset_dtype())
+
+    def test_from_blob_storage_offset_contiguous(self):
+        self.assertTrue(from_blob_ext.test_from_blob_storage_offset_contiguous())
+
+    def test_from_blob_non_owning(self):
+        self.assertTrue(from_blob_ext.test_from_blob_non_owning())
+
+    def test_from_blob_clone(self):
+        self.assertTrue(from_blob_ext.test_from_blob_clone())
 
 if __name__ == "__main__":
     run_tests()
