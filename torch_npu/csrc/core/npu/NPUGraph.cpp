@@ -280,7 +280,13 @@ void NPUGraph::replay()
     }
 
     // model_ri_ may be replayed in any stream.
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIExecuteAsync(model_ri_, c10_npu::getCurrentNPUStream()));
+    auto stream = c10_npu::getCurrentNPUStream();
+    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIExecuteAsync(model_ri_, stream));
+    // With ASCEND_LAUNCH_BLOCKING enabled, after an aclgraph replay completes,
+    // we need to add an explicit synchronization step.
+    if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+    }
 }
 
 void NPUGraph::enable_debug_mode()
