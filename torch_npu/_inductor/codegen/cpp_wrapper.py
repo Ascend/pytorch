@@ -3,6 +3,7 @@ import os
 import sys
 from itertools import chain, count, zip_longest
 from typing import Any, Optional, TYPE_CHECKING, Union
+
 from typing_extensions import Self
 import sympy
 import torch
@@ -17,6 +18,7 @@ from torch._inductor.ir import IRNode, TensorBox, GraphPartitionSignature
 from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu, DeferredTritonCallWrapper, UnwrapUnspecArg
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg
 from torch._inductor.ir import GraphPartitionSignature
+from torch._inductor.runtime import triton_heuristics
 from torch._inductor.runtime.runtime_utils import dynamo_timed
 from torch._inductor.utils import IndentedBuffer
 from torch._inductor.virtualized import V
@@ -30,6 +32,10 @@ from ..utils import triton_support_ffts, NPU_ALIGN_BYTES
 if TYPE_CHECKING:
     from torch._inductor.graph import GraphLowering
 
+# follow triton-ascend implement
+DTYPE_TO_CPP[torch.bool] = "int32_t"
+DTYPE_TO_CPP[torch.float16] = "float"
+DTYPE_TO_CPP[torch.bfloat16] = "float"
 
 @dataclasses.dataclass
 class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
@@ -386,6 +392,9 @@ class CppWrapperNpu(CppWrapperGpu):
             "i16": "int16_t",
             "i32": "int32_t",
             "i64": "int64_t",
+            "u1": "uint32_t",
+            "u8": "uint8_t",
+            "u16": "uint16_t",
             "u32": "uint32_t",
             "u64": "uint64_t",
             "fp16": "float",
@@ -405,7 +414,7 @@ class CppWrapperNpu(CppWrapperGpu):
             # ignore nvTmaDesc, as host-side TMA descriptors need
             # to be passed to the compiled Triton kernel by value
             if isinstance(arg_type, UnwrapUnspecArg) and arg_signature != "nvTmaDesc":
-                self.codegen_tensor_item_npu(
+                struct_data, arg_data = self.codegen_tensor_item_npu(
                     arg_type.dtype,
                     arg,
                     var_name,
@@ -421,9 +430,9 @@ class CppWrapperNpu(CppWrapperGpu):
                 struct_data = f"void* {var_name} __attribute__((aligned(8)));"
                 arg_data = f"static_cast<void*>({var_name})"
             elif arg_type in (sympy.Integer, int):
-                code.writeline(f"int64_t {var_name} = {cexpr(arg)};")
-                struct_data = f"int64_t {var_name} __attribute__((aligned(8)));"
-                arg_data = f"static_cast<int64_t>({var_name})"
+                code.writeline(f"int32_t {var_name} = {cexpr(arg)};")
+                struct_data = f"int32_t {var_name} __attribute__((aligned(4)));"
+                arg_data = f"static_cast<int32_t>({var_name})"
             elif arg_type in (sympy.Float, float):
                 code.writeline(f"float {var_name} = {cexpr(arg)};")
                 struct_data = f"float {var_name} __attribute__((aligned(4)));"
