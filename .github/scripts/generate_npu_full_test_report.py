@@ -123,20 +123,26 @@ def aggregate_testsuite_stats_for_shard(reports_root: Path, shard: int, planned_
     """
     Aggregate all testsuite statistics for a specific shard.
 
-    Scans for ALL XML files in the reports directory and extracts
-    per-test-file statistics. Filters results to only include testsuites
-    that match the shard's planned test files.
+    Phase 1 XMLs (run_test.py output):
+    - Located in pytorch-test-src/test/test-reports/python-pytest/{test_identifier}/
+    - Multiple XML files per test (one per worker due to parallel execution)
+    - testsuite name is "pytest" (generic), so we use directory name as identifier
+    - Aggregate stats across all XML files in the same directory
+
+    Phase 2 XMLs (pytest fallback for unrecognized tests):
+    - Located as shard_*_pytest*.xml in test-reports/
+    - testsuite name is "pytest", use testcase file attribute to identify test file
 
     Args:
         reports_root: Root directory containing all merged report files
         shard: Shard number to aggregate for
         planned_files: List of test file paths planned for this shard
-                      (from shard_X_planned_test_files.txt)
 
     Returns:
         List of testsuite statistics for tests belonging to this shard
     """
-    all_testsuites = []
+    all_testsuites = {}
+    # Map from test identifier -> aggregated stats
 
     # Build set of test identifiers from planned files
     planned_identifiers = set()
@@ -151,47 +157,161 @@ def aggregate_testsuite_stats_for_shard(reports_root: Path, shard: int, planned_
         name = Path(planned).name.replace(".py", "")
         planned_test_names.add(name)
 
-    # Look for shard-specific pytest XML files (Phase 2 unrecognized tests)
-    for xml_path in reports_root.rglob(f"shard_{shard}_pytest*.xml"):
-        testsuites = parse_junit_xml_testsuites(xml_path)
-        all_testsuites.extend(testsuites)
-
-    # Look for ALL XML files anywhere in the reports (Phase 1 run_test.py output)
-    for xml_path in reports_root.rglob("**/*.xml"):
-        # Skip shard-specific files (already processed above)
-        if xml_path.name.startswith(f"shard_{shard}"):
-            continue
-        testsuites = parse_junit_xml_testsuites(xml_path)
-        for ts in testsuites:
-            ts_name = ts.get("name", "")
-            # Match testsuite name against planned identifiers
+    # Phase 1: Process run_test.py output XMLs in nested directories
+    # Structure: pytorch-test-src/test/test-reports/python-pytest/{test_identifier}/{test_identifier}-{hash}.xml
+    phase1_pattern = "pytorch-test-src/test/test-reports/python-pytest"
+    phase1_base = reports_root / phase1_pattern
+    if phase1_base.exists():
+        for test_dir in phase1_base.iterdir():
+            if not test_dir.is_dir():
+                continue
+            # Directory name is the test identifier (e.g., "distributed._composable.fsdp.test_fully_shard_clip_grad_norm_")
+            test_identifier = test_dir.name
+            # Check if this test belongs to this shard's planned files
             matched = False
-            for identifier in planned_identifiers:
-                if identifier in ts_name or ts_name == identifier:
+            for planned_id in planned_identifiers:
+                if test_identifier == planned_id or test_identifier.startswith(planned_id) or planned_id.startswith(test_identifier):
                     matched = True
                     break
             if not matched:
-                # Also try simpler name matching
                 for test_name in planned_test_names:
-                    if test_name in ts_name:
+                    if test_identifier.endswith(test_name) or test_name in test_identifier:
                         matched = True
                         break
-            if matched:
-                all_testsuites.append(ts)
+            if not matched:
+                continue
 
-    # Deduplicate by name
-    seen_names = set()
-    unique_testsuites = []
-    for ts in all_testsuites:
-        name = ts.get("name", "")
-        if name not in seen_names:
-            seen_names.add(name)
-            unique_testsuites.append(ts)
+            # Aggregate stats from all XML files in this directory
+            aggregated = {
+                "name": test_identifier,
+                "tests": 0,
+                "passed": 0,
+                "failures": 0,
+                "errors": 0,
+                "skipped": 0,
+                "time": 0.0,
+            }
+            for xml_file in test_dir.glob("*.xml"):
+                testsuites = parse_junit_xml_testsuites(xml_file)
+                for ts in testsuites:
+                    aggregated["tests"] += ts.get("tests", 0)
+                    aggregated["passed"] += ts.get("passed", 0)
+                    aggregated["failures"] += ts.get("failures", 0)
+                    aggregated["errors"] += ts.get("errors", 0)
+                    aggregated["skipped"] += ts.get("skipped", 0)
+                    aggregated["time"] += ts.get("time", 0.0)
 
-    # Sort by name for consistent output
-    unique_testsuites.sort(key=lambda x: x["name"])
+            if aggregated["tests"] > 0:
+                all_testsuites[test_identifier] = aggregated
 
-    return unique_testsuites
+    # Phase 2: Process pytest fallback XML files (unrecognized tests)
+    for xml_path in reports_root.rglob(f"shard_{shard}_pytest*.xml"):
+        testsuites = parse_junit_xml_testsuites(xml_path)
+        for ts in testsuites:
+            # For Phase 2, testsuite name is "pytest" - use testcase file attribute
+            # Parse testcases to identify test files
+            test_file_stats = aggregate_testcases_by_file(xml_path, planned_identifiers, planned_test_names)
+            for test_id, stats in test_file_stats.items():
+                if test_id in all_testsuites:
+                    # Merge with existing stats
+                    existing = all_testsuites[test_id]
+                    existing["tests"] += stats["tests"]
+                    existing["passed"] += stats["passed"]
+                    existing["failures"] += stats["failures"]
+                    existing["errors"] += stats["errors"]
+                    existing["skipped"] += stats["skipped"]
+                    existing["time"] += stats["time"]
+                else:
+                    all_testsuites[test_id] = stats
+
+    # Convert to list and sort by name
+    result = list(all_testsuites.values())
+    result.sort(key=lambda x: x["name"])
+
+    return result
+
+
+def aggregate_testcases_by_file(xml_path: Path, planned_identifiers: set, planned_test_names: set) -> Dict[str, Dict]:
+    """
+    Parse XML file and aggregate testcase statistics by file attribute.
+
+    Used for Phase 2 XMLs where testsuite name is generic "pytest".
+    """
+    result = {}
+
+    try:
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+
+        # Find all testcase elements
+        testcases = root.findall(".//testcase")
+
+        for testcase in testcases:
+            file_attr = testcase.get("file", "")
+            if not file_attr:
+                continue
+
+            # Extract test identifier from file attribute
+            # e.g., "distributed/_composable/fsdp/test_fully_shard_clip_grad_norm_.py"
+            test_identifier = extract_test_identifier("test/" + file_attr) if not file_attr.startswith("test/") else extract_test_identifier(file_attr)
+
+            # Check if this test belongs to planned files
+            matched = False
+            for planned_id in planned_identifiers:
+                if test_identifier == planned_id or test_identifier.startswith(planned_id) or planned_id.startswith(test_identifier):
+                    matched = True
+                    break
+            if not matched:
+                for test_name in planned_test_names:
+                    if test_identifier.endswith(test_name) or test_name in test_identifier:
+                        matched = True
+                        break
+            if not matched:
+                continue
+
+            # Initialize stats for this test file
+            if test_identifier not in result:
+                result[test_identifier] = {
+                    "name": test_identifier,
+                    "tests": 0,
+                    "passed": 0,
+                    "failures": 0,
+                    "errors": 0,
+                    "skipped": 0,
+                    "time": 0.0,
+                }
+
+            # Count testcase
+            stats = result[test_identifier]
+            stats["tests"] += 1
+
+            # Determine outcome
+            failure = testcase.find("failure")
+            error = testcase.find("error")
+            skipped = testcase.find("skipped")
+
+            if failure is not None:
+                stats["failures"] += 1
+            elif error is not None:
+                stats["errors"] += 1
+            elif skipped is not None:
+                stats["skipped"] += 1
+            else:
+                stats["passed"] += 1
+
+            # Add time
+            time_str = testcase.get("time", "0")
+            try:
+                stats["time"] += float(time_str)
+            except ValueError:
+                pass
+
+    except ET.ParseError as e:
+        print(f"Warning: Failed to parse XML {xml_path}: {e}")
+    except Exception as e:
+        print(f"Warning: Error reading XML {xml_path}: {e}")
+
+    return result
 
 
 def parse_requested_shards(raw: str) -> List[int]:
@@ -531,6 +651,36 @@ def main():
         # This includes Phase 1 (run_test.py) and Phase 2 (pytest fallback) results
         # Filter by planned test files to ensure we only include tests for this shard
         testsuite_stats = aggregate_testsuite_stats_for_shard(reports_root, shard, planned_files)
+
+        # If testsuite_stats has entries, aggregate their totals and override incomplete status
+        has_phase1_xmls = len(testsuite_stats) > 0
+        if has_phase1_xmls:
+            # Aggregate stats from Phase 1 XMLs
+            xml_totals = {
+                "tests": 0,
+                "passed": 0,
+                "failures": 0,
+                "errors": 0,
+                "skipped": 0,
+                "time": 0.0,
+            }
+            for ts in testsuite_stats:
+                xml_totals["tests"] += ts.get("tests", 0)
+                xml_totals["passed"] += ts.get("passed", 0)
+                xml_totals["failures"] += ts.get("failures", 0)
+                xml_totals["errors"] += ts.get("errors", 0)
+                xml_totals["skipped"] += ts.get("skipped", 0)
+                xml_totals["time"] += ts.get("time", 0.0)
+
+            # Override incomplete status if we have Phase 1 XMLs
+            if stats.get("incomplete") and xml_totals["tests"] > 0:
+                stats["incomplete"] = False
+                stats["total"] = xml_totals["tests"]
+                stats["passed"] = xml_totals["passed"]
+                stats["failed"] = xml_totals["failures"]
+                stats["errors"] = xml_totals["errors"]
+                stats["skipped"] = xml_totals["skipped"]
+                # Keep original duration from stats if available
 
         unique_planned_files.update(planned_files)
         unique_excluded_files.update(excluded_test_files)
