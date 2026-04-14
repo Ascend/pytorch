@@ -4,7 +4,7 @@ Run a shard of patched upstream PyTorch tests via run_test.py.
 
 Shard allocation by test type:
 - Shard 1-2: Distributed tests (--distributed-tests), 2 machines
-- Shard 3: JIT executor tests (test_jit_profiling, test_jit_legacy, test_jit_fuser_legacy), 1 machine
+- Shard 3: Tests excluded by discover_tests.py (blocklisted patterns/tests), 1 machine
 - Shard 4-10: Regular tests (--exclude-jit-executor --exclude-distributed-tests), 7 machines
 
 Each shard type applies whitelist/blacklist filtering from case_paths_ci.yml
@@ -34,9 +34,9 @@ SHARD_DISTRIBUTED_START = 1
 SHARD_DISTRIBUTED_END = 2
 SHARD_DISTRIBUTED_TOTAL = 2
 
-SHARD_JIT_START = 3
-SHARD_JIT_END = 3
-SHARD_JIT_TOTAL = 1
+SHARD_EXCLUDED_START = 3
+SHARD_EXCLUDED_END = 3
+SHARD_EXCLUDED_TOTAL = 1
 
 SHARD_REGULAR_START = 4
 SHARD_REGULAR_END = 10
@@ -44,45 +44,18 @@ SHARD_REGULAR_TOTAL = 7
 
 TOTAL_SHARDS = 10
 
-# JIT shard special tests: these are in case_paths_ci.yml whitelist but
-# excluded by discover_tests.py blocklisted_patterns/blocklisted_tests.
-# JIT shard runs these tests directly via pytest (not via run_test.py).
-JIT_BLOCKLISTED_TESTS = [
-    # blocklisted_pattern: custom_backend
-    "test/custom_backend/test_custom_backend.py",
-    # blocklisted_pattern: custom_operator
-    "test/custom_operator/test_custom_ops.py",
-    "test/custom_operator/test_infer_schema_annotation.py",
-    # blocklisted_pattern: fx
-    "test/fx/test_common_passes.py",
-    "test/fx/test_cse_pass.py",
-    "test/fx/test_dce_pass.py",
-    "test/fx/test_dynamism.py",
-    "test/fx/test_future.py",
-    "test/fx/test_fx_const_fold.py",
-    "test/fx/test_fx_node_hook.py",
-    "test/fx/test_fx_param_shape_control_flow.py",
-    "test/fx/test_fx_split.py",
-    "test/fx/test_fx_traceback.py",
-    "test/fx/test_fx_xform_observer.py",
-    "test/fx/test_gradual_type.py",
-    "test/fx/test_graph_pickler.py",
-    "test/fx/test_lazy_graph_module.py",
-    "test/fx/test_matcher_utils.py",
-    "test/fx/test_partitioner_order.py",
-    "test/fx/test_pass_infra.py",
-    "test/fx/test_shape_inference.py",
-    "test/fx/test_source_matcher_utils.py",
-    "test/fx/test_subgraph_rewriter.py",
-    "test/fx/test_z3_gradual_types.py",
-    # blocklisted_pattern: mobile
-    "test/mobile/test_bytecode.py",
-    "test/mobile/test_lite_script_module.py",
-    "test/mobile/test_lite_script_type.py",
-    "test/mobile/test_quantize_fx_lite_script_module.py",
-    "test/mobile/test_upgrader_codegen.py",
-    "test/mobile/test_upgraders.py",
-    # blocklisted_tests
+# Excluded shard special tests: directories and files excluded by discover_tests.py
+# (blocklisted_patterns and blocklisted_tests), but should be tested on NPU.
+# Excluded shard dynamically scans these directories/files, then applies
+# whitelist/blacklist from case_paths_ci.yml before execution.
+EXCLUDED_TESTS_PATTERNS = [
+    # blocklisted_patterns from discover_tests.py (directories)
+    "test/custom_backend",      # all test files in this directory
+    "test/custom_operator",     # all test files in this directory
+    "test/fx",                  # all test files in this directory
+    "test/mobile",              # all test files in this directory
+    "test/quantization",        # all test files in this directory
+    # blocklisted_tests from discover_tests.py (individual files)
     "test/test_bundled_images.py",
     "test/test_cpp_extensions_aot.py",
     "test/test_determination.py",
@@ -94,20 +67,42 @@ JIT_BLOCKLISTED_TESTS = [
 ]
 
 
+def path_matches_excluded_pattern(path: str) -> bool:
+    """
+    Check if a test file path matches any excluded test pattern.
+
+    Args:
+        path: Test file path with 'test/' prefix (e.g., 'test/fx/test_common_passes.py')
+
+    Returns:
+        True if path matches any pattern in EXCLUDED_TESTS_PATTERNS
+    """
+    for pattern in EXCLUDED_TESTS_PATTERNS:
+        if pattern.endswith('.py'):
+            # Exact file match
+            if path == pattern:
+                return True
+        else:
+            # Directory match: path starts with pattern + '/'
+            if path.startswith(pattern + '/'):
+                return True
+    return False
+
+
 def get_shard_type(shard: int) -> Tuple[str, int, int]:
     """
     Determine shard type and sub-index based on shard number.
 
     Returns:
         Tuple of (shard_type, shard_index, shard_total)
-        - shard_type: "distributed", "jit", or "regular"
+        - shard_type: "distributed", "excluded", or "regular"
         - shard_index: Index within the shard type (1-indexed)
         - shard_total: Total number of shards for this type
     """
     if SHARD_DISTRIBUTED_START <= shard <= SHARD_DISTRIBUTED_END:
         return ("distributed", shard - SHARD_DISTRIBUTED_START + 1, SHARD_DISTRIBUTED_TOTAL)
-    elif SHARD_JIT_START <= shard <= SHARD_JIT_END:
-        return ("jit", shard - SHARD_JIT_START + 1, SHARD_JIT_TOTAL)
+    elif SHARD_EXCLUDED_START <= shard <= SHARD_EXCLUDED_END:
+        return ("excluded", shard - SHARD_EXCLUDED_START + 1, SHARD_EXCLUDED_TOTAL)
     else:
         return ("regular", shard - SHARD_REGULAR_START + 1, SHARD_REGULAR_TOTAL)
 
@@ -422,7 +417,7 @@ def filter_tests_by_type(test_files: List[str], shard_type: str) -> Tuple[List[s
 
     Args:
         test_files: List of test file paths (with test/ prefix)
-        shard_type: "distributed", "jit", or "regular"
+        shard_type: "distributed", "excluded", or "regular"
 
     Returns:
         Tuple of (selected_files, excluded_files)
@@ -431,20 +426,20 @@ def filter_tests_by_type(test_files: List[str], shard_type: str) -> Tuple[List[s
         # Distributed tests: files starting with test/distributed/
         selected = [f for f in test_files if f.startswith("test/distributed/")]
         excluded = [f for f in test_files if not f.startswith("test/distributed/")]
-    elif shard_type == "jit":
-        # JIT shard: run tests that are in whitelist but excluded by discover_tests.py
-        # These tests are defined in JIT_BLOCKLISTED_TESTS and run directly via pytest
-        selected = [f for f in test_files if f in JIT_BLOCKLISTED_TESTS]
-        excluded = [f for f in test_files if f not in JIT_BLOCKLISTED_TESTS]
+    elif shard_type == "excluded":
+        # Excluded shard: dynamically match files from EXCLUDED_TESTS_PATTERNS
+        # These are directories/files excluded by discover_tests.py but should run on NPU
+        selected = [f for f in test_files if path_matches_excluded_pattern(f)]
+        excluded = [f for f in test_files if not path_matches_excluded_pattern(f)]
     else:
-        # Regular tests: exclude distributed and JIT blocklisted tests
+        # Regular tests: exclude distributed and excluded pattern files
         selected = [
             f for f in test_files
-            if not f.startswith("test/distributed/") and f not in JIT_BLOCKLISTED_TESTS
+            if not f.startswith("test/distributed/") and not path_matches_excluded_pattern(f)
         ]
         excluded = [
             f for f in test_files
-            if f.startswith("test/distributed/") or f in JIT_BLOCKLISTED_TESTS
+            if f.startswith("test/distributed/") or path_matches_excluded_pattern(f)
         ]
 
     return selected, excluded
@@ -898,7 +893,7 @@ def build_run_test_command(
 
     Args:
         valid_tests: List of test paths (with test/ prefix) to run
-        shard_type: "distributed", "jit", or "regular"
+        shard_type: "distributed", "excluded", or "regular"
         parallel: Number of parallel workers (NUM_PARALLEL_PROCS)
 
     Returns:
@@ -909,10 +904,10 @@ def build_run_test_command(
         "run_test.py",
     ]
 
-    if shard_type == "jit":
-        # JIT shard is handled by run_jit_tests_via_pytest, not by run_test.py
+    if shard_type == "excluded":
+        # Excluded shard is handled by run_excluded_tests_via_pytest, not by run_test.py
         # This branch should not be reached, but provide safety fallback
-        print("Warning: JIT shard unexpectedly using run_test.py path")
+        print("Warning: Excluded shard unexpectedly using run_test.py path")
         test_names = [strip_test_prefix_and_suffix(t) for t in valid_tests]
         if test_names:
             command.extend(["--include", *test_names])
@@ -978,7 +973,7 @@ def build_pytest_command(
     return command
 
 
-def build_jit_pytest_command(
+def build_excluded_pytest_command(
     planned_tests: List[str],
     report_dir: Path,
     shard: int,
@@ -987,9 +982,9 @@ def build_jit_pytest_command(
     parallel: int,
 ) -> List[str]:
     """
-    Build pytest command for JIT shard tests with parallel execution.
+    Build pytest command for excluded shard tests with parallel execution.
 
-    JIT shard tests are excluded by discover_tests.py and must be run
+    Excluded shard tests are excluded by discover_tests.py and must be run
     directly via pytest (not via run_test.py).
 
     Args:
@@ -1003,7 +998,7 @@ def build_jit_pytest_command(
     Returns:
         Command list for subprocess execution
     """
-    xml_file = report_dir / f"shard_{shard}_jit_pytest.xml"
+    xml_file = report_dir / f"shard_{shard}_excluded_pytest.xml"
     command = [
         sys.executable,
         "-m",
@@ -1035,7 +1030,7 @@ def build_jit_pytest_command(
     return command
 
 
-def run_jit_tests_via_pytest(
+def run_excluded_tests_via_pytest(
     planned_tests: List[str],
     shard: int,
     test_dir: Path,
@@ -1046,9 +1041,9 @@ def run_jit_tests_via_pytest(
     parallel: int,
 ) -> Tuple[int, Dict, Dict]:
     """
-    Run JIT shard tests directly via pytest (not via run_test.py).
+    Run excluded shard tests directly via pytest (not via run_test.py).
 
-    JIT shard tests are in case_paths_ci.yml whitelist but excluded by
+    Excluded shard tests are in case_paths_ci.yml whitelist but excluded by
     discover_tests.py blocklisted_patterns/blocklisted_tests. They must
     be run directly via pytest with parallel execution.
 
@@ -1071,7 +1066,7 @@ def run_jit_tests_via_pytest(
     merged_env = os.environ.copy()
     merged_env.update(env_updates)
 
-    command = build_jit_pytest_command(
+    command = build_excluded_pytest_command(
         planned_tests,
         report_dir,
         shard,
@@ -1080,14 +1075,14 @@ def run_jit_tests_via_pytest(
         parallel,
     )
 
-    print(f"\nExecuting pytest for JIT shard tests (shard {shard}):")
+    print(f"\nExecuting pytest for excluded shard tests (shard {shard}):")
     print("  " + " ".join(command))
     print(f"  Working directory: {test_dir}")
     print(f"  Parallel workers: {parallel}")
 
     with log_file.open("w", encoding="utf-8") as log_handle:
         log_handle.write("=" * 60 + "\n")
-        log_handle.write("JIT Shard: Direct pytest execution\n")
+        log_handle.write("Excluded Shard: Direct pytest execution\n")
         log_handle.write("=" * 60 + "\n")
         log_handle.write(f"Test files: {len(planned_tests)}\n")
         log_handle.write(f"Parallel workers: {parallel}\n")
@@ -1122,7 +1117,7 @@ def run_jit_tests_via_pytest(
                 process.stdout.close()
 
     # Parse JUnit XML for stats
-    xml_file = report_dir / f"shard_{shard}_jit_pytest.xml"
+    xml_file = report_dir / f"shard_{shard}_excluded_pytest.xml"
     stats = parse_junit_xml(str(xml_file))
     stats["returncode"] = raw_returncode
     stats["junit_generated"] = xml_file.exists()
@@ -1139,9 +1134,9 @@ def run_jit_tests_via_pytest(
     }
 
     if raw_returncode != 0:
-        print(f"\nJIT shard tests completed with errors (returncode: {raw_returncode})")
+        print(f"\nExcluded shard tests completed with errors (returncode: {raw_returncode})")
     else:
-        print(f"\nJIT shard tests completed successfully")
+        print(f"\nExcluded shard tests completed successfully")
 
     return raw_returncode, stats, log_metrics
 
@@ -1171,7 +1166,7 @@ def run_tests_via_run_test(
         timeout: Per-test timeout
         verbose: Verbose output flag
         parallel: Number of parallel workers (NUM_PARALLEL_PROCS)
-        shard_type: "distributed", "jit", or "regular"
+        shard_type: "distributed", "excluded", or "regular"
 
     Returns:
         Tuple of (returncode, stats, log_metrics)
@@ -1424,7 +1419,14 @@ def main():
 
     # Get test file list - use TESTS list from discover_tests.py (same as run_test.py --help)
     # unless --use-raw-discovery is specified
-    if args.use_tests_list and not args.use_raw_discovery:
+    # For "excluded" shard type, always use raw file scan to find tests that are
+    # excluded by discover_tests.py (blocklisted_patterns/blocklisted_tests)
+    if shard_type == "excluded":
+        # Excluded shard needs to find tests that are NOT in TESTS list
+        # Use raw file scan to discover all test files including blocklisted ones
+        raw_test_files = discover_raw_test_files(test_dir)
+        info["test_discovery_mode"] = "raw_file_scan_for_excluded_tests"
+    elif args.use_tests_list and not args.use_raw_discovery:
         raw_test_files = get_tests_list_from_discover_tests(test_dir)
         info["test_discovery_mode"] = "TESTS_list"
     else:
@@ -1439,7 +1441,7 @@ def main():
     else:
         info["crashed_excluded_files"] = 0
 
-    # Filter tests by shard type (distributed, jit, or regular)
+    # Filter tests by shard type (distributed, excluded, or regular)
     type_selected_files, type_excluded_files = filter_tests_by_type(raw_test_files, shard_type)
     info["type_selected_files"] = len(type_selected_files)
     info["type_excluded_files"] = len(type_excluded_files)
@@ -1470,7 +1472,13 @@ def main():
     print(f"Shard type: {shard_type} (shard {shard_index}/{shard_total} within type)")
     print(f"Repository root: {repo_root}")
     print(f"Test directory: {test_dir}")
-    print(f"Test discovery mode: {info['test_discovery_mode']} (TESTS list from run_test.py)")
+    # Show appropriate description based on discovery mode
+    discovery_desc = {
+        "TESTS_list": "TESTS list from run_test.py",
+        "raw_file_scan": "raw file scan (all test_*.py)",
+        "raw_file_scan_for_excluded_tests": "raw file scan for excluded tests (blocklisted patterns/tests)",
+    }
+    print(f"Test discovery mode: {info['test_discovery_mode']} ({discovery_desc.get(info['test_discovery_mode'], 'unknown')})")
     print(f"Parallel workers (NUM_PARALLEL_PROCS): {args.parallel}")
     if crashed_config_file:
         print(f"Crashed files config: {crashed_config_file}")
@@ -1479,7 +1487,7 @@ def main():
         print(f"Case path rules: {case_paths_file}")
         print(f"Whitelist entries: {info['whitelist_entries']}")
         print(f"Blacklist entries: {info['blacklist_entries']}")
-    print(f"Total test files (TESTS list): {info['total_files']}")
+    print(f"Total test files discovered: {info['total_files']}")
     print(f"Files for shard type '{shard_type}': {info['type_selected_files']}")
     print(f"After whitelist/blacklist: {info['whitelist_blacklist_selected']}")
     print(f"Filtered out by blacklist: {info['whitelist_blacklist_excluded']}")
@@ -1500,14 +1508,14 @@ def main():
 
     if planned_tests:
         # Run tests based on shard type
-        # - JIT shard: run directly via pytest (tests excluded by discover_tests.py)
+        # - Excluded shard: run directly via pytest (tests excluded by discover_tests.py)
         # - Distributed/Regular: run via run_test.py
         effective_parallel = args.parallel
 
-        if shard_type == "jit":
-            # JIT shard tests run directly via pytest with parallel execution
-            print(f"Note: JIT shard running {len(planned_tests)} tests directly via pytest (parallel: {effective_parallel})")
-            _, stats, log_metrics = run_jit_tests_via_pytest(
+        if shard_type == "excluded":
+            # Excluded shard tests run directly via pytest with parallel execution
+            print(f"Note: Excluded shard running {len(planned_tests)} tests directly via pytest (parallel: {effective_parallel})")
+            _, stats, log_metrics = run_excluded_tests_via_pytest(
                 planned_tests,
                 args.shard,
                 test_dir,
