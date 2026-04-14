@@ -533,19 +533,44 @@ class IterationRangesRootNPUIndex(IterationRangesRoot):
             )
 
         if expr not in self.nodes:
-            node = IterationRangesEntryNPUIndex(
-                f"{self.prefix}{next(V.kernel.iter_vars_count)}",
-                divisor,
-                length,
-                expr,
-                self,
-            )
-            V.kernel.range_tree_nodes[node.symbol()] = node
-            self.var_list.append(node.symbol())
-            self.var_ranges[node.symbol()] = length
-            self.nodes[expr] = node
+            # Before creating a new node, check if a removed node with the
+            # same divisor and length exists. This can happen when a parent
+            # axis was split into sub-axes and then removed, but a later
+            # lookup still references the original full-length range.
+            removed_node = self._find_removed_node(divisor, length)
+            if removed_node is not None:
+                self.nodes[expr] = removed_node
+                log.debug(
+                    "lookup: reusing removed node %s for divisor=%s, length=%s",
+                    removed_node.symbol(), divisor, length
+                )
+            else:
+                node = IterationRangesEntryNPUIndex(
+                    f"{self.prefix}{next(V.kernel.iter_vars_count)}",
+                    divisor,
+                    length,
+                    expr,
+                    self,
+                )
+                V.kernel.range_tree_nodes[node.symbol()] = node
+                self.var_list.append(node.symbol())
+                self.var_ranges[node.symbol()] = length
+                self.nodes[expr] = node
+                log.debug(
+                    "lookup: created new node %s for divisor=%s, length=%s",
+                    node.symbol(), divisor, length
+                )
 
         return self.nodes[expr]
+
+    def _find_removed_node(self, divisor, length):
+        """Find a removed range tree node matching the given divisor and length."""
+        for name, node in V.kernel.range_tree_nodes_removed.items():
+            if (node.parent is self
+                    and node.divisor == divisor
+                    and node.length == length):
+                return node
+        return None
 
 
 @classmethod
@@ -2272,7 +2297,8 @@ class NPUIndexTritonKernel(TritonKernel):
         if root is None:
             return 0
 
-        return len(root.var_list)
+        result = len(root.var_list)
+        return result
 
     def reduction_axis_list(self):
         root = self.range_trees[-1]

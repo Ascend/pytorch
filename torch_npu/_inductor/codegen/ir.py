@@ -153,6 +153,14 @@ def _should_skip_store_substitution(key, index, var, has_multiple_expansions, ke
 
 
 def rebuild_flattened_dims(indexing):
+    """
+    Rebuild flattened dimensions in indexing expressions.
+    
+    This function processes indexing expressions to detect and rebuild
+    flattened dimensions. For Store indices with unified anchors
+    (symbols that have multiple expansion candidates), the processing
+    is is skipped to preserve the unified axis.
+    """
     def rebuild_flattened_dim(key, index, old_node, flatten_dim):
         for _, pair in flatten_dim.items():
             new_var_expr = sympy.Integer(0)
@@ -180,19 +188,34 @@ def rebuild_flattened_dims(indexing):
                     new_var_expr = new_var_expr + new_node.symbol()
                 V.kernel.expr_substituted[expr] = new_node.symbol()
 
-            if var not in V.kernel.range_tree_nodes_substituted:
-                V.kernel.range_tree_nodes_substituted[var] = []
-            V.kernel.range_tree_nodes_substituted[var].append((origin_axis_length, new_var_expr))
+            if old_node.symbol() not in V.kernel.range_tree_nodes_substituted:
+                V.kernel.range_tree_nodes_substituted[old_node.symbol()] = []
+            V.kernel.range_tree_nodes_substituted[old_node.symbol()].append((origin_axis_length, new_var_expr))
+
+            log.debug(
+                "rebuild_flattened_dim: key=%s, old_node=%s, new_var_expr=%s",
+                key, old_node.symbol(), new_var_expr
+            )
 
     def find_index_in_substitute(index, kernel):
         return any([index.find(key) for key in kernel.expr_substituted.keys()])
 
     kernel = V.kernel
     
+    log.debug(
+        "rebuild_flattened_dims: indexing_keys=%s, range_tree_nodes=%s",
+        list(indexing.keys()), list(kernel.range_tree_nodes.keys())
+    )
+    
+    # Process non-Store indices first to populate range_tree_nodes_substituted.
+    # Then process Store indices and skip those with unified anchors
+    # (symbols that have multiple expansion candidates).
+    store_keys = getattr(kernel, 'store_index_keys', set())
+    store_items = []
+    
     for key, index in indexing.items():
-        # Store indices should remain as single axis form, not be processed by rebuild_flattened_dims
-        # This prevents creating new axes (like x7) for Store indices
-        if hasattr(kernel, 'store_index_keys') and key in kernel.store_index_keys:
+        if key in store_keys:
+            store_items.append((key, index))
             continue
         
         # 1. try to find out flattened axis from indexing
@@ -210,6 +233,57 @@ def rebuild_flattened_dims(indexing):
         if find_index_in_substitute(index, kernel):
             new_index = sympy_subs(index, kernel.expr_substituted)
             indexing[key] = new_index
+    
+    log.debug(
+        "rebuild_flattened_dims: range_tree_nodes_substituted=%s, store_items=%s",
+        kernel.range_tree_nodes_substituted, store_items
+    )
+    
+    # Now process Store indices. Skip those containing a unified anchor:
+    # a symbol that is the only one with its prefix in the Store index AND
+    # has multiple expansion candidates in range_tree_nodes_substituted.
+    for key, index in store_items:
+        skip = False
+        for sym in index.free_symbols:
+            prefix = str(sym)[0]
+            same_prefix_symbols = [
+                s for s in index.free_symbols
+                if getattr(s, "name", str(s)).startswith(prefix)
+            ]
+            # Check if this symbol is a unified anchor:
+            # 1. It's the only symbol with this prefix in the Store index
+            # 2. It has multiple expansion candidates (multiple expansion patterns)
+            if (len(same_prefix_symbols) == 1 and same_prefix_symbols[0] == sym
+                    and sym in kernel.range_tree_nodes_substituted
+                    and len(kernel.range_tree_nodes_substituted[sym]) > 1):
+                skip = True
+                log.info(
+                    "Skip Store index %s because %s is a unified anchor with multiple expansions",
+                    key, sym
+                )
+                break
+        
+        if skip:
+            continue
+        
+        flatten_dims = detect_flattened_dims(kernel, index)
+        
+        for var, flatten_dim in flatten_dims.items():
+            if (var in kernel.range_tree_nodes):
+                old_node = kernel.range_tree_nodes[var]
+            else:
+                old_node = kernel.range_tree_nodes_removed[var]
+
+            rebuild_flattened_dim(key, index, old_node, flatten_dim)
+
+        if find_index_in_substitute(index, kernel):
+            new_index = sympy_subs(index, kernel.expr_substituted)
+            indexing[key] = new_index
+    
+    log.debug(
+        "rebuild_flattened_dims: range_trees AFTER=%s",
+        [(t.prefix, t.var_list) for t in kernel.range_trees]
+    )
 
 
 def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substituted):
