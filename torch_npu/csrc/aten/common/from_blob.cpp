@@ -75,7 +75,7 @@ std::size_t TensorMaker::computeStorageSize() const noexcept
     if (strides_) {
         auto storage_size = at::detail::computeStorageNbytes(sizes_, *strides_, itemsize);
         if (storage_offset_) {
-        storage_size += storage_offset_.value();
+            storage_size += storage_offset_.value() * itemsize;
         }
         return storage_size;
     }
@@ -86,7 +86,7 @@ std::size_t TensorMaker::computeStorageSize() const noexcept
     }
     auto storage_size = size * itemsize;
     if (storage_offset_) {
-        storage_size += storage_offset_.value();
+        storage_size += storage_offset_.value() * itemsize;
     }
     return storage_size;
 }
