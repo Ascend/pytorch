@@ -2,12 +2,16 @@
 """
 Run a shard of patched upstream PyTorch tests via run_test.py.
 
-Selection is controlled in two layers:
-1. File-level allow/deny rules from case_paths_ci.yml
-2. Item-level deselection from disabled_testcases.json via a pytest plugin
+Shard allocation by test type:
+- Shard 1-2: Distributed tests (--distributed-tests), 2 machines
+- Shard 3: JIT executor tests (test_jit_profiling, test_jit_legacy, test_jit_fuser_legacy), 1 machine
+- Shard 4-10: Regular tests (--exclude-jit-executor --exclude-distributed-tests), 7 machines
 
-Tests are executed using run_test.py which provides file-level parallel execution
-via multiprocessing Pool (default NUM_PARALLEL_PROCS=2).
+Each shard type applies whitelist/blacklist filtering from case_paths_ci.yml
+and item-level deselection from disabled_testcases.json.
+
+Tests are executed using run_test.py with file-level parallel execution
+(NUM_PARALLEL_PROCS=8 for 8-card NPU machines).
 """
 
 import argparse
@@ -25,10 +29,44 @@ from time import monotonic
 from typing import Dict, List, Tuple
 
 
+# Shard type constants
+SHARD_DISTRIBUTED_START = 1
+SHARD_DISTRIBUTED_END = 2
+SHARD_DISTRIBUTED_TOTAL = 2
+
+SHARD_JIT_START = 3
+SHARD_JIT_END = 3
+SHARD_JIT_TOTAL = 1
+
+SHARD_REGULAR_START = 4
+SHARD_REGULAR_END = 10
+SHARD_REGULAR_TOTAL = 7
+
+TOTAL_SHARDS = 10
+
+
+def get_shard_type(shard: int) -> Tuple[str, int, int]:
+    """
+    Determine shard type and sub-index based on shard number.
+
+    Returns:
+        Tuple of (shard_type, shard_index, shard_total)
+        - shard_type: "distributed", "jit", or "regular"
+        - shard_index: Index within the shard type (1-indexed)
+        - shard_total: Total number of shards for this type
+    """
+    if SHARD_DISTRIBUTED_START <= shard <= SHARD_DISTRIBUTED_END:
+        return ("distributed", shard - SHARD_DISTRIBUTED_START + 1, SHARD_DISTRIBUTED_TOTAL)
+    elif SHARD_JIT_START <= shard <= SHARD_JIT_END:
+        return ("jit", shard - SHARD_JIT_START + 1, SHARD_JIT_TOTAL)
+    else:
+        return ("regular", shard - SHARD_REGULAR_START + 1, SHARD_REGULAR_TOTAL)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run PyTorch NPU tests for a shard via run_test.py")
-    parser.add_argument("--shard", type=int, required=True, help="Shard number (1-indexed)")
-    parser.add_argument("--num-shards", type=int, required=True, help="Total number of shards")
+    parser.add_argument("--shard", type=int, required=True, help="Shard number (1-indexed, 1-10)")
+    parser.add_argument("--num-shards", type=int, default=TOTAL_SHARDS, help="Total number of shards (default 10)")
     parser.add_argument("--test-dir", type=str, required=True, help="Path to the PyTorch test directory")
     parser.add_argument("--disabled-testcases", type=str, help="Path to disabled_testcases.json")
     parser.add_argument(
@@ -44,7 +82,7 @@ def parse_args():
     parser.add_argument("--report-dir", type=str, default="test-reports", help="Directory for test reports")
     parser.add_argument("--timeout", type=int, default=600, help="Per-test timeout passed to pytest")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
-    parser.add_argument("--parallel", type=int, default=2, help="Number of parallel workers (NUM_PARALLEL_PROCS)")
+    parser.add_argument("--parallel", type=int, default=8, help="Number of parallel workers (NUM_PARALLEL_PROCS)")
     parser.add_argument(
         "--use-tests-list",
         action="store_true",
@@ -327,6 +365,55 @@ def select_shard_files(test_files: List[str], shard: int, num_shards: int) -> Li
         end = start + base_size
 
     return test_files[start:end]
+
+
+def filter_tests_by_type(test_files: List[str], shard_type: str) -> Tuple[List[str], List[str]]:
+    """
+    Filter test files by shard type.
+
+    Args:
+        test_files: List of test file paths (with test/ prefix)
+        shard_type: "distributed", "jit", or "regular"
+
+    Returns:
+        Tuple of (selected_files, excluded_files)
+    """
+    if shard_type == "distributed":
+        # Distributed tests: files starting with test/distributed/
+        selected = [f for f in test_files if f.startswith("test/distributed/")]
+        excluded = [f for f in test_files if not f.startswith("test/distributed/")]
+    elif shard_type == "jit":
+        # JIT executor tests: test_jit_profiling, test_jit_legacy, test_jit_fuser_legacy
+        jit_tests = ["test/test_jit_profiling.py", "test/test_jit_legacy.py", "test/test_jit_fuser_legacy.py"]
+        selected = [f for f in test_files if f in jit_tests]
+        excluded = [f for f in test_files if f not in jit_tests]
+    else:
+        # Regular tests: exclude distributed and JIT executor tests
+        jit_tests = ["test/test_jit_profiling.py", "test/test_jit_legacy.py", "test/test_jit_fuser_legacy.py"]
+        selected = [
+            f for f in test_files
+            if not f.startswith("test/distributed/") and f not in jit_tests
+        ]
+        excluded = [
+            f for f in test_files
+            if f.startswith("test/distributed/") or f in jit_tests
+        ]
+
+    return selected, excluded
+
+
+def strip_test_prefix_and_suffix(test_path: str) -> str:
+    """
+    Remove 'test/' prefix and '.py' suffix from path for run_test.py -i argument.
+
+    run_test.py expects test names like 'test_autograd', 'distributed/test_c10d'
+    """
+    path = test_path
+    if path.startswith("test/"):
+        path = path[5:]  # Remove 'test/' prefix
+    if path.endswith(".py"):
+        path = path[:-3]  # Remove '.py' suffix
+    return path
 
 
 def parse_junit_xml(xml_file: str) -> Dict:
@@ -756,30 +843,58 @@ def build_run_test_command(
     timeout: int,
     verbose: bool,
     parallel: int,
+    shard_type: str,
 ) -> List[str]:
     """
-    Build command to run tests via run_test.py.
+    Build command to run tests via run_test.py based on shard type.
 
-    run_test.py uses multiprocessing Pool for file-level parallel execution.
-    Tests are passed via -i argument without 'test/' prefix since we cd to test directory.
+    Args:
+        valid_tests: List of test paths (with test/ prefix) to run
+        shard_type: "distributed", "jit", or "regular"
+        parallel: Number of parallel workers (NUM_PARALLEL_PROCS)
+
+    Returns:
+        Command list for subprocess execution
     """
-    # Strip 'test/' prefix and '.py' suffix from test paths for run_test.py -i argument
-    test_names = [strip_test_prefix(t) for t in valid_tests]
-
     command = [
         sys.executable,
         "run_test.py",
-        "-i",
-        *test_names,  # Pass all test names as arguments to -i
     ]
+
+    if shard_type == "jit":
+        # JIT tests: use --include with specific test names
+        # test_jit_profiling, test_jit_legacy, test_jit_fuser_legacy
+        command.extend([
+            "--include",
+            "test_jit_profiling",
+            "test_jit_legacy",
+            "test_jit_fuser_legacy",
+        ])
+    elif shard_type == "distributed":
+        # Distributed tests: pass filtered test list via -i
+        # Strip 'test/' prefix and '.py' suffix for run_test.py
+        test_names = [strip_test_prefix_and_suffix(t) for t in valid_tests]
+        if test_names:
+            command.extend(["-i", *test_names])
+        else:
+            command.append("--distributed-tests")
+    else:
+        # Regular tests: pass filtered test list via -i
+        # Exclude JIT executor and distributed tests at run_test.py level as safety
+        test_names = [strip_test_prefix_and_suffix(t) for t in valid_tests]
+        if test_names:
+            command.extend(["-i", *test_names])
+        else:
+            command.extend([
+                "--exclude-jit-executor",
+                "--exclude-distributed-tests",
+            ])
 
     if verbose:
         command.append("-vv")
     else:
         command.append("-v")
 
-    # Pass additional pytest args through run_test.py
-    # Note: run_test.py handles pytest execution internally with Pool parallelism
     command.extend([
         "--continue-through-error",  # Keep running even if some tests fail
     ])
@@ -826,6 +941,7 @@ def run_tests_via_run_test(
     timeout: int,
     verbose: bool,
     parallel: int,
+    shard_type: str,
 ) -> Tuple[int, Dict, Dict]:
     """
     Run tests via run_test.py with file-level parallel execution.
@@ -841,6 +957,7 @@ def run_tests_via_run_test(
         timeout: Per-test timeout
         verbose: Verbose output flag
         parallel: Number of parallel workers (NUM_PARALLEL_PROCS)
+        shard_type: "distributed", "jit", or "regular"
 
     Returns:
         Tuple of (returncode, stats, log_metrics)
@@ -865,9 +982,9 @@ def run_tests_via_run_test(
 
     # Phase 1: Run valid tests via run_test.py (if any)
     if valid_tests:
-        command = build_run_test_command(valid_tests, report_dir, shard, timeout, verbose, parallel)
+        command = build_run_test_command(valid_tests, report_dir, shard, timeout, verbose, parallel, shard_type)
 
-        print(f"\nExecuting run_test.py for {len(valid_tests)} valid tests:")
+        print(f"\nExecuting run_test.py for {len(valid_tests)} valid tests (shard type: {shard_type}):")
         print("  " + " ".join(command))
         print(f"  Working directory: {test_dir}")
         print(f"  Parallel workers: {parallel}")
@@ -876,6 +993,7 @@ def run_tests_via_run_test(
             log_handle.write("=" * 60 + "\n")
             log_handle.write("Phase 1: run_test.py (file-level parallel)\n")
             log_handle.write("=" * 60 + "\n")
+            log_handle.write(f"Shard type: {shard_type}\n")
             log_handle.write(f"Valid tests: {len(valid_tests)}\n")
             log_handle.write(f"Unrecognized tests: {len(unrecognized_tests)}\n")
             log_handle.write("=" * 60 + "\n\n")
@@ -1056,13 +1174,17 @@ def run_pytest_shard(
 
 def main():
     args = parse_args()
-    if args.num_shards < 1:
-        raise ValueError(f"Invalid num_shards {args.num_shards}; expected a positive integer")
-    if args.shard < 1 or args.shard > args.num_shards:
-        raise ValueError(f"Invalid shard {args.shard}; expected 1 <= shard <= {args.num_shards}")
+    if args.shard < 1 or args.shard > TOTAL_SHARDS:
+        raise ValueError(f"Invalid shard {args.shard}; expected 1 <= shard <= {TOTAL_SHARDS}")
+
+    # Determine shard type based on shard number
+    shard_type, shard_index, shard_total = get_shard_type(args.shard)
 
     timestamp = datetime.now().isoformat()
     info = create_shard_info(args.shard, args.num_shards, timestamp)
+    info["shard_type"] = shard_type
+    info["shard_index"] = shard_index
+    info["shard_total"] = shard_total
     info["disabled_count"] = load_disabled_testcases_count(args.disabled_testcases)
     info["parallel_procs"] = args.parallel  # Record parallel worker count
 
@@ -1103,15 +1225,21 @@ def main():
     else:
         info["crashed_excluded_files"] = 0
 
-    # Then apply whitelist/blacklist rules
-    selected_test_files, excluded_test_files = apply_case_path_rules(raw_test_files, whitelist, blacklist)
-    planned_tests = select_shard_files(selected_test_files, args.shard, args.num_shards)
+    # Filter tests by shard type (distributed, jit, or regular)
+    type_selected_files, type_excluded_files = filter_tests_by_type(raw_test_files, shard_type)
+    info["type_selected_files"] = len(type_selected_files)
+    info["type_excluded_files"] = len(type_excluded_files)
 
-    # Record original count based on discovery mode
-    if args.use_tests_list and not args.use_raw_discovery:
-        info["total_files"] = len(get_tests_list_from_discover_tests(test_dir))
-    else:
-        info["total_files"] = len(discover_raw_test_files(test_dir))
+    # Apply whitelist/blacklist rules to type-selected files
+    selected_test_files, excluded_test_files = apply_case_path_rules(type_selected_files, whitelist, blacklist)
+    info["whitelist_blacklist_selected"] = len(selected_test_files)
+    info["whitelist_blacklist_excluded"] = len(excluded_test_files)
+
+    # Select files for this shard (within the shard type group)
+    planned_tests = select_shard_files(selected_test_files, shard_index, shard_total)
+
+    # Record counts
+    info["total_files"] = len(raw_test_files)
     info["selected_test_files"] = len(selected_test_files)
     info["path_filtered_out_files"] = len(excluded_test_files)
     info["excluded_test_files"] = len(excluded_test_files)
@@ -1124,7 +1252,8 @@ def main():
     print(f"\n{'=' * 60}")
     print("PyTorch NPU Test Runner (via run_test.py)")
     print(f"{'=' * 60}")
-    print(f"Shard: {args.shard}/{args.num_shards}")
+    print(f"Shard: {args.shard}/{TOTAL_SHARDS}")
+    print(f"Shard type: {shard_type} (shard {shard_index}/{shard_total} within type)")
     print(f"Repository root: {repo_root}")
     print(f"Test directory: {test_dir}")
     print(f"Test discovery mode: {info['test_discovery_mode']} (TESTS list from run_test.py)")
@@ -1134,17 +1263,19 @@ def main():
         print(f"Crashed files excluded: {info['crashed_excluded_files']}")
     if case_paths_file:
         print(f"Case path rules: {case_paths_file}")
+        print(f"Whitelist entries: {info['whitelist_entries']}")
+        print(f"Blacklist entries: {info['blacklist_entries']}")
     print(f"Total test files (TESTS list): {info['total_files']}")
-    print(f"After crashed exclusion: {len(raw_test_files)}")
-    print(f"Selected by path rules (whitelist): {len(selected_test_files)}")
-    print(f"Path-filtered out (blacklist): {len(excluded_test_files)}")
-    print(f"Tests in this shard: {len(planned_tests)}")
+    print(f"Files for shard type '{shard_type}': {info['type_selected_files']}")
+    print(f"After whitelist/blacklist: {info['whitelist_blacklist_selected']}")
+    print(f"Filtered out by blacklist: {info['whitelist_blacklist_excluded']}")
+    print(f"Tests in this shard ({shard_type}): {len(planned_tests)}")
     print(f"Disabled testcase entries: {info['disabled_count']}")
     print(f"{'=' * 60}\n")
 
     for index, target in enumerate(planned_tests, 1):
         # Show test name without 'test/' prefix for clarity
-        display_name = strip_test_prefix(target)
+        display_name = strip_test_prefix_and_suffix(target)
         print(f"  [{index:03d}] {display_name}")
 
     clean_existing_junit_xml(report_dir)
@@ -1156,6 +1287,13 @@ def main():
     if planned_tests:
         # Run tests via run_test.py with file-level parallelism
         # Working directory is test_dir (run_test.py expects to be run from test/)
+        # For distributed tests, use fewer parallel workers (distributed tests need more resources)
+        effective_parallel = args.parallel
+        if shard_type == "distributed":
+            # Distributed tests typically use fewer parallel workers due to resource constraints
+            effective_parallel = min(args.parallel, 4)  # Use at most 4 workers for distributed
+            print(f"Note: Distributed tests using {effective_parallel} parallel workers (reduced for stability)")
+
         _, stats, log_metrics = run_tests_via_run_test(
             planned_tests,
             args.shard,
@@ -1164,7 +1302,8 @@ def main():
             env_updates,
             args.timeout,
             args.verbose,
-            args.parallel,
+            effective_parallel,
+            shard_type,
         )
     else:
         print("No test files assigned to this shard after file-level filtering.")
