@@ -671,11 +671,14 @@ void RegisterNpuPluggableAllocator(PyObject* module)
     m.def(
         "_weak_ref_tensor",
         [](const at::Tensor& t) {
-            void* data_ptr = t.data_ptr();
-            std::vector<int64_t> sizes = t.sizes().vec();
-            std::vector<int64_t> strides = t.strides().vec();
+            void* storage_data_ptr = t.storage().mutable_data();
+            int64_t storage_numel = static_cast<int64_t>(t.storage().nbytes()) / t.element_size();
             auto options = t.options();
-            auto new_tensor = at_npu::native::from_blob(data_ptr, sizes, strides, options);
+
+            auto new_tensor = at_npu::native::from_blob(storage_data_ptr, {storage_numel}, options);
+            auto* impl = new_tensor.unsafeGetTensorImpl();
+            impl->set_sizes_and_strides(t.sizes(), t.strides());
+            impl->set_storage_offset(t.storage_offset());
 
             auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(t)->npu_desc_;
             torch_npu::NPUBridge::GetNpuStorageImpl(new_tensor)->npu_desc_ = dst_desc;
