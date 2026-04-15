@@ -1329,8 +1329,22 @@ def run_tests_via_run_test(
 
     duration = monotonic() - start
 
-    xml_files = sorted(report_dir.rglob("*.xml"))
-    stats = aggregate_junit_stats([report_dir])
+    # Search for XML files in both locations:
+    # 1. report_dir: where shard-specific pytest fallback XMLs are saved
+    # 2. test_dir/test-reports: where run_test.py generates its XML reports
+    # run_test.py runs in test_dir (e.g., pytorch-test-src/test/) and generates
+    # XML reports to test-reports/python-pytest/{test_identifier}/ relative to test_dir
+    test_dir_reports = test_dir / "test-reports"
+    report_roots = [report_dir]
+    if test_dir_reports.exists() and test_dir_reports != report_dir:
+        report_roots.append(test_dir_reports)
+
+    xml_files = []
+    for root in report_roots:
+        xml_files.extend(sorted(root.rglob("*.xml")))
+    xml_files = sorted(set(str(f.resolve()) for f in xml_files))  # Deduplicate by resolved path
+
+    stats = aggregate_junit_stats(report_roots)
     stats["junit_generated"] = bool(xml_files)
     stats["junit_xml_files"] = len(xml_files)
     stats["valid_tests_count"] = len(valid_tests)
