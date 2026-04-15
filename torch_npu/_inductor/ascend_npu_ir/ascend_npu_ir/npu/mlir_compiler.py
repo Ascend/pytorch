@@ -85,6 +85,8 @@ class NpuMlirCompiler:
                 actual_args = args[:-num_outputs]
                 actual_outputs = module.forward(*actual_args)
                 for out1, out2 in zip(actual_outputs, args[-num_outputs:]):
+                    if isinstance(out1, torch.Tensor) and not out1.is_contiguous():
+                        out1 = out1.contiguous()
                     out2.data = out1.data
             return module_call
         num_outputs = kernel_meta.get('num_outputs', 0)
