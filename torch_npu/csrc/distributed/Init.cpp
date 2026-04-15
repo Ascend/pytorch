@@ -448,6 +448,14 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
              py::arg("input"),
              py::arg("output_split_sizes") = std::vector<int64_t>{},
              py::arg("opts") = ::c10d::AllgatherOptions(),
+             py::call_guard<py::gil_scoped_release>())
+        .def("_set_default_timeout",
+            &::c10d_npu::ProcessGroupHCCL::setTimeout,
+             py::arg("timeout"),
+             py::call_guard<py::gil_scoped_release>())
+        .def("_add_ephemeral_timeout",
+            &::c10d_npu::ProcessGroupHCCL::addEphemeralTimeout,
+             py::arg("timeout"),
              py::call_guard<py::gil_scoped_release>());
 
     intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL::Options>(

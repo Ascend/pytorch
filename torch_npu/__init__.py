@@ -201,6 +201,7 @@ def _apply_distributed_methods_patch():
     torch.distributed.launcher.api._get_addr_and_port = torch_npu.distributed.distributed_c10d._trigger__get_addr_and_port_decorator(torch.distributed.launcher.api._get_addr_and_port)
     torch._C._distributed_c10d.ProcessGroup._get_sequence_number_for_group = (
         torch_npu.distributed.distributed_c10d._hccl_get_sequence_number_for_group)
+    torch.distributed.distributed_c10d._add_ephemeral_timeout_for_all_pgs = torch_npu.distributed.distributed_c10d._hccl_add_ephemeral_timeout_for_all_pgs
 
 
 torch.utils.rename_privateuse1_backend("npu")
