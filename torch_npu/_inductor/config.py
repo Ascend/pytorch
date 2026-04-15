@@ -208,7 +208,7 @@ if Ascend910B1 <= get_soc_version() < Ascend310B1 or get_soc_version() >= Ascend
 
 use_store_in_cat = os.environ.get("USE_STORE_IN_CAT", False)
 max_cat_size_in_per_kernel = 4 * 1024
-max_cat_count_in_per_kernel = 10
+max_cat_count_in_per_kernel = None
 inductor_indirect_memory_mode = None
 if is_ascend950:
     # A5 INDUCTOR_INDIRECT_MEMORY_MODE: fallback, simt_template, simt_only, simd_simt_mix
