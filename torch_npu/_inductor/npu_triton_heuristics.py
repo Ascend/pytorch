@@ -1042,6 +1042,27 @@ class NPUCachingAutotuner(CachingAutotuner):
     def run(
         self, *args, stream, benchmark_run=False, **kwargs
     ):  # type:ignore[override]
+        xnumel_names = ['x0_numel', 'xnumel', 'r0_numel', 'y0_numel', 'rnumel', 'n_elements']
+        xnumel_val = None
+        for name in xnumel_names:
+            if name in kwargs:
+                xnumel_val = kwargs[name]
+                break
+
+        if xnumel_val is None:
+            for arg in args:
+                # 检查是否为值为 0 的标量 (int, float, 或 0-d Tensor)
+                try:
+                    val = arg.item() if hasattr(arg, 'item') else int(arg)
+                    # 关键：我们只拦截那些明确标识为 0 的标量
+                    # 如果发现任何一个 numel 参数为 0，基本可以确定该 kernel 不应启动
+                    if not isinstance(arg, (bool, torch.Tensor)) and val == 0:
+                         return
+                    if hasattr(arg, 'item') and arg.ndim == 0 and val == 0:
+                         return
+                except:
+                    continue
+                    
         if self.triton_interpret:
             args, grid = self._interpret_args_grid(args, self.configs[0])
             copied_kwargs = copy.copy(self.configs[0].kwargs)
