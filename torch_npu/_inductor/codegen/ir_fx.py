@@ -548,12 +548,17 @@ def _patch_concatkernel_create(cls, inputs, dim):
             if j == dim:
                 new_size[j] = new_size[j] + input_size[j]
             else:
-                new_size[j] = V.graph.sizevars.guard_equals(
+                new_size[j] = V.graph.sizevars.check_equals_and_simplify(
                     new_size[j], input_size[j]
                 )
         offsets_end.append(new_size[dim])
 
     output_stride = ir.FlexibleLayout.contiguous_strides(new_size)
+    if config.comprehensive_padding:
+        # Ensure the output stride matches the alignment requirements
+        output_stride = ir.Layout._pad_strides(
+            output_stride, new_size, inputs[0].dtype
+        )
     # If any of the inputs is in CL format, use CL format for the output
     for i in range(len(inputs)):
         x = inputs[i]
@@ -582,6 +587,9 @@ def _patch_concatkernel_create(cls, inputs, dim):
     ):
         output_stride = ir.make_channels_last_strides_for(new_size)
 
+    is_pinned = all(
+        ir.is_storage_and_layout(x) and x.get_layout().is_pinned for x in inputs
+    )
     concat_kernel = ir.ConcatKernel(
         name=None,
         layout=ir.FixedLayout(
@@ -589,6 +597,7 @@ def _patch_concatkernel_create(cls, inputs, dim):
             dtype=dtype,
             size=new_size,
             stride=output_stride,
+            is_pinned=is_pinned,
         ),
         inputs=[],
     )
@@ -610,8 +619,10 @@ def _patch_concatkernel_create(cls, inputs, dim):
             input_unwrapped = inputs[i].data
 
         if (
-                input_unwrapped.is_input_buffer()
-                and ir.is_gpu(inputs[i].get_device().type)
+                isinstance(input_unwrapped, ir.StorageBox)
+                and input_unwrapped.is_input_buffer()
+                and (dev := inputs[i].get_device()) is not None
+                and ir.is_gpu(dev.type)
                 and not ir.is_dynamic(input_buffer)
         ):
             op_names.append(input_buffer.get_operation_name())

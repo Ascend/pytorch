@@ -1027,9 +1027,9 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             return TensorBox(SqueezeView.create(x.data))
 
         dim = (
-            V.graph.sizevars.evaluate_static_shape(dim)
+            V.graph.sizevars.guard_int(dim)
             if isinstance(dim, (int, sympy.Expr))
-            else tuple(V.graph.sizevars.evaluate_static_shape(d) for d in dim)
+            else tuple(V.graph.sizevars.guard_int(d) for d in dim)
         )
         dim = canonicalize_dims(len(x.get_size()), dim)  # type: ignore[call-overload]
         dims = set((dim,) if not isinstance(dim, tuple) else dim)
@@ -1235,42 +1235,10 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
         idx = View.handle_negative_index(idx, x.get_size()[dim])
         return squeeze(slice_(x, dim, idx, idx + 1), dim)
 
-    @register_lowering(aten.split, type_promotion_kind=None)
-    def split(x, sizes, dim=0):
-        dim = _validate_dim(x, dim, 0)
-        sizes_ = sizes
-
-        # If sizes is an integer (or a SymInt), we turn it into a list of sizes
-        # by computing what the actual size of each chunk should be.
-        if not isinstance(sizes, (list, tuple)):
-            x_size = x.get_size()[dim]
-            chunks = V.graph.sizevars.evaluate_static_shape(
-                FloorDiv(x_size + sizes - 1, sizes)
-            )
-            sizes_ = [sizes] * chunks
-            # The last chunk might have a smaller size than the rest.
-            sizes_[-1] = x_size - (chunks - 1) * sizes
-
-        # From this point, we assume that the sum of the sizes of all chunks
-        # equals the size of the base tensor.
-        result = []
-        start = 0
-        for size in sizes_:
-            end = start + size
-            # No need for clamping here, since we compute the exact
-            # start and end values.
-            result.append(slice_(x, dim, start, end, clamp=False))
-            start = end
-        return result
-
-    @register_lowering(aten.split_with_sizes, type_promotion_kind=None)
-    def split_with_sizes(x, sizes, dim=0):
-        return split(x, sizes, dim)
-
     @register_lowering(aten.unbind, type_promotion_kind=None)
     def unbind(x, dim=0):
         dim = _validate_dim(x, dim, 0)
-        x_size = V.graph.sizevars.evaluate_static_shape(x.get_size()[dim])
+        x_size = V.graph.sizevars.guard_int(x.get_size()[dim])
         result = [select(x, dim, i) for i in range(x_size)]
         return result
 
@@ -1351,8 +1319,8 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
         dim = _validate_dim(x, dim, 0)
         if V.graph.sizevars.evaluate_expr(sympy.Lt(index, 0)):
             index = index + x.get_size()[dim]
-        V.graph.sizevars.guard_leq(0, index)  # type: ignore[arg-type]
-        V.graph.sizevars.guard_lt(index, x.get_size()[dim])  # type: ignore[arg-type]
+        V.graph.sizevars.check_leq(0, index)  # type: ignore[arg-type]
+        V.graph.sizevars.check_lt(index, x.get_size()[dim])  # type: ignore[arg-type]
         src = expand(unsqueeze(src, dim), x.get_size())
         src_loader = src.make_loader()
 
