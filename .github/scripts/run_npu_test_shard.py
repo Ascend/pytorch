@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Run a shard of patched upstream PyTorch tests via run_test.py.
+Run a shard of patched upstream PyTorch tests via direct pytest execution.
 
 Shard allocation by test type:
 - Shard 1-50: Distributed tests, 50 machines (linux-aarch64-a3-2, 2 parallel workers)
@@ -10,8 +10,9 @@ Shard allocation by test type:
 Each shard type applies whitelist/blacklist filtering from case_paths_ci.yml
 and item-level deselection from disabled_testcases.json.
 
-Tests are executed using run_test.py with file-level parallel execution
-(NUM_PARALLEL_PROCS=2 for 2-card NPU machines).
+Tests are executed using direct pytest with pytest-xdist for file-level
+parallel execution (--dist=loadfile, -n=parallel). Files in the
+SERIAL_TEST_FILES set are run one-at-a-time to avoid resource contention.
 """
 
 import argparse
@@ -43,6 +44,51 @@ SHARD_REGULAR_END = 101
 SHARD_REGULAR_TOTAL = 50
 
 TOTAL_SHARDS = 101
+
+# Test files that should never be run in parallel with other test files.
+# Borrowed from PyTorch's run_test.py RUN_PARALLEL_BLOCKLIST + CI_SERIAL_LIST.
+# These tests are run one-at-a-time via individual pytest invocations (no -n flag).
+SERIAL_TEST_FILES = {
+    # From RUN_PARALLEL_BLOCKLIST: tests inside these files should never run in parallel
+    "test_extension_utils",
+    "test_cpp_extensions_jit",
+    "test_cpp_extensions_open_device_registration",
+    "test_cpp_extensions_stream_and_event",
+    "test_cpp_extensions_mtia_backend",
+    "test_jit_disabled",
+    "test_mobile_optimizer",
+    "test_multiprocessing",
+    "test_multiprocessing_spawn",
+    "test_namedtuple_return_api",
+    "test_overrides",
+    "test_show_pickle",
+    "test_tensorexpr",
+    "test_cuda_primary_ctx",
+    "test_cuda_trace",
+    "test_cuda_nvml_based_avail",
+    "test_autograd_fallback",
+    # From CI_SERIAL_LIST: file-level serial (often due to OOM or resource contention)
+    "test_nn",
+    "test_fake_tensor",
+    "test_cpp_api_parity",
+    "test_reductions",
+    "test_fx_backends",
+    "test_torch",
+    "test_tensor_creation_ops",
+    "test_dispatch",
+    "test_python_dispatch",
+    "test_spectral_ops",
+    "nn/test_pooling",
+    "nn/test_convolution",
+    "distributions/test_distributions",
+    "test_fx",
+    "test_utils",
+    "test_sort_and_select",
+    "test_backward_compatible_arguments",
+    "test_autocast",
+    "test_native_mha",
+    "test_module_hooks",
+}
 
 # Excluded shard special tests: directories and files excluded by discover_tests.py
 # (blocklisted_patterns and blocklisted_tests), but should be tested on NPU.
@@ -108,7 +154,7 @@ def get_shard_type(shard: int) -> Tuple[str, int, int]:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run PyTorch NPU tests for a shard via run_test.py")
+    parser = argparse.ArgumentParser(description="Run PyTorch NPU tests for a shard via direct pytest")
     parser.add_argument("--shard", type=int, required=True, help="Shard number (1-indexed, 1-101)")
     parser.add_argument("--num-shards", type=int, default=TOTAL_SHARDS, help="Total number of shards (default 101)")
     parser.add_argument("--test-dir", type=str, required=True, help="Path to the PyTorch test directory")
@@ -447,9 +493,10 @@ def filter_tests_by_type(test_files: List[str], shard_type: str) -> Tuple[List[s
 
 def strip_test_prefix_and_suffix(test_path: str) -> str:
     """
-    Remove 'test/' prefix and '.py' suffix from path for run_test.py -i argument.
+    Remove 'test/' prefix and '.py' suffix from path.
 
-    run_test.py expects test names like 'test_autograd', 'distributed/test_c10d'
+    Example: 'test/test_autograd.py' -> 'test_autograd'
+             'test/distributed/test_c10d.py' -> 'distributed/test_c10d'
     """
     path = test_path
     if path.startswith("test/"):
@@ -457,6 +504,17 @@ def strip_test_prefix_and_suffix(test_path: str) -> str:
     if path.endswith(".py"):
         path = path[:-3]  # Remove '.py' suffix
     return path
+
+
+def is_serial_test(test_path: str) -> bool:
+    """
+    Check if a test file should be run serially (not in parallel with other files).
+
+    Tests in SERIAL_TEST_FILES are run one-at-a-time via individual pytest
+    invocations without the -n flag, to avoid resource contention and OOM.
+    """
+    name = strip_test_prefix_and_suffix(test_path)
+    return name in SERIAL_TEST_FILES
 
 
 def parse_junit_xml(xml_file: str) -> Dict:
@@ -703,8 +761,7 @@ def build_execution_env(
         "NO_TD": "1",
         "PYTEST_ADDOPTS": os.environ.get("PYTEST_ADDOPTS", ""),
         "PYTHONUNBUFFERED": "1",
-        # Enable CI mode to generate JUnit XML reports for test statistics
-        # This ensures run_test.py adds --junit-xml-reruns for pytest execution
+        # Enable CI mode for slow/disabled test import behavior
         "CI": "true",
     }
 
@@ -792,212 +849,22 @@ def analyze_pytest_log(log_file: Path, returncode: int) -> Dict:
     return metrics
 
 
-def strip_test_prefix(path: str) -> str:
-    """Remove 'test/' prefix and '.py' suffix from path for run_test.py -i argument."""
-    normalized = normalize_path(path)
-    if normalized.startswith("test/"):
-        normalized = normalized[5:]  # Remove 'test/' prefix
-    # Remove '.py' suffix if present (run_test.py expects names without extension)
-    if normalized.endswith(".py"):
-        normalized = normalized[:-3]
-    return normalized
-
-
-def get_run_test_valid_choices(test_dir: Path) -> set:
-    """
-    Get the set of valid test choices recognized by run_test.py.
-
-    run_test.py validates test names against a predefined TESTS list.
-    We run run_test.py --dry-run to check if tests are valid, or parse error output.
-    """
-    # Run run_test.py with an invalid test name to get the valid choices list from error message
-    try:
-        result = subprocess.run(
-            [sys.executable, "run_test.py", "-i", "__invalid_test__"],
-            cwd=str(test_dir),
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        # Parse the error message for valid choices
-        # Error format: "invalid choice: 'x' (choose from 'a', 'b', 'c' ...)"
-        stderr = result.stderr
-        valid_choices = set()
-
-        # Look for the "choose from" part in the error message
-        match = re.search(r"choose from '([^']+)'", stderr)
-        if match:
-            # Found at least one valid choice, parse the rest
-            # The choices are listed as 'test1', 'test2', ... in parentheses
-            choices_str = stderr
-            # Extract all quoted test names
-            for m in re.finditer(r"'([^']+/test_[^']+)'", choices_str):
-                valid_choices.add(m.group(1))
-        return valid_choices
-    except Exception as e:
-        print(f"Warning: Failed to get valid choices from run_test.py: {e}")
-        return set()
-
-
-def validate_tests_for_run_test(
-    planned_tests: List[str],
-    test_dir: Path,
-) -> Tuple[List[str], List[str]]:
-    """
-    Validate which tests are recognized by run_test.py.
-
-    run_test.py only recognizes tests from specific directories (excluding
-    custom_backend, custom_operator, etc.). We validate against its choices.
-
-    Returns:
-        Tuple of (valid_tests, unrecognized_tests)
-    """
-    # Simple heuristic: tests in special directories are not recognized by run_test.py
-    # These directories are not part of the standard test discovery:
-    # - custom_backend/
-    # - custom_operator/
-    # - cpp_extensions/ (subdirectory structure differs)
-    known_unrecognized_prefixes = [
-        "test/custom_backend/",
-        "test/custom_operator/",
-        "custom_backend/",
-        "custom_operator/",
-    ]
-
-    valid_tests = []
-    unrecognized_tests = []
-
-    for test in planned_tests:
-        test_normalized = strip_test_prefix(test)
-        is_unrecognized = False
-        for prefix in known_unrecognized_prefixes:
-            if test_normalized.startswith(prefix):
-                is_unrecognized = True
-                break
-        if is_unrecognized:
-            unrecognized_tests.append(test)
-        else:
-            valid_tests.append(test)
-
-    return valid_tests, unrecognized_tests
-
-
-def build_run_test_command(
-    valid_tests: List[str],
-    report_dir: Path,
-    shard: int,
-    timeout: int,
-    verbose: bool,
-    parallel: int,
-    shard_type: str,
-) -> List[str]:
-    """
-    Build command to run tests via run_test.py based on shard type.
-
-    Args:
-        valid_tests: List of test paths (with test/ prefix) to run
-        report_dir: Directory for test reports (absolute path for --save-xml)
-        shard: Shard number
-        timeout: Per-test timeout
-        verbose: Verbose output flag
-        parallel: Number of parallel workers (NUM_PARALLEL_PROCS)
-        shard_type: "distributed", "excluded", or "regular"
-
-    Returns:
-        Command list for subprocess execution
-    """
-    command = [
-        sys.executable,
-        "run_test.py",
-    ]
-
-    if shard_type == "excluded":
-        # Excluded shard is handled by run_excluded_tests_via_pytest, not by run_test.py
-        # This branch should not be reached, but provide safety fallback
-        print("Warning: Excluded shard unexpectedly using run_test.py path")
-        test_names = [strip_test_prefix_and_suffix(t) for t in valid_tests]
-        if test_names:
-            command.extend(["--include", *test_names])
-    elif shard_type == "distributed":
-        # Distributed tests: pass filtered test list via -i
-        # Strip 'test/' prefix and '.py' suffix for run_test.py
-        test_names = [strip_test_prefix_and_suffix(t) for t in valid_tests]
-        if test_names:
-            command.extend(["-i", *test_names])
-        else:
-            command.append("--distributed-tests")
-    else:
-        # Regular tests: pass filtered test list via -i
-        # Exclude JIT executor and distributed tests at run_test.py level as safety
-        test_names = [strip_test_prefix_and_suffix(t) for t in valid_tests]
-        if test_names:
-            command.extend(["-i", *test_names])
-        else:
-            command.extend([
-                "--exclude-jit-executor",
-                "--exclude-distributed-tests",
-            ])
-
-    if verbose:
-        command.append("-vv")
-    else:
-        command.append("-v")
-
-    command.extend([
-        "--continue-through-error",  # Keep running even if some tests fail
-    ])
-
-    # Add --save-xml with absolute path to report_dir so JUnit XML reports
-    # are generated in the expected location for aggregate_junit_stats
-    xml_report_path = str(report_dir.resolve() / "junit")
-    command.extend(["--save-xml", xml_report_path])
-
-    return command
-
-
 def build_pytest_command(
     planned_tests: List[str],
     report_dir: Path,
     shard: int,
     timeout: int,
     verbose: bool,
-) -> List[str]:
-    """Build pytest command for direct execution (fallback mode)."""
-    xml_file = report_dir / f"shard_{shard}_pytest.xml"
-    command = [
-        sys.executable,
-        "-m",
-        "pytest",
-        "--color=no",
-        "-ra",
-        "--tb=short",
-        "--continue-on-collection-errors",
-        f"--junitxml={xml_file}",
-        "-p",
-        "pytest_disabled_testcases_plugin",
-    ]
-
-    if timeout > 0:
-        command.append(f"--timeout={timeout}")
-
-    command.append("-vv" if verbose else "-v")
-    command.extend(planned_tests)
-    return command
-
-
-def build_excluded_pytest_command(
-    planned_tests: List[str],
-    report_dir: Path,
-    shard: int,
-    timeout: int,
-    verbose: bool,
     parallel: int,
+    shard_type: str,
+    xml_suffix: str = "",
 ) -> List[str]:
     """
-    Build pytest command for excluded shard tests with parallel execution.
+    Build pytest command for direct test execution.
 
-    Excluded shard tests are excluded by discover_tests.py and must be run
-    directly via pytest (not via run_test.py).
+    All shard types (distributed, excluded, regular) use this unified command
+    builder. Tests can run with pytest-xdist for file-level parallelism
+    (when parallel > 0) or sequentially (when parallel == 0, for serial tests).
 
     Args:
         planned_tests: List of test file paths (with 'test/' prefix)
@@ -1005,12 +872,15 @@ def build_excluded_pytest_command(
         shard: Shard number
         timeout: Per-test timeout
         verbose: Verbose output flag
-        parallel: Number of parallel workers (NUM_PARALLEL_PROCS)
+        parallel: Number of parallel workers (0 = sequential, >0 = pytest-xdist)
+        shard_type: "distributed", "excluded", or "regular"
+        xml_suffix: Optional suffix appended to the XML filename
+                    (e.g. "_test_nn" for serial per-file runs)
 
     Returns:
         Command list for subprocess execution
     """
-    xml_file = report_dir / f"shard_{shard}_excluded_pytest.xml"
+    xml_file = report_dir / f"shard_{shard}_pytest{xml_suffix}.xml"
     command = [
         sys.executable,
         "-m",
@@ -1022,9 +892,15 @@ def build_excluded_pytest_command(
         f"--junitxml={xml_file}",
         "-p",
         "pytest_disabled_testcases_plugin",
-        f"-n={parallel}",  # pytest-xdist for parallel execution
-        "--dist=loadfile",  # Distribute by file
+        "--import-slow-tests",
+        "--import-disabled-tests",
     ]
+
+    if parallel > 0:
+        command.extend([
+            f"-n={parallel}",       # pytest-xdist for parallel execution
+            "--dist=loadfile",      # Distribute by file for locality
+        ])
 
     if timeout > 0:
         command.append(f"--timeout={timeout}")
@@ -1046,7 +922,7 @@ def build_excluded_pytest_command(
     return command
 
 
-def run_excluded_tests_via_pytest(
+def run_tests_via_pytest(
     planned_tests: List[str],
     shard: int,
     test_dir: Path,
@@ -1055,13 +931,18 @@ def run_excluded_tests_via_pytest(
     timeout: int,
     verbose: bool,
     parallel: int,
+    shard_type: str,
 ) -> Tuple[int, Dict, Dict]:
     """
-    Run excluded shard tests directly via pytest (not via run_test.py).
+    Run tests directly via pytest with serial/parallel split.
 
-    Excluded shard tests are in case_paths_ci.yml whitelist but excluded by
-    discover_tests.py blocklisted_patterns/blocklisted_tests. They must
-    be run directly via pytest with parallel execution.
+    All shard types (distributed, excluded, regular) use this unified
+    execution function. Tests are split into two groups:
+
+    1. Serial group: Files in SERIAL_TEST_FILES are run one-at-a-time
+       via individual pytest invocations (no -n flag).
+    2. Parallel group: Remaining files are run together with pytest-xdist
+       for file-level parallelism (-n=parallel --dist=loadfile).
 
     Args:
         planned_tests: List of test file paths (with 'test/' prefix)
@@ -1071,344 +952,157 @@ def run_excluded_tests_via_pytest(
         env_updates: Environment variable updates
         timeout: Per-test timeout
         verbose: Verbose output flag
-        parallel: Number of parallel workers
-
-    Returns:
-        Tuple of (returncode, stats, log_metrics)
-    """
-    start = monotonic()
-    log_file = get_shard_log_file(report_dir, shard)
-
-    merged_env = os.environ.copy()
-    merged_env.update(env_updates)
-
-    command = build_excluded_pytest_command(
-        planned_tests,
-        report_dir,
-        shard,
-        timeout,
-        verbose,
-        parallel,
-    )
-
-    print(f"\nExecuting pytest for excluded shard tests (shard {shard}):")
-    print("  " + " ".join(command))
-    print(f"  Working directory: {test_dir}")
-    print(f"  Parallel workers: {parallel}")
-
-    with log_file.open("w", encoding="utf-8") as log_handle:
-        log_handle.write("=" * 60 + "\n")
-        log_handle.write("Excluded Shard: Direct pytest execution\n")
-        log_handle.write("=" * 60 + "\n")
-        log_handle.write(f"Test files: {len(planned_tests)}\n")
-        log_handle.write(f"Parallel workers: {parallel}\n")
-        log_handle.write("=" * 60 + "\n\n")
-        log_handle.flush()
-
-        process = subprocess.Popen(
-            command,
-            cwd=str(test_dir),
-            env=merged_env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            bufsize=1,
-        )
-
-        raw_returncode = 0
-        try:
-            assert process.stdout is not None
-            for line in process.stdout:
-                sys.stdout.write(line)
-                sys.stdout.flush()
-                log_handle.write(line)
-            raw_returncode = process.wait()
-        except BaseException:
-            process.kill()
-            raw_returncode = 1
-        finally:
-            if process.stdout is not None:
-                process.stdout.close()
-
-    # Parse JUnit XML for stats
-    xml_file = report_dir / f"shard_{shard}_excluded_pytest.xml"
-    stats = parse_junit_xml(str(xml_file))
-    stats["returncode"] = raw_returncode
-    stats["junit_generated"] = xml_file.exists()
-    stats["junit_xml_files"] = 1 if xml_file.exists() else 0
-
-    elapsed = monotonic() - start
-    stats = finalize_stats(stats, raw_returncode, elapsed)
-
-    log_metrics = {
-        "zero_item_test_files": 0,
-        "startup_failures": 0,
-        "import_failures": 0,
-        "test_failures": stats.get("failed", 0) + stats.get("errors", 0),
-    }
-
-    if raw_returncode != 0:
-        print(f"\nExcluded shard tests completed with errors (returncode: {raw_returncode})")
-    else:
-        print(f"\nExcluded shard tests completed successfully")
-
-    return raw_returncode, stats, log_metrics
-
-
-def run_tests_via_run_test(
-    planned_tests: List[str],
-    shard: int,
-    test_dir: Path,  # Working directory is test_dir (not repo_root)
-    report_dir: Path,
-    env_updates: Dict[str, str],
-    timeout: int,
-    verbose: bool,
-    parallel: int,
-    shard_type: str,
-) -> Tuple[int, Dict, Dict]:
-    """
-    Run tests via run_test.py with file-level parallel execution.
-
-    Tests not recognized by run_test.py are run via direct pytest.
-
-    Args:
-        planned_tests: List of test file paths (with 'test/' prefix)
-        shard: Shard number
-        test_dir: Path to the test directory (working directory for execution)
-        report_dir: Directory for test reports
-        env_updates: Environment variable updates
-        timeout: Per-test timeout
-        verbose: Verbose output flag
-        parallel: Number of parallel workers (NUM_PARALLEL_PROCS)
+        parallel: Number of parallel workers (pytest-xdist)
         shard_type: "distributed", "excluded", or "regular"
 
     Returns:
         Tuple of (returncode, stats, log_metrics)
     """
     start = monotonic()
-    raw_returncode = 0
-    error_message = ""
     log_file = get_shard_log_file(report_dir, shard)
 
-    # Validate tests against run_test.py's valid choices
-    valid_tests, unrecognized_tests = validate_tests_for_run_test(planned_tests, test_dir)
-
-    if unrecognized_tests:
-        print(f"Warning: {len(unrecognized_tests)} tests not recognized by run_test.py, will run via direct pytest:")
-        for test in unrecognized_tests:
-            print(f"  - {strip_test_prefix(test)}")
-
-    # Set NUM_PARALLEL_PROCS environment variable for file-level parallelism
-    env_updates["NUM_PARALLEL_PROCS"] = str(parallel)
     merged_env = os.environ.copy()
     merged_env.update(env_updates)
 
-    # Phase 1: Run valid tests via run_test.py (if any)
-    if valid_tests:
-        command = build_run_test_command(valid_tests, report_dir, shard, timeout, verbose, parallel, shard_type)
+    # Split tests into serial and parallel groups
+    serial_tests = [t for t in planned_tests if is_serial_test(t)]
+    parallel_tests = [t for t in planned_tests if not is_serial_test(t)]
 
-        print(f"\nExecuting run_test.py for {len(valid_tests)} valid tests (shard type: {shard_type}):")
-        print("  " + " ".join(command))
-        print(f"  Working directory: {test_dir}")
-        print(f"  Parallel workers: {parallel}")
+    worst_returncode = 0
 
-        with log_file.open("w", encoding="utf-8") as log_handle:
-            log_handle.write("=" * 60 + "\n")
-            log_handle.write("Phase 1: run_test.py (file-level parallel)\n")
-            log_handle.write("=" * 60 + "\n")
-            log_handle.write(f"Shard type: {shard_type}\n")
-            log_handle.write(f"Valid tests: {len(valid_tests)}\n")
-            log_handle.write(f"Unrecognized tests: {len(unrecognized_tests)}\n")
-            log_handle.write("=" * 60 + "\n\n")
+    with log_file.open("w", encoding="utf-8") as log_handle:
+        log_handle.write("=" * 60 + "\n")
+        log_handle.write(f"Direct pytest execution ({shard_type} shard)\n")
+        log_handle.write("=" * 60 + "\n")
+        log_handle.write(f"Total test files: {len(planned_tests)}\n")
+        log_handle.write(f"Serial test files: {len(serial_tests)}\n")
+        log_handle.write(f"Parallel test files: {len(parallel_tests)}\n")
+        log_handle.write(f"Parallel workers: {parallel}\n")
+        log_handle.write("=" * 60 + "\n\n")
+        log_handle.flush()
+
+        # --- Phase 1: Serial tests (one-at-a-time) ---
+        if serial_tests:
+            log_handle.write(f"--- Serial phase: {len(serial_tests)} files ---\n\n")
             log_handle.flush()
+            print(f"\n[Serial phase] Running {len(serial_tests)} files one-at-a-time:")
 
-            process = subprocess.Popen(
-                command,
-                cwd=str(test_dir),
-                env=merged_env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
+            for idx, test_file in enumerate(serial_tests, 1):
+                test_name = strip_test_prefix_and_suffix(test_file)
+                # Sanitize test_name for use in filename (replace / with _)
+                safe_name = test_name.replace("/", "_")
+                command = build_pytest_command(
+                    [test_file],
+                    report_dir,
+                    shard,
+                    timeout,
+                    verbose,
+                    parallel=0,
+                    shard_type=shard_type,
+                    xml_suffix=f"_{safe_name}",
+                )
+
+                print(f"  [{idx}/{len(serial_tests)}] {test_name}")
+                log_handle.write(f"[Serial {idx}/{len(serial_tests)}] {test_name}\n")
+                log_handle.write(f"  Command: {' '.join(command)}\n")
+                log_handle.flush()
+
+                rc = _run_pytest_subprocess(command, test_dir, merged_env, log_handle)
+                if rc != 0 and rc != 5:
+                    worst_returncode = rc if worst_returncode == 0 else worst_returncode
+
+        # --- Phase 2: Parallel tests (all at once with -n=parallel) ---
+        if parallel_tests:
+            log_handle.write(f"\n--- Parallel phase: {len(parallel_tests)} files (workers: {parallel}) ---\n\n")
+            log_handle.flush()
+            print(f"\n[Parallel phase] Running {len(parallel_tests)} files with {parallel} workers:")
+
+            command = build_pytest_command(
+                parallel_tests,
+                report_dir,
+                shard,
+                timeout,
+                verbose,
+                parallel=parallel,
+                shard_type=shard_type,
             )
 
-            try:
-                assert process.stdout is not None
-                for line in process.stdout:
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
-                    log_handle.write(line)
-                raw_returncode = process.wait()
-            except BaseException:
-                process.kill()
-                raw_returncode = 1
-            finally:
-                if process.stdout is not None:
-                    process.stdout.close()
-
-        if raw_returncode != 0:
-            error_message = f"run_test.py exited with code {raw_returncode}"
-
-    # Phase 2: Run unrecognized tests via direct pytest (if any)
-    pytest_returncode = 0
-    if unrecognized_tests:
-        # Append to the same log file
-        with log_file.open("a", encoding="utf-8") as log_handle:
-            log_handle.write("\n" + "=" * 60 + "\n")
-            log_handle.write("Phase 2: direct pytest for unrecognized tests\n")
-            log_handle.write("=" * 60 + "\n\n")
+            print("  " + " ".join(command))
+            log_handle.write(f"  Command: {' '.join(command)}\n")
             log_handle.flush()
 
-            pytest_xml_file = report_dir / f"shard_{shard}_pytest_unrecognized.xml"
-            pytest_command = [
-                sys.executable,
-                "-m",
-                "pytest",
-                "--color=no",
-                "-ra",
-                "--tb=short",
-                "--continue-on-collection-errors",
-                f"--junitxml={pytest_xml_file}",
-                "-p",
-                "pytest_disabled_testcases_plugin",
-                "-vv" if verbose else "-v",
-            ]
-            if timeout > 0:
-                pytest_command.append(f"--timeout={timeout}")
-            # Add test paths (strip 'test/' prefix since pytest runs from test_dir)
-            pytest_test_paths = [strip_test_prefix(t) + ".py" for t in unrecognized_tests]
-            pytest_command.extend(pytest_test_paths)
+            rc = _run_pytest_subprocess(command, test_dir, merged_env, log_handle)
+            if rc != 0 and rc != 5:
+                worst_returncode = rc if worst_returncode == 0 else worst_returncode
 
-            print(f"\nExecuting direct pytest for {len(unrecognized_tests)} unrecognized tests:")
-            print("  " + " ".join(pytest_command))
-
-            process = subprocess.Popen(
-                pytest_command,
-                cwd=str(test_dir),
-                env=merged_env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
-            )
-
-            try:
-                assert process.stdout is not None
-                for line in process.stdout:
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
-                    log_handle.write(line)
-                pytest_returncode = process.wait()
-            except BaseException:
-                process.kill()
-                pytest_returncode = 1
-            finally:
-                if process.stdout is not None:
-                    process.stdout.close()
-
-        if pytest_returncode != 0:
-            if error_message:
-                error_message += f"; pytest exited with code {pytest_returncode}"
-            else:
-                error_message = f"pytest exited with code {pytest_returncode}"
-
-    # Combine return codes
-    if valid_tests and unrecognized_tests:
-        # If both ran, combine failures
-        final_returncode = raw_returncode if raw_returncode != 0 else pytest_returncode
-    elif valid_tests:
-        final_returncode = raw_returncode
-    else:
-        final_returncode = pytest_returncode
-
-    duration = monotonic() - start
-
-    # Search for XML files in both locations:
-    # 1. report_dir: where shard-specific pytest fallback XMLs are saved
-    # 2. test_dir/test-reports: where run_test.py generates its XML reports
-    # run_test.py runs in test_dir (e.g., pytorch-test-src/test/) and generates
-    # XML reports to test-reports/python-pytest/{test_identifier}/ relative to test_dir
-    test_dir_reports = test_dir / "test-reports"
-    report_roots = [report_dir]
-    if test_dir_reports.exists() and test_dir_reports != report_dir:
-        report_roots.append(test_dir_reports)
-
-    xml_files = []
-    for root in report_roots:
-        xml_files.extend(sorted(root.rglob("*.xml")))
-    xml_files = sorted(set(str(f.resolve()) for f in xml_files))  # Deduplicate by resolved path
-
-    stats = aggregate_junit_stats(report_roots)
-    stats["junit_generated"] = bool(xml_files)
-    stats["junit_xml_files"] = len(xml_files)
-    stats["valid_tests_count"] = len(valid_tests)
-    stats["unrecognized_tests_count"] = len(unrecognized_tests)
-
-    returncode = final_returncode
-    if final_returncode == 5 and stats.get("total", 0) == 0 and stats.get("failed", 0) == 0 and stats.get("errors", 0) == 0:
-        returncode = 0
-        print("Tests collected no items after file filtering and testcase deselection.")
-
-    log_metrics = analyze_pytest_log(log_file, final_returncode)
-    log_metrics["test_failures"] = int(stats.get("failed", 0))
-    stats.update(log_metrics)
-
-    stats = finalize_stats(stats or create_empty_stats(), returncode, duration, error_message)
-    return returncode, stats, log_metrics
-
-
-def run_pytest_shard(
-    planned_tests: List[str],
-    shard: int,
-    repo_root: Path,
-    report_dir: Path,
-    env_updates: Dict[str, str],
-    timeout: int,
-    verbose: bool,
-) -> Tuple[int, Dict, Dict]:
-    """Run tests via direct pytest execution (fallback mode)."""
-    start = monotonic()
-    raw_returncode = 0
-    error_message = ""
-    log_file = get_shard_log_file(report_dir, shard)
-    command = build_pytest_command(planned_tests, report_dir, shard, timeout, verbose)
-
-    print("Executing pytest command:")
-    print("  " + " ".join(command))
-
-    try:
-        raw_returncode = run_command_with_tee(command, repo_root, env_updates, log_file)
-    except Exception as exc:
-        raw_returncode = 1
-        error_message = f"Failed to execute pytest: {exc}"
-
-    duration = monotonic() - start
-
-    xml_files = sorted(report_dir.rglob("*.xml"))
+    # --- Aggregate stats from all generated XML files ---
+    xml_files = sorted(report_dir.glob(f"shard_{shard}_pytest*.xml"))
     stats = aggregate_junit_stats([report_dir])
     stats["junit_generated"] = bool(xml_files)
     stats["junit_xml_files"] = len(xml_files)
+    stats["serial_test_files"] = len(serial_tests)
+    stats["parallel_test_files"] = len(parallel_tests)
 
-    returncode = raw_returncode
-    if raw_returncode == 5 and stats.get("total", 0) == 0 and stats.get("failed", 0) == 0 and stats.get("errors", 0) == 0:
+    # Handle returncode=5 (no tests collected) as success when no real failures
+    returncode = worst_returncode
+    if worst_returncode == 5 and stats.get("total", 0) == 0 and stats.get("failed", 0) == 0 and stats.get("errors", 0) == 0:
         returncode = 0
-        print("Pytest collected no tests for this shard after file filtering and testcase deselection.")
+        print("Tests collected no items after file filtering and testcase deselection.")
 
-    log_metrics = analyze_pytest_log(log_file, raw_returncode)
-    log_metrics["test_failures"] = int(stats.get("failed", 0))
+    elapsed = monotonic() - start
+    stats = finalize_stats(stats, returncode, elapsed)
+
+    log_metrics = analyze_pytest_log(log_file, worst_returncode)
+    log_metrics["test_failures"] = stats.get("failed", 0) + stats.get("errors", 0)
     stats.update(log_metrics)
 
-    if returncode != 0 and not error_message:
-        error_message = f"pytest exited with code {raw_returncode}"
+    if returncode != 0:
+        print(f"\n{shard_type.capitalize()} shard tests completed with errors (returncode: {returncode})")
+    else:
+        print(f"\n{shard_type.capitalize()} shard tests completed successfully")
 
-    stats = finalize_stats(stats or create_empty_stats(), returncode, duration, error_message)
     return returncode, stats, log_metrics
+
+
+def _run_pytest_subprocess(
+    command: List[str],
+    cwd: Path,
+    env: Dict[str, str],
+    log_handle,
+) -> int:
+    """
+    Run a pytest subprocess, streaming output to both stdout and log_handle.
+
+    Returns the process return code.
+    """
+    process = subprocess.Popen(
+        command,
+        cwd=str(cwd),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        bufsize=1,
+    )
+
+    raw_returncode = 0
+    try:
+        assert process.stdout is not None
+        for line in process.stdout:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+            log_handle.write(line)
+        raw_returncode = process.wait()
+    except BaseException:
+        process.kill()
+        raw_returncode = 1
+    finally:
+        if process.stdout is not None:
+            process.stdout.close()
+
+    return raw_returncode
 
 
 def main():
@@ -1496,7 +1190,7 @@ def main():
     save_unhandled_upstream_tests_file(str(report_dir), args.shard, [])
 
     print(f"\n{'=' * 60}")
-    print("PyTorch NPU Test Runner (via run_test.py)")
+    print("PyTorch NPU Test Runner (direct pytest)")
     print(f"{'=' * 60}")
     print(f"Shard: {args.shard}/{TOTAL_SHARDS}")
     print(f"Shard type: {shard_type} (shard {shard_index}/{shard_total} within type)")
@@ -1504,12 +1198,12 @@ def main():
     print(f"Test directory: {test_dir}")
     # Show appropriate description based on discovery mode
     discovery_desc = {
-        "TESTS_list": "TESTS list from run_test.py",
+        "TESTS_list": "TESTS list from discover_tests.py",
         "raw_file_scan": "raw file scan (all test_*.py)",
         "raw_file_scan_for_excluded_tests": "raw file scan for excluded tests (blocklisted patterns/tests)",
     }
     print(f"Test discovery mode: {info['test_discovery_mode']} ({discovery_desc.get(info['test_discovery_mode'], 'unknown')})")
-    print(f"Parallel workers (NUM_PARALLEL_PROCS): {args.parallel}")
+    print(f"Parallel workers (pytest-xdist): {args.parallel}")
     if crashed_config_file:
         print(f"Crashed files config: {crashed_config_file}")
         print(f"Crashed files excluded: {info['crashed_excluded_files']}")
@@ -1537,51 +1231,20 @@ def main():
     env_updates = build_execution_env(test_dir, script_dir, args.disabled_testcases, str(report_dir), args.shard)
 
     if planned_tests:
-        # Run tests based on shard type
-        # - Excluded shard: run directly via pytest (tests excluded by discover_tests.py)
-        # - Distributed/Regular: run via run_test.py
+        # All shard types run directly via pytest with serial/parallel split
         effective_parallel = args.parallel
-
-        if shard_type == "excluded":
-            # Excluded shard tests run directly via pytest with parallel execution
-            print(f"Note: Excluded shard running {len(planned_tests)} tests directly via pytest (parallel: {effective_parallel})")
-            _, stats, log_metrics = run_excluded_tests_via_pytest(
-                planned_tests,
-                args.shard,
-                test_dir,
-                report_dir,
-                env_updates,
-                args.timeout,
-                args.verbose,
-                effective_parallel,
-            )
-        elif shard_type == "distributed":
-            # Distributed tests: use specified parallel workers
-            print(f"Note: Distributed tests using {effective_parallel} parallel workers")
-            _, stats, log_metrics = run_tests_via_run_test(
-                planned_tests,
-                args.shard,
-                test_dir,
-                report_dir,
-                env_updates,
-                args.timeout,
-                args.verbose,
-                effective_parallel,
-                shard_type,
-            )
-        else:
-            # Regular tests: run via run_test.py
-            _, stats, log_metrics = run_tests_via_run_test(
-                planned_tests,
-                args.shard,
-                test_dir,
-                report_dir,
-                env_updates,
-                args.timeout,
-                args.verbose,
-                effective_parallel,
-                shard_type,
-            )
+        print(f"Note: Running {len(planned_tests)} {shard_type} tests via direct pytest (parallel: {effective_parallel})")
+        _, stats, log_metrics = run_tests_via_pytest(
+            planned_tests,
+            args.shard,
+            test_dir,
+            report_dir,
+            env_updates,
+            args.timeout,
+            args.verbose,
+            effective_parallel,
+            shard_type,
+        )
     else:
         print("No test files assigned to this shard after file-level filtering.")
         stats = finalize_stats(create_empty_stats(), 0, 0.0)
