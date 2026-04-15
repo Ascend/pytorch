@@ -410,10 +410,17 @@ class NPUGraph(torch_npu._C._NPUGraph):
                 preload_code (int) - Controls code preloading strategy.
                 split_mode (int) - Controls kernel splitting mode for better performance.
                 stream_fusion (int) - Enables/disables stream fusion optimization.
+                constant_codegen (int) - Enables/disables constant code generation.
+                auto_op_parallel (int) - Enables/disables auto op parallel optimization.
+                opt_extend (str) - Extended optimization option string.
 
             debug_options (optional):
                 debug_sync_all (int) - Enables debug synchronization for all operations.
-                debug_dcci_disable_on_kernel (list) - Comma-separated list of kernel names to disable optimization.
+                debug_dcci_disable_on_kernel (list) - List of kernel names to disable DCCI optimization.
+                debug_dcci_before_kernel_start (list) - List of kernel names to insert DCCI before kernel start.
+                debug_op_exec_trace (int) - Enables/disables op execution trace.
+                debug_cross_core_sync_check (int) - Enables/disables cross core sync check.
+                debug_extend (str) - Extended debug option string.
         """
         self._validate_options("optimize_options", optimize_options)
         self._validate_options("debug_options", debug_options)
@@ -436,6 +443,15 @@ class NPUGraph(torch_npu._C._NPUGraph):
                 },
                 'stream_fusion': {
                     'value_type': int
+                },
+                'constant_codegen': {
+                    'value_type': int
+                },
+                'auto_op_parallel': {
+                    'value_type': int
+                },
+                'opt_extend': {
+                    'value_type': str
                 }
             },
             'debug_options': {
@@ -444,6 +460,18 @@ class NPUGraph(torch_npu._C._NPUGraph):
                 },
                 'debug_dcci_disable_on_kernel': {
                     'value_type': list
+                },
+                'debug_dcci_before_kernel_start': {
+                    'value_type': list
+                },
+                'debug_op_exec_trace': {
+                    'value_type': int
+                },
+                'debug_cross_core_sync_check': {
+                    'value_type': int
+                },
+                'debug_extend': {
+                    'value_type': str
                 }
             }
         }
