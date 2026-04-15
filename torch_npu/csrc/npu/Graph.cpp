@@ -75,6 +75,22 @@ public:
             {"debug_sync_all", [](aclskOption& opt, int val) {
                 opt.optionType = aclskOptionType::DEBUG_SYNC_ALL;
                 opt.debugSync.debugSyncAll = static_cast<uint32_t>(val);
+            }},
+            {"constant_codegen", [](aclskOption& opt, int val) {
+                opt.optionType = aclskOptionType::CONSTANT_CODEGEN;
+                opt.constantCodegen.enableConstant = static_cast<uint32_t>(val);
+            }},
+            {"auto_op_parallel", [](aclskOption& opt, int val) {
+                opt.optionType = aclskOptionType::AUTO_OP_PARALLEL;
+                opt.autoOpParallel.enableAutoOpParallel = static_cast<uint32_t>(val);
+            }},
+            {"debug_op_exec_trace", [](aclskOption& opt, int val) {
+                opt.optionType = aclskOptionType::DEBUG_OP_EXEC_TRACE;
+                opt.debugOpExecTrace.enableOpExecTrace = static_cast<uint32_t>(val);
+            }},
+            {"debug_cross_core_sync_check", [](aclskOption& opt, int val) {
+                opt.optionType = aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK;
+                opt.debugCrossCoreSyncCheck.enableCrossCoreSyncCheck = static_cast<uint32_t>(val);
             }}
         };
 
@@ -90,7 +106,26 @@ public:
     {
         if (key == "debug_dcci_disable_on_kernel") {
             processDcciDisableOnKernel(values);
+        } else if (key == "debug_dcci_before_kernel_start") {
+            processDcciBeforeKernelStart(values);
         }
+    }
+
+    void processStringOption(const std::string& key, const std::string& value)
+    {
+        aclskOption opt = {};
+        if (key == "opt_extend") {
+            opt.optionType = aclskOptionType::OPT_EXTEND_OPTION;
+            stringPool.push_back(value);
+            opt.optExtend.value = const_cast<char*>(stringPool.back().c_str());
+        } else if (key == "debug_extend") {
+            opt.optionType = aclskOptionType::DEBUG_EXTEND_OPTION;
+            stringPool.push_back(value);
+            opt.debugExtend.value = const_cast<char*>(stringPool.back().c_str());
+        } else {
+            return;
+        }
+        optionsVec.push_back(opt);
     }
 
     aclskOptions getStruct()
@@ -108,6 +143,15 @@ private:
         opt.optionType = aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
         opt.disableKernelDcci.kernelCnt = static_cast<int>(values.size());
         opt.disableKernelDcci.kernelNames = convertStringArray(values);
+        optionsVec.push_back(opt);
+    }
+
+    void processDcciBeforeKernelStart(const std::vector<std::string>& values)
+    {
+        aclskOption opt = {};
+        opt.optionType = aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START;
+        opt.dcciBeforeKernelStart.kernelCnt = static_cast<int>(values.size());
+        opt.dcciBeforeKernelStart.kernelNames = convertStringArray(values);
         optionsVec.push_back(opt);
     }
 
@@ -397,6 +441,8 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                         std::string key = py::str(item.first);
                         if (py::isinstance<py::int_>(item.second)) {
                             helper.processInitOption(key, item.second.cast<int>());
+                        } else if (py::isinstance<py::str>(item.second)) {
+                            helper.processStringOption(key, item.second.cast<std::string>());
                         }
                     }
                 }
@@ -409,6 +455,8 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                             helper.processInitOption(key, item.second.cast<int>());
                         } else if (py::isinstance<py::list>(item.second)) {
                             helper.processStringArrayOption(key, item.second.cast<std::vector<std::string>>());
+                        } else if (py::isinstance<py::str>(item.second)) {
+                            helper.processStringOption(key, item.second.cast<std::string>());
                         }
                     }
                 }

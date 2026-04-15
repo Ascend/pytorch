@@ -152,6 +152,55 @@ class TestAclgraphSuperKernelOptimize(TestCase):
                 debug_options={'debug_sync_all': 'invalid_string'}
             )
 
+        # constant_codegen expects int, not str
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'constant_codegen': 'invalid'},
+                debug_options=None
+            )
+
+        # auto_op_parallel expects int, not str
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'auto_op_parallel': 'invalid'},
+                debug_options=None
+            )
+
+        # debug_op_exec_trace expects int, not str
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options=None,
+                debug_options={'debug_op_exec_trace': 'invalid'}
+            )
+
+        # debug_cross_core_sync_check expects int, not str
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options=None,
+                debug_options={'debug_cross_core_sync_check': 'invalid'}
+            )
+
+        # opt_extend expects str, not int
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'opt_extend': 123},
+                debug_options=None
+            )
+
+        # debug_extend expects str, not int
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options=None,
+                debug_options={'debug_extend': 123}
+            )
+
+        # debug_dcci_before_kernel_start expects list, not int
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options=None,
+                debug_options={'debug_dcci_before_kernel_start': 1}
+            )
+
 
 class TestAclgraphSuperKernelIntegration(TestCase):
 
@@ -173,10 +222,22 @@ class TestAclgraphSuperKernelIntegration(TestCase):
 
         optimize_options = {
             'preload_code': 1,
-            'stream_fusion': 1
+            'split_mode': 1,
+            'stream_fusion': 1,
+            'constant_codegen': 1,
+            'auto_op_parallel': 1,
+            'opt_extend': 'test_opt_value'
+        }
+        debug_options = {
+            'debug_sync_all': 1,
+            'debug_dcci_disable_on_kernel': ['kernel_a', 'kernel_b'],
+            'debug_dcci_before_kernel_start': ['kernel_c'],
+            'debug_op_exec_trace': 1,
+            'debug_cross_core_sync_check': 1,
+            'debug_extend': 'test_debug_value'
         }
 
-        g.super_kernel_optimize(optimize_options=optimize_options, debug_options=None)
+        g.super_kernel_optimize(optimize_options=optimize_options, debug_options=debug_options)
         g.replay()
 
         expected_z = torch.matmul(x, y)
