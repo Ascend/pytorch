@@ -712,3 +712,38 @@ def _patched_new_process_group_helper(
     return pg, prefix_store
 
 torch.distributed.distributed_c10d._new_process_group_helper = _patched_new_process_group_helper
+
+
+def _hccl_add_ephemeral_timeout_for_all_pgs(timeout: timedelta) -> None:
+    """
+    This API adds an ephemeral timeout extension for all PGs locally
+    on one rank. The timeout gets reset when the first collective issued
+    after API called finished.
+    NOTE: We only support to set timeout for hccl backends for now.
+    NOTE: While this feature provides flexibility in specific scenarios,
+    it introduces statefulness
+    to timeout setting. Therefore, it is advisable to use this API sparingly
+    and consider alternative approaches, such as directly setting the timeout
+    or utilizing a barrier collective (one can set any timeout to the barrier),
+    whenever feasible.
+
+    Args:
+        timeout (timedelta): The delta of timeout to extend.
+
+    Returns:
+        None.
+    """
+    if not is_hccl_available():
+        return
+
+    try:
+        from torch_npu._C._distributed_c10d import ProcessGroupHCCL
+    except ImportError:
+        return
+
+    for pg in _world.pg_map.keys():
+        devices = pg._device_types
+        if torch.device("npu") in devices:
+            backend = pg._get_backend(torch.device("npu"))
+            if isinstance(backend, ProcessGroupHCCL) and hasattr(backend, "_add_ephemeral_timeout"):
+                backend._add_ephemeral_timeout(timeout)

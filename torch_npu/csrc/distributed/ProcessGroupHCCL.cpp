@@ -612,6 +612,7 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
     hcclEndEvents_(w.hcclEndEvents_),
     blockingWait_(w.blockingWait_),
     opTimeout_(w.opTimeout_),
+    ownedEphermeralTimeout_(w.ownedEphermeralTimeout_),
     workStartTime_(w.workStartTime_),
     seq_(w.seq_),
     startTraceUpdated_(w.startTraceUpdated_),
@@ -1986,6 +1987,12 @@ const std::vector<uint32_t>& ProcessGroupHCCL::groupRanks() const
     return options_->global_ranks_in_group;
 }
 
+void ProcessGroupHCCL::addEphemeralTimeout(const std::chrono::milliseconds& timeout)
+{
+    std::lock_guard<std::mutex> timeoutLock(mtxTimeoutExtension_);
+    ephemeralTimeoutActive_ += timeout;
+}
+
 void ProcessGroupHCCL::checkHcclComms()
 {
     if (asyncErrorHandling_ == NoHandling) {
@@ -2187,6 +2194,16 @@ void ProcessGroupHCCL::Watchdog::runLoop()
                     // minimal
                     pg_->shelvesToUnstash_.push_back(work.stashed_for_allocator_safety_);
                 }
+
+                {
+                    // Reset the timeout and first work if the work is completed.
+                    std::lock_guard<std::mutex> timeoutLock(pg_->mtxTimeoutExtension_);
+                    if (work.ownedEphermeralTimeout_.count() > 0) {
+                        pg_->ephemeralTimeoutActive_ -= work.ownedEphermeralTimeout_;
+                        pg_->ephemeralTimeoutInflight_ -= work.ownedEphermeralTimeout_;
+                    }
+                }
+
                 if (status_save_enable && !work.exception()) {
                     pg_->is_refreshed = pg_->refreshStatusInfo(work, "end"); // Update Statusinfo，but not write into the map
                 }
@@ -2953,6 +2970,25 @@ const at::Tensor& ProcessGroupHCCL::getWindowMem()
 {
     TORCH_CHECK(windowMem_, "window memory must be registered before get.", DIST_ERROR(ErrCode::UNAVAIL))
     return windowMem_.value();
+}
+
+void ProcessGroupHCCL::setTimeout(std::chrono::milliseconds timeout)
+{
+    options_->timeout = timeout;
+    // Optional: Set opTimeout at the same time, options_->opTimeout = timeout;
+}
+
+void ProcessGroupHCCL::assignTimeoutToWork(const c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work,
+    const c10::intrusive_ptr<ProcessGroupHCCL::Options>& option)
+{
+    std::chrono::milliseconds timeout = option->timeout;
+    std::lock_guard<std::mutex> timeoutLock(mtxTimeoutExtension_);
+    if (ephemeralTimeoutActive_.count() > 0) {
+        timeout += ephemeralTimeoutActive_;
+    }
+    work->opTimeout_ = timeout;
+    work->ownedEphermeralTimeout_ = ephemeralTimeoutActive_ - ephemeralTimeoutInflight_;
+    ephemeralTimeoutInflight_ = ephemeralTimeoutActive_;
 }
 
 namespace {
@@ -3979,6 +4015,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     work->blockingWait_ = blockingWait_;
     work->opTimeout_ = options_->timeout;
     work->store_ = store_;
+    assignTimeoutToWork(work, options_);
     // Record size info for debug. We only record the size on the first device as
     // multi-device per process is deprecated
     work->numelIn_ = 0;
@@ -4201,6 +4238,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     work->blockingWait_ = blockingWait_;
     work->opTimeout_ = options_->timeout;
     work->store_ = store_;
+    assignTimeoutToWork(work, options_);
     // Record size info for debug. We only record the size on the first device as
     // multi-device per process is deprecated
     work->numelIn_ = static_cast<size_t>(inputs[0].numel());
@@ -4457,6 +4495,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
             work->blockingWait_ = blockingWait_;
             work->opTimeout_ = options_->timeout;
             work->store_ = store_;
+            assignTimeoutToWork(work, options_);
             // Record size info for debug. We only record the size on the first device
             // as multi-device per process is deprecated
             work->numelIn_ = work->numelOut_ = static_cast<size_t>(tensors[i].numel());
@@ -5476,6 +5515,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
         }
         // Create a fake_work for python side;
         auto fake_work = initWork(getDeviceList(inputTensors), rank_, c10d::OpType::ALLGATHER);
+        assignTimeoutToWork(fake_work, options_);
         return fake_work;
     }
 }
@@ -5849,6 +5889,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
         }
         // Create a fake_work for python side;
         auto fake_work = initWork(getDeviceList(outputTensors), rank_, c10d::OpType::REDUCE_SCATTER);
+        assignTimeoutToWork(fake_work, options_);
         return fake_work;
     }
 }
