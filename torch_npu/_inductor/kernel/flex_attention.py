@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Union
 import sympy
 
 import torch
-from torch._inductor.virtualized import V
+from torch._inductor.virtualized import V, ops
 from torch.utils._ordered_set import OrderedSet
 from torch.utils._pytree import tree_map
 
@@ -64,6 +64,92 @@ from torch._inductor.kernel.flex_attention import (
 from torch_npu._inductor.select_algorithm import NPUTritonTemplate
 aten = torch.ops.aten
 Expr = sympy.Expr
+
+
+def _get_flex_attention_additional_lowerings():
+    """
+    Get additional lowerings for flex_attention subgraph.
+    
+    These lowerings are used to allow index and bitwise operations to be lowered
+    as pointwise ops instead of fallback in the mask_mod subgraph.
+    """
+    from torch._inductor.lowering import make_pointwise, index_impl
+    from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
+    
+    additional_lowerings = {}
+    
+    def index_pointwise(x, indices):
+        return index_impl(x, indices, check=True)
+    
+    additional_lowerings[aten.index] = index_pointwise
+    additional_lowerings[aten.index.Tensor] = index_pointwise
+    
+    bitwise_and_fn = make_pointwise(ops.bitwise_and)
+    
+    def bitwise_and_tensor(a, b):
+        return bitwise_and_fn(a, b)
+    
+    bitwise_or_fn = make_pointwise(ops.bitwise_or)
+    
+    def bitwise_or_tensor(a, b):
+        return bitwise_or_fn(a, b)
+    
+    bitwise_not_fn = make_pointwise(ops.bitwise_not)
+    
+    def bitwise_not_default(a):
+        return bitwise_not_fn(a)
+    
+    additional_lowerings[aten.bitwise_and.Tensor] = bitwise_and_tensor
+    additional_lowerings[aten.bitwise_or.Tensor] = bitwise_or_tensor
+    additional_lowerings[aten.bitwise_not.default] = bitwise_not_default
+    
+    return additional_lowerings
+
+
+def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
+    """
+    Build subgraph buffer with additional lowerings for flex_attention.
+    
+    This function creates a PointwiseSubgraphLowering with additional_lowerings
+    to handle index and bitwise operations as pointwise ops.
+    """
+    from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
+    
+    additional_lowerings = _get_flex_attention_additional_lowerings()
+    pw_subgraph = PointwiseSubgraphLowering(
+        subgraph.graph_module,
+        root_graph_lowering=V.graph,
+        additional_lowerings=additional_lowerings,
+    )
+    with V.set_graph_handler(pw_subgraph):
+        pw_subgraph.run(*args)
+    
+    def convert_output_node_to_buffer(output_buffer):
+        from torch._inductor.ir import ComputedBuffer, FlexibleLayout, StorageBox
+        if output_buffer is None:
+            return None
+        if isinstance(output_buffer, ComputedBuffer):
+            return output_buffer
+        assert isinstance(output_buffer, TensorBox), (
+            "The output node for flex attention's subgraph must be a TensorBox, but got: ",
+            type(output_buffer),
+        )
+        assert isinstance(output_buffer.data, StorageBox), (
+            "The output node for the flex attention subgraph must be a StorageBox, but got: ",
+            type(output_buffer),
+        )
+        subgraph_buffer = ComputedBuffer(
+            name=None,
+            layout=FlexibleLayout(
+                device=output_buffer.data.get_device(),
+                dtype=output_buffer.data.get_dtype(),
+                size=output_buffer.data.get_size(),
+            ),
+            data=output_buffer.data.data,
+        )
+        return subgraph_buffer
+    
+    return tree_map(convert_output_node_to_buffer, pw_subgraph.graph_outputs)
 
 
 def _use_flex_decoding(query, kernel_options):
@@ -1308,7 +1394,7 @@ def _register_npu_inductor_flex_attention():
                 ("n", torch.int32),
             ]
         ]
-        subgraph_buffer = build_subgraph_buffer(
+        subgraph_buffer = _build_subgraph_buffer_with_additional_lowerings(
             placeholder_inps + list(score_mod_other_buffers), subgraph
         )
 
@@ -1321,7 +1407,7 @@ def _register_npu_inductor_flex_attention():
                 ("n", torch.int32),
             ]
         ]
-        mask_graph_buffer = build_subgraph_buffer(
+        mask_graph_buffer = _build_subgraph_buffer_with_additional_lowerings(
             mask_graph_placeholder_inps + list(mask_mod_other_buffers), mask_graph
         )
 
@@ -1637,7 +1723,7 @@ def _register_npu_inductor_flex_attention():
                 ("n", torch.int32),
             ]
         ]
-        fw_subgraph_buffer = build_subgraph_buffer(
+        fw_subgraph_buffer = _build_subgraph_buffer_with_additional_lowerings(
             fwd_placeholder_inps + list(score_mod_other_buffers), fw_graph
         )
 
@@ -1651,7 +1737,7 @@ def _register_npu_inductor_flex_attention():
         # This lets us do some checks before attempting to lower
         validate_joint_graph(joint_graph.graph_module.graph)
 
-        all_joint_outputs = build_subgraph_buffer(
+        all_joint_outputs = _build_subgraph_buffer_with_additional_lowerings(
             joint_placeholder_inps + list(score_mod_other_buffers),
             joint_graph,
         )
@@ -1669,7 +1755,7 @@ def _register_npu_inductor_flex_attention():
                 ("n", torch.int32),
             ]
         ]
-        mask_graph_buffer = build_subgraph_buffer(
+        mask_graph_buffer = _build_subgraph_buffer_with_additional_lowerings(
             mask_graph_placeholder_inps + list(mask_mod_other_buffers), mask_graph
         )
 
