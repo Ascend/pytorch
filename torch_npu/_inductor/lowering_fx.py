@@ -888,51 +888,6 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             convert_input_to_bool=convert_input_to_bool,
         )
 
-
-    def make_reduction(reduction_type: str, override_return_dtype=None):
-        def inner(x, axis=None, keepdims=False, *, dtype=None):
-            kwargs = _make_reduction_inner(
-                x,
-                axis=axis,
-                keepdims=keepdims,
-                dtype=dtype,
-                override_return_dtype=override_return_dtype,
-            )
-            node_name = f'reduction_{next(node_id)}'
-            input_graphs = fetch_graphs([x, axis if axis is not None else list(range(len(x.get_size())))])
-            new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type],
-                                            node_name, keepdim=keepdims)
-
-            result = Reduction.create(reduction_type=reduction_type,
-                                      input_node=x,
-                                      node_name=node_name,
-                                      traced_graph=new_graph,
-                                      **kwargs)
-            if isinstance(
-                    result.data.data, Reduction
-            ):
-                # Only realize if reduction isn't unrolled
-                size = x.get_size()
-                axis = set(lowering._validate_reduction_axis(x, axis))
-                kept_idx = []
-                reduced_idx = []
-                for i in range(len(size)):
-                    if i in axis:
-                        reduced_idx.append(i)
-                    else:
-                        kept_idx.append(i)
-
-                object.__setattr__(result.data.data, "kept_idx", kept_idx)
-                object.__setattr__(result.data.data, "reduced_idx", reduced_idx)
-
-                result.realize()
-            return result
-
-        return inner
-
-    lowering.make_reduction = make_reduction
-
-
     @register_lowering(prims.convert_element_type, type_promotion_kind=None)
     def _convert_element_type(x: TensorBox, dtype: torch.dtype):
         if dtype.is_complex or x.get_dtype().is_complex:
@@ -1278,38 +1233,6 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
     def select(x, dim, idx):
         idx = View.handle_negative_index(idx, x.get_size()[dim])
         return squeeze(slice_(x, dim, idx, idx + 1), dim)
-
-    @register_lowering(aten.split, type_promotion_kind=None)
-    def split(x, sizes, dim=0):
-        dim = _validate_dim(x, dim, 0)
-        sizes_ = sizes
-
-        # If sizes is an integer (or a SymInt), we turn it into a list of sizes
-        # by computing what the actual size of each chunk should be.
-        if not isinstance(sizes, (list, tuple)):
-            x_size = x.get_size()[dim]
-            chunks = V.graph.sizevars.evaluate_static_shape(
-                FloorDiv(x_size + sizes - 1, sizes)
-            )
-            sizes_ = [sizes] * chunks
-            # The last chunk might have a smaller size than the rest.
-            sizes_[-1] = x_size - (chunks - 1) * sizes
-
-        # From this point, we assume that the sum of the sizes of all chunks
-        # equals the size of the base tensor.
-        result = []
-        start = 0
-        for size in sizes_:
-            end = start + size
-            # No need for clamping here, since we compute the exact
-            # start and end values.
-            result.append(slice_(x, dim, start, end, clamp=False))
-            start = end
-        return result
-
-    @register_lowering(aten.split_with_sizes, type_promotion_kind=None)
-    def split_with_sizes(x, sizes, dim=0):
-        return split(x, sizes, dim)
 
     @register_lowering(aten.unbind, type_promotion_kind=None)
     def unbind(x, dim=0):
