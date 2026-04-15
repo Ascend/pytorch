@@ -438,7 +438,7 @@ def discover_shard_files(
         unhandled_files[shard] = path
 
     # Discover XML files for per-test-file statistics
-    for path in reports_root.rglob("shard_*_pytest.xml"):
+    for path in reports_root.rglob("shard_*_pytest*.xml"):
         try:
             shard = int(path.stem.split("_")[1])
         except (IndexError, ValueError):
