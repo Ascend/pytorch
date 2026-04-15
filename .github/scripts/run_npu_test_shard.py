@@ -3,15 +3,15 @@
 Run a shard of patched upstream PyTorch tests via run_test.py.
 
 Shard allocation by test type:
-- Shard 1-2: Distributed tests (--distributed-tests), 2 machines
-- Shard 3: Tests excluded by discover_tests.py (blocklisted patterns/tests), 1 machine
-- Shard 4-10: Regular tests (--exclude-jit-executor --exclude-distributed-tests), 7 machines
+- Shard 1-50: Distributed tests, 50 machines (linux-aarch64-a3-2, 2 parallel workers)
+- Shard 51: Tests excluded by discover_tests.py (blocklisted patterns/tests), 1 machine (linux-aarch64-a3-2, 2 parallel workers)
+- Shard 52-101: Regular tests, 50 machines (linux-aarch64-a3-2, 2 parallel workers)
 
 Each shard type applies whitelist/blacklist filtering from case_paths_ci.yml
 and item-level deselection from disabled_testcases.json.
 
 Tests are executed using run_test.py with file-level parallel execution
-(NUM_PARALLEL_PROCS=8 for 8-card NPU machines).
+(NUM_PARALLEL_PROCS=2 for 2-card NPU machines).
 """
 
 import argparse
@@ -31,18 +31,18 @@ from typing import Dict, List, Tuple
 
 # Shard type constants
 SHARD_DISTRIBUTED_START = 1
-SHARD_DISTRIBUTED_END = 2
-SHARD_DISTRIBUTED_TOTAL = 2
+SHARD_DISTRIBUTED_END = 50
+SHARD_DISTRIBUTED_TOTAL = 50
 
-SHARD_EXCLUDED_START = 3
-SHARD_EXCLUDED_END = 3
+SHARD_EXCLUDED_START = 51
+SHARD_EXCLUDED_END = 51
 SHARD_EXCLUDED_TOTAL = 1
 
-SHARD_REGULAR_START = 4
-SHARD_REGULAR_END = 10
-SHARD_REGULAR_TOTAL = 7
+SHARD_REGULAR_START = 52
+SHARD_REGULAR_END = 101
+SHARD_REGULAR_TOTAL = 50
 
-TOTAL_SHARDS = 10
+TOTAL_SHARDS = 101
 
 # Excluded shard special tests: directories and files excluded by discover_tests.py
 # (blocklisted_patterns and blocklisted_tests), but should be tested on NPU.
@@ -109,8 +109,8 @@ def get_shard_type(shard: int) -> Tuple[str, int, int]:
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run PyTorch NPU tests for a shard via run_test.py")
-    parser.add_argument("--shard", type=int, required=True, help="Shard number (1-indexed, 1-10)")
-    parser.add_argument("--num-shards", type=int, default=TOTAL_SHARDS, help="Total number of shards (default 10)")
+    parser.add_argument("--shard", type=int, required=True, help="Shard number (1-indexed, 1-101)")
+    parser.add_argument("--num-shards", type=int, default=TOTAL_SHARDS, help="Total number of shards (default 101)")
     parser.add_argument("--test-dir", type=str, required=True, help="Path to the PyTorch test directory")
     parser.add_argument("--disabled-testcases", type=str, help="Path to disabled_testcases.json")
     parser.add_argument(
@@ -126,7 +126,7 @@ def parse_args():
     parser.add_argument("--report-dir", type=str, default="test-reports", help="Directory for test reports")
     parser.add_argument("--timeout", type=int, default=600, help="Per-test timeout passed to pytest")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
-    parser.add_argument("--parallel", type=int, default=8, help="Number of parallel workers (NUM_PARALLEL_PROCS)")
+    parser.add_argument("--parallel", type=int, default=2, help="Number of parallel workers (NUM_PARALLEL_PROCS)")
     parser.add_argument(
         "--use-tests-list",
         action="store_true",
@@ -1530,9 +1530,8 @@ def main():
                 effective_parallel,
             )
         elif shard_type == "distributed":
-            # Distributed tests: fewer parallel workers due to resource constraints
-            effective_parallel = min(args.parallel, 4)
-            print(f"Note: Distributed tests using {effective_parallel} parallel workers (reduced for stability)")
+            # Distributed tests: use specified parallel workers
+            print(f"Note: Distributed tests using {effective_parallel} parallel workers")
             _, stats, log_metrics = run_tests_via_run_test(
                 planned_tests,
                 args.shard,

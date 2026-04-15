@@ -27,20 +27,20 @@ on:
         default: '1'
         type: string
       shard_end:
-        description: 'End shard number (default 10)'
+        description: 'End shard number (default 101)'
         required: false
-        default: '10'
+        default: '101'
         type: string
 
 env:
   PYTHON_VERSION: '3.11'
   PYTORCH_VERSION: '2.7.1'
-  NUM_SHARDS: '10'  # 10 shards for 8-card NPU machines, each shard runs 8 parallel workers
-  NUM_PARALLEL_PROCS: '8'  # 8 parallel workers per machine (one per NPU card)
+  NUM_SHARDS: '101'  # 50 distributed + 1 excluded + 50 regular shards
+  NUM_PARALLEL_PROCS: '2'  # 2 parallel workers per machine (one per NPU card on 2-card machines)
   PREPARED_TEST_SRC_ARTIFACT: 'pytorch-test-src-v2.7.1-patched'
   TORCH_NPU_WHEEL_ARTIFACT: 'torch-npu-wheel-v2.7.1-source'
   DOCKER_IMAGE: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331'
-  RUNNER_TYPE: 'linux-aarch64-a3-8'
+  RUNNER_TYPE: 'linux-aarch64-a3-2'
 
 defaults:
   run:
@@ -63,7 +63,7 @@ jobs:
         run: |
           # Get shard range from inputs or use defaults
           SHARD_START=${{ inputs.shard_start || '1' }}
-          SHARD_END=${{ inputs.shard_end || '10' }}
+          SHARD_END=${{ inputs.shard_end || '101' }}
 
           # Build shard matrix JSON
           SHARDS=$(seq $SHARD_START $SHARD_END | tr '\n' ',' | sed 's/,$//')
@@ -139,7 +139,7 @@ jobs:
     needs:
       - prepare
       - upload_torch_npu_wheel
-    runs-on: linux-aarch64-a3-8
+    runs-on: linux-aarch64-a3-2
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
       options: --user root
@@ -147,7 +147,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.shard_matrix) }}
       fail-fast: false
-      max-parallel: 10  # Run all 10 shards concurrently (10 machines with 8 NPU cards each)
+      max-parallel: 101  # Run all 101 shards concurrently (101 machines with 2 NPU cards each)
 
     steps:
       - name: Checkout current repository (for test runner)
