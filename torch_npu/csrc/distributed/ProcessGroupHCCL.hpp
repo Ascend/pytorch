@@ -373,6 +373,12 @@ public:
         // Clone of opTimeout_ from ProcessGroupHCCL.
         std::chrono::milliseconds opTimeout_;
 
+        // Ephemeral timeouts are owned by exactly one work,
+        // and reset after that work completes.
+        // There may be more than one ephemeral timeout active at the same time,
+        // and this variable is used to track the ownership of ephemeral timeout.
+        std::chrono::milliseconds ownedEphermeralTimeout_ = std::chrono::milliseconds(0);
+
         // Time point representing when the work started.
         std::chrono::time_point<std::chrono::steady_clock> workStartTime_;
 
@@ -793,6 +799,17 @@ public:
 
     const at::Tensor& getWindowMem();
 
+    void setTimeout(std::chrono::milliseconds timeout);
+
+    // This method adds a temporary extension for the timeout period,
+    // applying to all collectives between the calling of this API and
+    // the completion of the first collective on the GPU. While this feature
+    // provides flexibility in specific scenarios, it introduces statefulness
+    // to timeout setting. Therefore, it is advisable to use this API sparingly
+    // and consider alternative approaches, such as directly setting the timeout
+    // or utilizing a barrier collective (one can set any timeout to the barrier),
+    // whenever feasible.
+    void addEphemeralTimeout(const std::chrono::milliseconds& timeout);
 protected:
     // Helper that broadcasts HCCL Master ID to all ranks through the store
     void broadcastMasterID(
@@ -904,6 +921,19 @@ protected:
     c10::intrusive_ptr<c10d::Store> globalStore_;
 
     bool storeError_{false};
+
+    // The lock which protects the write/read of
+    // ephemeralTimeoutActive_/ephemeralTimeoutInflight_.
+    std::mutex mtxTimeoutExtension_;
+
+    // The ephemeral timeout added on top of existing timeout for works issued
+    // before first work finishes.
+    std::chrono::milliseconds ephemeralTimeoutActive_ =
+        std::chrono::milliseconds(0);
+
+    // The ephemeral timeout addition which has been already applied to work.
+    std::chrono::milliseconds ephemeralTimeoutInflight_ =
+        std::chrono::milliseconds(0);
 
     const c10::intrusive_ptr<Options> options_;
 
@@ -1285,6 +1315,10 @@ private:
     // return the rank_ of the the very first PG created, aka, default global PG.
     const int &globalRank() const;
 
+    // Util function to assign timeout to each work.
+    void assignTimeoutToWork(const c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work,
+        const c10::intrusive_ptr<Options>& option);
+    
     void silenceCheck(at::Tensor &input, c10d::OpType opType);
 
     HcclCommConfig createHcclCommConfigWithOptions();
