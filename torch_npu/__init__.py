@@ -203,6 +203,7 @@ def _apply_distributed_methods_patch():
     torch._C._distributed_c10d.ProcessGroup._get_sequence_number_for_group = (
         torch_npu.distributed.distributed_c10d._hccl_get_sequence_number_for_group)
     torch.distributed.nn.functional._AllGatherBase.backward = torch_npu.distributed.nn.functional._allgather_base_backward_hccl
+    torch.distributed.distributed_c10d._add_ephemeral_timeout_for_all_pgs = torch_npu.distributed.distributed_c10d._hccl_add_ephemeral_timeout_for_all_pgs
 
 
 torch.serialization.add_safe_globals([torch_npu.npu._format.Format])
