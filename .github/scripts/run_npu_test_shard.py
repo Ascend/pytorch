@@ -703,6 +703,9 @@ def build_execution_env(
         "NO_TD": "1",
         "PYTEST_ADDOPTS": os.environ.get("PYTEST_ADDOPTS", ""),
         "PYTHONUNBUFFERED": "1",
+        # Enable CI mode to generate JUnit XML reports for test statistics
+        # This ensures run_test.py adds --junit-xml-reruns for pytest execution
+        "CI": "true",
     }
 
     if disabled_testcases_file:
@@ -893,8 +896,12 @@ def build_run_test_command(
 
     Args:
         valid_tests: List of test paths (with test/ prefix) to run
-        shard_type: "distributed", "excluded", or "regular"
+        report_dir: Directory for test reports (absolute path for --save-xml)
+        shard: Shard number
+        timeout: Per-test timeout
+        verbose: Verbose output flag
         parallel: Number of parallel workers (NUM_PARALLEL_PROCS)
+        shard_type: "distributed", "excluded", or "regular"
 
     Returns:
         Command list for subprocess execution
@@ -939,6 +946,11 @@ def build_run_test_command(
     command.extend([
         "--continue-through-error",  # Keep running even if some tests fail
     ])
+
+    # Add --save-xml with absolute path to report_dir so JUnit XML reports
+    # are generated in the expected location for aggregate_junit_stats
+    xml_report_path = str(report_dir.resolve() / "junit")
+    command.extend(["--save-xml", xml_report_path])
 
     return command
 
