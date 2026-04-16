@@ -1,0 +1,38 @@
+--- test/run_test.py.orig
++++ test/run_test.py
+@@ -625,6 +625,28 @@
+     if dist.is_gloo_available():
+         DISTRIBUTED_TESTS_CONFIG["gloo"] = {
+             # TODO: retire testing gloo with CUDA
+-            "WORLD_SIZE": f"{torch.cuda.device_count()}",
++            # NPU: Use NPU device count if available, fallback to CUDA or 1
++            "WORLD_SIZE": f"{max(torch.cuda.device_count() if torch.cuda.is_available() else 0, torch.npu.device_count() if hasattr(torch, 'npu') and torch.npu.is_available() else 0, 1)}",
+         }
++
++    # NPU HCCL backend support
++    # HCCL is Huawei's collective communication library for NPU
++    # Similar to NCCL for CUDA GPUs
++    try:
++        import torch_npu
++        if hasattr(dist, 'is_hccl_available') and dist.is_hccl_available():
++            npu_device_count = torch.npu.device_count() if hasattr(torch, 'npu') and torch.npu.is_available() else 1
++            DISTRIBUTED_TESTS_CONFIG["hccl"] = {
++                "WORLD_SIZE": f"{npu_device_count}",
++            }
++            print(f"[NPU] HCCL backend enabled with WORLD_SIZE={npu_device_count}")
++        # Also check for torch_npu's distributed backend availability
++        # Some versions may use different API
++        elif hasattr(torch_npu, 'npu') and torch_npu.npu.is_available():
++            npu_device_count = torch_npu.npu.device_count()
++            # Add hccl backend if torch.distributed supports it
++            if "hccl" not in DISTRIBUTED_TESTS_CONFIG:
++                DISTRIBUTED_TESTS_CONFIG["hccl"] = {
++                    "WORLD_SIZE": f"{npu_device_count}",
++                }
++                print(f"[NPU] HCCL backend added with WORLD_SIZE={npu_device_count}")
++    except ImportError:
++        pass  # torch_npu not installed, skip HCCL configuration
++
+     # Test with UCC backend is deprecated.
+     # See https://github.com/pytorch/pytorch/pull/137161
+     # if dist.is_ucc_available():

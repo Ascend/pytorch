@@ -1,21 +1,21 @@
-name: PyTorch NPU Full Test (v2.7.1)
+name: PyTorch NPU Full Test (v2.7.1 - Aligned with PyTorch CI)
 
 on:
   push:
     paths:
       - '.github/workflows/npu-full-test.yml'
       - '.github/workflows/_build-torch-npu.yml'
-      - '.github/scripts/run_npu_test_shard.py'
+      - '.github/scripts/resolve_whitelist.py'
       - '.github/scripts/pytest_disabled_testcases_plugin.py'
-      - '.github/scripts/generate_npu_full_test_report.py'
+      - '.ci/npu/test.sh'
       - 'test_upsteam/**'
   pull_request:
     paths:
       - '.github/workflows/npu-full-test.yml'
       - '.github/workflows/_build-torch-npu.yml'
-      - '.github/scripts/run_npu_test_shard.py'
+      - '.github/scripts/resolve_whitelist.py'
       - '.github/scripts/pytest_disabled_testcases_plugin.py'
-      - '.github/scripts/generate_npu_full_test_report.py'
+      - '.ci/npu/test.sh'
       - 'test_upsteam/**'
   schedule:
     - cron: '0 22 * * 1'  # UTC 22:00 (Beijing time next day 06:00), every Monday
@@ -27,15 +27,20 @@ on:
         default: '1'
         type: string
       shard_end:
-        description: 'End shard number (default 101)'
+        description: 'End shard number (default 50)'
         required: false
-        default: '101'
+        default: '50'
         type: string
+      run_distributed:
+        description: 'Run distributed tests on shard 1'
+        required: false
+        default: 'true'
+        type: boolean
 
 env:
   PYTHON_VERSION: '3.11'
   PYTORCH_VERSION: '2.7.1'
-  NUM_SHARDS: '101'  # 50 distributed + 1 excluded + 50 regular shards
+  NUM_SHARDS: '50'  # Total shards for regular tests (distributed handled separately)
   NUM_PARALLEL_PROCS: '2'  # 2 parallel workers per machine (one per NPU card on 2-card machines)
   PREPARED_TEST_SRC_ARTIFACT: 'pytorch-test-src-v2.7.1-patched'
   TORCH_NPU_WHEEL_ARTIFACT: 'torch-npu-wheel-v2.7.1-source'
@@ -47,11 +52,15 @@ defaults:
     shell: bash
 
 jobs:
+  # ============================================================================
+  # Job 1: Prepare PyTorch Test Source
+  # ============================================================================
   prepare:
     runs-on: ubuntu-latest
     outputs:
       shard_matrix: ${{ steps.set_matrix.outputs.shard_matrix }}
       patch_count: ${{ steps.apply_patches.outputs.patch_count }}
+      test_count: ${{ steps.resolve_whitelist.outputs.test_count }}
     steps:
       - name: Checkout current repository
         uses: actions/checkout@v4
@@ -63,7 +72,7 @@ jobs:
         run: |
           # Get shard range from inputs or use defaults
           SHARD_START=${{ inputs.shard_start || '1' }}
-          SHARD_END=${{ inputs.shard_end || '101' }}
+          SHARD_END=${{ inputs.shard_end || '50' }}
 
           # Build shard matrix JSON
           SHARDS=$(seq $SHARD_START $SHARD_END | tr '\n' ',' | sed 's/,$//')
@@ -88,6 +97,27 @@ jobs:
           PATCH_COUNT=$(grep -c "成功" /tmp/patch.log || echo "0")
           echo "patch_count=${PATCH_COUNT}" >> $GITHUB_OUTPUT
 
+      - name: Install PyYAML for resolve_whitelist.py
+        run: |
+          pip install pyyaml
+
+      - name: Resolve whitelist (dry-run for count)
+        id: resolve_whitelist
+        run: |
+          python .github/scripts/resolve_whitelist.py \
+            --case-paths-config pytorch-test-src/test_upsteam/case_paths_ci.yml \
+            --crashed-files-config pytorch-test-src/test_upsteam/CRASHED.yml \
+            --test-dir pytorch-test-src/test \
+            --pytorch-root pytorch-test-src \
+            --output-include /tmp/include_tests.txt \
+            --output-exclude /tmp/exclude_tests.txt \
+            --output-extra /tmp/extra_pytest_tests.txt \
+            --verbose 2>&1 | tee /tmp/resolve.log
+
+          TEST_COUNT=$(wc -l < /tmp/include_tests.txt)
+          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
+          echo "Total tests to run: ${TEST_COUNT}"
+
       - name: Package prepared test source
         run: |
           tar -czf pytorch-test-src.tar.gz pytorch-test-src
@@ -104,10 +134,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: prepare-logs
-          path: /tmp/patch.log
+          path: |
+            /tmp/patch.log
+            /tmp/resolve.log
           if-no-files-found: warn
           retention-days: 30
 
+  # ============================================================================
+  # Job 2: Build torch_npu Wheel
+  # ============================================================================
   build_torch_npu:
     needs: prepare
     uses: ./.github/workflows/_build-torch-npu.yml
@@ -117,7 +152,9 @@ jobs:
       torch_npu_wheel_artifact: 'torch-npu-wheel-v2.7.1-source'
       max_jobs: '40'
 
-  # Re-upload torch-npu wheel to make it visible in main workflow artifacts
+  # ============================================================================
+  # Job 3: Re-upload torch-npu wheel (for visibility)
+  # ============================================================================
   upload_torch_npu_wheel:
     needs: build_torch_npu
     runs-on: ubuntu-latest
@@ -135,6 +172,9 @@ jobs:
           path: torch-npu-wheel/*.whl
           retention-days: 30
 
+  # ============================================================================
+  # Job 4: Run Tests (Sharded)
+  # ============================================================================
   test:
     needs:
       - prepare
@@ -147,10 +187,10 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.shard_matrix) }}
       fail-fast: false
-      max-parallel: 101  # Run all 101 shards concurrently (101 machines with 2 NPU cards each)
+      max-parallel: 50  # Run all shards concurrently (50 machines with 2 NPU cards each)
 
     steps:
-      - name: Checkout current repository (for test runner)
+      - name: Checkout current repository (for test runner scripts)
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
@@ -192,7 +232,6 @@ jobs:
 
           $PIP install --upgrade pip
           # For ARM64 (aarch64) runners, use default PyPI which has aarch64 wheels
-          # PyTorch CPU index (download.pytorch.org/whl/cpu) only provides x86_64 wheels
           $PIP install torch==${{ env.PYTORCH_VERSION }}
           TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
           $PIP install "${TORCH_NPU_WHL}"
@@ -231,55 +270,36 @@ jobs:
           PIP=pip${{ env.PYTHON_VERSION }}
           cd pytorch-test-src
 
-          # Core dependencies for direct pytest execution plus path-rule parsing.
+          # Core dependencies for run_test.py
           $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
 
           # Dependencies required by run_test.py (check_pip_packages)
           $PIP install pytest-rerunfailures pytest-flakefinder
 
-          # Compatibility packages still needed by a subset of upstream tests.
+          # Additional dependencies for upstream tests
           $PIP install \
             'pytest-subtests==0.13.1' \
             'xdoctest==1.1.0' \
             'pulp>=2.9'
 
-          # Prepared upstream test source still provides the broader base dependency set.
+          # PyTorch requirements if available
           if [ -f requirements.txt ]; then
-            $PIP install -r requirements.txt
-          else
-            echo "requirements.txt not found, skipping"
+            $PIP install -r requirements.txt || true
           fi
 
       - name: Run shard ${{ matrix.shard }}/${{ env.NUM_SHARDS }}
         id: run_test
+        env:
+          SHARD_NUMBER: ${{ matrix.shard }}
+          NUM_TEST_SHARDS: ${{ env.NUM_SHARDS }}
+          NUM_PARALLEL_PROCS: ${{ env.NUM_PARALLEL_PROCS }}
+          PYTORCH_TEST_SRC: ${{ github.workspace }}/pytorch-test-src
+          ASCEND_PYTORCH_DIR: ${{ github.workspace }}/ascend_pytorch
+          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
         run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          PYTHON=python${{ env.PYTHON_VERSION }}
-          REPORT_DIR=test-reports
-
-          mkdir -p ${REPORT_DIR}
-
-          # Script is in ascend_pytorch repository, prepared tests are in pytorch-test-src
-          # Using run_test.py for file-level parallel execution
-          # Test selection uses:
-          # 1. TESTS list from run_test.py (--help output)
-          # 2. case_paths_ci.yml whitelist/blacklist for file-level filtering
-          # 3. disabled_testcases.json for item-level deselection
-          # CRASHED.yml is NOT used (excluded for now)
+          chmod +x ascend_pytorch/.ci/npu/test.sh
           set +e
-          $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
-            --shard ${{ matrix.shard }} \
-            --num-shards ${NUM_SHARDS} \
-            --test-dir pytorch-test-src/test \
-            --disabled-testcases pytorch-test-src/test_upsteam/disabled_testcases.json \
-            --case-paths-config pytorch-test-src/test_upsteam/case_paths_ci.yml \
-            --report-dir ${REPORT_DIR} \
-            --timeout 600 \
-            --parallel ${NUM_PARALLEL_PROCS} \
-            2>&1 | tee /tmp/test_shard_${{ matrix.shard }}.log
-
+          ascend_pytorch/.ci/npu/test.sh 2>&1 | tee /tmp/test_shard_${{ matrix.shard }}.log
           TEST_STATUS=${PIPESTATUS[0]}
           set -e
           echo "status=${TEST_STATUS}" >> $GITHUB_OUTPUT
@@ -291,7 +311,6 @@ jobs:
         with:
           name: test-reports-shard-${{ matrix.shard }}
           path: |
-            test-reports/
             pytorch-test-src/test/test-reports/
           retention-days: 30
 
@@ -302,18 +321,142 @@ jobs:
           name: logs-shard-${{ matrix.shard }}
           path: |
             /tmp/test_shard_${{ matrix.shard }}.log
+            /tmp/run_test_phase*.log
+            /tmp/include_tests.txt
+            /tmp/exclude_tests.txt
+            /tmp/extra_pytest_tests.txt
           if-no-files-found: warn
 
+  # ============================================================================
+  # Job 5: Distributed Tests (Single Shard)
+  # ============================================================================
+  distributed_test:
+    needs:
+      - prepare
+      - upload_torch_npu_wheel
+    if: ${{ inputs.run_distributed || true }}
+    runs-on: linux-aarch64-a3-2
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root
+
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: ascend_pytorch
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+          chmod -R 777 /github/home/.cache
+
+      - name: Download built torch_npu wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TORCH_NPU_WHEEL_ARTIFACT }}
+          path: torch-npu-wheel-artifact
+
+      - name: Install PyTorch and torch_npu
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PIP=pip${{ env.PYTHON_VERSION }}
+          PYTHON=python${{ env.PYTHON_VERSION }}
+
+          $PIP uninstall -y torch torchvision || true
+          $PIP install --upgrade pip
+          $PIP install torch==${{ env.PYTORCH_VERSION }}
+          TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
+          $PIP install "${TORCH_NPU_WHL}"
+
+      - name: Download prepared test source
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: prepared-test-src-artifact
+
+      - name: Extract prepared test source
+        run: |
+          tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
+
+      - name: Verify NPU availability
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          $PYTHON -c "
+          import torch
+          import torch_npu
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      - name: Install test dependencies
+        run: |
+          PIP=pip${{ env.PYTHON_VERSION }}
+          cd pytorch-test-src
+
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
+          $PIP install pytest-rerunfailures pytest-flakefinder
+          $PIP install 'pytest-subtests==0.13.1' 'xdoctest==1.1.0' 'pulp>=2.9'
+          if [ -f requirements.txt ]; then
+            $PIP install -r requirements.txt || true
+          fi
+
+      - name: Run distributed tests
+        id: run_distributed
+        env:
+          SHARD_NUMBER: 1
+          NUM_TEST_SHARDS: 1
+          NUM_PARALLEL_PROCS: 1  # Distributed tests need single process for multi-process coordination
+          PYTORCH_TEST_SRC: ${{ github.workspace }}/pytorch-test-src
+          ASCEND_PYTORCH_DIR: ${{ github.workspace }}/ascend_pytorch
+          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
+        run: |
+          # Only run Phase 2 (distributed tests) by modifying test.sh behavior
+          # We set SHARD_NUMBER=1 which triggers distributed test phase
+          chmod +x ascend_pytorch/.ci/npu/test.sh
+          set +e
+          ascend_pytorch/.ci/npu/test.sh 2>&1 | tee /tmp/test_distributed.log
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "status=${TEST_STATUS}" >> $GITHUB_OUTPUT
+          exit ${TEST_STATUS}
+
+      - name: Upload distributed test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-distributed
+          path: pytorch-test-src/test/test-reports/
+          retention-days: 30
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-distributed
+          path: /tmp/test_distributed.log
+          if-no-files-found: warn
+
+  # ============================================================================
+  # Job 6: Generate Summary Report
+  # ============================================================================
   report:
     needs:
       - prepare
       - build_torch_npu
       - upload_torch_npu_wheel
       - test
-    if: always() && needs.prepare.result == 'success' && needs.build_torch_npu.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'failure')
+      - distributed_test
+    if: always() && needs.prepare.result == 'success' && needs.build_torch_npu.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout current repository (for report)
+      - name: Checkout current repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
@@ -330,22 +473,104 @@ jobs:
           path: all-test-reports
           merge-multiple: true
 
+      - name: Download distributed reports
+        uses: actions/download-artifact@v4
+        with:
+          name: test-reports-distributed
+          path: all-test-reports/distributed
+          continue-on-error: true
+
+      - name: Install report dependencies
+        run: |
+          pip install junitparser pyyaml
+
       - name: Generate consolidated summary
         run: |
           PYTHON=python
           REPORT_MD=npu-full-test-summary.md
           REPORT_JSON=npu-full-test-summary.json
 
-          $PYTHON .github/scripts/generate_npu_full_test_report.py \
-            --reports-root all-test-reports \
-            --output-markdown ${REPORT_MD} \
-            --output-json ${REPORT_JSON} \
-            --pytorch-version "${{ env.PYTORCH_VERSION }}" \
-            --torch-npu-whl "${{ needs.build_torch_npu.outputs.wheel_name || 'source-build.whl' }}" \
-            --patch-count "${{ needs.prepare.outputs.patch_count || 'N/A' }}" \
-            --shard-matrix-json '${{ needs.prepare.outputs.shard_matrix }}' \
-            --docker-image "${{ env.DOCKER_IMAGE }}" \
-            --runner "${{ env.RUNNER_TYPE }}"
+          # Create summary script inline
+          cat > /tmp/generate_summary.py << 'SCRIPT_EOF'
+          import os
+          import json
+          from pathlib import Path
+          from junitparser import JUnitXml
+
+          def parse_junit_reports(reports_dir):
+              total_tests = 0
+              passed = 0
+              failed = 0
+              skipped = 0
+              errors = 0
+              failed_tests = []
+
+              for xml_file in Path(reports_dir).rglob("*.xml"):
+                  try:
+                      suite = JUnitXml.fromfile(str(xml_file))
+                      for case in suite:
+                          total_tests += 1
+                          if case.result is None:
+                              passed += 1
+                          elif case.result._tag == "failure":
+                              failed += 1
+                              failed_tests.append(f"{case.classname}.{case.name}")
+                          elif case.result._tag == "skipped":
+                              skipped += 1
+                          elif case.result._tag == "error":
+                              errors += 1
+                              failed_tests.append(f"{case.classname}.{case.name} (error)")
+                  except Exception as e:
+                      print(f"Warning: Failed to parse {xml_file}: {e}")
+
+              return {
+                  "total": total_tests,
+                  "passed": passed,
+                  "failed": failed,
+                  "skipped": skipped,
+                  "errors": errors,
+                  "failed_tests": failed_tests[:100]  # Limit to 100 failures
+              }
+
+          reports_dir = os.environ.get("REPORTS_DIR", "all-test-reports")
+          stats = parse_junit_reports(reports_dir)
+
+          # Generate markdown summary
+          md_lines = [
+              "## PyTorch NPU Full Test Summary",
+              "",
+              "| Metric | Value |",
+              "|--------|-------|",
+              f"| Total Tests | {stats['total']} |",
+              f"| Passed | {stats['passed']} |",
+              f"| Failed | {stats['failed']} |",
+              f"| Skipped | {stats['skipped']} |",
+              f"| Errors | {stats['errors']} |",
+              "",
+              f"**Pass Rate**: {stats['passed'] / max(stats['total'], 1) * 100:.2f}%",
+              "",
+          ]
+
+          if stats['failed_tests']:
+              md_lines.append("### Failed Tests (first 20)")
+              md_lines.append("")
+              for test in stats['failed_tests'][:20]:
+                  md_lines.append(f"- `{test}`")
+
+          with open(os.environ.get("REPORT_MD", "summary.md"), "w") as f:
+              f.write("\n".join(md_lines))
+
+          with open(os.environ.get("REPORT_JSON", "summary.json"), "w") as f:
+              json.dump(stats, f, indent=2)
+
+          print("\n".join(md_lines))
+          SCRIPT_EOF
+
+          export REPORTS_DIR=all-test-reports
+          export REPORT_MD=${REPORT_MD}
+          export REPORT_JSON=${REPORT_JSON}
+
+          $PYTHON /tmp/generate_summary.py
 
           cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
 
