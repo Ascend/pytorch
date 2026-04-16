@@ -90,7 +90,8 @@ class ConcatKernel(NopKernel):
             prev = 0
             for i, inp in enumerate(inputs):
                 input_sub.append(inp)
-                if i == len(inputs) - 1 or offsets_end[i + 1] - offsets_start[prev] > max_numel_in_per_kernel or i - prev + 1 >= config.max_cat_count_in_per_kernel:
+                cat_count_overflow = config.max_cat_count_in_per_kernel is not None and (i - prev + 1 >= config.max_cat_count_in_per_kernel)
+                if i == len(inputs) - 1 or offsets_end[i + 1] - offsets_start[prev] > max_numel_in_per_kernel or cat_count_overflow:
                     input_buffer = cls.realize_into(input_sub, SliceView.create(
                         kernel, dim, offsets_start[prev], offsets_end[i], clamp=False
                     ), dim)
