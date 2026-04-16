@@ -165,8 +165,6 @@ GENERATE_LIST = [
     aten.mean,
     aten.full,
     aten.slice,
-    aten.split,
-    aten.split_with_sizes,
     aten.reciprocal,
     aten.select,
     # prims.iota,
