@@ -933,8 +933,6 @@ def build_pytest_command(
         f"--junitxml={xml_file}",
         "-p",
         "pytest_disabled_testcases_plugin",
-        "--import-slow-tests",
-        "--import-disabled-tests",
     ]
 
     if parallel > 0:
