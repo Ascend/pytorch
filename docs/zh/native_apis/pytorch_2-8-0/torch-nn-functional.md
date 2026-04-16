@@ -50,7 +50,7 @@
 |torch.nn.functional.prelu|是|支持fp16，fp32<br>input仅支持1-8维|
 |torch.nn.functional.rrelu|是|支持bf16，fp16，fp32|
 |torch.nn.functional.glu|是|支持bf16，fp16，fp32，fp64|
-|torch.nn.functional.gelu|是|支持bf16，fp16，fp32|
+|torch.nn.functional.gelu|是|支持bf16，fp16，fp32<br>approximate参数仅支持设置为tanh|
 |torch.nn.functional.logsigmoid|是|支持fp16，fp32|
 |torch.nn.functional.hardshrink|是|支持fp16，fp32|
 |torch.nn.functional.softsign|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|

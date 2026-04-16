@@ -42,5 +42,5 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 
 ## 支持的型号
 
-- <term>Atlas A2训练系列产品</term>
-- <term>Atlas A3训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>

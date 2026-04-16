@@ -55,7 +55,7 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
       - trace.enabled
       - enable\_shape\_handling
       - npu\_backend
-    - npugraph_ex支持的参数和详细使用指导请参考：[PyTorch图模式使用(TorchAir)](https://gitcode.com/Ascend/torchair/docs) - npugraph_ex后端。
+    - npugraph_ex支持的参数和详细使用指导请参考《PyTorch图模式使用(TorchAir)》中的[npugraph_ex后端](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/npugraph_ex/npugraph_ex.md)。
 
 - **disable**：可选参数，是否关闭torch.compile能力，默认值为False。
 

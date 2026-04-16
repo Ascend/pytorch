@@ -69,7 +69,7 @@ torch_npu算子操作基础接口可参见[LINK](https://gitcode.com/Ascend/pyto
 
 ## 算子适配常见宏定义<a id="section003"></a>
 
-算子适配宏定义接口可参见[LINK](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/op_plugin/utils/op_api_common.h)。常见宏定义如下：
+算子适配宏定义接口可参见[LINK](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/op_plugin/utils/op_api_common.h)。常见宏定义如下：
 
 - **`DO_COMPATIBILITY`**  
    - 功能：用于算子兼容性处理，当NPU原生算子不可用时自动降级为备选实现（如CPU版本），确保不同环境下的功能兼容性。  

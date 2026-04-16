@@ -42,7 +42,7 @@
     - [适配说明](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/README.md)
     - [适配开发及调用（基础样例）](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/cpp_extension_base/README.md)
     - [适配开发及调用（完整样例-module）](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/cpp_extension_full/module/README.md)
-    - [适配开发及调用（完整样例-`TORCH_LIBRARY_IMPL`）](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/cpp_extension_full/torch_lib_impl/README.md)
+    - [适配开发及调用（完整样例-TORCH_LIBRARY_IMPL）](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/cpp_extension_full/torch_lib_impl/README.md)
     - [适配开发及调用（结构化）](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/cpp_extension_structured/README.md)
     - [适配开发及调用（AscendC）](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/cpp_extension_asc/README.md)
     - [适配开发及调用（pybind）](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/examples/cpp_extension_pybind/README.md)
