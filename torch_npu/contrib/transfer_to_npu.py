@@ -493,6 +493,8 @@ def _init():
     _do_wrapper_libraries_func(_load_json_file(config_path))
 
     setattr(torch.utils._triton, 'has_triton', _patch_has_triton)
+    setattr(torch._dynamo.utils, 'has_triton', _patch_has_triton)
+    setattr(torch._inductor.runtime.autotune_cache, 'has_triton', _patch_has_triton)
 
     setattr(torch._utils, '_get_available_device_type', _patch_get_available_device_type)
     setattr(torch.distributed.checkpoint.filesystem._OverlappingCpuLoader, '__init__',
