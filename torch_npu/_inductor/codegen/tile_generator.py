@@ -10,12 +10,20 @@ from .triton_utils import get_byte_per_numel, NPUKernelType
 from .. import config
 
 
+def aligned_numel_32byte(numel, dtype_bytes):
+    min_numel = 32 // dtype_bytes
+    if numel <= min_numel:
+        return numel
+    aligned = ((numel + min_numel - 1) // min_numel) * min_numel
+    return aligned
+
+
 # generate tiling configs
 class TileGenerator:
 
     def __init__(self, numels, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims, persistent_reduction,
                   dtype, npu_kernel_type=NPUKernelType.SIMD, input_ptr_num=0, dual_reduction=False):
-        self.numels = numels.copy()
+        self.numels = copy.deepcopy(numels)
 
         self.blocks = [x for x in self.numels]
         self.candidate_blocks = []
@@ -92,12 +100,7 @@ class TileGenerator:
         return last_blocks
 
 
-    def aligned_numel(self, numel):
-        min_numel = 32 // self.dtype_bytes
-        if numel <= min_numel:
-            return numel
-        aligned = ((numel + min_numel - 1) // min_numel) * min_numel
-        return aligned
+
 
     def valid_tile_numel(self, total_numel):
         max_numel = self.max_numel_threshold
@@ -131,15 +134,15 @@ class TileGenerator:
 
     def fill_config(self, cfg, blocks):
         for axis in self.split_axis:
-            cfg[self.block_name[axis]] = blocks[axis]
+            cfg[self.block_name[axis]] = aligned_numel_32byte(blocks[axis], self.dtype_bytes)
         for axis in self.tiling_axis:
             if self.npu_kernel_type == NPUKernelType.SIMT_ONLY:
                 tiling_numel = next_power_of_2(self.sub_blocks[axis])
                 while tiling_numel > blocks[axis]:
                     tiling_numel = tiling_numel // 2
             else:
-                tiling_numel = min(self.aligned_numel(self.sub_blocks[axis]), blocks[axis])
-            cfg[self.sub_block_name[axis]] = tiling_numel
+                tiling_numel = min(self.sub_blocks[axis], blocks[axis])
+            cfg[self.sub_block_name[axis]] = aligned_numel_32byte(tiling_numel, self.dtype_bytes)
         cfg["compile_mode"] = self.npu_kernel_type.compile_mode()
         cfg["remain_programs"] = self.cal_cfg_remain_programs(cfg)
         cfg["using_programs"] = self.calc_cfg_programs(cfg)
@@ -362,7 +365,7 @@ class TileGenerator:
                 else:  # numel >4 and numel < 128 :
                     numel = self.sub_blocks[axis]
                     numel = numel // 2
-                    self.sub_blocks[axis] = min(self.aligned_numel(numel), next_power_of_2(numel))
+                    self.sub_blocks[axis] = min(aligned_numel_32byte(numel, self.dtype_bytes), next_power_of_2(numel))
 
         count = 0
         total_numel = self.calculate_total_numel()
