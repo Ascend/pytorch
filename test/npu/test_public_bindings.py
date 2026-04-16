@@ -524,6 +524,7 @@ class TestPublicBindings(TestCase):
             "torch.utils.tensorboard._pytorch_graph",
             "torch.utils.tensorboard._utils",
             "torch.distributed._tools.sac_ilp",
+            "torch_npu.contrib.transfer_to_npu",
             "torch_npu.dynamo.torchair._tf_concrete_graph.fx2tf_converter",
             "torch_npu.dynamo.torchair.core._abi_compat_ge_apis",
             "torch_npu.dynamo.torchair.core._backend",
