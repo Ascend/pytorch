@@ -1,0 +1,13 @@
+diff --git a/torch/testing/_internal/common_fsdp.py b/torch/testing/_internal/common_fsdp.py
+index 9548f0b..5d49a6f 100644
+--- a/torch/testing/_internal/common_fsdp.py
++++ b/torch/testing/_internal/common_fsdp.py
+@@ -67,7 +67,7 @@ from torch.utils._triton import has_triton
+ DEVICE_COUNT = 4  # default
+ 
+ if TEST_CUDA:
+-    DEVICE_TYPE = "cuda"
++    DEVICE_TYPE = "npu"
+     DISTRIBUTED_BACKEND = "nccl"
+     DEVICE_COUNT = torch.cuda.device_count()
+ elif TEST_HPU:

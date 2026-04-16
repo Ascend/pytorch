@@ -1,0 +1,13 @@
+diff --git a/torch/_higher_order_ops/associative_scan.py b/torch/_higher_order_ops/associative_scan.py
+index 55f9d0d..e87e042 100644
+--- a/torch/_higher_order_ops/associative_scan.py
++++ b/torch/_higher_order_ops/associative_scan.py
+@@ -149,7 +149,7 @@ def associative_scan(
+ 
+     leaves, spec = pytree.tree_flatten(xs)
+ 
+-    if combine_mode == "pointwise" and not all(l.device.type == "cuda" for l in leaves):
++    if combine_mode == "pointwise" and not all(l.device.type == "npu" for l in leaves):
+         raise ValueError(
+             "For combine_mode='pointwise', all input tensors need to be on CUDA"
+         )

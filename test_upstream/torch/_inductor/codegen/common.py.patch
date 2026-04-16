@@ -1,0 +1,14 @@
+diff --git a/torch/_inductor/codegen/common.py b/torch/_inductor/codegen/common.py
+index 152d2ef..110a386 100644
+--- a/torch/_inductor/codegen/common.py
++++ b/torch/_inductor/codegen/common.py
+@@ -485,7 +485,8 @@ def get_device_op_overrides(device: str) -> DeviceOpOverrides:
+         from . import cpu_device_op_overrides, mps_device_op_overrides  # noqa: F401
+         from .cuda import device_op_overrides  # noqa: F401
+         from .xpu import device_op_overrides as xpu_op_overrides  # noqa: F401
+-
++    if 'npu' in device_op_overrides_dict.keys() and 'cpu' not in device_op_overrides_dict.keys():
++        device_op_overrides_dict['cpu'] = device_op_overrides_dict['npu']
+     return device_op_overrides_dict[device]
+ 
+ 

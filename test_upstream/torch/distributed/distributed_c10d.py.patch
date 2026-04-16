@@ -1,0 +1,47 @@
+diff --git a/torch/distributed/distributed_c10d.py b/torch/distributed/distributed_c10d.py
+index 547030c..7113b8e 100644
+--- a/torch/distributed/distributed_c10d.py
++++ b/torch/distributed/distributed_c10d.py
+@@ -258,26 +258,29 @@ class Backend(str):  # noqa: SLOT000
+     UCC = "ucc"
+     MPI = "mpi"
+     XCCL = "xccl"
++    HCCL = "hccl"
+ 
+     _BackendPlugin = namedtuple("_BackendPlugin", ["creator_fn", "extended_api"])
+ 
+     _plugins: dict[str, _BackendPlugin] = {}
+ 
+-    backend_list = [UNDEFINED, GLOO, NCCL, XCCL, UCC, MPI]
++    backend_list = [UNDEFINED, GLOO, NCCL, XCCL, UCC, MPI, HCCL]
+ 
+     # 3rd-party devices can register the default backend support here
+     default_device_backend_map: dict[str, str] = {
+         "cpu": GLOO,
+         "cuda": NCCL,
+         "xpu": XCCL,
++        "npu": HCCL,
+     }
+ 
+     backend_capability: dict[str, list[str]] = {
+-        GLOO: ["cpu", "cuda"],
++        GLOO: ["cpu", "npu"], #GLOO: ["cpu", "cuda"],
+         NCCL: ["cuda"],
++        HCCL: ["npu"],
+         XCCL: ["xpu"],
+-        UCC: ["cpu", "cuda"],
+-        MPI: ["cpu", "cuda"],
++        UCC: ["cpu", "npu"],
++        MPI: ["cpu", "npu"],
+     }
+ 
+     backend_type_map: dict[str, ProcessGroup.BackendType] = {
+@@ -1378,7 +1381,7 @@ def get_default_backend_for_device(device: Union[str, torch.device]) -> str:
+         device_str = device.type
+     else:
+         device_str = torch.device(device).type
+-
++    device_str = 'npu'
+     backend = Backend.default_device_backend_map.get(device_str)
+     if backend is None:
+         raise ValueError(f"Default backend not registered for device : {device}")

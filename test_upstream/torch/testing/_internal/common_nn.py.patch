@@ -1,0 +1,24 @@
+diff --git a/torch/testing/_internal/common_nn.py b/torch/testing/_internal/common_nn.py
+index 6c9764e..f47fbd8 100644
+--- a/torch/testing/_internal/common_nn.py
++++ b/torch/testing/_internal/common_nn.py
+@@ -3508,9 +3508,6 @@ class ModuleTest(TestBase):
+                 test_case.assertEqual(test_case._get_parameters(module)[1], d_param)
+ 
+     def test_cuda(self, test_case):
+-        if not TEST_CUDA or not self.should_test_cuda:
+-            raise unittest.SkipTest('Excluded from CUDA tests')
+-
+         with set_default_dtype(self.default_dtype):
+             cpu_input = self._get_input()
+ 
+@@ -3883,9 +3880,6 @@ class CriterionTest(InputVariableMixin, TestBase):  # type: ignore[misc]
+             else:
+                 return obj
+ 
+-        if not TEST_CUDA or not self.should_test_cuda:
+-            raise unittest.SkipTest('Excluded from CUDA tests')
+-
+         with set_default_dtype(self.default_dtype):
+             cpu_input = self._get_input()
+             cpu_target = self._get_target()

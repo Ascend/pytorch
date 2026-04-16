@@ -1,0 +1,32 @@
+diff --git a/torch/testing/_internal/common_distributed.py b/torch/testing/_internal/common_distributed.py
+index 2a8fc04..fa4d9e2 100644
+--- a/torch/testing/_internal/common_distributed.py
++++ b/torch/testing/_internal/common_distributed.py
+@@ -401,7 +401,8 @@ def sm_is_or_higher_than(device: torch.device, major: int, minor: int) -> bool:
+         # ROCm devices may have different compute capability codes
+         return False
+ 
+-    return torch.cuda.get_device_capability(device) >= (major, minor)
++    # return torch.cuda.get_device_capability(device) >= (major, minor)
++    return True
+ 
+ 
+ @retry_on_connect_failures
+@@ -951,6 +952,8 @@ class DistributedTestBase(MultiProcessTestCase):
+             return "hccl"
+         elif "xpu" in device:
+             return "xccl"
++        elif "npu" in device:
++            return "hccl"
+         else :
+             return "gloo"
+ 
+@@ -963,7 +966,7 @@ class DistributedTestBase(MultiProcessTestCase):
+             rank=self.rank,
+             store=store
+         )
+-        if "nccl" in self.backend(device) or "xccl" in self.backend(device):
++        if "nccl" in self.backend(device) or "xccl" in self.backend(device)  or "hccl" in self.backend(device):
+             torch.accelerator.set_device_index(self.rank)
+         return torch.distributed.distributed_c10d._get_default_group()
+ 

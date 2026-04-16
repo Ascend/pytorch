@@ -1,0 +1,13 @@
+diff --git a/torch/utils/benchmark/utils/compile.py b/torch/utils/benchmark/utils/compile.py
+index 23b74f9..b364eb1 100644
+--- a/torch/utils/benchmark/utils/compile.py
++++ b/torch/utils/benchmark/utils/compile.py
+@@ -27,7 +27,7 @@ if HAS_TABULATE:
+         global _warned_tensor_cores
+ 
+         if torch.cuda.is_available():
+-            if torch.backends.cuda.matmul.allow_tf32 is False and torch.cuda.get_device_capability() >= (8, 0):
++            if torch.backends.cuda.matmul.allow_tf32 is False: # and torch.cuda.get_device_capability() >= (8, 0):
+                 torch.set_float32_matmul_precision("high")
+                 if not _warned_tensor_cores:
+                     print("Your GPU supports tensor cores")

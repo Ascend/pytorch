@@ -1,0 +1,14 @@
+diff --git a/torch/_inductor/codecache.py b/torch/_inductor/codecache.py
+index dc9f5c2..0020441 100644
+--- a/torch/_inductor/codecache.py
++++ b/torch/_inductor/codecache.py
+@@ -185,7 +185,8 @@ class CacheBase:
+                 system["device"]["name"] = device_properties.name
+                 system["version"]["cuda"] = torch.version.cuda
+             else:
+-                system["device"]["name"] = device_properties.gcnArchName
++                # system["device"]["name"] = device_properties.gcnArchName
++                system["device"]["name"] = "arm"
+                 system["version"]["hip"] = torch.version.hip
+         except (AssertionError, RuntimeError):
+             # If cuda is not installed, none of the above config is relevant.

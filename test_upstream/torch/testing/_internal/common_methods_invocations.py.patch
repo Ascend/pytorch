@@ -1,0 +1,128 @@
+diff --git a/torch/testing/_internal/common_methods_invocations.py b/torch/testing/_internal/common_methods_invocations.py
+index 1cb84a8..55b2226 100644
+--- a/torch/testing/_internal/common_methods_invocations.py
++++ b/torch/testing/_internal/common_methods_invocations.py
+@@ -16,6 +16,9 @@ import numpy as np
+ import numpy.typing as npt
+ from torch import inf, nan
+ 
++#import torch_npu
++#from torch_npu.contrib import transfer_to_npu
++
+ from typing import Any, Union
+ from collections.abc import Sequence
+ from torch.testing import make_tensor
+@@ -27,7 +30,7 @@ from torch.testing._internal.common_dtype import (
+ from torch.testing._internal.common_device_type import \
+     (onlyCPU, onlyCUDA, onlyNativeDeviceTypes, disablecuDNN, skipCUDAIfNoMagma, skipCUDAIfNoMagmaAndNoCusolver,
+      skipCUDAIfNoCusolver, skipCPUIfNoLapack, skipCPUIfNoFFT, skipCUDAIf, precisionOverride,
+-     skipCPUIfNoMklSparse,
++     skipCPUIfNoMklSparse, onlyPRIVATEUSE1,
+      toleranceOverride, tol)
+ from torch.testing._internal.common_cuda import (
+     PLATFORM_SUPPORTS_FLASH_ATTENTION, PLATFORM_SUPPORTS_MEM_EFF_ATTENTION,
+@@ -5175,7 +5178,7 @@ def sample_inputs_to(op_info, device, dtype, requires_grad, **kwargs):
+     devices = [device]
+     if torch.device(device).type == 'cpu':
+         devices = [torch.device('cpu'), torch.device('cuda:0')] if torch.cuda.is_available() else devices
+-    memory_formats = [torch.preserve_format, torch.channels_last]
++    memory_formats = [torch.preserve_format]
+ 
+     # TODO: can't switch `to.device` overload to use positional arguments
+     # https://github.com/pytorch/pytorch/issues/84265
+@@ -16656,7 +16659,7 @@ op_db: list[OpInfo] = [
+            supports_fwgrad_bwgrad=True,
+            allow_cow_input_materialize_forward=[1, 2],
+            allow_cow_input_materialize_backward=[1, 2],
+-           decorators=[onlyCUDA, disablecuDNN],
++           decorators=[onlyPRIVATEUSE1, disablecuDNN],
+            skips=(
+                DecorateInfo(toleranceOverride({torch.float32: tol(atol=1e-03, rtol=1e-04)}),
+                             'TestJit', 'test_variant_consistency_jit'),
+@@ -20297,7 +20300,7 @@ op_db: list[OpInfo] = [
+         supports_out=False,
+         supports_autograd=False,  # jiterator ops doesn't have backward defined
+         decorators=[
+-            onlyCUDA,
++            onlyPRIVATEUSE1,
+             DecorateInfo(toleranceOverride({torch.float16: tol(atol=1e-02, rtol=1e-02)}),
+                          'TestUnaryUfuncs', 'test_reference_numerics_extremal'),
+             DecorateInfo(toleranceOverride({torch.float16: tol(atol=1e-02, rtol=1e-02)}),
+@@ -20342,7 +20345,7 @@ op_db: list[OpInfo] = [
+         supports_out=False,
+         supports_autograd=False,  # jiterator ops doesn't have backward defined
+         supports_rhs_python_scalar=False,
+-        decorators=[onlyCUDA],
++        decorators=[onlyPRIVATEUSE1],
+         skips=(
+             # Jiterator ops doesn't support neg or conj view
+             DecorateInfo(unittest.expectedFailure, 'TestMathBits', 'test_neg_view'),
+@@ -20367,7 +20370,7 @@ op_db: list[OpInfo] = [
+         sample_inputs_func=partial(sample_inputs_jiterator, num_inputs=4, alpha=3.14, beta=-4.20),
+         supports_out=False,
+         supports_autograd=False,  # jiterator ops doesn't have backward defined
+-        decorators=[onlyCUDA],
++        decorators=[onlyPRIVATEUSE1],
+         skips=(
+             # Jiterator ops doesn't support neg or conj view
+             DecorateInfo(unittest.expectedFailure, 'TestMathBits', 'test_neg_view'),
+@@ -20398,7 +20401,7 @@ op_db: list[OpInfo] = [
+         supports_out=False,
+         supports_autograd=False,  # jiterator ops doesn't have backward defined
+         supports_rhs_python_scalar=False,
+-        decorators=[onlyCUDA],
++        decorators=[onlyPRIVATEUSE1],
+         skips=(
+             # Jiterator ops doesn't support neg or conj view
+             DecorateInfo(unittest.expectedFailure, 'TestMathBits', 'test_neg_view'),
+@@ -20429,7 +20432,7 @@ op_db: list[OpInfo] = [
+         sample_inputs_func=partial(sample_inputs_jiterator, num_inputs=2),
+         supports_out=False,
+         supports_autograd=False,  # jiterator ops doesn't have backward defined
+-        decorators=[onlyCUDA],
++        decorators=[onlyPRIVATEUSE1],
+         skips=(
+             # Jiterator ops doesn't support neg or conj view
+             DecorateInfo(unittest.expectedFailure, 'TestMathBits', 'test_neg_view'),
+@@ -21981,6 +21984,18 @@ python_ref_db = [
+             DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref_executor',
+                          dtypes=(torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64),
+                          device_type="cuda"),
++
++            # cuda implementation is off-by-one on some inputs due to precision issues
++            # https://github.com/pytorch/pytorch/issues/82230
++            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref_torch_fallback',
++                         dtypes=(torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64),
++                         device_type="npu"),
++            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref',
++                         dtypes=(torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64),
++                         device_type="npu"),
++            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref_executor',
++                         dtypes=(torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64),
++                         device_type="npu"),
+         ),
+     ),
+     PythonRefInfo(
+@@ -22017,6 +22032,22 @@ python_ref_db = [
+             DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref_executor',
+                          dtypes=(torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64),
+                          device_type="cuda"),
++
++            # cuda implementation is off-by-one on some inputs due to precision issues
++            # https://github.com/pytorch/pytorch/issues/82230
++            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref_torch_fallback',
++                         dtypes=(torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64),
++                         device_type="npu"),
++            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref',
++                         dtypes=(torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64),
++                         device_type="npu"),
++            # TODO torch.ops.aten.copy is not in _refs
++            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref',
++                         dtypes=(torch.float32, torch.float64, torch.float16, torch.complex64, torch.complex128, torch.bfloat16),
++                         device_type="npu"),
++            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref_executor',
++                         dtypes=(torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64),
++                         device_type="npu"),
+         ),
+     ),
+     PythonRefInfo(

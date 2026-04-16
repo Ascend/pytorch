@@ -1,0 +1,12 @@
+diff --git a/torch/distributed/checkpoint/filesystem.py b/torch/distributed/checkpoint/filesystem.py
+index 89b82e7..4aaa932 100644
+--- a/torch/distributed/checkpoint/filesystem.py
++++ b/torch/distributed/checkpoint/filesystem.py
+@@ -133,6 +133,7 @@ class _OverlappingCpuLoader(_TensorLoader):
+         self.device_type = (
+             stream.device_type if stream else _get_available_device_type()
+         )
++        self.device_type = 'npu'
+         self.device_module = _get_device_module(self.device_type)
+         self.stream = cast(
+             torch.cuda.Stream, stream or self.device_module.current_stream()

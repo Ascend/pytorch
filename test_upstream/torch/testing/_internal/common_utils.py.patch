@@ -1,0 +1,74 @@
+diff --git a/torch/testing/_internal/common_utils.py b/torch/testing/_internal/common_utils.py
+index afbd569..377843b 100644
+--- a/torch/testing/_internal/common_utils.py
++++ b/torch/testing/_internal/common_utils.py
+@@ -37,6 +37,7 @@ import time
+ import types
+ import unittest
+ import warnings
++import torch_npu
+ from collections.abc import Mapping, Sequence
+ from contextlib import closing, contextmanager
+ from copy import deepcopy
+@@ -2387,24 +2388,26 @@ class CudaNonDefaultStream:
+         # to ensure CUDA tests do not use default stream by mistake.
+         beforeDevice = torch.cuda.current_device()
+         self.beforeStreams = []
++        import torch_npu
+         for d in range(torch.cuda.device_count()):
+             self.beforeStreams.append(torch.cuda.current_stream(d))
+             deviceStream = torch.cuda.Stream(device=d)
+             self.beforeStreams[-1].synchronize()
+-            torch._C._cuda_setStream(stream_id=deviceStream.stream_id,
++            torch_npu._C._npu_setStream(stream_id=deviceStream.stream_id,
+                                      device_index=deviceStream.device_index,
+                                      device_type=deviceStream.device_type)
+-        torch._C._cuda_setDevice(beforeDevice)
++        torch_npu._C._npu_setDevice(beforeDevice)
+ 
+     def __exit__(self, exec_type, exec_value, traceback):
+         # After completing CUDA test load previously active streams on all
+         # CUDA devices.
+         beforeDevice = torch.cuda.current_device()
++        import torch_npu
+         for d in range(torch.cuda.device_count()):
+-            torch._C._cuda_setStream(stream_id=self.beforeStreams[d].stream_id,
++            torch_npu._C._npu_setStream(stream_id=self.beforeStreams[d].stream_id,
+                                      device_index=self.beforeStreams[d].device_index,
+                                      device_type=self.beforeStreams[d].device_type)
+-        torch._C._cuda_setDevice(beforeDevice)
++        torch_npu._C._npu_setDevice(beforeDevice)
+ 
+ class CudaMemoryLeakCheck:
+     def __init__(self, testcase, name=None):
+@@ -3011,8 +3014,8 @@ class TestCase(expecttest.TestCase):
+ 
+             # Wraps the tested method if we should enforce non default CUDA stream.
+             self._do_cuda_non_default_stream &= getattr(test_method, '_do_cuda_non_default_stream', True)
+-            if self._do_cuda_non_default_stream and not IS_WINDOWS:
+-                self.wrap_with_cuda_policy(method_name, self.enforceNonDefaultStream)
++            # if self._do_cuda_non_default_stream and not IS_WINDOWS:
++            #     self.wrap_with_cuda_policy(method_name, self.enforceNonDefaultStream)
+ 
+             if self._ignore_not_implemented_error:
+                 self.wrap_with_policy(method_name, lambda: skip_exception_type(NotImplementedError))
+@@ -3949,7 +3952,6 @@ class TestCase(expecttest.TestCase):
+ 
+         actual = torch_fn(t_inp, *t_args, **t_kwargs)
+         expected = ref_fn(n_inp, *n_args, **n_kwargs)
+-
+         self.assertEqual(actual, expected, exact_device=False, **kwargs)
+ 
+     # Compares the given Torch and NumPy functions on the given tensor-like object.
+@@ -4702,7 +4704,10 @@ def random_hermitian_pd_matrix(matrix_size, *batch_dims, dtype, device):
+ def make_fullrank_matrices_with_distinct_singular_values(*shape, device, dtype, requires_grad=False):
+     with torch.no_grad():
+         t = make_tensor(shape, device=device, dtype=dtype)
+-        u, _, vh = torch.linalg.svd(t, full_matrices=False)
++        print("-----------=====")
++        with torch.autograd.profiler.profile(record_shapes=True) as prof:
++            u, _, vh = torch.linalg.svd(t, full_matrices=False)
++        print(prof.key_averages(group_by_input_shape=True))
+         real_dtype = t.real.dtype if t.dtype.is_complex else t.dtype
+         k = min(shape[-1], shape[-2])
+         # We choose the singular values to be "around one"

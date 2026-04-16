@@ -1,0 +1,31 @@
+diff --git a/torch/_inductor/graph.py b/torch/_inductor/graph.py
+index 399a8c0..0de2bb6 100644
+--- a/torch/_inductor/graph.py
++++ b/torch/_inductor/graph.py
+@@ -1046,16 +1046,16 @@ class GraphLowering(torch.fx.Interpreter):
+             self.graph_input_names.append(target)
+             return None
+         # See note: Note: [Generator arguments in AOTDispatcher]
+-        elif isinstance(example, torch.Generator):
+-            assert (
+-                len(V.graph.current_node.users) == 1
+-                and next(iter(V.graph.current_node.users)).target
+-                is torch._prims.rng_prims.graphsafe_run_with_rng_state
+-            )
+-            gen = ir.GeneratorState(name=target, device=example.device)
+-            self.graph_inputs[target] = gen  # type: ignore[assignment]
+-            self.graph_input_names.append(target)
+-            return gen
++        # elif isinstance(example, torch.Generator):
++        #     assert (
++        #         len(V.graph.current_node.users) == 1
++        #         and next(iter(V.graph.current_node.users)).target
++        #         is torch._prims.rng_prims.graphsafe_run_with_rng_state
++        #     )
++        #     gen = ir.GeneratorState(name=target, device=example.device)
++        #     self.graph_inputs[target] = gen  # type: ignore[assignment]
++        #     self.graph_input_names.append(target)
++        #     return gen
+ 
+         assert isinstance(example, torch.Tensor), example
+         # todo(chilli): We can remove the last check once we turn buffers into

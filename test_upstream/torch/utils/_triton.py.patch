@@ -1,0 +1,23 @@
+diff --git a/torch/utils/_triton.py b/torch/utils/_triton.py
+index 1609a3f..02ba2fe 100644
+--- a/torch/utils/_triton.py
++++ b/torch/utils/_triton.py
+@@ -22,7 +22,7 @@ def has_triton_tma():
+ 
+         if (
+             torch.cuda.is_available()
+-            and torch.cuda.get_device_capability() >= (9, 0)
++            # and torch.cuda.get_device_capability() >= (9, 0)
+             and not torch.version.hip
+         ):
+             try:
+@@ -69,7 +69,8 @@ def has_triton() -> bool:
+     from torch._dynamo.device_interface import get_interface_for_device
+ 
+     def cuda_extra_check(device_interface):
+-        return device_interface.Worker.get_device_properties().major >= 7
++        # return device_interface.Worker.get_device_properties().major >= 7
++        return True
+ 
+     def cpu_extra_check(device_interface):
+         import triton.backends

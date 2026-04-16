@@ -1,0 +1,22 @@
+diff --git a/torch/testing/_internal/optests/autograd_registration.py b/torch/testing/_internal/optests/autograd_registration.py
+index 25df4f1..bddac61 100644
+--- a/torch/testing/_internal/optests/autograd_registration.py
++++ b/torch/testing/_internal/optests/autograd_registration.py
+@@ -83,7 +83,7 @@ def autograd_registration_check(op, args, kwargs):
+ 
+     # Determine which AutogradBACKEND key to check
+     all_device_types = {arg.device.type for arg in all_tensors}
+-    if not all_device_types.issubset(["cpu", "cuda"]):
++    if not all_device_types.issubset(["cpu", "cuda", "npu"]):
+         # Don't want to support other keys yet
+         raise NotImplementedError(
+             f"autograd_registration_check: NYI devices other than CPU/CUDA, got {all_device_types}"
+@@ -92,6 +92,8 @@ def autograd_registration_check(op, args, kwargs):
+         key = "AutogradCUDA"
+     elif "cpu" in all_device_types:
+         key = "AutogradCPU"
++    elif "npu" in all_device_types:
++        key = "AutogradPrivateUse1"
+ 
+     if torch._C._dispatch_has_kernel_for_dispatch_key(op.name(), key):
+         return

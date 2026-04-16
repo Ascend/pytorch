@@ -1,0 +1,13 @@
+diff --git a/torch/onnx/_internal/onnxruntime.py b/torch/onnx/_internal/onnxruntime.py
+index 85f0cfe..4d4040a 100644
+--- a/torch/onnx/_internal/onnxruntime.py
++++ b/torch/onnx/_internal/onnxruntime.py
+@@ -153,7 +153,7 @@ def _get_ort_device_type(device_type: str):
+     if device_type == "cpu":
+         return ORTC.OrtDevice.cpu()
+     # ort pytorch device is mapped to NPU OrtDevice type
+-    if device_type == "maia":
++    if device_type == "maia" or device_type == "npu":
+         return ORTC.OrtDevice.npu()
+     raise ValueError("Unsupported device type: " + device_type)
+ 

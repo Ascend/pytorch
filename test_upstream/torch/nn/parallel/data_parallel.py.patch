@@ -1,0 +1,13 @@
+diff --git a/torch/nn/parallel/data_parallel.py b/torch/nn/parallel/data_parallel.py
+index 16bdc20..a4e8510 100644
+--- a/torch/nn/parallel/data_parallel.py
++++ b/torch/nn/parallel/data_parallel.py
+@@ -43,7 +43,7 @@ def _check_balance(device_ids: Sequence[Union[int, torch.device]]) -> None:
+ 
+     if warn_imbalance(lambda props: props.total_memory):
+         return
+-    if warn_imbalance(lambda props: props.multi_processor_count):
++    if warn_imbalance(lambda props: props.vector_core_num):
+         return
+ 
+ 
