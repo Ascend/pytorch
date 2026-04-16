@@ -168,8 +168,6 @@ POINTWISE_OPS = [
 ]
 
 NON_POINTWISE_OPS = [
-    aten.split,
-    aten.split_with_sizes,
     aten.squeeze,
     aten.unsqueeze,
     aten.expand,
