@@ -12,6 +12,7 @@ from .trace_rule import _patch_npu_trace_rules
 
 _global_npu_backend = {}
 __all__ = []
+_global_backend_name = None
 
 
 NPUGRAPH_EX_BACKEND = "npugraph_ex"
@@ -130,6 +131,11 @@ class _LazyNpuGraphEx(_LazyBackend):
         return getattr(npugraph_ex, name)
 
 
+def _lazy_exec(*args, **kwargs):
+    global _global_backend_name
+    return _get_global_npu_backend(_global_backend_name)(*args, **kwargs)
+
+
 def _get_default_backend(name):
     if not os.path.exists(os.path.join(os.path.dirname(__file__), 'torchair')):
         if _should_print_warning():
@@ -138,20 +144,20 @@ def _get_default_backend(name):
                 "as torch_npu was not compiled with torchair.")
         return _eager_npu_backend
 
-    def _lazy_exec(*args, **kwargs):
-        return _get_global_npu_backend(name)(*args, **kwargs)
-
+    global _global_backend_name
+    _global_backend_name = name
     sys.modules['torchair'] = _LazyTorchair('torchair')
     return _lazy_exec
 
 
-def _get_npugraph_ex_backend():
-    def _exec(*args, **kwargs):
-        import npugraph_ex
-        config = npugraph_ex.CompilerConfig()
-        config.mode = NPUGRAPH_EX_BACKEND
-        return npugraph_ex.get_npu_backend(compiler_config=config)(*args, **kwargs)
+def _exec(*args, **kwargs):
+    import npugraph_ex
+    config = npugraph_ex.CompilerConfig()
+    config.mode = NPUGRAPH_EX_BACKEND
+    return npugraph_ex.get_npu_backend(compiler_config=config)(*args, **kwargs)
 
+
+def _get_npugraph_ex_backend():
     sys.modules[NPUGRAPH_EX_BACKEND] = _LazyNpuGraphEx(NPUGRAPH_EX_BACKEND)
     return _exec
 
