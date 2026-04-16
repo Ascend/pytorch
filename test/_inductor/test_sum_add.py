@@ -2,7 +2,7 @@ import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
 import torch_npu
-
+import torch_npu._inductor
 
 class TestSumAdd(TestUtils):
     def op_calc(self, input_element, dim, input_element2):
