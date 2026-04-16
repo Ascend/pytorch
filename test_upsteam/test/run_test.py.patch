@@ -1,6 +1,8 @@
---- test/run_test.py.orig
-+++ test/run_test.py
-@@ -625,6 +625,28 @@
+diff --git a/test/run_test.py b/test/run_test.py
+index 1234567..abcdefg 100644
+--- a/test/run_test.py
++++ b/test/run_test.py
+@@ -625,7 +625,30 @@ if dist.is_available():
      if dist.is_gloo_available():
          DISTRIBUTED_TESTS_CONFIG["gloo"] = {
              # TODO: retire testing gloo with CUDA
