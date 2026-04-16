@@ -141,6 +141,7 @@ def cast_weight(self, device):
 
 
 def _lstm_forward(self, input1, hx=None):
+    self._update_flat_weights()
     orig_input = input1
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
         input1, batch_sizes, sorted_indices, unsorted_indices = input1
