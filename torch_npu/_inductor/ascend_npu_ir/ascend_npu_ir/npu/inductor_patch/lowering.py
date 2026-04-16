@@ -6140,7 +6140,7 @@ def make_reduction(reduction_type: ReductionType, override_return_dtype=None):
             dtype=dtype,
             override_return_dtype=override_return_dtype,
         )
-        new_size = should_not_sum(x.get_size(), axis, keepdims)
+        new_size = should_not_sum(x.get_size().copy(), axis, keepdims)
         if new_size:
             node_name = f'reshape_{next(node_id)}'
             input_graphs = fetch_graphs([x, new_size])
