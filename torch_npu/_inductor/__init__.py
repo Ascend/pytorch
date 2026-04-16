@@ -38,7 +38,9 @@ else:
         disable_comprehensive_padding, max_precompiled_thread_num
     )
     from .config import log as npulog
-    from .codegen.triton import patch_gen_common_triton_ext_imports
+    from .codegen._sizevars import patch_simplify
+    from .codegen.ir import patch_num_split, patch_loop_body, patch_indexing
+    from .codegen.triton import patch_gen_common_triton_ext_imports, patch_triton_scheduling, patch_is_compatible
     from .decomposition import _register_npu_inductor_decompositons
     from .graph import patch_count_bytes, patch_codegen_with_cpp_wrapper, patch_run_node
     from .ir import patch_fallback_kernel_codegen
@@ -123,6 +125,13 @@ else:
     patch_async_compile()
     patch_scheduler()
     patch_gen_common_triton_ext_imports()
+    patch_simplify()
+    patch_num_split()
+    patch_loop_body()
+    patch_indexing()
+    patch_triton_scheduling()
+    patch_is_compatible()
+
     patch_create_device_properties()
     patch_load_cached_autotuning()
     patch_triton_heuristics_cached_autotune()

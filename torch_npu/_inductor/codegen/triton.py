@@ -18,6 +18,7 @@ import math
 import sympy
 import torch
 from torch._inductor import config, ir
+from torch.fx.immutable_collections import immutable_dict
 from torch.utils._ordered_set import OrderedSet
 from torch._inductor.codegen.common import (
     IndentedBuffer,
@@ -26,12 +27,12 @@ from torch._inductor.codegen.common import (
     ArgName
 )
 from torch._inductor.codegen.common import free_symbol_is_type
-from torch._inductor.codegen.simd import CantSplit, DisableReduction, EnableReduction
+from torch._inductor.codegen.simd import CantSplit, DisableReduction, EnableReduction, SIMDKernel
 from torch._inductor.codegen.triton import (
     IndexingOptions,
     triton_reshape,
     TritonCSEVariable,
-    triton_compute_type
+    triton_compute_type, TritonScheduling
 )
 from torch._inductor.ops_handler import OpsHandler
 from torch._inductor.codegen.triton import (
@@ -307,9 +308,51 @@ def get_allow_dynamic():
         return len(shape_env.var_to_range) > 0
     return False
 
+
 @staticmethod
 def select_index_dtype(node_schedule, numel, reduction_numel):
     return "tl.int32"
+
+
+def flatten_groups(nums):
+    res = []
+    for i in nums:
+        if isinstance(i, Iterable):
+            for x in i:
+                res.append(x)
+        else:
+            res.append(i)
+    return res
+
+
+@classmethod
+def create_tiling(
+        cls, pw_tiling: Sequence[sympy.Expr], reduction_tiling: Sequence[sympy.Expr]
+) -> Dict[str, sympy.Expr]:
+    """
+    Create a tiling dict from pointwise and reduction splits.
+    """
+
+    pw_tiling = flatten_groups(pw_tiling)
+    pw_prefixes = ["w", "v", "t", "z", "y", "x"][-len(pw_tiling):]
+    if len(reduction_tiling) == 0:
+        reduction_prefixes = []
+    else:
+        reduction_tiling = flatten_groups(reduction_tiling)
+        reduction_tiling = [NumelList(reduction_tiling).numels()]
+        reduction_prefixes = ["r"][: len(reduction_tiling)]
+    tiling = immutable_dict(
+        list(zip(pw_prefixes, pw_tiling))
+        + list(zip(reduction_prefixes, reduction_tiling)))
+    return tiling
+
+
+def patch_triton_scheduling():
+    # need to enable this to speedup attn_cp_test
+    # triton scheduling
+    TritonScheduling.group_fn = group_fn
+    TritonScheduling.select_index_dtype = select_index_dtype
+    TritonScheduling.create_tiling = create_tiling
 
 
 class IterationRangesEntryNPUIndex(IterationRangesEntry):
@@ -596,6 +639,9 @@ def is_compatible(
         return True
     except CantSplit:
         return False
+
+def patch_is_compatible():
+    setattr(SIMDKernel, 'is_compatible', is_compatible)
 
 
 class NPUIndexTritonKernel(TritonKernel):

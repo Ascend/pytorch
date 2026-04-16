@@ -1,10 +1,7 @@
 from typing import List, Dict
 from typing import Optional
 from torch._inductor.remote_cache import JsonDataTy
-from torch.utils._triton import has_triton_package
-
-if has_triton_package():
-    from triton import Config
+from torch._inductor.runtime.triton_compat import Config
 
 
 # overload this to avoid autotune after best_config already generated
@@ -21,7 +18,6 @@ def _load_cached_autotuning(
     # Remove time taken for comparison
     best_config.pop("time_taken_ms", None)
 
-    # if inductor_meta.get("coordinate_descent_tuning") :
     num_warps = best_config.pop("num_warps")
     num_stages = best_config.pop("num_stages")
     triton_config = Config(best_config, num_warps=num_warps, num_stages=num_stages)

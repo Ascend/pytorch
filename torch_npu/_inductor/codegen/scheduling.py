@@ -28,7 +28,6 @@ from torch._inductor.codegen.triton import (
 from torch._inductor.runtime.benchmarking import benchmarker
 from torch._inductor.utils import sympy_index_symbol, ModularIndexing, FloorDiv, sympy_product
 from torch._inductor.virtualized import V
-from torch.fx.immutable_collections import immutable_dict
 from torch._inductor.dependencies import MemoryDep, StarDep, WeakDep
 from torch.utils._ordered_set import OrderedSet
 from torch._inductor.codegen.simd import CandidateTiling
@@ -47,70 +46,6 @@ from ..lowering import (
 )
 
 from ..config import log
-
-
-def flatten_groups(nums):
-    res = []
-    for i in nums:
-        if isinstance(i, Iterable):
-            for x in i:
-                res.append(x)
-        else:
-            res.append(i)
-    return res
-
-
-@classmethod
-def are_long_distant_nodes(
-    self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
-) -> bool:
-    """
-    This function prevents fusion for nodes that can increase memory
-    footprint. This problem is more common in horizontal fusion, where nodes
-    that are far apart in the original order get fused, lengthening the live
-    intervals of tensors. This is very evident in models with activation
-    checkpointing, where the recomputed nodes from different checkpointed
-    regions get fused and significantly increase the memory footprint.
-
-    The current attempt is a quick, possibly hacky, heuristic to prevent the
-    fusion of nodes that are far away in the original order.
-
-    A better but difficult to implement heurisitic would be to use live
-    intervals of the buffers, find region of peak pressure in the original
-    program and prevent fusion that crosses that peak region. We might need
-    special care or good approximation in this implementation, as fusion of
-    node changes live intervals, and re-computing live intervals and peak
-    memory after each fusion can introduce large compilation overhead.
-    """
-    proximity_score = max(
-        abs(node1.min_order - node2.max_order),
-        abs(node2.min_order - node1.max_order),
-    )
-    # GPU default score is 64, A5 use 20 to avoiding runtime errors in large kernels.
-    return proximity_score > 20
-
-
-@classmethod
-def create_tiling(
-        cls, pw_tiling: Sequence[sympy.Expr], reduction_tiling: Sequence[sympy.Expr]
-) -> Dict[str, sympy.Expr]:
-    """
-    Create a tiling dict from pointwise and reduction splits.
-    """
-
-    pw_tiling = flatten_groups(pw_tiling)
-    pw_prefixes = ["w", "v", "t", "z", "y", "x"][-len(pw_tiling):]
-    if len(reduction_tiling) == 0:
-        reduction_prefixes = []
-    else:
-        reduction_tiling = flatten_groups(reduction_tiling)
-        reduction_tiling = [NumelList(reduction_tiling).numels()]
-        reduction_prefixes = ["r"][: len(reduction_tiling)]
-    tiling = immutable_dict(
-        list(zip(pw_prefixes, pw_tiling))
-        + list(zip(reduction_prefixes, reduction_tiling)))
-    return tiling
-
 
 class NPUTritonScheduling(TritonScheduling):
     def __init__(self, input_scheduler):

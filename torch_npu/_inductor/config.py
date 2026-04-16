@@ -5,7 +5,6 @@ from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 
 import torch
 from torch._inductor import config
-from triton.runtime.driver import driver
 import torch._inductor.config as inductor_config
 
 from torch_npu.npu._backends import get_soc_version
@@ -24,13 +23,11 @@ config.trace.enabled = True
 
 config.fallback_random = True
 
-# npu hardware params from triton
-target = driver.active.get_current_target()
-device = driver.active.get_current_device()
-prop = driver.active.utils.get_device_properties(device)
+device = torch.npu.current_device()
+prop = torch.npu.get_device_properties(device)
 
-num_cube_core = prop["num_aicore"]
-num_vector_core = prop["num_aicore"]
+num_cube_core = prop.cube_core_num
+num_vector_core = prop.vector_core_num
 
 Ascend910B1 = 220
 Ascend310B1 = 240

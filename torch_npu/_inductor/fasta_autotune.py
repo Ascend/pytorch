@@ -133,10 +133,10 @@ FASTA_SETTING = FastASetting()
 
 
 def get_ub_size():
-    if "910b" in npu_config.target.arch.lower():
-        return 192
-    else:
+    if npu_config.is_ascend950:
         return 256
+    else:
+        return 192
 
 
 

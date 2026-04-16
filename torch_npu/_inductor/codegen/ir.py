@@ -5,13 +5,13 @@ from math import gcd
 import sympy
 from sympy import Integer
 import torch
-from torch._inductor.ir import (ReductionHint, IRNode, ModularIndexing, FloorDiv, sympy_product)
+from torch._inductor.ir import (ReductionHint, IRNode, ModularIndexing, FloorDiv, sympy_product, Reduction)
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import sympy_subs, sympy_index_symbol, has_free_symbols
 from torch._inductor.virtualized import V
-from torch._inductor.loop_body import MemoryUsageType
+from torch._inductor.loop_body import MemoryUsageType, LoopBody, CaptureIndexing
 from torch._inductor.codegen.common import BackendFeature
-from torch._inductor import config
+from torch._inductor import config, sizevars
 from torch.utils._sympy.value_ranges import IntInfinity, ValueRanges
 from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
 from .triton_utils import get_indirect_var, get_indirect_mem_var, NPUKernelType
@@ -1395,3 +1395,29 @@ def loop_body_block_cat_store(self, dst, src, size, store_offset_index, output_b
 
 def simplify_indexing_cat_store(self, dst, src, size, store_offset_index, output_buffer_index):
     return self._inner.cat_store(dst, src, size, self._simplify(store_offset_index), self._simplify(output_buffer_index))
+
+def patch_num_split():
+    Reduction.num_splits = num_splits
+
+def patch_loop_body():
+    # todo: move patch function to loop_body.py
+    LoopBody.__call__ = loopbody__call__
+
+    setattr(LoopBody, 'transform_dims_in_indexing', transform_dims_in_indexing)
+    setattr(LoopBody, 'substituted_dims_in_indexing', substituted_dims_in_indexing)
+    setattr(LoopBody, 'generate_indirect_replacements', generate_indirect_replacements)
+    setattr(LoopBody, 'generate_masked_indexing', generate_masked_indexing)
+    setattr(LoopBody, 'substitube_indirect_index', substitube_indirect_index)
+
+def patch_indexing():
+    # todo: move patch function to loop_body.py and _sizevars.py
+    setattr(CaptureIndexing, 'index_select', loop_body_block_index_select)
+    setattr(sizevars.SimplifyIndexing, 'index_select', simplify_indexing_index_select)
+    setattr(CaptureIndexing, 'gather_template', loop_body_block_gather_template)
+    setattr(sizevars.SimplifyIndexing, 'gather_template', simplify_indexing_gather_template)
+    setattr(CaptureIndexing, 'indexput_template', loop_body_block_indexput_template)
+    setattr(sizevars.SimplifyIndexing, 'indexput_template', simplify_indexing_indexput_template)
+    setattr(CaptureIndexing, 'scatter_template', loop_body_block_scatter_template)
+    setattr(sizevars.SimplifyIndexing, 'scatter_template', simplify_indexing_scatter_template)
+    setattr(CaptureIndexing, 'cat_store', loop_body_block_cat_store)
+    setattr(sizevars.SimplifyIndexing, 'cat_store', simplify_indexing_cat_store)

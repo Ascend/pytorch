@@ -18,7 +18,7 @@ log = logging.getLogger("torch._inductor")
 
 def get_npu_arch() -> Optional[str]:
     try:
-        npu_arch = npu_config.target.arch
+        npu_arch = npu_config.prop.name
         return npu_arch
     except Exception as e:
         log.error("Error getting npu arch: %s", e)

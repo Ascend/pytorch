@@ -24,9 +24,23 @@ from torch._inductor.virtualized import V
 from torch.utils._ordered_set import OrderedSet
 
 from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
-
+from .config import is_ascend950
 
 def patch_scheduler():
+    @classmethod
+    def are_long_distant_nodes(
+            self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
+    ) -> bool:
+        proximity_score = max(
+            abs(node1.min_order - node2.max_order),
+            abs(node2.min_order - node1.max_order),
+        )
+        # GPU default score is 64, A5 use 20 to avoiding runtime errors in large kernels.
+        return proximity_score > 20
+
+    if is_ascend950:
+        Scheduler.are_long_distant_nodes = are_long_distant_nodes
+
     def patch_multi_template_buffer():
 
         @contextlib.contextmanager
