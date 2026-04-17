@@ -1,0 +1,82 @@
+diff --git a/test/distributed/elastic/rendezvous/dynamic_rendezvous_test.py b/test/distributed/elastic/rendezvous/dynamic_rendezvous_test.py
+index 173effd..d2b8ea8 100644
+--- a/test/distributed/elastic/rendezvous/dynamic_rendezvous_test.py
++++ b/test/distributed/elastic/rendezvous/dynamic_rendezvous_test.py
+@@ -253,6 +253,9 @@ class BackendRendezvousStateHolderTest(TestCase, CustomAssertMixin):
+ 
+         mock_datetime = self._datetime_patch.start()
+         mock_datetime.utcnow.return_value = self._now
++        # Fix mock: also mock timezone.utc to avoid MagicMock type errors
++        mock_datetime.now.return_value = self._now
++        mock_datetime.timezone.utc = timezone.utc
+ 
+     def tearDown(self) -> None:
+         self._datetime_patch.stop()
+@@ -566,6 +569,9 @@ class DistributedRendezvousOpExecutorTest(TestCase, CustomAssertMixin):
+ 
+         mock_datetime = self._datetime_patch.start()
+         mock_datetime.utcnow.return_value = self._now
++		# Fix mock: also mock timezone.utc to avoid MagicMock type errors
++        mock_datetime.now.return_value = self._now
++        mock_datetime.timezone.utc = timezone.utc
+ 
+     def tearDown(self) -> None:
+         self._datetime_patch.stop()
+@@ -879,6 +885,9 @@ class AbstractTestRendezvousOp(ABC):
+ 
+         mock_datetime = self._datetime_patch.start()
+         mock_datetime.utcnow.return_value = self._now
++        # Fix mock: also mock timezone.utc to avoid MagicMock type errors
++        mock_datetime.now.return_value = self._now
++        mock_datetime.timezone.utc = timezone.utc
+ 
+         self._time_patch = patch(
+             "torch.distributed.elastic.rendezvous.dynamic_rendezvous.time"
+@@ -1412,6 +1421,9 @@ class DynamicRendezvousHandlerTest(TestCase):
+         now = datetime(2000, 1, 1, hour=0, minute=0)
+ 
+         mock_datetime.utcnow.return_value = now
++		# Fix mock: also mock timezone.utc to avoid MagicMock type errors
++        mock_datetime.now.return_value = now
++        mock_datetime.timezone.utc = timezone.utc
+ 
+         self._state.last_heartbeats[self._node] = now - (self._keep_alive_interval * 2)
+ 
+@@ -1692,7 +1704,7 @@ class IntegrationTest(TestCase):
+             "min_nodes": 2,
+             "max_nodes": 2,
+             "join_timeout": "5",
+-            "local_addr": f"127.0.0.{len(self._handlers)}",
++            "local_addr": f"127.0.0.{len(self._handlers) + 1}",  # Fix: start IP from 127.0.0.1 instead of 127.0.0.0
+         }
+         params.update(**kwargs)
+ 
+@@ -1750,7 +1762,8 @@ class IntegrationTest(TestCase):
+         state_and_token = self._backend.get_state()
+         state = pickle.loads(state_and_token[0])
+         addresses = [node.addr for node in state.redundancy_list]
+-        self.assertListEqual(addresses, ["127.0.0.2"])
++		# Fix: adjust expected IP after changing start index to 127.0.0.1
++        self.assertListEqual(addresses, ["127.0.0.3"])
+ 
+     def test_redundancy_transition_to_wait_list_then_join_rendezvous(self) -> None:
+         handler1 = self._create_handler(
+@@ -1760,7 +1773,7 @@ class IntegrationTest(TestCase):
+         handler2 = self._create_handler(
+             min_nodes=1,
+             max_nodes=2,
+-            keep_alive_interval=timedelta(seconds=1),
++            keep_alive_interval="1",  # Fix: keep_alive_interval expects string value (seconds), not timedelta object
+         )
+         handler3 = self._create_handler(
+             min_nodes=1,
+@@ -1828,7 +1841,8 @@ class IntegrationTest(TestCase):
+             def set(self, key, value):
+                 pass
+ 
+-        prefix_store = CustomPrefixStore(spec=dist.PrefixStore)
++        # Python 3.11+ compatibility: remove spec parameter to avoid InvalidSpecError
++        prefix_store = CustomPrefixStore() # remove spec=dist.PrefixStore
+         prefix_store_class_mock.return_value = prefix_store
+         tcp_store = Mock(spec=dist.TCPStore)
+         original_addr = "original_addr"
