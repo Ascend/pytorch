@@ -13,4 +13,6 @@ void initialize_npushmem_with_store(
 
 TORCH_API void nvshmem_put(at::Tensor& tensor, int64_t peer);
 
+TORCH_API void nvshmem_get(at::Tensor& tensor, int64_t peer);
+
 } // namespace c10d::npushmem_extension
