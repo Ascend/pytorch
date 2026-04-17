@@ -131,7 +131,7 @@ class NPUTritonScheduling(TritonScheduling):
                 if traced_graph is None:
                     log.warning(f"For nodes {nodes}, could not gen fx graph while dump-graph.")
                 else:
-                    traced_graph_hash = code_hash(traced_graph.print_readable(print_output=False) + torch.__version__)
+                    traced_graph_hash = code_hash(src_code)
 
             kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash)
 
