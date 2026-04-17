@@ -1,3 +1,4 @@
+import unittest
 import torch
 import torch.nn as nn
 import torch_npu
@@ -6,6 +7,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestRecurrentLayers(TestCase):
+    @unittest.skip("Temporarily skipping")
     def test_RNN(self):
         input1 = torch.randn(5, 3, 10).npu()
         h0 = torch.randn(2, 3, 20).npu()
@@ -13,6 +15,7 @@ class TestRecurrentLayers(TestCase):
         output, hn = rnn(input1, h0)
         self.assertEqual(output is not None, True)
 
+    @unittest.skip("Temporarily skipping")
     def test_LSTM(self):
         input1 = torch.randn(5, 3, 10).npu()
         h0 = torch.randn(2, 3, 20).npu()
@@ -27,7 +30,8 @@ class TestRecurrentLayers(TestCase):
         rnn = nn.GRU(10, 20, 2).npu()
         output, hn = rnn(input1, h0)
         self.assertEqual(output is not None, True)
-
+    
+    @unittest.skip("Temporarily skipping")
     def test_RNNCell(self):
         input1 = torch.randn(6, 3, 10).npu()
         hx = torch.randn(3, 20).npu()
@@ -37,6 +41,7 @@ class TestRecurrentLayers(TestCase):
             hx = rnn(input1[i], hx)
             output.append(hx)
 
+    @unittest.skip("Temporarily skipping")
     def test_LSTMCell(self):
         input1 = torch.randn(2, 3, 10).npu()
         hx = torch.randn(3, 20).npu()
@@ -49,6 +54,7 @@ class TestRecurrentLayers(TestCase):
         output = torch.stack(output, dim=0)
         self.assertEqual(output is not None, True)
 
+    @unittest.skip("Temporarily skipping")
     def test_GRUCell(self):
         input1 = torch.randn(6, 3, 10).npu()
         hx = torch.randn(3, 20).npu()

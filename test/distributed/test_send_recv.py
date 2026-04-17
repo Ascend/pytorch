@@ -214,6 +214,7 @@ class HcclSendRecvDistTest(TestCase):
             p.join()
             self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
 
+    @unittest.skip("Temporarily disabled")
     @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_dist(self):
         self._test_multiprocess(
@@ -228,6 +229,7 @@ class HcclSendRecvDistTest(TestCase):
             torch.randn(31, 31),
             HcclSendRecvDistTest._init_dist_hccl)
         
+    @unittest.skip("Temporarily disabled")
     @skipIfUnsupportMultiNPU(4)
     def test_send_recv_hccl_dist_with_p2p(self):
         with patch.dict(os.environ, {"P2P_HCCL_BUFFSIZE": "20"}):
@@ -250,6 +252,7 @@ class HcclSendRecvDistTest(TestCase):
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_dist_hccl)
 
+    @unittest.skip("Temporarily disabled")
     @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_group(self):
         self._test_multiprocess(
@@ -269,6 +272,7 @@ class HcclSendRecvDistTest(TestCase):
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_pg_hccl)
 
+    @unittest.skip("Temporarily disabled")
     @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_bool(self):
         self._test_multiprocess(

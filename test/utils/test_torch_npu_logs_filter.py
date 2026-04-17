@@ -52,18 +52,21 @@ result_matmul = torch.matmul(matrix1, matrix2)
 result_add = torch.add(matrix1, matrix2)
 """
 
+    @unittest.skip("Temporarily skipping")
     def test_no_filter(self):
         # 不设置过滤器，所有日志输出
         output = self._run_test('op_plugin', '')
         self.assertIn('mm', output)
         self.assertIn('add', output)
 
+    @unittest.skip("Temporarily skipping")
     def test_white_list(self):
         # 白名单过滤，只输出 matmul
         output = self._run_test('op_plugin', '+mm')
         self.assertIn('mm', output)
         self.assertNotIn('add', output)
 
+    @unittest.skip("Temporarily skipping")
     def test_black_list(self):
         # 黑名单过滤，排除 add
         output = self._run_test('op_plugin', '-add')

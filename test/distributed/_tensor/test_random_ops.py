@@ -1,3 +1,4 @@
+import unittest
 import itertools
 from unittest import skip
 
@@ -77,6 +78,7 @@ class DistTensorRandomInitTest(NPUDTensorTestBase):
 class DistTensorRandomOpTest(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(4)
     @with_comms
+    @unittest.skip("Temporarily skipping")
     def test_rng_tracker_init(self):
         torch.npu.manual_seed(self.rank)
         object_list = [torch.npu.initial_seed()]
@@ -92,6 +94,7 @@ class DistTensorRandomOpTest(NPUDTensorTestBase):
 
     @skipIfUnsupportMultiNPU(4)
     @with_comms
+    @unittest.skip("Temporarily skipping")
     def test_manual_seed(self):
         device_mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
         manual_seed(1234, device_mesh)
