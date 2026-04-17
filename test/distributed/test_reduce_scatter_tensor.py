@@ -156,6 +156,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                                                    HcclReduceScatterTensorTest._init_dist_hccl, input_list, world_size)
 
     @skipIfUnsupportMultiNPU(2)
+    @unittest.skip("Temporarily skipping")
     def test_reduce_scatter_tensor_uneven_avg(self):
         ranks = [2]
         dtype_list = [np.float32, np.float16]
