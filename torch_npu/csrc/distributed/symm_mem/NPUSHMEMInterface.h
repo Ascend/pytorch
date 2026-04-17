@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "third_party/shmem/include/shmem_host_def.h"
+#include "third_party/acl/inc/acl/acl_base.h"
 
 namespace c10d {
 namespace symmetric_memory {
@@ -29,6 +30,10 @@ void *Aclshmem_malloc(size_t size);
 void Aclshmem_free(void *ptr);
 
 void *Aclshmem_ptr(void *ptr, int pe);
+
+void Shmem_putmem_on_stream(void *dst, void *src, size_t elem_size, int32_t pe, aclrtStream stream);
+
+void Shmem_getmem_on_stream(void *dst, void *src, size_t elem_size, int32_t pe, aclrtStream stream);
 
 bool Aclshmem_finalize_exist();
 
