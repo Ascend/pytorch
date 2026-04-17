@@ -23,9 +23,9 @@ from .affinity import _reset_thread_affinity as reset_thread_affinity
 from ._graph_tree import _apply_npugraph_tree_methods
 from .dlpack import _apply_dlpack_patch
 from ._npu_meta_registration import npu_patch_meta
-
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 
 # init flopcount
 if not _C._flops_count_init():
-    raise RuntimeError("flopcount initialization failed" + prof_error(ErrCode.UNAVAIL))
+    raise RuntimeError("flopcount initialization failed" + pta_error(ErrCode.UNAVAIL))
