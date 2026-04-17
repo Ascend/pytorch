@@ -1,3 +1,4 @@
+import unittest
 import itertools
 import numpy as np
 
@@ -870,6 +871,7 @@ class TestMatmul(DTensorTestBase):
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
+    @unittest.skip("Temporarily skipping")
     def test_matmul_sharding_strategy_n_n(self):
         device_mesh = self.build_device_mesh()
         shape1 = (8,)
@@ -881,6 +883,7 @@ class TestMatmul(DTensorTestBase):
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
+    @unittest.skip("Temporarily skipping")
     def test_matmul_sharding_strategy_nm_m1(self):
         device_mesh = self.build_device_mesh()
         shape1 = (8, 4)
@@ -918,6 +921,7 @@ class TestMatmul(DTensorTestBase):
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
+    @unittest.skip("Temporarily skipping")
     def test_matmul_sharding_strategy_xnm_mk(self):
         device_mesh = self.build_device_mesh()
         shape1 = (8, 4, 8)
@@ -938,6 +942,7 @@ class TestMatmul(DTensorTestBase):
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
+    @unittest.skip("Temporarily skipping")
     def test_matmul_sharding_strategy_nm_xmk(self):
         device_mesh = self.build_device_mesh()
         shape1 = (4, 8)

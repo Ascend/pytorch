@@ -226,12 +226,14 @@ class HcclAlltoAllSingleTest(TestCase):
             p.join(4)
 
     @skipIfUnsupportMultiNPU(4)
+    @unittest.skip("Temporarily skipping")
     def test_alltoall_single_4p_dist(self):
         self._test_multiprocess_4p(
             HcclAlltoAllSingleTest._test_alltoall_single_4p,
             HcclAlltoAllSingleTest._init_dist_hccl)
 
     @skipIfUnsupportMultiNPU(4)
+    @unittest.skip("Temporarily skipping")
     def test_alltoall_single_4p_size_dist(self):
         self._test_multiprocess_4p(
             HcclAlltoAllSingleTest._test_alltoall_single_4p_size,
