@@ -444,6 +444,50 @@ def gen_dispatcher_registrations(
 #include "torch_npu/csrc/framework/OpHook.h"
 #include "op_plugin/OpInterface.h"
 """
+    #过滤aten类中的npu自定义接口
+    def filter_npu_funcs(func_group):
+        npu_blacklist = [
+            "npu_", "_npu", "NPU"
+        ]
+        ext_blacklist = [
+            "obfuscation_finalize", "scatter_update", "attention_worker_scheduler", "_quantize_per_tensor_impl.out",
+            "l1_loss_backward", "repeat_interleave_backward_int", "_dropout_with_byte_mask_backward",
+            "ffn_worker_scheduler_", "fused_linear_online_max_sum", "kl_div_target_backward", "ffn_worker_scheduler",
+            "_amp_foreach_non_finite_check", "repeat_interleave_backward_tensor", "one_", "batch_norm_reduce",
+            "attention_worker_scheduler_", "fused_cross_entropy_loss_with_max_sum", "empty_with_format.names",
+            "fused_linear_cross_entropy_loss_with_max_sum_grad", "matmul_double_backward", "_conv_depthwise2d_backward",
+            "empty_with_format", "kl_div_backward", "scatter_update_", "unsafe_empty_with_format",
+            "fast_gelu", "slow_conv_transpose2d_backward", "empty_with_swapped_memory", "slow_conv_dilated2d_backward",
+            "_dropout_with_byte_mask", "dropout_with_byte_mask", "copy_memory_", "get_storage_size",
+            "_quantize_per_channel_impl.out", "fft_r2c_backward", "fft_c2r_backward", "stft_backward",
+            "obfuscation_calculate", "batch_norm_gather_stats_update", "obfuscation_initialize"
+        ]
+
+        if isinstance(func_group, NativeFunction):
+            func_name = str(func_group.func.name)
+            for keyword in npu_blacklist:
+                if keyword in func_name:
+                    return False
+            if func_name in ext_blacklist:
+                return False
+            return True
+        elif isinstance(func_group, NativeFunctionsGroup):
+            for func in func_group.functions():
+                func_name = str(func.func.name)
+                for keyword in npu_blacklist:
+                    if keyword in func_name:
+                        return False
+                if func_name in ext_blacklist:
+                    return False
+            return True
+        else:
+            return True
+
+    filtered_grouped_functions = [
+        func for func in grouped_native_functions
+        if filter_npu_funcs(func)
+    ]
+
     static_template = CodeTemplate(
         """\
 TORCH_LIBRARY_IMPL(aten, $dispatch_key, m) {
@@ -463,7 +507,7 @@ $dispatch_registrations_body
                     class_method_name=f"{class_name}",
                     skip_dispatcher_op_registration=False,
                 ),
-                grouped_native_functions,
+                filtered_grouped_functions,
             )
         ),
     )
@@ -497,7 +541,7 @@ $dispatch_registrations_body
                             class_method_name=f'{class_name}',
                             skip_dispatcher_op_registration=False,
                         ),
-                        grouped_native_functions,
+                        filtered_grouped_functions,
                     )
                 ),
             },
