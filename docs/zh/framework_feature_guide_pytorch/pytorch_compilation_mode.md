@@ -106,7 +106,6 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    
     ```
 
 - NPUGraph后端`torch.compile(backend="npugraphs")`示例：
