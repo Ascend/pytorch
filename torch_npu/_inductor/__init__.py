@@ -88,11 +88,14 @@ else:
 
         _patch_npu_inductor_ir()
 
-    from .lowering import _register_npu_inductor_fallbacks
+    from .lowering import _register_npu_inductor_fallbacks, _enable_full_lowering_fallback
 
-    _register_npu_inductor_fallbacks()
     _register_npu_inductor_decompositons()
 
+    if npu_config.enable_full_lowering_fallback:
+        _enable_full_lowering_fallback()
+    else:
+        _register_npu_inductor_fallbacks()
 
     # register fx_pass should be put behind of _register_npu_inductor_decompositons
     def _replace_benchmark_all_configs():
