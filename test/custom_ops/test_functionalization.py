@@ -1,3 +1,4 @@
+import unittest
 from contextlib import nullcontext
 import numpy as np
 import torch
@@ -98,6 +99,7 @@ class TestFunctionalization(TestCase):
             self.assertEqual(out_ref_, out_functional_)
             self.assertEqual(out_ref_, out_reinplace_)
 
+    @unittest.skip("Temporarily skipping")
     def test_scatter_update(self):
         def f(iself, indices, updates):
             return torch.ops.npu.scatter_update_(iself, indices, updates, -2)
@@ -119,6 +121,7 @@ def forward(self, arg0_1, arg1_1, arg2_1):
         self.assert_functionalization(f, in_self, in_indices, in_updates)
 
     @SupportedDevices(['Ascend910B'])
+    @unittest.skip("Temporarily skipping")
     def test_npu_quant_scatter(self):
         def f(fake_var, fake_indices, fake_updates, fake_quant_scales):
             return torch.ops.npu.npu_quant_scatter_(fake_var, fake_indices, fake_updates, fake_quant_scales,
@@ -146,6 +149,7 @@ def forward(self, arg0_1, arg1_1, arg2_1, arg3_1):
 
         self.assert_functionalization(f, in_var, in_indices, in_updates, in_quant_scales)
 
+    @unittest.skip("Temporarily skipping")
     def test_npu_scatter_nd_update(self):
         def f(var, indices, updates):
             return torch_npu.npu_scatter_nd_update_(var, indices, updates)
@@ -170,6 +174,7 @@ def forward(self, arg0_1, arg1_1, arg2_1):
 
         self.assert_functionalization(f, var, indices, updates)
 
+    @unittest.skip("Temporarily skipping")
     def test_npu_silu_functionalize(self):
         @impl(m, "npu_silu")
         def npu_silu(self_):

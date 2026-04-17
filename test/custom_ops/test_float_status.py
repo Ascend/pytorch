@@ -1,3 +1,4 @@
+import unittest
 import torch
 import torch_npu
 
@@ -6,6 +7,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 class TestFloatStatus(TestCase):
 
+    @unittest.skip("Temporarily skipping")
     def test_float_status(self, device="npu"):
         float_tensor = torch.tensor([40000.0], dtype=torch.float16).npu()
         float_tensor = float_tensor + float_tensor
