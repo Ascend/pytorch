@@ -60,3 +60,6 @@
 |torch.distributed.checkpoint.state_dict.set_model_state_dict|是|-|
 |torch.distributed.checkpoint.state_dict.set_optimizer_state_dict|是|-|
 |torch.distributed.checkpoint.state_dict.StateDictOptions|是|-|
+|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.reset|是|-|
+|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.set_up_storage_reader|是|-|
+|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.validate_checkpoint_id|是|-|
