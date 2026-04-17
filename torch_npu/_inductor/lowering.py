@@ -1,5 +1,7 @@
 import os
 import sympy
+from functools import reduce
+
 import torch._ops
 from torch._inductor import ir
 from torch._inductor import lowering
@@ -76,6 +78,7 @@ def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=Fal
 
 make_fallback = npu_make_fallback
 
+
 if npu_config.dump_fx_graph:
     from .lowering_fx import (
         _make_reduction_inner,
@@ -147,7 +150,31 @@ def _init_set(input_list, output_set):
                 output_set.add(other_fn)
 
 
-def _register_npu_custom_lowerings():
+def _register_npu_inductor_fallbacks():
+    gen_set = set()
+    _init_set(GENERATE_LIST, gen_set)
+    overload_op_set = set()
+    _init_set(LOWERING_OVERLOAD_OP, overload_op_set)
+
+    # 把不在白名单的op fallback
+    for op in lowerings:
+        if op not in decompositions and op not in gen_set:
+            if isinstance(op, torch._ops.OpOverloadPacket) or \
+                    isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+                flag = False
+                for gens in GENERATE_LIST2:
+                    if str(op).find(gens) != -1:
+                        flag = True
+                if flag:
+                    continue
+                else:
+                    make_fallback(op)
+                    FALLBACK_LIST.append(op)
+    # 把需要overload的op在lowering里删除
+    for op in overload_op_set:
+        if op in lowerings:
+            del lowerings[op]
+            
     if npu_config.dump_fx_graph:
         from .lowering_fx import _register_npu_inductor_fallbacks_fx
         (squeeze, _validate_dim, div, square, sub, sum_) = _register_npu_inductor_fallbacks_fx(make_reduction)
@@ -297,63 +324,57 @@ def _register_npu_custom_lowerings():
     make_fallback(aten.nll_loss_forward)
 
 
+def get_nested_attr(obj, attr_path, default=None):
+    try:
+        return reduce(getattr, attr_path.split('.'), obj)
+    except AttributeError:
+        return default
+    
+
 def _fallback_ops_with_meta():
     """
     Fallback all ops that have a Meta implementation but are not yet in lowerings
     """
-    for op_name in torch._C._dispatch_get_all_op_names():
-        if not (torch._C._dispatch_has_kernel_for_dispatch_key(op_name, "Meta") or
-                torch._C._dispatch_has_kernel_for_dispatch_key(op_name, "CompositeImplicitAutograd")):
+    all_ops = torch._C._dispatch_get_all_op_names()
+
+    for op_name in all_ops:
+        has_meta = torch._C._dispatch_has_kernel_for_dispatch_key(op_name, "Meta")
+        has_comp = torch._C._dispatch_has_kernel_for_dispatch_key(op_name, "CompositeImplicitAutograd")
+
+        if not (has_meta or has_comp):
             continue
+
         try:
-            namespace, name_with_overload = op_name.split("::", 1)
-            name, overload, = name_with_overload.split(".", 1) if "." in name_with_overload else (name_with_overload, "default")
-            op_overload = getattr(getattr(getattr(torch.ops, namespace, None), name, None), overload, None)
-        except (ValueError, AttributeError) as e:
+            namespace, name_with_overload = op_name.split(".", 1)
+        except ValueError:
             continue
-        if op_overload is None or not isinstance(op_overload, torch._ops.OpOverload):
+
+        if "." in name_with_overload:
+            name, overload = name_with_overload.split(".", 1)
+        else:
+            name, overload = name_with_overload, "default"
+            
+        normalized_path = f"{namespace}.{name}.{overload}"
+        op_overload = get_nested_attr(torch.ops, normalized_path)
+        if not isinstance(op_overload, torch._ops.OpOverload):
             continue
-        if op_overload is lowerings or op_overload in decompositions:
+
+        if op_overload in lowerings or op_overload in decompositions:
             continue
+
         make_fallback(op_overload)
         FALLBACK_LIST.append(op_overload)
 
 
-def _register_npu_inductor_fallbacks():
-    gen_set = set()
-    _init_set(GENERATE_LIST, gen_set)
-    overload_op_set = set()
-    _init_set(LOWERING_OVERLOAD_OP, overload_op_set)
-
-    if os.environ.get("NPU_INDUCTOR_FALLBACK_ALL", "0") == "1":
-        ops_to_fallback = list(filter(
-            lambda op: op not in decompositions and
-                       isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)) and
-                       not isinstance(op, torch._higher_order_ops.triton_kernel_wrap.TritonKernelWrapperMutation),
-            lowerings
-        ))
-        for op in ops_to_fallback:
-            make_fallback(op)
-            FALLBACK_LIST.append(op)
-        _fallback_ops_with_meta()
-    else:
-        # 把不在白名单的op fallback
-        for op in lowerings:
-            if op not in decompositions and op not in gen_set:
-                if isinstance(op, torch._ops.OpOverloadPacket) or \
-                        isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
-                    flag = False
-                    for gens in GENERATE_LIST2:
-                        if str(op).find(gens) != -1:
-                            flag = True
-                    if flag:
-                        continue
-                    else:
-                        make_fallback(op)
-                        FALLBACK_LIST.append(op)
-        # 把需要overload的op在lowering里删除
-        for op in overload_op_set:
-            if op in lowerings:
-                del lowerings[op]
-        
-        _register_npu_custom_lowerings()
+def _enable_full_lowering_fallback():
+    ops_to_fallback = list(filter(
+        lambda op: op not in decompositions and
+            isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)) and
+            op not in (torch._higher_order_ops.triton_kernel_wrap.TritonKernelWrapperMutation,
+                       torch._higher_order_ops.triton_kernel_wrap.TritonKernelWrapperFunctional),
+        lowerings
+    ))
+    for op in ops_to_fallback:
+        make_fallback(op)
+        FALLBACK_LIST.append(op)
+    _fallback_ops_with_meta()

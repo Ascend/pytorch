@@ -70,7 +70,11 @@ class _npugraph_trees:
 
 npugraph_trees = _npugraph_trees()
 
-
+# NPU_INDUCTOR_FALLBACK_ALL=1 forces ops entering the NPU inductor lowering
+# path to register fallback lowerings, so optimized/fused lowerings are not
+# used. User-defined Triton kernel wrappers are still allowed to keep
+# handwritten kernels runnable.
+enable_full_lowering_fallback = os.environ.get("NPU_INDUCTOR_FALLBACK_ALL", "0").lower() in ("1", "true", "yes")
 traced_fx_graph_cache = os.environ.get("INDUCTOR_ASCEND_FX_GRAPH_CACHE", None)
 check_accuracy = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY", False)
 auto_fallback = os.environ.get("INDUCTOR_ASCEND_AUTO_FALLBACK", True)
