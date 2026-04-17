@@ -982,7 +982,6 @@ class NPUCachingAutotuner(CachingAutotuner):
                     rel_diff.masked_fill_(matches, 0)
                     log.warning(f"CHECK ACCURACY FAILED! Greatest Relative Difference: {rel_diff.max().item()}, "
                                 f"Kernel Name: {kernel_name}, Dump Path: {dump_path}")
-                    actual.copy_(expected)
                 del matches
         for arg in fx_args:
             del arg
@@ -1020,6 +1019,11 @@ class NPUCachingAutotuner(CachingAutotuner):
         kernel_name = self.get_fn_name()
         log.info(f"Try to run debug mode for kernel {kernel_name}.")
         if npu_config.dump_fx_graph:
+            if config.triton.cudagraphs:
+                raise RuntimeError(
+                    "Accuracy checking tool (INDUCTOR_ASCEND_CHECK_ACCURACY=1) is not compatible with aclgraph.\n"
+ 	                 "Please set torch._inductor.config.triton.cudagraphs = False before using accuracy checking tool."
+                )
             _ = self.data_dump(*args)
 
         if npu_config.check_accuracy:
