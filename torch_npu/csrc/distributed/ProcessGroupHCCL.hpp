@@ -139,10 +139,9 @@ struct ProcessGroupStatus {
 
 #ifndef BUILD_LIBTORCH
 struct DumpPipe {
-    DumpPipe(int rank)
+    DumpPipe(int rank, const std::string& fileStem, int traceBufferSize)
     {
-        std::string fileStem = c10d::getCvarString({"TORCH_HCCL_DEBUG_INFO_PIPE_FILE"}, "");
-        if (fileStem.empty() || c10d::getCvarInt({"TORCH_HCCL_TRACE_BUFFER_SIZE"}, 0) <= 0) {
+        if (fileStem.empty() || traceBufferSize <= 0) {
             return;
         }
         TORCH_CHECK(!fileStem.empty(), "TORCH_HCCL_DEBUG_INFO_TEMP_FILE is empty");
@@ -1003,6 +1002,10 @@ protected:
 
     // Size of ring buffer where we store HCCL Traces for debugging.
     int hcclTraceBufferSize_;
+
+    // Stores TORCH_HCCL_DEBUG_INFO_PIPE_FILE value, cached in constructor
+    // for thread-safe access in heartbeatMonitor thread.
+    std::string debugInfoPipeFile_;
 
     // We gate the heartbeat monitor thread so that we can roll it out gradually.
     static std::atomic<bool> monitorThreadEnabled_;
