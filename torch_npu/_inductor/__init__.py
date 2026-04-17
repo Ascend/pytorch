@@ -109,15 +109,21 @@ else:
 
         _patch_npu_inductor_ir()
 
-    from .lowering import _register_npu_inductor_fallbacks
+    from .lowering import _register_npu_inductor_fallbacks, _enable_full_lowering_fallback
 
-    _register_npu_inductor_fallbacks()
     _register_npu_inductor_decompositons()
-    _register_npu_inductor_mm()
-    _register_npu_inductor_addmm()
-    _register_npu_inductor_bmm()
-    _register_npu_inductor_grouped_mm()
+
+    if npu_config.enable_full_lowering_fallback:
+        _enable_full_lowering_fallback()
+    else:
+        _register_npu_inductor_fallbacks()
+        _register_npu_inductor_mm()
+        _register_npu_inductor_addmm()
+        _register_npu_inductor_bmm()
+        _register_npu_inductor_grouped_mm()
+
     _register_npu_inductor_flex_attention()
+
     patch_pattern_mm_plus_mm()
     patch_algorithm_selector()
     patch_tuning_process()

@@ -15,6 +15,8 @@
 
 import os
 import sympy
+from functools import reduce
+
 import torch._ops
 from torch._inductor import ir
 from torch._inductor import lowering
@@ -1009,3 +1011,58 @@ def _register_npu_inductor_fallbacks():
         # native_layer_norm returns three values: output, mean, reciprocal of standard deviation
         return normalized, mean, inv_std
 
+
+def get_nested_attr(obj, attr_path, default=None):
+    try:
+        return reduce(getattr, attr_path.split('.'), obj)
+    except AttributeError:
+        return default
+    
+
+def _fallback_ops_with_meta():
+    """
+    Fallback all ops that have a Meta implementation but are not yet in lowerings
+    """
+    all_ops = torch._C._dispatch_get_all_op_names()
+
+    for op_name in all_ops:
+        has_meta = torch._C._dispatch_has_kernel_for_dispatch_key(op_name, "Meta")
+        has_comp = torch._C._dispatch_has_kernel_for_dispatch_key(op_name, "CompositeImplicitAutograd")
+
+        if not (has_meta or has_comp):
+            continue
+
+        try:
+            namespace, name_with_overload = op_name.split(".", 1)
+        except ValueError:
+            continue
+
+        if "." in name_with_overload:
+            name, overload = name_with_overload.split(".", 1)
+        else:
+            name, overload = name_with_overload, "default"
+            
+        normalized_path = f"{namespace}.{name}.{overload}"
+        op_overload = get_nested_attr(torch.ops, normalized_path)
+        if not isinstance(op_overload, torch._ops.OpOverload):
+            continue
+
+        if op_overload in lowerings or op_overload in decompositions:
+            continue
+
+        make_fallback(op_overload)
+        FALLBACK_LIST.append(op_overload)
+
+
+def _enable_full_lowering_fallback():
+    ops_to_fallback = list(filter(
+        lambda op: op not in decompositions and
+            isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)) and
+            op not in (torch._higher_order_ops.triton_kernel_wrap.TritonKernelWrapperMutation,
+                       torch._higher_order_ops.triton_kernel_wrap.TritonKernelWrapperFunctional),
+        lowerings
+    ))
+    for op in ops_to_fallback:
+        make_fallback(op)
+        FALLBACK_LIST.append(op)
+    _fallback_ops_with_meta()
