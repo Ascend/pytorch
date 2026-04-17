@@ -21,6 +21,8 @@ LOAD_FUNCTION(aclshmem_malloc)
 LOAD_FUNCTION(aclshmem_free)
 LOAD_FUNCTION(aclshmem_ptr)
 LOAD_FUNCTION(aclshmem_finalize)
+LOAD_FUNCTION(aclshmemx_putmem_on_stream)
+LOAD_FUNCTION(aclshmemx_getmem_on_stream)
 LOAD_FUNCTION(shmem_set_conf_store_tls)
 LOAD_FUNCTION(shmem_set_attr)
 LOAD_FUNCTION(shmem_get_uniqueid)
@@ -160,6 +162,28 @@ void Aclshmem_free(void *ptr)
     TORCH_CHECK(shmem_free_func, "Failed to find function ",
         "aclshmem_free or shmem_free", PTA_ERROR(ErrCode::NOT_FOUND));
     return shmem_free_func(ptr);
+}
+
+void Shmem_putmem_on_stream(void *dst, void *src, size_t elem_size, int32_t pe, aclrtStream stream)
+{
+    typedef void (*ShmemApiFunc)(void *, void *, size_t, int32_t, aclrtStream);
+    static ShmemApiFunc func = nullptr;
+    if (func == nullptr) {
+        func = (ShmemApiFunc)GET_FUNC(aclshmemx_putmem_on_stream);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclshmemx_putmem_on_stream", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(dst, src, elem_size, pe, stream);
+}
+
+void Shmem_getmem_on_stream(void *dst, void *src, size_t elem_size, int32_t pe, aclrtStream stream)
+{
+    typedef void (*ShmemApiFunc)(void *, void *, size_t, int32_t, aclrtStream);
+    static ShmemApiFunc func = nullptr;
+    if (func == nullptr) {
+        func = (ShmemApiFunc)GET_FUNC(aclshmemx_getmem_on_stream);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclshmemx_getmem_on_stream", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(dst, src, elem_size, pe, stream);
 }
 
 void *Aclshmem_ptr(void *ptr, int pe)
