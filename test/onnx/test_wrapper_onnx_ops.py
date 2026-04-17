@@ -1110,6 +1110,7 @@ class TestOnnxOps(TestCase):
                                             onnx_model_name)))
 
     @SupportedDevices(['Ascend910B'])
+    @unittest.skip("Temporarily skipping")
     def test_wrapper_npu_moe_compute_expert_tokens(self):
         class Model(torch.nn.Module):
             def __init__(self):

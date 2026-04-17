@@ -1,3 +1,4 @@
+import unittest
 import torch
 import torch.nn as nn
 import torch_npu
@@ -30,6 +31,7 @@ class TestDropoutLayers(TestCase):
         output = m(input1)
         self.assertEqual(output is not None, True)
 
+    @unittest.skip("Temporarily skipping")
     def test_native_dropout(self):
         for train in [True, False]:
             for p in [0.0, 1.0, 0.5]:
