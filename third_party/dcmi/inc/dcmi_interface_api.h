@@ -29,4 +29,6 @@ DCMIDLLEXPORT int dcmiv2_init(void);
 
 DCMIDLLEXPORT int dcmiv2_get_affinity_cpu_info_by_device_id(int dev_id, char *affinity_cpu, int *length);
 
+DCMIDLLEXPORT int dcmiv2_get_affinity_cpu_info_by_dev_id(int dev_id, char *affinity_cpu, int *length);
+
 DCMIDLLEXPORT int dcmiv2_get_device_list(int* device_list, int* device_cnt, int list_len);
