@@ -72,6 +72,9 @@ else:
         patch_constant_fold_uniform_value()
         patch_fallback_kernel_codegen()
 
+        from .ir import patch_extern_kernel_codegen_size_asserts
+        patch_extern_kernel_codegen_size_asserts()
+
         patch_aot_code_compiler_compile()
 
 
@@ -95,7 +98,8 @@ else:
 
     # register fx_pass should be put behind of _register_npu_inductor_decompositons
     def _replace_benchmark_all_configs():
-        from torch._inductor.triton_heuristics import CachingAutotuner
+        from torch_npu._compat.inductor import get_CachingAutotuner
+        CachingAutotuner = get_CachingAutotuner()
         from .npu_triton_heuristics import benchmark_all_configs
         CachingAutotuner.benchmark_all_configs = benchmark_all_configs
 

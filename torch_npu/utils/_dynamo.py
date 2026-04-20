@@ -185,8 +185,10 @@ def patch_inductor_wrapper():
             try:
                 import torch_mlir
                 from torch_mlir import ir
-            except ImportError as e:	 
+            except ImportError as e:
                 raise ImportError("torch_mlir is not installed, install it first.") from e
+            from torch._inductor.lowering import make_fallback as ori_make_fallback
+            torch._inductor.lowering.make_fallback = ori_make_fallback
             from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu import (
                 npu_inductor_plugin,
             )

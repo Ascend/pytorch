@@ -4,8 +4,12 @@ set -e
 
 CUR_DIR=$(dirname $(readlink -f $0))
 SUPPORTED_PY_VERSION=(3.9 3.10 3.11 3.12 3.13)
+SUPPORTED_TORCH_VERSION=(2.10.0 2.11.0 2.12.0)
 # Default supported python version is 3.9
 PY_VERSION="3.9"
+# Torch version to validate against installed PyTorch (empty = skip check)
+# Also written to version.txt before building
+TORCH_VERSION=""
 
 # Parse arguments inside script
 function parse_script_args() {
@@ -21,6 +25,11 @@ function parse_script_args() {
         case "${1}" in
         --python=*)
             PY_VERSION=$(echo "${1}"|cut -d"=" -f2)
+            args_num=$((args_num-1))
+            shift
+            ;;
+        --torch=*)
+            TORCH_VERSION=$(echo "${1}"|cut -d"=" -f2)
             args_num=$((args_num-1))
             shift
             ;;
@@ -91,6 +100,45 @@ function check_python_version() {
     fi
 }
 
+function check_torch_version() {
+    if [ -z "${TORCH_VERSION}" ]; then
+        return 0
+    fi
+    local matched="false"
+    for ver in ${SUPPORTED_TORCH_VERSION[*]}; do
+        if [ "${TORCH_VERSION}" = "${ver}" ]; then
+            matched="true"
+            break
+        fi
+    done
+    if [ "${matched}" = "false" ]; then
+        echo "${TORCH_VERSION} is an unsupported torch version, we suggest ${SUPPORTED_TORCH_VERSION[*]}"
+        exit 1
+    fi
+}
+
+function check_torch_installed() {
+    local installed
+    installed=$(python"${PY_VERSION}" -c "import torch; print(torch.__version__)" 2>/dev/null)
+    if [ -z "${installed}" ]; then
+        echo "PyTorch is not installed for python${PY_VERSION}. Please install it before building."
+        exit 1
+    fi
+    # Strip local tag (e.g. 2.11.0+cpu -> 2.11.0)
+    local installed_base="${installed%%+*}"
+    if [ -n "${TORCH_VERSION}" ]; then
+        # Compare major.minor only (ignore patch and local tag)
+        local requested_mm installed_mm
+        requested_mm=$(echo "${TORCH_VERSION}" | cut -d. -f1,2)
+        installed_mm=$(echo "${installed_base}" | cut -d. -f1,2)
+        if [ "${installed_mm}" != "${requested_mm}" ]; then
+            echo "PyTorch version mismatch: requested ${TORCH_VERSION}, but ${installed} is installed."
+            exit 1
+        fi
+    fi
+    echo "Using PyTorch ${installed}"
+}
+
 function main()
 {
     if ! parse_script_args "$@"; then
@@ -98,8 +146,16 @@ function main()
         exit 1
     fi
     check_python_version
+    check_torch_version
+    check_torch_installed
 
     cd ${CUR_DIR}/..
+
+    if [ -n "${TORCH_VERSION}" ]; then
+        export TORCH_VERSION
+        echo "${TORCH_VERSION}" > version.txt
+        echo "Set package version to ${TORCH_VERSION}"
+    fi
     # if you add or delete file/files in the project, you need to remove the following comment
     # make clean
 

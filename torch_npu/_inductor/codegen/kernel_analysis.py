@@ -4,11 +4,12 @@ from torch._inductor import ir
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import sympy_index_symbol
 from torch._inductor.virtualized import V
+from torch_npu._compat.inductor import get_sizevars_backed_var_to_val
 
 
 class IndexAnalysis:
     def __init__(self, kernel, raw_index, is_store_index=False, is_index_expr=False):
-        self.index = raw_index.subs(V.graph.sizevars.backed_var_to_val)
+        self.index = raw_index.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
         self.kernel = kernel
         self.tiling_axis = [x.symbol() for x in self.kernel.tiling_axis]
         self.stride_list = None  # stride list [1,2,4,24]

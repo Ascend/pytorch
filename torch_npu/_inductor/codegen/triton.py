@@ -82,6 +82,8 @@ from .kernel_analysis import IndexAnalysis, ReductionAnalysis
 from .npu_kernel_features import NumelList
 from ..runtime import NPUDeviceProperties
 from .. import npu_triton_heuristics
+from torch_npu._compat.inductor import get_sizevars_backed_var_to_val
+from torch_npu._compat.inductor import gen_common_triton_imports as _compat_gen_common_triton_imports
 
 
 def flatten(nums):
@@ -516,7 +518,7 @@ class NPUIndexTritonKernel(TritonKernel):
     def initialize_range_tree(self, pid_cache):
         for k, x in self.numels.items():
             if not isinstance(x, sympy.Integer):
-                x = x.subs(V.graph.sizevars.backed_var_to_val)
+                x = x.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
                 self.numels[k] = x
 
         no_r_dim = not self.inside_reduction or self.numels["r"] == 1
@@ -730,7 +732,7 @@ class NPUIndexTritonKernel(TritonKernel):
         size_hints = self.get_size_hints()
         heuristics = self._get_heuristic()
         if name is None:
-            code.splice(self.gen_common_triton_imports())
+            code.splice(_compat_gen_common_triton_imports(self))
             # Note: add extra imports for extensions
             code.splice(self.gen_triton_ext_imports())
 
@@ -1120,7 +1122,7 @@ class NPUIndexTritonKernel(TritonKernel):
 
         # all are load indexings, select the longest as gold
         for index in self.load_store_indexing:
-            index = index.subs(V.graph.sizevars.backed_var_to_val)
+            index = index.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
             analyze = IndexAnalysis(self, index)
             if len(analyze.var_list) > maximum_length and all_tiling_in_var_list(analyze.var_list):
                 longest = analyze.var_list

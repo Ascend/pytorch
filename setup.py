@@ -130,6 +130,17 @@ def generate_torch_npu_version():
 generate_torch_npu_version()
 
 
+def _get_torch_requires():
+    torch_version = os.environ.get("TORCH_VERSION", "")
+    if not torch_version:
+        try:
+            import torch
+            torch_version = torch.__version__.split("+")[0]
+        except ImportError:
+            pass
+    return ["torch==" + torch_version] if torch_version else []
+
+
 def which(thefile):
     path = os.environ.get("PATH", os.defpath).split(os.pathsep)
     for d in path:
@@ -730,6 +741,9 @@ setup(
                 extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib', '-Wl,-Bsymbolic-functions'],
                 define_macros=[('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'), ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0')]
             ),
+    ],
+    install_requires=[
+        *_get_torch_requires(),
     ],
     extras_require={
     },

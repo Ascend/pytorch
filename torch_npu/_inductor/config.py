@@ -91,6 +91,14 @@ dump_fx_graph = os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH", False) \
 # (2) [1, 2, 10] means try to fallback kernel like triton_xxx_1, triton_xxx_2 and triton_xxx_10
 force_fallback_kernel_id = []
 
+# Control whether to skip stride assertions for ops that may change stride
+# at runtime (like _to_copy on NPU forcing Contiguous memory format).
+#
+# Usage:
+#   - Skip specific ops: skip_specific_stride_asserts = [torch.ops.aten._to_copy.default, ...]
+#   - Disable skip: skip_specific_stride_asserts = [] (default)
+skip_specific_stride_asserts = []
+
 acc_comp_tol = {
     torch.float32: {'rtol': 1.3e-6, 'atol': 1e-5},
     torch.float16: {'rtol': 1e-3, 'atol': 1e-5},

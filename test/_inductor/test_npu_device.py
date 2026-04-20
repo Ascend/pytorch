@@ -36,7 +36,7 @@ class TestNpuDevice(TestCase):
         self.assertIn("#include <sys/syscall.h>", result)
         self.assertIn("#include <torch_npu/csrc/framework/OpCommand.h>", result)
         self.assertIn("#include <torch_npu/csrc/core/npu/NPUStream.h>", result)
-        self.assertIn("#include \"experiment/runtime/runtime/rt.h\"", result)
+        self.assertIn("#include \"runtime/runtime/rt.h\"", result)
 
     def test_cpp_aoti_stream_guard(self):
         overrides = NewNPUDeviceOpOverrides()

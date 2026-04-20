@@ -6,6 +6,7 @@ from torch._inductor.loop_body import MemoryUsageType
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.utils import ModularIndexing, sympy_subs
 from torch._inductor.virtualized import V
+from torch_npu._compat.inductor import get_sizevars_backed_var_to_val
 
 from .kernel_analysis import IndexAnalysis
 from .triton_utils import get_aligned_numel
@@ -254,10 +255,10 @@ class SplitTiling:
         xnumel = x
         ynumel = y
         if isinstance(xnumel, (sympy.Symbol, sympy.Expr)) and not isinstance(xnumel, sympy.Integer):
-            xnumel = xnumel.subs(V.graph.sizevars.backed_var_to_val)
+            xnumel = xnumel.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
 
         if isinstance(ynumel, (sympy.Symbol, sympy.Expr)) and not isinstance(ynumel, sympy.Integer):
-            ynumel = ynumel.subs(V.graph.sizevars.backed_var_to_val)
+            ynumel = ynumel.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
 
         if isinstance(xnumel, sympy.Integer) and isinstance(ynumel, int):
             ynumel = sympy.Integer(ynumel)
