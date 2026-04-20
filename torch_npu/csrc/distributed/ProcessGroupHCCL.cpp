@@ -1066,6 +1066,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     waitTimeoutDumpInMilSec_ = c10d::getCvarInt(TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC, 60 * 1000);  // 60 Sec
     coordCheckIntervalMilSec_ = c10d::getCvarInt(TORCH_HCCL_COORD_CHECK_MILSEC, 1000);
     hcclTraceBufferSize_ = c10d::getCvarInt(TORCH_HCCL_TRACE_BUFFER_SIZE, 0);
+    debugInfoPipeFile_ = c10d::getCvarString({"TORCH_HCCL_DEBUG_INFO_PIPE_FILE"}, "");
 
     // store_ usually is wrapped with PrefixStore and the prefix is different
     // across different ProcessGroupNCCL(PG) instances. We need to get the
@@ -1589,7 +1590,7 @@ void ProcessGroupHCCL::heartbeatMonitor()
         // DumpPipe is one per-trainer process, and its convenient to name them
         // after 'global' ranks in the system, So we assume processgroup options_->global_ranks_in_group.empty() is
         // the global PG and has globally unique rank ids across trainers.
-        dumpPipe.emplace(rank_);
+        dumpPipe.emplace(rank_, debugInfoPipeFile_, hcclTraceBufferSize_);
     }
 
     while (true) {
